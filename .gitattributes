@@ -1,0 +1,2 @@
+# LF in the repository and in every checkout, so files read at runtime are byte-identical on Windows and Linux.
+* text=auto eol=lf

@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- child.*.inherit.append.path=false: Maven would otherwise append each module's artifactId to the inherited URLs. -->
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd"
+         child.project.url.inherit.append.path="false">
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>com.rethinkj.ui</groupId>
+  <artifactId>rethinkj-ui-parent</artifactId>
+  <version>0.1.0-SNAPSHOT</version>
+  <packaging>pom</packaging>
+
+  <name>rethinkj UI</name>
+  <description>Native, GPU-rendered UI framework for Java.</description>
+  <url>https://github.com/rethinkj/ui</url>
+
+  <licenses>
+    <license>
+      <name>MIT License</name>
+      <url>https://opensource.org/license/mit</url>
+    </license>
+  </licenses>
+
+  <scm child.scm.connection.inherit.append.path="false"
+       child.scm.developerConnection.inherit.append.path="false"
+       child.scm.url.inherit.append.path="false">
+    <connection>scm:git:https://github.com/rethinkj/ui.git</connection>
+    <developerConnection>scm:git:git@github.com:rethinkj/ui.git</developerConnection>
+    <url>https://github.com/rethinkj/ui</url>
+  </scm>
+
+  <modules>
+    <module>core</module>
+    <module>kit</module>
+  </modules>
+
+  <properties>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <maven.compiler.release>25</maven.compiler.release>
+  </properties>
+</project>
