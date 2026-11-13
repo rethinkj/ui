@@ -1,6 +1,8 @@
 package com.rethinkj.ui.kit;
 
+import static com.rethinkj.ui.El.col;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.rethinkj.ui.App;
@@ -10,6 +12,8 @@ import com.rethinkj.ui.render.Png;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.function.Function;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -280,5 +284,63 @@ class PartsTest {
     String dump = app.tree().dump();
     assertTrue(StructureTest.line(dump, "label=\"staging\"").contains("role=img"), dump);
     assertTrue(dump.contains("text \"PE\""), dump);
+  }
+
+  @Test
+  void aToolbarThatChangesLeavesTheFocusWhereTabTookIt() throws IOException {
+    final class Tools {
+      final Toolbar.State toolbar = new Toolbar.State();
+      boolean first = true;
+
+      El view() {
+        List<Toolbar.Item> items = new ArrayList<>();
+        if (first) {
+          items.add(Toolbar.text(null, "A", () -> {}));
+        }
+        items.add(Toolbar.text(null, "B", () -> {}));
+        return col()
+            .wFull()
+            .hFull()
+            .children(
+                Toolbar.toolbar(Theme.DARK, toolbar, "Tools", items),
+                TextField.textField(Theme.DARK, "", "Editor", v -> {}).key("editor"))
+            .onKey(k -> {
+              if (!k.name().equals("F2")) {
+                return false;
+              }
+              first = false;
+              return true;
+            });
+      }
+    }
+    App<Tools> app = new App<>(new Tools(), Tools::view);
+    Script.run("size 400 200\nframe\nframe\nkey Tab\nkey ArrowRight\nkey Tab\nframe\n", app, out);
+    assertEquals("editor", app.focused().key());
+    Script.run("key F2\nframe\nframe\n", app, out);
+    assertEquals("editor", app.focused().key(), "the toolbar's change moved nothing");
+    Script.run("key Tab shift\nkey End\nframe\n", app, out);
+    assertEquals("B", app.focused().label(), "the keys still move in the toolbar");
+  }
+
+  @Test
+  void escapeClosesAPopoverWithNothingToFocusInItAndGivesTheFocusBack() throws IOException {
+    Popover.State state = new Popover.State();
+    App<Popover.State> app = new App<>(
+        state,
+        s -> col()
+            .wFull()
+            .hFull()
+            .child(Popover.popover(
+                Theme.DARK,
+                Button.button(Theme.DARK, Button.Variant.SECONDARY, "Details", s::toggle)
+                    .key("details"),
+                s,
+                "Details",
+                Label.label(Theme.DARK, "Read-only information"))));
+    Script.run("size 400 200\nframe\nfocus #details\nkey Enter\nframe\n", app, out);
+    assertEquals("popover", app.focused().key(), "the popover itself took the focus");
+    Script.run("key Escape\nframe\nadvance 1\nframe\n", app, out);
+    assertFalse(state.isOpen());
+    assertEquals("details", app.focused().key());
   }
 }
