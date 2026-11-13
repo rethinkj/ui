@@ -3,9 +3,11 @@ package com.rethinkj.ui.kit;
 import static com.rethinkj.ui.El.row;
 import static com.rethinkj.ui.kit.Button.button;
 import static com.rethinkj.ui.kit.Checkbox.checkbox;
+import static com.rethinkj.ui.kit.TextField.textField;
 import static com.rethinkj.ui.kit.Toggle.toggle;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.rethinkj.ui.App;
 import com.rethinkj.ui.Cursor;
@@ -106,7 +108,9 @@ class ComponentTest {
         toggle(T, true, "Autocommit", () -> {}),
         toggle(T, false, () -> {}).label("Wi-Fi"),
         checkbox(T, true, "Read only", () -> {}),
-        button(T, Variant.GHOST, "Format", null)));
+        button(T, Variant.GHOST, "Format", null),
+        textField(T, "", "Search", s -> {}),
+        textField(T, "x", s -> {}).label("Name")));
     run(app, "");
 
     List<String> named = new ArrayList<>();
@@ -119,7 +123,40 @@ class ComponentTest {
         "role=switch label=\"Autocommit\"",
         "role=switch label=\"Wi-Fi\"",
         "role=checkbox label=\"Read only\"",
-        "role=button label=\"Format\""), named);
+        "role=button label=\"Format\"",
+        "role=textbox label=\"Search\"",
+        "role=textbox label=\"Name\""), named);
+  }
+
+  @Test
+  void aTextFieldHandsEachEditToItsHandlerAndShowsTheTextCursor() throws IOException {
+    TextLibraries.assumeLoaded();
+    String[] value = {""};
+    App<Object> app = new App<>(new Object(),
+        s -> row().child(textField(T, value[0], "Search", v -> value[0] = v).key("q")));
+    app.textRendering(TextRendering.LINUX);
+    run(app, "move #q\npress #q\nframe\ntype \"orders\"\nframe\nkey Backspace");
+    assertEquals("order", value[0]);
+    assertEquals(Cursor.TEXT, app.cursor());
+    assertEquals("q", app.focused().key());
+    assertTrue(app.tree().dump().contains("text #q role=textbox label=\"Search\" \"order\""));
+  }
+
+  @Test
+  void aDisabledTextFieldTakesNoFocusAndAReadOnlyOneTakesNoEdits() throws IOException {
+    TextLibraries.assumeLoaded();
+    App<Object> disabled = app(row().child(textField(T, "x", "Search", null)));
+    run(disabled, "move role=textbox\npress role=textbox\nframe\nkey Tab\nframe\ntype \"y\"");
+    assertNull(disabled.focused());
+    assertEquals(Cursor.DEFAULT, disabled.cursor());
+
+    String[] value = {"fixed"};
+    App<Object> readOnly = app(row().child(
+        textField(T, value[0], "Search", v -> value[0] = v).readOnly().maxLength(10)));
+    run(readOnly, "key Tab\nframe\ntype \"y\"\nframe\nkey C control");
+    assertEquals("textbox", readOnly.focused().role());
+    assertEquals("fixed", value[0]);
+    assertEquals("fixed", readOnly.clipboard().read(), "Tab selected it all, and it copies");
   }
 
   @Test
