@@ -107,30 +107,40 @@ el 0,0 1000x600
                         el 561,210 118x16
                           text "status" 561,210 37x16
                           text "order_status" 602,210 77x16
+                        el #filter-2 role=button label="Filter status" 668,210 16x16
+                          text label="filter" "\u{E60A}" 668,210 16x16
                       el 686,206 1x24
                       el #column-3 role=columnheader label="amount" 687,206 169x24 pos=4/9
                         text label="calculator" "\u{F06B}" 696,210 16x16
                         el 716,210 136x16
                           text "amount" 716,210 47x16
                           text "numeric(10,2)" 767,210 85x16
+                        el #filter-3 role=button label="Filter amount" 689,210 16x16
+                          text label="filter" "\u{E60A}" 689,210 16x16
                       el 856,206 1x24
                       el #column-4 role=columnheader label="paid" 857,206 109x24 pos=5/9
                         text label="checkbox_checked" "\u{F27C}" 861,210 16x16
                         el 881,210 80x16
                           text "paid" 881,210 26x16
                           text "boolean" 911,210 50x16
+                        el #filter-4 role=button label="Filter paid" 948,210 16x16
+                          text label="filter" "\u{E60A}" 948,210 16x16
                       el 966,206 1x24
                       el #column-5 role=columnheader label="email" 967,206 219x24 pos=6/9
                         text label="text_case_title" "\u{ECEC}" 971,210 16x16
                         el 991,210 117x16
                           text "email" 991,210 33x16
                           text "varchar(255)" 1028,210 80x16
+                        el #filter-5 role=button label="Filter email" 1168,210 16x16
+                          text label="filter" "\u{E60A}" 1168,210 16x16
                       el 1186,206 1x24
                       el #column-6 role=columnheader label="note" 1187,206 159x24 pos=7/9
                         text label="text_case_title" "\u{ECEC}" 1191,210 16x16
                         el 1211,210 54x16
                           text "note" 1211,210 28x16
                           text "text" 1243,210 22x16
+                        el #filter-6 role=button label="Filter note" 1328,210 16x16
+                          text label="filter" "\u{E60A}" 1328,210 16x16
                       el 1346,206 1x24
                       el #column-7 role=columnheader label="created_at" 1347,206 189x24 pos=8/9
                         text label="calendar_clock" "\u{E243}" 1351,210 16x16
@@ -317,84 +327,84 @@ overlay edge top center gap 36 on 0,0 1000x600
     el 225,41 550x24
       text #query-1 role=textbox label="Command" "" 225,41 550x24 focused caret 0
       text label="search" "\u{EA7C}" 229,45 16x16
-    el #options role=listbox label="Commands" 225,69 550x288 rows 0-14/25 thumb-y 767,71 6x136.32
-      el #option-0 role=option label="File: New query" 225,69 542x24 selected pos=1/25
+    el #options role=listbox label="Commands" 225,69 550x288 rows 0-14/28 thumb-y 767,71 6x121.71
+      el #option-0 role=option label="File: New query" 225,69 542x24 selected pos=1/28
         el 225,69 542x24
           el 233,73 16x16
             text label="add" "\u{F108}" 233,73 16x16
           text "File: New query" 257,73 450x16
           text "Ctrl+N" 719,73 40x16
-      el #option-1 role=option label="File: Close tab" 225,93 542x24 pos=2/25
+      el #option-1 role=option label="File: Close tab" 225,93 542x24 pos=2/28
         el 225,93 542x24
           el 233,105 16x0
           text "File: Close tab" 257,97 448x16
           text "Ctrl+W" 717,97 42x16
-      el #option-2 role=option label="File: Exit" 225,117 542x24 pos=3/25
+      el #option-2 role=option label="File: Exit" 225,117 542x24 pos=3/28
         el 225,117 542x24
           el 233,129 16x0
           text "File: Exit" 257,121 502x16
-      el #option-3 role=option label="Edit: Undo" 225,141 542x24 pos=4/25
+      el #option-3 role=option label="Edit: Undo" 225,141 542x24 pos=4/28
         el 225,141 542x24
           el 233,145 16x16
             text label="arrow_undo" "\u{E126}" 233,145 16x16
           text "Edit: Undo" 257,145 452x16
           text "Ctrl+Z" 721,145 38x16
-      el #option-4 role=option label="Edit: Redo" 225,165 542x24 pos=5/25
+      el #option-4 role=option label="Edit: Redo" 225,165 542x24 pos=5/28
         el 225,165 542x24
           el 233,169 16x16
             text label="arrow_redo" "\u{E0E4}" 233,169 16x16
           text "Edit: Redo" 257,169 416x16
           text "Ctrl+Shift+Z" 685,169 74x16
-      el #option-5 role=option label="Edit: Cut" 225,189 542x24 pos=6/25
+      el #option-5 role=option label="Edit: Cut" 225,189 542x24 pos=6/28
         el 225,189 542x24
           el 233,193 16x16
             text label="cut" "\u{F038C}" 233,193 16x16
           text "Edit: Cut" 257,193 452x16
           text "Ctrl+X" 721,193 38x16
-      el #option-6 role=option label="Edit: Copy" 225,213 542x24 pos=7/25
+      el #option-6 role=option label="Edit: Copy" 225,213 542x24 pos=7/28
         el 225,213 542x24
           el 233,217 16x16
             text label="copy" "\u{F32A}" 233,217 16x16
           text "Edit: Copy" 257,217 451x16
           text "Ctrl+C" 720,217 39x16
-      el #option-7 role=option label="Edit: Paste" 225,237 542x24 pos=8/25
+      el #option-7 role=option label="Edit: Paste" 225,237 542x24 pos=8/28
         el 225,237 542x24
           el 233,241 16x16
             text label="clipboard_paste" "\u{E35A}" 233,241 16x16
           text "Edit: Paste" 257,241 452x16
           text "Ctrl+V" 721,241 38x16
-      el #option-8 role=option label="Edit: Select all" 225,261 542x24 pos=9/25
+      el #option-8 role=option label="Edit: Select all" 225,261 542x24 pos=9/28
         el 225,261 542x24
           el 233,273 16x0
           text "Edit: Select all" 257,265 452x16
           text "Ctrl+A" 721,265 38x16
-      el #option-9 role=option label="Edit: Find…" 225,285 542x24 pos=10/25
+      el #option-9 role=option label="Edit: Find…" 225,285 542x24 pos=10/28
         el 225,285 542x24
           el 233,289 16x16
             text label="search" "\u{EA7C}" 233,289 16x16
           text "Edit: Find…" 257,289 452x16
           text "Ctrl+F" 721,289 38x16
-      el #option-10 role=option label="Edit: Replace…" 225,309 542x24 pos=11/25
+      el #option-10 role=option label="Edit: Replace…" 225,309 542x24 pos=11/28
         el 225,309 542x24
           el 233,321 16x0
           text "Edit: Replace…" 257,313 450x16
           text "Ctrl+H" 719,313 40x16
-      el #option-11 role=option label="Edit: Find next" 225,333 542x24 pos=12/25
+      el #option-11 role=option label="Edit: Find next" 225,333 542x24 pos=12/28
         el 225,333 542x24
           el 233,345 16x0
           text "Edit: Find next" 257,337 474x16
           text "F3" 743,337 16x16
-      el #option-12 role=option label="Edit: Go to line…" 225,357 542x24 pos=13/25
+      el #option-12 role=option label="Edit: Go to line…" 225,357 542x24 pos=13/28
         el 225,357 542x24
           el 233,369 16x0
           text "Edit: Go to line…" 257,361 450x16
           text "Ctrl+G" 719,361 40x16
-      el #option-13 role=option label="Edit: Select next occurrence" 225,381 542x24 pos=14/25
+      el #option-13 role=option label="Edit: Select next occurrence" 225,381 542x24 pos=14/28
         el 225,381 542x24
           el 233,393 16x0
           text "Edit: Select next occurrence" 257,385 451x16
           text "Ctrl+D" 720,385 39x16
-      el #option-14 role=option label="Edit: Duplicate lines" 225,405 542x24 pos=15/25
+      el #option-14 role=option label="Edit: Duplicate lines" 225,405 542x24 pos=15/28
         el 225,405 542x24
           el 233,417 16x0
           text "Edit: Duplicate lines" 257,409 415x16
