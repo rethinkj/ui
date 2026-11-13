@@ -1,0 +1,1 @@
+- `NumberField.numberField(theme, label, value, min, max, step, onChange)` labels the `role=spinbutton` itself, so that `press role=spinbutton label="…"` finds it; `.label(...)` on the result labels only the box around field and buttons.
