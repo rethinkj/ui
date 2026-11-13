@@ -2,7 +2,7 @@
 
 A native, GPU-rendered UI framework for Java, modelled on [rune](https://github.com/anomalyco/rune) (Rust, MIT). Rune is the reference for scope and concepts: its own renderer, text, layout and animation, plus a headless mode in which an agent can render to PNG, dump the element tree and drive an app with scripted input.
 
-Status: early. `core` draws a view without a window: element tree, flexbox layout, CPU reference renderer, PNG. There is no window, GPU renderer, text or input yet, and `kit` is empty. The native libraries for the window and the renderer are packaged and loaded, but nothing calls them yet.
+Status: early. `core` draws a view without a window: element tree, flexbox layout, CPU reference renderer, PNG. It also opens SDL windows and runs an app in them with its input, but there is no GPU renderer or text yet, and `kit` is empty.
 
 - Repository: https://github.com/rethinkj/ui
 - License: MIT
@@ -54,6 +54,14 @@ The window (SDL3) and the GPU renderer (wgpu-native) will call native libraries.
 - Native access must be enabled for core: `--enable-native-access=com.rethinkj.ui` (core's tests pass it). On the module path, the natives JAR is resolved only with `--add-modules com.rethinkj.ui.natives.windows.x64`.
 - Loading happens only on first use. Never call `Natives` from a static initialiser that the headless path can reach: rendering without a window must not need the libraries.
 - `natives-linux-x64` will follow with the same layout and manifest format. SDL publishes no Linux binaries, so its SDL comes from a local build rather than a release archive.
+
+## Windows
+
+- `com.rethinkj.ui.window` opens windows through SDL 3 (`Window`), turns SDL's events into `WindowEvent`s and runs an `App` in a window (`WindowLoop`), which hands each new frame to a `Presenter`. `Sdl` and `Win32` hold the handwritten bindings: a new function gets its descriptor as a constant there and its handle in the class's lazy holder.
+- Windows are used on the thread that opened the first one, until all are closed. Every event is translated in an SDL event watch as SDL queues it and delivered in that order by `Window.pollEvents` or `waitEvents`; SDL's own queue only ends the wait. On Windows the listener is also called from inside the system's move and resize loop, with `Redraw(live = true)`.
+- The hit test, the event watch and the Windows subclass are upcalls: each catches every `Throwable` and hands it to `Window.fail`, and the next `pollEvents` or `waitEvents` throws it. One that escapes ends the JVM.
+- A frameless window draws its own title bar: the view marks elements with `El.windowPart`, and `App.windowPart` answers SDL's hit test. The Windows 11 parts (rounded corners, snap layouts on the maximize part, system menu on a right click) are in `Win32Frame`, whose Javadoc also says why the resize margin lies inside the window.
+- Tests that open windows skip themselves without the natives module or a display. The demo in the test sources draws with SDL's 2D renderer: build with `mvn -pl core -am test-compile`, then from the repository root `java --enable-native-access=ALL-UNNAMED -cp "core/target/classes;core/target/test-classes;natives-windows-x64/target/classes" com.rethinkj.ui.window.WindowDemo`. `--exit-after=<seconds>` and its other options are in its Javadoc; keep windows short-lived when you drive them with synthetic input.
 
 ## Conventions
 
