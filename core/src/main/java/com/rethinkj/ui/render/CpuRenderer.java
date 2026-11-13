@@ -123,21 +123,21 @@ public final class CpuRenderer {
     Box inner = border ? inner(centerX, centerY, halfW, halfH, radii, borders, scale) : null;
 
     // One extra pixel on each side: the smoothed edge reaches half a pixel beyond the shape.
-    int left = Math.max((int) Math.floor((centerX - halfW) * scale) - 1, 0);
-    int top = Math.max((int) Math.floor((centerY - halfH) * scale) - 1, 0);
-    int right = Math.min((int) Math.ceil((centerX + halfW) * scale) + 1, width);
-    int bottom = Math.min((int) Math.ceil((centerY + halfH) * scale) + 1, height);
+    int left = first(centerX - halfW, scale, width);
+    int top = first(centerY - halfH, scale, height);
+    int right = end(centerX + halfW, scale, width);
+    int bottom = end(centerY + halfH, scale, height);
 
     // The clip's coverage multiplies the instance's. Entry 0 covers everything, so it is skipped.
     Box clip = Box.clip(scene, scene.clipOf(i));
     if (clip != null) {
-      left = Math.max(left, (int) Math.floor((clip.centerX - clip.halfW) * scale) - 1);
-      top = Math.max(top, (int) Math.floor((clip.centerY - clip.halfH) * scale) - 1);
-      right = Math.min(right, (int) Math.ceil((clip.centerX + clip.halfW) * scale) + 1);
-      bottom = Math.min(bottom, (int) Math.ceil((clip.centerY + clip.halfH) * scale) + 1);
+      left = Math.max(left, first(clip.centerX - clip.halfW, scale, width));
+      top = Math.max(top, first(clip.centerY - clip.halfH, scale, height));
+      right = Math.min(right, end(clip.centerX + clip.halfW, scale, width));
+      bottom = Math.min(bottom, end(clip.centerY + clip.halfH, scale, height));
     }
     if (left >= right || top >= bottom) {
-      return; // also where a bound has overflowed, so right - 1 below cannot
+      return;
     }
     boolean clipWhole = clip != null && clip.coversWhole(left, top, right - 1, bottom - 1, scale);
     double[] fill = colour(scene, i, Scene.FILL);
@@ -339,8 +339,10 @@ public final class CpuRenderer {
     int atlas = scene.getInt(i, Scene.ATLAS);
     int size = scene.getInt(i, Scene.ATLAS_SIZE);
     Atlas.Page page = scene.pages().get(scene.getInt(i, Scene.PAGE));
-    int left = (int) Math.round(scene.get(i, Scene.X) * scale);
-    int top = (int) Math.round(scene.get(i, Scene.Y) * scale);
+    // Clamped, not cast: a glyph is at most 0xFFFF texels wide, so one that starts further left
+    // or above draws nothing either way, and a long cast to an int would wrap.
+    int left = Math.clamp(Math.round(scene.get(i, Scene.X) * scale), -0x10000, width);
+    int top = Math.clamp(Math.round(scene.get(i, Scene.Y) * scale), -0x10000, height);
     double[] corrected = corrections(scene, i, scratch);
     double[] colour = colour(scene, i, Scene.COLOUR);
     Box clip = Box.clip(scene, scene.getInt(i, Scene.CLIP));
@@ -441,16 +443,16 @@ public final class CpuRenderer {
     double centerY = y0 + halfH;
     double[] square = new double[4];
     Box shape = new Box(centerX, centerY, halfW, halfH, square, square);
-    int left = Math.max((int) Math.floor((centerX - halfW) * scale) - 1, 0);
-    int top = Math.max((int) Math.floor((centerY - halfH) * scale) - 1, 0);
-    int right = Math.min((int) Math.ceil((centerX + halfW) * scale) + 1, width);
-    int bottom = Math.min((int) Math.ceil((centerY + halfH) * scale) + 1, height);
+    int left = first(centerX - halfW, scale, width);
+    int top = first(centerY - halfH, scale, height);
+    int right = end(centerX + halfW, scale, width);
+    int bottom = end(centerY + halfH, scale, height);
     Box clip = Box.clip(scene, scene.clipOf(i));
     if (clip != null) {
-      left = Math.max(left, (int) Math.floor((clip.centerX - clip.halfW) * scale) - 1);
-      top = Math.max(top, (int) Math.floor((clip.centerY - clip.halfH) * scale) - 1);
-      right = Math.min(right, (int) Math.ceil((clip.centerX + clip.halfW) * scale) + 1);
-      bottom = Math.min(bottom, (int) Math.ceil((clip.centerY + clip.halfH) * scale) + 1);
+      left = Math.max(left, first(clip.centerX - clip.halfW, scale, width));
+      top = Math.max(top, first(clip.centerY - clip.halfH, scale, height));
+      right = Math.min(right, end(clip.centerX + clip.halfW, scale, width));
+      bottom = Math.min(bottom, end(clip.centerY + clip.halfH, scale, height));
     }
     if (left >= right || top >= bottom) {
       return;
@@ -628,23 +630,21 @@ public final class CpuRenderer {
     // black shows as a faint edge; reach four deviations if glows need it.
     double reachW = halfW + 3 * sigma;
     double reachH = halfH + 3 * sigma;
-    int left = Math.max((int) Math.floor((centerX - reachW) * scale) - 1, 0);
-    int top = Math.max((int) Math.floor((centerY - reachH) * scale) - 1, 0);
-    int right = Math.min((int) Math.ceil((centerX + reachW) * scale) + 1, width);
-    int bottom = Math.min((int) Math.ceil((centerY + reachH) * scale) + 1, height);
+    int left = first(centerX - reachW, scale, width);
+    int top = first(centerY - reachH, scale, height);
+    int right = end(centerX + reachW, scale, width);
+    int bottom = end(centerY + reachH, scale, height);
     int clipIndex = scene.clipOf(i);
     if (clipIndex != 0) {
       double clipX = scene.clipGet(clipIndex, Scene.X);
       double clipY = scene.clipGet(clipIndex, Scene.Y);
-      left = Math.max(left, (int) Math.floor(clipX * scale) - 1);
-      top = Math.max(top, (int) Math.floor(clipY * scale) - 1);
-      right = Math.min(
-          right, (int) Math.ceil((clipX + scene.clipGet(clipIndex, Scene.WIDTH)) * scale) + 1);
-      bottom = Math.min(
-          bottom, (int) Math.ceil((clipY + scene.clipGet(clipIndex, Scene.HEIGHT)) * scale) + 1);
+      left = Math.max(left, first(clipX, scale, width));
+      top = Math.max(top, first(clipY, scale, height));
+      right = Math.min(right, end(clipX + scene.clipGet(clipIndex, Scene.WIDTH), scale, width));
+      bottom = Math.min(bottom, end(clipY + scene.clipGet(clipIndex, Scene.HEIGHT), scale, height));
     }
     if (left >= right || top >= bottom) {
-      return; // also where a bound has overflowed, so right - 1 below cannot
+      return;
     }
     Box clip = Box.clip(scene, clipIndex);
     boolean clipWhole = clip != null && clip.coversWhole(left, top, right - 1, bottom - 1, scale);
@@ -1099,6 +1099,20 @@ public final class CpuRenderer {
     return Math.min(Math.max(qx, qy), 0)
         + StrictMath.sqrt(outsideX * outsideX + outsideY * outsideY)
         - radius;
+  }
+
+  /**
+   * The first pixel a shape from {@code edge} logical pixels on can touch, one pixel before it for
+   * the smoothed edge, from 0 to {@code size}. It is clamped before it becomes an int: an edge far
+   * outside, as a scrim's, would overflow in int arithmetic. A bound that is not a number gives 0.
+   */
+  private static int first(double edge, double scale, int size) {
+    return (int) Math.clamp(Math.floor(edge * scale) - 1, 0, size);
+  }
+
+  /** The pixel after the last a shape up to {@code edge} can touch, as {@link #first} clamped. */
+  private static int end(double edge, double scale, int size) {
+    return (int) Math.clamp(Math.ceil(edge * scale) + 1, 0, size);
   }
 
   /** How much of a pixel the shape covers: a ramp one physical pixel wide across the edge. */

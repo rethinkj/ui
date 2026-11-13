@@ -196,6 +196,8 @@ class GpuRendererTest {
       cases.add(overlay("overlay-nested" + at, scale, "press #export\n"));
       cases.add(overlay("overlay-scrim" + at, scale, "press #delete\n"));
     }
+    // A scrim reaches a billion pixels beyond the window, beyond an int from scale 2.15 on.
+    cases.add(scrim(2.5f));
     for (int frames = 2; frames <= 5; frames++) {
       cases.add(switchMoving(frames));
     }
@@ -1097,6 +1099,18 @@ class GpuRendererTest {
         Path.of("target/gpu-vs-cpu-scripts"));
     assertTrue(!app.tree().shownOverlays().isEmpty(), "an overlay shows");
     return scene(name, app.scene(), 240, 200, scale);
+  }
+
+  /** A modal box over a white window, with its scrim. */
+  private static Case scrim(float scale) {
+    App<Object> app = new App<>(
+        new Object(),
+        s -> el().size(20, 20)
+            .fill(0xFFFFFFFF)
+            .overlay(el().size(4, 4).centerInWindow().modal().scrim(0x80000000)));
+    app.resize(20, 20, scale);
+    app.frame();
+    return scene("scrim@" + scale, app.scene(), 20, 20, scale);
   }
 
   /** The shapes of the stored images shapes-*, focused, at this scale. */

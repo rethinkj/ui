@@ -4,7 +4,11 @@ import static com.rethinkj.ui.El.el;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import com.rethinkj.ui.App;
 import com.rethinkj.ui.El;
+import com.rethinkj.ui.Image;
+import com.rethinkj.ui.Shadow;
+import com.rethinkj.ui.layout.Flex;
 import org.junit.jupiter.api.Test;
 
 class CpuRendererTest {
@@ -120,6 +124,46 @@ class CpuRendererTest {
     assertEquals(RED, image.argb(5, 5));
     assertEquals(0, image.argb(6, 4), "right of outer");
     assertEquals(0, image.argb(4, 6), "below outer");
+  }
+
+  @Test
+  void aModalScrimIsDrawnAtEveryScale() {
+    // The scrim reaches a billion logical pixels beyond the window on each side, beyond what an
+    // int holds in physical pixels from scale 2.15 on.
+    for (float scale : new float[] {1, 1.25f, 1.5f, 2, 2.5f, 3, 4}) {
+      App<Object> app = new App<>(
+          new Object(),
+          s -> el().size(20, 20)
+              .fill(0xFFFFFFFF)
+              .overlay(el().size(4, 4).centerInWindow().modal().scrim(0x80000000)));
+      app.resize(20, 20, scale);
+      app.frame();
+      int size = Math.round(20 * scale);
+
+      Pixels image = CpuRenderer.render(app.scene(), size, size, scale);
+
+      assertEquals(0xFFBBBBBB, image.argb(0, 0), "0x80 black over white at " + scale);
+      assertEquals(0xFFBBBBBB, image.argb(size - 1, size - 1), "at " + scale);
+    }
+  }
+
+  @Test
+  void shapesImagesAndShadowsFarBeyondTheImageAreDrawn() {
+    float far = 1e9f;
+    Image white = Image.of(new Pixels(1, 1, new byte[] {-1, -1, -1, -1}));
+    El image =
+        el().size(8, 8).clip().child(El.image(white).absolute(-far, -far).size(2 * far, 2 * far));
+    El shadow = el().size(8, 8)
+        .clip()
+        .child(
+            el().absolute(-far, -far).size(2 * far, 2 * far).shadow(new Shadow(0, 0, 4, 0, RED)));
+    Flex.layout(image, 8, 8);
+    Flex.layout(shadow, 8, 8);
+    for (float scale : new float[] {2.5f, 3}) {
+      assertEquals(
+          0xFFFFFFFF, CpuRenderer.render(Scene.of(image), 20, 20, scale).argb(10, 10));
+      assertEquals(RED, CpuRenderer.render(Scene.of(shadow), 20, 20, scale).argb(10, 10));
+    }
   }
 
   @Test
