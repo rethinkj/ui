@@ -2978,21 +2978,46 @@ public final class El {
           0);
       return;
     }
-    float right = 0;
-    float bottom = 0;
+    boolean scrolls =
+        style.overflowX == Style.Overflow.SCROLL || style.overflowY == Style.Overflow.SCROLL;
+    float[] extent = new float[2]; // right and bottom
     for (El child : children) {
       if (child.placed && !child.exiting) {
-        right = Math.max(right, child.x + child.width + px(child.style.marginRight));
-        bottom = Math.max(bottom, child.y + child.height + px(child.style.marginBottom));
+        extent[0] = Math.max(extent[0], child.x + child.width + px(child.style.marginRight));
+        extent[1] = Math.max(extent[1], child.y + child.height + px(child.style.marginBottom));
+        if (scrolls) {
+          child.overflow(child.x, child.y, extent);
+        }
       }
     }
-    // shortcut: only the children's rectangles count, not what sticks out of them, and padding,
-    // border and margin only in pixels, not in percent; measure the layout's content size when
-    // nested content or percentages need it.
+    float right = extent[0];
+    float bottom = extent[1];
+    // shortcut: padding, border and margin only in pixels, not in percent; measure the layout's
+    // content size when percentages need it.
     double overX = right + px(style.paddingRight) + px(style.borderRight) - width;
     double overY = bottom + px(style.paddingBottom) + px(style.borderBottom) - height;
     maxScrollX = style.overflowX == Style.Overflow.SCROLL && overX > 0 ? overX + coverX : 0;
     maxScrollY = style.overflowY == Style.Overflow.SCROLL && overY > 0 ? overY + coverY : 0;
+  }
+
+  /**
+   * Widens {@code extent}, the right and bottom edge of a scroll area's content, by what sticks out
+   * of this element, which lies at {@code (x, y)} in that content: its descendants up to those that
+   * clip, as visible overflow passes through them (CSS Overflow 3, section 2.2).
+   */
+  private void overflow(float x, float y, float[] extent) {
+    if (style.overflowX != Style.Overflow.VISIBLE || style.overflowY != Style.Overflow.VISIBLE) {
+      return; // it clips what is inside it, as the scene does
+    }
+    for (El child : children) {
+      if (child.placed && !child.exiting) {
+        float childX = x + child.x;
+        float childY = y + child.y;
+        extent[0] = Math.max(extent[0], childX + child.width);
+        extent[1] = Math.max(extent[1], childY + child.height);
+        child.overflow(childX, childY, extent);
+      }
+    }
   }
 
   private static float px(Len len) {
@@ -3349,7 +3374,7 @@ public final class El {
       if (row.position == 0) {
         row.position(i + 1, rowCount);
       }
-      fix(row, style.overflowX == Style.Overflow.SCROLL ? this : across);
+      fix(row, style.overflowX == Style.Overflow.SCROLL ? this : fixedX ? null : across);
       children.add(row);
     }
     firstRow = from;
@@ -3367,7 +3392,10 @@ public final class El {
 
   private static void fix(El el, El across) {
     el.across = el.fixedX || el.rowBuilder != null ? across : null;
-    El inside = el.scrollArea && el.style.overflowX == Style.Overflow.SCROLL ? el : across;
+    // What lies inside a fixed element stays with it: the offset of the area counts once.
+    El inside = el.scrollArea && el.style.overflowX == Style.Overflow.SCROLL
+        ? el
+        : el.fixedX ? null : across;
     for (El child : el.children) {
       fix(child, inside);
     }
@@ -3448,8 +3476,12 @@ public final class El {
     }
     row.style.height = Len.px(rowHeight);
     scaleText(row, scale, systemFonts);
-    Flex.layout(row, inner, rowHeight);
-    row.place(left, (float) (rowsTop() + index * (double) rowHeight), inner, rowHeight);
+    // Rounded where the row lies in the content, so that rows of a fractional height share their
+    // edges with their neighbours, what fills them included; placed from the first row that exists.
+    double top = rowsTop() + (firstRow + index) * (double) rowHeight;
+    double whole = Math.floor(top);
+    Flex.layout(row, inner, rowHeight, 0, (float) (top - whole));
+    row.place(left, (float) (whole + row.y - rowTop(firstRow)), inner, row.height);
   }
 
   /**

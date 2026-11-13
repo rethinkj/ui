@@ -149,14 +149,25 @@ final class Node {
       float boxWidth = contentBox ? edgesWidth : 0;
       float boxHeight = contentBox ? edgesHeight : 0;
       ratio = s.aspectRatio;
-      nodeWidth =
-          or(nodeWidth, size(s.width, s.height, parentWidth, parentHeight, ratio, true, boxWidth));
-      nodeHeight = or(
-          nodeHeight, size(s.height, s.width, parentHeight, parentWidth, ratio, false, boxHeight));
-      minWidth = size(s.minWidth, s.minHeight, parentWidth, parentHeight, ratio, true, boxWidth);
-      minHeight = size(s.minHeight, s.minWidth, parentHeight, parentWidth, ratio, false, boxHeight);
+      float width = Maybe.resolve(s.width, parentWidth) + boxWidth;
+      float height = Maybe.resolve(s.height, parentHeight) + boxHeight;
+      // Limits go through the ratio only to an axis whose size is not set (CSS Sizing 4, 4.4).
+      float ratioWidth = some(width) ? Float.NaN : ratio;
+      float ratioHeight = some(height) ? Float.NaN : ratio;
+      minWidth =
+          size(s.minWidth, s.minHeight, parentWidth, parentHeight, ratioWidth, true, boxWidth);
+      minHeight =
+          size(s.minHeight, s.minWidth, parentHeight, parentWidth, ratioHeight, false, boxHeight);
       maxWidth = Maybe.resolve(s.maxWidth, parentWidth) + boxWidth;
       maxHeight = Maybe.resolve(s.maxHeight, parentHeight) + boxHeight;
+      // A size that is not set comes through the ratio from the other one as its limits leave it.
+      if (!some(width)) {
+        width = (clamp(height, minHeight, maxHeight) - boxHeight) * ratio + boxWidth;
+      } else if (!some(height)) {
+        height = (clamp(width, minWidth, maxWidth) - boxWidth) / ratio + boxHeight;
+      }
+      nodeWidth = or(nodeWidth, width);
+      nodeHeight = or(nodeHeight, height);
     }
 
     if (!in.perform && some(nodeWidth) && some(nodeHeight)) {
@@ -195,8 +206,13 @@ final class Node {
     }
 
     float width = clamp(or(nodeWidth, contentWidth + insetWidth), minWidth, maxWidth);
-    float height = clamp(or(nodeHeight, contentHeight + insetHeight), minHeight, maxHeight);
-    height = Math.max(height, some(ratio) ? width / ratio : 0);
+    // The ratio gives the automatic height from the final width, which the limits then clamp; a
+    // height that is set or known stays as it is (CSS Sizing 4, section 4.2).
+    float autoHeight = contentHeight + insetHeight;
+    if (some(ratio)) {
+      autoHeight = Math.max(autoHeight, width / ratio);
+    }
+    float height = clamp(or(nodeHeight, autoHeight), minHeight, maxHeight);
     Out out = new Out(Math.max(width, edgesWidth), Math.max(height, edgesHeight), baseline);
     if (measure != null && in.perform) {
       measure.placed(

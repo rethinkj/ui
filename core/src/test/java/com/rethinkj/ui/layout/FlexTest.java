@@ -163,4 +163,85 @@ class FlexTest {
     assertEquals(true, shown.isPlaced());
     assertEquals(0, shown.x());
   }
+  // The aspect ratio and the limits, as Chrome lays them out (CSS Sizing 4, sections 4.2 and 4.4).
+
+  @Test
+  void anExplicitHeightIsNotRaisedByTheAspectRatio() {
+    El box = el().size(100, 10);
+    box.style().aspectRatio = 2;
+    Flex.layout(box, 200, 200);
+
+    assertEquals(10, box.height());
+  }
+
+  @Test
+  void theMaximumHeightClampsTheHeightFromTheAspectRatio() {
+    El box = el().w(100);
+    box.style().aspectRatio = 2;
+    box.style().maxHeight = Len.px(20);
+    Flex.layout(box, 200, 200);
+
+    assertEquals(20, box.height());
+  }
+
+  @Test
+  void theAspectRatioTakesTheWidthAfterItsMaximum() {
+    El wide = el().w(100);
+    wide.style().aspectRatio = 2;
+    wide.style().maxWidth = Len.px(50);
+    El high = el().h(100);
+    high.style().aspectRatio = 2;
+    high.style().maxHeight = Len.px(20);
+    El item = el().w(100);
+    item.style().aspectRatio = 2;
+    item.style().maxWidth = Len.px(50);
+    Flex.layout(wide, 200, 200);
+    Flex.layout(high, 200, 200);
+    Flex.layout(row().size(200, 200).align(Style.Align.START).child(item), 200, 200);
+
+    assertEquals(50, wide.width());
+    assertEquals(25, wide.height());
+    assertEquals(40, high.width());
+    assertEquals(20, high.height());
+    assertEquals(50, item.width());
+    assertEquals(25, item.height());
+  }
+
+  @Test
+  void aMaximumDoesNotGoThroughTheAspectRatioToASizeThatIsSet() {
+    El absolute = el().absolute(0, 0).size(100, 100);
+    absolute.style().aspectRatio = 1;
+    absolute.style().maxHeight = Len.px(20);
+    El item = el().size(100, 100);
+    item.style().aspectRatio = 1;
+    item.style().maxHeight = Len.px(20);
+    Flex.layout(el().size(200, 200).child(absolute), 200, 200);
+    Flex.layout(row().size(200, 200).align(Style.Align.START).child(item), 200, 200);
+
+    assertEquals(100, absolute.width());
+    assertEquals(20, absolute.height());
+    assertEquals(100, item.width());
+    assertEquals(20, item.height());
+  }
+
+  // space-between falls back to flex-start, which under wrap-reverse is the bottom edge.
+  @Test
+  void spaceBetweenWithoutRoomFallsBackToFlexStart() {
+    El first = el().size(60, 20).shrink(0);
+    El second = el().size(60, 20).shrink(0);
+    El lines = row().size(100, 30).gap(10).children(first, second);
+    lines.style().wrap = Style.Wrap.WRAP_REVERSE;
+    lines.style().alignContent = Style.Content.SPACE_BETWEEN;
+    El third = el().size(60, 20).shrink(0);
+    El fourth = el().size(60, 20).shrink(0);
+    El reversed = row().size(100, 20).justify(Style.Content.SPACE_BETWEEN).children(third, fourth);
+    reversed.style().direction = Style.Direction.ROW_REVERSE;
+    Flex.layout(lines, 100, 30);
+    Flex.layout(reversed, 100, 20);
+
+    assertEquals(10, first.y());
+    assertEquals(-20, second.y());
+    assertEquals(40, third.x());
+    assertEquals(-20, fourth.x());
+  }
 }

@@ -173,10 +173,17 @@ final class Flexbox {
       minC = cross(minWidth, minHeight);
       maxM = main(maxWidth, maxHeight);
       maxC = cross(maxWidth, maxHeight);
-      ratioMinM = or(minM, mainFromCross(minC, ratio));
-      ratioMinC = or(minC, crossFromMain(minM, ratio));
-      ratioMaxM = or(maxM, mainFromCross(maxC, ratio));
-      ratioMaxC = or(maxC, crossFromMain(maxM, ratio));
+      // Limits go through the ratio only to an axis whose size is not set (CSS Sizing 4, 4.4).
+      float ratioM = some(main(resolve(s.width, basisWidth), resolve(s.height, basisHeight)))
+          ? Float.NaN
+          : ratio;
+      float ratioC = some(cross(resolve(s.width, basisWidth), resolve(s.height, basisHeight)))
+          ? Float.NaN
+          : ratio;
+      ratioMinM = or(minM, mainFromCross(minC, ratioM));
+      ratioMinC = or(minC, crossFromMain(minM, ratioC));
+      ratioMaxM = or(maxM, mainFromCross(maxC, ratioM));
+      ratioMaxC = or(maxC, crossFromMain(maxM, ratioC));
 
       align = s.alignSelf != null ? s.alignSelf : alignItems;
       crossSizeIsAuto = (isRow ? s.height : s.width).isAuto();
@@ -1185,11 +1192,7 @@ final class Flexbox {
     boolean safe = false;
     if (count <= 1 || freeSpace <= 0) {
       switch (mode) {
-        case STRETCH -> mode = Content.FLEX_START;
-        case SPACE_BETWEEN -> {
-          mode = Content.FLEX_START;
-          safe = true;
-        }
+        case STRETCH, SPACE_BETWEEN -> mode = Content.FLEX_START;
         case SPACE_AROUND, SPACE_EVENLY -> {
           mode = Content.CENTER;
           safe = true;
@@ -1197,7 +1200,9 @@ final class Flexbox {
         default -> {}
       }
     }
-    // The fallbacks of the space-* keywords must not push content out at the start.
+    // space-around and space-evenly fall back to safe center, which does not push content out at
+    // the start; space-between falls back to flex-start, also where that overflows the start, as
+    // under wrap-reverse or row-reverse (as browsers do).
     return freeSpace <= 0 && safe ? Content.START : mode;
   }
 
