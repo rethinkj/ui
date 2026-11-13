@@ -2169,6 +2169,11 @@ public final class App<S> {
     if (root == null) {
       return false;
     }
+    if (pointerIn) {
+      // The rows' looks follow what the pointer is over, and a bar over a row takes it: the bars
+      // of a tree just built are not placed yet.
+      El.placeBars(root);
+    }
     float far = Float.POSITIVE_INFINITY;
     boolean built = fillRows(root, new ArrayList<>(), 0, 0, -far, far);
     // After scrolling, movement and new rows, the overlays follow their anchors.
