@@ -23,16 +23,16 @@ el 0,0 1000x600
       el 926,11 10x10
     el role=button label="Close" window=close 954,0 46x32
       text label="dismiss" "\u{F367}" 971,10 12x12
-  el 0,32 1000x568
-    el #first 8,32 260x560
-      el 8,32 260x560
+  el 0,32 1000x540
+    el #first 8,32 260x540
+      el 8,32 260x540
         el 9,33 258x40
           text role=heading "Connections" 21,45 86x17 level=3
           el 115,53 108x0
           el role=button label="Add connection" 231,41 24x24
             text label="add" "\u{F108}" 235,45 16x16
-        el 9,73 258x518
-          el #catalogue role=tree label="Catalogue" 13,77 250x510 rows 0-4/5
+        el 9,73 258x498
+          el #catalogue role=tree label="Catalogue" 13,77 250x490 rows 0-4/5
             el #row-0 role=treeitem label="localhost" 13,77 250x24 expanded=false level=1 pos=1/3
               el #mark-0 17,77 16x24
                 text label="chevron_right" "\u{F2AF}" 17,81 16x16
@@ -58,9 +58,9 @@ el 0,0 1000x600
                 text label="chevron_right" "\u{F2AF}" 17,177 16x16
               text label="server" "\u{F1DC}" 37,177 16x16
               text "prod-eu" 57,177 50x16
-    el #rest 268,32 724x560
-      el #second 276,32 716x560
-        el #tabs 276,32 716x560
+    el #rest 268,32 724x540
+      el #second 276,32 716x540
+        el #tabs 276,32 716x540
           el #bar 277,33 714x33
             el #tablist role=tablist 279,33 143x32
               el #tab-0 role=tab label="Start" 279,33 45x32
@@ -71,9 +71,9 @@ el 0,0 1000x600
                 text "orders" 354,41 40x16
                 el #close-1 role=button label="Close orders" 398,41 16x16
                   text label="dismiss" "\u{F368}" 398,41 16x16
-          el #panel role=tabpanel label="orders" 277,66 714x525
-            el 277,66 714x525
-              el 277,66 714x496
+          el #panel role=tabpanel label="orders" 277,66 714x505
+            el 277,66 714x505
+              el 277,66 714x476
                 el 277,66 714x40
                   text role=heading "orders" 289,78 44x17 level=3
                   text "20 rows" 341,78 49x16
@@ -90,8 +90,8 @@ el 0,0 1000x600
                       text #line-2 "3" 298,152 15x16
                       text #line-3 "4" 298,168 15x16
                 el role=separator 277,205 714x1
-                el #grid-localhost/shop/public/orders role=grid label="orders" 277,206 714x356 thumb-x 279,554 347.22x6
-                  el #content 277,206 1460x356
+                el #grid-localhost/shop/public/orders role=grid label="orders" 277,206 714x336 thumb-x 279,534 347.22x6
+                  el #content 277,206 1460x336
                     el #header 277,206 1460x25
                       el #column-0 role=columnheader label="id" 277,206 99x24 pos=1/9
                         text label="key" "\u{E740}" 303,210 16x16
@@ -156,7 +156,7 @@ el 0,0 1000x600
                       el #resize-6 role=separator label="Resize note" 1344,206 6x24
                       el #resize-7 role=separator label="Resize created_at" 1534,206 6x24
                       el #resize-8 role=separator label="Resize updated_at" 1724,206 6x24
-                    el #rows 277,231 1460x331 rows 0-16/20 thumb-y 983,233 6x214.14
+                    el #rows 277,231 1460x311 rows 0-15/20 thumb-y 983,233 6x188.5
                       el #row-0 role=row 277,231 1460x24 pos=1/20
                         el #cell-0-0 role=gridcell 277,231 99x23 pos=1/9
                           text "1" 365,235 7x16
@@ -589,37 +589,26 @@ el 0,0 1000x600
                         el #cell-15-7 role=gridcell 1347,591 189x23 pos=8/9
                           text "2026-01-05 08:09" 1351,595 116x16
                         el 1536,591 1x23
-                      el #row-16 role=row 277,615 1460x24 pos=17/20
-                        el #cell-16-0 role=gridcell 277,615 99x23 pos=1/9
-                          text "17" 358,619 14x16
-                        el 376,615 1x23
-                        el #cell-16-1 role=gridcell 377,615 159x23 pos=2/9
-                          text label="link" "\u{F4E3}" 476,619 16x16
-                          text "26705" 496,619 36x16
-                        el 536,615 1x23
-                        el #cell-16-2 role=gridcell 537,615 149x23 pos=3/9
-                          text label="record" "\u{F660}" 541,619 16x16
-                          text "paid" 561,619 27x15
-                        el 686,615 1x23
-                        el #cell-16-3 role=gridcell 687,615 169x23 pos=4/9
-                          text "224.08" 809,619 43x16
-                        el 856,615 1x23
-                        el #cell-16-4 role=gridcell label="true" 857,615 109x23 pos=5/9
-                          text label="checkmark" "\u{E305}" 861,619 16x16
-                        el 966,615 1x23
-                        el #cell-16-5 role=gridcell 967,615 219x23 pos=6/9
-                          text "edsger.grace@example.com" 971,619 176x15
-                        el 1186,615 1x23
-                        el #cell-16-6 role=gridcell 1187,615 159x23 pos=7/9
-                          text "NULL" 1191,619 34x15
-                        el 1346,615 1x23
-                        el #cell-16-7 role=gridcell 1347,615 189x23 pos=8/9
-                          text "2026-01-05 08:09" 1351,619 116x16
-                        el 1536,615 1x23
-              el 277,562 714x29
-                text #status "localhost/shop/public/orders · 20 rows" 289,569 237x16
-                el 538,577 363x0
-                text #position "Ln 4, Col 9" 913,569 66x16
-      el #divider role=separator label="Resize" 268,32 8x560 value="first 260"
-        el 268,32 8x560
-          el 272,32 1x560
+              el 277,542 714x29
+                text #status "localhost/shop/public/orders · 20 rows" 289,549 237x16
+                el 538,557 363x0
+                text #position "Ln 4, Col 9" 913,549 66x16
+      el #divider role=separator label="Resize" 268,32 8x540 value="first 260"
+        el 268,32 8x540
+          el 272,32 1x540
+  el role=status label="Status bar" 0,572 1000x28
+    el 8,574 952x24
+      el #server-localhost role=button label="localhost" 8,574 84x24 value="connected"
+        el 12,578 16x16
+          el 16,582 8x8
+        text "localhost" 32,578 55x16
+      el #server-staging role=button label="staging" 94,574 73x24 value="connected"
+        el 98,578 16x16
+          el 102,582 8x8
+        text "staging" 118,578 46x16
+      el #server-prod-eu role=button label="prod-eu" 169,574 79x24 value="error"
+        el 173,578 16x16
+          el 177,582 8x8
+        text "prod-eu" 193,578 49x16
+    el #running label="Idle" 962,574 30x24
+      text "Idle" 966,578 22x16

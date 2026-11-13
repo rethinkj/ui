@@ -27,7 +27,7 @@ public final class StatusBar {
   public enum State {
     /** Up and usable: {@link Theme.Status#success}. */
     CONNECTED,
-    /** On its way, or working: {@link Theme.Status#warning}. */
+    /** On its way, or working: a {@link Progress#spinner} in place of the dot. */
     BUSY,
     /** Not in use: the disabled text's colour. */
     IDLE,
@@ -90,13 +90,15 @@ public final class StatusBar {
     float side = t.space().m();
     int colour = switch (state) {
       case CONNECTED -> t.status().success();
-      case BUSY -> t.status().warning();
+      case BUSY -> 0; // a spinner instead
       case IDLE -> t.text().disabled();
       case ERROR -> t.status().danger();
     };
-    // In a box as wide as an icon, so that texts after dots and after icons line up.
-    El dot = el().size(t.size().icon(), t.size().icon()).center().shrink(0)
-        .child(el().size(side, side).radius(side / 2).fill(colour));
+    // In a box as wide as an icon, so that texts after dots and after icons line up; what is on
+    // its way turns, as everything that waits does.
+    El dot = state == State.BUSY ? Progress.spinner(t)
+        : el().size(t.size().icon(), t.size().icon()).center().shrink(0)
+            .child(el().size(side, side).radius(side / 2).fill(colour));
     return part(t, dot, text, onPress).value(state.name().toLowerCase(java.util.Locale.ROOT));
   }
 

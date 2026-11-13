@@ -39,6 +39,7 @@ import com.rethinkj.ui.kit.Menu;
 import com.rethinkj.ui.kit.MenuBar;
 import com.rethinkj.ui.kit.Progress;
 import com.rethinkj.ui.kit.Sql;
+import com.rethinkj.ui.kit.StatusBar;
 import com.rethinkj.ui.kit.Split.Direction;
 import com.rethinkj.ui.kit.Split.Position;
 import com.rethinkj.ui.kit.Symbol;
@@ -214,6 +215,7 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
   final List<Node> servers = new ArrayList<>();
   final Set<Node> open = new HashSet<>();
   final Set<Node> connecting = new HashSet<>(); // servers whose answer is on its way
+  final Set<Node> refused = new HashSet<>(); // servers whose last answer was a failure
   Node selected;
   final Opened start = new Opened();
   // The tabs of every window: the first window's, Start among them, and those torn off.
@@ -360,6 +362,7 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
     }
     open.add(node);
     if (node.children == null && connecting.add(node)) {
+      refused.remove(node);
       String server = node.name;
       Duration wait = latency;
       app.background("databases of " + server, () -> connect(server, wait),
@@ -373,6 +376,7 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
           },
           error -> {
             connecting.remove(node);
+            refused.add(node);
             open.remove(node); // opening it again asks again
             tell(server + ": " + error.getMessage());
             answered();
@@ -716,7 +720,8 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
             toggle(t, s.dark, "Dark", () -> s.dark = !s.dark)))
         .child(Split.cards(t, Direction.ROW, s.sidebar, SIDEBAR, p -> s.sidebar = p,
             catalogue, 160, right.key("tabs"), 320).grow(1)
-            .padding(0, t.space().m(), t.space().m(), t.space().m()));
+            .padding(0, t.space().m(), 0, t.space().m()))
+        .child(s.statusBar(t));
     if (s.dropping != null) {
       String name = s.dropping.name;
       El drop = button(t, PRIMARY, "Drop", s.confirm.equals(name) ? s::drop : null).key("drop");
@@ -731,6 +736,25 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
           () -> s.dropping = null));
     }
     return root;
+  }
+
+  /**
+   * The bar along the bottom of the first window: each server with how its connection stands (a
+   * press selects it in the catalogue), and the questions on their way.
+   */
+  private El statusBar(Theme t) {
+    List<El> servers = new ArrayList<>();
+    for (Node server : roots()) {
+      StatusBar.State state = connecting.contains(server) ? StatusBar.State.BUSY
+          : refused.contains(server) ? StatusBar.State.ERROR
+          : server.children == null ? StatusBar.State.IDLE : StatusBar.State.CONNECTED;
+      servers.add(StatusBar.status(t, state, server.name, () -> selected = server)
+          .key("server-" + server.name));
+    }
+    int running = running();
+    return StatusBar.statusBar(t, servers, List.of(StatusBar.text(t,
+        running == 0 ? "Idle" : running == 1 ? "1 question running" : running + " questions running")
+        .key("running")));
   }
 
   /**

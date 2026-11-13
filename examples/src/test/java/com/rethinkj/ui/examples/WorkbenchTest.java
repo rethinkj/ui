@@ -33,7 +33,7 @@ class WorkbenchTest {
     assertTrue(Snaps.line("workbench", "workbench-refused", "#status")
         .contains("prod-eu: connection refused"));
     assertTrue(Snaps.line("workbench", "workbench-light", "#status")
-        .endsWith("\"localhost/shop/public/orders · 1,000,000 rows\" 289,569 286x16"),
+        .endsWith("\"localhost/shop/public/orders · 1,000,000 rows\" 289,549 286x16"),
         "the message went after five seconds");
     assertTrue(Snaps.line("workbench", "workbench-completion", "#option-0")
         .contains("label=\"customer_id\"") && Snaps.line("workbench", "workbench-completion",
