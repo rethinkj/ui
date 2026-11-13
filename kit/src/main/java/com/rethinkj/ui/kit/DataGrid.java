@@ -759,7 +759,7 @@ public final class DataGrid {
       return grid;
     }
     return grid.focusable()
-        .focusRing(t.border().focus())
+        .focusRing(t.accent().edge())
         .whenFocused(e -> b.focused[0] = true)
         .onKey(k -> key(b, k));
   }

@@ -93,7 +93,7 @@ public final class Card {
    * Makes a card one press target: the pointer and Enter or Space while it has the focus run
    * {@code onPress}, and the pointer shows its hover and pressed looks, the hover and pressed
    * overlays laid over its fill. Controls inside it, such as a menu button, keep their own
-   * presses. A selected card has the {@link Theme.Borders#selected} edge. In a tree dump the card
+   * presses. A selected card has the {@link Theme.Accent#edge} edge. In a tree dump the card
    * is {@code role=button} with the label, and {@code selected} and {@code disabled} as they are.
    *
    * @param card a card of this class
@@ -107,7 +107,7 @@ public final class Card {
       Theme t, El card, String label, boolean selected, Runnable onPress) {
     card.role("button").label(label).selected(selected).disabled(onPress == null);
     if (selected) {
-      card.border(t.size().stroke(), t.border().selected());
+      card.border(t.size().stroke(), t.accent().edge());
     }
     if (onPress == null) {
       return card;
@@ -117,7 +117,7 @@ public final class Card {
     int hover = opaque ? over(fill, t.surface().hover()) : t.surface().hover();
     int pressed = opaque ? over(fill, t.surface().pressed()) : t.surface().pressed();
     return card.focusable().keepFocus()
-        .focusRing(t.border().focus())
+        .focusRing(t.accent().edge())
         .cursor(Cursor.POINTER)
         .onPress(onPress)
         .whenHovered(e -> e.fill(hover))

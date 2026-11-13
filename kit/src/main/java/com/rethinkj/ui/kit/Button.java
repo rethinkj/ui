@@ -51,7 +51,7 @@ public final class Button {
     }
     return button.focusable()
         .keepFocus() // a press leaves the focus in the editor or grid the button acts on
-        .focusRing(t.border().focus())
+        .focusRing(t.accent().edge())
         .cursor(Cursor.POINTER)
         .onPress(onPress)
         .whenHovered(e -> e.fill(look.hover()))

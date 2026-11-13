@@ -197,7 +197,7 @@ public final class Tree {
     if (onSelect == null) {
       return tree;
     }
-    return tree.focusable().focusRing(t.border().focus())
+    return tree.focusable().focusRing(t.accent().edge())
         .whenFocused(e -> focused[0] = true)
         .onKey(k -> key(k, model, isOpen, rows, tree, height, onSelect, onToggle, onActivate));
   }

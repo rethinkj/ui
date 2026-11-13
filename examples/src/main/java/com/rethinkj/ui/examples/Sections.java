@@ -167,7 +167,7 @@ final class Sections {
     if (!enabled) {
       return b;
     }
-    return b.focusable().focusRing(t.border().focus()).cursor(Cursor.POINTER).onPress(onPress)
+    return b.focusable().focusRing(t.accent().edge()).cursor(Cursor.POINTER).onPress(onPress)
         .whenHovered(e -> e.fill(hover)).whenPressed(e -> e.fill(pressed));
   }
 
@@ -651,7 +651,7 @@ final class Sections {
             new Swatch("onAccent", t.text().onAccent(), 0)),
         List.of(new Swatch("subtle", t.border().subtle(), 0),
             new Swatch("strong", t.border().strong(), 0),
-            new Swatch("focus", t.border().focus(), 0)),
+            new Swatch("focus", t.accent().edge(), 0)),
         List.of(new Swatch("color", t.accent().color(), 0),
             new Swatch("hover", t.accent().hover(), 0),
             new Swatch("pressed", t.accent().pressed(), 0),
@@ -733,15 +733,15 @@ final class Sections {
       accent.child(ratio(t, t.text().onAccent(), fill, Contrast.TEXT));
     }
     accent.child(el().w(t.space().l()))
-        .child(label(t, MUTED, "focus ring on the accent").w(150));
+        .child(label(t, MUTED, "primary button's ring").w(150));
     for (int i = 0; i < fills.length; i++) {
-      accent.child(ratio(t, t.border().focus(), fills[i], i == 0 ? Contrast.MARK : -1));
+      accent.child(ratio(t, t.text().primary(), fills[i], i == 0 ? Contrast.MARK : -1));
     }
     El other = row().gap(t.space().xs()).align(Style.Align.CENTER)
         .child(col().w(150).shrink(0)
             .child(label(t, "selected text"))
             .child(label(t, MUTED, "in a field, on raised")))
-        .child(ratio(t, t.text().primary(), Contrast.drawn(t.surface().raised(), a.selection()),
+        .child(ratio(t, t.text().primary(), Theme.over(t.surface().raised(), a.selection()),
             Contrast.TEXT))
         .child(el().w(t.space().l() + CELL * 2 + t.space().xs() * 2))
         .child(label(t, MUTED, "cursor on the selection").w(150))
@@ -754,8 +754,8 @@ final class Sections {
             .child(label(t, MUTED, "Each cell is the pair itself: the ratio in the foreground on "
                 + "the background. An edge marks a pair the kit draws, in the danger colour when"
                 + " it is below its minimum."))
-            .child(label(t, MUTED, "hover¹: Theme.over on raised, as buttons and fields mix it. "
-                + "hover²: drawn translucent on panel, as ghost buttons, tabs and tree rows.")));
+            .child(label(t, MUTED, "Hover is the overlay on raised and on panel; Theme.over and the "
+                + "renderer both mix it in linear light.")));
   }
 
   private static final float CELL = 64;

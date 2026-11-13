@@ -197,7 +197,7 @@ public final class Split {
     String back = across ? "ArrowLeft" : "ArrowUp";
     String forth = across ? "ArrowRight" : "ArrowDown";
     // Tab reaches it; a press or a drag leaves the focus in the part that has it.
-    divider.focusable().keepFocus().focusRing(t.border().focus())
+    divider.focusable().keepFocus().focusRing(t.accent().edge())
         .cursor(across ? Cursor.EW_RESIZE : Cursor.NS_RESIZE)
         .whenHovered(e -> line.fill(t.border().strong()))
         .whenPressed(e -> line.fill(t.accent().color()))

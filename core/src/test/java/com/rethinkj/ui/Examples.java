@@ -436,7 +436,7 @@ public final class Examples {
     content.style().minWidth = Len.percent(1);
     El grid = row().role("grid").scrollBoth().scrollbars(GRID_BARS).fill(ROW).child(content)
         .focusable()
-        .focusRing(PRIMARY) // border().focus(), the same colour in Theme.DARK
+        .focusRing(PRIMARY) // accent().edge(), the same colour in Theme.DARK
         .whenFocused(e -> focused[0] = true)
         .onKey(k -> {
           // From the state, not from this build: the kit's grid reads its selection live, so two

@@ -134,7 +134,7 @@ public final class Tabs {
     int last = tabs.size() - 1;
     // Tab reaches the bar; a press on a tab leaves the focus where it is, so that from the content
     // it goes on into the new content.
-    list.focusable().keepFocus().focusRing(t.border().focus()).onKey(k -> {
+    list.focusable().keepFocus().focusRing(t.accent().edge()).onKey(k -> {
       if (k.modifiers() != 0) {
         return false;
       }

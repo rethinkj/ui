@@ -397,7 +397,7 @@ public final class Menu {
 
   private static El panel(Theme t, State state, List<Item> items, int level, Bar bar) {
     El panel = col().key(level == 0 ? "menu" : "submenu").role("menu").focusable()
-        .focusRing(t.border().focus())
+        .focusRing(t.accent().edge())
         .padding(t.space().s())
         .radius(t.radius().medium())
         .fill(t.surface().raised())

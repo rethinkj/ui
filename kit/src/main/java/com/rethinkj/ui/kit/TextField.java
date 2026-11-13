@@ -100,7 +100,7 @@ public final class TextField {
       Consumer<String> onChange) {
     boolean enabled = onChange != null;
     int fill = t.surface().raised();
-    field.focusRing(t.border().focus())
+    field.focusRing(t.accent().edge())
         .label(placeholder)
         .font(style.font().get())
         .fontSize(style.size())
@@ -185,7 +185,7 @@ public final class TextField {
     if (enabled) {
       button.focusable()
           .keepFocus()
-          .focusRing(t.border().focus())
+          .focusRing(t.accent().edge())
           .cursor(Cursor.POINTER)
           .onPress(onToggle)
           .whenHovered(e -> e.fill(t.surface().hover()))
