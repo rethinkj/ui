@@ -1,0 +1,1 @@
+- `El.codeWords()` makes a double press and the word keys (Control with the arrows, Backspace and Delete) of a field take the words of code, runs of letters, digits and `_`: in `shop.public.orders` each name is a word. `TextField.codeArea` and `CodeEditor.codeEditor` set it.

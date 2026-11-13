@@ -14,6 +14,8 @@ import com.rethinkj.ui.kit.Card;
 import com.rethinkj.ui.kit.DataGrid.Mode;
 import com.rethinkj.ui.kit.DataGrid.Selection;
 import com.rethinkj.ui.kit.DataGrid.SortKey;
+import com.rethinkj.ui.kit.CodeEditor;
+import com.rethinkj.ui.kit.Completion;
 import com.rethinkj.ui.kit.Menu;
 import com.rethinkj.ui.kit.Select;
 import com.rethinkj.ui.kit.Split.Position;
@@ -117,6 +119,10 @@ public final class Showcase {
   int isolation = 1;
   final Menu.State driverMenu = new Menu.State();
   final Menu.State isolationMenu = new Menu.State();
+  String sql = "SELECT name, total\nFROM orders\nWHERE total > 100\nORDER BY total DESC;";
+  final CodeEditor.State sqlEditor = new CodeEditor.State();
+  final Completion.State sqlCompletion = new Completion.State();
+  App<Showcase> app; // puts a completion in place
 
   // Menus and overlays
   final Menu.State options = new Menu.State();
@@ -197,6 +203,7 @@ public final class Showcase {
   /** The app in a look, as {@link #main} runs it and the tests drive it. */
   static App<Showcase> app(Look look) {
     App<Showcase> app = new App<>(new Showcase(look), Showcase::view);
+    app.state().app = app;
     // A script's images are stored, so they must not depend on the platform.
     app.textRendering(TextRendering.LINUX);
     return app;

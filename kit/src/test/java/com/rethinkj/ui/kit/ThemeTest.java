@@ -59,6 +59,24 @@ class ThemeTest {
     check(failures, "accent", t.accent().color(),
         Map.of("panel", s.panel(), "raised", s.raised()), 3);
     check(failures, "knob", t.text().onAccent(), Map.of("track off", t.border().strong()), 3);
+    // Code in an editor: on the field's raised surface, hovered and on the caret's line; the
+    // brackets at the caret on their background too, and every colour 3:1 under the selection.
+    Theme.Code code = t.code();
+    int line = over(s.raised(), code.line());
+    Map<String, Integer> field = Map.of(
+        "raised", s.raised(),
+        "raised hovered", over(s.raised(), s.hover()),
+        "caret line", line,
+        "caret line hovered", over(over(s.raised(), s.hover()), code.line()));
+    Map<String, Integer> codeColours = Map.of("keyword", code.keyword(), "string", code.string(),
+        "number", code.number(), "comment", code.comment(), "operator", code.operator());
+    codeColours.forEach((token, colour) -> {
+      check(failures, token, colour, field, 4.5);
+      check(failures, token, colour, Map.of("selection", over(s.raised(), t.accent().selection()),
+          "selection on the caret line", over(line, t.accent().selection())), 3);
+    });
+    check(failures, "bracket", code.operator(), Map.of("bracket", over(line, code.bracket())), 4.5);
+    check(failures, "line number", t.text().muted(), Map.of("raised", s.raised()), 4.5);
     check(failures, "disabled text", t.text().disabled(), surfaces, 2);
     check(failures, "status", t.status().danger(), Map.of("grid selected", t.grid().selected()),
         4.5);

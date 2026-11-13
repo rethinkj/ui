@@ -73,7 +73,8 @@ final class Node {
   Node(El el) {
     this.el = el;
     this.style = el.style();
-    List<El> elements = el.children();
+    // A text element is a leaf: what it holds besides its text, a field's gutter, is placed apart.
+    List<El> elements = el.text() != null ? List.of() : el.children();
     this.children = new Node[elements.size()];
     for (int i = 0; i < children.length; i++) {
       children[i] = new Node(elements.get(i));

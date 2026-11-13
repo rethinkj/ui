@@ -55,7 +55,50 @@ public record Theme(
     Grid grid,
     Scrollbars scrollbars,
     Elevation elevation,
+    Code code,
     Caption caption) {
+
+  /**
+   * A theme whose colours for code are {@link Code#DARK} on a dark raised surface and {@link
+   * Code#LIGHT} on a light one, with the default {@link Caption}.
+   */
+  public Theme(Surfaces surface, TextColors text, Borders border, Accent accent, Status status,
+      Spacing space, Radii radius, Type type, Sizes size, Motion motion, Grid grid,
+      Scrollbars scrollbars, Elevation elevation) {
+    this(surface, text, border, accent, status, space, radius, type, size, motion, grid,
+        scrollbars, elevation, lightness(surface.raised()) < 0.5 ? Code.DARK : Code.LIGHT,
+        CAPTION);
+  }
+
+  private static double lightness(int argb) {
+    return (0.2126 * (argb >> 16 & 0xFF) + 0.7152 * (argb >> 8 & 0xFF) + 0.0722 * (argb & 0xFF))
+        / 255;
+  }
+
+  /**
+   * The colours of code in an editor ({@link CodeEditor}, {@link Sql}): text colours for the kinds
+   * of token, each 4.5:1 on the field's raised surface, also hovered and on the caret's line, and
+   * translucent backgrounds laid over that surface.
+   *
+   * @param keyword words of the language, such as {@code SELECT}
+   * @param string literal strings
+   * @param number literal numbers
+   * @param comment comments
+   * @param operator operators, brackets and punctuation
+   * @param line translucent, behind the line of the caret
+   * @param bracket translucent, behind the bracket at the caret and the one that matches it
+   */
+  public record Code(int keyword, int string, int number, int comment, int operator, int line,
+      int bracket) {
+
+    /** For dark surfaces. */
+    public static final Code DARK = new Code(0xFFD2B4FF, 0xFFA6DB94, 0xFFF5BD8C, 0xFFB4B8C0,
+        0xFF9ADCF5, 0x04FFFFFF, 0x0CFFFFFF);
+
+    /** For light surfaces. */
+    public static final Code LIGHT = new Code(0xFF6A28CF, 0xFF1A6633, 0xFF95400C, 0xFF575B63,
+        0xFF0A5D75, 0x10000000, 0x26000000);
+  }
 
   /**
    * Background layers, from the bottom up, and the overlays that a control lays over its
@@ -332,6 +375,7 @@ public record Theme(
               List.of(new Shadow(0, 1, 2, 0, 0xCC000000), new Shadow(0, 6, 16, 0, 0x8C000000)),
               List.of(new Shadow(0, 1, 2, 0, 0x99000000), new Shadow(0, 4, 12, 0, 0x80000000)),
               List.of(new Shadow(0, 2, 4, 0, 0x99000000), new Shadow(0, 12, 32, 0, 0x99000000))),
+          Code.DARK,
           CAPTION);
 
   /** Neutral greys with a blue accent, dark text on light surfaces. */
@@ -355,90 +399,97 @@ public record Theme(
               List.of(new Shadow(0, 1, 2, 0, 0x29141824), new Shadow(0, 6, 18, 0, 0x25141824)),
               List.of(new Shadow(0, 1, 3, 0, 0x40000000), new Shadow(0, 6, 16, 0, 0x38000000)),
               List.of(new Shadow(0, 2, 6, 0, 0x40000000), new Shadow(0, 16, 40, 0, 0x4D000000))),
+          Code.LIGHT,
           CAPTION);
 
   public Theme withSurface(Surfaces surface) {
     return new Theme(
         surface, text, border, accent, status, space, radius, type, size, motion, grid,
-        scrollbars, elevation, caption);
+        scrollbars, elevation, code, caption);
   }
 
   public Theme withText(TextColors text) {
     return new Theme(
         surface, text, border, accent, status, space, radius, type, size, motion, grid,
-        scrollbars, elevation, caption);
+        scrollbars, elevation, code, caption);
   }
 
   public Theme withBorder(Borders border) {
     return new Theme(
         surface, text, border, accent, status, space, radius, type, size, motion, grid,
-        scrollbars, elevation, caption);
+        scrollbars, elevation, code, caption);
   }
 
   public Theme withAccent(Accent accent) {
     return new Theme(
         surface, text, border, accent, status, space, radius, type, size, motion, grid,
-        scrollbars, elevation, caption);
+        scrollbars, elevation, code, caption);
   }
 
   public Theme withStatus(Status status) {
     return new Theme(
         surface, text, border, accent, status, space, radius, type, size, motion, grid,
-        scrollbars, elevation, caption);
+        scrollbars, elevation, code, caption);
   }
 
   public Theme withSpace(Spacing space) {
     return new Theme(
         surface, text, border, accent, status, space, radius, type, size, motion, grid,
-        scrollbars, elevation, caption);
+        scrollbars, elevation, code, caption);
   }
 
   public Theme withRadius(Radii radius) {
     return new Theme(
         surface, text, border, accent, status, space, radius, type, size, motion, grid,
-        scrollbars, elevation, caption);
+        scrollbars, elevation, code, caption);
   }
 
   public Theme withType(Type type) {
     return new Theme(
         surface, text, border, accent, status, space, radius, type, size, motion, grid,
-        scrollbars, elevation, caption);
+        scrollbars, elevation, code, caption);
   }
 
   public Theme withSize(Sizes size) {
     return new Theme(
         surface, text, border, accent, status, space, radius, type, size, motion, grid,
-        scrollbars, elevation, caption);
+        scrollbars, elevation, code, caption);
   }
 
   public Theme withMotion(Motion motion) {
     return new Theme(
         surface, text, border, accent, status, space, radius, type, size, motion, grid,
-        scrollbars, elevation, caption);
+        scrollbars, elevation, code, caption);
   }
 
   public Theme withGrid(Grid grid) {
     return new Theme(
         surface, text, border, accent, status, space, radius, type, size, motion, grid,
-        scrollbars, elevation, caption);
+        scrollbars, elevation, code, caption);
   }
 
   public Theme withScrollbars(Scrollbars scrollbars) {
     return new Theme(
         surface, text, border, accent, status, space, radius, type, size, motion, grid,
-        scrollbars, elevation, caption);
+        scrollbars, elevation, code, caption);
+  }
+
+  public Theme withCode(Code code) {
+    return new Theme(
+        surface, text, border, accent, status, space, radius, type, size, motion, grid,
+        scrollbars, elevation, code, caption);
   }
 
   public Theme withElevation(Elevation elevation) {
     return new Theme(
         surface, text, border, accent, status, space, radius, type, size, motion, grid,
-        scrollbars, elevation, caption);
+        scrollbars, elevation, code, caption);
   }
 
   public Theme withCaption(Caption caption) {
     return new Theme(
         surface, text, border, accent, status, space, radius, type, size, motion, grid,
-        scrollbars, elevation, caption);
+        scrollbars, elevation, code, caption);
   }
 
   /**

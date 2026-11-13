@@ -1,15 +1,14 @@
 package com.rethinkj.ui.examples;
 
 import static com.rethinkj.ui.El.col;
-import static com.rethinkj.ui.examples.TitleBar.titleBar;
+import static com.rethinkj.ui.examples.TitleBar.withMenus;
 import static com.rethinkj.ui.kit.Button.Variant.PRIMARY;
 import static com.rethinkj.ui.kit.Button.Variant.SECONDARY;
 import static com.rethinkj.ui.kit.Button.button;
 import static com.rethinkj.ui.kit.DataGrid.dataGrid;
 import static com.rethinkj.ui.kit.Button.Variant.GHOST;
-import static com.rethinkj.ui.kit.Button.Variant.PRIMARY;
+import static com.rethinkj.ui.kit.CodeEditor.codeEditor;
 import static com.rethinkj.ui.kit.Tabs.tabs;
-import static com.rethinkj.ui.kit.TextField.codeArea;
 import static com.rethinkj.ui.kit.TextField.textField;
 import static com.rethinkj.ui.kit.Toggle.toggle;
 import static com.rethinkj.ui.kit.Tree.tree;
@@ -21,6 +20,8 @@ import com.rethinkj.ui.Script;
 import com.rethinkj.ui.Work;
 import com.rethinkj.ui.kit.Button;
 import com.rethinkj.ui.kit.Card;
+import com.rethinkj.ui.kit.CodeEditor;
+import com.rethinkj.ui.kit.Completion;
 import com.rethinkj.ui.kit.AppIcon;
 import com.rethinkj.ui.kit.DataGrid;
 import com.rethinkj.ui.kit.DataGrid.CellIcon;
@@ -35,6 +36,8 @@ import com.rethinkj.ui.kit.Divider;
 import com.rethinkj.ui.kit.Label;
 import com.rethinkj.ui.kit.Split;
 import com.rethinkj.ui.kit.Menu;
+import com.rethinkj.ui.kit.MenuBar;
+import com.rethinkj.ui.kit.Sql;
 import com.rethinkj.ui.kit.Split.Direction;
 import com.rethinkj.ui.kit.Split.Position;
 import com.rethinkj.ui.kit.Symbol;
@@ -53,7 +56,9 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Locale;
 import java.util.Set;
 import java.util.regex.Matcher;
@@ -114,6 +119,9 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
     int rows = -1; // until the server answers
     Work asking; // the question for the rows, cancelled with the tab or by the next one
     String query; // the statement in the query area
+    final CodeEditor.State editor = new CodeEditor.State(); // its caret, history and error
+    final Completion.State completion = new Completion.State();
+    String failure; // what the server said was wrong with the statement, until the next edit
     final Selection selection = new Selection(Mode.ROWS);
     final float[] widths;
 
@@ -165,6 +173,10 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
   // What the made-up server reads of a statement: how many rows it asks for.
   private static final Pattern LIMIT =
       Pattern.compile("\\bLIMIT\\s+(\\d{1,9})\\b", Pattern.CASE_INSENSITIVE);
+  // And which table: the name after FROM, of one to three parts.
+  private static final Pattern FROM = Pattern.compile(
+      "\\bFROM\\s+(\\w+(?:\\.\\w+){0,2})", Pattern.CASE_INSENSITIVE);
+  private static final int SUGGESTIONS = 50; // the most completions for a word
 
   Duration latency = Duration.ofMillis(800); // of every answer of the made-up servers
   final List<Node> servers = new ArrayList<>();
@@ -182,6 +194,8 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
   Node dropping; // the table the dialog asks about, or null while it is closed
   String confirm = ""; // the name typed into the dialog
   Window window; // the window it runs in, for the taskbar; null under a script
+  Runnable quit; // ends the window's loop; null under a script
+  final MenuBar.State bar = new MenuBar.State();
 
   Workbench() {
     Node localhost = new Node(Kind.SERVER, "localhost", null);
@@ -223,6 +237,26 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
       throw new ConnectException("connection refused");
     }
     return List.of("scratch", "shop");
+  }
+
+  /** What a made-up server answers to a statement about a table it does not have. */
+  static final class NoSuchTable extends Exception {
+    NoSuchTable(String name) {
+      super("relation \"" + name + "\" does not exist");
+    }
+  }
+
+  /**
+   * {@code SELECT count(*)} of the table at {@code path}, which the statement called {@code name},
+   * on a server whose tables are at {@code tables}.
+   */
+  static int count(String path, String name, Set<String> tables, Duration latency)
+      throws InterruptedException, NoSuchTable {
+    answerAfter(path, latency);
+    if (!tables.contains(path)) {
+      throw new NoSuchTable(name);
+    }
+    return count(path, Duration.ZERO);
   }
 
   /** {@code SELECT count(*)} of the table at {@code path}. */
@@ -323,29 +357,65 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
         return;
       }
     }
+    openTab(table);
+  }
+
+  private void openTab(Node table) {
     Opened o = new Opened(table);
-    ask(o, Integer.MAX_VALUE);
+    ask(o, Integer.MAX_VALUE, null, 0, 0);
     tables.add(o);
     active = tables.size();
     taskbar(); // again, now that the tab counts
   }
 
-  /** Control+Enter in a table's query area: its statement, as far as the server reads it. */
-  void run(Opened o) {
-    Matcher limit = LIMIT.matcher(o.query);
-    ask(o, limit.find() ? Integer.parseInt(limit.group(1)) : Integer.MAX_VALUE);
+  /** The table File's New query opens another tab of: the active tab's, else the selected. */
+  Node queryTable() {
+    if (active > 0) {
+      return tables.get(active - 1).table;
+    }
+    if (selected == null || selected.kind != Kind.TABLE && selected.kind != Kind.COLUMN) {
+      return null;
+    }
+    return selected.kind == Kind.COLUMN ? selected.parent : selected;
   }
 
-  /** Asks for the number of rows of a tab's table, at most {@code limit}. */
-  private void ask(Opened o, int limit) {
+  /** Control+Enter in a table's query area: its statement, as far as the server reads it. */
+  void run(Opened o) {
+    o.completion.close();
+    Matcher limit = LIMIT.matcher(o.query);
+    int most = limit.find() ? Integer.parseInt(limit.group(1)) : Integer.MAX_VALUE;
+    Matcher from = FROM.matcher(o.query);
+    if (!from.find()) {
+      ask(o, most, null, 0, 0);
+      return;
+    }
+    ask(o, most, from.group(1), from.start(1), from.end(1));
+  }
+
+  /**
+   * Asks for the number of rows of a tab's table, at most {@code limit}: of the table its statement
+   * names at {@code from} to {@code to}, or of the tab's own table for {@code name} null.
+   */
+  private void ask(Opened o, int limit, String name, int from, int to) {
     if (o.asking != null) {
       o.asking.cancel(); // the answer asked for before is not wanted any more
     }
+    int before = o.rows;
     o.rows = -1;
     o.selection.clear();
-    String path = o.table.path();
+    o.failure = null;
+    o.editor.noError();
+    Node server = o.table;
+    while (server.parent != null) {
+      server = server.parent;
+    }
+    // The work gets names: the path the statement means and the tables of the server.
+    String path = name == null ? o.table.path() : resolve(o.table, name);
+    Set<String> tables = new HashSet<>();
+    tables(server, tables);
     Duration wait = latency;
-    o.asking = app.background("rows of " + path, () -> Math.min(count(path, wait), limit),
+    o.asking = app.background("rows of " + path,
+        () -> Math.min(count(path, name, tables, wait), limit),
         rows -> {
           o.rows = rows;
           o.asking = null;
@@ -353,10 +423,90 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
         },
         error -> {
           o.asking = null;
-          tell(path + ": " + error.getMessage());
+          o.rows = before;
+          if (error instanceof NoSuchTable) {
+            o.failure = error.getMessage();
+            o.editor.error(from, to); // the name, underlined until the next edit
+          } else {
+            tell(path + ": " + error.getMessage());
+          }
           answered();
         });
     taskbar();
+  }
+
+  /** The path of a table that a statement in the tab of {@code table} names. */
+  static String resolve(Node table, String name) {
+    String[] parts = name.split("\\.");
+    Node schema = table.parent;
+    Node database = schema.parent;
+    String server = database.parent.name;
+    return switch (parts.length) {
+      case 1 -> server + "/" + database.name + "/" + schema.name + "/" + parts[0];
+      case 2 -> server + "/" + database.name + "/" + parts[0] + "/" + parts[1];
+      default -> server + "/" + parts[0] + "/" + parts[1] + "/" + parts[2];
+    };
+  }
+
+  private static void tables(Node node, Set<String> into) {
+    if (node.kind == Kind.TABLE) {
+      into.add(node.path());
+    } else if (node.children != null && node.kind != Kind.COLUMN) {
+      node.children.forEach(child -> tables(child, into));
+    }
+  }
+
+  /**
+   * The completions for the start of a word in the query of a tab: the columns of its table, the
+   * tables and columns of the connected servers and the keywords of SQL whose names start with
+   * it, in that order, each name once.
+   */
+  List<Completion.Entry> suggest(Opened o, String word) {
+    String start = word.toLowerCase(Locale.ROOT);
+    Map<String, Completion.Entry> found = new LinkedHashMap<>();
+    for (Node column : o.table.children) {
+      if (column.name.toLowerCase(Locale.ROOT).startsWith(start)) {
+        found.put(column.name, new Completion.Entry(column.name, Symbol.COLUMN_SINGLE, "column"));
+      }
+    }
+    List<Node> columns = new ArrayList<>();
+    for (Node server : servers) {
+      collect(server, start, found, columns);
+    }
+    for (Node column : columns) {
+      found.putIfAbsent(column.name,
+          new Completion.Entry(column.name, Symbol.COLUMN_SINGLE, "column"));
+    }
+    for (String keyword : Sql.keywords().stream().sorted().toList()) {
+      if (keyword.toLowerCase(Locale.ROOT).startsWith(start)) {
+        found.putIfAbsent(keyword, new Completion.Entry(keyword, null, "keyword"));
+      }
+    }
+    List<Completion.Entry> entries = new ArrayList<>(found.values());
+    entries.removeIf(e -> e.text().equalsIgnoreCase(word)); // nothing to complete
+    return entries.subList(0, Math.min(entries.size(), SUGGESTIONS));
+  }
+
+  private static void collect(Node node, String start, Map<String, Completion.Entry> tables,
+      List<Node> columns) {
+    if (node.children == null) {
+      return; // not connected
+    }
+    for (Node child : node.children) {
+      boolean matches = child.name.toLowerCase(Locale.ROOT).startsWith(start);
+      if (child.kind == Kind.TABLE) {
+        if (matches) {
+          tables.putIfAbsent(child.name, new Completion.Entry(child.name, Symbol.TABLE, "table"));
+        }
+        for (Node column : child.children) {
+          if (column.name.toLowerCase(Locale.ROOT).startsWith(start)) {
+            columns.add(column);
+          }
+        }
+      } else {
+        collect(child, start, tables, columns);
+      }
+    }
   }
 
   void close(int tab) {
@@ -453,7 +603,9 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
     try (Window window = Window.open("Workbench", 1200, 720, options);
         GpuPresenter presenter = new GpuPresenter(window)) {
       s.window = window;
-      WindowLoop.run(window, app, presenter);
+      WindowLoop loop = new WindowLoop(window, app, presenter);
+      s.quit = loop::stop;
+      loop.run();
     }
   }
 
@@ -463,11 +615,14 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
     Theme t = s.theme();
     List<Tab> tabs = new ArrayList<>(List.of(new Tab("Start", false, false)));
     s.tables.forEach(o -> tabs.add(new Tab(o.table.name).icon(Symbol.TABLE)));
-    // The tab's content over a footer with the status, which shows on every tab.
+    // The tab's content over a footer with the status, which shows on every tab, and where the
+    // caret of the tab's query is.
+    Opened shown = s.active == 0 ? null : s.tables.get(s.active - 1);
     El content = col().grow(1)
-        .child(s.active == 0 ? start(t) : table(t, s, s.tables.get(s.active - 1)))
+        .child(shown == null ? start(t) : table(t, s, shown))
         .child(Card.footer(t, Label.label(t, Label.Variant.MUTED, s.status()).key("status")
-            .ellipsis()));
+            .ellipsis(), shown == null ? new El[0]
+            : new El[] {Label.label(t, Label.Variant.MUTED, position(shown)).key("position")}));
     El right = tabs(t, tabs, s.active, i -> s.active = i, s::close, content);
     El tree = tree(t, s, s.open::contains, s.selected, n -> s.selected = n, s::openOrClose,
         s::activate).key("catalogue").label("Catalogue");
@@ -475,9 +630,12 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
         Card.toolbar(t, "Connections", null, Button.icon(t, GHOST, Symbol.ADD, "Add connection",
             () -> s.tell("Adding a connection is not part of this example"))),
         Card.inset(t, Menu.contextMenu(t, tree, s.menu, s.menuItems())));
+    List<Menu.Item> menus = s.menus();
     El root = col().wFull().hFull().fill(t.surface().window())
-        .onKey(right.onKey()) // the tabs' keys also while the tree has the focus
-        .child(titleBar(t, "Workbench", t.accent().color(),
+        // The menus' keys, then the tabs' keys also while the tree has the focus.
+        .onKey(MenuBar.keys(s.bar, menus).or(right.onKey()))
+        .onKeyUp(MenuBar.keysUp(s.bar, menus))
+        .child(withMenus(t, "Workbench", t.accent().color(), MenuBar.menuBar(t, s.bar, menus),
             toggle(t, s.dark, "Dark", () -> s.dark = !s.dark)))
         .child(Split.cards(t, Direction.ROW, s.sidebar, SIDEBAR, p -> s.sidebar = p,
             catalogue, 160, right.key("tabs"), 320).grow(1)
@@ -498,6 +656,93 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
     return root;
   }
 
+  /** The menus of the title bar. */
+  List<Menu.Item> menus() {
+    Opened o = active == 0 ? null : tables.get(active - 1);
+    Node table = queryTable();
+    return List.of(
+        Menu.submenu("&File", List.of(
+            Menu.item("New query", table == null ? null : () -> openTab(table))
+                .icon(Symbol.ADD).shortcut(Key.CONTROL, "N"),
+            Menu.item("Close tab", o == null ? null : () -> close(active))
+                .shortcut(Key.CONTROL, "W"),
+            Menu.separator(),
+            Menu.item("Exit", () -> {
+              if (quit != null) {
+                quit.run();
+              }
+            }))),
+        Menu.submenu("&Edit", edits(o)),
+        Menu.submenu("&View", List.of(
+            Menu.item("Dark theme", () -> dark = true).checked(dark),
+            Menu.item("Light theme", () -> dark = false).checked(!dark))),
+        Menu.submenu("&Query", List.of(
+            Menu.item("Run", o == null ? null : () -> run(o)).icon(Symbol.PLAY)
+                .shortcut(Key.CONTROL, "Enter"))));
+  }
+
+  /**
+   * Edit's items, for the query of the active tab: what the app can do with {@link App#edit},
+   * {@link App#select}, {@link App#undo}, {@link App#redo} and the clipboard.
+   */
+  private List<Menu.Item> edits(Opened o) {
+    int from = o == null ? 0 : Math.min(o.editor.caret(), o.editor.anchor());
+    int to = o == null ? 0 : Math.min(Math.max(o.editor.caret(), o.editor.anchor()),
+        o.query.length());
+    boolean some = o != null && from < to;
+    return List.of(
+        Menu.item("Undo", o == null ? null : () -> app.undo(query(o))).icon(Symbol.ARROW_UNDO)
+            .shortcut("Ctrl+Z"),
+        Menu.item("Redo", o == null ? null : () -> app.redo(query(o))).icon(Symbol.ARROW_REDO)
+            .shortcut("Ctrl+Shift+Z"),
+        Menu.separator(),
+        Menu.item("Cut", !some ? null : () -> {
+          app.clipboard().write(o.query.substring(from, to));
+          app.edit(query(o), from, to, "", from);
+        }).icon(Symbol.CUT).shortcut(Key.CONTROL, "X"),
+        Menu.item("Copy", !some ? null : () -> app.clipboard().write(o.query.substring(from, to)))
+            .icon(Symbol.COPY).shortcut(Key.CONTROL, "C"),
+        Menu.item("Paste", o == null ? null : () -> {
+          String text = app.clipboard().read();
+          if (text != null && !text.isEmpty()) {
+            app.edit(query(o), from, to, text, from + text.length());
+          }
+        }).icon(Symbol.CLIPBOARD_PASTE).shortcut(Key.CONTROL, "V"),
+        Menu.separator(),
+        Menu.item("Select all", o == null ? null
+            : () -> app.select(query(o), o.query.length(), 0)).shortcut(Key.CONTROL, "A"));
+  }
+
+  /** The query field of a tab in the tree the handlers run in. */
+  private El query(Opened o) {
+    return find(app.tree(), "query-" + o.table.path());
+  }
+
+  /** The element with this key in the tree of the last frame, or null. */
+  private static El find(El el, String key) {
+    if (el == null || key.equals(el.key())) {
+      return el;
+    }
+    for (El child : el.children()) {
+      El found = find(child, key);
+      if (found != null) {
+        return found;
+      }
+    }
+    return null;
+  }
+
+  /** Where the caret of a tab's query is, as editors say it: line and column, from 1. */
+  static String position(Opened o) {
+    int caret = Math.min(o.editor.caret(), o.query.length());
+    int line = 1;
+    for (int i = o.query.indexOf('\n'); i >= 0 && i < caret; i = o.query.indexOf('\n', i + 1)) {
+      line++;
+    }
+    int column = caret - (o.query.lastIndexOf('\n', caret - 1) + 1) + 1;
+    return "Ln " + line + ", Col " + column;
+  }
+
   /** The message, or else what the active tab shows. */
   String status() {
     if (message != null) {
@@ -507,6 +752,9 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
       return selected == null ? "" : selected.path();
     }
     Opened o = tables.get(active - 1);
+    if (o.failure != null) {
+      return o.table.path() + " · " + o.failure;
+    }
     if (o.rows < 0) {
       return o.table.path() + " · counting the rows";
     }
@@ -529,7 +777,11 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
   }
 
   private static El table(Theme t, Workbench s, Opened o) {
-    El area = codeArea(t, o.query, "SQL", q -> o.query = q)
+    El area = codeEditor(t, o.query, o.editor, Sql.of(t), q -> {
+          o.query = q;
+          o.failure = null; // the next edit takes the error away
+          o.editor.noError();
+        })
         .key("query-" + o.table.path()).label("Query").wFull().shrink(0).onKey(k -> {
           boolean run = k.name().equals("Enter") && k.modifiers() == Key.CONTROL;
           if (run) {
@@ -537,6 +789,8 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
           }
           return run;
         });
+    Completion.complete(t, s.app, area, o.editor.caret(), o.completion,
+        word -> s.suggest(o, word));
     El query = col().padding(t.space().m(), t.space().l()).shrink(0).child(area);
     if (o.rows < 0) {
       return col().grow(1).minSize(0, 0).children(toolbar(t, s, o), Divider.divider(t), query,

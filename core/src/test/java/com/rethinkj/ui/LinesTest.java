@@ -152,6 +152,22 @@ class LinesTest {
     assertEquals(fresh.count() - 1, lines.lineOfRow(sum + 5), "clamped to the last line");
   }
 
+  @Test
+  void highlightedLinesFollowEditsThatAddAndRemoveLines() {
+    String text = "a\nb";
+    Lines lines = Lines.of(text);
+    Highlighter none = (line, state, out) -> null;
+    lines.spans(0, text, none, none);
+    lines.spans(1, text, none, none);
+    lines.edit(1, 0, "\n\n"); // Enter twice at the end of the first line
+    assertEquals(4, lines.count());
+    text = "a\n\n\nb";
+    assertEquals("", lines.spans(3, text, none, none).toString(), "asked about the moved line");
+    lines.edit(0, 4, "");
+    assertEquals(1, lines.count());
+    lines.spans(0, "b", none, none);
+  }
+
   private static void assertSameLines(Lines expected, Lines actual, String text) {
     assertEquals(expected.count(), actual.count(), text);
     assertEquals(expected.length(), actual.length(), text);
