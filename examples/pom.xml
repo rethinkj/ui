@@ -50,6 +50,16 @@
   <build>
     <plugins>
       <plugin>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <configuration>
+          <!-- The tests run on the class path, where core is an unnamed module. -->
+          <argLine>--enable-native-access=ALL-UNNAMED</argLine>
+          <systemPropertyVariables>
+            <rethinkj.ui.natives.cache>${project.build.directory}/natives-cache</rethinkj.ui.natives.cache>
+          </systemPropertyVariables>
+        </configuration>
+      </plugin>
+      <plugin>
         <!-- Runs the example from the folder Maven was started in; see the root POM. -->
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>exec-maven-plugin</artifactId>
