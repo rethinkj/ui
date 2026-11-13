@@ -5,10 +5,13 @@ package com.rethinkj.ui;
  * El#dragPayload}): that its pointer is over the element, has left it, or was released over it.
  * The element may lie in the window the drag began in or in another window of the same runner
  * ({@link com.rethinkj.ui.window.Windows}), and is hit tested there as a press would be, overlays
- * first; the innermost element with a drop handler under the pointer gets the steps.
+ * first; the innermost element with a drop handler under the pointer gets the steps. What another
+ * application drags onto the window, files or text, comes the same way to {@link El#onFileDrop}.
  *
  * @param phase which step this is
- * @param payload what the drag carries, as its element named it when the pointer went down
+ * @param payload what the drag carries, as its element named it when the pointer went down; for
+ *     {@link El#onFileDrop}, the files as a {@code List<java.nio.file.Path>} or the text as a
+ *     {@code String} with {@link Phase#DROP}, and null before
  * @param x where the pointer is in the element's content, as {@link Drag#x}: from the left of its
  *     border box as the last frame of its window shows it, plus its own horizontal scroll offset;
  *     NaN for {@link Phase#LEAVE}

@@ -100,7 +100,7 @@ class SystemIntegrationTest {
   }
 
   @Test
-  void theIdentityReachesSdlAndWindowsBeforeTheFirstWindow() {
+  void theIdentityReachesSdlAndWindowsBeforeTheFirstWindowAndMayBeRepeated() {
     String id = "com.rethinkj.ui.test.SystemIntegration";
     Window.identity(id, "System integration test");
     assertThrows(IllegalArgumentException.class, () -> Window.identity("with space", null));
@@ -111,6 +111,8 @@ class SystemIntegrationTest {
       if (WINDOWS) {
         assertEquals(id, Win32.currentProcessExplicitAppUserModelId());
       }
+      // The same again, as code that opens a later window may set up its options: nothing changes.
+      Window.identity(id, "System integration test");
       assertThrows(IllegalStateException.class, () -> Window.identity(id, null),
           "the identity is set before the first window");
     }
