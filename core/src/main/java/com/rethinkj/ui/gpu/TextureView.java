@@ -2,7 +2,10 @@ package com.rethinkj.ui.gpu;
 
 import java.lang.foreign.MemorySegment;
 
-/** A view of a {@link Texture} or of a {@link SurfaceFrame}: what a render pass draws into. */
+/**
+ * A view of a {@link Texture} or of a {@link SurfaceFrame}: what a render pass draws into, or what
+ * a bind group gives a shader to read.
+ */
 public final class TextureView extends GpuObject {
 
   final Device device;

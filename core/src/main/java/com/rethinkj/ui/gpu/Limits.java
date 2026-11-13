@@ -8,6 +8,7 @@ import java.lang.foreign.MemorySegment;
 /** The limits of an adapter or a device that the layer checks or a renderer needs to know. */
 public record Limits(
     int maxTextureDimension2D,
+    int maxTextureArrayLayers,
     int maxBindGroups,
     long maxUniformBufferBindingSize,
     int minUniformBufferOffsetAlignment,
@@ -24,6 +25,7 @@ public record Limits(
   static Limits read(MemorySegment s) {
     return new Limits(
         s.get(JAVA_INT, Structs.Limits.MAX_TEXTURE_DIMENSION_2D),
+        s.get(JAVA_INT, Structs.Limits.MAX_TEXTURE_ARRAY_LAYERS),
         s.get(JAVA_INT, Structs.Limits.MAX_BIND_GROUPS),
         s.get(JAVA_LONG, Structs.Limits.MAX_UNIFORM_BUFFER_BINDING_SIZE),
         s.get(JAVA_INT, Structs.Limits.MIN_UNIFORM_BUFFER_OFFSET_ALIGNMENT),
