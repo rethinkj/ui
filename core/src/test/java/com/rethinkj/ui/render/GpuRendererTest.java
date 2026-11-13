@@ -120,10 +120,10 @@ class GpuRendererTest {
   /**
    * A scene to draw, with the size of the image in physical pixels and the scale.
    *
-   * @param stored true if the scene is the view behind the stored image of the same name, which
-   *     the CPU's image of the scene then equals
+   * @param stored the stored image that the scene is the view behind, which the CPU's image of the
+   *     scene then equals; null for none
    */
-  record Case(String name, Scene scene, int width, int height, float scale, boolean stored) {
+  record Case(String name, Scene scene, int width, int height, float scale, Path stored) {
     @Override
     public String toString() {
       return name;
@@ -143,6 +143,22 @@ class GpuRendererTest {
     cases.addAll(script("field.txt", () -> new App<>(new Examples.Form(), Examples::form)));
     cases.addAll(script("field-rows.txt",
         () -> new App<>(new Examples.Names(), Examples::fieldRows)));
+    // The kit's data grid, which Examples.grid builds as the kit does: first the snaps of kit's
+    // script behind its stored images grid-dark-*, then at the other scales. Header, lines and
+    // cells on whole pixels or not, clipped cells, rows a million down, the ring and the accent.
+    List<Case> grid = script(Files.readString(KIT.resolve("scripts/grid.txt")), "grid-dark-",
+        KIT.resolve("golden"), GpuRendererTest::grid);
+    if (grid.size() != 5) {
+      throw new AssertionError("Expected the 5 snaps of kit's grid.txt, found " + grid);
+    }
+    cases.addAll(grid);
+    for (float scale : new float[] {2, 1.5f}) {
+      String at = at(scale);
+      cases.add(grid("grid-focused" + at, scale, "key Tab\nkey ArrowDown\nkey ArrowDown\n"));
+      cases.add(grid("grid-far-sideways" + at, scale,
+          "scroll #rows row 765432\nframe\nwheel #rows 300 0\n"));
+      cases.add(grid("grid-resizing" + at, scale, "down #resize-1\nmove 252,19\n"));
+    }
     for (int frames = 2; frames <= 5; frames++) {
       cases.add(switchMoving(frames));
     }
@@ -201,8 +217,8 @@ class GpuRendererTest {
   @ParameterizedTest(name = "{0}")
   @MethodSource("cases")
   void theGpuDrawsWhatTheCpuDraws(Case c) throws IOException {
-    if (c.stored()) {
-      Pixels stored = Png.decode(Files.readAllBytes(STORED.resolve(c.name() + ".png")));
+    if (c.stored() != null) {
+      Pixels stored = Png.decode(Files.readAllBytes(c.stored()));
       assertArrayEquals(stored.rgba(),
           CpuRenderer.render(c.scene(), c.width(), c.height(), c.scale()).rgba(),
           "the case is not the view behind the stored image " + c.name());
@@ -565,6 +581,11 @@ class GpuRendererTest {
 
   private static Case scene(String name, Scene scene, float width, float height, float scale,
       boolean stored) {
+    return scene(name, scene, width, height, scale, stored ? STORED.resolve(name + ".png") : null);
+  }
+
+  private static Case scene(String name, Scene scene, float width, float height, float scale,
+      Path stored) {
     return new Case(name, scene, Math.round(width * scale), Math.round(height * scale), scale,
         stored);
   }
@@ -617,6 +638,12 @@ class GpuRendererTest {
    */
   private static List<Case> script(String script, String prefix, Supplier<App<?>> apps)
       throws IOException {
+    return script(script, prefix, STORED, apps);
+  }
+
+  /** As {@link #script(String, String, Supplier)}, with the stored images in {@code stored}. */
+  private static List<Case> script(String script, String prefix, Path stored,
+      Supplier<App<?>> apps) throws IOException {
     List<String> lines = script.lines().toList();
     List<Case> cases = new ArrayList<>();
     float[] size = new float[3];
@@ -628,12 +655,13 @@ class GpuRendererTest {
         size[1] = Float.parseFloat(words[2]);
         size[2] = words.length > 4 && words[3].equals("scale") ? Float.parseFloat(words[4]) : 1;
       } else if (words[0].equals("snap") && !SNAPPED.contains(name)
-          && Files.exists(STORED.resolve(name + ".png"))) {
+          && Files.exists(stored.resolve(name + ".png"))) {
         App<?> app = apps.get();
         app.textRendering(TextRendering.LINUX);
         Script.run(String.join("\n", lines.subList(0, i + 1)), app,
             Path.of("target/gpu-vs-cpu-scripts"));
-        cases.add(scene(name, app.scene(), size[0], size[1], size[2], true));
+        cases.add(scene(name, app.scene(), size[0], size[1], size[2],
+            stored.resolve(name + ".png")));
         SNAPPED.add(name);
       }
     }
@@ -671,6 +699,25 @@ class GpuRendererTest {
     app.wheel(100, 45, 0, 13.25f);
     app.frame();
     return scene("text-scrolled", app.scene(), 200, 90, 2, true);
+  }
+
+  /** Kit's test resources, for its data grid's script and stored images. */
+  private static final Path KIT = Path.of("../kit/src/test/resources");
+
+  /** The data grid as kit's {@code Orders.app} starts it, in the dark theme. */
+  private static App<?> grid() {
+    App<Examples.Grid> app = new App<>(new Examples.Grid(), Examples::grid);
+    app.focusRing(0xFFE4E5E9); // Theme.DARK's focus ring
+    return app;
+  }
+
+  /** The grid after these steps of a script and a frame, in a window of 560 by 240. */
+  private static Case grid(String name, float scale, String steps) throws IOException {
+    App<?> app = grid();
+    app.textRendering(TextRendering.LINUX);
+    Script.run("size 560 240 scale " + scale + "\nframe\n" + steps + "frame\n", app,
+        Path.of("target/gpu-vs-cpu-scripts"));
+    return scene(name, app.scene(), 560, 240, scale);
   }
 
   /** The text field of the stored images field-*, after these steps of a script and a frame. */

@@ -9,10 +9,15 @@ import com.rethinkj.ui.motion.Spring;
 import com.rethinkj.ui.text.Font;
 import com.rethinkj.ui.text.TextRendering;
 import java.io.IOException;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.function.Consumer;
+import java.util.function.IntFunction;
 
 /** Views shared by tests. */
 public final class Examples {
@@ -170,6 +175,166 @@ public final class Examples {
         .border(1, 0xFF3A3A40)
         .whenHovered(e -> e.fill(0xFF26262E))
         .whenFocused(e -> e.border(1, 0xFF3B82F6));
+  }
+
+  // ---- the kit's data grid, which core's tests cannot see ----------------------------------
+
+  /**
+   * The state of {@link #grid}, as {@code Orders} in kit's tests keeps it: the selected row and
+   * the widths of the seven columns.
+   */
+  public static final class Grid {
+    public int selected = 2;
+    public final float[] widths = {64, 140, 200, 150, 90, 80, 240};
+  }
+
+  private static final String[] FIRST = {
+    "Ada", "Grace", "Linus", "Margaret", "Ken", "Barbara", "Edsger", "Frances", "Donald", "Radia"
+  };
+  private static final String[] LAST = {
+    "Lovelace", "Hopper", "Torvalds", "Hamilton", "Thompson", "Liskov", "Dijkstra", "Allen",
+    "Knuth", "Perlman"
+  };
+  private static final String[] STATUS = {"paid", "pending", "shipped", "refunded"};
+  private static final LocalDateTime START = LocalDateTime.of(2026, 3, 1, 8, 0);
+  private static final DateTimeFormatter TIME = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+  private static final String[] TITLES =
+      {"id", "customer", "email", "created_at", "amount", "status", "note"};
+  private static final boolean[] RIGHT = {true, false, false, false, true, false, false};
+  private static final boolean[] MONO = {true, false, false, true, true, false, false};
+
+  private static String customer(int i) {
+    return FIRST[i % FIRST.length] + " " + LAST[i / FIRST.length % LAST.length];
+  }
+
+  /** The cells of the seven columns of {@code Orders}, null for SQL NULL. */
+  private static final List<IntFunction<String>> CELLS = List.of(
+      i -> String.valueOf(i + 1),
+      Examples::customer,
+      i -> customer(i).toLowerCase(Locale.ROOT).replace(' ', '.') + "@example.com",
+      i -> START.plusSeconds(i * 97L).format(TIME),
+      i -> i % 11 == 5 ? null
+          : String.format(Locale.ROOT, "%d.%02d", i * 7919 % 250_000 / 100, i * 13 % 100),
+      i -> STATUS[i * 7 % STATUS.length],
+      i -> i % 3 != 1 ? null
+          : "Customer asked to split the delivery into two parcels and to leave them next door");
+
+  // The values of the kit's Theme.DARK that the grid reads.
+  private static final int PANEL = 0xFF232428;
+  private static final int HOVER = 0x0FFFFFFF;
+  private static final int PRESSED = 0x1AFFFFFF;
+  private static final int PRIMARY = 0xFFE4E5E9;
+  private static final int MUTED = 0xFFA1A3AA;
+  private static final int SUBTLE = 0xFF393A40;
+  private static final int STRONG = 0xFF7A7D86;
+  private static final int ACCENT = 0xFF2E62D9;
+  private static final int HEADER = 0xFF232428;
+  private static final int ROW = 0xFF1B1C1F;
+  private static final int STRIPE = 0xFF1F2023;
+  private static final int SELECTED = 0xFF1C3666;
+  private static final int SELECTED_INACTIVE = 0xFF2B3240;
+  private static final float ROW_HEIGHT = 22;
+
+  /**
+   * The kit's {@code DataGrid} in {@code Theme.DARK} with a million orders, as kit's {@code
+   * Orders.view} shows it, built the same way from core's elements: core's tests cannot depend on
+   * the kit, which depends on core. {@code GpuRendererTest} checks that it draws the kit's stored
+   * images {@code grid-dark-*} before it compares the GPU with the CPU on it, so a change of the
+   * grid shows there.
+   */
+  public static El grid(Grid s) {
+    float total = 0;
+    for (float width : s.widths) {
+      total += width;
+    }
+    El header = row().key("header").h(ROW_HEIGHT).shrink(0).fill(HEADER);
+    El[] lines = new El[TITLES.length];
+    for (int c = 0; c < TITLES.length; c++) {
+      lines[c] = gridLine();
+      El cell = gridCell(s.widths[c], RIGHT[c]).key("column-" + c).role("columnheader")
+          .label(TITLES[c]).gap(2);
+      El title = gridText(TITLES[c], PRIMARY, false);
+      if (c == 0) { // sorted by id, ascending; the marker before the title of a right column
+        cell.children(gridText("▲", MUTED, false), title);
+      } else {
+        cell.child(title);
+      }
+      header.children(cell.cursor(Cursor.POINTER).onPress(() -> {})
+          .whenHovered(e -> e.fill(over(HEADER, HOVER)))
+          .whenPressed(e -> e.fill(over(HEADER, PRESSED))), lines[c]);
+    }
+    float edge = 0;
+    for (int c = 0; c < TITLES.length; c++) {
+      edge += s.widths[c];
+      int index = c;
+      float width = s.widths[c];
+      header.child(el().key("resize-" + c).role("separator").label("Resize " + TITLES[c])
+          .absolute(edge - 3, 0).size(6, ROW_HEIGHT).cursor(Cursor.EW_RESIZE)
+          .whenHovered(e -> lines[index].fill(STRONG))
+          .whenPressed(e -> lines[index].fill(ACCENT))
+          .onDrag(d -> s.widths[index] =
+              d.phase() == Drag.Phase.CANCEL ? width : Math.max(width + d.dx(), 32)));
+    }
+    boolean[] focused = {false};
+    int selected = s.selected;
+    El body = col().key("rows").grow(1).revealRow(selected).rows(1_000_000, ROW_HEIGHT, i -> {
+      int fill = i == selected ? (focused[0] ? SELECTED : SELECTED_INACTIVE)
+          : i % 2 == 0 ? ROW : STRIPE;
+      El r = row().key("row-" + i).role("row").fill(fill);
+      for (int c = 0; c < TITLES.length; c++) {
+        String text = CELLS.get(c).apply(i);
+        r.children(gridCell(s.widths[c], RIGHT[c]).child(
+            gridText(text == null ? "NULL" : text, text == null ? MUTED : PRIMARY, MONO[c])),
+            gridLine());
+      }
+      r.onPress(() -> s.selected = i);
+      return i == selected ? r : r.whenHovered(e -> e.fill(over(fill, HOVER)));
+    });
+    El under = el().h(1).shrink(0).fill(SUBTLE);
+    El content = col().key("content").w(total).children(header, under, body);
+    content.style().minWidth = Len.percent(1);
+    El grid = row().role("grid").scrollBoth().fill(ROW).child(content).focusable()
+        .whenFocused(e -> focused[0] = true)
+        .onKey(k -> {
+          int next = switch (k.name()) {
+            case "ArrowUp" -> selected - 1;
+            case "ArrowDown" -> selected + 1;
+            default -> -1;
+          };
+          if (k.modifiers() != 0 || next < 0) {
+            return false;
+          }
+          s.selected = next;
+          return true;
+        });
+    return col().wFull().hFull().padding(8).fill(PANEL)
+        .child(grid.key("orders").label("Orders").grow(1));
+  }
+
+  private static El gridCell(float width, boolean right) {
+    return row().w(Math.max(width - 1, 0)).padding(0, 4).align(Style.Align.CENTER)
+        .justify(right ? Style.Content.END : Style.Content.START).clip();
+  }
+
+  private static El gridText(String text, int colour, boolean mono) {
+    return El.text(text).font(mono ? Font.mono() : Font.sans()).fontSize(mono ? 12 : 13)
+        .color(colour);
+  }
+
+  private static El gridLine() {
+    return el().w(1).fill(SUBTLE);
+  }
+
+  /** The colour {@code overlay} gives over the opaque {@code base}, as the kit's Theme.over. */
+  private static int over(int base, int overlay) {
+    int alpha = overlay >>> 24;
+    int argb = 0xFF;
+    for (int shift = 16; shift >= 0; shift -= 8) {
+      int b = base >>> shift & 0xFF;
+      int o = overlay >>> shift & 0xFF;
+      argb = argb << 8 | Math.round((o * alpha + b * (255 - alpha)) / 255f);
+    }
+    return argb;
   }
 
   /** The state of the switch example. */
