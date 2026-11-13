@@ -70,8 +70,12 @@ public final class ComboBox {
     // The entries of the last build's choices, and the handler their entries call.
     private List<?> choices;
     private int chosen;
-    private List<FilterList.Entry> entries;
+    List<FilterList.Entry> entries; // package-private for tests
     private IntConsumer choose;
+    // What the typed forms made of their values last, handed on while it comes out the same, so
+    // that the list keeps what it found although the app maps its values anew in every build.
+    private List<?> typedValues;
+    private List<?> typed;
 
     public boolean isOpen() {
       return open;
@@ -129,6 +133,42 @@ public final class ComboBox {
     El field = TextField.textField(t, state.list.query, text, v -> state.list.typed(v, true))
         .label(text);
     return open(t, text, field, null, FilterList.Entries.of(entries), state, true);
+  }
+
+  /**
+   * A combo box of values of any type, of which the user chooses one, as {@link
+   * #comboBox(Theme, List, int, State, IntConsumer)} is of texts:
+   *
+   * <pre>{@code
+   * comboBox(t, schemas, s.schema, Schema::name, s.schemaBox, v -> s.schema = v)
+   * }</pre>
+   *
+   * <p>The texts are made in every build, one call of {@code text} per value, and while they are
+   * equal to the last build's, the list of the last build goes on, so that the list keeps what it
+   * filtered, as it does for the same list of texts.
+   *
+   * @param selected the current value, found by {@code equals}; null, or a value not among them,
+   *     for none
+   * @param text the text a value shows, and what a typed text is matched against
+   * @param onSelect told the value chosen; null disables the combo box
+   */
+  @SuppressWarnings("unchecked")
+  public static <T> El comboBox(
+      Theme t,
+      List<T> values,
+      T selected,
+      Function<? super T, String> text,
+      State state,
+      Consumer<? super T> onSelect) {
+    List<String> texts = Choices.texts(values, text);
+    if (texts.equals(state.typed)) {
+      texts = (List<String>) state.typed;
+    } else {
+      state.typed = texts;
+      state.typedValues = null;
+    }
+    return comboBox(
+        t, texts, Choices.index(values, selected), state, Choices.handler(values, onSelect));
   }
 
   /**
@@ -225,6 +265,65 @@ public final class ComboBox {
     El field = TextField.textField(t, state.list.query, text, v -> state.list.typed(v, true))
         .label(text);
     return open(t, text, field, lead, FilterList.Entries.of(state.entries), state, true);
+  }
+
+  /**
+   * A combo box of values of any type with more than their texts, as {@link #items(Theme, List,
+   * int, State, IntConsumer)} is of {@link Item}s:
+   *
+   * <pre>{@code
+   * items(t, products, s.product,
+   *     p -> ComboBox.item(p.name()).image(p.logo()).detail(p.versions()),
+   *     s.productBox, v -> s.product = v)
+   * }</pre>
+   *
+   * <p>The items are made in every build, one call of {@code item} per value, and while the values
+   * are equal to the last build's and so are the items' texts and details, the items of the last
+   * build go on, so that the list keeps what it filtered; what stands before a text is taken to
+   * follow from the value.
+   *
+   * @param selected the current value, found by {@code equals}; null, or a value not among them,
+   *     for none
+   * @param item the item a value shows, such as {@code v -> ComboBox.item(v.name()).icon(...)}
+   * @param onSelect told the value chosen; null disables the combo box
+   */
+  @SuppressWarnings("unchecked")
+  public static <T> El items(
+      Theme t,
+      List<T> values,
+      T selected,
+      Function<? super T, Item> item,
+      State state,
+      Consumer<? super T> onSelect) {
+    List<Item> items = new ArrayList<>(values.size());
+    for (T v : values) {
+      items.add(item.apply(v));
+    }
+    if (values.equals(state.typedValues) && same(items, (List<Item>) state.typed)) {
+      items = (List<Item>) state.typed;
+    } else {
+      state.typedValues = new ArrayList<>(values); // a copy, which a change in place does not reach
+      state.typed = items;
+    }
+    return items(
+        t, items, Choices.index(values, selected), state, Choices.handler(values, onSelect));
+  }
+
+  /** Whether the items have the same texts and details, and leading elements in the same places. */
+  private static boolean same(List<Item> a, List<Item> b) {
+    if (b == null || a.size() != b.size()) {
+      return false;
+    }
+    for (int i = 0; i < a.size(); i++) {
+      Item x = a.get(i);
+      Item y = b.get(i);
+      if (!x.text().equals(y.text())
+          || !Objects.equals(x.detail(), y.detail())
+          || (x.leading() == null) != (y.leading() == null)) {
+        return false;
+      }
+    }
+    return true;
   }
 
   /**
