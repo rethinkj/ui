@@ -8,6 +8,7 @@ import static java.lang.foreign.ValueLayout.JAVA_INT;
 import static java.lang.foreign.ValueLayout.JAVA_SHORT;
 
 import com.rethinkj.ui.App;
+import com.rethinkj.ui.Cursor;
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.Key;
 import com.rethinkj.ui.WindowPart;
@@ -33,6 +34,7 @@ import java.lang.foreign.MemorySegment;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.util.ArrayDeque;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -147,6 +149,10 @@ public final class Window implements AutoCloseable {
   private static Throwable failure;
   private static MemorySegment buffer;
   private static MemorySegment ints;
+  /** SDL's cursors by {@link Cursor#ordinal}, made on first use; SDL_Quit frees them. */
+  private static final MemorySegment[] cursors = new MemorySegment[Cursor.values().length];
+  /** The cursor SDL shows, one for all windows. */
+  private static Cursor cursorShown = Cursor.DEFAULT;
 
   private record Posted(Window window, WindowEvent event) {}
 
@@ -182,6 +188,11 @@ public final class Window implements AutoCloseable {
   private boolean maximized;
   /** The window button a left press began on, or null. */
   private WindowPart pressed;
+  /** Where the last pointer move was, in logical pixels, while the pointer is in the window. */
+  private boolean pointerIn;
+  private float pointerX;
+  private float pointerY;
+  private Cursor cursor = Cursor.DEFAULT;
 
   private Window(MemorySegment sdl, Options options) {
     this.sdl = sdl;
@@ -469,8 +480,10 @@ public final class Window implements AutoCloseable {
         if (win32 != null) {
           win32.pointerInClient();
         }
-        post(new PointerMove(logical(e.get(JAVA_FLOAT, Sdl.MOTION_X)),
-            logical(e.get(JAVA_FLOAT, Sdl.MOTION_Y))));
+        pointerIn = true;
+        pointerX = logical(e.get(JAVA_FLOAT, Sdl.MOTION_X));
+        pointerY = logical(e.get(JAVA_FLOAT, Sdl.MOTION_Y));
+        post(new PointerMove(pointerX, pointerY));
       }
       case Sdl.EVENT_MOUSE_BUTTON_DOWN, Sdl.EVENT_MOUSE_BUTTON_UP -> {
         PointerButton button = switch (e.get(JAVA_BYTE, Sdl.BUTTON_BUTTON)) {
@@ -539,6 +552,7 @@ public final class Window implements AutoCloseable {
       }
       case Sdl.EVENT_WINDOW_EXPOSED -> post(new Redraw(e.get(JAVA_INT, Sdl.WINDOW_DATA1) != 0));
       case Sdl.EVENT_WINDOW_MOUSE_LEAVE -> {
+        pointerIn = false;
         if (win32 == null || !win32.pointerOnMaximize()) {
           post(new PointerLeave());
         }
@@ -777,6 +791,54 @@ public final class Window implements AutoCloseable {
   }
 
   /**
+   * Shows the system's cursor of this shape while the pointer is over the window's content, as
+   * {@link App#cursor} asks; {@link WindowLoop} calls this after each frame. SDL has one cursor
+   * for all its windows, so the window under the pointer should set it. Over the resize margin of
+   * a frameless window the system's resize cursors keep precedence: the shape waits until a call
+   * after the pointer has left the margin.
+   */
+  public void cursor(Cursor cursor) {
+    checkOpen();
+    this.cursor = Objects.requireNonNull(cursor, "cursor");
+    // X11 and Wayland show the hit test's resize cursor themselves, and ours would replace it.
+    if (cursor == cursorShown
+        || frameless && pointerIn && zone(pointerX, pointerY) >= Sdl.HITTEST_RESIZE_TOPLEFT) {
+      return;
+    }
+    MemorySegment shape = cursors[cursor.ordinal()];
+    if (shape == null) {
+      shape = Sdl.createSystemCursor(switch (cursor) {
+        case DEFAULT -> Sdl.SYSTEM_CURSOR_DEFAULT;
+        case POINTER -> Sdl.SYSTEM_CURSOR_POINTER;
+        case TEXT -> Sdl.SYSTEM_CURSOR_TEXT;
+        case NOT_ALLOWED -> Sdl.SYSTEM_CURSOR_NOT_ALLOWED;
+        case EW_RESIZE -> Sdl.SYSTEM_CURSOR_EW_RESIZE;
+        case NS_RESIZE -> Sdl.SYSTEM_CURSOR_NS_RESIZE;
+        case NWSE_RESIZE -> Sdl.SYSTEM_CURSOR_NWSE_RESIZE;
+        case NESW_RESIZE -> Sdl.SYSTEM_CURSOR_NESW_RESIZE;
+      });
+      if (shape.equals(MemorySegment.NULL)) {
+        return; // a video driver without cursors: the pointer keeps its shape
+      }
+      cursors[cursor.ordinal()] = shape;
+    }
+    if (!Sdl.setCursor(shape)) {
+      throw new IllegalStateException("SDL_SetCursor failed: " + Sdl.getError());
+    }
+    cursorShown = cursor;
+  }
+
+  /** The cursor this window asked for last; see {@link #cursor(Cursor)}. */
+  public Cursor cursor() {
+    return cursor;
+  }
+
+  /** The cursor SDL shows now, for all windows. */
+  static Cursor cursorShown() {
+    return cursorShown;
+  }
+
+  /**
    * The system's handles of this window, for a GPU surface.
    *
    * @throws UnsupportedOperationException if SDL runs a video driver other than Windows, X11 or
@@ -900,6 +962,8 @@ public final class Window implements AutoCloseable {
     Sdl.removeEventWatch(Upcalls.WATCH, MemorySegment.NULL);
     pending.clear();
     deferred.clear();
+    Arrays.fill(cursors, null); // SDL_Quit frees them, and the next SDL starts with its default
+    cursorShown = Cursor.DEFAULT;
     synchronized (LOCK) {
       Sdl.quit();
       thread = null;

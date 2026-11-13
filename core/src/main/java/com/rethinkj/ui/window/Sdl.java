@@ -83,6 +83,16 @@ final class Sdl {
   static final int BUTTON_X2 = 5;
   static final int MOUSEWHEEL_FLIPPED = 1;
 
+  // SDL_SystemCursor
+  static final int SYSTEM_CURSOR_DEFAULT = 0;
+  static final int SYSTEM_CURSOR_TEXT = 1;
+  static final int SYSTEM_CURSOR_NWSE_RESIZE = 5;
+  static final int SYSTEM_CURSOR_NESW_RESIZE = 6;
+  static final int SYSTEM_CURSOR_EW_RESIZE = 7;
+  static final int SYSTEM_CURSOR_NS_RESIZE = 8;
+  static final int SYSTEM_CURSOR_NOT_ALLOWED = 10;
+  static final int SYSTEM_CURSOR_POINTER = 11;
+
   // SDL_Keymod
   static final int KMOD_SHIFT = 0x0003;
   static final int KMOD_CTRL = 0x00C0;
@@ -223,6 +233,9 @@ final class Sdl {
   static final FunctionDescriptor SDL_POLL_EVENT = FunctionDescriptor.of(JAVA_BOOLEAN, ADDRESS);
   static final FunctionDescriptor SDL_PUSH_EVENT = FunctionDescriptor.of(JAVA_BOOLEAN, ADDRESS);
   static final FunctionDescriptor SDL_REGISTER_EVENTS = FunctionDescriptor.of(JAVA_INT, JAVA_INT);
+  static final FunctionDescriptor SDL_CREATE_SYSTEM_CURSOR =
+      FunctionDescriptor.of(ADDRESS, JAVA_INT);
+  static final FunctionDescriptor SDL_SET_CURSOR = FunctionDescriptor.of(JAVA_BOOLEAN, ADDRESS);
 
   /** The handles, bound on first use. Initialising this class loads SDL. */
   private static final class H {
@@ -287,6 +300,9 @@ final class Sdl {
     static final MethodHandle POLL_EVENT = bind("SDL_PollEvent", SDL_POLL_EVENT);
     static final MethodHandle PUSH_EVENT = bind("SDL_PushEvent", SDL_PUSH_EVENT);
     static final MethodHandle REGISTER_EVENTS = bind("SDL_RegisterEvents", SDL_REGISTER_EVENTS);
+    static final MethodHandle CREATE_SYSTEM_CURSOR =
+        bind("SDL_CreateSystemCursor", SDL_CREATE_SYSTEM_CURSOR);
+    static final MethodHandle SET_CURSOR = bind("SDL_SetCursor", SDL_SET_CURSOR);
 
     private static MethodHandle bind(String name, FunctionDescriptor descriptor) {
       MemorySegment symbol =
@@ -637,6 +653,23 @@ final class Sdl {
   static int registerEvents(int count) {
     try {
       return (int) H.REGISTER_EVENTS.invokeExact(count);
+    } catch (Throwable t) {
+      throw failed(t);
+    }
+  }
+
+  /** @return the cursor, which SDL_Quit frees, or NULL if the system has none of this shape */
+  static MemorySegment createSystemCursor(int id) {
+    try {
+      return (MemorySegment) H.CREATE_SYSTEM_CURSOR.invokeExact(id);
+    } catch (Throwable t) {
+      throw failed(t);
+    }
+  }
+
+  static boolean setCursor(MemorySegment cursor) {
+    try {
+      return (boolean) H.SET_CURSOR.invokeExact(cursor);
     } catch (Throwable t) {
       throw failed(t);
     }

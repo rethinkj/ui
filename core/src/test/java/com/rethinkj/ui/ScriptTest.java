@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -26,6 +27,7 @@ class ScriptTest {
   private static final Path EXAMPLE = Path.of("src/test/resources/scripts/switch.txt");
   private static final Path LIST = Path.of("src/test/resources/scripts/list.txt");
   private static final Path FOCUS = Path.of("src/test/resources/scripts/focus.txt");
+  private static final Path HOVER = Path.of("src/test/resources/scripts/hover.txt");
 
   @TempDir Path out;
 
@@ -116,6 +118,34 @@ class ScriptTest {
     assertTrue(
         Files.readString(out.resolve("switch-focused.tree.txt"))
             .contains("el #switch role=switch label=\"Lights\" 81,49 38x22 focused\n"));
+  }
+
+  @Test
+  void theHoverExampleOfAgentsMdShowsTheLooksOfTheSwitch() throws IOException {
+    String example = Files.readString(HOVER);
+    assertTrue(
+        Files.readString(Path.of("../AGENTS.md")).contains(example),
+        "AGENTS.md shows " + HOVER + " as it is");
+
+    Examples.main(new String[] {"--script", HOVER.toString(), "--out", out.toString()});
+
+    assertSnapsMatchGolden(
+        List.of("switch-hovered", "switch-pressed", "switch-hovered-on", "switch-on"));
+    assertTrue(
+        Files.readString(out.resolve("switch-hovered.tree.txt"))
+            .contains("el #switch role=switch label=\"Lights\" 81,49 38x22 hovered\n"));
+  }
+
+  @Test
+  void moveAndLeaveReachTheApp() throws IOException {
+    App<Lights> app = switchApp();
+    Script.run("size 200 120\nframe\nmove #knob\nframe\n", app, out);
+    assertEquals("knob", app.hovered().key());
+    assertEquals(Cursor.POINTER, app.cursor());
+    Script.run("size 200 120\nmove 10,10\nframe\n", app, out);
+    assertSame(app.tree(), app.hovered(), "the root");
+    Script.run("size 200 120\nleave\nframe\n", app, out);
+    assertNull(app.hovered());
   }
 
   @Test
@@ -253,8 +283,8 @@ class ScriptTest {
     assertEquals(
         """
         line 3: pres #switch
-          There is no step pres. The steps are size, press, down, up, wheel, key, type, focus,\
-         advance, frame and snap.""",
+          There is no step pres. The steps are size, press, down, up, move, leave, wheel, key,\
+         type, focus, advance, frame and snap.""",
         failure("size 200 120\nframe\npres #switch\n"));
   }
 
@@ -333,6 +363,16 @@ class ScriptTest {
     assertFailure("frame now\n", "line 1: frame now\n  Write `frame` with nothing");
     assertFailure("snap\n", "line 1: snap\n  Write `snap <name>`");
     assertFailure("up\n", "line 1: up\n  Write `up <target>`. A target is a position");
+    assertFailure("move\n", "line 1: move\n  Write `move <target>`. A target is a position");
+    assertEquals(
+        "line 1: move #switch\n  No frame has run yet, so there is nothing to move over. Add"
+            + " `frame` before this line.",
+        failure("move #switch\n"));
+    assertFailure(
+        "size 200 120\nframe\nmove #swich\n",
+        "line 3: move #swich\n  No element of the last frame matches #swich.");
+    assertEquals("line 1: leave now\n  Write `leave` with nothing after it.", failure("leave now\n"));
+    assertFailure("size 200 120\nframe\nleave\nsnap out\n", "line 3 (leave)");
     assertEquals(
         "line 1: wheel #list 40\n  Write `wheel <target> <deltaX> <deltaY>`, with distances in"
             + " logical pixels that are positive to scroll down or right, for example `wheel #list"

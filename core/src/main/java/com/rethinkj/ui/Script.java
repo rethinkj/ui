@@ -26,6 +26,8 @@ import java.util.regex.Pattern;
  * frame
  * press role=switch label="Lights"   # pointer down and up on the centre of that element
  * frame                              # runs the handler and rebuilds the view
+ * move #switch                       # the pointer over the switch, which looks hovered
+ * leave                              # the pointer out of the window
  * advance 0.04
  * frame
  * snap moving                        # writes moving.png and moving.tree.txt
@@ -150,6 +152,20 @@ public final class Script {
           if (!step.equals("down")) {
             app.pointerUp(at[0], at[1]);
           }
+        }
+        case "move" -> {
+          if (args.isEmpty()) {
+            throw line.usage(step);
+          }
+          needsFrame(line, app, "there is nothing to move over");
+          float[] at = line.point(args, app.tree());
+          app.pointerMove(at[0], at[1]);
+        }
+        case "leave" -> {
+          if (!args.isEmpty()) {
+            throw line.usage(step);
+          }
+          app.pointerLeave();
         }
         case "wheel" -> {
           if (args.size() < 3
@@ -290,8 +306,8 @@ public final class Script {
         default ->
             throw line.fail(
                 "There is no step " + step
-                    + ". The steps are size, press, down, up, wheel, key, type, focus, advance,"
-                    + " frame and snap.");
+                    + ". The steps are size, press, down, up, move, leave, wheel, key, type,"
+                    + " focus, advance, frame and snap.");
       }
       if (step.equals("frame")) {
         pending = null;
@@ -353,7 +369,7 @@ public final class Script {
                         + " numbers above 0, for example `size 200 120 scale 2`.";
                 case "advance" ->
                     "`advance <seconds>`, with a number of 0 or more, for example `advance 0.04`.";
-                case "frame" -> "`frame` with nothing after it.";
+                case "frame", "leave" -> "`" + step + "` with nothing after it.";
                 case "key" ->
                     "`key <name>`, followed by any of shift, control, alt and meta that are held,"
                         + " for example `key Enter` or `key Tab shift` for Shift+Tab.";
