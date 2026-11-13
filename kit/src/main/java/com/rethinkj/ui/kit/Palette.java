@@ -15,7 +15,9 @@ package com.rethinkj.ui.kit;
  * com.rethinkj.ui.Colors#BLACK} and {@link com.rethinkj.ui.Colors#WHITE}.
  *
  * <p>Each hue has a fill at about step 490 that white text reads on at 4.5:1 and that stands out
- * 3:1 from a dark theme's surfaces (an {@link Avatar}'s fills).
+ * 3:1 from a dark theme's surfaces (an {@link Avatar}'s fills, and the accents of {@link
+ * Theme.Hue} in a dark theme), and a lighter tone at step 700 for lines and outlines on dark
+ * surfaces (a {@link Theme.Hue}'s edge there).
  *
  * <p>The palette has no rules of its own: the rules are the themes', which {@code ThemeTest} holds
  * them to. This file is the only one in the kit with colour literals.
@@ -50,6 +52,7 @@ public final class Palette {
   public static final int GREY_605 = 0xFF8F929A;
   public static final int GREY_648 = 0xFF9A9DA9;
   public static final int GREY_655 = 0xFF9C9FA8;
+  public static final int GREY_700 = 0xFFA9ABB2;
   public static final int GREY_747 = 0xFFB4B8C0;
   public static final int GREY_759 = 0xFFB9BBC1;
   public static final int GREY_773 = 0xFFBDBFC5;
@@ -80,13 +83,16 @@ public final class Palette {
   // Violet
   public static final int VIOLET_362 = 0xFF6A28CF;
   public static final int VIOLET_478 = 0xFF765FD1;
+  public static final int VIOLET_700 = 0xFFACA1F4;
   public static final int VIOLET_782 = 0xFFD2B4FF;
 
   // Purple
   public static final int PURPLE_490 = 0xFFAF45C9;
+  public static final int PURPLE_702 = 0xFFD991EB;
 
   // Pink
   public static final int PINK_491 = 0xFFC84182;
+  public static final int PINK_702 = 0xFFEF8EB5;
 
   // Red
   public static final int RED_345 = 0xFF9E1E14;
@@ -96,11 +102,13 @@ public final class Palette {
   public static final int RED_485 = 0xFFC8483B;
   public static final int RED_493 = 0xFFCA4949;
   public static final int RED_649 = 0xFFF2797A;
+  public static final int RED_702 = 0xFFF0928C;
   public static final int RED_803 = 0xFFFAB6B6;
 
   // Orange
   public static final int ORANGE_380 = 0xFF95400C;
   public static final int ORANGE_488 = 0xFFA86331;
+  public static final int ORANGE_702 = 0xFFD4A17F;
   public static final int ORANGE_806 = 0xFFF5BD8C;
 
   // Amber
@@ -110,6 +118,7 @@ public final class Palette {
   public static final int AMBER_467 = 0xFF8A6A1F;
   public static final int AMBER_491 = 0xFF887328;
   public static final int AMBER_622 = 0xFFC98A00;
+  public static final int AMBER_701 = 0xFFB9AB7A;
   public static final int AMBER_720 = 0xFFE8A33A;
   public static final int AMBER_735 = 0xFFE9A92F;
   public static final int AMBER_745 = 0xFFE0B04C;
@@ -122,12 +131,14 @@ public final class Palette {
   public static final int GREEN_389 = 0xFF17693A;
   public static final int GREEN_452 = 0xFF1F7A47;
   public static final int GREEN_492 = 0xFF278636;
+  public static final int GREEN_702 = 0xFF7DBA81;
   public static final int GREEN_735 = 0xFF5CC98A;
   public static final int GREEN_823 = 0xFFA6DB94;
   public static final int GREEN_826 = 0xFF86E0AB;
 
   // Teal
   public static final int TEAL_490 = 0xFF268272;
+  public static final int TEAL_700 = 0xFF7EB6A9;
 
   // Cyan
   public static final int CYAN_363 = 0xFF0A5D75;

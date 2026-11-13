@@ -8,10 +8,14 @@ import com.rethinkj.ui.Colors;
 import com.rethinkj.ui.Scrollbars;
 import com.rethinkj.ui.Shadow;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 /**
@@ -26,10 +30,16 @@ class ThemeTest {
     return name.equals("dark") ? Theme.DARK : Theme.LIGHT;
   }
 
+  /** Each theme with each hue's accent: the default's, which is blue, and the others. */
+  static Stream<Arguments> themesAndHues() {
+    return Stream.of("dark", "light").flatMap(name -> Arrays.stream(Theme.Hue.values())
+        .map(hue -> Arguments.of(name, hue)));
+  }
+
   @ParameterizedTest
-  @ValueSource(strings = {"dark", "light"})
-  void textAndControlsHaveEnoughContrast(String name) {
-    Theme t = theme(name);
+  @MethodSource("themesAndHues")
+  void textAndControlsHaveEnoughContrast(String name, Theme.Hue hue) {
+    Theme t = theme(name).withAccent(hue);
     Theme.Surfaces s = t.surface();
     Map<String, Integer> surfaces = Map.of("window", s.window(), "panel", s.panel(),
         "raised", s.raised(), "band", s.band());
@@ -302,6 +312,30 @@ class ThemeTest {
   void aSelectionIsCalm(String name) {
     Theme t = theme(name);
     assertTrue(contrast(t.text().primary(), t.grid().selected()) >= 9);
+  }
+
+  /** Hover darker than the accent, pressed darker than hover, by 2 L* or more each. */
+  @ParameterizedTest
+  @MethodSource("themesAndHues")
+  void anAccentDarkensUnderThePointerAndMoreWhilePressed(String name, Theme.Hue hue) {
+    Theme.Accent a = theme(name).withAccent(hue).accent();
+    String at = String.format("%s %s: %.1f, %.1f, %.1f", name, hue, lightness(a.color()),
+        lightness(a.hover()), lightness(a.pressed()));
+    assertTrue(lightness(a.color()) - lightness(a.hover()) >= 2, at);
+    assertTrue(lightness(a.hover()) - lightness(a.pressed()) >= 2, at);
+  }
+
+  /** Blue is the default themes' accent, and a theme takes the accent of its lightness. */
+  @Test
+  void aHueGivesTheAccentOfTheThemesLightness() {
+    assertEquals(Theme.DARK, Theme.DARK.withAccent(Theme.Hue.BLUE));
+    assertEquals(Theme.LIGHT, Theme.LIGHT.withAccent(Theme.Hue.BLUE));
+    assertEquals(Theme.Hue.TEAL.dark(), Theme.DARK.withAccent(Theme.Hue.TEAL).accent());
+    assertEquals(Theme.Hue.TEAL.light(), Theme.LIGHT.withAccent(Theme.Hue.TEAL).accent());
+    for (Theme.Hue hue : Theme.Hue.values()) {
+      assertTrue(lightness(hue.dark().edge()) > lightness(hue.dark().color()), hue + "'s edge");
+      assertEquals(hue.light().color(), hue.light().edge(), hue + "'s light edge");
+    }
   }
 
   /** {@link Theme#over} mixes in linear light, as the renderer blends a translucent fill. */

@@ -3,6 +3,7 @@ package com.rethinkj.ui.kit;
 import static com.rethinkj.ui.Colors.BLACK;
 import static com.rethinkj.ui.Colors.WHITE;
 import static com.rethinkj.ui.Colors.alpha;
+import static com.rethinkj.ui.Colors.mix;
 import static com.rethinkj.ui.kit.Palette.*;
 
 import com.rethinkj.ui.Colors;
@@ -22,6 +23,7 @@ import java.util.function.Supplier;
  * copies one and changes what it needs with the {@code with} methods:
  *
  * <pre>{@code
+ * Theme violet = Theme.DARK.withAccent(Theme.Hue.VIOLET);
  * Theme brand = Theme.LIGHT.withAccent(new Theme.Accent(brand, brandHover, brandPressed));
  * }</pre>
  *
@@ -316,6 +318,66 @@ public record Theme(
     }
   }
 
+  /**
+   * A hue an app chooses its accent from instead of writing the accent's colours: {@code
+   * theme.withAccent(Theme.Hue.VIOLET)} takes the {@link Accent} of this hue made for the theme's
+   * lightness, {@link #dark()} or {@link #light()}. Each holds the rules of the default themes in
+   * both of them (white text 4.5:1 on the accent, its hover and pressed; the accent 3:1 on cards
+   * and controls; the edge 3:1 on every surface, the grid's selection and a progress bar's track;
+   * hover and pressed each darker by 2 L* or more), which {@code ThemeTest} checks.
+   *
+   * <p>{@link #BLUE} is the default themes' accent. The others are made by one rule: in a dark
+   * theme the accent is the hue's fill of {@link Palette} at about L* 49 (an {@link Avatar}'s
+   * fill), hover and pressed that colour with 12 % and 24 % less light ({@link Colors#mix} with
+   * black, which keeps the hue), the selection the accent at 40 %, and the edge the hue's tone at
+   * L* 70; in a light theme the accent is the dark one with 25 % less light and its own edge, hover
+   * and pressed as before, the selection at 35 %, as the default's.
+   *
+   * <p>Only the accent changes: the grid's selection, a link, the tint of a changed cell and a
+   * badge's accent stay the theme's blue.
+   */
+  public enum Hue {
+    BLUE(new Accent(BLUE_496, BLUE_469, BLUE_430, alpha(BLUE_496, 0.4f), BLUE_694),
+        new Accent(BLUE_447, BLUE_391, BLUE_335, alpha(BLUE_447, 0.35f), BLUE_447)),
+    VIOLET(VIOLET_478, VIOLET_700),
+    PURPLE(PURPLE_490, PURPLE_702),
+    PINK(PINK_491, PINK_702),
+    RED(RED_493, RED_702),
+    ORANGE(ORANGE_488, ORANGE_702),
+    AMBER(AMBER_491, AMBER_701),
+    GREEN(GREEN_492, GREEN_702),
+    TEAL(TEAL_490, TEAL_700),
+    GREY(GREY_477, GREY_700);
+
+    private final Accent dark;
+    private final Accent light;
+
+    Hue(Accent dark, Accent light) {
+      this.dark = dark;
+      this.light = light;
+    }
+
+    Hue(int fill, int edge) {
+      this(new Accent(fill, mix(fill, BLACK, 0.12), mix(fill, BLACK, 0.24),
+          alpha(fill, 0.4f), edge), light(mix(fill, BLACK, 0.25)));
+    }
+
+    private static Accent light(int fill) {
+      return new Accent(fill, mix(fill, BLACK, 0.12), mix(fill, BLACK, 0.24),
+          alpha(fill, 0.35f), fill);
+    }
+
+    /** The accent of this hue for a dark theme. */
+    public Accent dark() {
+      return dark;
+    }
+
+    /** The accent of this hue for a light theme. */
+    public Accent light() {
+      return light;
+    }
+  }
+
   /** Colours of text and marks that report a state. */
   public record Status(int danger, int warning, int success) {}
 
@@ -605,6 +667,7 @@ public record Theme(
    * name the same entry (in the dark theme the band and the grid's header are GREY_099, and the
    * accent's edge, the grid's cursor, a link and the tint of a changed cell BLUE_694); a value
    * that no rule makes from another is an entry of its own, also where it is close to another.
+   * The accents are those of Hue.BLUE; Hue's other accents follow the rules above in both themes.
    */
 
   /** Neutral greys with a blue accent, light text on dark surfaces. */
@@ -614,7 +677,7 @@ public record Theme(
               alpha(GREY_298, 0.25f), alpha(GREY_298, 0.45f), alpha(BLACK, 0.6f)),
           new TextColors(GREY_916, GREY_648, GREY_425, WHITE),
           new Borders(GREY_157, GREY_477, GREY_226, alpha(GREY_477, 0.35f)),
-          new Accent(BLUE_496, BLUE_469, BLUE_430, alpha(BLUE_496, 0.4f), BLUE_694),
+          Hue.BLUE.dark(),
           new Status(RED_649, AMBER_745, GREEN_735),
           SPACE,
           RADIUS,
@@ -641,7 +704,7 @@ public record Theme(
               alpha(GREY_773, 0.3f), alpha(GREY_773, 0.5f), alpha(BLACK, 0.35f)),
           new TextColors(GREY_108, GREY_407, GREY_605, WHITE),
           new Borders(GREY_919, GREY_551, GREY_844, alpha(GREY_551, 0.4f)),
-          new Accent(BLUE_447, BLUE_391, BLUE_335, alpha(BLUE_447, 0.35f), BLUE_447),
+          Hue.BLUE.light(),
           new Status(RED_395, AMBER_384, GREEN_389),
           SPACE,
           RADIUS,
@@ -683,6 +746,14 @@ public record Theme(
     return new Theme(
         surface, text, border, accent, status, space, radius, type, size, motion, grid,
         scrollbars, elevation, code, caption, prose, badge);
+  }
+
+  /**
+   * This theme with the accent of a {@link Hue}: its {@link Hue#dark()} accent where the theme's
+   * raised surface is dark, else its {@link Hue#light()} one.
+   */
+  public Theme withAccent(Hue hue) {
+    return withAccent(lightness(surface.raised()) < 0.5 ? hue.dark() : hue.light());
   }
 
   public Theme withStatus(Status status) {
