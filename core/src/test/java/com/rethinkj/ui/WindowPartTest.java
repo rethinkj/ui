@@ -35,7 +35,7 @@ class WindowPartTest {
     app.resize(300, 200, 1);
     app.frame();
 
-    assertEquals(WindowPart.CONTENT, app.windowPart(20, 15), "a control in the bar stays content");
+    assertEquals(WindowPart.CONTROL, app.windowPart(20, 15), "a control in the bar takes presses");
     assertEquals(WindowPart.CONTENT, app.windowPart(70, 15), "marked as content");
     assertEquals(WindowPart.DRAG, app.windowPart(150, 15), "the bar itself");
     assertEquals(WindowPart.DRAG, app.windowPart(104, 4), "an unmarked child of the bar");
@@ -44,7 +44,7 @@ class WindowPartTest {
     assertEquals(WindowPart.MAXIMIZE, app.windowPart(240, 20), "a child of the maximize part");
     assertEquals(WindowPart.CLOSE, app.windowPart(280, 15));
     assertEquals(WindowPart.DRAG, app.windowPart(262, 2), "the cut-off corner of the round close");
-    assertEquals(WindowPart.CONTENT, app.windowPart(150, 100), "the body below");
+    assertEquals(WindowPart.CONTROL, app.windowPart(150, 100), "the body takes presses");
     assertEquals(WindowPart.CONTENT, app.windowPart(400, 15), "outside the window");
   }
 

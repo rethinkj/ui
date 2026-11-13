@@ -2218,21 +2218,28 @@ public final class App<S> {
    * The part of a self-drawn window frame at this position in logical pixels, which a window asks
    * while the pointer moves. The rule is the one presses follow: the topmost element under the
    * point decides, or its nearest ancestor that has a {@link El#windowPart} or a press handler. An
-   * element with a handler and no part is content, so controls inside a title bar stay clickable.
+   * element with a handler and no part, a text field and a scrollbar are {@link
+   * WindowPart#CONTROL}, so controls inside a title bar stay clickable and the resize margin gives
+   * way to them.
    *
    * @return the part, {@link WindowPart#CONTENT} where nothing is marked
    */
   public WindowPart windowPart(float x, float y) {
     List<El> hit = hit(x, y);
     if (!hit.isEmpty() && hit.getLast().barAt(x, y) != null) {
-      return WindowPart.CONTENT;
+      return WindowPart.CONTROL;
     }
     Target target = target(x, y,
         el -> el.windowPart() != null || takesPress(el) || el.takesEdits());
-    if (target == null || target.el.windowPart() == null) {
+    if (target == null) {
       return WindowPart.CONTENT;
     }
-    return target.el.windowPart();
+    WindowPart part = target.el.windowPart();
+    if (part != null && part != WindowPart.CONTENT) {
+      return part;
+    }
+    return takesPress(target.el) || target.el.takesEdits() ? WindowPart.CONTROL
+        : WindowPart.CONTENT;
   }
 
   /** The tree of the last frame. */

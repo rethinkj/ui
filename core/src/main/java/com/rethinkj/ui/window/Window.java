@@ -129,13 +129,22 @@ public final class Window implements AutoCloseable {
 
     /**
      * How far from its edges, in logical pixels, a frameless window can be grabbed to resize it;
-     * 6 unless set. The margin lies inside the window, over its content.
+     * 6 unless set. The margin lies inside the window, over its content, and narrows to {@link
+     * Window#CONTROL_MARGIN} where something that takes presses lies under it ({@link
+     * WindowPart#CONTROL}).
      */
     public Options resizeMargin(float pixels) {
       resizeMargin = pixels;
       return this;
     }
   }
+
+  /**
+   * How far from its edges, in logical pixels, a frameless window can be grabbed to resize it
+   * where an element that takes presses lies under its resize margin ({@link
+   * WindowPart#CONTROL}), such as a scrollbar along its right edge, or a button of its title bar.
+   */
+  public static final float CONTROL_MARGIN = 2;
 
   /** Options for a resizable window with the system's frame; their methods change that. */
   public static Options options() {
@@ -642,14 +651,28 @@ public final class Window implements AutoCloseable {
 
   /** What a point in logical pixels is to the system: an SDL_HitTestResult. */
   int zone(float x, float y) {
-    if (resizable && (Sdl.getWindowFlags(sdl)
-        & (Sdl.WINDOW_MAXIMIZED | Sdl.WINDOW_FULLSCREEN)) == 0) {
-      int edge = edge(x, y, width, height, resizeMargin);
-      if (edge != Sdl.HITTEST_NORMAL) {
-        return edge;
-      }
+    boolean resizes = resizable
+        && (Sdl.getWindowFlags(sdl) & (Sdl.WINDOW_MAXIMIZED | Sdl.WINDOW_FULLSCREEN)) == 0;
+    return zone(x, y, width, height, resizes ? resizeMargin : 0, part(x, y));
+  }
+
+  /**
+   * What a point is to the system in a window of this size, with this resize margin (0 for none)
+   * and this part of the frame under the point. Where the part takes presses itself, a control
+   * or one of the window's buttons, the margin is no wider than {@link #CONTROL_MARGIN}; the
+   * corners keep their reach along the edges.
+   */
+  static int zone(float x, float y, float width, float height, float margin, WindowPart part) {
+    boolean control = switch (part) {
+      case CONTROL, MINIMIZE, MAXIMIZE, CLOSE -> true;
+      case CONTENT, DRAG -> false;
+    };
+    int edge = edge(x, y, width, height, control ? Math.min(margin, CONTROL_MARGIN) : margin,
+        2 * margin + 2);
+    if (edge != Sdl.HITTEST_NORMAL) {
+      return edge;
     }
-    return part(x, y) == WindowPart.DRAG ? Sdl.HITTEST_DRAGGABLE : Sdl.HITTEST_NORMAL;
+    return part == WindowPart.DRAG ? Sdl.HITTEST_DRAGGABLE : Sdl.HITTEST_NORMAL;
   }
 
   /**
@@ -657,10 +680,15 @@ public final class Window implements AutoCloseable {
    * Corners reach further along the edges than the margin is wide, so they are easier to grab.
    */
   static int edge(float x, float y, float width, float height, float margin) {
+    return edge(x, y, width, height, margin, 2 * margin + 2);
+  }
+
+  /** As {@link #edge(float, float, float, float, float)}, with the corners' reach given. */
+  private static int edge(
+      float x, float y, float width, float height, float margin, float corner) {
     if (!(margin > 0)) {
       return Sdl.HITTEST_NORMAL;
     }
-    float corner = 2 * margin + 2;
     boolean left = x < margin;
     boolean right = x >= width - margin;
     boolean top = y < margin;

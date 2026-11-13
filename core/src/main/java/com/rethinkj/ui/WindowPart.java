@@ -12,6 +12,15 @@ public enum WindowPart {
    */
   CONTENT,
   /**
+   * Content that takes presses itself: {@link App#windowPart} says so where a press would go to
+   * an element with a press or drag handler, to a text field or to a scrollbar. The resize margin
+   * of a frameless window, which lies inside the window, narrows to {@link
+   * com.rethinkj.ui.window.Window#CONTROL_MARGIN} over it, as over the minimize, maximize and close
+   * parts, so that a scrollbar or a button at the window's edge can be grabbed at its outer pixels
+   * while the rest of the edge resizes as before. A view may mark an element with it too.
+   */
+  CONTROL,
+  /**
    * Moves the window when dragged, like a system title bar. On Windows a double click maximizes
    * it; on Linux it does not, because the press goes to the window manager as the start of a move.
    */
