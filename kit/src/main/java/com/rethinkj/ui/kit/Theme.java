@@ -135,12 +135,13 @@ public record Theme(
    * @param move parts that travel, such as a toggle's knob
    * @param submenuDelay seconds the pointer rests on a menu's item before its submenu opens, or
    *     the open one closes
+   * @param tooltipDelay seconds the pointer rests on an element before its tooltip shows
    */
-  public record Motion(Spring feedback, Spring move, double submenuDelay) {
+  public record Motion(Spring feedback, Spring move, double submenuDelay, double tooltipDelay) {
 
-    /** Motion with submenus after 0.3 seconds. */
+    /** Motion with submenus after 0.3 seconds and tooltips after half a second. */
     public Motion(Spring feedback, Spring move) {
-      this(feedback, move, 0.3);
+      this(feedback, move, 0.3, 0.5);
     }
   }
 
@@ -170,7 +171,7 @@ public record Theme(
           new TextStyle(Font::mono, 12),
           new TextStyle(Font::sansBold, 15));
   private static final Sizes SIZE = new Sizes(24, 16, 28, 16, 1, 200);
-  private static final Motion MOTION = new Motion(Spring.INSTANT, Spring.SNAP, 0.3);
+  private static final Motion MOTION = new Motion(Spring.INSTANT, Spring.SNAP, 0.3, 0.5);
 
   /** Neutral greys with a blue accent, light text on dark surfaces. */
   public static final Theme DARK =
