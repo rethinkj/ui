@@ -33,6 +33,20 @@ import java.util.zip.ZipFile;
  *
  * <p>{@code -Dfreetype=...} and {@code -Dharfbuzz=...} name the libraries if they are not found by
  * their usual names. Missing fonts are downloaded into {@code spikes/text/fonts}.
+ *
+ * <p>On Windows, with prebuilt DLLs in the ignored {@code spikes/text/lib/win64}, the official
+ * HarfBuzz build needs its GLib and libintl loaded first:
+ *
+ * <pre>
+ * java --enable-native-access=ALL-UNNAMED -Dfreetype=spikes/text/lib/win64/freetype.dll
+ *   -Dharfbuzz.deps=spikes/text/lib/win64/libintl-8.dll;spikes/text/lib/win64/libglib-2.0-0.dll
+ *   -Dharfbuzz=spikes/text/lib/win64/libharfbuzz-0.dll
+ *   -cp core/target/classes spikes/text/TextSpike.java OUT
+ * </pre>
+ *
+ * <p>The native reference is pango-view on Linux and DirectWrite with Direct2D, and GDI, on
+ * Windows; on Windows the spike also prints measurements against it. The shader-rule sheets show
+ * the coverage correction decided from the text colour alone.
  */
 public class TextSpike {
 
@@ -65,7 +79,7 @@ public class TextSpike {
 
   // ---------------------------------------------------------------- fonts
 
-  record Font(String name, String family, MemorySegment data, MemorySegment hbFace,
+  record Font(String name, String family, Path file, MemorySegment data, MemorySegment hbFace,
       double ascender, double descender) {}
 
   static final Path FONTS = Path.of(System.getProperty("fonts", "spikes/text/fonts"));
@@ -76,7 +90,7 @@ public class TextSpike {
     MemorySegment data = Arena.global().allocateFrom(JAVA_BYTE, Files.readAllBytes(file));
     MemorySegment face = FreeType.newFace(library(Engine.DEFAULT), data);
     double unitsPerEm = face.get(JAVA_SHORT, FreeType.FACE_UNITS_PER_EM) & 0xFFFF;
-    return new Font(name, family, data, HarfBuzz.face(data),
+    return new Font(name, family, file, data, HarfBuzz.face(data),
         face.get(JAVA_SHORT, FreeType.FACE_ASCENDER) / unitsPerEm,
         -face.get(JAVA_SHORT, FreeType.FACE_DESCENDER) / unitsPerEm);
   }
@@ -130,15 +144,46 @@ public class TextSpike {
   }
 
   /**
+   * Whether the coverage correction thickens (text darker than its background) or thins (text
+   * lighter). Only the CPU knows the background; a GPU shader blending with fixed-function
+   * hardware knows only the text colour. The text-only rules thicken below lightness {@code from}
+   * (CIE L*, 0 to 100), thin above {@code to} and mix the two between.
+   */
+  enum Correction {
+    /** Per channel, from the text and the background value. */
+    BACKGROUND(0, 0, ""),
+    TEXT(50, 50, "direction from text colour only (L* > 50: thin)"),
+    TEXT_GRADED(25, 75, "graded by text colour only (L* 25…75)"),
+    TEXT_BIASED(60, 80, "graded by text colour only (L* 60…80)");
+
+    final double from;
+    final double to;
+    final String label;
+
+    Correction(double from, double to, String label) {
+      this.from = from;
+      this.to = to;
+      this.label = label;
+    }
+
+    /** 0 thickens, 1 thins. */
+    double thinning(double lightness) {
+      return lightness <= from ? 0 : lightness > to ? 1 : (lightness - from) / (to - from);
+    }
+  }
+
+  /**
    * One combination of the settings that decide sharpness.
    *
    * @param snap whole-pixel glyph positions (advances rounded) instead of quarter-pixel ones
    * @param linear blend in linear light instead of on the sRGB values
    * @param contrast exponent of the coverage correction applied when blending linearly; 1 is none
+   * @param thin the exponent for text lighter than its background, if different
    * @param darken FreeType's stem darkening, which only the auto-hinter implements
+   * @param correction what decides whether the coverage correction thickens or thins
    */
   record Style(Hint hint, boolean lcd, boolean snap, boolean linear, double contrast,
-      boolean darken) {
+      double thin, boolean darken, Correction correction) {
 
     Engine engine() {
       return hint == Hint.NATIVE_V35 ? Engine.V35 : darken ? Engine.DARKEN : Engine.DEFAULT;
@@ -150,21 +195,32 @@ public class TextSpike {
     }
 
     Style hint(Hint h) {
-      return new Style(h, lcd, snap, linear, contrast, darken);
+      return new Style(h, lcd, snap, linear, contrast, thin, darken, correction);
     }
 
     Style raster(boolean lcd, boolean snap) {
-      return new Style(hint, lcd, snap, linear, contrast, darken);
+      return new Style(hint, lcd, snap, linear, contrast, thin, darken, correction);
     }
 
     Style blend(boolean linear, double contrast, boolean darken) {
-      return new Style(darken ? Hint.AUTO_LIGHT : hint, lcd, snap, linear, contrast, darken);
+      return new Style(darken ? Hint.AUTO_LIGHT : hint, lcd, snap, linear, contrast, contrast,
+          darken, correction);
+    }
+
+    Style thin(double exponent) {
+      return new Style(hint, lcd, snap, linear, contrast, exponent, darken, correction);
+    }
+
+    Style correction(Correction c) {
+      return new Style(hint, lcd, snap, linear, contrast, thin, darken, c);
     }
 
     String label() {
       String blend = !linear ? "blend on sRGB values (gamma space)"
-          : contrast > 1 ? "blend in linear light, coverage γ " + contrast
-          : "blend in linear light";
+          : contrast == 1 && thin == 1 ? "blend in linear light"
+          : "blend in linear light, coverage γ " + number(contrast)
+              + (thin == contrast ? "" : ",\nlight text γ " + number(thin))
+              + (correction == Correction.BACKGROUND ? "" : ",\n" + correction.label);
       return hint.label + "\n" + (lcd ? "LCD subpixel" : "greyscale") + ", "
           + (snap ? "whole-pixel positions" : "¼-pixel positions") + "\n" + blend
           + (darken ? " + stem darkening" : "");
@@ -278,6 +334,13 @@ public class TextSpike {
     }
   }
 
+  /** CIE lightness L* (0 to 100) of an sRGB colour. */
+  static double lightness(int rgb) {
+    double y = 0.2126 * TO_LINEAR[rgb >> 16 & 0xFF] + 0.7152 * TO_LINEAR[rgb >> 8 & 0xFF]
+        + 0.0722 * TO_LINEAR[rgb & 0xFF];
+    return y > 216 / 24389.0 ? 116 * Math.cbrt(y) - 16 : y * 24389 / 27.0;
+  }
+
   static int toSrgb(double linear) {
     double c = linear <= 0.0031308 ? linear * 12.92 : 1.055 * Math.pow(linear, 1 / 2.4) - 0.055;
     return (int) Math.max(0, Math.min(255, Math.round(c * 255)));
@@ -320,6 +383,7 @@ public class TextSpike {
     }
 
     void blit(FreeType.Bitmap glyph, int x0, int y0, int fg, Style style) {
+      double lightness = lightness(fg);
       for (int y = 0; y < glyph.height(); y++) {
         for (int x = 0; x < glyph.width(); x++) {
           int px = x0 + x;
@@ -336,7 +400,7 @@ public class TextSpike {
             }
             int i = (py * width + px) * 4 + channel;
             int f = fg >> (16 - 8 * channel) & 0xFF;
-            rgba[i] = (byte) blend(rgba[i] & 0xFF, f, coverage / 255.0, style);
+            rgba[i] = (byte) blend(rgba[i] & 0xFF, f, coverage / 255.0, style, lightness);
           }
         }
       }
@@ -350,14 +414,18 @@ public class TextSpike {
   /**
    * The coverage correction pulls linear blending back towards the look of gamma-space blending:
    * at exponent 2.2 it matches it for black and white. Text darker than its background is
-   * thickened, lighter text thinned.
+   * thickened, lighter text thinned; {@code lightness} is the text colour's L*.
    */
-  static int blend(int bg, int fg, double a, Style style) {
+  static int blend(int bg, int fg, double a, Style style, double lightness) {
     if (!style.linear) {
       return (int) Math.round(bg + (fg - bg) * a);
     }
-    if (style.contrast > 1) {
-      a = fg > bg ? Math.pow(a, style.contrast) : 1 - Math.pow(1 - a, style.contrast);
+    if (style.contrast > 1 || style.thin > 1) {
+      double thin = Math.pow(a, style.thin);
+      double thicken = 1 - Math.pow(1 - a, style.contrast);
+      double t = style.correction == Correction.BACKGROUND ? (fg > bg ? 1 : 0)
+          : style.correction.thinning(lightness);
+      a = thicken + (thin - thicken) * t;
     }
     return toSrgb(TO_LINEAR[bg] + (TO_LINEAR[fg] - TO_LINEAR[bg]) * a);
   }
@@ -483,6 +551,46 @@ public class TextSpike {
     }
   }
 
+  /** Text drawn by Windows itself (see {@link DirectWrite}), over the theme's background. */
+  enum Windows implements Text {
+    CLEARTYPE, GREYSCALE, GDI_CLEARTYPE;
+
+    static final Map<String, DirectWrite.Drawn> IMAGES = new HashMap<>();
+
+    @Override
+    public double width(Font font, double px, String s) {
+      return this == GDI_CLEARTYPE ? DirectWrite.gdiWidth(font.family, (int) Math.round(px), 5, s)
+          : DirectWrite.width(font.family, px, s);
+    }
+
+    /** DirectWrite keeps the fraction of x, in 1/64 pixels; GDI starts on a whole pixel. */
+    @Override
+    public void draw(Canvas canvas, Font font, double px, String s, double x, int baseline,
+        Theme theme) {
+      boolean gdi = this == GDI_CLEARTYPE;
+      int left = gdi ? (int) Math.round(x) : (int) Math.floor(x);
+      int fraction64 = (int) Math.round((x - left) * 64);
+      DirectWrite.Drawn image = IMAGES.computeIfAbsent(
+          this + "|" + font.family + "|" + px + "|" + fraction64 + "|" + theme.fg + "|" + theme.bg
+              + "|" + s,
+          k -> gdi
+              ? DirectWrite.gdiDraw(font.family, (int) Math.round(px), 5, s, theme.fg, theme.bg)
+              : DirectWrite.draw(font.family, px, s, fraction64 / 64.0, theme.fg, theme.bg,
+                  this == CLEARTYPE ? DirectWrite.ANTIALIAS_CLEARTYPE
+                      : DirectWrite.ANTIALIAS_GRAYSCALE));
+      int x0 = left - DirectWrite.MARGIN;
+      int y0 = baseline - DirectWrite.BASELINE;
+      for (int y = 0; y < DirectWrite.HEIGHT; y++) {
+        for (int ix = 0; ix < image.width(); ix++) {
+          int rgb = image.rgb()[y * image.width() + ix];
+          if (rgb != theme.bg) {
+            canvas.set(x0 + ix, y0 + y, rgb);
+          }
+        }
+      }
+    }
+  }
+
   // ---------------------------------------------------------------- sheets
 
   record Row(String label, Text text) {}
@@ -590,7 +698,8 @@ public class TextSpike {
     int cropHeight = lineHeight(12);
     Font[] fonts = {inter, mono};
     String[] lines = {"Müller, Jürgen  Köln  1.234,56", "WHERE b.tag >= '2024-01-01'"};
-    int labelHeight = 3 * lineHeight(12) + pad;
+    int labelLines = rows.stream().mapToInt(r -> (int) r.label.lines().count()).max().orElse(3);
+    int labelHeight = Math.max(3, labelLines) * lineHeight(12) + pad;
     int cell = labelHeight + cropHeight * zoom + pad;
     int width = 2 * (cropWidth * zoom + 2 * pad);
     Canvas c = new Canvas(width, cell * rows.size() * THEMES.size(), LIGHT.bg);
@@ -665,6 +774,181 @@ public class TextSpike {
         text, run.glyphs().length, total / 64.0, glyphs);
   }
 
+  // ---------------------------------------------------------------- measurements
+
+  /**
+   * Apparent coverage of a pixel: how far it moved from the background towards the text colour
+   * in sRGB values, 0 to 1; coloured ClearType edges are projected onto that direction.
+   */
+  static double coverage(int rgb, int fg, int bg) {
+    double moved = 0;
+    double full = 0;
+    for (int shift = 0; shift <= 16; shift += 8) {
+      int b = bg >> shift & 0xFF;
+      int f = (fg >> shift & 0xFF) - b;
+      moved += ((rgb >> shift & 0xFF) - b) * f;
+      full += f * f;
+    }
+    return Math.max(0, Math.min(1, moved / full));
+  }
+
+  /**
+   * @param ink the summed coverage, in pixels
+   * @param solid the share of inked pixels (coverage at least 0.1) that are at least 0.9 covered
+   */
+  record Ink(double ink, double solid) {}
+
+  static Ink ink(Text text, Font font, double px, Theme theme) {
+    Canvas c = new Canvas(sampleWidth(px) + 40, sampleHeight(px), theme.bg);
+    sample(c, text, font, px, 20, 0, theme);
+    double ink = 0;
+    int inked = 0;
+    int solid = 0;
+    for (int y = 0; y < c.height; y++) {
+      for (int x = 0; x < c.width; x++) {
+        double a = coverage(c.get(x, y), theme.fg, theme.bg);
+        ink += a;
+        inked += a >= 0.1 ? 1 : 0;
+        solid += a >= 0.9 ? 1 : 0;
+      }
+    }
+    return new Ink(ink, inked == 0 ? 0 : solid / (double) inked);
+  }
+
+  /** Rows above the baseline in which a run of x reaches at least half coverage. */
+  static int xHeight(Text text, Font font, double px, Theme theme) {
+    int baseline = (int) Math.ceil(2 * px);
+    Canvas c = new Canvas((int) (10 * px), baseline + (int) px, theme.bg);
+    text.draw(c, font, px, "xxxxxxxx", 4, baseline, theme);
+    int rows = 0;
+    for (int y = 0; y < baseline; y++) {
+      for (int x = 0; x < c.width; x++) {
+        if (coverage(c.get(x, y), theme.fg, theme.bg) >= 0.5) {
+          rows++;
+          break;
+        }
+      }
+    }
+    return rows;
+  }
+
+  /** The advances of every string in the sample, added up. */
+  static double width(Text text, Font font, double px) {
+    double width = 0;
+    for (String[] row : TABLE) {
+      for (String cell : row) {
+        width += text.width(font, px, cell);
+      }
+    }
+    for (String line : SQL) {
+      width += text.width(font, px, line);
+    }
+    for (String item : MENU_BAR) {
+      width += text.width(font, px, item);
+    }
+    return width;
+  }
+
+  /** Prints ink, solid share, width and x-height per row; ink and width relative to row ref. */
+  static void measure(String title, List<Row> rows, int ref, double scale) {
+    System.out.printf(Locale.ROOT, "%n%s, scale %s. Per size: ink and width relative to \"%s\", "
+        + "the share of inked pixels that are solid, x-height in pixels.%n", title, number(scale),
+        rows.get(ref).label.lines().findFirst().orElseThrow());
+    for (Font font : new Font[] {inter, mono}) {
+      for (Theme theme : THEMES) {
+        System.out.printf("%s, %s:%n", font.family, theme.name);
+        for (Row row : rows) {
+          StringBuilder line = new StringBuilder("  ");
+          for (double size : SIZES) {
+            double px = size * scale;
+            Ink ink = ink(row.text, font, px, theme);
+            Ink reference = ink(rows.get(ref).text, font, px, theme);
+            line.append(String.format(Locale.ROOT,
+                "  %s px: ink %3.0f%% solid %2.0f%% width %5.1f%% x %d", number(px),
+                100 * ink.ink / reference.ink, 100 * ink.solid,
+                100 * width(row.text, font, px) / width(rows.get(ref).text, font, px),
+                xHeight(row.text, font, px, theme)));
+          }
+          System.out.println(line + "   " + row.label.replace("\n", " / "));
+        }
+      }
+    }
+  }
+
+  // ---------------------------------------------------------------- the GPU's coverage rule
+
+  /** Colour pairs for the coverage correction that only knows the text colour. */
+  static final List<Theme> CASES = List.of(LIGHT, DARK,
+      new Theme("mid-grey on dark", 0x8C8C8C, 0x1E1F22, 0x1E1F22),
+      new Theme("mid-grey on white", 0x8C8C8C, 0xFFFFFF, 0xFFFFFF),
+      new Theme("mid-grey on amber", 0x808080, 0xFFE08A, 0xFFE08A),
+      new Theme("mid-grey on blue", 0x8C8C8C, 0x2F65CA, 0x2F65CA));
+
+  /** Two lines in every colour pair at 12 px, at 100 % or magnified, a row per variant. */
+  static Pixels cases(List<Row> rows, int zoom) {
+    int pad = 12;
+    int labelWidth = 330;
+    int cropWidth = zoom == 1 ? 250 : 64;
+    int lh = lineHeight(12);
+    String[] lines = zoom == 1
+        ? new String[] {"1043  Größe & Söhne GmbH  -98.765,43", "WHERE b.tag >= '2024-01-01'"}
+        : new String[] {"Größe & Söhne", "b.tag >= '20"};
+    Font[] fonts = {inter, mono};
+    int cell = cropWidth * zoom + 2 * pad;
+    int header = pad + 2 * lh;
+    int rowHeight = Math.max(4 * lh, 2 * lh * zoom) + 2 * pad;
+    Canvas c = new Canvas(labelWidth + cell * CASES.size(), header + rowHeight * rows.size(),
+        LIGHT.bg);
+    for (int i = 0; i < CASES.size(); i++) {
+      Theme t = CASES.get(i);
+      label(c, t.name + "\n" + hex(t.fg) + " on " + hex(t.bg) + ", L* " + number(lightness(t.fg))
+          + " on " + number(lightness(t.bg)), 12, labelWidth + i * cell + pad, pad, LIGHT);
+    }
+    int y = header;
+    for (Row row : rows) {
+      c.fill(0, y, c.width, 1, LIGHT.rule);
+      label(c, row.label, 12, pad, y + pad, LIGHT);
+      for (int i = 0; i < CASES.size(); i++) {
+        Theme t = CASES.get(i);
+        Canvas line = new Canvas(cropWidth, 2 * lh, t.bg);
+        for (int f = 0; f < fonts.length; f++) {
+          row.text.draw(line, fonts[f], 12, lines[f], 2, f * lh + baselineOffset(fonts[f], 12), t);
+        }
+        int x0 = labelWidth + i * cell;
+        c.fill(x0, y + 1, cell, rowHeight - 1, t.bg);
+        for (int py = 0; py < line.height * zoom; py++) {
+          for (int px = 0; px < line.width * zoom; px++) {
+            c.set(x0 + pad + px, y + pad + py, line.get(px / zoom, py / zoom));
+          }
+        }
+      }
+      y += rowHeight;
+    }
+    return c.pixels();
+  }
+
+  /** Ink of every variant in every colour pair, against the background-aware rule. */
+  static void measureCases(List<Row> rows, int ref) {
+    System.out.printf("%nCoverage rule without the background: ink at 11 to 14 px, relative to "
+        + "\"%s\"%n", rows.get(ref).label.replace("\n", " / "));
+    for (Font font : new Font[] {inter, mono}) {
+      System.out.println(font.family + ":");
+      for (Row row : rows) {
+        StringBuilder line = new StringBuilder("  ");
+        for (Theme t : CASES) {
+          double ink = 0;
+          double reference = 0;
+          for (double size : SIZES) {
+            ink += ink(row.text, font, size, t).ink;
+            reference += ink(rows.get(ref).text, font, size, t).ink;
+          }
+          line.append(String.format(Locale.ROOT, "  %s %4.0f%%", t.name, 100 * ink / reference));
+        }
+        System.out.println(line + "   " + row.label.replace("\n", " / "));
+      }
+    }
+  }
+
   // ---------------------------------------------------------------- main
 
   static void write(Path out, String name, Pixels pixels) throws IOException {
@@ -682,7 +966,8 @@ public class TextSpike {
   }
 
   /** The baseline the dimension sheets vary from: change one setting at a time. */
-  static final Style BASE = new Style(Hint.AUTO_LIGHT, false, false, true, 1.8, false);
+  static final Style BASE =
+      new Style(Hint.AUTO_LIGHT, false, false, true, 1.8, 1.8, false, Correction.BACKGROUND);
 
   public static void main(String[] args) throws Exception {
     Path out = Files.createDirectories(Path.of(args.length > 0 ? args[0]
@@ -694,6 +979,10 @@ public class TextSpike {
     inter = load("inter", "Inter", FONTS.resolve("inter/Inter-Regular.ttf"));
     mono = load("mono", "JetBrains Mono", FONTS.resolve("jbm/JetBrainsMono-Regular.ttf"));
     System.out.println("HarfBuzz " + HarfBuzz.version());
+    if (FreeType.WINDOWS) {
+      DirectWrite.init(inter.file, mono.file);
+      DirectWrite.settings().forEach(System.out::println);
+    }
     labels = new Ours(BASE);
     long started = System.nanoTime();
 
@@ -727,7 +1016,15 @@ public class TextSpike {
     }
 
     List<Row> finalists = new ArrayList<>();
-    if (Pango.available(out)) {
+    if (FreeType.WINDOWS) {
+      finalists.add(new Row("Windows: DirectWrite and Direct2D, ClearType\n"
+          + "(system settings; most desktop apps)", Windows.CLEARTYPE));
+      finalists.add(new Row("Windows: DirectWrite and Direct2D, greyscale\n"
+          + "(XAML / WinUI apps, much of the shell)", Windows.GREYSCALE));
+      finalists.add(new Row("Windows: GDI ExtTextOutW, ClearType\n"
+          + "(classic Win32; whole-pixel sizes,\nno kerning or ligatures)",
+          Windows.GDI_CLEARTYPE));
+    } else if (Pango.available(out)) {
       finalists.add(new Row("native: pango-view, LCD subpixel (rgb), hintslight,\n"
           + "hint metrics on (this desktop's settings, GTK 3)",
           new Pango("--antialias=subpixel", "--subpixel-order=rgb", "--hinting=slight",
@@ -737,7 +1034,8 @@ public class TextSpike {
           new Pango("--antialias=gray", "--hinting=slight", "--hint-metrics=on")));
       finalists.add(new Row("ours, set up like the desktop: auto-hinter light,\n"
           + "LCD, whole-pixel positions, gamma-space blend",
-          new Ours(new Style(Hint.AUTO_LIGHT, true, true, false, 1, false))));
+          new Ours(new Style(Hint.AUTO_LIGHT, true, true, false, 1, 1, false,
+              Correction.BACKGROUND))));
     } else {
       System.out.println("pango-view or convert not found: no native reference");
     }
@@ -753,6 +1051,47 @@ public class TextSpike {
     write(out, "zoom", zoom(finalists));
     write(out, "shaping", shaping(BASE));
 
+    Style whole = BASE.raster(false, true);
+    List<Row> rule = new ArrayList<>();
+    if (FreeType.WINDOWS) {
+      rule.add(new Row("Windows: Direct2D, greyscale (its correction\n"
+          + "also knows only the text colour)", Windows.GREYSCALE));
+    }
+    rule.add(row(whole));
+    for (Correction correction : List.of(Correction.TEXT, Correction.TEXT_GRADED,
+        Correction.TEXT_BIASED)) {
+      rule.add(row(whole.correction(correction)));
+    }
+    rule.add(row(whole.blend(true, 1, false)));
+    rule.add(row(whole.blend(false, 1, false)));
+    write(out, "shader-rule", cases(rule, 1));
+    write(out, "shader-rule-zoom", cases(rule, 4));
+
+    if (FreeType.WINDOWS) {
+      for (double scale : new double[] {1, 1.5}) {
+        List<Row> rows = windows(finalists, scale);
+        for (Font font : new Font[] {inter, mono}) {
+          write(out, "windows-" + font.name + "-" + (scale == 1 ? "100" : "150"),
+              sheet("Windows against the Linux recommendation and a Windows tuning", font, scale,
+                  rows));
+        }
+        if (scale == 1) {
+          write(out, "windows-zoom", zoom(rows));
+        }
+        measure("Windows against our candidates", rows, 1, scale);
+      }
+      List<Row> tuning = new ArrayList<>(List.of(finalists.get(1), finalists.get(0),
+          finalists.get(2)));
+      for (Hint hint : Hint.values()) {
+        tuning.add(row(whole.hint(hint)));
+      }
+      Style hinted = whole.hint(Hint.NATIVE);
+      tuning.addAll(List.of(row(hinted.thin(1.4)), row(hinted.thin(1)),
+          row(hinted.blend(true, 2.2, false).thin(1)), row(hinted.raster(false, false).thin(1))));
+      measure("Tuning against Windows", tuning, 0, 1);
+    }
+    measureCases(rule, FreeType.WINDOWS ? 1 : 0);
+
     long bytes = GLYPHS.values().stream().mapToLong(g -> g.coverage().length).sum();
     System.out.printf("%d glyph bitmaps cached, %d KiB; %.1f s%n", GLYPHS.size(), bytes / 1024,
         (System.nanoTime() - started) / 1e9);
@@ -760,5 +1099,17 @@ public class TextSpike {
 
   static Row row(Style style) {
     return new Row(style.label(), new Ours(style));
+  }
+
+  /**
+   * Windows' three renderers, then the Linux recommendation and the setting tuned for Windows:
+   * whole-pixel positions at scale 1, quarter pixels above.
+   */
+  static List<Row> windows(List<Row> finalists, double scale) {
+    Style linux = BASE.raster(false, scale == 1);
+    Style tuned = linux.hint(Hint.NATIVE).thin(1.4);
+    return List.of(finalists.get(0), finalists.get(1), finalists.get(2),
+        new Row("ours, the Linux recommendation:\n" + linux.label(), new Ours(linux)),
+        new Row("ours, tuned for Windows:\n" + tuned.label(), new Ours(tuned)));
   }
 }

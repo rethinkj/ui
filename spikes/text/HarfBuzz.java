@@ -2,21 +2,36 @@ import static java.lang.foreign.ValueLayout.ADDRESS;
 import static java.lang.foreign.ValueLayout.JAVA_CHAR;
 import static java.lang.foreign.ValueLayout.JAVA_INT;
 
+import java.io.File;
 import java.lang.foreign.Arena;
 import java.lang.foreign.FunctionDescriptor;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SymbolLookup;
 import java.lang.invoke.MethodHandle;
+import java.nio.file.Path;
 
 /** Handwritten FFM bindings for the few HarfBuzz functions the spike needs. */
 final class HarfBuzz {
 
   private HarfBuzz() {}
 
-  static final SymbolLookup LIB =
-      SymbolLookup.libraryLookup(
-          System.getProperty("harfbuzz", FreeType.WINDOWS ? "harfbuzz.dll" : "libharfbuzz.so.0"),
-          Arena.global());
+  static final SymbolLookup LIB = library();
+
+  /**
+   * Windows finds a DLL's own dependencies by name in the loaded modules and on the PATH, not
+   * beside the DLL, so the ones {@code -Dharfbuzz.deps} lists (separated by the path separator,
+   * dependencies first) are loaded before HarfBuzz.
+   */
+  static SymbolLookup library() {
+    for (String dependency : System.getProperty("harfbuzz.deps", "").split(File.pathSeparator)) {
+      if (!dependency.isBlank()) {
+        SymbolLookup.libraryLookup(Path.of(dependency), Arena.global());
+      }
+    }
+    return SymbolLookup.libraryLookup(
+        System.getProperty("harfbuzz", FreeType.WINDOWS ? "harfbuzz.dll" : "libharfbuzz.so.0"),
+        Arena.global());
+  }
 
   static final int MEMORY_MODE_READONLY = 1;
   /** sizeof(hb_glyph_info_t) and sizeof(hb_glyph_position_t): five 32-bit fields each. */
