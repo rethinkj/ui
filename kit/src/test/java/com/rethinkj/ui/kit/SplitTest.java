@@ -2,6 +2,7 @@ package com.rethinkj.ui.kit;
 
 import static com.rethinkj.ui.El.col;
 import static com.rethinkj.ui.kit.Split.split;
+import static com.rethinkj.ui.kit.Workbench.dumpLine;
 import static com.rethinkj.ui.kit.Workbench.find;
 import static com.rethinkj.ui.kit.Workbench.x;
 import static com.rethinkj.ui.kit.Workbench.y;
@@ -9,6 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.rethinkj.ui.App;
 import com.rethinkj.ui.Cursor;
@@ -201,6 +203,7 @@ class SplitTest {
 
     run(app, "key ArrowRight\nframe");
     assertParts(app, 216, 263);
+    assertTrue(dumpLine(app, "divider").contains(" value=\"first 216\""));
     run(app, "key ArrowLeft\nkey ArrowLeft\nframe");
     assertParts(app, 184, 295);
     run(app, "key ArrowUp\nkey ArrowRight shift\nkey ArrowRight control\nframe");

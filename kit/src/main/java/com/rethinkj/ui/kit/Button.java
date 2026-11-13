@@ -33,6 +33,7 @@ public final class Button {
     El button =
         row().role("button")
             .label(text)
+            .disabled(onPress == null)
             .h(t.size().control())
             .padding(0, t.space().l())
             .center()

@@ -47,6 +47,8 @@ public final class Toggle {
     El toggle =
         row().role("switch")
             .label(text)
+            .checked(on)
+            .disabled(!enabled)
             .gap(t.space().m())
             // Room for the focus ring around the text, taken back by the margin, so that the
             // row lines up with what is above and below it.

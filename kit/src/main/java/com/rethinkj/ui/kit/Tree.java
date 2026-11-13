@@ -154,7 +154,13 @@ public final class Tree {
         }
       }
       String label = model.label(node);
-      r.role("treeitem").label(label).child(mark);
+      r.role("treeitem").label(label).child(mark)
+          .selected(isSelected)
+          .level(rows.depth(i) + 1)
+          .position(rows.positions[i], rows.sizes[i]);
+      if (!leaf) {
+        r.expanded(open);
+      }
       El icon = model.icon(node);
       if (icon != null) {
         r.child(icon);
@@ -250,12 +256,14 @@ public final class Tree {
 
   /**
    * The rows of the tree as one rebuild of the view sees them: the nodes shown, in order, with
-   * their depths, from the roots down through the open nodes. The row that stands for children
-   * not known yet holds a {@link Loading}.
+   * their depths and their positions among their siblings, from the roots down through the open
+   * nodes. The row that stands for children not known yet holds a {@link Loading}.
    */
   private static final class Rows<N> {
     private Object[] nodes = new Object[64];
     private int[] depths = new int[64];
+    int[] positions = new int[64]; // from 1
+    int[] sizes = new int[64];
     int count;
     int selected = -1;
 
@@ -265,15 +273,16 @@ public final class Tree {
 
     private void add(
         Model<N> model, Predicate<? super N> isOpen, List<N> children, int depth, N selected) {
+      int position = 0;
       for (N node : children) {
         if (this.selected < 0 && selected != null && selected.equals(node)) {
           this.selected = count;
         }
-        put(node, depth);
+        put(node, depth, ++position, children.size());
         if (!model.isLeaf(node) && isOpen.test(node)) {
           List<N> below = model.children(node);
           if (below == null) {
-            put(new Loading(node), depth + 1);
+            put(new Loading(node), depth + 1, 0, 0); // the list gives its row a position
           } else {
             add(model, isOpen, below, depth + 1, selected);
           }
@@ -281,12 +290,16 @@ public final class Tree {
       }
     }
 
-    private void put(Object node, int depth) {
+    private void put(Object node, int depth, int position, int size) {
       if (count == nodes.length) {
         nodes = Arrays.copyOf(nodes, count * 2);
         depths = Arrays.copyOf(depths, count * 2);
+        positions = Arrays.copyOf(positions, count * 2);
+        sizes = Arrays.copyOf(sizes, count * 2);
       }
       nodes[count] = node;
+      positions[count] = position;
+      sizes[count] = size;
       depths[count++] = depth;
     }
 

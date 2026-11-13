@@ -45,6 +45,8 @@ public final class Checkbox {
     El checkbox =
         row().role("checkbox")
             .label(text)
+            .checked(checked)
+            .disabled(!enabled)
             .gap(t.space().m())
             // Room for the focus ring around the text, taken back by the margin, so that the
             // row lines up with what is above and below it.

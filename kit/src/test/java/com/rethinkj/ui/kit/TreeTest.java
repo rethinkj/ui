@@ -2,6 +2,7 @@ package com.rethinkj.ui.kit;
 
 import static com.rethinkj.ui.El.col;
 import static com.rethinkj.ui.kit.Button.button;
+import static com.rethinkj.ui.kit.Workbench.dumpLine;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -171,6 +172,7 @@ class TreeTest {
     assertEquals(List.of("select prod-eu"), catalog.log);
     assertEquals("schema", app.focused().key());
     assertEquals(T.grid().selected(), find(app, "row-1").fill(), "the focused tree's selection");
+    assertTrue(dumpLine(app, "row-1").contains(" selected expanded=false level=1 pos=2/3"));
 
     run(app, "move #row-1\nframe");
     assertEquals(T.grid().selected(), find(app, "row-1").fill(), "no hover on the selection");
@@ -194,12 +196,15 @@ class TreeTest {
     assertEquals(6, find(app, "schema").rowCount());
     assertEquals(Tree.OPEN, mark(app, 0));
     assertEquals(Tree.CLOSED, mark(app, 1));
+    assertTrue(dumpLine(app, "row-0").contains(" selected expanded level=1 pos=1/3"));
+    assertTrue(dumpLine(app, "row-1").contains(" expanded=false level=2 pos=1/3"));
     assertEquals("staging", find(app, "row-5").label());
 
     run(app, "press #mark-0\nframe");
     assertEquals(List.of("select localhost", "open localhost", "close localhost"), catalog.log);
     assertEquals(3, find(app, "schema").rowCount());
     assertEquals(Tree.CLOSED, mark(app, 0));
+    assertTrue(dumpLine(app, "row-0").contains(" selected expanded=false level=1 pos=1/3"));
   }
 
   private static Symbol mark(App<?> app, int row) {
@@ -352,8 +357,11 @@ class TreeTest {
   /** Presses the key and returns the row of the selected node. */
   private static int row(App<Catalog> app, Catalog catalog, String name) {
     key(app, catalog, name);
+    List<String> said = app.tree().dump().lines().map(String::strip)
+        .filter(l -> l.contains(" selected ")).toList();
     for (El row : find(app, "schema").children()) {
       if (row.fill() == T.grid().selected()) {
+        assertEquals(List.of(dumpLine(app, row.key())), said, "the dump says which is selected");
         return Integer.parseInt(row.key().substring("row-".length()));
       }
     }
@@ -409,6 +417,7 @@ class TreeTest {
     assertNull(app.focused());
     assertEquals(0, find(app, "row-1").fill(), "no hover");
     assertEquals(T.grid().selectedInactive(), find(app, "row-3").fill(), "the selection shows");
+    assertTrue(dumpLine(app, "row-3").contains(" selected "));
     assertEquals(6, find(app, "schema").rowCount());
   }
 
