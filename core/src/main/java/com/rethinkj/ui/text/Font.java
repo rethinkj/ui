@@ -251,10 +251,21 @@ public final class Font implements AutoCloseable {
   }
 
   /**
+   * Starts reading the system's fonts for {@link #withSystemFonts} on a virtual thread of its
+   * own, unless that started already, and returns: the first character that needs one of them then
+   * finds the index ready, or waits only for the rest of the scan. Calling it is never needed; an
+   * {@code App} does when it is told to use the system's fonts, as a window's loop tells it.
+   */
+  public static void prepareSystemFonts() {
+    SystemFonts.prepare();
+  }
+
+  /**
    * This font and its fallbacks, and then the fonts installed on the system for the characters
    * that none of them has. The first character that needs them looks through the system's font
-   * folders, once per process; see {@code SystemFonts}. Images drawn with it depend on the
-   * machine, which is why {@code App} uses it only in a window unless told otherwise.
+   * folders, once per process, unless {@link #prepareSystemFonts} did that already; see {@code
+   * SystemFonts}. Images drawn with it depend on the machine, which is why {@code App} uses it only
+   * in a window unless told otherwise.
    */
   public Font withSystemFonts() {
     return base.derive(fallback, true);

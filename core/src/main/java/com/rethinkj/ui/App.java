@@ -4,6 +4,7 @@ import com.rethinkj.ui.layout.Flex;
 import com.rethinkj.ui.render.CpuRenderer;
 import com.rethinkj.ui.render.Scene;
 import com.rethinkj.ui.text.Atlas;
+import com.rethinkj.ui.text.Font;
 import com.rethinkj.ui.text.TextRendering;
 import java.time.Duration;
 import java.util.ArrayDeque;
@@ -938,11 +939,16 @@ public final class App<S> {
 
   /**
    * Sets whether characters that a text's font and its fallbacks lack come from the fonts installed
-   * on the system ({@link com.rethinkj.ui.text.Font#withSystemFonts}). Off until this is called,
-   * so that scripts and tests draw the same on every machine; a {@link
-   * com.rethinkj.ui.window.WindowLoop} turns it on when it starts, unless told otherwise.
+   * on the system ({@link Font#withSystemFonts}). Off until this is called, so that scripts and
+   * tests draw the same on every machine; a {@link com.rethinkj.ui.window.WindowLoop} turns it on
+   * when it starts, unless told otherwise. Turning it on starts reading the system's fonts on
+   * another thread ({@link Font#prepareSystemFonts}), so that the first character that needs one
+   * does not wait for that in its frame.
    */
   public void systemFonts(boolean on) {
+    if (on) {
+      Font.prepareSystemFonts();
+    }
     if (on != systemFonts) {
       systemFonts = on;
       stale = true;

@@ -33,6 +33,24 @@ class SystemFontsTest {
     TextLibraries.assumeLoaded();
   }
 
+  /**
+   * In a fresh process this is what starts the scan; after another test looked a character up it
+   * finds the scan done.
+   */
+  @Test
+  void turningTheSwitchOnReadsTheFontsAheadOnAnotherThreadWithoutALookup() throws Exception {
+    int asked = SystemFonts.lookups();
+    App<Object> app = new App<>(new Object(), s -> El.text("abc"));
+    long start = System.nanoTime();
+    app.systemFonts(true);
+    assertTrue(System.nanoTime() - start < 50_000_000L, "it returns at once");
+    for (int i = 0; i < 1000 && SystemFonts.scanNanos() == 0; i++) {
+      Thread.sleep(10);
+    }
+    assertTrue(SystemFonts.scanNanos() > 0, "scanned within 10 seconds");
+    assertEquals(asked, SystemFonts.lookups(), "without looking anything up");
+  }
+
   @Test
   void textWithoutTheSwitchNeverLooksAtTheSystem() {
     int before = SystemFonts.lookups();

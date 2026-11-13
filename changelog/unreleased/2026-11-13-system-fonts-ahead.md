@@ -1,0 +1,1 @@
+- An app that turns on the system's fonts (`App.systemFonts(true)`, which a `WindowLoop` does) now reads them on a virtual thread at once (`Font.prepareSystemFonts`), so that the first character that needs one no longer stalls its frame for the scan: 0.2 s with the font files cached and about a second without on Windows.
