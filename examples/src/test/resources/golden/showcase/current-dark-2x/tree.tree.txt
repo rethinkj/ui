@@ -1,0 +1,307 @@
+el 0,0 1100x720
+  el window=drag 0,0 1100x32
+    el 10,10 12x12
+    text "Showcase · Current dark" 30,8 152x16
+    el 182,16 780x0
+    el role=button label="Minimize" window=minimize 962,0 46x32
+      el 980,16 10x1
+    el role=button label="Maximize" window=maximize 1008,0 46x32
+      el 1026,11 10x10
+    el role=button label="Close" window=close 1054,0 46x32
+      el 1072,11 10x10
+        el 1072,11 2x2
+        el 1080,11 2x2
+        el 1073,12 2x2
+        el 1079,12 2x2
+        el 1074,13 2x2
+        el 1078,13 2x2
+        el 1075,14 2x2
+        el 1077,14 2x2
+        el 1076,15 2x2
+        el 1076,15 2x2
+        el 1077,16 2x2
+        el 1075,16 2x2
+        el 1078,17 2x2
+        el 1074,17 2x2
+        el 1079,18 2x2
+        el 1073,18 2x2
+        el 1080,19 2x2
+        el 1072,19 2x2
+  el 0,32 1100x688
+    el 0,32 200x688
+      el #sections role=tree label="Sections" 8,40 184x625 rows 0-9/10
+        el #row-0 role=treeitem label="Buttons" 8,40 184x22 level=1 pos=1/10
+          el 12,40 16x22
+          text "\u{F2BA}" 32,43 16x16
+          text "Buttons" 52,43 47x16
+        el #row-1 role=treeitem label="Text fields" 8,62 184x22 level=1 pos=2/10
+          el 12,62 16x22
+          text "\u{ECAE}" 32,65 16x16
+          text "Text fields" 52,65 63x16
+        el #row-2 role=treeitem label="Menus and overlays" 8,84 184x22 level=1 pos=3/10
+          el 12,84 16x22
+          text "\u{E85F}" 32,87 16x16
+          text "Menus and overlays" 52,87 123x16
+        el #row-3 role=treeitem label="Data grid" 8,106 184x22 level=1 pos=4/10
+          el 12,106 16x22
+          text "\u{EBF4}" 32,109 16x16
+          text "Data grid" 52,109 56x16
+        el #row-4 role=treeitem label="Tree" 8,128 184x22 selected level=1 pos=5/10
+          el 12,128 16x22
+          text "\u{F0D7}" 32,131 16x16
+          text "Tree" 52,131 28x16
+        el #row-5 role=treeitem label="Tabs and split" 8,150 184x22 level=1 pos=6/10
+          el 12,150 16x22
+          text "\u{EE5D}" 32,153 16x16
+          text "Tabs and split" 52,153 85x16
+        el #row-6 role=treeitem label="Typography" 8,172 184x22 level=1 pos=7/10
+          el 12,172 16x22
+          text "\u{ECAE}" 32,175 16x16
+          text "Typography" 52,175 74x16
+        el #row-7 role=treeitem label="Colour" 8,194 184x22 level=1 pos=8/10
+          el 12,194 16x22
+          text "\u{EB95}" 32,197 16x16
+          text "Colour" 52,197 41x16
+        el #row-8 role=treeitem label="Contrast" 8,216 184x22 level=1 pos=9/10
+          el 12,216 16x22
+          text "\u{E5F1}" 32,219 16x16
+          text "Contrast" 52,219 52x16
+        el #row-9 role=treeitem label="Icons" 8,238 184x22 level=1 pos=10/10
+          el 12,238 16x22
+          text "\u{F70E}" 32,241 16x16
+          text "Icons" 52,241 33x16
+      text "Theme" 8,669 184x15
+      el #look role=combobox label="Theme" 8,688 184x24 expanded=false
+        text "Current dark" 17,692 155x16
+        text "▼" 176,692 7x16
+    el 200,32 1x688
+    el #tree label="Tree" 201,32 899x688
+      el 225,56 851x36
+        text "Tree" 225,56 851x18
+        text "The schema of three servers, with the columns of a table beside it." 225,76 851x16
+      el 225,104 851x588
+        el 225,104 300x588
+          el 230,109 290x24
+            text "Database" 234,113 208x15
+            el role=button label="Add a connection" 444,109 24x24
+              text "\u{F108}" 448,113 16x16
+            el role=button label="Synchronise" 470,109 24x24
+              text "\u{E110}" 474,113 16x16
+            el role=button label="Filter" 496,109 24x24
+              text "\u{E60A}" 500,113 16x16
+          el #schema role=tree label="Schema" 230,137 290x550 rows 0-21/22 focused
+            el #row-0 role=treeitem label="localhost" 230,137 290x22 expanded level=1 pos=1/3
+              el #mark-0 234,137 16x22
+                text "\u{F2A2}" 234,140 16x16
+              text "\u{F1DC}" 254,140 16x16
+              text "localhost" 274,140 55x16
+            el #row-1 role=treeitem label="shop" 230,159 290x22 expanded level=2 pos=1/3
+              el #mark-1 250,159 16x22
+                text "\u{F2A2}" 250,162 16x16
+              text "\u{F0D7}" 270,162 16x16
+              text "shop" 290,162 30x16
+            el #row-2 role=treeitem label="public" 230,181 290x22 expanded level=3 pos=1/2
+              el #mark-2 266,181 16x22
+                text "\u{F2A2}" 266,184 16x16
+              text "\u{E643}" 286,184 16x16
+              text "public" 306,184 37x16
+            el #row-3 role=treeitem label="customers" 230,203 290x22 expanded=false level=4 pos=1/6
+              el #mark-3 282,203 16x22
+                text "\u{F2AF}" 282,206 16x16
+              text "\u{EBF4}" 302,206 16x16
+              text "customers" 322,206 65x16
+            el #row-4 role=treeitem label="orders" 230,225 290x22 selected expanded level=4 pos=2/6
+              el #mark-4 282,225 16x22
+                text "\u{F2A2}" 282,228 16x16
+              text "\u{EBF4}" 302,228 16x16
+              text "orders" 322,228 40x16
+            el #row-5 role=treeitem label="id" 230,247 290x22 level=5 pos=1/7
+              el 298,247 16x22
+              text "\u{E740}" 318,250 16x16
+              text "id" 338,250 11x16
+            el #row-6 role=treeitem label="customer_id" 230,269 290x22 level=5 pos=2/7
+              el 298,269 16x22
+              text "\u{F0116}" 318,272 16x16
+              text "customer_id" 338,272 75x16
+            el #row-7 role=treeitem label="amount" 230,291 290x22 level=5 pos=3/7
+              el 298,291 16x22
+              text "\u{F0116}" 318,294 16x16
+              text "amount" 338,294 46x16
+            el #row-8 role=treeitem label="status" 230,313 290x22 level=5 pos=4/7
+              el 298,313 16x22
+              text "\u{F0116}" 318,316 16x16
+              text "status" 338,316 37x16
+            el #row-9 role=treeitem label="created_at" 230,335 290x22 level=5 pos=5/7
+              el 298,335 16x22
+              text "\u{F0116}" 318,338 16x16
+              text "created_at" 338,338 64x16
+            el #row-10 role=treeitem label="shipped_at" 230,357 290x22 level=5 pos=6/7
+              el 298,357 16x22
+              text "\u{F0116}" 318,360 16x16
+              text "shipped_at" 338,360 67x16
+            el #row-11 role=treeitem label="note" 230,379 290x22 level=5 pos=7/7
+              el 298,379 16x22
+              text "\u{F0116}" 318,382 16x16
+              text "note" 338,382 27x16
+            el #row-12 role=treeitem label="order_items" 230,401 290x22 expanded=false level=4 pos=3/6
+              el #mark-12 282,401 16x22
+                text "\u{F2AF}" 282,404 16x16
+              text "\u{EBF4}" 302,404 16x16
+              text "order_items" 322,404 72x16
+            el #row-13 role=treeitem label="products" 230,423 290x22 expanded=false level=4 pos=4/6
+              el #mark-13 282,423 16x22
+                text "\u{F2AF}" 282,426 16x16
+              text "\u{EBF4}" 302,426 16x16
+              text "products" 322,426 54x16
+            el #row-14 role=treeitem label="invoices" 230,445 290x22 expanded=false level=4 pos=5/6
+              el #mark-14 282,445 16x22
+                text "\u{F2AF}" 282,448 16x16
+              text "\u{EBF4}" 302,448 16x16
+              text "invoices" 322,448 50x16
+            el #row-15 role=treeitem label="payments" 230,467 290x22 expanded=false level=4 pos=6/6
+              el #mark-15 282,467 16x22
+                text "\u{F2AF}" 282,470 16x16
+              text "\u{EBF4}" 302,470 16x16
+              text "payments" 322,470 60x16
+            el #row-16 role=treeitem label="audit" 230,489 290x22 expanded=false level=3 pos=2/2
+              el #mark-16 266,489 16x22
+                text "\u{F2AF}" 266,492 16x16
+              text "\u{E643}" 286,492 16x16
+              text "audit" 306,492 30x16
+            el #row-17 role=treeitem label="analytics" 230,511 290x22 expanded=false level=2 pos=2/3 hovered
+              el #mark-17 250,511 16x22
+                text "\u{F2AF}" 250,514 16x16
+              text "\u{F0D7}" 270,514 16x16
+              text "analytics" 290,514 55x16
+            el #row-18 role=treeitem label="postgres" 230,533 290x22 expanded=false level=2 pos=3/3
+              el #mark-18 250,533 16x22
+                text "\u{F2AF}" 250,536 16x16
+              text "\u{F0D7}" 270,536 16x16
+              text "postgres" 290,536 54x16
+            el #row-19 role=treeitem label="staging" 230,555 290x22 expanded level=1 pos=2/3
+              el #mark-19 234,555 16x22
+                text "\u{F2A2}" 234,558 16x16
+              text "\u{F1DC}" 254,558 16x16
+              text "staging" 274,558 45x16
+            el #row-20 230,577 290x22 pos=21/22
+              el 250,588 16x0
+              text "Loading…" 270,580 61x16
+            el #row-21 role=treeitem label="prod-eu" 230,599 290x22 expanded=false level=1 pos=3/3
+              el #mark-21 234,599 16x22
+                text "\u{F2AF}" 234,602 16x16
+              text "\u{F1DC}" 254,602 16x16
+              text "prod-eu" 274,602 50x16
+        el 537,104 539x247
+          el 537,104 539x16
+            text "\u{EBF4}" 537,104 16x16
+            text "public.orders" 557,104 81x15
+            text "· 7 columns · 1,204,311 rows" 642,104 169x15
+          el #columns role=grid label="Columns" 537,128 539x200
+            el #content 537,128 539x200
+              el #header 537,128 539x22
+                el #column-0 role=columnheader label="column" 537,128 139x22 pos=1/4
+                  text "column" 541,131 45x15
+                el 676,128 1x22
+                el #column-1 role=columnheader label="type" 677,128 139x22 pos=2/4
+                  text "type" 681,131 27x15
+                el 816,128 1x22
+                el #column-2 role=columnheader label="nullable" 817,128 79x22 pos=3/4
+                  text "nullable" 821,131 48x15
+                el 896,128 1x22
+                el #column-3 role=columnheader label="default" 897,128 119x22 pos=4/4
+                  text "default" 901,131 43x15
+                el 1016,128 1x22
+              el 537,150 539x1
+              el #rows 537,151 539x177 rows 0-6/7
+                el #row-0 role=row 537,151 539x22 pos=1/7
+                  el #cell-0-0 role=gridcell 537,151 139x22 pos=1/4
+                    text "id" 541,154 11x16
+                  el 676,151 1x22
+                  el #cell-0-1 role=gridcell 677,151 139x22 pos=2/4
+                    text "bigint" 681,154 44x16
+                  el 816,151 1x22
+                  el #cell-0-2 role=gridcell 817,151 79x22 pos=3/4
+                    text "no" 821,154 15x16
+                  el 896,151 1x22
+                  el #cell-0-3 role=gridcell 897,151 119x22 pos=4/4
+                    text "nextval(…)" 901,154 73x16
+                  el 1016,151 1x22
+                el #row-1 role=row 537,173 539x22 pos=2/7
+                  el #cell-1-0 role=gridcell 537,173 139x22 pos=1/4
+                    text "customer_id" 541,176 75x16
+                  el 676,173 1x22
+                  el #cell-1-1 role=gridcell 677,173 139x22 pos=2/4
+                    text "bigint" 681,176 44x16
+                  el 816,173 1x22
+                  el #cell-1-2 role=gridcell 817,173 79x22 pos=3/4
+                    text "no" 821,176 15x16
+                  el 896,173 1x22
+                  el #cell-1-3 role=gridcell 897,173 119x22 pos=4/4
+                    text "NULL" 901,176 29x16
+                  el 1016,173 1x22
+                el #row-2 role=row 537,195 539x22 selected current pos=3/7
+                  el #cell-2-0 role=gridcell 537,195 139x22 pos=1/4
+                    text "amount" 541,198 46x16
+                  el 676,195 1x22
+                  el #cell-2-1 role=gridcell 677,195 139x22 pos=2/4
+                    text "numeric(10,2)" 681,198 94x16
+                  el 816,195 1x22
+                  el #cell-2-2 role=gridcell 817,195 79x22 pos=3/4
+                    text "yes" 821,198 22x16
+                  el 896,195 1x22
+                  el #cell-2-3 role=gridcell 897,195 119x22 pos=4/4
+                    text "NULL" 901,198 29x16
+                  el 1016,195 1x22
+                el #row-3 role=row 537,217 539x22 pos=4/7
+                  el #cell-3-0 role=gridcell 537,217 139x22 pos=1/4
+                    text "status" 541,220 37x16
+                  el 676,217 1x22
+                  el #cell-3-1 role=gridcell 677,217 139x22 pos=2/4
+                    text "order_status" 681,220 87x16
+                  el 816,217 1x22
+                  el #cell-3-2 role=gridcell 817,217 79x22 pos=3/4
+                    text "yes" 821,220 22x16
+                  el 896,217 1x22
+                  el #cell-3-3 role=gridcell 897,217 119x22 pos=4/4
+                    text "NULL" 901,220 29x16
+                  el 1016,217 1x22
+                el #row-4 role=row 537,239 539x22 pos=5/7
+                  el #cell-4-0 role=gridcell 537,239 139x22 pos=1/4
+                    text "created_at" 541,242 64x16
+                  el 676,239 1x22
+                  el #cell-4-1 role=gridcell 677,239 139x22 pos=2/4
+                    text "timestamptz" 681,242 80x16
+                  el 816,239 1x22
+                  el #cell-4-2 role=gridcell 817,239 79x22 pos=3/4
+                    text "yes" 821,242 22x16
+                  el 896,239 1x22
+                  el #cell-4-3 role=gridcell 897,239 119x22 pos=4/4
+                    text "NULL" 901,242 29x16
+                  el 1016,239 1x22
+                el #row-5 role=row 537,261 539x22 pos=6/7
+                  el #cell-5-0 role=gridcell 537,261 139x22 pos=1/4
+                    text "shipped_at" 541,264 67x16
+                  el 676,261 1x22
+                  el #cell-5-1 role=gridcell 677,261 139x22 pos=2/4
+                    text "timestamptz" 681,264 80x16
+                  el 816,261 1x22
+                  el #cell-5-2 role=gridcell 817,261 79x22 pos=3/4
+                    text "yes" 821,264 22x16
+                  el 896,261 1x22
+                  el #cell-5-3 role=gridcell 897,261 119x22 pos=4/4
+                    text "NULL" 901,264 29x16
+                  el 1016,261 1x22
+                el #row-6 role=row 537,283 539x22 pos=7/7
+                  el #cell-6-0 role=gridcell 537,283 139x22 pos=1/4
+                    text "note" 541,286 27x16
+                  el 676,283 1x22
+                  el #cell-6-1 role=gridcell 677,283 139x22 pos=2/4
+                    text "text" 681,286 29x16
+                  el 816,283 1x22
+                  el #cell-6-2 role=gridcell 817,283 79x22 pos=3/4
+                    text "yes" 821,286 22x16
+                  el 896,283 1x22
+                  el #cell-6-3 role=gridcell 897,283 119x22 pos=4/4
+                    text "NULL" 901,286 29x16
+                  el 1016,283 1x22
+          text "The grid's selection without the focus: selectedInactive." 537,336 539x15

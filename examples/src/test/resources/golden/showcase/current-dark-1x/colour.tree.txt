@@ -1,0 +1,216 @@
+el 0,0 1100x720
+  el window=drag 0,0 1100x32
+    el 10,10 12x12
+    text "Showcase · Current dark" 30,8 154x16
+    el 184,16 778x0
+    el role=button label="Minimize" window=minimize 962,0 46x32
+      el 980,16 10x1
+    el role=button label="Maximize" window=maximize 1008,0 46x32
+      el 1026,11 10x10
+    el role=button label="Close" window=close 1054,0 46x32
+      el 1072,11 10x10
+        el 1072,11 2x2
+        el 1080,11 2x2
+        el 1073,12 2x2
+        el 1079,12 2x2
+        el 1074,13 2x2
+        el 1078,13 2x2
+        el 1075,14 2x2
+        el 1077,14 2x2
+        el 1076,15 2x2
+        el 1076,15 2x2
+        el 1077,16 2x2
+        el 1075,16 2x2
+        el 1078,17 2x2
+        el 1074,17 2x2
+        el 1079,18 2x2
+        el 1073,18 2x2
+        el 1080,19 2x2
+        el 1072,19 2x2
+  el 0,32 1100x688
+    el 0,32 200x688
+      el #sections role=tree label="Sections" 8,40 184x624 rows 0-9/10 focused
+        el #row-0 role=treeitem label="Buttons" 8,40 184x22 level=1 pos=1/10
+          el 12,40 16x22
+          text "\u{F2BA}" 32,43 16x16
+          text "Buttons" 52,43 48x16
+        el #row-1 role=treeitem label="Text fields" 8,62 184x22 level=1 pos=2/10
+          el 12,62 16x22
+          text "\u{ECAE}" 32,65 16x16
+          text "Text fields" 52,65 63x16
+        el #row-2 role=treeitem label="Menus and overlays" 8,84 184x22 level=1 pos=3/10
+          el 12,84 16x22
+          text "\u{E85F}" 32,87 16x16
+          text "Menus and overlays" 52,87 126x16
+        el #row-3 role=treeitem label="Data grid" 8,106 184x22 level=1 pos=4/10
+          el 12,106 16x22
+          text "\u{EBF4}" 32,109 16x16
+          text "Data grid" 52,109 55x16
+        el #row-4 role=treeitem label="Tree" 8,128 184x22 level=1 pos=5/10
+          el 12,128 16x22
+          text "\u{F0D7}" 32,131 16x16
+          text "Tree" 52,131 29x16
+        el #row-5 role=treeitem label="Tabs and split" 8,150 184x22 level=1 pos=6/10
+          el 12,150 16x22
+          text "\u{EE5D}" 32,153 16x16
+          text "Tabs and split" 52,153 85x16
+        el #row-6 role=treeitem label="Typography" 8,172 184x22 level=1 pos=7/10
+          el 12,172 16x22
+          text "\u{ECAE}" 32,175 16x16
+          text "Typography" 52,175 73x16
+        el #row-7 role=treeitem label="Colour" 8,194 184x22 selected level=1 pos=8/10
+          el 12,194 16x22
+          text "\u{EB95}" 32,197 16x16
+          text "Colour" 52,197 41x16
+        el #row-8 role=treeitem label="Contrast" 8,216 184x22 level=1 pos=9/10
+          el 12,216 16x22
+          text "\u{E5F1}" 32,219 16x16
+          text "Contrast" 52,219 52x16
+        el #row-9 role=treeitem label="Icons" 8,238 184x22 level=1 pos=10/10
+          el 12,238 16x22
+          text "\u{F70E}" 32,241 16x16
+          text "Icons" 52,241 33x16
+      text "Theme" 8,668 184x16
+      el #look role=combobox label="Theme" 8,688 184x24 expanded=false
+        text "Current dark" 17,692 155x16
+        text "▼" 176,692 7x16
+    el 200,32 1x688
+    el #colour label="Colour" 201,32 899x688
+      el 225,56 851x36
+        text "Colour" 225,56 851x18
+        text "Every colour of the theme, by group." 225,76 851x16
+      el 225,104 851x520
+        el 225,104 851x64
+          text "surface" 225,104 80x16
+          el 313,104 118x64
+            el 313,104 118x28
+            text "window" 313,134 118x16
+            text "#1B1C1F" 313,152 118x16
+          el 439,104 118x64
+            el 439,104 118x28
+            text "panel" 439,134 118x16
+            text "#232428" 439,152 118x16
+          el 565,104 118x64
+            el 565,104 118x28
+            text "raised" 565,134 118x16
+            text "#2D2E33" 565,152 118x16
+          el 691,104 118x64
+            el 691,104 118x28
+              el 692,105 116x26
+            text "hover" 691,134 118x16
+            text "#0FFFFFFF" 691,152 118x16
+          el 817,104 118x64
+            el 817,104 118x28
+              el 818,105 116x26
+            text "pressed" 817,134 118x16
+            text "#1AFFFFFF" 817,152 118x16
+          el 943,104 118x64
+            el 943,104 118x28
+              el 944,105 116x26
+            text "scrim" 943,134 118x16
+            text "#99000000" 943,152 118x16
+        el 225,180 851x64
+          text "text" 225,180 80x16
+          el 313,180 118x64
+            el 313,180 118x28
+            text "primary" 313,210 118x16
+            text "#E4E5E9" 313,228 118x16
+          el 439,180 118x64
+            el 439,180 118x28
+            text "muted" 439,210 118x16
+            text "#A1A3AA" 439,228 118x16
+          el 565,180 118x64
+            el 565,180 118x28
+            text "disabled" 565,210 118x16
+            text "#6A6C73" 565,228 118x16
+          el 691,180 118x64
+            el 691,180 118x28
+            text "onAccent" 691,210 118x16
+            text "#FFFFFF" 691,228 118x16
+        el 225,256 851x64
+          text "border" 225,256 80x16
+          el 313,256 118x64
+            el 313,256 118x28
+            text "subtle" 313,286 118x16
+            text "#393A40" 313,304 118x16
+          el 439,256 118x64
+            el 439,256 118x28
+            text "strong" 439,286 118x16
+            text "#7A7D86" 439,304 118x16
+          el 565,256 118x64
+            el 565,256 118x28
+            text "focus" 565,286 118x16
+            text "#E4E5E9" 565,304 118x16
+        el 225,332 851x64
+          text "accent" 225,332 80x16
+          el 313,332 118x64
+            el 313,332 118x28
+            text "color" 313,362 118x16
+            text "#2E62D9" 313,380 118x16
+          el 439,332 118x64
+            el 439,332 118x28
+            text "hover" 439,362 118x16
+            text "#3A6EE6" 439,380 118x16
+          el 565,332 118x64
+            el 565,332 118x28
+            text "pressed" 565,362 118x16
+            text "#2655C2" 565,380 118x16
+          el 691,332 118x64
+            el 691,332 118x28
+              el 692,333 116x26
+            text "selection" 691,362 118x16
+            text "#732E62D9" 691,380 118x16
+        el 225,408 851x64
+          text "status" 225,408 80x16
+          el 313,408 118x64
+            el 313,408 118x28
+            text "danger" 313,438 118x16
+            text "#F2797A" 313,456 118x16
+          el 439,408 118x64
+            el 439,408 118x28
+            text "warning" 439,438 118x16
+            text "#E0B04C" 439,456 118x16
+          el 565,408 118x64
+            el 565,408 118x28
+            text "success" 565,438 118x16
+            text "#5BC489" 565,456 118x16
+        el 225,484 851x64
+          text "grid" 225,484 80x16
+          el 313,484 118x64
+            el 313,484 118x28
+            text "header" 313,514 118x16
+            text "#232428" 313,532 118x16
+          el 439,484 118x64
+            el 439,484 118x28
+            text "row" 439,514 118x16
+            text "#1B1C1F" 439,532 118x16
+          el 565,484 118x64
+            el 565,484 118x28
+            text "stripe" 565,514 118x16
+            text "#1F2023" 565,532 118x16
+          el 691,484 118x64
+            el 691,484 118x28
+            text "selected" 691,514 118x16
+            text "#1C3666" 691,532 118x16
+          el 817,484 118x64
+            el 817,484 118x28
+            text "selectedInactive" 817,514 118x16
+            text "#2B3240" 817,532 118x16
+          el 943,484 118x64
+            el 943,484 118x28
+            text "cursor" 943,514 118x16
+            text "#7AA2F7" 943,532 118x16
+        el 225,560 851x64
+          text "scrollbars" 225,560 80x16
+          el 313,560 118x64
+            el 313,560 118x28
+            text "thumb" 313,590 118x16
+            text "#83868F" 313,608 118x16
+          el 439,560 118x64
+            el 439,560 118x28
+            text "thumbHovered" 439,590 118x16
+            text "#A1A3AA" 439,608 118x16
+          el 565,560 118x64
+            el 565,560 118x28
+            text "thumbDragged" 565,590 118x16
+            text "#B9BBC1" 565,608 118x16

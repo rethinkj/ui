@@ -1,0 +1,158 @@
+el 0,0 1100x720
+  el window=drag 0,0 1100x32
+    el 10,10 12x12
+    text "Showcase · Current light" 30,8 153x16
+    el 183,16 779x0
+    el role=button label="Minimize" window=minimize 962,0 46x32
+      el 980,16 10x1
+    el role=button label="Maximize" window=maximize 1008,0 46x32
+      el 1026,11 10x10
+    el role=button label="Close" window=close 1054,0 46x32
+      el 1072,11 10x10
+        el 1072,11 2x2
+        el 1080,11 2x2
+        el 1073,12 2x2
+        el 1079,12 2x2
+        el 1074,13 2x2
+        el 1078,13 2x2
+        el 1075,14 2x2
+        el 1077,14 2x2
+        el 1076,15 2x2
+        el 1076,15 2x2
+        el 1077,16 2x2
+        el 1075,16 2x2
+        el 1078,17 2x2
+        el 1074,17 2x2
+        el 1079,18 2x2
+        el 1073,18 2x2
+        el 1080,19 2x2
+        el 1072,19 2x2
+  el 0,32 1100x688
+    el 0,32 200x688
+      el #sections role=tree label="Sections" 8,40 184x624 rows 0-9/10
+        el #row-0 role=treeitem label="Buttons" 8,40 184x22 level=1 pos=1/10
+          el 12,40 16x22
+          text "\u{F2BA}" 32,43 16x16
+          text "Buttons" 52,43 48x16
+        el #row-1 role=treeitem label="Text fields" 8,62 184x22 selected level=1 pos=2/10
+          el 12,62 16x22
+          text "\u{ECAE}" 32,65 16x16
+          text "Text fields" 52,65 63x16
+        el #row-2 role=treeitem label="Menus and overlays" 8,84 184x22 level=1 pos=3/10
+          el 12,84 16x22
+          text "\u{E85F}" 32,87 16x16
+          text "Menus and overlays" 52,87 126x16
+        el #row-3 role=treeitem label="Data grid" 8,106 184x22 level=1 pos=4/10
+          el 12,106 16x22
+          text "\u{EBF4}" 32,109 16x16
+          text "Data grid" 52,109 55x16
+        el #row-4 role=treeitem label="Tree" 8,128 184x22 level=1 pos=5/10
+          el 12,128 16x22
+          text "\u{F0D7}" 32,131 16x16
+          text "Tree" 52,131 29x16
+        el #row-5 role=treeitem label="Tabs and split" 8,150 184x22 level=1 pos=6/10
+          el 12,150 16x22
+          text "\u{EE5D}" 32,153 16x16
+          text "Tabs and split" 52,153 85x16
+        el #row-6 role=treeitem label="Typography" 8,172 184x22 level=1 pos=7/10
+          el 12,172 16x22
+          text "\u{ECAE}" 32,175 16x16
+          text "Typography" 52,175 73x16
+        el #row-7 role=treeitem label="Colour" 8,194 184x22 level=1 pos=8/10
+          el 12,194 16x22
+          text "\u{EB95}" 32,197 16x16
+          text "Colour" 52,197 41x16
+        el #row-8 role=treeitem label="Contrast" 8,216 184x22 level=1 pos=9/10
+          el 12,216 16x22
+          text "\u{E5F1}" 32,219 16x16
+          text "Contrast" 52,219 52x16
+        el #row-9 role=treeitem label="Icons" 8,238 184x22 level=1 pos=10/10
+          el 12,238 16x22
+          text "\u{F70E}" 32,241 16x16
+          text "Icons" 52,241 33x16
+      text "Theme" 8,668 184x16
+      el #look role=combobox label="Theme" 8,688 184x24 expanded=false
+        text "Current light" 17,692 155x16
+        text "▼" 176,692 7x16
+    el 200,32 1x688
+    el #fields label="Text fields" 201,32 899x688
+      el 225,56 851x36
+        text "Text fields" 225,56 851x18
+        text "Fields in their states, and a form with selects." 225,76 851x16
+      el 225,104 851x290
+        el 225,104 360x234
+          text "States" 238,117 334x16
+          el 238,141 334x24
+            text "Empty" 238,145 96x16
+            text #empty role=textbox label="Empty" "" 342,141 200x24
+          el 238,173 334x24
+            text "Filled" 238,177 96x16
+            text #filled role=textbox label="Filled" "orders_2024" 342,173 200x24 hovered
+          el 238,205 334x24
+            text "Selected" 238,209 96x16
+            text #selecting role=textbox label="Selected" "monthly_revenue" 342,205 200x24
+          el 238,237 334x24
+            text "Read-only" 238,241 96x16
+            text #readonly role=textbox label="Read-only" "jdbc:postgresql://localhost:5432/shop" 342,237 200x24 readonly
+          el 238,269 334x24
+            text "Disabled" 238,273 96x16
+            text #disabled role=textbox label="Disabled" "postgres" 342,269 200x24 disabled
+          el 238,301 334x24
+            text "Placeholder" 238,305 96x16
+            text #empty-disabled role=textbox label="Placeholder" "" 342,301 200x24 disabled
+        el 597,104 479x290
+          text "New connection" 610,117 453x16
+          el 610,141 453x24
+            text "Name" 610,145 96x16
+            text #name role=textbox label="Name" "Shop (local)" 714,141 280x24
+          el 610,173 453x24
+            el 610,173 280x24
+              text "Host" 610,177 96x16
+              text #host role=textbox label="Host" "localhost" 714,173 176x24
+            text "Port" 898,177 25x16
+            text #port role=textbox label="Port" "5432" 931,173 64x24
+          el 610,205 453x24
+            text "Database" 610,209 96x16
+            text #database role=textbox label="Database" "shop" 714,205 280x24
+          el 610,237 453x24
+            text "User" 610,241 96x16
+            text #user role=textbox label="User" "" 714,237 280x24
+          el 610,269 453x24
+            text "Driver" 610,273 96x16
+            el #driver role=combobox label="Driver" 714,269 200x24 expanded=false
+              text "PostgreSQL" 723,273 171x16
+              text "▼" 898,273 7x16
+          el 610,301 453x24
+            text "Isolation" 610,305 96x16
+            el #isolation role=combobox label="Isolation" 714,301 200x24 expanded
+              text "Read committed" 723,305 171x16
+              text "▼" 898,305 7x16
+          el 610,333 453x16
+            el role=checkbox label="Require SSL" 710,331 107x20 checked
+              el 714,333 16x16
+                text "✓" 717,333 11x16
+              text "Require SSL" 738,333 75x16
+          el 610,357 453x24
+            el role=button label="Test connection" 874,357 125x24
+              text "Test connection" 887,361 99x16
+            el role=button label="Save" 1007,357 56x24 disabled
+              text "Save" 1020,361 30x16
+overlay bottom stretch gap 2 on #isolation role=combobox label="Isolation" 714,301 200x24
+  el #menu role=menu 714,327 200x106 focused
+    el #item-0 role=menuitem label="Read uncommitted" 719,332 190x24
+      el 719,332 190x24
+        el 727,344 16x0
+        text "Read uncommitted" 751,336 150x16
+    el #item-1 role=menuitem label="Read committed" 719,356 190x24 checked
+      el 719,356 190x24
+        el 727,360 16x16
+          text "✓" 730,360 11x16
+        text "Read committed" 751,360 150x16
+    el #item-2 role=menuitem label="Repeatable read" 719,380 190x24
+      el 719,380 190x24
+        el 727,392 16x0
+        text "Repeatable read" 751,384 150x16
+    el #item-3 role=menuitem label="Serializable" 719,404 190x24
+      el 719,404 190x24
+        el 727,416 16x0
+        text "Serializable" 751,408 150x16

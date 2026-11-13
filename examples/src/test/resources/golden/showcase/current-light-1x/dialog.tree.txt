@@ -1,0 +1,140 @@
+el 0,0 1100x720
+  el window=drag 0,0 1100x32
+    el 10,10 12x12
+    text "Showcase · Current light" 30,8 153x16
+    el 183,16 779x0
+    el role=button label="Minimize" window=minimize 962,0 46x32
+      el 980,16 10x1
+    el role=button label="Maximize" window=maximize 1008,0 46x32
+      el 1026,11 10x10
+    el role=button label="Close" window=close 1054,0 46x32
+      el 1072,11 10x10
+        el 1072,11 2x2
+        el 1080,11 2x2
+        el 1073,12 2x2
+        el 1079,12 2x2
+        el 1074,13 2x2
+        el 1078,13 2x2
+        el 1075,14 2x2
+        el 1077,14 2x2
+        el 1076,15 2x2
+        el 1076,15 2x2
+        el 1077,16 2x2
+        el 1075,16 2x2
+        el 1078,17 2x2
+        el 1074,17 2x2
+        el 1079,18 2x2
+        el 1073,18 2x2
+        el 1080,19 2x2
+        el 1072,19 2x2
+  el 0,32 1100x688
+    el 0,32 200x688
+      el #sections role=tree label="Sections" 8,40 184x624 rows 0-9/10
+        el #row-0 role=treeitem label="Buttons" 8,40 184x22 level=1 pos=1/10
+          el 12,40 16x22
+          text "\u{F2BA}" 32,43 16x16
+          text "Buttons" 52,43 48x16
+        el #row-1 role=treeitem label="Text fields" 8,62 184x22 level=1 pos=2/10
+          el 12,62 16x22
+          text "\u{ECAE}" 32,65 16x16
+          text "Text fields" 52,65 63x16
+        el #row-2 role=treeitem label="Menus and overlays" 8,84 184x22 selected level=1 pos=3/10
+          el 12,84 16x22
+          text "\u{E85F}" 32,87 16x16
+          text "Menus and overlays" 52,87 126x16
+        el #row-3 role=treeitem label="Data grid" 8,106 184x22 level=1 pos=4/10
+          el 12,106 16x22
+          text "\u{EBF4}" 32,109 16x16
+          text "Data grid" 52,109 55x16
+        el #row-4 role=treeitem label="Tree" 8,128 184x22 level=1 pos=5/10
+          el 12,128 16x22
+          text "\u{F0D7}" 32,131 16x16
+          text "Tree" 52,131 29x16
+        el #row-5 role=treeitem label="Tabs and split" 8,150 184x22 level=1 pos=6/10
+          el 12,150 16x22
+          text "\u{EE5D}" 32,153 16x16
+          text "Tabs and split" 52,153 85x16
+        el #row-6 role=treeitem label="Typography" 8,172 184x22 level=1 pos=7/10
+          el 12,172 16x22
+          text "\u{ECAE}" 32,175 16x16
+          text "Typography" 52,175 73x16
+        el #row-7 role=treeitem label="Colour" 8,194 184x22 level=1 pos=8/10
+          el 12,194 16x22
+          text "\u{EB95}" 32,197 16x16
+          text "Colour" 52,197 41x16
+        el #row-8 role=treeitem label="Contrast" 8,216 184x22 level=1 pos=9/10
+          el 12,216 16x22
+          text "\u{E5F1}" 32,219 16x16
+          text "Contrast" 52,219 52x16
+        el #row-9 role=treeitem label="Icons" 8,238 184x22 level=1 pos=10/10
+          el 12,238 16x22
+          text "\u{F70E}" 32,241 16x16
+          text "Icons" 52,241 33x16
+      text "Theme" 8,668 184x16
+      el #look role=combobox label="Theme" 8,688 184x24 expanded=false
+        text "Current light" 17,692 155x16
+        text "▼" 176,692 7x16
+    el 200,32 1x688
+    el #menus label="Menus and overlays" 201,32 899x688
+      el 225,56 851x36
+        text "Menus and overlays" 225,56 851x18
+        text "A dropdown, a context menu, tooltips and a dialog." 225,76 851x16
+      el 225,104 851x224
+        el 225,104 851x30
+          el role=button label="Run" 228,107 66x24
+            text "\u{E990}" 237,111 16x16
+            text "Run" 257,111 24x16
+          el #options role=button label="Options" 296,107 74x24
+            text "Options" 309,111 48x16
+          el 372,119 553x0
+          el #rename role=button label="Rename…" 927,107 87x24
+            text "Rename…" 940,111 61x16
+          el 1018,111 1x16
+          el #refresh role=button label="Refresh" 1023,107 24x24
+            text "\u{E0AA}" 1027,111 16x16
+          el #copy role=button label="Copy" 1049,107 24x24
+            text "\u{F32A}" 1053,111 16x16
+        el 225,146 851x182
+          el 225,146 420x182
+            text "Saved queries" 238,159 394x16
+            el #saved role=list label="Saved queries" 238,183 394x132
+              el #saved-0 role=listitem label="monthly revenue" 238,183 394x22
+                text "\u{E4D7}" 242,186 16x16
+                text "monthly revenue" 262,186 291x16
+                text "today 09:12" 557,186 71x16
+              el #saved-1 role=listitem label="orders without invoice" 238,205 394x22
+                text "\u{E4D7}" 242,208 16x16
+                text "orders without invoice" 262,208 289x16
+                text "today 08:47" 555,208 73x16
+              el #saved-2 role=listitem label="top customers 2026" 238,227 394x22
+                text "\u{E4D7}" 242,230 16x16
+                text "top customers 2026" 262,230 301x16
+                text "yesterday" 567,230 61x16
+              el #saved-3 role=listitem label="slow queries" 238,249 394x22 selected
+                text "\u{E4D7}" 242,252 16x16
+                text "slow queries" 262,252 294x16
+                text "3 days ago" 560,252 68x16
+              el #saved-4 role=listitem label="refunds by country" 238,271 394x22
+                text "\u{E4D7}" 242,274 16x16
+                text "refunds by country" 262,274 304x16
+                text "last week" 570,274 58x16
+              el #saved-5 role=listitem label="inventory below threshold" 238,293 394x22
+                text "\u{E4D7}" 242,296 16x16
+                text "inventory below threshold" 262,296 311x16
+                text "March 2" 577,296 51x16
+          el 657,146 419x76
+            text "The secondary button on a query opens its menu." 657,146 419x16
+            text "Refresh and Copy show a tooltip after half a second." 657,166 419x16
+            text "Rename… opens a modal dialog over a scrim." 657,186 419x16
+            text #said "" 657,206 419x16
+overlay center modal scrim on 0,0 1100x720
+  el #dialog role=dialog label="Rename query" 373,288 354x144
+    text "Rename query" 390,305 320x18
+    el 390,335 320x44
+      text "The query keeps its text and its history." 390,335 320x16
+      text #new-name role=textbox label="Name" "slow queries" 390,355 320x24 focused caret 12
+    el 390,391 320x24
+      el role=button label="Cancel" 558,391 68x24
+        text "Cancel" 571,395 42x16
+      el role=button label="Rename" 634,391 76x24
+        text "Rename" 647,395 50x16

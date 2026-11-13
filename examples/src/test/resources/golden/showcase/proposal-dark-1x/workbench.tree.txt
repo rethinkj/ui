@@ -1,0 +1,324 @@
+el 0,0 1100x720
+  el window=drag 0,0 1100x32
+    el 10,10 12x12
+    text "Showcase · Proposal dark" 30,8 161x16
+    el 191,16 771x0
+    el role=button label="Minimize" window=minimize 962,0 46x32
+      el 980,16 10x1
+    el role=button label="Maximize" window=maximize 1008,0 46x32
+      el 1026,11 10x10
+    el role=button label="Close" window=close 1054,0 46x32
+      el 1072,11 10x10
+        el 1072,11 2x2
+        el 1080,11 2x2
+        el 1073,12 2x2
+        el 1079,12 2x2
+        el 1074,13 2x2
+        el 1078,13 2x2
+        el 1075,14 2x2
+        el 1077,14 2x2
+        el 1076,15 2x2
+        el 1076,15 2x2
+        el 1077,16 2x2
+        el 1075,16 2x2
+        el 1078,17 2x2
+        el 1074,17 2x2
+        el 1079,18 2x2
+        el 1073,18 2x2
+        el 1080,19 2x2
+        el 1072,19 2x2
+  el 0,32 1100x688
+    el 0,32 200x688
+      el #sections role=tree label="Sections" 8,40 184x624 rows 0-9/10 focused
+        el #row-0 role=treeitem label="Buttons" 8,40 184x22 level=1 pos=1/10
+          el 12,40 16x22
+          text "\u{F2BA}" 32,43 16x16
+          text "Buttons" 52,43 48x16
+        el #row-1 role=treeitem label="Text fields" 8,62 184x22 level=1 pos=2/10
+          el 12,62 16x22
+          text "\u{ECAE}" 32,65 16x16
+          text "Text fields" 52,65 63x16
+        el #row-2 role=treeitem label="Menus and overlays" 8,84 184x22 level=1 pos=3/10
+          el 12,84 16x22
+          text "\u{E85F}" 32,87 16x16
+          text "Menus and overlays" 52,87 126x16
+        el #row-3 role=treeitem label="Data grid" 8,106 184x22 level=1 pos=4/10
+          el 12,106 16x22
+          text "\u{EBF4}" 32,109 16x16
+          text "Data grid" 52,109 55x16
+        el #row-4 role=treeitem label="Tree" 8,128 184x22 level=1 pos=5/10
+          el 12,128 16x22
+          text "\u{F0D7}" 32,131 16x16
+          text "Tree" 52,131 29x16
+        el #row-5 role=treeitem label="Tabs and split" 8,150 184x22 selected level=1 pos=6/10
+          el 12,150 16x22
+          text "\u{EE5D}" 32,153 16x16
+          text "Tabs and split" 52,153 85x16
+        el #row-6 role=treeitem label="Typography" 8,172 184x22 level=1 pos=7/10
+          el 12,172 16x22
+          text "\u{ECAE}" 32,175 16x16
+          text "Typography" 52,175 73x16
+        el #row-7 role=treeitem label="Colour" 8,194 184x22 level=1 pos=8/10
+          el 12,194 16x22
+          text "\u{EB95}" 32,197 16x16
+          text "Colour" 52,197 41x16
+        el #row-8 role=treeitem label="Contrast" 8,216 184x22 level=1 pos=9/10
+          el 12,216 16x22
+          text "\u{E5F1}" 32,219 16x16
+          text "Contrast" 52,219 52x16
+        el #row-9 role=treeitem label="Icons" 8,238 184x22 level=1 pos=10/10
+          el 12,238 16x22
+          text "\u{F70E}" 32,241 16x16
+          text "Icons" 52,241 33x16
+      text "Theme" 8,668 184x16
+      el #look role=combobox label="Theme" 8,688 184x24 expanded=false
+        text "Proposal dark" 17,692 155x16
+        text "▼" 176,692 7x16
+    el 200,32 1x688
+    el #workbench label="Tabs and split" 201,32 899x688
+      el 225,56 851x36
+        text "Tabs and split" 225,56 851x18
+        text "The frame of a database tool, in small." 225,76 851x16
+      el 225,104 851x588
+        el 226,105 849x29
+          el role=button label="Run" 228,108 24x24
+            text "\u{E990}" 232,112 16x16
+          el role=button label="Stop" 254,108 24x24 disabled
+            text "\u{F729}" 258,112 16x16
+          el 282,112 1x16
+          el role=button label="Undo" 287,108 24x24
+            text "\u{E126}" 291,112 16x16
+          el role=button label="Redo" 313,108 24x24
+            text "\u{E0E4}" 317,112 16x16
+          el 339,120 606x0
+          text "\u{F0393}" 947,112 16x16
+          text "localhost / shop" 965,112 100x16
+        el 226,134 849x1
+        el #bench 226,135 849x533
+          el #first 226,135 200x533
+            el label="Database" 226,135 200x533
+              el #bench-schema role=tree label="Schema" 228,137 196x529 rows 0-13/14
+                el #row-0 role=treeitem label="localhost" 228,137 196x22 expanded level=1 pos=1/3
+                  el #mark-0 232,137 16x22
+                    text "\u{F2A2}" 232,140 16x16
+                  text "\u{F1DC}" 252,140 16x16
+                  text "localhost" 272,140 56x16
+                el #row-1 role=treeitem label="shop" 228,159 196x22 expanded level=2 pos=1/3
+                  el #mark-1 248,159 16x22
+                    text "\u{F2A2}" 248,162 16x16
+                  text "\u{F0D7}" 268,162 16x16
+                  text "shop" 288,162 31x16
+                el #row-2 role=treeitem label="public" 228,181 196x22 expanded level=3 pos=1/2
+                  el #mark-2 264,181 16x22
+                    text "\u{F2A2}" 264,184 16x16
+                  text "\u{E643}" 284,184 16x16
+                  text "public" 304,184 37x16
+                el #row-3 role=treeitem label="customers" 228,203 196x22 expanded=false level=4 pos=1/6
+                  el #mark-3 280,203 16x22
+                    text "\u{F2AF}" 280,206 16x16
+                  text "\u{EBF4}" 300,206 16x16
+                  text "customers" 320,206 65x16
+                el #row-4 role=treeitem label="orders" 228,225 196x22 selected expanded=false level=4 pos=2/6
+                  el #mark-4 280,225 16x22
+                    text "\u{F2AF}" 280,228 16x16
+                  text "\u{EBF4}" 300,228 16x16
+                  text "orders" 320,228 41x16
+                el #row-5 role=treeitem label="order_items" 228,247 196x22 expanded=false level=4 pos=3/6
+                  el #mark-5 280,247 16x22
+                    text "\u{F2AF}" 280,250 16x16
+                  text "\u{EBF4}" 300,250 16x16
+                  text "order_items" 320,250 73x16
+                el #row-6 role=treeitem label="products" 228,269 196x22 expanded=false level=4 pos=4/6
+                  el #mark-6 280,269 16x22
+                    text "\u{F2AF}" 280,272 16x16
+                  text "\u{EBF4}" 300,272 16x16
+                  text "products" 320,272 55x16
+                el #row-7 role=treeitem label="invoices" 228,291 196x22 expanded=false level=4 pos=5/6
+                  el #mark-7 280,291 16x22
+                    text "\u{F2AF}" 280,294 16x16
+                  text "\u{EBF4}" 300,294 16x16
+                  text "invoices" 320,294 50x16
+                el #row-8 role=treeitem label="payments" 228,313 196x22 expanded=false level=4 pos=6/6
+                  el #mark-8 280,313 16x22
+                    text "\u{F2AF}" 280,316 16x16
+                  text "\u{EBF4}" 300,316 16x16
+                  text "payments" 320,316 60x16
+                el #row-9 role=treeitem label="audit" 228,335 196x22 expanded=false level=3 pos=2/2
+                  el #mark-9 264,335 16x22
+                    text "\u{F2AF}" 264,338 16x16
+                  text "\u{E643}" 284,338 16x16
+                  text "audit" 304,338 30x16
+                el #row-10 role=treeitem label="analytics" 228,357 196x22 expanded=false level=2 pos=2/3
+                  el #mark-10 248,357 16x22
+                    text "\u{F2AF}" 248,360 16x16
+                  text "\u{F0D7}" 268,360 16x16
+                  text "analytics" 288,360 53x16
+                el #row-11 role=treeitem label="postgres" 228,379 196x22 expanded=false level=2 pos=3/3
+                  el #mark-11 248,379 16x22
+                    text "\u{F2AF}" 248,382 16x16
+                  text "\u{F0D7}" 268,382 16x16
+                  text "postgres" 288,382 55x16
+                el #row-12 role=treeitem label="staging" 228,401 196x22 expanded=false level=1 pos=2/3
+                  el #mark-12 232,401 16x22
+                    text "\u{F2AF}" 232,404 16x16
+                  text "\u{F1DC}" 252,404 16x16
+                  text "staging" 272,404 45x16
+                el #row-13 role=treeitem label="prod-eu" 228,423 196x22 expanded=false level=1 pos=3/3
+                  el #mark-13 232,423 16x22
+                    text "\u{F2AF}" 232,426 16x16
+                  text "\u{F1DC}" 252,426 16x16
+                  text "prod-eu" 272,426 51x16
+          el #rest 423,135 652x533
+            el #second 427,135 648x533
+              el #queries 427,135 648x533
+                el #bar 427,135 648x28
+                  el #tablist role=tablist 429,137 494x24
+                    el #tab-0 role=tab label="Console" 429,137 69x24
+                      text "Console" 438,141 51x16
+                    el #tab-1 role=tab label="customers.sql" 500,137 125x24 hovered
+                      text "customers.sql" 509,141 87x16
+                      el #close-1 role=button label="Close customers.sql" 600,141 16x16
+                        text "\u{F368}" 600,141 16x16
+                    el #tab-2 role=tab label="orders by month.sql" 627,137 179x24 selected
+                      text "●" 636,141 12x16
+                      text "orders by month.sql" 652,141 125x16
+                      el #close-2 role=button label="Close orders by month.sql" 781,141 16x16
+                        text "\u{F368}" 781,141 16x16
+                    el #tab-3 role=tab label="products.sql" 808,137 115x24
+                      text "products.sql" 817,141 77x16
+                      el #close-3 role=button label="Close products.sql" 898,141 16x16
+                        text "\u{F368}" 898,141 16x16
+                el 427,163 648x1
+                el #panel role=tabpanel label="orders by month.sql" 427,164 648x504
+                  el 427,164 648x504
+                    el #first 427,164 648x211
+                      el #editor label="Query" 427,164 648x211
+                        el 431,172 640x16
+                          text "1" 431,172 16x16
+                          text "SELECT date_trunc('month', o.created_at) AS month," 459,172 350x16
+                        el 431,188 640x16
+                          text "2" 431,188 16x16
+                          text "       count(*) AS orders," 459,188 182x16
+                        el 431,204 640x16
+                          text "3" 431,204 16x16
+                          text "       sum(o.amount) AS total" 459,204 203x16
+                        el 431,220 640x16
+                          text "4" 431,220 16x16
+                          text "FROM orders o" 459,220 91x16
+                        el 431,236 640x16
+                          text "5" 431,236 16x16
+                          text "WHERE o.status <> 'refunded'" 459,236 196x16
+                        el 431,252 640x16
+                          text "6" 431,252 16x16
+                          text "GROUP BY 1" 459,252 70x16
+                        el 431,268 640x16
+                          text "7" 431,268 16x16
+                          text "ORDER BY 1 DESC;" 459,268 112x16
+                    el #rest 427,372 648x296
+                      el #second 427,376 648x292
+                        el 427,376 648x292
+                          el #results role=grid label="Results" 427,376 648x272
+                            el #content 427,376 648x272
+                              el #header 427,376 648x22
+                                el #column-0 role=columnheader label="month" 443,376 119x22 pos=1/3
+                                  text "month" 447,379 39x16
+                                el 562,376 1x22
+                                el #column-1 role=columnheader label="orders" 563,376 79x22 pos=2/3
+                                  text "orders" 597,379 41x16
+                                el 642,376 1x22
+                                el #column-2 role=columnheader label="total" 643,376 109x22 pos=3/3
+                                  text "total" 722,379 26x16
+                                el 752,376 1x22
+                                el #numbers 427,376 15x22
+                                el 442,376 1x22
+                              el 427,398 648x1
+                              el #rows 427,399 648x249 rows 0-5/6
+                                el #row-0 role=row 427,399 648x22 pos=1/6
+                                  el #cell-0-0 role=gridcell 443,399 119x22 pos=1/3
+                                    text "2026-08-01" 447,402 70x16
+                                  el 562,399 1x22
+                                  el #cell-0-1 role=gridcell 563,399 79x22 pos=2/3
+                                    text "1204" 610,402 28x16
+                                  el 642,399 1x22
+                                  el #cell-0-2 role=gridcell 643,399 109x22 pos=3/3
+                                    text "98211.40" 692,402 56x16
+                                  el 752,399 1x22
+                                  el #number-0 role=rowheader 427,399 15x22
+                                    text "1" 431,402 7x16
+                                  el 442,399 1x22
+                                el #row-1 role=row 427,421 648x22 selected current pos=2/6
+                                  el #cell-1-0 role=gridcell 443,421 119x22 pos=1/3
+                                    text "2026-07-01" 447,424 70x16
+                                  el 562,421 1x22
+                                  el #cell-1-1 role=gridcell 563,421 79x22 pos=2/3
+                                    text "1388" 610,424 28x16
+                                  el 642,421 1x22
+                                  el #cell-1-2 role=gridcell 643,421 109x22 pos=3/3
+                                    text "112874.10" 685,424 63x16
+                                  el 752,421 1x22
+                                  el #number-1 role=rowheader 427,421 15x22
+                                    text "2" 431,424 7x16
+                                  el 442,421 1x22
+                                el #row-2 role=row 427,443 648x22 pos=3/6
+                                  el #cell-2-0 role=gridcell 443,443 119x22 pos=1/3
+                                    text "2026-06-01" 447,446 70x16
+                                  el 562,443 1x22
+                                  el #cell-2-1 role=gridcell 563,443 79x22 pos=2/3
+                                    text "1102" 610,446 28x16
+                                  el 642,443 1x22
+                                  el #cell-2-2 role=gridcell 643,443 109x22 pos=3/3
+                                    text "87300.00" 692,446 56x16
+                                  el 752,443 1x22
+                                  el #number-2 role=rowheader 427,443 15x22
+                                    text "3" 431,446 7x16
+                                  el 442,443 1x22
+                                el #row-3 role=row 427,465 648x22 pos=4/6
+                                  el #cell-3-0 role=gridcell 443,465 119x22 pos=1/3
+                                    text "2026-05-01" 447,468 70x16
+                                  el 562,465 1x22
+                                  el #cell-3-1 role=gridcell 563,465 79x22 pos=2/3
+                                    text "998" 617,468 21x16
+                                  el 642,465 1x22
+                                  el #cell-3-2 role=gridcell 643,465 109x22 pos=3/3
+                                    text "79112.95" 692,468 56x16
+                                  el 752,465 1x22
+                                  el #number-3 role=rowheader 427,465 15x22
+                                    text "4" 431,468 7x16
+                                  el 442,465 1x22
+                                el #row-4 role=row 427,487 648x22 pos=5/6
+                                  el #cell-4-0 role=gridcell 443,487 119x22 pos=1/3
+                                    text "2026-04-01" 447,490 70x16
+                                  el 562,487 1x22
+                                  el #cell-4-1 role=gridcell 563,487 79x22 pos=2/3
+                                    text "1250" 610,490 28x16
+                                  el 642,487 1x22
+                                  el #cell-4-2 role=gridcell 643,487 109x22 pos=3/3
+                                    text "101446.20" 685,490 63x16
+                                  el 752,487 1x22
+                                  el #number-4 role=rowheader 427,487 15x22
+                                    text "5" 431,490 7x16
+                                  el 442,487 1x22
+                                el #row-5 role=row 427,509 648x22 pos=6/6
+                                  el #cell-5-0 role=gridcell 443,509 119x22 pos=1/3
+                                    text "2026-03-01" 447,512 70x16
+                                  el 562,509 1x22
+                                  el #cell-5-1 role=gridcell 563,509 79x22 pos=2/3
+                                    text "731" 617,512 21x16
+                                  el 642,509 1x22
+                                  el #cell-5-2 role=gridcell 643,509 109x22 pos=3/3
+                                    text "58009.15" 692,512 56x16
+                                  el 752,509 1x22
+                                  el #number-5 role=rowheader 427,509 15x22
+                                    text "6" 431,512 7x16
+                                  el 442,509 1x22
+                          el 427,648 648x20
+                            text "6 rows in 18 ms" 435,650 97x16
+                      el #divider role=separator label="Resize Query" 427,372 648x7 value="share 0.42"
+                        el 427,375 648x1
+            el #divider role=separator label="Resize Database" 423,135 7x533 value="first 200"
+              el 426,135 1x533
+        el 226,668 849x1
+        el 226,669 849x22
+          text "PostgreSQL 17.2" 234,672 719x16
+          text "Tx: auto" 965,672 50x16
+          text "UTF-8" 1027,672 40x16

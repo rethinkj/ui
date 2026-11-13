@@ -1,0 +1,414 @@
+el 0,0 1100x720
+  el window=drag 0,0 1100x32
+    el 10,10 12x12
+    text "Showcase · Proposal light" 30,8 160x16
+    el 190,16 772x0
+    el role=button label="Minimize" window=minimize 962,0 46x32
+      el 980,16 10x1
+    el role=button label="Maximize" window=maximize 1008,0 46x32
+      el 1026,11 10x10
+    el role=button label="Close" window=close 1054,0 46x32
+      el 1072,11 10x10
+        el 1072,11 2x2
+        el 1080,11 2x2
+        el 1073,12 2x2
+        el 1079,12 2x2
+        el 1074,13 2x2
+        el 1078,13 2x2
+        el 1075,14 2x2
+        el 1077,14 2x2
+        el 1076,15 2x2
+        el 1076,15 2x2
+        el 1077,16 2x2
+        el 1075,16 2x2
+        el 1078,17 2x2
+        el 1074,17 2x2
+        el 1079,18 2x2
+        el 1073,18 2x2
+        el 1080,19 2x2
+        el 1072,19 2x2
+  el 0,32 1100x688
+    el 0,32 200x688
+      el #sections role=tree label="Sections" 8,40 184x624 rows 0-9/10 focused
+        el #row-0 role=treeitem label="Buttons" 8,40 184x22 level=1 pos=1/10
+          el 12,40 16x22
+          text "\u{F2BA}" 32,43 16x16
+          text "Buttons" 52,43 48x16
+        el #row-1 role=treeitem label="Text fields" 8,62 184x22 level=1 pos=2/10
+          el 12,62 16x22
+          text "\u{ECAE}" 32,65 16x16
+          text "Text fields" 52,65 63x16
+        el #row-2 role=treeitem label="Menus and overlays" 8,84 184x22 level=1 pos=3/10
+          el 12,84 16x22
+          text "\u{E85F}" 32,87 16x16
+          text "Menus and overlays" 52,87 126x16
+        el #row-3 role=treeitem label="Data grid" 8,106 184x22 level=1 pos=4/10
+          el 12,106 16x22
+          text "\u{EBF4}" 32,109 16x16
+          text "Data grid" 52,109 55x16
+        el #row-4 role=treeitem label="Tree" 8,128 184x22 level=1 pos=5/10
+          el 12,128 16x22
+          text "\u{F0D7}" 32,131 16x16
+          text "Tree" 52,131 29x16
+        el #row-5 role=treeitem label="Tabs and split" 8,150 184x22 level=1 pos=6/10
+          el 12,150 16x22
+          text "\u{EE5D}" 32,153 16x16
+          text "Tabs and split" 52,153 85x16
+        el #row-6 role=treeitem label="Typography" 8,172 184x22 level=1 pos=7/10
+          el 12,172 16x22
+          text "\u{ECAE}" 32,175 16x16
+          text "Typography" 52,175 73x16
+        el #row-7 role=treeitem label="Colour" 8,194 184x22 level=1 pos=8/10
+          el 12,194 16x22
+          text "\u{EB95}" 32,197 16x16
+          text "Colour" 52,197 41x16
+        el #row-8 role=treeitem label="Contrast" 8,216 184x22 selected level=1 pos=9/10
+          el 12,216 16x22
+          text "\u{E5F1}" 32,219 16x16
+          text "Contrast" 52,219 52x16
+        el #row-9 role=treeitem label="Icons" 8,238 184x22 level=1 pos=10/10
+          el 12,238 16x22
+          text "\u{F70E}" 32,241 16x16
+          text "Icons" 52,241 33x16
+      text "Theme" 8,668 184x16
+      el #look role=combobox label="Theme" 8,688 184x24 expanded=false
+        text "Proposal light" 17,692 155x16
+        text "▼" 176,692 7x16
+    el 200,32 1x688
+    el #contrast label="Contrast" 201,32 899x688
+      el 225,56 851x36
+        text "Contrast" 225,56 851x18
+        text "WCAG contrast of each colour on each background." 225,76 851x16
+      el 225,104 851x558
+        el 225,104 851x424
+          el 225,104 851x16
+            el 225,104 150x16
+            text "window" 377,104 64x16
+            text "panel" 443,104 64x16
+            text "raised" 509,104 64x16
+            text "hover¹" 575,104 64x16
+            text "hover²" 641,104 64x16
+            text "grid row" 707,104 64x16
+            text "stripe" 773,104 64x16
+            text "header" 839,104 64x16
+            text "selected" 905,104 64x16
+            text "inactive" 971,104 64x16
+          el 225,122 851x32
+            el 225,122 150x32
+              text "text primary" 225,122 150x16
+              text "needs 4.5:1" 225,138 150x16
+            el 377,124 64x28
+              text "16.67" 392,130 35x16
+            el 443,124 64x28
+              text "15.15" 458,130 35x16
+            el 509,124 64x28
+              text "16.67" 524,130 35x16
+            el 575,124 64x28
+              text "14.09" 590,130 35x16
+            el 641,124 64x28
+              text "13.33" 656,130 35x16
+            el 707,124 64x28
+              text "16.67" 722,130 35x16
+            el 773,124 64x28
+              text "15.95" 788,130 35x16
+            el 839,124 64x28
+              text "15.15" 854,130 35x16
+            el 905,124 64x28
+              text "12.48" 920,130 35x16
+            el 971,124 64x28
+              text "12.44" 986,130 35x16
+          el 225,156 851x32
+            el 225,156 150x32
+              text "text muted" 225,156 150x16
+              text "needs 4.5:1" 225,172 150x16
+            el 377,158 64x28
+              text "6.40" 395,164 28x16
+            el 443,158 64x28
+              text "5.81" 461,164 28x16
+            el 509,158 64x28
+              text "6.40" 527,164 28x16
+            el 575,158 64x28
+              text "5.41" 593,164 28x16
+            el 641,158 64x28
+              text "5.11" 659,164 28x16
+            el 707,158 64x28
+              text "6.40" 725,164 28x16
+            el 773,158 64x28
+              text "6.12" 791,164 28x16
+            el 839,158 64x28
+              text "5.81" 857,164 28x16
+            el 905,158 64x28
+              text "4.79" 923,164 28x16
+            el 971,158 64x28
+              text "4.77" 989,164 28x16
+          el 225,190 851x32
+            el 225,190 150x32
+              text "text disabled" 225,190 150x16
+              text "no minimum" 225,206 150x16
+            el 377,192 64x28
+              text "2.85" 395,198 28x16
+            el 443,192 64x28
+              text "2.59" 461,198 28x16
+            el 509,192 64x28
+              text "2.85" 527,198 28x16
+            el 575,192 64x28
+              text "2.41" 593,198 28x16
+            el 641,192 64x28
+              text "2.28" 659,198 28x16
+            el 707,192 64x28
+              text "2.85" 725,198 28x16
+            el 773,192 64x28
+              text "2.73" 791,198 28x16
+            el 839,192 64x28
+              text "2.59" 857,198 28x16
+            el 905,192 64x28
+              text "2.13" 923,198 28x16
+            el 971,192 64x28
+              text "2.13" 989,198 28x16
+          el 225,224 851x32
+            el 225,224 150x32
+              text "status danger" 225,224 150x16
+              text "needs 4.5:1" 225,240 150x16
+            el 377,226 64x28
+              text "6.57" 395,232 28x16
+            el 443,226 64x28
+              text "5.97" 461,232 28x16
+            el 509,226 64x28
+              text "6.57" 527,232 28x16
+            el 575,226 64x28
+              text "5.56" 593,232 28x16
+            el 641,226 64x28
+              text "5.26" 659,232 28x16
+            el 707,226 64x28
+              text "6.57" 725,232 28x16
+            el 773,226 64x28
+              text "6.29" 791,232 28x16
+            el 839,226 64x28
+              text "5.97" 857,232 28x16
+            el 905,226 64x28
+              text "4.92" 923,232 28x16
+            el 971,226 64x28
+              text "4.91" 989,232 28x16
+          el 225,258 851x32
+            el 225,258 150x32
+              text "status warning" 225,258 150x16
+              text "needs 4.5:1" 225,274 150x16
+            el 377,260 64x28
+              text "6.85" 395,266 28x16
+            el 443,260 64x28
+              text "6.23" 461,266 28x16
+            el 509,260 64x28
+              text "6.85" 527,266 28x16
+            el 575,260 64x28
+              text "5.79" 593,266 28x16
+            el 641,260 64x28
+              text "5.48" 659,266 28x16
+            el 707,260 64x28
+              text "6.85" 725,266 28x16
+            el 773,260 64x28
+              text "6.56" 791,266 28x16
+            el 839,260 64x28
+              text "6.23" 857,266 28x16
+            el 905,260 64x28
+              text "5.13" 923,266 28x16
+            el 971,260 64x28
+              text "5.11" 989,266 28x16
+          el 225,292 851x32
+            el 225,292 150x32
+              text "status success" 225,292 150x16
+              text "needs 4.5:1" 225,308 150x16
+            el 377,294 64x28
+              text "6.73" 395,300 28x16
+            el 443,294 64x28
+              text "6.12" 461,300 28x16
+            el 509,294 64x28
+              text "6.73" 527,300 28x16
+            el 575,294 64x28
+              text "5.69" 593,300 28x16
+            el 641,294 64x28
+              text "5.39" 659,300 28x16
+            el 707,294 64x28
+              text "6.73" 725,300 28x16
+            el 773,294 64x28
+              text "6.44" 791,300 28x16
+            el 839,294 64x28
+              text "6.12" 857,300 28x16
+            el 905,294 64x28
+              text "5.04" 923,300 28x16
+            el 971,294 64x28
+              text "5.03" 989,300 28x16
+          el 225,326 851x32
+            el 225,326 150x32
+              text "accent (edge)" 225,326 150x16
+              text "needs 3:1" 225,342 150x16
+            el 377,328 64x28
+              text "5.43" 395,334 28x16
+            el 443,328 64x28
+              text "4.94" 461,334 28x16
+            el 509,328 64x28
+              text "5.43" 527,334 28x16
+            el 575,328 64x28
+              text "4.59" 593,334 28x16
+            el 641,328 64x28
+              text "4.34" 659,334 28x16
+            el 707,328 64x28
+              text "5.43" 725,334 28x16
+            el 773,328 64x28
+              text "5.20" 791,334 28x16
+            el 839,328 64x28
+              text "4.94" 857,334 28x16
+            el 905,328 64x28
+              text "4.07" 923,334 28x16
+            el 971,328 64x28
+              text "4.05" 989,334 28x16
+          el 225,360 851x32
+            el 225,360 150x32
+              text "border strong" 225,360 150x16
+              text "needs 3:1" 225,376 150x16
+            el 377,362 64x28
+              text "3.69" 395,368 28x16
+            el 443,362 64x28
+              text "3.35" 461,368 28x16
+            el 509,362 64x28
+              text "3.69" 527,368 28x16
+            el 575,362 64x28
+              text "3.12" 593,368 28x16
+            el 641,362 64x28
+              text "2.95" 659,368 28x16
+            el 707,362 64x28
+              text "3.69" 725,368 28x16
+            el 773,362 64x28
+              text "3.53" 791,368 28x16
+            el 839,362 64x28
+              text "3.35" 857,368 28x16
+            el 905,362 64x28
+              text "2.76" 923,368 28x16
+            el 971,362 64x28
+              text "2.75" 989,368 28x16
+          el 225,394 851x32
+            el 225,394 150x32
+              text "border focus" 225,394 150x16
+              text "needs 3:1" 225,410 150x16
+            el 377,396 64x28
+              text "16.67" 392,402 35x16
+            el 443,396 64x28
+              text "15.15" 458,402 35x16
+            el 509,396 64x28
+              text "16.67" 524,402 35x16
+            el 575,396 64x28
+              text "14.09" 590,402 35x16
+            el 641,396 64x28
+              text "13.33" 656,402 35x16
+            el 707,396 64x28
+              text "16.67" 722,402 35x16
+            el 773,396 64x28
+              text "15.95" 788,402 35x16
+            el 839,396 64x28
+              text "15.15" 854,402 35x16
+            el 905,396 64x28
+              text "12.48" 920,402 35x16
+            el 971,396 64x28
+              text "12.44" 986,402 35x16
+          el 225,428 851x32
+            el 225,428 150x32
+              text "grid cursor" 225,428 150x16
+              text "needs 3:1" 225,444 150x16
+            el 377,430 64x28
+              text "6.70" 395,436 28x16
+            el 443,430 64x28
+              text "6.09" 461,436 28x16
+            el 509,430 64x28
+              text "6.70" 527,436 28x16
+            el 575,430 64x28
+              text "5.67" 593,436 28x16
+            el 641,430 64x28
+              text "5.36" 659,436 28x16
+            el 707,430 64x28
+              text "6.70" 725,436 28x16
+            el 773,430 64x28
+              text "6.41" 791,436 28x16
+            el 839,430 64x28
+              text "6.09" 857,436 28x16
+            el 905,430 64x28
+              text "5.02" 923,436 28x16
+            el 971,430 64x28
+              text "5.00" 989,436 28x16
+          el 225,462 851x32
+            el 225,462 150x32
+              text "scrollbar thumb" 225,462 150x16
+              text "needs 3:1" 225,478 150x16
+            el 377,464 64x28
+              text "4.23" 395,470 28x16
+            el 443,464 64x28
+              text "3.84" 461,470 28x16
+            el 509,464 64x28
+              text "4.23" 527,470 28x16
+            el 575,464 64x28
+              text "3.58" 593,470 28x16
+            el 641,464 64x28
+              text "3.38" 659,470 28x16
+            el 707,464 64x28
+              text "4.23" 725,470 28x16
+            el 773,464 64x28
+              text "4.05" 791,470 28x16
+            el 839,464 64x28
+              text "3.84" 857,470 28x16
+            el 905,464 64x28
+              text "3.17" 923,470 28x16
+            el 971,464 64x28
+              text "3.16" 989,470 28x16
+          el 225,496 851x32
+            el 225,496 150x32
+              text "border subtle" 225,496 150x16
+              text "no minimum" 225,512 150x16
+            el 377,498 64x28
+              text "1.40" 395,504 28x16
+            el 443,498 64x28
+              text "1.27" 461,504 28x16
+            el 509,498 64x28
+              text "1.40" 527,504 28x16
+            el 575,498 64x28
+              text "1.18" 593,504 28x16
+            el 641,498 64x28
+              text "1.12" 659,504 28x16
+            el 707,498 64x28
+              text "1.40" 725,504 28x16
+            el 773,498 64x28
+              text "1.34" 791,504 28x16
+            el 839,498 64x28
+              text "1.27" 857,504 28x16
+            el 905,498 64x28
+              text "1.05" 923,504 28x16
+            el 971,498 64x28
+              text "1.04" 989,504 28x16
+        el 225,540 851x32
+          el 225,540 150x32
+            text "on the accent" 225,540 150x16
+            text "color, hover, pressed" 225,556 150x16
+          el 377,542 64x28
+            text "5.43" 395,548 28x16
+          el 443,542 64x28
+            text "6.67" 461,548 28x16
+          el 509,542 64x28
+            text "8.22" 527,548 28x16
+          el 575,556 12x0
+          text "focus ring on the accent" 589,548 150x16
+          el 741,542 64x28
+            text "3.07" 759,548 28x16
+          el 807,542 64x28
+            text "2.50" 825,548 28x16
+          el 873,542 64x28
+            text "2.03" 891,548 28x16
+        el 225,584 851x32
+          el 225,584 150x32
+            text "selected text" 225,584 150x16
+            text "in a field, on raised" 225,600 150x16
+          el 377,586 64x28
+            text "11.92" 392,592 35x16
+          el 443,600 144x0
+          text "cursor on the selection" 589,592 150x16
+          el 741,586 64x28
+            text "5.02" 759,592 28x16
+        el 225,628 851x34
+          text "Each cell is the pair itself: the ratio in the foreground on the background. An edge marks a pair the kit draws, in the danger colour when it is below its minimum." 225,628 851x16
+          text "hover¹: Theme.over on raised, as buttons and fields mix it. hover²: drawn translucent on panel, as ghost buttons, tabs and tree rows." 225,646 851x16

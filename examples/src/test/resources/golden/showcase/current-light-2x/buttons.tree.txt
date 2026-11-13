@@ -1,0 +1,176 @@
+el 0,0 1100x720
+  el window=drag 0,0 1100x32
+    el 10,10 12x12
+    text "Showcase · Current light" 30,8 150x16
+    el 180,16 782x0
+    el role=button label="Minimize" window=minimize 962,0 46x32
+      el 980,16 10x1
+    el role=button label="Maximize" window=maximize 1008,0 46x32
+      el 1026,11 10x10
+    el role=button label="Close" window=close 1054,0 46x32
+      el 1072,11 10x10
+        el 1072,11 2x2
+        el 1080,11 2x2
+        el 1073,12 2x2
+        el 1079,12 2x2
+        el 1074,13 2x2
+        el 1078,13 2x2
+        el 1075,14 2x2
+        el 1077,14 2x2
+        el 1076,15 2x2
+        el 1076,15 2x2
+        el 1077,16 2x2
+        el 1075,16 2x2
+        el 1078,17 2x2
+        el 1074,17 2x2
+        el 1079,18 2x2
+        el 1073,18 2x2
+        el 1080,19 2x2
+        el 1072,19 2x2
+  el 0,32 1100x688
+    el 0,32 200x688
+      el #sections role=tree label="Sections" 8,40 184x625 rows 0-9/10
+        el #row-0 role=treeitem label="Buttons" 8,40 184x22 selected level=1 pos=1/10
+          el 12,40 16x22
+          text "\u{F2BA}" 32,43 16x16
+          text "Buttons" 52,43 47x16
+        el #row-1 role=treeitem label="Text fields" 8,62 184x22 level=1 pos=2/10
+          el 12,62 16x22
+          text "\u{ECAE}" 32,65 16x16
+          text "Text fields" 52,65 63x16
+        el #row-2 role=treeitem label="Menus and overlays" 8,84 184x22 level=1 pos=3/10
+          el 12,84 16x22
+          text "\u{E85F}" 32,87 16x16
+          text "Menus and overlays" 52,87 123x16
+        el #row-3 role=treeitem label="Data grid" 8,106 184x22 level=1 pos=4/10
+          el 12,106 16x22
+          text "\u{EBF4}" 32,109 16x16
+          text "Data grid" 52,109 56x16
+        el #row-4 role=treeitem label="Tree" 8,128 184x22 level=1 pos=5/10
+          el 12,128 16x22
+          text "\u{F0D7}" 32,131 16x16
+          text "Tree" 52,131 28x16
+        el #row-5 role=treeitem label="Tabs and split" 8,150 184x22 level=1 pos=6/10
+          el 12,150 16x22
+          text "\u{EE5D}" 32,153 16x16
+          text "Tabs and split" 52,153 85x16
+        el #row-6 role=treeitem label="Typography" 8,172 184x22 level=1 pos=7/10
+          el 12,172 16x22
+          text "\u{ECAE}" 32,175 16x16
+          text "Typography" 52,175 74x16
+        el #row-7 role=treeitem label="Colour" 8,194 184x22 level=1 pos=8/10
+          el 12,194 16x22
+          text "\u{EB95}" 32,197 16x16
+          text "Colour" 52,197 41x16
+        el #row-8 role=treeitem label="Contrast" 8,216 184x22 level=1 pos=9/10
+          el 12,216 16x22
+          text "\u{E5F1}" 32,219 16x16
+          text "Contrast" 52,219 52x16
+        el #row-9 role=treeitem label="Icons" 8,238 184x22 level=1 pos=10/10
+          el 12,238 16x22
+          text "\u{F70E}" 32,241 16x16
+          text "Icons" 52,241 33x16
+      text "Theme" 8,669 184x15
+      el #look role=combobox label="Theme" 8,688 184x24 expanded=false
+        text "Current light" 17,692 155x16
+        text "▼" 176,692 7x16
+    el 200,32 1x688
+    el #buttons label="Buttons" 201,32 899x688
+      el 225,56 851x36
+        text "Buttons" 225,56 851x18
+        text "Buttons, toggles and checkboxes, at rest and in their states." 225,76 851x16
+      el 225,104 851x363
+        el 225,104 851x30
+          el #run role=button label="Run" 228,107 66x24
+            text "\u{E990}" 237,111 16x16
+            text "Run" 257,111 24x15
+          el role=button label="Stop" 296,107 70x24 disabled
+            text "\u{F729}" 305,111 16x16
+            text "Stop" 325,111 28x15
+          el 370,111 1x16
+          el role=button label="Refresh" 375,107 24x24
+            text "\u{E0AA}" 379,111 16x16
+          el role=button label="Export" 401,107 24x24
+            text "\u{F14F}" 405,111 16x16
+          el role=button label="Filter" 427,107 24x24
+            text "\u{E60A}" 431,111 16x16
+          el role=button label="History" 453,107 24x24 disabled
+            text "\u{E705}" 457,111 16x16
+          el 479,119 500x0
+          el role=button label="Settings" 981,107 92x24
+            text "\u{F6A8}" 990,111 16x16
+            text "Settings" 1010,111 50x15
+        el 225,146 851x267
+          el 225,146 420x184
+            text "Actions" 238,159 394x15
+            el 238,182 394x24
+              el #primary role=button label="Run query" 238,182 89x24 focused
+                text "Run query" 251,186 63x16
+              el #cancel role=button label="Cancel" 335,182 68x24 hovered
+                text "Cancel" 348,186 42x16
+              el #format role=button label="Format" 411,182 69x24
+                text "Format" 424,186 43x16
+            text "Disabled" 238,214 394x16
+            el 238,238 394x24
+              el role=button label="Run query" 238,238 89x24 disabled
+                text "Run query" 251,242 63x15
+              el role=button label="Cancel" 335,238 68x24 disabled
+                text "Cancel" 348,242 42x15
+              el role=button label="Format" 411,238 69x24 disabled
+                text "Format" 424,242 43x15
+            text "With icons" 238,270 394x15
+            el 238,293 394x24
+              el role=button label="New connection" 238,293 142x24
+                text "\u{F108}" 247,297 16x16
+                text "New connection" 267,297 100x16
+              el role=button label="Import" 388,293 82x24
+                text "\u{F0384}" 397,297 16x16
+                text "Import" 417,297 40x16
+              el role=button label="Copy" 478,293 74x24
+                text "\u{F32A}" 487,297 16x16
+                text "Copy" 507,297 32x16
+          el 657,146 419x267
+            text "Connection options" 670,159 393x15
+            el #autocommit role=switch label="Auto-commit" 666,180 123x20 checked
+              el 670,182 28x16
+                el 684,184 12x12
+              text "Auto-commit" 706,182 79x16
+            el role=switch label="Read-only connection" 666,204 178x20 checked=false
+              el 670,206 28x16
+                el 672,208 12x12
+              text "Read-only connection" 706,206 134x16
+            el role=switch label="Show NULL as text" 666,228 160x20 checked
+              el 670,230 28x16
+                el 684,232 12x12
+              text "Show NULL as text" 706,230 116x16
+            el role=switch label="Keep alive (set by the server)" 666,252 223x20 disabled checked
+              el 670,254 28x16
+                el 684,256 12x12
+              text "Keep alive (set by the server)" 706,254 179x16
+            el role=switch label="Single session (set by the server)" 666,276 248x20 disabled checked=false
+              el 670,278 28x16
+                el 672,280 12x12
+              text "Single session (set by the server)" 706,278 204x16
+            el 670,302 393x2
+            el #ssl role=checkbox label="Require SSL" 666,310 106x20 checked
+              el 670,312 16x16
+                text "✓" 672,312 11x16
+              text "Require SSL" 694,312 74x16
+            el role=checkbox label="Save password" 666,334 125x20 checked=false
+              el 670,336 16x16
+              text "Save password" 694,336 93x16
+            el role=checkbox label="Trust server certificate (managed)" 666,358 241x20 disabled checked
+              el 670,360 16x16
+                text "✓" 672,360 11x16
+              text "Trust server certificate (managed)" 694,360 209x16
+            el role=checkbox label="Use SSH tunnel (not installed)" 666,382 215x20 disabled checked=false
+              el 670,384 16x16
+              text "Use SSH tunnel (not installed)" 694,384 183x16
+        el 225,425 851x42
+          text "A dialog's footer" 234,438 634x16
+          el role=button label="Cancel" 876,434 69x24
+            text "Cancel" 889,438 43x16
+          el role=button label="Apply" 953,434 61x24
+            text "Apply" 966,438 35x16
+          el #ok role=button label="OK" 1022,434 45x24
+            text "OK" 1035,438 19x16

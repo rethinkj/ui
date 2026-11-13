@@ -1,0 +1,104 @@
+# The showcase (Showcase): each section once, with a hovered, a focused or an open element where
+# the section has one. ShowcaseTest runs it in every theme at scales 1 and 2.
+size 1100 720
+frame
+
+move #cancel                  # the pointer over a secondary button
+focus #primary                # the primary button with the keyboard's ring
+frame
+advance 1
+frame
+snap buttons
+
+press role=treeitem label="Text fields"
+frame
+press #selecting clicks 2     # a word selected, the field focused by the pointer: no ring
+frame
+advance 1
+frame
+snap fields
+
+press #isolation              # the select's list, the current choice checked and highlighted
+frame
+advance 1
+frame
+snap select
+key Escape
+frame
+
+press role=treeitem label="Menus and overlays"
+frame
+focus #options
+key Enter                     # the dropdown opens from the keyboard
+key ArrowUp                   # around to the last item, disabled, then up to the submenu
+key ArrowUp
+key ArrowRight                # its submenu, with the first item highlighted
+move #copy                    # the pointer rests on Copy until its tooltip shows
+frame
+advance 0.6
+frame
+snap menu
+key Escape
+key Escape
+frame
+
+press #saved-3 right          # the context menu of a saved query
+frame
+move #item-1                  # the pointer highlights Rename…
+frame
+advance 1
+frame
+snap context
+key Escape
+frame
+
+press #rename                 # the modal dialog over its scrim, the focus in its field
+frame
+advance 1
+frame
+snap dialog
+key Escape
+frame
+
+press role=treeitem label="Data grid"
+frame
+press #cell-2-2
+press #cell-6-4 shift         # a range of three columns by five rows, the cursor at its end
+move #cell-9-3                # a row under the pointer
+frame
+advance 1
+frame
+snap grid
+
+press role=treeitem label="Tree"
+frame
+press role=treeitem label="orders"   # the selection with the focus; the column grid's without
+move role=treeitem label="analytics"
+frame
+advance 1
+frame
+snap tree
+
+press role=treeitem label="Tabs and split"
+frame
+move #tab-1                   # an inactive tab under the pointer
+frame
+advance 1
+frame
+snap workbench
+
+press role=treeitem label="Typography"
+frame
+snap type
+
+press role=treeitem label="Colour"
+frame
+snap colour
+
+press role=treeitem label="Contrast"
+frame
+snap contrast
+
+press role=treeitem label="Icons"
+frame
+snap icons

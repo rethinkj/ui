@@ -1,0 +1,371 @@
+el 0,0 1100x720
+  el window=drag 0,0 1100x32
+    el 10,10 12x12
+    text "Showcase · Current light" 30,8 153x16
+    el 183,16 779x0
+    el role=button label="Minimize" window=minimize 962,0 46x32
+      el 980,16 10x1
+    el role=button label="Maximize" window=maximize 1008,0 46x32
+      el 1026,11 10x10
+    el role=button label="Close" window=close 1054,0 46x32
+      el 1072,11 10x10
+        el 1072,11 2x2
+        el 1080,11 2x2
+        el 1073,12 2x2
+        el 1079,12 2x2
+        el 1074,13 2x2
+        el 1078,13 2x2
+        el 1075,14 2x2
+        el 1077,14 2x2
+        el 1076,15 2x2
+        el 1076,15 2x2
+        el 1077,16 2x2
+        el 1075,16 2x2
+        el 1078,17 2x2
+        el 1074,17 2x2
+        el 1079,18 2x2
+        el 1073,18 2x2
+        el 1080,19 2x2
+        el 1072,19 2x2
+  el 0,32 1100x688
+    el 0,32 200x688
+      el #sections role=tree label="Sections" 8,40 184x624 rows 0-9/10 focused
+        el #row-0 role=treeitem label="Buttons" 8,40 184x22 level=1 pos=1/10
+          el 12,40 16x22
+          text "\u{F2BA}" 32,43 16x16
+          text "Buttons" 52,43 48x16
+        el #row-1 role=treeitem label="Text fields" 8,62 184x22 level=1 pos=2/10
+          el 12,62 16x22
+          text "\u{ECAE}" 32,65 16x16
+          text "Text fields" 52,65 63x16
+        el #row-2 role=treeitem label="Menus and overlays" 8,84 184x22 level=1 pos=3/10
+          el 12,84 16x22
+          text "\u{E85F}" 32,87 16x16
+          text "Menus and overlays" 52,87 126x16
+        el #row-3 role=treeitem label="Data grid" 8,106 184x22 level=1 pos=4/10
+          el 12,106 16x22
+          text "\u{EBF4}" 32,109 16x16
+          text "Data grid" 52,109 55x16
+        el #row-4 role=treeitem label="Tree" 8,128 184x22 level=1 pos=5/10
+          el 12,128 16x22
+          text "\u{F0D7}" 32,131 16x16
+          text "Tree" 52,131 29x16
+        el #row-5 role=treeitem label="Tabs and split" 8,150 184x22 level=1 pos=6/10
+          el 12,150 16x22
+          text "\u{EE5D}" 32,153 16x16
+          text "Tabs and split" 52,153 85x16
+        el #row-6 role=treeitem label="Typography" 8,172 184x22 level=1 pos=7/10
+          el 12,172 16x22
+          text "\u{ECAE}" 32,175 16x16
+          text "Typography" 52,175 73x16
+        el #row-7 role=treeitem label="Colour" 8,194 184x22 level=1 pos=8/10
+          el 12,194 16x22
+          text "\u{EB95}" 32,197 16x16
+          text "Colour" 52,197 41x16
+        el #row-8 role=treeitem label="Contrast" 8,216 184x22 level=1 pos=9/10
+          el 12,216 16x22
+          text "\u{E5F1}" 32,219 16x16
+          text "Contrast" 52,219 52x16
+        el #row-9 role=treeitem label="Icons" 8,238 184x22 selected level=1 pos=10/10
+          el 12,238 16x22
+          text "\u{F70E}" 32,241 16x16
+          text "Icons" 52,241 33x16
+      text "Theme" 8,668 184x16
+      el #look role=combobox label="Theme" 8,688 184x24 expanded=false
+        text "Current light" 17,692 155x16
+        text "▼" 176,692 7x16
+    el 200,32 1x688
+    el #icons label="Icons" 201,32 899x688
+      el 225,56 851x36
+        text "Icons" 225,56 851x18
+        text "The named symbols of the icon font at the theme's size." 225,76 851x16
+      el 225,104 851x364
+        text "Size 16, in the text colour, 94 symbols" 225,104 851x16
+        el 225,128 851x340
+          el 225,128 160x340
+            el 225,128 160x16
+              text "\u{F108}" 225,128 16x16
+              text "add" 249,128 23x16
+            el 225,146 160x16
+              text "\u{E014}" 225,146 16x16
+              text "alert" 249,146 27x16
+            el 225,164 160x16
+              text "\u{E0AA}" 225,164 16x16
+              text "arrow_clockwise" 249,164 103x16
+            el 225,182 160x16
+              text "\u{F147}" 225,182 16x16
+              text "arrow_down" 249,182 77x16
+            el 225,200 160x16
+              text "\u{F14F}" 225,200 16x16
+              text "arrow_download" 249,200 103x16
+            el 225,218 160x16
+              text "\u{E0C6}" 225,218 16x16
+              text "arrow_export_ltr" 249,218 99x16
+            el 225,236 160x16
+              text "\u{F0384}" 225,236 16x16
+              text "arrow_import" 249,236 81x16
+            el 225,254 160x16
+              text "\u{F184}" 225,254 16x16
+              text "arrow_left" 249,254 61x16
+            el 225,272 160x16
+              text "\u{F15E}" 225,272 16x16
+              text "arrow_maximize" 249,272 99x16
+            el 225,290 160x16
+              text "\u{F164}" 225,290 16x16
+              text "arrow_minimize" 249,290 96x16
+            el 225,308 160x16
+              text "\u{E0E4}" 225,308 16x16
+              text "arrow_redo" 249,308 71x16
+            el 225,326 160x16
+              text "\u{E0EB}" 225,326 16x16
+              text "arrow_right" 249,326 70x16
+            el 225,344 160x16
+              text "\u{F1AB}" 225,344 16x16
+              text "arrow_sort" 249,344 66x16
+            el 225,362 160x16
+              text "\u{F1AC}" 225,362 16x16
+              text "arrow_sort_down" 249,362 107x16
+            el 225,380 160x16
+              text "\u{F1B3}" 225,380 16x16
+              text "arrow_sort_up" 249,380 88x16
+            el 225,398 160x16
+              text "\u{E110}" 225,398 16x16
+              text "arrow_sync" 249,398 71x16
+            el 225,416 160x16
+              text "\u{E126}" 225,416 16x16
+              text "arrow_undo" 249,416 74x16
+            el 225,434 160x16
+              text "\u{F1B4}" 225,434 16x16
+              text "arrow_up" 249,434 58x16
+            el 225,452 160x16
+              text "\u{E131}" 225,452 16x16
+              text "arrow_upload" 249,452 84x16
+          el 393,128 160x340
+            el 393,128 160x16
+              text "\u{EE90}" 393,128 16x16
+              text "braces" 417,128 42x16
+            el 393,146 160x16
+              text "\u{F0A6}" 393,146 16x16
+              text "branch" 417,146 43x16
+            el 393,164 160x16
+              text "\u{E24D}" 393,164 16x16
+              text "calendar_ltr" 417,164 72x16
+            el 393,182 160x16
+              text "\u{E305}" 393,182 16x16
+              text "checkmark" 417,182 67x16
+            el 393,200 160x16
+              text "\u{F297}" 393,200 16x16
+              text "checkmark_circle" 417,200 106x16
+            el 393,218 160x16
+              text "\u{F2A2}" 393,218 16x16
+              text "chevron_down" 417,218 91x16
+            el 393,236 160x16
+              text "\u{F2A9}" 393,236 16x16
+              text "chevron_left" 417,236 75x16
+            el 393,254 160x16
+              text "\u{F2AF}" 393,254 16x16
+              text "chevron_right" 417,254 84x16
+            el 393,272 160x16
+              text "\u{F2B5}" 393,272 16x16
+              text "chevron_up" 417,272 72x16
+            el 393,290 160x16
+              text "\u{F2BA}" 393,290 16x16
+              text "circle" 417,290 33x16
+            el 393,308 160x16
+              text "\u{E35A}" 393,308 16x16
+              text "clipboard_paste" 417,308 97x16
+            el 393,326 160x16
+              text "\u{F2DC}" 393,326 16x16
+              text "clock" 417,326 32x16
+            el 393,344 160x16
+              text "\u{F339}" 393,344 16x16
+              text "code" 417,344 31x16
+            el 393,362 160x16
+              text "\u{F0116}" 393,362 16x16
+              text "column_single" 417,362 88x16
+            el 393,380 160x16
+              text "\u{F32A}" 393,380 16x16
+              text "copy" 417,380 30x16
+            el 393,398 160x16
+              text "\u{F334}" 393,398 16x16
+              text "cube" 417,398 31x16
+            el 393,416 160x16
+              text "\u{F038C}" 393,416 16x16
+              text "cut" 417,416 19x16
+            el 393,434 160x16
+              text "\u{F0D7}" 393,434 16x16
+              text "database" 417,434 56x16
+            el 393,452 160x16
+              text "\u{E47B}" 393,452 16x16
+              text "delete" 417,452 39x16
+          el 561,128 160x340
+            el 561,128 160x16
+              text "\u{F368}" 561,128 16x16
+              text "dismiss" 585,128 46x16
+            el 561,146 160x16
+              text "\u{F36C}" 561,146 16x16
+              text "dismiss_circle" 585,146 85x16
+            el 561,164 160x16
+              text "\u{E4D7}" 561,164 16x16
+              text "document" 585,164 62x16
+            el 561,182 160x16
+              text "\u{E54A}" 561,182 16x16
+              text "document_table" 585,182 98x16
+            el 561,200 160x16
+              text "\u{F3DC}" 561,200 16x16
+              text "edit" 585,200 23x16
+            el 561,218 160x16
+              text "\u{F3F0}" 561,218 16x16
+              text "error_circle" 585,218 70x16
+            el 561,236 160x16
+              text "\u{E5F1}" 561,236 16x16
+              text "eye" 585,236 22x16
+            el 561,254 160x16
+              text "\u{E5F4}" 561,254 16x16
+              text "eye_off" 585,254 45x16
+            el 561,272 160x16
+              text "\u{E60A}" 561,272 16x16
+              text "filter" 585,272 28x16
+            el 561,290 160x16
+              text "\u{E60C}" 561,290 16x16
+              text "filter_dismiss" 585,290 80x16
+            el 561,308 160x16
+              text "\u{E643}" 561,308 16x16
+              text "folder" 585,308 36x16
+            el 561,326 160x16
+              text "\u{F42D}" 561,326 16x16
+              text "folder_open" 585,326 74x16
+            el 561,344 160x16
+              text "\u{E705}" 561,344 16x16
+              text "history" 585,344 42x16
+            el 561,362 160x16
+              text "\u{F4A2}" 561,362 16x16
+              text "info" 585,362 23x16
+            el 561,380 160x16
+              text "\u{E740}" 561,380 16x16
+              text "key" 585,380 21x16
+            el 561,398 160x16
+              text "\u{F0274}" 561,398 16x16
+              text "key_multiple" 585,398 74x16
+            el 561,416 160x16
+              text "\u{F4E3}" 561,416 16x16
+              text "link" 585,416 21x16
+            el 561,434 160x16
+              text "\u{E78E}" 561,434 16x16
+              text "lock_closed" 585,434 72x16
+            el 561,452 160x16
+              text "\u{E794}" 561,452 16x16
+              text "lock_open" 585,452 63x16
+          el 729,128 160x340
+            el 729,128 160x16
+              text "\u{E7E1}" 729,128 16x16
+              text "math_formula" 753,128 82x16
+            el 729,146 160x16
+              text "\u{F533}" 729,146 16x16
+              text "maximize" 753,146 57x16
+            el 729,164 160x16
+              text "\u{E823}" 729,164 16x16
+              text "more_horizontal" 753,164 99x16
+            el 729,182 160x16
+              text "\u{E829}" 729,182 16x16
+              text "more_vertical" 753,182 82x16
+            el 729,200 160x16
+              text "\u{E85F}" 729,200 16x16
+              text "navigation" 753,200 63x16
+            el 729,218 160x16
+              text "\u{F57C}" 729,218 16x16
+              text "number_symbol" 753,218 98x16
+            el 729,236 160x16
+              text "\u{F581}" 729,236 16x16
+              text "open" 753,236 32x16
+            el 729,254 160x16
+              text "\u{E8AF}" 729,254 16x16
+              text "panel_left" 753,254 59x16
+            el 729,272 160x16
+              text "\u{E8BC}" 729,272 16x16
+              text "panel_right" 753,272 68x16
+            el 729,290 160x16
+              text "\u{F5A0}" 729,290 16x16
+              text "pause" 753,290 38x16
+            el 729,308 160x16
+              text "\u{F5A7}" 729,308 16x16
+              text "people" 753,308 43x16
+            el 729,326 160x16
+              text "\u{F5BC}" 729,326 16x16
+              text "person" 753,326 44x16
+            el 729,344 160x16
+              text "\u{F600}" 729,344 16x16
+              text "pin" 753,344 19x16
+            el 729,362 160x16
+              text "\u{E990}" 729,362 16x16
+              text "play" 753,362 25x16
+            el 729,380 160x16
+              text "\u{F0393}" 729,380 16x16
+              text "plug_connected" 753,380 99x16
+            el 729,398 160x16
+              text "\u{F0394}" 729,398 16x16
+              text "plug_disconnected" 753,398 117x16
+            el 729,416 160x16
+              text "\u{F63C}" 729,416 16x16
+              text "question_circle" 753,416 93x16
+            el 729,434 160x16
+              text "\u{F759}" 729,434 16x16
+              text "record_stop" 753,434 74x16
+            el 729,452 160x16
+              text "\u{EA43}" 729,452 16x16
+              text "save" 753,452 29x16
+          el 897,128 160x322
+            el 897,128 160x16
+              text "\u{EA7C}" 897,128 16x16
+              text "search" 921,128 42x16
+            el 897,146 160x16
+              text "\u{F1DC}" 897,146 16x16
+              text "server" 921,146 40x16
+            el 897,164 160x16
+              text "\u{F6A8}" 897,164 16x16
+              text "settings" 921,164 49x16
+            el 897,182 160x16
+              text "\u{EAC3}" 897,182 16x16
+              text "shield" 921,182 37x16
+            el 897,200 160x16
+              text "\u{EB58}" 897,200 16x16
+              text "split_horizontal" 921,200 92x16
+            el 897,218 160x16
+              text "\u{EB5F}" 897,218 16x16
+              text "split_vertical" 921,218 75x16
+            el 897,236 160x16
+              text "\u{EB95}" 897,236 16x16
+              text "square_multiple" 921,236 97x16
+            el 897,254 160x16
+              text "\u{F70E}" 897,254 16x16
+              text "star" 921,254 23x16
+            el 897,272 160x16
+              text "\u{F729}" 897,272 16x16
+              text "stop" 921,272 27x16
+            el 897,290 160x16
+              text "\u{EBCF}" 897,290 16x16
+              text "subtract" 921,290 50x16
+            el 897,308 160x16
+              text "\u{EBF4}" 897,308 16x16
+              text "table" 921,308 30x16
+            el 897,326 160x16
+              text "\u{EC50}" 897,326 16x16
+              text "table_simple" 921,326 76x16
+            el 897,344 160x16
+              text "\u{EC70}" 897,344 16x16
+              text "tag" 921,344 19x16
+            el 897,362 160x16
+              text "\u{ED5A}" 897,362 16x16
+              text "text_sort_ascending" 921,362 122x16
+            el 897,380 160x16
+              text "\u{ED5C}" 897,380 16x16
+              text "text_sort_descending" 921,380 131x16
+            el 897,398 160x16
+              text "\u{ECAE}" 897,398 16x16
+              text "text_t" 921,398 32x16
+            el 897,416 160x16
+              text "\u{F868}" 897,416 16x16
+              text "warning" 921,416 50x16
+            el 897,434 160x16
+              text "\u{EE5D}" 897,434 16x16
+              text "window" 921,434 49x16

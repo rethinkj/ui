@@ -1,0 +1,148 @@
+el 0,0 1100x720
+  el window=drag 0,0 1100x32
+    el 10,10 12x12
+    text "Showcase · Current light" 30,8 150x16
+    el 180,16 782x0
+    el role=button label="Minimize" window=minimize 962,0 46x32
+      el 980,16 10x1
+    el role=button label="Maximize" window=maximize 1008,0 46x32
+      el 1026,11 10x10
+    el role=button label="Close" window=close 1054,0 46x32
+      el 1072,11 10x10
+        el 1072,11 2x2
+        el 1080,11 2x2
+        el 1073,12 2x2
+        el 1079,12 2x2
+        el 1074,13 2x2
+        el 1078,13 2x2
+        el 1075,14 2x2
+        el 1077,14 2x2
+        el 1076,15 2x2
+        el 1076,15 2x2
+        el 1077,16 2x2
+        el 1075,16 2x2
+        el 1078,17 2x2
+        el 1074,17 2x2
+        el 1079,18 2x2
+        el 1073,18 2x2
+        el 1080,19 2x2
+        el 1072,19 2x2
+  el 0,32 1100x688
+    el 0,32 200x688
+      el #sections role=tree label="Sections" 8,40 184x625 rows 0-9/10 focused
+        el #row-0 role=treeitem label="Buttons" 8,40 184x22 level=1 pos=1/10
+          el 12,40 16x22
+          text "\u{F2BA}" 32,43 16x16
+          text "Buttons" 52,43 47x16
+        el #row-1 role=treeitem label="Text fields" 8,62 184x22 level=1 pos=2/10
+          el 12,62 16x22
+          text "\u{ECAE}" 32,65 16x16
+          text "Text fields" 52,65 63x16
+        el #row-2 role=treeitem label="Menus and overlays" 8,84 184x22 level=1 pos=3/10
+          el 12,84 16x22
+          text "\u{E85F}" 32,87 16x16
+          text "Menus and overlays" 52,87 123x16
+        el #row-3 role=treeitem label="Data grid" 8,106 184x22 level=1 pos=4/10
+          el 12,106 16x22
+          text "\u{EBF4}" 32,109 16x16
+          text "Data grid" 52,109 56x16
+        el #row-4 role=treeitem label="Tree" 8,128 184x22 level=1 pos=5/10
+          el 12,128 16x22
+          text "\u{F0D7}" 32,131 16x16
+          text "Tree" 52,131 28x16
+        el #row-5 role=treeitem label="Tabs and split" 8,150 184x22 level=1 pos=6/10
+          el 12,150 16x22
+          text "\u{EE5D}" 32,153 16x16
+          text "Tabs and split" 52,153 85x16
+        el #row-6 role=treeitem label="Typography" 8,172 184x22 selected level=1 pos=7/10
+          el 12,172 16x22
+          text "\u{ECAE}" 32,175 16x16
+          text "Typography" 52,175 74x16
+        el #row-7 role=treeitem label="Colour" 8,194 184x22 level=1 pos=8/10
+          el 12,194 16x22
+          text "\u{EB95}" 32,197 16x16
+          text "Colour" 52,197 41x16
+        el #row-8 role=treeitem label="Contrast" 8,216 184x22 level=1 pos=9/10
+          el 12,216 16x22
+          text "\u{E5F1}" 32,219 16x16
+          text "Contrast" 52,219 52x16
+        el #row-9 role=treeitem label="Icons" 8,238 184x22 level=1 pos=10/10
+          el 12,238 16x22
+          text "\u{F70E}" 32,241 16x16
+          text "Icons" 52,241 33x16
+      text "Theme" 8,669 184x15
+      el #look role=combobox label="Theme" 8,688 184x24 expanded=false
+        text "Current light" 17,692 155x16
+        text "▼" 176,692 7x16
+    el 200,32 1x688
+    el #type label="Typography" 201,32 899x688
+      el 225,56 851x36
+        text "Typography" 225,56 851x18
+        text "The theme's text styles, figures and letterforms." 225,76 851x16
+      el 225,104 851x546
+        el 225,104 851x236
+          text "Styles" 238,117 825x15
+          el 238,140 825x187
+            el 238,140 825x31
+              el 238,140 300x31
+                text "heading" 238,140 300x16
+                text "Inter Bold · 15 px · line 18 px" 238,156 300x15
+              text "Connections and schemas" 550,147 195x18
+            el 238,179 825x31
+              el 238,179 300x31
+                text "body" 238,179 300x16
+                text "Inter Regular · 13 px · line 16 px" 238,195 300x15
+              text "The quick brown fox jumps over the lazy dog. 0123456789" 550,187 359x15
+            el 238,218 825x31
+              el 238,218 300x31
+                text "body, muted" 238,218 300x16
+                text "Inter Regular · 13 px · line 16 px" 238,234 300x15
+              text "Hints, captions, values beside their names: 12 rows in 18 ms" 550,226 366x15
+            el 238,257 825x31
+              el 238,257 300x31
+                text "body, disabled" 238,257 300x16
+                text "Inter Regular · 13 px · line 16 px" 238,273 300x15
+              text "A control that cannot be used now" 550,265 210x15
+            el 238,296 825x31
+              el 238,296 300x31
+                text "mono" 238,296 300x16
+                text "JetBrains Mono Regular · 12 px · line 16 px" 238,312 300x15
+              text "SELECT id, amount FROM orders WHERE status = 'paid';" 550,304 377x16
+        el 225,356 851x173
+          text "Figures in a right-aligned column" 238,369 825x16
+          el 238,393 825x123
+            el 238,393 104x123
+              text "body" 311,393 31x15
+              text "1111.11" 307,410 35x16
+              text "98765.40" 283,428 59x15
+              text "7.00" 316,445 26x16
+              text "10000.01" 287,463 55x15
+              text "449.90" 297,480 45x16
+              text "0.05" 314,498 28x15
+            el 366,393 103x123
+              text "body, +tnum" 392,393 77x15
+              text "1111.11" 415,410 54x16
+              text "98765.40" 407,428 62x15
+              text "7.00" 441,445 28x16
+              text "10000.01" 407,463 62x15
+              text "449.90" 424,480 45x16
+              text "0.05" 441,498 28x15
+            el 493,393 104x123
+              text "mono" 562,393 35x15
+              text "1111.11" 546,410 51x16
+              text "98765.40" 539,428 58x16
+              text "7.00" 568,446 29x16
+              text "10000.01" 539,464 58x16
+              text "449.90" 553,482 44x16
+              text "0.05" 568,500 29x16
+            el 621,393 442x123
+              text "Width of each digit, in pixels at scale 1" 621,393 442x15
+              text "body        8.00 5.00 8.00 8.00 8.00 8.00 8.00 7.00 8.00 8.00" 621,412 442x16
+              text "body +tnum  8.00 8.00 8.00 8.00 8.00 8.00 8.00 8.00 8.00 8.00" 621,432 442x16
+              text "mono        7.00 7.00 7.00 7.00 7.00 7.00 7.00 7.00 7.00 7.00" 621,452 442x16
+        el 225,545 851x105
+          text "Letterforms: body, mono, mono with ligatures (+calt)" 238,558 825x16
+          el 238,582 825x55
+            text "Il1| O0o rn m {}[]() -> != => ++" 238,582 825x15
+            text "Il1| O0o rn m {}[]() -> != => ++" 238,601 825x16
+            text "Il1| O0o rn m {}[]() -> != => ++" 238,621 825x16

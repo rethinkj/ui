@@ -1,0 +1,877 @@
+el 0,0 1100x720
+  el window=drag 0,0 1100x32
+    el 10,10 12x12
+    text "Showcase · Proposal dark" 30,8 161x16
+    el 191,16 771x0
+    el role=button label="Minimize" window=minimize 962,0 46x32
+      el 980,16 10x1
+    el role=button label="Maximize" window=maximize 1008,0 46x32
+      el 1026,11 10x10
+    el role=button label="Close" window=close 1054,0 46x32
+      el 1072,11 10x10
+        el 1072,11 2x2
+        el 1080,11 2x2
+        el 1073,12 2x2
+        el 1079,12 2x2
+        el 1074,13 2x2
+        el 1078,13 2x2
+        el 1075,14 2x2
+        el 1077,14 2x2
+        el 1076,15 2x2
+        el 1076,15 2x2
+        el 1077,16 2x2
+        el 1075,16 2x2
+        el 1078,17 2x2
+        el 1074,17 2x2
+        el 1079,18 2x2
+        el 1073,18 2x2
+        el 1080,19 2x2
+        el 1072,19 2x2
+  el 0,32 1100x688
+    el 0,32 200x688
+      el #sections role=tree label="Sections" 8,40 184x624 rows 0-9/10
+        el #row-0 role=treeitem label="Buttons" 8,40 184x22 level=1 pos=1/10
+          el 12,40 16x22
+          text "\u{F2BA}" 32,43 16x16
+          text "Buttons" 52,43 48x16
+        el #row-1 role=treeitem label="Text fields" 8,62 184x22 level=1 pos=2/10
+          el 12,62 16x22
+          text "\u{ECAE}" 32,65 16x16
+          text "Text fields" 52,65 63x16
+        el #row-2 role=treeitem label="Menus and overlays" 8,84 184x22 level=1 pos=3/10
+          el 12,84 16x22
+          text "\u{E85F}" 32,87 16x16
+          text "Menus and overlays" 52,87 126x16
+        el #row-3 role=treeitem label="Data grid" 8,106 184x22 selected level=1 pos=4/10
+          el 12,106 16x22
+          text "\u{EBF4}" 32,109 16x16
+          text "Data grid" 52,109 55x16
+        el #row-4 role=treeitem label="Tree" 8,128 184x22 level=1 pos=5/10
+          el 12,128 16x22
+          text "\u{F0D7}" 32,131 16x16
+          text "Tree" 52,131 29x16
+        el #row-5 role=treeitem label="Tabs and split" 8,150 184x22 level=1 pos=6/10
+          el 12,150 16x22
+          text "\u{EE5D}" 32,153 16x16
+          text "Tabs and split" 52,153 85x16
+        el #row-6 role=treeitem label="Typography" 8,172 184x22 level=1 pos=7/10
+          el 12,172 16x22
+          text "\u{ECAE}" 32,175 16x16
+          text "Typography" 52,175 73x16
+        el #row-7 role=treeitem label="Colour" 8,194 184x22 level=1 pos=8/10
+          el 12,194 16x22
+          text "\u{EB95}" 32,197 16x16
+          text "Colour" 52,197 41x16
+        el #row-8 role=treeitem label="Contrast" 8,216 184x22 level=1 pos=9/10
+          el 12,216 16x22
+          text "\u{E5F1}" 32,219 16x16
+          text "Contrast" 52,219 52x16
+        el #row-9 role=treeitem label="Icons" 8,238 184x22 level=1 pos=10/10
+          el 12,238 16x22
+          text "\u{F70E}" 32,241 16x16
+          text "Icons" 52,241 33x16
+      text "Theme" 8,668 184x16
+      el #look role=combobox label="Theme" 8,688 184x24 expanded=false
+        text "Proposal dark" 17,692 155x16
+        text "▼" 176,692 7x16
+    el 200,32 1x688
+    el #grid label="Data grid" 201,32 899x688
+      el 225,56 851x36
+        text "Data grid" 225,56 851x18
+        text "A result set: numbers, dates, NULLs, long text, two sort keys." 225,76 851x16
+      el 225,104 851x588
+        text "SELECT o.id, c.name AS customer, c.email, o.amount, o.created_at, o.shipped_at, o.status, o.note FROM orders o JOIN customers c ON …" 225,104 851x16
+        el #orders role=grid label="Orders" 225,128 851x540 thumb-x 227,660 608.27x6 focused
+          el #content 225,128 1185x540
+            el #header 225,128 1185x22
+              el #column-1 role=columnheader label="customer" 320,128 149x22 pos=2/8 sort=ascending
+                text "customer" 324,131 58x16
+                el 384,131 17x16
+                  text "\u{E12A}" 384,133 12x12
+                  text "1" 396,131 5x16
+              el 469,128 1x22
+              el #column-2 role=columnheader label="email" 470,128 189x22 pos=3/8
+                text "email" 474,131 32x16
+              el 659,128 1x22
+              el #column-3 role=columnheader label="amount" 660,128 99x22 pos=4/8 sort=descending
+                el 685,131 20x16
+                  text "\u{F8D0}" 685,133 12x12
+                  text "2" 697,131 8x16
+                text "amount" 709,131 46x16
+              el 759,128 1x22
+              el #column-4 role=columnheader label="created_at" 760,128 159x22 pos=5/8
+                text "created_at" 764,131 64x16
+              el 919,128 1x22
+              el #column-5 role=columnheader label="shipped_at" 920,128 159x22 pos=6/8
+                text "shipped_at" 924,131 67x16
+              el 1079,128 1x22
+              el #column-6 role=columnheader label="status" 1080,128 89x22 pos=7/8
+                text "status" 1084,131 37x16
+              el 1169,128 1x22
+              el #column-7 role=columnheader label="note" 1170,128 239x22 pos=8/8
+                text "note" 1174,131 28x16
+              el 1409,128 1x22
+              el #numbers 225,128 22x22
+              el 247,128 1x22
+              el #column-0 role=columnheader label="id" 248,128 71x22 pos=1/8
+                text "id" 304,131 11x16
+              el 319,128 1x22
+            el 225,150 1185x1
+            el #rows 225,151 1185x517 rows 0-26/48 thumb-y 1068,153 6x246.26 hovered
+              el #row-0 role=row 225,151 1185x22 pos=1/48
+                el #cell-0-1 role=gridcell 320,151 149x22 pos=2/8
+                  text "Ada Lovelace" 324,154 83x16
+                el 469,151 1x22
+                el #cell-0-2 role=gridcell 470,151 189x22 pos=3/8
+                  text "ada.lovelace@example.org" 474,154 166x16
+                el 659,151 1x22
+                el #cell-0-3 role=gridcell 660,151 99x22 pos=4/8
+                  text "3897.00" 706,154 49x16
+                el 759,151 1x22
+                el #cell-0-4 role=gridcell 760,151 159x22 pos=5/8
+                  text "2026-03-18 00:38:07" 764,154 133x16
+                el 919,151 1x22
+                el #cell-0-5 role=gridcell 920,151 159x22 pos=6/8
+                  text "NULL" 924,154 28x16
+                el 1079,151 1x22
+                el #cell-0-6 role=gridcell 1080,151 89x22 pos=7/8
+                  text "refunded" 1084,154 58x16
+                el 1169,151 1x22
+                el #cell-0-7 role=gridcell 1170,151 239x22 pos=8/8
+                  text "Call before delivery" 1174,154 120x16
+                el 1409,151 1x22
+                el #number-0 role=rowheader 225,151 22x22
+                  text "1" 236,154 7x16
+                el 247,151 1x22
+                el #cell-0-0 role=gridcell 248,151 71x22 pos=1/8
+                  text "10558" 280,154 35x16
+                el 319,151 1x22
+              el #row-1 role=row 225,173 1185x22 pos=2/48
+                el #cell-1-1 role=gridcell 320,173 149x22 pos=2/8
+                  text "Ada Lovelace" 324,176 83x16
+                el 469,173 1x22
+                el #cell-1-2 role=gridcell 470,173 189x22 pos=3/8
+                  text "ada.lovelace@example.org" 474,176 166x16
+                el 659,173 1x22
+                el #cell-1-3 role=gridcell 660,173 99x22 pos=4/8
+                  text "458.00" 713,176 42x16
+                el 759,173 1x22
+                el #cell-1-4 role=gridcell 760,173 159x22 pos=5/8
+                  text "2026-03-10 04:26:06" 764,176 133x16
+                el 919,173 1x22
+                el #cell-1-5 role=gridcell 920,173 159x22 pos=6/8
+                  text "2026-03-11 13:26:06" 924,176 133x16
+                el 1079,173 1x22
+                el #cell-1-6 role=gridcell 1080,173 89x22 pos=7/8
+                  text "shipped" 1084,176 50x16
+                el 1169,173 1x22
+                el #cell-1-7 role=gridcell 1170,173 239x22 pos=8/8
+                  text "NULL" 1174,176 34x16
+                el 1409,173 1x22
+                el #number-1 role=rowheader 225,173 22x22
+                  text "2" 236,176 7x16
+                el 247,173 1x22
+                el #cell-1-0 role=gridcell 248,173 71x22 pos=1/8
+                  text "10519" 280,176 35x16
+                el 319,173 1x22
+              el #row-2 role=row 225,195 1185x22 pos=3/48
+                el #cell-2-1 role=gridcell 320,195 149x22 pos=2/8
+                  text "Ada Lovelace" 324,198 83x16
+                el 469,195 1x22
+                el #cell-2-2 role=gridcell 470,195 189x22 selected pos=3/8
+                  text "ada.lovelace@engineering.example.com" 474,198 181x16
+                el 659,195 1x22
+                el #cell-2-3 role=gridcell 660,195 99x22 selected pos=4/8
+                  text "49.90" 720,198 35x16
+                el 759,195 1x22
+                el #cell-2-4 role=gridcell 760,195 159x22 selected pos=5/8
+                  text "2026-03-02 08:14:05" 764,198 133x16
+                el 919,195 1x22
+                el #cell-2-5 role=gridcell 920,195 159x22 pos=6/8
+                  text "NULL" 924,198 28x16
+                el 1079,195 1x22
+                el #cell-2-6 role=gridcell 1080,195 89x22 pos=7/8
+                  text "paid" 1084,198 26x16
+                el 1169,195 1x22
+                el #cell-2-7 role=gridcell 1170,195 239x22 pos=8/8
+                  text "NULL" 1174,198 34x16
+                el 1409,195 1x22
+                el #number-2 role=rowheader 225,195 22x22
+                  text "3" 236,198 7x16
+                el 247,195 1x22
+                el #cell-2-0 role=gridcell 248,195 71x22 pos=1/8
+                  text "10480" 280,198 35x16
+                el 319,195 1x22
+              el #row-3 role=row 225,217 1185x22 pos=4/48
+                el #cell-3-1 role=gridcell 320,217 149x22 pos=2/8
+                  text "Ada Lovelace" 324,220 83x16
+                el 469,217 1x22
+                el #cell-3-2 role=gridcell 470,217 189x22 selected pos=3/8
+                  text "ada.lovelace@engineering.example.com" 474,220 181x16
+                el 659,217 1x22
+                el #cell-3-3 role=gridcell 660,217 99x22 selected pos=4/8
+                  text "7.00" 727,220 28x16
+                el 759,217 1x22
+                el #cell-3-4 role=gridcell 760,217 159x22 selected pos=5/8
+                  text "2026-03-25 20:50:08" 764,220 133x16
+                el 919,217 1x22
+                el #cell-3-5 role=gridcell 920,217 159x22 pos=6/8
+                  text "2026-03-27 01:50:08" 924,220 133x16
+                el 1079,217 1x22
+                el #cell-3-6 role=gridcell 1080,217 89x22 pos=7/8
+                  text "shipped" 1084,220 50x16
+                el 1169,217 1x22
+                el #cell-3-7 role=gridcell 1170,217 239x22 pos=8/8
+                  text "Gift wrap" 1174,220 56x16
+                el 1409,217 1x22
+                el #number-3 role=rowheader 225,217 22x22
+                  text "4" 236,220 7x16
+                el 247,217 1x22
+                el #cell-3-0 role=gridcell 248,217 71x22 pos=1/8
+                  text "10597" 280,220 35x16
+                el 319,217 1x22
+              el #row-4 role=row 225,239 1185x22 pos=5/48
+                el #cell-4-1 role=gridcell 320,239 149x22 pos=2/8
+                  text "Barbara Perlman" 324,242 102x16
+                el 469,239 1x22
+                el #cell-4-2 role=gridcell 470,239 189x22 selected pos=3/8
+                  text "barbara.perlman@example.org" 474,242 181x16
+                el 659,239 1x22
+                el #cell-4-3 role=gridcell 660,239 99x22 selected pos=4/8
+                  text "37440.00" 699,242 56x16
+                el 759,239 1x22
+                el #cell-4-4 role=gridcell 760,239 159x22 selected pos=5/8
+                  text "2026-03-05 08:37:10" 764,242 133x16
+                el 919,239 1x22
+                el #cell-4-5 role=gridcell 920,239 159x22 pos=6/8
+                  text "NULL" 924,242 28x16
+                el 1079,239 1x22
+                el #cell-4-6 role=gridcell 1080,239 89x22 pos=7/8
+                  text "paid" 1084,242 26x16
+                el 1169,239 1x22
+                el #cell-4-7 role=gridcell 1170,239 239x22 pos=8/8
+                  text "NULL" 1174,242 34x16
+                el 1409,239 1x22
+                el #number-4 role=rowheader 225,239 22x22
+                  text "5" 236,242 7x16
+                el 247,239 1x22
+                el #cell-4-0 role=gridcell 248,239 71x22 pos=1/8
+                  text "10495" 280,242 35x16
+                el 319,239 1x22
+              el #row-5 role=row 225,261 1185x22 pos=6/48
+                el #cell-5-1 role=gridcell 320,261 149x22 pos=2/8
+                  text "Barbara Perlman" 324,264 102x16
+                el 469,261 1x22
+                el #cell-5-2 role=gridcell 470,261 189x22 selected pos=3/8
+                  text "barbara.perlman@example.org" 474,264 181x16
+                el 659,261 1x22
+                el #cell-5-3 role=gridcell 660,261 99x22 selected pos=4/8
+                  text "1980.00" 706,264 49x16
+                el 759,261 1x22
+                el #cell-5-4 role=gridcell 760,261 159x22 selected pos=5/8
+                  text "2026-03-21 01:01:12" 764,264 133x16
+                el 919,261 1x22
+                el #cell-5-5 role=gridcell 920,261 159x22 pos=6/8
+                  text "NULL" 924,264 28x16
+                el 1079,261 1x22
+                el #cell-5-6 role=gridcell 1080,261 89x22 pos=7/8
+                  text "refunded" 1084,264 58x16
+                el 1169,261 1x22
+                el #cell-5-7 role=gridcell 1170,261 239x22 pos=8/8
+                  text "NULL" 1174,264 34x16
+                el 1409,261 1x22
+                el #number-5 role=rowheader 225,261 22x22
+                  text "6" 236,264 7x16
+                el 247,261 1x22
+                el #cell-5-0 role=gridcell 248,261 71x22 pos=1/8
+                  text "10573" 280,264 35x16
+                el 319,261 1x22
+              el #row-6 role=row 225,283 1185x22 pos=7/48
+                el #cell-6-1 role=gridcell 320,283 149x22 pos=2/8
+                  text "Barbara Perlman" 324,286 102x16
+                el 469,283 1x22
+                el #cell-6-2 role=gridcell 470,283 189x22 selected pos=3/8
+                  text "barbara.perlman@engineering.example.com" 474,286 181x16
+                el 659,283 1x22
+                el #cell-6-3 role=gridcell 660,283 99x22 selected pos=4/8
+                  text "69.00" 720,286 35x16
+                el 759,283 1x22
+                el #cell-6-4 role=gridcell 760,283 159x22 selected current pos=5/8
+                  text "2026-03-13 04:49:11" 764,286 133x16
+                el 919,283 1x22
+                el #cell-6-5 role=gridcell 920,283 159x22 pos=6/8
+                  text "2026-03-14 18:49:11" 924,286 133x16
+                el 1079,283 1x22
+                el #cell-6-6 role=gridcell 1080,283 89x22 pos=7/8
+                  text "shipped" 1084,286 50x16
+                el 1169,283 1x22
+                el #cell-6-7 role=gridcell 1170,283 239x22 pos=8/8
+                  text "NULL" 1174,286 34x16
+                el 1409,283 1x22
+                el #number-6 role=rowheader 225,283 22x22
+                  text "7" 236,286 7x16
+                el 247,283 1x22
+                el #cell-6-0 role=gridcell 248,283 71x22 pos=1/8
+                  text "10534" 280,286 35x16
+                el 319,283 1x22
+              el #row-7 role=row 225,305 1185x22 pos=8/48
+                el #cell-7-1 role=gridcell 320,305 149x22 pos=2/8
+                  text "Barbara Perlman" 324,308 102x16
+                el 469,305 1x22
+                el #cell-7-2 role=gridcell 470,305 189x22 pos=3/8
+                  text "barbara.perlman@example.org" 474,308 181x16
+                el 659,305 1x22
+                el #cell-7-3 role=gridcell 660,305 99x22 pos=4/8
+                  text "59.97" 720,308 35x16
+                el 759,305 1x22
+                el #cell-7-4 role=gridcell 760,305 159x22 pos=5/8
+                  text "2026-03-28 21:13:13" 764,308 133x16
+                el 919,305 1x22
+                el #cell-7-5 role=gridcell 920,305 159x22 pos=6/8
+                  text "2026-03-30 07:13:13" 924,308 133x16
+                el 1079,305 1x22
+                el #cell-7-6 role=gridcell 1080,305 89x22 pos=7/8
+                  text "shipped" 1084,308 50x16
+                el 1169,305 1x22
+                el #cell-7-7 role=gridcell 1170,305 239x22 pos=8/8
+                  text "Call before delivery" 1174,308 120x16
+                el 1409,305 1x22
+                el #number-7 role=rowheader 225,305 22x22
+                  text "8" 236,308 7x16
+                el 247,305 1x22
+                el #cell-7-0 role=gridcell 248,305 71x22 pos=1/8
+                  text "10612" 280,308 35x16
+                el 319,305 1x22
+              el #row-8 role=row 225,327 1185x22 pos=9/48
+                el #cell-8-1 role=gridcell 320,327 149x22 pos=2/8
+                  text "Donald Thompson" 324,330 113x16
+                el 469,327 1x22
+                el #cell-8-2 role=gridcell 470,327 189x22 pos=3/8
+                  text "donald.thompson@example.org" 474,330 181x16
+                el 659,327 1x22
+                el #cell-8-3 role=gridcell 660,327 99x22 pos=4/8
+                  text "1036.50" 706,330 49x16
+                el 759,327 1x22
+                el #cell-8-4 role=gridcell 760,327 159x22 pos=5/8
+                  text "2026-03-30 16:39:04" 764,330 133x16
+                el 919,327 1x22
+                el #cell-8-5 role=gridcell 920,327 159x22 pos=6/8
+                  text "NULL" 924,330 28x16
+                el 1079,327 1x22
+                el #cell-8-6 role=gridcell 1080,327 89x22 pos=7/8
+                  text "pending" 1084,330 51x16
+                el 1169,327 1x22
+                el #cell-8-7 role=gridcell 1170,327 239x22 pos=8/8
+                  text "NULL" 1174,330 34x16
+                el 1409,327 1x22
+                el #number-8 role=rowheader 225,327 22x22
+                  text "9" 236,330 7x16
+                el 247,327 1x22
+                el #cell-8-0 role=gridcell 248,327 71x22 pos=1/8
+                  text "10621" 280,330 35x16
+                el 319,327 1x22
+              el #row-9 role=row 225,349 1185x22 pos=10/48
+                el #cell-9-1 role=gridcell 320,349 149x22 pos=2/8
+                  text "Donald Thompson" 324,352 113x16
+                el 469,349 1x22
+                el #cell-9-2 role=gridcell 470,349 189x22 pos=3/8
+                  text "donald.thompson@engineering.example.com" 474,352 181x16
+                el 659,349 1x22
+                el #cell-9-3 role=gridcell 660,349 99x22 pos=4/8
+                  text "990.00" 713,352 42x16
+                el 759,349 1x22
+                el #cell-9-4 role=gridcell 760,349 159x22 pos=5/8
+                  text "2026-03-15 00:15:02" 764,352 133x16
+                el 919,349 1x22
+                el #cell-9-5 role=gridcell 920,349 159x22 pos=6/8
+                  text "NULL" 924,352 28x16
+                el 1079,349 1x22
+                el #cell-9-6 role=gridcell 1080,349 89x22 pos=7/8
+                  text "refunded" 1084,352 58x16
+                el 1169,349 1x22
+                el #cell-9-7 role=gridcell 1170,349 239x22 pos=8/8
+                  text "Gift wrap" 1174,352 56x16
+                el 1409,349 1x22
+                el #number-9 role=rowheader 225,349 22x22
+                  text "10" 229,352 14x16
+                el 247,349 1x22
+                el #cell-9-0 role=gridcell 248,349 71x22 pos=1/8
+                  text "10543" 280,352 35x16
+                el 319,349 1x22
+              el #row-10 role=row 225,371 1185x22 pos=11/48
+                el #cell-10-1 role=gridcell 320,371 149x22 pos=2/8
+                  text "Donald Thompson" 324,374 113x16
+                el 469,371 1x22
+                el #cell-10-2 role=gridcell 470,371 189x22 pos=3/8
+                  text "donald.thompson@example.org" 474,374 181x16
+                el 659,371 1x22
+                el #cell-10-3 role=gridcell 660,371 99x22 pos=4/8
+                  text "207.00" 713,374 42x16
+                el 759,371 1x22
+                el #cell-10-4 role=gridcell 760,371 159x22 pos=5/8
+                  text "2026-03-07 04:03:01" 764,374 133x16
+                el 919,371 1x22
+                el #cell-10-5 role=gridcell 920,371 159x22 pos=6/8
+                  text "2026-03-08 08:03:01" 924,374 133x16
+                el 1079,371 1x22
+                el #cell-10-6 role=gridcell 1080,371 89x22 pos=7/8
+                  text "shipped" 1084,374 50x16
+                el 1169,371 1x22
+                el #cell-10-7 role=gridcell 1170,371 239x22 pos=8/8
+                  text "Call before delivery" 1174,374 120x16
+                el 1409,371 1x22
+                el #number-10 role=rowheader 225,371 22x22
+                  text "11" 229,374 14x16
+                el 247,371 1x22
+                el #cell-10-0 role=gridcell 248,371 71x22 pos=1/8
+                  text "10504" 280,374 35x16
+                el 319,371 1x22
+              el #row-11 role=row 225,393 1185x22 pos=12/48
+                el #cell-11-1 role=gridcell 320,393 149x22 pos=2/8
+                  text "Donald Thompson" 324,396 113x16
+                el 469,393 1x22
+                el #cell-11-2 role=gridcell 470,393 189x22 pos=3/8
+                  text "donald.thompson@example.org" 474,396 181x16
+                el 659,393 1x22
+                el #cell-11-3 role=gridcell 660,393 99x22 pos=4/8
+                  text "39.98" 720,396 35x16
+                el 759,393 1x22
+                el #cell-11-4 role=gridcell 760,393 159x22 pos=5/8
+                  text "2026-03-22 20:27:03" 764,396 133x16
+                el 919,393 1x22
+                el #cell-11-5 role=gridcell 920,393 159x22 pos=6/8
+                  text "2026-03-23 20:27:03" 924,396 133x16
+                el 1079,393 1x22
+                el #cell-11-6 role=gridcell 1080,393 89x22 pos=7/8
+                  text "shipped" 1084,396 50x16
+                el 1169,393 1x22
+                el #cell-11-7 role=gridcell 1170,393 239x22 pos=8/8
+                  text "NULL" 1174,396 34x16
+                el 1409,393 1x22
+                el #number-11 role=rowheader 225,393 22x22
+                  text "12" 229,396 14x16
+                el 247,393 1x22
+                el #cell-11-0 role=gridcell 248,393 71x22 pos=1/8
+                  text "10582" 280,396 35x16
+                el 319,393 1x22
+              el #row-12 role=row 225,415 1185x22 pos=13/48
+                el #cell-12-1 role=gridcell 320,415 149x22 pos=2/8
+                  text "Edsger Hamilton" 324,418 102x16
+                el 469,415 1x22
+                el #cell-12-2 role=gridcell 470,415 189x22 pos=3/8
+                  text "edsger.hamilton@engineering.example.com" 474,418 181x16
+                el 659,415 1x22
+                el #cell-12-3 role=gridcell 660,415 99x22 pos=4/8
+                  text "12480.00" 699,418 56x16
+                el 759,415 1x22
+                el #cell-12-4 role=gridcell 760,415 159x22 pos=5/8
+                  text "2026-03-29 11:41:50" 764,418 133x16
+                el 919,415 1x22
+                el #cell-12-5 role=gridcell 920,415 159x22 pos=6/8
+                  text "NULL" 924,418 28x16
+                el 1079,415 1x22
+                el #cell-12-6 role=gridcell 1080,415 89x22 pos=7/8
+                  text "paid" 1084,418 26x16
+                el 1169,415 1x22
+                el #cell-12-7 role=gridcell 1170,415 239x22 pos=8/8
+                  text "NULL" 1174,418 34x16
+                el 1409,415 1x22
+                el #number-12 role=rowheader 225,415 22x22
+                  text "13" 229,418 14x16
+                el 247,415 1x22
+                el #cell-12-0 role=gridcell 248,415 71x22 pos=1/8
+                  text "10615" 280,418 35x16
+                el 319,415 1x22
+              el #row-13 role=row 225,437 1185x22 pos=14/48
+                el #cell-13-1 role=gridcell 320,437 149x22 pos=2/8
+                  text "Edsger Hamilton" 324,440 102x16
+                el 469,437 1x22
+                el #cell-13-2 role=gridcell 470,437 189x22 pos=3/8
+                  text "edsger.hamilton@engineering.example.com" 474,440 181x16
+                el 659,437 1x22
+                el #cell-13-3 role=gridcell 660,437 99x22 pos=4/8
+                  text "1299.00" 706,440 49x16
+                el 759,437 1x22
+                el #cell-13-4 role=gridcell 760,437 159x22 pos=5/8
+                  text "2026-03-05 23:05:47" 764,440 133x16
+                el 919,437 1x22
+                el #cell-13-5 role=gridcell 920,437 159x22 pos=6/8
+                  text "NULL" 924,440 28x16
+                el 1079,437 1x22
+                el #cell-13-6 role=gridcell 1080,437 89x22 pos=7/8
+                  text "refunded" 1084,440 58x16
+                el 1169,437 1x22
+                el #cell-13-7 role=gridcell 1170,437 239x22 pos=8/8
+                  text "Invoice to the company address, not the delivery address" 1174,440 231x16
+                el 1409,437 1x22
+                el #number-13 role=rowheader 225,437 22x22
+                  text "14" 229,440 14x16
+                el 247,437 1x22
+                el #cell-13-0 role=gridcell 248,437 71x22 pos=1/8
+                  text "10498" 280,440 35x16
+                el 319,437 1x22
+              el #row-14 role=row 225,459 1185x22 pos=15/48
+                el #cell-14-1 role=gridcell 320,459 149x22 pos=2/8
+                  text "Edsger Hamilton" 324,462 102x16
+                el 469,459 1x22
+                el #cell-14-2 role=gridcell 470,459 189x22 pos=3/8
+                  text "edsger.hamilton@example.org" 474,462 181x16
+                el 659,459 1x22
+                el #cell-14-3 role=gridcell 660,459 99x22 pos=4/8
+                  text "267.00" 713,462 42x16
+                el 759,459 1x22
+                el #cell-14-4 role=gridcell 760,459 159x22 pos=5/8
+                  text "2026-03-21 15:29:49" 764,462 133x16
+                el 919,459 1x22
+                el #cell-14-5 role=gridcell 920,459 159x22 pos=6/8
+                  text "NULL" 924,462 28x16
+                el 1079,459 1x22
+                el #cell-14-6 role=gridcell 1080,459 89x22 pos=7/8
+                  text "pending" 1084,462 51x16
+                el 1169,459 1x22
+                el #cell-14-7 role=gridcell 1170,459 239x22 pos=8/8
+                  text "NULL" 1174,462 34x16
+                el 1409,459 1x22
+                el #number-14 role=rowheader 225,459 22x22
+                  text "15" 229,462 14x16
+                el 247,459 1x22
+                el #cell-14-0 role=gridcell 248,459 71x22 pos=1/8
+                  text "10576" 280,462 35x16
+                el 319,459 1x22
+              el #row-15 role=row 225,481 1185x22 pos=16/48
+                el #cell-15-1 role=gridcell 320,481 149x22 pos=2/8
+                  text "Edsger Hamilton" 324,484 102x16
+                el 469,481 1x22
+                el #cell-15-2 role=gridcell 470,481 189x22 pos=3/8
+                  text "edsger.hamilton@example.org" 474,484 181x16
+                el 659,481 1x22
+                el #cell-15-3 role=gridcell 660,481 99x22 pos=4/8
+                  text "14.00" 720,484 35x16
+                el 759,481 1x22
+                el #cell-15-4 role=gridcell 760,481 159x22 pos=5/8
+                  text "2026-03-13 19:17:48" 764,484 133x16
+                el 919,481 1x22
+                el #cell-15-5 role=gridcell 920,481 159x22 pos=6/8
+                  text "2026-03-15 10:17:48" 924,484 133x16
+                el 1079,481 1x22
+                el #cell-15-6 role=gridcell 1080,481 89x22 pos=7/8
+                  text "shipped" 1084,484 50x16
+                el 1169,481 1x22
+                el #cell-15-7 role=gridcell 1170,481 239x22 pos=8/8
+                  text "Leave the parcel with the neighbour at number 12 if nobody answers the door" 1174,484 231x16
+                el 1409,481 1x22
+                el #number-15 role=rowheader 225,481 22x22
+                  text "16" 229,484 14x16
+                el 247,481 1x22
+                el #cell-15-0 role=gridcell 248,481 71x22 pos=1/8
+                  text "10537" 280,484 35x16
+                el 319,481 1x22
+              el #row-16 role=row 225,503 1185x22 pos=17/48
+                el #cell-16-1 role=gridcell 320,503 149x22 pos=2/8
+                  text "Frances Wirth" 324,506 86x16
+                el 469,503 1x22
+                el #cell-16-2 role=gridcell 470,503 189x22 pos=3/8
+                  text "frances.wirth@example.org" 474,506 171x16
+                el 659,503 1x22
+                el #cell-16-3 role=gridcell 660,503 99x22 pos=4/8
+                  text "2598.00" 706,506 49x16
+                el 759,503 1x22
+                el #cell-16-4 role=gridcell 760,503 159x22 pos=5/8
+                  text "2026-03-30 02:10:27" 764,506 133x16
+                el 919,503 1x22
+                el #cell-16-5 role=gridcell 920,503 159x22 pos=6/8
+                  text "NULL" 924,506 28x16
+                el 1079,503 1x22
+                el #cell-16-6 role=gridcell 1080,503 89x22 pos=7/8
+                  text "refunded" 1084,506 58x16
+                el 1169,503 1x22
+                el #cell-16-7 role=gridcell 1170,503 239x22 pos=8/8
+                  text "Leave the parcel with the neighbour at number 12 if nobody answers the door" 1174,506 231x16
+                el 1409,503 1x22
+                el #number-16 role=rowheader 225,503 22x22
+                  text "17" 229,506 14x16
+                el 247,503 1x22
+                el #cell-16-0 role=gridcell 248,503 71x22 pos=1/8
+                  text "10618" 280,506 35x16
+                el 319,503 1x22
+              el #row-17 role=row 225,525 1185x22 pos=18/48
+                el #cell-17-1 role=gridcell 320,525 149x22 pos=2/8
+                  text "Frances Wirth" 324,528 86x16
+                el 469,525 1x22
+                el #cell-17-2 role=gridcell 470,525 189x22 pos=3/8
+                  text "frances.wirth@example.org" 474,528 171x16
+                el 659,525 1x22
+                el #cell-17-3 role=gridcell 660,525 99x22 pos=4/8
+                  text "691.00" 713,528 42x16
+                el 759,525 1x22
+                el #cell-17-4 role=gridcell 760,525 159x22 pos=5/8
+                  text "2026-03-06 13:34:24" 764,528 133x16
+                el 919,525 1x22
+                el #cell-17-5 role=gridcell 920,525 159x22 pos=6/8
+                  text "NULL" 924,528 28x16
+                el 1079,525 1x22
+                el #cell-17-6 role=gridcell 1080,525 89x22 pos=7/8
+                  text "pending" 1084,528 51x16
+                el 1169,525 1x22
+                el #cell-17-7 role=gridcell 1170,525 239x22 pos=8/8
+                  text "NULL" 1174,528 34x16
+                el 1409,525 1x22
+                el #number-17 role=rowheader 225,525 22x22
+                  text "18" 229,528 14x16
+                el 247,525 1x22
+                el #cell-17-0 role=gridcell 248,525 71x22 pos=1/8
+                  text "10501" 280,528 35x16
+                el 319,525 1x22
+              el #row-18 role=row 225,547 1185x22 pos=19/48
+                el #cell-18-1 role=gridcell 320,547 149x22 pos=2/8
+                  text "Frances Wirth" 324,550 86x16
+                el 469,547 1x22
+                el #cell-18-2 role=gridcell 470,547 189x22 pos=3/8
+                  text "frances.wirth@engineering.example.com" 474,550 181x16
+                el 659,547 1x22
+                el #cell-18-3 role=gridcell 660,547 99x22 pos=4/8
+                  text "229.00" 713,550 42x16
+                el 759,547 1x22
+                el #cell-18-4 role=gridcell 760,547 159x22 pos=5/8
+                  text "2026-03-22 05:58:26" 764,550 133x16
+                el 919,547 1x22
+                el #cell-18-5 role=gridcell 920,547 159x22 pos=6/8
+                  text "2026-03-23 04:58:26" 924,550 133x16
+                el 1079,547 1x22
+                el #cell-18-6 role=gridcell 1080,547 89x22 pos=7/8
+                  text "shipped" 1084,550 50x16
+                el 1169,547 1x22
+                el #cell-18-7 role=gridcell 1170,547 239x22 pos=8/8
+                  text "Invoice to the company address, not the delivery address" 1174,550 231x16
+                el 1409,547 1x22
+                el #number-18 role=rowheader 225,547 22x22
+                  text "19" 229,550 14x16
+                el 247,547 1x22
+                el #cell-18-0 role=gridcell 248,547 71x22 pos=1/8
+                  text "10579" 280,550 35x16
+                el 319,547 1x22
+              el #row-19 role=row 225,569 1185x22 pos=20/48
+                el #cell-19-1 role=gridcell 320,569 149x22 pos=2/8
+                  text "Frances Wirth" 324,572 86x16
+                el 469,569 1x22
+                el #cell-19-2 role=gridcell 470,569 189x22 pos=3/8
+                  text "frances.wirth@example.org" 474,572 171x16
+                el 659,569 1x22
+                el #cell-19-3 role=gridcell 660,569 99x22 pos=4/8
+                  text "149.70" 713,572 42x16
+                el 759,569 1x22
+                el #cell-19-4 role=gridcell 760,569 159x22 pos=5/8
+                  text "2026-03-14 09:46:25" 764,572 133x16
+                el 919,569 1x22
+                el #cell-19-5 role=gridcell 920,569 159x22 pos=6/8
+                  text "NULL" 924,572 28x16
+                el 1079,569 1x22
+                el #cell-19-6 role=gridcell 1080,569 89x22 pos=7/8
+                  text "paid" 1084,572 26x16
+                el 1169,569 1x22
+                el #cell-19-7 role=gridcell 1170,569 239x22 pos=8/8
+                  text "NULL" 1174,572 34x16
+                el 1409,569 1x22
+                el #number-19 role=rowheader 225,569 22x22
+                  text "20" 229,572 14x16
+                el 247,569 1x22
+                el #cell-19-0 role=gridcell 248,569 71x22 pos=1/8
+                  text "10540" 280,572 35x16
+                el 319,569 1x22
+              el #row-20 role=row 225,591 1185x22 pos=21/48
+                el #cell-20-1 role=gridcell 320,591 149x22 pos=2/8
+                  text "Grace Allen" 324,594 72x16
+                el 469,591 1x22
+                el #cell-20-2 role=gridcell 470,591 189x22 pos=3/8
+                  text "grace.allen@example.org" 474,594 157x16
+                el 659,591 1x22
+                el #cell-20-3 role=gridcell 660,591 99x22 pos=4/8
+                  text "1980.00" 706,594 49x16
+                el 759,591 1x22
+                el #cell-20-4 role=gridcell 760,591 159x22 pos=5/8
+                  text "2026-03-02 22:42:42" 764,594 133x16
+                el 919,591 1x22
+                el #cell-20-5 role=gridcell 920,591 159x22 pos=6/8
+                  text "NULL" 924,594 28x16
+                el 1079,591 1x22
+                el #cell-20-6 role=gridcell 1080,591 89x22 pos=7/8
+                  text "refunded" 1084,594 58x16
+                el 1169,591 1x22
+                el #cell-20-7 role=gridcell 1170,591 239x22 pos=8/8
+                  text "Leave the parcel with the neighbour at number 12 if nobody answers the door" 1174,594 231x16
+                el 1409,591 1x22
+                el #number-20 role=rowheader 225,591 22x22
+                  text "21" 229,594 14x16
+                el 247,591 1x22
+                el #cell-20-0 role=gridcell 248,591 71x22 pos=1/8
+                  text "10483" 280,594 35x16
+                el 319,591 1x22
+              el #row-21 role=row 225,613 1185x22 pos=22/48
+                el #cell-21-1 role=gridcell 320,613 149x22 pos=2/8
+                  text "Grace Allen" 324,616 72x16
+                el 469,613 1x22
+                el #cell-21-2 role=gridcell 470,613 189x22 pos=3/8
+                  text "grace.allen@engineering.example.com" 474,616 181x16
+                el 659,613 1x22
+                el #cell-21-3 role=gridcell 660,613 99x22 pos=4/8
+                  text "345.50" 713,616 42x16
+                el 759,613 1x22
+                el #cell-21-4 role=gridcell 760,613 159x22 pos=5/8
+                  text "2026-03-18 15:06:44" 764,616 133x16
+                el 919,613 1x22
+                el #cell-21-5 role=gridcell 920,613 159x22 pos=6/8
+                  text "NULL" 924,616 28x16
+                el 1079,613 1x22
+                el #cell-21-6 role=gridcell 1080,613 89x22 pos=7/8
+                  text "pending" 1084,616 51x16
+                el 1169,613 1x22
+                el #cell-21-7 role=gridcell 1170,613 239x22 pos=8/8
+                  text "NULL" 1174,616 34x16
+                el 1409,613 1x22
+                el #number-21 role=rowheader 225,613 22x22
+                  text "22" 229,616 14x16
+                el 247,613 1x22
+                el #cell-21-0 role=gridcell 248,613 71x22 pos=1/8
+                  text "10561" 280,616 35x16
+                el 319,613 1x22
+              el #row-22 role=row 225,635 1185x22 pos=23/48
+                el #cell-22-1 role=gridcell 320,635 149x22 pos=2/8
+                  text "Grace Allen" 324,638 72x16
+                el 469,635 1x22
+                el #cell-22-2 role=gridcell 470,635 189x22 pos=3/8
+                  text "grace.allen@example.org" 474,638 157x16
+                el 659,635 1x22
+                el #cell-22-3 role=gridcell 660,635 99x22 pos=4/8
+                  text "99.80" 720,638 35x16
+                el 759,635 1x22
+                el #cell-22-4 role=gridcell 760,635 159x22 pos=5/8
+                  text "2026-03-26 11:18:45" 764,638 133x16
+                el 919,635 1x22
+                el #cell-22-5 role=gridcell 920,635 159x22 pos=6/8
+                  text "NULL" 924,638 28x16
+                el 1079,635 1x22
+                el #cell-22-6 role=gridcell 1080,635 89x22 pos=7/8
+                  text "paid" 1084,638 26x16
+                el 1169,635 1x22
+                el #cell-22-7 role=gridcell 1170,635 239x22 pos=8/8
+                  text "NULL" 1174,638 34x16
+                el 1409,635 1x22
+                el #number-22 role=rowheader 225,635 22x22
+                  text "23" 229,638 14x16
+                el 247,635 1x22
+                el #cell-22-0 role=gridcell 248,635 71x22 pos=1/8
+                  text "10600" 280,638 35x16
+                el 319,635 1x22
+              el #row-23 role=row 225,657 1185x22 pos=24/48
+                el #cell-23-1 role=gridcell 320,657 149x22 pos=2/8
+                  text "Grace Allen" 324,660 72x16
+                el 469,657 1x22
+                el #cell-23-2 role=gridcell 470,657 189x22 pos=3/8
+                  text "grace.allen@example.org" 474,660 157x16
+                el 659,657 1x22
+                el #cell-23-3 role=gridcell 660,657 99x22 pos=4/8
+                  text "59.97" 720,660 35x16
+                el 759,657 1x22
+                el #cell-23-4 role=gridcell 760,657 159x22 pos=5/8
+                  text "2026-03-10 18:54:43" 764,660 133x16
+                el 919,657 1x22
+                el #cell-23-5 role=gridcell 920,657 159x22 pos=6/8
+                  text "2026-03-12 04:54:43" 924,660 133x16
+                el 1079,657 1x22
+                el #cell-23-6 role=gridcell 1080,657 89x22 pos=7/8
+                  text "shipped" 1084,660 50x16
+                el 1169,657 1x22
+                el #cell-23-7 role=gridcell 1170,657 239x22 pos=8/8
+                  text "NULL" 1174,660 34x16
+                el 1409,657 1x22
+                el #number-23 role=rowheader 225,657 22x22
+                  text "24" 229,660 14x16
+                el 247,657 1x22
+                el #cell-23-0 role=gridcell 248,657 71x22 pos=1/8
+                  text "10522" 280,660 35x16
+                el 319,657 1x22
+              el #row-24 role=row 225,679 1185x22 pos=25/48
+                el #cell-24-1 role=gridcell 320,679 149x22 pos=2/8
+                  text "Ken Torvalds" 324,682 80x16
+                el 469,679 1x22
+                el #cell-24-2 role=gridcell 470,679 189x22 pos=3/8
+                  text "ken.torvalds@example.org" 474,682 165x16
+                el 659,679 1x22
+                el #cell-24-3 role=gridcell 660,679 99x22 pos=4/8
+                  text "1036.50" 706,682 49x16
+                el 759,679 1x22
+                el #cell-24-4 role=gridcell 760,679 159x22 pos=5/8
+                  text "2026-03-12 14:20:34" 764,682 133x16
+                el 919,679 1x22
+                el #cell-24-5 role=gridcell 920,679 159x22 pos=6/8
+                  text "NULL" 924,682 28x16
+                el 1079,679 1x22
+                el #cell-24-6 role=gridcell 1080,679 89x22 pos=7/8
+                  text "pending" 1084,682 51x16
+                el 1169,679 1x22
+                el #cell-24-7 role=gridcell 1170,679 239x22 pos=8/8
+                  text "Call before delivery" 1174,682 120x16
+                el 1409,679 1x22
+                el #number-24 role=rowheader 225,679 22x22
+                  text "25" 229,682 14x16
+                el 247,679 1x22
+                el #cell-24-0 role=gridcell 248,679 71x22 pos=1/8
+                  text "10531" 280,682 35x16
+                el 319,679 1x22
+              el #row-25 role=row 225,701 1185x22 pos=26/48
+                el #cell-25-1 role=gridcell 320,701 149x22 pos=2/8
+                  text "Ken Torvalds" 324,704 80x16
+                el 469,701 1x22
+                el #cell-25-2 role=gridcell 470,701 189x22 pos=3/8
+                  text "ken.torvalds@example.org" 474,704 165x16
+                el 659,701 1x22
+                el #cell-25-3 role=gridcell 660,701 99x22 pos=4/8
+                  text "458.00" 713,704 42x16
+                el 759,701 1x22
+                el #cell-25-4 role=gridcell 760,701 159x22 pos=5/8
+                  text "2026-03-28 06:44:36" 764,704 133x16
+                el 919,701 1x22
+                el #cell-25-5 role=gridcell 920,701 159x22 pos=6/8
+                  text "2026-03-29 15:44:36" 924,704 133x16
+                el 1079,701 1x22
+                el #cell-25-6 role=gridcell 1080,701 89x22 pos=7/8
+                  text "shipped" 1084,704 50x16
+                el 1169,701 1x22
+                el #cell-25-7 role=gridcell 1170,701 239x22 pos=8/8
+                  text "NULL" 1174,704 34x16
+                el 1409,701 1x22
+                el #number-25 role=rowheader 225,701 22x22
+                  text "26" 229,704 14x16
+                el 247,701 1x22
+                el #cell-25-0 role=gridcell 248,701 71x22 pos=1/8
+                  text "10609" 280,704 35x16
+                el 319,701 1x22
+              el #row-26 role=row 225,723 1185x22 pos=27/48
+                el #cell-26-1 role=gridcell 320,723 149x22 pos=2/8
+                  text "Ken Torvalds" 324,726 80x16
+                el 469,723 1x22
+                el #cell-26-2 role=gridcell 470,723 189x22 pos=3/8
+                  text "ken.torvalds@engineering.example.com" 474,726 181x16
+                el 659,723 1x22
+                el #cell-26-3 role=gridcell 660,723 99x22 pos=4/8
+                  text "49.90" 720,726 35x16
+                el 759,723 1x22
+                el #cell-26-4 role=gridcell 760,723 159x22 pos=5/8
+                  text "2026-03-20 10:32:35" 764,726 133x16
+                el 919,723 1x22
+                el #cell-26-5 role=gridcell 920,723 159x22 pos=6/8
+                  text "NULL" 924,726 28x16
+                el 1079,723 1x22
+                el #cell-26-6 role=gridcell 1080,723 89x22 pos=7/8
+                  text "paid" 1084,726 26x16
+                el 1169,723 1x22
+                el #cell-26-7 role=gridcell 1170,723 239x22 pos=8/8
+                  text "Gift wrap" 1174,726 56x16
+                el 1409,723 1x22
+                el #number-26 role=rowheader 225,723 22x22
+                  text "27" 229,726 14x16
+                el 247,723 1x22
+                el #cell-26-0 role=gridcell 248,723 71x22 pos=1/8
+                  text "10570" 280,726 35x16
+                el 319,723 1x22
+        text #grid-status "48 rows in 23 ms · 15 cells selected · sorted by customer, then amount descending" 225,676 851x16
