@@ -21,11 +21,15 @@ class SqlTest {
 
   /** The tokens of the lines as "text:kind" with the kinds 1 to 5 of {@link #C}, line by line. */
   private static List<String> tokens(String... lines) {
+    return tokens(SQL, lines);
+  }
+
+  private static List<String> tokens(Sql sql, String... lines) {
     List<String> out = new ArrayList<>();
     Object state = null;
     for (String line : lines) {
       Spans spans = new Spans(line.length());
-      state = SQL.line(line, state, spans);
+      state = sql.line(line, state, spans);
       StringBuilder tokens = new StringBuilder();
       for (String range : spans.toString().split("\n")) {
         if (range.isEmpty()) {
@@ -53,6 +57,31 @@ class SqlTest {
         List.of("SELECT:1 ,:5 Order:1 ::5 ::5"),
         tokens("SELECT selected, Order::text_x"),
         "words that only start like keywords are none");
+  }
+
+  @Test
+  void mySqlHasBackticksHashCommentsAndBackslashEscapes() {
+    Sql mysql = new Sql(C, Sql.Dialect.MYSQL);
+    assertEquals(
+        List.of("SELECT:1 FROM:1 # Kommentar:4"),
+        tokens(mysql, "SELECT `select` FROM `order` # Kommentar"),
+        "a keyword in backticks is none");
+    assertEquals(
+        List.of("select:1 'it\\'s':2 ,:5 \"a\\\"b\":2 ,:5 ;:5"),
+        tokens(mysql, "select 'it\\'s', \"a\\\"b\", `a``b`;"),
+        "the backslash escapes a quote, double quotes are strings, a doubled backtick is one");
+    assertEquals(
+        List.of("select:1 'a\\:2", "b':2 ,:5", ",:5 1:3"),
+        tokens(mysql, "select 'a\\", "b', `c", "d`, 1"),
+        "a string and an identifier in backticks go on across lines");
+    assertEquals(
+        List.of("/* a /* b */:4 select:1"),
+        tokens(mysql, "/* a /* b */ select"),
+        "block comments do not nest");
+    assertEquals(
+        List.of("select:1 #:5 from:1"),
+        tokens("select `a` # from"),
+        "PostgreSQL keeps # as an operator and has no backticks");
   }
 
   @Test

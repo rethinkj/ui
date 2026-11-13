@@ -141,6 +141,22 @@ class TabsTest {
     assertEquals("customers.sql", find(app, "tab-0").children().get(1).text().string());
   }
 
+  @Test
+  void aTabWithAHueHasALineInItsColourAndSaysItInTheDump() throws IOException {
+    List<Tab> tabs = List.of(new Tab("orders").hue(Theme.Hue.RED), new Tab("users"));
+    App<Object> app =
+        new App<>(new Object(), s -> Tabs.tabs(T, tabs, 1, i -> {}, i -> {}, El.el()));
+    run(app, "frame");
+    El marked = find(app, "tab-0");
+    String dump = app.tree().dump();
+    assertTrue(StructureTest.line(dump, "#tab-0").contains("value=\"red\""), dump);
+    assertFalse(StructureTest.line(dump, "#tab-1").contains("value="), "no hue, no mark: " + dump);
+    El line = find(app, "hue-0");
+    assertEquals(T.withAccent(Theme.Hue.RED).accent().edge(), line.fill());
+    assertEquals(marked.width(), line.width());
+    assertEquals(0, line.y());
+  }
+
   // Keys
 
   @Test
