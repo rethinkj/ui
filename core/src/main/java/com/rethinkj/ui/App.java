@@ -653,65 +653,63 @@ public final class App<S> {
   }
 
   private boolean keyDownAt(Key key) {
-    {
-      List<El> path = focusPath();
-      boolean called = false;
-      for (El el : path.reversed()) {
-        if (el.onKey() != null) {
-          called = true;
-          if (el.onKey().test(key)) {
-            handled = true;
-            return true;
-          }
-        }
-        if (el == focused && el.editor() != null && el.editor().key(key, clipboard)) {
-          handled |= el.editor().answerPending(); // it handed an edit to the app
-          return true;
-        }
-        if (el == focused
-            && el.onPress() != null
-            && key.modifiers() == 0
-            && (key.name().equals("Enter") || key.name().equals("Space"))) {
-          if (!key.repeat()) {
-            el.onPress().press(1, 0);
-            handled = true;
-          }
+    List<El> path = focusPath();
+    boolean called = false;
+    for (El el : path.reversed()) {
+      if (el.onKey() != null) {
+        called = true;
+        if (el.onKey().test(key)) {
+          handled = true;
           return true;
         }
       }
-      if (key.name().equals("ContextMenu") && key.modifiers() == 0
-          || key.name().equals("F10") && key.modifiers() == Key.SHIFT) {
-        for (El el : path.reversed()) {
-          if (el.onSecondaryPress() != null) {
-            float x = 0;
-            float y = 0;
-            for (El on : fromOverlay(path)) {
-              x += on.x();
-              y += on.y();
-            }
-            el.onSecondaryPress().accept(x, y + path.getLast().height());
-            handled = true;
-            return true;
-          }
-        }
+      if (el == focused && el.editor() != null && el.editor().key(key, clipboard)) {
+        handled |= el.editor().answerPending(); // it handed an edit to the app
+        return true;
       }
-      if (key.name().equals("Tab") && (key.modifiers() & ~Key.SHIFT) == 0) {
-        settle();
-        wake();
-        List<El> order = focusables();
-        if (!order.isEmpty()) {
-          int step = key.modifiers() == Key.SHIFT ? -1 : 1;
-          int at = order.indexOf(focused);
-          int next = at >= 0 ? at + step : step > 0 ? 0 : -1;
-          El el = enter(order.get(Math.floorMod(next, order.size())), step);
-          if (el.editor() != null) {
-            el.editor().selectAll(); // as browsers do when Tab enters a field
-          }
-          return focus(el, true);
+      if (el == focused
+          && el.onPress() != null
+          && key.modifiers() == 0
+          && (key.name().equals("Enter") || key.name().equals("Space"))) {
+        if (!key.repeat()) {
+          el.onPress().press(1, 0);
+          handled = true;
         }
+        return true;
       }
-      return called;
     }
+    if (key.name().equals("ContextMenu") && key.modifiers() == 0
+        || key.name().equals("F10") && key.modifiers() == Key.SHIFT) {
+      for (El el : path.reversed()) {
+        if (el.onSecondaryPress() != null) {
+          float x = 0;
+          float y = 0;
+          for (El on : fromOverlay(path)) {
+            x += on.x();
+            y += on.y();
+          }
+          el.onSecondaryPress().accept(x, y + path.getLast().height());
+          handled = true;
+          return true;
+        }
+      }
+    }
+    if (key.name().equals("Tab") && (key.modifiers() & ~Key.SHIFT) == 0) {
+      settle();
+      wake();
+      List<El> order = focusables();
+      if (!order.isEmpty()) {
+        int step = key.modifiers() == Key.SHIFT ? -1 : 1;
+        int at = order.indexOf(focused);
+        int next = at >= 0 ? at + step : step > 0 ? 0 : -1;
+        El el = enter(order.get(Math.floorMod(next, order.size())), step);
+        if (el.editor() != null) {
+          el.editor().selectAll(); // as browsers do when Tab enters a field
+        }
+        return focus(el, true);
+      }
+    }
+    return called;
   }
 
   /**

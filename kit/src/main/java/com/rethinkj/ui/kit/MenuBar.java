@@ -106,12 +106,17 @@ public final class MenuBar {
       title = -1;
     }
 
-    /** Opens the menu of a title, with its first item highlighted if the keyboard opened it. */
-    void open(int index, List<Menu.Item> menus, boolean keyboard) {
+    /**
+     * Opens the menu of a title, with its first item highlighted if a key opened it; while the bar
+     * has the keys, the title is the highlighted one.
+     */
+    void open(int index, List<Menu.Item> menus, boolean highlight) {
       menu.open();
       open = index;
-      if (keyboard) {
+      if (title >= 0) {
         title = index;
+      }
+      if (highlight) {
         menu.highlight(0, Menu.step(menus.get(index).submenu(), -1, 1));
       }
     }
@@ -123,7 +128,7 @@ public final class MenuBar {
         int at = Math.floorMod(from + direction * i, menus.size());
         if (menus.get(at).isEnabled()) {
           if (menu.isOpen()) {
-            open(at, menus, title >= 0);
+            open(at, menus, true);
           } else {
             title = at;
           }
@@ -187,7 +192,7 @@ public final class MenuBar {
         // While a menu is open, the pointer on another title switches to its menu at once.
         .onHoverFor(0, () -> {
           if (state.menu.isOpen() && state.open != i) {
-            state.open(i, menus, state.title >= 0);
+            state.open(i, menus, false);
           }
         });
     if (!lit) {
@@ -228,6 +233,7 @@ public final class MenuBar {
         if (found < 0) {
           return false;
         }
+        state.title = found;
         state.open(found, menus, true);
       }
     }
@@ -253,8 +259,10 @@ public final class MenuBar {
         return true;
       }
       state.armed = false;
-      if (Menu.run(table, k)) { // before the mnemonics, as accelerators come first in Windows
+      Menu.Item item = table.get(new Key(k.name(), k.modifiers(), false));
+      if (item != null && item.onChoose() != null) { // before the mnemonics, as in Windows
         state.close();
+        item.onChoose().run();
         return true;
       }
       if (k.name().equals("F10") && k.modifiers() == 0) {
@@ -264,6 +272,7 @@ public final class MenuBar {
       if (k.modifiers() == Key.ALT) {
         int found = byMnemonic(menus, k.name());
         if (found >= 0) {
+          state.title = found;
           state.open(found, menus, true);
           return true;
         }

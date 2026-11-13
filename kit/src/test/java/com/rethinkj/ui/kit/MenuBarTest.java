@@ -228,6 +228,28 @@ class MenuBarTest {
   }
 
   @Test
+  void theArrowsGoOnFromAMenuThePointerOpenedAndEscapeClosesItAtOnce() throws IOException {
+    Studio studio = new Studio(Theme.DARK);
+    App<Studio> app = studio.app();
+    run(app, "frame\npress #query\npress #title-0\nframe\n");
+    assertEquals(-1, studio.bar.menu().active(), "opened by the pointer: nothing highlighted");
+    run(app, "key ArrowRight\nframe\n");
+    assertEquals(1, studio.bar.open(), "Right goes to Edit");
+    assertEquals(0, studio.bar.menu().active(), "with its first item highlighted");
+    assertEquals(-1, studio.bar.title(), "the bar did not take the keys");
+    run(app, "key Escape\nframe\n");
+    assertEquals(-1, studio.bar.open());
+    assertEquals("query", app.focused().key(), "one Escape: back in the field");
+  }
+
+  @Test
+  void aKeyThatTypesIsNamedInUpperCase() {
+    IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
+        () -> Menu.item("New", () -> {}).shortcut(Key.CONTROL, "n"));
+    assertTrue(e.getMessage().contains("\"N\""), e.getMessage());
+  }
+
+  @Test
   void altWithALetterOpensItsMenuAndAPressOutsideTheBarLeavesIt() throws IOException {
     Studio studio = new Studio(Theme.DARK);
     App<Studio> app = studio.app();

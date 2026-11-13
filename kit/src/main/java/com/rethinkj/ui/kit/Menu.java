@@ -109,6 +109,10 @@ public final class Menu {
      * @param key the key's name, as {@link Key} lists them: {@code N}, {@code F5}, {@code Delete}
      */
     public Item shortcut(int modifiers, String key) {
+      if (key.codePointCount(0, key.length()) == 1 && !key.equals(key.toUpperCase(Locale.ROOT))) {
+        throw new IllegalArgumentException("A key that types a character is named by it in upper"
+            + " case: \"" + key.toUpperCase(Locale.ROOT) + "\", not \"" + key + "\"");
+      }
       Key k = new Key(key, modifiers, false);
       return new Item(label, shortcutText(k), k, checked, icon, onChoose, submenu);
     }
