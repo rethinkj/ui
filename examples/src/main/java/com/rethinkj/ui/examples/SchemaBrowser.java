@@ -6,9 +6,11 @@ import static com.rethinkj.ui.kit.DataGrid.dataGrid;
 import static com.rethinkj.ui.kit.Label.Variant.MUTED;
 import static com.rethinkj.ui.kit.Label.label;
 import static com.rethinkj.ui.kit.Split.split;
+import static com.rethinkj.ui.kit.TextField.codeArea;
 
 import com.rethinkj.ui.App;
 import com.rethinkj.ui.El;
+import com.rethinkj.ui.Key;
 import com.rethinkj.ui.Script;
 import com.rethinkj.ui.Work;
 import com.rethinkj.ui.kit.DataGrid.Align;
@@ -21,6 +23,7 @@ import com.rethinkj.ui.kit.Icon.Variant;
 import com.rethinkj.ui.kit.Split.Direction;
 import com.rethinkj.ui.kit.Split.Position;
 import com.rethinkj.ui.kit.Symbol;
+import com.rethinkj.ui.kit.TextField;
 import com.rethinkj.ui.kit.Theme;
 import com.rethinkj.ui.kit.Tree;
 import com.rethinkj.ui.render.GpuPresenter;
@@ -37,6 +40,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * The schema browser of a database tool over made-up servers that answer slowly: a tree of
@@ -47,6 +52,10 @@ import java.util.Set;
  * the children will be, and the window stays responsive: it moves, the tree and the rows scroll,
  * other nodes open. Selecting another table cancels the rows asked for before, whose answer then
  * never arrives.
+ *
+ * <p>Above the rows, a query area ({@link TextField#codeArea}) holds the statement for the selected
+ * table; Control+Enter runs it, which here asks for the rows again, as many as its {@code LIMIT}
+ * says, also on a thread of its own.
  *
  * <p>The work gets the names it asks about, never the nodes: they are the app's state, which only
  * the handlers touch, on the app's thread. Under a script the latency is 0, and the script's
@@ -69,6 +78,9 @@ public final class SchemaBrowser {
   private static final LocalDateTime START = LocalDateTime.of(2026, 1, 5, 8, 0);
   private static final DateTimeFormatter TIME = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
   static final int ROWS = 1000;
+  // What the made-up server reads of a statement: how many rows it asks for.
+  private static final Pattern LIMIT =
+      Pattern.compile("\\bLIMIT\\s+(\\d{1,9})\\b", Pattern.CASE_INSENSITIVE);
 
   /** A node of the catalog: a server, database, schema, table or column, by its level. */
   static final class Node {
@@ -101,6 +113,7 @@ public final class SchemaBrowser {
   Node table; // whose rows are shown, or on their way
   Rows rows; // null while they are on their way
   Work asking; // the query for them, cancelled when another table is selected
+  String query = ""; // the statement in the query area
   final Selection selection = new Selection(Mode.ROWS);
   String status = "Open a server to see its databases.";
 
@@ -126,12 +139,12 @@ public final class SchemaBrowser {
     };
   }
 
-  /** {@code SELECT * FROM <table> LIMIT 1000} on the made-up server. */
-  static Rows query(String path, Duration latency) throws Exception {
+  /** {@code SELECT * FROM <table> LIMIT <limit>} on the made-up server. */
+  static Rows query(String path, int limit, Duration latency) throws Exception {
     answerAfter(path, latency);
     List<String> columns = columns(path.substring(path.lastIndexOf('/') + 1));
     List<String[]> rows = new ArrayList<>();
-    for (int i = 0; i < ROWS; i++) {
+    for (int i = 0; i < limit; i++) {
       String[] cells = new String[columns.size()];
       for (int c = 0; c < cells.length; c++) {
         cells[c] = cell(columns.get(c), i);
@@ -192,15 +205,30 @@ public final class SchemaBrowser {
     if (node.level != 3 || node == table) {
       return;
     }
-    if (asking != null) {
-      asking.cancel(); // the rows of the table selected before are not wanted any more
-    }
     table = node;
+    String[] parts = node.path().split("/");
+    query = "SELECT *\nFROM " + parts[1] + "." + parts[2] + "." + parts[3] + "\nLIMIT " + ROWS
+        + ";";
+    ask(ROWS);
+  }
+
+  /** Control+Enter in the query area: its statement, as far as the made-up server reads it. */
+  void run() {
+    Matcher limit = LIMIT.matcher(query);
+    ask(limit.find() ? (int) Math.min(Long.parseLong(limit.group(1)), ROWS) : ROWS);
+  }
+
+  /** Asks for the rows of the table, cancelling what was asked before. */
+  private void ask(int limit) {
+    if (asking != null) {
+      asking.cancel(); // the rows asked for before are not wanted any more
+    }
+    Node node = table;
     rows = null;
     selection.clear();
     String path = node.path();
     Duration wait = latency;
-    asking = app.background("rows of " + path, () -> query(path, wait),
+    asking = app.background("rows of " + path, () -> query(path, limit, wait),
         answer -> {
           rows = answer;
           asking = null;
@@ -240,6 +268,18 @@ public final class SchemaBrowser {
         null).key("schema").label("Schema").grow(1);
     El schema = col().fill(t.surface().panel()).padding(t.space().m()).child(tree);
     El content = col().padding(t.space().l()).gap(t.space().m());
+    if (s.table != null) {
+      content.child(label(t, s.table.path()));
+    }
+    // There from the start, disabled until a table is selected, so that it does not fade in.
+    content.child(codeArea(t, s.query, "SQL", s.table == null ? null : q -> s.query = q)
+        .key("query").label("Query").lines(4).wFull().onKey(k -> {
+          boolean run = k.name().equals("Enter") && k.modifiers() == Key.CONTROL;
+          if (run && s.table != null) {
+            s.run();
+          }
+          return run;
+        }));
     if (s.table == null) {
       content.child(label(t, MUTED, "Select a table to see its rows."));
     } else if (s.rows == null) {
@@ -254,9 +294,8 @@ public final class SchemaBrowser {
         columns.add(new Column(name, name.endsWith("_at") ? 140 : name.equals("note") ? 180 : 90,
             text ? Align.LEFT : Align.RIGHT, !text, false, i -> r.rows().get(i)[index]));
       }
-      content.child(label(t, s.table.path()))
-          .child(dataGrid(t, columns, r.rows().size(), DataGrid.options().select(s.selection))
-              .key("rows").label("Rows").grow(1));
+      content.child(dataGrid(t, columns, r.rows().size(), DataGrid.options().select(s.selection))
+          .key("rows").label("Rows").grow(1));
     }
     return col().wFull().hFull().fill(t.surface().window())
         .child(titleBar(t, "Schema", t.accent().color()))

@@ -24,6 +24,8 @@ press role=treeitem label="customers"   # asks for the rows of customers
 frame
 key ArrowDown                           # deliveries: the rows of customers are not wanted now
 frame
+advance 1                               # the path fades in, the query area takes its colours
+frame
 snap schema-asking
 
 await                          # only the rows of deliveries arrive
@@ -38,3 +40,18 @@ frame
 await                          # prod-eu refuses: it closes again, and the status says why
 frame
 snap schema-refused
+
+press #query                   # the statement for deliveries, in the query area
+key End control
+key ArrowLeft
+key Backspace control          # LIMIT 1000 ...
+type "20"                      # ... becomes LIMIT 20
+key Enter control              # runs it: the rows are asked for again
+frame
+advance 1                      # the border of the focus
+frame
+snap schema-query              # "Loading…" below the statement, the caret still in it
+
+await
+frame
+snap schema-ran                # twenty rows, and the status says so

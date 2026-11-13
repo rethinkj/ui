@@ -49,7 +49,8 @@ el 0,0 720x400
     el #rest 237,32 483x344
       el #second 241,32 479x344
         el 241,32 479x344
-          text "Select a table to see its rows." 253,44 455x16
+          text #query role=textbox label="Query" "" 253,44 455x82 disabled lines 1-1/1
+          text "Select a table to see its rows." 253,134 455x16
       el #divider role=separator label="Resize" 237,32 7x344 value="first 240"
         el 240,32 1x344
   text #status "Open a server to see its databases." 0,376 720x24

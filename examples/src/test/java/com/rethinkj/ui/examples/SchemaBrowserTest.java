@@ -21,7 +21,7 @@ class SchemaBrowserTest {
         SchemaBrowser.children("localhost", 1, Duration.ZERO));
     assertEquals(SchemaBrowser.columns("orders"),
         SchemaBrowser.children("localhost/shop/public/orders", 4, Duration.ZERO));
-    SchemaBrowser.Rows rows = SchemaBrowser.query("staging/shop/public/orders", Duration.ZERO);
+    SchemaBrowser.Rows rows = SchemaBrowser.query("staging/shop/public/orders", SchemaBrowser.ROWS, Duration.ZERO);
     assertEquals(SchemaBrowser.ROWS, rows.rows().size());
     assertEquals(rows.columns().size(), rows.rows().getFirst().length);
   }
