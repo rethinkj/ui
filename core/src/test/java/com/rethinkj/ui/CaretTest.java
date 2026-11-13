@@ -70,6 +70,17 @@ class CaretTest {
   }
 
   @Test
+  void theHandlerIsToldOnlyPositionsBetweenGraphemes() {
+    App<Model> app = area("\u0301", f -> f);
+    key(app, "Home");
+    told.clear();
+    type(app, "e"); // joins the mark after it into one grapheme
+    assertEquals("e\u0301", app.state().value);
+    assertEquals("|e\u0301", show(app));
+    assertEquals(List.of(), told, "never 1, between the letter and its mark");
+  }
+
+  @Test
   void anEditOfTheAppIsOneStepThroughTheHandler() {
     App<Model> app = area("SELECT na FROM t", f -> f);
     El field = field(app);

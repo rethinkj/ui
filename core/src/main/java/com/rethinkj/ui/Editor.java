@@ -972,8 +972,9 @@ final class Editor {
     }
     proposed = next;
     text = next;
-    caret = newCaret;
-    anchor = newAnchor;
+    // An edit can join what it puts in with a mark after it: the caret stays between graphemes.
+    caret = snap(newCaret);
+    anchor = snap(newAnchor);
     changed = true;
     reveal = true;
     goal = Float.NaN;
