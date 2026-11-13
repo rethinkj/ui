@@ -38,17 +38,9 @@ el 0,0 140x40
     el 62,12 16x16
     el 62,12 16x16
     el 62,12 16x16
-    el 62,12 16x16
-    el 62,12 16x16
-    el 62,12 16x16
-    el 62,12 16x16
 # running, 5
 el 0,0 140x40
   el #c role=progressbar label="Loading" 62,12 16x16
-    el 62,12 16x16
-    el 62,12 16x16
-    el 62,12 16x16
-    el 62,12 16x16
     el 62,12 16x16
     el 62,12 16x16
     el 62,12 16x16
@@ -138,19 +130,11 @@ el 0,0 140x40
       el 34,12 16x16
       el 34,12 16x16
       el 34,12 16x16
-      el 34,12 16x16
-      el 34,12 16x16
-      el 34,12 16x16
-      el 34,12 16x16
     text "Running" 54,12 52x16
 # busy, hover
 el 0,0 140x40
   el #c role=button label="Running" 21,8 98x24 busy
     el role=progressbar label="Loading" 34,12 16x16
-      el 34,12 16x16
-      el 34,12 16x16
-      el 34,12 16x16
-      el 34,12 16x16
       el 34,12 16x16
       el 34,12 16x16
       el 34,12 16x16
@@ -166,19 +150,11 @@ el 0,0 140x40
       el 34,12 16x16
       el 34,12 16x16
       el 34,12 16x16
-      el 34,12 16x16
-      el 34,12 16x16
-      el 34,12 16x16
-      el 34,12 16x16
     text "Running" 54,12 52x16
 # busy, focused
 el 0,0 140x40
   el #c role=button label="Running" 21,8 98x24 busy focused
     el role=progressbar label="Loading" 34,12 16x16
-      el 34,12 16x16
-      el 34,12 16x16
-      el 34,12 16x16
-      el 34,12 16x16
       el 34,12 16x16
       el 34,12 16x16
       el 34,12 16x16

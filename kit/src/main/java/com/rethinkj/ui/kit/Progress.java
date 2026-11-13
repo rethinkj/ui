@@ -120,17 +120,17 @@ public final class Progress {
   }
 
   /**
-   * A spinner: a ring in {@link Theme.Borders#control} round which a light arc in the accent's
+   * A spinner: a faint ring in {@link Theme.Borders#subtle} round which a light arc in the accent's
    * edge runs once per {@link Theme.Motion#spin} seconds. The core has no rotation and no arcs, so
-   * the arc is eight crescents, each a round box with a border on one side or two neighbouring
-   * ones, which tapers to nothing at its ends; their opacities follow the arc round, so the light
-   * moves smoothly rather than from one spoke to the next. Labelled "Loading" unless the view sets
+   * the arc is four crescents, each the ring's box with a border on one side alone, which tapers
+   * to nothing a quarter of a turn either way; their opacities follow the light round, each fading
+   * into the next, so it moves smoothly rather than from one spoke to the next. Labelled "Loading" unless the view sets
    * another label.
    *
    * @param size the side, such as {@code size().icon()} for a button or a row
    */
   public static El spinner(Theme t, float size) {
-    return spinner(t, size, t.accent().edge(), t.border().control());
+    return spinner(t, size, t.accent().edge(), t.border().subtle());
   }
 
   /** A spinner in other colours, as on a primary button. */
@@ -139,18 +139,16 @@ public final class Progress {
     double period = t.motion().spin();
     El spinner = el().role("progressbar").label("Loading").size(size, size).shrink(0)
         .child(el().absolute(0, 0).size(size, size).radius(size / 2).border(width, ring));
-    // top, top right, right, bottom right, bottom, bottom left, left, top left: which sides
-    // have a border
-    int[] sides = {0b1000, 0b1100, 0b0100, 0b0110, 0b0010, 0b0011, 0b0001, 0b1001};
-    for (int i = 0; i < sides.length; i++) {
-      int s = sides[i];
-      double at = (double) i / sides.length;
+    // top, right, bottom, left: each a border on one side of the ring's box, which tapers to
+    // nothing a quarter of a turn either way; a box with two sides would light three quarters
+    for (int i = 0; i < 4; i++) {
+      double at = i / 4.0;
       spinner.child(el().absolute(0, 0).size(size, size).radius(size / 2)
-          .border((s >> 3 & 1) * width, (s >> 2 & 1) * width, (s >> 1 & 1) * width,
-              (s & 1) * width, arc)
+          .border(i == 0 ? width : 0, i == 1 ? width : 0, i == 2 ? width : 0, i == 3 ? width : 0,
+              arc)
           .cycle(period, (e, phase) -> {
             double away = Math.abs(((phase - at) % 1 + 1.5) % 1 - 0.5); // 0 to 1/2 of a turn
-            e.opacity((float) Math.max(0, Math.cos(Math.PI * away * 3.2)));
+            e.opacity((float) Math.max(0, Math.cos(Math.PI * away * 2)));
           }));
     }
     return spinner;
