@@ -1,0 +1,28 @@
+el 0,0 360x420
+  el role=combobox label="Isolation" 12,12 200x24 expanded=false
+    text "Read committed" 21,16 162x16
+    text label="chevron_down" "\u{F2A2}" 187,16 16x16
+  el role=radiogroup label="Level" 8,42 133x60
+    el role=radio label="Read committed" 12,44 125x16 checked=false
+      el 12,44 16x16
+      text "Read committed" 36,44 99x16
+    el role=radio label="Repeatable read" 12,64 125x16 checked=false
+      el 12,64 16x16
+      text "Repeatable read" 36,64 101x16
+    el role=radio label="Serializable" 12,84 125x16 checked
+      el 12,84 16x16
+        el 17,89 6x6
+      text "Serializable" 36,84 70x16
+  el role=radiogroup label="Show" 12,108 352x24
+    el role=radio label="Read committed" 15,111 123x18 checked=false
+      text "Read committed" 27,112 99x16
+    el role=radio label="Repeatable read" 140,111 125x18 checked=false
+      text "Repeatable read" 152,112 101x16
+    el role=radio label="Serializable" 267,111 94x18 checked=false
+      text "Serializable" 279,112 70x16
+  el role=combobox label="Schema" 12,140 200x24 expanded=false
+    text "" 21,144 162x16
+    text label="chevron_down" "\u{F2A2}" 187,144 16x16
+  el role=combobox label="Owned schema" 12,172 200x24 expanded=false
+    text "" 21,176 162x16
+    text label="chevron_down" "\u{F2A2}" 187,176 16x16

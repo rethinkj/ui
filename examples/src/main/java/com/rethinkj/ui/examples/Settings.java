@@ -63,16 +63,93 @@ import java.util.Locale;
  */
 public final class Settings {
 
-  static final List<NavList.Item> PAGES = List.of(
-      NavList.item(Symbol.SETTINGS, "General"),
-      NavList.item(Symbol.WINDOW, "Appearance"),
-      NavList.item(Symbol.CODE, "Editor"),
-      NavList.item(Symbol.DATABASE, "Connections"),
-      NavList.item(Symbol.KEY_MULTIPLE, "Keymap"),
-      NavList.heading("Help"),
-      NavList.item(Symbol.INFO, "About"));
-  static final List<String> THEMES = List.of("Light", "Dark", "System");
-  static final List<String> ACCENTS = List.of("Blue", "Purple", "Green", "Orange");
+  /** The pages, in the order of the navigation list; About under the heading Help. */
+  enum Page {
+    GENERAL(Symbol.SETTINGS, "General"),
+    APPEARANCE(Symbol.WINDOW, "Appearance"),
+    EDITOR(Symbol.CODE, "Editor"),
+    CONNECTIONS(Symbol.DATABASE, "Connections"),
+    KEYMAP(Symbol.KEY_MULTIPLE, "Keymap"),
+    ABOUT(Symbol.INFO, "About");
+
+    final Symbol icon;
+    final String title;
+
+    Page(Symbol icon, String title) {
+      this.icon = icon;
+      this.title = title;
+    }
+
+    NavList.Item item() {
+      return NavList.item(icon, title);
+    }
+
+    String group() {
+      return this == ABOUT ? "Help" : null;
+    }
+  }
+
+  enum Look {
+    LIGHT("Light"),
+    DARK("Dark"),
+    SYSTEM("System");
+
+    final String title;
+
+    Look(String title) {
+      this.title = title;
+    }
+  }
+
+  enum Accent {
+    BLUE("Blue", Theme.Hue.BLUE),
+    PURPLE("Purple", Theme.Hue.PURPLE),
+    GREEN("Green", Theme.Hue.GREEN),
+    ORANGE("Orange", Theme.Hue.ORANGE);
+
+    final String title;
+    final Theme.Hue hue;
+
+    Accent(String title, Theme.Hue hue) {
+      this.title = title;
+      this.hue = hue;
+    }
+  }
+
+  enum EditorFont {
+    JETBRAINS_MONO("JetBrains Mono"),
+    INTER("Inter");
+
+    final String title;
+
+    EditorFont(String title) {
+      this.title = title;
+    }
+  }
+
+  enum Density {
+    COMPACT("Compact"),
+    COMFORTABLE("Comfortable");
+
+    final String title;
+
+    Density(String title) {
+      this.title = title;
+    }
+  }
+
+  enum LineEnding {
+    LF("LF"),
+    CRLF("CRLF"),
+    AS_IN_FILE("As in the file");
+
+    final String title;
+
+    LineEnding(String title) {
+      this.title = title;
+    }
+  }
+
   // Enough of them that typing finds one sooner than reading: a combo box.
   static final List<String> LANGUAGES = List.of(
       "English",
@@ -98,9 +175,6 @@ public final class Settings {
       "Suomi",
       "Svenska",
       "Türkçe");
-  static final List<String> FONTS = List.of("JetBrains Mono", "Inter");
-  static final List<String> DENSITIES = List.of("Compact", "Comfortable");
-  static final List<String> ENDINGS = List.of("LF", "CRLF", "As in the file");
   static final int FONT_SIZE = 13;
 
   /** A server the workbench knows, with the menu of its card. */
@@ -119,7 +193,7 @@ public final class Settings {
     }
   }
 
-  int page;
+  Page page = Page.GENERAL;
   App<Settings> app; // whose window says whether it is maximized
   // General
   boolean reopen = true;
@@ -128,22 +202,22 @@ public final class Settings {
   final ComboBox.State languages = new ComboBox.State();
   int history = 200;
   // Appearance
-  int theme = 1;
-  int accent;
+  Look theme = Look.DARK;
+  Accent accent = Accent.BLUE;
   final Menu.State accents = new Menu.State();
   int fontSize = FONT_SIZE;
-  int density;
+  Density density = Density.COMPACT;
   // Editor
   boolean wrap;
   boolean lineNumbers = true;
   boolean highlight = true;
   int tabSize = 4;
-  int font;
+  EditorFont font = EditorFont.JETBRAINS_MONO;
   final Menu.State fonts = new Menu.State();
   boolean advanced;
   boolean spaces = true;
   int undo = 100;
-  int endings;
+  LineEnding endings = LineEnding.LF;
   // Connections
   final List<Connection> connections = new ArrayList<>(List.of(
       new Connection("localhost", "localhost", 5432, true),
@@ -167,15 +241,12 @@ public final class Settings {
 
   Theme theme() {
     // System is dark unless the system says light; under a script the example cannot ask it.
-    boolean light = theme == 0
-        || theme == 2 && system != null && system.scheme() == SystemAppearance.Scheme.LIGHT;
+    boolean light = theme == Look.LIGHT
+        || theme == Look.SYSTEM
+            && system != null
+            && system.scheme() == SystemAppearance.Scheme.LIGHT;
     Theme base = light ? Theme.LIGHT : Theme.DARK;
-    return switch (accent) {
-      case 1 -> base.withAccent(Theme.Hue.PURPLE);
-      case 2 -> base.withAccent(Theme.Hue.GREEN);
-      case 3 -> base.withAccent(Theme.Hue.ORANGE);
-      default -> base;
-    };
+    return accent == Accent.BLUE ? base : base.withAccent(accent.hue);
   }
 
   List<Connection> matches() {
@@ -234,7 +305,7 @@ public final class Settings {
 
   static El view(Settings s) {
     Theme t = s.theme();
-    El pages = navList(t, PAGES, s.page, i -> s.page = i)
+    El pages = navList(t, List.of(Page.values()), s.page, Page::item, Page::group, p -> s.page = p)
         .key("pages")
         .label("Settings")
         .grow(1);
@@ -251,12 +322,12 @@ public final class Settings {
             .children(
                 Card.flush(t, Card.inset(t, pages)).w(200).shrink(0),
                 switch (s.page) {
-                  case 0 -> general(t, s);
-                  case 1 -> appearance(t, s);
-                  case 2 -> editor(t, s);
-                  case 3 -> connections(t, s);
-                  case 4 -> keymap(t);
-                  default -> about(t, s.platform);
+                  case GENERAL -> general(t, s);
+                  case APPEARANCE -> appearance(t, s);
+                  case EDITOR -> editor(t, s);
+                  case CONNECTIONS -> connections(t, s);
+                  case KEYMAP -> keymap(t);
+                  case ABOUT -> about(t, s.platform);
                 }));
     return root.overlay(s.adding ? newConnection(t, s) : null);
   }
@@ -302,7 +373,7 @@ public final class Settings {
                         "Keymap",
                         "The keys of every command",
                         "Default",
-                        () -> s.page = 4))))
+                        () -> s.page = Page.KEYMAP))))
         .grow(1);
   }
 
@@ -322,12 +393,19 @@ public final class Settings {
                         s.system == null
                             ? "System follows the dark theme in this example"
                             : "System follows the system's light or dark setting",
-                        segmented(t, THEMES, s.theme, i -> s.theme = i)),
+                        segmented(
+                            t, List.of(Look.values()), s.theme, l -> l.title, l -> s.theme = l)),
                     Group.row(
                         t,
                         "Accent colour",
                         "Buttons, switches and selections",
-                        select(t, ACCENTS, s.accent, s.accents, i -> s.accent = i)
+                        select(
+                                t,
+                                List.of(Accent.values()),
+                                s.accent,
+                                a -> a.title,
+                                s.accents,
+                                a -> s.accent = a)
                             .w(160)))),
             section(
                 t,
@@ -344,7 +422,12 @@ public final class Settings {
                         t,
                         "Density",
                         "Space between the rows of lists, trees and grids",
-                        segmented(t, DENSITIES, s.density, i -> s.density = i))),
+                        segmented(
+                            t,
+                            List.of(Density.values()),
+                            s.density,
+                            d -> d.title,
+                            d -> s.density = d))),
                 s.fontSize == FONT_SIZE
                     ? null
                     : callout(
@@ -388,7 +471,14 @@ public final class Settings {
                         t,
                         "Font",
                         null,
-                        select(t, FONTS, s.font, s.fonts, i -> s.font = i).w(160)))),
+                        select(
+                                t,
+                                List.of(EditorFont.values()),
+                                s.font,
+                                f -> f.title,
+                                s.fonts,
+                                f -> s.font = f)
+                            .w(160)))),
             section(
                 t,
                 "Indentation",
@@ -420,7 +510,12 @@ public final class Settings {
                         Group.box(
                             t,
                             label(t, "Line endings"),
-                            radioGroup(t, ENDINGS, s.endings, i -> s.endings = i)
+                            radioGroup(
+                                    t,
+                                    List.of(LineEnding.values()),
+                                    s.endings,
+                                    e -> e.title,
+                                    e -> s.endings = e)
                                 .label("Line endings"))))))
         .grow(1);
   }

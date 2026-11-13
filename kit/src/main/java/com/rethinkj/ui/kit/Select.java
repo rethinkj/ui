@@ -11,6 +11,8 @@ import com.rethinkj.ui.Side;
 import com.rethinkj.ui.Style;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.IntConsumer;
 
 /**
@@ -30,6 +32,35 @@ public final class Select {
   public static final Symbol OPENS = Symbol.CHEVRON_DOWN;
 
   private Select() {}
+
+  /**
+   * A select of values of any type, such as the constants of an enum:
+   *
+   * <pre>{@code
+   * select(t, List.of(Level.values()), s.level, Level::label, s.levelMenu, v -> s.level = v)
+   * }</pre>
+   *
+   * @param values the values to choose from
+   * @param selected the current value, found by {@code equals}; null, or a value not among them,
+   *     for none
+   * @param text the text a value shows
+   * @param state whether the list is open; the app keeps it
+   * @param onSelect told the value chosen; null disables the select
+   */
+  public static <T> El select(
+      Theme t,
+      List<T> values,
+      T selected,
+      Function<? super T, String> text,
+      Menu.State state,
+      Consumer<? super T> onSelect) {
+    return select(
+        t,
+        Choices.texts(values, text),
+        Choices.index(values, selected),
+        state,
+        Choices.handler(values, onSelect));
+  }
 
   /**
    * @param choices the texts to choose from
