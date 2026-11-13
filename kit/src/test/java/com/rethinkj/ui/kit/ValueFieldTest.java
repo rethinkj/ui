@@ -9,6 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import com.rethinkj.ui.App;
 import com.rethinkj.ui.Script;
 import com.rethinkj.ui.render.Png;
+import com.rethinkj.ui.text.TextRendering;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.nio.file.Files;
@@ -158,6 +159,7 @@ class ValueFieldTest {
   @CsvSource({"dark", "light"})
   void theDraftAndItsMessage(String theme) throws IOException {
     App<State> app = app(new State(), theme.equals("dark") ? Theme.DARK : Theme.LIGHT);
+    app.textRendering(TextRendering.LINUX); // the stored image must not depend on the platform
     List<Path> files = Script.run(
         "size 300 160 scale 2\nframe\npress #amount\nkey A control\ntype \"12e\"\nframe\n"
             + "advance 1\nframe\nsnap draft",
