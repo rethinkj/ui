@@ -17,6 +17,7 @@ import java.util.Set;
 import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.IntConsumer;
 import java.util.function.Predicate;
 
 /**
@@ -96,6 +97,7 @@ public final class App<S> {
   private boolean stale = true;
   private El root;
   private Object pressed; // the identity of the element a press is on, until the pointer is up
+  private int pressClicks; // the presses in quick succession that the one on pressed completes
   private Dragging dragging; // a pointer down on an element with a drag handler, until it is up
   private boolean pointerIn;
   private float pointerX;
@@ -195,8 +197,9 @@ public final class App<S> {
 
   /**
    * Like {@link #pointerDown(float, float)}, as the window reports it: with the number of presses
-   * in quick succession at about the same place, and the modifiers held. On a text field ({@link
-   * El#editable}) a second press selects a word and a third the whole text, Shift extends the
+   * in quick succession at about the same place, and the modifiers held. A press handler gets the
+   * number ({@link El#onPress(IntConsumer)}). On a text field ({@link El#editable}) a second
+   * press selects a word and a third the whole text, Shift extends the
    * selection, and moving the pointer until it is up selects. Such a press goes to the field
    * alone: it is no press and no {@link El#onDrag drag} of an element around it, and until it is
    * up the field counts as the element under the pointer.
@@ -229,6 +232,7 @@ public final class App<S> {
     }
     Target target = target(x, y);
     pressed = target == null ? null : target.id();
+    pressClicks = clicks;
     dragging = target == null || target.el.onDrag() == null
         ? null
         : new Dragging(target.id(), target.el.onDrag(), x, y);
@@ -255,9 +259,10 @@ public final class App<S> {
     if (d != null && d.started) {
       step(d, Drag.Phase.END, x - d.x, y - d.y);
     } else if (target != null && target.id().equals(pressed) && target.el.onPress() != null) {
-      Runnable handler = target.el.onPress();
+      IntConsumer handler = target.el.onPress();
+      int clicks = pressClicks;
       queued.add(() -> {
-        handler.run();
+        handler.accept(clicks);
         return true;
       });
     }
@@ -331,7 +336,7 @@ public final class App<S> {
             && key.modifiers() == 0
             && (key.name().equals("Enter") || key.name().equals("Space"))) {
           if (!key.repeat()) {
-            el.onPress().run();
+            el.onPress().accept(1);
           }
           return true;
         }

@@ -66,6 +66,13 @@ class ThemeTest {
         "grid selected inactive", g.selectedInactive());
     check(failures, "primary text", t.text().primary(), grid, 4.5);
     check(failures, "muted text", t.text().muted(), grid, 4.5);
+    // The tree: no fill of its own, so its hovered rows lay the overlay over what it is on.
+    // Labels in primary text, marks and loading rows in muted text; selected rows as the grid's.
+    Map<String, Integer> tree = Map.of(
+        "panel hovered", over(s.panel(), s.hover()),
+        "window hovered", over(s.window(), s.hover()));
+    check(failures, "primary text", t.text().primary(), tree, 4.5);
+    check(failures, "muted text", t.text().muted(), tree, 4.5);
     assertTrue(failures.isEmpty(), String.join("\n", failures));
   }
 

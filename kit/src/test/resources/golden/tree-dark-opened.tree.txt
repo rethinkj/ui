@@ -1,0 +1,64 @@
+el 0,0 280x300
+  el #schema role=tree label="Schema" 8,8 264x284 rows 0-15/311 focused
+    el #row-0 role=treeitem label="localhost" 8,8 264x22
+      el #mark-0 12,8 16x22
+        text "▼" 17,11 7x16
+      el 32,15 8x8
+      text "localhost" 44,11 56x16
+    el #row-1 role=treeitem label="analytics" 8,30 264x22
+      el #mark-1 28,30 16x22
+        text "▶" 33,33 7x16
+      text "analytics" 48,33 53x16
+    el #row-2 role=treeitem label="postgres" 8,52 264x22
+      el #mark-2 28,52 16x22
+        text "▶" 33,55 7x16
+      text "postgres" 48,55 55x16
+    el #row-3 role=treeitem label="shop" 8,74 264x22
+      el #mark-3 28,74 16x22
+        text "▼" 33,77 7x16
+      text "shop" 48,77 31x16
+    el #row-4 role=treeitem label="audit" 8,96 264x22
+      el #mark-4 44,96 16x22
+        text "▶" 49,99 7x16
+      text "audit" 64,99 30x16
+    el #row-5 role=treeitem label="public" 8,118 264x22
+      el #mark-5 44,118 16x22
+        text "▼" 49,121 7x16
+      text "public" 64,121 37x16
+    el #row-6 role=treeitem label="accounts" 8,140 264x22
+      el #mark-6 60,140 16x22
+        text "▼" 65,143 7x16
+      text "accounts" 80,143 56x16
+    el #row-7 role=treeitem label="id" 8,162 264x22
+      el 76,162 16x22
+      text "id" 96,165 11x16
+    el #row-8 role=treeitem label="created_at" 8,184 264x22
+      el 76,184 16x22
+      text "created_at" 96,187 64x16
+    el #row-9 role=treeitem label="updated_at" 8,206 264x22
+      el 76,206 16x22
+      text "updated_at" 96,209 68x16
+    el #row-10 role=treeitem label="accounts_001" 8,228 264x22
+      el #mark-10 60,228 16x22
+        text "▶" 65,231 7x16
+      text "accounts_001" 80,231 82x16
+    el #row-11 role=treeitem label="accounts_002" 8,250 264x22
+      el #mark-11 60,250 16x22
+        text "▶" 65,253 7x16
+      text "accounts_002" 80,253 85x16
+    el #row-12 role=treeitem label="accounts_003" 8,272 264x22
+      el #mark-12 60,272 16x22
+        text "▶" 65,275 7x16
+      text "accounts_003" 80,275 85x16
+    el #row-13 role=treeitem label="accounts_004" 8,294 264x22
+      el #mark-13 60,294 16x22
+        text "▶" 65,297 7x16
+      text "accounts_004" 80,297 85x16
+    el #row-14 role=treeitem label="accounts_005" 8,316 264x22
+      el #mark-14 60,316 16x22
+        text "▶" 65,319 7x16
+      text "accounts_005" 80,319 85x16
+    el #row-15 role=treeitem label="accounts_006" 8,338 264x22
+      el #mark-15 60,338 16x22
+        text "▶" 65,341 7x16
+      text "accounts_006" 80,341 85x16
