@@ -251,10 +251,21 @@ public final class Font implements AutoCloseable {
   }
 
   /**
+   * Starts reading the system's fonts for {@link #withSystemFonts} on a virtual thread of its
+   * own, unless that started already, and returns: the first character that needs one of them then
+   * finds the index ready, or waits only for the rest of the scan. Calling it is never needed; an
+   * {@code App} does when it is told to use the system's fonts, as a window's loop tells it.
+   */
+  public static void prepareSystemFonts() {
+    SystemFonts.prepare();
+  }
+
+  /**
    * This font and its fallbacks, and then the fonts installed on the system for the characters
    * that none of them has. The first character that needs them looks through the system's font
-   * folders, once per process; see {@code SystemFonts}. Images drawn with it depend on the
-   * machine, which is why {@code App} uses it only in a window unless told otherwise.
+   * folders, once per process, unless {@link #prepareSystemFonts} did that already; see {@code
+   * SystemFonts}. Images drawn with it depend on the machine, which is why {@code App} uses it only
+   * in a window unless told otherwise.
    */
   public Font withSystemFonts() {
     return base.derive(fallback, true);
@@ -509,9 +520,19 @@ public final class Font implements AutoCloseable {
   }
 
   /**
+   * How {@link #icons()} are hinted, whatever the text's {@link TextRendering}: FreeType's
+   * auto-hinter in both directions, which puts the straight strokes it finds on whole pixels, as
+   * the drawings are made for the pixel grid. The light auto-hinter moves outlines vertically only
+   * and left an arrow's shaft half covered on two rows of pixels at scale 1; the font has no
+   * instructions, so its own hints would mean the same auto-hinter as here.
+   */
+  private static final int ICON_HINTING = FreeType.LOAD_FORCE_AUTOHINT;
+
+  /**
    * Rasterises a glyph with FreeType into greyscale coverage, moved right by {@code quarter}
    * quarter pixels after hinting, so that a glyph on a quarter-pixel position is drawn from a
-   * bitmap at a whole one.
+   * bitmap at a whole one. The glyphs of {@link #icons()} are hinted alike for every {@code
+   * hinting} ({@link #ICON_HINTING}).
    *
    * @param pixelSize the size in physical pixels, as {@link GlyphRun#pixelSize}
    * @param quarter 0 to 3
@@ -531,10 +552,10 @@ public final class Font implements AutoCloseable {
         FreeType.setLong(delta, FreeType.C_LONG.byteSize(), 0);
         FreeType.setTransform(face, MemorySegment.NULL, delta); // copies the vector
       }
-      int flags = FreeType.LOAD_NO_BITMAP | switch (hinting) {
+      int flags = FreeType.LOAD_NO_BITMAP | (icons ? ICON_HINTING : switch (hinting) {
         case LIGHT -> FreeType.LOAD_FORCE_AUTOHINT | FreeType.LOAD_TARGET_LIGHT;
         case NATIVE -> FreeType.LOAD_DEFAULT;
-      };
+      });
       check(FreeType.loadGlyph(face, glyph, flags), "load glyph " + glyph + " of");
       MemorySegment slot =
           face.get(ADDRESS, FreeType.FACE_GLYPH).reinterpret(FreeType.GLYPH_SLOT.byteSize());

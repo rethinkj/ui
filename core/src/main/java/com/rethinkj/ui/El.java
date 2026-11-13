@@ -255,6 +255,16 @@ public final class El {
     return state(CURRENT, current ? CURRENT : 0);
   }
 
+  /** Whether the view set {@link #selected(boolean)}. */
+  boolean isSelected() {
+    return (states & SELECTED) != 0;
+  }
+
+  /** Whether the view set {@link #current(boolean)}. */
+  boolean isCurrent() {
+    return (states & CURRENT) != 0;
+  }
+
   /** Whether this checkbox is checked or this switch ({@code role=switch}) is on. */
   public El checked(boolean checked) {
     return state(CHECKED | NOT_CHECKED, checked ? CHECKED : NOT_CHECKED);

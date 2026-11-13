@@ -483,6 +483,47 @@ class OverlayTest {
         () -> Script.run("press #row right clicks 2\n", app, out));
   }
 
+  /**
+   * A list of rows that has the focus as a whole, as a tree or a grid has: the Menu key opens its
+   * menu at the row the keys would act on, not at the bottom of the list.
+   */
+  @Test
+  void theMenuKeyOpensAtTheCursorOrTheSelectionInsideTheFocusedElement() {
+    List<String> log = new ArrayList<>();
+    int[] cursor = {-1};
+    int[] selected = {-1};
+    App<List<String>> app = new App<>(log, l -> col().size(200, 200).child(
+        col().key("list").size(200, 100).margin(0, 0, 0, 10).scroll().focusable()
+            .onSecondaryPress((x, y) -> l.add(x + "," + y))
+            .rows(100, 20, i -> el().key("row-" + i).padding(0, 0, 0, 30)
+                .child(el().key("cell-" + i).size(50, 20).current(i == cursor[0]))
+                .selected(i == selected[0]))));
+    app.resize(200, 200, 1);
+    app.frame();
+    app.focus(find(app, "list"));
+    app.frame();
+    key(app, "ContextMenu", 0);
+    assertEquals(List.of("10.0,100.0"), log, "nothing selected: the list's bottom left");
+
+    selected[0] = 2;
+    rebuild(app);
+    log.clear();
+    key(app, "ContextMenu", 0);
+    assertEquals(List.of("10.0,60.0"), log, "the selected row's bottom left");
+
+    cursor[0] = 3;
+    rebuild(app);
+    log.clear();
+    key(app, "F10", Key.SHIFT);
+    assertEquals(List.of("40.0,80.0"), log, "the current cell before the selected row");
+
+    app.wheel(50, 50, 0, 90); // row 3 ends at 80 - 90, above the list, which keeps the point in
+    app.frame();
+    log.clear();
+    key(app, "ContextMenu", 0);
+    assertEquals(List.of("40.0,0.0"), log);
+  }
+
   @Test
   void aLookAfterAStayShowsATooltipWhenTheClockSaysAndAPressHidesIt() {
     State s = new State();

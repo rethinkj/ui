@@ -4,6 +4,7 @@ import com.rethinkj.ui.layout.Flex;
 import com.rethinkj.ui.render.CpuRenderer;
 import com.rethinkj.ui.render.Scene;
 import com.rethinkj.ui.text.Atlas;
+import com.rethinkj.ui.text.Font;
 import com.rethinkj.ui.text.TextRendering;
 import java.time.Duration;
 import java.util.ArrayDeque;
@@ -567,6 +568,55 @@ public final class App<S> {
   }
 
   /**
+   * Where the Menu key opens a menu for the focused element at the end of {@code path}: at the
+   * bottom left of its cursor, the first element inside it that is {@link El#current}, else the
+   * first that is {@link El#selected} (a grid's cursor cell, a tree's selected row), kept inside
+   * the focused element's box; at the focused element's bottom left when it has neither.
+   */
+  private static float[] menuPoint(List<El> path) {
+    List<El> to = new ArrayList<>(fromOverlay(path));
+    float left = 0;
+    float top = 0;
+    for (El on : to) {
+      left += on.x();
+      top += on.y();
+    }
+    El focused = to.getLast();
+    float right = left + focused.width();
+    float bottom = top + focused.height();
+    List<El> cursor = new ArrayList<>();
+    if (!firstPath(focused, El::isCurrent, cursor) && !firstPath(focused, El::isSelected, cursor)) {
+      return new float[] {left, bottom};
+    }
+    float x = left;
+    float y = top;
+    for (El on : cursor) {
+      x += on.x();
+      y += on.y();
+    }
+    return new float[] {
+        Math.clamp(x, left, right), Math.clamp(y + cursor.getLast().height(), top, bottom)};
+  }
+
+  /**
+   * Adds to {@code path} the elements below {@code from} down to the first one in tree order that
+   * is {@code wanted} and placed, without overlays; whether there is one.
+   */
+  private static boolean firstPath(El from, Predicate<El> wanted, List<El> path) {
+    for (El child : from.children()) {
+      if (!child.isPlaced()) {
+        continue;
+      }
+      path.add(child);
+      if (wanted.test(child) || firstPath(child, wanted, path)) {
+        return true;
+      }
+      path.removeLast();
+    }
+    return false;
+  }
+
+  /**
    * The part of a path from the root that begins at the innermost overlay in it, whose position
    * is in window coordinates; all of it when it has no overlay.
    */
@@ -659,7 +709,9 @@ public final class App<S> {
    * again, and Tab moves the focus to the next focusable element in tree order, Shift+Tab to the
    * previous one, around at the ends. Unlike in a browser, a press handler on the focused element
    * takes Enter and Space before its ancestors' key handlers see them. The Menu key and Shift+F10
-   * run the nearest {@link El#onSecondaryPress} handler at the focused element's bottom left.
+   * run the nearest {@link El#onSecondaryPress} handler at the bottom left of the focused
+   * element's cursor: the first element inside it that is {@link El#current}, else the first
+   * that is {@link El#selected}, else the focused element itself.
    *
    * <p>In an overlay, keys go up from the focused element to the overlay's root and on to the
    * element it is attached to and that element's ancestors; in a {@link El#modal} one they end at
@@ -709,13 +761,8 @@ public final class App<S> {
         || key.name().equals("F10") && key.modifiers() == Key.SHIFT) {
       for (El el : path.reversed()) {
         if (el.onSecondaryPress() != null) {
-          float x = 0;
-          float y = 0;
-          for (El on : fromOverlay(path)) {
-            x += on.x();
-            y += on.y();
-          }
-          el.onSecondaryPress().accept(x, y + path.getLast().height());
+          float[] at = menuPoint(path);
+          el.onSecondaryPress().accept(at[0], at[1]);
           handled = true;
           return true;
         }
@@ -1010,11 +1057,16 @@ public final class App<S> {
 
   /**
    * Sets whether characters that a text's font and its fallbacks lack come from the fonts installed
-   * on the system ({@link com.rethinkj.ui.text.Font#withSystemFonts}). Off until this is called,
-   * so that scripts and tests draw the same on every machine; a {@link
-   * com.rethinkj.ui.window.WindowLoop} turns it on when it starts, unless told otherwise.
+   * on the system ({@link Font#withSystemFonts}). Off until this is called, so that scripts and
+   * tests draw the same on every machine; a {@link com.rethinkj.ui.window.WindowLoop} turns it on
+   * when it starts, unless told otherwise. Turning it on starts reading the system's fonts on
+   * another thread ({@link Font#prepareSystemFonts}), so that the first character that needs one
+   * does not wait for that in its frame.
    */
   public void systemFonts(boolean on) {
+    if (on) {
+      Font.prepareSystemFonts();
+    }
     if (on != systemFonts) {
       systemFonts = on;
       stale = true;
@@ -2411,25 +2463,34 @@ public final class App<S> {
    * The part of a self-drawn window frame at this position in logical pixels, which a window asks
    * while the pointer moves. The rule is the one presses follow: the topmost element under the
    * point decides, or its nearest ancestor that has a {@link El#windowPart} or a press handler. An
-   * element with a handler and no part is content, so controls inside a title bar stay clickable.
-   * Outside a {@link El#modal} overlay, which takes all other pointer input, the parts of the tree
-   * below it still count: the window can be moved, minimized, maximized and closed while a dialog
-   * is open, and a press on such a part neither dismisses the dialog nor reaches anything else.
+   * element with a handler and no part, a text field and a scrollbar are {@link
+   * WindowPart#CONTROL}, so controls inside a title bar stay clickable and the resize margin gives
+   * way to them. Outside a {@link El#modal} overlay, which takes all other pointer input, the parts
+   * of the tree below it still count: the window can be moved, minimized, maximized and closed
+   * while a dialog is open, and a press on such a part neither dismisses the dialog nor reaches
+   * anything else; the controls below it take no press then and are content.
    *
    * @return the part, {@link WindowPart#CONTENT} where nothing is marked
    */
   public WindowPart windowPart(float x, float y) {
     List<El> hit = hit(x, y);
+    boolean below = false;
     if (hit.isEmpty() && modal() != null) {
       hit = hitFrom(root, x, y); // the frame's own parts stay usable under a modal overlay
+      below = true;
     }
-    if (!hit.isEmpty() && hit.getLast().barAt(x, y) != null) {
-      return WindowPart.CONTENT;
+    if (!below && !hit.isEmpty() && hit.getLast().barAt(x, y) != null) {
+      return WindowPart.CONTROL;
     }
     for (int i = hit.size() - 1; i >= 0; i--) {
       El el = hit.get(i);
-      if (el.windowPart() != null || takesPress(el) || el.takesEdits()) {
-        return el.windowPart() != null ? el.windowPart() : WindowPart.CONTENT;
+      boolean takes = takesPress(el) || el.takesEdits();
+      if (el.windowPart() != null || takes) {
+        WindowPart part = el.windowPart();
+        if (part != null && part != WindowPart.CONTENT) {
+          return part;
+        }
+        return takes && !below ? WindowPart.CONTROL : WindowPart.CONTENT;
       }
     }
     return WindowPart.CONTENT;

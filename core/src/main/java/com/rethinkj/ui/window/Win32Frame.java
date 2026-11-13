@@ -32,7 +32,7 @@ import java.lang.invoke.MethodHandles;
  * <p>A right click on a drag area is non-client too, so SDL reports nothing, and the default window
  * procedure shows no system menu because its own hit test does not know the drag area. The
  * subclass reports the click, and {@link Window} opens the menu with {@code
- * SDL_ShowWindowSystemMenu}.
+ * SDL_ShowWindowSystemMenu} instead of delivering it.
  *
  * <p>The resize margin lies inside the window. A margin outside it, like the invisible border of
  * framed windows, would need a non-client frame from {@code WM_NCCALCSIZE}; SDL answers that

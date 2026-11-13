@@ -1,0 +1,1 @@
+- Shift with a wheel that turns only up and down now scrolls sideways, towards the user to the right, as in Windows' own apps and GTK's: `WindowEvent.Wheel` arrives with `dx` instead of `dy` while Shift is held.

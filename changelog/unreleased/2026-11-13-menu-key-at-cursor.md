@@ -1,0 +1,1 @@
+- The Menu key and Shift+F10 open a context menu at the row or cell the keys act on: the bottom left of the focused element's first descendant that is `current`, else `selected`, such as a grid's cursor cell or a tree's selected row, instead of the bottom left of the whole grid or tree.
