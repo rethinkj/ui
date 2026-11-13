@@ -39,7 +39,7 @@ class GridTableTest {
     }
   }
 
-  static final Format<Kind> KIND = Format.choice(Kind.values(), Kind::label);
+  static final Format<Kind> KIND = Format.choice(List.of(Kind.values()), Kind::label);
 
   record Item(long id, String name, BigDecimal price, LocalDate due, Kind kind) {
     Item withName(String name) {

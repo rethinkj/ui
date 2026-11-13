@@ -115,7 +115,7 @@ class FormatTest {
 
   @Test
   void choicesAreReadByTheirLabels() {
-    Format<Status> format = Format.choice(Status.values(), Status::label);
+    Format<Status> format = Format.choice(List.of(Status.values()), Status::label);
     roundTrip(format, Status.PAID, "paid");
     refused(format, "PAID", "Not one of the choices");
     assertEquals(List.of("pending", "paid"), format.choices());

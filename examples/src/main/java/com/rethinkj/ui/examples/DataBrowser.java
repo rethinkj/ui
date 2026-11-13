@@ -120,7 +120,7 @@ public final class DataBrowser {
     }
   }
 
-  static final Format<Status> STATUS = Format.choice(Status.values(), Status::label);
+  static final Format<Status> STATUS = Format.choice(List.of(Status.values()), Status::label);
 
   /** An order; a new one holds only what was written, the rest is null. */
   record Order(

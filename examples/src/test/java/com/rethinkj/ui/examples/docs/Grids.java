@@ -198,7 +198,7 @@ final class Grids {
     }
   }
 
-  static final Format<Status> STATUS = Format.choice(Status.values(), Status::label);
+  static final Format<Status> STATUS = Format.choice(List.of(Status.values()), Status::label);
 
   record Order(long id, String customer, BigDecimal amount, LocalDate due, Status status) {
     Order withCustomer(String customer) {

@@ -31,7 +31,7 @@ import java.util.regex.Pattern;
  * Format.DECIMAL.parse("12,50")      // Parsed[value=null, error=Not a number]
  * Format.DATE.text(LocalDate.of(2026, 11, 13))            // "2026-11-13"
  * Format.INTEGER.where(p -> p >= 1 && p <= 65535, "1 to 65535")
- * Format.choice(Status.values(), Status::label)            // an enumeration by its labels
+ * Format.choice(List.of(Status.values()), Status::label)   // an enumeration by its labels
  * Format.of(UUID::toString, UUID::fromString, "Expected a UUID such as 1b4e28ba-2fa1-11d2-883f-0016d3cca427")
  * }</pre>
  *
@@ -261,15 +261,10 @@ public final class Format<T> {
 
   /**
    * One of {@code values}, each written as its {@code label}, such as the constants of an enum:
-   * {@code Format.choice(Status.values(), Status::label)}. A text is read as the value whose label
+   * {@code Format.choice(List.of(Status.values()), Status::label)}. A text is read as the value whose label
    * it is exactly; {@link #choices} lists the labels, which a grid's column offers as its
    * choices.
    */
-  public static <T> Format<T> choice(T[] values, Function<? super T, String> label) {
-    return choice(List.of(values), label);
-  }
-
-  /** {@link #choice(Object[], Function)} of a list. */
   public static <T> Format<T> choice(List<? extends T> values, Function<? super T, String> label) {
     List<T> all = List.copyOf(values);
     List<String> labels = new ArrayList<>(all.size());
