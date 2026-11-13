@@ -803,7 +803,9 @@ public final class App<S> {
    * anything may have changed, builds the view again, gives it the looks of the moment ({@link
    * El#whenHovered}) and its text fields their editing state, lays it out and builds the rows of
    * its virtual lists, each row the same way. Then it writes the values of the moment into the
-   * elements that move, and places the caret and selection of each field.
+   * elements that move, and places the caret and selection of each field. When more input follows
+   * an edit of the focused text field, it first builds the view to read what the app made of the
+   * edit, so that the next one builds on that.
    *
    * @return whether there is something new to draw: the tree was rebuilt, something moved or
    *     scrolled
@@ -813,6 +815,9 @@ public final class App<S> {
     boolean hadRing = ring;
     while (!queued.isEmpty()) {
       stale |= queued.poll().getAsBoolean();
+      if (!queued.isEmpty()) {
+        answerEdit();
+      }
     }
     stale |= focused != wasFocused || ring != hadRing;
     stale |= blink(focused == null ? null : focused.editor());
@@ -867,6 +872,24 @@ public final class App<S> {
     }
     hover();
     return drawn;
+  }
+
+  /**
+   * Gives the focused field the app's answer to its last edit, the string a tree built now gives
+   * it, before more input of the same frame reaches it; otherwise an edit after one the app
+   * refused or changed would build on what that one proposed.
+   */
+  private void answerEdit() {
+    Editor editor = focused == null ? null : focused.editor();
+    if (editor == null || !editor.answerPending()) {
+      return;
+    }
+    // shortcut: a field in a row of a virtual list is not in the tree the view builds, so its edits
+    // of one frame still build on each other's proposals; build the row too if that shows.
+    El field = Animator.find(view.apply(state), focusId);
+    if (field != null && field.isEditable()) {
+      editor.answer(field.text().string());
+    }
   }
 
   /**
