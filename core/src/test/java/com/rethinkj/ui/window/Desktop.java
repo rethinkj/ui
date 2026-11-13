@@ -121,9 +121,28 @@ final class Desktop {
     }
   }
 
+  /**
+   * Restores a minimized window and delivers events until it is restored, asking again every two
+   * seconds, as a window manager under load may drop a request; false after {@link
+   * #TIMEOUT_MILLIS}.
+   */
+  static boolean restore(Window window) {
+    for (int i = 0; i < TIMEOUT_MILLIS / 2000; i++) {
+      window.restore();
+      if (pollUntil(() -> !window.isMinimized(), 2000)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   /** Delivers events until {@code done}, for at most {@link #TIMEOUT_MILLIS}. */
   static boolean pollUntil(BooleanSupplier done) {
-    long end = System.nanoTime() + TIMEOUT_MILLIS * 1_000_000;
+    return pollUntil(done, TIMEOUT_MILLIS);
+  }
+
+  private static boolean pollUntil(BooleanSupplier done, long millis) {
+    long end = System.nanoTime() + millis * 1_000_000;
     while (true) {
       Window.waitEvents(10);
       if (done.getAsBoolean()) {

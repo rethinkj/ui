@@ -142,8 +142,7 @@ class GpuPresenterTest {
         assertEquals(2, gpu.frames(), "nothing is drawn into a minimized window");
         assertFalse(gpu.pending(), "and nothing waits: restoring asks for a redraw");
 
-        window.restore();
-        assertTrue(Desktop.pollUntil(() -> !window.isMinimized()), "restored");
+        assertTrue(Desktop.restore(window), "restored");
         gpu.present(app.scene(), window.width(), window.height(), window.scale());
         assertEquals(3, gpu.frames());
       }

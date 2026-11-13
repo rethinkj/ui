@@ -235,8 +235,7 @@ class WindowTest {
 
       Desktop.click(window, 180, 15);
       assertTrue(Desktop.pollUntil(window::isMinimized), "minimized by its part");
-      window.restore();
-      assertTrue(Desktop.pollUntil(() -> !window.isMinimized()));
+      assertTrue(Desktop.restore(window), "restored");
     }
   }
 
