@@ -6,6 +6,7 @@ import static com.rethinkj.ui.El.el;
 import static com.rethinkj.ui.kit.Toggle.toggle;
 
 import com.rethinkj.ui.App;
+import com.rethinkj.ui.Colors;
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.Script;
 import com.rethinkj.ui.Style;
@@ -34,7 +35,7 @@ public final class Lights {
   static El view(Lights s) {
     Theme t = Theme.DARK;
     El lamp = el().key("lamp").size(56, 56).radius(28)
-        .fill(s.on ? 0xFFFACC15 : t.surface().raised())
+        .fill(s.on ? Colors.rgb(0xFACC15) : t.surface().raised())
         .motion(t.motion().move()); // the colour springs to its new value
     return col().wFull().hFull().fill(t.surface().window()).center()
         .child(Card.card(t, lamp, toggle(t, s.on, "Lamp", () -> s.on = !s.on))
