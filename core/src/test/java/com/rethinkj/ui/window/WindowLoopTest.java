@@ -291,10 +291,9 @@ class WindowLoopTest {
       int[] posts = new int[2]; // posted, run
       long[] at = new long[2]; // posted, the task ran
       AtomicReference<WindowLoop> loop = new AtomicReference<>();
-      Desktop.Redraws redraws = new Desktop.Redraws();
       loop.set(new WindowLoop(window, app, (scene, w, h, s) -> {
-        if (redraws.asked() && !presented.isEmpty() && presented.getLast() == count[0]) {
-          return; // the desktop asked for it, and it shows nothing new
+        if (!presented.isEmpty() && presented.getLast() == count[0]) {
+          return; // nothing new: the desktop asked for it, with a redraw or a resize
         }
         presented.add(count[0]);
         if (count[0] == 1) { // the task's frame: the burst comes before it is done
@@ -304,10 +303,7 @@ class WindowLoopTest {
             }
           });
         }
-      }).listener(event -> {
-        redraws.event(event);
-        events[0]++;
-      }).waits((millis, holdBack) -> {
+      }).listener(event -> events[0]++).waits((millis, holdBack) -> {
         if (millis != -1) {
           return;
         }
@@ -416,8 +412,10 @@ class WindowLoopTest {
       double waited = (at[1] - at[0]) / 1e6;
       System.out.printf(Locale.ROOT, "WindowLoopTest: a task posted as input waited %d ms for the"
           + " refresh was drawn %.2f ms later, in round %d%n", millis[0], waited, round[0]);
-      // The wait was to take millis[0], rounded up from what was left of the refresh.
-      assertTrue(waited >= millis[0] - 2, "the frame waited for the refresh: " + waited + " ms");
+      // The wait was to take millis[0], rounded up from what was left of the refresh. The loop
+      // either waits again for the rest, or a stall of the machine used that rest up meanwhile.
+      assertTrue(after.stream().anyMatch(e -> e.startsWith("hold")) || waited >= millis[0] - 2,
+          "the frame waited for the refresh: " + waited + " ms, " + log);
     }
   }
 

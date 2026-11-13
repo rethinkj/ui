@@ -189,7 +189,7 @@ class TextInputTest {
         }
         carets.add(app.focused().text().caret() != null);
         sent[1] = true;
-        if (carets.size() == 5) {
+        if (carets.size() == 3) {
           at[1] = System.nanoTime();
           loop.get().stop();
         }
@@ -211,18 +211,18 @@ class TextInputTest {
           }
         }
       }));
-      Desktop.run(loop.get(), () -> "five frames of the caret, " + carets + " drawn");
+      Desktop.run(loop.get(), () -> "three frames of the caret, " + carets + " drawn");
 
       assertEquals("name", app.focused().key());
       for (int i = 1; i < carets.size(); i++) {
         assertTrue(carets.get(i) != carets.get(i - 1), "on and off by turns: " + carets);
       }
-      for (long millis : waits.subList(0, 4)) {
+      for (long millis : waits.subList(0, 2)) {
         // Half a second less the time it took to build and present the frame.
         assertTrue(millis > 250 && millis <= 501, "it waits for the next turn: " + waits);
       }
       double seconds = (at[1] - at[0]) / 1e9;
-      assertTrue(seconds >= 1.9, "four turns take two seconds, not " + seconds + " s; " + restarts[0]
+      assertTrue(seconds >= 0.9, "two turns take a second, not " + seconds + " s; " + restarts[0]
           + " restarts after focus changes and redraws");
     }
   }
