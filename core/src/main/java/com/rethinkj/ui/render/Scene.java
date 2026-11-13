@@ -20,8 +20,8 @@ import java.util.List;
  * reads this format. All numbers are 32 bits wide, in the byte order of the machine, and all
  * positions are window coordinates in logical pixels, x to the right and y down.
  *
- * <p>An instance is {@link #STRIDE} bytes, sixteen 4-byte slots, and is one of three kinds, told
- * apart by the u32 at {@link #KIND}: a rounded rectangle ({@link #RECT}, 0), a glyph ({@link
+ * <p>An instance is {@link #STRIDE} bytes, twenty-four 4-byte slots, and is one of three kinds,
+ * told apart by the u32 at {@link #KIND}: a rounded rectangle ({@link #RECT}, 0), a glyph ({@link
  * #GLYPH}, 1) or a shadow ({@link #SHADOW}, 2). All kinds share one ordered list, so boxes, text
  * and shadows overlap in the order of the tree. The byte offsets are the constants below. A
  * rounded rectangle with a fill and a border:
@@ -31,16 +31,38 @@ import java.util.List;
  *  4  y            f32   top edge
  *  8  width        f32
  * 12  height       f32
- * 16  radius       f32   corner radius; renderers clamp it to half the shorter side
- * 20  borderWidth  f32   border inside the rectangle, 0 for none
+ * 16  radius       f32   the top left corner's radius; renderers clamp each corner's to half the
+ *                        shorter side
+ * 20  borderWidth  f32   the top side's border, inside the rectangle, 0 for none
  * 24  clip         u32   index into the clip table, 0 for not clipped (an integer, not a float)
  * 28  kind         u32   0, RECT
  * 32  fill         f32 x 4   r, g, b, a
  * 48  border       f32 x 4   r, g, b, a
+ * 64  radii        f32 x 3   the top right, bottom right and bottom left corners' radii
+ * 76  unused       f32   0
+ * 80  borders      f32 x 3   the right, bottom and left sides' borders
+ * 92  unused       f32   0
  * </pre>
  *
  * <p>As a WGSL storage buffer that is {@code array<Instance>} with {@code struct Instance { rect:
- * vec4f, radius: f32, border_width: f32, clip: u32, kind: u32, fill: vec4f, border: vec4f }}.
+ * vec4f, radius: f32, border_width: f32, clip: u32, kind: u32, fill: vec4f, border: vec4f, radii:
+ * vec4f, borders: vec4f }}. The instance was 64 bytes until corners and sides got values of their
+ * own: six more floats do not fit into the sixteen slots, which a rectangle fills, and a table of
+ * shapes beside the clips would cost a binding, an index and a second read per pixel to save 32
+ * bytes per instance, a few hundred kilobytes in a frame of thousands. The first 64 bytes kept their
+ * meaning, so a glyph has nothing after them.
+ *
+ * <p>A rectangle's coverage of a pixel is that of its rounded rectangle, the radius of the corner
+ * on the pixel's side of the centre ({@code x > 0} right, {@code y > 0} below) standing for all
+ * four. The fill shows inside the rectangle moved in by each side's border; a side of width 0 moves
+ * it out by one physical pixel instead, so that the smoothed edge of a side without a border shows
+ * no border colour. That inner rectangle's corners have a radius across of {@code max(0, r -
+ * left or right)} and one from top to bottom of {@code max(0, r - top or bottom)}, as CSS has
+ * it, each at most half the inner rectangle's side; a corner whose two differ is a quarter of an
+ * ellipse, whose distance renderers take as {@code (k - 1) k / |q / r|} with {@code q} the point
+ * from the ellipse's centre over its radii and {@code k = |q|}, the first-order distance. With
+ * every border as wide, the inner rectangle is the outer one moved in by that width and its corners
+ * are circles.
  *
  * <p>A glyph: a bitmap of coverage in an atlas page, drawn one texel to one physical pixel.
  *
@@ -84,7 +106,7 @@ import java.util.List;
  *
  * <p>A shadow ({@link El#shadow}): a rounded rectangle blurred with a Gaussian, as one layer of
  * CSS's {@code box-shadow}. The slots are a rectangle's, with the deviation in place of the border
- * width and nothing after the colour:
+ * width and no border:
  *
  * <pre>
  *  0  x            f32   left edge of the shape: the element's border box moved by the shadow's
@@ -92,12 +114,15 @@ import java.util.List;
  *  4  y            f32   top edge
  *  8  width        f32
  * 12  height       f32
- * 16  radius       f32   corner radius; renderers clamp it to half the shorter side
+ * 16  radius       f32   the top left corner's radius; renderers clamp each to half the shorter
+ *                        side
  * 20  sigma        f32   the Gaussian's standard deviation, half the blur radius, 0 or more
  * 24  clip         u32   as for a rectangle
  * 28  kind         u32   2, SHADOW
  * 32  colour       f32 x 4   r, g, b, a
  * 48  unused       f32 x 4   0
+ * 64  radii        f32 x 3   the other corners' radii, as for a rectangle
+ * 76  unused       f32 x 5   0
  * </pre>
  *
  * <p>Its coverage of a pixel is the Gaussian around the pixel's centre integrated over the shape,
@@ -129,6 +154,14 @@ import java.util.List;
  * cases {@code ShadowTest} measures. Renderers draw a shadow over its shape grown by {@code 3 s} on
  * every side and leave out the rest, at most 0.14 % of its colour.
  *
+ * <p>A shape whose corners have different radii is the whole box with each rounded corner's square
+ * of side {@code r} taken away and its quarter disc added back, in the order top left, top right,
+ * bottom right, bottom left: {@code M(x, w) M(y, h) + sum over the corners with r > 0 of (Q(u, v) -
+ * (P(w - x') - P(w - r - x')) (P(h - y') - P(h - r - y')))}, where {@code x', y'} is the point
+ * mirrored into the corner's quadrant ({@code x' = -x} at the left, {@code y' = -y} at the top),
+ * {@code u = x' - (w - r)} and {@code v = y' - (h - r)}; at most 1. That is the same blur as the
+ * crossed boxes, which renderers keep for four equal radii.
+ *
  * <p>Colours are linear and premultiplied by alpha, the opacity of the element and its ancestors
  * included. Blending happens in linear light, as in rune: that is what an sRGB render target does
  * on the GPU, and it keeps translucent edges from darkening. A pixel becomes {@code source + target
@@ -142,12 +175,11 @@ import java.util.List;
  *  4  y        f32
  *  8  width    f32   0 or more; 0 clips everything away
  * 12  height   f32
- * 16  radius   f32   clamped like an instance's radius
- * 20  unused   f32 x 3   0
+ * 16  radii    f32 x 4   top left, top right, bottom right, bottom left, clamped like an
+ *                        instance's
  * </pre>
  *
- * <p>As WGSL: {@code array<Clip>} with {@code struct Clip { rect: vec4f, radius: f32 }}, whose
- * size rounds up to the same 32 bytes. The table always has an entry 0, which stands for no clip:
+ * <p>As WGSL: {@code array<Clip>} with {@code struct Clip { rect: vec4f, radii: vec4f }}. The table always has an entry 0, which stands for no clip:
  * a rectangle from -1e9 to 1e9 on both axes with radius 0, so that applying it changes nothing
  * and a renderer may skip it or not.
  *
@@ -187,8 +219,9 @@ import java.util.List;
  * with the area's clip.
  *
  * <p>The focus ring is an ordinary instance too: a border {@link #RING} pixels wide just outside
- * the focused element's border box, with its corner radius grown by as much, drawn after the
- * element and its children and clipped like the element. Where the clips around the element or
+ * the focused element's border box, or the element's {@link El#focusRingGap} beyond it, with each
+ * rounded corner's radius grown by as much, drawn after the element and its children and clipped
+ * like the element; the gap is the ring's transparent fill. Where the clips around the element or
  * the edges of the window (the root's box) would cut that ring, as around a grid that fills a
  * pane, the ring lies just inside the border box instead, with the element's radius, so that it
  * shows whole wherever the element does. It is still clipped: an element scrolled half out of its
@@ -199,8 +232,8 @@ import java.util.List;
  *
  * <p>A scene built for a scale ({@link #of(El, float)}) puts the boxes at rest on the physical
  * pixel grid: each edge of a border box at {@code round(x * scale)} physical pixels, halves up;
- * borders, the focus ring and sides of at most {@link #HAIRLINE} logical pixels {@code max(1,
- * floor(width * scale))} physical pixels wide; an edge on the content box of a parent with a
+ * each side's border, the focus ring, its gap and sides of at most {@link #HAIRLINE} logical
+ * pixels {@code max(1, floor(width * scale))} physical pixels wide; an edge on the content box of a parent with a
  * border on the inner edge of that border as drawn. Clips, shadows, thumbs (across their bar) and
  * the content boxes of text follow the snapped boxes. A box that a spring moves ({@link
  * El#isMoving}), and what is inside it, keeps its place between pixels. At scales 1 and 2 layout's
@@ -215,7 +248,7 @@ import java.util.List;
 public final class Scene {
 
   /** Bytes per instance. */
-  public static final int STRIDE = 16 * Float.BYTES;
+  public static final int STRIDE = 24 * Float.BYTES;
 
   public static final int X = 0;
   public static final int Y = 4;
@@ -227,6 +260,12 @@ public final class Scene {
   public static final int KIND = 28;
   public static final int FILL = 32;
   public static final int BORDER = 48;
+  public static final int RADIUS_TOP_RIGHT = 64;
+  public static final int RADIUS_BOTTOM_RIGHT = 68;
+  public static final int RADIUS_BOTTOM_LEFT = 72;
+  public static final int BORDER_RIGHT = 80;
+  public static final int BORDER_BOTTOM = 84;
+  public static final int BORDER_LEFT = 88;
 
   /** The {@link #KIND} of a rounded rectangle. */
   public static final int RECT = 0;
@@ -247,7 +286,10 @@ public final class Scene {
   public static final int DARK_GAMMA = 56;
   public static final int LIGHT_GAMMA = 60;
 
-  /** Bytes per entry of the clip table. Its fields are at {@link #X} to {@link #RADIUS}. */
+  /**
+   * Bytes per entry of the clip table. Its fields are at {@link #X} to {@link #RADIUS}, and the
+   * other corners' radii at {@code RADIUS + 4}, {@code + 8} and {@code + 12}.
+   */
   public static final int CLIP_STRIDE = 8 * Float.BYTES;
 
   /** The width of the focus ring in logical pixels. */
@@ -260,6 +302,7 @@ public final class Scene {
   public static final float HAIRLINE = 2;
 
   private static final float NO_CLIP = 1e9f;
+  private static final float[] NO_BORDER = new float[4];
 
   private static final float[] SRGB_TO_LINEAR = new float[256];
 
@@ -394,23 +437,23 @@ public final class Scene {
     float clipY = clipGet(clip, Y);
     float clipRight = clipX + clipGet(clip, WIDTH);
     float clipBottom = clipY + clipGet(clip, HEIGHT);
-    // shortcut: one border width for all sides, taken from the top; per-side widths need a wider
-    // instance.
-    Len border = el.style().borderTop;
-    float borderWidth = stroke(border.kind() == Len.Kind.PX ? border.value() : 0);
-    boolean hasBorder = borderWidth > 0 && el.borderColor() >>> 24 != 0;
+    Style s = el.style();
+    float[] borders = {stroke(px(s.borderTop)), stroke(px(s.borderRight)),
+        stroke(px(s.borderBottom)), stroke(px(s.borderLeft))};
+    boolean hasBorder = (borders[0] > 0 || borders[1] > 0 || borders[2] > 0 || borders[3] > 0)
+        && el.borderColor() >>> 24 != 0;
+    float[] radii = el.radii();
     boolean inside =
         left < clipRight && left + width > clipX && top < clipBottom && top + height > clipY;
     List<Shadow> shadows = el.shadows();
     for (int i = shadows.size() - 1; i >= 0; i--) {
-      shadow(shadows.get(i), left, top, width, height, el.radius(), opacity, clip);
+      shadow(shadows.get(i), left, top, width, height, radii, opacity, clip);
     }
     if ((el.fill() >>> 24 != 0 || hasBorder) && inside) {
-      rect(left, top, width, height, el.radius(), hasBorder ? borderWidth : 0, el.fill(),
+      rect(left, top, width, height, radii, hasBorder ? borders : NO_BORDER, el.fill(),
           el.borderColor(), opacity, clip);
     }
     int inner = clip;
-    Style s = el.style();
     if (s.overflowX != Style.Overflow.VISIBLE || s.overflowY != Style.Overflow.VISIBLE) {
       float l = Math.max(left, clipX);
       float t = Math.max(top, clipY);
@@ -419,7 +462,7 @@ public final class Scene {
       // shortcut: an entry has one radius, the innermost clip's, so where an inner clip sticks
       // out of a rounded outer one, the corners of the intersection take the inner radius instead
       // of following the outer curve; give each entry its parent's index when that shows.
-      inner = w > 0 && h > 0 ? clip(l, t, w, h, el.radius()) : -1;
+      inner = w > 0 && h > 0 ? clip(l, t, w, h, radii) : -1;
     }
     if (inner >= 0) { // else everything below is clipped away
       float content = over(el.fill(), opacity, behind);
@@ -438,11 +481,15 @@ public final class Scene {
     int ringed = el != ring ? 0 : el.focusRing() != null ? el.focusRing() : ringColour;
     if (ringed >>> 24 != 0) {
       float ringWidth = stroke(RING);
-      float l = left - ringWidth;
-      float t = top - ringWidth;
-      float r = left + width + ringWidth;
-      float b = top + height + ringWidth;
-      float radius = el.radius() > 0 ? el.radius() + ringWidth : 0;
+      float out = ringWidth + stroke(el.focusRingGap());
+      float l = left - out;
+      float t = top - out;
+      float r = left + width + out;
+      float b = top + height + out;
+      float[] ringRadii = new float[4];
+      for (int c = 0; c < 4; c++) {
+        ringRadii[c] = radii[c] > 0 ? radii[c] + out : 0;
+      }
       if (l < Math.max(clipX, 0) || t < Math.max(clipY, 0)
           || r > Math.min(clipRight, windowWidth) || b > Math.min(clipBottom, windowHeight)) {
         // A clip or the window would cut the ring outside, as a pane does around a grid in it.
@@ -450,10 +497,11 @@ public final class Scene {
         t = top;
         r = left + width;
         b = top + height;
-        radius = el.radius();
+        ringRadii = radii;
       }
       if (l < clipRight && r > clipX && t < clipBottom && b > clipY) {
-        rect(l, t, r - l, b - t, radius, ringWidth, 0, ringed, opacity, clip);
+        rect(l, t, r - l, b - t, ringRadii, new float[] {ringWidth, ringWidth, ringWidth,
+            ringWidth}, 0, ringed, opacity, clip);
       }
     }
   }
@@ -530,7 +578,7 @@ public final class Scene {
    * or outside its clip. The spread grows the radius as CSS's does: less where the radius is
    * smaller than the spread, so that a square corner stays square.
    */
-  private void shadow(Shadow shadow, float x, float y, float width, float height, float radius,
+  private void shadow(Shadow shadow, float x, float y, float width, float height, float[] radii,
       float opacity, int clip) {
     float spread = shadow.spread();
     float w = width + 2 * spread;
@@ -541,9 +589,12 @@ public final class Scene {
     // shortcut: the shadow shows under a translucent fill, where CSS cuts the element's own shape
     // out of it; carry the element's rectangle in the unused slots and take its coverage away in
     // both renderers when an app needs that.
-    float r = Math.clamp(radius, 0, Math.min(width, height) / 2);
-    float ratio = r / spread - 1;
-    float grown = spread > r ? r + spread * (1 + ratio * ratio * ratio) : Math.max(r + spread, 0);
+    float[] grown = new float[4];
+    for (int c = 0; c < 4; c++) {
+      float r = Math.clamp(radii[c], 0, Math.min(width, height) / 2);
+      float ratio = r / spread - 1;
+      grown[c] = spread > r ? r + spread * (1 + ratio * ratio * ratio) : Math.max(r + spread, 0);
+    }
     float left = x + shadow.x() - spread;
     float top = y + shadow.y() - spread;
     float sigma = shadow.blur() / 2;
@@ -561,7 +612,7 @@ public final class Scene {
     put(offset + Y, top);
     put(offset + WIDTH, w);
     put(offset + HEIGHT, h);
-    put(offset + RADIUS, grown);
+    radii(offset, grown);
     put(offset + SIGMA, sigma);
     data.set(ValueLayout.JAVA_INT, offset + CLIP, clip);
     data.set(ValueLayout.JAVA_INT, offset + KIND, SHADOW);
@@ -780,6 +831,10 @@ public final class Scene {
   }
 
   private int clip(float x, float y, float width, float height, float radius) {
+    return clip(x, y, width, height, new float[] {radius, radius, radius, radius});
+  }
+
+  private int clip(float x, float y, float width, float height, float[] radii) {
     long offset = (long) clipCount * CLIP_STRIDE;
     if (offset == clips.byteSize()) {
       clips = grow(clips);
@@ -788,7 +843,9 @@ public final class Scene {
     clips.set(ValueLayout.JAVA_FLOAT, offset + Y, y);
     clips.set(ValueLayout.JAVA_FLOAT, offset + WIDTH, width);
     clips.set(ValueLayout.JAVA_FLOAT, offset + HEIGHT, height);
-    clips.set(ValueLayout.JAVA_FLOAT, offset + RADIUS, radius);
+    for (int c = 0; c < 4; c++) {
+      clips.set(ValueLayout.JAVA_FLOAT, offset + RADIUS + 4 * c, radii[c]);
+    }
     return clipCount++;
   }
 
@@ -810,21 +867,52 @@ public final class Scene {
     rect(x, y, width, height, radius, borderWidth, fill, border, 1, 0);
   }
 
+  /**
+   * Appends a rounded rectangle with a radius per corner and a border per side.
+   *
+   * @param radii top left, top right, bottom right, bottom left
+   * @param borders top, right, bottom, left
+   * @param fill the fill colour as 0xAARRGGBB
+   * @param border the border colour as 0xAARRGGBB
+   */
+  public void rect(float x, float y, float width, float height, float[] radii, float[] borders,
+      int fill, int border) {
+    rect(x, y, width, height, radii, borders, fill, border, 1, 0);
+  }
+
   private void rect(
       float x, float y, float width, float height, float radius, float borderWidth, int fill,
       int border, float opacity, int clip) {
+    rect(x, y, width, height, new float[] {radius, radius, radius, radius},
+        new float[] {borderWidth, borderWidth, borderWidth, borderWidth}, fill, border, opacity,
+        clip);
+  }
+
+  private void rect(float x, float y, float width, float height, float[] radii, float[] borders,
+      int fill, int border, float opacity, int clip) {
     long offset = next();
     put(offset + X, x);
     put(offset + Y, y);
     put(offset + WIDTH, width);
     put(offset + HEIGHT, height);
-    put(offset + RADIUS, radius);
-    put(offset + BORDER_WIDTH, borderWidth);
+    radii(offset, radii);
+    put(offset + BORDER_WIDTH, borders[0]);
+    put(offset + BORDER_RIGHT, borders[1]);
+    put(offset + BORDER_BOTTOM, borders[2]);
+    put(offset + BORDER_LEFT, borders[3]);
     data.set(ValueLayout.JAVA_INT, offset + CLIP, clip);
     data.set(ValueLayout.JAVA_INT, offset + KIND, RECT);
     colour(offset + FILL, fill, opacity);
     colour(offset + BORDER, border, opacity);
     count++;
+  }
+
+  /** The radii of the corners: top left, top right, bottom right, bottom left. */
+  private void radii(long offset, float[] radii) {
+    put(offset + RADIUS, radii[0]);
+    put(offset + RADIUS_TOP_RIGHT, radii[1]);
+    put(offset + RADIUS_BOTTOM_RIGHT, radii[2]);
+    put(offset + RADIUS_BOTTOM_LEFT, radii[3]);
   }
 
   private void colour(long offset, int argb, float opacity) {

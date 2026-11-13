@@ -1,0 +1,11 @@
+# The shapes of corners and sides (Examples shapes): borders of their own width per side, a radius
+# per corner on fills, borders, a clip and a shadow, and a focus ring with a gap.
+size 240 152
+frame
+focus #ringed          # with the ring, as Tab gives it
+frame
+snap shapes-1x
+
+size 240 152 scale 2
+frame
+snap shapes-2x

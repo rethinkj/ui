@@ -72,7 +72,8 @@ class CpuRendererEquivalenceTest {
   /**
    * Thousands of small scenes of random instances: rectangles, shadows and, where the text
    * libraries load, glyphs, at fractional and whole positions and sizes, with radii from below 0
-   * to beyond half the size, borders up to beyond it, translucent and opaque colours, the clips of
+   * to beyond half the size, alike or each corner its own, borders up to beyond it, alike or each
+   * side its own, translucent and opaque colours, the clips of
    * nested rounded boxes, and now and then a value that is not finite.
    */
   @Test
@@ -143,7 +144,8 @@ class CpuRendererEquivalenceTest {
 
   /** A scene whose clip table has rounded and square clips, nested, and text if asked. */
   private static Scene base(float width, float height, float scale, boolean text) {
-    El nested = el().absolute(3.5f, -2.25f).size(width / 2, height).radius(height / 3).clip()
+    El nested = el().absolute(3.5f, -2.25f).size(width / 2, height)
+        .radius(height / 3, 0, 2.5f, height / 2).clip()
         .child(el().absolute(1, 1).size(4, 4).fill(0x40FF0000));
     El rounded = el().absolute(1.25f, 2.5f).size(width * 0.7f, height * 0.6f).radius(5.5f).clip()
         .child(el().absolute(0.5f, 0.5f).size(3, 2).fill(0x8000FF00)).child(nested);
@@ -191,23 +193,44 @@ class CpuRendererEquivalenceTest {
       return;
     }
     float half = Math.min(Math.abs(w), Math.abs(h)) / 2;
-    put(data, at + Scene.RADIUS, switch (random.nextInt(5)) {
+    // As often all four corners alike as each its own, and so for the sides.
+    boolean alike = random.nextBoolean();
+    float radius = radius(random, half);
+    for (int field : new int[] {Scene.RADIUS, Scene.RADIUS_TOP_RIGHT, Scene.RADIUS_BOTTOM_RIGHT,
+        Scene.RADIUS_BOTTOM_LEFT}) {
+      put(data, at + field, alike ? radius : radius(random, half));
+    }
+    if (kind == Scene.SHADOW) {
+      put(data, at + Scene.SIGMA, random.nextInt(4) == 0 ? 0 : random.nextFloat() * 6);
+      return;
+    }
+    alike = random.nextBoolean();
+    float border = border(random, half);
+    for (int field : new int[] {Scene.BORDER_WIDTH, Scene.BORDER_RIGHT, Scene.BORDER_BOTTOM,
+        Scene.BORDER_LEFT}) {
+      put(data, at + field, alike ? border : border(random, half));
+    }
+    colour(data, at + Scene.BORDER, random);
+  }
+
+  /** A corner's radius: 0, half the shorter side, beyond it, below 0 or between. */
+  private static float radius(Random random, float half) {
+    return switch (random.nextInt(5)) {
       case 0 -> 0;
       case 1 -> half;
       case 2 -> half + random.nextFloat() * 3;
       case 3 -> -random.nextFloat();
       default -> random.nextFloat() * half;
-    });
-    if (kind == Scene.SHADOW) {
-      put(data, at + Scene.SIGMA, random.nextInt(4) == 0 ? 0 : random.nextFloat() * 6);
-      return;
-    }
-    put(data, at + Scene.BORDER_WIDTH, switch (random.nextInt(4)) {
+    };
+  }
+
+  /** A side's border: mostly none, in halves, or up to beyond half the box. */
+  private static float border(Random random, float half) {
+    return switch (random.nextInt(4)) {
       case 0, 1 -> 0;
       case 2 -> random.nextInt(5) * 0.5f;
       default -> random.nextFloat() * (half + 1);
-    });
-    colour(data, at + Scene.BORDER, random);
+    };
   }
 
   /** Whole, half, quarter or any position, now and then not finite. */

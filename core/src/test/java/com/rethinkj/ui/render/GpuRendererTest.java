@@ -180,6 +180,10 @@ class GpuRendererTest {
     // then a menu across the rounded clip of a scrolled list with its submenu, and a dialog over a
     // scrim, at every scale.
     cases.addAll(script("overlay.txt", () -> new App<>(new Examples.Menus(), Examples::overlays)));
+    // Borders per side, radii per corner on fills, borders, a clip over text and a shadow, and a
+    // ring with a gap: the stored images, then at 1.5.
+    cases.addAll(script("shapes.txt", () -> new App<>(new Object(), s -> Examples.shapes())));
+    cases.add(shapes(1.5f));
     for (float scale : new float[] {1, 1.5f, 2}) {
       String at = at(scale);
       cases.add(overlay("overlay-nested" + at, scale, "press #export\n"));
@@ -209,6 +213,7 @@ class GpuRendererTest {
       cases.add(scene("edges" + at, edges(), 160, 100, scale));
       cases.add(scene("borders" + at, borders(), 160, 100, scale));
       cases.add(scene("radii" + at, radii(), 160, 100, scale));
+      cases.add(scene("sides" + at, sides(), 160, 100, scale));
       cases.add(scene("overlaps" + at, overlaps(), 160, 100, scale));
       cases.add(view("clips" + at, clips(), 160, 100, scale));
       cases.add(bars("bars-both" + at, scale, false));
@@ -367,6 +372,37 @@ class GpuRendererTest {
         System.out.println("GPU with " + what + " vs CPU " + comparison);
         assertTrue(comparison.beyond() > 50, what + ": " + comparison);
       }
+    }
+  }
+
+  /**
+   * Changes to the shaders of corners and sides that each draw a few shapes a little wrong, which
+   * the comparison has to notice: the corner a point takes its radius from, the elliptic inner
+   * corners, the fill's edge on a side without a border, a shadow's corners and a clip's.
+   */
+  static Stream<Arguments> shapeBreaks() {
+    return Stream.of(
+        Arguments.of("the corners on the right swapped", "return select(1u, 2u, p.y > 0.0);",
+            "return select(2u, 1u, p.y > 0.0);"),
+        Arguments.of("inner corners circles", "if r.x == r.y {", "if true {"),
+        Arguments.of("the fill's edge on the side without a border",
+            "select(vec4f(-1.0 / globals.scale), borders, borders > vec4f(0.0))",
+            "select(vec4f(0.0), borders, borders > vec4f(0.0))"),
+        Arguments.of("a shadow's corners all the top left one",
+            "if all(radii == vec4f(radii.x)) {", "if true {"),
+        Arguments.of("a clip's corners all the top left one", "clip.radii[corner(p)]",
+            "clip.radii.x"));
+  }
+
+  @ParameterizedTest(name = "{0}")
+  @MethodSource("shapeBreaks")
+  void aWrongShapeShaderIsNoticed(String what, String line, String broken) throws IOException {
+    String wgsl = GpuRenderer.WGSL.replace(line, broken);
+    assertTrue(!wgsl.equals(GpuRenderer.WGSL), "the shader has no line " + line);
+    try (GpuRenderer wrong = GpuRenderer.create(wgsl)) {
+      Comparison comparison = compare(wrong, shapes(2), false);
+      System.out.println("GPU with " + what + " vs CPU " + comparison);
+      assertTrue(comparison.beyond() > 50, what + ": " + comparison);
     }
   }
 
@@ -834,6 +870,15 @@ class GpuRendererTest {
     return scene(name, app.scene(), 240, 200, scale);
   }
 
+  /** The shapes of the stored images shapes-*, focused, at this scale. */
+  private static Case shapes(float scale) throws IOException {
+    App<Object> app = new App<>(new Object(), s -> Examples.shapes());
+    app.textRendering(TextRendering.LINUX);
+    Script.run("size 240 152 scale " + scale + "\nframe\nfocus #ringed\nframe\n", app,
+        Path.of("target/gpu-vs-cpu-scripts"));
+    return scene("shapes" + at(scale), app.scene(), 240, 152, scale);
+  }
+
   /** The text field of the stored images field-*, after these steps of a script and a frame. */
   private static Case field(String name, float scale, String steps) throws IOException {
     App<Examples.Form> app = new App<>(new Examples.Form(), Examples::form);
@@ -1103,6 +1148,29 @@ class GpuRendererTest {
         el().absolute(10, 122).size(100, 22).radius(11).fill(0xFF3A3B42)
             .shadow(new Shadow(0, 3, 6, -1, 0x99000000), new Shadow(-4, 0, 10, 0, 0x4022C55E)));
     return el().wFull().hFull().children(light, dark);
+  }
+
+  /**
+   * Borders per side and radii per corner at fractional places and sizes: one side alone, two
+   * unequal ones meeting at a rounded corner, wider than the radius, a border as wide as the box,
+   * translucent over each other.
+   */
+  private static Scene sides() {
+    Scene scene = new Scene();
+    scene.rect(0, 0, 160, 100, 0, 0, BACKGROUND, 0);
+    float[][] borders = {{0, 0, 1, 0}, {1.5f, 0, 0, 3}, {2, 4, 2, 4}, {0.5f, 1, 2.5f, 6},
+        {5, 0, 5, 0}, {12, 12, 12, 0}};
+    float[][] radii = {{0, 0, 0, 0}, {6, 6, 6, 6}, {10, 0, 4, 2.5f}, {3.3f, 14, 0, 8},
+        {12, 12, 0, 0}, {20, 1, 20, 1}};
+    for (int i = 0; i < borders.length; i++) {
+      float x = 4 + i * 26.3f;
+      scene.rect(x, 4.25f, 23, 26, radii[i], borders[i], 0xFF2563EB, 0xFFF8FAFC);
+      scene.rect(x + 0.4f, 34.5f, 22, 26, radii[(i + 2) % radii.length], borders[i], 0xFF1E293B,
+          0xFFFACC15);
+      scene.rect(x, 64.75f, 23, 30, radii[(i + 4) % radii.length], borders[(i + 3) % 6],
+          0x80F97316, 0xC0FFFFFF);
+    }
+    return scene;
   }
 
   /** Translucent shapes over nothing: the image keeps their alpha. */

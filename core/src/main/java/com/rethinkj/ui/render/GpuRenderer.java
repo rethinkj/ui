@@ -80,14 +80,14 @@ public final class GpuRenderer implements AutoCloseable {
         unused: f32,
       }
 
-      // The layouts of Scene's Javadoc: 64 bytes per instance, 32 per clip. An instance is a
+      // The layouts of Scene's Javadoc: 96 bytes per instance, 32 per clip. An instance is a
       // rounded rectangle, a glyph or a shadow. The slots in which they differ are declared as u32
       // and bitcast to f32 where they hold floats: the bits of a float survive that, while a small
       // integer read as a float is a subnormal, which a GPU may flush to zero.
       struct Instance {
         rect: vec4f,
-        // A rectangle's radius and border width, f32; a glyph's atlas and atlas_size; a shadow's
-        // radius and sigma, f32.
+        // A rectangle's top left radius and top border width, f32; a glyph's atlas and
+        // atlas_size; a shadow's top left radius and sigma, f32.
         shape: vec2u,
         clip: u32,
         kind: u32,
@@ -96,6 +96,10 @@ public final class GpuRenderer implements AutoCloseable {
         // A rectangle's border colour, f32; a glyph's page, and as f32 its light_share,
         // dark_gamma and light_gamma.
         more: vec4u,
+        // A rectangle's and a shadow's radii at the top right, bottom right and bottom left.
+        radii: vec4f,
+        // A rectangle's border widths at the right, the bottom and the left.
+        borders: vec4f,
       }
 
       const GLYPH: u32 = 1u;
@@ -103,7 +107,8 @@ public final class GpuRenderer implements AutoCloseable {
 
       struct Clip {
         rect: vec4f,
-        radius: f32,
+        // Top left, top right, bottom right, bottom left.
+        radii: vec4f,
       }
 
       @group(0) @binding(0) var<uniform> globals: Globals;
@@ -180,6 +185,39 @@ public final class GpuRenderer implements AutoCloseable {
         return min(max(q.x, q.y), 0.0) + length(max(q, vec2f(0.0))) - radius;
       }
 
+      // The corner on the side of p: 0 top left, 1 top right, 2 bottom right, 3 bottom left.
+      fn corner(p: vec2f) -> u32 {
+        if p.x > 0.0 {
+          return select(1u, 2u, p.y > 0.0);
+        }
+        return select(0u, 3u, p.y > 0.0);
+      }
+
+      // The same, with the corner on p's side r.x across and r.y from top to bottom: an
+      // elliptic corner's is the first-order distance.
+      fn distance_elliptic(p: vec2f, half_size: vec2f, r: vec2f) -> f32 {
+        if r.x == r.y {
+          return distance(p, half_size, r.x);
+        }
+        let e = abs(p) - half_size;
+        var q = e + r;
+        if r.x > 0.0 && r.y > 0.0 && q.x > 0.0 && q.y > 0.0 {
+          q /= r;
+          let k = sqrt(q.x * q.x + q.y * q.y);
+          let g = q / r;
+          return (k - 1.0) * k / sqrt(g.x * g.x + g.y * g.y);
+        }
+        let outside = max(e, vec2f(0.0));
+        return min(max(e.x, e.y), 0.0) + sqrt(outside.x * outside.x + outside.y * outside.y);
+      }
+
+      // A rectangle's or a shadow's radii, top left, top right, bottom right, bottom left, each
+      // clamped to half the shorter side.
+      fn corner_radii(instance: Instance, half_size: vec2f) -> vec4f {
+        return clamp(vec4f(bitcast<f32>(instance.shape.x), instance.radii.xyz), vec4f(0.0),
+            vec4f(min(half_size.x, half_size.y)));
+      }
+
       // How much of a pixel the shape covers: a ramp one physical pixel wide across the edge.
       fn coverage(distance: f32) -> f32 {
         return clamp(0.5 - distance * globals.scale, 0.0, 1.0);
@@ -189,8 +227,9 @@ public final class GpuRenderer implements AutoCloseable {
       fn clip_coverage(index: u32, point: vec2f) -> f32 {
         let clip = clips[index];
         let half_size = clip.rect.zw / 2.0;
-        let radius = clamp(clip.radius, 0.0, min(half_size.x, half_size.y));
-        return coverage(distance(point - (clip.rect.xy + half_size), half_size, radius));
+        let p = point - (clip.rect.xy + half_size);
+        let radius = clamp(clip.radii[corner(p)], 0.0, min(half_size.x, half_size.y));
+        return coverage(distance(p, half_size, radius));
       }
 
       // The error function as Abramowitz and Stegun's 7.1.28 has it, within 3e-7: arithmetic
@@ -260,6 +299,26 @@ public final class GpuRenderer implements AutoCloseable {
         return min(cover, 1.0);
       }
 
+      // The same with a radius per corner: the box, less each rounded corner's square, plus its
+      // quarter disc; the crossed boxes where all four are equal.
+      fn shadow_corners(p: vec2f, half_size: vec2f, radii: vec4f, sigma: f32) -> f32 {
+        if all(radii == vec4f(radii.x)) {
+          return shadow(p, half_size, radii.x, sigma);
+        }
+        var cover = across(p.x, half_size.x, sigma) * across(p.y, half_size.y, sigma);
+        for (var c = 0u; c < 4u; c++) {
+          let r = radii[c];
+          if r > 0.0 {
+            let side = vec2f(select(-p.x, p.x, c == 1u || c == 2u), select(-p.y, p.y, c >= 2u));
+            let straight_y = half_size.y - r;
+            cover += quarter(side.x - (half_size.x - r), side.y - straight_y, r, sigma)
+                - (below(half_size.x - side.x, sigma) - below(half_size.x - r - side.x, sigma))
+                * (below(half_size.y - side.y, sigma) - below(straight_y - side.y, sigma));
+          }
+        }
+        return min(cover, 1.0);
+      }
+
       @fragment
       fn fs_main(in: Varyings) -> @location(0) vec4f {
         let instance = instances[in.index];
@@ -289,9 +348,8 @@ public final class GpuRenderer implements AutoCloseable {
         }
         if instance.kind == SHADOW {
           let half_size = instance.rect.zw / 2.0;
-          let radius = clamp(bitcast<f32>(instance.shape.x), 0.0, min(half_size.x, half_size.y));
-          var shadow_cover = shadow(point - (instance.rect.xy + half_size), half_size, radius,
-              deviation(instance));
+          var shadow_cover = shadow_corners(point - (instance.rect.xy + half_size), half_size,
+              corner_radii(instance, half_size), deviation(instance));
           if instance.clip != 0u {
             shadow_cover *= clip_coverage(instance.clip, point);
           }
@@ -302,10 +360,11 @@ public final class GpuRenderer implements AutoCloseable {
         }
         let half_size = instance.rect.zw / 2.0;
         let center = instance.rect.xy + half_size;
-        let radius = clamp(bitcast<f32>(instance.shape.x), 0.0, min(half_size.x, half_size.y));
-        let border = max(bitcast<f32>(instance.shape.y), 0.0);
+        let radii = corner_radii(instance, half_size);
+        // Top, right, bottom, left.
+        let borders = max(vec4f(bitcast<f32>(instance.shape.y), instance.borders.xyz), vec4f(0.0));
         let p = point - center;
-        var cover = coverage(distance(p, half_size, radius));
+        var cover = coverage(distance(p, half_size, radii[corner(p)]));
         // Entry 0 covers everything; it is skipped like on the CPU.
         if instance.clip != 0u {
           cover *= clip_coverage(instance.clip, point);
@@ -313,13 +372,20 @@ public final class GpuRenderer implements AutoCloseable {
         if cover <= 0.0 {
           discard;
         }
-        // The border lies inside the rectangle; what remains for the fill may be empty.
+        // The border lies inside the rectangle, and a side without one moves the fill's edge out
+        // by a physical pixel; what remains for the fill may be empty.
         var fill_share = 1.0;
-        if border > 0.0 {
-          let inner = half_size - border;
+        if any(borders > vec4f(0.0)) {
+          let inset = select(vec4f(-1.0 / globals.scale), borders, borders > vec4f(0.0));
+          let inner = half_size - (inset.wx + inset.yz) / 2.0;
           fill_share = 0.0;
           if inner.x > 0.0 && inner.y > 0.0 {
-            fill_share = coverage(distance(p, inner, max(radius - border, 0.0)));
+            let q = point - (center + (inset.wx - inset.yz) / 2.0);
+            let c = corner(q);
+            let r = vec2f(
+                min(max(radii[c] - select(inset.y, inset.w, c == 0u || c == 3u), 0.0), inner.x),
+                min(max(radii[c] - select(inset.z, inset.x, c < 2u), 0.0), inner.y));
+            fill_share = coverage(distance_elliptic(q, inner, r));
           }
         }
         // Premultiplied: the blend state adds the destination times one minus this alpha.
