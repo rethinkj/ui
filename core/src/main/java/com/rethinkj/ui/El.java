@@ -1253,19 +1253,24 @@ public final class El {
    * row height, and places it below the previous one.
    */
   void layoutRows(float scale) {
+    for (int i = 0; i < children.size(); i++) {
+      layoutRow(i, scale);
+    }
+    scrollTo(scrollX, scrollY); // shifts the new rows
+  }
+
+  /** Lays out the row that is the child with this index, as {@link #layoutRows} does. */
+  void layoutRow(int index, float scale) {
     float left = px(style.borderLeft) + px(style.paddingLeft);
     float inner =
         Math.max(width - left - px(style.paddingRight) - px(style.borderRight)
             - style.scrollbarWidth, 0);
-    for (int i = 0; i < children.size(); i++) {
-      El row = children.get(i);
-      row.style.width = Len.px(inner);
-      row.style.height = Len.px(rowHeight);
-      scaleText(row, scale);
-      Flex.layout(row, inner, rowHeight);
-      row.place(left, (float) (rowsTop() + i * (double) rowHeight), inner, rowHeight);
-    }
-    scrollTo(scrollX, scrollY); // shifts the new rows
+    El row = children.get(index);
+    row.style.width = Len.px(inner);
+    row.style.height = Len.px(rowHeight);
+    scaleText(row, scale);
+    Flex.layout(row, inner, rowHeight);
+    row.place(left, (float) (rowsTop() + index * (double) rowHeight), inner, rowHeight);
   }
 
   /**

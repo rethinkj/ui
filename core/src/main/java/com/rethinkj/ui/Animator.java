@@ -133,6 +133,15 @@ final class Animator {
     return ids;
   }
 
+  /** The identities of an element's ancestors from the root down, and its own last. */
+  static List<Object> lineage(Object identity) {
+    List<Object> ids = new ArrayList<>();
+    for (Id id = (Id) identity; id != null; id = id.parent()) {
+      ids.add(id);
+    }
+    return ids.reversed();
+  }
+
   /** The identity of the row with this index of the virtual list with identity {@code list}. */
   static Object row(Object list, int index) {
     return new Id((Id) list, index);

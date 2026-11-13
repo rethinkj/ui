@@ -293,6 +293,43 @@ class RowsTest {
   // Input
 
   @Test
+  void rowsThatScrollingBuildsTakeTheLooksOfTheMomentWithoutABuildOfTheView() {
+    Data data = new Data(1_000_000);
+    App<Data> app = new App<>(data, d -> {
+      d.views++;
+      return col().key("list").wFull().hFull().rows(d.count, 28, i ->
+          row().key("row-" + i).fill(WHITE).focusable().onPress(() -> {})
+              .child(el().key("cell-" + i).size(10, 10))
+              .whenHovered(e -> e.fill(HOVER).padding(0, 0, 0, 8))
+              .whenFocused(e -> e.border(2, 0xFF000000))
+              .whenPressed(e -> e.radius(4)));
+    });
+    app.resize(200, 300, 1);
+    app.frame();
+    app.pointerMove(100, 154);
+    app.pointerDown(100, 154); // row 5, which keeps the focus and the press while it scrolls
+    app.frame();
+    assertEquals(2, find(app.tree(), "row-5").style().borderTop.value());
+    int views = data.views;
+
+    app.wheel(100, 154, 0, 28 * 40); // row 45 under the pointer, and the rows around it built
+    app.frame();
+    El row = find(app.tree(), "row-45");
+    assertEquals(HOVER, row.fill(), "the row under the pointer");
+    assertEquals(8, find(app.tree(), "cell-45").x(), "laid out again with the look's padding");
+    assertEquals(0, find(app.tree(), "cell-44").x());
+    assertEquals(views, data.views, "without building the view");
+
+    app.wheel(100, 154, 0, -28 * 40); // back: rows 0 to 16 built, row 5 under the pointer
+    app.frame();
+    row = find(app.tree(), "row-5");
+    assertEquals(HOVER, row.fill());
+    assertEquals(2, row.style().borderTop.value(), "focused");
+    assertEquals(4, row.radius(), "and pressed");
+    assertEquals(views, data.views);
+  }
+
+  @Test
   void selectorsHitTestingAndHoverWorkOnTheRowsThatExist() throws IOException {
     Data data = new Data(1_000_000);
     App<Data> app =

@@ -144,7 +144,6 @@ public final class App<S> {
   // shortcut: lists that are gone stay in it, one small entry each; drop them in update() when
   // apps create lists by the thousand.
   private final Map<Object, Object> remembered = new HashMap<>();
-  private List<Object> lookIds; // during a rebuild: the hovered identities, for rows built later
   private int ringColour = FOCUS_RING;
   private final Atlas atlas = new Atlas();
   private TextRendering textRendering = TextRendering.platform();
@@ -1113,7 +1112,6 @@ public final class App<S> {
     El.scaleText(root, scale);
     Flex.layout(root, width, height);
     animator.update(root, time);
-    lookIds = ids; // for the rows, also when settle builds them
     stale = false;
     handled = false;
     scrolled = false;
@@ -1124,7 +1122,6 @@ public final class App<S> {
     }
     fillRows();
     refocus();
-    lookIds = null;
     placeEditors();
     El.placeBars(root);
   }
@@ -1148,7 +1145,6 @@ public final class App<S> {
       refocus();
       placeEditors();
     }
-    lookIds = null;
     El.placeBars(root);
     return true;
   }
@@ -1282,7 +1278,7 @@ public final class App<S> {
   /**
    * Builds the rows of the virtual lists in the tree that lack rows they show: all of them after a
    * rebuild of the view, and after scrolling those that show a row that does not exist yet. Each
-   * gets the looks of the moment during a rebuild.
+   * gets the looks of the moment, however it came to be built.
    *
    * @return whether a list built its rows
    */
@@ -1302,13 +1298,11 @@ public final class App<S> {
       Object id = Animator.identities(path).getLast();
       el.makeRows(range[0], range[1]);
       shown = shown.without(id);
-      if (lookIds != null) {
-        rowLooks(el, id);
-      }
       for (El row : el.children()) {
         attachEditors(row, path);
       }
       el.layoutRows(scale);
+      rowLooks(el, id); // after layout, which says which row is under the pointer
       animator.rows(el, id, time);
     }
     for (El child : el.children()) {
@@ -1319,31 +1313,40 @@ public final class App<S> {
   }
 
   /**
-   * Applies the looks of the moment to the rows a list has just built, before their layout, as
-   * {@link #applyLooks} does for the rest of the tree, which did not have them yet.
+   * Applies the looks of the moment to the rows a list has just built, as {@link #applyLooks} does
+   * for the rest of the tree, and lays out again each row that took one. The rows are laid out
+   * first, so that the pointer finds the row it is over now, after a scroll or a movement too.
    */
   private void rowLooks(El list, Object listId) {
+    List<Object> under = pointedIds();
     List<Object> hovered = new ArrayList<>(shown.hovered());
     Object focus = shown.focused();
     Object press = shown.pressed();
     for (int i = 0; i < list.children().size(); i++) {
       El row = list.children().get(i);
       Object rowId = Animator.row(listId, list.firstRow() + i);
-      for (Object id : lookIds) {
+      boolean took = false;
+      for (Object id : under) {
         if (Animator.isBelow(id, listId)
             && look(Animator.find(row, rowId, id), El::hoverLook, "whenHovered")) {
           hovered.add(id);
+          took = true;
         }
       }
       if (Animator.isBelow(focusId, listId)) {
         El el = Animator.find(row, rowId, focusId);
         if (el != null && el.isFocusable() && look(el, El::focusLook, "whenFocused")) {
           focus = focusId;
+          took = true;
         }
       }
       if (Animator.isBelow(pressed, listId)
           && look(Animator.find(row, rowId, pressed), El::pressLook, "whenPressed")) {
         press = pressed;
+        took = true;
+      }
+      if (took) {
+        list.layoutRow(i, scale); // a look may change the layout
       }
     }
     shown = new Looks(hovered, focus, press);
@@ -1459,16 +1462,33 @@ public final class App<S> {
    * their ancestors, so that they alone look hovered and set the cursor.
    */
   private List<El> pointed() {
-    Object held = selecting != null ? selecting
-        : dragging != null && dragging.started ? dragging.id
-        : grab != null ? grab.id()
-        : null;
+    Object held = held();
     El el = held == null ? null : animator.element(held);
     List<El> path = new ArrayList<>();
     if (el != null && pathTo(root, el, path)) {
       return path;
     }
     return pointerIn ? hit(pointerX, pointerY) : List.of();
+  }
+
+  /**
+   * The identities of {@link #pointed}, also for rows a list is building, which the animator does
+   * not know yet.
+   */
+  private List<Object> pointedIds() {
+    Object held = held();
+    if (held != null) {
+      return Animator.lineage(held);
+    }
+    return pointerIn ? Animator.identities(hit(pointerX, pointerY)) : List.of();
+  }
+
+  /** The identity of the element that a drag, a selection or a thumb's drag holds, or null. */
+  private Object held() {
+    return selecting != null ? selecting
+        : dragging != null && dragging.started ? dragging.id
+        : grab != null ? grab.id()
+        : null;
   }
 
   /**
