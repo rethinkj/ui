@@ -12,6 +12,7 @@ import com.rethinkj.ui.App;
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.Script;
 import com.rethinkj.ui.Style;
+import com.rethinkj.ui.kit.Card;
 import com.rethinkj.ui.kit.DataGrid;
 import com.rethinkj.ui.kit.DataGrid.CellIcon;
 import com.rethinkj.ui.kit.DataGrid.Column;
@@ -19,10 +20,13 @@ import com.rethinkj.ui.kit.DataGrid.DataType;
 import com.rethinkj.ui.kit.DataGrid.Mode;
 import com.rethinkj.ui.kit.DataGrid.Selection;
 import com.rethinkj.ui.kit.DataGrid.SortKey;
+import com.rethinkj.ui.kit.Divider;
 import com.rethinkj.ui.kit.Icon.Variant;
 import com.rethinkj.ui.kit.Menu;
 import com.rethinkj.ui.kit.Symbol;
+import com.rethinkj.ui.kit.TextField;
 import com.rethinkj.ui.kit.Theme;
+import com.rethinkj.ui.kit.Tooltip;
 import com.rethinkj.ui.render.GpuPresenter;
 import com.rethinkj.ui.text.TextRendering;
 import com.rethinkj.ui.window.Window;
@@ -272,14 +276,18 @@ public final class DataBrowser {
       options.copy(s.app.clipboard());
     }
     El grid = dataGrid(t, columns, s.count(), options);
+    El filter = TextField.withIcon(t, textField(t, s.filter, "Filter", s::filter).key("filter")
+        .w(280), Symbol.SEARCH);
+    filter = Tooltip.tooltip(t, filter, "Words in customer, email, city, country, product,"
+        + " status or note");
     return col().wFull().hFull().fill(t.surface().window())
         .child(titleBar(t, "Orders", t.accent().color()))
-        // No smaller than its content otherwise, which is a million rows tall: min-height: 0.
-        .child(col().grow(1).minSize(0, 0).padding(t.space().l()).gap(t.space().m())
-            .child(row().gap(t.space().m()).align(Style.Align.CENTER)
-                .child(textField(t, s.filter, "Filter", s::filter).key("filter").w(280))
-                .child(label(t, MUTED, "customer, email, city, country, product, status, note")))
-            .child(grid.key("orders").label("Orders").grow(1))
-            .child(label(t, MUTED, s.status()).key("status")));
+        .child(col().grow(1).minSize(0, 0).padding(0, t.space().m(), t.space().m(), t.space().m())
+            .child(Card.flush(t,
+                Card.toolbar(t, "orders", String.format(Locale.ROOT, "%,d rows", s.count()), filter),
+                Divider.divider(t),
+                grid.key("orders").label("Orders").grow(1),
+                Card.footer(t, label(t, MUTED, s.status()).key("status").ellipsis()))
+                .grow(1)));
   }
 }
