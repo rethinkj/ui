@@ -309,7 +309,8 @@ class RowsTest {
     assertEquals("row-5", app.hovered().key());
     assertEquals(HOVER, list.children().get(5).fill(), "its hover look");
     assertEquals(WHITE, list.children().get(4).fill());
-    assertTrue(app.tree().dump().contains("el #row-5 label=\"Row 5\" 0,140 200x28 hovered\n"));
+    assertTrue(app.tree().dump()
+        .contains("el #row-5 label=\"Row 5\" 0,140 200x28 pos=6/1000000 hovered\n"));
 
     app.wheel(100, 154, 0, 200); // rows 4 to 20 now, row 12 under the pointer
     app.frame();
@@ -388,7 +389,8 @@ class RowsTest {
     app.scrollToRow(list(app), 0);
     app.frame();
     assertEquals("row-0", key(app.focused()));
-    assertTrue(app.tree().dump().contains("el #row-0 label=\"Row 0\" 0,20 200x28 focused\n"));
+    assertTrue(app.tree().dump()
+        .contains("el #row-0 label=\"Row 0\" 0,20 200x28 pos=1/1000000 focused\n"));
   }
 
   @Test

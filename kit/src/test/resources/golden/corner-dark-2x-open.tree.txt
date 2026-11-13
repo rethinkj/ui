@@ -6,7 +6,7 @@ el 0,0 360x240
       text "Rename…" 77,16 60x16
     el #help role=button label="?" 154,12 33x24
       text "?" 167,16 7x16
-    el #encoding role=combobox label="UTF-8" 191,12 120x24
+    el #encoding role=combobox label="UTF-8" 191,12 120x24 expanded=false
       text "UTF-8" 200,16 91x16
       text "▼" 295,16 7x16
   el 12,44 336x161
@@ -50,7 +50,7 @@ overlay bottom start gap 2 on #more role=button label="More…" 243,176 100x24
         el 231,128 16x0
         text "Permissions" 255,120 75x16
     el 223,142 115x1
-    el #item-3 role=menuitem label="Truncate" 223,145 115x24
+    el #item-3 role=menuitem label="Truncate" 223,145 115x24 disabled
       el 223,145 115x24
         el 231,157 16x0
         text "Truncate" 255,149 75x16

@@ -16,5 +16,5 @@ el 0,0 480x200
           text "FROM orders o" 209,44 263x16
           text "GROUP BY 1" 209,62 263x16
           text "ORDER BY 1 DESC;" 209,80 263x16
-      el #divider role=separator label="Resize Schema" 197,0 7x200 focused
+      el #divider role=separator label="Resize Schema" 197,0 7x200 value="first 200" focused
         el 200,0 1x200

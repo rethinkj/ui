@@ -204,6 +204,13 @@ final class Workbench {
     return find(app.tree(), e -> key.equals(e.key()));
   }
 
+  /** The line of the tree dump of the first element with this key, without the indent, or null. */
+  static String dumpLine(App<?> app, String key) {
+    return app.tree().dump().lines().map(String::strip)
+        .filter(l -> l.startsWith("el #" + key + " ") || l.startsWith("text #" + key + " "))
+        .findFirst().orElse(null);
+  }
+
   /** The first element with this label in tree order, or null. */
   static El labelled(App<?> app, String label) {
     return find(app.tree(), e -> label.equals(e.label()));

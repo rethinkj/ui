@@ -111,7 +111,8 @@ public final class DataGrid {
     El[] lines = new El[columns.size()];
     for (int c = 0; c < columns.size(); c++) {
       lines[c] = line(t);
-      header.children(headerCell(t, columns.get(c), c, sort, onSort), lines[c]);
+      header.children(headerCell(t, columns.get(c), c, sort, onSort)
+          .position(c + 1, columns.size()), lines[c]);
     }
     float edge = 0;
     for (int c = 0; onResize != null && c < columns.size(); c++) {
@@ -138,7 +139,8 @@ public final class DataGrid {
       // shortcut: every column of a row is built, three elements each, so that a frame costs in
       // proportion to rows times columns; a few dozen columns are fine. Building only the columns
       // in the horizontal view, as the rows are built, lifts that limit.
-      El r = row().key("row-" + i).role("row").fill(fill);
+      El r = row().key("row-" + i).role("row").fill(fill)
+          .selected(i == selected);
       for (Column column : columns) {
         r.children(cell(t, column, column.cell().apply(i)), line(t));
       }
@@ -194,7 +196,7 @@ public final class DataGrid {
         .gap(t.space().xs());
     if (sort != null && sort.column() == index) {
       El marker = Label.label(t, Label.Variant.MUTED, sort.descending() ? "▼" : "▲");
-      cell.children(
+      (sort.descending() ? cell.sortDescending() : cell.sortAscending()).children(
           column.align() == Align.RIGHT ? new El[] {marker, title} : new El[] {title, marker});
     } else {
       cell.child(title);

@@ -1,24 +1,24 @@
 el 0,0 240x200
   el #tables role=list label="Tables" 12,12 216x176 rows 0-10/40 thumb-y 219,15 6x30.85 hovered
-    el #table-0 role=listitem label="accounts" 17,17 206x24
+    el #table-0 role=listitem label="accounts" 17,17 206x24 pos=1/40
       text "accounts_0" 25,21 69x16
-    el #table-1 role=listitem label="addresses" 17,41 206x24
+    el #table-1 role=listitem label="addresses" 17,41 206x24 pos=2/40
       text "addresses_1" 25,45 75x16
-    el #table-2 role=listitem label="audit_log" 17,65 206x24
+    el #table-2 role=listitem label="audit_log" 17,65 206x24 pos=3/40
       text "audit_log_2" 25,69 69x16
-    el #table-3 role=listitem label="carts" 17,89 206x24
+    el #table-3 role=listitem label="carts" 17,89 206x24 pos=4/40
       text "carts_3" 25,93 44x16
-    el #table-4 role=listitem label="categories" 17,113 206x24
+    el #table-4 role=listitem label="categories" 17,113 206x24 pos=5/40
       text "categories_4" 25,117 79x16
-    el #table-5 role=listitem label="customers" 17,137 206x24
+    el #table-5 role=listitem label="customers" 17,137 206x24 pos=6/40
       text "customers_5" 25,141 78x16
-    el #table-6 role=listitem label="deliveries" 17,161 206x24
+    el #table-6 role=listitem label="deliveries" 17,161 206x24 pos=7/40
       text "deliveries_6" 25,165 73x16
-    el #table-7 role=listitem label="discounts" 17,185 206x24
+    el #table-7 role=listitem label="discounts" 17,185 206x24 pos=8/40
       text "discounts_7" 25,189 73x16
-    el #table-8 role=listitem label="employees" 17,209 206x24
+    el #table-8 role=listitem label="employees" 17,209 206x24 pos=9/40
       text "employees_8" 25,213 81x16
-    el #table-9 role=listitem label="inventory" 17,233 206x24
+    el #table-9 role=listitem label="inventory" 17,233 206x24 pos=10/40
       text "inventory_9" 25,237 69x16
-    el #table-10 role=listitem label="accounts" 17,257 206x24
+    el #table-10 role=listitem label="accounts" 17,257 206x24 pos=11/40
       text "accounts_10" 25,261 74x16

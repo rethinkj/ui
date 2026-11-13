@@ -6,7 +6,7 @@ el 0,0 360x240
       text "Rename…" 77,16 60x16
     el #help role=button label="?" 154,12 33x24 hovered
       text "?" 167,16 7x16
-    el #encoding role=combobox label="UTF-8" 191,12 120x24
+    el #encoding role=combobox label="UTF-8" 191,12 120x24 expanded=false
       text "UTF-8" 200,16 91x16
       text "▼" 295,16 7x16
   el 12,44 336x161

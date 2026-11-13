@@ -331,7 +331,7 @@ class PointerTest {
     assertEquals(
         """
         el 0,0 200x120
-          el #switch role=switch label="Lights" 81,49 38x22 hovered
+          el #switch role=switch label="Lights" 81,49 38x22 checked=false hovered
             el #knob 83,51 18x18
         """,
         app.tree().dump());

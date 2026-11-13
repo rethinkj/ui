@@ -383,10 +383,10 @@ public final class Examples {
     for (int c = 0; c < TITLES.length; c++) {
       lines[c] = gridLine();
       El cell = gridCell(s.widths[c], RIGHT[c]).key("column-" + c).role("columnheader")
-          .label(TITLES[c]).gap(2);
+          .label(TITLES[c]).position(c + 1, TITLES.length).gap(2);
       El title = gridText(TITLES[c], PRIMARY, false);
       if (c == 0) { // sorted by id, ascending; the marker before the title of a right column
-        cell.children(gridText("▲", MUTED, false), title);
+        cell.sortAscending().children(gridText("▲", MUTED, false), title);
       } else {
         cell.child(title);
       }
@@ -411,7 +411,7 @@ public final class Examples {
     El body = col().key("rows").grow(1).revealRow(selected).rows(1_000_000, ROW_HEIGHT, i -> {
       int fill = i == selected ? (focused[0] ? SELECTED : SELECTED_INACTIVE)
           : i % 2 == 0 ? ROW : STRIPE;
-      El r = row().key("row-" + i).role("row").fill(fill);
+      El r = row().key("row-" + i).role("row").selected(i == selected).fill(fill);
       for (int c = 0; c < TITLES.length; c++) {
         String text = CELLS.get(c).apply(i);
         r.children(gridCell(s.widths[c], RIGHT[c]).child(
@@ -717,6 +717,7 @@ public final class Examples {
     return el().key("switch")
         .role("switch")
         .label("Lights")
+        .checked(on)
         .size(38, 22)
         .radius(11)
         .fill(on ? 0xFF3B82F6 : 0xFF3A3A40)

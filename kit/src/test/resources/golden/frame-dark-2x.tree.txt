@@ -19,7 +19,7 @@ el 0,0 720x400
                 text "customers.sql" 282,6 87x16
                 el #close-1 role=button label="Close customers.sql" 373,6 16x16
                   text "\u{F368}" 373,6 16x16
-              el #tab-2 role=tab label="orders by month.sql" 400,2 176x24
+              el #tab-2 role=tab label="orders by month.sql" 400,2 176x24 selected
                 text "●" 409,6 11x16
                 text "orders by month.sql" 424,6 123x16
                 el #close-2 role=button label="Close orders by month.sql" 551,6 16x16
@@ -42,7 +42,7 @@ el 0,0 720x400
                 el #second 201,215 519x185
                   el #results label="Results" 201,215 519x185
                     text "12 rows in 18 ms" 209,223 503x16
-                el #divider role=separator label="Resize Query" 201,211 519x7
+                el #divider role=separator label="Resize Query" 201,211 519x7 value="share 0.5"
                   el 201,214 519x1
-      el #divider role=separator label="Resize Schema" 197,0 7x400
+      el #divider role=separator label="Resize Schema" 197,0 7x400 value="first 200"
         el 200,0 1x400

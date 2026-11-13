@@ -43,11 +43,11 @@ el 0,0 440x400
       el 24,214 392x24
         text "User" 24,218 72x16
         text #user role=textbox label="User" "admin" 104,214 260x24
-    el role=checkbox label="Require SSL" 20,252 107x20
+    el role=checkbox label="Require SSL" 20,252 107x20 checked
       el 24,254 16x16
         text "✓" 27,254 11x16
       text "Require SSL" 48,254 75x16
-    el role=switch label="Dark theme" 20,280 115x20
+    el role=switch label="Dark theme" 20,280 115x20 checked
       el 24,282 28x16
         el 38,284 12x12
       text "Dark theme" 60,282 71x16

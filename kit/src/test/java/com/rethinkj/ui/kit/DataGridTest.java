@@ -2,6 +2,7 @@ package com.rethinkj.ui.kit;
 
 import static com.rethinkj.ui.El.col;
 import static com.rethinkj.ui.kit.Button.button;
+import static com.rethinkj.ui.kit.Workbench.dumpLine;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -140,12 +141,15 @@ class DataGridTest {
     assertEquals(6, orders.selected);
     assertEquals("orders", app.focused().key());
     assertEquals(T.grid().selected(), find(app, "row-6").fill(), "the focused grid's selection");
+    assertTrue(dumpLine(app, "row-6").endsWith(" selected pos=7/1000000"), dumpLine(app, "row-6"));
 
     run(app, "press 2,2\nframe"); // the window around the grid: the focus leaves it
     assertNull(app.focused());
     assertEquals(T.grid().selectedInactive(), find(app, "row-6").fill());
     assertEquals(T.grid().row(), find(app, "row-2").fill());
     assertEquals(T.grid().stripe(), find(app, "row-3").fill());
+    assertTrue(dumpLine(app, "row-6").contains(" selected "), "still selected");
+    assertTrue(dumpLine(app, "row-2").endsWith(" pos=3/1000000"), "row 2 is not");
   }
 
   @Test
@@ -232,6 +236,7 @@ class DataGridTest {
     assertTrue(el != null && el.y() >= 0 && el.y() + el.height() <= rows.height(),
         "row " + row + " in view at " + rows.scrollY());
     assertEquals(T.grid().selected(), el.fill());
+    assertTrue(dumpLine(app, "row-" + row).contains(" selected "));
   }
 
   // Header
@@ -308,6 +313,8 @@ class DataGridTest {
     Orders orders = new Orders(T, 1_000_000);
     App<Orders> app = start(orders);
     assertTrue(app.tree().dump().contains("text \"▲\""), "sorted by id, ascending");
+    assertTrue(dumpLine(app, "column-0").endsWith(" pos=1/7 sort=ascending"));
+    assertTrue(dumpLine(app, "column-2").endsWith(" pos=3/7"));
 
     run(app, "press #column-2\nframe");
     assertEquals(new DataGrid.Sort(2, false), orders.sort);
@@ -315,6 +322,8 @@ class DataGridTest {
     assertEquals(new DataGrid.Sort(2, true), orders.sort);
     El email = find(app, "column-2");
     assertEquals("▼", email.children().getLast().text().string(), "after the title");
+    assertTrue(dumpLine(app, "column-2").endsWith(" pos=3/7 sort=descending"));
+    assertTrue(dumpLine(app, "column-0").endsWith(" pos=1/7"));
     run(app, "down #resize-2\nmove 412,19\nup 412,19\nframe"); // within the threshold
     assertEquals(List.of("sort 2", "sort 2"), orders.log);
     assertEquals(200, orders.widths[2]);

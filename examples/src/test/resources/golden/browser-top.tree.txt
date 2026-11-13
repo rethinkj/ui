@@ -34,41 +34,41 @@ el 0,0 900x520
     el #orders role=grid label="Orders" 12,76 876x408 thumb-x 14,476 537.18x6
       el #content 12,76 1422x408
         el #header 12,76 1422x22
-          el #column-0 role=columnheader label="id" 12,76 71x22
+          el #column-0 role=columnheader label="id" 12,76 71x22 pos=1/12 sort=ascending
             text "▲" 53,79 13x16
             text "id" 68,79 11x16
           el 83,76 1x22
-          el #column-1 role=columnheader label="customer" 84,76 139x22
+          el #column-1 role=columnheader label="customer" 84,76 139x22 pos=2/12
             text "customer" 88,79 58x16
           el 223,76 1x22
-          el #column-2 role=columnheader label="email" 224,76 219x22
+          el #column-2 role=columnheader label="email" 224,76 219x22 pos=3/12
             text "email" 228,79 32x16
           el 443,76 1x22
-          el #column-3 role=columnheader label="city" 444,76 89x22
+          el #column-3 role=columnheader label="city" 444,76 89x22 pos=4/12
             text "city" 448,79 22x16
           el 533,76 1x22
-          el #column-4 role=columnheader label="country" 534,76 69x22
+          el #column-4 role=columnheader label="country" 534,76 69x22 pos=5/12
             text "country" 538,79 47x16
           el 603,76 1x22
-          el #column-5 role=columnheader label="product" 604,76 99x22
+          el #column-5 role=columnheader label="product" 604,76 99x22 pos=6/12
             text "product" 608,79 48x16
           el 703,76 1x22
-          el #column-6 role=columnheader label="quantity" 704,76 79x22
+          el #column-6 role=columnheader label="quantity" 704,76 79x22 pos=7/12
             text "quantity" 729,79 50x16
           el 783,76 1x22
-          el #column-7 role=columnheader label="amount" 784,76 99x22
+          el #column-7 role=columnheader label="amount" 784,76 99x22 pos=8/12
             text "amount" 833,79 46x16
           el 883,76 1x22
-          el #column-8 role=columnheader label="created_at" 884,76 139x22
+          el #column-8 role=columnheader label="created_at" 884,76 139x22 pos=9/12
             text "created_at" 888,79 64x16
           el 1023,76 1x22
-          el #column-9 role=columnheader label="shipped_at" 1024,76 139x22
+          el #column-9 role=columnheader label="shipped_at" 1024,76 139x22 pos=10/12
             text "shipped_at" 1028,79 67x16
           el 1163,76 1x22
-          el #column-10 role=columnheader label="status" 1164,76 89x22
+          el #column-10 role=columnheader label="status" 1164,76 89x22 pos=11/12
             text "status" 1168,79 37x16
           el 1253,76 1x22
-          el #column-11 role=columnheader label="note" 1254,76 179x22
+          el #column-11 role=columnheader label="note" 1254,76 179x22 pos=12/12
             text "note" 1258,79 28x16
           el 1433,76 1x22
           el #resize-0 role=separator label="Resize id" 81,76 6x22
@@ -85,7 +85,7 @@ el 0,0 900x520
           el #resize-11 role=separator label="Resize note" 1431,76 6x22
         el 12,98 1422x1
         el #rows 12,99 1422x385 rows 0-20/1000000 thumb-y 880,101 6x24
-          el #row-0 role=row 12,99 1422x22
+          el #row-0 role=row 12,99 1422x22 pos=1/1000000
             el 12,99 71x22
               text "1" 72,102 7x16
             el 83,99 1x22
@@ -122,7 +122,7 @@ el 0,0 900x520
             el 1254,99 179x22
               text "NULL" 1258,102 34x16
             el 1433,99 1x22
-          el #row-1 role=row 12,121 1422x22
+          el #row-1 role=row 12,121 1422x22 pos=2/1000000
             el 12,121 71x22
               text "2" 72,124 7x16
             el 83,121 1x22
@@ -159,7 +159,7 @@ el 0,0 900x520
             el 1254,121 179x22
               text "Leave at the door" 1258,124 109x16
             el 1433,121 1x22
-          el #row-2 role=row 12,143 1422x22
+          el #row-2 role=row 12,143 1422x22 pos=3/1000000
             el 12,143 71x22
               text "3" 72,146 7x16
             el 83,143 1x22
@@ -196,7 +196,7 @@ el 0,0 900x520
             el 1254,143 179x22
               text "NULL" 1258,146 34x16
             el 1433,143 1x22
-          el #row-3 role=row 12,165 1422x22
+          el #row-3 role=row 12,165 1422x22 pos=4/1000000
             el 12,165 71x22
               text "4" 72,168 7x16
             el 83,165 1x22
@@ -233,7 +233,7 @@ el 0,0 900x520
             el 1254,165 179x22
               text "NULL" 1258,168 34x16
             el 1433,165 1x22
-          el #row-4 role=row 12,187 1422x22
+          el #row-4 role=row 12,187 1422x22 pos=5/1000000
             el 12,187 71x22
               text "5" 72,190 7x16
             el 83,187 1x22
@@ -270,7 +270,7 @@ el 0,0 900x520
             el 1254,187 179x22
               text "Gift wrap" 1258,190 56x16
             el 1433,187 1x22
-          el #row-5 role=row 12,209 1422x22
+          el #row-5 role=row 12,209 1422x22 pos=6/1000000
             el 12,209 71x22
               text "6" 72,212 7x16
             el 83,209 1x22
@@ -307,7 +307,7 @@ el 0,0 900x520
             el 1254,209 179x22
               text "NULL" 1258,212 34x16
             el 1433,209 1x22
-          el #row-6 role=row 12,231 1422x22
+          el #row-6 role=row 12,231 1422x22 pos=7/1000000
             el 12,231 71x22
               text "7" 72,234 7x16
             el 83,231 1x22
@@ -344,7 +344,7 @@ el 0,0 900x520
             el 1254,231 179x22
               text "Call before delivery" 1258,234 120x16
             el 1433,231 1x22
-          el #row-7 role=row 12,253 1422x22
+          el #row-7 role=row 12,253 1422x22 pos=8/1000000
             el 12,253 71x22
               text "8" 72,256 7x16
             el 83,253 1x22
@@ -381,7 +381,7 @@ el 0,0 900x520
             el 1254,253 179x22
               text "NULL" 1258,256 34x16
             el 1433,253 1x22
-          el #row-8 role=row 12,275 1422x22
+          el #row-8 role=row 12,275 1422x22 pos=9/1000000
             el 12,275 71x22
               text "9" 72,278 7x16
             el 83,275 1x22
@@ -418,7 +418,7 @@ el 0,0 900x520
             el 1254,275 179x22
               text "NULL" 1258,278 34x16
             el 1433,275 1x22
-          el #row-9 role=row 12,297 1422x22
+          el #row-9 role=row 12,297 1422x22 pos=10/1000000
             el 12,297 71x22
               text "10" 65,300 14x16
             el 83,297 1x22
@@ -455,7 +455,7 @@ el 0,0 900x520
             el 1254,297 179x22
               text "Leave at the door" 1258,300 109x16
             el 1433,297 1x22
-          el #row-10 role=row 12,319 1422x22
+          el #row-10 role=row 12,319 1422x22 pos=11/1000000
             el 12,319 71x22
               text "11" 65,322 14x16
             el 83,319 1x22
@@ -492,7 +492,7 @@ el 0,0 900x520
             el 1254,319 179x22
               text "NULL" 1258,322 34x16
             el 1433,319 1x22
-          el #row-11 role=row 12,341 1422x22
+          el #row-11 role=row 12,341 1422x22 pos=12/1000000
             el 12,341 71x22
               text "12" 65,344 14x16
             el 83,341 1x22
@@ -529,7 +529,7 @@ el 0,0 900x520
             el 1254,341 179x22
               text "NULL" 1258,344 34x16
             el 1433,341 1x22
-          el #row-12 role=row 12,363 1422x22
+          el #row-12 role=row 12,363 1422x22 pos=13/1000000
             el 12,363 71x22
               text "13" 65,366 14x16
             el 83,363 1x22
@@ -566,7 +566,7 @@ el 0,0 900x520
             el 1254,363 179x22
               text "Gift wrap" 1258,366 56x16
             el 1433,363 1x22
-          el #row-13 role=row 12,385 1422x22
+          el #row-13 role=row 12,385 1422x22 pos=14/1000000
             el 12,385 71x22
               text "14" 65,388 14x16
             el 83,385 1x22
@@ -603,7 +603,7 @@ el 0,0 900x520
             el 1254,385 179x22
               text "NULL" 1258,388 34x16
             el 1433,385 1x22
-          el #row-14 role=row 12,407 1422x22
+          el #row-14 role=row 12,407 1422x22 pos=15/1000000
             el 12,407 71x22
               text "15" 65,410 14x16
             el 83,407 1x22
@@ -640,7 +640,7 @@ el 0,0 900x520
             el 1254,407 179x22
               text "Call before delivery" 1258,410 120x16
             el 1433,407 1x22
-          el #row-15 role=row 12,429 1422x22
+          el #row-15 role=row 12,429 1422x22 pos=16/1000000
             el 12,429 71x22
               text "16" 65,432 14x16
             el 83,429 1x22
@@ -677,7 +677,7 @@ el 0,0 900x520
             el 1254,429 179x22
               text "NULL" 1258,432 34x16
             el 1433,429 1x22
-          el #row-16 role=row 12,451 1422x22
+          el #row-16 role=row 12,451 1422x22 pos=17/1000000
             el 12,451 71x22
               text "17" 65,454 14x16
             el 83,451 1x22
@@ -714,7 +714,7 @@ el 0,0 900x520
             el 1254,451 179x22
               text "NULL" 1258,454 34x16
             el 1433,451 1x22
-          el #row-17 role=row 12,473 1422x22
+          el #row-17 role=row 12,473 1422x22 pos=18/1000000
             el 12,473 71x22
               text "18" 65,476 14x16
             el 83,473 1x22
@@ -751,7 +751,7 @@ el 0,0 900x520
             el 1254,473 179x22
               text "Leave at the door" 1258,476 109x16
             el 1433,473 1x22
-          el #row-18 role=row 12,495 1422x22
+          el #row-18 role=row 12,495 1422x22 pos=19/1000000
             el 12,495 71x22
               text "19" 65,498 14x16
             el 83,495 1x22
@@ -788,7 +788,7 @@ el 0,0 900x520
             el 1254,495 179x22
               text "NULL" 1258,498 34x16
             el 1433,495 1x22
-          el #row-19 role=row 12,517 1422x22
+          el #row-19 role=row 12,517 1422x22 pos=20/1000000
             el 12,517 71x22
               text "20" 65,520 14x16
             el 83,517 1x22
@@ -825,7 +825,7 @@ el 0,0 900x520
             el 1254,517 179x22
               text "NULL" 1258,520 34x16
             el 1433,517 1x22
-          el #row-20 role=row 12,539 1422x22
+          el #row-20 role=row 12,539 1422x22 pos=21/1000000
             el 12,539 71x22
               text "21" 65,542 14x16
             el 83,539 1x22

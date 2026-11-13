@@ -1,4 +1,4 @@
 el 0,0 200x120
-  el #switch role=switch label="Lights" 74.34,49 38x22 focused
+  el #switch role=switch label="Lights" 74.34,49 38x22 checked=false focused
     el #knob 85.22,51 18x18
   el #badge role=status label="On" 119,54 12x12 exiting

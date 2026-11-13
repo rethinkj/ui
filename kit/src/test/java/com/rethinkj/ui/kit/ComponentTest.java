@@ -1,5 +1,6 @@
 package com.rethinkj.ui.kit;
 
+import static com.rethinkj.ui.El.col;
 import static com.rethinkj.ui.El.row;
 import static com.rethinkj.ui.kit.Button.button;
 import static com.rethinkj.ui.kit.Checkbox.checkbox;
@@ -101,31 +102,40 @@ class ComponentTest {
   }
 
   @Test
-  void theTreeNamesEachComponent() throws IOException {
+  void theTreeNamesEachComponentAndSaysItsState() throws IOException {
     TextLibraries.assumeLoaded();
-    App<Object> app = app(row().children(
+    App<Object> app = app(col().children(
         button(T, Variant.PRIMARY, "Run", () -> {}),
         toggle(T, true, "Autocommit", () -> {}),
         toggle(T, false, () -> {}).label("Wi-Fi"),
         checkbox(T, true, "Read only", () -> {}),
+        checkbox(T, false, "Strict", null),
         button(T, Variant.GHOST, "Format", null),
         textField(T, "", "Search", s -> {}),
-        textField(T, "x", s -> {}).label("Name")));
+        textField(T, "x", s -> {}).label("Name"),
+        textField(T, "y", "Id", s -> {}).readOnly(),
+        textField(T, "z", "Owner", null)));
     run(app, "");
 
+    // The role and label, then what follows the rectangle: the states.
     List<String> named = new ArrayList<>();
-    Matcher m = Pattern.compile("role=\\S+ label=\"[^\"]*\"").matcher(app.tree().dump());
+    Matcher m = Pattern.compile(
+        "(role=\\S+ label=\"[^\"]*\")(?: \"[^\"]*\")? \\S+,\\S+ \\S+x\\S+(.*)")
+        .matcher(app.tree().dump());
     while (m.find()) {
-      named.add(m.group());
+      named.add(m.group(1) + m.group(2));
     }
     assertEquals(List.of(
         "role=button label=\"Run\"",
-        "role=switch label=\"Autocommit\"",
-        "role=switch label=\"Wi-Fi\"",
-        "role=checkbox label=\"Read only\"",
-        "role=button label=\"Format\"",
+        "role=switch label=\"Autocommit\" checked",
+        "role=switch label=\"Wi-Fi\" checked=false",
+        "role=checkbox label=\"Read only\" checked",
+        "role=checkbox label=\"Strict\" disabled checked=false",
+        "role=button label=\"Format\" disabled",
         "role=textbox label=\"Search\"",
-        "role=textbox label=\"Name\""), named);
+        "role=textbox label=\"Name\"",
+        "role=textbox label=\"Id\" readonly",
+        "role=textbox label=\"Owner\" disabled"), named);
   }
 
   @Test
@@ -146,7 +156,8 @@ class ComponentTest {
   void aDisabledTextFieldTakesNoFocusAndAReadOnlyOneTakesNoEdits() throws IOException {
     TextLibraries.assumeLoaded();
     App<Object> disabled = app(row().child(textField(T, "x", "Search", null)));
-    run(disabled, "move role=textbox\npress role=textbox\nframe\nkey Tab\nframe\ntype \"y\"");
+    run(disabled,
+        "move role=textbox disabled\npress role=textbox\nframe\nkey Tab\nframe\ntype \"y\"");
     assertNull(disabled.focused());
     assertEquals(Cursor.DEFAULT, disabled.cursor());
 

@@ -176,6 +176,8 @@ public final class Tabs {
     int ink = !enabled ? t.text().disabled() : active ? t.text().primary() : t.text().muted();
     // The active tab is raised; the others show the bar, with the translucent overlays on it.
     El el = row().key("tab-" + index).role("tab").label(tab.title())
+        .selected(active)
+        .disabled(!enabled)
         .h(t.size().control())
         .padding(0, t.space().m())
         .gap(t.space().s())

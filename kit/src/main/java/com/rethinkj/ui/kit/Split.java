@@ -9,6 +9,8 @@ import com.rethinkj.ui.Drag;
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.Len;
 import com.rethinkj.ui.Style;
+import java.math.BigDecimal;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.DoubleConsumer;
@@ -129,6 +131,8 @@ public final class Split {
     El line = el().fill(t.border().subtle());
     El divider = (across ? row() : col()).key("divider").role("separator")
         .label(first.label() == null ? "Resize" : "Resize " + first.label())
+        .value(position.kind().name().toLowerCase(Locale.ROOT) + " "
+            + new BigDecimal(Float.toString(position.value())).stripTrailingZeros().toPlainString())
         .justify(Style.Content.CENTER)
         .shrink(0)
         .child(line);

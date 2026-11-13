@@ -248,7 +248,14 @@ public final class Menu {
     El el = row().key((sub ? "subitem-" : "item-") + i).role("menuitem").label(item.label())
         .h(t.size().control()).shrink(0).radius(t.radius().small()).fill(fill)
         .onHoverFor(0, () -> highlight(state, sub, i))
+        .disabled(!enabled)
         .child(content);
+    if (item.checked()) {
+      el.checked(true);
+    }
+    if (opens && !sub) {
+      el.expanded(state.sub == i);
+    }
     if (enabled) {
       el.onPress(() -> choose(state, items, i, sub));
     }

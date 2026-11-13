@@ -1,7 +1,7 @@
 # The tree of kit's tests (TreeTest): the catalog of three servers, none open, none selected.
 size 280 300
 frame
-move #row-1                         # the pointer over prod-eu, which looks hovered
+move role=treeitem label="prod-eu"  # the pointer over prod-eu, which looks hovered
 frame
 snap closed
 

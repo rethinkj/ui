@@ -4,55 +4,55 @@ el 0,0 280x220
     text "table" 96,23 116x14
     text "rows" 224,23 28x14
   el #rows role=grid 16,44 248x160 rows 999985-999997/1000000 scroll 0,27999680 thumb-y 256,178 6x24
-    el #row-999985 role=row label="customers" 16,-56 248x28
+    el #row-999985 role=row label="customers" 16,-56 248x28 pos=999986/1000000
       text "999985" 28,-50 56x16
       text "customers" 96,-50 115x16
       text "9605" 223,-50 29x16
-    el #row-999986 role=row label="deliveries" 16,-28 248x28
+    el #row-999986 role=row label="deliveries" 16,-28 248x28 pos=999987/1000000
       text "999986" 28,-22 56x16
       text "deliveries" 96,-22 115x16
       text "3616" 223,-22 29x16
-    el #row-999987 role=row label="discounts" 16,0 248x28
+    el #row-999987 role=row label="discounts" 16,0 248x28 pos=999988/1000000
       text "999987" 28,6 56x16
       text "discounts" 96,6 115x16
       text "7797" 223,6 29x16
-    el #row-999988 role=row label="employees" 16,28 248x28
+    el #row-999988 role=row label="employees" 16,28 248x28 pos=999989/1000000
       text "999988" 28,34 56x16
       text "employees" 96,34 115x16
       text "1808" 223,34 29x16
-    el #row-999989 role=row label="inventory" 16,56 248x28
+    el #row-999989 role=row label="inventory" 16,56 248x28 pos=999990/1000000
       text "999989" 28,62 56x16
       text "inventory" 96,62 115x16
       text "5989" 223,62 29x16
-    el #row-999990 role=row label="invoices" 16,84 248x28
+    el #row-999990 role=row label="invoices" 16,84 248x28 pos=999991/1000000
       text "999990" 28,90 56x16
       text "invoices" 96,90 137x16
       text "0" 245,90 7x16
-    el #row-999991 role=row label="order_items" 16,112 248x28
+    el #row-999991 role=row label="order_items" 16,112 248x28 pos=999992/1000000
       text "999991" 28,118 56x16
       text "order_items" 96,118 115x16
       text "4181" 223,118 29x16
-    el #row-999992 role=row label="orders" 16,140 248x28
+    el #row-999992 role=row label="orders" 16,140 248x28 pos=999993/1000000
       text "999992" 28,146 56x16
       text "orders" 96,146 115x16
       text "8362" 223,146 29x16
-    el #row-999993 role=row label="payments" 16,168 248x28
+    el #row-999993 role=row label="payments" 16,168 248x28 pos=999994/1000000
       text "999993" 28,174 56x16
       text "payments" 96,174 115x16
       text "2373" 223,174 29x16
-    el #row-999994 role=row label="products" 16,196 248x28
+    el #row-999994 role=row label="products" 16,196 248x28 pos=999995/1000000
       text "999994" 28,202 56x16
       text "products" 96,202 115x16
       text "6554" 223,202 29x16
-    el #row-999995 role=row label="refunds" 16,224 248x28
+    el #row-999995 role=row label="refunds" 16,224 248x28 pos=999996/1000000
       text "999995" 28,230 56x16
       text "refunds" 96,230 122x16
       text "565" 230,230 22x16
-    el #row-999996 role=row label="reviews" 16,252 248x28
+    el #row-999996 role=row label="reviews" 16,252 248x28 pos=999997/1000000
       text "999996" 28,258 56x16
       text "reviews" 96,258 115x16
       text "4746" 223,258 29x16
-    el #row-999997 role=row label="sessions" 16,280 248x28
+    el #row-999997 role=row label="sessions" 16,280 248x28 pos=999998/1000000
       text "999997" 28,286 56x16
       text "sessions" 96,286 115x16
       text "8927" 223,286 29x16

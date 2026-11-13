@@ -39,6 +39,8 @@ public final class Select {
     Theme.TextStyle mono = t.type().mono();
     int fill = t.surface().raised();
     El select = row().role("combobox").label(text)
+        .disabled(!enabled)
+        .expanded(state.isOpen())
         .w(t.size().field())
         .h(t.size().control())
         .padding(0, t.space().m())

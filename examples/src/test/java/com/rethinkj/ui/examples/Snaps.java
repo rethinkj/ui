@@ -65,4 +65,10 @@ final class Snaps {
       }
     }
   }
+
+  /** The first line that contains {@code part} in the tree of a snap that {@link #check} wrote. */
+  static String line(String name, String snap, String part) throws IOException {
+    return Files.readAllLines(Path.of("target", name, snap + ".tree.txt")).stream()
+        .filter(l -> l.contains(part)).findFirst().orElseThrow().strip();
+  }
 }

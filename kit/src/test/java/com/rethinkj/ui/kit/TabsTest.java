@@ -2,6 +2,7 @@ package com.rethinkj.ui.kit;
 
 import static com.rethinkj.ui.El.col;
 import static com.rethinkj.ui.kit.Tabs.tabs;
+import static com.rethinkj.ui.kit.Workbench.dumpLine;
 import static com.rethinkj.ui.kit.Workbench.find;
 import static com.rethinkj.ui.kit.Workbench.x;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -63,6 +64,8 @@ class TabsTest {
     assertTrue(app.tree().dump().contains("text \"products.sql\"")); // in the content too
     assertEquals(T.surface().raised(), find(app, "tab-3").fill(), "the active tab is raised");
     assertEquals(0, find(app, "tab-0").fill(), "the others show the bar");
+    assertTrue(dumpLine(app, "tab-3").endsWith(" selected"));
+    assertFalse(dumpLine(app, "tab-0").contains(" selected"));
 
     run(app, "press #tab-3\nframe");
     assertEquals(List.of("select 3"), w.log, "told only of changes");
@@ -199,6 +202,8 @@ class TabsTest {
     assertNull(find(app, "close-0"));
     assertNull(find(app, "tab-1").onPress());
     assertEquals(T.text().disabled(), find(app, "tab-1").children().getFirst().text().color());
+    assertTrue(dumpLine(app, "tab-0").endsWith(" disabled selected"));
+    assertTrue(dumpLine(app, "tab-1").endsWith(" disabled"));
   }
 
   @Test

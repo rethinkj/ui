@@ -6,7 +6,7 @@ el 0,0 360x240
       text "Rename…" 77,16 60x16
     el #help role=button label="?" 154,12 33x24
       text "?" 167,16 7x16
-    el #encoding role=combobox label="UTF-8" 191,12 120x24
+    el #encoding role=combobox label="UTF-8" 191,12 120x24 expanded
       text "UTF-8" 200,16 91x16
       text "▼" 295,16 7x16
   el 12,44 336x161
@@ -41,7 +41,7 @@ el 0,0 360x240
   text #status "Ready · orders · UTF-8 · wrap" 12,213 336x15
 overlay bottom stretch gap 2 on #encoding role=combobox label="UTF-8" 191,12 120x24
   el #menu role=menu 191,38 141x106 focused
-    el #item-0 role=menuitem label="UTF-8" 196,43 131x24
+    el #item-0 role=menuitem label="UTF-8" 196,43 131x24 checked
       el 196,43 131x24
         el 204,47 16x16
           text "✓" 206,47 12x16

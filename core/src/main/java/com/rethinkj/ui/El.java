@@ -27,11 +27,25 @@ public final class El {
   /** How many rows a {@link #rows virtual list} builds beyond its visible part, on each side. */
   public static final int OVERSCAN = 3;
 
+  private static final int SELECTED = 1;
+  private static final int DISABLED = 2;
+  private static final int CHECKED = 4; // with NOT_CHECKED: mixed
+  private static final int NOT_CHECKED = 8;
+  private static final int EXPANDED = 16;
+  private static final int COLLAPSED = 32;
+  private static final int ASCENDING = 64;
+  private static final int DESCENDING = 128;
+
   private final Style style = new Style();
   private final List<El> children = new ArrayList<>();
   private String key;
   private String role;
   private String label;
+  private int states; // the bits below, set by the view; see #dump
+  private int level;
+  private int position; // in its set, from 1; 0 when not set
+  private int setSize;
+  private String value;
   private int fill;
   private float radius;
   private int borderColor;
@@ -162,6 +176,86 @@ public final class El {
 
   public El label(String label) {
     this.label = label;
+    return this;
+  }
+
+  // States, as WAI-ARIA names them. They say what the app's state is, for the tree dump, scripts
+  // and assistive technology; they change nothing about how the element looks or takes input.
+
+  /** Whether this is selected, as the selected row of a grid, node of a tree or tab of a bar. */
+  public El selected(boolean selected) {
+    return state(SELECTED, selected ? SELECTED : 0);
+  }
+
+  /** Whether this checkbox is checked or this switch ({@code role=switch}) is on. */
+  public El checked(boolean checked) {
+    return state(CHECKED | NOT_CHECKED, checked ? CHECKED : NOT_CHECKED);
+  }
+
+  /** Neither checked nor clear, as a checkbox over a group of which some are checked. */
+  public El checkedMixed() {
+    return state(CHECKED | NOT_CHECKED, CHECKED | NOT_CHECKED);
+  }
+
+  /** Whether what this element opens, such as a tree node's children, is shown. */
+  public El expanded(boolean expanded) {
+    return state(EXPANDED | COLLAPSED, expanded ? EXPANDED : COLLAPSED);
+  }
+
+  /**
+   * Whether this element is disabled. It only says so: a disabled element takes no input when the
+   * view gives it no handlers and does not make it {@link #focusable}, as the kit's components do.
+   * A text field is disabled by {@link #editable editable(null)} and needs no call.
+   */
+  public El disabled(boolean disabled) {
+    return state(DISABLED, disabled ? DISABLED : 0);
+  }
+
+  /** The column this header sorts by, upwards. */
+  public El sortAscending() {
+    return state(ASCENDING | DESCENDING, ASCENDING);
+  }
+
+  /** The column this header sorts by, downwards. */
+  public El sortDescending() {
+    return state(ASCENDING | DESCENDING, DESCENDING);
+  }
+
+  private El state(int bits, int set) {
+    states = states & ~bits | set;
+    return this;
+  }
+
+  /** The depth of a node in a tree, 1 at the top. */
+  public El level(int level) {
+    if (level < 1) {
+      throw new IllegalArgumentException("A level is 1 or more, was " + level);
+    }
+    this.level = level;
+    return this;
+  }
+
+  /**
+   * The position of this element among its siblings in a set, from 1, and the size of the set, as
+   * a node among the children of its parent. The rows of a {@link #rows virtual list} have their
+   * index plus 1 among all rows unless the row function sets another.
+   */
+  public El position(int position, int setSize) {
+    if (position < 1 || position > setSize) {
+      throw new IllegalArgumentException(
+          "A position is from 1 to the size of the set, was " + position + " of " + setSize);
+    }
+    this.position = position;
+    this.setSize = setSize;
+    return this;
+  }
+
+  /**
+   * The value of an element that has one beyond its label, as text: where a separator between
+   * two parts is, say. A text field's value is its string, which needs no call.
+   */
+  public El value(String value) {
+    this.value = value;
     return this;
   }
 
@@ -1035,6 +1129,11 @@ public final class El {
     return label;
   }
 
+  /** The {@link #value(String) value}, or null. */
+  String value() {
+    return value;
+  }
+
   public int fill() {
     return fill;
   }
@@ -1571,6 +1670,9 @@ public final class El {
       if (row == null) {
         throw new IllegalStateException("The row function of a list returned null for row " + i);
       }
+      if (row.position == 0) {
+        row.position(i + 1, rowCount);
+      }
       children.add(row);
     }
     firstRow = from;
@@ -1740,7 +1842,14 @@ public final class El {
   /**
    * The tree as text, one element per line, children indented by two spaces. After layout each
    * line ends with the element's rectangle in window coordinates, as {@code x,y widthxheight}, as
-   * shown, that is, moved by the scroll offsets above it. A scroll area that is scrolled adds its
+   * shown, that is, moved by the scroll offsets above it. The states the view set follow, those
+   * that are set, in this order: {@code disabled} (also a field that {@link #editable
+   * editable(null)} disables), {@code readonly} (a {@link #readOnly} field), {@code selected},
+   * {@code checked}, {@code checked=false} or {@code checked=mixed}, {@code expanded} or {@code
+   * expanded=false}, {@code level=2}, {@code pos=3/10} (the position in the set and its size),
+   * {@code sort=ascending} or {@code sort=descending}, and {@code value="..."}, as in {@code el
+   * #row-3 role=treeitem label="public" 0,66 400x22 selected expanded level=3 pos=1/2}. A scroll
+   * area that is scrolled adds its
    * offset, as {@code scroll x,y}. A virtual list ({@link #rows}) adds, before that, its rows that
    * exist and how many it has, as {@code rows 40-56/1000000}, or {@code rows -/1000000} when none
    * exist. A scroll area with {@link #scrollbars} adds after that the thumb of its bar along the
@@ -1842,6 +1951,10 @@ public final class El {
       number(out, width).append('x');
       number(out, height);
     }
+    states(out);
+    if (value != null) {
+      out.append(" value=").append(quote(value));
+    }
     if (rowBuilder != null) {
       out.append(" rows ");
       if (children.isEmpty()) {
@@ -1880,6 +1993,41 @@ public final class El {
       out.append(" exiting");
     }
     out.append('\n');
+  }
+
+  /** The states of {@link #dump} but the value, each after a space, in their fixed order. */
+  void states(StringBuilder out) {
+    if ((states & DISABLED) != 0 || editable && onEdit == null && !readOnly) {
+      out.append(" disabled");
+    }
+    if (readOnly) {
+      out.append(" readonly");
+    }
+    if ((states & SELECTED) != 0) {
+      out.append(" selected");
+    }
+    switch (states & (CHECKED | NOT_CHECKED)) {
+      case CHECKED -> out.append(" checked");
+      case NOT_CHECKED -> out.append(" checked=false");
+      case CHECKED | NOT_CHECKED -> out.append(" checked=mixed");
+      default -> {}
+    }
+    switch (states & (EXPANDED | COLLAPSED)) {
+      case EXPANDED -> out.append(" expanded");
+      case COLLAPSED -> out.append(" expanded=false");
+      default -> {}
+    }
+    if (level != 0) {
+      out.append(" level=").append(level);
+    }
+    if (position != 0) {
+      out.append(" pos=").append(position).append('/').append(setSize);
+    }
+    switch (states & (ASCENDING | DESCENDING)) {
+      case ASCENDING -> out.append(" sort=ascending");
+      case DESCENDING -> out.append(" sort=descending");
+      default -> {}
+    }
   }
 
   private static void thumb(StringBuilder out, Scrollbars.Bar bar) {

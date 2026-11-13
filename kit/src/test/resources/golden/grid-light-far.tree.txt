@@ -2,26 +2,26 @@ el 0,0 560x240
   el #orders role=grid label="Orders" 8,8 544x224 thumb-x 10,224 304.73x6 focused
     el #content 8,8 964x224
       el #header 8,8 964x22
-        el #column-0 role=columnheader label="id" 8,8 63x22
+        el #column-0 role=columnheader label="id" 8,8 63x22 pos=1/7 sort=ascending
           text "▲" 41,11 13x16
           text "id" 56,11 11x16
         el 71,8 1x22
-        el #column-1 role=columnheader label="customer" 72,8 139x22
+        el #column-1 role=columnheader label="customer" 72,8 139x22 pos=2/7
           text "customer" 76,11 58x16
         el 211,8 1x22
-        el #column-2 role=columnheader label="email" 212,8 199x22
+        el #column-2 role=columnheader label="email" 212,8 199x22 pos=3/7
           text "email" 216,11 32x16
         el 411,8 1x22
-        el #column-3 role=columnheader label="created_at" 412,8 149x22
+        el #column-3 role=columnheader label="created_at" 412,8 149x22 pos=4/7
           text "created_at" 416,11 64x16
         el 561,8 1x22
-        el #column-4 role=columnheader label="amount" 562,8 89x22
+        el #column-4 role=columnheader label="amount" 562,8 89x22 pos=5/7
           text "amount" 601,11 46x16
         el 651,8 1x22
-        el #column-5 role=columnheader label="status" 652,8 79x22
+        el #column-5 role=columnheader label="status" 652,8 79x22 pos=6/7
           text "status" 656,11 37x16
         el 731,8 1x22
-        el #column-6 role=columnheader label="note" 732,8 239x22
+        el #column-6 role=columnheader label="note" 732,8 239x22 pos=7/7
           text "note" 736,11 28x16
         el 971,8 1x22
         el #resize-0 role=separator label="Resize id" 69,8 6x22
@@ -33,7 +33,7 @@ el 0,0 560x240
         el #resize-6 role=separator label="Resize note" 969,8 6x22
       el 8,30 964x1
       el #rows 8,31 964x201 rows 765429-765444/1000000 scroll 0,16839504 thumb-y 544,157.77 6x24
-        el #row-765429 role=row 8,-35 964x22
+        el #row-765429 role=row 8,-35 964x22 pos=765430/1000000
           el 8,-35 63x22
             text "765430" 25,-32 42x16
           el 71,-35 1x22
@@ -55,7 +55,7 @@ el 0,0 560x240
           el 732,-35 239x22
             text "NULL" 736,-32 34x16
           el 971,-35 1x22
-        el #row-765430 role=row 8,-13 964x22
+        el #row-765430 role=row 8,-13 964x22 pos=765431/1000000
           el 8,-13 63x22
             text "765431" 25,-10 42x16
           el 71,-13 1x22
@@ -77,7 +77,7 @@ el 0,0 560x240
           el 732,-13 239x22
             text "Customer asked to split the delivery into two parcels and to leave them next door" 736,-10 503x16
           el 971,-13 1x22
-        el #row-765431 role=row 8,9 964x22
+        el #row-765431 role=row 8,9 964x22 pos=765432/1000000
           el 8,9 63x22
             text "765432" 25,12 42x16
           el 71,9 1x22
@@ -99,7 +99,7 @@ el 0,0 560x240
           el 732,9 239x22
             text "NULL" 736,12 34x16
           el 971,9 1x22
-        el #row-765432 role=row 8,31 964x22
+        el #row-765432 role=row 8,31 964x22 pos=765433/1000000
           el 8,31 63x22
             text "765433" 25,34 42x16
           el 71,31 1x22
@@ -121,7 +121,7 @@ el 0,0 560x240
           el 732,31 239x22
             text "NULL" 736,34 34x16
           el 971,31 1x22
-        el #row-765433 role=row 8,53 964x22
+        el #row-765433 role=row 8,53 964x22 pos=765434/1000000
           el 8,53 63x22
             text "765434" 25,56 42x16
           el 71,53 1x22
@@ -143,7 +143,7 @@ el 0,0 560x240
           el 732,53 239x22
             text "Customer asked to split the delivery into two parcels and to leave them next door" 736,56 503x16
           el 971,53 1x22
-        el #row-765434 role=row 8,75 964x22
+        el #row-765434 role=row 8,75 964x22 pos=765435/1000000
           el 8,75 63x22
             text "765435" 25,78 42x16
           el 71,75 1x22
@@ -165,7 +165,7 @@ el 0,0 560x240
           el 732,75 239x22
             text "NULL" 736,78 34x16
           el 971,75 1x22
-        el #row-765435 role=row 8,97 964x22
+        el #row-765435 role=row 8,97 964x22 pos=765436/1000000
           el 8,97 63x22
             text "765436" 25,100 42x16
           el 71,97 1x22
@@ -187,7 +187,7 @@ el 0,0 560x240
           el 732,97 239x22
             text "NULL" 736,100 34x16
           el 971,97 1x22
-        el #row-765436 role=row 8,119 964x22
+        el #row-765436 role=row 8,119 964x22 selected pos=765437/1000000
           el 8,119 63x22
             text "765437" 25,122 42x16
           el 71,119 1x22
@@ -209,7 +209,7 @@ el 0,0 560x240
           el 732,119 239x22
             text "Customer asked to split the delivery into two parcels and to leave them next door" 736,122 503x16
           el 971,119 1x22
-        el #row-765437 role=row 8,141 964x22
+        el #row-765437 role=row 8,141 964x22 pos=765438/1000000
           el 8,141 63x22
             text "765438" 25,144 42x16
           el 71,141 1x22
@@ -231,7 +231,7 @@ el 0,0 560x240
           el 732,141 239x22
             text "NULL" 736,144 34x16
           el 971,141 1x22
-        el #row-765438 role=row 8,163 964x22
+        el #row-765438 role=row 8,163 964x22 pos=765439/1000000
           el 8,163 63x22
             text "765439" 25,166 42x16
           el 71,163 1x22
@@ -253,7 +253,7 @@ el 0,0 560x240
           el 732,163 239x22
             text "NULL" 736,166 34x16
           el 971,163 1x22
-        el #row-765439 role=row 8,185 964x22
+        el #row-765439 role=row 8,185 964x22 pos=765440/1000000
           el 8,185 63x22
             text "765440" 25,188 42x16
           el 71,185 1x22
@@ -275,7 +275,7 @@ el 0,0 560x240
           el 732,185 239x22
             text "Customer asked to split the delivery into two parcels and to leave them next door" 736,188 503x16
           el 971,185 1x22
-        el #row-765440 role=row 8,207 964x22
+        el #row-765440 role=row 8,207 964x22 pos=765441/1000000
           el 8,207 63x22
             text "765441" 25,210 42x16
           el 71,207 1x22
@@ -297,7 +297,7 @@ el 0,0 560x240
           el 732,207 239x22
             text "NULL" 736,210 34x16
           el 971,207 1x22
-        el #row-765441 role=row 8,229 964x22
+        el #row-765441 role=row 8,229 964x22 pos=765442/1000000
           el 8,229 63x22
             text "765442" 25,232 42x16
           el 71,229 1x22
@@ -319,7 +319,7 @@ el 0,0 560x240
           el 732,229 239x22
             text "NULL" 736,232 34x16
           el 971,229 1x22
-        el #row-765442 role=row 8,251 964x22
+        el #row-765442 role=row 8,251 964x22 pos=765443/1000000
           el 8,251 63x22
             text "765443" 25,254 42x16
           el 71,251 1x22
@@ -341,7 +341,7 @@ el 0,0 560x240
           el 732,251 239x22
             text "Customer asked to split the delivery into two parcels and to leave them next door" 736,254 503x16
           el 971,251 1x22
-        el #row-765443 role=row 8,273 964x22
+        el #row-765443 role=row 8,273 964x22 pos=765444/1000000
           el 8,273 63x22
             text "765444" 25,276 42x16
           el 71,273 1x22
@@ -363,7 +363,7 @@ el 0,0 560x240
           el 732,273 239x22
             text "NULL" 736,276 34x16
           el 971,273 1x22
-        el #row-765444 role=row 8,295 964x22
+        el #row-765444 role=row 8,295 964x22 pos=765445/1000000
           el 8,295 63x22
             text "765445" 25,298 42x16
           el 71,295 1x22
