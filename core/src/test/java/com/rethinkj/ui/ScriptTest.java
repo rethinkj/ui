@@ -1,5 +1,6 @@
 package com.rethinkj.ui;
 
+import static com.rethinkj.ui.El.col;
 import static com.rethinkj.ui.El.el;
 import static com.rethinkj.ui.El.row;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -149,7 +150,8 @@ class ScriptTest {
         "el #rows role=grid 16,44 248x160 rows 999991-999999/1000000 scroll 0,27999840"
             + " thumb-y 256,178 6x24 hovered\n"));
     assertTrue(Files.readString(out.resolve("bars-end.tree.txt"))
-        .contains("el #row-999999 role=row label=\"suppliers\" 16,176 248x28\n"));
+        .contains("el #row-999999 role=row label=\"suppliers\" 16,176 248x28"
+            + " pos=1000000/1000000\n"));
     assertTrue(Files.readString(out.resolve("bars-paged.tree.txt")).contains(" scroll 0,27999680 "));
     assertTrue(Files.readString(out.resolve("bars-back.tree.txt")).contains(
         "el #rows role=grid 16,44 248x160 rows 0-8/1000000 thumb-y 256,46 6x24\n"));
@@ -168,7 +170,8 @@ class ScriptTest {
     assertSnapsMatchGolden(List.of("switch-focused", "switch-focused-on"));
     assertTrue(
         Files.readString(out.resolve("switch-focused.tree.txt"))
-            .contains("el #switch role=switch label=\"Lights\" 39,49 38x22 focused\n"));
+            .contains("el #switch role=switch label=\"Lights\" 39,49 38x22 checked=false"
+                + " focused\n"));
   }
 
   @Test
@@ -185,7 +188,8 @@ class ScriptTest {
         List.of("switch-hovered", "switch-pressed", "switch-hovered-on", "switch-on"));
     assertTrue(
         Files.readString(out.resolve("switch-hovered.tree.txt"))
-            .contains("el #switch role=switch label=\"Lights\" 39,49 38x22 hovered\n"));
+            .contains("el #switch role=switch label=\"Lights\" 39,49 38x22 checked=false"
+                + " hovered\n"));
   }
 
   @Test
@@ -432,9 +436,40 @@ class ScriptTest {
             keys:   #knob #switch
             roles:  role=switch
             labels: label="Lights"
+            states: checked=false
           Select with these, or press a position x,y. The .tree.txt of a snap shows every element\
          with its rectangle.""",
         failure("# comments and blank lines count\nsize 200 120\n\nframe\npress #swich # typo\n"));
+  }
+
+  @Test
+  void statesSelectAsTheTreeDumpWritesThem() throws IOException {
+    List<String> log = new ArrayList<>();
+    App<List<String>> app = new App<>(log, l -> col().wFull().children(
+        el().role("row").label("a").h(10).onPress(() -> l.add("a")),
+        el().role("row").label("b").h(10).selected(true).onPress(() -> l.add("b")),
+        el().role("checkbox").label("c").h(10).checked(false).onPress(() -> l.add("c")),
+        el().role("checkbox").label("d").h(10).checked(true).onPress(() -> l.add("d")),
+        el().role("treeitem").label("e").h(10).expanded(false).level(2).onPress(() -> l.add("e")),
+        el().role("separator").h(10).value("first 240").onPress(() -> l.add("f"))));
+    Script.run("size 100 60\nframe\npress role=row selected\npress role=checkbox checked=false\n"
+        + "press checked=true\npress expanded=false level=2\npress value=\"first 240\"\nframe\n",
+        app, out);
+    assertEquals(List.of("b", "c", "d", "e", "f"), log);
+
+    assertEquals(
+        """
+        line 3: press role=checkbox checked=mixed
+          2 elements of the last frame match role=checkbox, but none has the states of\
+         role=checkbox checked=mixed:
+            el role=checkbox label="c" 0,20 100x10 checked=false
+            el role=checkbox label="d" 0,30 100x10 checked
+          Their lines show the states they have after the rectangle.""",
+        failure("size 100 60\nframe\npress role=checkbox checked=mixed\n", app));
+    assertFailure("size 100 60\nframe\npress selected=false\n", "selected=false is not a target");
+    assertFailure("size 100 60\nframe\npress level=x\n", "level=x is not a target");
+    assertFailure("size 100 60\nframe\npress expanded\n",
+        "states: checked checked=false expanded=false level=2 selected\n", app);
   }
 
   @Test
@@ -452,8 +487,8 @@ class ScriptTest {
           2 elements match role=button:
             el #ok role=button 0,0 50x20
             el #cancel role=button 50,0 50x20
-          Add #key, role= or label= to the selector until it matches one, or press a position x,y\
-         inside one of these rectangles.""",
+          Add #key, role=, label= or a state to the selector until it matches one, or press a\
+         position x,y inside one of these rectangles.""",
         failure("size 100 20\nframe\npress role=button\n", app));
   }
 
@@ -512,7 +547,9 @@ class ScriptTest {
         "line 1: wheel #list 40\n  Write `wheel <target> <deltaX> <deltaY>`, with distances in"
             + " logical pixels that are positive to scroll down or right, for example `wheel #list"
             + " 0 40`. A target is a position x,y in logical pixels such as 90,60, or a selector"
-            + " of #key, role=<role>, label=\"<text>\" and text=\"<string>\" such as role=switch label=\"Lights\".",
+            + " of #key, role=<role>, label=\"<text>\", text=\"<string>\" and states as a"
+            + " .tree.txt writes them (selected, checked=false, expanded, level=2,"
+            + " value=\"<text>\") such as role=switch label=\"Lights\".",
         failure("wheel #list 40\n"));
     assertFailure("wheel #list 0 down\n", "line 1: wheel #list 0 down\n  Write `wheel <target>");
     assertFailure("wheel 0 40\n", "Write `wheel <target>");
@@ -573,7 +610,9 @@ class ScriptTest {
             + " second or third press in a row and any of shift, control, alt and meta that are"
             + " held, for example `press #name clicks 2` or `press #name shift`. A target is a"
             + " position x,y in logical pixels such as 90,60, or a selector of #key, role=<role>,"
-            + " label=\"<text>\" and text=\"<string>\" such as role=switch label=\"Lights\".",
+            + " label=\"<text>\", text=\"<string>\" and states as a .tree.txt writes them"
+            + " (selected, checked=false, expanded, level=2, value=\"<text>\") such as"
+            + " role=switch label=\"Lights\".",
         failure("size 200 120\nframe\npress #switch clicks two\n"));
     assertFailure("size 200 120\nframe\ndown shift\n", "Write `down <target>`, then `clicks");
     assertFailure("size 200 120\nframe\nup #switch shift\n", "shift is not a target");
@@ -583,7 +622,7 @@ class ScriptTest {
         line 3: focus 10,10
           Neither the element at 10,10 nor one around it is focusable, so the focus cannot go\
          there. These elements of the last frame are:
-            el #switch role=switch label="Lights" 81,49 38x22
+            el #switch role=switch label="Lights" 81,49 38x22 checked=false
           Select one of them.""",
         failure("size 200 120\nframe\nfocus 10,10\n"));
     App<Object> plain = new App<>(new Object(), o -> el().key("box").size(10, 10));

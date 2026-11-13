@@ -494,7 +494,7 @@ class FieldTest {
     app.pointerMove(20, 10);
     app.frame();
     assertEquals(Cursor.DEFAULT, app.cursor());
-    assertTrue(app.tree().dump().contains("text #f role=textbox \"x\" 0,0 100x20\n"));
+    assertTrue(app.tree().dump().contains("text #f role=textbox \"x\" 0,0 100x20 disabled\n"));
   }
 
   // Input methods

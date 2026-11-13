@@ -67,7 +67,14 @@ public final class Script {
           + " the snaps into the folder.";
   private static final String TARGET =
       "a position x,y in logical pixels such as 90,60, or a selector of #key, role=<role>,"
-          + " label=\"<text>\" and text=\"<string>\" such as role=switch label=\"Lights\"";
+          + " label=\"<text>\", text=\"<string>\" and states as a .tree.txt writes them (selected,"
+          + " checked=false, expanded, level=2, value=\"<text>\") such as role=switch"
+          + " label=\"Lights\"";
+  /** A state of a selector, as {@link El#dump} writes it, but the value; =true may be added. */
+  private static final Pattern STATE =
+      Pattern.compile(
+          "disabled|readonly|selected|checked(=true|=false|=mixed)?|expanded(=true|=false)?"
+              + "|level=[1-9]\\d{0,9}|pos=[1-9]\\d{0,9}/[1-9]\\d{0,9}|sort=(ascending|descending)");
   private static final Pattern NUMBER = Pattern.compile("\\d+(\\.\\d+)?");
   private static final Pattern INDEX = Pattern.compile("\\d{1,10}");
   private static final Pattern CLICKS = Pattern.compile("[1-9]\\d{0,2}");
@@ -539,7 +546,20 @@ public final class Script {
         return new float[] {x, Float.parseFloat(position.group(2))};
       }
       List<Predicate<El>> tests = new ArrayList<>();
+      List<Predicate<El>> stateTests = new ArrayList<>();
+      List<String> others = new ArrayList<>(); // the words that are not states
       for (String word : target) {
+        if (STATE.matcher(word).matches()) {
+          String state = " " + word.replace("=true", "") + " ";
+          stateTests.add(el -> states(el).contains(state));
+          continue;
+        }
+        if (word.length() > 7 && word.startsWith("value=\"") && word.endsWith("\"")) {
+          String value = unescape(word.substring(7, word.length() - 1));
+          stateTests.add(el -> value.equals(el.value()));
+          continue;
+        }
+        others.add(word);
         if (word.length() > 1 && word.startsWith("#")) {
           String key = word.substring(1);
           tests.add(el -> key.equals(el.key()));
@@ -556,6 +576,8 @@ public final class Script {
           throw fail(word + " is not a target. A target is " + TARGET + ".");
         }
       }
+      List<Predicate<El>> rest = List.copyOf(tests);
+      tests.addAll(stateTests);
       List<Found> all = new ArrayList<>();
       List<Found> clipped = new ArrayList<>();
       float far = Float.POSITIVE_INFINITY;
@@ -572,11 +594,29 @@ public final class Script {
                 + " first, for example with `wheel <target> <deltaX> <deltaY>` over its scroll"
                 + " area." + lists(all));
       }
+      if (matches.isEmpty() && !stateTests.isEmpty() && !others.isEmpty()) {
+        // Without its states the selector matches: those elements show which states they have.
+        List<Found> near = all.stream()
+            .filter(found -> rest.stream().allMatch(t -> t.test(found.el)))
+            .toList();
+        if (!near.isEmpty()) {
+          StringBuilder lines = new StringBuilder();
+          for (Found found : near.subList(0, Math.min(near.size(), 20))) {
+            found.el.describe(lines.append("    "), found.left, found.top);
+          }
+          throw fail(
+              near.size() + " elements of the last frame match " + String.join(" ", others)
+                  + ", but none has the states of " + text + ":\n" + lines
+                  + (near.size() > 20 ? "    and " + (near.size() - 20) + " more\n" : "")
+                  + "  Their lines show the states they have after the rectangle." + lists(all));
+        }
+      }
       if (matches.isEmpty()) {
         Set<String> keys = new TreeSet<>();
         Set<String> roles = new TreeSet<>();
         Set<String> labels = new TreeSet<>();
         Set<String> texts = new TreeSet<>();
+        Set<String> states = new TreeSet<>();
         for (Found found : all) {
           if (found.el.key() != null) {
             keys.add("#" + found.el.key());
@@ -590,6 +630,11 @@ public final class Script {
           if (found.el.text() != null) {
             texts.add("text=" + El.quote(found.el.text().string()));
           }
+          for (String state : states(found.el).strip().split(" ")) {
+            if (!state.isEmpty() && !state.startsWith("pos=")) { // a position per row says little
+              states.add(state);
+            }
+          }
         }
         throw fail(
             "No element of the last frame matches " + text + ". It has\n"
@@ -597,6 +642,7 @@ public final class Script {
                 + "    roles:  " + listing(roles) + "\n"
                 + "    labels: " + listing(labels) + "\n"
                 + (texts.isEmpty() ? "" : "    texts:  " + listing(texts) + "\n")
+                + (states.isEmpty() ? "" : "    states: " + listing(states) + "\n")
                 + "  Select with these, or press a position x,y. The .tree.txt of a snap shows"
                 + " every element with its rectangle." + lists(all));
       }
@@ -606,8 +652,8 @@ public final class Script {
       }
       throw fail(
           matches.size() + " elements match " + text + ":\n" + rows
-              + "  Add #key, role= or label= to the selector until it matches one, or press a"
-              + " position x,y inside one of these rectangles.");
+              + "  Add #key, role=, label= or a state to the selector until it matches one, or press"
+              + " a position x,y inside one of these rectangles.");
     }
   }
 
@@ -675,6 +721,13 @@ public final class Script {
         + " finds only those. The last frame has these lists, with the rows that exist and how many"
         + " there are:\n" + rows + "  To reach another row, scroll its list first: `scroll "
         + example + " row <index>` puts that row at the top of the list at the next `frame`.";
+  }
+
+  /** The states of {@link El#dump} but the value, with a space before each and after the last. */
+  private static String states(El el) {
+    StringBuilder out = new StringBuilder();
+    el.states(out);
+    return out.append(' ').toString();
   }
 
   private static String listing(Set<String> words) {

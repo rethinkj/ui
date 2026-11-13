@@ -14,7 +14,7 @@ class ElTest {
     assertEquals(
         """
         el
-          el #switch role=switch label="Lights"
+          el #switch role=switch label="Lights" checked
             el #knob
         """,
         Examples.switchAlone(true).dump());
@@ -43,7 +43,7 @@ class ElTest {
     assertEquals(
         """
         el 0,0 200x100
-          el #switch role=switch label="Lights" 81,39 38x22
+          el #switch role=switch label="Lights" 81,39 38x22 checked
             el #knob 99,41 18x18
         """,
         root.dump());
@@ -56,6 +56,41 @@ class ElTest {
     for (float wrong : new float[] {-0.01f, 1.01f, Float.NaN}) {
       assertThrows(IllegalArgumentException.class, () -> el().opacity(wrong));
     }
+  }
+
+  @Test
+  void dumpsStatesAfterTheRectangleInAFixedOrder() {
+    El node = el().key("node").role("treeitem").label("public")
+        .value("2 tables").sortDescending().position(1, 2).level(3).expanded(true).checkedMixed()
+        .selected(true).disabled(true);
+    node.place(0, 66, 400, 22);
+    assertEquals(
+        "el #node role=treeitem label=\"public\" 0,66 400x22 disabled selected checked=mixed"
+            + " expanded level=3 pos=1/2 sort=descending value=\"2 tables\"\n",
+        node.dump());
+    assertEquals(
+        "el checked=false expanded=false sort=ascending\n",
+        el().checked(false).expanded(false).sortAscending().dump());
+    assertEquals(
+        "el checked\n",
+        el().selected(true).selected(false).disabled(true).disabled(false).checked(true).dump(),
+        "the last call wins");
+  }
+
+  @Test
+  void aTextFieldIsDisabledOrReadOnlyByWhatMakesItSo() {
+    assertEquals("text role=textbox \"a\" disabled\n", El.text("a").editable(null).dump());
+    String readOnly = "text role=textbox \"a\" readonly\n";
+    assertEquals(readOnly, El.text("a").editable(null).readOnly().dump());
+    assertEquals(readOnly, El.text("a").editable(s -> {}).readOnly().dump());
+    assertEquals("text role=textbox \"a\"\n", El.text("a").editable(s -> {}).dump());
+  }
+
+  @Test
+  void levelsAndPositionsCountFromOne() {
+    assertThrows(IllegalArgumentException.class, () -> el().level(0));
+    assertThrows(IllegalArgumentException.class, () -> el().position(0, 3));
+    assertThrows(IllegalArgumentException.class, () -> el().position(4, 3));
   }
 
   @Test

@@ -65,7 +65,8 @@ class ScrollbarTest {
     assertTrue(dump.startsWith(
         "el #list 0,0 200x100 rows 999992-999999/1000000 scroll 0,19999900 thumb-y 192,74 6x24"
             + " hovered\n"), dump);
-    assertTrue(dump.contains("\n  el #row-999999 0,80 200x20\n"), "the last row at the bottom");
+    assertTrue(dump.contains("\n  el #row-999999 0,80 200x20 pos=1000000/1000000\n"),
+        "the last row at the bottom");
     app.pointerUp(195, 500);
     app.frame();
 
@@ -75,7 +76,7 @@ class ScrollbarTest {
     app.frame();
     dump = app.tree().dump();
     assertTrue(dump.startsWith("el #list 0,0 200x100 rows 0-7/1000000 thumb-y 192,2 6x24\n"), dump);
-    assertTrue(dump.contains("\n  el #row-0 0,0 200x20\n"), "row 0 at the top");
+    assertTrue(dump.contains("\n  el #row-0 0,0 200x20 pos=1/1000000\n"), "row 0 at the top");
     assertEquals(List.of(), app.state().log, "no press of a row or of the list");
   }
 
