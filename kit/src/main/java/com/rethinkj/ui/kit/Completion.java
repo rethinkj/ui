@@ -114,6 +114,11 @@ public final class Completion {
     }
     state.typed = -1;
     List<Entry> entries = state.open ? suggest.apply(text.substring(from, caret)) : List.of();
+    if (entries.isEmpty()) {
+      // A list with nothing to show is closed, or it would show wherever the caret went next,
+      // as after a number typed, Home, a press or a find bar's match.
+      state.close();
+    }
     if (state.highlight >= entries.size()) {
       state.highlight = 0;
     }
@@ -190,6 +195,10 @@ public final class Completion {
       return false;
     }
     int n = entries.size();
+    if ((k.modifiers() & (Key.CONTROL | Key.ALT | Key.META)) != 0) {
+      state.close(); // a command, such as Control+F, which moves the caret elsewhere
+      return false;
+    }
     if (k.modifiers() != 0) {
       return false;
     }
