@@ -1,0 +1,1 @@
+- Added flexbox layout: `Flex.layout(root, availableWidth, availableHeight)` in the new package `com.rethinkj.ui.layout` computes every element's rectangle from its `Style`. An element without children can size its content, such as text, through the new `Measure` callback set with `El.measure(...)`.

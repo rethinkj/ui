@@ -23,6 +23,7 @@ public final class El {
   private int fill;
   private float radius;
   private int borderColor;
+  private Measure measure;
   private boolean placed;
   private float x;
   private float y;
@@ -227,6 +228,12 @@ public final class El {
     return this;
   }
 
+  /** Sizes the content when this element has no children. This is the hook for text. */
+  public El measure(Measure measure) {
+    this.measure = measure;
+    return this;
+  }
+
   // Reading: for layout, rendering and tests
 
   /** The layout properties, for everything the chained methods do not cover. */
@@ -260,6 +267,10 @@ public final class El {
 
   public int borderColor() {
     return borderColor;
+  }
+
+  public Measure measure() {
+    return measure;
   }
 
   /** Called by layout: the border box, with the position relative to the parent's border box. */
