@@ -1,0 +1,19 @@
+---
+title: Working on the framework
+description: Where to read about rethinkj UI's insides, its build and its rules, for people and agents who change it.
+---
+
+This site is for people who build apps with rethinkj UI. Changing the framework itself needs more: how the renderers and the shaders agree pixel for pixel, how the GPU bindings keep wgpu-native from ending the process, how text is shaped and rasterised, how layout is tested against Taffy, the rules that keep GraalVM native image possible, and the conventions of commits and changelog entries.
+
+All of that is in [`AGENTS.md`](https://github.com/rethinkj/ui/blob/main/AGENTS.md) at the root of the repository. It is written for people and agents alike, and it is the reference for every script step, every element call and every component.
+
+## In short
+
+- `core` and `kit` depend on `java.base` only; no reflection, no JNI.
+- Every change of output is checked against stored images: `mvn -pl core -am test -Dgolden.update=true` rewrites them; look at them before committing.
+- A change that users notice gets a file under `changelog/unreleased`.
+- A new component gets rows in the kit's gallery, tests, and a page on this site.
+
+## This site
+
+The site lives in `docs/` of the repository, as a Fumadocs app built to static files. Its images are the stored images of the tests, and its code comes from compiled examples in `examples/src/test/java/com/rethinkj/ui/examples/docs`, which the build runs; see the section "Documentation site" of `AGENTS.md`.

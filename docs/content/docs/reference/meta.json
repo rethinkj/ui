@@ -1,6 +1,1 @@
-{
-  "title": "Reference",
-  "pages": [
-    "changelog"
-  ]
-}
+{ "title": "Reference", "pages": ["platforms", "changelog", "framework"] }

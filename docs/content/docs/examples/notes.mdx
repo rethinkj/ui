@@ -1,0 +1,16 @@
+---
+title: Notes
+description: Three notes as cards that reorder, tear off into windows of their own and dock again.
+---
+
+Notes shows three notes as cards in a row. Drag a card's title along the row to reorder it, out of the window to give the note a window of its own that follows the pointer, and back over the row to dock it. A note in its own window keeps a muted card in the row that shows its edits at once: both windows show the same state.
+
+<Shot src="examples/notes-torn" alt="A note torn off into its own window beside the row" />
+
+```sh
+mvn -q -pl examples -am compile exec:exec -Dexample=Notes
+```
+
+## Where to look in the source
+
+[`Notes.java`](https://github.com/rethinkj/ui/blob/main/examples/src/main/java/com/rethinkj/ui/examples/Notes.java) does by hand what [TabGroups](/docs/components/tab-groups) does for tabs: `drag` follows the drag, `tearOff` opens a window at the pointer once `Drag.outside()` holds, `follow` moves it, and `overRow` takes the dropped note with `El.onDrop`. See [Several windows](/docs/concepts/windows).

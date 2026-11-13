@@ -1,0 +1,24 @@
+---
+title: Examples
+description: Runnable apps in the repository's examples module, written the way a user of the library writes them.
+---
+
+The `examples` module holds apps that open a window, written as an app of your own would be. Each runs under a script too, and its tests compare the snaps with stored images, which are the pictures on these pages. Start one from the repository's root:
+
+```sh
+mvn -q -pl examples -am compile exec:exec -Dexample=Workbench
+```
+
+With `-Dargs="--script <file> --out <folder>"` it runs a script instead of opening the window ([Run an example](/docs/get-started/run-examples)).
+
+<Tiles>
+<Tile href="/docs/examples/workbench" title="Workbench" description="A database manager: tree, tabs, editor, grid, menus, palette." dark="examples/workbench-dark-2x" light="examples/workbench-light-2x" />
+<Tile href="/docs/examples/data-browser" title="DataBrowser" description="A million orders, editable, filtered, with pending changes." dark="examples/browser-changes" light="examples/browser-light" />
+<Tile href="/docs/examples/showcase" title="Showcase" description="Every component of the kit, section by section." src="kit/frame-{theme}-2x" />
+<Tile href="/docs/examples/documents" title="Documents" description="Tabs that tear off, file dialogs and drops." src="examples/documents-docking" light="examples/documents-light-docking" />
+<Tile href="/docs/examples/manual" title="Manual" description="A reader of Markdown documents with images." src="examples/manual-{theme}-2x-top" />
+<Tile href="/docs/examples/settings" title="Settings" description="Pages of settings built from the kit's structure." dark="examples/settings-2x-general" light="examples/settings-light-2x-general" />
+<Tile href="/docs/examples/connection-dialog" title="ConnectionDialog" description="A form in a window that is a dialog." dark="examples/connection-filled" light="examples/connection-light" />
+<Tile href="/docs/examples/notes" title="Notes" description="Cards that reorder and tear off into windows." src="examples/notes-row" />
+<Tile href="/docs/examples/light-switch" title="LightSwitch" description="The smallest app, in a frameless window." src="examples/light-switch-on" />
+</Tiles>

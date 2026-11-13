@@ -1,0 +1,21 @@
+---
+title: Documents
+description: Five documents in tabs that move and tear off into windows, with file dialogs, drops and find.
+---
+
+Documents is five documents in tabs that move and tear off ([TabGroups](/docs/components/tab-groups)): drag a tab along the bar, out into a window of its own that follows the pointer, and over any bar to put it there. File › Open… and Save As… use the system's file dialogs; files dragged from a file manager open in new tabs; each document has a find bar.
+
+<Shot src="examples/documents-docking" light="examples/documents-light-docking" alt="A tab dragged over a bar, with the marker where it will dock" />
+
+```sh
+mvn -q -pl examples -am compile exec:exec -Dexample=Documents
+```
+
+## Where to look in the source
+
+[`Documents.java`](https://github.com/rethinkj/ui/blob/main/examples/src/main/java/com/rethinkj/ui/examples/Documents.java):
+
+- `groups` is the `TabGroups`, `open` its opener, and `view(group, window)` the view of every window.
+- `openFiles` and `saveAs` use `App.fileDialog`; `read` reads the files off the app's thread and shows a toast for one that cannot be read.
+- `drop` takes files and text dropped from other applications (`El.onFileDrop`).
+- `main` starts the window through `SystemDialogs.reportFailure`, which shows a failure in a message box.

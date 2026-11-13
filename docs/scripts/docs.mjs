@@ -104,6 +104,9 @@ function prepare() {
     lines.forEach((line, i) => {
       const where = `${rel}:${i + 1}`;
       try {
+        if (/^(title|description): [^"'].*: /.test(line)) {
+          throw new DocsError(`${where}: quote the ${line.split(':')[0]}, which has ": " in it`);
+        }
         const fence = line.match(/^\s*```(\w*)\s*(.*)$/);
         if (fence && fence[1] && file.endsWith('.mdx')) {
           const resolved = resolveFence(fence[2], where);
