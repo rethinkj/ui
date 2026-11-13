@@ -16,11 +16,11 @@ import java.util.function.IntConsumer;
 /**
  * Two to five short choices side by side in one frame, such as Light, Dark and System, of which
  * the chosen one is filled with the accent. It is a {@link Radio} group in another shape: a press
- * on a choice chooses it, the group is one stop for Tab, and the arrow keys, Home and End choose.
- * It is {@link Theme.Sizes#control} high, on the panel's surface with the strong border, each
- * choice as wide as its text and {@link Theme.Spacing#l} on both sides. In a tree dump it is
- * {@code role=radiogroup} and each choice {@code role=radio} with its text as the label and {@code
- * checked} or {@code checked=false}.
+ * on a choice chooses it, the group is one stop for Tab, the arrow keys, Home and End choose, and
+ * Space chooses the first while none is. It is {@link Theme.Sizes#control} high, on the panel's
+ * surface with the strong border, each choice as wide as its text and {@link Theme.Spacing#l} on
+ * both sides. In a tree dump it is {@code role=radiogroup} and each choice {@code role=radio} with
+ * its text as the label and {@code checked} or {@code checked=false}.
  */
 public final class Segmented {
 

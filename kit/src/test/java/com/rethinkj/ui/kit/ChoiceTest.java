@@ -8,7 +8,9 @@ import com.rethinkj.ui.App;
 import com.rethinkj.ui.Script;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.function.IntConsumer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -118,5 +120,146 @@ class ChoiceTest {
       assertTrue(StructureTest.line(dump, "role=" + role).contains(" disabled"), role);
     }
     assertTrue(StructureTest.line(dump, "role=spinbutton").contains(" disabled"), dump);
+  }
+
+  @Test
+  void aNumberFieldTakesEveryIntAndRefusesWhatIsBeyond() throws IOException {
+    int[] value = {0};
+    App<Object> app = new App<>(
+        new Object(),
+        x -> col()
+            .child(NumberField.numberField(
+                Theme.DARK, value[0], Integer.MIN_VALUE, Integer.MAX_VALUE, 1, v -> value[0] = v)));
+    for (int typed : new int[] {Integer.MAX_VALUE, Integer.MIN_VALUE}) {
+      run(app, "focus role=spinbutton\nkey A control\ntype \"" + typed + "\"");
+      assertEquals(typed, value[0]);
+    }
+    run(app, "key A control\ntype \"2147483648\"");
+    assertEquals(Integer.MIN_VALUE, value[0], "beyond an int: refused");
+    run(app, "key ArrowDown");
+    assertEquals(Integer.MIN_VALUE, value[0], "a step stays at the end");
+  }
+
+  @Test
+  void aLargeStepIsKeptInsideTheRangeInsteadOfOverflowing() throws IOException {
+    int[] number = {50};
+    App<Object> field = new App<>(
+        new Object(),
+        x -> col()
+            .child(NumberField.numberField(
+                Theme.DARK, number[0], 0, 100, 300_000_000, v -> number[0] = v)));
+    run(field, "focus role=spinbutton\nkey PageUp");
+    assertEquals(100, number[0], "ten steps are 3 000 000 000, past the end");
+
+    int[] at = {2_000_000_000};
+    App<Object> slider = new App<>(
+        new Object(),
+        x -> col().child(Slider.slider(Theme.DARK, at[0], 0, 2_000_000_000, 1_000_000_000, v -> {
+          at[0] = v;
+        })));
+    run(slider, "focus role=slider\nkey ArrowRight");
+    assertEquals(2_000_000_000, at[0], "at the end, a step goes nowhere");
+
+    int[] wide = {0};
+    App<Object> whole = new App<>(
+        new Object(),
+        x -> col()
+            .child(Slider.slider(
+                Theme.DARK, wide[0], Integer.MIN_VALUE, Integer.MAX_VALUE, 1, v -> wide[0] = v)));
+    run(whole, "focus role=slider\nkey PageUp");
+    assertEquals(429_496_729, wide[0], "a tenth of the whole range of int");
+    run(whole, "key End");
+    assertEquals(Integer.MAX_VALUE, wide[0]);
+  }
+
+  /** A drag compares with what it reported last, not with where it began. */
+  @Test
+  void aSliderDragReportsEachNewStopOnceAndComesBackToWhereItBegan() throws IOException {
+    int[] value = {0};
+    List<Integer> told = new ArrayList<>();
+    App<Object> app = new App<>(
+        new Object(),
+        x -> col()
+            .child(Slider.slider(Theme.DARK, value[0], 0, 100, 10, v -> {
+                  value[0] = v;
+                  told.add(v);
+                })
+                .w(200)));
+    run(app, "down 8,12\nmove 100,12\nframe\nmove 101,12\nframe\nmove 8,12\nup 8,12");
+    assertEquals(List.of(50, 0), told, "101 is in the stop of 100, and 8 is the start");
+    assertEquals(0, value[0]);
+  }
+
+  @Test
+  void enterAndSpaceLeaveASliderBetweenTwoStopsWhereItIs() throws IOException {
+    int[] value = {5};
+    List<Integer> told = new ArrayList<>();
+    App<Object> app = new App<>(
+        new Object(), x -> col().child(Slider.slider(Theme.DARK, value[0], 0, 10, 3, told::add)));
+    run(app, "focus role=slider\nkey Enter\nframe\nkey Space");
+    assertEquals(List.of(), told, "5 is no stop of 3, and stays");
+    run(app, "key End");
+    assertEquals(List.of(9), told, "the last stop before 10");
+  }
+
+  /** As WAI-ARIA's radio group: with none checked, Space checks the first; then nothing more. */
+  @Test
+  void spaceChecksTheFirstChoiceOfAGroupWithoutOne() throws IOException {
+    for (boolean segmented : new boolean[] {false, true}) {
+      int[] selected = {-1};
+      List<Integer> told = new ArrayList<>();
+      App<Object> app = new App<>(new Object(), x -> {
+        IntConsumer choose = i -> {
+          selected[0] = i;
+          told.add(i);
+        };
+        List<String> choices = List.of("A", "B");
+        return col()
+            .child(
+                segmented
+                    ? Segmented.segmented(Theme.DARK, choices, selected[0], choose)
+                    : Radio.radioGroup(Theme.DARK, choices, selected[0], choose));
+      });
+      run(app, "key Tab\nkey Space\nframe\nkey Space");
+      assertEquals(List.of(0), told, segmented ? "segmented" : "radio");
+    }
+  }
+
+  @Test
+  void aGroupOfNoneOrOneChoiceTellsNoChoiceTwice() throws IOException {
+    for (boolean segmented : new boolean[] {false, true}) {
+      for (List<String> values : List.<List<String>>of(List.of(), List.of("A"))) {
+        int[] calls = {0};
+        App<Object> app = new App<>(
+            new Object(),
+            s -> col()
+                .child(
+                    segmented
+                        ? Segmented.segmented(Theme.DARK, values, 0, i -> calls[0]++)
+                        : Radio.radioGroup(Theme.DARK, values, 0, i -> calls[0]++)));
+        run(
+            app,
+            "key Tab\nkey ArrowRight\nkey ArrowDown\nkey ArrowLeft\nkey ArrowUp"
+                + "\nkey Home\nkey End\nkey Enter\nkey Space\nkey Escape"
+                + "\nkey ArrowDown control\nkey ArrowRight shift");
+        assertEquals(0, calls[0]);
+        if (values.isEmpty()) {
+          assertEquals(null, app.focused(), "no choice, no stop for Tab");
+        }
+      }
+    }
+  }
+
+  @Test
+  void aNumberFieldWithEqualEndsNeverSteps() throws IOException {
+    int[] calls = {0};
+    App<Object> app = new App<>(
+        new Object(),
+        s -> col().child(NumberField.numberField(Theme.DARK, 5, 5, 5, 100, v -> calls[0]++)));
+    run(app, "key Tab\nkey ArrowUp\nkey ArrowDown\nkey PageUp\nkey PageDown");
+    assertEquals(0, calls[0]);
+    String dump = app.tree().dump();
+    assertTrue(StructureTest.line(dump, "label=\"Increase\"").contains(" disabled"), dump);
+    assertTrue(StructureTest.line(dump, "label=\"Decrease\"").contains(" disabled"), dump);
   }
 }

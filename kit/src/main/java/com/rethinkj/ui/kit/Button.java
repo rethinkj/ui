@@ -380,7 +380,8 @@ public final class Button {
   /**
    * A split button with its options. Busy, the main half is busy as a {@link #button} is, and the
    * chevron still opens the menu, whose items the app enables as it sees fit (a Cancel, say). Off
-   * ({@link Options#enabled}), both halves are off. The tone colours both halves.
+   * ({@link Options#enabled}), both halves are off and there is no menu: one that was open closes.
+   * The tone colours both halves.
    *
    * @param o the main half's icon, whether it is busy, whether the split button is off, its tone
    */
@@ -428,6 +429,10 @@ public final class Button {
           el().w(t.size().stroke()).hFull().fill(look(t, variant, o.tone, true).pressed()));
     }
     whole.child(more);
+    if (!o.enabled) { // off, it has no menu, or one left open would still choose
+      state.close();
+      return whole;
+    }
     return Menu.dropdown(t, whole, state, items);
   }
 

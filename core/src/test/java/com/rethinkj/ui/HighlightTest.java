@@ -336,4 +336,17 @@ class HighlightTest {
         }));
     assertEquals(4, field(app).text().marks().size());
   }
+
+  @Test
+  void aHighlighterMayGiveALineBackgroundAlone() {
+    App<Model> app = area(
+        "ab",
+        f -> f.highlight(1, (line, state, out) -> {
+          out.lineBackground(YELLOW);
+          return null;
+        }));
+    assertEquals(
+        List.of(new Text.Mark(new Text.Box(0, 0, 192, 18), YELLOW)),
+        field(app).text().marks());
+  }
 }

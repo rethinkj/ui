@@ -110,6 +110,21 @@ class FieldTest {
   }
 
   @Test
+  void wordsOfCodeKeepGraphemesWhole() {
+    App<Model> app = start("❤️foo", f -> f.codeWords(), 1);
+    focus(app);
+    key(app, "Backspace", CONTROL);
+    assertEquals("❤️|", show(app), "the heart keeps its variation selector");
+
+    app = start("👍🏽!", f -> f.codeWords(), 1);
+    focus(app);
+    app.pointerDown(15, 22, 2, 0);
+    app.pointerUp(15, 22);
+    app.frame();
+    assertEquals("^👍🏽|!", show(app), "a double press selects the emoji with its modifier");
+  }
+
+  @Test
   void backspaceAndDeleteRemoveWholeGraphemes() {
     App<Model> app = start("a😀b");
     focus(app);
@@ -390,6 +405,30 @@ class FieldTest {
     assertEquals("a|b^c", show(app), "and no step to undo");
     type(app, "X");
     assertEquals("aX|c", show(app));
+  }
+
+  @Test
+  void anUndoOrRedoTheAppRefusesLeavesTheHistoryAsItWas() {
+    App<Model> app = start("a");
+    focus(app);
+    type(app, "b");
+    app.state().accept = s -> null;
+    key(app, "Z", CONTROL);
+    assertEquals("ab|", show(app), "the undo refused");
+    app.state().accept = s -> s;
+    key(app, "Y", CONTROL);
+    assertEquals("ab|", show(app), "nothing to redo");
+    key(app, "Z", CONTROL);
+    assertEquals("a|", show(app), "the step is still there to undo");
+
+    app.state().accept = s -> null;
+    key(app, "Y", CONTROL);
+    assertEquals("a|", show(app), "the redo refused");
+    app.state().accept = s -> s;
+    key(app, "Z", CONTROL);
+    assertEquals("a|", show(app), "nothing to undo");
+    key(app, "Y", CONTROL);
+    assertEquals("ab|", show(app), "the step is still there to redo");
   }
 
   @Test

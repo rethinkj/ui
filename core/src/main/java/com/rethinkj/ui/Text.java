@@ -202,7 +202,10 @@ public final class Text implements Measure {
   /** A row of a multi-line field as laid out: row {@code row} of line {@code line}. */
   private record Row(int line, int row, Para para, double top) {}
 
-  /** What the rows of wrapped lines depend on: another value breaks them anew. */
+  /**
+   * What the rows of wrapped lines depend on: another value breaks them anew. Without wrapping, and
+   * a width of 0, what the widths of lines depend on.
+   */
   private record Wrapping(
       float width,
       Font font,
@@ -920,7 +923,6 @@ public final class Text implements Measure {
     Para(String text, GlyphRun run, int[] breaks, int[] colors, Spans spans, int offset) {
       this.text = text;
       this.run = run;
-      this.breaks = breaks;
       this.colors = colors;
       this.spans = spans;
       this.offset = offset;
@@ -934,6 +936,12 @@ public final class Text implements Measure {
         at[c] = glyph;
       }
       this.glyphAt = at;
+      // A line breaks only where a cluster starts: never inside a ligature or a right-to-left run.
+      this.breaks = breaks == null
+          ? null
+          : Arrays.stream(breaks)
+              .filter(b -> b == text.length() || at[b] < run.count() && run.cluster(at[b]) == b)
+              .toArray();
       this.rowWidths = new float[] {run.width()};
     }
 
@@ -1274,6 +1282,8 @@ public final class Text implements Measure {
   private void wrapping() {
     if (!wraps) {
       shownLines.wrap(null, 1);
+      shownLines.measuredFor(
+          new Wrapping(0, font(), size, scale, List.of(features), tabSize, systemFonts));
       return;
     }
     if (!laidOut) {
@@ -1443,7 +1453,9 @@ public final class Text implements Measure {
         || decorator == null
             && (highlighter == null
                 || placed.stream()
-                    .noneMatch(row -> row.para.spans != null && row.para.spans.count > 0))) {
+                    .noneMatch(row -> row.para.spans != null
+                        && (row.para.spans.count > 0
+                            || row.para.spans.lineBackground >>> 24 != 0)))) {
       return List.of();
     }
     Lines lines = shownLines();

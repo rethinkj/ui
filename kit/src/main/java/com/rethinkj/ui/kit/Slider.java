@@ -16,9 +16,12 @@ import java.util.function.IntConsumer;
  * A whole number between two ends, chosen by dragging a knob along a track. The part of the track
  * up to the knob is in the accent. Dragging puts the knob under the pointer, by steps; while the
  * slider has the focus, the arrow keys move it by a step, Page Up and Page Down by a tenth of the
- * range, and Home and End to the ends. A press on the track puts the knob there. The app
- * keeps the number. It is {@link Theme.Sizes#field} wide unless the view sets a width with {@code
- * .w(...)}, and as high as a control. In a tree dump it is {@code role=slider} with its number as {@code value}.
+ * range, and Home and End to the ends; Enter and Space do nothing. A press on the track puts the
+ * knob there. The stops are {@code min} and every {@code step} after it: where the range is no
+ * whole number of steps (0 to 10 by 3), the last stop is the last one before {@code max} (9),
+ * which End and dragging to the end go to. The app keeps the number. It is {@link
+ * Theme.Sizes#field} wide unless the view sets a width with {@code .w(...)}, and as high as a
+ * control. In a tree dump it is {@code role=slider} with its number as {@code value}.
  */
 public final class Slider {
 
@@ -48,7 +51,8 @@ public final class Slider {
     }
     boolean enabled = onChange != null;
     int at = Math.clamp(value, min, max);
-    float share = (float) (at - min) / (max - min);
+    long range = (long) max - min;
+    float share = (float) ((double) ((long) at - min) / range);
     float knob = t.size().checkbox();
     float track = 2 * t.space().xs();
     // The rail runs between the knob's centre at either end, so that shares of it place the knob
@@ -87,12 +91,16 @@ public final class Slider {
     if (!enabled) {
       return slider;
     }
-    int page = Math.max(step, (max - min) / 10 / step * step);
+    long page = Math.max(step, range / 10 / step * step);
+    // The number reported last: a drag compares with it, not with the value it began with, so that
+    // going back to that value reports it and two places in one step report one number.
+    int[] last = {value};
     // Puts the knob at x of the slider as the frame the press or drag began in laid it out.
     DoubleConsumer put = x -> {
       double to = (x - knob / 2) / (slider.width() - knob);
-      int next = snap(min + to * (max - min), min, max, step);
-      if (next != value) {
+      int next = snap(min + to * range, min, max, step);
+      if (next != last[0]) {
+        last[0] = next;
         onChange.accept(next);
       }
     };
@@ -101,8 +109,14 @@ public final class Slider {
         .keepFocus()
         .focusRing(t.accent().edge())
         .cursor(Cursor.POINTER)
-        .onPress((clicks, modifiers, x, y) -> put.accept(x))
+        .onPress((clicks, modifiers, x, y) -> {
+          last[0] = value;
+          put.accept(x);
+        })
         .onDrag(d -> {
+          if (d.phase() == Drag.Phase.START) {
+            last[0] = value;
+          }
           if (d.phase() != Drag.Phase.CANCEL && d.phase() != Drag.Phase.END) {
             put.accept(d.x());
           }
@@ -111,20 +125,22 @@ public final class Slider {
           if (k.modifiers() != 0) {
             return false;
           }
-          int next = switch (k.name()) {
-            case "ArrowLeft", "ArrowDown" -> at - step;
-            case "ArrowRight", "ArrowUp" -> at + step;
-            case "PageDown" -> at - page;
-            case "PageUp" -> at + page;
-            case "Home" -> min;
-            case "End" -> max;
-            case "Enter", "Space" -> at; // taken, or they would press the middle of the track
-            default -> Integer.MIN_VALUE;
+          if (k.name().equals("Enter") || k.name().equals("Space")) {
+            return true; // taken, or they would press the middle of the track
+          }
+          long by = switch (k.name()) {
+            case "ArrowLeft", "ArrowDown" -> -step;
+            case "ArrowRight", "ArrowUp" -> step;
+            case "PageDown" -> -page;
+            case "PageUp" -> page;
+            case "Home" -> -range;
+            case "End" -> range;
+            default -> 0;
           };
-          if (next == Integer.MIN_VALUE) {
+          if (by == 0) {
             return false;
           }
-          next = snap(next, min, max, step);
+          int next = snap((long) at + by, min, max, step);
           if (next != value) {
             onChange.accept(next);
           }
@@ -138,11 +154,11 @@ public final class Slider {
 
   /** The stop nearest to {@code v}, inside the range. */
   private static int snap(double v, int min, int max, int step) {
-    long stops = Math.round((v - min) / step);
+    long stops = Math.round((Math.clamp(v, min, max) - min) / step);
     long snapped = min + stops * step;
     if (snapped > max) {
       snapped -= step; // the last stop before max when the range is no whole number of steps
     }
-    return (int) Math.clamp(snapped, min, max);
+    return (int) snapped;
   }
 }

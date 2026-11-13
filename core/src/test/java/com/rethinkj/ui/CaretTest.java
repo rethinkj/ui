@@ -70,6 +70,17 @@ class CaretTest {
   }
 
   @Test
+  void theHandlerIsToldOnlyPositionsBetweenGraphemes() {
+    App<Model> app = area("\u0301", f -> f);
+    key(app, "Home");
+    told.clear();
+    type(app, "e"); // joins the mark after it into one grapheme
+    assertEquals("e\u0301", app.state().value);
+    assertEquals("|e\u0301", show(app));
+    assertEquals(List.of(), told, "never 1, between the letter and its mark");
+  }
+
+  @Test
   void anEditOfTheAppIsOneStepThroughTheHandler() {
     App<Model> app = area("SELECT na FROM t", f -> f);
     El field = field(app);
@@ -94,6 +105,25 @@ class CaretTest {
         show(app),
         "line breaks as the field keeps them, the caret clamped to the end");
     assertThrows(IllegalArgumentException.class, () -> app.edit(El.el(), 0, 0, "", 0));
+  }
+
+  @Test
+  void theCaretOfAnEditOfTheAppFollowsItsLineBreaksAndLimit() {
+    App<Model> app = area("xy", f -> f);
+    app.edit(field(app), 1, 1, "a\r\nb", 4); // before the b
+    app.frame();
+    assertEquals("xa\n|by", show(app), "the carriage return is gone");
+    app.edit(field(app), 4, 4, "\r\n", 6); // after the line break
+    app.frame();
+    assertEquals("xa\nb\n|y", show(app));
+
+    app = area("xy", f -> f.maxLength(4));
+    app.edit(field(app), 1, 1, "abc", 4); // after the c, which the limit cuts
+    app.frame();
+    assertEquals("xab|y", show(app));
+    app.edit(field(app), 0, 0, "z", 5); // at the end
+    app.frame();
+    assertEquals("xaby|", show(app), "nothing fits, and the caret is at the end, as asked");
   }
 
   @Test
