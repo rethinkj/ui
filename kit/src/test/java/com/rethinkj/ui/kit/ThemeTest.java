@@ -108,6 +108,19 @@ class ThemeTest {
         "active cross hovered", over(s.raised(), s.hover()),
         "active cross pressed", over(s.raised(), s.pressed())), 4.5);
     // A split's line under the pointer is the strong border, and its focus ring the focus ring.
+    // A selected card's edge, and the mark of a navigation list's selected item on its fill.
+    check(failures, "selected edge", t.border().selected(), surfaces, 3);
+    check(failures, "selected mark", t.border().selected(), Map.of(
+        "grid selected", g.selected(), "grid selected inactive", g.selectedInactive()), 3);
+    // An invalid field's edge, on the field's raised fill.
+    check(failures, "invalid edge", t.status().danger(), Map.of("raised", s.raised()), 3);
+    // A group's rows are pressed on a raised card, and a description stays readable under the
+    // pointer; a segmented control and a navigation list lay the overlays over the panel.
+    check(failures, "muted text", t.text().muted(), Map.of(
+        "raised hovered", over(s.raised(), s.hover())), 4.5);
+    check(failures, "primary text", t.text().primary(), Map.of(
+        "panel hovered", over(s.panel(), s.hover()),
+        "panel pressed", over(s.panel(), s.pressed())), 4.5);
     assertTrue(failures.isEmpty(), String.join("\n", failures));
   }
 

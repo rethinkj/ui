@@ -1,0 +1,1 @@
+- The theme has two more headings, `Type.title` and `Type.strong` (also `Label.Variant.TITLE` and `STRONG`), and `Borders.selected`, the edge of a selected card. The constructors without them still work and derive them.

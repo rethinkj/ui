@@ -78,8 +78,17 @@ public record Theme(
    * @param subtle dividers and the edges of surfaces
    * @param strong the edges a control is recognised by, such as a checkbox's box
    * @param focus the focus ring, which has to stand out against the backgrounds and the accent
+   * @param selected the edge of a selected card and the mark of the selected item of a navigation
+   *     list, in the accent's hue but standing out 3:1 from the surfaces, which the accent itself
+   *     does not on a dark raised surface
    */
-  public record Borders(int subtle, int strong, int focus) {}
+  public record Borders(int subtle, int strong, int focus, int selected) {
+
+    /** Borders whose selected edge is the focus ring's colour. */
+    public Borders(int subtle, int strong, int focus) {
+      this(subtle, strong, focus, focus);
+    }
+  }
 
   /**
    * The colour of the main action and of what is on, with its hover and pressed variants.
@@ -114,11 +123,27 @@ public record Theme(
   public record TextStyle(Supplier<Font> font, float size) {}
 
   /**
+   * The type scale, from a page's title down to code. Headings come in three levels: {@code
+   * title} over a page, {@code heading} over a section, {@code strong} over a card.
+   *
    * @param body the text of the interface and of controls
    * @param mono code, identifiers and values that line up
    * @param heading titles of sections
+   * @param title the title of a page, such as a page of settings
+   * @param strong titles inside a section, such as a card's: the body's size in the heading's font
    */
-  public record Type(TextStyle body, TextStyle mono, TextStyle heading) {}
+  public record Type(
+      TextStyle body, TextStyle mono, TextStyle heading, TextStyle title, TextStyle strong) {
+
+    /**
+     * A scale whose title is a third larger than the heading, and whose strong text is the body's
+     * size in the heading's font.
+     */
+    public Type(TextStyle body, TextStyle mono, TextStyle heading) {
+      this(body, mono, heading, new TextStyle(heading.font(), Math.round(heading.size() * 4 / 3f)),
+          new TextStyle(heading.font(), body.size()));
+    }
+  }
 
   /**
    * @param control the height of a button, a text field and a tab
@@ -217,7 +242,9 @@ public record Theme(
       new Type(
           new TextStyle(Font::sans, 13),
           new TextStyle(Font::mono, 12),
-          new TextStyle(Font::sansBold, 15));
+          new TextStyle(Font::sansBold, 15),
+          new TextStyle(Font::sansBold, 20),
+          new TextStyle(Font::sansBold, 13));
   private static final Sizes SIZE = new Sizes(24, 16, 28, 16, 1, 200, 7, 16, 16);
   private static final Motion MOTION = new Motion(Spring.INSTANT, Spring.SNAP, 0.3, 0.5);
 
@@ -226,7 +253,7 @@ public record Theme(
       new Theme(
           new Surfaces(0xFF1B1C1F, 0xFF232428, 0xFF2D2E33, 0x0FFFFFFF, 0x1AFFFFFF, 0x99000000),
           new TextColors(0xFFE4E5E9, 0xFFA1A3AA, 0xFF6A6C73, 0xFFFFFFFF),
-          new Borders(0xFF393A40, 0xFF7A7D86, 0xFFE4E5E9),
+          new Borders(0xFF393A40, 0xFF7A7D86, 0xFFE4E5E9, 0xFF7AA2F7),
           new Accent(0xFF2E62D9, 0xFF3A6EE6, 0xFF2655C2, 0x732E62D9),
           new Status(0xFFF2797A, 0xFFE0B04C, 0xFF5BC489),
           SPACE,
@@ -246,7 +273,7 @@ public record Theme(
       new Theme(
           new Surfaces(0xFFF8F9FA, 0xFFEFF0F2, 0xFFFFFFFF, 0x0F000000, 0x1A000000, 0x59000000),
           new TextColors(0xFF1D1E21, 0xFF5C5F66, 0xFFA3A5AB, 0xFFFFFFFF),
-          new Borders(0xFFD8DADF, 0xFF878A93, 0xFF1D1E21),
+          new Borders(0xFFD8DADF, 0xFF878A93, 0xFF1D1E21, 0xFF1D4ED8),
           new Accent(0xFF2E62D9, 0xFF2755C0, 0xFF2048A8, 0x4D2E62D9),
           new Status(0xFFC4282B, 0xFF8F5F00, 0xFF1E7A3E),
           SPACE,
