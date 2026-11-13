@@ -68,7 +68,48 @@ public record Theme(
     Code code,
     Caption caption,
     Prose prose,
-    Badges badge) {
+    Badges badge,
+    Danger danger) {
+
+  /** A theme whose destructive actions look as {@link Danger#DARK} or {@link Danger#LIGHT}. */
+  public Theme(
+      Surfaces surface,
+      TextColors text,
+      Borders border,
+      Accent accent,
+      Status status,
+      Spacing space,
+      Radii radius,
+      Type type,
+      Sizes size,
+      Motion motion,
+      Grid grid,
+      Scrollbars scrollbars,
+      Elevation elevation,
+      Code code,
+      Caption caption,
+      Prose prose,
+      Badges badge) {
+    this(
+        surface,
+        text,
+        border,
+        accent,
+        status,
+        space,
+        radius,
+        type,
+        size,
+        motion,
+        grid,
+        scrollbars,
+        elevation,
+        code,
+        caption,
+        prose,
+        badge,
+        lightness(surface.raised()) < 0.5 ? Danger.DARK : Danger.LIGHT);
+  }
 
   /**
    * A theme whose colours for code are {@link Code#DARK} on a dark raised surface and {@link
@@ -539,6 +580,35 @@ public record Theme(
     /** The accent of this hue for a light theme. */
     public Accent light() {
       return light;
+    }
+  }
+
+  /**
+   * The colours of a button whose action destroys something ({@link Button.Tone#DANGER}), in each
+   * of its variants: a primary one is {@code onColor} on {@code color}, a secondary one {@code
+   * text} on the raised surface inside {@code edge}, a ghost one {@code text} alone. The defaults
+   * are {@link Hue#RED}'s accent of the theme's lightness, so the same rules hold: {@code onColor}
+   * 4.5:1 on {@code color}, {@code hover} and {@code pressed}, each darker by 2 L* or more.
+   *
+   * @param text the text and icon of a secondary or ghost button, 4.5:1 on the surfaces and their
+   *     hover and pressed overlays
+   * @param edge a secondary button's edge, 3:1 on the surfaces
+   * @param ring the focus ring of such a button, 3:1 on the surfaces; a primary one draws it
+   *     {@link Sizes#ringGap} away, as with the accent
+   */
+  public record Danger(
+      int color, int hover, int pressed, int onColor, int text, int edge, int ring) {
+
+    /** For dark surfaces. */
+    public static final Danger DARK = of(Hue.RED.dark(), RED_649);
+
+    /** For light surfaces. */
+    public static final Danger LIGHT = of(Hue.RED.light(), RED_395);
+
+    /** From an accent: its fills, white on them, and its edge for edge and ring. */
+    private static Danger of(Accent red, int text) {
+      return new Danger(
+          red.color(), red.hover(), red.pressed(), WHITE, text, red.edge(), red.edge());
     }
   }
 
@@ -1039,7 +1109,8 @@ public record Theme(
         code,
         caption,
         prose,
-        badge);
+        badge,
+        danger);
   }
 
   public Theme withText(TextColors text) {
@@ -1060,7 +1131,8 @@ public record Theme(
         code,
         caption,
         prose,
-        badge);
+        badge,
+        danger);
   }
 
   public Theme withBorder(Borders border) {
@@ -1081,7 +1153,8 @@ public record Theme(
         code,
         caption,
         prose,
-        badge);
+        badge,
+        danger);
   }
 
   public Theme withAccent(Accent accent) {
@@ -1102,7 +1175,8 @@ public record Theme(
         code,
         caption,
         prose,
-        badge);
+        badge,
+        danger);
   }
 
   /**
@@ -1131,7 +1205,8 @@ public record Theme(
         code,
         caption,
         prose,
-        badge);
+        badge,
+        danger);
   }
 
   public Theme withSpace(Spacing space) {
@@ -1152,7 +1227,8 @@ public record Theme(
         code,
         caption,
         prose,
-        badge);
+        badge,
+        danger);
   }
 
   public Theme withRadius(Radii radius) {
@@ -1173,7 +1249,8 @@ public record Theme(
         code,
         caption,
         prose,
-        badge);
+        badge,
+        danger);
   }
 
   public Theme withType(Type type) {
@@ -1194,7 +1271,8 @@ public record Theme(
         code,
         caption,
         prose,
-        badge);
+        badge,
+        danger);
   }
 
   public Theme withSize(Sizes size) {
@@ -1215,7 +1293,8 @@ public record Theme(
         code,
         caption,
         prose,
-        badge);
+        badge,
+        danger);
   }
 
   public Theme withMotion(Motion motion) {
@@ -1236,7 +1315,8 @@ public record Theme(
         code,
         caption,
         prose,
-        badge);
+        badge,
+        danger);
   }
 
   public Theme withGrid(Grid grid) {
@@ -1257,7 +1337,8 @@ public record Theme(
         code,
         caption,
         prose,
-        badge);
+        badge,
+        danger);
   }
 
   public Theme withScrollbars(Scrollbars scrollbars) {
@@ -1278,7 +1359,8 @@ public record Theme(
         code,
         caption,
         prose,
-        badge);
+        badge,
+        danger);
   }
 
   public Theme withCode(Code code) {
@@ -1299,7 +1381,8 @@ public record Theme(
         code,
         caption,
         prose,
-        badge);
+        badge,
+        danger);
   }
 
   public Theme withElevation(Elevation elevation) {
@@ -1320,7 +1403,8 @@ public record Theme(
         code,
         caption,
         prose,
-        badge);
+        badge,
+        danger);
   }
 
   public Theme withProse(Prose prose) {
@@ -1341,7 +1425,8 @@ public record Theme(
         code,
         caption,
         prose,
-        badge);
+        badge,
+        danger);
   }
 
   public Theme withBadge(Badges badge) {
@@ -1362,7 +1447,30 @@ public record Theme(
         code,
         caption,
         prose,
-        badge);
+        badge,
+        danger);
+  }
+
+  public Theme withDanger(Danger danger) {
+    return new Theme(
+        surface,
+        text,
+        border,
+        accent,
+        status,
+        space,
+        radius,
+        type,
+        size,
+        motion,
+        grid,
+        scrollbars,
+        elevation,
+        code,
+        caption,
+        prose,
+        badge,
+        danger);
   }
 
   public Theme withCaption(Caption caption) {
@@ -1383,7 +1491,8 @@ public record Theme(
         code,
         caption,
         prose,
-        badge);
+        badge,
+        danger);
   }
 
   /**

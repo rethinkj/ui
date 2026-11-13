@@ -2,6 +2,7 @@ package com.rethinkj.ui.examples;
 
 import static com.rethinkj.ui.El.col;
 import static com.rethinkj.ui.El.row;
+import static com.rethinkj.ui.kit.Button.Tone.DANGER;
 import static com.rethinkj.ui.kit.Button.Variant.GHOST;
 import static com.rethinkj.ui.kit.Button.Variant.PRIMARY;
 import static com.rethinkj.ui.kit.Button.Variant.SECONDARY;
@@ -1163,8 +1164,13 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
         .child(s.statusBar(t));
     if (s.dropping != null) {
       String name = s.dropping.name;
-      El drop =
-          button(t, PRIMARY, "Drop", s.confirm.equals(name) ? s::drop : null).key("drop");
+      El drop = button(
+              t,
+              PRIMARY,
+              "Drop",
+              s::drop,
+              Button.options().enabled(s.confirm.equals(name)).tone(Button.Tone.DANGER))
+          .key("drop");
       root.overlay(Dialog.dialog(
           t,
           "Drop table",
@@ -1215,7 +1221,8 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
                     "Commit them before you " + q.doing() + ", or discard them?")),
         List.of(
             button(t, SECONDARY, "Cancel", () -> question = null).key("keep"),
-            button(t, SECONDARY, "Discard", this::discard).key("discard"),
+            button(t, SECONDARY, "Discard", this::discard, Button.options().tone(DANGER))
+                .key("discard"),
             commit),
         commit,
         () -> question = null);
@@ -1741,7 +1748,12 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
         t,
         o.table.name,
         rows,
-        button(t, GHOST, Symbol.ARROW_UNDO, "Revert", writing ? null : o.changes::clear)
+        button(
+                t,
+                GHOST,
+                "Revert",
+                o.changes::clear,
+                Button.options().icon(Symbol.ARROW_UNDO).enabled(!writing).tone(DANGER))
             .key("revert"),
         Button.button(
                 t,

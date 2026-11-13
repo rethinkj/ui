@@ -185,6 +185,115 @@ el 0,0 140x40
 el 0,0 140x40
   el #c role=button label="Format" 36,8 69x24 disabled
     text "Format" 49,12 43x16
+# danger, rest
+el 0,0 140x40
+  el #c role=button label="Drop table" 26,8 89x24
+    text "Drop table" 39,12 63x16
+# danger, hover
+el 0,0 140x40
+  el #c role=button label="Drop table" 26,8 89x24 hovered
+    text "Drop table" 39,12 63x16
+# danger, pressed
+el 0,0 140x40
+  el #c role=button label="Drop table" 26,8 89x24 hovered
+    text "Drop table" 39,12 63x16
+# danger, focused
+el 0,0 140x40
+  el #c role=button label="Drop table" 26,8 89x24 focused
+    text "Drop table" 39,12 63x16
+# danger, disabled
+el 0,0 140x40
+  el #c role=button label="Drop table" 26,8 89x24 disabled
+    text "Drop table" 39,12 63x16
+# danger secondary, rest
+el 0,0 140x40
+  el #c role=button label="Discard" 34,8 73x24
+    text "Discard" 47,12 47x16
+# danger secondary, hover
+el 0,0 140x40
+  el #c role=button label="Discard" 34,8 73x24 hovered
+    text "Discard" 47,12 47x16
+# danger secondary, pressed
+el 0,0 140x40
+  el #c role=button label="Discard" 34,8 73x24 hovered
+    text "Discard" 47,12 47x16
+# danger secondary, focused
+el 0,0 140x40
+  el #c role=button label="Discard" 34,8 73x24 focused
+    text "Discard" 47,12 47x16
+# danger secondary, disabled
+el 0,0 140x40
+  el #c role=button label="Discard" 34,8 73x24 disabled
+    text "Discard" 47,12 47x16
+# danger ghost, rest
+el 0,0 140x40
+  el #c role=button label="Delete" 37,8 66x24
+    text "Delete" 50,12 40x16
+# danger ghost, hover
+el 0,0 140x40
+  el #c role=button label="Delete" 37,8 66x24 hovered
+    text "Delete" 50,12 40x16
+# danger ghost, pressed
+el 0,0 140x40
+  el #c role=button label="Delete" 37,8 66x24 hovered
+    text "Delete" 50,12 40x16
+# danger ghost, focused
+el 0,0 140x40
+  el #c role=button label="Delete" 37,8 66x24 focused
+    text "Delete" 50,12 40x16
+# danger ghost, disabled
+el 0,0 140x40
+  el #c role=button label="Delete" 37,8 66x24 disabled
+    text "Delete" 50,12 40x16
+# busy icon, rest
+el 0,0 140x40
+  el #c role=button label="Refresh" 58,8 24x24 busy
+    el role=progressbar label="Loading" 62,12 16x16
+      el 62,12 16x16
+      el 62,12 16x16
+      el 62,12 16x16
+      el 62,12 16x16
+      el 62,12 16x16
+# busy icon, hover
+el 0,0 140x40
+  el #c role=button label="Refresh" 58,8 24x24 busy
+    el role=progressbar label="Loading" 62,12 16x16
+      el 62,12 16x16
+      el 62,12 16x16
+      el 62,12 16x16
+      el 62,12 16x16
+      el 62,12 16x16
+overlay bottom center gap 2 on #c role=button label="Refresh" 58,8 24x24
+  el #tooltip role=tooltip label="Refresh" 41,18 59x22
+    text "Refresh" 46,21 49x16
+# busy icon, pressed
+el 0,0 140x40
+  el #c role=button label="Refresh" 58,8 24x24 busy
+    el role=progressbar label="Loading" 62,12 16x16
+      el 62,12 16x16
+      el 62,12 16x16
+      el 62,12 16x16
+      el 62,12 16x16
+      el 62,12 16x16
+overlay bottom center gap 2 on #c role=button label="Refresh" 58,8 24x24
+  el #tooltip role=tooltip label="Refresh" 41,18 59x22
+    text "Refresh" 46,21 49x16
+# busy icon, focused
+el 0,0 140x40
+  el #c role=button label="Refresh" 58,8 24x24 busy focused
+    el role=progressbar label="Loading" 62,12 16x16
+      el 62,12 16x16
+      el 62,12 16x16
+      el 62,12 16x16
+      el 62,12 16x16
+      el 62,12 16x16
+overlay bottom center gap 2 on #c role=button label="Refresh" 58,8 24x24
+  el #tooltip role=tooltip label="Refresh" 41,18 59x22
+    text "Refresh" 46,21 49x16
+# busy icon, disabled
+el 0,0 140x40
+  el #c role=button label="Refresh" 58,8 24x24 disabled
+    text label="arrow_clockwise" "\u{E0AA}" 62,12 16x16
 # toggle off, rest
 el 0,0 140x40
   el #c role=switch label="Autocommit" 12,10 117x20 checked=false
