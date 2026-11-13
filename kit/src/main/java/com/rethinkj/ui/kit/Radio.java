@@ -92,7 +92,7 @@ public final class Radio {
     if (onSelect == null || count == 0) {
       return group;
     }
-    return group.focusable().keepFocus().focusRing(t.border().focus()).onKey(k -> {
+    return group.focusable().keepFocus().focusRing(t.accent().edge()).onKey(k -> {
       int next = next(k, count, selected);
       if (next == -2) {
         return false;

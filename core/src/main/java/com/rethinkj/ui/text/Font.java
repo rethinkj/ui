@@ -47,7 +47,8 @@ public final class Font implements AutoCloseable {
   private static final String ICONS = "icons/";
   private static final String[] DEFAULT_FILES = {
     "fonts/Inter-Regular.ttf", "fonts/Inter-Bold.ttf", "fonts/JetBrainsMono-Regular.ttf",
-    "fonts/JetBrainsMono-Bold.ttf", ICONS + "FluentSystemIcons-Regular.ttf"
+    "fonts/JetBrainsMono-Bold.ttf", ICONS + "FluentSystemIcons-Regular.ttf",
+    "fonts/Inter-Medium.ttf", "fonts/Inter-SemiBold.ttf"
   };
   private static final Font[] DEFAULT_FONTS = new Font[DEFAULT_FILES.length];
 
@@ -285,6 +286,16 @@ public final class Font implements AutoCloseable {
   /** Inter Regular, the default font for user interfaces. */
   public static Font sans() {
     return builtIn(0);
+  }
+
+  /** Inter Medium (weight 500), for column titles, buttons and strong text. */
+  public static Font sansMedium() {
+    return builtIn(5);
+  }
+
+  /** Inter SemiBold (weight 600), for headings and titles. */
+  public static Font sansSemibold() {
+    return builtIn(6);
   }
 
   /** Inter Bold. */

@@ -397,11 +397,11 @@ public final class Menu {
 
   private static El panel(Theme t, State state, List<Item> items, int level, Bar bar) {
     El panel = col().key(level == 0 ? "menu" : "submenu").role("menu").focusable()
-        .focusRing(t.border().focus())
+        .focusRing(t.accent().edge())
         .padding(t.space().s())
         .radius(t.radius().medium())
         .fill(t.surface().raised())
-        .border(t.size().stroke(), t.border().subtle())
+        .border(t.size().stroke(), t.border().control())
         .shadow(t.elevation().popup())
         .motion(t.motion().fade())
         .scroll()
@@ -420,8 +420,8 @@ public final class Menu {
     Item item = items.get(i);
     boolean enabled = item.isEnabled();
     boolean lit = i == state.active(level);
-    int text = !enabled ? t.text().disabled() : lit ? t.text().onAccent() : t.text().primary();
-    int quiet = !enabled ? t.text().disabled() : lit ? t.text().onAccent() : t.text().muted();
+    int text = !enabled ? t.text().disabled() : t.text().primary();
+    int quiet = !enabled ? t.text().disabled() : t.text().muted();
     El mark = el().w(t.size().icon()).shrink(0).center();
     if (item.checked()) {
       mark.child(icon(t, CHECKED).color(text));
@@ -439,8 +439,9 @@ public final class Menu {
     }
     // After a rest, the item's submenu opens and any other of its level closes.
     content.onHoverFor(t.motion().submenuDelay(), () -> state.openSubmenu(level, opens ? i : -1));
+    // The highlight is the calm tint of a selection; the full accent belongs to primary buttons.
     int fill = !lit ? 0
-        : enabled ? t.accent().color()
+        : enabled ? t.grid().selected()
         : over(t.surface().raised(), t.surface().hover());
     El el = row().key((level == 0 ? "item-" : "subitem-") + i).role("menuitem")
         .label(item.label())

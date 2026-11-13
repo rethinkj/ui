@@ -68,7 +68,7 @@ public final class Slider {
       return slider;
     }
     int page = Math.max(step, (max - min) / 10 / step * step);
-    return slider.focusable().keepFocus().focusRing(t.border().focus())
+    return slider.focusable().keepFocus().focusRing(t.accent().edge())
         .cursor(Cursor.POINTER)
         .onDrag(d -> {
           if (d.phase() == Drag.Phase.CANCEL || d.phase() == Drag.Phase.END) {

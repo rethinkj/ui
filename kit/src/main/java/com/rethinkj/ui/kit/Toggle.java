@@ -60,7 +60,7 @@ public final class Toggle {
     // The whole row takes the press, text included, and its looks restyle the track.
     return toggle.focusable()
         .keepFocus() // as a button: Tab reaches it, a press leaves the focus where it is
-        .focusRing(t.border().focus())
+        .focusRing(t.accent().edge())
         .cursor(Cursor.POINTER)
         .onPress(onToggle)
         .whenHovered(e -> track.fill(hover))

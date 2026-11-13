@@ -147,7 +147,7 @@ class TreeTest {
       app.frame();
     }
     assertEquals(walks, catalog.walks, "the rows are numbered once, by the view");
-    assertEquals(20_000 / 22 - El.OVERSCAN, find(app, "schema").firstRow());
+    assertEquals(20_000 / 24 - El.OVERSCAN, find(app, "schema").firstRow());
   }
 
   @Test
@@ -413,15 +413,15 @@ class TreeTest {
     App<Catalog> app = start(catalog);
     run(app, "focus #schema\nframe");
     key(app, catalog, "Home");
-    // The tree is 284 high: 12 rows of 22 whole.
-    assertEquals(12, row(app, catalog, "PageDown"));
-    assertInView(app, 12);
-    assertEquals(24, row(app, catalog, "PageDown"));
-    assertInView(app, 24);
+    // The tree is 284 high: 11 rows of 24 whole.
+    assertEquals(11, row(app, catalog, "PageDown"));
+    assertInView(app, 11);
+    assertEquals(22, row(app, catalog, "PageDown"));
+    assertInView(app, 22);
     assertEquals(307, row(app, catalog, "End"));
     assertInView(app, 307);
-    assertEquals(295, row(app, catalog, "PageUp"));
-    assertInView(app, 295);
+    assertEquals(296, row(app, catalog, "PageUp"));
+    assertInView(app, 296);
     assertEquals(0, row(app, catalog, "Home"));
     assertInView(app, 0);
   }
@@ -455,13 +455,13 @@ class TreeTest {
     catalog.selected = catalog.node("localhost/analytics/public"); // inside a closed node
     App<Catalog> app = start(catalog);
     assertTrue(find(app, "schema").children().stream().allMatch(r -> r.fill() == 0), "none shown");
-    run(app, "focus #schema\nwheel #schema 0 2200\nframe"); // row 100 at the top
+    run(app, "focus #schema\nwheel #schema 0 2400\nframe"); // row 100 at the top
     for (String name : List.of("ArrowRight", "ArrowLeft", "Enter")) {
       key(app, catalog, name);
     }
     assertEquals(List.of(), catalog.log, "nothing to open, close or activate");
     assertEquals(100, row(app, catalog, "ArrowDown"));
-    assertEquals(2200, find(app, "schema").scrollY(), "already in view");
+    assertEquals(2400, find(app, "schema").scrollY(), "already in view");
   }
 
   @Test

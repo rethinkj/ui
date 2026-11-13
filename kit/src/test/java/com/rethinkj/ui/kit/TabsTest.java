@@ -8,6 +8,7 @@ import static com.rethinkj.ui.kit.Workbench.find;
 import static com.rethinkj.ui.kit.Workbench.x;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -61,8 +62,8 @@ class TabsTest {
     app.resize(300, 200, 1);
     app.frame();
     assertEquals(200, find(app, "tabs").height());
-    assertEquals(200, find(app, "panel").y() + find(app, "list").height(),
-        "the content fills the panel below the bar, inside the window");
+    assertEquals(200 - T.size().stroke(), find(app, "panel").y() + find(app, "list").height(),
+        "the content fills the panel below the bar, inside the card's edge");
     app.wheel(20, 150, 0, 100);
     app.frame();
     assertEquals(100, find(app, "list").scrollY());
@@ -78,8 +79,11 @@ class TabsTest {
     assertEquals("products.sql", find(app, "panel").label());
     assertNull(app.focused(), "nowhere, as before the press");
     assertTrue(app.tree().dump().contains("text \"products.sql\"")); // in the content too
-    assertEquals(T.surface().raised(), find(app, "tab-3").fill(), "the active tab is raised");
-    assertEquals(0, find(app, "tab-0").fill(), "the others show the bar");
+    assertEquals(T.accent().edge(), find(app, "tab-3").children().getFirst().fill(),
+        "the active tab has the line at its bottom");
+    assertEquals(0, find(app, "tab-3").fill(), "and shows the bar");
+    assertEquals(0, find(app, "tab-0").fill(), "as the others");
+    assertNotNull(find(app, "tab-0").children().getFirst().text(), "which have no line");
     assertTrue(dumpLine(app, "tab-3").endsWith(" selected"));
     assertFalse(dumpLine(app, "tab-0").contains(" selected"));
 
@@ -117,7 +121,8 @@ class TabsTest {
     List<El> children = find(app, "tab-1").children();
     assertEquals("●", children.get(0).text().string());
     assertEquals("orders by month.sql", children.get(1).text().string());
-    assertEquals("customers.sql", find(app, "tab-0").children().getFirst().text().string());
+    // The active tab's line comes first.
+    assertEquals("customers.sql", find(app, "tab-0").children().get(1).text().string());
   }
 
   // Keys
@@ -213,13 +218,13 @@ class TabsTest {
   void anOverfullBarScrollsUnderTheWheelAndShowsTheActiveTab() throws IOException {
     App<Workbench> app = start();
     El list = find(app, "tablist");
-    assertEquals(396, list.width(), "the bar less its padding");
+    assertEquals(394, list.width(), "the bar less its padding and the card's edge");
     run(app, "wheel #tablist 0 100\nframe");
     assertEquals(100, find(app, "tablist").scrollX(), "a mouse's wheel moves it sideways");
     run(app, "wheel #tablist 0 10000\nframe");
     double end = find(app, "tablist").scrollX();
     El last = find(app, "tab-7");
-    assertEquals(398, x(app, last) + last.width(), "the last tab at the end");
+    assertEquals(397, x(app, last) + last.width(), "the last tab at the end, inside the edge");
 
     run(app, "key Tab\nkey ArrowLeft\nframe");
     assertEquals(end, find(app, "tablist").scrollX(), "the last tab chosen, already in view");

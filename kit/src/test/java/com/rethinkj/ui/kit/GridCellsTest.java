@@ -94,7 +94,7 @@ class GridCellsTest {
     assertEquals(List.of(4, 2, 1, 1), List.of(s.row(), s.column(), s.anchorRow(), s.anchorColumn()));
     assertTrue(line(app, "cell-2-1").endsWith(" selected pos=2/7"), line(app, "cell-2-1"));
     assertTrue(line(app, "cell-4-2").endsWith(" selected current pos=3/7"));
-    assertTrue(line(app, "cell-4-3").endsWith(" 149x22 pos=4/7"), "outside the range");
+    assertTrue(line(app, "cell-4-3").endsWith(" 149x23 pos=4/7"), "outside the range");
     assertTrue(line(app, "row-2").endsWith(" pos=3/1000000"), "no row is selected in cells");
     assertEquals("orders", app.focused().key());
     assertEquals(T.grid().cursor(), find(app, "cell-4-2").borderColor(), "the cursor's outline");
@@ -138,7 +138,7 @@ class GridCellsTest {
     El rows = find(app, "rows");
     assertTrue(rows.scrollY() > 0, "scrolled");
     int row = s.row();
-    assertTrue(row > 9, "" + row);
+    assertTrue(row > 8, "" + row);
     assertCursorRowInView(app, row);
     run(app, "move 300,280\nframe\nmove 300,300\nframe");
     assertTrue(s.row() > row, "further with each movement");
@@ -187,9 +187,9 @@ class GridCellsTest {
     assertEquals(List.of(999_999, 6), List.of(s.row(), s.column()));
     assertCursorRowInView(app, 999_999);
     run(app, "key PageUp\nframe");
-    assertEquals(999_990, s.row(), "a page is the 9 rows in view");
+    assertEquals(999_991, s.row(), "a page is the 8 rows in view");
     run(app, "key Home shift control\nframe"); // from the anchor up to the first cell
-    assertEquals(List.of(new Range(0, 0, 999_990, 6)), s.ranges());
+    assertEquals(List.of(new Range(0, 0, 999_991, 6)), s.ranges());
     run(app, "key A control\nframe");
     assertEquals(List.of(new Range(0, 0, 999_999, ALL)), s.ranges(), "one range");
     assertEquals(1_000_000, s.rowCount());
@@ -553,11 +553,11 @@ class GridCellsTest {
     run(app, "frame");
     assertEquals(app.time(), app.nextChange(), "the handler is due at once");
     run(app, "frame\nframe\nframe");
-    assertEquals(List.of("rows 0-12"), orders.log, "once, not on every frame");
+    assertEquals(List.of("rows 0-11"), orders.log, "once, not on every frame");
 
     orders.asked.clear();
     run(app, "scroll #rows row 2000\nframe\nframe");
-    assertEquals("rows 1997-2012", orders.log.getLast());
+    assertEquals("rows 1997-2011", orders.log.getLast());
     assertFalse(orders.asked.contains(2000), "no cell function for a row not loaded");
     El placeholder = find(app, "cell-2001-3").children().getFirst();
     assertEquals(Text.ELLIPSIS, placeholder.text().string());
@@ -570,7 +570,7 @@ class GridCellsTest {
       orders.loaded = Math.max(orders.loaded, last + 1);
     });
     run(app, "scroll #rows row 3000\nframe\nframe");
-    assertEquals(List.of("rows 2997-3012"), orders.log);
+    assertEquals(List.of("rows 2997-3011"), orders.log);
     assertTrue(orders.asked.contains(3001));
     assertEquals(cell(orders, 3001, 3), find(app, "cell-3001-3").children().getFirst().text()
         .string());

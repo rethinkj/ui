@@ -190,7 +190,7 @@ public final class Group {
       return row;
     }
     return row.focusable().keepFocus()
-        .focusRing(t.border().focus())
+        .focusRing(t.accent().edge())
         .cursor(Cursor.POINTER)
         .onPress(onPress)
         .whenHovered(e -> e.fill(t.surface().hover()))

@@ -54,7 +54,7 @@ final class Bench {
 
   App<Bench> app() {
     App<Bench> app = new App<>(this, Bench::view);
-    app.focusRing(t.border().focus());
+    app.focusRing(t.accent().edge());
     app.textRendering(TextRendering.LINUX);
     return app;
   }

@@ -45,6 +45,10 @@ import java.util.function.DoubleConsumer;
  * on top of them, and Tab follows the tree. A press or a drag on
  * it leaves the focus where it is, in the part that has it ({@link El#keepFocus}).
  *
+ * <p>{@link #cards} splits two cards on the window ({@link Card}) instead: the parts are {@link
+ * Theme.Spacing#m} apart, the line shows in the middle of that gap only under the pointer and
+ * while it is dragged, and nothing clips the parts, so that the cards' lifts show.
+ *
  * <p>Each part fills its side: the split makes it {@link El#grow} in a box of its own that clips
  * it, with no minimum size of its own. The split itself needs a size of its own or room to grow,
  * like a list of rows, and takes no minimum size from its parts either: a list of rows or a tree
@@ -124,16 +128,35 @@ public final class Split {
   public static El split(
       Theme t, Direction direction, Position position, Position reset, Consumer<Position> onMove,
       El first, float minFirst, El second, float minSecond) {
+    return split(t, direction, position, reset, onMove, first, minFirst, second, minSecond, false);
+  }
+
+  /**
+   * A split between two cards on the window: as {@link #split}, but the parts lie {@link
+   * Theme.Spacing#m} apart, the line between them shows only under the pointer and while it is
+   * dragged, and their boxes do not clip them, so that the cards' lifts show.
+   */
+  public static El cards(
+      Theme t, Direction direction, Position position, Position reset, Consumer<Position> onMove,
+      El first, float minFirst, El second, float minSecond) {
+    return split(t, direction, position, reset, onMove, first, minFirst, second, minSecond, true);
+  }
+
+  private static El split(
+      Theme t, Direction direction, Position position, Position reset, Consumer<Position> onMove,
+      El first, float minFirst, El second, float minSecond, boolean cards) {
     Objects.requireNonNull(position, "position");
     boolean across = direction == Direction.ROW;
-    float stroke = t.size().stroke();
+    // Between cards the gap takes the line's place, which shows in its middle.
+    float stroke = cards ? t.space().m() : t.size().stroke();
     // The strip around the line reaches over both parts by this much. It comes after the second
     // part in the tree, so that it is on top of both: the second part and the strip are in a box
     // of their own, in reverse order, that begins where the strip does.
     float over = Math.max(t.size().handle() - stroke, 0) / 2;
     float strip = stroke + 2 * over;
 
-    El line = el().fill(t.border().subtle());
+    El mark = el().fill(cards ? 0 : t.border().subtle());
+    El line = cards ? (across ? row() : col()).justify(Style.Content.CENTER).child(mark) : mark;
     El divider = (across ? row() : col()).key("divider").role("separator")
         .label(first.label() == null ? "Resize" : "Resize " + first.label())
         .value(position.kind().name().toLowerCase(Locale.ROOT) + " "
@@ -141,22 +164,28 @@ public final class Split {
         .justify(Style.Content.CENTER)
         .shrink(0)
         .child(line);
-    El one = pane(first, across, minFirst).key("first");
-    El two = pane(second, across, minSecond).key("second").basis(0).grow(1);
+    El one = pane(first, across, minFirst, !cards).key("first");
+    El two = pane(second, across, minSecond, !cards).key("second").basis(0).grow(1);
     El rest = el().key("rest").child(two).child(divider);
-    El split = (across ? row() : col()).clip().children(one, rest);
+    El split = (across ? row() : col()).children(one, rest);
+    if (!cards) {
+      split.clip();
+    }
     zeroMin(split); // it fills the room it is given, whatever the parts hold
     rest.style().direction =
         across ? Style.Direction.ROW_REVERSE : Style.Direction.COLUMN_REVERSE;
     zeroMin(rest);
+    float hair = t.size().stroke();
     if (across) {
       line.w(stroke);
+      mark.w(hair);
       divider.w(strip);
       rest.style().marginLeft = Len.px(-over);
       two.style().marginLeft = Len.px(-over);
       rest.style().minWidth = Len.px(minSecond + stroke + over);
     } else {
       line.h(stroke);
+      mark.h(hair);
       divider.h(strip);
       rest.style().marginTop = Len.px(-over);
       two.style().marginTop = Len.px(-over);
@@ -197,10 +226,10 @@ public final class Split {
     String back = across ? "ArrowLeft" : "ArrowUp";
     String forth = across ? "ArrowRight" : "ArrowDown";
     // Tab reaches it; a press or a drag leaves the focus in the part that has it.
-    divider.focusable().keepFocus().focusRing(t.border().focus())
+    divider.focusable().keepFocus().focusRing(t.accent().edge())
         .cursor(across ? Cursor.EW_RESIZE : Cursor.NS_RESIZE)
-        .whenHovered(e -> line.fill(t.border().strong()))
-        .whenPressed(e -> line.fill(t.accent().color()))
+        .whenHovered(e -> mark.fill(t.border().strong()))
+        .whenPressed(e -> mark.fill(t.accent().color()))
         .onDrag(d -> {
           if (d.phase() == Drag.Phase.CANCEL) {
             onMove.accept(position);
@@ -226,8 +255,11 @@ public final class Split {
   }
 
   /** A part's box: it clips the part, which fills it, and keeps the minimum along the split. */
-  private static El pane(El part, boolean across, float min) {
-    El pane = col().clip().child(part.grow(1));
+  private static El pane(El part, boolean across, float min, boolean clip) {
+    El pane = col().child(part.grow(1));
+    if (clip) {
+      pane.clip();
+    }
     zeroMin(part); // a list of rows in it is no minimum either
     zeroMin(pane);
     if (across) {
