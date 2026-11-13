@@ -57,8 +57,9 @@ final class Overlays {
   /**
    * Places the overlays of a tree that layout and scrolling have placed, and gives its root the
    * list of those shown, in the order they opened ({@link El#shownOverlays}): an overlay shows
-   * while its anchor does, not while the anchor or an element above it is leaving or invisible,
-   * or the clips above the anchor leave nothing of its rectangle.
+   * while its anchor does, not while the anchor or an element above it is leaving or made
+   * invisible by the view, or the clips above the anchor leave nothing of its rectangle. An anchor
+   * that fades in counts from its first frame.
    */
   static void place(El root, float width, float height) {
     List<El> shown = new ArrayList<>();
@@ -72,7 +73,9 @@ final class Overlays {
   private static void place(
       El el, float parentX, float parentY, float clipLeft, float clipTop, float clipRight,
       float clipBottom, float width, float height, List<El> shown, El.Layer within) {
-    if (!el.isPlaced() || el.opacity() == 0 || el.isExiting()) {
+    // As for the focus, one that fades in counts from the frame that adds it: the submenu that a
+    // key opens in the frame its menu appeared in shows, and takes the focus.
+    if (!el.isPlaced() || el.targetOpacity() == 0 || el.isExiting()) {
       return;
     }
     float left = parentX + el.x();

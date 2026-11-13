@@ -55,6 +55,7 @@ public final class Dialog {
         .fill(t.surface().raised())
         .border(t.size().stroke(), t.border().subtle())
         .shadow(t.elevation().dialog())
+        .motion(t.motion().fade())
         .children(
             label(t, Label.Variant.HEADING, title),
             content,

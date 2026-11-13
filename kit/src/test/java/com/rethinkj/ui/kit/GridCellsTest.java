@@ -233,7 +233,8 @@ class GridCellsTest {
     Orders orders = Orders.cells(T);
     App<Orders> app = start(orders);
     Selection s = orders.selection;
-    run(app, "press #cell-1-1\npress #cell-2-2 shift\nframe\npress #cell-2-1 right\nframe");
+    run(app, "press #cell-1-1\npress #cell-2-2 shift\nframe\npress #cell-2-1 right\nframe\n"
+        + "advance 0.25\nframe"); // past the menu's fade
     assertEquals(List.of(new Range(1, 1, 2, 2)), s.ranges(), "inside the range: it stays");
     assertTrue(orders.menu.isOpen());
     assertTrue(line(app, "item-0").contains("label=\"Copy\""));
@@ -242,7 +243,8 @@ class GridCellsTest {
         + cell(orders, 2, 1) + "\t" + cell(orders, 2, 2), app.clipboard().read());
     assertFalse(orders.menu.isOpen());
 
-    run(app, "press #cell-5-3 right\nframe"); // outside the range: the cell is selected first
+    // Outside the range: the cell is selected first.
+    run(app, "press #cell-5-3 right\nframe\nadvance 0.25\nframe");
     assertEquals(List.of(new Range(5, 3, 5, 3)), s.ranges());
     run(app, "press #item-3\nframe"); // the app's own item after the separator
     assertEquals("export", orders.log.getLast());

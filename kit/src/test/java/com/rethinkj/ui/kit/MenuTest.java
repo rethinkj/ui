@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.rethinkj.ui.App;
+import com.rethinkj.ui.El;
 import com.rethinkj.ui.Script;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -116,6 +117,41 @@ class MenuTest {
   }
 
   @Test
+  void menusFadeInAndOutTakeNoInputWhileLeavingAndThenNothingIsDrawn() throws IOException {
+    Bench bench = new Bench(Theme.DARK);
+    App<Bench> app = bench.app();
+    run(app, "frame\npress #file\nframe\n");
+    El menu = app.tree().shownOverlays().getFirst();
+    assertEquals(0, menu.opacity(), "it fades in from nothing");
+    run(app, "advance 0.05\nframe\n");
+    float half = app.tree().shownOverlays().getFirst().opacity();
+    assertTrue(half > 0 && half < 1, "on its way: " + half);
+    run(app, "advance 0.2\nframe\n");
+    assertEquals(1, app.tree().shownOverlays().getFirst().opacity());
+    assertFalse(app.isMoving());
+    String item = null;
+    for (String line : app.tree().dump().split("\n")) {
+      item = line.contains("label=\"Open…\"") && item == null ? line : item;
+    }
+    float[] open = rect(item);
+
+    run(app, "key Escape\nframe\n");
+    assertFalse(bench.file.isOpen());
+    assertTrue(app.isMoving(), "it fades out");
+    assertTrue(app.tree().dump().contains(" role=menu ") && app.tree().dump().contains(" exiting"));
+    app.pointerDown(open[0] + 10, open[1] + 10);
+    app.pointerUp(open[0] + 10, open[1] + 10);
+    app.frame();
+    assertEquals("Ready", bench.status, "the press on Open… while it fades out chose nothing");
+    app.advance(0.25);
+    assertTrue(app.frame(), "the end of the fade");
+    assertFalse(app.isMoving());
+    assertTrue(app.tree().shownOverlays().isEmpty());
+    assertFalse(app.frame(), "and then nothing is drawn");
+    assertEquals(Double.POSITIVE_INFINITY, app.nextChange(), "an idle window waits for input");
+  }
+
+  @Test
   void aClosedSelectChoosesWithArrowsAndLettersAndOpensWithAltDown() throws IOException {
     Bench bench = new Bench(Theme.DARK);
     App<Bench> app = bench.app();
@@ -172,17 +208,17 @@ class MenuTest {
   void thePointerHighlightsAndASubmenuClosesAfterRestingOnAnotherItem() throws IOException {
     Bench bench = new Bench(Theme.DARK);
     App<Bench> app = bench.app();
-    run(app, "frame\npress #file\nframe\nmove label=\"Export\"\nframe\n");
+    run(app, "frame\npress #file\nframe\nadvance 0.25\nframe\nmove label=\"Export\"\nframe\n");
     assertEquals(3, bench.file.active());
     assertEquals(-1, bench.file.submenu(), "not yet");
     assertEquals(app.time() + 0.3, app.nextChange(), 1e-9);
     run(app, "advance 0.3\nframe\n");
     assertEquals(3, bench.file.submenu());
-    run(app, "move label=\"JSON\"\nframe\n");
+    run(app, "advance 0.25\nframe\nmove label=\"JSON\"\nframe\n"); // after its fade
     assertEquals(3, bench.file.submenu(), "moving into the submenu keeps it");
     run(app, "move label=\"New query\"\nframe\nadvance 0.1\nframe\n");
     assertEquals(3, bench.file.submenu(), "passing over another item keeps it");
-    run(app, "advance 0.2\nframe\n");
+    run(app, "advance 0.25\nframe\n");
     assertEquals(-1, bench.file.submenu(), "resting on it closes it");
     run(app, "press label=\"Open…\"\nframe\n");
     assertEquals("Open", bench.status);

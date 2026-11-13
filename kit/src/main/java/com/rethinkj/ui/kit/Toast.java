@@ -55,6 +55,7 @@ public final class Toast {
         .fill(t.surface().raised())
         .border(t.size().stroke(), t.border().subtle())
         .shadow(t.elevation().popup())
+        .motion(t.motion().fade())
         .child(label(t, message));
     if (action != null) {
       toast.child(button(t, Button.Variant.GHOST, action, () -> {

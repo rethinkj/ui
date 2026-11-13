@@ -3,9 +3,13 @@
 frame
 press #encoding
 frame
+advance 0.25                    # past the theme's fade
+frame
 snap open
 
 key ArrowDown
 key Enter
+frame
+advance 0.25                    # past the theme's fade
 frame
 snap chosen

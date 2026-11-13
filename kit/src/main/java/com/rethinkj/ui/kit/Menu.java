@@ -399,6 +399,7 @@ public final class Menu {
         .fill(t.surface().raised())
         .border(t.size().stroke(), t.border().subtle())
         .shadow(t.elevation().popup())
+        .motion(t.motion().fade())
         .scroll()
         .scrollbars(t.scrollbars())
         .onKey(k -> key(k, state, items, level, bar));

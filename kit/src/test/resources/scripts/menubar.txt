@@ -4,8 +4,12 @@ frame
 press #query                    # the field has the focus, which the menus give back
 press #title-0                  # File opens below its title and takes the focus
 frame
+advance 0.25                    # past the theme's fade
+frame
 snap open
 
 move #title-1                   # onto Edit: its menu replaces File's at once
+frame
+advance 0.25                    # past the theme's fade
 frame
 snap switched

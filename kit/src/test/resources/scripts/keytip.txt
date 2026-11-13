@@ -8,4 +8,6 @@ advance 0.4
 frame                           # not yet
 advance 0.1
 frame
+advance 0.25                    # past the theme's fade
+frame
 snap shown

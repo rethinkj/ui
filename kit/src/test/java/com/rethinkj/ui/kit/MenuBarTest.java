@@ -100,7 +100,7 @@ class MenuBarTest {
     assertTrue(line(app, "subitem-1 role=menuitem label=\"Script\"").endsWith(" expanded"));
     El last = app.tree().shownOverlays().getLast();
     assertTrue(last.x() + last.width() <= script[0], "left of its item: " + deep);
-    run(app, "key Enter\nframe\n");
+    run(app, "key Enter\nframe\nadvance 0.25\nframe\n"); // the menus fade out
     assertEquals("Exported the schema", app.state().status);
     assertTrue(app.tree().shownOverlays().isEmpty());
   }
@@ -121,16 +121,18 @@ class MenuBarTest {
     Studio studio = new Studio(Theme.DARK);
     App<Studio> app = studio.app();
     Menu.State menu = studio.bar.menu();
-    run(app, "frame\npress #title-0\nframe\nmove label=\"Export\"\nframe\nadvance 0.3\nframe\n"
-        + "move label=\"SQL\"\nframe\n");
+    // Each menu fades in for 0.2 seconds before the pointer can reach its items.
+    run(app, "frame\npress #title-0\nframe\nadvance 0.25\nframe\nmove label=\"Export\"\nframe\n"
+        + "advance 0.3\nframe\nadvance 0.25\nframe\nmove label=\"SQL\"\nframe\n");
     assertEquals(2, menu.active(1), "the pointer highlights at once");
     assertEquals(-1, menu.submenu(1), "the submenu waits");
-    run(app, "advance 0.3\nframe\nmove label=\"Script\"\nframe\nadvance 0.3\nframe\n");
+    run(app, "advance 0.3\nframe\nadvance 0.25\nframe\nmove label=\"Script\"\nframe\n"
+        + "advance 0.3\nframe\nadvance 0.25\nframe\n");
     assertEquals(List.of(4, 2, 1), List.of(menu.submenu(0), menu.submenu(1), menu.submenu(2)));
     run(app, "move label=\"Schema and data\"\nframe\nmove label=\"CSV\"\nframe\nadvance 0.1\n"
         + "frame\n");
     assertEquals(2, menu.submenu(1), "passing over another item keeps them");
-    run(app, "advance 0.2\nframe\n");
+    run(app, "advance 0.25\nframe\n");
     assertEquals(List.of(4, -1, -1), List.of(menu.submenu(0), menu.submenu(1), menu.submenu(2)),
         "resting on CSV closes SQL's and the one inside it");
     assertEquals("submenu", app.focused().key(), "Export's, which the closed ones gave it back to");
@@ -159,7 +161,7 @@ class MenuBarTest {
     assertEquals("Ready", studio.status, "the press outside did nothing else");
     run(app, "press #title-1\nframe\nmove #title-3\nframe\n");
     assertEquals(3, studio.bar.open(), "moving onto Help switched");
-    run(app, "press label=\"About\"\nframe\n");
+    run(app, "advance 0.25\nframe\npress label=\"About\"\nframe\n");
     assertEquals("About", studio.status);
     assertEquals("query", app.focused().key());
   }

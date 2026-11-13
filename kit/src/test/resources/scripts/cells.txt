@@ -20,14 +20,20 @@ move #cell-7-6         # a note that its column cuts short
 frame
 advance 0.5            # the theme's tooltip delay
 frame
+advance 0.25           # past the theme's fade
+frame
 snap tooltip
 
 leave
 press #cell-2-5 right  # a cell outside the range: it is selected, then the menu opens
 frame
+advance 0.25           # past the theme's fade
+frame
 snap menu
 
 key Escape
+frame
+advance 0.25           # past the theme's fade
 scroll #rows row 2000  # the app has loaded the first 1000 rows only
 frame
 snap loading

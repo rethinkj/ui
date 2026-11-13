@@ -59,7 +59,8 @@ class DialogTest {
     run(app, "frame\npress #rename\nframe\npress 10,230\nframe\n");
     assertFalse(bench.renaming, "a press on the scrim dismisses it");
     assertEquals("Ready", bench.status, "and presses nothing under it");
-    run(app, "press #rename\nframe\nkey A control\ntype \"order_lines\"\npress #ok\nframe\n");
+    run(app, "press #rename\nframe\nadvance 0.25\nframe\nkey A control\ntype \"order_lines\"\n"
+        + "press #ok\nframe\n");
     assertFalse(bench.renaming);
     assertEquals("order_lines", bench.name);
   }

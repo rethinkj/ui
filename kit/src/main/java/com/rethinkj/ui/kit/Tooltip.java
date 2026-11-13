@@ -46,6 +46,7 @@ public final class Tooltip {
         .fill(t.surface().raised())
         .border(t.size().stroke(), t.border().subtle())
         .shadow(t.elevation().popup())
+        .motion(t.motion().fade())
         .side(Side.BOTTOM, Style.Align.CENTER, t.space().xs())
         .child(label(t, text));
   }

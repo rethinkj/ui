@@ -49,12 +49,12 @@ class TooltipTest {
         shown);
     assertTrue(shown.contains(" label=\"?\" ") && shown.contains(" focused\n"), shown);
     String size = "size 360 240 scale " + scale + "\n";
-    Script.run(size + "key A\nframe\n", app, out);
+    Script.run(size + "key A\nframe\nadvance 0.25\nframe\n", app, out); // it fades out
     assertFalse(app.tree().dump().contains("role=tooltip"), "a key hid it");
     Script.run(size + "advance 1\nframe\nkey Tab shift\nkey Tab\nframe\nadvance 0.5\nframe\n",
         app, out);
     assertTrue(app.tree().dump().contains("role=tooltip"), "back with the focus");
-    Script.run(size + "key Tab\nframe\n", app, out);
+    Script.run(size + "key Tab\nframe\nadvance 0.25\nframe\n", app, out);
     assertFalse(app.tree().dump().contains("role=tooltip"), "the focus left");
   }
 }

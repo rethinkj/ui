@@ -3,12 +3,16 @@
 frame
 press #file                     # opens the menu below the button; the focus goes to it
 frame
+advance 0.25                    # past the theme's fade
+frame
 snap open
 
 key ArrowDown                   # New query
 key ArrowDown                   # Open…
 key ArrowDown                   # past the separator to Export
 key ArrowRight                  # opens its submenu with CSV highlighted
+frame
+advance 0.25                    # past the theme's fade
 frame
 snap submenu
 
@@ -17,12 +21,18 @@ key Enter                       # chooses it: the menus close, the focus goes ba
 frame
 press #file
 frame
+advance 0.25                    # past the theme's fade
+frame
 move role=menuitem label="Export"
 frame                           # the pointer highlights Export
 advance 0.3
 frame
+advance 0.25                    # past the theme's fade
+frame
 snap hover                      # after resting there, the submenu opens
 
 press 100,200                   # outside both, on the list: they close, and that is all
+frame
+advance 0.25                    # past the theme's fade
 frame
 snap dismissed

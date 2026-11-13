@@ -3,6 +3,8 @@
 frame
 press #table-2 right
 frame
+advance 0.25                    # past the theme's fade
+frame
 snap open
 
 key D                           # the next item that starts with D: Duplicate

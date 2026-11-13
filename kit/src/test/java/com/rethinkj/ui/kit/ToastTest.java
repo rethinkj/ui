@@ -52,7 +52,7 @@ class ToastTest {
     assertEquals("query", app.focused().key(), "the toast did not take the focus");
     run(app, "type \"x\"\nframe\n");
     assertEquals("x", studio.query, "typing goes on in the field");
-    run(app, "press label=\"Undo\"\nframe\n");
+    run(app, "advance 0.25\nframe\npress label=\"Undo\"\nframe\n"); // after its fade
     assertEquals("SELECT * FROM orders", studio.query);
     assertNull(studio.cleared, "the action closed it");
     assertEquals("query", app.focused().key(), "the press left the focus in the field");
@@ -64,15 +64,22 @@ class ToastTest {
 
     // Without a focused field, whose caret would blink meanwhile.
     run(app, "press #status\nkey E alt\nframe\nkey End\nkey Enter\nframe\n");
+    double opened = app.time();
+    run(app, "advance 0.25\nframe\n"); // its fade
     assertNull(app.focused());
-    assertEquals(app.time() + 5, app.nextChange(), 1e-9, "it closes after five seconds");
-    app.advance(4.9);
+    assertEquals(opened + 5, app.nextChange(), 1e-9, "it closes after five seconds");
+    app.advance(4.65);
     assertFalse(app.frame(), "nothing to draw meanwhile");
     run(app, "press #status\nframe\n");
     assertTrue(studio.cleared != null, "a press elsewhere does not close it");
     app.advance(0.1);
     app.frame();
     assertNull(studio.cleared);
+    assertTrue(app.isMoving(), "it fades out");
+    app.advance(0.25);
+    app.frame();
+    assertFalse(app.isMoving());
+    assertFalse(app.frame(), "and then nothing is drawn");
     assertFalse(app.tree().dump().contains("role=status"), app.tree().dump());
   }
 }

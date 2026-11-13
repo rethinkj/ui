@@ -13,4 +13,6 @@ key ArrowRight                  # its submenu, Inserts
 key ArrowDown                   # Script
 key ArrowRight                  # its submenu, Schema
 frame
+advance 0.25                    # past the theme's fade
+frame
 snap deep
