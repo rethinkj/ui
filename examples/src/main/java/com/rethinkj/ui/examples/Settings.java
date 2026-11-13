@@ -131,11 +131,18 @@ public final class Settings {
   Theme theme() {
     Theme base = theme == 0 ? Theme.LIGHT : Theme.DARK; // the example cannot ask the system
     return switch (accent) {
-      case 1 -> base.withAccent(new Theme.Accent(0xFF7C3AED, 0xFF8B5CF6, 0xFF6D28D9));
-      case 2 -> base.withAccent(new Theme.Accent(0xFF15803D, 0xFF16A34A, 0xFF166534));
-      case 3 -> base.withAccent(new Theme.Accent(0xFFC2410C, 0xFFEA580C, 0xFF9A3412));
+      case 1 -> accent(base, 0xFF7C3AED, 0xFF8B5CF6, 0xFF6D28D9, 0xFFA78BFA);
+      case 2 -> accent(base, 0xFF15803D, 0xFF16A34A, 0xFF166534, 0xFF4ADE80);
+      case 3 -> accent(base, 0xFFC2410C, 0xFFEA580C, 0xFF9A3412, 0xFFFB923C);
       default -> base;
     };
+  }
+
+  /** An accent whose edge is a lighter tone on the dark theme, as the default's. */
+  private static Theme accent(Theme base, int color, int hover, int pressed, int lighter) {
+    int edge = base == Theme.DARK ? lighter : color;
+    return base.withAccent(new Theme.Accent(color, hover, pressed,
+        0x66000000 | color & 0xFFFFFF, edge));
   }
 
   List<Connection> matches() {
@@ -178,9 +185,9 @@ public final class Settings {
     El pages = navList(t, PAGES, s.page, i -> s.page = i).key("pages").label("Settings").grow(1);
     El root = col().wFull().hFull().fill(t.surface().window())
         .child(titleBar(t, "Settings", t.accent().color()))
-        .child(row().grow(1).minSize(0, 0).children(
-            col().w(200).shrink(0).padding(t.space().s()).fill(t.surface().panel()).child(pages),
-            Divider.vertical(t),
+        .child(row().grow(1).minSize(0, 0).padding(0, t.space().m(), t.space().m(), t.space().m())
+            .gap(t.space().m()).children(
+            Card.flush(t, Card.inset(t, pages)).w(200).shrink(0),
             switch (s.page) {
               case 0 -> general(t, s);
               case 1 -> appearance(t, s);

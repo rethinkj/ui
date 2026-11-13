@@ -156,12 +156,12 @@ public final class Card {
   }
 
   /**
-   * The body of a {@link #flush} card that is a list with rounded rows, such as a {@link Tree}:
-   * inset by {@link Theme.Spacing#s} at the sides and the bottom, so that the rows' corners lie
-   * inside the card's. It grows to fill the card.
+   * The body of a {@link #flush} card that is a list with rounded rows, such as a {@link Tree} or a
+   * {@link NavList}: inset by {@link Theme.Spacing#s}, so that the rows' corners lie inside the
+   * card's. It grows to fill the card.
    */
   public static El inset(Theme t, El list) {
-    El body = col().grow(1).padding(0, t.space().s(), t.space().s(), t.space().s())
+    El body = col().grow(1).padding(t.space().s())
         .child(list.grow(1));
     body.style().minHeight = Len.ZERO;
     return body;

@@ -8,6 +8,8 @@ import static com.rethinkj.ui.kit.Toggle.toggle;
 import com.rethinkj.ui.App;
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.Script;
+import com.rethinkj.ui.Style;
+import com.rethinkj.ui.kit.Card;
 import com.rethinkj.ui.kit.Theme;
 import com.rethinkj.ui.render.GpuPresenter;
 import com.rethinkj.ui.text.TextRendering;
@@ -48,8 +50,8 @@ public final class LightSwitch {
         .motion(t.motion().move());
     return col().wFull().hFull().fill(t.surface().window())
         .child(titleBar(t, "Lights", LAMP))
-        .child(col().grow(1).center().gap(t.space().xl())
-            .child(lamp)
-            .child(toggle(t, s.on, "Lamp", () -> s.on = !s.on)));
+        .child(col().grow(1).center()
+            .child(Card.card(t, lamp, toggle(t, s.on, "Lamp", () -> s.on = !s.on))
+                .padding(t.space().xxl()).gap(t.space().xl()).align(Style.Align.CENTER)));
   }
 }
