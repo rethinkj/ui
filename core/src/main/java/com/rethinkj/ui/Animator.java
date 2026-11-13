@@ -315,22 +315,19 @@ final class Animator {
     if (el.style().display == Style.Display.NONE) {
       return; // forgotten, so that it appears again without moving, like a new element
     }
-    double[] target = new double[COUNT];
-    target[0] = el.x();
-    target[1] = el.y();
-    target[2] = el.width();
-    target[3] = el.height();
-    float[] radii = el.radii();
-    for (int c = 0; c < 4; c++) {
-      target[RADIUS + c] = radii[c];
-    }
-    channels(el.fill(), target, FILL);
-    channels(el.borderColor(), target, BORDER);
-    channels(el.text() == null ? 0 : el.text().color(), target, TEXT);
-    target[OPACITY] = el.opacity();
+    double[] target = values(el);
     Entry entry = entries.get(id);
     El before = entry == null ? null : entry.el;
     Spring spring = el.motion();
+    if (el.cycle() != null) { // its phase goes on while it keeps its cycle
+      el.cycleSince = before != null && before.cycle() != null ? before.cycleSince : now;
+    }
+    if (entry != null && spring != null && before.cycle() != null && el.cycle() == null) {
+      double[] shown = values(before); // what the cycle's look showed last, to spring from
+      for (int i = 0; i < COUNT; i++) {
+        entry.tracks[i].set(shown[i]);
+      }
+    }
     if (entry == null) {
       entry = new Entry(id, target, created++);
       if (spring != null && enters) {
@@ -636,6 +633,24 @@ final class Animator {
 
   private static Object part(El el, int index) {
     return el.key() != null ? el.key() : Integer.valueOf(index);
+  }
+
+  /** The animated numbers of an element as it is now. */
+  private static double[] values(El el) {
+    double[] values = new double[COUNT];
+    values[0] = el.x();
+    values[1] = el.y();
+    values[2] = el.width();
+    values[3] = el.height();
+    float[] radii = el.radii();
+    for (int c = 0; c < 4; c++) {
+      values[RADIUS + c] = radii[c];
+    }
+    channels(el.fill(), values, FILL);
+    channels(el.borderColor(), values, BORDER);
+    channels(el.text() == null ? 0 : el.text().color(), values, TEXT);
+    values[OPACITY] = el.opacity();
+    return values;
   }
 
   private static void channels(int argb, double[] into, int at) {

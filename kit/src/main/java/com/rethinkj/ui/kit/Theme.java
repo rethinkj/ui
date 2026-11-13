@@ -255,6 +255,8 @@ public record Theme(
    * @param indicator the thickness of the line that marks the active tab
    * @param ringGap the gap between a primary button and its focus ring, in which what lies behind
    *     the button shows, so that the ring in the accent's edge stands out from the accent's fill
+   * @param progress the thickness of a {@link Progress} bar in a row; the line along a card's edge
+   *     is {@code indicator} thick
    */
   public record Sizes(
       float control,
@@ -267,7 +269,16 @@ public record Theme(
       float step,
       float icon,
       float indicator,
-      float ringGap) {
+      float ringGap,
+      float progress) {
+
+    /** Sizes with progress bars 4 thick. */
+    public Sizes(float control, float checkbox, float switchWidth, float switchHeight,
+        float stroke, float field, float handle, float step, float icon, float indicator,
+        float ringGap) {
+      this(control, checkbox, switchWidth, switchHeight, stroke, field, handle, step, icon,
+          indicator, ringGap, 4);
+    }
 
     /** Sizes with a gap of 2 between a primary button and its ring. */
     public Sizes(float control, float checkbox, float switchWidth, float switchHeight,
@@ -301,9 +312,17 @@ public record Theme(
    *     it, before its tooltip shows
    * @param fade how menus, tooltips, dialogs and toasts fade in as they open and out as they close
    * @param toast seconds a {@link Toast} stays before it closes itself
+   * @param progress seconds a {@link Progress#indeterminate} bar takes for one pass along its track
+   * @param spin seconds a {@link Progress#spinner} takes to go round once
    */
   public record Motion(Spring feedback, Spring move, double submenuDelay, double tooltipDelay,
-      Spring fade, double toast) {
+      Spring fade, double toast, double progress, double spin) {
+
+    /** Motion with a running bar's pass of 2 seconds and a spinner's turn of 1.2 seconds. */
+    public Motion(Spring feedback, Spring move, double submenuDelay, double tooltipDelay,
+        Spring fade, double toast) {
+      this(feedback, move, submenuDelay, tooltipDelay, fade, toast, 2, 1.2);
+    }
 
     /** Motion with submenus after 0.3 seconds, tooltips after half a second, quick fades. */
     public Motion(Spring feedback, Spring move) {
@@ -377,9 +396,9 @@ public record Theme(
           new TextStyle(Font::sansSemibold, 14),
           new TextStyle(Font::sansSemibold, 20),
           new TextStyle(Font::sansMedium, 13));
-  private static final Sizes SIZE = new Sizes(24, 16, 28, 16, 1, 200, 7, 16, 16, 2, 2);
+  private static final Sizes SIZE = new Sizes(24, 16, 28, 16, 1, 200, 7, 16, 16, 2, 2, 4);
   private static final Motion MOTION =
-      new Motion(Spring.INSTANT, Spring.SNAP, 0.3, 0.5, Spring.INSTANT, 5);
+      new Motion(Spring.INSTANT, Spring.SNAP, 0.3, 0.5, Spring.INSTANT, 5, 2, 1.2);
   private static final Caption CAPTION = new Caption(0xFFC42B1C, 0xFFFFFFFF);
 
   /*

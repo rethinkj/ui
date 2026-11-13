@@ -11,6 +11,7 @@ import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.IntConsumer;
 import java.util.function.IntFunction;
+import java.util.function.ObjDoubleConsumer;
 import java.util.function.Predicate;
 
 /**
@@ -38,6 +39,7 @@ public final class El {
   private static final int CURRENT = 256;
   private static final int INVALID = 512;
   private static final int GRABBED = 1024;
+  private static final int BUSY = 2048;
 
   private final Style style = new Style();
   private final List<El> children = new ArrayList<>();
@@ -156,6 +158,13 @@ public final class El {
   private Runnable onShownFor; // see #onShownFor
   private double shownDelay;
   private boolean skipsTab; // see #skipTab
+  private ObjDoubleConsumer<El> cycle; // see #cycle
+  private double cycleSeconds;
+  double cycleSince; // for Animator: the app's time at which this identity got its cycle
+  // What layout and motion gave this element in this frame, which the cycle's look starts from.
+  private boolean cycleBased;
+  private float baseX, baseY, baseWidth, baseHeight, baseOpacity, baseTargetOpacity;
+  private int baseFill;
   private int rangeFrom = -1; // see #range: characters of the parent's text, -1 for none
   private int rangeTo;
   private List<Text.Box> rangeBoxes; // the rows of the range, from this element's corner
@@ -314,6 +323,14 @@ public final class El {
    */
   public El current(boolean current) {
     return state(CURRENT, current ? CURRENT : 0);
+  }
+
+  /**
+   * Whether this is busy, as WAI-ARIA's {@code aria-busy}: a button whose action runs, which takes
+   * no press until it is done, or a part whose content is on its way.
+   */
+  public El busy(boolean busy) {
+    return state(BUSY, busy ? BUSY : 0);
   }
 
   /**
@@ -1868,6 +1885,116 @@ public final class El {
   }
 
   /**
+   * Changes how this element looks in every frame while it is shown, by where the app's clock
+   * stands in a period of {@code seconds}: a bar that runs while the app does not know how long
+   * something takes, or the dots of a spinner. The look gets this element and the phase, from 0
+   * at the start of the period towards 1, counted from the frame in which the element got this
+   * cycle with its identity, so that rebuilding the view and scrolling a list go on where it was;
+   * {@link Headless#render} without an {@link App} shows phase 0.
+   *
+   * <p>The look runs after layout and after motion has written the values of the moment, on the
+   * element as they left it, so that it needs no layout: it may move and size the element within
+   * its parent with {@link #place} (from the rectangle it finds, which layout gave it: a piece
+   * placed over its whole track draws a part of it), and change {@link #fill} and {@link
+   * #opacity}. Nothing else; it must not keep what it finds from one frame to the next. Each
+   * frame finds the element as layout and motion left it again.
+   *
+   * <p>While an element with a cycle is shown, {@link App#isMoving} is true, {@link App#frame}
+   * returns true and {@link App#nextChange} is the current time, so a window draws a frame per
+   * refresh of its display and no more; an element that is clipped away entirely, outside the
+   * window, under an ancestor at opacity 0 or in a row of a virtual list that is not built costs
+   * nothing, and a window without one stays idle. A frame with cycles walks the tree once more,
+   * without allocating, and runs their looks. When a rebuild takes the cycle away from an element
+   * with {@link #motion} that keeps its identity, it springs from what the look showed last to
+   * where layout puts it, so a bar that learns its value does not jump.
+   *
+   * @param seconds the length of the period, more than 0
+   * @param look changes the element by the phase, or null for none
+   */
+  public El cycle(double seconds, ObjDoubleConsumer<El> look) {
+    if (!(seconds > 0 && seconds < Double.POSITIVE_INFINITY)) {
+      throw new IllegalArgumentException("a cycle needs a period of more than 0 seconds, was "
+          + seconds);
+    }
+    this.cycleSeconds = seconds;
+    this.cycle = look;
+    return this;
+  }
+
+  /** The look of {@link #cycle}, or null. */
+  ObjDoubleConsumer<El> cycle() {
+    return cycle;
+  }
+
+  /**
+   * Runs the looks of {@link #cycle} at {@code time} in a tree that layout has placed, on the
+   * elements that are shown, and returns whether there was any. {@code shownOnly} false runs them
+   * all, as {@link Headless#render} does at time 0.
+   */
+  static boolean cycles(El root, double time, float width, float height, boolean shownOnly) {
+    float far = Float.POSITIVE_INFINITY;
+    float r = shownOnly ? width : far, b = shownOnly ? height : far, l = shownOnly ? 0 : -far;
+    boolean any = root.cycles(time, 0, 0, l, l, r, b);
+    for (El overlay : root.shownOverlays()) { // in window coordinates
+      any |= overlay.cycles(time, 0, 0, l, l, r, b);
+    }
+    return any;
+  }
+
+  private boolean cycles(
+      double time, float parentX, float parentY, float clipLeft, float clipTop, float clipRight,
+      float clipBottom) {
+    if (!placed) {
+      return false;
+    }
+    boolean any = false;
+    if (cycle != null) {
+      if (cycleBased) { // back to what layout and motion gave it
+        x = baseX;
+        y = baseY;
+        width = baseWidth;
+        height = baseHeight;
+        opacity = baseOpacity;
+        targetOpacity = baseTargetOpacity;
+        fill = baseFill;
+      } else {
+        baseX = x;
+        baseY = y;
+        baseWidth = width;
+        baseHeight = height;
+        baseOpacity = opacity;
+        baseTargetOpacity = targetOpacity;
+        baseFill = fill;
+        cycleBased = true;
+      }
+      float left = parentX + x();
+      float top = parentY + y();
+      if (left < clipRight && left + width > clipLeft && top < clipBottom
+          && top + height > clipTop) {
+        double turns = (time - cycleSince) / cycleSeconds;
+        cycle.accept(this, Math.clamp(turns - Math.floor(turns), 0.0, 1.0));
+        cycleBased = true; // its own place() is not a new layout
+        any = true;
+      }
+    }
+    if (opacity == 0) {
+      return any;
+    }
+    float left = parentX + x();
+    float top = parentY + y();
+    if (style.overflowX != Style.Overflow.VISIBLE || style.overflowY != Style.Overflow.VISIBLE) {
+      clipLeft = Math.max(left, clipLeft);
+      clipTop = Math.max(top, clipTop);
+      clipRight = Math.min(left + width, clipRight);
+      clipBottom = Math.min(top + height, clipBottom);
+    }
+    for (El child : children) {
+      any |= child.cycles(time, left, top, clipLeft, clipTop, clipRight, clipBottom);
+    }
+    return any;
+  }
+
+  /**
    * Runs {@code handler} once the pointer has rested over this element, or over elements inside
    * it, for {@code seconds} of the app's clock; once per stay, and not after a press until the
    * pointer has left and come back. With 0 it runs in the frame that finds the pointer there. Like
@@ -3210,6 +3337,7 @@ public final class El {
     this.width = width;
     this.height = height;
     this.placed = true;
+    this.cycleBased = false; // layout or motion placed it anew
     placeRanges(); // layout measured and placed the text before its box
   }
 
@@ -3244,7 +3372,8 @@ public final class El {
    * shown, that is, moved by the scroll offsets above it. The states the view set follow, those
    * that are set, in this order: {@code disabled} (also a field that {@link #editable
    * editable(null)} disables), {@code readonly} (a {@link #readOnly} field), {@code password} (a
-   * {@link #masked} field, as UI Automation's {@code IsPassword}), {@code invalid}, {@code selected},
+   * {@link #masked} field, as UI Automation's {@code IsPassword}), {@code invalid}, {@code busy},
+   * {@code selected},
    * {@code current}, {@code grabbed}, {@code checked}, {@code checked=false} or {@code checked=mixed}, {@code expanded} or {@code
    * expanded=false}, {@code level=2}, {@code pos=3/10} (the position in the set and its size),
    * {@code sort=ascending} or {@code sort=descending}, and {@code value="..."}, as in {@code el
@@ -3435,6 +3564,9 @@ public final class El {
     }
     if ((states & INVALID) != 0) {
       out.append(" invalid");
+    }
+    if ((states & BUSY) != 0) {
+      out.append(" busy");
     }
     if ((states & SELECTED) != 0) {
       out.append(" selected");

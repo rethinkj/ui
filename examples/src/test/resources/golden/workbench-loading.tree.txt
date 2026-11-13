@@ -184,8 +184,13 @@ el 0,0 1000x600
                   text role=heading "orders" 289,78 45x17 level=3
                   text "counting the rows" 342,78 113x16
                   el 463,86 438x0
-                  el #run role=button label="Run" 909,74 70x24
-                    text label="play" "\u{E990}" 922,78 16x16
+                  el #run role=button label="Run" 909,74 70x24 busy
+                    el role=progressbar label="Loading" 922,78 16x16
+                      el 922,78 16x16
+                      el 922,78 16x16
+                      el 922,78 16x16
+                      el 922,78 16x16
+                      el 922,78 16x16
                     text "Run" 942,78 24x16
                 el role=separator 277,106 714x1
                 el 277,107 714x98
@@ -193,6 +198,8 @@ el 0,0 1000x600
                     el #gutter 298,120 15x64
                       text #line-0 "1" 298,120 15x16
                       text #line-1 "2" 298,136 15x16
+                  el #running role=progressbar 277,106 714x2
+                    el #fill 277,106 5.58x2
                 el role=separator 277,205 714x1
                 el 277,206 714x64
                   text "Loading the rows of localhost/shop/public/orders…" 301,230 666x16
