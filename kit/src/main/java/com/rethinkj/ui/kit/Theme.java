@@ -58,7 +58,8 @@ public record Theme(
     Elevation elevation,
     Code code,
     Caption caption,
-    Prose prose) {
+    Prose prose,
+    Badges badge) {
 
   /**
    * A theme whose colours for code are {@link Code#DARK} on a dark raised surface and {@link
@@ -88,6 +89,65 @@ public record Theme(
     this(surface, text, border, accent, status, space, radius, type, size, motion, grid,
         scrollbars, elevation, code, caption,
         lightness(surface.raised()) < 0.5 ? Prose.DARK : Prose.LIGHT);
+  }
+
+  /** A theme whose badges look as {@link Badges#DARK} or {@link Badges#LIGHT}, as above. */
+  public Theme(Surfaces surface, TextColors text, Borders border, Accent accent, Status status,
+      Spacing space, Radii radius, Type type, Sizes size, Motion motion, Grid grid,
+      Scrollbars scrollbars, Elevation elevation, Code code, Caption caption, Prose prose) {
+    this(surface, text, border, accent, status, space, radius, type, size, motion, grid,
+        scrollbars, elevation, code, caption, prose,
+        lightness(surface.raised()) < 0.5 ? Badges.DARK : Badges.LIGHT);
+  }
+
+  /**
+   * The colours of a {@link Badge} of one kind: a quiet one is {@code softText} on {@code soft},
+   * a translucent tint laid over whatever the badge lies on, a strong one {@code strongText} on
+   * {@code strong}.
+   *
+   * @param soft translucent, the quiet badge's fill
+   * @param softText the quiet badge's text and icon, 4.5:1 on its fill over the surfaces, the
+   *     grid's rows and its selection
+   * @param strong opaque, the strong badge's fill
+   * @param strongText the strong badge's text and icon, 4.5:1 on {@code strong}
+   */
+  public record Tone(int soft, int softText, int strong, int strongText) {}
+
+  /**
+   * How {@link Badge}s look: a {@link Tone} per kind and two heights.
+   *
+   * @param neutral types and properties, such as {@code bigint} or {@code NOT NULL}
+   * @param accent what is chosen or stands out, such as a primary key
+   * @param success what is well
+   * @param warning what needs care
+   * @param danger what failed or destroys
+   * @param row the height of a badge in a row of a grid, a tree or a list, which it fits without
+   *     changing the row's height
+   * @param toolbar the height of a badge in a toolbar or a header, beside controls
+   * @param text the badge's type, smaller than the body's
+   */
+  public record Badges(Tone neutral, Tone accent, Tone success, Tone warning, Tone danger,
+      float row, float toolbar, TextStyle text) {
+
+    private static final TextStyle TEXT = new TextStyle(Font::sansMedium, 12);
+
+    /** For dark surfaces. */
+    public static final Badges DARK = new Badges(
+        new Tone(0x0DFFFFFF, 0xFFD3D5DB, 0xFF5A5D67, 0xFFFFFFFF),
+        new Tone(0x2E3D6FE6, 0xFFA9C1FA, 0xFF3D6FE6, 0xFFFFFFFF),
+        new Tone(0x1A5CC98A, 0xFF86E0AB, 0xFF1F7A47, 0xFFFFFFFF),
+        new Tone(0x1AE0B04C, 0xFFF0CC7A, 0xFFE0B04C, 0xFF1B1D22),
+        new Tone(0x1AF2797A, 0xFFFAB6B6, 0xFFC6373A, 0xFFFFFFFF),
+        18, 22, TEXT);
+
+    /** For light surfaces. */
+    public static final Badges LIGHT = new Badges(
+        new Tone(0x1A5C606B, 0xFF464A54, 0xFF5C606B, 0xFFFFFFFF),
+        new Tone(0x1F2E62D9, 0xFF1F4FB8, 0xFF2E62D9, 0xFFFFFFFF),
+        new Tone(0x2117693A, 0xFF135A31, 0xFF17693A, 0xFFFFFFFF),
+        new Tone(0x2BC98A00, 0xFF694600, 0xFFE9A92F, 0xFF1B1D22),
+        new Tone(0x1FB42318, 0xFF9E1E14, 0xFFB42318, 0xFFFFFFFF),
+        18, 22, TEXT);
   }
 
   /**
@@ -492,97 +552,103 @@ public record Theme(
   public Theme withSurface(Surfaces surface) {
     return new Theme(
         surface, text, border, accent, status, space, radius, type, size, motion, grid,
-        scrollbars, elevation, code, caption, prose);
+        scrollbars, elevation, code, caption, prose, badge);
   }
 
   public Theme withText(TextColors text) {
     return new Theme(
         surface, text, border, accent, status, space, radius, type, size, motion, grid,
-        scrollbars, elevation, code, caption, prose);
+        scrollbars, elevation, code, caption, prose, badge);
   }
 
   public Theme withBorder(Borders border) {
     return new Theme(
         surface, text, border, accent, status, space, radius, type, size, motion, grid,
-        scrollbars, elevation, code, caption, prose);
+        scrollbars, elevation, code, caption, prose, badge);
   }
 
   public Theme withAccent(Accent accent) {
     return new Theme(
         surface, text, border, accent, status, space, radius, type, size, motion, grid,
-        scrollbars, elevation, code, caption, prose);
+        scrollbars, elevation, code, caption, prose, badge);
   }
 
   public Theme withStatus(Status status) {
     return new Theme(
         surface, text, border, accent, status, space, radius, type, size, motion, grid,
-        scrollbars, elevation, code, caption, prose);
+        scrollbars, elevation, code, caption, prose, badge);
   }
 
   public Theme withSpace(Spacing space) {
     return new Theme(
         surface, text, border, accent, status, space, radius, type, size, motion, grid,
-        scrollbars, elevation, code, caption, prose);
+        scrollbars, elevation, code, caption, prose, badge);
   }
 
   public Theme withRadius(Radii radius) {
     return new Theme(
         surface, text, border, accent, status, space, radius, type, size, motion, grid,
-        scrollbars, elevation, code, caption, prose);
+        scrollbars, elevation, code, caption, prose, badge);
   }
 
   public Theme withType(Type type) {
     return new Theme(
         surface, text, border, accent, status, space, radius, type, size, motion, grid,
-        scrollbars, elevation, code, caption, prose);
+        scrollbars, elevation, code, caption, prose, badge);
   }
 
   public Theme withSize(Sizes size) {
     return new Theme(
         surface, text, border, accent, status, space, radius, type, size, motion, grid,
-        scrollbars, elevation, code, caption, prose);
+        scrollbars, elevation, code, caption, prose, badge);
   }
 
   public Theme withMotion(Motion motion) {
     return new Theme(
         surface, text, border, accent, status, space, radius, type, size, motion, grid,
-        scrollbars, elevation, code, caption, prose);
+        scrollbars, elevation, code, caption, prose, badge);
   }
 
   public Theme withGrid(Grid grid) {
     return new Theme(
         surface, text, border, accent, status, space, radius, type, size, motion, grid,
-        scrollbars, elevation, code, caption, prose);
+        scrollbars, elevation, code, caption, prose, badge);
   }
 
   public Theme withScrollbars(Scrollbars scrollbars) {
     return new Theme(
         surface, text, border, accent, status, space, radius, type, size, motion, grid,
-        scrollbars, elevation, code, caption, prose);
+        scrollbars, elevation, code, caption, prose, badge);
   }
 
   public Theme withCode(Code code) {
     return new Theme(
         surface, text, border, accent, status, space, radius, type, size, motion, grid,
-        scrollbars, elevation, code, caption, prose);
+        scrollbars, elevation, code, caption, prose, badge);
   }
 
   public Theme withElevation(Elevation elevation) {
     return new Theme(
         surface, text, border, accent, status, space, radius, type, size, motion, grid,
-        scrollbars, elevation, code, caption, prose);
+        scrollbars, elevation, code, caption, prose, badge);
   }
 
   public Theme withProse(Prose prose) {
     return new Theme(
         surface, text, border, accent, status, space, radius, type, size, motion, grid,
-        scrollbars, elevation, code, caption, prose);
+        scrollbars, elevation, code, caption, prose, badge);
+  }
+
+  public Theme withBadge(Badges badge) {
+    return new Theme(
+        surface, text, border, accent, status, space, radius, type, size, motion, grid,
+        scrollbars, elevation, code, caption, prose, badge);
   }
 
   public Theme withCaption(Caption caption) {
     return new Theme(
         surface, text, border, accent, status, space, radius, type, size, motion, grid,
-        scrollbars, elevation, code, caption, prose);
+        scrollbars, elevation, code, caption, prose, badge);
   }
 
   /**
