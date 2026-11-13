@@ -1,62 +1,82 @@
 el 0,0 240x200
   el #list role=list 16,16 208x168
-    el #row-1 role=listitem label="Row 1" 24,24 192x28
+    el #row-1 role=listitem label="accounts" 24,24 192x28
       el 32,31 14x14
-      el 54,35 77x6
-    el #row-2 role=listitem label="Row 2" 24,56 192x28
+      text "accounts" 54,30 117x16
+      text "4181" 179,30 29x16
+    el #row-2 role=listitem label="addresses" 24,56 192x28
       el 32,63 14x14
-      el 54,67 114x6
-    el #row-3 role=listitem label="Row 3" 24,88 192x28
+      text "addresses" 54,62 117x16
+      text "8362" 179,62 29x16
+    el #row-3 role=listitem label="audit_log" 24,88 192x28
       el 32,95 14x14
-      el 54,99 61x6
-    el #row-4 role=listitem label="Row 4" 24,120 192x28
+      text "audit_log" 54,94 117x16
+      text "2373" 179,94 29x16
+    el #row-4 role=listitem label="carts" 24,120 192x28
       el 32,127 14x14
-      el 54,131 98x6
-    el #row-5 role=listitem label="Row 5" 24,152 192x28
+      text "carts" 54,126 117x16
+      text "6554" 179,126 29x16
+    el #row-5 role=listitem label="categories" 24,152 192x28
       el 32,159 14x14
-      el 54,163 45x6
-    el #row-6 role=listitem label="Row 6" 24,184 192x28
+      text "categories" 54,158 124x16
+      text "565" 186,158 22x16
+    el #row-6 role=listitem label="customers" 24,184 192x28
       el 32,191 14x14
-      el 54,195 82x6
-    el #row-7 role=listitem label="Row 7" 24,216 192x28
+      text "customers" 54,190 117x16
+      text "4746" 179,190 29x16
+    el #row-7 role=listitem label="deliveries" 24,216 192x28
       el 32,223 14x14
-      el 54,227 119x6
-    el #row-8 role=listitem label="Row 8" 24,248 192x28
+      text "deliveries" 54,222 117x16
+      text "8927" 179,222 29x16
+    el #row-8 role=listitem label="discounts" 24,248 192x28
       el 32,255 14x14
-      el 54,259 66x6
-    el #row-9 role=listitem label="Row 9" 24,280 192x28
+      text "discounts" 54,254 117x16
+      text "2938" 179,254 29x16
+    el #row-9 role=listitem label="employees" 24,280 192x28
       el 32,287 14x14
-      el 54,291 103x6
-    el #row-10 role=listitem label="Row 10" 24,312 192x28
+      text "employees" 54,286 117x16
+      text "7119" 179,286 29x16
+    el #row-10 role=listitem label="inventory" 24,312 192x28
       el 32,319 14x14
-      el 54,323 50x6
-    el #row-11 role=listitem label="Row 11" 24,344 192x28
+      text "inventory" 54,318 117x16
+      text "1130" 179,318 29x16
+    el #row-11 role=listitem label="invoices" 24,344 192x28
       el 32,351 14x14
-      el 54,355 87x6
-    el #row-12 role=listitem label="Row 12" 24,376 192x28
+      text "invoices" 54,350 117x16
+      text "5311" 179,350 29x16
+    el #row-12 role=listitem label="order_items" 24,376 192x28
       el 32,383 14x14
-      el 54,387 124x6
-    el #row-13 role=listitem label="Row 13" 24,408 192x28
+      text "order_items" 54,382 117x16
+      text "9492" 179,382 29x16
+    el #row-13 role=listitem label="orders" 24,408 192x28
       el 32,415 14x14
-      el 54,419 71x6
-    el #row-14 role=listitem label="Row 14" 24,440 192x28
+      text "orders" 54,414 117x16
+      text "3503" 179,414 29x16
+    el #row-14 role=listitem label="payments" 24,440 192x28
       el 32,447 14x14
-      el 54,451 108x6
-    el #row-15 role=listitem label="Row 15" 24,472 192x28
+      text "payments" 54,446 117x16
+      text "7684" 179,446 29x16
+    el #row-15 role=listitem label="products" 24,472 192x28
       el 32,479 14x14
-      el 54,483 55x6
-    el #row-16 role=listitem label="Row 16" 24,504 192x28
+      text "products" 54,478 117x16
+      text "1695" 179,478 29x16
+    el #row-16 role=listitem label="refunds" 24,504 192x28
       el 32,511 14x14
-      el 54,515 92x6
-    el #row-17 role=listitem label="Row 17" 24,536 192x28
+      text "refunds" 54,510 117x16
+      text "5876" 179,510 29x16
+    el #row-17 role=listitem label="reviews" 24,536 192x28
       el 32,543 14x14
-      el 54,547 129x6
-    el #row-18 role=listitem label="Row 18" 24,568 192x28
+      text "reviews" 54,542 110x16
+      text "10057" 172,542 36x16
+    el #row-18 role=listitem label="sessions" 24,568 192x28
       el 32,575 14x14
-      el 54,579 76x6
-    el #row-19 role=listitem label="Row 19" 24,600 192x28
+      text "sessions" 54,574 117x16
+      text "4068" 179,574 29x16
+    el #row-19 role=listitem label="shipments" 24,600 192x28
       el 32,607 14x14
-      el 54,611 113x6
-    el #row-20 role=listitem label="Row 20" 24,632 192x28
+      text "shipments" 54,606 117x16
+      text "8249" 179,606 29x16
+    el #row-20 role=listitem label="suppliers" 24,632 192x28
       el 32,639 14x14
-      el 54,643 60x6
+      text "suppliers" 54,638 117x16
+      text "2260" 179,638 29x16

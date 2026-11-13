@@ -1,3 +1,4 @@
 el 0,0 200x120
-  el #switch role=switch label="Lights" 81,49 38x22 focused
-    el #knob 83,51 18x18
+  el #switch role=switch label="Lights" 39,49 38x22 focused
+    el #knob 41,51 18x18
+  text #label "Lights off" 89,52 72x17

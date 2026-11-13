@@ -126,7 +126,7 @@ frame
 snap switch-focused-on
 ```
 
-In `switch-focused.tree.txt` the switch's line is `el #switch role=switch label="Lights" 81,49 38x22 focused`.
+In `switch-focused.tree.txt` the switch's line is `el #switch role=switch label="Lights" 39,49 38x22 focused`.
 
 ```sh
 java -cp core/target/classes:core/target/test-classes com.rethinkj.ui.Examples \
@@ -164,7 +164,7 @@ frame
 snap switch-on
 ```
 
-In `switch-hovered.tree.txt` the switch's line is `el #switch role=switch label="Lights" 81,49 38x22 hovered`, although the pointer is over the knob: the knob has no handler, so a press would go to the switch.
+In `switch-hovered.tree.txt` the switch's line is `el #switch role=switch label="Lights" 39,49 38x22 hovered`, although the pointer is over the knob: the knob has no handler, so a press would go to the switch.
 
 ```sh
 java -cp core/target/classes:core/target/test-classes com.rethinkj.ui.Examples \
@@ -220,13 +220,18 @@ Objects belong to the thread that created their `Instance`; closing one closes w
 
 ## Text
 
-Text is shaped but not drawn yet: a `Scene` has no instances for text elements.
+Text is shaped with HarfBuzz, rasterised with FreeType into greyscale bitmaps and drawn by `CpuRenderer`; the GPU renderer does not draw it yet.
 
 - `El.text("…")` makes a text element, a leaf that layout sizes to its shaped text. Chained calls: `.font(Font)`, `.fontSize(<logical pixels>)`, `.color(0xAARRGGBB)`, `.wrapText()`. The defaults are `Font.sans()`, 14, opaque black and no wrapping. Each line feed starts a line; with `wrapText` it also breaks where `java.text.BreakIterator` allows, and a word wider than the box stays whole. No bidirectional text, mixed scripts or fallback fonts yet: a character the font lacks shows as its glyph 0.
 - `Font.sans()`, `sansBold()`, `mono()` and `monoBold()` are Inter 4.1 and JetBrains Mono 2.304, regular and bold, the static hinted TrueType files of their releases. They come in `fonts/` (`rethinkj-ui-fonts`, under `META-INF/rethinkj-ui/fonts/` with their SIL Open Font License 1.1 texts in `licenses/`); `core` uses that module only in tests, and without it these methods throw a message that names it. Other fonts: `Font.of(bytes)` or `Font.resource(owner, name)`, freed by `close()`.
 - `Font.shape(text, size, scale, features...)` shapes with HarfBuzz into a `GlyphRun` in physical pixels: at `size * scale`, advances and offsets rounded to whole pixels below scale 1.5 and to quarter pixels from 1.5 on. Kerning is on and `calt` off (JetBrains Mono's ligatures); features use HarfBuzz's syntax, such as `"+calt"` or `"-kern"`. Each font keeps the last 1024 runs.
 - `App` and `Headless` pass the window's scale to every text element before layout (`El.scaleText`); `Flex.layout` alone shapes at scale 1. After layout, `el.text().lines()` holds what a renderer draws: per line a `GlyphRun`, its width and its baseline, in physical pixels from the top left of the content box. Layout hands the final content size to `Measure.placed`, and the lines are broken for that width.
 - In a `.tree.txt`, a text element's line starts with `text` instead of `el` and has its string in quotes after the key, role and label: `text #save "Save\nall" 0,0 32x36`. Strings and labels are quoted with `\"`, `\\` and `\n` for a line feed. The selector `text="<string>"` matches the exact string, written the same way.
+- `Scene` turns the glyphs of each line into glyph instances, `KIND` 1, in the same list as the rectangles (`KIND` 0), so text and boxes overlap in tree order. Their 64 bytes, the WGSL struct and the coverage formula are in `Scene`'s Javadoc; `CpuRenderer` is the reference. A glyph's bitmap is drawn one texel to one physical pixel, never resampled: the content box of a text element is snapped to the grid of the glyph positions, whole pixels vertically and, horizontally, whole pixels below scale 1.5 and quarter pixels from there, so text in a moving or scrolled box keeps its bitmaps.
+- Bitmaps live in a `text.Atlas`: pages of 8-bit coverage (`scene.pages()`), keyed by font, physical size, hinting, glyph and quarter-pixel offset, bounded in entries and bytes, least recently used out first but never what the current scene uses. `Page.takeChanged()` gives the region written since the last call, for uploads. An `App` keeps one atlas; `Headless.render` and `Scene.of(root)` make their own.
+- `TextRendering` holds the hinting and the two exponents of the coverage correction: `LINUX` (FreeType's light auto-hinter, 1.8 and 1.8) and `WINDOWS` (the font's own hints in FreeType's v40 interpreter, 1.8 and 1.4); `TextRendering.platform()` is the default. Set it with `app.textRendering(...)` or `Headless.render(root, width, height, scale, rendering)`. Tests that compare images pin `TextRendering.LINUX`, and so does `Examples.main`, so that the stored images do not depend on the machine.
+- The correction thickens text darker than its background, `1 - (1 - a)^darkGamma`, and thins lighter text, `a^lightGamma`. The scene finds the background in the fills of the text element and its ancestors; it misses earlier siblings, absolutely placed boxes, borders and what lies outside rounded corners, and then decides by the text colour, biased towards thickening (thicken up to L* 60, thin from 80). When the answer is wrong, state the background: `El.text("…").textBackground(0xFFFFFFFF)`.
+- The switch and list examples have text, so the tests that render them call `TextLibraries.assumeLoaded()`; tests about input, focus and motion use `Examples.switchAlone`, which has none and runs without the natives module.
 - The bindings are in `com.rethinkj.ui.text.ffi`, not exported, in the style of `com.rethinkj.ui.gpu`. FreeType's C `long` (64 bits on Linux, 32 on Windows) is handled only in `FreeType`: `C_LONG`, its method handles, which take a Java `long` for it, and `getLong`/`setLong`. Tests that need the libraries skip themselves where there is no natives module.
 
 ## GPU renderer

@@ -14,11 +14,14 @@ import com.rethinkj.ui.render.Scene;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 /**
  * The GPU renderer in real windows, for a moment. Skipped like {@link WindowTest}, and without
  * wgpu-native or an adapter that can present to the window.
  */
+// A click that misses its element would leave the loop waiting for ever.
+@Timeout(60)
 class GpuPresenterTest {
 
   private static final String TITLE = "rethinkj GPU presenter test";
@@ -48,7 +51,7 @@ class GpuPresenterTest {
     try (Window window = Window.open(TITLE, 200, 120)) {
       Desktop.settle();
       try (GpuPresenter gpu = presenter(window)) {
-        App<Lights> app = new App<>(new Lights(), Examples::lights);
+        App<Lights> app = new App<>(new Lights(), Examples::switchAlone);
         AtomicReference<WindowLoop> loop = new AtomicReference<>();
         loop.set(new WindowLoop(window, app, new WindowLoop.Presenter() {
           @Override
@@ -100,7 +103,7 @@ class GpuPresenterTest {
     try (Window window = Window.open(TITLE, 200, 120)) {
       Desktop.settle();
       try (GpuPresenter gpu = presenter(window)) {
-        App<Lights> app = new App<>(new Lights(), Examples::lights);
+        App<Lights> app = new App<>(new Lights(), Examples::switchAlone);
         app.resize(window.width(), window.height(), window.scale());
         app.frame();
         gpu.present(app.scene(), window.width(), window.height(), window.scale());

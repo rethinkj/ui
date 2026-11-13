@@ -1,5 +1,7 @@
 package com.rethinkj.ui.render;
 
+import com.rethinkj.ui.text.Atlas;
+
 /**
  * Draws a {@link Scene} on the CPU. This is the reference the GPU renderer is checked against, so
  * it is written to be obviously right, not fast, and its output is the same bit for bit on every
@@ -28,7 +30,11 @@ public final class CpuRenderer {
     // Starts fully transparent.
     float[] frame = new float[width * height * 4];
     for (int i = 0; i < scene.count(); i++) {
-      rect(scene, i, frame, width, height, scale);
+      if (scene.getInt(i, Scene.KIND) == Scene.GLYPH) {
+        glyph(scene, i, frame, width, height, scale);
+      } else {
+        rect(scene, i, frame, width, height, scale);
+      }
     }
     return frame;
   }
@@ -62,8 +68,6 @@ public final class CpuRenderer {
     double clipHalfH = scene.clipGet(clip, Scene.HEIGHT) / 2;
     double clipX = scene.clipGet(clip, Scene.X) + clipHalfW;
     double clipY = scene.clipGet(clip, Scene.Y) + clipHalfH;
-    double clipRadius =
-        Math.clamp(scene.clipGet(clip, Scene.RADIUS), 0, Math.min(clipHalfW, clipHalfH));
     if (clip != 0) {
       left = Math.max(left, (int) Math.floor((clipX - clipHalfW) * scale) - 1);
       top = Math.max(top, (int) Math.floor((clipY - clipHalfH) * scale) - 1);
@@ -78,9 +82,7 @@ public final class CpuRenderer {
         double y = (py + 0.5) / scale - centerY;
         double coverage = coverage(distance(x, y, halfW, halfH, radius), scale);
         if (clip != 0) {
-          double cx = (px + 0.5) / scale - clipX;
-          double cy = (py + 0.5) / scale - clipY;
-          coverage *= coverage(distance(cx, cy, clipHalfW, clipHalfH, clipRadius), scale);
+          coverage *= clipCoverage(scene, clip, (px + 0.5) / scale, (py + 0.5) / scale, scale);
         }
         if (coverage <= 0) {
           continue;
@@ -101,6 +103,59 @@ public final class CpuRenderer {
         }
       }
     }
+  }
+
+  /** Draws a glyph's bitmap one texel to one physical pixel, with its coverage corrected. */
+  private static void glyph(
+      Scene scene, int i, float[] frame, int width, int height, double scale) {
+    int atlas = scene.getInt(i, Scene.ATLAS);
+    int size = scene.getInt(i, Scene.ATLAS_SIZE);
+    Atlas.Page page = scene.pages().get(scene.getInt(i, Scene.PAGE));
+    int left = (int) Math.round(scene.get(i, Scene.X) * scale);
+    int top = (int) Math.round(scene.get(i, Scene.Y) * scale);
+    double share = scene.get(i, Scene.LIGHT_SHARE);
+    double darkGamma = scene.get(i, Scene.DARK_GAMMA);
+    double lightGamma = scene.get(i, Scene.LIGHT_GAMMA);
+    int clip = scene.getInt(i, Scene.CLIP);
+    for (int ty = 0; ty < size >>> 16; ty++) {
+      int py = top + ty;
+      for (int tx = 0; tx < (size & 0xFFFF); tx++) {
+        int px = left + tx;
+        if (px < 0 || py < 0 || px >= width || py >= height) {
+          continue;
+        }
+        double a = page.coverage((atlas & 0xFFFF) + tx, (atlas >>> 16) + ty) / 255.0;
+        if (a == 0) {
+          continue;
+        }
+        double dark = 1 - StrictMath.pow(1 - a, darkGamma);
+        double light = StrictMath.pow(a, lightGamma);
+        double coverage = dark + (light - dark) * share;
+        if (clip != 0) {
+          coverage *= clipCoverage(scene, clip, (px + 0.5) / scale, (py + 0.5) / scale, scale);
+        }
+        if (coverage <= 0) {
+          continue;
+        }
+        int at = (py * width + px) * 4;
+        double alpha = scene.get(i, Scene.COLOUR + 12) * coverage;
+        for (int c = 0; c < 4; c++) {
+          double source = scene.get(i, Scene.COLOUR + c * 4) * coverage;
+          frame[at + c] = (float) (source + frame[at + c] * (1 - alpha));
+        }
+      }
+    }
+  }
+
+  /** How much of the pixel centred at {@code x, y}, in logical pixels, the clip lets through. */
+  private static double clipCoverage(Scene scene, int clip, double x, double y, double scale) {
+    double halfW = scene.clipGet(clip, Scene.WIDTH) / 2;
+    double halfH = scene.clipGet(clip, Scene.HEIGHT) / 2;
+    double radius = Math.clamp(scene.clipGet(clip, Scene.RADIUS), 0, Math.min(halfW, halfH));
+    return coverage(
+        distance(x - (scene.clipGet(clip, Scene.X) + halfW),
+            y - (scene.clipGet(clip, Scene.Y) + halfH), halfW, halfH, radius),
+        scale);
   }
 
   /** One channel of the instance's colour: the border colour, or the fill where the fill shows. */

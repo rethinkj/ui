@@ -1,0 +1,10 @@
+el 0,0 200x90
+  el #list 10,10 180x70 scroll 0,13.25
+    text "Zeile 1: Größe & Söhne GmbH" 16,2.75 168x17
+    text "Zeile 2: Größe & Söhne GmbH" 16,21.75 168x17
+    text "Zeile 3: Größe & Söhne GmbH" 16,40.75 168x17
+    text "Zeile 4: Größe & Söhne GmbH" 16,59.75 168x17
+    text "Zeile 5: Größe & Söhne GmbH" 16,78.75 168x17
+    text "Zeile 6: Größe & Söhne GmbH" 16,97.75 168x17
+    text "Zeile 7: Größe & Söhne GmbH" 16,116.75 168x17
+    text "Zeile 8: Größe & Söhne GmbH" 16,135.75 168x17

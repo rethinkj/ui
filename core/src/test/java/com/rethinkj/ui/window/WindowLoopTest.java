@@ -38,7 +38,7 @@ class WindowLoopTest {
   void aClickOnTheSwitchTogglesItAndTheLoopDrawsUntilTheKnobRests() {
     try (Window window = Window.open(TITLE, 200, 120)) {
       Desktop.settle();
-      App<Lights> app = new App<>(new Lights(), Examples::lights);
+      App<Lights> app = new App<>(new Lights(), Examples::switchAlone);
       List<Boolean> drawn = new ArrayList<>();
       AtomicReference<WindowLoop> loop = new AtomicReference<>();
       loop.set(new WindowLoop(window, app, (scene, width, height, scale) -> {
@@ -149,7 +149,7 @@ class WindowLoopTest {
   void anIdleLoopDrawsNothingAndStopsFromAnotherThread() throws InterruptedException {
     try (Window window = Window.open(TITLE, 200, 120)) {
       Desktop.settle();
-      App<Lights> app = new App<>(new Lights(), Examples::lights);
+      App<Lights> app = new App<>(new Lights(), Examples::switchAlone);
       AtomicInteger presents = new AtomicInteger();
       WindowLoop loop = new WindowLoop(window, app, (scene, w, h, s) -> presents.incrementAndGet());
       int[] seen = new int[2];
@@ -225,7 +225,7 @@ class WindowLoopTest {
   @Test
   void whatThePresenterThrowsComesOutOfRun() {
     try (Window window = Window.open(TITLE, 200, 120)) {
-      App<Lights> app = new App<>(new Lights(), Examples::lights);
+      App<Lights> app = new App<>(new Lights(), Examples::switchAlone);
       IllegalStateException thrown = new IllegalStateException("from the presenter");
       WindowLoop loop = new WindowLoop(window, app, (scene, w, h, s) -> {
         throw thrown;

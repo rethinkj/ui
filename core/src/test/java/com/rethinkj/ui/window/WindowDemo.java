@@ -188,7 +188,7 @@ public final class WindowDemo {
             .child(button("maximize", WindowPart.MAXIMIZE, BUTTON,
                 maximized ? restoreGlyph() : maximizeGlyph()))
             .child(button("close", WindowPart.CLOSE, CLOSE_BUTTON, closeGlyph()));
-    El body = Examples.lights(state.lights).grow(1);
+    El body = Examples.switchAlone(state.lights).grow(1);
     return col().wFull().hFull().fill(0xFF101014).child(bar).child(body);
   }
 

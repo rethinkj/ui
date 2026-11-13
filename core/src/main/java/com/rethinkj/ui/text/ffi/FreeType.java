@@ -53,6 +53,8 @@ public final class FreeType {
   public static final int LOAD_DEFAULT = 0;
   public static final int LOAD_NO_HINTING = 1 << 1;
   public static final int LOAD_NO_BITMAP = 1 << 3;
+  /** {@code FT_LOAD_FORCE_AUTOHINT}: FreeType's auto-hinter instead of the font's own hints. */
+  public static final int LOAD_FORCE_AUTOHINT = 1 << 5;
   /** {@code FT_LOAD_TARGET_LIGHT}: hinted vertically only, which keeps the advances. */
   public static final int LOAD_TARGET_LIGHT = 1 << 16;
 

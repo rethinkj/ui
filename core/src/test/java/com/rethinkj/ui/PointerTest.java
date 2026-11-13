@@ -323,7 +323,7 @@ class PointerTest {
 
   @Test
   void theTreeMarksTheElementAPressUnderThePointerWouldGoTo() {
-    App<Examples.Lights> app = new App<>(new Examples.Lights(), Examples::lights);
+    App<Examples.Lights> app = new App<>(new Examples.Lights(), Examples::switchAlone);
     app.resize(200, 120, 1);
     app.frame();
     app.pointerMove(100, 60); // on the knob, which has no handler of its own

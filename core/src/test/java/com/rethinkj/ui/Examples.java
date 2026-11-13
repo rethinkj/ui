@@ -5,6 +5,8 @@ import static com.rethinkj.ui.El.el;
 import static com.rethinkj.ui.El.row;
 
 import com.rethinkj.ui.motion.Spring;
+import com.rethinkj.ui.text.Font;
+import com.rethinkj.ui.text.TextRendering;
 import java.io.IOException;
 import java.util.Arrays;
 
@@ -21,12 +23,19 @@ public final class Examples {
     boolean list = args.length > 0 && args[0].equals("list");
     App<?> app =
         list ? new App<>(new Object(), s -> list()) : new App<>(new Lights(), Examples::lights);
+    app.textRendering(TextRendering.LINUX); // as the stored images
     if (!Script.handle(list ? Arrays.copyOfRange(args, 1, args.length) : args, app)) {
       System.err.println("There is no window yet. Run with --script <file> --out <folder>.");
     }
   }
 
-  /** Twenty rows in a rounded scroll area, more than fit into it. */
+  private static final String[] TABLES = {
+    "accounts", "addresses", "audit_log", "carts", "categories", "customers", "deliveries",
+    "discounts", "employees", "inventory", "invoices", "order_items", "orders", "payments",
+    "products", "refunds", "reviews", "sessions", "shipments", "suppliers"
+  };
+
+  /** Twenty tables of a database in a rounded scroll area, more than fit into it. */
   public static El list() {
     El list =
         col().key("list").role("list").scroll().grow(1).padding(8).gap(4).radius(12)
@@ -35,7 +44,7 @@ public final class Examples {
       list.child(
           row().key("row-" + i)
               .role("listitem")
-              .label("Row " + i)
+              .label(TABLES[i - 1])
               .h(28)
               .padding(0, 8)
               .gap(8)
@@ -44,7 +53,9 @@ public final class Examples {
               .fill(i % 2 == 0 ? 0xFF26262E : 0xFF2E2E38)
               .children(
                   el().size(14, 14).radius(7).fill(i % 3 == 0 ? 0xFF22C55E : 0xFF3B82F6),
-                  el().size(40 + i * 37 % 90, 6).radius(3).fill(0xFF8A8A99)));
+                  El.text(TABLES[i - 1]).fontSize(13).color(0xFFE4E4E7).grow(1),
+                  El.text(String.valueOf(i * 37 % 90 * 113)).font(Font.mono()).fontSize(12)
+                      .color(0xFF8A8A99)));
     }
     return col().wFull().hFull().padding(16).fill(0xFF101014).child(list);
   }
@@ -63,8 +74,35 @@ public final class Examples {
     return lightSwitch(on, null);
   }
 
-  /** The switch from rune's README, without its text label. */
+  /**
+   * The switch from rune's README with its label beside it, which brightens while the lights are
+   * on. The label is as wide for both texts, so that the switch stays where it is.
+   */
   static El lightSwitch(boolean on, Runnable onPress) {
+    return row().wFull()
+        .hFull()
+        .center()
+        .gap(12)
+        .fill(0xFF101014)
+        .children(
+            toggle(on, onPress),
+            El.text(on ? "Lights on" : "Lights off")
+                .key("label")
+                .w(72)
+                .color(on ? 0xFFF4F4F5 : 0xFFA1A1AA)
+                .motion(Spring.SNAP));
+  }
+
+  /** The switch as an app without its label, for tests that run without the text libraries. */
+  public static El switchAlone(Lights state) {
+    return switchAlone(state.on, () -> state.on = !state.on);
+  }
+
+  static El switchAlone(boolean on) {
+    return switchAlone(on, null);
+  }
+
+  private static El switchAlone(boolean on, Runnable onPress) {
     return col().wFull().hFull().center().gap(16).fill(0xFF101014).child(toggle(on, onPress));
   }
 

@@ -1,0 +1,20 @@
+el 0,0 480x104
+  el 0,0 480x104
+  el 0,0 163x100
+    text "parent fill" 8,8 147x14
+    text "#6B6B6B Kunde Müller" 8,24 147x15
+    text "#808080 Kunde Müller" 8,41 147x16
+    text "#999999 Kunde Müller" 8,59 147x15
+    text "#AAAAAA Kunde Müller" 8,76 147x16
+  el 160,0 163x100
+    text "a box behind" 168,8 147x14
+    text "#6B6B6B Kunde Müller" 168,24 147x15
+    text "#808080 Kunde Müller" 168,41 147x16
+    text "#999999 Kunde Müller" 168,59 147x15
+    text "#AAAAAA Kunde Müller" 168,76 147x16
+  el 320,0 163x100
+    text "textBackground" 328,8 147x14
+    text "#6B6B6B Kunde Müller" 328,24 147x15
+    text "#808080 Kunde Müller" 328,41 147x16
+    text "#999999 Kunde Müller" 328,59 147x15
+    text "#AAAAAA Kunde Müller" 328,76 147x16

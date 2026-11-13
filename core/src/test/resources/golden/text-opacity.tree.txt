@@ -1,0 +1,15 @@
+el 0,0 314x87
+  el 8,8 145x71
+    el 16,16 129x17
+      text "Opazität 1.0: Größe" 16,16 127x17
+    el 16,35 129x17
+      text "Opazität 0.6: Größe" 16,35 129x17
+    el 16,54 129x17
+      text "Opazität 0.3: Größe" 16,54 129x17
+  el 161,8 145x71
+    el 169,16 129x17
+      text "Opazität 1.0: Größe" 169,16 127x17
+    el 169,35 129x17
+      text "Opazität 0.6: Größe" 169,35 129x17
+    el 169,54 129x17
+      text "Opazität 0.3: Größe" 169,54 129x17

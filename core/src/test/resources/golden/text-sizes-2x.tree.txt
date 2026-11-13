@@ -1,0 +1,19 @@
+el 0,0 693x173
+  el 8,8 334x157
+    text "11  Kunde Müller, Köln: 1.234,56 € (AVATAR)" 16,16 318x14
+    text "12  Kunde Müller, Köln: 1.234,56 € (AVATAR)" 16,32 318x14
+    text "13  Kunde Müller, Köln: 1.234,56 € (AVATAR)" 16,48 318x16
+    text "14  Kunde Müller, Köln: 1.234,56 € (AVATAR)" 16,66 318x17
+    text "11  SELECT id FROM kunden; -- ÄÖÜ != 0" 16,85 318x14
+    text "12  SELECT id FROM kunden; -- ÄÖÜ != 0" 16,101 318x16
+    text "13  SELECT id FROM kunden; -- ÄÖÜ != 0" 16,119 318x17
+    text "14  SELECT id FROM kunden; -- ÄÖÜ != 0" 16,138 318x19
+  el 350,8 335x157
+    text "11  Kunde Müller, Köln: 1.234,56 € (AVATAR)" 358,16 319x14
+    text "12  Kunde Müller, Köln: 1.234,56 € (AVATAR)" 358,32 319x14
+    text "13  Kunde Müller, Köln: 1.234,56 € (AVATAR)" 358,48 319x16
+    text "14  Kunde Müller, Köln: 1.234,56 € (AVATAR)" 358,66 319x17
+    text "11  SELECT id FROM kunden; -- ÄÖÜ != 0" 358,85 319x14
+    text "12  SELECT id FROM kunden; -- ÄÖÜ != 0" 358,101 319x16
+    text "13  SELECT id FROM kunden; -- ÄÖÜ != 0" 358,119 319x17
+    text "14  SELECT id FROM kunden; -- ÄÖÜ != 0" 358,138 319x19
