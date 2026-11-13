@@ -1,0 +1,1 @@
+- An inactive window no longer blinks the caret of its focused text field, and when idle it presents nothing; once the window is active again the caret is back, turned on. The keyboard focus, the selection and the focus ring stay as they are. `App.windowActive(boolean)` tells an app, and `WindowLoop` calls it from the window's focus events.

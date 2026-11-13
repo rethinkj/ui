@@ -33,10 +33,10 @@ final class Maybe {
     return max(min(value, max), min);
   }
 
-  /** Pixels, or NaN for auto and for a percentage of a size that is not set. */
+  /** Pixels, or NaN for auto, fit-content and a percentage of a size that is not set. */
   static float resolve(Len len, float basis) {
     return switch (len.kind()) {
-      case AUTO -> Float.NaN;
+      case AUTO, FIT_CONTENT -> Float.NaN;
       case PX -> len.value();
       case PERCENT -> basis * len.value();
     };

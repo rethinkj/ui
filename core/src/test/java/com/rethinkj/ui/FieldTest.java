@@ -12,6 +12,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.rethinkj.ui.Fields.Model;
@@ -580,6 +581,38 @@ class FieldTest {
     key(app, "Tab");
     assertNull(field(app).text().caret());
     assertEquals(Double.POSITIVE_INFINITY, app.nextChange());
+  }
+
+  @Test
+  void anInactiveWindowShowsNoCaretAndDrawsNothingUntilItIsActiveAgain() {
+    App<Model> app = start("abc");
+    focus(app);
+    key(app, "End");
+    key(app, "ArrowLeft", SHIFT); // a selection, which stays
+    String before = app.tree().dump();
+    assertTrue(before.contains("focused caret 2 anchor 3"), before);
+    assertNotNull(field(app).text().caret());
+    assertEquals(1, field(app).text().selection().size());
+
+    app.windowActive(false);
+    app.advance(0.2);
+    assertTrue(app.frame(), "the caret goes off at once");
+    assertNull(field(app).text().caret());
+    assertEquals(1, field(app).text().selection().size(), "the selection stays");
+    assertSame(field(app), app.focused(), "and so does the focus");
+    assertEquals(Double.POSITIVE_INFINITY, app.nextChange(), "nothing blinks");
+    for (int i = 0; i < 10; i++) {
+      app.advance(0.3);
+      assertFalse(app.frame(), "an idle inactive app draws nothing");
+      assertNull(field(app).text().caret());
+    }
+
+    app.windowActive(true);
+    app.advance(0.1); // 3.3 seconds: off in the old rhythm, but the caret starts afresh
+    assertTrue(app.frame());
+    assertNotNull(field(app).text().caret(), "on at once when the window is active again");
+    assertEquals(app.time() + App.BLINK, app.nextChange());
+    assertEquals(before, app.tree().dump(), "focus, caret and selection as they were");
   }
 
   // What the window needs

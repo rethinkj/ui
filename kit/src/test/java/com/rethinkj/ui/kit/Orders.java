@@ -114,7 +114,6 @@ final class Orders {
   App<Orders> app() {
     App<Orders> app = new App<>(this, Orders::view);
     app.textRendering(TextRendering.LINUX);
-    app.focusRing(theme.border().focus());
     return app;
   }
 }

@@ -1,0 +1,976 @@
+el 0,0 900x520
+  el window=drag 0,0 900x32
+    el 10,10 12x12
+    text "Orders" 30,8 43x16
+    el 73,16 689x0
+    el role=button label="Minimize" window=minimize 762,0 46x32
+      el 780,16 10x1
+    el role=button label="Maximize" window=maximize 808,0 46x32
+      el 826,11 10x10
+    el role=button label="Close" window=close 854,0 46x32
+      el 872,11 10x10
+        el 872,11 2x2
+        el 880,11 2x2
+        el 873,12 2x2
+        el 879,12 2x2
+        el 874,13 2x2
+        el 878,13 2x2
+        el 875,14 2x2
+        el 877,14 2x2
+        el 876,15 2x2
+        el 876,15 2x2
+        el 877,16 2x2
+        el 875,16 2x2
+        el 878,17 2x2
+        el 874,17 2x2
+        el 879,18 2x2
+        el 873,18 2x2
+        el 880,19 2x2
+        el 872,19 2x2
+  el 0,32 900x488
+    el 12,44 876x24
+      text #filter role=textbox label="Filter" "" 12,44 280x24
+      text "customer, email, city, country, product, status, note" 300,48 319x16
+    el #orders role=grid label="Orders" 12,76 876x408 thumb-x 14,476 515.43x6 focused
+      el #content 12,76 1482x408
+        el #header 12,76 1482x22
+          el #column-0 role=columnheader label="id" 12,76 71x22
+            text "▼" 53,79 13x16
+            text "id" 68,79 11x16
+          el 83,76 1x22
+          el #column-1 role=columnheader label="customer" 84,76 139x22
+            text "customer" 88,79 58x16
+          el 223,76 1x22
+          el #column-2 role=columnheader label="email" 224,76 279x22
+            text "email" 228,79 32x16
+          el 503,76 1x22
+          el #column-3 role=columnheader label="city" 504,76 89x22
+            text "city" 508,79 22x16
+          el 593,76 1x22
+          el #column-4 role=columnheader label="country" 594,76 69x22
+            text "country" 598,79 47x16
+          el 663,76 1x22
+          el #column-5 role=columnheader label="product" 664,76 99x22
+            text "product" 668,79 48x16
+          el 763,76 1x22
+          el #column-6 role=columnheader label="quantity" 764,76 79x22
+            text "quantity" 789,79 50x16
+          el 843,76 1x22
+          el #column-7 role=columnheader label="amount" 844,76 99x22
+            text "amount" 893,79 46x16
+          el 943,76 1x22
+          el #column-8 role=columnheader label="created_at" 944,76 139x22
+            text "created_at" 948,79 64x16
+          el 1083,76 1x22
+          el #column-9 role=columnheader label="shipped_at" 1084,76 139x22
+            text "shipped_at" 1088,79 67x16
+          el 1223,76 1x22
+          el #column-10 role=columnheader label="status" 1224,76 89x22
+            text "status" 1228,79 37x16
+          el 1313,76 1x22
+          el #column-11 role=columnheader label="note" 1314,76 179x22
+            text "note" 1318,79 28x16
+          el 1493,76 1x22
+          el #resize-0 role=separator label="Resize id" 81,76 6x22
+          el #resize-1 role=separator label="Resize customer" 221,76 6x22
+          el #resize-2 role=separator label="Resize email" 501,76 6x22 hovered
+          el #resize-3 role=separator label="Resize city" 591,76 6x22
+          el #resize-4 role=separator label="Resize country" 661,76 6x22
+          el #resize-5 role=separator label="Resize product" 761,76 6x22
+          el #resize-6 role=separator label="Resize quantity" 841,76 6x22
+          el #resize-7 role=separator label="Resize amount" 941,76 6x22
+          el #resize-8 role=separator label="Resize created_at" 1081,76 6x22
+          el #resize-9 role=separator label="Resize shipped_at" 1221,76 6x22
+          el #resize-10 role=separator label="Resize status" 1311,76 6x22
+          el #resize-11 role=separator label="Resize note" 1491,76 6x22
+        el 12,98 1482x1
+        el #rows 12,99 1482x385 rows 16-39/1000000 scroll 0,418 thumb-y 880,101.01 6x24
+          el #row-16 role=row 12,33 1482x22
+            el 12,33 71x22
+              text "999984" 37,36 42x16
+            el 83,33 1x22
+            el 84,33 139x22
+              text "Margaret Knuth" 88,36 97x16
+            el 223,33 1x22
+            el 224,33 279x22
+              text "margaret.knuth@shop.example" 228,36 193x16
+            el 503,33 1x22
+            el 504,33 89x22
+              text "Madrid" 508,36 43x16
+            el 593,33 1x22
+            el 594,33 69x22
+              text "ES" 598,36 16x16
+            el 663,33 1x22
+            el 664,33 99x22
+              text "Dock" 668,36 31x16
+            el 763,33 1x22
+            el 764,33 79x22
+              text "9" 832,36 7x16
+            el 843,33 1x22
+            el 844,33 99x22
+              text "1611.00" 890,36 49x16
+            el 943,33 1x22
+            el 944,33 139x22
+              text "2026-12-06 23:25" 948,36 112x16
+            el 1083,33 1x22
+            el 1084,33 139x22
+              text "NULL" 1088,36 28x16
+            el 1223,33 1x22
+            el 1224,33 89x22
+              text "pending" 1228,36 51x16
+            el 1313,33 1x22
+            el 1314,33 179x22
+              text "NULL" 1318,36 34x16
+            el 1493,33 1x22
+          el #row-17 role=row 12,55 1482x22
+            el 12,55 71x22
+              text "999983" 37,58 42x16
+            el 83,55 1x22
+            el 84,55 139x22
+              text "Linus Knuth" 88,58 74x16
+            el 223,55 1x22
+            el 224,55 279x22
+              text "linus.knuth@shop.example" 228,58 167x16
+            el 503,55 1x22
+            el 504,55 89x22
+              text "Madrid" 508,58 43x16
+            el 593,55 1x22
+            el 594,55 69x22
+              text "ES" 598,58 16x16
+            el 663,55 1x22
+            el 664,55 99x22
+              text "Laptop" 668,58 42x16
+            el 763,55 1x22
+            el 764,55 79x22
+              text "5" 832,58 7x16
+            el 843,55 1x22
+            el 844,55 99x22
+              text "6495.00" 890,58 49x16
+            el 943,55 1x22
+            el 944,55 139x22
+              text "2026-12-06 23:24" 948,58 112x16
+            el 1083,55 1x22
+            el 1084,55 139x22
+              text "2026-12-09 13:02" 1088,58 112x16
+            el 1223,55 1x22
+            el 1224,55 89x22
+              text "shipped" 1228,58 50x16
+            el 1313,55 1x22
+            el 1314,55 179x22
+              text "Call before delivery" 1318,58 120x16
+            el 1493,55 1x22
+          el #row-18 role=row 12,77 1482x22
+            el 12,77 71x22
+              text "999982" 37,80 42x16
+            el 83,77 1x22
+            el 84,77 139x22
+              text "Grace Knuth" 88,80 78x16
+            el 223,77 1x22
+            el 224,77 279x22
+              text "grace.knuth@shop.example" 228,80 173x16
+            el 503,77 1x22
+            el 504,77 89x22
+              text "Madrid" 508,80 43x16
+            el 593,77 1x22
+            el 594,77 69x22
+              text "ES" 598,80 16x16
+            el 663,77 1x22
+            el 664,77 99x22
+              text "Cable" 668,80 35x16
+            el 763,77 1x22
+            el 764,77 79x22
+              text "1" 832,80 7x16
+            el 843,77 1x22
+            el 844,77 99x22
+              text "9.90" 911,80 28x16
+            el 943,77 1x22
+            el 944,77 139x22
+              text "2026-12-06 23:24" 948,80 112x16
+            el 1083,77 1x22
+            el 1084,77 139x22
+              text "NULL" 1088,80 28x16
+            el 1223,77 1x22
+            el 1224,77 89x22
+              text "refunded" 1228,80 58x16
+            el 1313,77 1x22
+            el 1314,77 179x22
+              text "NULL" 1318,80 34x16
+            el 1493,77 1x22
+          el #row-19 role=row 12,99 1482x22
+            el 12,99 71x22
+              text "999981" 37,102 42x16
+            el 83,99 1x22
+            el 84,99 139x22
+              text "Ada Knuth" 88,102 65x16
+            el 223,99 1x22
+            el 224,99 279x22
+              text "ada.knuth@shop.example" 228,102 160x16
+            el 503,99 1x22
+            el 504,99 89x22
+              text "Madrid" 508,102 43x16
+            el 593,99 1x22
+            el 594,99 69x22
+              text "ES" 598,102 16x16
+            el 663,99 1x22
+            el 664,99 99x22
+              text "Headset" 668,102 52x16
+            el 763,99 1x22
+            el 764,99 79x22
+              text "6" 832,102 7x16
+            el 843,99 1x22
+            el 844,99 99x22
+              text "534.00" 897,102 42x16
+            el 943,99 1x22
+            el 944,99 139x22
+              text "2026-12-06 23:23" 948,102 112x16
+            el 1083,99 1x22
+            el 1084,99 139x22
+              text "NULL" 1088,102 28x16
+            el 1223,99 1x22
+            el 1224,99 89x22
+              text "paid" 1228,102 26x16
+            el 1313,99 1x22
+            el 1314,99 179x22
+              text "Gift wrap" 1318,102 56x16
+            el 1493,99 1x22
+          el #row-20 role=row 12,121 1482x22
+            el 12,121 71x22
+              text "999980" 37,124 42x16
+            el 83,121 1x22
+            el 84,121 139x22
+              text "Radia Allen" 88,124 68x16
+            el 223,121 1x22
+            el 224,121 279x22
+              text "radia.allen@shop.example" 228,124 162x16
+            el 503,121 1x22
+            el 504,121 89x22
+              text "Vienna" 508,124 43x16
+            el 593,121 1x22
+            el 594,121 69x22
+              text "AT" 598,124 16x16
+            el 663,121 1x22
+            el 664,121 99x22
+              text "Monitor" 668,124 48x16
+            el 763,121 1x22
+            el 764,121 79x22
+              text "2" 832,124 7x16
+            el 843,121 1x22
+            el 844,121 99x22
+              text "458.00" 897,124 42x16
+            el 943,121 1x22
+            el 944,121 139x22
+              text "2026-12-06 23:23" 948,124 112x16
+            el 1083,121 1x22
+            el 1084,121 139x22
+              text "NULL" 1088,124 28x16
+            el 1223,121 1x22
+            el 1224,121 89x22
+              text "pending" 1228,124 51x16
+            el 1313,121 1x22
+            el 1314,121 179x22
+              text "NULL" 1318,124 34x16
+            el 1493,121 1x22
+          el #row-21 role=row 12,143 1482x22
+            el 12,143 71x22
+              text "999979" 37,146 42x16
+            el 83,143 1x22
+            el 84,143 139x22
+              text "Donald Allen" 88,146 78x16
+            el 223,143 1x22
+            el 224,143 279x22
+              text "donald.allen@shop.example" 228,146 174x16
+            el 503,143 1x22
+            el 504,143 89x22
+              text "Vienna" 508,146 43x16
+            el 593,143 1x22
+            el 594,143 69x22
+              text "AT" 598,146 16x16
+            el 663,143 1x22
+            el 664,143 99x22
+              text "Webcam" 668,146 54x16
+            el 763,143 1x22
+            el 764,143 79x22
+              text "7" 832,146 7x16
+            el 843,143 1x22
+            el 844,143 99x22
+              text "483.00" 897,146 42x16
+            el 943,143 1x22
+            el 944,143 139x22
+              text "2026-12-06 23:22" 948,146 112x16
+            el 1083,143 1x22
+            el 1084,143 139x22
+              text "2026-12-08 13:04" 1088,146 112x16
+            el 1223,143 1x22
+            el 1224,143 89x22
+              text "shipped" 1228,146 50x16
+            el 1313,143 1x22
+            el 1314,143 179x22
+              text "NULL" 1318,146 34x16
+            el 1493,143 1x22
+          el #row-22 role=row 12,165 1482x22
+            el 12,165 71x22
+              text "999978" 37,168 42x16
+            el 83,165 1x22
+            el 84,165 139x22
+              text "Frances Allen" 88,168 84x16
+            el 223,165 1x22
+            el 224,165 279x22
+              text "frances.allen@shop.example" 228,168 179x16
+            el 503,165 1x22
+            el 504,165 89x22
+              text "Vienna" 508,168 43x16
+            el 593,165 1x22
+            el 594,165 69x22
+              text "AT" 598,168 16x16
+            el 663,165 1x22
+            el 664,165 99x22
+              text "Mouse" 668,168 43x16
+            el 763,165 1x22
+            el 764,165 79x22
+              text "3" 832,168 7x16
+            el 843,165 1x22
+            el 844,165 99x22
+              text "59.70" 904,168 35x16
+            el 943,165 1x22
+            el 944,165 139x22
+              text "2026-12-06 23:22" 948,168 112x16
+            el 1083,165 1x22
+            el 1084,165 139x22
+              text "NULL" 1088,168 28x16
+            el 1223,165 1x22
+            el 1224,165 89x22
+              text "refunded" 1228,168 58x16
+            el 1313,165 1x22
+            el 1314,165 179x22
+              text "Leave at the door" 1318,168 109x16
+            el 1493,165 1x22
+          el #row-23 role=row 12,187 1482x22
+            el 12,187 71x22
+              text "999977" 37,190 42x16
+            el 83,187 1x22
+            el 84,187 139x22
+              text "Edsger Allen" 88,190 79x16
+            el 223,187 1x22
+            el 224,187 279x22
+              text "edsger.allen@shop.example" 228,190 175x16
+            el 503,187 1x22
+            el 504,187 89x22
+              text "Vienna" 508,190 43x16
+            el 593,187 1x22
+            el 594,187 69x22
+              text "AT" 598,190 16x16
+            el 663,187 1x22
+            el 664,187 99x22
+              text "Keyboard" 668,190 58x16
+            el 763,187 1x22
+            el 764,187 79x22
+              text "8" 832,190 7x16
+            el 843,187 1x22
+            el 844,187 99x22
+              text "399.20" 897,190 42x16
+            el 943,187 1x22
+            el 944,187 139x22
+              text "2026-12-06 23:21" 948,190 112x16
+            el 1083,187 1x22
+            el 1084,187 139x22
+              text "NULL" 1088,190 28x16
+            el 1223,187 1x22
+            el 1224,187 89x22
+              text "paid" 1228,190 26x16
+            el 1313,187 1x22
+            el 1314,187 179x22
+              text "NULL" 1318,190 34x16
+            el 1493,187 1x22
+          el #row-24 role=row 12,209 1482x22
+            el 12,209 71x22
+              text "999976" 37,212 42x16
+            el 83,209 1x22
+            el 84,209 139x22
+              text "Barbara Allen" 88,212 83x16
+            el 223,209 1x22
+            el 224,209 279x22
+              text "barbara.allen@shop.example" 228,212 179x16
+            el 503,209 1x22
+            el 504,209 89x22
+              text "Oslo" 508,212 28x16
+            el 593,209 1x22
+            el 594,209 69x22
+              text "NO" 598,212 20x16
+            el 663,209 1x22
+            el 664,209 99x22
+              text "Dock" 668,212 31x16
+            el 763,209 1x22
+            el 764,209 79x22
+              text "4" 832,212 7x16
+            el 843,209 1x22
+            el 844,209 99x22
+              text "716.00" 897,212 42x16
+            el 943,209 1x22
+            el 944,209 139x22
+              text "2026-12-06 23:21" 948,212 112x16
+            el 1083,209 1x22
+            el 1084,209 139x22
+              text "NULL" 1088,212 28x16
+            el 1223,209 1x22
+            el 1224,209 89x22
+              text "pending" 1228,212 51x16
+            el 1313,209 1x22
+            el 1314,209 179x22
+              text "NULL" 1318,212 34x16
+            el 1493,209 1x22
+          el #row-25 role=row 12,231 1482x22
+            el 12,231 71x22
+              text "999975" 37,234 42x16
+            el 83,231 1x22
+            el 84,231 139x22
+              text "Ken Allen" 88,234 59x16
+            el 223,231 1x22
+            el 224,231 279x22
+              text "ken.allen@shop.example" 228,234 155x16
+            el 503,231 1x22
+            el 504,231 89x22
+              text "Oslo" 508,234 28x16
+            el 593,231 1x22
+            el 594,231 69x22
+              text "NO" 598,234 20x16
+            el 663,231 1x22
+            el 664,231 99x22
+              text "Laptop" 668,234 42x16
+            el 763,231 1x22
+            el 764,231 79x22
+              text "9" 832,234 7x16
+            el 843,231 1x22
+            el 844,231 99x22
+              text "11691.00" 883,234 56x16
+            el 943,231 1x22
+            el 944,231 139x22
+              text "2026-12-06 23:20" 948,234 112x16
+            el 1083,231 1x22
+            el 1084,231 139x22
+              text "2026-12-07 13:06" 1088,234 112x16
+            el 1223,231 1x22
+            el 1224,231 89x22
+              text "shipped" 1228,234 50x16
+            el 1313,231 1x22
+            el 1314,231 179x22
+              text "Call before delivery" 1318,234 120x16
+            el 1493,231 1x22
+          el #row-26 role=row 12,253 1482x22
+            el 12,253 71x22
+              text "999974" 37,256 42x16
+            el 83,253 1x22
+            el 84,253 139x22
+              text "Margaret Allen" 88,256 91x16
+            el 223,253 1x22
+            el 224,253 279x22
+              text "margaret.allen@shop.example" 228,256 187x16
+            el 503,253 1x22
+            el 504,253 89x22
+              text "Oslo" 508,256 28x16
+            el 593,253 1x22
+            el 594,253 69x22
+              text "NO" 598,256 20x16
+            el 663,253 1x22
+            el 664,253 99x22
+              text "Cable" 668,256 35x16
+            el 763,253 1x22
+            el 764,253 79x22
+              text "5" 832,256 7x16
+            el 843,253 1x22
+            el 844,253 99x22
+              text "49.50" 904,256 35x16
+            el 943,253 1x22
+            el 944,253 139x22
+              text "2026-12-06 23:20" 948,256 112x16
+            el 1083,253 1x22
+            el 1084,253 139x22
+              text "NULL" 1088,256 28x16
+            el 1223,253 1x22
+            el 1224,253 89x22
+              text "refunded" 1228,256 58x16
+            el 1313,253 1x22
+            el 1314,253 179x22
+              text "NULL" 1318,256 34x16
+            el 1493,253 1x22
+          el #row-27 role=row 12,275 1482x22
+            el 12,275 71x22
+              text "999973" 37,278 42x16
+            el 83,275 1x22
+            el 84,275 139x22
+              text "Linus Allen" 88,278 68x16
+            el 223,275 1x22
+            el 224,275 279x22
+              text "linus.allen@shop.example" 228,278 161x16
+            el 503,275 1x22
+            el 504,275 89x22
+              text "Oslo" 508,278 28x16
+            el 593,275 1x22
+            el 594,275 69x22
+              text "NO" 598,278 20x16
+            el 663,275 1x22
+            el 664,275 99x22
+              text "Headset" 668,278 52x16
+            el 763,275 1x22
+            el 764,275 79x22
+              text "1" 832,278 7x16
+            el 843,275 1x22
+            el 844,275 99x22
+              text "89.00" 904,278 35x16
+            el 943,275 1x22
+            el 944,275 139x22
+              text "2026-12-06 23:19" 948,278 112x16
+            el 1083,275 1x22
+            el 1084,275 139x22
+              text "NULL" 1088,278 28x16
+            el 1223,275 1x22
+            el 1224,275 89x22
+              text "paid" 1228,278 26x16
+            el 1313,275 1x22
+            el 1314,275 179x22
+              text "Gift wrap" 1318,278 56x16
+            el 1493,275 1x22
+          el #row-28 role=row 12,297 1482x22
+            el 12,297 71x22
+              text "999972" 37,300 42x16
+            el 83,297 1x22
+            el 84,297 139x22
+              text "Grace Allen" 88,300 72x16
+            el 223,297 1x22
+            el 224,297 279x22
+              text "grace.allen@shop.example" 228,300 167x16
+            el 503,297 1x22
+            el 504,297 89x22
+              text "Lisbon" 508,300 41x16
+            el 593,297 1x22
+            el 594,297 69x22
+              text "PT" 598,300 16x16
+            el 663,297 1x22
+            el 664,297 99x22
+              text "Monitor" 668,300 48x16
+            el 763,297 1x22
+            el 764,297 79x22
+              text "6" 832,300 7x16
+            el 843,297 1x22
+            el 844,297 99x22
+              text "1374.00" 890,300 49x16
+            el 943,297 1x22
+            el 944,297 139x22
+              text "2026-12-06 23:19" 948,300 112x16
+            el 1083,297 1x22
+            el 1084,297 139x22
+              text "NULL" 1088,300 28x16
+            el 1223,297 1x22
+            el 1224,297 89x22
+              text "pending" 1228,300 51x16
+            el 1313,297 1x22
+            el 1314,297 179x22
+              text "NULL" 1318,300 34x16
+            el 1493,297 1x22
+          el #row-29 role=row 12,319 1482x22
+            el 12,319 71x22
+              text "999971" 37,322 42x16
+            el 83,319 1x22
+            el 84,319 139x22
+              text "Ada Allen" 88,322 59x16
+            el 223,319 1x22
+            el 224,319 279x22
+              text "ada.allen@shop.example" 228,322 154x16
+            el 503,319 1x22
+            el 504,319 89x22
+              text "Lisbon" 508,322 41x16
+            el 593,319 1x22
+            el 594,319 69x22
+              text "PT" 598,322 16x16
+            el 663,319 1x22
+            el 664,319 99x22
+              text "Webcam" 668,322 54x16
+            el 763,319 1x22
+            el 764,319 79x22
+              text "2" 832,322 7x16
+            el 843,319 1x22
+            el 844,319 99x22
+              text "138.00" 897,322 42x16
+            el 943,319 1x22
+            el 944,319 139x22
+              text "2026-12-06 23:18" 948,322 112x16
+            el 1083,319 1x22
+            el 1084,319 139x22
+              text "2026-12-09 13:08" 1088,322 112x16
+            el 1223,319 1x22
+            el 1224,319 89x22
+              text "shipped" 1228,322 50x16
+            el 1313,319 1x22
+            el 1314,319 179x22
+              text "NULL" 1318,322 34x16
+            el 1493,319 1x22
+          el #row-30 role=row 12,341 1482x22
+            el 12,341 71x22
+              text "999970" 37,344 42x16
+            el 83,341 1x22
+            el 84,341 139x22
+              text "Radia Dijkstra" 88,344 82x16
+            el 223,341 1x22
+            el 224,341 279x22
+              text "radia.dijkstra@shop.example" 228,344 177x16
+            el 503,341 1x22
+            el 504,341 89x22
+              text "Lisbon" 508,344 41x16
+            el 593,341 1x22
+            el 594,341 69x22
+              text "PT" 598,344 16x16
+            el 663,341 1x22
+            el 664,341 99x22
+              text "Mouse" 668,344 43x16
+            el 763,341 1x22
+            el 764,341 79x22
+              text "7" 832,344 7x16
+            el 843,341 1x22
+            el 844,341 99x22
+              text "139.30" 897,344 42x16
+            el 943,341 1x22
+            el 944,341 139x22
+              text "2026-12-06 23:18" 948,344 112x16
+            el 1083,341 1x22
+            el 1084,341 139x22
+              text "NULL" 1088,344 28x16
+            el 1223,341 1x22
+            el 1224,341 89x22
+              text "refunded" 1228,344 58x16
+            el 1313,341 1x22
+            el 1314,341 179x22
+              text "Leave at the door" 1318,344 109x16
+            el 1493,341 1x22
+          el #row-31 role=row 12,363 1482x22
+            el 12,363 71x22
+              text "999969" 37,366 42x16
+            el 83,363 1x22
+            el 84,363 139x22
+              text "Donald Dijkstra" 88,366 92x16
+            el 223,363 1x22
+            el 224,363 279x22
+              text "donald.dijkstra@shop.example" 228,366 189x16
+            el 503,363 1x22
+            el 504,363 89x22
+              text "Lisbon" 508,366 41x16
+            el 593,363 1x22
+            el 594,363 69x22
+              text "PT" 598,366 16x16
+            el 663,363 1x22
+            el 664,363 99x22
+              text "Keyboard" 668,366 58x16
+            el 763,363 1x22
+            el 764,363 79x22
+              text "3" 832,366 7x16
+            el 843,363 1x22
+            el 844,363 99x22
+              text "149.70" 897,366 42x16
+            el 943,363 1x22
+            el 944,363 139x22
+              text "2026-12-06 23:17" 948,366 112x16
+            el 1083,363 1x22
+            el 1084,363 139x22
+              text "NULL" 1088,366 28x16
+            el 1223,363 1x22
+            el 1224,363 89x22
+              text "paid" 1228,366 26x16
+            el 1313,363 1x22
+            el 1314,363 179x22
+              text "NULL" 1318,366 34x16
+            el 1493,363 1x22
+          el #row-32 role=row 12,385 1482x22
+            el 12,385 71x22
+              text "999968" 37,388 42x16
+            el 83,385 1x22
+            el 84,385 139x22
+              text "Frances Dijkstra" 88,388 98x16
+            el 223,385 1x22
+            el 224,385 279x22
+              text "frances.dijkstra@shop.example" 228,388 194x16
+            el 503,385 1x22
+            el 504,385 89x22
+              text "Paris" 508,388 30x16
+            el 593,385 1x22
+            el 594,385 69x22
+              text "FR" 598,388 16x16
+            el 663,385 1x22
+            el 664,385 99x22
+              text "Dock" 668,388 31x16
+            el 763,385 1x22
+            el 764,385 79x22
+              text "8" 832,388 7x16
+            el 843,385 1x22
+            el 844,385 99x22
+              text "1432.00" 890,388 49x16
+            el 943,385 1x22
+            el 944,385 139x22
+              text "2026-12-06 23:17" 948,388 112x16
+            el 1083,385 1x22
+            el 1084,385 139x22
+              text "NULL" 1088,388 28x16
+            el 1223,385 1x22
+            el 1224,385 89x22
+              text "pending" 1228,388 51x16
+            el 1313,385 1x22
+            el 1314,385 179x22
+              text "NULL" 1318,388 34x16
+            el 1493,385 1x22
+          el #row-33 role=row 12,407 1482x22
+            el 12,407 71x22
+              text "999967" 37,410 42x16
+            el 83,407 1x22
+            el 84,407 139x22
+              text "Edsger Dijkstra" 88,410 93x16
+            el 223,407 1x22
+            el 224,407 279x22
+              text "edsger.dijkstra@shop.example" 228,410 190x16
+            el 503,407 1x22
+            el 504,407 89x22
+              text "Paris" 508,410 30x16
+            el 593,407 1x22
+            el 594,407 69x22
+              text "FR" 598,410 16x16
+            el 663,407 1x22
+            el 664,407 99x22
+              text "Laptop" 668,410 42x16
+            el 763,407 1x22
+            el 764,407 79x22
+              text "4" 832,410 7x16
+            el 843,407 1x22
+            el 844,407 99x22
+              text "5196.00" 890,410 49x16
+            el 943,407 1x22
+            el 944,407 139x22
+              text "2026-12-06 23:16" 948,410 112x16
+            el 1083,407 1x22
+            el 1084,407 139x22
+              text "2026-12-08 13:10" 1088,410 112x16
+            el 1223,407 1x22
+            el 1224,407 89x22
+              text "shipped" 1228,410 50x16
+            el 1313,407 1x22
+            el 1314,407 179x22
+              text "Call before delivery" 1318,410 120x16
+            el 1493,407 1x22
+          el #row-34 role=row 12,429 1482x22
+            el 12,429 71x22
+              text "999966" 37,432 42x16
+            el 83,429 1x22
+            el 84,429 139x22
+              text "Barbara Dijkstra" 88,432 97x16
+            el 223,429 1x22
+            el 224,429 279x22
+              text "barbara.dijkstra@shop.example" 228,432 194x16
+            el 503,429 1x22
+            el 504,429 89x22
+              text "Paris" 508,432 30x16
+            el 593,429 1x22
+            el 594,429 69x22
+              text "FR" 598,432 16x16
+            el 663,429 1x22
+            el 664,429 99x22
+              text "Cable" 668,432 35x16
+            el 763,429 1x22
+            el 764,429 79x22
+              text "9" 832,432 7x16
+            el 843,429 1x22
+            el 844,429 99x22
+              text "89.10" 904,432 35x16
+            el 943,429 1x22
+            el 944,429 139x22
+              text "2026-12-06 23:16" 948,432 112x16
+            el 1083,429 1x22
+            el 1084,429 139x22
+              text "NULL" 1088,432 28x16
+            el 1223,429 1x22
+            el 1224,429 89x22
+              text "refunded" 1228,432 58x16
+            el 1313,429 1x22
+            el 1314,429 179x22
+              text "NULL" 1318,432 34x16
+            el 1493,429 1x22
+          el #row-35 role=row 12,451 1482x22
+            el 12,451 71x22
+              text "999965" 37,454 42x16
+            el 83,451 1x22
+            el 84,451 139x22
+              text "Ken Dijkstra" 88,454 73x16
+            el 223,451 1x22
+            el 224,451 279x22
+              text "ken.dijkstra@shop.example" 228,454 170x16
+            el 503,451 1x22
+            el 504,451 89x22
+              text "Paris" 508,454 30x16
+            el 593,451 1x22
+            el 594,451 69x22
+              text "FR" 598,454 16x16
+            el 663,451 1x22
+            el 664,451 99x22
+              text "Headset" 668,454 52x16
+            el 763,451 1x22
+            el 764,451 79x22
+              text "5" 832,454 7x16
+            el 843,451 1x22
+            el 844,451 99x22
+              text "445.00" 897,454 42x16
+            el 943,451 1x22
+            el 944,451 139x22
+              text "2026-12-06 23:15" 948,454 112x16
+            el 1083,451 1x22
+            el 1084,451 139x22
+              text "NULL" 1088,454 28x16
+            el 1223,451 1x22
+            el 1224,451 89x22
+              text "paid" 1228,454 26x16
+            el 1313,451 1x22
+            el 1314,451 179x22
+              text "Gift wrap" 1318,454 56x16
+            el 1493,451 1x22
+          el #row-36 role=row 12,473 1482x22
+            el 12,473 71x22
+              text "999964" 37,476 42x16
+            el 83,473 1x22
+            el 84,473 139x22
+              text "Margaret Dijkstra" 88,476 105x16
+            el 223,473 1x22
+            el 224,473 279x22
+              text "margaret.dijkstra@shop.example" 228,476 202x16
+            el 503,473 1x22
+            el 504,473 89x22
+              text "Berlin" 508,476 36x16
+            el 593,473 1x22
+            el 594,473 69x22
+              text "DE" 598,476 17x16
+            el 663,473 1x22
+            el 664,473 99x22
+              text "Monitor" 668,476 48x16
+            el 763,473 1x22
+            el 764,473 79x22
+              text "1" 832,476 7x16
+            el 843,473 1x22
+            el 844,473 99x22
+              text "229.00" 897,476 42x16
+            el 943,473 1x22
+            el 944,473 139x22
+              text "2026-12-06 23:15" 948,476 112x16
+            el 1083,473 1x22
+            el 1084,473 139x22
+              text "NULL" 1088,476 28x16
+            el 1223,473 1x22
+            el 1224,473 89x22
+              text "pending" 1228,476 51x16
+            el 1313,473 1x22
+            el 1314,473 179x22
+              text "NULL" 1318,476 34x16
+            el 1493,473 1x22
+          el #row-37 role=row 12,495 1482x22
+            el 12,495 71x22
+              text "999963" 37,498 42x16
+            el 83,495 1x22
+            el 84,495 139x22
+              text "Linus Dijkstra" 88,498 82x16
+            el 223,495 1x22
+            el 224,495 279x22
+              text "linus.dijkstra@shop.example" 228,498 176x16
+            el 503,495 1x22
+            el 504,495 89x22
+              text "Berlin" 508,498 36x16
+            el 593,495 1x22
+            el 594,495 69x22
+              text "DE" 598,498 17x16
+            el 663,495 1x22
+            el 664,495 99x22
+              text "Webcam" 668,498 54x16
+            el 763,495 1x22
+            el 764,495 79x22
+              text "6" 832,498 7x16
+            el 843,495 1x22
+            el 844,495 99x22
+              text "414.00" 897,498 42x16
+            el 943,495 1x22
+            el 944,495 139x22
+              text "2026-12-06 23:14" 948,498 112x16
+            el 1083,495 1x22
+            el 1084,495 139x22
+              text "2026-12-07 13:12" 1088,498 112x16
+            el 1223,495 1x22
+            el 1224,495 89x22
+              text "shipped" 1228,498 50x16
+            el 1313,495 1x22
+            el 1314,495 179x22
+              text "NULL" 1318,498 34x16
+            el 1493,495 1x22
+          el #row-38 role=row 12,517 1482x22
+            el 12,517 71x22
+              text "999962" 37,520 42x16
+            el 83,517 1x22
+            el 84,517 139x22
+              text "Grace Dijkstra" 88,520 86x16
+            el 223,517 1x22
+            el 224,517 279x22
+              text "grace.dijkstra@shop.example" 228,520 182x16
+            el 503,517 1x22
+            el 504,517 89x22
+              text "Berlin" 508,520 36x16
+            el 593,517 1x22
+            el 594,517 69x22
+              text "DE" 598,520 17x16
+            el 663,517 1x22
+            el 664,517 99x22
+              text "Mouse" 668,520 43x16
+            el 763,517 1x22
+            el 764,517 79x22
+              text "2" 832,520 7x16
+            el 843,517 1x22
+            el 844,517 99x22
+              text "39.80" 904,520 35x16
+            el 943,517 1x22
+            el 944,517 139x22
+              text "2026-12-06 23:14" 948,520 112x16
+            el 1083,517 1x22
+            el 1084,517 139x22
+              text "NULL" 1088,520 28x16
+            el 1223,517 1x22
+            el 1224,517 89x22
+              text "refunded" 1228,520 58x16
+            el 1313,517 1x22
+            el 1314,517 179x22
+              text "Leave at the door" 1318,520 109x16
+            el 1493,517 1x22
+          el #row-39 role=row 12,539 1482x22
+            el 12,539 71x22
+              text "999961" 37,542 42x16
+            el 83,539 1x22
+            el 84,539 139x22
+              text "Ada Dijkstra" 88,542 73x16
+            el 223,539 1x22
+            el 224,539 279x22
+              text "ada.dijkstra@shop.example" 228,542 169x16
+            el 503,539 1x22
+            el 504,539 89x22
+              text "Berlin" 508,542 36x16
+            el 593,539 1x22
+            el 594,539 69x22
+              text "DE" 598,542 17x16
+            el 663,539 1x22
+            el 664,539 99x22
+              text "Keyboard" 668,542 58x16
+            el 763,539 1x22
+            el 764,539 79x22
+              text "7" 832,542 7x16
+            el 843,539 1x22
+            el 844,539 99x22
+              text "349.30" 897,542 42x16
+            el 943,539 1x22
+            el 944,539 139x22
+              text "2026-12-06 23:14" 948,542 112x16
+            el 1083,539 1x22
+            el 1084,539 139x22
+              text "NULL" 1088,542 28x16
+            el 1223,539 1x22
+            el 1224,539 89x22
+              text "paid" 1228,542 26x16
+            el 1313,539 1x22
+            el 1314,539 179x22
+              text "NULL" 1318,542 34x16
+            el 1493,539 1x22
+    text #status "1,000,000 of 1,000,000 orders · order 999981 selected" 12,492 876x16

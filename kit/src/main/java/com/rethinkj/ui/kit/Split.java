@@ -187,7 +187,7 @@ public final class Split {
     float step = t.size().step();
     String back = across ? "ArrowLeft" : "ArrowUp";
     String forth = across ? "ArrowRight" : "ArrowDown";
-    divider.focusable()
+    divider.focusable().focusRing(t.border().focus())
         .cursor(across ? Cursor.EW_RESIZE : Cursor.NS_RESIZE)
         .whenHovered(e -> line.fill(t.border().strong()))
         .whenPressed(e -> line.fill(t.accent().color()))

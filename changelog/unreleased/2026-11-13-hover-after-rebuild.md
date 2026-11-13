@@ -1,0 +1,1 @@
+- Fixed hover looks (`El.whenHovered`) after a rebuild that moves other elements under a pointer that stays still, as a key that scrolls a list of rows does: the look stayed on the element that had been under the pointer, until the pointer moved again.

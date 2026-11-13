@@ -8,6 +8,7 @@ import static com.rethinkj.ui.kit.Theme.over;
 import com.rethinkj.ui.Cursor;
 import com.rethinkj.ui.Drag;
 import com.rethinkj.ui.El;
+import com.rethinkj.ui.Key;
 import com.rethinkj.ui.Len;
 import com.rethinkj.ui.Style;
 import java.util.List;
@@ -32,7 +33,8 @@ import java.util.function.IntFunction;
  * the cell functions are called for those alone. The header stays in place while the rows scroll
  * up and down, and both scroll left and right together. A press on a row selects it; while the
  * grid has the focus, Up, Down, Page Up, Page Down, Home and End move the selection and the rows
- * follow it. The grid is one stop for Tab. Dragging the right edge of a header cell resizes its
+ * follow it; Home and End also with Control, as other tables go to the first and last row with
+ * it. The grid is one stop for Tab. Dragging the right edge of a header cell resizes its
  * column, and a press on a header cell sorts. Scrollbars ({@link Theme#scrollbars}) show where the
  * rows in view are among all of them and where the columns in view are: the one along the right
  * edge of the rows, below the header, and the one along the bottom of the grid; dragging the
@@ -156,9 +158,11 @@ public final class DataGrid {
       return grid;
     }
     return grid.focusable()
+        .focusRing(t.border().focus())
         .whenFocused(e -> focused[0] = true)
         .onKey(k -> {
-          if (k.modifiers() != 0 || rowCount == 0) {
+          boolean ends = k.name().equals("Home") || k.name().equals("End");
+          if (k.modifiers() != 0 && !(ends && k.modifiers() == Key.CONTROL) || rowCount == 0) {
             return false;
           }
           int page = Math.max(1, (int) (body.height() / g.rowHeight()));

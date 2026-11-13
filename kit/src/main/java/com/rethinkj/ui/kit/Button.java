@@ -45,6 +45,7 @@ public final class Button {
       return button;
     }
     return button.focusable()
+        .focusRing(t.border().focus())
         .cursor(Cursor.POINTER)
         .onPress(onPress)
         .whenHovered(e -> e.fill(look.hover()))

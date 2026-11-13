@@ -42,6 +42,7 @@ import static com.rethinkj.ui.layout.Node.HORIZONTAL;
 import static com.rethinkj.ui.layout.Node.VERTICAL;
 
 import com.rethinkj.ui.El;
+import com.rethinkj.ui.Len;
 import com.rethinkj.ui.Style;
 import com.rethinkj.ui.Style.Align;
 import com.rethinkj.ui.Style.Content;
@@ -92,6 +93,7 @@ final class Flexbox {
 
     final Align align;
     final boolean crossSizeIsAuto;
+    final boolean fitsCross; // fit-content across: measured as auto, never stretched
     final boolean scrollsMain;
     final boolean scrolls;
     final boolean scrollsVertically;
@@ -179,6 +181,7 @@ final class Flexbox {
 
       align = s.alignSelf != null ? s.alignSelf : alignItems;
       crossSizeIsAuto = (isRow ? s.height : s.width).isAuto();
+      fitsCross = (isRow ? s.height : s.width).kind() == Len.Kind.FIT_CONTENT;
       boolean scrollsX = scrolls(s.overflowX);
       scrollsVertically = scrolls(s.overflowY);
       scrollsMain = isRow ? scrollsX : scrollsVertically;
@@ -523,7 +526,8 @@ final class Flexbox {
 
       boolean crossIsDefinite = some(item.sizeC);
       float knownItemC = item.knownC();
-      if (item.align == Align.STRETCH && !item.autoStartC && !item.autoEndC && !some(knownItemC)) {
+      if (item.align == Align.STRETCH && !item.fitsCross && !item.autoStartC && !item.autoEndC
+          && !some(knownItemC)) {
         knownItemC = pixels(spaceC);
         crossIsDefinite = !isWrap && hasDefiniteCross && some(innerC);
       }
@@ -679,7 +683,7 @@ final class Flexbox {
             }
             spaceC = availableClamp(spaceC, item.minC, item.maxC);
             float knownItemC = item.knownC();
-            if (item.align == Align.STRETCH && !some(knownItemC)) {
+            if (item.align == Align.STRETCH && !item.fitsCross && !some(knownItemC)) {
               knownItemC = pixels(spaceC);
             }
             float measured = measureMain(item, knownItemC, innerM, innerC, availableM, spaceC);

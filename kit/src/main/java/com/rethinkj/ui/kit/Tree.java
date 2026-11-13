@@ -182,7 +182,7 @@ public final class Tree {
     }
     // The row the keys last selected: a second key in the same frame goes on from there.
     int[] cursor = {rows.selected};
-    return tree.focusable()
+    return tree.focusable().focusRing(t.border().focus())
         .whenFocused(e -> focused[0] = true)
         .onKey(k -> key(k, model, isOpen, rows, cursor, tree, height, onSelect, onToggle,
             onActivate));

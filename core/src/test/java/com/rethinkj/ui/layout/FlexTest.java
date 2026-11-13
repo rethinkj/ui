@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.rethinkj.ui.El;
+import com.rethinkj.ui.Len;
 import com.rethinkj.ui.Measure;
 import com.rethinkj.ui.Style;
 import java.util.concurrent.TimeUnit;
@@ -51,6 +52,38 @@ class FlexTest {
 
     assertEquals(10, leaf.width());
     assertEquals(10, leaf.height());
+  }
+
+  // Taffy's cases with fit-content use min-content and max-content beside it, which Len lacks.
+  @Test
+  void fitContentAcrossIsNotStretchedButFollowsTheOtherAlignments() {
+    El fits = row().padding(0, 4).child(el().size(30, 10)).child(el().size(20, 10));
+    fits.style().width = Len.FIT_CONTENT;
+    El stretched = row().child(el().size(30, 10));
+    El column = col().w(200).children(fits, stretched);
+    Flex.layout(column, 300, 300);
+
+    assertEquals(58, fits.width(), "its content and padding, not the column's width");
+    assertEquals(0, fits.x(), "at the start, where stretch places what it cannot stretch");
+    assertEquals(10, fits.height());
+    assertEquals(200, stretched.width(), "auto is stretched as before");
+
+    column.align(Style.Align.CENTER);
+    Flex.layout(column, 300, 300);
+    assertEquals(58, fits.width());
+    assertEquals(71, fits.x(), "centred like any other child");
+
+    column.align(Style.Align.STRETCH);
+    fits.alignSelf(Style.Align.END);
+    Flex.layout(column, 300, 300);
+    assertEquals(142, fits.x());
+
+    El wide = row().child(el().size(300, 10));
+    wide.style().width = Len.FIT_CONTENT;
+    El narrow = col().w(100).align(Style.Align.START).child(wide);
+    narrow.style().overflowX = Style.Overflow.CLIP;
+    Flex.layout(narrow, 300, 300);
+    assertEquals(300, wide.width(), "content wider than the column is not squeezed: max-content");
   }
 
   @Test

@@ -1,0 +1,1 @@
+- The data grid also takes Control+Home and Control+End, to the first and last row, as Home and End do; other tables go there with Control.

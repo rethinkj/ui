@@ -168,6 +168,41 @@ class TextInputTest {
   }
 
   @Test
+  void anInactiveWindowDrawsNoBlinksAndShowsTheCaretWhenActiveAgain()
+      throws InterruptedException {
+    try (Window window = Window.open(TITLE, 240, 120)) {
+      Desktop.settle();
+      App<Form> app = app();
+      AtomicInteger presents = new AtomicInteger();
+      WindowLoop loop = new WindowLoop(window, app, (scene, w, h, s) -> presents.incrementAndGet());
+      int[] seen = new int[2];
+      Thread stopper = Thread.ofPlatform().start(() -> {
+        try {
+          Thread.sleep(300);
+          seen[0] = presents.get();
+          Thread.sleep(1000);
+          seen[1] = presents.get();
+        } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
+        }
+        loop.stop();
+      });
+      tab(window);
+      Desktop.windowEvent(window, Sdl.EVENT_WINDOW_FOCUS_LOST, 0, 0);
+      loop.run();
+      stopper.join();
+
+      assertEquals("name", app.focused().key(), "the field keeps the focus");
+      assertEquals(null, app.focused().text().caret());
+      assertEquals(seen[0], seen[1], "no frames while the inactive window is idle");
+
+      Desktop.windowEvent(window, Sdl.EVENT_WINDOW_FOCUS_GAINED, 0, 0);
+      runUntil(window, app, () -> app.focused().text().caret() != null);
+      assertTrue(app.focused().text().caret() != null, "the caret is back");
+    }
+  }
+
+  @Test
   void aPressReportsItsClicksAndTheModifiersHeld() {
     try (Window window = Window.open(TITLE, 240, 120)) {
       Desktop.settle();

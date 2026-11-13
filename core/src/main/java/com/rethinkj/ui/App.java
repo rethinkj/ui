@@ -134,6 +134,7 @@ public final class App<S> {
   private Editor blinking; // the editor of the focused field
   private double blinkStart; // when its caret last turned on
   private boolean caretOn;
+  private boolean active = true; // the window has the system's keyboard focus
 
   public App(S state, Function<S, El> view) {
     this.state = state;
@@ -516,7 +517,7 @@ public final class App<S> {
    * idle window can wait for input alone.
    */
   public double nextChange() {
-    if (blinking == null) {
+    if (blinking == null || !active) {
       return Double.POSITIVE_INFINITY;
     }
     return blinkStart + (Math.floor((time - blinkStart) / BLINK) + 1) * BLINK;
@@ -586,12 +587,28 @@ public final class App<S> {
   }
 
   /**
-   * Sets the colour of the focus ring, as 0xAARRGGBB; 0 draws none. The ring is 2 pixels wide and
-   * lies just outside the element's border box, with its corners.
+   * Sets the colour of the focus ring, as 0xAARRGGBB, for elements that set none themselves ({@link
+   * El#focusRing(int)}); 0 draws none. The ring is 2 pixels wide and lies just outside the
+   * element's border box, with its corners.
    */
   public void focusRing(int argb) {
     ringColour = argb;
     stale = true;
+  }
+
+  /**
+   * The window became active, with the system's keyboard focus, or inactive, as a window reports
+   * it; an app is active until this says otherwise. From the next {@link #frame} on, the focused
+   * text field of an inactive app shows no caret and {@link #nextChange} is infinite, so that an
+   * idle inactive window draws nothing. The focus, the selection and the ring stay as they are.
+   * When the app is active again, the caret is on and blinks from there.
+   */
+  public void windowActive(boolean active) {
+    queued.add(() -> {
+      this.active = active;
+      blinkStart = time;
+      return false;
+    });
   }
 
   /**
@@ -992,17 +1009,24 @@ public final class App<S> {
     stale |= !wanted(path, ids).equals(shown);
     boolean drawn = true;
     if (stale) {
-      El built = view.apply(state);
-      shown = applyLooks(built, ids);
-      root = built;
-      attachEditors(root, new ArrayList<>()); // before layout, which shows a composition
-      El.scaleText(root, scale);
-      Flex.layout(root, width, height);
-      animator.update(root, time);
-      lookIds = ids;
-      fillRows();
-      refocus();
-      lookIds = null;
+      // Twice when the first build moved other elements under the pointer, as a key that scrolls
+      // a list does: the looks are those of what the pointer is over in the tree on screen.
+      for (int pass = 0; pass < 2 && stale; pass++) {
+        El built = view.apply(state);
+        shown = applyLooks(built, ids);
+        root = built;
+        attachEditors(root, new ArrayList<>()); // before layout, which shows a composition
+        El.scaleText(root, scale);
+        Flex.layout(root, width, height);
+        animator.update(root, time);
+        lookIds = ids;
+        fillRows();
+        refocus();
+        lookIds = null;
+        path = pointed();
+        ids = Animator.identities(path);
+        stale = !wanted(path, ids).equals(shown);
+      }
       laidOut = true;
       stale = false;
     } else if (animator.isMoving()) {
@@ -1017,7 +1041,7 @@ public final class App<S> {
     if (laidOut) {
       placeEditors();
     }
-    boolean on = blinking != null && Math.floor((time - blinkStart) / BLINK) % 2 == 0;
+    boolean on = active && blinking != null && Math.floor((time - blinkStart) / BLINK) % 2 == 0;
     if (on != caretOn) {
       caretOn = on;
       if (blinking != null) {

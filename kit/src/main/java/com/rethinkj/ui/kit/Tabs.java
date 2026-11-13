@@ -133,7 +133,7 @@ public final class Tabs {
     }
 
     int last = tabs.size() - 1;
-    list.focusable().onKey(k -> {
+    list.focusable().focusRing(t.border().focus()).onKey(k -> {
       if (k.modifiers() != 0) {
         return false;
       }

@@ -114,7 +114,6 @@ class CellEditorTest {
     App<Sheet> app = new App<>(sheet, Sheet::view);
     sheet.app = app;
     app.textRendering(TextRendering.LINUX);
-    app.focusRing(T.border().focus());
     return app;
   }
 

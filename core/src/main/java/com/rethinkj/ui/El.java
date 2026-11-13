@@ -41,6 +41,7 @@ public final class El {
   private Consumer<Drag> onDrag;
   private int revealRow = -1;
   private boolean focusable;
+  private Integer focusRing;
   private Predicate<Key> onKey;
   private Predicate<Key> onKeyUp;
   private Consumer<String> onText;
@@ -386,7 +387,9 @@ public final class El {
    *
    * <p>The list has no other children: {@link #child} fails on it. Its content has no width of its
    * own, so give the list a width or let its parent stretch it, and give it a height or let it
-   * {@link #grow}: like any scroll area it is as tall as its content otherwise.
+   * {@link #grow}: like any scroll area it is as tall as its content otherwise, up to {@link
+   * #LAYOUT_LIMIT}. In a column that grows itself, the column also needs a minimum height of 0
+   * (as {@code min-height: 0} in CSS), or the rows, up to that limit, are its minimum height.
    *
    * @param count the number of rows, 0 or more
    * @param rowHeight the height of every row in logical pixels, above 0
@@ -408,11 +411,19 @@ public final class El {
     this.rowCount = count;
     this.rowHeight = rowHeight;
     this.rowBuilder = Objects.requireNonNull(row, "row");
-    // Layout sees all rows as one leaf, as tall as they are together.
+    // Layout sees all rows as one leaf, as tall as they are together up to LAYOUT_LIMIT: layout
+    // works in floats, which beyond 2^24 pixels miss whole pixels when the list shrinks to fit.
+    // The offsets of scrolling are doubles and reach the last row anyway.
     this.measure = (knownWidth, knownHeight, availableWidth, availableHeight) ->
-        new Measure.Size(0, (float) (count * (double) rowHeight));
+        new Measure.Size(0, (float) Math.min(count * (double) rowHeight, LAYOUT_LIMIT));
     return this;
   }
+
+  /**
+   * The most a {@link #rows virtual list} contributes to layout as its content's height, 2^20
+   * logical pixels: a list without a height of its own is at most this tall and scrolls beyond.
+   */
+  public static final float LAYOUT_LIMIT = 1 << 20;
 
   /**
    * Keeps a row of this {@link #rows virtual list} in view: whenever a rebuild of the view gives
@@ -642,6 +653,17 @@ public final class El {
   }
 
   /**
+   * Sets the colour of the ring drawn around this element while it has the focus from the
+   * keyboard or the app, as 0xAARRGGBB; 0 draws none. An element that sets none gets the app's
+   * ({@link App#focusRing}). A view that draws parts of itself in different themes gives each of
+   * its focusable elements the ring of its theme here.
+   */
+  public El focusRing(int argb) {
+    this.focusRing = argb;
+    return this;
+  }
+
+  /**
    * Gives {@code handler} the keys that go down while this element or one below it has the focus,
    * repeats included, before its ancestors get them. The handler returns whether it handled the
    * key; if it did, nobody else sees it. Without focus, keys go to the root element only. Enter
@@ -848,6 +870,11 @@ public final class El {
    */
   public boolean isFocusable() {
     return focusable || editable && (onEdit != null || readOnly);
+  }
+
+  /** The colour set with {@link #focusRing(int)}, or null if none was and the app's applies. */
+  public Integer focusRing() {
+    return focusRing;
   }
 
   public Predicate<Key> onKey() {

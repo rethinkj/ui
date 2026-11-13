@@ -312,6 +312,7 @@ public final class Examples {
     content.style().minWidth = Len.percent(1);
     El grid = row().role("grid").scrollBoth().scrollbars(GRID_BARS).fill(ROW).child(content)
         .focusable()
+        .focusRing(PRIMARY) // border().focus(), the same colour in Theme.DARK
         .whenFocused(e -> focused[0] = true)
         .onKey(k -> {
           int next = switch (k.name()) {

@@ -7,6 +7,7 @@ import static com.rethinkj.ui.kit.Theme.over;
 
 import com.rethinkj.ui.Cursor;
 import com.rethinkj.ui.El;
+import com.rethinkj.ui.Len;
 import com.rethinkj.ui.Style;
 
 /**
@@ -53,6 +54,9 @@ public final class Checkbox {
             .align(Style.Align.CENTER)
             .radius(t.radius().medium())
             .child(box);
+    // Only as wide as the control and its text, so that a column that stretches its children
+    // stretches neither the press area nor the ring; one that centres them still centres it.
+    checkbox.style().width = Len.FIT_CONTENT;
     if (text != null) {
       checkbox.child(label(t, text).color(enabled ? t.text().primary() : t.text().disabled()));
     }
@@ -63,6 +67,7 @@ public final class Checkbox {
     int pressed = checked ? t.accent().pressed() : over(fill, s.pressed());
     // The whole row takes the press, text included, and its looks restyle the box.
     return checkbox.focusable()
+        .focusRing(t.border().focus())
         .cursor(Cursor.POINTER)
         .onPress(onToggle)
         .whenHovered(e -> box.fill(hover))

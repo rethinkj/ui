@@ -35,6 +35,7 @@ public final class TextField {
     El field =
         El.text(value)
             .editable(onChange)
+            .focusRing(t.border().focus())
             .label(placeholder)
             .font(style.font().get())
             .fontSize(style.size())

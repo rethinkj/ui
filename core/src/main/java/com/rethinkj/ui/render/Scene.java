@@ -222,7 +222,8 @@ public final class Scene {
    * its own and the platform's {@link TextRendering}.
    *
    * @param ring the element with the ring, or null for none
-   * @param ringColour the colour of the ring as 0xAARRGGBB
+   * @param ringColour the colour of the ring as 0xAARRGGBB, unless the element sets its own ({@link
+   *     El#focusRing(int)})
    */
   public static Scene of(El root, El ring, int ringColour) {
     return of(root, ring, ringColour, new Atlas(), TextRendering.platform());
@@ -234,7 +235,8 @@ public final class Scene {
    * the same atlas may be gone.
    *
    * @param ring the element with the ring, or null for none
-   * @param ringColour the colour of the ring as 0xAARRGGBB
+   * @param ringColour the colour of the ring as 0xAARRGGBB, unless the element sets its own ({@link
+   *     El#focusRing(int)})
    */
   public static Scene of(
       El root, El ring, int ringColour, Atlas atlas, TextRendering rendering) {
@@ -297,14 +299,15 @@ public final class Scene {
         thumb(el.verticalBar(), el.scrollbars().radius(), opacity, inner);
       }
     }
-    if (el == ring && ringColour >>> 24 != 0) {
+    int ringed = el != ring ? 0 : el.focusRing() != null ? el.focusRing() : ringColour;
+    if (ringed >>> 24 != 0) {
       float left = x - RING;
       float top = y - RING;
       float right = x + el.width() + RING;
       float bottom = y + el.height() + RING;
       if (left < clipRight && right > clipX && top < clipBottom && bottom > clipY) {
         rect(left, top, right - left, bottom - top, el.radius() > 0 ? el.radius() + RING : 0, RING,
-            0, ringColour, opacity, clip);
+            0, ringed, opacity, clip);
       }
     }
   }
