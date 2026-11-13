@@ -27,3 +27,5 @@ Each field gets its label; an error makes it `invalid`:
 
 ```text file="examples/src/test/resources/golden/docs/form/view.tree.txt" start="\"User\"" count="3"
 ```
+
+A control made with a `Prop` of an [Editing](/docs/concepts/editing) shows its field's error, from a rule, the app or a text that is no value, in the same way; `form` leaves out a null field, so `shown ? field(...) : null` shows a field under a condition.

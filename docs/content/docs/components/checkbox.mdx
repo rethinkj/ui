@@ -29,3 +29,7 @@ Tab reaches it; Space and Enter toggle it. A press leaves the focus where it was
 
 ```text file="examples/src/test/resources/golden/docs/toggles/view.tree.txt" start="role=checkbox" count="1"
 ```
+
+## With a Prop
+
+`checkbox(t, prop, text)` takes a `Prop` in place of the value and its handler, such as a field of an [Editing](/docs/concepts/editing) of a record: it writes the prop back, shows its field's error, and is disabled when the prop cannot be written.

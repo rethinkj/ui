@@ -54,3 +54,7 @@ The state holds the value and the field's draft:
 
 ```text file="examples/src/test/resources/golden/docs/values/draft.tree.txt" start="#amount" count="2"
 ```
+
+## With a Prop
+
+`valueField(t, format, prop[, placeholder])` takes a `Prop` of an [Editing](/docs/concepts/editing) in place of the value, the draft and the handler: the editing keeps the draft, so the state needs none. It writes the prop back, shows its field's error, and is disabled when the prop cannot be written.

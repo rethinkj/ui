@@ -1,0 +1,33 @@
+# docs:start editing
+size 380 260
+frame
+snap view               # nothing changed: Save is disabled
+
+press #due
+type "2026-11-01"       # before the order: the rule's message at its field
+frame
+advance 1
+frame
+snap rule
+
+key A control
+type "2026-11-30"       # the rule holds
+press #amount
+key A control
+type "-3"
+frame
+press role=button label="Save"   # the made-up server refuses: its message at the amount
+frame
+advance 1
+frame
+snap refused
+
+key A control
+type "30"               # the edit takes the refusal away
+frame
+press role=button label="Save"
+frame
+advance 1
+frame
+snap saved              # saved: Save and Revert wait for the next change
+# docs:end editing

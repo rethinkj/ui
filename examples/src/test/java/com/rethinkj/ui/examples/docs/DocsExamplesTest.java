@@ -89,6 +89,8 @@ class DocsExamplesTest {
     concepts(all, "images", Concepts::images, 280, 120);
     concepts(all, "theme", Concepts::theme, 200, 80);
     all.put("tab-groups", new Example(Notebook::app, 420, 260));
+    all.put("editing", new Example(() -> new App<>(new Editings(), Editings::record), 380, 260));
+    all.put("editing-pojo", new Example(() -> new App<>(new Editings(), Editings::pojo), 360, 160));
     return all;
   }
 

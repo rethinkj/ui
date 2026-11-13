@@ -41,3 +41,7 @@ The selected value is found by `equals`; null, or a value that is not in the lis
 
 ```text file="examples/src/test/resources/golden/docs/choices/view.tree.txt" start="label=\"Driver\"" count="2"
 ```
+
+## With a Prop
+
+`select(t, values, prop, text, menuState)` takes a `Prop` in place of the value and its handler, such as a field of an [Editing](/docs/concepts/editing) of a record: it writes the prop back, shows its field's error, and is disabled when the prop cannot be written.

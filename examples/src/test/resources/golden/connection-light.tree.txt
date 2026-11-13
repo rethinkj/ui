@@ -64,5 +64,5 @@ el 0,0 440x432
       el 21,387 398x24
         el role=button label="Reset" 270,387 61x24
           text "Reset" 283,391 35x16
-        el role=button label="Connect" 339,387 80x24
+        el role=button label="Connect" 339,387 80x24 disabled
           text "Connect" 352,391 54x16

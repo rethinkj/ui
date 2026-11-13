@@ -1,0 +1,30 @@
+el 0,0 380x260
+  el 12,12 307x138
+    el 12,12 307x24
+      el 12,12 60x24
+        text "Customer" 12,16 60x16
+      el 80,12 239x24
+        text #customer role=textbox label="Customer" "Ada" 80,12 200x24
+    el 12,44 307x42
+      el 12,44 60x24
+        text "Amount" 12,48 48x16
+      el 80,44 239x42
+        text #amount role=textbox label="Amount" "-3" 80,44 120x24 invalid error="The server refused a negative amount" focused caret 2
+        text "The server refused a negative amount" 80,70 239x16
+    el 12,94 307x24
+      el 12,94 60x24
+        text "Due" 12,98 25x16
+      el 80,94 239x24
+        text #due role=textbox label="Due" "2026-11-30" 80,94 120x24
+    el 12,126 307x24
+      el 12,126 60x24
+        text "Paid" 12,130 26x16
+      el 80,126 239x24
+        el role=checkbox label="Paid" 76,124 24x20 checked=false
+          el 80,126 16x16
+  el 12,158 129x24
+    el role=button label="Revert" 12,158 65x24
+      text "Revert" 25,162 39x16
+    el role=button label="Save" 85,158 56x24 disabled
+      text "Save" 98,162 30x16
+  text "" 12,190 0x16

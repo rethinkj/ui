@@ -23,8 +23,11 @@ import com.rethinkj.ui.Script;
 import com.rethinkj.ui.kit.Card;
 import com.rethinkj.ui.kit.ComboBox;
 import com.rethinkj.ui.kit.Dialog;
+import com.rethinkj.ui.kit.Editing;
 import com.rethinkj.ui.kit.Form;
 import com.rethinkj.ui.kit.Format;
+import com.rethinkj.ui.kit.Part;
+import com.rethinkj.ui.kit.Prop;
 import com.rethinkj.ui.kit.Symbol;
 import com.rethinkj.ui.kit.Theme;
 import com.rethinkj.ui.kit.ValueField;
@@ -39,22 +42,67 @@ import java.util.List;
  * The dialog in which a database tool asks where to connect, built from the kit: a form of text
  * fields with their labels beside them and the required ones marked, a password field with a
  * button that shows the password, a checkbox, a switch between the dark and the light theme, and
- * two buttons. Connect stays disabled until host, port, database and user are filled in; the
- * port is an {@code Integer} in a {@link ValueField}, which takes only digits and says when the
- * number is no port. Enter in a field connects, as does Connect; the example only says where
- * it would go, and never what the password is.
+ * two buttons. The form edits a {@link Profile} record through an {@link Editing}, which keeps the
+ * port's text while it is no port and the errors of the fields. Connect stays disabled until host,
+ * port, database and user are filled in, the edit is valid and differs from the profile last
+ * connected with; the port is an {@code Integer} in a {@link ValueField}, which takes only digits
+ * and says when the number is no port. A made-up rule lets {@code postgres} connect only to
+ * localhost, and the made-up server refuses every port but 5432, which the port's field shows
+ * until it is edited. Enter in a field connects, as does Connect; the example only says where it
+ * would go, and never what the password is.
  */
 public final class ConnectionDialog {
 
-  String host = "localhost";
-  Integer port = 5432; // null while the field is empty
-  final ValueField.Draft portDraft = new ValueField.Draft(); // the port's text while it is none
-  String database = "";
+  /** Where to connect and as whom: what the form edits. */
+  record Profile(
+      String host, Integer port, String database, String user, String password, boolean ssl) {
+    static final Part<Profile, String> HOST = Part.of(Profile::host, Profile::withHost);
+    static final Part<Profile, Integer> PORT = Part.of(Profile::port, Profile::withPort);
+    static final Part<Profile, String> DATABASE = Part.of(Profile::database, Profile::withDatabase);
+    static final Part<Profile, String> USER = Part.of(Profile::user, Profile::withUser);
+    static final Part<Profile, String> PASSWORD = Part.of(Profile::password, Profile::withPassword);
+    static final Part<Profile, Boolean> SSL = Part.of(Profile::ssl, Profile::withSsl);
+
+    static final Profile NEW = new Profile("localhost", 5432, "", "", "", true);
+
+    Profile withHost(String host) {
+      return new Profile(host, port, database, user, password, ssl);
+    }
+
+    Profile withPort(Integer port) {
+      return new Profile(host, port, database, user, password, ssl);
+    }
+
+    Profile withDatabase(String database) {
+      return new Profile(host, port, database, user, password, ssl);
+    }
+
+    Profile withUser(String user) {
+      return new Profile(host, port, database, user, password, ssl);
+    }
+
+    Profile withPassword(String password) {
+      return new Profile(host, port, database, user, password, ssl);
+    }
+
+    Profile withSsl(Boolean ssl) {
+      return new Profile(host, port, database, user, password, ssl);
+    }
+
+    /** Whether the fields a connection needs are filled in. */
+    boolean complete() {
+      return !host.isBlank() && port != null && !database.isBlank() && !user.isBlank();
+    }
+
+    @Override
+    public String toString() { // never the password
+      return user + "@" + host + ":" + port + "/" + database;
+    }
+  }
+
+  final Editing<Profile> editing = editing();
   final ComboBox.State databases = new ComboBox.State(); // the server's, offered as one types
-  String user = "";
-  String password = "";
   boolean revealed; // whether the password field shows the password
-  boolean ssl = true;
   boolean dark = true;
   App<ConnectionDialog> app; // whose window says whether it is maximized
   String status = "";
@@ -62,6 +110,15 @@ public final class ConnectionDialog {
   /** The databases the server is known to have, which the database's field suggests. */
   static final List<String> DATABASES =
       List.of("postgres", "inventory", "invoices", "shop", "analytics", "template1");
+
+  /** The edit of a new profile, with a rule across two of its fields. */
+  static Editing<Profile> editing() {
+    return Editing.of(Profile.NEW)
+        .rule(
+            Profile.USER,
+            p -> !p.user().equals("postgres") || p.host().equals("localhost"),
+            "postgres connects only to localhost");
+  }
 
   Theme theme() {
     return dark ? Theme.DARK : Theme.LIGHT;
@@ -71,30 +128,27 @@ public final class ConnectionDialog {
   static final Format<Integer> PORT =
       Format.INTEGER.where(p -> p >= 1 && p <= 65535, "1 to 65535").optional();
 
-  boolean valid() {
-    return !host.isBlank()
-        && port != null
-        && portDraft.error() == null // the field shows a port, not a text that is none
-        && !database.isBlank()
-        && !user.isBlank();
+  /** Whether Connect can go: a complete, valid profile other than the one last connected with. */
+  boolean ready() {
+    return editing.valid() && editing.changed() && editing.value().complete();
   }
 
   void connect() {
-    status = "Connecting to " + database + " on " + host + ":" + port + " as " + user
-        + (ssl ? " with SSL" : "");
+    Profile p = editing.value();
+    if (p.port() != 5432) { // the made-up server listens on 5432 alone
+      editing.at(Profile.PORT).error("No server answers on port " + p.port());
+      status = "The server refused the connection";
+      return;
+    }
+    editing.saved();
+    status = "Connecting to " + p.database() + " on " + p.host() + ":" + p.port() + " as "
+        + p.user() + (p.ssl() ? " with SSL" : "");
   }
 
   void reset() {
-    ConnectionDialog fresh = new ConnectionDialog();
-    host = fresh.host;
-    port = fresh.port;
-    portDraft.clear();
-    database = fresh.database;
-    user = fresh.user;
-    password = fresh.password;
-    revealed = fresh.revealed;
-    ssl = fresh.ssl;
-    status = fresh.status;
+    editing.reset();
+    revealed = false;
+    status = "";
   }
 
   public static void main(String[] args) throws IOException {
@@ -118,8 +172,9 @@ public final class ConnectionDialog {
 
   static El view(ConnectionDialog s) {
     Theme t = s.theme();
+    Editing<Profile> e = s.editing;
     // A null handler disables the button.
-    El connect = button(t, PRIMARY, "Connect", s.valid() ? s::connect : null);
+    El connect = button(t, PRIMARY, "Connect", s.ready() ? s::connect : null);
     El form = Card.card(t)
         .child(
             Card.header(t, "Connect to PostgreSQL", "The server and the account to log in with."))
@@ -128,41 +183,39 @@ public final class ConnectionDialog {
                 Form.Labels.BESIDE,
                 field(
                         "Host",
-                        textField(t, s.host, "Name or address", v -> s.host = v)
+                        textField(t, e.at(Profile.HOST), "Name or address")
                             .key("host")
                             .w(260))
                     .required(),
                 field(
                         "Port",
-                        valueField(t, PORT, s.port, "5432", s.portDraft, v -> s.port = v)
+                        valueField(t, PORT, e.at(Profile.PORT), "5432")
                             .key("port")
                             .maxLength(5)
                             .w(72))
                     .required(),
                 field(
                         "Database",
-                        ComboBox.free(t, s.database, DATABASES, s.databases, v -> s.database = v)
+                        ComboBox.free(t, e.at(Profile.DATABASE), DATABASES, s.databases)
                             .key("database")
                             .w(260))
                     .required(),
                 field(
                         "User",
-                        textField(t, s.user, "Role", v -> s.user = v)
-                            .key("user")
-                            .w(260))
+                        textField(t, e.at(Profile.USER), "Role").key("user").w(260))
                     .required(),
                 field(
                     "Password",
                     revealable(
                         t,
-                        passwordField(t, s.password, null, v -> s.password = v)
+                        passwordField(t, e.at(Profile.PASSWORD), null)
                             .key("password")
                             .w(260),
                         s.revealed,
                         () -> s.revealed = !s.revealed)))
             .margin(t.space().s(), 0, t.space().s(), 0))
-        .child(checkbox(t, s.ssl, "Require SSL", () -> s.ssl = !s.ssl))
-        .child(toggle(t, s.dark, "Dark theme", () -> s.dark = !s.dark))
+        .child(checkbox(t, e.at(Profile.SSL), "Require SSL"))
+        .child(toggle(t, Prop.of(() -> s.dark, v -> s.dark = v), "Dark theme"))
         .child(el().grow(1))
         .child(label(t, MUTED, s.status))
         .child(Form.buttons(t, button(t, SECONDARY, "Reset", s::reset), connect));

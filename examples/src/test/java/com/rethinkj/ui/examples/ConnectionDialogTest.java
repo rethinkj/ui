@@ -36,5 +36,17 @@ class ConnectionDialogTest {
     assertTrue(
         Snaps.line("connection-dialog", "connection-shown", "#port").endsWith("focused caret 4"),
         "the button left the focus where it was");
+    assertTrue(
+        Snaps.line("connection-dialog", "connection-connecting", "label=\"Connect\"")
+            .endsWith(" disabled"),
+        "nothing to connect with until the profile changes");
+    // The editing's errors show at their fields: the server's refusal, then a rule.
+    assertTrue(Snaps.line("connection-dialog", "connection-refused", "#port")
+        .contains(" invalid error=\"No server answers on port 5433\""));
+    assertTrue(Snaps.line("connection-dialog", "connection-refused", "label=\"Connect\"")
+        .endsWith(" disabled"));
+    assertFalse(Snaps.line("connection-dialog", "connection-rule", "#port").contains("invalid"));
+    assertTrue(Snaps.line("connection-dialog", "connection-rule", "#user")
+        .contains(" invalid error=\"postgres connects only to localhost\""));
   }
 }

@@ -52,3 +52,7 @@ The selected value is found by `equals`; null, or a value not in the list, selec
 
 ```text file="examples/src/test/resources/golden/docs/combos/typed.tree.txt" start="overlay" count="4"
 ```
+
+## With a Prop
+
+`comboBox(t, values, prop, text, state)`, `items(t, values, prop, item, state)` and `free(t, prop, suggestions, state)` take a `Prop` in place of the value and its handler, such as a field of an [Editing](/docs/concepts/editing) of a record: they write the prop back, show its field's error, and are disabled when the prop cannot be written.
