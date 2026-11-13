@@ -62,7 +62,7 @@ public final class Progress {
 
   /** A bar with a value, coloured by what became of the work. */
   public static El bar(Theme t, double fraction, State state) {
-    return states(track(t, t.size().progress(), true, fraction, state), fraction, state)
+    return states(track(t, t.size().progress(), true, clamp(fraction), state), fraction, state)
         .w(t.size().field());
   }
 
@@ -80,7 +80,9 @@ public final class Progress {
    */
   public static El line(Theme t, double fraction) {
     return states(
-            track(t, t.size().indicator(), false, fraction, State.NORMAL), fraction, State.NORMAL)
+            track(t, t.size().indicator(), false, clamp(fraction), State.NORMAL),
+            fraction,
+            State.NORMAL)
         .wFull();
   }
 
@@ -119,7 +121,7 @@ public final class Progress {
         .color(state == State.ERROR ? t.status().danger() : t.text().muted())
         .shrink(0);
     El top = row().gap(t.space().m()).align(Style.Align.CENTER).children(name, el().grow(1), text);
-    El bar = track(t, t.size().progress(), true, fraction, state).wFull();
+    El bar = track(t, t.size().progress(), true, clamp(fraction), state).wFull();
     return states(col().gap(t.space().xs()).w(t.size().field()).children(top, bar), fraction, state)
         .label(label);
   }
@@ -188,8 +190,9 @@ public final class Progress {
   }
 
   /**
-   * The track with its part done, or with a running piece when {@code fraction} is NaN; the
-   * piece is {@code #fill} in both, so that the one becomes the other.
+   * The track with its part done, or with a running piece when {@code fraction} is NaN, which the
+   * forms with a value therefore never pass; the piece is {@code #fill} in both, so that the one
+   * becomes the other.
    */
   private static El track(Theme t, float thickness, boolean round, double fraction, State state) {
     float radius = round ? thickness / 2 : 0;
@@ -214,7 +217,7 @@ public final class Progress {
         e.place(e.x() + (float) (back * w), e.y(), (float) ((front - back) * w), e.height());
       });
     } else {
-      fill.style().width = Len.percent((float) clamp(fraction));
+      fill.style().width = Len.percent((float) fraction);
     }
     return el().h(thickness)
         .shrink(0)

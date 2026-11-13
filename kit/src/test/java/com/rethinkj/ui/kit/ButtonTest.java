@@ -196,6 +196,28 @@ class ButtonTest {
     assertTrue(dumpLine(app, "main").contains(" disabled"), dumpLine(app, "main"));
   }
 
+  @Test
+  void aSplitButtonTurnedOffWhileItsMenuIsOpenClosesItAndChoosesNothing() throws IOException {
+    boolean[] off = {false};
+    App<Clicks> app = app(c -> Button.split(
+        T,
+        SECONDARY,
+        "Run",
+        c::press,
+        c.menu,
+        List.of(Menu.item("Explain", () -> c.chosen = 2)),
+        Button.options().enabled(!off[0])));
+    run(app, "press #arrow\nframe\nadvance 1");
+    assertTrue(app.state().menu.isOpen());
+    off[0] = true;
+    app.invalidate();
+    run(app, "key ArrowDown\nkey Enter");
+    assertEquals(0, app.state().chosen, "the menu is gone with its items");
+    assertFalse(app.state().menu.isOpen());
+    run(app, "advance 1"); // past the fade
+    assertFalse(app.tree().dump().contains("role=menu"), app.tree().dump());
+  }
+
   private static Button.Options danger() {
     return Button.options().tone(Button.Tone.DANGER);
   }

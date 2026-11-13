@@ -24,7 +24,8 @@ import java.util.Objects;
  *
  * <p>Without wrapping each line is one row, and the widest line that layout has shaped so far gives
  * the width of the text, which grows as longer lines come into view, as in editors; an edit of that
- * line forgets it, and the lines in view measure it again.
+ * line, or another font, size, scale, tab size or features, forgets it, and the lines in view
+ * measure it again.
  *
  * <p>Highlighting ({@link El#highlight}): the state each line starts in, known for the lines from
  * the first up to {@code known}, and per line the {@link Spans} the highlighter gave and the state
@@ -48,6 +49,7 @@ final class Lines {
 
   private float widest; // the widest line measured, in physical pixels, without wrapping
   private int widestLine = -1;
+  private Object measuredFor; // what the widths depend on: font, size, scale and so on
 
   // Highlighting: the key the view gave, the state each line starts in, valid for lines 0 to
   // known - 1, and the spans of each line, null where not asked or changed since.
@@ -89,6 +91,7 @@ final class Lines {
     Lines copy = new Lines(Arrays.copyOf(starts, Math.max(count, 1)), count, length);
     copy.widest = widest;
     copy.widestLine = widestLine;
+    copy.measuredFor = measuredFor;
     if (states != null) {
       copy.highlightKey = highlightKey;
       copy.states = Arrays.copyOf(states, states.length);
@@ -235,6 +238,18 @@ final class Lines {
   }
 
   // ---- The widest line, without wrapping
+
+  /**
+   * Sets what the widths of lines depend on, without wrapping: another value forgets the widest
+   * line, which the lines shaped next measure again.
+   */
+  void measuredFor(Object layout) {
+    if (!Objects.equals(layout, measuredFor)) {
+      measuredFor = layout;
+      widest = 0;
+      widestLine = -1;
+    }
+  }
 
   /** Layout shaped a line this wide. */
   void measured(int line, float width) {

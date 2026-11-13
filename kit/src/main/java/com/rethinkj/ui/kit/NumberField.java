@@ -106,13 +106,13 @@ public final class NumberField {
     at.top = Len.px(inset);
     if (enabled) {
       field.onKey(k -> {
-        int by = k.modifiers() != 0
+        long by = k.modifiers() != 0
             ? 0
             : switch (k.name()) {
               case "ArrowUp" -> step;
               case "ArrowDown" -> -step;
-              case "PageUp" -> 10 * step;
-              case "PageDown" -> -10 * step;
+              case "PageUp" -> 10L * step;
+              case "PageDown" -> -10L * step;
               default -> 0;
             };
         if (by == 0) {
@@ -130,18 +130,23 @@ public final class NumberField {
 
   /** Hands a typed whole number on; refuses anything else, so the field stays as it was. */
   private static void edit(String s, int min, int value, IntConsumer onChange) {
-    if (!s.matches(min < 0 ? "-?\\d{1,9}" : "\\d{1,9}")) {
+    if (!s.matches(min < 0 ? "-?\\d+" : "\\d+")) {
       return;
     }
-    int typed = Integer.parseInt(s);
+    int typed;
+    try {
+      typed = Integer.parseInt(s);
+    } catch (NumberFormatException e) {
+      return; // beyond an int
+    }
     if (typed != value || !s.equals(Integer.toString(typed))) {
       onChange.accept(typed);
     }
   }
 
   /** The value moved by {@code by} and kept in the range. */
-  private static int step(int value, int by, int min, int max) {
-    return (int) Math.clamp((long) value + by, min, max);
+  private static int step(int value, long by, int min, int max) {
+    return (int) Math.clamp(value + by, min, max);
   }
 
   private static El button(

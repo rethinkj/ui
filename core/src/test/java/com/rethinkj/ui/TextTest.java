@@ -94,6 +94,22 @@ class TextTest {
   }
 
   @Test
+  void noLineBreaksInsideARightToLeftRun() {
+    TextLibraries.assumeLoaded();
+    // The Hebrew with the spaces between its words is one run and one cluster, wider than 30.
+    El text =
+        El.text("ab אב גד הו cd").font(Examples.fallbackChain()).wrapText().w(30);
+    Headless.render(row().child(text), 200, 100, 1);
+    List<Text.Line> lines = text.text().lines();
+    assertEquals(3, lines.size(), "ab, the Hebrew whole, cd");
+    assertTrue(lines.get(1).width() > 30, "wider than its box: " + lines.get(1).width());
+
+    El alone = El.text("אב גד הו").font(Examples.fallbackChain()).wrapText().w(30);
+    Headless.render(row().child(alone), 200, 100, 1);
+    assertEquals(1, alone.text().lines().size(), "no empty row after it");
+  }
+
+  @Test
   void textIsShapedAtThePhysicalSizeAndMeasuredInLogicalPixels() {
     TextLibraries.assumeLoaded();
     // At scale 2 a character is 16.8 physical pixels, 16.75 on the quarter grid.

@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 import org.junit.jupiter.api.Test;
 
 /** The boundaries the caret stops at and the mapping of positions; no text libraries needed. */
@@ -91,6 +92,39 @@ class EditorTest {
     assertEquals(17, Editor.codeWordRight(sql, 12, false));
     assertEquals(sql.length(), Editor.codeWordRight(sql, 29, false), "the last goes to the end");
     assertEquals(3, Editor.codeWordRight("t  ", 1, true), "no word left: the end");
+  }
+
+  @Test
+  void codeWordsEndOnlyBetweenGraphemes() {
+    assertEquals(2, Editor.codeWordLeft("❤️foo", 5), "the variation selector stays with its heart");
+    assertArrayEquals(new int[] {0, 4}, Editor.codeWord("👍🏽!", 2), "the modifier with its emoji");
+    assertArrayEquals(new int[] {0, 4}, Editor.codeWord("👍🏽!", 0));
+    assertArrayEquals(new int[] {0, 5}, Editor.codeWord("👩‍💻!", 3), "a ZWJ sequence");
+    assertArrayEquals(new int[] {1, 3}, Editor.codeWord(".e\u0301", 2), "a mark with its letter");
+    assertEquals(2, Editor.codeWordLeft(".\u0301a", 3), "a mark after a point goes with it");
+
+    Random random = new Random(3);
+    String[] parts = {"a", "_", "1", ".", " ", "\u0301", "❤️", "👍🏽", "👩‍💻", "😀", "é", "\n"};
+    for (int round = 0; round < 2000; round++) {
+      StringBuilder text = new StringBuilder();
+      for (int n = random.nextInt(8); n > 0; n--) {
+        text.append(parts[random.nextInt(parts.length)]);
+      }
+      String s = text.toString();
+      for (int at : stops(s)) {
+        assertBoundary(s, Editor.codeWordLeft(s, at));
+        assertBoundary(s, Editor.codeWordRight(s, at, true));
+        assertBoundary(s, Editor.codeWordRight(s, at, false));
+        int[] word = Editor.codeWord(s, at);
+        assertBoundary(s, word[0]);
+        assertBoundary(s, word[1]);
+      }
+    }
+  }
+
+  private static void assertBoundary(String text, int at) {
+    assertEquals(
+        Editor.snap(text, at), at, () -> at + " in " + text.codePoints().boxed().toList());
   }
 
   @Test
