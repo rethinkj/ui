@@ -3,9 +3,11 @@ package com.rethinkj.ui;
 import static com.rethinkj.ui.El.el;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.rethinkj.ui.Examples.Lights;
+import com.rethinkj.ui.motion.Spring;
 import com.rethinkj.ui.text.TextLibraries;
 import com.rethinkj.ui.text.TextRendering;
 import java.nio.file.Path;
@@ -281,5 +283,95 @@ class AppTest {
   private static void press(App<?> app, float x, float y) {
     app.pointerDown(x, y);
     app.pointerUp(x, y);
+  }
+
+  @Test
+  void anyKeyDownInTheRowsOfAListGetsEveryKeyOfAFrame() {
+    List<String> seen = new ArrayList<>();
+    App<Void> app = new App<>(
+        null,
+        s -> El.col()
+            .size(100, 100)
+            .onKey(k -> true) // each key is taken, so the next one gets a tree built between them
+            .rows(1, 20, i -> el().onAnyKeyDown(k -> seen.add(k.name()))));
+    app.resize(100, 100, 1);
+    app.frame();
+    app.keyDown(new Key("A"));
+    app.keyDown(new Key("B"));
+    app.frame();
+    assertEquals(List.of("A", "B"), seen);
+  }
+
+  @Test
+  void anElementThatIsLeavingGetsNoneOfTheHooksOfAllInput() {
+    List<String> seen = new ArrayList<>();
+    App<boolean[]> app = new App<>(new boolean[] {true}, s -> {
+      El root = el().size(100, 100);
+      if (s[0]) {
+        root.child(el().key("gone")
+            .size(20, 20)
+            .motion(Spring.SNAP)
+            .onAnyKeyDown(k -> seen.add("key"))
+            .onAnyPointerDown(() -> seen.add("pointer"))
+            .onPressOutside(() -> seen.add("outside")));
+      }
+      return root;
+    });
+    app.resize(100, 100, 1);
+    app.frame();
+    app.advance(1);
+    app.frame();
+    app.post(() -> app.state()[0] = false);
+    app.frame();
+    assertTrue(app.tree().dump().contains("exiting"), "it fades out");
+    app.keyDown(new Key("A"));
+    app.pointerDown(80, 80);
+    app.frame();
+    assertEquals(List.of(), seen);
+  }
+
+  @Test
+  void aPressEndsWhenItsElementLeavesAndOneWithItsIdentityComesBack() {
+    App<int[]> app = new App<>(new int[2], s -> {
+      El root = el().size(100, 100);
+      if (s[0] != 1) {
+        root.child(el().key("button").size(40, 40).onPress(() -> s[1]++));
+      }
+      return root;
+    });
+    app.resize(100, 100, 1);
+    app.frame();
+    app.pointerDown(10, 10);
+    app.frame();
+    app.post(() -> app.state()[0] = 1); // the button leaves
+    app.frame();
+    assertNull(app.pressed());
+    app.post(() -> app.state()[0] = 2); // and a new one with the same key comes
+    app.frame();
+    app.pointerUp(10, 10);
+    app.frame();
+    assertEquals(0, app.state()[1], "the release presses nothing");
+  }
+
+  @Test
+  void aSecondaryPressEndsWhenItsElementLeavesAndOneWithItsIdentityComesBack() {
+    App<int[]> app = new App<>(new int[2], s -> {
+      El root = el().size(100, 100);
+      if (s[0] != 1) {
+        root.child(el().key("button").size(40, 40).onSecondaryPress((x, y) -> s[1]++));
+      }
+      return root;
+    });
+    app.resize(100, 100, 1);
+    app.frame();
+    app.secondaryDown(10, 10);
+    app.frame();
+    app.post(() -> app.state()[0] = 1);
+    app.frame();
+    app.post(() -> app.state()[0] = 2);
+    app.frame();
+    app.secondaryUp(10, 10);
+    app.frame();
+    assertEquals(0, app.state()[1]);
   }
 }

@@ -111,4 +111,33 @@ class KeyPressTest {
     assertFalse(pressed(app));
     assertNull(app.pressed());
   }
+
+  @Test
+  void thePressedLookOfAKeyEndsWhenItsElementLeavesAndOneWithItsIdentityComesBack() {
+    App<int[]> app = new App<>(new int[1], s -> {
+      El root = El.el().size(100, 100);
+      if (s[0] != 1) {
+        root.child(El.el()
+            .key("button")
+            .size(40, 40)
+            .focusable()
+            .autofocus(s[0] == 0 ? Boolean.TRUE : null)
+            .onPress(() -> {})
+            .whenPressed(e -> e.fill(0xFF0000FF)));
+      }
+      return root;
+    });
+    app.resize(100, 100, 1);
+    app.frame();
+    app.keyDown(SPACE); // held: no key up
+    app.frame();
+    assertEquals("button", app.pressed().key());
+    app.post(() -> app.state()[0] = 1);
+    app.frame();
+    assertNull(app.pressed());
+    app.post(() -> app.state()[0] = 2);
+    app.frame();
+    assertNull(app.focused());
+    assertNull(app.pressed(), "the new button takes over neither the press nor its look");
+  }
 }

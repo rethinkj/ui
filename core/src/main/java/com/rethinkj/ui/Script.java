@@ -55,7 +55,8 @@ import java.util.regex.Pattern;
  * </pre>
  *
  * <p>{@code snap} also writes {@code <name>.clipboard.txt} with the text on the app's clipboard,
- * when there is any.
+ * when there is any. A {@code press} and a {@code wheel} act at their target's position without
+ * moving the pointer: what looks hovered stays where {@code move} left it.
  *
  * <p>Only {@code frame} runs a frame. As in a window, input and {@code advance} between frames
  * change nothing on screen until the next one, so {@code snap} refuses to write a frame that does

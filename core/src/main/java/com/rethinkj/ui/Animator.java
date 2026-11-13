@@ -571,8 +571,9 @@ final class Animator {
   /**
    * The overlays of a tree the view has just built, with their identities, in tree order: those
    * attached to its elements and to elements inside overlays, but not those in the rows of virtual
-   * lists, which are built later; and the elements that {@link El#holdFocus hold the focus}, each
-   * before the overlays inside it.
+   * lists, which are built later, nor those the view makes invisible, with opacity 0 or {@code
+   * display: none} on them or above them; and the elements that {@link El#holdFocus hold the
+   * focus}, each before the overlays inside it.
    */
   static Map<Object, El> overlays(El root) {
     Map<Object, El> found = new LinkedHashMap<>();
@@ -581,6 +582,9 @@ final class Animator {
   }
 
   private static void overlays(El el, Id id, Map<Object, El> found) {
+    if (el.targetOpacity() == 0 || el.style().display == Style.Display.NONE) {
+      return; // what cannot show opens nothing and takes no focus
+    }
     if (el.holdsFocus()) {
       found.put(id, el); // holds the focus as an open overlay does, before those inside it
     }
@@ -590,8 +594,11 @@ final class Animator {
     }
     Id[] layers = layerIds(el, id);
     for (int i = 0; i < layers.length; i++) {
-      found.put(layers[i], el.overlays().get(i));
-      overlays(el.overlays().get(i), layers[i], found);
+      El overlay = el.overlays().get(i);
+      if (overlay.targetOpacity() != 0 && overlay.style().display != Style.Display.NONE) {
+        found.put(layers[i], overlay);
+      }
+      overlays(overlay, layers[i], found);
     }
   }
 
@@ -624,60 +631,53 @@ final class Animator {
   }
 
   /**
-   * The identity of the first element in tree order of a tree the view has just built, before
-   * {@link #update} takes it, whose {@link El#autofocus} asks for the focus now: it is new, or its
-   * key differs from that of the element with its identity in the current tree. Overlays that are
-   * new are left out, as their opening decides, and so are elements at opacity 0 and with {@code
-   * display: none}; null if there is none.
+   * The identities of the elements of a tree the view has just built, before {@link #update}
+   * takes it, whose {@link El#autofocus} asks for the focus now, in tree order: each is new, or
+   * its key differs from that of the element with its identity in the current tree. The first
+   * that can take the focus once the tree is laid out gets it. Overlays that are new are left out,
+   * as their opening decides, and so are elements at opacity 0 and with {@code display: none}.
    */
-  Object autofocus(El root) {
-    return autofocus(root, new Id(null, part(root, 0)));
+  List<Object> autofocus(El root) {
+    List<Object> found = new ArrayList<>();
+    autofocus(root, new Id(null, part(root, 0)), found);
+    return found;
   }
 
   /**
-   * The first element in the rows of the list {@code list}, with the identity {@code listId},
-   * that asks for the focus with {@link El#autofocus} as {@link #autofocus(El)} finds it, or null:
-   * the rows are built after layout, when that has looked at the rest of the tree.
+   * The elements in the rows of the list {@code list}, with the identity {@code listId}, that ask
+   * for the focus with {@link El#autofocus} as {@link #autofocus(El)} finds them: the rows are
+   * built after layout, when that has looked at the rest of the tree.
    */
-  Object autofocusInRows(El list, Object listId) {
+  List<Object> autofocusInRows(El list, Object listId) {
+    List<Object> found = new ArrayList<>();
     Id[] ids = ids(list, (Id) listId);
     for (int i = 0; i < ids.length; i++) {
-      Id found = autofocus(list.children().get(i), ids[i]);
-      if (found != null) {
-        return found;
-      }
+      autofocus(list.children().get(i), ids[i], found);
     }
-    return null;
+    return found;
   }
 
-  private Id autofocus(El el, Id id) {
+  private void autofocus(El el, Id id, List<Object> found) {
     if (el.opacity() == 0 || el.style().display == Style.Display.NONE) {
-      return null;
+      return;
     }
     Object key = el.autofocusKey();
     if (key != null && el.isFocusable()) {
       Entry entry = entries.get(id);
       if (entry == null || entry.el.isExiting() || !key.equals(entry.el.autofocusKey())) {
-        return id;
+        found.add(id);
       }
     }
     Id[] ids = ids(el, id);
     for (int i = 0; i < ids.length; i++) {
-      Id found = autofocus(el.children().get(i), ids[i]);
-      if (found != null) {
-        return found;
-      }
+      autofocus(el.children().get(i), ids[i], found);
     }
     Id[] layers = layerIds(el, id);
     for (int i = 0; i < layers.length; i++) {
       if (entries.containsKey(layers[i])) {
-        Id found = autofocus(el.overlays().get(i), layers[i]);
-        if (found != null) {
-          return found;
-        }
+        autofocus(el.overlays().get(i), layers[i], found);
       }
     }
-    return null;
   }
 
   private static Object part(El el, int index) {

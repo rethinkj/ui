@@ -291,7 +291,8 @@ public final class Button {
 
   /**
    * An overlay that shows nothing and ends a copy's confirmation after its time, for copy buttons
-   * in the rows of a list, whose overlays keep no time; null while nothing is confirmed.
+   * in the rows of a list, whose overlays keep their time only while their row exists; null while
+   * nothing is confirmed.
    */
   static El ending(Theme t, Copied copied) {
     String what = copied.what;

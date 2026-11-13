@@ -2304,7 +2304,11 @@ public final class El {
    * Runs {@code handler} once this overlay has been open for {@code seconds} of the app's clock,
    * once per opening: a notification closes itself after a while. Like {@link #onHoverFor}, it
    * runs in {@link App#frame}, which then builds the view again; {@link App#nextChange} says when
-   * it is due, so an idle window waits for it without drawing frames.
+   * it is due, so an idle window waits for it without drawing frames. The time starts when the
+   * overlay is first there, also where a delayed look attaches it ({@link #whenHoveredFor},
+   * {@link #whenFocusVisibleFor}) and in a row of a virtual list once the list builds the row, and
+   * ends when it closes, is leaving, is made invisible by the view with an element above it or
+   * its row leaves the rows that exist.
    *
    * @param handler runs once the time has come, or null for none
    */

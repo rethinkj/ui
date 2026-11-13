@@ -275,9 +275,6 @@ el 0,0 140x40
       el 62,12 16x16
       el 62,12 16x16
       el 62,12 16x16
-overlay bottom center gap 2 on #c role=button label="Refresh" 58,8 24x24
-  el #tooltip role=tooltip label="Refresh" 41,18 59x22
-    text "Refresh" 46,21 49x16
 # busy icon, focused
 el 0,0 140x40
   el #c role=button label="Refresh" 58,8 24x24 busy focused
