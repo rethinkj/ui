@@ -1,5 +1,6 @@
 package com.rethinkj.ui.render;
 
+import com.rethinkj.ui.Colors;
 import com.rethinkj.ui.Image;
 import com.rethinkj.ui.text.Atlas;
 import java.util.HashMap;
@@ -945,9 +946,7 @@ public final class CpuRenderer {
 
   /** A linear value from 0 to 1 as 8-bit sRGB, from 0 to 255. */
   static int encode(double linear) {
-    double srgb =
-        linear <= 0.0031308 ? linear * 12.92 : 1.055 * StrictMath.pow(linear, 1 / 2.4) - 0.055;
-    return (int) Math.round(srgb * 255);
+    return (int) Math.round(Colors.srgb(linear) * 255);
   }
 
   /**

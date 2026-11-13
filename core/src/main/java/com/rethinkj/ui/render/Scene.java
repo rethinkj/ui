@@ -1,5 +1,6 @@
 package com.rethinkj.ui.render;
 
+import com.rethinkj.ui.Colors;
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.Image;
 import com.rethinkj.ui.Len;
@@ -370,10 +371,7 @@ public final class Scene {
 
   static {
     for (int i = 0; i < 256; i++) {
-      double c = i / 255.0;
-      // StrictMath: Math.pow may differ in the last bit between platforms.
-      SRGB_TO_LINEAR[i] =
-          (float) (c <= 0.04045 ? c / 12.92 : StrictMath.pow((c + 0.055) / 1.055, 2.4));
+      SRGB_TO_LINEAR[i] = (float) Colors.linear(i / 255.0);
     }
   }
 
@@ -677,7 +675,7 @@ public final class Scene {
     data.set(ValueLayout.JAVA_INT, offset + LEVELS, image.levels());
     data.set(ValueLayout.JAVA_INT, offset + CLIP, own);
     data.set(ValueLayout.JAVA_INT, offset + KIND, IMAGE);
-    colour(offset + FILL, 0xFFFFFFFF, opacity);
+    colour(offset + FILL, Colors.WHITE, opacity);
     data.set(ValueLayout.JAVA_INT, offset + IMAGE_INDEX, index);
     for (int slot = IMAGE_INDEX + 4; slot < STRIDE; slot += 4) {
       put(offset + slot, 0);

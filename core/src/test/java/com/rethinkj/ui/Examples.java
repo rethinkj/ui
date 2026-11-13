@@ -477,26 +477,9 @@ public final class Examples {
     return el().w(1).fill(0);
   }
 
-  /**
-   * The colour {@code overlay} gives over the opaque {@code base}, as the kit's Theme.over: mixed
-   * in linear light.
-   */
+  /** The colour {@code overlay} gives over the opaque {@code base}, as the kit's Theme.over. */
   private static int over(int base, int overlay) {
-    double alpha = (overlay >>> 24) / 255.0;
-    int argb = 0xFF;
-    for (int shift = 16; shift >= 0; shift -= 8) {
-      double mixed = linear(overlay >>> shift & 0xFF) * alpha
-          + linear(base >>> shift & 0xFF) * (1 - alpha);
-      double srgb =
-          mixed <= 0.0031308 ? mixed * 12.92 : 1.055 * StrictMath.pow(mixed, 1 / 2.4) - 0.055;
-      argb = argb << 8 | (int) Math.round(srgb * 255);
-    }
-    return argb;
-  }
-
-  private static double linear(int channel) {
-    double c = channel / 255.0;
-    return c <= 0.04045 ? c / 12.92 : StrictMath.pow((c + 0.055) / 1.055, 2.4);
+    return Colors.over(base, overlay);
   }
 
   /** The state of the switch example. */

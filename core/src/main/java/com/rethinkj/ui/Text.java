@@ -95,7 +95,7 @@ public final class Text implements Measure {
   public static final int MASK = 0x2022;
 
   /** The colour of the selection until {@link El#selectionColor} changes it, as 0xAARRGGBB. */
-  public static final int SELECTION = 0x663B82F6;
+  public static final int SELECTION = Colors.alpha(Colors.rgb(0x3B82F6), 0.4f);
 
   // A width a line may exceed its box by: layout converts what it measured back and forth, and
   // widths are on a grid of a quarter pixel.
@@ -138,10 +138,10 @@ public final class Text implements Measure {
   private int underlineTo;
   private Font font;
   private float size = 14;
-  private int color = 0xFF000000;
+  private int color = Colors.BLACK;
   // The colour the view gave, which a highlighter's glyphs without a colour of their own are
   // shaped with; `color` is the one shown, which motion moves towards it.
-  private int viewColor = 0xFF000000;
+  private int viewColor = Colors.BLACK;
   private int background;
   private boolean wraps;
   private boolean ellipsis;

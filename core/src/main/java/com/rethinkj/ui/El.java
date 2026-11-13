@@ -19,8 +19,8 @@ import java.util.function.Predicate;
  * with chained calls:
  *
  * <pre>{@code
- * col().center().gap(16).fill(0xFF101014)
- *     .child(el().key("switch").size(38, 22).radius(11).fill(0xFF3B82F6));
+ * col().center().gap(16).fill(Colors.rgb(0x101014))
+ *     .child(el().key("switch").size(38, 22).radius(11).fill(Colors.rgb(0x3B82F6)));
  * }</pre>
  */
 public final class El {

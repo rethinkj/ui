@@ -10,6 +10,7 @@ import static org.junit.jupiter.api.Assertions.fail;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import com.rethinkj.ui.App;
+import com.rethinkj.ui.Colors;
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.Examples;
 import com.rethinkj.ui.Examples.Lights;
@@ -627,7 +628,7 @@ class GpuRendererTest {
 
   /** A linear value as sRGB, from 0 to 1, not rounded. */
   private static double srgb(double linear) {
-    return linear <= 0.0031308 ? linear * 12.92 : 1.055 * Math.pow(linear, 1 / 2.4) - 0.055;
+    return Colors.srgb(linear);
   }
 
   static Comparison compare(GpuRenderer renderer, Case c) {
