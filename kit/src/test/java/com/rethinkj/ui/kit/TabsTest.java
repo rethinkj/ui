@@ -239,6 +239,61 @@ class TabsTest {
         app.state().queries.get(1).title().replace("*", ""), find(app, "panel").label());
   }
 
+  /** Tabs alone, without {@link TabGroups}: moving, dragging and a menu. */
+  private static final class Bar {
+    final List<String> tabs = new java.util.ArrayList<>(List.of("a", "b", "c", "d"));
+    int active;
+    final Tabs.Dragging dragging = new Tabs.Dragging();
+    final Menu.State menu = new Menu.State();
+
+    El view() {
+      return col()
+          .wFull()
+          .hFull()
+          .child(tabs(
+                  T,
+                  tabs.stream().map(Tab::new).toList(),
+                  active,
+                  i -> active = i,
+                  i -> {
+                    tabs.remove(i);
+                    active = Math.min(active, tabs.size() - 1);
+                  },
+                  null,
+                  Tabs.options()
+                      .drag(dragging)
+                      .onMove((from, to) -> active = Tabs.move(tabs, active, from, to))
+                      .contextMenu(menu, List.of(Menu.item("Rename", () -> {}))))
+              .grow(1));
+    }
+  }
+
+  @Test
+  void aTabMovedByTheKeysWhileItIsDraggedStaysTheOneDragged() throws IOException {
+    Bar bar = new Bar();
+    App<Bar> app = new App<>(bar, Bar::view);
+    run(
+        app,
+        "frame\nfocus #tablist\ndown 8,17\nmove 100,17\nframe\nkey PageDown control shift\nframe");
+    assertEquals(List.of("b", "a", "c", "d"), bar.tabs);
+    assertEquals(1, bar.dragging.index());
+    assertTrue(dumpLine(app, "tab-1").contains(" grabbed"), dumpLine(app, "tab-1"));
+  }
+
+  @Test
+  void theMenuOfATabEndsWhenTheKeysCloseItOrChooseAnother() throws IOException {
+    Bar bar = new Bar();
+    App<Bar> app = new App<>(bar, Bar::view);
+    run(app, "frame\npress 53,17 right\nframe");
+    assertTrue(bar.menu.isOpen());
+    run(app, "key W control\nframe");
+    assertFalse(bar.menu.isOpen(), "its tab closed");
+    assertEquals(List.of("a", "c", "d"), bar.tabs);
+    run(app, "press 8,17 right\nframe\nkey Tab control\nframe");
+    assertFalse(bar.menu.isOpen(), "another tab is active");
+    assertEquals(1, bar.active);
+  }
+
   // An overfull bar
 
   @Test
