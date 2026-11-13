@@ -82,6 +82,23 @@ class ThemeTest {
           "selection on the caret line", over(line, t.accent().selection())), 3);
     });
     check(failures, "bracket", code.operator(), Map.of("bracket", over(line, code.bracket())), 4.5);
+    // The matches of a find, the current one, and the occurrences of the word at the caret, also
+    // on the caret's line; under the selection 3:1, as all code.
+    Map<String, Integer> marked = Map.of(
+        "match", over(s.raised(), code.match()),
+        "match on the caret line", over(line, code.match()),
+        "current match", over(s.raised(), code.current()),
+        "current match on the caret line", over(line, code.current()),
+        "occurrence", over(s.raised(), code.occurrence()),
+        "occurrence on the caret line", over(line, code.occurrence()));
+    Map<String, Integer> selectedMatch = Map.of(
+        "selected current match", over(over(line, code.current()), t.accent().selection()));
+    Map<String, Integer> text = new java.util.HashMap<>(codeColours);
+    text.put("text", t.text().primary());
+    text.forEach((token, colour) -> {
+      check(failures, token, colour, marked, 4.5);
+      check(failures, token, colour, selectedMatch, 3);
+    });
     check(failures, "line number", t.text().muted(), Map.of("raised", s.raised()), 4.5);
     // A document on a card: text, quotes, links and inline code on the panel, under the pointer
     // and on inline code's background; code blocks on the raised surface, as above.

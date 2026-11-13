@@ -1,0 +1,43 @@
+# The code editor's find bar (FindTest): opened on the word at the caret, its matches marked and
+# the current one stronger; with the replacement; and the field of the line to go to.
+frame
+focus #query
+key ArrowDown
+key ArrowRight
+key ArrowRight
+key ArrowRight
+key ArrowRight
+key ArrowRight
+key ArrowRight
+key ArrowRight
+key ArrowRight         # after the o of "SELECT o.id": the other occurrences of o are marked
+frame
+snap occurrences
+
+key ArrowDown          # in "orders" of "FROM orders o"
+key F control          # opens with the word at the caret and selects its first match from there
+frame
+advance 0.25           # past the fade
+frame
+snap open
+
+type "o."              # in place of "orders": every "o.", from where the bar opened
+key Enter              # the next one
+frame
+snap typed
+
+key H control          # the replacement below
+frame
+focus #replace
+type "ord."
+frame
+advance 0.25
+frame
+snap replace
+
+key Escape             # closes; the editor has the focus and the last match selected
+key G control          # the line to go to
+frame
+advance 0.25
+frame
+snap line

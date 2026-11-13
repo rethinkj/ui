@@ -143,19 +143,34 @@ public record Theme(
    * @param number literal numbers
    * @param comment comments
    * @param operator operators, brackets and punctuation
-   * @param line translucent, behind the line of the caret
+   * @param line translucent, behind the line of the caret, and the selection a find keeps to
    * @param bracket translucent, behind the bracket at the caret and the one that matches it
+   * @param match translucent, behind each match of a find ({@link Find})
+   * @param current translucent, behind the current match of a find, stronger than {@code match}
+   * @param occurrence translucent, behind the other occurrences of the word at the caret
    */
   public record Code(int keyword, int string, int number, int comment, int operator, int line,
-      int bracket) {
+      int bracket, int match, int current, int occurrence) {
 
     /** For dark surfaces. */
     public static final Code DARK = new Code(0xFFD2B4FF, 0xFFA6DB94, 0xFFF5BD8C, 0xFFB4B8C0,
-        0xFF9ADCF5, 0x04FFFFFF, 0x0CFFFFFF);
+        0xFF9ADCF5, 0x04FFFFFF, 0x0CFFFFFF, 0x605C4A12, 0x448A6A1F, 0x08FFFFFF);
 
     /** For light surfaces. */
     public static final Code LIGHT = new Code(0xFF6A28CF, 0xFF1A6633, 0xFF95400C, 0xFF575B63,
-        0xFF0A5D75, 0x10000000, 0x26000000);
+        0xFF0A5D75, 0x10000000, 0x26000000, 0x40F2B300, 0x80E8A33A, 0x1C000000);
+
+    /**
+     * The colours of code with the backgrounds of a find and of a word's occurrences of {@link
+     * #DARK} where the caret's line is light on dark, else of {@link #LIGHT}.
+     */
+    public Code(int keyword, int string, int number, int comment, int operator, int line,
+        int bracket) {
+      this(keyword, string, number, comment, operator, line, bracket,
+          (line & 0xFFFFFF) == 0xFFFFFF ? DARK.match : LIGHT.match,
+          (line & 0xFFFFFF) == 0xFFFFFF ? DARK.current : LIGHT.current,
+          (line & 0xFFFFFF) == 0xFFFFFF ? DARK.occurrence : LIGHT.occurrence);
+    }
   }
 
   /**

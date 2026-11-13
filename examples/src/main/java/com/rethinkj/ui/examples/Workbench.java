@@ -917,18 +917,20 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
   }
 
   private static El table(Theme t, Workbench s, Opened o, App<Workbench> app) {
-    El area = codeEditor(t, o.query, o.editor, Sql.of(t), q -> {
+    El area = codeEditor(t, app, o.query, o.editor, Sql.of(t), q -> {
           o.query = q;
           o.failure = null; // the next edit takes the error away
           o.editor.noError();
         })
-        .key("query-" + o.table.path()).label("Query").wFull().shrink(0).onKey(k -> {
-          boolean run = k.name().equals("Enter") && k.modifiers() == Key.CONTROL;
-          if (run) {
-            s.run(o);
-          }
-          return run;
-        });
+        .key("query-" + o.table.path()).label("Query").wFull().shrink(0);
+    Predicate<Key> run = k -> {
+      boolean enter = k.name().equals("Enter") && k.modifiers() == Key.CONTROL;
+      if (enter) {
+        s.run(o);
+      }
+      return enter;
+    };
+    area.onKey(run.or(area.onKey())); // and the editor's own keys
     Completion.complete(t, app, area, o.editor.caret(), o.completion,
         word -> s.suggest(o, word));
     El query = col().padding(t.space().m(), t.space().l()).shrink(0).child(area);

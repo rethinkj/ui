@@ -17,7 +17,7 @@ import java.util.Set;
  * asked of one while the view passes it again: {@code field.highlight(sql, sql)}. It scans each
  * line once, character by character, without regular expressions.
  */
-public record Sql(Theme.Code colors) implements Highlighter {
+public record Sql(Theme.Code colors) implements Highlighter, CodeEditor.LineComments {
 
   /** The highlighter in the theme's colours for code. */
   public static Sql of(Theme t) {
@@ -230,5 +230,11 @@ public record Sql(Theme.Code colors) implements Highlighter {
 
   private static boolean isWordPart(char c) {
     return Character.isLetterOrDigit(c) || c == '_' || c == '$';
+  }
+
+  /** SQL's comments to the end of a line start with {@code --}. */
+  @Override
+  public String lineComment() {
+    return "--";
   }
 }

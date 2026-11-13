@@ -106,6 +106,8 @@ final class Editor {
   // view; the x Up and Down keep, in physical pixels, NaN until they move; whether Tab moves the
   // focus after Escape, or after Control+M until the next Control+M.
   private boolean reveal;
+  // App.select asked: a multi-line field scrolls the selection into view also without the focus.
+  private boolean asked;
   // The caret and anchor the element's onSelect handler was told last; -1 before the first.
   private int toldCaret = -1;
   private int toldAnchor = -1;
@@ -365,6 +367,7 @@ final class Editor {
     goal = Float.NaN;
     changed = true;
     reveal = true;
+    asked = true;
   }
 
   /**
@@ -1146,7 +1149,8 @@ final class Editor {
       returning = false;
       el.scrollTo(leftX, leftY);
     }
-    boolean revealed = focused && reveal;
+    boolean revealed = (focused || asked) && reveal;
+    asked = false;
     if (revealed) {
       reveal = false;
       float x = t.x(shownCaret);
