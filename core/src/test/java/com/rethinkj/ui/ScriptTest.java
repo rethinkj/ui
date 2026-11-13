@@ -130,6 +130,7 @@ class ScriptTest {
 
   @Test
   void theHoverExampleOfAgentsMdShowsTheLooksOfTheSwitch() throws IOException {
+    TextLibraries.assumeLoaded();
     String example = Files.readString(HOVER);
     assertTrue(
         Files.readString(Path.of("../AGENTS.md")).contains(example),
