@@ -2,12 +2,13 @@ package com.rethinkj.ui.examples;
 
 import static com.rethinkj.ui.El.col;
 import static com.rethinkj.ui.El.el;
-import static com.rethinkj.ui.El.row;
 import static com.rethinkj.ui.examples.TitleBar.titleBar;
 import static com.rethinkj.ui.kit.Button.Variant.PRIMARY;
 import static com.rethinkj.ui.kit.Button.Variant.SECONDARY;
 import static com.rethinkj.ui.kit.Button.button;
 import static com.rethinkj.ui.kit.Checkbox.checkbox;
+import static com.rethinkj.ui.kit.Form.field;
+import static com.rethinkj.ui.kit.Form.form;
 import static com.rethinkj.ui.kit.Label.Variant.HEADING;
 import static com.rethinkj.ui.kit.Label.Variant.MUTED;
 import static com.rethinkj.ui.kit.Label.label;
@@ -19,7 +20,7 @@ import static com.rethinkj.ui.kit.Toggle.toggle;
 import com.rethinkj.ui.App;
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.Script;
-import com.rethinkj.ui.Style;
+import com.rethinkj.ui.kit.Form;
 import com.rethinkj.ui.kit.Theme;
 import com.rethinkj.ui.render.GpuPresenter;
 import com.rethinkj.ui.text.TextRendering;
@@ -28,11 +29,12 @@ import com.rethinkj.ui.window.WindowLoop;
 import java.io.IOException;
 
 /**
- * The dialog in which a database tool asks where to connect, built from the kit: labelled text
- * fields, a password field with a button that shows the password, a checkbox, a switch between
- * the dark and the light theme, and two buttons. Connect stays disabled until host, port,
- * database and user are filled in, and the port takes only digits. Enter in a field connects, as
- * does Connect; the example only says where it would go, and never what the password is.
+ * The dialog in which a database tool asks where to connect, built from the kit: a form of text
+ * fields with their labels beside them and the required ones marked, a password field with a
+ * button that shows the password, a checkbox, a switch between the dark and the light theme, and
+ * two buttons. Connect stays disabled until host, port, database and user are filled in, and the
+ * port takes only digits. Enter in a field connects, as does Connect; the example only says where
+ * it would go, and never what the password is.
  */
 public final class ConnectionDialog {
 
@@ -99,27 +101,27 @@ public final class ConnectionDialog {
     El form = col().grow(1).padding(t.space().xxl()).gap(t.space().l())
         .child(label(t, HEADING, "Connect to PostgreSQL"))
         .child(label(t, MUTED, "The server and the account to log in with."))
-        .child(col().gap(t.space().m()).margin(t.space().s(), 0, t.space().s(), 0)
-            .child(field(t, "Host", textField(t, s.host, "Name or address", v -> s.host = v)
-                .key("host").w(260)))
-            .child(field(t, "Port", textField(t, s.port, "5432", s::port)
-                .key("port").maxLength(5).w(72)))
-            .child(field(t, "Database", textField(t, s.database, "Name", v -> s.database = v)
-                .key("database").w(260)))
-            .child(field(t, "User", textField(t, s.user, "Role", v -> s.user = v)
-                .key("user").w(260)))
-            .child(named(t, "Password", revealable(t,
-                passwordField(t, s.password, null, v -> s.password = v)
-                    .key("password").label("Password").w(260),
-                s.revealed, () -> s.revealed = !s.revealed))))
+        .child(form(t, Form.Labels.BESIDE,
+            field("Host", textField(t, s.host, "Name or address", v -> s.host = v)
+                .key("host").w(260)).required(),
+            field("Port", textField(t, s.port, "5432", s::port)
+                .key("port").maxLength(5).w(72)).required(),
+            field("Database", textField(t, s.database, "Name", v -> s.database = v)
+                .key("database").w(260)).required(),
+            field("User", textField(t, s.user, "Role", v -> s.user = v)
+                .key("user").w(260)).required(),
+            field("Password", revealable(t,
+                passwordField(t, s.password, null, v -> s.password = v).key("password").w(260),
+                s.revealed, () -> s.revealed = !s.revealed)))
+            .margin(t.space().s(), 0, t.space().s(), 0))
         .child(checkbox(t, s.ssl, "Require SSL", () -> s.ssl = !s.ssl))
         .child(toggle(t, s.dark, "Dark theme", () -> s.dark = !s.dark))
         .child(el().grow(1))
         .child(label(t, MUTED, s.status))
-        .child(row().gap(t.space().m()).justify(Style.Content.END)
-            .child(button(t, SECONDARY, "Reset", s::reset))
+        .child(Form.buttons(t,
+            button(t, SECONDARY, "Reset", s::reset),
             // A null handler disables the button.
-            .child(button(t, PRIMARY, "Connect", s.valid() ? s::connect : null)));
+            button(t, PRIMARY, "Connect", s.valid() ? s::connect : null)));
     return col().wFull().hFull().fill(t.surface().window())
         // Enter in a field connects; on a button or the checkbox it presses that instead.
         .onKey(key -> {
@@ -131,17 +133,5 @@ public final class ConnectionDialog {
         })
         .child(titleBar(t, "New connection", t.accent().color()))
         .child(form);
-  }
-
-  /** A field with its name before it, which is also the field's label. */
-  static El field(Theme t, String name, El field) {
-    return named(t, name, field.label(name));
-  }
-
-  /** Something with a name before it. */
-  static El named(Theme t, String name, El content) {
-    return row().gap(t.space().m()).align(Style.Align.CENTER)
-        .child(label(t, name).w(72))
-        .child(content);
   }
 }
