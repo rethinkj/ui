@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>com.rethinkj.ui</groupId>
+    <artifactId>rethinkj-ui-parent</artifactId>
+    <version>0.1.0-SNAPSHOT</version>
+  </parent>
+
+  <artifactId>rethinkj-ui-natives-windows-x64</artifactId>
+
+  <name>rethinkj UI :: Natives :: Windows x64</name>
+  <description>SDL3 and wgpu-native for Windows on x64, loaded by rethinkj-ui-core.</description>
+
+  <!-- The licences of the libraries; their texts are in the JAR beside them. wgpu-native is
+       available under either MIT or Apache-2.0. -->
+  <licenses>
+    <license>
+      <name>zlib License (SDL)</name>
+      <url>https://opensource.org/license/zlib</url>
+    </license>
+    <license>
+      <name>MIT License (wgpu-native)</name>
+      <url>https://opensource.org/license/mit</url>
+    </license>
+    <license>
+      <name>Apache License 2.0 (wgpu-native)</name>
+      <url>https://www.apache.org/licenses/LICENSE-2.0</url>
+    </license>
+  </licenses>
+
+  <build>
+    <!-- No Java code: the JAR holds the libraries, their manifest and their licences. -->
+    <resources>
+      <resource>
+        <directory>src/main/resources</directory>
+      </resource>
+      <!-- Written by scripts/FetchNatives.java, ignored by git. -->
+      <resource>
+        <directory>fetched/resources</directory>
+      </resource>
+    </resources>
+
+    <plugins>
+      <plugin>
+        <!-- Runs the fetch tool with the JDK that runs Maven. What it writes to stderr when it
+             fails says what to do; it becomes the message of the build failure, so that it shows
+             even with -q and without a stack trace. -->
+        <artifactId>maven-antrun-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>fetch-natives</id>
+            <phase>generate-resources</phase>
+            <goals>
+              <goal>run</goal>
+            </goals>
+            <configuration>
+              <target>
+                <exec executable="${java.home}/bin/java" resultproperty="fetch.result"
+                      errorproperty="fetch.error">
+                  <arg file="${project.basedir}/../scripts/FetchNatives.java"/>
+                  <arg file="${project.basedir}"/>
+                </exec>
+                <fail message="${fetch.error}">
+                  <condition>
+                    <not>
+                      <equals arg1="${fetch.result}" arg2="0"/>
+                    </not>
+                  </condition>
+                </fail>
+              </target>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <artifactId>maven-jar-plugin</artifactId>
+        <configuration>
+          <archive>
+            <manifestEntries>
+              <!-- The name to pass to add-modules when the JAR is on the module path. -->
+              <Automatic-Module-Name>com.rethinkj.ui.natives.windows.x64</Automatic-Module-Name>
+            </manifestEntries>
+          </archive>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+</project>

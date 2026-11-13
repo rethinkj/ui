@@ -84,7 +84,28 @@
           <artifactId>maven-deploy-plugin</artifactId>
           <version>3.2.0</version>
         </plugin>
+        <plugin>
+          <artifactId>maven-antrun-plugin</artifactId>
+          <version>3.2.0</version>
+        </plugin>
       </plugins>
     </pluginManagement>
   </build>
+
+  <profiles>
+    <!-- Each natives module holds the libraries of one platform and is built only there. The
+         profile has the same id in core, which tests with the module. -->
+    <profile>
+      <id>natives-windows-x64</id>
+      <activation>
+        <os>
+          <family>windows</family>
+          <arch>amd64</arch>
+        </os>
+      </activation>
+      <modules>
+        <module>natives-windows-x64</module>
+      </modules>
+    </profile>
+  </profiles>
 </project>

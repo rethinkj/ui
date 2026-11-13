@@ -12,3 +12,6 @@ out/
 
 .DS_Store
 hs_err_pid*
+
+# What scripts/FetchNatives.java downloads and unpacks for a natives module.
+/natives-*/fetched/
