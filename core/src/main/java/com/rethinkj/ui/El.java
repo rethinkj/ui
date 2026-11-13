@@ -271,6 +271,11 @@ public final class El {
     this.placed = true;
   }
 
+  /** False until layout has placed this element; elements with {@code display: none} stay so. */
+  public boolean isPlaced() {
+    return placed;
+  }
+
   public float x() {
     return x;
   }

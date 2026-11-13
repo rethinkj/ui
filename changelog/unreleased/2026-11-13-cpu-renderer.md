@@ -1,0 +1,1 @@
+- Added rendering without a window: `Scene` (the draw list in native memory), `CpuRenderer` (the reference renderer) and `Png` for reading and writing images.
