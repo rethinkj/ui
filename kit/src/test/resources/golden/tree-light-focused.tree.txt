@@ -1,5 +1,5 @@
 el 0,0 280x300
-  el #schema role=tree label="Schema" 8,8 264x284 rows 0-15/311 focused
+  el #schema role=tree label="Schema" 8,8 264x284 rows 0-15/311 thumb-y 264,10 6x24 focused
     el #row-0 role=treeitem label="localhost" 8,8 264x22
       el #mark-0 12,8 16x22
         text "▼" 17,11 7x16

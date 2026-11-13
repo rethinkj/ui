@@ -14,6 +14,7 @@ import com.rethinkj.ui.El;
 import com.rethinkj.ui.Examples;
 import com.rethinkj.ui.Examples.Lights;
 import com.rethinkj.ui.Script;
+import com.rethinkj.ui.Scrollbars;
 import com.rethinkj.ui.gpu.GpuException;
 import com.rethinkj.ui.layout.Flex;
 import com.rethinkj.ui.text.Atlas;
@@ -138,6 +139,8 @@ class GpuRendererTest {
     cases.addAll(script("focus.txt", () -> new App<>(new Lights(), Examples::lights)));
     cases.addAll(script("hover.txt", () -> new App<>(new Lights(), Examples::lights)));
     cases.addAll(script("list.txt", () -> new App<>(new Object(), s -> Examples.list())));
+    // Scrollbars: thumbs over the rows at both ends, in their colours at rest and dragged.
+    cases.addAll(script("scrollbars.txt", () -> new App<>(new Object(), s -> Examples.bars())));
     // Text fields: the selection and the caret are rectangles, the line under a composition too,
     // and the glyphs are moved by the field's scroll and clipped to it.
     cases.addAll(script("field.txt", () -> new App<>(new Examples.Form(), Examples::form)));
@@ -180,6 +183,8 @@ class GpuRendererTest {
       cases.add(scene("radii" + at, radii(), 160, 100, scale));
       cases.add(scene("overlaps" + at, overlaps(), 160, 100, scale));
       cases.add(view("clips" + at, clips(), 160, 100, scale));
+      cases.add(bars("bars-both" + at, scale, false));
+      cases.add(bars("bars-both-hovered" + at, scale, true));
       cases.add(scene("transparent" + at, transparent(), 160, 100, scale));
     }
     // Text: 11 to 14 pixels in both fonts, dark on light, light on dark and grey on light, with
@@ -921,6 +926,33 @@ class GpuRendererTest {
         .child(el().absolute(-6, 20.5f).size(40, 0.7f).fill(0xFFFFFFFF))
         .child(el().absolute(10, -5).size(8, 100).radius(4).fill(0x8038BDF8));
     return col().wFull().hFull().fill(BACKGROUND).child(outer).child(thin);
+  }
+
+  /**
+   * A rounded scroll area with both bars, scrolled to fractional offsets so that the thumbs lie
+   * between pixels, translucent over boxes that pass under them and cut by the rounded clip at the
+   * corners; with {@code hovered}, the vertical thumb under the pointer in its other colour.
+   */
+  private static Case bars(String name, float scale, boolean hovered) {
+    Scrollbars look = new Scrollbars(7, 2.5f, 3.5f, 20, 0xB0A1A1AA, 0xE0D4D4D8, 0xFFFFFFFF);
+    App<Object> app = new App<>(new Object(), s -> {
+      El area = col().key("area").size(140, 80).scrollBoth().radius(14).padding(4).gap(3)
+          .fill(0xFF1F2937).scrollbars(look);
+      for (int i = 0; i < 12; i++) {
+        area.child(el().size(250, 13).radius(4).fill(i % 2 == 0 ? 0xFF3B82F6 : 0xFFF59E0B));
+      }
+      return col().wFull().hFull().padding(10).fill(BACKGROUND).child(area);
+    });
+    app.resize(160, 100, scale);
+    app.frame();
+    app.wheel(80, 50, 37.3f, 23.6f);
+    app.frame();
+    if (hovered) {
+      Scrollbars.Bar bar = app.tree().children().getFirst().verticalBar();
+      app.pointerMove(bar.thumbX() + 3, bar.thumbY() + 5);
+      app.frame();
+    }
+    return scene(name, app.scene(), 160, 100, scale);
   }
 
   /** Translucent shapes over nothing: the image keeps their alpha. */

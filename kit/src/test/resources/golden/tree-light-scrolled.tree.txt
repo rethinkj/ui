@@ -1,5 +1,5 @@
 el 0,0 280x300
-  el #schema role=tree label="Schema" 8,8 264x284 rows 133-152/311 scroll 0,3000 focused
+  el #schema role=tree label="Schema" 8,8 264x284 rows 133-152/311 scroll 0,3000 thumb-y 264,127.11 6x24 focused
     el #row-133 role=treeitem label="invoices_004" 8,-66 264x22
       el #mark-133 60,-66 16x22
         text "▶" 65,-63 7x16

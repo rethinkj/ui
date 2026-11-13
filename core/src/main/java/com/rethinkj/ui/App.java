@@ -57,6 +57,14 @@ import java.util.function.Predicate;
  * pointer; so does a text field while a press in it selects. A press that lands in a field selects
  * text and never drags an element around it.
  *
+ * <p>A scroll area with {@link El#scrollbars} gets its bars from the app, which places them after
+ * each frame from the area's size, content and offset, over the content. The bars come first for
+ * the pointer: a press on one is the bar's, never a press, drag or selection of what lies under it
+ * or around it, and it leaves the focus alone. Dragging a thumb scrolls from the first pixel, with
+ * no threshold, and the area counts as the one under the pointer meanwhile; a press on the track
+ * beside the thumb scrolls a page. The thumb under the pointer and the dragged one change colour,
+ * which draws a frame but rebuilds nothing.
+ *
  * <p>A text field ({@link El#editable}) keeps its caret, selection, scroll, undo history and
  * composition here too, by the same identity. Its caret blinks on the app's clock while it has the
  * focus: {@link #frame} draws a new frame when it turns on or off, and {@link #nextChange} says
@@ -99,6 +107,9 @@ public final class App<S> {
   private Object pressed; // the identity of the element a press is on, until the pointer is up
   private int pressClicks; // the presses in quick succession that the one on pressed completes
   private Dragging dragging; // a pointer down on an element with a drag handler, until it is up
+  private Grab grab; // a press on the thumb of a scrollbar, until the pointer is up
+  private El barArea; // the scroll area whose bar is under the pointer or dragged, in this tree
+  private Hot hot; // the bar that the last frame shows hovered or dragged
   private boolean pointerIn;
   private float pointerX;
   private float pointerY;
@@ -150,7 +161,8 @@ public final class App<S> {
    * ancestors for {@link El#whenHovered}. Presses do not move the pointer. While the button is
    * held on an element with an {@link El#onDrag} handler, this also starts or moves the drag,
    * wherever the position is, outside the window too; while it is held on a text field, this
-   * selects in the field, without a threshold.
+   * selects in the field, without a threshold; while it is held on a scrollbar's thumb, this drags
+   * the thumb, from the first pixel.
    */
   public void pointerMove(float x, float y) {
     queued.add(() -> {
@@ -162,6 +174,14 @@ public final class App<S> {
     if (selecting != null) {
       Object field = selecting;
       queued.add(() -> drag(field, x, y));
+    }
+    Grab g = grab; // never at the same time as the others
+    if (g != null) {
+      float start = (g.vertical() ? y : x) - g.grip();
+      scrolls.add(() -> {
+        El area = animator.element(g.id());
+        return area != null && area.dragThumb(g.vertical(), start);
+      });
     }
     Dragging d = dragging; // never at the same time as selecting: a press starts one or neither
     if (d != null) {
@@ -202,7 +222,10 @@ public final class App<S> {
    * press selects a word and a third the whole text, Shift extends the
    * selection, and moving the pointer until it is up selects. Such a press goes to the field
    * alone: it is no press and no {@link El#onDrag drag} of an element around it, and until it is
-   * up the field counts as the element under the pointer.
+   * up the field counts as the element under the pointer. A press on a scrollbar ({@link
+   * El#scrollbars}) goes to the bar alone, before anything under it, and leaves the focus where it
+   * is: on the thumb, moving the pointer drags the thumb until it is up, and on the track beside
+   * the thumb, the area scrolls one page towards the pointer.
    *
    * @param clicks 1 for a single press, 2 for the second of a double press, and so on
    * @param modifiers a combination of {@link Key#SHIFT}, {@link Key#CONTROL}, {@link Key#ALT} and
@@ -214,7 +237,27 @@ public final class App<S> {
     }
     dragging = null;
     selecting = null; // likewise: a selection whose release got lost ends where it is
+    grab = null; // and a thumb's drag
     List<El> hit = hit(x, y);
+    Scrollbars.Bar bar = hit.isEmpty() ? null : hit.getLast().barAt(x, y);
+    if (bar != null) { // hit stops at the area whose bar it is
+      El area = hit.getLast();
+      Object id = Animator.identities(hit).getLast();
+      boolean vertical = bar == area.verticalBar();
+      float along = vertical ? y : x;
+      float start = vertical ? bar.thumbY() : bar.thumbX();
+      pressed = null;
+      if (onThumb(bar, vertical, x, y)) {
+        grab = new Grab(id, vertical, along - start);
+      } else {
+        int direction = along < start ? -1 : 1;
+        scrolls.add(() -> {
+          El el = animator.element(id);
+          return el != null && el.page(vertical, direction);
+        });
+      }
+      return;
+    }
     if (!hit.isEmpty() && hit.getLast().takesEdits()) {
       El field = hit.getLast(); // a leaf, so nothing inside it takes the press
       pressed = null;
@@ -244,9 +287,13 @@ public final class App<S> {
   /**
    * The button was released. A press counts when it began on the same element, which the app
    * recognises after rebuilds by the identity that matches elements across them, and did not
-   * become a drag; a drag ends here.
+   * become a drag; a drag ends here, and so does a thumb's drag, which presses nothing.
    */
   public void pointerUp(float x, float y) {
+    if (grab != null) {
+      grab = null;
+      return;
+    }
     if (selecting != null) {
       Object field = selecting;
       queued.add(() -> drag(field, x, y));
@@ -267,6 +314,22 @@ public final class App<S> {
       });
     }
     pressed = null;
+  }
+
+  /**
+   * A press on the thumb of a scroll area's bar: the area's identity, which bar, and how far from
+   * the thumb's start the pointer holds it along the bar.
+   */
+  private record Grab(Object id, boolean vertical, float grip) {}
+
+  /** A bar that shows another colour than at rest. */
+  private record Hot(El area, boolean vertical, int colour) {}
+
+  /** Whether the point lies across the strip of a bar at the place of its thumb. */
+  private static boolean onThumb(Scrollbars.Bar bar, boolean vertical, float x, float y) {
+    float along = vertical ? y : x;
+    float start = vertical ? bar.thumbY() : bar.thumbX();
+    return along >= start && along <= start + (vertical ? bar.thumbHeight() : bar.thumbWidth());
   }
 
   /** A pointer down on an element with a drag handler, which becomes a drag once it moves. */
@@ -492,6 +555,9 @@ public final class App<S> {
    * During a {@link El#onDrag drag} the dragged element decides, wherever the pointer is.
    */
   public Cursor cursor() {
+    if (barArea != null) {
+      return Cursor.DEFAULT;
+    }
     for (El el : under.reversed()) {
       if (el.cursor() != null) {
         return el.cursor();
@@ -949,7 +1015,10 @@ public final class App<S> {
       }
       drawn = true;
     }
-    hover();
+    if (drawn) {
+      El.placeBars(root);
+    }
+    drawn |= hover();
     return drawn;
   }
 
@@ -1217,13 +1286,50 @@ public final class App<S> {
     return look != null;
   }
 
-  /** Finds what is under the pointer in the tree of this frame, for the getters and the dump. */
-  private void hover() {
+  /**
+   * Finds what is under the pointer in the tree of this frame, for the getters and the dump, and
+   * gives the thumb under it or dragged its colour.
+   *
+   * @return whether a thumb changed its colour
+   */
+  private boolean hover() {
     under = pointed();
     if (marked != null) {
       marked.hovered(false);
     }
     marked = null;
+    barArea = null;
+    Hot now = null;
+    El grabbed = grab == null ? null : animator.element(grab.id());
+    El last = under.isEmpty() ? null : under.getLast();
+    if (grabbed != null) {
+      barArea = grabbed;
+      now = new Hot(grabbed, grab.vertical(), grabbed.scrollbars() == null ? 0
+          : grabbed.scrollbars().thumbDragged());
+    } else if (pointerIn && last != null && selecting == null
+        && (dragging == null || !dragging.started)) {
+      Scrollbars.Bar bar = last.barAt(pointerX, pointerY);
+      if (bar != null) {
+        barArea = last;
+        boolean vertical = bar == last.verticalBar();
+        if (onThumb(bar, vertical, pointerX, pointerY)) {
+          now = new Hot(last, vertical, last.scrollbars().thumbHovered());
+        }
+      }
+    }
+    if (hot != null && !hot.equals(now) && hot.area().scrollbars() != null) {
+      hot.area().barColour(hot.vertical(), hot.area().scrollbars().thumb());
+    }
+    if (now != null) {
+      now.area().barColour(now.vertical(), now.colour());
+    }
+    boolean changed = !Objects.equals(now, hot);
+    hot = now;
+    if (barArea != null) { // a press would go to its bar
+      marked = barArea;
+      barArea.hovered(true);
+      return changed;
+    }
     for (El el : under.reversed()) {
       if (takesPress(el) || el.takesEdits()) {
         marked = el;
@@ -1231,16 +1337,18 @@ public final class App<S> {
         break;
       }
     }
+    return changed;
   }
 
   /**
-   * The elements under the pointer, from the root down; during a drag or a selection in a field,
-   * wherever the pointer is, the dragged element or the field and their ancestors, so that they
-   * alone look hovered and set the cursor.
+   * The elements under the pointer, from the root down; during a drag, a selection in a field or a
+   * thumb's drag, wherever the pointer is, the dragged element, the field or the scroll area and
+   * their ancestors, so that they alone look hovered and set the cursor.
    */
   private List<El> pointed() {
     Object held = selecting != null ? selecting
         : dragging != null && dragging.started ? dragging.id
+        : grab != null ? grab.id()
         : null;
     El el = held == null ? null : animator.element(held);
     List<El> path = new ArrayList<>();
@@ -1267,6 +1375,10 @@ public final class App<S> {
    * @return the part, {@link WindowPart#CONTENT} where nothing is marked
    */
   public WindowPart windowPart(float x, float y) {
+    List<El> hit = hit(x, y);
+    if (!hit.isEmpty() && hit.getLast().barAt(x, y) != null) {
+      return WindowPart.CONTENT;
+    }
     Target target = target(x, y,
         el -> el.windowPart() != null || takesPress(el) || el.takesEdits());
     if (target == null || target.el.windowPart() == null) {
@@ -1338,6 +1450,9 @@ public final class App<S> {
     float top = root.y();
     while (true) {
       hit.add(el);
+      if (el.barAt(x, y) != null) {
+        return hit; // a bar lies over the content
+      }
       // shortcut: a child that sticks out of its parent is not hit outside the parent's box. That
       // is also what clipping needs, so keep it for elements that clip when this changes.
       El next = null;

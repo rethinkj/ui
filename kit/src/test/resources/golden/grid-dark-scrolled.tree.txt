@@ -1,5 +1,5 @@
 el 0,0 560x240
-  el #orders role=grid label="Orders" 8,8 544x224 scroll 300,0 focused
+  el #orders role=grid label="Orders" 8,8 544x224 scroll 300,0 thumb-x 178.05,224 304.73x6 focused
     el #content -292,8 964x224
       el #header -292,8 964x22
         el #column-0 role=columnheader label="id" -292,8 63x22
@@ -32,7 +32,7 @@ el 0,0 560x240
         el #resize-5 role=separator label="Resize status" 429,8 6x22
         el #resize-6 role=separator label="Resize note" 669,8 6x22
       el -292,30 964x1
-      el #rows -292,31 964x200 rows 765429-765444/1000000 scroll 0,16839504
+      el #rows -292,31 964x200 rows 765429-765444/1000000 scroll 0,16839504 thumb-y 544,157.77 6x24
         el #row-765429 role=row -292,-35 964x22
           el -292,-35 63x22
             text "765430" -275,-32 42x16

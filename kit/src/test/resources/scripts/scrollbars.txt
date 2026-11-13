@@ -1,0 +1,13 @@
+# A list of the kit with the theme's scrollbars (ScrollbarsTest), after a size line that sets the
+# scale: the thumb at rest, under the pointer and dragged.
+frame
+snap rest              # the line of #tables ends in thumb-y 219,15 6x30.85
+
+move 222,30            # over the thumb, which turns lighter
+frame
+snap hovered
+
+down 222,30            # the thumb follows the pointer from the first pixel
+move 120,100           # 70 down and onto the rows: they follow in proportion
+frame
+snap dragged           # the thumb in its dragged colour, and no row hovered

@@ -40,7 +40,7 @@ One step per line. A `#` at the start of a line or before a space starts a comme
 | --- | --- |
 | `size <width> <height> [scale <factor>]` | Sets the window size in logical pixels and the physical pixels per logical pixel (default 1). Needed before the first `frame`. |
 | `press <target> [clicks <n>] [shift] [control] [alt] [meta]` | Pointer down and up on the target. `clicks 2` is the second press of a double press, `clicks 3` of a triple one; the modifiers are held during the press, as in `press #name shift`. |
-| `down <target> [clicks <n>] [shift] [control] [alt] [meta]`, `up <target>` | The two halves, for a press that ends elsewhere. A press counts only when both land on the same element. Between them, `move` drags an element with a drag handler (`El.onDrag`) once the pointer is more than 4 pixels from where it went down, and then the press does not count. In a text field, `move` in between selects by dragging, from the first pixel, and drags no element around the field. |
+| `down <target> [clicks <n>] [shift] [control] [alt] [meta]`, `up <target>` | The two halves, for a press that ends elsewhere. A press counts only when both land on the same element. Between them, `move` drags an element with a drag handler (`El.onDrag`) once the pointer is more than 4 pixels from where it went down, and then the press does not count. In a text field, `move` in between selects by dragging, from the first pixel, and drags no element around the field; on a scrollbar's thumb it drags the thumb, also from the first pixel. |
 | `move <target>` | Moves the pointer onto the target, which hovers it and the elements around it. Presses do not move the pointer. |
 | `leave` | The pointer leaves the window: nothing is hovered. |
 | `wheel <target> <deltaX> <deltaY>` | Turns the wheel with the pointer on the target, by these distances in logical pixels; positive scrolls down or right. Along each axis the innermost scroll area under the pointer that can still move that way takes the whole distance, up to its end. |
@@ -56,7 +56,7 @@ One step per line. A `#` at the start of a line or before a space starts a comme
 
 Only `frame` runs a frame, as in a window, where input arrives between frames: `press`, `move`, `leave`, `key`, `type`, `compose` and `focus` queue what they do, `wheel` and `scroll` a scroll and `advance` moves the clock, but the screen changes at the next `frame`. `snap` refuses to write a frame that does not show the steps before it. Scripts use an in-memory clipboard, the app's default; only a window gives the app the system's.
 
-A `.tree.txt` has one line per element, children indented, with its rectangle in window coordinates as shown, that is, moved by the scroll offsets above it. A scroll area that is scrolled adds its offset after the rectangle, as in `el #list role=list 16,16 208x168 scroll 0,90`. A list of rows (`El.rows`) adds before that the rows that exist, first and last, and how many rows it has, as in `el #rows role=grid 16,44 248x160 rows 765429-765440/1000000 scroll 0,21432096`, or `rows -/<count>` when none exist; its children are those rows in order. A line that ends in `exiting` is an element with a key and motion that a rebuild left out: it fades out where it was, takes no input, and is removed once invisible. Selectors do not match it, nor anything at opacity 0. The line of the element that a press under the pointer would go to ends in `hovered`, during a drag that of the dragged element and during a selection by dragging that of the text field, and that of the element that has the keyboard focus in `focused`. A focused text field adds its caret as an index into its string, then the other end of a selection and an input method's composition: `text #name role=textbox label="Table name" "SELECT name FROM customers" 40,26 160x28 focused caret 17 anchor 26 composing "ni"`.
+A `.tree.txt` has one line per element, children indented, with its rectangle in window coordinates as shown, that is, moved by the scroll offsets above it. A scroll area that is scrolled adds its offset after the rectangle, as in `el #list role=list 16,16 208x168 scroll 0,90`. A list of rows (`El.rows`) adds before that the rows that exist, first and last, and how many rows it has, as in `el #rows role=grid 16,44 248x160 rows 765429-765440/1000000 scroll 0,21432096`, or `rows -/<count>` when none exist; its children are those rows in order. A line that ends in `exiting` is an element with a key and motion that a rebuild left out: it fades out where it was, takes no input, and is removed once invisible. Selectors do not match it, nor anything at opacity 0. The line of the element that a press under the pointer would go to ends in `hovered`, during a drag that of the dragged element, during a selection by dragging that of the text field and over a scrollbar or while its thumb is dragged that of the scroll area, and that of the element that has the keyboard focus in `focused`. A focused text field adds its caret as an index into its string, then the other end of a selection and an input method's composition: `text #name role=textbox label="Table name" "SELECT name FROM customers" 40,26 160x28 focused caret 17 anchor 26 composing "ni"`.
 
 Keys go to the focused element and then up through its ancestors until a key handler takes them; without focus only the root gets them. If none does, Tab and Shift+Tab move the focus through the focusable elements in tree order, around at the ends, and Enter and Space press the focused element. A press focuses the focusable element it lands in and clears the focus elsewhere. Focus moved by the keyboard or by `focus` is drawn with a ring and scrolls into view; a press shows no ring.
 
@@ -143,6 +143,36 @@ snap rows-far
 
 ```sh
 java --enable-native-access=ALL-UNNAMED -cp $CP com.rethinkj.ui.Examples rows --script core/src/test/resources/scripts/rows.txt --out core/target/rows
+```
+
+A scroll area with `El.scrollbars(look)` has a bar along each axis whose content does not fit, and the line of the area in a `.tree.txt` ends in the rectangle of each thumb, `thumb-x` for the bar along the bottom and `thumb-y` for the one along the right edge, as in `el #rows role=grid 16,44 248x160 rows 0-8/1000000 thumb-y 256,46 6x24`. `down`, `move` and `up` at positions inside it drag the thumb, and a `press` on the track beside it scrolls a page. `core/src/test/resources/scripts/scrollbars.txt` drags the thumb of the million rows with bars, which `Examples` runs when `bars` comes first:
+
+```text
+# A million rows with scrollbars (Examples bars): the thumb shows where the rows in view are, and
+# dragging it reaches both ends.
+size 280 220 scale 2
+frame
+snap bars-top          # the line of #rows ends in thumb-y 256,46 6x24
+
+down 259,58            # on the thumb, which follows the pointer from the first pixel
+move 259,400           # beyond the bottom of the window: the thumb at the end of its track
+frame
+snap bars-end          # the last row, 999999, at the bottom; the thumb in its dragged colour
+up 259,400
+
+press 259,120          # on the track above the thumb: one page, the list's height, up
+frame
+snap bars-paged
+
+down 259,190           # the thumb, back up beyond the top
+move 259,-100
+up 259,-100
+frame
+snap bars-back         # row 0 at the top again
+```
+
+```sh
+java --enable-native-access=ALL-UNNAMED -cp $CP com.rethinkj.ui.Examples bars --script core/src/test/resources/scripts/scrollbars.txt --out core/target/bars
 ```
 
 `core/src/test/resources/scripts/focus.txt` reaches the switch with the keyboard:
@@ -288,6 +318,7 @@ It is the switch of rune's README in a frameless window with a title bar of its 
 - A new component: a file with a static function whose first parameter is the theme, with `role`, `label`, `focusable()`, `cursor(Cursor.POINTER)`, `onPress` and the looks while it is enabled. Add its rows to `Gallery.ROWS` and its cases to `ComponentTest.components()` in kit's tests (or tests of its own there, as the text field has, when it is not pressed), rewrite the stored images with `mvn -pl kit -am test -Dgolden.update=true`, and look at them.
 - `DataGrid.dataGrid(theme, columns, rowCount, selected, onSelect, onResize[, sort, onSort])` shows query results. The app owns the data and the state: each `Column` has its title, width, alignment, whether it is monospaced and a function from a row index to the cell's text (null is SQL NULL), and the grid reports a selected row, a column's new width while its header edge is dragged, and a pressed header. The rows are an `El.rows` list inside a scroll area that scrolls both ways, so the header stays above the rows and moves sideways with them; `El.revealRow` keeps the selected row in view when the keys move it. Its tokens are `Theme.Grid`. The grid does not fit the gallery's cells: `DataGridTest` runs `kit/src/test/resources/scripts/grid.txt` against a million orders (`Orders`) in both themes and compares the snaps with `golden/grid-<dark|light>-<snap>.png`.
 - `Tree.tree(theme, model, isOpen, selected, onSelect, onToggle, onActivate)` shows nodes that open and close, such as a database's servers, databases, schemas, tables and columns. The app implements `Tree.Model`: the roots, a node's children (null while they are not known), whether it is a leaf, its label, and optionally an `El` before the label (an icon) and the text of the loading row. It owns which nodes are open and which is selected; the tree reports a selection (only a change), a node to open or close (`Tree.Toggle`), and an activation. A press selects, a press on the mark (`▶`, `▼`) selects and opens or closes, a double press opens or closes and activates (it reads the count from `El.onPress(IntConsumer)`); with the focus, Up, Down, Home, End, Page Up and Page Down move, Right opens and then goes to the first child, Left closes and then goes to the parent, Enter activates. Each rebuild of the view walks the open nodes from the roots to number the rows, in proportion to the nodes shown (`TreeTest` prints it: about 1.3 ms for 100 000), and the rows are an `El.rows` list, so scrolling builds rows, never the view. An open node whose children are null shows one muted loading row; the app starts the load in `onToggle` and changes its state when the data is there. Rows are `role=treeitem` with the node's label and the key `row-<index>`, marks have the key `mark-<index>`; level and open state show only as indentation and mark. Its tokens are the grid's row height and selection colours, `space().xl()` per level and `surface().hover()` over the rows. `TreeTest` runs `kit/src/test/resources/scripts/tree.txt` against `Catalog`, three servers with a schema of 300 tables, in both themes, and compares the snaps with `golden/tree-<dark|light>-<snap>.png`.
+- Scrollbars: `Theme.scrollbars()` is core's `Scrollbars` look, so any scroll area or list shows the themed bars with `.scrollbars(theme.scrollbars())`. Its thumbs, at rest, hovered and dragged, stand out 3:1 from the surfaces and the grid's rows, which `ThemeTest` checks. `DataGrid` has a bar along the right edge of its rows, below the header, and one along the bottom of the grid. `ScrollbarsTest` runs `kit/src/test/resources/scripts/scrollbars.txt` against a list in both themes at scales 1 and 2 and compares the snaps with `golden/scrollbars-<dark|light>-<1|2>x-<rest|hovered|dragged>.png`.
 - The gallery, `kit/src/test/resources/golden/gallery-<dark|light>-<1|2>x.png`, is a sheet with a row per component and variant and a column per state: rest, hover, pressed, focused (by the keyboard, with the ring) and disabled. Each cell is an app of its own that a script brings into its state; its `.tree.txt` holds the tree of each cell. A row may add steps after each state's, as `field selected` selects a word. The text field's rows show it empty with its placeholder, with text, and with a selection; pressed and focused show the caret. Kit's tests copy core's golden helper, whose test sources they do not see.
 
 ## Modules

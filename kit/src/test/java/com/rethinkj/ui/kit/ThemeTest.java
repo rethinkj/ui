@@ -3,6 +3,7 @@ package com.rethinkj.ui.kit;
 import static com.rethinkj.ui.kit.Theme.over;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.rethinkj.ui.Scrollbars;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -73,6 +74,14 @@ class ThemeTest {
         "window hovered", over(s.window(), s.hover()));
     check(failures, "primary text", t.text().primary(), tree, 4.5);
     check(failures, "muted text", t.text().muted(), tree, 4.5);
+    // Scrollbar thumbs lie over the surfaces and the grid's rows, in each of their colours.
+    Scrollbars b = t.scrollbars();
+    Map<String, Integer> thumbs = Map.of(
+        "thumb", b.thumb(), "thumb hovered", b.thumbHovered(), "thumb dragged", b.thumbDragged());
+    thumbs.forEach((what, colour) -> {
+      check(failures, what, colour, surfaces, 3);
+      check(failures, what, colour, grid, 3);
+    });
     assertTrue(failures.isEmpty(), String.join("\n", failures));
   }
 

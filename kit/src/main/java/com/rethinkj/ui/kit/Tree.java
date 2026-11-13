@@ -124,7 +124,8 @@ public final class Tree {
     boolean presses = onSelect != null || onToggle != null || onActivate != null;
     // The rows are built after the tree's focus look has run, so they can read what it found.
     boolean[] focused = {false};
-    El tree = col().role("tree").revealRow(rows.selected).rows(rows.count, height, i -> {
+    El tree = col().role("tree").scrollbars(t.scrollbars()).revealRow(rows.selected)
+        .rows(rows.count, height, i -> {
       N node = rows.node(i);
       El r = row().key("row-" + i)
           .padding(0, t.space().s(), 0, t.space().s() + rows.depth(i) * indent)

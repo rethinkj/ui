@@ -11,6 +11,7 @@ import com.rethinkj.ui.Cursor;
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.Key;
 import com.rethinkj.ui.Script;
+import com.rethinkj.ui.Scrollbars;
 import com.rethinkj.ui.Style;
 import com.rethinkj.ui.kit.Button.Variant;
 import com.rethinkj.ui.render.Png;
@@ -339,6 +340,36 @@ class DataGridTest {
   /** The right end of the element's content box within its cell, or of the cell itself. */
   private static float right(El el) {
     return el.text() != null ? el.x() + el.width() : el.width() - T.space().s();
+  }
+
+  // Scrollbars
+
+  @Test
+  void theBarsReachTheLastRowAndTheLastColumnAndPressNothingElse() throws IOException {
+    Orders orders = new Orders(T, 1_000_000);
+    App<Orders> app = start(orders);
+    int rest = T.scrollbars().thumb();
+    // The rows' bar at the grid's right edge, although the rows reach 420 pixels beyond it, from
+    // below the header to above the bar along the bottom.
+    assertEquals(new Scrollbars.Bar(544, 33, 6, 187, 544, 33, 6, 24, rest),
+        find(app, "rows").verticalBar());
+    Scrollbars.Bar sideways = find(app, "orders").horizontalBar();
+    assertEquals(new Scrollbars.Bar(10, 224, 540, 6, 10, 224, 540 * 544 / 964f, 6, rest),
+        sideways);
+    assertNull(find(app, "orders").verticalBar(), "the grid itself does not scroll up and down");
+
+    run(app, "down 547,40\nmove 547,400\nframe"); // the rows' thumb, to the end
+    El rows = find(app, "rows");
+    assertEquals(1_000_000 * 22.0 - rows.height(), rows.scrollY(), "the last row at the bottom");
+    assertEquals(999_999, rows.firstRow() + rows.children().size() - 1);
+    assertEquals(List.of(), orders.log, "no row selected");
+    assertNull(app.focused(), "and the grid not focused");
+
+    run(app, "up 547,400\ndown 100,227\nmove 700,227\nup 700,227\nframe");
+    assertEquals(964 - 544, find(app, "orders").scrollX(), "the last column in view");
+    assertEquals(544, find(app, "rows").verticalBar().thumbX(), "the rows' bar stays");
+    assertEquals(x(app, find(app, "column-6")), x(app, find(app, "row-999999").children().get(12)),
+        "the header moved with the rows");
   }
 
   // Images

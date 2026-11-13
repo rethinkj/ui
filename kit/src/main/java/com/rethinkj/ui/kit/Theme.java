@@ -1,5 +1,6 @@
 package com.rethinkj.ui.kit;
 
+import com.rethinkj.ui.Scrollbars;
 import com.rethinkj.ui.motion.Spring;
 import com.rethinkj.ui.text.Font;
 import java.util.function.Supplier;
@@ -20,6 +21,10 @@ import java.util.function.Supplier;
  * or a constant. The focus ring is drawn by the {@link com.rethinkj.ui.App}, so an app also sets
  * its colour: {@code app.focusRing(theme.border().focus())}.
  *
+ * <p>The scrollbars are core's {@link Scrollbars}, which any scroll area or list takes as they are:
+ * {@code col().scroll().scrollbars(theme.scrollbars())}. Their thumbs stand out 3:1 from the
+ * surfaces and the grid's rows they lie on.
+ *
  * <p>Colours are 0xAARRGGBB, sizes logical pixels.
  */
 public record Theme(
@@ -33,7 +38,8 @@ public record Theme(
     Type type,
     Sizes size,
     Motion motion,
-    Grid grid) {
+    Grid grid,
+    Scrollbars scrollbars) {
 
   /**
    * Background layers, from the bottom up, and the overlays that a control lays over its
@@ -171,7 +177,8 @@ public record Theme(
           TYPE,
           SIZE,
           MOTION,
-          new Grid(22, 32, 6, 0xFF232428, 0xFF1B1C1F, 0xFF1F2023, 0xFF1C3666, 0xFF2B3240));
+          new Grid(22, 32, 6, 0xFF232428, 0xFF1B1C1F, 0xFF1F2023, 0xFF1C3666, 0xFF2B3240),
+          new Scrollbars(6, 2, 3, 24, 0xFF83868F, 0xFFA1A3AA, 0xFFB9BBC1));
 
   /** Neutral greys with a blue accent, dark text on light surfaces. */
   public static final Theme LIGHT =
@@ -186,61 +193,79 @@ public record Theme(
           TYPE,
           SIZE,
           MOTION,
-          new Grid(22, 32, 6, 0xFFF1F2F4, 0xFFFFFFFF, 0xFFF5F6F8, 0xFFCFE0FC, 0xFFE3E6EC));
+          new Grid(22, 32, 6, 0xFFF1F2F4, 0xFFFFFFFF, 0xFFF5F6F8, 0xFFCFE0FC, 0xFFE3E6EC),
+          new Scrollbars(6, 2, 3, 24, 0xFF6E717A, 0xFF5C5F66, 0xFF4A4D54));
 
   public Theme withSurface(Surfaces surface) {
     return new Theme(
-        surface, text, border, accent, status, space, radius, type, size, motion, grid);
+        surface, text, border, accent, status, space, radius, type, size, motion, grid,
+        scrollbars);
   }
 
   public Theme withText(TextColors text) {
     return new Theme(
-        surface, text, border, accent, status, space, radius, type, size, motion, grid);
+        surface, text, border, accent, status, space, radius, type, size, motion, grid,
+        scrollbars);
   }
 
   public Theme withBorder(Borders border) {
     return new Theme(
-        surface, text, border, accent, status, space, radius, type, size, motion, grid);
+        surface, text, border, accent, status, space, radius, type, size, motion, grid,
+        scrollbars);
   }
 
   public Theme withAccent(Accent accent) {
     return new Theme(
-        surface, text, border, accent, status, space, radius, type, size, motion, grid);
+        surface, text, border, accent, status, space, radius, type, size, motion, grid,
+        scrollbars);
   }
 
   public Theme withStatus(Status status) {
     return new Theme(
-        surface, text, border, accent, status, space, radius, type, size, motion, grid);
+        surface, text, border, accent, status, space, radius, type, size, motion, grid,
+        scrollbars);
   }
 
   public Theme withSpace(Spacing space) {
     return new Theme(
-        surface, text, border, accent, status, space, radius, type, size, motion, grid);
+        surface, text, border, accent, status, space, radius, type, size, motion, grid,
+        scrollbars);
   }
 
   public Theme withRadius(Radii radius) {
     return new Theme(
-        surface, text, border, accent, status, space, radius, type, size, motion, grid);
+        surface, text, border, accent, status, space, radius, type, size, motion, grid,
+        scrollbars);
   }
 
   public Theme withType(Type type) {
     return new Theme(
-        surface, text, border, accent, status, space, radius, type, size, motion, grid);
+        surface, text, border, accent, status, space, radius, type, size, motion, grid,
+        scrollbars);
   }
 
   public Theme withSize(Sizes size) {
     return new Theme(
-        surface, text, border, accent, status, space, radius, type, size, motion, grid);
+        surface, text, border, accent, status, space, radius, type, size, motion, grid,
+        scrollbars);
   }
 
   public Theme withMotion(Motion motion) {
     return new Theme(
-        surface, text, border, accent, status, space, radius, type, size, motion, grid);
+        surface, text, border, accent, status, space, radius, type, size, motion, grid,
+        scrollbars);
   }
 
   public Theme withGrid(Grid grid) {
     return new Theme(
-        surface, text, border, accent, status, space, radius, type, size, motion, grid);
+        surface, text, border, accent, status, space, radius, type, size, motion, grid,
+        scrollbars);
+  }
+
+  public Theme withScrollbars(Scrollbars scrollbars) {
+    return new Theme(
+        surface, text, border, accent, status, space, radius, type, size, motion, grid,
+        scrollbars);
   }
 
   /**

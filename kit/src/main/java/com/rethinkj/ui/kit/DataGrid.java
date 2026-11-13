@@ -33,13 +33,17 @@ import java.util.function.IntFunction;
  * up and down, and both scroll left and right together. A press on a row selects it; while the
  * grid has the focus, Up, Down, Page Up, Page Down, Home and End move the selection and the rows
  * follow it. The grid is one stop for Tab. Dragging the right edge of a header cell resizes its
- * column, and a press on a header cell sorts. Like a list of rows, the grid needs a height of its
- * own or room to {@link El#grow}.
+ * column, and a press on a header cell sorts. Scrollbars ({@link Theme#scrollbars}) show where the
+ * rows in view are among all of them and where the columns in view are: the one along the right
+ * edge of the rows, below the header, and the one along the bottom of the grid; dragging the
+ * first reaches any of a million rows. Like a list of rows, the grid needs a height of its own or
+ * room to {@link El#grow}.
  *
  * <p>In a tree dump the grid is {@code role=grid}, its header cells {@code role=columnheader} with
  * the title as label and the key {@code column-<index>}, the edges that resize them {@code
  * role=separator} with the key {@code resize-<index>}, and its rows {@code role=row} with the key
- * {@code row-<index>}, all counted from 0.
+ * {@code row-<index>}, all counted from 0. The thumbs are on the lines of the grid ({@code
+ * thumb-x}) and of its rows ({@code thumb-y}, on {@code #rows}).
  */
 public final class DataGrid {
 
@@ -140,13 +144,14 @@ public final class DataGrid {
         r.onPress(() -> onSelect.accept(i));
       }
       return i == selected ? r : r.whenHovered(e -> e.fill(over(fill, t.surface().hover())));
-    });
+    }).scrollbars(t.scrollbars());
 
     El under = el().h(t.size().stroke()).shrink(0).fill(t.border().subtle());
     El content = col().key("content").w(total).children(header, under, body);
     content.style().minWidth = Len.percent(1); // the rows reach across a grid wider than them
     // Header and rows scroll sideways together in the grid; the rows scroll up and down alone.
-    El grid = row().role("grid").scrollBoth().fill(g.row()).child(content);
+    El grid = row().role("grid").scrollBoth().scrollbars(t.scrollbars()).fill(g.row())
+        .child(content);
     if (onSelect == null) {
       return grid;
     }
