@@ -1,0 +1,17 @@
+# docs:start button-options-script
+size 420 120
+frame
+key Tab                 # the focus on Drop table, with its ring
+key Space down          # held: the button shows pressed until the key is up
+frame
+snap held
+key Space up
+advance 0.1             # a pressed look shows at least App.KEY_PRESS after the key went down
+frame
+focus #arrow
+key ArrowDown           # the split button's chevron opens its menu at the first item
+frame
+advance 0.3
+frame
+snap menu
+# docs:end button-options-script

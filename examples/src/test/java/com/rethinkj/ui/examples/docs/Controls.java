@@ -92,6 +92,40 @@ final class Controls {
         row().gap(t.space().s()).children(pin, split));
   }
 
+  static El buttonOptions(Controls s) {
+    Theme t = s.t;
+    // docs:start button-options
+    // A red confirmation, a red secondary action and a quiet red one for a toolbar.
+    Button.Options danger = Button.options().tone(Button.Tone.DANGER);
+    El drop = Button.button(t, PRIMARY, "Drop table", () -> s.runs = 0, danger);
+    El discard = Button.button(t, SECONDARY, "Discard", () -> s.runs = 0, danger);
+    El delete = Button.icon(t, GHOST, Symbol.DELETE, "Delete row", () -> s.runs--, danger);
+    // Off while nothing changed, with its handler kept: as a null handler, Tab passes it by.
+    El save =
+        Button.button(t, SECONDARY, "Save", () -> s.runs = 0, Button.options().enabled(s.runs > 0));
+    // Busy: a spinner in place of the icon; it takes no press and keeps the focus.
+    El refresh = Button.icon(
+        t,
+        GHOST,
+        Symbol.ARROW_CLOCKWISE,
+        "Refresh",
+        () -> s.running = true,
+        Button.options().busy(s.running));
+    El run = Button.split(
+        t,
+        PRIMARY,
+        "Run",
+        () -> s.running = true,
+        s.runMenu,
+        List.of(Menu.item("Run selection", () -> s.runs++), Menu.item("Cancel", () -> {})),
+        Button.options().icon(Symbol.PLAY).busy(s.running));
+    // docs:end button-options
+    return Frame.of(
+        t,
+        row().gap(t.space().s()).children(drop, discard, delete),
+        row().gap(t.space().s()).children(save, refresh, run));
+  }
+
   static El toggles(Controls s) {
     Theme t = s.t;
     // docs:start toggle
