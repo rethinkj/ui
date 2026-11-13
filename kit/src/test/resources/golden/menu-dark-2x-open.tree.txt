@@ -8,7 +8,7 @@ el 0,0 360x240
       text "?" 167,16 7x16
     el #encoding role=combobox label="UTF-8" 191,12 120x24 expanded=false
       text "UTF-8" 200,16 82x16
-      text "\u{F2A2}" 286,16 16x16
+      text label="chevron_down" "\u{F2A2}" 286,16 16x16
   el 12,44 336x161
     el #tables role=list label="Tables" 12,44 218x161
       el #table-0 role=listitem label="accounts" 17,49 208x24
@@ -56,12 +56,12 @@ overlay bottom start gap 2 on #file role=button label="File" 12,12 48x24
       el 17,96 167x24
         el 25,108 16x0
         text "Export" 49,100 103x16
-        text "\u{F2AF}" 160,100 16x16
+        text label="chevron_right" "\u{F2AF}" 160,100 16x16
     el 17,122 167x1
     el #item-5 role=menuitem label="Word wrap" 17,125 167x24 checked
       el 17,125 167x24
         el 25,129 16x16
-          text "\u{E305}" 25,129 16x16
+          text label="checkmark" "\u{E305}" 25,129 16x16
         text "Word wrap" 49,129 127x16
     el #item-6 role=menuitem label="Close" 17,149 167x24 disabled
       el 17,149 167x24

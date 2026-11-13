@@ -13,8 +13,9 @@ import com.rethinkj.ui.El;
 import com.rethinkj.ui.Script;
 import com.rethinkj.ui.Work;
 import com.rethinkj.ui.kit.DataGrid;
-import com.rethinkj.ui.kit.DataGrid.Align;
+import com.rethinkj.ui.kit.DataGrid.CellIcon;
 import com.rethinkj.ui.kit.DataGrid.Column;
+import com.rethinkj.ui.kit.DataGrid.DataType;
 import com.rethinkj.ui.kit.DataGrid.Mode;
 import com.rethinkj.ui.kit.DataGrid.Selection;
 import com.rethinkj.ui.kit.Icon;
@@ -101,15 +102,28 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
     }
   }
 
-  private record Field(String name, float width, Align align, boolean mono) {}
+  /** A column as the database describes it: its kind and the name of its type. */
+  private record Field(String name, float width, DataType kind, String type) {}
 
   private static final List<Field> FIELDS = List.of(
-      new Field("id", 80, Align.RIGHT, true), new Field("customer_id", 100, Align.RIGHT, true),
-      new Field("status", 90, Align.LEFT, false), new Field("amount", 100, Align.RIGHT, true),
-      new Field("currency", 80, Align.LEFT, false), new Field("email", 220, Align.LEFT, false),
-      new Field("note", 160, Align.LEFT, false), new Field("created_at", 140, Align.LEFT, true),
-      new Field("updated_at", 140, Align.LEFT, true),
-      new Field("deleted_at", 140, Align.LEFT, true));
+      new Field("id", 100, DataType.INTEGER, "bigint"),
+      new Field("customer_id", 160, DataType.INTEGER, "integer"),
+      new Field("status", 150, DataType.ENUM, "order_status"),
+      new Field("amount", 170, DataType.DECIMAL, "numeric(10,2)"),
+      new Field("paid", 110, DataType.BOOLEAN, "boolean"),
+      new Field("email", 220, DataType.TEXT, "varchar(255)"),
+      new Field("note", 160, DataType.TEXT, "text"),
+      new Field("created_at", 190, DataType.DATE_TIME, "timestamptz"),
+      new Field("updated_at", 190, DataType.DATE_TIME, "timestamptz"),
+      new Field("deleted_at", 190, DataType.DATE_TIME, "timestamptz"));
+  // The icons of the cells: constants, so that a cell costs no allocation for its icon.
+  private static final CellIcon LINK =
+      CellIcon.before(Symbol.LINK, Variant.MUTED).tooltip("References customers.id");
+  private static final CellIcon PAID = CellIcon.instead(Symbol.CHECKMARK, Variant.SUCCESS);
+  private static final CellIcon UNPAID = CellIcon.instead(Symbol.SUBTRACT, Variant.MUTED);
+  private static final CellIcon[] MARKS = { // paid, pending, shipped, refunded
+    CellIcon.before(Symbol.RECORD, Variant.SUCCESS), CellIcon.before(Symbol.RECORD, Variant.WARNING),
+    CellIcon.before(Symbol.RECORD, Variant.NORMAL), CellIcon.before(Symbol.RECORD, Variant.DANGER)};
   private static final String[] TABLES = {
     "accounts", "addresses", "audit_log", "carts", "categories", "coupons", "customers",
     "deliveries", "employees", "events", "invoices", "invoice_lines", "orders", "order_items",
@@ -390,7 +404,15 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
     List<Column> columns = new ArrayList<>();
     for (int c = 0; c < o.widths.length; c++) {
       Field f = field(o.table.children.get(c).name);
-      columns.add(new Column(f.name(), o.widths[c], f.align(), f.mono(), i -> cell(f.name(), i)));
+      Column column = new Column(f.name(), o.widths[c], f.kind(), i -> cell(f.name(), i))
+          .typeName(f.type());
+      columns.add(switch (f.name()) {
+        case "id" -> column.icon(Symbol.KEY, Variant.WARNING);
+        case "customer_id" -> column.icon(Symbol.LINK).cellIcon(i -> LINK);
+        case "status" -> column.cellIcon(i -> MARKS[i * 7 % STATUS.length]);
+        case "paid" -> column.cellIcon(i -> i % 4 == 3 ? UNPAID : PAID);
+        default -> column;
+      });
     }
     return dataGrid(t, columns, o.rows, DataGrid.options()
             .select(o.selection)
@@ -410,8 +432,8 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
       case "id" -> String.valueOf(row + 1);
       case "customer_id" -> String.valueOf(1 + row * 7919L % 50_000);
       case "status" -> STATUS[row * 7 % STATUS.length];
+      case "paid" -> String.valueOf(row % 4 != 3);
       case "amount" -> String.format(Locale.ROOT, "%d.%02d", row * 389 % 2000, row * 13 % 100);
-      case "currency" -> row % 5 == 0 ? "USD" : "EUR";
       case "email" -> NAMES[row % 10] + "." + NAMES[row / 10 % 10] + "@example.com";
       case "note" -> row % 6 == 0 ? "Leave at the door" : null;
       case "created_at" -> created.format(TIME);

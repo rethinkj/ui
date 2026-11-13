@@ -223,58 +223,103 @@ el 0,0 140x40
   el #c 10,8 120x24
     text role=textbox label="Password" "•••••••" 10,8 120x24 password
     el role=button label="Show password" 108,10 20x20
-      text "\u{E5F1}" 110,12 16x16
+      text label="eye" "\u{E5F1}" 110,12 16x16
 # password, hover
 el 0,0 140x40
   el #c 10,8 120x24
     text role=textbox label="Password" "•••••••" 10,8 120x24 password hovered
     el role=button label="Show password" 108,10 20x20
-      text "\u{E5F1}" 110,12 16x16
+      text label="eye" "\u{E5F1}" 110,12 16x16
 # password, pressed
 el 0,0 140x40
   el #c 10,8 120x24
     text role=textbox label="Password" "•••••••" 10,8 120x24 password hovered focused caret 7
     el role=button label="Show password" 108,10 20x20
-      text "\u{E5F1}" 110,12 16x16
+      text label="eye" "\u{E5F1}" 110,12 16x16
 # password, focused
 el 0,0 140x40
   el #c 10,8 120x24
     text role=textbox label="Password" "•••••••" 10,8 120x24 password focused caret 7
     el role=button label="Show password" 108,10 20x20
-      text "\u{E5F1}" 110,12 16x16
+      text label="eye" "\u{E5F1}" 110,12 16x16
 # password, disabled
 el 0,0 140x40
   el #c 10,8 120x24
     text role=textbox label="Password" "•••••••" 10,8 120x24 disabled password
     el role=button label="Show password" 108,10 20x20 disabled
-      text "\u{E5F1}" 110,12 16x16
+      text label="eye" "\u{E5F1}" 110,12 16x16
 # password shown, rest
 el 0,0 140x40
   el #c 10,8 120x24
     text role=textbox label="Password" "hunter2" 10,8 120x24
     el role=button label="Hide password" 108,10 20x20
-      text "\u{E5F4}" 110,12 16x16
+      text label="eye_off" "\u{E5F4}" 110,12 16x16
 # password shown, hover
 el 0,0 140x40
   el #c 10,8 120x24
     text role=textbox label="Password" "hunter2" 10,8 120x24 hovered
     el role=button label="Hide password" 108,10 20x20
-      text "\u{E5F4}" 110,12 16x16
+      text label="eye_off" "\u{E5F4}" 110,12 16x16
 # password shown, pressed
 el 0,0 140x40
   el #c 10,8 120x24
     text role=textbox label="Password" "hunter2" 10,8 120x24 hovered focused caret 7
     el role=button label="Hide password" 108,10 20x20
-      text "\u{E5F4}" 110,12 16x16
+      text label="eye_off" "\u{E5F4}" 110,12 16x16
 # password shown, focused
 el 0,0 140x40
   el #c 10,8 120x24
     text role=textbox label="Password" "hunter2" 10,8 120x24 focused caret 7
     el role=button label="Hide password" 108,10 20x20
-      text "\u{E5F4}" 110,12 16x16
+      text label="eye_off" "\u{E5F4}" 110,12 16x16
 # password shown, disabled
 el 0,0 140x40
   el #c 10,8 120x24
     text role=textbox label="Password" "hunter2" 10,8 120x24 disabled
     el role=button label="Hide password" 108,10 20x20 disabled
-      text "\u{E5F4}" 110,12 16x16
+      text label="eye_off" "\u{E5F4}" 110,12 16x16
+# area, rest
+el 0,0 140x72
+  text #c role=textbox label="Notes" "Ship by Friday,\nfrom the north\nwarehouse." 10,7 120x58 lines 1-3/3
+# area, hover
+el 0,0 140x72
+  text #c role=textbox label="Notes" "Ship by Friday,\nfrom the north\nwarehouse." 10,7 120x58 lines 1-3/3 hovered
+# area, pressed
+el 0,0 140x72
+  text #c role=textbox label="Notes" "Ship by Friday,\nfrom the north\nwarehouse." 10,7 120x58 lines 1-3/3 hovered focused caret 24 (2:9)
+# area, focused
+el 0,0 140x72
+  text #c role=textbox label="Notes" "Ship by Friday,\nfrom the north\nwarehouse." 10,7 120x58 lines 1-3/3 focused caret 0 (1:1)
+# area, disabled
+el 0,0 140x72
+  text #c role=textbox label="Notes" "Ship by Friday,\nfrom the north\nwarehouse." 10,7 120x58 disabled lines 1-3/3
+# area selected, rest
+el 0,0 140x72
+  text #c role=textbox label="Notes" "Ship by Friday,\nfrom the north\nwarehouse." 10,7 120x58 lines 1-3/3
+# area selected, hover
+el 0,0 140x72
+  text #c role=textbox label="Notes" "Ship by Friday,\nfrom the north\nwarehouse." 10,7 120x58 lines 1-3/3 hovered
+# area selected, pressed
+el 0,0 140x72
+  text #c role=textbox label="Notes" "Ship by Friday,\nfrom the north\nwarehouse." 10,7 120x58 lines 1-3/3 hovered focused caret 33 (3:3) anchor 2
+# area selected, focused
+el 0,0 140x72
+  text #c role=textbox label="Notes" "Ship by Friday,\nfrom the north\nwarehouse." 10,7 120x58 lines 1-3/3 focused caret 33 (3:3) anchor 2
+# area selected, disabled
+el 0,0 140x72
+  text #c role=textbox label="Notes" "Ship by Friday,\nfrom the north\nwarehouse." 10,7 120x58 disabled lines 1-3/3
+# code area, rest
+el 0,0 140x72
+  text #c role=textbox label="SQL" "SELECT id,\n\tname\nFROM t;" 10,3 120x66 lines 1-3/3
+# code area, hover
+el 0,0 140x72
+  text #c role=textbox label="SQL" "SELECT id,\n\tname\nFROM t;" 10,3 120x66 lines 1-3/3 hovered
+# code area, pressed
+el 0,0 140x72
+  text #c role=textbox label="SQL" "SELECT id,\n\tname\nFROM t;" 10,3 120x66 lines 1-3/3 hovered focused caret 15 (2:5)
+# code area, focused
+el 0,0 140x72
+  text #c role=textbox label="SQL" "SELECT id,\n\tname\nFROM t;" 10,3 120x66 lines 1-3/3 focused caret 0 (1:1)
+# code area, disabled
+el 0,0 140x72
+  text #c role=textbox label="SQL" "SELECT id,\n\tname\nFROM t;" 10,3 120x66 disabled lines 1-3/3

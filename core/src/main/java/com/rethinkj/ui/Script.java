@@ -680,7 +680,7 @@ public final class Script {
             labels.add("label=" + El.quote(found.el.label()));
           }
           if (found.el.text() != null) {
-            texts.add("text=" + El.quote(found.el.text().string()));
+            texts.add("text=" + El.quoteText(found.el.text().string()));
           }
           for (String state : states(found.el).strip().split(" ")) {
             if (!state.isEmpty() && !state.startsWith("pos=")) { // a position per row says little
@@ -811,7 +811,7 @@ public final class Script {
           i = codePoint.end() - 1;
         } else {
           c = text.charAt(i);
-          out.append(c == 'n' ? '\n' : c);
+          out.append(c == 'n' ? '\n' : c == 't' ? '\t' : c);
         }
       } else {
         out.append(c);

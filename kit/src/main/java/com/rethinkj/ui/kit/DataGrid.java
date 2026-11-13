@@ -31,7 +31,8 @@ import java.util.function.IntPredicate;
  *
  * <pre>{@code
  * List<Column> columns = List.of(
- *     new Column("id", s.widths[0], Align.RIGHT, true, i -> String.valueOf(s.ids[i])),
+ *     new Column("id", s.widths[0], DataType.INTEGER, i -> String.valueOf(s.ids[i]))
+ *         .typeName("bigint").icon(Symbol.KEY, Icon.Variant.WARNING),
  *     new Column("name", s.widths[1], Align.LEFT, false, i -> s.names[i]));
  * dataGrid(theme, columns, s.count, DataGrid.options()
  *         .select(s.selection)                       // a Selection the app keeps
@@ -62,10 +63,17 @@ import java.util.function.IntPredicate;
  * selection as tab-separated text ({@link #copyText}). Enter, F2 and a double press ask the app
  * to edit the cursor's cell ({@link Options#onEdit}). The grid is one stop for Tab.
  *
+ * <p>A header cell shows the column's icon, its title, its type in muted text and the sort mark,
+ * in this order at the left or the right as the column puts its text, the mark on the outer side.
+ * Where the column is narrow, the type gives way first, then the title ends in an ellipsis; icon
+ * and mark keep their size, and a tooltip shows title and type whole. A cell shows its icon
+ * ({@link Column#cellIcon}) before its text or alone in its place.
+ *
  * <p>A press on a header cell sorts by its column ({@link Options#sort}), Shift with a press adds
  * it as a further key; dragging the right edge of a header cell resizes its column, and a double
- * press on it fits the column to the text of its rows that exist. A cell's text that is wider
- * than its column ends in an ellipsis and shows whole in a tooltip. Scrollbars ({@link
+ * press on it fits the column to its header and the cells of its rows that exist, icons
+ * included. A cell's text that is wider than its column ends in an ellipsis and shows whole in a
+ * tooltip. Scrollbars ({@link
  * Theme#scrollbars}) show where the rows and columns in view are: one along the right edge of the
  * rows, below the header, and one along the bottom of the grid. They lie over the rows, and the
  * grid scrolls far enough to bring the last row and the last column out from under them: the rows
@@ -76,10 +84,13 @@ import java.util.function.IntPredicate;
  *
  * <p>In a tree dump the grid is {@code role=grid}, its header cells {@code role=columnheader}
  * with the title as label, the key {@code column-<index>}, their position among the columns and
- * the sort state, the edges that resize them {@code role=separator} with the key {@code
- * resize-<index>}, its rows {@code role=row} with the key {@code row-<index>}, and its cells
- * {@code role=gridcell} with the key {@code cell-<row>-<column>} and their column's position, all
- * counted from 0. Selected rows ({@link Mode#ROWS}) or cells ({@link Mode#CELLS}) are {@code
+ * the sort state, and the title and the type as text inside, the edges that resize them {@code
+ * role=separator} with the key {@code resize-<index>}, its rows {@code role=row} with the key
+ * {@code row-<index>}, and its cells {@code role=gridcell} with the key {@code
+ * cell-<row>-<column>} and their column's position, all counted from 0. An icon is a text
+ * element labelled with its symbol's name ({@link Icon}), and a cell whose icon stands alone has
+ * its text as its label: {@code el #cell-4-3 role=gridcell label="true" ...} over {@code text
+ * label="checkmark" ...}. Selected rows ({@link Mode#ROWS}) or cells ({@link Mode#CELLS}) are {@code
  * selected}, the cursor's row or cell {@code current}; row numbers are {@code role=rowheader}
  * with the key {@code number-<row>}. The thumbs are on the lines of the grid ({@code thumb-x}) and
  * of its rows ({@code thumb-y}, on {@code #rows}).
@@ -101,30 +112,184 @@ public final class DataGrid {
   }
 
   /**
-   * A column of the grid.
+   * A column of the grid. The constructors make one with its title and text alone; the other
+   * parts come with the methods that return a changed copy, as the view builds it:
+   *
+   * <pre>{@code
+   * new Column("id", w[0], DataType.INTEGER, i -> String.valueOf(ids[i]))
+   *     .typeName("bigint").icon(Symbol.KEY, Icon.Variant.WARNING)
+   * new Column("paid", w[1], DataType.BOOLEAN, i -> String.valueOf(paid[i]))
+   *     .typeName("boolean").cellIcon(i -> paid[i] ? CHECKED : UNCHECKED)
+   * }</pre>
    *
    * @param title shown in the header, also the header cell's label
    * @param width in logical pixels, the column's line included; the app keeps it and changes it
    *     when the grid reports a resize
-   * @param align where the title and the cells put their text
+   * @param align where the title and the cells put their text and icons
    * @param mono whether the cells use the monospaced font, as for numbers and timestamps
    * @param sortable whether a press on its header sorts by it, when the grid sorts at all
    * @param cell the text of the cell in the row with this index, or null for SQL NULL, which shows
    *     as a muted {@code NULL}. Called while a frame runs, for the rows that exist and the
-   *     columns in view only, so it has to be cheap.
+   *     columns in view only, so it has to be cheap. It is what a copy takes, also from a cell
+   *     that shows its icon alone.
+   * @param icon shown in the header before the title, such as the kind of data or a key; null for
+   *     none
+   * @param iconVariant the colour of {@code icon}
+   * @param typeName shown in the header after the title in muted text, such as {@code bigint};
+   *     null for none. It gives way first where the column is narrow.
+   * @param cellIcon the icon of the cell in the row with this index, or null for none: called as
+   *     {@code cell} is, after it and for loaded rows only. Return constants, as the icons of a
+   *     column are few, so that a cell costs no allocation for its icon; null for the function
+   *     means no icons at all.
    */
   public record Column(
       String title, float width, Align align, boolean mono, boolean sortable,
-      IntFunction<String> cell) {
+      IntFunction<String> cell, Symbol icon, Icon.Variant iconVariant, String typeName,
+      IntFunction<CellIcon> cellIcon) {
+
+    public Column {
+      Objects.requireNonNull(iconVariant, "iconVariant");
+    }
+
+    /** A column that sorts or not, without icons or type. */
+    public Column(String title, float width, Align align, boolean mono, boolean sortable,
+        IntFunction<String> cell) {
+      this(title, width, align, mono, sortable, cell, null, Icon.Variant.MUTED, null, null);
+    }
 
     /** A column that can be sorted. */
     public Column(String title, float width, Align align, boolean mono, IntFunction<String> cell) {
       this(title, width, align, mono, true, cell);
     }
 
+    /**
+     * A column of a kind of data, which gives its alignment, its font and the icon in its header
+     * ({@link DataType}).
+     */
+    public Column(String title, float width, DataType type, IntFunction<String> cell) {
+      this(title, width, type.align(), type.mono(), true, cell, type.symbol(), Icon.Variant.MUTED,
+          null, null);
+    }
+
     /** This column, sortable or not. */
     public Column sortable(boolean on) {
-      return new Column(title, width, align, mono, on, cell);
+      return new Column(title, width, align, mono, on, cell, icon, iconVariant, typeName,
+          cellIcon);
+    }
+
+    /** This column with {@code symbol} in muted text before the title in the header. */
+    public Column icon(Symbol symbol) {
+      return icon(symbol, Icon.Variant.MUTED);
+    }
+
+    /** This column with {@code symbol} before the title in the header; null for none. */
+    public Column icon(Symbol symbol, Icon.Variant variant) {
+      return new Column(title, width, align, mono, sortable, cell, symbol, variant, typeName,
+          cellIcon);
+    }
+
+    /** This column with {@code name} after the title in the header; null for none. */
+    public Column typeName(String name) {
+      return new Column(title, width, align, mono, sortable, cell, icon, iconVariant, name,
+          cellIcon);
+    }
+
+    /** This column with an icon in each cell for which {@code icons} gives one. */
+    public Column cellIcon(IntFunction<CellIcon> icons) {
+      return new Column(title, width, align, mono, sortable, cell, icon, iconVariant, typeName,
+          icons);
+    }
+  }
+
+  /**
+   * The icon of a cell: before its text, or alone in its place, in one of {@link Icon}'s colours,
+   * with a tooltip of its own if it needs one. It stands where the column puts its text, at the
+   * left or the right, and keeps its size where the text gives way. A cell whose icon stands alone
+   * keeps its text as its label, which a tree dump shows ({@code label="true"}), its tooltip when
+   * it has none of its own, and what a copy takes.
+   *
+   * <p>The colours stand out 3:1 from the rows, the stripes and the selection in the default
+   * themes, except {@link Icon.Variant#DISABLED}, which looks unavailable on purpose.
+   *
+   * @param symbol what it shows
+   * @param variant its colour
+   * @param alone whether it stands in place of the text
+   * @param tooltip shown after the theme's delay with the pointer on the cell, before the text if
+   *     that is cut short; null for none
+   */
+  public record CellIcon(Symbol symbol, Icon.Variant variant, boolean alone, String tooltip) {
+
+    public CellIcon {
+      Objects.requireNonNull(symbol, "symbol");
+      Objects.requireNonNull(variant, "variant");
+    }
+
+    /** The icon before the text, such as a coloured mark before a status or a link before a key. */
+    public static CellIcon before(Symbol symbol, Icon.Variant variant) {
+      return new CellIcon(symbol, variant, false, null);
+    }
+
+    /** The icon in place of the text, such as a check for {@code true}. */
+    public static CellIcon instead(Symbol symbol, Icon.Variant variant) {
+      return new CellIcon(symbol, variant, true, null);
+    }
+
+    /** This icon with a tooltip. */
+    public CellIcon tooltip(String text) {
+      return new CellIcon(symbol, variant, alone, text);
+    }
+  }
+
+  /**
+   * The common kinds of data in a database, each with the icon of its column's header, the
+   * alignment and whether the cells use the monospaced font. An app maps the types its driver
+   * reports to these once, and makes its columns with {@link Column#Column(String, float,
+   * DataType, IntFunction)}; the type's own name goes after the title ({@link Column#typeName}).
+   */
+  public enum DataType {
+    INTEGER(Symbol.NUMBER_SYMBOL, Align.RIGHT, true),
+    DECIMAL(Symbol.CALCULATOR, Align.RIGHT, true),
+    TEXT(Symbol.TEXT_CASE_TITLE, Align.LEFT, false),
+    BOOLEAN(Symbol.CHECKBOX_CHECKED, Align.LEFT, false),
+    DATE(Symbol.CALENDAR_LTR, Align.LEFT, true),
+    TIME(Symbol.CLOCK, Align.LEFT, true),
+    /** A date with a time, with or without its time zone. */
+    DATE_TIME(Symbol.CALENDAR_CLOCK, Align.LEFT, true),
+    INTERVAL(Symbol.TIMER, Align.LEFT, true),
+    UUID(Symbol.FINGERPRINT, Align.LEFT, true),
+    /** JSON, and other documents of structured text such as XML. */
+    JSON(Symbol.BRACES, Align.LEFT, true),
+    /** Bytes, as a {@code bytea} or a {@code BLOB}. */
+    BINARY(Symbol.DOCUMENT_DATA, Align.LEFT, true),
+    ARRAY(Symbol.TEXT_BULLET_LIST_LTR, Align.LEFT, false),
+    /** A value from a fixed set, such as a status. */
+    ENUM(Symbol.TAG, Align.LEFT, false),
+    /** Geometry and geography. */
+    GEOMETRY(Symbol.LOCATION, Align.LEFT, true),
+    /** Anything else: no icon. */
+    OTHER(null, Align.LEFT, false);
+
+    private final Symbol symbol;
+    private final Align align;
+    private final boolean mono;
+
+    DataType(Symbol symbol, Align align, boolean mono) {
+      this.symbol = symbol;
+      this.align = align;
+      this.mono = mono;
+    }
+
+    /** The icon of the column's header; null for {@link #OTHER}. */
+    public Symbol symbol() {
+      return symbol;
+    }
+
+    public Align align() {
+      return align;
+    }
+
+    public boolean mono() {
+      return mono;
     }
   }
 
@@ -638,23 +803,40 @@ public final class DataGrid {
     return header;
   }
 
+  /**
+   * A header cell: the icon, the title, the type and the sort mark, in this order at the left or
+   * the right, the mark on the outer side. Where the column is narrow, the type gives way first,
+   * then the title ends in an ellipsis; icon and mark keep their size.
+   */
   private static El headerCell(Build b, int index) {
     Theme t = b.t;
     Column column = b.columns.get(index);
     El title = Label.label(t, column.title()).ellipsis().minSize(0, 0);
+    El name = title;
+    if (column.typeName() != null) {
+      // The title keeps its width as long as the type has any, and never more than the room.
+      title.shrink(0).style().maxWidth = Len.percent(1);
+      name = row().align(Style.Align.CENTER).gap(t.space().s()).minSize(0, 0).clip()
+          .children(title, Label.label(t, Label.Variant.MUTED, column.typeName())
+              .ellipsis().minSize(0, 0));
+    }
     El cell = cellBox(t, column.align(), column.width()).key("column-" + index)
         .role("columnheader").label(column.title()).gap(t.space().xs())
         .position(index + 1, b.columns.size());
+    // Apart from the title by the gap of an icon in a cell, as the cell's gap is the mark's.
+    El icon = column.icon() == null ? null : Icon.icon(t, column.icon(), column.iconVariant())
+        .margin(0, t.space().s() - t.space().xs(), 0, 0);
     int at = -1;
     for (int k = 0; k < b.o.sort.size(); k++) {
       if (b.o.sort.get(k).column() == index) {
         at = k;
       }
     }
+    El mark = null;
     if (at >= 0) {
       boolean descending = b.o.sort.get(at).descending();
       // The arrow, and its number among the keys when there are more, as one mark.
-      El mark = row().align(Style.Align.CENTER).shrink(0).child(Icon.icon(t,
+      mark = row().align(Style.Align.CENTER).shrink(0).child(Icon.icon(t,
           descending ? Symbol.ARROW_DOWN : Symbol.ARROW_UP, Icon.Variant.MUTED, b.g.mark()));
       if (b.o.sort.size() > 1) {
         mark.child(Label.label(t, Label.Variant.MUTED, String.valueOf(at + 1)));
@@ -662,22 +844,31 @@ public final class DataGrid {
           mark.margin(0, t.space().xs(), 0, 0);
         }
       }
-      List<El> marks = List.of(mark);
       if (descending) {
         cell.sortDescending();
       } else {
         cell.sortAscending();
       }
-      if (column.align() == Align.RIGHT) {
-        marks.forEach(cell::child);
-        cell.child(title);
-      } else {
-        cell.child(title);
-        marks.forEach(cell::child);
-      }
-    } else {
-      cell.child(title);
     }
+    if (mark != null && column.align() == Align.RIGHT) {
+      cell.child(mark);
+    }
+    if (icon != null) {
+      cell.child(icon);
+    }
+    cell.child(name);
+    if (mark != null && column.align() != Align.RIGHT) {
+      cell.child(mark);
+    }
+    // The whole title and type where anything is cut short, measured only when it may show.
+    float room = column.width() - t.size().stroke() - 2 * t.space().s();
+    String whole = column.typeName() == null ? column.title()
+        : column.title() + " " + column.typeName();
+    cell.whenHoveredFor(t.motion().tooltipDelay(), e -> {
+      if (headerWidth(b, index) > room + 0.5f) {
+        e.overlay(Tooltip.panel(t, whole));
+      }
+    });
     if (b.o.onSort == null || !column.sortable()) {
       return cell;
     }
@@ -744,28 +935,49 @@ public final class DataGrid {
         });
   }
 
-  /** The width that shows the column's title and the text of its rows that exist whole. */
+  /**
+   * The width that shows the column's header and the cells of its rows that exist whole: their
+   * icons, title, type, sort mark and text.
+   */
   private static float fit(Build b, int c) {
     Theme t = b.t;
-    Column column = b.columns.get(c);
-    float widest = natural(Label.label(t, column.title()));
-    if (b.o.sort.stream().anyMatch(k -> k.column() == c)) {
-      widest += b.g.mark() + t.space().xs();
-      if (b.o.sort.size() > 1) {
-        widest += t.space().xs() + natural(Label.label(t, "9"));
-      }
-    }
+    float widest = headerWidth(b, c);
     El body = b.body;
     for (int k = 0; k < body.children().size(); k++) {
       String key = "cell-" + (body.firstRow() + k) + "-" + c;
       for (El cell : body.children().get(k).children()) {
-        if (key.equals(cell.key()) && !cell.children().isEmpty()) {
-          widest = Math.max(widest, natural(cell.children().getFirst()));
+        if (key.equals(cell.key())) {
+          float width = 0;
+          for (El part : cell.children()) {
+            width += natural(part);
+          }
+          widest = Math.max(widest,
+              width + Math.max(cell.children().size() - 1, 0) * t.space().s());
         }
       }
     }
     float width = (float) Math.ceil(widest) + 2 * t.space().s() + t.size().stroke();
     return Math.clamp(width, b.g.minColumn(), Math.max(b.g.minColumn(), b.g.maxColumn()));
+  }
+
+  /** The width of a header cell's content when nothing is cut short. */
+  private static float headerWidth(Build b, int c) {
+    Theme t = b.t;
+    Column column = b.columns.get(c);
+    float width = natural(Label.label(t, column.title()));
+    if (column.icon() != null) {
+      width += t.size().icon() + t.space().s();
+    }
+    if (column.typeName() != null) {
+      width += t.space().s() + natural(Label.label(t, Label.Variant.MUTED, column.typeName()));
+    }
+    if (b.o.sort.stream().anyMatch(k -> k.column() == c)) {
+      width += b.g.mark() + t.space().xs();
+      if (b.o.sort.size() > 1) {
+        width += t.space().xs() + natural(Label.label(t, "9"));
+      }
+    }
+    return width;
   }
 
   /** The width a text element takes on one line, in logical pixels. */
@@ -848,11 +1060,19 @@ public final class DataGrid {
       }
     }
     String value = loaded ? column.cell().apply(i) : null;
+    CellIcon icon = loaded && column.cellIcon() != null ? column.cellIcon().apply(i) : null;
     if (!loaded) {
       box.child(text(t, false, Text.ELLIPSIS, t.text().muted()));
     } else {
-      box.child(text(t, column.mono(), value == null ? "NULL" : value,
-          value == null ? t.text().muted() : t.text().primary()));
+      if (icon != null) {
+        box.gap(t.space().s()).child(Icon.icon(t, icon.symbol(), icon.variant()));
+      }
+      if (icon == null || !icon.alone()) {
+        box.child(text(t, column.mono(), value == null ? "NULL" : value,
+            value == null ? t.text().muted() : t.text().primary()));
+      } else {
+        box.label(value == null ? "NULL" : value); // what the icon stands for, in a dump
+      }
     }
     if (sel != null) {
       box.onPointerDown((clicks, modifiers) -> down(b, i, c, false, clicks, modifiers));
@@ -866,11 +1086,20 @@ public final class DataGrid {
         });
       }
     }
-    if (value != null) { // the whole text, where the column cuts it short
-      float room = column.width() - t.size().stroke() - 2 * t.space().s();
+    boolean alone = icon != null && icon.alone();
+    String own = icon == null ? null : icon.tooltip();
+    if (value != null || alone || own != null) {
+      // The icon's own tooltip, else the text an icon alone stands for, and the whole text where
+      // the column cuts it short.
+      float room = column.width() - t.size().stroke() - 2 * t.space().s()
+          - (icon == null ? 0 : t.size().icon() + t.space().s());
       box.whenHoveredFor(t.motion().tooltipDelay(), e -> {
-        if (natural(e.children().getFirst()) > room + 0.5f) {
-          e.overlay(Tooltip.panel(t, value));
+        String cut = !alone && value != null && natural(e.children().getLast()) > room + 0.5f
+            ? value : null;
+        String tip = own == null ? (alone ? (value == null ? "NULL" : value) : cut)
+            : cut == null ? own : own + "\n" + cut;
+        if (tip != null) {
+          e.overlay(Tooltip.panel(t, tip));
         }
       });
     }

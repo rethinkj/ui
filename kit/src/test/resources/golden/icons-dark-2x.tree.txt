@@ -1,391 +1,471 @@
-el 0,0 800x700
+el 0,0 800x840
   el 0,0 800x28
     text "variants" 8,6 49x16
-    text "\u{F868}" 65,6 16x16
+    text label="warning" "\u{F868}" 65,6 16x16
     text "normal" 89,6 42x16
-    text "\u{F868}" 139,6 16x16
+    text label="warning" "\u{F868}" 139,6 16x16
     text "muted" 163,6 39x16
-    text "\u{F868}" 210,6 16x16
+    text label="warning" "\u{F868}" 210,6 16x16
     text "disabled" 234,6 52x16
-    text "\u{F868}" 294,6 16x16
+    text label="warning" "\u{F868}" 294,6 16x16
     text "danger" 318,6 43x16
-    text "\u{F868}" 369,6 16x16
+    text label="warning" "\u{F868}" 369,6 16x16
     text "warning" 393,6 49x16
-    text "\u{F868}" 450,6 16x16
+    text label="warning" "\u{F868}" 450,6 16x16
     text "success" 474,6 51x16
   el 0,28 200x28
-    text "\u{F108}" 8,34 16x16
-    text "\u{F109}" 32,32 20x20
+    text label="add" "\u{F108}" 8,34 16x16
+    text label="add" "\u{F109}" 32,32 20x20
     text "add" 60,34 23x16
   el 200,28 200x28
-    text "\u{E014}" 208,34 16x16
-    text "\u{F114}" 232,32 20x20
+    text label="alert" "\u{E014}" 208,34 16x16
+    text label="alert" "\u{F114}" 232,32 20x20
     text "alert" 260,34 27x16
   el 400,28 200x28
-    text "\u{E0AA}" 408,34 16x16
-    text "\u{F13D}" 432,32 20x20
+    text label="arrow_clockwise" "\u{E0AA}" 408,34 16x16
+    text label="arrow_clockwise" "\u{F13D}" 432,32 20x20
     text "arrow_clockwise" 460,34 102x16
   el 600,28 200x28
-    text "\u{F147}" 608,34 16x16
-    text "\u{F148}" 632,32 20x20
+    text label="arrow_down" "\u{F147}" 608,34 16x16
+    text label="arrow_down" "\u{F148}" 632,32 20x20
     text "arrow_down" 660,34 75x16
   el 0,56 200x28
-    text "\u{F14F}" 8,62 16x16
-    text "\u{F150}" 32,60 20x20
+    text label="arrow_download" "\u{F14F}" 8,62 16x16
+    text label="arrow_download" "\u{F150}" 32,60 20x20
     text "arrow_download" 60,62 101x16
   el 200,56 200x28
-    text "\u{E0C6}" 208,62 16x16
-    text "\u{E0C7}" 232,60 20x20
+    text label="arrow_export_ltr" "\u{E0C6}" 208,62 16x16
+    text label="arrow_export_ltr" "\u{E0C7}" 232,60 20x20
     text "arrow_export_ltr" 260,62 99x16
   el 400,56 200x28
-    text "\u{F0384}" 408,62 16x16
-    text "\u{F159}" 432,60 20x20
+    text label="arrow_import" "\u{F0384}" 408,62 16x16
+    text label="arrow_import" "\u{F159}" 432,60 20x20
     text "arrow_import" 460,62 81x16
   el 600,56 200x28
-    text "\u{F184}" 608,62 16x16
-    text "\u{F15B}" 632,60 20x20
+    text label="arrow_left" "\u{F184}" 608,62 16x16
+    text label="arrow_left" "\u{F15B}" 632,60 20x20
     text "arrow_left" 660,62 61x16
   el 0,84 200x28
-    text "\u{F15E}" 8,90 16x16
-    text "\u{F15F}" 32,88 20x20
+    text label="arrow_maximize" "\u{F15E}" 8,90 16x16
+    text label="arrow_maximize" "\u{F15F}" 32,88 20x20
     text "arrow_maximize" 60,90 100x16
   el 200,84 200x28
-    text "\u{F164}" 208,90 16x16
-    text "\u{F165}" 232,88 20x20
+    text label="arrow_minimize" "\u{F164}" 208,90 16x16
+    text label="arrow_minimize" "\u{F165}" 232,88 20x20
     text "arrow_minimize" 260,90 96x16
   el 400,84 200x28
-    text "\u{E0E4}" 408,90 16x16
-    text "\u{F16E}" 432,88 20x20
+    text label="arrow_redo" "\u{E0E4}" 408,90 16x16
+    text label="arrow_redo" "\u{F16E}" 432,88 20x20
     text "arrow_redo" 460,90 70x16
   el 600,84 200x28
-    text "\u{E0EB}" 608,90 16x16
-    text "\u{F181}" 632,88 20x20
+    text label="arrow_right" "\u{E0EB}" 608,90 16x16
+    text label="arrow_right" "\u{F181}" 632,88 20x20
     text "arrow_right" 660,90 70x16
   el 0,112 200x28
-    text "\u{F1AB}" 8,118 16x16
-    text "\u{F18A}" 32,116 20x20
+    text label="arrow_sort" "\u{F1AB}" 8,118 16x16
+    text label="arrow_sort" "\u{F18A}" 32,116 20x20
     text "arrow_sort" 60,118 65x16
   el 200,112 200x28
-    text "\u{F1AC}" 208,118 16x16
-    text "\u{F805}" 232,116 20x20
+    text label="arrow_sort_down" "\u{F1AC}" 208,118 16x16
+    text label="arrow_sort_down" "\u{F805}" 232,116 20x20
     text "arrow_sort_down" 260,118 105x16
   el 400,112 200x28
-    text "\u{F1B3}" 408,118 16x16
-    text "\u{F812}" 432,116 20x20
+    text label="arrow_sort_up" "\u{F1B3}" 408,118 16x16
+    text label="arrow_sort_up" "\u{F812}" 432,116 20x20
     text "arrow_sort_up" 460,118 87x16
   el 600,112 200x28
-    text "\u{E110}" 608,118 16x16
-    text "\u{F190}" 632,116 20x20
+    text label="arrow_sync" "\u{E110}" 608,118 16x16
+    text label="arrow_sync" "\u{F190}" 632,116 20x20
     text "arrow_sync" 660,118 70x16
   el 0,140 200x28
-    text "\u{E126}" 8,146 16x16
-    text "\u{F199}" 32,144 20x20
+    text label="arrow_undo" "\u{E126}" 8,146 16x16
+    text label="arrow_undo" "\u{F199}" 32,144 20x20
     text "arrow_undo" 60,146 72x16
   el 200,140 200x28
-    text "\u{F1B4}" 208,146 16x16
-    text "\u{F19B}" 232,144 20x20
+    text label="arrow_up" "\u{F1B4}" 208,146 16x16
+    text label="arrow_up" "\u{F19B}" 232,144 20x20
     text "arrow_up" 260,146 57x16
   el 400,140 200x28
-    text "\u{E131}" 408,146 16x16
-    text "\u{F1A4}" 432,144 20x20
+    text label="arrow_upload" "\u{E131}" 408,146 16x16
+    text label="arrow_upload" "\u{F1A4}" 432,144 20x20
     text "arrow_upload" 460,146 83x16
   el 600,140 200x28
-    text "\u{EE90}" 608,146 16x16
-    text "\u{E1D5}" 632,144 20x20
-    text "braces" 660,146 42x16
+    text label="book_number" "\u{F1F1}" 608,146 16x16
+    text label="book_number" "\u{F1F2}" 632,144 20x20
+    text "book_number" 660,146 84x16
   el 0,168 200x28
-    text "\u{F0A6}" 8,174 16x16
-    text "\u{E1D9}" 32,172 20x20
-    text "branch" 60,174 43x16
+    text label="braces" "\u{EE90}" 8,174 16x16
+    text label="braces" "\u{E1D5}" 32,172 20x20
+    text "braces" 60,174 42x16
   el 200,168 200x28
-    text "\u{E24D}" 208,174 16x16
-    text "\u{E24E}" 232,172 20x20
-    text "calendar_ltr" 260,174 72x16
+    text label="branch" "\u{F0A6}" 208,174 16x16
+    text label="branch" "\u{E1D9}" 232,172 20x20
+    text "branch" 260,174 43x16
   el 400,168 200x28
-    text "\u{E305}" 408,174 16x16
-    text "\u{F294}" 432,172 20x20
-    text "checkmark" 460,174 68x16
+    text label="calculator" "\u{F06B}" 408,174 16x16
+    text label="calculator" "\u{F20A}" 432,172 20x20
+    text "calculator" 460,174 60x16
   el 600,168 200x28
-    text "\u{F297}" 608,174 16x16
-    text "\u{F298}" 632,172 20x20
-    text "checkmark_circle" 660,174 107x16
+    text label="calendar_clock" "\u{E243}" 608,174 16x16
+    text label="calendar_clock" "\u{F21D}" 632,172 20x20
+    text "calendar_clock" 660,174 92x16
   el 0,196 200x28
-    text "\u{F2A2}" 8,202 16x16
-    text "\u{F2A3}" 32,200 20x20
-    text "chevron_down" 60,202 89x16
+    text label="calendar_ltr" "\u{E24D}" 8,202 16x16
+    text label="calendar_ltr" "\u{E24E}" 32,200 20x20
+    text "calendar_ltr" 60,202 72x16
   el 200,196 200x28
-    text "\u{F2A9}" 208,202 16x16
-    text "\u{F2AA}" 232,200 20x20
-    text "chevron_left" 260,202 75x16
+    text label="checkbox_checked" "\u{F27C}" 208,202 16x16
+    text label="checkbox_checked" "\u{F28D}" 232,200 20x20
+    text "checkbox_checked" 260,202 118x16
   el 400,196 200x28
-    text "\u{F2AF}" 408,202 16x16
-    text "\u{F2B0}" 432,200 20x20
-    text "chevron_right" 460,202 84x16
+    text label="checkmark" "\u{E305}" 408,202 16x16
+    text label="checkmark" "\u{F294}" 432,200 20x20
+    text "checkmark" 460,202 68x16
   el 600,196 200x28
-    text "\u{F2B5}" 608,202 16x16
-    text "\u{F2B6}" 632,200 20x20
-    text "chevron_up" 660,202 71x16
+    text label="checkmark_circle" "\u{F297}" 608,202 16x16
+    text label="checkmark_circle" "\u{F298}" 632,200 20x20
+    text "checkmark_circle" 660,202 107x16
   el 0,224 200x28
-    text "\u{F2BA}" 8,230 16x16
-    text "\u{F2BA}" 32,228 20x20
-    text "circle" 60,230 33x16
+    text label="chevron_down" "\u{F2A2}" 8,230 16x16
+    text label="chevron_down" "\u{F2A3}" 32,228 20x20
+    text "chevron_down" 60,230 89x16
   el 200,224 200x28
-    text "\u{E35A}" 208,230 16x16
-    text "\u{F2D5}" 232,228 20x20
-    text "clipboard_paste" 260,230 98x16
+    text label="chevron_left" "\u{F2A9}" 208,230 16x16
+    text label="chevron_left" "\u{F2AA}" 232,228 20x20
+    text "chevron_left" 260,230 75x16
   el 400,224 200x28
-    text "\u{F2DC}" 408,230 16x16
-    text "\u{F2DD}" 432,228 20x20
-    text "clock" 460,230 33x16
+    text label="chevron_right" "\u{F2AF}" 408,230 16x16
+    text label="chevron_right" "\u{F2B0}" 432,228 20x20
+    text "chevron_right" 460,230 84x16
   el 600,224 200x28
-    text "\u{F339}" 608,230 16x16
-    text "\u{F2EF}" 632,228 20x20
-    text "code" 660,230 31x16
+    text label="chevron_up" "\u{F2B5}" 608,230 16x16
+    text label="chevron_up" "\u{F2B6}" 632,228 20x20
+    text "chevron_up" 660,230 71x16
   el 0,252 200x28
-    text "\u{F0116}" 8,258 16x16
-    text "\u{F0116}" 32,256 20x20
-    text "column_single" 60,258 87x16
+    text label="circle" "\u{F2BA}" 8,258 16x16
+    text label="circle" "\u{F2BA}" 32,256 20x20
+    text "circle" 60,258 33x16
   el 200,252 200x28
-    text "\u{F32A}" 208,258 16x16
-    text "\u{F32B}" 232,256 20x20
-    text "copy" 260,258 30x16
+    text label="clipboard_paste" "\u{E35A}" 208,258 16x16
+    text label="clipboard_paste" "\u{F2D5}" 232,256 20x20
+    text "clipboard_paste" 260,258 98x16
   el 400,252 200x28
-    text "\u{F334}" 408,258 16x16
-    text "\u{F335}" 432,256 20x20
-    text "cube" 460,258 31x16
+    text label="clock" "\u{F2DC}" 408,258 16x16
+    text label="clock" "\u{F2DD}" 432,256 20x20
+    text "clock" 460,258 33x16
   el 600,252 200x28
-    text "\u{F038C}" 608,258 16x16
-    text "\u{F33A}" 632,256 20x20
-    text "cut" 660,258 19x16
+    text label="code" "\u{F339}" 608,258 16x16
+    text label="code" "\u{F2EF}" 632,256 20x20
+    text "code" 660,258 31x16
   el 0,280 200x28
-    text "\u{F0D7}" 8,286 16x16
-    text "\u{E466}" 32,284 20x20
-    text "database" 60,286 57x16
+    text label="column_single" "\u{F0116}" 8,286 16x16
+    text label="column_single" "\u{F0116}" 32,284 20x20
+    text "column_single" 60,286 87x16
   el 200,280 200x28
-    text "\u{E47B}" 208,286 16x16
-    text "\u{F34C}" 232,284 20x20
-    text "delete" 260,286 38x16
+    text label="copy" "\u{F32A}" 208,286 16x16
+    text label="copy" "\u{F32B}" 232,284 20x20
+    text "copy" 260,286 30x16
   el 400,280 200x28
-    text "\u{F368}" 408,286 16x16
-    text "\u{F369}" 432,284 20x20
-    text "dismiss" 460,286 46x16
+    text label="cube" "\u{F334}" 408,286 16x16
+    text label="cube" "\u{F335}" 432,284 20x20
+    text "cube" 460,286 31x16
   el 600,280 200x28
-    text "\u{F36C}" 608,286 16x16
-    text "\u{F36D}" 632,284 20x20
-    text "dismiss_circle" 660,286 85x16
+    text label="cut" "\u{F038C}" 608,286 16x16
+    text label="cut" "\u{F33A}" 632,284 20x20
+    text "cut" 660,286 19x16
   el 0,308 200x28
-    text "\u{E4D7}" 8,314 16x16
-    text "\u{F378}" 32,312 20x20
-    text "document" 60,314 62x16
+    text label="database" "\u{F0D7}" 8,314 16x16
+    text label="database" "\u{E466}" 32,312 20x20
+    text "database" 60,314 57x16
   el 200,308 200x28
-    text "\u{E54A}" 208,314 16x16
-    text "\u{E54B}" 232,312 20x20
-    text "document_table" 260,314 98x16
+    text label="delete" "\u{E47B}" 208,314 16x16
+    text label="delete" "\u{F34C}" 232,312 20x20
+    text "delete" 260,314 38x16
   el 400,308 200x28
-    text "\u{F3DC}" 408,314 16x16
-    text "\u{F3DD}" 432,312 20x20
-    text "edit" 460,314 23x16
+    text label="dismiss" "\u{F368}" 408,314 16x16
+    text label="dismiss" "\u{F369}" 432,312 20x20
+    text "dismiss" 460,314 46x16
   el 600,308 200x28
-    text "\u{F3F0}" 608,314 16x16
-    text "\u{F3F1}" 632,312 20x20
-    text "error_circle" 660,314 69x16
+    text label="dismiss_circle" "\u{F36C}" 608,314 16x16
+    text label="dismiss_circle" "\u{F36D}" 632,312 20x20
+    text "dismiss_circle" 660,314 85x16
   el 0,336 200x28
-    text "\u{E5F1}" 8,342 16x16
-    text "\u{E5F2}" 32,340 20x20
-    text "eye" 60,342 22x16
+    text label="document" "\u{E4D7}" 8,342 16x16
+    text label="document" "\u{F378}" 32,340 20x20
+    text "document" 60,342 62x16
   el 200,336 200x28
-    text "\u{E5F4}" 208,342 16x16
-    text "\u{E5F5}" 232,340 20x20
-    text "eye_off" 260,342 45x16
+    text label="document_data" "\u{F0DD}" 208,342 16x16
+    text label="document_data" "\u{E4F7}" 232,340 20x20
+    text "document_data" 260,342 94x16
   el 400,336 200x28
-    text "\u{E60A}" 408,342 16x16
-    text "\u{F406}" 432,340 20x20
-    text "filter" 460,342 28x16
+    text label="document_table" "\u{E54A}" 408,342 16x16
+    text label="document_table" "\u{E54B}" 432,340 20x20
+    text "document_table" 460,342 98x16
   el 600,336 200x28
-    text "\u{E60C}" 608,342 16x16
-    text "\u{E60D}" 632,340 20x20
-    text "filter_dismiss" 660,342 80x16
+    text label="edit" "\u{F3DC}" 608,342 16x16
+    text label="edit" "\u{F3DD}" 632,340 20x20
+    text "edit" 660,342 23x16
   el 0,364 200x28
-    text "\u{E643}" 8,370 16x16
-    text "\u{F418}" 32,368 20x20
-    text "folder" 60,370 36x16
+    text label="error_circle" "\u{F3F0}" 8,370 16x16
+    text label="error_circle" "\u{F3F1}" 32,368 20x20
+    text "error_circle" 60,370 69x16
   el 200,364 200x28
-    text "\u{F42D}" 208,370 16x16
-    text "\u{F42E}" 232,368 20x20
-    text "folder_open" 260,370 73x16
+    text label="eye" "\u{E5F1}" 208,370 16x16
+    text label="eye" "\u{E5F2}" 232,368 20x20
+    text "eye" 260,370 22x16
   el 400,364 200x28
-    text "\u{E705}" 408,370 16x16
-    text "\u{F47E}" 432,368 20x20
-    text "history" 460,370 42x16
+    text label="eye_off" "\u{E5F4}" 408,370 16x16
+    text label="eye_off" "\u{E5F5}" 432,368 20x20
+    text "eye_off" 460,370 45x16
   el 600,364 200x28
-    text "\u{F4A2}" 608,370 16x16
-    text "\u{F4A3}" 632,368 20x20
-    text "info" 660,370 23x16
+    text label="filter" "\u{E60A}" 608,370 16x16
+    text label="filter" "\u{F406}" 632,368 20x20
+    text "filter" 660,370 28x16
   el 0,392 200x28
-    text "\u{E740}" 8,398 16x16
-    text "\u{F4B6}" 32,396 20x20
-    text "key" 60,398 22x16
+    text label="filter_dismiss" "\u{E60C}" 8,398 16x16
+    text label="filter_dismiss" "\u{E60D}" 32,396 20x20
+    text "filter_dismiss" 60,398 80x16
   el 200,392 200x28
-    text "\u{F0274}" 208,398 16x16
-    text "\u{E745}" 232,396 20x20
-    text "key_multiple" 260,398 75x16
+    text label="fingerprint" "\u{F03F9}" 208,398 16x16
+    text label="fingerprint" "\u{E611}" 232,396 20x20
+    text "fingerprint" 260,398 64x16
   el 400,392 200x28
-    text "\u{F4E3}" 408,398 16x16
-    text "\u{F4E4}" 432,396 20x20
-    text "link" 460,398 21x16
+    text label="flash" "\u{E617}" 408,398 16x16
+    text label="flash" "\u{E618}" 432,396 20x20
+    text "flash" 460,398 30x16
   el 600,392 200x28
-    text "\u{E78E}" 608,398 16x16
-    text "\u{E78F}" 632,396 20x20
-    text "lock_closed" 660,398 72x16
+    text label="folder" "\u{E643}" 608,398 16x16
+    text label="folder" "\u{F418}" 632,396 20x20
+    text "folder" 660,398 36x16
   el 0,420 200x28
-    text "\u{E794}" 8,426 16x16
-    text "\u{E795}" 32,424 20x20
-    text "lock_open" 60,426 62x16
+    text label="folder_open" "\u{F42D}" 8,426 16x16
+    text label="folder_open" "\u{F42E}" 32,424 20x20
+    text "folder_open" 60,426 73x16
   el 200,420 200x28
-    text "\u{E7E1}" 208,426 16x16
-    text "\u{E7E2}" 232,424 20x20
-    text "math_formula" 260,426 83x16
+    text label="globe" "\u{E6B1}" 208,426 16x16
+    text label="globe" "\u{F45A}" 232,424 20x20
+    text "globe" 260,426 35x16
   el 400,420 200x28
-    text "\u{F533}" 408,426 16x16
-    text "\u{E7EB}" 432,424 20x20
-    text "maximize" 460,426 58x16
+    text label="history" "\u{E705}" 408,426 16x16
+    text label="history" "\u{F47E}" 432,424 20x20
+    text "history" 460,426 42x16
   el 600,420 200x28
-    text "\u{E823}" 608,426 16x16
-    text "\u{E823}" 632,424 20x20
-    text "more_horizontal" 660,426 98x16
+    text label="image" "\u{F487}" 608,426 16x16
+    text label="image" "\u{F488}" 632,424 20x20
+    text "image" 660,426 37x16
   el 0,448 200x28
-    text "\u{E829}" 8,454 16x16
-    text "\u{F556}" 32,452 20x20
-    text "more_vertical" 60,454 81x16
+    text label="info" "\u{F4A2}" 8,454 16x16
+    text label="info" "\u{F4A3}" 32,452 20x20
+    text "info" 60,454 23x16
   el 200,448 200x28
-    text "\u{E85F}" 208,454 16x16
-    text "\u{E85F}" 232,452 20x20
-    text "navigation" 260,454 63x16
+    text label="key" "\u{E740}" 208,454 16x16
+    text label="key" "\u{F4B6}" 232,452 20x20
+    text "key" 260,454 22x16
   el 400,448 200x28
-    text "\u{F57C}" 408,454 16x16
-    text "\u{F57D}" 432,452 20x20
-    text "number_symbol" 460,454 97x16
+    text label="key_multiple" "\u{F0274}" 408,454 16x16
+    text label="key_multiple" "\u{E745}" 432,452 20x20
+    text "key_multiple" 460,454 75x16
   el 600,448 200x28
-    text "\u{F581}" 608,454 16x16
-    text "\u{F582}" 632,452 20x20
-    text "open" 660,454 31x16
+    text label="link" "\u{F4E3}" 608,454 16x16
+    text label="link" "\u{F4E4}" 632,452 20x20
+    text "link" 660,454 21x16
   el 0,476 200x28
-    text "\u{E8AF}" 8,482 16x16
-    text "\u{E8B0}" 32,480 20x20
-    text "panel_left" 60,482 60x16
+    text label="location" "\u{F4F7}" 8,482 16x16
+    text label="location" "\u{F4F8}" 32,480 20x20
+    text "location" 60,482 48x16
   el 200,476 200x28
-    text "\u{E8BC}" 208,482 16x16
-    text "\u{E8BD}" 232,480 20x20
-    text "panel_right" 260,482 68x16
+    text label="lock_closed" "\u{E78E}" 208,482 16x16
+    text label="lock_closed" "\u{E78F}" 232,480 20x20
+    text "lock_closed" 260,482 72x16
   el 400,476 200x28
-    text "\u{F5A0}" 408,482 16x16
-    text "\u{F5A1}" 432,480 20x20
-    text "pause" 460,482 38x16
+    text label="lock_open" "\u{E794}" 408,482 16x16
+    text label="lock_open" "\u{E795}" 432,480 20x20
+    text "lock_open" 460,482 62x16
   el 600,476 200x28
-    text "\u{F5A7}" 608,482 16x16
-    text "\u{F5A8}" 632,480 20x20
-    text "people" 660,482 42x16
+    text label="mail" "\u{E7A1}" 608,482 16x16
+    text label="mail" "\u{F506}" 632,480 20x20
+    text "mail" 660,482 25x16
   el 0,504 200x28
-    text "\u{F5BC}" 8,510 16x16
-    text "\u{F5BD}" 32,508 20x20
-    text "person" 60,510 43x16
+    text label="math_formula" "\u{E7E1}" 8,510 16x16
+    text label="math_formula" "\u{E7E2}" 32,508 20x20
+    text "math_formula" 60,510 83x16
   el 200,504 200x28
-    text "\u{F600}" 208,510 16x16
-    text "\u{F601}" 232,508 20x20
-    text "pin" 260,510 19x16
+    text label="maximize" "\u{F533}" 208,510 16x16
+    text label="maximize" "\u{E7EB}" 232,508 20x20
+    text "maximize" 260,510 58x16
   el 400,504 200x28
-    text "\u{E990}" 408,510 16x16
-    text "\u{F605}" 432,508 20x20
-    text "play" 460,510 26x16
+    text label="money" "\u{F54E}" 408,510 16x16
+    text label="money" "\u{F54F}" 432,508 20x20
+    text "money" 460,510 41x16
   el 600,504 200x28
-    text "\u{F0393}" 608,510 16x16
-    text "\u{E999}" 632,508 20x20
-    text "plug_connected" 660,510 98x16
+    text label="more_horizontal" "\u{E823}" 608,510 16x16
+    text label="more_horizontal" "\u{E823}" 632,508 20x20
+    text "more_horizontal" 660,510 98x16
   el 0,532 200x28
-    text "\u{F0394}" 8,538 16x16
-    text "\u{F609}" 32,536 20x20
-    text "plug_disconnected" 60,538 116x16
+    text label="more_vertical" "\u{E829}" 8,538 16x16
+    text label="more_vertical" "\u{F556}" 32,536 20x20
+    text "more_vertical" 60,538 81x16
   el 200,532 200x28
-    text "\u{F63C}" 208,538 16x16
-    text "\u{F63D}" 232,536 20x20
-    text "question_circle" 260,538 92x16
+    text label="navigation" "\u{E85F}" 208,538 16x16
+    text label="navigation" "\u{E85F}" 232,536 20x20
+    text "navigation" 260,538 63x16
   el 400,532 200x28
-    text "\u{F759}" 408,538 16x16
-    text "\u{F75A}" 432,536 20x20
-    text "record_stop" 460,538 73x16
+    text label="number_circle_1" "\u{E884}" 408,538 16x16
+    text label="number_circle_1" "\u{E885}" 432,536 20x20
+    text "number_circle_1" 460,538 96x16
   el 600,532 200x28
-    text "\u{EA43}" 608,538 16x16
-    text "\u{F67F}" 632,536 20x20
-    text "save" 660,538 29x16
+    text label="number_symbol" "\u{F57C}" 608,538 16x16
+    text label="number_symbol" "\u{F57D}" 632,536 20x20
+    text "number_symbol" 660,538 97x16
   el 0,560 200x28
-    text "\u{EA7C}" 8,566 16x16
-    text "\u{F68F}" 32,564 20x20
-    text "search" 60,566 42x16
+    text label="open" "\u{F581}" 8,566 16x16
+    text label="open" "\u{F582}" 32,564 20x20
+    text "open" 60,566 31x16
   el 200,560 200x28
-    text "\u{F1DC}" 208,566 16x16
-    text "\u{F769}" 232,564 20x20
-    text "server" 260,566 39x16
+    text label="panel_left" "\u{E8AF}" 208,566 16x16
+    text label="panel_left" "\u{E8B0}" 232,564 20x20
+    text "panel_left" 260,566 60x16
   el 400,560 200x28
-    text "\u{F6A8}" 408,566 16x16
-    text "\u{F6A9}" 432,564 20x20
-    text "settings" 460,566 49x16
+    text label="panel_right" "\u{E8BC}" 408,566 16x16
+    text label="panel_right" "\u{E8BD}" 432,564 20x20
+    text "panel_right" 460,566 68x16
   el 600,560 200x28
-    text "\u{EAC3}" 608,566 16x16
-    text "\u{F6BE}" 632,564 20x20
-    text "shield" 660,566 36x16
+    text label="pause" "\u{F5A0}" 608,566 16x16
+    text label="pause" "\u{F5A1}" 632,564 20x20
+    text "pause" 660,566 38x16
   el 0,588 200x28
-    text "\u{EB58}" 8,594 16x16
-    text "\u{EB59}" 32,592 20x20
-    text "split_horizontal" 60,594 92x16
+    text label="people" "\u{F5A7}" 8,594 16x16
+    text label="people" "\u{F5A8}" 32,592 20x20
+    text "people" 60,594 42x16
   el 200,588 200x28
-    text "\u{EB5F}" 208,594 16x16
-    text "\u{EB60}" 232,592 20x20
-    text "split_vertical" 260,594 75x16
+    text label="person" "\u{F5BC}" 208,594 16x16
+    text label="person" "\u{F5BD}" 232,592 20x20
+    text "person" 260,594 43x16
   el 400,588 200x28
-    text "\u{EB95}" 408,594 16x16
-    text "\u{EB96}" 432,592 20x20
-    text "square_multiple" 460,594 97x16
+    text label="pin" "\u{F600}" 408,594 16x16
+    text label="pin" "\u{F601}" 432,592 20x20
+    text "pin" 460,594 19x16
   el 600,588 200x28
-    text "\u{F70E}" 608,594 16x16
-    text "\u{F70F}" 632,592 20x20
-    text "star" 660,594 23x16
+    text label="play" "\u{E990}" 608,594 16x16
+    text label="play" "\u{F605}" 632,592 20x20
+    text "play" 660,594 26x16
   el 0,616 200x28
-    text "\u{F729}" 8,622 16x16
-    text "\u{F72A}" 32,620 20x20
-    text "stop" 60,622 27x16
+    text label="plug_connected" "\u{F0393}" 8,622 16x16
+    text label="plug_connected" "\u{E999}" 32,620 20x20
+    text "plug_connected" 60,622 98x16
   el 200,616 200x28
-    text "\u{EBCF}" 208,622 16x16
-    text "\u{EBD0}" 232,620 20x20
-    text "subtract" 260,622 51x16
+    text label="plug_disconnected" "\u{F0394}" 208,622 16x16
+    text label="plug_disconnected" "\u{F609}" 232,620 20x20
+    text "plug_disconnected" 260,622 116x16
   el 400,616 200x28
-    text "\u{EBF4}" 408,622 16x16
-    text "\u{F75D}" 432,620 20x20
-    text "table" 460,622 30x16
+    text label="prohibited" "\u{F705}" 408,622 16x16
+    text label="prohibited" "\u{F62D}" 432,620 20x20
+    text "prohibited" 460,622 62x16
   el 600,616 200x28
-    text "\u{EC50}" 608,622 16x16
-    text "\u{EC51}" 632,620 20x20
-    text "table_simple" 660,622 76x16
+    text label="question_circle" "\u{F63C}" 608,622 16x16
+    text label="question_circle" "\u{F63D}" 632,620 20x20
+    text "question_circle" 660,622 92x16
   el 0,644 200x28
-    text "\u{EC70}" 8,650 16x16
-    text "\u{F77C}" 32,648 20x20
-    text "tag" 60,650 20x16
+    text label="record" "\u{F660}" 8,650 16x16
+    text label="record" "\u{F661}" 32,648 20x20
+    text "record" 60,650 40x16
   el 200,644 200x28
-    text "\u{ED5A}" 208,650 16x16
-    text "\u{F802}" 232,648 20x20
-    text "text_sort_ascending" 260,650 122x16
+    text label="record_stop" "\u{F759}" 208,650 16x16
+    text label="record_stop" "\u{F75A}" 232,648 20x20
+    text "record_stop" 260,650 73x16
   el 400,644 200x28
-    text "\u{ED5C}" 408,650 16x16
-    text "\u{F803}" 432,648 20x20
-    text "text_sort_descending" 460,650 131x16
+    text label="save" "\u{EA43}" 408,650 16x16
+    text label="save" "\u{F67F}" 432,648 20x20
+    text "save" 460,650 29x16
   el 600,644 200x28
-    text "\u{ECAE}" 608,650 16x16
-    text "\u{ED63}" 632,648 20x20
-    text "text_t" 660,650 33x16
+    text label="search" "\u{EA7C}" 608,650 16x16
+    text label="search" "\u{F68F}" 632,648 20x20
+    text "search" 660,650 42x16
   el 0,672 200x28
-    text "\u{F868}" 8,678 16x16
-    text "\u{F869}" 32,676 20x20
-    text "warning" 60,678 49x16
+    text label="server" "\u{F1DC}" 8,678 16x16
+    text label="server" "\u{F769}" 32,676 20x20
+    text "server" 60,678 39x16
   el 200,672 200x28
-    text "\u{EE5D}" 208,678 16x16
-    text "\u{F8B5}" 232,676 20x20
-    text "window" 260,678 48x16
+    text label="settings" "\u{F6A8}" 208,678 16x16
+    text label="settings" "\u{F6A9}" 232,676 20x20
+    text "settings" 260,678 49x16
+  el 400,672 200x28
+    text label="shapes" "\u{F6AC}" 408,678 16x16
+    text label="shapes" "\u{F6AD}" 432,676 20x20
+    text "shapes" 460,678 44x16
+  el 600,672 200x28
+    text label="shield" "\u{EAC3}" 608,678 16x16
+    text label="shield" "\u{F6BE}" 632,676 20x20
+    text "shield" 660,678 36x16
+  el 0,700 200x28
+    text label="split_horizontal" "\u{EB58}" 8,706 16x16
+    text label="split_horizontal" "\u{EB59}" 32,704 20x20
+    text "split_horizontal" 60,706 92x16
+  el 200,700 200x28
+    text label="split_vertical" "\u{EB5F}" 208,706 16x16
+    text label="split_vertical" "\u{EB60}" 232,704 20x20
+    text "split_vertical" 260,706 75x16
+  el 400,700 200x28
+    text label="square_multiple" "\u{EB95}" 408,706 16x16
+    text label="square_multiple" "\u{EB96}" 432,704 20x20
+    text "square_multiple" 460,706 97x16
+  el 600,700 200x28
+    text label="star" "\u{F70E}" 608,706 16x16
+    text label="star" "\u{F70F}" 632,704 20x20
+    text "star" 660,706 23x16
+  el 0,728 200x28
+    text label="stop" "\u{F729}" 8,734 16x16
+    text label="stop" "\u{F72A}" 32,732 20x20
+    text "stop" 60,734 27x16
+  el 200,728 200x28
+    text label="subtract" "\u{EBCF}" 208,734 16x16
+    text label="subtract" "\u{EBD0}" 232,732 20x20
+    text "subtract" 260,734 51x16
+  el 400,728 200x28
+    text label="table" "\u{EBF4}" 408,734 16x16
+    text label="table" "\u{F75D}" 432,732 20x20
+    text "table" 460,734 30x16
+  el 600,728 200x28
+    text label="table_simple" "\u{EC50}" 608,734 16x16
+    text label="table_simple" "\u{EC51}" 632,732 20x20
+    text "table_simple" 660,734 76x16
+  el 0,756 200x28
+    text label="tag" "\u{EC70}" 8,762 16x16
+    text label="tag" "\u{F77C}" 32,760 20x20
+    text "tag" 60,762 20x16
+  el 200,756 200x28
+    text label="text_asterisk" "\u{F03A7}" 208,762 16x16
+    text label="text_asterisk" "\u{F7A3}" 232,760 20x20
+    text "text_asterisk" 260,762 77x16
+  el 400,756 200x28
+    text label="text_bullet_list_ltr" "\u{ECD8}" 408,762 16x16
+    text label="text_bullet_list_ltr" "\u{ECD9}" 432,760 20x20
+    text "text_bullet_list_ltr" 460,762 106x16
+  el 600,756 200x28
+    text label="text_case_title" "\u{ECEC}" 608,762 16x16
+    text label="text_case_title" "\u{ECED}" 632,760 20x20
+    text "text_case_title" 660,762 86x16
+  el 0,784 200x28
+    text label="text_sort_ascending" "\u{ED5A}" 8,790 16x16
+    text label="text_sort_ascending" "\u{F802}" 32,788 20x20
+    text "text_sort_ascending" 60,790 122x16
+  el 200,784 200x28
+    text label="text_sort_descending" "\u{ED5C}" 208,790 16x16
+    text label="text_sort_descending" "\u{F803}" 232,788 20x20
+    text "text_sort_descending" 260,790 131x16
+  el 400,784 200x28
+    text label="text_t" "\u{ECAE}" 408,790 16x16
+    text label="text_t" "\u{ED63}" 432,788 20x20
+    text "text_t" 460,790 33x16
+  el 600,784 200x28
+    text label="timer" "\u{ED86}" 608,790 16x16
+    text label="timer" "\u{ED88}" 632,788 20x20
+    text "timer" 660,790 31x16
+  el 0,812 200x28
+    text label="warning" "\u{F868}" 8,818 16x16
+    text label="warning" "\u{F869}" 32,816 20x20
+    text "warning" 60,818 49x16
+  el 200,812 200x28
+    text label="window" "\u{EE5D}" 208,818 16x16
+    text label="window" "\u{F8B5}" 232,816 20x20
+    text "window" 260,818 48x16

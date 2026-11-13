@@ -4,7 +4,7 @@ el 0,0 560x240
       el #header -292,8 974x22
         el #column-0 role=columnheader label="id" -292,8 63x22 pos=1/7 sort=ascending
           el -258,13 12x12
-            text "\u{E12A}" -258,13 12x12
+            text label="arrow_up" "\u{E12A}" -258,13 12x12
           text "id" -244,11 11x16
         el -229,8 1x22
         el #column-1 role=columnheader label="customer" -228,8 139x22 pos=2/7
