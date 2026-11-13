@@ -2,7 +2,7 @@
 
 A native, GPU-rendered UI framework for Java, modelled on [rune](https://github.com/anomalyco/rune) (Rust, MIT). Rune is the reference for scope and concepts: its own renderer, text, layout and animation, plus a headless mode in which an agent can render to PNG, dump the element tree and drive an app with scripted input.
 
-Status: early. `core` runs an app with and without a window: element tree, flexbox layout, springs, clipping and scrolling, pointer presses and the wheel, CPU reference renderer, PNG, scripts that drive an app, and SDL windows that feed an app their input. There is no GPU renderer, text or keyboard handling in apps yet, and `kit` is empty. The native libraries for the window and the renderer, and on Linux those for text, are packaged and loaded; `core` has bindings to wgpu-native that no renderer uses yet.
+Status: early. `core` runs an app with and without a window: element tree, flexbox layout, springs, clipping and scrolling, pointer presses and the wheel, CPU reference renderer, PNG, scripts that drive an app, and SDL windows that feed an app their input. There is no GPU renderer, text or keyboard handling in apps yet, and `kit` is empty. The native libraries for the window and the renderer, and those for text, are packaged and loaded; `core` has bindings to wgpu-native that no renderer uses yet.
 
 - Repository: https://github.com/rethinkj/ui
 - License: MIT
@@ -28,7 +28,7 @@ Image tests compare what `Headless.render` produces with the PNG and tree files 
 
 The layout is tested against Taffy's flexbox cases in `core/src/test/resources/taffy`; `scripts/import-taffy-fixtures.sh` refreshes them.
 
-On Windows and Linux, the first build downloads the native libraries (see below) and needs network access; later builds, `mvn clean` included, do not. On Linux it also builds SDL, FreeType and HarfBuzz from source, which takes about a minute and needs cmake, make, a C and a C++ compiler, pkg-config, tar with xz, and the development packages listed in `natives-linux-x64/natives.properties`. `mvn verify -P '!natives-<platform>'` builds without them and skips the tests that load them.
+On Windows and Linux, the first build downloads the native libraries (see below) and needs network access; later builds, `mvn clean` included, do not. On Linux it also builds SDL, FreeType and HarfBuzz from source, which takes about a minute and needs cmake, make, a C and a C++ compiler, pkg-config, tar with xz, and the development packages listed in `natives-linux-x64/natives.properties`. On Windows it builds FreeType and HarfBuzz from source, which takes one to three minutes and needs Visual Studio's C++ tools (see "Native libraries"). `mvn verify -P '!natives-<platform>'` builds without them and skips the tests that load them.
 
 ## Driving an app with a script
 
@@ -139,8 +139,8 @@ On Windows, separate the class path with `;`. The snaps equal the stored images 
 | ---------------------- | --------------------------------- | --------------------- | --------------------------------------------------------- |
 | `core/`                | `rethinkj-ui-core`                | `com.rethinkj.ui`     | The framework itself                                      |
 | `kit/`                 | `rethinkj-ui-kit`                 | `com.rethinkj.ui.kit` | Components built on `core`                                |
-| `natives-windows-x64/` | `rethinkj-ui-natives-windows-x64` | none, no Java code    | SDL3 and wgpu-native for Windows on x64                   |
-| `natives-linux-x64/`   | `rethinkj-ui-natives-linux-x64`   | none, no Java code    | SDL3, wgpu-native, FreeType and HarfBuzz for Linux on x64 |
+| `natives-windows-x64/` | `rethinkj-ui-natives-windows-x64` | none, no Java code    | SDL3, wgpu-native, FreeType and HarfBuzz for Windows on x64 |
+| `natives-linux-x64/`   | `rethinkj-ui-natives-linux-x64`   | none, no Java code    | SDL3, wgpu-native, FreeType and HarfBuzz for Linux on x64   |
 | `fonts/`               | `rethinkj-ui-fonts`               | none, no Java code    | Inter and JetBrains Mono, the default fonts               |
 
 All artifacts share the groupId `com.rethinkj.ui`.
