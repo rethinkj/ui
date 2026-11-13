@@ -278,8 +278,10 @@ public final class WindowLoop {
       float upl = from.window.unitsPerLogical();
       float sx = from.window.x() + x * upl;
       float sy = from.window.y() + y * upl;
+      // On Wayland no client knows where its windows are: only the drag's own window counts.
+      boolean known = Window.knowsPositions();
       for (Entry entry : front) {
-        if (!entry.dropTarget || !entry.isOpen()) {
+        if (!entry.dropTarget || !entry.isOpen() || !known && entry != from) {
           continue;
         }
         float u = entry.window.unitsPerLogical();

@@ -901,6 +901,14 @@ public final class Window implements AutoCloseable {
   }
 
   /**
+   * Whether the system tells a client where its windows are and lets it move them: not on
+   * Wayland, where the compositor alone places windows and {@link #x()} is always 0.
+   */
+  static boolean knowsPositions() {
+    return !"wayland".equals(Sdl.getCurrentVideoDriver());
+  }
+
+  /**
    * Captures the pointer for the window it is over, or lets it go: while captured, that window
    * gets the pointer's moves and releases also outside it, as during a press.
    */
