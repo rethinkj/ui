@@ -16,6 +16,7 @@ import com.rethinkj.ui.natives.Natives;
 import com.rethinkj.ui.render.Pixels;
 import com.rethinkj.ui.window.WindowEvent.AppearanceChanged;
 import com.rethinkj.ui.window.WindowEvent.CloseRequested;
+import com.rethinkj.ui.window.WindowEvent.DisplayChanged;
 import com.rethinkj.ui.window.WindowEvent.FileDragLeave;
 import com.rethinkj.ui.window.WindowEvent.FileDragOver;
 import com.rethinkj.ui.window.WindowEvent.FileDrop;
@@ -349,6 +350,10 @@ public final class Window implements AutoCloseable {
   private static final ArrayDeque<Posted> pending = new ArrayDeque<>();
   /** What has to wait until no event is being delivered, such as the system menu. */
   private static final ArrayDeque<Runnable> deferred = new ArrayDeque<>();
+  /** Closed windows that wait, hidden, for their file dialogs to answer; see {@link #close}. */
+  private static final List<Window> lingering = new ArrayList<>();
+  /** When the dialogs of {@link #lingering} were last asked to close, in nanoseconds. */
+  private static long lingeringAsked;
 
   private static boolean dispatching;
   /** What an upcall caught, for {@link #rethrow}. */
@@ -360,6 +365,8 @@ public final class Window implements AutoCloseable {
   private static final MemorySegment[] cursors = new MemorySegment[Cursor.values().length];
   /** The cursor SDL shows, one for all windows. */
   private static Cursor cursorShown = Cursor.DEFAULT;
+  /** The window the pointer is in, as its last move and leave say, or null; it sets the cursor. */
+  private static Window pointerWindow;
   /** What {@link #identity} set, for the next {@link #start}; guarded by {@link #LOCK}. */
   private static String appId;
 
@@ -639,6 +646,10 @@ public final class Window implements AutoCloseable {
   private static void pump(int timeoutMillis) {
     checkThread();
     rethrow();
+    if (!lingering.isEmpty()) { // its dialogs appear on their own thread, and nothing says when
+      timeoutMillis =
+          timeoutMillis < 0 ? SystemDialogs.PUMP : Math.min(timeoutMillis, SystemDialogs.PUMP);
+    }
     if (timeoutMillis != 0 && pending.isEmpty() && deferred.isEmpty()) {
       Sdl.waitEventTimeout(buffer, timeoutMillis);
     }
@@ -650,6 +661,7 @@ public final class Window implements AutoCloseable {
       drain();
       dispatch();
     }
+    closeLingering();
     rethrow();
   }
 
@@ -849,6 +861,14 @@ public final class Window implements AutoCloseable {
         deliverAppearance(systemAppearance());
         return true;
       }
+      if (type == Sdl.EVENT_DISPLAY_CURRENT_MODE_CHANGED) { // its refresh rate, for every window
+        for (Window window : windows.values()) {
+          if (window.open) {
+            window.post(new DisplayChanged());
+          }
+        }
+        return true;
+      }
       boolean ofAWindow = (type >= Sdl.EVENT_WINDOW_SHOWN && type <= Sdl.EVENT_WINDOW_LAST)
           || (type >= Sdl.EVENT_KEY_DOWN && type <= Sdl.EVENT_TEXT_INPUT)
           || (type >= Sdl.EVENT_MOUSE_MOTION && type <= Sdl.EVENT_MOUSE_WHEEL)
@@ -888,6 +908,10 @@ public final class Window implements AutoCloseable {
         pointerIn = true;
         pointerX = logical(e.get(JAVA_FLOAT, Sdl.MOTION_X));
         pointerY = logical(e.get(JAVA_FLOAT, Sdl.MOTION_Y));
+        if (pointerWindow != this) { // it entered: the cursor is the one this window wants
+          pointerWindow = this;
+          showCursor();
+        }
         post(new PointerMove(pointerX, pointerY));
       }
       case Sdl.EVENT_MOUSE_BUTTON_DOWN, Sdl.EVENT_MOUSE_BUTTON_UP -> {
@@ -974,6 +998,7 @@ public final class Window implements AutoCloseable {
         }
       }
       case Sdl.EVENT_WINDOW_MOVED -> rememberNormal();
+      case Sdl.EVENT_WINDOW_DISPLAY_CHANGED -> post(new DisplayChanged());
       case Sdl.EVENT_WINDOW_MINIMIZED, Sdl.EVENT_WINDOW_MAXIMIZED, Sdl.EVENT_WINDOW_RESTORED -> {
         long flags = Sdl.getWindowFlags(sdl);
         boolean nowMinimized = (flags & Sdl.WINDOW_MINIMIZED) != 0;
@@ -987,6 +1012,9 @@ public final class Window implements AutoCloseable {
       case Sdl.EVENT_WINDOW_EXPOSED -> post(new Redraw(e.get(JAVA_INT, Sdl.WINDOW_DATA1) != 0));
       case Sdl.EVENT_WINDOW_MOUSE_LEAVE -> {
         pointerIn = false;
+        if (pointerWindow == this) {
+          pointerWindow = null;
+        }
         if (win32 == null || !win32.pointerOnMaximize()) {
           post(new PointerLeave());
         }
@@ -1761,13 +1789,21 @@ public final class Window implements AutoCloseable {
   /**
    * Shows the system's cursor of this shape while the pointer is over the window's content, as
    * {@link App#cursor} asks; {@link WindowLoop} calls this after each frame. SDL has one cursor
-   * for all its windows, so the window under the pointer should set it. Over the resize margin of
-   * a frameless window the system's resize cursors keep precedence: the shape waits until a call
-   * after the pointer has left the margin.
+   * for all its windows, so each window keeps the shape it wants, and only the window the pointer
+   * is in shows it, now or when the pointer enters it (or any window, while the pointer is in
+   * none). Over the resize margin of a frameless window the system's resize cursors keep
+   * precedence: the shape waits until a call after the pointer has left the margin.
    */
   public void cursor(Cursor cursor) {
     checkOpen();
     this.cursor = Objects.requireNonNull(cursor, "cursor");
+    if (pointerWindow == null || pointerWindow == this) {
+      showCursor();
+    }
+  }
+
+  /** Gives SDL the cursor this window wants; see {@link #cursor(Cursor)}. */
+  private void showCursor() {
     // X11 and Wayland show the hit test's resize cursor themselves, and ours would replace it.
     if (cursor == cursorShown
         || frameless && pointerIn && zone(pointerX, pointerY) >= Sdl.HITTEST_RESIZE_TOPLEFT) {
@@ -1875,23 +1911,67 @@ public final class Window implements AutoCloseable {
     }
     checkThread();
     open = false;
+    if (pointerWindow == this) {
+      pointerWindow = null;
+    }
     try {
       if (win32 != null) {
         win32.detach();
       }
       if (shell != null) {
-        shell.closeDialogs(); // a file dialog it owns answers as cancelled
         shell.detach();
+        if (SystemDialogs.pending(this)) {
+          // SDL shows a file dialog on a thread of its own, which may not have made it yet: one
+          // shown after its owner is gone stays on the screen without one and never answers. So
+          // the window only hides, and each dialog closes as it appears (closeLingering); the
+          // window goes once all have answered.
+          Sdl.hideWindow(sdl);
+          shell.closeDialogs();
+          lingering.add(this);
+          return;
+        }
+        shell.closeDialogs(); // a file dialog it owns answers as cancelled
       }
-      Sdl.destroyWindow(sdl);
-      if (shell != null) {
-        shell.destroyIcons();
-      }
+      destroy();
     } finally {
       windows.remove(id);
       pending.removeIf(posted -> posted.window == this);
       stopIfUnused();
     }
+  }
+
+  private void destroy() {
+    Sdl.destroyWindow(sdl);
+    if (shell != null) {
+      shell.destroyIcons();
+    }
+  }
+
+  /**
+   * Closes the dialogs of the windows that closed under a file dialog that had not answered, as
+   * they appear, and destroys each window once its dialogs have answered.
+   */
+  private static void closeLingering() {
+    if (lingering.isEmpty()) {
+      return;
+    }
+    long now = System.nanoTime();
+    boolean ask = now - lingeringAsked >= 100_000_000; // once in a while, not at every event
+    if (ask) {
+      lingeringAsked = now;
+    }
+    for (Iterator<Window> i = lingering.iterator(); i.hasNext(); ) {
+      Window window = i.next();
+      if (SystemDialogs.pending(window)) {
+        if (ask) {
+          window.shell.closeDialogs();
+        }
+      } else {
+        i.remove();
+        window.destroy();
+      }
+    }
+    stopIfUnused();
   }
 
   // ---- Inside the package
@@ -2032,7 +2112,7 @@ public final class Window implements AutoCloseable {
 
   /** Quits SDL when no window is open, so that another thread may open the next one. */
   static void stopIfUnused() {
-    if (!windows.isEmpty() || thread == null) {
+    if (!windows.isEmpty() || !lingering.isEmpty() || thread == null) {
       return;
     }
     Sdl.removeEventWatch(Upcalls.WATCH, MemorySegment.NULL);
@@ -2040,6 +2120,7 @@ public final class Window implements AutoCloseable {
     deferred.clear();
     Arrays.fill(cursors, null); // SDL_Quit frees them, and the next SDL starts with its default
     cursorShown = Cursor.DEFAULT;
+    pointerWindow = null;
     appearance = null;
     Win32Shell.releaseTaskbar(); // before SDL uninitialises COM
     synchronized (LOCK) {

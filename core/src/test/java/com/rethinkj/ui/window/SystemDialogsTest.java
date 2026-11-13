@@ -237,6 +237,59 @@ class SystemDialogsTest {
     }
   }
 
+  /** {@code HWND FindWindowW(LPCWSTR lpClassName, LPCWSTR lpWindowName)}, for the test. */
+  private static MemorySegment dialogTitled(String title) throws Throwable {
+    MethodHandle find = Linker.nativeLinker()
+        .downcallHandle(
+            SymbolLookup.libraryLookup("user32", Arena.global())
+                .find("FindWindowW")
+                .orElseThrow(),
+            FunctionDescriptor.of(ADDRESS, ADDRESS, ADDRESS));
+    try (Arena arena = Arena.ofConfined()) {
+      return (MemorySegment)
+          find.invokeExact(Win32.wide(arena, "#32770"), Win32.wide(arena, title));
+    }
+  }
+
+  /**
+   * A window that closes right after it asked for a file dialog, before SDL's thread has shown
+   * it, still cancels it: the dialog closes as it appears, and the window goes once it answered.
+   */
+  @Test
+  void closingAWindowCancelsTheFileDialogThatHasNotAppearedYet() throws Throwable {
+    Desktop.assumeWindows();
+    assumeTrue(File.separatorChar == '\\', "the dialog's own thread is Windows'");
+    String title = "rethinkj dialog not there yet " + ProcessHandle.current().pid();
+    Window other = Window.open("rethinkj stays open", 80, 60); // the app goes on
+    Window window = Window.open("rethinkj closed before its dialog", 80, 60);
+    List<String> told = new java.util.concurrent.CopyOnWriteArrayList<>();
+    try {
+      Desktop.settle();
+      new SystemDialogs(window)
+          .file(
+              FileDialog.open(title).in(Path.of(".")),
+              c -> told.add("chosen " + c.paths()),
+              told::add);
+      window.close(); // at once: the dialog's thread has not shown it yet
+      assertTrue(Desktop.pollUntil(() -> !told.isEmpty()), "it answered");
+      assertEquals(List.of("chosen []"), told, "as cancelled");
+      assertTrue(!SystemDialogs.waiting(), "nothing is left waiting");
+      assertEquals(MemorySegment.NULL, dialogTitled(title), "no dialog is left on the screen");
+    } finally {
+      // Whatever went wrong, no dialog of this test stays open.
+      long end = System.nanoTime() + Desktop.TIMEOUT_MILLIS * 1_000_000;
+      while (told.isEmpty() && System.nanoTime() < end) {
+        MemorySegment dialog = dialogTitled(title);
+        if (!dialog.equals(MemorySegment.NULL)) {
+          Win32.postClose(dialog);
+        }
+        Window.waitEvents(10);
+      }
+      window.close();
+      other.close();
+    }
+  }
+
   @Test
   void theDialogStartsInItsFolderOrAtItsSuggestedFile() {
     Path folder = Path.of("exports").toAbsolutePath();

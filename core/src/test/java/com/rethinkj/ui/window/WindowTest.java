@@ -386,6 +386,72 @@ class WindowTest {
     }
   }
 
+  /**
+   * A press that the frame's subclass reports on Windows, on the maximize part or the secondary
+   * one on the drag area, ends wherever it is released: over the content, where SDL saw no press
+   * and reports no release, and where another window takes the pointer, which presses nothing.
+   */
+  @Test
+  void aPressOnTheFramesPartsEndsWhereverItIsReleased() {
+    try (Window window = Window.open(TITLE, 300, 200, Window.options().frameless());
+        Window other = Window.open(TITLE + " other", 120, 80)) {
+      assumeTrue(window.handle() instanceof WindowHandle.Win32, "Windows only");
+      MemorySegment hwnd = ((WindowHandle.Win32) window.handle()).hwnd();
+      Desktop.settle();
+      window.parts(PARTS);
+      window.listener(events::add);
+      long maximize = screen(window, 220, 15);
+      long content = client(window, 100, 100);
+      float x = at(window, 100);
+      float y = at(window, 100);
+
+      // Released over the content: the press ends there, where it presses nothing.
+      Win32.sendMessage(hwnd, Win32.WM_NCLBUTTONDOWN, Win32.HTMAXBUTTON, maximize);
+      Win32.sendMessage(hwnd, Win32.WM_LBUTTONUP, 0, content);
+      Window.pollEvents();
+      assertEquals(
+          List.of(
+              new PointerDown(at(window, 220), at(window, 15), PointerButton.LEFT, 1),
+              new PointerUp(x, y, PointerButton.LEFT)),
+          presses());
+      assertFalse(window.isMaximized());
+
+      // The secondary press on the drag area, released over the content: no menu, and the next
+      // secondary click in the content is the content's.
+      events.clear();
+      Win32.sendMessage(hwnd, Win32.WM_NCRBUTTONDOWN, Win32.HTCAPTION, screen(window, 100, 15));
+      Win32.sendMessage(hwnd, Win32.WM_RBUTTONUP, 0, content);
+      Desktop.button(window, true, Sdl.BUTTON_RIGHT, 100, 100, 1);
+      Desktop.button(window, false, Sdl.BUTTON_RIGHT, 100, 100, 1);
+      Window.pollEvents();
+      assertEquals(
+          List.of(
+              new PointerDown(x, y, PointerButton.RIGHT, 1),
+              new PointerUp(x, y, PointerButton.RIGHT)),
+          presses());
+
+      // Another window takes the pointer during the press: it ends outside the window.
+      events.clear();
+      Win32.sendMessage(hwnd, Win32.WM_NCLBUTTONDOWN, Win32.HTMAXBUTTON, maximize);
+      Win32.setCapture(((WindowHandle.Win32) other.handle()).hwnd());
+      Win32.releaseCapture();
+      Window.pollEvents();
+      assertEquals(new PointerUp(-1, -1, PointerButton.LEFT), presses().getLast());
+      assertFalse(window.isMaximized());
+    }
+  }
+
+  /** A point of the window in logical pixels as the screen's lParam of a non-client message. */
+  private static long screen(Window window, float x, float y) {
+    return (window.x() + window.units(x) & 0xFFFFL)
+        | (window.y() + window.units(y) & 0xFFFFL) << 16;
+  }
+
+  /** A point of the window in logical pixels as the lParam of a client message. */
+  private static long client(Window window, float x, float y) {
+    return (window.units(x) & 0xFFFFL) | (window.units(y) & 0xFFFFL) << 16;
+  }
+
   private List<WindowEvent> presses() {
     return events.stream()
         .filter(e -> e instanceof PointerDown || e instanceof PointerUp)

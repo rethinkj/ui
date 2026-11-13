@@ -95,6 +95,11 @@ public final class SystemDialogs implements Dialogs {
     return !PENDING.isEmpty();
   }
 
+  /** Whether a file dialog of {@code owner} has not answered yet. */
+  static boolean pending(Window owner) {
+    return PENDING.values().stream().anyMatch(p -> p.owner() == owner);
+  }
+
   @Override
   public void file(FileDialog dialog, Consumer<FileDialog.Choice> chosen, Consumer<String> failed) {
     if (window != null && !window.isOpen()) {
@@ -103,7 +108,7 @@ public final class SystemDialogs implements Dialogs {
     }
     // Each of the system's dialogs disables its window while it is open and enables it as it
     // closes, also while another of its dialogs is still open, which then takes input under it.
-    if (window != null && PENDING.values().stream().anyMatch(p -> p.owner() == window)) {
+    if (window != null && pending(window)) {
       failed.accept("A file dialog of this window is open; it answers before another opens.");
       return;
     }
@@ -202,6 +207,13 @@ public final class SystemDialogs implements Dialogs {
       }
     } finally {
       pending.arena.close();
+      if (pending.owner() != null) {
+        try {
+          Window.wake(); // a window that closed while it was open goes now (Window.close)
+        } catch (Throwable ignored) {
+          // the next wait of the windows' thread ends within PUMP all the same
+        }
+      }
     }
   }
 

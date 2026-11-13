@@ -27,7 +27,9 @@ import java.lang.invoke.MethodHandles;
  * then outside the client area: SDL reports no pointer events for it, and the subclass turns the
  * non-client messages into the same {@link WindowEvent}s instead. It keeps the button press from
  * the default window procedure, which would otherwise track it as a press on a caption button of
- * its own.
+ * its own, and captures the pointer until the release, which it reports wherever it happens: over
+ * the content SDL would report none, as it saw no press. When another window takes the pointer
+ * first, the press ends outside the window, where it presses nothing.
  *
  * <p>A right click on a drag area is non-client too, so SDL reports nothing, and the default window
  * procedure shows no system menu because its own hit test does not know the drag area. The
@@ -60,6 +62,7 @@ final class Win32Frame {
   private boolean overMaximize;
   private PointerMove lastMove;
   private boolean tracking;
+  private PointerButton held; // the button of a press reported here, until it ends
 
   private Win32Frame(Window window, MemorySegment hwnd) {
     this.window = window;
@@ -183,13 +186,14 @@ final class Win32Frame {
           toClient(lParam);
           int clicks = message == Win32.WM_NCLBUTTONDBLCLK ? 2 : 1;
           post(new PointerDown(x(), y(), PointerButton.LEFT, clicks));
+          hold(PointerButton.LEFT);
           return 0;
         }
       }
       case Win32.WM_NCLBUTTONUP -> {
-        if (wParam == Win32.HTMAXBUTTON) {
+        if (wParam == Win32.HTMAXBUTTON || held == PointerButton.LEFT) {
           toClient(lParam);
-          post(new PointerUp(x(), y(), PointerButton.LEFT));
+          release(PointerButton.LEFT, x(), y());
           return 0;
         }
       }
@@ -199,19 +203,61 @@ final class Win32Frame {
         if (wParam == Win32.HTCAPTION) {
           toClient(lParam);
           post(new PointerDown(x(), y(), PointerButton.RIGHT, 1));
+          hold(PointerButton.RIGHT);
           return 0;
         }
       }
       case Win32.WM_NCRBUTTONUP -> {
-        if (wParam == Win32.HTCAPTION) {
+        if (wParam == Win32.HTCAPTION || held == PointerButton.RIGHT) {
           toClient(lParam);
-          post(new PointerUp(x(), y(), PointerButton.RIGHT));
+          release(PointerButton.RIGHT, x(), y());
           return 0;
+        }
+      }
+      // The release of a press that began here, over the content or anywhere else on the screen,
+      // as the capture brings it: SDL saw no press and reports none.
+      case Win32.WM_LBUTTONUP, Win32.WM_RBUTTONUP -> {
+        PointerButton button =
+            message == Win32.WM_LBUTTONUP ? PointerButton.LEFT : PointerButton.RIGHT;
+        if (held == button) {
+          point.set(JAVA_INT, 0, (short) lParam);
+          point.set(JAVA_INT, 4, (short) (lParam >> 16));
+          release(button, x(), y());
+          return 0;
+        }
+      }
+      // Another window took the pointer, as a menu or a dialog does: the press ends where it
+      // presses nothing.
+      case Win32.WM_CAPTURECHANGED -> {
+        if (held != null && lParam != hwnd.address()) {
+          PointerButton button = held;
+          held = null; // the capture is the other window's now: nothing to let go of
+          post(new PointerUp(-1, -1, button));
         }
       }
       default -> {}
     }
     return PASS;
+  }
+
+  /**
+   * Follows a press this class reported to its end: with the pointer captured, its release comes
+   * here wherever it happens, also over the content, where SDL, which saw no press, would report
+   * none, and the app would stay pressed.
+   */
+  private void hold(PointerButton button) {
+    held = button;
+    Win32.setCapture(hwnd);
+  }
+
+  /** Reports the end of the press {@link #hold} follows, or of one it never held, and lets go. */
+  private void release(PointerButton button, float x, float y) {
+    boolean capture = held != null;
+    held = null; // before the capture's change arrives, which then is no loss
+    if (capture) {
+      Win32.releaseCapture();
+    }
+    post(new PointerUp(x, y, button));
   }
 
   /**

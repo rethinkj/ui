@@ -69,7 +69,9 @@ final class Sdl {
   static final int EVENT_WINDOW_FOCUS_GAINED = 0x20E;
   static final int EVENT_WINDOW_FOCUS_LOST = 0x20F;
   static final int EVENT_WINDOW_CLOSE_REQUESTED = 0x210;
+  static final int EVENT_WINDOW_DISPLAY_CHANGED = 0x213;
   static final int EVENT_WINDOW_DISPLAY_SCALE_CHANGED = 0x214;
+  static final int EVENT_DISPLAY_CURRENT_MODE_CHANGED = 0x156;
   static final int EVENT_WINDOW_LAST = 0x21A;
   static final int EVENT_KEY_DOWN = 0x300;
   static final int EVENT_KEY_UP = 0x301;
@@ -265,6 +267,7 @@ final class Sdl {
   static final FunctionDescriptor SDL_GET_WINDOW_FLAGS = FunctionDescriptor.of(JAVA_LONG, ADDRESS);
   static final FunctionDescriptor SDL_SHOW_WINDOW = FunctionDescriptor.of(JAVA_BOOLEAN, ADDRESS);
   static final FunctionDescriptor SDL_RAISE_WINDOW = FunctionDescriptor.of(JAVA_BOOLEAN, ADDRESS);
+  static final FunctionDescriptor SDL_HIDE_WINDOW = FunctionDescriptor.of(JAVA_BOOLEAN, ADDRESS);
   static final FunctionDescriptor SDL_MINIMIZE_WINDOW =
       FunctionDescriptor.of(JAVA_BOOLEAN, ADDRESS);
   static final FunctionDescriptor SDL_MAXIMIZE_WINDOW =
@@ -425,6 +428,7 @@ final class Sdl {
     static final MethodHandle GET_WINDOW_FLAGS = bind("SDL_GetWindowFlags", SDL_GET_WINDOW_FLAGS);
     static final MethodHandle SHOW_WINDOW = bind("SDL_ShowWindow", SDL_SHOW_WINDOW);
     static final MethodHandle RAISE_WINDOW = bind("SDL_RaiseWindow", SDL_RAISE_WINDOW);
+    static final MethodHandle HIDE_WINDOW = bind("SDL_HideWindow", SDL_HIDE_WINDOW);
     static final MethodHandle MINIMIZE_WINDOW = bind("SDL_MinimizeWindow", SDL_MINIMIZE_WINDOW);
     static final MethodHandle MAXIMIZE_WINDOW = bind("SDL_MaximizeWindow", SDL_MAXIMIZE_WINDOW);
     static final MethodHandle RESTORE_WINDOW = bind("SDL_RestoreWindow", SDL_RESTORE_WINDOW);
@@ -622,6 +626,14 @@ final class Sdl {
   static boolean showWindow(MemorySegment window) {
     try {
       return (boolean) H.SHOW_WINDOW.invokeExact(window);
+    } catch (Throwable t) {
+      throw failed(t);
+    }
+  }
+
+  static boolean hideWindow(MemorySegment window) {
+    try {
+      return (boolean) H.HIDE_WINDOW.invokeExact(window);
     } catch (Throwable t) {
       throw failed(t);
     }
