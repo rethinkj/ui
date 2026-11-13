@@ -49,7 +49,8 @@ import java.util.zip.ZipFile;
  * builds it with cmake and make in {@code fetched/builds/<name>/}, with those options, and takes
  * the entry from the build folder. A build is reused while the archive, the options and the entry
  * stay the same. It needs cmake, make, a C compiler and pkg-config, and fails with what to install
- * when one is missing.
+ * when one is missing; a library in C++ needs a C++ compiler too. A source archive may also be a
+ * {@code .tar.xz} file, which {@code tar} unpacks.
  *
  * <p>The manifest lists the libraries in load order with their versions and SHA-256 hashes. A
  * library built from source gets a {@code built <name> <archive sha256>} line as well: its own
@@ -152,7 +153,8 @@ final class FetchNatives {
       Library library = new Library(
           name,
           value(properties, config, name + ".version", TOKEN),
-          uri(config, name + ".archive", value(properties, config, name + ".archive", null)),
+          uri(config, name + ".archive", value(properties, config, name + ".archive", null),
+              cmake != null),
           value(properties, config, name + ".archive.sha256", SHA256),
           value(properties, config, name + ".entry", ENTRY),
           cmake);
@@ -346,7 +348,13 @@ final class FetchNatives {
     long start = System.nanoTime();
     System.out.println(label + ": building " + library.name() + " " + library.version() + " from "
         + library.archiveName() + ", log in " + log);
-    unzip(archive, source);
+    if (library.archiveName().endsWith(".tar.xz")) {
+      // The JDK cannot read xz. GNU tar strips a leading / and refuses names that contain "..".
+      run(label, library,
+          List.of("tar", "-xJf", archive.toString(), "-C", source.toString()), log);
+    } else {
+      unzip(archive, source);
+    }
     // A source archive usually holds one folder with everything in it.
     Path root = source;
     try (Stream<Path> children = Files.list(source)) {
@@ -565,17 +573,20 @@ final class FetchNatives {
     return value;
   }
 
-  private static URI uri(Path config, String key, String value) throws Failure {
+  /** {@code source}: the archive holds source to build, which may also come as {@code .tar.xz}. */
+  private static URI uri(Path config, String key, String value, boolean source) throws Failure {
     try {
       URI uri = new URI(value);
       String path = uri.getPath();
-      if ("https".equals(uri.getScheme()) && path != null && path.endsWith(".zip")) {
+      if ("https".equals(uri.getScheme()) && path != null
+          && (path.endsWith(".zip") || source && path.endsWith(".tar.xz"))) {
         return uri;
       }
     } catch (java.net.URISyntaxException e) {
       // reported below
     }
-    throw new Failure(config + ": " + key + " must be the https URL of a .zip file.");
+    throw new Failure(config + ": " + key + " must be the https URL of a .zip file"
+        + (source ? " or a .tar.xz file." : "."));
   }
 
   private static String sha256(Path file) throws IOException {
