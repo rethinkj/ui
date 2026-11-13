@@ -247,6 +247,17 @@ public final class Text implements Measure {
     }
   }
 
+  /**
+   * For {@link Editor}: shows a placed field's string without its composition, in lines placed
+   * again in the same box, for a field that leaves the tree.
+   */
+  void dropComposition() {
+    if (composed != null) {
+      compose(null);
+      placed(placedWidth / scale, placedHeight / scale);
+    }
+  }
+
   /** For {@link Editor}: what a field draws besides its glyphs. */
   void decorate(float scroll, List<Box> selection, Box caret, Box composition) {
     this.scroll = scroll;
