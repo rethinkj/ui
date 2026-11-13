@@ -3,6 +3,7 @@ package com.rethinkj.ui;
 import static com.rethinkj.ui.El.el;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import com.rethinkj.ui.layout.Flex;
 import org.junit.jupiter.api.Test;
 
 class ElTest {
@@ -29,6 +30,20 @@ class ElTest {
         """
         el 10,20 200x100.5
           el #child 11.25,18 50x30
+        """,
+        root.dump());
+  }
+
+  @Test
+  void flexLayoutPlacesTheTree() {
+    El root = Examples.lightSwitch(true);
+    Flex.layout(root, 200, 100);
+
+    assertEquals(
+        """
+        el 0,0 200x100
+          el #switch role=switch label="Lights" 81,39 38x22
+            el #knob 99,41 18x18
         """,
         root.dump());
   }
