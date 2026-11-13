@@ -1,4 +1,4 @@
-# docs:start editing
+# docs:start editing-steps
 size 380 260
 frame
 snap view               # nothing changed: Save is disabled
@@ -30,4 +30,4 @@ frame
 advance 1
 frame
 snap saved              # saved: Save and Revert wait for the next change
-# docs:end editing
+# docs:end editing-steps

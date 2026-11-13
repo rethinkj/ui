@@ -1,4 +1,4 @@
-# docs:start editing-pojo
+# docs:start editing-pojo-steps
 size 360 160
 frame
 focus role=spinbutton
@@ -13,4 +13,4 @@ frame
 advance 1
 frame
 snap applied
-# docs:end editing-pojo
+# docs:end editing-pojo-steps
