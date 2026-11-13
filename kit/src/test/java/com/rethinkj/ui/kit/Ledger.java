@@ -36,6 +36,7 @@ final class Ledger {
   List<DataGrid.SortKey> sort = List.of();
   DataGrid.Layout layout;
   java.util.function.Supplier<El> top; // a part at the right above the grid, or null
+  DataGrid.CellEditor custom; // the app's own editor of customers, or null
   App<Ledger> app;
 
   Ledger(Theme theme, int count) {
@@ -64,8 +65,11 @@ final class Ledger {
   List<Column> columns() {
     return List.of(
         new Column("id", 56, DataType.INTEGER, changes.cell(0)).typeName("bigint"),
-        new Column("customer", 140, DataType.TEXT, changes.cell(1)).typeName("text")
-            .editable(),
+        custom == null
+            ? new Column("customer", 140, DataType.TEXT, changes.cell(1)).typeName("text")
+                .editable()
+            : new Column("customer", 140, DataType.TEXT, changes.cell(1)).typeName("text")
+                .editable().editor(custom),
         new Column("qty", 64, DataType.INTEGER, changes.cell(2)).typeName("int").editable(),
         new Column("amount", 90, DataType.DECIMAL, changes.cell(3)).typeName("numeric")
             .editable().nullable(),

@@ -378,6 +378,19 @@ class GridEditTest {
   }
 
   @Test
+  void anEditorOfTheAppsOwnTakesTheFocusAndTheGridsKeysEndIt() throws IOException {
+    Ledger ledger = new Ledger(T, 40);
+    ledger.custom = (value, onChange) -> TextField.textField(T, value, onChange).key("mine")
+        .label("Own editor");
+    App<Ledger> app = start(ledger);
+    run(app, "key F2\nframe\nframe");
+    assertEquals("mine", app.focused().key(), app.tree().dump());
+    run(app, "key End\ntype \"!\"\nkey Enter\nframe");
+    assertEquals("commit 0,1 Ada Lovelace!", ledger.log.getLast());
+    assertEquals(1, ledger.selection.row());
+  }
+
+  @Test
   void theLastRowOfAMillionAndTheLastOfThreeHundredColumnsAreEdited() throws IOException {
     Ledger ledger = new Ledger(T, 1_000_000);
     App<Ledger> app = start(ledger);

@@ -49,6 +49,7 @@ import com.rethinkj.ui.kit.Theme;
 import com.rethinkj.ui.kit.Tooltip;
 import com.rethinkj.ui.kit.Tree;
 import com.rethinkj.ui.text.Font;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
@@ -375,27 +376,52 @@ final class Sections {
   // Data grid
 
   private static El grid(Showcase s, Theme t) {
-    List<Column> columns = Samples.orderColumns(s.rows);
+    List<Column> base = Samples.orderColumns(s.kept);
+    List<Column> columns = new ArrayList<>();
+    for (int c = 0; c < base.size(); c++) {
+      Column b = base.get(c);
+      Column column = new Column(b.title(), b.width(), b.align(), b.mono(), b.sortable(),
+          s.changes.cell(c));
+      columns.add(switch (b.title()) {
+        case "id" -> column;
+        case "status" -> column.editable().choices(List.of("paid", "pending", "shipped",
+            "refunded"));
+        case "shipped_at", "note" -> column.editable().nullable();
+        default -> column.editable();
+      });
+    }
     DataGrid.Options options = DataGrid.options()
         .select(s.selection)
         .sort(s.sort, s::sort)
         .rowNumbers().frozen(1)
-        .contextMenu(s.gridMenu, List.of());
-    El grid = DataGrid.dataGrid(t, columns, s.rows.size(), options)
+        .contextMenu(s.gridMenu, List.of())
+        .changes(s.changes)
+        .filters(s.gridFilters, s::gridFilters);
+    El grid = DataGrid.dataGrid(t, columns, s.changes.rowCount(), options)
         .key("orders").label("Orders").h(432);
     long cells = DataGrid.cellCount(s.selection.ranges(), columns.size());
-    String status = s.rows.size() + " rows in 23 ms"
+    int changed = s.changes.count();
+    String status = s.changes.rowCount() + " rows in 23 ms"
         + (cells > 1 ? " · " + cells + " cells selected" : "")
+        + (changed > 0 ? " · " + changed + " changes" : "")
         + " · sorted by customer, then amount descending";
+    El filters = DataGrid.filterBar(t, columns, s.gridFilters, s::gridFilters);
     return Card.flush(t,
-        Card.toolbar(t, "Result", s.rows.size() + " rows",
-            toolButton(t, SECONDARY, Symbol.ARROW_DOWNLOAD, "Export", "Export",
-                () -> s.say("export")),
-            toolButton(t, PRIMARY, Symbol.PLAY, "Run", "Run", () -> s.say("run"))),
+        Card.toolbar(t, "Result", s.changes.rowCount() + " rows",
+            toolButton(t, SECONDARY, Symbol.ARROW_UNDO, "Revert", "Revert",
+                changed == 0 ? null : s.changes::clear),
+            toolButton(t, PRIMARY, Symbol.SAVE,
+                changed == 0 ? "Commit" : "Commit (" + changed + ")", "Commit",
+                changed == 0 ? null : () -> {
+                  s.changes.clear();
+                  s.say("commit");
+                })),
         row().padding(0, t.space().l(), t.space().m(), t.space().l())
             .child(label(t, MONO, "SELECT o.id, c.name AS customer, c.email, o.amount,"
                 + " o.created_at, o.shipped_at, o.status, o.note FROM orders o JOIN customers c"
                 + " ON …").color(t.text().muted()).ellipsis().minSize(0, 0)),
+        filters == null ? null
+            : row().padding(0, t.space().l(), t.space().m(), t.space().l()).child(filters),
         Divider.divider(t),
         grid,
         Card.footer(t, label(t, MUTED, status).key("grid-status").ellipsis()));
