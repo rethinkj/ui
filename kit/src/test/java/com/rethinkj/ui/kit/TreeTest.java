@@ -442,8 +442,11 @@ class TreeTest {
     run(app, "press #row-3\nframe\nfocus #schema\nkey ArrowDown\nframe\nkey End\nframe");
     assertEquals(List.of("select staging", "open staging"), catalog.log, "not a node");
 
-    catalog.arrive();
-    run(app, "frame");
+    run(app, "frame\nframe");
+    assertEquals(4, find(app, "schema").rowCount(), "a script lets the answer in at await only");
+    assertEquals(List.of(catalog.node("staging")), catalog.loading);
+
+    run(app, "await\nframe");
     assertEquals(5, find(app, "schema").rowCount());
     assertEquals(List.of("localhost", "prod-eu", "staging", "scratch", "shop"),
         find(app, "schema").children().stream().map(El::label).toList());
@@ -483,7 +486,7 @@ class TreeTest {
           Png.decode(Files.readAllBytes(files.get(i))),
           Files.readString(files.get(i + 1)));
     }
-    assertEquals(10, files.size());
+    assertEquals(12, files.size());
     assertEquals(
         List.of("select localhost", "open localhost", "select localhost/shop",
             "open localhost/shop", "activate localhost/shop", "select localhost/shop/public",

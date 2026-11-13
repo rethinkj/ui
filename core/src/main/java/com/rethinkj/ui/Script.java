@@ -6,6 +6,7 @@ import java.nio.file.Files;
 import java.nio.file.InvalidPathException;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -44,6 +45,7 @@ import java.util.regex.Pattern;
  * down #resize-1                     # pointer down; a move before the up drags an El.onDrag
  * move 230,40                        # element once it is beyond 4 pixels, or selects in a
  * up 230,40                          # text field from the first pixel
+ * await                              # waits for the work the app started on other threads
  * </pre>
  *
  * <p>{@code snap} also writes {@code <name>.clipboard.txt} with the text on the app's clipboard,
@@ -51,7 +53,10 @@ import java.util.regex.Pattern;
  *
  * <p>Only {@code frame} runs a frame. As in a window, input and {@code advance} between frames
  * change nothing on screen until the next one, so {@code snap} refuses to write a frame that does
- * not show the steps before it. AGENTS.md describes the format.
+ * not show the steps before it. What other threads {@link App#post post} waits until an {@code
+ * await} step, which waits for the work the app started ({@link App#background}) and queues what
+ * it delivered for the next frame, so that a script shows the same however fast the work is.
+ * AGENTS.md describes the format.
  */
 public final class Script {
 
@@ -76,6 +81,8 @@ public final class Script {
       Pattern.compile(
           "disabled|readonly|selected|current|checked(=true|=false|=mixed)?|expanded(=true|=false)?"
               + "|level=[1-9]\\d{0,9}|pos=[1-9]\\d{0,9}/[1-9]\\d{0,9}|sort=(ascending|descending)");
+  /** How many seconds {@code await} waits for the app's work unless it says otherwise. */
+  private static final double AWAIT = 10;
   private static final Pattern NUMBER = Pattern.compile("\\d+(\\.\\d+)?");
   private static final Pattern INDEX = Pattern.compile("\\d{1,10}");
   private static final Pattern CLICKS = Pattern.compile("[1-9]\\d{0,2}");
@@ -131,6 +138,16 @@ public final class Script {
    * @throws Failure at the first line that is wrong or cannot run, naming the line
    */
   public static List<Path> run(String script, App<?> app, Path out) throws IOException {
+    boolean held = app.holdPosts;
+    app.holdPosts = true; // what other threads post arrives where the script awaits it
+    try {
+      return steps(script, app, out);
+    } finally {
+      app.holdPosts = held;
+    }
+  }
+
+  private static List<Path> steps(String script, App<?> app, Path out) throws IOException {
     Path folder = out.toAbsolutePath().normalize();
     List<Path> written = new ArrayList<>();
     Map<Path, Integer> snapped = new HashMap<>();
@@ -337,6 +354,21 @@ public final class Script {
           }
           app.advance(line.number(args.getFirst(), false, step));
         }
+        case "await" -> {
+          if (args.size() > 1) {
+            throw line.usage(step);
+          }
+          double seconds = args.isEmpty() ? AWAIT : line.number(args.getFirst(), true, step);
+          try {
+            app.await(Duration.ofNanos((long) Math.min(seconds * 1e9, Long.MAX_VALUE)));
+          } catch (IllegalStateException e) {
+            throw line.fail(e.getMessage() + " If it needs longer, write a timeout in seconds, as"
+                + " in `await 30`; the default is " + (int) AWAIT + ".");
+          } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw line.fail("The script was interrupted while it waited for the app's work.");
+          }
+        }
         case "frame" -> {
           if (!args.isEmpty()) {
             throw line.usage(step);
@@ -402,7 +434,7 @@ public final class Script {
             throw line.fail(
                 "There is no step " + step
                     + ". The steps are size, press, down, up, move, leave, wheel, scroll, key,"
-                    + " type, compose, clipboard, focus, advance, frame and snap.");
+                    + " type, compose, clipboard, focus, advance, await, frame and snap.");
       }
       if (step.equals("frame")) {
         pending = null;
@@ -473,6 +505,9 @@ public final class Script {
                 case "size" ->
                     "`size <width> <height>` or `size <width> <height> scale <factor>`, with"
                         + " numbers above 0, for example `size 200 120 scale 2`.";
+                case "await" ->
+                    "`await`, or `await <seconds>` with a number above 0 to wait longer than "
+                        + (int) AWAIT + " seconds, for example `await 30`.";
                 case "advance" ->
                     "`advance <seconds>`, with a number of 0 or more, for example `advance 0.04`.";
                 case "frame", "leave" -> "`" + step + "` with nothing after it.";

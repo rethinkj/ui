@@ -18,6 +18,10 @@ import com.rethinkj.ui.WindowPart;
 import com.rethinkj.ui.render.Scene;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BooleanSupplier;
@@ -234,6 +238,77 @@ class WindowLoopTest {
       });
       assertSame(thrown, assertThrows(IllegalStateException.class, loop::run));
       assertFalse(loop.isRunning());
+    }
+  }
+
+  /**
+   * A task posted on another thread ends the wait of an idle loop at once, and a burst of tasks
+   * that arrives while the loop is busy is drawn in one frame. The loop presents nothing while the
+   * thread posts nothing.
+   */
+  @Test
+  void aPostWakesTheWaitingLoopAndABurstIsOneFrame() throws InterruptedException {
+    try (Window window = Window.open(TITLE, 200, 120)) {
+      Desktop.settle();
+      int[] count = new int[1];
+      App<int[]> app = new App<>(count, c -> el().wFull().hFull().fill(0xFF000000 | c[0]));
+      List<Integer> presented = new CopyOnWriteArrayList<>(); // the count each frame shows
+      CountDownLatch slow = new CountDownLatch(1);
+      long[] at = new long[3]; // posted, the task ran, its frame presented
+      WindowLoop loop = new WindowLoop(window, app, (scene, w, h, s) -> {
+        presented.add(count[0]);
+        if (count[0] == 1) { // the task's frame, slow, so that the burst arrives meanwhile
+          at[2] = System.nanoTime();
+          slow.countDown();
+          sleep(100);
+        }
+      });
+      int[] idle = new int[2];
+      int[] burst = new int[1];
+      Thread poster = Thread.ofPlatform().start(() -> {
+        sleep(300);
+        idle[0] = presented.size();
+        sleep(300); // the loop waits, and this thread posts nothing
+        idle[1] = presented.size();
+        at[0] = System.nanoTime();
+        app.post(() -> {
+          at[1] = System.nanoTime();
+          count[0] = 1;
+        });
+        try {
+          slow.await(2, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
+        }
+        for (int i = 0; i < 1000; i++) {
+          app.post(() -> count[0]++);
+        }
+        sleep(400);
+        burst[0] = presented.size();
+        sleep(300);
+        loop.stop();
+      });
+      loop.run();
+      poster.join();
+
+      assertTrue(idle[0] >= 1, "the first frame is drawn");
+      assertEquals(idle[0], idle[1], "nothing is drawn while no task comes");
+      assertEquals(List.of(1, 1001), presented.subList(idle[1], presented.size()),
+          "one frame for the task and one for the burst, then nothing");
+      assertEquals(burst[0], presented.size(), "nothing after the burst's frame");
+      double ran = (at[1] - at[0]) / 1e6;
+      double shown = (at[2] - at[0]) / 1e6;
+      System.out.printf(Locale.ROOT, "WindowLoopTest: a post ran after %.2f ms and was presented"
+          + " after %.2f ms%n", ran, shown);
+      assertTrue(ran < 100, "the task ran after " + ran + " ms");
+    }
+  }
+
+  private static void sleep(long millis) {
+    try {
+      Thread.sleep(millis);
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
     }
   }
 

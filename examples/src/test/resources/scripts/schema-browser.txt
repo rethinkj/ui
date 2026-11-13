@@ -1,0 +1,40 @@
+# The schema browser (SchemaBrowser): the tree's children and a table's rows load on other
+# threads. Under a script the made-up servers answer at once, and each await lets the answers in.
+size 720 400
+frame
+snap schema-start
+
+press #mark-0                  # opens localhost: the handler asks for its databases
+frame
+snap schema-loading           # "Loading…" in their place, however fast the answer is
+
+await                          # the databases arrive
+frame
+press role=treeitem label="shop" clicks 2
+frame                          # opens shop, whose schemas load
+await
+frame
+press role=treeitem label="public" clicks 2
+frame
+await
+frame
+snap schema-tables
+
+press role=treeitem label="customers"   # asks for the rows of customers
+frame
+key ArrowDown                           # deliveries: the rows of customers are not wanted now
+frame
+snap schema-asking
+
+await                          # only the rows of deliveries arrive
+frame
+snap schema-rows
+
+key Home                       # localhost
+key ArrowLeft                  # closes it
+key End                        # prod-eu
+key ArrowRight                 # opens it and asks for its databases
+frame
+await                          # prod-eu refuses: it closes again, and the status says why
+frame
+snap schema-refused

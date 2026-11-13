@@ -42,6 +42,7 @@
       <artifactId>rethinkj-ui-fonts</artifactId>
       <version>${project.version}</version>
     </dependency>
+    <!-- The icon font, for the tree's marks and icons and the grid's sort arrows. -->
     <dependency>
       <groupId>com.rethinkj.ui</groupId>
       <artifactId>rethinkj-ui-icons</artifactId>

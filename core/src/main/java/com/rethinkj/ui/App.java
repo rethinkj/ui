@@ -5,16 +5,22 @@ import com.rethinkj.ui.render.CpuRenderer;
 import com.rethinkj.ui.render.Scene;
 import com.rethinkj.ui.text.Atlas;
 import com.rethinkj.ui.text.TextRendering;
+import java.time.Duration;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -102,6 +108,14 @@ import java.util.function.Predicate;
  * <p>This class needs no window. A windowed runner feeds it the window's input and draws its
  * {@link #scene}; tests and agents feed it input themselves and look at {@link #render}.
  *
+ * <p>An app is used by one thread, the one that runs it, and is not safe for others: the state,
+ * the elements and every method but one belong to that thread. The one is {@link #post}, with
+ * which any thread hands the app a task that runs on the app's thread at its turn in the queue,
+ * as one more input whose handler is the app's: the way back for the result of a query that ran
+ * elsewhere, so that the window does not stop for it. {@link #background} runs a computation on a
+ * virtual thread and posts its result or failure, unless it was cancelled; {@link #await} waits
+ * for that work, for scripts and tests.
+ *
  * @param <S> the type of the state
  */
 public final class App<S> {
@@ -128,6 +142,12 @@ public final class App<S> {
   private final ArrayDeque<BooleanSupplier> queued = new ArrayDeque<>();
   // What a handler queues while an input runs, such as a focus or a scroll: it runs next.
   private final List<BooleanSupplier> follow = new ArrayList<>();
+  // What post() took on any thread, until the app's thread moves it into queued.
+  private final ConcurrentLinkedQueue<BooleanSupplier> posted = new ConcurrentLinkedQueue<>();
+  private final AtomicBoolean woken = new AtomicBoolean(); // wake ran for what posted holds
+  private volatile Runnable wake;
+  boolean holdPosts; // for Script: posted tasks join the queue only at await()
+  private final Set<Work> running = new LinkedHashSet<>(); // of background(); guarded by itself
   private boolean dispatching;
   private boolean handled; // a handler of the app took input since the tree was built
   private boolean scrolled; // something scrolled since the rows and bars were placed
@@ -1262,7 +1282,200 @@ public final class App<S> {
 
   /** Queues input for the next frame, or what a handler asks for right after that handler. */
   private void enqueue(BooleanSupplier input) {
-    (dispatching ? follow : queued).add(input);
+    if (dispatching) {
+      follow.add(input);
+      return;
+    }
+    if (!holdPosts) {
+      takePosted(); // what other threads posted before this input comes before it
+    }
+    queued.add(input);
+  }
+
+  // ---- Work off the app's thread
+
+  /**
+   * Hands the app a task to run on its thread, at its turn among the input: the one method of an
+   * app that may be called on any thread. It never blocks. The task joins the queue of input after
+   * the input that came before it, and the tasks of one thread keep their order; {@link #frame}
+   * runs it like the handler of an input that a handler took, against the tree of the moment, so
+   * that the view is built again before the next input and the frame draws. A task posted while a
+   * frame runs, by a handler too, waits for the next frame. Only the task touches the state, on the
+   * app's thread; the thread that posts it hands over what it computed, as in
+   *
+   * <pre>{@code
+   * Thread.ofVirtual().start(() -> {
+   *   List<Row> rows = db.query(sql); // not the state: the app's thread may be reading it
+   *   app.post(() -> state.rows = rows);
+   * });
+   * }</pre>
+   *
+   * <p>{@link #background} does that with a failure and cancellation. A runner that waits for
+   * events, such as a {@link com.rethinkj.ui.window.WindowLoop}, wakes up for a task ({@link
+   * #onPost}); without one, the next frame runs it. In a {@link Script}, tasks wait for its {@code
+   * await} step.
+   *
+   * <p>A task that throws ends the frame there, as a handler does: the exception comes out of
+   * {@link #frame}, the input after the task stays queued, a {@code WindowLoop} ends with it and
+   * a script fails at its {@code frame} step. Once the app's window has closed, tasks still queue
+   * and wait: they run if the app runs frames again, and are dropped with the app otherwise.
+   */
+  public void post(Runnable task) {
+    Objects.requireNonNull(task, "task");
+    offer(() -> {
+      handled = true; // before it runs: a task that throws may have changed something
+      task.run();
+      return true;
+    });
+  }
+
+  private void offer(BooleanSupplier task) {
+    posted.add(task);
+    Runnable w = wake;
+    if (w != null && woken.compareAndSet(false, true)) {
+      w.run();
+    }
+  }
+
+  /** Moves what other threads posted into the queue; on the app's thread. */
+  private void takePosted() {
+    woken.set(false); // before the tasks are taken: one posted after them wakes again
+    for (BooleanSupplier task; (task = posted.poll()) != null; ) {
+      queued.add(task);
+    }
+  }
+
+  /**
+   * Sets what {@link #post} calls, on the posting thread, when a task arrives and the app has not
+   * taken the ones before it: a runner that waits for events ends its wait with it, as a {@link
+   * com.rethinkj.ui.window.WindowLoop} does while it runs. A burst of tasks calls it once, and
+   * again only for a task that arrives after the app took the burst. Null for nothing, as without
+   * a window.
+   */
+  public void onPost(Runnable wake) {
+    this.wake = wake;
+  }
+
+  /**
+   * Runs {@code compute} on a virtual thread of its own and hands its result to {@code onResult},
+   * or what it throws to {@code onFailure}, on the app's thread as a {@link #post posted} task. Call
+   * it on the app's thread, usually in a handler, and keep the {@link Work} to {@link Work#cancel}
+   * it: once cancelled, neither handler runs, so that the answer of a request the user closed or
+   * asked again never arrives.
+   *
+   * <p>The computation gets only what the handler gave it, in its closure: values it copied from
+   * the state, a connection, an SQL string. It must not touch the app's state or its elements, nor
+   * call the app but {@link #post}: they belong to the app's thread, which reads them while it
+   * builds the view, and nothing guards them from a second thread. Only the handlers change the
+   * state, on the app's thread, in the order of the input.
+   *
+   * <pre>{@code
+   * void open(Table table) { // a handler, on the app's thread
+   *   if (loading != null) {
+   *     loading.cancel(); // the rows asked for before are not wanted any more
+   *   }
+   *   String sql = "SELECT * FROM " + table.name();
+   *   loading = app.background("rows of " + table.name(), () -> db.query(sql),
+   *       rows -> { this.rows = rows; loading = null; },
+   *       error -> { this.error = error.getMessage(); loading = null; });
+   * }
+   * }</pre>
+   *
+   * <p>An {@link Error} the computation throws, such as running out of memory, is thrown on the
+   * app's thread when its turn comes, as from a task. Virtual threads do not keep the JVM alive:
+   * work that runs when {@code main} returns is dropped. {@link #await} waits for the work, which
+   * makes scripts and tests deterministic.
+   *
+   * @param name what the work does, for the thread and for {@link #await}'s message, such as
+   *     {@code "rows of orders"}
+   * @return the work, to cancel it
+   */
+  public <T> Work background(String name, Callable<? extends T> compute,
+      Consumer<? super T> onResult, Consumer<? super Exception> onFailure) {
+    Objects.requireNonNull(name, "name");
+    Objects.requireNonNull(compute, "compute");
+    Objects.requireNonNull(onResult, "onResult");
+    Objects.requireNonNull(onFailure, "onFailure");
+    Work work = new Work(name, this);
+    synchronized (running) {
+      running.add(work);
+    }
+    work.thread = Thread.ofVirtual().name(name).unstarted(() -> {
+      T result = null;
+      Throwable failure = null;
+      try {
+        result = compute.call();
+      } catch (Throwable t) {
+        failure = t;
+      }
+      T r = result;
+      Throwable f = failure;
+      try {
+        offer(() -> {
+          if (work.cancelled) {
+            return false; // costs no rebuild
+          }
+          handled = true;
+          if (f == null) {
+            onResult.accept(r);
+          } else if (f instanceof Exception e) {
+            onFailure.accept(e);
+          } else if (f instanceof Error e) {
+            throw e;
+          } else {
+            throw new IllegalStateException(name + " threw", f);
+          }
+          return true;
+        });
+      } finally {
+        finished(work); // after the offer: await() then finds its delivery posted
+      }
+    });
+    work.thread.start();
+    return work;
+  }
+
+  /** The work has posted its delivery or was cancelled: {@link #await} waits no longer for it. */
+  void finished(Work work) {
+    synchronized (running) {
+      if (running.remove(work)) {
+        running.notifyAll();
+      }
+    }
+  }
+
+  /**
+   * Waits until all the work that {@link #background} started has finished or was cancelled, and
+   * then queues what it delivered, and everything else posted so far, for the next {@link #frame},
+   * in the order it was posted. Scripts and tests call it where they want the answers, between
+   * frames, so that what they see does not depend on how fast the work was: {@code frame} after it
+   * shows them. Work that a delivery starts is not waited for; call this again for it. Tasks that
+   * other threads post on their own are not waited for either: they come with the first call after
+   * they were posted.
+   *
+   * @throws IllegalStateException if work still runs after {@code timeout}, naming it, or if this
+   *     is called in a handler, whose thread it would block
+   * @throws InterruptedException if the thread is interrupted while it waits
+   */
+  public void await(Duration timeout) throws InterruptedException {
+    if (dispatching) {
+      throw new IllegalStateException("await blocks the app's thread: call it between frames");
+    }
+    long nanos = timeout.toNanos();
+    long start = System.nanoTime();
+    synchronized (running) {
+      while (!running.isEmpty()) {
+        long left = nanos - (System.nanoTime() - start);
+        if (left <= 0) {
+          List<String> names = running.stream().map(Work::name).toList();
+          throw new IllegalStateException("After " + timeout.toMillis() + " ms, the app's work"
+              + " still runs: " + String.join(", ", names) + ". Work that App.background started"
+              + " ends when it has delivered or is cancelled.");
+        }
+        TimeUnit.NANOSECONDS.timedWait(running, left);
+      }
+    }
+    takePosted();
   }
 
   /** For {@link Script}: the innermost virtual list at this point, or null. */
@@ -1293,16 +1506,20 @@ public final class App<S> {
    * tree if anything may have changed and moves what is moving.
    *
    * <ol>
+   *   <li>The tasks other threads {@link #post posted} since the app last took them join the
+   *       queue, after the input that came before them; those posted from here on wait for the
+   *       next frame.
    *   <li>Each input in turn finds the element it goes to in the tree of the moment, overlays
-   *       first, and runs its handler; a press or the wheel outside overlays first runs their
-   *       dismiss handlers, and a focus or scroll that a handler asks for runs right after it.
-   *       Before an input that follows one a handler of the app took, the view is built again as
-   *       in step 4, so that it sees what that handler changed, but the rows of its lists only if
-   *       the focus is in one. A press, a release, a secondary press, Tab, a focus and a scroll
+   *       first, and runs its handler, and each posted task runs as the handler of an input; a
+   *       press or the wheel outside overlays first runs their dismiss handlers, and a focus or
+   *       scroll that a handler or task asks for runs right after it. Before an input that follows
+   *       one a handler of the app or a task took, the view is built again as in step 5, so that
+   *       it sees what that handler changed, but the rows of its lists only if the focus is in
+   *       one. A press, a release, a secondary press, Tab, a focus and a scroll
    *       the app asks for build the rows that this or a scroll left to build, the wheel and a
    *       drag those that this left, and they place the overlays and the bars, before they look
    *       for their element.
-   *   <li>Unless step 4 builds everything: the rows that scrolling brought into view, or that a
+   *   <li>Unless step 5 builds everything: the rows that scrolling brought into view, or that a
    *       rebuild between two inputs left out, are built, and the overlays and the bars placed.
    *   <li>Unless a handler of the app ran, the focus or its ring moved or a field gained or lost
    *       the focus, so that the view is built again anyway: the pointer is followed into the
@@ -1316,7 +1533,7 @@ public final class App<S> {
    *       its overlays, takes over the values and offsets of the tree before, and its virtual lists
    *       build their rows, each row the same way; the overlays are placed beside their anchors,
    *       the focus is found again, the carets and the bars are placed. Then the pointer is
-   *       followed into it as in step 3; if that tree puts other elements under the still pointer
+   *       followed into it as in step 4; if that tree puts other elements under the still pointer
    *       than the one before, or an {@link El#onHoverFor} handler ran, the view is built once more
    *       with the looks of the moment. Otherwise the elements that move get the values of the
    *       moment, lists that moved build the rows they show now, and the overlays follow.
@@ -1332,6 +1549,9 @@ public final class App<S> {
     Object wasFocused = focusId;
     boolean hadRing = ring;
     boolean drawn = false;
+    if (!holdPosts) {
+      takePosted();
+    }
     while (!queued.isEmpty()) {
       if (handled) { // the next input goes to a tree built from the state as it is now
         rebuild(true);
