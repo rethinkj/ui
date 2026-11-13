@@ -347,7 +347,9 @@ class WindowLoopTest {
    * <p>The task is posted from the loop's own thread, just before the wait, which ends the wait
    * as a post from another thread does ({@link #aPostWakesTheWaitingLoopAndABurstIsOneFrame}), but
    * at a known time. A machine so busy that less than 5 ms of the refresh is left by then cannot
-   * show the difference, and the test goes round again with another key.
+   * show the difference, and the test goes round again with another key; so it does when the
+   * frame took a whole refresh, after which the key is due at once. Without the hold-back, every
+   * round is such a round, and the test fails when its time is up.
    */
   @Test
   void aTaskPostedWhileInputWaitsForTheRefreshIsDrawnInThatRefresh() {
@@ -394,8 +396,6 @@ class WindowLoopTest {
             throw new AssertionError("the task was not drawn with the key: " + log);
           }
           loop.get().stop();
-        } else if (sent[0] && !sent[1] && state[1] == round[0] && !spoiled) {
-          throw new AssertionError("the key was drawn without waiting for the refresh: " + log);
         } else if (!sent[0] || state[1] == round[0]) { // idle: a new round
           round[0]++;
           sent[0] = false;
@@ -404,7 +404,8 @@ class WindowLoopTest {
           app.post(() -> state[0] = round[0]);
         }
       }));
-      Desktop.run(loop.get(), () -> "the key and the task are drawn; " + log);
+      Desktop.run(loop.get(), () -> "a key held back for the refresh, and a task posted"
+          + " meanwhile drawn with it; " + log);
 
       List<String> after = log.subList(log.lastIndexOf("post") + 1, log.size());
       assertEquals(List.of("-1," + round[0]), after.stream().filter(e -> e.contains(","))
