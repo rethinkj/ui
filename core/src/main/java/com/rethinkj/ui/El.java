@@ -66,6 +66,7 @@ public final class El {
   private boolean editable;
   private Consumer<String> onEdit;
   private Gutter gutter;
+  private SelectHandler onSelect;
   private float gutterLeft = Float.NaN; // where the gutter starts, the padding before it
   private float gutterWidth;
   private float gutterScale; // the scale gutterWidth was measured at
@@ -187,6 +188,15 @@ public final class El {
     El cell(int line, boolean caret);
   }
 
+  /**
+   * Told the caret and the other end of the selection of a text field, as indexes into its string;
+   * equal when nothing is selected.
+   */
+  @FunctionalInterface
+  public interface SelectHandler {
+    void select(int caret, int anchor);
+  }
+
   /** Told the first and the last row, both included, that a virtual list has built. */
   @FunctionalInterface
   public interface RowsHandler {
@@ -201,6 +211,7 @@ public final class El {
     float pointX = Float.NaN;
     float pointY = Float.NaN;
     boolean centered;
+    boolean atCaret; // see El#atCaret
     Side edge; // see El#atWindowEdge; null for beside the anchor
     boolean modal;
     int scrim;
@@ -1139,6 +1150,24 @@ public final class El {
   }
 
   /**
+   * Tells {@code handler} where the caret and the selection of an {@link #editable} field are,
+   * whenever they change: by keys, presses, edits, {@link App#edit} and {@link App#select}, and
+   * when the field is new or the app's string moved them. The handler runs after the input that
+   * moved them, as a handler of input does, and the next input sees the view built from what it
+   * stored: the line of the caret for {@link #decorate}, the word before it for completions. For
+   * the caret's rectangle, place an overlay {@link #atCaret}.
+   */
+  public El onSelect(SelectHandler handler) {
+    editableOnly("onSelect");
+    this.onSelect = handler;
+    return this;
+  }
+
+  SelectHandler onSelect() {
+    return onSelect;
+  }
+
+  /**
    * Makes an {@link #editable} field read-only: it takes the focus, and its text can be selected
    * and copied, but not changed.
    */
@@ -1603,6 +1632,25 @@ public final class El {
     Layer l = layer();
     l.pointX = x;
     l.pointY = y;
+    return this;
+  }
+
+  /**
+   * Places this overlay beside the caret of its anchor, a text field ({@link #editable}), instead
+   * of beside the anchor's rectangle: as {@link #side} says, with the caret, a line high, as the
+   * rectangle; below it and starting at it by default, as a list of completions. It follows the
+   * caret as the field scrolls and the caret moves, also without a rebuild of the view. Usually
+   * with {@link #keepFocus}, so that the field keeps the keys; its {@link #onKey} sees them first
+   * and can take Up, Down, Enter and Escape for the overlay.
+   *
+   * <pre>{@code
+   * El editor = El.text(s.sql).editable(v -> s.sql = v).multiline()
+   *     .onSelect((caret, anchor) -> s.caret = caret);
+   * editor.overlay(s.completing ? completions(s).atCaret().keepFocus() : null);
+   * }</pre>
+   */
+  public El atCaret() {
+    layer().atCaret = true;
     return this;
   }
 

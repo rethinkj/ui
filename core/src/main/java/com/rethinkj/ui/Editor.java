@@ -100,6 +100,9 @@ final class Editor {
   // view; the x Up and Down keep, in physical pixels, NaN until they move; whether Tab moves the
   // focus after Escape, or after Control+M until the next Control+M.
   private boolean reveal;
+  // The caret and anchor the element's onSelect handler was told last; -1 before the first.
+  private int toldCaret = -1;
+  private int toldAnchor = -1;
   private float goal = Float.NaN;
   private boolean escaped;
   private boolean tabMovesFocus;
@@ -306,6 +309,77 @@ final class Editor {
 
   String composition() {
     return composition;
+  }
+
+  /**
+   * Tells the element's {@link El#onSelect} handler the caret and the anchor if they changed since
+   * it was last told.
+   *
+   * @return whether it was told
+   */
+  boolean tell() {
+    if (caret == toldCaret && anchor == toldAnchor) {
+      return false;
+    }
+    toldCaret = caret;
+    toldAnchor = anchor;
+    El.SelectHandler handler = el.onSelect();
+    if (handler == null) {
+      return false;
+    }
+    handler.select(caret, anchor);
+    return true;
+  }
+
+  /**
+   * An edit the app asks for ({@link App#edit}): {@code from} to {@code to} replaced by {@code
+   * inserted}, with the caret at {@code newCaret} of the new string after it, as one step of the
+   * history, handed to the app as typed text is. Nothing in a field that takes no edits.
+   */
+  void request(int from, int to, String inserted, int newCaret) {
+    if (!editable()) {
+      return;
+    }
+    composition = "";
+    from = Math.clamp(from, 0, text.length());
+    to = Math.clamp(to, from, text.length());
+    inserted = fit(fitLines(inserted), from, to);
+    int length = text.length() - (to - from) + inserted.length();
+    newCaret = Math.clamp(newCaret, 0, length);
+    run = null;
+    edit(from, to - from, inserted, newCaret, newCaret, null, false);
+  }
+
+  /** A selection the app asks for ({@link App#select}), which scrolls into view as a key's does. */
+  void select(int newCaret, int newAnchor) {
+    composition = "";
+    anchor = snap(newAnchor);
+    caret = snap(newCaret);
+    run = null;
+    goal = Float.NaN;
+    changed = true;
+    reveal = true;
+  }
+
+  /**
+   * The caret's rectangle as drawn, in logical pixels from the top left of the element's border
+   * box, as {x, y, width, height}; null before layout.
+   */
+  float[] caretBox() {
+    Text t = el.text();
+    if (!t.laidOut()) {
+      return null;
+    }
+    Style s = el.style();
+    float scale = t.scale();
+    float top = s.borderTop.kind() == Len.Kind.PX ? s.borderTop.value() : 0;
+    top += s.paddingTop.kind() == Len.Kind.PX ? s.paddingTop.value() : 0;
+    float left = s.borderLeft.kind() == Len.Kind.PX ? s.borderLeft.value() : 0;
+    left += s.paddingLeft.kind() == Len.Kind.PX ? s.paddingLeft.value() : 0;
+    int shownCaret = composition.isEmpty() ? caret : start() + compositionCursor;
+    float rowTop = t.multiline() ? caretTopOffset() : t.lineTop(t.lineOf(shownCaret)) / scale;
+    return new float[] {left + caretOffset(), top + rowTop, caretWidth(scale) / scale,
+        t.lineHeight() / scale};
   }
 
   /** Whether something changed since the last call; a change keeps the caret on for a while. */

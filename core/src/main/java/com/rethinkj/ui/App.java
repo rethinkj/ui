@@ -169,6 +169,7 @@ public final class App<S> {
   private boolean dispatching;
   private boolean handled; // a handler of the app took input since the tree was built
   private boolean scrolled; // something scrolled since the rows and bars were placed
+  private boolean caretOverlays; // an overlay is placed beside a caret: see El#atCaret
   private boolean rowsPending; // the tree was built between two inputs without its lists' rows
   private final Animator animator = new Animator();
   private double time;
@@ -1824,6 +1825,7 @@ public final class App<S> {
       dispatching = true;
       try {
         stale |= queued.poll().getAsBoolean();
+        stale |= tellSelections();
       } finally {
         dispatching = false;
         for (int i = follow.size() - 1; i >= 0; i--) {
@@ -1855,6 +1857,10 @@ public final class App<S> {
       // pointer is over in the tree on screen.
       for (int pass = 0; pass < 2 && stale; pass++) {
         rebuild(false);
+        // A caret that the app's string moved, or of a new field: its handler is told, once.
+        if (tellSelections()) {
+          rebuild(false);
+        }
         List<El> path = pointed();
         stale = !wanted(path, Animator.identities(path)).equals(shown);
       }
@@ -1912,7 +1918,7 @@ public final class App<S> {
     scrolled = false;
     rowsPending = between && (focusId == null || animator.inRow(focusId) == null);
     if (rowsPending) {
-      Overlays.place(root, width, height); // which fillRows does otherwise: the focus may be in one
+      caretOverlays = Overlays.place(root, width, height); // as fillRows does: the focus may be in one
       refocus();
       return;
     }
@@ -2018,6 +2024,84 @@ public final class App<S> {
     for (Editor editor : shown) {
       editor.place(editor == blinking, caretOn);
     }
+    if (caretOverlays) { // placed beside carets, which are placed now
+      Overlays.place(root, width, height);
+    }
+  }
+
+  /**
+   * Tells the {@link El#onSelect} handlers of the fields whose caret or selection changed.
+   *
+   * @return whether a handler was told, which the next input should find in the view
+   */
+  private boolean tellSelections() {
+    boolean told = false;
+    for (Editor editor : List.copyOf(editors.values())) {
+      told |= editor.tell();
+    }
+    handled |= told;
+    return told;
+  }
+
+  /**
+   * Replaces characters {@code from} to {@code to} of a text field's string by {@code text} and
+   * puts the caret at {@code caret} of the new string, as one step of its undo history: the edit
+   * goes to the field's {@link El#editable onEdit} handler as typed text does, so the app can refuse
+   * or change it, and the field's limits apply, {@link El#maxLength} and its line breaks among
+   * them. For completions, a matching bracket and a replace in a find. A handler may call this,
+   * with a field of the tree it runs in; the frame edits right after the handler, in the field with
+   * the same identity in the tree built from what the handler changed. A read-only or disabled
+   * field, and one no longer there, are left alone.
+   *
+   * @param from the first position, an index into the string from 0
+   * @param to the position after the last, from {@code from} to the string's length
+   * @param caret the caret's position in the string after the edit
+   */
+  public void edit(El field, int from, int to, String text, int caret) {
+    Objects.requireNonNull(text, "text");
+    if (from < 0 || to < from) {
+      throw new IllegalArgumentException("from must be 0 or more and to at least from, were "
+          + from + " and " + to);
+    }
+    Object id = fieldId(field, "edit");
+    enqueue(() -> {
+      settle();
+      El now = animator.element(id);
+      if (now == null || now.editor() == null) {
+        return false;
+      }
+      now.editor().request(from, to, text, caret);
+      handled |= now.editor().answerPending();
+      return true;
+    });
+  }
+
+  /**
+   * Selects from {@code anchor} to {@code caret} in a text field, or puts the caret there when they
+   * are equal, and scrolls it into view as a key does: a match that a find found. The positions
+   * are indexes into the string, moved to the grapheme boundary at or before them. A handler may
+   * call this as {@link #edit}.
+   */
+  public void select(El field, int caret, int anchor) {
+    Object id = fieldId(field, "select");
+    enqueue(() -> {
+      settle();
+      El now = animator.element(id);
+      if (now == null || now.editor() == null) {
+        return false;
+      }
+      now.editor().select(caret, anchor);
+      return true;
+    });
+  }
+
+  private Object fieldId(El field, String call) {
+    Object id = field == null || !field.isEditable() ? null : animator.identity(field);
+    if (id == null) {
+      throw new IllegalArgumentException(call + " is for a text field of the last frame's tree,"
+          + " which El.text(...).editable(...) makes");
+    }
+    return id;
   }
 
   /** The editors of the fields of the current tree, without those that are leaving. */
@@ -2123,7 +2207,7 @@ public final class App<S> {
     float far = Float.POSITIVE_INFINITY;
     boolean built = fillRows(root, new ArrayList<>(), 0, 0, -far, far);
     // After scrolling, movement and new rows, the overlays follow their anchors.
-    Overlays.place(root, width, height);
+    caretOverlays = Overlays.place(root, width, height);
     return built;
   }
 
