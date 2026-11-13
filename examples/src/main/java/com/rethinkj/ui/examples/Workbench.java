@@ -21,7 +21,9 @@ import com.rethinkj.ui.Work;
 import com.rethinkj.ui.kit.Button;
 import com.rethinkj.ui.kit.Card;
 import com.rethinkj.ui.kit.CodeEditor;
+import com.rethinkj.ui.kit.CommandPalette;
 import com.rethinkj.ui.kit.Completion;
+import com.rethinkj.ui.kit.FilterList;
 import com.rethinkj.ui.kit.Find;
 import com.rethinkj.ui.kit.AppIcon;
 import com.rethinkj.ui.kit.DataGrid;
@@ -61,6 +63,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -233,6 +236,12 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
   String confirm = ""; // the name typed into the dialog
   Window window; // the first window, for the taskbar; null under a script
   final MenuBar.State bar = new MenuBar.State();
+  // The command palette of each window, and what it finds after @, made anew when a server
+  // connects.
+  final Map<TabGroups.Group<Opened>, CommandPalette.State> palettes = new IdentityHashMap<>();
+  private List<FilterList.Entry> catalogue;
+  private int connected; // servers that answered so far, which the catalogue is made for
+  private int catalogued = -1;
 
   Workbench() {
     Node localhost = new Node(Kind.SERVER, "localhost", null);
@@ -373,6 +382,7 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
             node.children = new ArrayList<>();
             names.forEach(name -> schema(database(node, name), "public",
                 name.equals("shop") ? TABLES.length : 3));
+            connected++;
             tell(server + ": " + names.size() + " databases");
             answered();
           },
@@ -570,6 +580,93 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
     }
   }
 
+  /** The command palette of a window. */
+  CommandPalette.State palette(TabGroups.Group<Opened> group) {
+    return palettes.computeIfAbsent(group, g -> new CommandPalette.State());
+  }
+
+  /**
+   * What a window's palette finds: the commands of the menus and Change theme, then after {@code
+   * @} the tables and columns of the connected servers, and after {@code :} a line of the active
+   * tab's query.
+   */
+  El palette(Theme t, TabGroups.Group<Opened> group) {
+    CommandPalette.State state = palette(group);
+    if (!state.isOpen()) {
+      return null;
+    }
+    List<FilterList.Entry> commands = new ArrayList<>(CommandPalette.commands(menus(group)));
+    commands.add(FilterList.entry("Change theme…", () -> changeTheme(state)));
+    return CommandPalette.palette(t, state, commands, List.of(
+        new CommandPalette.Source("@", "to open a table", FilterList.Entries.of(catalogue())),
+        new CommandPalette.Source(":", "to go to a line",
+            FilterList.Entries.by(text -> line(shown(group), text)))));
+  }
+
+  /** The themes, each shown as the keys or the pointer reach it, the one before on Escape. */
+  private void changeTheme(CommandPalette.State state) {
+    boolean before = dark;
+    state.ask(CommandPalette.Stage.choose("Choose a theme", List.of(
+            mark(FilterList.entry("Dark", () -> dark = true), dark),
+            mark(FilterList.entry("Light", () -> dark = false), !dark)), dark ? 0 : 1)
+        .preview(e -> dark = e.text().equals("Dark"), () -> dark = before));
+  }
+
+  private static FilterList.Entry mark(FilterList.Entry e, boolean current) {
+    return current ? e.symbol(Menu.CHECKED) : e;
+  }
+
+  /** The tables and columns of the connected servers, made anew when another one connects. */
+  List<FilterList.Entry> catalogue() {
+    if (catalogued != connected) {
+      List<FilterList.Entry> entries = new ArrayList<>();
+      for (Node server : servers) {
+        catalogue(server, entries);
+      }
+      catalogue = List.copyOf(entries);
+      catalogued = connected;
+    }
+    return catalogue;
+  }
+
+  private void catalogue(Node node, List<FilterList.Entry> into) {
+    if (node.children == null) {
+      return; // not connected
+    }
+    for (Node child : node.children) {
+      if (child.kind != Kind.TABLE) {
+        catalogue(child, into);
+        continue;
+      }
+      String path = node.path().replace('/', '.');
+      into.add(FilterList.entry(child.name, () -> activate(child)).symbol(Symbol.TABLE)
+          .detail(path));
+      for (Node column : child.children) {
+        into.add(FilterList.entry(child.name + "." + column.name, () -> activate(column))
+            .symbol(Symbol.COLUMN_SINGLE).detail(path));
+      }
+    }
+  }
+
+  /** What {@code :} finds in a tab: the line typed, as the editor's Go to line takes it. */
+  private static List<FilterList.Entry> line(Opened o, String text) {
+    if (o == null) {
+      return List.of(FilterList.entry("Open a table to go to a line of its query", null));
+    }
+    int lines = (int) o.query.chars().filter(c -> c == '\n').count() + 1;
+    String typed = text.strip();
+    if (typed.isEmpty()) {
+      return List.of(FilterList.entry("Type a line, 1 to " + lines + ", and a column after :",
+          null));
+    }
+    if (!typed.matches("\\d{1,9}(:\\d{1,9})?")) {
+      return List.of(FilterList.entry("Not a line: " + typed, null));
+    }
+    return List.of(FilterList.entry("Go to line " + typed,
+        () -> Find.goToLine(o.editor.find(), typed)).symbol(Symbol.ARROW_RIGHT)
+        .detail(lines == 1 ? "of 1 line" : "of " + lines + " lines"));
+  }
+
   /** A tab was closed, in any window. */
   void closed(Opened o) {
     if (o.asking != null) {
@@ -716,8 +813,10 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
     List<Menu.Item> menus = s.menus(s.groups.main());
     El root = col().wFull().hFull().fill(t.surface().window())
         // The menus' keys, then the tabs' keys also while the tree has the focus.
-        .onKey(or(MenuBar.keys(s.bar, menus), right.onKey()))
+        .onKey(or(MenuBar.keys(s.bar, menus).or(CommandPalette.keys(s.palette(s.groups.main()))),
+            right.onKey()))
         .onKeyUp(MenuBar.keysUp(s.bar, menus))
+        .overlay(s.palette(t, s.groups.main()))
         .child(withMenus(t, "Workbench", t.accent().color(), MenuBar.menuBar(t, s.bar, menus),
             toggle(t, s.dark, "Dark", () -> s.dark = !s.dark)))
         .child(Split.cards(t, Direction.ROW, s.sidebar, SIDEBAR, p -> s.sidebar = p,
@@ -769,7 +868,9 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
     El tabs = tabs(t, group);
     Opened active = group.activeTab();
     return col().wFull().hFull().fill(t.surface().window())
-        .onKey(or(Menu.shortcuts(menus(group)), tabs.onKey()))
+        .onKey(or(Menu.shortcuts(menus(group)).or(CommandPalette.keys(palette(group))),
+            tabs.onKey()))
+        .overlay(palette(t, group))
         .child(titleBar(t, active == null ? "Workbench" : active.title(), t.accent().color()))
         // No minimum height from the tabs, whose grid would otherwise make it as high as its rows.
         .child(col().grow(1).minSize(0, 0)
@@ -815,6 +916,11 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
             Menu.item("Exit", this::quit))),
         Menu.submenu("&Edit", edits(o, appOf(group))),
         Menu.submenu("&View", List.of(
+            Menu.item("Command palette…", palette(group)::open).icon(Symbol.SEARCH)
+                .shortcut("Ctrl+Shift+P"),
+            Menu.item("Go to table…", () -> palette(group).open("@")).icon(Symbol.TABLE)
+                .shortcut(Key.CONTROL, "P"),
+            Menu.separator(),
             Menu.item("Dark theme", () -> dark = true).checked(dark),
             Menu.item("Light theme", () -> dark = false).checked(!dark))),
         Menu.submenu("&Query", List.of(
