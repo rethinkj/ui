@@ -5,6 +5,8 @@ import static com.rethinkj.ui.El.row;
 import static com.rethinkj.ui.kit.Button.button;
 import static com.rethinkj.ui.kit.Checkbox.checkbox;
 import static com.rethinkj.ui.kit.Label.label;
+import static com.rethinkj.ui.kit.TextField.passwordField;
+import static com.rethinkj.ui.kit.TextField.revealable;
 import static com.rethinkj.ui.kit.TextField.textField;
 import static com.rethinkj.ui.kit.Toggle.toggle;
 
@@ -67,6 +69,12 @@ final class Gallery {
         .w(WIDTH - 20);
   }
 
+  /** A password field with its button, as wide as {@link #field}. */
+  private static El password(Theme t, boolean revealed, Runnable handler) {
+    El field = passwordField(t, "hunter2", "Password", handler == null ? null : s -> handler.run());
+    return revealable(t, field.w(WIDTH - 20), revealed, handler);
+  }
+
   static final List<Row> ROWS =
       List.of(
           new Row("primary", (t, h) -> button(t, Variant.PRIMARY, "Run query", h)),
@@ -80,7 +88,9 @@ final class Gallery {
           new Row("field filled", (t, h) -> field(t, "orders 2024", h)),
           // The last word selected from the caret, wherever the state left it.
           new Row("field selected", (t, h) -> field(t, "orders 2024", h),
-              "key ArrowRight control shift\nkey ArrowLeft control shift\nframe"));
+              "key ArrowRight control shift\nkey ArrowLeft control shift\nframe"),
+          new Row("password", (t, h) -> password(t, false, h)),
+          new Row("password shown", (t, h) -> password(t, true, h)));
 
   private final Theme theme;
   private final float scale;

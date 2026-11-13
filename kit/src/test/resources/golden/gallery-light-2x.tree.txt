@@ -218,3 +218,63 @@ el 0,0 140x40
 # field selected, disabled
 el 0,0 140x40
   text #c role=textbox label="Search tables" "orders 2024" 10,8 120x24 disabled
+# password, rest
+el 0,0 140x40
+  el #c 10,8 120x24
+    text role=textbox label="Password" "•••••••" 10,8 120x24 password
+    el role=button label="Show password" 108,10 20x20
+      text "\u{E5F1}" 110,12 16x16
+# password, hover
+el 0,0 140x40
+  el #c 10,8 120x24
+    text role=textbox label="Password" "•••••••" 10,8 120x24 password hovered
+    el role=button label="Show password" 108,10 20x20
+      text "\u{E5F1}" 110,12 16x16
+# password, pressed
+el 0,0 140x40
+  el #c 10,8 120x24
+    text role=textbox label="Password" "•••••••" 10,8 120x24 password hovered focused caret 7
+    el role=button label="Show password" 108,10 20x20
+      text "\u{E5F1}" 110,12 16x16
+# password, focused
+el 0,0 140x40
+  el #c 10,8 120x24
+    text role=textbox label="Password" "•••••••" 10,8 120x24 password focused caret 7
+    el role=button label="Show password" 108,10 20x20
+      text "\u{E5F1}" 110,12 16x16
+# password, disabled
+el 0,0 140x40
+  el #c 10,8 120x24
+    text role=textbox label="Password" "•••••••" 10,8 120x24 disabled password
+    el role=button label="Show password" 108,10 20x20 disabled
+      text "\u{E5F1}" 110,12 16x16
+# password shown, rest
+el 0,0 140x40
+  el #c 10,8 120x24
+    text role=textbox label="Password" "hunter2" 10,8 120x24
+    el role=button label="Hide password" 108,10 20x20
+      text "\u{E5F4}" 110,12 16x16
+# password shown, hover
+el 0,0 140x40
+  el #c 10,8 120x24
+    text role=textbox label="Password" "hunter2" 10,8 120x24 hovered
+    el role=button label="Hide password" 108,10 20x20
+      text "\u{E5F4}" 110,12 16x16
+# password shown, pressed
+el 0,0 140x40
+  el #c 10,8 120x24
+    text role=textbox label="Password" "hunter2" 10,8 120x24 hovered focused caret 7
+    el role=button label="Hide password" 108,10 20x20
+      text "\u{E5F4}" 110,12 16x16
+# password shown, focused
+el 0,0 140x40
+  el #c 10,8 120x24
+    text role=textbox label="Password" "hunter2" 10,8 120x24 focused caret 7
+    el role=button label="Hide password" 108,10 20x20
+      text "\u{E5F4}" 110,12 16x16
+# password shown, disabled
+el 0,0 140x40
+  el #c 10,8 120x24
+    text role=textbox label="Password" "hunter2" 10,8 120x24 disabled
+    el role=button label="Hide password" 108,10 20x20 disabled
+      text "\u{E5F4}" 110,12 16x16
