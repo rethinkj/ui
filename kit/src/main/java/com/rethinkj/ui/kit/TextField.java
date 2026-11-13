@@ -55,6 +55,21 @@ public final class TextField {
   }
 
   /**
+   * A field of a {@link Prop}: its string, written back on each edit, with the error of its field
+   * when the prop comes from an {@link Editing}. A prop that cannot be written disables it.
+   */
+  public static El textField(Theme t, Prop<String> value) {
+    return textField(t, value, null);
+  }
+
+  /** A field of a {@link Prop} with a placeholder, as {@link #textField(Theme, Prop)}. */
+  public static El textField(Theme t, Prop<String> value, String placeholder) {
+    String text = value.get();
+    return Prop.shown(
+        t, textField(t, text == null ? "" : text, placeholder, value.onChange()), value);
+  }
+
+  /**
    * A text area: a field of several lines ({@link El#multiline}) in the frame of {@link
    * #textField}, in the body type, that wraps its lines at its width and is four lines high, with
    * the theme's scrollbars. Enter breaks a line; Tab moves the focus. The result is the field, so a
@@ -142,6 +157,11 @@ public final class TextField {
   public static El passwordField(
       Theme t, String value, String placeholder, Consumer<String> onChange) {
     return textField(t, value, placeholder, onChange).masked();
+  }
+
+  /** A password field of a {@link Prop}, as {@link #textField(Theme, Prop, String)}. */
+  public static El passwordField(Theme t, Prop<String> value, String placeholder) {
+    return textField(t, value, placeholder).masked();
   }
 
   /**

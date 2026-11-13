@@ -1,0 +1,16 @@
+# docs:start editing-pojo-steps
+size 360 160
+frame
+focus role=spinbutton
+key ArrowUp             # 110: the copy changed, the app's settings not yet
+frame
+advance 1
+frame
+snap changed
+
+press role=button label="Apply"
+frame
+advance 1
+frame
+snap applied
+# docs:end editing-pojo-steps

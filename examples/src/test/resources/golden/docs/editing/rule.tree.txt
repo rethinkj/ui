@@ -1,0 +1,30 @@
+el 0,0 380x260
+  el 12,12 271x138
+    el 12,12 271x24
+      el 12,12 60x24
+        text "Customer" 12,16 60x16
+      el 80,12 203x24
+        text #customer role=textbox label="Customer" "Ada" 80,12 200x24
+    el 12,44 271x24
+      el 12,44 60x24
+        text "Amount" 12,48 48x16
+      el 80,44 203x24
+        text #amount role=textbox label="Amount" "12.50" 80,44 120x24
+    el 12,76 271x42
+      el 12,76 60x24
+        text "Due" 12,80 25x16
+      el 80,76 203x42
+        text #due role=textbox label="Due" "2026-11-01" 80,76 120x24 invalid error="Not before the order, 2026-11-13" focused caret 10
+        text "Not before the order, 2026-11-13" 80,102 203x16
+    el 12,126 271x24
+      el 12,126 60x24
+        text "Paid" 12,130 26x16
+      el 80,126 203x24
+        el role=checkbox label="Paid" 76,124 24x20 checked=false
+          el 80,126 16x16
+  el 12,158 129x24
+    el role=button label="Revert" 12,158 65x24
+      text "Revert" 25,162 39x16
+    el role=button label="Save" 85,158 56x24 disabled
+      text "Save" 98,162 30x16
+  text "" 12,190 0x16

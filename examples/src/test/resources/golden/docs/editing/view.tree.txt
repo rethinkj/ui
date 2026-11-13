@@ -1,0 +1,29 @@
+el 0,0 380x260
+  el 12,12 268x120
+    el 12,12 268x24
+      el 12,12 60x24
+        text "Customer" 12,16 60x16
+      el 80,12 200x24
+        text #customer role=textbox label="Customer" "Ada" 80,12 200x24
+    el 12,44 268x24
+      el 12,44 60x24
+        text "Amount" 12,48 48x16
+      el 80,44 200x24
+        text #amount role=textbox label="Amount" "12.50" 80,44 120x24
+    el 12,76 268x24
+      el 12,76 60x24
+        text "Due" 12,80 25x16
+      el 80,76 200x24
+        text #due role=textbox label="Due" "" 80,76 120x24
+    el 12,108 268x24
+      el 12,108 60x24
+        text "Paid" 12,112 26x16
+      el 80,108 200x24
+        el role=checkbox label="Paid" 76,106 24x20 checked=false
+          el 80,108 16x16
+  el 12,140 129x24
+    el role=button label="Revert" 12,140 65x24 disabled
+      text "Revert" 25,144 39x16
+    el role=button label="Save" 85,140 56x24 disabled
+      text "Save" 98,144 30x16
+  text "" 12,172 0x16

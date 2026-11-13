@@ -84,10 +84,43 @@ public final class ValueField {
       }
     }
 
+    /**
+     * An edit of the text: refused when typing cannot lead to a value, else kept, and its value
+     * handed on when it is one.
+     */
+    <T> void edit(Format<T> format, String text, Consumer<? super T> onChange) {
+      if (!format.allows(text)) {
+        return; // refused: the field shows the draft as it was
+      }
+      Format.Parsed<T> parsed = format.parse(text);
+      this.text = text;
+      error = parsed.error();
+      if (parsed.valid()) {
+        value = parsed.value();
+        onChange.accept(parsed.value());
+      }
+    }
+
     @Override
     public String toString() {
       return "Draft[" + text + (error == null ? "" : ", " + error) + "]";
     }
+  }
+
+  /**
+   * A field of a {@link Prop} of an {@link Editing}, which keeps its draft: no {@link Draft} in
+   * the app's state, and the field shows its error, also a rule's or the app's.
+   *
+   * @throws IllegalStateException for a prop of {@link Prop#of}, which keeps no draft
+   */
+  public static <T> El valueField(Theme t, Format<T> format, Prop<T> value) {
+    return valueField(t, format, value, null);
+  }
+
+  /** A field of a {@link Prop} with a placeholder, as {@link #valueField(Theme, Format, Prop)}. */
+  public static <T> El valueField(Theme t, Format<T> format, Prop<T> value, String placeholder) {
+    return Prop.shown(
+        t, valueField(t, format, value.get(), placeholder, value.draft(), value.onChange()), value);
   }
 
   /** A field without placeholder; give it a label with {@code .label("...")}. */
@@ -114,20 +147,7 @@ public final class ValueField {
       Consumer<? super T> onChange) {
     Objects.requireNonNull(format, "format");
     draft.show(format, value);
-    Consumer<String> edit = onChange == null
-        ? null
-        : text -> {
-          if (!format.allows(text)) {
-            return; // refused: the field shows the draft as it was
-          }
-          Format.Parsed<T> parsed = format.parse(text);
-          draft.text = text;
-          draft.error = parsed.error();
-          if (parsed.valid()) {
-            draft.value = parsed.value();
-            onChange.accept(parsed.value());
-          }
-        };
+    Consumer<String> edit = onChange == null ? null : text -> draft.edit(format, text, onChange);
     El field = TextField.textField(t, draft.text, placeholder, edit);
     if (draft.error != null) {
       TextField.invalid(t, field).errorMessage(draft.error);

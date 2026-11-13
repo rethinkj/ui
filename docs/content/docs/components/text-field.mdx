@@ -64,3 +64,7 @@ A text element with `role=textbox`, its label and its string in quotes; `disable
 ```
 
 Type into a field with `press #table` then `type "orders"`.
+
+## With a Prop
+
+`textField(t, prop[, placeholder])` and `passwordField(t, prop, placeholder)` take a `Prop` in place of the value and its handler, such as a field of an [Editing](/docs/concepts/editing) of a record: they write the prop back, show its field's error, and are disabled when the prop cannot be written.

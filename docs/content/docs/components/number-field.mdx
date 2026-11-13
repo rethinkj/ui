@@ -26,3 +26,7 @@ The field is a text element with `role=spinbutton` and its number; the buttons a
 ```
 
 The label is the `spinbutton`'s, so a script finds it with `press role=spinbutton label="Fetch size"`. A `.label(...)` on the result would label the box around field and buttons instead.
+
+## With a Prop
+
+`numberField(t, prop, min, max, step)` takes a `Prop` in place of the value and its handler, such as a field of an [Editing](/docs/concepts/editing) of a record: it writes the prop back, shows its field's error, and is disabled when the prop cannot be written.

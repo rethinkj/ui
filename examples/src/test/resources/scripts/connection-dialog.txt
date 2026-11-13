@@ -1,6 +1,6 @@
 # The connection dialog: Connect disabled until the form is filled in, a letter the port refuses,
-# a password shown as bullets and then by its button, Enter in a field, and the switch to the
-# light theme.
+# a password shown as bullets and then by its button, Enter in a field, the switch to the light
+# theme, a port the made-up server refuses and a rule across two fields.
 size 440 432
 frame
 snap connection-empty            # Connect is disabled: database and user are empty
@@ -23,7 +23,9 @@ advance 1                        # Connect turns blue over a tenth of a second
 frame
 snap connection-filled
 
-key Enter                        # Enter in a field connects
+key Enter                        # Enter in a field connects; Connect waits for the next change
+frame
+advance 1
 frame
 snap connection-connecting
 
@@ -39,3 +41,24 @@ frame
 advance 1
 frame
 snap connection-light
+
+press #port
+key A control
+type "5433"                      # another port: Connect is enabled again
+key Enter                        # the made-up server refuses it, which the port's field says
+frame
+advance 1
+frame
+snap connection-refused
+
+key Backspace                    # the next edit of the port takes the refusal away
+focus #host
+key A control
+type "db.example.com"
+focus #user
+key A control
+type "postgres"                  # the rule: postgres connects only to localhost
+frame
+advance 1
+frame
+snap connection-rule
