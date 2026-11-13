@@ -441,6 +441,28 @@ class OverlayTest {
   }
 
   @Test
+  void aStayInARowGoesOnThroughAFrameWhoseKeysBuildTheViewBetweenThem() {
+    State s = new State();
+    App<State> app = app(s, st -> el().size(200, 200).focusable().onKey(k -> {
+      st.log.add(k.name());
+      return true;
+    }).child(col().key("list").size(100, 100).rows(10, 20, i -> el().key("cell")
+        .whenHoveredFor(0.5, e -> e.overlay(el().key("tip").size(60, 16))))), 200, 200);
+    app.focus(app.tree());
+    app.pointerMove(10, 30); // row 1
+    app.frame();
+    app.advance(0.3);
+    app.keyDown(new Key("A")); // taken: the view is built again before the next key, rows later
+    app.keyDown(new Key("B"));
+    app.frame();
+    assertEquals(List.of("A", "B"), s.log);
+    assertEquals(0.5, app.nextChange(), 1e-9, "the stay began at 0, not with the keys");
+    app.advance(0.2);
+    app.frame();
+    assertEquals("tip", app.tree().shownOverlays().getFirst().key());
+  }
+
+  @Test
   void aHandlerAfterAStayRunsOnceAndRebuildsTheView() {
     State s = new State();
     App<State> app = app(s, st -> el().size(200, 200).children(

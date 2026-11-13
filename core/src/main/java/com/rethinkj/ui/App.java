@@ -1274,11 +1274,13 @@ public final class App<S> {
    *       for their element.
    *   <li>Unless step 4 builds everything: the rows that scrolling brought into view, or that a
    *       rebuild between two inputs left out, are built, and the overlays and the bars placed.
-   *   <li>The pointer is followed into the tree as it is now: what it is over decides the looks,
-   *       and the {@link El#onHoverFor} handlers whose delay has passed run.
-   *   <li>If anything may have changed (a handler of the app ran, the focus or its ring moved, a
-   *       field gained or lost the focus, or the looks of the moment differ from those the tree
-   *       has), the view is built again: it gets the looks of the moment ({@link
+   *   <li>Unless a handler of the app ran, the focus or its ring moved or a field gained or lost
+   *       the focus, so that the view is built again anyway: the pointer is followed into the
+   *       tree as it is now, what it is over decides the looks, and the {@link El#onHoverFor}
+   *       handlers whose delay has passed run. Otherwise this waits for the new tree, since one
+   *       built between inputs may lack the rows under the pointer.
+   *   <li>If anything may have changed (one of the above, or the looks of the moment differ from
+   *       those the tree has), the view is built again: it gets the looks of the moment ({@link
    *       El#whenHovered}, {@link El#whenHoveredFor}) and its text fields their editing state, the
    *       overlays that open take the focus and those that close give it back, it is laid out with
    *       its overlays, takes over the values and offsets of the tree before, and its virtual lists
@@ -1324,9 +1326,13 @@ public final class App<S> {
     } else {
       drawn |= settle(); // the rows that scrolling or a rebuild between inputs left to build
     }
-    // What the pointer is over now, in the tree on screen, after the scrolls moved it.
-    List<El> path = pointed();
-    stale |= !wanted(path, Animator.identities(path)).equals(shown);
+    // What the pointer is over now, in the tree on screen, after the scrolls moved it. Not in a
+    // tree built between inputs, which may lack the rows under the pointer and would end their
+    // stays: the rebuild below asks again.
+    if (!stale) {
+      List<El> path = pointed();
+      stale = !wanted(path, Animator.identities(path)).equals(shown);
+    }
     boolean laidOut = false;
     if (stale) {
       // Twice when the first build moved other elements under the still pointer, as a key that
@@ -1334,7 +1340,7 @@ public final class App<S> {
       // pointer is over in the tree on screen.
       for (int pass = 0; pass < 2 && stale; pass++) {
         rebuild(false);
-        path = pointed();
+        List<El> path = pointed();
         stale = !wanted(path, Animator.identities(path)).equals(shown);
       }
       stale = false;
