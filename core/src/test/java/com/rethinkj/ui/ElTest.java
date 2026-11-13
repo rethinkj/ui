@@ -62,10 +62,10 @@ class ElTest {
   void dumpsStatesAfterTheRectangleInAFixedOrder() {
     El node = el().key("node").role("treeitem").label("public")
         .value("2 tables").sortDescending().position(1, 2).level(3).expanded(true).checkedMixed()
-        .selected(true).disabled(true);
+        .selected(true).disabled(true).busy(true);
     node.place(0, 66, 400, 22);
     assertEquals(
-        "el #node role=treeitem label=\"public\" 0,66 400x22 disabled selected checked=mixed"
+        "el #node role=treeitem label=\"public\" 0,66 400x22 disabled busy selected checked=mixed"
             + " expanded level=3 pos=1/2 sort=descending value=\"2 tables\"\n",
         node.dump());
     assertEquals(

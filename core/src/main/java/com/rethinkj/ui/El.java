@@ -39,6 +39,7 @@ public final class El {
   private static final int CURRENT = 256;
   private static final int INVALID = 512;
   private static final int GRABBED = 1024;
+  private static final int BUSY = 2048;
 
   private final Style style = new Style();
   private final List<El> children = new ArrayList<>();
@@ -322,6 +323,14 @@ public final class El {
    */
   public El current(boolean current) {
     return state(CURRENT, current ? CURRENT : 0);
+  }
+
+  /**
+   * Whether this is busy, as WAI-ARIA's {@code aria-busy}: a button whose action runs, which takes
+   * no press until it is done, or a part whose content is on its way.
+   */
+  public El busy(boolean busy) {
+    return state(BUSY, busy ? BUSY : 0);
   }
 
   /**
@@ -3363,7 +3372,8 @@ public final class El {
    * shown, that is, moved by the scroll offsets above it. The states the view set follow, those
    * that are set, in this order: {@code disabled} (also a field that {@link #editable
    * editable(null)} disables), {@code readonly} (a {@link #readOnly} field), {@code password} (a
-   * {@link #masked} field, as UI Automation's {@code IsPassword}), {@code invalid}, {@code selected},
+   * {@link #masked} field, as UI Automation's {@code IsPassword}), {@code invalid}, {@code busy},
+   * {@code selected},
    * {@code current}, {@code grabbed}, {@code checked}, {@code checked=false} or {@code checked=mixed}, {@code expanded} or {@code
    * expanded=false}, {@code level=2}, {@code pos=3/10} (the position in the set and its size),
    * {@code sort=ascending} or {@code sort=descending}, and {@code value="..."}, as in {@code el
@@ -3554,6 +3564,9 @@ public final class El {
     }
     if ((states & INVALID) != 0) {
       out.append(" invalid");
+    }
+    if ((states & BUSY) != 0) {
+      out.append(" busy");
     }
     if ((states & SELECTED) != 0) {
       out.append(" selected");
