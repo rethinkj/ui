@@ -78,6 +78,19 @@ class GridEditTest {
     assertEquals(14, files.size());
   }
 
+  /** A failed cell says what is wrong in its tooltip, also when it was a change that failed. */
+  @Test
+  void aFailedCellShowsItsMessageInATooltip() throws IOException {
+    Ledger ledger = new Ledger(T, 40);
+    ledger.changes.set(2, 2, "4");
+    ledger.changes.error(ledger.changes.changes().getFirst(), 2, "qty must be even");
+    App<Ledger> app = start(ledger);
+    run(app, "move #cell-2-2\nframe\nadvance 1\nframe\nadvance 1\nframe");
+    assertTrue(app.tree().dump().contains("role=tooltip label=\"qty must be even\""),
+        app.tree().dump());
+    assertTrue(line(app, "cell-2-2").contains("invalid"), line(app, "cell-2-2"));
+  }
+
   @Test
   void enterOpensTheEditorOverTheCellTypingThenEnterHandsItOnAndGoesDown() throws IOException {
     Ledger ledger = new Ledger(T, 40);

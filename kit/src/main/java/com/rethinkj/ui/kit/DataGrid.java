@@ -573,6 +573,12 @@ public final class DataGrid {
     Status status(int row, int column);
   }
 
+  /** Told a cell, says what is wrong with it, or null for nothing. */
+  @FunctionalInterface
+  public interface CellMessage {
+    String message(int row, int column);
+  }
+
   /**
    * The icon of a cell: before its text, or alone in its place, in one of {@link Icon}'s colours,
    * with a tooltip of its own if it needs one. It stands where the column puts its text, at the
@@ -997,6 +1003,7 @@ public final class DataGrid {
     boolean appendRow;
     IntFunction<Status> rowStatus;
     CellStatus cellStatus;
+    CellMessage cellError;
     Runnable onUndo;
     Runnable onRedo;
     List<Filter> filters = List.of();
@@ -1192,6 +1199,15 @@ public final class DataGrid {
     }
 
     /**
+     * Shows what is wrong with a failed cell ({@link Status#ERROR}) in its tooltip, before
+     * anything else the tooltip says: the message of a refused write, say.
+     */
+    public Options errors(CellMessage messages) {
+      this.cellError = Objects.requireNonNull(messages, "messages");
+      return this;
+    }
+
+    /**
      * Shows a filter in each header cell, a funnel under the pointer and, in the accent's edge,
      * where {@code filters} has one for the column, which opens a popover to set it, as Alt+Arrow
      * Down does for the cursor's column: text with how it matches, a range for numbers, dates and
@@ -1269,6 +1285,10 @@ public final class DataGrid {
         CellStatus to = cellStatus;
         cellStatus = (r, c) -> to.status(r, full[c]);
       }
+      if (cellError != null) {
+        CellMessage to = cellError;
+        cellError = (r, c) -> to.message(r, full[c]);
+      }
       IntPredicate canFilter = filterable;
       filterable = c -> canFilter.test(full[c]);
       List<Filter> hiddenFilters = new ArrayList<>();
@@ -1309,7 +1329,7 @@ public final class DataGrid {
     /**
      * Edits through {@code changes}, which keeps the changes until the app writes them: what
      * {@link #onCommit}, {@link #onPaste}, {@link #onInsertRow}, {@link #onDeleteRows}, {@link
-     * #status} and {@link #history} do, each of which a later call replaces. The columns take
+     * #status}, {@link #errors} and {@link #history} do, each of which a later call replaces. The columns take
      * their cells from {@link GridChanges#cell(int)} and the grid its rows from {@link
      * GridChanges#rowCount()}.
      */
@@ -1322,6 +1342,7 @@ public final class DataGrid {
       onInsertRow(changes::insert);
       onDeleteRows(changes::delete);
       status(changes::rowStatus, changes::cellStatus);
+      errors(changes::errorText);
       return history(changes::undo, changes::redo);
     }
   }
@@ -1915,7 +1936,11 @@ public final class DataGrid {
       }
     }
     boolean alone = icon != null && icon.alone();
-    String own = icon == null ? null : icon.tooltip();
+    String error = status == Status.ERROR && b.o.cellError != null
+        ? b.o.cellError.message(i, c) : null;
+    String told = icon == null ? null : icon.tooltip();
+    // What is wrong first, then what the icon says.
+    String own = error == null ? told : told == null ? error : error + "\n" + told;
     if (value != null || alone || own != null) {
       // The icon's own tooltip, else the text an icon alone stands for, and the whole text where
       // the column cuts it short.
