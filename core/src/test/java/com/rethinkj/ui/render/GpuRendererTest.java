@@ -133,6 +133,7 @@ class GpuRendererTest {
   }
 
   static Stream<Case> cases() throws IOException {
+    SNAPPED.clear(); // CpuRendererEquivalenceTest asks for the cases too
     List<Case> cases = new ArrayList<>();
     // The views behind the stored images, built as their tests and scripts build them; all but
     // the badge have text.
