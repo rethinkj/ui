@@ -630,6 +630,31 @@ public final class Examples {
     return root;
   }
 
+  /**
+   * Lines that end in an ellipsis where their box is too narrow, as the cells of a table: both
+   * fonts in boxes of 150, 100, 61, 30 and 8 pixels, the 61 aligned right, and a word that fits,
+   * dark on white and light on near black, for a window of 360 by 236: the stored images
+   * text-ellipsis-1x and -2x.
+   */
+  public static El ellipsisText() {
+    El root = row().padding(8).gap(8).fill(0xFF808080);
+    for (int[] theme : new int[][] {{0xFF1A1A1A, 0xFFFFFFFF}, {0xFFDCDCDC, 0xFF1E1F22}}) {
+      El panel = col().padding(6).gap(2).fill(theme[1]);
+      for (float width : new float[] {150, 100, 61, 30, 8}) {
+        for (boolean mono : new boolean[] {false, true}) {
+          panel.child(row().w(width).h(18).clip().align(Style.Align.CENTER)
+              .justify(width == 61 ? Style.Content.END : Style.Content.START)
+              .child(El.text(mono ? MONO_SAMPLE : SANS_SAMPLE).font(mono ? Font.mono() : Font.sans())
+                  .fontSize(13).color(theme[0]).ellipsis().minSize(0, 0)));
+        }
+      }
+      panel.child(row().w(150).h(18).clip().align(Style.Align.CENTER)
+          .child(El.text("Köln").fontSize(13).color(theme[0]).ellipsis().minSize(0, 0)));
+      root.child(panel);
+    }
+    return root;
+  }
+
   // ---- fallback fonts ---------------------------------------------------------------------
 
   private static Font hebrew;

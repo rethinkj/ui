@@ -183,6 +183,11 @@ class GpuRendererTest {
         TextRendering.LINUX, new Atlas(), true));
     cases.add(text("text-opacity", Examples.textOpacity(), 336, 76, 2, TextRendering.LINUX,
         new Atlas(), true));
+    for (float scale : new float[] {1, 2, 1.5f}) { // lines shortened with an ellipsis
+      boolean stored = scale != 1.5f;
+      cases.add(text(stored ? "text-ellipsis-" + (int) scale + "x" : "text-ellipsis" + at(scale),
+          Examples.ellipsisText(), 360, 236, scale, TextRendering.LINUX, new Atlas(), stored));
+    }
     cases.add(textScrolled());
     // Scenes that stress one formula each.
     for (float scale : new float[] {1, 2, 1.5f}) {

@@ -720,6 +720,18 @@ public final class El {
     return this;
   }
 
+  /**
+   * Ends a line of this text that is wider than its box with {@link Text#ELLIPSIS}: as many
+   * graphemes as fit with it, without the spaces before it. Layout sizes the text as before; give
+   * the element a width or let it shrink below its text ({@code minSize(0, 0)}), as a table cell
+   * does. The tree dump shows the whole string, and {@link Text#shortened} says whether a line was
+   * shortened. Text fields are not shortened.
+   */
+  public El ellipsis() {
+    textOnly("ellipsis").ellipsis(true);
+    return this;
+  }
+
   /** Lets the text break into more lines where it is wider than its box. */
   public El wrapText() {
     textOnly("wrapText").wraps(true);

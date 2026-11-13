@@ -19,7 +19,9 @@ import com.rethinkj.ui.text.TextLibraries;
 import com.rethinkj.ui.text.TextRendering;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Locale;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -80,6 +82,35 @@ class TextRenderTest {
   void textUnderOpacity() {
     Headless.Frame frame = Headless.render(Examples.textOpacity(), 336, 76, 2, PINNED);
     Golden.assertMatches("text-opacity", frame.pixels(), frame.tree());
+  }
+
+  /** See {@link Examples#ellipsisText}. */
+  @Test
+  void aLineTooWideForItsBoxEndsInAnEllipsis() {
+    for (int scale = 1; scale <= 2; scale++) {
+      El root = Examples.ellipsisText();
+      Headless.Frame frame = Headless.render(root, 360, 236, scale, PINNED);
+      Golden.assertMatches("text-ellipsis-" + scale + "x", frame.pixels(), frame.tree());
+      List<El> texts = new ArrayList<>();
+      collectTexts(root, texts);
+      assertEquals(22, texts.size());
+      for (El text : texts) {
+        Text t = text.text();
+        boolean fits = t.string().equals("Köln");
+        assertEquals(!fits, t.shortened(), t.string() + " in " + text.width());
+        Text.Line line = t.lines().getFirst();
+        assertTrue(line.width() <= text.width() * scale + 0.01f || text.width() < 10,
+            line.width() + " in " + text.width() * scale);
+      }
+      assertTrue(frame.tree().contains(El.quote(Examples.SANS_SAMPLE)), "the whole string");
+    }
+  }
+
+  private static void collectTexts(El el, List<El> into) {
+    if (el.text() != null) {
+      into.add(el);
+    }
+    el.children().forEach(child -> collectTexts(child, into));
   }
 
   /** See {@link Examples#fallbackText}. */
