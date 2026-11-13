@@ -93,6 +93,54 @@ final class Animator {
     return entry == null ? null : entry.el;
   }
 
+  /**
+   * The identities of a path of elements of the current tree, from the root down, such as hit
+   * testing finds; none of them is leaving.
+   */
+  static List<Object> identities(List<El> path) {
+    List<Object> ids = new ArrayList<>(path.size());
+    Id id = null;
+    for (int i = 0; i < path.size(); i++) {
+      El el = path.get(i);
+      int index = 0;
+      if (i > 0) {
+        for (El sibling : path.get(i - 1).children()) {
+          if (sibling == el) {
+            break;
+          }
+          if (!sibling.isExiting()) {
+            index++;
+          }
+        }
+      }
+      id = new Id(id, part(el, index));
+      ids.add(id);
+    }
+    return ids;
+  }
+
+  /**
+   * The element of a tree that the view has just built that will have this identity once the next
+   * {@link #update} takes the tree, or null.
+   */
+  static El find(El root, Object identity) {
+    Id id = (Id) identity;
+    if (id.parent() == null) {
+      return id.part().equals(part(root, 0)) ? root : null;
+    }
+    El parent = find(root, id.parent());
+    if (parent == null) {
+      return null;
+    }
+    List<El> children = parent.children(); // nothing is leaving yet
+    for (int i = 0; i < children.size(); i++) {
+      if (id.part().equals(part(children.get(i), i))) {
+        return children.get(i);
+      }
+    }
+    return null;
+  }
+
   /** Whether the last update or present left something short of its target. */
   boolean isMoving() {
     return !moving.isEmpty();

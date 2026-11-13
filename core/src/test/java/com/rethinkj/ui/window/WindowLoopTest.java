@@ -4,11 +4,13 @@ import static com.rethinkj.ui.El.col;
 import static com.rethinkj.ui.El.el;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.rethinkj.ui.App;
+import com.rethinkj.ui.Cursor;
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.Examples;
 import com.rethinkj.ui.Examples.Lights;
@@ -18,6 +20,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BooleanSupplier;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -89,6 +92,57 @@ class WindowLoopTest {
       assertEquals(List.of("press", "ü€"), log);
       assertEquals("field", app.focused().key());
     }
+  }
+
+  @Test
+  void pointerMovesTheWheelAndLeavingReachTheAppAndTheCursorFollows() {
+    try (Window window = Window.open(TITLE, 240, 200)) {
+      Desktop.settle();
+      int hover = 0xFF202028;
+      App<Object> app = new App<>(new Object(), s ->
+          Examples.list().whenHovered(e -> e.fill(hover)).cursor(Cursor.TEXT));
+      Desktop.motion(window, 120, 100);
+      Desktop.wheel(window, 0, -1, 120, 100); // a step towards the user scrolls down
+      Desktop.wheel(window, 0, -0.25f, 120, 100); // a quarter step, as from a touchpad
+      runUntil(window, app, () -> app.tree().fill() == hover && list(app).scrollY() > 50);
+
+      assertEquals(1.25f * WindowLoop.WHEEL_STEP, list(app).scrollY());
+      assertEquals(Cursor.TEXT, window.cursor());
+      assertEquals(Cursor.TEXT, Window.cursorShown(), "SDL shows it");
+
+      Desktop.wheel(window, 0, 0.5f, 120, 100); // half a step away from the user: back up
+      runUntil(window, app, () -> list(app).scrollY() < 60);
+      assertEquals(0.75f * WindowLoop.WHEEL_STEP, list(app).scrollY());
+
+      Desktop.windowEvent(window, Sdl.EVENT_WINDOW_MOUSE_LEAVE, 0, 0);
+      runUntil(window, app, () -> app.tree().fill() != hover);
+      assertNull(app.hovered());
+      assertEquals(Cursor.DEFAULT, Window.cursorShown());
+    }
+  }
+
+  /** Runs the loop until {@code done} after a frame was drawn, for at most three seconds. */
+  private static void runUntil(Window window, App<?> app, BooleanSupplier done) {
+    AtomicReference<WindowLoop> loop = new AtomicReference<>();
+    loop.set(new WindowLoop(window, app, (scene, w, h, s) -> {
+      if (done.getAsBoolean()) {
+        loop.get().stop();
+      }
+    }));
+    Thread timeout = Thread.ofPlatform().start(() -> { // ends the loop if the events get lost
+      try {
+        Thread.sleep(3000);
+        loop.get().stop();
+      } catch (InterruptedException e) {
+        // the loop ended in time
+      }
+    });
+    loop.get().run();
+    timeout.interrupt();
+  }
+
+  private static El list(App<?> app) {
+    return app.tree().children().getFirst();
   }
 
   @Test

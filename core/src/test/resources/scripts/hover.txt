@@ -1,0 +1,26 @@
+# The light switch of core's tests (Examples) under the pointer: hovered, pressed, on, left.
+size 200 120 scale 2
+frame
+move #switch           # the pointer over the switch, which springs to a lighter grey
+frame
+advance 1
+frame
+snap switch-hovered
+
+down #switch           # darker while pressed; the press also focuses it, without a ring
+frame
+advance 1
+frame
+snap switch-pressed
+
+up #switch             # the press toggles the switch, which is still hovered
+frame
+advance 1
+frame
+snap switch-hovered-on
+
+leave                  # the pointer leaves the window: as after a press without hovering
+frame
+advance 1
+frame
+snap switch-on

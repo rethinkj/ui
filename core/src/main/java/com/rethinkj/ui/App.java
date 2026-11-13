@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.BooleanSupplier;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
@@ -34,6 +35,13 @@ import java.util.function.Predicate;
  * keyboard or the app moved the focus, the scene draws a ring around the focused element, and
  * scroll areas around it scroll it into view.
  *
+ * <p>The app also follows the pointer ({@link #pointerMove}, {@link #pointerLeave}): it knows the
+ * element under it ({@link #hovered}), the one a press is on ({@link #pressed}) and the {@link
+ * #cursor} they ask for. Elements change how they look in these states with {@link
+ * El#whenHovered}, {@link El#whenFocused} and {@link El#whenPressed}: the view says how, and the
+ * app applies the looks of the moment to each tree the view builds, before layout. A state that
+ * changes for elements without such a look rebuilds nothing.
+ *
  * <p>This class needs no window. A windowed runner feeds it the window's input and draws its
  * {@link #scene}; tests and agents feed it input themselves and look at {@link #render}.
  *
@@ -56,7 +64,13 @@ public final class App<S> {
   private float scale = 1;
   private boolean stale = true;
   private El root;
-  private String pressed;
+  private Object pressed; // the identity of the element a press is on, until the pointer is up
+  private boolean pointerIn;
+  private float pointerX;
+  private float pointerY;
+  private List<El> under = List.of(); // the elements under the pointer in the current tree
+  private El marked; // the one of them a press would go to, marked for the dump
+  private Looks shown = new Looks(List.of(), null, null); // the looks the current tree has
   private El focused; // in the current tree
   private Object focusId; // its identity, to find it in the next tree
   private boolean ring; // the keyboard or the app moved the focus: draw the ring
@@ -84,22 +98,48 @@ public final class App<S> {
   }
 
   /**
-   * The pointer's button went down at this position, in logical pixels. This gives the focus to the
-   * element there, or to the nearest one around it, that is {@link El#focusable}, without a ring;
-   * where there is none, it clears the focus.
+   * The pointer moved to this position over the window, in logical pixels. From the next {@link
+   * #frame} on, the topmost element there that takes input is {@link #hovered}, and with it its
+   * ancestors for {@link El#whenHovered}. Presses do not move the pointer.
+   */
+  public void pointerMove(float x, float y) {
+    queued.add(() -> {
+      pointerIn = true;
+      pointerX = x;
+      pointerY = y;
+      return false; // the frame looks at what is under the pointer anyway
+    });
+  }
+
+  /** The pointer left the window: from the next {@link #frame} on, nothing is hovered. */
+  public void pointerLeave() {
+    queued.add(() -> {
+      pointerIn = false;
+      return false;
+    });
+  }
+
+  /**
+   * The pointer's button went down at this position, in logical pixels. From now until the next
+   * {@link #pointerUp} the element the press goes to is {@link #pressed}. This also gives the focus
+   * to the element there, or to the nearest one around it, that is {@link El#focusable}, without a
+   * ring; where there is none, it clears the focus.
    */
   public void pointerDown(float x, float y) {
     Target target = target(x, y);
-    pressed = target == null ? null : target.path;
+    pressed = target == null ? null : target.id();
     Target focus = target(x, y, El::isFocusable);
     El el = focus == null ? null : focus.el;
     queued.add(() -> focus(el, false));
   }
 
-  /** The button was released. A press counts when it began on the same element. */
+  /**
+   * The button was released. A press counts when it began on the same element, which the app
+   * recognises after rebuilds by the identity that matches elements across them.
+   */
   public void pointerUp(float x, float y) {
     Target target = target(x, y);
-    if (target != null && target.path.equals(pressed)) {
+    if (target != null && target.id().equals(pressed)) {
       Runnable handler = target.el.onPress();
       queued.add(() -> {
         handler.run();
@@ -191,6 +231,36 @@ public final class App<S> {
   /** The element of the last frame's {@link #tree} that has the keyboard focus, or null. */
   public El focused() {
     return focused;
+  }
+
+  /**
+   * The topmost element of the last frame's {@link #tree} under the pointer that takes input, the
+   * one a press there begins at; null when the pointer is outside or over nothing. Clips, opacity 0
+   * and elements that are leaving count as for presses.
+   */
+  public El hovered() {
+    return under.isEmpty() ? null : under.getLast();
+  }
+
+  /**
+   * The element of the last frame's {@link #tree} that a press is on, between the pointer down
+   * that went to it and the next pointer up, or null.
+   */
+  public El pressed() {
+    return pressed == null ? null : animator.element(pressed);
+  }
+
+  /**
+   * The shape of the pointer that the element under it asks for with {@link El#cursor}, or its
+   * nearest ancestor that does; {@link Cursor#DEFAULT} where none does or the pointer is outside.
+   */
+  public Cursor cursor() {
+    for (El el : under.reversed()) {
+      if (el.cursor() != null) {
+        return el.cursor();
+      }
+    }
+    return Cursor.DEFAULT;
   }
 
   /**
@@ -452,8 +522,9 @@ public final class App<S> {
 
   /**
    * Runs the handlers queued by input, scrolls as the wheel and {@link #scrollTo} asked and, if
-   * anything may have changed, builds and lays out the view again. Then it writes the values of
-   * the moment into the elements that move.
+   * anything may have changed, builds the view again, gives it the looks of the moment ({@link
+   * El#whenHovered}) and lays it out. Then it writes the values of the moment into the elements
+   * that move.
    *
    * @return whether there is something new to draw: the tree was rebuilt, something moved or
    *     scrolled
@@ -470,20 +541,96 @@ public final class App<S> {
     while (!scrolls.isEmpty()) {
       scrolled |= scrolls.poll().getAsBoolean();
     }
+    // What the pointer is over now, in the tree on screen, after the scrolls moved it.
+    List<El> path = pointerIn ? hit(pointerX, pointerY) : List.of();
+    List<Object> ids = Animator.identities(path);
+    stale |= !wanted(path, ids).equals(shown);
+    boolean drawn = true;
     if (stale) {
-      root = view.apply(state);
+      El built = view.apply(state);
+      shown = applyLooks(built, ids);
+      root = built;
       El.scaleText(root, scale);
       Flex.layout(root, width, height);
       animator.update(root, time);
       refocus();
       stale = false;
-      return true;
+    } else if (animator.isMoving()) {
+      animator.present(time);
+    } else {
+      drawn = scrolled;
     }
-    if (!animator.isMoving()) {
-      return scrolled;
+    hover();
+    return drawn;
+  }
+
+  /** The identities of elements with looks, by the state they are in; see {@link #wanted}. */
+  private record Looks(List<Object> hovered, Object focused, Object pressed) {}
+
+  /**
+   * The looks that the elements of the current tree ask for in the states of the moment: those
+   * along {@code path} under the pointer with a hover look, and the focused and the pressed element
+   * if they have a look for that.
+   */
+  private Looks wanted(List<El> path, List<Object> ids) {
+    List<Object> hovered = new ArrayList<>();
+    for (int i = 0; i < path.size(); i++) {
+      if (path.get(i).hoverLook() != null) {
+        hovered.add(ids.get(i));
+      }
     }
-    animator.present(time);
-    return true;
+    El focus = focusId == null ? null : animator.element(focusId);
+    El press = pressed == null ? null : animator.element(pressed);
+    return new Looks(
+        hovered,
+        focus != null && focus.focusLook() != null ? focusId : null,
+        press != null && press.pressLook() != null ? pressed : null);
+  }
+
+  /**
+   * Applies the looks of the moment to the tree the view has just built: the hover looks of the
+   * elements with these identities, then the focus look, then the pressed one.
+   *
+   * @return the identities of the elements that took a look
+   */
+  private Looks applyLooks(El tree, List<Object> hoveredIds) {
+    List<Object> hovered = new ArrayList<>();
+    for (Object id : hoveredIds) {
+      if (look(Animator.find(tree, id), El::hoverLook, "whenHovered")) {
+        hovered.add(id);
+      }
+    }
+    El focus = focusId == null ? null : Animator.find(tree, focusId);
+    boolean focusLook = focus != null && focus.isFocusable() // or it loses the focus
+        && look(focus, El::focusLook, "whenFocused");
+    boolean pressLook =
+        pressed != null && look(Animator.find(tree, pressed), El::pressLook, "whenPressed");
+    return new Looks(hovered, focusLook ? focusId : null, pressLook ? pressed : null);
+  }
+
+  /** Applies {@code el}'s look of one state, if it has one; false if not. */
+  private static boolean look(El el, Function<El, Consumer<El>> which, String name) {
+    Consumer<El> look = el == null ? null : which.apply(el);
+    if (look != null) {
+      el.apply(look, name);
+    }
+    return look != null;
+  }
+
+  /** Finds what is under the pointer in the tree of this frame, for the getters and the dump. */
+  private void hover() {
+    under = pointerIn ? hit(pointerX, pointerY) : List.of();
+    if (marked != null) {
+      marked.hovered(false);
+    }
+    marked = null;
+    for (El el : under.reversed()) {
+      if (el.onPress() != null) {
+        marked = el;
+        el.hovered(true);
+        break;
+      }
+    }
   }
 
   /**
@@ -527,12 +674,17 @@ public final class App<S> {
         root.dump());
   }
 
-  private record Target(El el, String path) {}
+  /** An element under a point, with the path to it from the root. */
+  private record Target(El el, List<El> path) {
+    /** The identity that finds the element again after a rebuild. */
+    Object id() {
+      return Animator.identities(path).getLast();
+    }
+  }
 
   /**
    * The element a press at this position goes to: the topmost element under the point, or its
-   * nearest ancestor with a handler. The path names it by child indexes, because the next frame
-   * builds new elements.
+   * nearest ancestor with a handler.
    */
   private Target target(float x, float y) {
     return target(x, y, el -> el.onPress() != null);
@@ -541,18 +693,12 @@ public final class App<S> {
   /** The topmost element under the point, or its nearest ancestor that is {@code wanted}. */
   private Target target(float x, float y, Predicate<El> wanted) {
     List<El> hit = hit(x, y);
-    StringBuilder path = new StringBuilder();
-    Target target = null;
-    for (int i = 0; i < hit.size(); i++) {
-      El el = hit.get(i);
-      if (i > 0) {
-        path.append('/').append(hit.get(i - 1).children().indexOf(el));
-      }
-      if (wanted.test(el)) {
-        target = new Target(el, path.toString());
+    for (int i = hit.size() - 1; i >= 0; i--) {
+      if (wanted.test(hit.get(i))) {
+        return new Target(hit.get(i), hit.subList(0, i + 1));
       }
     }
-    return target;
+    return null;
   }
 
   /** The elements under the point, from the root down to the topmost one; empty if none. */

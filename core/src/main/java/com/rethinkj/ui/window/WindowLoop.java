@@ -6,16 +6,26 @@ import com.rethinkj.ui.window.WindowEvent.CloseRequested;
 import com.rethinkj.ui.window.WindowEvent.KeyDown;
 import com.rethinkj.ui.window.WindowEvent.KeyUp;
 import com.rethinkj.ui.window.WindowEvent.PointerDown;
+import com.rethinkj.ui.window.WindowEvent.PointerLeave;
+import com.rethinkj.ui.window.WindowEvent.PointerMove;
 import com.rethinkj.ui.window.WindowEvent.PointerUp;
 import com.rethinkj.ui.window.WindowEvent.Redraw;
 import com.rethinkj.ui.window.WindowEvent.Resized;
 import com.rethinkj.ui.window.WindowEvent.ScaleChanged;
 import com.rethinkj.ui.window.WindowEvent.TextInput;
+import com.rethinkj.ui.window.WindowEvent.Wheel;
 import java.util.Objects;
 
 /**
- * Runs an {@link App} in a {@link Window}: feeds it the window's pointer, key and text input and
- * its size, lets it build frames, and hands each new frame to a {@link Presenter}, which draws it.
+ * Runs an {@link App} in a {@link Window}: feeds it the window's pointer, wheel, key and text input
+ * and its size, lets it build frames, hands each new frame to a {@link Presenter}, which draws it,
+ * and shows the {@link App#cursor} the app asks for.
+ *
+ * <p>A step of the wheel scrolls {@link #WHEEL_STEP}, 48 logical pixels: three lines of 16 pixels, as
+ * Windows scrolls three lines per notch unless the user changed it, and within the 40 to 60 pixels
+ * that browsers and toolkits scroll per notch on Linux. Touchpads and precise wheels report parts
+ * of a step, which scroll that part of the distance. Rolling the wheel towards the user scrolls
+ * towards the end, so that the content moves up.
  *
  * <p>The loop draws only when there is something new: when {@link App#frame} says so, when the
  * window asks for a {@link WindowEvent.Redraw}, or when the presenter could not show the last frame
@@ -31,6 +41,9 @@ import java.util.Objects;
  * }</pre>
  */
 public final class WindowLoop {
+
+  /** Logical pixels per step of the wheel; see the class's description. */
+  public static final float WHEEL_STEP = 48;
 
   /** Draws a frame into the window. */
   @FunctionalInterface
@@ -82,7 +95,7 @@ public final class WindowLoop {
 
   /**
    * Also gives every event to {@code listener}, before the loop handles it, for what the loop does
-   * not, such as the wheel.
+   * not, such as the right button.
    *
    * @return this loop
    */
@@ -147,6 +160,11 @@ public final class WindowLoop {
       case PointerDown down when down.button() == PointerButton.LEFT ->
           app.pointerDown(down.x(), down.y());
       case PointerUp up when up.button() == PointerButton.LEFT -> app.pointerUp(up.x(), up.y());
+      case PointerMove move -> app.pointerMove(move.x(), move.y());
+      case PointerLeave leave -> app.pointerLeave();
+      // The window's dy is positive away from the user, the app's towards the end.
+      case Wheel wheel ->
+          app.wheel(wheel.x(), wheel.y(), wheel.dx() * WHEEL_STEP, -wheel.dy() * WHEEL_STEP);
       case KeyDown down -> app.keyDown(down.key());
       case KeyUp up -> app.keyUp(up.key());
       case TextInput text -> app.textInput(text.text());
@@ -171,6 +189,7 @@ public final class WindowLoop {
       presenter.present(app.scene(), width, height, scale);
       presented = System.nanoTime();
     }
+    window.cursor(app.cursor());
   }
 
   private void resize() {

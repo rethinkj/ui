@@ -11,6 +11,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
+import com.rethinkj.ui.Cursor;
 import com.rethinkj.ui.Key;
 import com.rethinkj.ui.WindowPart;
 import com.rethinkj.ui.window.WindowEvent.CloseRequested;
@@ -164,6 +165,28 @@ class WindowTest {
       window.parts(PARTS);
       assertEquals(Sdl.HITTEST_NORMAL, window.zone(1, 100));
       assertEquals(Sdl.HITTEST_DRAGGABLE, window.zone(100, 2));
+    }
+  }
+
+  @Test
+  void theCursorWaitsWhileThePointerIsOnTheResizeMarginOfAFramelessWindow() {
+    try (Window window = Window.open(TITLE, 300, 200, Window.options().frameless())) {
+      Desktop.settle();
+      assertEquals(Cursor.DEFAULT, Window.cursorShown());
+      Desktop.motion(window, 2, 100);
+      Window.pollEvents();
+      window.cursor(Cursor.POINTER);
+      assertEquals(Cursor.POINTER, window.cursor());
+      assertEquals(Cursor.DEFAULT, Window.cursorShown(), "the system's resize cursor stays");
+
+      Desktop.motion(window, 150, 100);
+      Window.pollEvents();
+      window.cursor(Cursor.POINTER);
+      assertEquals(Cursor.POINTER, Window.cursorShown());
+      for (Cursor cursor : Cursor.values()) {
+        window.cursor(cursor);
+        assertEquals(cursor, Window.cursorShown(), "SDL has every shape");
+      }
     }
   }
 

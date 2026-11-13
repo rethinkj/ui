@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
@@ -40,6 +41,11 @@ public final class El {
   private float opacity = 1;
   private boolean exiting;
   private WindowPart windowPart;
+  private Consumer<El> hoverLook;
+  private Consumer<El> focusLook;
+  private Consumer<El> pressLook;
+  private Cursor cursor;
+  private boolean hovered;
   private boolean scrollArea;
   private boolean placed;
   private float x;
@@ -415,6 +421,67 @@ public final class El {
     return this;
   }
 
+  // Looks of the moment
+
+  /**
+   * Changes how this element looks while the pointer is over it or over an element inside it, as
+   * CSS's {@code :hover} does: {@code el().fill(GREY).whenHovered(e -> e.fill(LIGHT_GREY))}. After
+   * each rebuild of the view and before layout, {@link App} calls {@code look} with the element.
+   * With {@link #motion} it springs to the changed values and back like after any other change.
+   *
+   * <p>A look may call what changes the element's appearance ({@link #fill}, {@link #radius},
+   * {@link #border}, {@link #opacity}, {@link #cursor}) and its layout properties (size, spacing,
+   * flow and {@link #style}). It must leave the children, the key, the handlers and {@link
+   * #focusable} as the view built them; the frame in which it changes them throws an {@link
+   * IllegalStateException}. When more than one look applies, the hovered one goes first, then
+   * {@link #whenFocused} and then {@link #whenPressed}, so that the last one wins.
+   *
+   * <p>Only elements with a look cause a rebuild when the pointer reaches or leaves them: moving
+   * the pointer over plain elements rebuilds nothing.
+   *
+   * @param look changes the element, or null for none
+   */
+  public El whenHovered(Consumer<El> look) {
+    this.hoverLook = look;
+    return this;
+  }
+
+  /**
+   * Changes how this element looks while it has the keyboard focus, as CSS's {@code :focus} does:
+   * also when a press gave it the focus, which draws no ring. See {@link #whenHovered} for what a
+   * look may change.
+   *
+   * @param look changes the element, or null for none
+   */
+  public El whenFocused(Consumer<El> look) {
+    this.focusLook = look;
+    return this;
+  }
+
+  /**
+   * Changes how this element looks while the pointer presses it: from a pointer down that goes to
+   * it, as for {@link #onPress}, to the next pointer up, wherever that is. Only an element with a
+   * press handler is pressed, and Enter and Space do not show this look. See {@link #whenHovered}
+   * for what a look may change.
+   *
+   * @param look changes the element, or null for none
+   */
+  public El whenPressed(Consumer<El> look) {
+    this.pressLook = look;
+    return this;
+  }
+
+  /**
+   * Sets the shape of the pointer over this element and over the elements inside it that set none;
+   * {@link App#cursor} reports it and a window shows it.
+   *
+   * @param cursor the shape, or null for the parent's, which is {@link Cursor#DEFAULT} at the root
+   */
+  public El cursor(Cursor cursor) {
+    this.cursor = cursor;
+    return this;
+  }
+
   // Tree
 
   public El child(El child) {
@@ -494,6 +561,22 @@ public final class El {
 
   public WindowPart windowPart() {
     return windowPart;
+  }
+
+  public Cursor cursor() {
+    return cursor;
+  }
+
+  Consumer<El> hoverLook() {
+    return hoverLook;
+  }
+
+  Consumer<El> focusLook() {
+    return focusLook;
+  }
+
+  Consumer<El> pressLook() {
+    return pressLook;
   }
 
   public Measure measure() {
@@ -612,6 +695,41 @@ public final class El {
     this.focused = focused;
   }
 
+  /** For {@link App}, which marks the element a press under the pointer would go to. */
+  void hovered(boolean hovered) {
+    this.hovered = hovered;
+  }
+
+  /**
+   * For {@link App}: runs a look of {@link #whenHovered}, {@link #whenFocused} or {@link
+   * #whenPressed}, named by {@code name}, and checks that it left alone what a look must not
+   * change.
+   */
+  void apply(Consumer<El> look, String name) {
+    List<El> before = new ArrayList<>(children);
+    String keyBefore = key;
+    Runnable press = onPress;
+    Predicate<Key> down = onKey;
+    Predicate<Key> up = onKeyUp;
+    Consumer<String> text = onText;
+    boolean wasFocusable = focusable;
+    look.accept(this);
+    String changed =
+        !children.equals(before) ? "children"
+            : !Objects.equals(key, keyBefore) ? "key"
+            : onPress != press || onKey != down || onKeyUp != up || onText != text ? "handlers"
+            : focusable != wasFocusable ? "focusable()"
+            : null;
+    if (changed != null) {
+      StringBuilder line = new StringBuilder();
+      describe(line, 0, 0);
+      throw new IllegalStateException(
+          "The " + name + " look of " + line.toString().strip() + " changed its " + changed
+              + ". A look may change only how its element looks and its layout properties; build"
+              + " the children, the key and the handlers in the view.");
+    }
+  }
+
   /** For {@link App}, which shows the border colour of the moment. */
   void borderColor(int argb) {
     this.borderColor = argb;
@@ -658,10 +776,11 @@ public final class El {
    * The tree as text, one element per line, children indented by two spaces. After layout each
    * line ends with the element's rectangle in window coordinates, as {@code x,y widthxheight}, as
    * shown, that is, moved by the scroll offsets above it. A scroll area that is scrolled adds its
-   * offset, as {@code scroll x,y}, the line of the element that has the keyboard focus ends with
-   * {@code focused}, and that of an element that is leaving with {@code exiting}. A text element's
-   * line starts with {@code text} instead of {@code el} and shows its string in quotes after the
-   * label. Tests and agents read this, so the format only changes deliberately.
+   * offset, as {@code scroll x,y}. The line of the element that a press under the pointer would go
+   * to ends with {@code hovered}, that of the element that has the keyboard focus with {@code
+   * focused}, and that of an element that is leaving with {@code exiting}. A text element's line
+   * starts with {@code text} instead of {@code el} and shows its string in quotes after the label.
+   * Tests and agents read this, so the format only changes deliberately.
    */
   public String dump() {
     StringBuilder out = new StringBuilder();
@@ -706,6 +825,9 @@ public final class El {
     if (scrollX != 0 || scrollY != 0) {
       number(out.append(" scroll "), scrollX).append(',');
       number(out, scrollY);
+    }
+    if (hovered) {
+      out.append(" hovered");
     }
     if (focused) {
       out.append(" focused");

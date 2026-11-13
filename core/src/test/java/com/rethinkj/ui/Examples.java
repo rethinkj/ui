@@ -90,6 +90,7 @@ public final class Examples {
     return root;
   }
 
+  /** Lighter while the pointer is over it, darker while it is pressed, and a hand as the cursor. */
   private static El toggle(boolean on, Runnable onPress) {
     El knob =
         el().key("knob")
@@ -104,6 +105,9 @@ public final class Examples {
         .size(38, 22)
         .radius(11)
         .fill(on ? 0xFF3B82F6 : 0xFF3A3A40)
+        .whenHovered(e -> e.fill(on ? 0xFF60A5FA : 0xFF4A4A52))
+        .whenPressed(e -> e.fill(on ? 0xFF2563EB : 0xFF2C2C31))
+        .cursor(Cursor.POINTER)
         .focusable()
         .onPress(onPress)
         .motion(Spring.SNAP)
