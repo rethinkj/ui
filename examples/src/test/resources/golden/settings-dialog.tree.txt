@@ -1,0 +1,127 @@
+el 0,0 880x600
+  el window=drag 0,0 880x32
+    el 10,10 12x12
+    text "Settings" 30,8 50x16
+    el 80,16 662x0
+    el role=button label="Minimize" window=minimize 742,0 46x32
+      el 760,16 10x1
+    el role=button label="Maximize" window=maximize 788,0 46x32
+      el 806,11 10x10
+    el role=button label="Close" window=close 834,0 46x32
+      el 852,11 10x10
+        el 852,11 2x2
+        el 860,11 2x2
+        el 853,12 2x2
+        el 859,12 2x2
+        el 854,13 2x2
+        el 858,13 2x2
+        el 855,14 2x2
+        el 857,14 2x2
+        el 856,15 2x2
+        el 856,15 2x2
+        el 857,16 2x2
+        el 855,16 2x2
+        el 858,17 2x2
+        el 854,17 2x2
+        el 859,18 2x2
+        el 853,18 2x2
+        el 860,19 2x2
+        el 852,19 2x2
+  el 0,32 880x568
+    el 0,32 200x568
+      el #pages role=listbox label="Settings" 4,36 192x560
+        el #item-0 role=option label="General" 4,36 192x28 pos=1/7
+          el 4,38 192x24
+            el 6,42 2x16
+            text "\u{F6A8}" 12,42 16x16
+            text "General" 32,42 156x16
+        el #item-1 role=option label="Appearance" 4,64 192x28 pos=2/7
+          el 4,66 192x24
+            el 6,70 2x16
+            text "\u{EE5D}" 12,70 16x16
+            text "Appearance" 32,70 156x16
+        el #item-2 role=option label="Editor" 4,92 192x28 pos=3/7
+          el 4,94 192x24
+            el 6,98 2x16
+            text "\u{F339}" 12,98 16x16
+            text "Editor" 32,98 156x16
+        el #item-3 role=option label="Connections" 4,120 192x28 selected pos=4/7
+          el 4,122 192x24
+            el 6,126 2x16
+            text "\u{F0D7}" 12,126 16x16
+            text "Connections" 32,126 156x16
+        el #item-4 role=option label="Keymap" 4,148 192x28 pos=5/7
+          el 4,150 192x24
+            el 6,154 2x16
+            text "\u{F0274}" 12,154 16x16
+            text "Keymap" 32,154 156x16
+        el #item-5 4,176 192x28
+          text "Help" 12,182 29x16
+        el #item-6 role=option label="About" 4,204 192x28 pos=7/7
+          el 4,206 192x24
+            el 6,210 2x16
+            text "\u{F4A2}" 12,210 16x16
+            text "About" 32,210 156x16
+    el role=separator 200,32 1x568
+    el 201,32 679x568
+      text role=heading "Connections" 225,56 631x24 level=1
+      el 225,104 631x272
+        el 225,104 631x36
+          text role=heading "Servers" 225,104 631x18 level=2
+          text "Where the workbench connects to, and how" 225,124 631x16
+        el 225,148 631x24
+          text #filter role=textbox label="Filter by name or host" "" 225,148 485x24
+          el #add role=button label="New connection…" 718,148 138x24
+            text "New connection…" 731,152 112x16
+        el 225,180 631x196
+          el #localhost role=button label="localhost" 225,180 631x60 value="connected"
+            el 238,193 605x34
+              el 238,193 536x34
+                text role=heading "localhost" 238,193 536x16 level=3
+                text "localhost:5432" 238,211 536x16
+              text "\u{F0393}" 782,202 16x16
+              el #menu role=button label="Actions for localhost" 806,198 37x24
+                text "…" 819,202 11x16
+          el #staging role=button label="staging" 225,248 631x60 selected value="connected"
+            el 238,261 605x34
+              el 238,261 536x34
+                text role=heading "staging" 238,261 536x16 level=3
+                text "staging.db.example.com:5432" 238,279 536x16
+              text "\u{F0393}" 782,270 16x16
+              el #menu role=button label="Actions for staging" 806,266 37x24
+                text "…" 819,270 11x16
+          el #prod-eu role=button label="prod-eu" 225,316 631x60 value="not connected"
+            el 238,329 605x34
+              el 238,329 536x34
+                text role=heading "prod-eu" 238,329 536x16 level=3
+                text "eu.db.example.com:6432" 238,347 536x16
+              text "\u{F0394}" 782,338 16x16
+              el #menu role=button label="Actions for prod-eu" 806,334 37x24
+                text "…" 819,338 11x16
+overlay center modal scrim on 0,0 880x600
+  el #dialog role=dialog label="New connection" 287,197 307x206
+    text "New connection" 304,214 273x18
+    el 304,244 273x106
+      el 304,244 273x24
+        el 304,244 45x24
+          text "Name" 304,248 36x16
+          text "*" 342,248 7x16
+        el 357,244 220x24
+          text #name role=textbox label="Name" "backup" 357,244 220x24
+      el 304,276 273x24
+        el 304,276 45x24
+          text "Host" 304,280 29x16
+          text "*" 335,280 7x16
+        el 357,276 220x24
+          text #host role=textbox label="Host" "backup.example.com" 357,276 220x24
+      el 304,308 273x42
+        el 304,308 45x24
+          text "Port" 304,312 25x16
+        el 357,308 220x42
+          text #port role=textbox label="Port" "x" 357,308 72x24 invalid focused caret 1
+          text "Digits only" 357,334 220x16
+    el 304,362 273x24
+      el #cancel role=button label="Cancel" 450,362 68x24
+        text "Cancel" 463,366 42x16
+      el #ok role=button label="Add" 526,362 51x24 disabled
+        text "Add" 539,366 25x16

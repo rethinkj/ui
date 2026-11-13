@@ -1,0 +1,108 @@
+el 0,0 880x600
+  el window=drag 0,0 880x32
+    el 10,10 12x12
+    text "Settings" 30,8 50x16
+    el 80,16 662x0
+    el role=button label="Minimize" window=minimize 742,0 46x32
+      el 760,16 10x1
+    el role=button label="Maximize" window=maximize 788,0 46x32
+      el 806,11 10x10
+    el role=button label="Close" window=close 834,0 46x32
+      el 852,11 10x10
+        el 852,11 2x2
+        el 860,11 2x2
+        el 853,12 2x2
+        el 859,12 2x2
+        el 854,13 2x2
+        el 858,13 2x2
+        el 855,14 2x2
+        el 857,14 2x2
+        el 856,15 2x2
+        el 856,15 2x2
+        el 857,16 2x2
+        el 855,16 2x2
+        el 858,17 2x2
+        el 854,17 2x2
+        el 859,18 2x2
+        el 853,18 2x2
+        el 860,19 2x2
+        el 852,19 2x2
+  el 0,32 880x568
+    el 0,32 200x568
+      el #pages role=listbox label="Settings" 4,36 192x560 focused
+        el #item-0 role=option label="General" 4,36 192x28 pos=1/7
+          el 4,38 192x24
+            el 6,42 2x16
+            text "\u{F6A8}" 12,42 16x16
+            text "General" 32,42 156x16
+        el #item-1 role=option label="Appearance" 4,64 192x28 pos=2/7
+          el 4,66 192x24
+            el 6,70 2x16
+            text "\u{EE5D}" 12,70 16x16
+            text "Appearance" 32,70 156x16
+        el #item-2 role=option label="Editor" 4,92 192x28 pos=3/7
+          el 4,94 192x24
+            el 6,98 2x16
+            text "\u{F339}" 12,98 16x16
+            text "Editor" 32,98 156x16
+        el #item-3 role=option label="Connections" 4,120 192x28 pos=4/7
+          el 4,122 192x24
+            el 6,126 2x16
+            text "\u{F0D7}" 12,126 16x16
+            text "Connections" 32,126 156x16
+        el #item-4 role=option label="Keymap" 4,148 192x28 selected pos=5/7
+          el 4,150 192x24
+            el 6,154 2x16
+            text "\u{F0274}" 12,154 16x16
+            text "Keymap" 32,154 156x16
+        el #item-5 4,176 192x28
+          text "Help" 12,182 29x16
+        el #item-6 role=option label="About" 4,204 192x28 pos=7/7
+          el 4,206 192x24
+            el 6,210 2x16
+            text "\u{F4A2}" 12,210 16x16
+            text "About" 32,210 156x16
+    el role=separator 200,32 1x568
+    el 201,32 679x568
+      text role=heading "Keymap" 225,56 631x24 level=1
+      el 225,104 631x191
+        el 225,104 631x18
+          text role=heading "Queries" 225,104 631x18 level=2
+        el 225,130 631x165
+          el 228,133 625x36
+            el 238,143 530x16
+              text "Run the statement at the caret" 238,143 530x16
+            text "Ctrl+Enter" 780,143 63x16
+          el 226,171 629x1
+          el 228,174 625x36
+            el 238,184 494x16
+              text "Run the whole script" 238,184 494x16
+            text "Ctrl+Shift+Enter" 744,184 99x16
+          el 226,212 629x1
+          el 228,215 625x36
+            el 238,225 547x16
+              text "Cancel the running statement" 238,225 547x16
+            text "Escape" 797,225 46x16
+          el 226,253 629x1
+          el 228,256 625x36
+            el 238,266 532x16
+              text "Format" 238,266 532x16
+            text "Ctrl+Alt+L" 782,266 61x16
+      el 225,319 631x150
+        el 225,319 631x18
+          text role=heading "Navigation" 225,319 631x18 level=2
+        el 225,345 631x124
+          el 228,348 625x36
+            el 238,358 542x16
+              text "Next tab" 238,358 542x16
+            text "Ctrl+Tab" 792,358 51x16
+          el 226,386 629x1
+          el 228,389 625x36
+            el 238,399 551x16
+              text "Close the tab" 238,399 551x16
+            text "Ctrl+W" 801,399 42x16
+          el 226,427 629x1
+          el 228,430 625x36
+            el 238,440 517x16
+              text "Find a table" 238,440 517x16
+            text "Ctrl+Shift+N" 767,440 76x16
