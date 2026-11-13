@@ -33,9 +33,10 @@ import java.util.function.IntConsumer;
  * <ul>
  *   <li>{@link #comboBox}: one of the choices. A press, Alt+Arrow Down or Up, or a letter or digit
  *       typed while it has the focus opens it, the typed text filtering the list; the current
- *       choice is checked and, before anything is typed, highlighted, then the best match. Enter
- *       or a press chooses, Escape, Tab or a press elsewhere closes it and leaves the choice as it
- *       was.
+ *       choice is checked and, before anything is typed, highlighted, then the best match; when
+ *       the app changes the choices meanwhile, the highlighted one stays highlighted where it went.
+ *       Enter or a press chooses, Escape, Tab, Shift+Tab or a press elsewhere closes it and leaves
+ *       the choice as it was.
  *   <li>{@link #free}: any text, the choices being suggestions, such as a host name with the ones
  *       used before. It is a text field whose every edit is the value; typing opens the
  *       suggestions that match, none of them highlighted, so that Enter keeps what was typed until
@@ -123,9 +124,7 @@ public final class ComboBox {
       return closed(t, text, null, enabled, state);
     }
     state.free = false;
-    if (state.list.query.isEmpty() && state.list.want == FilterList.State.BEST && selected >= 0) {
-      state.list.want = selected; // the current choice, highlighted while nothing is typed
-    }
+    state.list.current = selected; // highlighted while nothing is typed
     List<FilterList.Entry> entries = entries(state, choices, selected, i -> {
       state.close();
       onSelect.accept(i);
@@ -247,9 +246,7 @@ public final class ComboBox {
       return closed(t, text, lead, enabled, state);
     }
     state.free = false;
-    if (state.list.query.isEmpty() && state.list.want == FilterList.State.BEST && selected >= 0) {
-      state.list.want = selected; // the current choice, highlighted while nothing is typed
-    }
+    state.list.current = selected; // highlighted while nothing is typed
     // The handlers of the entries go through the state, which holds the handler of this build.
     state.choose = i -> {
       state.close();
@@ -542,15 +539,15 @@ public final class ComboBox {
       }
       return false;
     }
+    if (k.name().equals("Tab") && (k.modifiers() & ~Key.SHIFT) == 0) {
+      state.close();
+      return false; // and the focus moves on, either way
+    }
     if (k.modifiers() == 0) {
       switch (k.name()) {
         case "Escape" -> {
           state.close();
           return true;
-        }
-        case "Tab" -> {
-          state.close();
-          return false; // and the focus moves on
         }
         case "Enter", "NumpadEnter" -> {
           if (!state.list.shown.choosable(state.list.highlight)) {
