@@ -55,30 +55,40 @@ el 0,0 760x480
                     el 293,210 118x16
                       text "status" 293,210 37x16
                       text "order_status" 334,210 77x16
+                    el #filter-2 role=button label="Filter status" 400,210 16x16
+                      text label="filter" "\u{E60A}" 400,210 16x16
                   el 418,206 1x24
                   el #column-3 role=columnheader label="amount" 419,206 169x24 pos=4/9
                     text label="calculator" "\u{F06B}" 428,210 16x16
                     el 448,210 136x16
                       text "amount" 448,210 47x16
                       text "numeric(10,2)" 499,210 85x16
+                    el #filter-3 role=button label="Filter amount" 421,210 16x16
+                      text label="filter" "\u{E60A}" 421,210 16x16
                   el 588,206 1x24
                   el #column-4 role=columnheader label="paid" 589,206 109x24 pos=5/9
                     text label="checkbox_checked" "\u{F27C}" 593,210 16x16
                     el 613,210 80x16
                       text "paid" 613,210 26x16
                       text "boolean" 643,210 50x16
+                    el #filter-4 role=button label="Filter paid" 680,210 16x16
+                      text label="filter" "\u{E60A}" 680,210 16x16
                   el 698,206 1x24
                   el #column-5 role=columnheader label="email" 699,206 219x24 pos=6/9
                     text label="text_case_title" "\u{ECEC}" 703,210 16x16
                     el 723,210 117x16
                       text "email" 723,210 33x16
                       text "varchar(255)" 760,210 80x16
+                    el #filter-5 role=button label="Filter email" 900,210 16x16
+                      text label="filter" "\u{E60A}" 900,210 16x16
                   el 918,206 1x24
                   el #column-6 role=columnheader label="note" 919,206 159x24 pos=7/9
                     text label="text_case_title" "\u{ECEC}" 923,210 16x16
                     el 943,210 54x16
                       text "note" 943,210 28x16
                       text "text" 975,210 22x16
+                    el #filter-6 role=button label="Filter note" 1060,210 16x16
+                      text label="filter" "\u{E60A}" 1060,210 16x16
                   el 1078,206 1x24
                   el #column-7 role=columnheader label="created_at" 1079,206 189x24 pos=8/9
                     text label="calendar_clock" "\u{E243}" 1083,210 16x16

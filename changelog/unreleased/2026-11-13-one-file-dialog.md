@@ -1,0 +1,1 @@
+- `App.fileDialog` in a window fails at once, with a message to the error handler, while another file dialog of the same window is open: on Windows the first one to close enabled the window again under the second, which then took input under an open modal dialog.

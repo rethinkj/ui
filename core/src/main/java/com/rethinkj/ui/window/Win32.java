@@ -12,6 +12,8 @@ import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SymbolLookup;
 import java.lang.invoke.MethodHandle;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Handwritten bindings for the Win32, DWM, common-controls, shell and COM calls that the window
@@ -59,6 +61,7 @@ final class Win32 {
   static final FunctionDescriptor SCREEN_TO_CLIENT = FunctionDescriptor.of(JAVA_INT, ADDRESS, ADDRESS);
   static final FunctionDescriptor TRACK_MOUSE_EVENT = FunctionDescriptor.of(JAVA_INT, ADDRESS);
   static final FunctionDescriptor IS_ICONIC = FunctionDescriptor.of(JAVA_INT, ADDRESS);
+  static final FunctionDescriptor IS_ZOOMED = FunctionDescriptor.of(JAVA_INT, ADDRESS);
   static final FunctionDescriptor GET_SYSTEM_METRICS = FunctionDescriptor.of(JAVA_INT, JAVA_INT);
   static final FunctionDescriptor DWM_SET_WINDOW_ATTRIBUTE =
       FunctionDescriptor.of(JAVA_INT, ADDRESS, JAVA_INT, ADDRESS, JAVA_INT);
@@ -113,7 +116,16 @@ final class Win32 {
   // SetOverlayIcon.
   static final int VTBL_RELEASE = 2;
   static final int VTBL_HR_INIT = 3;
+  static final int VTBL_SET_PROGRESS_VALUE = 9;
+  static final int VTBL_SET_PROGRESS_STATE = 10;
   static final int VTBL_SET_OVERLAY_ICON = 18;
+
+  // TBPFLAG, the states of ITaskbarList3::SetProgressState.
+  static final int TBPF_NOPROGRESS = 0;
+  static final int TBPF_INDETERMINATE = 0x1;
+  static final int TBPF_NORMAL = 0x2;
+  static final int TBPF_ERROR = 0x4;
+  static final int TBPF_PAUSED = 0x8;
 
   static final FunctionDescriptor SEND_MESSAGE =
       FunctionDescriptor.of(JAVA_LONG, ADDRESS, JAVA_INT, JAVA_LONG, JAVA_LONG);
@@ -154,6 +166,61 @@ final class Win32 {
    */
   static final FunctionDescriptor TASKBAR_SET_OVERLAY_ICON =
       FunctionDescriptor.of(JAVA_INT, ADDRESS, ADDRESS, ADDRESS, ADDRESS);
+  /**
+   * {@code HRESULT SetProgressValue(ITaskbarList3 *This, HWND hwnd, ULONGLONG ullCompleted,
+   * ULONGLONG ullTotal)}
+   */
+  static final FunctionDescriptor TASKBAR_SET_PROGRESS_VALUE =
+      FunctionDescriptor.of(JAVA_INT, ADDRESS, ADDRESS, JAVA_LONG, JAVA_LONG);
+  /** {@code HRESULT SetProgressState(ITaskbarList3 *This, HWND hwnd, TBPFLAG tbpFlags)} */
+  static final FunctionDescriptor TASKBAR_SET_PROGRESS_STATE =
+      FunctionDescriptor.of(JAVA_INT, ADDRESS, ADDRESS, JAVA_INT);
+
+  /**
+   * {@code DWORD GetLongPathNameW(LPCWSTR lpszShortPath, LPWSTR lpszLongPath, DWORD cchBuffer)}:
+   * the length copied without the NUL, or the length needed with it if the buffer is too small,
+   * or 0 if it fails.
+   */
+  static final FunctionDescriptor GET_LONG_PATH_NAME =
+      FunctionDescriptor.of(JAVA_INT, ADDRESS, ADDRESS, JAVA_INT);
+
+  /** {@code int MessageBoxW(HWND hWnd, LPCWSTR lpText, LPCWSTR lpCaption, UINT uType)} */
+  static final FunctionDescriptor MESSAGE_BOX = FunctionDescriptor.of(JAVA_INT, ADDRESS, ADDRESS,
+      ADDRESS, JAVA_INT);
+  static final int MB_ICONERROR = 0x10;
+  static final int MB_TASKMODAL = 0x2000;
+  static final int MB_SETFOREGROUND = 0x10000;
+
+  /** The handle of user32's message box, bound on first use; it needs no SDL. */
+  private static final class Box {
+    static final MethodHandle MESSAGE_BOX_H = H.bind(H.USER32, "MessageBoxW", MESSAGE_BOX);
+  }
+
+  /** {@code HWND FindWindowExW(HWND hWndParent, HWND hWndChildAfter, LPCWSTR, LPCWSTR)} */
+  static final FunctionDescriptor FIND_WINDOW_EX =
+      FunctionDescriptor.of(ADDRESS, ADDRESS, ADDRESS, ADDRESS, ADDRESS);
+  /** {@code HWND GetWindow(HWND hWnd, UINT uCmd)} */
+  static final FunctionDescriptor GET_WINDOW = FunctionDescriptor.of(ADDRESS, ADDRESS, JAVA_INT);
+  /** {@code BOOL PostMessageW(HWND, UINT, WPARAM, LPARAM)} */
+  static final FunctionDescriptor POST_MESSAGE =
+      FunctionDescriptor.of(JAVA_INT, ADDRESS, JAVA_INT, JAVA_LONG, JAVA_LONG);
+  static final int GW_OWNER = 4;
+  static final int WM_CLOSE = 0x0010;
+
+  /** The handles that find and close the dialogs a window owns, bound on first use. */
+  private static final class Owned {
+    static final MethodHandle FIND_WINDOW_EX_H = H.bind(H.USER32, "FindWindowExW", FIND_WINDOW_EX);
+    static final MethodHandle GET_WINDOW_H = H.bind(H.USER32, "GetWindow", GET_WINDOW);
+    static final MethodHandle POST_MESSAGE_H = H.bind(H.USER32, "PostMessageW", POST_MESSAGE);
+  }
+
+  /** The handles of the file system's calls, bound on first use. */
+  private static final class Files {
+    static final SymbolLookup KERNEL32 = SymbolLookup.libraryLookup("kernel32", Arena.global());
+
+    static final MethodHandle GET_LONG_PATH_NAME_H =
+        H.bind(KERNEL32, "GetLongPathNameW", GET_LONG_PATH_NAME);
+  }
 
   private static final class H {
     static final SymbolLookup USER32 = SymbolLookup.libraryLookup("user32", Arena.global());
@@ -165,6 +232,7 @@ final class Win32 {
     static final MethodHandle TRACK_MOUSE_EVENT_H =
         bind(USER32, "TrackMouseEvent", TRACK_MOUSE_EVENT);
     static final MethodHandle IS_ICONIC_H = bind(USER32, "IsIconic", IS_ICONIC);
+    static final MethodHandle IS_ZOOMED_H = bind(USER32, "IsZoomed", IS_ZOOMED);
     static final MethodHandle GET_SYSTEM_METRICS_H =
         bind(USER32, "GetSystemMetrics", GET_SYSTEM_METRICS);
     static final MethodHandle DWM_SET_WINDOW_ATTRIBUTE_H =
@@ -212,6 +280,10 @@ final class Win32 {
     static final MethodHandle COM_THIS_H = Linker.nativeLinker().downcallHandle(COM_THIS);
     static final MethodHandle TASKBAR_SET_OVERLAY_ICON_H =
         Linker.nativeLinker().downcallHandle(TASKBAR_SET_OVERLAY_ICON);
+    static final MethodHandle TASKBAR_SET_PROGRESS_VALUE_H =
+        Linker.nativeLinker().downcallHandle(TASKBAR_SET_PROGRESS_VALUE);
+    static final MethodHandle TASKBAR_SET_PROGRESS_STATE_H =
+        Linker.nativeLinker().downcallHandle(TASKBAR_SET_PROGRESS_STATE);
   }
 
   /** A GUID's 16 bytes as they lie in memory: Data1 to Data3 little-endian, then Data4. */
@@ -381,6 +453,109 @@ final class Win32 {
     }
   }
 
+  /**
+   * The long form of a path whose parts may be 8.3 short names ({@code GetLongPathNameW}), as
+   * the system's file dialog gives a path longer than {@code MAX_PATH}; null if the path is not
+   * there or Windows cannot say. Paths of any length go with the {@code \\?\} prefix, which the
+   * answer comes back without.
+   */
+  static String longPathName(String path) {
+    String in = path.startsWith("\\\\?\\") ? path
+        : path.startsWith("\\\\") ? "\\\\?\\UNC\\" + path.substring(2) : "\\\\?\\" + path;
+    try (Arena arena = Arena.ofConfined()) {
+      MemorySegment from = wide(arena, in);
+      int size = 1024;
+      for (int attempt = 0; attempt < 3; attempt++) {
+        MemorySegment to = arena.allocate(2L * size, 2);
+        int n = (int) Files.GET_LONG_PATH_NAME_H.invokeExact(from, to, size);
+        if (n == 0) {
+          return null;
+        }
+        if (n < size) {
+          String out = to.getString(0, StandardCharsets.UTF_16LE);
+          return out.startsWith("\\\\?\\UNC\\") ? "\\\\" + out.substring(8)
+              : out.startsWith("\\\\?\\") ? out.substring(4) : out;
+        }
+        size = n;
+      }
+      return null;
+    } catch (Throwable t) {
+      throw Sdl.failed(t);
+    }
+  }
+
+  /**
+   * Shows an error box with an OK button and waits until it closes ({@code MessageBoxW}), with no
+   * window and without SDL, for when SDL itself cannot load.
+   *
+   * @return false if Windows could not show it
+   */
+  static boolean errorBox(String title, String text) {
+    try (Arena arena = Arena.ofConfined()) {
+      return (int) Box.MESSAGE_BOX_H.invokeExact(MemorySegment.NULL, wide(arena, text),
+          wide(arena, title), MB_ICONERROR | MB_TASKMODAL | MB_SETFOREGROUND) != 0;
+    } catch (Throwable t) {
+      throw Sdl.failed(t);
+    }
+  }
+
+  /**
+   * The system's dialogs (window class {@code #32770}) that {@code owner} owns, such as a file
+   * dialog that SDL shows on a thread of its own.
+   */
+  static List<MemorySegment> ownedDialogs(MemorySegment owner) {
+    List<MemorySegment> found = new ArrayList<>();
+    try (Arena arena = Arena.ofConfined()) {
+      MemorySegment dialogClass = wide(arena, "#32770");
+      MemorySegment after = MemorySegment.NULL;
+      for (int i = 0; i < 10_000; i++) {
+        MemorySegment next = (MemorySegment) Owned.FIND_WINDOW_EX_H.invokeExact(
+            MemorySegment.NULL, after, dialogClass, MemorySegment.NULL);
+        if (next.equals(MemorySegment.NULL)) {
+          break;
+        }
+        MemorySegment by = (MemorySegment) Owned.GET_WINDOW_H.invokeExact(next, GW_OWNER);
+        if (by.address() == owner.address()) {
+          found.add(next);
+        }
+        after = next;
+      }
+      return found;
+    } catch (Throwable t) {
+      throw Sdl.failed(t);
+    }
+  }
+
+  /** Asks a window to close ({@code WM_CLOSE}), as its close button does; a dialog cancels. */
+  static boolean postClose(MemorySegment hwnd) {
+    try {
+      return (int) Owned.POST_MESSAGE_H.invokeExact(hwnd, WM_CLOSE, 0L, 0L) != 0;
+    } catch (Throwable t) {
+      throw Sdl.failed(t);
+    }
+  }
+
+  /** @return the HRESULT */
+  static int taskbarSetProgressState(MemorySegment taskbar, MemorySegment hwnd, int flags) {
+    try {
+      return (int) Shell.TASKBAR_SET_PROGRESS_STATE_H.invokeExact(
+          method(taskbar, VTBL_SET_PROGRESS_STATE), taskbar, hwnd, flags);
+    } catch (Throwable t) {
+      throw Sdl.failed(t);
+    }
+  }
+
+  /** @return the HRESULT */
+  static int taskbarSetProgressValue(
+      MemorySegment taskbar, MemorySegment hwnd, long completed, long total) {
+    try {
+      return (int) Shell.TASKBAR_SET_PROGRESS_VALUE_H.invokeExact(
+          method(taskbar, VTBL_SET_PROGRESS_VALUE), taskbar, hwnd, completed, total);
+    } catch (Throwable t) {
+      throw Sdl.failed(t);
+    }
+  }
+
   /** Converts the two ints at {@code point} from screen to client coordinates. */
   static boolean screenToClient(MemorySegment hwnd, MemorySegment point) {
     try {
@@ -393,6 +568,15 @@ final class Win32 {
   static boolean trackMouseEvent(MemorySegment trackMouseEvent) {
     try {
       return (int) H.TRACK_MOUSE_EVENT_H.invokeExact(trackMouseEvent) != 0;
+    } catch (Throwable t) {
+      throw Sdl.failed(t);
+    }
+  }
+
+  /** Whether the window is maximized. */
+  static boolean isZoomed(MemorySegment hwnd) {
+    try {
+      return (int) H.IS_ZOOMED_H.invokeExact(hwnd) != 0;
     } catch (Throwable t) {
       throw Sdl.failed(t);
     }

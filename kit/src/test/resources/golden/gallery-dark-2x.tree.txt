@@ -123,44 +123,44 @@ el 0,0 140x40
     text "Cancel" 48,12 44x16
 # busy, rest
 el 0,0 140x40
-  el #c role=button label="Running" 21,8 98x24 busy
-    el role=progressbar label="Loading" 34,12 16x16
-      el 34,12 16x16
-      el 34,12 16x16
-      el 34,12 16x16
-      el 34,12 16x16
-      el 34,12 16x16
-    text "Running" 54,12 52x16
+  el #c role=button label="Running" 31,8 78x24 busy
+    text "Running" 44,12 52x16
+    el role=progressbar label="Loading" 62,12 16x16
+      el 62,12 16x16
+      el 62,12 16x16
+      el 62,12 16x16
+      el 62,12 16x16
+      el 62,12 16x16
 # busy, hover
 el 0,0 140x40
-  el #c role=button label="Running" 21,8 98x24 busy
-    el role=progressbar label="Loading" 34,12 16x16
-      el 34,12 16x16
-      el 34,12 16x16
-      el 34,12 16x16
-      el 34,12 16x16
-      el 34,12 16x16
-    text "Running" 54,12 52x16
+  el #c role=button label="Running" 31,8 78x24 busy
+    text "Running" 44,12 52x16
+    el role=progressbar label="Loading" 62,12 16x16
+      el 62,12 16x16
+      el 62,12 16x16
+      el 62,12 16x16
+      el 62,12 16x16
+      el 62,12 16x16
 # busy, pressed
 el 0,0 140x40
-  el #c role=button label="Running" 21,8 98x24 busy
-    el role=progressbar label="Loading" 34,12 16x16
-      el 34,12 16x16
-      el 34,12 16x16
-      el 34,12 16x16
-      el 34,12 16x16
-      el 34,12 16x16
-    text "Running" 54,12 52x16
+  el #c role=button label="Running" 31,8 78x24 busy
+    text "Running" 44,12 52x16
+    el role=progressbar label="Loading" 62,12 16x16
+      el 62,12 16x16
+      el 62,12 16x16
+      el 62,12 16x16
+      el 62,12 16x16
+      el 62,12 16x16
 # busy, focused
 el 0,0 140x40
-  el #c role=button label="Running" 21,8 98x24 busy focused
-    el role=progressbar label="Loading" 34,12 16x16
-      el 34,12 16x16
-      el 34,12 16x16
-      el 34,12 16x16
-      el 34,12 16x16
-      el 34,12 16x16
-    text "Running" 54,12 52x16
+  el #c role=button label="Running" 31,8 78x24 busy focused
+    text "Running" 44,12 52x16
+    el role=progressbar label="Loading" 62,12 16x16
+      el 62,12 16x16
+      el 62,12 16x16
+      el 62,12 16x16
+      el 62,12 16x16
+      el 62,12 16x16
 # busy, disabled
 el 0,0 140x40
   el #c role=button label="Running" 31,8 78x24 disabled

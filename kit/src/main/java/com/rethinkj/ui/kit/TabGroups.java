@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.ObjIntConsumer;
 
 /**
  * Tabs in several windows, as in browsers and editors: groups of tabs, the main one in the app's
@@ -126,6 +127,7 @@ public final class TabGroups<T> {
   private final Tabs.Dragging dragging = new Tabs.Dragging();
   private Consumer<Group<T>> onWindowClose = this::dockAll;
   private Consumer<T> onClosed = tab -> {};
+  private ObjIntConsumer<Group<T>> onCloseTab = this::close;
 
   // The drag that has left its bar, while it lasts.
   private Group<T> following; // the group whose window follows the pointer
@@ -151,6 +153,16 @@ public final class TabGroups<T> {
   /** What closing a group's window does: {@link #dockAll} unless set, or {@link #closeAll}. */
   public TabGroups<T> onWindowClose(Consumer<Group<T>> handler) {
     this.onWindowClose = Objects.requireNonNull(handler, "handler");
+    return this;
+  }
+
+  /**
+   * What the user's closing of a tab does, by its cross, Control+W or Control+F4: {@link #close}
+   * unless set. A handler that asks first, about changes not yet saved, calls {@link #close} once
+   * the user agrees, or nothing.
+   */
+  public TabGroups<T> onCloseTab(ObjIntConsumer<Group<T>> handler) {
+    this.onCloseTab = Objects.requireNonNull(handler, "handler");
     return this;
   }
 
@@ -206,7 +218,7 @@ public final class TabGroups<T> {
     }
     T active = group.activeTab();
     return Tabs.tabs(t, group.tabs.stream().map(tab).toList(), group.active,
-        i -> select(group, i), i -> close(group, i), content.apply(active),
+        i -> select(group, i), i -> onCloseTab.accept(group, i), content.apply(active),
         Tabs.options().drag(dragging).id(group)
             .onMove((from, to) -> move(group, from, to))
             .onTearOff(this::torn)

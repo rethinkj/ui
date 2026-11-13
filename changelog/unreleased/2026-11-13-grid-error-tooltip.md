@@ -1,0 +1,1 @@
+- A failed cell of the data grid shows its message in its tooltip: `DataGrid.Options.errors((row, column) -> message)`, which `changes(changes)` sets from `GridChanges.errorText`. `GridChanges.error(change, column, message)` marks a cell of a change the database refused, by the change's key, also while its row is not shown.

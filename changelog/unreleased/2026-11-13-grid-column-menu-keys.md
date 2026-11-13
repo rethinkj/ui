@@ -1,0 +1,1 @@
+- The data grid's cell menu has a submenu Column <title> with the header's menu of the cursor's column (sort, filter, hide, freeze, fit, Columns…), so that Shift+F10 or the Menu key reaches it without a pointer.

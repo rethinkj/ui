@@ -122,6 +122,29 @@ class CompletionTest {
   }
 
   @Test
+  void aListWithoutEntriesClosesAndDoesNotComeBackWhereTheCaretGoes() throws IOException {
+    TextLibraries.assumeLoaded();
+    App<Query> app = app();
+    String tree = run(app, "frame\npress #query\ntype \"SELECT 2\"\nframe\ntype \"0\"");
+    assertFalse(tree.contains("role=listbox"), "a number has no entries");
+    // The caret where every entry would fit, as Home, a press or a find bar puts it: nothing
+    // opens there.
+    tree = run(app, "key Home");
+    assertEquals(0, app.state().editor.caret());
+    assertFalse(tree.contains("role=listbox"), tree);
+  }
+
+  @Test
+  void aKeyWithControlThatTheListDoesNotTakeClosesIt() throws IOException {
+    TextLibraries.assumeLoaded();
+    App<Query> app = app();
+    String tree = run(app, "frame\npress #query\ntype \"SELECT c\"\nframe\ntype \"u\"");
+    assertTrue(tree.contains("role=listbox"), tree);
+    tree = run(app, "key F control"); // as Control+F, which opens a find bar
+    assertFalse(tree.contains("role=listbox"), tree);
+  }
+
+  @Test
   void tabTakesTheEntryAndNothingElse() throws IOException {
     TextLibraries.assumeLoaded();
     App<Query> app = app();

@@ -10,6 +10,7 @@ import static com.rethinkj.ui.kit.Toggle.toggle;
 import com.rethinkj.ui.App;
 import com.rethinkj.ui.Drop;
 import com.rethinkj.ui.El;
+import com.rethinkj.ui.FieldState;
 import com.rethinkj.ui.FileDialog;
 import com.rethinkj.ui.Key;
 import com.rethinkj.ui.Script;
@@ -38,6 +39,7 @@ import java.nio.file.AccessDeniedException;
 import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
@@ -70,6 +72,8 @@ public final class Documents {
     String text;
     Path path; // where it was read from or saved to, or null
     final Find.State find = new Find.State(); // Control+F in its text
+    // Its editor's caret, selection, scroll and history, which go with it to another tab and back.
+    final FieldState field = new FieldState();
 
     Doc(String title, String text) {
       this.title = title;
@@ -160,9 +164,11 @@ public final class Documents {
       List<Menu.Item> menus = menus(group);
       root.onKey(MenuBar.keys(bar, menus).or(tabs.onKey())) // the tabs' keys from anywhere
           .onKeyUp(MenuBar.keysUp(bar, menus))
-          .child(withMenus(t, "Documents", MARK, MenuBar.menuBar(t, bar, menus), dark));
+          .child(withMenus(t, "Documents", MARK, MenuBar.menuBar(t, bar, menus),
+          Identity.maximized(window), dark));
     } else {
-      root.onKey(tabs.onKey()).child(titleBar(t, "Documents", MARK, dark));
+      root.onKey(tabs.onKey())
+          .child(titleBar(t, "Documents", MARK, Identity.maximized(window), dark));
     }
     root.child(col().key("tabs").grow(1).padding(0, t.space().m(), t.space().m(), t.space().m())
         .child(tabs.grow(1)));
@@ -196,8 +202,11 @@ public final class Documents {
   void saveAs(Doc d) {
     String name = d.path != null ? d.path.getFileName().toString()
         : d.title + (d.title.equals("Query") ? ".sql" : ".txt");
-    FileDialog dialog = FileDialog.save("Save As").filter("Text", "txt", "md")
-        .filter("SQL", "sql").fileName(name);
+    // The document's own kind first: the dialog starts with the first filter.
+    FileDialog dialog = name.toLowerCase(Locale.ROOT).endsWith(".sql")
+        ? FileDialog.save("Save As").filter("SQL", "sql").filter("Text", "txt", "md")
+        : FileDialog.save("Save As").filter("Text", "txt", "md").filter("SQL", "sql");
+    dialog = dialog.fileName(name);
     if (d.path != null && d.path.toAbsolutePath().getParent() != null) {
       dialog = dialog.in(d.path.toAbsolutePath().getParent());
     }
@@ -231,22 +240,43 @@ public final class Documents {
     }
   }
 
-  /** Reads files, each into a new tab of the group as it arrives, or a toast that says why not. */
+  /**
+   * Reads files off the app's thread, then puts each into a new tab of the group, in the order
+   * given, or says in a toast why one could not be read. One piece of work for all, so that the
+   * tabs come in the order of the files, not in the order their reads end.
+   */
   void read(TabGroups.Group<Doc> group, List<Path> files) {
-    for (Path file : files) {
-      String name = file.getFileName() == null ? file.toString() : file.getFileName().toString();
-      app.background("read " + name, () -> {
-        if (Files.size(file) > LIMIT) {
-          throw new IOException("it is larger than " + LIMIT / 1024 + " KB");
-        }
-        return Files.readString(file);
-      }, text -> {
-        TabGroups.Group<Doc> to = groups.groups().contains(group) ? group : groups.main();
-        Doc doc = new Doc(name, text);
-        doc.path = file;
-        groups.add(to, to.tabs().size(), doc);
-      }, e -> toast = "Cannot open " + name + ": " + why(e));
+    if (files.isEmpty()) {
+      return;
     }
+    app.background("read " + files.size() + " files", () -> {
+      List<Object> read = new ArrayList<>(); // the text, or what went wrong
+      for (Path file : files) {
+        try {
+          if (Files.size(file) > LIMIT) {
+            throw new IOException("it is larger than " + LIMIT / 1024 + " KB");
+          }
+          read.add(Files.readString(file));
+        } catch (IOException e) {
+          read.add(e);
+        }
+      }
+      return read;
+    }, read -> {
+      TabGroups.Group<Doc> to = groups.groups().contains(group) ? group : groups.main();
+      for (int i = 0; i < files.size(); i++) {
+        Path file = files.get(i);
+        String name = file.getFileName() == null ? file.toString()
+            : file.getFileName().toString();
+        if (read.get(i) instanceof String text) {
+          Doc doc = new Doc(name, text);
+          doc.path = file;
+          groups.add(to, to.tabs().size(), doc);
+        } else {
+          toast = "Cannot open " + name + ": " + why((Exception) read.get(i));
+        }
+      }
+    }, e -> toast = "Cannot open the files: " + why(e));
   }
 
   /** What went wrong with a file, in words. */
@@ -279,6 +309,7 @@ public final class Documents {
     El area = d.title.equals("Query") || d.title.toLowerCase(Locale.ROOT).endsWith(".sql")
         ? TextField.codeArea(t, d.text, "Empty", v -> d.text = v)
         : TextField.textArea(t, d.text, "Empty", v -> d.text = v);
+    area.fieldState(d.field);
     return col().grow(1).padding(t.space().l())
         .child(Find.find(t, app, area.key("text").label(d.title).wFull().grow(1), d.find));
   }

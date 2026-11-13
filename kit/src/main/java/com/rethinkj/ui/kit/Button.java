@@ -4,8 +4,10 @@ import static com.rethinkj.ui.El.el;
 import static com.rethinkj.ui.El.row;
 import static com.rethinkj.ui.kit.Theme.over;
 
+import com.rethinkj.ui.Clipboard;
 import com.rethinkj.ui.Cursor;
 import com.rethinkj.ui.El;
+import com.rethinkj.ui.Measure;
 import java.util.List;
 import java.util.function.Consumer;
 
@@ -68,11 +70,22 @@ public final class Button {
     El button = frame(t, variant, look, text, onPress).padding(0, t.space().l())
         .gap(t.space().s());
     if (busy && onPress != null) {
-      button.child(Progress.spinner(t, t.size().icon(), look.text(),
-          variant == Variant.PRIMARY ? t.accent().pressed() : t.border().control()));
+      El spinner = Progress.spinner(t, t.size().icon(), look.text(),
+          variant == Variant.PRIMARY ? t.accent().pressed() : t.border().track());
       Theme.TextStyle style = t.type().strong();
-      return button.child(El.text(text).font(style.font().get()).fontSize(style.size())
-              .color(look.text()))
+      El label = El.text(text).font(style.font().get()).fontSize(style.size())
+          .color(look.text());
+      if (icon != null) { // in the icon's place
+        button.child(spinner).child(label);
+      } else { // over the text's middle, which keeps its place unseen: the width stays
+        float width = label.text().measure(Float.NaN, Float.NaN, Measure.MAX_CONTENT,
+            Measure.MAX_CONTENT).width();
+        float size = t.size().icon();
+        button.child(label.opacity(0)).child(spinner.absolute(
+            Math.round(t.space().l() + (width - size) / 2),
+            Math.round((t.size().control() - size) / 2) - t.size().stroke()));
+      }
+      return button
           .busy(true)
           .focusable()
           .keepFocus()
@@ -102,6 +115,61 @@ public final class Button {
         .child(Icon.icon(t, icon).color(variant == Variant.PRIMARY || onPress == null
             ? look.text() : t.text().muted()));
     return Tooltip.tooltip(t, enable(t, variant, look, button, onPress), label);
+  }
+
+  /** What a {@link #copy} button copied last, which it confirms for a moment: the app keeps one. */
+  public static final class Copied {
+    private String what; // the label and text of the button that waits to be confirmed, or null
+
+    /** Whether the button with this label and text confirms a copy now. */
+    boolean shows(String label, String text) {
+      return (label + '\n' + text).equals(what);
+    }
+  }
+
+  /**
+   * A quiet square button with the copy icon, the label in a dump and in a tooltip, that writes
+   * {@code text} to the clipboard. With {@code copied}, the button then shows a check mark in the
+   * success colour and a tooltip that says Copied, for {@code motion().confirm()} seconds of the
+   * app's clock; null for no confirmation.
+   */
+  public static El copy(Theme t, Clipboard clipboard, String text, String label, Copied copied) {
+    boolean done = copied != null && copied.shows(label, text);
+    String what = label + '\n' + text;
+    Look look = look(t, Variant.GHOST, true);
+    Runnable press = () -> {
+      clipboard.write(text);
+      if (copied != null) {
+        copied.what = what;
+      }
+    };
+    El button = enable(t, Variant.GHOST, look, frame(t, Variant.GHOST, look, label, press)
+        .w(t.size().control()).child(Icon.icon(t, done ? Symbol.CHECKMARK : Symbol.COPY,
+            done ? Icon.Variant.SUCCESS : Icon.Variant.MUTED)), press);
+    if (!done) {
+      return Tooltip.tooltip(t, button, label);
+    }
+    // The confirmation is an overlay, whose time on the app's clock ends it.
+    return button.overlay(Tooltip.panel(t, "Copied").key("copied").keepFocus()
+        .onShownFor(t.motion().confirm(), () -> {
+          if (what.equals(copied.what)) {
+            copied.what = null;
+          }
+        }));
+  }
+
+  /**
+   * An overlay that shows nothing and ends a copy's confirmation after its time, for copy buttons
+   * in the rows of a list, whose overlays keep no time; null while nothing is confirmed.
+   */
+  static El ending(Theme t, Copied copied) {
+    String what = copied.what;
+    return what == null ? null : el().key("copied-" + what.hashCode()).keepFocus()
+        .onShownFor(t.motion().confirm(), () -> {
+          if (what.equals(copied.what)) {
+            copied.what = null;
+          }
+        });
   }
 
   /**

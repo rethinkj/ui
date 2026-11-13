@@ -87,6 +87,7 @@ public final class Markdown {
   /** Whether Control+A has selected the whole document; the app keeps one per document. */
   public static final class State {
     private boolean all;
+    final Button.Copied copied = new Button.Copied(); // a code block's copy button's confirmation
 
     /** Whether the whole document shows as selected. */
     public boolean allSelected() {
@@ -179,6 +180,9 @@ public final class Markdown {
     State state = options.state;
     if (state != null) {
       list.onAnyPointerDown(() -> state.all = false);
+      // Overlays in the rows of a list keep no time: the confirmation of a code block's copy
+      // button ends by one on the document.
+      list.overlay(Button.ending(t, state.copied));
     }
     list.onKey(k -> keys(c, k));
     return list;
@@ -671,8 +675,10 @@ public final class Markdown {
         .child(field);
     Clipboard clipboard = c.options.clipboard;
     if (clipboard != null) {
-      El copy = Button.icon(t, Button.Variant.GHOST, Symbol.COPY, "Copy code",
-          () -> clipboard.write(code)).key("copy").opacity(0);
+      Button.Copied copied = c.options.state == null ? null : c.options.state.copied;
+      boolean shown = copied != null && copied.shows("Copy code", code); // confirming: seen till it ends
+      El copy = Button.copy(t, clipboard, code, "Copy code", copied).key("copy")
+          .opacity(shown ? 1 : 0);
       copy.style().position = Style.Position.ABSOLUTE;
       copy.style().top = Len.px(t.space().s());
       copy.style().right = Len.px(t.space().s());

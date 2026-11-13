@@ -324,6 +324,19 @@ class TabGroupsTest {
     assertEquals(List.of("b"), d.closed);
   }
 
+  @Test
+  void aHandlerOfClosingATabMayAskFirst() throws IOException {
+    App<Docs> app = start();
+    Docs d = app.state();
+    List<String> asked = new ArrayList<>();
+    d.groups.onCloseTab((group, i) -> asked.add(group.tabs().get(i)));
+    run(app, "focus #tablist\nkey W control");
+    assertEquals(List.of("a"), asked);
+    assertEquals(List.of(List.of("a", "b", "c", "d")), order(d), "nothing closed yet");
+    d.groups.close(d.groups.main(), 0); // the user agreed
+    assertEquals(List.of("a"), d.closed);
+  }
+
   // The menu
 
   @Test

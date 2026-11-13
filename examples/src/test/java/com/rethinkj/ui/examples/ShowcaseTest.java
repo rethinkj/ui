@@ -11,6 +11,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.stream.Stream;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -28,6 +29,17 @@ class ShowcaseTest {
    * compares them with nothing: stored images of every section in four looks would change with
    * every change of the kit's look.
    */
+  /** The window can be made as narrow as the step where the path and toolbar give way. */
+  @Test
+  void theWindowGoesAsNarrowAsThePathAndToolbarGiveWay() throws IOException {
+    java.util.regex.Matcher narrow = java.util.regex.Pattern
+        .compile("(?m)^size (\\d+) (\\d+) +# narrow").matcher(Snaps.script("showcase"));
+    assertTrue(narrow.find(), "showcase.txt has its narrow step");
+    assertTrue(Showcase.MIN_WIDTH <= Integer.parseInt(narrow.group(1)),
+        "a window of " + Showcase.MIN_WIDTH + " at least never shows what the step shows at "
+            + narrow.group(1));
+  }
+
   @ParameterizedTest(name = "{0} at {1}x")
   @MethodSource("looks")
   void theScriptShowsEverySection(Look look, int scale) throws IOException {

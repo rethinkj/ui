@@ -4,6 +4,7 @@ import static com.rethinkj.ui.El.col;
 import static com.rethinkj.ui.El.el;
 import static com.rethinkj.ui.El.row;
 
+import com.rethinkj.ui.Cursor;
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.Key;
 import com.rethinkj.ui.Side;
@@ -70,6 +71,15 @@ final class GridEdit {
   /** Whether the column chooses from a list: an enumeration's. */
   static boolean choosing(Column c) {
     return c.editing().editor() == null && !c.editing().choices().isEmpty();
+  }
+
+  /**
+   * Whether the choices are more than a menu shows without scrolling ({@link ComboBox#ROWS}):
+   * then the editor is a field that filters them, as a combo box's, since typing narrows a long
+   * list faster than the menu's first letters go through it.
+   */
+  static boolean searching(Column c) {
+    return choosing(c) && c.editing().choices().size() > ComboBox.ROWS;
   }
 
   /** Whether the column switches in the cell, without an editor. */
@@ -173,7 +183,14 @@ final class GridEdit {
         && (multiline || sel.draft != null && (sel.draft.indexOf('\n') >= 0
             || sel.draft.indexOf('\r') >= 0));
     sel.choices.close();
-    if (choosing(c)) {
+    if (searching(c)) {
+      sel.search.reset(indexOf(c, value) < c.editing().choices().size()
+          ? indexOf(c, value) : -1);
+      if (typed != null) {
+        sel.search.typed(typed, true);
+      }
+      sel.draft = value;
+    } else if (choosing(c)) {
       List<Menu.Item> items = choiceItems(b, c);
       int at = typed == null ? indexOf(c, value) : Menu.startingWith(items, -1, typed);
       if (typed != null && at < 0) {
@@ -616,7 +633,19 @@ final class GridEdit {
         .keepFocus().onPress(() -> { }) // a press on its edge neither drags nor takes the focus
         .onKey(k -> editKey(b, k));
     float width = cell;
-    if (c.editing().editor() != null) {
+    if (searching(c)) {
+      // A field that filters the choices below it; it shows the value while nothing is typed.
+      El field = El.text(sel.search.query).editable(v -> sel.search.typed(v, true)).key("field")
+          .label("Edit " + c.title())
+          .font(style.font().get()).fontSize(style.size()).color(t.text().primary())
+          .placeholder(sel.draft == null ? "NULL" : DataGrid.oneLine(sel.draft),
+              t.text().muted())
+          .selectionColor(t.accent().selection()).hFull().minSize(0, 0).grow(1)
+          .focusRing(0).autofocus(sel.edits)
+          .onKey(k -> searchKey(b, c, k));
+      box.gap(t.space().xs()).dismissGroup(sel.search).child(field)
+          .child(Icon.icon(t, Select.OPENS, Icon.Variant.MUTED));
+    } else if (c.editing().editor() != null) {
       box.child(c.editing().editor().editor(sel.draft, v -> {
         sel.draft = v;
         sel.error = null;
@@ -636,7 +665,11 @@ final class GridEdit {
       float wide = DataGrid.natural(El.text(text).font(style.font().get())
           .fontSize(style.size())) + caret;
       float frame = 2 * (pad + w);
-      width = Math.max(cell, Math.min(wide + frame, room(b, column, right)));
+      // Longer than the cell: a button at the right opens the field of several lines.
+      boolean longer = textLike(c) && wide + frame > cell;
+      float button = t.size().icon() + 2 * stroke;
+      float extra = longer ? button + t.space().xs() : 0;
+      width = Math.max(cell, Math.min(wide + frame + extra, room(b, column, right)));
       El field = El.text(text).editable(v -> edit(c, sel, v)).key("field")
           .label("Edit " + c.title())
           .font(style.font().get()).fontSize(style.size()).color(t.text().primary())
@@ -653,12 +686,22 @@ final class GridEdit {
       }
       if (right) {
         // As wide as the text, at the right, where the cell's text ends: it does not jump.
-        field.w(Math.min(wide, width - frame));
+        field.w(Math.min(wide, width - frame - extra));
         box.padding(0, Math.max(pad - caret, 0), 0, pad);
       } else {
         field.grow(1);
       }
       box.child(field);
+      if (longer) {
+        int hover = t.surface().hover();
+        box.gap(t.space().xs()).child(row().key("expand").role("button")
+            .label("Edit in several lines").size(button, button).shrink(0).center()
+            .radius(t.radius().small()).cursor(Cursor.POINTER)
+            .keepFocus() // the caret stays in the field
+            .onPress(() -> sel.multiline = true)
+            .whenHovered(e -> e.fill(hover))
+            .child(Icon.icon(t, Symbol.ARROW_MAXIMIZE, Icon.Variant.MUTED)));
+      }
     }
     box.absolute(right ? b.xs[column + 1] - stroke - width : b.xs[column], 0).w(width);
     if (column < b.frozen) {
@@ -711,7 +754,8 @@ final class GridEdit {
   static void anchor(Build b, El content) {
     Selection sel = b.sel;
     Column c = b.columns.get(sel.editColumn);
-    boolean list = choosing(c) && sel.choices.isOpen();
+    boolean search = searching(c);
+    boolean list = choosing(c) && (search || sel.choices.isOpen());
     if (!sel.multiline && !list) {
       return;
     }
@@ -724,7 +768,8 @@ final class GridEdit {
     if (sel.editColumn < b.frozen) {
       anchor.fixedX();
     }
-    content.child(anchor.overlay(list ? choices(b, c) : multiline(b, c, height)));
+    content.child(anchor.overlay(search ? search(b, c) : list ? choices(b, c)
+        : multiline(b, c, height)));
   }
 
   /** The choices of an enumeration, and NULL where the column allows it, after a line. */
@@ -752,6 +797,67 @@ final class GridEdit {
   private static void choose(Build b, String value, Move move) {
     b.sel.draft = value;
     commit(b, move);
+  }
+
+  /**
+   * The choices of a long enumeration below the cell, filtered by what the editor's field holds
+   * (Fuzzy), in a menu's panel: the current one with a check mark at its end, as a combo box's, and highlighted while nothing
+   * is typed;
+   * it leaves the focus in the field, whose keys move the highlight.
+   */
+  private static El search(Build b, Column c) {
+    Selection sel = b.sel;
+    Theme t = b.t;
+    List<FilterList.Entry> entries = new ArrayList<>();
+    for (String choice : c.editing().choices()) {
+      entries.add(FilterList.entry(choice, () -> choose(b, choice, Move.NONE))
+          .checked(choice.equals(sel.original)));
+    }
+    if (c.editing().nullable()) {
+      entries.add(FilterList.entry("NULL", () -> choose(b, null, Move.NONE))
+          .checked(sel.original == null));
+    }
+    FilterList.Shown shown = FilterList.shown(sel.search, FilterList.Entries.of(entries));
+    return col().key("choices")
+        .minSize(t.size().field(), 0) // as a combo box's, wider than a narrow column
+        .padding(t.space().s())
+        .radius(t.radius().medium())
+        .fill(t.surface().raised())
+        .border(t.size().stroke(), t.border().control())
+        .shadow(t.elevation().popup())
+        .motion(t.motion().fade())
+        .keepFocus()
+        .dismissGroup(sel.search)
+        .side(Side.BOTTOM, Style.Align.STRETCH, t.space().xs())
+        .onDismiss(sel::cancelEdit)
+        .child(FilterList.list(t, sel.search, shown, ComboBox.ROWS, "Choices of " + c.title(),
+            e -> e.onChoose().run()));
+  }
+
+  /** The keys of the field of a long enumeration: the list's, Enter and Tab, Escape. */
+  private static boolean searchKey(Build b, Column c, Key k) {
+    Selection sel = b.sel;
+    FilterList.State s = sel.search;
+    int mods = k.modifiers();
+    boolean enter = mods == 0 && (k.name().equals("Enter") || k.name().equals("NumpadEnter"));
+    boolean tab = k.name().equals("Tab") && (mods & ~Key.SHIFT) == 0;
+    if (enter || tab) {
+      List<String> choices = c.editing().choices();
+      int at = s.shown != null && s.shown.choosable(s.highlight) ? s.shown.rows()[s.highlight]
+          : -1; // the entry's index: a choice's, or NULL's after them
+      if (at < 0) {
+        sel.cancelEdit();
+      } else {
+        choose(b, at < choices.size() ? choices.get(at) : null,
+            enter ? Move.DOWN : mods == 0 ? Move.RIGHT : Move.LEFT);
+      }
+      return true;
+    }
+    if (mods == 0 && k.name().equals("Escape")) {
+      sel.cancelEdit();
+      return true;
+    }
+    return FilterList.key(k, s, ComboBox.ROWS, e -> e.onChoose().run());
   }
 
   /**

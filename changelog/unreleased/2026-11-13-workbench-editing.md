@@ -1,0 +1,1 @@
+- The Workbench example edits its tables' rows: changes wait per tab until Commit, which the made-up server refuses for a negative amount or a paid order going back to pending, with the message on the cell; Preview changes… shows the statements, closing, Run and Exit ask about changes not committed, and the grid filters and chooses its columns.

@@ -284,7 +284,7 @@ class GridCellsTest {
     // Outside the range: the cell is selected first.
     run(app, "press #cell-5-3 right\nframe\nadvance 0.25\nframe");
     assertEquals(List.of(new Range(5, 3, 5, 3)), s.ranges());
-    run(app, "press #item-3\nframe"); // the app's own item after the separator
+    run(app, "press role=menuitem label=\"Export…\"\nframe"); // the app's own item, last
     assertEquals("export", orders.log.getLast());
     run(app, "focus #orders\nframe\nkey F10 shift\nframe"); // and from the keyboard
     assertTrue(orders.menu.isOpen());

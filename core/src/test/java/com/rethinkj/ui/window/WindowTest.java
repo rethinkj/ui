@@ -63,6 +63,67 @@ class WindowTest {
     Desktop.assumeWindows();
   }
 
+  private static void assertAt(Window.Placement expected, Window.Placement actual) {
+    assertEquals(expected.x() + "," + expected.y() + " " + expected.width() + "x"
+        + expected.height(), actual.x() + "," + actual.y() + " " + actual.width() + "x"
+        + actual.height(), actual.toString());
+  }
+
+  @Test
+  void aWindowOpensWhereItWasAndTellsWhereItIsRestoredToWhileMaximized() {
+    assumeTrue(Window.knowsPositions());
+    Window.Placement where = new Window.Placement(200, 150, 400, 300, false, null);
+    try (Window window = Window.open(TITLE, 100, 100, Window.options().placement(where))) {
+      Desktop.settle();
+      assertEquals(200, window.x());
+      assertEquals(150, window.y());
+      assertEquals(400, window.width());
+      assertEquals(300, window.height(), "the placement's size, not the one given to open");
+      Window.Placement now = window.placement();
+      assertAt(where, now);
+      assertFalse(now.maximized());
+      window.maximize();
+      assertTrue(Desktop.pollUntil(window::isMaximized));
+      Window.Placement maximized = window.placement();
+      assertTrue(maximized.maximized());
+      assertAt(where, maximized); // the bounds it is restored to, not the maximized ones
+      window.restore();
+      assertTrue(Desktop.pollUntil(() -> !window.isMaximized()));
+      assertAt(where, window.placement());
+    }
+    Window.Placement was = new Window.Placement(220, 170, 420, 320, true, null);
+    try (Window window = Window.open(TITLE, 100, 100, Window.options().placement(was))) {
+      assertTrue(Desktop.pollUntil(window::isMaximized), "opened maximized");
+      assertAt(was, window.placement());
+      window.restore();
+      assertTrue(Desktop.pollUntil(() -> !window.isMaximized()));
+      assertEquals(220, window.x(), "and restored to where it was");
+      assertEquals(420, window.width());
+    }
+  }
+
+  @Test
+  void aPlacementOnADisplayThatIsGoneOrSmallerOpensInAWorkArea() {
+    assumeTrue(Window.knowsPositions());
+    Window.Placement gone = new Window.Placement(30_000, 20_000, 20_000, 15_000, false, "gone");
+    try (Window window = Window.open(TITLE, 100, 100, Window.options().placement(gone))) {
+      Desktop.settle();
+      int[] frame = Sdl.windowBordersSize(window.sdlWindow());
+      if (frame == null) {
+        frame = new int[4];
+      }
+      int x = window.x() - frame[1];
+      int y = window.y() - frame[0];
+      int w = window.units(window.width()) + frame[1] + frame[3];
+      int h = window.units(window.height()) + frame[0] + frame[2];
+      int[] area = Sdl.displayBounds(Sdl.displayForRect(x, y, w, h), true);
+      assertTrue(w <= area[2] && h <= area[3], "as large as the work area at most: " + w + "x"
+          + h + " in " + area[2] + "x" + area[3]);
+      assertTrue(x >= area[0] && y >= area[1] && x + w <= area[0] + area[2]
+          && y + h <= area[1] + area[3], "and inside it: " + x + "," + y);
+    }
+  }
+
   @Test
   void opensAndClosesAFramelessWindow() {
     Window window = Window.open(TITLE, 320, 200, Window.options().frameless());

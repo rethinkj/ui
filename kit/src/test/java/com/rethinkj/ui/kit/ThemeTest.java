@@ -65,6 +65,15 @@ class ThemeTest {
     check(failures, "progress done", t.status().success(), track, 3);
     check(failures, "progress paused", t.text().muted(), track, 3);
     check(failures, "progress line", t.accent().edge(), surfaces, 3);
+    // A spinner's ring shows faintly on whatever it lies on, and its arc stands out from it: on
+    // the surfaces, a status bar, a tree's or a list's selected row with and without the focus.
+    Map.of("window", s.window(), "panel", s.panel(), "raised", s.raised(), "band", s.band(),
+        "selected", t.grid().selected(), "selected inactive", t.grid().selectedInactive())
+        .forEach((on, background) -> {
+          int ring = over(background, t.border().track());
+          check(failures, "spinner ring", ring, Map.of(on, background), 1.3);
+          check(failures, "spinner arc", t.accent().edge(), Map.of("its ring on " + on, ring), 3);
+        });
     // Code in an editor: on the field's raised surface, hovered and on the caret's line; the
     // brackets at the caret on their background too, and every colour 3:1 under the selection.
     Theme.Code code = t.code();

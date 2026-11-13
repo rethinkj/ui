@@ -340,7 +340,7 @@ el 0,0 560x240
             text "12" 111,301 14x16
           el 129,297 1x23
 overlay at 349.5,92.5 bottom start on #orders role=grid label="Orders" 8,8 544x224
-  el #menu role=menu 350,93 167x87 focused
+  el #menu role=menu 350,93 167x116 focused
     el #item-0 role=menuitem label="Copy" 355,98 157x24
       el 355,98 157x24
         el 363,110 16x0
@@ -351,7 +351,14 @@ overlay at 349.5,92.5 bottom start on #orders role=grid label="Orders" 8,8 544x2
         el 363,134 16x0
         text "Copy with headers" 387,126 117x16
     el 355,148 157x1
-    el #item-3 role=menuitem label="Export…" 355,151 157x24
+    el #item-3 role=menuitem label="Column status" 355,151 157x24 expanded=false
       el 355,151 157x24
-        el 363,163 16x0
-        text "Export…" 387,155 117x16
+        el 363,155 16x16
+          text label="column_single" "\u{F0116}" 363,155 16x16
+        text "Column status" 387,155 93x16
+        text label="chevron_right" "\u{F2AF}" 488,155 16x16
+    el 355,177 157x1
+    el #item-5 role=menuitem label="Export…" 355,180 157x24
+      el 355,180 157x24
+        el 363,192 16x0
+        text "Export…" 387,184 117x16

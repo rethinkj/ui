@@ -156,6 +156,11 @@ class PartsTest {
     assertTrue(StructureTest.line(dump, "role=listitem label=\"Rows\"")
         .contains("value=\"1,000,000\""), dump);
     assertEquals("1,000,000", app.state().clipboard.read());
+    String copied = app.tree().dump();
+    assertTrue(copied.contains("role=tooltip label=\"Copied\""), copied);
+    assertTrue(copied.contains("text label=\"checkmark\""), "a check for a moment");
+    more(app, out, 720, "advance 2\nframe\nadvance 1\nframe");
+    assertTrue(!app.tree().dump().contains("label=\"checkmark\""), "the copy icon back");
     more(app, out, 720, "press label=\"Owner\"\nframe");
     assertTrue(app.focused() == null || app.focused().isEditable() == false
         || "shop_admin".equals(app.focused().text().string()), "a press selects in the value");

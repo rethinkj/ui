@@ -235,6 +235,7 @@ public final class App<S> {
   private final PriorityQueue<Timer> timers = new PriorityQueue<>();
   private long timersAsked;
   private boolean active = true; // the window has the system's keyboard focus
+  private boolean maximized; // the window is maximized
   private Object secondary; // the identity of the element a secondary press is on, until it is up
   // The overlays of the last tree the view built, in the order they opened, with where the focus
   // was before each took it; null for one that took none.
@@ -519,6 +520,31 @@ public final class App<S> {
     handlers.forEach(Runnable::run);
     handled |= !handlers.isEmpty();
     return !handlers.isEmpty();
+  }
+
+  /** Runs the {@link El#onAnyKeyDown} handlers of the tree and its shown overlays. */
+  private void anyKeyDown(Key key) {
+    if (root == null) {
+      return;
+    }
+    List<Consumer<Key>> handlers = new ArrayList<>();
+    anyKeyDown(root, handlers);
+    for (El overlay : root.shownOverlays()) {
+      anyKeyDown(overlay, handlers);
+    }
+    for (Consumer<Key> handler : handlers) {
+      handler.accept(key);
+    }
+    handled |= !handlers.isEmpty();
+  }
+
+  private static void anyKeyDown(El el, List<Consumer<Key>> handlers) {
+    if (el.onAnyKeyDown() != null) {
+      handlers.add(el.onAnyKeyDown());
+    }
+    for (El child : el.children()) {
+      anyKeyDown(child, handlers);
+    }
   }
 
   private static void anyPointerDown(El el, Set<El> hit, List<Runnable> handlers) {
@@ -878,6 +904,7 @@ public final class App<S> {
       keyToText = focused != null && (focused.editor() != null || focused.onText() != null);
       Object before = focusId;
       keyUntaken = false;
+      anyKeyDown(key);
       boolean took = keyDownAt(key);
       if (keyUntaken && untaken != null) {
         untaken.run();
@@ -1270,6 +1297,18 @@ public final class App<S> {
   }
 
   /**
+   * Whether the next {@link #frame} has handlers to run at once that the last one queued, such as
+   * the {@link El#onResize} handlers of elements that layout gave another size, or input and
+   * tasks that arrived since. A runner that draws a single frame when the system asks for one, as
+   * a {@link com.rethinkj.ui.window.WindowLoop} does during a live resize, draws again while this
+   * holds (a few times at most), so that a toolbar that gives way to the new width shows so in
+   * the same step instead of one step late.
+   */
+  public boolean handlersWaiting() {
+    return !queued.isEmpty();
+  }
+
+  /**
    * The time on the app's clock at which the last frame changes without input or movement: when
    * the caret of the focused field turns on or off, when the pointer will have rested long enough
    * on an element for its {@link El#whenHoveredFor} look or {@link El#onHoverFor} handler, or when
@@ -1448,6 +1487,30 @@ public final class App<S> {
       blinkStart = time;
       return false;
     });
+  }
+
+  /**
+   * The window became maximized or was restored, as a window reports it ({@link
+   * com.rethinkj.ui.window.WindowLoop} passes it on); the view is built again in the next {@link
+   * #frame}, so that a title bar of its own shows Restore in place of Maximize ({@link
+   * #windowMaximized()}).
+   */
+  public void windowMaximized(boolean maximized) {
+    enqueue(() -> {
+      if (this.maximized == maximized) {
+        return false;
+      }
+      this.maximized = maximized;
+      return true;
+    });
+  }
+
+  /**
+   * Whether the window that runs this app is maximized, as it last said ({@link
+   * #windowMaximized(boolean)}); false without a window, as in a script.
+   */
+  public boolean windowMaximized() {
+    return maximized;
   }
 
   /**

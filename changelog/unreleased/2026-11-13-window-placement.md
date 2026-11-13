@@ -1,0 +1,1 @@
+- `Window.placement()` tells where a window is, its restored bounds while maximized, as a `Window.Placement` that prints and parses itself as one line of text, and `Window.Options.placement(p)` opens a window there again: maximized if it was, and smaller and inside a work area where its display is gone or smaller now. Workbench remembers its first window's placement between runs.

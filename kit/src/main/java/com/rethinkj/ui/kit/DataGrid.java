@@ -573,6 +573,12 @@ public final class DataGrid {
     Status status(int row, int column);
   }
 
+  /** Told a cell, says what is wrong with it, or null for nothing. */
+  @FunctionalInterface
+  public interface CellMessage {
+    String message(int row, int column);
+  }
+
   /**
    * The icon of a cell: before its text, or alone in its place, in one of {@link Icon}'s colours,
    * with a tooltip of its own if it needs one. It stands where the column puts its text, at the
@@ -754,6 +760,7 @@ public final class DataGrid {
     int edits; // the editors opened so far: each new one takes the focus by this key
     float gridWidth; // the grid's width, as layout last told it, for an editor that grows
     final Menu.State choices = new Menu.State(); // an enumeration's list
+    final FilterList.State search = new FilterList.State(); // a long enumeration's filter
     // The filter being set in its popover: its column, -1 for none, and what it holds.
     int filterColumn = -1;
     final Popover.State filtering = new Popover.State();
@@ -997,6 +1004,7 @@ public final class DataGrid {
     boolean appendRow;
     IntFunction<Status> rowStatus;
     CellStatus cellStatus;
+    CellMessage cellError;
     Runnable onUndo;
     Runnable onRedo;
     List<Filter> filters = List.of();
@@ -1192,6 +1200,15 @@ public final class DataGrid {
     }
 
     /**
+     * Shows what is wrong with a failed cell ({@link Status#ERROR}) in its tooltip, before
+     * anything else the tooltip says: the message of a refused write, say.
+     */
+    public Options errors(CellMessage messages) {
+      this.cellError = Objects.requireNonNull(messages, "messages");
+      return this;
+    }
+
+    /**
      * Shows a filter in each header cell, a funnel under the pointer and, in the accent's edge,
      * where {@code filters} has one for the column, which opens a popover to set it, as Alt+Arrow
      * Down does for the cursor's column: text with how it matches, a range for numbers, dates and
@@ -1269,6 +1286,10 @@ public final class DataGrid {
         CellStatus to = cellStatus;
         cellStatus = (r, c) -> to.status(r, full[c]);
       }
+      if (cellError != null) {
+        CellMessage to = cellError;
+        cellError = (r, c) -> to.message(r, full[c]);
+      }
       IntPredicate canFilter = filterable;
       filterable = c -> canFilter.test(full[c]);
       List<Filter> hiddenFilters = new ArrayList<>();
@@ -1309,7 +1330,7 @@ public final class DataGrid {
     /**
      * Edits through {@code changes}, which keeps the changes until the app writes them: what
      * {@link #onCommit}, {@link #onPaste}, {@link #onInsertRow}, {@link #onDeleteRows}, {@link
-     * #status} and {@link #history} do, each of which a later call replaces. The columns take
+     * #status}, {@link #errors} and {@link #history} do, each of which a later call replaces. The columns take
      * their cells from {@link GridChanges#cell(int)} and the grid its rows from {@link
      * GridChanges#rowCount()}.
      */
@@ -1322,6 +1343,7 @@ public final class DataGrid {
       onInsertRow(changes::insert);
       onDeleteRows(changes::delete);
       status(changes::rowStatus, changes::cellStatus);
+      errors(changes::errorText);
       return history(changes::undo, changes::redo);
     }
   }
@@ -1915,7 +1937,11 @@ public final class DataGrid {
       }
     }
     boolean alone = icon != null && icon.alone();
-    String own = icon == null ? null : icon.tooltip();
+    String error = status == Status.ERROR && b.o.cellError != null
+        ? b.o.cellError.message(i, c) : null;
+    String told = icon == null ? null : icon.tooltip();
+    // What is wrong first, then what the icon says.
+    String own = error == null ? told : told == null ? error : error + "\n" + told;
     if (value != null || alone || own != null) {
       // The icon's own tooltip, else the text an icon alone stands for, and the whole text where
       // the column cuts it short.
@@ -2144,6 +2170,16 @@ public final class DataGrid {
       items.add(Menu.item("Copy with headers", () -> copy(b, true)));
     }
     GridEdit.menuItems(b, items);
+    // The header's menu of the cursor's column, which the keyboard reaches from here (Shift+F10).
+    int c = b.sel == null ? -1 : b.sel.column();
+    List<Menu.Item> column = c < 0 || c >= b.columns.size() ? List.of() : GridColumns.items(b, c);
+    if (!column.isEmpty()) {
+      if (!items.isEmpty()) {
+        items.add(Menu.separator());
+      }
+      items.add(Menu.submenu("Column " + b.columns.get(c).title(), column)
+          .icon(Symbol.COLUMN_SINGLE));
+    }
     if (!items.isEmpty() && !b.o.menuItems.isEmpty()) {
       items.add(Menu.separator());
     }

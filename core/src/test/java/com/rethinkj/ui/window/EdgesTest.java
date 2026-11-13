@@ -18,6 +18,29 @@ class EdgesTest {
   }
 
   @Test
+  void aTitleBarComesBackIntoTheWorkAreaFarEnoughToBeGrabbed() {
+    int[] area = {0, 0, 1920, 1032}; // a work area above a taskbar of 48
+    int[] fine = {300, 200, 800, 32};
+    assertEquals(0, Window.reachable(fine, area, 120)[0]);
+    assertEquals(0, Window.reachable(fine, area, 120)[1]);
+    int[] above = {300, -400, 800, 32}; // let go above the top of the screen
+    assertEquals(400, Window.reachable(above, area, 120)[1]);
+    assertEquals(0, Window.reachable(above, area, 120)[0]);
+    int[] under = {300, 1020, 800, 32}; // its bar under the taskbar
+    assertEquals(-20, Window.reachable(under, area, 120)[1]);
+    int[] left = {-790, 500, 800, 32}; // 10 pixels of it left on the screen
+    assertEquals(110, Window.reachable(left, area, 120)[0], "120 of it on the screen again");
+    int[] right = {1900, 500, 800, 32};
+    assertEquals(-100, Window.reachable(right, area, 120)[0]);
+    int[] narrow = {-90, 500, 100, 32}; // narrower than the part that has to show: all of it
+    assertEquals(90, Window.reachable(narrow, area, 120)[0]);
+    int[] second = {2000, -50, 800, 32}; // a display to the right, at x 1920
+    int[] there = {1920, 0, 2560, 1400};
+    assertEquals(50, Window.reachable(second, there, 120)[1]);
+    assertEquals(0, Window.reachable(second, there, 120)[0]);
+  }
+
+  @Test
   void theMarginAlongEachEdgeResizes() {
     assertEquals(Sdl.HITTEST_RESIZE_LEFT, edge(0, 100));
     assertEquals(Sdl.HITTEST_RESIZE_LEFT, edge(5.9f, 100));

@@ -1,0 +1,1 @@
+- A data grid column with more than eight choices edits them in a field that filters the choices as typed, with the kit's `FilterList` below the cell, instead of a menu that would scroll.

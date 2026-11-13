@@ -109,10 +109,6 @@ final class Sdl {
   static final int KMOD_ALT = 0x0300;
   static final int KMOD_GUI = 0x0C00;
 
-  // SDL_ProgressState
-  static final int PROGRESS_STATE_NONE = 0;
-  static final int PROGRESS_STATE_NORMAL = 2;
-
   // Window properties
   static final String PROP_WINDOW_WIN32_HWND_POINTER = "SDL.window.win32.hwnd";
   static final String PROP_WINDOW_WIN32_INSTANCE_POINTER = "SDL.window.win32.instance";
@@ -301,6 +297,27 @@ final class Sdl {
       FunctionDescriptor.of(JAVA_INT, ADDRESS);
   static final FunctionDescriptor SDL_GET_CURRENT_DISPLAY_MODE =
       FunctionDescriptor.of(ADDRESS, JAVA_INT);
+  /** {@code SDL_DisplayID SDL_GetDisplayForRect(const SDL_Rect *rect)} */
+  static final FunctionDescriptor SDL_GET_DISPLAY_FOR_RECT =
+      FunctionDescriptor.of(JAVA_INT, ADDRESS);
+  /**
+   * {@code bool SDL_GetDisplayUsableBounds(SDL_DisplayID, SDL_Rect *rect)}, and the same for
+   * {@code SDL_GetDisplayBounds}
+   */
+  static final FunctionDescriptor SDL_GET_DISPLAY_BOUNDS =
+      FunctionDescriptor.of(JAVA_BOOLEAN, JAVA_INT, ADDRESS);
+  /**
+   * {@code bool SDL_GetWindowBordersSize(SDL_Window *window, int *top, int *left, int *bottom,
+   * int *right)}
+   */
+  static final FunctionDescriptor SDL_GET_WINDOW_BORDERS_SIZE =
+      FunctionDescriptor.of(JAVA_BOOLEAN, ADDRESS, ADDRESS, ADDRESS, ADDRESS, ADDRESS);
+  /** {@code const char *SDL_GetDisplayName(SDL_DisplayID)} */
+  static final FunctionDescriptor SDL_GET_DISPLAY_NAME = FunctionDescriptor.of(ADDRESS, JAVA_INT);
+  /** {@code SDL_DisplayID *SDL_GetDisplays(int *count)}, which the caller frees with SDL_free */
+  static final FunctionDescriptor SDL_GET_DISPLAYS = FunctionDescriptor.of(ADDRESS, ADDRESS);
+  /** {@code SDL_Rect}: int x, y, w, h. */
+  static final long RECT_SIZE = 16;
   static final FunctionDescriptor SDL_SET_WINDOW_HIT_TEST =
       FunctionDescriptor.of(JAVA_BOOLEAN, ADDRESS, ADDRESS, ADDRESS);
   static final FunctionDescriptor SDL_SHOW_WINDOW_SYSTEM_MENU =
@@ -311,10 +328,6 @@ final class Sdl {
       FunctionDescriptor.of(ADDRESS, JAVA_INT, ADDRESS, ADDRESS);
   static final FunctionDescriptor SDL_GET_NUMBER_PROPERTY =
       FunctionDescriptor.of(JAVA_LONG, JAVA_INT, ADDRESS, JAVA_LONG);
-  static final FunctionDescriptor SDL_SET_WINDOW_PROGRESS_STATE =
-      FunctionDescriptor.of(JAVA_BOOLEAN, ADDRESS, JAVA_INT);
-  static final FunctionDescriptor SDL_SET_WINDOW_PROGRESS_VALUE =
-      FunctionDescriptor.of(JAVA_BOOLEAN, ADDRESS, JAVA_FLOAT);
   static final FunctionDescriptor SDL_START_TEXT_INPUT =
       FunctionDescriptor.of(JAVA_BOOLEAN, ADDRESS);
   /** {@code bool SDL_StartTextInputWithProperties(SDL_Window *window, SDL_PropertiesID props)} */
@@ -431,6 +444,16 @@ final class Sdl {
         bind("SDL_GetDisplayForWindow", SDL_GET_DISPLAY_FOR_WINDOW);
     static final MethodHandle GET_CURRENT_DISPLAY_MODE =
         bind("SDL_GetCurrentDisplayMode", SDL_GET_CURRENT_DISPLAY_MODE);
+    static final MethodHandle GET_DISPLAY_FOR_RECT =
+        bind("SDL_GetDisplayForRect", SDL_GET_DISPLAY_FOR_RECT);
+    static final MethodHandle GET_DISPLAY_USABLE_BOUNDS =
+        bind("SDL_GetDisplayUsableBounds", SDL_GET_DISPLAY_BOUNDS);
+    static final MethodHandle GET_DISPLAY_BOUNDS =
+        bind("SDL_GetDisplayBounds", SDL_GET_DISPLAY_BOUNDS);
+    static final MethodHandle GET_WINDOW_BORDERS_SIZE =
+        bind("SDL_GetWindowBordersSize", SDL_GET_WINDOW_BORDERS_SIZE);
+    static final MethodHandle GET_DISPLAY_NAME = bind("SDL_GetDisplayName", SDL_GET_DISPLAY_NAME);
+    static final MethodHandle GET_DISPLAYS = bind("SDL_GetDisplays", SDL_GET_DISPLAYS);
     static final MethodHandle SET_WINDOW_HIT_TEST =
         bind("SDL_SetWindowHitTest", SDL_SET_WINDOW_HIT_TEST);
     static final MethodHandle SHOW_WINDOW_SYSTEM_MENU =
@@ -441,10 +464,6 @@ final class Sdl {
         bind("SDL_GetPointerProperty", SDL_GET_POINTER_PROPERTY);
     static final MethodHandle GET_NUMBER_PROPERTY =
         bind("SDL_GetNumberProperty", SDL_GET_NUMBER_PROPERTY);
-    static final MethodHandle SET_WINDOW_PROGRESS_STATE =
-        bind("SDL_SetWindowProgressState", SDL_SET_WINDOW_PROGRESS_STATE);
-    static final MethodHandle SET_WINDOW_PROGRESS_VALUE =
-        bind("SDL_SetWindowProgressValue", SDL_SET_WINDOW_PROGRESS_VALUE);
     static final MethodHandle START_TEXT_INPUT = bind("SDL_StartTextInput", SDL_START_TEXT_INPUT);
     static final MethodHandle START_TEXT_INPUT_WITH_PROPERTIES =
         bind("SDL_StartTextInputWithProperties", SDL_START_TEXT_INPUT_WITH_PROPERTIES);
@@ -761,6 +780,75 @@ final class Sdl {
     }
   }
 
+  /** The display that holds the rectangle, or the one nearest to it; 0 if SDL says none. */
+  static int displayForRect(int x, int y, int w, int h) {
+    try (Arena arena = Arena.ofConfined()) {
+      MemorySegment rect = arena.allocate(RECT_SIZE, 4);
+      rect.set(JAVA_INT, 0, x);
+      rect.set(JAVA_INT, 4, y);
+      rect.set(JAVA_INT, 8, w);
+      rect.set(JAVA_INT, 12, h);
+      return (int) H.GET_DISPLAY_FOR_RECT.invokeExact(rect);
+    } catch (Throwable t) {
+      throw failed(t);
+    }
+  }
+
+  /**
+   * The part of a display that windows may take, without the taskbar or a dock, as x, y, width
+   * and height in window coordinates, or its whole bounds; null if SDL cannot say.
+   */
+  static int[] displayBounds(int display, boolean usable) {
+    try (Arena arena = Arena.ofConfined()) {
+      MemorySegment rect = arena.allocate(RECT_SIZE, 4);
+      boolean ok = usable
+          ? (boolean) H.GET_DISPLAY_USABLE_BOUNDS.invokeExact(display, rect)
+          : (boolean) H.GET_DISPLAY_BOUNDS.invokeExact(display, rect);
+      return ok ? rect.toArray(JAVA_INT) : null;
+    } catch (Throwable t) {
+      throw failed(t);
+    }
+  }
+
+  /** The window's frame around its content: top, left, bottom and right; null if unknown. */
+  static int[] windowBordersSize(MemorySegment window) {
+    try (Arena arena = Arena.ofConfined()) {
+      MemorySegment sides = arena.allocate(JAVA_INT, 4);
+      boolean ok = (boolean) H.GET_WINDOW_BORDERS_SIZE.invokeExact(window, sides,
+          sides.asSlice(4), sides.asSlice(8), sides.asSlice(12));
+      return ok ? sides.toArray(JAVA_INT) : null;
+    } catch (Throwable t) {
+      throw failed(t);
+    }
+  }
+
+  /** A display's name, such as its model, or null. */
+  static String displayName(int display) {
+    try {
+      return string((MemorySegment) H.GET_DISPLAY_NAME.invokeExact(display));
+    } catch (Throwable t) {
+      throw failed(t);
+    }
+  }
+
+  /** The displays connected now. */
+  static int[] displays() {
+    try (Arena arena = Arena.ofConfined()) {
+      MemorySegment count = arena.allocate(JAVA_INT);
+      MemorySegment list = (MemorySegment) H.GET_DISPLAYS.invokeExact(count);
+      if (list.equals(MemorySegment.NULL)) {
+        return new int[0];
+      }
+      try {
+        return list.reinterpret(4L * count.get(JAVA_INT, 0)).toArray(JAVA_INT);
+      } finally {
+        H.FREE.invokeExact(list);
+      }
+    } catch (Throwable t) {
+      throw failed(t);
+    }
+  }
+
   static boolean setWindowHitTest(MemorySegment window, MemorySegment callback, MemorySegment data) {
     try {
       return (boolean) H.SET_WINDOW_HIT_TEST.invokeExact(window, callback, data);
@@ -798,22 +886,6 @@ final class Sdl {
   static long getNumberProperty(int properties, String name) {
     try (Arena arena = Arena.ofConfined()) {
       return (long) H.GET_NUMBER_PROPERTY.invokeExact(properties, arena.allocateFrom(name), 0L);
-    } catch (Throwable t) {
-      throw failed(t);
-    }
-  }
-
-  static boolean setWindowProgressState(MemorySegment window, int state) {
-    try {
-      return (boolean) H.SET_WINDOW_PROGRESS_STATE.invokeExact(window, state);
-    } catch (Throwable t) {
-      throw failed(t);
-    }
-  }
-
-  static boolean setWindowProgressValue(MemorySegment window, float value) {
-    try {
-      return (boolean) H.SET_WINDOW_PROGRESS_VALUE.invokeExact(window, value);
     } catch (Throwable t) {
       throw failed(t);
     }

@@ -1,0 +1,1 @@
+- `App.windowMaximized()` says whether the app's window is maximized, which a `WindowLoop` passes on, and the kit's `TitleBar.titleBar` and `withMenus` take it, so that the maximize button shows Restore while the window is maximized; every example passes it.

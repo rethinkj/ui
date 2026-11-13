@@ -67,8 +67,10 @@ el 0,0 640x260
           el #cell-0-7 role=gridcell 661,33 159x23 pos=8/8
             text "NULL" 665,37 34x16
           el 820,33 1x23
-          el #editor 87,33 254x23
+          el #editor 87,33 274x23
             text #field role=textbox label="Edit customer" "Ada Lovelace and the Analytical Engine" 91,34 246x21 focused caret 38
+            el #expand role=button label="Edit in several lines" 339,36 18x18
+              text label="arrow_maximize" "\u{F15E}" 340,37 16x16
           el #number-0 role=rowheader 8,33 22x23
             text "1" 19,37 7x16
           el 30,33 1x23
