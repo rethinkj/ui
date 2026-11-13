@@ -1,0 +1,1 @@
+- The Documents example's Save As… starts with the filter of the document's kind: SQL for a `.sql` document, where it started with Text.

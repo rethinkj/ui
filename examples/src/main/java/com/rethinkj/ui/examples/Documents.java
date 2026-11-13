@@ -198,8 +198,11 @@ public final class Documents {
   void saveAs(Doc d) {
     String name = d.path != null ? d.path.getFileName().toString()
         : d.title + (d.title.equals("Query") ? ".sql" : ".txt");
-    FileDialog dialog = FileDialog.save("Save As").filter("Text", "txt", "md")
-        .filter("SQL", "sql").fileName(name);
+    // The document's own kind first: the dialog starts with the first filter.
+    FileDialog dialog = name.toLowerCase(Locale.ROOT).endsWith(".sql")
+        ? FileDialog.save("Save As").filter("SQL", "sql").filter("Text", "txt", "md")
+        : FileDialog.save("Save As").filter("Text", "txt", "md").filter("SQL", "sql");
+    dialog = dialog.fileName(name);
     if (d.path != null && d.path.toAbsolutePath().getParent() != null) {
       dialog = dialog.in(d.path.toAbsolutePath().getParent());
     }

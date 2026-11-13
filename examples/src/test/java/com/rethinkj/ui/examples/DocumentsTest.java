@@ -5,11 +5,18 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.rethinkj.ui.App;
+import com.rethinkj.ui.Dialogs;
+import com.rethinkj.ui.FileDialog;
+import com.rethinkj.ui.MessageBox;
 import com.rethinkj.ui.Script;
 import com.rethinkj.ui.text.TextRendering;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.function.Consumer;
+import java.util.function.IntConsumer;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -78,6 +85,32 @@ class DocumentsTest {
     assertEquals("No file dialog: No portal", lineOf(folder, "failed"));
     assertEquals("Dropped text", s.groups.main().activeTab().title);
     assertEquals("dropped text", s.groups.main().activeTab().text);
+  }
+
+  /** Save As starts with the filter of the document's kind, which the dialog shows first. */
+  @Test
+  void saveAsOffersTheDocumentsOwnKindFirst() {
+    Documents s = new Documents();
+    s.app = new App<>(s, d -> d.view(d.groups.main(), d.app));
+    List<FileDialog> asked = new ArrayList<>();
+    s.app.dialogs(new Dialogs() {
+      @Override
+      public void file(FileDialog dialog, Consumer<FileDialog.Choice> chosen,
+          Consumer<String> failed) {
+        asked.add(dialog);
+      }
+
+      @Override
+      public void message(MessageBox box, IntConsumer pressed, Consumer<String> failed) {}
+    });
+    Documents.Doc query = new Documents.Doc("Query", "SELECT 1;");
+    Documents.Doc notes = new Documents.Doc("Notes", "Coffee");
+    s.saveAs(query);
+    s.saveAs(notes);
+    assertEquals("Query.sql", asked.get(0).fileName());
+    assertEquals("SQL", asked.get(0).filters().getFirst().name());
+    assertEquals("Notes.txt", asked.get(1).fileName());
+    assertEquals("Text", asked.get(1).filters().getFirst().name());
   }
 
   private static String lineOf(Path folder, String snap) throws IOException {
