@@ -10,18 +10,25 @@ import com.rethinkj.ui.Examples;
 import com.rethinkj.ui.Examples.Lights;
 import com.rethinkj.ui.Style;
 import com.rethinkj.ui.WindowPart;
+import com.rethinkj.ui.render.GpuPresenter;
+import com.rethinkj.ui.render.Pixels;
+import com.rethinkj.ui.render.Png;
+import com.rethinkj.ui.render.Scene;
 import com.rethinkj.ui.window.WindowEvent.KeyDown;
 import com.rethinkj.ui.window.WindowEvent.PointerMove;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
 /**
- * A frameless window with a title bar of its own, and the light switch below it, drawn by {@link
- * SdlPresenter}. The title bar is a drag area with minimize, maximize and close buttons; a click on
- * the switch toggles it, Escape closes the window. Every event but pointer moves and live redraws,
- * and every frame drawn, is printed with the seconds since the start.
+ * A frameless window with a title bar of its own, and the light switch below it, drawn on the GPU
+ * by {@link GpuPresenter}. The title bar is a drag area with minimize, maximize and close buttons;
+ * a click on the switch toggles it, Escape closes the window. Every event but pointer moves and
+ * live redraws, and every frame presented, is printed with the seconds since the start, as is a
+ * frame the presenter could not show yet.
  *
  * <p>Build with {@code mvn -pl core -am test-compile}, then run from the repository root (on
- * Linux, with {@code :} between the class path entries and {@code -Drethinkj.ui.natives.dir} set to
- * a folder with SDL and its manifest):
+ * Linux, with {@code :} between the class path entries and {@code natives-linux-x64} in place of
+ * {@code natives-windows-x64}):
  *
  * <pre>
  * java --enable-native-access=ALL-UNNAMED
@@ -36,6 +43,7 @@ import com.rethinkj.ui.window.WindowEvent.PointerMove;
  * --progress=V        taskbar progress from 0 to 1
  * --exit-after=S      stop after S seconds, from another thread
  * --moves             print pointer moves and live redraws too
+ * --cpu-png=FILE      when stopped, write the last frame as the CPU renderer draws it
  * </pre>
  */
 public final class WindowDemo {
@@ -66,6 +74,7 @@ public final class WindowDemo {
     float progress = -1;
     double exitAfter = 0;
     boolean moves = false;
+    Path cpuPng = null;
     for (String arg : args) {
       String value = arg.substring(arg.indexOf('=') + 1);
       if (arg.startsWith("--size=")) {
@@ -82,6 +91,8 @@ public final class WindowDemo {
         exitAfter = Double.parseDouble(value);
       } else if (arg.equals("--moves")) {
         moves = true;
+      } else if (arg.startsWith("--cpu-png=")) {
+        cpuPng = Path.of(value);
       } else {
         throw new IllegalArgumentException("Unknown option " + arg);
       }
@@ -105,12 +116,24 @@ public final class WindowDemo {
       }
       State state = new State(window);
       App<State> app = new App<>(state, WindowDemo::view);
-      try (SdlPresenter sdl = new SdlPresenter(window)) {
-        log(start, "renderer " + sdl.name());
-        WindowLoop.Presenter presenter = (scene, w, h, scale) -> {
-          sdl.present(scene, w, h, scale);
-          log(start, "present " + sdl.presents() + ": " + w + "x" + h + " @" + scale + ", lights "
-              + (state.lights.on ? "on" : "off") + (app.isMoving() ? ", moving" : ""));
+      try (GpuPresenter gpu = new GpuPresenter(window)) {
+        log(start, "renderer " + gpu.adapter() + ", surface " + gpu.surfaceFormat());
+        WindowLoop.Presenter presenter = new WindowLoop.Presenter() {
+          @Override
+          public void present(Scene scene, float w, float h, float scale) {
+            long before = gpu.frames();
+            gpu.present(scene, w, h, scale);
+            String what = gpu.frames() > before ? "present " + gpu.frames()
+                : gpu.pending() ? "pending" : "not shown";
+            log(start, what + ": " + w + "x" + h + " @" + scale + ", " + window.pixelWidth()
+                + "x" + window.pixelHeight() + " pixels, lights "
+                + (state.lights.on ? "on" : "off") + (app.isMoving() ? ", moving" : ""));
+          }
+
+          @Override
+          public boolean pending() {
+            return gpu.pending();
+          }
         };
         WindowLoop loop = new WindowLoop(window, app, presenter);
         boolean printMoves = moves;
@@ -136,7 +159,13 @@ public final class WindowDemo {
           });
         }
         loop.run();
-        log(start, "stopped after " + sdl.presents() + " frames");
+        log(start, "stopped after " + gpu.frames() + " frames");
+        if (cpuPng != null) {
+          Pixels pixels = app.render().pixels();
+          Files.write(cpuPng, Png.encode(pixels));
+          log(start, "wrote the CPU's " + pixels.width() + "x" + pixels.height() + " image of the"
+              + " last frame to " + cpuPng.toAbsolutePath());
+        }
       }
     }
     log(start, "closed");

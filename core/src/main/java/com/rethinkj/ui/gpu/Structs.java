@@ -286,6 +286,12 @@ final class Structs {
         offset(LAYOUT, "maxUniformBufferBindingSize");
     static final long MIN_UNIFORM_BUFFER_OFFSET_ALIGNMENT =
         offset(LAYOUT, "minUniformBufferOffsetAlignment");
+    static final long MAX_STORAGE_BUFFERS_PER_SHADER_STAGE =
+        offset(LAYOUT, "maxStorageBuffersPerShaderStage");
+    static final long MAX_STORAGE_BUFFER_BINDING_SIZE =
+        offset(LAYOUT, "maxStorageBufferBindingSize");
+    static final long MIN_STORAGE_BUFFER_OFFSET_ALIGNMENT =
+        offset(LAYOUT, "minStorageBufferOffsetAlignment");
     static final long MAX_VERTEX_BUFFERS = offset(LAYOUT, "maxVertexBuffers");
     static final long MAX_BUFFER_SIZE = offset(LAYOUT, "maxBufferSize");
     static final long MAX_VERTEX_ATTRIBUTES = offset(LAYOUT, "maxVertexAttributes");

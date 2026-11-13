@@ -13,6 +13,7 @@ import com.rethinkj.ui.El;
 import com.rethinkj.ui.Examples;
 import com.rethinkj.ui.Examples.Lights;
 import com.rethinkj.ui.WindowPart;
+import com.rethinkj.ui.render.Scene;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -116,6 +117,40 @@ class WindowLoopTest {
       assertTrue(seen[0] >= 1, "the first frame is drawn");
       assertEquals(seen[0], seen[1], "nothing is drawn while nothing changes");
       assertFalse(loop.isRunning());
+    }
+  }
+
+  @Test
+  void aFrameThePresenterCouldNotShowIsOfferedAgainUntilItIsShown() throws InterruptedException {
+    try (Window window = Window.open(TITLE, 200, 120)) {
+      Desktop.settle();
+      App<Lights> app = new App<>(new Lights(), Examples::lights);
+      AtomicInteger presents = new AtomicInteger();
+      WindowLoop.Presenter presenter = new WindowLoop.Presenter() {
+        @Override
+        public void present(Scene scene, float w, float h, float s) {
+          presents.incrementAndGet();
+        }
+
+        /** The first three frames cannot be shown, as for a surface that is out of date. */
+        @Override
+        public boolean pending() {
+          return presents.get() < 4;
+        }
+      };
+      WindowLoop loop = new WindowLoop(window, app, presenter);
+      Thread stopper = Thread.ofPlatform().start(() -> {
+        try {
+          Thread.sleep(500);
+        } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
+        }
+        loop.stop();
+      });
+      loop.run();
+      stopper.join();
+
+      assertEquals(4, presents.get(), "offered three more times, then nothing changes");
     }
   }
 

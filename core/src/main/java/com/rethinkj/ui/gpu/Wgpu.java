@@ -104,6 +104,7 @@ final class Wgpu {
 
   static final int TEXTURE_DIMENSION_2D = 2;
   static final int BUFFER_BINDING_TYPE_UNIFORM = 2;
+  static final int BUFFER_BINDING_TYPE_READ_ONLY_STORAGE = 4;
   static final int LOAD_OP_LOAD = 1;
   static final int LOAD_OP_CLEAR = 2;
   static final int STORE_OP_STORE = 1;

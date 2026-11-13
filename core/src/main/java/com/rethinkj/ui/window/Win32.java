@@ -50,6 +50,7 @@ final class Win32 {
 
   static final FunctionDescriptor SCREEN_TO_CLIENT = FunctionDescriptor.of(JAVA_INT, ADDRESS, ADDRESS);
   static final FunctionDescriptor TRACK_MOUSE_EVENT = FunctionDescriptor.of(JAVA_INT, ADDRESS);
+  static final FunctionDescriptor IS_ICONIC = FunctionDescriptor.of(JAVA_INT, ADDRESS);
   static final FunctionDescriptor DWM_SET_WINDOW_ATTRIBUTE =
       FunctionDescriptor.of(JAVA_INT, ADDRESS, JAVA_INT, ADDRESS, JAVA_INT);
   static final FunctionDescriptor SET_WINDOW_SUBCLASS =
@@ -68,6 +69,7 @@ final class Win32 {
         bind(USER32, "ScreenToClient", SCREEN_TO_CLIENT);
     static final MethodHandle TRACK_MOUSE_EVENT_H =
         bind(USER32, "TrackMouseEvent", TRACK_MOUSE_EVENT);
+    static final MethodHandle IS_ICONIC_H = bind(USER32, "IsIconic", IS_ICONIC);
     static final MethodHandle DWM_SET_WINDOW_ATTRIBUTE_H =
         bind(DWMAPI, "DwmSetWindowAttribute", DWM_SET_WINDOW_ATTRIBUTE);
     static final MethodHandle SET_WINDOW_SUBCLASS_H =
@@ -96,6 +98,15 @@ final class Win32 {
   static boolean trackMouseEvent(MemorySegment trackMouseEvent) {
     try {
       return (int) H.TRACK_MOUSE_EVENT_H.invokeExact(trackMouseEvent) != 0;
+    } catch (Throwable t) {
+      throw Sdl.failed(t);
+    }
+  }
+
+  /** Whether the window is minimized. */
+  static boolean isIconic(MemorySegment hwnd) {
+    try {
+      return (int) H.IS_ICONIC_H.invokeExact(hwnd) != 0;
     } catch (Throwable t) {
       throw Sdl.failed(t);
     }

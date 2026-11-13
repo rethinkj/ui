@@ -1,5 +1,7 @@
 package com.rethinkj.ui.window;
 
+import static java.lang.foreign.ValueLayout.ADDRESS;
+import static java.lang.foreign.ValueLayout.JAVA_INT;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
@@ -7,6 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import com.rethinkj.ui.Key;
 import com.rethinkj.ui.WindowPart;
@@ -21,7 +24,12 @@ import com.rethinkj.ui.window.WindowEvent.Resized;
 import com.rethinkj.ui.window.WindowEvent.StateChanged;
 import com.rethinkj.ui.window.WindowEvent.TextInput;
 import com.rethinkj.ui.window.WindowEvent.Wheel;
+import java.lang.foreign.Arena;
+import java.lang.foreign.FunctionDescriptor;
+import java.lang.foreign.Linker;
 import java.lang.foreign.MemorySegment;
+import java.lang.foreign.SymbolLookup;
+import java.lang.invoke.MethodHandle;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
@@ -189,6 +197,41 @@ class WindowTest {
       window.restore();
       assertTrue(Desktop.pollUntil(() -> !window.isMinimized()));
     }
+  }
+
+  @Test
+  void aFramelessWindowKeepsItsSizeWhenTheSystemMinimizesAndRestoresIt() {
+    try (Window window = Window.open(TITLE, 300, 200, Window.options().frameless())) {
+      assumeTrue(window.handle() instanceof WindowHandle.Win32, "Windows only");
+      MemorySegment hwnd = ((WindowHandle.Win32) window.handle()).hwnd();
+      // As the taskbar does it, from outside, not through SDL, which expects the sizes on the way.
+      MethodHandle showWindow = Linker.nativeLinker().downcallHandle(
+          SymbolLookup.libraryLookup("user32", Arena.global()).find("ShowWindow").orElseThrow(),
+          FunctionDescriptor.of(JAVA_INT, ADDRESS, JAVA_INT));
+      Desktop.settle();
+      window.listener(events::add);
+      elsewhere(showWindow, hwnd, 6); // SW_MINIMIZE
+      assertTrue(Desktop.pollUntil(window::isMinimized), "minimized");
+      elsewhere(showWindow, hwnd, 9); // SW_RESTORE
+      assertTrue(Desktop.pollUntil(() -> !window.isMinimized()), "restored");
+      Desktop.settle();
+
+      // Not the 160 by 28 pixels Windows gives a minimized window on the way.
+      assertEquals(List.of(), events.stream().filter(e -> e instanceof Resized).toList());
+      assertEquals(300, window.width(), 0.5f);
+      assertEquals(200, window.height(), 0.5f);
+    }
+  }
+
+  /** Calls ShowWindow on another thread, as the taskbar does from another process. */
+  private static void elsewhere(MethodHandle showWindow, MemorySegment hwnd, int command) {
+    Thread.ofPlatform().start(() -> {
+      try {
+        int ignored = (int) showWindow.invokeExact(hwnd, command);
+      } catch (Throwable t) {
+        throw new AssertionError(t);
+      }
+    });
   }
 
   @Test
