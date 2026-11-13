@@ -10,6 +10,7 @@ import static com.rethinkj.ui.kit.Label.label;
 import com.rethinkj.ui.App;
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.Script;
+import com.rethinkj.ui.kit.Card;
 import com.rethinkj.ui.kit.DataGrid.Mode;
 import com.rethinkj.ui.kit.DataGrid.Selection;
 import com.rethinkj.ui.kit.DataGrid.SortKey;
@@ -208,17 +209,18 @@ public final class Showcase {
             section -> s.section = section, null, null)
         .key("sections").label("Sections").grow(1);
     List<String> looks = Arrays.stream(Look.values()).map(l -> l.title).toList();
-    El sidebar = col().w(200).shrink(0).fill(t.surface().panel())
-        .padding(t.space().m()).gap(t.space().s())
-        .child(nav)
-        .child(label(t, MUTED, "Theme"))
-        .child(Select.select(t, looks, s.look.ordinal(), s.lookMenu,
-            i -> s.look = Look.values()[i]).key("look").label("Theme").wFull());
+    El sidebar = Card.flush(t,
+        Card.inset(t, nav),
+        col().padding(0, t.space().m(), t.space().m(), t.space().m()).gap(t.space().s())
+            .child(label(t, MUTED, "Theme"))
+            .child(Select.select(t, looks, s.look.ordinal(), s.lookMenu,
+                i -> s.look = Look.values()[i]).key("look").label("Theme").wFull()))
+        .w(200).shrink(0);
     El root = col().wFull().hFull().fill(t.surface().window())
         .child(titleBar(t, "Showcase · " + s.look.title, t.accent().color()))
-        .child(row().grow(1).minSize(0, 0)
+        .child(row().grow(1).minSize(0, 0).padding(0, t.space().m(), t.space().m(), t.space().m())
+            .gap(t.space().m())
             .child(sidebar)
-            .child(el().w(t.size().stroke()).shrink(0).fill(t.border().subtle()))
             .child(Sections.section(s, t)));
     return root.overlay(Sections.dialog(s, t));
   }
