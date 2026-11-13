@@ -1,0 +1,13 @@
+# A million rows in a virtual list (Examples rows): only the rows in view and three more on
+# each side exist, and the tree says which.
+size 280 220 scale 2
+frame
+snap rows-top
+
+wheel #rows 0 40          # 40 pixels down: the rows that exist suffice, none is built
+frame
+snap rows-scrolled
+
+scroll #rows row 765432   # row 765432 at the top: the list builds the rows around it
+frame
+snap rows-far

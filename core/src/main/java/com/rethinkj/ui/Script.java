@@ -32,6 +32,7 @@ import java.util.regex.Pattern;
  * frame
  * snap moving                        # writes moving.png and moving.tree.txt
  * wheel #list 0 40                   # the wheel, 40 pixels down, over the centre of #list
+ * scroll #orders row 5000            # a list made with El.rows: row 5000 at its top
  * key Tab shift                      # Shift+Tab, down and up: the focus moves back
  * type "hello"                       # text for the focused element
  * focus #name                        # gives #name the focus, as Tab would
@@ -58,6 +59,7 @@ public final class Script {
       "a position x,y in logical pixels such as 90,60, or a selector of #key, role=<role>,"
           + " label=\"<text>\" and text=\"<string>\" such as role=switch label=\"Lights\"";
   private static final Pattern NUMBER = Pattern.compile("\\d+(\\.\\d+)?");
+  private static final Pattern INDEX = Pattern.compile("\\d{1,10}");
   private static final Pattern SIGNED = Pattern.compile("-?\\d+(\\.\\d+)?");
   private static final Pattern POSITION =
       Pattern.compile("(-?\\d+(?:\\.\\d+)?),(-?\\d+(?:\\.\\d+)?)");
@@ -185,6 +187,32 @@ public final class Script {
               Float.parseFloat(args.get(args.size() - 2)),
               Float.parseFloat(args.getLast()));
         }
+        case "scroll" -> {
+          if (args.size() < 3
+              || !args.get(args.size() - 2).equals("row")
+              || !INDEX.matcher(args.getLast()).matches()) {
+            throw line.usage(step);
+          }
+          needsFrame(line, app, "there is nothing to scroll");
+          List<String> target = args.subList(0, args.size() - 2);
+          float[] at = line.point(target, app.tree());
+          El list = app.listAt(at[0], at[1]);
+          if (list == null) {
+            throw line.fail(
+                "There is no list of rows at " + String.join(" ", target) + ". `scroll` scrolls"
+                    + " an element made with El.rows(...), or the one around the target; a"
+                    + " .tree.txt shows one with `rows` in its line. Scroll other areas with"
+                    + " `wheel`.");
+          }
+          long row = Long.parseLong(args.getLast());
+          if (row >= list.rowCount()) {
+            throw line.fail(
+                "The list has " + list.rowCount() + " rows, "
+                    + (list.rowCount() == 0 ? "so none to scroll to." : "from 0 to "
+                        + (list.rowCount() - 1) + ". Write a row in that range."));
+          }
+          app.scrollToRow(list, (int) row);
+        }
         case "key" -> {
           if (args.isEmpty()) {
             throw line.usage(step);
@@ -306,8 +334,8 @@ public final class Script {
         default ->
             throw line.fail(
                 "There is no step " + step
-                    + ". The steps are size, press, down, up, move, leave, wheel, key, type,"
-                    + " focus, advance, frame and snap.");
+                    + ". The steps are size, press, down, up, move, leave, wheel, scroll, key,"
+                    + " type, focus, advance, frame and snap.");
       }
       if (step.equals("frame")) {
         pending = null;
@@ -380,6 +408,10 @@ public final class Script {
                     "`wheel <target> <deltaX> <deltaY>`, with distances in logical pixels that are"
                         + " positive to scroll down or right, for example `wheel #list 0 40`. A"
                         + " target is " + TARGET + ".";
+                case "scroll" ->
+                    "`scroll <target> row <index>`, which scrolls the list of rows at the target so"
+                        + " that the row with that index, counted from 0, is at its top, for"
+                        + " example `scroll #list row 5000`. A target is " + TARGET + ".";
                 case "snap" ->
                     "`snap <name>`, for example `snap after-press`, to write after-press.png and"
                         + " after-press.tree.txt into the output folder.";
@@ -470,7 +502,7 @@ public final class Script {
             "What matches " + text + " is clipped away in the last frame, for example scrolled"
                 + " out of its scroll area, so it cannot be pressed or scrolled. Bring it into view"
                 + " first, for example with `wheel <target> <deltaX> <deltaY>` over its scroll"
-                + " area.");
+                + " area." + lists(all));
       }
       if (matches.isEmpty()) {
         Set<String> keys = new TreeSet<>();
@@ -498,7 +530,7 @@ public final class Script {
                 + "    labels: " + listing(labels) + "\n"
                 + (texts.isEmpty() ? "" : "    texts:  " + listing(texts) + "\n")
                 + "  Select with these, or press a position x,y. The .tree.txt of a snap shows"
-                + " every element with its rectangle.");
+                + " every element with its rectangle." + lists(all));
       }
       StringBuilder rows = new StringBuilder();
       for (Found found : matches) {
@@ -549,6 +581,32 @@ public final class Script {
     for (El child : el.children()) {
       walk(child, left, top, clipLeft, clipTop, clipRight, clipBottom, all, clipped);
     }
+  }
+
+  /**
+   * For an error about a selector: the virtual lists of the last frame and how to bring one of
+   * their rows into existence, or nothing if there are none.
+   */
+  private static String lists(List<Found> all) {
+    StringBuilder rows = new StringBuilder();
+    String example = null;
+    for (Found found : all) {
+      if (found.el.isVirtualList()) {
+        found.el.describe(rows.append("    "), found.left, found.top);
+        if (example == null) {
+          example = found.el.key() != null
+              ? "#" + found.el.key()
+              : Math.round(found.x) + "," + Math.round(found.y);
+        }
+      }
+    }
+    if (example == null) {
+      return "";
+    }
+    return "\n  A list of rows has only the rows near its visible part as elements, and a selector"
+        + " finds only those. The last frame has these lists, with the rows that exist and how many"
+        + " there are:\n" + rows + "  To reach another row, scroll its list first: `scroll "
+        + example + " row <index>` puts that row at the top of the list at the next `frame`.";
   }
 
   private static String listing(Set<String> words) {

@@ -44,6 +44,7 @@ One step per line. A `#` at the start of a line or before a space starts a comme
 | `move <target>` | Moves the pointer onto the target, which hovers it and the elements around it. Presses do not move the pointer. |
 | `leave` | The pointer leaves the window: nothing is hovered. |
 | `wheel <target> <deltaX> <deltaY>` | Turns the wheel with the pointer on the target, by these distances in logical pixels; positive scrolls down or right. Along each axis the innermost scroll area under the pointer that can still move that way takes the whole distance, up to its end. |
+| `scroll <target> row <index>` | Scrolls the list of rows (`El.rows`) at the target, or the one around it, so that the row `<index>`, counted from 0, is at its top, or as far as the end of the list allows. |
 | `key <name> [shift] [control] [alt] [meta]` | Presses and releases a key with these modifiers held, as in `key Tab shift`. Keys have the web's key names (`Enter`, `Tab`, `Space`, `Escape`, `ArrowDown`, `F5`), and a key that types a character is named by it in upper case (`A`, `1`); the Javadoc of `com.rethinkj.ui.Key` lists them all. |
 | `type "<text>"` | Text input for the focused element (`\"` and `\\` inside). |
 | `focus <target>` | Gives the keyboard focus to the target, or the nearest focusable element around it, as Tab would. |
@@ -51,13 +52,13 @@ One step per line. A `#` at the start of a line or before a space starts a comme
 | `frame` | Runs one frame: the handlers and scrolls that input queued, a rebuild of the view, the animations at the current time. |
 | `snap <name>` | Writes `<name>.png` and `<name>.tree.txt` of the last frame into the output folder. `<name>` may contain `/` but must stay inside the folder. |
 
-Only `frame` runs a frame, as in a window, where input arrives between frames: `press`, `move`, `leave`, `key`, `type` and `focus` queue what they do, `wheel` a scroll and `advance` moves the clock, but the screen changes at the next `frame`. `snap` refuses to write a frame that does not show the steps before it.
+Only `frame` runs a frame, as in a window, where input arrives between frames: `press`, `move`, `leave`, `key`, `type` and `focus` queue what they do, `wheel` and `scroll` a scroll and `advance` moves the clock, but the screen changes at the next `frame`. `snap` refuses to write a frame that does not show the steps before it.
 
-A `.tree.txt` has one line per element, children indented, with its rectangle in window coordinates as shown, that is, moved by the scroll offsets above it. A scroll area that is scrolled adds its offset after the rectangle, as in `el #list role=list 16,16 208x168 scroll 0,90`. A line that ends in `exiting` is an element with a key and motion that a rebuild left out: it fades out where it was, takes no input, and is removed once invisible. Selectors do not match it, nor anything at opacity 0. The line of the element that a press under the pointer would go to ends in `hovered`, and that of the element that has the keyboard focus in `focused`.
+A `.tree.txt` has one line per element, children indented, with its rectangle in window coordinates as shown, that is, moved by the scroll offsets above it. A scroll area that is scrolled adds its offset after the rectangle, as in `el #list role=list 16,16 208x168 scroll 0,90`. A list of rows (`El.rows`) adds before that the rows that exist, first and last, and how many rows it has, as in `el #rows role=grid 16,44 248x160 rows 765429-765440/1000000 scroll 0,21432096`, or `rows -/<count>` when none exist; its children are those rows in order. A line that ends in `exiting` is an element with a key and motion that a rebuild left out: it fades out where it was, takes no input, and is removed once invisible. Selectors do not match it, nor anything at opacity 0. The line of the element that a press under the pointer would go to ends in `hovered`, and that of the element that has the keyboard focus in `focused`.
 
 Keys go to the focused element and then up through its ancestors until a key handler takes them; without focus only the root gets them. If none does, Tab and Shift+Tab move the focus through the focusable elements in tree order, around at the ends, and Enter and Space press the focused element. A press focuses the focusable element it lands in and clears the focus elsewhere. Focus moved by the keyboard or by `focus` is drawn with a ring and scrolls into view; a press shows no ring.
 
-A target is a position `x,y` in logical pixels, or a selector for exactly one element of the last frame: `#key` (anywhere in the tree), `role=<role>`, `label="<text>"` (`\"` and `\\` inside), `text="<string>"` (see Text), or several of them, as in `role=switch label="Lights"`. A selector presses the centre of the element's rectangle. When it matches nothing, the error lists the keys, roles and labels there are, and the texts if there are any; when it matches several, it lists them with their rectangles.
+A target is a position `x,y` in logical pixels, or a selector for exactly one element of the last frame: `#key` (anywhere in the tree), `role=<role>`, `label="<text>"` (`\"` and `\\` inside), `text="<string>"` (see Text), or several of them, as in `role=switch label="Lights"`. A selector presses the centre of the element's rectangle. When it matches nothing, the error lists the keys, roles and labels there are, and the texts if there are any, and the lists of rows with the rows that exist, since a selector finds only those; when it matches several, it lists them with their rectangles.
 
 `core/src/test/resources/scripts/switch.txt` drives the switch of core's tests:
 
@@ -107,6 +108,32 @@ snap list-end
 ```sh
 java -cp core/target/classes:core/target/test-classes com.rethinkj.ui.Examples list \
   --script core/src/test/resources/scripts/list.txt --out core/target/list
+```
+
+`core/src/test/resources/scripts/rows.txt` scrolls a list of a million rows, which `Examples` runs when `rows` comes first. A list made with `El.rows(count, rowHeight, row)` builds only the rows in its visible part and three more on each side, so the tree holds a dozen rows, not a million:
+
+```text
+# A million rows in a virtual list (Examples rows): only the rows in view and three more on
+# each side exist, and the tree says which.
+size 280 220 scale 2
+frame
+snap rows-top
+
+wheel #rows 0 40          # 40 pixels down: the rows that exist suffice, none is built
+frame
+snap rows-scrolled
+
+scroll #rows row 765432   # row 765432 at the top: the list builds the rows around it
+frame
+snap rows-far
+```
+
+The rows have text, so this needs the fonts and the native libraries on the class path (on Linux):
+
+```sh
+java --enable-native-access=ALL-UNNAMED \
+  -cp core/target/classes:core/target/test-classes:fonts/target/classes:natives-linux-x64/target/classes \
+  com.rethinkj.ui.Examples rows --script core/src/test/resources/scripts/rows.txt --out core/target/rows
 ```
 
 `core/src/test/resources/scripts/focus.txt` reaches the switch with the keyboard:

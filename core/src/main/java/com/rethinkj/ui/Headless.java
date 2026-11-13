@@ -39,9 +39,26 @@ public final class Headless {
       El root, float width, float height, float scale, TextRendering textRendering) {
     El.scaleText(root, scale);
     Flex.layout(root, width, height);
+    fillRows(root, 0, height, scale);
     Scene scene = Scene.of(root, null, 0, new Atlas(), textRendering);
     Pixels pixels =
         CpuRenderer.render(scene, Math.round(width * scale), Math.round(height * scale), scale);
     return new Frame(pixels, root.dump());
+  }
+
+  /** Builds the rows of the virtual lists ({@link El#rows}) that show at their offset of 0. */
+  private static void fillRows(El el, float parentY, float windowHeight, float scale) {
+    if (!el.isPlaced()) {
+      return;
+    }
+    float top = parentY + el.y();
+    int[] range = el.wantedRows(top, windowHeight);
+    if (range != null) {
+      el.makeRows(range[0], range[1]);
+      el.layoutRows(scale);
+    }
+    for (El child : el.children()) {
+      fillRows(child, top, windowHeight, scale);
+    }
   }
 }

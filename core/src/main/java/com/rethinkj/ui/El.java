@@ -1,5 +1,6 @@
 package com.rethinkj.ui;
 
+import com.rethinkj.ui.layout.Flex;
 import com.rethinkj.ui.motion.Spring;
 import com.rethinkj.ui.text.Font;
 import java.util.ArrayList;
@@ -8,6 +9,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.function.Consumer;
+import java.util.function.IntFunction;
 import java.util.function.Predicate;
 
 /**
@@ -20,6 +22,9 @@ import java.util.function.Predicate;
  * }</pre>
  */
 public final class El {
+
+  /** How many rows a {@link #rows virtual list} builds beyond its visible part, on each side. */
+  public static final int OVERSCAN = 3;
 
   private final Style style = new Style();
   private final List<El> children = new ArrayList<>();
@@ -52,13 +57,21 @@ public final class El {
   private float y;
   private float width;
   private float height;
-  // The scroll offset of this element, how far it may go, and the offset of its parent.
-  private float scrollX;
-  private float scrollY;
-  private float maxScrollX;
-  private float maxScrollY;
+  // The scroll offset of this element, how far it may go, and how far its children are moved by
+  // it. The offset is a double so that a virtual list can be billions of pixels tall; the shift is
+  // small, because rows are placed near the offset.
+  private double scrollX;
+  private double scrollY;
+  private double maxScrollX;
+  private double maxScrollY;
   private float shiftX;
   private float shiftY;
+  // A virtual list: its rows, and the index of the row that is its first child.
+  private int rowCount;
+  private float rowHeight;
+  private IntFunction<El> rowBuilder;
+  private int firstRow;
+  private boolean rowsBuilt; // for this tree; a rebuild of the view starts without rows
 
   private El() {}
 
@@ -306,6 +319,63 @@ public final class El {
     return this;
   }
 
+  /**
+   * Makes this element a virtual list: a vertical scroll area as {@link #scroll} makes, whose
+   * content is {@code count} rows of the same height, of which only those in or near its visible
+   * part exist as elements. A million rows cost no more per frame than a dozen.
+   *
+   * <pre>{@code
+   * col().key("orders").grow(1).rows(orders.size(), 28, i -> orderRow(orders.get(i)))
+   * }</pre>
+   *
+   * <p>{@link App} calls {@code row} with a row's index, from 0, for the rows inside the list's
+   * visible part, which is its border box inside the window, and {@link #OVERSCAN} more on each
+   * side: after every rebuild of the view, and when scrolling shows a row that does not exist yet.
+   * That builds the list's rows anew, but not the view; scrolling within the rows that exist
+   * builds nothing. {@code row} runs on the app's thread during {@link App#frame}, so it has to be
+   * cheap, and like the view it only reads the state and returns a new element each time. Each row
+   * is laid out on its own, with the list's inner width and {@code rowHeight}, at {@code index *
+   * rowHeight} below the top of the list's content box; the size, margin and position the row's
+   * element sets are replaced.
+   *
+   * <p>A row is identified by its index, also when its element has a {@link #key}: what the app
+   * keeps of a row, such as its movement and a press on it, belongs to the index and is dropped
+   * when the row leaves the rows that exist. The focus is kept: a focused row that scrolls out
+   * stays focused, keys go to the list and its ancestors meanwhile, and the row is focused again
+   * when it comes back. Tab and Shift+Tab enter the list at the element that last had the focus
+   * in it, else at the first row in view (the last for Shift+Tab). Rows neither fade in nor out,
+   * and they move with the list at once, also with {@link #motion}.
+   *
+   * <p>The list has no other children: {@link #child} fails on it. Its content has no width of its
+   * own, so give the list a width or let its parent stretch it, and give it a height or let it
+   * {@link #grow}: like any scroll area it is as tall as its content otherwise.
+   *
+   * @param count the number of rows, 0 or more
+   * @param rowHeight the height of every row in logical pixels, above 0
+   * @param row builds the element of the row with this index
+   * @see App#scrollToRow
+   */
+  public El rows(int count, float rowHeight, IntFunction<El> row) {
+    if (count < 0) {
+      throw new IllegalArgumentException("count must be 0 or more, was " + count);
+    }
+    if (!(rowHeight > 0 && rowHeight < Float.POSITIVE_INFINITY)) {
+      throw new IllegalArgumentException("rowHeight must be above 0 and finite, was " + rowHeight);
+    }
+    if (!children.isEmpty()) {
+      throw new IllegalStateException(
+          "rows makes the rows of this element; it cannot have children of its own as well.");
+    }
+    scroll();
+    this.rowCount = count;
+    this.rowHeight = rowHeight;
+    this.rowBuilder = Objects.requireNonNull(row, "row");
+    // Layout sees all rows as one leaf, as tall as they are together.
+    this.measure = (knownWidth, knownHeight, availableWidth, availableHeight) ->
+        new Measure.Size(0, (float) (count * (double) rowHeight));
+    return this;
+  }
+
   // Text, for elements made with text()
 
   public El font(Font font) {
@@ -499,13 +569,22 @@ public final class El {
   // Tree
 
   public El child(El child) {
+    noRows();
     children.add(child);
     return this;
   }
 
   public El children(El... children) {
+    noRows();
     Collections.addAll(this.children, children);
     return this;
+  }
+
+  private void noRows() {
+    if (rowBuilder != null) {
+      throw new IllegalStateException(
+          "This element is a list made with rows(...), which builds its children itself.");
+    }
   }
 
   /** Sizes the content when this element has no children. This is the hook for text. */
@@ -624,32 +703,70 @@ public final class El {
     return scrollArea;
   }
 
+  /** Whether {@link #rows} made this a virtual list, whose children are the rows that exist. */
+  public boolean isVirtualList() {
+    return rowBuilder != null;
+  }
+
+  /** The number of rows of a {@link #rows virtual list}, 0 for any other element. */
+  public int rowCount() {
+    return rowCount;
+  }
+
+  /** The height of each row of a {@link #rows virtual list} in logical pixels. */
+  public float rowHeight() {
+    return rowHeight;
+  }
+
+  /**
+   * The index of the row that is the first child of a {@link #rows virtual list}: the children
+   * are the rows from this one on, as many as exist.
+   */
+  public int firstRow() {
+    return firstRow;
+  }
+
+  /** Whether the row with this index exists as a child of this virtual list. */
+  boolean hasRow(int index) {
+    return index >= firstRow && index < firstRow + children.size();
+  }
+
   /**
    * The horizontal offset of this scroll area in logical pixels: how far its content is moved to
    * the left, 0 at the start. The positions of the children already take it into account. {@link
    * App#scrollTo} changes it.
    */
-  public float scrollX() {
+  public double scrollX() {
     return scrollX;
   }
 
-  /** The vertical offset of this scroll area: how far its content is moved up, 0 at the top. */
-  public float scrollY() {
+  /**
+   * The vertical offset of this scroll area: how far its content is moved up, 0 at the top. It is
+   * a double, exact for the integers of a list of rows billions of pixels tall.
+   */
+  public double scrollY() {
     return scrollY;
   }
 
   /** Whether the offset along one axis can still move in the direction of {@code delta}. */
   boolean canScroll(boolean horizontal, float delta) {
-    float offset = horizontal ? scrollX : scrollY;
+    double offset = horizontal ? scrollX : scrollY;
     return delta > 0 ? offset < (horizontal ? maxScrollX : maxScrollY) : delta < 0 && offset > 0;
   }
 
   /**
    * Measures how far this element can scroll along the axes with {@code overflow: scroll}: to
    * where its farthest child ends, with its margin and this element's end padding and border.
-   * Called right after layout, before anything springs.
+   * Called right after layout, before anything springs. A virtual list reaches to the end of its
+   * last row, whether it exists or not.
    */
   void measureScroll() {
+    if (rowBuilder != null) {
+      maxScrollX = 0;
+      maxScrollY = Math.max(rowsTop() + rowCount * (double) rowHeight + px(style.paddingBottom)
+          + px(style.borderBottom) - height, 0);
+      return;
+    }
     float right = 0;
     float bottom = 0;
     for (El child : children) {
@@ -681,17 +798,113 @@ public final class El {
    *
    * @return whether the offset changed
    */
-  boolean scrollTo(float x, float y) {
-    float newX = Math.clamp(x, 0, maxScrollX);
-    float newY = Math.clamp(y, 0, maxScrollY);
+  boolean scrollTo(double x, double y) {
+    double newX = Math.clamp(x, 0, maxScrollX);
+    double newY = Math.clamp(y, 0, maxScrollY);
     boolean changed = newX != scrollX || newY != scrollY;
     scrollX = newX;
     scrollY = newY;
+    // Rows are placed from the first one that exists, so the offset moves them from there.
+    float shiftY = (float) (rowBuilder == null ? newY : newY - firstRow * (double) rowHeight);
     for (El child : children) {
-      child.shiftX = newX;
-      child.shiftY = newY;
+      child.shiftX = (float) newX;
+      child.shiftY = shiftY;
     }
     return changed;
+  }
+
+  // Virtual lists, for App and Headless. A row's index times rowHeight is exact in a double: a
+  // float's 24 significant bits times an index below 2^29 fit into its 53.
+
+  /** The top of the content box, where row 0 begins, relative to the border box. */
+  private float rowsTop() {
+    return px(style.borderTop) + px(style.paddingTop);
+  }
+
+  /**
+   * The rows this virtual list should have, as {@code {from, to}} with {@code to} exclusive, or
+   * null when it has them: those in its visible part, which is its border box inside the window,
+   * and {@link #OVERSCAN} more on each side. A list that has every row in view keeps its rows, so
+   * that scrolling by less than the overscan builds nothing.
+   *
+   * @param top the top of the border box in window coordinates
+   */
+  int[] wantedRows(float top, float windowHeight) {
+    if (rowBuilder == null) {
+      return null;
+    }
+    double row0 = top + rowsTop() - scrollY; // where row 0 is in the window
+    double from = Math.max(top, 0);
+    double to = Math.max(Math.min(top + height, windowHeight), from);
+    int first = Math.clamp((long) Math.floor((from - row0) / rowHeight), 0, rowCount);
+    int end = Math.clamp((long) Math.ceil((to - row0) / rowHeight), first, rowCount);
+    if (rowsBuilt && first >= firstRow && end <= firstRow + children.size()) {
+      return null;
+    }
+    return new int[] {
+      Math.max(first - OVERSCAN, 0), (int) Math.min(end + (long) OVERSCAN, rowCount)
+    };
+  }
+
+  /**
+   * Replaces the rows of this virtual list by those from {@code from} to {@code to}, exclusive,
+   * as its row function builds them. {@link #layoutRows} lays them out.
+   */
+  void makeRows(int from, int to) {
+    children.clear();
+    for (int i = from; i < to; i++) {
+      El row = rowBuilder.apply(i);
+      if (row == null) {
+        throw new IllegalStateException("The row function of a list returned null for row " + i);
+      }
+      children.add(row);
+    }
+    firstRow = from;
+    rowsBuilt = true;
+  }
+
+  /**
+   * Lays out each row that {@link #makeRows} made on its own, with the list's inner width and the
+   * row height, and places it below the previous one.
+   */
+  void layoutRows(float scale) {
+    float left = px(style.borderLeft) + px(style.paddingLeft);
+    float inner =
+        Math.max(width - left - px(style.paddingRight) - px(style.borderRight)
+            - style.scrollbarWidth, 0);
+    for (int i = 0; i < children.size(); i++) {
+      El row = children.get(i);
+      row.style.width = Len.px(inner);
+      row.style.height = Len.px(rowHeight);
+      scaleText(row, scale);
+      Flex.layout(row, inner, rowHeight);
+      row.place(left, (float) (rowsTop() + i * (double) rowHeight), inner, rowHeight);
+    }
+    scrollTo(scrollX, scrollY); // shifts the new rows
+  }
+
+  /**
+   * The offset that shows the row with this index whole with the least scrolling from the current
+   * offset, or its top if it is taller than the list.
+   */
+  double offsetShowing(int index) {
+    double top = rowsTop() + index * (double) rowHeight - scrollY;
+    double after = top + rowHeight - height;
+    return scrollY + (top < 0 ? top : after > 0 ? Math.min(after, top) : 0);
+  }
+
+  /**
+   * The first row that is whole inside the list's border box, or the last one for {@code last};
+   * where none is whole, the first one in view. 0 for a list without rows.
+   */
+  int rowInView(boolean last) {
+    double from = scrollY - rowsTop(); // the content at the top of the border box
+    long top = (long) Math.ceil(from / rowHeight);
+    long bottom = (long) Math.floor((from + height) / rowHeight) - 1;
+    if (top > bottom) {
+      top = bottom = (long) Math.floor(from / rowHeight);
+    }
+    return Math.clamp(last ? bottom : top, 0, Math.max(rowCount - 1, 0));
   }
 
   /** Whether this element is fading out after a rebuild left it out; see {@link #motion}. */
@@ -790,8 +1003,10 @@ public final class El {
    * The tree as text, one element per line, children indented by two spaces. After layout each
    * line ends with the element's rectangle in window coordinates, as {@code x,y widthxheight}, as
    * shown, that is, moved by the scroll offsets above it. A scroll area that is scrolled adds its
-   * offset, as {@code scroll x,y}. The line of the element that a press under the pointer would go
-   * to ends with {@code hovered}, that of the element that has the keyboard focus with {@code
+   * offset, as {@code scroll x,y}. A virtual list ({@link #rows}) adds, before that, its rows that
+   * exist and how many it has, as {@code rows 40-56/1000000}, or {@code rows -/1000000} when none
+   * exist. The line of the element that a press under the pointer would go to ends with {@code
+   * hovered}, that of the element that has the keyboard focus with {@code
    * focused}, and that of an element that is leaving with {@code exiting}. A text element's line
    * starts with {@code text} instead of {@code el} and shows its string in quotes after the label.
    * Tests and agents read this, so the format only changes deliberately.
@@ -836,6 +1051,15 @@ public final class El {
       number(out, width).append('x');
       number(out, height);
     }
+    if (rowBuilder != null) {
+      out.append(" rows ");
+      if (children.isEmpty()) {
+        out.append('-');
+      } else {
+        out.append(firstRow).append('-').append(firstRow + children.size() - 1);
+      }
+      out.append('/').append(rowCount);
+    }
     if (scrollX != 0 || scrollY != 0) {
       number(out.append(" scroll "), scrollX).append(',');
       number(out, scrollY);
@@ -863,7 +1087,7 @@ public final class El {
   }
 
   // Not String.format: its decimal separator depends on the locale.
-  private static StringBuilder number(StringBuilder out, float value) {
+  private static StringBuilder number(StringBuilder out, double value) {
     long hundredths = Math.round(value * 100.0);
     if (hundredths < 0) {
       out.append('-');

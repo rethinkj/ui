@@ -17,14 +17,18 @@ public final class Examples {
 
   /**
    * The switch as a program: {@code --script <file> --out <folder>} runs a script against it, and
-   * with {@code list} before that against the list.
+   * with {@code list} or {@code rows} before that against the list or the million rows.
    */
   public static void main(String[] args) throws IOException {
-    boolean list = args.length > 0 && args[0].equals("list");
+    String view = args.length > 0 && !args[0].startsWith("--") ? args[0] : "";
     App<?> app =
-        list ? new App<>(new Object(), s -> list()) : new App<>(new Lights(), Examples::lights);
+        switch (view) {
+          case "list" -> new App<>(new Object(), s -> list());
+          case "rows" -> new App<>(new Object(), s -> rows());
+          default -> new App<>(new Lights(), Examples::lights);
+        };
     app.textRendering(TextRendering.LINUX); // as the stored images
-    if (!Script.handle(list ? Arrays.copyOfRange(args, 1, args.length) : args, app)) {
+    if (!Script.handle(view.isEmpty() ? args : Arrays.copyOfRange(args, 1, args.length), app)) {
       System.err.println("There is no window yet. Run with --script <file> --out <folder>.");
     }
   }
@@ -58,6 +62,40 @@ public final class Examples {
                       .color(0xFF8A8A99)));
     }
     return col().wFull().hFull().padding(16).fill(0xFF101014).child(list);
+  }
+
+  /**
+   * A million rows of tables under a header, in a virtual list: only the rows in view and a few
+   * around them exist.
+   */
+  public static El rows() {
+    El header =
+        row().h(28).shrink(0).padding(0, 12).gap(12).align(Style.Align.CENTER).fill(0xFF26262E)
+            .children(
+                El.text("#").font(Font.mono()).fontSize(12).color(0xFF8A8A99).w(56),
+                El.text("table").fontSize(12).color(0xFFA1A1AA).grow(1),
+                El.text("rows").fontSize(12).color(0xFFA1A1AA));
+    El grid =
+        col().key("rows").role("grid").grow(1).fill(0xFF1C1C22)
+            .rows(1_000_000, 28, Examples::tableRow);
+    return col().wFull().hFull().padding(16).fill(0xFF101014).children(header, grid);
+  }
+
+  /** The row of {@link #rows} with this index. */
+  private static El tableRow(int i) {
+    String table = TABLES[i % TABLES.length];
+    return row().key("row-" + i)
+        .role("row")
+        .label(table)
+        .padding(0, 12)
+        .gap(12)
+        .align(Style.Align.CENTER)
+        .fill(i % 2 == 0 ? 0xFF1C1C22 : 0xFF22222A)
+        .children(
+            El.text(String.valueOf(i)).font(Font.mono()).fontSize(12).color(0xFF8A8A99).w(56),
+            El.text(table).fontSize(13).color(0xFFE4E4E7).grow(1),
+            El.text(String.valueOf(i * 37L % 90 * 113)).font(Font.mono()).fontSize(12)
+                .color(0xFF8A8A99));
   }
 
   /** The state of the switch example. */
