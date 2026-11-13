@@ -1,0 +1,59 @@
+el 0,0 360x240
+  el #titlebar window=drag 0,0 360x32
+    text "\u{F0D7}" 8,8 16x16
+    el #menubar role=menubar 28,4 168x24
+      el #title-0 role=menuitem label="File" 28,4 38x24 expanded=false
+        text "File" 36,8 22x16
+      el #title-1 role=menuitem label="Edit" 66,4 39x24 expanded hovered
+        text "Edit" 74,8 23x16
+      el #title-2 role=menuitem label="View" 105,4 46x24 expanded=false
+        text "View" 113,8 30x16
+      el #title-3 role=menuitem label="Help" 151,4 45x24 expanded=false
+        text "Help" 159,8 29x16
+    el 200,16 72x0
+    el #minimize role=button label="Minimize" window=minimize 276,0 40x32
+      text "\u{EBCF}" 288,8 16x16
+    el #close role=button label="Close" window=close 320,0 40x32
+      text "\u{F368}" 332,8 16x16
+  el 0,32 360x208
+    text #query role=textbox label="Query" "SELECT * FROM orders" 12,44 336x24
+    text #status "Ready · wrap" 12,76 336x16
+overlay bottom start gap 2 on #title-1 role=menuitem label="Edit" 66,4 39x24
+  el #menu role=menu 66,30 176x164 focused
+    el #item-0 role=menuitem label="Undo" 71,35 166x24
+      el 71,35 166x24
+        el 79,39 16x16
+          text "\u{E126}" 79,39 16x16
+        text "Undo" 103,39 68x16
+        text "Ctrl+Z" 191,39 38x16
+    el #item-1 role=menuitem label="Redo" 71,59 166x24
+      el 71,59 166x24
+        el 79,63 16x16
+          text "\u{E0E4}" 79,63 16x16
+        text "Redo" 103,63 32x16
+        text "Ctrl+Shift+Z" 155,63 74x16
+    el 71,85 166x1
+    el #item-3 role=menuitem label="Cut" 71,88 166x24
+      el 71,88 166x24
+        el 79,92 16x16
+          text "\u{F038C}" 79,92 16x16
+        text "Cut" 103,92 68x16
+        text "Ctrl+X" 191,92 38x16
+    el #item-4 role=menuitem label="Copy" 71,112 166x24
+      el 71,112 166x24
+        el 79,116 16x16
+          text "\u{F32A}" 79,116 16x16
+        text "Copy" 103,116 67x16
+        text "Ctrl+C" 190,116 39x16
+    el #item-5 role=menuitem label="Paste" 71,136 166x24
+      el 71,136 166x24
+        el 79,140 16x16
+          text "\u{E35A}" 79,140 16x16
+        text "Paste" 103,140 68x16
+        text "Ctrl+V" 191,140 38x16
+    el 71,162 166x1
+    el #item-7 role=menuitem label="Clear" 71,165 166x24
+      el 71,165 166x24
+        el 79,169 16x16
+          text "\u{E47B}" 79,169 16x16
+        text "Clear" 103,169 126x16

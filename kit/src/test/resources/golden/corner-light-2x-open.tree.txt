@@ -7,8 +7,8 @@ el 0,0 360x240
     el #help role=button label="?" 154,12 33x24
       text "?" 167,16 7x16
     el #encoding role=combobox label="UTF-8" 191,12 120x24 expanded=false
-      text "UTF-8" 200,16 91x16
-      text "▼" 295,16 7x16
+      text "UTF-8" 200,16 82x16
+      text "\u{F2A2}" 286,16 16x16
   el 12,44 336x161
     el #tables role=list label="Tables" 12,44 218x161
       el #table-0 role=listitem label="accounts" 17,49 208x24

@@ -1,0 +1,13 @@
+# The help button of kit's workbench (TooltipTest) reached with the keyboard: its tooltip shows
+# once the button has had the focus, with its ring, for half a second of the app's clock.
+frame
+focus #rename
+key Tab                         # on to the help button
+frame
+advance 0.4
+frame                           # not yet
+advance 0.1
+frame
+advance 0.25                    # past the theme's fade
+frame
+snap shown

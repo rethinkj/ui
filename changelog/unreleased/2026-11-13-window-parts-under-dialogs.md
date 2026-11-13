@@ -1,0 +1,1 @@
+- A modal overlay, such as a dialog, no longer blocks the parts of a frameless window's own frame (`El.windowPart`): while it is open the window can still be moved, minimized, maximized and closed, and a press on such a part neither dismisses the dialog nor reaches anything else. `App.windowPart` looks through the modal overlay for them.

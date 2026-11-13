@@ -34,8 +34,8 @@ class OverlayTest {
     final List<String> log = new ArrayList<>();
   }
 
-  private static App<State> app(State s, Function<State, El> view, float width, float height) {
-    App<State> app = new App<>(s, view);
+  private static <S> App<S> app(S s, Function<S, El> view, float width, float height) {
+    App<S> app = new App<>(s, view);
     app.resize(width, height, 1);
     app.frame();
     return app;
@@ -83,9 +83,15 @@ class OverlayTest {
 
   /** A 60 by 50 box beside a 40 by 20 anchor at x, y in a window of 200 by 200. */
   private static float[] placed(float x, float y, Function<El, El> place) {
+    return placed(x, y, 200, 200, place);
+  }
+
+  /** A 60 by 50 box beside a 40 by 20 anchor at x, y in a window of this size. */
+  private static float[] placed(float x, float y, float width, float height,
+      Function<El, El> place) {
     El overlay = place.apply(el().key("pop").size(60, 50));
-    App<State> app = app(new State(), s -> el().size(200, 200)
-        .child(el().key("anchor").absolute(x, y).size(40, 20).overlay(overlay)), 200, 200);
+    App<State> app = app(new State(), s -> el().size(width, height)
+        .child(el().key("anchor").absolute(x, y).size(40, 20).overlay(overlay)), width, height);
     El pop = find(app, "pop");
     return new float[] {pop.x(), pop.y(), pop.width(), pop.height()};
   }
@@ -124,6 +130,21 @@ class OverlayTest {
     // At least as wide as the anchor.
     assertRect(new float[] {10, 30, 40, 50},
         placed(10, 10, o -> o.w(20).side(Side.BOTTOM, Style.Align.STRETCH, 0)));
+  }
+
+  @Test
+  void submenusGoOnToTheSideTheFirstThatFlippedWentTo() {
+    // Each level 50 wide, to the right of an item as wide as its menu, in a window 180 wide.
+    El third = el().key("third").size(50, 20).side(Side.RIGHT, Style.Align.START, 0);
+    El second = el().key("second").size(50, 20).side(Side.RIGHT, Style.Align.START, 0)
+        .child(el().size(50, 20).overlay(third));
+    El first = el().key("first").size(50, 20).side(Side.RIGHT, Style.Align.START, 0)
+        .child(el().size(50, 20).overlay(second));
+    App<State> app = app(new State(), s -> el().size(180, 100)
+        .child(el().key("anchor").absolute(50, 0).size(50, 20).overlay(first)), 180, 100);
+    assertEquals(100, find(app, "first").x(), "right of its anchor");
+    assertEquals(50, find(app, "second").x(), "no room on the right: to the left");
+    assertEquals(0, find(app, "third").x(), "and on to the left, although the right fits");
   }
 
   @Test
@@ -496,6 +517,93 @@ class OverlayTest {
   }
 
   @Test
+  void aLookAfterTheKeyboardFocusShowsATooltipUntilAKeyOrTheFocusMoves() {
+    State s = new State();
+    App<State> app = app(s, st -> row().size(200, 200).children(
+        el().key("before").size(40, 20).focusable(),
+        el().key("anchor").size(40, 20).focusable()
+            .whenFocusVisibleFor(0.5, e -> e.overlay(el().key("tip").size(60, 16)))), 200, 200);
+    key(app, "Tab", 0);
+    key(app, "Tab", 0);
+    assertEquals("anchor", app.focused().key());
+    assertEquals(0.5, app.nextChange(), "due half a second after the focus came");
+    app.advance(0.4);
+    assertFalse(app.frame(), "nothing new to draw while it waits");
+    app.advance(0.1);
+    assertTrue(app.frame());
+    assertEquals("tip", app.tree().shownOverlays().getFirst().key());
+    assertEquals(Double.POSITIVE_INFINITY, app.nextChange());
+
+    key(app, "A", 0); // a key that moves no focus hides it
+    assertTrue(app.tree().shownOverlays().isEmpty());
+    app.advance(2);
+    app.frame();
+    assertTrue(app.tree().shownOverlays().isEmpty(), "until the focus comes back");
+    key(app, "Tab", Key.SHIFT);
+    key(app, "Tab", 0);
+    app.advance(0.5);
+    app.frame();
+    assertEquals(1, app.tree().shownOverlays().size(), "back by the keyboard: again");
+    key(app, "Tab", Key.SHIFT);
+    assertTrue(app.tree().shownOverlays().isEmpty(), "the focus left");
+    press(app, 50, 10); // a press focuses it without a ring: no tooltip
+    app.advance(1);
+    app.frame();
+    assertEquals("anchor", app.focused().key());
+    assertTrue(app.tree().shownOverlays().isEmpty());
+  }
+
+  @Test
+  void aTooltipThatWouldCoverItsAnchorGoesToASideAcross() {
+    // A 60 by 50 tooltip below a 40 by 20 anchor in a window 80 high: neither below nor above.
+    float[] across = {54, 15, 60, 50};
+    assertRect(across, tooltip(200, o -> o.side(Side.BOTTOM, Style.Align.CENTER, 4)));
+    // An overlay that no delayed look attached stays as near as it fits, over its anchor.
+    assertRect(new float[] {0, 30, 60, 50},
+        placed(10, 30, 200, 80, o -> o.side(Side.BOTTOM, Style.Align.CENTER, 4)));
+  }
+
+  /** Where a 60 by 50 tooltip of a 40 by 20 anchor at 10,30 shows in a window 80 high. */
+  private static float[] tooltip(float width, Function<El, El> place) {
+    App<State> app = app(new State(), s -> el().size(width, 80).child(el().key("anchor")
+        .absolute(10, 30).size(40, 20)
+        .whenHoveredFor(0, e -> e.overlay(place.apply(el().key("pop").size(60, 50))))),
+        width, 80);
+    app.pointerMove(20, 40);
+    app.frame();
+    El pop = find(app, "pop");
+    return new float[] {pop.x(), pop.y(), pop.width(), pop.height()};
+  }
+
+  @Test
+  void aNotificationAtTheWindowsEdgeClosesItselfWhenTheClockSaysAndPresentsNothingMeanwhile() {
+    State s = new State();
+    App<State> app = app(s, st -> el().size(200, 100).child(el().key("field").size(40, 20)
+        .focusable()).overlay(st.open ? row().key("toast").size(80, 20).keepFocus()
+            .atWindowEdge(Side.BOTTOM, Style.Align.CENTER, 10)
+            .onShownFor(5, () -> {
+              st.log.add("timeout");
+              st.open = false;
+            }) : null), 200, 100);
+    press(app, 10, 10);
+    s.open = true;
+    rebuild(app);
+    El toast = find(app, "toast"); // the rebuild made the window 200 high
+    assertRect(new float[] {60, 170, 80, 20},
+        new float[] {toast.x(), toast.y(), toast.width(), toast.height()});
+    assertTrue(app.render().tree().contains("\noverlay edge bottom center gap 10 on 0,0 200x100"));
+    assertEquals("field", app.focused().key(), "it kept the focus where it was");
+    assertEquals(5, app.nextChange(), "when it closes");
+    app.advance(4.9);
+    assertFalse(app.frame(), "nothing to draw while it waits");
+    app.advance(0.1);
+    assertTrue(app.frame());
+    assertEquals(List.of("timeout"), s.log);
+    assertTrue(app.tree().shownOverlays().isEmpty());
+    assertEquals(Double.POSITIVE_INFINITY, app.nextChange());
+  }
+
+  @Test
   void aStayInARowGoesOnThroughAFrameWhoseKeysBuildTheViewBetweenThem() {
     State s = new State();
     App<State> app = app(s, st -> el().size(200, 200).focusable().onKey(k -> {
@@ -587,5 +695,140 @@ class OverlayTest {
         """, app.render().tree());
     assertEquals(Headless.render(OverlayTest.menuButton(s), 200, 200, 1).tree(),
         app.render().tree(), "Headless places them as the app does");
+  }
+
+  /** The state of a bar of two titles that open a menu each. */
+  static final class Bar {
+    int open = -1;
+    boolean active; // the keyboard has the bar
+    final List<String> log = new ArrayList<>();
+  }
+
+  /**
+   * A bar of two titles, 40 by 20 at 0,0 and 50,0, in one dismiss group with their menus, which
+   * keeps the focus where it is; below it a focusable field. While active, the bar holds the focus.
+   */
+  private static El bar(Bar b) {
+    El bar = row().key("bar").gap(10).keepFocus();
+    for (int i = 0; i < 2; i++) {
+      int at = i;
+      El title = el().key("title-" + i).size(40, 20).dismissGroup(b).onPress(() -> {
+        b.log.add("title " + at);
+        b.open = b.open == at ? -1 : at;
+      });
+      if (b.open == i) {
+        title.overlay(col().key("menu").dismissGroup(b).onDismiss(() -> {
+          b.log.add("dismissed");
+          b.open = -1;
+          b.active = false;
+        }).child(el().key("item").size(60, 20).focusable().onPress(() -> b.log.add("item"))));
+      }
+      bar.child(title);
+    }
+    if (b.active) {
+      bar.focusable().holdFocus().onDismiss(() -> {
+        b.log.add("bar dismissed");
+        b.active = false;
+      });
+    }
+    return col().size(200, 200).gap(10).children(bar,
+        el().key("field").size(100, 20).focusable().onPress(() -> b.log.add("field")));
+  }
+
+  @Test
+  void aPressOnAnElementOfTheOverlaysDismissGroupGoesOnToItWithoutDismissing() {
+    Bar b = new Bar();
+    App<Bar> app = app(b, OverlayTest::bar, 200, 200);
+    press(app, 20, 10);
+    assertEquals(0, b.open);
+    press(app, 70, 10); // the other title: one press switches
+    assertEquals(List.of("title 0", "title 1"), b.log);
+    assertEquals(1, b.open);
+    press(app, 70, 10); // its own title closes it
+    assertEquals(-1, b.open);
+    b.log.clear();
+
+    press(app, 20, 10);
+    press(app, 47, 10); // between the titles, outside the group: dismisses, nothing else
+    assertEquals(List.of("title 0", "dismissed"), b.log);
+    b.log.clear();
+    press(app, 20, 10);
+    press(app, 90, 45); // on the field: dismisses, nothing else, as before
+    assertEquals(List.of("title 0", "dismissed"), b.log);
+  }
+
+  @Test
+  void aPressInAnElementThatKeepsTheFocusLeavesItWhereItIs() {
+    Bar b = new Bar();
+    App<Bar> app = app(b, OverlayTest::bar, 200, 200);
+    press(app, 20, 40);
+    assertEquals("field", app.focused().key());
+    press(app, 20, 10); // the title: the menu opens and takes the focus
+    assertEquals("item", app.focused().key());
+    press(app, 20, 10); // the title again: the menu closes and gives it back
+    assertEquals(-1, b.open);
+    assertEquals("field", app.focused().key(), "the press on the title did not clear it");
+  }
+
+  @Test
+  void anOverlayThatKeepsTheFocusOpensWithoutItAndTabStillReachesIt() {
+    State s = new State();
+    App<State> app = app(s, st -> el().size(200, 200).child(row().children(
+        el().key("field").size(40, 20).focusable(),
+        el().key("after").size(40, 20).focusable().overlay(st.open
+            ? col().key("toast").keepFocus().child(
+                el().key("undo").size(40, 20).focusable().onPress(() -> st.log.add("undo")))
+            : null))), 200, 200);
+    press(app, 20, 10);
+    assertEquals("field", app.focused().key());
+    s.open = true;
+    rebuild(app);
+    assertEquals("field", app.focused().key(), "it opened without taking the focus");
+    key(app, "Tab", 0);
+    key(app, "Tab", 0);
+    assertEquals("undo", app.focused().key(), "right after its anchor");
+    key(app, "Tab", Key.SHIFT);
+    key(app, "Tab", Key.SHIFT);
+    press(app, 50, 30); // Undo, below its anchor: runs, and leaves the focus on the field
+    assertEquals(List.of("undo"), s.log);
+    assertEquals("field", app.focused().key());
+  }
+
+  @Test
+  void anElementThatHoldsTheFocusTakesItAndGivesItBackAfterTheOverlaysInsideIt() {
+    Bar b = new Bar();
+    App<Bar> app = app(b, OverlayTest::bar, 200, 200);
+    press(app, 20, 40);
+    b.active = true;
+    rebuild(app);
+    assertEquals("bar", app.focused().key(), "marked: it takes the focus");
+    b.open = 1;
+    rebuild(app);
+    assertEquals("item", app.focused().key(), "the menu inside it takes it from the bar");
+    b.open = -1;
+    rebuild(app);
+    assertEquals("bar", app.focused().key(), "and gives it back to the bar");
+    b.open = 0;
+    rebuild(app);
+    b.open = -1;
+    b.active = false;
+    rebuild(app);
+    assertEquals("field", app.focused().key(), "both closed in one build: the newest first");
+
+    b.active = true;
+    rebuild(app);
+    b.log.clear();
+    press(app, 20, 10); // a title, inside the bar
+    assertEquals(List.of("title 0"), b.log);
+    press(app, 150, 150); // outside both: the menu and the bar are dismissed, nothing else
+    assertEquals(List.of("title 0", "dismissed", "bar dismissed"), b.log);
+    assertFalse(b.active);
+    assertEquals("field", app.focused().key());
+    b.active = true;
+    rebuild(app);
+    b.log.clear();
+    press(app, 90, 45); // the field: dismisses the bar and goes no further
+    assertEquals(List.of("bar dismissed"), b.log);
+    assertEquals("field", app.focused().key());
   }
 }

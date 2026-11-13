@@ -92,7 +92,7 @@ public final class TextField {
    *
    * <p>The button ({@code role=button}, {@code label="Show password"} or {@code "Hide password"},
    * the eye or the crossed eye) leaves the focus in the field when it is pressed ({@link
-   * El#keepFocusOnPress}), so typing goes on where it was. Tab reaches it after the field, and
+   * El#keepFocus}), so typing goes on where it was. Tab reaches it after the field, and
    * Enter and Space press it there. It is disabled with the field and without a handler; a
    * read-only field shows its password too.
    *
@@ -122,7 +122,7 @@ public final class TextField {
     at.top = Len.px(inset);
     if (enabled) {
       button.focusable()
-          .keepFocusOnPress()
+          .keepFocus()
           .focusRing(t.border().focus())
           .cursor(Cursor.POINTER)
           .onPress(onToggle)

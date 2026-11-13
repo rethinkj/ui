@@ -44,6 +44,8 @@ frame
 
 press #saved-3 right          # the context menu of a saved query
 frame
+advance 0.25                  # past its fade, so that its items can be found
+frame
 move #item-1                  # the pointer highlights Rename…
 frame
 advance 1

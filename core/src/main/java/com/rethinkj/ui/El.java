@@ -58,7 +58,6 @@ public final class El {
   private Consumer<Drag> onDrag;
   private int revealRow = -1;
   private boolean focusable;
-  private boolean keepFocusOnPress;
   private Integer focusRing;
   private Predicate<Key> onKey;
   private Predicate<Key> onKeyUp;
@@ -127,6 +126,13 @@ public final class El {
   private double restDelay;
   private Runnable onHoverFor;
   private double hoverDelay;
+  private Object dismissGroup; // see #dismissGroup
+  private boolean keepsFocus; // see #keepFocus
+  private boolean holdsFocus; // see #holdFocus
+  private Consumer<El> focusRestLook; // see #whenFocusVisibleFor
+  private double focusRestDelay;
+  private Runnable onShownFor; // see #onShownFor
+  private double shownDelay;
 
   /** Told a position in logical pixels of the window, as {@link #onSecondaryPress} is. */
   @FunctionalInterface
@@ -173,11 +179,14 @@ public final class El {
     float pointX = Float.NaN;
     float pointY = Float.NaN;
     boolean centered;
+    Side edge; // see El#atWindowEdge; null for beside the anchor
     boolean modal;
     int scrim;
     Runnable onDismiss;
     Object id; // its identity, which Animator sets
     long opened; // when it first appeared, which Animator counts
+    boolean flipped; // the last placement put it on the other side of its anchor
+    boolean avoidsAnchor; // a delayed look attached it: it goes across rather than cover it
     El anchor; // as the last placement found it, in window coordinates
     float anchorX;
     float anchorY;
@@ -789,6 +798,21 @@ public final class El {
     return this;
   }
 
+  /**
+   * Underlines characters {@code from} to {@code to} of the text, in the text's colour, as a menu
+   * marks the letter that opens it with Alt. The line lies where an input method's composition is
+   * underlined. Not for a text field, whose composition has the line.
+   */
+  public El underline(int from, int to) {
+    Text t = textOnly("underline");
+    if (from < 0 || to < from || to > t.string().length()) {
+      throw new IllegalArgumentException("underline " + from + " to " + to + " is not inside \""
+          + t.string() + "\"");
+    }
+    t.underline(from, to);
+    return this;
+  }
+
   /** Lets the text break into more lines where it is wider than its box. */
   public El wrapText() {
     textOnly("wrapText").wraps(true);
@@ -1043,18 +1067,6 @@ public final class El {
   }
 
   /**
-   * Leaves the keyboard focus where it is when a press lands on this element or inside it, before
-   * a focusable element around the point: the press neither takes the focus nor gives it to this
-   * element, as Swing's {@code setRequestFocusEnabled(false)} does. For a button inside a text
-   * field, such as the one that shows a password: pressing it leaves the caret in the field. Tab
-   * still reaches it when it is {@link #focusable}, and Enter and Space press it there.
-   */
-  public El keepFocusOnPress() {
-    this.keepFocusOnPress = true;
-    return this;
-  }
-
-  /**
    * Sets the colour of the ring drawn around this element while it has the focus from the
    * keyboard or the app, as 0xAARRGGBB; 0 draws none. An element that sets none gets the app's
    * ({@link App#focusRing}). A view that draws parts of itself in different themes gives each of
@@ -1193,6 +1205,23 @@ public final class El {
   }
 
   /**
+   * Changes how this element looks once it has had the keyboard focus with a ring for {@code
+   * seconds} of the app's clock, as CSS's {@code :focus-visible} after a delay: the keyboard or the
+   * app moved the focus there, not a press. The look goes when the focus leaves or a key goes down
+   * that does not move the focus, and comes back only when the focus comes back. A tooltip uses
+   * it with the same look as {@link #whenHoveredFor}, so that the keyboard shows it too; both
+   * looks apply when both are due, the hovered one first. {@link App#nextChange} says when it is
+   * due, as for {@link #whenHoveredFor}. Not in the rows of a virtual list.
+   *
+   * @param look changes the element, or null for none
+   */
+  public El whenFocusVisibleFor(double seconds, Consumer<El> look) {
+    this.focusRestDelay = delay(seconds);
+    this.focusRestLook = look;
+    return this;
+  }
+
+  /**
    * Runs {@code handler} once the pointer has rested over this element, or over elements inside
    * it, for {@code seconds} of the app's clock; once per stay, and not after a press until the
    * pointer has left and come back. With 0 it runs in the frame that finds the pointer there. Like
@@ -1290,6 +1319,42 @@ public final class El {
   }
 
   /**
+   * Places this overlay inside the window against one of its edges, {@code gap} pixels away from
+   * it, and along that edge as {@code align} says, {@code START}, {@code CENTER} or {@code END},
+   * the same distance from the corners: a notification at the bottom in the middle.
+   */
+  public El atWindowEdge(Side edge, Style.Align align, float gap) {
+    Layer l = layer();
+    l.edge = Objects.requireNonNull(edge, "edge");
+    l.align = Objects.requireNonNull(align, "align");
+    l.gap = gap;
+    return this;
+  }
+
+  /**
+   * Runs {@code handler} once this overlay has been open for {@code seconds} of the app's clock,
+   * once per opening: a notification closes itself after a while. Like {@link #onHoverFor}, it
+   * runs in {@link App#frame}, which then builds the view again; {@link App#nextChange} says when
+   * it is due, so an idle window waits for it without drawing frames.
+   *
+   * @param handler runs once the time has come, or null for none
+   */
+  public El onShownFor(double seconds, Runnable handler) {
+    this.shownDelay = delay(seconds);
+    this.onShownFor = handler;
+    return this;
+  }
+
+  /** The handler of {@link #onShownFor}, or null. */
+  Runnable onShownFor() {
+    return onShownFor;
+  }
+
+  double shownDelay() {
+    return shownDelay;
+  }
+
+  /**
    * Makes this overlay modal while it is open: input outside it reaches nothing below it. A press
    * there calls its {@link #onDismiss} handler and nothing else, the wheel there does nothing, the
    * focus stays inside it, Tab and Shift+Tab go around inside it, and keys go up from the focused
@@ -1320,6 +1385,49 @@ public final class El {
    */
   public El onDismiss(Runnable handler) {
     layer().onDismiss = handler;
+    return this;
+  }
+
+  /**
+   * Puts this overlay, or this element and what is inside it, into a group for dismissing: a press
+   * or the wheel on an element of the group is not outside the overlays of the same group. They
+   * are not dismissed, and the press goes on to the element as if it had landed in an overlay below
+   * them, whose handler decides what happens. A menu bar puts its titles and their menus into one
+   * group, so that a press on another title switches menus with one click and a press on the open
+   * menu's title closes it. Groups are equal by {@link Object#equals}; the app's state object of
+   * the component is a good one.
+   *
+   * @param group the group, or null for none
+   */
+  public El dismissGroup(Object group) {
+    this.dismissGroup = group;
+    return this;
+  }
+
+  /**
+   * Makes this element leave the keyboard focus where it is. A press on it or inside it does not
+   * move the focus, also not to a focusable element inside it, except into a text field; as an
+   * overlay it opens without taking the focus, and closes without moving it. Tab still reaches the
+   * focusable elements inside it in the usual order: an overlay's right after its anchor. A menu
+   * bar's titles keep the focus in the editor whose menus they open, and a notification with an
+   * Undo button opens without taking the focus from what the user types.
+   */
+  public El keepFocus() {
+    this.keepsFocus = true;
+    return this;
+  }
+
+  /**
+   * Makes this element hold the keyboard focus while the view marks it so, as an open overlay
+   * does: the build that first marks it moves the focus to it, or to its first focusable element,
+   * without a ring, and the first build that no longer marks it gives the focus back to where it
+   * was before, with the ring it had, if the focus is still inside it or nowhere. A press outside
+   * it calls its {@link #onDismiss} handler and goes no further, as a press outside a menu does.
+   * Overlays that open inside it take the focus from it and give it back, the newest first. A menu
+   * bar holds the focus this way while the keyboard has it, from Alt or F10 until Escape.
+   */
+  public El holdFocus() {
+    this.holdsFocus = true;
     return this;
   }
 
@@ -1436,6 +1544,14 @@ public final class El {
     return restLook;
   }
 
+  Consumer<El> focusRestLook() {
+    return focusRestLook;
+  }
+
+  double focusRestDelay() {
+    return focusRestDelay;
+  }
+
   double restDelay() {
     return restDelay;
   }
@@ -1504,6 +1620,21 @@ public final class El {
     return layer == null ? null : layer.onDismiss;
   }
 
+  /** The group set with {@link #dismissGroup}, or null. */
+  public Object dismissGroup() {
+    return dismissGroup;
+  }
+
+  /** Whether {@link #keepFocus} was called. */
+  public boolean keepsFocus() {
+    return keepsFocus;
+  }
+
+  /** Whether {@link #holdFocus} was called. */
+  public boolean holdsFocus() {
+    return holdsFocus;
+  }
+
   /** For placement and {@link Animator}: where this overlay goes, null if no call said. */
   Layer placement() {
     return layer;
@@ -1524,11 +1655,6 @@ public final class El {
    */
   public boolean isFocusable() {
     return focusable || editable && (onEdit != null || readOnly);
-  }
-
-  /** Whether a press on this element leaves the focus where it is; see {@link #keepFocusOnPress}. */
-  public boolean keepsFocusOnPress() {
-    return keepFocusOnPress;
   }
 
   /** The colour set with {@link #focusRing(int)}, or null if none was and the app's applies. */
@@ -2327,6 +2453,12 @@ public final class El {
       out.append("overlay");
       if (l.centered) {
         out.append(" center");
+      } else if (l.edge != null) {
+        out.append(" edge ").append(l.edge.name().toLowerCase(Locale.ROOT)).append(' ')
+            .append(l.align.name().toLowerCase(Locale.ROOT));
+        if (l.gap != 0) {
+          number(out.append(" gap "), l.gap);
+        }
       } else {
         if (!Float.isNaN(l.pointX)) {
           number(out.append(" at "), l.pointX).append(',');

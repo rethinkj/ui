@@ -55,4 +55,53 @@ class WindowPartTest {
     assertTrue(dump.contains("el #close window=close 260,0 40x30"), dump);
     assertTrue(dump.contains("el #menu 0,0 40x30"), dump);
   }
+
+  /** Whether the dialog is open, and what its handlers did. */
+  static final class Dialog {
+    boolean open = true;
+    final java.util.List<String> log = new java.util.ArrayList<>();
+  }
+
+  /** The window above with a modal dialog of 100 by 60 in its middle while it is open. */
+  private static El withDialog(Dialog d) {
+    El window = window(null);
+    if (d.open) {
+      window.overlay(el().key("dialog").size(100, 60).centerInWindow().modal()
+          .onDismiss(() -> {
+            d.log.add("dismissed");
+            d.open = false;
+          })
+          .child(el().key("ok").size(40, 20).onPress(() -> d.log.add("ok"))));
+    }
+    return window;
+  }
+
+  @Test
+  void theFramesPartsStayUsableUnderAModalOverlayAndPressesThereDismissNothing() {
+    Dialog d = new Dialog();
+    App<Dialog> app = new App<>(d, WindowPartTest::withDialog);
+    app.resize(300, 200, 1);
+    app.frame();
+    assertEquals(WindowPart.DRAG, app.windowPart(150, 15), "the bar still drags the window");
+    assertEquals(WindowPart.MINIMIZE, app.windowPart(200, 15));
+    assertEquals(WindowPart.MAXIMIZE, app.windowPart(240, 15));
+    assertEquals(WindowPart.CLOSE, app.windowPart(280, 15));
+    assertEquals(WindowPart.CONTENT, app.windowPart(20, 15), "a control in the bar is blocked");
+    assertEquals(WindowPart.CONTENT, app.windowPart(150, 100), "the dialog");
+
+    for (float x : new float[] {200, 240, 280}) { // the window acts on these itself
+      app.pointerDown(x, 15);
+      app.pointerUp(x, 15);
+      app.secondaryDown(x, 15);
+      app.secondaryUp(x, 15);
+      app.frame();
+    }
+    assertTrue(d.open);
+    assertEquals(java.util.List.of(), d.log, "the presses on the frame dismissed nothing");
+
+    app.pointerDown(20, 15); // the menu button in the bar: outside the dialog, which it dismisses
+    app.pointerUp(20, 15);
+    app.frame();
+    assertEquals(java.util.List.of("dismissed"), d.log);
+  }
 }

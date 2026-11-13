@@ -1,0 +1,18 @@
+# File's Export in kit's studio (MenuBarTest) in a window of 480 by 280, three submenus deep
+# with the keys: each opens beside the item it belongs to, and the one that no longer fits at
+# the window's right edge opens to the left of its item.
+frame
+key F alt                       # opens File with its first item highlighted
+key ArrowDown                   # Open…
+key ArrowDown                   # Save
+key ArrowDown                   # past the separator to Export
+key ArrowRight                  # its submenu, CSV highlighted
+key ArrowDown                   # JSON
+key ArrowDown                   # SQL
+key ArrowRight                  # its submenu, Inserts
+key ArrowDown                   # Script
+key ArrowRight                  # its submenu, Schema
+frame
+advance 0.25                    # past the theme's fade
+frame
+snap deep

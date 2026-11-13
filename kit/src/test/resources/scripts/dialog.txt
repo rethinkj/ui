@@ -4,6 +4,8 @@ frame
 focus #rename
 key Enter
 frame
+advance 0.25                    # past the theme's fade
+frame
 snap open
 
 key End
@@ -15,5 +17,7 @@ frame
 snap cycled
 
 key Escape
+frame
+advance 0.25                    # past the theme's fade
 frame
 snap closed
