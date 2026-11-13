@@ -5,8 +5,10 @@ import static com.rethinkj.ui.El.row;
 import static com.rethinkj.ui.kit.Button.button;
 import static com.rethinkj.ui.kit.Checkbox.checkbox;
 import static com.rethinkj.ui.kit.Label.label;
+import static com.rethinkj.ui.kit.TextField.codeArea;
 import static com.rethinkj.ui.kit.TextField.passwordField;
 import static com.rethinkj.ui.kit.TextField.revealable;
+import static com.rethinkj.ui.kit.TextField.textArea;
 import static com.rethinkj.ui.kit.TextField.textField;
 import static com.rethinkj.ui.kit.Toggle.toggle;
 
@@ -40,6 +42,7 @@ final class Gallery {
 
   static final int WIDTH = 140;
   static final int HEIGHT = 40;
+  static final int AREA = 72; // the rows of text areas, three lines high
 
   /** The columns, with the steps that bring a component into each state. */
   enum State {
@@ -56,10 +59,15 @@ final class Gallery {
     }
   }
 
-  record Row(String name, BiFunction<Theme, Runnable, El> component, String steps) {
+  /** A row of the sheet, {@link #HEIGHT} high unless it says otherwise. */
+  record Row(String name, BiFunction<Theme, Runnable, El> component, String steps, int height) {
 
     Row(String name, BiFunction<Theme, Runnable, El> component) {
       this(name, component, "");
+    }
+
+    Row(String name, BiFunction<Theme, Runnable, El> component, String steps) {
+      this(name, component, steps, HEIGHT);
     }
   }
 
@@ -67,6 +75,18 @@ final class Gallery {
   private static El field(Theme t, String value, Runnable handler) {
     return textField(t, value, "Search tables", handler == null ? null : s -> handler.run())
         .w(WIDTH - 20);
+  }
+
+  /** A text area three lines high, as wide as {@link #field}. */
+  private static El area(Theme t, Runnable handler) {
+    return textArea(t, "Ship by Friday,\nfrom the north\nwarehouse.", "Notes",
+        handler == null ? null : s -> handler.run()).w(WIDTH - 20).lines(3);
+  }
+
+  /** A code area three lines high, with a line a tab indents. */
+  private static El code(Theme t, Runnable handler) {
+    return codeArea(t, "SELECT id,\n\tname\nFROM t;", "SQL",
+        handler == null ? null : s -> handler.run()).w(WIDTH - 20).lines(3);
   }
 
   /** A password field with its button, as wide as {@link #field}. */
@@ -90,7 +110,12 @@ final class Gallery {
           new Row("field selected", (t, h) -> field(t, "orders 2024", h),
               "key ArrowRight control shift\nkey ArrowLeft control shift\nframe"),
           new Row("password", (t, h) -> password(t, false, h)),
-          new Row("password shown", (t, h) -> password(t, true, h)));
+          new Row("password shown", (t, h) -> password(t, true, h)),
+          new Row("area", Gallery::area, "", AREA),
+          // From the third character to the third of the last line: the line feeds shown.
+          new Row("area selected", Gallery::area, "key Home control\nkey ArrowRight\n"
+              + "key ArrowRight\nkey ArrowDown shift\nkey ArrowDown shift\nframe", AREA),
+          new Row("code area", Gallery::code, "", AREA));
 
   private final Theme theme;
   private final float scale;
@@ -104,35 +129,41 @@ final class Gallery {
     this.scale = scale;
     this.out = out;
     int width = (State.values().length + 1) * Math.round(WIDTH * scale);
-    int height = (ROWS.size() + 2) * Math.round(HEIGHT * scale);
+    int height = 2 * Math.round(HEIGHT * scale);
+    for (Row row : ROWS) {
+      height += Math.round(row.height() * scale);
+    }
     this.sheet = new Pixels(width, height, new byte[width * height * 4]);
   }
 
   /** Draws the sheet; each cell's frame goes into a folder of {@code out}. */
   static Headless.Frame draw(Theme theme, float scale, Path out) throws IOException {
     Gallery gallery = new Gallery(theme, scale, out);
-    gallery.put(0, 0, el(), "");
+    int cell = Math.round(HEIGHT * scale);
+    gallery.put(0, 0, HEIGHT, el(), "");
     for (State state : State.values()) {
-      gallery.put(1 + state.ordinal(), 0, gallery.name(state.name()), "");
+      gallery.put(1 + state.ordinal(), 0, HEIGHT, gallery.name(state.name()), "");
     }
     // The label's styles have no states.
     Theme t = theme;
-    gallery.put(0, 1, gallery.name("label"), "");
-    gallery.put(1, 1, label(t, "Normal"), "");
-    gallery.put(2, 1, label(t, Label.Variant.MUTED, "Muted"), "");
-    gallery.put(3, 1, label(t, Label.Variant.MONO, "mono_0123"), "");
-    gallery.put(4, 1, label(t, Label.Variant.HEADING, "Heading"), "");
-    gallery.put(5, 1, el(), "");
-    for (int r = 0; r < ROWS.size(); r++) {
-      Row row = ROWS.get(r);
-      gallery.put(0, r + 2, gallery.name(row.name()), "");
+    gallery.put(0, cell, HEIGHT, gallery.name("label"), "");
+    gallery.put(1, cell, HEIGHT, label(t, "Normal"), "");
+    gallery.put(2, cell, HEIGHT, label(t, Label.Variant.MUTED, "Muted"), "");
+    gallery.put(3, cell, HEIGHT, label(t, Label.Variant.MONO, "mono_0123"), "");
+    gallery.put(4, cell, HEIGHT, label(t, Label.Variant.HEADING, "Heading"), "");
+    gallery.put(5, cell, HEIGHT, el(), "");
+    int top = 2 * cell;
+    for (Row row : ROWS) {
+      gallery.put(0, top, row.height(), gallery.name(row.name()), "");
       for (State state : State.values()) {
         El component = row.component().apply(t, state == State.DISABLED ? null : () -> {});
         String steps = state.steps + (row.steps().isEmpty() ? "" : "\n" + row.steps());
-        String tree = gallery.put(1 + state.ordinal(), r + 2, component.key("c"), steps);
+        String tree = gallery.put(1 + state.ordinal(), top, row.height(), component.key("c"),
+            steps);
         gallery.trees.append("# ").append(row.name()).append(", ")
             .append(state.name().toLowerCase(Locale.ROOT)).append('\n').append(tree);
       }
+      top += Math.round(row.height() * scale);
     }
     return new Headless.Frame(gallery.sheet, gallery.trees.toString());
   }
@@ -142,18 +173,20 @@ final class Gallery {
   }
 
   /**
-   * Runs the steps on an app the size of a cell with {@code component} in the middle, and puts
-   * the frame into the sheet at this column and row.
+   * Runs the steps on an app the size of a cell, {@code height} logical pixels high, with {@code
+   * component} in the middle, and puts the frame into the sheet at this column, {@code top}
+   * physical pixels from its top.
    *
    * @return the tree of the frame
    */
-  private String put(int column, int row, El component, String steps) throws IOException {
+  private String put(int column, int top, int height, El component, String steps)
+      throws IOException {
     El view = row().wFull().hFull().center().fill(theme.surface().window()).child(component);
     App<Object> app = new App<>(new Object(), s -> view);
     app.textRendering(TextRendering.LINUX);
     Path folder = out.resolve(String.valueOf(cells++));
     Script.run(
-        "size " + WIDTH + " " + HEIGHT + " scale " + scale + "\nframe\n" + steps + "\nsnap cell",
+        "size " + WIDTH + " " + height + " scale " + scale + "\nframe\n" + steps + "\nsnap cell",
         app,
         folder);
     Pixels cell = Png.decode(Files.readAllBytes(folder.resolve("cell.png")));
@@ -162,7 +195,7 @@ final class Gallery {
           cell.rgba(),
           y * cell.width() * 4,
           sheet.rgba(),
-          ((row * cell.height() + y) * sheet.width() + column * cell.width()) * 4,
+          ((top + y) * sheet.width() + column * cell.width()) * 4,
           cell.width() * 4);
     }
     return Files.readString(folder.resolve("cell.tree.txt"));

@@ -5,8 +5,10 @@ import com.rethinkj.ui.text.GlyphRun;
 import java.text.BreakIterator;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Objects;
 
 /**
@@ -22,11 +24,18 @@ import java.util.Objects;
  * every text element before layout. Sizes go to layout in logical pixels; lines are in physical
  * pixels, so that a renderer draws the glyphs where they were measured.
  *
- * <p>The text of an {@link El#editable} element is a field: one line, whatever the string holds,
- * measured as 0 wide so that the field's width comes from its style, centred vertically in its
- * content box, and shown with its composition and placeholder. Its caret, selection and
- * horizontal scroll come from {@link App}, which keeps them per element; the methods below that
- * return them are what a renderer draws.
+ * <p>The text of an {@link El#editable} element is a field. A single-line field is one line,
+ * whatever the string holds, measured as 0 wide so that the field's width comes from its style,
+ * centred vertically in its content box, and shown with its composition and placeholder. Its
+ * caret, selection and horizontal scroll come from {@link App}, which keeps them per element; the
+ * methods below that return them are what a renderer draws.
+ *
+ * <p>A {@link El#multiline multi-line} field has a line per line feed of its string, wrapped or
+ * not, from the top of its content box, and is a scroll area of its own: {@link #lines} holds only
+ * the rows in view and a few around them, moved up by the vertical scroll, and only their lines
+ * are shaped, whatever the length of the text. A tab advances to the next multiple of {@link
+ * El#tabSize} spaces. The field's {@link Editor} keeps where the lines start ({@link Lines}), so
+ * that a new tree finds a line without looking through the string.
  *
  * <p>A {@link El#masked masked} field shows one {@link #MASK} per grapheme of its string, and of
  * the composition in it, and shapes only that: {@link #string} returns the mask, and the
@@ -48,7 +57,8 @@ public final class Text implements Measure {
    *
    * @param glyphs the glyphs, with the pen starting at 0 at the left edge
    * @param width the width the line takes, without the spaces at the end of a wrapped line
-   * @param baseline the distance from the top of the content box down to the line's baseline
+   * @param baseline the distance from the top of the content box down to the line's baseline; in
+   *     a multi-line field after its vertical scroll, so negative for a line above the box
    */
   public record Line(GlyphRun glyphs, float width, float baseline) {}
 
@@ -59,7 +69,7 @@ public final class Text implements Measure {
   public record Box(float x, float y, float width, float height) {}
 
   /** What ends a line that {@link El#ellipsis} shortens. */
-  public static final String ELLIPSIS = "\u2026";
+  public static final String ELLIPSIS = "…";
 
   /** What a {@link El#masked} field shows for each grapheme of its string: a bullet, U+2022. */
   public static final int MASK = 0x2022;
@@ -71,9 +81,17 @@ public final class Text implements Measure {
   // widths are on a grid of a quarter pixel.
   private static final float SLACK = 1 / 64f;
 
+  // The rows a multi-line field lays out above and below its content box: they cover its padding
+  // and a scroll of a few rows without a new layout.
+  private static final int MARGIN_ROWS = 3;
+
+  // What a multi-line field estimates the advance of a character from, until it has shaped a line.
+  private static final String SAMPLE = "SELECT name, id FROM customers WHERE id = 42 the quick fox";
+
   private final String string;
   private String composed; // a field's string with the composition in it, or null for none
   private boolean field;
+  private boolean multiline;
   private boolean masked;
   private int mask = MASK;
   private String placeholder;
@@ -81,6 +99,8 @@ public final class Text implements Measure {
   private String[] features = {};
   private int caretColor;
   private int selectionColor = SELECTION;
+  private int tabSize = 4;
+  private int visibleLines = 1;
   // What a field draws besides its glyphs; see Editor#place.
   private float scroll;
   private List<Box> selection = List.of();
@@ -101,28 +121,54 @@ public final class Text implements Measure {
   private boolean systemFonts;
   private List<Line> lines = List.of();
 
-  // What every measure shares, made on the first one: per paragraph its glyphs, the first glyph
-  // of each character and the break opportunities.
-  private String[] paragraphs;
+  // What every measure shares, made on the first one: the paragraphs with their glyphs, the first
+  // glyph of each character and the break opportunities. A multi-line field shapes its lines on
+  // demand instead (see below).
+  private boolean prepared;
+  private Para[] paras;
   private int[] starts; // where each paragraph starts in the shown string
   private boolean placeholderShown;
   // A masked field's grapheme boundaries in its string with the composition, from 0 to the end;
   // the glyphs show the mask character once per grapheme. Null when not masked.
   private int[] maskBounds;
-  private GlyphRun[] runs;
-  private int[][] glyphAt;
-  private int[][] breaks;
   private float lineHeight;
   private float firstBaseline;
   // From the last placed(): the lines, the content size in physical pixels and how far a field's
   // lines are moved down to centre them.
   private List<Span> placedSpans = List.of();
+  private boolean laidOut;
   private float placedWidth;
   private float placedHeight;
   private float offsetY;
 
+  // A multi-line field: the string as it edits it, with line feeds only, and its lines, from the
+  // editor or made here; the shown string and its lines, which a composition or the placeholder
+  // changes; the lines shaped so far, by index; the scroll in physical pixels, and the rows laid
+  // out for it.
+  private String edited;
+  private Lines editedLines;
+  private Lines composedLines;
+  private String shown;
+  private Lines shownLines;
+  private final Map<Integer, Para> shapedLines = new HashMap<>();
+  private float tabStop;
+  private float advance; // of an average character, for the estimate of rows
+  private float viewX;
+  private float viewY;
+  private boolean viewStale = true;
+  private List<Row> rows = List.of();
+  private int firstInView;
+  private int lastInView;
+
   /** A line of the text: characters {@code from} to {@code to} of a paragraph. */
   private record Span(int paragraph, int from, int to, float width) {}
+
+  /** A row of a multi-line field as laid out: row {@code row} of line {@code line}. */
+  private record Row(int line, int row, Para para, double top) {}
+
+  /** What the rows of wrapped lines depend on: another value breaks them anew. */
+  private record Wrapping(float width, Font font, float size, float scale, List<String> features,
+      int tabSize, boolean systemFonts) {}
 
   Text(String string) {
     if (string == null) {
@@ -133,11 +179,12 @@ public final class Text implements Measure {
 
   /**
    * The string as the element shows it: the one {@link El#text} got, except for a {@link
-   * El#masked masked} field, whose string is one mask character per grapheme of the app's. The
-   * tree dump, selectors and error messages print this.
+   * El#masked masked} field, whose string is one mask character per grapheme of the app's, and a
+   * {@link El#multiline multi-line} field, whose carriage returns are line feeds. The tree dump,
+   * selectors and error messages print this.
    */
   public String string() {
-    return masked ? mask(string) : string;
+    return masked ? mask(string) : multiline ? edited() : string;
   }
 
   /** For {@link Editor}: the string the view gave the element, also of a masked field. */
@@ -148,6 +195,11 @@ public final class Text implements Measure {
   /** Whether this is a field that shows a mask instead of its string; see {@link El#masked}. */
   public boolean masked() {
     return masked;
+  }
+
+  /** Whether this is a multi-line field; see {@link El#multiline}. */
+  public boolean multiline() {
+    return multiline;
   }
 
   /** The text as a masked field shows it: one mask character per grapheme. */
@@ -202,8 +254,14 @@ public final class Text implements Measure {
     return scale;
   }
 
-  /** The lines layout placed, top to bottom; empty before layout. */
+  /**
+   * The lines layout placed, top to bottom; empty before layout. A multi-line field has the rows
+   * in view and a few around them.
+   */
   public List<Line> lines() {
+    if (multiline && laidOut && viewStale) {
+      layOut();
+    }
     return lines;
   }
 
@@ -212,7 +270,7 @@ public final class Text implements Measure {
     return List.of(features);
   }
 
-  /** Whether this is the text of an {@link El#editable} element, a single-line field. */
+  /** Whether this is the text of an {@link El#editable} element, a field. */
   public boolean isField() {
     return field;
   }
@@ -243,13 +301,18 @@ public final class Text implements Measure {
 
   /**
    * How far a field's text is moved left so that its caret is in view, in physical pixels; 0 for
-   * other text. The glyphs of {@link #lines} are drawn this much further left.
+   * other text. The glyphs of {@link #lines} are drawn this much further left. A multi-line field
+   * moves by its horizontal scroll offset, on the grid of glyph positions.
    */
   public float scroll() {
-    return scroll;
+    return multiline ? viewX : scroll;
   }
 
-  /** The selected part of a field while it has the focus, one rectangle per line; else empty. */
+  /**
+   * The selected part of a field while it has the focus, one rectangle per line; else empty. A
+   * multi-line field has those of the rows in view; on a row whose end is selected, its line feed
+   * or the end of a wrapped row, the rectangle reaches the right edge of the content box.
+   */
   public List<Box> selection() {
     return selection;
   }
@@ -270,24 +333,36 @@ public final class Text implements Measure {
     return composition;
   }
 
+  private void invalidate() {
+    prepared = false;
+    paras = null;
+    shapedLines.clear();
+    viewStale = true;
+  }
+
   void font(Font font) {
     this.font = font;
-    paragraphs = null;
+    invalidate();
   }
 
   void features(String[] features) {
     this.features = features.clone();
-    paragraphs = null;
+    invalidate();
   }
 
   void field(boolean field) {
     this.field = field;
-    paragraphs = null;
+    invalidate();
+  }
+
+  void multiline(boolean multiline) {
+    this.multiline = multiline;
+    invalidate();
   }
 
   void masked(boolean masked) {
     this.masked = masked;
-    paragraphs = null;
+    invalidate();
   }
 
   void mask(int character) {
@@ -303,13 +378,13 @@ public final class Text implements Measure {
               + " is not.");
     }
     this.mask = character;
-    paragraphs = null;
+    invalidate();
   }
 
   void placeholder(String text, int argb) {
     this.placeholder = text;
     this.placeholderColor = argb;
-    paragraphs = null;
+    invalidate();
   }
 
   void caretColor(int argb) {
@@ -320,11 +395,36 @@ public final class Text implements Measure {
     this.selectionColor = argb;
   }
 
+  void tabSize(int columns) {
+    this.tabSize = columns;
+    invalidate();
+  }
+
+  int tabSize() {
+    return tabSize;
+  }
+
+  void visibleLines(int lines) {
+    this.visibleLines = lines;
+  }
+
   /** For {@link Editor}: shows a field's string with a composition in it, or as it is with null. */
   void compose(String shown) {
     if (!Objects.equals(shown, composed)) {
       composed = shown;
-      paragraphs = null;
+      invalidate();
+    }
+  }
+
+  /**
+   * For {@link Editor}: shows a multi-line field's string with a composition in it, with the lines
+   * of that string; null for neither.
+   */
+  void compose(String shown, Lines lines) {
+    if (shown != composed || lines != composedLines) {
+      composed = shown;
+      composedLines = lines;
+      invalidate();
     }
   }
 
@@ -334,12 +434,35 @@ public final class Text implements Measure {
    */
   void dropComposition() {
     if (composed != null) {
-      compose(null);
+      compose(null, null);
       placed(placedWidth / scale, placedHeight / scale);
     }
   }
 
-  /** For {@link Editor}: what a field draws besides its glyphs. */
+  /**
+   * For {@link Editor}: the string of a multi-line field as it edits it, with line feeds only, and
+   * its lines, which the editor keeps across trees.
+   */
+  void edited(String text, Lines lines) {
+    if (text != edited || lines != editedLines) {
+      edited = text;
+      editedLines = lines;
+      invalidate();
+    }
+  }
+
+  /** The string of a multi-line field with line feeds only. */
+  private String edited() {
+    if (edited == null) {
+      edited = Editor.multiLine(string);
+    }
+    return edited;
+  }
+
+  /**
+   * For {@link Editor}: shows the selection, caret and composition of a field, as rectangles in
+   * the coordinates of {@link Box}.
+   */
   void decorate(float scroll, List<Box> selection, Box caret, Box composition) {
     this.scroll = scroll;
     this.selection = selection;
@@ -357,7 +480,7 @@ public final class Text implements Measure {
       throw new IllegalArgumentException("font size must be above 0, was " + size);
     }
     this.size = size;
-    paragraphs = null;
+    invalidate();
   }
 
   void color(int argb) {
@@ -370,7 +493,7 @@ public final class Text implements Measure {
 
   void wraps(boolean wraps) {
     this.wraps = wraps;
-    paragraphs = null;
+    invalidate();
   }
 
   void ellipsis(boolean on) {
@@ -380,7 +503,7 @@ public final class Text implements Measure {
   void scale(float scale) {
     if (scale != this.scale) {
       this.scale = scale;
-      paragraphs = null;
+      invalidate();
     }
   }
 
@@ -388,7 +511,7 @@ public final class Text implements Measure {
   void systemFonts(boolean on) {
     if (on != systemFonts) {
       systemFonts = on;
-      paragraphs = null;
+      invalidate();
     }
   }
 
@@ -400,7 +523,8 @@ public final class Text implements Measure {
       // content box, which measure does not know yet. Pass the box's height when a field has to
       // line up with text beside it by baseline.
       prepare();
-      return new Size(0, lineHeight / scale, firstBaseline / scale);
+      int high = multiline ? visibleLines : 1;
+      return new Size(0, high * lineHeight / scale, firstBaseline / scale);
     }
     List<Span> spans = spans(Float.isNaN(knownWidth) ? availableWidth : knownWidth);
     float widest = 0;
@@ -412,8 +536,18 @@ public final class Text implements Measure {
 
   @Override
   public void placed(float width, float height) {
+    if (multiline) {
+      prepare();
+      laidOut = true;
+      placedWidth = width * scale;
+      placedHeight = height * scale;
+      shortened = false;
+      viewStale = true;
+      return;
+    }
     List<Span> spans = spans(width);
     placedSpans = spans;
+    laidOut = true;
     placedWidth = width * scale;
     placedHeight = height * scale;
     offsetY = field ? Math.round((placedHeight - spans.size() * lineHeight) / 2) : 0;
@@ -426,8 +560,7 @@ public final class Text implements Measure {
         shortened = true;
         continue;
       }
-      int[] at = glyphAt[span.paragraph];
-      placed.add(new Line(runs[span.paragraph].slice(at[span.from], at[span.to]), span.width,
+      placed.add(new Line(paras[span.paragraph].slice(span.from, span.to), span.width,
           baseline));
     }
     lines = List.copyOf(placed);
@@ -453,7 +586,8 @@ public final class Text implements Measure {
   private Line shorten(Span span, float baseline) {
     // shortcut: a right-to-left run is one cluster (see Font#shape), so the line ends before it
     // rather than inside it; cut inside it when right-to-left text needs it.
-    String text = paragraphs[span.paragraph];
+    Para para = paras[span.paragraph];
+    String text = para.text;
     float room = placedWidth + SLACK - shaping.shape(ELLIPSIS, size, scale, features).width();
     BreakIterator chars = BreakIterator.getCharacterInstance(Locale.ROOT);
     chars.setText(text);
@@ -461,7 +595,7 @@ public final class Text implements Measure {
     fits.add(span.from);
     for (int b = chars.following(span.from); b != BreakIterator.DONE && b <= span.to;
         b = chars.next()) {
-      if (width(span.paragraph, span.from, b) > room) {
+      if (para.width(span.from, b) > room) {
         break;
       }
       fits.add(b);
@@ -487,44 +621,35 @@ public final class Text implements Measure {
       limit = width * scale + SLACK;
     }
     List<Span> spans = new ArrayList<>();
-    for (int p = 0; p < paragraphs.length; p++) {
+    for (int p = 0; p < paras.length; p++) {
+      Para para = paras[p];
       if (!wraps) {
-        spans.add(new Span(p, 0, paragraphs[p].length(), runs[p].width()));
+        spans.add(new Span(p, 0, para.text.length(), para.run.width()));
         continue;
       }
-      // Greedy: each line takes segments while they fit, and at least one.
-      int start = 0;
-      int end = 0;
-      for (int next : breaks[p]) {
-        if (end > start && width(p, start, next) > limit) {
-          spans.add(new Span(p, start, end, width(p, start, end)));
-          start = end;
-        }
-        end = next;
+      int[] rowStarts = para.breakInto(limit);
+      for (int r = 0; r < rowStarts.length; r++) {
+        int to = r + 1 < rowStarts.length ? rowStarts[r + 1] : para.text.length();
+        spans.add(new Span(p, rowStarts[r], to, para.rowWidths[r]));
       }
-      spans.add(new Span(p, start, paragraphs[p].length(), width(p, start, end)));
     }
     return spans;
   }
 
-  /** The width of characters {@code from} to {@code to}, without the white space at the end. */
-  private float width(int paragraph, int from, int to) {
-    String text = paragraphs[paragraph];
-    while (to > from && Character.isWhitespace(text.charAt(to - 1))) {
-      to--;
-    }
-    GlyphRun run = runs[paragraph];
-    return run.pen(glyphAt[paragraph][to]) - run.pen(glyphAt[paragraph][from]);
-  }
-
   private void prepare() {
-    if (paragraphs != null) {
+    if (prepared) {
       return;
     }
     Font font = font();
     float pixels = size * scale;
     lineHeight = Math.round((font.ascent() + font.descent() + font.lineGap()) * pixels);
     firstBaseline = Math.round((font.ascent() + font.lineGap() / 2) * pixels);
+    shaping = systemFonts ? font.withSystemFonts() : font;
+    prepared = true;
+    if (multiline) {
+      prepareLines();
+      return;
+    }
     String shown = composed != null ? composed : string;
     placeholderShown = field && shown.isEmpty() && placeholder != null;
     maskBounds = null;
@@ -548,15 +673,56 @@ public final class Text implements Measure {
     for (int p = 1; p < split.length; p++) {
       starts[p] = starts[p - 1] + split[p - 1].length() + 1;
     }
-    runs = new GlyphRun[split.length];
-    glyphAt = new int[split.length][];
-    breaks = new int[split.length][];
-    BreakIterator lineBreaks = BreakIterator.getLineInstance(Locale.ROOT);
-    shaping = systemFonts ? font.withSystemFonts() : font;
+    paras = new Para[split.length];
     for (int p = 0; p < split.length; p++) {
-      String text = split[p];
-      GlyphRun run = shaping.shape(text, size, scale, features);
-      runs[p] = run;
+      paras[p] = shape(split[p]);
+    }
+  }
+
+  /** Shapes a paragraph, with tab stops in a multi-line field. */
+  private Para shape(String text) {
+    GlyphRun run;
+    if (multiline && text.indexOf('\t') >= 0) {
+      int[] tabs = new int[text.length()];
+      int n = 0;
+      for (int i = text.indexOf('\t'); i >= 0; i = text.indexOf('\t', i + 1)) {
+        tabs[n++] = i;
+      }
+      run = shaping.shape(text.replace('\t', ' '), size, scale, features)
+          .tabbed(Arrays.copyOf(tabs, n), tabStop);
+    } else {
+      run = shaping.shape(text, size, scale, features);
+    }
+    int[] breaks = null;
+    if (wraps) {
+      BreakIterator lineBreaks = BreakIterator.getLineInstance(Locale.ROOT);
+      lineBreaks.setText(text);
+      List<Integer> found = new ArrayList<>();
+      for (int b = lineBreaks.next(); b != BreakIterator.DONE; b = lineBreaks.next()) {
+        found.add(b);
+      }
+      breaks = found.stream().mapToInt(Integer::intValue).toArray();
+    }
+    return new Para(text, run, breaks);
+  }
+
+  /**
+   * A paragraph shaped: its glyphs, the first glyph of each of its characters, where its lines may
+   * break, and the rows the last width broke it into.
+   */
+  private static final class Para {
+    final String text;
+    final GlyphRun run;
+    final int[] glyphAt;
+    final int[] breaks; // null without wrapping
+    float limit = Float.NaN; // the width rowStarts are for
+    int[] rowStarts = {0};
+    float[] rowWidths;
+
+    Para(String text, GlyphRun run, int[] breaks) {
+      this.text = text;
+      this.run = run;
+      this.breaks = breaks;
       // The first glyph of each character; clusters only grow, see GlyphRun#cluster.
       int[] at = new int[text.length() + 1];
       int glyph = 0;
@@ -566,17 +732,108 @@ public final class Text implements Measure {
         }
         at[c] = glyph;
       }
-      glyphAt[p] = at;
-      if (wraps) {
-        lineBreaks.setText(text);
-        List<Integer> found = new ArrayList<>();
-        for (int b = lineBreaks.next(); b != BreakIterator.DONE; b = lineBreaks.next()) {
-          found.add(b);
-        }
-        breaks[p] = found.stream().mapToInt(Integer::intValue).toArray();
-      }
+      this.glyphAt = at;
+      this.rowWidths = new float[] {run.width()};
     }
-    paragraphs = split;
+
+    /**
+     * Breaks into rows no wider than {@code limit} where it can, greedily: each row takes segments
+     * while they fit, and at least one. Returns where each row starts.
+     */
+    int[] breakInto(float limit) {
+      if (breaks == null || limit == Float.POSITIVE_INFINITY) {
+        rowStarts = new int[] {0};
+        rowWidths = new float[] {breaks == null ? run.width() : width(0, text.length())};
+        this.limit = limit;
+        return rowStarts;
+      }
+      if (limit == this.limit) {
+        return rowStarts;
+      }
+      List<Integer> found = new ArrayList<>();
+      List<Float> widths = new ArrayList<>();
+      int start = 0;
+      int end = 0;
+      for (int next : breaks) {
+        if (end > start && width(start, next) > limit) {
+          found.add(start);
+          widths.add(width(start, end));
+          start = end;
+        }
+        end = next;
+      }
+      found.add(start);
+      widths.add(width(start, end));
+      rowStarts = found.stream().mapToInt(Integer::intValue).toArray();
+      rowWidths = new float[widths.size()];
+      for (int i = 0; i < rowWidths.length; i++) {
+        rowWidths[i] = widths.get(i);
+      }
+      this.limit = limit;
+      return rowStarts;
+    }
+
+    int rowCount() {
+      return rowStarts.length;
+    }
+
+    int rowStart(int row) {
+      return rowStarts[row];
+    }
+
+    /** Where a row ends: the start of the next, or the end of the paragraph. */
+    int rowEnd(int row) {
+      return row + 1 < rowStarts.length ? rowStarts[row + 1] : text.length();
+    }
+
+    /** The row that position {@code at} is on; at a wrap, the later one. */
+    int rowAt(int at) {
+      int found = Arrays.binarySearch(rowStarts, at);
+      return found >= 0 ? found : Math.max(-found - 2, 0);
+    }
+
+    GlyphRun slice(int from, int to) {
+      return run.slice(glyphAt[from], glyphAt[to]);
+    }
+
+    /** The width of characters {@code from} to {@code to}, without the white space at the end. */
+    float width(int from, int to) {
+      while (to > from && Character.isWhitespace(text.charAt(to - 1))) {
+        to--;
+      }
+      return run.pen(glyphAt[to]) - run.pen(glyphAt[from]);
+    }
+
+    /** The x of position {@code at}, from the start of the glyphs. */
+    float pen(int at) {
+      int g = glyphAt[at];
+      if (at == text.length() || g < run.count() && run.cluster(g) == at) {
+        return run.pen(g);
+      }
+      if (g == 0) {
+        return 0; // no glyph starts before it
+      }
+      // Inside the cluster of glyph g - 1: glyphs first to g, characters start to end.
+      int start = run.cluster(g - 1);
+      int first = glyphAt[start];
+      int end = g < run.count() ? run.cluster(g) : text.length();
+      int graphemes = graphemes(text, start, end);
+      float from = run.pen(first);
+      return graphemes == 0 ? from
+          : from + (run.pen(g) - from) * graphemes(text, start, at) / graphemes;
+    }
+
+    /** The grapheme boundaries from {@code from} to {@code to}, with {@code to}. */
+    List<Integer> boundaries(int from, int to) {
+      BreakIterator chars = BreakIterator.getCharacterInstance(Locale.ROOT);
+      chars.setText(text);
+      List<Integer> found = new ArrayList<>();
+      found.add(from);
+      for (int b = chars.following(from); b != BreakIterator.DONE && b <= to; b = chars.next()) {
+        found.add(b);
+      }
+      return found;
+    }
   }
 
   // Positions in the shown string, for Editor. All in physical pixels from the top left of the
@@ -602,6 +859,16 @@ public final class Text implements Measure {
   /** The content box's width in physical pixels, as layout placed it. */
   float contentWidth() {
     return placedWidth;
+  }
+
+  /** The content box's height in physical pixels, as layout placed it. */
+  float contentHeight() {
+    return placedHeight;
+  }
+
+  /** Whether layout has placed the text; an element with {@code display: none} is not. */
+  boolean laidOut() {
+    return laidOut;
   }
 
   float lineHeight() {
@@ -662,6 +929,9 @@ public final class Text implements Measure {
    * inside its glyphs in proportion to the graphemes before it.
    */
   float x(int index) {
+    if (multiline) {
+      return caretX(index);
+    }
     return glyphX(toGlyphs(index));
   }
 
@@ -672,28 +942,7 @@ public final class Text implements Measure {
     Span span = placedSpans.get(line(index));
     int p = span.paragraph;
     int at = Math.clamp(index - starts[p], span.from, span.to);
-    return pen(p, at) - pen(p, span.from);
-  }
-
-  /** The x of position {@code at} of a paragraph, from the start of its glyphs. */
-  private float pen(int p, int at) {
-    GlyphRun run = runs[p];
-    String text = paragraphs[p];
-    int g = glyphAt[p][at];
-    if (at == text.length() || g < run.count() && run.cluster(g) == at) {
-      return run.pen(g);
-    }
-    if (g == 0) {
-      return 0; // no glyph starts before it
-    }
-    // Inside the cluster of glyph g - 1: glyphs first to g, characters start to end.
-    int start = run.cluster(g - 1);
-    int first = glyphAt[p][start];
-    int end = g < run.count() ? run.cluster(g) : text.length();
-    int graphemes = graphemes(text, start, end);
-    float from = run.pen(first);
-    return graphemes == 0 ? from
-        : from + (run.pen(g) - from) * graphemes(text, start, at) / graphemes;
+    return paras[p].pen(at) - paras[p].pen(span.from);
   }
 
   /** The number of grapheme boundaries after {@code from} up to and with {@code to}. */
@@ -718,6 +967,10 @@ public final class Text implements Measure {
 
   /** The grapheme boundary of the shown string nearest to a point. */
   int nearest(float x, float y) {
+    if (multiline) {
+      int[] at = rowAt(y);
+      return nearestOnRow(at[0], at[1], x);
+    }
     if (placedSpans.isEmpty()) {
       return 0;
     }
@@ -739,6 +992,20 @@ public final class Text implements Measure {
    * it, the first one left of the line.
    */
   int hit(float x, float y) {
+    if (multiline) {
+      int[] at = rowAt(y);
+      Para para = para(at[0]);
+      int start = shownLines().start(at[0]);
+      List<Integer> bounds = rowBounds(para, at[1]);
+      int found = bounds.getFirst();
+      float left = para.pen(para.rowStart(at[1]));
+      for (int i = 0; i < bounds.size() - 1; i++) {
+        if (para.pen(bounds.get(i)) - left <= x) {
+          found = bounds.get(i);
+        }
+      }
+      return start + found;
+    }
     if (placedSpans.isEmpty()) {
       return 0;
     }
@@ -756,16 +1023,348 @@ public final class Text implements Measure {
   /** The grapheme boundaries of a line, from its start to its end. */
   private List<Integer> boundaries(int line) {
     Span span = placedSpans.get(line);
-    String text = paragraphs[span.paragraph];
     int start = starts[span.paragraph];
-    BreakIterator chars = BreakIterator.getCharacterInstance(Locale.ROOT);
-    chars.setText(text);
     List<Integer> found = new ArrayList<>();
-    found.add(start + span.from);
-    for (int b = chars.following(span.from); b != BreakIterator.DONE && b <= span.to;
-        b = chars.next()) {
+    for (int b : paras[span.paragraph].boundaries(span.from, span.to)) {
       found.add(start + b);
     }
     return found;
+  }
+
+  // ---- A multi-line field: lines shaped on demand, rows laid out for the scroll
+
+  /** Makes the shown string and its lines, and what the layout of rows needs from the font. */
+  private void prepareLines() {
+    String text = composed != null ? composed : edited();
+    Lines lines = composed != null ? composedLines : editedLines;
+    placeholderShown = text.isEmpty() && placeholder != null;
+    if (placeholderShown) {
+      text = Editor.multiLine(placeholder);
+      lines = null;
+    }
+    if (lines == null) {
+      lines = Lines.of(text);
+      if (!placeholderShown && composed == null) {
+        editedLines = lines;
+      }
+    }
+    shown = text;
+    shownLines = lines;
+    tabStop = Math.max(tabSize, 1) * shaping.shape(" ", size, scale, features).width();
+    GlyphRun sample = shaping.shape(SAMPLE, size, scale, features);
+    advance = sample.width() / SAMPLE.length();
+  }
+
+  private Lines shownLines() {
+    prepare();
+    wrapping();
+    return shownLines;
+  }
+
+  /** Tells the lines what their rows are counted for: wrapping at the width, or none. */
+  private void wrapping() {
+    if (!wraps) {
+      shownLines.wrap(null, 1);
+      return;
+    }
+    if (!laidOut) {
+      return; // the rows are for the width layout gives, which the next placed() tells
+    }
+    shownLines.wrap(new Wrapping(placedWidth, font(), size, scale, List.of(features), tabSize,
+        systemFonts), Math.max(placedWidth / Math.max(advance, 1), 1));
+  }
+
+  /** Line {@code line} of the shown string shaped, with its rows at the width; measured once. */
+  private Para para(int line) {
+    Lines lines = shownLines();
+    Para para = shapedLines.get(line);
+    if (para == null) {
+      if (shapedLines.size() >= 4096) {
+        shapedLines.clear(); // keys that walk far in one tree: keep what this tree shapes bounded
+      }
+      para = shape(shown.substring(lines.start(line), lines.end(line)));
+      shapedLines.put(line, para);
+      lines.shaped++;
+    }
+    float limit = wraps && laidOut ? placedWidth + SLACK : Float.POSITIVE_INFINITY;
+    if (limit != para.limit) { // new, or shaped before layout placed the text at another width
+      para.breakInto(limit);
+      if (lines.wraps()) {
+        lines.rows(line, para.rowCount());
+      } else {
+        lines.measured(line, para.run.width());
+      }
+    }
+    return para;
+  }
+
+  /** The number of lines of the shown string. */
+  int lineTotal() {
+    return shownLines().count();
+  }
+
+  /** For {@link Editor}: the lines of the shown string. */
+  Lines shownIndex() {
+    return shownLines();
+  }
+
+  /**
+   * For {@link El}: the scroll offsets of a multi-line field in logical pixels, which move its
+   * rows: vertically on whole physical pixels, horizontally on the grid of glyph positions.
+   */
+  void scrolled(double x, double y) {
+    double grid = scale >= 1.5 && !font().wholePixels() ? 4 : 1;
+    float newX = (float) (Math.round(x * scale * grid) / grid);
+    float newY = (float) Math.round(y * scale);
+    if (newX != viewX || newY != viewY) {
+      viewX = newX;
+      viewY = newY;
+      viewStale = true;
+    }
+  }
+
+  /** The vertical scroll of a multi-line field in physical pixels; 0 for other text. */
+  float scrollY() {
+    return multiline ? viewY : 0;
+  }
+
+  /** The height of all rows of a multi-line field, in logical pixels, measured or estimated. */
+  double extentHeight() {
+    return shownLines().totalRows() * (double) lineHeight / scale;
+  }
+
+  /**
+   * The width of a multi-line field's text in logical pixels, as far as layout has shaped it, with
+   * room for the caret at the end of the widest line; the content box's width while it wraps.
+   */
+  double extentWidth(float caretRoom) {
+    if (wraps) {
+      return placedWidth / scale;
+    }
+    return (shownLines().widest() + caretRoom) / scale;
+  }
+
+  /**
+   * Lays out the rows of a multi-line field in view and {@link #MARGIN_ROWS} around them, shaping
+   * the lines they are on unless this tree has shaped them already.
+   *
+   * @return how far the line at the top of the view moved down because rows above it were measured
+   *     for the first time, in physical pixels; the editor scrolls as far, so that what is in view
+   *     stays where it is
+   */
+  float layOut() {
+    Lines lines = shownLines();
+    viewStale = false;
+    double lh = lineHeight;
+    int anchor = lines.lineOfRow((long) Math.floor(viewY / lh));
+    long anchorRows = lines.rowsBefore(anchor);
+    double from = viewY - MARGIN_ROWS * lh;
+    double to = viewY + placedHeight + MARGIN_ROWS * lh;
+    long firstRow = Math.max(0, (long) Math.floor(from / lh));
+    int line = lines.lineOfRow(firstRow);
+    long skip = firstRow - lines.rowsBefore(line);
+    List<Line> laid = new ArrayList<>();
+    List<Row> placed = new ArrayList<>();
+    firstInView = -1;
+    lastInView = -1;
+    for (; line < lines.count(); line++, skip = 0) {
+      Para para = para(line);
+      double lineTop = lines.rowsBefore(line) * lh;
+      if (lineTop >= to) {
+        break;
+      }
+      for (int r = (int) Math.min(skip, para.rowCount()); r < para.rowCount(); r++) {
+        double top = lineTop + r * lh;
+        if (top >= to) {
+          break;
+        }
+        laid.add(new Line(para.slice(para.rowStart(r), para.rowEnd(r)), para.rowWidths[r],
+            (float) (top - viewY + firstBaseline)));
+        placed.add(new Row(line, r, para, top));
+        if (top < viewY + placedHeight && top + lh > viewY) {
+          firstInView = firstInView < 0 ? line : firstInView;
+          lastInView = line;
+        }
+      }
+    }
+    this.lines = List.copyOf(laid);
+    this.rows = placed;
+    return (float) ((lines.rowsBefore(anchor) - anchorRows) * lh);
+  }
+
+  /** For the dump: the lines with a row in the content box, from 0, and -1 for none. */
+  int firstLineInView() {
+    lines();
+    return firstInView;
+  }
+
+  int lastLineInView() {
+    lines();
+    return lastInView;
+  }
+
+  /** The row of the whole text at a height, as {line, row}, clamped to the text. */
+  private int[] rowAt(double y) {
+    Lines lines = shownLines();
+    double lh = lineHeight;
+    long row = Math.clamp((long) Math.floor(y / lh), 0, Math.max(lines.totalRows() - 1, 0));
+    int line = lines.lineOfRow(row);
+    Para para = para(line);
+    long within = row - lines.rowsBefore(line);
+    if (within < 0) { // measuring the line made the rows before it fewer
+      within = 0;
+    }
+    return new int[] {line, (int) Math.min(within, para.rowCount() - 1)};
+  }
+
+  /** The row a position of the shown string is on, as {line, row}; at a wrap, the later one. */
+  private int[] rowOf(int index) {
+    Lines lines = shownLines();
+    int line = lines.line(Math.clamp(index, 0, lines.length()));
+    return new int[] {line, para(line).rowAt(index - lines.start(line))};
+  }
+
+  /** The positions a caret can take on a row: a wrapped row ends before its last grapheme. */
+  private static List<Integer> rowBounds(Para para, int row) {
+    List<Integer> bounds = para.boundaries(para.rowStart(row), para.rowEnd(row));
+    if (row + 1 < para.rowCount() && bounds.size() > 1) {
+      bounds.removeLast(); // that position starts the next row
+    }
+    return bounds;
+  }
+
+  private float caretX(int index) {
+    int[] at = rowOf(index);
+    Para para = para(at[0]);
+    int offset = index - shownLines().start(at[0]);
+    return para.pen(offset) - para.pen(para.rowStart(at[1]));
+  }
+
+  /** The top of the row a position is on, in physical pixels from the top of the text. */
+  double caretTop(int index) {
+    int[] at = rowOf(index);
+    return (shownLines().rowsBefore(at[0]) + at[1]) * (double) lineHeight;
+  }
+
+  /** The position nearest to {@code x} on row {@code row} of line {@code line}. */
+  private int nearestOnRow(int line, int row, float x) {
+    Para para = para(line);
+    float left = para.pen(para.rowStart(row));
+    int best = para.rowStart(row);
+    float distance = Float.POSITIVE_INFINITY;
+    for (int b : rowBounds(para, row)) {
+      float d = Math.abs(para.pen(b) - left - x);
+      if (d < distance) {
+        distance = d;
+        best = b;
+      }
+    }
+    return shownLines().start(line) + best;
+  }
+
+  /**
+   * The position {@code rows} visual rows above (negative) or below a position, nearest to {@code
+   * x} on its row; before the first row the start of the text, after the last its end.
+   */
+  int moveRows(int index, int rows, float x) {
+    int[] at = rowOf(index);
+    int line = at[0];
+    int row = at[1];
+    Lines lines = shownLines();
+    for (int step = rows; step != 0; step -= Integer.signum(step)) {
+      if (step > 0) {
+        if (row + 1 < para(line).rowCount()) {
+          row++;
+        } else if (line + 1 < lines.count()) {
+          line++;
+          row = 0;
+        } else {
+          return lines.length();
+        }
+      } else if (row > 0) {
+        row--;
+      } else if (line > 0) {
+        line--;
+        row = para(line).rowCount() - 1;
+      } else {
+        return 0;
+      }
+    }
+    return nearestOnRow(line, row, x);
+  }
+
+  /** The start of the row a position is on. */
+  int rowStart(int index) {
+    int[] at = rowOf(index);
+    return shownLines().start(at[0]) + para(at[0]).rowStart(at[1]);
+  }
+
+  /** The last position a caret takes on the row of a position: before the wrap, or the line end. */
+  int rowEnd(int index) {
+    int[] at = rowOf(index);
+    List<Integer> bounds = rowBounds(para(at[0]), at[1]);
+    return shownLines().start(at[0]) + bounds.getLast();
+  }
+
+  /** Whether a position starts the first row of its line, which a wrapped line is not after. */
+  boolean startsLine(int index) {
+    int[] at = rowOf(index);
+    return at[1] == 0;
+  }
+
+  /** The rows in view and the margin that cover the content box, for the editor's look. */
+  int visibleRows() {
+    return Math.max(1, (int) Math.floor(placedHeight / lineHeight()));
+  }
+
+  /**
+   * The selection from {@code start} to {@code end} of the shown string, one rectangle per row of
+   * the layout it touches, moved by the scroll; a row whose end is selected reaches to {@code
+   * edge}, the right edge of the content box before the scroll.
+   */
+  List<Box> selectionBoxes(int start, int end, float edge) {
+    lines();
+    List<Box> boxes = new ArrayList<>();
+    Lines lines = shownLines();
+    for (Row row : rows) {
+      Para para = row.para;
+      int lineStart = lines.start(row.line);
+      int from = lineStart + para.rowStart(row.row);
+      int to = lineStart + para.rowEnd(row.row);
+      boolean lastRow = row.row + 1 == para.rowCount();
+      // A line's last row is followed by its line feed, a wrapped row by the next row's start.
+      if (start == end || end <= from || (lastRow ? start > to : start >= to)) {
+        continue;
+      }
+      boolean endSelected = lastRow ? end > to : end >= to;
+      float left = para.pen(para.rowStart(row.row));
+      float x0 = para.pen(Math.max(start, from) - lineStart) - left;
+      float x1 = endSelected
+          ? Math.max(edge, para.pen(to - lineStart) - left)
+          : para.pen(Math.min(end, to) - lineStart) - left;
+      if (x1 > x0) {
+        boxes.add(new Box(x0 - viewX, (float) (row.top - viewY), x1 - x0, lineHeight));
+      }
+    }
+    return List.copyOf(boxes);
+  }
+
+  /** The top of the row a position is on, moved by the scroll: where its caret is drawn. */
+  float shownTop(int index) {
+    return (float) (caretTop(index) - viewY);
+  }
+
+  /** The baseline of the row a position is on, moved by the scroll. */
+  float shownBaseline(int index) {
+    return shownTop(index) + firstBaseline;
+  }
+
+  /** The scroll the rows were laid out for, horizontally, in physical pixels. */
+  float viewX() {
+    return viewX;
+  }
+
+  float viewY() {
+    return viewY;
   }
 }
