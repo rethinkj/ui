@@ -21,6 +21,10 @@ import java.util.List;
  *
  * <pre>java --enable-native-access=ALL-UNNAMED spikes/window/Main.java [options]</pre>
  *
+ * <p>On Linux SDL3 has to be built from source and installed into {@code spikes/window/native/sdl3/}; see
+ * {@link Sdl}. The DWM, subclass and ITaskbarList3 parts are Windows only; there the spike logs the video driver and
+ * the X11 window or Wayland surface instead. {@code SDL_VIDEO_DRIVER=wayland} picks Wayland where both are available.
+ *
  * <p>Options set the state a key would otherwise toggle while the window has focus:
  *
  * <pre>
@@ -36,6 +40,8 @@ import java.util.List;
  */
 public final class Main {
     private Main() {}
+
+    static final boolean WINDOWS = System.getProperty("os.name").startsWith("Windows");
 
     static final String TITLE = "rethinkj window spike";
     static final int TITLE_BAR = 36;
@@ -61,14 +67,16 @@ public final class Main {
     static final MemorySegment HEIGHT = ARENA.allocate(JAVA_INT);
     static final MemorySegment FRECT = ARENA.allocate(Sdl.FRECT);
     static final MemorySegment TEXT = ARENA.allocate(512);
-    static final MemorySegment POINT = ARENA.allocate(Win32.POINT);
-    static final MemorySegment RECT = ARENA.allocate(Win32.RECT);
+    // Touching Win32 loads user32.dll, so its layouts and the subclass procedure exist on Windows only.
+    static final MemorySegment POINT = WINDOWS ? ARENA.allocate(Win32.POINT) : MemorySegment.NULL;
+    static final MemorySegment RECT = WINDOWS ? ARENA.allocate(Win32.RECT) : MemorySegment.NULL;
     static final MemorySegment DWORD = ARENA.allocate(JAVA_INT);
-    static final MemorySegment TRACK = ARENA.allocate(Win32.TRACKMOUSEEVENT);
+    static final MemorySegment TRACK = WINDOWS ? ARENA.allocate(Win32.TRACKMOUSEEVENT) : MemorySegment.NULL;
 
     static final MemorySegment HIT_TEST = upcall("hitTest", Sdl.HIT_TEST_CALLBACK);
     static final MemorySegment EVENT_WATCH = upcall("eventWatch", Sdl.EVENT_FILTER_CALLBACK);
-    static final MemorySegment SUBCLASS_PROC = upcall("subclassProc", Win32.SUBCLASS_PROC);
+    static final MemorySegment SUBCLASS_PROC =
+            WINDOWS ? upcall("subclassProc", Win32.SUBCLASS_PROC) : MemorySegment.NULL;
 
     static final long START = System.nanoTime();
 
@@ -156,21 +164,31 @@ public final class Main {
         Sdl.setRenderVSync(renderer, 1);
         versionLine += ", renderer " + Sdl.getRendererName(renderer);
 
-        hwnd = Sdl.getPointerProperty(Sdl.getWindowProperties(window),
-                utf8(Sdl.PROP_WINDOW_WIN32_HWND_POINTER), MemorySegment.NULL);
-        check(!hwnd.equals(MemorySegment.NULL), "SDL_PROP_WINDOW_WIN32_HWND_POINTER");
-        log("renderer %s, hwnd 0x%X, dpi %d", Sdl.getRendererName(renderer), hwnd.address(),
-                Win32.getDpiForWindow(hwnd));
-        logWindowFacts();
+        if (WINDOWS) {
+            hwnd = Sdl.getPointerProperty(Sdl.getWindowProperties(window),
+                    utf8(Sdl.PROP_WINDOW_WIN32_HWND_POINTER), MemorySegment.NULL);
+            check(!hwnd.equals(MemorySegment.NULL), "SDL_PROP_WINDOW_WIN32_HWND_POINTER");
+            log("renderer %s, hwnd 0x%X, dpi %d", Sdl.getRendererName(renderer), hwnd.address(),
+                    Win32.getDpiForWindow(hwnd));
+            logWindowFacts();
+        } else {
+            int properties = Sdl.getWindowProperties(window);
+            String driver = Sdl.getCurrentVideoDriver();
+            versionLine += ", video " + driver;
+            log("renderer %s, video driver %s, X11 window 0x%X, Wayland surface 0x%X", Sdl.getRendererName(renderer),
+                    driver, Sdl.getNumberProperty(properties, utf8(Sdl.PROP_WINDOW_X11_WINDOW_NUMBER), 0),
+                    Sdl.getPointerProperty(properties, utf8(Sdl.PROP_WINDOW_WAYLAND_SURFACE_POINTER),
+                            MemorySegment.NULL).address());
+        }
 
         check(Sdl.setWindowHitTest(window, HIT_TEST, MemorySegment.NULL), "SDL_SetWindowHitTest");
         check(Sdl.addEventWatch(EVENT_WATCH, MemorySegment.NULL), "SDL_AddEventWatch");
         Sdl.raiseWindow(window);
 
-        if (initialCorners != 0) {
+        if (WINDOWS && initialCorners != 0) {
             setCorners(initialCorners);
         }
-        if (initialSubclass) {
+        if (WINDOWS && initialSubclass) {
             setSubclass(true);
         }
         if (initialProgress != 0) {
@@ -192,7 +210,7 @@ public final class Main {
                 click(BUTTON_MAXIMIZE);
             }
             // The taskbar button has to exist before an overlay can be set on it.
-            if (pendingOverlay && seconds() > 1.5) {
+            if (WINDOWS && pendingOverlay && seconds() > 1.5) {
                 pendingOverlay = false;
                 setOverlay(true);
             }
@@ -447,6 +465,9 @@ public final class Main {
     }
 
     static void key(int key) {
+        if (!WINDOWS && key != 'p' && key != 0x1B) {
+            return;
+        }
         switch (key) {
             case 'c' -> setCorners((corners + 1) % CORNER_NAMES.size());
             case 's' -> setSubclass(!subclassed);
@@ -584,13 +605,19 @@ public final class Main {
         text(12, 14, 230, TITLE + "  -  " + versionLine);
         int y = 60;
         text(16, y, 200, "size %dx%d, maximized = %b".formatted(width, height, maximized()));
-        text(16, y += 22, 200, "[C] DWM corner preference: %s (%s)"
-                .formatted(CORNER_NAMES.get(corners), Win32.hresult(cornersResult)));
-        text(16, y += 16, 200, "[S] WM_NCHITTEST subclass, HTMAXBUTTON on the green button: %s (%d messages seen)"
-                .formatted(subclassed ? "on" : "off", subclassMessages));
+        if (WINDOWS) {
+            text(16, y += 22, 200, "[C] DWM corner preference: %s (%s)"
+                    .formatted(CORNER_NAMES.get(corners), Win32.hresult(cornersResult)));
+            text(16, y += 16, 200, "[S] WM_NCHITTEST subclass, HTMAXBUTTON on the green button: %s (%d messages seen)"
+                    .formatted(subclassed ? "on" : "off", subclassMessages));
+        } else {
+            y += 6;
+        }
         text(16, y += 16, 200, "[P] taskbar progress through SDL: %s".formatted(PROGRESS_NAMES.get(progress)));
-        text(16, y += 16, 200, "[O] taskbar overlay icon through ITaskbarList3: %s (%s)"
-                .formatted(overlay ? "on" : "off", Win32.hresult(overlayResult)));
+        if (WINDOWS) {
+            text(16, y += 16, 200, "[O] taskbar overlay icon through ITaskbarList3: %s (%s)"
+                    .formatted(overlay ? "on" : "off", Win32.hresult(overlayResult)));
+        }
         text(16, y += 16, 200, "[Esc] quit");
         text(16, y + 22, 150, "last: " + lastEvent);
         Sdl.renderPresent(renderer);

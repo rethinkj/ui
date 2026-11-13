@@ -32,6 +32,8 @@ final class Sdl {
     static final long WINDOW_NOT_FOCUSABLE = 0x80000000L;
 
     static final String PROP_WINDOW_WIN32_HWND_POINTER = "SDL.window.win32.hwnd";
+    static final String PROP_WINDOW_X11_WINDOW_NUMBER = "SDL.window.x11.window";
+    static final String PROP_WINDOW_WAYLAND_SURFACE_POINTER = "SDL.window.wayland.surface";
 
     static final int HITTEST_NORMAL = 0;
     static final int HITTEST_DRAGGABLE = 1;
@@ -135,6 +137,8 @@ final class Sdl {
     // ---- functions ---------------------------------------------------------------------------
 
     static final Linker LINKER = Linker.nativeLinker();
+    /** SDL3.dll on Windows, libSDL3.so on Linux. */
+    private static final String FILE = System.mapLibraryName("SDL3");
     private static final SymbolLookup LIB = SymbolLookup.libraryLookup(locate(), Arena.global());
 
     static final FunctionDescriptor SDL_INIT = FunctionDescriptor.of(JAVA_BOOLEAN, JAVA_INT);
@@ -162,6 +166,9 @@ final class Sdl {
     static final FunctionDescriptor SDL_GET_WINDOW_PROPERTIES = FunctionDescriptor.of(JAVA_INT, ADDRESS);
     static final FunctionDescriptor SDL_GET_POINTER_PROPERTY =
             FunctionDescriptor.of(ADDRESS, JAVA_INT, ADDRESS, ADDRESS);
+    static final FunctionDescriptor SDL_GET_NUMBER_PROPERTY =
+            FunctionDescriptor.of(JAVA_LONG, JAVA_INT, ADDRESS, JAVA_LONG);
+    static final FunctionDescriptor SDL_GET_CURRENT_VIDEO_DRIVER = FunctionDescriptor.of(ADDRESS);
     static final FunctionDescriptor SDL_SET_WINDOW_PROGRESS_STATE =
             FunctionDescriptor.of(JAVA_BOOLEAN, ADDRESS, JAVA_INT);
     static final FunctionDescriptor SDL_SET_WINDOW_PROGRESS_VALUE =
@@ -202,6 +209,9 @@ final class Sdl {
     private static final MethodHandle GET_WINDOW_PROPERTIES =
             bind("SDL_GetWindowProperties", SDL_GET_WINDOW_PROPERTIES);
     private static final MethodHandle GET_POINTER_PROPERTY = bind("SDL_GetPointerProperty", SDL_GET_POINTER_PROPERTY);
+    private static final MethodHandle GET_NUMBER_PROPERTY = bind("SDL_GetNumberProperty", SDL_GET_NUMBER_PROPERTY);
+    private static final MethodHandle GET_CURRENT_VIDEO_DRIVER =
+            bind("SDL_GetCurrentVideoDriver", SDL_GET_CURRENT_VIDEO_DRIVER);
     private static final MethodHandle SET_WINDOW_PROGRESS_STATE =
             bind("SDL_SetWindowProgressState", SDL_SET_WINDOW_PROGRESS_STATE);
     private static final MethodHandle SET_WINDOW_PROGRESS_VALUE =
@@ -371,6 +381,23 @@ final class Sdl {
         }
     }
 
+    static long getNumberProperty(int props, MemorySegment name, long fallback) {
+        try {
+            return (long) GET_NUMBER_PROPERTY.invokeExact(props, name, fallback);
+        } catch (Throwable t) {
+            throw failed(t);
+        }
+    }
+
+    /** "windows", "x11", "wayland", ... */
+    static String getCurrentVideoDriver() {
+        try {
+            return string((MemorySegment) GET_CURRENT_VIDEO_DRIVER.invokeExact());
+        } catch (Throwable t) {
+            throw failed(t);
+        }
+    }
+
     static boolean setWindowProgressState(MemorySegment window, int state) {
         try {
             return (boolean) SET_WINDOW_PROGRESS_STATE.invokeExact(window, state);
@@ -486,7 +513,7 @@ final class Sdl {
     // ---- helpers -----------------------------------------------------------------------------
 
     private static MethodHandle bind(String name, FunctionDescriptor descriptor) {
-        MemorySegment symbol = LIB.find(name).orElseThrow(() -> new UnsatisfiedLinkError("SDL3.dll has no " + name));
+        MemorySegment symbol = LIB.find(name).orElseThrow(() -> new UnsatisfiedLinkError(FILE + " has no " + name));
         return LINKER.downcallHandle(symbol, descriptor);
     }
 
@@ -498,19 +525,30 @@ final class Sdl {
         return t instanceof RuntimeException r ? r : new IllegalStateException(t);
     }
 
-    /** The DLL comes from the official release zip, unpacked into the git-ignored folder next to the sources. */
+    /**
+     * On Windows the DLL comes from the official release zip, unpacked into the git-ignored folder next to the
+     * sources. SDL publishes no Linux binaries: there it is built from the release source tarball and installed into
+     * native/sdl3/. From {@code spikes/window/native}, with the tarball unpacked into {@code download/}:
+     *
+     * <pre>
+     * cmake -S download/SDL3-3.4.20 -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=$PWD/sdl3 \
+     *     -DSDL_STATIC=OFF -DSDL_TESTS=OFF -DSDL_TEST_LIBRARY=OFF -DSDL_EXAMPLES=OFF -DSDL_X11_XSCRNSAVER=OFF
+     * make -C build -j$(nproc) install
+     * </pre>
+     */
     private static Path locate() {
         String override = System.getProperty("sdl3.dll");
         if (override != null) {
             return Path.of(override);
         }
-        for (String candidate : new String[] {"spikes/window/native/SDL3.dll", "native/SDL3.dll"}) {
-            Path path = Path.of(candidate);
+        for (String folder : new String[] {"spikes/window/native/", "native/", "spikes/window/native/sdl3/lib/",
+                "native/sdl3/lib/"}) {
+            Path path = Path.of(folder + FILE);
             if (Files.isRegularFile(path)) {
                 return path;
             }
         }
-        throw new UnsatisfiedLinkError(
-                "SDL3.dll not found. Unpack SDL3-<version>-win32-x64.zip into spikes/window/native/.");
+        throw new UnsatisfiedLinkError(FILE + " not found. On Windows unpack SDL3-<version>-win32-x64.zip into "
+                + "spikes/window/native/; on Linux build SDL3 and install it into spikes/window/native/sdl3/.");
     }
 }
