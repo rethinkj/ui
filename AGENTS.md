@@ -82,12 +82,24 @@ frame
 snap switch-on
 ```
 
-Run it, and look at the three images and trees in `core/target/switch`:
+The examples have text, so running one needs the fonts and the platform's native libraries on the class path besides core's classes. Build them, and keep the class path in `CP`, from the repository root. On Linux, in a POSIX shell, with `:` between the entries:
 
 ```sh
 mvn -q -pl core -am test-compile
-java -cp core/target/classes:core/target/test-classes com.rethinkj.ui.Examples \
-  --script core/src/test/resources/scripts/switch.txt --out core/target/switch
+CP=core/target/classes:core/target/test-classes:fonts/target/classes:natives-linux-x64/target/classes
+```
+
+On Windows, in PowerShell, with `;` between the entries and the Windows natives instead, since `natives-linux-x64/target/classes` exists only where the Linux module is built:
+
+```powershell
+mvn -q -pl core -am test-compile
+$CP = 'core/target/classes;core/target/test-classes;fonts/target/classes;natives-windows-x64/target/classes'
+```
+
+Every `java` command below then runs as written in both shells. Run the switch's script, and look at the three images and trees in `core/target/switch`:
+
+```sh
+java --enable-native-access=ALL-UNNAMED -cp $CP com.rethinkj.ui.Examples --script core/src/test/resources/scripts/switch.txt --out core/target/switch
 ```
 
 `core/src/test/resources/scripts/list.txt` scrolls the list of core's tests, which `Examples` runs when `list` comes first:
@@ -108,8 +120,7 @@ snap list-end
 ```
 
 ```sh
-java -cp core/target/classes:core/target/test-classes com.rethinkj.ui.Examples list \
-  --script core/src/test/resources/scripts/list.txt --out core/target/list
+java --enable-native-access=ALL-UNNAMED -cp $CP com.rethinkj.ui.Examples list --script core/src/test/resources/scripts/list.txt --out core/target/list
 ```
 
 `core/src/test/resources/scripts/rows.txt` scrolls a list of a million rows, which `Examples` runs when `rows` comes first. A list made with `El.rows(count, rowHeight, row)` builds only the rows in its visible part and three more on each side, so the tree holds a dozen rows, not a million:
@@ -130,12 +141,8 @@ frame
 snap rows-far
 ```
 
-The rows have text, so this needs the fonts and the native libraries on the class path (on Linux):
-
 ```sh
-java --enable-native-access=ALL-UNNAMED \
-  -cp core/target/classes:core/target/test-classes:fonts/target/classes:natives-linux-x64/target/classes \
-  com.rethinkj.ui.Examples rows --script core/src/test/resources/scripts/rows.txt --out core/target/rows
+java --enable-native-access=ALL-UNNAMED -cp $CP com.rethinkj.ui.Examples rows --script core/src/test/resources/scripts/rows.txt --out core/target/rows
 ```
 
 `core/src/test/resources/scripts/focus.txt` reaches the switch with the keyboard:
@@ -158,8 +165,7 @@ snap switch-focused-on
 In `switch-focused.tree.txt` the switch's line is `el #switch role=switch label="Lights" 39,49 38x22 focused`.
 
 ```sh
-java -cp core/target/classes:core/target/test-classes com.rethinkj.ui.Examples \
-  --script core/src/test/resources/scripts/focus.txt --out core/target/focus
+java --enable-native-access=ALL-UNNAMED -cp $CP com.rethinkj.ui.Examples --script core/src/test/resources/scripts/focus.txt --out core/target/focus
 ```
 
 `core/src/test/resources/scripts/hover.txt` shows the looks the switch has while the pointer is over it (`El.whenHovered`) and while it is pressed (`El.whenPressed`):
@@ -196,8 +202,7 @@ snap switch-on
 In `switch-hovered.tree.txt` the switch's line is `el #switch role=switch label="Lights" 39,49 38x22 hovered`, although the pointer is over the knob: the knob has no handler, so a press would go to the switch.
 
 ```sh
-java -cp core/target/classes:core/target/test-classes com.rethinkj.ui.Examples \
-  --script core/src/test/resources/scripts/hover.txt --out core/target/hover
+java --enable-native-access=ALL-UNNAMED -cp $CP com.rethinkj.ui.Examples --script core/src/test/resources/scripts/hover.txt --out core/target/hover
 ```
 
 `core/src/test/resources/scripts/field.txt` types into the text field of core's tests, which `Examples` runs when `field` comes first, selects and scrolls:
@@ -236,11 +241,10 @@ snap field-composing
 In `field-word.tree.txt` the field's line ends in `focused caret 17 anchor 26`: "customers" is selected, with the caret at its start.
 
 ```sh
-java -cp core/target/classes:core/target/test-classes com.rethinkj.ui.Examples field \
-  --script core/src/test/resources/scripts/field.txt --out core/target/field
+java --enable-native-access=ALL-UNNAMED -cp $CP com.rethinkj.ui.Examples field --script core/src/test/resources/scripts/field.txt --out core/target/field
 ```
 
-On Windows, separate the class path with `;`. The snaps equal the stored images of the same names under `core/src/test/resources/golden`; `ScriptTest` checks that, and that these examples match their files.
+The snaps equal the stored images of the same names under `core/src/test/resources/golden`; `ScriptTest` checks that, and that these examples match their files.
 
 ## Text fields
 
@@ -352,7 +356,7 @@ Text is shaped with HarfBuzz, rasterised with FreeType into greyscale bitmaps an
 - A glyph's quad covers exactly its texels, from the physical pixel `floor(x * scale + 0.5)` on, as the CPU's `Math.round`; the fragment reads its texel with `textureLoad`, never a sampler. The atlas pages are the layers of one `r8unorm` texture array, page `i` in layer `i`: one array keeps the single draw call, since WGSL cannot choose among bound textures by a per-instance index. Before each draw the renderer writes into each layer the region `Page.takeChanged()` reports, nothing for an unchanged page, and a page it has not seen in that layer whole, once. More pages than layers, or pages of another size, replace the array by one with the next power of two of layers (at most `maxTextureArrayLayers`, 256 or more), and every page is written whole again. `GpuPresenter.atlasUploads()` counts the writes; a frame without new glyphs, and an idle window, upload nothing.
 - It draws only into sRGB targets, with premultiplied blending (`one, one-minus-src-alpha`), so that the GPU blends in linear light and the target encodes: `RGBA8_UNORM_SRGB` for images, `BGRA8_UNORM_SRGB` (or `RGBA8_UNORM_SRGB`) for windows. `GpuRenderer.create()` and `render(scene, width, height, scale)` draw into `Pixels` without a window, like `CpuRenderer.render`.
 - `render.GpuPresenter` is the `WindowLoop.Presenter` that owns a window's surface (Direct3D 12 on Windows, Vulkan on Linux, FIFO, opaque) and configures it with the window's size in physical pixels. It draws nothing while the window is minimized. When the surface is out of date, lost or times out, it reports `pending()`, and the loop offers the newest frame again a refresh later; the presenter then reads the window's size again. Close it before the window.
-- `GpuRendererTest` compares the GPU's images with the CPU's: the views behind every stored image, which it builds as their tests and scripts do and checks against the stored PNG first, and scenes that stress one formula each, at scales 1, 1.5 and 2. The text scenes have 11 to 14 pixels in both fonts on light, dark and grey with both `TextRendering`s, opacity, rounded clips, translucent boxes over and under text, an atlas of 64-texel pages that a frame fills several of, and empties for the next, and text fields with a selection, a caret and a composition, scrolled and in the rows of a list. The kit's data grid is there too: core's tests cannot see the kit, so `Examples.grid` builds the grid of `Orders` as `DataGrid` does, from core's elements in `Theme.DARK`'s values; the test first checks that it draws the kit's stored images `grid-dark-*` from kit's `grid.txt`, then compares at scales 1.5 and 2. A change of the grid's look shows there, and `Examples.grid` follows it. A channel may differ by 1 step of 8 bits, and by half a step more for each further instance that draws into the pixel, because the GPU rounds into the 8-bit target after every draw (`tolerance` says why). On top of that comes what the GPU's blending can add: it takes the source's alpha at the 8 bits of the target, so a layer lets up to 1/255 more or less of the light under it through (`ALPHA_STEP`); under nearly opaque dark text on white that measured up to 4 steps near black, and the test adds what it can be at each pixel, from the CPU's blends (`CpuRenderer.Blends`). `aWrongGlyphShaderIsNoticed` breaks the texel mapping, the reading of texels, the correction and the clip one at a time; each fails thousands of pixels. A failing scene leaves `.cpu.png`, `.gpu.png` and `.diff.png` in `core/target/gpu-vs-cpu`. The test is skipped without the natives module or an adapter. A channel may differ by 1 step of 8 bits, and by half a step more for each further instance that draws into the pixel, because the GPU rounds into the 8-bit target after every draw (`tolerance` says why). On top of that comes what the GPU's blending can add: it takes the source's alpha at the 8 bits of the target, so a layer lets up to 1/255 more or less of the light under it through (`ALPHA_STEP`); under nearly opaque dark text on white that measured up to 4 steps near black, and the test adds what it can be at each pixel, from the CPU's blends (`CpuRenderer.Blends`). `aWrongGlyphShaderIsNoticed` breaks the texel mapping, the reading of texels, the correction and the clip one at a time; each fails thousands of pixels. A failing scene leaves `.cpu.png`, `.gpu.png` and `.diff.png` in `core/target/gpu-vs-cpu`. The test is skipped without the natives module or an adapter.
+- `GpuRendererTest` compares the GPU's images with the CPU's: the views behind every stored image, which it builds as their tests and scripts do and checks against the stored PNG first, and scenes that stress one formula each, at scales 1, 1.5 and 2. The text scenes have 11 to 14 pixels in both fonts on light, dark and grey with both `TextRendering`s, opacity, rounded clips, translucent boxes over and under text, an atlas of 64-texel pages that a frame fills several of, and empties for the next, and text fields with a selection, a caret and a composition, scrolled and in the rows of a list. The kit's data grid is there too: core's tests cannot see the kit, so `Examples.grid` builds the grid of `Orders` as `DataGrid` does, from core's elements in `Theme.DARK`'s values; the test first checks that it draws the kit's stored images `grid-dark-*` from kit's `grid.txt`, then compares at scales 1.5 and 2. A change of the grid's look shows there, and `Examples.grid` follows it. A channel may differ by 1 step of 8 bits, and by half a step more for each further instance that draws into the pixel, because the GPU rounds into the 8-bit target after every draw (`tolerance` says why). On top of that comes what the GPU's blending can add: it takes the source's alpha at the 8 bits of the target, so a layer lets up to 1/255 more or less of the light under it through (`ALPHA_STEP`); under nearly opaque dark text on white that measured up to 4 steps near black, and the test adds what it can be at each pixel, from the CPU's blends (`CpuRenderer.Blends`). `aWrongGlyphShaderIsNoticed` breaks the texel mapping, the reading of texels, the correction and the clip one at a time; each fails thousands of pixels. A failing scene leaves `.cpu.png`, `.gpu.png` and `.diff.png` in `core/target/gpu-vs-cpu`. The test is skipped without the natives module or an adapter.
 
 ## Windows
 
