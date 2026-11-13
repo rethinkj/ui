@@ -1,0 +1,1 @@
+- **Breaking:** `Tabs.tabs` returns a card whose first row is the tab bar: the active tab has a line in the accent's edge instead of a raised fill, and the content fills the card edge to edge. A `Tab` can carry an icon (`tab.icon(Symbol.TABLE)`).
