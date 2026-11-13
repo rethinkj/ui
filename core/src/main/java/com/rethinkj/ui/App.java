@@ -576,10 +576,12 @@ public final class App<S> {
 
   /**
    * The element of the last frame's {@link #tree} that a press is on, between the pointer down
-   * that went to it and the next pointer up, or null.
+   * that went to it and the next pointer up, or null: an element with a press or drag handler, or
+   * a text field that the press selects in.
    */
   public El pressed() {
-    return pressed == null ? null : animator.element(pressed);
+    Object id = pressedId();
+    return id == null ? null : animator.element(id);
   }
 
   /**
@@ -1347,9 +1349,10 @@ public final class App<S> {
           took = true;
         }
       }
-      if (Animator.isBelow(pressed, listId)
-          && look(Animator.find(row, rowId, pressed), El::pressLook, "whenPressed")) {
-        press = pressed;
+      Object pressId = pressedId();
+      if (Animator.isBelow(pressId, listId)
+          && look(Animator.find(row, rowId, pressId), El::pressLook, "whenPressed")) {
+        press = pressId;
         took = true;
       }
       if (took) {
@@ -1372,11 +1375,12 @@ public final class App<S> {
       }
     }
     El focus = focusId == null ? null : animator.element(focusId);
-    El press = pressed == null ? null : animator.element(pressed);
+    Object pressId = pressedId();
+    El press = pressId == null ? null : animator.element(pressId);
     return new Looks(
         hovered,
         focus != null && focus.focusLook() != null ? focusId : null,
-        press != null && press.pressLook() != null ? pressed : null);
+        press != null && press.pressLook() != null ? pressId : null);
   }
 
   /**
@@ -1395,9 +1399,10 @@ public final class App<S> {
     El focus = focusId == null ? null : Animator.find(tree, focusId);
     boolean focusLook = focus != null && focus.isFocusable() // or it loses the focus
         && look(focus, El::focusLook, "whenFocused");
+    Object pressId = pressedId();
     boolean pressLook =
-        pressed != null && look(Animator.find(tree, pressed), El::pressLook, "whenPressed");
-    return new Looks(hovered, focusLook ? focusId : null, pressLook ? pressed : null);
+        pressId != null && look(Animator.find(tree, pressId), El::pressLook, "whenPressed");
+    return new Looks(hovered, focusLook ? focusId : null, pressLook ? pressId : null);
   }
 
   /** Applies {@code el}'s look of one state, if it has one; false if not. */
@@ -1488,6 +1493,14 @@ public final class App<S> {
       return Animator.lineage(held);
     }
     return pointerIn ? Animator.identities(hit(pointerX, pointerY)) : List.of();
+  }
+
+  /**
+   * The identity of the element a press is on: the one with a press or drag handler it went to,
+   * or the text field it selects in; null between presses.
+   */
+  private Object pressedId() {
+    return pressed != null ? pressed : selecting;
   }
 
   /** The identity of the element that a drag, a selection or a thumb's drag holds, or null. */

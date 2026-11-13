@@ -65,6 +65,32 @@ class FieldDragTest {
   }
 
   @Test
+  void aFieldHasItsPressedLookWhileAPressSelectsInItAndTheColumnHasNone() {
+    int pressedField = 0xFF3B82F6;
+    int pressedPanel = 0xFF1C1C22;
+    App<Model> app = new App<>(new Model(), m -> col().key("panel").wFull().hFull().padding(10)
+        .onPress(() -> m.log.add("press"))
+        .whenPressed(e -> e.fill(pressedPanel))
+        .child(El.text(m.value).editable(v -> m.value = v).key("f").w(100).h(24).padding(0, 4)
+            .whenPressed(e -> e.fill(pressedField))));
+    app.textRendering(TextRendering.LINUX);
+    app.resize(200, 80, 1);
+    app.frame();
+    app.pointerDown(15, 22);
+    app.pointerMove(180, 70); // selecting on, outside the field
+    app.frame();
+    assertEquals(pressedField, field(app).fill());
+    assertEquals(0, app.tree().fill(), "the column around it is not pressed");
+    app.pointerUp(180, 70);
+    app.frame();
+    assertEquals(0, field(app).fill(), "until the pointer is up");
+    assertNull(app.pressed());
+    app.pointerDown(150, 50); // beside the field: the column's press
+    app.frame();
+    assertEquals(pressedPanel, app.tree().fill());
+  }
+
+  @Test
   void draggingInAFieldSelectsAndDragsNoAncestor() {
     App<Model> app = start();
     app.pointerMove(15, 22);
@@ -80,7 +106,7 @@ class FieldDragTest {
     assertEquals("^hello world|", show(app), "selects on to the end");
     assertSame(field(app), app.hovered(), "the field counts as under the pointer");
     assertEquals(Cursor.TEXT, app.cursor());
-    assertNull(app.pressed(), "a field is not pressed");
+    assertSame(field(app), app.pressed(), "the field is pressed while it selects, the column not");
 
     app.pointerUp(180, 70);
     app.frame();
