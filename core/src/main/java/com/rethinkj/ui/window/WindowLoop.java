@@ -118,6 +118,10 @@ public final class WindowLoop {
   private long clock;
   private boolean drawing; // a pass draws frames; closes wait for its end
   private Entry pressed; // the window the left button went down in, until it is up
+  // During that press: a window that the app moves along reported the pointer (see route), and
+  // the system's pointer as the loop last read it.
+  private boolean tracking;
+  private float[] polled;
   private boolean captured; // the loop captured the pointer for a press that moved on
 
   /**
@@ -131,6 +135,7 @@ public final class WindowLoop {
     final boolean owned; // opened by the loop, which closes it
     Runnable onClose;
     boolean dropTarget = true;
+    boolean moved; // moved by the app during the press that is down, as a window that follows it
     float width = -1;
     float height = -1;
     float scale = -1;
@@ -190,6 +195,7 @@ public final class WindowLoop {
     public void moveTo(int x, int y) {
       if (isOpen()) {
         window.moveTo(x, y);
+        moved = pressed != null;
       }
     }
 
@@ -287,6 +293,11 @@ public final class WindowLoop {
       float sy = from.window.y() + y * upl;
       // On Wayland no client knows where its windows are: only the drag's own window counts.
       boolean known = Window.knowsPositions();
+      if (from.moved && known) { // a window that follows the pointer: see route
+        float[] at = Window.pointer();
+        sx = at[0];
+        sy = at[1];
+      }
       for (Entry entry : front) {
         if (!entry.dropTarget || !entry.isOpen() || !known && entry != from) {
           continue;
@@ -475,12 +486,17 @@ public final class WindowLoop {
             millis = wait;
           }
         }
+        if (polls()) { // a refresh at most, then the pointer is read again
+          long refresh = Math.max(1, pressed.frameNanos / 1_000_000);
+          millis = millis < 0 ? refresh : Math.min(millis, refresh);
+        }
         waits.waiting(millis, held);
         if (millis < 0) {
           Window.waitEvents();
         } else {
           Window.waitEvents(millis);
         }
+        poll();
       }
     } finally {
       running = false;
@@ -723,8 +739,8 @@ public final class WindowLoop {
   }
 
   /**
-   * Gives the pointer's moves and the release that another window reports during a press to the
-   * window the press began in, at the same point of the screen. SDL hands the pointer to a window
+   * Gives the pointer's moves, the release and the keys that another window reports during a
+   * press to the window the press began in, the pointer at the same point of the screen. SDL hands the pointer to a window
    * that opens under it, as one that follows the pointer during a drag does, and on X11 its moves
    * then come only while the pointer is over that window; capturing the pointer again brings
    * those outside it, and the release, back.
@@ -751,6 +767,18 @@ public final class WindowLoop {
       case PointerLeave leave -> {
         return true; // the pressed window keeps the pointer
       }
+      // And the keys: a window that opened under the pointer took the keyboard focus, but Escape
+      // gives up the drag that opened it.
+      case KeyDown down -> {
+        to.input = true;
+        to.app.keyDown(down.key());
+        return true;
+      }
+      case KeyUp up -> {
+        to.input = true;
+        to.app.keyUp(up.key());
+        return true;
+      }
       default -> {
         return false;
       }
@@ -761,8 +789,21 @@ public final class WindowLoop {
     }
     float from = e.window.unitsPerLogical();
     float into = to.window.unitsPerLogical();
-    float ax = (e.window.x() + x * from - to.window.x()) / into;
-    float ay = (e.window.y() + y * from - to.window.y()) / into;
+    float sx = e.window.x() + x * from;
+    float sy = e.window.y() + y * from;
+    if (e.moved && Window.knowsPositions()) {
+      // A window that follows the pointer reports it from where it has just moved to, which the
+      // system confirms later (on X11 the window manager), so its position lags a step behind:
+      // the system's pointer is where the pointer is. SDL also drops a move that leaves the
+      // pointer where it was in the window, as each one does once the window caught up, so the
+      // loop reads the pointer itself from now on (see poll).
+      float[] at = Window.pointer();
+      sx = at[0];
+      sy = at[1];
+      tracking = true;
+    }
+    float ax = (sx - to.window.x()) / into;
+    float ay = (sy - to.window.y()) / into;
     to.input = true;
     if (event instanceof PointerUp) {
       released();
@@ -773,8 +814,39 @@ public final class WindowLoop {
     return true;
   }
 
+  /**
+   * Whether the loop reads the system's pointer during a press: while a window that the app moves
+   * along, as one that follows the pointer, is under it or is the pressed one, SDL reports no move
+   * that leaves the pointer where it was in that window, which is every move once it caught up.
+   */
+  private boolean polls() {
+    return pressed != null && pressed.isOpen() && Window.knowsPositions()
+        && (tracking || pressed.moved);
+  }
+
+  /** Gives the pressed window the system's pointer when it moved; see {@link #polls}. */
+  private void poll() {
+    if (!polls()) {
+      return;
+    }
+    float[] at = Window.pointer();
+    if (polled != null && at[0] == polled[0] && at[1] == polled[1]) {
+      return;
+    }
+    polled = at;
+    Entry to = pressed;
+    float into = to.window.unitsPerLogical();
+    to.input = true;
+    to.app.pointerMove((at[0] - to.window.x()) / into, (at[1] - to.window.y()) / into);
+  }
+
   private void released() {
     pressed = null;
+    tracking = false;
+    polled = null;
+    for (Entry e : entries) {
+      e.moved = false;
+    }
     if (captured) {
       captured = false;
       Window.capturePointer(false);

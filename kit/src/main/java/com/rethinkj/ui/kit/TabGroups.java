@@ -129,6 +129,7 @@ public final class TabGroups<T> {
   private boolean placed; // its first tab's place in its window is known from its own tree
   private float firstX; // where its first tab lies in its window
   private float firstY;
+  private float tabHeight = Float.NaN; // the height of that tab, once known
   private Group<T> origin; // where a torn tab came from, to go back on a cancel; null if none
   private int originIndex;
   private int startX; // where a window moved by its only tab lay
@@ -320,6 +321,8 @@ public final class TabGroups<T> {
         origin = null;
         startX = group.window.x();
         startY = group.window.y();
+        float[] at = firstTab(group.window.app().tree());
+        tabHeight = at == null ? Float.NaN : at[2];
         placed = true;
       } else { // a window of its own, under the pointer
         origin = group;
@@ -343,12 +346,19 @@ public final class TabGroups<T> {
         if (at != null) {
           firstX = at[0];
           firstY = at[1];
+          tabHeight = at[2];
           placed = true;
         }
       }
       float scale = f.window.screenScale();
-      f.window.moveTo(Math.round(d.screenX() - (firstX + o.grabX()) * scale),
-          Math.round(d.screenY() - (firstY + o.grabY()) * scale));
+      float top = d.screenY() - (firstY + o.grabY()) * scale;
+      if (dragging.slot >= 0) {
+        // Over a bar, where its tab would cover the marker: the window moves down below the
+        // bar's tabs, out of the way of the marker, and back under the pointer once it leaves.
+        float h = Float.isNaN(tabHeight) ? 2 * o.grabY() : tabHeight;
+        top = d.screenY() + (h - o.grabY()) * scale;
+      }
+      f.window.moveTo(Math.round(d.screenX() - (firstX + o.grabX()) * scale), Math.round(top));
       return;
     }
     following = null;
@@ -367,7 +377,10 @@ public final class TabGroups<T> {
     origin = null;
   }
 
-  /** Where the first tab of the first bar of a tree lies in its window, or null. */
+  /**
+   * Where the first tab of the first bar of a tree lies in its window, and its height; null
+   * without one.
+   */
   private static float[] firstTab(El root) {
     return root == null ? null : find(root, 0, 0);
   }
@@ -378,7 +391,7 @@ public final class TabGroups<T> {
         return null;
       }
       El first = el.children().getFirst();
-      return new float[] {x + first.x(), y + first.y()};
+      return new float[] {x + first.x(), y + first.y(), first.height()};
     }
     for (El child : el.children()) {
       float[] at = find(child, x + child.x(), y + child.y());
