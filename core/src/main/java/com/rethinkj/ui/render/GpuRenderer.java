@@ -190,6 +190,10 @@ public final class GpuRenderer implements AutoCloseable {
           high = (min(rect.xy + rect.zw, clip.rect.xy + clip.rect.zw) + pad) * globals.scale;
           empty = !(instance.rect.z > 0.0 && instance.rect.w > 0.0);
         }
+        // No further than a pixel beyond the target: the fragments are the same, and a quad that
+        // reaches a billion pixels out, as a scrim's, is one a software rasteriser may drop.
+        low = max(low, vec2f(-1.0));
+        high = min(high, globals.size + 1.0);
         let corner = vec2f(f32(vertex & 1u), f32(vertex >> 1u));
         var pixel = mix(low, high, corner);
         // Nothing to draw: an empty rectangle, or one its clip leaves nothing of.
