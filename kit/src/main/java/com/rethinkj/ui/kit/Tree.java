@@ -23,7 +23,7 @@ import java.util.function.Predicate;
  *     (node, open) -> {
  *       if (open) {
  *         s.open.add(node);
- *         s.catalog.loadIfUnknown(node); // children() is null until the data is there
+ *         s.catalog.loadIfUnknown(node); // with App.background; children() is null till then
  *       } else {
  *         s.open.remove(node);
  *       }
