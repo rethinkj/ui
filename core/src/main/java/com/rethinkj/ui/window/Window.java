@@ -901,6 +901,15 @@ public final class Window implements AutoCloseable {
   }
 
   /**
+   * Captures the pointer for the window it is over, or lets it go: while captured, that window
+   * gets the pointer's moves and releases also outside it, as during a press.
+   */
+  static void capturePointer(boolean on) {
+    checkThread();
+    Sdl.captureMouse(on);
+  }
+
+  /**
    * Where the pointer is on the desktop now, in the units of {@link #moveTo}, from {@code
    * SDL_GetGlobalMouseState}: the system's pointer as it is when this is called, ahead of the
    * events that wait to be delivered. On Wayland, where a client knows no positions, it is the

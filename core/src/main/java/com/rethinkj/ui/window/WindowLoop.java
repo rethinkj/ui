@@ -110,6 +110,8 @@ public final class WindowLoop {
   private boolean systemFonts = true;
   private long clock;
   private boolean drawing; // a pass draws frames; closes wait for its end
+  private Entry pressed; // the window the left button went down in, until it is up
+  private boolean captured; // the loop captured the pointer for a press that moved on
 
   /**
    * One window of the loop with its app and presenter, and what pacing needs: when its last frame
@@ -649,6 +651,9 @@ public final class WindowLoop {
     if (!e.isOpen()) {
       return;
     }
+    if (pressed != null && pressed != e && route(e, event)) {
+      return;
+    }
     App<?> app = e.app;
     if (event instanceof PointerDown || event instanceof PointerUp || event instanceof PointerMove
         || event instanceof PointerLeave || event instanceof Wheel || event instanceof KeyDown
@@ -656,9 +661,14 @@ public final class WindowLoop {
       e.input = true;
     }
     switch (event) {
-      case PointerDown down when down.button() == PointerButton.LEFT ->
-          app.pointerDown(down.x(), down.y(), down.clicks(), down.modifiers());
-      case PointerUp up when up.button() == PointerButton.LEFT -> app.pointerUp(up.x(), up.y());
+      case PointerDown down when down.button() == PointerButton.LEFT -> {
+        pressed = e;
+        app.pointerDown(down.x(), down.y(), down.clicks(), down.modifiers());
+      }
+      case PointerUp up when up.button() == PointerButton.LEFT -> {
+        released();
+        app.pointerUp(up.x(), up.y());
+      }
       case PointerDown down when down.button() == PointerButton.RIGHT ->
           app.secondaryDown(down.x(), down.y());
       case PointerUp up when up.button() == PointerButton.RIGHT -> app.secondaryUp(up.x(), up.y());
@@ -700,6 +710,65 @@ public final class WindowLoop {
       // Every window gets it; the first open one hands it on.
       case AppearanceChanged changed when e == open().getFirst() -> handOn(changed.appearance());
       default -> {}
+    }
+  }
+
+  /**
+   * Gives the pointer's moves and the release that another window reports during a press to the
+   * window the press began in, at the same point of the screen. SDL hands the pointer to a window
+   * that opens under it, as one that follows the pointer during a drag does, and on X11 its moves
+   * then come only while the pointer is over that window; capturing the pointer again brings
+   * those outside it, and the release, back.
+   *
+   * @return whether the event went to the pressed window instead of {@code e}'s
+   */
+  private boolean route(Entry e, WindowEvent event) {
+    Entry to = pressed;
+    if (!to.isOpen()) {
+      pressed = null;
+      return false;
+    }
+    float x;
+    float y;
+    switch (event) {
+      case PointerMove move -> {
+        x = move.x();
+        y = move.y();
+      }
+      case PointerUp up when up.button() == PointerButton.LEFT -> {
+        x = up.x();
+        y = up.y();
+      }
+      case PointerLeave leave -> {
+        return true; // the pressed window keeps the pointer
+      }
+      default -> {
+        return false;
+      }
+    }
+    if (!captured) {
+      captured = true;
+      Window.capturePointer(true); // for the window the pointer is over now
+    }
+    float from = e.window.unitsPerLogical();
+    float into = to.window.unitsPerLogical();
+    float ax = (e.window.x() + x * from - to.window.x()) / into;
+    float ay = (e.window.y() + y * from - to.window.y()) / into;
+    to.input = true;
+    if (event instanceof PointerUp) {
+      released();
+      to.app.pointerUp(ax, ay);
+    } else {
+      to.app.pointerMove(ax, ay);
+    }
+    return true;
+  }
+
+  private void released() {
+    pressed = null;
+    if (captured) {
+      captured = false;
+      Window.capturePointer(false);
     }
   }
 

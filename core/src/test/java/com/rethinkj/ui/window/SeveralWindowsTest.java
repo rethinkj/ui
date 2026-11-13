@@ -263,6 +263,55 @@ class SeveralWindowsTest {
   }
 
   /**
+   * SDL gives the pointer to a window that opens under it during a press, as one that follows the
+   * pointer does: what that window reports until the release goes to the window the press began
+   * in, at the same point of the screen.
+   */
+  @Test
+  void thePressedWindowKeepsThePointerThatAnotherWindowReports() {
+    try (Window a = Window.open(TITLE, 160, 100, Window.options().position(100, 200))) {
+      List<Drag> drags = new ArrayList<>();
+      List<String> pressesB = new ArrayList<>();
+      App<Object> appA = new App<>(new Object(), x -> row().wFull().hFull()
+          .child(el().key("chip").size(40, 40).onDrag(drags::add)));
+      App<Object> appB = new App<>(new Object(), x -> row().wFull().hFull()
+          .onPress(() -> pressesB.add("press")).onDrag(d -> pressesB.add("drag")));
+      AtomicReference<WindowLoop> loop = new AtomicReference<>();
+      loop.set(new WindowLoop(a, appA, (scene, w, h, sc) -> {})
+          .presenters(w -> (scene, wi, h, sc) -> {}));
+      Windows.Handle b = loop.get().open(TITLE + " B", 160, 100,
+          Window.options().position(400, 200), appB);
+      Desktop.settle();
+      float[] expected = new float[2];
+      int[] idle = new int[1];
+      loop.get().waits((millis, holdBack) -> {
+        if (millis != -1) {
+          return;
+        }
+        if (idle[0]++ == 0) {
+          float u = a.unitsPerLogical();
+          expected[0] = (b.x() + 30 * b.screenScale() - a.x()) / u;
+          expected[1] = (b.y() + 20 * b.screenScale() - a.y()) / u;
+          Desktop.button(a, true, Sdl.BUTTON_LEFT, 20, 20, 1);
+          Desktop.motion(a, 30, 20);
+          Desktop.motion(b.window(), 30, 20); // as SDL reports it once B lies under the pointer
+          Desktop.button(b.window(), false, Sdl.BUTTON_LEFT, 30, 20, 1);
+        } else if (!drags.isEmpty() && drags.getLast().phase() == Drag.Phase.END) {
+          loop.get().stop();
+        }
+      });
+      Desktop.run(loop.get(), () -> "the drag ends in A: " + drags);
+
+      assertEquals(List.of(Drag.Phase.START, Drag.Phase.MOVE, Drag.Phase.END),
+          drags.stream().map(Drag::phase).toList());
+      assertEquals(expected[0] - 20, drags.getLast().dx(), 0.01);
+      assertEquals(expected[1] - 20, drags.getLast().dy(), 0.01);
+      assertEquals(b, drags.getLast().window());
+      assertEquals(List.of(), pressesB, "B saw nothing of it");
+    }
+  }
+
+  /**
    * Input to one window right after its frame waits for that window's refresh, while input to a
    * window whose last frame is older is drawn at once, before that wait. The apps have states of
    * their own, so that one's key draws nothing in the other.

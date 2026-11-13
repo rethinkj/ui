@@ -227,6 +227,7 @@ final class Sdl {
       FunctionDescriptor.of(JAVA_BOOLEAN, ADDRESS, JAVA_INT, JAVA_INT);
   static final FunctionDescriptor SDL_SET_WINDOW_MINIMUM_SIZE =
       FunctionDescriptor.of(JAVA_BOOLEAN, ADDRESS, JAVA_INT, JAVA_INT);
+  static final FunctionDescriptor SDL_CAPTURE_MOUSE = FunctionDescriptor.of(JAVA_BOOLEAN, JAVA_BOOLEAN);
   static final FunctionDescriptor SDL_GET_GLOBAL_MOUSE_STATE =
       FunctionDescriptor.of(JAVA_INT, ADDRESS, ADDRESS);
   static final FunctionDescriptor SDL_GET_WINDOW_POSITION =
@@ -340,6 +341,7 @@ final class Sdl {
     static final MethodHandle SET_WINDOW_SIZE = bind("SDL_SetWindowSize", SDL_SET_WINDOW_SIZE);
     static final MethodHandle SET_WINDOW_MINIMUM_SIZE =
         bind("SDL_SetWindowMinimumSize", SDL_SET_WINDOW_MINIMUM_SIZE);
+    static final MethodHandle CAPTURE_MOUSE = bind("SDL_CaptureMouse", SDL_CAPTURE_MOUSE);
     static final MethodHandle GET_GLOBAL_MOUSE_STATE =
         bind("SDL_GetGlobalMouseState", SDL_GET_GLOBAL_MOUSE_STATE);
     static final MethodHandle GET_WINDOW_POSITION =
@@ -592,6 +594,14 @@ final class Sdl {
   }
 
   /** Writes x and y into the two ints at {@code position}. */
+  static boolean captureMouse(boolean enabled) {
+    try {
+      return (boolean) H.CAPTURE_MOUSE.invokeExact(enabled);
+    } catch (Throwable t) {
+      throw failed(t);
+    }
+  }
+
   /** Writes the pointer's position on the desktop as two floats; returns the buttons held. */
   static int getGlobalMouseState(MemorySegment position) {
     try {
