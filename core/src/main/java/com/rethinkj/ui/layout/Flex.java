@@ -22,7 +22,7 @@ public final class Flex {
    * neighbours.
    *
    * <p>The root is sized by its own style and placed at its margin. An element that is, or is
-   * inside, {@code display: none} gets an empty rectangle.
+   * inside, {@code display: none} is not placed ({@link El#isPlaced}).
    *
    * @param availableWidth the width the root may fill, in pixels: the window's content width.
    *     {@link Measure#MAX_CONTENT} lets the root be as wide as its content.
@@ -69,6 +69,9 @@ public final class Flex {
    * would open one-pixel gaps between neighbours.
    */
   private static void place(Node node, float parentX, float parentY, boolean round) {
+    if (node.style.display == Style.Display.NONE) {
+      return; // neither it nor anything inside it is placed
+    }
     float x = parentX + node.x;
     float y = parentY + node.y;
     if (round) {

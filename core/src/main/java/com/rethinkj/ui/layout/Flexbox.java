@@ -621,7 +621,7 @@ final class Flexbox {
         float length = 0;
         for (int i = line.start; i < line.end; i++) {
           Item item = items.get(i);
-          length += Math.max(max(item.basis, item.minM) + item.marginM(), item.edgesM);
+          length += Math.max(clamp(item.basis, item.minM, item.maxM) + item.marginM(), item.edgesM);
         }
         longest = Math.max(longest, length + gaps(gapM, line.count()));
       }
@@ -771,13 +771,14 @@ final class Flexbox {
         break;
       }
 
-      // Flex factors that sum to less than one take only that share of the free space.
+      // Flex factors that sum to less than one take only that share of the free space, which
+      // is what the gaps left.
       float remaining = innerM - (totalGap + itemsSpace);
       float freeSpace;
       if (growing && sumGrow < 1) {
-        freeSpace = min(initialFreeSpace * sumGrow - totalGap, remaining);
+        freeSpace = min(initialFreeSpace * sumGrow, remaining);
       } else if (shrinking && sumShrink < 1) {
-        freeSpace = max(initialFreeSpace * sumShrink - totalGap, remaining);
+        freeSpace = max(initialFreeSpace * sumShrink, remaining);
       } else {
         freeSpace = or(remaining, usedFlexFactor - (totalGap + itemsSpace));
       }
@@ -815,7 +816,7 @@ final class Flexbox {
       for (int i = line.start; i < line.end; i++) {
         Item item = items.get(i);
         if (!item.frozen) {
-          float clamped = Math.max(clamp(item.targetM, item.minimumM, item.maxM), 0);
+          float clamped = Math.max(clamp(item.targetM, item.minimumM, item.maxM), item.edgesM);
           item.violation = clamped - item.targetM;
           item.targetM = clamped;
           item.outerTargetM = clamped + item.marginM();
@@ -1020,11 +1021,13 @@ final class Flexbox {
       for (int i = line.start; i < line.end; i++) {
         Item item = items.get(i);
         float freeSpace = line.cross - item.outerTargetC;
+        // An item larger than its line starts at the line's start and overflows its end: only
+        // free space goes to auto margins (9.6, step 13).
         if (item.autoStartC && item.autoEndC) {
-          item.marginStartC = freeSpace / 2;
-          item.marginEndC = freeSpace / 2;
+          item.marginStartC = Math.max(freeSpace, 0) / 2;
+          item.marginEndC = freeSpace - item.marginStartC;
         } else if (item.autoStartC) {
-          item.marginStartC = freeSpace;
+          item.marginStartC = Math.max(freeSpace, 0);
         } else if (item.autoEndC) {
           item.marginEndC = freeSpace;
         } else {

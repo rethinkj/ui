@@ -88,4 +88,79 @@ class FlexTest {
   void rejectsNaN() {
     assertThrows(IllegalArgumentException.class, () -> Flex.layout(el(), Float.NaN, 100));
   }
+
+  // The cases below follow the flexbox specification where Taffy's cases have none.
+
+  @Test
+  void flexFactorsBelowOneShareTheSpaceTheGapsLeave() {
+    El first = el().size(20, 10).grow(0.25f);
+    El second = el().size(20, 10).grow(0.25f);
+    El grown = row().size(100, 10).gap(10).child(first).child(second);
+    Flex.layout(grown, 100, 10, false);
+    // 50 are free after the gap, half of them are shared: 12.5 each.
+    assertEquals(32.5f, first.width());
+    assertEquals(32.5f, second.width());
+
+    El third = el().size(80, 10).shrink(0.25f).minSize(0, 0);
+    El fourth = el().size(80, 10).shrink(0.25f).minSize(0, 0);
+    El shrunk = row().size(100, 10).gap(10).child(third).child(fourth);
+    Flex.layout(shrunk, 100, 10, false);
+    // 70 too many, half of them are taken: 17.5 each.
+    assertEquals(62.5f, third.width());
+    assertEquals(62.5f, fourth.width());
+  }
+
+  @Test
+  void aContainerSizedByItsItemsCountsNoMoreThanAnItemsMaximum() {
+    El wide = el().size(200, 10);
+    wide.style().maxWidth = Len.px(100);
+    El across = row().absolute(0, 0).child(wide);
+    Flex.layout(el().size(400, 100).child(across), 400, 100);
+    assertEquals(100, wide.width());
+    assertEquals(100, across.width());
+
+    El high = el().size(10, 200);
+    high.style().maxHeight = Len.px(100);
+    El down = col().absolute(0, 0).child(high);
+    Flex.layout(el().size(400, 400).child(down), 400, 400);
+    assertEquals(100, down.height());
+  }
+
+  @Test
+  void anItemShrinksNoFurtherThanItsPaddingAndTheOthersTakeTheRest() {
+    El padded = el().size(100, 10).padding(0, 10).shrink(2).minSize(0, 0);
+    El other = el().size(100, 10).minSize(0, 0);
+    Flex.layout(row().size(50, 10).child(padded).child(other), 50, 10);
+    assertEquals(20, padded.width());
+    assertEquals(30, other.width()); // was 42, past the row's end
+  }
+
+  @Test
+  void autoMarginsAcrossLeaveAnItemLargerThanItsLineAtTheStart() {
+    El both = el().size(10, 80);
+    both.style().marginTop = Len.AUTO;
+    both.style().marginBottom = Len.AUTO;
+    El start = el().size(10, 80);
+    start.style().marginTop = Len.AUTO;
+    El fits = el().size(10, 20);
+    fits.style().marginTop = Len.AUTO;
+    fits.style().marginBottom = Len.AUTO;
+    Flex.layout(row().size(40, 40).child(both).child(start).child(fits), 40, 40);
+    assertEquals(0, both.y());
+    assertEquals(0, start.y());
+    assertEquals(10, fits.y()); // free space is still shared
+  }
+
+  @Test
+  void displayNoneIsNotPlacedNorIsAnythingInsideIt() {
+    El inside = el().size(5, 5);
+    El none = el().size(10, 10).child(inside);
+    none.style().display = Style.Display.NONE;
+    El shown = el().size(10, 10);
+    Flex.layout(row().size(40, 40).child(none).child(shown), 40, 40);
+    assertEquals(false, none.isPlaced());
+    assertEquals(false, inside.isPlaced());
+    assertEquals(true, shown.isPlaced());
+    assertEquals(0, shown.x());
+  }
 }
