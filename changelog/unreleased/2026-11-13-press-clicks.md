@@ -1,0 +1,1 @@
+- Added `El.onPress(IntConsumer)`, a press handler that is told how many presses in quick succession the press completes: 1 for a single press, 2 for the second of a double press, and so on; Enter and Space give 1. `El.onPress()` now returns that `IntConsumer`; `onPress(Runnable)` is unchanged.

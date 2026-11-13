@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.function.Consumer;
+import java.util.function.IntConsumer;
 import java.util.function.IntFunction;
 import java.util.function.Predicate;
 
@@ -36,7 +37,7 @@ public final class El {
   private int borderColor;
   private Measure measure;
   private Text text;
-  private Runnable onPress;
+  private IntConsumer onPress;
   private Consumer<Drag> onDrag;
   private int revealRow = -1;
   private boolean focusable;
@@ -560,6 +561,16 @@ public final class El {
    * place where an app changes its state.
    */
   public El onPress(Runnable handler) {
+    this.onPress = handler == null ? null : clicks -> handler.run();
+    return this;
+  }
+
+  /**
+   * Like {@link #onPress(Runnable)}, told the number of presses in quick succession at about the
+   * same place that this one completes, as the window counts them: 1 for a single press, 2 for the
+   * second of a double press, and so on. Enter and Space give 1.
+   */
+  public El onPress(IntConsumer handler) {
     this.onPress = handler;
     return this;
   }
@@ -779,7 +790,8 @@ public final class El {
     return borderColor;
   }
 
-  public Runnable onPress() {
+  /** The press handler, which takes the number of presses; see {@link #onPress(IntConsumer)}. */
+  public IntConsumer onPress() {
     return onPress;
   }
 
@@ -1133,7 +1145,7 @@ public final class El {
   void apply(Consumer<El> look, String name) {
     List<El> before = new ArrayList<>(children);
     String keyBefore = key;
-    Runnable press = onPress;
+    IntConsumer press = onPress;
     Consumer<Drag> drag = onDrag;
     Predicate<Key> down = onKey;
     Predicate<Key> up = onKeyUp;

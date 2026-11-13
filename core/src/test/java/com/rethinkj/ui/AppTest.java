@@ -89,6 +89,26 @@ class AppTest {
     assertEquals(List.of("round", "round", "below", "root"), pressed);
   }
 
+  @Test
+  void aPressHandlerIsToldHowManyPressesItCompletes() {
+    List<String> pressed = new ArrayList<>();
+    App<List<String>> app = new App<>(pressed, log -> el().size(100, 100).focusable()
+        .onPress(clicks -> log.add("clicks " + clicks)));
+    app.resize(100, 100, 1);
+    app.frame();
+
+    press(app, 50, 50);
+    app.pointerDown(50, 50, 2, 0);
+    app.pointerUp(50, 50);
+    app.pointerDown(50, 50, 3, Key.SHIFT);
+    app.pointerUp(50, 50);
+    app.frame();
+    app.keyDown(new Key("Enter"));
+    app.frame();
+
+    assertEquals(List.of("clicks 1", "clicks 2", "clicks 3", "clicks 1"), pressed);
+  }
+
   private static void press(App<?> app, float x, float y) {
     app.pointerDown(x, y);
     app.pointerUp(x, y);
