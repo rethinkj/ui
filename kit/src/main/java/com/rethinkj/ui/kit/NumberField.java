@@ -49,6 +49,18 @@ public final class NumberField {
   }
 
   /**
+   * A number field of a {@link Prop}; a null value shows as {@code min}, and a prop that cannot be
+   * written disables it.
+   */
+  public static El numberField(Theme t, Prop<Integer> value, int min, int max, int step) {
+    Integer now = value.get();
+    return Prop.shown(
+        t,
+        numberField(t, now == null ? min : now, min, max, step, value.writes() ? value::set : null),
+        value);
+  }
+
+  /**
    * @param label the field's label, which a tree dump shows on the {@code role=spinbutton} and a
    *     script selects it by, as {@code press role=spinbutton label="Fetch size"}; null for none
    * @param value the number to show, from the app's state

@@ -171,6 +171,13 @@ public final class ComboBox {
         t, texts, Choices.index(values, selected), state, Choices.handler(values, onSelect));
   }
 
+  /** A combo box of the value of a {@link Prop}; a prop that cannot be written disables it. */
+  public static <T> El comboBox(
+      Theme t, List<T> values, Prop<T> selected, Function<? super T, String> text, State state) {
+    return Prop.shown(
+        t, comboBox(t, values, selected.get(), text, state, selected.onChange()), selected);
+  }
+
   /**
    * A choice with more than its text: what stands before it and a muted text at its right.
    *
@@ -309,6 +316,13 @@ public final class ComboBox {
         t, items, Choices.index(values, selected), state, Choices.handler(values, onSelect));
   }
 
+  /** A combo box of items of the value of a {@link Prop}, as {@link #comboBox(Theme, List, Prop, Function, State)}. */
+  public static <T> El items(
+      Theme t, List<T> values, Prop<T> selected, Function<? super T, Item> item, State state) {
+    return Prop.shown(
+        t, items(t, values, selected.get(), item, state, selected.onChange()), selected);
+  }
+
   /** Whether the items have the same texts and details, and leading elements in the same places. */
   private static boolean same(List<Item> a, List<Item> b) {
     if (b == null || a.size() != b.size()) {
@@ -324,6 +338,13 @@ public final class ComboBox {
       }
     }
     return true;
+  }
+
+  /** A free combo box of the text of a {@link Prop}; a prop that cannot be written disables it. */
+  public static El free(Theme t, Prop<String> value, List<String> suggestions, State state) {
+    String text = value.get();
+    return Prop.shown(
+        t, free(t, text == null ? "" : text, suggestions, state, value.onChange()), value);
   }
 
   /**

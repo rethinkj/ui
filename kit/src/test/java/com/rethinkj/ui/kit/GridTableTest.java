@@ -59,6 +59,9 @@ class GridTableTest {
     }
   }
 
+  static final Part<Account, BigDecimal> BALANCE =
+      Part.ofSetter(Account::getBalance, Account::setBalance);
+
   /** A POJO with setters. */
   static final class Account {
     private String owner;
@@ -213,6 +216,16 @@ class GridTableTest {
     assertEquals("No debts", commit.commit(0, 1, "-1"));
     assertEquals(new BigDecimal("12.5"), accounts.get(0).getBalance(), "set back");
     assertEquals(List.of("0 12.5", "0 -1"), told);
+
+    // A part, as a form's Editing uses: the same setter, and the same refusal.
+    assertTrue(table.column("balance", 100, Format.DECIMAL, BALANCE).cells().writes());
+    DataGrid.Commit partCommit = table.commit(
+        List.of(columns.get(0), table.column("balance", 100, Format.DECIMAL, BALANCE)),
+        (row, account) -> account.getBalance().signum() < 0 ? "No debts" : null);
+    assertEquals("No debts", partCommit.commit(1, 1, "-2"));
+    assertEquals(new BigDecimal("5"), accounts.get(1).getBalance(), "set back");
+    assertNull(partCommit.commit(1, 1, "6"));
+    assertEquals(new BigDecimal("6"), accounts.get(1).getBalance());
 
     // Pasting writes the cells of a row at once and tells the app once per row.
     table

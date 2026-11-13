@@ -81,8 +81,13 @@ public final class Form {
     return new Field(label, control, null, null, false);
   }
 
-  /** The fields, one below the other, with their labels where {@code labels} says. */
+  /**
+   * The fields, one below the other, with their labels where {@code labels} says; a null field is
+   * left out, so that {@code active ? field(...) : null} shows a field under a condition.
+   */
   public static El form(Theme t, Labels labels, Field... fields) {
+    fields =
+        java.util.Arrays.stream(fields).filter(java.util.Objects::nonNull).toArray(Field[]::new);
     El[] heads = new El[fields.length];
     float column = 0;
     for (int i = 0; i < fields.length; i++) {
@@ -170,7 +175,7 @@ public final class Form {
   }
 
   /** The control itself or the first element inside it that takes input or has a role. */
-  private static El target(El el) {
+  static El target(El el) {
     if (el.isEditable() || el.isFocusable() || el.role() != null) {
       return el;
     }

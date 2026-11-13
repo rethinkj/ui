@@ -25,6 +25,18 @@ public final class Slider {
   private Slider() {}
 
   /**
+   * A slider of a {@link Prop}; a null value shows as {@code min}, and a prop that cannot be
+   * written disables it.
+   */
+  public static El slider(Theme t, Prop<Integer> value, int min, int max, int step) {
+    Integer now = value.get();
+    return Prop.shown(
+        t,
+        slider(t, now == null ? min : now, min, max, step, value.writes() ? value::set : null),
+        value);
+  }
+
+  /**
    * @param value the number, from the app's state, kept inside the range when drawn
    * @param step the distance between two numbers the slider stops at, from {@code min}
    * @param onChange told each new number; null disables the slider

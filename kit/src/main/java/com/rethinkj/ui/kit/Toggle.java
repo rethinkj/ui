@@ -19,6 +19,17 @@ public final class Toggle {
 
   private Toggle() {}
 
+  /**
+   * A toggle of a {@link Prop}, which a press flips; a null value shows as off. A prop that cannot
+   * be written disables it.
+   *
+   * @param text shown beside it, also its label; null for none
+   */
+  public static El toggle(Theme t, Prop<Boolean> on, String text) {
+    boolean now = Boolean.TRUE.equals(on.get());
+    return Prop.shown(t, toggle(t, now, text, on.writes() ? () -> on.set(!now) : null), on);
+  }
+
   /** A switch without text; give it a label with {@code .label("...")}. */
   public static El toggle(Theme t, boolean on, Runnable onToggle) {
     return toggle(t, on, null, onToggle);

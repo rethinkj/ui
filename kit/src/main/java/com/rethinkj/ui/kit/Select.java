@@ -63,6 +63,20 @@ public final class Select {
   }
 
   /**
+   * A select of the value of a {@link Prop}, as {@link #select(Theme, List, Object, Function,
+   * Menu.State, Consumer)}; a prop that cannot be written disables it.
+   */
+  public static <T> El select(
+      Theme t,
+      List<T> values,
+      Prop<T> selected,
+      Function<? super T, String> text,
+      Menu.State state) {
+    return Prop.shown(
+        t, select(t, values, selected.get(), text, state, selected.onChange()), selected);
+  }
+
+  /**
    * @param choices the texts to choose from
    * @param selected the index of the current choice, -1 for none
    * @param state whether the list is open; the app keeps it
