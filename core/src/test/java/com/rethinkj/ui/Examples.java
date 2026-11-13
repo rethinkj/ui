@@ -4,6 +4,7 @@ import static com.rethinkj.ui.El.col;
 import static com.rethinkj.ui.El.el;
 import static com.rethinkj.ui.El.row;
 
+import com.rethinkj.ui.layout.Flex;
 import com.rethinkj.ui.motion.Spring;
 import com.rethinkj.ui.text.Font;
 import com.rethinkj.ui.text.TextRendering;
@@ -124,6 +125,98 @@ public final class Examples {
               .radius(6)
               .fill(0xFF22C55E)
               .motion(Spring.SNAP));
+    }
+    return root;
+  }
+
+  /**
+   * Lays out a view for a window of this size and scale, with its text shaped for the scale, as
+   * {@link Headless#render} does; returns the view.
+   */
+  public static El laidOut(El root, float width, float height, float scale) {
+    El.scaleText(root, scale);
+    Flex.layout(root, width, height);
+    return root;
+  }
+
+  // ---- the views behind the stored text images ---------------------------------------------
+
+  public static final String SANS_SAMPLE = "Kunde Müller, Köln: 1.234,56 € (AVATAR)";
+  public static final String MONO_SAMPLE = "SELECT id FROM kunden; -- ÄÖÜ != 0";
+
+  /**
+   * Text of 11 to 14 pixels in both fonts, dark on light and light on dark, for a window of 720 by
+   * 176: the stored images text-sizes-1x and -2x.
+   */
+  public static El textSizes() {
+    return row().padding(8).gap(8).fill(0xFF808080)
+        .children(textSheet(0xFF1A1A1A, 0xFFFFFFFF), textSheet(0xFFDCDCDC, 0xFF1E1F22));
+  }
+
+  /** Eight lines, 11 to 14 pixels in Inter and in JetBrains Mono, in a colour on a background. */
+  public static El textSheet(int colour, int background) {
+    El sheet = col().padding(8).gap(2).fill(background).grow(1);
+    for (Font font : new Font[] {Font.sans(), Font.mono()}) {
+      for (int size = 11; size <= 14; size++) {
+        sheet.child(El.text(size + "  " + (font == Font.sans() ? SANS_SAMPLE : MONO_SAMPLE))
+            .font(font).fontSize(size).color(colour));
+      }
+    }
+    return sheet;
+  }
+
+  /**
+   * Grey text on white, in three columns, for a window of 480 by 104: the stored image
+   * text-grey-on-light. On a parent's white fill, which the scene sees, so the text is thickened;
+   * on a white box behind it that is not its ancestor, which the scene misses, so the biased rule
+   * decides by the grey alone; and there again, but told with {@code textBackground}, which draws
+   * it as the first column.
+   */
+  public static El greyOnLight() {
+    El root = el().size(480, 104);
+    root.child(el().absolute(0, 0).size(480, 104).fill(0xFFFFFFFF)); // not an ancestor of the text
+    String[] titles = {"parent fill", "a box behind", "textBackground"};
+    for (int column = 0; column < 3; column++) {
+      El texts = col().absolute(160 * column, 0).padding(8).gap(2);
+      if (column == 0) {
+        texts.fill(0xFFFFFFFF);
+      }
+      texts.child(El.text(titles[column]).fontSize(11).color(0xFF1A1A1A));
+      for (int grey : new int[] {0xFF6B6B6B, 0xFF808080, 0xFF999999, 0xFFAAAAAA}) {
+        El text = El.text(String.format("#%06X Kunde Müller", grey & 0xFFFFFF)).fontSize(13)
+            .color(grey);
+        texts.child(column == 2 ? text.textBackground(0xFFFFFFFF) : text);
+      }
+      root.child(texts);
+    }
+    return root;
+  }
+
+  /**
+   * Eight lines in a rounded scroll area 70 pixels high, for a window of 200 by 90: scrolled by
+   * 13.25 pixels, the stored image text-scrolled.
+   */
+  public static El scrolledText() {
+    El list = col().key("list").scroll().padding(6).gap(2).radius(10).h(70).fill(0xFF1C1C22);
+    for (int i = 1; i <= 8; i++) {
+      list.child(El.text("Zeile " + i + ": Größe & Söhne GmbH").color(0xFFE4E4E7));
+    }
+    return col().wFull().hFull().padding(10).fill(0xFF101014).child(list);
+  }
+
+  /**
+   * Dark text on white and light text on near black at opacity 1, 0.6 and 0.3, for a window of
+   * 336 by 76: the stored image text-opacity.
+   */
+  public static El textOpacity() {
+    El root = row().padding(8).gap(8).fill(0xFF808080);
+    for (int[] theme : new int[][] {{0xFF1A1A1A, 0xFFFFFFFF}, {0xFFDCDCDC, 0xFF1E1F22}}) {
+      El panel = col().padding(8).gap(2).fill(theme[1]);
+      for (float opacity : new float[] {1, 0.6f, 0.3f}) {
+        panel.child(el().opacity(opacity)
+            .child(El.text("Opazität " + opacity + ": Größe").color(theme[0])));
+      }
+      root.child(panel);
     }
     return root;
   }

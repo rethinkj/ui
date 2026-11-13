@@ -14,17 +14,19 @@ import com.rethinkj.ui.render.GpuPresenter;
 import com.rethinkj.ui.render.Pixels;
 import com.rethinkj.ui.render.Png;
 import com.rethinkj.ui.render.Scene;
+import com.rethinkj.ui.text.TextRendering;
 import com.rethinkj.ui.window.WindowEvent.KeyDown;
 import com.rethinkj.ui.window.WindowEvent.PointerMove;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
 /**
- * A frameless window with a title bar of its own, and the light switch below it, drawn on the GPU
- * by {@link GpuPresenter}. The title bar is a drag area with minimize, maximize and close buttons;
- * a click on the switch toggles it, Escape closes the window. Every event but pointer moves and
- * live redraws, and every frame presented, is printed with the seconds since the start, as is a
- * frame the presenter could not show yet.
+ * A frameless window with a title bar of its own, and the light switch with its label below it,
+ * drawn on the GPU by {@link GpuPresenter}. The title bar is a drag area with minimize, maximize
+ * and close buttons; a click on the switch toggles it and its label, Escape closes the window.
+ * Every event but pointer moves and live redraws, and every frame presented with the uploads of
+ * the glyph atlas so far, is printed with the seconds since the start, as is a frame the
+ * presenter could not show yet.
  *
  * <p>Build with {@code mvn -pl core -am test-compile}, then run from the repository root (on
  * Linux, with {@code :} between the class path entries and {@code natives-linux-x64} in place of
@@ -44,6 +46,8 @@ import java.nio.file.Path;
  * --exit-after=S      stop after S seconds, from another thread
  * --moves             print pointer moves and live redraws too
  * --cpu-png=FILE      when stopped, write the last frame as the CPU renderer draws it
+ * --text=linux        TextRendering.LINUX, or windows for TextRendering.WINDOWS; default the
+ *                     platform's
  * </pre>
  */
 public final class WindowDemo {
@@ -75,6 +79,7 @@ public final class WindowDemo {
     double exitAfter = 0;
     boolean moves = false;
     Path cpuPng = null;
+    TextRendering text = TextRendering.platform();
     for (String arg : args) {
       String value = arg.substring(arg.indexOf('=') + 1);
       if (arg.startsWith("--size=")) {
@@ -93,6 +98,8 @@ public final class WindowDemo {
         moves = true;
       } else if (arg.startsWith("--cpu-png=")) {
         cpuPng = Path.of(value);
+      } else if (arg.equals("--text=linux") || arg.equals("--text=windows")) {
+        text = value.equals("linux") ? TextRendering.LINUX : TextRendering.WINDOWS;
       } else {
         throw new IllegalArgumentException("Unknown option " + arg);
       }
@@ -116,8 +123,11 @@ public final class WindowDemo {
       }
       State state = new State(window);
       App<State> app = new App<>(state, WindowDemo::view);
+      app.textRendering(text);
       try (GpuPresenter gpu = new GpuPresenter(window)) {
-        log(start, "renderer " + gpu.adapter() + ", surface " + gpu.surfaceFormat());
+        log(start, "renderer " + gpu.adapter() + ", surface " + gpu.surfaceFormat() + ", text "
+            + (text.equals(TextRendering.LINUX) ? "LINUX" : text.equals(TextRendering.WINDOWS)
+                ? "WINDOWS" : text));
         WindowLoop.Presenter presenter = new WindowLoop.Presenter() {
           @Override
           public void present(Scene scene, float w, float h, float scale) {
@@ -127,7 +137,8 @@ public final class WindowDemo {
                 : gpu.pending() ? "pending" : "not shown";
             log(start, what + ": " + w + "x" + h + " @" + scale + ", " + window.pixelWidth()
                 + "x" + window.pixelHeight() + " pixels, lights "
-                + (state.lights.on ? "on" : "off") + (app.isMoving() ? ", moving" : ""));
+                + (state.lights.on ? "on" : "off") + (app.isMoving() ? ", moving" : "")
+                + ", atlas uploads " + gpu.atlasUploads());
           }
 
           @Override
@@ -188,7 +199,7 @@ public final class WindowDemo {
             .child(button("maximize", WindowPart.MAXIMIZE, BUTTON,
                 maximized ? restoreGlyph() : maximizeGlyph()))
             .child(button("close", WindowPart.CLOSE, CLOSE_BUTTON, closeGlyph()));
-    El body = Examples.switchAlone(state.lights).grow(1);
+    El body = Examples.lights(state.lights).grow(1);
     return col().wFull().hFull().fill(0xFF101014).child(bar).child(body);
   }
 

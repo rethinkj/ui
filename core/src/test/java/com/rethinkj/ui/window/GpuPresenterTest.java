@@ -11,6 +11,7 @@ import com.rethinkj.ui.Examples.Lights;
 import com.rethinkj.ui.gpu.GpuException;
 import com.rethinkj.ui.render.GpuPresenter;
 import com.rethinkj.ui.render.Scene;
+import com.rethinkj.ui.text.TextLibraries;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -29,6 +30,7 @@ class GpuPresenterTest {
   @BeforeEach
   void needsWindows() {
     Desktop.assumeWindows();
+    TextLibraries.assumeLoaded();
   }
 
   /** A presenter for the window, or the test is skipped with the reason. */
@@ -51,7 +53,7 @@ class GpuPresenterTest {
     try (Window window = Window.open(TITLE, 200, 120)) {
       Desktop.settle();
       try (GpuPresenter gpu = presenter(window)) {
-        App<Lights> app = new App<>(new Lights(), Examples::switchAlone);
+        App<Lights> app = new App<>(new Lights(), Examples::lights);
         AtomicReference<WindowLoop> loop = new AtomicReference<>();
         loop.set(new WindowLoop(window, app, new WindowLoop.Presenter() {
           @Override
@@ -67,13 +69,18 @@ class GpuPresenterTest {
             return gpu.pending();
           }
         }));
-        Desktop.click(window, 100, 60);
+        // The switch, left of its label.
+        Desktop.click(window, 58, 60);
         loop.get().run();
 
         assertTrue(app.state().on);
         long animated = gpu.frames();
         assertTrue(animated > 3, "the knob moved over several frames: " + animated);
         assertFalse(gpu.pending());
+        // The page once, then at most the glyph that "Lights on" has and "Lights off" lacks; the
+        // label's colour springs in the other frames, which upload nothing.
+        long uploads = gpu.atlasUploads();
+        assertTrue(uploads >= 1 && uploads <= 2, uploads + " uploads in " + animated + " frames");
 
         // A new loop draws its first frame, then nothing while nothing changes.
         WindowLoop idle = new WindowLoop(window, app, gpu);
@@ -94,6 +101,7 @@ class GpuPresenterTest {
         stopper.join();
         assertEquals(animated + 1, seen[0], "the idle loop's first frame");
         assertEquals(seen[0], seen[1], "nothing is presented while nothing changes");
+        assertEquals(uploads, gpu.atlasUploads(), "and no glyph is uploaded");
       }
     }
   }
@@ -103,18 +111,21 @@ class GpuPresenterTest {
     try (Window window = Window.open(TITLE, 200, 120)) {
       Desktop.settle();
       try (GpuPresenter gpu = presenter(window)) {
-        App<Lights> app = new App<>(new Lights(), Examples::switchAlone);
+        App<Lights> app = new App<>(new Lights(), Examples::lights);
         app.resize(window.width(), window.height(), window.scale());
         app.frame();
         gpu.present(app.scene(), window.width(), window.height(), window.scale());
         assertEquals(1, gpu.frames());
+        assertEquals(1, gpu.atlasUploads(), "the label's page");
 
+        // The label moves by whole pixels at any scale, so its glyphs stay as they are.
         window.resize(320, 180);
         assertTrue(Desktop.pollUntil(() -> window.width() == 320), "resized");
         app.resize(window.width(), window.height(), window.scale());
         app.frame();
         gpu.present(app.scene(), window.width(), window.height(), window.scale());
         assertEquals(2, gpu.frames());
+        assertEquals(1, gpu.atlasUploads(), "nothing new in the atlas");
 
         window.minimize();
         assertTrue(Desktop.pollUntil(window::isMinimized), "minimized");

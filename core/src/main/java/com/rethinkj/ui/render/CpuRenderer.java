@@ -27,19 +27,38 @@ public final class CpuRenderer {
    * channel.
    */
   static float[] renderLinear(Scene scene, int width, int height, float scale) {
+    return renderLinear(scene, width, height, scale, null);
+  }
+
+  /**
+   * Sees every blend before it happens, for the test that bounds how far the GPU's blending may
+   * lie from this renderer's. It changes nothing.
+   */
+  interface Blends {
+    /**
+     * @param frame the image so far, with the pixel as it is before the blend
+     * @param at the index of the pixel's red value in {@code frame}
+     * @param alpha the alpha of the source, which keeps {@code 1 - alpha} of the pixel
+     */
+    void blend(float[] frame, int at, double alpha);
+  }
+
+  /** As {@link #renderLinear(Scene, int, int, float)}, telling {@code blends} of each blend. */
+  static float[] renderLinear(Scene scene, int width, int height, float scale, Blends blends) {
     // Starts fully transparent.
     float[] frame = new float[width * height * 4];
     for (int i = 0; i < scene.count(); i++) {
       if (scene.getInt(i, Scene.KIND) == Scene.GLYPH) {
-        glyph(scene, i, frame, width, height, scale);
+        glyph(scene, i, frame, width, height, scale, blends);
       } else {
-        rect(scene, i, frame, width, height, scale);
+        rect(scene, i, frame, width, height, scale, blends);
       }
     }
     return frame;
   }
 
-  private static void rect(Scene scene, int i, float[] frame, int width, int height, double scale) {
+  private static void rect(Scene scene, int i, float[] frame, int width, int height, double scale,
+      Blends blends) {
     double w = scene.get(i, Scene.WIDTH);
     double h = scene.get(i, Scene.HEIGHT);
     if (!(w > 0 && h > 0)) {
@@ -97,6 +116,9 @@ public final class CpuRenderer {
         int at = (py * width + px) * 4;
         // Alpha is the last channel, so it is still the old value while the colours are blended.
         double alpha = mix(scene, i, 3, fillShare) * coverage;
+        if (blends != null) {
+          blends.blend(frame, at, alpha);
+        }
         for (int c = 0; c < 4; c++) {
           double source = mix(scene, i, c, fillShare) * coverage;
           frame[at + c] = (float) (source + frame[at + c] * (1 - alpha));
@@ -106,8 +128,8 @@ public final class CpuRenderer {
   }
 
   /** Draws a glyph's bitmap one texel to one physical pixel, with its coverage corrected. */
-  private static void glyph(
-      Scene scene, int i, float[] frame, int width, int height, double scale) {
+  private static void glyph(Scene scene, int i, float[] frame, int width, int height,
+      double scale, Blends blends) {
     int atlas = scene.getInt(i, Scene.ATLAS);
     int size = scene.getInt(i, Scene.ATLAS_SIZE);
     Atlas.Page page = scene.pages().get(scene.getInt(i, Scene.PAGE));
@@ -139,6 +161,9 @@ public final class CpuRenderer {
         }
         int at = (py * width + px) * 4;
         double alpha = scene.get(i, Scene.COLOUR + 12) * coverage;
+        if (blends != null) {
+          blends.blend(frame, at, alpha);
+        }
         for (int c = 0; c < 4; c++) {
           double source = scene.get(i, Scene.COLOUR + c * 4) * coverage;
           frame[at + c] = (float) (source + frame[at + c] * (1 - alpha));
