@@ -323,6 +323,10 @@ final class Animator {
     }
     // Clamped to the new content; also shifts the leaving children, which are the old ones.
     el.scrollTo(before == null ? 0 : before.scrollX(), before == null ? 0 : before.scrollY());
+    int reveal = el.revealRow();
+    if (reveal >= 0 && reveal < el.rowCount() && (before == null || before.revealRow() != reveal)) {
+      el.scrollTo(el.scrollX(), el.offsetShowing(reveal));
+    }
   }
 
   /**

@@ -52,6 +52,20 @@ class ThemeTest {
         "selection on raised", over(s.raised(), t.accent().selection()),
         "selection on raised hovered", over(over(s.raised(), s.hover()), t.accent().selection())),
         4.5);
+    // The data grid: cells in primary text, NULL and the sort marker in muted text.
+    Theme.Grid g = t.grid();
+    Map<String, Integer> grid = Map.of(
+        "grid header", g.header(),
+        "grid header hovered", over(g.header(), s.hover()),
+        "grid header pressed", over(g.header(), s.pressed()),
+        "grid row", g.row(),
+        "grid row hovered", over(g.row(), s.hover()),
+        "grid stripe", g.stripe(),
+        "grid stripe hovered", over(g.stripe(), s.hover()),
+        "grid selected", g.selected(),
+        "grid selected inactive", g.selectedInactive());
+    check(failures, "primary text", t.text().primary(), grid, 4.5);
+    check(failures, "muted text", t.text().muted(), grid, 4.5);
     assertTrue(failures.isEmpty(), String.join("\n", failures));
   }
 

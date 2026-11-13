@@ -40,6 +40,9 @@ import java.util.regex.Pattern;
  * press #name shift                  # with Shift held, which extends a field's selection
  * compose "ni"                       # an input method's composition in the focused field
  * clipboard "SELECT 1"               # puts text on the app's clipboard
+ * down #resize-1                     # pointer down; a move before the up drags an El.onDrag
+ * move 230,40                        # element once it is beyond 4 pixels, or selects in a
+ * up 230,40                          # text field from the first pixel
  * </pre>
  *
  * <p>{@code snap} also writes {@code <name>.clipboard.txt} with the text on the app's clipboard,

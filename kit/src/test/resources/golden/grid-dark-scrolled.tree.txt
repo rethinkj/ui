@@ -1,0 +1,387 @@
+el 0,0 560x240
+  el #orders role=grid label="Orders" 8,8 544x224 scroll 300,0 focused
+    el #content -292,8 964x224
+      el #header -292,8 964x22
+        el #column-0 role=columnheader label="id" -292,8 63x22
+          text "▲" -259,11 13x16
+          text "id" -244,11 11x16
+        el -229,8 1x22
+        el #column-1 role=columnheader label="customer" -228,8 139x22
+          text "customer" -224,11 58x16
+        el -89,8 1x22
+        el #column-2 role=columnheader label="email" -88,8 199x22
+          text "email" -84,11 32x16
+        el 111,8 1x22
+        el #column-3 role=columnheader label="created_at" 112,8 149x22
+          text "created_at" 116,11 64x16
+        el 261,8 1x22
+        el #column-4 role=columnheader label="amount" 262,8 89x22
+          text "amount" 301,11 46x16
+        el 351,8 1x22
+        el #column-5 role=columnheader label="status" 352,8 79x22
+          text "status" 356,11 37x16
+        el 431,8 1x22
+        el #column-6 role=columnheader label="note" 432,8 239x22
+          text "note" 436,11 28x16
+        el 671,8 1x22
+        el #resize-0 role=separator label="Resize id" -231,8 6x22
+        el #resize-1 role=separator label="Resize customer" -91,8 6x22
+        el #resize-2 role=separator label="Resize email" 109,8 6x22
+        el #resize-3 role=separator label="Resize created_at" 259,8 6x22
+        el #resize-4 role=separator label="Resize amount" 349,8 6x22
+        el #resize-5 role=separator label="Resize status" 429,8 6x22
+        el #resize-6 role=separator label="Resize note" 669,8 6x22
+      el -292,30 964x1
+      el #rows -292,31 964x200 rows 765429-765444/1000000 scroll 0,16839504
+        el #row-765429 role=row -292,-35 964x22
+          el -292,-35 63x22
+            text "765430" -275,-32 42x16
+          el -229,-35 1x22
+          el -228,-35 139x22
+            text "Radia Torvalds" -224,-32 89x16
+          el -89,-35 1x22
+          el -88,-35 199x22
+            text "radia.torvalds@example.com" -84,-32 177x16
+          el 111,-35 1x22
+          el 112,-35 149x22
+            text "2028-07-07 16:03:33" 116,-32 133x16
+          el 261,-35 1x22
+          el 262,-35 89x22
+            text "NULL" 319,-32 28x16
+          el 351,-35 1x22
+          el 352,-35 79x22
+            text "refunded" 356,-32 58x16
+          el 431,-35 1x22
+          el 432,-35 239x22
+            text "NULL" 436,-32 34x16
+          el 671,-35 1x22
+        el #row-765430 role=row -292,-13 964x22
+          el -292,-13 63x22
+            text "765431" -275,-10 42x16
+          el -229,-13 1x22
+          el -228,-13 139x22
+            text "Ada Hamilton" -224,-10 82x16
+          el -89,-13 1x22
+          el -88,-13 199x22
+            text "ada.hamilton@example.com" -84,-10 172x16
+          el 111,-13 1x22
+          el 112,-13 149x22
+            text "2028-07-07 16:05:10" 116,-10 133x16
+          el 261,-13 1x22
+          el 262,-13 89x22
+            text "2228.90" 298,-10 49x16
+          el 351,-13 1x22
+          el 352,-13 79x22
+            text "shipped" 356,-10 50x16
+          el 431,-13 1x22
+          el 432,-13 239x22
+            text "Customer asked to split the delivery into two parcels and to leave them next door" 436,-10 503x16
+          el 671,-13 1x22
+        el #row-765431 role=row -292,9 964x22
+          el -292,9 63x22
+            text "765432" -275,12 42x16
+          el -229,9 1x22
+          el -228,9 139x22
+            text "Grace Hamilton" -224,12 95x16
+          el -89,9 1x22
+          el -88,9 199x22
+            text "grace.hamilton@example.com" -84,12 185x16
+          el 111,9 1x22
+          el 112,9 149x22
+            text "2028-07-07 16:06:47" 116,12 133x16
+          el 261,9 1x22
+          el 262,9 89x22
+            text "2307.03" 298,12 49x16
+          el 351,9 1x22
+          el 352,9 79x22
+            text "pending" 356,12 51x16
+          el 431,9 1x22
+          el 432,9 239x22
+            text "NULL" 436,12 34x16
+          el 671,9 1x22
+        el #row-765432 role=row -292,31 964x22
+          el -292,31 63x22
+            text "765433" -275,34 42x16
+          el -229,31 1x22
+          el -228,31 139x22
+            text "Linus Hamilton" -224,34 91x16
+          el -89,31 1x22
+          el -88,31 199x22
+            text "linus.hamilton@example.com" -84,34 179x16
+          el 111,31 1x22
+          el 112,31 149x22
+            text "2028-07-07 16:08:24" 116,34 133x16
+          el 261,31 1x22
+          el 262,31 89x22
+            text "2387.16" 298,34 49x16
+          el 351,31 1x22
+          el 352,31 79x22
+            text "paid" 356,34 26x16
+          el 431,31 1x22
+          el 432,31 239x22
+            text "NULL" 436,34 34x16
+          el 671,31 1x22
+        el #row-765433 role=row -292,53 964x22
+          el -292,53 63x22
+            text "765434" -275,56 42x16
+          el -229,53 1x22
+          el -228,53 139x22
+            text "Margaret Hamilton" -224,56 114x16
+          el -89,53 1x22
+          el -88,53 199x22
+            text "margaret.hamilton@example.com" -84,56 205x16
+          el 111,53 1x22
+          el 112,53 149x22
+            text "2028-07-07 16:10:01" 116,56 133x16
+          el 261,53 1x22
+          el 262,53 89x22
+            text "2466.29" 298,56 49x16
+          el 351,53 1x22
+          el 352,53 79x22
+            text "refunded" 356,56 58x16
+          el 431,53 1x22
+          el 432,53 239x22
+            text "Customer asked to split the delivery into two parcels and to leave them next door" 436,56 503x16
+          el 671,53 1x22
+        el #row-765434 role=row -292,75 964x22
+          el -292,75 63x22
+            text "765435" -275,78 42x16
+          el -229,75 1x22
+          el -228,75 139x22
+            text "Ken Hamilton" -224,78 82x16
+          el -89,75 1x22
+          el -88,75 199x22
+            text "ken.hamilton@example.com" -84,78 173x16
+          el 111,75 1x22
+          el 112,75 149x22
+            text "2028-07-07 16:11:38" 116,78 133x16
+          el 261,75 1x22
+          el 262,75 89x22
+            text "45.42" 312,78 35x16
+          el 351,75 1x22
+          el 352,75 79x22
+            text "shipped" 356,78 50x16
+          el 431,75 1x22
+          el 432,75 239x22
+            text "NULL" 436,78 34x16
+          el 671,75 1x22
+        el #row-765435 role=row -292,97 964x22
+          el -292,97 63x22
+            text "765436" -275,100 42x16
+          el -229,97 1x22
+          el -228,97 139x22
+            text "Barbara Hamilton" -224,100 106x16
+          el -89,97 1x22
+          el -88,97 199x22
+            text "barbara.hamilton@example.com" -84,100 197x16
+          el 111,97 1x22
+          el 112,97 149x22
+            text "2028-07-07 16:13:15" 116,100 133x16
+          el 261,97 1x22
+          el 262,97 89x22
+            text "124.55" 305,100 42x16
+          el 351,97 1x22
+          el 352,97 79x22
+            text "pending" 356,100 51x16
+          el 431,97 1x22
+          el 432,97 239x22
+            text "NULL" 436,100 34x16
+          el 671,97 1x22
+        el #row-765436 role=row -292,119 964x22
+          el -292,119 63x22
+            text "765437" -275,122 42x16
+          el -229,119 1x22
+          el -228,119 139x22
+            text "Edsger Hamilton" -224,122 102x16
+          el -89,119 1x22
+          el -88,119 199x22
+            text "edsger.hamilton@example.com" -84,122 193x16
+          el 111,119 1x22
+          el 112,119 149x22
+            text "2028-07-07 16:14:52" 116,122 133x16
+          el 261,119 1x22
+          el 262,119 89x22
+            text "203.68" 305,122 42x16
+          el 351,119 1x22
+          el 352,119 79x22
+            text "paid" 356,122 26x16
+          el 431,119 1x22
+          el 432,119 239x22
+            text "Customer asked to split the delivery into two parcels and to leave them next door" 436,122 503x16
+          el 671,119 1x22
+        el #row-765437 role=row -292,141 964x22
+          el -292,141 63x22
+            text "765438" -275,144 42x16
+          el -229,141 1x22
+          el -228,141 139x22
+            text "Frances Hamilton" -224,144 107x16
+          el -89,141 1x22
+          el -88,141 199x22
+            text "frances.hamilton@example.com" -84,144 197x16
+          el 111,141 1x22
+          el 112,141 149x22
+            text "2028-07-07 16:16:29" 116,144 133x16
+          el 261,141 1x22
+          el 262,141 89x22
+            text "283.81" 305,144 42x16
+          el 351,141 1x22
+          el 352,141 79x22
+            text "refunded" 356,144 58x16
+          el 431,141 1x22
+          el 432,141 239x22
+            text "NULL" 436,144 34x16
+          el 671,141 1x22
+        el #row-765438 role=row -292,163 964x22
+          el -292,163 63x22
+            text "765439" -275,166 42x16
+          el -229,163 1x22
+          el -228,163 139x22
+            text "Donald Hamilton" -224,166 101x16
+          el -89,163 1x22
+          el -88,163 199x22
+            text "donald.hamilton@example.com" -84,166 192x16
+          el 111,163 1x22
+          el 112,163 149x22
+            text "2028-07-07 16:18:06" 116,166 133x16
+          el 261,163 1x22
+          el 262,163 89x22
+            text "362.94" 305,166 42x16
+          el 351,163 1x22
+          el 352,163 79x22
+            text "shipped" 356,166 50x16
+          el 431,163 1x22
+          el 432,163 239x22
+            text "NULL" 436,166 34x16
+          el 671,163 1x22
+        el #row-765439 role=row -292,185 964x22
+          el -292,185 63x22
+            text "765440" -275,188 42x16
+          el -229,185 1x22
+          el -228,185 139x22
+            text "Radia Hamilton" -224,188 91x16
+          el -89,185 1x22
+          el -88,185 199x22
+            text "radia.hamilton@example.com" -84,188 180x16
+          el 111,185 1x22
+          el 112,185 149x22
+            text "2028-07-07 16:19:43" 116,188 133x16
+          el 261,185 1x22
+          el 262,185 89x22
+            text "441.07" 305,188 42x16
+          el 351,185 1x22
+          el 352,185 79x22
+            text "pending" 356,188 51x16
+          el 431,185 1x22
+          el 432,185 239x22
+            text "Customer asked to split the delivery into two parcels and to leave them next door" 436,188 503x16
+          el 671,185 1x22
+        el #row-765440 role=row -292,207 964x22
+          el -292,207 63x22
+            text "765441" -275,210 42x16
+          el -229,207 1x22
+          el -228,207 139x22
+            text "Ada Thompson" -224,210 94x16
+          el -89,207 1x22
+          el -88,207 199x22
+            text "ada.thompson@example.com" -84,210 182x16
+          el 111,207 1x22
+          el 112,207 149x22
+            text "2028-07-07 16:21:20" 116,210 133x16
+          el 261,207 1x22
+          el 262,207 89x22
+            text "NULL" 319,210 28x16
+          el 351,207 1x22
+          el 352,207 79x22
+            text "paid" 356,210 26x16
+          el 431,207 1x22
+          el 432,207 239x22
+            text "NULL" 436,210 34x16
+          el 671,207 1x22
+        el #row-765441 role=row -292,229 964x22
+          el -292,229 63x22
+            text "765442" -275,232 42x16
+          el -229,229 1x22
+          el -228,229 139x22
+            text "Grace Thompson" -224,232 107x16
+          el -89,229 1x22
+          el -88,229 199x22
+            text "grace.thompson@example.com" -84,232 195x16
+          el 111,229 1x22
+          el 112,229 149x22
+            text "2028-07-07 16:22:57" 116,232 133x16
+          el 261,229 1x22
+          el 262,229 89x22
+            text "599.33" 305,232 42x16
+          el 351,229 1x22
+          el 352,229 79x22
+            text "refunded" 356,232 58x16
+          el 431,229 1x22
+          el 432,229 239x22
+            text "NULL" 436,232 34x16
+          el 671,229 1x22
+        el #row-765442 role=row -292,251 964x22
+          el -292,251 63x22
+            text "765443" -275,254 42x16
+          el -229,251 1x22
+          el -228,251 139x22
+            text "Linus Thompson" -224,254 103x16
+          el -89,251 1x22
+          el -88,251 199x22
+            text "linus.thompson@example.com" -84,254 189x16
+          el 111,251 1x22
+          el 112,251 149x22
+            text "2028-07-07 16:24:34" 116,254 133x16
+          el 261,251 1x22
+          el 262,251 89x22
+            text "679.46" 305,254 42x16
+          el 351,251 1x22
+          el 352,251 79x22
+            text "shipped" 356,254 50x16
+          el 431,251 1x22
+          el 432,251 239x22
+            text "Customer asked to split the delivery into two parcels and to leave them next door" 436,254 503x16
+          el 671,251 1x22
+        el #row-765443 role=row -292,273 964x22
+          el -292,273 63x22
+            text "765444" -275,276 42x16
+          el -229,273 1x22
+          el -228,273 139x22
+            text "Margaret Thompson" -224,276 126x16
+          el -89,273 1x22
+          el -88,273 199x22
+            text "margaret.thompson@example.com" -84,276 215x16
+          el 111,273 1x22
+          el 112,273 149x22
+            text "2028-07-07 16:26:11" 116,276 133x16
+          el 261,273 1x22
+          el 262,273 89x22
+            text "758.59" 305,276 42x16
+          el 351,273 1x22
+          el 352,273 79x22
+            text "pending" 356,276 51x16
+          el 431,273 1x22
+          el 432,273 239x22
+            text "NULL" 436,276 34x16
+          el 671,273 1x22
+        el #row-765444 role=row -292,295 964x22
+          el -292,295 63x22
+            text "765445" -275,298 42x16
+          el -229,295 1x22
+          el -228,295 139x22
+            text "Ken Thompson" -224,298 94x16
+          el -89,295 1x22
+          el -88,295 199x22
+            text "ken.thompson@example.com" -84,298 183x16
+          el 111,295 1x22
+          el 112,295 149x22
+            text "2028-07-07 16:27:48" 116,298 133x16
+          el 261,295 1x22
+          el 262,295 89x22
+            text "837.72" 305,298 42x16
+          el 351,295 1x22
+          el 352,295 79x22
+            text "paid" 356,298 26x16
+          el 431,295 1x22
+          el 432,295 239x22
+            text "NULL" 436,298 34x16
+          el 671,295 1x22

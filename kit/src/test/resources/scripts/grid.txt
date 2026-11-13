@@ -1,0 +1,32 @@
+# The data grid of kit's tests (DataGridTest): a million orders, sorted by id, row 2 selected.
+size 560 240
+frame
+move #row-5            # the pointer over row 5, which looks hovered
+frame
+snap top               # the grid has no focus: the selection in its quiet colour
+
+leave
+key Tab                # the grid takes the focus, with a ring
+key ArrowDown
+key ArrowDown          # the selection moves to row 4
+frame
+snap focused
+
+scroll #rows row 765432
+frame
+press #row-765436      # a press selects, and keeps the focus without a ring
+frame
+snap far
+
+wheel #rows 300 0      # sideways: header and rows move together
+frame
+snap scrolled
+
+wheel #rows -300 0
+frame
+down #resize-1         # the right edge of customer, 140 wide, at 212,19
+move 252,19            # 40 pixels to the right
+frame
+snap resizing          # customer is 180 wide while the button is held
+up 252,19
+frame

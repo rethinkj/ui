@@ -32,7 +32,8 @@ public record Theme(
     Radii radius,
     Type type,
     Sizes size,
-    Motion motion) {
+    Motion motion,
+    Grid grid) {
 
   /**
    * Background layers, from the bottom up, and the overlays that a control lays over its
@@ -129,6 +130,23 @@ public record Theme(
    */
   public record Motion(Spring feedback, Spring move) {}
 
+  /**
+   * The data grid's sizes and backgrounds. Its lines are {@link Borders#subtle}, and its hovered
+   * rows and header cells lay {@link Surfaces#hover} and {@link Surfaces#pressed} over these.
+   *
+   * @param rowHeight the height of a row and of the header
+   * @param minColumn the narrowest a column can be made by dragging its edge
+   * @param handle the width of the strip around a header cell's right edge that resizes it
+   * @param header the background of the header
+   * @param row the background of the rows, and of the grid below the last one
+   * @param stripe the background of every other row
+   * @param selected the selected row while the grid has the keyboard focus
+   * @param selectedInactive the selected row while the focus is elsewhere
+   */
+  public record Grid(
+      float rowHeight, float minColumn, float handle, int header, int row, int stripe,
+      int selected, int selectedInactive) {}
+
   private static final Spacing SPACE = new Spacing(2, 4, 8, 12, 16, 24);
   private static final Radii RADIUS = new Radii(3, 4, 8);
   private static final Type TYPE =
@@ -151,7 +169,8 @@ public record Theme(
           RADIUS,
           TYPE,
           SIZE,
-          MOTION);
+          MOTION,
+          new Grid(22, 32, 6, 0xFF232428, 0xFF1B1C1F, 0xFF1F2023, 0xFF1C3666, 0xFF2B3240));
 
   /** Neutral greys with a blue accent, dark text on light surfaces. */
   public static final Theme LIGHT =
@@ -165,46 +184,62 @@ public record Theme(
           RADIUS,
           TYPE,
           SIZE,
-          MOTION);
+          MOTION,
+          new Grid(22, 32, 6, 0xFFF1F2F4, 0xFFFFFFFF, 0xFFF5F6F8, 0xFFCFE0FC, 0xFFE3E6EC));
 
   public Theme withSurface(Surfaces surface) {
-    return new Theme(surface, text, border, accent, status, space, radius, type, size, motion);
+    return new Theme(
+        surface, text, border, accent, status, space, radius, type, size, motion, grid);
   }
 
   public Theme withText(TextColors text) {
-    return new Theme(surface, text, border, accent, status, space, radius, type, size, motion);
+    return new Theme(
+        surface, text, border, accent, status, space, radius, type, size, motion, grid);
   }
 
   public Theme withBorder(Borders border) {
-    return new Theme(surface, text, border, accent, status, space, radius, type, size, motion);
+    return new Theme(
+        surface, text, border, accent, status, space, radius, type, size, motion, grid);
   }
 
   public Theme withAccent(Accent accent) {
-    return new Theme(surface, text, border, accent, status, space, radius, type, size, motion);
+    return new Theme(
+        surface, text, border, accent, status, space, radius, type, size, motion, grid);
   }
 
   public Theme withStatus(Status status) {
-    return new Theme(surface, text, border, accent, status, space, radius, type, size, motion);
+    return new Theme(
+        surface, text, border, accent, status, space, radius, type, size, motion, grid);
   }
 
   public Theme withSpace(Spacing space) {
-    return new Theme(surface, text, border, accent, status, space, radius, type, size, motion);
+    return new Theme(
+        surface, text, border, accent, status, space, radius, type, size, motion, grid);
   }
 
   public Theme withRadius(Radii radius) {
-    return new Theme(surface, text, border, accent, status, space, radius, type, size, motion);
+    return new Theme(
+        surface, text, border, accent, status, space, radius, type, size, motion, grid);
   }
 
   public Theme withType(Type type) {
-    return new Theme(surface, text, border, accent, status, space, radius, type, size, motion);
+    return new Theme(
+        surface, text, border, accent, status, space, radius, type, size, motion, grid);
   }
 
   public Theme withSize(Sizes size) {
-    return new Theme(surface, text, border, accent, status, space, radius, type, size, motion);
+    return new Theme(
+        surface, text, border, accent, status, space, radius, type, size, motion, grid);
   }
 
   public Theme withMotion(Motion motion) {
-    return new Theme(surface, text, border, accent, status, space, radius, type, size, motion);
+    return new Theme(
+        surface, text, border, accent, status, space, radius, type, size, motion, grid);
+  }
+
+  public Theme withGrid(Grid grid) {
+    return new Theme(
+        surface, text, border, accent, status, space, radius, type, size, motion, grid);
   }
 
   /**
