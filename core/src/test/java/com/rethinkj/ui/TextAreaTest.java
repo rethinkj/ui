@@ -257,6 +257,20 @@ class TextAreaTest {
         field(app).scrollX() > 2000, "the column of the end kept: " + field(app).scrollX());
   }
 
+  @Test
+  void anotherScaleMeasuresTheWidthOfTheLinesAgain() {
+    String value = "x".repeat(40); // wider than the field
+    App<Model> fresh = Areas.start(value, f -> f, 1);
+    fresh.scrollTo(field(fresh), 10000, 0);
+    fresh.frame();
+    App<Model> app = Areas.start(value, f -> f, 2);
+    app.resize(320, 240, 1);
+    app.frame();
+    app.scrollTo(field(app), 10000, 0);
+    app.frame();
+    assertEquals(field(fresh).scrollX(), field(app).scrollX(), "not as far as at scale 2");
+  }
+
   // Tabs
 
   @Test
@@ -326,6 +340,19 @@ class TextAreaTest {
     key(app, "ArrowDown", SHIFT);
     key(app, "Tab");
     assertEquals("^  a\n|b\nc", show(app), "a selection that ends at a line start leaves it out");
+  }
+
+  @Test
+  void anIndentBeyondTheMaximumLengthDoesNothing() {
+    App<Model> app = focused("a\nb", f -> f.tabIndents(true).maxLength(11));
+    key(app, "A", CONTROL);
+    key(app, "Tab");
+    assertEquals("^    a\n    b|", show(app), "as long as it may be");
+    key(app, "Tab");
+    assertEquals("^    a\n    b|", show(app), "four more would be too long, and two cut nothing");
+    assertEquals(1, app.state().edits.size());
+    key(app, "Tab", SHIFT);
+    assertEquals("^a\nb|", show(app), "an outdent makes it shorter");
   }
 
   @Test
@@ -470,6 +497,16 @@ class TextAreaTest {
     app.textInput("你");
     app.frame();
     assertEquals("one\ntwo你|\nthree", show(app));
+  }
+
+  @Test
+  void theCursorOfACompositionFollowsItsLineBreaks() {
+    App<Model> app = focused("");
+    app.textComposition("a\r\nb", 3); // before the b
+    app.frame();
+    App.InputArea area = app.inputArea();
+    assertEquals(10 + 4 + 18, area.y(), "on the second row");
+    assertEquals(4, area.cursor(), "before the b, as the carriage return is gone");
   }
 
   @Test
