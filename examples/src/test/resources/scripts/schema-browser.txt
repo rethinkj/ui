@@ -30,6 +30,18 @@ await                          # only the rows of deliveries arrive
 frame
 snap schema-rows
 
+press role=treeitem label="deliveries" right   # the menu of the selected table, at the pointer
+frame
+snap schema-menu
+
+press role=menuitem label="Drop table…"       # asks in a dialog, which takes the focus
+type "deliver"
+frame
+snap schema-drop                        # Drop is disabled until the whole name is typed
+
+key Escape                              # closes the dialog; the focus goes back to the tree
+frame
+
 key Home                       # localhost
 key ArrowLeft                  # closes it
 key End                        # prod-eu
@@ -38,3 +50,9 @@ frame
 await                          # prod-eu refuses: it closes again, and the status says why
 frame
 snap schema-refused
+
+move label="Close"                      # the title bar button says what it does after a rest
+frame
+advance 0.6
+frame
+snap schema-tooltip

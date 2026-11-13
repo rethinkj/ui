@@ -4,8 +4,12 @@ import static com.rethinkj.ui.El.col;
 import static com.rethinkj.ui.examples.TitleBar.titleBar;
 import static com.rethinkj.ui.kit.DataGrid.dataGrid;
 import static com.rethinkj.ui.kit.Label.Variant.MUTED;
+import static com.rethinkj.ui.kit.Button.Variant.PRIMARY;
+import static com.rethinkj.ui.kit.Button.Variant.SECONDARY;
+import static com.rethinkj.ui.kit.Button.button;
 import static com.rethinkj.ui.kit.Label.label;
 import static com.rethinkj.ui.kit.Split.split;
+import static com.rethinkj.ui.kit.TextField.textField;
 
 import com.rethinkj.ui.App;
 import com.rethinkj.ui.El;
@@ -16,8 +20,10 @@ import com.rethinkj.ui.kit.DataGrid;
 import com.rethinkj.ui.kit.DataGrid.Column;
 import com.rethinkj.ui.kit.DataGrid.Mode;
 import com.rethinkj.ui.kit.DataGrid.Selection;
+import com.rethinkj.ui.kit.Dialog;
 import com.rethinkj.ui.kit.Icon;
 import com.rethinkj.ui.kit.Icon.Variant;
+import com.rethinkj.ui.kit.Menu;
 import com.rethinkj.ui.kit.Split.Direction;
 import com.rethinkj.ui.kit.Split.Position;
 import com.rethinkj.ui.kit.Symbol;
@@ -46,7 +52,9 @@ import java.util.Set;
  * three times as long, and prod-eu refuses to connect. Meanwhile the tree shows "Loading…" where
  * the children will be, and the window stays responsive: it moves, the tree and the rows scroll,
  * other nodes open. Selecting another table cancels the rows asked for before, whose answer then
- * never arrives.
+ * never arrives. A right click on a node selects it and opens its menu: open it, copy its name,
+ * and on a table "Drop table…", which asks for the table's name in a dialog and then drops
+ * nothing, as nothing here is real.
  *
  * <p>The work gets the names it asks about, never the nodes: they are the app's state, which only
  * the handlers touch, on the app's thread. Under a script the latency is 0, and the script's
@@ -103,6 +111,9 @@ public final class SchemaBrowser {
   Work asking; // the query for them, cancelled when another table is selected
   final Selection selection = new Selection(Mode.ROWS);
   String status = "Open a server to see its databases.";
+  final Menu.State menu = new Menu.State(); // the tree's context menu, for the selected node
+  Node dropping; // the table the dialog asks about, or null while it is closed
+  String confirm = ""; // the name typed into the dialog
 
   SchemaBrowser() {
     for (String server : List.of("localhost", "staging", "prod-eu")) {
@@ -212,6 +223,38 @@ public final class SchemaBrowser {
         });
   }
 
+  /** The items of the context menu, for the selected node. */
+  List<Menu.Item> menuItems() {
+    Node node = selected;
+    if (node == null) {
+      return List.of();
+    }
+    List<Menu.Item> items = new ArrayList<>(List.of(
+        Menu.item("Open", node.level == 4 || open.contains(node) ? null
+            : () -> toggle(node, true)),
+        Menu.item("Copy name", () -> {
+          app.clipboard().write(node.name);
+          status = "Copied " + node.name;
+        })));
+    if (node.level == 3) {
+      items.add(Menu.separator());
+      items.add(Menu.item("Drop table…", () -> {
+        dropping = node;
+        confirm = "";
+      }));
+    }
+    return items;
+  }
+
+  void cancelDrop() {
+    dropping = null;
+  }
+
+  void drop() {
+    status = dropping.path() + " was not dropped: nothing here is real";
+    dropping = null;
+  }
+
   public static void main(String[] args) throws IOException {
     SchemaBrowser browser = new SchemaBrowser();
     App<SchemaBrowser> app = new App<>(browser, SchemaBrowser::view);
@@ -238,6 +281,7 @@ public final class SchemaBrowser {
     Theme t = Theme.DARK;
     El tree = Tree.tree(t, new Model(t, s), s.open::contains, s.selected, s::select, s::toggle,
         null).key("schema").label("Schema").grow(1);
+    Menu.contextMenu(t, tree, s.menu, s.menuItems());
     El schema = col().fill(t.surface().panel()).padding(t.space().m()).child(tree);
     El content = col().padding(t.space().l()).gap(t.space().m());
     if (s.table == null) {
@@ -258,12 +302,26 @@ public final class SchemaBrowser {
           .child(dataGrid(t, columns, r.rows().size(), DataGrid.options().select(s.selection))
               .key("rows").label("Rows").grow(1));
     }
-    return col().wFull().hFull().fill(t.surface().window())
+    El root = col().wFull().hFull().fill(t.surface().window())
         .child(titleBar(t, "Schema", t.accent().color()))
         // No smaller than its content otherwise, which is as tall as its rows: min-height: 0.
         .child(split(t, Direction.ROW, s.split, Position.first(240), p -> s.split = p,
             schema, 160, content, 240).key("split").grow(1).minSize(0, 0))
         .child(label(t, MUTED, s.status).key("status").padding(t.space().s(), t.space().l()));
+    if (s.dropping != null) {
+      String name = s.dropping.name;
+      root.overlay(Dialog.dialog(t, "Drop table",
+          col().gap(t.space().m()).children(
+              label(t, "Drop " + s.dropping.path() + " and all its rows?"),
+              label(t, MUTED, "Type the table's name to confirm."),
+              textField(t, s.confirm, name, v -> s.confirm = v).key("confirm")
+                  .label("Table name")),
+          List.of(
+              button(t, SECONDARY, "Cancel", s::cancelDrop).key("cancel"),
+              button(t, PRIMARY, "Drop", s.confirm.equals(name) ? s::drop : null).key("drop")),
+          s::cancelDrop));
+    }
+    return root;
   }
 
   /** The catalog as the tree asks for it, with an icon per level. */

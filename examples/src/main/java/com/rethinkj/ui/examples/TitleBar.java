@@ -8,10 +8,12 @@ import com.rethinkj.ui.El;
 import com.rethinkj.ui.Style;
 import com.rethinkj.ui.WindowPart;
 import com.rethinkj.ui.kit.Theme;
+import com.rethinkj.ui.kit.Tooltip;
 
 /**
  * The title bar of a frameless window: a coloured mark, the title, and minimize, maximize and
- * close buttons. The system moves the window by the bar and acts on its buttons.
+ * close buttons. The system moves the window by the bar and acts on its buttons. Minimize and close
+ * say what they do in a tooltip; maximize has none, since Windows 11 shows its snap layouts there.
  */
 final class TitleBar {
 
@@ -25,9 +27,10 @@ final class TitleBar {
         .child(el().size(12, 12).radius(6).fill(mark).margin(0, 0, 0, 10))
         .child(label(t, title).margin(0, 0, 0, t.space().m()))
         .child(el().grow(1))
-        .child(button(WindowPart.MINIMIZE, "Minimize", el().size(10, 1).fill(glyph)))
+        .child(Tooltip.tooltip(t,
+            button(WindowPart.MINIMIZE, "Minimize", el().size(10, 1).fill(glyph)), "Minimize"))
         .child(button(WindowPart.MAXIMIZE, "Maximize", el().size(10, 10).border(1, glyph)))
-        .child(button(WindowPart.CLOSE, "Close", cross(glyph)));
+        .child(Tooltip.tooltip(t, button(WindowPart.CLOSE, "Close", cross(glyph)), "Close"));
   }
 
   private static El button(WindowPart part, String label, El glyph) {
