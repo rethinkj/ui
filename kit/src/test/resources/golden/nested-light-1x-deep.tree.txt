@@ -39,7 +39,7 @@ overlay bottom start gap 2 on #title-0 role=menuitem label="File" 28,4 38x24
         text "Save" 65,87 70x16
         text "Ctrl+S" 155,87 38x16
     el 33,109 168x1
-    el #item-4 role=menuitem label="Export" 33,112 168x24 expanded
+    el #item-4 role=menuitem label="Export" 33,112 168x24 current expanded
       el 33,112 168x24
         el 41,124 16x0
         text "Export" 65,116 104x16
@@ -65,7 +65,7 @@ overlay right start gap 5 on #item-4 role=menuitem label="Export" 33,112 168x24
       el 211,141 89x24
         el 219,153 16x0
         text "JSON" 243,145 49x16
-    el #subitem-2 role=menuitem label="SQL" 211,165 89x24 expanded
+    el #subitem-2 role=menuitem label="SQL" 211,165 89x24 current expanded
       el 211,165 89x24
         el 219,177 16x0
         text "SQL" 243,169 25x16
@@ -76,14 +76,14 @@ overlay right start gap 5 on #subitem-2 role=menuitem label="SQL" 211,165 89x24
       el 310,170 99x24
         el 318,182 16x0
         text "Inserts" 342,174 59x16
-    el #subitem-1 role=menuitem label="Script" 310,194 99x24 expanded
+    el #subitem-1 role=menuitem label="Script" 310,194 99x24 current expanded
       el 310,194 99x24
         el 318,206 16x0
         text "Script" 342,198 35x16
         text label="chevron_right" "\u{F2AF}" 385,198 16x16
 overlay right start gap 5 on #subitem-1 role=menuitem label="Script" 310,194 99x24
   el #submenu role=menu 149,194 156x58 focused
-    el #subitem-0 role=menuitem label="Schema" 154,199 146x24
+    el #subitem-0 role=menuitem label="Schema" 154,199 146x24 current
       el 154,199 146x24
         el 162,211 16x0
         text "Schema" 186,203 106x16

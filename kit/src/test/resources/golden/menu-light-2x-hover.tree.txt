@@ -52,7 +52,7 @@ overlay bottom start gap 2 on #file role=button label="File" 12,12 48x24
         text "Open…" 49,71 67x16
         text "Ctrl+O" 136,71 40x16
     el 17,93 167x1
-    el #item-3 role=menuitem label="Export" 17,96 167x24 expanded hovered
+    el #item-3 role=menuitem label="Export" 17,96 167x24 current expanded hovered
       el 17,96 167x24
         el 25,108 16x0
         text "Export" 49,100 103x16
