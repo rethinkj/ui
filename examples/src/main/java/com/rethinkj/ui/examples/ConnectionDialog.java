@@ -101,10 +101,8 @@ public final class ConnectionDialog {
                 .key("database").w(260)))
             .child(field(t, "User", textField(t, s.user, "Role", v -> s.user = v)
                 .key("user").w(260))))
-        // As wide as box and text, not as the column, which would stretch them and their ring.
-        .child(checkbox(t, s.ssl, "Require SSL", () -> s.ssl = !s.ssl)
-            .alignSelf(Style.Align.START))
-        .child(toggle(t, s.dark, "Dark theme", () -> s.dark = !s.dark).alignSelf(Style.Align.START))
+        .child(checkbox(t, s.ssl, "Require SSL", () -> s.ssl = !s.ssl))
+        .child(toggle(t, s.dark, "Dark theme", () -> s.dark = !s.dark))
         .child(el().grow(1))
         .child(label(t, MUTED, s.status))
         .child(row().gap(t.space().m()).justify(Style.Content.END)

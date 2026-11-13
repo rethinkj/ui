@@ -7,6 +7,7 @@ import static com.rethinkj.ui.kit.Theme.over;
 
 import com.rethinkj.ui.Cursor;
 import com.rethinkj.ui.El;
+import com.rethinkj.ui.Len;
 import com.rethinkj.ui.Style;
 
 /**
@@ -55,6 +56,9 @@ public final class Toggle {
             .align(Style.Align.CENTER)
             .radius(height / 2 + t.space().xs())
             .child(track);
+    // Only as wide as the control and its text, so that a column that stretches its children
+    // stretches neither the press area nor the ring; one that centres them still centres it.
+    toggle.style().width = Len.FIT_CONTENT;
     if (text != null) {
       toggle.child(label(t, text).color(enabled ? t.text().primary() : t.text().disabled()));
     }
