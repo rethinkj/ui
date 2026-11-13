@@ -1,6 +1,8 @@
 package com.rethinkj.ui.window;
 
 import com.rethinkj.ui.Key;
+import java.nio.file.Path;
+import java.util.List;
 
 /**
  * Something that happened to a {@link Window}, delivered to its {@link WindowListener}. Positions
@@ -95,4 +97,22 @@ public sealed interface WindowEvent {
    *     moves. False when the system lost what the window showed and it has to be drawn again.
    */
   record Redraw(boolean live) implements WindowEvent {}
+
+  /** Files or text that another application drags are over the window at this point. */
+  record FileDragOver(float x, float y) implements WindowEvent {}
+
+  /** What another application dragged over the window left it without a drop. */
+  record FileDragLeave() implements WindowEvent {}
+
+  /**
+   * Another application dropped files or text on the window at this point.
+   *
+   * @param files the files, empty for text
+   * @param text the text, its lines joined by line feeds, or null for files
+   */
+  record FileDrop(float x, float y, List<Path> files, String text) implements WindowEvent {
+    public FileDrop {
+      files = List.copyOf(files);
+    }
+  }
 }

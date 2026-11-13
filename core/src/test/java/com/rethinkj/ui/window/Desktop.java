@@ -223,6 +223,18 @@ final class Desktop {
     }
   }
 
+  /** A drop event, as SDL makes one from the system's drag and drop; {@code data} may be null. */
+  static void drop(Window window, int type, float x, float y, String data) {
+    try (Arena arena = Arena.ofConfined()) {
+      MemorySegment utf8 = data == null ? MemorySegment.NULL : arena.allocateFrom(data);
+      push(window, type, e -> {
+        e.set(JAVA_FLOAT, Sdl.DROP_X, x * window.unitsPerLogical());
+        e.set(JAVA_FLOAT, Sdl.DROP_Y, y * window.unitsPerLogical());
+        e.set(ADDRESS, Sdl.DROP_DATA, utf8);
+      });
+    }
+  }
+
   static void windowEvent(Window window, int type, int data1, int data2) {
     push(window, type, e -> {
       e.set(JAVA_INT, Sdl.WINDOW_DATA1, data1);

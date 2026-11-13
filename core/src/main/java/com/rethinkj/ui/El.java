@@ -68,6 +68,7 @@ public final class El {
   private Consumer<Drag> onDrag;
   private Object dragPayload;
   private Consumer<Drop> onDrop;
+  private Consumer<Drop> onFileDrop;
   private int revealRow = -1;
   private boolean focusable;
   private Integer focusRing;
@@ -1735,6 +1736,22 @@ public final class El {
   }
 
   /**
+   * Lets this element take what another application drags onto the window: files from a file
+   * manager, or text that no text field under the pointer takes (a field takes dropped text as a
+   * paste at the point). While such a drag is over the element or inside it, and no element inside
+   * it has a handler of its own there, {@code handler} gets {@link Drop.Phase#OVER} on each move,
+   * the time to show that the element takes it; {@link Drop.Phase#LEAVE} when it moves on, leaves
+   * the window or is given up; and {@link Drop.Phase#DROP} at the release, with the files as a
+   * {@code List<java.nio.file.Path>} or the text as a {@code String} for its payload. While it is
+   * over, the payload is null: the systems say what is dropped only at the release. The drops of
+   * {@link #dragPayload} within the app go to {@link #onDrop} instead.
+   */
+  public El onFileDrop(Consumer<Drop> handler) {
+    this.onFileDrop = handler;
+    return this;
+  }
+
+  /**
    * Lets this element take the keyboard focus, which {@link App} keeps across rebuilds: Tab and
    * Shift+Tab move it through the focusable elements in tree order, and a pointer press on this
    * element or inside it gives it focus. The focused element gets text ({@link #onText}) and keys
@@ -2446,6 +2463,11 @@ public final class El {
   /** The handler of {@link #onDrop}, or null. */
   public Consumer<Drop> onDrop() {
     return onDrop;
+  }
+
+  /** The handler of {@link #onFileDrop}, or null. */
+  public Consumer<Drop> onFileDrop() {
+    return onFileDrop;
   }
 
   public PointHandler onSecondaryPress() {
