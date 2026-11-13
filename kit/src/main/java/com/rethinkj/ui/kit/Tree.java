@@ -36,7 +36,9 @@ import java.util.function.Predicate;
  * rows are a virtual list ({@link El#rows}): only those in view and a few more exist as elements,
  * and the model is asked for the label and icon of those alone. A press on a row selects it; a
  * double press also opens or closes it and activates it. A press on a row's mark selects it and
- * opens or closes it. While the tree has the focus, Up and Down move the selection, Right opens a
+ * opens or closes it. A secondary press on a row selects it and then runs the tree's own {@link
+ * El#onSecondaryPress} handler, such as the one {@link Menu#contextMenu} gives it, so that a context
+ * menu acts on the row it opened on. While the tree has the focus, Up and Down move the selection, Right opens a
  * closed node or goes to its first child, Left closes an open node or goes to its parent, Home,
  * End, Page Up and Page Down move as in a list, and Enter activates. The rows follow the
  * selection ({@link El#revealRow}): whenever a rebuild puts the selected node in another row, as
@@ -124,8 +126,8 @@ public final class Tree {
     boolean presses = onSelect != null || onToggle != null || onActivate != null;
     // The rows are built after the tree's focus look has run, so they can read what it found.
     boolean[] focused = {false};
-    El tree = col().role("tree").scrollbars(t.scrollbars()).revealRow(rows.selected)
-        .rows(rows.count, height, i -> {
+    El tree = col().role("tree").scrollbars(t.scrollbars()).revealRow(rows.selected);
+    tree.rows(rows.count, height, i -> {
       N node = rows.node(i);
       El r = row().key("row-" + i)
           .padding(0, t.space().s(), 0, t.space().s() + rows.depth(i) * indent)
@@ -170,6 +172,15 @@ public final class Tree {
         r.fill(focused[0] ? t.grid().selected() : t.grid().selectedInactive());
       } else if (presses) {
         r.whenHovered(e -> e.fill(t.surface().hover()));
+      }
+      // The rows are built after the view, so a context menu given to the tree is there: the
+      // row a secondary press lands on is selected before the menu opens.
+      El.PointHandler secondary = tree.onSecondaryPress();
+      if (secondary != null) {
+        r.onSecondaryPress((x, y) -> {
+          select.run();
+          secondary.accept(x, y);
+        });
       }
       return !presses ? r : r.onPress(clicks -> {
         select.run();

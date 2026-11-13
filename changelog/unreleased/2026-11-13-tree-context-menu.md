@@ -1,0 +1,1 @@
+- `Tree`: a secondary press on a row selects the row before the tree's own `onSecondaryPress` handler runs, so that a context menu given to the tree with `Menu.contextMenu` acts on the row it opened on instead of the one selected before.

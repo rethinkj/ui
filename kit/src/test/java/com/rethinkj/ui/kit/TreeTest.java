@@ -220,6 +220,26 @@ class TreeTest {
   }
 
   @Test
+  void aSecondaryPressSelectsTheRowBeforeTheTreesContextMenuOpens() throws IOException {
+    Catalog catalog = new Catalog(T);
+    Menu.State menu = new Menu.State();
+    List<String> chosen = new ArrayList<>();
+    App<Catalog> app = new App<>(catalog, c -> col().wFull().hFull().child(
+        Menu.contextMenu(T, c.tree().key("schema").grow(1), menu, List.of(
+            Menu.item("Copy name", () -> chosen.add("copy " + c.selected))))));
+    catalog.app = app;
+    run(app, "frame\npress #row-1 right\nframe");
+    assertEquals(List.of("select prod-eu"), catalog.log, "the row under the pointer first");
+    assertTrue(menu.isOpen());
+    run(app, "press role=menuitem label=\"Copy name\"\nframe");
+    assertEquals(List.of("copy prod-eu"), chosen, "the menu acts on that row");
+
+    run(app, "press #row-1 right\nframe"); // the selected row: no second selection
+    assertEquals(List.of("select prod-eu"), catalog.log);
+    assertTrue(menu.isOpen());
+  }
+
+  @Test
   void aPressOnAMarkSelectsAndOpensAndAnotherCloses() throws IOException {
     Catalog catalog = new Catalog(T);
     App<Catalog> app = start(catalog);
