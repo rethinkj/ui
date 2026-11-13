@@ -17,7 +17,7 @@ el 0,0 330x420
               text label="play" "\u{E990}" 64,57 16x16
               text "Run" 84,57 24x16
             el 121,53 1x24
-            el #arrow role=button label="More Run" 122,53 22x24
+            el #arrow role=button label="More Run" 122,53 22x24 expanded=false
               text label="chevron_down" "\u{F2A2}" 125,57 16x16
           el role=separator 148,57 1x16
           el role=button label="Wrap values" 153,53 24x24 checked=false

@@ -125,42 +125,42 @@ el 0,0 140x40
 el 0,0 140x40
   el #c role=button label="Running" 32,8 77x24 busy
     text "Running" 45,12 51x16
-    el role=progressbar label="Loading" 63,12 16x16
-      el 63,12 16x16
-      el 63,12 16x16
-      el 63,12 16x16
-      el 63,12 16x16
-      el 63,12 16x16
+    el role=progressbar label="Loading" 62,12 16x16
+      el 62,12 16x16
+      el 62,12 16x16
+      el 62,12 16x16
+      el 62,12 16x16
+      el 62,12 16x16
 # busy, hover
 el 0,0 140x40
   el #c role=button label="Running" 32,8 77x24 busy
     text "Running" 45,12 51x16
-    el role=progressbar label="Loading" 63,12 16x16
-      el 63,12 16x16
-      el 63,12 16x16
-      el 63,12 16x16
-      el 63,12 16x16
-      el 63,12 16x16
+    el role=progressbar label="Loading" 62,12 16x16
+      el 62,12 16x16
+      el 62,12 16x16
+      el 62,12 16x16
+      el 62,12 16x16
+      el 62,12 16x16
 # busy, pressed
 el 0,0 140x40
   el #c role=button label="Running" 32,8 77x24 busy
     text "Running" 45,12 51x16
-    el role=progressbar label="Loading" 63,12 16x16
-      el 63,12 16x16
-      el 63,12 16x16
-      el 63,12 16x16
-      el 63,12 16x16
-      el 63,12 16x16
+    el role=progressbar label="Loading" 62,12 16x16
+      el 62,12 16x16
+      el 62,12 16x16
+      el 62,12 16x16
+      el 62,12 16x16
+      el 62,12 16x16
 # busy, focused
 el 0,0 140x40
   el #c role=button label="Running" 32,8 77x24 busy focused
     text "Running" 45,12 51x16
-    el role=progressbar label="Loading" 63,12 16x16
-      el 63,12 16x16
-      el 63,12 16x16
-      el 63,12 16x16
-      el 63,12 16x16
-      el 63,12 16x16
+    el role=progressbar label="Loading" 62,12 16x16
+      el 62,12 16x16
+      el 62,12 16x16
+      el 62,12 16x16
+      el 62,12 16x16
+      el 62,12 16x16
 # busy, disabled
 el 0,0 140x40
   el #c role=button label="Running" 32,8 77x24 disabled

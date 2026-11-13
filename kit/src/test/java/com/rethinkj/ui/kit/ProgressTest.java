@@ -123,6 +123,44 @@ class ProgressTest {
   }
 
   @Test
+  void aBusyButtonsSpinnerIsCentredInWhateverSizeTheViewGivesIt() throws IOException {
+    TextLibraries.assumeLoaded();
+    App<Object> app = new App<>(
+        new Object(),
+        x -> col()
+            .child(Button.button(T, Button.Variant.SECONDARY, null, "Refresh", true, () -> {})
+                .key("run")
+                .w(200)
+                .h(40)));
+    run(app, "");
+    El busy = CellEditorTest.find(app, "run");
+    El spinner = busy.children().stream()
+        .filter(c -> "progressbar".equals(c.role()))
+        .findFirst()
+        .orElseThrow();
+    assertEquals(100, spinner.x() + spinner.width() / 2, 1f);
+    assertEquals(20, spinner.y() + spinner.height() / 2, 1f);
+  }
+
+  @Test
+  void enterOnABusyButtonDoesNotPressADialogsDefaultButton() throws IOException {
+    TextLibraries.assumeLoaded();
+    int[] saved = {0};
+    App<Object> app = new App<>(new Object(), x -> {
+      El refresh = Button.button(T, Button.Variant.SECONDARY, null, "Refresh", true, () -> {})
+          .key("refresh");
+      El save = Button.button(T, Button.Variant.PRIMARY, "Save", () -> saved[0]++);
+      return col()
+          .wFull()
+          .hFull()
+          .overlay(Dialog.dialog(T, "Edit", refresh, java.util.List.of(save), save, () -> {}));
+    });
+    run(app, "focus #refresh\nframe\nkey Enter\nkey Space\nframe");
+    assertEquals("refresh", app.focused().key());
+    assertEquals(0, saved[0]);
+  }
+
+  @Test
   void aRunningBarThatLearnsItsValueSpringsFromWhereItRan() {
     Shown s = new Shown();
     App<Shown> app = new App<>(

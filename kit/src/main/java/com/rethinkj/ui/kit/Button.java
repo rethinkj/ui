@@ -7,7 +7,7 @@ import static com.rethinkj.ui.kit.Theme.over;
 import com.rethinkj.ui.Clipboard;
 import com.rethinkj.ui.Cursor;
 import com.rethinkj.ui.El;
-import com.rethinkj.ui.Measure;
+import com.rethinkj.ui.Style;
 import java.util.List;
 import java.util.function.Consumer;
 
@@ -57,7 +57,7 @@ public final class Button {
    * colour stands in place of its icon, or, on a button without one, over the middle of its text,
    * which keeps its place unseen so that the button keeps its width; and it takes no press, but
    * keeps its colours, its place in the order of Tab and the focus, so that nothing jumps when the
-   * work ends. In a tree dump it is then {@code busy}, WAI-ARIA's {@code aria-busy}, which a script
+   * work ends. Enter and Space on it do nothing and reach no other handler. In a tree dump it is then {@code busy}, WAI-ARIA's {@code aria-busy}, which a script
    * selects as {@code role=button busy}.
    *
    * @param icon before the text; null for none
@@ -80,20 +80,17 @@ public final class Button {
       El label = El.text(text).font(style.font().get()).fontSize(style.size()).color(look.text());
       if (icon != null) { // in the icon's place
         button.child(spinner).child(label);
-      } else { // over the text's middle, which keeps its place unseen: the width stays
-        float width = label
-            .text()
-            .measure(Float.NaN, Float.NaN, Measure.MAX_CONTENT, Measure.MAX_CONTENT)
-            .width();
-        float size = t.size().icon();
-        button
-            .child(label.opacity(0))
-            .child(spinner.absolute(
-                Math.round(t.space().l() + (width - size) / 2),
-                Math.round((t.size().control() - size) / 2) - t.size().stroke()));
+      } else { // over the middle of the text, which keeps its place unseen: the width stays
+        // Out of the flow and without a place of its own, it lies where the button centres its
+        // content, whatever size the view gives the button.
+        spinner.style().position = Style.Position.ABSOLUTE;
+        button.child(label.opacity(0)).child(spinner);
       }
       return button
           .busy(true)
+          // Enter and Space do nothing, and go no further: to a dialog's default button, say.
+          .onKey(
+              k -> k.modifiers() == 0 && (k.name().equals("Enter") || k.name().equals("Space")))
           .focusable()
           .keepFocus()
           .focusRing(t.accent().edge())
@@ -274,6 +271,12 @@ public final class Button {
       more.border(t.size().stroke(), t.size().stroke(), t.size().stroke(), 0, look.edge());
     }
     more = enable(t, variant, look, more, any ? state::toggle : null);
+    if (any) {
+      more.expanded(state.isOpen());
+      if (state.isOpen()) {
+        more.fill(look.pressed());
+      }
+    }
     El whole = row().key("split").shrink(0).child(main);
     if (variant == Variant.PRIMARY) {
       whole.child(el().w(t.size().stroke()).hFull().fill(t.accent().pressed()));

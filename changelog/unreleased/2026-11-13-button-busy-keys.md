@@ -1,0 +1,1 @@
+- Enter and Space on a busy button no longer reach a handler around it, such as a dialog's default button; the spinner of a busy button without an icon is centred in whatever size the view gives the button; and the chevron of `Button.split` says `expanded` or `expanded=false` in a tree dump and stays pressed in while its menu is open.
