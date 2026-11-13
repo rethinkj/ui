@@ -1,9 +1,9 @@
 ---
 title: Use it in a project
-description: The artifacts, how to depend on them before there is a release, and how to run the app.
+description: The artifacts, how to depend on the snapshots, and how to run the app.
 ---
 
-rethinkj UI is not on Maven Central yet. Until the first release, build it on your machine and depend on the snapshot it installs in your local Maven repository. The API still changes between commits.
+rethinkj UI has no release yet. Every push to `main` that builds on Linux and Windows publishes SNAPSHOTs to Maven Central's snapshot repository, which a project depends on. A SNAPSHOT changes with each push, the API with it, and Central removes SNAPSHOTs after 90 days.
 
 ## The artifacts
 
@@ -19,44 +19,77 @@ All share the group `com.rethinkj.ui` and the version `0.1.0-SNAPSHOT`.
 
 `core` and `kit` depend on `java.base` only. The native libraries are loaded on first use, so code that only renders without a window and draws no text needs none of them.
 
-## Install the snapshot
-
-In your clone of the repository:
-
-```sh
-mvn install -DskipTests
-```
-
 ## Depend on it
 
+Fonts, icons and natives hold no classes, so they are runtime dependencies. A profile per platform, activated by the operating system, picks the natives of the machine that builds:
+
 ```xml title="pom.xml"
+<properties>
+  <rethinkj.ui.version>0.1.0-SNAPSHOT</rethinkj.ui.version>
+</properties>
+
+<repositories>
+  <repository>
+    <id>central-snapshots</id>
+    <url>https://central.sonatype.com/repository/maven-snapshots/</url>
+    <releases><enabled>false</enabled></releases>
+    <snapshots><enabled>true</enabled></snapshots>
+  </repository>
+</repositories>
+
 <dependencies>
   <dependency>
     <groupId>com.rethinkj.ui</groupId>
     <artifactId>rethinkj-ui-kit</artifactId>
-    <version>0.1.0-SNAPSHOT</version>
+    <version>${rethinkj.ui.version}</version>
   </dependency>
   <dependency>
     <groupId>com.rethinkj.ui</groupId>
     <artifactId>rethinkj-ui-fonts</artifactId>
-    <version>0.1.0-SNAPSHOT</version>
+    <version>${rethinkj.ui.version}</version>
+    <scope>runtime</scope>
   </dependency>
   <dependency>
     <groupId>com.rethinkj.ui</groupId>
     <artifactId>rethinkj-ui-icons</artifactId>
-    <version>0.1.0-SNAPSHOT</version>
-  </dependency>
-  <!-- the platform you run on; a profile per platform picks the right one -->
-  <dependency>
-    <groupId>com.rethinkj.ui</groupId>
-    <artifactId>rethinkj-ui-natives-linux-x64</artifactId>
-    <version>0.1.0-SNAPSHOT</version>
+    <version>${rethinkj.ui.version}</version>
     <scope>runtime</scope>
   </dependency>
 </dependencies>
+
+<profiles>
+  <profile>
+    <id>natives-linux-x64</id>
+    <activation>
+      <os><name>Linux</name><arch>amd64</arch></os>
+    </activation>
+    <dependencies>
+      <dependency>
+        <groupId>com.rethinkj.ui</groupId>
+        <artifactId>rethinkj-ui-natives-linux-x64</artifactId>
+        <version>${rethinkj.ui.version}</version>
+        <scope>runtime</scope>
+      </dependency>
+    </dependencies>
+  </profile>
+  <profile>
+    <id>natives-windows-x64</id>
+    <activation>
+      <os><family>windows</family><arch>amd64</arch></os>
+    </activation>
+    <dependencies>
+      <dependency>
+        <groupId>com.rethinkj.ui</groupId>
+        <artifactId>rethinkj-ui-natives-windows-x64</artifactId>
+        <version>${rethinkj.ui.version}</version>
+        <scope>runtime</scope>
+      </dependency>
+    </dependencies>
+  </profile>
+</profiles>
 ```
 
-The kit brings core with it. The repository's `examples/pom.xml` shows profiles that choose the natives by operating system.
+The kit brings core with it. An app that ships to both platforms from one build lists both natives JARs without the profiles; each loads only on its own platform. The Linux libraries need glibc 2.38 or later, as on Ubuntu 24.04. `core` and `kit` come with a sources JAR, which IDEs pick up.
 
 ## Run
 

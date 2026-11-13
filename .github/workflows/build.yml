@@ -98,8 +98,10 @@ jobs:
           distribution: temurin
           java-version: '25'
           cache: maven
-          # settings.xml gets a server "central" whose credentials it reads from these variables.
-          server-id: central
+          # settings.xml gets a server "central-snapshots" whose credentials it reads from these
+          # variables. Not "central": Maven sends that id's credentials only to
+          # repo.maven.apache.org.
+          server-id: central-snapshots
           server-username-env-var: CENTRAL_USERNAME
           server-password-env-var: CENTRAL_PASSWORD
       - name: Cache the native libraries
