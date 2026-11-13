@@ -32,6 +32,9 @@ import com.rethinkj.ui.kit.DataGrid.Column;
 import com.rethinkj.ui.kit.Dialog;
 import com.rethinkj.ui.kit.Divider;
 import com.rethinkj.ui.kit.Icon;
+import com.rethinkj.ui.kit.ComboBox;
+import com.rethinkj.ui.kit.CommandPalette;
+import com.rethinkj.ui.kit.FilterList;
 import com.rethinkj.ui.kit.Menu;
 import com.rethinkj.ui.kit.Popover;
 import com.rethinkj.ui.kit.Properties;
@@ -284,8 +287,17 @@ final class Sections {
   private static final String[] EDITED = {
     "today 09:12", "today 08:47", "yesterday", "3 days ago", "last week", "March 2"};
 
-  private static El menus(Showcase s, Theme t) {
-    List<Menu.Item> items = List.of(
+  /** The schemas of a database, more than a select should list: a combo box finds them. */
+  static final List<String> SCHEMAS = List.of("public", "accounting", "analytics", "archive",
+      "audit", "billing", "catalog", "crm", "customer_events", "customer_notes", "geo",
+      "inventory", "logistics", "marketing", "orders_archive", "partners", "payments", "pricing",
+      "reporting", "sales", "shipping", "staging", "support", "warehouse");
+  static final List<String> HOSTS = List.of("localhost", "db.staging.internal",
+      "db-eu-1.example.com", "db-us-1.example.com");
+
+  /** The options of the console, which its dropdown and the command palette both show. */
+  static List<Menu.Item> options(Showcase s) {
+    return List.of(
         Menu.item("Run selection", () -> s.say("run selection")).shortcut("Ctrl+Enter"),
         Menu.item("Explain plan", () -> s.say("explain")).shortcut("Ctrl+Shift+E"),
         Menu.separator(),
@@ -299,6 +311,25 @@ final class Sections {
             Menu.item("SQL inserts", () -> s.say("sql")),
             Menu.item("Markdown table", null))),
         Menu.item("Close console", null).shortcut("Ctrl+W"));
+  }
+
+  /** The command palette, with the console's options as its commands, while it is open. */
+  static El palette(Showcase s, Theme t) {
+    List<FilterList.Entry> commands = new java.util.ArrayList<>(
+        CommandPalette.commands(List.of(Menu.submenu("Console", options(s)))));
+    commands.add(FilterList.entry("Rename query…", s::startRename).symbol(Symbol.EDIT));
+    List<FilterList.Entry> schemas = new java.util.ArrayList<>();
+    for (int i = 0; i < SCHEMAS.size(); i++) {
+      int at = i;
+      schemas.add(FilterList.entry(SCHEMAS.get(i), () -> s.schema = at).symbol(Symbol.FOLDER)
+          .detail("shop"));
+    }
+    return CommandPalette.palette(t, s.palette, commands, List.of(new CommandPalette.Source(
+        "@", "to choose a schema", FilterList.Entries.of(List.copyOf(schemas)))));
+  }
+
+  private static El menus(Showcase s, Theme t) {
+    List<Menu.Item> items = options(s);
     El tools = toolbar(t)
         .child(toolButton(t, PRIMARY, Symbol.PLAY, "Run", "Run", () -> s.say("run")))
         .child(Menu.dropdown(t, button(t, SECONDARY, "Options", s.options::toggle)
@@ -348,9 +379,20 @@ final class Sections {
         .child(label(t, MUTED, "Refresh and Copy show a tooltip after half a second."))
         .child(label(t, MUTED, "Rename… opens a modal dialog over a scrim."))
         .child(label(t, s.said.isEmpty() ? "" : "Last action: " + s.said).key("said"));
+    El typing = card(t, "Choosing by typing",
+        label(t, MUTED, "A combo box filters its choices as one types; the free kind takes any"
+            + " text and suggests. Control+Shift+P or F1 opens the command palette.").wrapText(),
+        field(t, "Schema", ComboBox.comboBox(t, SCHEMAS, s.schema, s.schemaBox,
+            i -> s.schema = i).key("schema-box")),
+        field(t, "Host", ComboBox.free(t, s.recentHost, HOSTS, s.hostBox, v -> s.recentHost = v)
+            .key("host-box").w(280)),
+        row().padding(0, 0, 0, 96 + t.space().m()).child(button(t, SECONDARY, Symbol.SEARCH,
+            "Command palette…", s.palette::open).key("open-palette")))
+        .w(420);
     return col().gap(t.space().l())
         .child(tools)
-        .child(row().gap(t.space().l()).align(Style.Align.START).child(saved).child(hints));
+        .child(row().gap(t.space().l()).align(Style.Align.START).child(saved).child(hints))
+        .child(typing);
   }
 
   /** The rename dialog while the state asks for it, else null. */
