@@ -801,7 +801,8 @@ final class GridEdit {
 
   /**
    * The choices of a long enumeration below the cell, filtered by what the editor's field holds
-   * (Fuzzy), in a menu's panel: the current one checked and, while nothing is typed, highlighted;
+   * (Fuzzy), in a menu's panel: the current one with a check mark at its end, as a combo box's, and highlighted while nothing
+   * is typed;
    * it leaves the focus in the field, whose keys move the highlight.
    */
   private static El search(Build b, Column c) {
@@ -809,12 +810,12 @@ final class GridEdit {
     Theme t = b.t;
     List<FilterList.Entry> entries = new ArrayList<>();
     for (String choice : c.editing().choices()) {
-      FilterList.Entry e = FilterList.entry(choice, () -> choose(b, choice, Move.NONE));
-      entries.add(choice.equals(sel.original) ? e.symbol(Menu.CHECKED) : e);
+      entries.add(FilterList.entry(choice, () -> choose(b, choice, Move.NONE))
+          .checked(choice.equals(sel.original)));
     }
     if (c.editing().nullable()) {
-      FilterList.Entry e = FilterList.entry("NULL", () -> choose(b, null, Move.NONE));
-      entries.add(sel.original == null ? e.symbol(Menu.CHECKED) : e);
+      entries.add(FilterList.entry("NULL", () -> choose(b, null, Move.NONE))
+          .checked(sel.original == null));
     }
     FilterList.Shown shown = FilterList.shown(sel.search, FilterList.Entries.of(entries));
     return col().key("choices")
