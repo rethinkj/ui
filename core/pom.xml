@@ -16,6 +16,13 @@
   <description>The framework itself.</description>
 
   <dependencies>
+    <!-- The default fonts, for the tests. Apps that use them add this module themselves. -->
+    <dependency>
+      <groupId>com.rethinkj.ui</groupId>
+      <artifactId>rethinkj-ui-fonts</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
     <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter</artifactId>

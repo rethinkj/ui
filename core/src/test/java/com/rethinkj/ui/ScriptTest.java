@@ -337,7 +337,7 @@ class ScriptTest {
         "line 1: wheel #list 40\n  Write `wheel <target> <deltaX> <deltaY>`, with distances in"
             + " logical pixels that are positive to scroll down or right, for example `wheel #list"
             + " 0 40`. A target is a position x,y in logical pixels such as 90,60, or a selector"
-            + " of #key, role=<role> and label=\"<text>\" such as role=switch label=\"Lights\".",
+            + " of #key, role=<role>, label=\"<text>\" and text=\"<string>\" such as role=switch label=\"Lights\".",
         failure("wheel #list 40\n"));
     assertFailure("wheel #list 0 down\n", "line 1: wheel #list 0 down\n  Write `wheel <target>");
     assertFailure("wheel 0 40\n", "Write `wheel <target>");

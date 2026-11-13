@@ -199,6 +199,11 @@ final class Node {
     float width = clamp(or(nodeWidth, contentWidth + insetWidth), minWidth, maxWidth);
     float height = clamp(or(nodeHeight, contentHeight + insetHeight), minHeight, maxHeight);
     height = Math.max(height, some(ratio) ? width / ratio : 0);
-    return new Out(Math.max(width, edgesWidth), Math.max(height, edgesHeight), baseline);
+    Out out = new Out(Math.max(width, edgesWidth), Math.max(height, edgesHeight), baseline);
+    if (measure != null && in.perform) {
+      measure.placed(
+          Math.max(out.width() - insetWidth, 0), Math.max(out.height() - insetHeight, 0));
+    }
+    return out;
   }
 }

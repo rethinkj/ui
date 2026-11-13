@@ -1,6 +1,7 @@
 package com.rethinkj.ui;
 
 import com.rethinkj.ui.motion.Spring;
+import com.rethinkj.ui.text.Font;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -28,6 +29,7 @@ public final class El {
   private float radius;
   private int borderColor;
   private Measure measure;
+  private Text text;
   private Runnable onPress;
   private boolean focusable;
   private Predicate<Key> onKey;
@@ -66,6 +68,18 @@ public final class El {
   public static El col() {
     El el = new El();
     el.style.direction = Style.Direction.COLUMN;
+    return el;
+  }
+
+  /**
+   * A text element: a leaf that layout sizes to its shaped text, in {@link Font#sans} at 14
+   * logical pixels in black, on one line per line feed unless it {@link #wrapText wraps}. {@link
+   * Text} says how lines break.
+   */
+  public static El text(String string) {
+    El el = new El();
+    el.text = new Text(string);
+    el.measure = el.text;
     return el;
   }
 
@@ -286,6 +300,39 @@ public final class El {
     return this;
   }
 
+  // Text, for elements made with text()
+
+  public El font(Font font) {
+    textOnly("font").font(font);
+    return this;
+  }
+
+  /** The font size in logical pixels. */
+  public El fontSize(float pixels) {
+    textOnly("fontSize").size(pixels);
+    return this;
+  }
+
+  /** @param argb the text colour as 0xAARRGGBB */
+  public El color(int argb) {
+    textOnly("color").color(argb);
+    return this;
+  }
+
+  /** Lets the text break into more lines where it is wider than its box. */
+  public El wrapText() {
+    textOnly("wrapText").wraps(true);
+    return this;
+  }
+
+  private Text textOnly(String call) {
+    if (text == null) {
+      throw new IllegalStateException(
+          call + " is for text elements, which El.text(\"...\") makes; this element has no text.");
+    }
+    return text;
+  }
+
   // Behaviour
 
   /**
@@ -453,6 +500,21 @@ public final class El {
     return measure;
   }
 
+  /** The text of an element made with {@link #text(String)}, with its lines after layout. */
+  public Text text() {
+    return text;
+  }
+
+  /** For {@link App} and {@link Headless}: text is shaped for the scale of the window. */
+  static void scaleText(El el, float scale) {
+    if (el.text != null) {
+      el.text.scale(scale);
+    }
+    for (El child : el.children) {
+      scaleText(child, scale);
+    }
+  }
+
   public float opacity() {
     return opacity;
   }
@@ -597,8 +659,9 @@ public final class El {
    * line ends with the element's rectangle in window coordinates, as {@code x,y widthxheight}, as
    * shown, that is, moved by the scroll offsets above it. A scroll area that is scrolled adds its
    * offset, as {@code scroll x,y}, the line of the element that has the keyboard focus ends with
-   * {@code focused}, and that of an element that is leaving with {@code exiting}. Tests and agents
-   * read this, so the format only changes deliberately.
+   * {@code focused}, and that of an element that is leaving with {@code exiting}. A text element's
+   * line starts with {@code text} instead of {@code el} and shows its string in quotes after the
+   * label. Tests and agents read this, so the format only changes deliberately.
    */
   public String dump() {
     StringBuilder out = new StringBuilder();
@@ -617,7 +680,7 @@ public final class El {
 
   /** One line of {@link #dump}, for this element with its border box at this window position. */
   void describe(StringBuilder out, float left, float top) {
-    out.append("el");
+    out.append(text != null ? "text" : "el");
     if (key != null) {
       out.append(" #").append(key);
     }
@@ -626,6 +689,9 @@ public final class El {
     }
     if (label != null) {
       out.append(" label=").append(quote(label));
+    }
+    if (text != null) {
+      out.append(' ').append(quote(text.string()));
     }
     if (windowPart != null) {
       out.append(" window=").append(windowPart.name().toLowerCase(Locale.ROOT));
@@ -650,9 +716,14 @@ public final class El {
     out.append('\n');
   }
 
-  /** The text in double quotes, with a backslash before each quote and backslash in it. */
+  /**
+   * The text in double quotes, with a backslash before each quote and backslash in it, and line
+   * feeds as {@code \n}, so that it stays on one line.
+   */
   static String quote(String text) {
-    return '"' + text.replace("\\", "\\\\").replace("\"", "\\\"") + '"';
+    return '"'
+        + text.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n")
+        + '"';
   }
 
   // Not String.format: its decimal separator depends on the locale.

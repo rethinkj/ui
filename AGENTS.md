@@ -55,7 +55,7 @@ A `.tree.txt` has one line per element, children indented, with its rectangle in
 
 Keys go to the focused element and then up through its ancestors until a key handler takes them; without focus only the root gets them. If none does, Tab and Shift+Tab move the focus through the focusable elements in tree order, around at the ends, and Enter and Space press the focused element. A press focuses the focusable element it lands in and clears the focus elsewhere. Focus moved by the keyboard or by `focus` is drawn with a ring and scrolls into view; a press shows no ring.
 
-A target is a position `x,y` in logical pixels, or a selector for exactly one element of the last frame: `#key` (anywhere in the tree), `role=<role>`, `label="<text>"` (`\"` and `\\` inside), or several of them, as in `role=switch label="Lights"`. A selector presses the centre of the part of the element's rectangle that its clips leave visible, and does not match an element they clip away entirely, such as a row scrolled out of its list. When it matches nothing, the error lists the keys, roles and labels there are; when it matches several, it lists them with their rectangles.
+A target is a position `x,y` in logical pixels, or a selector for exactly one element of the last frame: `#key` (anywhere in the tree), `role=<role>`, `label="<text>"` (`\"` and `\\` inside), `text="<string>"` (see Text), or several of them, as in `role=switch label="Lights"`. A selector presses the centre of the element's rectangle. When it matches nothing, the error lists the keys, roles and labels there are, and the texts if there are any; when it matches several, it lists them with their rectangles.
 
 `core/src/test/resources/scripts/switch.txt` drives the switch of core's tests:
 
@@ -141,6 +141,7 @@ On Windows, separate the class path with `;`. The snaps equal the stored images 
 | `kit/`                 | `rethinkj-ui-kit`                 | `com.rethinkj.ui.kit` | Components built on `core`                                |
 | `natives-windows-x64/` | `rethinkj-ui-natives-windows-x64` | none, no Java code    | SDL3 and wgpu-native for Windows on x64                   |
 | `natives-linux-x64/`   | `rethinkj-ui-natives-linux-x64`   | none, no Java code    | SDL3, wgpu-native, FreeType and HarfBuzz for Linux on x64 |
+| `fonts/`               | `rethinkj-ui-fonts`               | none, no Java code    | Inter and JetBrains Mono, the default fonts               |
 
 All artifacts share the groupId `com.rethinkj.ui`.
 
@@ -174,6 +175,17 @@ wgpu-native ends the process where WebGPU would report an error, so the safe lay
 - Do not bind any of the 35 functions wgpu-native leaves unimplemented (`WgpuTest` lists them), and do not rely on `wgpuInstanceWaitAny`: callbacks run inside the call or inside `wgpuDevicePoll`.
 
 Objects belong to the thread that created their `Instance`; closing one closes what it created, newest first. After adding or changing a struct, function or callback, run `scripts/LayoutCheck.java` (its header has the commands; it needs jextract, which stays out of the repository).
+
+## Text
+
+Text is shaped but not drawn yet: a `Scene` has no instances for text elements.
+
+- `El.text("…")` makes a text element, a leaf that layout sizes to its shaped text. Chained calls: `.font(Font)`, `.fontSize(<logical pixels>)`, `.color(0xAARRGGBB)`, `.wrapText()`. The defaults are `Font.sans()`, 14, opaque black and no wrapping. Each line feed starts a line; with `wrapText` it also breaks where `java.text.BreakIterator` allows, and a word wider than the box stays whole. No bidirectional text, mixed scripts or fallback fonts yet: a character the font lacks shows as its glyph 0.
+- `Font.sans()`, `sansBold()`, `mono()` and `monoBold()` are Inter 4.1 and JetBrains Mono 2.304, regular and bold, the static hinted TrueType files of their releases. They come in `fonts/` (`rethinkj-ui-fonts`, under `META-INF/rethinkj-ui/fonts/` with their SIL Open Font License 1.1 texts in `licenses/`); `core` uses that module only in tests, and without it these methods throw a message that names it. Other fonts: `Font.of(bytes)` or `Font.resource(owner, name)`, freed by `close()`.
+- `Font.shape(text, size, scale, features...)` shapes with HarfBuzz into a `GlyphRun` in physical pixels: at `size * scale`, advances and offsets rounded to whole pixels below scale 1.5 and to quarter pixels from 1.5 on. Kerning is on and `calt` off (JetBrains Mono's ligatures); features use HarfBuzz's syntax, such as `"+calt"` or `"-kern"`. Each font keeps the last 1024 runs.
+- `App` and `Headless` pass the window's scale to every text element before layout (`El.scaleText`); `Flex.layout` alone shapes at scale 1. After layout, `el.text().lines()` holds what a renderer draws: per line a `GlyphRun`, its width and its baseline, in physical pixels from the top left of the content box. Layout hands the final content size to `Measure.placed`, and the lines are broken for that width.
+- In a `.tree.txt`, a text element's line starts with `text` instead of `el` and has its string in quotes after the key, role and label: `text #save "Save\nall" 0,0 32x36`. Strings and labels are quoted with `\"`, `\\` and `\n` for a line feed. The selector `text="<string>"` matches the exact string, written the same way.
+- The bindings are in `com.rethinkj.ui.text.ffi`, not exported, in the style of `com.rethinkj.ui.gpu`. FreeType's C `long` (64 bits on Linux, 32 on Windows) is handled only in `FreeType`: `C_LONG`, its method handles, which take a Java `long` for it, and `getLong`/`setLong`. Tests that need the libraries skip themselves where the natives module lacks them, as on Windows for now.
 
 ## Windows
 

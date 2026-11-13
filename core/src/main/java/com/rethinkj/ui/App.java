@@ -472,6 +472,7 @@ public final class App<S> {
     }
     if (stale) {
       root = view.apply(state);
+      El.scaleText(root, scale);
       Flex.layout(root, width, height);
       animator.update(root, time);
       refocus();

@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>com.rethinkj.ui</groupId>
+    <artifactId>rethinkj-ui-parent</artifactId>
+    <version>0.1.0-SNAPSHOT</version>
+  </parent>
+
+  <artifactId>rethinkj-ui-fonts</artifactId>
+
+  <name>rethinkj UI :: Fonts</name>
+  <description>Inter and JetBrains Mono, the default fonts of rethinkj-ui-core.</description>
+
+  <!-- The licence of the fonts; the texts are in the JAR beside them. -->
+  <licenses>
+    <license>
+      <name>SIL Open Font License 1.1 (Inter, JetBrains Mono)</name>
+      <url>https://openfontlicense.org/open-font-license-official-text/</url>
+    </license>
+  </licenses>
+
+  <build>
+    <plugins>
+      <plugin>
+        <!-- No Java code: the JAR holds the fonts under META-INF/rethinkj-ui/fonts/, which
+             com.rethinkj.ui.text.Font reads, and their licences. -->
+        <artifactId>maven-jar-plugin</artifactId>
+        <configuration>
+          <archive>
+            <manifestEntries>
+              <!-- The name to pass to add-modules when the JAR is on the module path. -->
+              <Automatic-Module-Name>com.rethinkj.ui.fonts</Automatic-Module-Name>
+            </manifestEntries>
+          </archive>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+</project>
