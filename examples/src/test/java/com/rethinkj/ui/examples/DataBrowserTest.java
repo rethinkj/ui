@@ -1,6 +1,7 @@
 package com.rethinkj.ui.examples;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -20,6 +21,29 @@ class DataBrowserTest {
   @Test
   void theScriptShowsTheStoredFrames() throws IOException {
     Snaps.check("data-browser", DataBrowser::main);
+  }
+
+  /** Commit takes the value of an open editor first; a refused one stays there and stops it. */
+  @Test
+  void commitTakesTheValueBeingEditedFirst(@TempDir Path out) throws IOException {
+    Snaps.assumeText();
+    DataBrowser browser = new DataBrowser();
+    App<DataBrowser> app = new App<>(browser, DataBrowser::view);
+    browser.app = app;
+    Script.run("size 1000 600\nframe\npress #cell-0-1\nkey Enter\nframe\nkey A control\n"
+        + "type \"Zoe\"\nframe\nkey S control\nframe", app, out);
+    assertFalse(browser.selection.isEditing());
+    assertTrue(browser.changes.isEmpty(), "written");
+    assertEquals("1 change written", browser.toast);
+    assertEquals("Zoe", browser.changes.cell(1).apply(0));
+
+    browser.toast = null;
+    Script.run("size 1000 600\nkey End\nkey ArrowLeft\nkey ArrowLeft\nkey ArrowLeft\nframe\n"
+        + "type \"2026-02-30 10:00\"\nframe\nkey S control\nframe", app, out);
+    assertTrue(browser.selection.isEditing(), "the editor stays with its message");
+    assertEquals("2026-02-30 10:00", browser.selection.draft());
+    assertTrue(app.tree().dump().contains("role=alert"), app.tree().dump());
+    assertNull(browser.toast, "nothing written");
   }
 
   @Test

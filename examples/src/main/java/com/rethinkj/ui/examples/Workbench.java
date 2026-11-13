@@ -756,6 +756,11 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
    * the window of {@code group} whether to commit or discard them first.
    */
   void unsaved(TabGroups.Group<Opened> group, List<Opened> tabs, String doing, Runnable then) {
+    for (Opened o : tabs) {
+      if (!edited(o)) {
+        return;
+      }
+    }
     List<Opened> changed = tabs.stream().filter(o -> o.table != null && !o.changes.isEmpty())
         .toList();
     if (changed.isEmpty()) {
@@ -763,6 +768,23 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
     } else {
       question = new Question(group == null ? groups.main() : group, changed, doing, then);
     }
+  }
+
+  /**
+   * Takes over what the open editor of a tab's grid holds, as a press outside it would: false
+   * when the grid refused it, whose editor stays open with the message, and then the tab is
+   * chosen so that it shows, and what was about to happen does not.
+   */
+  boolean edited(Opened o) {
+    if (o.table == null || o.selection.commitEdit()) {
+      return true;
+    }
+    TabGroups.Group<Opened> group = groups.groupOf(o);
+    if (group != null) {
+      groups.select(group, group.tabs().indexOf(o));
+    }
+    tell(o.table.name + ": " + "the value being edited was refused");
+    return false;
   }
 
   /** The dialog's Discard: the changes go, and what waited goes on. */
@@ -793,7 +815,7 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
    * and the changes stay.
    */
   void commit(Opened o, Runnable then) {
-    if (o.table == null || o.changes.isEmpty() || o.committing != null) {
+    if (o.table == null || o.committing != null || !edited(o) || o.changes.isEmpty()) {
       return;
     }
     List<GridChanges.Change> changes = o.changes.changes();
@@ -1237,11 +1259,17 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
             Menu.item("Run", o == null ? null : () -> run(o)).icon(Symbol.PLAY)
                 .shortcut(Key.CONTROL, "Enter"),
             Menu.separator(),
-            Menu.item("Commit", !settled(o) ? null : () -> commit(o, null)).icon(Symbol.SAVE)
+            Menu.item("Commit", !committable(o) ? null : () -> commit(o, null)).icon(Symbol.SAVE)
                 .shortcut(Key.CONTROL, "S"),
             Menu.item("Revert", !settled(o) ? null : o.changes::clear).icon(Symbol.ARROW_UNDO),
             Menu.item("Preview changes…", !settled(o) ? null : () -> previewing = o)
                 .icon(Symbol.CODE))));
+  }
+
+  /** Whether Commit has something to write: changes, or a value in an open editor. */
+  private static boolean committable(Opened o) {
+    return o != null && o.table != null && o.committing == null
+        && (!o.changes.isEmpty() || o.selection.isEditing());
   }
 
   /** Whether a tab shows a table with changes that are not on their way to the server. */

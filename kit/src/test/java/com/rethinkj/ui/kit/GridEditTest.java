@@ -210,6 +210,39 @@ class GridEditTest {
     assertNull(CellEditorTest.find(app, "editor"));
   }
 
+  /** What an app's Save does first: it takes the open editor's value, or stops at a refusal. */
+  @Test
+  void theAppTakesTheOpenEditorsValueFromOutsideOrIsToldOfARefusal() throws IOException {
+    Ledger ledger = new Ledger(T, 40);
+    App<Ledger> app = start(ledger);
+    assertTrue(ledger.selection.commitEdit(), "no editor: nothing to take");
+    run(app, "type \"Grace\"\nframe");
+    assertTrue(ledger.selection.commitEdit());
+    assertEquals(List.of("commit 0,1 Grace"), ledger.log);
+    assertEquals("Grace", ledger.changes.cell(0, 1));
+    assertFalse(ledger.selection.isEditing());
+    run(app, "frame");
+    assertNull(CellEditorTest.find(app, "editor"));
+    assertEquals(0, ledger.selection.row(), "the cursor stays where it was");
+
+    ledger.refuse = "Customer names are unique";
+    run(app, "type \"Ada\"\nframe");
+    assertFalse(ledger.selection.commitEdit(), "refused");
+    assertTrue(ledger.selection.isEditing());
+    assertEquals("Ada", ledger.selection.draft(), "what was typed stays");
+    run(app, "frame");
+    assertTrue(line(app, "editor").contains(" invalid"), line(app, "editor"));
+    assertTrue(app.tree().dump().contains("role=alert label=\"Customer names are unique\""));
+    assertEquals("field", app.focused().key(), "the editor keeps the focus");
+
+    // A date the type refuses never reaches the app.
+    ledger.refuse = null;
+    run(app, "key Escape\nkey End\nkey ArrowLeft\ntype \"2026-02-30\"\nframe");
+    int handed = ledger.log.size();
+    assertFalse(ledger.selection.commitEdit());
+    assertEquals(handed, ledger.log.size());
+  }
+
   @Test
   void spaceSwitchesABooleanThroughNullWhereTheColumnAllowsIt() throws IOException {
     Ledger ledger = new Ledger(T, 40);

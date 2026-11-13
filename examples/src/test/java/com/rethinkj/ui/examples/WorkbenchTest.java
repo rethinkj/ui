@@ -2,6 +2,7 @@ package com.rethinkj.ui.examples;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -616,6 +617,44 @@ class WorkbenchTest {
     Script.run("size 1000 600\nkey N control\nframe\nawait\nframe", app, out);
     assertEquals("1.00", s.tables().get(1).changes.cell(0, 3),
         "another tab of the table shows what was written");
+  }
+
+  /**
+   * Control+S and closing a tab take the value of an open editor first, so that nothing typed is
+   * lost, and a value the grid refuses keeps its editor open and stops them.
+   */
+  @Test
+  void aValueBeingEditedIsTakenFirstAndARefusedOneStopsWhatWasAsked() throws IOException {
+    App<Workbench> app = started();
+    Workbench s = app.state();
+    Script.run(OPEN_ORDERS, app, out);
+    Workbench.Opened orders = s.tables().getFirst();
+    Script.run("size 1000 600\npress #cell-0-5\nkey Enter\nframe\nkey A control\n"
+        + "type \"x@example.com\"\nframe\nkey S control\nframe", app, out);
+    assertFalse(orders.selection.isEditing());
+    assertNotNull(orders.committing, "on its way, with what was typed");
+    Script.run("size 1000 600\nawait\nframe", app, out);
+    assertEquals("x@example.com", s.stored.get("localhost/shop/public/orders").value(0, 5));
+
+    // A day that does not exist: the editor stays with its message, and nothing goes on.
+    Script.run("size 1000 600\nkey ArrowRight\nkey ArrowRight\nframe\n"
+        + "type \"2026-02-30 10:00\"\nframe\nkey S control\nframe", app, out);
+    assertTrue(orders.selection.isEditing());
+    assertEquals("2026-02-30 10:00", orders.selection.draft());
+    assertNull(orders.committing);
+    assertTrue(dump(app).contains("role=alert"), dump(app));
+    Script.run("size 1000 600\nkey W control\nframe\nadvance 0.25\nframe", app, out);
+    assertEquals(List.of(orders), s.tables(), "the tab stays");
+    assertNull(s.question);
+    assertTrue(orders.selection.isEditing());
+
+    // A value that is taken becomes a change, which closing the tab asks about.
+    Script.run("size 1000 600\nkey Escape\nframe\ntype \"2026-02-28 10:00\"\nframe\n"
+        + "key W control\nframe\nadvance 0.25\nframe", app, out);
+    assertFalse(orders.selection.isEditing());
+    assertEquals(1, orders.changes.count());
+    assertNotNull(s.question, "asked whether to commit or discard it");
+    assertTrue(dump(app).contains("role=dialog label=\"Changes not committed\""), dump(app));
   }
 
   /** Closing a tab with changes asks, and each of the dialog's answers does what it says. */
