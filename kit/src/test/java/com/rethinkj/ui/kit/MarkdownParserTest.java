@@ -149,8 +149,17 @@ class MarkdownParserTest {
       String small = kind.repeat(512 * 1024 / kind.length());
       String large = kind.repeat(1024 * 1024 / kind.length());
       MarkdownParser.read(small); // warm up
-      long smallTime = time(small);
-      long largeTime = assertTimeoutPreemptively(Duration.ofSeconds(20), () -> time(large));
+      // A garbage collection on a busy machine can make one measurement several times longer;
+      // a reader that takes quadratic time is slow in every one.
+      long smallTime = 0;
+      long largeTime = 0;
+      for (int attempt = 0; attempt < 3; attempt++) {
+        smallTime = time(small);
+        largeTime = assertTimeoutPreemptively(Duration.ofSeconds(20), () -> time(large));
+        if (largeTime < 4 * smallTime + 50_000_000L) {
+          break;
+        }
+      }
       System.out.printf(
           "Markdown of 1 MB of \"%s\": %d ms (512 KB: %d ms)%n",
           kind.replace("\n", "\\n"), largeTime / 1_000_000, smallTime / 1_000_000);

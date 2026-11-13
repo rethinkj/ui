@@ -19,6 +19,18 @@ public final class Checkbox {
 
   private Checkbox() {}
 
+  /**
+   * A checkbox of a {@link Prop}, which a press flips; a null value shows as off. A prop that cannot
+   * be written disables it.
+   *
+   * @param text shown beside it, also its label; null for none
+   */
+  public static El checkbox(Theme t, Prop<Boolean> checked, String text) {
+    boolean now = Boolean.TRUE.equals(checked.get());
+    return Prop.shown(
+        t, checkbox(t, now, text, checked.writes() ? () -> checked.set(!now) : null), checked);
+  }
+
   /** A checkbox without text; give it a label with {@code .label("...")}. */
   public static El checkbox(Theme t, boolean checked, Runnable onToggle) {
     return checkbox(t, checked, null, onToggle);

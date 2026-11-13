@@ -33,3 +33,7 @@ The same roles as a radio group: `role=radiogroup`, each choice `role=radio` wit
 
 ```text file="examples/src/test/resources/golden/docs/choices/view.tree.txt" start="label=\"Select\"" count="5"
 ```
+
+## With a Prop
+
+`segmented(t, values, prop, text)` takes a `Prop` in place of the value and its handler, such as a field of an [Editing](/docs/concepts/editing) of a record: it writes the prop back, shows its field's error, and is disabled when the prop cannot be written.

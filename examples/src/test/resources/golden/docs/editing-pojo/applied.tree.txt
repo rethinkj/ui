@@ -1,0 +1,24 @@
+el 0,0 360x160
+  el 12,12 186x56
+    el 12,12 186x24
+      el 12,12 63x24
+        text "Fetch size" 12,16 63x16
+      el 83,12 115x24
+        el 83,12 100x24
+          text role=spinbutton label="Fetch size" "110" 83,12 100x24 focused caret 3
+          el 139,14 42x20
+            el role=button label="Decrease" 139,14 20x20
+              text label="subtract" "\u{EBCF}" 141,16 16x16
+            el role=button label="Increase" 161,14 20x20
+              text label="add" "\u{F108}" 163,16 16x16
+    el 12,44 186x24
+      el 12,44 63x24
+        text "Commit" 12,48 46x16
+      el 83,44 115x24
+        el role=switch label="Auto-commit" 79,42 123x20 checked
+          el 83,44 28x16
+            el 97,46 12x12
+          text "Auto-commit" 119,44 79x16
+  el 12,76 61x24
+    el role=button label="Apply" 12,76 61x24 disabled
+      text "Apply" 25,80 35x16

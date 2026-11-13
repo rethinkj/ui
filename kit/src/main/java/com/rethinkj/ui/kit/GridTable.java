@@ -246,6 +246,14 @@ public final class GridTable<T> {
         title, width, new Cells<>(this, format, get, null, Objects.requireNonNull(set, "set")));
   }
 
+  /**
+   * A column of a {@link Part} of the rows, {@code Order.AMOUNT}, which writes through its wither
+   * or setter: the same constant a form's {@link Editing} uses, and no overloads to tell apart.
+   */
+  public <V> Column column(String title, float width, Format<V> format, Part<T, V> part) {
+    return column(title, width, new Cells<>(this, format, part::get, part::write, null));
+  }
+
   private static Column column(String title, float width, Cells<?, ?> cells) {
     Format<?> format = cells.format;
     DataType type = format.type();

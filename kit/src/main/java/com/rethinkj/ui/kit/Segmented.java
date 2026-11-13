@@ -49,6 +49,12 @@ public final class Segmented {
         Choices.handler(values, onSelect));
   }
 
+  /** Choices of the value of a {@link Prop}; a prop that cannot be written disables them. */
+  public static <T> El segmented(
+      Theme t, List<T> values, Prop<T> selected, Function<? super T, String> text) {
+    return Prop.shown(t, segmented(t, values, selected.get(), text, selected.onChange()), selected);
+  }
+
   /**
    * @param selected the index of the chosen choice, -1 for none
    * @param onSelect told the index of the choice the user makes, only when it changes; null

@@ -1,0 +1,80 @@
+---
+title: Editing records
+description: A form over a record or a POJO, with drafts, rules and the server's errors kept in one Editing.
+---
+
+An `Editing<T>` is the edit of one value, such as a record in a dialog: the original, the edited value, the texts of typed fields that are no value yet, and the errors of the fields. The app keeps it in its state for as long as the edit lasts, and the kit's components take its fields as a `Prop`, so the view declares no value, draft and handler per field, and Save asks one object whether it may save. Use it for a dialog or a page that edits a value and saves it; for a value that applies at once, such as a theme switch, a `Prop.of` over the state is enough.
+
+## Parts
+
+A `Part` says how a part of a value is read and written back. Declare each once, beside the record, with the record's wither:
+
+```java snippet="editing-record"
+```
+
+The constant is the field's identity: the editing keeps a field's draft and errors by the parts that lead to it, so `e.at(Order.AMOUNT)` finds the same field in every build, whichever fields come and go around it. A part made anew in the view, `e.at(Part.of(...))`, is a new field in each build and loses its draft. For a record inside a record, `Profile.TLS.then(Tls.MODE)` is a part inside a part, the same field as `e.at(Profile.TLS).at(Tls.MODE)`; a rule or an error can name it. A data grid's [typed column](/docs/components/data-grid/typed) takes the same constant: `table.column("amount", 100, Format.DECIMAL, Order.AMOUNT)`.
+
+## The edit
+
+The state holds the editing, with a rule across two fields:
+
+```java snippet="editing-state"
+```
+
+The view gives each component the prop of its field and asks the editing about Save:
+
+```java snippet="editing-view"
+```
+
+```java snippet="editing-save"
+```
+
+| Call | |
+| --- | --- |
+| `Editing.of(record)` | The edit of a value that does not change, such as a record |
+| `Editing.of(pojo, copy)` | The edit of a copy of a POJO, as `Editing.of(settings, Settings::new)`, since its setters change the object |
+| `.rule(part, test, message)` | A rule over the whole value; while it fails, its message shows at the part's field and the edit is not valid |
+| `e.at(part)` | The `Prop` of a field: its value, where it is written, its draft and its error |
+| `value()`, `original()` | The edited value, and the one the edit began with or last saved |
+| `changed()` | Whether the value differs from the original, by `equals` |
+| `valid()` | No field holds a text that is no value, no error of the app's stands, every rule holds |
+| `reset()` | Back to the original, drafts and errors forgotten |
+| `saved()` | The value is the new original: `changed()` is false until the next edit |
+| `prop.error(message)` | An error the app learned, such as the server's refusal: shown at the field until its next edit |
+
+A field's error is the first of: its text that is no value, the app's error, the first failing rule that names it. The component shows it (`invalid` and `error="…"` in a dump, the danger border on a text field) and a [Form](/docs/components/form) field puts it below the control without the app passing it. A field that shows only under a condition keeps its draft while it is gone, and its text that is no value still counts against `valid()`.
+
+```text file="examples/src/test/resources/docs/editing.txt" start="press #due" count="6"
+```
+
+```text file="examples/src/test/resources/golden/docs/editing/rule.tree.txt" start="#due" count="2"
+```
+
+## Components that take a prop
+
+Each has a form with a `Prop` in place of the value and its handler; a prop that cannot be written disables the component, as a null handler does.
+
+| Component | With a prop |
+| --- | --- |
+| [TextField](/docs/components/text-field) | `textField(t, prop[, placeholder])`, `passwordField(t, prop, placeholder)` |
+| [ValueField](/docs/components/format) | `valueField(t, format, prop[, placeholder])`: the draft is the editing's |
+| [Checkbox](/docs/components/checkbox), [Toggle](/docs/components/toggle) | `checkbox(t, prop, text)`, `toggle(t, prop, text)` |
+| [Select](/docs/components/select), [Radio](/docs/components/radio), [Segmented](/docs/components/segmented) | `select(t, values, prop, text, menuState)`, `radioGroup(t, values, prop, text)`, `segmented(t, values, prop, text)` |
+| [ComboBox](/docs/components/combo-box) | `comboBox(t, values, prop, text, state)`, `items(t, values, prop, item, state)`, `free(t, prop, suggestions, state)` |
+| [NumberField](/docs/components/number-field), [Slider](/docs/components/slider) | `numberField(t, prop, min, max, step)`, `slider(t, prop, min, max, step)` |
+
+`Prop.of(() -> s.dark, v -> s.dark = v)` is a prop over the app's state, outside an editing: it writes at once, keeps no draft and has no errors. `prop.at(part)` goes into a part of it, and writing that part writes the whole back, a new record through the wither.
+
+## A POJO
+
+A class with getters and setters works the same way. Its parts take the setter with `Part.ofSetter`, and the editing edits a copy, compared by the class's `equals`:
+
+```java snippet="editing-pojo"
+```
+
+```java snippet="editing-pojo-view"
+```
+
+## Records or POJOs: wither and setter
+
+`Part.of` takes a wither, `Part.ofSetter` a setter. They have names of their own rather than one overloaded name, as `GridTable.column` has, because a lambda such as `(o, v) -> o.withAmount(v)` fits a wither and a setter alike, and Java cannot choose between overloads for it. With two names, a lambda and an overloaded method work as well as a method reference.
