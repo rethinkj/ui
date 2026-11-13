@@ -1,0 +1,1 @@
+- `window.attention(Window.Attention)` flashes the taskbar button, and `window.badge(icon, description)` shows a small icon over it on Windows, such as a count from the kit's `AppIcon.count`.

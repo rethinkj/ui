@@ -13,6 +13,8 @@ import com.rethinkj.ui.El;
 import com.rethinkj.ui.Key;
 import com.rethinkj.ui.WindowPart;
 import com.rethinkj.ui.natives.Natives;
+import com.rethinkj.ui.render.Pixels;
+import com.rethinkj.ui.window.WindowEvent.AppearanceChanged;
 import com.rethinkj.ui.window.WindowEvent.CloseRequested;
 import com.rethinkj.ui.window.WindowEvent.FocusChanged;
 import com.rethinkj.ui.window.WindowEvent.KeyDown;
@@ -97,6 +99,19 @@ public final class Window implements AutoCloseable {
     ERROR
   }
 
+  /** How a window asks for the user's attention; see {@link #attention}. */
+  public enum Attention {
+    /** Stops asking. */
+    NONE,
+    /** Flashes the taskbar button once. */
+    BRIEFLY,
+    /**
+     * Flashes the taskbar button until the user brings the window to the front; on Windows 11 the
+     * button then stays highlighted.
+     */
+    UNTIL_FOCUSED
+  }
+
   /** How a window opens; see {@link #options()}. */
   public static final class Options {
     private boolean frameless;
@@ -104,8 +119,18 @@ public final class Window implements AutoCloseable {
     private float minWidth;
     private float minHeight;
     private float resizeMargin = 6;
+    private WindowIcon icon;
 
     private Options() {}
+
+    /**
+     * The window's icon from the start, so that its taskbar button never shows another; see
+     * {@link Window#icon}.
+     */
+    public Options icon(WindowIcon icon) {
+      this.icon = Objects.requireNonNull(icon, "icon");
+      return this;
+    }
 
     /**
      * Leaves out the system's frame and title bar, so that the view draws its own. See {@link
@@ -166,6 +191,11 @@ public final class Window implements AutoCloseable {
   private static final MemorySegment[] cursors = new MemorySegment[Cursor.values().length];
   /** The cursor SDL shows, one for all windows. */
   private static Cursor cursorShown = Cursor.DEFAULT;
+  /** What {@link #identity} set, for the next {@link #start}; guarded by {@link #LOCK}. */
+  private static String appId;
+  private static String appName;
+  /** The appearance last delivered, or null before the first. */
+  private static SystemAppearance appearance;
 
   private record Posted(Window window, WindowEvent event) {}
 
@@ -188,6 +218,8 @@ public final class Window implements AutoCloseable {
   private final float resizeMargin;
   private WindowHandle handle;
   private Win32Frame win32;
+  private Win32Shell shell;
+  private WindowIcon icon;
   private WindowListener listener;
   private Parts parts;
   private boolean open = true;
@@ -218,6 +250,7 @@ public final class Window implements AutoCloseable {
     this.minWidth = options.minWidth;
     this.minHeight = options.minHeight;
     this.resizeMargin = options.resizeMargin;
+    this.icon = options.icon;
   }
 
   /** Opens a resizable window with the system's frame. */
@@ -280,6 +313,12 @@ public final class Window implements AutoCloseable {
     }
     applyMinimumSize();
     handle = readHandle();
+    if (handle instanceof WindowHandle.Win32 win) {
+      shell = Win32Shell.attach(this, win.hwnd());
+    }
+    if (icon != null) {
+      applyIcon();
+    }
     if (frameless) {
       if (!Sdl.setWindowHitTest(sdl, Upcalls.HIT_TEST, MemorySegment.ofAddress(id))) {
         throw new IllegalStateException("SDL_SetWindowHitTest failed: " + Sdl.getError());
@@ -471,6 +510,11 @@ public final class Window implements AutoCloseable {
       }
       MemorySegment e = event.reinterpret(Sdl.EVENT_SIZE);
       int type = e.get(JAVA_INT, Sdl.EVENT_TYPE);
+      if (type == Sdl.EVENT_SYSTEM_THEME_CHANGED) {
+        // SDL sends this only when light or dark changed; the accent may have come with it.
+        deliverAppearance(systemAppearance());
+        return true;
+      }
       boolean ofAWindow = (type >= Sdl.EVENT_WINDOW_SHOWN && type <= Sdl.EVENT_WINDOW_LAST)
           || (type >= Sdl.EVENT_KEY_DOWN && type <= Sdl.EVENT_TEXT_INPUT)
           || (type >= Sdl.EVENT_MOUSE_MOTION && type <= Sdl.EVENT_MOUSE_WHEEL);
@@ -560,6 +604,9 @@ public final class Window implements AutoCloseable {
         measure();
         if (scale != oldScale) {
           applyMinimumSize();
+          if (shell != null) {
+            shell.scaleChanged(scale); // icons for the new scale
+          }
           post(new ScaleChanged(scale));
         }
         if (width != oldWidth || height != oldHeight) {
@@ -829,6 +876,198 @@ public final class Window implements AutoCloseable {
   }
 
   /**
+   * Sets the window's icon: its taskbar button, Alt+Tab, the title bar and system menu of a framed
+   * window, and on Linux the dock. {@link Options#icon} sets it before the window shows. The
+   * icon goes to {@code SDL_SetWindowIcon} as a surface of one size with larger alternate images:
+   * on Windows the big icon's size, 32 pixels times the scale, and as SDL's Windows driver makes
+   * one icon of the base image for both sizes, the window then also gets its small icon of 16
+   * pixels times the scale ({@code WM_SETICON}), each from the image of its size, and new ones
+   * when the scale changes. On Linux the base is 64 pixels with alternates of 128 and 256, which
+   * Wayland's {@code xdg_toplevel_icon_v1} takes as scales 1, 2 and 4; X11's {@code
+   * _NET_WM_ICON} gets the base only, and a dock may prefer the icon of the app's {@code
+   * .desktop} file, which it finds by the app id ({@link #identity}).
+   *
+   * @return false where the system shows no icon of the window's own, such as a Wayland
+   *     compositor without {@code xdg_toplevel_icon_v1}
+   */
+  public boolean icon(WindowIcon icon) {
+    checkOpen();
+    this.icon = Objects.requireNonNull(icon, "icon");
+    boolean shown = applyIcon();
+    rethrow();
+    return shown;
+  }
+
+  private boolean applyIcon() {
+    int base = shell != null ? Math.round(32 * scale) : 64;
+    Pixels first = icon.image(base);
+    MemorySegment surface = Sdl.createSurface(first);
+    if (surface.equals(MemorySegment.NULL)) {
+      throw new IllegalStateException("SDL_CreateSurface failed: " + Sdl.getError());
+    }
+    boolean shown;
+    try {
+      int largest = first.width();
+      for (int size : shell != null ? new int[0] : new int[] {128, 256}) {
+        Pixels image = icon.image(size);
+        if (image.width() <= largest) {
+          continue; // an icon of images that has none larger
+        }
+        largest = image.width();
+        MemorySegment alternate = Sdl.createSurface(image);
+        if (!alternate.equals(MemorySegment.NULL)) {
+          Sdl.addSurfaceAlternateImage(surface, alternate); // SDL keeps a reference
+          Sdl.destroySurface(alternate);
+        }
+      }
+      shown = Sdl.setWindowIcon(sdl, surface);
+    } finally {
+      Sdl.destroySurface(surface);
+    }
+    if (shell != null) {
+      shell.icon(icon, scale);
+    }
+    return shown;
+  }
+
+  /** The icon set last, or null if the window has none of its own. */
+  public WindowIcon icon() {
+    return icon;
+  }
+
+  /**
+   * Asks for the user's attention without taking the focus: on Windows the taskbar button flashes
+   * ({@code SDL_FlashWindow}, {@code FlashWindowEx}), on X11 the window manager is asked to mark
+   * the window urgent, and on Wayland the compositor is asked to activate it through {@code
+   * xdg_activation_v1}, which most show as a notice. A window that has the focus is not marked.
+   *
+   * @return false where the system cannot do that
+   */
+  public boolean attention(Attention attention) {
+    checkOpen();
+    return Sdl.flashWindow(sdl, switch (Objects.requireNonNull(attention, "attention")) {
+      case NONE -> Sdl.FLASH_CANCEL;
+      case BRIEFLY -> Sdl.FLASH_BRIEFLY;
+      case UNTIL_FOCUSED -> Sdl.FLASH_UNTIL_FOCUSED;
+    });
+  }
+
+  /**
+   * Shows a small icon over the corner of the window's taskbar button, such as a count or a
+   * status dot, drawn at 16 pixels times the scale; null removes it. On Windows this is the
+   * button's overlay icon ({@code ITaskbarList3::SetOverlayIcon}); one set before the taskbar
+   * made the button shows once it has, and it is set again when Explorer restarts. On Linux it
+   * does nothing: SDL has no badge, and docks that show counts take them from the app's {@code
+   * .desktop} entry over D-Bus.
+   *
+   * @param description what the badge says, for screen readers, such as "3 queries running";
+   *     needed with an icon
+   * @return false where the system shows no badge
+   */
+  public boolean badge(WindowIcon badge, String description) {
+    checkOpen();
+    if (badge != null) {
+      Objects.requireNonNull(description, "description");
+    }
+    if (shell == null) {
+      return false;
+    }
+    boolean shown = shell.badge(badge, description, scale);
+    rethrow();
+    return shown;
+  }
+
+  /**
+   * Draws the system's frame of a framed window dark or light to match the app's theme where it
+   * differs from the system's setting, which the frame follows until this is called: on Windows
+   * the caption and border ({@code DWMWA_USE_IMMERSIVE_DARK_MODE}), set again after each change
+   * of the setting, since SDL then sets the system's. A frameless window's thin border on Windows
+   * 11 keeps following the system's setting (SDL's {@code WCA_USEDARKMODECOLORS}), and so does
+   * the system menu of every window. On Linux it does nothing: the window manager draws the frame
+   * from its own theme.
+   *
+   * @return false where the system refused it, and on Linux
+   */
+  public boolean frameDark(boolean dark) {
+    checkOpen();
+    return shell != null && shell.frameDark(dark);
+  }
+
+  /**
+   * Sets who the app is, for windows opened after this: an id that the system groups the app's
+   * windows by and finds its settings and icon with, and the app's name. It is the same for the
+   * whole process; call it before the first window opens.
+   *
+   * <p>The id and the name go to {@code SDL_SetAppMetadata}, from which SDL takes the Wayland
+   * app id and the X11 window class, which docks match with the app's {@code <id>.desktop} file.
+   * On Windows the id is also the process's AppUserModelID ({@code
+   * SetCurrentProcessExplicitAppUserModelID}): the taskbar then groups the app's windows under a
+   * button of their own with the window's icon, instead of with every Java program under {@code
+   * java.exe}. What a pinned button starts is a matter of packaging: the taskbar pins the
+   * program that runs, {@code java.exe}, unless a Start menu shortcut with the same
+   * AppUserModelID says how to start the app.
+   *
+   * @param id reverse DNS, such as {@code com.example.Notes}: at most 128 characters, without
+   *     spaces, as Windows requires
+   * @param name the app's name for people, or null
+   * @throws IllegalStateException if a window is open
+   */
+  public static void identity(String id, String name) {
+    Objects.requireNonNull(id, "id");
+    if (id.isEmpty() || id.length() > 128 || id.chars().anyMatch(Character::isWhitespace)) {
+      throw new IllegalArgumentException(
+          "An app id has 1 to 128 characters and no spaces, such as com.example.Notes: " + id);
+    }
+    synchronized (LOCK) {
+      if (thread != null) {
+        throw new IllegalStateException("The app's identity is set before the first window opens");
+      }
+      appId = id;
+      appName = name;
+    }
+  }
+
+  /**
+   * How the system looks now: light or dark ({@code SDL_GetSystemTheme}), and on Windows the
+   * accent colour (the {@code AccentColor} of {@code HKCU\Software\Microsoft\Windows\DWM}, which
+   * is the colour chosen in Settings, else {@code DwmGetColorizationColor}) and high contrast
+   * ({@code SPI_GETHIGHCONTRAST}). Each change comes to every window as a {@link
+   * WindowEvent.AppearanceChanged}: light and dark through SDL's {@code
+   * SDL_EVENT_SYSTEM_THEME_CHANGED}, and on Windows the accent and high contrast when the window
+   * gets {@code WM_DWMCOLORIZATIONCOLORCHANGED}, {@code WM_SETTINGCHANGE} or {@code
+   * WM_SYSCOLORCHANGE}. While a window is open, on its thread.
+   */
+  public static SystemAppearance systemAppearance() {
+    checkThread();
+    SystemAppearance.Scheme scheme = switch (Sdl.getSystemTheme()) {
+      case Sdl.SYSTEM_THEME_LIGHT -> SystemAppearance.Scheme.LIGHT;
+      case Sdl.SYSTEM_THEME_DARK -> SystemAppearance.Scheme.DARK;
+      default -> SystemAppearance.Scheme.UNKNOWN;
+    };
+    boolean windows = "windows".equals(Sdl.getCurrentVideoDriver());
+    return new SystemAppearance(scheme, windows ? Win32Shell.accent() : 0,
+        windows && Win32Shell.highContrast());
+  }
+
+  /** A message said that the system's colours may have changed: tells the windows if they did. */
+  static void appearanceMayHaveChanged() {
+    SystemAppearance now = systemAppearance();
+    if (!now.equals(appearance)) {
+      deliverAppearance(now);
+      wake();
+    }
+  }
+
+  private static void deliverAppearance(SystemAppearance now) {
+    appearance = now;
+    for (Window window : windows.values()) {
+      if (window.open) {
+        window.post(new AppearanceChanged(now));
+      }
+    }
+  }
+
+  /**
    * Shows the system's cursor of this shape while the pointer is over the window's content, as
    * {@link App#cursor} asks; {@link WindowLoop} calls this after each frame. SDL has one cursor
    * for all its windows, so the window under the pointer should set it. Over the resize margin of
@@ -945,7 +1184,13 @@ public final class Window implements AutoCloseable {
       if (win32 != null) {
         win32.detach();
       }
+      if (shell != null) {
+        shell.detach();
+      }
       Sdl.destroyWindow(sdl);
+      if (shell != null) {
+        shell.destroyIcons();
+      }
     } finally {
       windows.remove(id);
       pending.removeIf(posted -> posted.window == this);
@@ -978,6 +1223,10 @@ public final class Window implements AutoCloseable {
 
   Win32Frame win32() {
     return win32;
+  }
+
+  Win32Shell shell() {
+    return shell;
   }
 
   /** The open window with this SDL window ID, or null. Only on the windows' thread. */
@@ -1015,6 +1264,20 @@ public final class Window implements AutoCloseable {
     Sdl.setHint(Sdl.HINT_NO_SIGNAL_HANDLERS, "1");
     // The app draws the composition of an input method, the system its candidates.
     Sdl.setHint(Sdl.HINT_IME_IMPLEMENTED_UI, "composition");
+    String id;
+    String name;
+    synchronized (LOCK) {
+      id = appId;
+      name = appName;
+    }
+    if (id != null) {
+      // Before SDL_Init and before any window: SDL reads it when it makes a window, and Windows
+      // wants the AppUserModelID set before the process shows anything.
+      Sdl.setAppMetadata(name, null, id);
+      if (System.getProperty("os.name", "").startsWith("Windows")) {
+        Win32.setCurrentProcessExplicitAppUserModelId(id);
+      }
+    }
     if (!Sdl.init(Sdl.INIT_VIDEO)) {
       throw new IllegalStateException("Cannot open windows here: SDL_Init failed: "
           + Sdl.getError());
@@ -1046,6 +1309,8 @@ public final class Window implements AutoCloseable {
     deferred.clear();
     Arrays.fill(cursors, null); // SDL_Quit frees them, and the next SDL starts with its default
     cursorShown = Cursor.DEFAULT;
+    appearance = null;
+    Win32Shell.releaseTaskbar(); // before SDL uninitialises COM
     synchronized (LOCK) {
       Sdl.quit();
       thread = null;
