@@ -56,6 +56,7 @@ public final class El {
   private Text text;
   private PressAtHandler onPress;
   private PressAtHandler onPointerDown;
+  private Runnable onAnyPointerDown;
   private Consumer<Drag> onDrag;
   private Object dragPayload;
   private Consumer<Drop> onDrop;
@@ -1180,6 +1181,22 @@ public final class El {
     return this;
   }
 
+  /**
+   * Runs {@code handler} whenever a button of the pointer goes down anywhere in the window, while
+   * this element is in the tree or in a shown overlay: on any element, in a text field, on a
+   * scrollbar, inside an overlay or outside it, before the press does anything else. It takes
+   * nothing from the press, which goes on as without it. A menu bar uses it to tell Alt pressed and
+   * released alone from Alt held during a press, which gives it no keys. Presses that the system
+   * takes, such as on a part of a frameless window's frame ({@link #windowPart}), do not reach
+   * the app. Like {@link #onPress}, it runs in {@link App#frame}.
+   *
+   * @param handler the handler, or null for none
+   */
+  public El onAnyPointerDown(Runnable handler) {
+    this.onAnyPointerDown = handler;
+    return this;
+  }
+
 
   /**
    * Runs {@code handler} when the secondary button, usually the right one, is pressed and released
@@ -1771,6 +1788,11 @@ public final class El {
   /** The handler of {@link #onPointerDown}, or null. */
   public PressAtHandler onPointerDown() {
     return onPointerDown;
+  }
+
+  /** The handler of {@link #onAnyPointerDown}, or null. */
+  public Runnable onAnyPointerDown() {
+    return onAnyPointerDown;
   }
 
   public Consumer<Drag> onDrag() {
@@ -2644,6 +2666,7 @@ public final class El {
     String keyBefore = key;
     PressAtHandler press = onPress;
     PressAtHandler down = onPointerDown;
+    Runnable any = onAnyPointerDown;
     Consumer<Drag> drag = onDrag;
     Predicate<Key> keyDown = onKey;
     Predicate<Key> up = onKeyUp;
@@ -2654,7 +2677,8 @@ public final class El {
     String changed =
         !children.equals(before) ? "children"
             : !Objects.equals(key, keyBefore) ? "key"
-            : onPress != press || onPointerDown != down || onDrag != drag || onKey != keyDown
+            : onPress != press || onPointerDown != down || onAnyPointerDown != any
+                || onDrag != drag || onKey != keyDown
                 || onKeyUp != up
                 || onText != text || onEdit != edit ? "handlers"
             : focusable != wasFocusable ? "focusable()"
