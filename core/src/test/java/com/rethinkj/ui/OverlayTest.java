@@ -604,12 +604,29 @@ class OverlayTest {
         placed(10, 30, 200, 80, o -> o.side(Side.BOTTOM, Style.Align.CENTER, 4)));
   }
 
+  @Test
+  void aTooltipMovedAlongItsSideKeepsItsGapFromTheWindowsEdge() {
+    // Centred below its anchor at 10,30 it would start at 0, flush with the left edge.
+    assertRect(new float[] {4, 54, 60, 50},
+        tooltip(200, 120, o -> o.side(Side.BOTTOM, Style.Align.CENTER, 4)));
+    // Without a gap, flush; a menu, which no delayed look attached, lies flush too.
+    assertRect(new float[] {0, 50, 60, 50},
+        tooltip(200, 120, o -> o.side(Side.BOTTOM, Style.Align.CENTER, 0)));
+    assertRect(new float[] {0, 54, 60, 50},
+        placed(10, 30, 200, 120, o -> o.side(Side.BOTTOM, Style.Align.CENTER, 4)));
+  }
+
   /** Where a 60 by 50 tooltip of a 40 by 20 anchor at 10,30 shows in a window 80 high. */
   private static float[] tooltip(float width, Function<El, El> place) {
-    App<State> app = app(new State(), s -> el().size(width, 80).child(el().key("anchor")
+    return tooltip(width, 80, place);
+  }
+
+  /** Where a 60 by 50 tooltip of a 40 by 20 anchor at 10,30 shows in a window of this size. */
+  private static float[] tooltip(float width, float height, Function<El, El> place) {
+    App<State> app = app(new State(), s -> el().size(width, height).child(el().key("anchor")
         .absolute(10, 30).size(40, 20)
         .whenHoveredFor(0, e -> e.overlay(place.apply(el().key("pop").size(60, 50))))),
-        width, 80);
+        width, height);
     app.pointerMove(20, 40);
     app.frame();
     El pop = find(app, "pop");

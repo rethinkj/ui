@@ -8,12 +8,14 @@ import static com.rethinkj.ui.kit.Button.button;
 import static com.rethinkj.ui.kit.DataGrid.dataGrid;
 import static com.rethinkj.ui.kit.Split.split;
 import static com.rethinkj.ui.kit.Tabs.tabs;
+import static com.rethinkj.ui.kit.TextField.codeArea;
 import static com.rethinkj.ui.kit.TextField.textField;
 import static com.rethinkj.ui.kit.Toggle.toggle;
 import static com.rethinkj.ui.kit.Tree.tree;
 
 import com.rethinkj.ui.App;
 import com.rethinkj.ui.El;
+import com.rethinkj.ui.Key;
 import com.rethinkj.ui.Script;
 import com.rethinkj.ui.Work;
 import com.rethinkj.ui.kit.DataGrid;
@@ -47,6 +49,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * The frame of a database manager over made-up servers that answer slowly: servers, databases,
@@ -61,7 +65,9 @@ import java.util.Set;
  * few seconds on the app's clock ({@link App#after}), and the title bar switches between the dark
  * and the light theme. A right click on a node selects it and opens its menu: open it, copy its
  * name, and on a table "Drop table…", which asks in a dialog for the table's name and then drops
- * nothing, as nothing here is real.
+ * nothing, as nothing here is real. Above a table's rows, a query area ({@link
+ * com.rethinkj.ui.kit.TextField#codeArea}) holds its statement; Control+Enter runs it, which asks
+ * for the number of rows again, at most as many as its {@code LIMIT} says, on a thread of its own.
  *
  * <p>The work gets the names it asks about, never the nodes: they are the app's state, which only
  * the handlers touch, on the app's thread. Under a script the latency is 0, and the script's
@@ -97,12 +103,15 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
   static final class Opened {
     final Node table;
     int rows = -1; // until the server answers
-    Work asking; // the question for the rows, cancelled with the tab
+    Work asking; // the question for the rows, cancelled with the tab or by the next one
+    String query; // the statement in the query area
     final Selection selection = new Selection(Mode.ROWS);
     final float[] widths;
 
     Opened(Node table) {
       this.table = table;
+      query = "SELECT *\nFROM " + table.parent.parent.name + "." + table.parent.name + "."
+          + table.name + ";";
       widths = new float[table.children.size()];
       for (int c = 0; c < widths.length; c++) {
         widths[c] = field(table.children.get(c).name).width();
@@ -144,6 +153,9 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
   private static final DateTimeFormatter TIME = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
   static final Position SIDEBAR = Position.first(260);
   static final double MESSAGE_SECONDS = 5; // how long a message stays in the status line
+  // What the made-up server reads of a statement: how many rows it asks for.
+  private static final Pattern LIMIT =
+      Pattern.compile("\\bLIMIT\\s+(\\d{1,9})\\b", Pattern.CASE_INSENSITIVE);
 
   Duration latency = Duration.ofMillis(800); // of every answer of the made-up servers
   final List<Node> servers = new ArrayList<>();
@@ -299,9 +311,27 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
       }
     }
     Opened o = new Opened(table);
-    String path = table.path();
+    ask(o, Integer.MAX_VALUE);
+    tables.add(o);
+    active = tables.size();
+  }
+
+  /** Control+Enter in a table's query area: its statement, as far as the server reads it. */
+  void run(Opened o) {
+    Matcher limit = LIMIT.matcher(o.query);
+    ask(o, limit.find() ? Integer.parseInt(limit.group(1)) : Integer.MAX_VALUE);
+  }
+
+  /** Asks for the number of rows of a tab's table, at most {@code limit}. */
+  private void ask(Opened o, int limit) {
+    if (o.asking != null) {
+      o.asking.cancel(); // the answer asked for before is not wanted any more
+    }
+    o.rows = -1;
+    o.selection.clear();
+    String path = o.table.path();
     Duration wait = latency;
-    o.asking = app.background("rows of " + path, () -> count(path, wait),
+    o.asking = app.background("rows of " + path, () -> Math.min(count(path, wait), limit),
         rows -> {
           o.rows = rows;
           o.asking = null;
@@ -310,8 +340,6 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
           o.asking = null;
           tell(path + ": " + error.getMessage());
         });
-    tables.add(o);
-    active = tables.size();
   }
 
   void close(int tab) {
@@ -451,10 +479,19 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
   }
 
   private static El table(Theme t, Workbench s, Opened o) {
+    El area = codeArea(t, o.query, "SQL", q -> o.query = q)
+        .key("query-" + o.table.path()).label("Query").wFull().shrink(0).onKey(k -> {
+          boolean run = k.name().equals("Enter") && k.modifiers() == Key.CONTROL;
+          if (run) {
+            s.run(o);
+          }
+          return run;
+        });
+    El tab = col().wFull().hFull().padding(t.space().s()).gap(t.space().s()).child(area);
     if (o.rows < 0) {
-      return col().padding(t.space().xxl())
+      return tab.child(col().padding(t.space().xxl())
           .child(Label.label(t, Label.Variant.MUTED,
-              "Loading the rows of " + o.table.path() + "…"));
+              "Loading the rows of " + o.table.path() + "…")));
     }
     List<Column> columns = new ArrayList<>();
     for (int c = 0; c < o.widths.length; c++) {
@@ -469,11 +506,11 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
         default -> column;
       });
     }
-    return dataGrid(t, columns, o.rows, DataGrid.options()
+    return tab.child(dataGrid(t, columns, o.rows, DataGrid.options()
             .select(o.selection)
             .onResize((c, w) -> o.widths[c] = w)
             .copy(s.app.clipboard()))
-        .key("grid-" + o.table.path()).label(o.table.name);
+        .key("grid-" + o.table.path()).label(o.table.name).grow(1));
   }
 
   private static Field field(String name) {

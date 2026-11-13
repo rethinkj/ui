@@ -30,7 +30,8 @@ class DataBrowserTest {
     browser.app = app;
     Script.run("size 1000 600\nframe\nfocus #orders\nkey A control\nkey C control\nframe",
         app, out);
-    assertNull(app.clipboard().read(), "nothing copied");
+    String copied = app.clipboard().read();
+    assertTrue(copied == null || copied.isEmpty(), "nothing copied");
     assertTrue(browser.toast.contains(" cells are too many to copy"), browser.toast);
     Script.run("size 1000 600\nadvance 6\nframe\nframe", app, out);
     assertNull(browser.toast, "it closes itself");

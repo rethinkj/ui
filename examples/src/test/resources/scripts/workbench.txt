@@ -83,5 +83,22 @@ snap workbench-light
 move label="Close"                         # the title bar's button says what it does after a rest
 frame
 advance 0.6
+frame                                      # the tooltip appears and fades in
+advance 0.25
 frame
 snap workbench-tooltip                     # a gap from the window's edge
+
+press #query-localhost/shop/public/orders   # the statement of orders, above its rows
+key End control
+key ArrowLeft                              # before the semicolon
+key Enter
+type "LIMIT 20"
+key Enter control                          # runs it: the rows are asked for again
+frame
+advance 1                                  # the area's border of the focus
+frame
+snap workbench-query                       # "Loading…" below the statement, the caret still in it
+
+await
+frame
+snap workbench-ran                         # twenty rows, and the status line says so
