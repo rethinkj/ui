@@ -175,6 +175,55 @@ class WindowLoopTest {
   }
 
   @Test
+  void inputFasterThanTheDisplayIsDrawnOncePerRefresh() throws InterruptedException {
+    try (Window window = Window.open(TITLE, 240, 200)) {
+      Desktop.settle();
+      App<Object> app = new App<>(new Object(), s -> Examples.list());
+      List<Long> times = new ArrayList<>();
+      AtomicInteger steps = new AtomicInteger();
+      // A presenter that shows nothing and never waits, as where the display holds nothing back,
+      // and input that never stops: each frame drawn brings three more wheel steps, which scroll
+      // down and up so that each frame has something new.
+      WindowLoop loop = new WindowLoop(window, app, (scene, w, h, s) -> {
+        times.add(System.nanoTime());
+        for (int i = 0; i < 3; i++) {
+          Desktop.wheel(window, 0, steps.getAndIncrement() % 2 == 0 ? -0.1f : 0.1f, 120, 100);
+        }
+      });
+      Thread stopper = Thread.ofPlatform().start(() -> {
+        try {
+          Thread.sleep(600);
+        } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
+        }
+        loop.stop();
+      });
+      loop.run();
+      stopper.join();
+
+      float hertz = window.refreshRate();
+      double refresh = 1e9 / (hertz >= 20 && hertz <= 1000 ? hertz : 60);
+      double seconds = (times.getLast() - times.getFirst()) / 1e9;
+      assertTrue(times.size() > 10, "frames drawn: " + times.size());
+      assertTrue(times.size() - 1 <= seconds * 1e9 / refresh + 1,
+          times.size() + " frames in " + seconds + " s, one refresh " + refresh / 1e6 + " ms");
+      for (int i = 2; i < times.size(); i++) {
+        assertTrue(times.get(i) - times.get(i - 1) >= refresh / 2, // the building of frames varies
+            "frame " + i + " " + (times.get(i) - times.get(i - 1)) / 1e6 + " ms after the last");
+      }
+    }
+  }
+
+  @Test
+  void inputWaitsForTheRefreshAfterTheLastFrameAndInputAfterAPauseNot() {
+    long refresh = 16_000_000;
+    assertEquals(10_000_000, WindowLoop.holdBack(6_000_000, refresh, true));
+    assertEquals(0, WindowLoop.holdBack(16_000_000, refresh, true), "a refresh has passed");
+    assertEquals(0, WindowLoop.holdBack(500_000_000, refresh, true), "after a pause");
+    assertEquals(0, WindowLoop.holdBack(6_000_000, refresh, false), "no input: nothing waits");
+  }
+
+  @Test
   void aFrameThePresenterCouldNotShowIsOfferedAgainUntilItIsShown() throws InterruptedException {
     try (Window window = Window.open(TITLE, 200, 120)) {
       Desktop.settle();

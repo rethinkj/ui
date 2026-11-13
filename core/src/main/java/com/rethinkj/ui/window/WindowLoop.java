@@ -38,6 +38,13 @@ import java.util.Objects;
  * moves, the loop advances the app's clock by the time that passed and draws a frame per refresh of
  * the display.
  *
+ * <p>Input that arrives less than a refresh after the last frame drawn waits for that refresh, and
+ * whatever else arrives meanwhile goes into the same frame: a fast wheel or a drag draws one frame
+ * per refresh, not one per event. Presenting does not pace the loop where the display does not
+ * hold back a frame, as on a machine whose display is virtual, and frames the display replaces
+ * before it shows them cost processor and graphics time for nothing. Input after a pause of a
+ * refresh or more is drawn at once.
+ *
  * <p>The loop also gives the app the system's clipboard ({@link App#clipboard}), turns the
  * window's text input on while the focused element takes text and tells it where ({@link
  * App#inputArea}, {@link Window#textInputArea}), and passes on the compositions of input methods.
@@ -89,7 +96,9 @@ public final class WindowLoop {
   private float scale = -1;
   private long clock;
   private long presented;
+  private long started; // when the last frame presented began to be built
   private long frameNanos;
+  private boolean input; // input arrived that no frame has handled yet
 
   public WindowLoop(Window window, App<?> app, Presenter presenter) {
     this.window = Objects.requireNonNull(window, "window");
@@ -131,6 +140,12 @@ public final class WindowLoop {
       clock = System.nanoTime();
       refreshRate();
       while (running && window.isOpen()) {
+        long early = holdBack(System.nanoTime() - started, frameNanos, input);
+        if (early > 0) { // more input may come before the frame can be shown
+          Window.waitEvents(Math.max(1, (early + 999_999) / 1_000_000));
+          continue;
+        }
+        input = false;
         draw(false);
         if (!running || !window.isOpen()) {
           break;
@@ -154,6 +169,17 @@ public final class WindowLoop {
     }
   }
 
+  /**
+   * How long input waits before the loop draws it, in nanoseconds: until a refresh has passed since
+   * the last frame drawn, or 0 to draw at once.
+   *
+   * @param sinceFrame the time since the building of the last frame drawn began
+   * @param input whether input arrived since then that no frame has handled
+   */
+  static long holdBack(long sinceFrame, long frameNanos, boolean input) {
+    return input ? Math.max(frameNanos - sinceFrame, 0) : 0;
+  }
+
   /** Ends {@link #run} after the event it handles now. This may be called on any thread. */
   public void stop() {
     running = false;
@@ -168,6 +194,11 @@ public final class WindowLoop {
     WindowListener current = listener;
     if (current != null) {
       current.event(event);
+    }
+    if (event instanceof PointerDown || event instanceof PointerUp || event instanceof PointerMove
+        || event instanceof PointerLeave || event instanceof Wheel || event instanceof KeyDown
+        || event instanceof KeyUp || event instanceof TextInput || event instanceof TextEditing) {
+      input = true;
     }
     switch (event) {
       case PointerDown down when down.button() == PointerButton.LEFT ->
@@ -203,6 +234,7 @@ public final class WindowLoop {
     if (app.frame() || always || presenter.pending()) {
       presenter.present(app.scene(), width, height, scale);
       presented = System.nanoTime();
+      started = now;
     }
     window.cursor(app.cursor());
     App.InputArea area = app.inputArea();
