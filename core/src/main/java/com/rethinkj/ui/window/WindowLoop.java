@@ -689,6 +689,7 @@ public final class WindowLoop {
       case PointerDown down when down.button() == PointerButton.LEFT -> {
         pressed = e;
         app.pointerDown(down.x(), down.y(), down.clicks(), down.modifiers());
+        textInput(e); // on before the frame when the press lands in a field: see App.inputArea
       }
       case PointerUp up when up.button() == PointerButton.LEFT -> {
         released();
@@ -878,6 +879,11 @@ public final class WindowLoop {
       return;
     }
     e.window.cursor(app.cursor());
+    textInput(e);
+  }
+
+  private void textInput(Entry e) {
+    App<?> app = e.app;
     App.InputArea area = app.inputArea();
     if (area == null) {
       e.window.stopTextInput();

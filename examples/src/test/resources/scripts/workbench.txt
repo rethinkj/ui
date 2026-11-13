@@ -32,6 +32,42 @@ await                                      # the answer for customers never arri
 frame
 snap workbench-closed
 
+press #query-localhost/shop/public/orders   # the statement of orders, in a code editor
+key End control
+key ArrowLeft                              # before the semicolon
+key Enter
+type "WHERE c"
+type "u"                                   # a word's second character typed: completions
+frame
+advance 0.25                               # past the list's fade
+frame
+snap workbench-completion                  # orders' column, then tables; Ln 3, Col 9
+key ArrowDown
+key ArrowUp
+key Tab                                    # takes customer_id in place of cu
+type " = 7"
+key ArrowUp
+key End
+key ArrowLeft control shift                # the words of code: orders alone, not its schema
+type "ordrs"
+key Enter control                          # runs it: the server has no such table
+frame
+await
+frame
+advance 0.25                               # the completions faded out
+frame
+snap workbench-error                       # the name underlined, and the status says why
+
+key Z control                              # the edit takes the underline away
+press role=menuitem label="Edit"           # the menu bar in the title bar
+frame
+advance 0.25
+frame
+snap workbench-edit-menu                   # Undo and Redo step through the query's history
+key Escape
+key Escape                                 # the menu, then the bar: the focus back in the query
+frame
+
 wheel #catalogue 0 -1000                   # back to the top: opening orders showed its columns
 frame
 

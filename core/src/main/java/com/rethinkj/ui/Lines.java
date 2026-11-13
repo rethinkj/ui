@@ -150,8 +150,10 @@ final class Lines {
       System.arraycopy(states, last + 1, states, first + 1 + added, oldCount - last - 1);
       System.arraycopy(spans, last + 1, spans, first + 1 + added, oldCount - last - 1);
       Arrays.fill(spans, first, first + 1 + added, null);
-      Arrays.fill(states, newCount, Math.min(oldCount, states.length), null);
-      Arrays.fill(spans, newCount, Math.min(oldCount, spans.length), null);
+      if (newCount < oldCount) { // what lay after the last line
+        Arrays.fill(states, newCount, oldCount, null);
+        Arrays.fill(spans, newCount, oldCount, null);
+      }
       known = Math.min(known, first + 1);
     }
     // The starts after the edit move to their place and by the difference in length.

@@ -216,6 +216,8 @@ public final class App<S> {
   private boolean ran; // a handler ran in this frame; see ranHandlers()
   private Object selecting; // the identity of the field a press is selecting in, until pointer up
   private Editor blinking; // the editor of the focused field
+  private long builds; // the number of the view's last build, for the fields' FieldState
+  private El typingSoon; // a field of the last tree that a press not dispatched yet lands in
   private double blinkStart; // when its caret last turned on
   private boolean caretOn;
   // Actions to run when the clock reaches their time, the earliest first; see after().
@@ -356,10 +358,15 @@ public final class App<S> {
    *     {@link Key#META}
    */
   public void pointerDown(float x, float y, int clicks, int modifiers) {
+    List<El> at = root == null ? List.of() : hit(x, y);
+    if (!at.isEmpty() && at.getLast().takesEdits() && at.getLast().editor() != null) {
+      typingSoon = at.getLast(); // see inputArea
+    }
     enqueue(() -> down(x, y, clicks, modifiers));
   }
 
   private boolean down(float x, float y, int clicks, int modifiers) {
+    typingSoon = null;
     boolean changed = anyPointerDown();
     if (dragging != null && dragging.started) { // the last release got lost
       changed = step(dragging, Drag.Phase.CANCEL, dragging.dx, dragging.dy);
@@ -1017,6 +1024,9 @@ public final class App<S> {
    * none, and then a window turns text input off.
    */
   public InputArea inputArea() {
+    // A press on a field that no frame has dispatched yet: text typed right after it reaches the
+    // app only while the window's text input is on, so it goes on at the press.
+    El focused = typingSoon != null ? typingSoon : this.focused;
     if (focused == null) {
       return null;
     }
@@ -2067,6 +2077,7 @@ public final class App<S> {
     El.fix(built);
     shown = applyLooks(built, ids);
     root = built;
+    builds++;
     attachEditors(root, new ArrayList<>()); // before layout, which shows a composition
     El.scaleText(root, scale, systemFonts);
     Flex.layout(root, width, height);
@@ -2145,8 +2156,31 @@ public final class App<S> {
   private void attachEditors(El el, List<El> path) {
     path.add(el);
     if (el.isEditable()) {
-      Editor editor = editors.computeIfAbsent(Animator.identities(path).getLast(),
-          id -> new Editor(el));
+      Object id = Animator.identities(path).getLast();
+      FieldState state = el.fieldState();
+      Editor editor = state == null ? editors.computeIfAbsent(id, i -> new Editor(el)) : null;
+      if (state != null) {
+        if (state.build == builds && !state.id.equals(id)) {
+          throw new IllegalStateException("Two text fields have the same FieldState. Give each"
+              + " field a FieldState of its own, kept in the app's state with what it edits.");
+        }
+        if (state.id != null && !state.id.equals(id) && editors.get(state.id) == state.editor) {
+          editors.remove(state.id); // the field moved
+        }
+        state.build = builds;
+        state.id = id;
+        if (state.editor == null) {
+          state.editor = new Editor(el);
+        }
+        editor = state.editor;
+        Editor was = editors.put(id, editor);
+        if (was != editor) { // back in the tree, maybe where another field was
+          if (was != null) {
+            was.leave();
+          }
+          editor.returned();
+        }
+      }
       editor.attach(el);
       el.editor(editor);
     }
@@ -2251,6 +2285,33 @@ public final class App<S> {
         return false;
       }
       now.editor().select(caret, anchor);
+      return true;
+    });
+  }
+
+  /**
+   * Takes back the last step of a text field's history, as Control+Z in it does: an Edit menu's
+   * Undo. Nothing happens when there is no step. A handler may call this as {@link #edit}.
+   */
+  public void undo(El field) {
+    history(field, "undo", Editor::undo);
+  }
+
+  /** Does the step again that {@link #undo} or Control+Z took back last, as Control+Y does. */
+  public void redo(El field) {
+    history(field, "redo", Editor::redo);
+  }
+
+  private void history(El field, String call, Consumer<Editor> step) {
+    Object id = fieldId(field, call);
+    enqueue(() -> {
+      settle();
+      El now = animator.element(id);
+      if (now == null || now.editor() == null) {
+        return false;
+      }
+      step.accept(now.editor());
+      handled |= now.editor().answerPending();
       return true;
     });
   }
