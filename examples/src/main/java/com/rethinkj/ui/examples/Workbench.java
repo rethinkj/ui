@@ -742,7 +742,9 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
     return col().wFull().hFull().fill(t.surface().window())
         .onKey(or(Menu.shortcuts(menus(group)), tabs.onKey()))
         .child(titleBar(t, active == null ? "Workbench" : active.title(), t.accent().color()))
-        .child(col().grow(1).padding(0, t.space().m(), t.space().m(), t.space().m())
+        // No minimum height from the tabs, whose grid would otherwise make it as high as its rows.
+        .child(col().grow(1).minSize(0, 0)
+            .padding(0, t.space().m(), t.space().m(), t.space().m())
             .child(tabs.key("tabs").grow(1)));
   }
 
