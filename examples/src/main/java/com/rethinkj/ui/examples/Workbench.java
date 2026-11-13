@@ -117,6 +117,7 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
   static final class Opened {
     final Node table;
     int rows = -1; // until the server answers
+    int answered = -1; // the rows of the last answer, which a statement that fails leaves shown
     Work asking; // the question for the rows, cancelled with the tab or by the next one
     String query; // the statement in the query area
     final CodeEditor.State editor = new CodeEditor.State(); // its caret, history and error
@@ -400,7 +401,6 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
     if (o.asking != null) {
       o.asking.cancel(); // the answer asked for before is not wanted any more
     }
-    int before = o.rows;
     o.rows = -1;
     o.selection.clear();
     o.failure = null;
@@ -418,12 +418,13 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
         () -> Math.min(count(path, name, tables, wait), limit),
         rows -> {
           o.rows = rows;
+          o.answered = rows;
           o.asking = null;
           answered();
         },
         error -> {
           o.asking = null;
-          o.rows = before;
+          o.rows = o.answered;
           if (error instanceof NoSuchTable) {
             o.failure = error.getMessage();
             o.editor.error(from, to); // the name, underlined until the next edit

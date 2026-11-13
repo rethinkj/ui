@@ -152,6 +152,20 @@ class WorkbenchTest {
   }
 
   @Test
+  void aStatementRunAgainBeforeItsAnswerKeepsTheRowsOfBeforeWhenItFails() throws IOException {
+    App<Workbench> app = started();
+    Workbench s = app.state();
+    Script.run(OPEN_ORDERS, app, out);
+    Workbench.Opened orders = s.tables.getFirst();
+    orders.query = "SELECT * FROM shop.public.ordrs";
+    // Control+Enter twice before the answer: the second question cancels the first.
+    Script.run("size 1000 600\nframe\nfocus #query-localhost/shop/public/orders\n"
+        + "key Enter control\nframe\nkey Enter control\nframe\nawait\nframe", app, out);
+    assertEquals("relation \"shop.public.ordrs\" does not exist", orders.failure);
+    assertEquals(1_000_000, orders.rows, "the rows of before stay, not \"counting the rows\"");
+  }
+
+  @Test
   void theCompletionsHaveTheTablesAndColumnsOfConnectedServersAndKeywords() {
     Workbench s = new Workbench();
     Workbench.Opened orders = new Workbench.Opened(table(s, "orders"));
