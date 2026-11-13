@@ -22,7 +22,7 @@ import java.util.function.IntConsumer;
 public final class Select {
 
   /** The mark at the right of the button. */
-  public static final String OPENS = "▼";
+  public static final Symbol OPENS = Symbol.CHEVRON_DOWN;
 
   private Select() {}
 
@@ -36,7 +36,6 @@ public final class Select {
       Theme t, List<String> choices, int selected, Menu.State state, IntConsumer onSelect) {
     boolean enabled = onSelect != null;
     String text = selected >= 0 && selected < choices.size() ? choices.get(selected) : "";
-    Theme.TextStyle mono = t.type().mono();
     int fill = t.surface().raised();
     El select = row().role("combobox").label(text)
         .disabled(!enabled)
@@ -52,14 +51,13 @@ public final class Select {
         .motion(t.motion().feedback())
         .children(
             label(t, text).color(enabled ? t.text().primary() : t.text().disabled()).grow(1),
-            El.text(OPENS).font(mono.font().get()).fontSize(mono.size())
-                .color(enabled ? t.text().muted() : t.text().disabled()));
+            Icon.icon(t, OPENS, enabled ? Icon.Variant.MUTED : Icon.Variant.DISABLED));
     if (!enabled) {
       return select;
     }
     Runnable open = () -> {
       state.open();
-      state.active = selected;
+      state.highlight(0, selected);
     };
     List<Menu.Item> items = new ArrayList<>();
     for (int i = 0; i < choices.size(); i++) {

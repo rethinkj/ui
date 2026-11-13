@@ -127,6 +127,21 @@ class OverlayTest {
   }
 
   @Test
+  void submenusGoOnToTheSideTheFirstThatFlippedWentTo() {
+    // Each level 50 wide, to the right of an item as wide as its menu, in a window 180 wide.
+    El third = el().key("third").size(50, 20).side(Side.RIGHT, Style.Align.START, 0);
+    El second = el().key("second").size(50, 20).side(Side.RIGHT, Style.Align.START, 0)
+        .child(el().size(50, 20).overlay(third));
+    El first = el().key("first").size(50, 20).side(Side.RIGHT, Style.Align.START, 0)
+        .child(el().size(50, 20).overlay(second));
+    App<State> app = app(new State(), s -> el().size(180, 100)
+        .child(el().key("anchor").absolute(50, 0).size(50, 20).overlay(first)), 180, 100);
+    assertEquals(100, find(app, "first").x(), "right of its anchor");
+    assertEquals(50, find(app, "second").x(), "no room on the right: to the left");
+    assertEquals(0, find(app, "third").x(), "and on to the left, although the right fits");
+  }
+
+  @Test
   void anOverlayLargerThanTheWindowIsLimitedToItAndScrolls() {
     El big = col().key("big").scroll().child(el().size(50, 500));
     App<State> app = app(new State(), s -> el().size(200, 200)
