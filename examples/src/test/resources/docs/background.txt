@@ -1,0 +1,10 @@
+# docs:start background-script
+size 420 140
+frame
+press role=button label="Count rows"
+frame
+snap counting           # the button is busy until the answer
+await                   # waits for the work and queues its answer
+frame
+snap counted
+# docs:end background-script

@@ -1,0 +1,30 @@
+---
+title: Group
+description: "Rows of settings in a card, with a hairline between them: switches, links, expanders and any control."
+---
+
+`Group.group` is an outlined card of rows with a hairline between each two, as in a settings page. Each row has a title, an optional description and icon, and a control at the right: a switch, a link to another page, an expander, or any element. Use it for settings; for a form with labels beside fields, use a [Form](/docs/components/form).
+
+<Shot src="kit/structure-rows-{theme}-2x" alt="A group of rows: a switch row with a description, a select, a number field, a link row and an expander" />
+
+## Example
+
+```java snippet="group"
+```
+
+| Row | |
+| --- | --- |
+| `row(t, [icon,] title, description, control)` | Any control at the right; the row names it after its title |
+| `switchRow(t, [icon,] title, description, on, onToggle)` | The whole row is a switch |
+| `linkRow(t, [icon,] title, description, value, onPress)` | The whole row is a button, with a muted value and a chevron |
+| `expander(t, [icon,] title, description, open, onToggle, content...)` | Opens rows below it, indented |
+| `box(t, content...)` | Anything else, with a row's padding |
+
+A row is at least the control height plus padding; a description wraps and makes it higher, and the control keeps its width. Hover, pressed and the focus ring lie inside the card.
+
+## In a tree dump
+
+A switch row is `role=switch` with `checked`; a link row `role=button` with its `value`; an expander `role=button` with `expanded` or `expanded=false`:
+
+```text file="examples/src/test/resources/golden/docs/groups/view.tree.txt" start="role=switch" count="8"
+```

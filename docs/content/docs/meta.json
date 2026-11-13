@@ -1,0 +1,14 @@
+{
+  "title": "rethinkj UI",
+  "description": "A native, GPU-rendered UI framework for Java 25 that runs with and without a window.",
+  "root": true,
+  "pages": [
+    "index",
+    "get-started",
+    "testing",
+    "concepts",
+    "components",
+    "examples",
+    "reference"
+  ]
+}

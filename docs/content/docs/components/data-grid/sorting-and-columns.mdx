@@ -1,0 +1,50 @@
+---
+title: Sorting and columns
+description: Sort keys in the header, resizing, hiding, moving and freezing columns.
+---
+
+The grid shows sort keys and lets the user change them, resize columns, and choose, move, hide and freeze them. It sorts nothing and keeps nothing: the app gets the new keys, widths and layout, keeps them and gives them back on the next build. That way sorting can happen in the database, where a million rows live.
+
+<Shot src="kit/cells-{theme}-sorted" alt="A grid sorted by two keys, with numbered arrows in the headers" />
+
+## The example
+
+```java snippet="grid-sort"
+```
+
+The app's sort, here over made-up rows; a database tool runs `ORDER BY` instead:
+
+```java snippet="grid-order"
+```
+
+## Sorting
+
+`options().sort(keys, onSort)` shows a `SortKey(column, descending)` list in the header, an arrow per key and their order when there are several. A press on a sortable column's header cycles ascending, descending and unsorted, replacing the keys; Shift with a press adds the column as a further key or cycles it. `onSort` gets the new list. The arrows need `rethinkj-ui-icons`.
+
+## Resizing
+
+`options().onResize((column, width) -> …)` lets the user drag the right edge of a header cell (beyond the grid's side, the grid scrolls along) and fit a column to its content with a double press on the edge, within the theme's `grid().minColumn()` and `maxColumn()`. The app keeps the widths and passes them to the columns.
+
+## Choosing, moving and hiding
+
+A `DataGrid.Layout`, made with the titles of all columns and kept in the state, holds their order and which are hidden. With `options().columns(layout)`:
+
+- the grid shows the layout of all the columns it gets;
+- a header cell dragged past the threshold moves its column, with a line where it will go;
+- the header's context menu has Sort ascending, Sort descending, Clear sort, Filter…, Hide column, Freeze up to here (with `onFreeze`), Fit width and Columns…;
+- `DataGrid.columnsButton(t, layout)` is a toolbar button that opens the chooser: a checkbox per column, a search field beyond eight columns, Show all and Reset. Alt+Arrow Up and Down move the focused column.
+
+With a layout, every handler, sort key and filter speaks of columns by their index among all of them; only the selection's ranges count the columns shown. `layout.shown(all)` gives the shown columns in order, and `hide`, `show`, `showAll`, `reset` and `moveBefore` change it from code.
+
+<Shot src="kit/columns-{theme}-chooser" alt="The chooser of columns, with a checkbox per column" />
+
+## Freezing
+
+`options().frozen(n)` keeps the first `n` columns, and the row numbers, at the left while the rest scroll sideways. `onFreeze(n -> …)` lets the header's menu change it.
+
+## In a tree dump
+
+A sorted column's header says `sort=ascending` or `sort=descending`; a column being moved is `grabbed`, and the line where it goes has the key `marker`.
+
+```text file="examples/src/test/resources/golden/docs/grid-sort/view.tree.txt" start="#column-2" count="1"
+```

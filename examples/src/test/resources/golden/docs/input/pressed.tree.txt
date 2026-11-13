@@ -1,0 +1,5 @@
+el 0,0 280x140
+  el #counter role=button label="Count" 12,12 120x32 focused
+    text "2" 68,20 9x17
+  el 12,52 200x24
+    el #knob 12,52 24x24

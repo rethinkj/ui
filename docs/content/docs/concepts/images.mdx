@@ -1,0 +1,30 @@
+---
+title: Images
+description: PNG and JPEG images made for a scale, decoded off the app's thread and shown sharp at any size.
+---
+
+`Image.decode(bytes)` reads a PNG or JPEG file, `Image.of(pixels)` takes pixels you made, and `El.image(image)` shows it. Images are drawn by both renderers, one pixel to one pixel where they can and filtered smoothly where they are shown smaller or larger. Decoding needs no `java.desktop`. The kit's [Image](/docs/components/image) adds rounded corners and a placeholder.
+
+```java snippet="images"
+```
+
+## Scale
+
+An image is made for a scale, the physical pixels per logical pixel: 200 by 100 pixels made for scale 2 are 100 by 50 logical pixels, drawn one to one in a window at scale 2. `Image.decode(bytes, scale)` and `Image.of(pixels, scale)` take it; the default is 1.
+
+## Decoding
+
+Making an image computes its smaller levels (88 ms for 1920 by 1080), so decode off the app's thread with `app.background` and keep the image in the state; renderers know an image by its identity and upload it to the GPU once. PNG of every colour type and bit depth, and baseline and progressive JPEG with EXIF orientation, are read; interlaced PNG and CMYK JPEG are refused with a message.
+
+## Size and fit
+
+An image element is as large as the image in logical pixels, but no wider than the room there is, keeping its aspect ratio. A width or height from the style scales it; with both, `fit(Image.Fit.FILL)`, `CONTAIN` or `COVER` say how it fills the box, as CSS's `object-fit`. Rounded corners, borders, shadows, opacity and motion apply as to any element.
+
+## Memory
+
+`app.imageMemory(bytes)` (256 MB unless set) bounds the images kept on the GPU; those drawn least recently are given up beyond it and uploaded again when shown.
+
+## In a tree dump
+
+```text file="examples/src/test/resources/golden/docs/image/view.tree.txt" start="image role" count="1"
+```

@@ -1,0 +1,23 @@
+el 0,0 360x260
+  el #options role=button label="Options" 12,12 74x24
+    text "Options" 25,16 48x16
+  el #row role=listitem label="orders" 12,44 57x32
+    text "orders" 20,52 41x16
+overlay bottom start gap 2 on #options role=button label="Options" 12,12 74x24
+  el #menu role=menu 12,38 217x87 focused
+    el #item-0 role=menuitem label="Run selection" 17,43 207x24 current
+      el 17,43 207x24
+        el 25,55 16x0
+        text "Run selection" 49,47 84x16
+        text "Ctrl+Enter" 153,47 63x16
+    el #item-1 role=menuitem label="Autocommit" 17,67 207x24 checked
+      el 17,67 207x24
+        el 25,71 16x16
+          text label="checkmark" "\u{E305}" 25,71 16x16
+        text "Autocommit" 49,71 167x16
+    el 17,93 207x1
+    el #item-3 role=menuitem label="Export" 17,96 207x24 expanded=false
+      el 17,96 207x24
+        el 25,108 16x0
+        text "Export" 49,100 143x16
+        text label="chevron_right" "\u{F2AF}" 200,100 16x16

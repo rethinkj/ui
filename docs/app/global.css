@@ -1,0 +1,137 @@
+@import 'tailwindcss';
+@import 'fumadocs-ui/css/neutral.css';
+@import 'fumadocs-ui/css/preset.css';
+
+/* The kit's fonts, from the fonts module (scripts/docs.mjs copies them): nothing from elsewhere. */
+@font-face {
+  font-family: 'Inter';
+  src: url('/fonts/Inter-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Inter';
+  src: url('/fonts/Inter-Italic.ttf') format('truetype');
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Inter';
+  src: url('/fonts/Inter-Medium.ttf') format('truetype');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Inter';
+  src: url('/fonts/Inter-SemiBold.ttf') format('truetype');
+  font-weight: 600 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'JetBrains Mono';
+  src: url('/fonts/JetBrainsMono-Regular.ttf') format('truetype');
+  font-weight: 400 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* The colours of the kit's Theme.LIGHT and Theme.DARK (kit/.../Theme.java). */
+@theme {
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+
+  --color-fd-background: #ffffff;
+  --color-fd-foreground: #1b1d22;
+  --color-fd-muted: #f1f2f5;
+  --color-fd-muted-foreground: #5c606b;
+  --color-fd-popover: #ffffff;
+  --color-fd-popover-foreground: #1b1d22;
+  --color-fd-card: #f7f8fa;
+  --color-fd-card-foreground: #1b1d22;
+  --color-fd-border: #e6e8ec;
+  --color-fd-primary: #2e62d9;
+  --color-fd-primary-foreground: #ffffff;
+  --color-fd-secondary: #f1f2f5;
+  --color-fd-secondary-foreground: #1b1d22;
+  --color-fd-accent: rgba(189, 191, 197, 0.3);
+  --color-fd-accent-foreground: #1b1d22;
+  --color-fd-ring: #2e62d9;
+  --color-fd-overlay: rgba(0, 0, 0, 0.35);
+
+  --color-rj-window: #eceef2;
+  --color-rj-panel: #ffffff;
+  --color-rj-control: #cfd3da;
+  --color-rj-accent: #2e62d9;
+}
+
+.dark {
+  --color-fd-background: #0f1013;
+  --color-fd-foreground: #e6e7ea;
+  --color-fd-muted: #1a1b20;
+  --color-fd-muted-foreground: #9a9da9;
+  --color-fd-popover: #1e2025;
+  --color-fd-popover-foreground: #e6e7ea;
+  --color-fd-card: #17181c;
+  --color-fd-card-foreground: #e6e7ea;
+  --color-fd-border: #25272d;
+  --color-fd-primary: #86a8f8;
+  --color-fd-primary-foreground: #0f1013;
+  --color-fd-secondary: #1e2025;
+  --color-fd-secondary-foreground: #e6e7ea;
+  --color-fd-accent: rgba(69, 70, 76, 0.35);
+  --color-fd-accent-foreground: #e6e7ea;
+  --color-fd-ring: #86a8f8;
+  --color-fd-overlay: rgba(0, 0, 0, 0.6);
+
+  --color-rj-window: #0f1013;
+  --color-rj-panel: #17181c;
+  --color-rj-control: #33363d;
+  --color-rj-accent: #3d6fe6;
+}
+
+.dark #nd-sidebar {
+  --color-fd-muted: #1a1b20;
+  --color-fd-secondary: #1e2025;
+  --color-fd-muted-foreground: #9a9da9;
+}
+
+html {
+  scrollbar-gutter: stable;
+  -webkit-font-smoothing: antialiased;
+}
+
+html > body[data-scroll-locked] {
+  margin-right: 0px !important;
+  --removed-body-scroll-bar-size: 0px !important;
+}
+
+/* Images of the tests: drawn by the framework, so shown at their logical size, never larger. */
+.rj-shot {
+  margin: 1.5rem 0;
+}
+.rj-shot img {
+  margin: 0; /* display comes from Tailwind, so that dark:hidden works */
+}
+.rj-shot-frame img {
+  border-radius: 10px;
+  border: 1px solid var(--color-fd-border);
+  box-shadow: 0 1px 2px rgba(20, 24, 36, 0.08), 0 6px 18px rgba(20, 24, 36, 0.06);
+}
+.dark .rj-shot-frame img {
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.6), 0 6px 16px rgba(0, 0, 0, 0.35);
+}
+.rj-shot figcaption {
+  margin-top: 0.5rem;
+  font-size: 0.875rem;
+  color: var(--color-fd-muted-foreground);
+}
+
+/* Code shows its characters as typed: no ligatures that turn -> into an arrow. */
+code,
+pre {
+  font-variant-ligatures: none;
+}

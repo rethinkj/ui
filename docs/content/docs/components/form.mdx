@@ -1,0 +1,29 @@
+---
+title: Form
+description: Labelled fields, beside or above them, with help, errors and required marks, and buttons at the end.
+---
+
+`Form.form` lays out fields with their labels, beside them in a column as wide as the widest label or above them, with help text, error messages and a mark for required fields. `Form.buttons` puts buttons at the end of a form, a card or a page. Use it for dialogs and connection settings; for rows of settings, use a [Group](/docs/components/group).
+
+<Shot src="kit/structure-form-{theme}-2x" alt="Two forms, labels beside and above the fields, with a required mark, help and an error" />
+
+## Example
+
+```java snippet="form"
+```
+
+| | |
+| --- | --- |
+| `Form.form(t, Labels.BESIDE \| ABOVE, fields...)` | The form |
+| `Form.field(label, control)` | A field; the label names the control, or the first control inside it |
+| `.help(text)` | Muted text below that wraps |
+| `.error(text)` | Replaces the help in the danger colour and makes the control `invalid`; null for none |
+| `.required()` | A `*` after the label |
+| `Form.buttons(t, buttons...)` | Buttons at the end, at the right |
+
+## In a tree dump
+
+Each field gets its label; an error makes it `invalid`:
+
+```text file="examples/src/test/resources/golden/docs/form/view.tree.txt" start="\"User\"" count="3"
+```

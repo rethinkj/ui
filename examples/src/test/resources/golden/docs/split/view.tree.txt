@@ -1,0 +1,12 @@
+el 0,0 520x240
+  el 12,12 496x216
+    el #first 12,12 160x216
+      el 12,12 160x216
+        text "Schema" 25,25 134x16
+    el #rest 172,12 336x216
+      el #second 180,12 328x216
+        el 180,12 328x216
+          text "Query" 193,25 302x16
+      el #divider role=separator label="Resize" 172,12 8x216 value="first 160"
+        el 172,12 8x216
+          el 176,12 1x216

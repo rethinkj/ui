@@ -1,0 +1,22 @@
+---
+title: EmptyState
+description: A large muted icon, a title, a text and an action, where a list or page has nothing to show.
+---
+
+`EmptyState.emptyState` fills the place of a list, a grid or a page that has nothing to show, and says why and what to do: "No tables match" with Clear filter. Centre it in the empty area.
+
+<Shot src="kit/structure-choices-{theme}-2x" alt="An empty state with a search icon, a title, a text and a Clear filter button" />
+
+## Example
+
+```java snippet="empty-state"
+```
+
+`EmptyState.emptyState(t, symbol, title, text, action)`; the action may be null. A text that wraps is not centred line by line.
+
+## In a tree dump
+
+`role=status` with the title as label:
+
+```text file="examples/src/test/resources/golden/docs/status/view.tree.txt" start="label=\"No tables match\"" count="5"
+```

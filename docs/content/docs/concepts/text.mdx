@@ -1,0 +1,46 @@
+---
+title: Text and fonts
+description: Text elements, the default fonts Inter and JetBrains Mono, wrapping, ellipses and fallback fonts.
+---
+
+`El.text("…")` makes a text element: a leaf that layout sizes to its shaped text. Text is shaped with HarfBuzz, so kerning, ligatures and scripts that join their letters come out right, and rasterised with FreeType, so it looks the same on Windows and Linux. The kit's `Label` sets the theme's styles for you; use `El.text` for anything else.
+
+```java snippet="text"
+```
+
+| Call | |
+| --- | --- |
+| `font(Font)`, `fontSize(px)`, `color(argb)` | The look; the default is `Font.sans()`, 14, black |
+| `wrapText()` | Break lines at the element's width |
+| `ellipsis()` | End a line that does not fit in `…`; give the element a width or `minSize(0, 0)` |
+| `textAlign(Style.Align.CENTER)` | Each line centred (or `END`) in its box |
+| `fontFeatures("+calt")` | OpenType features in HarfBuzz's syntax |
+| `textBackground(argb)` | The colour behind the text, where the renderer cannot find it (for its coverage correction) |
+
+A line feed always starts a line.
+
+## Fonts
+
+| Font | |
+| --- | --- |
+| `Font.sans()`, `sansMedium()`, `sansSemibold()`, `sansBold()`, `sansItalic()`, `sansBoldItalic()` | Inter 4.1 |
+| `Font.mono()`, `monoBold()` | JetBrains Mono 2.304 |
+| `Font.icons()` | Fluent UI System Icons, for the kit's `Icon` |
+| `Font.of(bytes)`, `Font.resource(owner, name)` | Your own TrueType or OpenType font; `close()` frees it |
+
+The default fonts come in `rethinkj-ui-fonts`, the icons in `rethinkj-ui-icons`.
+
+## Characters a font lacks
+
+`font.withFallback(other...)` falls back to other fonts in order, cluster by cluster, keeping the first font's line height. `font.withSystemFonts()` then falls back to the fonts installed on the system (Noto and DejaVu on Linux, Segoe UI and the CJK fonts on Windows, chosen by script and locale). In a window, the app falls back to the system's fonts for all text; under a script it does not, so that images are the same everywhere.
+
+Right-to-left scripts are shaped right to left within their runs; lines are not reordered by the full bidirectional algorithm. Colour emoji show as outlines in the text colour where the font has them.
+
+## Text rendering
+
+`app.textRendering(TextRendering.LINUX)` or `WINDOWS` chooses the hinting and the gamma of the coverage; the default is the platform's. Tests that compare images pin one, so that they pass on both platforms.
+
+## In a tree dump
+
+```text file="examples/src/test/resources/golden/docs/text/view.tree.txt"
+```

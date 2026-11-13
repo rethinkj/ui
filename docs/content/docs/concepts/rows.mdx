@@ -1,0 +1,31 @@
+---
+title: Lists of many rows
+description: Virtual lists that build only the rows in view, for a million rows, with rows of one height or of their own.
+---
+
+`El.rows(count, rowHeight, row)` turns a scroll area into a list that builds only the rows in its visible part and three more on each side: a list of a million rows costs as much as one of twenty. The [DataGrid](/docs/components/data-grid), the [Tree](/docs/components/tree), [Markdown](/docs/components/markdown) and the kit's lists are built on it.
+
+```java snippet="rows"
+```
+
+```text file="examples/src/test/resources/golden/docs/rows/far.tree.txt" count="4"
+```
+
+## Variants
+
+| Call | |
+| --- | --- |
+| `rows(count, rowHeight, index -> row)` | Rows of one height |
+| `rows(count, rowHeight, (index, from, to) -> row)` | Rows built for the part in view sideways, for very wide rows such as hundreds of columns |
+| `rows(count, RowHeights, index -> row)` | Rows as high as their content; a `RowHeights` in the state estimates the rows not yet built and keeps what was measured |
+
+| Call | |
+| --- | --- |
+| `revealRow(index)` | Keep this row in view whenever it changes: a cursor |
+| `reveal(key, x, y, w, h)` | Keep a rectangle of the content in view whenever the key changes |
+| `onRowsBuilt((first, last) -> …)` | Told which rows exist, to load them |
+| `scrollState(ScrollState)` | Keep the offsets in the state, so that the list comes back where it was |
+| `scrollbars(t.scrollbars())` | Bars that drag and page |
+| `app.scrollToRow(list, row)` | Scroll from a handler |
+
+The list needs a height of its own or room to `grow`. Give rows keys (`row-<index>`) so that scripts find them; a selector finds only the rows that exist, so a script scrolls first: `scroll #rows row 765432`.

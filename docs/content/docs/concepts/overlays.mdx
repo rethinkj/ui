@@ -1,0 +1,41 @@
+---
+title: Overlays
+description: Elements above everything else, anchored to an element, a point, the caret or the window, for menus, tooltips and dialogs.
+---
+
+A menu, a tooltip, a dropdown list or a dialog lies above everything else and is not clipped by the scroll area its anchor is in. The view declares it next to the element it belongs to, `anchor.overlay(menu)`, and whether it is open is the app's state: `button.overlay(s.open ? menu : null)`. The kit's [Menu](/docs/components/menu), [Tooltip](/docs/components/tooltip), [Dialog](/docs/components/dialog), [Popover](/docs/components/popover) and [Toast](/docs/components/toast) are built this way; this page is for your own.
+
+```java snippet="overlay"
+```
+
+## Placement
+
+| Call | |
+| --- | --- |
+| `side(Side, Style.Align, gap)` | Beside the anchor: `BOTTOM` (default), `TOP`, `LEFT`, `RIGHT`, aligned `START`, `CENTER`, `END` or `STRETCH` |
+| `atPoint(x, y)` | At a point of the window, as a context menu at the pointer |
+| `atCaret()` | At the caret of the anchor, a text field, as completions |
+| `centerInWindow()` | In the middle, as a dialog |
+| `atWindowEdge(side, align, gap)` | Against an edge of the window, as a toast |
+
+Where it does not fit, it goes to the other side, then moves into the window. It follows its anchor as it scrolls, and hides (staying open) while the anchor is scrolled out of view.
+
+## Behaviour
+
+| Call | |
+| --- | --- |
+| `onDismiss(handler)` | A press outside, or the wheel outside a non-modal overlay. Overlays without one let presses through, as a tooltip. |
+| `modal()` | Input outside reaches nothing; Tab stays inside |
+| `scrim(argb)` | A colour over the window below it |
+| `keepFocus()` | Opens without taking the focus, as a toast |
+| `dismissGroup(group)` | Presses on elements of the same group do not dismiss it: a menu bar's titles |
+| `onShownFor(seconds, handler)` | Runs once it has been open that long: a toast closes itself |
+
+An overlay that opens takes the focus to its first focusable element; when it closes, the focus goes back to where it was. Keys go from the focused element up to the overlay's root and then on to its anchor, so the owner of a menu sees Escape. Escape closes nothing by itself: the overlay's `onKey` changes the state.
+
+## In a tree dump
+
+Overlays follow the tree, each under a line that says where it is placed and what it is anchored to:
+
+```text file="examples/src/test/resources/golden/docs/overlay/open.tree.txt" start="overlay"
+```

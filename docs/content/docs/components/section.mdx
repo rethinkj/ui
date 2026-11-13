@@ -1,0 +1,27 @@
+---
+title: Section and page
+description: A scrolling page with a title and sections, each with a heading, a description and content.
+---
+
+`Section.page` is a scroll area with a title over sections; `Section.section` a heading, a description and content. Together with [Groups](/docs/components/group) and [Cards](/docs/components/card) they build a settings page, a detail panel or a dashboard.
+
+<Shot src="examples/settings-2x-appearance" light="examples/settings-light-2x-appearance" alt="The Settings example: a page of sections with groups of rows" />
+
+## Example
+
+```java snippet="section"
+```
+
+| Call | |
+| --- | --- |
+| `page(t, title, sections...)` | A scroll area with the title as a heading of level 1 and generous padding |
+| `section(t, title, description, content...)` | A heading of level 2, a description and the content below it |
+
+Null content and sections are left out.
+
+## In a tree dump
+
+Headings are `role=heading` with `level`:
+
+```text file="examples/src/test/resources/golden/docs/sections/view.tree.txt" start="\"Editor\"" count="3"
+```

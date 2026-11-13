@@ -1,0 +1,89 @@
+---
+title: The tree dump
+description: What each line of a .tree.txt says, every state, and how overlays, lists and text fields appear.
+---
+
+Every `snap` writes `<name>.tree.txt` beside the image: one line per element, children indented by two spaces. It says in words what the image shows, so that an agent can check a view without reading pixels and a script can find elements by the same words.
+
+## A line
+
+```text file="examples/src/test/resources/golden/docs/menu/open.tree.txt" start="#item-1" count="1"
+```
+
+In this order:
+
+1. `el` for a box, `text` for a text element, `image` for an image.
+2. `#key` if the element has a key.
+3. `role=` and `label="…"` if set. The kit's components set both.
+4. For text, the string in quotes. `\n` is a line feed, `\t` a tab, `\u{E305}` a character of a private use area such as an icon. A string longer than 200 characters shows its first 100 and last 40 and its length.
+5. The rectangle in window coordinates as shown, `x,y widthxheight`, moved by the scroll offsets above it.
+6. The states that are set, always in the same order (below).
+7. Extras of scroll areas, lists and text fields (below).
+8. `hovered` on the element a press under the pointer would go to, `focused` on the element with the keyboard focus, and `exiting` on an element that is fading out after a rebuild left it out.
+
+## States
+
+States say what the app's state is, with their names from WAI-ARIA. They change nothing about how an element looks or takes input; the view sets them with `El.disabled(boolean)`, `selected(boolean)`, `checked(boolean)`, `level(n)`, `position(n, size)`, `value(text)` and so on, and the kit's components set them for you.
+
+| State | Meaning | Set with |
+| --- | --- | --- |
+| `disabled` | Takes no input | `disabled(true)`, or a text field with `editable(null)` |
+| `readonly` | A text field that selects and copies but takes no edits | `readOnly()` |
+| `password` | A masked field; the string shows as `•` | `masked()` |
+| `invalid` | A value that is not accepted | `invalid(true)` |
+| `busy` | An action runs; the element takes no press | `busy(true)` |
+| `selected` | Selected among others | `selected(true)` |
+| `current` | The cursor's cell or row, the highlighted menu item | `current(true)` |
+| `grabbed` | Being dragged | `grabbed(true)` |
+| `checked`, `checked=false`, `checked=mixed` | A switch, checkbox, radio or toggle button | `checked(boolean)`, `checkedMixed()` |
+| `expanded`, `expanded=false` | Something opens here; absent where nothing does | `expanded(boolean)` |
+| `level=<n>` | Depth in a tree, from 1 | `level(n)` |
+| `pos=<n>/<size>` | Position in its set, from 1, and the set's size | `position(n, size)` |
+| `sort=ascending`, `sort=descending` | A sorted column | `sortAscending()`, `sortDescending()` |
+| `value="<text>"` | A value, such as a slider's or a changed row's | `value(text)` |
+
+```java snippet="states"
+```
+
+```text file="examples/src/test/resources/golden/docs/states/view.tree.txt" start="#row-3" count="1"
+```
+
+## Overlays
+
+Menus, tooltips and dialogs lie above the tree. They follow it, in the order they are drawn, each under a line that says where it is placed and what it is anchored to:
+
+```text file="examples/src/test/resources/golden/docs/menu/open.tree.txt" start="overlay" count="3"
+```
+
+A dialog in the middle of the window over a scrim:
+
+```text file="examples/src/test/resources/golden/docs/dialog/open.tree.txt" start="overlay"
+```
+
+## Scroll areas and lists
+
+A scrolled area adds its offset; a list of rows adds which rows exist and how many there are; scrollbars add their thumbs:
+
+```text file="examples/src/test/resources/golden/docs/rows/far.tree.txt" start="#rows" count="1"
+```
+
+`rows 765429-765442/1000000` says that rows 765429 to 765442 of a million exist, `scroll 0,18370368` that the list is scrolled that far down, and `thumb-y` where the thumb of the bar along the right edge is. Its children are those rows, in order. A list with no rows built says `rows -/<count>`.
+
+## Text fields
+
+A focused field adds its caret as an index into its string, then the other end of a selection and an input method's composition:
+
+```text
+text #name role=textbox label="Table name" "SELECT name FROM customers" 40,26 160x28 focused caret 17 anchor 26 composing "ni"
+```
+
+A multi-line field adds the lines in view and how many there are, and after the caret its line and column:
+
+```text
+text #query role=textbox label="Query" "SELECT *\nFROM orders\nLIMIT 20;" 253,44 455x82 lines 1-3/3 focused caret 31 (3:9)
+```
+
+A masked field shows one `•` per character, never the string, and says `password`:
+
+```text file="examples/src/test/resources/golden/connection-filled.tree.txt" start="#password" count="1"
+```

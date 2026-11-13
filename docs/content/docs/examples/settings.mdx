@@ -1,0 +1,16 @@
+---
+title: Settings
+description: The settings of a database tool built from pages, sections, groups of rows, cards and a form in a dialog.
+---
+
+Settings is the settings window of a database tool: a navigation list of pages at the left and the page at the right, built from the kit's structure: [Section and page](/docs/components/section), [Group](/docs/components/group) rows, [Cards](/docs/components/card) and a [Form](/docs/components/form) in a dialog. The theme and the accent change the whole window.
+
+<Shot dark="examples/settings-2x-appearance" light="examples/settings-light-2x-appearance" alt="The Appearance page with switches, a segmented theme choice and a slider" />
+
+```sh
+mvn -q -pl examples -am compile exec:exec -Dexample=Settings
+```
+
+## Where to look in the source
+
+[`Settings.java`](https://github.com/rethinkj/ui/blob/main/examples/src/main/java/com/rethinkj/ui/examples/Settings.java): `general`, `appearance` and the other page methods are each one expression of `page`, `section` and `group`. `accent` makes a theme with another accent; `portError` validates the form's port.

@@ -1,0 +1,22 @@
+---
+title: Image
+description: A picture with rounded corners and a label, or a placeholder while it is being read.
+---
+
+The kit's `Image.image` shows a core `Image` with the theme's rounded corners and a label, or, while the app has no image yet (still being read, or unreadable), a placeholder with an icon and the label. It shares its name with core's `com.rethinkj.ui.Image`, the picture itself; write one of them out in full. See [Images](/docs/concepts/images) for decoding and sizes.
+
+<Shot src="examples/manual-{theme}-2x-images" alt="Images in a Markdown document: a PNG with rounded corners and a JPEG" />
+
+## Example
+
+```java snippet="image"
+```
+
+`Image.image(t, image, alt)`: an image as large as its pixels at its scale, but no wider than the room there is; a null image shows the placeholder, as large as its content or as the view sizes it.
+
+## In a tree dump
+
+An `image` line with `role=img` and the label; the placeholder is an `el` with the same role and label:
+
+```text file="examples/src/test/resources/golden/docs/image/view.tree.txt" start="image role" count="3"
+```

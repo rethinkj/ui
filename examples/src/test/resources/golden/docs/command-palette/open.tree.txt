@@ -1,0 +1,17 @@
+el 0,0 640x360
+  text "Control+Shift+P opens the palette." 12,12 215x16
+overlay edge top center gap 36 on 0,0 640x360
+  el #palette role=dialog label="Command palette" 40,36 560x86
+    el 45,41 550x24
+      text #query-1 role=textbox label="Command" "" 45,41 550x24 focused caret 0
+      text label="search" "\u{EA7C}" 49,45 16x16
+    el #options role=listbox label="Commands" 45,69 550x48 rows 0-1/2
+      el #option-0 role=option label="Query: Run" 45,69 550x24 selected pos=1/2
+        el 45,69 550x24
+          el 53,81 16x0
+          text "Query: Run" 77,73 435x16
+          text "Ctrl+Enter" 524,73 63x16
+      el #option-1 role=option label="Query: Format" 45,93 550x24 pos=2/2
+        el 45,93 550x24
+          el 53,105 16x0
+          text "Query: Format" 77,97 510x16

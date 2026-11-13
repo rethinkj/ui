@@ -1,0 +1,15 @@
+el 0,0 360x260
+  el #options role=button label="Options" 12,12 74x24
+    text "Options" 25,16 48x16
+  el #row role=listitem label="orders" 12,44 57x32
+    text "orders" 20,52 41x16
+overlay at 40.5,60 bottom start on #row role=listitem label="orders" 12,44 57x32
+  el #menu role=menu 41,60 120x58 focused
+    el #item-0 role=menuitem label="Open" 46,65 110x24
+      el 46,65 110x24
+        el 54,77 16x0
+        text "Open" 78,69 70x16
+    el #item-1 role=menuitem label="Copy name" 46,89 110x24
+      el 46,89 110x24
+        el 54,101 16x0
+        text "Copy name" 78,93 70x16

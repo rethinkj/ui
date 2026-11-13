@@ -1,0 +1,36 @@
+---
+title: Filters
+description: A filter in each header cell, a bar of removable filters, and the app applying them.
+---
+
+`options().filters(filters, onFilter)` puts a funnel in each header cell that opens a popover to filter by that column: text that contains, starts with, equals or matches; a range or a value for numbers, dates and times; the values to keep for a boolean or a column with choices; NULL or not for any. The grid filters nothing itself: the app gets `DataGrid.Filter` records, applies them (in SQL, or with `Filter.matches`) and gives them back.
+
+<Shot src="kit/filter-{theme}-popover" alt="The filter popover of a text column, open below its header" />
+
+## The example
+
+```java snippet="grid-filter"
+```
+
+`DataGrid.filterBar(t, columns, filters, onFilter)` is a row of removable badges with Clear all, to put above the grid; it returns null while there are no filters.
+
+<Shot src="kit/filter-{theme}-set" alt="A grid with filters set: funnels in the accent and a bar of badges above" />
+
+## Filter
+
+| | |
+| --- | --- |
+| `Filter.of(column, Kind, value)` | `CONTAINS`, `STARTS_WITH`, `EQUALS`, `MATCHES` (a regular expression), all ignoring case; `IS_NULL` and `NOT_NULL` without a value |
+| `Filter.between(column, from, to)` | A range, either end empty for none |
+| `Filter.oneOf(column, values)` | The values to keep |
+| `filter.matches(cell)` | Whether a cell's text passes, for apps that filter their own rows |
+| `filter.describe(title)` | The filter in words, as the badge shows it |
+
+`options().filterable(column -> …)` limits the funnels to some columns. Alt+Arrow Down opens the filter of the cursor's column.
+
+## In a tree dump
+
+Each funnel is `role=button` with `label="Filter <title>"`, and with a filter set its `value` says the filter in words:
+
+```text file="examples/src/test/resources/golden/docs/grid-filter/view.tree.txt" start="#filter-1" count="1"
+```

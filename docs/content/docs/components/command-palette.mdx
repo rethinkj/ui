@@ -1,0 +1,46 @@
+---
+title: CommandPalette
+description: A searchable list of every command, and of other things after a prefix, opened with Control+Shift+P.
+---
+
+`CommandPalette.palette` is an overlay at the top of the window with a field over a list: type to find any command of the app's menus by fuzzy matching, or, after a prefix such as `@`, a table or another thing the app lists. Commands can ask for more before they act, such as a theme previewed as the highlight moves. Use it in apps with many commands. For choosing a value in a form, use a [ComboBox](/docs/components/combo-box).
+
+<Shot src="kit/palette-{theme}-2x-commands" alt="The command palette with recently used commands and their shortcuts" />
+
+## Example
+
+```java snippet="command-palette"
+```
+
+- `CommandPalette.commands(menus)` turns `Menu.Item`s, a menu bar's titles too, into commands named by their path (`Query: Run`, `File: Export › CSV`) with their icons, shortcuts and handlers. Add your own `FilterList.entry(text, onChoose)`.
+- A `CommandPalette.Source(prefix, what, entries)` finds other things after its prefix. `FilterList.Entries.of(list)` filters a list with fuzzy matching; `Entries.by(text -> list)` is your own search, and `Entries.background(app, name, text -> list)` runs it on another thread.
+- `CommandPalette.keys(state)` opens it with Control+Shift+P and F1; `state.open("@")` opens a source, as for Control+P.
+- While nothing is typed, the last five commands chosen come first under "Recently used".
+
+## Asking for more
+
+A command's handler may call `state.ask(stage)` instead of letting the palette close:
+
+| | |
+| --- | --- |
+| `Stage.choose(placeholder, entries, highlight)` | A list to choose from |
+| `.preview(onHighlight, onCancel)` | Run as the highlight moves, and undone on Escape: a theme previewed live |
+| `Stage.input(placeholder, text, onEnter)` | A text to type, as for Rename |
+
+## Keyboard
+
+| Keys | Action |
+| --- | --- |
+| Control+Shift+P, F1 | Open (with `keys(state)`) |
+| Up, Down, Page Up, Page Down, Home, End | Move the highlight |
+| Enter | Choose |
+| Escape, a press outside | Close, undo a preview, and give the focus back |
+
+Keys it does not take go on to the root, so the app's shortcuts still work.
+
+## In a tree dump
+
+An overlay at the window's top edge, `role=dialog` `label="Command palette"`; its field `role=textbox`, the list `role=listbox` with `role=option` entries, the highlighted one `selected`:
+
+```text file="examples/src/test/resources/golden/docs/command-palette/tables.tree.txt" start="overlay" count="6"
+```

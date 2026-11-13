@@ -1,0 +1,72 @@
+---
+title: Platforms and native libraries
+description: Windows and Linux on x64, the native libraries in one JAR per platform, what a build needs, and what to do when a library does not load.
+---
+
+rethinkj UI runs on Windows 11 and later and on Linux, both on x64, with a JDK 25. The window, the GPU, and text call native libraries: SDL 3 for windows and input, wgpu-native for the GPU (Direct3D 12 on Windows, Vulkan on Linux), FreeType and HarfBuzz for text. They come in one JAR per platform and are loaded on first use, so a view rendered without a window and without text needs none of them.
+
+## Versions
+
+| Library | Version | For |
+| --- | --- | --- |
+| SDL | 3.4.20 | Windows, input, clipboard, dialogs |
+| wgpu-native | 29.0.1.1 | The GPU renderer |
+| FreeType | 2.15.0 | Rasterising glyphs |
+| HarfBuzz | 15.1.0 | Shaping text |
+
+FreeType and HarfBuzz are built from source with the same options on both platforms and need nothing beyond the C runtime.
+
+## What a build needs
+
+The first build downloads the archives, checks their SHA-256 and builds some libraries from source; later builds reuse them, also after `mvn clean`.
+
+<Tabs items={['Linux', 'Windows']}>
+<Tab value="Linux">
+
+SDL, FreeType and HarfBuzz are built with cmake and make, which takes about a minute. On Debian and Ubuntu:
+
+```sh
+sudo apt install build-essential cmake pkg-config xz-utils libx11-dev libxext-dev \
+  libxrandr-dev libxcursor-dev libxfixes-dev libxi-dev libxtst-dev libwayland-dev \
+  libxkbcommon-dev libegl-dev libdbus-1-dev
+```
+
+`natives-linux-x64/natives.properties` lists them. The build fails when cmake turns off X11 or Wayland because their development files are missing. The libraries need the glibc of the machine that built them.
+
+</Tab>
+<Tab value="Windows">
+
+FreeType and HarfBuzz are built with Visual Studio 2022 or later, or its Build Tools, with the workload "Desktop development with C++". The build finds the installation itself; nothing needs to be on the `PATH`. Without "C++ CMake tools for Windows", unpack the CMake ZIP from cmake.org anywhere and build once with `$env:CMAKE = '<folder>\bin\cmake.exe'`.
+
+</Tab>
+</Tabs>
+
+Without the native libraries, build with `-P '!natives-linux-x64'` (or `'!natives-windows-x64'`); the tests that need them skip themselves.
+
+## Loading
+
+On first use the libraries are unpacked from the natives JAR into a per-user cache, in a folder named after their hashes: `%LOCALAPPDATA%\rethinkj-ui\natives\` on Windows, `$XDG_CACHE_HOME/rethinkj-ui/natives/` (by default `~/.cache`) on Linux. `rethinkj.ui.natives.cache` unpacks elsewhere; `rethinkj.ui.natives.dir` loads from a folder that holds the libraries and their `manifest.txt` without unpacking, for packaged apps.
+
+Native access must be enabled: `--enable-native-access=ALL-UNNAMED` on the class path, `--enable-native-access=com.rethinkj.ui` on the module path, where the natives module also needs `--add-modules com.rethinkj.ui.natives.linux.x64` (or `windows.x64`).
+
+## When something does not work
+
+| Symptom | Cause and fix |
+| --- | --- |
+| A warning or error about native access | Add `--enable-native-access=ALL-UNNAMED` |
+| `UnsatisfiedLinkError` naming FreeType or HarfBuzz | The natives JAR of the platform is not on the class path |
+| A Linux library does not load from the cache | The cache lies on a file system mounted `noexec`; set `rethinkj.ui.natives.cache` to another folder. The error names the dynamic linker's reason. |
+| The build stops at cmake on Windows | Install "C++ CMake tools for Windows", or set `CMAKE` as above |
+| The build stops at cmake on Linux | A development package is missing; the message names the option cmake turned off |
+| No GPU adapter | The machine has no GPU driver for Vulkan (Linux) or Direct3D 12 (Windows); scripts and `Headless.render` still work, since they draw on the CPU |
+| The build fails to download | It needs network the first time; put the archive at the path the error names |
+
+## Platform differences
+
+| | Windows | Linux X11 | Linux Wayland |
+| --- | --- | --- | --- |
+| Frameless windows with snap layouts | yes | moves, resizes | moves, resizes |
+| Placing windows, torn-off tabs that follow the pointer | yes | yes | no: the compositor places windows |
+| Taskbar badge | yes | no | no |
+| Accent colour from the system | yes | no | no |
+| File dialogs | system dialog | XDG portal or zenity | XDG portal or zenity |

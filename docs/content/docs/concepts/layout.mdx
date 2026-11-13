@@ -1,0 +1,58 @@
+---
+title: Elements and layout
+description: Boxes, rows, columns and text elements, laid out by flexbox, and the calls that size, space and decorate them.
+---
+
+Everything on screen is an `El`: a box (`el()`), a row (`row()`), a column (`col()`), a text (`text("…")`) or an image (`El.image(image)`). Calls chain and return the element, so a view is one expression. Layout is flexbox, as in CSS, and is checked against Taffy's test cases.
+
+```java snippet="layout"
+```
+
+## Size
+
+| Call | |
+| --- | --- |
+| `w(px)`, `h(px)`, `size(w, h)` | A fixed size in logical pixels |
+| `wFull()`, `hFull()` | As wide or high as the parent's content box |
+| `minSize(w, h)`, `maxSize(w, h)` | Limits; `minSize(0, 0)` lets text shrink below its width |
+| `grow(factor)`, `shrink(factor)`, `basis(px)` | How an element takes and gives room along its parent's axis |
+
+## Space and alignment
+
+| Call | |
+| --- | --- |
+| `padding(all)`, `padding(vertical, horizontal)`, `padding(top, right, bottom, left)` | Inside the border |
+| `margin(...)` | Outside |
+| `gap(px)` | Between children |
+| `align(Style.Align)`, `alignSelf(...)` | Across the axis: `START`, `CENTER`, `END`, `STRETCH` |
+| `justify(Style.Content)` | Along the axis: `START`, `CENTER`, `END`, `SPACE_BETWEEN`, … |
+| `center()` | Both, in the middle |
+| `wrap()` | Children wrap onto more lines |
+| `absolute(left, top)` | Placed in the parent, out of the flow |
+
+## Look
+
+| Call | |
+| --- | --- |
+| `fill(argb)` | Background colour, `0xAARRGGBB` |
+| `radius(px)`, `radius(tl, tr, br, bl)` | Rounded corners, each its own |
+| `border(width, argb)`, `border(top, right, bottom, left, argb)` | A border, each side its own width |
+| `shadow(Shadow...)` | Shadows, as CSS's `box-shadow` |
+| `opacity(value)` | For the element and everything in it |
+| `clip()` | Cut children at the rounded border box |
+| `scroll()`, `scrollBoth()`, `scrollbars(look)` | A scroll area, up and down or both ways, with bars |
+
+Colours are `int`s in ARGB. Prefer the theme's tokens (`t.surface().panel()`, `t.text().muted()`) to literals ([Themes](/docs/concepts/themes)).
+
+## Pixels and scale
+
+Layout works in logical pixels; a window's scale (1, 1.25, 1.5, 2 …) turns them into physical ones. Boxes at rest are drawn on whole physical pixels, so neighbours share their edges without seams and hairlines stay one pixel sharp at every scale, while moving boxes glide between pixels.
+
+## Children
+
+`child(el)` adds one child, `children(el...)` several; null children are left out, so `cond ? part : null` composes. Children are drawn in order, later ones on top.
+
+## In a tree dump
+
+```text file="examples/src/test/resources/golden/docs/layout/view.tree.txt"
+```

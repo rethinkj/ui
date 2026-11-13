@@ -1,0 +1,77 @@
+---
+title: Editing and changes
+description: Edit cells in place, paste, add and delete rows, and keep the changes until the app writes them.
+---
+
+The grid edits cells in an editor it lays over the cell, by the column's type, and hands each new value to the app. `GridChanges` is the usual place for those values: it keeps the changed cells, new rows and rows marked deleted over the app's own rows, shows them in the grid, undoes and redoes them, and lists them as UPDATE, INSERT and DELETE when the app writes them, as a database tool does until Commit.
+
+<Shot src="kit/edit-{theme}-states" alt="A grid with a changed cell, a new row, a deleted row and a failed value, each marked" />
+
+## With GridChanges
+
+```java snippet="grid-edit"
+```
+
+- `new GridChanges(count, (row, column) -> value)` takes the number of rows and the app's values. For rows that the app filters or sorts, make it from a `GridChanges.Rows`, which also gives each row a key that stays with it.
+- The columns take their cells from `changes.cell(column)` and the grid its rows from `changes.rowCount()`, so they show the changed values.
+- `options().changes(changes)` wires editing, pasting, clearing, new and deleted rows, the marks and Control+Z and Control+Y to it.
+- `changes.count()` is the number of changes for "Commit (n)", `changes.changes()` the list of `Change(kind, key, values)` to write, and `changes.clear()` forgets them, after writing or to revert.
+- `changes.error(row, column, message)` marks a cell the database refused.
+
+A script that edits a cell:
+
+```text snippet="grid-edit-script"
+```
+
+```text file="examples/src/test/resources/golden/docs/grid-edit/edited.tree.txt" start="#row-1 " count="5"
+```
+
+## Editors by type
+
+| Column | Editor |
+| --- | --- |
+| text | A field in the cell's font, exactly over the cell's text |
+| `INTEGER`, `DECIMAL` | A field that refuses what cannot become such a number |
+| `BOOLEAN` | None: Space, Enter, F2 and a double press switch false, true and, where `nullable()`, NULL |
+| `choices(list)`, or `ENUM` with choices | A menu of the choices; typing goes to the first that starts with it |
+| `DATE`, `TIME`, `DATE_TIME` | Text, checked as ISO 8601 (`2026-11-13`, `14:30`, `2026-11-13 14:30`) |
+| `editor((value, onChange) -> El)` | The app's own element |
+
+A value with a line break, or Alt+Enter in a text column, opens a modal field of six lines over the cell. In a `nullable()` column, NULL is a state of the editor: an empty field with a muted `NULL`, which typing turns into text and Control+0 back into NULL. A refused value keeps the editor open, `invalid`, with the message below it.
+
+<Shot src="kit/edit-{theme}-choices" alt="A cell with a menu of its column's choices" />
+
+## Keyboard
+
+| Keys | Action |
+| --- | --- |
+| Enter, F2, a double press, typing | Open the editor; typing replaces the value |
+| Enter, Shift+Enter | Hand the value on and go down or up |
+| Tab, Shift+Tab | Hand the value on and go right or left, to the next or previous row at the ends |
+| Control+Enter | Hand the value on and stay |
+| Escape | Close without handing anything on |
+| Delete | Clear the selected cells (NULL where nullable, empty text in other text columns) |
+| Control+0 | Set NULL |
+| Control+V, Shift+Insert | Paste tab-separated text; a single value goes into every selected cell |
+| Insert, Control+Plus | A new row after the cursor's |
+| Control+Minus, Control+Delete | Mark the selected rows deleted |
+| Control+Z, Control+Y, Control+Shift+Z | Undo and redo, while no editor is open |
+
+A press elsewhere hands the value on, unless the app refused it.
+
+## Without GridChanges
+
+The options that `changes` wires are there on their own, for an app that keeps changes in its own way:
+
+| Option | |
+| --- | --- |
+| `onCommit((row, column, value) -> error)` | Takes a value, or refuses it by returning a message (null accepts) |
+| `onPaste(cells)` | Takes a list of `CellValue(row, column, value)` in one change |
+| `onInsertRow(after)`, `onDeleteRows(ranges)`, `appendRow()` | New rows and deleted ones; `appendRow` shows an empty row marked `*` after the last |
+| `status(rows, cells)` | What to mark: `Status.CHANGED`, `NEW`, `DELETED`, `ERROR` |
+| `history(undo, redo)` | Control+Z and Control+Y |
+| `onEdit((row, column) -> …)` | The app edits the cell itself, in a field it lays over it |
+
+## In a tree dump
+
+A changed, new, deleted or failed row and cell say `value="changed"`, `"new"`, `"deleted"` or `"error"`, and a failed cell is `invalid`. An open editor is a `role=textbox` inside the cell; a refused one adds a `role=alert` with the message.

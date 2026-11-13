@@ -1,0 +1,5 @@
+size 280 160
+frame
+press #actions
+frame
+snap open

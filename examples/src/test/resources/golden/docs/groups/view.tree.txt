@@ -1,0 +1,21 @@
+el 0,0 460x200
+  el 12,12 420x134
+    el role=switch label="Wrap lines" 15,15 414x46 checked
+      el 25,21 354x34
+        text "Wrap lines" 25,21 354x16
+        text "Long lines break at the edge." 25,39 354x16
+      el 391,30 28x16
+        el 405,32 12x12
+    el 13,63 418x1
+    el role=button label="Keymap" 15,66 414x36 value="Default"
+      text label="key" "\u{E740}" 25,76 16x16
+      el 53,76 282x16
+        text "Keymap" 53,76 282x16
+      text "Default" 347,76 44x16
+      text label="chevron_right" "\u{F2AF}" 403,76 16x16
+    el 13,104 418x1
+    el 15,107 414x36
+      el role=button label="Advanced" 15,107 414x36 expanded=false
+        el 25,117 366x16
+          text "Advanced" 25,117 366x16
+        text label="chevron_down" "\u{F2A2}" 403,117 16x16

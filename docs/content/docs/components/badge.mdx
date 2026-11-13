@@ -1,0 +1,35 @@
+---
+title: Badge
+description: A short word in a small fill, for a type, a property, a count or a removable filter.
+---
+
+`Badge.badge` is a short word in a small tinted fill: a column's type, a constraint such as `PK`, a count, a filter to remove. Its kinds are neutral, accent, success, warning and danger, quiet by default or filled with `strong()`. For a status with a coloured dot in a status bar, use `StatusBar.status` ([StatusBar](/docs/components/status-bar)).
+
+<Shot src="kit/parts-badges-{theme}-2x" alt="Badges of every kind, quiet and strong, with icons and remove buttons, and avatars" />
+
+## Example
+
+```java snippet="badge"
+```
+
+| Call | |
+| --- | --- |
+| `badge(t, text)` | Neutral and quiet |
+| `badge(t, kind, text)` | `NEUTRAL`, `ACCENT`, `SUCCESS`, `WARNING`, `DANGER` |
+| `badge(t, text, Badge.options()…)` | With options |
+
+| Option | |
+| --- | --- |
+| `kind(Kind)` | The colour |
+| `strong()` | Filled with the kind's colour |
+| `icon(Symbol)` | An icon before the text |
+| `toolbar()` | The toolbar's height instead of a row's |
+| `onPress(Runnable)` | Pressable: `role=button`, Tab reaches it |
+| `onRemove(Runnable)` | A cross that removes it, `role=button` `label="Remove <text>"` |
+
+## In a tree dump
+
+Without a handler a badge has no role, only its text as label; with `onPress` it is `role=button`:
+
+```text file="examples/src/test/resources/golden/docs/parts/view.tree.txt" start="label=\"status = paid\"" count="3"
+```
