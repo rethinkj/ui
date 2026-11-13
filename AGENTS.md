@@ -47,6 +47,8 @@ One step per line. A `#` at the start of a line or before a space starts a comme
 
 Only `frame` runs a frame, as in a window, where input arrives between frames: `press` queues a handler and `advance` moves the clock, but the screen changes at the next `frame`. `snap` refuses to write a frame that does not show the steps before it.
 
+A `.tree.txt` has one line per element, children indented, with its rectangle in window coordinates. A line that ends in `exiting` is an element with a key and motion that a rebuild left out: it fades out where it was, takes no input, and is removed once invisible. Selectors do not match it, nor anything at opacity 0.
+
 A target is a position `x,y` in logical pixels, or a selector for exactly one element of the last frame: `#key` (anywhere in the tree), `role=<role>`, `label="<text>"` (`\"` and `\\` inside), or several of them, as in `role=switch label="Lights"`. A selector presses the centre of the element's rectangle. When it matches nothing, the error lists the keys, roles and labels there are; when it matches several, it lists them with their rectangles.
 
 `core/src/test/resources/scripts/switch.txt` drives the switch of core's tests:

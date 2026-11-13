@@ -2,6 +2,7 @@ package com.rethinkj.ui;
 
 import static com.rethinkj.ui.El.el;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.rethinkj.ui.layout.Flex;
 import org.junit.jupiter.api.Test;
@@ -46,6 +47,15 @@ class ElTest {
             el #knob 99,41 18x18
         """,
         root.dump());
+  }
+
+  @Test
+  void opacityIsFromZeroToOne() {
+    assertEquals(1, el().opacity());
+    assertEquals(0.25f, el().opacity(0.25f).opacity());
+    for (float wrong : new float[] {-0.01f, 1.01f, Float.NaN}) {
+      assertThrows(IllegalArgumentException.class, () -> el().opacity(wrong));
+    }
   }
 
   @Test

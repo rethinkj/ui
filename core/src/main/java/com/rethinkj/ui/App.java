@@ -179,9 +179,12 @@ public final class App<S> {
     }
   }
 
-  /** Whether the point lies inside the element's rounded rectangle. */
+  /**
+   * Whether the point lies inside the element's rounded rectangle and the element takes input:
+   * neither invisible nor leaving.
+   */
   private static boolean contains(El el, float parentX, float parentY, float x, float y) {
-    if (!el.isPlaced()) {
+    if (!el.isPlaced() || el.opacity() == 0 || el.isExiting()) {
       return false;
     }
     float halfW = el.width() / 2;
