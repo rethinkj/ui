@@ -194,6 +194,25 @@ class AppTest {
   }
 
   @Test
+  void handlersOfAnyKeyDownSeeEveryKeyFirstAndTakeNothingFromIt() {
+    List<String> log = new ArrayList<>();
+    App<List<String>> app = new App<>(log, l -> El.col().size(100, 100)
+        .onKey(k -> l.add("root " + k.name()))
+        .child(el().key("any").size(10, 10).onAnyKeyDown(k -> l.add("any " + k.name())))
+        .child(el().key("taker").size(40, 40).focusable()
+            .onKey(k -> k.name().equals("C") && l.add("taken C")))
+        .overlay(el().size(20, 20).atPoint(80, 80)
+            .onAnyKeyDown(k -> l.add("overlay " + k.name()))));
+    app.resize(100, 100, 1);
+    app.frame();
+    app.focus(app.tree().children().get(1));
+    app.keyDown(new Key("C", Key.ALT, false)); // the focused element takes it
+    app.keyDown(new Key("D", 0, false)); // nobody does: on to the root
+    app.frame();
+    assertEquals(List.of("any C", "overlay C", "taken C", "any D", "overlay D", "root D"), log);
+  }
+
+  @Test
   void theElementOnTopGetsThePressAndRoundedCornersAreNotPartOfIt() {
     List<String> pressed = new ArrayList<>();
     App<List<String>> app =

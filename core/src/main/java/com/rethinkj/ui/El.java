@@ -65,6 +65,7 @@ public final class El {
   private PressAtHandler onPress;
   private PressAtHandler onPointerDown;
   private Runnable onAnyPointerDown;
+  private Consumer<Key> onAnyKeyDown;
   private Consumer<Drag> onDrag;
   private Object dragPayload;
   private Consumer<Drop> onDrop;
@@ -1728,6 +1729,20 @@ public final class El {
     return this;
   }
 
+  /**
+   * Runs {@code handler} with every key that goes down in the window, while this element is in
+   * the tree or in a shown overlay, before any element's {@link #onKey} or a field sees it, and
+   * taking nothing from it: also a key that the focused element takes. A menu bar uses it to tell
+   * Alt pressed and released alone from Alt held with a key that something else took, as Alt+C
+   * that a find bar takes. Like {@link #onKey}, it runs in {@link App#frame}.
+   *
+   * @param handler the handler, or null for none
+   */
+  public El onAnyKeyDown(Consumer<Key> handler) {
+    this.onAnyKeyDown = handler;
+    return this;
+  }
+
 
   /**
    * Runs {@code handler} when the secondary button, usually the right one, is pressed and released
@@ -2506,6 +2521,11 @@ public final class El {
   /** The handler of {@link #onAnyPointerDown}, or null. */
   public Runnable onAnyPointerDown() {
     return onAnyPointerDown;
+  }
+
+  /** The handler of {@link #onAnyKeyDown}, or null. */
+  public Consumer<Key> onAnyKeyDown() {
+    return onAnyKeyDown;
   }
 
   public Consumer<Drag> onDrag() {
@@ -3437,6 +3457,7 @@ public final class El {
     PressAtHandler press = onPress;
     PressAtHandler down = onPointerDown;
     Runnable any = onAnyPointerDown;
+    Consumer<Key> anyKey = onAnyKeyDown;
     Consumer<Drag> drag = onDrag;
     Predicate<Key> keyDown = onKey;
     Predicate<Key> up = onKeyUp;
@@ -3448,6 +3469,7 @@ public final class El {
         !children.equals(before) ? "children"
             : !Objects.equals(key, keyBefore) ? "key"
             : onPress != press || onPointerDown != down || onAnyPointerDown != any
+                || onAnyKeyDown != anyKey
                 || onDrag != drag || onKey != keyDown
                 || onKeyUp != up
                 || onText != text || onEdit != edit ? "handlers"

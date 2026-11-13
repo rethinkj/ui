@@ -516,6 +516,31 @@ public final class App<S> {
     return !handlers.isEmpty();
   }
 
+  /** Runs the {@link El#onAnyKeyDown} handlers of the tree and its shown overlays. */
+  private void anyKeyDown(Key key) {
+    if (root == null) {
+      return;
+    }
+    List<Consumer<Key>> handlers = new ArrayList<>();
+    anyKeyDown(root, handlers);
+    for (El overlay : root.shownOverlays()) {
+      anyKeyDown(overlay, handlers);
+    }
+    for (Consumer<Key> handler : handlers) {
+      handler.accept(key);
+    }
+    handled |= !handlers.isEmpty();
+  }
+
+  private static void anyKeyDown(El el, List<Consumer<Key>> handlers) {
+    if (el.onAnyKeyDown() != null) {
+      handlers.add(el.onAnyKeyDown());
+    }
+    for (El child : el.children()) {
+      anyKeyDown(child, handlers);
+    }
+  }
+
   private static void anyPointerDown(El el, List<Runnable> handlers) {
     if (el.onAnyPointerDown() != null) {
       handlers.add(el.onAnyPointerDown());
@@ -870,6 +895,7 @@ public final class App<S> {
       keyToText = focused != null && (focused.editor() != null || focused.onText() != null);
       Object before = focusId;
       keyUntaken = false;
+      anyKeyDown(key);
       boolean took = keyDownAt(key);
       if (keyUntaken && untaken != null) {
         untaken.run();

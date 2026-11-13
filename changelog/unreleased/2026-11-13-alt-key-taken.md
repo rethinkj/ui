@@ -1,0 +1,1 @@
+- `El.onAnyKeyDown(handler)` runs with every key that goes down in the window, also one that another element takes. The kit's `MenuBar` uses it: Alt held with a key that a focused element took, such as Alt+C in a find bar or Alt+Up in a code editor, no longer gives the menu bar the keys when Alt is released, which sent the next such key to the bar.
