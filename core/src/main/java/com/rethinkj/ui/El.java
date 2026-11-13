@@ -36,6 +36,7 @@ public final class El {
   private static final int ASCENDING = 64;
   private static final int DESCENDING = 128;
   private static final int CURRENT = 256;
+  private static final int INVALID = 512;
 
   private final Style style = new Style();
   private final List<El> children = new ArrayList<>();
@@ -268,6 +269,14 @@ public final class El {
    */
   public El disabled(boolean disabled) {
     return state(DISABLED, disabled ? DISABLED : 0);
+  }
+
+  /**
+   * Whether the value of this element is not accepted, as WAI-ARIA's {@code aria-invalid}: a field
+   * of a form whose error says why.
+   */
+  public El invalid(boolean invalid) {
+    return state(INVALID, invalid ? INVALID : 0);
   }
 
   /** The column this header sorts by, upwards. */
@@ -2290,7 +2299,7 @@ public final class El {
    * shown, that is, moved by the scroll offsets above it. The states the view set follow, those
    * that are set, in this order: {@code disabled} (also a field that {@link #editable
    * editable(null)} disables), {@code readonly} (a {@link #readOnly} field), {@code password} (a
-   * {@link #masked} field, as UI Automation's {@code IsPassword}), {@code selected},
+   * {@link #masked} field, as UI Automation's {@code IsPassword}), {@code invalid}, {@code selected},
    * {@code current}, {@code checked}, {@code checked=false} or {@code checked=mixed}, {@code expanded} or {@code
    * expanded=false}, {@code level=2}, {@code pos=3/10} (the position in the set and its size),
    * {@code sort=ascending} or {@code sort=descending}, and {@code value="..."}, as in {@code el
@@ -2454,6 +2463,9 @@ public final class El {
     }
     if (editable && text.masked()) {
       out.append(" password");
+    }
+    if ((states & INVALID) != 0) {
+      out.append(" invalid");
     }
     if ((states & SELECTED) != 0) {
       out.append(" selected");
