@@ -1,0 +1,1 @@
+- The Workbench example's Edit menu has Find…, Replace…, Find next, Go to line… and the query editor's line commands; the Documents example finds and replaces in each document, and the Showcase's code editor has its find bar.

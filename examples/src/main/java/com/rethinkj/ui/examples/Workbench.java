@@ -22,6 +22,7 @@ import com.rethinkj.ui.kit.Button;
 import com.rethinkj.ui.kit.Card;
 import com.rethinkj.ui.kit.CodeEditor;
 import com.rethinkj.ui.kit.Completion;
+import com.rethinkj.ui.kit.Find;
 import com.rethinkj.ui.kit.AppIcon;
 import com.rethinkj.ui.kit.DataGrid;
 import com.rethinkj.ui.kit.DataGrid.CellIcon;
@@ -848,7 +849,31 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
         }).icon(Symbol.CLIPBOARD_PASTE).shortcut(Key.CONTROL, "V"),
         Menu.separator(),
         Menu.item("Select all", o == null ? null
-            : () -> app.select(query(o, app), o.query.length(), 0)).shortcut(Key.CONTROL, "A"));
+            : () -> app.select(query(o, app), o.query.length(), 0)).shortcut(Key.CONTROL, "A"),
+        Menu.separator(),
+        Menu.item("Find…", o == null ? null : () -> Find.open(o.editor.find()))
+            .icon(Symbol.SEARCH).shortcut(Key.CONTROL, "F"),
+        Menu.item("Replace…", o == null ? null : () -> Find.openReplace(o.editor.find()))
+            .shortcut(Key.CONTROL, "H"),
+        Menu.item("Find next", o == null ? null : () -> Find.next(o.editor.find()))
+            .shortcut(0, "F3"),
+        Menu.item("Go to line…", o == null ? null : () -> Find.goToLine(o.editor.find()))
+            .shortcut(Key.CONTROL, "G"),
+        Menu.separator(),
+        // Shown, not bound at the root: they act on the editor, which takes them while it has
+        // the focus, and not on a grid that has it.
+        command(app, o, "Select next occurrence", CodeEditor.Command.SELECT_NEXT, "Ctrl+D"),
+        command(app, o, "Duplicate lines", CodeEditor.Command.DUPLICATE_LINES, "Ctrl+Shift+D"),
+        command(app, o, "Move lines up", CodeEditor.Command.MOVE_LINES_UP, "Alt+Up"),
+        command(app, o, "Move lines down", CodeEditor.Command.MOVE_LINES_DOWN, "Alt+Down"),
+        command(app, o, "Delete lines", CodeEditor.Command.DELETE_LINES, "Ctrl+Shift+K"),
+        command(app, o, "Toggle comment", CodeEditor.Command.TOGGLE_COMMENT, "Ctrl+/"));
+  }
+
+  private static Menu.Item command(App<Workbench> app, Opened o, String label,
+      CodeEditor.Command command, String keys) {
+    return Menu.item(label, o == null ? null : () -> CodeEditor.run(app, o.editor, command))
+        .shortcut(keys);
   }
 
   /** The query field of a tab in the tree of the window it is in. */
