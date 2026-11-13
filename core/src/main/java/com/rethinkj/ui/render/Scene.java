@@ -197,6 +197,15 @@ import java.util.List;
  * <p>An element's shadows come right before its own rectangle, the last of them first, so that the
  * first lies on top, as in CSS; with the element's clip and opacity.
  *
+ * <p>A scene built for a scale ({@link #of(El, float)}) puts the boxes at rest on the physical
+ * pixel grid: each edge of a border box at {@code round(x * scale)} physical pixels, halves up;
+ * borders, the focus ring and sides of at most {@link #HAIRLINE} logical pixels {@code max(1,
+ * floor(width * scale))} physical pixels wide; an edge on the content box of a parent with a
+ * border on the inner edge of that border as drawn. Clips, shadows, thumbs (across their bar) and
+ * the content boxes of text follow the snapped boxes. A box that a spring moves ({@link
+ * El#isMoving}), and what is inside it, keeps its place between pixels. At scales 1 and 2 layout's
+ * whole logical pixels are whole physical ones, and nothing moves.
+ *
  * <p>Overlays ({@link El#overlay}) come after the whole tree, in the order of the root's {@link
  * El#shownOverlays}, each drawn as a tree of its own: from its position in the window, without
  * the clips or the opacity of its anchor's ancestors, with clips of its own. Before an overlay
