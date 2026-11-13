@@ -1,5 +1,6 @@
 package com.rethinkj.ui;
 
+import com.rethinkj.ui.motion.Spring;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -25,6 +26,7 @@ public final class El {
   private int borderColor;
   private Measure measure;
   private Runnable onPress;
+  private Spring motion;
   private boolean placed;
   private float x;
   private float y;
@@ -229,6 +231,19 @@ public final class El {
     return this;
   }
 
+  /**
+   * Lets this element spring to new values: when a rebuild of the view gives an element that was
+   * already there a new rectangle, fill, border colour or radius, {@link App} moves it there with
+   * {@code spring} instead of at once. An element that appears for the first time does not move.
+   * Children are placed relative to their parent and move with it.
+   *
+   * @param spring how to move, or null to change at once
+   */
+  public El motion(Spring spring) {
+    this.motion = spring;
+    return this;
+  }
+
   // Tree
 
   public El child(El child) {
@@ -286,8 +301,17 @@ public final class El {
     return onPress;
   }
 
+  public Spring motion() {
+    return motion;
+  }
+
   public Measure measure() {
     return measure;
+  }
+
+  /** For {@link App}, which shows the border colour of the moment. */
+  void borderColor(int argb) {
+    this.borderColor = argb;
   }
 
   /** Called by layout: the border box, with the position relative to the parent's border box. */

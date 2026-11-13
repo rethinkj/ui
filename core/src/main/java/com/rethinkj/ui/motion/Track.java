@@ -58,6 +58,11 @@ public final class Track {
     return isAtRest(now) ? 0 : spring.velocity(from, velocity, to, now - start);
   }
 
+  /** The value the track moves towards or rests at. */
+  public double target() {
+    return to;
+  }
+
   /** Whether the value has reached its target and stays there from {@code now} on. */
   public boolean isAtRest(double now) {
     return now >= end;

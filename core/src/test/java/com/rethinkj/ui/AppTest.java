@@ -26,6 +26,7 @@ class AppTest {
     assertTrue(app.frame());
 
     assertTrue(app.state().on);
+    app.advance(1); // the knob and the colour spring to their new values
     app.resize(200, 120, 2);
     app.frame();
     Golden.assertMatches("switch-on", app.render().pixels(), app.render().tree());
