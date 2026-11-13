@@ -37,6 +37,7 @@ public final class El {
   private static final int DESCENDING = 128;
   private static final int CURRENT = 256;
   private static final int INVALID = 512;
+  private static final int GRABBED = 1024;
 
   private final Style style = new Style();
   private final List<El> children = new ArrayList<>();
@@ -302,6 +303,14 @@ public final class El {
    */
   public El current(boolean current) {
     return state(CURRENT, current ? CURRENT : 0);
+  }
+
+  /**
+   * Whether this is being dragged, as WAI-ARIA's {@code aria-grabbed}: a tab on its way to another
+   * place in its bar or to another bar.
+   */
+  public El grabbed(boolean grabbed) {
+    return state(GRABBED, grabbed ? GRABBED : 0);
   }
 
   /** Whether the view set {@link #selected(boolean)}. */
@@ -2964,7 +2973,7 @@ public final class El {
    * that are set, in this order: {@code disabled} (also a field that {@link #editable
    * editable(null)} disables), {@code readonly} (a {@link #readOnly} field), {@code password} (a
    * {@link #masked} field, as UI Automation's {@code IsPassword}), {@code invalid}, {@code selected},
-   * {@code current}, {@code checked}, {@code checked=false} or {@code checked=mixed}, {@code expanded} or {@code
+   * {@code current}, {@code grabbed}, {@code checked}, {@code checked=false} or {@code checked=mixed}, {@code expanded} or {@code
    * expanded=false}, {@code level=2}, {@code pos=3/10} (the position in the set and its size),
    * {@code sort=ascending} or {@code sort=descending}, and {@code value="..."}, as in {@code el
    * #row-3 role=treeitem label="public" 0,66 400x22 selected expanded level=3 pos=1/2}. A scroll
@@ -3160,6 +3169,9 @@ public final class El {
     }
     if ((states & CURRENT) != 0) {
       out.append(" current");
+    }
+    if ((states & GRABBED) != 0) {
+      out.append(" grabbed");
     }
     switch (states & (CHECKED | NOT_CHECKED)) {
       case CHECKED -> out.append(" checked");

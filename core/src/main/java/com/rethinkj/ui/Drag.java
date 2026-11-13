@@ -55,8 +55,8 @@ public record Drag(Phase phase, float dx, float dy, double x, double y, float sc
     END,
     /**
      * The drag was given up before the button was released: its element left the tree, unless
-     * the drag carries a {@link El#dragPayload payload}, or the pointer went down again without a
-     * release in between. Undo what it changed.
+     * the drag carries a {@link El#dragPayload payload}, Escape was pressed, or the pointer went down again
+     * without a release in between. Undo what it changed.
      */
     CANCEL
   }
