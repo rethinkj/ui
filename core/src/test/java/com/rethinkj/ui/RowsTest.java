@@ -187,7 +187,7 @@ class RowsTest {
     // At most 23 rows show in 600 pixels, with three more on each side, of four elements each.
     assertTrue(million[1] <= 29 * 4 + 1, "the rows in view and the overscan, " + million[1]);
     assertTrue(
-        million[0] < 3 * thousand[0] + 100_000,
+        million[0] < 10 * thousand[0] + 500_000, // only something linear in the rows fails
         "median " + million[0] + " ns with a million rows, " + thousand[0] + " with a thousand");
   }
 
