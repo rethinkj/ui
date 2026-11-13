@@ -266,6 +266,8 @@ public final class Menu {
     private float y = Float.NaN;
     private int[] lit = {-1, -1, -1, -1}; // per level, from the menu: the highlighted item
     private int[] sub = {-1, -1, -1, -1}; // per level: the item whose submenu is open
+    private int revealing = -1; // the level whose highlight a key moved, until its panel shows it
+    private int opening; // a key opens the menu: 1 highlights its first item, -1 its last
 
     public boolean isOpen() {
       return open;
@@ -330,6 +332,36 @@ public final class Menu {
       lit[level] = item;
     }
 
+    /** Highlights an item as a key does, which also scrolls it into view. */
+    void highlightByKey(int level, int item) {
+      highlight(level, item);
+      revealing = level;
+    }
+
+    /**
+     * Forgets a highlight and an open submenu at a level that the items no longer have: the app
+     * may change the items while the menu is open.
+     */
+    void fit(int level, List<Item> items) {
+      int at = active(level);
+      if (at >= items.size() || at >= 0 && items.get(at).isSeparator()) {
+        highlight(level, -1);
+      }
+      int open = submenu(level);
+      if (open >= 0 && (open >= items.size() || !items.get(open).opens())) {
+        openSubmenu(level, -1);
+      }
+    }
+
+    /** The item a key highlighted at this level, once, for its panel to keep in view; else -1. */
+    int takeReveal(int level) {
+      if (revealing != level) {
+        return -1;
+      }
+      revealing = -1;
+      return active(level);
+    }
+
     /** Opens the submenu of an item at a level, or closes the open one with -1, and deeper ones. */
     void openSubmenu(int level, int item) {
       grow(level + 1);
@@ -368,11 +400,64 @@ public final class Menu {
    * @return the anchor
    */
   public static El dropdown(Theme t, El anchor, State state, List<Item> items) {
+    El.PressAtHandler press = anchor.onPress();
+    if (press != null) {
+      anchor.onKey(opener(
+          state,
+          anchor.onKey(),
+          () -> press.press(1, 0, anchor.width() / 2.0, anchor.height() / 2.0)));
+    }
+    if (state.isOpen() && state.opening != 0 && state.active(0) < 0) {
+      state.highlightByKey(0, enabledEnd(items, state.opening > 0));
+    }
+    state.opening = 0;
     return anchor.overlay(
         state.isOpen()
             ? menu(t, state, items)
                 .side(Side.BOTTOM, Style.Align.START, t.space().xs())
             : null);
+  }
+
+  /**
+   * The keys of a menu button, after its own {@code keys}: Enter and Space go on to its press and
+   * the menu that opens has its first enabled item highlighted, Arrow Down and Arrow Up press it
+   * and highlight the first or the last, as WAI-ARIA's menu button has it. A press with the
+   * pointer opens it without a highlight.
+   */
+  static Predicate<Key> opener(State state, Predicate<Key> keys, Runnable press) {
+    return k -> {
+      if (keys != null && keys.test(k)) {
+        return true;
+      }
+      if (state.isOpen() || k.modifiers() != 0 || k.repeat()) {
+        return false;
+      }
+      switch (k.name()) {
+        case "Enter", "Space" -> {
+          state.opening = 1;
+          return false; // the press that follows opens the menu
+        }
+        case "ArrowDown", "ArrowUp" -> {
+          state.opening = k.name().equals("ArrowDown") ? 1 : -1;
+          press.run();
+          return true;
+        }
+        default -> {
+          return false;
+        }
+      }
+    };
+  }
+
+  /** The index of the first enabled item, or with {@code first} false the last; -1 for none. */
+  static int enabledEnd(List<Item> items, boolean first) {
+    for (int i = 0; i < items.size(); i++) {
+      int at = first ? i : items.size() - 1 - i;
+      if (items.get(at).isEnabled()) {
+        return at;
+      }
+    }
+    return -1;
   }
 
   /**
@@ -406,6 +491,7 @@ public final class Menu {
   }
 
   private static El panel(Theme t, State state, List<Item> items, int level, Bar bar) {
+    state.fit(level, items);
     El panel = col()
         .key(level == 0 ? "menu" : "submenu")
         .role("menu")
@@ -419,6 +505,7 @@ public final class Menu {
         .motion(t.motion().fade())
         .scroll()
         .scrollbars(t.scrollbars())
+        .revealRow(state.takeReveal(level)) // the items are its children, separators counted
         .onKey(k -> key(k, state, items, level, bar));
     for (int i = 0; i < items.size(); i++) {
       panel.child(
@@ -495,6 +582,9 @@ public final class Menu {
 
   /** Chooses an item: opens its submenu, or closes the menu and runs its handler. */
   private static void choose(State state, List<Item> items, int i, int level, Bar bar) {
+    if (i < 0 || i >= items.size()) {
+      return;
+    }
     Item item = items.get(i);
     if (item.submenu() != null) {
       if (item.isEnabled()) {
@@ -524,7 +614,7 @@ public final class Menu {
       default -> -2;
     };
     if (next != -2) {
-      state.highlight(level, next);
+      state.highlightByKey(level, next);
       return true;
     }
     switch (k.name()) {
@@ -532,7 +622,7 @@ public final class Menu {
         if (active >= 0) {
           choose(state, items, active, level, bar);
           if (state.submenu(level) == active) {
-            state.highlight(level + 1, step(items.get(active).submenu(), -1, 1));
+            state.highlightByKey(level + 1, step(items.get(active).submenu(), -1, 1));
           }
         }
         return true;
@@ -540,7 +630,7 @@ public final class Menu {
       case "ArrowRight" -> {
         if (active >= 0 && items.get(active).opens()) {
           state.openSubmenu(level, active);
-          state.highlight(level + 1, step(items.get(active).submenu(), -1, 1));
+          state.highlightByKey(level + 1, step(items.get(active).submenu(), -1, 1));
         } else if (bar != null) {
           bar.sideways().accept(1);
         }
@@ -571,7 +661,7 @@ public final class Menu {
         if (name.length() == 1 && Character.isLetterOrDigit(name.charAt(0))) {
           int found = startingWith(items, active, name);
           if (found >= 0) {
-            state.highlight(level, found);
+            state.highlightByKey(level, found);
           }
           return true;
         }
