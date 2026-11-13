@@ -130,6 +130,36 @@
         </plugin>
       </plugins>
     </pluginManagement>
+    <plugins>
+      <plugin>
+        <!-- The format of all Java code: mvn spotless:apply writes it, and verify fails on a
+             file that is not in it. -->
+        <groupId>com.diffplug.spotless</groupId>
+        <artifactId>spotless-maven-plugin</artifactId>
+        <version>3.11.0</version>
+        <configuration>
+          <java>
+            <includes>
+              <include>src/*/java/**/*.java</include>
+              <include>scripts/*.java</include>
+            </includes>
+            <palantirJavaFormat>
+              <version>2.103.0</version>
+              <!-- Palantir's breaking of call chains with Google's two spaces and 100 columns. -->
+              <style>GOOGLE</style>
+            </palantirJavaFormat>
+          </java>
+        </configuration>
+        <executions>
+          <execution>
+            <goals>
+              <goal>check</goal>
+            </goals>
+            <phase>verify</phase>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
   </build>
 
   <profiles>

@@ -674,6 +674,7 @@ A release is not set up yet. Central wants for it, besides what the POMs have: `
 - Shared build configuration (Java release, encoding, plugin and dependency versions) belongs in the root `pom.xml`. Module POMs declare only what is specific to them.
 - Dependencies point one way: `kit` depends on `core`, never the reverse.
 - The version is repeated in every module's `<parent>` block. Change it with `mvn versions:set -DnewVersion=<version>`, not by editing one POM.
+- Java code is formatted by Palantir Java Format in its Google style (two spaces, 100 columns, one call of a chain per line), through Spotless: `mvn spotless:apply` formats every Java file of the modules and of `scripts/`, and `mvn verify` fails on a file that is not formatted, so the CI checks it. Format before committing; do not break lines by hand against it. `.git-blame-ignore-revs` lists the commits that only reformatted (`git config blame.ignoreRevsFile .git-blame-ignore-revs`).
 
 ## Changes
 
