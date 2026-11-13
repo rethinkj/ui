@@ -189,9 +189,6 @@ class NativesLoadTest {
             + (wgpu & 0xFF),
         "wgpuGetVersion");
 
-    if (manifest.platform().equals("windows-x64")) {
-      return; // The Windows module has no FreeType and HarfBuzz yet.
-    }
     assertEquals(manifest.library("freetype").version(), freetype(lookup.apply("freetype")),
         "FT_Library_Version");
 
