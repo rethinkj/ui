@@ -202,8 +202,14 @@ class TreeTest {
     assertEquals(Tree.CLOSED, mark(app, 0));
   }
 
-  private static String mark(App<?> app, int row) {
-    return find(app, "mark-" + row).children().getFirst().text().string();
+  private static Symbol mark(App<?> app, int row) {
+    String shown = find(app, "mark-" + row).children().getFirst().text().string();
+    for (Symbol symbol : List.of(Tree.OPEN, Tree.CLOSED)) {
+      if (shown.equals(Character.toString(symbol.codePoint(T.size().icon())))) {
+        return symbol;
+      }
+    }
+    return null;
   }
 
   @Test

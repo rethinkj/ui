@@ -108,6 +108,8 @@ public record Theme(
    * @param switchHeight the height of a toggle's track
    * @param stroke the width of a border
    * @param field the width of a text field, unless the view gives it another
+   * @param icon the side of an {@link Icon}, unless the view gives it another; the icons are
+   *     sharpest at a size they are drawn for (see {@link Symbol})
    */
   public record Sizes(
       float control,
@@ -115,12 +117,19 @@ public record Theme(
       float switchWidth,
       float switchHeight,
       float stroke,
-      float field) {
+      float field,
+      float icon) {
 
-    /** Sizes with text fields 200 wide. */
+    /** Sizes with text fields 200 wide and icons 16. */
     public Sizes(float control, float checkbox, float switchWidth, float switchHeight,
         float stroke) {
       this(control, checkbox, switchWidth, switchHeight, stroke, 200);
+    }
+
+    /** Sizes with icons 16. */
+    public Sizes(float control, float checkbox, float switchWidth, float switchHeight,
+        float stroke, float field) {
+      this(control, checkbox, switchWidth, switchHeight, stroke, field, 16);
     }
   }
 
@@ -155,7 +164,7 @@ public record Theme(
           new TextStyle(Font::sans, 13),
           new TextStyle(Font::mono, 12),
           new TextStyle(Font::sansBold, 15));
-  private static final Sizes SIZE = new Sizes(24, 16, 28, 16, 1, 200);
+  private static final Sizes SIZE = new Sizes(24, 16, 28, 16, 1, 200, 16);
   private static final Motion MOTION = new Motion(Spring.INSTANT, Spring.SNAP);
 
   /** Neutral greys with a blue accent, light text on dark surfaces. */
