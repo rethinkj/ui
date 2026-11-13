@@ -133,6 +133,32 @@ class AtlasTest {
     assertEquals(first, atlas.glyph(Font.sans(), 40, LIGHT, o, 0));
   }
 
+  @Test
+  void aPageOfAnyAllowedSizeHoldsEveryGlyphNoLargerThanIt() {
+    TextLibraries.assumeLoaded();
+    Font inter = Font.sans();
+    int h = glyph("H");
+    // Shelves are multiples of 4 high; pages need not be. H at 22 is 14 by 16, so in a page of 17
+    // it fits with its empty column and row, but not with its shelf rounded up to 20.
+    for (int pageSize = 16; pageSize <= 23; pageSize++) {
+      for (int pixels = 10; pixels <= 30; pixels++) {
+        Font.Bitmap bitmap = inter.rasterize(h, pixels, LIGHT, 0);
+        boolean fits = bitmap.width() < pageSize && bitmap.height() < pageSize;
+        Atlas atlas = new Atlas(pageSize, (long) pageSize * pageSize, 100);
+        atlas.nextFrame();
+        for (int quarter = 0; quarter < 4; quarter++) {
+          Atlas.Slot slot = atlas.glyph(inter, pixels, LIGHT, h, quarter);
+          if (quarter == 0) {
+            assertEquals(fits, !slot.isEmpty(), bitmap + " in a page of " + pageSize);
+          }
+          if (!slot.isEmpty()) {
+            assertTrue(slot.y() + slot.height() < pageSize, slot + " in " + pageSize);
+          }
+        }
+      }
+    }
+  }
+
   private static int glyph(String character) {
     return Font.sans().shape(character, 14, 1).glyph(0);
   }
