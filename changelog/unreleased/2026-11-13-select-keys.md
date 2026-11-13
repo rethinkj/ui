@@ -1,0 +1,1 @@
+- Changed the keys of the kit's `Select` while it is closed: Arrow Down and Arrow Up choose the next and the previous choice instead of opening the list, Home and End the first and the last, a letter or digit the next choice that starts with it, and Alt+Arrow Down or Alt+Arrow Up open the list (and close it again).

@@ -116,6 +116,31 @@ class MenuTest {
   }
 
   @Test
+  void aClosedSelectChoosesWithArrowsAndLettersAndOpensWithAltDown() throws IOException {
+    Bench bench = new Bench(Theme.DARK);
+    App<Bench> app = bench.app();
+    run(app, "frame\nfocus #encoding\nkey ArrowDown\nkey ArrowDown\nframe\n");
+    assertEquals(2, bench.encoding, "Down chooses the next, without opening");
+    assertFalse(bench.encodings.isOpen());
+    run(app, "key ArrowUp\nframe\n");
+    assertEquals(1, bench.encoding);
+    run(app, "key End\nkey ArrowDown\nframe\n");
+    assertEquals(3, bench.encoding, "the last, where Down stays");
+    run(app, "key U\nframe\n");
+    assertEquals(0, bench.encoding, "the next that starts with U, around past the end");
+    run(app, "key U\nframe\nkey I\nframe\n");
+    assertEquals(2, bench.encoding, "UTF-16, then ISO-8859-1");
+    assertTrue(app.tree().dump().contains("role=combobox label=\"ISO-8859-1\""));
+    run(app, "key ArrowDown alt\nframe\n");
+    assertTrue(bench.encodings.isOpen(), "Alt+Down opens it");
+    assertEquals(2, bench.encodings.active(), "with the choice highlighted");
+    run(app, "key ArrowDown\nkey ArrowUp alt\nframe\n");
+    assertFalse(bench.encodings.isOpen(), "Alt+Up closes it");
+    assertEquals(2, bench.encoding, "without choosing");
+    assertEquals("encoding", app.focused().key());
+  }
+
+  @Test
   void keysMoveTheHighlightAroundPastSeparatorsAndOpenAndCloseTheSubmenu() throws IOException {
     Bench bench = new Bench(Theme.DARK);
     App<Bench> app = bench.app();
