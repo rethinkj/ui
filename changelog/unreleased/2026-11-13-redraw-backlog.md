@@ -1,0 +1,1 @@
+- Fixed: on Linux with X11, a window being resized no longer falls behind its size. Every step of a resize asks for a redraw, and `WindowLoop` drew each one in turn; now a redraw replaces one that is still waiting.

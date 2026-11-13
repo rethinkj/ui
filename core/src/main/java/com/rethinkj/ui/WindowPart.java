@@ -11,7 +11,10 @@ public enum WindowPart {
    * drag the window, such as a search field in a title bar.
    */
   CONTENT,
-  /** Moves the window when dragged, like a system title bar; a double click maximizes it. */
+  /**
+   * Moves the window when dragged, like a system title bar. On Windows a double click maximizes
+   * it; on Linux it does not, because the press goes to the window manager as the start of a move.
+   */
   DRAG,
   /** Minimizes the window when clicked. */
   MINIMIZE,

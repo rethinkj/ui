@@ -34,6 +34,7 @@
     <module>core</module>
     <module>kit</module>
     <module>fonts</module>
+    <module>examples</module>
   </modules>
 
   <properties>
@@ -88,6 +89,17 @@
         <plugin>
           <artifactId>maven-antrun-plugin</artifactId>
           <version>3.2.0</version>
+        </plugin>
+        <plugin>
+          <!-- Runs an example: mvn -pl examples -am compile exec:exec. Elsewhere it skips, and
+               wants an executable even then. -->
+          <groupId>org.codehaus.mojo</groupId>
+          <artifactId>exec-maven-plugin</artifactId>
+          <version>3.6.4</version>
+          <configuration>
+            <executable>java</executable>
+            <skip>true</skip>
+          </configuration>
         </plugin>
       </plugins>
     </pluginManagement>
