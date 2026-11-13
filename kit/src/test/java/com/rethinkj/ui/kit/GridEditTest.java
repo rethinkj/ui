@@ -204,6 +204,10 @@ class GridEditTest {
     run(app, "press #cell-4-4\nframe"); // a press elsewhere tries again and selects nothing
     assertEquals(0, ledger.selection.row());
     assertNotNull(CellEditorTest.find(app, "editor"));
+    assertEquals("field", app.focused().key(), "the editor keeps the focus after the press");
+    run(app, "key Backspace\nframe");
+    assertEquals("Grace Hoppe", ledger.selection.draft(), "and the keys");
+    run(app, "type \"r\"\nframe");
     ledger.refuse = null;
     run(app, "key Enter\nframe");
     assertEquals("Grace Hopper", ledger.changes.cell(0, 1));

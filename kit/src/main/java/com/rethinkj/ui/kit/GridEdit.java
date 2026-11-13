@@ -225,6 +225,8 @@ final class GridEdit {
     }
     if (error != null) {
       sel.error = error;
+      sel.edits++; // the editor takes the focus back from a press elsewhere, which moved it
+
       if (appended) {
         sel.original = null; // the row is the app's now, and empty
       }
