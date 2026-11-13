@@ -30,15 +30,17 @@ import java.util.Map;
  * Draws a {@link Scene} on the GPU, through wgpu, with the formulas of {@link CpuRenderer}: for
  * rectangles the same signed distance, the same coverage ramp one physical pixel wide and the
  * border inside the rectangle; for glyphs the same texel for each physical pixel and the same
- * coverage correction; for both the clip's coverage multiplied in, and blending in linear light.
+ * coverage correction; for shadows the same blur, with the same approximation of {@code erf}; for
+ * all the clip's coverage multiplied in, and blending in linear light.
  * The result matches the CPU renderer's within a small tolerance per channel, not bit for bit.
  *
  * <p>The instances and the clip table go to the GPU as they are, as two read-only storage
  * buffers that the shader reads as {@code array<Instance>} and {@code array<Clip>} in the layout
- * {@link Scene} documents; one instanced draw call draws all instances in order, rectangles and
- * glyphs alike, one quad each. The colours stay linear and premultiplied: the shader returns
- * premultiplied linear colour, the pipeline blends with {@code one, one-minus-src-alpha}, and the
- * target has an sRGB format, so the GPU blends in linear light and encodes to sRGB as it stores.
+ * {@link Scene} documents; one instanced draw call draws all instances in order, rectangles,
+ * glyphs and shadows alike, one quad each. The colours stay linear and premultiplied: the shader
+ * returns premultiplied linear colour, the pipeline blends with {@code one, one-minus-src-alpha},
+ * and the target has an sRGB format, so the GPU blends in linear light and encodes to sRGB as it
+ * stores.
  *
  * <p>The atlas pages of the scene ({@link Scene#pages}) are the layers of one {@code r8unorm}
  * texture array, page {@code i} in layer {@code i}, which the shader reads with {@code
@@ -79,16 +81,17 @@ public final class GpuRenderer implements AutoCloseable {
       }
 
       // The layouts of Scene's Javadoc: 64 bytes per instance, 32 per clip. An instance is a
-      // rounded rectangle or a glyph. The slots in which the two differ are declared as u32 and
-      // bitcast to f32 where they hold floats: the bits of a float survive that, while a small
+      // rounded rectangle, a glyph or a shadow. The slots in which they differ are declared as u32
+      // and bitcast to f32 where they hold floats: the bits of a float survive that, while a small
       // integer read as a float is a subnormal, which a GPU may flush to zero.
       struct Instance {
         rect: vec4f,
-        // A rectangle's radius and border width, f32; a glyph's atlas and atlas_size.
+        // A rectangle's radius and border width, f32; a glyph's atlas and atlas_size; a shadow's
+        // radius and sigma, f32.
         shape: vec2u,
         clip: u32,
         kind: u32,
-        // A rectangle's fill; a glyph's colour.
+        // A rectangle's fill; a glyph's or a shadow's colour.
         fill: vec4f,
         // A rectangle's border colour, f32; a glyph's page, and as f32 its light_share,
         // dark_gamma and light_gamma.
@@ -96,6 +99,7 @@ public final class GpuRenderer implements AutoCloseable {
       }
 
       const GLYPH: u32 = 1u;
+      const SHADOW: u32 = 2u;
 
       struct Clip {
         rect: vec4f,
@@ -123,9 +127,17 @@ public final class GpuRenderer implements AutoCloseable {
         return vec2f(f32(instance.shape.y & 0xFFFFu), f32(instance.shape.y >> 16u));
       }
 
+      // A shadow's deviation with the pixel's added: a box one physical pixel wide has the
+      // variance 1/12 of a Gaussian.
+      fn deviation(instance: Instance) -> f32 {
+        let sigma = bitcast<f32>(instance.shape.y);
+        return sqrt(sigma * sigma + 1.0 / (12.0 * globals.scale * globals.scale));
+      }
+
       // A quad, in physical pixels, within the instance's clip and one pixel beyond it. For a
       // rectangle, over the rectangle and one pixel larger on every side: the smoothed edge
-      // reaches half a pixel beyond the shape. For a glyph, exactly over its texels.
+      // reaches half a pixel beyond the shape. For a shadow, the same over its shape grown by
+      // three deviations. For a glyph, exactly over its texels.
       @vertex
       fn vs_main(@builtin(vertex_index) vertex: u32,
           @builtin(instance_index) index: u32) -> Varyings {
@@ -140,10 +152,14 @@ public final class GpuRenderer implements AutoCloseable {
           high = min(origin + glyph_size(instance),
               (clip.rect.xy + clip.rect.zw) * globals.scale + 1.0);
         } else {
+          var rect = instance.rect;
+          if instance.kind == SHADOW {
+            let reach = 3.0 * deviation(instance);
+            rect = vec4f(rect.xy - reach, rect.zw + 2.0 * reach);
+          }
           let pad = 1.0 / globals.scale;
-          low = (max(instance.rect.xy, clip.rect.xy) - pad) * globals.scale;
-          high = (min(instance.rect.xy + instance.rect.zw, clip.rect.xy + clip.rect.zw) + pad)
-              * globals.scale;
+          low = (max(rect.xy, clip.rect.xy) - pad) * globals.scale;
+          high = (min(rect.xy + rect.zw, clip.rect.xy + clip.rect.zw) + pad) * globals.scale;
           empty = !(instance.rect.z > 0.0 && instance.rect.w > 0.0);
         }
         let corner = vec2f(f32(vertex & 1u), f32(vertex >> 1u));
@@ -177,6 +193,73 @@ public final class GpuRenderer implements AutoCloseable {
         return coverage(distance(point - (clip.rect.xy + half_size), half_size, radius));
       }
 
+      // The error function as Abramowitz and Stegun's 7.1.28 has it, within 3e-7: arithmetic
+      // only, as on the CPU.
+      fn erf(x: f32) -> f32 {
+        let a = min(abs(x), 4.0);
+        var p = 1.0 + a * (0.0705230784 + a * (0.0422820123 + a * (0.0092705272
+            + a * (0.0001520143 + a * (0.0002765672 + a * 0.0000430638)))));
+        p *= p;
+        p *= p;
+        p *= p;
+        p *= p;
+        return sign(x) * (1.0 - 1.0 / p);
+      }
+
+      // How much of a Gaussian of deviation sigma around 0 lies below t.
+      fn below(t: f32, sigma: f32) -> f32 {
+        return 0.5 + 0.5 * erf(t * (0.7071067811865476 / sigma));
+      }
+
+      // The Gaussian's mass from -half to half, seen from t.
+      fn across(t: f32, half: f32, sigma: f32) -> f32 {
+        return below(t + half, sigma) - below(t - half, sigma);
+      }
+
+      // The blur of the quarter disc of radius r at the origin towards +x, +y, seen from u, v:
+      // within three deviations of v, in eight slices of equal height, each the Gaussian's exact
+      // mass across the slice times its mass along the disc at the slice's middle.
+      fn quarter(u: f32, v: f32, r: f32, sigma: f32) -> f32 {
+        let reach = 3.0 * sigma;
+        let low = max(v - reach, 0.0);
+        let high = min(v + reach, r);
+        if !(high > low) || u < -reach || u > r + reach {
+          return 0.0;
+        }
+        let step = (high - low) / 8.0;
+        let inside = below(-u, sigma);
+        var before = below(low - v, sigma);
+        var sum = 0.0;
+        for (var i = 1u; i <= 8u; i++) {
+          let top = low + step * f32(i);
+          let after = below(top - v, sigma);
+          let middle = top - step / 2.0;
+          let extent = sqrt(max(r * r - middle * middle, 0.0));
+          sum += (below(extent - u, sigma) - inside) * (after - before);
+          before = after;
+        }
+        return sum;
+      }
+
+      // How much of a Gaussian of deviation sigma around p lies in a rounded rectangle centred on
+      // the origin: two crossed boxes, whose blur is exact, and the quarter discs at their
+      // corners.
+      fn shadow(p: vec2f, half_size: vec2f, radius: f32, sigma: f32) -> f32 {
+        let straight = half_size - radius;
+        let wide = across(p.x, half_size.x, sigma);
+        let narrow = across(p.x, straight.x, sigma);
+        let tall = across(p.y, half_size.y, sigma);
+        let flat = across(p.y, straight.y, sigma);
+        var cover = wide * flat + narrow * tall - narrow * flat;
+        if radius > 0.0 {
+          cover += quarter(p.x - straight.x, p.y - straight.y, radius, sigma)
+              + quarter(-p.x - straight.x, p.y - straight.y, radius, sigma)
+              + quarter(p.x - straight.x, -p.y - straight.y, radius, sigma)
+              + quarter(-p.x - straight.x, -p.y - straight.y, radius, sigma);
+        }
+        return min(cover, 1.0);
+      }
+
       @fragment
       fn fs_main(in: Varyings) -> @location(0) vec4f {
         let instance = instances[in.index];
@@ -203,6 +286,19 @@ public final class GpuRenderer implements AutoCloseable {
             discard;
           }
           return instance.fill * glyph_cover;
+        }
+        if instance.kind == SHADOW {
+          let half_size = instance.rect.zw / 2.0;
+          let radius = clamp(bitcast<f32>(instance.shape.x), 0.0, min(half_size.x, half_size.y));
+          var shadow_cover = shadow(point - (instance.rect.xy + half_size), half_size, radius,
+              deviation(instance));
+          if instance.clip != 0u {
+            shadow_cover *= clip_coverage(instance.clip, point);
+          }
+          if shadow_cover <= 0.0 {
+            discard;
+          }
+          return instance.fill * shadow_cover;
         }
         let half_size = instance.rect.zw / 2.0;
         let center = instance.rect.xy + half_size;

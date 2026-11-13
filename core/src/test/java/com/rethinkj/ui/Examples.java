@@ -268,6 +268,7 @@ public final class Examples {
             return true;
           })
           .padding(16).gap(12).radius(10).fill(0xFF26262E).border(1, 0xFF4A4A55)
+          .shadow(new Shadow(0, 2, 4, 0, 0x73000000), new Shadow(0, 8, 24, 0, 0x80000000))
           .children(
               El.text("Delete " + TABLES[Math.max(s.row, 0)] + "?").fontSize(14)
                   .color(0xFFF4F4F5),
@@ -287,10 +288,14 @@ public final class Examples {
     s.submenu = false;
   }
 
-  /** A menu's panel, rounded, with a clip of its own. */
+  /**
+   * A menu's panel, rounded, with a clip of its own and the shadows of the kit's menus in its dark
+   * theme.
+   */
   private static El menu(String key) {
     return col().key(key).role("menu").padding(4).gap(2).radius(8).clip().fill(0xFF2A2A33)
-        .border(1, 0xFF4A4A55);
+        .border(1, 0xFF4A4A55)
+        .shadow(new Shadow(0, 1, 2, 0, 0x73000000), new Shadow(0, 4, 10, 0, 0x66000000));
   }
 
   private static El menuItem(String key, String text, Runnable onPress) {
