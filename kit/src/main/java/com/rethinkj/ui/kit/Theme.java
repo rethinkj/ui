@@ -1,5 +1,11 @@
 package com.rethinkj.ui.kit;
 
+import static com.rethinkj.ui.Colors.BLACK;
+import static com.rethinkj.ui.Colors.WHITE;
+import static com.rethinkj.ui.Colors.alpha;
+import static com.rethinkj.ui.kit.Palette.*;
+
+import com.rethinkj.ui.Colors;
 import com.rethinkj.ui.Scrollbars;
 import com.rethinkj.ui.Shadow;
 import com.rethinkj.ui.motion.Spring;
@@ -16,7 +22,7 @@ import java.util.function.Supplier;
  * copies one and changes what it needs with the {@code with} methods:
  *
  * <pre>{@code
- * Theme brand = Theme.DARK.withAccent(new Theme.Accent(0xFF7C3AED, 0xFF8B5CF6, 0xFF6D28D9));
+ * Theme brand = Theme.LIGHT.withAccent(new Theme.Accent(brand, brandHover, brandPressed));
  * }</pre>
  *
  * <p>The look is made of layers: the window's background ({@link Surfaces#window}), cards on it
@@ -40,7 +46,8 @@ import java.util.function.Supplier;
  * <p>Menus, a select's list, tooltips and dialogs lie above the rest with the shadows of {@link
  * #elevation} and keep the subtle border around them.
  *
- * <p>Colours are 0xAARRGGBB, sizes logical pixels.
+ * <p>Colours are 0xAARRGGBB ({@link Colors}), sizes logical pixels. The default themes are written
+ * with the colours of {@link Palette}.
  */
 public record Theme(
     Surfaces surface,
@@ -140,26 +147,26 @@ public record Theme(
     }
 
     private static final TextStyle TEXT = new TextStyle(Font::sansMedium, 12);
-    private static final List<Integer> AVATARS = List.of(0xFF3578B6, 0xFF765FD1, 0xFFAF45C9,
-        0xFFC84182, 0xFFCA4949, 0xFFA86331, 0xFF887328, 0xFF278636, 0xFF268272);
+    private static final List<Integer> AVATARS = List.of(BLUE_490, VIOLET_478, PURPLE_490,
+        PINK_491, RED_493, ORANGE_488, AMBER_491, GREEN_492, TEAL_490);
 
     /** For dark surfaces. */
     public static final Badges DARK = new Badges(
-        new Tone(0x0DFFFFFF, 0xFFD3D5DB, 0xFF5A5D67, 0xFFFFFFFF),
-        new Tone(0x2E3D6FE6, 0xFFA9C1FA, 0xFF3D6FE6, 0xFFFFFFFF),
-        new Tone(0x1A5CC98A, 0xFF86E0AB, 0xFF1F7A47, 0xFFFFFFFF),
-        new Tone(0x1AE0B04C, 0xFFF0CC7A, 0xFFE0B04C, 0xFF1B1D22),
-        new Tone(0x1AF2797A, 0xFFFAB6B6, 0xFFC6373A, 0xFFFFFFFF),
-        18, 22, TEXT, AVATARS, 0xFFFFFFFF);
+        new Tone(alpha(WHITE, 0.05f), GREY_853, GREY_395, WHITE),
+        new Tone(alpha(BLUE_496, 0.18f), BLUE_782, BLUE_496, WHITE),
+        new Tone(alpha(GREEN_735, 0.1f), GREEN_826, GREEN_452, WHITE),
+        new Tone(alpha(AMBER_745, 0.1f), AMBER_835, AMBER_745, GREY_108),
+        new Tone(alpha(RED_649, 0.1f), RED_803, RED_457, WHITE),
+        18, 22, TEXT, AVATARS, WHITE);
 
     /** For light surfaces. */
     public static final Badges LIGHT = new Badges(
-        new Tone(0x1A5C606B, 0xFF464A54, 0xFF5C606B, 0xFFFFFFFF),
-        new Tone(0x1F2E62D9, 0xFF1F4FB8, 0xFF2E62D9, 0xFFFFFFFF),
-        new Tone(0x2117693A, 0xFF135A31, 0xFF17693A, 0xFFFFFFFF),
-        new Tone(0x2BC98A00, 0xFF694600, 0xFFE9A92F, 0xFF1B1D22),
-        new Tone(0x1FB42318, 0xFF9E1E14, 0xFFB42318, 0xFFFFFFFF),
-        18, 22, TEXT, AVATARS, 0xFFFFFFFF);
+        new Tone(alpha(GREY_407, 0.1f), GREY_314, GREY_407, WHITE),
+        new Tone(alpha(BLUE_447, 0.12f), BLUE_366, BLUE_447, WHITE),
+        new Tone(alpha(GREEN_389, 0.13f), GREEN_333, GREEN_389, WHITE),
+        new Tone(alpha(AMBER_622, 0.17f), AMBER_327, AMBER_735, GREY_108),
+        new Tone(alpha(RED_395, 0.12f), RED_345, RED_395, WHITE),
+        18, 22, TEXT, AVATARS, WHITE);
   }
 
   /**
@@ -191,17 +198,22 @@ public record Theme(
         new TextStyle(Font::sansSemibold, 14), new TextStyle(Font::sansSemibold, 13));
 
     /** For a dark panel. */
-    public static final Prose DARK = new Prose(BODY, HEADINGS, 0xFF86A8F8, 0x06FFFFFF,
-        0xFF464952, 720);
+    public static final Prose DARK = new Prose(BODY, HEADINGS, BLUE_694, alpha(WHITE, 0.024f),
+        GREY_311, 720);
 
     /** For a light panel. */
-    public static final Prose LIGHT = new Prose(BODY, HEADINGS, 0xFF2557C9, 0x14000000,
-        0xFFC4C8CF, 720);
+    public static final Prose LIGHT = new Prose(BODY, HEADINGS, BLUE_403, alpha(BLACK, 0.08f),
+        GREY_805, 720);
   }
 
 
+  /**
+   * Whether a colour is light, from 0 to 1: the luma of its sRGB values as they are, not in linear
+   * light, which is all the shorter constructors need to tell a dark theme's colour from a light
+   * one's.
+   */
   private static double lightness(int argb) {
-    return (0.2126 * (argb >> 16 & 0xFF) + 0.7152 * (argb >> 8 & 0xFF) + 0.0722 * (argb & 0xFF))
+    return (0.2126 * Colors.red(argb) + 0.7152 * Colors.green(argb) + 0.0722 * Colors.blue(argb))
         / 255;
   }
 
@@ -225,12 +237,14 @@ public record Theme(
       int bracket, int match, int current, int occurrence) {
 
     /** For dark surfaces. */
-    public static final Code DARK = new Code(0xFFD2B4FF, 0xFFA6DB94, 0xFFF5BD8C, 0xFFB4B8C0,
-        0xFF9ADCF5, 0x04FFFFFF, 0x0CFFFFFF, 0x605C4A12, 0x448A6A1F, 0x08FFFFFF);
+    public static final Code DARK = new Code(VIOLET_782, GREEN_823, ORANGE_806, GREY_747,
+        CYAN_843, alpha(WHITE, 0.016f), alpha(WHITE, 0.047f), alpha(AMBER_323, 0.376f),
+        alpha(AMBER_467, 0.267f), alpha(WHITE, 0.03f));
 
     /** For light surfaces. */
-    public static final Code LIGHT = new Code(0xFF6A28CF, 0xFF1A6633, 0xFF95400C, 0xFF575B63,
-        0xFF0A5D75, 0x10000000, 0x26000000, 0x40F2B300, 0x80E8A33A, 0x1C000000);
+    public static final Code LIGHT = new Code(VIOLET_362, GREEN_378, ORANGE_380, GREY_386,
+        CYAN_363, alpha(BLACK, 0.063f), alpha(BLACK, 0.15f), alpha(AMBER_768, 0.25f),
+        alpha(AMBER_720, 0.5f), alpha(BLACK, 0.11f));
 
     /**
      * The colours of code with the backgrounds of a find and of a word's occurrences of {@link
@@ -239,9 +253,9 @@ public record Theme(
     public Code(int keyword, int string, int number, int comment, int operator, int line,
         int bracket) {
       this(keyword, string, number, comment, operator, line, bracket,
-          (line & 0xFFFFFF) == 0xFFFFFF ? DARK.match : LIGHT.match,
-          (line & 0xFFFFFF) == 0xFFFFFF ? DARK.current : LIGHT.current,
-          (line & 0xFFFFFF) == 0xFFFFFF ? DARK.occurrence : LIGHT.occurrence);
+          alpha(line, 1) == WHITE ? DARK.match : LIGHT.match,
+          alpha(line, 1) == WHITE ? DARK.current : LIGHT.current,
+          alpha(line, 1) == WHITE ? DARK.occurrence : LIGHT.occurrence);
     }
   }
 
@@ -281,8 +295,7 @@ public record Theme(
 
     /** Borders whose track is {@code strong} at 35 % in a dark theme, 40 % in a light one. */
     public Borders(int subtle, int strong, int control) {
-      this(subtle, strong, control,
-          (lightness(subtle) < 0.5 ? 0x59000000 : 0x66000000) | strong & 0xFFFFFF);
+      this(subtle, strong, control, alpha(strong, lightness(subtle) < 0.5 ? 0.35f : 0.4f));
     }
   }
 
@@ -299,7 +312,7 @@ public record Theme(
 
     /** An accent whose selection is its colour at 40 % opacity and whose edge is its colour. */
     public Accent(int color, int hover, int pressed) {
-      this(color, hover, pressed, 0x66000000 | color & 0xFFFFFF, color);
+      this(color, hover, pressed, alpha(color, 0.4f), color);
     }
   }
 
@@ -491,10 +504,10 @@ public record Theme(
         float cursorWidth) {
       this(rowHeight, minColumn, maxColumn, handle, mark, header, row, stripe, selected,
           selectedInactive, cursor, cursorWidth,
-          lightness(row) < 0.5 ? 0x0886A8F8 : 0x1C2E62D9,
-          lightness(row) < 0.5 ? 0x085CC98A : 0x1C17693A,
-          lightness(row) < 0.5 ? 0x08F2797A : 0x18B42318,
-          lightness(row) < 0.5 ? 0x0AF2797A : 0x24B42318);
+          lightness(row) < 0.5 ? alpha(BLUE_694, 0.03f) : alpha(BLUE_447, 0.11f),
+          lightness(row) < 0.5 ? alpha(GREEN_735, 0.03f) : alpha(GREEN_389, 0.11f),
+          lightness(row) < 0.5 ? alpha(RED_649, 0.03f) : alpha(RED_395, 0.094f),
+          lightness(row) < 0.5 ? alpha(RED_649, 0.04f) : alpha(RED_395, 0.14f));
     }
   }
 
@@ -530,7 +543,7 @@ public record Theme(
 
     /** A caption whose close button is pressed in a lighter tone of its red. */
     public Caption(int closeHover, int onClose) {
-      this(closeHover, onClose, Theme.over(closeHover, 0x1FFFFFFF));
+      this(closeHover, onClose, Theme.over(closeHover, alpha(WHITE, 0.12f)));
     }
   }
 
@@ -546,7 +559,7 @@ public record Theme(
   private static final Sizes SIZE = new Sizes(24, 16, 28, 16, 1, 200, 7, 16, 16, 2, 2, 4, 560);
   private static final Motion MOTION =
       new Motion(Spring.INSTANT, Spring.SNAP, 0.3, 0.5, Spring.INSTANT, 5, 2, 1.2, 1.5);
-  private static final Caption CAPTION = new Caption(0xFFC42B1C, 0xFFFFFFFF, 0xFFC8483B);
+  private static final Caption CAPTION = new Caption(RED_436, WHITE, RED_485);
 
   /*
    * The rules the default themes follow; ThemeTest holds them to these.
@@ -559,9 +572,9 @@ public record Theme(
    * little more.
    *
    * Hover and pressed. A neutral grey near the surfaces (lighter in the dark theme, darker in the
-   * light one) at 25 % and 45 % (dark) or 30 % and 50 % (light), mixed in linear light both by Theme.over and by the renderer, so
-   * every component gives the same colour: hover 4 L* or more from the surface, pressed 3 L* or
-   * more beyond hover.
+   * light one) at 25 % and 45 % (dark) or 30 % and 50 % (light), mixed in linear light both by
+   * Theme.over and by the renderer, so every component gives the same colour: hover 4 L* or more
+   * from the surface, pressed 3 L* or more beyond hover.
    *
    * Accent. One blue: white text on it at 4.5:1. Its edge, the tone of lines, outlines and the
    * focus ring, 3:1 on every surface and on the grid's selection: a lighter blue in the dark
@@ -586,53 +599,65 @@ public record Theme(
    *
    * Sizes and type. Controls 24, rows 24, text 13; radii 4 for small parts, 6 for controls, 10 for
    * cards; headings semibold, strong text, column titles and buttons medium.
+   *
+   * Palette. Every colour is one of Palette's, named by its hue and its L* times ten, or one of
+   * them at an alpha: alpha(GREY_298, 0.25f) is the dark theme's hover. Tokens that share a colour
+   * name the same entry (in the dark theme the band and the grid's header are GREY_099, and the
+   * accent's edge, the grid's cursor, a link and the tint of a changed cell BLUE_694); a value
+   * that no rule makes from another is an entry of its own, also where it is close to another.
    */
 
   /** Neutral greys with a blue accent, light text on dark surfaces. */
   public static final Theme DARK =
       new Theme(
-          new Surfaces(0xFF0F1013, 0xFF17181C, 0xFF1E2025, 0xFF1A1B20, 0x4045464C, 0x7345464C,
-              0x99000000),
-          new TextColors(0xFFE6E7EA, 0xFF9A9DA9, 0xFF62646D, 0xFFFFFFFF),
-          new Borders(0xFF25272D, 0xFF6E717B, 0xFF33363D, 0x596E717B),
-          new Accent(0xFF3D6FE6, 0xFF3768DD, 0xFF2F5ED0, 0x663D6FE6, 0xFF86A8F8),
-          new Status(0xFFF2797A, 0xFFE0B04C, 0xFF5CC98A),
+          new Surfaces(GREY_047, GREY_083, GREY_122, GREY_099,
+              alpha(GREY_298, 0.25f), alpha(GREY_298, 0.45f), alpha(BLACK, 0.6f)),
+          new TextColors(GREY_916, GREY_648, GREY_425, WHITE),
+          new Borders(GREY_157, GREY_477, GREY_226, alpha(GREY_477, 0.35f)),
+          new Accent(BLUE_496, BLUE_469, BLUE_430, alpha(BLUE_496, 0.4f), BLUE_694),
+          new Status(RED_649, AMBER_745, GREEN_735),
           SPACE,
           RADIUS,
           TYPE,
           SIZE,
           MOTION,
-          new Grid(24, 32, 480, 6, 12, 0xFF1A1B20, 0xFF17181C, 0xFF17181C, 0xFF1C2B4D,
-              0xFF2E323D, 0xFF86A8F8, 1),
-          new Scrollbars(6, 2, 3, 24, 0xFF858892, 0xFF9C9FA8, 0xFFB9BBC1),
+          new Grid(24, 32, 480, 6, 12, GREY_099, GREY_083, GREY_083, BLUE_180,
+              GREY_208, BLUE_694, 1),
+          new Scrollbars(6, 2, 3, 24, GREY_568, GREY_655, GREY_759),
           new Elevation(
-              List.of(new Shadow(0, 1, 2, 0, 0xCC000000), new Shadow(0, 6, 16, 0, 0x8C000000)),
-              List.of(new Shadow(0, 1, 2, 0, 0x99000000), new Shadow(0, 4, 12, 0, 0x80000000)),
-              List.of(new Shadow(0, 2, 4, 0, 0x99000000), new Shadow(0, 12, 32, 0, 0x99000000))),
+              List.of(new Shadow(0, 1, 2, 0, alpha(BLACK, 0.8f)),
+                  new Shadow(0, 6, 16, 0, alpha(BLACK, 0.55f))),
+              List.of(new Shadow(0, 1, 2, 0, alpha(BLACK, 0.6f)),
+                  new Shadow(0, 4, 12, 0, alpha(BLACK, 0.5f))),
+              List.of(new Shadow(0, 2, 4, 0, alpha(BLACK, 0.6f)),
+                  new Shadow(0, 12, 32, 0, alpha(BLACK, 0.6f)))),
           Code.DARK,
           CAPTION);
 
   /** Neutral greys with a blue accent, dark text on light surfaces. */
   public static final Theme LIGHT =
       new Theme(
-          new Surfaces(0xFFECEEF2, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFF7F8FA, 0x4DBDBFC5, 0x80BDBFC5,
-              0x59000000),
-          new TextColors(0xFF1B1D22, 0xFF5C606B, 0xFF8F929A, 0xFFFFFFFF),
-          new Borders(0xFFE6E8EC, 0xFF80848D, 0xFFCFD3DA, 0x6680848D),
-          new Accent(0xFF2E62D9, 0xFF2755C0, 0xFF2048A8, 0x592E62D9, 0xFF2E62D9),
-          new Status(0xFFB42318, 0xFF7A5300, 0xFF17693A),
+          new Surfaces(GREY_941, WHITE, WHITE, GREY_976,
+              alpha(GREY_773, 0.3f), alpha(GREY_773, 0.5f), alpha(BLACK, 0.35f)),
+          new TextColors(GREY_108, GREY_407, GREY_605, WHITE),
+          new Borders(GREY_919, GREY_551, GREY_844, alpha(GREY_551, 0.4f)),
+          new Accent(BLUE_447, BLUE_391, BLUE_335, alpha(BLUE_447, 0.35f), BLUE_447),
+          new Status(RED_395, AMBER_384, GREEN_389),
           SPACE,
           RADIUS,
           TYPE,
           SIZE,
           MOTION,
-          new Grid(24, 32, 480, 6, 12, 0xFFF7F8FA, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFDFE8FB,
-              0xFFDCE0E6, 0xFF2E62D9, 1),
-          new Scrollbars(6, 2, 3, 24, 0xFF777B84, 0xFF60646E, 0xFF4A4D54),
+          new Grid(24, 32, 480, 6, 12, GREY_976, WHITE, WHITE, BLUE_918,
+              GREY_890, BLUE_447, 1),
+          new Scrollbars(6, 2, 3, 24, GREY_516, GREY_423, GREY_327),
           new Elevation(
-              List.of(new Shadow(0, 1, 2, 0, 0x29141824), new Shadow(0, 6, 18, 0, 0x25141824)),
-              List.of(new Shadow(0, 1, 3, 0, 0x40000000), new Shadow(0, 6, 16, 0, 0x38000000)),
-              List.of(new Shadow(0, 2, 6, 0, 0x40000000), new Shadow(0, 16, 40, 0, 0x4D000000))),
+              List.of(new Shadow(0, 1, 2, 0, alpha(GREY_084, 0.16f)),
+                  new Shadow(0, 6, 18, 0, alpha(GREY_084, 0.145f))),
+              List.of(new Shadow(0, 1, 3, 0, alpha(BLACK, 0.25f)),
+                  new Shadow(0, 6, 16, 0, alpha(BLACK, 0.22f))),
+              List.of(new Shadow(0, 2, 6, 0, alpha(BLACK, 0.25f)),
+                  new Shadow(0, 16, 40, 0, alpha(BLACK, 0.3f)))),
           Code.LIGHT,
           CAPTION);
 
@@ -740,26 +765,11 @@ public record Theme(
 
   /**
    * The colour {@code overlay} gives when laid over the opaque colour {@code base}, such as a
-   * control's background with the {@link Surfaces#hover} overlay on it. It mixes in linear light,
-   * as the renderer blends a translucent fill, so a component that draws the overlay translucent
-   * and one that fills with this colour look the same.
+   * control's background with the {@link Surfaces#hover} overlay on it: {@link Colors#over}. It
+   * mixes in linear light, as the renderer blends a translucent fill, so a component that draws
+   * the overlay translucent and one that fills with this colour look the same.
    */
   public static int over(int base, int overlay) {
-    double alpha = (overlay >>> 24) / 255.0;
-    int argb = 0xFF;
-    for (int shift = 16; shift >= 0; shift -= 8) {
-      double mixed = linear(overlay >>> shift & 0xFF) * alpha
-          + linear(base >>> shift & 0xFF) * (1 - alpha);
-      double srgb =
-          mixed <= 0.0031308 ? mixed * 12.92 : 1.055 * StrictMath.pow(mixed, 1 / 2.4) - 0.055;
-      argb = argb << 8 | (int) Math.round(srgb * 255);
-    }
-    return argb;
-  }
-
-  /** An 8-bit sRGB channel in linear light, from 0 to 1. */
-  private static double linear(int channel) {
-    double c = channel / 255.0;
-    return c <= 0.04045 ? c / 12.92 : StrictMath.pow((c + 0.055) / 1.055, 2.4);
+    return Colors.over(base, overlay);
   }
 }

@@ -4,6 +4,7 @@ import static com.rethinkj.ui.kit.Theme.over;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.rethinkj.ui.Colors;
 import com.rethinkj.ui.Scrollbars;
 import com.rethinkj.ui.Shadow;
 import java.util.ArrayList;
@@ -342,22 +343,10 @@ class ThemeTest {
 
   /** CIELAB L* of an opaque colour. */
   static double lightness(int argb) {
-    double y = luminance(argb);
-    return y > 216.0 / 24389 ? 116 * Math.cbrt(y) - 16 : y * 24389 / 27;
+    return Colors.lightness(argb);
   }
 
   static double contrast(int a, int b) {
-    double la = luminance(a);
-    double lb = luminance(b);
-    return (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05);
-  }
-
-  private static double luminance(int argb) {
-    return 0.2126 * channel(argb >> 16) + 0.7152 * channel(argb >> 8) + 0.0722 * channel(argb);
-  }
-
-  private static double channel(int value) {
-    double c = (value & 0xFF) / 255.0;
-    return c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+    return Colors.contrast(a, b);
   }
 }
