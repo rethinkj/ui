@@ -37,8 +37,21 @@ public final class Toast {
    */
   public static El toast(
       Theme t, String message, String action, Runnable onAction, Runnable onClose) {
+    return toast(t, message, action, onAction, onClose, 0);
+  }
+
+  /**
+   * A toast that stays clear of what lies along the bottom of the window, such as a {@link
+   * StatusBar} ({@link StatusBar#height}) or the footer of a card that reaches down to it ({@link
+   * Card#footerHeight} with the space around the card): it lies {@code above} plus the theme's
+   * gap above the window's bottom edge.
+   *
+   * @param above how high, in logical pixels, what it must not cover reaches up from the bottom
+   */
+  public static El toast(Theme t, String message, String action, Runnable onAction,
+      Runnable onClose, float above) {
     El toast = row().key("toast").role("status").label(message)
-        .atWindowEdge(Side.BOTTOM, Style.Align.CENTER, t.space().xl())
+        .atWindowEdge(Side.BOTTOM, Style.Align.CENTER, above + t.space().xl())
         .keepFocus()
         .onShownFor(t.motion().toast(), onClose)
         .onKey(k -> {

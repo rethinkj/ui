@@ -82,6 +82,23 @@ class ThemeTest {
           "selection on the caret line", over(line, t.accent().selection())), 3);
     });
     check(failures, "bracket", code.operator(), Map.of("bracket", over(line, code.bracket())), 4.5);
+    // The matches of a find, the current one, and the occurrences of the word at the caret, also
+    // on the caret's line; under the selection 3:1, as all code.
+    Map<String, Integer> marked = Map.of(
+        "match", over(s.raised(), code.match()),
+        "match on the caret line", over(line, code.match()),
+        "current match", over(s.raised(), code.current()),
+        "current match on the caret line", over(line, code.current()),
+        "occurrence", over(s.raised(), code.occurrence()),
+        "occurrence on the caret line", over(line, code.occurrence()));
+    Map<String, Integer> selectedMatch = Map.of(
+        "selected current match", over(over(line, code.current()), t.accent().selection()));
+    Map<String, Integer> text = new java.util.HashMap<>(codeColours);
+    text.put("text", t.text().primary());
+    text.forEach((token, colour) -> {
+      check(failures, token, colour, marked, 4.5);
+      check(failures, token, colour, selectedMatch, 3);
+    });
     check(failures, "line number", t.text().muted(), Map.of("raised", s.raised()), 4.5);
     // A document on a card: text, quotes, links and inline code on the panel, under the pointer
     // and on inline code's background; code blocks on the raised surface, as above.
@@ -174,7 +191,8 @@ class ThemeTest {
         "grid selected", g.selected(), "grid selected inactive", g.selectedInactive()), 3);
     // The cross of a title bar's close button under the pointer, on the system's red.
     check(failures, "close cross", t.caption().onClose(),
-        Map.of("close hovered", t.caption().closeHover()), 4.5);
+        Map.of("close hovered", t.caption().closeHover(),
+            "close pressed", t.caption().closePressed()), 4.5);
     // An invalid field's edge, on the field's raised fill.
     check(failures, "invalid edge", t.status().danger(), Map.of("raised", s.raised()), 3);
     // A group's rows are pressed on a raised card, and a description stays readable under the
@@ -184,6 +202,30 @@ class ThemeTest {
     check(failures, "primary text", t.text().primary(), Map.of(
         "panel hovered", over(s.panel(), s.hover()),
         "panel pressed", over(s.panel(), s.pressed())), 4.5);
+    // Badges: a quiet one's text on its tint over the surfaces and the grid's rows, selected or
+    // not, and under the pointer where it is pressable; a strong one's text on its fill.
+    Theme.Badges badges = t.badge();
+    Map<String, Integer> under = new java.util.HashMap<>(surfaces);
+    under.putAll(grid);
+    under.put("panel hovered", over(s.panel(), s.hover()));
+    for (Theme.Tone tone : List.of(badges.neutral(), badges.accent(), badges.success(),
+        badges.warning(), badges.danger())) {
+      Map<String, Integer> tinted = new java.util.HashMap<>();
+      under.forEach((what, colour) -> tinted.put(what, over(colour, tone.soft())));
+      surfaces.forEach((what, colour) -> { // a pressable badge lies on a surface
+        tinted.put(what + " hovered", over(colour, Badge.deeper(tone.soft(), Badge.HOVER)));
+        tinted.put(what + " pressed", over(colour, Badge.deeper(tone.soft(), Badge.PRESSED)));
+      });
+      check(failures, "badge text " + Integer.toHexString(tone.softText()), tone.softText(),
+          tinted, 4.5);
+      check(failures, "strong badge text", tone.strongText(), Map.of("strong", tone.strong()),
+          4.5);
+    }
+    // Avatars: each fill 3:1 on the surfaces, its initials 4.5:1 on it.
+    for (int fill : badges.avatars()) {
+      check(failures, "avatar " + Integer.toHexString(fill), fill, surfaces, 3);
+      check(failures, "avatar initials", badges.onAvatar(), Map.of("avatar", fill), 4.5);
+    }
     assertTrue(failures.isEmpty(), String.join("\n", failures));
   }
 

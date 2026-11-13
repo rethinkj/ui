@@ -77,7 +77,13 @@ class ComponentTest {
             "role=button label=\"staging\"", true),
         Arguments.of("status bar item", (Function<Runnable, El>) h ->
             StatusBar.item(T, Symbol.PLUG_CONNECTED, "localhost", h), "text=\"localhost\"",
-            true));
+            true),
+        Arguments.of("badge", (Function<Runnable, El>) h ->
+            Badge.badge(T, "Add filter", Badge.options().onPress(h)),
+            "label=\"Add filter\"", true), // without a handler it only shows, without a role
+        Arguments.of("toggle button", (Function<Runnable, El>) h ->
+            Button.toggle(T, Symbol.PIN, "Pin", false, h == null ? null : on -> h.run()),
+            "role=button label=\"Pin\"", true));
   }
 
   private App<Object> app(El view) {

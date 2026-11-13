@@ -211,6 +211,8 @@ public final class App<S> {
   // The rows each list with an onRowsBuilt handler told last, first and last in one long, by the
   // list's identity. shortcut: lists that are gone stay in it, as in remembered.
   private final Map<Object, Long> toldRows = new HashMap<>();
+  // The sizes the El#onResize handlers were told, by identity. shortcut: as in toldRows.
+  private final Map<Object, Long> toldSizes = new HashMap<>();
   private int ringColour = FOCUS_RING;
   private final Atlas atlas = new Atlas();
   private TextRendering textRendering = TextRendering.platform();
@@ -218,6 +220,9 @@ public final class App<S> {
   private boolean systemFonts;
   private final Map<Object, Editor> editors = new HashMap<>(); // the fields' state, by identity
   private Clipboard clipboard = Clipboard.inMemory();
+  private Dialogs dialogs = Dialogs.NONE;
+  private Object fileOver; // the identity of the element the system's drag is over, or null
+  private Consumer<Drop> fileOverHandler; // its onFileDrop, which gets the LEAVE
   private Windows windows = Windows.NONE;
   private boolean ran; // a handler ran in this frame; see ranHandlers()
   private Object selecting; // the identity of the field a press is selecting in, until pointer up
@@ -1039,6 +1044,153 @@ public final class App<S> {
   /** Sets the clipboard, as a window does with the system's. */
   public void clipboard(Clipboard clipboard) {
     this.clipboard = Objects.requireNonNull(clipboard, "clipboard");
+  }
+
+  // ---- The system's dialogs, and what the system drops on the window
+
+  /** What shows the system's dialogs: the runner's ({@link Dialogs}), {@link Dialogs#NONE} at first. */
+  public Dialogs dialogs() {
+    return dialogs;
+  }
+
+  /** Sets what shows the system's dialogs, as a runner does for its windows and a test may. */
+  public void dialogs(Dialogs dialogs) {
+    this.dialogs = Objects.requireNonNull(dialogs, "dialogs");
+  }
+
+  /**
+   * Shows a file dialog of the system, belonging to the app's window (modal to it where the
+   * system can), and hands the user's choice to {@code onChoice}, or what went wrong to {@code
+   * onError}, as a {@link #post posted} task: on the app's thread, with a frame after it. A
+   * cancelled dialog is a {@link FileDialog.Choice} without paths. Call it on the app's thread,
+   * usually in a handler; it returns at once, and the window goes on drawing while the dialog is
+   * open. Under a {@link Script} no dialog opens: its {@code dialog} step answers, and the answer
+   * arrives with {@code await}, as posted tasks do there.
+   *
+   * <pre>{@code
+   * app.fileDialog(FileDialog.save("Save as").filter("CSV", "csv").fileName("orders.csv"),
+   *     choice -> { if (!choice.cancelled()) export(choice.path()); },
+   *     error -> status = "No dialog: " + error);
+   * }</pre>
+   */
+  public void fileDialog(FileDialog dialog, Consumer<FileDialog.Choice> onChoice,
+      Consumer<String> onError) {
+    Objects.requireNonNull(dialog, "dialog");
+    Objects.requireNonNull(onChoice, "onChoice");
+    Objects.requireNonNull(onError, "onError");
+    AtomicBoolean answered = new AtomicBoolean(); // once, whatever the implementation does
+    dialogs.file(dialog, choice -> {
+      if (answered.compareAndSet(false, true)) {
+        post(() -> onChoice.accept(choice));
+      }
+    }, error -> {
+      if (answered.compareAndSet(false, true)) {
+        post(() -> onError.accept(error));
+      }
+    });
+  }
+
+  /**
+   * Shows a message box of the system and hands the index of the button pressed to {@code
+   * onButton}, or what went wrong to {@code onError}, as a {@link #post posted} task. In a {@link
+   * com.rethinkj.ui.window.WindowLoop} the box blocks the windows' thread until it closes, as the
+   * systems' message boxes do: no window draws meanwhile, and tasks wait. It is for what cannot be
+   * shown in the window; the kit's {@code Dialog} asks inside it. Under a {@link Script} no box
+   * opens: its {@code dialog} step answers, as for {@link #fileDialog}.
+   */
+  public void messageBox(MessageBox box, IntConsumer onButton, Consumer<String> onError) {
+    Objects.requireNonNull(box, "box");
+    Objects.requireNonNull(onButton, "onButton");
+    Objects.requireNonNull(onError, "onError");
+    AtomicBoolean answered = new AtomicBoolean();
+    dialogs.message(box, button -> {
+      if (answered.compareAndSet(false, true)) {
+        post(() -> onButton.accept(button));
+      }
+    }, error -> {
+      if (answered.compareAndSet(false, true)) {
+        post(() -> onError.accept(error));
+      }
+    });
+  }
+
+  /**
+   * Something that another application drags, files from a file manager or text, is over the
+   * window at this point: the {@link El#onFileDrop} handler there gets {@link Drop.Phase#OVER}
+   * at the next frame, and the one it was over before {@link Drop.Phase#LEAVE}.
+   */
+  public void fileDragOver(float x, float y) {
+    enqueue(() -> fileStep(x, y, null, null));
+  }
+
+  /** What another application dragged left the window without a drop: see {@link #fileDragOver}. */
+  public void fileDragLeave() {
+    enqueue(this::fileLeave);
+  }
+
+  /**
+   * Another application dropped files or text at this point of the window. Text that lands on a
+   * text field that takes edits goes into it as a paste at the point, with the focus; anything
+   * else goes to the innermost {@link El#onFileDrop} handler there as {@link Drop.Phase#DROP},
+   * with the files as a {@code List<Path>} or the text as a {@code String} for its payload.
+   *
+   * @param files the files dropped, empty for text
+   * @param text the text dropped, or null for files
+   */
+  public void fileDrop(float x, float y, List<java.nio.file.Path> files, String text) {
+    List<java.nio.file.Path> paths = List.copyOf(files);
+    enqueue(() -> fileStep(x, y, paths, text));
+  }
+
+  /** A step of the system's drag; {@code files} is null while it is only over the window. */
+  private boolean fileStep(float x, float y, List<java.nio.file.Path> files, String text) {
+    settle();
+    boolean end = files != null;
+    if (end && text != null && files.isEmpty()) {
+      List<El> hit = hit(x, y);
+      El field = hit.isEmpty() ? null : hit.getLast();
+      if (field != null && field.takesEdits() && field.editor() != null
+          && field.editor().editable()) {
+        fileLeave();
+        focus(field, false);
+        float[] at = local(field, x, y);
+        Editor editor = field.editor();
+        editor.press(editor.fromShown(field.text().nearest(at[0], at[1])),
+            editor.fromShown(field.text().hit(at[0], at[1])), 1, false);
+        Clipboard dropped = Clipboard.inMemory();
+        dropped.write(text);
+        editor.paste(dropped);
+        handled |= editor.answerPending();
+        return true;
+      }
+    }
+    Target target = target(x, y, el -> el.onFileDrop() != null);
+    Object id = target == null ? null : target.id();
+    boolean changed = !Objects.equals(fileOver, id) && fileLeave();
+    if (target == null) {
+      return changed;
+    }
+    double[] at = content(target.el, x, y);
+    fileOver = end ? null : id;
+    fileOverHandler = end ? null : target.el.onFileDrop();
+    Object payload = !end ? null : files.isEmpty() ? text : files;
+    target.el.onFileDrop().accept(new Drop(end ? Drop.Phase.DROP : Drop.Phase.OVER, payload,
+        at[0], at[1]));
+    handled = true;
+    return true;
+  }
+
+  /** Tells the handler the system's drag was over that it left; whether there was one. */
+  private boolean fileLeave() {
+    Consumer<Drop> left = fileOverHandler;
+    fileOver = null;
+    fileOverHandler = null;
+    if (left == null) {
+      return false;
+    }
+    left.accept(new Drop(Drop.Phase.LEAVE, null, Double.NaN, Double.NaN));
+    handled = true;
+    return true;
   }
 
   /**
@@ -2163,6 +2315,7 @@ public final class App<S> {
     Flex.layout(root, width, height);
     Overlays.layout(root, width, height);
     animator.update(root, time);
+    tellSizes(root, new ArrayList<>());
     stale = false;
     ran |= handled;
     handled = false;
@@ -2267,6 +2420,7 @@ public final class App<S> {
       }
       editor.attach(el);
       el.editor(editor);
+      el.text().unfocused(!id.equals(focusId)); // El#ellipsis shortens it without the focus
     }
     for (El child : el.children()) {
       attachEditors(child, path);
@@ -2359,7 +2513,8 @@ public final class App<S> {
 
   /**
    * Selects from {@code anchor} to {@code caret} in a text field, or puts the caret there when they
-   * are equal, and scrolls it into view as a key does: a match that a find found. The positions
+   * are equal, and scrolls it into view as a key does, a multi-line field also while it does not
+   * have the focus: a match that a find bar found while the focus is in the bar. The positions
    * are indexes into the string, moved to the grapheme boundary at or before them. A handler may
    * call this as {@link #edit}.
    */
@@ -2567,6 +2722,32 @@ public final class App<S> {
     }
     path.removeLast();
     return built;
+  }
+
+  /** Queues the {@link El#onResize} handlers below {@code el} whose element has a new size. */
+  private void tellSizes(El el, List<El> path) {
+    path.add(el);
+    El.SizeHandler handler = el.onResize();
+    if (handler != null) {
+      float w = el.width();
+      float h = el.height();
+      long size = (long) Float.floatToIntBits(w) << 32 | Float.floatToIntBits(h) & 0xFFFFFFFFL;
+      Long before = toldSizes.put(Animator.identities(path).getLast(), size);
+      if (before == null || before != size) {
+        queued.add(() -> {
+          handler.accept(w, h);
+          handled = true;
+          return true;
+        });
+      }
+    }
+    for (El child : el.children()) {
+      tellSizes(child, path);
+    }
+    for (El overlay : el.overlays()) {
+      tellSizes(overlay, path);
+    }
+    path.removeLast();
   }
 
   /** Queues the {@link El#onRowsBuilt} handler of a list that built other rows than it told. */

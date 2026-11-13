@@ -33,6 +33,11 @@ class DataBrowserTest {
     String copied = app.clipboard().read();
     assertTrue(copied == null || copied.isEmpty(), "nothing copied");
     assertTrue(browser.toast.contains(" cells are too many to copy"), browser.toast);
+    Script.run("size 1000 600\nframe", app, out);
+    String dump = app.tree().dump();
+    float toast = bottom(line(dump, "role=status label=\""));
+    float status = top(line(dump, "text #status "));
+    assertTrue(toast < status, "the toast leaves the card's footer seen: " + dump);
     Script.run("size 1000 600\nadvance 6\nframe\nframe", app, out);
     assertNull(browser.toast, "it closes itself");
   }
@@ -88,5 +93,27 @@ class DataBrowserTest {
       }
     }
     return true;
+  }
+
+  private static String line(String dump, String part) {
+    return dump.lines().filter(l -> l.contains(part)).findFirst().orElseThrow();
+  }
+
+  /** The top and the bottom of a dump line's rectangle, after its quoted parts. */
+  private static float top(String line) {
+    return rect(line)[1];
+  }
+
+  private static float bottom(String line) {
+    float[] r = rect(line);
+    return r[1] + r[3];
+  }
+
+  private static float[] rect(String line) {
+    var m = java.util.regex.Pattern.compile(" (-?[\\d.]+),(-?[\\d.]+) ([\\d.]+)x([\\d.]+)")
+        .matcher(line.replaceAll("\"(\\\\.|[^\"\\\\])*\"", "\"\""));
+    assertTrue(m.find(), line);
+    return new float[] {Float.parseFloat(m.group(1)), Float.parseFloat(m.group(2)),
+        Float.parseFloat(m.group(3)), Float.parseFloat(m.group(4))};
   }
 }

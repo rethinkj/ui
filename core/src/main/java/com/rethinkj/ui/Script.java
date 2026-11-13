@@ -8,6 +8,7 @@ import java.nio.file.InvalidPathException;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.time.Duration;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -17,6 +18,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.function.Consumer;
+import java.util.function.IntConsumer;
 import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -408,6 +411,40 @@ public final class Script {
             throw line.fail("The script was interrupted while it waited for the app's work.");
           }
         }
+        case "dialog" -> desk.answers.add(answer(line, args));
+        case "drop" -> {
+          if (args.size() == 1 && args.getFirst().equals("leave")) {
+            (desk.dropping == null ? win : desk.dropping).app.fileDragLeave();
+            desk.dropping = null;
+          } else {
+            boolean over = !args.isEmpty() && args.getFirst().equals("over");
+            List<String> target = new ArrayList<>(over ? args.subList(1, args.size()) : args);
+            String text = null;
+            List<Path> files = new ArrayList<>();
+            if (!over && target.size() >= 3 && target.get(target.size() - 2).equals("text")
+                && quoted(target.getLast())) {
+              text = unescape(strip(target.removeLast()));
+              target.removeLast();
+            } else {
+              while (!over && !target.isEmpty() && quoted(target.getLast())) {
+                files.addFirst(path(line, strip(target.removeLast())));
+              }
+            }
+            if (target.isEmpty() || !over && text == null && files.isEmpty()) {
+              throw line.usage(step);
+            }
+            Aim aim = desk.aim(line, target, "there is nothing to drop on");
+            float[] at = aim.in(aim.win);
+            if (desk.dropping != null && desk.dropping != aim.win && desk.dropping.open) {
+              desk.dropping.app.fileDragLeave();
+            }
+            aim.win.app.fileDragOver(at[0], at[1]);
+            desk.dropping = over ? aim.win : null;
+            if (!over) {
+              aim.win.app.fileDrop(at[0], at[1], files, text);
+            }
+          }
+        }
         case "frame" -> {
           if (!args.isEmpty()) {
             throw line.usage(step);
@@ -422,6 +459,7 @@ public final class Script {
           } catch (RuntimeException e) {
             throw line.fail("The app threw " + e + " in this frame; its stack trace follows.", e);
           }
+          desk.answered(line);
         }
         case "snap" -> {
           if (args.size() != 1) {
@@ -476,17 +514,81 @@ public final class Script {
             throw line.fail(
                 "There is no step " + step
                     + ". The steps are size, window, close, press, down, up, move, leave,"
-                    + " wheel, scroll, key, type, compose, clipboard, focus, advance, await, frame"
-                    + " and snap.");
+                    + " wheel, scroll, key, type, compose, clipboard, dialog, drop, focus, advance,"
+                    + " await, frame and snap.");
       }
       if (step.equals("frame")) {
         pending = null;
       } else if (!step.equals("snap") && !step.equals("clipboard") && !step.equals("window")
-          && pending == null) {
+          && !step.equals("dialog") && pending == null) {
         pending = line;
       }
     }
+    Answer unused = desk.answers.peek();
+    if (unused != null) {
+      throw unused.line.fail("No dialog opened after this answer, so it answered nothing. A `dialog`"
+          + " step answers the next dialog the app opens, in a frame after it: write it before the"
+          + " step whose handler opens the dialog, as before `press #open` and its `frame`.");
+    }
     return written;
+  }
+
+  /**
+   * A {@code dialog} step's answer to the next dialog: files, a cancel, an error, or a message
+   * box's button.
+   */
+  private record Answer(Line line, List<Path> paths, int filter, String error, String button) {
+    boolean cancels() {
+      return paths.isEmpty() && error == null && button == null;
+    }
+  }
+
+  private static Answer answer(Line line, List<String> args) {
+    if (args.size() == 1 && args.getFirst().equals("cancel")) {
+      return new Answer(line, List.of(), -1, null, null);
+    }
+    if (args.size() == 2 && (args.getFirst().equals("error") || args.getFirst().equals("button"))
+        && quoted(args.getLast())) {
+      String text = unescape(strip(args.getLast()));
+      return args.getFirst().equals("error") ? new Answer(line, List.of(), -1, text, null)
+          : new Answer(line, List.of(), -1, null, text);
+    }
+    List<String> rest = new ArrayList<>(args);
+    int filter = -1;
+    if (rest.size() >= 3 && rest.get(rest.size() - 2).equals("filter")) {
+      if (!INDEX.matcher(rest.getLast()).matches()) {
+        throw line.usage("dialog");
+      }
+      filter = Integer.parseInt(rest.getLast());
+      rest.subList(rest.size() - 2, rest.size()).clear();
+    }
+    List<Path> paths = new ArrayList<>();
+    for (String word : rest) {
+      if (!quoted(word)) {
+        throw line.usage("dialog");
+      }
+      paths.add(path(line, strip(word)));
+    }
+    if (paths.isEmpty()) {
+      throw line.usage("dialog");
+    }
+    return new Answer(line, paths, filter, null, null);
+  }
+
+  private static boolean quoted(String word) {
+    return word.length() >= 3 && word.startsWith("\"") && word.endsWith("\"");
+  }
+
+  private static String strip(String quoted) {
+    return quoted.substring(1, quoted.length() - 1);
+  }
+
+  private static Path path(Line line, String text) {
+    try {
+      return Path.of(unescape(text));
+    } catch (InvalidPathException e) {
+      throw line.fail(text + " is not a path: " + e.getReason() + ".");
+    }
   }
 
   private static void needsFrame(Line line, App<?> app, String consequence) {
@@ -672,6 +774,71 @@ public final class Script {
     Win chosen;
     Win held; // the window a press began in, until its release
     Win pointer; // the window the pointer was last moved in
+    Win dropping; // the window another application's drag is over, from `drop over`
+    final ArrayDeque<Answer> answers = new ArrayDeque<>(); // of the steps `dialog`, in order
+    final List<String> unanswered = new ArrayList<>(); // dialogs that found no answer
+    String wrong; // what was wrong with an answer, for the frame step to say
+
+    /** The dialogs of the script's windows: each takes the next answer of a `dialog` step. */
+    final Dialogs dialogs = new Dialogs() {
+      @Override
+      public void file(FileDialog dialog, Consumer<FileDialog.Choice> chosen,
+          Consumer<String> failed) {
+        Answer answer = answers.poll();
+        if (answer == null) {
+          unanswered.add(dialog.toString());
+        } else if (answer.error != null) {
+          failed.accept(answer.error);
+        } else if (answer.button != null) {
+          wrong = answer.line.number + " answers with a message box's button, but the app opened "
+              + dialog + ". Write `dialog \"<path>\"` or `dialog cancel` for it.";
+        } else if (answer.paths.size() > 1 && !dialog.multiple()) {
+          wrong = answer.line.number + " chooses " + answer.paths.size() + " files, but the app"
+              + " opened " + dialog + ", which chooses one. Write one path.";
+        } else if (answer.filter >= dialog.filters().size()) {
+          wrong = answer.line.number + " chooses filter " + answer.filter + ", but the app opened "
+              + dialog + ", which has " + dialog.filters().size() + ". Count them from 0.";
+        } else {
+          chosen.accept(new FileDialog.Choice(answer.paths, answer.filter));
+        }
+      }
+
+      @Override
+      public void message(MessageBox box, IntConsumer pressed, Consumer<String> failed) {
+        Answer answer = answers.poll();
+        if (answer == null) {
+          unanswered.add(box.toString());
+        } else if (answer.error != null) {
+          failed.accept(answer.error);
+        } else if (answer.cancels()) {
+          pressed.accept(box.cancelButton());
+        } else if (answer.button == null || !box.buttons().contains(answer.button)) {
+          wrong = answer.line.number + " does not answer " + box + ". Write `dialog button"
+              + " \"<text>\"` with one of them, or `dialog cancel`.";
+        } else {
+          pressed.accept(box.buttons().indexOf(answer.button));
+        }
+      }
+    };
+
+    /** Fails at the frame step if a dialog of its frame found no answer, or a wrong one. */
+    void answered(Line line) {
+      if (wrong != null) {
+        String message = "The answer on line " + wrong;
+        wrong = null;
+        unanswered.clear();
+        throw line.fail(message);
+      }
+      if (!unanswered.isEmpty()) {
+        String opened = String.join("; then ", unanswered);
+        unanswered.clear();
+        throw line.fail("The app opened " + opened + " in this frame, and no `dialog` step"
+            + " answered it. A script opens no dialog of the system: write `dialog \"<path>\"`,"
+            + " `dialog cancel`, `dialog error \"<text>\"` or, for a message box, `dialog button"
+            + " \"<text>\"` before the step that opens it. The answer arrives as a posted task:"
+            + " `await` and `frame` after this frame show it.");
+      }
+    }
 
     Desk(App<?> app) {
       first = new Win(this, app, "main");
@@ -679,6 +846,7 @@ public final class Script {
       front.add(first);
       chosen = first;
       app.windows(this);
+      app.dialogs(dialogs);
     }
 
     Win current() {
@@ -806,6 +974,7 @@ public final class Script {
       app.clipboard(first.app.clipboard());
       app.holdPosts = true;
       app.windows(this);
+      app.dialogs(dialogs);
       w.resize(width, height, first.scale);
       int n = wins.size();
       if (options.isPositioned()) {
@@ -919,6 +1088,18 @@ public final class Script {
                     "`scroll <target> row <index>`, which scrolls the list of rows at the target so"
                         + " that the row with that index, counted from 0, is at its top, for"
                         + " example `scroll #list row 5000`. A target is " + TARGET + ".";
+                case "dialog" ->
+                    "`dialog \"<path>\"` with one or more quoted paths, and `filter <n>` after"
+                        + " them for the filter chosen, counted from 0, to answer the next file"
+                        + " dialog the app opens; `dialog cancel` to cancel it or close a message"
+                        + " box; `dialog button \"<text>\"` to press a message box's button;"
+                        + " `dialog error \"<text>\"` for a dialog that fails. Write it before the"
+                        + " step that opens the dialog.";
+                case "drop" ->
+                    "`drop <target> \"<path>\"` with one or more quoted paths, the files another"
+                        + " application drops there; `drop <target> text \"<text>\"` for text;"
+                        + " `drop over <target>` for such a drag over the target, not yet released;"
+                        + " `drop leave` for one that leaves. A target is " + TARGET + ".";
                 case "snap" ->
                     "`snap <name>`, for example `snap after-press`, to write after-press.png and"
                         + " after-press.tree.txt into the output folder.";

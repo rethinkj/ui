@@ -58,7 +58,8 @@ public record Theme(
     Elevation elevation,
     Code code,
     Caption caption,
-    Prose prose) {
+    Prose prose,
+    Badges badge) {
 
   /**
    * A theme whose colours for code are {@link Code#DARK} on a dark raised surface and {@link
@@ -88,6 +89,77 @@ public record Theme(
     this(surface, text, border, accent, status, space, radius, type, size, motion, grid,
         scrollbars, elevation, code, caption,
         lightness(surface.raised()) < 0.5 ? Prose.DARK : Prose.LIGHT);
+  }
+
+  /** A theme whose badges look as {@link Badges#DARK} or {@link Badges#LIGHT}, as above. */
+  public Theme(Surfaces surface, TextColors text, Borders border, Accent accent, Status status,
+      Spacing space, Radii radius, Type type, Sizes size, Motion motion, Grid grid,
+      Scrollbars scrollbars, Elevation elevation, Code code, Caption caption, Prose prose) {
+    this(surface, text, border, accent, status, space, radius, type, size, motion, grid,
+        scrollbars, elevation, code, caption, prose,
+        lightness(surface.raised()) < 0.5 ? Badges.DARK : Badges.LIGHT);
+  }
+
+  /**
+   * The colours of a {@link Badge} of one kind: a quiet one is {@code softText} on {@code soft},
+   * a translucent tint laid over whatever the badge lies on, a strong one {@code strongText} on
+   * {@code strong}.
+   *
+   * @param soft translucent, the quiet badge's fill
+   * @param softText the quiet badge's text and icon, 4.5:1 on its fill over the surfaces, the
+   *     grid's rows and its selection
+   * @param strong opaque, the strong badge's fill
+   * @param strongText the strong badge's text and icon, 4.5:1 on {@code strong}
+   */
+  public record Tone(int soft, int softText, int strong, int strongText) {}
+
+  /**
+   * How {@link Badge}s look: a {@link Tone} per kind and two heights.
+   *
+   * @param neutral types and properties, such as {@code bigint} or {@code NOT NULL}
+   * @param accent what is chosen or stands out, such as a primary key
+   * @param success what is well
+   * @param warning what needs care
+   * @param danger what failed or destroys
+   * @param row the height of a badge in a row of a grid, a tree or a list, which it fits without
+   *     changing the row's height
+   * @param toolbar the height of a badge in a toolbar or a header, beside controls
+   * @param text the badge's type, smaller than the body's
+   * @param avatars the fills an {@link Avatar} picks from by its name, each 3:1 on the surfaces
+   *     of both default themes, so that one palette serves both
+   * @param onAvatar the initials and icon on those fills, 4.5:1 on each
+   */
+  public record Badges(Tone neutral, Tone accent, Tone success, Tone warning, Tone danger,
+      float row, float toolbar, TextStyle text, List<Integer> avatars, int onAvatar) {
+
+    public Badges {
+      if (avatars.isEmpty()) {
+        throw new IllegalArgumentException("at least one colour for avatars");
+      }
+      avatars = List.copyOf(avatars);
+    }
+
+    private static final TextStyle TEXT = new TextStyle(Font::sansMedium, 12);
+    private static final List<Integer> AVATARS = List.of(0xFF3578B6, 0xFF765FD1, 0xFFAF45C9,
+        0xFFC84182, 0xFFCA4949, 0xFFA86331, 0xFF887328, 0xFF278636, 0xFF268272);
+
+    /** For dark surfaces. */
+    public static final Badges DARK = new Badges(
+        new Tone(0x0DFFFFFF, 0xFFD3D5DB, 0xFF5A5D67, 0xFFFFFFFF),
+        new Tone(0x2E3D6FE6, 0xFFA9C1FA, 0xFF3D6FE6, 0xFFFFFFFF),
+        new Tone(0x1A5CC98A, 0xFF86E0AB, 0xFF1F7A47, 0xFFFFFFFF),
+        new Tone(0x1AE0B04C, 0xFFF0CC7A, 0xFFE0B04C, 0xFF1B1D22),
+        new Tone(0x1AF2797A, 0xFFFAB6B6, 0xFFC6373A, 0xFFFFFFFF),
+        18, 22, TEXT, AVATARS, 0xFFFFFFFF);
+
+    /** For light surfaces. */
+    public static final Badges LIGHT = new Badges(
+        new Tone(0x1A5C606B, 0xFF464A54, 0xFF5C606B, 0xFFFFFFFF),
+        new Tone(0x1F2E62D9, 0xFF1F4FB8, 0xFF2E62D9, 0xFFFFFFFF),
+        new Tone(0x2117693A, 0xFF135A31, 0xFF17693A, 0xFFFFFFFF),
+        new Tone(0x2BC98A00, 0xFF694600, 0xFFE9A92F, 0xFF1B1D22),
+        new Tone(0x1FB42318, 0xFF9E1E14, 0xFFB42318, 0xFFFFFFFF),
+        18, 22, TEXT, AVATARS, 0xFFFFFFFF);
   }
 
   /**
@@ -143,19 +215,34 @@ public record Theme(
    * @param number literal numbers
    * @param comment comments
    * @param operator operators, brackets and punctuation
-   * @param line translucent, behind the line of the caret
+   * @param line translucent, behind the line of the caret, and the selection a find keeps to
    * @param bracket translucent, behind the bracket at the caret and the one that matches it
+   * @param match translucent, behind each match of a find ({@link Find})
+   * @param current translucent, behind the current match of a find, stronger than {@code match}
+   * @param occurrence translucent, behind the other occurrences of the word at the caret
    */
   public record Code(int keyword, int string, int number, int comment, int operator, int line,
-      int bracket) {
+      int bracket, int match, int current, int occurrence) {
 
     /** For dark surfaces. */
     public static final Code DARK = new Code(0xFFD2B4FF, 0xFFA6DB94, 0xFFF5BD8C, 0xFFB4B8C0,
-        0xFF9ADCF5, 0x04FFFFFF, 0x0CFFFFFF);
+        0xFF9ADCF5, 0x04FFFFFF, 0x0CFFFFFF, 0x605C4A12, 0x448A6A1F, 0x08FFFFFF);
 
     /** For light surfaces. */
     public static final Code LIGHT = new Code(0xFF6A28CF, 0xFF1A6633, 0xFF95400C, 0xFF575B63,
-        0xFF0A5D75, 0x10000000, 0x26000000);
+        0xFF0A5D75, 0x10000000, 0x26000000, 0x40F2B300, 0x80E8A33A, 0x1C000000);
+
+    /**
+     * The colours of code with the backgrounds of a find and of a word's occurrences of {@link
+     * #DARK} where the caret's line is light on dark, else of {@link #LIGHT}.
+     */
+    public Code(int keyword, int string, int number, int comment, int operator, int line,
+        int bracket) {
+      this(keyword, string, number, comment, operator, line, bracket,
+          (line & 0xFFFFFF) == 0xFFFFFF ? DARK.match : LIGHT.match,
+          (line & 0xFFFFFF) == 0xFFFFFF ? DARK.current : LIGHT.current,
+          (line & 0xFFFFFF) == 0xFFFFFF ? DARK.occurrence : LIGHT.occurrence);
+    }
   }
 
   /**
@@ -383,9 +470,17 @@ public record Theme(
    * The buttons at the right of a frameless window's own title bar, which draw no fill at rest.
    *
    * @param closeHover the close button's fill under the pointer, the red of the system's own
-   * @param onClose the close button's cross on that fill
+   * @param onClose the close button's cross on that fill and on {@code closePressed}
+   * @param closePressed the close button's fill while it is pressed, a lighter red, as the
+   *     system's
    */
-  public record Caption(int closeHover, int onClose) {}
+  public record Caption(int closeHover, int onClose, int closePressed) {
+
+    /** A caption whose close button is pressed in a lighter tone of its red. */
+    public Caption(int closeHover, int onClose) {
+      this(closeHover, onClose, Theme.over(closeHover, 0x1FFFFFFF));
+    }
+  }
 
   private static final Spacing SPACE = new Spacing(2, 4, 8, 12, 16, 24);
   private static final Radii RADIUS = new Radii(4, 6, 10);
@@ -399,7 +494,7 @@ public record Theme(
   private static final Sizes SIZE = new Sizes(24, 16, 28, 16, 1, 200, 7, 16, 16, 2, 2, 4);
   private static final Motion MOTION =
       new Motion(Spring.INSTANT, Spring.SNAP, 0.3, 0.5, Spring.INSTANT, 5, 2, 1.2);
-  private static final Caption CAPTION = new Caption(0xFFC42B1C, 0xFFFFFFFF);
+  private static final Caption CAPTION = new Caption(0xFFC42B1C, 0xFFFFFFFF, 0xFFC8483B);
 
   /*
    * The rules the default themes follow; ThemeTest holds them to these.
@@ -492,97 +587,103 @@ public record Theme(
   public Theme withSurface(Surfaces surface) {
     return new Theme(
         surface, text, border, accent, status, space, radius, type, size, motion, grid,
-        scrollbars, elevation, code, caption, prose);
+        scrollbars, elevation, code, caption, prose, badge);
   }
 
   public Theme withText(TextColors text) {
     return new Theme(
         surface, text, border, accent, status, space, radius, type, size, motion, grid,
-        scrollbars, elevation, code, caption, prose);
+        scrollbars, elevation, code, caption, prose, badge);
   }
 
   public Theme withBorder(Borders border) {
     return new Theme(
         surface, text, border, accent, status, space, radius, type, size, motion, grid,
-        scrollbars, elevation, code, caption, prose);
+        scrollbars, elevation, code, caption, prose, badge);
   }
 
   public Theme withAccent(Accent accent) {
     return new Theme(
         surface, text, border, accent, status, space, radius, type, size, motion, grid,
-        scrollbars, elevation, code, caption, prose);
+        scrollbars, elevation, code, caption, prose, badge);
   }
 
   public Theme withStatus(Status status) {
     return new Theme(
         surface, text, border, accent, status, space, radius, type, size, motion, grid,
-        scrollbars, elevation, code, caption, prose);
+        scrollbars, elevation, code, caption, prose, badge);
   }
 
   public Theme withSpace(Spacing space) {
     return new Theme(
         surface, text, border, accent, status, space, radius, type, size, motion, grid,
-        scrollbars, elevation, code, caption, prose);
+        scrollbars, elevation, code, caption, prose, badge);
   }
 
   public Theme withRadius(Radii radius) {
     return new Theme(
         surface, text, border, accent, status, space, radius, type, size, motion, grid,
-        scrollbars, elevation, code, caption, prose);
+        scrollbars, elevation, code, caption, prose, badge);
   }
 
   public Theme withType(Type type) {
     return new Theme(
         surface, text, border, accent, status, space, radius, type, size, motion, grid,
-        scrollbars, elevation, code, caption, prose);
+        scrollbars, elevation, code, caption, prose, badge);
   }
 
   public Theme withSize(Sizes size) {
     return new Theme(
         surface, text, border, accent, status, space, radius, type, size, motion, grid,
-        scrollbars, elevation, code, caption, prose);
+        scrollbars, elevation, code, caption, prose, badge);
   }
 
   public Theme withMotion(Motion motion) {
     return new Theme(
         surface, text, border, accent, status, space, radius, type, size, motion, grid,
-        scrollbars, elevation, code, caption, prose);
+        scrollbars, elevation, code, caption, prose, badge);
   }
 
   public Theme withGrid(Grid grid) {
     return new Theme(
         surface, text, border, accent, status, space, radius, type, size, motion, grid,
-        scrollbars, elevation, code, caption, prose);
+        scrollbars, elevation, code, caption, prose, badge);
   }
 
   public Theme withScrollbars(Scrollbars scrollbars) {
     return new Theme(
         surface, text, border, accent, status, space, radius, type, size, motion, grid,
-        scrollbars, elevation, code, caption, prose);
+        scrollbars, elevation, code, caption, prose, badge);
   }
 
   public Theme withCode(Code code) {
     return new Theme(
         surface, text, border, accent, status, space, radius, type, size, motion, grid,
-        scrollbars, elevation, code, caption, prose);
+        scrollbars, elevation, code, caption, prose, badge);
   }
 
   public Theme withElevation(Elevation elevation) {
     return new Theme(
         surface, text, border, accent, status, space, radius, type, size, motion, grid,
-        scrollbars, elevation, code, caption, prose);
+        scrollbars, elevation, code, caption, prose, badge);
   }
 
   public Theme withProse(Prose prose) {
     return new Theme(
         surface, text, border, accent, status, space, radius, type, size, motion, grid,
-        scrollbars, elevation, code, caption, prose);
+        scrollbars, elevation, code, caption, prose, badge);
+  }
+
+  public Theme withBadge(Badges badge) {
+    return new Theme(
+        surface, text, border, accent, status, space, radius, type, size, motion, grid,
+        scrollbars, elevation, code, caption, prose, badge);
   }
 
   public Theme withCaption(Caption caption) {
     return new Theme(
         surface, text, border, accent, status, space, radius, type, size, motion, grid,
-        scrollbars, elevation, code, caption, prose);
+        scrollbars, elevation, code, caption, prose, badge);
   }
 
   /**

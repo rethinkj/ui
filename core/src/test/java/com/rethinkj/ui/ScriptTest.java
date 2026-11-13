@@ -459,8 +459,8 @@ class ScriptTest {
         """
         line 3: pres #switch
           There is no step pres. The steps are size, window, close, press, down, up, move,\
-         leave, wheel, scroll, key, type, compose, clipboard, focus, advance, await, frame and\
-         snap.""",
+         leave, wheel, scroll, key, type, compose, clipboard, dialog, drop, focus, advance,\
+         await, frame and snap.""",
         failure("size 200 120\nframe\npres #switch\n"));
   }
 

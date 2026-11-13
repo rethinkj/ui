@@ -5,6 +5,9 @@ import com.rethinkj.ui.Key;
 import com.rethinkj.ui.render.Scene;
 import com.rethinkj.ui.window.WindowEvent.AppearanceChanged;
 import com.rethinkj.ui.window.WindowEvent.CloseRequested;
+import com.rethinkj.ui.window.WindowEvent.FileDragLeave;
+import com.rethinkj.ui.window.WindowEvent.FileDragOver;
+import com.rethinkj.ui.window.WindowEvent.FileDrop;
 import com.rethinkj.ui.window.WindowEvent.FocusChanged;
 import com.rethinkj.ui.window.WindowEvent.KeyDown;
 import com.rethinkj.ui.window.WindowEvent.KeyText;
@@ -501,6 +504,9 @@ public final class WindowLoop {
           long refresh = Math.max(1, pressed.frameNanos / 1_000_000);
           millis = millis < 0 ? refresh : Math.min(millis, refresh);
         }
+        if (SystemDialogs.waiting()) { // a portal's answer comes when SDL pumps D-Bus
+          millis = millis < 0 ? SystemDialogs.PUMP : Math.min(millis, SystemDialogs.PUMP);
+        }
         waits.waiting(millis, held);
         if (millis < 0) {
           Window.waitEvents();
@@ -646,6 +652,7 @@ public final class WindowLoop {
   private void start(Entry e) {
     App<?> app = e.app;
     app.clipboard(new SystemClipboard());
+    app.dialogs(new SystemDialogs(e.window));
     app.systemFonts(systemFonts);
     app.windows(windows);
     e.window.listener(event -> event(e, event));
@@ -758,6 +765,18 @@ public final class WindowLoop {
       case KeyText text -> app.keyText(text.text()); // its key may have taken the focus to a field
       case TextInput text -> app.textInput(text.text());
       case TextEditing editing -> app.textComposition(editing.text(), editing.cursor());
+      case FileDragOver over -> {
+        e.input = true;
+        app.fileDragOver(over.x(), over.y());
+      }
+      case FileDragLeave leave -> {
+        e.input = true;
+        app.fileDragLeave();
+      }
+      case FileDrop drop -> {
+        e.input = true;
+        app.fileDrop(drop.x(), drop.y(), drop.files(), drop.text());
+      }
       case FocusChanged focus -> {
         app.windowActive(focus.focused());
         if (focus.focused()) {

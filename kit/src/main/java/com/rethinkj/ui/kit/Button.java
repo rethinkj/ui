@@ -1,10 +1,13 @@
 package com.rethinkj.ui.kit;
 
+import static com.rethinkj.ui.El.el;
 import static com.rethinkj.ui.El.row;
 import static com.rethinkj.ui.kit.Theme.over;
 
 import com.rethinkj.ui.Cursor;
 import com.rethinkj.ui.El;
+import java.util.List;
+import java.util.function.Consumer;
 
 /**
  * A button with text, an icon before its text, or an icon alone. A press runs its handler, and so
@@ -99,6 +102,82 @@ public final class Button {
         .child(Icon.icon(t, icon).color(variant == Variant.PRIMARY || onPress == null
             ? look.text() : t.text().muted()));
     return Tooltip.tooltip(t, enable(t, variant, look, button, onPress), label);
+  }
+
+  /**
+   * A toggle button with an icon alone, as in a toolbar: pressed in while {@code on}, with the
+   * selection's tint and the icon in the accent's edge, else a ghost button. In a tree dump it is
+   * {@code role=button} with {@code checked} or {@code checked=false}, as WAI-ARIA's {@code
+   * aria-pressed}, and its label, which a tooltip shows too.
+   *
+   * @param label what it turns on, such as "Wrap lines"
+   * @param onToggle told the new state; null disables the button
+   */
+  public static El toggleIcon(Theme t, Symbol icon, String label, boolean on,
+      Consumer<Boolean> onToggle) {
+    El button = icon(t, Variant.GHOST, icon, label, onToggle == null ? null
+        : () -> onToggle.accept(!on)).checked(on);
+    return on ? pressedIn(t, button, onToggle != null) : button;
+  }
+
+  /**
+   * A toggle button with an icon, if any, and text, which looks as {@link #toggleIcon} does.
+   *
+   * @param icon before the text; null for none
+   * @param onToggle told the new state; null disables the button
+   */
+  public static El toggle(Theme t, Symbol icon, String text, boolean on,
+      Consumer<Boolean> onToggle) {
+    El button = button(t, Variant.GHOST, icon, text, onToggle == null ? null
+        : () -> onToggle.accept(!on)).checked(on);
+    return on ? pressedIn(t, button, onToggle != null) : button;
+  }
+
+  /** A toggle button that is on: the tint of a selection, its icon in the accent's edge. */
+  private static El pressedIn(Theme t, El button, boolean enabled) {
+    int fill = t.grid().selected();
+    button.fill(fill);
+    for (El child : button.children()) {
+      if (child.text() != null && child.label() != null) { // the icon, which has its name
+        child.color(enabled ? t.accent().edge() : t.text().disabled());
+      }
+    }
+    return enabled
+        ? button.whenHovered(e -> e.fill(over(fill, t.surface().hover())))
+            .whenPressed(e -> e.fill(over(fill, t.surface().pressed())))
+        : button;
+  }
+
+  /**
+   * A split button: the main action, and beside it a chevron that opens a menu of related ones,
+   * as Run with Run selection and Explain. Each half is a button of its own, {@code role=button}
+   * with the text and with {@code "More " + text} as their labels, and Tab reaches both; the menu
+   * opens below the whole.
+   *
+   * @param onPress runs the main action; null disables it, and with no enabled item the chevron
+   * @param state whether the menu is open, which the chevron toggles
+   * @param items the menu's items
+   */
+  public static El split(Theme t, Variant variant, Symbol icon, String text, Runnable onPress,
+      Menu.State state, List<Menu.Item> items) {
+    boolean any = items.stream().anyMatch(Menu.Item::isEnabled);
+    El main = button(t, variant, icon, text, onPress).key("main")
+        .radius(t.radius().medium(), 0, 0, t.radius().medium());
+    Look look = look(t, variant, any);
+    El more = frame(t, variant, look, "More " + text, any ? state::toggle : null).key("arrow")
+        .w(t.size().control() - t.space().xs())
+        .radius(0, t.radius().medium(), t.radius().medium(), 0)
+        .child(Icon.icon(t, Select.OPENS).color(look.text()));
+    if (variant == Variant.SECONDARY) { // the main half's right edge lies between the two
+      more.border(t.size().stroke(), t.size().stroke(), t.size().stroke(), 0, look.edge());
+    }
+    more = enable(t, variant, look, more, any ? state::toggle : null);
+    El whole = row().key("split").shrink(0).child(main);
+    if (variant == Variant.PRIMARY) {
+      whole.child(el().w(t.size().stroke()).hFull().fill(t.accent().pressed()));
+    }
+    whole.child(more);
+    return Menu.dropdown(t, whole, state, items);
   }
 
   /** A button's box: role, label, height, corners, fill and edge. */

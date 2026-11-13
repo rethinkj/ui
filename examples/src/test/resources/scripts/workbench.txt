@@ -192,3 +192,21 @@ frame
 snap workbench-docking                     # the marker there; the window below the bar
 up screen 440,148
 frame                                      # orders back in the first window, its window gone
+
+# The query's find bar (Find), over the top right corner of the editor.
+window main
+advance 1                                  # past the fade of the docked tab's content
+frame
+press #query-localhost/shop/public/orders  # the query of orders, back in the first window
+key F control                              # finds the word at the caret
+type "o"                                   # every o; the first after the caret is current
+frame
+advance 0.25
+frame
+snap workbench-find-light
+key H control                              # the replacement below
+press role=switch label="Dark"             # the dark theme; the focus stays in the bar
+frame
+advance 1
+frame
+snap workbench-find

@@ -1,0 +1,96 @@
+el 0,0 720x420
+  el 12,12 696x78
+    el 25,25 670x52
+      el #crumbs role=navigation label="Breadcrumb" 25,25 670x24
+        el #crumb-0 25,25 64x24
+          el role=link label="localhost" 25,25 64x24
+            text "localhost" 29,29 56x16
+        el #crumb-1 91,25 53x24
+          text label="chevron_right" "\u{F2AE}" 91,31 12x12
+          el role=link label="shop" 105,25 39x24
+            text "shop" 109,29 31x16
+        el #crumb-2 146,25 59x24
+          text label="chevron_right" "\u{F2AE}" 146,31 12x12
+          el role=link label="public" 160,25 45x24
+            text "public" 164,29 37x16
+        el #crumb-3 207,25 224x24
+          text label="chevron_right" "\u{F2AE}" 207,31 12x12
+          el role=link label="orders_by_customer_and_month" 221,25 210x24 current
+            text "orders_by_customer_and_month" 225,29 202x16
+      el 25,53 670x24
+        el #tools role=toolbar label="Table" 25,53 589x24
+          el role=button label="Refresh" 25,53 24x24
+            text label="arrow_clockwise" "\u{E0AA}" 29,57 16x16
+          el #split 51,53 93x24
+            el #main role=button label="Run" 51,53 70x24
+              text label="play" "\u{E990}" 64,57 16x16
+              text "Run" 84,57 24x16
+            el 121,53 1x24
+            el #arrow role=button label="More Run" 122,53 22x24
+              text label="chevron_down" "\u{F2A2}" 125,57 16x16
+          el role=separator 148,57 1x16
+          el role=button label="Wrap values" 153,53 24x24 checked=false
+            text label="text_t" "\u{ECAE}" 157,57 16x16
+          el role=button label="Copy" 179,53 24x24
+            text label="copy" "\u{F32A}" 183,57 16x16
+          el 205,65 321x0
+          el role=button label="Export" 528,53 86x24
+            text label="arrow_export_ltr" "\u{E0C6}" 541,57 16x16
+            text "Export" 561,57 40x16
+        el #filter role=button label="Filter" 618,53 77x24
+          text label="filter" "\u{E60A}" 631,57 16x16
+          text "Filter" 651,57 31x16
+  el 12,102 696x306
+    el 25,115 670x192
+      el 25,115 670x114
+        text role=heading "Table" 25,115 670x16 level=3
+        el role=list label="Table" 25,133 670x96
+          el role=listitem label="Schema" 25,133 670x24 value="public"
+            text "Schema" 29,137 71x16
+            text role=textbox "public" 108,133 551x24 readonly
+            el #copy role=button label="Copy Schema" 667,133 24x24
+              text label="copy" "\u{F32A}" 671,137 16x16
+          el role=listitem label="Rows" 25,157 670x24 value="1,000,000"
+            text "Rows" 29,161 71x16
+            text role=textbox "1,000,000" 108,157 551x24 readonly
+            el #copy role=button label="Copy Rows" 667,157 24x24
+              text label="copy" "\u{F32A}" 671,161 16x16
+          el role=listitem label="Owner" 25,181 670x24 value="shop_admin"
+            text "Owner" 29,185 71x16
+            text role=textbox "shop_admin" 108,181 551x24 readonly
+            el #copy role=button label="Copy Owner" 667,181 24x24
+              text label="copy" "\u{F32A}" 671,185 16x16
+          el role=listitem label="Comment" 25,205 670x24 value="Every order a customer placed, by month, for the reports of the sales team"
+            text "Comment" 29,209 71x16
+            text role=textbox "Every order a customer placed, by month, for the reports of the sales team" 108,205 551x24 readonly
+            el #copy role=button label="Copy Comment" 667,205 24x24
+              text label="copy" "\u{F32A}" 671,209 16x16
+      el 25,241 670x66
+        text role=heading "Storage" 25,241 670x16 level=3
+        el role=list label="Storage" 25,259 670x48
+          el role=listitem label="Size" 25,259 670x24 value="128 MB"
+            text "Size" 29,263 71x16
+            text role=textbox "128 MB" 108,259 551x24 readonly
+            el #copy role=button label="Copy Size" 667,259 24x24
+              text label="copy" "\u{F32A}" 671,263 16x16
+          el role=listitem label="Tablespace" 25,283 670x24 value="pg_default"
+            text "Tablespace" 29,287 71x16
+            text role=textbox "pg_default" 108,283 551x24 readonly
+            el #copy role=button label="Copy Tablespace" 667,283 24x24
+              text label="copy" "\u{F32A}" 671,287 16x16
+overlay bottom start gap 2 on #filter role=button label="Filter" 618,53 77x24
+  el #popover role=dialog label="Filter rows" 469,79 226x132
+    el 482,92 200x106
+      text role=heading "Filter rows" 482,92 200x16 level=3
+      el 482,120 200x42
+        el 482,120 200x42
+          el 482,120 200x42
+            el 482,120 200x16
+              text "Column" 482,120 47x16
+            el 482,138 200x24
+              text #column role=textbox label="Column" "status" 482,138 200x24 focused caret 6
+      el 482,174 200x24
+        el role=button label="Cancel" 543,174 70x24
+          text "Cancel" 556,178 44x16
+        el #apply role=button label="Apply" 621,174 61x24
+          text "Apply" 634,178 35x16

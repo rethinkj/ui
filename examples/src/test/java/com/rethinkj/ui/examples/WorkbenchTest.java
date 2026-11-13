@@ -49,6 +49,10 @@ class WorkbenchTest {
     assertTrue(Snaps.line("workbench", "orders-workbench-torn", "#status")
         .contains("\"localhost/shop/public/orders · 5 rows\""), "the answer in the torn window");
     assertTrue(Snaps.line("workbench", "workbench-docking", "#marker").startsWith("el #marker"));
+    assertTrue(Snaps.line("workbench", "workbench-find", "#count").contains("\"1 of 2\""),
+        "the query's find bar: the O of FROM and the o of orders");
+    assertTrue(Snaps.line("workbench", "workbench-edit-menu", "#item-12")
+        .contains("label=\"Go to line…\""), "the editor's commands in the Edit menu");
     assertFalse(Files.exists(Path.of("target/workbench/orders-workbench-docked.png")));
   }
 
@@ -220,6 +224,20 @@ class WorkbenchTest {
 
   /** The app of the window that the group of {@code tab} has, the first window's for main. */
   @SuppressWarnings("unchecked")
+  /** The data grid of the active tab. */
+  private static El grid(El el) {
+    if ("grid".equals(el.role())) {
+      return el;
+    }
+    for (El child : el.children()) {
+      El found = grid(child);
+      if (found != null) {
+        return found;
+      }
+    }
+    return null;
+  }
+
   private static App<Workbench> windowOf(Workbench s, Workbench.Opened tab) {
     return s.appOf(s.groups.groupOf(tab));
   }
@@ -317,6 +335,57 @@ class WorkbenchTest {
         frame
         """, app, out);
     assertFalse(orders.query.contains("here"), "undo took back the typing in the other window");
+  }
+
+  /**
+   * A tab's grid keeps exactly where it was scrolled to, down and sideways, across another tab
+   * in between and in a window of its own, also far from its cursor ({@code DataGrid.Selection}
+   * holds it).
+   */
+  @Test
+  void aTabsGridKeepsItsScrollAcrossSwitchesAndWindows() throws IOException {
+    App<Workbench> app = started();
+    Workbench s = app.state();
+    Script.run(OPEN_ORDERS, app, out);
+    Workbench.Opened orders = s.tables().getFirst();
+    Script.run("size 1000 600\nwheel 600,400 0 12345\nwheel 600,400 37 0\nframe", app, out);
+    El grid = grid(app.tree());
+    double down = find(app.tree(), "rows").scrollY();
+    double across = grid.scrollX();
+    assertTrue(down == 12345 && across == 37, down + " " + across);
+
+    Script.run("""
+        size 1000 600
+        press role=treeitem label="customers" clicks 2
+        frame
+        await
+        frame
+        advance 1
+        frame
+        press #tab-1
+        frame
+        advance 1
+        frame
+        """, app, out);
+    assertEquals(down, find(app.tree(), "rows").scrollY(), "back where it was");
+    assertEquals(across, grid(app.tree()).scrollX());
+
+    Script.run("""
+        size 1000 600
+        down #tab-1
+        move 380,60
+        move 380,300
+        frame
+        up 380,300
+        frame
+        advance 1
+        frame
+        """, app, out);
+    App<Workbench> torn = windowOf(s, orders);
+    assertTrue(torn != app, "in a window of its own");
+    assertEquals(down, find(torn.tree(), "rows").scrollY(), "where it was in the first window");
+    assertEquals(across, grid(torn.tree()).scrollX());
+    assertEquals(-1, orders.selection.row(), "far from a cursor, which it has none of");
   }
 
   /** An answer on its way when its tab moves to another window shows there. */

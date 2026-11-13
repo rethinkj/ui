@@ -134,6 +134,11 @@ public final class Card {
     return bar;
   }
 
+  /** The height of a {@link #footer}, for what has to stay clear of it, as a {@link Toast}. */
+  public static float footerHeight(Theme t) {
+    return t.size().control() + t.space().s() + t.size().stroke();
+  }
+
   /**
    * The bottom row of a {@link #flush} card: a quiet band ({@link Theme.Surfaces#band}) with a
    * hairline along its top, {@code start} at the left and the rest at the right, as status texts
@@ -143,7 +148,7 @@ public final class Card {
    * @param end at the right, in the order shown
    */
   public static El footer(Theme t, El start, El... end) {
-    El row = row().h(t.size().control() + t.space().s() + t.size().stroke()).shrink(0)
+    El row = row().h(footerHeight(t)).shrink(0)
         .padding(0, t.space().l()).gap(t.space().l()).align(Style.Align.CENTER)
         .fill(t.surface().band()).border(t.size().stroke(), 0, 0, 0, t.border().subtle());
     if (start != null) {

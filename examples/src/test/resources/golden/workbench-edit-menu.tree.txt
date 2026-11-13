@@ -713,41 +713,94 @@ el 0,0 1000x600
     el #running label="Idle" 962,574 30x24
       text "Idle" 966,578 22x16
 overlay bottom start gap 2 on #title-1 role=menuitem label="Edit" 148,4 39x24
-  el #menu role=menu 148,30 176x164 focused
-    el #item-0 role=menuitem label="Undo" 153,35 166x24
-      el 153,35 166x24
+  el #menu role=menu 148,30 252x414 focused
+    el #item-0 role=menuitem label="Undo" 153,35 242x24
+      el 153,35 242x24
         el 161,39 16x16
           text label="arrow_undo" "\u{E126}" 161,39 16x16
-        text "Undo" 185,39 68x16
-        text "Ctrl+Z" 273,39 38x16
-    el #item-1 role=menuitem label="Redo" 153,59 166x24
-      el 153,59 166x24
+        text "Undo" 185,39 144x16
+        text "Ctrl+Z" 349,39 38x16
+    el #item-1 role=menuitem label="Redo" 153,59 242x24
+      el 153,59 242x24
         el 161,63 16x16
           text label="arrow_redo" "\u{E0E4}" 161,63 16x16
-        text "Redo" 185,63 32x16
-        text "Ctrl+Shift+Z" 237,63 74x16
-    el 153,85 166x1
-    el #item-3 role=menuitem label="Cut" 153,88 166x24
-      el 153,88 166x24
+        text "Redo" 185,63 108x16
+        text "Ctrl+Shift+Z" 313,63 74x16
+    el 153,85 242x1
+    el #item-3 role=menuitem label="Cut" 153,88 242x24
+      el 153,88 242x24
         el 161,92 16x16
           text label="cut" "\u{F038C}" 161,92 16x16
-        text "Cut" 185,92 68x16
-        text "Ctrl+X" 273,92 38x16
-    el #item-4 role=menuitem label="Copy" 153,112 166x24
-      el 153,112 166x24
+        text "Cut" 185,92 144x16
+        text "Ctrl+X" 349,92 38x16
+    el #item-4 role=menuitem label="Copy" 153,112 242x24
+      el 153,112 242x24
         el 161,116 16x16
           text label="copy" "\u{F32A}" 161,116 16x16
-        text "Copy" 185,116 67x16
-        text "Ctrl+C" 272,116 39x16
-    el #item-5 role=menuitem label="Paste" 153,136 166x24
-      el 153,136 166x24
+        text "Copy" 185,116 143x16
+        text "Ctrl+C" 348,116 39x16
+    el #item-5 role=menuitem label="Paste" 153,136 242x24
+      el 153,136 242x24
         el 161,140 16x16
           text label="clipboard_paste" "\u{E35A}" 161,140 16x16
-        text "Paste" 185,140 68x16
-        text "Ctrl+V" 273,140 38x16
-    el 153,162 166x1
-    el #item-7 role=menuitem label="Select all" 153,165 166x24
-      el 153,165 166x24
+        text "Paste" 185,140 144x16
+        text "Ctrl+V" 349,140 38x16
+    el 153,162 242x1
+    el #item-7 role=menuitem label="Select all" 153,165 242x24
+      el 153,165 242x24
         el 161,177 16x0
-        text "Select all" 185,169 68x16
-        text "Ctrl+A" 273,169 38x16
+        text "Select all" 185,169 144x16
+        text "Ctrl+A" 349,169 38x16
+    el 153,191 242x1
+    el #item-9 role=menuitem label="Find…" 153,194 242x24
+      el 153,194 242x24
+        el 161,198 16x16
+          text label="search" "\u{EA7C}" 161,198 16x16
+        text "Find…" 185,198 144x16
+        text "Ctrl+F" 349,198 38x16
+    el #item-10 role=menuitem label="Replace…" 153,218 242x24
+      el 153,218 242x24
+        el 161,230 16x0
+        text "Replace…" 185,222 142x16
+        text "Ctrl+H" 347,222 40x16
+    el #item-11 role=menuitem label="Find next" 153,242 242x24
+      el 153,242 242x24
+        el 161,254 16x0
+        text "Find next" 185,246 166x16
+        text "F3" 371,246 16x16
+    el #item-12 role=menuitem label="Go to line…" 153,266 242x24
+      el 153,266 242x24
+        el 161,278 16x0
+        text "Go to line…" 185,270 142x16
+        text "Ctrl+G" 347,270 40x16
+    el 153,292 242x1
+    el #item-14 role=menuitem label="Select next occurrence" 153,295 242x24
+      el 153,295 242x24
+        el 161,307 16x0
+        text "Select next occurrence" 185,299 143x16
+        text "Ctrl+D" 348,299 39x16
+    el #item-15 role=menuitem label="Duplicate lines" 153,319 242x24
+      el 153,319 242x24
+        el 161,331 16x0
+        text "Duplicate lines" 185,323 107x16
+        text "Ctrl+Shift+D" 312,323 75x16
+    el #item-16 role=menuitem label="Move lines up" 153,343 242x24
+      el 153,343 242x24
+        el 161,355 16x0
+        text "Move lines up" 185,347 139x16
+        text "Alt+Up" 344,347 43x16
+    el #item-17 role=menuitem label="Move lines down" 153,367 242x24
+      el 153,367 242x24
+        el 161,379 16x0
+        text "Move lines down" 185,371 121x16
+        text "Alt+Down" 326,371 61x16
+    el #item-18 role=menuitem label="Delete lines" 153,391 242x24
+      el 153,391 242x24
+        el 161,403 16x0
+        text "Delete lines" 185,395 107x16
+        text "Ctrl+Shift+K" 312,395 75x16
+    el #item-19 role=menuitem label="Toggle comment" 153,415 242x24
+      el 153,415 242x24
+        el 161,427 16x0
+        text "Toggle comment" 185,419 147x16
+        text "Ctrl+/" 352,419 35x16

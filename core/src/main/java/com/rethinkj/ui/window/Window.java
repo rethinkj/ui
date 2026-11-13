@@ -16,6 +16,9 @@ import com.rethinkj.ui.natives.Natives;
 import com.rethinkj.ui.render.Pixels;
 import com.rethinkj.ui.window.WindowEvent.AppearanceChanged;
 import com.rethinkj.ui.window.WindowEvent.CloseRequested;
+import com.rethinkj.ui.window.WindowEvent.FileDragLeave;
+import com.rethinkj.ui.window.WindowEvent.FileDragOver;
+import com.rethinkj.ui.window.WindowEvent.FileDrop;
 import com.rethinkj.ui.window.WindowEvent.FocusChanged;
 import com.rethinkj.ui.window.WindowEvent.KeyDown;
 import com.rethinkj.ui.window.WindowEvent.KeyText;
@@ -37,10 +40,14 @@ import java.lang.foreign.Linker;
 import java.lang.foreign.MemorySegment;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
+import java.nio.file.InvalidPathException;
+import java.nio.file.Path;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
@@ -321,6 +328,9 @@ public final class Window implements AutoCloseable {
   private Posted lastKeyDown; // the last key down queued, which a WM_CHAR may show was AltGr
   /** Where the last pointer move was, in logical pixels, while the pointer is in the window. */
   private boolean pointerIn;
+  /** What another application drops, as SDL hands it over until DROP_COMPLETE. */
+  private final List<Path> dropFiles = new ArrayList<>();
+  private StringBuilder dropText;
   private float pointerX;
   private float pointerY;
   private Cursor cursor = Cursor.DEFAULT;
@@ -683,7 +693,8 @@ public final class Window implements AutoCloseable {
       }
       boolean ofAWindow = (type >= Sdl.EVENT_WINDOW_SHOWN && type <= Sdl.EVENT_WINDOW_LAST)
           || (type >= Sdl.EVENT_KEY_DOWN && type <= Sdl.EVENT_TEXT_INPUT)
-          || (type >= Sdl.EVENT_MOUSE_MOTION && type <= Sdl.EVENT_MOUSE_WHEEL);
+          || (type >= Sdl.EVENT_MOUSE_MOTION && type <= Sdl.EVENT_MOUSE_WHEEL)
+          || (type >= Sdl.EVENT_DROP_FILE && type <= Sdl.EVENT_DROP_POSITION);
       if (!ofAWindow) {
         return true;
       }
@@ -809,6 +820,42 @@ public final class Window implements AutoCloseable {
       case Sdl.EVENT_WINDOW_FOCUS_GAINED -> post(new FocusChanged(true));
       case Sdl.EVENT_WINDOW_FOCUS_LOST -> post(new FocusChanged(false));
       case Sdl.EVENT_WINDOW_CLOSE_REQUESTED -> post(new CloseRequested());
+      // SDL sends BEGIN, POSITION as the drag moves, then at the release a FILE per file or a
+      // TEXT per line and COMPLETE; a COMPLETE with nothing before it is a drag that left.
+      case Sdl.EVENT_DROP_BEGIN -> {
+        dropFiles.clear();
+        dropText = null;
+      }
+      case Sdl.EVENT_DROP_POSITION -> post(new FileDragOver(
+          logical(e.get(JAVA_FLOAT, Sdl.DROP_X)), logical(e.get(JAVA_FLOAT, Sdl.DROP_Y))));
+      case Sdl.EVENT_DROP_FILE -> {
+        String file = Sdl.string(e.get(ADDRESS, Sdl.DROP_DATA));
+        try {
+          if (file != null && !file.isEmpty()) {
+            dropFiles.add(Path.of(file));
+          }
+        } catch (InvalidPathException ignored) {
+          // a name Java cannot use is left out, as one the system could not give
+        }
+      }
+      case Sdl.EVENT_DROP_TEXT -> {
+        String text = Sdl.string(e.get(ADDRESS, Sdl.DROP_DATA));
+        if (text != null) {
+          dropText = dropText == null ? new StringBuilder(text)
+              : dropText.append('\n').append(text);
+        }
+      }
+      case Sdl.EVENT_DROP_COMPLETE -> {
+        if (dropFiles.isEmpty() && dropText == null) {
+          post(new FileDragLeave());
+        } else {
+          post(new FileDrop(logical(e.get(JAVA_FLOAT, Sdl.DROP_X)),
+              logical(e.get(JAVA_FLOAT, Sdl.DROP_Y)), dropFiles,
+              dropFiles.isEmpty() ? dropText.toString() : null));
+        }
+        dropFiles.clear();
+        dropText = null;
+      }
       default -> {}
     }
   }

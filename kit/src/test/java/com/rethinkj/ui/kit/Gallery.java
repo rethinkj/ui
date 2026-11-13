@@ -132,7 +132,13 @@ final class Gallery {
           new Row("nav list", (t, h) -> NavList.navList(t, List.of(NavList.item(Symbol.TABLE,
               "orders").count("12")), 0, choose(h)).w(WIDTH - 20).label("Tables")),
           new Row("status item", (t, h) ->
-              StatusBar.status(t, StatusBar.State.CONNECTED, "localhost", h)));
+              StatusBar.status(t, StatusBar.State.CONNECTED, "localhost", h)),
+          new Row("badge", (t, h) -> Badge.badge(t, "Add filter",
+              Badge.options().toolbar().kind(Badge.Kind.ACCENT).icon(Symbol.ADD).onPress(h))),
+          new Row("toggle button", (t, h) -> Button.toggle(t, Symbol.PIN, "Pin", false,
+              h == null ? null : on -> h.run())),
+          new Row("toggle on", (t, h) -> Button.toggle(t, Symbol.PIN, "Pin", true,
+              h == null ? null : on -> h.run())));
 
   /** A handler of a choice that runs {@code h}, or none when {@code h} is. */
   private static IntConsumer choose(Runnable h) {
