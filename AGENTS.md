@@ -2,7 +2,7 @@
 
 A native, GPU-rendered UI framework for Java, modelled on [rune](https://github.com/anomalyco/rune) (Rust, MIT). Rune is the reference for scope and concepts: its own renderer, text, layout and animation, plus a headless mode in which an agent can render to PNG, dump the element tree and drive an app with scripted input.
 
-Status: early. `core` runs an app with and without a window: element tree, flexbox layout, springs and fading, clipping and scrolling, pointer, wheel and keyboard input with focus, hover and pressed looks, a CPU reference renderer and a GPU renderer that is checked against it, PNG, scripts that drive an app, and SDL windows. Text is shaped and measured but not drawn yet, and `kit` is empty. The native libraries (SDL3, wgpu-native, FreeType, HarfBuzz) are packaged per platform and loaded on demand.
+Status: early. `core` runs an app with and without a window: element tree, flexbox layout, text (shaped with HarfBuzz, rasterised with FreeType), springs and fading, clipping and scrolling, pointer, wheel and keyboard input with focus, hover and pressed looks, a CPU reference renderer and a GPU renderer that is checked against it, PNG, scripts that drive an app, and SDL windows. `kit` has a theme and the first components; `examples` has a runnable light switch. The native libraries (SDL3, wgpu-native, FreeType, HarfBuzz) are packaged per platform and loaded on demand.
 
 - Repository: https://github.com/rethinkj/ui
 - License: MIT
