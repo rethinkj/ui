@@ -329,6 +329,19 @@ class TextAreaTest {
   }
 
   @Test
+  void anIndentBeyondTheMaximumLengthDoesNothing() {
+    App<Model> app = focused("a\nb", f -> f.tabIndents(true).maxLength(11));
+    key(app, "A", CONTROL);
+    key(app, "Tab");
+    assertEquals("^    a\n    b|", show(app), "as long as it may be");
+    key(app, "Tab");
+    assertEquals("^    a\n    b|", show(app), "four more would be too long, and two cut nothing");
+    assertEquals(1, app.state().edits.size());
+    key(app, "Tab", SHIFT);
+    assertEquals("^a\nb|", show(app), "an outdent makes it shorter");
+  }
+
+  @Test
   void escapeAndTabOrControlMLeaveAFieldThatIndents() {
     App<Model> app = focused("ab", f -> f.tabIndents(true));
     key(app, "Escape");

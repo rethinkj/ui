@@ -689,7 +689,8 @@ final class Editor {
   /**
    * Indents the lines of the selection, or of the caret, by a tab or {@link El#tabSize} spaces, or
    * outdents them by as much as one of those, in one step of the history. A selection that ends at
-   * the start of a line leaves that line out; indenting leaves empty lines empty.
+   * the start of a line leaves that line out; indenting leaves empty lines empty, and does nothing
+   * where it would make the text longer than {@link El#maxLength}.
    */
   private void indent(boolean out) {
     Lines ls = lines();
@@ -745,6 +746,10 @@ final class Editor {
     }
     if (delta == 0 && block.length() == to - from) {
       return; // nothing to outdent
+    }
+    int max = el.maxLength();
+    if (max >= 0 && text.codePointCount(0, text.length()) + delta > max) {
+      return; // an indent is whole or nothing, and cuts no text
     }
     run = null;
     edit(from, to - from, block.toString(), newCaret, newAnchor, null, false);
