@@ -126,6 +126,19 @@ final class Win32Frame {
 
   private long message(int message, long wParam, long lParam) {
     switch (message) {
+      // SDL makes all of a borderless window its client area, even of a minimized one, which
+      // Windows shrinks to 160 by 28 pixels; restoring it, SDL then reports that size before the
+      // real one, and the app lays out and draws a frame for it. A minimized framed window has no
+      // client area: none here either.
+      case Win32.WM_NCCALCSIZE -> {
+        if (wParam != 0 && Win32.isIconic(hwnd)) {
+          // NCCALCSIZE_PARAMS starts with the RECT that becomes the client area.
+          MemorySegment rect = MemorySegment.ofAddress(lParam).reinterpret(16);
+          rect.set(JAVA_INT, 8, rect.get(JAVA_INT, 0));
+          rect.set(JAVA_INT, 12, rect.get(JAVA_INT, 4));
+          return 0;
+        }
+      }
       case Win32.WM_NCHITTEST -> {
         toClient(lParam);
         float x = window.logical(point.get(JAVA_INT, 0));

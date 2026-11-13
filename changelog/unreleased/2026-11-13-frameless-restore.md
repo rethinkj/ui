@@ -1,0 +1,1 @@
+- Fixed a frameless window on Windows reporting a size of 160 by 28 pixels when the system restored it from the taskbar, which made the app lay out and draw a frame for that size before the real one.
