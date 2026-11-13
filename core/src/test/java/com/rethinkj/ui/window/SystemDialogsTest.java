@@ -119,6 +119,18 @@ class SystemDialogsTest {
   }
 
   @Test
+  void aDialogOfAWindowThatClosedFailsWithoutAskingSdl() {
+    Desktop.assumeWindows();
+    Window window = Window.open("rethinkj closed dialog test", 80, 60);
+    window.close();
+    List<String> failures = new ArrayList<>();
+    new SystemDialogs(window).file(FileDialog.open("x"), c -> failures.add("chosen " + c),
+        failures::add);
+    assertEquals(List.of("The window of this dialog has closed."), failures);
+    assertTrue(!SystemDialogs.waiting());
+  }
+
+  @Test
   void theDialogStartsInItsFolderOrAtItsSuggestedFile() {
     Path folder = Path.of("exports").toAbsolutePath();
     assertNull(SystemDialogs.location(FileDialog.open("x")));

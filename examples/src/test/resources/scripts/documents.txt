@@ -49,3 +49,60 @@ snap documents-light-docking
 up screen 600,340
 frame
 snap documents-light-docked   # Notes in the window of Ideas, its own window gone
+
+window Ideas
+close                   # its tabs go back into the first window
+frame
+window main
+
+# File › Open… reads two files off the app's thread: one opens in a new tab, the other is not
+# there, which a toast says. The dialog is answered before the press whose handler opens it.
+dialog "src/test/resources/documents/orders.sql" "src/test/resources/documents/missing.md"
+press role=menuitem label="File"
+frame
+advance 0.25
+frame
+snap documents-file-menu
+press role=menuitem label="Open…"
+frame
+await                   # the dialog's answer
+frame
+await                   # the files, read
+frame
+advance 0.25
+frame
+snap documents-opened   # orders.sql in a new tab, the toast below
+
+# File › Save As… writes the active document, orders.sql, to the file the dialog chooses.
+advance 6               # the toast's time is up
+frame
+dialog "target/orders copy.sql"
+press role=menuitem label="File"
+frame
+advance 0.25
+frame
+press role=menuitem label="Save As…"
+frame
+await                   # the dialog's answer
+frame
+await                   # the file, written
+frame
+advance 0.25
+frame
+snap documents-saved    # the tab named after its file, the toast says so
+
+# A file dragged onto the window from a file manager: the tabs' card takes it.
+advance 6
+frame
+drop over #tabs
+frame
+advance 0.25            # the card's edge springs to its colour
+frame
+snap documents-drop-over      # the card's edge in the accent, a hint at the bottom
+drop #tabs "src/test/resources/documents/notes ü.md"
+frame
+await
+frame
+advance 0.25
+frame
+snap documents-dropped        # in a new tab, the card as before
