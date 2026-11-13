@@ -2,7 +2,7 @@
 
 A native, GPU-rendered UI framework for Java, modelled on [rune](https://github.com/anomalyco/rune) (Rust, MIT). Rune is the reference for scope and concepts: its own renderer, text, layout and animation, plus a headless mode in which an agent can render to PNG, dump the element tree and drive an app with scripted input.
 
-Status: early. `core` draws a view without a window: element tree, flexbox layout, CPU reference renderer, PNG. There is no window, GPU renderer, text or input yet, and `kit` is empty. The native libraries for the window and the renderer are packaged and loaded, but nothing calls them yet.
+Status: early. `core` runs an app without a window: element tree, flexbox layout, springs, pointer presses, CPU reference renderer, PNG, and scripts that drive an app. There is no window, GPU renderer, text or keyboard yet, and `kit` is empty. The native libraries for the window and the renderer are packaged and loaded, but nothing calls them yet.
 
 - Repository: https://github.com/rethinkj/ui
 - License: MIT
@@ -29,6 +29,55 @@ Image tests compare what `Headless.render` produces with the PNG and tree files 
 The layout is tested against Taffy's flexbox cases in `core/src/test/resources/taffy`; `scripts/import-taffy-fixtures.sh` refreshes them.
 
 On Windows, the first build downloads the native libraries (see below) and needs network access; later builds, `mvn clean` included, do not. `mvn verify -P '!natives-windows-x64'` builds without them and skips the tests that load them.
+
+## Driving an app with a script
+
+`com.rethinkj.ui.Script` drives an app without a window: a script of steps goes in, images and trees come out. An app's `main` passes its arguments to `Script.handle(args, app)`; with `--script <file> --out <folder>` that runs the script, prints the files it wrote and returns true, and without them it returns false and `main` opens the window. `Script.run(text, app, folder)` does the same from Java. On a mistake it throws `Script.Failure`, which names the line and says what to write instead; uncaught, the program exits with status 1.
+
+One step per line. A `#` at the start of a line or before a space starts a comment.
+
+| Step | What it does |
+| --- | --- |
+| `size <width> <height> [scale <factor>]` | Sets the window size in logical pixels and the physical pixels per logical pixel (default 1). Needed before the first `frame`. |
+| `press <target>` | Pointer down and up on the target. |
+| `down <target>`, `up <target>` | The two halves, for a press that ends elsewhere. A press counts only when both land on the same element. |
+| `advance <seconds>` | Moves the app's clock. |
+| `frame` | Runs one frame: the handlers that input queued, a rebuild of the view, the animations at the current time. |
+| `snap <name>` | Writes `<name>.png` and `<name>.tree.txt` of the last frame into the output folder. `<name>` may contain `/` but must stay inside the folder. |
+
+Only `frame` runs a frame, as in a window, where input arrives between frames: `press` queues a handler and `advance` moves the clock, but the screen changes at the next `frame`. `snap` refuses to write a frame that does not show the steps before it.
+
+A target is a position `x,y` in logical pixels, or a selector for exactly one element of the last frame: `#key` (anywhere in the tree), `role=<role>`, `label="<text>"` (`\"` and `\\` inside), or several of them, as in `role=switch label="Lights"`. A selector presses the centre of the element's rectangle. When it matches nothing, the error lists the keys, roles and labels there are; when it matches several, it lists them with their rectangles.
+
+`core/src/test/resources/scripts/switch.txt` drives the switch of core's tests:
+
+```text
+# The light switch of core's tests (Examples): off, pressed, moving, settled.
+size 200 120
+frame
+snap switch-off
+
+size 200 120 scale 2
+press role=switch label="Lights"   # queues the switch's handler
+frame                              # runs it; the knob starts to move
+advance 0.04
+frame
+snap switch-moving-040ms
+
+advance 1
+frame
+snap switch-on
+```
+
+Run it, and look at the three images and trees in `core/target/switch`:
+
+```sh
+mvn -q -pl core test-compile
+java -cp core/target/classes:core/target/test-classes com.rethinkj.ui.Examples \
+  --script core/src/test/resources/scripts/switch.txt --out core/target/switch
+```
+
+On Windows, separate the class path with `;`. The snaps equal the stored images of the same names under `core/src/test/resources/golden`; `ScriptTest` checks that, and that this example matches the file.
 
 ## Modules
 

@@ -4,11 +4,19 @@ import static com.rethinkj.ui.El.col;
 import static com.rethinkj.ui.El.el;
 
 import com.rethinkj.ui.motion.Spring;
+import java.io.IOException;
 
 /** Views shared by tests. */
 final class Examples {
 
   private Examples() {}
+
+  /** The switch as a program: {@code --script <file> --out <folder>} runs a script against it. */
+  public static void main(String[] args) throws IOException {
+    if (!Script.handle(args, new App<>(new Lights(), Examples::lights))) {
+      System.err.println("There is no window yet. Run with --script <file> --out <folder>.");
+    }
+  }
 
   /** The state of the switch example. */
   static final class Lights {

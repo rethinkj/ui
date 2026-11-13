@@ -1,0 +1,15 @@
+# The light switch of core's tests (Examples): off, pressed, moving, settled.
+size 200 120
+frame
+snap switch-off
+
+size 200 120 scale 2
+press role=switch label="Lights"   # queues the switch's handler
+frame                              # runs it; the knob starts to move
+advance 0.04
+frame
+snap switch-moving-040ms
+
+advance 1
+frame
+snap switch-on

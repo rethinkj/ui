@@ -1,0 +1,322 @@
+package com.rethinkj.ui;
+
+import static com.rethinkj.ui.El.el;
+import static com.rethinkj.ui.El.row;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import com.rethinkj.ui.Examples.Lights;
+import com.rethinkj.ui.render.Png;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
+
+class ScriptTest {
+
+  private static final Path EXAMPLE = Path.of("src/test/resources/scripts/switch.txt");
+
+  @TempDir Path out;
+
+  @Test
+  void reproducesTheStoredFramesOfTheSwitch() throws IOException {
+    String script =
+        """
+        size 200 120
+        frame
+        snap switch-off
+        size 200 120 scale 2
+        press #switch
+        frame
+        advance 0.04
+        frame
+        snap switch-moving-040ms
+        advance 0.04
+        frame
+        snap switch-moving-080ms
+        advance 0.04
+        frame
+        snap switch-moving-120ms
+        advance 0.04
+        frame
+        snap switch-moving-160ms
+        advance 0.04
+        frame
+        snap switch-moving-200ms
+        advance 1
+        frame
+        snap switch-on
+        """;
+    List<String> names =
+        List.of(
+            "switch-off",
+            "switch-moving-040ms",
+            "switch-moving-080ms",
+            "switch-moving-120ms",
+            "switch-moving-160ms",
+            "switch-moving-200ms",
+            "switch-on");
+    List<Path> written = Script.run(script, switchApp(), out);
+
+    List<Path> expected = new ArrayList<>();
+    for (String name : names) {
+      expected.add(out.resolve(name + ".png"));
+      expected.add(out.resolve(name + ".tree.txt"));
+    }
+    assertEquals(expected, written);
+    assertSnapsMatchGolden(names);
+  }
+
+  @Test
+  void theCommandLineRunsTheExampleOfAgentsMd() throws IOException {
+    String example = Files.readString(EXAMPLE);
+    assertTrue(
+        Files.readString(Path.of("../AGENTS.md")).contains(example),
+        "AGENTS.md shows " + EXAMPLE + " as it is");
+
+    Examples.main(new String[] {"--script", EXAMPLE.toString(), "--out", out.toString()});
+
+    assertSnapsMatchGolden(List.of("switch-off", "switch-moving-040ms", "switch-on"));
+  }
+
+  @Test
+  void withoutScriptArgumentsTheCommandLineIsLeftToTheApp() throws IOException {
+    App<Lights> app = switchApp();
+    assertFalse(Script.handle(new String[0], app));
+    assertFalse(Script.handle(new String[] {"--fullscreen"}, app));
+    assertNull(app.tree(), "nothing ran");
+    try (var files = Files.list(out)) {
+      assertEquals(0, files.count());
+    }
+  }
+
+  @Test
+  void theCommandLineRefusesIncompleteArguments() throws IOException {
+    Files.writeString(out.resolve("s.txt"), "frame\n");
+    String script = out.resolve("s.txt").toString();
+    assertEquals(
+        "Run a script with --script <file> --out <folder>: it runs the steps in the file and"
+            + " writes the snaps into the folder.",
+        cli("--script", script));
+    String unknown = cli("--script", script, "--out", "x", "--fast");
+    assertTrue(unknown.startsWith("Unknown argument --fast. Run a script with"), unknown);
+    String missing = cli("--script", "missing.txt", "--out", "x");
+    assertTrue(missing.startsWith("There is no script missing.txt. Run a script with"), missing);
+  }
+
+  @ParameterizedTest
+  @ValueSource(
+      strings = {
+        "100,60",
+        "#switch",
+        "#knob", // has no handler: the press goes to the switch around it
+        "role=switch",
+        "label=\"Lights\"",
+        "role=switch label=\"Lights\"",
+        "#switch role=switch label=\"Lights\" # with a comment",
+      })
+  void everyKindOfTargetPressesTheSwitch(String target) throws IOException {
+    App<Lights> app = switchApp();
+    Script.run("size 200 120\nframe\npress " + target + "\nframe\n", app, out);
+    assertTrue(app.state().on);
+  }
+
+  @Test
+  void aSelectorPressesTheCentreOfItsElement() throws IOException {
+    List<String> log = new ArrayList<>();
+    App<List<String>> app =
+        new App<>(
+            log,
+            l ->
+                el().size(100, 100)
+                    .onPress(() -> l.add("outside"))
+                    .child(
+                        el().absolute(40, 40)
+                            .size(20, 20)
+                            .label("Say \"hi\" \\ bye")
+                            .onPress(() -> l.add("centre"))));
+    Script.run("size 100 100\nframe\npress label=\"Say \\\"hi\\\" \\\\ bye\"\nframe\n", app, out);
+    assertEquals(List.of("centre"), log);
+  }
+
+  @Test
+  void downAndUpPressOnlyWhenTheyMeetTheSameElement() throws IOException {
+    App<Lights> app = switchApp();
+    Script.run("size 200 120\nframe\ndown #switch\nup 10,10\nframe\n", app, out);
+    assertFalse(app.state().on, "a press that ends beside the switch");
+    Script.run("size 200 120\ndown 10,10\nup #switch\nframe\n", app, out);
+    assertFalse(app.state().on, "a press that begins beside the switch");
+    Script.run("size 200 120\ndown #switch\nup #knob\nframe\n", app, out);
+    assertTrue(app.state().on, "the knob is part of the switch");
+  }
+
+  @Test
+  void onlyFrameRunsAFrame() throws IOException {
+    App<Lights> app = switchApp();
+    Script.run("size 200 120 scale 2\nframe\npress #switch\n", app, out);
+    assertFalse(app.state().on, "press only queues the handler");
+
+    Script.run("size 200 120 scale 2\nframe\nadvance 0.04\n", app, out);
+    assertTrue(app.state().on);
+    El knob = app.tree().children().getFirst().children().getFirst();
+    assertEquals(2, knob.x(), "advance alone moves nothing on screen");
+
+    app.frame();
+    assertTrue(knob.x() > 2);
+  }
+
+  @Test
+  void snapRefusesAFrameThatDoesNotShowTheStepsBeforeIt() {
+    assertEquals(
+        """
+        line 4: snap pressed
+          The last frame does not show line 3 (press #switch) yet. Add `frame` before this line:\
+         only `frame` runs the handlers, rebuilds the view and moves what is animated.""",
+        failure("size 200 120\nframe\npress #switch\nsnap pressed\n"));
+    assertFailure("size 200 120\nframe\nadvance 1\nsnap later\n", "line 3 (advance 1)");
+    assertFailure("size 200 120\nframe\nsize 300 120\nsnap wider", "line 3 (size 300 120)");
+    assertFailure("size 200 120\nsnap first\n", "line 2: snap first\n  No frame has run yet");
+  }
+
+  @Test
+  void anUnknownStepListsTheKnownOnes() {
+    assertEquals(
+        """
+        line 3: pres #switch
+          There is no step pres. The steps are size, press, down, up, advance, frame and snap.""",
+        failure("size 200 120\nframe\npres #switch\n"));
+  }
+
+  @Test
+  void aSelectorThatMatchesNothingListsWhatThereIs() {
+    assertEquals(
+        """
+        line 5: press #swich # typo
+          No element of the last frame matches #swich. It has
+            keys:   #knob #switch
+            roles:  role=switch
+            labels: label="Lights"
+          Select with these, or press a position x,y. The .tree.txt of a snap shows every element\
+         with its rectangle.""",
+        failure("# comments and blank lines count\nsize 200 120\n\nframe\npress #swich # typo\n"));
+  }
+
+  @Test
+  void aSelectorThatMatchesSeveralListsThemWithTheirRectangles() {
+    App<Object> app =
+        new App<>(
+            new Object(),
+            s ->
+                row().children(
+                        el().key("ok").role("button").size(50, 20).onPress(() -> {}),
+                        el().key("cancel").role("button").size(50, 20).onPress(() -> {})));
+    assertEquals(
+        """
+        line 3: press role=button
+          2 elements match role=button:
+            el #ok role=button 0,0 50x20
+            el #cancel role=button 50,0 50x20
+          Add #key, role= or label= to the selector until it matches one, or press a position x,y\
+         inside one of these rectangles.""",
+        failure("size 100 20\nframe\npress role=button\n", app));
+  }
+
+  @Test
+  void aSnapCannotLeaveTheOutputFolderOrOverwriteAnother() throws IOException {
+    Path inside = out.resolve("inside");
+    App<Lights> app = switchApp();
+    Script.Failure failure =
+        assertThrows(
+            Script.Failure.class,
+            () -> Script.run("size 200 120\nframe\nsnap ../outside\n", app, inside));
+    assertEquals(
+        """
+        line 3: snap ../outside
+          ../outside leads out of the output folder. Use a name inside it, such as after-press or\
+         press/after.""",
+        failure.getMessage());
+    assertFalse(Files.exists(out.resolve("outside.png")));
+
+    assertFailure("size 200 120\nframe\nsnap /outside\n", "leads out of the output folder");
+    assertEquals(
+        "line 4: snap a/../b\n  The snap on line 3 wrote these files. Use another name.",
+        failure("size 200 120\nframe\nsnap b\nsnap a/../b\n"));
+    Script.run("size 200 120\nframe\nsnap shots/off\n", switchApp(), out);
+    assertTrue(Files.exists(out.resolve("shots/off.png")));
+  }
+
+  @Test
+  void otherMistakesNameTheLineAndWhatToWrite() {
+    assertEquals(
+        "line 1: frame\n  The window has no size yet. Add `size <width> <height>` before this"
+            + " line, for example `size 200 120`.",
+        failure("frame"));
+    assertEquals(
+        "line 1: press #switch\n  No frame has run yet, so there is nothing to press. Add `frame`"
+            + " before this line.",
+        failure("press #switch"));
+    assertFailure("size 200\n", "line 1: size 200\n  Write `size <width> <height>` or");
+    assertFailure("size 0 120\n", "line 1: size 0 120\n  Write `size");
+    assertFailure("size 200 120 zoom 2\n", "line 1: size 200 120 zoom 2\n  Write `size");
+    assertFailure("advance -1\n", "line 1: advance -1\n  Write `advance <seconds>`");
+    assertFailure("frame now\n", "line 1: frame now\n  Write `frame` with nothing");
+    assertFailure("snap\n", "line 1: snap\n  Write `snap <name>`");
+    assertFailure("up\n", "line 1: up\n  Write `up <target>`. A target is a position");
+    assertFailure(
+        "size 200 120\nframe\npress name=Lights\n",
+        "line 3: press name=Lights\n  name=Lights is not a target. A target is");
+    assertFailure(
+        "size 200 120\nframe\npress label=\"Lights\n",
+        "line 3: press label=\"Lights\n  A quote is not closed.");
+  }
+
+  @Test
+  void anExceptionOfTheAppNamesTheFrameItHappenedIn() {
+    App<Object> app =
+        new App<>(new Object(), s -> el().children(el().key("twice"), el().key("twice")));
+    Script.Failure failure =
+        assertThrows(Script.Failure.class, () -> Script.run("size 10 10\nframe\n", app, out));
+    assertTrue(failure.getMessage().startsWith("line 2: frame\n  The app threw"));
+    assertInstanceOf(IllegalStateException.class, failure.getCause());
+  }
+
+  private static App<Lights> switchApp() {
+    return new App<>(new Lights(), Examples::lights);
+  }
+
+  private String failure(String script) {
+    return failure(script, switchApp());
+  }
+
+  private String failure(String script, App<?> app) {
+    return assertThrows(Script.Failure.class, () -> Script.run(script, app, out)).getMessage();
+  }
+
+  /** Asserts that the script fails with a message that contains {@code part}. */
+  private void assertFailure(String script, String part) {
+    String message = failure(script);
+    assertTrue(message.contains(part), message);
+  }
+
+  private String cli(String... args) {
+    return assertThrows(Script.Failure.class, () -> Script.handle(args, switchApp())).getMessage();
+  }
+
+  private void assertSnapsMatchGolden(List<String> names) throws IOException {
+    for (String name : names) {
+      Golden.assertMatches(
+          name,
+          Png.decode(Files.readAllBytes(out.resolve(name + ".png"))),
+          Files.readString(out.resolve(name + ".tree.txt")));
+    }
+  }
+}

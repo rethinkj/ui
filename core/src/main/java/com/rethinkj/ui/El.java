@@ -356,7 +356,17 @@ public final class El {
   }
 
   private void dump(StringBuilder out, int depth, float parentX, float parentY) {
-    out.repeat("  ", depth).append("el");
+    float left = parentX + x;
+    float top = parentY + y;
+    describe(out.repeat("  ", depth), left, top);
+    for (El child : children) {
+      child.dump(out, depth + 1, left, top);
+    }
+  }
+
+  /** One line of {@link #dump}, for this element with its border box at this window position. */
+  void describe(StringBuilder out, float left, float top) {
+    out.append("el");
     if (key != null) {
       out.append(" #").append(key);
     }
@@ -364,10 +374,8 @@ public final class El {
       out.append(" role=").append(role);
     }
     if (label != null) {
-      out.append(" label=\"").append(label.replace("\\", "\\\\").replace("\"", "\\\"")).append('"');
+      out.append(" label=").append(quote(label));
     }
-    float left = parentX + x;
-    float top = parentY + y;
     if (placed) {
       out.append(' ');
       number(out, left).append(',');
@@ -376,9 +384,11 @@ public final class El {
       number(out, height);
     }
     out.append('\n');
-    for (El child : children) {
-      child.dump(out, depth + 1, left, top);
-    }
+  }
+
+  /** The text in double quotes, with a backslash before each quote and backslash in it. */
+  static String quote(String text) {
+    return '"' + text.replace("\\", "\\\\").replace("\"", "\\\"") + '"';
   }
 
   // Not String.format: its decimal separator depends on the locale.
