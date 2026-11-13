@@ -33,7 +33,10 @@ el 0,0 440x432
             text "Database" 21,163 57x16
             text "*" 80,163 7x16
           el 95,159 324x24
-            text #database role=textbox label="Database" "" 95,159 260x24
+            el #database role=combobox label="" 95,159 260x24 expanded=false
+              text #field-0 role=textbox "" 95,159 260x24
+              el role=button label="Open" 331,159 24x24
+                text label="chevron_down" "\u{F2A2}" 335,163 16x16
         el 21,191 398x24
           el 21,191 66x24
             text "User" 21,195 30x16

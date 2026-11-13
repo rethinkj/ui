@@ -264,6 +264,20 @@ public final class Find {
     open(state, Mode.LINE);
   }
 
+  /**
+   * Goes to a line, and column, of the field, as the bar's line field does with {@code 42} or
+   * {@code 42:7}, from a command palette, say; whether {@code line} is one. The field is the one
+   * the bar was last built for.
+   */
+  public static boolean goToLine(State state, String line) {
+    if (state.field == null || parseLine(line) == null) {
+      return false;
+    }
+    state.line = line;
+    jumpToLine(state);
+    return true;
+  }
+
   /** Goes to the next match after the selection, round to the first; the last query if closed. */
   public static void next(State state) {
     go(state, 1);

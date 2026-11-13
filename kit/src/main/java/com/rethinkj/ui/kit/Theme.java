@@ -344,6 +344,7 @@ public record Theme(
    *     the button shows, so that the ring in the accent's edge stands out from the accent's fill
    * @param progress the thickness of a {@link Progress} bar in a row; the line along a card's edge
    *     is {@code indicator} thick
+   * @param palette the width of a {@link CommandPalette}
    */
   public record Sizes(
       float control,
@@ -357,7 +358,16 @@ public record Theme(
       float icon,
       float indicator,
       float ringGap,
-      float progress) {
+      float progress,
+      float palette) {
+
+    /** Sizes with a command palette 560 wide. */
+    public Sizes(float control, float checkbox, float switchWidth, float switchHeight,
+        float stroke, float field, float handle, float step, float icon, float indicator,
+        float ringGap, float progress) {
+      this(control, checkbox, switchWidth, switchHeight, stroke, field, handle, step, icon,
+          indicator, ringGap, progress, 560);
+    }
 
     /** Sizes with progress bars 4 thick. */
     public Sizes(float control, float checkbox, float switchWidth, float switchHeight,
@@ -491,7 +501,7 @@ public record Theme(
           new TextStyle(Font::sansSemibold, 14),
           new TextStyle(Font::sansSemibold, 20),
           new TextStyle(Font::sansMedium, 13));
-  private static final Sizes SIZE = new Sizes(24, 16, 28, 16, 1, 200, 7, 16, 16, 2, 2, 4);
+  private static final Sizes SIZE = new Sizes(24, 16, 28, 16, 1, 200, 7, 16, 16, 2, 2, 4, 560);
   private static final Motion MOTION =
       new Motion(Spring.INSTANT, Spring.SNAP, 0.3, 0.5, Spring.INSTANT, 5, 2, 1.2);
   private static final Caption CAPTION = new Caption(0xFFC42B1C, 0xFFFFFFFF, 0xFFC8483B);

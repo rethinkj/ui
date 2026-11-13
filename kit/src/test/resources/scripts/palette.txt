@@ -1,0 +1,29 @@
+# The command palette of kit's query editor (CommandPaletteTest, Studio): the commands of the menus
+# with their shortcuts, the matches of what is typed, the last command chosen on top, a table
+# after @, and nothing found.
+frame
+key P control shift
+frame
+advance 0.25                    # past the theme's fade
+frame
+snap commands
+
+type "exp"
+frame
+snap typed
+
+key Enter                       # File: Export › CSV
+frame
+key F1
+frame
+advance 0.25
+frame
+snap recent
+
+type "@ord"
+frame
+snap tables
+
+type "zz"
+frame
+snap empty

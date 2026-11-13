@@ -210,3 +210,31 @@ frame
 advance 1
 frame
 snap workbench-find
+
+# The command palette (CommandPalette), at the top of the window: the commands of the menus with
+# their shortcuts, the tables and columns of the connected servers after @, and a theme previewed
+# as the keys go through the themes.
+key Escape                                 # the find bar closes; the focus back in the query
+key P control shift
+frame
+advance 0.25                               # past the palette's fade
+frame
+snap workbench-palette
+type "@ordcust"                            # orders' customer_id, its column, first
+frame
+snap workbench-palette-tables
+key Escape                                 # the focus back in the query
+key F1
+type "theme"
+frame
+key Enter                                  # Change theme…: the themes, the current one lit
+frame
+key ArrowDown                              # the light theme, shown while it is lit
+frame
+advance 1
+frame
+snap workbench-palette-light
+key Escape                                 # and the dark one back
+frame
+advance 1
+frame

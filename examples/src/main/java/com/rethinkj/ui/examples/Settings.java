@@ -23,6 +23,7 @@ import static com.rethinkj.ui.kit.Radio.radioGroup;
 import static com.rethinkj.ui.kit.Section.page;
 import static com.rethinkj.ui.kit.Section.section;
 import static com.rethinkj.ui.kit.Segmented.segmented;
+import static com.rethinkj.ui.kit.ComboBox.comboBox;
 import static com.rethinkj.ui.kit.Select.select;
 import static com.rethinkj.ui.kit.Slider.slider;
 import static com.rethinkj.ui.kit.TextField.textField;
@@ -32,6 +33,7 @@ import com.rethinkj.ui.El;
 import com.rethinkj.ui.Script;
 import com.rethinkj.ui.kit.Callout;
 import com.rethinkj.ui.kit.Card;
+import com.rethinkj.ui.kit.ComboBox;
 import com.rethinkj.ui.kit.Dialog;
 import com.rethinkj.ui.kit.Divider;
 import com.rethinkj.ui.kit.Form;
@@ -72,7 +74,11 @@ public final class Settings {
       NavList.item(Symbol.INFO, "About"));
   static final List<String> THEMES = List.of("Light", "Dark", "System");
   static final List<String> ACCENTS = List.of("Blue", "Purple", "Green", "Orange");
-  static final List<String> LANGUAGES = List.of("English", "Deutsch", "Français");
+  // Enough of them that typing finds one sooner than reading: a combo box.
+  static final List<String> LANGUAGES = List.of("English", "Català", "Čeština", "Dansk",
+      "Deutsch", "Eesti", "Español", "Français", "Hrvatski", "Italiano", "Latviešu",
+      "Lietuvių", "Magyar", "Nederlands", "Norsk", "Polski", "Português", "Română",
+      "Slovenčina", "Slovenščina", "Suomi", "Svenska", "Türkçe");
   static final List<String> FONTS = List.of("JetBrains Mono", "Inter");
   static final List<String> DENSITIES = List.of("Compact", "Comfortable");
   static final List<String> ENDINGS = List.of("LF", "CRLF", "As in the file");
@@ -99,7 +105,7 @@ public final class Settings {
   boolean reopen = true;
   boolean updates = true;
   int language;
-  final Menu.State languages = new Menu.State();
+  final ComboBox.State languages = new ComboBox.State();
   int history = 200;
   // Appearance
   int theme = 1;
@@ -236,7 +242,7 @@ public final class Settings {
                 s.reopen, () -> s.reopen = !s.reopen),
             switchRow(t, "Check for updates", null, s.updates, () -> s.updates = !s.updates),
             Group.row(t, "Language", null,
-                select(t, LANGUAGES, s.language, s.languages, i -> s.language = i).w(160)))),
+                comboBox(t, LANGUAGES, s.language, s.languages, i -> s.language = i).w(160)))),
         section(t, "History", "What the workbench remembers of your work", group(t,
             Group.row(t, "Statements kept", "Per connection, the oldest go first",
                 numberField(t, s.history, 0, 10_000, 50, v -> s.history = v)),

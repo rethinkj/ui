@@ -30,8 +30,15 @@ import java.util.List;
  */
 final class Studio {
 
-  final Theme t;
+  Theme t; // the command palette's Change theme changes it
   final MenuBar.State bar = new MenuBar.State();
+  final CommandPalette.State palette = new CommandPalette.State();
+  // The tables the palette finds after @, kept so that it filters each list once.
+  final List<FilterList.Entry> tables = java.util.Arrays.stream(Bench.TABLES)
+      .map(name -> FilterList.entry(name, () -> status = "Open " + name).symbol(Symbol.TABLE)
+          .detail("shop.public." + name))
+      .toList();
+  java.util.function.Function<String, List<FilterList.Entry>> server; // what # asks, or null
   String query = "SELECT * FROM orders";
   String status = "Ready";
   String cleared; // the query that Clear took, while its toast shows
@@ -44,6 +51,7 @@ final class Studio {
 
   App<Studio> app() {
     App<Studio> app = new App<>(this, Studio::view);
+    this.app = app;
     app.focusRing(t.accent().edge());
     app.textRendering(TextRendering.LINUX);
     return app;
@@ -95,6 +103,38 @@ final class Studio {
             Menu.item("About", says("About")).icon(Symbol.INFO))));
   }
 
+  /** The palette's commands: the menus', then two of its own that ask for a second step. */
+  private List<FilterList.Entry> commands(List<Menu.Item> menus) {
+    List<FilterList.Entry> commands = new java.util.ArrayList<>(CommandPalette.commands(menus));
+    commands.add(FilterList.entry("Change theme…", this::changeTheme));
+    commands.add(FilterList.entry("Rename query…", () -> palette.ask(CommandPalette.Stage.input(
+        "The query's new name", "orders", name -> status = "Renamed to " + name))));
+    return commands;
+  }
+
+  private List<CommandPalette.Source> sources() {
+    List<CommandPalette.Source> sources = new java.util.ArrayList<>(List.of(
+        new CommandPalette.Source("@", "to open a table", FilterList.Entries.of(tables))));
+    if (server != null) {
+      sources.add(new CommandPalette.Source("#", "to ask the server",
+          FilterList.Entries.background(app, "tables of the server", server)));
+    }
+    return sources;
+  }
+
+  App<Studio> app; // set by app(), for the work of the source that asks the server
+
+  /** The themes, the one shown previewed as the keys go through them, the one before on Escape. */
+  private void changeTheme() {
+    Theme before = t;
+    List<Theme> themes = List.of(Theme.DARK, Theme.LIGHT);
+    List<FilterList.Entry> entries = List.of(
+        FilterList.entry("Dark", () -> t = Theme.DARK),
+        FilterList.entry("Light", () -> t = Theme.LIGHT));
+    palette.ask(CommandPalette.Stage.choose("Choose a theme", entries, themes.indexOf(t))
+        .preview(e -> t = e.text().equals("Dark") ? Theme.DARK : Theme.LIGHT, () -> t = before));
+  }
+
   void clear() {
     cleared = query;
     query = "";
@@ -118,8 +158,9 @@ final class Studio {
                 textField(t, query, "Query", v -> query = v).key("query").wFull(),
                 label(t, Label.Variant.MUTED, status + (wrap ? " · wrap" : "")
                     + (numbers ? " · numbers" : "")).key("status")))
-        .onKey(MenuBar.keys(bar, menus))
+        .onKey(MenuBar.keys(bar, menus).or(CommandPalette.keys(palette)))
         .onKeyUp(MenuBar.keysUp(bar, menus))
+        .overlay(CommandPalette.palette(t, palette, commands(menus), sources()))
         .overlay(cleared == null ? null : Toast.toast(t, "Query cleared", "Undo", () -> {
           query = cleared;
           status = "Restored";
