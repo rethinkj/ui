@@ -353,7 +353,7 @@ public final class App<S> {
   }
 
   private boolean down(float x, float y, int clicks, int modifiers) {
-    boolean changed = false;
+    boolean changed = anyPointerDown();
     if (dragging != null && dragging.started) { // the last release got lost
       changed = step(dragging, Drag.Phase.CANCEL, dragging.dx, dragging.dy);
     }
@@ -458,11 +458,12 @@ public final class App<S> {
   }
 
   private boolean secondaryDownAt(float x, float y) {
+    boolean any = anyPointerDown();
     secondary = null;
     settle();
     restAfterPress();
     if (framePartUnderModal(x, y) || dismiss(x, y, true)) {
-      return false;
+      return any;
     }
     Target target = target(x, y, el -> el.onSecondaryPress() != null);
     secondary = target == null ? null : target.id();
@@ -470,7 +471,31 @@ public final class App<S> {
       Target focus = target(x, y, El::isFocusable);
       focus(focus == null ? null : focus.el, false);
     }
-    return false;
+    return any;
+  }
+
+  /** Runs the {@link El#onAnyPointerDown} handlers of the tree and its shown overlays. */
+  private boolean anyPointerDown() {
+    if (root == null) {
+      return false;
+    }
+    List<Runnable> handlers = new ArrayList<>();
+    anyPointerDown(root, handlers);
+    for (El overlay : root.shownOverlays()) {
+      anyPointerDown(overlay, handlers);
+    }
+    handlers.forEach(Runnable::run);
+    handled |= !handlers.isEmpty();
+    return !handlers.isEmpty();
+  }
+
+  private static void anyPointerDown(El el, List<Runnable> handlers) {
+    if (el.onAnyPointerDown() != null) {
+      handlers.add(el.onAnyPointerDown());
+    }
+    for (El child : el.children()) {
+      anyPointerDown(child, handlers);
+    }
   }
 
   /**

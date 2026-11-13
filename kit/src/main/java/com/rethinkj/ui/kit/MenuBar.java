@@ -41,8 +41,9 @@ import java.util.function.Predicate;
  * {@link El#dismissGroup} with the open menu. The space between the titles takes no press: in a
  * title bar marked {@link El#windowPart} it still moves the window.
  *
- * <p>The keys: Alt pressed and released alone or F10 gives the bar the keys ({@link
- * El#holdFocus}), with the first title highlighted; Left and Right move between the titles, Down,
+ * <p>The keys: Alt pressed and released alone (no other key and no press of the pointer between,
+ * {@link El#onAnyPointerDown}) or F10 gives the bar the keys ({@link El#holdFocus}), with the
+ * first title highlighted; Left and Right move between the titles, Down,
  * Up, Enter and Space open the highlighted menu, and a letter opens the menu with that mnemonic.
  * Alt with a mnemonic's letter opens that menu at once, from anywhere the keys reach the root. In
  * an open menu, Left and Right go to the previous and the next menu, except where Right opens an
@@ -148,7 +149,8 @@ public final class MenuBar {
   public static El menuBar(Theme t, State state, List<Menu.Item> menus) {
     table(menus); // refuses conflicts when the view is built
     boolean marks = state.alt || state.title >= 0;
-    El bar = row().key("menubar").role("menubar").align(Style.Align.CENTER).keepFocus();
+    El bar = row().key("menubar").role("menubar").align(Style.Align.CENTER).keepFocus()
+        .onAnyPointerDown(() -> state.armed = false); // Alt held during a press is not alone
     Menu.Bar owner = new Menu.Bar(d -> state.step(menus, d), () -> state.title = -1, state);
     for (int i = 0; i < menus.size(); i++) {
       bar.child(title(t, state, menus, i, marks, owner));

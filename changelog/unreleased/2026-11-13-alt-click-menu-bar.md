@@ -1,0 +1,1 @@
+- Fixed: releasing Alt after a click made with Alt held gave the menu bar the keys; as in Windows, only Alt pressed and released with nothing between does. Core's new `El.onAnyPointerDown(handler)` runs on every press in the window, also in text fields and on scrollbars, without taking it.
