@@ -1,0 +1,1 @@
+- `El.textAlign(Style.Align)` aligns each line of a text at the start, in the centre or at the end of its box, also wrapped text and lines shortened with an ellipsis. `Text.Line` has the line's start `x` and the colours of its glyphs.
