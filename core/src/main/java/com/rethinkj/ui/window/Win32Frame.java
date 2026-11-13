@@ -77,6 +77,23 @@ final class Win32Frame {
     return frame;
   }
 
+  /**
+   * Whether the pointer is on the maximize part, where this class reports it. Windows tells SDL that
+   * the pointer left the client area only after it told this class that it is on the part, so
+   * {@link Window} drops SDL's leave then.
+   */
+  boolean pointerOnMaximize() {
+    return overMaximize;
+  }
+
+  /**
+   * SDL reported a move in the client area, so the pointer is not on the maximize part, even if the
+   * non-client leave for it comes later.
+   */
+  void pointerInClient() {
+    overMaximize = false;
+  }
+
   void detach() {
     if (subclassed) {
       subclassed = false;

@@ -464,9 +464,13 @@ public final class Window implements AutoCloseable {
 
   private void translate(int type, MemorySegment e) {
     switch (type) {
-      case Sdl.EVENT_MOUSE_MOTION ->
-          post(new PointerMove(logical(e.get(JAVA_FLOAT, Sdl.MOTION_X)),
-              logical(e.get(JAVA_FLOAT, Sdl.MOTION_Y))));
+      case Sdl.EVENT_MOUSE_MOTION -> {
+        if (win32 != null) {
+          win32.pointerInClient();
+        }
+        post(new PointerMove(logical(e.get(JAVA_FLOAT, Sdl.MOTION_X)),
+            logical(e.get(JAVA_FLOAT, Sdl.MOTION_Y))));
+      }
       case Sdl.EVENT_MOUSE_BUTTON_DOWN, Sdl.EVENT_MOUSE_BUTTON_UP -> {
         PointerButton button = switch (e.get(JAVA_BYTE, Sdl.BUTTON_BUTTON)) {
           case Sdl.BUTTON_LEFT -> PointerButton.LEFT;
@@ -533,7 +537,11 @@ public final class Window implements AutoCloseable {
         }
       }
       case Sdl.EVENT_WINDOW_EXPOSED -> post(new Redraw(e.get(JAVA_INT, Sdl.WINDOW_DATA1) != 0));
-      case Sdl.EVENT_WINDOW_MOUSE_LEAVE -> post(new PointerLeave());
+      case Sdl.EVENT_WINDOW_MOUSE_LEAVE -> {
+        if (win32 == null || !win32.pointerOnMaximize()) {
+          post(new PointerLeave());
+        }
+      }
       case Sdl.EVENT_WINDOW_FOCUS_GAINED -> post(new FocusChanged(true));
       case Sdl.EVENT_WINDOW_FOCUS_LOST -> post(new FocusChanged(false));
       case Sdl.EVENT_WINDOW_CLOSE_REQUESTED -> post(new CloseRequested());
