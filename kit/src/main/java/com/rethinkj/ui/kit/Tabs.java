@@ -6,10 +6,14 @@ import static com.rethinkj.ui.El.row;
 import static com.rethinkj.ui.kit.Label.label;
 
 import com.rethinkj.ui.Cursor;
+import com.rethinkj.ui.Drag;
+import com.rethinkj.ui.Drop;
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.Key;
 import com.rethinkj.ui.Len;
 import com.rethinkj.ui.Style;
+import com.rethinkj.ui.window.Windows;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
@@ -55,12 +59,25 @@ import java.util.function.IntConsumer;
  * }</pre>
  *
  * <p>The tabs are pressed with the one pointer button there is; closing a tab with the middle
- * button, as many tools do, waits for a second button in core. Tabs cannot be moved by dragging.
+ * button, as many tools do, waits for a second button in core.
+ *
+ * <p>With {@link Options#onMove} the user moves tabs, and the app changes the order: a tab dragged
+ * along its bar leaves a muted tab in its place and shows a line in the accent's edge where it
+ * would go, the bar scrolls along when the pointer nears its ends, and the release moves it there;
+ * Escape or a lost release gives the drag up and leaves the order as it was. A press without a
+ * drag ({@link Drag#THRESHOLD}) chooses the tab as before. Control+Shift+Page Up and Page Down move
+ * the active tab one place towards the start or the end, as in Chrome, Firefox and VS Code on
+ * Windows and Linux. With {@link Options#onTearOff} a tab dragged out of its bar, more than {@link
+ * Theme.Sizes#control} above or below it or out of the window, is the app's to open in a window of
+ * its own, and with {@link Options#onDock} a bar takes the tabs dragged from another bar that
+ * shares its {@link Dragging} state, in another window too. {@link TabGroups} puts all of it
+ * together for tabs in several windows.
  *
  * <p>In a tree dump the bar is {@code #tablist} with {@code role=tablist}, the tabs {@code
  * role=tab} with the title as label and the key {@code tab-<index>}, their crosses {@code
  * role=button} with the label {@code Close} and the title and the key {@code close-<index>}, and
  * the content is in {@code #panel} with {@code role=tabpanel} and the active tab's title as label.
+ * The tab being dragged is {@code grabbed}, and the line where it would go is {@code #marker}.
  * The component needs a size of its own or room to grow; its content fills the rest of it. It
  * takes no minimum size from its content, so that a list of rows there scrolls inside it.
  */
@@ -98,6 +115,319 @@ public final class Tabs {
 
   private Tabs() {}
 
+  /** Told that the user moved the tab at {@code from} so that it is now at {@code to}. */
+  @FunctionalInterface
+  public interface Move {
+    void move(int from, int to);
+  }
+
+  /**
+   * Told that the user dropped a tab of another bar into this one.
+   *
+   * @param fromBar the {@link Options#id} of the bar the tab comes from
+   * @param from its index there
+   * @param at the index in this bar before which it goes; the number of tabs for the end
+   */
+  @FunctionalInterface
+  public interface Dock {
+    void dock(Object fromBar, int from, int at);
+  }
+
+  /**
+   * A step of the drag of a tab that has left its bar, which the app follows with a window of the
+   * tab's own: the step on which it left, and every step after it up to {@link Drag.Phase#END} or
+   * {@link Drag.Phase#CANCEL}.
+   *
+   * @param bar the {@link Options#id} of the bar the tab is in now: its own until the app moves it
+   *     and says so with {@link Dragging#moved}
+   * @param index the tab's index there
+   * @param drag the step, with the pointer on the screen
+   * @param grabX where the pointer holds the tab, from its top left, in logical pixels
+   * @param grabY the same downwards
+   * @param firstX where the first tab of the bar lay in its window when the drag began, in logical
+   *     pixels; NaN where no runner says where the window is
+   * @param firstY the same downwards
+   * @param window the window the drag began in, or null without a runner
+   */
+  public record TearOff(Object bar, int index, Drag drag, float grabX, float grabY, float firstX,
+      float firstY, Windows.Handle window) {}
+
+  /**
+   * What the app keeps of the drag of a tab: which tab, whether it left its bar, and the bar that
+   * shows where it would go. Bars that share one state take each other's tabs ({@link
+   * Options#onDock}), in any window of the runner; it is also what the drag carries ({@link
+   * El#dragPayload}). The tabs change it; the app only creates it, and tells it with {@link
+   * #moved} where it put a tab that it moved during a drag.
+   */
+  public static final class Dragging {
+    Object bar; // the bar of the tab being dragged, by Options.id
+    int index = -1; // and its index there; -1 while nothing is dragged
+    boolean torn; // it left its bar
+    float grabX;
+    float grabY;
+    float firstX;
+    float firstY;
+    Windows.Handle window;
+    Object overBar; // the bar that shows the marker
+    int slot = -1; // before which tab of it, -1 for none
+    float markerX; // the marker's left in that bar
+    Object reveal; // new for each step that scrolls that bar along
+    float revealX;
+
+    /** Whether a tab is being dragged. */
+    public boolean isActive() {
+      return index >= 0;
+    }
+
+    /** The {@link Options#id} of the bar of the tab being dragged. */
+    public Object bar() {
+      return bar;
+    }
+
+    /** The index of the tab being dragged, -1 for none. */
+    public int index() {
+      return index;
+    }
+
+    /** Whether the tab being dragged has left its bar ({@link Options#onTearOff}). */
+    public boolean isTorn() {
+      return torn;
+    }
+
+    /** The app moved the tab being dragged: it is now at {@code index} in {@code bar}. */
+    public void moved(Object bar, int index) {
+      this.bar = bar;
+      this.index = index;
+    }
+
+    boolean on(Object bar, int index) {
+      return this.index == index && Objects.equals(this.bar, bar);
+    }
+
+    void clear() {
+      bar = null;
+      index = -1;
+      torn = false;
+      window = null;
+      overBar = null;
+      slot = -1;
+      reveal = null;
+    }
+  }
+
+  /**
+   * What the tabs do besides choosing and closing: moving, tearing off, docking and a menu. Each
+   * is off until a call turns it on; the view makes the options anew with the tabs.
+   */
+  public static final class Options {
+    private Dragging dragging;
+    private Object id;
+    private Move onMove;
+    private Consumer<TearOff> onTearOff;
+    private boolean tearOffAtStart;
+    private Dock onDock;
+    private Menu.State menu;
+    private List<Menu.Item> menuItems = List.of();
+
+    private Options() {}
+
+    /**
+     * The state of the drags of tabs, which the app keeps, one for all bars that take each other's
+     * tabs. The tabs are dragged only with it and {@link #onMove} or {@link #onTearOff}.
+     */
+    public Options drag(Dragging state) {
+      this.dragging = Objects.requireNonNull(state, "state");
+      return this;
+    }
+
+    /**
+     * Which bar this is among those that share a {@link Dragging} state, compared with {@link
+     * Object#equals}, as a group of tabs; null, the default, for a bar alone.
+     */
+    public Options id(Object id) {
+      this.id = id;
+      return this;
+    }
+
+    /**
+     * Lets the user move tabs within the bar, by dragging and with Control+Shift+Page Up and Page
+     * Down; the handler changes the order, as {@link Tabs#move} does.
+     */
+    public Options onMove(Move handler) {
+      this.onMove = handler;
+      return this;
+    }
+
+    /**
+     * Lets the user drag a tab out of its bar: the handler is told the step on which the pointer
+     * left it, by more than {@link Theme.Sizes#control} above or below or out of the window, and
+     * every step after it, and opens a window for the tab and moves it along; see {@link
+     * TabGroups}. Without it a tab stays in its bar.
+     */
+    public Options onTearOff(Consumer<TearOff> handler) {
+      this.onTearOff = handler;
+      return this;
+    }
+
+    /**
+     * Whether a drag tears its tab off from its first step, as the only tab of a window, whose
+     * drag moves the window; false by default.
+     */
+    public Options tearOffAtStart(boolean on) {
+      this.tearOffAtStart = on;
+      return this;
+    }
+
+    /** Lets the bar take a tab dragged from another bar that shares its {@link Dragging} state. */
+    public Options onDock(Dock handler) {
+      this.onDock = handler;
+      return this;
+    }
+
+    /**
+     * A menu that a secondary press on a tab opens after choosing it, as do the Menu key and
+     * Shift+F10 on the bar and a secondary press beside the tabs; the items act on the active tab.
+     */
+    public Options contextMenu(Menu.State state, List<Menu.Item> items) {
+      this.menu = Objects.requireNonNull(state, "state");
+      this.menuItems = List.copyOf(items);
+      return this;
+    }
+  }
+
+  /** Options that turn nothing on; see {@link Options}. */
+  public static Options options() {
+    return new Options();
+  }
+
+  /**
+   * Moves the element at {@code from} to {@code to} and returns where the element at {@code
+   * active} is afterwards, for an {@link Options#onMove} handler: {@code s.active = move(s.tabs,
+   * s.active, from, to)}.
+   */
+  public static <T> int move(List<T> list, int active, int from, int to) {
+    list.add(to, list.remove(from));
+    if (active == from) {
+      return to;
+    }
+    if (from < active && to >= active) {
+      return active - 1;
+    }
+    if (from > active && to <= active) {
+      return active + 1;
+    }
+    return active;
+  }
+
+  /** A step of the drag of the tab at {@code index} of the bar whose tabs are {@code built}. */
+  private static void drag(Theme t, Options o, int index, El list, List<El> built, Drag d) {
+    Dragging g = o.dragging;
+    Drag.Phase phase = d.phase();
+    if (phase == Drag.Phase.START) {
+      g.clear();
+      g.bar = o.id;
+      g.index = index;
+      g.grabX = (float) d.x() - d.dx();
+      g.grabY = (float) d.y() - d.dy();
+      // The tabs lie side by side in the list, which is where the first one lies in the window.
+      g.firstX = d.windowX() - (float) d.x() - (built.get(index).x() - built.getFirst().x());
+      g.firstY = d.windowY() - (float) d.y();
+      g.window = d.window();
+      g.torn = o.onTearOff != null && o.tearOffAtStart;
+      if (!g.torn && o.onMove != null) { // the bar's drop handler ran before this step
+        mark(t, o, list, built, built.get(index).x() + (float) d.x());
+      }
+    }
+    if (!g.isActive()) {
+      return;
+    }
+    boolean moving = phase == Drag.Phase.START || phase == Drag.Phase.MOVE;
+    float reach = t.size().control();
+    if (moving && !g.torn && o.onTearOff != null && (d.outside()
+        || d.y() < -reach || d.y() > t.size().control() + t.space().m() + reach)) {
+      g.torn = true;
+    }
+    if (g.torn) {
+      o.onTearOff.accept(new TearOff(g.bar, g.index, d, g.grabX, g.grabY, g.firstX, g.firstY,
+          g.window));
+    }
+    if (!moving) {
+      g.clear();
+    }
+  }
+
+  /** What a drag of a tab does over a bar: the marker, scrolling the list along, the drop. */
+  private static void over(Theme t, Options o, El list, List<El> built, Drop d) {
+    Dragging g = o.dragging;
+    if (d.payload() != g || !g.isActive()) {
+      return;
+    }
+    boolean own = Objects.equals(g.bar, o.id);
+    boolean takes = own && !g.torn ? o.onMove != null : o.onDock != null;
+    if (d.phase() == Drop.Phase.LEAVE || !takes
+        || own && o.tearOffAtStart && o.onTearOff != null) { // its window moves along
+      if (Objects.equals(g.overBar, o.id)) {
+        g.overBar = null;
+        g.slot = -1;
+      }
+      return;
+    }
+    float x = (float) d.x() - list.x(); // the pointer in the list as shown
+    if (d.phase() == Drop.Phase.OVER) {
+      mark(t, o, list, built, x);
+      return;
+    }
+    int slot = slot(built, x); // the drop
+    g.overBar = null;
+    g.slot = -1;
+    if (own && !g.torn) {
+      int to = slot > g.index ? slot - 1 : slot;
+      if (to != g.index) {
+        o.onMove.move(g.index, to);
+      }
+    } else {
+      o.onDock.dock(g.bar, g.index, slot);
+    }
+  }
+
+  /** Before which of the tabs a tab dropped at {@code x} in the list as shown would go. */
+  private static int slot(List<El> built, float x) {
+    int slot = 0;
+    for (El tab : built) {
+      if (x > tab.x() + tab.width() / 2) {
+        slot++;
+      }
+    }
+    return slot;
+  }
+
+  /**
+   * Shows the marker where a tab dropped at {@code x} in the list as shown would go, and scrolls
+   * the list along near its ends.
+   */
+  private static void mark(Theme t, Options o, El list, List<El> built, float x) {
+    Dragging g = o.dragging;
+    int slot = slot(built, x);
+    float gap = t.space().xs();
+    float line = t.size().indicator();
+    float edge = built.isEmpty() ? 0
+        : slot < built.size() ? built.get(slot).x() - gap / 2
+        : built.getLast().x() + built.getLast().width() + gap / 2;
+    g.overBar = o.id;
+    g.slot = slot;
+    g.markerX = list.x() + Math.clamp(edge - line / 2, 0, Math.max(0, list.width() - line));
+    // Near an end of the list, each step scrolls it a little further that way.
+    float near = t.size().control();
+    float step = t.space().m();
+    if (x < near && list.scrollX() > 0) {
+      g.reveal = new Object();
+      g.revealX = (float) list.scrollX() - step;
+    } else if (x > list.width() - near) {
+      g.reveal = new Object();
+      g.revealX = (float) list.scrollX() + list.width() + step - 1;
+    }
+  }
+
   /**
    * @param tabs the tabs, from the left
    * @param active the index of the active tab, or -1 for none
@@ -109,7 +439,16 @@ public final class Tabs {
   public static El tabs(
       Theme t, List<Tab> tabs, int active, IntConsumer onSelect, IntConsumer onClose,
       El content) {
+    return tabs(t, tabs, active, onSelect, onClose, content, options());
+  }
+
+  /** The tabs with what {@code options} turns on: moving, tearing off, docking, a menu. */
+  public static El tabs(
+      Theme t, List<Tab> tabs, int active, IntConsumer onSelect, IntConsumer onClose,
+      El content, Options o) {
     boolean enabled = onSelect != null;
+    Dragging dragging = o.dragging;
+    boolean drags = enabled && dragging != null && (o.onMove != null || o.onTearOff != null);
     // Each input reaches the handlers of a view built after the one before it, so this view's
     // indexes are those of the state.
     IntConsumer select = !enabled ? null : i -> {
@@ -124,11 +463,44 @@ public final class Tabs {
         .revealRow(active);
     // Sideways only: the wheel moves the tabs left and right.
     list.style().overflowY = Style.Overflow.HIDDEN;
+    List<El> built = new ArrayList<>();
     for (int i = 0; i < tabs.size(); i++) {
-      list.child(tab(t, tabs.get(i), i, i == active, select, close));
+      boolean grabbed = dragging != null && dragging.on(o.id, i);
+      // While a tab is dragged the others do not light up: the drag's element is the one under
+      // the pointer, by its key, which another tab has once the dragged one left.
+      El tab = tab(t, tabs.get(i), i, i == active, grabbed && !dragging.torn,
+          dragging != null && dragging.isActive(), select, close)
+          .grabbed(grabbed);
+      if (drags) {
+        int index = i;
+        tab.dragPayload(dragging).onDrag(d -> drag(t, o, index, list, built, d));
+      }
+      if (enabled && o.menu != null) {
+        int index = i;
+        tab.onSecondaryPress((x, y) -> {
+          select.accept(index);
+          o.menu.openAt(x, y);
+        });
+      }
+      built.add(tab);
+      list.child(tab);
     }
     El bar = row().key("bar").fill(t.surface().band()).padding(0, t.space().xs()).shrink(0)
         .child(list);
+    if (enabled && dragging != null) {
+      bar.onDrop(d -> over(t, o, list, built, d));
+      if (dragging.slot >= 0 && Objects.equals(dragging.overBar, o.id)) {
+        float side = t.size().control();
+        bar.child(el().key("marker").absolute(dragging.markerX, (t.space().m()) / 2)
+            .size(t.size().indicator(), side).fill(t.accent().edge()));
+        if (dragging.reveal != null) {
+          list.reveal(dragging.reveal, dragging.revealX, 0, 1, 1);
+        }
+      }
+    }
+    if (enabled && o.menu != null) { // a press beside the tabs opens the active one's menu
+      Menu.contextMenu(t, bar, o.menu, o.menuItems);
+    }
     El under = el().h(t.size().stroke()).shrink(0).fill(t.border().subtle());
     El panel = col().key("panel").role("tabpanel")
         .label(active >= 0 && active < tabs.size() ? tabs.get(active).title() : null)
@@ -151,6 +523,9 @@ public final class Tabs {
     int last = tabs.size() - 1;
     // Tab reaches the bar; a press on a tab leaves the focus where it is, so that from the content
     // it goes on into the new content.
+    if (o.menu != null) { // the Menu key and Shift+F10 on the bar: the active tab's menu
+      list.onSecondaryPress(o.menu::openAt);
+    }
     list.focusable().keepFocus().focusRing(t.accent().edge()).onKey(k -> {
       if (k.modifiers() != 0) {
         return false;
@@ -178,6 +553,11 @@ public final class Tabs {
             tabs.size()));
         return true;
       }
+      if (k.modifiers() == (Key.CONTROL | Key.SHIFT) && o.onMove != null && from >= 0
+          && (name.equals("PageUp") && from > 0 || name.equals("PageDown") && from < last)) {
+        o.onMove.move(from, name.equals("PageUp") ? from - 1 : from + 1);
+        return true;
+      }
       if (k.modifiers() == Key.CONTROL && (name.equals("W") || name.equals("F4"))
           && close != null && from >= 0 && from <= last && tabs.get(from).closable()) {
         close.accept(from);
@@ -188,10 +568,12 @@ public final class Tabs {
   }
 
   private static El tab(
-      Theme t, Tab tab, int index, boolean active, IntConsumer onSelect, IntConsumer onClose) {
+      Theme t, Tab tab, int index, boolean active, boolean muted, boolean quiet,
+      IntConsumer onSelect, IntConsumer onClose) {
     boolean enabled = onSelect != null;
     Theme.Surfaces s = t.surface();
-    int ink = !enabled ? t.text().disabled() : active ? t.text().primary() : t.text().muted();
+    int ink = !enabled || muted ? t.text().disabled()
+        : active ? t.text().primary() : t.text().muted();
     // The tabs fill the bar's height; the active one has a line at its bottom, the others show
     // the band, with the translucent overlays on it under the pointer.
     float height = t.size().control() + t.space().m();
@@ -234,7 +616,7 @@ public final class Tabs {
       el.child(close);
     }
     el.cursor(Cursor.POINTER).onPress(() -> onSelect.accept(index));
-    if (active) {
+    if (active || quiet) {
       return el;
     }
     // Under the pointer the text of another tab is primary, and its cross shows.

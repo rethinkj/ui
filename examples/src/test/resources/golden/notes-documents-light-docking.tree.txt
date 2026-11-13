@@ -1,0 +1,48 @@
+el 0,0 480x300
+  el window=drag 0,0 480x32
+    el 12,11 10x10
+    text "Documents" 30,8 72x16
+    el 102,16 164x0
+    el 266,8 64x16
+      el role=switch label="Dark" 262,6 72x20 checked=false
+        el 266,8 28x16
+          el 268,10 12x12
+        text "Dark" 302,8 28x16
+    el role=button label="Minimize" window=minimize 342,0 46x32
+      el 360,16 10x1
+    el role=button label="Maximize" window=maximize 388,0 46x32
+      el 406,11 10x10
+    el role=button label="Close" window=close 434,0 46x32
+      el 452,11 10x10
+        el 452,11 2x2
+        el 460,11 2x2
+        el 453,12 2x2
+        el 459,12 2x2
+        el 454,13 2x2
+        el 458,13 2x2
+        el 455,14 2x2
+        el 457,14 2x2
+        el 456,15 2x2
+        el 456,15 2x2
+        el 457,16 2x2
+        el 455,16 2x2
+        el 458,17 2x2
+        el 454,17 2x2
+        el 459,18 2x2
+        el 453,18 2x2
+        el 460,19 2x2
+        el 452,19 2x2
+  el #tabs 0,32 480x268
+    el 8,32 464x260
+      el #bar 9,33 462x32
+        el #tablist role=tablist 11,33 93x32
+          el #tab-0 role=tab label="Notes" 11,33 93x32 selected grabbed
+            el 11,63 93x2
+            text label="document" "\u{E4D7}" 19,41 16x16
+            text "Notes" 39,41 37x16
+            el #close-0 role=button label="Close Notes" 80,41 16x16
+              text label="dismiss" "\u{F368}" 80,41 16x16
+      el 9,65 462x1
+      el #panel role=tabpanel label="Notes" 9,66 462x225
+        el 9,66 462x225
+          text #text role=textbox label="Notes" "Coffee, bread" 21,78 438x201 lines 1-1/1
