@@ -2169,6 +2169,16 @@ public final class DataGrid {
       items.add(Menu.item("Copy with headers", () -> copy(b, true)));
     }
     GridEdit.menuItems(b, items);
+    // The header's menu of the cursor's column, which the keyboard reaches from here (Shift+F10).
+    int c = b.sel == null ? -1 : b.sel.column();
+    List<Menu.Item> column = c < 0 || c >= b.columns.size() ? List.of() : GridColumns.items(b, c);
+    if (!column.isEmpty()) {
+      if (!items.isEmpty()) {
+        items.add(Menu.separator());
+      }
+      items.add(Menu.submenu("Column " + b.columns.get(c).title(), column)
+          .icon(Symbol.COLUMN_SINGLE));
+    }
     if (!items.isEmpty() && !b.o.menuItems.isEmpty()) {
       items.add(Menu.separator());
     }
