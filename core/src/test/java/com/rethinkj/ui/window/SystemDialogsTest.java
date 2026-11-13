@@ -173,6 +173,33 @@ class SystemDialogsTest {
   }
 
   @Test
+  void aSecondDialogOfAWindowFailsWhileTheFirstIsOpen() throws Throwable {
+    Desktop.assumeWindows();
+    Window window = Window.open("rethinkj second dialog test", 80, 60);
+    try {
+      List<String> told = new ArrayList<>();
+      // The first dialog of the window is open: registered as file() registers it.
+      long first = SystemDialogs.expect(window, c -> told.add("first " + c.paths()), told::add);
+      new SystemDialogs(window).file(FileDialog.open("Second"), c -> told.add("second " + c),
+          told::add);
+      assertEquals(List.of("A file dialog of this window is open; it answers before another"
+          + " opens."), told);
+      assertTrue(SystemDialogs.waiting(), "the first still waits for its answer");
+
+      try (Arena arena = Arena.ofConfined()) {
+        MemorySegment none = arena.allocate(ADDRESS, 1);
+        none.setAtIndex(ADDRESS, 0, MemorySegment.NULL);
+        CALL.invokeExact(MemorySegment.ofAddress(first), none, -1); // cancelled
+      }
+      assertEquals(List.of("A file dialog of this window is open; it answers before another"
+          + " opens.", "first []"), told);
+      assertTrue(!SystemDialogs.waiting(), "nothing is left waiting; the next one may open");
+    } finally {
+      window.close();
+    }
+  }
+
+  @Test
   void theDialogStartsInItsFolderOrAtItsSuggestedFile() {
     Path folder = Path.of("exports").toAbsolutePath();
     assertNull(SystemDialogs.location(FileDialog.open("x")));

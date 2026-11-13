@@ -37,6 +37,9 @@ import java.util.function.IntConsumer;
  * every 3 seconds while it waits. Without a portal SDL runs zenity, on a thread of its own, and
  * without either the dialog fails at once, with a message that says what to install. The callback
  * copies the paths before it returns, since SDL frees them then, and hands on only Java values.
+ * A window has one file dialog at a time: another one fails at once while it is open, since the
+ * first to close would enable the window under the second (the system's dialogs each disable
+ * their window while they are open and enable it again as they close).
  *
  * <p>A message box ({@code SDL_ShowMessageBox}) blocks the thread that shows it until it closes;
  * SDL wants that to be the thread of its parent window, here the windows' thread. So all windows
@@ -52,7 +55,8 @@ public final class SystemDialogs implements Dialogs {
   private static final Map<Long, Pending> PENDING = new ConcurrentHashMap<>();
   private static final AtomicLong IDS = new AtomicLong();
 
-  private record Pending(Arena arena, Consumer<FileDialog.Choice> chosen,
+  /** A dialog that has not answered yet, and the window it belongs to (null for none). */
+  private record Pending(Arena arena, Window owner, Consumer<FileDialog.Choice> chosen,
       Consumer<String> failed) {}
 
   /** The upcall stub, made on first use and kept for the life of the process. */
@@ -70,8 +74,13 @@ public final class SystemDialogs implements Dialogs {
 
   /** Registers the callers of an answer SDL will give, as {@link #file} does; for tests. */
   static long expect(Consumer<FileDialog.Choice> chosen, Consumer<String> failed) {
+    return expect(null, chosen, failed);
+  }
+
+  /** As {@link #expect(Consumer, Consumer)}, for a dialog of {@code owner}; for tests. */
+  static long expect(Window owner, Consumer<FileDialog.Choice> chosen, Consumer<String> failed) {
     long id = IDS.incrementAndGet();
-    PENDING.put(id, new Pending(Arena.ofShared(), chosen, failed));
+    PENDING.put(id, new Pending(Arena.ofShared(), owner, chosen, failed));
     return id;
   }
 
@@ -90,6 +99,12 @@ public final class SystemDialogs implements Dialogs {
       Consumer<String> failed) {
     if (window != null && !window.isOpen()) {
       failed.accept("The window of this dialog has closed.");
+      return;
+    }
+    // Each of the system's dialogs disables its window while it is open and enables it as it
+    // closes, also while another of its dialogs is still open, which then takes input under it.
+    if (window != null && PENDING.values().stream().anyMatch(p -> p.owner() == window)) {
+      failed.accept("A file dialog of this window is open; it answers before another opens.");
       return;
     }
     Arena arena = Arena.ofShared(); // until SDL has answered: it may read the filters until then
@@ -126,7 +141,7 @@ public final class SystemDialogs implements Dialogs {
         Sdl.setStringProperty(properties, Sdl.PROP_FILE_DIALOG_TITLE_STRING, dialog.title());
       }
       Sdl.setBooleanProperty(properties, Sdl.PROP_FILE_DIALOG_MANY_BOOLEAN, dialog.multiple());
-      PENDING.put(id, new Pending(arena, chosen, failed));
+      PENDING.put(id, new Pending(arena, window, chosen, failed));
       registered = true;
       Sdl.showFileDialogWithProperties(switch (dialog.kind()) {
         case OPEN -> Sdl.FILEDIALOG_OPENFILE;
