@@ -59,6 +59,10 @@ public final class El {
   private Cursor cursor;
   private boolean hovered;
   private boolean scrollArea;
+  private Scrollbars scrollbars;
+  // The bars as the last frame shows them, in window coordinates; null where there is none.
+  private Scrollbars.Bar barX;
+  private Scrollbars.Bar barY;
   private boolean placed;
   private float x;
   private float y;
@@ -323,6 +327,31 @@ public final class El {
   public El scrollBoth() {
     scroll();
     style.overflowX = Style.Overflow.SCROLL;
+    return this;
+  }
+
+  /**
+   * Gives this scroll area ({@link #scroll}, {@link #scrollBoth}, {@link #rows}) scrollbars that
+   * look as {@code look} says. After layout, {@link App} places a bar along the right edge while
+   * the content is taller than the area and one along the bottom while it is wider; an axis whose
+   * content fits has none, and where both show, each stops short of the corner. A bar lies over
+   * the content and takes no room in the layout. It stays where it is while the area scrolls, at
+   * the edges of the part of the area that its ancestors' clips leave visible, short of the bars
+   * of scroll areas around it, and it is clipped like the area's children, to its rounded corners.
+   *
+   * <p>The thumb's length is the share of the content in view, at least {@link
+   * Scrollbars#minThumb}, and its place the offset. Dragging the thumb scrolls in proportion,
+   * from the first pixel, from the start to the very end of a list of a million rows; a press on
+   * the track beside it scrolls one page, the area's height or width, towards the pointer. Such a
+   * press is the bar's alone: it is no press or drag of the content or of an ancestor, selects no
+   * text and leaves the focus where it is, and while the thumb is dragged, the area counts as the
+   * element under the pointer. The wheel scrolls as before. In a {@link #dump tree dump} the
+   * area's line shows each thumb's rectangle.
+   *
+   * @param look the size and colours of the bars, or null for none, the default
+   */
+  public El scrollbars(Scrollbars look) {
+    this.scrollbars = look;
     return this;
   }
 
@@ -901,6 +930,21 @@ public final class El {
     return scrollArea;
   }
 
+  /** The look of this scroll area's bars, null for none; see {@link #scrollbars(Scrollbars)}. */
+  public Scrollbars scrollbars() {
+    return scrollbars;
+  }
+
+  /** The bar along the bottom as the last frame shows it, or null when there is none. */
+  public Scrollbars.Bar horizontalBar() {
+    return barX;
+  }
+
+  /** The bar along the right edge as the last frame shows it, or null when there is none. */
+  public Scrollbars.Bar verticalBar() {
+    return barY;
+  }
+
   /** Whether {@link #rows} made this a virtual list, whose children are the rows that exist. */
   public boolean isVirtualList() {
     return rowBuilder != null;
@@ -1009,6 +1053,137 @@ public final class El {
       child.shiftY = shiftY;
     }
     return changed;
+  }
+
+  // Scrollbars, for App and Headless
+
+  /**
+   * Places the bars of the scroll areas with {@link #scrollbars} below {@code root}, which layout
+   * and scrolling have placed, in window coordinates and in their colour at rest. Each lies along
+   * the edges of its area's padding box, within the clips of its ancestors and out of the strips
+   * of their bars.
+   */
+  static void placeBars(El root) {
+    float far = Float.POSITIVE_INFINITY;
+    root.placeBars(0, 0, -far, -far, far, far);
+  }
+
+  private void placeBars(
+      float parentX, float parentY, float left, float top, float right, float bottom) {
+    barX = null;
+    barY = null;
+    if (!placed) {
+      return;
+    }
+    float x = parentX + x();
+    float y = parentY + y();
+    Style s = style;
+    if (s.overflowX != Style.Overflow.VISIBLE || s.overflowY != Style.Overflow.VISIBLE) {
+      left = Math.max(left, x);
+      top = Math.max(top, y);
+      right = Math.min(right, x + width);
+      bottom = Math.min(bottom, y + height);
+      if (scrollbars != null) {
+        float t = scrollbars.thickness();
+        float m = scrollbars.margin();
+        // The padding box within the clips; a bar is placed only where it fits.
+        float boxLeft = Math.max(left, x + px(s.borderLeft));
+        float boxTop = Math.max(top, y + px(s.borderTop));
+        float boxRight = Math.min(right, x + width - px(s.borderRight));
+        float boxBottom = Math.min(bottom, y + height - px(s.borderBottom));
+        boolean wide = s.overflowX == Style.Overflow.SCROLL && maxScrollX > 0;
+        boolean tall = s.overflowY == Style.Overflow.SCROLL && maxScrollY > 0;
+        if (wide && boxBottom - boxTop >= t + 2 * m) {
+          barX = bar(false, boxBottom - m - t, boxLeft + m, boxRight - m - (tall ? t + m : 0));
+        }
+        if (tall && boxRight - boxLeft >= t + 2 * m) {
+          barY = bar(true, boxRight - m - t, boxTop + m, boxBottom - m - (barX != null ? t + m : 0));
+        }
+        if (barX != null) { // the bars of areas inside stay out of these strips
+          bottom = Math.min(bottom, barX.trackY() - m);
+        }
+        if (barY != null) {
+          right = Math.min(right, barY.trackX() - m);
+        }
+      }
+    }
+    for (El child : children) {
+      child.placeBars(x, y, left, top, right, bottom);
+    }
+  }
+
+  /**
+   * A bar whose track runs from {@code start} to {@code end} along its axis, at {@code across} on
+   * the other; null when the track has no length.
+   */
+  private Scrollbars.Bar bar(boolean vertical, float across, float start, float end) {
+    float track = end - start;
+    if (!(track > 0)) {
+      return null;
+    }
+    double view = vertical ? height : width;
+    double max = vertical ? maxScrollY : maxScrollX;
+    double offset = vertical ? scrollY : scrollX;
+    float thumb = (float) Math.min(Math.max(track * view / (view + max), scrollbars.minThumb()),
+        track);
+    float at = start + (float) ((track - thumb) * (offset / max));
+    float t = scrollbars.thickness();
+    int colour = scrollbars.thumb();
+    return vertical
+        ? new Scrollbars.Bar(across, start, t, track, across, at, t, thumb, colour)
+        : new Scrollbars.Bar(start, across, track, t, at, across, thumb, t, colour);
+  }
+
+  /**
+   * The bar whose strip along the edge, its track and {@link Scrollbars#margin} around it, holds
+   * this point of the window; the vertical one first, null for neither.
+   */
+  Scrollbars.Bar barAt(float x, float y) {
+    for (Scrollbars.Bar bar : new Scrollbars.Bar[] {barY, barX}) {
+      float m = scrollbars == null ? 0 : scrollbars.margin();
+      if (bar != null && x >= bar.trackX() - m && x < bar.trackX() + bar.trackWidth() + m
+          && y >= bar.trackY() - m && y < bar.trackY() + bar.trackHeight() + m) {
+        return bar;
+      }
+    }
+    return null;
+  }
+
+  /** For {@link App}, which shows a bar hovered or dragged in another colour. */
+  void barColour(boolean vertical, int argb) {
+    if (vertical && barY != null) {
+      barY = barY.color(argb);
+    } else if (!vertical && barX != null) {
+      barX = barX.color(argb);
+    }
+  }
+
+  /**
+   * Scrolls so that the thumb of a bar of the last frame starts at {@code start}, in window
+   * coordinates along its axis: the offset is in proportion to where the thumb is between the ends
+   * of its track, so that both ends reach the ends of the content exactly.
+   *
+   * @return whether the offset changed
+   */
+  boolean dragThumb(boolean vertical, float start) {
+    Scrollbars.Bar bar = vertical ? barY : barX;
+    if (bar == null) {
+      return false;
+    }
+    double free = vertical ? bar.trackHeight() - bar.thumbHeight()
+        : bar.trackWidth() - bar.thumbWidth();
+    double share = free > 0
+        ? Math.clamp((start - (vertical ? bar.trackY() : bar.trackX())) / free, 0.0, 1.0) : 0;
+    return vertical
+        ? scrollTo(scrollX, share * maxScrollY)
+        : scrollTo(share * maxScrollX, scrollY);
+  }
+
+  /** Scrolls one page, the height or width of the area, towards the end or, with -1, the start. */
+  boolean page(boolean vertical, int direction) {
+    return vertical
+        ? scrollTo(scrollX, scrollY + direction * (double) height)
+        : scrollTo(scrollX + direction * (double) width, scrollY);
   }
 
   // Virtual lists, for App and Headless. A row's index times rowHeight is exact in a double: a
@@ -1206,7 +1381,11 @@ public final class El {
    * shown, that is, moved by the scroll offsets above it. A scroll area that is scrolled adds its
    * offset, as {@code scroll x,y}. A virtual list ({@link #rows}) adds, before that, its rows that
    * exist and how many it has, as {@code rows 40-56/1000000}, or {@code rows -/1000000} when none
-   * exist. The line of the element that a press under the pointer would go to ends with {@code
+   * exist. A scroll area with {@link #scrollbars} adds after that the thumb of its bar along the
+   * bottom and of its bar along the right edge, where it has them, as rectangles in window
+   * coordinates: {@code thumb-x 18,190 120x6 thumb-y 218,40 6x24}. The line of the element that a
+   * press under the pointer would go to, which is a scroll area while the pointer is over one of
+   * its bars or drags a thumb, ends with {@code
    * hovered}, that of the element that has the keyboard focus with {@code
    * focused}, and that of an element that is leaving with {@code exiting}. A text element's line
    * starts with {@code text} instead of {@code el} and shows its string in quotes after the label.
@@ -1268,6 +1447,12 @@ public final class El {
       number(out.append(" scroll "), scrollX).append(',');
       number(out, scrollY);
     }
+    if (barX != null) {
+      thumb(out.append(" thumb-x "), barX);
+    }
+    if (barY != null) {
+      thumb(out.append(" thumb-y "), barY);
+    }
     if (hovered) {
       out.append(" hovered");
     }
@@ -1287,6 +1472,13 @@ public final class El {
       out.append(" exiting");
     }
     out.append('\n');
+  }
+
+  private static void thumb(StringBuilder out, Scrollbars.Bar bar) {
+    number(out, bar.thumbX()).append(',');
+    number(out, bar.thumbY()).append(' ');
+    number(out, bar.thumbWidth()).append('x');
+    number(out, bar.thumbHeight());
   }
 
   /**

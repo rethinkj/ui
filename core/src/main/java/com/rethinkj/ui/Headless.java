@@ -40,17 +40,22 @@ public final class Headless {
     El.scaleText(root, scale);
     Flex.layout(root, width, height);
     fillRows(root, 0, height, scale);
+    El.placeBars(root);
     Scene scene = Scene.of(root, null, 0, new Atlas(), textRendering);
     Pixels pixels =
         CpuRenderer.render(scene, Math.round(width * scale), Math.round(height * scale), scale);
     return new Frame(pixels, root.dump());
   }
 
-  /** Builds the rows of the virtual lists ({@link El#rows}) that show at their offset of 0. */
+  /**
+   * Builds the rows of the virtual lists ({@link El#rows}) that show at their offset of 0, and
+   * measures how far each scroll area could scroll, for its bars.
+   */
   private static void fillRows(El el, float parentY, float windowHeight, float scale) {
     if (!el.isPlaced()) {
       return;
     }
+    el.measureScroll();
     float top = parentY + el.y();
     int[] range = el.wantedRows(top, windowHeight);
     if (range != null) {

@@ -2,6 +2,7 @@ package com.rethinkj.ui.render;
 
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.Len;
+import com.rethinkj.ui.Scrollbars;
 import com.rethinkj.ui.Style;
 import com.rethinkj.ui.Text;
 import com.rethinkj.ui.text.Atlas;
@@ -128,6 +129,10 @@ import java.util.List;
  * corners. Its selection is drawn as rectangles before the glyphs, and the line under a
  * composition and the caret after them, all ordinary rectangles with the field's clip and their
  * edges on whole physical pixels.
+ *
+ * <p>The thumbs of a scroll area's bars ({@link El#scrollbars}) are rounded rectangles too, drawn
+ * after the area's children, where {@link El#horizontalBar} and {@link El#verticalBar} put them,
+ * with the area's clip.
  *
  * <p>The focus ring is an ordinary instance too: a border {@link #RING} pixels wide just outside
  * the focused element's border box, with its corner radius grown by as much, drawn after the
@@ -285,6 +290,10 @@ public final class Scene {
       for (El child : el.children()) {
         add(child, x, y, opacity, inner, content);
       }
+      if (el.scrollbars() != null) {
+        thumb(el.horizontalBar(), el.scrollbars().radius(), opacity, inner);
+        thumb(el.verticalBar(), el.scrollbars().radius(), opacity, inner);
+      }
     }
     if (el == ring && ringColour >>> 24 != 0) {
       float left = x - RING;
@@ -295,6 +304,20 @@ public final class Scene {
         rect(left, top, right - left, bottom - top, el.radius() > 0 ? el.radius() + RING : 0, RING,
             0, ringColour, opacity, clip);
       }
+    }
+  }
+
+  /** The thumb of a scroll area's bar, if it has one, in the area's clip. */
+  private void thumb(Scrollbars.Bar bar, float radius, float opacity, int clip) {
+    if (bar == null || bar.color() >>> 24 == 0) {
+      return;
+    }
+    float clipX = clipGet(clip, X);
+    float clipY = clipGet(clip, Y);
+    if (bar.thumbX() < clipX + clipGet(clip, WIDTH) && bar.thumbX() + bar.thumbWidth() > clipX
+        && bar.thumbY() < clipY + clipGet(clip, HEIGHT) && bar.thumbY() + bar.thumbHeight() > clipY) {
+      rect(bar.thumbX(), bar.thumbY(), bar.thumbWidth(), bar.thumbHeight(), radius, 0, bar.color(),
+          0, opacity, clip);
     }
   }
 

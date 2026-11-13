@@ -1,0 +1,21 @@
+# A million rows with scrollbars (Examples bars): the thumb shows where the rows in view are, and
+# dragging it reaches both ends.
+size 280 220 scale 2
+frame
+snap bars-top          # the line of #rows ends in thumb-y 256,46 6x24
+
+down 259,58            # on the thumb, which follows the pointer from the first pixel
+move 259,400           # beyond the bottom of the window: the thumb at the end of its track
+frame
+snap bars-end          # the last row, 999999, at the bottom; the thumb in its dragged colour
+up 259,400
+
+press 259,120          # on the track above the thumb: one page, the list's height, up
+frame
+snap bars-paged
+
+down 259,190           # the thumb, back up beyond the top
+move 259,-100
+up 259,-100
+frame
+snap bars-back         # row 0 at the top again

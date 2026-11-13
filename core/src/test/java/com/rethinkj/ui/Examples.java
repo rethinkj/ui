@@ -26,8 +26,9 @@ public final class Examples {
 
   /**
    * The switch as a program: {@code --script <file> --out <folder>} runs a script against it, and
-   * with {@code list}, {@code rows}, {@code field} or {@code field-rows} before that against the
-   * list, the million rows, the text field or the fields in rows.
+   * with {@code list}, {@code rows}, {@code bars}, {@code field} or {@code field-rows} before that
+   * against the list, the million rows, the million rows with scrollbars, the text field or the
+   * fields in rows.
    */
   public static void main(String[] args) throws IOException {
     String view = args.length > 0 && !args[0].startsWith("--") ? args[0] : "";
@@ -35,6 +36,7 @@ public final class Examples {
         switch (view) {
           case "list" -> new App<>(new Object(), s -> list());
           case "rows" -> new App<>(new Object(), s -> rows());
+          case "bars" -> new App<>(new Object(), s -> bars());
           case "field" -> new App<>(new Form(), Examples::form);
           case "field-rows" -> new App<>(new Names(), Examples::fieldRows);
           default -> new App<>(new Lights(), Examples::lights);
@@ -81,6 +83,19 @@ public final class Examples {
    * around them exist.
    */
   public static El rows() {
+    return rows(null);
+  }
+
+  /** The look of the scrollbars of {@link #bars}: thin grey thumbs that lighten under use. */
+  public static final Scrollbars BARS =
+      new Scrollbars(6, 2, 3, 24, 0xFF5A5A66, 0xFF7A7A88, 0xFFA1A1AA);
+
+  /** The million rows of {@link #rows} with scrollbars that look as {@link #BARS} says. */
+  public static El bars() {
+    return rows(BARS);
+  }
+
+  private static El rows(Scrollbars bars) {
     El header =
         row().h(28).shrink(0).padding(0, 12).gap(12).align(Style.Align.CENTER).fill(0xFF26262E)
             .children(
@@ -89,7 +104,7 @@ public final class Examples {
                 El.text("rows").fontSize(12).color(0xFFA1A1AA));
     El grid =
         col().key("rows").role("grid").grow(1).fill(0xFF1C1C22)
-            .rows(1_000_000, 28, Examples::tableRow);
+            .rows(1_000_000, 28, Examples::tableRow).scrollbars(bars);
     return col().wFull().hFull().padding(16).fill(0xFF101014).children(header, grid);
   }
 
@@ -234,6 +249,8 @@ public final class Examples {
   private static final int SELECTED = 0xFF1C3666;
   private static final int SELECTED_INACTIVE = 0xFF2B3240;
   private static final float ROW_HEIGHT = 22;
+  private static final Scrollbars GRID_BARS =
+      new Scrollbars(6, 2, 3, 24, 0xFF83868F, 0xFFA1A3AA, 0xFFB9BBC1);
 
   /**
    * The kit's {@code DataGrid} in {@code Theme.DARK} with a million orders, as kit's {@code
@@ -289,11 +306,12 @@ public final class Examples {
       }
       r.onPress(() -> s.selected = i);
       return i == selected ? r : r.whenHovered(e -> e.fill(over(fill, HOVER)));
-    });
+    }).scrollbars(GRID_BARS);
     El under = el().h(1).shrink(0).fill(SUBTLE);
     El content = col().key("content").w(total).children(header, under, body);
     content.style().minWidth = Len.percent(1);
-    El grid = row().role("grid").scrollBoth().fill(ROW).child(content).focusable()
+    El grid = row().role("grid").scrollBoth().scrollbars(GRID_BARS).fill(ROW).child(content)
+        .focusable()
         .whenFocused(e -> focused[0] = true)
         .onKey(k -> {
           int next = switch (k.name()) {

@@ -29,6 +29,7 @@ class ScriptTest {
   private static final Path EXAMPLE = Path.of("src/test/resources/scripts/switch.txt");
   private static final Path LIST = Path.of("src/test/resources/scripts/list.txt");
   private static final Path ROWS = Path.of("src/test/resources/scripts/rows.txt");
+  private static final Path BARS = Path.of("src/test/resources/scripts/scrollbars.txt");
   private static final Path FOCUS = Path.of("src/test/resources/scripts/focus.txt");
   private static final Path HOVER = Path.of("src/test/resources/scripts/hover.txt");
   private static final Path FIELD = Path.of("src/test/resources/scripts/field.txt");
@@ -129,6 +130,29 @@ class ScriptTest {
     assertTrue(
         Files.readString(out.resolve("rows-far.tree.txt")).contains(
             "el #rows role=grid 16,44 248x160 rows 765429-765440/1000000 scroll 0,21432096\n"));
+  }
+
+  @Test
+  void theScrollbarOfAgentsMdDragsToTheLastRowAndBack() throws IOException {
+    TextLibraries.assumeLoaded();
+    String example = Files.readString(BARS);
+    assertTrue(
+        Files.readString(Path.of("../AGENTS.md")).contains(example),
+        "AGENTS.md shows " + BARS + " as it is");
+
+    Examples.main(new String[] {"bars", "--script", BARS.toString(), "--out", out.toString()});
+
+    assertSnapsMatchGolden(List.of("bars-top", "bars-end", "bars-paged", "bars-back"));
+    assertTrue(Files.readString(out.resolve("bars-top.tree.txt")).contains(
+        "el #rows role=grid 16,44 248x160 rows 0-8/1000000 thumb-y 256,46 6x24\n"));
+    assertTrue(Files.readString(out.resolve("bars-end.tree.txt")).contains(
+        "el #rows role=grid 16,44 248x160 rows 999991-999999/1000000 scroll 0,27999840"
+            + " thumb-y 256,178 6x24 hovered\n"));
+    assertTrue(Files.readString(out.resolve("bars-end.tree.txt"))
+        .contains("el #row-999999 role=row label=\"suppliers\" 16,176 248x28\n"));
+    assertTrue(Files.readString(out.resolve("bars-paged.tree.txt")).contains(" scroll 0,27999680 "));
+    assertTrue(Files.readString(out.resolve("bars-back.tree.txt")).contains(
+        "el #rows role=grid 16,44 248x160 rows 0-8/1000000 thumb-y 256,46 6x24\n"));
   }
 
   @Test
