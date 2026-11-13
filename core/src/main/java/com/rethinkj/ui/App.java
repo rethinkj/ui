@@ -12,7 +12,12 @@ import java.util.function.Function;
  *
  * <p>The view only reads the state. Input finds the element it lands on and queues that element's
  * handler; {@link #frame} runs the queued handlers, which may change the state, and then builds
- * and lays out the view again. Without input nothing happens.
+ * and lays out the view again. Without input nothing changes but movements under way.
+ *
+ * <p>The view only states where things end up. When a rebuild gives an element with {@link
+ * El#motion} new values, the app springs it there over the following frames, without running the
+ * view again. Time is the app's own clock, which only {@link #advance} moves; the tree always holds
+ * the values at that time, so drawing and hit testing see what is on screen.
  *
  * <p>This class needs no window. A windowed runner feeds it the window's input and draws its
  * {@link #scene}; tests and agents feed it input themselves and look at {@link #render}.
@@ -24,6 +29,8 @@ public final class App<S> {
   private final S state;
   private final Function<S, El> view;
   private final ArrayDeque<Runnable> queued = new ArrayDeque<>();
+  private final Animator animator = new Animator();
+  private double time;
   private float width;
   private float height;
   private float scale = 1;
@@ -67,23 +74,53 @@ public final class App<S> {
   }
 
   /**
+   * Moves the app's clock forward. A windowed runner calls this once per frame with the time since
+   * the last one; tests step it by hand. Nothing else reads a clock.
+   */
+  public void advance(double seconds) {
+    if (!(seconds >= 0 && seconds < Double.POSITIVE_INFINITY)) {
+      throw new IllegalArgumentException(
+          "seconds must be 0 or a positive finite number, was " + seconds);
+    }
+    time += seconds;
+  }
+
+  /** The app's clock in seconds, 0 at the start. */
+  public double time() {
+    return time;
+  }
+
+  /**
    * Runs the handlers queued by input and, if anything may have changed, builds and lays out the
-   * view again.
+   * view again. Then it writes the values of the moment into the elements that move.
    *
-   * @return whether the tree was rebuilt, so that there is something new to draw
+   * @return whether there is something new to draw: the tree was rebuilt or something moved
    */
   public boolean frame() {
     while (!queued.isEmpty()) {
       queued.poll().run();
       stale = true;
     }
-    if (!stale) {
+    if (stale) {
+      root = view.apply(state);
+      Flex.layout(root, width, height);
+      animator.update(root, time);
+      stale = false;
+      return true;
+    }
+    if (!animator.isMoving()) {
       return false;
     }
-    root = view.apply(state);
-    Flex.layout(root, width, height);
-    stale = false;
+    animator.present(time);
     return true;
+  }
+
+  /**
+   * Whether something had not reached its target in the last frame, so that the next frame draws
+   * something new after {@link #advance} even without input. Once this is false the app is idle.
+   */
+  public boolean isMoving() {
+    return animator.isMoving();
   }
 
   /** The tree of the last frame. */
