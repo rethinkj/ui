@@ -215,6 +215,11 @@ public final class Scene {
     put(offset + 12, alpha);
   }
 
+  /** An 8-bit sRGB value in linear light, as the colours of a scene are converted. */
+  static float linear(int srgb) {
+    return SRGB_TO_LINEAR[srgb];
+  }
+
   private void put(long offset, float value) {
     data.set(ValueLayout.JAVA_FLOAT, offset, value);
   }

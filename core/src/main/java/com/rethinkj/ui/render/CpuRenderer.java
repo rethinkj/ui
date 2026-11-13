@@ -16,12 +16,21 @@ public final class CpuRenderer {
    * @param scale physical pixels per logical pixel
    */
   public static Pixels render(Scene scene, int width, int height, float scale) {
-    // Linear light, premultiplied alpha, four floats per pixel; starts fully transparent.
+    return encode(renderLinear(scene, width, height, scale), width, height);
+  }
+
+  /**
+   * The image before it is encoded: linear light, premultiplied alpha, four floats per pixel in the
+   * order red, green, blue, alpha. What an sRGB render target holds is this, encoded channel by
+   * channel.
+   */
+  static float[] renderLinear(Scene scene, int width, int height, float scale) {
+    // Starts fully transparent.
     float[] frame = new float[width * height * 4];
     for (int i = 0; i < scene.count(); i++) {
       rect(scene, i, frame, width, height, scale);
     }
-    return encode(frame, width, height);
+    return frame;
   }
 
   private static void rect(Scene scene, int i, float[] frame, int width, int height, double scale) {
@@ -117,6 +126,13 @@ public final class CpuRenderer {
     return Math.clamp(0.5 - distance * scale, 0, 1);
   }
 
+  /** A linear value from 0 to 1 as 8-bit sRGB, from 0 to 255. */
+  static int encode(double linear) {
+    double srgb =
+        linear <= 0.0031308 ? linear * 12.92 : 1.055 * StrictMath.pow(linear, 1 / 2.4) - 0.055;
+    return (int) Math.round(srgb * 255);
+  }
+
   private static Pixels encode(float[] frame, int width, int height) {
     byte[] rgba = new byte[frame.length];
     for (int at = 0; at < frame.length; at += 4) {
@@ -125,12 +141,7 @@ public final class CpuRenderer {
         continue;
       }
       for (int c = 0; c < 3; c++) {
-        double linear = Math.clamp(frame[at + c] / alpha, 0, 1);
-        double srgb =
-            linear <= 0.0031308
-                ? linear * 12.92
-                : 1.055 * StrictMath.pow(linear, 1 / 2.4) - 0.055;
-        rgba[at + c] = (byte) Math.round(srgb * 255);
+        rgba[at + c] = (byte) encode(Math.clamp(frame[at + c] / alpha, 0, 1));
       }
       rgba[at + 3] = (byte) Math.round(alpha * 255);
     }

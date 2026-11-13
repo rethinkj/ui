@@ -14,14 +14,16 @@ import java.util.Objects;
  * Runs an {@link App} in a {@link Window}: feeds it the window's pointer input and size, lets it
  * build frames, and hands each new frame to a {@link Presenter}, which draws it.
  *
- * <p>The loop draws only when there is something new: when {@link App#frame} says so, or when the
- * window asks for a {@link WindowEvent.Redraw}. An idle window waits for events and does nothing
- * else. While something moves, the loop advances the app's clock by the time that passed and draws
- * a frame per refresh of the display.
+ * <p>The loop draws only when there is something new: when {@link App#frame} says so, when the
+ * window asks for a {@link WindowEvent.Redraw}, or when the presenter could not show the last frame
+ * ({@link Presenter#pending}). An idle window waits for events and does nothing else. While
+ * something moves, the loop advances the app's clock by the time that passed and draws a frame per
+ * refresh of the display.
  *
  * <pre>{@code
- * try (Window window = Window.open("Lights", 480, 320, Window.options().frameless())) {
- *   new WindowLoop(window, new App<>(state, View::lights), renderer::draw).run();
+ * try (Window window = Window.open("Lights", 480, 320, Window.options().frameless());
+ *     GpuPresenter presenter = new GpuPresenter(window)) {
+ *   new WindowLoop(window, new App<>(state, View::lights), presenter).run();
  * }
  * }</pre>
  */
@@ -40,6 +42,16 @@ public final class WindowLoop {
      * @param scale physical pixels per logical pixel
      */
     void present(Scene scene, float width, float height, float scale);
+
+    /**
+     * Whether the last frame could not be shown and should be offered again, for example because
+     * the window's surface was out of date while the window was resized. The loop then calls
+     * {@link #present} with the newest frame after one refresh of the display, even if nothing
+     * changed. False unless a presenter says otherwise.
+     */
+    default boolean pending() {
+      return false;
+    }
   }
 
   private final Window window;
@@ -97,7 +109,7 @@ public final class WindowLoop {
         if (!running || !window.isOpen()) {
           break;
         }
-        if (app.isMoving()) {
+        if (app.isMoving() || presenter.pending()) {
           long left = frameNanos - (System.nanoTime() - presented);
           Window.waitEvents(Math.max(0, left / 1_000_000));
         } else {
@@ -143,13 +155,13 @@ public final class WindowLoop {
     }
   }
 
-  /** Builds a frame and presents it if it is new, or if {@code always}. */
+  /** Builds a frame and presents it if it is new, if {@code always}, or if one is pending. */
   private void draw(boolean always) {
     resize();
     long now = System.nanoTime();
     app.advance(Math.max(0, now - clock) / 1e9);
     clock = now;
-    if (app.frame() || always) {
+    if (app.frame() || always || presenter.pending()) {
       presenter.present(app.scene(), width, height, scale);
       presented = System.nanoTime();
     }

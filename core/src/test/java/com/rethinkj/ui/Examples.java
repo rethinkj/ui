@@ -27,7 +27,7 @@ public final class Examples {
   }
 
   /** Twenty rows in a rounded scroll area, more than fit into it. */
-  static El list() {
+  public static El list() {
     El list =
         col().key("list").role("list").scroll().grow(1).padding(8).gap(4).radius(12)
             .fill(0xFF1C1C22);
@@ -59,7 +59,7 @@ public final class Examples {
     return lightSwitch(state.on, () -> state.on = !state.on);
   }
 
-  static El lightSwitch(boolean on) {
+  public static El lightSwitch(boolean on) {
     return lightSwitch(on, null);
   }
 
@@ -69,7 +69,7 @@ public final class Examples {
   }
 
   /** The switch with a badge beside it that is there while the lights are on. */
-  static El badged(Lights state) {
+  public static El badged(Lights state) {
     El root =
         row().wFull()
             .hFull()
