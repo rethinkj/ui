@@ -698,7 +698,7 @@ final class Sections {
                 Properties.property("Tablespace", "pg_default").mono(),
                 Properties.property("Access method", "heap").mono(),
                 Properties.property("Last vacuum", "2026-11-12 03:00:14")))),
-            s.app == null ? null : s.app.clipboard()))
+            s.app == null ? null : s.app.clipboard(), s.copied))
         .grow(1).minSize(320, 0);
 
     El columns = col();

@@ -10,6 +10,7 @@ import static com.rethinkj.ui.kit.Label.label;
 import com.rethinkj.ui.App;
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.Script;
+import com.rethinkj.ui.kit.Button;
 import com.rethinkj.ui.kit.Card;
 import com.rethinkj.ui.kit.DataGrid;
 import com.rethinkj.ui.kit.DataGrid.Column;
@@ -210,6 +211,7 @@ public final class Showcase {
   // Table details
   List<String> path = List.of("localhost", "shop", "public", "orders");
   final Breadcrumb.State crumbs = new Breadcrumb.State();
+  final Button.Copied copied = new Button.Copied(); // the copy a property's button confirms
   final Toolbar.State tools = new Toolbar.State();
   final Menu.State runMenu = new Menu.State();
   final Popover.State filter = new Popover.State();
