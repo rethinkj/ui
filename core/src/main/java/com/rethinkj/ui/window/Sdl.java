@@ -79,6 +79,11 @@ final class Sdl {
   static final int EVENT_MOUSE_BUTTON_DOWN = 0x401;
   static final int EVENT_MOUSE_BUTTON_UP = 0x402;
   static final int EVENT_MOUSE_WHEEL = 0x403;
+  static final int EVENT_DROP_FILE = 0x1000;
+  static final int EVENT_DROP_TEXT = 0x1001;
+  static final int EVENT_DROP_BEGIN = 0x1002;
+  static final int EVENT_DROP_COMPLETE = 0x1003;
+  static final int EVENT_DROP_POSITION = 0x1004;
 
   // Mouse buttons and wheel direction
   static final int BUTTON_LEFT = 1;
@@ -135,6 +140,45 @@ final class Sdl {
   static final int SYSTEM_THEME_LIGHT = 1;
   static final int SYSTEM_THEME_DARK = 2;
 
+  // SDL_FileDialogType
+  static final int FILEDIALOG_OPENFILE = 0;
+  static final int FILEDIALOG_SAVEFILE = 1;
+  static final int FILEDIALOG_OPENFOLDER = 2;
+  static final String PROP_FILE_DIALOG_FILTERS_POINTER = "SDL.filedialog.filters";
+  static final String PROP_FILE_DIALOG_NFILTERS_NUMBER = "SDL.filedialog.nfilters";
+  static final String PROP_FILE_DIALOG_WINDOW_POINTER = "SDL.filedialog.window";
+  static final String PROP_FILE_DIALOG_LOCATION_STRING = "SDL.filedialog.location";
+  static final String PROP_FILE_DIALOG_MANY_BOOLEAN = "SDL.filedialog.many";
+  static final String PROP_FILE_DIALOG_TITLE_STRING = "SDL.filedialog.title";
+  // SDL_DialogFileFilter: const char *name, const char *pattern
+  static final long FILTER_SIZE = 16;
+  static final long FILTER_NAME = 0;
+  static final long FILTER_PATTERN = 8;
+
+  // SDL_MessageBoxFlags and SDL_MessageBoxButtonFlags
+  static final int MESSAGEBOX_ERROR = 0x10;
+  static final int MESSAGEBOX_WARNING = 0x20;
+  static final int MESSAGEBOX_INFORMATION = 0x40;
+  static final int MESSAGEBOX_BUTTONS_LEFT_TO_RIGHT = 0x80;
+  static final int MESSAGEBOX_BUTTON_RETURNKEY_DEFAULT = 0x1;
+  static final int MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT = 0x2;
+  // SDL_MessageBoxButtonData: SDL_MessageBoxButtonFlags flags, int buttonID, const char *text
+  static final long BUTTON_DATA_SIZE = 16;
+  static final long BUTTON_DATA_FLAGS = 0;
+  static final long BUTTON_DATA_ID = 4;
+  static final long BUTTON_DATA_TEXT = 8;
+  // SDL_MessageBoxData: SDL_MessageBoxFlags flags, SDL_Window *window, const char *title,
+  // const char *message, int numbuttons, const SDL_MessageBoxButtonData *buttons,
+  // const SDL_MessageBoxColorScheme *colorScheme
+  static final long MESSAGEBOX_DATA_SIZE = 56;
+  static final long MESSAGEBOX_FLAGS = 0;
+  static final long MESSAGEBOX_WINDOW = 8;
+  static final long MESSAGEBOX_TITLE = 16;
+  static final long MESSAGEBOX_MESSAGE = 24;
+  static final long MESSAGEBOX_NUMBUTTONS = 32;
+  static final long MESSAGEBOX_BUTTONS = 40;
+  static final long MESSAGEBOX_COLOR_SCHEME = 48;
+
   static final String PROP_APP_METADATA_NAME_STRING = "SDL.app.metadata.name";
   static final String PROP_APP_METADATA_IDENTIFIER_STRING = "SDL.app.metadata.identifier";
 
@@ -180,6 +224,10 @@ final class Sdl {
   static final long WHEEL_DIRECTION = 32;
   static final long WHEEL_MOUSE_X = 36;
   static final long WHEEL_MOUSE_Y = 40;
+  // SDL_DropEvent: float x, y, const char *source, const char *data
+  static final long DROP_X = 20;
+  static final long DROP_Y = 24;
+  static final long DROP_DATA = 40;
   // SDL_UserEvent: Sint32 code, void *data1, void *data2
   static final long USER_CODE = 20;
 
@@ -195,6 +243,13 @@ final class Sdl {
   /** {@code bool (*SDL_EventFilter)(void *userdata, SDL_Event *event)} */
   static final FunctionDescriptor EVENT_FILTER =
       FunctionDescriptor.of(JAVA_BOOLEAN, ADDRESS, ADDRESS);
+
+  /**
+   * {@code void (*SDL_DialogFileCallback)(void *userdata, const char * const *filelist, int
+   * filter)}
+   */
+  static final FunctionDescriptor DIALOG_FILE_CALLBACK =
+      FunctionDescriptor.ofVoid(ADDRESS, ADDRESS, JAVA_INT);
 
   // ---- functions
 
@@ -271,6 +326,21 @@ final class Sdl {
   static final FunctionDescriptor SDL_SET_NUMBER_PROPERTY =
       FunctionDescriptor.of(JAVA_BOOLEAN, JAVA_INT, ADDRESS, JAVA_LONG);
   static final FunctionDescriptor SDL_DESTROY_PROPERTIES = FunctionDescriptor.ofVoid(JAVA_INT);
+  static final FunctionDescriptor SDL_SET_POINTER_PROPERTY =
+      FunctionDescriptor.of(JAVA_BOOLEAN, JAVA_INT, ADDRESS, ADDRESS);
+  static final FunctionDescriptor SDL_SET_STRING_PROPERTY =
+      FunctionDescriptor.of(JAVA_BOOLEAN, JAVA_INT, ADDRESS, ADDRESS);
+  static final FunctionDescriptor SDL_SET_BOOLEAN_PROPERTY =
+      FunctionDescriptor.of(JAVA_BOOLEAN, JAVA_INT, ADDRESS, JAVA_BOOLEAN);
+  /**
+   * {@code void SDL_ShowFileDialogWithProperties(SDL_FileDialogType type, SDL_DialogFileCallback
+   * callback, void *userdata, SDL_PropertiesID props)}
+   */
+  static final FunctionDescriptor SDL_SHOW_FILE_DIALOG_WITH_PROPERTIES =
+      FunctionDescriptor.ofVoid(JAVA_INT, ADDRESS, ADDRESS, JAVA_INT);
+  /** {@code bool SDL_ShowMessageBox(const SDL_MessageBoxData *messageboxdata, int *buttonid)} */
+  static final FunctionDescriptor SDL_SHOW_MESSAGE_BOX =
+      FunctionDescriptor.of(JAVA_BOOLEAN, ADDRESS, ADDRESS);
   static final FunctionDescriptor SDL_TEXT_INPUT_ACTIVE =
       FunctionDescriptor.of(JAVA_BOOLEAN, ADDRESS);
   /** {@code bool SDL_SetTextInputArea(SDL_Window *window, const SDL_Rect *rect, int cursor)} */
@@ -382,6 +452,15 @@ final class Sdl {
         bind("SDL_CreateProperties", SDL_CREATE_PROPERTIES);
     static final MethodHandle SET_NUMBER_PROPERTY =
         bind("SDL_SetNumberProperty", SDL_SET_NUMBER_PROPERTY);
+    static final MethodHandle SET_POINTER_PROPERTY =
+        bind("SDL_SetPointerProperty", SDL_SET_POINTER_PROPERTY);
+    static final MethodHandle SET_STRING_PROPERTY =
+        bind("SDL_SetStringProperty", SDL_SET_STRING_PROPERTY);
+    static final MethodHandle SET_BOOLEAN_PROPERTY =
+        bind("SDL_SetBooleanProperty", SDL_SET_BOOLEAN_PROPERTY);
+    static final MethodHandle SHOW_FILE_DIALOG_WITH_PROPERTIES =
+        bind("SDL_ShowFileDialogWithProperties", SDL_SHOW_FILE_DIALOG_WITH_PROPERTIES);
+    static final MethodHandle SHOW_MESSAGE_BOX = bind("SDL_ShowMessageBox", SDL_SHOW_MESSAGE_BOX);
     static final MethodHandle DESTROY_PROPERTIES =
         bind("SDL_DestroyProperties", SDL_DESTROY_PROPERTIES);
     static final MethodHandle TEXT_INPUT_ACTIVE =
@@ -766,6 +845,82 @@ final class Sdl {
       } finally {
         H.DESTROY_PROPERTIES.invokeExact(properties);
       }
+    } catch (Throwable t) {
+      throw failed(t);
+    }
+  }
+
+  /** @return the properties, or 0 if SDL has no memory for them */
+  static int createProperties() {
+    try {
+      return (int) H.CREATE_PROPERTIES.invokeExact();
+    } catch (Throwable t) {
+      throw failed(t);
+    }
+  }
+
+  static void destroyProperties(int properties) {
+    try {
+      H.DESTROY_PROPERTIES.invokeExact(properties);
+    } catch (Throwable t) {
+      throw failed(t);
+    }
+  }
+
+  static boolean setPointerProperty(int properties, String name, MemorySegment value) {
+    try (Arena arena = Arena.ofConfined()) {
+      return (boolean) H.SET_POINTER_PROPERTY.invokeExact(properties, arena.allocateFrom(name),
+          value);
+    } catch (Throwable t) {
+      throw failed(t);
+    }
+  }
+
+  static boolean setNumberProperty(int properties, String name, long value) {
+    try (Arena arena = Arena.ofConfined()) {
+      return (boolean) H.SET_NUMBER_PROPERTY.invokeExact(properties, arena.allocateFrom(name),
+          value);
+    } catch (Throwable t) {
+      throw failed(t);
+    }
+  }
+
+  /** SDL keeps a copy of the string. */
+  static boolean setStringProperty(int properties, String name, String value) {
+    try (Arena arena = Arena.ofConfined()) {
+      return (boolean) H.SET_STRING_PROPERTY.invokeExact(properties, arena.allocateFrom(name),
+          arena.allocateFrom(value));
+    } catch (Throwable t) {
+      throw failed(t);
+    }
+  }
+
+  static boolean setBooleanProperty(int properties, String name, boolean value) {
+    try (Arena arena = Arena.ofConfined()) {
+      return (boolean) H.SET_BOOLEAN_PROPERTY.invokeExact(properties, arena.allocateFrom(name),
+          value);
+    } catch (Throwable t) {
+      throw failed(t);
+    }
+  }
+
+  /**
+   * Returns at once; SDL calls {@code callback} later, on this thread while it pumps events or on
+   * one of its own, or at once on failure.
+   */
+  static void showFileDialogWithProperties(int type, MemorySegment callback,
+      MemorySegment userdata, int properties) {
+    try {
+      H.SHOW_FILE_DIALOG_WITH_PROPERTIES.invokeExact(type, callback, userdata, properties);
+    } catch (Throwable t) {
+      throw failed(t);
+    }
+  }
+
+  /** Blocks until the box closes. */
+  static boolean showMessageBox(MemorySegment data, MemorySegment buttonId) {
+    try {
+      return (boolean) H.SHOW_MESSAGE_BOX.invokeExact(data, buttonId);
     } catch (Throwable t) {
       throw failed(t);
     }

@@ -125,10 +125,10 @@ class WindowTest {
           new KeyUp(new Key("A", shiftControl, false)),
           new TextInput("ü€"),
           // The pointer at the centre of the pixel it is on (Window.position).
-          new PointerMove(window.logical(40), window.logical(30)),
-          new PointerDown(window.logical(40), window.logical(30), PointerButton.RIGHT, 2),
-          new PointerUp(window.logical(41), window.logical(31), PointerButton.RIGHT),
-          new Wheel(0, -1.5f, window.logical(41), window.logical(31)));
+          new PointerMove(at(window, 40), at(window, 30)),
+          new PointerDown(at(window, 40), at(window, 30), PointerButton.RIGHT, 2),
+          new PointerUp(at(window, 41), at(window, 31), PointerButton.RIGHT),
+          new Wheel(0, -1.5f, at(window, 41), at(window, 31)));
       // The real pointer may cross the window meanwhile; only the sent events are compared.
       assertEquals(expected, events.stream().filter(expected::contains).toList());
     }
@@ -147,7 +147,7 @@ class WindowTest {
 
       assertEquals(List.of(new Redraw(false)),
           events.stream().filter(Redraw.class::isInstance).toList(), events.toString());
-      assertTrue(events.indexOf(new PointerMove(window.logical(40), window.logical(30)))
+      assertTrue(events.indexOf(new PointerMove(at(window, 40), at(window, 30)))
           < events.indexOf(new Redraw(false)),
           "the redraw comes after the move: " + events);
     }
@@ -255,6 +255,37 @@ class WindowTest {
    * A right click on the drag area opens the system menu, which runs a loop of its own until it
    * is dismissed, so this test only sends the presses that do not open it.
    */
+  /**
+   * Windows types a space for Control+Space, after the key: a shortcut such as the one that
+   * opens completions would type it into the field too. AltGr, which comes as Control and Alt,
+   * still types its character.
+   */
+  @Test
+  void theCharacterOfAKeyPressedWithControlIsNotTypedOnWindows() {
+    try (Window window = Window.open(TITLE, 300, 200)) {
+      Desktop.settle();
+      window.listener(events::add);
+      int control = 0x0040; // SDL_KMOD_LCTRL
+      int altGr = control | 0x0200; // SDL_KMOD_RALT with it, as Windows reports AltGr
+      Desktop.key(window, true, ' ', control, false);
+      Desktop.text(window, " ");
+      Desktop.key(window, false, ' ', control, false);
+      Desktop.key(window, true, 'q', altGr, false);
+      Desktop.text(window, "@");
+      Desktop.key(window, false, 'q', altGr, false);
+      Desktop.key(window, true, 'a', 0, false);
+      Desktop.text(window, "a");
+      Window.pollEvents();
+
+      List<WindowEvent> texts = events.stream().filter(TextInput.class::isInstance).toList();
+      boolean windows = window.handle() instanceof WindowHandle.Win32;
+      assertEquals(windows ? List.of(new TextInput("@"), new TextInput("a"))
+          : List.of(new TextInput(" "), new TextInput("@"), new TextInput("a")), texts);
+      assertTrue(events.contains(new KeyDown(new Key("Space", Key.CONTROL, false))),
+          "the key itself arrives: " + events);
+    }
+  }
+
   @Test
   void aSecondaryPressThatBeginsOnTheDragAreaIsNotDelivered() {
     try (Window window = Window.open(TITLE, 300, 200, Window.options().frameless())) {
@@ -272,8 +303,8 @@ class WindowTest {
       Desktop.button(window, false, Sdl.BUTTON_RIGHT, 100, 15, 1);
       Window.pollEvents();
       assertEquals(List.of(
-          new PointerDown(window.logical(100), window.logical(100), PointerButton.RIGHT, 1),
-          new PointerUp(window.logical(100), window.logical(15), PointerButton.RIGHT)), presses());
+          new PointerDown(at(window, 100), at(window, 100), PointerButton.RIGHT, 1),
+          new PointerUp(at(window, 100), at(window, 15), PointerButton.RIGHT)), presses());
     }
   }
 
@@ -350,5 +381,13 @@ class WindowTest {
       assertInstanceOf(IllegalStateException.class, failure.get());
       assertTrue(window.isOpen());
     }
+  }
+
+  /**
+   * Where the window reports the pointer that a test put at a position in logical pixels, as
+   * Desktop does: at the centre of the physical pixel it falls on, at any scale.
+   */
+  private static float at(Window window, float logical) {
+    return window.logical(logical * window.unitsPerLogical());
   }
 }

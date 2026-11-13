@@ -16,6 +16,9 @@ import com.rethinkj.ui.natives.Natives;
 import com.rethinkj.ui.render.Pixels;
 import com.rethinkj.ui.window.WindowEvent.AppearanceChanged;
 import com.rethinkj.ui.window.WindowEvent.CloseRequested;
+import com.rethinkj.ui.window.WindowEvent.FileDragLeave;
+import com.rethinkj.ui.window.WindowEvent.FileDragOver;
+import com.rethinkj.ui.window.WindowEvent.FileDrop;
 import com.rethinkj.ui.window.WindowEvent.FocusChanged;
 import com.rethinkj.ui.window.WindowEvent.KeyDown;
 import com.rethinkj.ui.window.WindowEvent.KeyUp;
@@ -36,10 +39,14 @@ import java.lang.foreign.Linker;
 import java.lang.foreign.MemorySegment;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
+import java.nio.file.InvalidPathException;
+import java.nio.file.Path;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
@@ -284,8 +291,13 @@ public final class Window implements AutoCloseable {
   private WindowPart pressed;
   /** Whether a secondary press began on a drag area, where it belongs to the system menu. */
   private boolean menuPress;
+  // The last event was a key pressed with Control and without Alt, whose character Windows types.
+  private boolean afterControlKey;
   /** Where the last pointer move was, in logical pixels, while the pointer is in the window. */
   private boolean pointerIn;
+  /** What another application drops, as SDL hands it over until DROP_COMPLETE. */
+  private final List<Path> dropFiles = new ArrayList<>();
+  private StringBuilder dropText;
   private float pointerX;
   private float pointerY;
   private Cursor cursor = Cursor.DEFAULT;
@@ -585,7 +597,8 @@ public final class Window implements AutoCloseable {
       }
       boolean ofAWindow = (type >= Sdl.EVENT_WINDOW_SHOWN && type <= Sdl.EVENT_WINDOW_LAST)
           || (type >= Sdl.EVENT_KEY_DOWN && type <= Sdl.EVENT_TEXT_INPUT)
-          || (type >= Sdl.EVENT_MOUSE_MOTION && type <= Sdl.EVENT_MOUSE_WHEEL);
+          || (type >= Sdl.EVENT_MOUSE_MOTION && type <= Sdl.EVENT_MOUSE_WHEEL)
+          || (type >= Sdl.EVENT_DROP_FILE && type <= Sdl.EVENT_DROP_POSITION);
       if (!ofAWindow) {
         return true;
       }
@@ -606,6 +619,8 @@ public final class Window implements AutoCloseable {
   }
 
   private void translate(int type, MemorySegment e) {
+    boolean controlKey = afterControlKey;
+    afterControlKey = false;
     switch (type) {
       case Sdl.EVENT_MOUSE_MOTION -> {
         if (win32 != null) {
@@ -647,6 +662,8 @@ public final class Window implements AutoCloseable {
         String key = Keys.name(e.get(JAVA_INT, Sdl.KEY_KEY));
         int modifiers = modifiers(e.get(JAVA_SHORT, Sdl.KEY_MOD));
         if (type == Sdl.EVENT_KEY_DOWN) {
+          afterControlKey = handle instanceof WindowHandle.Win32
+              && (modifiers & (Key.CONTROL | Key.ALT)) == Key.CONTROL;
           post(new KeyDown(new Key(key, modifiers, e.get(JAVA_BOOLEAN, Sdl.KEY_REPEAT))));
         } else {
           post(new KeyUp(new Key(key, modifiers, false)));
@@ -654,7 +671,10 @@ public final class Window implements AutoCloseable {
       }
       case Sdl.EVENT_TEXT_INPUT -> {
         String text = Sdl.string(e.get(ADDRESS, Sdl.TEXT_TEXT));
-        if (text != null && !text.isEmpty()) {
+        // Windows makes a space of Control+Space, which on Linux types nothing: a shortcut, such
+        // as the one that opens completions, would type it too. Control with Alt is AltGr, whose
+        // characters stay.
+        if (text != null && !text.isEmpty() && !controlKey) {
           post(new TextInput(text));
         }
       }
@@ -701,6 +721,42 @@ public final class Window implements AutoCloseable {
       case Sdl.EVENT_WINDOW_FOCUS_GAINED -> post(new FocusChanged(true));
       case Sdl.EVENT_WINDOW_FOCUS_LOST -> post(new FocusChanged(false));
       case Sdl.EVENT_WINDOW_CLOSE_REQUESTED -> post(new CloseRequested());
+      // SDL sends BEGIN, POSITION as the drag moves, then at the release a FILE per file or a
+      // TEXT per line and COMPLETE; a COMPLETE with nothing before it is a drag that left.
+      case Sdl.EVENT_DROP_BEGIN -> {
+        dropFiles.clear();
+        dropText = null;
+      }
+      case Sdl.EVENT_DROP_POSITION -> post(new FileDragOver(
+          logical(e.get(JAVA_FLOAT, Sdl.DROP_X)), logical(e.get(JAVA_FLOAT, Sdl.DROP_Y))));
+      case Sdl.EVENT_DROP_FILE -> {
+        String file = Sdl.string(e.get(ADDRESS, Sdl.DROP_DATA));
+        try {
+          if (file != null && !file.isEmpty()) {
+            dropFiles.add(Path.of(file));
+          }
+        } catch (InvalidPathException ignored) {
+          // a name Java cannot use is left out, as one the system could not give
+        }
+      }
+      case Sdl.EVENT_DROP_TEXT -> {
+        String text = Sdl.string(e.get(ADDRESS, Sdl.DROP_DATA));
+        if (text != null) {
+          dropText = dropText == null ? new StringBuilder(text)
+              : dropText.append('\n').append(text);
+        }
+      }
+      case Sdl.EVENT_DROP_COMPLETE -> {
+        if (dropFiles.isEmpty() && dropText == null) {
+          post(new FileDragLeave());
+        } else {
+          post(new FileDrop(logical(e.get(JAVA_FLOAT, Sdl.DROP_X)),
+              logical(e.get(JAVA_FLOAT, Sdl.DROP_Y)), dropFiles,
+              dropFiles.isEmpty() ? dropText.toString() : null));
+        }
+        dropFiles.clear();
+        dropText = null;
+      }
       default -> {}
     }
   }
@@ -1154,7 +1210,9 @@ public final class Window implements AutoCloseable {
   /**
    * Sets who the app is, for windows opened after this: an id that the system groups the app's
    * windows by and finds its settings and icon with, and the app's name. It is the same for the
-   * whole process; call it before the first window opens.
+   * whole process; call it before the first window opens. Calling it again with the same id and
+   * name does nothing, also while windows are open, so that the code that opens a later window may
+   * set its options up the same way.
    *
    * <p>The id and the name go to {@code SDL_SetAppMetadata}, from which SDL takes the Wayland
    * app id and the X11 window class, which docks match with the app's {@code <id>.desktop} file.
@@ -1168,7 +1226,8 @@ public final class Window implements AutoCloseable {
    * @param id reverse DNS, such as {@code com.example.Notes}: at most 128 characters, without
    *     spaces, as Windows requires
    * @param name the app's name for people, or null
-   * @throws IllegalStateException if a window is open
+   * @throws IllegalStateException if a window is open and the id or the name differs from the one
+   *     set
    */
   public static void identity(String id, String name) {
     Objects.requireNonNull(id, "id");
@@ -1177,8 +1236,9 @@ public final class Window implements AutoCloseable {
           "An app id has 1 to 128 characters and no spaces, such as com.example.Notes: " + id);
     }
     synchronized (LOCK) {
-      if (thread != null) {
-        throw new IllegalStateException("The app's identity is set before the first window opens");
+      if (thread != null && !(id.equals(appId) && Objects.equals(name, appName))) {
+        throw new IllegalStateException("The app's identity is set before the first window opens"
+            + " and stays: " + appId + ", " + appName);
       }
       appId = id;
       appName = name;

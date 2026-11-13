@@ -1,0 +1,1 @@
+- The Documents example has a menu bar with File › Open… and File › Save As…, which use the system's file dialogs, opens files dragged onto its windows in new tabs, and shows a message box of the system with the reason when its window cannot start.

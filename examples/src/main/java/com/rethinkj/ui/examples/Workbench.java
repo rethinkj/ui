@@ -131,6 +131,7 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
   static final class Opened {
     final Node table; // null for the Start tab
     int rows = -1; // until the server answers
+    int answered = -1; // the rows of the last answer, which a statement that fails leaves shown
     Work asking; // the question for the rows, cancelled with the tab or by the next one
     String query; // the statement in the query area
     final CodeEditor.State editor = new CodeEditor.State(); // its caret, history and error
@@ -460,7 +461,6 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
     if (o.asking != null) {
       o.asking.cancel(); // the answer asked for before is not wanted any more
     }
-    int before = o.rows;
     o.rows = -1;
     o.selection.clear();
     o.failure = null;
@@ -478,12 +478,13 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
         () -> Math.min(count(path, name, tables, wait), limit),
         rows -> {
           o.rows = rows;
+          o.answered = rows;
           o.asking = null;
           answered();
         },
         error -> {
           o.asking = null;
-          o.rows = before;
+          o.rows = o.answered;
           if (error instanceof NoSuchTable) {
             o.failure = error.getMessage();
             o.editor.error(from, to); // the name, underlined until the next edit
@@ -770,7 +771,9 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
     return col().wFull().hFull().fill(t.surface().window())
         .onKey(or(Menu.shortcuts(menus(group)), tabs.onKey()))
         .child(titleBar(t, active == null ? "Workbench" : active.title(), t.accent().color()))
-        .child(col().grow(1).padding(0, t.space().m(), t.space().m(), t.space().m())
+        // No minimum height from the tabs, whose grid would otherwise make it as high as its rows.
+        .child(col().grow(1).minSize(0, 0)
+            .padding(0, t.space().m(), t.space().m(), t.space().m())
             .child(tabs.key("tabs").grow(1)));
   }
 
