@@ -29,8 +29,8 @@ el 0,0 720x400
         el 692,19 2x2
   el #split 0,32 720x344
     el #first 0,32 240x344
-      el 0,32 240x720
-        el #schema role=tree label="Schema" 8,40 224x704 rows 0-19/32 focused
+      el 0,32 240x344
+        el #schema role=tree label="Schema" 8,40 224x328 rows 0-17/32 thumb-y 224,42 6x150.95 focused
           el #row-0 role=treeitem label="localhost" 8,40 224x22 expanded level=1 pos=1/3
             el #mark-0 12,40 16x22
               text "\u{F2A2}" 12,43 16x16
@@ -121,16 +121,6 @@ el 0,0 720x400
               text "\u{F2AF}" 60,417 16x16
             text "\u{EBF4}" 80,417 16x16
             text "orders" 100,417 41x16
-          el #row-18 role=treeitem label="order_items" 8,436 224x22 expanded=false level=4 pos=13/24
-            el #mark-18 60,436 16x22
-              text "\u{F2AF}" 60,439 16x16
-            text "\u{EBF4}" 80,439 16x16
-            text "order_items" 100,439 73x16
-          el #row-19 role=treeitem label="payments" 8,458 224x22 expanded=false level=4 pos=14/24
-            el #mark-19 60,458 16x22
-              text "\u{F2AF}" 60,461 16x16
-            text "\u{EBF4}" 80,461 16x16
-            text "payments" 100,461 60x16
     el #rest 237,32 483x344
       el #second 241,32 479x344
         el 241,32 479x344

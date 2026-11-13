@@ -282,8 +282,10 @@ public final class SchemaBrowser {
     El tree = Tree.tree(t, new Model(t, s), s.open::contains, s.selected, s::select, s::toggle,
         null).key("schema").label("Schema").grow(1);
     Menu.contextMenu(t, tree, s.menu, s.menuItems());
-    El schema = col().fill(t.surface().panel()).padding(t.space().m()).child(tree);
-    El content = col().padding(t.space().l()).gap(t.space().m());
+    // Both as high as their part of the split, so that the tree and the rows scroll instead of
+    // growing with their rows.
+    El schema = col().hFull().fill(t.surface().panel()).padding(t.space().m()).child(tree);
+    El content = col().hFull().padding(t.space().l()).gap(t.space().m());
     if (s.table == null) {
       content.child(label(t, MUTED, "Select a table to see its rows."));
     } else if (s.rows == null) {
