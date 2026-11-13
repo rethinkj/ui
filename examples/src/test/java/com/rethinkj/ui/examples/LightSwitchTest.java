@@ -2,9 +2,11 @@ package com.rethinkj.ui.examples;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import com.rethinkj.ui.render.Pixels;
 import com.rethinkj.ui.render.Png;
+import com.rethinkj.ui.text.Font;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -24,6 +26,11 @@ class LightSwitchTest {
    */
   @Test
   void theScriptShowsTheStoredFrames() throws IOException {
+    try {
+      Font.sans(); // the example has text
+    } catch (UnsatisfiedLinkError e) {
+      assumeTrue(false, "Skipped: FreeType and HarfBuzz cannot be loaded. " + e.getMessage());
+    }
     LightSwitch.main(new String[] {"--script", SCRIPT.toString(), "--out", OUT.toString()});
 
     try (var files = Files.list(OUT)) {

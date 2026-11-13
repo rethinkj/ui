@@ -3,7 +3,7 @@ size 360 240 scale 2
 frame
 snap light-switch-off
 
-press role=switch label="Lights"
+press role=switch label="Lamp"
 frame
 advance 0.1
 frame

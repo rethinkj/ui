@@ -32,6 +32,11 @@
     </dependency>
     <dependency>
       <groupId>com.rethinkj.ui</groupId>
+      <artifactId>rethinkj-ui-kit</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.rethinkj.ui</groupId>
       <artifactId>rethinkj-ui-fonts</artifactId>
       <version>${project.version}</version>
     </dependency>
