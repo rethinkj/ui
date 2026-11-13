@@ -14,6 +14,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -190,6 +191,9 @@ public final class App<S> {
   // the next frames build them, and nextChange asks for those frames.
   private boolean rowsWanted;
   private boolean rowKeyHooks; // the rows the lists built last have an El#onAnyKeyDown handler
+  // The row each list was last asked to scroll to (scrollToRow), by identity, until the user's
+  // next press, key or wheel: content that grows meanwhile takes the row to the top after all.
+  private final Map<Object, Integer> rowGoals = new HashMap<>();
   private boolean untimed; // the tree was built and timeOverlays has not looked at it yet
   private final Animator animator = new Animator();
   private double time;
@@ -395,7 +399,10 @@ public final class App<S> {
     if (!at.isEmpty() && at.getLast().takesEdits() && at.getLast().editor() != null) {
       typingSoon = at.getLast(); // see inputArea
     }
-    enqueue(() -> down(x, y, clicks, modifiers));
+    enqueue(() -> {
+      rowGoals.clear(); // the user goes on: no list follows a row any more
+      return down(x, y, clicks, modifiers);
+    });
   }
 
   private boolean down(float x, float y, int clicks, int modifiers) {
@@ -506,7 +513,10 @@ public final class App<S> {
    * gives the focus to the focusable element there, or clears it. It neither drags nor selects.
    */
   public void secondaryDown(float x, float y) {
-    enqueue(() -> secondaryDownAt(x, y));
+    enqueue(() -> {
+      rowGoals.clear();
+      return secondaryDownAt(x, y);
+    });
   }
 
   private boolean secondaryDownAt(float x, float y) {
@@ -965,6 +975,7 @@ public final class App<S> {
   public void keyDown(Key key, Runnable untaken) {
     Objects.requireNonNull(key, "key");
     enqueue(() -> {
+      rowGoals.clear();
       keyToText = focused != null && (focused.editor() != null || focused.onText() != null);
       Object before = focusId;
       keyUntaken = false;
@@ -2051,6 +2062,7 @@ public final class App<S> {
           "wheel deltas must be finite, were " + deltaX + ", " + deltaY);
     }
     enqueue(() -> {
+      rowGoals.clear();
       if (rowsPending) {
         settle(); // the rows and their overlays, which a rebuild between inputs left out
       }
@@ -2100,6 +2112,7 @@ public final class App<S> {
       settle();
       El el = id == null ? null : animator.element(id);
       scrolled |= el != null && el.scrollTo(x, y);
+      rowGoals.remove(id);
       return false;
     });
   }
@@ -2108,7 +2121,10 @@ public final class App<S> {
    * Scrolls a virtual list ({@link El#rows}) of the last frame's {@link #tree} so that the row
    * with this index is at the top of its content box, or as far as the end of the list allows: to
    * an offset of {@code row * rowHeight}. The next {@link #frame} shows it and builds the rows it
-   * brings into view. A handler may call this too, as {@link #scrollTo}.
+   * brings into view. A handler may call this too, as {@link #scrollTo}. Where the list is too
+   * short for that yet, or the rows before it turn out another height, as while a document's
+   * images are still on their way, the list goes there once it can, until the user's next press,
+   * key or turn of the wheel, or until the list no longer has the row.
    *
    * @param row the index of the row, from 0; one beyond the last scrolls to the end
    * @throws IllegalArgumentException if {@code list} is not a virtual list or {@code row} is
@@ -2127,8 +2143,26 @@ public final class App<S> {
       settle();
       El el = id == null ? null : animator.element(id);
       scrolled |= el != null && el.scrollTo(el.scrollX(), el.rowOffset(row));
+      if (el != null) {
+        rowGoals.put(id, row);
+      }
       return false;
     });
+  }
+
+  /** Takes each list that {@link #scrollToRow} sent to a row there again; whether one moved. */
+  private boolean followRowGoals() {
+    boolean moved = false;
+    for (Iterator<Map.Entry<Object, Integer>> i = rowGoals.entrySet().iterator(); i.hasNext(); ) {
+      Map.Entry<Object, Integer> goal = i.next();
+      El el = animator.element(goal.getKey());
+      if (el == null || !el.isVirtualList() || goal.getValue() > el.rowCount()) {
+        i.remove(); // the list or the row is gone: one that comes back is not followed
+      } else {
+        moved |= el.scrollTo(el.scrollX(), el.rowOffset(goal.getValue()));
+      }
+    }
+    return moved;
   }
 
   /** Queues input for the next frame, or what a handler asks for right after that handler. */
@@ -2892,6 +2926,9 @@ public final class App<S> {
     rowsWanted = false;
     rowKeyHooks = false;
     boolean built = fillRows(root, new ArrayList<>(), 0, 0, -far, far, false);
+    if (!rowGoals.isEmpty() && followRowGoals()) {
+      built |= fillRows(root, new ArrayList<>(), 0, 0, -far, far, false); // the rows there
+    }
     toldRows.keySet().retainAll(rowLists);
     rowLists.clear();
     // After scrolling, movement and new rows, the overlays follow their anchors.

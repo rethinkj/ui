@@ -125,4 +125,43 @@ class RowHeightsTest {
     assertTrue(last.y() + last.height() >= 600, app.tree().dump());
     assertEquals(Double.POSITIVE_INFINITY, app.nextChange(), "idle once the rows fill the list");
   }
+
+  @Test
+  void aListSentToARowGetsThereOnceItsContentHasGrownUnlessTheUserWentOn() {
+    int[] height = {10};
+    RowHeights heights = new RowHeights(i -> 10);
+    App<RowHeights> app = new App<>(
+        heights,
+        h -> col()
+            .size(100, 100)
+            .child(el().key("list").size(100, 100).rows(12, h, i -> el().h(height[0]))));
+    app.resize(100, 100, 1);
+    app.frame();
+    // Twelve rows of 10 in a list of 100: row 9 cannot reach the top, the end can.
+    app.scrollToRow(list(app), 9);
+    app.frame();
+    assertEquals(20, list(app).scrollY(), 0.001);
+    // The rows grow, as a document's whose images arrive: now the row gets there.
+    height[0] = 40;
+    app.invalidate();
+    app.frame();
+    app.frame();
+    El list = list(app);
+    assertEquals(
+        0, list.children().get(9 - list.firstRow()).y(), 0.001, app.tree().dump());
+
+    // After the user's next input the list follows no row: it stays where the wheel left it.
+    app.wheel(50, 50, 0, -30);
+    app.frame();
+    double left = list(app).scrollY();
+    height[0] = 60;
+    app.invalidate();
+    app.frame();
+    app.frame();
+    list = list(app);
+    assertTrue(
+        list.children().get(9 - list.firstRow()).y() != 0,
+        "no jump back: " + app.tree().dump());
+    assertTrue(Math.abs(list(app).scrollY() - left) < 200, "near where the wheel left it");
+  }
 }

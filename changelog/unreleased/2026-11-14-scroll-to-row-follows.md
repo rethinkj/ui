@@ -1,0 +1,1 @@
+- `App.scrollToRow` keeps a list at the row it was sent to while rows built later turn out higher or lower, until the user's next press, key or wheel, a `scrollTo`, or until the list no longer has the row. A jump to a heading far down a `Markdown` document now arrives at the heading, also when images above it arrive later; before, it stopped where the estimated heights put it.
