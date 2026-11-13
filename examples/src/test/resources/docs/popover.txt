@@ -1,0 +1,7 @@
+size 420 260
+frame
+press role=button label="Filter"
+frame
+advance 0.3
+frame
+snap open

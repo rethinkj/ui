@@ -1,0 +1,5 @@
+el 0,0 320x160
+  el #panel 12,12 120x40
+  el role=button label="Open" 12,60 60x24
+    text "Open" 25,64 34x16
+  el #pulse 12,92 16x16

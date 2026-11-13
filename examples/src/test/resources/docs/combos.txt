@@ -1,0 +1,10 @@
+size 360 240
+frame
+snap view
+press role=combobox label="Schema"
+frame
+advance 0.3
+frame
+type "sa"
+frame
+snap typed

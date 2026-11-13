@@ -1,0 +1,7 @@
+el 0,0 320x120
+  el #refresh role=button label="Refresh" 12,12 95x24 hovered
+    text label="arrow_clockwise" "\u{E0AA}" 25,16 16x16
+    text "Refresh" 45,16 49x16
+overlay bottom center gap 2 on #refresh role=button label="Refresh" 12,12 95x24
+  el #tooltip role=tooltip label="Refresh the schema (F5)" 2,38 165x22
+    text "Refresh the schema (F5)" 7,41 155x16

@@ -1,0 +1,10 @@
+el 0,0 480x200
+  el 0,0 480x172
+    el 0,0 160x172
+      text "Tables" 8,8 144x17
+      text "orders" 8,29 144x17
+    el 161,0 319x172
+      text "SELECT * FROM orders" 169,8 303x18
+  el 0,172 480x28
+    text "localhost" 8,178 58x17
+    text "Ln 1, Col 1" 407,178 65x17

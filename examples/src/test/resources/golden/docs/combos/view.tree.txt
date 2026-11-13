@@ -1,0 +1,13 @@
+el 0,0 360x240
+  el role=combobox label="Schema" 12,12 200x24 expanded=false
+    text "public" 21,16 162x16
+    text label="chevron_down" "\u{F2A2}" 187,16 16x16
+  el role=combobox label="Host" 12,44 200x24 expanded=false
+    text #field-0 role=textbox "localhost" 12,44 200x24
+    el role=button label="Open" 188,44 24x24
+      text label="chevron_down" "\u{F2A2}" 192,48 16x16
+  el role=combobox label="Database" 12,76 200x24 expanded=false
+    el #lead 21,80 16x16
+      text label="database" "\u{F0D7}" 21,80 16x16
+    text "PostgreSQL" 41,80 142x16
+    text label="chevron_down" "\u{F2A2}" 187,80 16x16

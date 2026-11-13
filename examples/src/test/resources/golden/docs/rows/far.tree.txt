@@ -1,0 +1,30 @@
+el 0,0 280x200
+  el #rows role=list label="Rows" 12,12 256x176 rows 765429-765442/1000000 scroll 0,18370368 thumb-y 260,127.28 6x24
+    el #row-765429 role=listitem 12,-60 256x24 pos=765430/1000000
+      text "Row 765429" 20,-56 84x17
+    el #row-765430 role=listitem 12,-36 256x24 pos=765431/1000000
+      text "Row 765430" 20,-32 84x17
+    el #row-765431 role=listitem 12,-12 256x24 pos=765432/1000000
+      text "Row 765431" 20,-8 81x17
+    el #row-765432 role=listitem 12,12 256x24 pos=765433/1000000
+      text "Row 765432" 20,16 84x17
+    el #row-765433 role=listitem 12,36 256x24 pos=765434/1000000
+      text "Row 765433" 20,40 84x17
+    el #row-765434 role=listitem 12,60 256x24 pos=765435/1000000
+      text "Row 765434" 20,64 84x17
+    el #row-765435 role=listitem 12,84 256x24 pos=765436/1000000
+      text "Row 765435" 20,88 83x17
+    el #row-765436 role=listitem 12,108 256x24 pos=765437/1000000
+      text "Row 765436" 20,112 84x17
+    el #row-765437 role=listitem 12,132 256x24 pos=765438/1000000
+      text "Row 765437" 20,136 83x17
+    el #row-765438 role=listitem 12,156 256x24 pos=765439/1000000
+      text "Row 765438" 20,160 84x17
+    el #row-765439 role=listitem 12,180 256x24 pos=765440/1000000
+      text "Row 765439" 20,184 84x17
+    el #row-765440 role=listitem 12,204 256x24 pos=765441/1000000
+      text "Row 765440" 20,208 84x17
+    el #row-765441 role=listitem 12,228 256x24 pos=765442/1000000
+      text "Row 765441" 20,232 81x17
+    el #row-765442 role=listitem 12,252 256x24 pos=765443/1000000
+      text "Row 765442" 20,256 84x17

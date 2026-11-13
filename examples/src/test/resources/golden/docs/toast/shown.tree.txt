@@ -1,0 +1,8 @@
+el 0,0 420x200
+  el role=button label="Drop orders" 12,12 100x24
+    text "Drop orders" 25,16 74x16
+overlay edge bottom center gap 16 on 0,0 420x200
+  el #toast role=status label="Dropped orders" 119,154 183x30
+    text "Dropped orders" 132,161 99x16
+    el #action role=button label="Undo" 239,157 60x24
+      text "Undo" 252,161 34x16

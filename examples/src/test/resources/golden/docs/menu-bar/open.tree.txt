@@ -1,0 +1,20 @@
+el 0,0 360x200
+  el 0,0 360x32
+    el #menubar role=menubar 4,4 77x24
+      el #title-0 role=menuitem label="File" 4,4 38x24 expanded
+        text "File" 12,8 22x16
+      el #title-1 role=menuitem label="Edit" 42,4 39x24 expanded=false
+        text "Edit" 50,8 23x16
+  el 0,32 360x168
+overlay bottom start gap 2 on #title-0 role=menuitem label="File" 4,4 38x24
+  el #menu role=menu 4,30 178x58 focused
+    el #item-0 role=menuitem label="New query" 9,35 168x24
+      el 9,35 168x24
+        el 17,39 16x16
+          text label="add" "\u{F108}" 17,39 16x16
+        text "New query" 41,39 68x16
+        text "Ctrl+N" 129,39 40x16
+    el #item-1 role=menuitem label="Exit" 9,59 168x24
+      el 9,59 168x24
+        el 17,71 16x0
+        text "Exit" 41,63 128x16

@@ -1,0 +1,16 @@
+el 0,0 420x140
+  el 12,12 252x24
+    el role=button label="Count rows" 12,12 98x24 busy
+      el role=progressbar label="Loading" 25,16 16x16
+        el 25,16 16x16
+        el 25,16 16x16
+        el 25,16 16x16
+        el 25,16 16x16
+        el 25,16 16x16
+      text "Count rows" 45,16 72x16
+    el role=button label="Cancel" 114,12 70x24
+      text "Cancel" 127,16 44x16
+    el role=button label="Save" 188,12 56x24
+      text "Save" 201,16 30x16
+  text #rows "" 12,44 0x16
+  text #message "" 12,68 0x16

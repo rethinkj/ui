@@ -1,0 +1,22 @@
+el 0,0 520x400
+  el 12,12 480x360
+    text role=heading "Editor" 36,36 432x24 level=1
+    el 36,84 432x85
+      el 36,84 432x35
+        text role=heading "Text" 36,84 432x17 level=2
+        text "How the query editor shows text." 36,103 432x16
+      el 36,127 432x42
+        el role=switch label="Wrap lines" 39,130 426x36 checked
+          el 49,140 366x16
+            text "Wrap lines" 49,140 366x16
+          el 427,140 28x16
+            el 441,142 12x12
+    el 36,193 432x67
+      el 36,193 432x17
+        text role=heading "Saving" 36,193 432x17 level=2
+      el 36,218 432x42
+        el role=switch label="Save on close" 39,221 426x36 checked
+          el 49,231 366x16
+            text "Save on close" 49,231 366x16
+          el 427,231 28x16
+            el 441,233 12x12
