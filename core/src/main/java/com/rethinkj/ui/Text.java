@@ -138,6 +138,9 @@ public final class Text implements Measure {
   private Font font;
   private float size = 14;
   private int color = 0xFF000000;
+  // The colour the view gave, which a highlighter's glyphs without a colour of their own are
+  // shaped with; `color` is the one shown, which motion moves towards it.
+  private int viewColor = 0xFF000000;
   private int background;
   private boolean wraps;
   private boolean ellipsis;
@@ -552,6 +555,12 @@ public final class Text implements Measure {
 
   void color(int argb) {
     this.color = argb;
+    this.viewColor = argb;
+  }
+
+  /** The colour shown while motion moves it towards the view's; see {@link #viewColor}. */
+  void shownColor(int argb) {
+    this.color = argb;
   }
 
   void background(int argb) {
@@ -802,7 +811,7 @@ public final class Text implements Measure {
     int[] colors = null;
     if (spans != null && spans.has(Spans.COLOR)) {
       int[] byChar = new int[text.length()];
-      Arrays.fill(byChar, color);
+      Arrays.fill(byChar, viewColor);
       for (int i = 0; i < spans.count; i++) {
         if (spans.kinds[i] == Spans.COLOR) {
           Arrays.fill(byChar, Math.clamp(spans.froms[i] - offset, 0, limit),
@@ -812,7 +821,7 @@ public final class Text implements Measure {
       colors = new int[run.count()];
       for (int g = 0; g < colors.length; g++) {
         int c = run.cluster(g);
-        colors[g] = c < byChar.length ? byChar[c] : color;
+        colors[g] = c < byChar.length ? byChar[c] : viewColor;
       }
     }
     int[] breaks = null;
