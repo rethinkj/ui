@@ -16,9 +16,13 @@ import java.util.function.Consumer;
 import java.util.function.IntConsumer;
 
 /**
- * A bar of tabs over the content of the active one, as the open queries of a database tool. The
- * app keeps the tabs and which one is active, builds the content of that one only, and changes
- * them when the bar reports a choice or a close:
+ * A card whose first row is a bar of tabs over the content of the active one, as the open queries
+ * of a database tool. The bar is a quiet band ({@link Theme.Surfaces#band}) with a hairline under
+ * it; the active tab has primary text and a line in the accent's edge at its bottom, the others
+ * muted text. The content fills the rest of the card, edge to edge, as in a {@link Card#flush}
+ * card, so a toolbar, a data grid and a footer go there as they go into that. The app keeps the
+ * tabs and which one is active, builds the content of that one only, and changes them when the bar
+ * reports a choice or a close:
  *
  * <pre>{@code
  * tabs(theme, s.tabs.stream().map(q -> new Tab(q.title(), true, q.isModified())).toList(),
@@ -105,7 +109,6 @@ public final class Tabs {
     IntConsumer close = onClose;
     El list = row().key("tablist").role("tablist")
         .gap(t.space().xs())
-        .radius(t.radius().medium())
         .scrollBoth()
         .revealRow(active);
     // Sideways only: the wheel moves the tabs left and right.
@@ -113,9 +116,9 @@ public final class Tabs {
     for (int i = 0; i < tabs.size(); i++) {
       list.child(tab(t, tabs.get(i), i, i == active, select, close));
     }
-    El bar = row().key("bar").fill(t.surface().panel()).padding(t.space().xs()).shrink(0)
+    El bar = row().key("bar").fill(t.surface().band()).padding(0, t.space().xs()).shrink(0)
         .child(list);
-    El under = el().h(t.size().stroke()).shrink(0).fill(t.border().subtle());
+    El under = Divider.divider(t);
     El panel = col().key("panel").role("tabpanel")
         .label(active >= 0 && active < tabs.size() ? tabs.get(active).title() : null)
         .grow(1);
@@ -123,7 +126,7 @@ public final class Tabs {
     if (content != null) {
       panel.child(content.grow(1));
     }
-    El root = col().children(bar, under, panel);
+    El root = Card.surface(t, Card.Variant.OUTLINED).children(bar, under, panel);
     // It fills the room it is given: a list of rows in the content is no minimum.
     root.style().minWidth = Len.ZERO;
     root.style().minHeight = Len.ZERO;
@@ -175,18 +178,21 @@ public final class Tabs {
     boolean enabled = onSelect != null;
     Theme.Surfaces s = t.surface();
     int ink = !enabled ? t.text().disabled() : active ? t.text().primary() : t.text().muted();
-    // The active tab is raised; the others show the bar, with the translucent overlays on it.
+    // The tabs fill the bar's height; the active one has a line at its bottom, the others show
+    // the band, with the translucent overlays on it under the pointer.
+    float height = t.size().control() + t.space().m();
     El el = row().key("tab-" + index).role("tab").label(tab.title())
         .selected(active)
         .disabled(!enabled)
-        .h(t.size().control())
+        .h(height)
         .padding(0, t.space().m())
         .gap(t.space().s())
         .align(Style.Align.CENTER)
-        .shrink(0)
-        .radius(t.radius().medium())
-        .border(t.size().stroke(), active ? t.border().subtle() : 0)
-        .fill(active ? s.raised() : 0);
+        .shrink(0);
+    if (active) {
+      float line = t.size().indicator();
+      el.child(el().absolute(0, height - line).h(line).wFull().fill(t.accent().edge()));
+    }
     if (tab.modified()) {
       el.child(label(t, "●").color(ink));
     }

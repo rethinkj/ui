@@ -1,6 +1,7 @@
 package com.rethinkj.ui.kit;
 
 import static com.rethinkj.ui.El.col;
+import static com.rethinkj.ui.El.el;
 import static com.rethinkj.ui.El.row;
 import static com.rethinkj.ui.kit.Label.label;
 import static com.rethinkj.ui.kit.Theme.over;
@@ -23,13 +24,28 @@ import com.rethinkj.ui.Style;
  *     Form.buttons(t, button(t, SECONDARY, "Export…", s::export)))
  * }</pre>
  *
- * <p>A body that runs to the edges, such as a list or a data grid, goes into a card with {@code
- * .padding(0).gap(0)}: the corners still clip it. {@link Group} is such a card whose body is rows.
+ * <p>A body that runs to the edges, such as a data grid, goes into a {@link #flush} card, whose
+ * parts lie edge to edge and whose rounded corners clip them: a {@link #toolbar} at the top, the
+ * body, a {@link #footer} at the bottom, with a {@link Divider#divider} where a hairline belongs. A
+ * list with rounded rows, such as a {@link Tree}, goes into it through {@link #inset}:
  *
- * <p>Cards nest by their border: a card inside a card is {@link Variant#OUTLINED}, on the same
- * surface as the one around it, set off by its edge alone. {@link Variant#FILLED} lies on the
- * window, where it is a quieter card; inside a card it would read as a hole. {@link
- * Variant#ELEVATED} is for a card that lies above others, as on a dashboard, and does not nest.
+ * <pre>{@code
+ * Card.flush(t,
+ *     Card.toolbar(t, "orders", "1,000,000 rows", filter, button(t, PRIMARY, Symbol.PLAY, "Run", s::run)),
+ *     Divider.divider(t),
+ *     grid.grow(1),
+ *     Card.footer(t, label(t, MUTED, "Row 2 of 1,000,000"), label(t, MUTED, "18 ms")))
+ * }</pre>
+ *
+ * <p>{@link Group} is a card whose body is rows, and {@link Tabs} a flush card whose first row is
+ * the tab bar.
+ *
+ * <p>Cards lie on the window ({@link Theme.Surfaces#window}) on the panel's surface, lifted by
+ * {@link Theme.Elevation#card}. They nest by their border: a card inside a card is {@link
+ * Variant#OUTLINED}, on the same surface as the one around it, set off by its edge; its lift shows
+ * little there. {@link Variant#FILLED} lies on the window, where it is a quieter card without edge
+ * or lift; inside a card it would vanish. {@link Variant#ELEVATED} is for a card that lies above
+ * others, as on a dashboard, and does not nest.
  *
  * <p>{@link #pressable} makes a whole card one press target, such as a connection in a list of
  * them, with an optional selected state.
@@ -37,11 +53,11 @@ import com.rethinkj.ui.Style;
 public final class Card {
 
   public enum Variant {
-    /** The raised surface with the subtle border: the default, and the one that nests. */
+    /** The panel's surface with the subtle border and the card's lift: the default, which nests. */
     OUTLINED,
-    /** The panel's surface without a visible edge, quieter on the window. */
+    /** The panel's surface without a visible edge or lift, quieter on the window. */
     FILLED,
-    /** The raised surface with the subtle border, lifted by {@link Theme.Elevation#popup}. */
+    /** The panel's surface with the subtle border, lifted by {@link Theme.Elevation#popup}. */
     ELEVATED
   }
 
@@ -53,18 +69,102 @@ public final class Card {
   }
 
   public static El card(Theme t, Variant variant, El... content) {
-    El card = col().padding(t.space().l()).gap(t.space().l())
-        .radius(t.radius().large())
-        .clip()
-        .motion(t.motion().feedback())
-        .children(content);
+    return surface(t, variant).padding(t.space().l()).gap(t.space().l()).children(content);
+  }
+
+  /**
+   * An {@link Variant#OUTLINED} card without padding or gap, whose parts lie edge to edge and are
+   * clipped by its rounded corners, such as a toolbar, a data grid and a footer. Null parts are
+   * left out. It takes no minimum size from its parts, so that a list of rows in it scrolls inside
+   * it; the part that fills the rest grows ({@code grid.grow(1)}).
+   */
+  public static El flush(Theme t, El... parts) {
+    El card = surface(t, Variant.OUTLINED);
+    for (El part : parts) {
+      if (part == null) {
+        continue;
+      }
+      // The part that grows fills the rest and gives way; the others keep their height.
+      if (part.style().grow > 0) {
+        part.style().minHeight = Len.ZERO;
+      } else {
+        part.shrink(0);
+      }
+      card.child(part);
+    }
+    card.style().minWidth = Len.ZERO;
+    card.style().minHeight = Len.ZERO;
+    return card;
+  }
+
+  /** A card's surface, edge, corners and lift, without padding. */
+  static El surface(Theme t, Variant variant) {
+    El card = col().radius(t.radius().large()).clip().motion(t.motion().feedback());
     return switch (variant) {
-      case OUTLINED -> card.fill(t.surface().raised()).border(t.size().stroke(), t.border().subtle());
+      case OUTLINED -> card.fill(t.surface().panel()).border(t.size().stroke(), t.border().subtle())
+          .shadow(t.elevation().card());
       // The edge is there but transparent, so that the variants lay out alike.
       case FILLED -> card.fill(t.surface().panel()).border(t.size().stroke(), 0);
-      case ELEVATED -> card.fill(t.surface().raised()).border(t.size().stroke(), t.border().subtle())
+      case ELEVATED -> card.fill(t.surface().panel()).border(t.size().stroke(), t.border().subtle())
           .shadow(t.elevation().popup());
     };
+  }
+
+  /**
+   * The top row of a {@link #flush} card: its title as a heading in {@link Theme.Type#heading}
+   * (level 3 in a tree dump), a secondary text beside it in muted text, such as a count of rows,
+   * and the actions at the right, such as a filter field and buttons, inside the card's padding.
+   *
+   * @param secondary beside the title; null for none
+   * @param actions in the order shown
+   */
+  public static El toolbar(Theme t, String title, String secondary, El... actions) {
+    Theme.TextStyle style = t.type().heading();
+    El bar = row().padding(t.space().m(), t.space().l()).gap(t.space().m())
+        .align(Style.Align.CENTER)
+        .child(El.text(title).font(style.font().get()).fontSize(style.size())
+            .color(t.text().primary()).role("heading").level(3).ellipsis().minSize(0, 0));
+    if (secondary != null) {
+      bar.child(label(t, Label.Variant.MUTED, secondary).shrink(0));
+    }
+    bar.child(el().grow(1));
+    for (El action : actions) {
+      bar.child(action.shrink(0));
+    }
+    return bar;
+  }
+
+  /**
+   * The bottom row of a {@link #flush} card: a quiet band ({@link Theme.Surfaces#band}) with a
+   * hairline along its top, {@code start} at the left and the rest at the right, as status texts
+   * in muted labels.
+   *
+   * @param start at the left; null for none
+   * @param end at the right, in the order shown
+   */
+  public static El footer(Theme t, El start, El... end) {
+    El row = row().h(t.size().control() + t.space().s()).padding(0, t.space().l())
+        .gap(t.space().l()).align(Style.Align.CENTER).fill(t.surface().band());
+    if (start != null) {
+      row.child(start.shrink(1).minSize(0, 0));
+    }
+    row.child(el().grow(1));
+    for (El part : end) {
+      row.child(part.shrink(0));
+    }
+    return col().shrink(0).child(Divider.divider(t)).child(row);
+  }
+
+  /**
+   * The body of a {@link #flush} card that is a list with rounded rows, such as a {@link Tree}:
+   * inset by {@link Theme.Spacing#s} at the sides and the bottom, so that the rows' corners lie
+   * inside the card's. It grows to fill the card.
+   */
+  public static El inset(Theme t, El list) {
+    El body = col().grow(1).padding(0, t.space().s(), t.space().s(), t.space().s())
+        .child(list.grow(1));
+    body.style().minHeight = Len.ZERO;
+    return body;
   }
 
   /**

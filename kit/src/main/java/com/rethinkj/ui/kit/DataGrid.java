@@ -743,7 +743,7 @@ public final class DataGrid {
       body.onDrag(d -> drag(b, d));
     }
 
-    El under = el().h(t.size().stroke()).shrink(0).fill(t.border().subtle());
+    El under = el().h(t.size().stroke()).shrink(0).fill(t.border().control());
     El content = col().key("content").w(b.xs[columns.size()] + b.room)
         .children(header, under, body);
     content.style().minWidth = Len.percent(1); // the rows reach across a grid wider than them
@@ -776,10 +776,10 @@ public final class DataGrid {
     List<El> pinned = new ArrayList<>();
     if (b.numbers > 0) {
       pinned.add(pin(b, cellBox(t, Align.RIGHT, b.numbers).key("numbers").fill(g.header()), 0));
-      pinned.add(pin(b, line(t), b.numbers - t.size().stroke()));
+      pinned.add(pin(b, line(t, false), b.numbers - t.size().stroke()));
     }
     for (int c = 0; c < n; c++) {
-      lines[c] = line(t);
+      lines[c] = line(t, c == b.frozen - 1);
       El cell = headerCell(b, c);
       if (c < b.frozen) {
         pinned.add(pin(b, cell.fill(g.header()), b.xs[c]));
@@ -811,7 +811,7 @@ public final class DataGrid {
   private static El headerCell(Build b, int index) {
     Theme t = b.t;
     Column column = b.columns.get(index);
-    El title = Label.label(t, column.title()).ellipsis().minSize(0, 0);
+    El title = title(t, column.title()).ellipsis().minSize(0, 0);
     El name = title;
     if (column.typeName() != null) {
       // The title keeps its width as long as the type has any, and never more than the room.
@@ -964,7 +964,7 @@ public final class DataGrid {
   private static float headerWidth(Build b, int c) {
     Theme t = b.t;
     Column column = b.columns.get(c);
-    float width = natural(Label.label(t, column.title()));
+    float width = natural(title(t, column.title()));
     if (column.icon() != null) {
       width += t.size().icon() + t.space().s();
     }
@@ -996,8 +996,13 @@ public final class DataGrid {
     boolean loaded = b.o.loaded == null || b.o.loaded.test(i);
     boolean rowSelected = sel != null && !b.cells && sel.isRowSelected(i);
     int fill = rowSelected ? b.selectionFill() : i % 2 == 0 ? g.row() : g.stripe();
+    float stroke = t.size().stroke();
+    // A hairline along the bottom, under the cells, which end above it.
     El r = row().key("row-" + i).role("row").fill(fill).selected(rowSelected)
-        .current(sel != null && !b.cells && sel.row() == i);
+        .current(sel != null && !b.cells && sel.row() == i)
+        .padding(0, 0, stroke, 0)
+        .child(el().absolute(0, g.rowHeight() - stroke).h(stroke).wFull()
+            .fill(t.border().subtle()));
     int n = b.columns.size();
     int first = n;
     int last = -1;
@@ -1008,20 +1013,22 @@ public final class DataGrid {
       }
     }
     if (first < n) {
-      r.padding(0, 0, 0, b.xs[first]);
+      r.padding(0, 0, stroke, b.xs[first]);
     }
     for (int c = first; c <= last; c++) {
-      r.children(cell(b, i, c, loaded, fill), line(t));
+      r.children(cell(b, i, c, loaded, fill), line(t, false));
     }
     List<El> pinned = new ArrayList<>(); // with the row's fill, which hovering changes
     if (b.numbers > 0) {
+      // The numbers lie on the row's fill, which they need over the cells scrolled under them.
       El number = cellBox(t, Align.RIGHT, b.numbers).key("number-" + i).role("rowheader")
-          .fill(g.header()).child(text(t, true, String.valueOf(i + 1), t.text().muted()));
+          .fill(fill).child(text(t, true, String.valueOf(i + 1), t.text().muted()));
+      pinned.add(number);
       if (sel != null) {
         number.onPointerDown((clicks, modifiers) -> down(b, i, Math.max(sel.column(), 0), true,
             clicks, modifiers));
       }
-      r.children(pin(b, number, 0), pin(b, line(t), b.numbers - t.size().stroke()));
+      r.children(pinRow(b, number, 0), pinRow(b, line(t, false), b.numbers - stroke));
     }
     for (int c = 0; c < b.frozen; c++) {
       El cell = cell(b, i, c, loaded, fill);
@@ -1029,7 +1036,8 @@ public final class DataGrid {
         cell.fill(fill);
         pinned.add(cell);
       }
-      r.children(pin(b, cell, b.xs[c]), pin(b, line(t), b.xs[c + 1] - t.size().stroke()));
+      r.children(pinRow(b, cell, b.xs[c]),
+          pinRow(b, line(t, c == b.frozen - 1), b.xs[c + 1] - stroke));
     }
     if (rowSelected) {
       return r;
@@ -1056,7 +1064,8 @@ public final class DataGrid {
       }
       if (cursor && b.focused[0]) {
         float w = b.g.cursorWidth();
-        box.border(w, b.g.cursor()).padding(0, Math.max(t.space().s() - w, 0));
+        box.border(w, b.g.cursor()).radius(t.radius().small())
+            .padding(0, Math.max(t.space().s() - w, 0));
       }
     }
     String value = loaded ? column.cell().apply(i) : null;
@@ -1109,6 +1118,11 @@ public final class DataGrid {
   /** Places an element of a frozen column: at {@code x}, as tall as the row, kept from scrolling. */
   private static El pin(Build b, El el, float x) {
     return el.absolute(x, 0).h(b.g.rowHeight()).fixedX();
+  }
+
+  /** {@link #pin} in a row, above the row's hairline. */
+  private static El pinRow(Build b, El el, float x) {
+    return pin(b, el, x).h(b.g.rowHeight() - b.t.size().stroke());
   }
 
   // Selection by pointer
@@ -1403,9 +1417,19 @@ public final class DataGrid {
         .clip();
   }
 
-  /** The line after a column, as tall as the row. */
-  private static El line(Theme t) {
-    return el().w(t.size().stroke()).fill(t.border().subtle());
+  /**
+   * The line after a column, as tall as the row: a hairline after the frozen columns, elsewhere
+   * room that shows a line only while a header's edge is under the pointer or dragged.
+   */
+  private static El line(Theme t, boolean visible) {
+    return el().w(t.size().stroke()).fill(visible ? t.border().subtle() : 0);
+  }
+
+  /** A column's title, in the medium weight of {@link Theme.Type#strong}. */
+  private static El title(Theme t, String text) {
+    Theme.TextStyle style = t.type().strong();
+    return El.text(text).font(style.font().get()).fontSize(style.size())
+        .color(t.text().primary());
   }
 
   /** The width of the row numbers: the widest number in the mono type, with the padding. */

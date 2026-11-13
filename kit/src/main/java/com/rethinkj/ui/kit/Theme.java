@@ -140,7 +140,7 @@ public record Theme(
       TextStyle body, TextStyle mono, TextStyle heading, TextStyle title, TextStyle strong) {}
 
   /**
-   * @param control the height of a button, a text field and a tab
+   * @param control the height of a button and a text field
    * @param checkbox the side of a checkbox's box and of a tab's close button
    * @param switchWidth the width of a toggle's track
    * @param switchHeight the height of a toggle's track
@@ -150,6 +150,7 @@ public record Theme(
    * @param step how far an arrow key moves a split's line
    * @param icon the side of an {@link Icon}, unless the view gives it another; the icons are
    *     sharpest at a size they are drawn for (see {@link Symbol})
+   * @param indicator the thickness of the line that marks the active tab
    */
   public record Sizes(
       float control,
@@ -160,18 +161,22 @@ public record Theme(
       float field,
       float handle,
       float step,
-      float icon) {
+      float icon,
+      float indicator) {
 
-    /** Sizes with text fields 200 wide, a split's handle 7 wide, steps of 16 and icons 16. */
+    /**
+     * Sizes with text fields 200 wide, a split's handle 7 wide, steps of 16, icons 16 and a tab's
+     * line 2 thick.
+     */
     public Sizes(float control, float checkbox, float switchWidth, float switchHeight,
         float stroke) {
       this(control, checkbox, switchWidth, switchHeight, stroke, 200);
     }
 
-    /** Sizes with a split's handle 7 wide, steps of 16 and icons 16. */
+    /** Sizes with a split's handle 7 wide, steps of 16, icons 16 and a tab's line 2 thick. */
     public Sizes(float control, float checkbox, float switchWidth, float switchHeight,
         float stroke, float field) {
-      this(control, checkbox, switchWidth, switchHeight, stroke, field, 7, 16, 16);
+      this(control, checkbox, switchWidth, switchHeight, stroke, field, 7, 16, 16, 2);
     }
   }
 
@@ -252,7 +257,7 @@ public record Theme(
           new TextStyle(Font::sansSemibold, 14),
           new TextStyle(Font::sansSemibold, 20),
           new TextStyle(Font::sansMedium, 13));
-  private static final Sizes SIZE = new Sizes(24, 16, 28, 16, 1, 200, 7, 16, 16);
+  private static final Sizes SIZE = new Sizes(24, 16, 28, 16, 1, 200, 7, 16, 16, 2);
   private static final Motion MOTION =
       new Motion(Spring.INSTANT, Spring.SNAP, 0.3, 0.5, Spring.INSTANT, 5);
 

@@ -129,7 +129,7 @@ public final class Tree {
     El tree = col().role("tree").scrollbars(t.scrollbars()).revealRow(rows.selected)
         .rows(rows.count, height, i -> {
       N node = rows.node(i);
-      El r = row().key("row-" + i)
+      El r = row().key("row-" + i).radius(t.radius().medium())
           .padding(0, t.space().s(), 0, t.space().s() + rows.depth(i) * indent)
           .gap(t.space().s())
           .align(Style.Align.CENTER);
