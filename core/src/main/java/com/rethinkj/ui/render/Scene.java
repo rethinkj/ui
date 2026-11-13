@@ -177,7 +177,8 @@ import java.util.List;
  *
  * <p>A text field ({@link El#editable}) draws its text moved left by its {@link Text#scroll} and
  * clipped to its content box across and to its padding box from top to bottom, without rounded
- * corners. Its selection is drawn as rectangles before the glyphs, and the line under a
+ * corners; a {@link El#multiline multi-line} field, whose rows the text has already moved up by its
+ * vertical scroll, to its content box both ways. Its selection is drawn as rectangles before the glyphs, and the line under a
  * composition and the caret after them, all ordinary rectangles with the field's clip and their
  * edges on whole physical pixels.
  *
@@ -546,17 +547,19 @@ public final class Scene {
   }
 
   /**
-   * The clip of a field's text: its content box across, its padding box from top to bottom,
+   * The clip of a field's text: its content box across, its padding box from top to bottom, or
+   * its content box both ways for a multi-line field, whose rows scroll by under its padding,
    * within {@code clip}; -1 when nothing is left of it.
    */
   private int fieldClip(El el, float x, float y, int clip) {
     Style s = el.style();
+    boolean rows = el.text().multiline();
     float left = Math.max(x + px(s.borderLeft) + px(s.paddingLeft), clipGet(clip, X));
-    float top = Math.max(y + px(s.borderTop), clipGet(clip, Y));
+    float top = Math.max(y + px(s.borderTop) + (rows ? px(s.paddingTop) : 0), clipGet(clip, Y));
     float right = Math.min(x + el.width() - px(s.borderRight) - px(s.paddingRight),
         clipGet(clip, X) + clipGet(clip, WIDTH));
-    float bottom = Math.min(y + el.height() - px(s.borderBottom),
-        clipGet(clip, Y) + clipGet(clip, HEIGHT));
+    float bottom = Math.min(y + el.height() - px(s.borderBottom)
+        - (rows ? px(s.paddingBottom) : 0), clipGet(clip, Y) + clipGet(clip, HEIGHT));
     return right > left && bottom > top ? clip(left, top, right - left, bottom - top, 0) : -1;
   }
 

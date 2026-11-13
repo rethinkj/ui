@@ -278,3 +278,48 @@ el 0,0 140x40
     text role=textbox label="Password" "hunter2" 10,8 120x24 disabled
     el role=button label="Hide password" 108,10 20x20 disabled
       text label="eye_off" "\u{E5F4}" 110,12 16x16
+# area, rest
+el 0,0 140x72
+  text #c role=textbox label="Notes" "Ship by Friday,\nfrom the north\nwarehouse." 10,7 120x58 lines 1-3/3
+# area, hover
+el 0,0 140x72
+  text #c role=textbox label="Notes" "Ship by Friday,\nfrom the north\nwarehouse." 10,7 120x58 lines 1-3/3 hovered
+# area, pressed
+el 0,0 140x72
+  text #c role=textbox label="Notes" "Ship by Friday,\nfrom the north\nwarehouse." 10,7 120x58 lines 1-3/3 hovered focused caret 24 (2:9)
+# area, focused
+el 0,0 140x72
+  text #c role=textbox label="Notes" "Ship by Friday,\nfrom the north\nwarehouse." 10,7 120x58 lines 1-3/3 focused caret 0 (1:1)
+# area, disabled
+el 0,0 140x72
+  text #c role=textbox label="Notes" "Ship by Friday,\nfrom the north\nwarehouse." 10,7 120x58 disabled lines 1-3/3
+# area selected, rest
+el 0,0 140x72
+  text #c role=textbox label="Notes" "Ship by Friday,\nfrom the north\nwarehouse." 10,7 120x58 lines 1-3/3
+# area selected, hover
+el 0,0 140x72
+  text #c role=textbox label="Notes" "Ship by Friday,\nfrom the north\nwarehouse." 10,7 120x58 lines 1-3/3 hovered
+# area selected, pressed
+el 0,0 140x72
+  text #c role=textbox label="Notes" "Ship by Friday,\nfrom the north\nwarehouse." 10,7 120x58 lines 1-3/3 hovered focused caret 33 (3:3) anchor 2
+# area selected, focused
+el 0,0 140x72
+  text #c role=textbox label="Notes" "Ship by Friday,\nfrom the north\nwarehouse." 10,7 120x58 lines 1-3/3 focused caret 33 (3:3) anchor 2
+# area selected, disabled
+el 0,0 140x72
+  text #c role=textbox label="Notes" "Ship by Friday,\nfrom the north\nwarehouse." 10,7 120x58 disabled lines 1-3/3
+# code area, rest
+el 0,0 140x72
+  text #c role=textbox label="SQL" "SELECT id,\n\tname\nFROM t;" 10,3 120x66 lines 1-3/3
+# code area, hover
+el 0,0 140x72
+  text #c role=textbox label="SQL" "SELECT id,\n\tname\nFROM t;" 10,3 120x66 lines 1-3/3 hovered
+# code area, pressed
+el 0,0 140x72
+  text #c role=textbox label="SQL" "SELECT id,\n\tname\nFROM t;" 10,3 120x66 lines 1-3/3 hovered focused caret 15 (2:5)
+# code area, focused
+el 0,0 140x72
+  text #c role=textbox label="SQL" "SELECT id,\n\tname\nFROM t;" 10,3 120x66 lines 1-3/3 focused caret 0 (1:1)
+# code area, disabled
+el 0,0 140x72
+  text #c role=textbox label="SQL" "SELECT id,\n\tname\nFROM t;" 10,3 120x66 disabled lines 1-3/3
