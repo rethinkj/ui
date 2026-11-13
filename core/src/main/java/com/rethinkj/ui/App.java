@@ -2170,8 +2170,9 @@ public final class App<S> {
       return false;
     }
     if (pointerIn) {
-      // The rows' looks follow what the pointer is over, and a bar over a row takes it: the bars
-      // of a tree just built are not placed yet.
+      // The rows' looks follow what the pointer is over, and a modal overlay or a bar above a row
+      // takes it: those of a tree just built are not placed yet.
+      Overlays.place(root, width, height);
       El.placeBars(root);
     }
     float far = Float.POSITIVE_INFINITY;

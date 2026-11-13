@@ -1,0 +1,1 @@
+- A row of a list behind a modal overlay, such as a dialog, no longer takes its hover look when the view is built again while the pointer rests on the scrim.

@@ -357,6 +357,32 @@ class OverlayTest {
   }
 
   @Test
+  void aRowBehindAModalOverlayTakesNoHoverLookAlsoWhenARebuildBuildsItAgain() {
+    State s = new State();
+    App<State> app = app(s, st -> {
+      El root = col().size(200, 200).child(col().key("list").size(200, 200)
+          .rows(20, 20, i -> el().key("row-" + i).wFull().h(20).fill(0xFF101010)
+              .whenHovered(e -> e.fill(0xFF888888))));
+      if (st.open) {
+        root.overlay(col().key("dialog").centerInWindow().modal().scrim(0x80000000)
+            .child(el().key("ok").size(40, 20).focusable().onPress(() -> {})));
+      }
+      return root;
+    }, 200, 200);
+    app.pointerMove(20, 10);
+    app.frame();
+    assertEquals(0xFF888888, find(app, "row-0").fill(), "under the pointer");
+
+    s.open = true;
+    app.post(() -> {}); // a rebuild of the view, which opens the dialog
+    app.frame();
+    assertEquals(0xFF101010, find(app, "row-0").fill(), "behind the scrim, nothing is hovered");
+    app.post(() -> {});
+    app.frame();
+    assertEquals(0xFF101010, find(app, "row-0").fill(), "nor after another rebuild");
+  }
+
+  @Test
   void aModalOverlayTakesThePointerTheWheelTheFocusAndTheKeys() {
     State s = new State();
     s.open = true;
