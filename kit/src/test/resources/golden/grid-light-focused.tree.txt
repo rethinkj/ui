@@ -99,7 +99,7 @@ el 0,0 560x240
           el 732,75 239x22
             text "NULL" 736,78 34x16
           el 971,75 1x22
-        el #row-3 role=row 8,97 964x22 selected pos=4/1000000
+        el #row-3 role=row 8,97 964x22 pos=4/1000000
           el 8,97 63x22
             text "4" 60,100 7x16
           el 71,97 1x22
@@ -121,7 +121,7 @@ el 0,0 560x240
           el 732,97 239x22
             text "NULL" 736,100 34x16
           el 971,97 1x22
-        el #row-4 role=row 8,119 964x22 pos=5/1000000
+        el #row-4 role=row 8,119 964x22 selected pos=5/1000000
           el 8,119 63x22
             text "5" 60,122 7x16
           el 71,119 1x22
