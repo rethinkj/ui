@@ -62,8 +62,12 @@ import java.util.function.IntPredicate;
  * and Page Down by the rows in view, Home and End to the first and last row, or in cells to the
  * first and last column, with Control to the first and last cell; Shift extends, Control+A
  * selects all, and the rows and columns follow the cursor. Control+C and Control+Insert copy the
- * selection as tab-separated text ({@link #copyText}). Enter, F2 and a double press ask the app
- * to edit the cursor's cell ({@link Options#onEdit}). The grid is one stop for Tab.
+ * selection as tab-separated text ({@link #copyText}). Enter, F2, a double press and typing edit
+ * the cursor's cell in an editor the grid lays over it ({@link Options#onCommit}, {@link
+ * Editing}), or ask the app to ({@link Options#onEdit}); pasting, clearing, NULL, new and deleted
+ * rows and what changed go through the app as well, and {@link GridChanges} keeps those changes
+ * until the app writes them. The header filters columns ({@link Options#filters}) and chooses,
+ * moves and hides them ({@link Options#columns}). The grid is one stop for Tab.
  *
  * <p>A header cell shows the column's icon, its title, its type in muted text and the sort mark,
  * in this order at the left or the right as the column puts its text, the mark on the outer side.
