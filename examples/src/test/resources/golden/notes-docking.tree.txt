@@ -1,0 +1,15 @@
+el 0,0 640x300
+  el 0,0 640x30
+    text "Notes" 12,12 42x18
+  el #row 0,30 640x270
+    el #marker 12,42 3x246
+    el #card-Groceries 23,42 180x246
+      text "Groceries" 36,55 154x16
+      text #text-Groceries "Coffee, bread, milk" 36,83 154x16
+    el #card-Todo 211,42 180x246
+      text "Todo" 224,55 154x16
+      text #text-Todo "Write the release notes" 224,83 154x16
+    el #card-Ideas 399,42 180x246
+      el #handle-Ideas 412,55 154x16
+        text "Ideas" 412,55 35x16
+      text #text-Ideas role=textbox label="Empty" "Tabs that tear off\nand dock back" 412,83 154x192 lines 1-2/2
