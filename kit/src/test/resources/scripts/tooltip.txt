@@ -1,0 +1,12 @@
+# The help button of kit's workbench (TooltipTest): its tooltip shows once the pointer has rested
+# on it for half a second of the app's clock.
+frame
+move #help
+frame
+advance 0.4
+frame
+snap waiting                    # hovered, no tooltip yet
+
+advance 0.1
+frame
+snap shown

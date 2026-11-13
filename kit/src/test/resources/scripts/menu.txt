@@ -1,0 +1,28 @@
+# The File menu of kit's workbench (MenuTest): opened by its button, walked with the keys into
+# its submenu, chosen, opened again with the pointer resting on Export, and dismissed.
+frame
+press #file                     # opens the menu below the button; the focus goes to it
+frame
+snap open
+
+key ArrowDown                   # New query
+key ArrowDown                   # Open…
+key ArrowDown                   # past the separator to Export
+key ArrowRight                  # opens its submenu with CSV highlighted
+frame
+snap submenu
+
+key ArrowDown                   # JSON
+key Enter                       # chooses it: the menus close, the focus goes back to File
+frame
+press #file
+frame
+move role=menuitem label="Export"
+frame                           # the pointer highlights Export
+advance 0.3
+frame
+snap hover                      # after resting there, the submenu opens
+
+press 100,200                   # outside both, on the list: they close, and that is all
+frame
+snap dismissed

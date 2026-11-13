@@ -1,0 +1,14 @@
+# The context menu of the tables in kit's workbench (MenuTest): a secondary press on a row
+# selects it and opens the menu there; letters jump to items, Escape closes it.
+frame
+press #table-2 right
+frame
+snap open
+
+key D                           # the next item that starts with D: Duplicate
+key D                           # and the next: Drop table
+frame
+snap typed
+
+key Escape
+frame
