@@ -315,7 +315,7 @@ public final class App<S> {
     grab = null; // and a thumb's drag
     settle();
     restAfterPress();
-    if (dismiss(x, y, true)) {
+    if (framePartUnderModal(x, y) || dismiss(x, y, true)) {
       pressed = null;
       return changed;
     }
@@ -412,7 +412,7 @@ public final class App<S> {
     secondary = null;
     settle();
     restAfterPress();
-    if (dismiss(x, y, true)) {
+    if (framePartUnderModal(x, y) || dismiss(x, y, true)) {
       return false;
     }
     Target target = target(x, y, el -> el.onSecondaryPress() != null);
@@ -446,6 +446,15 @@ public final class App<S> {
     for (Rest rest : resting.values()) {
       rest.since = Double.POSITIVE_INFINITY;
     }
+  }
+
+  /**
+   * Whether a press at this point lands on a part of the window's own frame ({@link
+   * El#windowPart}) outside a modal overlay: the window moves, minimizes, maximizes or closes, and
+   * the press neither dismisses the overlay nor reaches anything else.
+   */
+  private boolean framePartUnderModal(float x, float y) {
+    return modal() != null && hit(x, y).isEmpty() && windowPart(x, y) != WindowPart.CONTENT;
   }
 
   /**
@@ -1999,20 +2008,27 @@ public final class App<S> {
    * while the pointer moves. The rule is the one presses follow: the topmost element under the
    * point decides, or its nearest ancestor that has a {@link El#windowPart} or a press handler. An
    * element with a handler and no part is content, so controls inside a title bar stay clickable.
+   * Outside a {@link El#modal} overlay, which takes all other pointer input, the parts of the tree
+   * below it still count: the window can be moved, minimized, maximized and closed while a dialog
+   * is open, and a press on such a part neither dismisses the dialog nor reaches anything else.
    *
    * @return the part, {@link WindowPart#CONTENT} where nothing is marked
    */
   public WindowPart windowPart(float x, float y) {
     List<El> hit = hit(x, y);
+    if (hit.isEmpty() && modal() != null) {
+      hit = hitFrom(root, x, y); // the frame's own parts stay usable under a modal overlay
+    }
     if (!hit.isEmpty() && hit.getLast().barAt(x, y) != null) {
       return WindowPart.CONTENT;
     }
-    Target target = target(x, y,
-        el -> el.windowPart() != null || takesPress(el) || el.takesEdits());
-    if (target == null || target.el.windowPart() == null) {
-      return WindowPart.CONTENT;
+    for (int i = hit.size() - 1; i >= 0; i--) {
+      El el = hit.get(i);
+      if (el.windowPart() != null || takesPress(el) || el.takesEdits()) {
+        return el.windowPart() != null ? el.windowPart() : WindowPart.CONTENT;
+      }
     }
-    return target.el.windowPart();
+    return WindowPart.CONTENT;
   }
 
   /** The tree of the last frame. */
