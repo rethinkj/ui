@@ -18,6 +18,7 @@ import com.rethinkj.ui.window.WindowEvent.AppearanceChanged;
 import com.rethinkj.ui.window.WindowEvent.CloseRequested;
 import com.rethinkj.ui.window.WindowEvent.FocusChanged;
 import com.rethinkj.ui.window.WindowEvent.KeyDown;
+import com.rethinkj.ui.window.WindowEvent.KeyText;
 import com.rethinkj.ui.window.WindowEvent.KeyUp;
 import com.rethinkj.ui.window.WindowEvent.PointerDown;
 import com.rethinkj.ui.window.WindowEvent.PointerLeave;
@@ -306,6 +307,8 @@ public final class Window implements AutoCloseable {
   private boolean menuPress;
   // The last event was a key pressed with Control and without Alt, whose character Windows types.
   private boolean afterControlKey;
+  private char highSurrogate; // of a WM_CHAR that SDL dropped, until its second half comes
+  private boolean charOfKey; // the last event was a key down, which a WM_CHAR belongs to
   /** Where the last pointer move was, in logical pixels, while the pointer is in the window. */
   private boolean pointerIn;
   private float pointerX;
@@ -529,6 +532,39 @@ public final class Window implements AutoCloseable {
     }
   }
 
+  /**
+   * A character that Windows made of a key ({@code WM_CHAR}, by {@code TranslateMessage} through
+   * the keyboard layout, its dead keys and AltGr), after SDL handled the message. While text
+   * input is on, SDL made a {@link TextInput} of it; while it is off SDL drops it, which loses the
+   * keys that arrive in the same batch as the click or key that takes the focus into a field, and
+   * it goes on as a {@link KeyText}, with SDL's rules: no control characters, and none of a key
+   * held with Control and without Alt.
+   */
+  void systemChar(char c) {
+    if (textInput != null || !open) {
+      highSurrogate = 0;
+      return;
+    }
+    if (Character.isHighSurrogate(c)) {
+      highSurrogate = c; // the second half comes in the next WM_CHAR
+      return;
+    }
+    String text = Character.isLowSurrogate(c) && highSurrogate != 0
+        ? new String(new char[] {highSurrogate, c}) : String.valueOf(c);
+    highSurrogate = 0;
+    if (c < 0x20 || c == 0x7F || text.length() == 1 && Character.isSurrogate(c)
+        || afterControlKey) {
+      return;
+    }
+    // A character without its key, as one sent as VK_PACKET, is plain text, as SDL would give it.
+    post(charOfKey ? new KeyText(text) : new TextInput(text));
+  }
+
+  /** A key down of a character sent as such ({@code VK_PACKET}), which SDL reports no key of. */
+  void packetKey() {
+    charOfKey = false;
+  }
+
   /** Queues an event of this window for {@link #dispatch}. */
   void post(WindowEvent event) {
     // A redraw shows the newest state, so it replaces one of this window that is still pending,
@@ -644,6 +680,9 @@ public final class Window implements AutoCloseable {
 
   private void translate(int type, MemorySegment e) {
     boolean controlKey = afterControlKey;
+    if (type != Sdl.EVENT_KEY_UP) {
+      charOfKey = type == Sdl.EVENT_KEY_DOWN; // the WM_CHAR of a key comes before its release
+    }
     afterControlKey = false;
     switch (type) {
       case Sdl.EVENT_MOUSE_MOTION -> {

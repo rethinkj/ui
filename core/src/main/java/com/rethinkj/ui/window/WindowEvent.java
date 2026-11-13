@@ -50,6 +50,19 @@ public sealed interface WindowEvent {
   record TextInput(String text) implements WindowEvent {}
 
   /**
+   * Text that the system made of the key before it while the window's text input was off, which
+   * a {@link TextInput} would have carried were it on: on Windows the character of {@code
+   * WM_CHAR}, through the keyboard layout with its dead keys and AltGr. Input that comes in one
+   * batch, a click into a field and the keys after it, arrives before the window can turn its
+   * text input on for the field; {@link WindowLoop} gives this to {@link
+   * com.rethinkj.ui.App#keyText}, which types it if the key went to the field. Control
+   * characters, and the character of a key held with Control and without Alt, do not come; a
+   * character that comes without a key, as one sent with {@code KEYEVENTF_UNICODE}, comes as a
+   * {@link TextInput}.
+   */
+  record KeyText(String text) implements WindowEvent {}
+
+  /**
    * An input method composes text, which is shown where the caret is until it commits it with a
    * {@link TextInput}; empty text ends the composition. Comes only while text input is on, see
    * {@link Window#textInputArea}.

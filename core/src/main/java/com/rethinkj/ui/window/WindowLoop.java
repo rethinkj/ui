@@ -7,6 +7,7 @@ import com.rethinkj.ui.window.WindowEvent.AppearanceChanged;
 import com.rethinkj.ui.window.WindowEvent.CloseRequested;
 import com.rethinkj.ui.window.WindowEvent.FocusChanged;
 import com.rethinkj.ui.window.WindowEvent.KeyDown;
+import com.rethinkj.ui.window.WindowEvent.KeyText;
 import com.rethinkj.ui.window.WindowEvent.KeyUp;
 import com.rethinkj.ui.window.WindowEvent.PointerDown;
 import com.rethinkj.ui.window.WindowEvent.PointerLeave;
@@ -726,7 +727,8 @@ public final class WindowLoop {
     App<?> app = e.app;
     if (event instanceof PointerDown || event instanceof PointerUp || event instanceof PointerMove
         || event instanceof PointerLeave || event instanceof Wheel || event instanceof KeyDown
-        || event instanceof KeyUp || event instanceof TextInput || event instanceof TextEditing) {
+        || event instanceof KeyUp || event instanceof TextInput || event instanceof KeyText
+        || event instanceof TextEditing) {
       e.input = true;
     }
     switch (event) {
@@ -753,6 +755,7 @@ public final class WindowLoop {
       case KeyDown down -> app.keyDown(down.key(),
           opensSystemMenu(down.key()) ? e.window::showSystemMenu : null);
       case KeyUp up -> app.keyUp(up.key());
+      case KeyText text -> app.keyText(text.text()); // its key may have taken the focus to a field
       case TextInput text -> app.textInput(text.text());
       case TextEditing editing -> app.textComposition(editing.text(), editing.cursor());
       case FocusChanged focus -> {
@@ -830,6 +833,11 @@ public final class WindowLoop {
       case KeyUp up -> {
         to.input = true;
         to.app.keyUp(up.key());
+        return true;
+      }
+      case KeyText text -> {
+        to.input = true;
+        to.app.keyText(text.text());
         return true;
       }
       default -> {

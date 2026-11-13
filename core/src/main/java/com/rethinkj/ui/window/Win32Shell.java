@@ -218,7 +218,7 @@ final class Win32Shell {
       Window window = Window.failed() ? null : Window.byId((int) data);
       Win32Shell shell = window == null ? null : window.shell();
       if (shell != null) {
-        shell.message(message);
+        shell.message(message, wParam);
       }
     } catch (Throwable t) {
       Window.fail(t);
@@ -226,7 +226,15 @@ final class Win32Shell {
     return result;
   }
 
-  private void message(int message) {
+  private void message(int message, long wParam) {
+    if (message == Win32.WM_CHAR) {
+      window.systemChar((char) wParam); // what SDL dropped while text input was off
+      return;
+    }
+    if (message == Win32.WM_KEYDOWN && wParam == Win32.VK_PACKET) {
+      window.packetKey(); // its character, which follows, belongs to no key SDL reported
+      return;
+    }
     if (message == taskbarButtonCreated && taskbarButtonCreated != 0) {
       buttonCreated = true;
       if (icon != null) {

@@ -72,6 +72,10 @@ final class Win32 {
   // ---- Icons, the taskbar and the system's colours (Win32Shell)
 
   static final int WM_SETTINGCHANGE = 0x001A;
+  static final int WM_CHAR = 0x0102;
+  static final int WM_KEYDOWN = 0x0100;
+  /** The key of a character that SendInput sends as such (KEYEVENTF_UNICODE): no key of SDL. */
+  static final int VK_PACKET = 0xE7;
   static final int WM_SYSCOLORCHANGE = 0x0015;
   static final int WM_SETICON = 0x0080;
   static final int WM_GETICON = 0x007F;
