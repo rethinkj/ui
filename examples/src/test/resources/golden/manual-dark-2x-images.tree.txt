@@ -1,0 +1,152 @@
+el 0,0 960x640
+  el window=drag 0,0 960x32
+    el 12,11 10x10
+    text "Manual" 30,8 46x16
+    el 76,16 669x0
+    el 745,8 65x16
+      el role=switch label="Dark" 741,6 73x20 checked
+        el 745,8 28x16
+          el 759,10 12x12
+        text "Dark" 781,8 29x16
+    el role=button label="Minimize" window=minimize 822,0 46x32
+      el 840,16 10x1
+    el role=button label="Maximize" window=maximize 868,0 46x32
+      el 886,11 10x10
+    el role=button label="Close" window=close 914,0 46x32
+      text label="dismiss" "\u{F367}" 931,10 12x12
+  el 0,32 960x608
+    el 8,32 240x600
+      el 9,33 238x598
+        el 13,37 230x590
+          el #documents role=listbox label="Documents" 13,37 230x56
+            el #item-0 role=option label="Manual" 13,37 230x28 selected pos=1/2
+              el 13,39 230x24
+                el 15,43 2x16
+                text label="document" "\u{E4D7}" 21,43 16x16
+                text "Manual" 41,43 194x16
+            el #item-1 role=option label="Changelog" 13,65 230x28 pos=2/2
+              el 13,67 230x24
+                el 15,71 2x16
+                text label="history" "\u{E705}" 21,71 16x16
+                text "Changelog" 41,71 194x16
+          el role=separator 13,97 230x1
+          text "On this page" 21,104 214x16
+          el #outline role=listbox label="On this page" 13,124 230x503 focused
+            el #item-0 role=option label="Writing documents" 13,124 230x28 pos=1/9
+              el 13,126 230x24
+                el 15,130 2x16
+                text "Writing documents" 21,130 214x15
+            el #item-1 role=option label="Text" 13,152 230x28 pos=2/9
+              el 13,154 230x24
+                el 15,158 2x16
+                text "Text" 21,158 214x15
+            el #item-2 role=option label="  Links" 13,180 230x28 pos=3/9
+              el 13,182 230x24
+                el 15,186 2x16
+                text "  Links" 21,186 214x15
+            el #item-3 role=option label="Lists" 13,208 230x28 pos=4/9
+              el 13,210 230x24
+                el 15,214 2x16
+                text "Lists" 21,214 214x15
+            el #item-4 role=option label="  A checklist" 13,236 230x28 pos=5/9
+              el 13,238 230x24
+                el 15,242 2x16
+                text "  A checklist" 21,242 214x15
+            el #item-5 role=option label="Quotes" 13,264 230x28 pos=6/9
+              el 13,266 230x24
+                el 15,270 2x16
+                text "Quotes" 21,270 214x15
+            el #item-6 role=option label="Code blocks" 13,292 230x28 pos=7/9
+              el 13,294 230x24
+                el 15,298 2x16
+                text "Code blocks" 21,298 214x15
+            el #item-7 role=option label="Tables" 13,320 230x28 pos=8/9
+              el 13,322 230x24
+                el 15,326 2x16
+                text "Tables" 21,326 214x15
+            el #item-8 role=option label="Images" 13,348 230x28 selected pos=9/9
+              el 13,350 230x24
+                el 15,354 2x16
+                text "Images" 21,354 214x15
+    el 256,32 696x600
+      el #doc-0 role=document 257,33 694x598 rows 28-38/39 scroll 0,1563 thumb-y 943,433.29 6x152.39
+        el 281,-199 646x29 pos=29/39
+          text role=paragraph "An indented block is code without a language, and a line longer than the page scrolls sideways:" 281,-199 646x17 readonly lines 1-1/1
+        el 281,-170 646x54 pos=30/39
+          el role=group 281,-170 646x42
+            text role=code "java --enable-native-access=ALL-UNNAMED -cp core/target/classes:fonts/target/classes com.rethinkj.ui.examples.Manual" 282,-169 644x40 readonly lines 1-1/1
+            el #copy role=button label="Copy code" 898,-165 24x24
+              text label="copy" "\u{F32A}" 902,-161 16x16
+        el 281,-116 646x61 pos=31/39
+          el 281,-92 646x29
+            text #heading-tables role=heading "Tables" 281,-92 646x28 readonly level=2 lines 1-1/1
+            el role=separator 281,-64 646x1
+        el 281,-55 646x168 pos=32/39
+          el 281,-55 646x156
+            el role=table 281,-55 285x148
+              el role=row 282,-54 283x25
+                el role=columnheader 282,-54 86x25
+                  text role=textbox "Form" 290,-50 36x17 readonly lines 1-1/1
+                el role=columnheader 368,-54 114x25
+                  text role=textbox "Written as" 389,-50 72x17 readonly lines 1-1/1
+                el role=columnheader 482,-54 83x25
+                  text role=textbox "Shown as" 490,-50 67x17 readonly lines 1-1/1
+              el role=separator 282,-29 283x1
+              el role=row 282,-28 283x25
+                el role=cell 282,-28 86x25
+                  text role=textbox "Emphasis" 290,-24 64x17 readonly lines 1-1/1
+                el role=cell 368,-28 114x25
+                  text role=textbox "*a*" 412,-24 26x17 readonly lines 1-1/1
+                el role=cell 482,-28 83x25
+                  text role=textbox "a" 546,-24 11x17 readonly lines 1-1/1
+              el role=separator 282,-3 283x1
+              el role=row 282,-2 283x25
+                el role=cell 282,-2 86x25
+                  text role=textbox "Strong" 290,2 46x17 readonly lines 1-1/1
+                el role=cell 368,-2 114x25
+                  text role=textbox "**a**" 404,2 42x17 readonly lines 1-1/1
+                el role=cell 482,-2 83x25
+                  text role=textbox "a" 547,2 10x17 readonly lines 1-1/1
+              el role=separator 282,23 283x1
+              el role=row 282,24 283x25
+                el role=cell 282,24 86x25
+                  text role=textbox "Struck out" 290,28 70x17 readonly lines 1-1/1
+                el role=cell 368,24 114x25
+                  text role=textbox "~~a~~" 404,28 42x17 readonly lines 1-1/1
+                el role=cell 482,24 83x25
+                  text role=textbox "a" 547,28 10x17 readonly lines 1-1/1
+              el role=separator 282,49 283x1
+              el role=row 282,50 283x42
+                el role=cell 282,50 86x42
+                  text role=textbox "Link" 290,54 29x34 readonly lines 1-1/1
+                el role=cell 368,50 114x42
+                  text role=textbox "[a](#tables)" 376,54 98x34 readonly lines 1-1/1
+                el role=cell 482,50 83x42
+                  text role=textbox "a" 547,54 10x34 readonly lines 1-1/1
+                    el #link-0 role=link label="a" 547,54 7.88x17 value="#tables"
+        el 281,113 646x61 pos=33/39
+          el 281,137 646x29
+            text #heading-images role=heading "Images" 281,137 646x28 readonly level=2 lines 1-1/1
+            el role=separator 281,165 646x1
+        el 281,174 646x63 pos=34/39
+          text role=paragraph "An image alone in its paragraph stands as a block, as large as its pixels and at most as wide as the" … "the description until an image is there." length 265 281,174 646x51 readonly lines 1-1/1 hovered
+        el 281,237 646x236 pos=35/39
+          el 281,237 646x224
+            image role=img label="The frame of the workbench, with rounded corners and a shadow" 281,237 384x224
+        el 281,473 646x220 pos=36/39
+          el 281,473 646x208
+            text role=paragraph "An image among the text, such as" 281,473 646x17 readonly lines 1-1/1
+            el 281,502 646x150
+              image role=img label="Three notes as cards" 281,502 320x150
+            text role=paragraph "here, breaks the paragraph and stands as a block too." 281,664 646x17 readonly lines 1-1/1
+        el 281,693 646x54 pos=37/39
+          el role=img label="An image the app could not read" 281,693 646x42
+            text label="image" "\u{F487}" 294,706 16x16
+            text "An image the app could not read" 318,706 596x16
+        el 281,747 646x13 pos=38/39
+          el role=separator 281,747 646x1
+        el 281,760 646x17 pos=39/39
+          text role=paragraph "That is all: a thematic break ends the manual." 281,760 646x17 readonly lines 1-1/1
+overlay edge bottom center gap 16 on 0,0 960x640
+  el #toast role=status label="Opens https://commonmark.org" 374,602 212x22 exiting
+    text "Opens https://commonmark.org" 387,605 196x16

@@ -1,5 +1,6 @@
 package com.rethinkj.ui.render;
 
+import com.rethinkj.ui.Image;
 import com.rethinkj.ui.text.Atlas;
 import java.util.HashMap;
 import java.util.Map;
@@ -12,9 +13,10 @@ import java.util.Map;
  *
  * <p>It is fast by not computing what is already known, never by computing it another way, so
  * that it draws the same bits as a loop that evaluates every formula at every pixel of every
- * instance: the pixels a rounded rectangle or a clip covers whole are found without evaluating
- * it at each ({@link Box}); a glyph's corrected coverage is computed once per texel value, what
- * a shadow's blur takes from x once per column and from y once per row, and the encoding of a
+ * instance: the pixels a rounded rectangle, an image's rectangle or a clip covers whole are found
+ * without evaluating it at each ({@link Box}); a glyph's corrected coverage is computed once per
+ * texel value, what a shadow's blur takes from x once per column and from y once per row, and the
+ * encoding of a
  * pixel to sRGB once per value of its floats. {@code CpuRendererEquivalenceTest} holds it to that
  * loop.
  */
@@ -64,6 +66,8 @@ public final class CpuRenderer {
         glyph(scene, i, frame, width, height, scale, blends, scratch);
       } else if (kind == Scene.SHADOW) {
         shadow(scene, i, frame, width, height, scale, blends, scratch);
+      } else if (kind == Scene.IMAGE) {
+        image(scene, i, frame, width, height, scale, blends, scratch);
       } else {
         rect(scene, i, frame, width, height, scale, blends, scratch);
       }
@@ -79,6 +83,8 @@ public final class CpuRenderer {
     final double[] wide;
     final double[] narrow;
     final double[][] squareX;
+    final double[] sample = new double[4];
+    final double[] level = new double[4];
     final Map<Correction, double[]> corrections = new HashMap<>();
 
     Scratch(int width) {
@@ -323,6 +329,178 @@ public final class CpuRenderer {
     double dark = 1 - StrictMath.pow(1 - a, darkGamma);
     double light = StrictMath.pow(a, lightGamma);
     return dark + (light - dark) * share;
+  }
+
+  /**
+   * Draws an image: its texels sampled as {@link Scene} says, with the coverage of its square
+   * rectangle and of its clip. As for a rectangle, the pixels both cover whole are found without
+   * measuring each.
+   */
+  private static void image(Scene scene, int i, float[] frame, int width, int height,
+      double scale, Blends blends, Scratch scratch) {
+    double w = scene.get(i, Scene.WIDTH);
+    double h = scene.get(i, Scene.HEIGHT);
+    if (!(w > 0 && h > 0)) {
+      return;
+    }
+    double halfW = w / 2;
+    double halfH = h / 2;
+    double x0 = scene.get(i, Scene.X);
+    double y0 = scene.get(i, Scene.Y);
+    double centerX = x0 + halfW;
+    double centerY = y0 + halfH;
+    double[] square = new double[4];
+    Box shape = new Box(centerX, centerY, halfW, halfH, square, square);
+    int left = Math.max((int) Math.floor((centerX - halfW) * scale) - 1, 0);
+    int top = Math.max((int) Math.floor((centerY - halfH) * scale) - 1, 0);
+    int right = Math.min((int) Math.ceil((centerX + halfW) * scale) + 1, width);
+    int bottom = Math.min((int) Math.ceil((centerY + halfH) * scale) + 1, height);
+    Box clip = Box.clip(scene, scene.clipOf(i));
+    if (clip != null) {
+      left = Math.max(left, (int) Math.floor((clip.centerX - clip.halfW) * scale) - 1);
+      top = Math.max(top, (int) Math.floor((clip.centerY - clip.halfH) * scale) - 1);
+      right = Math.min(right, (int) Math.ceil((clip.centerX + clip.halfW) * scale) + 1);
+      bottom = Math.min(bottom, (int) Math.ceil((clip.centerY + clip.halfH) * scale) + 1);
+    }
+    if (left >= right || top >= bottom) {
+      return;
+    }
+    boolean clipWhole = clip != null && clip.coversWhole(left, top, right - 1, bottom - 1, scale);
+    double[] colour = colour(scene, i, Scene.FILL);
+    Sampler sampler = new Sampler(scene, i, scale);
+    double[] coverages = scratch.coverage;
+    double[] fillShares = scratch.fillShare;
+    double[] sample = scratch.sample;
+    for (int py = top; py < bottom; py++) {
+      double y = (py + 0.5) / scale;
+      int first = left;
+      while (first < right && !measure(first, y, scale, shape, false, null, clip, clipWhole,
+          coverages, fillShares, 1)) {
+        first++;
+      }
+      int last = right - 1;
+      while (last > first && !measure(last, y, scale, shape, false, null, clip, clipWhole,
+          coverages, fillShares, 1)) {
+        last--;
+      }
+      int row = py * width;
+      for (int px = left; px < right; px++) {
+        double coverage = px >= first && px <= last ? 1 : coverages[px];
+        if (coverage <= 0) {
+          continue;
+        }
+        sampler.sample(px, py, sample, scratch.level);
+        blend(frame, (row + px) * 4, colour[0] * sample[0] * coverage,
+            colour[1] * sample[1] * coverage, colour[2] * sample[2] * coverage,
+            colour[3] * sample[3] * coverage, blends);
+      }
+    }
+  }
+
+  /** The texels of an image instance as {@link Scene} samples them, in premultiplied linear light. */
+  private static final class Sampler {
+    private final Image image;
+    private final int width0;
+    private final int height0;
+    private final int levels;
+    private final boolean exact;
+    private final double originX;
+    private final double originY;
+    private final double ratioX;
+    private final double ratioY;
+    private final double lod;
+    private final long snappedX;
+    private final long snappedY;
+
+    Sampler(Scene scene, int i, double scale) {
+      image = scene.images().get(scene.getInt(i, Scene.IMAGE_INDEX));
+      int size = scene.getInt(i, Scene.IMAGE_SIZE);
+      width0 = size & 0xFFFF;
+      height0 = size >>> 16;
+      levels = Math.clamp(scene.getInt(i, Scene.LEVELS), 1, image.levels());
+      originX = scene.get(i, Scene.X) * scale;
+      originY = scene.get(i, Scene.Y) * scale;
+      double extentW = scene.get(i, Scene.WIDTH) * scale;
+      double extentH = scene.get(i, Scene.HEIGHT) * scale;
+      snappedX = (long) Math.floor(originX + 0.5);
+      snappedY = (long) Math.floor(originY + 0.5);
+      exact = Math.abs(extentW - width0) < 1e-3 && Math.abs(extentH - height0) < 1e-3
+          && Math.abs(originX - Math.floor(originX + 0.5)) < 1e-3
+          && Math.abs(originY - Math.floor(originY + 0.5)) < 1e-3;
+      ratioX = width0 / extentW;
+      ratioY = height0 / extentH;
+      lod = StrictMath.log(Math.max(ratioX, ratioY)) / StrictMath.log(2);
+    }
+
+    /** The sample at the pixel whose top left corner is {@code px, py}, into {@code out}. */
+    void sample(int px, int py, double[] out, double[] scratch) {
+      if (exact) {
+        texel(0, px - snappedX, py - snappedY, out);
+        return;
+      }
+      double u = (px + 0.5 - originX) * ratioX;
+      double v = (py + 0.5 - originY) * ratioY;
+      if (!(lod > 0)) {
+        bilinear(0, u, v, out);
+        return;
+      }
+      double k = Math.floor(lod);
+      if (k >= levels - 1) {
+        bilinear(levels - 1, u, v, out);
+        return;
+      }
+      int level = (int) k;
+      double f = lod - k;
+      bilinear(level, u, v, scratch);
+      bilinear(level + 1, u, v, out);
+      for (int c = 0; c < 4; c++) {
+        out[c] = scratch[c] + (out[c] - scratch[c]) * f;
+      }
+    }
+
+    /** Level {@code k} at the point {@code u, v} of level 0, from its four texels around it. */
+    private void bilinear(int k, double u, double v, double[] out) {
+      int w = image.levelWidth(k);
+      int h = image.levelHeight(k);
+      double fx = u * w / width0 - 0.5;
+      double fy = v * h / height0 - 0.5;
+      double floorX = Math.floor(fx);
+      double floorY = Math.floor(fy);
+      double ax = fx - floorX;
+      double ay = fy - floorY;
+      long tx = (long) floorX;
+      long ty = (long) floorY;
+      byte[] texels = image.level(k);
+      int left = Math.clamp(tx, 0, w - 1);
+      int right = Math.clamp(tx + 1, 0, w - 1);
+      int upper = Math.clamp(ty, 0, h - 1) * w;
+      int lower = Math.clamp(ty + 1, 0, h - 1) * w;
+      for (int c = 0; c < 4; c++) {
+        double a = value(texels, (upper + left) * 4 + c, c);
+        double b = value(texels, (upper + right) * 4 + c, c);
+        double d = value(texels, (lower + left) * 4 + c, c);
+        double e = value(texels, (lower + right) * 4 + c, c);
+        double over = a + (b - a) * ax;
+        double under = d + (e - d) * ax;
+        out[c] = over + (under - over) * ay;
+      }
+    }
+
+    /** The texel {@code x, y} of level {@code k}, clamped into it. */
+    private void texel(int k, long x, long y, double[] out) {
+      int w = image.levelWidth(k);
+      int at = (Math.clamp(y, 0, image.levelHeight(k) - 1) * w + Math.clamp(x, 0, w - 1)) * 4;
+      byte[] texels = image.level(k);
+      for (int c = 0; c < 4; c++) {
+        out[c] = value(texels, at + c, c);
+      }
+    }
+
+    /** A texel's channel: colour decoded from sRGB, alpha divided by 255. */
+    private static double value(byte[] texels, int at, int channel) {
+      int b = texels[at] & 0xFF;
+      return channel == 3 ? b / 255.0 : Scene.linear(b);
+    }
   }
 
   /** Draws a shadow: its shape blurred, over the shape grown by three deviations. */

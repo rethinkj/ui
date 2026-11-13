@@ -69,8 +69,8 @@ el 0,0 960x640
                 el 15,354 2x16
                 text "Images" 21,354 214x16
     el 256,32 696x600
-      el #doc-0 role=document 257,33 694x598 rows 21-35/36 scroll 0,1066 thumb-y 943,387.96 6x198
-        el 281,-139 646x19 pos=22/36
+      el #doc-0 role=document 257,33 694x598 rows 21-35/39 scroll 0,1066 thumb-y 943,308.76 6x153.57
+        el 281,-139 646x19 pos=22/39
           el role=list 281,-139 646x19
             el role=listitem 281,-139 646x17 checked pos=2/3
               el 281,-139 18x17
@@ -79,7 +79,7 @@ el 0,0 960x640
                     text "✓" 284,-138 11x16
               el 303,-139 624x17
                 text role=paragraph "Select some of its text and copy it" 303,-139 624x17 readonly lines 1-1/1
-        el 281,-120 646x29 pos=23/36
+        el 281,-120 646x29 pos=23/39
           el role=list 281,-120 646x29
             el role=listitem 281,-120 646x17 checked=false pos=3/3
               el 281,-120 18x17
@@ -87,11 +87,11 @@ el 0,0 960x640
                   el 281,-119 16x16
               el 303,-120 624x17
                 text role=paragraph "Press Control+A, then Control+C, to copy all of it" 303,-120 624x17 readonly lines 1-1/1
-        el 281,-91 646x61 pos=24/36
+        el 281,-91 646x61 pos=24/39
           el 281,-67 646x29
             text #heading-quotes role=heading "Quotes" 281,-67 646x28 readonly level=2 lines 1-1/1
             el role=separator 281,-39 646x1
-        el 281,-30 646x87 pos=25/36
+        el 281,-30 646x87 pos=25/39
           el role=blockquote 281,-30 646x75
             el 281,-30 3x75
             el 296,-30 631x75
@@ -101,29 +101,29 @@ el 0,0 960x640
                 el 311,-1 616x17
                   text role=paragraph "Quotes may hold quotes," 311,-1 616x17 readonly lines 1-1/1
               text role=paragraph "and anything else a document holds, such as code." 296,28 631x17 readonly lines 1-1/1
-        el 281,57 646x61 pos=26/36
+        el 281,57 646x61 pos=26/39
           el 281,81 646x29
             text #heading-code-blocks role=heading "Code blocks" 281,81 646x28 readonly level=2 lines 1-1/1
             el role=separator 281,109 646x1
-        el 281,118 646x29 pos=27/36
+        el 281,118 646x29 pos=27/39
           text role=paragraph "A fenced code block names its language. SQL is highlighted:" 281,118 646x17 readonly lines 1-1/1
-        el 281,147 646x150 pos=28/36
+        el 281,147 646x150 pos=28/39
           el role=group 281,147 646x138
             text role=code label="sql" "-- The ten largest orders of this year\nSELECT o.id, c.name, o.total\n  FROM orders o\n  JOIN customers" … "01-01'\n ORDER BY o.total DESC\n LIMIT 10;" length 201 282,148 644x136 readonly lines 1-7/7 hovered
             el #copy role=button label="Copy code" 898,152 24x24
               text label="copy" "\u{F32A}" 902,156 16x16
-        el 281,297 646x29 pos=29/36
+        el 281,297 646x29 pos=29/39
           text role=paragraph "An indented block is code without a language, and a line longer than the page scrolls sideways:" 281,297 646x17 readonly lines 1-1/1
-        el 281,326 646x54 pos=30/36
+        el 281,326 646x54 pos=30/39
           el role=group 281,326 646x42
             text role=code "java --enable-native-access=ALL-UNNAMED -cp core/target/classes:fonts/target/classes com.rethinkj.ui.examples.Manual" 282,327 644x40 readonly lines 1-1/1 thumb-x 284,359 490.08x6
             el #copy role=button label="Copy code" 898,331 24x24
               text label="copy" "\u{F32A}" 902,335 16x16
-        el 281,380 646x61 pos=31/36
+        el 281,380 646x61 pos=31/39
           el 281,404 646x29
             text #heading-tables role=heading "Tables" 281,404 646x28 readonly level=2 lines 1-1/1
             el role=separator 281,432 646x1
-        el 281,441 646x151 pos=32/36
+        el 281,441 646x151 pos=32/39
           el 281,441 646x139
             el role=table 281,441 285x131
               el role=row 282,442 283x25
@@ -166,15 +166,18 @@ el 0,0 960x640
                 el role=cell 482,546 83x25
                   text role=textbox "a" 547,550 10x17 readonly lines 1-1/1
                     el #link-0 role=link label="a" 547,550 8x17 value="#tables"
-        el 281,592 646x61 pos=33/36
+        el 281,592 646x61 pos=33/39
           el 281,616 646x29
             text #heading-images role=heading "Images" 281,616 646x28 readonly level=2 lines 1-1/1
             el role=separator 281,644 646x1
-        el 281,653 646x54 pos=34/36
-          el role=img label="A diagram of the frame of the workbench" 281,653 646x42
-            text label="image" "\u{F487}" 294,666 16x16
-            text "A diagram of the frame of the workbench" 318,666 596x16
-        el 281,707 646x13 pos=35/36
-          el role=separator 281,707 646x1
-        el 281,720 646x17 pos=36/36
-          text role=paragraph "That is all: a thematic break ends the manual." 281,720 646x17 readonly lines 1-1/1
+        el 281,653 646x63 pos=34/39
+          text role=paragraph "An image alone in its paragraph stands as a block, as large as its pixels and at most as wide as the" … "the description until an image is there." length 265 281,653 646x51 readonly lines 1-1/1
+        el 281,716 646x236 pos=35/39
+          el 281,716 646x224
+            image role=img label="The frame of the workbench, with rounded corners and a shadow" 281,716 384x224
+        el 281,952 646x220 pos=36/39
+          el 281,952 646x208
+            text role=paragraph "An image among the text, such as" 281,952 646x17 readonly lines 1-1/1
+            el 281,981 646x150
+              image role=img label="Three notes as cards" 281,981 320x150
+            text role=paragraph "here, breaks the paragraph and stands as a block too." 281,1143 646x17 readonly lines 1-1/1

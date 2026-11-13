@@ -162,6 +162,14 @@ public final class GpuPresenter implements WindowLoop.Presenter, AutoCloseable {
     return renderer.atlasWrites();
   }
 
+  /**
+   * How many images went to the GPU: each when it is first drawn, and again only when it is drawn
+   * after the renderer gave it up to stay within the scene's {@link Scene#imageMemory}.
+   */
+  public long imageUploads() {
+    return renderer.imageUploads();
+  }
+
   /** What draws, as wgpu describes the adapter. */
   public String adapter() {
     return renderer.adapter();

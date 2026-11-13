@@ -10,8 +10,11 @@ import com.rethinkj.ui.Script;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import com.rethinkj.ui.render.Pixels;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -19,7 +22,7 @@ import org.junit.jupiter.api.io.TempDir;
 /**
  * {@link Markdown} driven by scripts and read from the tree: roles, levels and states of the
  * blocks, links pressed with the pointer and with Tab and Enter, copying a block, a code block and
- * the whole document, and a long document of which only the blocks in view are built.
+ * the whole document, a long document of which only the blocks in view are built, and images.
  */
 class MarkdownTest {
 
@@ -54,6 +57,7 @@ class MarkdownTest {
     final MarkdownDocument document;
     final Markdown.State selection = new Markdown.State();
     final List<String> links = new ArrayList<>();
+    final Map<String, com.rethinkj.ui.Image> images = new HashMap<>();
     App<Doc> app;
 
     Doc(String source) {
@@ -66,7 +70,7 @@ class MarkdownTest {
     Theme t = Theme.DARK;
     App<Doc> app = new App<>(doc, d -> col().wFull().hFull().fill(t.surface().panel()).child(
         Markdown.markdown(t, d.document, Markdown.options().onLink(d.links::add)
-            .copy(d.app.clipboard()).state(d.selection)).grow(1)));
+            .copy(d.app.clipboard()).state(d.selection).images(d.images::get)).grow(1)));
     doc.app = app;
     return app;
   }
@@ -165,5 +169,69 @@ class MarkdownTest {
     app.scrollToRow(document, Markdown.rowOf(app.state().document, "part-1500"));
     tree = run(app, "frame");
     assertTrue(tree.contains("#heading-part-1500"), tree);
+  }
+
+  /** An image of one colour, of this size in pixels. */
+  private static com.rethinkj.ui.Image picture(int width, int height) {
+    byte[] rgba = new byte[width * height * 4];
+    for (int i = 0; i < rgba.length; i += 4) {
+      rgba[i] = (byte) 0x3B;
+      rgba[i + 1] = (byte) 0x82;
+      rgba[i + 2] = (byte) 0xF6;
+      rgba[i + 3] = (byte) 0xFF;
+    }
+    return com.rethinkj.ui.Image.of(new Pixels(width, height, rgba));
+  }
+
+  private static final String IMAGES = """
+      ![The frame](frame.png "The frame of the workbench")
+
+      ![An icon](icon.png)
+
+      Before ![Inline](inline.png) and after.
+
+      ![Missing](missing.png)
+      """;
+
+  @Test
+  void anImageIsAtMostAsWideAsThePageAndBreaksTheTextItStandsIn() throws IOException {
+    App<Doc> app = app(IMAGES);
+    app.state().images.put("frame.png", picture(2000, 500));
+    app.state().images.put("icon.png", picture(40, 20));
+    app.state().images.put("inline.png", picture(60, 30));
+    String tree = run(app, "frame");
+    // 640 wide less the document's padding of 24 on each side: 592, and a quarter as high.
+    assertTrue(line(tree, "label=\"The frame\"").matches("image role=img label=\"The frame\""
+        + " 24,24 592x148"), tree);
+    assertTrue(line(tree, "label=\"An icon\"").endsWith(" 40x20"), "as large as its pixels");
+    // The paragraph broke at its image: the text before it, the image in its column, the text.
+    List<String> lines = tree.lines().map(String::strip).toList();
+    int inline = lines.indexOf(line(tree, "label=\"Inline\""));
+    assertTrue(lines.get(inline - 2).contains("role=paragraph \"Before\""), tree);
+    assertTrue(lines.get(inline + 1).contains("role=paragraph \"and after.\""), tree);
+    // An image the app does not have: its placeholder, with its description.
+    assertTrue(line(tree, "label=\"Missing\"").startsWith("el role=img label=\"Missing\""),
+        tree);
+    // The title is the image's tooltip.
+    tree = run(app, "move label=\"The frame\"\nframe\nadvance 1\nframe");
+    assertTrue(line(tree, "role=tooltip").contains("label=\"The frame of the workbench\""),
+        tree);
+  }
+
+  @Test
+  void anImageThatArrivesAboveTheViewLeavesWhatIsInViewWhereItIs() throws IOException {
+    StringBuilder source = new StringBuilder("![The frame](frame.png)\n\n");
+    for (int i = 0; i < 60; i++) {
+      source.append("Paragraph ").append(i).append(".\n\n");
+    }
+    App<Doc> app = app(source.toString());
+    // Down so far that the image's row is above the view, but still built.
+    String tree = run(app, "frame\nwheel role=document 0 100\nframe");
+    String before = line(tree, "\"Paragraph 8.\"");
+    assertTrue(line(tree, "role=document").contains(" rows 0-"), tree);
+    app.post(() -> app.state().images.put("frame.png", picture(1000, 500)));
+    tree = run(app, "await\nframe");
+    assertTrue(line(tree, "label=\"The frame\"").contains(" 592x296"), tree);
+    assertEquals(before, line(tree, "\"Paragraph 8.\""), "the paragraph stayed in place");
   }
 }

@@ -13,6 +13,7 @@ import com.rethinkj.ui.App;
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.Examples;
 import com.rethinkj.ui.Examples.Lights;
+import com.rethinkj.ui.Image;
 import com.rethinkj.ui.Script;
 import com.rethinkj.ui.Scrollbars;
 import com.rethinkj.ui.Shadow;
@@ -255,6 +256,11 @@ class GpuRendererTest {
             "press #name\ntype \"SELECT name\"\nkey ArrowLeft shift\ncompose \"ni\"\n"));
       }
     }
+    // Images: one to one, magnified, made smaller and 4000 pixels made 60 and 100, with alpha over and
+    // under text, in rounded clips, at half opacity, covering and contained, on light and dark.
+    for (float scale : new float[] {1, 1.5f, 2}) {
+      cases.add(text("images" + at(scale), Examples.images(scale), 320, 220, scale));
+    }
     // Fallback fonts: glyphs of four fonts on one line and in a field selected across them,
     // Hebrew right to left, Thai with its marks, Inter's "not defined" glyph.
     for (float scale : new float[] {1, 2, 1.5f}) {
@@ -411,6 +417,76 @@ class GpuRendererTest {
       System.out.println("GPU with " + what + " vs CPU " + comparison);
       assertTrue(comparison.beyond() > 50, what + ": " + comparison);
     }
+  }
+
+  /**
+   * Changes to the image shader that each draw images only a little wrong, which the comparison
+   * has to notice: the point a pixel samples, the filtering, the levels mixed, the texel of one
+   * to one and the clip.
+   */
+  static Stream<Arguments> imageBreaks() {
+    return Stream.of(
+        Arguments.of("the point a quarter texel off", "let p = uv * vec2f(dims) / size - 0.5;",
+            "let p = uv * vec2f(dims) / size - 0.25;"),
+        Arguments.of("the nearest texel instead of four", "let f = p - floor(p);",
+            "let f = vec2f(0.0);"),
+        Arguments.of("the finer level alone",
+            "image_level(instance, uv, size, u32(k) + 1u), lod - k);",
+            "image_level(instance, uv, size, u32(k) + 1u), 0.0);"),
+        Arguments.of("one to one a texel off",
+            "let texel = clamp(vec2i(floor(pixel) - snapped), vec2i(0), vec2i(size) - 1);",
+            "let texel = clamp(vec2i(floor(pixel) - snapped) + vec2i(1, 0), vec2i(0),"
+                + " vec2i(size) - 1);"),
+        Arguments.of("the clip left out", "image_cover *= clip_coverage(instance.clip, point);",
+            "image_cover *= 1.0;"));
+  }
+
+  @ParameterizedTest(name = "{0}")
+  @MethodSource("imageBreaks")
+  void aWrongImageShaderIsNoticed(String what, String line, String broken) {
+    String wgsl = GpuRenderer.WGSL.replace(line, broken);
+    assertTrue(!wgsl.equals(GpuRenderer.WGSL), "the shader has no line " + line);
+    try (GpuRenderer wrong = GpuRenderer.create(wgsl)) {
+      for (float scale : new float[] {1.5f, 2}) {
+        Comparison comparison = compare(wrong, text("images-broken" + at(scale),
+            Examples.images(scale), 320, 220, scale), false);
+        System.out.println("GPU with " + what + " vs CPU " + comparison);
+        assertTrue(comparison.beyond() > 50, what + ": " + comparison);
+      }
+    }
+  }
+
+  @Test
+  void anImageGoesToTheGpuOnceAndIsGivenUpBeyondTheMemory() {
+    Image a = Image.of(Examples.photo(64, 48));
+    Image b = Image.of(Examples.photo(48, 64));
+    Image c = Image.of(Examples.disc(40));
+    long uploads = gpu.imageUploads();
+    Scene first = scene(El.image(a).absolute(0, 0), El.image(b).absolute(70, 0),
+        El.image(a).absolute(0, 50).size(32, 24));
+    gpu.render(first, 120, 120, 1);
+    assertEquals(2, gpu.imageUploads() - uploads, "two images, the first drawn twice");
+    gpu.render(first, 120, 120, 1);
+    gpu.render(scene(El.image(b).absolute(4, 4)), 120, 120, 1);
+    assertEquals(2, gpu.imageUploads() - uploads, "nothing new, nothing uploaded");
+
+    // Room for a and c only: b, drawn least recently, is given up, and comes back when drawn.
+    Scene tight = scene(El.image(a).absolute(0, 0), El.image(c).absolute(70, 0))
+        .imageMemory(a.bytes() + c.bytes());
+    assertEquals(0, compare(gpu, scene("tight", tight, 120, 120, 1)).beyond());
+    assertEquals(3, gpu.imageUploads() - uploads);
+    assertTrue(gpu.imageBytes() <= a.bytes() + c.bytes(), gpu.imageBytes() + " bytes");
+    Scene back = scene(El.image(b).absolute(0, 0)).imageMemory(0);
+    assertEquals(0, compare(gpu, scene("back", back, 120, 120, 1)).beyond());
+    assertEquals(4, gpu.imageUploads() - uploads, "b again");
+    assertEquals(1, gpu.imagesResident(), "only the scene's own, though beyond the memory");
+  }
+
+  /** A scene of these elements on a light background, laid out for 120 by 120. */
+  private static Scene scene(El... children) {
+    El root = el().size(120, 120).fill(0xFFF5F5F4).children(children);
+    Flex.layout(root, 120, 120);
+    return Scene.of(root, 1);
   }
 
   @Test

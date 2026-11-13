@@ -60,6 +60,8 @@ public final class El {
   private List<Shadow> shadows = List.of();
   private Measure measure;
   private Text text;
+  private Image image;
+  private Image.Fit fit = Image.Fit.FILL;
   private PressAtHandler onPress;
   private PressAtHandler onPointerDown;
   private Runnable onAnyPointerDown;
@@ -289,6 +291,46 @@ public final class El {
     el.text = new Text(string);
     el.measure = el.text;
     return el;
+  }
+
+  /**
+   * An image element ({@link Image}): a leaf of role {@code img} that layout sizes to the image in
+   * logical pixels, its size in pixels divided by its {@link Image#scale}, but no wider than the
+   * width there is for it, as CSS's {@code max-width: 100%} for images: a large image in a narrow
+   * column is as wide as the column and keeps its aspect ratio. A width or a height from the style
+   * scales it, and with only one of them set the other follows the image's aspect ratio (the
+   * style's {@link Style#aspectRatio}); with both, {@link #fit} says how it fills the box. The image fills the content box and is clipped to the element's rounded corners; the
+   * element's fill, border, shadows, opacity and motion apply as to any element. Give it a {@link
+   * #label}, the text that stands for the image, which the tree's dump shows.
+   */
+  public static El image(Image image) {
+    El el = new El();
+    el.image = Objects.requireNonNull(image, "image");
+    float width = image.width() / image.scale();
+    float height = image.height() / image.scale();
+    el.style.aspectRatio = width / height;
+    el.measure = (knownWidth, knownHeight, availableWidth, availableHeight) -> {
+      if (!Float.isNaN(knownWidth) && !Float.isNaN(knownHeight)) {
+        return new Measure.Size(knownWidth, knownHeight);
+      }
+      if (!Float.isNaN(knownWidth)) {
+        return new Measure.Size(knownWidth, knownWidth * height / width);
+      }
+      if (!Float.isNaN(knownHeight)) {
+        return new Measure.Size(knownHeight * width / height, knownHeight);
+      }
+      if (availableWidth >= 0 && availableWidth < width) { // a number, and less than the image
+        return new Measure.Size(availableWidth, availableWidth * height / width);
+      }
+      return new Measure.Size(width, height);
+    };
+    return el;
+  }
+
+  /** How the {@link #image} fills the content box when both its width and height are set. */
+  public El fit(Image.Fit fit) {
+    this.fit = Objects.requireNonNull(fit, "fit");
+    return this;
   }
 
   // Identity and accessibility
@@ -2331,9 +2373,15 @@ public final class El {
     return key;
   }
 
-  /** The role set with {@link #role}; {@code textbox} for an {@link #editable} field without. */
+  /**
+   * The role set with {@link #role}; without one, {@code textbox} for an {@link #editable} field
+   * and {@code img} for an {@link #image}.
+   */
   public String role() {
-    return role == null && editable ? "textbox" : role;
+    if (role == null) {
+      return editable ? "textbox" : image != null ? "img" : null;
+    }
+    return role;
   }
 
   public String label() {
@@ -2623,6 +2671,16 @@ public final class El {
   /** The text of an element made with {@link #text(String)}, with its lines after layout. */
   public Text text() {
     return text;
+  }
+
+  /** The image of an element made with {@link #image(Image)}, or null. */
+  public Image image() {
+    return image;
+  }
+
+  /** How its image fills the content box; {@link Image.Fit#FILL} unless {@link #fit} says. */
+  public Image.Fit fit() {
+    return fit;
   }
 
   /** For {@link Headless} and tests: text is shaped for the scale, without system fonts. */
@@ -3388,7 +3446,8 @@ public final class El {
    * its bars or drags a thumb, ends with {@code
    * hovered}, that of the element that has the keyboard focus with {@code
    * focused}, and that of an element that is leaving with {@code exiting}. A text element's line
-   * starts with {@code text} instead of {@code el} and shows its string in quotes after the label.
+   * starts with {@code text} instead of {@code el} and shows its string in quotes after the label;
+   * an {@link #image}'s starts with {@code image}.
    * A focused {@link #editable} field adds its caret after {@code focused} as {@code caret 3}, then
    * the other end of a selection as {@code anchor 0}, and the composition of an input method in
    * progress as {@code composing "..."}. A {@link #masked} field shows its mask as its string,
@@ -3468,7 +3527,7 @@ public final class El {
 
   /** One line of {@link #dump}, for this element with its border box at this window position. */
   void describe(StringBuilder out, float left, float top) {
-    out.append(text != null ? "text" : "el");
+    out.append(text != null ? "text" : image != null ? "image" : "el");
     if (key != null) {
       out.append(" #").append(key);
     }

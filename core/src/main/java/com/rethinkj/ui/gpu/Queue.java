@@ -69,18 +69,32 @@ public final class Queue {
    */
   public void writeTexture(Texture texture, int x, int y, int layer, int width, int height,
       MemorySegment data, long offset, int bytesPerRow) {
+    writeTexture(texture, 0, x, y, layer, width, height, data, offset, bytesPerRow);
+  }
+
+  /**
+   * As {@link #writeTexture(Texture, int, int, int, int, int, MemorySegment, long, int)}, into mip
+   * level {@code level}, whose size is {@link Texture#width(int)} by {@link Texture#height(int)}.
+   */
+  public void writeTexture(Texture texture, int level, int x, int y, int layer, int width,
+      int height, MemorySegment data, long offset, int bytesPerRow) {
     MemorySegment queue = usable();
     MemorySegment target = device.owned(texture).handle();
     if (!texture.usages().contains(TextureUsage.COPY_DST)) {
       throw new IllegalArgumentException(texture + " was not created with"
           + " TextureUsage.COPY_DST.");
     }
+    if (level < 0 || level >= texture.levels()) {
+      throw new IllegalArgumentException("Cannot write into mip level " + level + " of " + texture
+          + ", which has " + texture.levels() + ".");
+    }
     if (x < 0 || y < 0 || width < 0 || height < 0 || layer < 0 || layer >= texture.layers()
-        || (long) x + width > texture.width() || (long) y + height > texture.height()) {
+        || (long) x + width > texture.width(level)
+        || (long) y + height > texture.height(level)) {
       throw new IllegalArgumentException("Cannot write " + width + "x" + height + " texels at "
-          + x + "," + y + " of layer " + layer + " into " + texture + " of " + texture.width()
-          + "x" + texture.height() + " texels and " + texture.layers() + " layers: the rectangle"
-          + " must lie inside one layer.");
+          + x + "," + y + " of layer " + layer + " into " + texture + " of "
+          + texture.width(level) + "x" + texture.height(level) + " texels at mip level " + level
+          + " and " + texture.layers() + " layers: the rectangle must lie inside one layer.");
     }
     if (width == 0 || height == 0) {
       return;
@@ -102,6 +116,7 @@ public final class Queue {
       }
       MemorySegment destination = arena.allocate(Structs.TexelCopyTextureInfo.LAYOUT);
       destination.set(ADDRESS, Structs.TexelCopyTextureInfo.TEXTURE, target);
+      destination.set(JAVA_INT, Structs.TexelCopyTextureInfo.MIP_LEVEL, level);
       long origin = Structs.TexelCopyTextureInfo.ORIGIN;
       destination.set(JAVA_INT, origin + Structs.Origin3D.X, x);
       destination.set(JAVA_INT, origin + Structs.Origin3D.Y, y);

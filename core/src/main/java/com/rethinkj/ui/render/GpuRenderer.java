@@ -2,6 +2,7 @@ package com.rethinkj.ui.render;
 
 import static java.lang.foreign.ValueLayout.JAVA_FLOAT;
 
+import com.rethinkj.ui.Image;
 import com.rethinkj.ui.gpu.Adapter;
 import com.rethinkj.ui.gpu.BindGroup;
 import com.rethinkj.ui.gpu.BindGroupLayout;
@@ -22,9 +23,15 @@ import com.rethinkj.ui.gpu.TextureView;
 import com.rethinkj.ui.text.Atlas;
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.EnumMap;
+import java.util.IdentityHashMap;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Draws a {@link Scene} on the GPU, through wgpu, with the formulas of {@link CpuRenderer}: for
@@ -53,6 +60,19 @@ import java.util.Map;
  * the changes of an atlas's pages. When a scene has more pages than the array has layers, or pages
  * of another size, the array is replaced by one with the next power of two of layers, and every
  * page is written whole again.
+ *
+ * <p>Each image ({@link Scene#images}) is a texture of its own, format {@code rgba8unorm} decoded
+ * from sRGB in the shader, with the levels the image computed as its mip levels, uploaded when it is first drawn and kept
+ * for the scenes after, by the image's identity, as long as the images on the GPU fit into the
+ * scene's {@link Scene#imageMemory}: beyond it the images drawn least recently are given up, never
+ * one of the scene being drawn. The texture is bound as group 1, which only image instances read,
+ * so the instances are drawn in order in one draw call per run that one image texture is bound
+ * for: a scene without images is one draw call, a list of the same icon too, and a page of 30
+ * photos at most 31. A texture per image rather than an atlas of images keeps each image's levels
+ * where the GPU's mip levels are, needs no packing or padding, and gives up an image's memory
+ * whole. The shader filters the texels itself with {@code textureLoad}, as {@link Scene} says, so
+ * that the GPU reads what the CPU reads, without a sampler. An image larger than the device's
+ * largest texture leaves out its largest levels.
  *
  * <p>Buffers and the atlas texture grow with the scenes and are kept for the next frame; once
  * their size suffices, drawing allocates no GPU memory beyond what every WebGPU frame needs (a
@@ -104,6 +124,7 @@ public final class GpuRenderer implements AutoCloseable {
 
       const GLYPH: u32 = 1u;
       const SHADOW: u32 = 2u;
+      const IMAGE: u32 = 3u;
 
       struct Clip {
         rect: vec4f,
@@ -116,6 +137,10 @@ public final class GpuRenderer implements AutoCloseable {
       @group(0) @binding(2) var<storage, read> clips: array<Clip>;
       // The atlas pages, one layer each: 8-bit coverage, read texel by texel, never filtered.
       @group(0) @binding(3) var atlas: texture_2d_array<f32>;
+      // The image of the image instances drawn now: its levels, premultiplied colour encoded to
+      // sRGB and linear alpha (rgba8unorm), read texel by texel, decoded and filtered here, as on
+      // the CPU.
+      @group(1) @binding(0) var image: texture_2d<f32>;
 
       struct Varyings {
         @builtin(position) position: vec4f,
@@ -319,6 +344,56 @@ public final class GpuRenderer implements AutoCloseable {
         return min(cover, 1.0);
       }
 
+      // A texel of the image in linear light: its colour decoded from sRGB, its alpha as it is.
+      fn image_texel(texel: vec2i, level: i32) -> vec4f {
+        let t = textureLoad(image, texel, level);
+        return vec4f(select(t.rgb / 12.92, pow((t.rgb + 0.055) / 1.055, vec3f(2.4)),
+            t.rgb > vec3f(0.04045)), t.a);
+      }
+
+      // Level k of the image at the point uv of level 0 (of size texels), from its four texels
+      // around it. A level the texture lacks, because the GPU's limit left out the largest, is
+      // taken from its first.
+      fn image_level(instance: Instance, uv: vec2f, size: vec2f, k: u32) -> vec4f {
+        let skip = i32(instance.shape.y) - i32(textureNumLevels(image));
+        let level = max(i32(k) - skip, 0);
+        let dims = vec2i(textureDimensions(image, level));
+        let p = uv * vec2f(dims) / size - 0.5;
+        let f = p - floor(p);
+        let low = clamp(vec2i(floor(p)), vec2i(0), dims - 1);
+        let high = clamp(vec2i(floor(p)) + 1, vec2i(0), dims - 1);
+        let over = mix(image_texel(low, level), image_texel(vec2i(high.x, low.y), level), f.x);
+        let under = mix(image_texel(vec2i(low.x, high.y), level), image_texel(high, level), f.x);
+        return mix(over, under, f.y);
+      }
+
+      // The image's sample at the pixel centred at pixel, in physical pixels: one texel to one
+      // pixel, or trilinear from its levels, as Scene's Javadoc says.
+      fn image_sample(instance: Instance, pixel: vec2f) -> vec4f {
+        let size = vec2f(f32(instance.shape.x & 0xFFFFu), f32(instance.shape.x >> 16u));
+        let origin = instance.rect.xy * globals.scale;
+        let extent = instance.rect.zw * globals.scale;
+        let snapped = floor(origin + 0.5);
+        if all(abs(extent - size) < vec2f(0.001)) && all(abs(origin - snapped) < vec2f(0.001))
+            && instance.shape.y == textureNumLevels(image) {
+          let texel = clamp(vec2i(floor(pixel) - snapped), vec2i(0), vec2i(size) - 1);
+          return image_texel(texel, 0);
+        }
+        let ratio = size / extent;
+        let uv = (pixel - origin) * ratio;
+        let lod = log2(max(ratio.x, ratio.y));
+        if !(lod > 0.0) {
+          return image_level(instance, uv, size, 0u);
+        }
+        let last = max(instance.shape.y, 1u) - 1u;
+        let k = floor(lod);
+        if k >= f32(last) {
+          return image_level(instance, uv, size, last);
+        }
+        return mix(image_level(instance, uv, size, u32(k)),
+            image_level(instance, uv, size, u32(k) + 1u), lod - k);
+      }
+
       @fragment
       fn fs_main(in: Varyings) -> @location(0) vec4f {
         let instance = instances[in.index];
@@ -345,6 +420,18 @@ public final class GpuRenderer implements AutoCloseable {
             discard;
           }
           return instance.fill * glyph_cover;
+        }
+        if instance.kind == IMAGE {
+          let half_size = instance.rect.zw / 2.0;
+          var image_cover = coverage(distance(point - (instance.rect.xy + half_size), half_size,
+              0.0));
+          if instance.clip != 0u {
+            image_cover *= clip_coverage(instance.clip, point);
+          }
+          if image_cover <= 0.0 {
+            discard;
+          }
+          return image_sample(instance, in.position.xy) * instance.fill * image_cover;
         }
         if instance.kind == SHADOW {
           let half_size = instance.rect.zw / 2.0;
@@ -401,6 +488,16 @@ public final class GpuRenderer implements AutoCloseable {
   /** The atlas texture's format: a texel is a page's byte, read as a float from 0 to 1. */
   private static final TextureFormat ATLAS_FORMAT = TextureFormat.R8_UNORM;
 
+  /**
+   * An image texture's format: the bytes of {@link Image}'s levels, premultiplied colour encoded
+   * to sRGB and linear alpha, which the shader decodes with sRGB's formula. Not {@code
+   * rgba8unorm-srgb}: a GPU may decode that with an error of up to half a step, which filtering
+   * then shows; on an NVIDIA GTX 1070 with Vulkan, halving each of the 256 values after the GPU's
+   * decoding came out a step off for 33 of them, after the shader's for 9, as the target's own
+   * encoding does.
+   */
+  private static final TextureFormat IMAGE_FORMAT = TextureFormat.RGBA8_UNORM;
+
   /** Bytes of the uniform block: size, scale and padding, four floats. */
   private static final int GLOBALS_BYTES = 4 * Float.BYTES;
   /** Room for this many instances and clips at first; both double when a scene needs more. */
@@ -415,6 +512,14 @@ public final class GpuRenderer implements AutoCloseable {
   private final Adapter.Info adapter;
   private final ShaderModule module;
   private final BindGroupLayout layout;
+  /** Group 1: the texture of one image. */
+  private final BindGroupLayout imageLayout;
+  /** Bound to group 1 where no image has been drawn yet: one texel, never read. */
+  private final Resident blank;
+  /** The images on the GPU, the one drawn least recently first. */
+  private final LinkedHashMap<Image, Resident> images = new LinkedHashMap<>(16, 0.75f, true);
+  private long imageBytes;
+  private long imageUploads;
   private final Map<TextureFormat, RenderPipeline> pipelines = new EnumMap<>(TextureFormat.class);
   private final Buffer globals;
   private final MemorySegment globalsData = Arena.ofAuto().allocate(GLOBALS_BYTES, Float.BYTES);
@@ -488,6 +593,13 @@ public final class GpuRenderer implements AutoCloseable {
         BindGroupLayout.Entry.readOnlyStorage(1, ShaderStage.VERTEX, ShaderStage.FRAGMENT),
         BindGroupLayout.Entry.readOnlyStorage(2, ShaderStage.VERTEX, ShaderStage.FRAGMENT),
         BindGroupLayout.Entry.textureArray(3, ShaderStage.FRAGMENT));
+    imageLayout = device.createBindGroupLayout("image",
+        BindGroupLayout.Entry.texture(0, ShaderStage.FRAGMENT));
+    Texture texture = device.createTexture("no image", 1, 1, IMAGE_FORMAT,
+        TextureUsage.TEXTURE_BINDING);
+    TextureView view = texture.createView("no image");
+    blank = new Resident(texture, view,
+        device.createBindGroup("no image", imageLayout, BindGroup.Entry.texture(0, view)), 0);
     globals = device.createBuffer("scene globals", GLOBALS_BYTES, BufferUsage.UNIFORM,
         BufferUsage.COPY_DST);
     instances = storage("scene instances", FIRST_INSTANCES * Scene.STRIDE);
@@ -561,7 +673,7 @@ public final class GpuRenderer implements AutoCloseable {
     }
     upload(scene, width, height, scale);
     try (CommandEncoder encoder = device.createCommandEncoder("scene image")) {
-      record(encoder, textureView, scene.count());
+      record(encoder, textureView, scene);
       encoder.copyTextureToBuffer(texture, readback, 0, bytesPerRow(width));
       device.queue().submit(encoder.finish());
     }
@@ -584,7 +696,7 @@ public final class GpuRenderer implements AutoCloseable {
     checkOpen();
     upload(scene, target.width(), target.height(), scale);
     try (CommandEncoder encoder = device.createCommandEncoder("scene")) {
-      record(encoder, target, scene.count());
+      record(encoder, target, scene);
       device.queue().submit(encoder.finish());
     }
   }
@@ -629,6 +741,125 @@ public final class GpuRenderer implements AutoCloseable {
     device.queue().writeBuffer(instances, 0, data);
     device.queue().writeBuffer(clips, 0, table);
     writePages(pages);
+    writeImages(scene);
+  }
+
+  /** An image's texture on the GPU, with its view, its bind group and the bytes its levels take. */
+  private record Resident(Texture texture, TextureView view, BindGroup group, long bytes) {
+    void close() {
+      group.close();
+      view.close();
+      texture.close();
+    }
+  }
+
+  /**
+   * Uploads the scene's images that are not on the GPU yet, each once, after giving up as many of
+   * those drawn least recently as the scene's {@link Scene#imageMemory} needs, never one of this
+   * scene; a scene whose images alone take more keeps them all.
+   */
+  private void writeImages(Scene scene) {
+    List<Image> drawn = scene.images();
+    if (drawn.isEmpty()) {
+      return;
+    }
+    Set<Image> current = Collections.newSetFromMap(new IdentityHashMap<>());
+    List<Image> missing = new ArrayList<>();
+    long needed = 0;
+    for (Image image : drawn) {
+      current.add(image);
+      if (images.get(image) == null) { // get: drawn now, so the newest
+        missing.add(image);
+        needed += residentBytes(image);
+      }
+    }
+    Iterator<Map.Entry<Image, Resident>> oldest = images.entrySet().iterator();
+    while (imageBytes + needed > scene.imageMemory() && oldest.hasNext()) {
+      Map.Entry<Image, Resident> entry = oldest.next();
+      if (current.contains(entry.getKey())) {
+        break; // the rest were drawn now too
+      }
+      entry.getValue().close();
+      imageBytes -= entry.getValue().bytes();
+      oldest.remove();
+    }
+    for (Image image : missing) {
+      Resident resident = upload(image);
+      images.put(image, resident);
+      imageBytes += resident.bytes();
+    }
+  }
+
+  /** The first level of an image that the device's largest texture holds. */
+  private int firstLevel(Image image) {
+    int limit = device.limits().maxTextureDimension2D();
+    int first = 0;
+    while (first < image.levels() - 1
+        && (image.levelWidth(first) > limit || image.levelHeight(first) > limit)) {
+      first++;
+    }
+    return first;
+  }
+
+  /** The bytes an image takes on the GPU: its levels from the first one that fits. */
+  private long residentBytes(Image image) {
+    long bytes = 0;
+    for (int k = firstLevel(image); k < image.levels(); k++) {
+      bytes += image.level(k).length;
+    }
+    return bytes;
+  }
+
+  /**
+   * A texture with the image's levels, from the first that fits the device's largest texture: a
+   * larger image loses its largest levels, which the shader then takes from the first it has.
+   */
+  private Resident upload(Image image) {
+    int first = firstLevel(image);
+    int levels = image.levels() - first;
+    Texture texture = device.createTexture("image", image.levelWidth(first),
+        image.levelHeight(first), levels, IMAGE_FORMAT, TextureUsage.TEXTURE_BINDING,
+        TextureUsage.COPY_DST);
+    try {
+      long bytes = 0;
+      for (int k = 0; k < levels; k++) {
+        int width = image.levelWidth(first + k);
+        byte[] texels = image.level(first + k);
+        device.queue().writeTexture(texture, k, 0, 0, 0, width, image.levelHeight(first + k),
+            MemorySegment.ofArray(texels), 0, width * 4);
+        bytes += texels.length;
+      }
+      TextureView view = texture.createView("image");
+      try {
+        BindGroup group = device.createBindGroup("image", imageLayout,
+            BindGroup.Entry.texture(0, view));
+        imageUploads++;
+        return new Resident(texture, view, group, bytes);
+      } catch (RuntimeException | Error e) {
+        view.close();
+        throw e;
+      }
+    } catch (RuntimeException | Error e) {
+      texture.close();
+      throw e;
+    }
+  }
+
+  /**
+   * How many images went to the GPU: each once, when it is first drawn, and again only when it is
+   * drawn after it was given up.
+   */
+  long imageUploads() {
+    return imageUploads;
+  }
+
+  /** How many images are on the GPU, and the bytes they take. */
+  int imagesResident() {
+    return images.size();
+  }
+
+  long imageBytes() {
+    return imageBytes;
   }
 
   /**
@@ -702,15 +933,38 @@ public final class GpuRenderer implements AutoCloseable {
     return atlasTexels;
   }
 
-  /** Records the pass that clears {@code target} and draws {@code count} instances. */
-  private void record(CommandEncoder encoder, TextureView target, int count) {
+  /**
+   * Records the pass that clears {@code target} and draws the scene's instances in order: in one
+   * draw call, or where images are, in one per run of instances that the same image texture is
+   * bound for. Instances that are not images read nothing of it.
+   */
+  private void record(CommandEncoder encoder, TextureView target, Scene scene) {
     RenderPipeline pipeline = pipeline(target.format());
+    int count = scene.count();
     try (RenderPass pass = encoder.beginRenderPass("scene", target, new Color(0, 0, 0, 0))) {
       if (count > 0) {
         pass.setPipeline(pipeline);
         pass.setBindGroup(0, group);
+        BindGroup bound = blank.group();
+        pass.setBindGroup(1, bound);
+        int start = 0;
+        List<Image> drawn = scene.images();
+        for (int i = 0; i < count && !drawn.isEmpty(); i++) {
+          if (scene.getInt(i, Scene.KIND) != Scene.IMAGE) {
+            continue;
+          }
+          BindGroup group = images.get(drawn.get(scene.getInt(i, Scene.IMAGE_INDEX))).group();
+          if (group != bound) {
+            if (i > start) {
+              pass.draw(4, i - start, 0, start);
+            }
+            pass.setBindGroup(1, group);
+            bound = group;
+            start = i;
+          }
+        }
         // One quad per instance, a triangle strip of four vertices: instances in order.
-        pass.draw(4, count, 0, 0);
+        pass.draw(4, count - start, 0, start);
       }
     }
   }
@@ -723,7 +977,7 @@ public final class GpuRenderer implements AutoCloseable {
             + ": the renderer blends in linear light and needs an sRGB format.");
       }
       pipeline = device.createRenderPipeline(new RenderPipeline.Descriptor("scene " + format,
-          List.of(layout), module, "vs_main", List.of(), "fs_main",
+          List.of(layout, imageLayout), module, "vs_main", List.of(), "fs_main",
           List.of(new RenderPipeline.ColorTarget(format, RenderPipeline.Blend.PREMULTIPLIED_ALPHA)),
           RenderPipeline.Topology.TRIANGLE_STRIP));
       pipelines.put(format, pipeline);
@@ -793,6 +1047,11 @@ public final class GpuRenderer implements AutoCloseable {
     for (RenderPipeline pipeline : pipelines.values()) {
       pipeline.close();
     }
+    for (Resident resident : images.values()) {
+      resident.close();
+    }
+    blank.close();
+    imageLayout.close();
     group.close();
     atlasView.close();
     atlas.close();
