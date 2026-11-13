@@ -12,7 +12,7 @@ It is modelled on [rune](https://github.com/anomalyco/rune), which does the same
 
 ## Status
 
-Early. The version is `0.1.0-SNAPSHOT`, nothing is published to Maven Central yet, and the API still changes. It targets desktops only: Windows 11 and Linux on x64, with JDK 25.
+Early. The version is `0.1.0-SNAPSHOT`, published as SNAPSHOTs only (see [Using it in a project](#using-it-in-a-project)), and the API still changes. It targets desktops only: Windows 11 and Linux on x64, with JDK 25.
 
 ## What is in it
 
@@ -99,17 +99,85 @@ Other examples: `Showcase` (every component of the kit), `DataBrowser` (a millio
 
 ## Using it in a project
 
-Until there is a release, build it locally and depend on the snapshot. The artifacts share the group `com.rethinkj.ui`:
+Every push to `main` that builds on Linux and Windows publishes SNAPSHOTs to Maven Central's snapshot repository. There is no release yet: a SNAPSHOT changes with each push to `main`, and Central removes SNAPSHOTs after 90 days. The artifacts share the group `com.rethinkj.ui`:
 
 | Artifact | What it is |
 | --- | --- |
 | `rethinkj-ui-core` | The framework |
-| `rethinkj-ui-kit` | Theme and components |
-| `rethinkj-ui-fonts` | Inter and JetBrains Mono, the default fonts |
-| `rethinkj-ui-icons` | Fluent UI System Icons, the default icon font |
+| `rethinkj-ui-kit` | Theme and components; brings `core` with it |
+| `rethinkj-ui-fonts` | Inter and JetBrains Mono, the default fonts, which text in the kit's themes needs |
+| `rethinkj-ui-icons` | Fluent UI System Icons, the default icon font, for icons, the tree and a sorted grid |
 | `rethinkj-ui-natives-windows-x64`, `rethinkj-ui-natives-linux-x64` | SDL3, wgpu-native, FreeType and HarfBuzz for a platform |
 
-Run with `--enable-native-access=ALL-UNNAMED` (or `=com.rethinkj.ui` on the module path).
+Fonts, icons and natives hold no classes, so they are runtime dependencies. A profile per platform, activated by the operating system as in this project's own POMs, picks the natives of the machine that builds:
+
+```xml
+<properties>
+  <rethinkj.ui.version>0.1.0-SNAPSHOT</rethinkj.ui.version>
+</properties>
+
+<repositories>
+  <repository>
+    <id>central-snapshots</id>
+    <url>https://central.sonatype.com/repository/maven-snapshots/</url>
+    <releases><enabled>false</enabled></releases>
+    <snapshots><enabled>true</enabled></snapshots>
+  </repository>
+</repositories>
+
+<dependencies>
+  <dependency>
+    <groupId>com.rethinkj.ui</groupId>
+    <artifactId>rethinkj-ui-kit</artifactId>
+    <version>${rethinkj.ui.version}</version>
+  </dependency>
+  <dependency>
+    <groupId>com.rethinkj.ui</groupId>
+    <artifactId>rethinkj-ui-fonts</artifactId>
+    <version>${rethinkj.ui.version}</version>
+    <scope>runtime</scope>
+  </dependency>
+  <dependency>
+    <groupId>com.rethinkj.ui</groupId>
+    <artifactId>rethinkj-ui-icons</artifactId>
+    <version>${rethinkj.ui.version}</version>
+    <scope>runtime</scope>
+  </dependency>
+</dependencies>
+
+<profiles>
+  <profile>
+    <id>natives-linux-x64</id>
+    <activation>
+      <os><name>Linux</name><arch>amd64</arch></os>
+    </activation>
+    <dependencies>
+      <dependency>
+        <groupId>com.rethinkj.ui</groupId>
+        <artifactId>rethinkj-ui-natives-linux-x64</artifactId>
+        <version>${rethinkj.ui.version}</version>
+        <scope>runtime</scope>
+      </dependency>
+    </dependencies>
+  </profile>
+  <profile>
+    <id>natives-windows-x64</id>
+    <activation>
+      <os><family>windows</family><arch>amd64</arch></os>
+    </activation>
+    <dependencies>
+      <dependency>
+        <groupId>com.rethinkj.ui</groupId>
+        <artifactId>rethinkj-ui-natives-windows-x64</artifactId>
+        <version>${rethinkj.ui.version}</version>
+        <scope>runtime</scope>
+      </dependency>
+    </dependencies>
+  </profile>
+</profiles>
+```
+
+An app that ships to both platforms from one build lists both natives JARs without the profiles; each loads only on its own platform. Run with `--enable-native-access=ALL-UNNAMED` on the class path (or `=com.rethinkj.ui` on the module path), as in `java --enable-native-access=ALL-UNNAMED -cp <class path> Lights --script lights.txt --out snaps` for the first app above. The Linux libraries need glibc 2.38 or later, as on Ubuntu 24.04, where the CI builds them. `core` and `kit` come with a sources JAR, which IDEs pick up.
 
 ## Documentation
 

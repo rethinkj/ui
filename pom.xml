@@ -30,6 +30,15 @@
     <url>https://github.com/rethinkj/ui</url>
   </scm>
 
+  <!-- SNAPSHOTs go to the Central Portal's snapshot repository, which the CI deploys to from
+       main (.github/workflows/build.yml); there is no release repository yet. -->
+  <distributionManagement>
+    <snapshotRepository>
+      <id>central</id>
+      <url>https://central.sonatype.com/repository/maven-snapshots/</url>
+    </snapshotRepository>
+  </distributionManagement>
+
   <modules>
     <module>core</module>
     <module>kit</module>
@@ -86,6 +95,23 @@
         <plugin>
           <artifactId>maven-deploy-plugin</artifactId>
           <version>3.2.0</version>
+          <configuration>
+            <!-- Nothing goes up unless every module of the reactor has built. -->
+            <deployAtEnd>true</deployAtEnd>
+          </configuration>
+        </plugin>
+        <plugin>
+          <!-- A JAR of the sources beside the classes, for IDEs; core and kit declare it. -->
+          <artifactId>maven-source-plugin</artifactId>
+          <version>3.4.0</version>
+          <executions>
+            <execution>
+              <id>attach-sources</id>
+              <goals>
+                <goal>jar-no-fork</goal>
+              </goals>
+            </execution>
+          </executions>
         </plugin>
         <plugin>
           <artifactId>maven-antrun-plugin</artifactId>

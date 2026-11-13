@@ -103,7 +103,8 @@ class SystemDialogsTest {
   @Test
   void aPathLongerThanMaxPathComesWithItsLongNames(@TempDir Path temp) throws Throwable {
     assumeTrue(File.separatorChar == '\\', "8.3 names are Windows'");
-    Path folder = temp;
+    // The long form of the temporary folder, which may hold 8.3 names itself (C:\Users\RUNNER~1).
+    Path folder = temp.toRealPath();
     for (int i = 0; i < 4; i++) {
       folder = folder.resolve("ein sehr langer Ordner mit Ümlauten und Leerzeichen 0123456789 " + i);
     }
