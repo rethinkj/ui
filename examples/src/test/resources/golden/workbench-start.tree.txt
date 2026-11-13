@@ -1,0 +1,199 @@
+el 0,0 1000x600
+  el window=drag 0,0 1000x32
+    el 10,10 12x12
+    text "Workbench" 30,8 71x16
+    el 101,16 685x0
+    el 786,8 64x16
+      el role=switch label="Dark" 782,6 72x20
+        el 786,8 28x16
+          el 800,10 12x12
+        text "Dark" 822,8 28x16
+    el role=button label="Minimize" window=minimize 862,0 46x32
+      el 880,16 10x1
+    el role=button label="Maximize" window=maximize 908,0 46x32
+      el 926,11 10x10
+    el role=button label="Close" window=close 954,0 46x32
+      el 972,11 10x10
+        el 972,11 2x2
+        el 980,11 2x2
+        el 973,12 2x2
+        el 979,12 2x2
+        el 974,13 2x2
+        el 978,13 2x2
+        el 975,14 2x2
+        el 977,14 2x2
+        el 976,15 2x2
+        el 976,15 2x2
+        el 977,16 2x2
+        el 975,16 2x2
+        el 978,17 2x2
+        el 974,17 2x2
+        el 979,18 2x2
+        el 973,18 2x2
+        el 980,19 2x2
+        el 972,19 2x2
+  el 0,32 1000x568
+    el #first 0,32 260x568
+      el 0,32 260x568
+        el #catalogue role=tree label="Catalogue" 4,36 252x560 rows 0-28/258 thumb-y 248,38 6x54.86
+          el #row-0 role=treeitem label="localhost" 4,36 252x22
+            el #mark-0 8,36 16x22
+              text "\u{F2A2}" 8,39 16x16
+            text "\u{F1DC}" 28,39 16x16
+            text "localhost" 48,39 56x16
+          el #row-1 role=treeitem label="postgres" 4,58 252x22
+            el #mark-1 24,58 16x22
+              text "\u{F2AF}" 24,61 16x16
+            text "\u{F0D7}" 44,61 16x16
+            text "postgres" 64,61 55x16
+          el #row-2 role=treeitem label="shop" 4,80 252x22
+            el #mark-2 24,80 16x22
+              text "\u{F2A2}" 24,83 16x16
+            text "\u{F0D7}" 44,83 16x16
+            text "shop" 64,83 31x16
+          el #row-3 role=treeitem label="public" 4,102 252x22
+            el #mark-3 40,102 16x22
+              text "\u{F2A2}" 40,105 16x16
+            text "\u{E643}" 60,105 16x16
+            text "public" 80,105 37x16
+          el #row-4 role=treeitem label="accounts" 4,124 252x22
+            el #mark-4 56,124 16x22
+              text "\u{F2AF}" 56,127 16x16
+            text "\u{EBF4}" 76,127 16x16
+            text "accounts" 96,127 56x16
+          el #row-5 role=treeitem label="addresses" 4,146 252x22
+            el #mark-5 56,146 16x22
+              text "\u{F2AF}" 56,149 16x16
+            text "\u{EBF4}" 76,149 16x16
+            text "addresses" 96,149 65x16
+          el #row-6 role=treeitem label="audit_log" 4,168 252x22
+            el #mark-6 56,168 16x22
+              text "\u{F2AF}" 56,171 16x16
+            text "\u{EBF4}" 76,171 16x16
+            text "audit_log" 96,171 55x16
+          el #row-7 role=treeitem label="carts" 4,190 252x22
+            el #mark-7 56,190 16x22
+              text "\u{F2AF}" 56,193 16x16
+            text "\u{EBF4}" 76,193 16x16
+            text "carts" 96,193 31x16
+          el #row-8 role=treeitem label="categories" 4,212 252x22
+            el #mark-8 56,212 16x22
+              text "\u{F2AF}" 56,215 16x16
+            text "\u{EBF4}" 76,215 16x16
+            text "categories" 96,215 66x16
+          el #row-9 role=treeitem label="coupons" 4,234 252x22
+            el #mark-9 56,234 16x22
+              text "\u{F2AF}" 56,237 16x16
+            text "\u{EBF4}" 76,237 16x16
+            text "coupons" 96,237 54x16
+          el #row-10 role=treeitem label="customers" 4,256 252x22
+            el #mark-10 56,256 16x22
+              text "\u{F2AF}" 56,259 16x16
+            text "\u{EBF4}" 76,259 16x16
+            text "customers" 96,259 65x16
+          el #row-11 role=treeitem label="deliveries" 4,278 252x22
+            el #mark-11 56,278 16x22
+              text "\u{F2AF}" 56,281 16x16
+            text "\u{EBF4}" 76,281 16x16
+            text "deliveries" 96,281 60x16
+          el #row-12 role=treeitem label="employees" 4,300 252x22
+            el #mark-12 56,300 16x22
+              text "\u{F2AF}" 56,303 16x16
+            text "\u{EBF4}" 76,303 16x16
+            text "employees" 96,303 68x16
+          el #row-13 role=treeitem label="events" 4,322 252x22
+            el #mark-13 56,322 16x22
+              text "\u{F2AF}" 56,325 16x16
+            text "\u{EBF4}" 76,325 16x16
+            text "events" 96,325 41x16
+          el #row-14 role=treeitem label="invoices" 4,344 252x22
+            el #mark-14 56,344 16x22
+              text "\u{F2AF}" 56,347 16x16
+            text "\u{EBF4}" 76,347 16x16
+            text "invoices" 96,347 50x16
+          el #row-15 role=treeitem label="invoice_lines" 4,366 252x22
+            el #mark-15 56,366 16x22
+              text "\u{F2AF}" 56,369 16x16
+            text "\u{EBF4}" 76,369 16x16
+            text "invoice_lines" 96,369 78x16
+          el #row-16 role=treeitem label="orders" 4,388 252x22
+            el #mark-16 56,388 16x22
+              text "\u{F2AF}" 56,391 16x16
+            text "\u{EBF4}" 76,391 16x16
+            text "orders" 96,391 41x16
+          el #row-17 role=treeitem label="order_items" 4,410 252x22
+            el #mark-17 56,410 16x22
+              text "\u{F2AF}" 56,413 16x16
+            text "\u{EBF4}" 76,413 16x16
+            text "order_items" 96,413 73x16
+          el #row-18 role=treeitem label="payments" 4,432 252x22
+            el #mark-18 56,432 16x22
+              text "\u{F2AF}" 56,435 16x16
+            text "\u{EBF4}" 76,435 16x16
+            text "payments" 96,435 60x16
+          el #row-19 role=treeitem label="prices" 4,454 252x22
+            el #mark-19 56,454 16x22
+              text "\u{F2AF}" 56,457 16x16
+            text "\u{EBF4}" 76,457 16x16
+            text "prices" 96,457 38x16
+          el #row-20 role=treeitem label="products" 4,476 252x22
+            el #mark-20 56,476 16x22
+              text "\u{F2AF}" 56,479 16x16
+            text "\u{EBF4}" 76,479 16x16
+            text "products" 96,479 55x16
+          el #row-21 role=treeitem label="refunds" 4,498 252x22
+            el #mark-21 56,498 16x22
+              text "\u{F2AF}" 56,501 16x16
+            text "\u{EBF4}" 76,501 16x16
+            text "refunds" 96,501 49x16
+          el #row-22 role=treeitem label="reviews" 4,520 252x22
+            el #mark-22 56,520 16x22
+              text "\u{F2AF}" 56,523 16x16
+            text "\u{EBF4}" 76,523 16x16
+            text "reviews" 96,523 47x16
+          el #row-23 role=treeitem label="sessions" 4,542 252x22
+            el #mark-23 56,542 16x22
+              text "\u{F2AF}" 56,545 16x16
+            text "\u{EBF4}" 76,545 16x16
+            text "sessions" 96,545 55x16
+          el #row-24 role=treeitem label="shipments" 4,564 252x22
+            el #mark-24 56,564 16x22
+              text "\u{F2AF}" 56,567 16x16
+            text "\u{EBF4}" 76,567 16x16
+            text "shipments" 96,567 64x16
+          el #row-25 role=treeitem label="stock_moves" 4,586 252x22
+            el #mark-25 56,586 16x22
+              text "\u{F2AF}" 56,589 16x16
+            text "\u{EBF4}" 76,589 16x16
+            text "stock_moves" 96,589 80x16
+          el #row-26 role=treeitem label="suppliers" 4,608 252x22
+            el #mark-26 56,608 16x22
+              text "\u{F2AF}" 56,611 16x16
+            text "\u{EBF4}" 76,611 16x16
+            text "suppliers" 96,611 57x16
+          el #row-27 role=treeitem label="users" 4,630 252x22
+            el #mark-27 56,630 16x22
+              text "\u{F2AF}" 56,633 16x16
+            text "\u{EBF4}" 76,633 16x16
+            text "users" 96,633 35x16
+          el #row-28 role=treeitem label="warehouses" 4,652 252x22
+            el #mark-28 56,652 16x22
+              text "\u{F2AF}" 56,655 16x16
+            text "\u{EBF4}" 76,655 16x16
+            text "warehouses" 96,655 77x16
+    el #rest 257,32 743x568
+      el #second 261,32 739x568
+        el #tabs 261,32 739x568
+          el #bar 261,32 739x28
+            el #tablist role=tablist 263,34 46x24
+              el #tab-0 role=tab label="Start" 263,34 46x24
+                text "Start" 272,38 28x16
+          el 261,60 739x1
+          el #panel role=tabpanel label="Start" 261,61 739x539
+            el 261,61 739x539
+              text "The frame of a database manager" 285,85 691x18
+              text "Open a table from the catalogue: double-click it, or select it and press Enter." 285,111 691x16
+              text "Control+Tab and Control+Shift+Tab go through the tabs; Control+W closes one." 285,135 691x16
+              text "staging answers a moment after it is opened." 285,159 691x16
+      el #divider role=separator label="Resize" 257,32 7x568
+        el 260,32 1x568

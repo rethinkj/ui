@@ -1,0 +1,604 @@
+el 0,0 1000x600
+  el window=drag 0,0 1000x32
+    el 10,10 12x12
+    text "Workbench" 30,8 71x16
+    el 101,16 685x0
+    el 786,8 64x16
+      el role=switch label="Dark" 782,6 72x20
+        el 786,8 28x16
+          el 800,10 12x12
+        text "Dark" 822,8 28x16
+    el role=button label="Minimize" window=minimize 862,0 46x32
+      el 880,16 10x1
+    el role=button label="Maximize" window=maximize 908,0 46x32
+      el 926,11 10x10
+    el role=button label="Close" window=close 954,0 46x32
+      el 972,11 10x10
+        el 972,11 2x2
+        el 980,11 2x2
+        el 973,12 2x2
+        el 979,12 2x2
+        el 974,13 2x2
+        el 978,13 2x2
+        el 975,14 2x2
+        el 977,14 2x2
+        el 976,15 2x2
+        el 976,15 2x2
+        el 977,16 2x2
+        el 975,16 2x2
+        el 978,17 2x2
+        el 974,17 2x2
+        el 979,18 2x2
+        el 973,18 2x2
+        el 980,19 2x2
+        el 972,19 2x2
+  el 0,32 1000x568
+    el #first 0,32 260x568
+      el 0,32 260x568
+        el #catalogue role=tree label="Catalogue" 4,36 252x560 rows 0-4/5 focused
+          el #row-0 role=treeitem label="localhost" 4,36 252x22
+            el #mark-0 8,36 16x22
+              text "\u{F2AF}" 8,39 16x16
+            text "\u{F1DC}" 28,39 16x16
+            text "localhost" 48,39 56x16
+          el #row-1 role=treeitem label="prod-eu" 4,58 252x22
+            el #mark-1 8,58 16x22
+              text "\u{F2AF}" 8,61 16x16
+            text "\u{F1DC}" 28,61 16x16
+            text "prod-eu" 48,61 51x16
+          el #row-2 role=treeitem label="staging" 4,80 252x22
+            el #mark-2 8,80 16x22
+              text "\u{F2A2}" 8,83 16x16
+            text "\u{F1DC}" 28,83 16x16
+            text "staging" 48,83 45x16
+          el #row-3 role=treeitem label="scratch" 4,102 252x22
+            el #mark-3 24,102 16x22
+              text "\u{F2AF}" 24,105 16x16
+            text "\u{F0D7}" 44,105 16x16
+            text "scratch" 64,105 45x16
+          el #row-4 role=treeitem label="shop" 4,124 252x22
+            el #mark-4 24,124 16x22
+              text "\u{F2AF}" 24,127 16x16
+            text "\u{F0D7}" 44,127 16x16
+            text "shop" 64,127 31x16
+    el #rest 257,32 743x568
+      el #second 261,32 739x568
+        el #tabs 261,32 739x568
+          el #bar 261,32 739x28
+            el #tablist role=tablist 263,34 127x24
+              el #tab-0 role=tab label="Start" 263,34 46x24
+                text "Start" 272,38 28x16
+              el #tab-1 role=tab label="orders" 311,34 79x24
+                text "orders" 320,38 41x16
+                el #close-1 role=button label="Close orders" 365,38 16x16
+                  text "\u{F368}" 365,38 16x16
+          el 261,60 739x1
+          el #panel role=tabpanel label="orders" 261,61 739x539
+            el 261,61 739x539
+              el #grid-localhost/shop/public/orders role=grid label="orders" 261,61 739x515
+                el #content 261,61 739x515
+                  el #header 261,61 739x22
+                    el #column-0 role=columnheader label="id" 261,61 79x22
+                      text "id" 325,64 11x16
+                    el 340,61 1x22
+                    el #column-1 role=columnheader label="customer_id" 341,61 99x22
+                      text "customer_id" 361,64 75x16
+                    el 440,61 1x22
+                    el #column-2 role=columnheader label="status" 441,61 89x22
+                      text "status" 445,64 37x16
+                    el 530,61 1x22
+                    el #column-3 role=columnheader label="amount" 531,61 99x22
+                      text "amount" 580,64 46x16
+                    el 630,61 1x22
+                    el #column-4 role=columnheader label="currency" 631,61 79x22
+                      text "currency" 635,64 55x16
+                    el 710,61 1x22
+                    el #column-5 role=columnheader label="email" 711,61 219x22
+                      text "email" 715,64 32x16
+                    el 930,61 1x22
+                    el #resize-0 role=separator label="Resize id" 338,61 6x22
+                    el #resize-1 role=separator label="Resize customer_id" 438,61 6x22
+                    el #resize-2 role=separator label="Resize status" 528,61 6x22
+                    el #resize-3 role=separator label="Resize amount" 628,61 6x22
+                    el #resize-4 role=separator label="Resize currency" 708,61 6x22
+                    el #resize-5 role=separator label="Resize email" 928,61 6x22
+                  el 261,83 739x1
+                  el #rows 261,84 739x492 rows 999974-999999/1000000 scroll 0,21999508 thumb-y 992,550 6x24
+                    el #row-999974 role=row 261,4 739x22
+                      el 261,4 79x22
+                        text "999975" 294,7 42x16
+                      el 340,4 1x22
+                      el 341,4 99x22
+                        text "44107" 401,7 35x16
+                      el 440,4 1x22
+                      el 441,4 89x22
+                        text "shipped" 445,7 50x16
+                      el 530,4 1x22
+                      el 531,4 99x22
+                        text "1886.62" 577,7 49x16
+                      el 630,4 1x22
+                      el 631,4 79x22
+                        text "EUR" 635,7 26x16
+                      el 710,4 1x22
+                      el 711,4 219x22
+                        text "ken.frances@example.com" 715,7 168x16
+                      el 930,4 1x22
+                    el #row-999975 role=row 261,26 739x22
+                      el 261,26 79x22
+                        text "999976" 294,29 42x16
+                      el 340,26 1x22
+                      el 341,26 99x22
+                        text "2026" 408,29 28x16
+                      el 440,26 1x22
+                      el 441,26 89x22
+                        text "pending" 445,29 51x16
+                      el 530,26 1x22
+                      el 531,26 99x22
+                        text "275.75" 584,29 42x16
+                      el 630,26 1x22
+                      el 631,26 79x22
+                        text "USD" 635,29 27x16
+                      el 710,26 1x22
+                      el 711,26 219x22
+                        text "barbara.frances@example.com" 715,29 192x16
+                      el 930,26 1x22
+                    el #row-999976 role=row 261,48 739x22
+                      el 261,48 79x22
+                        text "999977" 294,51 42x16
+                      el 340,48 1x22
+                      el 341,48 99x22
+                        text "9945" 408,51 28x16
+                      el 440,48 1x22
+                      el 441,48 89x22
+                        text "paid" 445,51 26x16
+                      el 530,48 1x22
+                      el 531,48 99x22
+                        text "664.88" 584,51 42x16
+                      el 630,48 1x22
+                      el 631,48 79x22
+                        text "EUR" 635,51 26x16
+                      el 710,48 1x22
+                      el 711,48 219x22
+                        text "edsger.frances@example.com" 715,51 188x16
+                      el 930,48 1x22
+                    el #row-999977 role=row 261,70 739x22
+                      el 261,70 79x22
+                        text "999978" 294,73 42x16
+                      el 340,70 1x22
+                      el 341,70 99x22
+                        text "17864" 401,73 35x16
+                      el 440,70 1x22
+                      el 441,70 89x22
+                        text "refunded" 445,73 58x16
+                      el 530,70 1x22
+                      el 531,70 99x22
+                        text "1053.01" 577,73 49x16
+                      el 630,70 1x22
+                      el 631,70 79x22
+                        text "EUR" 635,73 26x16
+                      el 710,70 1x22
+                      el 711,70 219x22
+                        text "frances.frances@example.com" 715,73 192x16
+                      el 930,70 1x22
+                    el #row-999978 role=row 261,92 739x22
+                      el 261,92 79x22
+                        text "999979" 294,95 42x16
+                      el 340,92 1x22
+                      el 341,92 99x22
+                        text "25783" 401,95 35x16
+                      el 440,92 1x22
+                      el 441,92 89x22
+                        text "shipped" 445,95 50x16
+                      el 530,92 1x22
+                      el 531,92 99x22
+                        text "1442.14" 577,95 49x16
+                      el 630,92 1x22
+                      el 631,92 79x22
+                        text "EUR" 635,95 26x16
+                      el 710,92 1x22
+                      el 711,92 219x22
+                        text "donald.frances@example.com" 715,95 187x16
+                      el 930,92 1x22
+                    el #row-999979 role=row 261,114 739x22
+                      el 261,114 79x22
+                        text "999980" 294,117 42x16
+                      el 340,114 1x22
+                      el 341,114 99x22
+                        text "33702" 401,117 35x16
+                      el 440,114 1x22
+                      el 441,114 89x22
+                        text "pending" 445,117 51x16
+                      el 530,114 1x22
+                      el 531,114 99x22
+                        text "1831.27" 577,117 49x16
+                      el 630,114 1x22
+                      el 631,114 79x22
+                        text "EUR" 635,117 26x16
+                      el 710,114 1x22
+                      el 711,114 219x22
+                        text "radia.frances@example.com" 715,117 175x16
+                      el 930,114 1x22
+                    el #row-999980 role=row 261,136 739x22
+                      el 261,136 79x22
+                        text "999981" 294,139 42x16
+                      el 340,136 1x22
+                      el 341,136 99x22
+                        text "41621" 401,139 35x16
+                      el 440,136 1x22
+                      el 441,136 89x22
+                        text "paid" 445,139 26x16
+                      el 530,136 1x22
+                      el 531,136 99x22
+                        text "220.40" 584,139 42x16
+                      el 630,136 1x22
+                      el 631,136 79x22
+                        text "USD" 635,139 27x16
+                      el 710,136 1x22
+                      el 711,136 219x22
+                        text "ada.donald@example.com" 715,139 162x16
+                      el 930,136 1x22
+                    el #row-999981 role=row 261,158 739x22
+                      el 261,158 79x22
+                        text "999982" 294,161 42x16
+                      el 340,158 1x22
+                      el 341,158 99x22
+                        text "49540" 401,161 35x16
+                      el 440,158 1x22
+                      el 441,158 89x22
+                        text "refunded" 445,161 58x16
+                      el 530,158 1x22
+                      el 531,158 99x22
+                        text "609.53" 584,161 42x16
+                      el 630,158 1x22
+                      el 631,158 79x22
+                        text "EUR" 635,161 26x16
+                      el 710,158 1x22
+                      el 711,158 219x22
+                        text "grace.donald@example.com" 715,161 175x16
+                      el 930,158 1x22
+                    el #row-999982 role=row 261,180 739x22
+                      el 261,180 79x22
+                        text "999983" 294,183 42x16
+                      el 340,180 1x22
+                      el 341,180 99x22
+                        text "7459" 408,183 28x16
+                      el 440,180 1x22
+                      el 441,180 89x22
+                        text "shipped" 445,183 50x16
+                      el 530,180 1x22
+                      el 531,180 99x22
+                        text "998.66" 584,183 42x16
+                      el 630,180 1x22
+                      el 631,180 79x22
+                        text "EUR" 635,183 26x16
+                      el 710,180 1x22
+                      el 711,180 219x22
+                        text "linus.donald@example.com" 715,183 169x16
+                      el 930,180 1x22
+                    el #row-999983 role=row 261,202 739x22
+                      el 261,202 79x22
+                        text "999984" 294,205 42x16
+                      el 340,202 1x22
+                      el 341,202 99x22
+                        text "15378" 401,205 35x16
+                      el 440,202 1x22
+                      el 441,202 89x22
+                        text "pending" 445,205 51x16
+                      el 530,202 1x22
+                      el 531,202 99x22
+                        text "1387.79" 577,205 49x16
+                      el 630,202 1x22
+                      el 631,202 79x22
+                        text "EUR" 635,205 26x16
+                      el 710,202 1x22
+                      el 711,202 219x22
+                        text "margaret.donald@example.com" 715,205 195x16
+                      el 930,202 1x22
+                    el #row-999984 role=row 261,224 739x22
+                      el 261,224 79x22
+                        text "999985" 294,227 42x16
+                      el 340,224 1x22
+                      el 341,224 99x22
+                        text "23297" 401,227 35x16
+                      el 440,224 1x22
+                      el 441,224 89x22
+                        text "paid" 445,227 26x16
+                      el 530,224 1x22
+                      el 531,224 99x22
+                        text "1776.92" 577,227 49x16
+                      el 630,224 1x22
+                      el 631,224 79x22
+                        text "EUR" 635,227 26x16
+                      el 710,224 1x22
+                      el 711,224 219x22
+                        text "ken.donald@example.com" 715,227 163x16
+                      el 930,224 1x22
+                    el #row-999985 role=row 261,246 739x22
+                      el 261,246 79x22
+                        text "999986" 294,249 42x16
+                      el 340,246 1x22
+                      el 341,246 99x22
+                        text "31216" 401,249 35x16
+                      el 440,246 1x22
+                      el 441,246 89x22
+                        text "refunded" 445,249 58x16
+                      el 530,246 1x22
+                      el 531,246 99x22
+                        text "165.05" 584,249 42x16
+                      el 630,246 1x22
+                      el 631,246 79x22
+                        text "USD" 635,249 27x16
+                      el 710,246 1x22
+                      el 711,246 219x22
+                        text "barbara.donald@example.com" 715,249 187x16
+                      el 930,246 1x22
+                    el #row-999986 role=row 261,268 739x22
+                      el 261,268 79x22
+                        text "999987" 294,271 42x16
+                      el 340,268 1x22
+                      el 341,268 99x22
+                        text "39135" 401,271 35x16
+                      el 440,268 1x22
+                      el 441,268 89x22
+                        text "shipped" 445,271 50x16
+                      el 530,268 1x22
+                      el 531,268 99x22
+                        text "554.18" 584,271 42x16
+                      el 630,268 1x22
+                      el 631,268 79x22
+                        text "EUR" 635,271 26x16
+                      el 710,268 1x22
+                      el 711,268 219x22
+                        text "edsger.donald@example.com" 715,271 183x16
+                      el 930,268 1x22
+                    el #row-999987 role=row 261,290 739x22
+                      el 261,290 79x22
+                        text "999988" 294,293 42x16
+                      el 340,290 1x22
+                      el 341,290 99x22
+                        text "47054" 401,293 35x16
+                      el 440,290 1x22
+                      el 441,290 89x22
+                        text "pending" 445,293 51x16
+                      el 530,290 1x22
+                      el 531,290 99x22
+                        text "943.31" 584,293 42x16
+                      el 630,290 1x22
+                      el 631,290 79x22
+                        text "EUR" 635,293 26x16
+                      el 710,290 1x22
+                      el 711,290 219x22
+                        text "frances.donald@example.com" 715,293 187x16
+                      el 930,290 1x22
+                    el #row-999988 role=row 261,312 739x22
+                      el 261,312 79x22
+                        text "999989" 294,315 42x16
+                      el 340,312 1x22
+                      el 341,312 99x22
+                        text "4973" 408,315 28x16
+                      el 440,312 1x22
+                      el 441,312 89x22
+                        text "paid" 445,315 26x16
+                      el 530,312 1x22
+                      el 531,312 99x22
+                        text "1332.44" 577,315 49x16
+                      el 630,312 1x22
+                      el 631,312 79x22
+                        text "EUR" 635,315 26x16
+                      el 710,312 1x22
+                      el 711,312 219x22
+                        text "donald.donald@example.com" 715,315 182x16
+                      el 930,312 1x22
+                    el #row-999989 role=row 261,334 739x22
+                      el 261,334 79x22
+                        text "999990" 294,337 42x16
+                      el 340,334 1x22
+                      el 341,334 99x22
+                        text "12892" 401,337 35x16
+                      el 440,334 1x22
+                      el 441,334 89x22
+                        text "refunded" 445,337 58x16
+                      el 530,334 1x22
+                      el 531,334 99x22
+                        text "1721.57" 577,337 49x16
+                      el 630,334 1x22
+                      el 631,334 79x22
+                        text "EUR" 635,337 26x16
+                      el 710,334 1x22
+                      el 711,334 219x22
+                        text "radia.donald@example.com" 715,337 170x16
+                      el 930,334 1x22
+                    el #row-999990 role=row 261,356 739x22
+                      el 261,356 79x22
+                        text "999991" 294,359 42x16
+                      el 340,356 1x22
+                      el 341,356 99x22
+                        text "20811" 401,359 35x16
+                      el 440,356 1x22
+                      el 441,356 89x22
+                        text "shipped" 445,359 50x16
+                      el 530,356 1x22
+                      el 531,356 99x22
+                        text "110.70" 584,359 42x16
+                      el 630,356 1x22
+                      el 631,356 79x22
+                        text "USD" 635,359 27x16
+                      el 710,356 1x22
+                      el 711,356 219x22
+                        text "ada.radia@example.com" 715,359 150x16
+                      el 930,356 1x22
+                    el #row-999991 role=row 261,378 739x22
+                      el 261,378 79x22
+                        text "999992" 294,381 42x16
+                      el 340,378 1x22
+                      el 341,378 99x22
+                        text "28730" 401,381 35x16
+                      el 440,378 1x22
+                      el 441,378 89x22
+                        text "pending" 445,381 51x16
+                      el 530,378 1x22
+                      el 531,378 99x22
+                        text "499.83" 584,381 42x16
+                      el 630,378 1x22
+                      el 631,378 79x22
+                        text "EUR" 635,381 26x16
+                      el 710,378 1x22
+                      el 711,378 219x22
+                        text "grace.radia@example.com" 715,381 163x16
+                      el 930,378 1x22
+                    el #row-999992 role=row 261,400 739x22
+                      el 261,400 79x22
+                        text "999993" 294,403 42x16
+                      el 340,400 1x22
+                      el 341,400 99x22
+                        text "36649" 401,403 35x16
+                      el 440,400 1x22
+                      el 441,400 89x22
+                        text "paid" 445,403 26x16
+                      el 530,400 1x22
+                      el 531,400 99x22
+                        text "888.96" 584,403 42x16
+                      el 630,400 1x22
+                      el 631,400 79x22
+                        text "EUR" 635,403 26x16
+                      el 710,400 1x22
+                      el 711,400 219x22
+                        text "linus.radia@example.com" 715,403 157x16
+                      el 930,400 1x22
+                    el #row-999993 role=row 261,422 739x22
+                      el 261,422 79x22
+                        text "999994" 294,425 42x16
+                      el 340,422 1x22
+                      el 341,422 99x22
+                        text "44568" 401,425 35x16
+                      el 440,422 1x22
+                      el 441,422 89x22
+                        text "refunded" 445,425 58x16
+                      el 530,422 1x22
+                      el 531,422 99x22
+                        text "1277.09" 577,425 49x16
+                      el 630,422 1x22
+                      el 631,422 79x22
+                        text "EUR" 635,425 26x16
+                      el 710,422 1x22
+                      el 711,422 219x22
+                        text "margaret.radia@example.com" 715,425 183x16
+                      el 930,422 1x22
+                    el #row-999994 role=row 261,444 739x22
+                      el 261,444 79x22
+                        text "999995" 294,447 42x16
+                      el 340,444 1x22
+                      el 341,444 99x22
+                        text "2487" 408,447 28x16
+                      el 440,444 1x22
+                      el 441,444 89x22
+                        text "shipped" 445,447 50x16
+                      el 530,444 1x22
+                      el 531,444 99x22
+                        text "1666.22" 577,447 49x16
+                      el 630,444 1x22
+                      el 631,444 79x22
+                        text "EUR" 635,447 26x16
+                      el 710,444 1x22
+                      el 711,444 219x22
+                        text "ken.radia@example.com" 715,447 151x16
+                      el 930,444 1x22
+                    el #row-999995 role=row 261,466 739x22
+                      el 261,466 79x22
+                        text "999996" 294,469 42x16
+                      el 340,466 1x22
+                      el 341,466 99x22
+                        text "10406" 401,469 35x16
+                      el 440,466 1x22
+                      el 441,466 89x22
+                        text "pending" 445,469 51x16
+                      el 530,466 1x22
+                      el 531,466 99x22
+                        text "55.35" 591,469 35x16
+                      el 630,466 1x22
+                      el 631,466 79x22
+                        text "USD" 635,469 27x16
+                      el 710,466 1x22
+                      el 711,466 219x22
+                        text "barbara.radia@example.com" 715,469 175x16
+                      el 930,466 1x22
+                    el #row-999996 role=row 261,488 739x22
+                      el 261,488 79x22
+                        text "999997" 294,491 42x16
+                      el 340,488 1x22
+                      el 341,488 99x22
+                        text "18325" 401,491 35x16
+                      el 440,488 1x22
+                      el 441,488 89x22
+                        text "paid" 445,491 26x16
+                      el 530,488 1x22
+                      el 531,488 99x22
+                        text "444.48" 584,491 42x16
+                      el 630,488 1x22
+                      el 631,488 79x22
+                        text "EUR" 635,491 26x16
+                      el 710,488 1x22
+                      el 711,488 219x22
+                        text "edsger.radia@example.com" 715,491 171x16
+                      el 930,488 1x22
+                    el #row-999997 role=row 261,510 739x22
+                      el 261,510 79x22
+                        text "999998" 294,513 42x16
+                      el 340,510 1x22
+                      el 341,510 99x22
+                        text "26244" 401,513 35x16
+                      el 440,510 1x22
+                      el 441,510 89x22
+                        text "refunded" 445,513 58x16
+                      el 530,510 1x22
+                      el 531,510 99x22
+                        text "833.61" 584,513 42x16
+                      el 630,510 1x22
+                      el 631,510 79x22
+                        text "EUR" 635,513 26x16
+                      el 710,510 1x22
+                      el 711,510 219x22
+                        text "frances.radia@example.com" 715,513 175x16
+                      el 930,510 1x22
+                    el #row-999998 role=row 261,532 739x22
+                      el 261,532 79x22
+                        text "999999" 294,535 42x16
+                      el 340,532 1x22
+                      el 341,532 99x22
+                        text "34163" 401,535 35x16
+                      el 440,532 1x22
+                      el 441,532 89x22
+                        text "shipped" 445,535 50x16
+                      el 530,532 1x22
+                      el 531,532 99x22
+                        text "1222.74" 577,535 49x16
+                      el 630,532 1x22
+                      el 631,532 79x22
+                        text "EUR" 635,535 26x16
+                      el 710,532 1x22
+                      el 711,532 219x22
+                        text "donald.radia@example.com" 715,535 170x16
+                      el 930,532 1x22
+                    el #row-999999 role=row 261,554 739x22
+                      el 261,554 79x22
+                        text "1000000" 287,557 49x16
+                      el 340,554 1x22
+                      el 341,554 99x22
+                        text "42082" 401,557 35x16
+                      el 440,554 1x22
+                      el 441,554 89x22
+                        text "pending" 445,557 51x16
+                      el 530,554 1x22
+                      el 531,554 99x22
+                        text "1611.87" 577,557 49x16
+                      el 630,554 1x22
+                      el 631,554 79x22
+                        text "EUR" 635,557 26x16
+                      el 710,554 1x22
+                      el 711,554 219x22
+                        text "radia.radia@example.com" 715,557 158x16
+                      el 930,554 1x22
+              el 261,576 739x24
+                text #status "localhost/shop/public/orders · 1,000,000 rows · row 1,000,000 selected" 269,580 442x16
+      el #divider role=separator label="Resize" 257,32 7x568
+        el 260,32 1x568
