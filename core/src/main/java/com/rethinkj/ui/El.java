@@ -4,6 +4,7 @@ import com.rethinkj.ui.motion.Spring;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 
 /**
  * One element of the view tree: a box with a style, a look and children. Views build a fresh tree
@@ -29,6 +30,7 @@ public final class El {
   private Spring motion;
   private float opacity = 1;
   private boolean exiting;
+  private WindowPart windowPart;
   private boolean placed;
   private float x;
   private float y;
@@ -265,6 +267,18 @@ public final class El {
     return this;
   }
 
+  /**
+   * Marks this element as a part of the window's frame, for a window without a system frame that
+   * draws its own title bar: a drag area, or the minimize, maximize or close button. Its
+   * descendants belong to the same part unless they are marked themselves or have a press handler.
+   *
+   * @param part the part, or null for none
+   */
+  public El windowPart(WindowPart part) {
+    this.windowPart = part;
+    return this;
+  }
+
   // Tree
 
   public El child(El child) {
@@ -324,6 +338,10 @@ public final class El {
 
   public Spring motion() {
     return motion;
+  }
+
+  public WindowPart windowPart() {
+    return windowPart;
   }
 
   public Measure measure() {
@@ -411,6 +429,9 @@ public final class El {
     }
     if (label != null) {
       out.append(" label=").append(quote(label));
+    }
+    if (windowPart != null) {
+      out.append(" window=").append(windowPart.name().toLowerCase(Locale.ROOT));
     }
     if (placed) {
       out.append(' ');

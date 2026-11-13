@@ -8,7 +8,7 @@ import com.rethinkj.ui.motion.Spring;
 import java.io.IOException;
 
 /** Views shared by tests. */
-final class Examples {
+public final class Examples {
 
   private Examples() {}
 
@@ -20,12 +20,12 @@ final class Examples {
   }
 
   /** The state of the switch example. */
-  static final class Lights {
-    boolean on;
+  public static final class Lights {
+    public boolean on;
   }
 
   /** The switch as an app: pressing it toggles the state. */
-  static El lights(Lights state) {
+  public static El lights(Lights state) {
     return lightSwitch(state.on, () -> state.on = !state.on);
   }
 

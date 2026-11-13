@@ -6,6 +6,7 @@ import com.rethinkj.ui.render.Scene;
 import java.util.ArrayDeque;
 import java.util.List;
 import java.util.function.Function;
+import java.util.function.Predicate;
 
 /**
  * A running app: a state object and a view function that builds the element tree from it.
@@ -123,6 +124,22 @@ public final class App<S> {
     return animator.isMoving();
   }
 
+  /**
+   * The part of a self-drawn window frame at this position in logical pixels, which a window asks
+   * while the pointer moves. The rule is the one presses follow: the topmost element under the
+   * point decides, or its nearest ancestor that has a {@link El#windowPart} or a press handler. An
+   * element with a handler and no part is content, so controls inside a title bar stay clickable.
+   *
+   * @return the part, {@link WindowPart#CONTENT} where nothing is marked
+   */
+  public WindowPart windowPart(float x, float y) {
+    Target target = target(x, y, el -> el.windowPart() != null || el.onPress() != null);
+    if (target == null || target.el.windowPart() == null) {
+      return WindowPart.CONTENT;
+    }
+    return target.el.windowPart();
+  }
+
   /** The tree of the last frame. */
   public El tree() {
     return root;
@@ -148,6 +165,11 @@ public final class App<S> {
    * builds new elements.
    */
   private Target target(float x, float y) {
+    return target(x, y, el -> el.onPress() != null);
+  }
+
+  /** The topmost element under the point, or its nearest ancestor that is {@code wanted}. */
+  private Target target(float x, float y, Predicate<El> wanted) {
     if (root == null || !contains(root, 0, 0, x, y)) {
       return null;
     }
@@ -157,7 +179,7 @@ public final class App<S> {
     StringBuilder path = new StringBuilder();
     Target target = null;
     while (true) {
-      if (el.onPress() != null) {
+      if (wanted.test(el)) {
         target = new Target(el, path.toString());
       }
       // shortcut: a child that sticks out of its parent is not hit outside the parent's box.
