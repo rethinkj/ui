@@ -467,7 +467,11 @@ public final class Tabs {
       }
     };
     IntConsumer close = onClose;
+    // Its top corners follow the card's, inside its border and the bar's padding, so that the
+    // focus ring, which the card's clip puts inside the bar, follows them too.
+    float corner = t.radius().large() - t.size().stroke() - t.space().xs();
     El list = row().key("tablist").role("tablist")
+        .radius(corner, corner, 0, 0)
         .gap(t.space().xs())
         .scrollBoth()
         .revealRow(active);
