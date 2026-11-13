@@ -6,11 +6,14 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.rethinkj.ui.App;
+import com.rethinkj.ui.Cursor;
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.Script;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Function;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -200,5 +203,85 @@ class EditingFormTest {
     String back = line(app, "label=\"Retries\"");
     assertTrue(back.contains("\"-4\" ") && back.contains("error=\"0 or more\""), back);
     assertEquals(3, s.editing.value().retries(), "the value is the last valid one");
+  }
+
+  @Test
+  void aPropThatCannotBeWrittenDisablesEveryComponent() throws IOException {
+    Theme t = Theme.DARK;
+    Part<String, String> whole = Part.of(v -> v, (v, w) -> w);
+    Editing<String> nothing = Editing.of(null);
+    App<Object> app = new App<>(
+        new Object(),
+        x -> col()
+            .children(
+                TextField.textField(t, Prop.of(() -> "text", null)).key("text"),
+                TextField.passwordField(t, Prop.of(() -> "secret", null), "Password")
+                    .key("password"),
+                ValueField.valueField(t, Format.TEXT.optional(), nothing.at(whole))
+                    .key("value"),
+                Checkbox.checkbox(t, Prop.of(() -> true, null), "Check").key("check"),
+                Toggle.toggle(t, Prop.of(() -> true, null), "Toggle").key("toggle"),
+                Radio.radioGroup(t, List.of("A"), Prop.of(() -> "A", null), v -> v)
+                    .key("radio"),
+                Segmented.segmented(t, List.of("A"), Prop.of(() -> "A", null), v -> v)
+                    .key("segment"),
+                Select.select(t, List.of("A"), Prop.of(() -> "A", null), v -> v, new Menu.State())
+                    .key("select"),
+                ComboBox.comboBox(
+                        t, List.of("A"), Prop.of(() -> "A", null), v -> v, new ComboBox.State())
+                    .key("combo"),
+                ComboBox.items(
+                        t,
+                        List.of("A"),
+                        Prop.of(() -> "A", null),
+                        ComboBox::item,
+                        new ComboBox.State())
+                    .key("items"),
+                ComboBox.free(t, Prop.of(() -> "A", null), List.of("A"), new ComboBox.State())
+                    .key("free"),
+                NumberField.numberField(t, Prop.of(() -> 5, null), 0, 10, 1).key("number"),
+                Slider.slider(t, Prop.of(() -> 5, null), 0, 10, 1).key("slider")));
+    run(app, "key Tab\nkey Enter\nkey Space\nmove #combo\npress #combo");
+    assertEquals(null, app.focused(), "nothing takes the focus");
+    assertEquals(Cursor.DEFAULT, app.cursor());
+    for (String key : List.of(
+        "text",
+        "password",
+        "value",
+        "check",
+        "toggle",
+        "radio",
+        "segment",
+        "select",
+        "combo",
+        "items",
+        "free",
+        "slider")) {
+      assertTrue(line(app, "#" + key + " ").contains(" disabled"), key);
+    }
+    assertTrue(line(app, "role=spinbutton").contains(" disabled"));
+  }
+
+  /** A value that is none of the choices chooses nothing, and the first arrow the first. */
+  @Test
+  void aChoiceOfAValueThatIsNotThereGoesToTheFirstByArrow() throws IOException {
+    Theme t = Theme.DARK;
+    List<String> values = List.of("A", "B");
+    List<Function<Prop<String>, El>> controls = List.of(
+        p -> Radio.radioGroup(t, values, p, v -> v),
+        p -> Segmented.segmented(t, values, p, v -> v),
+        p -> Select.select(t, values, p, v -> v, new Menu.State()));
+    for (Function<Prop<String>, El> control : controls) {
+      String[] value = {"missing"};
+      List<String> told = new ArrayList<>();
+      App<Object> app = new App<>(
+          new Object(),
+          x -> col().child(control.apply(Prop.of(() -> value[0], v -> {
+            value[0] = v;
+            told.add(v);
+          }))));
+      run(app, "key Tab\nkey ArrowDown\nkey ArrowDown control");
+      assertEquals(List.of("A"), told);
+    }
   }
 }
