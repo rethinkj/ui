@@ -1,0 +1,6 @@
+# The wgpu-native release zip is unpacked here.
+native/
+# Downloads that only the spike needs: the release zip, a jextract build.
+tools/
+# What jextract writes when it is run to look at its output.
+generated/
