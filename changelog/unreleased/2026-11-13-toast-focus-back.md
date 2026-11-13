@@ -1,0 +1,1 @@
+- Fixed: an overlay that keeps the focus where it is, such as a toast, lost the focus when it closed after Tab had moved the focus onto its action; the focus now goes back to where it last was outside the overlay, as for a menu or dialog.

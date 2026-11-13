@@ -287,6 +287,30 @@ class MenuBarTest {
     assertNotNull(underline(app, "title-3"), "while the bar has the keys");
   }
 
+  @Test
+  void altHeldDuringAPressDoesNotGiveTheBarTheKeys() throws IOException {
+    Studio studio = new Studio(Theme.DARK);
+    App<Studio> app = studio.app();
+    run(app, "frame\npress #query\nframe\n");
+    float[] at = {100, 56}; // in the field, which takes the press before any handler around it
+    app.keyDown(new Key("Alt", Key.ALT, false));
+    app.pointerDown(at[0], at[1], 1, Key.ALT);
+    app.pointerUp(at[0], at[1]);
+    app.keyUp(new Key("Alt", 0, false));
+    app.frame();
+    assertEquals(-1, studio.bar.title(), "Alt+click, as in Windows, opens nothing");
+    assertNull(underline(app, "title-0"), "and the mnemonics go with Alt");
+    assertTrue(line(app, "query").contains("focused"), line(app, "query"));
+    app.keyDown(new Key("Alt", Key.ALT, false));
+    app.secondaryDown(300, 150);
+    app.secondaryUp(300, 150);
+    app.keyUp(new Key("Alt", 0, false));
+    app.frame();
+    assertEquals(-1, studio.bar.title(), "nor with the secondary button");
+    run(app, "key Alt\nframe\n");
+    assertEquals(0, studio.bar.title(), "Alt alone still does");
+  }
+
   private static com.rethinkj.ui.Text.Box underline(App<?> app, String title) {
     return find(app.tree(), title).children().getFirst().text().composition();
   }

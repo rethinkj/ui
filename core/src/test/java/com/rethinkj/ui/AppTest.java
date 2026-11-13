@@ -143,6 +143,35 @@ class AppTest {
   }
 
   @Test
+  void handlersOfAnyPointerDownSeeEveryPressAndTakeNothingFromIt() {
+    List<String> log = new ArrayList<>();
+    boolean[] open = {true};
+    App<List<String>> app = new App<>(log, l -> El.col().size(100, 100)
+        .child(el().key("bar").size(10, 10).onAnyPointerDown(() -> l.add("any")))
+        .child(el().key("list").size(100, 50).scroll()
+            .scrollbars(new Scrollbars(6, 2, 3, 24, 0xFF5A5A66, 0xFF7A7A88, 0xFFA1A1AA))
+            .child(el().size(100, 500)))
+        .child(el().size(40, 40).onPress(() -> l.add("press")))
+        .overlay(!open[0] ? null : el().size(20, 20).atPoint(80, 80)
+            .onDismiss(() -> {
+              l.add("dismissed");
+              open[0] = false;
+            })
+            .onAnyPointerDown(() -> l.add("overlay"))));
+    app.resize(100, 100, 1);
+    app.frame();
+    app.secondaryDown(85, 85); // inside the overlay
+    app.secondaryUp(85, 85);
+    press(app, 20, 70); // on the element with onPress, outside the overlay: dismisses only
+    press(app, 20, 70); // now it presses
+    press(app, 97, 55); // on the track of the list's scrollbar, which takes the press alone
+    app.frame();
+    assertEquals(List.of("any", "overlay", "any", "overlay", "dismissed", "any", "press", "any"),
+        log);
+    assertTrue(app.tree().children().get(1).scrollY() > 0, "the bar paged the list");
+  }
+
+  @Test
   void theElementOnTopGetsThePressAndRoundedCornersAreNotPartOfIt() {
     List<String> pressed = new ArrayList<>();
     App<List<String>> app =
