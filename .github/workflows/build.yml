@@ -127,10 +127,10 @@ jobs:
               echo "::warning::CENTRAL_USERNAME or CENTRAL_PASSWORD is not set: nothing published"
               exit 0
             fi
-            mvn -B -ntp deploy -DskipTests -pl "$MODULES"
+            mvn -B -ntp deploy -DskipTests -Dmaven.install.skip=true -pl "$MODULES"
           else
             root=$(pwd -W 2>/dev/null || pwd)
-            mvn -B -ntp deploy -DskipTests -pl "$MODULES" \
+            mvn -B -ntp deploy -DskipTests -Dmaven.install.skip=true -pl "$MODULES" \
               -DaltDeploymentRepository="dry-run::file:///${root#/}/target/snapshots"
           fi
       - name: Keep what a dry run deployed
