@@ -4,7 +4,9 @@ import com.rethinkj.ui.layout.Flex;
 import com.rethinkj.ui.render.CpuRenderer;
 import com.rethinkj.ui.render.Scene;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.function.BooleanSupplier;
 import java.util.function.Function;
 
 /**
@@ -19,6 +21,10 @@ import java.util.function.Function;
  * view again. Time is the app's own clock, which only {@link #advance} moves; the tree always holds
  * the values at that time, so drawing and hit testing see what is on screen.
  *
+ * <p>The app also keeps the offset of each scroll area ({@link El#scroll}), by the same identity
+ * that matches elements across rebuilds, and writes it into the positions of the area's children.
+ * The wheel and {@link #scrollTo} change it.
+ *
  * <p>This class needs no window. A windowed runner feeds it the window's input and draws its
  * {@link #scene}; tests and agents feed it input themselves and look at {@link #render}.
  *
@@ -29,6 +35,7 @@ public final class App<S> {
   private final S state;
   private final Function<S, El> view;
   private final ArrayDeque<Runnable> queued = new ArrayDeque<>();
+  private final ArrayDeque<BooleanSupplier> scrolls = new ArrayDeque<>();
   private final Animator animator = new Animator();
   private double time;
   private float width;
@@ -74,6 +81,47 @@ public final class App<S> {
   }
 
   /**
+   * The wheel turned with the pointer at this position, by these distances in logical pixels.
+   * Positive values scroll towards the end, so that the content moves up or to the left, as {@code
+   * deltaY} of a browser's wheel event; SDL counts the other way. Along each axis the innermost
+   * scroll area under the pointer that can still move that way takes the whole distance, clamped
+   * to its content; when none can, nothing happens. The next {@link #frame} shows it.
+   */
+  public void wheel(float x, float y, float deltaX, float deltaY) {
+    if (!Float.isFinite(deltaX) || !Float.isFinite(deltaY)) {
+      throw new IllegalArgumentException("wheel deltas must be finite, were " + deltaX + ", "
+          + deltaY);
+    }
+    List<El> areas = hit(x, y).reversed();
+    scrolls.add(() -> scroll(areas, true, deltaX) | scroll(areas, false, deltaY)); // not ||
+  }
+
+  private static boolean scroll(List<El> areas, boolean horizontal, float delta) {
+    for (El area : areas) {
+      if (area.canScroll(horizontal, delta)) {
+        return horizontal
+            ? area.scrollTo(area.scrollX() + delta, area.scrollY())
+            : area.scrollTo(area.scrollX(), area.scrollY() + delta);
+      }
+    }
+    return false;
+  }
+
+  /**
+   * Scrolls a scroll area of the last frame's {@link #tree} to this offset from its start, in
+   * logical pixels: to the top with 0, 0, for example after new data arrived, or to the end with
+   * {@link Float#POSITIVE_INFINITY}. The next {@link #frame} shows it, clamped to the content;
+   * until then {@link El#scrollX} and {@link El#scrollY} keep the old offset. A handler may call
+   * this too; the frame that runs it scrolls.
+   */
+  public void scrollTo(El area, float x, float y) {
+    if (Float.isNaN(x) || Float.isNaN(y)) {
+      throw new IllegalArgumentException("scroll offset is NaN");
+    }
+    scrolls.add(() -> area.scrollTo(x, y));
+  }
+
+  /**
    * Moves the app's clock forward. A windowed runner calls this once per frame with the time since
    * the last one; tests step it by hand. Nothing else reads a clock.
    */
@@ -91,15 +139,22 @@ public final class App<S> {
   }
 
   /**
-   * Runs the handlers queued by input and, if anything may have changed, builds and lays out the
-   * view again. Then it writes the values of the moment into the elements that move.
+   * Runs the handlers queued by input, scrolls as the wheel and {@link #scrollTo} asked and, if
+   * anything may have changed, builds and lays out the view again. Then it writes the values of
+   * the moment into the elements that move.
    *
-   * @return whether there is something new to draw: the tree was rebuilt or something moved
+   * @return whether there is something new to draw: the tree was rebuilt, something moved or
+   *     scrolled
    */
   public boolean frame() {
     while (!queued.isEmpty()) {
       queued.poll().run();
       stale = true;
+    }
+    // After the handlers, so that one can scroll the tree it saw; a rebuild keeps the offsets.
+    boolean scrolled = false;
+    while (!scrolls.isEmpty()) {
+      scrolled |= scrolls.poll().getAsBoolean();
     }
     if (stale) {
       root = view.apply(state);
@@ -109,7 +164,7 @@ public final class App<S> {
       return true;
     }
     if (!animator.isMoving()) {
-      return false;
+      return scrolled;
     }
     animator.present(time);
     return true;
@@ -148,30 +203,44 @@ public final class App<S> {
    * builds new elements.
    */
   private Target target(float x, float y) {
+    List<El> hit = hit(x, y);
+    StringBuilder path = new StringBuilder();
+    Target target = null;
+    for (int i = 0; i < hit.size(); i++) {
+      El el = hit.get(i);
+      if (i > 0) {
+        path.append('/').append(hit.get(i - 1).children().indexOf(el));
+      }
+      if (el.onPress() != null) {
+        target = new Target(el, path.toString());
+      }
+    }
+    return target;
+  }
+
+  /** The elements under the point, from the root down to the topmost one; empty if none. */
+  private List<El> hit(float x, float y) {
+    List<El> hit = new ArrayList<>();
     if (root == null || !contains(root, 0, 0, x, y)) {
-      return null;
+      return hit;
     }
     El el = root;
     float left = root.x();
     float top = root.y();
-    StringBuilder path = new StringBuilder();
-    Target target = null;
     while (true) {
-      if (el.onPress() != null) {
-        target = new Target(el, path.toString());
-      }
-      // shortcut: a child that sticks out of its parent is not hit outside the parent's box.
+      hit.add(el);
+      // shortcut: a child that sticks out of its parent is not hit outside the parent's box. That
+      // is also what clipping needs, so keep it for elements that clip when this changes.
       El next = null;
       List<El> children = el.children();
       // Later children are drawn on top, so they are asked first.
       for (int i = children.size() - 1; i >= 0 && next == null; i--) {
         if (contains(children.get(i), left, top, x, y)) {
           next = children.get(i);
-          path.append('/').append(i);
         }
       }
       if (next == null) {
-        return target;
+        return hit;
       }
       left += next.x();
       top += next.y();

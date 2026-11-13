@@ -29,11 +29,19 @@ public final class El {
   private Spring motion;
   private float opacity = 1;
   private boolean exiting;
+  private boolean scrollArea;
   private boolean placed;
   private float x;
   private float y;
   private float width;
   private float height;
+  // The scroll offset of this element, how far it may go, and the offset of its parent.
+  private float scrollX;
+  private float scrollY;
+  private float maxScrollX;
+  private float maxScrollY;
+  private float shiftX;
+  private float shiftY;
 
   private El() {}
 
@@ -234,6 +242,41 @@ public final class El {
     return this;
   }
 
+  /**
+   * Draws the children only inside this element's rounded rectangle: its border box with its
+   * {@link #radius}. The edge of the clip is smoothed like any other edge, and what is clipped away
+   * takes no input. This sets {@code overflow: clip}, which leaves the layout as it is; any
+   * overflow other than visible clips.
+   */
+  public El clip() {
+    style.overflowX = Style.Overflow.CLIP;
+    style.overflowY = Style.Overflow.CLIP;
+    return this;
+  }
+
+  /**
+   * Makes this element a vertical scroll area: it clips its children like {@link #clip}, the wheel
+   * moves them up and down, and {@link App} keeps the offset across rebuilds. Horizontally it only
+   * clips. This sets {@code overflow-y: scroll} and {@code overflow-x: hidden}, so that the area
+   * can be smaller than its content.
+   *
+   * <p>Unlike in CSS flexbox, the children do not shrink to fit along the direction they flow in
+   * when the area scrolls that way: they keep their natural size, as in a block container.
+   */
+  public El scroll() {
+    style.overflowX = Style.Overflow.HIDDEN;
+    style.overflowY = Style.Overflow.SCROLL;
+    scrollArea = true;
+    return this;
+  }
+
+  /** Makes this element a scroll area like {@link #scroll}, along both axes. */
+  public El scrollBoth() {
+    scroll();
+    style.overflowX = Style.Overflow.SCROLL;
+    return this;
+  }
+
   // Behaviour
 
   /**
@@ -334,6 +377,84 @@ public final class El {
     return opacity;
   }
 
+  /**
+   * Whether {@link #scroll} or {@link #scrollBoth} made this a scroll area, whose children layout
+   * does not shrink along the direction they flow in when that axis has {@code overflow: scroll}.
+   */
+  public boolean isScrollArea() {
+    return scrollArea;
+  }
+
+  /**
+   * The horizontal offset of this scroll area in logical pixels: how far its content is moved to
+   * the left, 0 at the start. The positions of the children already take it into account. {@link
+   * App#scrollTo} changes it.
+   */
+  public float scrollX() {
+    return scrollX;
+  }
+
+  /** The vertical offset of this scroll area: how far its content is moved up, 0 at the top. */
+  public float scrollY() {
+    return scrollY;
+  }
+
+  /** Whether the offset along one axis can still move in the direction of {@code delta}. */
+  boolean canScroll(boolean horizontal, float delta) {
+    float offset = horizontal ? scrollX : scrollY;
+    return delta > 0 ? offset < (horizontal ? maxScrollX : maxScrollY) : delta < 0 && offset > 0;
+  }
+
+  /**
+   * Measures how far this element can scroll along the axes with {@code overflow: scroll}: to
+   * where its farthest child ends, with its margin and this element's end padding and border.
+   * Called right after layout, before anything springs.
+   */
+  void measureScroll() {
+    float right = 0;
+    float bottom = 0;
+    for (El child : children) {
+      if (child.placed && !child.exiting) {
+        right = Math.max(right, child.x + child.width + px(child.style.marginRight));
+        bottom = Math.max(bottom, child.y + child.height + px(child.style.marginBottom));
+      }
+    }
+    // shortcut: only the children's rectangles count, not what sticks out of them, and padding,
+    // border and margin only in pixels, not in percent; measure the layout's content size when
+    // nested content or percentages need it.
+    maxScrollX =
+        style.overflowX == Style.Overflow.SCROLL
+            ? Math.max(right + px(style.paddingRight) + px(style.borderRight) - width, 0)
+            : 0;
+    maxScrollY =
+        style.overflowY == Style.Overflow.SCROLL
+            ? Math.max(bottom + px(style.paddingBottom) + px(style.borderBottom) - height, 0)
+            : 0;
+  }
+
+  private static float px(Len len) {
+    return len.kind() == Len.Kind.PX ? len.value() : 0;
+  }
+
+  /**
+   * Sets the scroll offset, clamped to what {@link #measureScroll} found, and shifts the children
+   * by it.
+   *
+   * @return whether the offset changed
+   */
+  boolean scrollTo(float x, float y) {
+    float newX = Math.clamp(x, 0, maxScrollX);
+    float newY = Math.clamp(y, 0, maxScrollY);
+    boolean changed = newX != scrollX || newY != scrollY;
+    scrollX = newX;
+    scrollY = newY;
+    for (El child : children) {
+      child.shiftX = newX;
+      child.shiftY = newY;
+    }
+    return changed;
+  }
+
   /** Whether this element is fading out after a rebuild left it out; see {@link #motion}. */
   public boolean isExiting() {
     return exiting;
@@ -349,7 +470,10 @@ public final class El {
     this.borderColor = argb;
   }
 
-  /** Called by layout: the border box, with the position relative to the parent's border box. */
+  /**
+   * Called by layout: the border box, with the position relative to the parent's border box as
+   * layout sees it, without the parent's scroll offset.
+   */
   public void place(float x, float y, float width, float height) {
     this.x = x;
     this.y = y;
@@ -363,12 +487,16 @@ public final class El {
     return placed;
   }
 
+  /**
+   * The position relative to the parent's border box as shown: the parent's scroll offset is
+   * already subtracted.
+   */
   public float x() {
-    return x;
+    return x - shiftX;
   }
 
   public float y() {
-    return y;
+    return y - shiftY;
   }
 
   public float width() {
@@ -381,9 +509,10 @@ public final class El {
 
   /**
    * The tree as text, one element per line, children indented by two spaces. After layout each
-   * line ends with the element's rectangle in window coordinates, as {@code x,y widthxheight}, and
-   * the line of an element that is leaving with {@code exiting}. Tests and agents read this, so the
-   * format only changes deliberately.
+   * line ends with the element's rectangle in window coordinates, as {@code x,y widthxheight}, as
+   * shown, that is, moved by the scroll offsets above it. A scroll area that is scrolled adds its
+   * offset, as {@code scroll x,y}, and the line of an element that is leaving ends with {@code
+   * exiting}. Tests and agents read this, so the format only changes deliberately.
    */
   public String dump() {
     StringBuilder out = new StringBuilder();
@@ -392,8 +521,8 @@ public final class El {
   }
 
   private void dump(StringBuilder out, int depth, float parentX, float parentY) {
-    float left = parentX + x;
-    float top = parentY + y;
+    float left = parentX + x();
+    float top = parentY + y();
     describe(out.repeat("  ", depth), left, top);
     for (El child : children) {
       child.dump(out, depth + 1, left, top);
@@ -418,6 +547,10 @@ public final class El {
       number(out, top).append(' ');
       number(out, width).append('x');
       number(out, height);
+    }
+    if (scrollX != 0 || scrollY != 0) {
+      number(out.append(" scroll "), scrollX).append(',');
+      number(out, scrollY);
     }
     if (exiting) {
       out.append(" exiting");

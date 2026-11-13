@@ -24,6 +24,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 class ScriptTest {
 
   private static final Path EXAMPLE = Path.of("src/test/resources/scripts/switch.txt");
+  private static final Path LIST = Path.of("src/test/resources/scripts/list.txt");
 
   @TempDir Path out;
 
@@ -86,6 +87,30 @@ class ScriptTest {
     Examples.main(new String[] {"--script", EXAMPLE.toString(), "--out", out.toString()});
 
     assertSnapsMatchGolden(List.of("switch-off", "switch-moving-040ms", "switch-on"));
+  }
+
+  @Test
+  void theListOfAgentsMdScrollsAsTheStoredFramesShow() throws IOException {
+    String example = Files.readString(LIST);
+    assertTrue(
+        Files.readString(Path.of("../AGENTS.md")).contains(example),
+        "AGENTS.md shows " + LIST + " as it is");
+
+    Examples.main(new String[] {"list", "--script", LIST.toString(), "--out", out.toString()});
+
+    assertSnapsMatchGolden(List.of("list-top", "list-scrolled", "list-end"));
+    assertTrue(Files.readString(out.resolve("list-scrolled.tree.txt")).contains(" scroll 0,90\n"));
+  }
+
+  @Test
+  void wheelScrollsTheAreaUnderItsTarget() throws IOException {
+    App<Object> app = new App<>(new Object(), s -> Examples.list());
+    Script.run(
+        "size 240 200\nframe\nwheel 100,100 0 30.5\nwheel #row-1 0 -0.5\nframe\n", app, out);
+    El list = app.tree().children().getFirst();
+    assertEquals(30, list.scrollY());
+    Script.run("size 240 200\nwheel label=\"Row 3\" 0 -100\nframe\n", app, out);
+    assertEquals(0, list.scrollY());
   }
 
   @Test
@@ -192,7 +217,8 @@ class ScriptTest {
     assertEquals(
         """
         line 3: pres #switch
-          There is no step pres. The steps are size, press, down, up, advance, frame and snap.""",
+          There is no step pres. The steps are size, press, down, up, wheel, advance, frame and\
+         snap.""",
         failure("size 200 120\nframe\npres #switch\n"));
   }
 
@@ -271,6 +297,21 @@ class ScriptTest {
     assertFailure("frame now\n", "line 1: frame now\n  Write `frame` with nothing");
     assertFailure("snap\n", "line 1: snap\n  Write `snap <name>`");
     assertFailure("up\n", "line 1: up\n  Write `up <target>`. A target is a position");
+    assertEquals(
+        "line 1: wheel #list 40\n  Write `wheel <target> <deltaX> <deltaY>`, with distances in"
+            + " logical pixels that are positive to scroll down or right, for example `wheel #list"
+            + " 0 40`. A target is a position x,y in logical pixels such as 90,60, or a selector"
+            + " of #key, role=<role> and label=\"<text>\" such as role=switch label=\"Lights\".",
+        failure("wheel #list 40\n"));
+    assertFailure("wheel #list 0 down\n", "line 1: wheel #list 0 down\n  Write `wheel <target>");
+    assertFailure("wheel 0 40\n", "Write `wheel <target>");
+    assertEquals(
+        "line 1: wheel #switch 0 40\n  No frame has run yet, so there is nothing to scroll. Add"
+            + " `frame` before this line.",
+        failure("wheel #switch 0 40\n"));
+    assertFailure(
+        "size 200 120\nframe\nwheel #lst 0 40\n",
+        "line 3: wheel #lst 0 40\n  No element of the last frame matches #lst.");
     assertFailure(
         "size 200 120\nframe\npress name=Lights\n",
         "line 3: press name=Lights\n  name=Lights is not a target. A target is");

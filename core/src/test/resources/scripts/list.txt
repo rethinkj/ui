@@ -1,0 +1,12 @@
+# The list of core's tests (Examples): twenty rows in a rounded scroll area.
+size 240 200 scale 2
+frame
+snap list-top
+
+wheel #list 0 90       # the wheel over the middle of the list, 90 pixels down
+frame                  # moves the rows; rows cut by the edge are drawn in part
+snap list-scrolled
+
+wheel #list 0 10000    # far past the end: stops at the last row
+frame
+snap list-end

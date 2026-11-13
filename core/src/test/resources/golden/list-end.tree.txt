@@ -1,0 +1,62 @@
+el 0,0 240x200
+  el #list role=list 16,16 208x168 scroll 0,484
+    el #row-1 role=listitem label="Row 1" 24,-460 192x28
+      el 32,-453 14x14
+      el 54,-449 77x6
+    el #row-2 role=listitem label="Row 2" 24,-428 192x28
+      el 32,-421 14x14
+      el 54,-417 114x6
+    el #row-3 role=listitem label="Row 3" 24,-396 192x28
+      el 32,-389 14x14
+      el 54,-385 61x6
+    el #row-4 role=listitem label="Row 4" 24,-364 192x28
+      el 32,-357 14x14
+      el 54,-353 98x6
+    el #row-5 role=listitem label="Row 5" 24,-332 192x28
+      el 32,-325 14x14
+      el 54,-321 45x6
+    el #row-6 role=listitem label="Row 6" 24,-300 192x28
+      el 32,-293 14x14
+      el 54,-289 82x6
+    el #row-7 role=listitem label="Row 7" 24,-268 192x28
+      el 32,-261 14x14
+      el 54,-257 119x6
+    el #row-8 role=listitem label="Row 8" 24,-236 192x28
+      el 32,-229 14x14
+      el 54,-225 66x6
+    el #row-9 role=listitem label="Row 9" 24,-204 192x28
+      el 32,-197 14x14
+      el 54,-193 103x6
+    el #row-10 role=listitem label="Row 10" 24,-172 192x28
+      el 32,-165 14x14
+      el 54,-161 50x6
+    el #row-11 role=listitem label="Row 11" 24,-140 192x28
+      el 32,-133 14x14
+      el 54,-129 87x6
+    el #row-12 role=listitem label="Row 12" 24,-108 192x28
+      el 32,-101 14x14
+      el 54,-97 124x6
+    el #row-13 role=listitem label="Row 13" 24,-76 192x28
+      el 32,-69 14x14
+      el 54,-65 71x6
+    el #row-14 role=listitem label="Row 14" 24,-44 192x28
+      el 32,-37 14x14
+      el 54,-33 108x6
+    el #row-15 role=listitem label="Row 15" 24,-12 192x28
+      el 32,-5 14x14
+      el 54,-1 55x6
+    el #row-16 role=listitem label="Row 16" 24,20 192x28
+      el 32,27 14x14
+      el 54,31 92x6
+    el #row-17 role=listitem label="Row 17" 24,52 192x28
+      el 32,59 14x14
+      el 54,63 129x6
+    el #row-18 role=listitem label="Row 18" 24,84 192x28
+      el 32,91 14x14
+      el 54,95 76x6
+    el #row-19 role=listitem label="Row 19" 24,116 192x28
+      el 32,123 14x14
+      el 54,127 113x6
+    el #row-20 role=listitem label="Row 20" 24,148 192x28
+      el 32,155 14x14
+      el 54,159 60x6
