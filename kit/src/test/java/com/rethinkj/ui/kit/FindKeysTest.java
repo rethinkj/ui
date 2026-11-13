@@ -312,6 +312,17 @@ class FindKeysTest {
   }
 
   @Test
+  void anEditorWithoutItsBarLeavesItsKeysToTheField() throws IOException {
+    Doc doc = new Doc(TEXT);
+    doc.editor.findBar(false);
+    App<Doc> app = app(doc);
+    String tree = run(app, "frame\nfocus #query\nkey F control");
+    assertFalse(tree.contains("role=search"), tree);
+    run(app, "key D control shift");
+    assertTrue(doc.text.startsWith("SELECT id, name FROM orders;\nSELECT"), "the commands stay");
+  }
+
+  @Test
   void aTextAreaHasTheBarToo() throws IOException {
     Doc doc = new Doc("The quick brown fox\njumps over the lazy dog.\nThe end.");
     doc.area = true;
@@ -389,6 +400,8 @@ class FindKeysTest {
             + "key K control shift"));
     assertEquals(String.join("\n", "-- " + lines[0], lines[1], lines[2], lines[3]),
         undoAfter.apply("key / control"));
+    assertEquals(String.join("\n", lines[0], lines[1], lines[2], "-- " + lines[3]),
+        undoAfter.apply("key End control\nkey / control"));
     assertEquals(String.join("\n", lines[0], "orders of the Straße", lines[2], lines[3]),
         undoAfter.apply("key ArrowDown\nkey 7 control shift"),
         "Control+Shift+7, the / of a German keyboard, takes the comment away");

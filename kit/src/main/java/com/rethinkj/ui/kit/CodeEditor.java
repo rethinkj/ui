@@ -99,6 +99,7 @@ public final class CodeEditor {
     private int errorFrom;
     private int errorTo;
     private boolean occurrences = true;
+    private boolean findBar = true;
     // Control+D: the selection it made, and whether it went by whole words from the caret.
     private int nextFrom = -1;
     private int nextTo = -1;
@@ -106,6 +107,15 @@ public final class CodeEditor {
     // The editor of the last build, and what it was built with, for the commands.
     private El editor;
     private String lineComment;
+
+    /**
+     * Whether the editor has its find bar and the keys that open it (Control+F, Control+H, F3,
+     * Control+G); on unless set, given the app.
+     */
+    public State findBar(boolean on) {
+      findBar = on;
+      return this;
+    }
 
     /** The state of the editor's find bar. */
     public Find.State find() {
@@ -226,7 +236,7 @@ public final class CodeEditor {
       run(app, state, command);
       return true;
     });
-    return Find.find(t, app, editor, state.find);
+    return state.findBar ? Find.find(t, app, editor, state.find) : editor;
   }
 
   /** The word at the caret, if nothing or exactly a word is selected; else null. */
