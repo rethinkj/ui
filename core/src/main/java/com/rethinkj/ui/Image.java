@@ -1,5 +1,6 @@
 package com.rethinkj.ui;
 
+import com.rethinkj.ui.render.Jpeg;
 import com.rethinkj.ui.render.Pixels;
 import com.rethinkj.ui.render.Png;
 import java.util.Objects;
@@ -110,16 +111,16 @@ public final class Image {
     return new Image(levels, w, h, scale);
   }
 
-  /** An image read from a PNG file, one pixel to one logical pixel. */
+  /** An image read from a PNG or a JPEG file, one pixel to one logical pixel. */
   public static Image decode(byte[] bytes) {
     return decode(bytes, 1);
   }
 
   /**
-   * An image read from a PNG file, made for {@code scale}; see {@link Png#decode} for what it
-   * reads.
+   * An image read from a PNG or a JPEG file, told apart by their first bytes, made for {@code
+   * scale}; see {@link Png#decode} and {@link Jpeg#decode} for what each reads.
    *
-   * @throws IllegalArgumentException if the bytes are not one, or cannot be read, saying why
+   * @throws IllegalArgumentException if the bytes are neither, or cannot be read, saying why
    */
   public static Image decode(byte[] bytes, float scale) {
     Objects.requireNonNull(bytes, "bytes");
@@ -127,8 +128,12 @@ public final class Image {
         && bytes[3] == 'G') {
       return of(Png.decode(bytes), scale);
     }
-    throw new IllegalArgumentException("Not a PNG file: it starts with " + start(bytes)
-        + "; PNG starts with 89 50 4E 47.");
+    if (bytes.length >= 3 && (bytes[0] & 0xFF) == 0xFF && (bytes[1] & 0xFF) == 0xD8
+        && (bytes[2] & 0xFF) == 0xFF) {
+      return of(Jpeg.decode(bytes), scale);
+    }
+    throw new IllegalArgumentException("Not a PNG or JPEG file: it starts with "
+        + start(bytes) + "; PNG starts with 89 50 4E 47, JPEG with FF D8 FF.");
   }
 
   private static String start(byte[] bytes) {
