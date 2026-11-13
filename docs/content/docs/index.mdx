@@ -1,6 +1,31 @@
 ---
 title: Introduction
-description: What rethinkj UI is.
+description: What rethinkj UI is, what is in it, and where to start.
 ---
 
-Hello.
+rethinkj UI is a native, GPU-rendered UI framework for Java 25 on Windows and Linux. It draws everything itself, from text to a data grid of a million rows, and it runs without a window too: a script drives the app, and images and element trees come out, so that an agent or a test can see and use what it builds. It is early: version 0.1.0-SNAPSHOT, not on Maven Central yet, and the API still changes.
+
+<Shot dark="examples/workbench-dark-2x" light="examples/workbench-light-2x" alt="The Workbench example: a schema tree, a query editor and a result grid" />
+
+## What is in it
+
+- **core** (`com.rethinkj.ui`): elements and flexbox layout, text shaped with HarfBuzz and rasterised with FreeType, springs, shadows, clipping, scrolling, virtual lists, overlays, focus and keyboard, text fields and editors for 100 000 lines, images, several windows with drags between them, work off the app's thread, scripts, and a GPU renderer checked pixel by pixel against a CPU one.
+- **kit** (`com.rethinkj.ui.kit`): a dark and a light theme and the components of a data tool: a data grid with editing and filters, a tree, tabs that tear off, a code editor with completion and find, menus, a menu bar, a command palette, dialogs, forms, and more.
+- `core` and `kit` depend on `java.base` only: no AWT, no reflection, native code through the Foreign Function and Memory API.
+
+## Where to start
+
+| | |
+| --- | --- |
+| [Installation](/docs/get-started) | Requirements and the first build |
+| [The first app](/docs/get-started/first-app) | A state, a view and a window, line by line |
+| [Testing and agents](/docs/testing) | Drive an app with a script and read its trees |
+| [Concepts](/docs/concepts) | How it works, topic by topic |
+| [Components](/docs/components) | Every component, with picture, code and tree |
+| [Examples](/docs/examples) | Runnable apps |
+
+## For agents
+
+Every page of this site is also Markdown: add `.md` to its address (`/docs/components/button.md`), or use the Copy Markdown button. [/llms.txt](/llms.txt) lists all pages with a line each, and [/llms-full.txt](/llms-full.txt) holds them all in one file. Each page begins with a paragraph that says what the thing is and when to use it, and each component's page ends with what it shows in a tree dump, so that a script can find it.
+
+The code on this site is compiled and run by the project's tests, and the pictures are the images its tests store: what you read here is what the code does.
