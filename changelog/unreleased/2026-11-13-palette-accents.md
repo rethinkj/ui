@@ -1,0 +1,1 @@
+- The kit's themes are written with the named colours of `Palette` (`BLUE_496`, `GREY_083`, …), with the same values as before, and `theme.withAccent(Theme.Hue.VIOLET)` takes a named accent (blue, violet, purple, pink, red, orange, amber, green, teal or grey) made for the theme's lightness, each holding the default accent's contrast rules in both themes.

@@ -242,7 +242,7 @@ public final class Manual {
       return;
     }
     app.textRendering(TextRendering.platform());
-    Window.Options options = Identity.options(Manual.class, "Manual", 0xFF0F766E, Symbol.DOCUMENT)
+    Window.Options options = Identity.options(Manual.class, "Manual", Identity.TEAL, Symbol.DOCUMENT)
         .frameless().minimumSize(640, 420);
     try (Window window = Window.open("Manual", 1100, 760, options);
         GpuPresenter presenter = new GpuPresenter(window)) {

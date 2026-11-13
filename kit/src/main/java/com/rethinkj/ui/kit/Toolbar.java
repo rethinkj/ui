@@ -131,8 +131,10 @@ public final class Toolbar {
   public static El toolbar(Theme t, State state, String label, List<Item> items) {
     float gap = t.space().xs();
     int shown = fit(t, state, items, gap);
+    // grow(1) fills a row's width; the most height keeps it a row high in a column with room.
     El bar = row().role("toolbar").label(label).h(t.size().control()).grow(1)
-        .minSize(0, t.size().control()).gap(gap).align(Style.Align.CENTER).clip()
+        .minSize(0, t.size().control()).maxSize(Float.POSITIVE_INFINITY, t.size().control())
+        .gap(gap).align(Style.Align.CENTER).clip()
         .onResize((w, h) -> state.width = w);
     List<El> stops = new ArrayList<>();
     for (int i = 0; i < shown; i++) {

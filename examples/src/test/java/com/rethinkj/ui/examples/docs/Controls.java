@@ -100,8 +100,8 @@ final class Controls {
         s.driverMenu, i -> s.driver = i).label("Driver");
     // docs:end select
     // docs:start number-field
-    El fetch = NumberField.numberField(t, s.fetchSize, 1, 16, 1, v -> s.fetchSize = v)
-        .label("Fetch size");
+    El fetch = NumberField.numberField(t, "Fetch size", s.fetchSize, 1, 16, 1,
+        v -> s.fetchSize = v);
     // docs:end number-field
     // docs:start slider
     El size = Slider.slider(t, s.fontSize, 11, 16, 1, v -> s.fontSize = v).label("Font size");

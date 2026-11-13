@@ -1,5 +1,6 @@
 package com.rethinkj.ui.examples;
 
+import com.rethinkj.ui.Colors;
 import com.rethinkj.ui.kit.Theme;
 import java.util.List;
 
@@ -65,22 +66,9 @@ final class Contrast {
 
   /**
    * The ratio from 1 to 21 between two colours, 0xAARRGGBB. A translucent foreground is laid over
-   * the background first, as {@link Theme#over}; the background must be opaque.
+   * the background first, as {@link Colors#over}; the background must be opaque.
    */
   static double ratio(int foreground, int background) {
-    double a = luminance(Theme.over(background, foreground));
-    double b = luminance(background);
-    return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
-  }
-
-  /** The relative luminance of an opaque colour, from 0 for black to 1 for white. */
-  static double luminance(int argb) {
-    return 0.2126 * linear(argb >>> 16 & 0xFF) + 0.7152 * linear(argb >>> 8 & 0xFF)
-        + 0.0722 * linear(argb & 0xFF);
-  }
-
-  private static double linear(int channel) {
-    double c = channel / 255.0;
-    return c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+    return Colors.contrast(Colors.over(background, foreground), background);
   }
 }

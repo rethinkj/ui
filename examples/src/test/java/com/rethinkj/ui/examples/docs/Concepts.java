@@ -8,6 +8,7 @@ import static com.rethinkj.ui.kit.Button.Variant.PRIMARY;
 import static com.rethinkj.ui.kit.Button.Variant.SECONDARY;
 
 import com.rethinkj.ui.App;
+import com.rethinkj.ui.Colors;
 import com.rethinkj.ui.Cursor;
 import com.rethinkj.ui.Drag;
 import com.rethinkj.ui.El;
@@ -245,10 +246,30 @@ final class Concepts {
 
   static El theme(Concepts s) {
     // docs:start theme
-    Theme t = Theme.LIGHT.withAccent(new Theme.Accent(0xFF0F766E, 0xFF0D6961, 0xFF0B5C55));
+    Theme t = Theme.LIGHT.withAccent(Theme.Hue.TEAL);   // a named accent, made for the light theme
     El save = Button.button(t, PRIMARY, "Save", () -> s.presses++);
     // docs:end theme
     return Frame.of(t, save);
+  }
+
+  static Theme ownAccent() {
+    // docs:start own-accent
+    int teal = Colors.rgb(0x0F766E);                     // 0xFF0F766E, opaque
+    Theme t = Theme.LIGHT.withAccent(new Theme.Accent(
+        teal, Colors.mix(teal, Colors.BLACK, 0.12), Colors.mix(teal, Colors.BLACK, 0.24)));
+    // docs:end own-accent
+    return t;
+  }
+
+  static int colours(Theme t) {
+    // docs:start colours
+    int lamp = Colors.hex("#FACC15");                    // from a setting, 0xFFFACC15
+    int shade = Colors.alpha(Colors.BLACK, 0.4f);        // black at 40 %, 0x66000000
+    int hovered = Colors.over(t.surface().panel(), t.surface().hover()); // as drawn, opaque
+    double ratio = Colors.contrast(t.text().primary(), hovered);        // WCAG's, 1 to 21
+    boolean readable = ratio >= 4.5;
+    // docs:end colours
+    return readable ? lamp : shade;
   }
 
   static Theme themeOf(boolean dark) {

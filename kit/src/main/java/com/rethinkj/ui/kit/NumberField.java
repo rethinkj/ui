@@ -25,12 +25,18 @@ import java.util.function.IntConsumer;
  * field and the buttons, half as wide as a text field unless the view sets a width with {@code
  * .w(...)} on it. In a tree dump the field is {@code role=spinbutton} with its number as its
  * string, and the buttons are {@code role=button} labelled {@code Decrease} and {@code Increase}.
+ * The field's label is the one {@link #numberField(Theme, String, int, int, int, int,
+ * IntConsumer)} gives it, or the title of the {@link Form} field or {@link Group} row it is in;
+ * {@code .label(...)} on the result would label the box, not the field.
  */
 public final class NumberField {
 
   private NumberField() {}
 
   /**
+   * A number field whose field has no label of its own, for a {@link Form} field or a {@link
+   * Group} row, which give it theirs.
+   *
    * @param value the number to show, from the app's state
    * @param min the smallest number the keys and buttons go to
    * @param max the largest number the keys and buttons go to
@@ -39,6 +45,20 @@ public final class NumberField {
    */
   public static El numberField(
       Theme t, int value, int min, int max, int step, IntConsumer onChange) {
+    return numberField(t, null, value, min, max, step, onChange);
+  }
+
+  /**
+   * @param label the field's label, which a tree dump shows on the {@code role=spinbutton} and a
+   *     script selects it by, as {@code press role=spinbutton label="Fetch size"}; null for none
+   * @param value the number to show, from the app's state
+   * @param min the smallest number the keys and buttons go to
+   * @param max the largest number the keys and buttons go to
+   * @param step how far a key or a button moves the number
+   * @param onChange told each new number; null disables the field
+   */
+  public static El numberField(
+      Theme t, String label, int value, int min, int max, int step, IntConsumer onChange) {
     if (min > max || step < 1) {
       throw new IllegalArgumentException(
           "Needs min <= max and a step of 1 or more, was " + min + ", " + max + ", " + step);
@@ -46,7 +66,7 @@ public final class NumberField {
     boolean enabled = onChange != null;
     El field = TextField.textField(t, Integer.toString(value),
             enabled ? s -> edit(s, min, value, onChange) : null)
-        .role("spinbutton");
+        .role("spinbutton").label(label);
     if (value < min || value > max) {
       TextField.invalid(t, field);
     }

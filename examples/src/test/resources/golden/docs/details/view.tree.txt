@@ -1,50 +1,50 @@
 el 0,0 520x280
-  el role=navigation label="Breadcrumb" 12,12 245x84
-    el #crumb-0 12,42 64x24
-      el role=link label="localhost" 12,42 64x24
-        text "localhost" 16,46 56x16
-    el #crumb-1 78,42 53x24
-      text label="chevron_right" "\u{F2AE}" 78,48 12x12
-      el role=link label="shop" 92,42 39x24
-        text "shop" 96,46 31x16
-    el #crumb-2 133,42 59x24
-      text label="chevron_right" "\u{F2AE}" 133,48 12x12
-      el role=link label="public" 147,42 45x24
-        text "public" 151,46 37x16
-    el #crumb-3 194,42 63x24
-      text label="chevron_right" "\u{F2AE}" 194,48 12x12
-      el role=link label="orders" 208,42 49x24 current
-        text "orders" 212,46 41x16
-  el role=toolbar label="Table" 12,104 496x84
-    el #split 12,134 93x24
-      el #main role=button label="Run" 12,134 70x24
-        text label="play" "\u{E990}" 25,138 16x16
-        text "Run" 45,138 24x16
-      el 82,134 1x24
-      el #arrow role=button label="More Run" 83,134 22x24
-        text label="chevron_down" "\u{F2A2}" 86,138 16x16
-    el role=separator 109,138 1x16
-    el role=button label="Wrap" 114,134 24x24 checked=false
-      text label="text_whole_word" "\u{F03A4}" 118,138 16x16
-    el role=button label="Refresh" 140,134 24x24
-      text label="arrow_clockwise" "\u{E0AA}" 144,138 16x16
-    el 166,146 254x0
-    el role=button label="Export" 422,134 86x24
-      text label="arrow_export_ltr" "\u{E0C6}" 435,138 16x16
-      text "Export" 455,138 40x16
-  el role=list 12,196 320x72
-    el role=listitem label="Name" 12,196 320x24 value="orders"
-      text "Name" 16,200 37x16
-      text role=textbox "orders" 61,196 235x24 readonly
-      el #copy role=button label="Copy Name" 304,196 24x24
-        text label="copy" "\u{F32A}" 308,200 16x16
-    el role=listitem label="Rows" 12,220 320x24 value="1 000 000"
-      text "Rows" 16,224 37x16
-      text role=textbox "1 000 000" 61,220 235x24 readonly
-      el #copy role=button label="Copy Rows" 304,220 24x24
-        text label="copy" "\u{F32A}" 308,224 16x16
-    el role=listitem label="OID" 12,244 320x24 value="16384"
-      text "OID" 16,248 37x16
-      text role=textbox "16384" 61,244 235x24 readonly
-      el #copy role=button label="Copy OID" 304,244 24x24
-        text label="copy" "\u{F32A}" 308,248 16x16
+  el role=navigation label="Breadcrumb" 12,12 245x24
+    el #crumb-0 12,12 64x24
+      el role=link label="localhost" 12,12 64x24
+        text "localhost" 16,16 56x16
+    el #crumb-1 78,12 53x24
+      text label="chevron_right" "\u{F2AE}" 78,18 12x12
+      el role=link label="shop" 92,12 39x24
+        text "shop" 96,16 31x16
+    el #crumb-2 133,12 59x24
+      text label="chevron_right" "\u{F2AE}" 133,18 12x12
+      el role=link label="public" 147,12 45x24
+        text "public" 151,16 37x16
+    el #crumb-3 194,12 63x24
+      text label="chevron_right" "\u{F2AE}" 194,18 12x12
+      el role=link label="orders" 208,12 49x24 current
+        text "orders" 212,16 41x16
+  el role=toolbar label="Table" 12,44 496x24
+    el #split 12,44 93x24
+      el #main role=button label="Run" 12,44 70x24
+        text label="play" "\u{E990}" 25,48 16x16
+        text "Run" 45,48 24x16
+      el 82,44 1x24
+      el #arrow role=button label="More Run" 83,44 22x24
+        text label="chevron_down" "\u{F2A2}" 86,48 16x16
+    el role=separator 109,48 1x16
+    el role=button label="Wrap" 114,44 24x24 checked=false
+      text label="text_whole_word" "\u{F03A4}" 118,48 16x16
+    el role=button label="Refresh" 140,44 24x24
+      text label="arrow_clockwise" "\u{E0AA}" 144,48 16x16
+    el 166,56 254x0
+    el role=button label="Export" 422,44 86x24
+      text label="arrow_export_ltr" "\u{E0C6}" 435,48 16x16
+      text "Export" 455,48 40x16
+  el role=list 12,76 320x72
+    el role=listitem label="Name" 12,76 320x24 value="orders"
+      text "Name" 16,80 37x16
+      text role=textbox "orders" 61,76 235x24 readonly
+      el #copy role=button label="Copy Name" 304,76 24x24
+        text label="copy" "\u{F32A}" 308,80 16x16
+    el role=listitem label="Rows" 12,100 320x24 value="1 000 000"
+      text "Rows" 16,104 37x16
+      text role=textbox "1 000 000" 61,100 235x24 readonly
+      el #copy role=button label="Copy Rows" 304,100 24x24
+        text label="copy" "\u{F32A}" 308,104 16x16
+    el role=listitem label="OID" 12,124 320x24 value="16384"
+      text "OID" 16,128 37x16
+      text role=textbox "16384" 61,124 235x24 readonly
+      el #copy role=button label="Copy OID" 304,124 24x24
+        text label="copy" "\u{F32A}" 308,128 16x16

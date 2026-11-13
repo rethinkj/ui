@@ -1,6 +1,7 @@
 package com.rethinkj.ui.examples.docs;
 
 import com.rethinkj.ui.App;
+import com.rethinkj.ui.Colors;
 import com.rethinkj.ui.MessageBox;
 import com.rethinkj.ui.kit.AppIcon;
 import com.rethinkj.ui.kit.Symbol;
@@ -20,7 +21,7 @@ final class Desktop {
     // docs:start window
     Window.identity("com.example.Lights", "Lights");          // the taskbar groups by it
     WindowIcon icon = WindowIcon.of(size ->                    // drawn for each size asked
-        AppIcon.appIcon(Theme.DARK, size, 0xFFD97706, Symbol.FLASH));
+        AppIcon.appIcon(Theme.DARK, size, Colors.rgb(0xD97706), Symbol.FLASH));
     Window.Options options = Window.options().frameless().minimumSize(240, 160).icon(icon);
     App<Lights> app = new App<>(new Lights(), Lights::view);
     try (Window window = Window.open("Lights", 360, 240, options);

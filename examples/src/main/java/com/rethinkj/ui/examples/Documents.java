@@ -58,7 +58,7 @@ import java.util.Locale;
  */
 public final class Documents {
 
-  static final int MARK = 0xFF2563EB;
+  static final int MARK = Identity.BLUE;
   static final float WIDTH = 640;
   static final float HEIGHT = 360;
   static final float TAB_WIDTH = 480; // a window torn off

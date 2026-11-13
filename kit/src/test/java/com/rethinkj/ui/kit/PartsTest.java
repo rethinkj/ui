@@ -122,6 +122,24 @@ class PartsTest {
     assertEquals("explain", app.state().log.getLast());
   }
 
+  /** In a column with room to spare, a path and a toolbar stay a row high, as they look. */
+  @Test
+  void aBreadcrumbAndAToolbarStayARowHighInAColumnWithRoom() throws IOException {
+    Theme t = Theme.DARK;
+    Breadcrumb.State crumbs = new Breadcrumb.State();
+    Toolbar.State tools = new Toolbar.State();
+    App<Object> app = new App<>(new Object(), x -> El.col().h(300).children(
+        Breadcrumb.breadcrumb(t, crumbs, java.util.List.of("localhost", "shop"), i -> { }),
+        Toolbar.toolbar(t, tools, "Table", java.util.List.of(
+            Toolbar.button(Symbol.ARROW_CLOCKWISE, "Refresh", () -> { })))));
+    Script.run("size 400 320\nframe\nframe", app, out);
+    String dump = app.tree().dump();
+    assertEquals(t.size().control(),
+        StructureTest.rect(StructureTest.line(dump, "role=navigation"))[3], dump);
+    assertEquals(t.size().control(),
+        StructureTest.rect(StructureTest.line(dump, "role=toolbar"))[3], dump);
+  }
+
   @Test
   void theBreadcrumbGoesUpAndShortensAtItsStart() throws IOException {
     App<Parts> app = run(720, "");

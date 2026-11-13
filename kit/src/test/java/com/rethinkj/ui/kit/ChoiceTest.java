@@ -65,6 +65,16 @@ class ChoiceTest {
     assertEquals("spinbutton", app.focused().role(), "and leaves the focus in the field");
   }
 
+  /** The label a number field is given is its spinbutton's, which a script selects it by. */
+  @Test
+  void aNumberFieldsLabelIsItsSpinbuttons() throws IOException {
+    int[] size = {5};
+    App<Object> app = new App<>(new Object(), x -> col().child(NumberField.numberField(
+        Theme.DARK, "Fetch size", size[0], 1, 100, 1, v -> size[0] = v)));
+    run(app, "focus role=spinbutton label=\"Fetch size\"\nkey ArrowUp");
+    assertEquals(6, size[0]);
+  }
+
   @Test
   void aSliderFollowsTheKeysAndADragAndSaysItsValue() throws IOException {
     Sheets s = new Sheets(Theme.DARK);

@@ -137,7 +137,7 @@ import java.util.function.Predicate;
 public final class App<S> {
 
   /** The colour of the focus ring until {@link #focusRing} changes it, as 0xAARRGGBB. */
-  public static final int FOCUS_RING = 0xFF93C5FD;
+  public static final int FOCUS_RING = Colors.rgb(0x93C5FD);
 
   /** How long the caret of a focused field is on, and then off, in seconds of the app's clock. */
   public static final double BLINK = 0.5;

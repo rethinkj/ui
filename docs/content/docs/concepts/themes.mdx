@@ -3,7 +3,7 @@ title: Themes and tokens
 description: The kit's Theme record of colour, space, type, size and motion tokens, the dark and light themes, and how to change them.
 ---
 
-The kit's look comes from `Theme`, a record of token groups: surfaces, text colours, borders, accent, status colours, spacing, radii, type, sizes, motion, the grid's, elevation, code colours and more. `Theme.DARK` and `Theme.LIGHT` are the defaults; an app copies one and changes a group with a `with` method. Components read only tokens, so a changed theme changes everything at once.
+The kit's look comes from `Theme`, a record of token groups: surfaces, text colours, borders, accent, status colours, spacing, radii, type, sizes, motion, the grid's, elevation, code colours and more. `Theme.DARK` and `Theme.LIGHT` are the defaults; an app copies one and changes a group with a `with` method, or takes one of the named accents. Components read only tokens, so a changed theme changes everything at once.
 
 ```java snippet="theme"
 ```
@@ -34,11 +34,40 @@ Every component takes the theme as its first parameter. There is no global theme
 
 `withSurface`, `withText`, `withBorder`, `withAccent`, `withStatus`, `withSpace`, `withRadius`, `withType`, `withSize`, `withMotion`, `withGrid`, `withScrollbars`, `withCode`, `withElevation`, `withProse`, `withBadge` and `withCaption` return a changed copy.
 
+## Accents
+
+`theme.withAccent(Theme.Hue.VIOLET)` takes a named accent instead of its colours: `BLUE` (the default), `VIOLET`, `PURPLE`, `PINK`, `RED`, `ORANGE`, `AMBER`, `GREEN`, `TEAL` and `GREY`, enough for a colour per connection or per window. Each hue has an accent made for a dark theme (`hue.dark()`) and one for a light theme (`hue.light()`), and `withAccent` takes the one of the theme's lightness. Every one of them holds the rules the default accent holds, in both themes: white text 4.5:1 on the accent, its hover and pressed tones; the accent 3:1 on cards and controls; its edge 3:1 on every surface, on the grid's selection and on a progress bar's track. Only the accent changes: the grid's selection, links and the tint of a changed cell stay blue.
+
+An accent of your own is a `Theme.Accent` of a colour, its hover and its pressed tones; the selection is then the colour at 40 % and the edge the colour itself, which in a dark theme may need a lighter tone (the five-value constructor) to stand out 3:1:
+
+```java snippet="own-accent"
+```
+
+## Colours
+
+A colour is an `int`, `0xAARRGGBB` in 8-bit sRGB with straight alpha, everywhere: in `El.fill`, `color`, `border`, `Shadow` and the theme. `com.rethinkj.ui.Colors` writes, reads and mixes them, so that code needs no hex digits of alpha or masks:
+
+```java snippet="colours"
+```
+
+| Method | What it does |
+| --- | --- |
+| `rgb(0x3D6FE6)`, `rgb(r, g, b)`, `argb(a, r, g, b)` | An opaque colour from 24 bits or from channels of 0 to 255 |
+| `alpha(colour, 0.4f)` | The colour at that alpha, `round(share * 255)`: 0.4 is `0x66` |
+| `hex("#3D6FE6")`, `hex("#663D6FE6")`, `toHex(colour)` | Read from text and write back; a mistake names what a colour looks like |
+| `alpha(c)`, `red(c)`, `green(c)`, `blue(c)` | The channels, 0 to 255 |
+| `over(base, overlay)` | A translucent colour over an opaque one, mixed in linear light as the renderer does |
+| `mix(a, b, t)` | `t` of the way from `a` to `b`, in linear light; `mix(c, BLACK, 0.2)` is `c` with 20 % less light |
+| `luminance(c)`, `contrast(a, b)`, `lightness(c)` | WCAG's relative luminance and contrast ratio, and CIELAB's L* |
+| `BLACK`, `WHITE`, `TRANSPARENT` | |
+
+The default themes are written with the colours of the kit's `Palette`, named by hue and lightness: `BLUE_496` is a blue of L* 49.6, `GREY_083` the dark theme's card. An app may use them too; what a colour is for is still the theme's token, `t.accent().color()` rather than `Palette.BLUE_496`, so that a changed theme changes it.
+
 ## The look
 
 The look is layered: the window's background is a page, each region a card on it, controls and popups raised above. Hairlines of low contrast separate rows; buttons and popups have a slightly stronger edge, fields a strong one. The full accent fills primary buttons and what is on; its lighter edge draws the focus ring, the active tab's line and the grid's cursor. The default themes hold text to WCAG AA contrast (4.5:1) on every surface it appears on, which the kit's tests check; a theme of your own should too.
 
-`Theme.over(base, overlay)` mixes a translucent colour into a surface as the renderer does, in linear light.
+`Colors.over(base, overlay)` (also `Theme.over`) mixes a translucent colour into a surface as the renderer does, in linear light.
 
 ## Following the system
 

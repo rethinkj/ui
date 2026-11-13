@@ -199,7 +199,7 @@ final class Layouts {
   static El bars(Layouts s) {
     Theme t = s.t;
     // docs:start title-bar
-    El title = TitleBar.titleBar(t, "Workbench", 0xFF3D6FE6,
+    El title = TitleBar.titleBar(t, "Workbench", t.accent().color(),
         Toggle.toggle(t, s.dark, () -> s.dark = !s.dark).label("Dark theme"));
     // docs:end title-bar
     // docs:start status-bar

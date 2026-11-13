@@ -56,8 +56,10 @@ public final class Breadcrumb {
     }
     float gap = t.space().xs();
     int first = first(t, state, parts, gap);
+    // grow(1) fills a row's width; the most height keeps it a row high in a column with room.
     El bar = row().role("navigation").label("Breadcrumb").h(t.size().control()).grow(1)
-        .minSize(0, t.size().control()).gap(gap).align(Style.Align.CENTER).clip()
+        .minSize(0, t.size().control()).maxSize(Float.POSITIVE_INFINITY, t.size().control())
+        .gap(gap).align(Style.Align.CENTER).clip()
         .onResize((w, h) -> state.width = w);
     List<El> stops = new ArrayList<>();
     if (first > 0) {

@@ -360,7 +360,7 @@ public final class Showcase {
     app.textRendering(TextRendering.platform());
     Showcase s = app.state();
     s.look = Look.SYSTEM; // the window follows the system until another look is chosen
-    Window.Options options = Identity.options(Showcase.class, "Showcase", 0xFF7C3AED, Symbol.SHAPES)
+    Window.Options options = Identity.options(Showcase.class, "Showcase", Identity.VIOLET, Symbol.SHAPES)
         .frameless().minimumSize(MIN_WIDTH, MIN_HEIGHT);
     try (Window window = Window.open("Showcase", 1100, 720, options);
         GpuPresenter presenter = new GpuPresenter(window)) {
