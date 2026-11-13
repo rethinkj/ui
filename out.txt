@@ -1,2 +1,0 @@
-Fehler: Hauptklasse ..Probe.java konnte nicht gefunden oder geladen werden
-Ursache: java.lang.ClassNotFoundException: //Probe/java
