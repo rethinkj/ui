@@ -9,13 +9,11 @@ import com.rethinkj.ui.Clipboard;
 import com.rethinkj.ui.Cursor;
 import com.rethinkj.ui.Drag;
 import com.rethinkj.ui.El;
-import com.rethinkj.ui.Highlighter;
 import com.rethinkj.ui.Key;
 import com.rethinkj.ui.Len;
 import com.rethinkj.ui.Measure;
 import com.rethinkj.ui.ScrollState;
 import com.rethinkj.ui.Scrollbars;
-import com.rethinkj.ui.Spans;
 import com.rethinkj.ui.Style;
 import com.rethinkj.ui.Text;
 import java.util.ArrayList;
@@ -927,7 +925,7 @@ public final class DataGrid {
     /**
      * Shows what the rows and cells hold against the database: a mark at the start of each row
      * that is not {@link Status#UNCHANGED}, a tint over it or over its cells, a {@code +} for the
-     * number of a new row, and the text of a deleted row struck through. In a tree dump a row and
+     * number of a new row, and the text of a deleted row muted and struck through. In a tree dump a row and
      * a cell say it as {@code value="changed"}, {@code "new"}, {@code "deleted"} or {@code
      * "error"}, and a failed cell is {@code invalid}.
      */
@@ -1466,10 +1464,17 @@ public final class DataGrid {
       if (icon == null || !icon.alone()) {
         El text = text(t, column.mono(), value == null ? "NULL" : oneLine(value),
             value == null || row == Status.DELETED ? t.text().muted() : t.text().primary());
-        if (row == Status.DELETED) {
-          text.highlight(new Strike(t.text().muted()), new Strike(t.text().muted()));
-        }
         box.child(text);
+        if (row == Status.DELETED) { // struck through, a line as the text is wide
+          float pad = t.space().s();
+          float before = icon == null ? 0 : t.size().icon() + pad;
+          float width = Math.min(natural(text), column.width() - t.size().stroke() - 2 * pad
+              - before);
+          float x = column.align() == Align.RIGHT ? column.width() - t.size().stroke() - pad
+              - width : pad + before;
+          box.child(el().absolute(x, Math.round((b.g.rowHeight() - t.size().stroke()) / 2))
+              .size(Math.max(width, 0), t.size().stroke()).fill(t.text().muted()));
+        }
       } else {
         box.label(value == null ? "NULL" : value); // what the icon stands for, in a dump
       }
@@ -1518,15 +1523,6 @@ public final class DataGrid {
       case NEW -> t.status().success();
       default -> t.status().danger();
     };
-  }
-
-  /** The text of a deleted row, struck through in its colour. */
-  private record Strike(int colour) implements Highlighter {
-    @Override
-    public Object line(String line, Object state, Spans out) {
-      out.strike(0, line.length(), colour);
-      return null;
-    }
   }
 
   /** Places an element of a frozen column: at {@code x}, as tall as the row, kept from scrolling. */

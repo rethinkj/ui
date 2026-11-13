@@ -11,12 +11,16 @@ import com.rethinkj.ui.App;
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.Script;
 import com.rethinkj.ui.kit.DataGrid.Status;
+import com.rethinkj.ui.render.Png;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 /**
  * Editing in the grid ({@link DataGrid.Options#onCommit}) with the changes kept in a {@link
@@ -48,6 +52,30 @@ class GridEditTest {
     String line = dumpLine(app, key);
     assertNotNull(line, key + " in\n" + app.tree().dump());
     return line;
+  }
+
+  /**
+   * edit.txt: the editors of text, a number, several lines and a list, a refused date with its
+   * message, and rows changed, new, deleted and failed, with and without the selection.
+   */
+  @ParameterizedTest
+  @ValueSource(strings = {"dark", "light"})
+  void looksAsStored(String name) throws IOException {
+    Ledger ledger = new Ledger(name.equals("dark") ? Theme.DARK : Theme.LIGHT, 40);
+    ledger.changes.set(6, 3, "999.00");
+    ledger.changes.error(6, 3, "violates check constraint");
+    ledger.changes.set(7, 2, "12");
+    App<Ledger> app = ledger.app();
+    Path folder = out.resolve(name);
+    String text = Files.readString(Path.of("src/test/resources/scripts/edit.txt"));
+    List<Path> files = Script.run(text, app, folder).stream()
+        .filter(f -> !f.toString().endsWith(".clipboard.txt")).toList();
+    for (int i = 0; i < files.size(); i += 2) {
+      String snap = files.get(i).getFileName().toString().replace(".png", "");
+      Golden.assertMatches("edit-" + name + "-" + snap,
+          Png.decode(Files.readAllBytes(files.get(i))), Files.readString(files.get(i + 1)));
+    }
+    assertEquals(14, files.size());
   }
 
   @Test

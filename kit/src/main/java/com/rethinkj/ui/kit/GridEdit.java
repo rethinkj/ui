@@ -641,6 +641,7 @@ final class GridEdit {
           .label("Edit " + c.title())
           .font(style.font().get()).fontSize(style.size()).color(t.text().primary())
           .selectionColor(t.accent().selection()).hFull().minSize(0, 0)
+          .focusRing(0) // the editor's edge says where the keys go
           .autofocus(sel.edits);
       if (sel.draft == null) {
         field.value("NULL");
