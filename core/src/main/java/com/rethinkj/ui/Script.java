@@ -38,6 +38,7 @@ import java.util.regex.Pattern;
  * focus #name                        # gives #name the focus, as Tab would
  * press #name clicks 2               # a double press, which selects a word in a field
  * press #name shift                  # with Shift held, which extends a field's selection
+ * press #row-3 right                 # the secondary button, which opens a context menu
  * compose "ni"                       # an input method's composition in the focused field
  * clipboard "SELECT 1"               # puts text on the app's clipboard
  * down #resize-1                     # pointer down; a move before the up drags an El.onDrag
@@ -150,16 +151,22 @@ public final class Script {
           sized = true;
         }
         case "press", "down", "up" -> {
-          // press and down: the target, then clicks <n> and the modifiers held, in any order
+          // press and down: the target, then clicks <n>, the modifiers held and right, in any
+          // order; up: the target and right
           List<String> target = new ArrayList<>(args);
           int clicks = 1;
           int modifiers = 0;
-          while (!step.equals("up") && !target.isEmpty()) {
-            int modifier = modifier(target.getLast());
-            if (modifier != 0) {
+          boolean right = false;
+          while (!target.isEmpty()) {
+            int modifier = step.equals("up") ? 0 : modifier(target.getLast());
+            if (target.getLast().equals("right") && !right) {
+              right = true;
+              target.removeLast();
+            } else if (modifier != 0) {
               modifiers |= modifier;
               target.removeLast();
-            } else if (target.size() > 1 && target.get(target.size() - 2).equals("clicks")) {
+            } else if (!step.equals("up") && target.size() > 1
+                && target.get(target.size() - 2).equals("clicks")) {
               if (!CLICKS.matcher(target.getLast()).matches()) {
                 throw line.usage(step);
               }
@@ -169,7 +176,7 @@ public final class Script {
               break;
             }
           }
-          if (target.isEmpty()) {
+          if (target.isEmpty() || right && (clicks != 1 || modifiers != 0)) {
             throw line.usage(step);
           }
           if (app.tree() == null) {
@@ -179,10 +186,18 @@ public final class Script {
           }
           float[] at = line.point(target, app.tree());
           if (!step.equals("up")) {
-            app.pointerDown(at[0], at[1], clicks, modifiers);
+            if (right) {
+              app.secondaryDown(at[0], at[1]);
+            } else {
+              app.pointerDown(at[0], at[1], clicks, modifiers);
+            }
           }
           if (!step.equals("down")) {
-            app.pointerUp(at[0], at[1]);
+            if (right) {
+              app.secondaryUp(at[0], at[1]);
+            } else {
+              app.pointerUp(at[0], at[1]);
+            }
           }
         }
         case "move" -> {
@@ -293,8 +308,7 @@ public final class Script {
           float[] at = line.point(args, app.tree());
           if (app.focusAt(at[0], at[1]) == null) {
             List<Found> all = new ArrayList<>();
-            float far = Float.POSITIVE_INFINITY;
-            walk(app.tree(), 0, 0, -far, -far, far, far, all, new ArrayList<>());
+            walk(app.tree(), all, new ArrayList<>());
             StringBuilder rows = new StringBuilder();
             for (Found found : all) {
               if (found.el.isFocusable()) {
@@ -470,8 +484,12 @@ public final class Script {
                 case "press", "down" ->
                     "`" + step + " <target>`, then `clicks <n>` for the second or third press in a"
                         + " row and any of shift, control, alt and meta that are held, for example"
-                        + " `" + step + " #name clicks 2` or `" + step + " #name shift`. A target"
-                        + " is " + TARGET + ".";
+                        + " `" + step + " #name clicks 2` or `" + step + " #name shift`, or `"
+                        + step + " <target> right` for the secondary button, without them. A"
+                        + " target is " + TARGET + ".";
+                case "up" ->
+                    "`up <target>`, or `up <target> right` for the secondary button. A target is "
+                        + TARGET + ".";
                 case "wheel" ->
                     "`wheel <target> <deltaX> <deltaY>`, with distances in logical pixels that are"
                         + " positive to scroll down or right, for example `wheel #list 0 40`. A"
@@ -558,8 +576,7 @@ public final class Script {
       }
       List<Found> all = new ArrayList<>();
       List<Found> clipped = new ArrayList<>();
-      float far = Float.POSITIVE_INFINITY;
-      walk(root, 0, 0, -far, -far, far, far, all, clipped);
+      walk(root, all, clipped);
       Predicate<Found> matching = found -> tests.stream().allMatch(t -> t.test(found.el));
       List<Found> matches = all.stream().filter(matching).toList();
       if (matches.size() == 1) {
@@ -608,6 +625,15 @@ public final class Script {
           matches.size() + " elements match " + text + ":\n" + rows
               + "  Add #key, role= or label= to the selector until it matches one, or press a"
               + " position x,y inside one of these rectangles.");
+    }
+  }
+
+  /** As the next method, for a tree and then each overlay shown above it, free of other clips. */
+  private static void walk(El root, List<Found> all, List<Found> clipped) {
+    float far = Float.POSITIVE_INFINITY;
+    walk(root, 0, 0, -far, -far, far, far, all, clipped);
+    for (El overlay : root.shownOverlays()) {
+      walk(overlay, 0, 0, -far, -far, far, far, all, clipped);
     }
   }
 

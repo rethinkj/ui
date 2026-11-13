@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -115,7 +116,7 @@ public final class App<S> {
   private float pointerY;
   private List<El> under = List.of(); // the elements under the pointer in the current tree
   private El marked; // the one of them a press would go to, marked for the dump
-  private Looks shown = new Looks(List.of(), null, null); // the looks the current tree has
+  private Looks shown = new Looks(List.of(), List.of(), null, null, 0); // of the current tree
   private El focused; // in the current tree
   private Object focusId; // its identity, to find it in the next tree
   private boolean ring; // the keyboard or the app moved the focus: draw the ring
@@ -134,6 +135,27 @@ public final class App<S> {
   private Editor blinking; // the editor of the focused field
   private double blinkStart; // when its caret last turned on
   private boolean caretOn;
+  private Object secondary; // the identity of the element a secondary press is on, until it is up
+  // The overlays of the last tree the view built, in the order they opened, with where the focus
+  // was before each took it; null for one that took none.
+  private final Map<Object, Focus> opened = new LinkedHashMap<>();
+  // Since when the elements under the pointer with whenHoveredFor or onHoverFor have been there.
+  private final Map<Object, Rest> resting = new HashMap<>();
+  private double restDue = Double.POSITIVE_INFINITY; // when the next of their looks or handlers is
+  private int hoversRun; // onHoverFor handlers run so far
+
+  /** Where the focus was, by identity, and whether it had a ring. */
+  private record Focus(Object id, boolean ring) {}
+
+  /** Since when the pointer has been over an element; whether its onHoverFor handler has run. */
+  private static final class Rest {
+    double since;
+    boolean ran;
+
+    Rest(double since) {
+      this.since = since;
+    }
+  }
 
   public App(S state, Function<S, El> view) {
     this.state = state;
@@ -227,6 +249,11 @@ public final class App<S> {
    * is: on the thumb, moving the pointer drags the thumb until it is up, and on the track beside
    * the thumb, the area scrolls one page towards the pointer.
    *
+   * <p>Overlays ({@link El#overlay}) come first, the topmost first, and a press goes no further
+   * than the overlay it lands in. A press outside the overlays above it calls their {@link
+   * El#onDismiss} handlers; when it lands outside all of them, or outside a {@link El#modal} one,
+   * that is all it does.
+   *
    * @param clicks 1 for a single press, 2 for the second of a double press, and so on
    * @param modifiers a combination of {@link Key#SHIFT}, {@link Key#CONTROL}, {@link Key#ALT} and
    *     {@link Key#META}
@@ -238,6 +265,11 @@ public final class App<S> {
     dragging = null;
     selecting = null; // likewise: a selection whose release got lost ends where it is
     grab = null; // and a thumb's drag
+    queued.add(this::restAfterPress);
+    if (dismiss(x, y, true)) {
+      pressed = null;
+      return;
+    }
     List<El> hit = hit(x, y);
     Scrollbars.Bar bar = hit.isEmpty() ? null : hit.getLast().barAt(x, y);
     if (bar != null) { // hit stops at the area whose bar it is
@@ -317,6 +349,109 @@ public final class App<S> {
   }
 
   /**
+   * The secondary button, usually the right one, went down at this position, in logical pixels.
+   * Like a press of the primary button, it dismisses the overlays it lands outside of, and then
+   * gives the focus to the focusable element there, or clears it. It neither drags nor selects.
+   */
+  public void secondaryDown(float x, float y) {
+    secondary = null;
+    queued.add(this::restAfterPress);
+    if (dismiss(x, y, true)) {
+      return;
+    }
+    Target target = target(x, y, el -> el.onSecondaryPress() != null);
+    secondary = target == null ? null : target.id();
+    Target focus = target(x, y, El::isFocusable);
+    El el = focus == null ? null : focus.el;
+    queued.add(() -> focus(el, false));
+  }
+
+  /**
+   * The secondary button was released here. When it went down on the same element, the next
+   * {@link #frame} runs that element's {@link El#onSecondaryPress} handler, or its nearest
+   * ancestor's, with this position.
+   */
+  public void secondaryUp(float x, float y) {
+    Target target = target(x, y, el -> el.onSecondaryPress() != null);
+    if (target != null && target.id().equals(secondary)) {
+      El.PointHandler handler = target.el.onSecondaryPress();
+      queued.add(() -> {
+        handler.accept(x, y);
+        return true;
+      });
+    }
+    secondary = null;
+  }
+
+  /** A press keeps the looks and handlers of {@link El#whenHoveredFor} away until a new stay. */
+  private boolean restAfterPress() {
+    for (Rest rest : resting.values()) {
+      rest.since = Double.POSITIVE_INFINITY;
+    }
+    return false; // the frame compares the looks
+  }
+
+  /**
+   * For a press or the wheel at this point: queues the {@link El#onDismiss} handlers of the
+   * overlays above the first one it lands in, the topmost first. A modal overlay ends the search;
+   * the wheel calls no modal overlay's handler.
+   *
+   * @return whether the input goes no further: it landed outside a modal overlay, or a press
+   *     landed outside all overlays and called a handler
+   */
+  private boolean dismiss(float x, float y, boolean press) {
+    if (root == null) {
+      return false;
+    }
+    boolean dismissed = false;
+    for (El overlay : root.shownOverlays().reversed()) {
+      if (overlay.isExiting()) {
+        continue;
+      }
+      if (!hitFrom(overlay, x, y).isEmpty()) {
+        return false;
+      }
+      Runnable handler = overlay.onDismiss();
+      if (handler != null && (press || !overlay.isModal())) {
+        queued.add(() -> {
+          handler.run();
+          return true;
+        });
+        dismissed = true;
+      }
+      if (overlay.isModal()) {
+        return true;
+      }
+    }
+    return press && dismissed;
+  }
+
+  /** The topmost modal overlay that is open and not leaving, or null. */
+  private El modal() {
+    if (root != null) {
+      for (El overlay : root.shownOverlays().reversed()) {
+        if (overlay.isModal() && !overlay.isExiting()) {
+          return overlay;
+        }
+      }
+    }
+    return null;
+  }
+
+  /**
+   * The part of a path from the root that begins at the innermost overlay in it, whose position
+   * is in window coordinates; all of it when it has no overlay.
+   */
+  private static List<El> fromOverlay(List<El> path) {
+    for (int i = path.size() - 1; i > 0; i--) {
+      if (path.get(i - 1).hasOverlay(path.get(i))) {
+        return path.subList(i, path.size());
+      }
+    }
+    return path;
+  }
+
+  /**
    * A press on the thumb of a scroll area's bar: the area's identity, which bar, and how far from
    * the thumb's start the pointer holds it along the bar.
    */
@@ -377,7 +512,12 @@ public final class App<S> {
    * element if it has an {@link El#onPress} handler, which takes their repeats without pressing
    * again, and Tab moves the focus to the next focusable element in tree order, Shift+Tab to the
    * previous one, around at the ends. Unlike in a browser, a press handler on the focused element
-   * takes Enter and Space before its ancestors' key handlers see them.
+   * takes Enter and Space before its ancestors' key handlers see them. The Menu key and Shift+F10
+   * run the nearest {@link El#onSecondaryPress} handler at the focused element's bottom left.
+   *
+   * <p>In an overlay, keys go up from the focused element to the overlay's root and on to the
+   * element it is attached to and that element's ancestors; in a {@link El#modal} one they end at
+   * its root, which also gets them while nothing has the focus.
    */
   public void keyDown(Key key) {
     Objects.requireNonNull(key, "key");
@@ -402,6 +542,21 @@ public final class App<S> {
             el.onPress().accept(1);
           }
           return true;
+        }
+      }
+      if (key.name().equals("ContextMenu") && key.modifiers() == 0
+          || key.name().equals("F10") && key.modifiers() == Key.SHIFT) {
+        for (El el : path.reversed()) {
+          if (el.onSecondaryPress() != null) {
+            float x = 0;
+            float y = 0;
+            for (El on : fromOverlay(path)) {
+              x += on.x();
+              y += on.y();
+            }
+            el.onSecondaryPress().accept(x, y + path.getLast().height());
+            return true;
+          }
         }
       }
       if (key.name().equals("Tab") && (key.modifiers() & ~Key.SHIFT) == 0) {
@@ -502,7 +657,7 @@ public final class App<S> {
     pathTo(root, focused, path);
     float x = 0;
     float y = 0;
-    for (El el : path) {
+    for (El el : fromOverlay(path)) {
       x += el.x();
       y += el.y();
     }
@@ -512,14 +667,15 @@ public final class App<S> {
 
   /**
    * The time on the app's clock at which the last frame changes without input or movement: when
-   * the caret of the focused field turns on or off. Positive infinity when nothing will; then an
-   * idle window can wait for input alone.
+   * the caret of the focused field turns on or off, or when the pointer will have rested long
+   * enough on an element for its {@link El#whenHoveredFor} look or {@link El#onHoverFor} handler.
+   * Positive infinity when nothing will; then an idle window can wait for input alone.
    */
   public double nextChange() {
     if (blinking == null) {
-      return Double.POSITIVE_INFINITY;
+      return restDue;
     }
-    return blinkStart + (Math.floor((time - blinkStart) / BLINK) + 1) * BLINK;
+    return Math.min(restDue, blinkStart + (Math.floor((time - blinkStart) / BLINK) + 1) * BLINK);
   }
 
   /**
@@ -738,6 +894,11 @@ public final class App<S> {
     if (root != null && (end == null || !pathTo(root, end, path))) {
       path.add(root);
     }
+    El modal = modal();
+    if (modal != null) { // keys end at it
+      int at = path.indexOf(modal);
+      return at >= 0 ? path.subList(at, path.size()) : new ArrayList<>(List.of(modal));
+    }
     return path;
   }
 
@@ -752,6 +913,11 @@ public final class App<S> {
         return true;
       }
     }
+    for (El overlay : el.overlays()) {
+      if (pathTo(overlay, target, path)) {
+        return true;
+      }
+    }
     path.removeLast();
     return false;
   }
@@ -761,8 +927,9 @@ public final class App<S> {
    * border box whole inside theirs, or its start if it is larger.
    */
   private void reveal(El el) {
-    List<El> path = new ArrayList<>();
-    pathTo(root, el, path);
+    List<El> full = new ArrayList<>();
+    pathTo(root, el, full);
+    List<El> path = fromOverlay(full); // the areas around an overlay stay where they are
     for (int i = path.size() - 2; i >= 0; i--) {
       El area = path.get(i);
       if (!area.isScrollArea()) {
@@ -802,14 +969,17 @@ public final class App<S> {
     List<El> found = new ArrayList<>();
     if (root != null) {
       float far = Float.POSITIVE_INFINITY;
-      focusables(root, 0, 0, -far, -far, far, far, found);
+      El modal = modal(); // the focus stays inside it
+      focusables(modal != null ? modal : root, 0, 0, -far, -far, far, far, root.shownOverlays(),
+          found);
     }
     return found;
   }
 
+  /** The overlays shown come right after their anchor and what is inside it. */
   private static void focusables(
       El el, float parentX, float parentY, float clipLeft, float clipTop, float clipRight,
-      float clipBottom, List<El> found) {
+      float clipBottom, List<El> shown, List<El> found) {
     if (!el.isPlaced() || el.opacity() == 0 || el.isExiting()) {
       return;
     }
@@ -827,9 +997,6 @@ public final class App<S> {
       clipTop = Math.max(top, clipTop);
       clipRight = Math.min(right, clipRight);
       clipBottom = Math.min(bottom, clipBottom);
-      if (!(clipRight > clipLeft && clipBottom > clipTop)) {
-        return; // nothing below shows
-      }
       float far = Float.POSITIVE_INFINITY;
       if (s.overflowX == Style.Overflow.SCROLL) {
         clipLeft = -far;
@@ -840,8 +1007,16 @@ public final class App<S> {
         clipBottom = far;
       }
     }
-    for (El child : el.children()) {
-      focusables(child, left, top, clipLeft, clipTop, clipRight, clipBottom, found);
+    if (clipRight > clipLeft && clipBottom > clipTop) { // else nothing below shows
+      for (El child : el.children()) {
+        focusables(child, left, top, clipLeft, clipTop, clipRight, clipBottom, shown, found);
+      }
+    }
+    float far = Float.POSITIVE_INFINITY;
+    for (El overlay : el.overlays()) {
+      if (shown.contains(overlay)) {
+        focusables(overlay, 0, 0, -far, -far, far, far, shown, found);
+      }
     }
   }
 
@@ -863,12 +1038,17 @@ public final class App<S> {
    * Positive values scroll towards the end, so that the content moves up or to the left, as {@code
    * deltaY} of a browser's wheel event; SDL counts the other way. Along each axis the innermost
    * scroll area under the pointer that can still move that way takes the whole distance, clamped
-   * to its content; when none can, nothing happens. The next {@link #frame} shows it.
+   * to its content; when none can, nothing happens. The next {@link #frame} shows it. Outside the
+   * overlays that are open, the wheel calls the {@link El#onDismiss} handlers of those above the
+   * pointer and scrolls as usual; outside a {@link El#modal} one it does nothing.
    */
   public void wheel(float x, float y, float deltaX, float deltaY) {
     if (!Float.isFinite(deltaX) || !Float.isFinite(deltaY)) {
       throw new IllegalArgumentException("wheel deltas must be finite, were " + deltaX + ", "
           + deltaY);
+    }
+    if (dismiss(x, y, false)) {
+      return; // outside a modal overlay
     }
     List<El> areas = hit(x, y).reversed();
     scrolls.add(() -> scroll(areas, true, deltaX) | scroll(areas, false, deltaY)); // not ||
@@ -988,6 +1168,7 @@ public final class App<S> {
       attachEditors(root, new ArrayList<>()); // before layout, which shows a composition
       El.scaleText(root, scale);
       Flex.layout(root, width, height);
+      Overlays.layout(root, width, height);
       animator.update(root, time);
       lookIds = ids;
       fillRows();
@@ -1077,6 +1258,9 @@ public final class App<S> {
     for (El child : el.children()) {
       attachEditors(child, path);
     }
+    for (El overlay : el.overlays()) {
+      attachEditors(overlay, path);
+    }
     path.removeLast();
   }
 
@@ -1111,6 +1295,9 @@ public final class App<S> {
     for (El child : el.children()) {
       collectEditors(child, into);
     }
+    for (El overlay : el.overlays()) {
+      collectEditors(overlay, into);
+    }
   }
 
   /** The pointer moved while a press selects in a field. */
@@ -1134,7 +1321,7 @@ public final class App<S> {
     pathTo(root, field, path);
     float left = contentLeft(field);
     float top = px(field.style().paddingTop) + px(field.style().borderTop);
-    for (El el : path) {
+    for (El el : fromOverlay(path)) {
       left += el.x();
       top += el.y();
     }
@@ -1152,17 +1339,26 @@ public final class App<S> {
     return len.kind() == Len.Kind.PX ? len.value() : 0;
   }
 
-  /** The identities of elements with looks, by the state they are in; see {@link #wanted}. */
-  private record Looks(List<Object> hovered, Object focused, Object pressed) {
+  /**
+   * The identities of elements with looks, by the state they are in; see {@link #wanted}. {@code
+   * rested} are those with a {@link El#whenHoveredFor} look that is due, and {@code hoversRun}
+   * counts the {@link El#onHoverFor} handlers run, so that one that ran builds the view again.
+   */
+  private record Looks(
+      List<Object> hovered, List<Object> rested, Object focused, Object pressed, int hoversRun) {
 
     /** These looks without those of elements in the rows of a list, which were built anew. */
     Looks without(Object list) {
       List<Object> kept = new ArrayList<>(hovered);
       kept.removeIf(id -> Animator.isBelow(id, list));
+      List<Object> keptRested = new ArrayList<>(rested);
+      keptRested.removeIf(id -> Animator.isBelow(id, list));
       return new Looks(
           kept,
+          keptRested,
           Animator.isBelow(focused, list) ? null : focused,
-          Animator.isBelow(pressed, list) ? null : pressed);
+          Animator.isBelow(pressed, list) ? null : pressed,
+          hoversRun);
     }
   }
 
@@ -1174,7 +1370,13 @@ public final class App<S> {
    * @return whether a list built its rows
    */
   private boolean fillRows() {
-    return root != null && fillRows(root, new ArrayList<>(), 0);
+    if (root == null) {
+      return false;
+    }
+    boolean built = fillRows(root, new ArrayList<>(), 0);
+    // After scrolling, movement and new rows, the overlays follow their anchors.
+    Overlays.place(root, width, height);
+    return built;
   }
 
   private boolean fillRows(El el, List<El> path, float parentY) {
@@ -1196,10 +1398,16 @@ public final class App<S> {
         attachEditors(row, path);
       }
       el.layoutRows(scale);
+      for (El row : el.children()) {
+        Overlays.layout(row, width, height);
+      }
       animator.rows(el, id, time);
     }
     for (El child : el.children()) {
       built |= fillRows(child, path, top);
+    }
+    for (El overlay : el.overlays()) { // in window coordinates
+      built |= fillRows(overlay, path, 0);
     }
     path.removeLast();
     return built;
@@ -1211,6 +1419,7 @@ public final class App<S> {
    */
   private void rowLooks(El list, Object listId) {
     List<Object> hovered = new ArrayList<>(shown.hovered());
+    List<Object> rested = new ArrayList<>(shown.rested());
     Object focus = shown.focused();
     Object press = shown.pressed();
     for (int i = 0; i < list.children().size(); i++) {
@@ -1220,6 +1429,11 @@ public final class App<S> {
         if (Animator.isBelow(id, listId)
             && look(Animator.find(row, rowId, id), El::hoverLook, "whenHovered")) {
           hovered.add(id);
+        }
+      }
+      for (Object id : lookIds) {
+        if (Animator.isBelow(id, listId) && restLook(Animator.find(row, rowId, id), id)) {
+          rested.add(id);
         }
       }
       if (Animator.isBelow(focusId, listId)) {
@@ -1233,13 +1447,14 @@ public final class App<S> {
         press = pressed;
       }
     }
-    shown = new Looks(hovered, focus, press);
+    shown = new Looks(hovered, rested, focus, press, shown.hoversRun());
   }
 
   /**
    * The looks that the elements of the current tree ask for in the states of the moment: those
-   * along {@code path} under the pointer with a hover look, and the focused and the pressed element
-   * if they have a look for that.
+   * along {@code path} under the pointer with a hover look, those there with a {@link
+   * El#whenHoveredFor} look that is due, and the focused and the pressed element if they have a
+   * look for that. This also runs the {@link El#onHoverFor} handlers that are due.
    */
   private Looks wanted(List<El> path, List<Object> ids) {
     List<Object> hovered = new ArrayList<>();
@@ -1248,17 +1463,114 @@ public final class App<S> {
         hovered.add(ids.get(i));
       }
     }
+    List<Object> rested = rest(path, ids);
     El focus = focusId == null ? null : animator.element(focusId);
     El press = pressed == null ? null : animator.element(pressed);
     return new Looks(
         hovered,
+        rested,
         focus != null && focus.focusLook() != null ? focusId : null,
-        press != null && press.pressLook() != null ? pressed : null);
+        press != null && press.pressLook() != null ? pressed : null,
+        hoversRun);
+  }
+
+  /**
+   * Follows how long the pointer has stayed on the elements along {@code path} that wait for it:
+   * runs the {@link El#onHoverFor} handlers that are due, notes in {@link #restDue} when the next
+   * look or handler is, and returns the identities of those whose {@link El#whenHoveredFor} look
+   * is due.
+   */
+  private List<Object> rest(List<El> path, List<Object> ids) {
+    resting.keySet().retainAll(ids); // a stay ends when the pointer leaves
+    restDue = Double.POSITIVE_INFINITY;
+    List<Object> rested = new ArrayList<>();
+    for (int i = 0; i < path.size(); i++) {
+      El el = path.get(i);
+      if (el.restLook() == null && el.onHoverFor() == null) {
+        continue;
+      }
+      Rest rest = resting.computeIfAbsent(ids.get(i), id -> new Rest(time));
+      if (el.restLook() != null) {
+        double due = rest.since + el.restDelay();
+        if (due <= time) {
+          rested.add(ids.get(i));
+        } else {
+          restDue = Math.min(restDue, due);
+        }
+      }
+      if (el.onHoverFor() != null && !rest.ran) {
+        double due = rest.since + el.hoverDelay();
+        if (due <= time) {
+          rest.ran = true;
+          hoversRun++;
+          el.onHoverFor().run();
+        } else {
+          restDue = Math.min(restDue, due);
+        }
+      }
+    }
+    return rested;
+  }
+
+  /** Applies {@code el}'s {@link El#whenHoveredFor} look if it is due; whether it did. */
+  private boolean restLook(El el, Object id) {
+    Rest rest = el == null || el.restLook() == null ? null : resting.get(id);
+    if (rest == null || rest.since + el.restDelay() > time) {
+      return false;
+    }
+    el.apply(el.restLook(), "whenHoveredFor");
+    return true;
+  }
+
+  /**
+   * Before layout of a tree the view has just built: each overlay it no longer has gives the
+   * focus back to where it was before the overlay took it, the newest first, if the focus is
+   * still inside the overlay or nowhere; then each overlay that opens moves the focus to its first
+   * focusable element, without a ring. A modal overlay without one takes the focus away until it
+   * closes. {@link #refocus} finds the element after layout.
+   */
+  private void openAndClose(El tree) {
+    Map<Object, El> now = Animator.overlays(tree);
+    List<Object> before = new ArrayList<>(opened.keySet());
+    for (Object id : before.reversed()) {
+      if (now.containsKey(id)) {
+        continue;
+      }
+      Focus back = opened.remove(id);
+      if (back != null
+          && (focusId == null || focusId.equals(id) || Animator.isBelow(focusId, id))) {
+        moveFocus(back.id(), back.ring());
+      }
+    }
+    for (Map.Entry<Object, El> overlay : now.entrySet()) {
+      if (opened.containsKey(overlay.getKey())) {
+        continue;
+      }
+      Object first = Animator.firstFocusable(overlay.getValue(), overlay.getKey());
+      boolean takes = first != null || overlay.getValue().isModal();
+      opened.put(overlay.getKey(), takes ? new Focus(focusId, ring) : null);
+      if (takes) {
+        moveFocus(first, false);
+      }
+    }
+  }
+
+  /** Moves the focus to the element with this identity, which the next {@link #refocus} finds. */
+  private void moveFocus(Object id, boolean ring) {
+    if (focused != null) {
+      focused.focused(false);
+    }
+    focused = null;
+    focusId = id;
+    this.ring = ring && id != null;
+    reveal = this.ring;
   }
 
   /**
    * Applies the looks of the moment to the tree the view has just built: the hover looks of the
-   * elements with these identities, then the focus look, then the pressed one.
+   * elements with these identities, then those of {@link El#whenHoveredFor} that are due, then,
+   * after the focus has followed the overlays that open and close, the focus look, then the
+   * pressed one.
    *
    * @return the identities of the elements that took a look
    */
@@ -1269,12 +1581,20 @@ public final class App<S> {
         hovered.add(id);
       }
     }
+    List<Object> rested = new ArrayList<>();
+    for (Object id : hoveredIds) {
+      if (restLook(Animator.find(tree, id), id)) {
+        rested.add(id);
+      }
+    }
+    openAndClose(tree); // after the looks, which may attach overlays, and before the focus look
     El focus = focusId == null ? null : Animator.find(tree, focusId);
     boolean focusLook = focus != null && focus.isFocusable() // or it loses the focus
         && look(focus, El::focusLook, "whenFocused");
     boolean pressLook =
         pressed != null && look(Animator.find(tree, pressed), El::pressLook, "whenPressed");
-    return new Looks(hovered, focusLook ? focusId : null, pressLook ? pressed : null);
+    return new Looks(hovered, rested, focusLook ? focusId : null, pressLook ? pressed : null,
+        hoversRun);
   }
 
   /** Applies {@code el}'s look of one state, if it has one; false if not. */
@@ -1353,7 +1673,7 @@ public final class App<S> {
     El el = held == null ? null : animator.element(held);
     List<El> path = new ArrayList<>();
     if (el != null && pathTo(root, el, path)) {
-      return path;
+      return fromOverlay(path);
     }
     return pointerIn ? hit(pointerX, pointerY) : List.of();
   }
@@ -1439,15 +1759,31 @@ public final class App<S> {
     return null;
   }
 
-  /** The elements under the point, from the root down to the topmost one; empty if none. */
+  /**
+   * The elements under the point, from the root or from the root of the topmost overlay there
+   * down to the topmost one; empty if none, and outside a modal overlay.
+   */
   private List<El> hit(float x, float y) {
+    if (root != null) {
+      for (El overlay : root.shownOverlays().reversed()) {
+        List<El> hit = hitFrom(overlay, x, y);
+        if (!hit.isEmpty() || overlay.isModal() && !overlay.isExiting()) {
+          return hit;
+        }
+      }
+    }
+    return hitFrom(root, x, y);
+  }
+
+  /** The elements under the point from {@code from} down, which is in window coordinates. */
+  private static List<El> hitFrom(El from, float x, float y) {
     List<El> hit = new ArrayList<>();
-    if (root == null || !contains(root, 0, 0, x, y)) {
+    if (from == null || !contains(from, 0, 0, x, y)) {
       return hit;
     }
-    El el = root;
-    float left = root.x();
-    float top = root.y();
+    El el = from;
+    float left = from.x();
+    float top = from.y();
     while (true) {
       hit.add(el);
       if (el.barAt(x, y) != null) {

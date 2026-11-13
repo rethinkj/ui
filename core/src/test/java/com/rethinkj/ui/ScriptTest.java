@@ -34,6 +34,7 @@ class ScriptTest {
   private static final Path HOVER = Path.of("src/test/resources/scripts/hover.txt");
   private static final Path FIELD = Path.of("src/test/resources/scripts/field.txt");
   private static final Path FIELD_ROWS = Path.of("src/test/resources/scripts/field-rows.txt");
+  private static final Path OVERLAY = Path.of("src/test/resources/scripts/overlay.txt");
 
   @TempDir Path out;
 
@@ -224,6 +225,30 @@ class ScriptTest {
     assertFalse(away.contains("focused"), "the focused row does not exist");
     assertTrue(Files.readString(out.resolve("field-rows-back.tree.txt"))
         .contains(" \"ledger\" 60,112 200x24 focused caret 5 anchor 6 composing \"ni\"\n"));
+  }
+
+  @Test
+  void theSecondaryButtonOpensAMenuAboveTheTreeWithASubmenuAndADialog() throws IOException {
+    TextLibraries.assumeLoaded();
+    Examples.main(new String[] {
+      "overlay", "--script", OVERLAY.toString(), "--out", out.toString()
+    });
+
+    assertSnapsMatchGolden(List.of("overlay-menu", "overlay-submenu", "overlay-dialog",
+        "overlay-closed"));
+    String menu = Files.readString(out.resolve("overlay-menu.tree.txt"));
+    assertTrue(menu.contains("\noverlay at 120,85 bottom start on #list role=list"
+        + " label=\"Tables\" 16,16 208x146\n  el #menu role=menu 120,85 81x86\n"), menu);
+    assertTrue(menu.contains(" #open role=menuitem label=\"Open\" 125,90 71x24 focused\n"), menu);
+    String submenu = Files.readString(out.resolve("overlay-submenu.tree.txt"));
+    assertTrue(submenu.contains("\noverlay right start gap 6 on #export role=menuitem"
+        + " label=\"Export\" 125,116 71x24\n  el #formats role=menu 53,116 66x60\n"), submenu);
+    String dialog = Files.readString(out.resolve("overlay-dialog.tree.txt"));
+    assertTrue(dialog.contains("\noverlay center modal scrim on 0,0 240x200\n"), dialog);
+    assertTrue(dialog.contains(" #cancel role=button label=\"Cancel\" 51,101 67x28 focused\n"),
+        dialog);
+    assertTrue(Files.readString(out.resolve("overlay-closed.tree.txt"))
+        .contains(" #list role=list label=\"Tables\" 16,16 208x146 scroll 0,40 focused\n"));
   }
 
   @Test
@@ -497,7 +522,8 @@ class ScriptTest {
     assertFailure("advance -1\n", "line 1: advance -1\n  Write `advance <seconds>`");
     assertFailure("frame now\n", "line 1: frame now\n  Write `frame` with nothing");
     assertFailure("snap\n", "line 1: snap\n  Write `snap <name>`");
-    assertFailure("up\n", "line 1: up\n  Write `up <target>`. A target is a position");
+    assertFailure("up\n", "line 1: up\n  Write `up <target>`, or `up <target> right` for the"
+        + " secondary button. A target is a position");
     assertFailure("move\n", "line 1: move\n  Write `move <target>`. A target is a position");
     assertEquals(
         "line 1: move #switch\n  No frame has run yet, so there is nothing to move over. Add"
@@ -571,7 +597,8 @@ class ScriptTest {
     assertEquals(
         "line 3: press #switch clicks two\n  Write `press <target>`, then `clicks <n>` for the"
             + " second or third press in a row and any of shift, control, alt and meta that are"
-            + " held, for example `press #name clicks 2` or `press #name shift`. A target is a"
+            + " held, for example `press #name clicks 2` or `press #name shift`, or `press"
+            + " <target> right` for the secondary button, without them. A target is a"
             + " position x,y in logical pixels such as 90,60, or a selector of #key, role=<role>,"
             + " label=\"<text>\" and text=\"<string>\" such as role=switch label=\"Lights\".",
         failure("size 200 120\nframe\npress #switch clicks two\n"));

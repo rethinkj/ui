@@ -5,6 +5,7 @@ import com.rethinkj.ui.motion.Track;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -45,6 +46,9 @@ final class Animator {
    */
   private record Id(Id parent, Object part) {}
 
+  /** The part of an overlay's identity: its key or index among its anchor's overlays. */
+  private record Layer(Object part) {}
+
   /** Where an element is in a virtual list: the list, its identity and the index of the row. */
   record InRow(El list, Object listId, int row) {}
 
@@ -53,6 +57,7 @@ final class Animator {
   private Map<Id, Entry> entries = new HashMap<>();
   private final Set<Entry> moving = new LinkedHashSet<>();
   private boolean started;
+  private long created; // entries made so far, which orders overlays by when they opened
 
   /**
    * Takes a tree that layout has just placed: its values become the targets at {@code now}, and
@@ -78,7 +83,12 @@ final class Animator {
       }
       entry.present(now);
       if (entry.el.isExiting() && entry.tracks[OPACITY].isAtRest(now)) {
-        entries.get(entry.id.parent()).el.children().remove(entry.el);
+        El parent = entries.get(entry.id.parent()).el;
+        if (entry.id.part() instanceof Layer) {
+          parent.removeOverlay(entry.el);
+        } else {
+          parent.children().remove(entry.el);
+        }
         forget(entry.el, entry.id);
         return true;
       }
@@ -114,6 +124,25 @@ final class Animator {
     Id id = null;
     for (int i = 0; i < path.size(); i++) {
       El el = path.get(i);
+      if (i == 0 && el.placement() != null && el.placement().id != null) {
+        id = (Id) el.placement().id; // a path from an overlay down
+        ids.add(id);
+        continue;
+      }
+      if (i > 0 && path.get(i - 1).hasOverlay(el)) {
+        int index = 0;
+        for (El overlay : path.get(i - 1).overlays()) {
+          if (overlay == el) {
+            break;
+          }
+          if (!overlay.isExiting()) {
+            index++;
+          }
+        }
+        id = new Id(id, new Layer(part(el, index)));
+        ids.add(id);
+        continue;
+      }
       int index = 0;
       if (i > 0) {
         for (El sibling : path.get(i - 1).children()) {
@@ -186,6 +215,15 @@ final class Animator {
     if (parent == null) {
       return null;
     }
+    if (id.part() instanceof Layer layer) {
+      List<El> overlays = parent.overlays();
+      for (int i = 0; i < overlays.size(); i++) {
+        if (layer.part().equals(part(overlays.get(i), i))) {
+          return overlays.get(i);
+        }
+      }
+      return null;
+    }
     List<El> children = parent.children(); // nothing is leaving yet
     if (parent.isVirtualList()) {
       int i = id.part() instanceof Integer row ? row - parent.firstRow() : -1;
@@ -249,6 +287,10 @@ final class Animator {
     for (int i = 0; i < ids.length; i++) {
       move(el.children().get(i), ids[i], into);
     }
+    Id[] layers = layerIds(el, id);
+    for (int i = 0; i < layers.length; i++) {
+      move(el.overlays().get(i), layers[i], into);
+    }
   }
 
   private void visit(El el, Id id, boolean enters, Map<Id, Entry> next, double now) {
@@ -277,7 +319,7 @@ final class Animator {
     El before = entry == null ? null : entry.el;
     Spring spring = el.motion();
     if (entry == null) {
-      entry = new Entry(id, target);
+      entry = new Entry(id, target, created++);
       if (spring != null && enters) {
         Track opacity = entry.tracks[OPACITY];
         opacity.set(0);
@@ -305,6 +347,18 @@ final class Animator {
     Id[] ids = ids(el, id);
     for (int i = 0; i < ids.length; i++) {
       visit(children.get(i), ids[i], before != null, next, now);
+    }
+    // Overlays are placed after layout, at once, like rows.
+    Id[] layers = layerIds(el, id);
+    for (int i = 0; i < layers.length; i++) {
+      El overlay = el.overlays().get(i);
+      visit(overlay, layers[i], before != null, true, next, now);
+      Entry visited = next.get(layers[i]);
+      overlay.placement().id = layers[i];
+      overlay.placement().opened = visited == null ? 0 : visited.opened;
+    }
+    if (before != null) {
+      keepLeavingOverlays(before, el, id, next, now);
     }
     if (el.isVirtualList()) {
       // Its rows come later; until then the rows it had keep their entries for them.
@@ -373,6 +427,32 @@ final class Animator {
     children.addAll(merged);
   }
 
+  /**
+   * Puts the overlays of the previous version of {@code el} that leave now or are still leaving
+   * back among its new overlays, after them.
+   */
+  private void keepLeavingOverlays(El before, El el, Id id, Map<Id, Entry> next, double now) {
+    Id[] ids = layerIds(before, id);
+    for (int i = 0; i < ids.length; i++) {
+      El overlay = before.overlays().get(i);
+      Entry entry = next.containsKey(ids[i]) ? null : entries.get(ids[i]);
+      if (entry == null || overlay.key() == null || overlay.motion() == null) {
+        continue; // still there, or gone at once
+      }
+      Track opacity = entry.tracks[OPACITY];
+      if (!overlay.isExiting()) {
+        overlay.exit();
+        if (opacity.target() != 0) {
+          opacity.retarget(0, overlay.motion(), now);
+        }
+      }
+      if (!opacity.isAtRest(now)) {
+        el.addOverlay(overlay);
+        keep(overlay, ids[i], next, now);
+      }
+    }
+  }
+
   /** Carries the entries of a leaving element and of everything below it into the new tree. */
   private void keep(El el, Id id, Map<Id, Entry> next, double now) {
     Entry entry = entries.get(id);
@@ -387,6 +467,10 @@ final class Animator {
     for (int i = 0; i < ids.length; i++) {
       keep(el.children().get(i), ids[i], next, now);
     }
+    Id[] layers = layerIds(el, id);
+    for (int i = 0; i < layers.length; i++) {
+      keep(el.overlays().get(i), layers[i], next, now);
+    }
   }
 
   /** Forgets an element that has faded out and everything below it. */
@@ -395,6 +479,10 @@ final class Animator {
     Id[] ids = ids(el, id);
     for (int i = 0; i < ids.length; i++) {
       forget(el.children().get(i), ids[i]);
+    }
+    Id[] layers = layerIds(el, id);
+    for (int i = 0; i < layers.length; i++) {
+      forget(el.overlays().get(i), layers[i]);
     }
   }
 
@@ -414,6 +502,63 @@ final class Animator {
     return ids;
   }
 
+  /** The identities of the overlays of {@code el}, counted apart from its children. */
+  private static Id[] layerIds(El el, Id id) {
+    List<El> overlays = el.overlays();
+    Id[] ids = new Id[overlays.size()];
+    int index = 0;
+    for (int i = 0; i < ids.length; i++) {
+      El overlay = overlays.get(i);
+      ids[i] = new Id(id, new Layer(overlay.isExiting() ? overlay.key() : part(overlay, index++)));
+    }
+    return ids;
+  }
+
+  /**
+   * The overlays of a tree the view has just built, with their identities, in tree order: those
+   * attached to its elements and to elements inside overlays, but not those in the rows of virtual
+   * lists, which are built later.
+   */
+  static Map<Object, El> overlays(El root) {
+    Map<Object, El> found = new LinkedHashMap<>();
+    overlays(root, new Id(null, part(root, 0)), found);
+    return found;
+  }
+
+  private static void overlays(El el, Id id, Map<Object, El> found) {
+    Id[] ids = ids(el, id);
+    for (int i = 0; i < ids.length; i++) {
+      overlays(el.children().get(i), ids[i], found);
+    }
+    Id[] layers = layerIds(el, id);
+    for (int i = 0; i < layers.length; i++) {
+      found.put(layers[i], el.overlays().get(i));
+      overlays(el.overlays().get(i), layers[i], found);
+    }
+  }
+
+  /**
+   * The identity of the first element at or below {@code top} of a tree the view has just built
+   * that takes the focus, in tree order, without its overlays; null if none does. Elements at
+   * opacity 0 and with {@code display: none} hide what is below them.
+   */
+  static Object firstFocusable(El top, Object topIdentity) {
+    if (top.opacity() == 0 || top.style().display == Style.Display.NONE) {
+      return null;
+    }
+    if (top.isFocusable()) {
+      return topIdentity;
+    }
+    Id[] ids = ids(top, (Id) topIdentity);
+    for (int i = 0; i < ids.length; i++) {
+      Object found = firstFocusable(top.children().get(i), ids[i]);
+      if (found != null) {
+        return found;
+      }
+    }
+    return null;
+  }
+
   private static Object part(El el, int index) {
     return el.key() != null ? el.key() : Integer.valueOf(index);
   }
@@ -428,14 +573,16 @@ final class Animator {
   private static final class Entry {
 
     final Id id;
+    final long opened; // how many entries were made before this one
     final Track[] tracks = new Track[COUNT];
     El el;
     // For a virtual list: the rows that have entries, from rowsFrom to rowsTo, exclusive.
     int rowsFrom;
     int rowsTo;
 
-    Entry(Id id, double[] values) {
+    Entry(Id id, double[] values, long opened) {
       this.id = id;
+      this.opened = opened;
       for (int i = 0; i < COUNT; i++) {
         double tolerance = i < FILL ? PIXELS : i < OPACITY ? CHANNELS : CHANNELS / 255;
         tracks[i] = new Track(values[i], tolerance);

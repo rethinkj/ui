@@ -1,0 +1,24 @@
+# The menus of core's tests (Examples overlay): a context menu on a row of a scrolled list, its
+# submenu beside it, and a modal dialog over a scrim.
+size 240 200 scale 2
+frame
+wheel #list 0 40
+frame
+press #row-3 right     # the secondary button: the row's handler opens the menu there
+frame
+snap overlay-menu      # over the list and across its rounded clip; the focus on its first item
+
+press #export          # opens the submenu beside the item
+frame
+snap overlay-submenu
+
+press #delete          # in the menu, below the submenu: the submenu is dismissed, the press counts
+frame
+snap overlay-dialog    # the menu closed, the dialog over a scrim, the focus on Cancel
+
+key Tab                # stays inside the dialog: Delete, then around to Cancel
+key Tab
+frame
+key Escape             # the dialog's handler closes it, and the focus goes back to the list
+frame
+snap overlay-closed

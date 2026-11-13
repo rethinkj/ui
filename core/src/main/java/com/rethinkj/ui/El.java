@@ -84,6 +84,38 @@ public final class El {
   private IntFunction<El> rowBuilder;
   private int firstRow;
   private boolean rowsBuilt; // for this tree; a rebuild of the view starts without rows
+  private List<El> overlays; // null for none; apart from the children
+  private Layer layer; // where this element goes as an overlay, null until a call says
+  private List<El> shownOverlays = List.of(); // of a root: those placed above it, bottom first
+  private PointHandler onSecondaryPress;
+  private Consumer<El> restLook;
+  private double restDelay;
+  private Runnable onHoverFor;
+  private double hoverDelay;
+
+  /** Told a position in logical pixels of the window, as {@link #onSecondaryPress} is. */
+  @FunctionalInterface
+  public interface PointHandler {
+    void accept(float x, float y);
+  }
+
+  /** Where an overlay goes and how it takes input, and after placement what it is beside. */
+  static final class Layer {
+    Side side = Side.BOTTOM;
+    Style.Align align = Style.Align.START;
+    float gap;
+    float pointX = Float.NaN;
+    float pointY = Float.NaN;
+    boolean centered;
+    boolean modal;
+    int scrim;
+    Runnable onDismiss;
+    Object id; // its identity, which Animator sets
+    long opened; // when it first appeared, which Animator counts
+    El anchor; // as the last placement found it, in window coordinates
+    float anchorX;
+    float anchorY;
+  }
 
   private El() {}
 
@@ -605,6 +637,21 @@ public final class El {
   }
 
   /**
+   * Runs {@code handler} when the secondary button, usually the right one, is pressed and released
+   * on this element or on a descendant that has no such handler of its own, with the position of
+   * the release in logical pixels of the window: where a context menu opens ({@link #atPoint}).
+   * The Menu key and Shift+F10 that no key handler takes run it too, for the focused element or
+   * its nearest ancestor that has one, at the bottom left of the focused element. Such a press
+   * focuses as a press of the primary button does; it does not drag, select text or press.
+   *
+   * @param handler told where, or null for none
+   */
+  public El onSecondaryPress(PointHandler handler) {
+    this.onSecondaryPress = handler;
+    return this;
+  }
+
+  /**
    * Lets this element follow a drag: the pointer goes down on it, or on a descendant without a
    * press or drag handler of its own that is not a text field that takes input ({@link
    * #editable}, where the movement selects text), and moves more than {@link Drag#THRESHOLD} with
@@ -746,6 +793,160 @@ public final class El {
   }
 
   /**
+   * Changes how this element looks once the pointer has rested over it, or over elements inside
+   * it, for {@code seconds} of the app's clock, until the pointer leaves it or presses: a tooltip,
+   * which the look attaches as an {@link #overlay}. A press keeps the look away until the pointer
+   * has left the element and come back. {@link App#nextChange} says when the look is due, so an
+   * idle window wakes for it and presents nothing while it waits. Besides what {@link
+   * #whenHovered} may change, such a look may attach overlays; it comes after the hover look.
+   *
+   * @param look changes the element, or null for none
+   */
+  public El whenHoveredFor(double seconds, Consumer<El> look) {
+    this.restDelay = delay(seconds);
+    this.restLook = look;
+    return this;
+  }
+
+  /**
+   * Runs {@code handler} once the pointer has rested over this element, or over elements inside
+   * it, for {@code seconds} of the app's clock; once per stay, and not after a press until the
+   * pointer has left and come back. With 0 it runs in the frame that finds the pointer there. Like
+   * {@link #onPress}, it runs in {@link App#frame}, which then builds the view again; a menu
+   * follows the pointer with it and opens a submenu after a delay.
+   *
+   * @param handler runs once the pointer has stayed, or null for none
+   */
+  public El onHoverFor(double seconds, Runnable handler) {
+    this.hoverDelay = delay(seconds);
+    this.onHoverFor = handler;
+    return this;
+  }
+
+  private static double delay(double seconds) {
+    if (!(seconds >= 0 && seconds < Double.POSITIVE_INFINITY)) {
+      throw new IllegalArgumentException(
+          "seconds must be 0 or a positive finite number, was " + seconds);
+    }
+    return seconds;
+  }
+
+  // Overlays
+
+  /**
+   * Shows {@code overlay} above everything else, beside this element, while this element is in
+   * the tree and shows: after the whole tree, outside the clips of this element's ancestors. A
+   * component returns its anchor with what it opens attached, and the app's state says whether it
+   * is open: {@code button.overlay(s.menuOpen ? menu : null)}. The overlay is an ordinary tree,
+   * with layout, text, scrolling, motion and presence; it gets its own clips, takes input before
+   * the tree below it, and keys that it does not take go on to this element and its ancestors.
+   * Its identity comes from this element and its key or index among this element's overlays, so
+   * that one with a key and {@link #motion} fades in when it opens and out when it closes.
+   *
+   * <p>After layout, {@link App} lays the overlay out on its own, at most as large as the window,
+   * and places it as {@link #side}, {@link #atPoint} or {@link #centerInWindow} say, beside this
+   * element's rectangle as shown, moved by the scroll offsets above it; it follows the element
+   * from frame to frame. It shows only while this element does: not while this element is clipped
+   * away entirely, invisible or leaving. Overlays are drawn in the order they opened, a submenu
+   * above its menu, each over everything opened before.
+   *
+   * <p>A press outside the overlays that are open calls the {@link #onDismiss} handlers of those
+   * above the point, the newest first, and goes no further: a menu closes, and what lies under the
+   * press does nothing. A press inside an overlay below them goes on there. The wheel outside a
+   * non-modal overlay calls its dismiss handler and scrolls what is under the pointer. A {@link
+   * #modal} overlay takes all pointer input, the focus and the keys, as long as it is open. An
+   * overlay that opens moves the focus to its first focusable element without a ring, and when it
+   * closes, the focus goes back to where it was before, if that element is still there.
+   *
+   * @param overlay the root of the overlay, or null to add none
+   */
+  public El overlay(El overlay) {
+    if (overlay != null) {
+      if (overlays == null) {
+        overlays = new ArrayList<>(1);
+      }
+      overlays.add(overlay);
+      overlay.layer();
+    }
+    return this;
+  }
+
+  /**
+   * Places this overlay beside its anchor: on {@code side} of the anchor's rectangle, {@code gap}
+   * pixels away, aligned with it along that side as {@code align} says: {@code START}, {@code
+   * CENTER} or {@code END}, or {@code STRETCH} for {@code START} and at least as wide as the anchor
+   * (as tall, beside it). Where it does not fit into the window there, it goes to the other side,
+   * and along the side to the other end; where it fits neither way, it moves into the window as
+   * far as it needs. The default is below the anchor at its start, 0 away.
+   */
+  public El side(Side side, Style.Align align, float gap) {
+    Layer l = layer();
+    l.side = Objects.requireNonNull(side, "side");
+    l.align = Objects.requireNonNull(align, "align");
+    l.gap = gap;
+    return this;
+  }
+
+  /**
+   * Places this overlay at a point of the window in logical pixels, such as where the pointer was
+   * pressed for a context menu, instead of beside its anchor's rectangle: as {@link #side} says,
+   * with the point as a rectangle of no size.
+   */
+  public El atPoint(float x, float y) {
+    Layer l = layer();
+    l.pointX = x;
+    l.pointY = y;
+    return this;
+  }
+
+  /** Places this overlay in the middle of the window, as a dialog. */
+  public El centerInWindow() {
+    layer().centered = true;
+    return this;
+  }
+
+  /**
+   * Makes this overlay modal while it is open: input outside it reaches nothing below it. A press
+   * there calls its {@link #onDismiss} handler and nothing else, the wheel there does nothing, the
+   * focus stays inside it, Tab and Shift+Tab go around inside it, and keys go up from the focused
+   * element as far as this overlay. Overlays that open above it work as usual.
+   */
+  public El modal() {
+    layer().modal = true;
+    return this;
+  }
+
+  /**
+   * Fills the whole window under this overlay, over everything drawn before it, as under a modal
+   * dialog. It fades with the overlay's opacity.
+   *
+   * @param argb the colour as 0xAARRGGBB, usually translucent; 0, the default, for none
+   */
+  public El scrim(int argb) {
+    layer().scrim = argb;
+    return this;
+  }
+
+  /**
+   * Tells the app that this overlay should close: a press outside it, or the wheel outside it
+   * when it is not modal. The app closes it by changing its state, so that the next view leaves
+   * it out; nothing closes by itself. Escape is the app's too, with an {@link #onKey} handler.
+   *
+   * @param handler runs in {@link App#frame}, or null for none
+   */
+  public El onDismiss(Runnable handler) {
+    layer().onDismiss = handler;
+    return this;
+  }
+
+  private Layer layer() {
+    if (layer == null) {
+      layer = new Layer();
+    }
+    return layer;
+  }
+
+  /**
    * Sets the shape of the pointer over this element and over the elements inside it that set none;
    * {@link App#cursor} reports it and a window shows it.
    *
@@ -826,6 +1027,87 @@ public final class El {
 
   public Consumer<Drag> onDrag() {
     return onDrag;
+  }
+
+  public PointHandler onSecondaryPress() {
+    return onSecondaryPress;
+  }
+
+  Consumer<El> restLook() {
+    return restLook;
+  }
+
+  double restDelay() {
+    return restDelay;
+  }
+
+  Runnable onHoverFor() {
+    return onHoverFor;
+  }
+
+  double hoverDelay() {
+    return hoverDelay;
+  }
+
+  /** The overlays attached to this element with {@link #overlay}, in that order. */
+  public List<El> overlays() {
+    return overlays == null ? List.of() : overlays;
+  }
+
+  /** For {@link Animator}, which puts an overlay back that is leaving, and takes it out. */
+  void addOverlay(El overlay) {
+    overlay(overlay);
+  }
+
+  void removeOverlay(El overlay) {
+    if (overlays != null) {
+      overlays.remove(overlay);
+    }
+  }
+
+  /** Whether {@code el} is one of this element's overlays, the very element. */
+  boolean hasOverlay(El el) {
+    if (overlays != null) {
+      for (El overlay : overlays) {
+        if (overlay == el) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  /**
+   * Of the root of a tree that a frame has placed: the overlays shown above the tree, in the order
+   * they are drawn, the topmost last, nested ones included. Their positions are in window
+   * coordinates. Empty before the first placement and for a tree without overlays.
+   */
+  public List<El> shownOverlays() {
+    return shownOverlays;
+  }
+
+  void shownOverlays(List<El> overlays) {
+    this.shownOverlays = overlays;
+  }
+
+  /** Whether {@link #modal} made this overlay modal. */
+  public boolean isModal() {
+    return layer != null && layer.modal;
+  }
+
+  /** The fill under this overlay set with {@link #scrim}, 0 for none. */
+  public int scrim() {
+    return layer == null ? 0 : layer.scrim;
+  }
+
+  /** The handler set with {@link #onDismiss}, or null. */
+  public Runnable onDismiss() {
+    return layer == null ? null : layer.onDismiss;
+  }
+
+  /** For placement and {@link Animator}: where this overlay goes, null if no call said. */
+  Layer placement() {
+    return layer;
   }
 
   /** The row a {@link #revealRow virtual list} keeps in view, -1 for none. */
@@ -927,6 +1209,9 @@ public final class El {
     }
     for (El child : el.children) {
       scaleText(child, scale);
+    }
+    for (El overlay : el.overlays()) {
+      scaleText(overlay, scale);
     }
   }
 
@@ -1078,6 +1363,9 @@ public final class El {
   static void placeBars(El root) {
     float far = Float.POSITIVE_INFINITY;
     root.placeBars(0, 0, -far, -far, far, far);
+    for (El overlay : root.shownOverlays) { // free of the clips around its anchor
+      overlay.placeBars(0, 0, -far, -far, far, far);
+    }
   }
 
   private void placeBars(
@@ -1403,12 +1691,58 @@ public final class El {
    * starts with {@code text} instead of {@code el} and shows its string in quotes after the label.
    * A focused {@link #editable} field adds its caret after {@code focused} as {@code caret 3}, then
    * the other end of a selection as {@code anchor 0}, and the composition of an input method in
-   * progress as {@code composing "..."}. Tests and agents read this, so the format only changes
+   * progress as {@code composing "..."}.
+   *
+   * <p>The {@link #shownOverlays overlays} follow the tree, in the order they are drawn, each
+   * under a line that says where it is placed and beside what, followed by its tree indented by
+   * two spaces, in window coordinates: {@code overlay bottom start gap 4 on #file role=button
+   * label="File" 8,8 60x24}, {@code overlay at 120,80 bottom start on #tables role=list 16,40
+   * 200x160} or {@code overlay center modal scrim on 0,0 400x300}; the anchor has its key, role,
+   * label and rectangle as shown. Tests and agents read this, so the format only changes
    * deliberately.
    */
   public String dump() {
     StringBuilder out = new StringBuilder();
     dump(out, 0, 0, 0);
+    for (El overlay : shownOverlays) {
+      Layer l = overlay.layer;
+      out.append("overlay");
+      if (l.centered) {
+        out.append(" center");
+      } else {
+        if (!Float.isNaN(l.pointX)) {
+          number(out.append(" at "), l.pointX).append(',');
+          number(out, l.pointY);
+        }
+        out.append(' ').append(l.side.name().toLowerCase(Locale.ROOT)).append(' ')
+            .append(l.align.name().toLowerCase(Locale.ROOT));
+        if (l.gap != 0) {
+          number(out.append(" gap "), l.gap);
+        }
+      }
+      if (l.modal) {
+        out.append(" modal");
+      }
+      if (l.scrim >>> 24 != 0) {
+        out.append(" scrim");
+      }
+      out.append(" on");
+      El a = l.anchor;
+      if (a.key != null) {
+        out.append(" #").append(a.key);
+      }
+      if (a.role() != null) {
+        out.append(" role=").append(a.role());
+      }
+      if (a.label != null) {
+        out.append(" label=").append(quote(a.label));
+      }
+      number(out.append(' '), l.anchorX).append(',');
+      number(out, l.anchorY).append(' ');
+      number(out, a.width).append('x');
+      number(out, a.height).append('\n');
+      overlay.dump(out, 1, 0, 0);
+    }
     return out.toString();
   }
 

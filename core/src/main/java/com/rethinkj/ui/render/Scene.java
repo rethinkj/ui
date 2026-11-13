@@ -137,6 +137,12 @@ import java.util.List;
  * <p>The focus ring is an ordinary instance too: a border {@link #RING} pixels wide just outside
  * the focused element's border box, with its corner radius grown by as much, drawn after the
  * element and its children and clipped like the element.
+ *
+ * <p>Overlays ({@link El#overlay}) come after the whole tree, in the order of the root's {@link
+ * El#shownOverlays}, each drawn as a tree of its own: from its position in the window, without
+ * the clips or the opacity of its anchor's ancestors, with clips of its own. Before an overlay
+ * with a {@link El#scrim}, a rectangle as large as clip entry 0 fills the window with it, at the
+ * overlay's opacity. That is order and clip indices only, no other kind of instance.
  */
 public final class Scene {
 
@@ -241,6 +247,13 @@ public final class Scene {
     scene.ringColour = ringColour;
     atlas.nextFrame();
     scene.add(root, 0, 0, 1, 0, Float.NaN);
+    for (El overlay : root.shownOverlays()) {
+      if (overlay.scrim() >>> 24 != 0 && overlay.opacity() > 0) {
+        scene.rect(-NO_CLIP, -NO_CLIP, 2 * NO_CLIP, 2 * NO_CLIP, 0, 0, overlay.scrim(), 0,
+            overlay.opacity(), 0);
+      }
+      scene.add(overlay, 0, 0, 1, 0, Float.NaN);
+    }
     return scene;
   }
 

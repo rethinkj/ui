@@ -1,0 +1,1 @@
+- Added `El.whenHoveredFor(seconds, look)`, a look that applies once the pointer has rested on an element that long (a tooltip), and `El.onHoverFor(seconds, handler)`, which runs once per stay. `App.nextChange()` says when either is due, so an idle window wakes for it without presenting frames meanwhile; a press keeps them away until the pointer comes back.

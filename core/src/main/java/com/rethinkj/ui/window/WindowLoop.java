@@ -19,7 +19,7 @@ import java.util.Objects;
 
 /**
  * Runs an {@link App} in a {@link Window}: feeds it the window's pointer, wheel, key and text input
- * and its size, lets it build frames, hands each new frame to a {@link Presenter}, which draws it,
+ * and its size, with the right button as the secondary one ({@link App#secondaryDown}), lets it build frames, hands each new frame to a {@link Presenter}, which draws it,
  * and shows the {@link App#cursor} the app asks for.
  *
  * <p>A step of the wheel scrolls {@link #WHEEL_STEP}, 48 logical pixels: three lines of 16 pixels, as
@@ -101,7 +101,7 @@ public final class WindowLoop {
 
   /**
    * Also gives every event to {@code listener}, before the loop handles it, for what the loop does
-   * not, such as the right button.
+   * not, such as the middle button.
    *
    * @return this loop
    */
@@ -170,6 +170,9 @@ public final class WindowLoop {
       case PointerDown down when down.button() == PointerButton.LEFT ->
           app.pointerDown(down.x(), down.y(), down.clicks(), down.modifiers());
       case PointerUp up when up.button() == PointerButton.LEFT -> app.pointerUp(up.x(), up.y());
+      case PointerDown down when down.button() == PointerButton.RIGHT ->
+          app.secondaryDown(down.x(), down.y());
+      case PointerUp up when up.button() == PointerButton.RIGHT -> app.secondaryUp(up.x(), up.y());
       case PointerMove move -> app.pointerMove(move.x(), move.y());
       case PointerLeave leave -> app.pointerLeave();
       // The window's dy is positive away from the user, the app's towards the end.

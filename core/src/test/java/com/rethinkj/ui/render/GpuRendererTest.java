@@ -162,6 +162,15 @@ class GpuRendererTest {
           "scroll #rows row 765432\nframe\nwheel #rows 300 0\n"));
       cases.add(grid("grid-resizing" + at, scale, "down #resize-1\nmove 252,19\n"));
     }
+    // Overlays, drawn after the tree with clips of their own: the stored images of overlay.txt,
+    // then a menu across the rounded clip of a scrolled list with its submenu, and a dialog over a
+    // scrim, at every scale.
+    cases.addAll(script("overlay.txt", () -> new App<>(new Examples.Menus(), Examples::overlays)));
+    for (float scale : new float[] {1, 1.5f, 2}) {
+      String at = at(scale);
+      cases.add(overlay("overlay-nested" + at, scale, "press #export\n"));
+      cases.add(overlay("overlay-scrim" + at, scale, "press #delete\n"));
+    }
     for (int frames = 2; frames <= 5; frames++) {
       cases.add(switchMoving(frames));
     }
@@ -723,6 +732,20 @@ class GpuRendererTest {
     Script.run("size 560 240 scale " + scale + "\nframe\n" + steps + "frame\n", app,
         Path.of("target/gpu-vs-cpu-scripts"));
     return scene(name, app.scene(), 560, 240, scale);
+  }
+
+  /**
+   * The menus of overlay.txt with the list scrolled by 13.25 pixels and the context menu open on
+   * row 3, after these steps of a script and a frame.
+   */
+  private static Case overlay(String name, float scale, String steps) throws IOException {
+    App<Examples.Menus> app = new App<>(new Examples.Menus(), Examples::overlays);
+    app.textRendering(TextRendering.LINUX);
+    Script.run("size 240 200 scale " + scale + "\nframe\nwheel #list 0 13.25\nframe\n"
+        + "press #row-3 right\nframe\n" + steps + "frame\n", app,
+        Path.of("target/gpu-vs-cpu-scripts"));
+    assertTrue(!app.tree().shownOverlays().isEmpty(), "an overlay shows");
+    return scene(name, app.scene(), 240, 200, scale);
   }
 
   /** The text field of the stored images field-*, after these steps of a script and a frame. */

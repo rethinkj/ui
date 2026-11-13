@@ -10,7 +10,8 @@ import com.rethinkj.ui.text.TextRendering;
 /**
  * Renders a view without a window or a GPU, and without native libraries unless the view has text,
  * which needs FreeType and HarfBuzz. Tests and agents use this to look at what a view produces:
- * the image, and the tree with every element's rectangle.
+ * the image, and the tree with every element's rectangle. Overlays are laid out and placed as in
+ * an {@link App}, in tree order.
  */
 public final class Headless {
 
@@ -39,7 +40,12 @@ public final class Headless {
       El root, float width, float height, float scale, TextRendering textRendering) {
     El.scaleText(root, scale);
     Flex.layout(root, width, height);
-    fillRows(root, 0, height, scale);
+    Overlays.layout(root, width, height);
+    fillRows(root, 0, width, height, scale);
+    Overlays.place(root, width, height);
+    for (El overlay : root.shownOverlays()) {
+      fillRows(overlay, 0, width, height, scale);
+    }
     El.placeBars(root);
     Scene scene = Scene.of(root, null, 0, new Atlas(), textRendering);
     Pixels pixels =
@@ -51,7 +57,8 @@ public final class Headless {
    * Builds the rows of the virtual lists ({@link El#rows}) that show at their offset of 0, and
    * measures how far each scroll area could scroll, for its bars.
    */
-  private static void fillRows(El el, float parentY, float windowHeight, float scale) {
+  private static void fillRows(
+      El el, float parentY, float windowWidth, float windowHeight, float scale) {
     if (!el.isPlaced()) {
       return;
     }
@@ -61,9 +68,12 @@ public final class Headless {
     if (range != null) {
       el.makeRows(range[0], range[1]);
       el.layoutRows(scale);
+      for (El row : el.children()) {
+        Overlays.layout(row, windowWidth, windowHeight);
+      }
     }
     for (El child : el.children()) {
-      fillRows(child, top, windowHeight, scale);
+      fillRows(child, top, windowWidth, windowHeight, scale);
     }
   }
 }
