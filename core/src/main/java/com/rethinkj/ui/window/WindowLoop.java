@@ -542,16 +542,9 @@ public final class WindowLoop {
           e.fresh = false;
           e.input = false;
           draw(e, false);
-          if (e.app.ranHandlers()) {
-            for (int j = 0; j < entries.size(); j++) {
-              Entry other = entries.get(j);
-              if (other != e && other.isOpen() && !other.fresh
-                  && other.app.state() == e.app.state()) {
-                other.app.invalidate();
-                if (!held.contains(other)) {
-                  (j < i ? again : due).add(other);
-                }
-              }
+          for (Entry other : invalidateOthers(e)) {
+            if (!held.contains(other)) {
+              (entries.indexOf(other) < i ? again : due).add(other);
             }
           }
         }
@@ -561,6 +554,25 @@ public final class WindowLoop {
       drawing = false;
       shutClosed();
     }
+  }
+
+  /**
+   * After a frame of {@code e}: when it ran a handler, a task or an action ({@link
+   * App#ranHandlers}), the other open apps of the same state build their views again, and are
+   * returned, to be drawn.
+   */
+  private List<Entry> invalidateOthers(Entry e) {
+    if (!e.app.ranHandlers()) {
+      return List.of();
+    }
+    List<Entry> others = new ArrayList<>();
+    for (Entry other : entries) {
+      if (other != e && other.isOpen() && !other.fresh && other.app.state() == e.app.state()) {
+        other.app.invalidate();
+        others.add(other);
+      }
+    }
+    return others;
   }
 
   /** Advances every app's clock by the time since the last tick. */
@@ -739,6 +751,10 @@ public final class WindowLoop {
         if (!drawing) { // in a pass, the frame comes anyway
           tick();
           draw(e, !redraw.live());
+          // The frame may have run a task that arrived, which the others show at once too.
+          for (Entry other : invalidateOthers(e)) {
+            draw(other, false);
+          }
         }
       }
       case CloseRequested close -> {

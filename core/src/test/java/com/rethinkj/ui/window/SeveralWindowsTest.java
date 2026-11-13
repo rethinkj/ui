@@ -112,6 +112,38 @@ class SeveralWindowsTest {
     }
   }
 
+  @Test
+  void aTaskThatTheFrameOfARedrawRunsShowsInTheOtherWindowToo() {
+    try (Window a = Window.open(TITLE, 120, 80)) {
+      Shared s = new Shared();
+      App<Shared> appA = new App<>(s, x -> counter(x, "a"));
+      App<Shared> appB = new App<>(s, x -> counter(x, "b"));
+      List<String> log = new ArrayList<>();
+      AtomicReference<WindowLoop> loop = new AtomicReference<>();
+      loop.set(new WindowLoop(a, appA, new Recorder("A", appA, a, log, null))
+          .presenters(w -> new Recorder("B", appB, w, log, null)));
+      Windows.Handle b = loop.get().open(TITLE + " B", 120, 80, Window.options(), appB);
+      Desktop.settle();
+      boolean[] posted = new boolean[1];
+      loop.get().waits((millis, holdBack) -> {
+        if (millis != -1) {
+          return;
+        }
+        if (!posted[0]) {
+          // A task for B, and before the loop's next pass the system asks B to redraw, as when
+          // it is exposed or resized: the frame for the redraw runs the task.
+          posted[0] = true;
+          appB.post(() -> s.count++);
+          Desktop.windowEvent(b.window(), Sdl.EVENT_WINDOW_EXPOSED, 0, 0);
+        } else if (log.contains("A a-1")) {
+          loop.get().stop();
+        }
+      });
+      Desktop.run(loop.get(), () -> "A shows the count that B's redraw changed: " + log);
+      assertTrue(log.indexOf("B b-1") < log.indexOf("A a-1"), log::toString);
+    }
+  }
+
   /** The state of an app whose first window opens a second, which closes both. */
   static final class Opener {
     App<Opener> app;
