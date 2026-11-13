@@ -96,10 +96,11 @@ final class Editor {
 
   /**
    * Takes the app's answer to the edits since the last answer: the string the view now gives the
-   * element, as {@link #attach} describes. {@link App} also calls this between two edits that
-   * reach a field in the same frame, so that the second builds on what the app made of the first.
+   * element, as {@link #attach} describes. {@link App} builds the view again between two edits
+   * that reach a field in the same frame, so that the second builds on what the app made of the
+   * first.
    */
-  void answer(String value) {
+  private void answer(String value) {
     if (proposed != null) {
       if (value.equals(before.text) && !value.equals(proposed)) {
         // Refused: as if the edits had not happened.

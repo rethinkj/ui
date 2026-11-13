@@ -121,6 +121,52 @@ class DataGridTest {
     return new long[] {times[times.length / 2], count(app.tree())};
   }
 
+  @Test
+  void aFrameWithABurstOfTenKeysBuildsTheRowsOnce() throws IOException {
+    // Between the keys the view is built and laid out, without the rows, which are most of a
+    // frame's work: ten keys cost far less than ten frames of one.
+    long one = keyFrames(1);
+    long ten = keyFrames(10);
+    System.out.printf("DataGrid, 20 columns, a million rows: frame() after keys, median of %d:"
+        + " %.2f ms after one ArrowDown, %.2f ms after ten%n", FRAMES, one / 1e6, ten / 1e6);
+    assertTrue(ten < 6 * one, "median frame() of " + ten + " ns after ten, " + one + " after one");
+  }
+
+  @Test
+  void theViewIsBuiltAfterEachKeyOfABurstButTheRowsOnce() throws IOException {
+    Orders orders = new Orders(T, 1_000_000, 20);
+    App<Orders> app = start(orders);
+    run(app, "focus #orders\nframe");
+    orders.asked.clear();
+    for (int k = 0; k < 10; k++) {
+      app.keyDown(new Key("ArrowDown"));
+    }
+    app.frame();
+    assertEquals(12, orders.selected);
+    assertAskedForExistingRows(orders, app);
+  }
+
+  /** The median time of {@link App#frame} after {@code keys} presses of ArrowDown or ArrowUp. */
+  private long keyFrames(int keys) throws IOException {
+    App<Orders> app = start(new Orders(T, 1_000_000, 20));
+    run(app, "focus #orders\nframe");
+    long[] times = new long[FRAMES];
+    for (int i = -FRAMES; i < times.length; i++) { // the first round warms up
+      Key key = new Key(Math.floorMod(i, 4) < 2 ? "ArrowDown" : "ArrowUp");
+      for (int k = 0; k < keys; k++) {
+        app.keyDown(key);
+        app.keyUp(key);
+      }
+      long start = System.nanoTime();
+      app.frame();
+      if (i >= 0) {
+        times[i] = System.nanoTime() - start;
+      }
+    }
+    Arrays.sort(times);
+    return times[times.length / 2];
+  }
+
   private static int count(El el) {
     int count = 1;
     for (El child : el.children()) {
@@ -176,6 +222,16 @@ class DataGridTest {
         List.of("select 3", "select 2", "select 11", "select 20", "select 11", "select 999999",
             "select 999990", "select 0"),
         orders.log, "told only of changes");
+  }
+
+  @Test
+  void keysInOneFrameEachMoveTheSelectionOn() throws IOException {
+    Orders orders = new Orders(T, 1_000_000);
+    App<Orders> app = start(orders);
+    run(app, "key Tab\nkey ArrowDown\nkey ArrowDown\nkey PageDown\nkey ArrowUp\nframe");
+    assertEquals(2 + 2 + PAGE - 1, orders.selected);
+    assertEquals(List.of("select 3", "select 4", "select 13", "select 12"), orders.log);
+    assertInView(app, 12);
   }
 
   @Test

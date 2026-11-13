@@ -184,14 +184,14 @@ class ScrollbarTest {
     assertEquals(100, area.scrollX(), "a page of the width");
     assertEquals(new Scrollbars.Bar(92, 2, 6, 88, 92, 46, 6, 44, REST), area.verticalBar());
 
-    app.pointerDown(10, 95); // the horizontal thumb, now at 31.33
+    app.pointerDown(10, 95); // the track before the horizontal thumb, now at 31.33
     app.pointerUp(10, 95);
-    app.pointerDown(40, 95); // on the thumb: no page, a drag
-    app.pointerMove(-100, 95);
-    app.pointerUp(-100, 95);
+    app.pointerDown(20, 95); // the thumb where that page put it, at 2: no page, a drag
+    app.pointerMove(300, 95);
+    app.pointerUp(300, 95);
     app.frame();
-    assertEquals(0, area.scrollX());
-    assertEquals(100, area.scrollY(), "the other axis stays");
+    assertEquals(200, app.tree().scrollX(), "dragged to the end");
+    assertEquals(100, app.tree().scrollY(), "the other axis stays");
   }
 
   @Test

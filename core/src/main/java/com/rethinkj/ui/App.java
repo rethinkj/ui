@@ -23,9 +23,23 @@ import java.util.function.Predicate;
 /**
  * A running app: a state object and a view function that builds the element tree from it.
  *
- * <p>The view only reads the state. Input finds the element it lands on and queues that element's
- * handler; {@link #frame} runs the queued handlers, which may change the state, and then builds
- * and lays out the view again. Without input nothing changes but movements under way.
+ * <p>The view only reads the state. Input waits in a queue, in the order it came, until {@link
+ * #frame} dispatches it: each input finds the element it goes to and runs that element's handler,
+ * which may change the state, and then the frame builds and lays out the view again. Without input
+ * nothing changes but movements under way.
+ *
+ * <p>Each input is dispatched against a tree built from the state as it is when its turn comes.
+ * When a handler of the app has taken an input and more input of the same frame waits, the frame
+ * builds the view again first, gives it the looks of the moment and its fields their editing
+ * state, and lays it out. The next input then finds its element in that tree and runs that
+ * element's handler, a closure of the new view: two ArrowDown in one frame move a selection by two
+ * rows, and a second edit of a field builds on what the app made of the first. The rows of the
+ * virtual lists in such a tree, and its scrollbars, are built before an input that needs them: a
+ * press, a release, Tab, a focus or a scroll the app asks for, and a key while the focus is in a
+ * row. Other keys, the wheel and drags do with the rows that exist, so a key handler there sees
+ * its list without rows. Input that no handler of the app took costs no rebuild: a pointer move, a
+ * key that nobody handles or that only moves a field's caret, a focus moved by Tab, the wheel. A
+ * key handler that returns false counts as having changed nothing.
  *
  * <p>The view only states where things end up. When a rebuild gives an element with {@link
  * El#motion} new values, the app springs it there over the following frames, without running the
@@ -94,9 +108,15 @@ public final class App<S> {
 
   private final S state;
   private final Function<S, El> view;
-  // Each returns whether it may have changed something that the next rebuild shows.
+  // Input in the order it came, dispatched by frame(). Each returns whether it may have changed
+  // something that the next rebuild shows.
   private final ArrayDeque<BooleanSupplier> queued = new ArrayDeque<>();
-  private final ArrayDeque<BooleanSupplier> scrolls = new ArrayDeque<>();
+  // What a handler queues while an input runs, such as a focus or a scroll: it runs next.
+  private final List<BooleanSupplier> follow = new ArrayList<>();
+  private boolean dispatching;
+  private boolean handled; // a handler of the app took input since the tree was built
+  private boolean scrolled; // something scrolled since the rows and bars were placed
+  private boolean rowsPending; // the tree was built between two inputs without its lists' rows
   private final Animator animator = new Animator();
   private double time;
   private float width;
@@ -165,48 +185,51 @@ public final class App<S> {
    * the thumb, from the first pixel.
    */
   public void pointerMove(float x, float y) {
-    queued.add(() -> {
-      pointerIn = true;
-      pointerX = x;
-      pointerY = y;
-      return false; // the frame looks at what is under the pointer anyway
-    });
+    enqueue(() -> move(x, y));
+  }
+
+  private boolean move(float x, float y) {
+    pointerIn = true; // the frame looks at what is under the pointer anyway
+    pointerX = x;
+    pointerY = y;
+    if (rowsPending && (selecting != null || grab != null || dragging != null)) {
+      settle(); // the held element may be in a row; a scroll alone moved the rows that exist
+    }
     if (selecting != null) {
-      Object field = selecting;
-      queued.add(() -> drag(field, x, y));
+      return drag(selecting, x, y);
     }
     Grab g = grab; // never at the same time as the others
     if (g != null) {
-      float start = (g.vertical() ? y : x) - g.grip();
-      scrolls.add(() -> {
-        El area = animator.element(g.id());
-        return area != null && area.dragThumb(g.vertical(), start);
-      });
+      El area = animator.element(g.id());
+      scrolled |= area != null && area.dragThumb(g.vertical(), (g.vertical() ? y : x) - g.grip());
+      return false;
     }
     Dragging d = dragging; // never at the same time as selecting: a press starts one or neither
     if (d != null) {
       float dx = x - d.x;
       float dy = y - d.y;
       if (d.started) {
-        step(d, Drag.Phase.MOVE, dx, dy);
+        return step(d, Drag.Phase.MOVE, dx, dy);
       } else if (Math.max(Math.abs(dx), Math.abs(dy)) > Drag.THRESHOLD) {
         d.started = true;
-        step(d, Drag.Phase.START, dx, dy);
+        return step(d, Drag.Phase.START, dx, dy);
       }
     }
+    return false;
   }
 
   /** The pointer left the window: from the next {@link #frame} on, nothing is hovered. */
   public void pointerLeave() {
-    queued.add(() -> {
+    enqueue(() -> {
       pointerIn = false;
       return false;
     });
   }
 
   /**
-   * The pointer's button went down at this position, in logical pixels. From now until the next
-   * {@link #pointerUp} the element the press goes to is {@link #pressed}. This also gives the focus
+   * The pointer's button went down at this position, in logical pixels. From the {@link #frame}
+   * that dispatches it until the one that dispatches the next {@link #pointerUp}, the element the
+   * press goes to is {@link #pressed}. This also gives the focus
    * to the element there, or to the nearest one around it, that is {@link El#focusable}, without a
    * ring; where there is none, it clears the focus. If the element the press goes to has an {@link
    * El#onDrag} handler, the pointer's movements from here may make a drag of it.
@@ -232,12 +255,18 @@ public final class App<S> {
    *     {@link Key#META}
    */
   public void pointerDown(float x, float y, int clicks, int modifiers) {
+    enqueue(() -> down(x, y, clicks, modifiers));
+  }
+
+  private boolean down(float x, float y, int clicks, int modifiers) {
+    boolean changed = false;
     if (dragging != null && dragging.started) { // the last release got lost
-      step(dragging, Drag.Phase.CANCEL, dragging.dx, dragging.dy);
+      changed = step(dragging, Drag.Phase.CANCEL, dragging.dx, dragging.dy);
     }
     dragging = null;
     selecting = null; // likewise: a selection whose release got lost ends where it is
     grab = null; // and a thumb's drag
+    settle();
     List<El> hit = hit(x, y);
     Scrollbars.Bar bar = hit.isEmpty() ? null : hit.getLast().barAt(x, y);
     if (bar != null) { // hit stops at the area whose bar it is
@@ -250,28 +279,20 @@ public final class App<S> {
       if (onThumb(bar, vertical, x, y)) {
         grab = new Grab(id, vertical, along - start);
       } else {
-        int direction = along < start ? -1 : 1;
-        scrolls.add(() -> {
-          El el = animator.element(id);
-          return el != null && el.page(vertical, direction);
-        });
+        scrolled |= area.page(vertical, along < start ? -1 : 1);
       }
-      return;
+      return changed;
     }
     if (!hit.isEmpty() && hit.getLast().takesEdits()) {
       El field = hit.getLast(); // a leaf, so nothing inside it takes the press
       pressed = null;
       selecting = Animator.identities(hit).getLast();
-      boolean extend = (modifiers & Key.SHIFT) != 0;
-      queued.add(() -> focus(field, false));
-      queued.add(() -> {
-        float[] at = local(field, x, y);
-        Editor editor = field.editor();
-        editor.press(editor.fromShown(field.text().nearest(at[0], at[1])),
-            editor.fromShown(field.text().hit(at[0], at[1])), clicks, extend);
-        return true;
-      });
-      return;
+      focus(field, false);
+      float[] at = local(field, x, y);
+      Editor editor = field.editor();
+      editor.press(editor.fromShown(field.text().nearest(at[0], at[1])),
+          editor.fromShown(field.text().hit(at[0], at[1])), clicks, (modifiers & Key.SHIFT) != 0);
+      return true;
     }
     Target target = target(x, y);
     pressed = target == null ? null : target.id();
@@ -280,8 +301,8 @@ public final class App<S> {
         ? null
         : new Dragging(target.id(), target.el.onDrag(), x, y);
     Target focus = target(x, y, El::isFocusable);
-    El el = focus == null ? null : focus.el;
-    queued.add(() -> focus(el, false));
+    focus(focus == null ? null : focus.el, false);
+    return changed;
   }
 
   /**
@@ -290,30 +311,34 @@ public final class App<S> {
    * become a drag; a drag ends here, and so does a thumb's drag, which presses nothing.
    */
   public void pointerUp(float x, float y) {
+    enqueue(() -> up(x, y));
+  }
+
+  private boolean up(float x, float y) {
+    settle();
     if (grab != null) {
       grab = null;
-      return;
+      return false;
     }
     if (selecting != null) {
       Object field = selecting;
-      queued.add(() -> drag(field, x, y));
       selecting = null;
-      return;
+      return drag(field, x, y);
     }
     Dragging d = dragging;
     dragging = null;
-    Target target = target(x, y);
+    boolean changed = false;
     if (d != null && d.started) {
-      step(d, Drag.Phase.END, x - d.x, y - d.y);
-    } else if (target != null && target.id().equals(pressed) && target.el.onPress() != null) {
-      IntConsumer handler = target.el.onPress();
-      int clicks = pressClicks;
-      queued.add(() -> {
-        handler.accept(clicks);
-        return true;
-      });
+      changed = step(d, Drag.Phase.END, x - d.x, y - d.y);
+    } else if (pressed != null) {
+      Target target = target(x, y);
+      if (target != null && target.id().equals(pressed) && target.el.onPress() != null) {
+        target.el.onPress().accept(pressClicks);
+        handled = changed = true;
+      }
     }
     pressed = null;
+    return changed;
   }
 
   /**
@@ -352,22 +377,23 @@ public final class App<S> {
   }
 
   /**
-   * Queues a step of a drag for the next frame. If the drag's element has left the tree by then,
-   * the handler gets a cancel instead, and nothing after that.
+   * Gives a step of a drag to its handler. If the drag's element has left the tree, the handler
+   * gets a cancel instead, and nothing after that.
+   *
+   * @return whether the handler ran
    */
-  private void step(Dragging d, Drag.Phase phase, float dx, float dy) {
+  private boolean step(Dragging d, Drag.Phase phase, float dx, float dy) {
     d.dx = dx;
     d.dy = dy;
-    queued.add(() -> {
-      if (d.over) {
-        return false;
-      }
-      El el = animator.element(d.id);
-      boolean gone = el == null || el.isExiting();
-      d.over = gone || phase == Drag.Phase.END || phase == Drag.Phase.CANCEL;
-      d.handler.accept(new Drag(gone ? Drag.Phase.CANCEL : phase, dx, dy));
-      return true;
-    });
+    if (d.over) {
+      return false;
+    }
+    El el = animator.element(d.id);
+    boolean gone = el == null || el.isExiting();
+    d.over = gone || phase == Drag.Phase.END || phase == Drag.Phase.CANCEL;
+    d.handler.accept(new Drag(gone ? Drag.Phase.CANCEL : phase, dx, dy));
+    handled = true;
+    return true;
   }
 
   /**
@@ -381,17 +407,19 @@ public final class App<S> {
    */
   public void keyDown(Key key) {
     Objects.requireNonNull(key, "key");
-    queued.add(() -> {
+    enqueue(() -> {
       List<El> path = focusPath();
       boolean called = false;
       for (El el : path.reversed()) {
         if (el.onKey() != null) {
           called = true;
           if (el.onKey().test(key)) {
+            handled = true;
             return true;
           }
         }
         if (el == focused && el.editor() != null && el.editor().key(key, clipboard)) {
+          handled |= el.editor().answerPending(); // it handed an edit to the app
           return true;
         }
         if (el == focused
@@ -400,11 +428,13 @@ public final class App<S> {
             && (key.name().equals("Enter") || key.name().equals("Space"))) {
           if (!key.repeat()) {
             el.onPress().accept(1);
+            handled = true;
           }
           return true;
         }
       }
       if (key.name().equals("Tab") && (key.modifiers() & ~Key.SHIFT) == 0) {
+        settle();
         wake();
         List<El> order = focusables();
         if (!order.isEmpty()) {
@@ -428,12 +458,13 @@ public final class App<S> {
    */
   public void keyUp(Key key) {
     Objects.requireNonNull(key, "key");
-    queued.add(() -> {
+    enqueue(() -> {
       boolean called = false;
       for (El el : focusPath().reversed()) {
         if (el.onKeyUp() != null) {
           called = true;
           if (el.onKeyUp().test(key)) {
+            handled = true;
             return true;
           }
         }
@@ -449,14 +480,17 @@ public final class App<S> {
    */
   public void textInput(String text) {
     Objects.requireNonNull(text, "text");
-    queued.add(() -> {
+    enqueue(() -> {
       if (focused != null && focused.editor() != null) {
-        return focused.editor().type(text);
+        boolean changed = focused.editor().type(text);
+        handled |= focused.editor().answerPending();
+        return changed;
       }
       if (focused == null || focused.onText() == null) {
         return false;
       }
       focused.onText().accept(text);
+      handled = true;
       return true;
     });
   }
@@ -471,7 +505,7 @@ public final class App<S> {
    */
   public void textComposition(String text, int cursor) {
     Objects.requireNonNull(text, "text");
-    queued.add(() -> focused != null && focused.editor() != null
+    enqueue(() -> focused != null && focused.editor() != null
         && focused.editor().compose(text, cursor));
   }
 
@@ -569,9 +603,11 @@ public final class App<S> {
   /**
    * Gives the keyboard focus to an element of the last frame's {@link #tree} as Tab would, with a
    * ring and scrolled into view, or clears it with null. The next {@link #frame} shows it; a
-   * handler may call this too, and the frame that runs it focuses. The app keeps the focus on the
-   * element of later trees that has the same identity, and clears it once there is none, or when
-   * that element is no longer focusable or takes no input.
+   * handler may call this too, with an element of the tree it runs in, and the frame focuses right
+   * after the handler, the element with the same identity in the tree built from what the handler
+   * changed, if it is still there and can take the focus. The app keeps the focus on the element
+   * of later trees that has the same identity, and clears it once there is none, or when that
+   * element is no longer focusable or takes no input.
    *
    * @throws IllegalArgumentException if the element is not {@link El#focusable}, not in the last
    *     frame's tree, or takes no input there: it is leaving, at opacity 0, or clipped away
@@ -582,7 +618,12 @@ public final class App<S> {
           "This element cannot take the focus: it is not focusable(), not in the last frame's tree"
               + " or takes no input there");
     }
-    queued.add(() -> focus(el, true));
+    Object id = el == null ? null : animator.identity(el);
+    enqueue(() -> {
+      settle();
+      El now = id == null ? null : animator.element(id);
+      return (id == null || now != null && focusables().contains(now)) && focus(now, true);
+    });
   }
 
   /**
@@ -870,8 +911,12 @@ public final class App<S> {
       throw new IllegalArgumentException("wheel deltas must be finite, were " + deltaX + ", "
           + deltaY);
     }
-    List<El> areas = hit(x, y).reversed();
-    scrolls.add(() -> scroll(areas, true, deltaX) | scroll(areas, false, deltaY)); // not ||
+    enqueue(() -> {
+      // The areas under the pointer are there without the rows a scroll or rebuild left to build.
+      List<El> areas = hit(x, y).reversed();
+      scrolled |= scroll(areas, true, deltaX) | scroll(areas, false, deltaY); // not ||
+      return false;
+    });
   }
 
   private static boolean scroll(List<El> areas, boolean horizontal, float delta) {
@@ -890,20 +935,27 @@ public final class App<S> {
    * logical pixels: to the top with 0, 0, for example after new data arrived, or to the end with
    * {@link Double#POSITIVE_INFINITY}. The next {@link #frame} shows it, clamped to the content;
    * until then {@link El#scrollX} and {@link El#scrollY} keep the old offset. A handler may call
-   * this too; the frame that runs it scrolls.
+   * this too, with an area of the tree it runs in; the frame scrolls right after the handler, the
+   * area with the same identity in the tree built from what the handler changed.
    */
   public void scrollTo(El area, double x, double y) {
     if (Double.isNaN(x) || Double.isNaN(y)) {
       throw new IllegalArgumentException("scroll offset is NaN");
     }
-    scrolls.add(() -> area.scrollTo(x, y));
+    Object id = animator.identity(area);
+    enqueue(() -> {
+      settle();
+      El el = id == null ? null : animator.element(id);
+      scrolled |= el != null && el.scrollTo(x, y);
+      return false;
+    });
   }
 
   /**
    * Scrolls a virtual list ({@link El#rows}) of the last frame's {@link #tree} so that the row
    * with this index is at the top of its content box, or as far as the end of the list allows: to
    * an offset of {@code row * rowHeight}. The next {@link #frame} shows it and builds the rows it
-   * brings into view. A handler may call this too; the frame that runs it scrolls.
+   * brings into view. A handler may call this too, as {@link #scrollTo}.
    *
    * @param row the index of the row, from 0; one beyond the last scrolls to the end
    * @throws IllegalArgumentException if {@code list} is not a virtual list or {@code row} is
@@ -917,7 +969,18 @@ public final class App<S> {
     if (row < 0) {
       throw new IllegalArgumentException("row must be 0 or more, was " + row);
     }
-    scrolls.add(() -> list.scrollTo(list.scrollX(), row * (double) list.rowHeight()));
+    Object id = animator.identity(list);
+    enqueue(() -> {
+      settle();
+      El el = id == null ? null : animator.element(id);
+      scrolled |= el != null && el.scrollTo(el.scrollX(), row * (double) el.rowHeight());
+      return false;
+    });
+  }
+
+  /** Queues input for the next frame, or what a handler asks for right after that handler. */
+  private void enqueue(BooleanSupplier input) {
+    (dispatching ? follow : queued).add(input);
   }
 
   /** For {@link Script}: the innermost virtual list at this point, or null. */
@@ -944,65 +1007,74 @@ public final class App<S> {
   }
 
   /**
-   * Runs the handlers queued by input, scrolls as the wheel and {@link #scrollTo} asked and, if
-   * anything may have changed, builds the view again, gives it the looks of the moment ({@link
-   * El#whenHovered}) and its text fields their editing state, lays it out and builds the rows of
-   * its virtual lists, each row the same way. Then it writes the values of the moment into the
-   * elements that move, and places the caret and selection of each field. When more input follows
-   * an edit of the focused text field, it first builds the view to read what the app made of the
-   * edit, so that the next one builds on that.
+   * Runs a frame: dispatches the input that came since the last one, in its order, then builds the
+   * tree if anything may have changed and moves what is moving.
+   *
+   * <ol>
+   *   <li>Each input in turn finds the element it goes to in the tree of the moment and runs its
+   *       handler; a focus or scroll that the handler asks for runs right after it. Before an
+   *       input that follows one a handler of the app took, the view is built again as in step 4,
+   *       so that it sees what that handler changed, but the rows of its lists only if the focus
+   *       is in one; a press, a release, Tab and a focus build the rows that this or a scroll
+   *       left to build, and place the bars, before they look for their element.
+   *   <li>Unless step 4 builds everything: the rows that scrolling brought into view, or that a
+   *       rebuild between two inputs left out, are built, and the bars placed.
+   *   <li>The pointer is followed into the tree as it is now: what it is over decides the looks.
+   *   <li>If anything may have changed, the view is built again: it gets the looks of the moment
+   *       ({@link El#whenHovered}) and its text fields their editing state, is laid out, takes
+   *       over the values and offsets of the tree before, and its virtual lists build their rows,
+   *       each row the same way; the focus is found again, and the bars are placed. Otherwise the
+   *       elements that move get the values of the moment, and lists that moved build the rows
+   *       they show now.
+   *   <li>The caret and selection of each field are placed, the caret blinks, the bars are
+   *       placed and the thumb under the pointer gets its colour.
+   * </ol>
    *
    * @return whether there is something new to draw: the tree was rebuilt, something moved or
    *     scrolled
    */
   public boolean frame() {
-    El wasFocused = focused;
+    Object wasFocused = focusId;
     boolean hadRing = ring;
+    boolean drawn = false;
     while (!queued.isEmpty()) {
-      stale |= queued.poll().getAsBoolean();
-      if (!queued.isEmpty()) {
-        answerEdit();
+      if (handled) { // the next input goes to a tree built from the state as it is now
+        rebuild(true);
+        drawn = true;
+      }
+      dispatching = true;
+      try {
+        stale |= queued.poll().getAsBoolean();
+      } finally {
+        dispatching = false;
+        for (int i = follow.size() - 1; i >= 0; i--) {
+          queued.addFirst(follow.get(i));
+        }
+        follow.clear();
       }
     }
-    stale |= focused != wasFocused || ring != hadRing;
+    stale |= handled || !Objects.equals(focusId, wasFocused) || ring != hadRing;
     stale |= blink(focused == null ? null : focused.editor());
-    // After the handlers, so that one can scroll the tree it saw; a rebuild keeps the offsets.
-    boolean scrolled = false;
-    while (!scrolls.isEmpty()) {
-      scrolled |= scrolls.poll().getAsBoolean();
-    }
-    // The rows that scrolling brought into view; a rebuild builds all rows anyway.
-    boolean laidOut = scrolled && !stale && fillRows(); // whether fields were laid out anew
-    if (laidOut) {
-      refocus();
+    if (stale) { // the rebuild builds all rows anyway
+      drawn |= scrolled;
+      scrolled = false;
+    } else {
+      drawn |= settle(); // the rows that scrolling or a rebuild between inputs left to build
     }
     // What the pointer is over now, in the tree on screen, after the scrolls moved it.
     List<El> path = pointed();
-    List<Object> ids = Animator.identities(path);
-    stale |= !wanted(path, ids).equals(shown);
-    boolean drawn = true;
+    stale |= !wanted(path, Animator.identities(path)).equals(shown);
+    boolean laidOut = false;
     if (stale) {
-      El built = view.apply(state);
-      shown = applyLooks(built, ids);
-      root = built;
-      attachEditors(root, new ArrayList<>()); // before layout, which shows a composition
-      El.scaleText(root, scale);
-      Flex.layout(root, width, height);
-      animator.update(root, time);
-      lookIds = ids;
-      fillRows();
-      refocus();
-      lookIds = null;
-      laidOut = true;
-      stale = false;
+      rebuild(false);
+      drawn = true;
     } else if (animator.isMoving()) {
+      drawn = true;
       animator.present(time);
       if (fillRows()) { // a list that moves may show other rows
         refocus();
         laidOut = true;
       }
-    } else {
-      drawn = scrolled;
     }
     if (laidOut) {
       placeEditors();
@@ -1023,21 +1095,62 @@ public final class App<S> {
   }
 
   /**
-   * Gives the focused field the app's answer to its last edit, the string a tree built now gives
-   * it, before more input of the same frame reaches it; otherwise an edit after one the app
-   * refused or changed would build on what that one proposed.
+   * Builds the view from the state, gives it the looks of the moment and its fields their editing
+   * state, lays it out, hands it to the animator and builds the rows of its virtual lists; then
+   * finds the focus in it again and places the fields' carets and the scrollbars.
+   *
+   * @param between whether more input of this frame waits for the tree. Unless the focus is in a
+   *     row, the rows, the carets and the bars are then left to {@link #settle}, before the next
+   *     input that needs them: most keys need only the elements around the focus, and the rows
+   *     are most of what a rebuild of a data grid costs.
    */
-  private void answerEdit() {
-    Editor editor = focused == null ? null : focused.editor();
-    if (editor == null || !editor.answerPending()) {
+  private void rebuild(boolean between) {
+    List<Object> ids = Animator.identities(pointed());
+    El built = view.apply(state);
+    shown = applyLooks(built, ids);
+    root = built;
+    attachEditors(root, new ArrayList<>()); // before layout, which shows a composition
+    El.scaleText(root, scale);
+    Flex.layout(root, width, height);
+    animator.update(root, time);
+    lookIds = ids; // for the rows, also when settle builds them
+    stale = false;
+    handled = false;
+    scrolled = false;
+    rowsPending = between && (focusId == null || animator.inRow(focusId) == null);
+    if (rowsPending) {
+      refocus();
       return;
     }
-    // shortcut: a field in a row of a virtual list is not in the tree the view builds, so its edits
-    // of one frame still build on each other's proposals; build the row too if that shows.
-    El field = Animator.find(view.apply(state), focusId);
-    if (field != null && field.isEditable()) {
-      editor.answer(field.text().string());
+    fillRows();
+    refocus();
+    lookIds = null;
+    placeEditors();
+    El.placeBars(root);
+  }
+
+  /**
+   * Builds what the tree lacks for an input that hit tests, moves the focus or scrolls, and for
+   * the end of a frame: the rows of its virtual lists that a {@link #rebuild} between two inputs
+   * left out or that scrolling brought into view, the carets and selections of the fields, and the
+   * bars where the offsets put them.
+   *
+   * @return whether there was anything to build or place
+   */
+  private boolean settle() {
+    if (!scrolled && !rowsPending) {
+      return false;
     }
+    boolean pending = rowsPending;
+    scrolled = false;
+    rowsPending = false;
+    if (fillRows() | pending) { // not ||
+      refocus();
+      placeEditors();
+    }
+    lookIds = null;
+    El.placeBars(root);
+    return true;
   }
 
   /**
