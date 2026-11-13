@@ -1,0 +1,89 @@
+el 0,0 520x640
+  el 16,16 488x521
+    el 16,16 488x36
+      text role=heading "Editor" 16,16 488x18 level=2
+      text "How text looks and behaves while you type" 16,36 488x16
+    el 16,60 488x477
+      el role=switch label="Word wrap" 19,63 482x60 checked
+        text label="text_t" "\u{ECAE}" 29,85 16x16
+        el 57,69 394x48
+          text "Word wrap" 57,69 394x15
+          text "Wrap long lines at the edge of the editor instead of scrolling sideways" 57,86 394x31
+        el 463,85 28x16
+          el 477,87 12x12
+      el 17,125 486x1
+      el role=switch label="Line numbers" 19,128 482x36 checked=false
+        el 29,138 422x16
+          text "Line numbers" 29,138 422x16
+        el 463,138 28x16
+          el 465,140 12x12
+      el 17,166 486x1
+      el 19,169 482x36
+        el 29,179 290x16
+          text "Font" 29,179 290x16
+        el #font role=combobox label="JetBrains Mono" 331,175 160x24 expanded=false
+          text "JetBrains Mono" 340,179 122x16
+          text label="chevron_down" "\u{F2A2}" 466,179 16x16
+      el 17,207 486x1
+      el 19,210 482x45
+        el 29,216 350x33
+          text "Tab size" 29,216 350x16
+          text "Columns per tab stop" 29,234 350x15
+        el 391,221 100x24
+          text role=spinbutton label="Tab size" "4" 391,221 100x24
+          el 447,223 42x20
+            el role=button label="Decrease" 447,223 20x20
+              text label="subtract" "\u{EBCF}" 449,225 16x16
+            el role=button label="Increase" 469,223 20x20
+              text label="add" "\u{F108}" 471,225 16x16
+      el 17,257 486x1
+      el role=button label="Keymap" 19,260 482x36 value="Default"
+        text label="key" "\u{E740}" 29,270 16x16
+        el 57,270 350x16
+          text "Keymap" 57,270 350x16
+        text "Default" 419,270 44x16
+        text label="chevron_right" "\u{F2AF}" 475,270 16x16
+      el 17,298 486x1
+      el 19,301 482x183
+        el role=button label="Advanced" 19,301 482x45 expanded
+          el 29,307 434x33
+            text "Advanced" 29,307 434x16
+            text "Options most people never change" 29,325 434x15
+          text label="chevron_up" "\u{F2B5}" 475,316 16x16
+        el 17,348 486x1
+        el 19,351 482x133
+          el role=switch label="Insert spaces" 35,351 466x36 checked
+            el 45,361 406x16
+              text "Insert spaces" 45,361 406x16
+            el 463,361 28x16
+              el 477,363 12x12
+          el 33,389 470x1
+          el 35,392 466x92
+            text "Line endings" 45,398 446x16
+            el role=radiogroup label="Line endings" 41,420 108x60
+              el role=radio label="LF" 45,422 100x16 checked
+                el 45,422 16x16
+                  el 50,427 6x6
+                text "LF" 69,422 15x15
+              el role=radio label="CRLF" 45,442 100x16 checked=false
+                el 45,442 16x16
+                text "CRLF" 69,442 33x15
+              el role=radio label="As in the file" 45,462 100x16 checked=false
+                el 45,462 16x16
+                text "As in the file" 69,462 76x15
+      el 17,486 486x1
+      el role=switch label="Telemetry" 19,489 482x45 disabled checked=false
+        el 29,495 422x33
+          text "Telemetry" 29,495 422x15
+          text "Managed by your organisation" 29,512 422x16
+        el 463,503 28x16
+          el 465,505 12x12
+  el role=separator 16,549 488x1
+  el role=separator label="or" 16,562 488x15
+    el 16,569 230x1
+    text "or" 254,562 12x15
+    el 274,569 230x1
+  el 16,589 488x24
+    text "Left" 16,593 24x16
+    el role=separator 48,589 1x24
+    text "Right" 57,593 31x16

@@ -124,6 +124,17 @@ public final class TextField {
   }
 
   /**
+   * Gives a field of this class the look of a value that is not accepted, such as a form's field
+   * with an error: the danger colour's border, also while it has the focus, and {@code invalid} in
+   * a tree dump ({@link El#invalid}).
+   *
+   * @return the field
+   */
+  public static El invalid(Theme t, El field) {
+    return field.invalid(true).border(t.size().stroke(), t.status().danger()).whenFocused(null);
+  }
+
+  /**
    * A field for a password: {@link #textField}, {@link El#masked masked}, so that it shows a bullet
    * for each character and copies nothing. The result is the field itself, as of {@code
    * textField}; {@link #revealable} adds a button that shows the password.
