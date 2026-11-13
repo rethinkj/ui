@@ -139,6 +139,19 @@ final class Overlays {
         top = along(l.align, ay, ah, h, height);
         l.flipped = after ? left < ax : left >= ax + aw;
       }
+      // A tooltip that would cover its anchor, under the pointer that shows it, would take the
+      // hover from the anchor and hide again: it goes to a side across if one has room.
+      if (l.avoidsAnchor && Float.isNaN(l.pointX) && overlaps(left, top, w, h, ax, ay, aw, ah)) {
+        boolean down = l.side == Side.TOP || l.side == Side.BOTTOM;
+        float acrossLeft = down ? beside(true, ax, aw, w, l.gap, width) : along(l.align, ax, aw,
+            w, width);
+        float acrossTop = down ? along(l.align, ay, ah, h, height) : beside(true, ay, ah, h, l.gap,
+            height);
+        if (!overlaps(acrossLeft, acrossTop, w, h, ax, ay, aw, ah)) {
+          left = acrossLeft;
+          top = acrossTop;
+        }
+      }
     }
     // On whole pixels, as layout places everything else.
     overlay.place(Math.round(left), Math.round(top), w, h);
@@ -184,6 +197,11 @@ final class Overlays {
       return second;
     }
     return Math.clamp(first, 0, Math.max(window - size, 0));
+  }
+
+  private static boolean overlaps(
+      float x, float y, float w, float h, float ax, float ay, float aw, float ah) {
+    return x < ax + aw && ax < x + w && y < ay + ah && ay < y + h;
   }
 
   private static boolean fits(float start, float size, float window) {

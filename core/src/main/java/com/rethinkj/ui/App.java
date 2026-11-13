@@ -151,10 +151,12 @@ public final class App<S> {
   private float pointerY;
   private List<El> under = List.of(); // the elements under the pointer in the current tree
   private El marked; // the one of them a press would go to, marked for the dump
-  private Looks shown = new Looks(List.of(), List.of(), null, null, 0); // of the current tree
+  private Looks shown = new Looks(List.of(), List.of(), null, false, null, 0); // of current tree
   private El focused; // in the current tree
   private Object focusId; // its identity, to find it in the next tree
   private boolean ring; // the keyboard or the app moved the focus: draw the ring
+  private double focusSince; // when the focus moved there, for El#whenFocusVisibleFor
+  private boolean focusKeyed; // a key went down since then that did not move the focus
   private boolean reveal; // scroll the focused element into view after the next rebuild
   // The identity of the element that last had the focus in a virtual list, by the list's identity.
   // shortcut: lists that are gone stay in it, one small entry each; drop them in update() when
@@ -636,6 +638,19 @@ public final class App<S> {
   public void keyDown(Key key) {
     Objects.requireNonNull(key, "key");
     enqueue(() -> {
+      Object before = focusId;
+      boolean took = keyDownAt(key);
+      if (Objects.equals(before, focusId) && !focusKeyed && focused != null
+          && focused.focusRestLook() != null) {
+        focusKeyed = true; // the look of a stay goes
+        handled = true;
+      }
+      return took;
+    });
+  }
+
+  private boolean keyDownAt(Key key) {
+    {
       List<El> path = focusPath();
       boolean called = false;
       for (El el : path.reversed()) {
@@ -693,7 +708,7 @@ public final class App<S> {
         }
       }
       return called;
-    });
+    }
   }
 
   /**
@@ -944,6 +959,8 @@ public final class App<S> {
     focusId = el == null ? null : animator.identity(el);
     this.ring = ring && el != null;
     reveal = this.ring;
+    focusSince = time;
+    focusKeyed = false;
     if (el != null) {
       el.focused(true);
       Animator.InRow in = animator.inRow(focusId);
@@ -1632,8 +1649,8 @@ public final class App<S> {
    * rested} are those with a {@link El#whenHoveredFor} look that is due, and {@code hoversRun}
    * counts the {@link El#onHoverFor} handlers run, so that one that ran builds the view again.
    */
-  private record Looks(
-      List<Object> hovered, List<Object> rested, Object focused, Object pressed, int hoversRun) {
+  private record Looks(List<Object> hovered, List<Object> rested, Object focused,
+      boolean focusRested, Object pressed, int hoversRun) {
 
     /** These looks without those of elements in the rows of a list, which were built anew. */
     Looks without(Object list) {
@@ -1645,6 +1662,7 @@ public final class App<S> {
           kept,
           keptRested,
           Animator.isBelow(focused, list) ? null : focused,
+          focusRested,
           Animator.isBelow(pressed, list) ? null : pressed,
           hoversRun);
     }
@@ -1770,7 +1788,7 @@ public final class App<S> {
         list.layoutRow(i, scale, systemFonts); // a look may change the layout
       }
     }
-    shown = new Looks(hovered, rested, focus, press, shown.hoversRun());
+    shown = new Looks(hovered, rested, focus, shown.focusRested(), press, shown.hoversRun());
   }
 
   /**
@@ -1794,8 +1812,25 @@ public final class App<S> {
         hovered,
         rested,
         focus != null && focus.focusLook() != null ? focusId : null,
+        focusRested(focus),
         press != null && press.pressLook() != null ? pressId : null,
         hoversRun);
+  }
+
+  /**
+   * Whether the {@link El#whenFocusVisibleFor} look of the focused element is due; when it will
+   * be, notes that in {@link #restDue}, after {@link #rest} has set it.
+   */
+  private boolean focusRested(El focus) {
+    if (focus == null || focus.focusRestLook() == null || !ring || focusKeyed) {
+      return false;
+    }
+    double due = focusSince + focus.focusRestDelay();
+    if (due > time) {
+      restDue = Math.min(restDue, due);
+      return false;
+    }
+    return true;
   }
 
   /**
@@ -1842,8 +1877,20 @@ public final class App<S> {
     if (rest == null || rest.since + el.restDelay() > time) {
       return false;
     }
-    el.apply(el.restLook(), "whenHoveredFor");
+    delayedLook(el, el.restLook(), "whenHoveredFor");
     return true;
+  }
+
+  /**
+   * Applies a look that waited for a stay; the overlays it attaches, such as a tooltip, avoid
+   * covering their anchor, under the pointer that would leave the anchor for them and hide them.
+   */
+  private static void delayedLook(El el, Consumer<El> look, String name) {
+    int before = el.overlays().size();
+    el.apply(look, name);
+    for (El overlay : el.overlays().subList(before, el.overlays().size())) {
+      overlay.placement().avoidsAnchor = true;
+    }
   }
 
   /**
@@ -1891,6 +1938,8 @@ public final class App<S> {
     focusId = id;
     this.ring = ring && id != null;
     reveal = this.ring;
+    focusSince = time;
+    focusKeyed = false;
   }
 
   /**
@@ -1918,11 +1967,15 @@ public final class App<S> {
     El focus = focusId == null ? null : Animator.find(tree, focusId);
     boolean focusLook = focus != null && focus.isFocusable() // or it loses the focus
         && look(focus, El::focusLook, "whenFocused");
+    boolean focusRested = focus != null && focus.isFocusable() && focusRested(focus);
+    if (focusRested) {
+      delayedLook(focus, focus.focusRestLook(), "whenFocusVisibleFor");
+    }
     Object pressId = pressedId();
     boolean pressLook =
         pressId != null && look(Animator.find(tree, pressId), El::pressLook, "whenPressed");
-    return new Looks(hovered, rested, focusLook ? focusId : null, pressLook ? pressId : null,
-        hoversRun);
+    return new Looks(hovered, rested, focusLook ? focusId : null, focusRested,
+        pressLook ? pressId : null, hoversRun);
   }
 
   /** Applies {@code el}'s look of one state, if it has one; false if not. */

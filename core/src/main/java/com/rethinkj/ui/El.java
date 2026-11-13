@@ -179,6 +179,7 @@ public final class El {
     Object id; // its identity, which Animator sets
     long opened; // when it first appeared, which Animator counts
     boolean flipped; // the last placement put it on the other side of its anchor
+    boolean avoidsAnchor; // a delayed look attached it: it goes across rather than cover it
     El anchor; // as the last placement found it, in window coordinates
     float anchorX;
     float anchorY;
@@ -1153,6 +1154,23 @@ public final class El {
   }
 
   /**
+   * Changes how this element looks once it has had the keyboard focus with a ring for {@code
+   * seconds} of the app's clock, as CSS's {@code :focus-visible} after a delay: the keyboard or the
+   * app moved the focus there, not a press. The look goes when the focus leaves or a key goes down
+   * that does not move the focus, and comes back only when the focus comes back. A tooltip uses
+   * it with the same look as {@link #whenHoveredFor}, so that the keyboard shows it too; both
+   * looks apply when both are due, the hovered one first. {@link App#nextChange} says when it is
+   * due, as for {@link #whenHoveredFor}. Not in the rows of a virtual list.
+   *
+   * @param look changes the element, or null for none
+   */
+  public El whenFocusVisibleFor(double seconds, Consumer<El> look) {
+    this.focusRestDelay = delay(seconds);
+    this.focusRestLook = look;
+    return this;
+  }
+
+  /**
    * Runs {@code handler} once the pointer has rested over this element, or over elements inside
    * it, for {@code seconds} of the app's clock; once per stay, and not after a press until the
    * pointer has left and come back. With 0 it runs in the frame that finds the pointer there. Like
@@ -1437,6 +1455,14 @@ public final class El {
 
   Consumer<El> restLook() {
     return restLook;
+  }
+
+  Consumer<El> focusRestLook() {
+    return focusRestLook;
+  }
+
+  double focusRestDelay() {
+    return focusRestDelay;
   }
 
   double restDelay() {

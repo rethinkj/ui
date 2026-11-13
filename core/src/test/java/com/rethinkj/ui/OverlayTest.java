@@ -83,9 +83,15 @@ class OverlayTest {
 
   /** A 60 by 50 box beside a 40 by 20 anchor at x, y in a window of 200 by 200. */
   private static float[] placed(float x, float y, Function<El, El> place) {
+    return placed(x, y, 200, 200, place);
+  }
+
+  /** A 60 by 50 box beside a 40 by 20 anchor at x, y in a window of this size. */
+  private static float[] placed(float x, float y, float width, float height,
+      Function<El, El> place) {
     El overlay = place.apply(el().key("pop").size(60, 50));
-    App<State> app = app(new State(), s -> el().size(200, 200)
-        .child(el().key("anchor").absolute(x, y).size(40, 20).overlay(overlay)), 200, 200);
+    App<State> app = app(new State(), s -> el().size(width, height)
+        .child(el().key("anchor").absolute(x, y).size(40, 20).overlay(overlay)), width, height);
     El pop = find(app, "pop");
     return new float[] {pop.x(), pop.y(), pop.width(), pop.height()};
   }
@@ -508,6 +514,65 @@ class OverlayTest {
     app.pointerMove(10, 10);
     app.frame();
     assertEquals(app.time() + 0.5, app.nextChange());
+  }
+
+  @Test
+  void aLookAfterTheKeyboardFocusShowsATooltipUntilAKeyOrTheFocusMoves() {
+    State s = new State();
+    App<State> app = app(s, st -> row().size(200, 200).children(
+        el().key("before").size(40, 20).focusable(),
+        el().key("anchor").size(40, 20).focusable()
+            .whenFocusVisibleFor(0.5, e -> e.overlay(el().key("tip").size(60, 16)))), 200, 200);
+    key(app, "Tab", 0);
+    key(app, "Tab", 0);
+    assertEquals("anchor", app.focused().key());
+    assertEquals(0.5, app.nextChange(), "due half a second after the focus came");
+    app.advance(0.4);
+    assertFalse(app.frame(), "nothing new to draw while it waits");
+    app.advance(0.1);
+    assertTrue(app.frame());
+    assertEquals("tip", app.tree().shownOverlays().getFirst().key());
+    assertEquals(Double.POSITIVE_INFINITY, app.nextChange());
+
+    key(app, "A", 0); // a key that moves no focus hides it
+    assertTrue(app.tree().shownOverlays().isEmpty());
+    app.advance(2);
+    app.frame();
+    assertTrue(app.tree().shownOverlays().isEmpty(), "until the focus comes back");
+    key(app, "Tab", Key.SHIFT);
+    key(app, "Tab", 0);
+    app.advance(0.5);
+    app.frame();
+    assertEquals(1, app.tree().shownOverlays().size(), "back by the keyboard: again");
+    key(app, "Tab", Key.SHIFT);
+    assertTrue(app.tree().shownOverlays().isEmpty(), "the focus left");
+    press(app, 50, 10); // a press focuses it without a ring: no tooltip
+    app.advance(1);
+    app.frame();
+    assertEquals("anchor", app.focused().key());
+    assertTrue(app.tree().shownOverlays().isEmpty());
+  }
+
+  @Test
+  void aTooltipThatWouldCoverItsAnchorGoesToASideAcross() {
+    // A 60 by 50 tooltip below a 40 by 20 anchor in a window 80 high: neither below nor above.
+    float[] across = {54, 15, 60, 50};
+    assertRect(across, tooltip(200, o -> o.side(Side.BOTTOM, Style.Align.CENTER, 4)));
+    // An overlay that no delayed look attached stays as near as it fits, over its anchor.
+    assertRect(new float[] {0, 30, 60, 50},
+        placed(10, 30, 200, 80, o -> o.side(Side.BOTTOM, Style.Align.CENTER, 4)));
+  }
+
+  /** Where a 60 by 50 tooltip of a 40 by 20 anchor at 10,30 shows in a window 80 high. */
+  private static float[] tooltip(float width, Function<El, El> place) {
+    App<State> app = app(new State(), s -> el().size(width, 80).child(el().key("anchor")
+        .absolute(10, 30).size(40, 20)
+        .whenHoveredFor(0, e -> e.overlay(place.apply(el().key("pop").size(60, 50))))),
+        width, 80);
+    app.pointerMove(20, 40);
+    app.frame();
+    El pop = find(app, "pop");
+    return new float[] {pop.x(), pop.y(), pop.width(), pop.height()};
   }
 
   @Test
