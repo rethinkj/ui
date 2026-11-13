@@ -42,6 +42,12 @@
       <artifactId>rethinkj-ui-fonts</artifactId>
       <version>${project.version}</version>
     </dependency>
+    <!-- The icon font, for the tree's marks and icons. -->
+    <dependency>
+      <groupId>com.rethinkj.ui</groupId>
+      <artifactId>rethinkj-ui-icons</artifactId>
+      <version>${project.version}</version>
+    </dependency>
     <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter</artifactId>
