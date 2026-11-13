@@ -32,7 +32,7 @@ el 0,0 560x240
         el #resize-5 role=separator label="Resize status" 729,8 6x22
         el #resize-6 role=separator label="Resize note" 969,8 6x22
       el 8,30 964x1
-      el #rows 8,31 964x200 rows 765429-765444/1000000 scroll 0,16839504
+      el #rows 8,31 964x201 rows 765429-765444/1000000 scroll 0,16839504
         el #row-765429 role=row 8,-35 964x22
           el 8,-35 63x22
             text "765430" 25,-32 42x16

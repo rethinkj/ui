@@ -357,7 +357,9 @@ public final class El {
    *
    * <p>The list has no other children: {@link #child} fails on it. Its content has no width of its
    * own, so give the list a width or let its parent stretch it, and give it a height or let it
-   * {@link #grow}: like any scroll area it is as tall as its content otherwise.
+   * {@link #grow}: like any scroll area it is as tall as its content otherwise, up to {@link
+   * #LAYOUT_LIMIT}. In a column that grows itself, the column also needs a minimum height of 0
+   * (as {@code min-height: 0} in CSS), or the rows, up to that limit, are its minimum height.
    *
    * @param count the number of rows, 0 or more
    * @param rowHeight the height of every row in logical pixels, above 0
@@ -379,11 +381,19 @@ public final class El {
     this.rowCount = count;
     this.rowHeight = rowHeight;
     this.rowBuilder = Objects.requireNonNull(row, "row");
-    // Layout sees all rows as one leaf, as tall as they are together.
+    // Layout sees all rows as one leaf, as tall as they are together up to LAYOUT_LIMIT: layout
+    // works in floats, which beyond 2^24 pixels miss whole pixels when the list shrinks to fit.
+    // The offsets of scrolling are doubles and reach the last row anyway.
     this.measure = (knownWidth, knownHeight, availableWidth, availableHeight) ->
-        new Measure.Size(0, (float) (count * (double) rowHeight));
+        new Measure.Size(0, (float) Math.min(count * (double) rowHeight, LAYOUT_LIMIT));
     return this;
   }
+
+  /**
+   * The most a {@link #rows virtual list} contributes to layout as its content's height, 2^20
+   * logical pixels: a list without a height of its own is at most this tall and scrolls beyond.
+   */
+  public static final float LAYOUT_LIMIT = 1 << 20;
 
   /**
    * Keeps a row of this {@link #rows virtual list} in view: whenever a rebuild of the view gives

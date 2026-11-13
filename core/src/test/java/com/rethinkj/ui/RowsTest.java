@@ -469,6 +469,32 @@ class RowsTest {
     assertEquals("after", key(app.focused()), "the list has no rows to enter");
   }
 
+  // Beyond 2^24 pixels a float misses whole pixels, which layout's arithmetic would show.
+  @Test
+  void aListOfManyMillionRowsFillsWhatItGrowsIntoExactly() {
+    for (int count : new int[] {1_000_000, 10_000_000, 100_000_000}) {
+      App<Object> app = new App<>(new Object(), s -> col().size(300, 500).children(
+          el().h(23).shrink(0),
+          col().grow(1).rows(count, 22, i -> el().h(22))));
+      app.resize(300, 500, 1);
+      app.frame();
+      assertEquals(477, app.tree().children().get(1).height(), count + " rows");
+      app.wheel(10, 100, 0, Float.MAX_VALUE);
+      app.frame();
+      El list = app.tree().children().get(1);
+      assertEquals(count * 22.0 - 477, list.scrollY(), count + " rows: the end is still reached");
+      assertEquals(count - 1, list.firstRow() + list.children().size() - 1);
+    }
+  }
+
+  @Test
+  void aListWithoutAHeightIsAtMostTheLayoutLimitTall() {
+    App<Object> app = new App<>(new Object(), s -> El.col().w(100).rows(1_000_000, 22, i -> el()));
+    app.resize(100, 100, 1);
+    app.frame();
+    assertEquals(El.LAYOUT_LIMIT, app.tree().height());
+  }
+
   // Building without an app, and mistakes
 
   @Test
