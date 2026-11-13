@@ -251,8 +251,19 @@ final class Sections {
   // Text fields
 
   static final List<String> DRIVERS = List.of("PostgreSQL", "MySQL", "SQLite", "SQL Server");
-  static final List<String> ISOLATION =
-      List.of("Read uncommitted", "Read committed", "Repeatable read", "Serializable");
+  /** The isolation levels of a transaction, as a connection's options offer them. */
+  enum Isolation {
+    READ_UNCOMMITTED("Read uncommitted"),
+    READ_COMMITTED("Read committed"),
+    REPEATABLE_READ("Repeatable read"),
+    SERIALIZABLE("Serializable");
+
+    final String title;
+
+    Isolation(String title) {
+      this.title = title;
+    }
+  }
 
   private static El fields(Showcase s, Theme t) {
     El states = card(
@@ -307,7 +318,13 @@ final class Sections {
         field(
             t,
             "Isolation",
-            Select.select(t, ISOLATION, s.isolation, s.isolationMenu, i -> s.isolation = i)
+            Select.select(
+                    t,
+                    List.of(Isolation.values()),
+                    s.isolation,
+                    i -> i.title,
+                    s.isolationMenu,
+                    i -> s.isolation = i)
                 .key("isolation")),
         row()
             .padding(0, 0, 0, 96 + t.space().m())
@@ -526,7 +543,8 @@ final class Sections {
             field(
                 t,
                 "Database",
-                ComboBox.items(t, PROVIDERS, s.provider, s.providerBox, i -> s.provider = i)
+                ComboBox.items(
+                        t, PRODUCTS, s.product, Product::item, s.productBox, p -> s.product = p)
                     .key("provider-box")
                     .w(280)),
             row()
@@ -758,20 +776,25 @@ final class Sections {
     return row().gap(t.space().l()).align(Style.Align.START).child(explorer).child(details);
   }
 
-  /** The products a connection can be to, each with a mark of its own before its name. */
-  static final List<ComboBox.Item> PROVIDERS = List.of(
-      provider("PostgreSQL", "9.6 or later"),
-      provider("MySQL", "8.0"),
-      provider("MariaDB", "10.5"),
-      provider("SQL Server", "2019"),
-      provider("Oracle", "19c"),
-      ComboBox.item("SQLite").icon(Symbol.DATABASE).detail("a file"));
+  /** A product a connection can be to, and the versions it supports; a file has no server. */
+  record Product(String name, String versions, boolean file) {
 
-  private static ComboBox.Item provider(String name, String versions) {
-    return ComboBox.item(name)
-        .detail(versions)
-        .leading(t -> Avatar.avatar(t, name, null, t.size().icon()));
+    /** The product in the combo box, with a mark of its own before its name. */
+    ComboBox.Item item() {
+      ComboBox.Item item = ComboBox.item(name).detail(versions);
+      return file
+          ? item.icon(Symbol.DATABASE)
+          : item.leading(t -> Avatar.avatar(t, name, null, t.size().icon()));
+    }
   }
+
+  static final List<Product> PRODUCTS = List.of(
+      new Product("PostgreSQL", "9.6 or later", false),
+      new Product("MySQL", "8.0", false),
+      new Product("MariaDB", "10.5", false),
+      new Product("SQL Server", "2019", false),
+      new Product("Oracle", "19c", false),
+      new Product("SQLite", "a file", true));
 
   // Tabs and split
 

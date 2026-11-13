@@ -10,7 +10,10 @@ import com.rethinkj.ui.Cursor;
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.Key;
 import com.rethinkj.ui.Style;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.IntConsumer;
 import java.util.function.IntFunction;
 
@@ -90,6 +93,67 @@ public final class NavList {
       list.child(items.get(i).heading() ? r : r.position(i + 1, items.size()));
     }
     return rows.list(list);
+  }
+
+  /**
+   * A list of values of any type, such as the constants of an enum, each shown as the item {@code
+   * item} makes of it, without headings.
+   *
+   * @param selected the selected value, found by {@code equals}; null, or a value not among them,
+   *     for none
+   * @param onSelect told the value the user selects, only when it changes; null disables the list
+   */
+  public static <T> El navList(
+      Theme t,
+      List<T> values,
+      T selected,
+      Function<? super T, Item> item,
+      Consumer<? super T> onSelect) {
+    return navList(t, values, selected, item, v -> null, onSelect);
+  }
+
+  /**
+   * A list of values with headings: a heading wherever a value's group differs from the one
+   * before it, none for a null group. The headings count as rows, as in the form with indexes.
+   *
+   * <pre>{@code
+   * navList(t, List.of(Page.values()), s.page, p -> NavList.item(p.icon, p.title), Page::group,
+   *     p -> s.page = p)
+   * }</pre>
+   *
+   * @param item the item of a value, which should not be a {@linkplain #heading heading}
+   * @param group the heading over a value and those after it with an equal group, or null
+   */
+  public static <T> El navList(
+      Theme t,
+      List<T> values,
+      T selected,
+      Function<? super T, Item> item,
+      Function<? super T, String> group,
+      Consumer<? super T> onSelect) {
+    List<Item> items = new ArrayList<>(values.size());
+    int[] value = new int[values.size() * 2]; // the index of the value of each row
+    int chosen = Choices.index(values, selected);
+    int selectedRow = -1;
+    String last = null;
+    for (int i = 0; i < values.size(); i++) {
+      String g = group.apply(values.get(i));
+      if (g != null && !g.equals(last)) {
+        value[items.size()] = -1;
+        items.add(heading(g));
+      }
+      last = g;
+      if (i == chosen) {
+        selectedRow = items.size();
+      }
+      value[items.size()] = i;
+      items.add(item.apply(values.get(i)));
+    }
+    return navList(
+        t,
+        items,
+        selectedRow,
+        onSelect == null ? null : r -> onSelect.accept(values.get(value[r])));
   }
 
   /**

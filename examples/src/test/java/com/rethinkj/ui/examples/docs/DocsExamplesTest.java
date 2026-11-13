@@ -43,6 +43,7 @@ class DocsExamplesTest {
     controls(all, "toggles", Controls::toggles, 240, 110);
     controls(all, "choices", Controls::choices, 320, 260);
     controls(all, "combos", Controls::combos, 360, 240);
+    controls(all, "typed", Controls::typed, 360, 420);
     controls(all, "fields", Controls::fields, 360, 400);
     controls(all, "parts", Controls::parts, 400, 200);
     layouts(all, "cards", Layouts::cards, 420, 360);
@@ -51,6 +52,7 @@ class DocsExamplesTest {
     layouts(all, "form", Layouts::form, 480, 260);
     layouts(all, "dividers", Layouts::dividers, 280, 140);
     layouts(all, "navigation", Layouts::navigation, 260, 220);
+    layouts(all, "navigation-typed", Layouts::typedNavigation, 260, 220);
     layouts(all, "split", Layouts::split, 520, 240);
     layouts(all, "tabs", Layouts::tabs, 480, 220);
     layouts(all, "status", Layouts::status, 460, 420);

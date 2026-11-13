@@ -12,6 +12,8 @@ import com.rethinkj.ui.Key;
 import com.rethinkj.ui.Len;
 import com.rethinkj.ui.Style;
 import java.util.List;
+import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.IntConsumer;
 
 /**
@@ -25,6 +27,29 @@ import java.util.function.IntConsumer;
 public final class Radio {
 
   private Radio() {}
+
+  /**
+   * Choices among values of any type, such as the constants of an enum, as {@link
+   * #radioGroup(Theme, List, int, IntConsumer)} is among texts.
+   *
+   * @param selected the chosen value, found by {@code equals}; null, or a value not among them,
+   *     for none
+   * @param text the text a value shows
+   * @param onSelect told the value the user chooses, only when it changes; null disables the
+   *     group
+   */
+  public static <T> El radioGroup(
+      Theme t,
+      List<T> values,
+      T selected,
+      Function<? super T, String> text,
+      Consumer<? super T> onSelect) {
+    return radioGroup(
+        t,
+        Choices.texts(values, text),
+        Choices.index(values, selected),
+        Choices.handler(values, onSelect));
+  }
 
   /**
    * @param selected the index of the chosen choice, -1 for none

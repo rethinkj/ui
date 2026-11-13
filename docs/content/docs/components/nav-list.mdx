@@ -19,6 +19,21 @@ description: A list of pages or sections with one selected, headings between the
 | `NavList.item([icon,] label)`, `.count(text)` | An item and its count |
 | `NavList.heading(label)` | A heading, skipped by the keys |
 
+## Values instead of indexes
+
+`navList(t, values, selected, value -> item, onSelect)` lists values of any type, and with a function from a value to its group, `navList(t, values, selected, value -> item, value -> group, onSelect)`, puts a heading wherever the group changes (none for a null group):
+
+```java snippet="nav-list-types"
+```
+
+```java snippet="nav-list-typed"
+```
+
+The selected value is found by `equals`; null, or a value not in the list, selects nothing. The handler gets the value; a null handler disables it. The headings count as rows, in the keys and positions of the tree dump, as in the form with indexes:
+
+```text file="examples/src/test/resources/golden/docs/navigation-typed/view.tree.txt" start="role=listbox" count="5"
+```
+
 In a card, wrap it in `Card.inset(t, list)`.
 
 ## Keyboard
