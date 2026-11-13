@@ -27,7 +27,10 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 
 /**
- * Runs an {@link App} in a {@link Window}: feeds it the window's pointer, wheel, key and text input
+ * Runs {@link App}s in {@link Window}s, one app per window, on the windows' thread: the window
+ * given to the constructor, and those that {@link #open} or the apps' handlers open through {@link
+ * App#windows()} ({@link Windows}, which also says how apps of one state see each other's
+ * changes). For each window the loop feeds its app the window's pointer, wheel, key and text input
  * and its size, with the right button as the secondary one ({@link App#secondaryDown}), lets it build frames, hands each new frame to a {@link Presenter}, which draws it,
  * and shows the {@link App#cursor} the app asks for.
  *
@@ -36,6 +39,10 @@ import java.util.function.Function;
  * that browsers and toolkits scroll per notch on Linux. Touchpads and precise wheels report parts
  * of a step, which scroll that part of the distance. Rolling the wheel towards the user scrolls
  * towards the end, so that the content moves up.
+ *
+ * <p>Between a press and its release, what another window of the loop reports of the pointer
+ * goes to the window the press began in, at the same point of the screen: SDL hands the pointer
+ * to a window that opens under it, as one that follows a drag does.
  *
  * <p>The loop draws only when there is something new: when {@link App#frame} says so, when the
  * window asks for a {@link WindowEvent.Redraw}, or when the presenter could not show the last frame
