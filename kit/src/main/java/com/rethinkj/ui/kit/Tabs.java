@@ -172,6 +172,8 @@ public final class Tabs {
     int slot = -1; // before which tab of it, -1 for none
     float markerX; // the marker's left in that bar
     Object reveal; // new for each step that scrolls that bar along
+    int steps; // the steps of the drag so far
+    int marked = -1; // the step that showed the marker: a bar's drop handler runs before it
     float revealX;
 
     /** Whether a tab is being dragged. */
@@ -212,6 +214,8 @@ public final class Tabs {
       overBar = null;
       slot = -1;
       reveal = null;
+      steps = 0;
+      marked = -1;
     }
   }
 
@@ -341,6 +345,11 @@ public final class Tabs {
     if (!g.isActive()) {
       return;
     }
+    if (g.marked != g.steps) { // no bar showed the marker on this step: it is over none
+      g.overBar = null;
+      g.slot = -1;
+    }
+    g.steps++;
     boolean moving = phase == Drag.Phase.START || phase == Drag.Phase.MOVE;
     float reach = t.size().control();
     if (moving && !g.torn && o.onTearOff != null && (d.outside()
@@ -415,6 +424,7 @@ public final class Tabs {
         : built.getLast().x() + built.getLast().width() + gap / 2;
     g.overBar = o.id;
     g.slot = slot;
+    g.marked = g.steps;
     g.markerX = list.x() + Math.clamp(edge - line / 2, 0, Math.max(0, list.width() - line));
     // Near an end of the list, each step scrolls it a little further that way.
     float near = t.size().control();
