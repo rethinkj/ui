@@ -1,11 +1,18 @@
 package com.rethinkj.ui.natives;
 
+import static java.lang.foreign.ValueLayout.ADDRESS;
+import static java.lang.foreign.ValueLayout.JAVA_INT;
+
 import com.rethinkj.ui.natives.Manifest.Library;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.lang.foreign.Arena;
+import java.lang.foreign.FunctionDescriptor;
+import java.lang.foreign.Linker;
+import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SymbolLookup;
+import java.lang.invoke.MethodHandle;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.InvalidPathException;
@@ -56,6 +63,12 @@ public final class Natives {
   static final String RESOURCES = "META-INF/rethinkj-ui/natives/";
   static final String MANIFEST = "manifest.txt";
   static final List<String> PLATFORMS = List.of("windows-x64", "linux-x64");
+
+  /** {@code void *dlopen(const char *file, int mode)} and {@code char *dlerror(void)}. */
+  private static final FunctionDescriptor DLOPEN =
+      FunctionDescriptor.of(ADDRESS, ADDRESS, JAVA_INT);
+  private static final FunctionDescriptor DLERROR = FunctionDescriptor.of(ADDRESS);
+  private static final int RTLD_LAZY = 1;
 
   private static Natives system;
 
@@ -301,12 +314,43 @@ public final class Natives {
     }
   }
 
-  private static SymbolLookup load(Path file) {
+  private SymbolLookup load(Path file) {
     try {
       return SymbolLookup.libraryLookup(file, Arena.global());
     } catch (IllegalArgumentException e) {
-      throw error("Cannot load " + file + ": " + e.getMessage() + ". The file may be damaged, or"
-          + " the system lacks a library it needs.", e);
+      if (!osName.equals("Linux")) {
+        throw error("Cannot load " + file + ": " + e.getMessage() + ". The file may be damaged, or"
+            + " the system lacks a library it needs.", e);
+      }
+      String reason = dlerror(file);
+      throw error("Cannot load " + file + ": " + e.getMessage()
+          + (reason == null ? "" : " (" + reason + ")") + ". The file may be damaged, the system"
+          + " may lack a library it needs or have an older glibc than it needs, or the folder may"
+          + " be on a file system mounted noexec; then choose another with -D" + CACHE_PROPERTY
+          + "=<folder>, or unpack the libraries yourself and set -D" + DIR_PROPERTY + "=<folder>.",
+          e);
+    }
+  }
+
+  /**
+   * Why the dynamic linker of Linux cannot load {@code file}, such as a glibc version it lacks;
+   * the JDK's message leaves that out. Null if it does not say.
+   */
+  private static String dlerror(Path file) {
+    Linker linker = Linker.nativeLinker();
+    SymbolLookup libc = linker.defaultLookup();
+    try (Arena arena = Arena.ofConfined()) {
+      MethodHandle dlopen = linker.downcallHandle(libc.findOrThrow("dlopen"), DLOPEN);
+      MethodHandle dlerror = linker.downcallHandle(libc.findOrThrow("dlerror"), DLERROR);
+      MemorySegment handle =
+          (MemorySegment) dlopen.invokeExact(arena.allocateFrom(file.toString()), RTLD_LAZY);
+      MemorySegment message = (MemorySegment) dlerror.invokeExact();
+      if (!handle.equals(MemorySegment.NULL) || message.equals(MemorySegment.NULL)) {
+        return null;
+      }
+      return message.reinterpret(Integer.MAX_VALUE).getString(0);
+    } catch (Throwable t) {
+      return null; // only for the message
     }
   }
 
