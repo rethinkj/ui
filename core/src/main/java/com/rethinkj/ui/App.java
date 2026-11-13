@@ -12,6 +12,7 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -185,6 +186,9 @@ public final class App<S> {
   private boolean scrolled; // something scrolled since the rows and bars were placed
   private boolean caretOverlays; // an overlay is placed beside a caret: see El#atCaret
   private boolean rowsPending; // the tree was built between two inputs without its lists' rows
+  // A list with measured row heights still wants rows after the passes of the last fillRows:
+  // the next frames build them, and nextChange asks for those frames.
+  private boolean rowsWanted;
   private final Animator animator = new Animator();
   private double time;
   private float width;
@@ -222,10 +226,11 @@ public final class App<S> {
   // apps create lists by the thousand.
   private final Map<Object, Object> remembered = new HashMap<>();
   // The rows each list with an onRowsBuilt handler told last, first and last in one long, by the
-  // list's identity. shortcut: lists that are gone stay in it, as in remembered.
+  // list's identity, for the lists the last fillRows found; a list that comes back tells again.
   private final Map<Object, Long> toldRows = new HashMap<>();
-  // The sizes the El#onResize handlers were told, by identity. shortcut: as in toldRows.
-  private final Map<Object, Long> toldSizes = new HashMap<>();
+  private final Set<Object> rowLists = new HashSet<>(); // those it found, while it walks
+  // The sizes the El#onResize handlers were told, by identity, of the elements of the last build.
+  private Map<Object, Long> toldSizes = new HashMap<>();
   private int ringColour = FOCUS_RING;
   private final Atlas atlas = new Atlas();
   private TextRendering textRendering = TextRendering.platform();
@@ -1367,12 +1372,15 @@ public final class App<S> {
    * the caret of the focused field turns on or off, when the pointer will have rested long enough
    * on an element for its {@link El#whenHoveredFor} look or {@link El#onHoverFor} handler, or when
    * an action asked for with {@link #after} is due; the current time while the last frame showed
-   * an element with an {@link El#cycle}. Positive infinity when nothing will; then an
+   * an element with an {@link El#cycle} or left rows to build that the measured heights of a list
+   * ({@link El#rows(int, RowHeights, java.util.function.IntFunction)}) show. Positive infinity when nothing will; then an
    * idle window can wait for input alone.
    */
   public double nextChange() {
-    if (!queued.isEmpty() || cycling) {
-      return time; // handlers that a frame queued, such as El#onRowsBuilt, or an El#cycle
+    if (!queued.isEmpty() || cycling || rowsWanted) {
+      // handlers that a frame queued, such as El#onRowsBuilt, an El#cycle, or rows that the
+      // measured heights of a list show and the last frame had no passes left for
+      return time;
     }
     double next = Math.min(restDue, shownDue);
     if (keyPressed != null && keyPressKey == null) {
@@ -2466,8 +2474,11 @@ public final class App<S> {
     El.scaleText(root, scale, systemFonts);
     Flex.layout(root, width, height);
     Overlays.layout(root, width, height);
+    // The sizes layout gave, before motion takes them along; an element that left is forgotten.
+    Map<Object, Long> sizes = new HashMap<>();
+    tellSizes(root, new ArrayList<>(), sizes);
+    toldSizes = sizes;
     animator.update(root, time);
-    tellSizes(root, new ArrayList<>());
     stale = false;
     ran |= handled;
     handled = false;
@@ -2494,7 +2505,7 @@ public final class App<S> {
    * @return whether there was anything to build or place
    */
   private boolean settle() {
-    if (!scrolled && !rowsPending) {
+    if (!scrolled && !rowsPending && !rowsWanted) {
       return false;
     }
     boolean pending = rowsPending;
@@ -2834,7 +2845,10 @@ public final class App<S> {
       El.placeBars(root);
     }
     float far = Float.POSITIVE_INFINITY;
+    rowsWanted = false;
     boolean built = fillRows(root, new ArrayList<>(), 0, 0, -far, far);
+    toldRows.keySet().retainAll(rowLists);
+    rowLists.clear();
     // After scrolling, movement and new rows, the overlays follow their anchors.
     caretOverlays = Overlays.place(root, width, height);
     return built;
@@ -2850,6 +2864,9 @@ public final class App<S> {
     float top = parentY + el.y();
     int[] range = el.wantedRows(left, top, clipLeft, clipRight, width, height);
     boolean built = range != null;
+    if (el.onRowsBuilt() != null) {
+      rowLists.add(Animator.identities(path).getLast());
+    }
     // Rows as high as their content may cover less or more than estimated: a second pass, or a
     // third, builds the rows the measured heights show.
     for (int pass = 0; range != null && pass < 3; pass++) {
@@ -2877,6 +2894,7 @@ public final class App<S> {
       range =
           el.measuresRows() ? el.wantedRows(left, top, clipLeft, clipRight, width, height) : null;
     }
+    rowsWanted |= range != null; // beyond the passes of one frame: the next frame goes on
     if (el.style().overflowX != Style.Overflow.VISIBLE) {
       clipLeft = Math.max(clipLeft, left);
       clipRight = Math.min(clipRight, left + el.width());
@@ -2893,14 +2911,16 @@ public final class App<S> {
   }
 
   /** Queues the {@link El#onResize} handlers below {@code el} whose element has a new size. */
-  private void tellSizes(El el, List<El> path) {
+  private void tellSizes(El el, List<El> path, Map<Object, Long> sizes) {
     path.add(el);
     El.SizeHandler handler = el.onResize();
     if (handler != null) {
       float w = el.width();
       float h = el.height();
       long size = (long) Float.floatToIntBits(w) << 32 | Float.floatToIntBits(h) & 0xFFFFFFFFL;
-      Long before = toldSizes.put(Animator.identities(path).getLast(), size);
+      Object id = Animator.identities(path).getLast();
+      sizes.put(id, size);
+      Long before = toldSizes.get(id);
       if (before == null || before != size) {
         queued.add(() -> {
           handler.accept(w, h);
@@ -2910,10 +2930,10 @@ public final class App<S> {
       }
     }
     for (El child : el.children()) {
-      tellSizes(child, path);
+      tellSizes(child, path, sizes);
     }
     for (El overlay : el.overlays()) {
-      tellSizes(overlay, path);
+      tellSizes(overlay, path, sizes);
     }
     path.removeLast();
   }

@@ -108,4 +108,21 @@ class RowHeightsTest {
     }
     assertTrue(list.firstRow() <= 400 && list.firstRow() + list.children().size() > 400);
   }
+
+  @Test
+  void rowsEstimatedTooHighFillTheListInTheFramesAfterAndThenTheAppIsIdle() {
+    RowHeights heights = new RowHeights(i -> 100);
+    App<RowHeights> app =
+        new App<>(heights, h -> col().size(100, 600).rows(1000, h, i -> el().h(20)));
+    app.resize(100, 600, 1);
+    app.frame();
+    // Three passes a frame: what the measured heights show beyond them waits for the next.
+    assertEquals(app.time(), app.nextChange(), "asks for another frame");
+    for (int frame = 0; frame < 5 && app.nextChange() == app.time(); frame++) {
+      app.frame();
+    }
+    El last = app.tree().children().getLast();
+    assertTrue(last.y() + last.height() >= 600, app.tree().dump());
+    assertEquals(Double.POSITIVE_INFINITY, app.nextChange(), "idle once the rows fill the list");
+  }
 }
