@@ -122,6 +122,25 @@ public final class MenuBar {
       }
     }
 
+    /**
+     * Forgets an open menu and a highlighted title that the menus no longer have or that can no
+     * longer open: the app may change the menus while one is open. A bar that has the keys keeps
+     * them on its first title that can open, if it has one.
+     */
+    void fit(List<Menu.Item> menus) {
+      if (menu.isOpen() && !opens(menus, open)) {
+        menu.close();
+      }
+      if (title >= 0 && !opens(menus, title)) {
+        title = -1;
+        step(menus, 1);
+      }
+    }
+
+    private static boolean opens(List<Menu.Item> menus, int index) {
+      return index >= 0 && index < menus.size() && menus.get(index).isEnabled();
+    }
+
     /** Goes to the next or the previous title that can open, around at the ends. */
     void step(List<Menu.Item> menus, int direction) {
       int from = menu.isOpen() ? open : title;
@@ -148,6 +167,7 @@ public final class MenuBar {
    */
   public static El menuBar(Theme t, State state, List<Menu.Item> menus) {
     table(menus); // refuses conflicts when the view is built
+    state.fit(menus);
     boolean marks = state.alt || state.title >= 0;
     El bar = row()
         .key("menubar")
