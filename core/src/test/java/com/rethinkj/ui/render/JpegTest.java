@@ -190,6 +190,103 @@ class JpegTest {
   }
 
   @Test
+  void chromaTwoSamplesWideOrLessIsRepeatedAcrossAsLibjpegDoes() {
+    // libjpeg smooths a component halved across only where it is more than 2 samples wide; one
+    // sample would otherwise take the padding of its block, the next sample, into the second.
+    for (int sampling : new int[] {0x21, 0x22}) {
+      int down = sampling & 0xF;
+      Pixels one = Jpeg.decode(chroma(2, down, sampling, false));
+      assertEquals(one.argb(0, 0), one.argb(1, 0), "one sample " + Integer.toHexString(sampling));
+      Pixels two = Jpeg.decode(chroma(4, down, sampling, false));
+      assertEquals(two.argb(0, 0), two.argb(1, 0), "two samples");
+      assertEquals(two.argb(2, 0), two.argb(3, 0), "two samples");
+      assertTrue(two.argb(1, 0) != two.argb(2, 0), "the two samples differ");
+      Pixels three = Jpeg.decode(chroma(6, down, sampling, false));
+      assertTrue(three.argb(0, 0) != three.argb(1, 0), "three samples are smoothed");
+    }
+  }
+
+  @Test
+  void chromaOneRowHighRepeatsItsRowAsLibjpegDoes() {
+    // Halved down, libjpeg smooths at any height and repeats the top and bottom rows for
+    // context, so a single row is never mixed with the padding below it.
+    for (int sampling : new int[] {0x12, 0x22}) {
+      int width = sampling == 0x12 ? 1 : 6;
+      Pixels one = Jpeg.decode(chroma(width, 2, sampling, true));
+      for (int x = 0; x < width; x++) {
+        assertEquals(one.argb(x, 0), one.argb(x, 1), "one row " + Integer.toHexString(sampling));
+      }
+      Pixels two = Jpeg.decode(chroma(width, 4, sampling, true));
+      assertTrue(two.argb(0, 0) != two.argb(0, 1), "two rows are smoothed");
+      assertEquals(two.argb(0, 0), Jpeg.decode(chroma(width, 2, sampling, true)).argb(0, 0));
+    }
+  }
+
+  /**
+   * A baseline file of one MCU: luma constant, Cr constant and Cb a cosine across ({@code down}
+   * false) or down its block, with the luma sampled {@code sampling} (0x21 is 4:2:2) and the
+   * chroma once.
+   */
+  private static byte[] chroma(int width, int height, int sampling, boolean down) {
+    ByteArrayOutputStream out = new ByteArrayOutputStream();
+    out.writeBytes(new byte[] {(byte) 0xFF, (byte) 0xD8});
+    byte[] quant = new byte[65];
+    Arrays.fill(quant, 1, 65, (byte) 1);
+    segment(out, 0xDB, quant);
+    segment(out, 0xC0, new byte[] {
+      8,
+      (byte) (height >> 8),
+      (byte) height,
+      (byte) (width >> 8),
+      (byte) width,
+      3, //
+      1,
+      (byte) sampling,
+      0,
+      2,
+      0x11,
+      0,
+      3,
+      0x11,
+      0
+    });
+    // DC: one code, 0, for a difference of 0. AC: 0 is the end of the block, 10 a coefficient of
+    // 9 bits right after the last one, 110 one with a zero before it.
+    ByteArrayOutputStream tables = new ByteArrayOutputStream();
+    tables.write(0x00);
+    tables.write(1);
+    tables.writeBytes(new byte[15]);
+    tables.write(0);
+    tables.write(0x10);
+    tables.writeBytes(new byte[] {1, 1, 1});
+    tables.writeBytes(new byte[13]);
+    tables.writeBytes(new byte[] {0x00, 0x09, 0x19});
+    segment(out, 0xC4, tables.toByteArray());
+    segment(out, 0xDA, new byte[] {3, 1, 0, 2, 0, 3, 0, 0, 63, 0});
+    // Constant luma blocks; Cb's coefficient 256 at zigzag index 1 (across) or 2 (down).
+    int lumaBlocks = (sampling >> 4) * (sampling & 0xF);
+    String bits = "00".repeat(lumaBlocks) + "0" + (down ? "110" : "10") + "100000000" + "0" + "00";
+    bits += "1".repeat((8 - bits.length() % 8) % 8);
+    for (int i = 0; i < bits.length(); i += 8) {
+      int b = Integer.parseInt(bits.substring(i, i + 8), 2);
+      out.write(b);
+      if (b == 0xFF) {
+        out.write(0);
+      }
+    }
+    out.writeBytes(new byte[] {(byte) 0xFF, (byte) 0xD9});
+    return out.toByteArray();
+  }
+
+  private static void segment(ByteArrayOutputStream out, int marker, byte[] payload) {
+    out.write(0xFF);
+    out.write(marker);
+    out.write(payload.length + 2 >> 8);
+    out.write(payload.length + 2);
+    out.writeBytes(payload);
+  }
+
+  @Test
   void aFileThatEndsEarlyDecodesAsFarAsItGoes() throws IOException {
     byte[] jpeg = read("progressive-420.jpg");
     Pixels whole = Jpeg.decode(jpeg);

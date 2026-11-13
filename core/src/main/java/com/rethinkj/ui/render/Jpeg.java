@@ -788,11 +788,15 @@ public final class Jpeg {
      * A component's samples at the size of the image's grid: as they are where it is sampled
      * fully, else smoothly upsampled where it is halved across, down or both, as libjpeg's {@code
      * h2v1_fancy_upsample}, {@code h1v2_fancy_upsample} and {@code h2v2_fancy_upsample} do, and
-     * repeated for other factors. Its rows are {@code c.width * (hMax / c.h)} samples.
+     * repeated for other factors. As in libjpeg's {@code jinit_upsampler}, a component halved
+     * across is smoothed only where it is more than 2 samples wide, and repeated otherwise; one
+     * halved down alone is smoothed at any size, its rows at the top and bottom repeated, as
+     * libjpeg repeats them for context. Its rows are {@code c.width * (hMax / c.h)} samples.
      */
     private byte[] upsample(Component c) {
       int sx = hMax / c.h;
       int sy = vMax / c.v;
+      boolean fancy = sx == 1 || c.width > 2;
       int in = c.stride * 8;
       if (sx == 1 && sy == 1) {
         byte[] out = new byte[c.width * c.height];
@@ -805,7 +809,7 @@ public final class Jpeg {
       int outHeight = c.height * sy;
       byte[] out = new byte[outWidth * outHeight];
       byte[] s = c.samples;
-      if (sx == 2 && sy == 1) {
+      if (sx == 2 && sy == 1 && fancy) {
         for (int y = 0; y < c.height; y++) {
           h2v1(s, y * in, c.width, out, y * outWidth);
         }
@@ -819,13 +823,12 @@ public final class Jpeg {
             out[(2 * y + 1) * outWidth + x] = (byte) (near + (s[below + x] & 0xFF) + 2 >> 2);
           }
         }
-      } else if (sx == 2 && sy == 2) {
-        int[] sums = new int[c.width + 1];
+      } else if (sx == 2 && sy == 2 && fancy) {
+        int[] sums = new int[c.width];
         for (int y = 0; y < c.height; y++) {
           for (int half = 0; half < 2; half++) {
             int far = (half == 0 ? Math.max(y - 1, 0) : Math.min(y + 1, c.height - 1)) * in;
-            // Read one column beyond the component, as libjpeg does: it lies in the block.
-            for (int x = 0; x <= c.width && x < in; x++) {
+            for (int x = 0; x < c.width; x++) {
               sums[x] = (s[y * in + x] & 0xFF) * 3 + (s[far + x] & 0xFF);
             }
             h2v2(sums, c.width, out, (2 * y + half) * outWidth);
@@ -841,7 +844,10 @@ public final class Jpeg {
       return out;
     }
 
-    /** One row halved across: three quarters of the nearer sample, one of the farther. */
+    /**
+     * One row halved across, more than 2 samples wide: three quarters of the nearer sample, one of
+     * the farther.
+     */
     private static void h2v1(byte[] s, int from, int width, byte[] out, int to) {
       int value = s[from] & 0xFF;
       out[to] = (byte) value;
@@ -851,14 +857,15 @@ public final class Jpeg {
         out[to + 2 * x] = (byte) (value + (s[from + x - 1] & 0xFF) + 1 >> 2);
         out[to + 2 * x + 1] = (byte) (value + (s[from + x + 1] & 0xFF) + 2 >> 2);
       }
-      if (width > 1) {
-        value = s[from + width - 1] & 0xFF;
-        out[to + 2 * width - 2] = (byte) (value * 3 + (s[from + width - 2] & 0xFF) + 1 >> 2);
-        out[to + 2 * width - 1] = (byte) value;
-      }
+      value = s[from + width - 1] & 0xFF;
+      out[to + 2 * width - 2] = (byte) (value * 3 + (s[from + width - 2] & 0xFF) + 1 >> 2);
+      out[to + 2 * width - 1] = (byte) value;
     }
 
-    /** One row of an output pair from the sums of three quarters of the nearer row. */
+    /**
+     * One row of an output pair, more than 2 samples wide, from the sums of three quarters of the
+     * nearer row.
+     */
     private static void h2v2(int[] sums, int width, byte[] out, int to) {
       int current = sums[0];
       int next = sums[1];
@@ -873,10 +880,8 @@ public final class Jpeg {
         last = current;
         current = next;
       }
-      if (width > 1) {
-        out[to + 2 * width - 2] = (byte) (current * 3 + last + 8 >> 4);
-        out[to + 2 * width - 1] = (byte) (current * 4 + 7 >> 4);
-      }
+      out[to + 2 * width - 2] = (byte) (current * 3 + last + 8 >> 4);
+      out[to + 2 * width - 1] = (byte) (current * 4 + 7 >> 4);
     }
 
     // libjpeg's fixed-point YCbCr to RGB (jdcolor.c), 16 fraction bits.
