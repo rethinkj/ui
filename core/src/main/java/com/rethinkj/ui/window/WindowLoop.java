@@ -135,7 +135,9 @@ public final class WindowLoop {
     final boolean owned; // opened by the loop, which closes it
     Runnable onClose;
     boolean dropTarget = true;
-    boolean moved; // moved by the app during the press that is down, as a window that follows it
+    // Moved by the app during the press that is down, as a window that follows it, or during the
+    // last one: the frame that runs the release still asks where on the screen it was (place).
+    boolean moved;
     float width = -1;
     float height = -1;
     float scale = -1;
@@ -687,6 +689,9 @@ public final class WindowLoop {
     }
     switch (event) {
       case PointerDown down when down.button() == PointerButton.LEFT -> {
+        for (Entry each : entries) {
+          each.moved = false;
+        }
         pressed = e;
         app.pointerDown(down.x(), down.y(), down.clicks(), down.modifiers());
         textInput(e); // on before the frame when the press lands in a field: see App.inputArea
@@ -845,9 +850,6 @@ public final class WindowLoop {
     pressed = null;
     tracking = false;
     polled = null;
-    for (Entry e : entries) {
-      e.moved = false;
-    }
     if (captured) {
       captured = false;
       Window.capturePointer(false);
