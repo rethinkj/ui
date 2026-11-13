@@ -117,6 +117,32 @@ class MenuBarTest {
   }
 
   @Test
+  void deeperSubmenusOpenAndCloseAfterTheRestAsTheFirstLevelDoes() throws IOException {
+    Studio studio = new Studio(Theme.DARK);
+    App<Studio> app = studio.app();
+    Menu.State menu = studio.bar.menu();
+    run(app, "frame\npress #title-0\nframe\nmove label=\"Export\"\nframe\nadvance 0.3\nframe\n"
+        + "move label=\"SQL\"\nframe\n");
+    assertEquals(2, menu.active(1), "the pointer highlights at once");
+    assertEquals(-1, menu.submenu(1), "the submenu waits");
+    run(app, "advance 0.3\nframe\nmove label=\"Script\"\nframe\nadvance 0.3\nframe\n");
+    assertEquals(List.of(4, 2, 1), List.of(menu.submenu(0), menu.submenu(1), menu.submenu(2)));
+    run(app, "move label=\"Schema and data\"\nframe\nmove label=\"CSV\"\nframe\nadvance 0.1\n"
+        + "frame\n");
+    assertEquals(2, menu.submenu(1), "passing over another item keeps them");
+    run(app, "advance 0.2\nframe\n");
+    assertEquals(List.of(4, -1, -1), List.of(menu.submenu(0), menu.submenu(1), menu.submenu(2)),
+        "resting on CSV closes SQL's and the one inside it");
+    assertEquals("submenu", app.focused().key(), "Export's, which the closed ones gave it back to");
+    run(app, "key ArrowDown\nkey ArrowDown\nkey Enter\nframe\n");
+    assertEquals(List.of(4, 2, -1), List.of(menu.submenu(0), menu.submenu(1), menu.submenu(2)),
+        "the keys there: Down to SQL, Enter opens its submenu");
+    assertEquals(0, menu.active(2), "with Inserts highlighted");
+    run(app, "key Escape\nframe\n");
+    assertEquals(List.of(4, -1, -1), List.of(menu.submenu(0), menu.submenu(1), menu.submenu(2)));
+  }
+
+  @Test
   void thePressesOnTitlesSwitchCloseAndGiveTheFocusBackToTheField() throws IOException {
     Studio studio = new Studio(Theme.DARK);
     App<Studio> app = studio.app();
