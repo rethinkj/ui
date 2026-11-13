@@ -52,6 +52,7 @@ public final class El {
   private boolean focused;
   private Spring motion;
   private float opacity = 1;
+  private float targetOpacity = 1; // as the view set it, which motion springs towards
   private boolean exiting;
   private WindowPart windowPart;
   private Consumer<El> hoverLook;
@@ -293,7 +294,21 @@ public final class El {
       throw new IllegalArgumentException("opacity must be from 0 to 1, was " + opacity);
     }
     this.opacity = opacity;
+    this.targetOpacity = opacity;
     return this;
+  }
+
+  /** For {@link Animator}: the opacity of the moment while this element springs to its own. */
+  void shownOpacity(float opacity) {
+    this.opacity = opacity;
+  }
+
+  /**
+   * For {@link App}: the opacity the view gave this element, which {@link #opacity} springs
+   * towards; an element fading in has 0 there and more here.
+   */
+  float targetOpacity() {
+    return targetOpacity;
   }
 
   /**
@@ -671,10 +686,10 @@ public final class El {
    * parent and move with it.
    *
    * <p>An element that appears after the app's first frame fades in from opacity 0, in the place
-   * layout gives it. One with a {@link #key} that a rebuild leaves out fades out where it was, with
-   * everything below it, and is then removed. Until then it stays in the tree, marked {@link
-   * #isExiting}, and takes no part in layout or input. If it comes back before, it goes on from
-   * where it is.
+   * layout gives it; it takes the focus from that frame on, and presses once it shows. One with a
+   * {@link #key} that a rebuild leaves out fades out where it was, with everything below it, and
+   * is then removed. Until then it stays in the tree, marked {@link #isExiting}, and takes no part
+   * in layout or input. If it comes back before, it goes on from where it is.
    *
    * @param spring how to move, or null to change at once
    */

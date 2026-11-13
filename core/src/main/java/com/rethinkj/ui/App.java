@@ -611,7 +611,9 @@ public final class App<S> {
    * element is no longer focusable or takes no input.
    *
    * @throws IllegalArgumentException if the element is not {@link El#focusable}, not in the last
-   *     frame's tree, or takes no input there: it is leaving, at opacity 0, or clipped away
+   *     frame's tree, or takes no input there: it is leaving, the view made it or an ancestor
+   *     invisible with opacity 0, or it is clipped away. An element that fades in can take the
+   *     focus from the frame that adds it on.
    */
   public void focus(El el) {
     if (el != null && !focusables().contains(el)) {
@@ -837,8 +839,10 @@ public final class App<S> {
 
   /**
    * The elements Tab moves through, in tree order: those that are focusable, take input and are not
-   * clipped away for good. Along an axis an ancestor scrolls, an element outside its visible part
-   * counts, since focusing it scrolls it into view.
+   * clipped away for good. An element that fades in counts from the frame that adds it, whatever
+   * its opacity on the way, and one the view makes invisible, or that is leaving, does not. Along
+   * an axis an ancestor scrolls, an element outside its visible part counts, since focusing it
+   * scrolls it into view.
    */
   List<El> focusables() {
     List<El> found = new ArrayList<>();
@@ -852,7 +856,7 @@ public final class App<S> {
   private static void focusables(
       El el, float parentX, float parentY, float clipLeft, float clipTop, float clipRight,
       float clipBottom, List<El> found) {
-    if (!el.isPlaced() || el.opacity() == 0 || el.isExiting()) {
+    if (!el.isPlaced() || el.targetOpacity() == 0 || el.isExiting()) {
       return;
     }
     float left = parentX + el.x();

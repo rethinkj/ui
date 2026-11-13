@@ -468,7 +468,7 @@ final class Animator {
       if (el.text() != null) {
         el.text().color(colour(TEXT, now));
       }
-      el.opacity((float) Math.clamp(tracks[OPACITY].value(now), 0.0, 1.0)); // a bounce overshoots
+      el.shownOpacity((float) Math.clamp(tracks[OPACITY].value(now), 0.0, 1.0)); // a bounce overshoots
     }
 
     private float at(int index, double now) {
