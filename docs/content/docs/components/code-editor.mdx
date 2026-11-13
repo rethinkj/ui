@@ -39,7 +39,7 @@ description: A multi-line editor for code with line numbers, highlighting, brack
 
 `CodeEditor.run(app, state, command)` runs one from a menu. The editor's keys are its field's `onKey` handler; to add your own, keep them: `editor.onKey(mine.or(editor.onKey()))`, as the Workbench does for Control+Enter.
 
-Besides these, it has every key of a multi-line text field: Tab indents (Control+M switches Tab between indenting and moving the focus), Home goes to the first non-blank character, Control+Z and Control+Y undo and redo. See [Text fields and editors](/docs/concepts/text-fields).
+Besides these, it has every key of a multi-line text field: Tab indents (Control+M switches Tab between indenting and moving the focus), a second Home goes to the first character of the line that is not a space, Control+Z and Control+Y undo and redo. See [Text fields and editors](/docs/concepts/text-fields).
 
 ## In a tree dump
 
