@@ -742,6 +742,12 @@ public final class Script {
     Found found =
         new Found(
             el, left, top, (visibleLeft + visibleRight) / 2, (visibleTop + visibleBottom) / 2);
+    List<Text.Box> rows = el.rangeBoxes();
+    if (rows != null && !rows.isEmpty()) { // a range: the middle of its first row
+      Text.Box row = rows.getFirst();
+      found = new Found(el, left, top, left + row.x() + row.width() / 2,
+          top + row.y() + row.height() / 2);
+    }
     boolean visible = left < clipRight && right > clipLeft && top < clipBottom && bottom > clipTop;
     (visible ? all : clipped).add(found);
     Style s = el.style();

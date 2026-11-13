@@ -145,6 +145,10 @@ public final class El {
   private double focusRestDelay;
   private Runnable onShownFor; // see #onShownFor
   private double shownDelay;
+  private boolean skipsTab; // see #skipTab
+  private int rangeFrom = -1; // see #range: characters of the parent's text, -1 for none
+  private int rangeTo;
+  private List<Text.Box> rangeBoxes; // the rows of the range, from this element's corner
 
   /** Told a position in logical pixels of the window, as {@link #onSecondaryPress} is. */
   @FunctionalInterface
@@ -878,6 +882,76 @@ public final class El {
     return this;
   }
 
+  /**
+   * Lays this element over characters {@code from} to {@code to} of its parent's text, a {@link
+   * #multiline} field, instead of where layout would put it: a link in a paragraph. Its rectangle
+   * is the bounding box of the rows the range takes, as the tree dump shows it, but it is hit,
+   * filled and ringed only on those rows: one rectangle per row from the range's first character
+   * to its last, which {@link #rangeBoxes} lists. Its fill lies behind the parent's glyphs. It takes
+   * presses, the pointer's cursor, hover looks and, when {@link #focusable}, the focus like any
+   * other element; a press on it is its own, not the field's. A script's selector presses the
+   * middle of its first row. The range is clamped to the text.
+   */
+  public El range(int from, int to) {
+    if (from < 0 || to < from) {
+      throw new IllegalArgumentException("range " + from + " to " + to + " is not a range");
+    }
+    rangeFrom = from;
+    rangeTo = to;
+    return this;
+  }
+
+  /**
+   * The rows of a {@link #range}, in logical pixels from this element's top left corner, as the
+   * last layout placed them; null for an element without a range, empty while none is placed.
+   */
+  public List<Text.Box> rangeBoxes() {
+    return rangeFrom < 0 ? null : rangeBoxes == null ? List.of() : rangeBoxes;
+  }
+
+  /**
+   * Places the children with a {@link #range} over the rows of this field's text, once its rows
+   * are laid out: after layout, and after the field's editor has scrolled them.
+   */
+  void placeRanges() {
+    if (text == null || !text.multiline() || !text.laidOut() || children.isEmpty()) {
+      return;
+    }
+    float scale = text.scale();
+    float left = px(style.borderLeft) + px(style.paddingLeft) + (float) scrollX;
+    float top = px(style.borderTop) + px(style.paddingTop) + (float) scrollY;
+    int length = text.string().length();
+    for (El child : children) {
+      if (child.rangeFrom < 0) {
+        continue;
+      }
+      List<Text.Box> rows = text.selectionBoxes(Math.min(child.rangeFrom, length),
+          Math.min(child.rangeTo, length), 0);
+      if (rows.isEmpty()) {
+        child.rangeBoxes = List.of();
+        child.place(left, top, 0, 0);
+        continue;
+      }
+      float x0 = Float.POSITIVE_INFINITY;
+      float y0 = Float.POSITIVE_INFINITY;
+      float x1 = Float.NEGATIVE_INFINITY;
+      float y1 = Float.NEGATIVE_INFINITY;
+      for (Text.Box row : rows) {
+        x0 = Math.min(x0, row.x());
+        y0 = Math.min(y0, row.y());
+        x1 = Math.max(x1, row.x() + row.width());
+        y1 = Math.max(y1, row.y() + row.height());
+      }
+      List<Text.Box> boxes = new ArrayList<>(rows.size());
+      for (Text.Box row : rows) {
+        boxes.add(new Text.Box((row.x() - x0) / scale, (row.y() - y0) / scale,
+            row.width() / scale, row.height() / scale));
+      }
+      child.rangeBoxes = List.copyOf(boxes);
+      child.place(left + x0 / scale, top + y0 / scale, (x1 - x0) / scale, (y1 - y0) / scale);
+    }
+  }
+
   /** Lets the text break into more lines where it is wider than its box. */
   public El wrapText() {
     return wrapText(true);
@@ -1150,6 +1224,21 @@ public final class El {
       throw new IllegalArgumentException("lines must be 1 or more, was " + count);
     }
     t.visibleLines(count);
+    return this;
+  }
+
+  /**
+   * Makes a {@link #multiline} field exactly as high as all its rows at the width layout gives it,
+   * however many there are, so that it never scrolls up and down: a paragraph of a document that
+   * a read-only field shows for selecting and copying. Unlike {@link #lines} every row is shaped
+   * and laid out, so it is for texts of a few screens at most.
+   */
+  public El fitLines() {
+    Text t = editableOnly("fitLines");
+    if (!t.multiline()) {
+      throw new IllegalStateException("fitLines is for multi-line fields: call it after multiline().");
+    }
+    t.visibleLines(0);
     return this;
   }
 
@@ -1831,6 +1920,20 @@ public final class El {
   public El keepFocus() {
     this.keepsFocus = true;
     return this;
+  }
+
+  /**
+   * Makes Tab and Shift+Tab pass this focusable element by, while a press and {@link App#focus}
+   * still focus it: the paragraphs of a document, read-only fields for selecting and copying,
+   * between the links that Tab reaches.
+   */
+  public El skipTab() {
+    this.skipsTab = true;
+    return this;
+  }
+
+  boolean skipsTab() {
+    return skipsTab;
   }
 
   /**
@@ -2891,6 +2994,7 @@ public final class El {
     this.width = width;
     this.height = height;
     this.placed = true;
+    placeRanges(); // layout measured and placed the text before its box
   }
 
   /** False until layout has placed this element; elements with {@code display: none} stay so. */

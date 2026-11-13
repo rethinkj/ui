@@ -590,6 +590,10 @@ public final class Text implements Measure {
       // content box, which measure does not know yet. Pass the box's height when a field has to
       // line up with text beside it by baseline.
       prepare();
+      if (multiline && visibleLines == 0) { // El#fitLines: every row at the width
+        float width = Float.isNaN(knownWidth) ? availableWidth : knownWidth;
+        return new Size(0, fittedRows(width) * lineHeight / scale, firstBaseline / scale);
+      }
       int high = multiline ? visibleLines : 1;
       return new Size(0, high * lineHeight / scale, firstBaseline / scale);
     }
@@ -1261,6 +1265,32 @@ public final class Text implements Measure {
       }
     }
     return para;
+  }
+
+  /**
+   * For {@link El#fitLines}: the rows of every line at a content box this wide, in logical pixels
+   * or {@link Measure#MAX_CONTENT} or MIN, each line shaped once.
+   */
+  private int fittedRows(float width) {
+    Lines lines = shownLines();
+    if (!wraps || width == MAX_CONTENT || Float.isInfinite(width) || Float.isNaN(width)) {
+      return lines.count();
+    }
+    float limit = width == MIN_CONTENT ? 0 : width * scale + SLACK;
+    int rows = 0;
+    for (int line = 0; line < lines.count(); line++) {
+      para(line); // shaped, and its rows counted at the placed width once that is known
+      Para para = shapedLines.get(line);
+      if (para != null) {
+        float was = para.limit; // what para() counted the line's rows at, which stays
+        para.breakInto(limit);
+        rows += para.rowCount();
+        para.breakInto(was);
+      } else {
+        rows++;
+      }
+    }
+    return rows;
   }
 
   /** The number of lines of the shown string. */

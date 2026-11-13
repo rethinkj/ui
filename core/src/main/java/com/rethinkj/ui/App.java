@@ -818,6 +818,7 @@ public final class App<S> {
       settle();
       wake();
       List<El> order = focusables();
+      order.removeIf(el -> el.skipsTab() && el != focused);
       if (!order.isEmpty()) {
         int step = key.modifiers() == Key.SHIFT ? -1 : 1;
         int at = order.indexOf(focused);
@@ -2872,6 +2873,13 @@ public final class App<S> {
   private static boolean contains(El el, float parentX, float parentY, float x, float y) {
     if (!el.isPlaced() || el.opacity() == 0 || el.isExiting()) {
       return false;
+    }
+    List<Text.Box> rows = el.rangeBoxes();
+    if (rows != null) { // over a range of its parent's text: only its rows
+      float rx = x - parentX - el.x();
+      float ry = y - parentY - el.y();
+      return rows.stream().anyMatch(r -> rx >= r.x() && rx < r.x() + r.width()
+          && ry >= r.y() && ry < r.y() + r.height());
     }
     float halfW = el.width() / 2;
     float halfH = el.height() / 2;

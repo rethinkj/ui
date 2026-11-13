@@ -424,11 +424,18 @@ public final class Scene {
     if (inner >= 0) { // else everything below is clipped away
       float content = over(el.fill(), opacity, behind);
       if (el.text() != null) {
+        for (El child : el.children()) {
+          if (child.rangeBoxes() != null) {
+            range(child, x, y, opacity, inner, clip, free);
+          }
+        }
         text(el, left, top, opacity, inner, content);
       }
       ContentBox own = free ? null : contentBox(el, x, y, left, top, width, height);
       for (El child : el.children()) {
-        add(child, x, y, opacity, inner, content, free, own);
+        if (child.rangeBoxes() == null) {
+          add(child, x, y, opacity, inner, content, free, own);
+        }
       }
       if (el.scrollbars() != null) {
         thumb(el.horizontalBar(), false, el.scrollbars().radius(), opacity, inner, free);
@@ -454,6 +461,45 @@ public final class Scene {
       }
       if (l < clipRight && r > clipX && t < clipBottom && b > clipY) {
         rect(l, t, r - l, b - t, radius, ringWidth, 0, ringed, opacity, clip);
+      }
+    }
+  }
+
+  /**
+   * An element over a {@link El#range} of its parent's text, before the glyphs: its fill on each
+   * row of the range, within the text's clip, and its focus ring around each, within the clip of
+   * the text element itself, so that a link at the edge of a paragraph keeps its whole ring. Its
+   * children are not drawn.
+   */
+  private void range(El el, float parentX, float parentY, float parentOpacity, int clip,
+      int ringClip, boolean moving) {
+    float opacity = parentOpacity * el.opacity();
+    if (!el.isPlaced() || opacity == 0) {
+      return;
+    }
+    float x = parentX + el.x();
+    float y = parentY + el.y();
+    boolean free = moving || el.isMoving();
+    int ringed = el != ring ? 0 : el.focusRing() != null ? el.focusRing() : ringColour;
+    float ringWidth = stroke(RING);
+    for (Text.Box row : el.rangeBoxes()) {
+      float left = x + row.x();
+      float top = y + row.y();
+      float width = row.width();
+      float height = row.height();
+      if (!free) {
+        width = edge(left + width) - edge(left);
+        height = edge(top + height) - edge(top);
+        left = edge(left);
+        top = edge(top);
+      }
+      if (el.fill() >>> 24 != 0) {
+        rect(left, top, width, height, el.radius(), 0, el.fill(), 0, opacity, clip);
+      }
+      if (ringed >>> 24 != 0) {
+        rect(left - ringWidth, top - ringWidth, width + 2 * ringWidth, height + 2 * ringWidth,
+            el.radius() > 0 ? el.radius() + ringWidth : 0, ringWidth, 0, ringed, opacity,
+            ringClip);
       }
     }
   }
