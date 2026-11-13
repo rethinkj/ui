@@ -2,7 +2,7 @@
 
 A native, GPU-rendered UI framework for Java, modelled on [rune](https://github.com/anomalyco/rune) (Rust, MIT). Rune is the reference for scope and concepts: its own renderer, text, layout and animation, plus a headless mode in which an agent can render to PNG, dump the element tree and drive an app with scripted input.
 
-Status: bootstrap. The Maven structure exists; there is no Java code yet.
+Status: early. `core` draws a view without a window: element tree, flexbox layout, CPU reference renderer, PNG. There is no window, GPU renderer, text or input yet, and `kit` is empty.
 
 - Repository: https://github.com/rethinkj/ui
 - License: MIT
@@ -23,6 +23,10 @@ Requires JDK 25 and Maven 3.9+.
 mvn verify                # build and test everything
 mvn -pl kit -am verify    # one module plus the modules it depends on
 ```
+
+Image tests compare what `Headless.render` produces with the PNG and tree files under `core/src/test/resources/golden`. After a deliberate change of the output, rewrite them with `mvn -pl core test -Dgolden.update=true` and look at the images before committing. A failing image test leaves the expected image, the actual image and their difference in `core/target/golden`.
+
+The layout is tested against Taffy's flexbox cases in `core/src/test/resources/taffy`; `scripts/import-taffy-fixtures.sh` refreshes them.
 
 ## Modules
 
