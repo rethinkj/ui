@@ -115,7 +115,16 @@ final class Win32 {
   // SetOverlayIcon.
   static final int VTBL_RELEASE = 2;
   static final int VTBL_HR_INIT = 3;
+  static final int VTBL_SET_PROGRESS_VALUE = 9;
+  static final int VTBL_SET_PROGRESS_STATE = 10;
   static final int VTBL_SET_OVERLAY_ICON = 18;
+
+  // TBPFLAG, the states of ITaskbarList3::SetProgressState.
+  static final int TBPF_NOPROGRESS = 0;
+  static final int TBPF_INDETERMINATE = 0x1;
+  static final int TBPF_NORMAL = 0x2;
+  static final int TBPF_ERROR = 0x4;
+  static final int TBPF_PAUSED = 0x8;
 
   static final FunctionDescriptor SEND_MESSAGE =
       FunctionDescriptor.of(JAVA_LONG, ADDRESS, JAVA_INT, JAVA_LONG, JAVA_LONG);
@@ -156,6 +165,15 @@ final class Win32 {
    */
   static final FunctionDescriptor TASKBAR_SET_OVERLAY_ICON =
       FunctionDescriptor.of(JAVA_INT, ADDRESS, ADDRESS, ADDRESS, ADDRESS);
+  /**
+   * {@code HRESULT SetProgressValue(ITaskbarList3 *This, HWND hwnd, ULONGLONG ullCompleted,
+   * ULONGLONG ullTotal)}
+   */
+  static final FunctionDescriptor TASKBAR_SET_PROGRESS_VALUE =
+      FunctionDescriptor.of(JAVA_INT, ADDRESS, ADDRESS, JAVA_LONG, JAVA_LONG);
+  /** {@code HRESULT SetProgressState(ITaskbarList3 *This, HWND hwnd, TBPFLAG tbpFlags)} */
+  static final FunctionDescriptor TASKBAR_SET_PROGRESS_STATE =
+      FunctionDescriptor.of(JAVA_INT, ADDRESS, ADDRESS, JAVA_INT);
 
   /**
    * {@code DWORD GetLongPathNameW(LPCWSTR lpszShortPath, LPWSTR lpszLongPath, DWORD cchBuffer)}:
@@ -260,6 +278,10 @@ final class Win32 {
     static final MethodHandle COM_THIS_H = Linker.nativeLinker().downcallHandle(COM_THIS);
     static final MethodHandle TASKBAR_SET_OVERLAY_ICON_H =
         Linker.nativeLinker().downcallHandle(TASKBAR_SET_OVERLAY_ICON);
+    static final MethodHandle TASKBAR_SET_PROGRESS_VALUE_H =
+        Linker.nativeLinker().downcallHandle(TASKBAR_SET_PROGRESS_VALUE);
+    static final MethodHandle TASKBAR_SET_PROGRESS_STATE_H =
+        Linker.nativeLinker().downcallHandle(TASKBAR_SET_PROGRESS_STATE);
   }
 
   /** A GUID's 16 bytes as they lie in memory: Data1 to Data3 little-endian, then Data4. */
@@ -506,6 +528,27 @@ final class Win32 {
   static boolean postClose(MemorySegment hwnd) {
     try {
       return (int) Owned.POST_MESSAGE_H.invokeExact(hwnd, WM_CLOSE, 0L, 0L) != 0;
+    } catch (Throwable t) {
+      throw Sdl.failed(t);
+    }
+  }
+
+  /** @return the HRESULT */
+  static int taskbarSetProgressState(MemorySegment taskbar, MemorySegment hwnd, int flags) {
+    try {
+      return (int) Shell.TASKBAR_SET_PROGRESS_STATE_H.invokeExact(
+          method(taskbar, VTBL_SET_PROGRESS_STATE), taskbar, hwnd, flags);
+    } catch (Throwable t) {
+      throw Sdl.failed(t);
+    }
+  }
+
+  /** @return the HRESULT */
+  static int taskbarSetProgressValue(
+      MemorySegment taskbar, MemorySegment hwnd, long completed, long total) {
+    try {
+      return (int) Shell.TASKBAR_SET_PROGRESS_VALUE_H.invokeExact(
+          method(taskbar, VTBL_SET_PROGRESS_VALUE), taskbar, hwnd, completed, total);
     } catch (Throwable t) {
       throw Sdl.failed(t);
     }

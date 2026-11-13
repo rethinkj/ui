@@ -12,9 +12,9 @@ import java.nio.ByteOrder;
 
 /**
  * What every window needs on Windows beyond SDL, framed or not: its icons in the sizes the system
- * asks for, the badge on its taskbar button, and the messages that say that the system's colours
- * changed. A subclass of the window procedure of its own, beside {@link Win32Frame}'s, sees those
- * messages after SDL has handled them.
+ * asks for, the badge and the progress on its taskbar button, and the messages that say that the
+ * system's colours changed. A subclass of the window procedure of its own, beside {@link
+ * Win32Frame}'s, sees those messages after SDL has handled them.
  *
  * <p>SDL's {@code SDL_SetWindowIcon} makes one icon of the surface's base image and gives it to
  * the window as both its small and its big icon; it leaves out the alternate images. Windows asks
@@ -27,7 +27,10 @@ import java.nio.ByteOrder;
  * object of the windows' thread, on which SDL has initialised COM. The taskbar takes it only once
  * it has made the window's button, which it says with the registered message {@code
  * TaskbarButtonCreated}; a badge set before that waits for it, and the message comes again when
- * Explorer restarts, which also clears the badge, so it is set again.
+ * Explorer restarts, which also clears the badge, so it is set again. The progress ({@code
+ * SetProgressState}, {@code SetProgressValue}) goes the same way, through the same list, rather
+ * than SDL's {@code SDL_SetWindowProgressState}, which keeps a taskbar list of its own and on
+ * Linux reports success where nothing shows.
  */
 final class Win32Shell {
 
@@ -54,6 +57,10 @@ final class Win32Shell {
   private WindowIcon badge;
   private String badgeDescription;
   private MemorySegment badgeIcon = MemorySegment.NULL;
+  private Window.Progress progress = Window.Progress.NONE;
+  private float progressValue;
+  /** How often the progress reached the taskbar list; for tests. */
+  int progressApplied;
   /** The frame's darkness the app asked for, or null to follow the system as SDL does. */
   private Boolean frameDark;
 
@@ -100,6 +107,46 @@ final class Win32Shell {
     this.badgeDescription = description;
     return applyBadge(scale);
   }
+
+  /**
+   * Shows progress on the taskbar button ({@code ITaskbarList3::SetProgressState} and {@code
+   * SetProgressValue}); set before the taskbar made the button, it shows once it has, and it is
+   * set again when Explorer restarts, as the badge is.
+   *
+   * @param value from 0 to 1, for the states with a share of the work done
+   * @return false if the taskbar list cannot be made or refused it
+   */
+  boolean progress(Window.Progress state, float value) {
+    progress = state;
+    progressValue = value;
+    return applyProgress();
+  }
+
+  private boolean applyProgress() {
+    if (!buttonCreated) {
+      return taskbar() != null; // the message about the button sets it
+    }
+    MemorySegment list = taskbar();
+    if (list == null) {
+      return false;
+    }
+    progressApplied++;
+    int hr = Win32.taskbarSetProgressState(list, hwnd, switch (progress) {
+      case NONE -> Win32.TBPF_NOPROGRESS;
+      case INDETERMINATE -> Win32.TBPF_INDETERMINATE;
+      case NORMAL -> Win32.TBPF_NORMAL;
+      case PAUSED -> Win32.TBPF_PAUSED;
+      case ERROR -> Win32.TBPF_ERROR;
+    });
+    if (hr == Win32.S_OK && progress != Window.Progress.NONE
+        && progress != Window.Progress.INDETERMINATE) {
+      hr = Win32.taskbarSetProgressValue(list, hwnd, Math.round(progressValue * TOTAL), TOTAL);
+    }
+    return hr == Win32.S_OK;
+  }
+
+  /** The total the taskbar gets a share of the work done in. */
+  private static final long TOTAL = 10_000;
 
   /**
    * Draws the frame's border, and a framed window's caption, dark or light, whatever the system
@@ -256,6 +303,9 @@ final class Win32Shell {
       }
       if (badge != null) {
         applyBadge(window.scale());
+      }
+      if (progress != Window.Progress.NONE) {
+        applyProgress(); // also after Explorer restarted, which cleared it
       }
       return;
     }

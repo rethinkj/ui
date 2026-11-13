@@ -109,10 +109,6 @@ final class Sdl {
   static final int KMOD_ALT = 0x0300;
   static final int KMOD_GUI = 0x0C00;
 
-  // SDL_ProgressState
-  static final int PROGRESS_STATE_NONE = 0;
-  static final int PROGRESS_STATE_NORMAL = 2;
-
   // Window properties
   static final String PROP_WINDOW_WIN32_HWND_POINTER = "SDL.window.win32.hwnd";
   static final String PROP_WINDOW_WIN32_INSTANCE_POINTER = "SDL.window.win32.instance";
@@ -311,10 +307,6 @@ final class Sdl {
       FunctionDescriptor.of(ADDRESS, JAVA_INT, ADDRESS, ADDRESS);
   static final FunctionDescriptor SDL_GET_NUMBER_PROPERTY =
       FunctionDescriptor.of(JAVA_LONG, JAVA_INT, ADDRESS, JAVA_LONG);
-  static final FunctionDescriptor SDL_SET_WINDOW_PROGRESS_STATE =
-      FunctionDescriptor.of(JAVA_BOOLEAN, ADDRESS, JAVA_INT);
-  static final FunctionDescriptor SDL_SET_WINDOW_PROGRESS_VALUE =
-      FunctionDescriptor.of(JAVA_BOOLEAN, ADDRESS, JAVA_FLOAT);
   static final FunctionDescriptor SDL_START_TEXT_INPUT =
       FunctionDescriptor.of(JAVA_BOOLEAN, ADDRESS);
   /** {@code bool SDL_StartTextInputWithProperties(SDL_Window *window, SDL_PropertiesID props)} */
@@ -441,10 +433,6 @@ final class Sdl {
         bind("SDL_GetPointerProperty", SDL_GET_POINTER_PROPERTY);
     static final MethodHandle GET_NUMBER_PROPERTY =
         bind("SDL_GetNumberProperty", SDL_GET_NUMBER_PROPERTY);
-    static final MethodHandle SET_WINDOW_PROGRESS_STATE =
-        bind("SDL_SetWindowProgressState", SDL_SET_WINDOW_PROGRESS_STATE);
-    static final MethodHandle SET_WINDOW_PROGRESS_VALUE =
-        bind("SDL_SetWindowProgressValue", SDL_SET_WINDOW_PROGRESS_VALUE);
     static final MethodHandle START_TEXT_INPUT = bind("SDL_StartTextInput", SDL_START_TEXT_INPUT);
     static final MethodHandle START_TEXT_INPUT_WITH_PROPERTIES =
         bind("SDL_StartTextInputWithProperties", SDL_START_TEXT_INPUT_WITH_PROPERTIES);
@@ -798,22 +786,6 @@ final class Sdl {
   static long getNumberProperty(int properties, String name) {
     try (Arena arena = Arena.ofConfined()) {
       return (long) H.GET_NUMBER_PROPERTY.invokeExact(properties, arena.allocateFrom(name), 0L);
-    } catch (Throwable t) {
-      throw failed(t);
-    }
-  }
-
-  static boolean setWindowProgressState(MemorySegment window, int state) {
-    try {
-      return (boolean) H.SET_WINDOW_PROGRESS_STATE.invokeExact(window, state);
-    } catch (Throwable t) {
-      throw failed(t);
-    }
-  }
-
-  static boolean setWindowProgressValue(MemorySegment window, float value) {
-    try {
-      return (boolean) H.SET_WINDOW_PROGRESS_VALUE.invokeExact(window, value);
     } catch (Throwable t) {
       throw failed(t);
     }

@@ -181,6 +181,38 @@ class SystemIntegrationTest {
   }
 
   @Test
+  void theProgressReachesTheTaskbarButtonAndComesBackAfterExplorerRestarts() {
+    try (Window window = Window.open(TITLE, 300, 200)) {
+      assertThrows(NullPointerException.class, () -> window.progress(null, 0));
+      assertEquals(WINDOWS, window.progress(Window.Progress.NORMAL, 0.4f));
+      if (!WINDOWS) {
+        assertFalse(window.progress(Window.Progress.ERROR, 1), "Linux shows none");
+        return;
+      }
+      Win32Shell shell = window.shell();
+      // The taskbar makes the button after the window shows; the progress waits for it.
+      assertTrue(Desktop.pollUntil(() -> shell.progressApplied > 0), "it reached the button");
+      for (Window.Progress state : Window.Progress.values()) {
+        int before = shell.progressApplied;
+        assertTrue(window.progress(state, 0.7f), state.toString());
+        assertEquals(before + 1, shell.progressApplied, state.toString());
+      }
+      // Explorer restarted: the taskbar says so with TaskbarButtonCreated, and the progress,
+      // which the restart cleared, is set again.
+      window.progress(Window.Progress.ERROR, 0.5f);
+      MemorySegment hwnd = ((WindowHandle.Win32) window.handle()).hwnd();
+      int message = Win32.registerWindowMessage("TaskbarButtonCreated");
+      int before = shell.progressApplied;
+      Win32.sendMessage(hwnd, message, 0, 0);
+      assertEquals(before + 1, shell.progressApplied, "set again");
+      window.progress(Window.Progress.NONE, 0);
+      before = shell.progressApplied;
+      Win32.sendMessage(hwnd, message, 0, 0);
+      assertEquals(before, shell.progressApplied, "none is not set again");
+    }
+  }
+
+  @Test
   void attentionAndTheBadgeAreAskedFor() {
     try (Window window = Window.open(TITLE, 300, 200)) {
       // Windows and X11 flash or mark the window; Wayland may have no activation protocol.

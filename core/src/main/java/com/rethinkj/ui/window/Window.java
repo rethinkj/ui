@@ -1173,18 +1173,26 @@ public final class Window implements AutoCloseable {
   }
 
   /**
-   * Shows progress on the window's taskbar button.
+   * Shows progress on the window's taskbar button, beside its {@link #badge}: a bar in the
+   * button that fills to {@code value} ({@link Progress#NORMAL}, in the accent; {@link
+   * Progress#PAUSED} yellow; {@link Progress#ERROR} red), one that runs without an end ({@link
+   * Progress#INDETERMINATE}), or none ({@link Progress#NONE}). On Windows this is {@code
+   * ITaskbarList3::SetProgressState} and {@code SetProgressValue}; progress set before the
+   * taskbar made the button shows once it has, and it is set again when Explorer restarts. On
+   * Linux it does nothing: no desktop shows a window's progress through SDL.
    *
    * @param value the share of the work done, from 0 to 1, for {@link Progress#NORMAL}, {@link
-   *     Progress#PAUSED} and {@link Progress#ERROR}
+   *     Progress#PAUSED} and {@link Progress#ERROR}; NaN is 0
    * @return false where the system shows no progress
    */
   public boolean progress(Progress state, float value) {
     checkOpen();
-    boolean shown = Sdl.setWindowProgressState(sdl, state.ordinal());
-    if (shown && state != Progress.NONE && state != Progress.INDETERMINATE) {
-      shown = Sdl.setWindowProgressValue(sdl, Math.clamp(value, 0f, 1f));
+    Objects.requireNonNull(state, "state");
+    if (shell == null) {
+      return false;
     }
+    boolean shown = shell.progress(state, Float.isNaN(value) ? 0 : Math.clamp(value, 0f, 1f));
+    rethrow();
     return shown;
   }
 
