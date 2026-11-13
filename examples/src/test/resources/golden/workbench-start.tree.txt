@@ -2,7 +2,16 @@ el 0,0 1000x600
   el window=drag 0,0 1000x32
     el 12,11 10x10
     text "Workbench" 30,8 72x16
-    el 102,16 684x0
+    el #menubar role=menubar 110,4 177x24
+      el #title-0 role=menuitem label="File" 110,4 38x24 expanded=false
+        text "File" 118,8 22x16
+      el #title-1 role=menuitem label="Edit" 148,4 39x24 expanded=false
+        text "Edit" 156,8 23x16
+      el #title-2 role=menuitem label="View" 187,4 46x24 expanded=false
+        text "View" 195,8 30x16
+      el #title-3 role=menuitem label="Query" 233,4 54x24 expanded=false
+        text "Query" 241,8 38x16
+    el 287,16 499x0
     el 786,8 64x16
       el role=switch label="Dark" 782,6 72x20 checked
         el 786,8 28x16
