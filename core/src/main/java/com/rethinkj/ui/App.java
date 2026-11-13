@@ -107,6 +107,7 @@ public final class App<S> {
   private El root;
   private Object pressed; // the identity of the element a press is on, until the pointer is up
   private int pressClicks; // the presses in quick succession that the one on pressed completes
+  private int pressModifiers; // the modifiers held when it went down
   private Dragging dragging; // a pointer down on an element with a drag handler, until it is up
   private Grab grab; // a press on the thumb of a scrollbar, until the pointer is up
   private El barArea; // the scroll area whose bar is under the pointer or dragged, in this tree
@@ -125,6 +126,9 @@ public final class App<S> {
   // shortcut: lists that are gone stay in it, one small entry each; drop them in update() when
   // apps create lists by the thousand.
   private final Map<Object, Object> remembered = new HashMap<>();
+  // The rows each list with an onRowsBuilt handler told last, first and last in one long, by the
+  // list's identity. shortcut: lists that are gone stay in it, as in remembered.
+  private final Map<Object, Long> toldRows = new HashMap<>();
   private List<Object> lookIds; // during a rebuild: the hovered identities, for rows built later
   private int ringColour = FOCUS_RING;
   private final Atlas atlas = new Atlas();
@@ -310,12 +314,21 @@ public final class App<S> {
     Target target = target(x, y);
     pressed = target == null ? null : target.id();
     pressClicks = clicks;
+    pressModifiers = modifiers;
     dragging = target == null || target.el.onDrag() == null
         ? null
         : new Dragging(target.id(), target.el.onDrag(), x, y);
     Target focus = target(x, y, El::isFocusable);
     El el = focus == null ? null : focus.el;
     queued.add(() -> focus(el, false));
+    Target down = target(x, y, e -> e.onPointerDown() != null);
+    if (down != null) {
+      El.PressHandler handler = down.el.onPointerDown();
+      queued.add(() -> {
+        handler.press(clicks, modifiers);
+        return true;
+      });
+    }
   }
 
   /**
@@ -340,10 +353,11 @@ public final class App<S> {
     if (d != null && d.started) {
       step(d, Drag.Phase.END, x - d.x, y - d.y);
     } else if (target != null && target.id().equals(pressed) && target.el.onPress() != null) {
-      IntConsumer handler = target.el.onPress();
+      El.PressHandler handler = target.el.onPress();
       int clicks = pressClicks;
+      int modifiers = pressModifiers;
       queued.add(() -> {
-        handler.accept(clicks);
+        handler.press(clicks, modifiers);
         return true;
       });
     }
@@ -502,9 +516,26 @@ public final class App<S> {
       El el = animator.element(d.id);
       boolean gone = el == null || el.isExiting();
       d.over = gone || phase == Drag.Phase.END || phase == Drag.Phase.CANCEL;
-      d.handler.accept(new Drag(gone ? Drag.Phase.CANCEL : phase, dx, dy));
+      double[] at = gone ? new double[] {Double.NaN, Double.NaN} : content(el, d.x + dx, d.y + dy);
+      d.handler.accept(new Drag(gone ? Drag.Phase.CANCEL : phase, dx, dy, at[0], at[1]));
       return true;
     });
+  }
+
+  /**
+   * A point of the window in the coordinates of an element's content in the current tree: from
+   * the top left of its border box as shown, moved by its own scroll offset.
+   */
+  private double[] content(El el, float x, float y) {
+    List<El> path = new ArrayList<>();
+    pathTo(root, el, path);
+    double left = 0;
+    double top = 0;
+    for (El on : fromOverlay(path)) {
+      left += on.x();
+      top += on.y();
+    }
+    return new double[] {x - left + el.scrollX(), y - top + el.scrollY()};
   }
 
   /**
@@ -541,7 +572,7 @@ public final class App<S> {
             && key.modifiers() == 0
             && (key.name().equals("Enter") || key.name().equals("Space"))) {
           if (!key.repeat()) {
-            el.onPress().accept(1);
+            el.onPress().press(1, 0);
           }
           return true;
         }
@@ -674,6 +705,9 @@ public final class App<S> {
    * Positive infinity when nothing will; then an idle window can wait for input alone.
    */
   public double nextChange() {
+    if (!queued.isEmpty()) {
+      return time; // handlers that a frame queued, such as El#onRowsBuilt
+    }
     if (blinking == null || !active) {
       return restDue;
     }
@@ -1212,6 +1246,7 @@ public final class App<S> {
       // a list does: the looks are those of what the pointer is over in the tree on screen.
       for (int pass = 0; pass < 2 && stale; pass++) {
         El built = view.apply(state);
+        El.fix(built);
         shown = applyLooks(built, ids);
         root = built;
         attachEditors(root, new ArrayList<>()); // before layout, which shows a composition
@@ -1426,23 +1461,27 @@ public final class App<S> {
     if (root == null) {
       return false;
     }
-    boolean built = fillRows(root, new ArrayList<>(), 0);
+    float far = Float.POSITIVE_INFINITY;
+    boolean built = fillRows(root, new ArrayList<>(), 0, 0, -far, far);
     // After scrolling, movement and new rows, the overlays follow their anchors.
     Overlays.place(root, width, height);
     return built;
   }
 
-  private boolean fillRows(El el, List<El> path, float parentY) {
+  private boolean fillRows(
+      El el, List<El> path, float parentX, float parentY, float clipLeft, float clipRight) {
     if (!el.isPlaced() || el.isExiting()) {
       return false;
     }
     path.add(el);
+    float left = parentX + el.x();
     float top = parentY + el.y();
-    int[] range = el.wantedRows(top, height);
+    int[] range = el.wantedRows(left, top, clipLeft, clipRight, width, height);
     boolean built = range != null;
     if (built) {
       Object id = Animator.identities(path).getLast();
       el.makeRows(range[0], range[1]);
+      tellRows(el, id, range[0], range[1] - 1);
       shown = shown.without(id);
       if (lookIds != null) {
         rowLooks(el, id);
@@ -1456,14 +1495,35 @@ public final class App<S> {
       }
       animator.rows(el, id, time);
     }
-    for (El child : el.children()) {
-      built |= fillRows(child, path, top);
+    if (el.style().overflowX != Style.Overflow.VISIBLE) {
+      clipLeft = Math.max(clipLeft, left);
+      clipRight = Math.min(clipRight, left + el.width());
     }
+    for (El child : el.children()) {
+      built |= fillRows(child, path, left, top, clipLeft, clipRight);
+    }
+    float far = Float.POSITIVE_INFINITY;
     for (El overlay : el.overlays()) { // in window coordinates
-      built |= fillRows(overlay, path, 0);
+      built |= fillRows(overlay, path, 0, 0, -far, far);
     }
     path.removeLast();
     return built;
+  }
+
+  /** Queues the {@link El#onRowsBuilt} handler of a list that built other rows than it told. */
+  private void tellRows(El list, Object id, int first, int last) {
+    El.RowsHandler handler = list.onRowsBuilt();
+    if (handler == null || last < first) {
+      return;
+    }
+    long rows = (long) first << 32 | last & 0xFFFFFFFFL;
+    Long before = toldRows.put(id, rows);
+    if (before == null || before != rows) {
+      queued.add(() -> {
+        handler.accept(first, last);
+        return true;
+      });
+    }
   }
 
   /**

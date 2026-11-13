@@ -387,6 +387,11 @@ final class Animator {
         el.revealChild(reveal);
       }
     }
+    Object key = el.revealKey();
+    if (key != null && el.isScrollArea()
+        && (before == null || !key.equals(before.revealKey()))) {
+      el.revealArea();
+    }
   }
 
   /**

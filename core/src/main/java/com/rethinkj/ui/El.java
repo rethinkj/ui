@@ -35,6 +35,7 @@ public final class El {
   private static final int COLLAPSED = 32;
   private static final int ASCENDING = 64;
   private static final int DESCENDING = 128;
+  private static final int CURRENT = 256;
 
   private final Style style = new Style();
   private final List<El> children = new ArrayList<>();
@@ -51,7 +52,8 @@ public final class El {
   private int borderColor;
   private Measure measure;
   private Text text;
-  private IntConsumer onPress;
+  private PressHandler onPress;
+  private PressHandler onPointerDown;
   private Consumer<Drag> onDrag;
   private int revealRow = -1;
   private boolean focusable;
@@ -96,9 +98,20 @@ public final class El {
   // A virtual list: its rows, and the index of the row that is its first child.
   private int rowCount;
   private float rowHeight;
-  private IntFunction<El> rowBuilder;
+  private RowBuilder rowBuilder;
+  private boolean spans; // the row function takes the part of the rows in view sideways
+  private float spanFrom; // the part the rows were built for, in their coordinates
+  private float spanTo;
+  private RowsHandler onRowsBuilt;
   private int firstRow;
   private boolean rowsBuilt; // for this tree; a rebuild of the view starts without rows
+  private boolean fixedX;
+  private El across; // the nearest scroll area around that scrolls sideways; see #fix
+  private Object revealKey; // see #reveal
+  private float revealX;
+  private float revealY;
+  private float revealWidth;
+  private float revealHeight;
   private List<El> overlays; // null for none; apart from the children
   private Layer layer; // where this element goes as an overlay, null until a call says
   private List<El> shownOverlays = List.of(); // of a root: those placed above it, bottom first
@@ -112,6 +125,37 @@ public final class El {
   @FunctionalInterface
   public interface PointHandler {
     void accept(float x, float y);
+  }
+
+  /**
+   * Told how a press came about: the number of presses in quick succession, 1 for a single one,
+   * and the modifiers held, a combination of {@link Key#SHIFT}, {@link Key#CONTROL}, {@link
+   * Key#ALT} and {@link Key#META}.
+   */
+  @FunctionalInterface
+  public interface PressHandler {
+    void press(int clicks, int modifiers);
+  }
+
+  /**
+   * Builds a row of a {@link #rows(int, float, RowBuilder) virtual list} that knows which part of
+   * it is in view sideways.
+   */
+  @FunctionalInterface
+  public interface RowBuilder {
+    /**
+     * @param index the row's index, from 0
+     * @param from where the part of the row to build begins, in logical pixels from the left of
+     *     the list's content box: the part in view and half as much again on each side
+     * @param to where that part ends
+     */
+    El row(int index, float from, float to);
+  }
+
+  /** Told the first and the last row, both included, that a virtual list has built. */
+  @FunctionalInterface
+  public interface RowsHandler {
+    void accept(int first, int last);
   }
 
   /** Where an overlay goes and how it takes input, and after placement what it is beside. */
@@ -185,6 +229,14 @@ public final class El {
   /** Whether this is selected, as the selected row of a grid, node of a tree or tab of a bar. */
   public El selected(boolean selected) {
     return state(SELECTED, selected ? SELECTED : 0);
+  }
+
+  /**
+   * Whether this is the current item of its set, as WAI-ARIA's {@code aria-current}: the cell a
+   * table's cursor is on, which keys move and a press puts there, among the selected ones.
+   */
+  public El current(boolean current) {
+    return state(CURRENT, current ? CURRENT : 0);
   }
 
   /** Whether this checkbox is checked or this switch ({@code role=switch}) is on. */
@@ -523,6 +575,22 @@ public final class El {
    * @see App#scrollToRow
    */
   public El rows(int count, float rowHeight, IntFunction<El> row) {
+    Objects.requireNonNull(row, "row");
+    rows(count, rowHeight, (index, from, to) -> row.apply(index));
+    spans = false;
+    return this;
+  }
+
+  /**
+   * Makes this element a virtual list as {@link #rows(int, float, IntFunction)} does, whose rows
+   * are built for the part of them in view sideways too, as a table builds only the cells of the
+   * columns in view. The row function gets that part, widened by half its width on each side, in
+   * the coordinates of the list's content box; the list is clipped by a scroll area around it that
+   * scrolls sideways, or by the window. When scrolling sideways shows a part beyond it, {@link
+   * App} builds the rows anew, without running the view, as it does when scrolling shows a row
+   * that does not exist yet.
+   */
+  public El rows(int count, float rowHeight, RowBuilder row) {
     if (count < 0) {
       throw new IllegalArgumentException("count must be 0 or more, was " + count);
     }
@@ -537,6 +605,7 @@ public final class El {
     this.rowCount = count;
     this.rowHeight = rowHeight;
     this.rowBuilder = Objects.requireNonNull(row, "row");
+    this.spans = true;
     // Layout sees all rows as one leaf, as tall as they are together up to LAYOUT_LIMIT: layout
     // works in floats, which beyond 2^24 pixels miss whole pixels when the list shrinks to fit.
     // The offsets of scrolling are doubles and reach the last row anyway.
@@ -565,6 +634,56 @@ public final class El {
    */
   public El revealRow(int index) {
     this.revealRow = index;
+    return this;
+  }
+
+  /**
+   * Keeps a part of this scroll area's content in view: whenever a rebuild of the view gives the
+   * area another {@code key} here than the tree before, or the area is new, {@link App} scrolls it
+   * just far enough to show the rectangle whole along the axes it scrolls, or its start where it
+   * is larger. In between the area scrolls freely, and the same key shows nothing again even where
+   * the rectangle moved. A table keeps the column of its cursor in view this way, with the
+   * column's index as the key.
+   *
+   * @param key what the rectangle shows, compared with {@link Object#equals}; null, the default,
+   *     keeps nothing in view
+   * @param x the left of the rectangle in the content's coordinates, logical pixels from the left
+   *     of the area's border box at an offset of 0
+   */
+  public El reveal(Object key, float x, float y, float width, float height) {
+    this.revealKey = key;
+    this.revealX = x;
+    this.revealY = y;
+    this.revealWidth = width;
+    this.revealHeight = height;
+    return this;
+  }
+
+  /**
+   * Tells {@code handler} which rows this {@link #rows virtual list} has built, the first and the
+   * last, whenever a frame has built others than before: after scrolling beyond them or a change
+   * of their number, not on every rebuild of the view. The rows that exist are those whose cells
+   * a table asks for, so an app that fetches its rows in pages starts fetching here. It runs as
+   * the handlers of input do, in the next {@link App#frame}, which {@link App#nextChange} says is
+   * due at once. A list without rows tells nothing.
+   *
+   * @param handler told the rows, or null for none
+   */
+  public El onRowsBuilt(RowsHandler handler) {
+    this.onRowsBuilt = handler;
+    return this;
+  }
+
+  /**
+   * Keeps this element in place sideways while the nearest scroll area around it that scrolls
+   * sideways ({@link #scrollBoth}) scrolls: it moves up and down with its parent, never sideways,
+   * as the frozen columns of a table. Layout places it as usual; the offset of that area is then
+   * left out of its position, for drawing and for input. It is drawn in tree order, so the
+   * elements it stays above come before it among its siblings, and it needs a fill of its own to
+   * hide what scrolls under it.
+   */
+  public El fixedX() {
+    this.fixedX = true;
     return this;
   }
 
@@ -731,7 +850,7 @@ public final class El {
    * place where an app changes its state.
    */
   public El onPress(Runnable handler) {
-    this.onPress = handler == null ? null : clicks -> handler.run();
+    this.onPress = handler == null ? null : (clicks, modifiers) -> handler.run();
     return this;
   }
 
@@ -741,7 +860,32 @@ public final class El {
    * second of a double press, and so on. Enter and Space give 1.
    */
   public El onPress(IntConsumer handler) {
+    this.onPress = handler == null ? null : (clicks, modifiers) -> handler.accept(clicks);
+    return this;
+  }
+
+  /**
+   * Like {@link #onPress(IntConsumer)}, also told the modifiers held when the pointer went down, as
+   * a table sorts by a second column with Shift. Enter and Space give 1 and no modifiers.
+   */
+  public El onPress(PressHandler handler) {
     this.onPress = handler;
+    return this;
+  }
+
+  /**
+   * Runs {@code handler} as soon as the pointer's primary button goes down on this element or on a
+   * descendant without such a handler of its own, with the presses in quick succession and the
+   * modifiers held, as a table selects a cell before the pointer moves on to select more. It does
+   * not make this element the target of the press: {@link #onPress} and {@link #onDrag} of this
+   * element or of an ancestor still get the press and the drag that follow. A press on a
+   * scrollbar, in a text field or outside an open overlay runs no such handler. Like {@link
+   * #onPress}, it runs in {@link App#frame}.
+   *
+   * @param handler told how, or null for none
+   */
+  public El onPointerDown(PressHandler handler) {
+    this.onPointerDown = handler;
     return this;
   }
 
@@ -1146,9 +1290,14 @@ public final class El {
     return borderColor;
   }
 
-  /** The press handler, which takes the number of presses; see {@link #onPress(IntConsumer)}. */
-  public IntConsumer onPress() {
+  /** The press handler, which takes the presses and the modifiers; see {@link #onPress}. */
+  public PressHandler onPress() {
     return onPress;
+  }
+
+  /** The handler of {@link #onPointerDown}, or null. */
+  public PressHandler onPointerDown() {
+    return onPointerDown;
   }
 
   public Consumer<Drag> onDrag() {
@@ -1643,6 +1792,18 @@ public final class El {
    * @param top the top of the border box in window coordinates
    */
   int[] wantedRows(float top, float windowHeight) {
+    return wantedRows(0, top, Float.NEGATIVE_INFINITY, Float.POSITIVE_INFINITY,
+        Float.POSITIVE_INFINITY, windowHeight);
+  }
+
+  /**
+   * Like {@link #wantedRows(float, float)}, with the horizontal place of the list too, for a list
+   * whose rows are built for the part in view sideways: its left in window coordinates, and the
+   * clip of its ancestors from {@code clipLeft} to {@code clipRight}. Such a list also wants new
+   * rows when that part is no longer inside the one its rows were built for.
+   */
+  int[] wantedRows(float left, float top, float clipLeft, float clipRight, float windowWidth,
+      float windowHeight) {
     if (rowBuilder == null) {
       return null;
     }
@@ -1651,8 +1812,21 @@ public final class El {
     double to = Math.max(Math.min(top + height, windowHeight), from);
     int first = Math.clamp((long) Math.floor((from - row0) / rowHeight), 0, rowCount);
     int end = Math.clamp((long) Math.ceil((to - row0) / rowHeight), first, rowCount);
-    if (rowsBuilt && first >= firstRow && end <= firstRow + children.size()) {
+    float shown = 0;
+    float shownTo = 0;
+    if (spans) { // the part in view sideways, in the coordinates of the content box
+      float origin = left + px(style.borderLeft) + px(style.paddingLeft);
+      shown = Math.max(Math.max(Math.max(left, clipLeft), 0) - origin, 0);
+      shownTo = Math.max(Math.min(Math.min(left + width, clipRight), windowWidth) - origin, shown);
+    }
+    if (rowsBuilt && first >= firstRow && end <= firstRow + children.size()
+        && (!spans || shown >= spanFrom && shownTo <= spanTo)) {
       return null;
+    }
+    if (spans) {
+      float margin = (shownTo - shown) / 2;
+      spanFrom = Math.max(shown - margin, 0);
+      spanTo = shownTo + margin;
     }
     return new int[] {
       Math.max(first - OVERSCAN, 0), (int) Math.min(end + (long) OVERSCAN, rowCount)
@@ -1666,17 +1840,59 @@ public final class El {
   void makeRows(int from, int to) {
     children.clear();
     for (int i = from; i < to; i++) {
-      El row = rowBuilder.apply(i);
+      El row = rowBuilder.row(i, spanFrom, spanTo);
       if (row == null) {
         throw new IllegalStateException("The row function of a list returned null for row " + i);
       }
       if (row.position == 0) {
         row.position(i + 1, rowCount);
       }
+      fix(row, style.overflowX == Style.Overflow.SCROLL ? this : across);
       children.add(row);
     }
     firstRow = from;
     rowsBuilt = true;
+  }
+
+  /**
+   * Links the elements below {@code root} that are {@link #fixedX} and the virtual lists to the
+   * nearest scroll area around them that scrolls sideways, for {@link App} and {@link Headless}
+   * after a view is built; the rows a list builds are linked as they are built.
+   */
+  static void fix(El root) {
+    fix(root, null);
+  }
+
+  private static void fix(El el, El across) {
+    el.across = el.fixedX || el.rowBuilder != null ? across : null;
+    El inside = el.scrollArea && el.style.overflowX == Style.Overflow.SCROLL ? el : across;
+    for (El child : el.children) {
+      fix(child, inside);
+    }
+    if (el.overlays != null) {
+      for (El overlay : el.overlays) {
+        fix(overlay, null);
+      }
+    }
+  }
+
+  /** The handler of {@link #onRowsBuilt}, or null. */
+  RowsHandler onRowsBuilt() {
+    return onRowsBuilt;
+  }
+
+  /** The key of {@link #reveal}, or null. */
+  Object revealKey() {
+    return revealKey;
+  }
+
+  /** Scrolls just far enough to show the rectangle of {@link #reveal}, along the axes it scrolls. */
+  void revealArea() {
+    double dx = style.overflowX == Style.Overflow.SCROLL
+        ? nearest(revealX - scrollX, revealWidth, width) : 0;
+    double dy = style.overflowY == Style.Overflow.SCROLL
+        ? nearest(revealY - scrollY, revealHeight, height) : 0;
+    scrollTo(scrollX + dx, scrollY + dy);
   }
 
   /**
@@ -1771,9 +1987,10 @@ public final class El {
   void apply(Consumer<El> look, String name) {
     List<El> before = new ArrayList<>(children);
     String keyBefore = key;
-    IntConsumer press = onPress;
+    PressHandler press = onPress;
+    PressHandler down = onPointerDown;
     Consumer<Drag> drag = onDrag;
-    Predicate<Key> down = onKey;
+    Predicate<Key> keyDown = onKey;
     Predicate<Key> up = onKeyUp;
     Consumer<String> text = onText;
     Consumer<String> edit = onEdit;
@@ -1782,7 +1999,7 @@ public final class El {
     String changed =
         !children.equals(before) ? "children"
             : !Objects.equals(key, keyBefore) ? "key"
-            : onPress != press || onDrag != drag || onKey != down
+            : onPress != press || onPointerDown != down || onDrag != drag || onKey != keyDown
                 || onKeyUp != up
                 || onText != text || onEdit != edit ? "handlers"
             : focusable != wasFocusable ? "focusable()"
@@ -1824,7 +2041,7 @@ public final class El {
    * already subtracted.
    */
   public float x() {
-    return x - shiftX;
+    return x - shiftX + (across == null || !fixedX ? 0 : (float) across.scrollX);
   }
 
   public float y() {
@@ -1845,7 +2062,7 @@ public final class El {
    * shown, that is, moved by the scroll offsets above it. The states the view set follow, those
    * that are set, in this order: {@code disabled} (also a field that {@link #editable
    * editable(null)} disables), {@code readonly} (a {@link #readOnly} field), {@code selected},
-   * {@code checked}, {@code checked=false} or {@code checked=mixed}, {@code expanded} or {@code
+   * {@code current}, {@code checked}, {@code checked=false} or {@code checked=mixed}, {@code expanded} or {@code
    * expanded=false}, {@code level=2}, {@code pos=3/10} (the position in the set and its size),
    * {@code sort=ascending} or {@code sort=descending}, and {@code value="..."}, as in {@code el
    * #row-3 role=treeitem label="public" 0,66 400x22 selected expanded level=3 pos=1/2}. A scroll
@@ -2005,6 +2222,9 @@ public final class El {
     }
     if ((states & SELECTED) != 0) {
       out.append(" selected");
+    }
+    if ((states & CURRENT) != 0) {
+      out.append(" current");
     }
     switch (states & (CHECKED | NOT_CHECKED)) {
       case CHECKED -> out.append(" checked");

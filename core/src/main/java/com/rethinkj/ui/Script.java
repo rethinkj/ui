@@ -74,7 +74,7 @@ public final class Script {
   /** A state of a selector, as {@link El#dump} writes it, but the value; =true may be added. */
   private static final Pattern STATE =
       Pattern.compile(
-          "disabled|readonly|selected|checked(=true|=false|=mixed)?|expanded(=true|=false)?"
+          "disabled|readonly|selected|current|checked(=true|=false|=mixed)?|expanded(=true|=false)?"
               + "|level=[1-9]\\d{0,9}|pos=[1-9]\\d{0,9}/[1-9]\\d{0,9}|sort=(ascending|descending)");
   private static final Pattern NUMBER = Pattern.compile("\\d+(\\.\\d+)?");
   private static final Pattern INDEX = Pattern.compile("\\d{1,10}");
