@@ -1,8 +1,8 @@
 package com.rethinkj.ui.examples;
 
 import static com.rethinkj.ui.El.col;
-import static com.rethinkj.ui.examples.TitleBar.titleBar;
-import static com.rethinkj.ui.examples.TitleBar.withMenus;
+import static com.rethinkj.ui.kit.TitleBar.titleBar;
+import static com.rethinkj.ui.kit.TitleBar.withMenus;
 import static com.rethinkj.ui.kit.Button.Variant.PRIMARY;
 import static com.rethinkj.ui.kit.Button.Variant.SECONDARY;
 import static com.rethinkj.ui.kit.Button.button;

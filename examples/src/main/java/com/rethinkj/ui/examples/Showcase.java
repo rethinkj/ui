@@ -3,7 +3,7 @@ package com.rethinkj.ui.examples;
 import static com.rethinkj.ui.El.col;
 import static com.rethinkj.ui.El.el;
 import static com.rethinkj.ui.El.row;
-import static com.rethinkj.ui.examples.TitleBar.titleBar;
+import static com.rethinkj.ui.kit.TitleBar.titleBar;
 import static com.rethinkj.ui.kit.Label.Variant.MUTED;
 import static com.rethinkj.ui.kit.Label.label;
 

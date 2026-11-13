@@ -443,9 +443,17 @@ public record Theme(
    * The buttons at the right of a frameless window's own title bar, which draw no fill at rest.
    *
    * @param closeHover the close button's fill under the pointer, the red of the system's own
-   * @param onClose the close button's cross on that fill
+   * @param onClose the close button's cross on that fill and on {@code closePressed}
+   * @param closePressed the close button's fill while it is pressed, a lighter red, as the
+   *     system's
    */
-  public record Caption(int closeHover, int onClose) {}
+  public record Caption(int closeHover, int onClose, int closePressed) {
+
+    /** A caption whose close button is pressed in a lighter tone of its red. */
+    public Caption(int closeHover, int onClose) {
+      this(closeHover, onClose, Theme.over(closeHover, 0x1FFFFFFF));
+    }
+  }
 
   private static final Spacing SPACE = new Spacing(2, 4, 8, 12, 16, 24);
   private static final Radii RADIUS = new Radii(4, 6, 10);
@@ -459,7 +467,7 @@ public record Theme(
   private static final Sizes SIZE = new Sizes(24, 16, 28, 16, 1, 200, 7, 16, 16, 2, 2, 4);
   private static final Motion MOTION =
       new Motion(Spring.INSTANT, Spring.SNAP, 0.3, 0.5, Spring.INSTANT, 5, 2, 1.2);
-  private static final Caption CAPTION = new Caption(0xFFC42B1C, 0xFFFFFFFF);
+  private static final Caption CAPTION = new Caption(0xFFC42B1C, 0xFFFFFFFF, 0xFFC8483B);
 
   /*
    * The rules the default themes follow; ThemeTest holds them to these.

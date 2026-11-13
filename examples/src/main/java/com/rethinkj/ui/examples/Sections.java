@@ -824,7 +824,8 @@ final class Sections {
             new Swatch("thumbHovered", t.scrollbars().thumbHovered(), 0),
             new Swatch("thumbDragged", t.scrollbars().thumbDragged(), 0)),
         List.of(new Swatch("closeHover", t.caption().closeHover(), 0),
-            new Swatch("onClose", t.caption().onClose(), 0)));
+            new Swatch("onClose", t.caption().onClose(), 0),
+            new Swatch("closePressed", t.caption().closePressed(), 0)));
   }
 
   private static final String[] GROUPS = {
