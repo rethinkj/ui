@@ -10,6 +10,7 @@ import static com.rethinkj.ui.kit.Toggle.toggle;
 import com.rethinkj.ui.App;
 import com.rethinkj.ui.Drop;
 import com.rethinkj.ui.El;
+import com.rethinkj.ui.FieldState;
 import com.rethinkj.ui.FileDialog;
 import com.rethinkj.ui.Key;
 import com.rethinkj.ui.Script;
@@ -70,6 +71,8 @@ public final class Documents {
     String text;
     Path path; // where it was read from or saved to, or null
     final Find.State find = new Find.State(); // Control+F in its text
+    // Its editor's caret, selection, scroll and history, which go with it to another tab and back.
+    final FieldState field = new FieldState();
 
     Doc(String title, String text) {
       this.title = title;
@@ -284,6 +287,7 @@ public final class Documents {
     El area = d.title.equals("Query") || d.title.toLowerCase(Locale.ROOT).endsWith(".sql")
         ? TextField.codeArea(t, d.text, "Empty", v -> d.text = v)
         : TextField.textArea(t, d.text, "Empty", v -> d.text = v);
+    area.fieldState(d.field);
     return col().grow(1).padding(t.space().l())
         .child(Find.find(t, app, area.key("text").label(d.title).wFull().grow(1), d.find));
   }

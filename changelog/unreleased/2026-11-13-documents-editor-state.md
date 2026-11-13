@@ -1,0 +1,1 @@
+- In the Documents example each document keeps its own caret, selection, scroll and undo history across its tabs (`El.fieldState`); they shared one editor, so a document opened at another's caret and lost its history when its tab was left.

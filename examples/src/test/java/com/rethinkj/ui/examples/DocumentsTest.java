@@ -87,6 +87,35 @@ class DocumentsTest {
     assertEquals("dropped text", s.groups.main().activeTab().text);
   }
 
+  /** Each document keeps its caret and history across the tabs; they were one editor's. */
+  @Test
+  void eachDocumentKeepsItsCaretAndHistory(@TempDir Path folder) throws IOException {
+    Snaps.assumeText();
+    Documents s = new Documents();
+    s.app = new App<>(s, d -> d.view(d.groups.main(), d.app));
+    Script.run("""
+        size 640 360
+        frame
+        press 300,200
+        key End control
+        type "!"
+        frame
+        press role=tab label="Notes"
+        frame
+        snap notes
+        press role=tab label="Readme"
+        frame
+        key Z control
+        frame
+        snap readme
+        """, s.app, folder);
+    String notes = Files.readString(folder.resolve("notes.tree.txt"));
+    assertTrue(notes.contains("label=\"Notes\" \"Coffee, bread\"") && !notes.contains("caret 13"),
+        "Notes' caret is its own, not Readme's: " + notes);
+    assertEquals("Tabs that move, tear off and dock.\nDrag one out of the bar.",
+        s.groups.main().activeTab().text, "Readme's history came back with it");
+  }
+
   /** Save As starts with the filter of the document's kind, which the dialog shows first. */
   @Test
   void saveAsOffersTheDocumentsOwnKindFirst() {
