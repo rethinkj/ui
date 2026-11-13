@@ -32,8 +32,14 @@ final class Desktop {
 
   private Desktop() {}
 
-  /** Skips the test unless SDL loads and can open windows here. */
+  /**
+   * Skips the test unless it was asked for with {@code -Dwindows.tests=true} and SDL loads and can
+   * open windows here: these tests open real windows on the screen and take the pointer and the
+   * keyboard focus for a moment, so an ordinary build leaves them out.
+   */
   static void assumeWindows() {
+    assumeTrue(Boolean.getBoolean("windows.tests"),
+        "Skipped: opens real windows on the screen; run with -Dwindows.tests=true");
     try {
       Natives.lookup("sdl3");
     } catch (UnsatisfiedLinkError e) {

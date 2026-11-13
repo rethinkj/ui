@@ -105,6 +105,8 @@ class TabTearOffWindowTest {
   // Copied from core's test helper Desktop, whose test sources kit's tests do not see.
 
   private static void assumeWindows() {
+    assumeTrue(Boolean.getBoolean("windows.tests"),
+        "Skipped: opens real windows on the screen; run with -Dwindows.tests=true");
     try {
       Natives.lookup("sdl3");
       Font.sans();
