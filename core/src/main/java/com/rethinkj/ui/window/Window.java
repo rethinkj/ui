@@ -34,6 +34,7 @@ import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.util.ArrayDeque;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 
@@ -371,14 +372,18 @@ public final class Window implements AutoCloseable {
 
   /** Queues an event of this window for {@link #dispatch}. */
   void post(WindowEvent event) {
-    // One redraw after another is one redraw, live only if both are.
-    Posted last = pending.peekLast();
-    if (event instanceof Redraw redraw && last != null && last.window == this
-        && last.event instanceof Redraw before) {
-      if (redraw.live() && !before.live()) {
-        return;
+    // A redraw shows the newest state, so it replaces one of this window that is still pending,
+    // and is live only if both are. On X11 every step of a resize brings one, and drawing each
+    // would leave the loop ever further behind the window's size.
+    if (event instanceof Redraw redraw) {
+      for (Iterator<Posted> i = pending.iterator(); i.hasNext(); ) {
+        Posted posted = i.next();
+        if (posted.window == this && posted.event instanceof Redraw before) {
+          i.remove();
+          event = new Redraw(redraw.live() && before.live());
+          break;
+        }
       }
-      pending.pollLast();
     }
     pending.add(new Posted(this, event));
   }

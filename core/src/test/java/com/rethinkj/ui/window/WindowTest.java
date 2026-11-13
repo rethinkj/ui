@@ -133,6 +133,24 @@ class WindowTest {
   }
 
   @Test
+  void aRedrawReplacesOneThatIsStillPending() {
+    try (Window window = Window.open(TITLE, 300, 200)) {
+      Desktop.settle();
+      window.listener(events::add);
+      // What X11 sends during a resize: each step brings a redraw, with other events between.
+      Desktop.windowEvent(window, Sdl.EVENT_WINDOW_EXPOSED, 0, 0);
+      Desktop.motion(window, 40, 30);
+      Desktop.windowEvent(window, Sdl.EVENT_WINDOW_EXPOSED, 0, 0);
+      Window.pollEvents();
+
+      assertEquals(List.of(new Redraw(false)),
+          events.stream().filter(Redraw.class::isInstance).toList(), events.toString());
+      assertTrue(events.indexOf(new PointerMove(40, 30)) < events.indexOf(new Redraw(false)),
+          "the redraw comes after the move: " + events);
+    }
+  }
+
+  @Test
   void aCloseRequestIsAnEventAndTheWindowStaysOpen() {
     try (Window window = Window.open(TITLE, 300, 200)) {
       Desktop.settle();
