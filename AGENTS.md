@@ -24,7 +24,7 @@ mvn verify                # build and test everything
 mvn -pl kit -am verify    # one module plus the modules it depends on
 ```
 
-Image tests compare what `Headless.render` produces with the PNG and tree files under `core/src/test/resources/golden`. After a deliberate change of the output, rewrite them with `mvn -pl core test -Dgolden.update=true` and look at the images before committing. A failing image test leaves the expected image, the actual image and their difference in `core/target/golden`.
+Image tests compare what `Headless.render` produces with the PNG and tree files under `core/src/test/resources/golden`. After a deliberate change of the output, rewrite them with `mvn -pl core -am test -Dgolden.update=true` (`-am` builds the natives module that core tests with) and look at the images before committing. A failing image test leaves the expected image, the actual image and their difference in `core/target/golden`.
 
 The layout is tested against Taffy's flexbox cases in `core/src/test/resources/taffy`; `scripts/import-taffy-fixtures.sh` refreshes them.
 
