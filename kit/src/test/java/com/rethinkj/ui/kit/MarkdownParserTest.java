@@ -57,6 +57,37 @@ class MarkdownParserTest {
     assertEquals(
         List.of("text-fields", "text-fields-1", "elrows-and-more", "quoted"),
         doc.headings().stream().map(MarkdownDocument.Heading::id).toList());
+    assertEquals(
+        List.of("foo", "foo-1", "foo-1-1", "foo-2"),
+        MarkdownDocument.parse("# Foo\n# Foo\n# Foo-1\n# Foo").headings().stream()
+            .map(MarkdownDocument.Heading::id)
+            .toList(),
+        "an id that a heading has is not given again");
+  }
+
+  @Test
+  void aLinkCannotHoldALinkAndAnAutolinkInsideOneWins() {
+    assertEquals("""
+        paragraph
+          text "["
+          link "https://safe.example"
+            text "https://safe.example"
+          text "](/other)"
+        """, tree("[<https://safe.example>](/other)"));
+    assertEquals(
+        """
+        paragraph
+          link "/other"
+            text "see www.a.b"
+        """,
+        tree("[see www.a.b](/other)"),
+        "a bare address inside brackets is text, as GitHub has it");
+  }
+
+  @Test
+  void referenceLabelsCompareByCaseFolding() {
+    assertEquals("paragraph\n  link \"/url\"\n    text \"ẞ\"\n", tree("[ẞ]\n\n[SS]: /url\n"));
+    assertEquals("paragraph\n  link \"/url\"\n    text \"ss\"\n", tree("[ss]\n\n[ẞ]: /url\n"));
   }
 
   @Test
@@ -167,6 +198,31 @@ class MarkdownParserTest {
           largeTime < 4 * smallTime + 50_000_000L,
           "1 MB of \"" + kind + "\" took " + largeTime / 1e6 + " ms, 512 KB " + smallTime / 1e6);
     }
+  }
+
+  @Test
+  void longRunsOfDelimitersAllocateInProportionToTheirLength() {
+    com.sun.management.ThreadMXBean bean =
+        (com.sun.management.ThreadMXBean) java.lang.management.ManagementFactory.getThreadMXBean();
+    org.junit.jupiter.api.Assumptions.assumeTrue(bean.isThreadAllocatedMemorySupported());
+    bean.setThreadAllocatedMemoryEnabled(true);
+    long[] bytes = new long[2];
+    for (int attempt = 0; attempt < 3; attempt++) {
+      for (int i = 0; i < 2; i++) {
+        String run = "*".repeat(16_384 << i);
+        String source = run + "x" + run;
+        MarkdownParser.read(source);
+        long before = bean.getCurrentThreadAllocatedBytes();
+        MarkdownParser.read(source);
+        bytes[i] = bean.getCurrentThreadAllocatedBytes() - before;
+      }
+      if (bytes[1] < 3 * bytes[0]) {
+        break;
+      }
+    }
+    assertTrue(
+        bytes[1] < 3 * bytes[0],
+        "twice the run allocated " + bytes[0] + " and then " + bytes[1] + " bytes");
   }
 
   private static long time(String text) {

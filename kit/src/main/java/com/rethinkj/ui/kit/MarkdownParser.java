@@ -934,10 +934,13 @@ final class MarkdownParser {
       out.add(
           switch (b) {
             case MarkdownDocument.Heading h -> {
+              // As GitHub: the next number of the slug whose id is not given yet, given ids taken.
               String slug = slug(MarkdownDocument.plainText(h.content()));
-              Integer n = seen.get(slug);
-              String id = n == null ? slug : slug + "-" + n;
-              seen.put(slug, n == null ? 1 : n + 1);
+              String id = slug;
+              while (seen.containsKey(id)) {
+                id = slug + "-" + seen.merge(slug, 1, Integer::sum);
+              }
+              seen.put(id, 0);
               yield new MarkdownDocument.Heading(h.level(), h.content(), id);
             }
             case MarkdownDocument.Quote q -> new MarkdownDocument.Quote(identify(q.blocks(), seen));
@@ -1325,7 +1328,15 @@ final class MarkdownParser {
     };
   }
 
+  /** The delimiter's text as its count says, which {@link #processEmphasis} lowers. */
+  private static void cut(Delimiter d) {
+    if (d.node.text.length() != d.count) {
+      d.node.text = d.node.text.substring(0, d.count);
+    }
+  }
+
   private void removeDelimiter(Delimiter d) {
+    cut(d);
     if (d.prev != null) {
       d.prev.next = d.next;
     }
@@ -1371,10 +1382,10 @@ final class MarkdownParser {
       Delimiter oldCloser = closer;
       if (found) {
         int use = closer.c == '~' ? closer.count : closer.count >= 2 && opener.count >= 2 ? 2 : 1;
+        // Only the counts change here; a run's text is cut once, as it leaves the stack, since
+        // cutting it at every pair would copy long runs again and again.
         opener.count -= use;
         closer.count -= use;
-        opener.node.text = opener.node.text.substring(0, opener.node.text.length() - use);
-        closer.node.text = closer.node.text.substring(0, closer.node.text.length() - use);
         N emph = new N(closer.c == '~' ? STRIKE : use == 1 ? EMPH : STRONG, null);
         N n = opener.node.next;
         while (n != null && n != closer.node) {
@@ -1385,6 +1396,9 @@ final class MarkdownParser {
         opener.node.insertAfter(emph);
         // Delimiters between the two are text now.
         if (opener.next != closer) {
+          for (Delimiter d = opener.next; d != closer; d = d.next) {
+            cut(d);
+          }
           opener.next = closer;
           closer.prev = opener;
         }
@@ -1491,14 +1505,18 @@ final class MarkdownParser {
     brackets = opener.prev;
     opener.node.unlink();
     if (!opener.image) {
-      // No links in links: the openers before this one are text now.
-      for (Bracket b = brackets; b != null; b = b.prev) {
-        if (!b.image) {
-          if (!b.active) {
-            break;
-          }
-          b.active = false;
+      noLinksAround();
+    }
+  }
+
+  /** No links in links: after a link or an autolink, the openers of links before it are text. */
+  private void noLinksAround() {
+    for (Bracket b = brackets; b != null; b = b.prev) {
+      if (!b.image) {
+        if (!b.active) {
+          break;
         }
+        b.active = false;
       }
     }
   }
@@ -1524,12 +1542,18 @@ final class MarkdownParser {
     return 0;
   }
 
+  /**
+   * A label as references compare it: Unicode's case folding, with the whitespace collapsed. Java
+   * has no full case folding; lower case after upper case is the same but for ẞ, whose lower case
+   * is ß where the folding of both is ss (ß goes to SS and then to ss on the way).
+   */
   private static String normalizeLabel(String label) {
     return label
         .strip()
         .replaceAll("[ \\t\\r\\n]+", " ")
         .toUpperCase(Locale.ROOT)
-        .toLowerCase(Locale.ROOT);
+        .toLowerCase(Locale.ROOT)
+        .replace("ß", "ss");
   }
 
   private static int skipSpaces(String s, int p) {
@@ -1666,6 +1690,7 @@ final class MarkdownParser {
       link.title = "";
       link.append(text(target));
       block.append(link);
+      noLinksAround();
       pos = m.end();
       return;
     }
@@ -1675,7 +1700,8 @@ final class MarkdownParser {
 
   /** GitHub's autolinks without angle brackets: {@code www.}, {@code http://}, {@code https://}. */
   private boolean bareUrl(N block) {
-    if (pos > 0 && !boundary(subject.charAt(pos - 1))) {
+    // None inside brackets, which may become a link, as GitHub's reader has it.
+    if (brackets != null || pos > 0 && !boundary(subject.charAt(pos - 1))) {
       return false;
     }
     String head =
