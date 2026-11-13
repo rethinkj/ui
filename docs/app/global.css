@@ -129,3 +129,9 @@ html > body[data-scroll-locked] {
   font-size: 0.875rem;
   color: var(--color-fd-muted-foreground);
 }
+
+/* Code shows its characters as typed: no ligatures that turn -> into an arrow. */
+code,
+pre {
+  font-variant-ligatures: none;
+}

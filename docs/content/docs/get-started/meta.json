@@ -1,1 +1,8 @@
-{ "title": "Get started", "pages": ["index", "first-app", "project", "run-examples"] }
+{
+  "title": "Get started",
+  "pages": [
+    "first-app",
+    "project",
+    "run-examples"
+  ]
+}

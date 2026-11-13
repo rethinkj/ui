@@ -1,1 +1,9 @@
-{ "title": "DataGrid", "pages": ["index", "selection", "sorting-and-columns", "editing", "filters"] }
+{
+  "title": "DataGrid",
+  "pages": [
+    "selection",
+    "sorting-and-columns",
+    "editing",
+    "filters"
+  ]
+}

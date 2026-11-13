@@ -1,0 +1,35 @@
+---
+title: Work off the app's thread
+description: Run queries and file reads on another thread, post results back, cancel them, and act later on the app's clock.
+---
+
+An app, its state and its elements belong to the thread that runs it, and only handlers change the state. Work that takes long, a query or reading a file, runs on another thread, and its result comes back as a task that runs on the app's thread like a handler. `App.background` does both and lets you cancel; `App.post` is the one method any thread may call; `App.after` acts later on the app's clock.
+
+```java snippet="background"
+```
+
+- `app.background(name, compute, onResult, onFailure)` runs `compute` on a virtual thread and posts `onResult` with its result or `onFailure` with its exception.
+- It returns a `Work`. `work.cancel()` keeps both handlers from running, even when the answer already waits, and interrupts the thread: the answer of a request the user closed never arrives.
+- Give the computation only what it needs (a table name, an SQL string, a connection), never the state or elements: the app's thread reads them while it builds the view, and nothing guards them.
+- Virtual threads do not keep the JVM alive.
+
+## Posting
+
+`app.post(runnable)` queues a task after the input that came before it; it runs on the app's thread, against the view the input before it left, and the frame draws. It never blocks. A window wakes for it at once.
+
+## Later, on the app's clock
+
+```java snippet="after"
+```
+
+`app.after(seconds, action)` runs the action in the first frame at or after its time. An idle window wakes for it; a script runs it with `advance`.
+
+## Under a script
+
+A script does not wait for the clock on the wall. `await` waits until the work that `background` started has delivered, then queues the answers for the next `frame`; so a snap shows the button busy before and the answer after, however fast the work was:
+
+```text snippet="background-script"
+```
+
+```text file="examples/src/test/resources/golden/docs/background/counting.tree.txt" start="Count rows" count="2"
+```

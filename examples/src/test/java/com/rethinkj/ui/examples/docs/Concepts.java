@@ -251,6 +251,13 @@ final class Concepts {
     return Frame.of(t, save);
   }
 
+  static Theme themeOf(boolean dark) {
+    // docs:start theme-switch
+    Theme t = dark ? Theme.DARK : Theme.LIGHT;
+    // docs:end theme-switch
+    return t;
+  }
+
   // docs:start window-options
   static Window.Options options() {
     return Window.options().frameless().minimumSize(480, 320);

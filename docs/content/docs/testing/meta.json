@@ -1,1 +1,10 @@
-{ "title": "Testing and agents", "pages": ["index", "scripts", "selectors", "tree-dump", "stored-images", "agent-recipe"] }
+{
+  "title": "Testing and agents",
+  "pages": [
+    "scripts",
+    "selectors",
+    "tree-dump",
+    "stored-images",
+    "agent-recipe"
+  ]
+}
