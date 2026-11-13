@@ -1,0 +1,1 @@
+- Added the secondary (right) button: `El.onSecondaryPress((x, y) -> ...)` runs with the position of the release, as for a context menu, and the Menu key and Shift+F10 run it for the focused element. `App.secondaryDown` and `secondaryUp` take the button, `WindowLoop` passes the right button to them, and scripts write `press <target> right`.

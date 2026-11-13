@@ -1,0 +1,11 @@
+# The select of encodings in kit's workbench (MenuTest): its list as wide as the select at least,
+# with the current choice checked and highlighted; Arrow Down and Enter choose the next one.
+frame
+press #encoding
+frame
+snap open
+
+key ArrowDown
+key Enter
+frame
+snap chosen

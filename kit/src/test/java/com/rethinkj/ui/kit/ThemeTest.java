@@ -48,6 +48,9 @@ class ThemeTest {
     check(failures, "focus ring", t.border().focus(), Map.of("accent", t.accent().color()), 3);
     check(failures, "knob", t.text().onAccent(), Map.of("track off", t.border().strong()), 3);
     check(failures, "disabled text", t.text().disabled(), surfaces, 2);
+    // A menu highlights a disabled item with the hover overlay on its raised surface.
+    check(failures, "disabled text", t.text().disabled(),
+        Map.of("raised hovered", over(s.raised(), s.hover())), 2);
     // Selected text keeps its colour over the translucent selection.
     check(failures, "selected text", t.text().primary(), Map.of(
         "selection on raised", over(s.raised(), t.accent().selection()),

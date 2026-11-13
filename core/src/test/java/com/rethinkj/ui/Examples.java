@@ -26,9 +26,9 @@ public final class Examples {
 
   /**
    * The switch as a program: {@code --script <file> --out <folder>} runs a script against it, and
-   * with {@code list}, {@code rows}, {@code bars}, {@code field} or {@code field-rows} before that
-   * against the list, the million rows, the million rows with scrollbars, the text field or the
-   * fields in rows.
+   * with {@code list}, {@code rows}, {@code bars}, {@code field}, {@code field-rows} or {@code
+   * overlay} before that against the list, the million rows, the million rows with scrollbars, the
+   * text field, the fields in rows or the menus and the dialog.
    */
   public static void main(String[] args) throws IOException {
     String view = args.length > 0 && !args[0].startsWith("--") ? args[0] : "";
@@ -39,6 +39,7 @@ public final class Examples {
           case "bars" -> new App<>(new Object(), s -> bars());
           case "field" -> new App<>(new Form(), Examples::form);
           case "field-rows" -> new App<>(new Names(), Examples::fieldRows);
+          case "overlay" -> new App<>(new Menus(), Examples::overlays);
           default -> new App<>(new Lights(), Examples::lights);
         };
     app.textRendering(TextRendering.LINUX); // as the stored images
@@ -190,6 +191,119 @@ public final class Examples {
         .border(1, 0xFF3A3A40)
         .whenHovered(e -> e.fill(0xFF26262E))
         .whenFocused(e -> e.border(1, 0xFF3B82F6));
+  }
+
+  // ---- overlays ----------------------------------------------------------------------------
+
+  /** The state of {@link #overlays}: the context menu and its row, the submenu and the dialog. */
+  public static final class Menus {
+    public boolean menu;
+    public float x;
+    public float y;
+    public int row = -1;
+    public boolean submenu;
+    public boolean dialog;
+    public String chosen = "nothing";
+  }
+
+  /**
+   * Twelve tables in a rounded scroll area, whose rows open a context menu at the pointer with the
+   * secondary button. The menu sticks out of the list and has a clip of its own; its Export item
+   * opens a submenu beside it, and its Delete item a modal dialog over a scrim. Below the list,
+   * what was chosen last.
+   */
+  public static El overlays(Menus s) {
+    El list = col().key("list").role("list").label("Tables").focusable().scroll().grow(1)
+        .padding(6).gap(4).radius(12).fill(0xFF1C1C22);
+    for (int i = 0; i < 12; i++) {
+      int at = i;
+      list.child(row().key("row-" + i).role("listitem").label(TABLES[i]).h(26).shrink(0)
+          .padding(0, 8).align(Style.Align.CENTER).radius(6)
+          .fill(i == s.row ? 0xFF1E3A8A : i % 2 == 0 ? 0xFF26262E : 0xFF2E2E38)
+          .onSecondaryPress((x, y) -> {
+            s.menu = true;
+            s.submenu = false;
+            s.x = x;
+            s.y = y;
+            s.row = at;
+          })
+          .child(El.text(TABLES[i]).fontSize(13).color(0xFFE4E4E7)));
+    }
+    if (s.menu) {
+      El export = menuItem("export", "Export", () -> s.submenu = !s.submenu);
+      if (s.submenu) {
+        export.overlay(menu("formats").side(Side.RIGHT, Style.Align.START, 6)
+            .onDismiss(() -> s.submenu = false)
+            .children(
+                menuItem("csv", "CSV", () -> chose(s, "csv")),
+                menuItem("json", "JSON", () -> chose(s, "json"))));
+      }
+      list.overlay(menu("menu").atPoint(s.x, s.y).onDismiss(() -> s.menu = false)
+          .onKey(k -> {
+            if (!k.name().equals("Escape")) {
+              return false;
+            }
+            s.menu = false;
+            return true;
+          })
+          .children(
+              menuItem("open", "Open", () -> chose(s, "open")),
+              export,
+              menuItem("delete", "Delete…", () -> {
+                s.menu = false;
+                s.dialog = true;
+              })));
+    }
+    El root = col().wFull().hFull().padding(16).gap(8).fill(0xFF101014).children(list,
+        El.text("Chose " + s.chosen).key("chosen").fontSize(12).color(0xFFA1A1AA));
+    if (s.dialog) {
+      Runnable close = () -> s.dialog = false;
+      root.overlay(col().key("dialog").role("dialog").label("Delete").centerInWindow().modal()
+          .scrim(0x99000000).onDismiss(close)
+          .onKey(k -> {
+            if (!k.name().equals("Escape")) {
+              return false;
+            }
+            close.run();
+            return true;
+          })
+          .padding(16).gap(12).radius(10).fill(0xFF26262E).border(1, 0xFF4A4A55)
+          .children(
+              El.text("Delete " + TABLES[Math.max(s.row, 0)] + "?").fontSize(14)
+                  .color(0xFFF4F4F5),
+              row().gap(8).justify(Style.Content.END).children(
+                  dialogButton("cancel", "Cancel", 0xFF3A3A44, close),
+                  dialogButton("confirm", "Delete", 0xFFB91C1C, () -> {
+                    s.dialog = false;
+                    s.chosen = "delete " + TABLES[Math.max(s.row, 0)];
+                  }))));
+    }
+    return root;
+  }
+
+  private static void chose(Menus s, String what) {
+    s.chosen = what;
+    s.menu = false;
+    s.submenu = false;
+  }
+
+  /** A menu's panel, rounded, with a clip of its own. */
+  private static El menu(String key) {
+    return col().key(key).role("menu").padding(4).gap(2).radius(8).clip().fill(0xFF2A2A33)
+        .border(1, 0xFF4A4A55);
+  }
+
+  private static El menuItem(String key, String text, Runnable onPress) {
+    return row().key(key).role("menuitem").label(text).h(24).padding(0, 10).radius(4)
+        .align(Style.Align.CENTER).focusable().onPress(onPress)
+        .whenHovered(e -> e.fill(0xFF3B82F6))
+        .child(El.text(text).fontSize(13).color(0xFFF4F4F5));
+  }
+
+  private static El dialogButton(String key, String text, int fill, Runnable onPress) {
+    return row().key(key).role("button").label(text).h(28).padding(0, 12).radius(6)
+        .align(Style.Align.CENTER).fill(fill).focusable().onPress(onPress)
+        .child(El.text(text).fontSize(13).color(0xFFF4F4F5));
   }
 
   // ---- the kit's data grid, which core's tests cannot see ----------------------------------

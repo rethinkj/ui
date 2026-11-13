@@ -1,0 +1,9 @@
+# The panel of actions in the bottom right corner of kit's workbench (MenuTest), scrolled to its
+# end: the menu of its last button has no room below it or to its right, so it opens above it
+# and to its left, whole, across the panel's clip.
+frame
+wheel #actions 0 200
+frame
+press #more
+frame
+snap open

@@ -1,0 +1,19 @@
+# The Rename dialog of kit's workbench (DialogTest): opened with the keyboard, the focus in its
+# field; Tab goes around inside it, Escape dismisses it and the focus goes back to Rename.
+frame
+focus #rename
+key Enter
+frame
+snap open
+
+key End
+type "_2026"
+key Tab                         # Cancel
+key Tab                         # Rename
+key Tab                         # around to the field, whose text Tab selects
+frame
+snap cycled
+
+key Escape
+frame
+snap closed

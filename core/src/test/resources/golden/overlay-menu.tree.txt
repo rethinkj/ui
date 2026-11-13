@@ -1,0 +1,35 @@
+el 0,0 240x200
+  el #list role=list label="Tables" 16,16 208x146 scroll 0,40
+    el #row-0 role=listitem label="accounts" 22,-18 196x26
+      text "accounts" 30,-13 56x16
+    el #row-1 role=listitem label="addresses" 22,12 196x26
+      text "addresses" 30,17 64x16
+    el #row-2 role=listitem label="audit_log" 22,42 196x26
+      text "audit_log" 30,47 56x16
+    el #row-3 role=listitem label="carts" 22,72 196x26
+      text "carts" 30,77 31x16
+    el #row-4 role=listitem label="categories" 22,102 196x26
+      text "categories" 30,107 65x16
+    el #row-5 role=listitem label="customers" 22,132 196x26
+      text "customers" 30,137 65x16
+    el #row-6 role=listitem label="deliveries" 22,162 196x26
+      text "deliveries" 30,167 59x16
+    el #row-7 role=listitem label="discounts" 22,192 196x26
+      text "discounts" 30,197 59x16
+    el #row-8 role=listitem label="employees" 22,222 196x26
+      text "employees" 30,227 67x16
+    el #row-9 role=listitem label="inventory" 22,252 196x26
+      text "inventory" 30,257 57x16
+    el #row-10 role=listitem label="invoices" 22,282 196x26
+      text "invoices" 30,287 50x16
+    el #row-11 role=listitem label="order_items" 22,312 196x26
+      text "order_items" 30,317 72x16
+  text #chosen "Chose nothing" 16,170 208x14
+overlay at 120,85 bottom start on #list role=list label="Tables" 16,16 208x146
+  el #menu role=menu 120,85 81x86
+    el #open role=menuitem label="Open" 125,90 71x24 focused
+      text "Open" 135,94 33x16
+    el #export role=menuitem label="Export" 125,116 71x24
+      text "Export" 135,120 40x16
+    el #delete role=menuitem label="Delete…" 125,142 71x24
+      text "Delete…" 135,146 51x16

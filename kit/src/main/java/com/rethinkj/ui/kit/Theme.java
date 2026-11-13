@@ -50,8 +50,15 @@ public record Theme(
    * @param raised a control or a popup above both
    * @param hover translucent, over a control's background while the pointer is over it
    * @param pressed translucent, over a control's background while it is pressed
+   * @param scrim translucent, over the whole window under a modal dialog
    */
-  public record Surfaces(int window, int panel, int raised, int hover, int pressed) {}
+  public record Surfaces(int window, int panel, int raised, int hover, int pressed, int scrim) {
+
+    /** Surfaces with a scrim of black at 50 %. */
+    public Surfaces(int window, int panel, int raised, int hover, int pressed) {
+      this(window, panel, raised, hover, pressed, 0x80000000);
+    }
+  }
 
   /**
    * @param primary most text
@@ -146,8 +153,17 @@ public record Theme(
   /**
    * @param feedback colours that answer the pointer and a change of state
    * @param move parts that travel, such as a toggle's knob
+   * @param submenuDelay seconds the pointer rests on a menu's item before its submenu opens, or
+   *     the open one closes
+   * @param tooltipDelay seconds the pointer rests on an element before its tooltip shows
    */
-  public record Motion(Spring feedback, Spring move) {}
+  public record Motion(Spring feedback, Spring move, double submenuDelay, double tooltipDelay) {
+
+    /** Motion with submenus after 0.3 seconds and tooltips after half a second. */
+    public Motion(Spring feedback, Spring move) {
+      this(feedback, move, 0.3, 0.5);
+    }
+  }
 
   /**
    * The data grid's sizes and backgrounds. Its lines are {@link Borders#subtle}, and its hovered
@@ -175,12 +191,12 @@ public record Theme(
           new TextStyle(Font::mono, 12),
           new TextStyle(Font::sansBold, 15));
   private static final Sizes SIZE = new Sizes(24, 16, 28, 16, 1, 200, 7, 16, 16);
-  private static final Motion MOTION = new Motion(Spring.INSTANT, Spring.SNAP);
+  private static final Motion MOTION = new Motion(Spring.INSTANT, Spring.SNAP, 0.3, 0.5);
 
   /** Neutral greys with a blue accent, light text on dark surfaces. */
   public static final Theme DARK =
       new Theme(
-          new Surfaces(0xFF1B1C1F, 0xFF232428, 0xFF2D2E33, 0x0FFFFFFF, 0x1AFFFFFF),
+          new Surfaces(0xFF1B1C1F, 0xFF232428, 0xFF2D2E33, 0x0FFFFFFF, 0x1AFFFFFF, 0x99000000),
           new TextColors(0xFFE4E5E9, 0xFFA1A3AA, 0xFF6A6C73, 0xFFFFFFFF),
           new Borders(0xFF393A40, 0xFF7A7D86, 0xFFE4E5E9),
           new Accent(0xFF2E62D9, 0xFF3A6EE6, 0xFF2655C2, 0x732E62D9),
@@ -196,7 +212,7 @@ public record Theme(
   /** Neutral greys with a blue accent, dark text on light surfaces. */
   public static final Theme LIGHT =
       new Theme(
-          new Surfaces(0xFFF8F9FA, 0xFFEFF0F2, 0xFFFFFFFF, 0x0F000000, 0x1A000000),
+          new Surfaces(0xFFF8F9FA, 0xFFEFF0F2, 0xFFFFFFFF, 0x0F000000, 0x1A000000, 0x59000000),
           new TextColors(0xFF1D1E21, 0xFF5C5F66, 0xFFA3A5AB, 0xFFFFFFFF),
           new Borders(0xFFD8DADF, 0xFF878A93, 0xFF1D1E21),
           new Accent(0xFF2E62D9, 0xFF2755C0, 0xFF2048A8, 0x4D2E62D9),
