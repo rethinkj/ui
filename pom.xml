@@ -33,6 +33,7 @@
   <modules>
     <module>core</module>
     <module>kit</module>
+    <module>fonts</module>
   </modules>
 
   <properties>
