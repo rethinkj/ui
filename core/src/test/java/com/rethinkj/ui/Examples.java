@@ -430,7 +430,9 @@ public final class Examples {
       return i == selected ? r : r.whenHovered(e -> e.fill(over(fill, HOVER)));
     }).scrollbars(GRID_BARS);
     El under = el().h(1).shrink(0).fill(SUBTLE);
-    El content = col().key("content").w(total).children(header, under, body);
+    // Room for the rows' bar after the last column, as the kit leaves.
+    float room = GRID_BARS.thickness() + 2 * GRID_BARS.margin();
+    El content = col().key("content").w(total + room).children(header, under, body);
     content.style().minWidth = Len.percent(1);
     El grid = row().role("grid").scrollBoth().scrollbars(GRID_BARS).fill(ROW).child(content)
         .focusable()

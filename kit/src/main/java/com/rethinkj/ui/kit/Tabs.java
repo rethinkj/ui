@@ -53,7 +53,8 @@ import java.util.function.IntConsumer;
  * role=tab} with the title as label and the key {@code tab-<index>}, their crosses {@code
  * role=button} with the label {@code Close} and the title and the key {@code close-<index>}, and
  * the content is in {@code #panel} with {@code role=tabpanel} and the active tab's title as label.
- * The component needs a size of its own or room to grow; its content fills the rest of it.
+ * The component needs a size of its own or room to grow; its content fills the rest of it. It
+ * takes no minimum size from its content, so that a list of rows there scrolls inside it.
  */
 public final class Tabs {
 
@@ -119,6 +120,9 @@ public final class Tabs {
       panel.child(content.grow(1));
     }
     El root = col().children(bar, under, panel);
+    // It fills the room it is given: a list of rows in the content is no minimum.
+    root.style().minWidth = Len.ZERO;
+    root.style().minHeight = Len.ZERO;
     if (!enabled || tabs.isEmpty()) {
       return root;
     }

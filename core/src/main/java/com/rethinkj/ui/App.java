@@ -16,6 +16,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.PriorityQueue;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -193,6 +194,9 @@ public final class App<S> {
   private Editor blinking; // the editor of the focused field
   private double blinkStart; // when its caret last turned on
   private boolean caretOn;
+  // Actions to run when the clock reaches their time, the earliest first; see after().
+  private final PriorityQueue<Timer> timers = new PriorityQueue<>();
+  private long timersAsked;
   private boolean active = true; // the window has the system's keyboard focus
   private Object secondary; // the identity of the element a secondary press is on, until it is up
   // The overlays of the last tree the view built, in the order they opened, with where the focus
@@ -768,18 +772,67 @@ public final class App<S> {
 
   /**
    * The time on the app's clock at which the last frame changes without input or movement: when
-   * the caret of the focused field turns on or off, or when the pointer will have rested long
-   * enough on an element for its {@link El#whenHoveredFor} look or {@link El#onHoverFor} handler.
-   * Positive infinity when nothing will; then an idle window can wait for input alone.
+   * the caret of the focused field turns on or off, when the pointer will have rested long enough
+   * on an element for its {@link El#whenHoveredFor} look or {@link El#onHoverFor} handler, or when
+   * an action asked for with {@link #after} is due. Positive infinity when nothing will; then an
+   * idle window can wait for input alone.
    */
   public double nextChange() {
     if (!queued.isEmpty()) {
       return time; // handlers that a frame queued, such as El#onRowsBuilt
     }
+    double next = timers.isEmpty() ? restDue : Math.min(restDue, timers.peek().at());
     if (blinking == null || !active) {
-      return restDue;
+      return next;
     }
-    return Math.min(restDue, blinkStart + (Math.floor((time - blinkStart) / BLINK) + 1) * BLINK);
+    return Math.min(next, blinkStart + (Math.floor((time - blinkStart) / BLINK) + 1) * BLINK);
+  }
+
+  /**
+   * Runs {@code action} once the app's clock has moved on by {@code seconds}, for what happens
+   * later without input, such as a delay or a timeout. It is not work on another thread ({@link
+   * #background}): nothing runs meanwhile, and the clock alone decides when.
+   *
+   * <p>The action runs on the app's thread as a {@link #post posted} task does, as the handler of
+   * an input: the first {@link #frame} that begins at or after its time queues it after the input
+   * and the tasks that came before that frame, the actions due then in the order of their times
+   * and then in the order they were asked for. It runs against the tree of the moment, the view is
+   * built again before the next input, and the frame draws. One asked for while a frame runs, by
+   * a handler or an action, waits for the next frame, even with a delay of 0. {@link #nextChange}
+   * reports the next one, so that a window wakes for it; a script runs it with {@code advance} and
+   * {@code frame}, and {@link #await} does not wait for it, since only the clock brings it. An
+   * action that throws ends the frame as a task does. Call this on the app's thread, in a handler,
+   * a task or an action, or before the first frame.
+   *
+   * @param seconds from the app's {@link #time}, 0 or more
+   */
+  public void after(double seconds, Runnable action) {
+    if (!(seconds >= 0 && seconds < Double.POSITIVE_INFINITY)) {
+      throw new IllegalArgumentException(
+          "seconds must be 0 or a positive finite number, was " + seconds);
+    }
+    timers.add(new Timer(time + seconds, timersAsked++, Objects.requireNonNull(action, "action")));
+  }
+
+  /** An action asked for with {@link #after}, due at a time of the clock. */
+  private record Timer(double at, long order, Runnable action) implements Comparable<Timer> {
+    @Override
+    public int compareTo(Timer other) {
+      int byTime = Double.compare(at, other.at);
+      return byTime != 0 ? byTime : Long.compare(order, other.order);
+    }
+  }
+
+  /** Queues the actions of {@link #after} that are due, as tasks, after what is queued. */
+  private void takeDue() {
+    while (!timers.isEmpty() && timers.peek().at() <= time) {
+      Runnable action = timers.poll().action();
+      queued.add(() -> {
+        handled = true; // before it runs, as for a task
+        action.run();
+        return true;
+      });
+    }
   }
 
   /**
@@ -1073,7 +1126,8 @@ public final class App<S> {
 
   /**
    * Scrolls the scroll areas around {@code el}, the innermost first, just far enough to show its
-   * border box whole inside theirs, or its start if it is larger.
+   * border box whole inside theirs and clear of the bars over their ends, or its start if it is
+   * larger.
    */
   private void reveal(El el) {
     List<El> full = new ArrayList<>();
@@ -1097,8 +1151,8 @@ public final class App<S> {
         y += path.get(j).y();
       }
       area.scrollTo(
-          area.scrollX() + nearest(x, el.width(), areaX, area.width()),
-          area.scrollY() + nearest(y, el.height(), areaY, area.height()));
+          area.scrollX() + nearest(x, el.width(), areaX, area.width() - area.coverX()),
+          area.scrollY() + nearest(y, el.height(), areaY, area.height() - area.coverY()));
     }
   }
 
@@ -1507,8 +1561,8 @@ public final class App<S> {
    *
    * <ol>
    *   <li>The tasks other threads {@link #post posted} since the app last took them join the
-   *       queue, after the input that came before them; those posted from here on wait for the
-   *       next frame.
+   *       queue, after the input that came before them, and then the actions of {@link #after}
+   *       that are due; those posted or asked for from here on wait for the next frame.
    *   <li>Each input in turn finds the element it goes to in the tree of the moment, overlays
    *       first, and runs its handler, and each posted task runs as the handler of an input; a
    *       press or the wheel outside overlays first runs their dismiss handlers, and a focus or
@@ -1552,6 +1606,7 @@ public final class App<S> {
     if (!holdPosts) {
       takePosted();
     }
+    takeDue();
     while (!queued.isEmpty()) {
       if (handled) { // the next input goes to a tree built from the state as it is now
         rebuild(true);

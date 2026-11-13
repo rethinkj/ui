@@ -95,6 +95,10 @@ public final class El {
   private double scrollY;
   private double maxScrollX;
   private double maxScrollY;
+  // How far the offsets reach past the content, for the bars that lie over its end; see
+  // measureScrolls.
+  private float coverX;
+  private float coverY;
   private float shiftX;
   private float shiftY;
   // A virtual list: its rows, and the index of the row that is its first child.
@@ -555,6 +559,14 @@ public final class El {
    * the content and takes no room in the layout. It stays where it is while the area scrolls, at
    * the edges of the part of the area that its ancestors' clips leave visible, short of the bars
    * of scroll areas around it, and it is clipped like the area's children, to its rounded corners.
+   *
+   * <p>So that the last row and the last column can come out from under a bar that crosses them,
+   * the area scrolls further by the bar's strip, its thickness and both margins: down past the bar
+   * along its bottom, its own or that of an area around it whose bottom it shares, as the rows of
+   * a data grid scroll past the grid's bar, and right past a bar along its right edge. A list of
+   * rows always reaches that far, any other area only along an axis on which its content does not
+   * fit anyway. Keeping a row or a rectangle in view ({@link #revealRow}, {@link #reveal}) and
+   * scrolling the focused element into view show it clear of these bars.
    *
    * <p>The thumb's length is the share of the content in view, at least {@link
    * Scrollbars#minThumb}, and its place the offset. Dragging the thumb scrolls in proportion,
@@ -1655,7 +1667,7 @@ public final class El {
     if (rowBuilder != null) {
       maxScrollX = 0;
       maxScrollY = Math.max(rowsTop() + rowCount * (double) rowHeight + px(style.paddingBottom)
-          + px(style.borderBottom) - height, 0);
+          + px(style.borderBottom) + coverY - height, 0);
       return;
     }
     float right = 0;
@@ -1669,18 +1681,108 @@ public final class El {
     // shortcut: only the children's rectangles count, not what sticks out of them, and padding,
     // border and margin only in pixels, not in percent; measure the layout's content size when
     // nested content or percentages need it.
-    maxScrollX =
-        style.overflowX == Style.Overflow.SCROLL
-            ? Math.max(right + px(style.paddingRight) + px(style.borderRight) - width, 0)
-            : 0;
-    maxScrollY =
-        style.overflowY == Style.Overflow.SCROLL
-            ? Math.max(bottom + px(style.paddingBottom) + px(style.borderBottom) - height, 0)
-            : 0;
+    double overX = right + px(style.paddingRight) + px(style.borderRight) - width;
+    double overY = bottom + px(style.paddingBottom) + px(style.borderBottom) - height;
+    maxScrollX = style.overflowX == Style.Overflow.SCROLL && overX > 0 ? overX + coverX : 0;
+    maxScrollY = style.overflowY == Style.Overflow.SCROLL && overY > 0 ? overY + coverY : 0;
   }
 
   private static float px(Len len) {
     return len.kind() == Len.Kind.PX ? len.value() : 0;
+  }
+
+  /**
+   * Measures how far the scroll areas below {@code root} can scroll, after layout and before any
+   * offset, as {@link #measureScroll} does, and lets the areas with {@link #scrollbars} scroll
+   * their content out from under the bars that lie over its end. A bar along the bottom covers the
+   * bottom of its area by its strip, {@link Scrollbars#thickness} and twice {@link
+   * Scrollbars#margin}, and so does a bar of an area around it whose bottom it shares, as the bar
+   * of a data grid lies over the bottom of its rows; likewise along the right edge. An area that
+   * scrolls along the other axis then reaches as much further: a list of rows always, since its
+   * rows are its content, any other area only where its content does not fit anyway, since a child
+   * that is stretched to fill it would otherwise scroll by the strip. A bar of an area inside an
+   * area moves with that area's content and lies over nothing of the area's end.
+   */
+  static void measureScrolls(El root) {
+    float far = Float.POSITIVE_INFINITY;
+    root.measureScrolls(0, 0, far, far, far, far);
+  }
+
+  /**
+   * @param barLeft the left edge of the strips of vertical bars of areas around this element that
+   *     lie at a fixed place over its parent's content, in layout coordinates from the root, or
+   *     infinity for none
+   * @param barTop likewise the top edge of the strips of horizontal bars
+   * @param clipRight the right edge of the padding boxes those bars lie in
+   * @param clipBottom the bottom edge of those padding boxes
+   */
+  private void measureScrolls(float parentX, float parentY, float barLeft, float barTop,
+      float clipRight, float clipBottom) {
+    coverX = 0;
+    coverY = 0;
+    if (!placed) {
+      return;
+    }
+    measureScroll();
+    float x = parentX + this.x;
+    float y = parentY + this.y;
+    float right = x + width - px(style.borderRight);
+    float bottom = y + height - px(style.borderBottom);
+    boolean wide = maxScrollX > 0;
+    boolean tall = maxScrollY > 0;
+    if (scrollbars != null) {
+      float strip = scrollbars.thickness() + 2 * scrollbars.margin();
+      if (style.overflowY == Style.Overflow.SCROLL && (tall || rowBuilder != null)) {
+        coverY = Math.max(wide ? strip : 0, Math.min(bottom, clipBottom) - barTop);
+      }
+      if (wide) {
+        coverX = Math.max(tall ? strip : 0, Math.min(right, clipRight) - barLeft);
+      }
+      measureScroll();
+      tall = maxScrollY > 0;
+    }
+    // The content moves under the bars of the areas around along an axis this one scrolls.
+    if (tall) {
+      barTop = Float.POSITIVE_INFINITY;
+      clipBottom = Float.POSITIVE_INFINITY;
+    }
+    if (wide) {
+      barLeft = Float.POSITIVE_INFINITY;
+      clipRight = Float.POSITIVE_INFINITY;
+    }
+    // This one's bars at a fixed place over the content, along an axis it does not scroll.
+    if (scrollbars != null) {
+      float strip = scrollbars.thickness() + 2 * scrollbars.margin();
+      if (wide && !tall) {
+        barTop = Math.min(barTop, bottom - strip);
+        clipBottom = Math.min(clipBottom, bottom);
+      }
+      if (tall && !wide) {
+        barLeft = Math.min(barLeft, right - strip);
+        clipRight = Math.min(clipRight, right);
+      }
+    }
+    for (El child : children) {
+      child.measureScrolls(x, y, barLeft, barTop, clipRight, clipBottom);
+    }
+    if (overlays != null) { // each laid out as a root of its own, under no bar of this tree
+      for (El overlay : overlays) {
+        measureScrolls(overlay);
+      }
+    }
+  }
+
+  /**
+   * How much of the right edge of this scroll area the strips of vertical bars cover, which its
+   * content can scroll past; see {@link #measureScrolls}.
+   */
+  float coverX() {
+    return coverX;
+  }
+
+  /** How much of the bottom of this scroll area the strips of horizontal bars cover. */
+  float coverY() {
+    return coverY;
   }
 
   /**
@@ -1949,12 +2051,15 @@ public final class El {
     return revealKey;
   }
 
-  /** Scrolls just far enough to show the rectangle of {@link #reveal}, along the axes it scrolls. */
+  /**
+   * Scrolls just far enough to show the rectangle of {@link #reveal}, along the axes it scrolls,
+   * clear of the bars over the area's ends.
+   */
   void revealArea() {
     double dx = style.overflowX == Style.Overflow.SCROLL
-        ? nearest(revealX - scrollX, revealWidth, width) : 0;
+        ? nearest(revealX - scrollX, revealWidth, width - coverX) : 0;
     double dy = style.overflowY == Style.Overflow.SCROLL
-        ? nearest(revealY - scrollY, revealHeight, height) : 0;
+        ? nearest(revealY - scrollY, revealHeight, height - coverY) : 0;
     scrollTo(scrollX + dx, scrollY + dy);
   }
 
@@ -1985,23 +2090,24 @@ public final class El {
 
   /**
    * The offset that shows the row with this index whole with the least scrolling from the current
-   * offset, or its top if it is taller than the list.
+   * offset, clear of the bars over the list's bottom, or its top if it is taller than the rest.
    */
   double offsetShowing(int index) {
     double top = rowsTop() + index * (double) rowHeight - scrollY;
-    double after = top + rowHeight - height;
+    double after = top + rowHeight - (height - coverY);
     return scrollY + (top < 0 ? top : after > 0 ? Math.min(after, top) : 0);
   }
 
   /**
    * Scrolls this scroll area just far enough to show the child with this index whole, counting
-   * the children that are not leaving, or its start if it is larger; nothing if there is none.
+   * the children that are not leaving and clear of the bars over the area's ends, or its start if
+   * it is larger; nothing if there is none.
    */
   void revealChild(int index) {
     for (El child : children) {
       if (!child.exiting && index-- == 0) {
-        scrollTo(scrollX + nearest(child.x - scrollX, child.width, width),
-            scrollY + nearest(child.y - scrollY, child.height, height));
+        scrollTo(scrollX + nearest(child.x - scrollX, child.width, width - coverX),
+            scrollY + nearest(child.y - scrollY, child.height, height - coverY));
         return;
       }
     }
@@ -2020,7 +2126,7 @@ public final class El {
   int rowInView(boolean last) {
     double from = scrollY - rowsTop(); // the content at the top of the border box
     long top = (long) Math.ceil(from / rowHeight);
-    long bottom = (long) Math.floor((from + height) / rowHeight) - 1;
+    long bottom = (long) Math.floor((from + height - coverY) / rowHeight) - 1;
     if (top > bottom) {
       top = bottom = (long) Math.floor(from / rowHeight);
     }

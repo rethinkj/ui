@@ -1,0 +1,57 @@
+# The workbench: made-up servers in a tree beside a tab per opened table, each a data grid, over a
+# status line. The servers answer on other threads; under a script at once, and each await lets
+# the answers in. The title bar switches the theme.
+size 1000 600
+frame
+snap workbench-start                       # localhost/shop/public open, on the first tab
+
+press role=treeitem label="orders"
+frame
+press role=treeitem label="orders" clicks 2  # a double press opens the table in a tab
+frame
+snap workbench-loading                     # which asks for its rows: "Loading…" until the answer
+
+await                                      # a million rows
+frame
+press 600,200                              # selects a row and focuses the grid
+key End                                    # the last of a million rows, clear of the bar
+frame
+snap workbench-orders
+
+press role=treeitem label="customers"
+frame
+key Enter                                  # Enter opens the selected table too, and asks
+frame                                      # keys in one frame act on the tabs of its view
+key Tab control                            # around to the first tab
+key Tab control shift                      # back to customers
+key W control                              # closes it, which cancels the question: orders again
+frame
+await                                      # the answer for customers never arrives
+frame
+snap workbench-closed
+
+press #mark-0                              # closes localhost
+frame
+press role=treeitem label="staging"
+frame
+press role=treeitem label="staging" clicks 2
+frame
+snap workbench-connecting                  # asked: a muted row until the answer
+
+await                                      # staging's databases
+frame
+snap workbench-staging
+
+press role=treeitem label="prod-eu" clicks 2
+frame
+await                                      # prod-eu refuses: it closes again
+frame
+snap workbench-refused                     # and the status line says why, for a while
+
+advance 5                                  # the message goes on the app's clock (App.after)
+frame
+press role=switch label="Dark"             # the light theme
+frame
+advance 1
+frame
+snap workbench-light

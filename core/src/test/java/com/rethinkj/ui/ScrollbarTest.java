@@ -166,11 +166,14 @@ class ScrollbarTest {
   void bothBarsStopShortOfTheCornerWherePressesReachTheContent() {
     App<Log> app = both();
     El area = app.tree();
-    // 88 long each: 100 less the margins at both ends and the other bar with its margin.
-    assertEquals(new Scrollbars.Bar(92, 2, 6, 88, 92, 2, 6, 44, REST), area.verticalBar());
-    assertEquals(new Scrollbars.Bar(2, 92, 88, 6, 2, 92, 88 / 3f, 6, REST), area.horizontalBar());
-    assertTrue(area.dump().startsWith("el #area 0,0 100x100 thumb-x 2,92 29.33x6 thumb-y 92,2 6x44"),
-        area.dump());
+    // 88 long each: 100 less the margins at both ends and the other bar with its margin. Each
+    // axis scrolls 10 further, the strip of the other bar: 210 sideways, 110 down.
+    assertEquals(new Scrollbars.Bar(92, 2, 6, 88, 92, 2, 6, 88 * 100 / 210f, REST),
+        area.verticalBar());
+    assertEquals(new Scrollbars.Bar(2, 92, 88, 6, 2, 92, 88 * 100 / 310f, 6, REST),
+        area.horizontalBar());
+    assertTrue(area.dump().startsWith("el #area 0,0 100x100 thumb-x 2,92 28.39x6 thumb-y 92,2"
+        + " 6x41.9"), area.dump());
 
     app.pointerDown(96, 96); // the corner
     app.pointerUp(96, 96);
@@ -181,17 +184,19 @@ class ScrollbarTest {
     app.frame();
     assertEquals(List.of("content"), app.state().log);
     area = app.tree(); // the press on the content rebuilt the view
-    assertEquals(100, area.scrollY(), "a page of the height, as far as the end");
+    assertEquals(100, area.scrollY(), "a page of the height");
     assertEquals(100, area.scrollX(), "a page of the width");
-    assertEquals(new Scrollbars.Bar(92, 2, 6, 88, 92, 46, 6, 44, REST), area.verticalBar());
+    float thumb = 88 * 100 / 210f;
+    assertEquals(new Scrollbars.Bar(92, 2, 6, 88, 92, 2 + (88 - thumb) * 100 / 110, 6, thumb,
+        REST), area.verticalBar());
 
-    app.pointerDown(10, 95); // the track before the horizontal thumb, now at 31.33
+    app.pointerDown(10, 95); // the track before the horizontal thumb, now at 30.39
     app.pointerUp(10, 95);
     app.pointerDown(20, 95); // the thumb where that page put it, at 2: no page, a drag
     app.pointerMove(300, 95);
     app.pointerUp(300, 95);
     app.frame();
-    assertEquals(200, app.tree().scrollX(), "dragged to the end");
+    assertEquals(210, app.tree().scrollX(), "dragged to the end, the strip of the other bar on");
     assertEquals(100, app.tree().scrollY(), "the other axis stays");
   }
 
@@ -219,8 +224,112 @@ class ScrollbarTest {
     app.pointerDown(95, 10); // the inner thumb
     app.pointerMove(95, 200);
     app.frame();
-    assertEquals(100 * 20 - 100, inner.scrollY());
+    assertEquals(100 * 20 - 100 + 10, inner.scrollY(), "the strip of the outer bar further");
     assertEquals(120, outer.scrollX());
+  }
+
+  /**
+   * As the data grid: a list inside content that scrolls sideways, whose bar along the bottom
+   * lies over the list's last 10 pixels, the strip of {@link #LOOK}. The list has {@code rows}
+   * rows of 20, the look if {@code listBars}, and keeps the row {@code reveal} in view.
+   */
+  private static App<Object> under(boolean outerBars, boolean listBars, int rows, int reveal) {
+    App<Object> app = new App<>(new Object(), s -> row().key("outer").size(100, 100).scrollBoth()
+        .scrollbars(outerBars ? LOOK : null)
+        .child(col().w(300).child(col().key("list").grow(1).scrollbars(listBars ? LOOK : null)
+            .revealRow(reveal).rows(rows, 20, i -> el().key("row-" + i)))));
+    app.resize(100, 100, 1);
+    app.frame();
+    return app;
+  }
+
+  /** The bottom of the row in the window, which must exist. */
+  private static float bottomOf(App<?> app, int row) {
+    El list = find(app.tree(), "list");
+    El el = list.children().get(row - list.firstRow());
+    return list.y() + el.y() + el.height();
+  }
+
+  @Test
+  void theLastRowScrollsClearOfTheBarAlongTheBottomOfAnAreaAround() {
+    App<Object> app = under(true, true, 100, -1);
+    El list = find(app.tree(), "list");
+    app.wheel(50, 50, 0, 100_000);
+    app.frame();
+    assertEquals(1910, list.scrollY());
+    assertEquals(90, bottomOf(app, 99), "on the strip of the outer bar, which begins at 90");
+    assertEquals(90 - 2, list.verticalBar().trackY() + list.verticalBar().trackHeight());
+
+    app.scrollToRow(list, 100); // beyond the last row: the same end
+    app.frame();
+    assertEquals(1910, list.scrollY());
+  }
+
+  @Test
+  void aKeptRowShowsClearOfTheBarAlongTheBottom() {
+    App<Object> app = under(true, true, 100, 50);
+    assertEquals(90, bottomOf(app, 50), "the least scrolling that shows it above the strip");
+    app = under(true, true, 100, 99);
+    assertEquals(90, bottomOf(app, 99));
+  }
+
+  @Test
+  void aListWhoseRowsFitScrollsTheLastOneClearOfTheBarOnlyIfTheBarCoversIt() {
+    App<Object> app = under(true, true, 4, -1); // the rows end at 80, above the strip
+    assertNull(find(app.tree(), "list").verticalBar());
+    app = under(true, true, 5, -1); // they end at 100, under it
+    El list = find(app.tree(), "list");
+    assertEquals(new Scrollbars.Bar(92, 2, 6, 86, 92, 2, 6, 86 * 100 / 110f, REST),
+        list.verticalBar(), "10 pixels to scroll");
+    app.wheel(50, 50, 0, 1000);
+    app.frame();
+    assertEquals(90, bottomOf(app, 4));
+  }
+
+  @Test
+  void anAreaWithoutTheLookOrUnderNoBarScrollsAsFarAsItsContent() {
+    for (boolean[] bars : new boolean[][] {{false, true}, {true, false}, {false, false}}) {
+      App<Object> app = under(bars[0], bars[1], 100, 99);
+      El list = find(app.tree(), "list");
+      assertEquals(1900, list.scrollY(), "outer bar " + bars[0] + ", list bar " + bars[1]);
+      assertEquals(100, bottomOf(app, 99));
+    }
+    // The outer area is as wide as its content: no bar along its bottom.
+    App<Object> app = new App<>(new Object(), s -> row().size(300, 100).scrollBoth()
+        .scrollbars(LOOK).child(col().w(300).child(col().key("list").grow(1).scrollbars(LOOK)
+            .revealRow(99).rows(100, 20, i -> el().key("row-" + i)))));
+    app.resize(300, 100, 1);
+    app.frame();
+    assertEquals(1900, find(app.tree(), "list").scrollY());
+  }
+
+  @Test
+  void bothBarsLetTheLastRowAndColumnScrollClearAndFocusShowsAnElementClearOfThem() {
+    // 3 by 3 cells of 50 in an area of 100 by 100, each focusable.
+    App<Object> app = new App<>(new Object(), s -> {
+      El grid = col().key("area").size(100, 100).scrollBoth().scrollbars(LOOK);
+      for (int r = 0; r < 3; r++) {
+        El line = row().size(150, 50).shrink(0);
+        for (int c = 0; c < 3; c++) {
+          line.child(el().key("cell-" + r + c).size(50, 50).shrink(0).focusable());
+        }
+        grid.child(line);
+      }
+      return grid;
+    });
+    app.resize(100, 100, 1);
+    app.frame();
+    app.keyDown(new Key("Tab", Key.SHIFT, false)); // around to the last cell, with a ring
+    app.frame();
+    El area = app.tree();
+    assertEquals("cell-22", app.focused().key());
+    assertEquals(60, area.scrollX(), "its right edge at 90, left of the vertical strip");
+    assertEquals(60, area.scrollY(), "its bottom at 90, above the horizontal strip");
+
+    app.wheel(50, 50, 1000, 1000);
+    app.frame();
+    assertEquals(60, area.scrollX(), "as far as that, and no further");
+    assertEquals(60, area.scrollY());
   }
 
   @Test
@@ -340,8 +449,8 @@ class ScrollbarTest {
     El view = col().key("area").size(100, 100).scrollBoth().scrollbars(LOOK)
         .child(el().size(300, 200));
     Headless.Frame frame = Headless.render(view, 100, 100, 1);
-    assertTrue(frame.tree().startsWith("el #area 0,0 100x100 thumb-x 2,92 29.33x6 thumb-y 92,2 6x44"),
-        frame.tree());
+    assertTrue(frame.tree().startsWith("el #area 0,0 100x100 thumb-x 2,92 28.39x6 thumb-y 92,2"
+        + " 6x41.9"), frame.tree());
     assertEquals(0xFF505050, frame.pixels().argb(95, 20), "the vertical thumb");
     assertEquals(0, frame.pixels().argb(95, 60), "the track has no fill");
   }

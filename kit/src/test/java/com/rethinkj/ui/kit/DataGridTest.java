@@ -445,23 +445,88 @@ class DataGridTest {
     // below the header to above the bar along the bottom.
     assertEquals(new Scrollbars.Bar(544, 33, 6, 187, 544, 33, 6, 24, rest),
         find(app, "rows").verticalBar());
+    // 964 pixels of columns and 10 for the rows' bar after them.
     Scrollbars.Bar sideways = find(app, "orders").horizontalBar();
-    assertEquals(new Scrollbars.Bar(10, 224, 540, 6, 10, 224, 540 * 544 / 964f, 6, rest),
+    assertEquals(new Scrollbars.Bar(10, 224, 540, 6, 10, 224, 540 * 544 / 974f, 6, rest),
         sideways);
     assertNull(find(app, "orders").verticalBar(), "the grid itself does not scroll up and down");
 
     run(app, "down 547,40\nmove 547,400\nframe"); // the rows' thumb, to the end
     El rows = find(app, "rows");
-    assertEquals(1_000_000 * 22.0 - rows.height(), rows.scrollY(), "the last row at the bottom");
+    assertEquals(1_000_000 * 22.0 + 10 - rows.height(), rows.scrollY(), "10 past the last row");
     assertEquals(999_999, rows.firstRow() + rows.children().size() - 1);
+    El last = find(app, "row-999999");
+    assertEquals(sideways.trackY() - T.scrollbars().margin(), y(app, last) + last.height(),
+        "the last row whole above the strip of the bar along the bottom");
     assertEquals(List.of(), orders.log, "no row selected");
     assertNull(app.focused(), "and the grid not focused");
 
     run(app, "up 547,400\ndown 100,227\nmove 700,227\nup 700,227\nframe");
-    assertEquals(964 - 544, find(app, "orders").scrollX(), "the last column in view");
-    assertEquals(544, find(app, "rows").verticalBar().thumbX(), "the rows' bar stays");
-    assertEquals(x(app, find(app, "column-6")), x(app, find(app, "cell-999999-6")),
+    assertEquals(974 - 544, find(app, "orders").scrollX(), "the last column in view");
+    Scrollbars.Bar down = find(app, "rows").verticalBar();
+    assertEquals(544, down.thumbX(), "the rows' bar stays");
+    El cell = find(app, "cell-999999-6"); // of the last column, whose line follows it
+    assertEquals(down.trackX() - T.scrollbars().margin(),
+        x(app, cell) + cell.width() + T.size().stroke(),
+        "the last column whole left of the strip of the rows' bar");
+    assertEquals(x(app, find(app, "column-6")), x(app, cell),
         "the header moved with the rows");
+  }
+
+  @Test
+  void theLastRowSelectedByTheKeysShowsAboveTheBarAlongTheBottom() throws IOException {
+    Orders orders = new Orders(T, 1_000_000);
+    App<Orders> app = start(orders);
+    run(app, "press #row-1\nkey End\nframe");
+    El last = find(app, "row-999999");
+    Scrollbars.Bar sideways = find(app, "orders").horizontalBar();
+    assertEquals(sideways.trackY() - T.scrollbars().margin(), y(app, last) + last.height());
+  }
+
+  /**
+   * The grid of cells, with row numbers and the id frozen, brought to its far end by the keys, by
+   * both thumbs and by scroll steps: each way the last row ends above the strip of the bar along
+   * the bottom and the last column left of the strip of the rows' bar, while the frozen part stays
+   * at the left.
+   */
+  @Test
+  void theFarEndOfAGridWithFrozenColumnsComesClearOfBothBarsEveryWay() throws IOException {
+    for (String way : List.of(
+        "key Tab\nkey End control\nframe",
+        "down 547,40\nmove 547,400\nup 547,400\nframe\ndown 60,227\nmove 900,227\nup 900,227"
+            + "\nframe",
+        "scroll #rows row 999999\nwheel #orders 100000 0\nframe")) {
+      App<Orders> app = start(Orders.cells(T));
+      run(app, way);
+      float m = T.scrollbars().margin();
+      Scrollbars.Bar down = find(app, "rows").verticalBar();
+      Scrollbars.Bar sideways = find(app, "orders").horizontalBar();
+      El last = find(app, "cell-999999-6");
+      assertEquals(sideways.trackY() - m, y(app, last) + last.height(), way);
+      assertEquals(down.trackX() - m, x(app, last) + last.width() + T.size().stroke(), way);
+      El number = find(app, "number-999999");
+      assertEquals(x(app, find(app, "orders")), x(app, number), "the row numbers stay: " + way);
+      assertEquals(x(app, number) + number.width() + T.size().stroke(),
+          x(app, find(app, "cell-999999-0")), "and the frozen id after them: " + way);
+    }
+  }
+
+  @Test
+  void theCursorCellThatTheKeysRevealShowsClearOfBothBars() throws IOException {
+    Orders orders = Orders.cells(T); // the cursor on the id of row 2
+    App<Orders> app = start(orders);
+    float m = T.scrollbars().margin();
+    run(app, "key Tab\nkey ArrowRight\nkey ArrowRight\nkey ArrowRight\nframe");
+    El cell = find(app, "cell-2-3");
+    assertTrue(find(app, "orders").scrollX() > 0, "scrolled to show it");
+    assertEquals(find(app, "rows").verticalBar().trackX() - m,
+        x(app, cell) + cell.width() + T.size().stroke(), "its right edge at the strip");
+
+    run(app, "key PageDown\nframe");
+    cell = find(app, "cell-" + orders.selection.row() + "-3");
+    assertTrue(find(app, "rows").scrollY() > 0, "scrolled to show it");
+    assertEquals(find(app, "orders").horizontalBar().trackY() - m, y(app, cell) + cell.height(),
+        "its bottom at the strip");
   }
 
   // Images

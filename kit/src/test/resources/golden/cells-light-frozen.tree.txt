@@ -1,7 +1,7 @@
 el 0,0 560x240
-  el #orders role=grid label="Orders" 8,8 544x224 scroll 400,0 thumb-x 221.35,224 287.44x6 focused
-    el #content -392,8 1022x224
-      el #header -392,8 1022x22
+  el #orders role=grid label="Orders" 8,8 544x224 scroll 400,0 thumb-x 219.3,224 284.65x6 focused
+    el #content -392,8 1032x224
+      el #header -392,8 1032x22
         el #column-1 role=columnheader label="customer" -270,8 139x22 pos=2/7 sort=ascending
           text "customer" -266,11 58x16
           el -206,11 20x16
@@ -38,9 +38,9 @@ el 0,0 560x240
           text "id" 114,11 11x16
         el 129,8 1x22
         el #resize-0 role=separator label="Resize id" 127,8 6x22
-      el -392,30 1022x1
-      el #rows -392,31 1022x201 rows 0-12/1000000 thumb-y 544,33 6x24
-        el #row-0 role=row -392,31 1022x22 pos=1/1000000
+      el -392,30 1032x1
+      el #rows -392,31 1032x201 rows 0-12/1000000 thumb-y 544,33 6x24
+        el #row-0 role=row -392,31 1032x22 pos=1/1000000
           el #cell-0-1 role=gridcell -270,31 139x22 pos=2/7
             text "Ada Lovelace" -266,34 83x16
           el -131,31 1x22
@@ -65,7 +65,7 @@ el 0,0 560x240
           el #cell-0-0 role=gridcell 66,31 63x22 pos=1/7
             text "1" 118,34 7x16
           el 129,31 1x22
-        el #row-1 role=row -392,53 1022x22 pos=2/1000000
+        el #row-1 role=row -392,53 1032x22 pos=2/1000000
           el #cell-1-1 role=gridcell -270,53 139x22 selected pos=2/7
             text "Grace Lovelace" -266,56 96x16
           el -131,53 1x22
@@ -90,7 +90,7 @@ el 0,0 560x240
           el #cell-1-0 role=gridcell 66,53 63x22 pos=1/7
             text "2" 118,56 7x16
           el 129,53 1x22
-        el #row-2 role=row -392,75 1022x22 pos=3/1000000
+        el #row-2 role=row -392,75 1032x22 pos=3/1000000
           el #cell-2-1 role=gridcell -270,75 139x22 selected pos=2/7
             text "Linus Lovelace" -266,78 92x16
           el -131,75 1x22
@@ -115,7 +115,7 @@ el 0,0 560x240
           el #cell-2-0 role=gridcell 66,75 63x22 pos=1/7
             text "3" 118,78 7x16
           el 129,75 1x22
-        el #row-3 role=row -392,97 1022x22 pos=4/1000000
+        el #row-3 role=row -392,97 1032x22 pos=4/1000000
           el #cell-3-1 role=gridcell -270,97 139x22 selected pos=2/7
             text "Margaret Lovelace" -266,100 115x16
           el -131,97 1x22
@@ -140,7 +140,7 @@ el 0,0 560x240
           el #cell-3-0 role=gridcell 66,97 63x22 pos=1/7
             text "4" 118,100 7x16
           el 129,97 1x22
-        el #row-4 role=row -392,119 1022x22 pos=5/1000000
+        el #row-4 role=row -392,119 1032x22 pos=5/1000000
           el #cell-4-1 role=gridcell -270,119 139x22 selected pos=2/7
             text "Ken Lovelace" -266,122 83x16
           el -131,119 1x22
@@ -165,7 +165,7 @@ el 0,0 560x240
           el #cell-4-0 role=gridcell 66,119 63x22 pos=1/7
             text "5" 118,122 7x16
           el 129,119 1x22
-        el #row-5 role=row -392,141 1022x22 pos=6/1000000
+        el #row-5 role=row -392,141 1032x22 pos=6/1000000
           el #cell-5-1 role=gridcell -270,141 139x22 pos=2/7
             text "Barbara Lovelace" -266,144 107x16
           el -131,141 1x22
@@ -190,7 +190,7 @@ el 0,0 560x240
           el #cell-5-0 role=gridcell 66,141 63x22 pos=1/7
             text "6" 118,144 7x16
           el 129,141 1x22
-        el #row-6 role=row -392,163 1022x22 pos=7/1000000
+        el #row-6 role=row -392,163 1032x22 pos=7/1000000
           el #cell-6-1 role=gridcell -270,163 139x22 pos=2/7
             text "Edsger Lovelace" -266,166 103x16
           el -131,163 1x22
@@ -215,7 +215,7 @@ el 0,0 560x240
           el #cell-6-0 role=gridcell 66,163 63x22 pos=1/7
             text "7" 118,166 7x16
           el 129,163 1x22
-        el #row-7 role=row -392,185 1022x22 pos=8/1000000
+        el #row-7 role=row -392,185 1032x22 pos=8/1000000
           el #cell-7-1 role=gridcell -270,185 139x22 pos=2/7
             text "Frances Lovelace" -266,188 108x16
           el -131,185 1x22
@@ -240,7 +240,7 @@ el 0,0 560x240
           el #cell-7-0 role=gridcell 66,185 63x22 pos=1/7
             text "8" 118,188 7x16
           el 129,185 1x22
-        el #row-8 role=row -392,207 1022x22 pos=9/1000000
+        el #row-8 role=row -392,207 1032x22 pos=9/1000000
           el #cell-8-1 role=gridcell -270,207 139x22 pos=2/7
             text "Donald Lovelace" -266,210 102x16
           el -131,207 1x22
@@ -265,7 +265,7 @@ el 0,0 560x240
           el #cell-8-0 role=gridcell 66,207 63x22 pos=1/7
             text "9" 118,210 7x16
           el 129,207 1x22
-        el #row-9 role=row -392,229 1022x22 pos=10/1000000
+        el #row-9 role=row -392,229 1032x22 pos=10/1000000
           el #cell-9-1 role=gridcell -270,229 139x22 pos=2/7
             text "Radia Lovelace" -266,232 92x16
           el -131,229 1x22
@@ -290,7 +290,7 @@ el 0,0 560x240
           el #cell-9-0 role=gridcell 66,229 63x22 pos=1/7
             text "10" 111,232 14x16
           el 129,229 1x22
-        el #row-10 role=row -392,251 1022x22 pos=11/1000000
+        el #row-10 role=row -392,251 1032x22 pos=11/1000000
           el #cell-10-1 role=gridcell -270,251 139x22 pos=2/7
             text "Ada Hopper" -266,254 75x16
           el -131,251 1x22
@@ -315,7 +315,7 @@ el 0,0 560x240
           el #cell-10-0 role=gridcell 66,251 63x22 pos=1/7
             text "11" 111,254 14x16
           el 129,251 1x22
-        el #row-11 role=row -392,273 1022x22 pos=12/1000000
+        el #row-11 role=row -392,273 1032x22 pos=12/1000000
           el #cell-11-1 role=gridcell -270,273 139x22 pos=2/7
             text "Grace Hopper" -266,276 88x16
           el -131,273 1x22
@@ -340,7 +340,7 @@ el 0,0 560x240
           el #cell-11-0 role=gridcell 66,273 63x22 pos=1/7
             text "12" 111,276 14x16
           el 129,273 1x22
-        el #row-12 role=row -392,295 1022x22 pos=13/1000000
+        el #row-12 role=row -392,295 1032x22 pos=13/1000000
           el #cell-12-1 role=gridcell -270,295 139x22 pos=2/7
             text "Linus Hopper" -266,298 84x16
           el -131,295 1x22

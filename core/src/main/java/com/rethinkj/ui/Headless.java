@@ -42,6 +42,7 @@ public final class Headless {
     El.scaleText(root, scale);
     Flex.layout(root, width, height);
     Overlays.layout(root, width, height);
+    El.measureScrolls(root);
     float far = Float.POSITIVE_INFINITY;
     fillRows(root, 0, 0, -far, far, width, height, scale);
     Overlays.place(root, width, height);
