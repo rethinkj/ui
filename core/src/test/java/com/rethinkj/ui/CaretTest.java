@@ -108,6 +108,25 @@ class CaretTest {
   }
 
   @Test
+  void theCaretOfAnEditOfTheAppFollowsItsLineBreaksAndLimit() {
+    App<Model> app = area("xy", f -> f);
+    app.edit(field(app), 1, 1, "a\r\nb", 4); // before the b
+    app.frame();
+    assertEquals("xa\n|by", show(app), "the carriage return is gone");
+    app.edit(field(app), 4, 4, "\r\n", 6); // after the line break
+    app.frame();
+    assertEquals("xa\nb\n|y", show(app));
+
+    app = area("xy", f -> f.maxLength(4));
+    app.edit(field(app), 1, 1, "abc", 4); // after the c, which the limit cuts
+    app.frame();
+    assertEquals("xab|y", show(app));
+    app.edit(field(app), 0, 0, "z", 5); // at the end
+    app.frame();
+    assertEquals("xaby|", show(app), "nothing fits, and the caret is at the end, as asked");
+  }
+
+  @Test
   void aHandlerEditsTheFieldOfTheTreeItRunsIn() {
     List<App<Model>> apps = new ArrayList<>();
     App<Model> app = Areas.start(

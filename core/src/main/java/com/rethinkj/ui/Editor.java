@@ -365,7 +365,14 @@ final class Editor {
     composition = "";
     from = Math.clamp(from, 0, text.length());
     to = Math.clamp(to, from, text.length());
-    inserted = fit(fitLines(inserted), from, to);
+    String fitted = fit(fitLines(inserted), from, to);
+    if (newCaret > from) { // where the app put it, moved as the line breaks and the limit moved it
+      int offset = newCaret - from;
+      newCaret = offset <= inserted.length()
+          ? from + Math.min(fitIndex(inserted, offset), fitted.length())
+          : newCaret - inserted.length() + fitted.length();
+    }
+    inserted = fitted;
     int length = text.length() - (to - from) + inserted.length();
     newCaret = Math.clamp(newCaret, 0, length);
     run = null;
@@ -782,6 +789,18 @@ final class Editor {
   }
 
   /**
+   * Where {@code index} of {@code text} goes in what {@link #fitLines} makes of it, which turns a
+   * carriage return with its line feed into one character; between the two is after it.
+   */
+  private static int fitIndex(String text, int index) {
+    int pairs = 0;
+    for (int i = text.indexOf("\r\n"); i >= 0 && i + 1 < index; i = text.indexOf("\r\n", i + 2)) {
+      pairs++;
+    }
+    return index - pairs;
+  }
+
+  /**
    * Shows the composition of an input method in place of the selection, without changing the
    * string; empty text ends it.
    *
@@ -793,7 +812,9 @@ final class Editor {
       return false;
     }
     composition = fitLines(composing);
-    compositionCursor = cursor < 0 ? composition.length() : Math.min(cursor, composition.length());
+    compositionCursor = cursor < 0
+        ? composition.length()
+        : Math.min(fitIndex(composing, cursor), composition.length());
     run = null;
     changed = true;
     reveal = true;

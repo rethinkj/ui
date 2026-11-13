@@ -486,6 +486,16 @@ class TextAreaTest {
   }
 
   @Test
+  void theCursorOfACompositionFollowsItsLineBreaks() {
+    App<Model> app = focused("");
+    app.textComposition("a\r\nb", 3); // before the b
+    app.frame();
+    App.InputArea area = app.inputArea();
+    assertEquals(10 + 4 + 18, area.y(), "on the second row");
+    assertEquals(4, area.cursor(), "before the b, as the carriage return is gone");
+  }
+
+  @Test
   void graphemesAndFallbackFontsWorkOnEveryLine() {
     App<Model> app = focused(
         "é\n👍🏽\nשלום x",
