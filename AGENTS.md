@@ -269,6 +269,8 @@ mvn -q -pl examples -am compile exec:exec
 
 It is the switch of rune's README in a frameless window with a title bar of its own, built from the kit's `toggle` and `label` in `Theme.DARK`: drag the bar to move the window, use its buttons, press the switch or its text, or Tab to it and press Space; the lamp above it shows the state. The example runs in a JVM of its own, with the JDK that runs Maven and `--enable-native-access=ALL-UNNAMED`. With `-Dargs="--script <file> --out <folder>"` it runs a script instead of opening the window, with paths relative to the folder Maven was started in. `LightSwitchTest` passes `examples/src/test/resources/scripts/light-switch.txt` to the example's `main` and compares the snaps with `examples/src/test/resources/golden`; `mvn -pl examples -am test -Dgolden.update=true` rewrites them, and core's and kit's stored images too.
 
+`-Dexample=<class>` starts another example of the package instead, as in `mvn -q -pl examples -am compile exec:exec -Dexample=ConnectionDialog`: the dialog in which a database tool asks where to connect, the kit's components in a small form with a switch between the dark and the light theme. `ConnectionDialogTest` runs it on `connection-dialog.txt` in the same way.
+
 ## Kit
 
 `kit` (`com.rethinkj.ui.kit`) holds components built on `core`: `Label.label`, `Button.button`, `Toggle.toggle`, `Checkbox.checkbox` and `TextField.textField`, one file each. A component is a static function that returns an `El`, which the caller may chain further, as in `.key("save")`; there is no base class.
