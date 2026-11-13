@@ -342,13 +342,13 @@ public final class Scene {
     scene.windowWidth = root.x() + root.width();
     scene.windowHeight = root.y() + root.height();
     atlas.nextFrame();
-    scene.add(root, 0, 0, 1, 0, Float.NaN, false);
+    scene.add(root, 0, 0, 1, 0, Float.NaN, false, null);
     for (El overlay : root.shownOverlays()) {
       if (overlay.scrim() >>> 24 != 0 && overlay.opacity() > 0) {
         scene.rect(-NO_CLIP, -NO_CLIP, 2 * NO_CLIP, 2 * NO_CLIP, 0, 0, overlay.scrim(), 0,
             overlay.opacity(), 0);
       }
-      scene.add(overlay, 0, 0, 1, 0, Float.NaN, false);
+      scene.add(overlay, 0, 0, 1, 0, Float.NaN, false, null);
     }
     return scene;
   }
@@ -356,9 +356,11 @@ public final class Scene {
   /**
    * @param behind the luminance of what lies behind the element, NaN where it is not known
    * @param moving whether a spring moves an ancestor's box, so that this one is not snapped
+   * @param box the parent's content box as layout put it and as drawn, null for a parent
+   *     without a border, whose content box needs no mapping of its own
    */
   private void add(El el, float parentX, float parentY, float parentOpacity, int clip,
-      float behind, boolean moving) {
+      float behind, boolean moving, ContentBox box) {
     // shortcut: opacity is multiplied into each instance, so overlapping descendants of a
     // translucent element show through each other; true group opacity needs an off-screen layer.
     float opacity = parentOpacity * el.opacity();
@@ -369,10 +371,16 @@ public final class Scene {
     float y = parentY + el.y();
     boolean free = moving || el.isMoving();
     // The box as drawn: its edges on whole physical pixels, unless a spring moves it.
-    float left = free ? x : edge(x);
-    float top = free ? y : edge(y);
-    float width = free ? el.width() : size(x, el.width());
-    float height = free ? el.height() : size(y, el.height());
+    float left = x;
+    float top = y;
+    float width = el.width();
+    float height = el.height();
+    if (!free) {
+      left = edgeX(x, box);
+      top = edgeY(y, box);
+      width = width > 0 && width <= HAIRLINE ? stroke(width) : edgeX(x + width, box) - left;
+      height = height > 0 && height <= HAIRLINE ? stroke(height) : edgeY(y + height, box) - top;
+    }
     float clipX = clipGet(clip, X);
     float clipY = clipGet(clip, Y);
     float clipRight = clipX + clipGet(clip, WIDTH);
@@ -409,8 +417,9 @@ public final class Scene {
       if (el.text() != null) {
         text(el, left, top, opacity, inner, content);
       }
+      ContentBox own = free ? null : contentBox(el, x, y, left, top, width, height);
       for (El child : el.children()) {
-        add(child, x, y, opacity, inner, content, free);
+        add(child, x, y, opacity, inner, content, free, own);
       }
       if (el.scrollbars() != null) {
         thumb(el.horizontalBar(), false, el.scrollbars().radius(), opacity, inner, free);
@@ -449,11 +458,51 @@ public final class Scene {
   }
 
   /**
-   * The size of a box from {@code start} along one axis: from edge to edge, or, for a hairline of
-   * at most {@link #HAIRLINE} logical pixels, as wide as a border of that width.
+   * The content box of an element with a border, as layout put it and as drawn: within its box
+   * snapped to whole pixels, inside its borders of {@link #stroke} widths. Children whose edges lie
+   * on it are snapped onto it, so that what fills a bordered box meets its border with no gap.
    */
-  private float size(float start, float size) {
-    return size > 0 && size <= HAIRLINE ? stroke(size) : edge(start + size) - edge(start);
+  private record ContentBox(float left, float top, float right, float bottom, float snappedLeft,
+      float snappedTop, float snappedRight, float snappedBottom) {}
+
+  private ContentBox contentBox(El el, float x, float y, float left, float top, float width,
+      float height) {
+    Style s = el.style();
+    float l = px(s.borderLeft);
+    float t = px(s.borderTop);
+    float r = px(s.borderRight);
+    float b = px(s.borderBottom);
+    if (Float.isNaN(scale) || l == 0 && t == 0 && r == 0 && b == 0) {
+      return null;
+    }
+    return new ContentBox(x + l, y + t, x + el.width() - r, y + el.height() - b, left + stroke(l),
+        top + stroke(t), left + width - stroke(r), top + height - stroke(b));
+  }
+
+  /** {@link #edge} across, onto the parent's drawn content box where it lies on it. */
+  private float edgeX(float v, ContentBox box) {
+    if (box != null) {
+      if (Math.abs(v - box.left) < 1e-3f) {
+        return box.snappedLeft;
+      }
+      if (Math.abs(v - box.right) < 1e-3f) {
+        return box.snappedRight;
+      }
+    }
+    return edge(v);
+  }
+
+  /** {@link #edge} from top to bottom, onto the parent's drawn content box where it lies on it. */
+  private float edgeY(float v, ContentBox box) {
+    if (box != null) {
+      if (Math.abs(v - box.top) < 1e-3f) {
+        return box.snappedTop;
+      }
+      if (Math.abs(v - box.bottom) < 1e-3f) {
+        return box.snappedBottom;
+      }
+    }
+    return edge(v);
   }
 
   /**
