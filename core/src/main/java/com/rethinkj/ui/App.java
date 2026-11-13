@@ -83,8 +83,9 @@ import java.util.function.Predicate;
  * <p>The app also follows the pointer ({@link #pointerMove}, {@link #pointerLeave}): it knows the
  * element under it ({@link #hovered}), the one a press is on ({@link #pressed}) and the {@link
  * #cursor} they ask for. Elements change how they look in these states with {@link
- * El#whenHovered}, {@link El#whenFocused} and {@link El#whenPressed}: the view says how, and the
- * app applies the looks of the moment to each tree the view builds, before layout. A state that
+ * El#whenHovered}, {@link El#whenFocused}, {@link El#whenFocusWithin} and {@link El#whenPressed}:
+ * the view says how, and the app applies the looks of the moment to each tree the view builds,
+ * before layout. A state that
  * changes for elements without such a look rebuilds nothing. A press that moves on an element
  * with {@link El#onDrag} becomes a drag, during which that element counts as the one under the
  * pointer; so does a text field while a press in it selects. A press that lands in a field selects
@@ -186,7 +187,7 @@ public final class App<S> {
   private float pointerY;
   private List<El> under = List.of(); // the elements under the pointer in the current tree
   private El marked; // the one of them a press would go to, marked for the dump
-  private Looks shown = new Looks(List.of(), List.of(), null, false, null, 0); // of current tree
+  private Looks shown = new Looks(List.of(), List.of(), null, false, List.of(), null, 0); // of tree
   private El focused; // in the current tree
   private Object focusId; // its identity, to find it in the next tree
   private boolean ring; // the keyboard or the app moved the focus: draw the ring
@@ -2015,7 +2016,7 @@ public final class App<S> {
    * counts the {@link El#onHoverFor} handlers run, so that one that ran builds the view again.
    */
   private record Looks(List<Object> hovered, List<Object> rested, Object focused,
-      boolean focusRested, Object pressed, int hoversRun) {
+      boolean focusRested, List<Object> within, Object pressed, int hoversRun) {
 
     /** These looks without those of elements in the rows of a list, which were built anew. */
     Looks without(Object list) {
@@ -2023,11 +2024,14 @@ public final class App<S> {
       kept.removeIf(id -> Animator.isBelow(id, list));
       List<Object> keptRested = new ArrayList<>(rested);
       keptRested.removeIf(id -> Animator.isBelow(id, list));
+      List<Object> keptWithin = new ArrayList<>(within);
+      keptWithin.removeIf(id -> Animator.isBelow(id, list));
       return new Looks(
           kept,
           keptRested,
           Animator.isBelow(focused, list) ? null : focused,
           focusRested,
+          keptWithin,
           Animator.isBelow(pressed, list) ? null : pressed,
           hoversRun);
     }
@@ -2118,6 +2122,7 @@ public final class App<S> {
     List<Object> hovered = new ArrayList<>(shown.hovered());
     List<Object> rested = new ArrayList<>(shown.rested());
     Object focus = shown.focused();
+    List<Object> within = new ArrayList<>(shown.within());
     Object press = shown.pressed();
     for (int i = 0; i < list.children().size(); i++) {
       El row = list.children().get(i);
@@ -2142,6 +2147,13 @@ public final class App<S> {
           focus = focusId;
           took = true;
         }
+        for (Object id : Animator.lineage(focusId)) {
+          if (Animator.isBelow(id, listId) && look(Animator.find(row, rowId, id),
+              El::focusWithinLook, "whenFocusWithin")) {
+            within.add(id);
+            took = true;
+          }
+        }
       }
       Object pressId = pressedId();
       if (Animator.isBelow(pressId, listId)
@@ -2153,7 +2165,8 @@ public final class App<S> {
         list.layoutRow(i, scale, systemFonts); // a look may change the layout
       }
     }
-    shown = new Looks(hovered, rested, focus, shown.focusRested(), press, shown.hoversRun());
+    shown = new Looks(hovered, rested, focus, shown.focusRested(), within, press,
+        shown.hoversRun());
   }
 
   /**
@@ -2171,6 +2184,15 @@ public final class App<S> {
     }
     List<Object> rested = rest(path, ids);
     El focus = focusId == null ? null : animator.element(focusId);
+    List<Object> within = new ArrayList<>();
+    if (focusId != null) {
+      for (Object id : Animator.lineage(focusId)) {
+        El el = animator.element(id);
+        if (el != null && el.focusWithinLook() != null) {
+          within.add(id);
+        }
+      }
+    }
     Object pressId = pressedId();
     El press = pressId == null ? null : animator.element(pressId);
     return new Looks(
@@ -2178,6 +2200,7 @@ public final class App<S> {
         rested,
         focus != null && focus.focusLook() != null ? focusId : null,
         focusRested(focus),
+        within,
         press != null && press.pressLook() != null ? pressId : null,
         hoversRun);
   }
@@ -2377,10 +2400,18 @@ public final class App<S> {
     if (focusRested) {
       delayedLook(focus, focus.focusRestLook(), "whenFocusVisibleFor");
     }
+    List<Object> within = new ArrayList<>();
+    if (focusId != null) {
+      for (Object id : Animator.lineage(focusId)) {
+        if (look(Animator.find(tree, id), El::focusWithinLook, "whenFocusWithin")) {
+          within.add(id);
+        }
+      }
+    }
     Object pressId = pressedId();
     boolean pressLook =
         pressId != null && look(Animator.find(tree, pressId), El::pressLook, "whenPressed");
-    return new Looks(hovered, rested, focusLook ? focusId : null, focusRested,
+    return new Looks(hovered, rested, focusLook ? focusId : null, focusRested, within,
         pressLook ? pressId : null, hoversRun);
   }
 

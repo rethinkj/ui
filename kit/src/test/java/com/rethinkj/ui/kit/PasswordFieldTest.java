@@ -3,6 +3,7 @@ package com.rethinkj.ui.kit;
 import static com.rethinkj.ui.El.col;
 import static com.rethinkj.ui.kit.TextField.passwordField;
 import static com.rethinkj.ui.kit.TextField.revealable;
+import static com.rethinkj.ui.kit.Workbench.find;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -78,6 +79,12 @@ class PasswordFieldTest {
 
     run(app, "key Tab\nframe\nkey Space");
     assertEquals("Show password", app.focused().label(), "Tab reached the button, Space hid");
+    run(app, "advance 1"); // past the frame's spring
+    assertEquals(T.accent().color(), find(app, "pw").borderColor(),
+        "the field's frame keeps its focused look while its button has the focus");
+    app.focus(null);
+    run(app, "advance 1");
+    assertEquals(T.border().strong(), find(app, "pw").borderColor(), "and loses it after");
     assertFalse(app.state().revealed);
     assertTrue(line(app, "#pw").contains("password"), line(app, "#pw"));
   }

@@ -76,6 +76,7 @@ public final class El {
   private Consumer<El> hoverLook;
   private Consumer<El> focusLook;
   private Object autofocus; // see #autofocus(Object)
+  private Consumer<El> focusWithinLook; // see #whenFocusWithin
   private Consumer<El> pressLook;
   private Cursor cursor;
   private boolean hovered;
@@ -1150,7 +1151,8 @@ public final class El {
    * flow and {@link #style}). It must leave the children, the key, the handlers and {@link
    * #focusable} as the view built them; the frame in which it changes them throws an {@link
    * IllegalStateException}. When more than one look applies, the hovered one goes first, then
-   * {@link #whenFocused} and then {@link #whenPressed}, so that the last one wins.
+   * {@link #whenFocused}, {@link #whenFocusWithin} and then {@link #whenPressed}, so that the last
+   * one wins.
    *
    * <p>Only elements with a look cause a rebuild when the pointer reaches or leaves them: moving
    * the pointer over plain elements rebuilds nothing.
@@ -1171,6 +1173,20 @@ public final class El {
    */
   public El whenFocused(Consumer<El> look) {
     this.focusLook = look;
+    return this;
+  }
+
+  /**
+   * Changes how this element looks while it or an element inside it has the keyboard focus, as
+   * CSS's {@code :focus-within} does: a field's frame with a button inside keeps its focused look
+   * while the button has the focus, and a row can stand out while one of its controls has it. It
+   * comes after {@link #whenFocused} and before {@link #whenPressed}. See {@link #whenHovered} for
+   * what a look may change.
+   *
+   * @param look changes the element, or null for none
+   */
+  public El whenFocusWithin(Consumer<El> look) {
+    this.focusWithinLook = look;
     return this;
   }
 
@@ -1757,6 +1773,10 @@ public final class El {
 
   Consumer<El> focusLook() {
     return focusLook;
+  }
+
+  Consumer<El> focusWithinLook() {
+    return focusWithinLook;
   }
 
   /** The key of {@link #autofocus(Object)}, or null. */
@@ -2374,8 +2394,8 @@ public final class El {
   }
 
   /**
-   * For {@link App}: runs a look of {@link #whenHovered}, {@link #whenFocused} or {@link
-   * #whenPressed}, named by {@code name}, and checks that it left alone what a look must not
+   * For {@link App}: runs a look of {@link #whenHovered}, {@link #whenFocused}, {@link
+   * #whenFocusWithin} or {@link #whenPressed}, named by {@code name}, and checks that it left alone what a look must not
    * change.
    */
   void apply(Consumer<El> look, String name) {

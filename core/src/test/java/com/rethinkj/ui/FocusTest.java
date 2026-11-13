@@ -426,6 +426,40 @@ class FocusTest {
     assertNull(app.focused());
   }
 
+  @Test
+  void aFocusWithinLookShowsWhileTheFocusIsOnTheElementOrInsideIt() {
+    App<Object> app = start(new App<>(new Object(), s -> col().children(
+        row().key("frame").fill(0xFF000000).whenFocusWithin(e -> e.fill(0xFFFFFFFF)).children(
+            el().key("field").focusable().size(40, 10),
+            el().key("button").focusable().size(10, 10)),
+        el().key("outside").focusable().size(40, 10))), 100, 100);
+    assertEquals(0xFF000000, find(app.tree(), "frame").fill());
+    tab(app);
+    assertEquals(0xFFFFFFFF, find(app.tree(), "frame").fill(), "on the field inside");
+    tab(app);
+    assertEquals(0xFFFFFFFF, find(app.tree(), "frame").fill(), "on the button inside");
+    tab(app);
+    assertEquals(0xFF000000, find(app.tree(), "frame").fill(), "the focus left it");
+    app.focus(null);
+    app.frame();
+    press(app, 5, 5);
+    assertEquals(0xFFFFFFFF, find(app.tree(), "frame").fill(), "a press focuses too");
+  }
+
+  @Test
+  void aFocusWithinLookReachesTheRowsOfAListAndTheListAroundThem() {
+    App<Object> app = start(new App<>(new Object(), s -> col().key("list").size(100, 40)
+        .whenFocusWithin(e -> e.fill(0xFF0000FF))
+        .rows(100, 20, i -> row().whenFocusWithin(e -> e.fill(0xFFFF0000))
+            .child(el().key("cell").focusable().size(20, 20)))), 100, 40);
+    tab(app);
+    tab(app);
+    El list = app.tree();
+    assertEquals(0xFF0000FF, list.fill(), "the list holds the focus");
+    assertEquals(0, list.children().get(0).fill(), "not the first row");
+    assertEquals(0xFFFF0000, list.children().get(1).fill(), "the second row");
+  }
+
   // Keys
 
   @Test

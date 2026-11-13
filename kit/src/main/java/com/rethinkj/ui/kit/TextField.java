@@ -93,7 +93,8 @@ public final class TextField {
    * <p>The button ({@code role=button}, {@code label="Show password"} or {@code "Hide password"},
    * the eye or the crossed eye) leaves the focus in the field when it is pressed ({@link
    * El#keepFocus}), so typing goes on where it was. Tab reaches it after the field, and
-   * Enter and Space press it there. It is disabled with the field and without a handler; a
+   * Enter and Space press it there; meanwhile the field's frame keeps the accent border of the
+   * focus ({@link El#whenFocusWithin}), as the button is part of it. It is disabled with the field and without a handler; a
    * read-only field shows its password too.
    *
    * @param field a field of {@link #textField} or {@link #passwordField}
@@ -131,6 +132,9 @@ public final class TextField {
     }
     El box = el().children(field, button);
     box.style().width = Len.FIT_CONTENT;
+    if (field.onEdit() != null) { // the frame keeps its focused look while the button has the focus
+      box.whenFocusWithin(e -> field.border(t.size().stroke(), t.accent().color()));
+    }
     return box;
   }
 }
