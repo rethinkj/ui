@@ -54,8 +54,11 @@ import com.rethinkj.ui.window.Window;
 import com.rethinkj.ui.window.WindowIcon;
 import com.rethinkj.ui.window.WindowLoop;
 import com.rethinkj.ui.window.Windows;
+import java.io.File;
 import java.io.IOException;
 import java.net.ConnectException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -232,6 +235,7 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
   Node dropping; // the table the dialog asks about, or null while it is closed
   String confirm = ""; // the name typed into the dialog
   Window window; // the first window, for the taskbar; null under a script
+  Path placementFile; // where main keeps the first window's placement; null under a script
   final MenuBar.State bar = new MenuBar.State();
 
   Workbench() {
@@ -598,8 +602,49 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
     return group.window() == null ? app : (App<Workbench>) group.window().app();
   }
 
+  /**
+   * Where the first window's placement is kept between runs: a line in the user's settings,
+   * {@code %APPDATA%\rethinkj-ui-examples\Workbench\window.txt} on Windows and {@code
+   * $XDG_CONFIG_HOME/rethinkj-ui-examples/Workbench/window.txt} ({@code ~/.config}) elsewhere.
+   * Which file is the app's choice; the library only reads and writes the line.
+   */
+  static Path placementFile() {
+    String appData = System.getenv("APPDATA");
+    String config = System.getenv("XDG_CONFIG_HOME");
+    Path base = File.separatorChar == '\\' && appData != null ? Path.of(appData)
+        : config != null && !config.isEmpty() ? Path.of(config)
+        : Path.of(System.getProperty("user.home"), ".config");
+    return base.resolve("rethinkj-ui-examples").resolve("Workbench").resolve("window.txt");
+  }
+
+  /** The placement kept last, or null the first time or when the line cannot be read. */
+  static Window.Placement savedPlacement(Path file) {
+    try {
+      return Window.Placement.parse(Files.readString(file));
+    } catch (IOException | IllegalArgumentException e) {
+      return null;
+    }
+  }
+
+  /**
+   * Keeps where the first window is, for the next start, while it is open; only when {@link
+   * #main} opened it, never under a script or a test.
+   */
+  void keepPlacement() {
+    if (placementFile == null || window == null || !window.isOpen()) {
+      return;
+    }
+    try {
+      Files.createDirectories(placementFile.getParent());
+      Files.writeString(placementFile, window.placement() + "\n");
+    } catch (IOException e) {
+      System.err.println("Workbench: the window's placement cannot be kept: " + e.getMessage());
+    }
+  }
+
   /** Closes every window, which ends the app, and gives up the questions on their way. */
   void quit() {
+    keepPlacement();
     for (Opened o : tables()) {
       if (o.asking != null) {
         o.asking.cancel();
@@ -698,10 +743,16 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
     app.textRendering(TextRendering.platform());
     Window.Options options = Identity.options(Workbench.class, "Workbench", MARK,
         Symbol.DATABASE).frameless().minimumSize(640, 400);
+    s.placementFile = placementFile();
+    Window.Placement was = savedPlacement(s.placementFile);
+    if (was != null) {
+      options.placement(was); // where the first window was when the app last ended
+    }
     try (Window window = Window.open("Workbench", 1200, 720, options);
         GpuPresenter presenter = new GpuPresenter(window)) {
       s.window = window;
       new WindowLoop(window, app, presenter).run();
+      s.keepPlacement(); // the first window alone ended the loop and is still open
     }
   }
 
