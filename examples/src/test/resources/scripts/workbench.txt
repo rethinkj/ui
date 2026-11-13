@@ -92,6 +92,7 @@ frame                                      # the tooltip appears and fades in
 advance 0.25
 frame
 snap workbench-tooltip                     # a gap from the window's edge
+leave                                      # the close button was red under the pointer
 
 press #query-localhost/shop/public/orders   # the statement of orders, above its rows
 key End control
