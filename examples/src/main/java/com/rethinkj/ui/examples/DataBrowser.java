@@ -385,7 +385,7 @@ public final class DataBrowser {
       return;
     }
     app.textRendering(TextRendering.platform());
-    Window.Options options = Identity.options(DataBrowser.class, "Orders", 0xFF2563EB, Symbol.TABLE)
+    Window.Options options = Identity.options(DataBrowser.class, "Orders", Identity.BLUE, Symbol.TABLE)
         .frameless().minimumSize(480, 320);
     try (Window window = Window.open("Orders", 1000, 600, options);
         GpuPresenter presenter = new GpuPresenter(window)) {

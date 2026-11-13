@@ -26,7 +26,7 @@ import java.io.IOException;
 public final class LightSwitch {
 
   private static final Theme THEME = Theme.DARK;
-  private static final int LAMP = 0xFFFACC15;
+  private static final int LAMP = Identity.YELLOW;
 
   boolean on;
   App<LightSwitch> app; // whose window says whether it is maximized
@@ -40,7 +40,7 @@ public final class LightSwitch {
       return;
     }
     app.textRendering(TextRendering.platform());
-    Window.Options options = Identity.options(LightSwitch.class, "Lights", 0xFFD97706, Symbol.FLASH)
+    Window.Options options = Identity.options(LightSwitch.class, "Lights", Identity.AMBER, Symbol.FLASH)
         .frameless().minimumSize(240, 160);
     try (Window window = Window.open("Lights", 360, 240, options);
         GpuPresenter presenter = new GpuPresenter(window)) {

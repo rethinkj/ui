@@ -101,7 +101,7 @@ public final class ConnectionDialog {
     }
     app.textRendering(TextRendering.platform());
     Window.Options options = Identity.options(ConnectionDialog.class, "New connection",
-        0xFF16A34A, Symbol.PLUG_CONNECTED).frameless().minimumSize(400, 412);
+        Identity.GREEN, Symbol.PLUG_CONNECTED).frameless().minimumSize(400, 412);
     try (Window window = Window.open("New connection", 440, 432, options);
         GpuPresenter presenter = new GpuPresenter(window)) {
       WindowLoop.run(window, app, presenter);

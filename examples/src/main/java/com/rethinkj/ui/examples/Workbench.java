@@ -237,7 +237,7 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
   private static final LocalDateTime START = LocalDateTime.of(2026, 1, 5, 8, 0);
   private static final DateTimeFormatter TIME = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
   static final Position SIDEBAR = Position.first(260);
-  static final int MARK = 0xFF0F766E; // the app's colour, in its icon
+  static final int MARK = Identity.TEAL; // the app's colour, in its icon
   static final float TAB_WIDTH = 760; // a tab's window
   static final float TAB_HEIGHT = 480;
   static final double MESSAGE_SECONDS = 5; // how long a message stays in the status line

@@ -78,7 +78,7 @@ public final class Notes {
       return;
     }
     notes.app.textRendering(TextRendering.platform());
-    Window.Options options = Identity.options(Notes.class, "Notes", 0xFF7C3AED, Symbol.EDIT);
+    Window.Options options = Identity.options(Notes.class, "Notes", Identity.VIOLET, Symbol.EDIT);
     try (Window window = Window.open("Notes", 640, 300, options);
         GpuPresenter presenter = new GpuPresenter(window)) {
       WindowLoop loop = new WindowLoop(window, notes.app, presenter);
@@ -193,7 +193,7 @@ public final class Notes {
     noteApp.textRendering(app.textRendering());
     float scale = app.windows().of(app).screenScale(); // the new window's, unless it differs
     note.window = app.windows().open(note.title, NOTE_WIDTH, NOTE_HEIGHT,
-        Identity.options(Notes.class, "Notes", 0xFF7C3AED, Symbol.EDIT)
+        Identity.options(Notes.class, "Notes", Identity.VIOLET, Symbol.EDIT)
             .position(Math.round(d.screenX() - grabX * scale),
                 Math.round(d.screenY() - grabY * scale))
             .underPointer(),
