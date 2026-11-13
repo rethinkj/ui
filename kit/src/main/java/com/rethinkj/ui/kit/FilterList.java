@@ -20,6 +20,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.stream.IntStream;
 
 /**
  * A list of entries filtered by a text that is typed, the part that a {@link ComboBox} and a
@@ -136,7 +137,10 @@ public final class FilterList {
     // What was filtered: of which list, for which text, the entries matched in no order.
     List<Entry> source;
     String filtered;
-    int[] matched;
+    int[] matched; // the indexes of the entries the text matched, ascending
+    String[] lowered; // the source's texts, as a query without capitals is compared with them
+    int[] groupOf; // the source's group of each entry, from 1, or 0 for none
+    boolean grouped;
     Shown shown;
     // Of the app's work: the text asked for, the answer and the text it answered.
     Work work;
@@ -293,36 +297,49 @@ public final class FilterList {
       throw new IllegalArgumentException("A list holds fewer than " + (1 << INDEX_BITS)
           + " entries, not " + all.size());
     }
-    // The groups' order, from their first entries.
-    Map<String, Integer> groups = new HashMap<>();
-    boolean grouped = false;
-    for (Entry e : all) {
-      if (e.group() != null) {
-        groups.putIfAbsent(e.group(), groups.size());
-        grouped = true;
+    if (all != s.source) {
+      // What the list's texts are compared as, and the index of each entry's group from 1, in
+      // the order of the groups' first entries: kept while the list is the same.
+      s.lowered = new String[all.size()];
+      s.groupOf = new int[all.size()];
+      Map<String, Integer> groups = new HashMap<>();
+      for (int i = 0; i < s.lowered.length; i++) {
+        Entry e = all.get(i);
+        s.lowered[i] = Fuzzy.lowered(e.text());
+        if (e.group() != null) {
+          s.groupOf[i] = groups.computeIfAbsent(e.group(), g -> groups.size() + 1);
+        }
       }
+      s.grouped = !groups.isEmpty();
+      s.matched = null;
     }
     Fuzzy.Matcher m = Fuzzy.matcher(query);
+    // A text that only grows matches among what the shorter one matched.
     int[] candidates = all == s.source && s.matched != null && !s.filtered.isEmpty()
         && query.startsWith(s.filtered) ? s.matched : null;
     int n = candidates == null ? all.size() : candidates.length;
     long[] keys = new long[n];
-    int count = 0;
-    for (int c = 0; c < n; c++) {
-      int i = candidates == null ? c : candidates[c];
-      Entry e = all.get(i);
-      int score = m.score(e.text());
-      if (score == Fuzzy.NO_MATCH) {
-        continue;
+    int[] matched = new int[n];
+    int count;
+    if (n < PARALLEL) {
+      count = score(s, all, query, candidates, 0, n, keys, matched);
+    } else {
+      // Many entries: in parts on the common pool's threads, each into its own range.
+      int parts = Math.min(PARTS, n / (PARALLEL / 4));
+      int[] counts = new int[parts];
+      IntStream.range(0, parts).parallel().forEach(p -> counts[p] = score(s, all, query,
+          candidates, (int) ((long) n * p / parts), (int) ((long) n * (p + 1) / parts), keys,
+          matched));
+      count = 0;
+      for (int p = 0; p < parts; p++) { // closes the gaps between the parts
+        int from = (int) ((long) n * p / parts);
+        System.arraycopy(keys, from, keys, count, counts[p]);
+        System.arraycopy(matched, from, matched, count, counts[p]);
+        count += counts[p];
       }
-      long group = e.group() == null ? 0 : groups.get(e.group()) + 1;
-      long rank = m.isEmpty() ? 0
-          : (long) (SCORE_LIMIT - Math.clamp(score, -SCORE_LIMIT + 1, SCORE_LIMIT - 1)) << 10
-              | Math.min(e.text().length(), 1023);
-      keys[count++] = group << 47 | rank << INDEX_BITS | i;
     }
-    if (!m.isEmpty() || grouped) {
-      Arrays.sort(keys, 0, count);
+    if ((!m.isEmpty() || s.grouped) && count > 1) {
+      sort(keys, count);
     }
     int[] order = new int[count];
     for (int k = 0; k < count; k++) {
@@ -330,9 +347,73 @@ public final class FilterList {
     }
     s.source = all;
     s.filtered = query;
-    s.matched = m.isEmpty() ? null : order;
+    s.matched = m.isEmpty() ? null : Arrays.copyOf(matched, count);
     return rows(all, order, query, false, null);
   }
+
+  /** Entries filtered at once on the app's thread; from this many, in parts on others too. */
+  static final int PARALLEL = 4_000;
+  private static final int PARTS = 16;
+
+  /**
+   * Scores the entries from {@code from} to {@code to} of the candidates, or of all for null, and
+   * writes the sort key and index of each that matches from {@code from} on; returns how many.
+   */
+  private static int score(State s, List<Entry> all, String query, int[] candidates, int from,
+      int to, long[] keys, int[] matched) {
+    Fuzzy.Matcher m = Fuzzy.matcher(query); // one per thread
+    int count = from;
+    for (int c = from; c < to; c++) {
+      int i = candidates == null ? c : candidates[c];
+      Entry e = all.get(i);
+      int score = m.score(e.text(), s.lowered[i]);
+      if (score == Fuzzy.NO_MATCH) {
+        continue;
+      }
+      long rank = m.isEmpty() ? 0
+          : (long) (SCORE_LIMIT - Math.clamp(score, -SCORE_LIMIT + 1, SCORE_LIMIT - 1)) << 10
+              | Math.min(e.text().length(), 1023);
+      keys[count] = (long) s.groupOf[i] << 47 | rank << INDEX_BITS | i;
+      matched[count++] = i;
+    }
+    return count - from;
+  }
+
+  /**
+   * Sorts the keys by their bits above the index, keeping the order of keys that are equal there,
+   * which is that of their indexes: a radix sort, three passes of counting, which takes a fraction
+   * of {@link Arrays#sort}'s time for a hundred thousand keys.
+   */
+  private static void sort(long[] keys, int count) {
+    long[] from = keys;
+    long[] to = new long[count];
+    int[] counts = new int[1 << DIGIT];
+    for (int shift = INDEX_BITS; shift < 64; shift += DIGIT) {
+      Arrays.fill(counts, 0);
+      for (int k = 0; k < count; k++) {
+        counts[(int) (from[k] >>> shift) & (1 << DIGIT) - 1]++;
+      }
+      if (counts[(int) (from[0] >>> shift) & (1 << DIGIT) - 1] == count) {
+        continue; // all alike in this digit
+      }
+      for (int d = 0, sum = 0; d < counts.length; d++) {
+        int c = counts[d];
+        counts[d] = sum;
+        sum += c;
+      }
+      for (int k = 0; k < count; k++) {
+        to[counts[(int) (from[k] >>> shift) & (1 << DIGIT) - 1]++] = from[k];
+      }
+      long[] swap = from;
+      from = to;
+      to = swap;
+    }
+    if (from != keys) {
+      System.arraycopy(from, 0, keys, 0, count);
+    }
+  }
+
+  private static final int DIGIT = 15; // 21 + 3 * 15 > 63: three passes
 
   private static final int INDEX_BITS = 21; // up to two million entries
   private static final int SCORE_LIMIT = 1 << 15; // sixteen bits of score, ten of length
