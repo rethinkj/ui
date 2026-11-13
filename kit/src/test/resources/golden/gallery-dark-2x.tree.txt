@@ -620,6 +620,61 @@ el 0,0 140x40
       text "Rows" 25,12 33x16
     el role=radio label="Cells" 72,11 55x18 checked=false
       text "Cells" 84,12 31x16
+# combo box, rest
+el 0,0 140x40
+  el #c role=combobox label="shop" 10,8 120x24 expanded=false
+    text "shop" 19,12 82x16
+    text label="chevron_down" "\u{F2A2}" 105,12 16x16
+# combo box, hover
+el 0,0 140x40
+  el #c role=combobox label="shop" 10,8 120x24 expanded=false hovered
+    text "shop" 19,12 82x16
+    text label="chevron_down" "\u{F2A2}" 105,12 16x16
+# combo box, pressed
+el 0,0 140x40
+  el #c role=combobox label="shop" 10,8 120x24 expanded=false hovered focused
+    text "shop" 19,12 82x16
+    text label="chevron_down" "\u{F2A2}" 105,12 16x16
+# combo box, focused
+el 0,0 140x40
+  el #c role=combobox label="shop" 10,8 120x24 expanded=false focused
+    text "shop" 19,12 82x16
+    text label="chevron_down" "\u{F2A2}" 105,12 16x16
+# combo box, disabled
+el 0,0 140x40
+  el #c role=combobox label="shop" 10,8 120x24 disabled expanded=false
+    text "shop" 19,12 82x16
+    text label="chevron_down" "\u{F2A2}" 105,12 16x16
+# combo free, rest
+el 0,0 140x40
+  el #c role=combobox label="localhost" 10,8 120x24 expanded=false
+    text #field-0 role=textbox "localhost" 10,8 120x24
+    el role=button label="Open" 106,8 24x24
+      text label="chevron_down" "\u{F2A2}" 110,12 16x16
+# combo free, hover
+el 0,0 140x40
+  el #c role=combobox label="localhost" 10,8 120x24 expanded=false
+    text #field-0 role=textbox "localhost" 10,8 120x24 hovered
+    el role=button label="Open" 106,8 24x24
+      text label="chevron_down" "\u{F2A2}" 110,12 16x16
+# combo free, pressed
+el 0,0 140x40
+  el #c role=combobox label="localhost" 10,8 120x24 expanded=false
+    text #field-0 role=textbox "localhost" 10,8 120x24 hovered focused caret 8
+    el role=button label="Open" 106,8 24x24
+      text label="chevron_down" "\u{F2A2}" 110,12 16x16
+# combo free, focused
+el 0,0 140x40
+  el #c role=combobox label="localhost" 10,8 120x24 expanded=false
+    text #field-0 role=textbox "localhost" 10,8 120x24 focused caret 9
+    el role=button label="Open" 106,8 24x24
+      text label="chevron_down" "\u{F2A2}" 110,12 16x16
+# combo free, disabled
+el 0,0 140x40
+  el #c role=combobox label="localhost" 10,8 120x24 disabled expanded=false
+    text #field-0 role=textbox "localhost" 10,8 120x24 disabled
+    el role=button label="Open" 106,8 24x24
+      text label="chevron_down" "\u{F2A2}" 110,12 16x16
 # number, rest
 el 0,0 140x40
   el #c 20,8 100x24

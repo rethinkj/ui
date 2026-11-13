@@ -11,6 +11,10 @@ import com.rethinkj.ui.App;
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.Script;
 import com.rethinkj.ui.kit.Card;
+import com.rethinkj.ui.kit.DataGrid;
+import com.rethinkj.ui.kit.DataGrid.Column;
+import com.rethinkj.ui.kit.DataGrid.Filter;
+import com.rethinkj.ui.kit.GridChanges;
 import com.rethinkj.ui.kit.DataGrid.Mode;
 import com.rethinkj.ui.kit.DataGrid.Selection;
 import com.rethinkj.ui.kit.DataGrid.SortKey;
@@ -20,6 +24,8 @@ import com.rethinkj.ui.kit.Breadcrumb;
 import com.rethinkj.ui.kit.Menu;
 import com.rethinkj.ui.kit.Popover;
 import com.rethinkj.ui.kit.Toolbar;
+import com.rethinkj.ui.kit.ComboBox;
+import com.rethinkj.ui.kit.CommandPalette;
 import com.rethinkj.ui.kit.Select;
 import com.rethinkj.ui.kit.Split.Position;
 import com.rethinkj.ui.kit.Symbol;
@@ -71,7 +77,8 @@ public final class Showcase {
     BUTTONS("Buttons", "Buttons, toggles and checkboxes, at rest and in their states.",
         Symbol.CIRCLE),
     FIELDS("Text fields", "Fields in their states, and a form with selects.", Symbol.TEXT_T),
-    MENUS("Menus and overlays", "A dropdown, a context menu, tooltips and a dialog.",
+    MENUS("Menus and overlays",
+        "A dropdown, a context menu, tooltips, a dialog, combo boxes and the command palette.",
         Symbol.NAVIGATION),
     GRID("Data grid", "A result set: numbers, dates, NULLs, long text, two sort keys.",
         Symbol.TABLE),
@@ -134,6 +141,13 @@ public final class Showcase {
 
   // Menus and overlays
   final Menu.State options = new Menu.State();
+  final ComboBox.State schemaBox = new ComboBox.State();
+  int schema = 0;
+  final ComboBox.State hostBox = new ComboBox.State();
+  final ComboBox.State providerBox = new ComboBox.State();
+  int provider;
+  String recentHost = "db.staging.internal";
+  final CommandPalette.State palette = new CommandPalette.State();
   final Menu.State context = new Menu.State();
   boolean lineNumbers = true;
   boolean wordWrap;
@@ -147,6 +161,35 @@ public final class Showcase {
   List<Samples.Order> rows = Samples.sorted(sort);
   final Selection selection = new Selection(Mode.CELLS);
   final Menu.State gridMenu = new Menu.State();
+  // Leaves out the refunded orders; the rows the filters keep, and the changes to them, by id.
+  List<Filter> gridFilters = List.of(Filter.oneOf(6, List.of("paid", "pending", "shipped")));
+  List<Samples.Order> kept = keep();
+  final GridChanges changes = new GridChanges(new GridChanges.Rows() {
+    @Override
+    public int count() {
+      return kept.size();
+    }
+
+    @Override
+    public long key(int row) {
+      return kept.get(row).id();
+    }
+
+    @Override
+    public int place(long key) {
+      for (int i = 0; i < kept.size(); i++) {
+        if (kept.get(i).id() == key) {
+          return i;
+        }
+      }
+      return -1;
+    }
+
+    @Override
+    public String cell(int row, int column) {
+      return Samples.orderColumns(kept).get(column).cell().apply(row);
+    }
+  });
 
   // Tree
   final List<Samples.Node> catalog = Samples.catalog();
@@ -232,6 +275,7 @@ public final class Showcase {
 
   Showcase(Look look) {
     this.look = look;
+    changeSome();
     List<Samples.Node> orders = Samples.path(catalog, "localhost", "shop", "public", "orders");
     open.addAll(orders);
     open.add(catalog.get(1)); // staging, whose databases are not known yet
@@ -255,6 +299,31 @@ public final class Showcase {
   void sort(List<SortKey> keys) {
     sort = keys;
     rows = Samples.sorted(keys);
+    kept = keep();
+  }
+
+  void gridFilters(List<Filter> next) {
+    gridFilters = next;
+    kept = keep();
+  }
+
+  /** The rows the filters keep, as the app's own filtering, which the grid leaves to it. */
+  private List<Samples.Order> keep() {
+    List<Column> columns = Samples.orderColumns(rows);
+    return java.util.stream.IntStream.range(0, rows.size())
+        .filter(i -> gridFilters.stream().allMatch(f -> f.matches(columns.get(f.column()).cell()
+            .apply(i))))
+        .mapToObj(rows::get).toList();
+  }
+
+  /** A row in each state: a changed customer, a new row, a deleted row and a refused amount. */
+  void changeSome() {
+    changes.set(1, 1, "Ada King");
+    changes.insert(2);
+    changes.set(3, 1, "Grace Hopper");
+    changes.delete(List.of(new DataGrid.Range(5, 0, 5, DataGrid.Range.ALL)));
+    changes.set(7, 3, "-12.00");
+    changes.error(7, 3, "violates check constraint");
   }
 
   void toggle(Set<Samples.Node> nodes, Samples.Node node, boolean open) {
@@ -325,6 +394,8 @@ public final class Showcase {
             .gap(t.space().m())
             .child(sidebar)
             .child(Sections.section(s, t)));
-    return root.overlay(Sections.dialog(s, t));
+    return root.onKey(CommandPalette.keys(s.palette))
+        .overlay(Sections.dialog(s, t))
+        .overlay(Sections.palette(s, t));
   }
 }

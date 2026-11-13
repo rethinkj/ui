@@ -50,6 +50,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -85,7 +86,10 @@ import java.util.regex.Pattern;
  * the composition itself; the system places its candidate window below the area. Input for a
  * password asks the system for a hidden password's input, which SDL 3.4 passes on only on Wayland
  * (text-input-v3's purpose {@code password} with the hints {@code hidden_text} and {@code
- * sensitive_data}); on Windows and X11 the input method composes as in any field.
+ * sensitive_data}); on Windows and X11 the input method composes as in any field. On X11 and
+ * Wayland a primary press or a key other than a modifier also turns text input on while it is
+ * off, as SDL queues it, until the loop says whether a field took the focus: so that keys that
+ * arrive in the same batch come with their text (see {@code textSoon}).
  *
  * <p>The native library is loaded by the first {@link #open}, not before. A listener that throws
  * while the system calls into Java, as it does during a move, cannot pass the exception through
@@ -425,6 +429,10 @@ public final class Window implements AutoCloseable {
   /** The text input area last set, in window coordinates, while text input is on; else null. */
   private int[] textInput;
   private boolean passwordInput; // whether the text input on is for a password
+  // Text input on since a press or key that may take the focus to a field, until the loop says
+  // whether one has it (textInputArea, stopTextInput); not on Windows: see textSoon.
+  private boolean textSoon;
+  private int lastType; // of the event translated before, whose text a key down's text follows
 
   private Window(MemorySegment sdl, Options options) {
     this.sdl = sdl;
@@ -778,6 +786,28 @@ public final class Window implements AutoCloseable {
     };
   }
 
+  private static final Set<String> MODIFIER_KEYS =
+      Set.of("Shift", "Control", "Alt", "Meta", Keys.UNIDENTIFIED);
+
+  /**
+   * Turns text input on, while it is off, at a press or a key, as SDL queues it: SDL on X11 and
+   * Wayland makes text of a key (and lets an input method or a dead key have it) only while text
+   * input is on as it handles the key, and it handles a whole batch of input before the loop sees
+   * the click, Tab or key that takes the focus into a field and turns text input on for it, so the
+   * keys typed right after it came without text. Text that SDL makes of a key while text input is
+   * on only in case goes on as a {@link KeyText}, which the app types only if the key went to an
+   * element that takes text; the loop turns text input off again after the frame unless a field
+   * has the focus. Not on Windows, whose window makes those characters itself ({@link
+   * #systemChar}).
+   */
+  private void textSoon() {
+    if (textInput == null && !textSoon && !(handle instanceof WindowHandle.Win32)
+        && Sdl.startTextInput(sdl)) {
+      textSoon = true;
+      passwordInput = false;
+    }
+  }
+
   /** SDL_EventFilter: SDL calls this for every event as it queues it. */
   private static boolean watch(MemorySegment userdata, MemorySegment event) {
     try {
@@ -817,6 +847,8 @@ public final class Window implements AutoCloseable {
 
   private void translate(int type, MemorySegment e) {
     boolean controlKey = afterControlKey;
+    boolean afterKeyDown = lastType == Sdl.EVENT_KEY_DOWN;
+    lastType = type;
     if (type != Sdl.EVENT_KEY_UP && type != Sdl.EVENT_TEXT_INPUT) { // SDL's text of the key
       charOfKey = type == Sdl.EVENT_KEY_DOWN; // the WM_CHAR of a key comes before its release
     }
@@ -848,6 +880,9 @@ public final class Window implements AutoCloseable {
         if (type == Sdl.EVENT_MOUSE_BUTTON_DOWN) {
           // The modifiers as SDL knows them now, while it queues the press, which is in order.
           int clicks = Math.max(1, e.get(JAVA_BYTE, Sdl.BUTTON_CLICKS) & 0xFF);
+          if (button == PointerButton.LEFT) {
+            textSoon();
+          }
           post(new PointerDown(x, y, button, clicks, modifiers(Sdl.getModState())));
         } else {
           post(new PointerUp(x, y, button));
@@ -864,6 +899,9 @@ public final class Window implements AutoCloseable {
         if (type == Sdl.EVENT_KEY_DOWN) {
           afterControlKey = handle instanceof WindowHandle.Win32
               && (modifiers & (Key.CONTROL | Key.ALT)) == Key.CONTROL;
+          if (!MODIFIER_KEYS.contains(key)) {
+            textSoon();
+          }
           post(new KeyDown(new Key(key, modifiers, e.get(JAVA_BOOLEAN, Sdl.KEY_REPEAT))));
         } else {
           post(new KeyUp(new Key(key, modifiers, false)));
@@ -875,7 +913,9 @@ public final class Window implements AutoCloseable {
         // as the one that opens completions, would type it too. Control with Alt is AltGr, whose
         // characters stay.
         if (text != null && !text.isEmpty() && !controlKey) {
-          post(new TextInput(text));
+          // The text of a key while text input is on only in case: as on Windows (systemChar),
+          // it goes where the key went.
+          post(textSoon && afterKeyDown ? new KeyText(text) : new TextInput(text));
         }
       }
       case Sdl.EVENT_TEXT_EDITING -> {
@@ -1722,7 +1762,7 @@ public final class Window implements AutoCloseable {
       float x, float y, float width, float height, float cursor, boolean password) {
     checkOpen();
     int[] area = {units(x), units(y), units(width), units(height), units(cursor)};
-    if (textInput != null && password != passwordInput) {
+    if ((textInput != null || textSoon) && password != passwordInput) {
       stopTextInput();
     }
     if (textInput != null && Arrays.equals(area, textInput)) {
@@ -1731,11 +1771,12 @@ public final class Window implements AutoCloseable {
     if (!Sdl.setTextInputArea(sdl, area[0], area[1], area[2], area[3], area[4])) {
       throw new IllegalStateException("SDL_SetTextInputArea failed: " + Sdl.getError());
     }
-    if (textInput == null
+    if (textInput == null && !textSoon
         && !(password ? Sdl.startPasswordInput(sdl) : Sdl.startTextInput(sdl))) {
       throw new IllegalStateException("SDL_StartTextInput failed: " + Sdl.getError());
     }
     textInput = area;
+    textSoon = false;
     passwordInput = password;
   }
 
@@ -1745,8 +1786,9 @@ public final class Window implements AutoCloseable {
    */
   public void stopTextInput() {
     checkOpen();
-    if (textInput != null) {
+    if (textInput != null || textSoon) {
       textInput = null;
+      textSoon = false;
       Sdl.stopTextInput(sdl);
     }
   }

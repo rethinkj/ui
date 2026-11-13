@@ -21,6 +21,7 @@ import com.rethinkj.ui.El;
 import com.rethinkj.ui.Script;
 import com.rethinkj.ui.kit.Form;
 import com.rethinkj.ui.kit.Card;
+import com.rethinkj.ui.kit.ComboBox;
 import com.rethinkj.ui.kit.Dialog;
 import com.rethinkj.ui.kit.Symbol;
 import com.rethinkj.ui.kit.Theme;
@@ -29,6 +30,7 @@ import com.rethinkj.ui.text.TextRendering;
 import com.rethinkj.ui.window.Window;
 import com.rethinkj.ui.window.WindowLoop;
 import java.io.IOException;
+import java.util.List;
 
 /**
  * The dialog in which a database tool asks where to connect, built from the kit: a form of text
@@ -43,6 +45,7 @@ public final class ConnectionDialog {
   String host = "localhost";
   String port = "5432";
   String database = "";
+  final ComboBox.State databases = new ComboBox.State(); // the server's, offered as one types
   String user = "";
   String password = "";
   boolean revealed; // whether the password field shows the password
@@ -50,6 +53,10 @@ public final class ConnectionDialog {
   boolean dark = true;
   App<ConnectionDialog> app; // whose window says whether it is maximized
   String status = "";
+
+  /** The databases the server is known to have, which the database's field suggests. */
+  static final List<String> DATABASES = List.of("postgres", "inventory", "invoices", "shop",
+      "analytics", "template1");
 
   Theme theme() {
     return dark ? Theme.DARK : Theme.LIGHT;
@@ -112,8 +119,8 @@ public final class ConnectionDialog {
                 .key("host").w(260)).required(),
             field("Port", textField(t, s.port, "5432", s::port)
                 .key("port").maxLength(5).w(72)).required(),
-            field("Database", textField(t, s.database, "Name", v -> s.database = v)
-                .key("database").w(260)).required(),
+            field("Database", ComboBox.free(t, s.database, DATABASES, s.databases,
+                v -> s.database = v).key("database").w(260)).required(),
             field("User", textField(t, s.user, "Role", v -> s.user = v)
                 .key("user").w(260)).required(),
             field("Password", revealable(t,

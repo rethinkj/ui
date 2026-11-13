@@ -20,6 +20,7 @@ import com.rethinkj.ui.El;
 import com.rethinkj.ui.Style;
 import com.rethinkj.ui.examples.Samples.Node;
 import com.rethinkj.ui.examples.Showcase.Section;
+import com.rethinkj.ui.kit.Avatar;
 import com.rethinkj.ui.kit.Badge;
 import com.rethinkj.ui.kit.Breadcrumb;
 import com.rethinkj.ui.kit.Button;
@@ -32,6 +33,9 @@ import com.rethinkj.ui.kit.DataGrid.Column;
 import com.rethinkj.ui.kit.Dialog;
 import com.rethinkj.ui.kit.Divider;
 import com.rethinkj.ui.kit.Icon;
+import com.rethinkj.ui.kit.ComboBox;
+import com.rethinkj.ui.kit.CommandPalette;
+import com.rethinkj.ui.kit.FilterList;
 import com.rethinkj.ui.kit.Menu;
 import com.rethinkj.ui.kit.Popover;
 import com.rethinkj.ui.kit.Properties;
@@ -49,6 +53,7 @@ import com.rethinkj.ui.kit.Theme;
 import com.rethinkj.ui.kit.Tooltip;
 import com.rethinkj.ui.kit.Tree;
 import com.rethinkj.ui.text.Font;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
@@ -284,8 +289,17 @@ final class Sections {
   private static final String[] EDITED = {
     "today 09:12", "today 08:47", "yesterday", "3 days ago", "last week", "March 2"};
 
-  private static El menus(Showcase s, Theme t) {
-    List<Menu.Item> items = List.of(
+  /** The schemas of a database, more than a select should list: a combo box finds them. */
+  static final List<String> SCHEMAS = List.of("public", "accounting", "analytics", "archive",
+      "audit", "billing", "catalog", "crm", "customer_events", "customer_notes", "geo",
+      "inventory", "logistics", "marketing", "orders_archive", "partners", "payments", "pricing",
+      "reporting", "sales", "shipping", "staging", "support", "warehouse");
+  static final List<String> HOSTS = List.of("localhost", "db.staging.internal",
+      "db-eu-1.example.com", "db-us-1.example.com");
+
+  /** The options of the console, which its dropdown and the command palette both show. */
+  static List<Menu.Item> options(Showcase s) {
+    return List.of(
         Menu.item("Run selection", () -> s.say("run selection")).shortcut("Ctrl+Enter"),
         Menu.item("Explain plan", () -> s.say("explain")).shortcut("Ctrl+Shift+E"),
         Menu.separator(),
@@ -299,6 +313,25 @@ final class Sections {
             Menu.item("SQL inserts", () -> s.say("sql")),
             Menu.item("Markdown table", null))),
         Menu.item("Close console", null).shortcut("Ctrl+W"));
+  }
+
+  /** The command palette, with the console's options as its commands, while it is open. */
+  static El palette(Showcase s, Theme t) {
+    List<FilterList.Entry> commands = new java.util.ArrayList<>(
+        CommandPalette.commands(List.of(Menu.submenu("Console", options(s)))));
+    commands.add(FilterList.entry("Rename query…", s::startRename).symbol(Symbol.EDIT));
+    List<FilterList.Entry> schemas = new java.util.ArrayList<>();
+    for (int i = 0; i < SCHEMAS.size(); i++) {
+      int at = i;
+      schemas.add(FilterList.entry(SCHEMAS.get(i), () -> s.schema = at).symbol(Symbol.FOLDER)
+          .detail("shop"));
+    }
+    return CommandPalette.palette(t, s.palette, commands, List.of(new CommandPalette.Source(
+        "@", "to choose a schema", FilterList.Entries.of(List.copyOf(schemas)))));
+  }
+
+  private static El menus(Showcase s, Theme t) {
+    List<Menu.Item> items = options(s);
     El tools = toolbar(t)
         .child(toolButton(t, PRIMARY, Symbol.PLAY, "Run", "Run", () -> s.say("run")))
         .child(Menu.dropdown(t, button(t, SECONDARY, "Options", s.options::toggle)
@@ -348,9 +381,22 @@ final class Sections {
         .child(label(t, MUTED, "Refresh and Copy show a tooltip after half a second."))
         .child(label(t, MUTED, "Rename… opens a modal dialog over a scrim."))
         .child(label(t, s.said.isEmpty() ? "" : "Last action: " + s.said).key("said"));
+    El typing = card(t, "Choosing by typing",
+        label(t, MUTED, "A combo box filters its choices as one types; the free kind takes any"
+            + " text and suggests. Control+Shift+P or F1 opens the command palette.").wrapText(),
+        field(t, "Schema", ComboBox.comboBox(t, SCHEMAS, s.schema, s.schemaBox,
+            i -> s.schema = i).key("schema-box")),
+        field(t, "Host", ComboBox.free(t, s.recentHost, HOSTS, s.hostBox, v -> s.recentHost = v)
+            .key("host-box").w(280)),
+        field(t, "Database", ComboBox.items(t, PROVIDERS, s.provider, s.providerBox,
+            i -> s.provider = i).key("provider-box").w(280)),
+        row().padding(0, 0, 0, 96 + t.space().m()).child(button(t, SECONDARY, Symbol.SEARCH,
+            "Command palette…", s.palette::open).key("open-palette")))
+        .w(420);
     return col().gap(t.space().l())
         .child(tools)
-        .child(row().gap(t.space().l()).align(Style.Align.START).child(saved).child(hints));
+        .child(row().gap(t.space().l()).align(Style.Align.START).child(saved).child(hints))
+        .child(typing);
   }
 
   /** The rename dialog while the state asks for it, else null. */
@@ -375,27 +421,52 @@ final class Sections {
   // Data grid
 
   private static El grid(Showcase s, Theme t) {
-    List<Column> columns = Samples.orderColumns(s.rows);
+    List<Column> base = Samples.orderColumns(s.kept);
+    List<Column> columns = new ArrayList<>();
+    for (int c = 0; c < base.size(); c++) {
+      Column b = base.get(c);
+      Column column = new Column(b.title(), b.width(), b.align(), b.mono(), b.sortable(),
+          s.changes.cell(c));
+      columns.add(switch (b.title()) {
+        case "id" -> column;
+        case "status" -> column.editable().choices(List.of("paid", "pending", "shipped",
+            "refunded"));
+        case "shipped_at", "note" -> column.editable().nullable();
+        default -> column.editable();
+      });
+    }
     DataGrid.Options options = DataGrid.options()
         .select(s.selection)
         .sort(s.sort, s::sort)
         .rowNumbers().frozen(1)
-        .contextMenu(s.gridMenu, List.of());
-    El grid = DataGrid.dataGrid(t, columns, s.rows.size(), options)
+        .contextMenu(s.gridMenu, List.of())
+        .changes(s.changes)
+        .filters(s.gridFilters, s::gridFilters);
+    El grid = DataGrid.dataGrid(t, columns, s.changes.rowCount(), options)
         .key("orders").label("Orders").h(432);
     long cells = DataGrid.cellCount(s.selection.ranges(), columns.size());
-    String status = s.rows.size() + " rows in 23 ms"
+    int changed = s.changes.count();
+    String status = s.changes.rowCount() + " rows in 23 ms"
         + (cells > 1 ? " · " + cells + " cells selected" : "")
+        + (changed > 0 ? " · " + changed + " changes" : "")
         + " · sorted by customer, then amount descending";
+    El filters = DataGrid.filterBar(t, columns, s.gridFilters, s::gridFilters);
     return Card.flush(t,
-        Card.toolbar(t, "Result", s.rows.size() + " rows",
-            toolButton(t, SECONDARY, Symbol.ARROW_DOWNLOAD, "Export", "Export",
-                () -> s.say("export")),
-            toolButton(t, PRIMARY, Symbol.PLAY, "Run", "Run", () -> s.say("run"))),
+        Card.toolbar(t, "Result", s.changes.rowCount() + " rows",
+            toolButton(t, SECONDARY, Symbol.ARROW_UNDO, "Revert", "Revert",
+                changed == 0 ? null : s.changes::clear),
+            toolButton(t, PRIMARY, Symbol.SAVE,
+                changed == 0 ? "Commit" : "Commit (" + changed + ")", "Commit",
+                changed == 0 ? null : () -> {
+                  s.changes.clear();
+                  s.say("commit");
+                })),
         row().padding(0, t.space().l(), t.space().m(), t.space().l())
             .child(label(t, MONO, "SELECT o.id, c.name AS customer, c.email, o.amount,"
                 + " o.created_at, o.shipped_at, o.status, o.note FROM orders o JOIN customers c"
                 + " ON …").color(t.text().muted()).ellipsis().minSize(0, 0)),
+        filters == null ? null
+            : row().padding(0, t.space().l(), t.space().m(), t.space().l()).child(filters),
         Divider.divider(t),
         grid,
         Card.footer(t, label(t, MUTED, status).key("grid-status").ellipsis()));
@@ -475,6 +546,17 @@ final class Sections {
               + "selectedInactive."));
     }
     return row().gap(t.space().l()).align(Style.Align.START).child(explorer).child(details);
+  }
+
+  /** The products a connection can be to, each with a mark of its own before its name. */
+  static final List<ComboBox.Item> PROVIDERS = List.of(
+      provider("PostgreSQL", "9.6 or later"), provider("MySQL", "8.0"),
+      provider("MariaDB", "10.5"), provider("SQL Server", "2019"), provider("Oracle", "19c"),
+      ComboBox.item("SQLite").icon(Symbol.DATABASE).detail("a file"));
+
+  private static ComboBox.Item provider(String name, String versions) {
+    return ComboBox.item(name).detail(versions)
+        .leading(t -> Avatar.avatar(t, name, null, t.size().icon()));
   }
 
   // Tabs and split

@@ -1,0 +1,40 @@
+el 0,0 300x260
+  el #provider role=combobox label="PostgreSQL" 12,12 240x24 expanded
+    text role=textbox label="PostgreSQL" "" 12,12 240x24 focused caret 0
+    el role=button label="Close" 228,12 24x24
+      text label="chevron_down" "\u{F2A2}" 232,16 16x16
+    el #lead 20,16 16x16
+      image role=img 20,16 16x16
+  text #status "PostgreSQL" 12,44 276x16
+overlay bottom stretch gap 2 on #provider role=combobox label="PostgreSQL" 12,12 240x24
+  el #choices 12,38 240x130
+    el #options role=listbox label="PostgreSQL" 17,43 230x120 rows 0-4/5
+      el #option-0 role=option label="PostgreSQL" 17,43 230x24 pos=1/5
+        el 17,43 230x24
+          el 25,47 16x16
+            image role=img 25,47 16x16
+          text "PostgreSQL" 49,47 91x16
+          text "9.6 or later" 148,47 67x16
+          text label="checkmark" "\u{E305}" 223,47 16x16
+      el #option-1 role=option label="MySQL" 17,67 230x24 selected pos=2/5
+        el 17,67 230x24
+          el 25,71 16x16
+            image role=img 25,71 16x16
+          text "MySQL" 49,71 163x16
+          text "8.0" 220,71 19x16
+      el #option-2 role=option label="SQLite" 17,91 230x24 pos=3/5
+        el 17,91 230x24
+          el 25,95 16x16
+            text label="database" "\u{F0D7}" 25,95 16x16
+          text "SQLite" 49,95 152x16
+          text "a file" 209,95 30x16
+      el #option-3 role=option label="Custom driver" 17,115 230x24 pos=4/5
+        el 17,115 230x24
+          el 25,119 16x16
+            el role=img label="Custom driver" 25,119 16x16
+              text "CD" 28,123 10x8
+          text "Custom driver" 49,119 190x16
+      el #option-4 role=option label="Plain" 17,139 230x24 pos=5/5
+        el 17,139 230x24
+          el 25,151 16x0
+          text "Plain" 49,143 190x16

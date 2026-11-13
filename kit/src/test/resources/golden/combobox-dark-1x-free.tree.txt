@@ -1,0 +1,28 @@
+el 0,0 360x260
+  el 12,12 336x24
+    el #encoding role=combobox label="UTF-8" 12,12 140x24 expanded=false
+      text "UTF-8" 21,16 102x16
+      text label="chevron_down" "\u{F2A2}" 127,16 16x16
+    el #database role=combobox label="shop" 160,12 180x24 expanded=false
+      text "shop" 169,16 142x16
+      text label="chevron_down" "\u{F2A2}" 315,16 16x16
+  el #host role=combobox label="db" 12,44 240x24 expanded
+    text #field-0 role=textbox "db" 12,44 240x24 focused caret 2
+    el role=button label="Close" 228,44 24x24
+      text label="chevron_down" "\u{F2A2}" 232,48 16x16
+  text #status "shop on db" 12,76 336x16
+overlay bottom stretch gap 2 on #host role=combobox label="db" 12,44 240x24
+  el #choices 12,70 240x82
+    el #options role=listbox label="db" 17,75 230x72 rows 0-2/3
+      el #option-0 role=option label="db.staging.internal" 17,75 230x24 pos=1/3
+        el 17,75 230x24
+          el 25,87 16x0
+          text "db.staging.internal" 49,79 190x16
+      el #option-1 role=option label="db-eu-1.example.com" 17,99 230x24 pos=2/3
+        el 17,99 230x24
+          el 25,111 16x0
+          text "db-eu-1.example.com" 49,103 190x16
+      el #option-2 role=option label="db-us-1.example.com" 17,123 230x24 pos=3/3
+        el 17,123 230x24
+          el 25,135 16x0
+          text "db-us-1.example.com" 49,127 190x16

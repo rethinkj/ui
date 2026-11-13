@@ -54,7 +54,9 @@ public sealed interface WindowEvent {
   /**
    * Text that the system made of the key before it while the window's text input was off, which
    * a {@link TextInput} would have carried were it on: on Windows the character of {@code
-   * WM_CHAR}, through the keyboard layout with its dead keys and AltGr. Input that comes in one
+   * WM_CHAR}, through the keyboard layout with its dead keys and AltGr; on X11 and Wayland the
+   * text SDL made of a key while the window had turned text input on only because a press or a
+   * key came before it, which might take the focus to a field. Input that comes in one
    * batch, a click into a field and the keys after it, arrives before the window can turn its
    * text input on for the field; {@link WindowLoop} gives this to {@link
    * com.rethinkj.ui.App#keyText}, which types it if the key went to the field. Control

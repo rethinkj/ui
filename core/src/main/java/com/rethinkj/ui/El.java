@@ -66,6 +66,7 @@ public final class El {
   private PressAtHandler onPointerDown;
   private Runnable onAnyPointerDown;
   private Consumer<Key> onAnyKeyDown;
+  private Runnable onPressOutside;
   private Consumer<Drag> onDrag;
   private Object dragPayload;
   private Consumer<Drop> onDrop;
@@ -1743,6 +1744,21 @@ public final class El {
     return this;
   }
 
+  /**
+   * Runs {@code handler} when a button of the pointer goes down outside this element: on no element
+   * of it or inside it, also on an overlay, before the press does anything else, while this element
+   * is in the tree or in a shown overlay. Like {@link #onAnyPointerDown}, it takes nothing from the
+   * press, which goes on as without it: a press on another cell ends the editing of one and then
+   * selects the other. An overlay attached inside this element counts as outside it. Like {@link
+   * #onPress}, it runs in {@link App#frame}.
+   *
+   * @param handler the handler, or null for none
+   */
+  public El onPressOutside(Runnable handler) {
+    this.onPressOutside = handler;
+    return this;
+  }
+
 
   /**
    * Runs {@code handler} when the secondary button, usually the right one, is pressed and released
@@ -2376,7 +2392,9 @@ public final class El {
   /**
    * Makes this element take the keyboard focus when it appears: in the build of the view that
    * first has it, the first such element in tree order that can take the focus gets it, with a
-   * ring if the focus had one, and scrolled into view; later builds leave the focus alone. The
+   * ring if the focus had one, and scrolled into view; later builds leave the focus alone. In a
+   * row of a virtual list ({@link #rows}) it does so when the list builds the row, again when the
+   * row comes back after it left the rows that exist. The
    * editor that a key or a double press lays over a cell takes the focus this way. Inside an
    * overlay it names the element that the overlay's opening focuses instead of its first
    * focusable one: a dialog's second field. Where the focused element disappears, it is where the
@@ -2399,7 +2417,18 @@ public final class El {
    */
   public El autofocus(Object key) {
     this.autofocus = key;
+    AUTOFOCUSES.incrementAndGet();
     return this;
+  }
+
+  // How often autofocus was asked for: App looks through the rows a list built for it only when
+  // the building asked, as most rows never do.
+  private static final java.util.concurrent.atomic.AtomicInteger AUTOFOCUSES =
+      new java.util.concurrent.atomic.AtomicInteger();
+
+  /** How often {@link #autofocus(Object)} has been called, in any thread. */
+  static int autofocuses() {
+    return AUTOFOCUSES.get();
   }
 
   private Layer layer() {
@@ -2526,6 +2555,11 @@ public final class El {
   /** The handler of {@link #onAnyKeyDown}, or null. */
   public Consumer<Key> onAnyKeyDown() {
     return onAnyKeyDown;
+  }
+
+  /** The handler of {@link #onPressOutside}, or null. */
+  public Runnable onPressOutside() {
+    return onPressOutside;
   }
 
   public Consumer<Drag> onDrag() {
@@ -3458,6 +3492,7 @@ public final class El {
     PressAtHandler down = onPointerDown;
     Runnable any = onAnyPointerDown;
     Consumer<Key> anyKey = onAnyKeyDown;
+    Runnable outside = onPressOutside;
     Consumer<Drag> drag = onDrag;
     Predicate<Key> keyDown = onKey;
     Predicate<Key> up = onKeyUp;
@@ -3470,7 +3505,7 @@ public final class El {
             : !Objects.equals(key, keyBefore) ? "key"
             : onPress != press || onPointerDown != down || onAnyPointerDown != any
                 || onAnyKeyDown != anyKey
-                || onDrag != drag || onKey != keyDown
+                || onPressOutside != outside || onDrag != drag || onKey != keyDown
                 || onKeyUp != up
                 || onText != text || onEdit != edit ? "handlers"
             : focusable != wasFocusable ? "focusable()"

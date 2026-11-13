@@ -1,0 +1,346 @@
+el 0,0 640x260
+  el 8,8 624x24
+    el 8,20 0x0
+    el 8,20 522x0
+    el #columns-button role=button label="Columns" 530,8 102x24 expanded=false
+      text label="column_single" "\u{F0116}" 543,12 16x16
+      text "Columns" 563,12 56x16
+  el #ledger role=grid label="Ledger" 8,36 624x216 thumb-x 10,244 509.72x6 focused
+    el #content 8,36 759x216
+      el #header 8,36 759x25
+        el #column-1 role=columnheader label="customer" 87,36 139x24 pos=2/7
+          text label="text_case_title" "\u{ECEC}" 91,40 16x16
+          el 111,40 86x16
+            text "customer" 111,40 60x16
+            text "text" 175,40 22x16
+          el #filter-1 role=button label="Filter customer" 208,40 16x16
+            text label="filter" "\u{E60A}" 208,40 16x16
+        el 226,36 1x24
+        el #column-2 role=columnheader label="amount" 227,36 89x24 pos=3/7
+          text label="calculator" "\u{F06B}" 245,40 16x16
+          text "amount" 265,40 47x16
+          el #filter-2 role=button label="Filter amount" 229,40 16x16
+            text label="filter" "\u{E60A}" 229,40 16x16
+        el 316,36 1x24
+        el #column-3 role=columnheader label="paid" 317,36 69x24 pos=4/7
+          text label="checkbox_checked" "\u{F27C}" 321,40 16x16
+          text "paid" 341,40 26x16
+          el #filter-3 role=button label="Filter paid" 368,40 16x16
+            text label="filter" "\u{E60A}" 368,40 16x16
+        el 386,36 1x24
+        el #column-4 role=columnheader label="status" 387,36 99x24 pos=5/7
+          text label="tag" "\u{EC70}" 391,40 16x16
+          el 411,40 71x16
+            text "status" 411,40 37x16
+            text "status" 452,40 30x16
+          el #filter-4 role=button label="Filter status" 468,40 16x16
+            text label="filter" "\u{E60A}" 468,40 16x16
+        el 486,36 1x24
+        el #column-5 role=columnheader label="due" 487,36 109x24 grabbed pos=6/7 hovered
+          text label="calendar_ltr" "\u{E24D}" 491,40 16x16
+          el 511,40 55x16
+            text "due" 511,40 24x16
+            text "date" 539,40 27x16
+          el #filter-5 role=button label="Filter due" 578,40 16x16
+            text label="filter" "\u{E60A}" 578,40 16x16
+        el 596,36 1x24
+        el #column-6 role=columnheader label="note" 597,36 159x24 pos=7/7
+          text label="text_case_title" "\u{ECEC}" 601,40 16x16
+          el 621,40 54x16
+            text "note" 621,40 28x16
+            text "text" 653,40 22x16
+          el #filter-6 role=button label="Filter note" 738,40 16x16
+            text label="filter" "\u{E60A}" 738,40 16x16
+        el 756,36 1x24
+        el #resize-1 role=separator label="Resize customer" 224,36 6x24
+        el #resize-2 role=separator label="Resize amount" 314,36 6x24
+        el #resize-3 role=separator label="Resize paid" 384,36 6x24
+        el #resize-4 role=separator label="Resize status" 484,36 6x24
+        el #resize-5 role=separator label="Resize due" 594,36 6x24
+        el #resize-6 role=separator label="Resize note" 754,36 6x24
+        el #numbers 8,36 22x24
+        el 30,36 1x24
+        el #column-0 role=columnheader label="id" 31,36 55x24 pos=1/7
+          text label="number_symbol" "\u{F57C}" 51,40 16x16
+          text "id" 71,40 11x16
+          el #filter-0 role=button label="Filter id" 33,40 16x16
+            text label="filter" "\u{E60A}" 33,40 16x16
+        el 86,36 1x24
+        el #resize-0 role=separator label="Resize id" 84,36 6x24
+        el #marker 316,36 2x24
+      el #rows 8,61 759x191 rows 0-10/40 thumb-y 624,63 6x34.85
+        el #row-0 role=row 8,61 759x24 pos=1/40
+          el #cell-0-1 role=gridcell 87,61 139x23 selected current pos=2/7
+            text "Ada Lovelace" 91,65 83x16
+          el 226,61 1x23
+          el #cell-0-2 role=gridcell 227,61 89x23 pos=3/7
+            text "10.00" 277,65 35x16
+          el 316,61 1x23
+          el #cell-0-3 role=gridcell 317,61 69x23 pos=4/7
+            text "true" 321,65 25x16
+          el 386,61 1x23
+          el #cell-0-4 role=gridcell 387,61 99x23 pos=5/7
+            text "paid" 391,65 26x16
+          el 486,61 1x23
+          el #cell-0-5 role=gridcell 487,61 109x23 pos=6/7
+            text "2026-01-01" 491,65 70x16
+          el 596,61 1x23
+          el #cell-0-6 role=gridcell 597,61 159x23 pos=7/7
+            text "NULL" 601,65 34x16
+          el 756,61 1x23
+          el #number-0 role=rowheader 8,61 22x23
+            text "1" 19,65 7x16
+          el 30,61 1x23
+          el #cell-0-0 role=gridcell 31,61 55x23 pos=1/7
+            text "1" 75,65 7x16
+          el 86,61 1x23
+        el #row-1 role=row 8,85 759x24 pos=2/40
+          el #cell-1-1 role=gridcell 87,85 139x23 pos=2/7
+            text "Grace Lovelace" 91,89 96x16
+          el 226,85 1x23
+          el #cell-1-2 role=gridcell 227,85 89x23 pos=3/7
+            text "47.13" 277,89 35x16
+          el 316,85 1x23
+          el #cell-1-3 role=gridcell 317,85 69x23 pos=4/7
+            text "false" 321,89 30x16
+          el 386,85 1x23
+          el #cell-1-4 role=gridcell 387,85 99x23 pos=5/7
+            text "refunded" 391,89 58x16
+          el 486,85 1x23
+          el #cell-1-5 role=gridcell 487,85 109x23 pos=6/7
+            text "2026-02-02" 491,89 70x16
+          el 596,85 1x23
+          el #cell-1-6 role=gridcell 597,85 159x23 pos=7/7
+            text "Leave at the door⏎Call first" 601,89 151x16
+          el 756,85 1x23
+          el #number-1 role=rowheader 8,85 22x23
+            text "2" 19,89 7x16
+          el 30,85 1x23
+          el #cell-1-0 role=gridcell 31,85 55x23 pos=1/7
+            text "2" 75,89 7x16
+          el 86,85 1x23
+        el #row-2 role=row 8,109 759x24 pos=3/40
+          el #cell-2-1 role=gridcell 87,109 139x23 pos=2/7
+            text "Linus Lovelace" 91,113 92x16
+          el 226,109 1x23
+          el #cell-2-2 role=gridcell 227,109 89x23 pos=3/7
+            text "84.26" 277,113 35x16
+          el 316,109 1x23
+          el #cell-2-3 role=gridcell 317,109 69x23 pos=4/7
+            text "true" 321,113 25x16
+          el 386,109 1x23
+          el #cell-2-4 role=gridcell 387,109 99x23 pos=5/7
+            text "shipped" 391,113 50x16
+          el 486,109 1x23
+          el #cell-2-5 role=gridcell 487,109 109x23 pos=6/7
+            text "2026-03-03" 491,113 70x16
+          el 596,109 1x23
+          el #cell-2-6 role=gridcell 597,109 159x23 pos=7/7
+            text "NULL" 601,113 34x16
+          el 756,109 1x23
+          el #number-2 role=rowheader 8,109 22x23
+            text "3" 19,113 7x16
+          el 30,109 1x23
+          el #cell-2-0 role=gridcell 31,109 55x23 pos=1/7
+            text "3" 75,113 7x16
+          el 86,109 1x23
+        el #row-3 role=row 8,133 759x24 pos=4/40
+          el #cell-3-1 role=gridcell 87,133 139x23 pos=2/7
+            text "Margaret Lovelace" 91,137 115x16
+          el 226,133 1x23
+          el #cell-3-2 role=gridcell 227,133 89x23 pos=3/7
+            text "121.39" 270,137 42x16
+          el 316,133 1x23
+          el #cell-3-3 role=gridcell 317,133 69x23 pos=4/7
+            text "true" 321,137 25x16
+          el 386,133 1x23
+          el #cell-3-4 role=gridcell 387,133 99x23 pos=5/7
+            text "pending" 391,137 51x16
+          el 486,133 1x23
+          el #cell-3-5 role=gridcell 487,133 109x23 pos=6/7
+            text "2026-04-04" 491,137 70x16
+          el 596,133 1x23
+          el #cell-3-6 role=gridcell 597,133 159x23 pos=7/7
+            text "" 601,137 0x16
+          el 756,133 1x23
+          el #number-3 role=rowheader 8,133 22x23
+            text "4" 19,137 7x16
+          el 30,133 1x23
+          el #cell-3-0 role=gridcell 31,133 55x23 pos=1/7
+            text "4" 75,137 7x16
+          el 86,133 1x23
+        el #row-4 role=row 8,157 759x24 pos=5/40
+          el #cell-4-1 role=gridcell 87,157 139x23 pos=2/7
+            text "Ken Lovelace" 91,161 83x16
+          el 226,157 1x23
+          el #cell-4-2 role=gridcell 227,157 89x23 pos=3/7
+            text "NULL" 284,161 28x16
+          el 316,157 1x23
+          el #cell-4-3 role=gridcell 317,157 69x23 pos=4/7
+            text "false" 321,161 30x16
+          el 386,157 1x23
+          el #cell-4-4 role=gridcell 387,157 99x23 pos=5/7
+            text "paid" 391,161 26x16
+          el 486,157 1x23
+          el #cell-4-5 role=gridcell 487,157 109x23 pos=6/7
+            text "2026-05-05" 491,161 70x16
+          el 596,157 1x23
+          el #cell-4-6 role=gridcell 597,157 159x23 pos=7/7
+            text "NULL" 601,161 34x16
+          el 756,157 1x23
+          el #number-4 role=rowheader 8,157 22x23
+            text "5" 19,161 7x16
+          el 30,157 1x23
+          el #cell-4-0 role=gridcell 31,157 55x23 pos=1/7
+            text "5" 75,161 7x16
+          el 86,157 1x23
+        el #row-5 role=row 8,181 759x24 pos=6/40
+          el #cell-5-1 role=gridcell 87,181 139x23 pos=2/7
+            text "Barbara Lovelace" 91,185 107x16
+          el 226,181 1x23
+          el #cell-5-2 role=gridcell 227,181 89x23 pos=3/7
+            text "195.65" 270,185 42x16
+          el 316,181 1x23
+          el #cell-5-3 role=gridcell 317,181 69x23 pos=4/7
+            text "true" 321,185 25x16
+          el 386,181 1x23
+          el #cell-5-4 role=gridcell 387,181 99x23 pos=5/7
+            text "refunded" 391,185 58x16
+          el 486,181 1x23
+          el #cell-5-5 role=gridcell 487,181 109x23 pos=6/7
+            text "2026-06-06" 491,185 70x16
+          el 596,181 1x23
+          el #cell-5-6 role=gridcell 597,181 159x23 pos=7/7
+            text "Leave at the door⏎Call first" 601,185 151x16
+          el 756,181 1x23
+          el #number-5 role=rowheader 8,181 22x23
+            text "6" 19,185 7x16
+          el 30,181 1x23
+          el #cell-5-0 role=gridcell 31,181 55x23 pos=1/7
+            text "6" 75,185 7x16
+          el 86,181 1x23
+        el #row-6 role=row 8,205 759x24 pos=7/40
+          el #cell-6-1 role=gridcell 87,205 139x23 pos=2/7
+            text "Edsger Lovelace" 91,209 103x16
+          el 226,205 1x23
+          el #cell-6-2 role=gridcell 227,205 89x23 pos=3/7
+            text "232.78" 270,209 42x16
+          el 316,205 1x23
+          el #cell-6-3 role=gridcell 317,205 69x23 pos=4/7
+            text "NULL" 321,209 34x16
+          el 386,205 1x23
+          el #cell-6-4 role=gridcell 387,205 99x23 pos=5/7
+            text "shipped" 391,209 50x16
+          el 486,205 1x23
+          el #cell-6-5 role=gridcell 487,205 109x23 pos=6/7
+            text "2026-07-07" 491,209 70x16
+          el 596,205 1x23
+          el #cell-6-6 role=gridcell 597,205 159x23 pos=7/7
+            text "NULL" 601,209 34x16
+          el 756,205 1x23
+          el #number-6 role=rowheader 8,205 22x23
+            text "7" 19,209 7x16
+          el 30,205 1x23
+          el #cell-6-0 role=gridcell 31,205 55x23 pos=1/7
+            text "7" 75,209 7x16
+          el 86,205 1x23
+        el #row-7 role=row 8,229 759x24 pos=8/40
+          el #cell-7-1 role=gridcell 87,229 139x23 pos=2/7
+            text "Frances Lovelace" 91,233 108x16
+          el 226,229 1x23
+          el #cell-7-2 role=gridcell 227,229 89x23 pos=3/7
+            text "269.91" 270,233 42x16
+          el 316,229 1x23
+          el #cell-7-3 role=gridcell 317,229 69x23 pos=4/7
+            text "false" 321,233 30x16
+          el 386,229 1x23
+          el #cell-7-4 role=gridcell 387,229 99x23 pos=5/7
+            text "pending" 391,233 51x16
+          el 486,229 1x23
+          el #cell-7-5 role=gridcell 487,229 109x23 pos=6/7
+            text "2026-08-08" 491,233 70x16
+          el 596,229 1x23
+          el #cell-7-6 role=gridcell 597,229 159x23 pos=7/7
+            text "" 601,233 0x16
+          el 756,229 1x23
+          el #number-7 role=rowheader 8,229 22x23
+            text "8" 19,233 7x16
+          el 30,229 1x23
+          el #cell-7-0 role=gridcell 31,229 55x23 pos=1/7
+            text "8" 75,233 7x16
+          el 86,229 1x23
+        el #row-8 role=row 8,253 759x24 pos=9/40
+          el #cell-8-1 role=gridcell 87,253 139x23 pos=2/7
+            text "Donald Lovelace" 91,257 102x16
+          el 226,253 1x23
+          el #cell-8-2 role=gridcell 227,253 89x23 pos=3/7
+            text "306.04" 270,257 42x16
+          el 316,253 1x23
+          el #cell-8-3 role=gridcell 317,253 69x23 pos=4/7
+            text "true" 321,257 25x16
+          el 386,253 1x23
+          el #cell-8-4 role=gridcell 387,253 99x23 pos=5/7
+            text "paid" 391,257 26x16
+          el 486,253 1x23
+          el #cell-8-5 role=gridcell 487,253 109x23 pos=6/7
+            text "2026-09-09" 491,257 70x16
+          el 596,253 1x23
+          el #cell-8-6 role=gridcell 597,253 159x23 pos=7/7
+            text "NULL" 601,257 34x16
+          el 756,253 1x23
+          el #number-8 role=rowheader 8,253 22x23
+            text "9" 19,257 7x16
+          el 30,253 1x23
+          el #cell-8-0 role=gridcell 31,253 55x23 pos=1/7
+            text "9" 75,257 7x16
+          el 86,253 1x23
+        el #row-9 role=row 8,277 759x24 pos=10/40
+          el #cell-9-1 role=gridcell 87,277 139x23 pos=2/7
+            text "Radia Lovelace" 91,281 92x16
+          el 226,277 1x23
+          el #cell-9-2 role=gridcell 227,277 89x23 pos=3/7
+            text "NULL" 284,281 28x16
+          el 316,277 1x23
+          el #cell-9-3 role=gridcell 317,277 69x23 pos=4/7
+            text "true" 321,281 25x16
+          el 386,277 1x23
+          el #cell-9-4 role=gridcell 387,277 99x23 pos=5/7
+            text "refunded" 391,281 58x16
+          el 486,277 1x23
+          el #cell-9-5 role=gridcell 487,277 109x23 pos=6/7
+            text "2026-10-10" 491,281 70x16
+          el 596,277 1x23
+          el #cell-9-6 role=gridcell 597,277 159x23 pos=7/7
+            text "Leave at the door⏎Call first" 601,281 151x16
+          el 756,277 1x23
+          el #number-9 role=rowheader 8,277 22x23
+            text "10" 12,281 14x16
+          el 30,277 1x23
+          el #cell-9-0 role=gridcell 31,277 55x23 pos=1/7
+            text "10" 68,281 14x16
+          el 86,277 1x23
+        el #row-10 role=row 8,301 759x24 pos=11/40
+          el #cell-10-1 role=gridcell 87,301 139x23 pos=2/7
+            text "Ada Hopper" 91,305 75x16
+          el 226,301 1x23
+          el #cell-10-2 role=gridcell 227,301 89x23 pos=3/7
+            text "380.30" 270,305 42x16
+          el 316,301 1x23
+          el #cell-10-3 role=gridcell 317,301 69x23 pos=4/7
+            text "false" 321,305 30x16
+          el 386,301 1x23
+          el #cell-10-4 role=gridcell 387,301 99x23 pos=5/7
+            text "shipped" 391,305 50x16
+          el 486,301 1x23
+          el #cell-10-5 role=gridcell 487,301 109x23 pos=6/7
+            text "2026-11-11" 491,305 70x16
+          el 596,301 1x23
+          el #cell-10-6 role=gridcell 597,301 159x23 pos=7/7
+            text "NULL" 601,305 34x16
+          el 756,301 1x23
+          el #number-10 role=rowheader 8,301 22x23
+            text "11" 12,305 14x16
+          el 30,301 1x23
+          el #cell-10-0 role=gridcell 31,301 55x23 pos=1/7
+            text "11" 68,305 14x16
+          el 86,301 1x23

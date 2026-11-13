@@ -2,7 +2,12 @@ el 0,0 900x520
   el window=drag 0,0 900x32
     el 12,11 10x10
     text "Orders" 30,8 43x16
-    el 73,16 689x0
+    el 73,16 613x0
+    el 686,8 64x16
+      el role=switch label="Dark" 682,6 72x20 checked
+        el 686,8 28x16
+          el 700,10 12x12
+        text "Dark" 722,8 28x16
     el role=button label="Minimize" window=minimize 762,0 46x32
       el 780,16 10x1
     el role=button label="Maximize" window=maximize 808,0 46x32
@@ -14,10 +19,19 @@ el 0,0 900x520
       el 9,33 882x40
         text role=heading "orders" 21,45 45x17 level=3
         text "50,000 rows" 74,45 78x16
-        el 160,53 431x0
-        el 599,41 280x24
-          text #filter role=textbox label="Filter" "ada paid" 599,41 280x24 focused caret 8
-          text label="search" "\u{EA7C}" 603,45 16x16
+        el 160,53 125x0
+        el 293,41 280x24
+          text #filter role=textbox label="Filter" "ada paid" 293,41 280x24 focused caret 8
+          text label="search" "\u{EA7C}" 297,45 16x16
+        el #columns-button role=button label="Columns" 581,41 102x24 expanded=false
+          text label="column_single" "\u{F0116}" 594,45 16x16
+          text "Columns" 614,45 56x16
+        el #revert role=button label="Revert" 691,41 85x24 disabled
+          text label="arrow_undo" "\u{E126}" 704,45 16x16
+          text "Revert" 724,45 39x16
+        el #commit role=button label="Commit" 784,41 95x24 disabled
+          text label="save" "\u{EA43}" 797,45 16x16
+          text "Commit" 817,45 49x16
       el role=separator 9,73 882x1
       el #orders role=grid label="Orders" 9,74 882x408 thumb-x 11,474 521.13x6
         el #content 9,74 1486x408
@@ -25,22 +39,32 @@ el 0,0 900x520
             el #column-1 role=columnheader label="customer" 125,74 139x24 pos=2/12
               text label="text_case_title" "\u{ECEC}" 129,78 16x16
               text "customer" 149,78 60x16
+              el #filter-1 role=button label="Filter customer" 246,78 16x16
+                text label="filter" "\u{E60A}" 246,78 16x16
             el 264,74 1x24
             el #column-2 role=columnheader label="email" 265,74 219x24 pos=3/12
               text label="text_case_title" "\u{ECEC}" 269,78 16x16
               text "email" 289,78 33x16
+              el #filter-2 role=button label="Filter email" 466,78 16x16
+                text label="filter" "\u{E60A}" 466,78 16x16
             el 484,74 1x24
             el #column-3 role=columnheader label="city" 485,74 89x24 pos=4/12
               text label="text_case_title" "\u{ECEC}" 489,78 16x16
               text "city" 509,78 23x16
+              el #filter-3 role=button label="Filter city" 556,78 16x16
+                text label="filter" "\u{E60A}" 556,78 16x16
             el 574,74 1x24
             el #column-4 role=columnheader label="country" 575,74 79x24 pos=5/12
               text label="text_case_title" "\u{ECEC}" 579,78 16x16
               text "country" 599,78 48x16
+              el #filter-4 role=button label="Filter country" 636,78 16x16
+                text label="filter" "\u{E60A}" 636,78 16x16
             el 654,74 1x24
             el #column-5 role=columnheader label="product" 655,74 99x24 pos=6/12
               text label="text_case_title" "\u{ECEC}" 659,78 16x16
               text "product" 679,78 49x16
+              el #filter-5 role=button label="Filter product" 736,78 16x16
+                text label="filter" "\u{E60A}" 736,78 16x16
             el 754,74 1x24
             el #column-6 role=columnheader label="quantity" 755,74 79x24 pos=7/12
               text label="number_symbol" "\u{F57C}" 760,78 16x16
@@ -61,10 +85,14 @@ el 0,0 900x520
             el #column-10 role=columnheader label="status" 1215,74 89x24 pos=11/12
               text label="tag" "\u{EC70}" 1219,78 16x16
               text "status" 1239,78 37x16
+              el #filter-10 role=button label="Filter status" 1286,78 16x16
+                text label="filter" "\u{E60A}" 1286,78 16x16
             el 1304,74 1x24
             el #column-11 role=columnheader label="note" 1305,74 179x24 pos=12/12
               text label="text_case_title" "\u{ECEC}" 1309,78 16x16
               text "note" 1329,78 28x16
+              el #filter-11 role=button label="Filter note" 1466,78 16x16
+                text label="filter" "\u{E60A}" 1466,78 16x16
             el 1484,74 1x24
             el #resize-1 role=separator label="Resize customer" 262,74 6x24
             el #resize-2 role=separator label="Resize email" 482,74 6x24

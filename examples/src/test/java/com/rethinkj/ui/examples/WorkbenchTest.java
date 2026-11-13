@@ -53,6 +53,12 @@ class WorkbenchTest {
         "the query's find bar: the O of FROM and the o of orders");
     assertTrue(Snaps.line("workbench", "workbench-edit-menu", "#item-12")
         .contains("label=\"Go to line…\""), "the editor's commands in the Edit menu");
+    assertTrue(Snaps.line("workbench", "workbench-palette", "#option-0")
+        .contains("label=\"File: New query\""), "the menus' commands in the palette");
+    assertTrue(Snaps.line("workbench", "workbench-palette-tables", "#option-0")
+        .contains("label=\"orders.customer_id\""), "a column of orders after @");
+    assertTrue(Snaps.line("workbench", "workbench-palette-light", "#option-1")
+        .contains(" selected"), "the light theme lit and shown");
     assertFalse(Files.exists(Path.of("target/workbench/orders-workbench-docked.png")));
   }
 
@@ -147,6 +153,55 @@ class WorkbenchTest {
     assertTrue(app.tree().dump().contains("Ln 34, Col 10"), "the caret's place in the footer");
     Script.run("size 1000 600\nfocus #" + field + "\nkey Z control\nframe", app, out);
     assertTrue(orders.query.endsWith("0);"), "undo took back the typing from before the switch");
+  }
+
+  /**
+   * The command palette: Control+P finds a table after @ and opens it, : goes to a line of the
+   * active query, the commands of the menus run, and a tab's own window has a palette of its own.
+   */
+  @Test
+  void thePaletteOpensTablesGoesToLinesAndRunsTheMenusCommands() throws IOException {
+    App<Workbench> app = started();
+    Workbench s = app.state();
+    Script.run("size 1000 600\nframe\nkey P control\nframe\ntype \"cust\"\nframe", app, out);
+    assertEquals("@cust", s.palette(s.groups.main()).text());
+    assertTrue(app.tree().dump().contains("label=\"customers\""), "found among the tables");
+    Script.run("size 1000 600\nkey Enter\nframe\nawait\nframe\nadvance 1\nframe", app, out);
+    assertEquals("customers", s.groups.main().activeTab().title(), "the best match opened");
+    assertFalse(s.palette(s.groups.main()).isOpen());
+
+    Workbench.Opened customers = s.groups.main().activeTab();
+    customers.query = "SELECT *\nFROM customers\nLIMIT 3;";
+    Script.run("size 1000 600\nframe\nkey F1\nframe\ntype \":3:4\"\nframe\nkey Enter\nframe",
+        app, out);
+    assertEquals(customers.query.indexOf("LIMIT") + 3, customers.editor.caret(),
+        "line 3, column 4");
+    assertTrue(app.tree().dump().contains("Ln 3, Col 4"), "the footer says so");
+
+    Script.run("size 1000 600\nkey P control shift\nframe\ntype \"light\"\nframe\nkey Enter\n"
+        + "frame", app, out);
+    assertFalse(s.dark, "View: Light theme ran");
+    assertEquals(List.of("View: Light theme"), s.palette(s.groups.main()).recent());
+
+    // A tab in a window of its own: its palette, opened there, acts on its tab.
+    Script.run("""
+        size 1000 600
+        down #tab-1
+        move 380,60
+        move 380,300
+        frame
+        up 380,300
+        frame
+        window customers
+        key F1
+        frame
+        type "close tab"
+        frame
+        key Enter
+        frame
+        """, app, out);
+    assertTrue(s.groups.groups().size() == 1, "File: Close tab closed its last tab, and its window");
+    assertTrue(s.palette(s.groups.main()).recent().size() == 1, "each window has its own");
   }
 
   @Test
