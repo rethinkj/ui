@@ -49,6 +49,7 @@ public final class El {
   private int fill;
   private float radius;
   private int borderColor;
+  private List<Shadow> shadows = List.of();
   private Measure measure;
   private Text text;
   private IntConsumer onPress;
@@ -407,6 +408,27 @@ public final class El {
     style.borderBottom = len;
     style.borderLeft = len;
     this.borderColor = argb;
+    return this;
+  }
+
+  /**
+   * Draws shadows under this element, as CSS's {@code box-shadow} does: each is the element's
+   * rounded rectangle moved, grown and blurred (see {@link Shadow}), drawn right before the
+   * element, so above everything drawn before it, in the clips of the element and at its opacity.
+   * Of several shadows the first lies on top, as in CSS; a tight one and a wide one together look
+   * lifted. A shadow takes no room in the layout and no input, and it shows also
+   * under a translucent fill. It does not spring with {@link #motion}; a look that changes it
+   * changes it at once.
+   *
+   * @param shadows the shadows, replacing those set before; none for no shadow
+   */
+  public El shadow(Shadow... shadows) {
+    return shadow(List.of(shadows));
+  }
+
+  /** As {@link #shadow(Shadow...)}, from a list such as a theme's. */
+  public El shadow(List<Shadow> shadows) {
+    this.shadows = List.copyOf(shadows);
     return this;
   }
 
@@ -1140,6 +1162,11 @@ public final class El {
 
   public float radius() {
     return radius;
+  }
+
+  /** The shadows under this element, the topmost first; empty for none. */
+  public List<Shadow> shadows() {
+    return shadows;
   }
 
   public int borderColor() {

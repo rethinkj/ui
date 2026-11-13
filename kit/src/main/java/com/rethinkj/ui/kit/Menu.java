@@ -202,6 +202,7 @@ public final class Menu {
         .radius(t.radius().medium())
         .fill(t.surface().raised())
         .border(t.size().stroke(), t.border().subtle())
+        .shadow(t.elevation().popup())
         .scroll()
         .scrollbars(t.scrollbars())
         .onKey(k -> key(k, state, items, sub));

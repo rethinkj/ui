@@ -3,6 +3,7 @@ package com.rethinkj.ui.render;
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.Len;
 import com.rethinkj.ui.Scrollbars;
+import com.rethinkj.ui.Shadow;
 import com.rethinkj.ui.Style;
 import com.rethinkj.ui.Text;
 import com.rethinkj.ui.text.Atlas;
@@ -19,10 +20,11 @@ import java.util.List;
  * reads this format. All numbers are 32 bits wide, in the byte order of the machine, and all
  * positions are window coordinates in logical pixels, x to the right and y down.
  *
- * <p>An instance is {@link #STRIDE} bytes, sixteen 4-byte slots, and is one of two kinds, told
- * apart by the u32 at {@link #KIND}: a rounded rectangle ({@link #RECT}, 0) or a glyph ({@link
- * #GLYPH}, 1). Both kinds share one ordered list, so boxes and text overlap in the order of the
- * tree. The byte offsets are the constants below. A rounded rectangle with a fill and a border:
+ * <p>An instance is {@link #STRIDE} bytes, sixteen 4-byte slots, and is one of three kinds, told
+ * apart by the u32 at {@link #KIND}: a rounded rectangle ({@link #RECT}, 0), a glyph ({@link
+ * #GLYPH}, 1) or a shadow ({@link #SHADOW}, 2). All kinds share one ordered list, so boxes, text
+ * and shadows overlap in the order of the tree. The byte offsets are the constants below. A
+ * rounded rectangle with a fill and a border:
  *
  * <pre>
  *  0  x            f32   left edge of the rectangle
@@ -79,6 +81,53 @@ import java.util.List;
  * coverage = mix(dark, light, lightShare) * clip coverage
  * output   = colour * coverage, blended as a rectangle's fill
  * </pre>
+ *
+ * <p>A shadow ({@link El#shadow}): a rounded rectangle blurred with a Gaussian, as one layer of
+ * CSS's {@code box-shadow}. The slots are a rectangle's, with the deviation in place of the border
+ * width and nothing after the colour:
+ *
+ * <pre>
+ *  0  x            f32   left edge of the shape: the element's border box moved by the shadow's
+ *                        offset and grown by its spread
+ *  4  y            f32   top edge
+ *  8  width        f32
+ * 12  height       f32
+ * 16  radius       f32   corner radius; renderers clamp it to half the shorter side
+ * 20  sigma        f32   the Gaussian's standard deviation, half the blur radius, 0 or more
+ * 24  clip         u32   as for a rectangle
+ * 28  kind         u32   2, SHADOW
+ * 32  colour       f32 x 4   r, g, b, a
+ * 48  unused       f32 x 4   0
+ * </pre>
+ *
+ * <p>Its coverage of a pixel is the Gaussian around the pixel's centre integrated over the shape,
+ * with the pixel's own extent added to the blur: a box one physical pixel wide has the variance
+ * 1/12 of a Gaussian, so the deviation is {@code s = sqrt(sigma^2 + 1 / (12 scale^2))}, and a
+ * shadow without blur gets an edge about as soft as a rectangle's. With {@code P(t) = (1 + erf(t /
+ * (s sqrt 2))) / 2}, the Gaussian's mass below {@code t}, the mass of a band of half width {@code
+ * a} around the shape's centre seen from {@code t} is {@code M(t, a) = P(t + a) - P(t - a)}. For a
+ * pixel at {@code x, y} from the centre of a shape of half size {@code w, h} and radius {@code r},
+ * the shape is two boxes crossed, of half sizes {@code w, h - r} and {@code w - r, h}, whose blur
+ * is exact, and four quarter discs at their corners:
+ *
+ * <pre>
+ * coverage = M(x, w) M(y, h - r) + M(x, w - r) M(y, h) - M(x, w - r) M(y, h - r)
+ *          + Q(x - (w - r), y - (h - r)) + Q(-x - (w - r), y - (h - r))
+ *          + Q(x - (w - r), -y - (h - r)) + Q(-x - (w - r), -y - (h - r)),  at most 1
+ * </pre>
+ *
+ * <p>{@code Q(u, v)} is the blur of the quarter disc of radius {@code r} at the origin towards
+ * {@code +x, +y}, from the point {@code u, v}: 0 when the point is more than {@code 3 s} from the
+ * disc's square, else the part of its height from {@code max(v - 3 s, 0)} to {@code min(v + 3 s,
+ * r)} cut into eight slices of equal height, each the Gaussian's exact mass across the slice times
+ * its mass along the disc's extent at the slice's middle height {@code m}: {@code (P(top - v) -
+ * P(bottom - v)) (P(sqrt(r^2 - m^2) - u) - P(-u))}. {@code erf} is Abramowitz and Stegun's 7.1.28,
+ * {@code 1 - (1 + 0.0705230784 a + 0.0422820123 a^2 + 0.0092705272 a^3 + 0.0001520143 a^4 +
+ * 0.0002765672 a^5 + 0.0000430638 a^6)^-16} for {@code a = min(|x|, 4)}, with the sign of {@code
+ * x}: within 3e-7 of it, and with nothing but arithmetic, so that the renderers need no {@code
+ * exp}. Square corners are exact; the slices put rounded ones within 0.006 of the true blur in the
+ * cases {@code ShadowTest} measures. Renderers draw a shadow over its shape grown by {@code 3 s} on
+ * every side and leave out the rest, at most 0.14 % of its colour.
  *
  * <p>Colours are linear and premultiplied by alpha, the opacity of the element and its ancestors
  * included. Blending happens in linear light, as in rune: that is what an sRGB render target does
@@ -140,6 +189,9 @@ import java.util.List;
  * the focused element's border box, with its corner radius grown by as much, drawn after the
  * element and its children and clipped like the element.
  *
+ * <p>An element's shadows come right before its own rectangle, the last of them first, so that the
+ * first lies on top, as in CSS; with the element's clip and opacity.
+ *
  * <p>Overlays ({@link El#overlay}) come after the whole tree, in the order of the root's {@link
  * El#shownOverlays}, each drawn as a tree of its own: from its position in the window, without
  * the clips or the opacity of its anchor's ancestors, with clips of its own. Before an overlay
@@ -166,6 +218,11 @@ public final class Scene {
   public static final int RECT = 0;
   /** The {@link #KIND} of a glyph. */
   public static final int GLYPH = 1;
+  /** The {@link #KIND} of a shadow. */
+  public static final int SHADOW = 2;
+
+  /** The slot of a shadow that differs from a rectangle's: the Gaussian's deviation. */
+  public static final int SIGMA = 20;
 
   // The slots of a glyph that differ from a rectangle's.
   public static final int ATLAS = 16;
@@ -283,6 +340,10 @@ public final class Scene {
     boolean hasBorder = borderWidth > 0 && el.borderColor() >>> 24 != 0;
     boolean inside =
         x < clipRight && x + el.width() > clipX && y < clipBottom && y + el.height() > clipY;
+    List<Shadow> shadows = el.shadows();
+    for (int i = shadows.size() - 1; i >= 0; i--) {
+      shadow(shadows.get(i), x, y, el.width(), el.height(), el.radius(), opacity, clip);
+    }
     if ((el.fill() >>> 24 != 0 || hasBorder) && inside) {
       rect(x, y, el.width(), el.height(), el.radius(), hasBorder ? borderWidth : 0, el.fill(),
           el.borderColor(), opacity, clip);
@@ -323,6 +384,51 @@ public final class Scene {
             0, ringed, opacity, clip);
       }
     }
+  }
+
+  /**
+   * Appends the shadow of the rounded rectangle at {@code x, y}, unless it is empty, transparent
+   * or outside its clip. The spread grows the radius as CSS's does: less where the radius is
+   * smaller than the spread, so that a square corner stays square.
+   */
+  private void shadow(Shadow shadow, float x, float y, float width, float height, float radius,
+      float opacity, int clip) {
+    float spread = shadow.spread();
+    float w = width + 2 * spread;
+    float h = height + 2 * spread;
+    if (shadow.color() >>> 24 == 0 || !(w > 0 && h > 0)) {
+      return;
+    }
+    // shortcut: the shadow shows under a translucent fill, where CSS cuts the element's own shape
+    // out of it; carry the element's rectangle in the unused slots and take its coverage away in
+    // both renderers when an app needs that.
+    float r = Math.clamp(radius, 0, Math.min(width, height) / 2);
+    float ratio = r / spread - 1;
+    float grown = spread > r ? r + spread * (1 + ratio * ratio * ratio) : Math.max(r + spread, 0);
+    float left = x + shadow.x() - spread;
+    float top = y + shadow.y() - spread;
+    float sigma = shadow.blur() / 2;
+    // What the renderers draw: 3 deviations beyond the shape, and the pixel's share of the
+    // deviation and a pixel's margin, under 4 logical pixels at scales from 0.5.
+    float reach = 3 * sigma + 4;
+    float clipX = clipGet(clip, X);
+    float clipY = clipGet(clip, Y);
+    if (left - reach >= clipX + clipGet(clip, WIDTH) || left + w + reach <= clipX
+        || top - reach >= clipY + clipGet(clip, HEIGHT) || top + h + reach <= clipY) {
+      return;
+    }
+    long offset = next();
+    put(offset + X, left);
+    put(offset + Y, top);
+    put(offset + WIDTH, w);
+    put(offset + HEIGHT, h);
+    put(offset + RADIUS, grown);
+    put(offset + SIGMA, sigma);
+    data.set(ValueLayout.JAVA_INT, offset + CLIP, clip);
+    data.set(ValueLayout.JAVA_INT, offset + KIND, SHADOW);
+    colour(offset + FILL, shadow.color(), opacity);
+    colour(offset + BORDER, 0, opacity);
+    count++;
   }
 
   /** The thumb of a scroll area's bar, if it has one, in the area's clip. */

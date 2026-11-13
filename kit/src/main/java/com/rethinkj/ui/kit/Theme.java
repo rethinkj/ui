@@ -1,8 +1,10 @@
 package com.rethinkj.ui.kit;
 
 import com.rethinkj.ui.Scrollbars;
+import com.rethinkj.ui.Shadow;
 import com.rethinkj.ui.motion.Spring;
 import com.rethinkj.ui.text.Font;
+import java.util.List;
 import java.util.function.Supplier;
 
 /**
@@ -25,6 +27,9 @@ import java.util.function.Supplier;
  * {@code col().scroll().scrollbars(theme.scrollbars())}. Their thumbs stand out 3:1 from the
  * surfaces and the grid's rows they lie on.
  *
+ * <p>Menus, a select's list, tooltips and dialogs lie above the rest with the shadows of {@link
+ * #elevation} and keep the subtle border around them.
+ *
  * <p>Colours are 0xAARRGGBB, sizes logical pixels.
  */
 public record Theme(
@@ -39,7 +44,8 @@ public record Theme(
     Sizes size,
     Motion motion,
     Grid grid,
-    Scrollbars scrollbars) {
+    Scrollbars scrollbars,
+    Elevation elevation) {
 
   /**
    * Background layers, from the bottom up, and the overlays that a control lays over its
@@ -183,6 +189,23 @@ public record Theme(
       float rowHeight, float minColumn, float handle, int header, int row, int stripe,
       int selected, int selectedInactive) {}
 
+  /**
+   * The shadows under what lies above the rest ({@link com.rethinkj.ui.El#shadow}), each a tight
+   * one that darkens the edge and a wide one that shows the height, the first on top. A dark theme
+   * needs them stronger and tighter than a light one: a shadow shows little on a dark surface, and
+   * a wide one only greys it.
+   *
+   * @param popup menus, a select's list and tooltips
+   * @param dialog dialogs, above the scrim
+   */
+  public record Elevation(List<Shadow> popup, List<Shadow> dialog) {
+
+    public Elevation {
+      popup = List.copyOf(popup);
+      dialog = List.copyOf(dialog);
+    }
+  }
+
   private static final Spacing SPACE = new Spacing(2, 4, 8, 12, 16, 24);
   private static final Radii RADIUS = new Radii(3, 4, 8);
   private static final Type TYPE =
@@ -207,7 +230,10 @@ public record Theme(
           SIZE,
           MOTION,
           new Grid(22, 32, 6, 0xFF232428, 0xFF1B1C1F, 0xFF1F2023, 0xFF1C3666, 0xFF2B3240),
-          new Scrollbars(6, 2, 3, 24, 0xFF83868F, 0xFFA1A3AA, 0xFFB9BBC1));
+          new Scrollbars(6, 2, 3, 24, 0xFF83868F, 0xFFA1A3AA, 0xFFB9BBC1),
+          new Elevation(
+              List.of(new Shadow(0, 1, 2, 0, 0x73000000), new Shadow(0, 4, 10, 0, 0x66000000)),
+              List.of(new Shadow(0, 2, 4, 0, 0x73000000), new Shadow(0, 8, 24, 0, 0x80000000))));
 
   /** Neutral greys with a blue accent, dark text on light surfaces. */
   public static final Theme LIGHT =
@@ -223,78 +249,87 @@ public record Theme(
           SIZE,
           MOTION,
           new Grid(22, 32, 6, 0xFFF1F2F4, 0xFFFFFFFF, 0xFFF5F6F8, 0xFFCFE0FC, 0xFFE3E6EC),
-          new Scrollbars(6, 2, 3, 24, 0xFF6E717A, 0xFF5C5F66, 0xFF4A4D54));
+          new Scrollbars(6, 2, 3, 24, 0xFF6E717A, 0xFF5C5F66, 0xFF4A4D54),
+          new Elevation(
+              List.of(new Shadow(0, 1, 3, 0, 0x1F000000), new Shadow(0, 6, 16, 0, 0x24000000)),
+              List.of(new Shadow(0, 2, 6, 0, 0x1F000000), new Shadow(0, 16, 40, 0, 0x33000000))));
 
   public Theme withSurface(Surfaces surface) {
     return new Theme(
         surface, text, border, accent, status, space, radius, type, size, motion, grid,
-        scrollbars);
+        scrollbars, elevation);
   }
 
   public Theme withText(TextColors text) {
     return new Theme(
         surface, text, border, accent, status, space, radius, type, size, motion, grid,
-        scrollbars);
+        scrollbars, elevation);
   }
 
   public Theme withBorder(Borders border) {
     return new Theme(
         surface, text, border, accent, status, space, radius, type, size, motion, grid,
-        scrollbars);
+        scrollbars, elevation);
   }
 
   public Theme withAccent(Accent accent) {
     return new Theme(
         surface, text, border, accent, status, space, radius, type, size, motion, grid,
-        scrollbars);
+        scrollbars, elevation);
   }
 
   public Theme withStatus(Status status) {
     return new Theme(
         surface, text, border, accent, status, space, radius, type, size, motion, grid,
-        scrollbars);
+        scrollbars, elevation);
   }
 
   public Theme withSpace(Spacing space) {
     return new Theme(
         surface, text, border, accent, status, space, radius, type, size, motion, grid,
-        scrollbars);
+        scrollbars, elevation);
   }
 
   public Theme withRadius(Radii radius) {
     return new Theme(
         surface, text, border, accent, status, space, radius, type, size, motion, grid,
-        scrollbars);
+        scrollbars, elevation);
   }
 
   public Theme withType(Type type) {
     return new Theme(
         surface, text, border, accent, status, space, radius, type, size, motion, grid,
-        scrollbars);
+        scrollbars, elevation);
   }
 
   public Theme withSize(Sizes size) {
     return new Theme(
         surface, text, border, accent, status, space, radius, type, size, motion, grid,
-        scrollbars);
+        scrollbars, elevation);
   }
 
   public Theme withMotion(Motion motion) {
     return new Theme(
         surface, text, border, accent, status, space, radius, type, size, motion, grid,
-        scrollbars);
+        scrollbars, elevation);
   }
 
   public Theme withGrid(Grid grid) {
     return new Theme(
         surface, text, border, accent, status, space, radius, type, size, motion, grid,
-        scrollbars);
+        scrollbars, elevation);
   }
 
   public Theme withScrollbars(Scrollbars scrollbars) {
     return new Theme(
         surface, text, border, accent, status, space, radius, type, size, motion, grid,
-        scrollbars);
+        scrollbars, elevation);
+  }
+
+  public Theme withElevation(Elevation elevation) {
+    return new Theme(
+        surface, text, border, accent, status, space, radius, type, size, motion, grid,
+        scrollbars, elevation);
   }
 
   /**

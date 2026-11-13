@@ -15,6 +15,7 @@ import com.rethinkj.ui.Examples;
 import com.rethinkj.ui.Examples.Lights;
 import com.rethinkj.ui.Script;
 import com.rethinkj.ui.Scrollbars;
+import com.rethinkj.ui.Shadow;
 import com.rethinkj.ui.gpu.GpuException;
 import com.rethinkj.ui.layout.Flex;
 import com.rethinkj.ui.text.Atlas;
@@ -195,6 +196,9 @@ class GpuRendererTest {
       cases.add(bars("bars-both" + at, scale, false));
       cases.add(bars("bars-both-hovered" + at, scale, true));
       cases.add(scene("transparent" + at, transparent(), 160, 100, scale));
+      // Shadows on light and dark, under text and translucent boxes, cut by rounded clips, at
+      // half opacity, overlapping, wide, sharp and coloured.
+      cases.add(text("shadows" + at, shadows(), 240, 160, scale));
     }
     // Text: 11 to 14 pixels in both fonts, dark on light, light on dark and grey on light, with
     // both renderings, under opacity, cut by rounded clips, overlapping translucent boxes and
@@ -299,6 +303,38 @@ class GpuRendererTest {
         if (!what.equals("the clip left out") || c.name().startsWith("text-clipped")) {
           assertTrue(comparison.beyond() > 50, what + ": " + comparison);
         }
+      }
+    }
+  }
+
+  /**
+   * Changes to the shadow shader that each draw shadows only a little wrong, which the comparison
+   * has to notice: the blur, the pixel's share of it, the corners, their slices and the clip.
+   */
+  static Stream<Arguments> shadowBreaks() {
+    String deviation = "return sqrt(sigma * sigma + 1.0 / (12.0 * globals.scale * globals.scale));";
+    return Stream.of(
+        Arguments.of("the blur a tenth wider", deviation,
+            "return 1.1 * sqrt(sigma * sigma + 1.0 / (12.0 * globals.scale * globals.scale));"),
+        Arguments.of("no share of the pixel in the blur", deviation, "return sigma;"),
+        Arguments.of("square corners", "if radius > 0.0 {", "if radius < 0.0 {"),
+        Arguments.of("slices taken at their top", "let middle = top - step / 2.0;",
+            "let middle = top;"),
+        Arguments.of("the clip left out", "shadow_cover *= clip_coverage(instance.clip, point);",
+            "shadow_cover *= 1.0;"));
+  }
+
+  @ParameterizedTest(name = "{0}")
+  @MethodSource("shadowBreaks")
+  void aWrongShadowShaderIsNoticed(String what, String line, String broken) {
+    String wgsl = GpuRenderer.WGSL.replace(line, broken);
+    assertTrue(!wgsl.equals(GpuRenderer.WGSL), "the shader has no line " + line);
+    try (GpuRenderer wrong = GpuRenderer.create(wgsl)) {
+      for (float scale : new float[] {1, 2}) {
+        Comparison comparison = compare(wrong, text("shadows-broken" + at(scale), shadows(), 240,
+            160, scale), false);
+        System.out.println("GPU with " + what + " vs CPU " + comparison);
+        assertTrue(comparison.beyond() > 50, what + ": " + comparison);
       }
     }
   }
@@ -571,11 +607,14 @@ class GpuRendererTest {
         x1 = Math.min(x1, c.width);
         y1 = Math.min(y1, c.height);
       } else {
-        double left = Math.max(s.get(i, Scene.X), s.clipGet(clip, Scene.X));
-        double top = Math.max(s.get(i, Scene.Y), s.clipGet(clip, Scene.Y));
-        double right = Math.min(s.get(i, Scene.X) + s.get(i, Scene.WIDTH),
+        // A shadow reaches three deviations beyond its shape.
+        double reach = s.getInt(i, Scene.KIND) != Scene.SHADOW ? 0
+            : 3 * CpuRenderer.deviation(s.get(i, Scene.SIGMA), c.scale);
+        double left = Math.max(s.get(i, Scene.X) - reach, s.clipGet(clip, Scene.X));
+        double top = Math.max(s.get(i, Scene.Y) - reach, s.clipGet(clip, Scene.Y));
+        double right = Math.min(s.get(i, Scene.X) + s.get(i, Scene.WIDTH) + reach,
             s.clipGet(clip, Scene.X) + s.clipGet(clip, Scene.WIDTH));
-        double bottom = Math.min(s.get(i, Scene.Y) + s.get(i, Scene.HEIGHT),
+        double bottom = Math.min(s.get(i, Scene.Y) + s.get(i, Scene.HEIGHT) + reach,
             s.clipGet(clip, Scene.Y) + s.clipGet(clip, Scene.HEIGHT));
         x0 = Math.max((int) Math.floor(left * c.scale) - 1, 0);
         y0 = Math.max((int) Math.floor(top * c.scale) - 1, 0);
@@ -992,6 +1031,46 @@ class GpuRendererTest {
       app.frame();
     }
     return scene(name, app.scene(), 160, 100, scale);
+  }
+
+  /**
+   * Shadows, on light at the left and on dark at the right: a card lifted by a tight and a wide
+   * shadow, text over a shadow, translucent boxes over a shadow and with one of their own, a panel
+   * whose rounded clip cuts the shadows of its children, a card at half opacity with a third,
+   * sharp shadow, two cards whose shadows overlap, a wide blur, a sharp one, a coloured glow and a
+   * pill.
+   */
+  private static El shadows() {
+    Shadow tight = new Shadow(0, 1, 3, 0, 0x33000000);
+    Shadow wide = new Shadow(0, 6, 16, 0, 0x29000000);
+    El light = el().absolute(0, 0).size(120, 160).fill(0xFFF5F5F4).children(
+        el().absolute(10.5f, 8.25f).size(46, 30).radius(6).fill(0xFFFFFFFF).shadow(tight, wide)
+            .child(El.text("Karte").fontSize(12).color(0xFF1A1A1A).absolute(6, 8)),
+        El.text("unter Text").fontSize(13).color(0xFF1F2937).absolute(8, 38),
+        el().absolute(66, 8).size(44, 30).radius(15).fill(0x803B82F6)
+            .shadow(new Shadow(2, 3, 8, 1, 0x40000000)),
+        el().absolute(76, 30).size(36, 18).radius(4).fill(0x60EF4444),
+        el().absolute(8, 62).size(104, 40).radius(14).clip().fill(0xFFE7E5E4).children(
+            el().absolute(-6, 12.3f).size(40, 20).radius(5).fill(0xFFFFFFFF)
+                .shadow(new Shadow(0, 4, 12, 2, 0x4D000000)),
+            el().absolute(70, 18).size(40, 30).radius(8).fill(0xFFFAFAF9).shadow(tight, wide)),
+        el().absolute(8, 112).size(40, 36).radius(8).fill(0xFFFFFFFF).opacity(0.5f)
+            .shadow(tight, wide, new Shadow(2.3f, 2.7f, 0, 0, 0x59000000)),
+        el().absolute(56, 110).size(34, 26).radius(6).fill(0xFFFFFFFF).shadow(tight, wide),
+        el().absolute(74.5f, 124.5f).size(34, 26).radius(6).fill(0xFFFFFFFF).shadow(tight, wide));
+    El dark = el().absolute(120, 0).size(120, 160).fill(0xFF1B1C1F).children(
+        el().absolute(12, 10).size(48, 34).radius(8).fill(0xFF2D2E33)
+            .shadow(new Shadow(0, 2, 4, 0, 0x80000000), new Shadow(0, 8, 24, 0, 0x66000000)),
+        El.text("SELECT 1").font(Font.mono()).fontSize(12).color(0xFFE4E5E9).absolute(14, 44),
+        el().absolute(72, 12).size(36, 30).fill(0xFF2D2E33)
+            .shadow(new Shadow(3.3f, 2.6f, 0, 0, 0xFF000000)),
+        el().absolute(14, 70).size(40, 30).radius(10).fill(0xFF26262E)
+            .shadow(new Shadow(0, 0, 18, 2, 0xB33B82F6)),
+        el().absolute(66, 64).size(44, 44).radius(6).fill(0xFF2D2E33)
+            .shadow(new Shadow(0, 10, 60, 0, 0x99000000)),
+        el().absolute(10, 122).size(100, 22).radius(11).fill(0xFF3A3B42)
+            .shadow(new Shadow(0, 3, 6, -1, 0x99000000), new Shadow(-4, 0, 10, 0, 0x4022C55E)));
+    return el().wFull().hFull().children(light, dark);
   }
 
   /** Translucent shapes over nothing: the image keeps their alpha. */
