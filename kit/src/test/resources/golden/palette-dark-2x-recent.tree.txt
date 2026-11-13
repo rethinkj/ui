@@ -1,0 +1,96 @@
+el 0,0 720x400
+  el #titlebar window=drag 0,0 720x32
+    text label="database" "\u{F0D7}" 8,8 16x16
+    el #menubar role=menubar 28,4 167x24
+      el #title-0 role=menuitem label="File" 28,4 38x24 expanded=false
+        text "File" 36,8 22x16
+      el #title-1 role=menuitem label="Edit" 66,4 39x24 expanded=false
+        text "Edit" 74,8 23x16
+      el #title-2 role=menuitem label="View" 105,4 46x24 expanded=false
+        text "View" 113,8 30x16
+      el #title-3 role=menuitem label="Help" 151,4 44x24 expanded=false
+        text "Help" 159,8 28x16
+    el 199,16 433x0
+    el #minimize role=button label="Minimize" window=minimize 636,0 40x32
+      text label="subtract" "\u{EBCF}" 648,8 16x16
+    el #close role=button label="Close" window=close 680,0 40x32
+      text label="dismiss" "\u{F368}" 692,8 16x16
+  el 0,32 720x368
+    text #query role=textbox label="Query" "SELECT * FROM orders" 12,44 696x24
+    text #status "Exported as CSV · wrap" 12,76 696x16
+overlay edge top center gap 36 on 0,0 720x400
+  el #palette role=dialog label="Command palette" 80,36 560x326
+    el 85,41 550x24
+      text #query-2 role=textbox label="Command" "" 85,41 550x24 focused caret 0
+      text label="search" "\u{EA7C}" 89,45 16x16
+    el #options role=listbox label="Commands" 85,69 550x288 rows 0-14/24 thumb-y 627,71 6x142
+      el #group-0 role=group label="Recently used" 85,69 542x24 pos=1/24
+        text "Recently used" 93,75 87x16
+      el #option-1 role=option label="File: Export › CSV" 85,93 542x24 selected pos=2/24
+        el 85,93 542x24
+          el 93,105 16x0
+          text "File: Export › CSV" 117,97 502x16
+      el #group-2 role=group label="Other commands" 85,117 542x24 pos=3/24
+        text "Other commands" 93,123 106x16
+      el #option-3 role=option label="File: New query" 85,141 542x24 pos=4/24
+        el 85,141 542x24
+          el 93,145 16x16
+            text label="add" "\u{F108}" 93,145 16x16
+          text "File: New query" 117,145 450x16
+          text "Ctrl+N" 579,145 40x16
+      el #option-4 role=option label="File: Open…" 85,165 542x24 pos=5/24
+        el 85,165 542x24
+          el 93,169 16x16
+            text label="folder_open" "\u{F42D}" 93,169 16x16
+          text "File: Open…" 117,169 449x16
+          text "Ctrl+O" 578,169 41x16
+      el #option-5 role=option label="File: Save" 85,189 542x24 pos=6/24
+        el 85,189 542x24
+          el 93,193 16x16
+            text label="save" "\u{EA43}" 93,193 16x16
+          text "File: Save" 117,193 451x16
+          text "Ctrl+S" 580,193 39x16
+      el #option-6 role=option label="File: Export › JSON" 85,213 542x24 pos=7/24
+        el 85,213 542x24
+          el 93,225 16x0
+          text "File: Export › JSON" 117,217 502x16
+      el #option-7 role=option label="File: Export › SQL › Inserts" 85,237 542x24 pos=8/24
+        el 85,237 542x24
+          el 93,249 16x0
+          text "File: Export › SQL › Inserts" 117,241 502x16
+      el #option-8 role=option label="File: Export › SQL › Script › Schema" 85,261 542x24 pos=9/24
+        el 85,261 542x24
+          el 93,273 16x0
+          text "File: Export › SQL › Script › Schema" 117,265 502x16
+      el #option-9 role=option label="File: Export › SQL › Script › Schema and data" 85,285 542x24 pos=10/24
+        el 85,285 542x24
+          el 93,297 16x0
+          text "File: Export › SQL › Script › Schema and data" 117,289 502x16
+      el #option-10 role=option label="File: Close" 85,309 542x24 disabled pos=11/24
+        el 85,309 542x24
+          el 93,321 16x0
+          text "File: Close" 117,313 447x16
+          text "Ctrl+W" 576,313 43x16
+      el #option-11 role=option label="File: Quit" 85,333 542x24 pos=12/24
+        el 85,333 542x24
+          el 93,345 16x0
+          text "File: Quit" 117,337 449x16
+          text "Ctrl+Q" 578,337 41x16
+      el #option-12 role=option label="Edit: Undo" 85,357 542x24 pos=13/24
+        el 85,357 542x24
+          el 93,361 16x16
+            text label="arrow_undo" "\u{E126}" 93,361 16x16
+          text "Edit: Undo" 117,361 451x16
+          text "Ctrl+Z" 580,361 39x16
+      el #option-13 role=option label="Edit: Redo" 85,381 542x24 pos=14/24
+        el 85,381 542x24
+          el 93,385 16x16
+            text label="arrow_redo" "\u{E0E4}" 93,385 16x16
+          text "Edit: Redo" 117,385 415x16
+          text "Ctrl+Shift+Z" 544,385 75x16
+      el #option-14 role=option label="Edit: Cut" 85,405 542x24 pos=15/24
+        el 85,405 542x24
+          el 93,409 16x16
+            text label="cut" "\u{F038C}" 93,409 16x16
+          text "Edit: Cut" 117,409 451x16
+          text "Ctrl+X" 580,409 39x16

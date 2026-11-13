@@ -1,0 +1,1 @@
+- A task or handler that runs in the frame a window draws for the system's redraw (when it is exposed or resized) now shows in the other windows of the same state right away; before, they kept showing the old state until something else made them draw.

@@ -113,6 +113,21 @@ final class Win32Shell {
     return applyFrameDark();
   }
 
+  /**
+   * Whether DWM animates the window as it shows, hides, minimizes and restores ({@code
+   * DWMWA_TRANSITIONS_FORCEDISABLED} off or on). A window that opens under the pointer during a
+   * drag turns it off: its open animation would zoom an empty frame in before the first frame.
+   *
+   * @return false if DWM refused it
+   */
+  boolean transitions(boolean on) {
+    try (Arena arena = Arena.ofConfined()) {
+      MemorySegment value = arena.allocateFrom(JAVA_INT, on ? 0 : 1);
+      return Win32.dwmSetWindowAttribute(hwnd, Win32.DWMWA_TRANSITIONS_FORCEDISABLED, value)
+          == Win32.S_OK;
+    }
+  }
+
   private boolean applyFrameDark() {
     try (Arena arena = Arena.ofConfined()) {
       MemorySegment value = arena.allocateFrom(JAVA_INT, frameDark ? 1 : 0);
@@ -203,7 +218,7 @@ final class Win32Shell {
       Window window = Window.failed() ? null : Window.byId((int) data);
       Win32Shell shell = window == null ? null : window.shell();
       if (shell != null) {
-        shell.message(message);
+        shell.message(message, wParam);
       }
     } catch (Throwable t) {
       Window.fail(t);
@@ -211,7 +226,15 @@ final class Win32Shell {
     return result;
   }
 
-  private void message(int message) {
+  private void message(int message, long wParam) {
+    if (message == Win32.WM_CHAR) {
+      window.systemChar((char) wParam); // what SDL dropped while text input was off
+      return;
+    }
+    if (message == Win32.WM_KEYDOWN && wParam == Win32.VK_PACKET) {
+      window.packetKey(); // its character, which follows, belongs to no key SDL reported
+      return;
+    }
     if (message == taskbarButtonCreated && taskbarButtonCreated != 0) {
       buttonCreated = true;
       if (icon != null) {

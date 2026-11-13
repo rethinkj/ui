@@ -24,6 +24,8 @@ import com.rethinkj.ui.kit.Breadcrumb;
 import com.rethinkj.ui.kit.Menu;
 import com.rethinkj.ui.kit.Popover;
 import com.rethinkj.ui.kit.Toolbar;
+import com.rethinkj.ui.kit.ComboBox;
+import com.rethinkj.ui.kit.CommandPalette;
 import com.rethinkj.ui.kit.Select;
 import com.rethinkj.ui.kit.Split.Position;
 import com.rethinkj.ui.kit.Symbol;
@@ -74,7 +76,8 @@ public final class Showcase {
     BUTTONS("Buttons", "Buttons, toggles and checkboxes, at rest and in their states.",
         Symbol.CIRCLE),
     FIELDS("Text fields", "Fields in their states, and a form with selects.", Symbol.TEXT_T),
-    MENUS("Menus and overlays", "A dropdown, a context menu, tooltips and a dialog.",
+    MENUS("Menus and overlays",
+        "A dropdown, a context menu, tooltips, a dialog, combo boxes and the command palette.",
         Symbol.NAVIGATION),
     GRID("Data grid", "A result set: numbers, dates, NULLs, long text, two sort keys.",
         Symbol.TABLE),
@@ -137,6 +140,11 @@ public final class Showcase {
 
   // Menus and overlays
   final Menu.State options = new Menu.State();
+  final ComboBox.State schemaBox = new ComboBox.State();
+  int schema = 0;
+  final ComboBox.State hostBox = new ComboBox.State();
+  String recentHost = "db.staging.internal";
+  final CommandPalette.State palette = new CommandPalette.State();
   final Menu.State context = new Menu.State();
   boolean lineNumbers = true;
   boolean wordWrap;
@@ -358,6 +366,8 @@ public final class Showcase {
             .gap(t.space().m())
             .child(sidebar)
             .child(Sections.section(s, t)));
-    return root.overlay(Sections.dialog(s, t));
+    return root.onKey(CommandPalette.keys(s.palette))
+        .overlay(Sections.dialog(s, t))
+        .overlay(Sections.palette(s, t));
   }
 }

@@ -73,6 +73,25 @@ snap context
 key Escape
 frame
 
+press #schema-box             # the combo box of schemas: its field, the list filtered as typed
+frame
+type "cn"                     # customer_notes, then the others with a c and an n
+frame
+advance 1
+frame
+snap combobox
+key Enter
+frame
+press #open-palette           # the command palette: the console's options as commands
+frame
+type "wrap"
+frame
+advance 1
+frame
+snap palette
+key Escape
+frame
+
 press #rename                 # the modal dialog over its scrim, the focus in its field
 frame
 advance 1

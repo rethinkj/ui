@@ -1,0 +1,32 @@
+el 0,0 720x400
+  el #titlebar window=drag 0,0 720x32
+    text label="database" "\u{F0D7}" 8,8 16x16
+    el #menubar role=menubar 28,4 167x24
+      el #title-0 role=menuitem label="File" 28,4 38x24 expanded=false
+        text "File" 36,8 22x16
+      el #title-1 role=menuitem label="Edit" 66,4 39x24 expanded=false
+        text "Edit" 74,8 23x16
+      el #title-2 role=menuitem label="View" 105,4 46x24 expanded=false
+        text "View" 113,8 30x16
+      el #title-3 role=menuitem label="Help" 151,4 44x24 expanded=false
+        text "Help" 159,8 28x16
+    el 199,16 433x0
+    el #minimize role=button label="Minimize" window=minimize 636,0 40x32
+      text label="subtract" "\u{EBCF}" 648,8 16x16
+    el #close role=button label="Close" window=close 680,0 40x32
+      text label="dismiss" "\u{F368}" 692,8 16x16
+  el 0,32 720x368
+    text #query role=textbox label="Query" "SELECT * FROM orders" 12,44 696x24
+    text #status "Exported as CSV · wrap" 12,76 696x16
+overlay edge top center gap 36 on 0,0 720x400
+  el #palette role=dialog label="Command palette" 80,36 560x62
+    el 85,41 550x24
+      text #query-2 role=textbox label="Command" "@ord" 85,41 550x24 focused caret 4
+      text label="search" "\u{EA7C}" 89,45 16x16
+    el #options role=listbox label="Commands" 85,69 550x24 rows 0-0/1
+      el #option-0 role=option label="orders" 85,69 550x24 selected pos=1/1
+        el 85,69 550x24
+          el 93,73 16x16
+            text label="table" "\u{EBF4}" 93,73 16x16
+          text "orders" 117,73 387x16
+          text "shop.public.orders" 512,73 115x16
