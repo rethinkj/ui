@@ -12,6 +12,7 @@ import com.rethinkj.ui.El;
 import com.rethinkj.ui.Key;
 import com.rethinkj.ui.Len;
 import com.rethinkj.ui.Measure;
+import com.rethinkj.ui.Scrollbars;
 import com.rethinkj.ui.Style;
 import com.rethinkj.ui.Text;
 import java.util.ArrayList;
@@ -65,8 +66,13 @@ import java.util.function.IntPredicate;
  * it as a further key; dragging the right edge of a header cell resizes its column, and a double
  * press on it fits the column to the text of its rows that exist. A cell's text that is wider
  * than its column ends in an ellipsis and shows whole in a tooltip. Scrollbars ({@link
- * Theme#scrollbars}) show where the rows and columns in view are. Like a list of rows, the grid
- * needs a height of its own or room to {@link El#grow}.
+ * Theme#scrollbars}) show where the rows and columns in view are: one along the right edge of the
+ * rows, below the header, and one along the bottom of the grid. They lie over the rows, and the
+ * grid scrolls far enough to bring the last row and the last column out from under them: the rows
+ * past the bar along the bottom, and the columns past the rows' bar, for which the header and the
+ * rows have the room of that bar after the last column; the rows and columns that follow the
+ * cursor stop clear of both bars too. Like a list of rows, the grid needs a height of its own or
+ * room to {@link El#grow}.
  *
  * <p>In a tree dump the grid is {@code role=grid}, its header cells {@code role=columnheader}
  * with the title as label, the key {@code column-<index>}, their position among the columns and
@@ -512,6 +518,9 @@ public final class DataGrid {
     final int frozen;
     final float numbers; // the width of the row numbers, 0 without
     final float[] xs; // the left of each column in the content, and the right of the last
+    // After the last column, the strip of the rows' bar, which lies over the right end of the rows
+    // in view: scrolled to the end, the last column is clear of it.
+    final float room;
     final boolean[] focused = {false}; // the grid has the focus, as its focus look found
     El grid;
     El body;
@@ -533,6 +542,8 @@ public final class DataGrid {
         x += columns.get(c).width();
       }
       xs[columns.size()] = x;
+      Scrollbars bars = t.scrollbars();
+      this.room = bars.thickness() + 2 * bars.margin();
     }
 
     float fixedWidth() {
@@ -568,7 +579,8 @@ public final class DataGrid {
     }
 
     El under = el().h(t.size().stroke()).shrink(0).fill(t.border().subtle());
-    El content = col().key("content").w(b.xs[columns.size()]).children(header, under, body);
+    El content = col().key("content").w(b.xs[columns.size()] + b.room)
+        .children(header, under, body);
     content.style().minWidth = Len.percent(1); // the rows reach across a grid wider than them
     // Header and rows scroll sideways together in the grid; the rows scroll up and down alone.
     El grid = row().role("grid").scrollBoth().scrollbars(t.scrollbars()).fill(g.row())
@@ -936,12 +948,13 @@ public final class DataGrid {
     float fixed = b.fixedWidth();
     if (sel.edgeColumn >= b.frozen && sel.edgeColumn < n) {
       float edge = b.xs[sel.edgeColumn + 1];
-      b.grid.reveal(sel.moves, edge - fixed - b.g.handle(), 0, fixed + 2 * b.g.handle(), 0);
+      b.grid.reveal(sel.moves, edge - fixed - b.g.handle(), 0,
+          fixed + 2 * b.g.handle() + b.room, 0);
     } else if (sel.start) {
       b.grid.reveal(sel.moves, 0, 0, fixed, 0);
     } else if (b.cells && sel.column() >= b.frozen && sel.column() < n) {
-      float left = b.xs[sel.column()] - fixed; // clear of the frozen part
-      b.grid.reveal(sel.moves, left, 0, b.xs[sel.column() + 1] - left, 0);
+      float left = b.xs[sel.column()] - fixed; // clear of the frozen part and the rows' bar
+      b.grid.reveal(sel.moves, left, 0, b.xs[sel.column() + 1] + b.room - left, 0);
     }
   }
 

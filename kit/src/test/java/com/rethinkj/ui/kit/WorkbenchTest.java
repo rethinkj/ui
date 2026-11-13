@@ -62,7 +62,7 @@ class WorkbenchTest {
     run(app, "down 400,214\nmove 400,114\nup 400,114\nframe"); // the editor's line
     assertEquals(Position.share(85 / 370f), w.editor);
     assertEquals(29 + 85 - 3, y(app, labelled(app, "Resize Query")), "the editor's box is 85");
-    assertEquals(104, labelled(app, "Query").height(), "its text is taller, and clipped");
+    assertEquals(85, labelled(app, "Query").height(), "as its box; its taller text is clipped");
     assertEquals(260, labelled(app, "Schema").width(), "the schema keeps its width");
   }
 

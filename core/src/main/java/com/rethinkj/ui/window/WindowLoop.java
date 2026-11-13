@@ -33,11 +33,18 @@ import java.util.Objects;
  * window asks for a {@link WindowEvent.Redraw}, or when the presenter could not show the last frame
  * ({@link Presenter#pending}). An idle window waits for events and does nothing else, except for
  * waking when the caret of a focused text field blinks ({@link App#nextChange}), which it does only
- * while the window is active ({@link App#windowActive}), and when another thread {@link App#post
- * posts} a task: the post pushes an event that ends the wait at once, the tasks that arrived
- * until the frame takes them run in that one frame, and a thread that posts nothing costs
- * nothing. While something moves, the loop advances the app's clock by the time that passed and
- * draws a frame per refresh of the display.
+ * while the window is active ({@link App#windowActive}), when an action the app asked for with
+ * {@link App#after} is due, and when another thread {@link App#post posts} a task: the post pushes
+ * an event that ends the wait at once, the tasks that arrived until the frame takes them run in
+ * that one frame, and a thread that posts nothing costs nothing. While something moves, the loop
+ * advances the app's clock by the time that passed and draws a frame per refresh of the display.
+ *
+ * <p>Input, and a task posted, that arrives less than a refresh after the last frame drawn waits
+ * for that refresh, and whatever else arrives meanwhile goes into the same frame: a fast wheel, a
+ * drag or a stream of tasks draws one frame per refresh, not one per event. Presenting does not
+ * pace the loop where the display does not hold back a frame, as on a machine whose display is
+ * virtual, and frames the display replaces before it shows them cost processor and graphics time
+ * for nothing. Input or a task after a pause of a refresh or more is drawn at once.
  *
  * <p>The loop also gives the app the system's clipboard ({@link App#clipboard}) and its fonts for
  * characters that the app's fonts lack ({@link App#systemFonts}, unless {@link #systemFonts} turned
@@ -92,8 +99,11 @@ public final class WindowLoop {
   private float scale = -1;
   private long clock;
   private long presented;
+  private long started; // when the last frame presented began to be built
   private long frameNanos;
   private boolean systemFonts = true;
+  // Input or a posted task arrived that no frame has handled yet; posts set it on their thread.
+  private volatile boolean input;
 
   public WindowLoop(Window window, App<?> app, Presenter presenter) {
     this.window = Objects.requireNonNull(window, "window");
@@ -145,11 +155,21 @@ public final class WindowLoop {
     app.systemFonts(systemFonts);
     window.listener(this::event);
     window.parts(app::windowPart);
-    app.onPost(Window::wake); // a task from another thread ends the wait below
+    app.onPost(() -> { // a task from another thread ends the wait below
+      input = true;
+      Window.wake();
+    });
     try {
       clock = System.nanoTime();
       refreshRate();
       while (running && window.isOpen()) {
+        long early = holdBack(System.nanoTime() - started, frameNanos, input);
+        if (early > 0) { // more input may come before the frame can be shown
+          // A post ends this wait early, and the next turn waits for the rest of the refresh.
+          Window.waitEvents(Math.max(1, (early + 999_999) / 1_000_000));
+          continue;
+        }
+        input = false;
         draw(false);
         if (!running || !window.isOpen()) {
           break;
@@ -174,6 +194,17 @@ public final class WindowLoop {
     }
   }
 
+  /**
+   * How long input waits before the loop draws it, in nanoseconds: until a refresh has passed since
+   * the last frame drawn, or 0 to draw at once.
+   *
+   * @param sinceFrame the time since the building of the last frame drawn began
+   * @param input whether input or a posted task arrived since then that no frame has handled
+   */
+  static long holdBack(long sinceFrame, long frameNanos, boolean input) {
+    return input ? Math.max(frameNanos - sinceFrame, 0) : 0;
+  }
+
   /** Ends {@link #run} after the event it handles now. This may be called on any thread. */
   public void stop() {
     running = false;
@@ -188,6 +219,11 @@ public final class WindowLoop {
     WindowListener current = listener;
     if (current != null) {
       current.event(event);
+    }
+    if (event instanceof PointerDown || event instanceof PointerUp || event instanceof PointerMove
+        || event instanceof PointerLeave || event instanceof Wheel || event instanceof KeyDown
+        || event instanceof KeyUp || event instanceof TextInput || event instanceof TextEditing) {
+      input = true;
     }
     switch (event) {
       case PointerDown down when down.button() == PointerButton.LEFT ->
@@ -226,6 +262,7 @@ public final class WindowLoop {
     if (app.frame() || always || presenter.pending()) {
       presenter.present(app.scene(), width, height, scale);
       presented = System.nanoTime();
+      started = now;
     }
     window.cursor(app.cursor());
     App.InputArea area = app.inputArea();

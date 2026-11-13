@@ -8,9 +8,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import com.rethinkj.ui.Examples.Lights;
 import com.rethinkj.ui.text.TextLibraries;
 import com.rethinkj.ui.text.TextRendering;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 class AppTest {
 
@@ -34,6 +36,83 @@ class AppTest {
     app.resize(200, 120, 2);
     app.frame();
     Golden.assertMatches("switch-on", app.render().pixels(), app.render().tree());
+  }
+
+  @Test
+  void anActionRunsInTheFirstFrameOnceTheClockReachesItsTime() {
+    List<String> log = new ArrayList<>();
+    int[] views = {0};
+    App<List<String>> app = new App<>(log, l -> {
+      views[0]++;
+      return el().size(10, 10);
+    });
+    app.resize(100, 100, 1);
+    app.frame();
+    assertEquals(Double.POSITIVE_INFINITY, app.nextChange());
+
+    app.after(1.5, () -> log.add("later"));
+    app.after(0.5, () -> {
+      log.add("first");
+      app.after(0, () -> log.add("asked by first"));
+    });
+    app.after(0.5, () -> log.add("second"));
+    assertEquals(0.5, app.nextChange());
+    app.windowActive(false); // input, which waits in the queue for the next frame
+    assertFalse(app.frame(), "nothing to draw");
+    assertEquals(0.5, app.nextChange(), "also while the window is inactive");
+    app.advance(0.4);
+    assertFalse(app.frame(), "not due yet");
+    assertEquals(List.of(), log);
+
+    app.advance(0.1);
+    assertTrue(app.frame());
+    assertEquals(List.of("first", "second"), log, "in the order asked for");
+    assertEquals(3, views[0], "built again before the second, as for the next input, and after");
+    assertEquals(0.5, app.nextChange(), "what the first asked for is due now");
+    assertTrue(app.frame());
+    assertEquals(List.of("first", "second", "asked by first"), log);
+    assertEquals(1.5, app.nextChange());
+
+    app.advance(10);
+    app.frame();
+    assertEquals(List.of("first", "second", "asked by first", "later"), log, "once each");
+    assertEquals(Double.POSITIVE_INFINITY, app.nextChange());
+    assertFalse(app.frame());
+  }
+
+  @Test
+  void aDueActionRunsAfterTheInputAndTheTasksThatCameBeforeItsFrame() {
+    List<String> log = new ArrayList<>();
+    App<List<String>> app = new App<>(log, l -> el().size(10, 10).onKey(k -> {
+      log.add("key " + k.name() + " sees " + l.size());
+      return true;
+    }));
+    app.resize(100, 100, 1);
+    app.frame();
+    app.after(1, () -> log.add("action"));
+    app.advance(1); // due from here; the frame below is the first to begin at its time
+    app.post(() -> log.add("task"));
+    app.keyDown(new Key("A", 0, false)); // without focus, the root gets it
+    app.post(() -> log.add("second task"));
+    assertEquals(1, app.nextChange());
+    app.frame();
+    assertEquals(List.of("task", "key A sees 1", "second task", "action"), log,
+        "the input and the tasks in the order they came, then the action");
+  }
+
+  @Test
+  void aScriptRunsAnActionWithAdvanceAndFrameAndItsAwaitDoesNotWaitForIt(@TempDir Path out)
+      throws Exception {
+    List<String> log = new ArrayList<>();
+    App<List<String>> app = new App<>(log, l -> el().size(10, 10));
+    Script.run("size 100 100\nframe", app, out);
+    app.after(0.5, () -> log.add("later"));
+    long start = System.nanoTime();
+    Script.run("size 100 100\nawait 5\nframe\nadvance 0.4\nframe", app, out);
+    assertTrue(System.nanoTime() - start < 2_000_000_000L, "await waited for no action");
+    assertEquals(List.of(), log, "not due yet");
+    Script.run("size 100 100\nadvance 0.1\nframe", app, out);
+    assertEquals(List.of("later"), log);
   }
 
   @Test

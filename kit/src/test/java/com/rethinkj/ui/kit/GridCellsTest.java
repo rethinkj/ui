@@ -131,7 +131,9 @@ class GridCellsTest {
     assertEquals(5, s.column());
     run(app, "move 720,100\nframe");
     assertEquals(6, s.column());
-    assertEquals(964 - 544, find(app, "orders").scrollX(), "the last column whole");
+    // 964 pixels of columns and the 10 of the rows' bar after them.
+    assertEquals(974 - 544, find(app, "orders").scrollX(),
+        "the last column whole, clear of the rows' bar");
     run(app, "up 720,100\nframe");
     assertEquals(new Range(2, 1, s.row(), 6), s.ranges().getFirst());
     assertEquals(1, s.ranges().size());
@@ -158,7 +160,8 @@ class GridCellsTest {
     assertEquals(List.of(new Range(3, 0, 3, 0)), s.ranges(), "the first column of the row");
     run(app, "key End\nframe");
     assertEquals(List.of(3, 6), List.of(s.row(), s.column()));
-    assertEquals(964 - 544, find(app, "orders").scrollX(), "the last column scrolled into view");
+    assertEquals(974 - 544, find(app, "orders").scrollX(),
+        "the last column scrolled into view, clear of the rows' bar");
     run(app, "key Home control\nframe");
     assertEquals(List.of(0, 0), List.of(s.row(), s.column()));
     assertEquals(0, find(app, "orders").scrollX());

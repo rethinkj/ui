@@ -24,6 +24,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.LockSupport;
 import java.util.function.BooleanSupplier;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -180,6 +181,55 @@ class WindowLoopTest {
   }
 
   @Test
+  void inputFasterThanTheDisplayIsDrawnOncePerRefresh() throws InterruptedException {
+    try (Window window = Window.open(TITLE, 240, 200)) {
+      Desktop.settle();
+      App<Object> app = new App<>(new Object(), s -> Examples.list());
+      List<Long> times = new ArrayList<>();
+      AtomicInteger steps = new AtomicInteger();
+      // A presenter that shows nothing and never waits, as where the display holds nothing back,
+      // and input that never stops: each frame drawn brings three more wheel steps, which scroll
+      // down and up so that each frame has something new.
+      WindowLoop loop = new WindowLoop(window, app, (scene, w, h, s) -> {
+        times.add(System.nanoTime());
+        for (int i = 0; i < 3; i++) {
+          Desktop.wheel(window, 0, steps.getAndIncrement() % 2 == 0 ? -0.1f : 0.1f, 120, 100);
+        }
+      });
+      Thread stopper = Thread.ofPlatform().start(() -> {
+        try {
+          Thread.sleep(600);
+        } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
+        }
+        loop.stop();
+      });
+      loop.run();
+      stopper.join();
+
+      float hertz = window.refreshRate();
+      double refresh = 1e9 / (hertz >= 20 && hertz <= 1000 ? hertz : 60);
+      double seconds = (times.getLast() - times.getFirst()) / 1e9;
+      assertTrue(times.size() > 10, "frames drawn: " + times.size());
+      assertTrue(times.size() - 1 <= seconds * 1e9 / refresh + 1,
+          times.size() + " frames in " + seconds + " s, one refresh " + refresh / 1e6 + " ms");
+      for (int i = 2; i < times.size(); i++) {
+        assertTrue(times.get(i) - times.get(i - 1) >= refresh / 2, // the building of frames varies
+            "frame " + i + " " + (times.get(i) - times.get(i - 1)) / 1e6 + " ms after the last");
+      }
+    }
+  }
+
+  @Test
+  void inputWaitsForTheRefreshAfterTheLastFrameAndInputAfterAPauseNot() {
+    long refresh = 16_000_000;
+    assertEquals(10_000_000, WindowLoop.holdBack(6_000_000, refresh, true));
+    assertEquals(0, WindowLoop.holdBack(16_000_000, refresh, true), "a refresh has passed");
+    assertEquals(0, WindowLoop.holdBack(500_000_000, refresh, true), "after a pause");
+    assertEquals(0, WindowLoop.holdBack(6_000_000, refresh, false), "no input: nothing waits");
+  }
+
+  @Test
   void aFrameThePresenterCouldNotShowIsOfferedAgainUntilItIsShown() throws InterruptedException {
     try (Window window = Window.open(TITLE, 200, 120)) {
       Desktop.settle();
@@ -301,6 +351,72 @@ class WindowLoopTest {
       System.out.printf(Locale.ROOT, "WindowLoopTest: a post ran after %.2f ms and was presented"
           + " after %.2f ms%n", ran, shown);
       assertTrue(ran < 100, "the task ran after " + ran + " ms");
+    }
+  }
+
+  /**
+   * Input right after a frame waits for the refresh, and a task that another thread posts
+   * meanwhile ends that wait early but goes into the frame of that refresh: not into one of its
+   * own before it, not later. Then nothing more is drawn.
+   */
+  @Test
+  void aTaskPostedWhileInputWaitsForTheRefreshIsDrawnInThatRefresh() throws InterruptedException {
+    try (Window window = Window.open(TITLE, 200, 120)) {
+      Desktop.settle();
+      int[] count = new int[1];
+      App<int[]> app = new App<>(count, c -> el().wFull().hFull().fill(0xFF000000 | c[0]));
+      List<long[]> frames = new CopyOnWriteArrayList<>(); // when presented, and the count shown
+      CountDownLatch drawn = new CountDownLatch(1);
+      WindowLoop loop = new WindowLoop(window, app, (scene, w, h, s) -> {
+        frames.add(new long[] {System.nanoTime(), count[0]});
+        if (count[0] == 1) { // input right after this frame, which has to wait
+          Desktop.wheel(window, 0, -0.1f, 100, 60);
+          drawn.countDown();
+        }
+      });
+      float hertz = window.refreshRate();
+      long refresh = (long) (1e9 / (hertz >= 20 && hertz <= 1000 ? hertz : 60));
+      long[] posted = new long[1];
+      int[] after = new int[1];
+      Thread poster = Thread.ofPlatform().start(() -> {
+        sleep(300); // a pause: the first task is drawn at once
+        app.post(() -> count[0] = 1);
+        try {
+          drawn.await(2, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
+        }
+        LockSupport.parkNanos(refresh / 4); // while the wheel waits for the refresh
+        posted[0] = System.nanoTime();
+        app.post(() -> count[0] = 2);
+        sleep(300);
+        after[0] = frames.size();
+        sleep(300);
+        loop.stop();
+      });
+      loop.run();
+      poster.join();
+
+      int first = -1;
+      for (int i = 0; i < frames.size(); i++) {
+        if (frames.get(i)[1] == 1) {
+          first = i;
+          break;
+        }
+      }
+      assertTrue(first >= 0, "the first task was drawn");
+      assertEquals(first + 2, frames.size(), "one frame for each task, then nothing");
+      long[] task = frames.get(first + 1);
+      assertEquals(2, task[1], "the frame after the first shows the second task");
+      double gap = (task[0] - frames.get(first)[0]) / 1e6;
+      System.out.printf(Locale.ROOT, "WindowLoopTest: a task posted %.2f ms into a refresh of"
+          + " %.2f ms that input waited for was drawn %.2f ms after the frame before%n",
+          (posted[0] - frames.get(first)[0]) / 1e6, refresh / 1e6, gap);
+      assertTrue(gap >= refresh / 2e6, "it waited for the refresh: " + gap + " ms");
+      if (posted[0] - frames.get(first)[0] < refresh) { // the post came while the input waited
+        assertTrue(gap < 2 * refresh / 1e6, "and no longer: " + gap + " ms");
+      }
+      assertEquals(frames.size(), after[0], "the loop does not spin");
     }
   }
 
