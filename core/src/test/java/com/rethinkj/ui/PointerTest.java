@@ -352,4 +352,27 @@ class PointerTest {
     }
     return null;
   }
+
+  @Test
+  void aRebuildThatMovesOtherElementsUnderTheStillPointerMovesTheHoverLookToThem() {
+    boolean[] pushed = {false};
+    App<Object> app = new App<>(new Object(), s -> El.col().wFull().hFull()
+        .onKey(k -> pushed[0] = true)
+        .children(
+            el().key("spacer").h(pushed[0] ? 40 : 0).shrink(0),
+            el().key("a").h(40).shrink(0).fill(GREY).whenHovered(e -> e.fill(BLUE)),
+            el().key("b").h(40).shrink(0).fill(GREY).whenHovered(e -> e.fill(BLUE))));
+    app.resize(100, 200, 1);
+    app.frame();
+    app.pointerMove(50, 60);
+    app.frame();
+    assertEquals(BLUE, find(app, "b").fill());
+
+    app.keyDown(new Key("Space")); // a key, not the pointer, moves a under it
+    assertTrue(app.frame());
+    assertEquals(BLUE, find(app, "a").fill(), "the look is where the pointer is now");
+    assertEquals(GREY, find(app, "b").fill());
+    assertEquals("a", app.hovered().key());
+    assertFalse(app.frame(), "and nothing is left to do: an idle window would show this");
+  }
 }

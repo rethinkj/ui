@@ -928,17 +928,24 @@ public final class App<S> {
     stale |= !wanted(path, ids).equals(shown);
     boolean drawn = true;
     if (stale) {
-      El built = view.apply(state);
-      shown = applyLooks(built, ids);
-      root = built;
-      attachEditors(root, new ArrayList<>()); // before layout, which shows a composition
-      El.scaleText(root, scale);
-      Flex.layout(root, width, height);
-      animator.update(root, time);
-      lookIds = ids;
-      fillRows();
-      refocus();
-      lookIds = null;
+      // Twice when the first build moved other elements under the pointer, as a key that scrolls
+      // a list does: the looks are those of what the pointer is over in the tree on screen.
+      for (int pass = 0; pass < 2 && stale; pass++) {
+        El built = view.apply(state);
+        shown = applyLooks(built, ids);
+        root = built;
+        attachEditors(root, new ArrayList<>()); // before layout, which shows a composition
+        El.scaleText(root, scale);
+        Flex.layout(root, width, height);
+        animator.update(root, time);
+        lookIds = ids;
+        fillRows();
+        refocus();
+        lookIds = null;
+        path = pointed();
+        ids = Animator.identities(path);
+        stale = !wanted(path, ids).equals(shown);
+      }
       laidOut = true;
       stale = false;
     } else if (animator.isMoving()) {
