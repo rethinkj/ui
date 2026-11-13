@@ -58,6 +58,7 @@ public final class El {
   private Consumer<Drag> onDrag;
   private int revealRow = -1;
   private boolean focusable;
+  private boolean keepFocusOnPress;
   private Integer focusRing;
   private Predicate<Key> onKey;
   private Predicate<Key> onKeyUp;
@@ -853,6 +854,42 @@ public final class El {
     return this;
   }
 
+  /** Masks an {@link #editable} field, as {@link #masked(boolean) masked(true)} does. */
+  public El masked() {
+    return masked(true);
+  }
+
+  /**
+   * Whether an {@link #editable} field shows its string as one mask character per grapheme, a
+   * bullet unless {@link #maskCharacter} sets another, as a field for a password does. The string
+   * still belongs to the app, and the caret and the selection stop between its graphemes, each at
+   * its mask character. Copy and cut do nothing, paste works, and the keys and presses that go by
+   * words take the whole string as one word. Nothing outside the app's state and the field's
+   * editing state holds the string: the tree dump, selectors and error messages see the mask
+   * ({@link Text#string}), the fonts shape only the mask, and an input method's composition is
+   * masked too. The dump shows the field's state {@code password}, and the caret and the anchor
+   * as positions in the mask; {@link App#inputArea} tells the window, which asks the system for
+   * a password's input.
+   *
+   * <p>The view sets this on every build, so an app shows the string by building the field with
+   * {@code masked(false)}; caret, selection, scroll and undo history stay, as they belong to the
+   * field's identity. A field that is not masked is an ordinary field, which copies and shows its
+   * words.
+   */
+  public El masked(boolean masked) {
+    editableOnly("masked").masked(masked);
+    return this;
+  }
+
+  /**
+   * The character a {@link #masked} field shows for each grapheme of its string, {@link Text#MASK}
+   * unless set: one that stands alone, such as {@code '*'}, and that the field's font has.
+   */
+  public El maskCharacter(int codePoint) {
+    editableOnly("maskCharacter").mask(codePoint);
+    return this;
+  }
+
   /**
    * The text an {@link #editable} field shows while its string is empty, in its own colour.
    *
@@ -990,6 +1027,18 @@ public final class El {
    */
   public El focusable() {
     this.focusable = true;
+    return this;
+  }
+
+  /**
+   * Leaves the keyboard focus where it is when a press lands on this element or inside it, before
+   * a focusable element around the point: the press neither takes the focus nor gives it to this
+   * element, as Swing's {@code setRequestFocusEnabled(false)} does. For a button inside a text
+   * field, such as the one that shows a password: pressing it leaves the caret in the field. Tab
+   * still reaches it when it is {@link #focusable}, and Enter and Space press it there.
+   */
+  public El keepFocusOnPress() {
+    this.keepFocusOnPress = true;
     return this;
   }
 
@@ -1463,6 +1512,11 @@ public final class El {
    */
   public boolean isFocusable() {
     return focusable || editable && (onEdit != null || readOnly);
+  }
+
+  /** Whether a press on this element leaves the focus where it is; see {@link #keepFocusOnPress}. */
+  public boolean keepsFocusOnPress() {
+    return keepFocusOnPress;
   }
 
   /** The colour set with {@link #focusRing(int)}, or null if none was and the app's applies. */
@@ -2129,7 +2183,8 @@ public final class El {
    * line ends with the element's rectangle in window coordinates, as {@code x,y widthxheight}, as
    * shown, that is, moved by the scroll offsets above it. The states the view set follow, those
    * that are set, in this order: {@code disabled} (also a field that {@link #editable
-   * editable(null)} disables), {@code readonly} (a {@link #readOnly} field), {@code selected},
+   * editable(null)} disables), {@code readonly} (a {@link #readOnly} field), {@code password} (a
+   * {@link #masked} field, as UI Automation's {@code IsPassword}), {@code selected},
    * {@code current}, {@code checked}, {@code checked=false} or {@code checked=mixed}, {@code expanded} or {@code
    * expanded=false}, {@code level=2}, {@code pos=3/10} (the position in the set and its size),
    * {@code sort=ascending} or {@code sort=descending}, and {@code value="..."}, as in {@code el
@@ -2147,7 +2202,8 @@ public final class El {
    * starts with {@code text} instead of {@code el} and shows its string in quotes after the label.
    * A focused {@link #editable} field adds its caret after {@code focused} as {@code caret 3}, then
    * the other end of a selection as {@code anchor 0}, and the composition of an input method in
-   * progress as {@code composing "..."}.
+   * progress as {@code composing "..."}. A {@link #masked} field shows its mask as its string,
+   * the caret and the anchor as positions in it and the composition masked.
    *
    * <p>The {@link #shownOverlays overlays} follow the tree, in the order they are drawn, each
    * under a line that says where it is placed and beside what, followed by its tree indented by
@@ -2265,12 +2321,14 @@ public final class El {
     if (focused) {
       out.append(" focused");
       if (editor != null) {
-        out.append(" caret ").append(editor.caret());
+        // A masked field's positions count in its mask, which is what the line quotes.
+        out.append(" caret ").append(text.maskIndex(editor.text(), editor.caret()));
         if (editor.anchor() != editor.caret()) {
-          out.append(" anchor ").append(editor.anchor());
+          out.append(" anchor ").append(text.maskIndex(editor.text(), editor.anchor()));
         }
-        if (!editor.composition().isEmpty()) {
-          out.append(" composing ").append(quote(editor.composition()));
+        String composing = editor.composition();
+        if (!composing.isEmpty()) {
+          out.append(" composing ").append(quote(text.masked() ? text.mask(composing) : composing));
         }
       }
     }
@@ -2287,6 +2345,9 @@ public final class El {
     }
     if (readOnly) {
       out.append(" readonly");
+    }
+    if (editable && text.masked()) {
+      out.append(" password");
     }
     if ((states & SELECTED) != 0) {
       out.append(" selected");

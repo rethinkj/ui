@@ -4,6 +4,7 @@ import com.rethinkj.ui.text.Font;
 import com.rethinkj.ui.text.GlyphRun;
 import java.text.BreakIterator;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
@@ -26,6 +27,11 @@ import java.util.Objects;
  * content box, and shown with its composition and placeholder. Its caret, selection and
  * horizontal scroll come from {@link App}, which keeps them per element; the methods below that
  * return them are what a renderer draws.
+ *
+ * <p>A {@link El#masked masked} field shows one {@link #MASK} per grapheme of its string, and of
+ * the composition in it, and shapes only that: {@link #string} returns the mask, and the
+ * positions of the methods for {@link Editor} stay indexes into the real string, which grapheme
+ * {@code n} of it maps to mask character {@code n}.
  *
  * <p>Characters the font lacks come from its fallback fonts ({@link Font#withFallback}), and in a
  * window from the system's ({@link App#systemFonts}); a line holds glyphs of several fonts, on one
@@ -55,6 +61,9 @@ public final class Text implements Measure {
   /** What ends a line that {@link El#ellipsis} shortens. */
   public static final String ELLIPSIS = "\u2026";
 
+  /** What a {@link El#masked} field shows for each grapheme of its string: a bullet, U+2022. */
+  public static final int MASK = 0x2022;
+
   /** The colour of the selection until {@link El#selectionColor} changes it, as 0xAARRGGBB. */
   public static final int SELECTION = 0x663B82F6;
 
@@ -65,6 +74,8 @@ public final class Text implements Measure {
   private final String string;
   private String composed; // a field's string with the composition in it, or null for none
   private boolean field;
+  private boolean masked;
+  private int mask = MASK;
   private String placeholder;
   private int placeholderColor;
   private String[] features = {};
@@ -93,6 +104,9 @@ public final class Text implements Measure {
   private String[] paragraphs;
   private int[] starts; // where each paragraph starts in the shown string
   private boolean placeholderShown;
+  // A masked field's grapheme boundaries in its string with the composition, from 0 to the end;
+  // the glyphs show the mask character once per grapheme. Null when not masked.
+  private int[] maskBounds;
   private GlyphRun[] runs;
   private int[][] glyphAt;
   private int[][] breaks;
@@ -115,8 +129,36 @@ public final class Text implements Measure {
     this.string = string;
   }
 
+  /**
+   * The string as the element shows it: the one {@link El#text} got, except for a {@link
+   * El#masked masked} field, whose string is one mask character per grapheme of the app's. The
+   * tree dump, selectors and error messages print this.
+   */
   public String string() {
+    return masked ? mask(string) : string;
+  }
+
+  /** For {@link Editor}: the string the view gave the element, also of a masked field. */
+  String value() {
     return string;
+  }
+
+  /** Whether this is a field that shows a mask instead of its string; see {@link El#masked}. */
+  public boolean masked() {
+    return masked;
+  }
+
+  /** The text as a masked field shows it: one mask character per grapheme. */
+  String mask(String text) {
+    return Character.toString(mask).repeat(graphemes(text, 0, text.length()));
+  }
+
+  /**
+   * For the tree dump: a position of a masked field's string as a position of its mask, which
+   * counts graphemes; the position itself otherwise.
+   */
+  int maskIndex(String text, int index) {
+    return masked ? graphemes(text, 0, index) * Character.charCount(mask) : index;
   }
 
   /** The font set with {@link El#font}, or {@link Font#sans} by default. */
@@ -238,6 +280,27 @@ public final class Text implements Measure {
 
   void field(boolean field) {
     this.field = field;
+    paragraphs = null;
+  }
+
+  void masked(boolean masked) {
+    this.masked = masked;
+    paragraphs = null;
+  }
+
+  void mask(int character) {
+    String one = Character.isValidCodePoint(character) ? Character.toString(character) : "";
+    BreakIterator chars = BreakIterator.getCharacterInstance(Locale.ROOT);
+    chars.setText(one + one);
+    // Two of them must be two graphemes: no combining mark, joiner or half of a flag.
+    if (one.isEmpty() || Character.isWhitespace(character) || Character.isISOControl(character)
+        || !chars.isBoundary(one.length())) {
+      throw new IllegalArgumentException(
+          "The mask of a field must be a visible character that stands alone, such as '*' or"
+              + " U+25CF; U+" + Integer.toHexString(character).toUpperCase(Locale.ROOT)
+              + " is not.");
+    }
+    this.mask = character;
     paragraphs = null;
   }
 
@@ -450,8 +513,20 @@ public final class Text implements Measure {
     firstBaseline = Math.round((font.ascent() + font.lineGap() / 2) * pixels);
     String shown = composed != null ? composed : string;
     placeholderShown = field && shown.isEmpty() && placeholder != null;
+    maskBounds = null;
     if (placeholderShown) {
       shown = placeholder;
+    } else if (masked) {
+      // Only the mask is shaped, so that nothing of the string reaches the fonts and their caches.
+      List<Integer> bounds = new ArrayList<>();
+      bounds.add(0);
+      BreakIterator chars = BreakIterator.getCharacterInstance(Locale.ROOT);
+      chars.setText(shown);
+      for (int b = chars.following(0); b != BreakIterator.DONE; b = chars.next()) {
+        bounds.add(b);
+      }
+      maskBounds = bounds.stream().mapToInt(Integer::intValue).toArray();
+      shown = Character.toString(mask).repeat(maskBounds.length - 1);
     }
     // A field is one line: a line feed in it shows as the font's glyph for it.
     String[] split = field ? new String[] {shown} : shown.split("\n", -1);
@@ -491,7 +566,24 @@ public final class Text implements Measure {
   }
 
   // Positions in the shown string, for Editor. All in physical pixels from the top left of the
-  // content box, before the scroll; they need a layout first.
+  // content box, before the scroll; they need a layout first. The shown string is the string with
+  // the composition in it, also in a masked field, whose glyphs are those of its mask: toGlyphs
+  // and fromGlyphs map between the two, and the private methods work on the glyphs' text.
+
+  /** A position of the shown string as a position in the text of the glyphs. */
+  private int toGlyphs(int index) {
+    if (maskBounds == null) {
+      return index;
+    }
+    int found = Arrays.binarySearch(maskBounds, index);
+    return Math.max(0, found >= 0 ? found : -found - 2) * Character.charCount(mask);
+  }
+
+  /** A position in the text of the glyphs, at a grapheme boundary, in the shown string. */
+  private int fromGlyphs(int index) {
+    return maskBounds == null ? index
+        : maskBounds[Math.min(index / Character.charCount(mask), maskBounds.length - 1)];
+  }
 
   /** The content box's width in physical pixels, as layout placed it. */
   float contentWidth() {
@@ -510,6 +602,10 @@ public final class Text implements Measure {
 
   /** The line that position {@code index} of the shown string is on; at a wrap, the later one. */
   int lineOf(int index) {
+    return line(toGlyphs(index));
+  }
+
+  private int line(int index) {
     for (int l = placedSpans.size() - 1; l > 0; l--) {
       Span span = placedSpans.get(l);
       if (starts[span.paragraph] + span.from <= index) {
@@ -537,12 +633,12 @@ public final class Text implements Measure {
   /** The first and the last position of a line in the shown string. */
   int lineStart(int line) {
     Span span = placedSpans.get(line);
-    return starts[span.paragraph] + span.from;
+    return fromGlyphs(starts[span.paragraph] + span.from);
   }
 
   int lineEnd(int line) {
     Span span = placedSpans.get(line);
-    return starts[span.paragraph] + span.to;
+    return fromGlyphs(starts[span.paragraph] + span.to);
   }
 
   /**
@@ -552,10 +648,14 @@ public final class Text implements Measure {
    * inside its glyphs in proportion to the graphemes before it.
    */
   float x(int index) {
+    return glyphX(toGlyphs(index));
+  }
+
+  private float glyphX(int index) {
     if (placedSpans.isEmpty()) {
       return 0;
     }
-    Span span = placedSpans.get(lineOf(index));
+    Span span = placedSpans.get(line(index));
     int p = span.paragraph;
     int at = Math.clamp(index - starts[p], span.from, span.to);
     return pen(p, at) - pen(p, span.from);
@@ -607,17 +707,17 @@ public final class Text implements Measure {
     if (placedSpans.isEmpty()) {
       return 0;
     }
-    int line = lineAt(y);
-    int best = lineStart(line);
+    List<Integer> bounds = boundaries(lineAt(y));
+    int best = bounds.getFirst();
     float distance = Float.POSITIVE_INFINITY;
-    for (int b : boundaries(line)) {
-      float d = Math.abs(x(b) - x);
+    for (int b : bounds) {
+      float d = Math.abs(glyphX(b) - x);
       if (d < distance) {
         distance = d;
         best = b;
       }
     }
-    return best;
+    return fromGlyphs(best);
   }
 
   /**
@@ -632,11 +732,11 @@ public final class Text implements Measure {
     List<Integer> bounds = boundaries(line);
     int found = bounds.getFirst();
     for (int i = 0; i < bounds.size() - 1; i++) {
-      if (x(bounds.get(i)) <= x) {
+      if (glyphX(bounds.get(i)) <= x) {
         found = bounds.get(i);
       }
     }
-    return found;
+    return fromGlyphs(found);
   }
 
   /** The grapheme boundaries of a line, from its start to its end. */

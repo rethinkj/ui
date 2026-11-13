@@ -25,6 +25,12 @@ import java.util.Locale;
  *
  * <p>The editing works on strings and does not assume one line, except where a single-line field
  * turns line breaks into spaces and Home and End go to the ends of the text.
+ *
+ * <p>A {@link El#masked masked} field edits its real string as any other, but copies and cuts
+ * nothing, and takes its whole string as one word, so that the keys and presses that go by words
+ * do not show where its words are. The string, the states of the undo history and the
+ * composition stay in memory as they are, as the app's state does: masking hides the string from
+ * the screen, the clipboard, the tree dump and the fonts, not from the process.
  */
 final class Editor {
 
@@ -72,7 +78,7 @@ final class Editor {
   /** A new editor with the caret at the end of the element's string. */
   Editor(El el) {
     this.el = el;
-    this.text = el.text().string();
+    this.text = el.text().value();
     this.caret = text.length();
     this.anchor = caret;
   }
@@ -85,7 +91,7 @@ final class Editor {
    */
   void attach(El el) {
     this.el = el;
-    answer(el.text().string());
+    answer(el.text().value());
     el.text().compose(composition.isEmpty() ? null : shown());
   }
 
@@ -214,7 +220,7 @@ final class Editor {
         if (!plain) {
           return false;
         }
-        int to = word ? wordLeft(text, caret)
+        int to = word ? wordStart()
             : caret != anchor && !shift ? start() : previous(text, caret);
         moveTo(to, shift);
         return true;
@@ -223,7 +229,7 @@ final class Editor {
         if (!plain) {
           return false;
         }
-        int to = word ? wordRight(text, caret, WORD_ENDS)
+        int to = word ? wordEnd()
             : caret != anchor && !shift ? end() : next(text, caret);
         moveTo(to, shift);
         return true;
@@ -246,14 +252,14 @@ final class Editor {
         if (!plain) {
           return false;
         }
-        delete(word ? wordLeft(text, caret) : previous(text, caret));
+        delete(word ? wordStart() : previous(text, caret));
         return true;
       }
       case "Delete" -> {
         if (modifiers == Key.SHIFT) {
           cut(clipboard);
         } else if (other == 0 || word && !shift) {
-          delete(word ? wordRight(text, caret, WORD_ENDS) : next(text, caret));
+          delete(word ? wordEnd() : next(text, caret));
         } else {
           return false;
         }
@@ -345,14 +351,16 @@ final class Editor {
     changed = true;
   }
 
+  /** Copies the selection; a masked field copies nothing, and the clipboard keeps what it had. */
   void copy(Clipboard clipboard) {
-    if (caret != anchor) {
+    if (caret != anchor && !masked()) {
       clipboard.write(text.substring(start(), end()));
     }
   }
 
+  /** Cuts the selection; a masked field does nothing, as it copies nothing. */
   void cut(Clipboard clipboard) {
-    if (caret != anchor && editable()) {
+    if (caret != anchor && editable() && !masked()) {
       copy(clipboard);
       replace("", null);
     }
@@ -508,7 +516,7 @@ final class Editor {
     unit = Math.clamp(clicks, 1, 3);
     int[] range = switch (unit) {
       case 1 -> new int[] {boundary, boundary};
-      case 2 -> word(text, hit);
+      case 2 -> wordAt(hit);
       default -> new int[] {0, text.length()};
     };
     pressFrom = range[0];
@@ -524,7 +532,7 @@ final class Editor {
     switch (unit) {
       case 1 -> caret = boundary;
       case 2 -> {
-        int[] range = word(text, hit);
+        int[] range = wordAt(hit);
         if (range[0] < pressFrom) {
           anchor = pressTo;
           caret = range[0];
@@ -626,6 +634,25 @@ final class Editor {
   }
 
   // ---- Boundaries
+
+  private boolean masked() {
+    return el.text().masked();
+  }
+
+  /** Where Ctrl+Left goes from the caret; to the start in a masked field, one word. */
+  private int wordStart() {
+    return masked() ? 0 : wordLeft(text, caret);
+  }
+
+  /** Where Ctrl+Right goes from the caret; to the end in a masked field. */
+  private int wordEnd() {
+    return masked() ? text.length() : wordRight(text, caret, WORD_ENDS);
+  }
+
+  /** The word a double press at {@code hit} selects; all of a masked field. */
+  private int[] wordAt(int hit) {
+    return masked() ? new int[] {0, text.length()} : word(text, hit);
+  }
 
   private static BreakIterator characters(String text) {
     BreakIterator chars = BreakIterator.getCharacterInstance(Locale.ROOT);

@@ -118,8 +118,11 @@ public final class App<S> {
    * the caret.
    *
    * @param cursor the caret's distance from {@code x}
+   * @param password whether the element is a {@link El#masked masked} field, whose text the system
+   *     should neither show nor remember
    */
-  public record InputArea(float x, float y, float width, float height, float cursor) {}
+  public record InputArea(
+      float x, float y, float width, float height, float cursor, boolean password) {}
 
   private final S state;
   private final Function<S, El> view;
@@ -353,8 +356,7 @@ public final class App<S> {
     dragging = target == null || target.el.onDrag() == null
         ? null
         : new Dragging(target.id(), target.el.onDrag(), x, y);
-    Target focus = target(x, y, El::isFocusable);
-    focus(focus == null ? null : focus.el, false);
+    pressFocus(x, y);
     Target down = target(x, y, e -> e.onPointerDown() != null);
     if (down != null) {
       down.el.onPointerDown().press(clicks, modifiers);
@@ -417,9 +419,19 @@ public final class App<S> {
     }
     Target target = target(x, y, el -> el.onSecondaryPress() != null);
     secondary = target == null ? null : target.id();
-    Target focus = target(x, y, El::isFocusable);
-    focus(focus == null ? null : focus.el, false);
+    pressFocus(x, y);
     return false;
+  }
+
+  /**
+   * A press gives the focus to the focusable element it lands in, or clears it, unless an element
+   * that {@link El#keepFocusOnPress keeps the focus} comes first.
+   */
+  private void pressFocus(float x, float y) {
+    Target focus = target(x, y, el -> el.isFocusable() || el.keepsFocusOnPress());
+    if (focus == null || !focus.el.keepsFocusOnPress()) {
+      focus(focus == null ? null : focus.el, false);
+    }
   }
 
   /**
@@ -743,7 +755,8 @@ public final class App<S> {
       y += el.y();
     }
     float cursor = editor == null ? 0 : contentLeft(focused) + editor.caretOffset();
-    return new InputArea(x, y, focused.width(), focused.height(), cursor);
+    boolean password = editor != null && focused.text().masked();
+    return new InputArea(x, y, focused.width(), focused.height(), cursor, password);
   }
 
   /**
