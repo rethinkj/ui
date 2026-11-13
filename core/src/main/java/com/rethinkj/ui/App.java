@@ -90,6 +90,15 @@ import java.util.function.Predicate;
  * pointer; so does a text field while a press in it selects. A press that lands in a field selects
  * text and never drags an element around it.
  *
+ * <p>The pointer finds its element by descending from the root: at each element the last child
+ * whose rounded border box holds the point, since later children are drawn on top, then its
+ * children in the same way. A child that sticks out of its parent's box is therefore hit only
+ * inside that box, also where the parent does not clip; such a child is drawn whole but takes
+ * the pointer only where its parent does. A view that wants a part to take the pointer beyond its
+ * neighbour's edge gives it a parent that covers that area, as the kit's split puts its divider's
+ * strip and the second part in one box. This keeps hit testing a single walk down the tree,
+ * in proportion to its depth and the children along the way, however large the tree.
+ *
  * <p>A scroll area with {@link El#scrollbars} gets its bars from the app, which places them after
  * each frame from the area's size, content and offset, over the content. The bars come first for
  * the pointer: a press on one is the bar's, never a press, drag or selection of what lies under it
