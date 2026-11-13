@@ -30,6 +30,7 @@ import com.rethinkj.ui.render.GpuPresenter;
 import com.rethinkj.ui.text.TextRendering;
 import com.rethinkj.ui.window.Window;
 import com.rethinkj.ui.window.WindowLoop;
+import com.rethinkj.ui.window.Windows;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -193,9 +194,11 @@ public final class Showcase {
         if (run == download) {
           downloaded = Math.min(SIZE, downloaded + 4);
           downloading = downloaded < SIZE;
+          taskbar();
         }
       });
     }
+    taskbar();
   }
 
   /** Lets the download fail where it is. */
@@ -203,6 +206,21 @@ public final class Showcase {
     download++;
     downloading = false;
     failed = true;
+    taskbar();
+  }
+
+  /**
+   * The download on the window's taskbar button as well: a bar while it runs, red where it
+   * failed, none once it is done. A script has no taskbar button.
+   */
+  private void taskbar() {
+    Windows.Handle handle = app == null ? null : app.windows().of(app);
+    Window window = handle == null ? null : handle.window();
+    if (window != null) {
+      float done = (float) (downloaded / SIZE);
+      window.progress(failed ? Window.Progress.ERROR
+          : downloading ? Window.Progress.NORMAL : Window.Progress.NONE, done);
+    }
   }
 
   Showcase(Look look) {

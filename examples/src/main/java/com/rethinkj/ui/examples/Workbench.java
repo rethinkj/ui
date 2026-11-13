@@ -644,7 +644,10 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
     return connecting.size() + (int) tables().stream().filter(o -> o.asking != null).count();
   }
 
-  /** Shows the number of questions on their way on the taskbar button, or nothing for none. */
+  /**
+   * Shows the number of questions on their way on the taskbar button, with a bar that runs while
+   * there are any, or nothing for none.
+   */
   void taskbar() {
     if (window == null) {
       return;
@@ -654,6 +657,7 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
     WindowIcon badge = WindowIcon.of(size -> AppIcon.count(t, size, t.accent().color(), n));
     window.badge(n == 0 ? null : badge,
         n == 1 ? "1 question running" : n + " questions running");
+    window.progress(n == 0 ? Window.Progress.NONE : Window.Progress.INDETERMINATE, 0);
   }
 
   /**
