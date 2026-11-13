@@ -256,6 +256,32 @@ class GridChangesTest {
     assertNull(changes.errorText(1, 1));
   }
 
+  // Filters
+
+  @Test
+  void filtersKeepWhatTheySay() {
+    DataGrid.Filter contains = DataGrid.Filter.of(0, DataGrid.Filter.Kind.CONTAINS, "LOVE");
+    assertEquals(true, contains.matches("Ada Lovelace"));
+    assertEquals(false, contains.matches(null), "NULL contains nothing");
+    assertEquals(true, DataGrid.Filter.of(0, DataGrid.Filter.Kind.STARTS_WITH, "ada")
+        .matches("Ada Lovelace"));
+    assertEquals(true, DataGrid.Filter.of(0, DataGrid.Filter.Kind.MATCHES, "^a.a\\b")
+        .matches("Ada Lovelace"));
+    assertEquals(false, DataGrid.Filter.of(0, DataGrid.Filter.Kind.MATCHES, "(")
+        .matches("("), "not a regular expression: nothing");
+    DataGrid.Filter range = DataGrid.Filter.between(0, "9", "100");
+    assertEquals(true, range.matches("10.5"), "as numbers, not as text");
+    assertEquals(false, range.matches("100.01"));
+    assertEquals(true, DataGrid.Filter.between(0, "2026-01-01", "")
+        .matches("2026-03-01 08:00"), "dates as text, an open end");
+    assertEquals(true, DataGrid.Filter.oneOf(0, List.of("paid", "shipped")).matches("paid"));
+    assertEquals(true, DataGrid.Filter.of(0, DataGrid.Filter.Kind.IS_NULL, "").matches(null));
+    assertEquals(false, DataGrid.Filter.of(0, DataGrid.Filter.Kind.NOT_NULL, "").matches(null));
+    assertEquals("amount 9 – 100", range.describe("amount"));
+    assertEquals("status in paid, shipped",
+        DataGrid.Filter.oneOf(0, List.of("paid", "shipped")).describe("status"));
+  }
+
   // Pasted text
 
   @Test

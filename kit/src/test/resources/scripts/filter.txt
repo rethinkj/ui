@@ -1,0 +1,33 @@
+# Filters of orders (Ledger): the popover of an enumeration's filter, and two filters set, with
+# their funnels in the accent and their bar above the grid.
+size 640 260
+frame
+focus #ledger
+key ArrowRight
+key ArrowRight
+key ArrowRight
+key ArrowRight                     # status
+frame
+key ArrowDown alt                  # its filter: the values to keep
+frame
+advance 1
+frame
+press #value-refunded              # unchecked: refunded orders are left out
+leave
+frame
+advance 1
+frame
+snap popover
+
+press label="Apply"
+frame
+key Home
+key ArrowRight
+key ArrowDown alt                  # customer: text that contains a word
+frame
+type "lovelace"
+key Enter
+frame
+advance 1
+frame
+snap set

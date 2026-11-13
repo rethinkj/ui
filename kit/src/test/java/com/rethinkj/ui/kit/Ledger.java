@@ -31,6 +31,8 @@ final class Ledger {
   final List<String> log = new ArrayList<>();
   UnaryOperator<DataGrid.Options> more = o -> o;
   String refuse; // what the app says of every value while set, null to take them
+  List<DataGrid.Filter> filters = List.of();
+  boolean filtering; // the header sets filters, and a bar of them lies above the grid
   App<Ledger> app;
 
   Ledger(Theme theme, int count) {
@@ -74,8 +76,16 @@ final class Ledger {
   }
 
   El view() {
-    return col().wFull().hFull().padding(theme.space().m()).fill(theme.surface().panel())
-        .child(grid().key("ledger").label("Ledger").grow(1));
+    El bar = filtering ? DataGrid.filterBar(theme, columns(), filters, f -> {
+      log.add("filters " + f.size());
+      filters = f;
+    }) : null;
+    El view = col().wFull().hFull().padding(theme.space().m()).gap(theme.space().s())
+        .fill(theme.surface().panel());
+    if (bar != null) {
+      view.child(bar);
+    }
+    return view.child(grid().key("ledger").label("Ledger").grow(1));
   }
 
   El grid() {
@@ -93,6 +103,12 @@ final class Ledger {
           changes.set(row, column, value);
           return null;
         });
+    if (filtering) {
+      options.filters(filters, f -> {
+        log.add("filter " + f);
+        filters = f;
+      });
+    }
     return dataGrid(theme, columns(), changes.rowCount(), more.apply(options));
   }
 

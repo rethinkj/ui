@@ -331,6 +331,114 @@ public final class DataGrid {
     ERROR
   }
 
+  /**
+   * A filter on a column, which the header's filter sets ({@link Options#filters}) and the app
+   * applies, in SQL or with {@link #matches} to its own rows; the grid filters nothing itself.
+   *
+   * @param column the column, as the grid counts them
+   * @param kind what it keeps
+   * @param value the text of {@link Kind#CONTAINS}, {@link Kind#STARTS_WITH}, {@link
+   *     Kind#EQUALS} and {@link Kind#MATCHES}, or the lower end of {@link Kind#BETWEEN}, empty
+   *     for none
+   * @param to the upper end of {@link Kind#BETWEEN}, empty for none; else empty
+   * @param values what {@link Kind#ONE_OF} keeps; else empty
+   */
+  public record Filter(int column, Kind kind, String value, String to, List<String> values) {
+
+    /** What a filter keeps. */
+    public enum Kind {
+      /** Text with the value in it, whatever the case. */
+      CONTAINS,
+      /** Text that begins with the value, whatever the case. */
+      STARTS_WITH,
+      /** The value, whatever the case. */
+      EQUALS,
+      /** Text in which the value, a regular expression, finds a match, whatever the case. */
+      MATCHES,
+      /** From the value to {@code to}, both included, as numbers where both are numbers. */
+      BETWEEN,
+      /** One of the values. */
+      ONE_OF,
+      IS_NULL,
+      NOT_NULL
+    }
+
+    public Filter {
+      Objects.requireNonNull(kind, "kind");
+      value = value == null ? "" : value;
+      to = to == null ? "" : to;
+      values = List.copyOf(values);
+    }
+
+    /** A filter of text: one of the first four kinds, or NULL or not. */
+    public static Filter of(int column, Kind kind, String value) {
+      return new Filter(column, kind, value, "", List.of());
+    }
+
+    /** A filter of a range, either end empty for none. */
+    public static Filter between(int column, String from, String to) {
+      return new Filter(column, Kind.BETWEEN, from, to, List.of());
+    }
+
+    /** A filter of values. */
+    public static Filter oneOf(int column, List<String> values) {
+      return new Filter(column, Kind.ONE_OF, "", "", values);
+    }
+
+    /** Whether a cell's value, null for NULL, passes. */
+    public boolean matches(String cell) {
+      if (kind == Kind.IS_NULL || kind == Kind.NOT_NULL) {
+        return cell == null == (kind == Kind.IS_NULL);
+      }
+      if (cell == null) {
+        return false;
+      }
+      String low = cell.toLowerCase(java.util.Locale.ROOT);
+      String want = value.toLowerCase(java.util.Locale.ROOT);
+      return switch (kind) {
+        case CONTAINS -> low.contains(want);
+        case STARTS_WITH -> low.startsWith(want);
+        case EQUALS -> low.equals(want);
+        case MATCHES -> {
+          try {
+            yield java.util.regex.Pattern.compile(value, java.util.regex.Pattern.CASE_INSENSITIVE
+                | java.util.regex.Pattern.UNICODE_CASE).matcher(cell).find();
+          } catch (java.util.regex.PatternSyntaxException e) {
+            yield false;
+          }
+        }
+        case BETWEEN -> (value.isBlank() || compare(cell, value) >= 0)
+            && (to.isBlank() || compare(cell, to) <= 0);
+        case ONE_OF -> values.contains(cell);
+        default -> true;
+      };
+    }
+
+    private static int compare(String a, String b) {
+      try {
+        return new java.math.BigDecimal(a.strip()).compareTo(new java.math.BigDecimal(b.strip()));
+      } catch (NumberFormatException e) {
+        return a.strip().compareTo(b.strip()); // dates and times of ISO 8601 sort as text
+      }
+    }
+
+    /** What it keeps, in words, after the column's title: {@code status in paid, shipped}. */
+    public String describe(String title) {
+      return title + switch (kind) {
+        case CONTAINS -> " contains " + value;
+        case STARTS_WITH -> " starts with " + value;
+        case EQUALS -> " = " + value;
+        case MATCHES -> " matches " + value;
+        case BETWEEN -> to.isBlank() ? " ≥ " + value : value.isBlank() ? " ≤ " + to
+            : " " + value + " – " + to;
+        case ONE_OF -> values.size() == 1 ? " = " + values.getFirst()
+            : " in " + String.join(", ", values);
+        case IS_NULL -> " is NULL";
+        case NOT_NULL -> " is not NULL";
+      };
+    }
+  }
+
   /** Told a cell, says its {@link Status}. */
   @FunctionalInterface
   public interface CellStatus {
@@ -518,6 +626,14 @@ public final class DataGrid {
     int edits; // the editors opened so far: each new one takes the focus by this key
     float gridWidth; // the grid's width, as layout last told it, for an editor that grows
     final Menu.State choices = new Menu.State(); // an enumeration's list
+    // The filter being set in its popover: its column, -1 for none, and what it holds.
+    int filterColumn = -1;
+    final Popover.State filtering = new Popover.State();
+    Filter.Kind filterKind;
+    String filterValue = "";
+    String filterTo = "";
+    final java.util.Set<String> filterValues = new java.util.LinkedHashSet<>();
+    final Menu.State filterKinds = new Menu.State();
 
     public Selection(Mode mode) {
       this.mode = Objects.requireNonNull(mode, "mode");
@@ -749,6 +865,8 @@ public final class DataGrid {
     CellStatus cellStatus;
     Runnable onUndo;
     Runnable onRedo;
+    List<Filter> filters = List.of();
+    Consumer<List<Filter>> onFilter;
 
     private Options() {}
 
@@ -935,6 +1053,20 @@ public final class DataGrid {
       return this;
     }
 
+    /**
+     * Shows a filter in each header cell, a funnel under the pointer and, in the accent's edge,
+     * where {@code filters} has one for the column, which opens a popover to set it, as Alt+Arrow
+     * Down does for the cursor's column: text with how it matches, a range for numbers, dates and
+     * times, the values of a boolean or an enumeration to keep, or NULL or not. The grid filters
+     * nothing: {@code onFilter} is told the new filters, which the app applies and gives back.
+     * Needs {@link #select}. {@link DataGrid#filterBar} shows them as badges to remove.
+     */
+    public Options filters(List<Filter> filters, Consumer<List<Filter>> onFilter) {
+      this.filters = List.copyOf(filters);
+      this.onFilter = onFilter;
+      return this;
+    }
+
     /** Lets Control+Z undo and Control+Y and Control+Shift+Z redo while no editor is open. */
     public Options history(Runnable undo, Runnable redo) {
       this.onUndo = undo;
@@ -1023,6 +1155,11 @@ public final class DataGrid {
       return xs[frozen];
     }
 
+    /** Whether the header sets filters. */
+    boolean filtering() {
+      return o.onFilter != null && sel != null;
+    }
+
     int selectionFill() {
       return focused[0] ? g.selected() : g.selectedInactive();
     }
@@ -1040,6 +1177,11 @@ public final class DataGrid {
     if (sel != null && sel.isEditing()
         && (!b.edits || sel.editRow >= b.rows || sel.editColumn >= columns.size())) {
       sel.cancelEdit(); // the rows or columns it was on are gone
+    }
+    if (sel != null && (!sel.filtering.isOpen() || sel.filterColumn >= columns.size()
+        || !b.filtering())) {
+      sel.filtering.close(); // dismissed, or its column is gone
+      sel.filterColumn = -1;
     }
     El body = col().key("rows").grow(1)
         .rows(b.rows, g.rowHeight(), (i, from, to) -> dataRow(b, i, from, to))
@@ -1177,6 +1319,13 @@ public final class DataGrid {
         cell.sortAscending();
       }
     }
+    // The filter's funnel at the outer end, apart from the rest by what is left of the cell;
+    // while the column has none, it lies over that end under the pointer and takes no room.
+    El funnel = b.filtering() ? GridFilter.funnel(b, index) : null;
+    boolean inFlow = funnel != null && GridFilter.set(b, index);
+    if (inFlow && column.align() == Align.RIGHT) {
+      cell.children(funnel, el().grow(1).minSize(0, 0));
+    }
     if (mark != null && column.align() == Align.RIGHT) {
       cell.child(mark);
     }
@@ -1186,6 +1335,14 @@ public final class DataGrid {
     cell.child(name);
     if (mark != null && column.align() != Align.RIGHT) {
       cell.child(mark);
+    }
+    if (inFlow && column.align() != Align.RIGHT) {
+      cell.children(el().grow(1).minSize(0, 0), funnel);
+    } else if (funnel != null && !inFlow) {
+      float inset = t.space().xs();
+      cell.child(funnel.absolute(column.align() == Align.RIGHT ? inset
+          : column.width() - t.size().stroke() - inset - t.size().icon(),
+          (b.g.rowHeight() - t.size().icon()) / 2).fill(b.g.header()));
     }
     // The whole title and type where anything is cut short, measured only when it may show.
     float room = column.width() - t.size().stroke() - 2 * t.space().s();
@@ -1197,7 +1354,7 @@ public final class DataGrid {
       }
     });
     if (b.o.onSort == null || !column.sortable()) {
-      return cell;
+      return funnel == null ? cell : cell.whenHovered(e -> funnel.opacity(1));
     }
     int fill = b.g.header();
     List<SortKey> keys = b.o.sort;
@@ -1205,7 +1362,12 @@ public final class DataGrid {
     return cell.cursor(Cursor.POINTER)
         .onPress((clicks, modifiers) ->
             onSort.accept(nextSort(keys, index, (modifiers & Key.SHIFT) != 0)))
-        .whenHovered(e -> e.fill(over(fill, t.surface().hover())))
+        .whenHovered(e -> {
+          e.fill(over(fill, t.surface().hover()));
+          if (funnel != null) {
+            funnel.opacity(1);
+          }
+        })
         .whenPressed(e -> e.fill(over(fill, t.surface().pressed())));
   }
 
@@ -1303,6 +1465,9 @@ public final class DataGrid {
       if (b.o.sort.size() > 1) {
         width += t.space().xs() + natural(Label.label(t, "9"));
       }
+    }
+    if (b.filtering() && GridFilter.set(b, c)) {
+      width += t.size().icon() + t.space().xs();
     }
     return width;
   }
@@ -1632,6 +1797,10 @@ public final class DataGrid {
     if (GridEdit.gridKey(b, k)) {
       return true;
     }
+    if (mods == Key.ALT && k.name().equals("ArrowDown") && b.filtering() && n > 0) {
+      GridFilter.open(b, Math.clamp(sel.column(), 0, n - 1));
+      return true;
+    }
     if ((mods & (Key.ALT | Key.META)) != 0 || b.rows == 0 || n == 0) {
       return false;
     }
@@ -1790,6 +1959,19 @@ public final class DataGrid {
       }
     }
     return out.toString();
+  }
+
+  /**
+   * The filters as a row of badges to remove, each saying what it keeps ({@link
+   * Filter#describe}), and a button that removes them all; null without filters. The app puts it
+   * above the grid, as a bar of a card.
+   *
+   * @param columns the grid's columns, whose titles the badges name
+   * @param onFilter told the filters left
+   */
+  public static El filterBar(Theme t, List<Column> columns, List<Filter> filters,
+      Consumer<List<Filter>> onFilter) {
+    return GridFilter.bar(t, columns, filters, onFilter);
   }
 
   /**
