@@ -1,0 +1,8 @@
+el 0,0 240x110
+  el role=switch label="Autocommit" 8,10 117x20 checked
+    el 12,12 28x16
+      el 26,14 12x12
+    text "Autocommit" 48,12 73x16
+  el role=checkbox label="Read only" 8,34 93x20 checked=false
+    el 12,36 16x16
+    text "Read only" 36,36 61x16

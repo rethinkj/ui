@@ -1,0 +1,143 @@
+# Builds and tests on Linux and Windows, and publishes SNAPSHOTs from main.
+#
+# What the CI leaves out: the tests that open real windows, which need -Dwindows.tests=true and a
+# desktop (see AGENTS.md, "Windows").
+name: Build
+
+on:
+  push:
+  pull_request:
+  # On main this publishes; on another branch it is a dry run into a folder of the runner, kept as
+  # an artifact of the run.
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  # A new push to a branch replaces its run; on main every run finishes, as it may publish.
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+env:
+  # The libraries of natives-linux-x64/natives.properties builds from source.
+  LINUX_PACKAGES: >-
+    build-essential cmake pkg-config xz-utils libx11-dev libxext-dev libxrandr-dev
+    libxcursor-dev libxfixes-dev libxi-dev libxtst-dev libwayland-dev libxkbcommon-dev
+    libegl-dev libdbus-1-dev
+
+jobs:
+  build:
+    name: Build (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-java@77dd5b2ce225ea11469928ac317850245a74ae78 # v6.2.0
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+      # What scripts/FetchNatives.java leaves when fetched/ matches natives.properties, so that it
+      # neither downloads nor builds anything.
+      - name: Cache the native libraries
+        id: natives
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            natives-*/fetched/resources
+            natives-*/fetched/natives.properties.sha256
+          key: natives-${{ runner.os }}-${{ hashFiles('natives-*/natives.properties', 'scripts/FetchNatives.java') }}
+      - name: Install what building SDL needs
+        if: runner.os == 'Linux' && steps.natives.outputs.cache-hit != 'true'
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends $LINUX_PACKAGES
+      - name: Build and test
+        run: mvn -B -ntp verify
+      - name: Keep what failing tests left
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: test-results-${{ matrix.os }}
+          path: |
+            */target/surefire-reports
+            */target/golden
+            core/target/gpu-vs-cpu
+          retention-days: 7
+          if-no-files-found: ignore
+
+  # Each module goes up once: Linux the parent POM, core, kit, fonts, icons and natives-linux-x64,
+  # then Windows natives-windows-x64 alone, whose POM names that parent. Only after build passed
+  # on both platforms, so the tests are not run again; deployAtEnd (root POM) uploads nothing from
+  # a reactor that failed.
+  publish:
+    name: Publish SNAPSHOT (${{ matrix.os }})
+    needs: build
+    if: >-
+      github.repository == 'rethinkj/ui'
+      && ((github.event_name == 'push' && github.ref == 'refs/heads/main')
+        || github.event_name == 'workflow_dispatch')
+    strategy:
+      # One after the other, Linux first; with fail-fast, a failure there cancels Windows.
+      max-parallel: 1
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            modules: '!examples'
+          - os: windows-latest
+            modules: natives-windows-x64
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-java@77dd5b2ce225ea11469928ac317850245a74ae78 # v6.2.0
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+          # settings.xml gets a server "central-snapshots" whose credentials it reads from these
+          # variables. Not "central": Maven sends that id's credentials only to
+          # repo.maven.apache.org.
+          server-id: central-snapshots
+          server-username-env-var: CENTRAL_USERNAME
+          server-password-env-var: CENTRAL_PASSWORD
+      - name: Cache the native libraries
+        id: natives
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            natives-*/fetched/resources
+            natives-*/fetched/natives.properties.sha256
+          key: natives-${{ runner.os }}-${{ hashFiles('natives-*/natives.properties', 'scripts/FetchNatives.java') }}
+      - name: Install what building SDL needs
+        if: runner.os == 'Linux' && steps.natives.outputs.cache-hit != 'true'
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends $LINUX_PACKAGES
+      - name: Deploy
+        shell: bash
+        env:
+          MODULES: ${{ matrix.modules }}
+          REAL: ${{ github.ref == 'refs/heads/main' }}
+          CENTRAL_USERNAME: ${{ secrets.CENTRAL_USERNAME }}
+          CENTRAL_PASSWORD: ${{ secrets.CENTRAL_PASSWORD }}
+        run: |
+          if [ "$REAL" = true ]; then
+            if [ -z "$CENTRAL_USERNAME" ] || [ -z "$CENTRAL_PASSWORD" ]; then
+              echo "::warning::CENTRAL_USERNAME or CENTRAL_PASSWORD is not set: nothing published"
+              exit 0
+            fi
+            mvn -B -ntp deploy -DskipTests -Dmaven.install.skip=true -pl "$MODULES"
+          else
+            root=$(pwd -W 2>/dev/null || pwd)
+            mvn -B -ntp deploy -DskipTests -Dmaven.install.skip=true -pl "$MODULES" \
+              -DaltDeploymentRepository="dry-run::file:///${root#/}/target/snapshots"
+          fi
+      - name: Keep what a dry run deployed
+        if: github.ref != 'refs/heads/main'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: snapshots-${{ matrix.os }}
+          path: target/snapshots
+          retention-days: 7

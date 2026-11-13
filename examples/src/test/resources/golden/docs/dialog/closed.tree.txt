@@ -1,0 +1,4 @@
+el 0,0 420x260
+  text "orders" 12,12 41x16
+  el role=button label="Rename…" 12,36 89x24
+    text "Rename…" 25,40 63x16

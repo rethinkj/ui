@@ -1,0 +1,10 @@
+size 640 360
+frame
+key P control shift
+frame
+advance 0.3
+frame
+snap open
+type "@ord"
+frame
+snap tables

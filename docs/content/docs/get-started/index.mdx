@@ -1,0 +1,61 @@
+---
+title: Installation
+description: What you need, how to build rethinkj UI, and what the first build does.
+---
+
+rethinkj UI is a library for desktop apps in Java 25 on Windows and Linux. This page gets you from a clone of the repository to a running example; [Use it in a project](/docs/get-started/project) shows how to depend on the SNAPSHOTs on Maven Central instead, and [the first app](/docs/get-started/first-app) explains the code.
+
+## Requirements
+
+| | |
+| --- | --- |
+| Platforms | Windows 11 or later and Linux, both on x64. macOS, the web and mobile are not targets. |
+| JDK | 25, any distribution. GraalVM native image is not a goal, but it stays possible. |
+| Maven | 3.9 or later. |
+| Network | The first build downloads the native libraries; later builds, `mvn clean` included, do not. |
+
+The first build also compiles some native libraries from source, so it needs a C toolchain:
+
+<Tabs items={['Linux', 'Windows']}>
+<Tab value="Linux">
+
+cmake, make, a C and a C++ compiler, pkg-config, `tar` with xz, and the development packages of X11, Wayland and the other libraries SDL uses. `natives-linux-x64/natives.properties` lists them. Building SDL, FreeType and HarfBuzz takes about a minute.
+
+</Tab>
+<Tab value="Windows">
+
+Visual Studio 2022 or later, or its Build Tools, with the workload "Desktop development with C++" (its defaults include the x64 tools, a Windows SDK and "C++ CMake tools for Windows"). Nothing has to be on the `PATH`. FreeType and HarfBuzz take one to three minutes.
+
+</Tab>
+</Tabs>
+
+## Build
+
+```sh
+git clone https://github.com/rethinkj/ui.git
+cd ui
+mvn verify                  # build and test everything
+```
+
+`mvn verify` builds every module and runs the tests, which render hundreds of views without a window and compare them with stored images. It opens no window. If you do not need the native libraries, for instance on a machine without a toolchain, leave them out; the tests that need them skip themselves:
+
+```sh
+mvn verify -P '!natives-linux-x64'      # or '!natives-windows-x64'
+```
+
+If a build cannot find or load a native library, see [Platforms and native libraries](/docs/reference/platforms).
+
+## Run an example
+
+```sh
+mvn -q -pl examples -am compile exec:exec                      # the light switch
+mvn -q -pl examples -am compile exec:exec -Dexample=Workbench  # a database tool
+```
+
+[Examples](/docs/examples) lists them all.
+
+## Next
+
+- [The first app](/docs/get-started/first-app): a state, a view and a window, line by line.
+- [Use it in a project](/docs/get-started/project): the artifacts and how to depend on them today.
+- [Testing and agents](/docs/testing): run the same app without a window.

@@ -1,0 +1,5 @@
+el 0,0 240x180
+  image role=img label="A swatch of the accent" 12,12 32x20
+  el role=img label="Still being read" 12,40 120x60
+    text label="image" "\u{F487}" 25,62 16x16
+    text "Still being read" 49,54 70x32

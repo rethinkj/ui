@@ -1,0 +1,7 @@
+size 360 260
+frame
+press #row right        # the secondary button opens the menu at the pointer
+frame
+advance 0.3
+frame
+snap open

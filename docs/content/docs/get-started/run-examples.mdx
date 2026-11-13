@@ -1,0 +1,29 @@
+---
+title: Run an example
+description: Start the example apps from the repository, in a window or under a script.
+---
+
+The repository's `examples` module holds apps written the way a user of the library writes them. Each runs in a window, or under a script without one. [Examples](/docs/examples) has a page for each.
+
+## In a window
+
+From the repository's root:
+
+```sh
+mvn -q -pl examples -am compile exec:exec                          # LightSwitch
+mvn -q -pl examples -am compile exec:exec -Dexample=Workbench
+mvn -q -pl examples -am compile exec:exec -Dexample=Showcase       # every component
+```
+
+`-Dexample` names a class in `com.rethinkj.ui.examples`: `LightSwitch`, `Workbench`, `DataBrowser`, `Showcase`, `Documents`, `Manual`, `Settings`, `ConnectionDialog` or `Notes`. The example runs in a JVM of its own with the JDK that runs Maven.
+
+## Under a script
+
+`-Dargs` passes arguments to the example's `main`. With a script, no window opens; the snaps go to the folder:
+
+```sh
+mvn -q -pl examples -am compile exec:exec -Dexample=LightSwitch \
+  -Dargs="--script examples/src/test/resources/scripts/light-switch.txt --out target/light-switch"
+```
+
+Paths are relative to the folder Maven was started in. Each `snap` writes a `.png` and a `.tree.txt`; the program prints the files it wrote. See [Scripts](/docs/testing/scripts).

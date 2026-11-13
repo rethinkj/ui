@@ -1,0 +1,24 @@
+el 0,0 480x220
+  el 12,12 456x196
+    el #bar 13,13 454x33
+      el #tablist role=tablist 15,13 339x32
+        el #tab-0 role=tab label="orders" 15,13 97x32 selected
+          el 15,43 97x2
+          text label="table" "\u{EBF4}" 23,21 16x16
+          text "orders" 43,21 41x16
+          el #close-0 role=button label="Close orders" 88,21 16x16
+            text label="dismiss" "\u{F368}" 88,21 16x16
+        el #tab-1 role=tab label="customers" 114,13 137x32
+          text "●" 122,21 12x16
+          text label="table" "\u{EBF4}" 138,21 16x16
+          text "customers" 158,21 65x16
+          el #close-1 role=button label="Close customers" 227,21 16x16
+            text label="dismiss" "\u{F368}" 227,21 16x16
+        el #tab-2 role=tab label="query 1" 253,13 101x32
+          text label="code" "\u{F339}" 261,21 16x16
+          text "query 1" 281,21 45x16
+          el #close-2 role=button label="Close query 1" 330,21 16x16
+            text label="dismiss" "\u{F368}" 330,21 16x16
+    el #panel role=tabpanel label="orders" 13,46 454x161
+      el 13,46 454x161
+        text "The rows of orders" 25,58 430x16

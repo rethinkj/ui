@@ -1,0 +1,20 @@
+---
+title: Manual
+description: A reader of Markdown documents, with the headings of the chosen one and images read off the app's thread.
+---
+
+Manual reads Markdown documents: a navigation list of documents with the headings of the chosen one, which scroll there, and the document in a card. Its own manual shows every form the kit's [Markdown](/docs/components/markdown) supports; Markdown files given as arguments open too.
+
+<Shot src="examples/manual-{theme}-2x-top" alt="The Manual: a list of documents and headings beside a Markdown document" />
+
+```sh
+mvn -q -pl examples -am compile exec:exec -Dexample=Manual -Dargs="AGENTS.md"
+```
+
+## Where to look in the source
+
+[`Manual.java`](https://github.com/rethinkj/ui/blob/main/examples/src/main/java/com/rethinkj/ui/examples/Manual.java):
+
+- `image` reads an image the first time a document asks for it, through `App.background`, and keeps it; until then the image shows its placeholder.
+- `link` scrolls to a heading for `#id` links (`Markdown.rowOf` and `App.scrollToRow`) and shows other addresses in a toast.
+- `changelog` builds a document from the files under `changelog/unreleased`.

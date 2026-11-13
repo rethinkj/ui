@@ -1,0 +1,11 @@
+# docs:start find-script
+size 440 220
+frame
+press #notes
+key F control           # opens the find bar with the word at the caret
+type "the"
+frame
+advance 0.3
+frame
+snap found
+# docs:end find-script

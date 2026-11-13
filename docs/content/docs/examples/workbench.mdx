@@ -1,0 +1,33 @@
+---
+title: Workbench
+description: The frame of a database manager over made-up servers that answer slowly.
+---
+
+The Workbench is the frame of a database manager: servers, databases, schemas, tables and columns in a tree beside a tab per opened table, each a query editor over the table's rows in a data grid. The servers are made up and answer slowly, on other threads, so it shows how an app stays responsive. It is the largest example and uses most of the kit.
+
+<Shot dark="examples/workbench-dark-2x" light="examples/workbench-light-2x" alt="The Workbench: a tree of connections, a query editor and a result grid in cards" />
+
+```sh
+mvn -q -pl examples -am compile exec:exec -Dexample=Workbench
+```
+
+## What to try
+
+- Open `staging` in the tree: it connects on another thread while the tree shows a spinner; `prod-eu` refuses, and the status line says why.
+- Double-press a table, or press Enter on it, to open it in a tab. `localhost/shop/public/orders` has a million rows.
+- Type in the query: completions offer the tab's columns, then tables, then keywords. Control+Enter runs it; a table that does not exist is underlined.
+- Control+Shift+P opens the command palette; `@` finds tables, `:` goes to a line.
+- Drag a tab out of the bar: it gets a window of its own. Drag it back to dock it.
+
+<Shot src="examples/workbench-completion" alt="Completions of column names below the caret" />
+
+## Where to look in the source
+
+[`Workbench.java`](https://github.com/rethinkj/ui/blob/main/examples/src/main/java/com/rethinkj/ui/examples/Workbench.java):
+
+- `Workbench` implements `Tree.Model` over its nodes (`roots`, `children`, `isLeaf`, `label`, `icon`), and `openOrClose` starts the connection with `App.background` when a server opens.
+- `ask` and `run` ask a server for a table's rows off the app's thread; closing a tab cancels the `Work`.
+- `suggest` builds the completions for the editor.
+- `openWindow` is the `TabGroups` opener for torn-off tabs; `palette` builds the command palette with its sources.
+- `taskbar` counts the questions on the taskbar button and asks for attention when an answer arrives in the background.
+- `main` sets the latency to 0 before `Script.handle`, so that scripts need not wait.

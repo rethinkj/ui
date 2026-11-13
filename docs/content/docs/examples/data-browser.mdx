@@ -1,0 +1,22 @@
+---
+title: DataBrowser
+description: A million made-up orders in the data grid, filtered, edited and committed.
+---
+
+DataBrowser shows a million orders in the kit's [DataGrid](/docs/components/data-grid), flush in a card with a filter in its toolbar and the status in its footer. Its cells edit, the changes wait in a `GridChanges` until Commit, the header filters columns, and Columns chooses them.
+
+<Shot dark="examples/browser-changes" light="examples/browser-light" alt="The grid with pending changes marked, a filter bar and Commit (n) in the toolbar" />
+
+```sh
+mvn -q -pl examples -am compile exec:exec -Dexample=DataBrowser
+```
+
+## Where to look in the source
+
+[`DataBrowser.java`](https://github.com/rethinkj/ui/blob/main/examples/src/main/java/com/rethinkj/ui/examples/DataBrowser.java):
+
+- The rows are made up by arithmetic over their index (`customer`, `product`, `created`, `status`), so the million cost nothing; the filter works out which rows match the same way.
+- A `GridChanges.Rows` (`count`, `key`, `place`, `cell`) gives the changes a key per order that stays with it while the rows are filtered.
+- `filters` takes the header's filters and applies them.
+- Commit writes the changes beside the made-up values, new orders after the million and deleted ones taken out.
+- A copy beyond the grid's limit shows a [Toast](/docs/components/toast) that says so.

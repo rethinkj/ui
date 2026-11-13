@@ -1,0 +1,37 @@
+---
+title: Progress
+description: Progress bars, labelled bars, a running bar, a line under a toolbar and a spinner.
+---
+
+`Progress` shows how far something is: a bar with a known fraction, a labelled bar with a name and a percentage, a running bar while the fraction is not known, a thin line along a card's edge, and a spinner for small places such as a busy button. For a button that runs something, use `Button.button(..., busy, ...)` ([Button](/docs/components/button)), which shows the spinner itself.
+
+<Shot src="kit/gallery-{theme}-2x" rows="progress,running,labeled" alt="Progress bars at 0, 42 and 100 percent, failed and done, running bars, spinners and labelled bars" />
+
+## Example
+
+```java snippet="progress"
+```
+
+| Call | |
+| --- | --- |
+| `bar(t, fraction[, state])` | A track with the part done in the accent; `fraction` from 0 to 1, clamped |
+| `labeled(t, label, fraction, detail[, state])` | The name over the bar and the detail (the percentage when null) at the right |
+| `indeterminate(t)` | A piece that sweeps along the track, while the fraction is not known |
+| `line(t[, fraction])` | Two pixels high, full width, no track: along the top of a card's content |
+| `spinner(t[, size])` | A ring with a light that goes round, icon-sized unless given |
+
+| State | |
+| --- | --- |
+| `NORMAL` | The accent |
+| `ERROR` | The danger colour; `invalid` in the tree |
+| `DONE` | The success colour |
+| `PAUSED` | Muted |
+
+A bar and a running bar with the same key share their piece, so a bar that learns its value springs there from where the piece ran. Running bars and spinners animate on the app's clock (`El.cycle`); a window draws while one is shown and is idle otherwise.
+
+## In a tree dump
+
+All are `role=progressbar`: bars with `value="42%"`, a running bar without a value, a spinner labelled `Loading`. None takes the focus.
+
+```text file="examples/src/test/resources/golden/docs/status/view.tree.txt" start="role=progressbar" count="7"
+```

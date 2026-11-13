@@ -1,0 +1,49 @@
+---
+title: CodeEditor
+description: A multi-line editor for code with line numbers, highlighting, brackets, a find bar and line commands.
+---
+
+`CodeEditor.codeEditor` is a multi-line field for code: line numbers in a gutter, the caret's line and matching brackets highlighted, other occurrences of the word at the caret marked, colours from a highlighter such as `Sql`, a [find bar](/docs/components/find) and commands that duplicate, move, delete and comment lines. It handles texts of 100 000 lines. For prose or a short note, use a [text area](/docs/components/text-field#text-areas); for completions, add [Completion](/docs/components/completion).
+
+<Shot src="kit/code-editor-{theme}-2x-brackets" alt="SQL in the code editor with line numbers, keywords in colour and a bracket pair highlighted" />
+
+## Example
+
+```java snippet="code-editor"
+```
+
+- `s.sql` is the text, which every edit hands to `onChange`.
+- `s.editor` is a `CodeEditor.State` the app keeps, one per editor (per tab). It holds the caret, selection, scroll and undo history, so an editor that leaves the tree comes back as it was, also in another window.
+- `Sql.of(t)` colours SQL: keywords, strings, quoted identifiers, dollar quotes, numbers, comments and operators. The highlighter is also the key the field keeps its colours by, so pass the same or an equal object each time (`Sql.of` returns a record).
+- Passing `app` gives the editor its find bar and its commands, which edit through the app as single steps of the undo history. Without it (`codeEditor(t, value, state, highlighter, onChange)`) the editor has neither.
+- `.lines(n)` makes it `n` lines high; give it a width or let it grow.
+
+## The state
+
+| `CodeEditor.State` | |
+| --- | --- |
+| `caret()`, `anchor()` | Where the caret and the other end of the selection are, for a status line ("Ln 3, Col 9") or completions |
+| `error(from, to)`, `noError()` | Underline a range in the danger colour, such as the name a query got wrong |
+| `occurrences(boolean)` | Mark the other occurrences of the word at the caret; on by default |
+| `findBar(boolean)`, `find()` | The find bar, on by default, and its `Find.State` |
+
+## Commands
+
+| Keys | `CodeEditor.Command` | |
+| --- | --- | --- |
+| Control+D | `SELECT_NEXT` | Select the word at the caret, then its next occurrence |
+| Control+Shift+D | `DUPLICATE_LINES` | Duplicate the caret's line or the selected lines |
+| Alt+Up, Alt+Down | `MOVE_LINES_UP`, `MOVE_LINES_DOWN` | Move them |
+| Control+Shift+K | `DELETE_LINES` | Delete them |
+| Control+/ | `TOGGLE_COMMENT` | Comment them out or in, with the highlighter's `LineComments` (`--` for SQL) |
+
+`CodeEditor.run(app, state, command)` runs one from a menu. The editor's keys are its field's `onKey` handler; to add your own, keep them: `editor.onKey(mine.or(editor.onKey()))`, as the Workbench does for Control+Enter.
+
+Besides these, it has every key of a multi-line text field: Tab indents (Control+M switches Tab between indenting and moving the focus), a second Home goes to the first character of the line that is not a space, Control+Z and Control+Y undo and redo. See [Text fields and editors](/docs/concepts/text-fields).
+
+## In a tree dump
+
+The editor is a `role=textbox` text element with its label, the lines in view and how many there are, and while it has the focus its caret with line and column. The gutter is `#gutter` with a `#line-<index>` per line.
+
+```text file="examples/src/test/resources/golden/docs/code-editor/view.tree.txt" start="#query" count="3"
+```

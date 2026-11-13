@@ -1,0 +1,7 @@
+el 0,0 520x260
+  el 12,12 496x148
+    text #query role=textbox label="Query" "SELECT id, total\nFROM orders\nWHERE status = 'paid';" 13,13 494x146 lines 1-3/3
+      el #gutter 22,18 15x128
+        text #line-0 "1" 22,18 15x16
+        text #line-1 "2" 22,34 15x16
+        text #line-2 "3" 22,50 15x16

@@ -1,0 +1,7 @@
+size 360 200
+frame
+press role=menuitem label="File"
+frame
+advance 0.3
+frame
+snap open

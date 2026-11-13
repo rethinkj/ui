@@ -1,0 +1,70 @@
+---
+title: Menu
+description: Items, separators, check marks, shortcuts and submenus, as a dropdown below a button or a context menu.
+---
+
+`Menu` shows items in an overlay: below a button with `Menu.dropdown`, at the pointer with `Menu.contextMenu`, or alone with `Menu.menu`. Items have text, an icon or a check mark, a shortcut shown at the right, and submenus to any depth. The app keeps a `Menu.State` per menu, which says whether it is open and what is highlighted. For the File, Edit and View menus of a window, use a [MenuBar](/docs/components/menu-bar); for one value among choices, a [Select](/docs/components/select).
+
+<Shot src="kit/menu-{theme}-2x-submenu" alt="A dropdown menu with icons, shortcuts, a separator and an open submenu" />
+
+## A dropdown
+
+```java snippet="menu"
+```
+
+The button's handler calls `state.toggle()`; `Menu.dropdown(theme, button, state, items)` hangs the menu below it. Choosing an item closes the menu and then runs its handler; a press outside closes it and does nothing else.
+
+## A context menu
+
+```java snippet="context-menu"
+```
+
+`Menu.contextMenu(theme, target, state, items)` opens the menu at a secondary press on the target, or at the Menu key and Shift+F10 when the focus is inside it. If the target already has an `onSecondaryPress` handler (a row that selects itself first), call `state.openAt(x, y)` there.
+
+<Shot src="kit/context-{theme}-2x-open" alt="A context menu open at the pointer over a row" />
+
+## Items
+
+| | |
+| --- | --- |
+| `Menu.item(label, onChoose)` | An item; a null handler disables it |
+| `.shortcut(Key.CONTROL, "N")` | A key combination that runs it, shown as the platform writes it (`Ctrl+N`) |
+| `.shortcut("Ctrl+Enter")` | A text that only shows |
+| `.icon(Symbol)` | An icon before the text |
+| `.checked(boolean)` | A check mark in the icon's place |
+| `Menu.separator()` | A line |
+| `Menu.submenu(label, items)` | A submenu, opening beside the item |
+
+`Menu.shortcuts(items)` is a key handler for the root that runs the enabled item of a combination, in submenus too, when no element on the focus path took the key, menu open or not. Two items with one combination are refused with an exception when the view is built.
+
+## The state
+
+| `Menu.State` | |
+| --- | --- |
+| `isOpen()`, `open()`, `openAt(x, y)`, `close()`, `toggle()` | Open and close |
+| `active(level)`, `submenu(level)` | The highlighted item and the item whose submenu is open, at each level |
+
+## Keyboard
+
+The menu takes the focus as it opens and gives it back as it closes.
+
+| Keys | Action |
+| --- | --- |
+| Up, Down, Home, End | Move the highlight, past separators |
+| Enter, Space | Choose |
+| Right, Left | Open and close a submenu |
+| Escape | Close a submenu, then the menu |
+| Tab | Close the menu |
+| A letter or digit | The next item that starts with it |
+
+The pointer highlights the item it rests on and opens a submenu after the theme's delay. Menus fade in and out; a script advances the clock past the fade (`advance 0.3`) before it presses an item or snaps.
+
+## In a tree dump
+
+The menu is an overlay `role=menu`; items are `role=menuitem` with their text as label and the key `item-<index>` (`subitem-<index>` in a submenu), separators counted; the highlighted item is `current`, a checked one `checked`, an item with a submenu `expanded` or `expanded=false`.
+
+```text snippet="menu-script"
+```
+
+```text file="examples/src/test/resources/golden/docs/menu/highlighted.tree.txt" start="overlay" count="3"
+```

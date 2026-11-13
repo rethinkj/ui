@@ -1,0 +1,7 @@
+size 320 120
+frame
+move #refresh
+frame
+advance 1               # the tooltip shows after the theme's delay
+frame
+snap shown

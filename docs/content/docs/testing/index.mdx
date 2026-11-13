@@ -1,0 +1,37 @@
+---
+title: Testing and agents
+description: Run an app without a window, drive it with a script, and read images and element trees.
+---
+
+Every rethinkj UI app can run without a window: a script of steps drives it, and each `snap` writes a PNG of the frame and the element tree as text. That is how an agent sees what it built, and how the project's own tests are written. This section explains the scripts, the selectors that find elements, the tree dump and its states, tests against stored images, and a recipe for an agent that builds a view and checks it.
+
+## One line in `main`
+
+```java snippet="lights-app" title="Lights.java"
+```
+
+`Script.handle(args, app)` looks for `--script <file> --out <folder>`. With them it runs the script, prints the files it wrote and returns true; without them it returns false and `main` opens the window. The same app, the same view, the same handlers: nothing is mocked. On a mistake it throws `Script.Failure`, which names the line and says what to write instead; uncaught, the program ends with status 1.
+
+From Java, `Script.run(text, app, folder)` does the same and returns the files it wrote.
+
+## A script
+
+```text snippet="lights-script" title="lights.txt"
+```
+
+`size` sets the window (here 360 by 240 logical pixels at scale 2). Only `frame` runs a frame: `press` queues a press, `advance` moves the app's clock, and the next `frame` handles them. `snap` writes `on.png` and `on.tree.txt`:
+
+```text file="examples/src/test/resources/golden/docs/lights/on.tree.txt" title="on.tree.txt"
+```
+
+## Why trees as well as images
+
+An image shows what a person sees; the tree says it in words an agent can match without reading pixels: each element's key, role and label, its rectangle, and its states (`checked`, `selected`, `focused`, `disabled`, `busy`, `invalid` and more). A selector such as `role=switch label="Lamp"` finds the element the same way a person would describe it.
+
+## Pages
+
+- [Scripts](/docs/testing/scripts): every step.
+- [Targets and selectors](/docs/testing/selectors): how steps find elements, and what errors say.
+- [The tree dump](/docs/testing/tree-dump): every part of a line and every state.
+- [Stored images as tests](/docs/testing/stored-images): JUnit tests that compare snaps.
+- [An agent builds a view](/docs/testing/agent-recipe): the loop, step by step.

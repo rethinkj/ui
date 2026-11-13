@@ -1,0 +1,44 @@
+---
+title: Stored images as tests
+description: JUnit tests that run a script and compare its images and trees with stored ones.
+---
+
+A test of a view runs a script against the app and compares what each `snap` wrote with files kept in the repository: the image byte for byte, the tree line by line. When a change of the output is deliberate, the test stores the new files instead, and you look at them before committing. This is how all of rethinkj UI's own tests of views work.
+
+## A test
+
+```java snippet="stored-images" title="StoredImagesTest.java"
+```
+
+- `app.textRendering(TextRendering.LINUX)` pins the hinting of text, so that the images are the same on Windows and Linux. Without it, text is hinted as the platform does it.
+- `Script.run` returns the files it wrote, `.png` and `.tree.txt` for each snap.
+- `Png.decode` reads a PNG into `Pixels` without `java.desktop`.
+- Run it with `-Dgolden.update=true` to store the snaps anew, then look at the images and the diff of the trees before you commit.
+
+The tests need the native libraries for text. Where they cannot load (a build with `-P '!natives-linux-x64'`), skip the test with an assumption, as the repository's tests do:
+
+```java snippet="assume-text"
+```
+
+## A view without an app
+
+For a view that needs no input, `Headless.render` lays out and draws a tree of elements and returns the pixels and the tree as text:
+
+```java snippet="headless"
+```
+
+## What to compare
+
+- **Trees** are cheap to store, read well in a diff and say what matters: roles, labels, states, rectangles. Compare them in every test.
+- **Images** catch what trees do not: colours, clipping, text rendering. Store a few per view, at scale 2 where text matters, and in both themes where colours matter.
+- Assert the states that the test is about directly, so that a failure says what is wrong: `tree.contains("role=switch label=\"Lamp\" ... checked")`.
+
+## The repository's conventions
+
+`core`, `kit` and `examples` keep their stored images under `src/test/resources/golden`. A failing image test in core leaves the expected image, the actual image and their difference in `core/target/golden`. Rewrite all stored images of a module and the modules it depends on with:
+
+```sh
+mvn -pl kit -am test -Dgolden.update=true
+```
+
+The images on this site are those stored images: the site shows what the tests check.

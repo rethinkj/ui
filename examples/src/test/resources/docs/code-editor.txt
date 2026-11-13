@@ -1,0 +1,13 @@
+# docs:start completion-script
+size 520 260
+frame
+press #query
+key End control         # the end of the text
+type "\nJOIN "
+type "o"
+type "r"                # the word has two characters: the list opens
+frame
+advance 0.3
+frame
+snap completions
+# docs:end completion-script

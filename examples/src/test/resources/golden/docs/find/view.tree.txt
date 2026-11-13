@@ -1,0 +1,2 @@
+el 0,0 440x220
+  text #notes role=textbox label="Notes" "Ship by Friday.\nCall the north warehouse on Monday." 12,12 360x106 lines 1-2/2

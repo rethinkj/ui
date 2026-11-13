@@ -1,0 +1,28 @@
+el 0,0 480x160
+  el window=drag 0,0 480x32
+    el 12,11 10x10
+    text "Workbench" 30,8 72x16
+    el 102,16 200x0
+    el 302,8 28x16
+      el role=switch label="Dark theme" 298,6 36x20 checked
+        el 302,8 28x16
+          el 316,10 12x12
+    el role=button label="Minimize" window=minimize 342,0 46x32
+      el 360,16 10x1
+    el role=button label="Maximize" window=maximize 388,0 46x32
+      el 406,11 10x10
+    el role=button label="Close" window=close 434,0 46x32
+      text label="dismiss" "\u{F367}" 451,10 12x12
+  el 0,32 480x100
+  el role=status label="Status bar" 0,132 480x28
+    el 8,134 337x24
+      el label="localhost" 8,134 84x24 value="connected"
+        el 12,138 16x16
+          el 16,142 8x8
+        text "localhost" 32,138 56x16
+      el label="shop · public" 94,134 88x24
+        text "shop · public" 98,138 80x16
+    el role=button label="UTF-8" 347,134 48x24
+      text "UTF-8" 351,138 40x16
+    el label="Ln 3, Col 9" 397,134 75x24
+      text "Ln 3, Col 9" 401,138 67x16

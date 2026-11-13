@@ -1,0 +1,28 @@
+el 0,0 320x260
+  el role=radiogroup label="Indent with" 8,10 77x40
+    el role=radio label="Spaces" 12,12 69x16 checked
+      el 12,12 16x16
+        el 17,17 6x6
+      text "Spaces" 36,12 45x16
+    el role=radio label="Tabs" 12,32 69x16 checked=false
+      el 12,32 16x16
+      text "Tabs" 36,32 29x16
+  el role=radiogroup label="Select" 12,56 120x24
+    el role=radio label="Rows" 15,59 58x18 checked
+      text "Rows" 27,60 34x16
+    el role=radio label="Cells" 75,59 54x18 checked=false
+      text "Cells" 87,60 30x16
+  el role=combobox label="Driver" 12,88 200x24 expanded=false
+    text "PostgreSQL" 21,92 162x16
+    text label="chevron_down" "\u{F2A2}" 187,92 16x16
+  el label="Fetch size" 12,120 100x24
+    text role=spinbutton "4" 12,120 100x24
+    el 68,122 42x20
+      el role=button label="Decrease" 68,122 20x20
+        text label="subtract" "\u{EBCF}" 70,124 16x16
+      el role=button label="Increase" 90,122 20x20
+        text label="add" "\u{F108}" 92,124 16x16
+  el role=slider label="Font size" 12,152 200x24 value="13"
+    el 20,162 184x4
+      el 20,162 74x4
+      el 86,156 16x16

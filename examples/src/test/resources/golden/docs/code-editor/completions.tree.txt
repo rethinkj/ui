@@ -1,0 +1,22 @@
+el 0,0 520x260
+  el 12,12 496x148
+    text #query role=textbox label="Query" "SELECT id, total\nFROM orders\nWHERE status = 'paid';\nJOIN or" 13,13 494x146 lines 1-4/4 focused caret 59 (4:8)
+      el #gutter 22,18 15x128
+        text #line-0 "1" 22,18 15x16
+        text #line-1 "2" 22,34 15x16
+        text #line-2 "3" 22,50 15x16
+        text #line-3 "4" 22,66 15x16
+overlay bottom start gap 2 on #query role=textbox label="Query" 13,13 494x146
+  el #completions role=listbox label="Completions" 86,84 200x58
+    el #option-0 role=option label="orders" 91,89 190x24 selected
+      el 91,89 190x24
+        el 99,93 16x16
+          text label="table" "\u{EBF4}" 99,93 16x16
+        text "orders" 123,93 100x16
+        text "table" 243,93 30x16
+    el #option-1 role=option label="order_items" 91,113 190x24
+      el 91,113 190x24
+        el 99,117 16x16
+          text label="table" "\u{EBF4}" 99,117 16x16
+        text "order_items" 123,117 100x16
+        text "table" 243,117 30x16

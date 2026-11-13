@@ -1,0 +1,30 @@
+---
+title: Popover
+description: Any content below an anchor, such as a small form, that closes with Escape or a press outside.
+---
+
+`Popover.popover` hangs any content below its anchor while the app's `Popover.State` is open, as a menu without items: a filter's form below its button, details of a value. It is not modal: a press outside closes it and goes on. `Popover.form` is the common case, a heading, content and buttons. For a blocking question, use a [Dialog](/docs/components/dialog); for a hint on hover, a [Tooltip](/docs/components/tooltip).
+
+<Shot src="kit/parts-popover-{theme}-2x" alt="A popover with a small filter form below its button in a toolbar" />
+
+## Example
+
+```java snippet="popover"
+```
+
+| | |
+| --- | --- |
+| `Popover.popover(t, anchor, state, label, content)` | Content below the anchor |
+| `Popover.popover(t, anchor, state, side, align, label, content)` | On another side, aligned `START`, `CENTER`, `END` or `STRETCH` |
+| `Popover.form(t, anchor, state, title, content, buttons)` | A small form with a heading and buttons at the bottom right |
+| `Popover.panel(t, state, label, content)` | The overlay alone, to attach yourself |
+| `Popover.State` | `isOpen()`, `open()`, `close()`, `toggle()` |
+
+The focus goes inside as it opens and back to the anchor as it closes; Tab walks it right after its anchor. It has no arrow to its anchor.
+
+## In a tree dump
+
+An overlay on its anchor, `role=dialog` with its label:
+
+```text file="examples/src/test/resources/golden/docs/popover/open.tree.txt" start="overlay" count="4"
+```

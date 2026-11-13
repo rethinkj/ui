@@ -1,0 +1,62 @@
+---
+title: TextField
+description: Single-line fields, password fields that can show their text, text areas and code areas.
+---
+
+`TextField.textField` is a single-line text field in the kit's frame: a border, a lighter fill under the pointer and the accent border while focused. The same file has `passwordField` and `revealable` for passwords, `textArea` for several lines of prose and `codeArea` for code. The string belongs to the app: every edit hands the new string to the handler, which stores it. For code with line numbers and highlighting, use a [CodeEditor](/docs/components/code-editor); for a whole number, a [NumberField](/docs/components/number-field).
+
+<Shot src="kit/gallery-{theme}-2x" rows="field empty,field filled,field selected" alt="Text fields empty, filled and with a selection, in each state" />
+
+## Example
+
+```java snippet="text-field"
+```
+
+| Call | |
+| --- | --- |
+| `textField(t, value, placeholder, onChange)` | A field the theme's control height and field width; the placeholder is also its label unless `.label(...)` sets one |
+| `textField(t, value, onChange)` | Without a placeholder |
+| `withIcon(t, field, symbol)` | A muted icon at the left inside the frame, such as `Symbol.SEARCH` for a filter |
+| `invalid(t, field)` | The danger border, also while focused, and the `invalid` state |
+
+The result is the field itself, so the core's field calls chain onto it:
+
+| | |
+| --- | --- |
+| `.readOnly()` | Selects and copies, takes no edits |
+| `.maxLength(n)` | At most `n` code points, typed or pasted |
+| `.w(pixels)`, `.wFull()` | Another width |
+| `.key(...)`, `.label(...)` | Identity and label |
+
+A null handler disables the field. The handler may refuse an edit (store nothing) or change it (keep only digits); the field shows the app's string. See [Text fields and editors](/docs/concepts/text-fields) for carets, selection, undo and input methods.
+
+## Passwords
+
+```java snippet="password-field"
+```
+
+`passwordField` masks the string: one `•` per character, copy and cut do nothing, and the tree and every selector see only the mask. `revealable(t, field, revealed, onToggle)` adds a button at the right inside the frame that shows and hides it; `revealed` is the app's state. The button leaves the focus in the field.
+
+<Shot src="kit/gallery-{theme}-2x" rows="password,password shown" alt="A password field masked and shown" />
+
+## Text areas
+
+```java snippet="text-area"
+```
+
+`textArea` is a multi-line field that wraps lines, for notes and descriptions; `codeArea` one in the monospaced font that scrolls sideways, where Tab indents. `.lines(n)` sets the height in lines.
+
+<Shot src="kit/gallery-{theme}-2x" rows="area,area selected,code area" alt="Text areas with wrapped text, a selection and code" />
+
+## Keyboard
+
+Arrows, Home, End, with Shift to select and Control by words; Backspace, Delete; Control+A, C, X, V, Z, Y; in a multi-line field Enter breaks the line, Page Up and Page Down scroll, and Control+Enter goes on to the app's key handlers. Tab into a single-line field selects its text.
+
+## In a tree dump
+
+A text element with `role=textbox`, its label and its string in quotes; `disabled`, `readonly`, `password` and `invalid` as they apply; while focused, `focused caret <n>` and `anchor <n>` for a selection. A multi-line field adds `lines <first>-<last>/<count>`.
+
+```text file="examples/src/test/resources/golden/docs/fields/view.tree.txt" start="#table" count="6"
+```
+
+Type into a field with `press #table` then `type "orders"`.

@@ -1,0 +1,5 @@
+size 320 260
+frame
+press role=treeitem label="orders"
+frame
+snap selected

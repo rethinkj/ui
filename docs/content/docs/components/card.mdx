@@ -1,0 +1,42 @@
+---
+title: Card
+description: A rounded surface that frames a region, with a header, a toolbar, a footer and parts edge to edge.
+---
+
+`Card.card` is a column on the panel surface with rounded corners, an edge and a slight lift: the kit's way to frame each region of a window on its background. `Card.flush` holds parts edge to edge, such as a toolbar, a data grid and a footer. Data grids, trees and forms look best in a card. For rows of settings in a card, use a [Group](/docs/components/group).
+
+<Shot src="kit/structure-cards-{theme}-2x" alt="Cards: a header with actions, filled and elevated cards, an inset list and pressable cards" />
+
+## Example
+
+```java snippet="card"
+```
+
+```java snippet="card-flush"
+```
+
+| Call | |
+| --- | --- |
+| `card(t, content...)`, `card(t, variant, content...)` | A column with padding and gaps |
+| `header(t, title, description, actions...)` | A title, a muted description that wraps, and actions at the right |
+| `flush(t, parts...)` | A card without padding whose parts lie edge to edge, clipped by its corners |
+| `toolbar(t, title, secondary, actions...)` | The first part of a flush card: a title, a muted text beside it, actions at the right |
+| `footer(t, start, end...)` | The last part: a quiet band with a hairline above it |
+| `inset(t, list)` | Insets a list with rounded rows, such as a tree or a nav list |
+| `pressable(t, card, label, selected, onPress)` | The whole card as a button, with `selected` drawn as an accent edge |
+| `footerHeight(t)` | The footer's height, to keep a toast clear of it |
+
+| Variant | |
+| --- | --- |
+| `OUTLINED` | The panel with a subtle edge and the card's shadow (default); a card in a card is outlined |
+| `FILLED` | The panel without a visible edge or lift, on the window's background |
+| `ELEVATED` | The panel with the edge and a popup's shadow |
+
+Null content is left out, so `changed ? callout(...) : null` composes.
+
+## In a tree dump
+
+A card has no role of its own; its header's title is `role=heading level=3`:
+
+```text file="examples/src/test/resources/golden/docs/cards/view.tree.txt" start="\"Connection\"" count="5"
+```

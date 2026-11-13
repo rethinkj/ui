@@ -1,0 +1,29 @@
+---
+title: Tooltip
+description: A short text below an element after the pointer rests on it, or the keyboard focuses it.
+---
+
+`Tooltip.tooltip` shows a short text below its anchor once the pointer has rested on it for the theme's delay (half a second), and hides it when the pointer leaves or presses. It also shows when the keyboard gives the anchor the focus, until the focus leaves or a key goes down. Use it to name icon buttons and to show what is cut off. It holds no state. For content that the user interacts with, use a [Popover](/docs/components/popover).
+
+<Shot src="kit/tooltip-{theme}-2x-shown" alt="A tooltip below a button" />
+
+## Example
+
+```java snippet="tooltip"
+```
+
+`Tooltip.tooltip(theme, anchor, text)` returns the anchor. Where the tooltip would cover its anchor, it goes beside it. An idle window wakes for the delay and draws nothing while it waits. `Button.icon` already has a tooltip with its label.
+
+## In a script
+
+Presses do not move the pointer, so a script moves onto the anchor and advances the clock:
+
+```text file="examples/src/test/resources/docs/tooltip.txt"
+```
+
+## In a tree dump
+
+An overlay below the anchor, `role=tooltip` with the text as label:
+
+```text file="examples/src/test/resources/golden/docs/tooltip/shown.tree.txt" start="overlay"
+```

@@ -1,0 +1,9 @@
+# docs:start grid-edit-script
+size 520 300
+frame
+press #cell-1-1           # selects the cell
+type "Zoe"                # typing opens the editor with the typed text
+key Enter                 # hands the value on and goes down
+frame
+snap edited               # the row and the cell say value="changed"
+# docs:end grid-edit-script

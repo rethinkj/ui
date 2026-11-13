@@ -1,0 +1,21 @@
+---
+title: LightSwitch
+description: "The smallest example: a lamp and a switch in a frameless window with a title bar of its own."
+---
+
+LightSwitch is a lamp and a switch in a card, in a frameless window with the kit's [TitleBar](/docs/components/title-bar): drag the bar to move the window, press the switch or Tab to it and press Space. It is the app of [The first app](/docs/get-started/first-app) with an identity, an icon and a title bar.
+
+<Shot src="examples/light-switch-on" alt="The lamp lit above the switch" />
+
+```sh
+mvn -q -pl examples -am compile exec:exec
+```
+
+## Where to look in the source
+
+[`LightSwitch.java`](https://github.com/rethinkj/ui/blob/main/examples/src/main/java/com/rethinkj/ui/examples/LightSwitch.java): `main` pins the text rendering for scripts, sets the platform's back for the window, and opens a frameless window with an icon; `view` is the title bar and the card.
+
+Its script:
+
+```text file="examples/src/test/resources/scripts/light-switch.txt"
+```

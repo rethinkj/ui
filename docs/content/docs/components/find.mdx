@@ -1,0 +1,42 @@
+---
+title: Find
+description: A find and replace bar for a multi-line field, with whole words, case, regular expressions and go to line.
+---
+
+`Find.find` gives a multi-line field a find bar, as editors have: it floats over the field's top right corner, marks every match in view, counts them, goes from match to match, replaces, and goes to a line. A [CodeEditor](/docs/components/code-editor) given the app has one already; use `Find.find` for other fields, such as a [text area](/docs/components/text-field#text-areas).
+
+<Shot src="kit/find-{theme}-2x-replace" alt="The find bar with a replacement row over a code editor, matches highlighted" />
+
+## Example
+
+```java snippet="find"
+```
+
+The app keeps a `Find.State`. `Find.find(theme, app, field, state)` wraps the field's key, selection and decorator handlers and returns the field.
+
+```text snippet="find-script"
+```
+
+## Keyboard
+
+| Keys | Action |
+| --- | --- |
+| Control+F | Open with the selection of one line, or the word at the caret, as the text to find |
+| Control+H | Open with the replacement row (never in a read-only field) |
+| Control+G | Go to a line: `42`, or `42:7` for a column |
+| Enter, F3 / Shift+Enter, Shift+F3 | Next and previous match; F3 also with the bar closed |
+| Alt+C, Alt+W, Alt+R, Alt+L | Match case, whole word, regular expression, find in selection |
+| Enter in the replacement | Replace the current match and go on |
+| Control+Alt+Enter | Replace all, as one step of the undo history |
+| Escape | Close, leaving the last match selected and the focus in the field |
+
+In a regular expression's replacement, `$1` and `${name}` refer to groups. Case folding follows Unicode's simple folding. A text of up to 200 000 characters (`Find.SYNC_CHARS`) is searched whole at once; a longer one on another thread, with the lines in view first. A regular expression that backtracks without end stops after a deadline.
+
+`Find.open(state)`, `openReplace(state)`, `goToLine(state)`, `goToLine(state, "42")`, `next(state)` and `previous(state)` do the same from a menu.
+
+## In a tree dump
+
+The bar is an overlay on the field, `role=search` `label="Find"`. Its field is `label="Find"`, the replacement `label="Replace"`, the switches are `role=button` with `checked` or `checked=false`, and `#count` says how many matches there are: `3 of 17`, `17 results`, `No results`, `10000+`, `Searching…`.
+
+```text file="examples/src/test/resources/golden/docs/find/found.tree.txt" start="#match-case" count="7"
+```

@@ -1,0 +1,10 @@
+{
+  "title": "Testing and agents",
+  "pages": [
+    "scripts",
+    "selectors",
+    "tree-dump",
+    "stored-images",
+    "agent-recipe"
+  ]
+}

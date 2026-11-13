@@ -1,0 +1,29 @@
+---
+title: StatusBar
+description: The bar along the bottom of a window, with texts, items and connection states at both ends.
+---
+
+`StatusBar.statusBar` is the bar along the bottom of a window, on the window's background as a title bar is: parts at the left that give way in a narrow window, and parts at the right that keep their size. Use it for the connection, the caret's position, the encoding. `Card.footer` is the same for one card ([Card](/docs/components/card)).
+
+<Shot src="kit/gallery-{theme}-2x" rows="status item" alt="A status item with a green dot, in each state" />
+
+## Example
+
+```java snippet="status-bar"
+```
+
+| Part | |
+| --- | --- |
+| `StatusBar.text(t, text)` | Muted text |
+| `StatusBar.item(t, icon, text, onPress)` | Text with an optional icon; pressable with a handler |
+| `StatusBar.status(t, state, text, onPress)` | A dot in the state's colour before the text: `CONNECTED`, `IDLE`, `ERROR`, or `BUSY` with a spinner |
+| `StatusBar.height(t)` | Its height, to keep a toast clear of it |
+
+Null parts are left out. A part with a handler is a button, one stop for Tab, and leaves the focus where it was.
+
+## In a tree dump
+
+`role=status` `label="Status bar"`; a `status` part says its state as `value`, a pressable part is `role=button`:
+
+```text file="examples/src/test/resources/golden/docs/bars/view.tree.txt" start="label=\"Status bar\"" count="5"
+```

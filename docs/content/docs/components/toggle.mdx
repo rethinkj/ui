@@ -1,0 +1,31 @@
+---
+title: Toggle
+description: A switch for a setting that applies at once, with its text beside it.
+---
+
+`Toggle.toggle` is a switch and its text in a row; a press anywhere on the row flips it. Use it for settings that take effect at once, such as Autocommit. For a choice that applies only when a form is saved, a [Checkbox](/docs/components/checkbox) reads better; for a switch in a settings list, use `Group.switchRow` ([Group](/docs/components/group)).
+
+<Shot src="kit/gallery-{theme}-2x" rows="toggle off,toggle on" alt="A switch off and on, in each state" />
+
+## Example
+
+```java snippet="toggle"
+```
+
+| Call | |
+| --- | --- |
+| `toggle(t, on, text, onToggle)` | The switch and its text |
+| `toggle(t, on, onToggle)` | The switch alone; give it a `.label(...)` |
+
+`on` is the app's state, which `onToggle` flips. A null handler disables it. The row is as wide as switch and text, so its press area and focus ring are too.
+
+## Keyboard
+
+Tab reaches it; Space and Enter flip it. A press leaves the focus where it was.
+
+## In a tree dump
+
+`role=switch` with the text as label, `checked` when on and `checked=false` when off:
+
+```text file="examples/src/test/resources/golden/docs/toggles/view.tree.txt" start="role=switch" count="1"
+```
