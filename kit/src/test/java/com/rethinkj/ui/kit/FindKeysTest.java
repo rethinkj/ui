@@ -231,6 +231,31 @@ class FindKeysTest {
   }
 
   @Test
+  void tabGoesFromTheFieldToFindToTheReplacementAndBack() throws IOException {
+    Doc doc = new Doc(TEXT);
+    App<Doc> app = app(doc);
+    run(app, """
+        frame
+        focus #query
+        key H control
+        type "orders"
+        frame
+        advance 0.25
+        frame
+        key Tab
+        type "sales"
+        """);
+    assertEquals("replace", app.focused().key());
+    assertEquals("sales", doc.editor.find().replacement);
+    run(app, "key Tab shift");
+    assertEquals("find-field", app.focused().key());
+
+    // Without a replacement to type, Tab goes on through the bar as before.
+    run(app, "key Escape\nframe\nkey F control\nframe\nadvance 0.25\nframe\nkey Tab");
+    assertEquals("match-case", app.focused().key());
+  }
+
+  @Test
   void replaceReplacesTheCurrentMatchAndAllAreOneStep() throws IOException {
     Doc doc = new Doc(TEXT);
     App<Doc> app = app(doc);

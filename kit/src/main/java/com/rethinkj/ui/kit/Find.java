@@ -117,6 +117,7 @@ public final class Find {
     // The elements of the last build, for the handlers.
     El field;
     El findField;
+    El replaceField; // while the replacement's row shows: Tab goes there from the field to find
     El lineField;
     App<?> app;
 
@@ -862,6 +863,7 @@ public final class Find {
         .child(tool(t, Symbol.DISMISS, "Close", "Close (Escape)", null, state::close)
             .key("close"));
     panel.child(findRow);
+    state.replaceField = null;
     if (state.mode == Mode.REPLACE) {
       El replace = TextField.textField(t, state.replacement, "Replace", v -> {
             state.replacement = v;
@@ -870,6 +872,10 @@ public final class Find {
           .key("replace")
           .label("Replace")
           .onKey(k -> {
+            if (k.name().equals("Tab") && k.modifiers() == Key.SHIFT && state.findField != null) {
+              app.focus(state.findField); // back, past the switches, as it came
+              return true;
+            }
             boolean enter =
                 (k.name().equals("Enter") || k.name().equals("NumpadEnter")) && k.modifiers() == 0;
             if (enter) {
@@ -877,6 +883,7 @@ public final class Find {
             }
             return enter;
           });
+      state.replaceField = replace;
       if (state.replaceError != null) {
         replace = Tooltip.tooltip(t, TextField.invalid(t, replace), state.replaceError);
       }
@@ -925,6 +932,12 @@ public final class Find {
           }
         })
         .onKey(k -> {
+          // With a replacement to type, Tab goes on to it, as in editors; the switches and
+          // buttons between them stay for the pointer and their keys, and Tab from there.
+          if (k.name().equals("Tab") && k.modifiers() == 0 && state.replaceField != null) {
+            state.app.focus(state.replaceField);
+            return true;
+          }
           boolean enter = (k.name().equals("Enter") || k.name().equals("NumpadEnter"))
               && (k.modifiers() == 0 || k.modifiers() == Key.SHIFT);
           if (enter) {

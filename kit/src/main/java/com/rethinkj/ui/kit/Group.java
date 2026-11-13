@@ -65,7 +65,14 @@ public final class Group {
    * @param control at the right, such as a select, a text field or a button; null for none
    */
   public static El row(Theme t, Symbol icon, String title, String description, El control) {
-    El row = base(t, icon, title, description, true);
+    // A control that says what is wrong with its value ({@link El#errorMessage}) has that in
+    // place of the description, in the danger colour, as a form's field has.
+    El target = control == null ? null : Form.target(control);
+    String error = target == null ? null : target.errorMessage();
+    El row = base(t, icon, title, error != null ? error : description, true);
+    if (error != null) {
+      row.children().getLast().children().getLast().color(t.status().danger());
+    }
     if (control != null) {
       row.child(Form.named(control, title).shrink(0));
     }

@@ -81,7 +81,8 @@ public final class NumberField {
         .role("spinbutton")
         .label(label);
     if (value < min || value > max) {
-      TextField.invalid(t, field);
+      // The message a form or a group's row shows below it, and a dump as error="...".
+      TextField.invalid(t, field).errorMessage(min + " to " + max);
     }
     float inset = t.space().xs();
     float size = t.size().control() - 2 * inset;

@@ -110,6 +110,24 @@ class GroupTest {
   }
 
   @Test
+  void aRowShowsItsControlsMessageInPlaceOfItsDescription() throws IOException {
+    Sheets s = new Sheets(Theme.DARK);
+    s.tabSize = 40;
+    App<Sheets> app = s.app(Sheets::rows);
+    run(app, "");
+    String dump = app.tree().dump();
+    assertTrue(StructureTest.line(dump, "role=spinbutton").contains("error=\"1 to 16\""), dump);
+    assertTrue(dump.contains("text \"1 to 16\""), dump);
+    assertFalse(dump.contains("Columns per tab stop"), dump);
+
+    s.tabSize = 4;
+    run(app, "");
+    dump = app.tree().dump();
+    assertFalse(dump.contains("1 to 16"), dump);
+    assertTrue(dump.contains("text \"Columns per tab stop\""), dump);
+  }
+
+  @Test
   void aFormNamesItsFieldsAndMarksAnErrorAsInvalid() throws IOException {
     Sheets s = new Sheets(Theme.DARK);
     App<Sheets> app = s.app(Sheets::form);

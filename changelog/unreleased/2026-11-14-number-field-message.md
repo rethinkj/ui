@@ -1,0 +1,1 @@
+- A `NumberField` whose number is outside its range says the range as its `El.errorMessage` (`1 to 16`), which a `Form` field shows below it and a tree dump as `error="1 to 16"`. A `Group` row now shows its control's error message in place of its description, in the danger colour.
