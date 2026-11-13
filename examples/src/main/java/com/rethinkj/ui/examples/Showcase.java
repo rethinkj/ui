@@ -176,6 +176,13 @@ public final class Showcase {
   String filterValue = "paid";
   List<String> filters = new java.util.ArrayList<>(List.of("total > 100"));
 
+  /**
+   * The smallest window, narrow enough that the path and the toolbar of Table details give way
+   * into menus, as the narrow step of showcase.txt shows them.
+   */
+  static final float MIN_WIDTH = 620;
+  static final float MIN_HEIGHT = 480;
+
   // Progress
   static final double SIZE = 80; // megabytes of the made-up download
   double downloaded; // megabytes so far
@@ -285,7 +292,7 @@ public final class Showcase {
     Showcase s = app.state();
     s.look = Look.SYSTEM; // the window follows the system until another look is chosen
     Window.Options options = Identity.options(Showcase.class, "Showcase", 0xFF7C3AED, Symbol.SHAPES)
-        .frameless().minimumSize(900, 600);
+        .frameless().minimumSize(MIN_WIDTH, MIN_HEIGHT);
     try (Window window = Window.open("Showcase", 1100, 720, options);
         GpuPresenter presenter = new GpuPresenter(window)) {
       new WindowLoop(window, app, presenter)
