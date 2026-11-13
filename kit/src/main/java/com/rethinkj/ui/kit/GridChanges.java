@@ -212,6 +212,21 @@ public final class GridChanges {
     return at >= 0 ? shown[at].id() : rows.key(row - (-at - 1));
   }
 
+  /** The row at which the row with this key of the app's is shown, or -1 when it is not. */
+  public int rowOf(long key) {
+    int place = rows.place(key);
+    if (place < 0) {
+      return -1;
+    }
+    int row = place;
+    for (int p : places) {
+      if (p <= row) {
+        row++;
+      }
+    }
+    return row;
+  }
+
   /** The message of a failed cell ({@link #error}), or null. */
   public String errorText(int row, int column) {
     Map<Integer, String> failed = errors.get(key(row));

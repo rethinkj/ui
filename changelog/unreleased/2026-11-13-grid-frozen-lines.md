@@ -1,0 +1,1 @@
+- The data grid no longer lets the cells scrolled under its row numbers and frozen columns show through the hairline-wide gaps between them.

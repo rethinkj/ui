@@ -997,6 +997,7 @@ public final class DataGrid {
     Runnable onRedo;
     List<Filter> filters = List.of();
     Consumer<List<Filter>> onFilter;
+    IntPredicate filterable = c -> true;
     Layout layout;
     IntConsumer onFreeze;
     int[] full; // with a layout: the index among all columns of each shown one
@@ -1264,6 +1265,8 @@ public final class DataGrid {
         CellStatus to = cellStatus;
         cellStatus = (r, c) -> to.status(r, full[c]);
       }
+      IntPredicate canFilter = filterable;
+      filterable = c -> canFilter.test(full[c]);
       List<Filter> hiddenFilters = new ArrayList<>();
       List<Filter> shownFilters = new ArrayList<>();
       for (Filter f : filters) {
@@ -1284,6 +1287,12 @@ public final class DataGrid {
           to.accept(List.copyOf(mapped));
         };
       }
+    }
+
+    /** Offers filters only on the columns {@code columns} accepts; all unless set. */
+    public Options filterable(IntPredicate columns) {
+      this.filterable = Objects.requireNonNull(columns, "columns");
+      return this;
     }
 
     /** Lets Control+Z undo and Control+Y and Control+Shift+Z redo while no editor is open. */
@@ -1379,6 +1388,11 @@ public final class DataGrid {
       return o.onFilter != null && sel != null;
     }
 
+    /** Whether the header sets a filter on this column. */
+    boolean filtering(int column) {
+      return filtering() && o.filterable.test(column);
+    }
+
     int selectionFill() {
       return focused[0] ? g.selected() : g.selectedInactive();
     }
@@ -1471,10 +1485,14 @@ public final class DataGrid {
     List<El> pinned = new ArrayList<>();
     if (b.numbers > 0) {
       pinned.add(pin(b, cellBox(t, Align.RIGHT, b.numbers).key("numbers").fill(g.header()), 0));
-      pinned.add(pin(b, line(t, false), b.numbers - t.size().stroke()));
+      // The lines in the frozen part are filled, so that nothing scrolled under it shows.
+      pinned.add(pin(b, line(t, false).fill(g.header()), b.numbers - t.size().stroke()));
     }
     for (int c = 0; c < n; c++) {
       lines[c] = line(t, c == b.frozen - 1);
+      if (c < b.frozen - 1) {
+        lines[c].fill(g.header());
+      }
       El cell = headerCell(b, c);
       if (c < b.frozen) {
         pinned.add(pin(b, cell.fill(g.header()), b.xs[c]));
@@ -1549,7 +1567,7 @@ public final class DataGrid {
     }
     // The filter's funnel at the outer end, apart from the rest by what is left of the cell;
     // while the column has none, it lies over that end under the pointer and takes no room.
-    El funnel = b.filtering() ? GridFilter.funnel(b, index) : null;
+    El funnel = b.filtering(index) ? GridFilter.funnel(b, index) : null;
     boolean inFlow = funnel != null && GridFilter.set(b, index);
     if (inFlow && column.align() == Align.RIGHT) {
       cell.children(funnel, el().grow(1).minSize(0, 0));
@@ -1695,7 +1713,7 @@ public final class DataGrid {
         width += t.space().xs() + natural(Label.label(t, "9"));
       }
     }
-    if (b.filtering() && GridFilter.set(b, c)) {
+    if (b.filtering(c) && GridFilter.set(b, c)) {
       width += t.size().icon() + t.space().xs();
     }
     return width;
@@ -1781,7 +1799,10 @@ public final class DataGrid {
         number.onPointerDown((clicks, modifiers) -> down(b, i, Math.max(sel.column(), 0), true,
             clicks, modifiers));
       }
-      r.children(pinRow(b, number, 0), pinRow(b, line(t, false), b.numbers - stroke));
+      // The lines in the frozen part are filled, so that nothing scrolled under it shows.
+      El after = line(t, false).fill(fill);
+      pinned.add(after);
+      r.children(pinRow(b, number, 0), pinRow(b, after, b.numbers - stroke));
     }
     for (int c = 0; c < b.frozen; c++) {
       El cell = cell(b, i, c, loaded, fill, status);
@@ -1789,8 +1810,12 @@ public final class DataGrid {
         cell.fill(fill);
         pinned.add(cell);
       }
-      r.children(pinRow(b, cell, b.xs[c]),
-          pinRow(b, line(t, c == b.frozen - 1), b.xs[c + 1] - stroke));
+      El after = line(t, c == b.frozen - 1);
+      if (c < b.frozen - 1) {
+        after.fill(fill);
+        pinned.add(after);
+      }
+      r.children(pinRow(b, cell, b.xs[c]), pinRow(b, after, b.xs[c + 1] - stroke));
     }
     if (editing && sel.editColumn < b.frozen) {
       r.child(GridEdit.editor(b, i, sel.editColumn));
@@ -2026,7 +2051,8 @@ public final class DataGrid {
     if (GridEdit.gridKey(b, k)) {
       return true;
     }
-    if (mods == Key.ALT && k.name().equals("ArrowDown") && b.filtering() && n > 0) {
+    if (mods == Key.ALT && k.name().equals("ArrowDown") && n > 0
+        && b.filtering(Math.clamp(sel.column(), 0, n - 1))) {
       GridFilter.open(b, Math.clamp(sel.column(), 0, n - 1));
       return true;
     }

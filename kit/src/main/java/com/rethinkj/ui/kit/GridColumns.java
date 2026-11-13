@@ -34,7 +34,8 @@ final class GridColumns {
       return;
     }
     DataGrid.Options o = b.o;
-    if (o.onSort != null && b.columns.get(index).sortable() || b.filtering() || o.layout != null
+    if (o.onSort != null && b.columns.get(index).sortable() || b.filtering(index)
+        || o.layout != null
         || o.onFreeze != null || o.onResize != null) { // as items(b, index) has some
       cell.onSecondaryPress((x, y) -> {
         sel.headerColumn = index;
@@ -86,7 +87,7 @@ final class GridColumns {
       items.add(Menu.item("Clear sort", !sorted ? null : () -> o.onSort.accept(
           o.sort.stream().filter(k -> k.column() != c).toList())));
     }
-    if (b.filtering()) {
+    if (b.filtering(c)) {
       items.add(Menu.item("Filter…", () -> GridFilter.open(b, c)).icon(Symbol.FILTER)
           .shortcut("Alt+Down"));
     }
