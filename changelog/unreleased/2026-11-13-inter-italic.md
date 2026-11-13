@@ -1,0 +1,1 @@
+- Added: `Font.sansItalic()` and `Font.sansBoldItalic()`, Inter 4.1 Italic and Bold Italic in `rethinkj-ui-fonts`.
