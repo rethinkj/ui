@@ -111,6 +111,7 @@ public final class Text implements Measure {
   private final String string;
   private String composed; // a field's string with the composition in it, or null for none
   private boolean field;
+  private boolean unfocused; // a field without the focus, which shows its start
   private boolean multiline;
   private boolean masked;
   private int mask = MASK;
@@ -405,6 +406,11 @@ public final class Text implements Measure {
     invalidate();
   }
 
+  /** Whether this single-line field lacks the focus, so that {@link El#ellipsis} shortens it. */
+  void unfocused(boolean unfocused) {
+    this.unfocused = unfocused;
+  }
+
   void multiline(boolean multiline) {
     this.multiline = multiline;
     invalidate();
@@ -637,7 +643,7 @@ public final class Text implements Measure {
     for (Span span : spans) {
       float baseline = offsetY + firstBaseline + placed.size() * lineHeight;
       Line line;
-      if (ellipsis && !field && span.width > placedWidth + SLACK) {
+      if (ellipsis && (!field || unfocused) && span.width > placedWidth + SLACK) {
         line = shorten(span, baseline);
         shortened = true;
       } else {

@@ -2237,6 +2237,7 @@ public final class App<S> {
       }
       editor.attach(el);
       el.editor(editor);
+      el.text().unfocused(!id.equals(focusId)); // El#ellipsis shortens it without the focus
     }
     for (El child : el.children()) {
       attachEditors(child, path);

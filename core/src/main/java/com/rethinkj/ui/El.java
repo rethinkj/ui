@@ -1057,7 +1057,9 @@ public final class El {
    * graphemes as fit with it, without the spaces before it. Layout sizes the text as before; give
    * the element a width or let it shrink below its text ({@code minSize(0, 0)}), as a table cell
    * does. The tree dump shows the whole string, and {@link Text#shortened} says whether a line was
-   * shortened. Text fields are not shortened.
+   * shortened. A single-line text field is shortened while it does not have the focus, when it
+   * shows its start anyway, as a read-only value that can still be selected and copied; with the
+   * focus it scrolls as fields do. Multi-line fields are not shortened.
    */
   public El ellipsis() {
     textOnly("ellipsis").ellipsis(true);
