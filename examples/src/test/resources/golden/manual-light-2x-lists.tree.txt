@@ -13,25 +13,7 @@ el 0,0 960x640
     el role=button label="Maximize" window=maximize 868,0 46x32
       el 886,11 10x10
     el role=button label="Close" window=close 914,0 46x32
-      el 932,11 10x10
-        el 932,11 2x2
-        el 940,11 2x2
-        el 933,12 2x2
-        el 939,12 2x2
-        el 934,13 2x2
-        el 938,13 2x2
-        el 935,14 2x2
-        el 937,14 2x2
-        el 936,15 2x2
-        el 936,15 2x2
-        el 937,16 2x2
-        el 935,16 2x2
-        el 938,17 2x2
-        el 934,17 2x2
-        el 939,18 2x2
-        el 933,18 2x2
-        el 940,19 2x2
-        el 932,19 2x2
+      text label="dismiss" "\u{F367}" 931,10 12x12
   el 0,32 960x608
     el 8,32 240x600
       el 9,33 238x598
