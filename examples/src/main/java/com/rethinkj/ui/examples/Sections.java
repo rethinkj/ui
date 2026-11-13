@@ -34,6 +34,7 @@ import com.rethinkj.ui.kit.Menu;
 import com.rethinkj.ui.kit.Progress;
 import com.rethinkj.ui.kit.Select;
 import com.rethinkj.ui.kit.Split;
+import com.rethinkj.ui.kit.StatusBar;
 import com.rethinkj.ui.kit.Sql;
 import com.rethinkj.ui.kit.Split.Direction;
 import com.rethinkj.ui.kit.Split.Position;
@@ -504,8 +505,7 @@ final class Sections {
         .child(DataGrid.dataGrid(t, columns, MONTHS.length,
             DataGrid.options().select(s.results).rowNumbers()).key("results").label("Results")
             .grow(1).minSize(0, 0))
-        .child(Card.footer(t, label(t, MUTED, "6 rows in 18 ms"), label(t, MUTED, "Tx: auto"),
-            label(t, MUTED, "UTF-8")));
+        .child(Card.footer(t, label(t, MUTED, "6 rows in 18 ms")));
     El content = Split.split(t, Direction.COLUMN, s.editor, Position.share(0.42f),
         p -> s.editor = p, lines, 60, results, 80);
     El queries = Tabs.tabs(t, s.tabs, s.tab, i -> s.tab = i, i -> s.say("close " + i), content)
@@ -519,15 +519,23 @@ final class Sections {
         .child(divider(t))
         .child(iconButton(t, Symbol.ARROW_UNDO, "Undo", () -> s.say("undo")))
         .child(iconButton(t, Symbol.ARROW_REDO, "Redo", () -> s.say("redo")))
-        .child(el().grow(1))
-        .child(Icon.icon(t, Symbol.PLUG_CONNECTED, Icon.Variant.SUCCESS))
-        .child(label(t, MUTED, "localhost / shop · PostgreSQL 17.2"));
+        .child(el().grow(1));
+    El status = StatusBar.statusBar(t,
+        List.of(StatusBar.status(t, StatusBar.State.CONNECTED, "localhost / shop",
+                () -> s.say("connection")),
+            StatusBar.text(t, "PostgreSQL 17.2"),
+            StatusBar.status(t, StatusBar.State.BUSY, "staging", null),
+            StatusBar.status(t, StatusBar.State.ERROR, "prod-eu", null)),
+        List.of(StatusBar.text(t, "Ln 4, Col 12"),
+            StatusBar.item(t, null, "UTF-8", () -> s.say("encoding")),
+            StatusBar.item(t, Symbol.HISTORY, "Tx: auto", () -> s.say("transaction"))));
     return col().h(588).clip().border(t.size().stroke(), t.border().subtle())
         .radius(t.radius().large()).fill(t.surface().window())
         .child(top)
         .child(Split.cards(t, Direction.ROW, s.sidebar, Position.first(200), p -> s.sidebar = p,
             side.label("Database"), 140, queries, 240).key("bench").grow(1).minSize(0, 0)
-            .padding(0, t.space().m(), t.space().m(), t.space().m()));
+            .padding(0, t.space().m(), 0, t.space().m()))
+        .child(status);
   }
 
   // Progress

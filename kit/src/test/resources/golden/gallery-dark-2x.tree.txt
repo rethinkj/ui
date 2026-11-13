@@ -740,3 +740,33 @@ el 0,0 140x40
         text label="table" "\u{EBF4}" 18,12 16x16
         text "orders" 38,12 67x16
         text "12" 109,12 13x16
+# status item, rest
+el 0,0 140x40
+  el #c role=button label="localhost" 28,8 84x24 value="connected"
+    el 32,12 16x16
+      el 36,16 8x8
+    text "localhost" 52,12 56x16
+# status item, hover
+el 0,0 140x40
+  el #c role=button label="localhost" 28,8 84x24 value="connected" hovered
+    el 32,12 16x16
+      el 36,16 8x8
+    text "localhost" 52,12 56x16
+# status item, pressed
+el 0,0 140x40
+  el #c role=button label="localhost" 28,8 84x24 value="connected" hovered
+    el 32,12 16x16
+      el 36,16 8x8
+    text "localhost" 52,12 56x16
+# status item, focused
+el 0,0 140x40
+  el #c role=button label="localhost" 28,8 84x24 value="connected" focused
+    el 32,12 16x16
+      el 36,16 8x8
+    text "localhost" 52,12 56x16
+# status item, disabled
+el 0,0 140x40
+  el #c label="localhost" 28,8 84x24 value="connected"
+    el 32,12 16x16
+      el 36,16 8x8
+    text "localhost" 52,12 56x16

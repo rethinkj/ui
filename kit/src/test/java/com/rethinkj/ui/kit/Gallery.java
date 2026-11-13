@@ -130,7 +130,9 @@ final class Gallery {
           new Row("slider", (t, h) -> Slider.slider(t, 13, 11, 16, 1, choose(h)).w(WIDTH - 20)
               .label("Size")),
           new Row("nav list", (t, h) -> NavList.navList(t, List.of(NavList.item(Symbol.TABLE,
-              "orders").count("12")), 0, choose(h)).w(WIDTH - 20).label("Tables")));
+              "orders").count("12")), 0, choose(h)).w(WIDTH - 20).label("Tables")),
+          new Row("status item", (t, h) ->
+              StatusBar.status(t, StatusBar.State.CONNECTED, "localhost", h)));
 
   /** A handler of a choice that runs {@code h}, or none when {@code h} is. */
   private static IntConsumer choose(Runnable h) {
