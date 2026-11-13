@@ -198,15 +198,20 @@ final class Absolute {
     float boxWidth = contentBox ? edgesWidth : 0;
     float boxHeight = contentBox ? edgesHeight : 0;
     float ratio = s.aspectRatio;
+    // Limits go through the ratio only to an axis whose size is not set (CSS Sizing 4, 4.4).
+    float ratioWidth = some(resolve(s.width, areaWidth)) ? Float.NaN : ratio;
+    float ratioHeight = some(resolve(s.height, areaHeight)) ? Float.NaN : ratio;
 
     float minWidth = Math.max(
-        or(size(s.minWidth, s.minHeight, areaWidth, areaHeight, ratio, true, boxWidth), 0),
+        or(size(s.minWidth, s.minHeight, areaWidth, areaHeight, ratioWidth, true, boxWidth), 0),
         edgesWidth);
     float minHeight = Math.max(
-        or(size(s.minHeight, s.minWidth, areaHeight, areaWidth, ratio, false, boxHeight), 0),
+        or(size(s.minHeight, s.minWidth, areaHeight, areaWidth, ratioHeight, false, boxHeight), 0),
         edgesHeight);
-    float maxWidth = size(s.maxWidth, s.maxHeight, areaWidth, areaHeight, ratio, true, boxWidth);
-    float maxHeight = size(s.maxHeight, s.maxWidth, areaHeight, areaWidth, ratio, false, boxHeight);
+    float maxWidth =
+        size(s.maxWidth, s.maxHeight, areaWidth, areaHeight, ratioWidth, true, boxWidth);
+    float maxHeight =
+        size(s.maxHeight, s.maxWidth, areaHeight, areaWidth, ratioHeight, false, boxHeight);
     float width = clamp(
         size(s.width, s.height, areaWidth, areaHeight, ratio, true, boxWidth), minWidth, maxWidth);
     float height = clamp(
