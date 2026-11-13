@@ -748,13 +748,13 @@ el 0,0 1000x600
           el 272,32 1x560
 overlay bottom start gap 2 on #title-1 role=menuitem label="Edit" 148,4 39x24
   el #menu role=menu 148,30 176x164 focused
-    el #item-0 role=menuitem label="Undo" 153,35 166x24 disabled
+    el #item-0 role=menuitem label="Undo" 153,35 166x24
       el 153,35 166x24
         el 161,39 16x16
           text label="arrow_undo" "\u{E126}" 161,39 16x16
         text "Undo" 185,39 68x16
         text "Ctrl+Z" 273,39 38x16
-    el #item-1 role=menuitem label="Redo" 153,59 166x24 disabled
+    el #item-1 role=menuitem label="Redo" 153,59 166x24
       el 153,59 166x24
         el 161,63 16x16
           text label="arrow_redo" "\u{E0E4}" 161,63 16x16

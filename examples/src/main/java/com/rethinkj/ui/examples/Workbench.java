@@ -683,8 +683,7 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
 
   /**
    * Edit's items, for the query of the active tab: what the app can do with {@link App#edit},
-   * {@link App#select} and the clipboard. Undo and Redo show their keys, which the editor takes;
-   * the app has no way to ask for them.
+   * {@link App#select}, {@link App#undo}, {@link App#redo} and the clipboard.
    */
   private List<Menu.Item> edits(Opened o) {
     int from = o == null ? 0 : Math.min(o.editor.caret(), o.editor.anchor());
@@ -692,8 +691,10 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
         o.query.length());
     boolean some = o != null && from < to;
     return List.of(
-        Menu.item("Undo", null).icon(Symbol.ARROW_UNDO).shortcut("Ctrl+Z"),
-        Menu.item("Redo", null).icon(Symbol.ARROW_REDO).shortcut("Ctrl+Shift+Z"),
+        Menu.item("Undo", o == null ? null : () -> app.undo(query(o))).icon(Symbol.ARROW_UNDO)
+            .shortcut("Ctrl+Z"),
+        Menu.item("Redo", o == null ? null : () -> app.redo(query(o))).icon(Symbol.ARROW_REDO)
+            .shortcut("Ctrl+Shift+Z"),
         Menu.separator(),
         Menu.item("Cut", !some ? null : () -> {
           app.clipboard().write(o.query.substring(from, to));
