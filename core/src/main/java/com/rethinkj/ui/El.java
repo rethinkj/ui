@@ -884,7 +884,27 @@ public final class El {
     return this;
   }
 
-  // Editing, for elements made with text()
+  /**
+   * Draws backgrounds and underlines behind the lines of a {@link #multiline} field that are in
+   * view, before its selection: the line of the caret, matches of a search, a pair of brackets, an
+   * error. The decorator is asked about each line in view and a few around it whenever the field
+   * lays out its rows, keeps nothing, and so may read anything of the app's state; its colours and
+   * fonts are ignored, which are a {@link #highlight highlighter}'s.
+   *
+   * @param decorator the function, or null for none
+   * @throws IllegalStateException if this is not a multi-line field
+   */
+  public El decorate(Decorator decorator) {
+    Text t = editableOnly("decorate");
+    if (!t.multiline()) {
+      throw new IllegalStateException(
+          "decorate is for multi-line fields: call it after multiline().");
+    }
+    t.decorator(decorator);
+    return this;
+  }
+
+    // Editing, for elements made with text()
 
   /**
    * Makes this text element a single-line text field, or with {@link #multiline} one of several

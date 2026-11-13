@@ -232,4 +232,79 @@ class HighlightTest {
     app.frame();
     assertEquals(2 * first, ls.highlighted, "another key: the lines in view again");
   }
+
+  // Backgrounds and underlines
+
+  private static final int YELLOW = 0xFFFFEE00;
+  private static final int BLUE = 0xFF0000FF;
+
+  /** Line 1's background, a background on 2 to 5 of line 0 and a line under 0 to 3 of line 2. */
+  private static final Decorator MARKS = (line, start, text, out) -> {
+    if (line == 1) {
+      out.lineBackground(YELLOW);
+    } else if (line == 0) {
+      out.background(2, 5, BLUE);
+    } else if (line == 2) {
+      out.underline(0, 3, RED).color(0, 3, RED); // the colour is a highlighter's: ignored
+    }
+  };
+
+  @Test
+  void aDecoratorMarksLinesRangesAndUnderlines() {
+    App<Model> app = area("abcdef\nxy\nzzzz", f -> f.decorate(MARKS));
+    Text t = field(app).text();
+    List<Text.Mark> marks = t.marks();
+    assertEquals(List.of(
+        new Text.Mark(new Text.Box(0, 18, 192, 18), YELLOW),
+        new Text.Mark(new Text.Box(16, 0, 24, 18), BLUE),
+        new Text.Mark(new Text.Box(0, 36 + under(t), 24, 1), RED)), marks,
+        "the line first, then the range, then the underline");
+    assertNull(t.lines().get(2).colors(), "a decorator's colours are ignored");
+  }
+
+  private static float under(Text t) {
+    return Math.round((t.font().ascent() + t.font().lineGap() / 2) * 14)
+        + Math.round(t.font().descent() * 14 / 2);
+  }
+
+  @Test
+  void marksCoverEachRowOfAWrappedLineAndScrollWithTheText() {
+    App<Model> app = area("aaaa bbbb cccc dddd eeee ffff\nx\ny\nz\nw\nv", f -> f.wrapText()
+        .decorate((line, start, text, out) -> {
+          if (line == 0) {
+            out.lineBackground(YELLOW).background(15, 29, BLUE);
+          }
+        }));
+    List<Text.Mark> marks = field(app).text().marks();
+    assertEquals(4, marks.size(), "a line background and a range per row: " + marks);
+    assertEquals(new Text.Box(0, 18, 192, 18), marks.get(1).box());
+    assertEquals(new Text.Box(15 * 8, 0, 10 * 8, 18), marks.get(2).box(),
+        "to the end of row 0, with the space it wraps at");
+    assertEquals(new Text.Box(0, 18, 4 * 8, 18), marks.get(3).box(), "ffff on row 1");
+    app.wheel(50, 30, 0, 18);
+    app.frame();
+    assertEquals(new Text.Box(0, -18, 192, 18), field(app).text().marks().getFirst().box(),
+        "a row up with the text");
+  }
+
+  @Test
+  void marksLieUnderTheSelection() {
+    App<Model> app = area("abcdef\nxy\nz", f -> f.decorate(MARKS).selectionColor(0x80FF0000));
+    key(app, "ArrowDown", Key.SHIFT);
+    key(app, "ArrowDown", Key.SHIFT);
+    // Line 1 at y 18 of the content box, which starts at 14,14, selected to the edge: its
+    // background, and the selection half red over it.
+    int pixel = app.render().pixels().argb(14 + 100, 14 + 18 + 9);
+    assertEquals(0xFFFFAE00, pixel, "half red over yellow, in linear light: "
+        + Integer.toHexString(pixel));
+  }
+
+  @Test
+  void aHighlightersBackgroundsAreKeptWithItsColours() {
+    App<Model> app = area("ab\ncd", f -> f.highlight(1, (line, state, out) -> {
+      out.background(0, 1, BLUE).lineBackground(YELLOW);
+      return null;
+    }));
+    assertEquals(4, field(app).text().marks().size());
+  }
 }

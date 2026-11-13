@@ -526,6 +526,9 @@ public final class Scene {
         return; // clipped away
       }
       scroll = text.scroll();
+      for (Text.Mark mark : text.marks()) {
+        box(mark.box(), left, top, scale, mark.color(), opacity, clip);
+      }
       for (Text.Box box : text.selection()) {
         box(box, left, top, scale, text.selectionColor(), opacity, clip);
       }

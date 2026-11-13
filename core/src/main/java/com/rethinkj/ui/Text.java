@@ -76,6 +76,16 @@ public final class Text implements Measure {
    */
   public record Box(float x, float y, float width, float height) {}
 
+  /**
+   * A rectangle drawn behind the glyphs of a multi-line field, before its selection: the
+   * background of a line or a range, or the line under a range, from a {@link Highlighter} or a
+   * {@link Decorator}.
+   *
+   * @param box where, as the selection's rectangles are
+   * @param color as 0xAARRGGBB
+   */
+  public record Mark(Box box, int color) {}
+
   /** What ends a line that {@link El#ellipsis} shortens. */
   public static final String ELLIPSIS = "…";
 
@@ -110,6 +120,8 @@ public final class Text implements Measure {
   private int tabSize = 4;
   private Highlighter highlighter;
   private Object highlightKey;
+  private Decorator decorator;
+  private List<Mark> marks = List.of();
   private int visibleLines = 1;
   // What a field draws besides its glyphs; see Editor#place.
   private float scroll;
@@ -333,6 +345,16 @@ public final class Text implements Measure {
   }
 
   /**
+   * What a multi-line field draws behind its selection on the rows of {@link #lines}: the
+   * backgrounds of lines, then those of ranges, then the lines under ranges, each in the order
+   * the lines and their {@link Spans} have them; empty for other text.
+   */
+  public List<Mark> marks() {
+    lines();
+    return marks;
+  }
+
+  /**
    * The caret of a focused field, a thin rectangle the height of a line, or null while it is off:
    * it blinks, and only the focused field has one.
    */
@@ -417,6 +439,11 @@ public final class Text implements Measure {
 
   int tabSize() {
     return tabSize;
+  }
+
+  void decorator(Decorator decorator) {
+    this.decorator = decorator;
+    viewStale = true;
   }
 
   void highlight(Object key, Highlighter highlighter) {
@@ -1285,7 +1312,64 @@ public final class Text implements Measure {
     }
     this.lines = List.copyOf(laid);
     this.rows = placed;
+    marks = marks(placed);
     return (float) ((lines.rowsBefore(anchor) - anchorRows) * lh);
+  }
+
+  /** The marks of the rows laid out, from the highlighter's spans and the decorator's. */
+  private List<Mark> marks(List<Row> placed) {
+    if (placeholderShown || decorator == null && (highlighter == null || placed.stream()
+        .noneMatch(row -> row.para.spans != null && row.para.spans.count > 0))) {
+      return List.of();
+    }
+    Lines lines = shownLines();
+    List<Mark> lineMarks = new ArrayList<>();
+    List<Mark> ranges = new ArrayList<>();
+    List<Mark> unders = new ArrayList<>();
+    Map<Integer, Spans> decorated = new HashMap<>();
+    float thick = Math.max(1, Math.round(scale));
+    float under = firstBaseline + Math.round(font().descent() * size * scale / 2);
+    for (Row row : placed) {
+      Para para = row.para;
+      Spans decor = null;
+      if (decorator != null) {
+        decor = decorated.computeIfAbsent(row.line, line -> {
+          Spans out = new Spans(para.text.length(), false);
+          decorator.line(line, lines.start(line), para.text, out);
+          return out;
+        });
+      }
+      float top = (float) (row.top - viewY);
+      float left = para.pen(para.rowStart(row.row));
+      int from = para.rowStart(row.row);
+      int to = para.rowEnd(row.row);
+      for (Spans spans : new Spans[] {para.spans, decor}) {
+        if (spans == null) {
+          continue;
+        }
+        if (spans.lineBackground >>> 24 != 0) {
+          lineMarks.add(new Mark(new Box(0, top, placedWidth, lineHeight), spans.lineBackground));
+        }
+        for (int i = 0; i < spans.count; i++) {
+          int kind = spans.kinds[i];
+          int a = Math.max(spans.froms[i], from);
+          int b = Math.min(spans.tos[i], to);
+          if (kind != Spans.BACKGROUND && kind != Spans.UNDERLINE || b <= a) {
+            continue;
+          }
+          float x0 = para.pen(a) - left - viewX;
+          float x1 = para.pen(b) - left - viewX;
+          if (kind == Spans.BACKGROUND) {
+            ranges.add(new Mark(new Box(x0, top, x1 - x0, lineHeight), spans.colors[i]));
+          } else {
+            unders.add(new Mark(new Box(x0, top + under, x1 - x0, thick), spans.colors[i]));
+          }
+        }
+      }
+    }
+    lineMarks.addAll(ranges);
+    lineMarks.addAll(unders);
+    return List.copyOf(lineMarks);
   }
 
   /** For the dump: the lines with a row in the content box, from 0, and -1 for none. */
