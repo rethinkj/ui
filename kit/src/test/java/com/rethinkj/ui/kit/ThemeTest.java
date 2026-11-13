@@ -204,6 +204,11 @@ class ThemeTest {
       check(failures, "strong badge text", tone.strongText(), Map.of("strong", tone.strong()),
           4.5);
     }
+    // Avatars: each fill 3:1 on the surfaces, its initials 4.5:1 on it.
+    for (int fill : badges.avatars()) {
+      check(failures, "avatar " + Integer.toHexString(fill), fill, surfaces, 3);
+      check(failures, "avatar initials", badges.onAvatar(), Map.of("avatar", fill), 4.5);
+    }
     assertTrue(failures.isEmpty(), String.join("\n", failures));
   }
 

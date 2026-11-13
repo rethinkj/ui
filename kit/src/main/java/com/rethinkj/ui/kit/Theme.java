@@ -125,11 +125,23 @@ public record Theme(
    *     changing the row's height
    * @param toolbar the height of a badge in a toolbar or a header, beside controls
    * @param text the badge's type, smaller than the body's
+   * @param avatars the fills an {@link Avatar} picks from by its name, each 3:1 on the surfaces
+   *     of both default themes, so that one palette serves both
+   * @param onAvatar the initials and icon on those fills, 4.5:1 on each
    */
   public record Badges(Tone neutral, Tone accent, Tone success, Tone warning, Tone danger,
-      float row, float toolbar, TextStyle text) {
+      float row, float toolbar, TextStyle text, List<Integer> avatars, int onAvatar) {
+
+    public Badges {
+      if (avatars.isEmpty()) {
+        throw new IllegalArgumentException("at least one colour for avatars");
+      }
+      avatars = List.copyOf(avatars);
+    }
 
     private static final TextStyle TEXT = new TextStyle(Font::sansMedium, 12);
+    private static final List<Integer> AVATARS = List.of(0xFF3578B6, 0xFF765FD1, 0xFFAF45C9,
+        0xFFC84182, 0xFFCA4949, 0xFFA86331, 0xFF887328, 0xFF278636, 0xFF268272);
 
     /** For dark surfaces. */
     public static final Badges DARK = new Badges(
@@ -138,7 +150,7 @@ public record Theme(
         new Tone(0x1A5CC98A, 0xFF86E0AB, 0xFF1F7A47, 0xFFFFFFFF),
         new Tone(0x1AE0B04C, 0xFFF0CC7A, 0xFFE0B04C, 0xFF1B1D22),
         new Tone(0x1AF2797A, 0xFFFAB6B6, 0xFFC6373A, 0xFFFFFFFF),
-        18, 22, TEXT);
+        18, 22, TEXT, AVATARS, 0xFFFFFFFF);
 
     /** For light surfaces. */
     public static final Badges LIGHT = new Badges(
@@ -147,7 +159,7 @@ public record Theme(
         new Tone(0x2117693A, 0xFF135A31, 0xFF17693A, 0xFFFFFFFF),
         new Tone(0x2BC98A00, 0xFF694600, 0xFFE9A92F, 0xFF1B1D22),
         new Tone(0x1FB42318, 0xFF9E1E14, 0xFFB42318, 0xFFFFFFFF),
-        18, 22, TEXT);
+        18, 22, TEXT, AVATARS, 0xFFFFFFFF);
   }
 
   /**

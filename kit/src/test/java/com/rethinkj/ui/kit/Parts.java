@@ -74,7 +74,13 @@ final class Parts {
     }
     filters.child(Badge.badge(t, "Add filter", Badge.options().toolbar().kind(Kind.ACCENT)
         .icon(Symbol.ADD).onPress(() -> log.add("add"))).key("add"));
-    return page(Card.card(t, sheet), Card.card(t, grid, filters));
+    El avatars = row().gap(t.space().s()).align(Style.Align.CENTER);
+    for (String server : List.of("localhost", "staging", "prod-eu", "analytics", "replica 2")) {
+      avatars.child(Avatar.avatar(t, server));
+    }
+    avatars.child(Avatar.avatar(t, "localhost", Symbol.SERVER, 20))
+        .child(Avatar.avatar(t, "prod-eu", null, 32));
+    return page(Card.card(t, sheet), Card.card(t, grid, filters, avatars));
   }
 
   private El gridRow(int fill, String name) {

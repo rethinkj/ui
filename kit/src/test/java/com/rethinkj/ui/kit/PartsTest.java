@@ -50,7 +50,7 @@ class PartsTest {
   @ParameterizedTest(name = "{0} at {1}x")
   @CsvSource({"dark, 1", "dark, 2", "light, 1", "light, 2"})
   void looksAsStored(String theme, int scale) throws IOException {
-    check("badges", theme, scale, 560, 360, Parts::badges, "");
+    check("badges", theme, scale, 560, 400, Parts::badges, "");
     check("detail", theme, scale, 720, 420, Parts::detail, "");
     // Narrow: the toolbar's end and the breadcrumb's start go into menus.
     check("detail-narrow", theme, scale, 330, 420, Parts::detail, "");
@@ -187,5 +187,20 @@ class PartsTest {
     String dump = app.tree().dump();
     assertTrue(StructureTest.line(dump, "label=\"Add filter\"").contains("role=button"), dump);
     assertTrue(!StructureTest.line(dump, "label=\"bigint\"").contains("role="), dump);
+  }
+
+  @Test
+  void anAvatarHasTheInitialsAndTheColourOfItsName() throws IOException {
+    assertEquals("PE", Avatar.initials("prod-eu"));
+    assertEquals("L", Avatar.initials("localhost"));
+    assertEquals("R2", Avatar.initials("replica 2"));
+    assertEquals("", Avatar.initials("--"));
+    var palette = Theme.DARK.badge().avatars();
+    assertEquals(Avatar.color(palette, "staging"), Avatar.color(palette, "staging"));
+    App<Parts> app = new Parts(Theme.DARK).app(Parts::badges);
+    Script.run("size 560 400\nframe", app, out);
+    String dump = app.tree().dump();
+    assertTrue(StructureTest.line(dump, "label=\"staging\"").contains("role=img"), dump);
+    assertTrue(dump.contains("text \"PE\""), dump);
   }
 }

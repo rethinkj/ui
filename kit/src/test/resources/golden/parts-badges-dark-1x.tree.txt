@@ -1,4 +1,4 @@
-el 0,0 560x360
+el 0,0 560x400
   el 12,12 536x168
     el 25,25 510x142
       el 25,25 510x22
@@ -66,7 +66,7 @@ el 0,0 560x360
         el label="danger" 267,145 70x22
           text label="checkmark" "\u{F293}" 275,150 12x12
           text "danger" 289,149 40x15
-  el 12,192 536x132
+  el 12,192 536x176
     el 25,205 510x72
       el 25,205 510x24
         text "id" 33,209 110x16
@@ -112,3 +112,18 @@ el 0,0 560x360
       el #add role=button label="Add filter" 254,289 82x22
         text label="add" "\u{F107}" 262,294 12x12
         text "Add filter" 276,293 52x15
+    el 25,323 510x32
+      el role=img label="localhost" 25,327 24x24
+        text "L" 34,333 6x12
+      el role=img label="staging" 53,327 24x24
+        text "S" 62,333 7x12
+      el role=img label="prod-eu" 81,327 24x24
+        text "PE" 87,333 12x12
+      el role=img label="analytics" 109,327 24x24
+        text "A" 118,333 7x12
+      el role=img label="replica 2" 137,327 24x24
+        text "R2" 143,333 13x12
+      el role=img label="localhost" 165,329 20x20
+        text label="server" "\u{F0360}" 169,333 12x12
+      el role=img label="prod-eu" 189,323 32x32
+        text "PE" 197,331 16x16
