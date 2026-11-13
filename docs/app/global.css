@@ -114,8 +114,7 @@ html > body[data-scroll-locked] {
   margin: 1.5rem 0;
 }
 .rj-shot img {
-  display: block;
-  margin: 0;
+  margin: 0; /* display comes from Tailwind, so that dark:hidden works */
 }
 .rj-shot-frame img {
   border-radius: 10px;

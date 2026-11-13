@@ -1,0 +1,57 @@
+---
+title: An agent builds a view
+description: A loop for an agent, or a person, that writes a view, looks at it and checks it, without ever opening a window.
+---
+
+An agent cannot look at a window, but it can read a PNG and a tree. This recipe is the loop that the project's own agents use: write the view, drive it with a script, read the tree, look at the image, and keep the script as a test.
+
+## 1. Give the app a script entry
+
+`main` passes its arguments to `Script.handle` before it opens a window:
+
+```java snippet="lights-app" title="Lights.java"
+```
+
+## 2. Write the view
+
+Build it from the kit's components; each takes the theme first and returns an `El`. Give the elements you will act on a key or a label. Keep all state in the state object and change it only in handlers. See [Components](/docs/components) for each component's smallest example and what it shows in the tree.
+
+## 3. Write a script
+
+Start with what the user does, one step per line, and `snap` after each state you want to check:
+
+```text snippet="dialog-script" title="dialog.txt"
+```
+
+- `advance 0.3` after opening a menu, dialog or tooltip: overlays fade in, and a fading element takes no input.
+- `await` after starting work on another thread; posted results reach a script only there.
+- `scroll <list> row <n>` before pressing a row that is not in view.
+
+## 4. Run it
+
+```sh
+mvn -q -pl examples -am compile exec:exec -Dexample=MyApp \
+  -Dargs="--script my.txt --out target/my"
+```
+
+or from a test with `Script.run(text, app, folder)`. On a mistake the run stops at the step with a message that says what to write instead; read it and fix the script or the view.
+
+## 5. Read the tree, then the image
+
+Check the states first, in the tree:
+
+```text file="examples/src/test/resources/golden/docs/dialog/open.tree.txt" start="overlay"
+```
+
+The dialog is open and modal, the focus is in its field with the caret after the name, and both buttons are enabled. Then look at the PNG for what a tree cannot say: alignment, spacing, colours, cut-off text, overlapping parts. Look at both themes, and at scale 2.
+
+## 6. Keep it as a test
+
+Turn the script into a JUnit test that compares the snaps with stored ones ([Stored images as tests](/docs/testing/stored-images)), store them with `-Dgolden.update=true`, look at the stored images once more, and commit them with the view.
+
+## Tips
+
+- Prefer selectors by role and label (`press role=button label="Save"`) to positions: they keep working when the layout changes, and they fail with a list of what is there.
+- Make every state visible in the tree: a component that only shows something by colour should also set a state (`selected`, `invalid`, `busy`, `value`). The kit's components do.
+- Keep windows small in scripts (`size 420 260`): smaller images are faster to read and to compare.
+- For this site's pages as Markdown, see [/llms.txt](/llms.txt).

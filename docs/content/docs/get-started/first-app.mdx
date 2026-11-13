@@ -3,14 +3,46 @@ title: The first app
 description: A state, a view and a window, explained line by line.
 ---
 
-An app is a state object and a function from that state to a tree of elements.
+An app is a state object and a function from that state to a tree of elements. This page walks through the smallest complete app: a lamp and a switch in a card. It is the example of the README, compiled and run by the tests like every example on this site.
+
+<Shot src="examples/light-switch-on" alt="A lamp above a switch labelled Lamp, in a frameless window" caption="The LightSwitch example: the same lamp and switch in a window with a title bar of its own." />
+
+## The code
 
 ```java snippet="lights-app" title="Lights.java"
 ```
 
-<Shot src="examples/light-switch-on" alt="The lamp on" />
+## Line by line
 
-<Shot src="kit/gallery-{theme}-2x" rows="primary,secondary" alt="Buttons" />
+**The state.** `Lights` has one field, `on`. State is plain Java: fields, lists, records, whatever the app needs. Nothing observes it. Only handlers change it, on the app's thread, one input at a time.
 
-```text file="examples/src/test/resources/golden/docs/lights/on.tree.txt"
+**The app.** `new App<>(new Lights(), Lights::view)` ties the state to its view. The `App` owns everything that is not the app's business: focus, hover, scroll offsets, animations, the caret of a text field.
+
+**`Script.handle(args, app)`.** With `--script <file> --out <folder>` it runs a script against the app and writes images and trees instead of opening a window, and returns true. Without them it returns false. Every app should have this line: it is what lets an agent or a test drive it. See [Testing and agents](/docs/testing).
+
+**The window.** `Window.open` opens an SDL window, `GpuPresenter` draws into it with wgpu, and `WindowLoop.run` runs the app in it until the window closes: it passes input to the app, builds frames and waits while nothing changes. Both are `AutoCloseable`.
+
+**The view.** `view` builds a new tree from the state, every time. It is called again after each input that a handler took, so it should only build elements, never change state.
+
+- `el()`, `row()` and `col()` make boxes; `text(...)` makes text. Calls chain: size, padding, fill, radius, children. See [Elements and layout](/docs/concepts/layout).
+- `.key("lamp")` gives the element an identity. Identity is what animations, focus and scroll offsets hang on, and what a script finds with `#lamp`.
+- `.motion(t.motion().move())` makes the lamp's colour spring to its new value instead of jumping. See [Motion](/docs/concepts/motion).
+- `Card.card` and `toggle` come from the kit. Each kit component is a static function whose first parameter is the theme and which returns an `El` that you may chain further. See [Components](/docs/components).
+- `() -> s.on = !s.on` is the handler. It changes the state; the app builds the view again and the switch and the lamp follow.
+
+## Run it without a window
+
+The same app under a script. Each step is one line; `snap` writes a PNG and the element tree:
+
+```text snippet="lights-script" title="lights.txt"
 ```
+
+```text file="examples/src/test/resources/golden/docs/lights/on.tree.txt" title="on.tree.txt"
+```
+
+The tree says what an agent would otherwise read from pixels: the switch has `role=switch`, its label, and `checked`. [Testing and agents](/docs/testing) explains every step and every state.
+
+## Next
+
+- [Use it in a project](/docs/get-started/project)
+- [App, state and view](/docs/concepts/app): how input, handlers and rebuilding fit together.

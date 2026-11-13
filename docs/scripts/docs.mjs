@@ -95,7 +95,9 @@ function prepare() {
   const manifest = {};
   const problems = [];
   snippets();
-  for (const file of walk(CONTENT).filter((f) => f.endsWith('.mdx'))) {
+  const pages = [...walk(CONTENT), ...walk(path.join(DOCS, 'app'))]
+    .filter((f) => f.endsWith('.mdx') || f.endsWith('.tsx'));
+  for (const file of pages) {
     const rel = path.relative(DOCS, file);
     const text = fs.readFileSync(file, 'utf8');
     const lines = text.split('\n');
@@ -103,7 +105,7 @@ function prepare() {
       const where = `${rel}:${i + 1}`;
       try {
         const fence = line.match(/^\s*```(\w*)\s*(.*)$/);
-        if (fence && fence[1]) {
+        if (fence && fence[1] && file.endsWith('.mdx')) {
           const resolved = resolveFence(fence[2], where);
           if (!resolved && fence[1] === 'java') {
             throw new DocsError(`${where}: Java code comes from a snippet: write \`\`\`java snippet="name"\`\`\` and mark the code in examples' docs package`);

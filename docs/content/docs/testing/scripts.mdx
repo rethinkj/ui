@@ -1,0 +1,81 @@
+---
+title: Scripts
+description: Every step of a script, and how input, frames and the clock work under one.
+---
+
+A script is a text file with one step per line that drives an app without a window. This page lists every step. A `#` at the start of a line or before a space starts a comment.
+
+## How a script runs
+
+Only `frame` runs a frame, as in a window, where input arrives between frames. `press`, `move`, `key`, `type` and the other input steps queue what they do, `await` queues what other threads delivered, and `advance` moves the clock; the screen changes at the next `frame`.
+
+The frame handles the queued input in order, each against the view the input before it left: after an input that a handler took, the view is built again before the next. So two `key ArrowDown` before one `frame` move a selection by two rows, and a `key` after the `press` that opened a menu goes to the menu.
+
+`snap` refuses to write a frame that does not show the steps before it, so a forgotten `frame` is an error, not a stale image. Scripts use an in-memory clipboard; only a window gives the app the system's.
+
+## Window and frames
+
+| Step | What it does |
+| --- | --- |
+| `size <width> <height> [scale <factor>] [at <x>,<y>]` | The window's size in logical pixels, its physical pixels per logical pixel (default 1) and, with `at`, its top left corner on the script's screen in physical pixels. Needed before the first `frame`. |
+| `frame` | Runs one frame: the queued input and tasks, a rebuild of the view, the animations at the current time. |
+| `snap <name>` | Writes `<name>.png` and `<name>.tree.txt` of the last frame into the output folder, and `<name>.clipboard.txt` when the clipboard holds text. `<name>` may contain `/`. With several windows, each other window's snap goes under its title in lower case with hyphens: `groceries-<name>.png`. |
+| `advance <seconds>` | Moves the app's clock. Actions the app asked for with `App.after` that are due run at the next `frame`; animations and cycles show that time. |
+| `await [<seconds>]` | Waits until the work the app started with `App.background` has delivered or was cancelled (at most 10 seconds unless given), and queues what it and other threads posted for the next `frame`. Fails, naming the work, when it still runs after the timeout. |
+
+## Pointer
+
+| Step | What it does |
+| --- | --- |
+| `press <target> [clicks <n>] [shift] [control] [alt] [meta]` | The primary button down and up on the target. `clicks 2` is the second press of a double press; modifiers are held during the press. |
+| `press <target> right` | The same with the secondary button: runs the handler of `El.onSecondaryPress`, where a context menu opens. `down <target> right` and `up <target> right` are its halves. |
+| `down <target> [clicks <n>] [modifiers]`, `up <target>` | The two halves of a press, for a press that ends elsewhere. A press counts only when both land on the same element. |
+| `move <target>` | Moves the pointer onto the target, which hovers it. Between `down` and `up` it drags an element with a drag handler once the pointer is more than 4 pixels from where it went down; in a text field it selects, on a scrollbar's thumb it drags the thumb. |
+| `leave` | The pointer leaves the window: nothing is hovered. |
+| `wheel <target> <deltaX> <deltaY>` | Turns the wheel over the target, in logical pixels; positive scrolls down or right. The innermost scroll area that can still move takes the distance. |
+| `scroll <target> row <index>` | Scrolls the list of rows at the target so that row `<index>` (from 0) is at its top, or as far as the list allows. |
+
+Presses do not move the pointer: a `move` is needed for hover looks and tooltips.
+
+## Keyboard and text
+
+| Step | What it does |
+| --- | --- |
+| `key <name> [shift] [control] [alt] [meta]` | Presses and releases a key. Keys have the web's names (`Enter`, `Tab`, `Escape`, `ArrowDown`, `F5`, `Space`); a key that types a character is named by it in upper case (`A`, `1`). The Javadoc of `com.rethinkj.ui.Key` lists them all. |
+| `type "<text>"` | Text input for the focused element. `\"`, `\\`, `\n` and `\t` inside. |
+| `compose "<text>"` | An input method's composition in the focused text field, shown underlined, not yet in the string. `compose ""` ends it; `type` commits. |
+| `focus <target>` | Gives the keyboard focus to the target or the nearest focusable element around it, as Tab would, with the ring. |
+| `clipboard "<text>"` | Puts the text on the app's clipboard. Needs no `frame`. |
+
+## Dialogs and drops of the system
+
+A script never shows the system's dialogs. It answers them instead, in order:
+
+| Step | What it does |
+| --- | --- |
+| `dialog "<path>" ["<path>" …] [filter <n>]` | Answers the next file dialog (`App.fileDialog`) with these paths and filter. |
+| `dialog cancel`, `dialog button "<text>"`, `dialog error "<text>"` | Cancels the next dialog or message box, presses a message box's button, or fails the dialog with this text. |
+| `drop <target> "<path>" …`, `drop <target> text "<text>"` | What another application drops on the window: files or text. |
+| `drop over <target>`, `drop leave` | A drag from another application over the target, not yet released, and one that leaves. |
+
+Write a `dialog` step before the step whose handler opens the dialog. A dialog without an answer fails its `frame` with a message naming its kind, title and filters; an answer left over at the end fails the script.
+
+## Several windows
+
+| Step | What it does |
+| --- | --- |
+| `window <name>` | The steps after it go to this window: `main` for the first, else the title a handler opened a window with, quoted if it has spaces. |
+| `close` | Asks the chosen window to close, as its close button does. |
+
+A target may lie in another window, `in <window> <target>`, or be a point of the script's screen, `screen <x>,<y>`. See [Several windows](/docs/concepts/windows).
+
+## When something is wrong
+
+A failed step throws `Script.Failure` with the line and a suggestion. For instance, pressing before any frame ran:
+
+```text
+line 2: press role=switch label="Lamp"
+  No frame has run yet, so there is nothing to press. Add `frame` before this line.
+```
+
+A selector that matches nothing lists the keys, roles, labels and states there are; one that matches several lists them with their rectangles. See [Targets and selectors](/docs/testing/selectors).
