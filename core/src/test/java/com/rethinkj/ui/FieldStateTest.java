@@ -15,6 +15,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import com.rethinkj.ui.text.Font;
 import com.rethinkj.ui.text.TextLibraries;
 import com.rethinkj.ui.text.TextRendering;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -118,6 +119,70 @@ class FieldStateTest {
     assertEquals(before, show(app), "caret and selection as they were");
     assertEquals(scrolled, field(app).scrollY(), "and the scroll");
     assertSame(app.state().fields[0].editor, field(app).editor());
+  }
+
+  /** The view of a window that shows the first query while {@code active} names it. */
+  private static App<Model> window(Model model, int window) {
+    App<Model> app = new App<>(model, m -> col().key("window-" + window).wFull().hFull()
+        .padding(10).gap(4).children(
+        m.active == window ? query(m, 0) : el().key("empty").size(10, 10),
+        el().key("bar").focusable().size(10, 10)));
+    app.textRendering(TextRendering.LINUX);
+    app.resize(320, 240, 1);
+    app.frame();
+    return app;
+  }
+
+  /**
+   * A field that moves to the tree of another app of the same state, as a tab to another window,
+   * comes with its caret, selection, scroll and history, whichever app builds first, and the same
+   * build number in both is no second field.
+   */
+  @Test
+  void aFieldThatMovesToAnotherAppComesAsItWas() {
+    TextLibraries.assumeLoaded();
+    for (boolean arrivingFirst : new boolean[] {true, false}) {
+      Model model = started().state();
+      model.active = 0;
+      App<Model> from = window(model, 0);
+      App<Model> to = window(model, 1);
+      from.focus(field(from));
+      from.frame();
+      type(from, "x");
+      key(from, "End", Key.CONTROL);
+      key(from, "ArrowLeft", Key.SHIFT);
+      double scrolled = field(from).scrollY();
+      assertTrue(scrolled > 0, "scrolled to the end");
+      String before = show(from);
+
+      model.active = 1; // the tab goes to the other window
+      while (to.builds < from.builds) { // the next builds of both have one number
+        to.invalidate();
+        to.frame();
+      }
+      assertEquals(from.builds, to.builds);
+      for (App<Model> app : arrivingFirst ? List.of(to, from) : List.of(from, to)) {
+        app.invalidate();
+        app.frame();
+      }
+      assertEquals(before, show(to), "caret and selection as they were");
+      assertEquals(scrolled, field(to).scrollY(), "and the scroll");
+      to.focus(field(to));
+      to.frame();
+      key(to, "Z", Key.CONTROL);
+      assertTrue(model.sql[0].startsWith("SELECT 1\n"), "undo took back the typing");
+      key(to, "End", Key.CONTROL);
+      String there = show(to);
+      double down = field(to).scrollY();
+
+      model.active = 0; // and back
+      for (App<Model> app : arrivingFirst ? List.of(from, to) : List.of(to, from)) {
+        app.invalidate();
+        app.frame();
+      }
+      assertEquals(there, show(from));
+      assertEquals(down, field(from).scrollY(), "the scroll back as it was in the other");
+    }
   }
 
   @Test
