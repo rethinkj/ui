@@ -98,6 +98,10 @@ public final class Png {
             throw new IllegalArgumentException(
                 "interlaced PNGs are not read; save the image" + " without interlacing (Adam7)");
           }
+          if ((width == 0) != (height == 0)) {
+            throw new IllegalArgumentException("PNG of " + Integer.toUnsignedString(width) + " by "
+                + Integer.toUnsignedString(height) + " pixels has no pixels but is not empty");
+          }
           if (width < 0 || height < 0 || (long) width * height > 1 << 28) {
             throw new IllegalArgumentException("PNG of " + Integer.toUnsignedString(width) + " by "
                 + Integer.toUnsignedString(height) + " pixels is too large");
@@ -138,9 +142,13 @@ public final class Png {
     };
     int bits = channels * depth;
     int bytesPerPixel = Math.max(1, bits / 8); // the distance a filter looks back
-    int rowBytes = (int) (((long) width * bits + 7) / 8);
-    byte[] raw = inflate(
-        compressed.toByteArray(), (int) Math.min((rowBytes + 1L) * height, Integer.MAX_VALUE - 8));
+    long rowLength = ((long) width * bits + 7) / 8;
+    if ((rowLength + 1) * height > Integer.MAX_VALUE - 8) {
+      throw new IllegalArgumentException(
+          "PNG of " + width + " by " + height + " pixels of " + bits + " bits is too large");
+    }
+    int rowBytes = (int) rowLength;
+    byte[] raw = inflate(compressed.toByteArray(), (int) ((rowLength + 1) * height));
     byte[] rgba = new byte[width * height * 4];
     byte[] previous = new byte[rowBytes];
     byte[] row = new byte[rowBytes];
