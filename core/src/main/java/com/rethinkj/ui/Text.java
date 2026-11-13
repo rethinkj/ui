@@ -923,7 +923,6 @@ public final class Text implements Measure {
     Para(String text, GlyphRun run, int[] breaks, int[] colors, Spans spans, int offset) {
       this.text = text;
       this.run = run;
-      this.breaks = breaks;
       this.colors = colors;
       this.spans = spans;
       this.offset = offset;
@@ -937,6 +936,12 @@ public final class Text implements Measure {
         at[c] = glyph;
       }
       this.glyphAt = at;
+      // A line breaks only where a cluster starts: never inside a ligature or a right-to-left run.
+      this.breaks = breaks == null
+          ? null
+          : Arrays.stream(breaks)
+              .filter(b -> b == text.length() || at[b] < run.count() && run.cluster(at[b]) == b)
+              .toArray();
       this.rowWidths = new float[] {run.width()};
     }
 
