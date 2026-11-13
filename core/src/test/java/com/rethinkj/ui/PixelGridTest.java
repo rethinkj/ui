@@ -142,6 +142,39 @@ class PixelGridTest {
     }
   }
 
+  /**
+   * A scroll area scrolled by the wheel by 1 and by 0.3 logical pixels, fractions of a physical
+   * pixel at these scales: the borders inside it are still whole pixels of their colour, at the
+   * edges the scrolled position snaps to.
+   */
+  @ParameterizedTest
+  @ValueSource(floats = {1.25f, 1.5f, 1.75f})
+  void scrolledContentStaysOnThePixels(float scale) {
+    App<Object> app = new App<>(new Object(), s -> {
+      El list = El.col().key("list").scroll().absolute(10, 10).size(60, 50).fill(WHITE);
+      for (int i = 0; i < 10; i++) {
+        list.child(el().h(11).shrink(0).fill(WHITE).border(1, GREY));
+      }
+      return el().wFull().hFull().fill(WHITE).child(list);
+    });
+    app.resize(100, 80, scale);
+    app.frame();
+    float offset = 0;
+    for (float delta : new float[] {1, 0.3f, 1, 0.3f}) {
+      app.wheel(40, 30, 0, delta);
+      app.frame();
+      offset += delta;
+      Pixels pixels = app.render().pixels();
+      int ring = stroke(1, scale);
+      int x = edge(40, scale);
+      for (int i = 1; i < 4; i++) { // the tops of the rows in view
+        int top = edge(10 + 11 * i - offset, scale);
+        assertColumn(pixels, x, top - ring, 2 * ring, GREY, WHITE,
+            "rows " + (i - 1) + " and " + i + " scrolled by " + offset);
+      }
+    }
+  }
+
   private static String hex(int argb) {
     return String.format("%08X", argb);
   }
