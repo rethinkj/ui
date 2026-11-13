@@ -36,7 +36,8 @@ class DataGridTest {
 
   private static final Theme T = Theme.DARK;
   // The grid of Orders.view: 544 by 224 at 8,8, with a header of 22 and a line of 1 over 201
-  // pixels of rows, which show 9 rows whole.
+  // pixels of rows, which show 9 rows whole. Layout sees at most 2^20 pixels of the 22 000 000 of
+  // a million rows, so that its floats add up to the pixel; the whole 22 000 000 came to 200.
   private static final int PAGE = 9;
 
   @TempDir Path out;
@@ -65,6 +66,7 @@ class DataGridTest {
     App<Orders> app = start(orders);
     assertAskedForExistingRows(orders, app);
     El rows = find(app, "rows");
+    assertEquals(201, rows.height(), "down to the bottom of the grid");
     assertTrue(rows.children().size() <= 9 + 1 + 2 * El.OVERSCAN, "" + rows.children().size());
 
     orders.asked.clear();

@@ -290,6 +290,54 @@ class RowsTest {
     assertFalse(app.isMoving());
   }
 
+  @Test
+  void aListOfAHundredMillionRowsGrowsToTheExactPixelAndEndsWithItsLastRow() {
+    for (int count : new int[] {1_000_000, 100_000_000}) {
+      // As the data grid: a header and a line above rows that grow into the rest, 201 pixels.
+      App<Data> app = new App<>(new Data(count), d -> col().size(544, 224).children(
+          el().h(22).shrink(0), el().h(1).shrink(0),
+          col().key("list").grow(1).padding(0, 0, 3, 0).rows(d.count, 22, i -> el())));
+      app.resize(560, 240, 1);
+      app.frame();
+      El list = find(app.tree(), "list");
+      assertEquals(201, list.height(), count + " rows");
+
+      app.scrollToRow(list, count); // the end
+      app.frame();
+      list = find(app.tree(), "list");
+      assertEquals(count * 22.0 + 3 - 201, list.scrollY());
+      El last = list.children().getLast();
+      assertEquals(count - 1, list.firstRow() + list.children().size() - 1);
+      assertEquals(201 - 3, last.y() + last.height(), "the last row ends where the content does");
+
+      // Up a pixel at a time near the end: every row moves by exactly one pixel each time.
+      float[] before = tops(list);
+      int first = list.firstRow();
+      for (int step = 1; step <= 60; step++) {
+        app.wheel(100, 100, 0, -1);
+        app.frame();
+        list = find(app.tree(), "list");
+        float[] now = tops(list);
+        for (int i = 0; i < now.length; i++) {
+          int row = list.firstRow() + i;
+          if (row >= first && row - first < before.length) {
+            assertEquals(before[row - first] + 1, now[i], count + " rows, row " + row);
+          }
+        }
+        before = now;
+        first = list.firstRow();
+      }
+    }
+  }
+
+  private static float[] tops(El list) {
+    float[] tops = new float[list.children().size()];
+    for (int i = 0; i < tops.length; i++) {
+      tops[i] = list.children().get(i).y();
+    }
+    return tops;
+  }
+
   // Input
 
   @Test

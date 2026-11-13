@@ -401,7 +401,10 @@ public final class El {
    *
    * <p>The list has no other children: {@link #child} fails on it. Its content has no width of its
    * own, so give the list a width or let its parent stretch it, and give it a height or let it
-   * {@link #grow}: like any scroll area it is as tall as its content otherwise.
+   * {@link #grow}: like any scroll area it is as tall as its content otherwise, up to 2^20
+   * (1 048 576) pixels, beyond which it scrolls. Layout works in floats, which are exact to the
+   * pixel only that far; the rows themselves are placed from the first one that exists and can
+   * reach any offset.
    *
    * @param count the number of rows, 0 or more
    * @param rowHeight the height of every row in logical pixels, above 0
@@ -423,11 +426,20 @@ public final class El {
     this.rowCount = count;
     this.rowHeight = rowHeight;
     this.rowBuilder = Objects.requireNonNull(row, "row");
-    // Layout sees all rows as one leaf, as tall as they are together.
+    // Layout sees all rows as one leaf, as tall as they are together, but no taller than its floats
+    // add up to the pixel: 22 000 000 pixels of rows and 23 above them came to 22 000 024, and a
+    // list that shrank into 224 pixels was 200 high instead of 201.
+    float content = (float) Math.min(count * (double) rowHeight, MAX_ROWS_LAID_OUT);
     this.measure = (knownWidth, knownHeight, availableWidth, availableHeight) ->
-        new Measure.Size(0, (float) (count * (double) rowHeight));
+        new Measure.Size(0, content);
     return this;
   }
+
+  /**
+   * The most pixels of rows that layout sees of a {@link #rows virtual list}: 2^20, where a float
+   * still has 3 bits below the pixel, so that sums with the sizes around the list stay exact.
+   */
+  static final double MAX_ROWS_LAID_OUT = 1 << 20;
 
   /**
    * Keeps a row of this {@link #rows virtual list} in view: whenever a rebuild of the view gives
