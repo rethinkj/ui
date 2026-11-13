@@ -144,9 +144,12 @@ public final class CommandPalette {
       open("");
     }
 
-    /** Opens the palette with this text, such as a source's prefix: {@code open("@")}. */
+    /**
+     * Opens the palette with this text, such as a source's prefix: {@code open("@")}. A step it
+     * was at is cancelled first, as Escape cancels it, undoing what it previews.
+     */
     public void open(String text) {
-      done();
+      close();
       open = true;
       steps++;
       this.text = text;
