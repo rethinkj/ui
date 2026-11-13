@@ -67,6 +67,7 @@ public final class El {
   private Consumer<String> onEdit;
   private boolean readOnly;
   private int maxLength = -1;
+  private int tabIndents; // 0: Tab moves the focus; 1: it indents with tabs; 2: with spaces
   private Editor editor;
   private boolean focused;
   private Spring motion;
@@ -779,7 +780,19 @@ public final class El {
 
   /** Lets the text break into more lines where it is wider than its box. */
   public El wrapText() {
-    textOnly("wrapText").wraps(true);
+    return wrapText(true);
+  }
+
+  /**
+   * Whether the text breaks into more lines where it is wider than its box; it does not until
+   * this says so. A {@link #multiline} field that wraps scrolls only up and down, one that does not
+   * also sideways.
+   */
+  public El wrapText(boolean wraps) {
+    textOnly("wrapText").wraps(wraps);
+    if (text.multiline()) {
+      style.overflowX = wraps ? Style.Overflow.HIDDEN : Style.Overflow.SCROLL;
+    }
     return this;
   }
 
@@ -795,7 +808,8 @@ public final class El {
   // Editing, for elements made with text()
 
   /**
-   * Makes this text element a single-line text field whose string belongs to the app: the view
+   * Makes this text element a single-line text field, or with {@link #multiline} one of several
+   * lines, whose string belongs to the app: the view
    * builds it with the current value, and every edit hands the new string to {@code onEdit},
    * which stores it in the state; the next rebuild shows it. A handler may also refuse or change
    * an edit, and the field then shows the app's string, with the caret where it was before a
@@ -816,7 +830,8 @@ public final class El {
    *
    * <p>The field is as tall as a line of its text, centred in its content box, and takes its
    * width from its style, as layout measures it 0 wide; the text scrolls sideways inside its
-   * content box and is clipped to it. Line breaks in typed or pasted text become spaces.
+   * content box and is clipped to it. Line breaks in typed or pasted text become spaces; {@link
+   * #multiline} makes a field that keeps them.
    *
    * @param onEdit receives the new string after each edit; null disables the field, which then
    *     shows its string or placeholder, takes neither focus nor input, and lets presses go to its
@@ -826,6 +841,91 @@ public final class El {
     textOnly("editable").field(true);
     this.editable = true;
     this.onEdit = onEdit;
+    return this;
+  }
+
+  /**
+   * Makes an {@link #editable} field one of several lines, as the editor of a query: its string
+   * holds a line feed ({@code \n}) for each line break, and the field is a scroll area of its own
+   * ({@link #scroll}) that shows its lines from the top of its content box, wrapped at its width
+   * with {@link #wrapText}, or not, and then scrolling sideways too, with bars if it has {@link
+   * #scrollbars}. The wheel scrolls it while it can, and its ancestors beyond. Layout measures it
+   * 0 wide and {@link #lines} lines high, as a single-line field is one line high; the style
+   * usually gives it its size.
+   *
+   * <p>The keys of a single-line field work across lines, and these besides: Enter breaks the
+   * line (the field takes it, so an ancestor's Enter does not run; Control+Enter goes on to the
+   * {@link #onKey} handlers, so that an app can run a query with it); Up and Down move by a row on
+   * screen and Page Up and Page Down by the rows in view, keeping the caret's x from where they
+   * began; Home goes to the start of the row, and a second Home to the first character of the line
+   * that is not a space or a tab and back; End to the end of the row; Control+Home and Control+End
+   * to the ends of the text; all with Shift to select. A third press selects the line with its line
+   * feed, a fourth the whole text. Tab moves the focus, unless {@link #tabIndents} says otherwise.
+   * Carriage returns, with or without a line feed after them, and the separators U+2028 and U+2029
+   * become line feeds, in typed and pasted text and in the app's string, which the field shows and
+   * edits so, handing the app the string with line feeds at the first edit.
+   *
+   * <p>Only the rows in view are laid out and only their lines shaped, and the field keeps where
+   * its lines start across rebuilds and edits, so that a frame costs the same for a text of 100 000
+   * lines as for one of ten. An edit still replaces the app's string, which costs in proportion to
+   * its length.
+   *
+   * @throws IllegalStateException if the field is {@link #masked}: a password has one line
+   */
+  public El multiline() {
+    Text t = editableOnly("multiline");
+    if (t.masked()) {
+      throw new IllegalStateException(
+          "A masked field cannot be multiline(): a password has one line. Leave out multiline()"
+              + " or masked().");
+    }
+    t.multiline(true);
+    scrollArea = true;
+    style.overflowY = Style.Overflow.SCROLL;
+    style.overflowX = t.wraps() ? Style.Overflow.HIDDEN : Style.Overflow.SCROLL;
+    return this;
+  }
+
+  /**
+   * How many lines high layout measures a {@link #multiline} field whose style gives it no height,
+   * as the {@code rows} of an HTML {@code textarea}; 1 unless set. The lines have the font's line
+   * height at the window's scale, so that exactly this many fit.
+   */
+  public El lines(int count) {
+    Text t = editableOnly("lines");
+    if (count < 1) {
+      throw new IllegalArgumentException("lines must be 1 or more, was " + count);
+    }
+    t.visibleLines(count);
+    return this;
+  }
+
+  /**
+   * How far apart the tab stops of a {@link #multiline} field are, in widths of a space of its font,
+   * 4 unless set: a tab advances to the next stop. Also how many spaces {@link #tabIndents} indents
+   * by.
+   */
+  public El tabSize(int spaces) {
+    Text t = editableOnly("tabSize");
+    if (spaces < 1) {
+      throw new IllegalArgumentException("tabSize must be 1 or more, was " + spaces);
+    }
+    t.tabSize(spaces);
+    return this;
+  }
+
+  /**
+   * Makes Tab and Shift+Tab indent in a {@link #multiline} field, as in a code editor, instead of
+   * moving the focus. Tab puts a tab, or with {@code spaces} spaces up to the next tab stop, in
+   * place of a selection inside a line; with a selection across lines it indents each of them but
+   * empty ones by a tab or {@link #tabSize} spaces. Shift+Tab takes as much from the start of the
+   * caret's line or of each line of the selection. The keyboard can still leave the field: Escape
+   * and then Tab move the focus, and Control+M switches Tab between moving the focus and
+   * indenting until it is pressed again. A read-only field leaves Tab to the focus.
+   */
+  public El tabIndents(boolean spaces) {
+    editableOnly("tabIndents");
+    this.tabIndents = spaces ? 2 : 1;
     return this;
   }
 
@@ -877,7 +977,13 @@ public final class El {
    * words.
    */
   public El masked(boolean masked) {
-    editableOnly("masked").masked(masked);
+    Text t = editableOnly("masked");
+    if (masked && t.multiline()) {
+      throw new IllegalStateException(
+          "A multiline() field cannot be masked: a password has one line. Leave out multiline()"
+              + " or masked().");
+    }
+    t.masked(masked);
     return this;
   }
 
@@ -1555,6 +1661,16 @@ public final class El {
     return maxLength;
   }
 
+  /** Whether Tab and Shift+Tab indent in this field; see {@link #tabIndents}. */
+  public boolean tabIndents() {
+    return tabIndents != 0;
+  }
+
+  /** Whether {@link #tabIndents} indents with spaces rather than tabs. */
+  boolean tabSpaces() {
+    return tabIndents == 2;
+  }
+
   /** For {@link App}: the editing state of a field, which it keeps across rebuilds. */
   Editor editor() {
     return editor;
@@ -1706,6 +1822,16 @@ public final class El {
    * last row, whether it exists or not.
    */
   void measureScroll() {
+    if (text != null && text.multiline()) {
+      // A field: its rows as far as they are known, in its content box as layout placed it.
+      float scale = text.scale();
+      double room = Math.max(1, Math.round(scale)) + Editor.MARGIN * scale; // the caret at the end
+      double wide = text.extentWidth((float) room) - text.contentWidth() / scale;
+      double tall = text.extentHeight() - text.contentHeight() / scale;
+      maxScrollX = style.overflowX == Style.Overflow.SCROLL && wide > SLACK ? wide : 0;
+      maxScrollY = tall > SLACK ? tall : 0;
+      return;
+    }
     if (rowBuilder != null) {
       maxScrollX = 0;
       maxScrollY = Math.max(rowsTop() + rowCount * (double) rowHeight + px(style.paddingBottom)
@@ -1737,6 +1863,9 @@ public final class El {
     return len.kind() == Len.Kind.PX ? len.value() : 0;
   }
 
+  // Less than this is no overflow: what layout converted back and forth.
+  private static final double SLACK = 1 / 64.0;
+
   /**
    * Sets the scroll offset, clamped to what {@link #measureScroll} found, and shifts the children
    * by it.
@@ -1749,6 +1878,9 @@ public final class El {
     boolean changed = newX != scrollX || newY != scrollY;
     scrollX = newX;
     scrollY = newY;
+    if (text != null && text.multiline()) {
+      text.scrolled(newX, newY);
+    }
     // Rows are placed from the first one that exists, so the offset moves them from there.
     float shiftY = (float) (rowBuilder == null ? newY : newY - firstRow * (double) rowHeight);
     for (El child : children) {
@@ -2203,7 +2335,11 @@ public final class El {
    * A focused {@link #editable} field adds its caret after {@code focused} as {@code caret 3}, then
    * the other end of a selection as {@code anchor 0}, and the composition of an input method in
    * progress as {@code composing "..."}. A {@link #masked} field shows its mask as its string,
-   * the caret and the anchor as positions in it and the composition masked.
+   * the caret and the anchor as positions in it and the composition masked. A {@link #multiline}
+   * field adds, before its scroll offset, the lines with a row in view and how many it has, as
+   * {@code lines 12-20/100000}, from 1, and after its caret the caret's line and column, as
+   * {@code caret 57 (3:12)}, both from 1. A string longer than {@link #QUOTED} UTF-16 units shows
+   * only its start and its end, with its length (see {@link #quoteText}).
    *
    * <p>The {@link #shownOverlays overlays} follow the tree, in the order they are drawn, each
    * under a line that says where it is placed and beside what, followed by its tree indented by
@@ -2280,7 +2416,7 @@ public final class El {
       out.append(" label=").append(quote(label));
     }
     if (text != null) {
-      out.append(' ').append(quote(text.string()));
+      out.append(' ').append(quoteText(text.string()));
     }
     if (windowPart != null) {
       out.append(" window=").append(windowPart.name().toLowerCase(Locale.ROOT));
@@ -2305,6 +2441,16 @@ public final class El {
       }
       out.append('/').append(rowCount);
     }
+    if (text != null && text.multiline() && placed) {
+      out.append(" lines ");
+      int first = text.firstLineInView();
+      if (first < 0) {
+        out.append('-');
+      } else {
+        out.append(first + 1).append('-').append(text.lastLineInView() + 1);
+      }
+      out.append('/').append(text.lineTotal());
+    }
     if (scrollX != 0 || scrollY != 0) {
       number(out.append(" scroll "), scrollX).append(',');
       number(out, scrollY);
@@ -2323,6 +2469,10 @@ public final class El {
       if (editor != null) {
         // A masked field's positions count in its mask, which is what the line quotes.
         out.append(" caret ").append(text.maskIndex(editor.text(), editor.caret()));
+        if (text.multiline()) {
+          int[] at = editor.lineAndColumn();
+          out.append(" (").append(at[0]).append(':').append(at[1]).append(')');
+        }
         if (editor.anchor() != editor.caret()) {
           out.append(" anchor ").append(text.maskIndex(editor.text(), editor.anchor()));
         }
@@ -2386,9 +2536,36 @@ public final class El {
     number(out, bar.thumbHeight());
   }
 
+  /** The longest string that {@link #quoteText} writes whole, in UTF-16 units. */
+  static final int QUOTED = 200;
+
+  /**
+   * A text element's string as the dump writes it: {@link #quote quoted} whole up to {@link
+   * #QUOTED} UTF-16 units; a longer one as its first 100 and its last 40, each quoted, with
+   * {@code …} between them and its length after them, as in {@code "SELECT …" … "… 1;" length
+   * 104857}, so that a dump stays readable whatever a field holds. No part splits a surrogate
+   * pair.
+   */
+  static String quoteText(String text) {
+    if (text.length() <= QUOTED) {
+      return quote(text);
+    }
+    int head = 100;
+    if (Character.isLowSurrogate(text.charAt(head))) {
+      head--;
+    }
+    int tail = text.length() - 40;
+    if (Character.isLowSurrogate(text.charAt(tail))) {
+      tail++;
+    }
+    return quote(text.substring(0, head)) + " \u2026 " + quote(text.substring(tail)) + " length "
+        + text.length();
+  }
+
   /**
    * The text in double quotes, with a backslash before each quote and backslash in it, line feeds
-   * as {@code \n}, so that it stays on one line, and a character of a private use area, such as an
+   * as {@code \n} and tabs as {@code \t}, so that it stays on one line and shows them, and a
+   * character of a private use area, such as an
    * icon, as <code>&#92;u{E0EB}</code>, which would otherwise show as nothing or a box.
    */
   static String quote(String text) {
@@ -2398,6 +2575,8 @@ public final class El {
         out.append('\\').append((char) c);
       } else if (c == '\n') {
         out.append("\\n");
+      } else if (c == '\t') {
+        out.append("\\t");
       } else if (Character.getType(c) == Character.PRIVATE_USE) {
         out.append("\\u{").append(Integer.toHexString(c).toUpperCase(Locale.ROOT)).append('}');
       } else {
