@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.fail;
 
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.Examples;
+import com.rethinkj.ui.Image;
 import com.rethinkj.ui.Shadow;
 import com.rethinkj.ui.layout.Flex;
 import com.rethinkj.ui.natives.Natives;
@@ -42,6 +43,33 @@ class CpuRendererEquivalenceTest {
     }
   }
 
+  /**
+   * Images one to one, at whole, half and quarter positions, magnified, made smaller by every
+   * amount up to beyond their last level, stretched one way, covering and contained, with alpha,
+   * rounded and clipped, at the scales of windows.
+   */
+  @Test
+  void drawsImagesAsBefore() {
+    Image photo = Image.of(Examples.photo(37, 23));
+    Image disc = Image.of(Examples.disc(20));
+    for (float scale : new float[] {1, 1.25f, 1.5f, 2, 3}) {
+      for (float size : new float[] {37, 18.5f, 9.25f, 4, 1.5f, 60, 120}) {
+        for (float at : new float[] {3, 3.5f, 3.25f}) {
+          El root = el().size(140, 60).fill(0xFFF0F0F0).children(
+              El.image(photo).absolute(at, at).size(size, size * 23 / 37),
+              El.image(photo).absolute(at + 40, 2).size(size, 20).radius(3, 0, 6, 1)
+                  .fit(Image.Fit.COVER),
+              El.image(disc).absolute(at + 70, 30).size(size, size / 2).fit(Image.Fit.CONTAIN)
+                  .opacity(0.6f),
+              El.image(disc).absolute(at + 100, at).size(size / 2, size).radius(5));
+          Flex.layout(root, 140, 60);
+          assertSame("images " + size + " at " + at + " @" + scale, Scene.of(root, scale),
+              Math.round(140 * scale), Math.round(60 * scale), scale);
+        }
+      }
+    }
+  }
+
   /** The shapes of {@code ShadowTest}, at three scales, clipped by a rounded box or not. */
   @Test
   void drawsShadowsAsBefore() {
@@ -70,8 +98,8 @@ class CpuRendererEquivalenceTest {
   }
 
   /**
-   * Thousands of small scenes of random instances: rectangles, shadows and, where the text
-   * libraries load, glyphs, at fractional and whole positions and sizes, with radii from below 0
+   * Thousands of small scenes of random instances: rectangles, shadows, images and, where the
+   * text libraries load, glyphs, at fractional and whole positions and sizes, with radii from below 0
    * to beyond half the size, alike or each corner its own, borders up to beyond it, alike or each
    * side its own, translucent and opaque colours, the clips of
    * nested rounded boxes, and now and then a value that is not finite.
@@ -95,6 +123,9 @@ class CpuRendererEquivalenceTest {
       int count = 1 + random.nextInt(14);
       for (int i = 0; i < count; i++) {
         addRandom(scene, random, width, height, glyphs);
+      }
+      if (n % 2 == 0) {
+        addImage(scene, random, width, height);
       }
       assertSame("random scene " + n, scene, Math.round(width * scale),
           Math.round(height * scale), scale);
@@ -151,7 +182,9 @@ class CpuRendererEquivalenceTest {
         .child(el().absolute(0.5f, 0.5f).size(3, 2).fill(0x8000FF00)).child(nested);
     El square = el().absolute(width * 0.4f, height * 0.35f).size(width * 0.5f, height * 0.55f)
         .clip().child(el().absolute(-1, -1).size(5, 5).fill(0xFF0000FF));
-    El root = el().size(width, height).fill(0xFFF0F0F0).child(rounded).child(square);
+    El root = el().size(width, height).fill(0xFFF0F0F0).child(rounded).child(square)
+        .child(El.image(BASE_IMAGES[0]).absolute(1, 1).size(3, 2))
+        .child(El.image(BASE_IMAGES[1]).absolute(2, 3).size(4, 4));
     if (text) {
       rounded.child(El.text("Ag é").fontSize(9).color(0xFF101010).absolute(0.3f, 0.6f));
       square.child(El.text("W1").font(Font.mono()).fontSize(11).color(0xFFFFFFFF)
@@ -161,6 +194,43 @@ class CpuRendererEquivalenceTest {
       Flex.layout(root, width, height);
     }
     return Scene.of(root);
+  }
+
+  /** Images for the random scenes: a photo with levels down to 1 by 1, and a disc with alpha. */
+  private static final Image[] BASE_IMAGES = {Image.of(Examples.photo(29, 11)),
+      Image.of(Examples.disc(12))};
+
+  /**
+   * An image instance at a random rectangle: one of the scene's images, now and then with a size
+   * or a number of levels of its own, which the renderers clamp into the image's levels.
+   */
+  private static void addImage(Scene scene, Random random, float width, float height) {
+    scene.rect(0, 0, 1, 1, 0, 0, 0, 0);
+    long at = (long) (scene.count() - 1) * Scene.STRIDE;
+    MemorySegment data = scene.data();
+    int index = random.nextInt(scene.images().size());
+    Image image = scene.images().get(index);
+    boolean exact = random.nextInt(4) == 0;
+    float scale = 1; // the scenes draw at several scales; one to one comes at some of them
+    float x = exact ? random.nextInt((int) width) : position(random, width);
+    float y = exact ? random.nextInt((int) height) : position(random, height);
+    put(data, at + Scene.X, x);
+    put(data, at + Scene.Y, y);
+    put(data, at + Scene.WIDTH, exact ? image.width() / scale : length(random, width));
+    put(data, at + Scene.HEIGHT, exact ? image.height() / scale : length(random, height));
+    int size = random.nextInt(8) == 0 ? random.nextInt(1, 64) | random.nextInt(1, 64) << 16
+        : image.width() | image.height() << 16;
+    data.set(ValueLayout.JAVA_INT, at + Scene.IMAGE_SIZE, size);
+    data.set(ValueLayout.JAVA_INT, at + Scene.LEVELS,
+        random.nextInt(8) == 0 ? random.nextInt(8) : image.levels());
+    data.set(ValueLayout.JAVA_INT, at + Scene.CLIP,
+        random.nextInt(3) == 0 ? 0 : random.nextInt(scene.clipCount()));
+    data.set(ValueLayout.JAVA_INT, at + Scene.KIND, Scene.IMAGE);
+    float opacity = random.nextBoolean() ? 1 : random.nextFloat();
+    for (int c = 0; c < 4; c++) {
+      put(data, at + Scene.FILL + c * 4, opacity);
+    }
+    data.set(ValueLayout.JAVA_INT, at + Scene.IMAGE_INDEX, index);
   }
 
   private static void addRandom(Scene scene, Random random, float width, float height,

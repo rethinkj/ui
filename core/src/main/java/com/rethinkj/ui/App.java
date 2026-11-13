@@ -210,6 +210,7 @@ public final class App<S> {
   private int ringColour = FOCUS_RING;
   private final Atlas atlas = new Atlas();
   private TextRendering textRendering = TextRendering.platform();
+  private long imageMemory = Scene.DEFAULT_IMAGE_MEMORY;
   private boolean systemFonts;
   private final Map<Object, Editor> editors = new HashMap<>(); // the fields' state, by identity
   private Clipboard clipboard = Clipboard.inMemory();
@@ -1264,6 +1265,25 @@ public final class App<S> {
   /** The rendering of {@link #textRendering(TextRendering)}. */
   public TextRendering textRendering() {
     return textRendering;
+  }
+
+  /**
+   * Sets the bytes of GPU memory the window's renderer keeps images in, {@link
+   * Scene#DEFAULT_IMAGE_MEMORY} (256 MB) until this is called: beyond it, the images drawn least
+   * recently are given up and uploaded again when they show again; the images of one frame are
+   * always kept. See {@link Scene#imageMemory}.
+   */
+  public void imageMemory(long bytes) {
+    if (bytes < 0) {
+      throw new IllegalArgumentException("The image memory is " + bytes + " bytes; it must be 0"
+          + " or more.");
+    }
+    imageMemory = bytes;
+  }
+
+  /** The bytes of {@link #imageMemory(long)}. */
+  public long imageMemory() {
+    return imageMemory;
   }
 
   /** For {@link Script}: runs {@code handler} as the handler of an input, at its turn. */
@@ -2996,7 +3016,8 @@ public final class App<S> {
    * next call.
    */
   public Scene scene() {
-    return Scene.of(root, ring ? focused : null, ringColour, atlas, textRendering, scale);
+    return Scene.of(root, ring ? focused : null, ringColour, atlas, textRendering, scale)
+        .imageMemory(imageMemory);
   }
 
   /** The last frame drawn on the CPU, with its tree as text. */

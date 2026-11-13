@@ -1,6 +1,7 @@
 package com.rethinkj.ui.render;
 
 import com.rethinkj.ui.El;
+import com.rethinkj.ui.Image;
 import com.rethinkj.ui.Len;
 import com.rethinkj.ui.Scrollbars;
 import com.rethinkj.ui.Shadow;
@@ -12,7 +13,10 @@ import com.rethinkj.ui.text.TextRendering;
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
+import java.util.ArrayList;
+import java.util.IdentityHashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * What to draw, as a flat list of instances in draw order and a table of clips. Both live in
@@ -20,10 +24,10 @@ import java.util.List;
  * reads this format. All numbers are 32 bits wide, in the byte order of the machine, and all
  * positions are window coordinates in logical pixels, x to the right and y down.
  *
- * <p>An instance is {@link #STRIDE} bytes, twenty-four 4-byte slots, and is one of three kinds,
+ * <p>An instance is {@link #STRIDE} bytes, twenty-four 4-byte slots, and is one of four kinds,
  * told apart by the u32 at {@link #KIND}: a rounded rectangle ({@link #RECT}, 0), a glyph ({@link
- * #GLYPH}, 1) or a shadow ({@link #SHADOW}, 2). All kinds share one ordered list, so boxes, text
- * and shadows overlap in the order of the tree. The byte offsets are the constants below. A
+ * #GLYPH}, 1), a shadow ({@link #SHADOW}, 2) or an image ({@link #IMAGE}, 3). All kinds share one
+ * ordered list, so boxes, text, shadows and images overlap in the order of the tree. The byte offsets are the constants below. A
  * rounded rectangle with a fill and a border:
  *
  * <pre>
@@ -163,6 +167,56 @@ import java.util.List;
  * {@code u = x' - (w - r)} and {@code v = y' - (h - r)}; at most 1. That is the same blur as the
  * crossed boxes, which renderers keep for four equal radii.
  *
+ * <p>An image ({@link El#image}): the texels of an {@link Image}, mapped onto a rectangle.
+ *
+ * <pre>
+ *  0  x            f32   left edge of the rectangle the image's texels map onto
+ *  4  y            f32   top edge
+ *  8  width        f32
+ * 12  height       f32
+ * 16  size         u32   level 0's size in texels: width | height &lt;&lt; 16
+ * 20  levels       u32   the number of levels, {@link Image#levels}
+ * 24  clip         u32   as for a rectangle
+ * 28  kind         u32   3, IMAGE
+ * 32  colour       f32 x 4   the opacity, o, o, o, o, that multiplies every texel
+ * 48  image        u32   index into {@link #images}
+ * 52  unused       f32 x 11  0
+ * </pre>
+ *
+ * <p>As WGSL it is read as an {@code Instance} too, with the size and the levels in the slots of
+ * a glyph's atlas and atlas size. A texel is premultiplied linear colour, as {@link Image} stores
+ * it: red, green and blue decoded from sRGB, alpha divided by 255. The image is drawn where the
+ * rectangle and its clip are, with the coverage of the rectangle with square corners and of its
+ * clip, as a rectangle's: {@code output = sample * colour * coverage}, blended as a fill. A
+ * rounded element gets a clip entry of its own for that, its content box with its corners, and so
+ * does one whose image, {@link Image.Fit#COVER covering} it, reaches beyond its content box.
+ *
+ * <p>The sample at a pixel, with {@code (px, py)} its centre in physical pixels, {@code s} the
+ * scale, {@code (w0, h0)} level 0's size and {@code (W, H) = (width s, height s)} the rectangle's
+ * size in physical pixels:
+ *
+ * <pre>
+ * one to one, when |W - w0| &lt; 0.001, |H - h0| &lt; 0.001 and x s and y s lie within 0.001 of a
+ * whole number: the texel (floor(px) - floor(x s + 0.5), floor(py) - floor(y s + 0.5)) of level
+ * 0, read as it is, clamped into the level
+ *
+ * otherwise:
+ * ratio    = (w0 / W, h0 / H)                       texels per physical pixel
+ * (u, v)   = ((px - x s) ratio.x, (py - y s) ratio.y)  the point on level 0, in texels
+ * lod      = log2(max(ratio.x, ratio.y))
+ * sample   = bilinear(0)                               when lod &lt;= 0, magnified
+ *          = bilinear(levels - 1)                      when floor(lod) &gt;= levels - 1
+ *          = mix(bilinear(k), bilinear(k + 1), lod - k) with k = floor(lod) otherwise
+ * bilinear(k): on level k of (wk, hk), the point (u wk / w0 - 0.5, v hk / h0 - 0.5), its four
+ *          texels around it clamped into the level, mixed by the fractions across, then down
+ * </pre>
+ *
+ * <p>That is trilinear filtering of levels the image computed itself (see {@link Image}), with
+ * the same formula in every renderer: it is continuous in the point and in {@code lod}, so the
+ * small differences between the CPU's doubles and the GPU's floats move a pixel by little. A
+ * photo shown at a fraction of its size samples the levels near its texels' size, and so neither
+ * flickers as it moves nor frays at its edges.
+ *
  * <p>Colours are linear and premultiplied by alpha, the opacity of the element and its ancestors
  * included. Blending happens in linear light, as in rune: that is what an sRGB render target does
  * on the GPU, and it keeps translucent edges from darkening. A pixel becomes {@code source + target
@@ -274,6 +328,13 @@ public final class Scene {
   public static final int GLYPH = 1;
   /** The {@link #KIND} of a shadow. */
   public static final int SHADOW = 2;
+  /** The {@link #KIND} of an image. */
+  public static final int IMAGE = 3;
+
+  // The slots of an image that differ from a rectangle's.
+  public static final int IMAGE_SIZE = 16;
+  public static final int LEVELS = 20;
+  public static final int IMAGE_INDEX = 48;
 
   /** The slot of a shadow that differs from a rectangle's: the Gaussian's deviation. */
   public static final int SIGMA = 20;
@@ -327,6 +388,12 @@ public final class Scene {
   private final Atlas atlas;
   private final TextRendering rendering;
   private float scale = Float.NaN; // physical pixels per logical one; NaN draws boxes unsnapped
+  private final List<Image> images = new ArrayList<>();
+  private final Map<Image, Integer> imageIndex = new IdentityHashMap<>();
+  private long imageMemory = DEFAULT_IMAGE_MEMORY;
+
+  /** The bytes of GPU memory a renderer keeps images in unless {@link #imageMemory} says. */
+  public static final long DEFAULT_IMAGE_MEMORY = 256L << 20;
 
   /** An empty scene, for {@link #rect}; without text, so with an atlas of its own. */
   public Scene() {
@@ -454,6 +521,9 @@ public final class Scene {
       rect(left, top, width, height, radii, hasBorder ? borders : NO_BORDER, el.fill(),
           el.borderColor(), opacity, clip);
     }
+    if (el.image() != null && inside) {
+      image(el, left, top, width, height, borders, radii, opacity, clip, free);
+    }
     int inner = clip;
     if (s.overflowX != Style.Overflow.VISIBLE || s.overflowY != Style.Overflow.VISIBLE) {
       float l = Math.max(left, clipX);
@@ -512,6 +582,107 @@ public final class Scene {
             ringWidth}, 0, ringed, opacity, clip);
       }
     }
+  }
+
+  /**
+   * An element's image in its content box: the rectangle that {@link El#fit} gives it, snapped to
+   * the pixel grid unless a spring moves the element, within a clip of the content box with the
+   * element's corners where the element is rounded or the image reaches beyond the box.
+   */
+  private void image(El el, float left, float top, float width, float height, float[] borders,
+      float[] radii, float opacity, int clip, boolean free) {
+    Image image = el.image();
+    Style s = el.style();
+    float insetLeft = borders[3] + px(s.paddingLeft);
+    float insetTop = borders[0] + px(s.paddingTop);
+    float insetRight = borders[1] + px(s.paddingRight);
+    float insetBottom = borders[2] + px(s.paddingBottom);
+    float l = left + insetLeft;
+    float t = top + insetTop;
+    float r = left + width - insetRight;
+    float b = top + height - insetBottom;
+    if (!free) {
+      l = edge(l);
+      t = edge(t);
+      r = edge(r);
+      b = edge(b);
+    }
+    if (!(r > l && b > t)) {
+      return;
+    }
+    // The rectangle the texels map onto, by the fit.
+    float x = l;
+    float y = t;
+    float w = r - l;
+    float h = b - t;
+    if (el.fit() != Image.Fit.FILL) {
+      float k = el.fit() == Image.Fit.CONTAIN
+          ? Math.min(w / image.width(), h / image.height())
+          : Math.max(w / image.width(), h / image.height());
+      float fitW = image.width() * k;
+      float fitH = image.height() * k;
+      x = l + (w - fitW) / 2;
+      y = t + (h - fitH) / 2;
+      w = fitW;
+      h = fitH;
+      if (!free) {
+        w = edge(x + w) - edge(x);
+        h = edge(y + h) - edge(y);
+        x = edge(x);
+        y = edge(y);
+      }
+    }
+    boolean rounded = radii[0] > 0 || radii[1] > 0 || radii[2] > 0 || radii[3] > 0;
+    boolean beyond = x < l || y < t || x + w > r || y + h > b;
+    int own = clip;
+    float clipX = clipGet(clip, X);
+    float clipY = clipGet(clip, Y);
+    float clipRight = clipX + clipGet(clip, WIDTH);
+    float clipBottom = clipY + clipGet(clip, HEIGHT);
+    if (rounded || beyond) {
+      float[] inner = {Math.max(radii[0] - Math.max(insetLeft, insetTop), 0),
+          Math.max(radii[1] - Math.max(insetRight, insetTop), 0),
+          Math.max(radii[2] - Math.max(insetRight, insetBottom), 0),
+          Math.max(radii[3] - Math.max(insetLeft, insetBottom), 0)};
+      float cl = Math.max(l, clipX);
+      float ct = Math.max(t, clipY);
+      float cw = Math.min(r, clipRight) - cl;
+      float ch = Math.min(b, clipBottom) - ct;
+      if (!(cw > 0 && ch > 0)) {
+        return;
+      }
+      // shortcut: as for overflow, the entry has the element's corners only, not those of a
+      // rounded clip around it that it sticks out of.
+      own = clip(cl, ct, cw, ch, inner);
+      clipX = cl;
+      clipY = ct;
+      clipRight = cl + cw;
+      clipBottom = ct + ch;
+    }
+    if (!(x < clipRight && x + w > clipX && y < clipBottom && y + h > clipY)) {
+      return;
+    }
+    Integer index = imageIndex.get(image);
+    if (index == null) {
+      index = images.size();
+      images.add(image);
+      imageIndex.put(image, index);
+    }
+    long offset = next();
+    put(offset + X, x);
+    put(offset + Y, y);
+    put(offset + WIDTH, w);
+    put(offset + HEIGHT, h);
+    data.set(ValueLayout.JAVA_INT, offset + IMAGE_SIZE, image.width() | image.height() << 16);
+    data.set(ValueLayout.JAVA_INT, offset + LEVELS, image.levels());
+    data.set(ValueLayout.JAVA_INT, offset + CLIP, own);
+    data.set(ValueLayout.JAVA_INT, offset + KIND, IMAGE);
+    colour(offset + FILL, 0xFFFFFFFF, opacity);
+    data.set(ValueLayout.JAVA_INT, offset + IMAGE_INDEX, index);
+    for (int slot = IMAGE_INDEX + 4; slot < STRIDE; slot += 4) {
+      put(offset + slot, 0);
+    }
+    count++;
   }
 
   /**
@@ -1012,11 +1183,36 @@ public final class Scene {
   }
 
   /**
-   * One u32 slot of one instance: {@link #CLIP} or {@link #KIND}, and of a glyph {@link #ATLAS},
-   * {@link #ATLAS_SIZE} or {@link #PAGE}.
+   * One u32 slot of one instance: {@link #CLIP} or {@link #KIND}, of a glyph {@link #ATLAS},
+   * {@link #ATLAS_SIZE} or {@link #PAGE}, and of an image {@link #IMAGE_SIZE}, {@link #LEVELS}
+   * or {@link #IMAGE_INDEX}.
    */
   public int getInt(int instance, int field) {
     return data.get(ValueLayout.JAVA_INT, (long) instance * STRIDE + field);
+  }
+
+  /** The images that image instances refer to by their {@link #IMAGE_INDEX}, each once. */
+  public List<Image> images() {
+    return images;
+  }
+
+  /**
+   * The bytes of GPU memory a renderer may keep images in, {@link #DEFAULT_IMAGE_MEMORY} unless
+   * set; the GPU renderer gives up the images drawn least recently beyond it, never one of the
+   * scene it draws.
+   */
+  public long imageMemory() {
+    return imageMemory;
+  }
+
+  /** Sets {@link #imageMemory()}. */
+  public Scene imageMemory(long bytes) {
+    if (bytes < 0) {
+      throw new IllegalArgumentException("The image memory is " + bytes + " bytes; it must be 0"
+          + " or more.");
+    }
+    imageMemory = bytes;
+    return this;
   }
 
   /** The atlas pages that glyphs refer to by their {@link #PAGE}; see {@link Atlas.Page}. */

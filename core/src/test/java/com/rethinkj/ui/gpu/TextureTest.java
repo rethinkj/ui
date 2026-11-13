@@ -152,6 +152,22 @@ class TextureTest {
       // The last row would end beyond the data.
       assertThrows(IllegalArgumentException.class,
           () -> queue.writeTexture(texture, 0, 0, 0, 16, 8, data, 1, 16));
+      // Mip levels: no more than the size allows, written only within their own size.
+      assertThrows(IllegalArgumentException.class, () -> device.createTexture("no levels", 16, 8,
+          0, TextureFormat.RGBA8_UNORM, TextureUsage.TEXTURE_BINDING));
+      assertThrows(IllegalArgumentException.class, () -> device.createTexture("too many levels",
+          16, 8, 6, TextureFormat.RGBA8_UNORM, TextureUsage.TEXTURE_BINDING));
+      Texture levels = device.createTexture("levels", 16, 8, 5, TextureFormat.RGBA8_UNORM,
+          TextureUsage.TEXTURE_BINDING, TextureUsage.COPY_DST);
+      assertEquals(4, levels.width(2));
+      assertEquals(1, levels.height(4));
+      MemorySegment texels = MemorySegment.ofArray(new byte[16 * 8 * 4]);
+      queue.writeTexture(levels, 2, 0, 0, 0, 4, 2, texels, 0, 16);
+      queue.writeTexture(levels, 4, 0, 0, 0, 1, 1, texels, 0, 4);
+      assertThrows(IllegalArgumentException.class,
+          () -> queue.writeTexture(levels, 2, 0, 0, 0, 5, 2, texels, 0, 20));
+      assertThrows(IllegalArgumentException.class,
+          () -> queue.writeTexture(levels, 5, 0, 0, 0, 1, 1, texels, 0, 4));
       Texture readOnly = device.createTexture("not a copy target", 4, 4, TextureFormat.R8_UNORM,
           TextureUsage.TEXTURE_BINDING);
       assertThrows(IllegalArgumentException.class,

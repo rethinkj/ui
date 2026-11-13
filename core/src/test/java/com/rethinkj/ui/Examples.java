@@ -6,6 +6,7 @@ import static com.rethinkj.ui.El.row;
 
 import com.rethinkj.ui.layout.Flex;
 import com.rethinkj.ui.motion.Spring;
+import com.rethinkj.ui.render.Pixels;
 import com.rethinkj.ui.text.Font;
 import com.rethinkj.ui.text.TextRendering;
 import java.io.IOException;
@@ -845,5 +846,101 @@ public final class Examples {
         .onPress(onPress)
         .motion(Spring.SNAP)
         .child(knob);
+  }
+
+  // ---- images ----------------------------------------------------------------------------------
+
+  /**
+   * A made-up photo: smooth colours with fine diagonal stripes, which alias where an image is
+   * sampled badly, and a dark frame of one pixel, which a sampler that reads one texel off shows.
+   */
+  public static Pixels photo(int width, int height) {
+    byte[] rgba = new byte[width * height * 4];
+    for (int y = 0; y < height; y++) {
+      for (int x = 0; x < width; x++) {
+        int at = (y * width + x) * 4;
+        double u = (double) x / width;
+        double v = (double) y / height;
+        boolean stripe = ((x + y) / 2) % 2 == 0;
+        boolean frame = x == 0 || y == 0 || x == width - 1 || y == height - 1;
+        int r = frame ? 20 : (int) (40 + 180 * u + (stripe ? 30 : 0));
+        int g = frame ? 30 : (int) (60 + 150 * v + (stripe ? 0 : 25));
+        int b = frame ? 60 : (int) (200 - 120 * u * v);
+        rgba[at] = (byte) Math.min(r, 255);
+        rgba[at + 1] = (byte) Math.min(g, 255);
+        rgba[at + 2] = (byte) Math.min(b, 255);
+        rgba[at + 3] = (byte) 0xFF;
+      }
+    }
+    return new Pixels(width, height, rgba);
+  }
+
+  /**
+   * A disc in two colours on transparency, with an edge that fades over a quarter of its radius
+   * and a translucent ring: alpha at every level from 0 to 255.
+   */
+  public static Pixels disc(int size) {
+    byte[] rgba = new byte[size * size * 4];
+    double radius = size / 2.0;
+    for (int y = 0; y < size; y++) {
+      for (int x = 0; x < size; x++) {
+        int at = (y * size + x) * 4;
+        double d = Math.hypot(x + 0.5 - radius, y + 0.5 - radius) / radius;
+        double alpha = d < 0.75 ? 1 : d < 1 ? (1 - d) * 4 : 0;
+        if (d > 0.4 && d < 0.5) {
+          alpha = 0.35;
+        }
+        boolean left = x < size / 2;
+        rgba[at] = (byte) (left ? 0xF5 : 0x22);
+        rgba[at + 1] = (byte) (left ? 0x9E : 0xC5);
+        rgba[at + 2] = (byte) (left ? 0x0B : 0x5E);
+        rgba[at + 3] = (byte) Math.round(alpha * 255);
+      }
+    }
+    return new Pixels(size, size, rgba);
+  }
+
+  private static final Map<String, Image> IMAGES = new HashMap<>();
+
+  /** An image of the test, made once: making the levels of a large one takes a moment. */
+  public static Image image(String name, Pixels pixels, float scale) {
+    return IMAGES.computeIfAbsent(name + "@" + scale, key -> Image.of(pixels, scale));
+  }
+
+  /**
+   * Images in a window of 320 by 220 at {@code scale}: one to one, magnified, made smaller and
+   * 4000 pixels made 100, with alpha over text and under text, in rounded clips with a radius per
+   * corner, at half opacity, fitted to cover and to contain, and translucent on light and dark.
+   */
+  public static El images(float scale) {
+    int s = Math.round(scale * 2);
+    Image exact = image("exact-" + s, photo(20 * s, 15 * s), scale);
+    Image tiny = image("tiny", photo(10, 8), 1);
+    Image medium = image("medium", photo(400, 300), 1);
+    Image huge = image("huge", photo(4000, 2000), 1);
+    Image disc = image("disc", disc(48), 1);
+    El light = el().absolute(0, 0).size(160, 220).fill(0xFFF5F5F4).children(
+        El.image(exact).absolute(8, 8).key("exact"),
+        El.image(tiny).absolute(56, 8).size(80, 64).key("magnified"),
+        El.image(medium).absolute(8, 80).size(80, 60).key("smaller"),
+        El.image(huge).absolute(92, 80).size(60, 30).key("huge"),
+        El.text("Unter dem Bild").fontSize(13).color(0xFF1F2937).absolute(8, 150),
+        El.image(disc).absolute(20, 140).size(36, 36).key("over-text"),
+        El.image(disc).absolute(92, 120).key("disc"),
+        El.text("Über dem Bild").fontSize(13).color(0xFF111827).absolute(84, 136),
+        El.image(medium).absolute(8, 186).size(60, 28).radius(10, 2, 14, 0).fit(Image.Fit.COVER)
+            .key("cover"),
+        El.image(medium).absolute(76, 186).size(76, 28).fit(Image.Fit.CONTAIN).fill(0xFFE7E5E4)
+            .radius(6).key("contain"));
+    El dark = el().absolute(160, 0).size(160, 220).fill(0xFF1B1C1F).children(
+        El.image(disc).absolute(8, 8).key("disc-dark"),
+        El.image(disc).absolute(64, 8).size(72, 72).opacity(0.5f).key("half"),
+        El.image(medium).absolute(8.5f, 90.25f).size(70.5f, 52.3f).radius(16).key("rounded"),
+        el().absolute(84, 90).size(68, 50).radius(12).clip().child(
+            El.image(huge).absolute(-10, -6).size(90, 45).key("clipped")),
+        El.text("SELECT 1").font(Font.mono()).fontSize(12).color(0xFFE4E5E9).absolute(10, 154),
+        El.image(disc).absolute(40, 146).size(30, 30).key("over-mono"),
+        El.image(tiny).absolute(90, 150).size(62, 62).radius(31).opacity(0.75f).key("round"));
+    return el().wFull().hFull().children(light, dark);
   }
 }

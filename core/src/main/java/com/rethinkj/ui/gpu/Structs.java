@@ -695,6 +695,7 @@ final class Structs {
         ADDRESS.withName("texture"), JAVA_INT.withName("mipLevel"),
         Origin3D.LAYOUT.withName("origin"), JAVA_INT.withName("aspect"));
     static final long TEXTURE = offset(LAYOUT, "texture");
+    static final long MIP_LEVEL = offset(LAYOUT, "mipLevel");
     static final long ORIGIN = offset(LAYOUT, "origin");
   }
 

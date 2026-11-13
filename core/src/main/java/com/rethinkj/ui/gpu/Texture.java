@@ -19,17 +19,20 @@ public final class Texture extends GpuObject {
   private final int height;
   private final int layers;
   private final boolean array;
+  private final int levels;
   private final TextureFormat format;
   private final Set<TextureUsage> usages;
 
   Texture(Device device, GpuObject parent, String label, MemorySegment handle, int width,
-      int height, int layers, boolean array, TextureFormat format, Set<TextureUsage> usages) {
+      int height, int layers, boolean array, int levels, TextureFormat format,
+      Set<TextureUsage> usages) {
     super(device.instance, parent, label, handle);
     this.device = device;
     this.width = width;
     this.height = height;
     this.layers = layers;
     this.array = array;
+    this.levels = levels;
     this.format = format;
     this.usages = Collections.unmodifiableSet(usages);
   }
@@ -55,6 +58,21 @@ public final class Texture extends GpuObject {
     return array;
   }
 
+  /** The number of mip levels: 1 unless the texture was made with more. */
+  public int levels() {
+    return levels;
+  }
+
+  /** The width of mip level {@code level}: halved that many times, at least 1. */
+  public int width(int level) {
+    return Math.max(1, width >> level);
+  }
+
+  /** The height of mip level {@code level}. */
+  public int height(int level) {
+    return Math.max(1, height >> level);
+  }
+
   public TextureFormat format() {
     return format;
   }
@@ -64,8 +82,8 @@ public final class Texture extends GpuObject {
   }
 
   /**
-   * A view of the whole texture, with its format: a 2D view, or for {@link #isArray} a 2D array
-   * view of all layers, which a shader reads as {@code texture_2d_array}.
+   * A view of the whole texture, all its mip levels, with its format: a 2D view, or for {@link
+   * #isArray} a 2D array view of all layers, which a shader reads as {@code texture_2d_array}.
    */
   public TextureView createView(String label) {
     requireLabel(label);

@@ -131,7 +131,20 @@ public final class Device extends GpuObject {
   /** A 2D texture with one mip level and one sample. */
   public Texture createTexture(String label, int width, int height, TextureFormat format,
       TextureUsage usage, TextureUsage... more) {
-    return createTexture(label, width, height, 1, false, format, EnumSet.of(usage, more));
+    return createTexture(label, width, height, 1, false, 1, format, EnumSet.of(usage, more));
+  }
+
+  /**
+   * A 2D texture with {@code levels} mip levels and one sample: level {@code k} is {@code max(1,
+   * width >> k)} by {@code max(1, height >> k)} texels. Its views hold all levels, which a shader
+   * reads with {@code textureLoad(texture, texel, level)}; {@link Queue#writeTexture(Texture, int,
+   * int, int, int, int, int, MemorySegment, long, int)} writes one.
+   *
+   * @param levels from 1 to the number of halvings that leave a side of at least 1, plus 1
+   */
+  public Texture createTexture(String label, int width, int height, int levels,
+      TextureFormat format, TextureUsage usage, TextureUsage... more) {
+    return createTexture(label, width, height, 1, false, levels, format, EnumSet.of(usage, more));
   }
 
   /**
@@ -143,13 +156,18 @@ public final class Device extends GpuObject {
    */
   public Texture createTextureArray(String label, int width, int height, int layers,
       TextureFormat format, TextureUsage usage, TextureUsage... more) {
-    return createTexture(label, width, height, layers, true, format, EnumSet.of(usage, more));
+    return createTexture(label, width, height, layers, true, 1, format, EnumSet.of(usage, more));
   }
 
   private Texture createTexture(String label, int width, int height, int layers, boolean array,
-      TextureFormat format, Set<TextureUsage> usages) {
+      int levels, TextureFormat format, Set<TextureUsage> usages) {
     requireLabel(label);
     checkSize("texture '" + label + "'", width, height);
+    int most = 32 - Integer.numberOfLeadingZeros(Math.max(width, height));
+    if (levels < 1 || levels > most) {
+      throw new IllegalArgumentException("Texture '" + label + "' of " + width + "x" + height
+          + " has " + levels + " mip levels; it can have between 1 and " + most + ".");
+    }
     int maxLayers = limits.maxTextureArrayLayers();
     if (layers < 1 || layers > maxLayers) {
       throw new IllegalArgumentException("Texture '" + label + "' has " + layers + " layers;"
@@ -163,10 +181,11 @@ public final class Device extends GpuObject {
       descriptor.set(JAVA_INT, TextureDescriptor.DIMENSION, Wgpu.TEXTURE_DIMENSION_2D);
       Structs.Extent3D.set(descriptor, TextureDescriptor.SIZE, width, height, layers);
       descriptor.set(JAVA_INT, TextureDescriptor.FORMAT, format.value);
+      descriptor.set(JAVA_INT, TextureDescriptor.MIP_LEVEL_COUNT, levels);
       MemorySegment texture = create("creating texture", label,
           () -> Wgpu.deviceCreateTexture(device, descriptor), Wgpu::textureRelease);
-      return new Texture(this, this, label, texture, width, height, layers, array, format,
-          usages);
+      return new Texture(this, this, label, texture, width, height, layers, array, levels,
+          format, usages);
     }
   }
 

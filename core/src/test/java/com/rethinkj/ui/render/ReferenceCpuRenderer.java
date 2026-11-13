@@ -1,5 +1,6 @@
 package com.rethinkj.ui.render;
 
+import com.rethinkj.ui.Image;
 import com.rethinkj.ui.text.Atlas;
 
 // CpuRenderer as it was before it was made fast, but for its name and encode's visibility, with
@@ -56,6 +57,8 @@ final class ReferenceCpuRenderer {
         glyph(scene, i, frame, width, height, scale, blends);
       } else if (kind == Scene.SHADOW) {
         shadow(scene, i, frame, width, height, scale, blends);
+      } else if (kind == Scene.IMAGE) {
+        image(scene, i, frame, width, height, scale, blends);
       } else {
         rect(scene, i, frame, width, height, scale, blends);
       }
@@ -194,6 +197,132 @@ final class ReferenceCpuRenderer {
         }
       }
     }
+  }
+
+  /** Draws an image: its texels sampled, with the coverage of its square rectangle and its clip. */
+  private static void image(Scene scene, int i, float[] frame, int width, int height,
+      double scale, Blends blends) {
+    double w = scene.get(i, Scene.WIDTH);
+    double h = scene.get(i, Scene.HEIGHT);
+    if (!(w > 0 && h > 0)) {
+      return;
+    }
+    double halfW = w / 2;
+    double halfH = h / 2;
+    double centerX = scene.get(i, Scene.X) + halfW;
+    double centerY = scene.get(i, Scene.Y) + halfH;
+    int left = Math.max((int) Math.floor((centerX - halfW) * scale) - 1, 0);
+    int top = Math.max((int) Math.floor((centerY - halfH) * scale) - 1, 0);
+    int right = Math.min((int) Math.ceil((centerX + halfW) * scale) + 1, width);
+    int bottom = Math.min((int) Math.ceil((centerY + halfH) * scale) + 1, height);
+    int clip = scene.clipOf(i);
+    if (clip != 0) {
+      double clipHalfW = scene.clipGet(clip, Scene.WIDTH) / 2;
+      double clipHalfH = scene.clipGet(clip, Scene.HEIGHT) / 2;
+      double clipX = scene.clipGet(clip, Scene.X) + clipHalfW;
+      double clipY = scene.clipGet(clip, Scene.Y) + clipHalfH;
+      left = Math.max(left, (int) Math.floor((clipX - clipHalfW) * scale) - 1);
+      top = Math.max(top, (int) Math.floor((clipY - clipHalfH) * scale) - 1);
+      right = Math.min(right, (int) Math.ceil((clipX + clipHalfW) * scale) + 1);
+      bottom = Math.min(bottom, (int) Math.ceil((clipY + clipHalfH) * scale) + 1);
+    }
+    double[] sample = new double[4];
+    for (int py = top; py < bottom; py++) {
+      for (int px = left; px < right; px++) {
+        double x = (px + 0.5) / scale - centerX;
+        double y = (py + 0.5) / scale - centerY;
+        double coverage = coverage(distance(x, y, halfW, halfH, 0, 0), scale);
+        if (clip != 0) {
+          coverage *= clipCoverage(scene, clip, (px + 0.5) / scale, (py + 0.5) / scale, scale);
+        }
+        if (coverage <= 0) {
+          continue;
+        }
+        sample(scene, i, px, py, scale, sample);
+        int at = (py * width + px) * 4;
+        double alpha = scene.get(i, Scene.FILL + 12) * sample[3] * coverage;
+        if (blends != null) {
+          blends.blend(frame, at, alpha);
+        }
+        for (int c = 0; c < 4; c++) {
+          double source = scene.get(i, Scene.FILL + c * 4) * sample[c] * coverage;
+          frame[at + c] = (float) (source + frame[at + c] * (1 - alpha));
+        }
+      }
+    }
+  }
+
+  /**
+   * The image's sample at the pixel whose top left corner is {@code px, py}: one texel to one
+   * pixel, or trilinear from its levels, as {@link Scene} says.
+   */
+  private static void sample(Scene scene, int i, int px, int py, double scale, double[] out) {
+    Image image = scene.images().get(scene.getInt(i, Scene.IMAGE_INDEX));
+    int size = scene.getInt(i, Scene.IMAGE_SIZE);
+    int width0 = size & 0xFFFF;
+    int height0 = size >>> 16;
+    int levels = Math.clamp(scene.getInt(i, Scene.LEVELS), 1, image.levels());
+    double originX = scene.get(i, Scene.X) * scale;
+    double originY = scene.get(i, Scene.Y) * scale;
+    double extentW = scene.get(i, Scene.WIDTH) * scale;
+    double extentH = scene.get(i, Scene.HEIGHT) * scale;
+    if (Math.abs(extentW - width0) < 1e-3 && Math.abs(extentH - height0) < 1e-3
+        && Math.abs(originX - Math.floor(originX + 0.5)) < 1e-3
+        && Math.abs(originY - Math.floor(originY + 0.5)) < 1e-3) {
+      int w = image.levelWidth(0);
+      int x = Math.clamp(px - (long) Math.floor(originX + 0.5), 0, w - 1);
+      int y = Math.clamp(py - (long) Math.floor(originY + 0.5), 0, image.levelHeight(0) - 1);
+      for (int c = 0; c < 4; c++) {
+        out[c] = value(image.level(0)[(y * w + x) * 4 + c], c);
+      }
+      return;
+    }
+    double ratioX = width0 / extentW;
+    double ratioY = height0 / extentH;
+    double u = (px + 0.5 - originX) * ratioX;
+    double v = (py + 0.5 - originY) * ratioY;
+    double lod = StrictMath.log(Math.max(ratioX, ratioY)) / StrictMath.log(2);
+    if (!(lod > 0)) {
+      bilinear(image, 0, width0, height0, u, v, out);
+    } else if (Math.floor(lod) >= levels - 1) {
+      bilinear(image, levels - 1, width0, height0, u, v, out);
+    } else {
+      int k = (int) Math.floor(lod);
+      double[] finer = new double[4];
+      bilinear(image, k, width0, height0, u, v, finer);
+      bilinear(image, k + 1, width0, height0, u, v, out);
+      for (int c = 0; c < 4; c++) {
+        out[c] = finer[c] + (out[c] - finer[c]) * (lod - Math.floor(lod));
+      }
+    }
+  }
+
+  /** Level {@code k} at the point {@code u, v} of level 0, from its four texels around it. */
+  private static void bilinear(Image image, int k, int width0, int height0, double u, double v,
+      double[] out) {
+    int w = image.levelWidth(k);
+    int h = image.levelHeight(k);
+    double fx = u * w / width0 - 0.5;
+    double fy = v * h / height0 - 0.5;
+    int left = Math.clamp((long) Math.floor(fx), 0, w - 1);
+    int right = Math.clamp((long) Math.floor(fx) + 1, 0, w - 1);
+    int upper = Math.clamp((long) Math.floor(fy), 0, h - 1);
+    int lower = Math.clamp((long) Math.floor(fy) + 1, 0, h - 1);
+    byte[] texels = image.level(k);
+    for (int c = 0; c < 4; c++) {
+      double a = value(texels[(upper * w + left) * 4 + c], c);
+      double b = value(texels[(upper * w + right) * 4 + c], c);
+      double d = value(texels[(lower * w + left) * 4 + c], c);
+      double e = value(texels[(lower * w + right) * 4 + c], c);
+      double over = a + (b - a) * (fx - Math.floor(fx));
+      double under = d + (e - d) * (fx - Math.floor(fx));
+      out[c] = over + (under - over) * (fy - Math.floor(fy));
+    }
+  }
+
+  /** A texel's channel in linear light: colour decoded from sRGB, alpha divided by 255. */
+  private static double value(byte texel, int channel) {
+    return channel == 3 ? (texel & 0xFF) / 255.0 : Scene.linear(texel & 0xFF);
   }
 
   /** Draws a shadow: its shape blurred, over the shape grown by three deviations. */
