@@ -113,6 +113,21 @@ final class Win32Shell {
     return applyFrameDark();
   }
 
+  /**
+   * Whether DWM animates the window as it shows, hides, minimizes and restores ({@code
+   * DWMWA_TRANSITIONS_FORCEDISABLED} off or on). A window that opens under the pointer during a
+   * drag turns it off: its open animation would zoom an empty frame in before the first frame.
+   *
+   * @return false if DWM refused it
+   */
+  boolean transitions(boolean on) {
+    try (Arena arena = Arena.ofConfined()) {
+      MemorySegment value = arena.allocateFrom(JAVA_INT, on ? 0 : 1);
+      return Win32.dwmSetWindowAttribute(hwnd, Win32.DWMWA_TRANSITIONS_FORCEDISABLED, value)
+          == Win32.S_OK;
+    }
+  }
+
   private boolean applyFrameDark() {
     try (Arena arena = Arena.ofConfined()) {
       MemorySegment value = arena.allocateFrom(JAVA_INT, frameDark ? 1 : 0);

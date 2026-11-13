@@ -125,6 +125,8 @@ public final class WindowLoop {
   private boolean tracking;
   private float[] polled;
   private boolean captured; // the loop captured the pointer for a press that moved on
+  private Entry releasedIn; // the window whose app got the release, until it draws
+  private boolean focusAfterRelease;
 
   /**
    * One window of the loop with its app and presenter, and what pacing needs: when its last frame
@@ -148,6 +150,9 @@ public final class WindowLoop {
     long frameNanos;
     boolean open = true;
     boolean fresh = true; // opened since the last pass, which draws its first frame
+    // Opened under the pointer during a press (Window.Options.underPointer): shown without
+    // the focus, which it takes after the frame that handles the release.
+    boolean focusAfterPress;
     // Input or a posted task arrived that no frame has handled yet; posts set it on their thread.
     volatile boolean input;
 
@@ -262,6 +267,7 @@ public final class WindowLoop {
         throw e;
       }
       Entry entry = new Entry(window, app, presenter, true);
+      entry.focusAfterPress = options.isUnderPointer() && pressed != null;
       add(entry);
       if (running) {
         start(entry);
@@ -542,6 +548,10 @@ public final class WindowLoop {
           e.fresh = false;
           e.input = false;
           draw(e, false);
+          if (e == releasedIn) {
+            releasedIn = null;
+            focusAfterRelease = true;
+          }
           for (Entry other : invalidateOthers(e)) {
             if (!held.contains(other)) {
               (entries.indexOf(other) < i ? again : due).add(other);
@@ -553,6 +563,15 @@ public final class WindowLoop {
     } finally {
       drawing = false;
       shutClosed();
+      if (focusAfterRelease) { // the frame that handled the release has run
+        focusAfterRelease = false;
+        for (Entry e : List.copyOf(entries)) {
+          if (e.focusAfterPress) {
+            e.focusAfterPress = false;
+            e.raise(); // if it is still open: shown without the focus, it takes it now
+          }
+        }
+      }
     }
   }
 
@@ -720,7 +739,7 @@ public final class WindowLoop {
         textInput(e); // on before the frame when the press lands in a field: see App.inputArea
       }
       case PointerUp up when up.button() == PointerButton.LEFT -> {
-        released();
+        released(e);
         app.pointerUp(up.x(), up.y());
       }
       case PointerDown down when down.button() == PointerButton.RIGHT ->
@@ -840,7 +859,7 @@ public final class WindowLoop {
     float ay = (sy - to.window.y()) / into;
     to.input = true;
     if (event instanceof PointerUp) {
-      released();
+      released(to);
       to.app.pointerUp(ax, ay);
     } else {
       to.app.pointerMove(ax, ay);
@@ -874,7 +893,8 @@ public final class WindowLoop {
     to.app.pointerMove((at[0] - to.window.x()) / into, (at[1] - to.window.y()) / into);
   }
 
-  private void released() {
+  private void released(Entry in) {
+    releasedIn = in;
     pressed = null;
     tracking = false;
     polled = null;

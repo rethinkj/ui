@@ -195,7 +195,8 @@ public final class Notes {
     note.window = app.windows().open(note.title, NOTE_WIDTH, NOTE_HEIGHT,
         Identity.options(Notes.class, "Notes", 0xFF7C3AED, Symbol.EDIT)
             .position(Math.round(d.screenX() - grabX * scale),
-                Math.round(d.screenY() - grabY * scale)),
+                Math.round(d.screenY() - grabY * scale))
+            .underPointer(),
         noteApp);
     note.window.dropTarget(false); // it lies under the pointer, over the row it may go back to
     note.window.onCloseRequest(() -> { // closing it docks the note where its muted card is

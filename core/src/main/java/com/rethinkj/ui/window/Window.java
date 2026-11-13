@@ -124,8 +124,27 @@ public final class Window implements AutoCloseable {
     private boolean positioned;
     private int x;
     private int y;
+    private boolean underPointer;
 
     private Options() {}
+
+    /**
+     * For a window that opens under the pointer during a drag and follows it, as a tab torn off
+     * into a window of its own: it shows without the system's opening animation (on Windows
+     * {@code DWMWA_TRANSITIONS_FORCEDISABLED}, so that no empty frame zooms in before its first
+     * frame), and without taking the keyboard focus from the window the drag began in ({@code
+     * SDL_HINT_WINDOW_ACTIVATE_WHEN_SHOWN}), whose keys, Escape among them, reach the drag as they
+     * did. A {@link WindowLoop} gives it the focus when the press ends, if it is still open.
+     */
+    public Options underPointer() {
+      underPointer = true;
+      return this;
+    }
+
+    /** Whether {@link #underPointer} was called. */
+    public boolean isUnderPointer() {
+      return underPointer;
+    }
 
     /**
      * Where the content's top left corner opens on the screen, in the units of {@link
@@ -264,6 +283,7 @@ public final class Window implements AutoCloseable {
   private final boolean positioned;
   private final int x;
   private final int y;
+  private final boolean underPointer;
   private String title;
   private WindowHandle handle;
   private Win32Frame win32;
@@ -307,6 +327,7 @@ public final class Window implements AutoCloseable {
     this.positioned = options.positioned;
     this.x = options.x;
     this.y = options.y;
+    this.underPointer = options.underPointer;
   }
 
   /** Opens a resizable window with the system's frame. */
@@ -387,7 +408,21 @@ public final class Window implements AutoCloseable {
     if (positioned) {
       Sdl.setWindowPosition(sdl, x, y);
     }
-    Sdl.showWindow(sdl);
+    if (underPointer) {
+      if (shell != null) {
+        shell.transitions(false); // no opening animation before the first frame
+      }
+      // SDL reads the hint as it shows the window: shown, not activated.
+      String before = Sdl.getHint(Sdl.HINT_WINDOW_ACTIVATE_WHEN_SHOWN);
+      Sdl.setHint(Sdl.HINT_WINDOW_ACTIVATE_WHEN_SHOWN, "0");
+      try {
+        Sdl.showWindow(sdl);
+      } finally {
+        Sdl.setHint(Sdl.HINT_WINDOW_ACTIVATE_WHEN_SHOWN, before == null ? "1" : before);
+      }
+    } else {
+      Sdl.showWindow(sdl);
+    }
     long flags = Sdl.getWindowFlags(sdl);
     minimized = (flags & Sdl.WINDOW_MINIMIZED) != 0;
     maximized = (flags & Sdl.WINDOW_MAXIMIZED) != 0;

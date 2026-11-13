@@ -84,6 +84,7 @@ final class Win32 {
   /** {@code HIGHCONTRASTW}: UINT cbSize, DWORD dwFlags, LPWSTR lpszDefaultScheme. */
   static final long HIGHCONTRAST_SIZE = 16;
   static final int DWMWA_USE_IMMERSIVE_DARK_MODE = 20;
+  static final int DWMWA_TRANSITIONS_FORCEDISABLED = 3;
   /** {@code HKEY_CURRENT_USER}, a LONG sign-extended into a handle. */
   static final long HKEY_CURRENT_USER = 0xFFFFFFFF80000001L;
   static final int RRF_RT_REG_DWORD = 0x10;

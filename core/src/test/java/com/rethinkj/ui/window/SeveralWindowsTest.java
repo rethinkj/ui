@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import com.rethinkj.ui.App;
 import com.rethinkj.ui.Drag;
@@ -141,6 +142,44 @@ class SeveralWindowsTest {
       });
       Desktop.run(loop.get(), () -> "A shows the count that B's redraw changed: " + log);
       assertTrue(log.indexOf("B b-1") < log.indexOf("A a-1"), log::toString);
+    }
+  }
+
+  @Test
+  void aWindowOpenedUnderThePointerDuringAPressTakesTheFocusOnlyAfterTheRelease() {
+    try (Window a = Window.open(TITLE, 160, 100, Window.options().position(200, 200))) {
+      Desktop.settle();
+      assumeTrue(Desktop.pollUntil(a::isFocused),
+          "Skipped: the window manager gives the first window no focus here");
+      Shared s = new Shared();
+      App<Shared> appB = new App<>(s, x -> row().key("b").wFull().hFull());
+      AtomicReference<WindowLoop> loop = new AtomicReference<>();
+      App<Shared> appA = new App<>(s, x -> row().key("a").wFull().hFull().onPointerDown(
+          (clicks, modifiers) -> x.opened = loop.get().windows().open(TITLE + " B", 120, 80,
+              Window.options().position(420, 200).underPointer(), appB)));
+      loop.set(new WindowLoop(a, appA, (scene, w, h, scale) -> {}));
+      List<String> log = new ArrayList<>();
+      int[] idle = new int[1];
+      loop.get().waits((millis, holdBack) -> {
+        if (millis != -1) {
+          return;
+        }
+        if (++idle[0] == 1) {
+          Desktop.button(a, true, Sdl.BUTTON_LEFT, 80, 50, 1);
+        } else if (s.opened != null && !log.contains("released")) {
+          Desktop.settle(); // what the window's showing caused
+          log.add("during the press: a " + a.isFocused() + ", b " + s.opened.window().isFocused());
+          log.add("released");
+          Desktop.button(a, false, Sdl.BUTTON_LEFT, 80, 50, 1);
+        } else if (log.contains("released")) {
+          Desktop.pollUntil(() -> s.opened.window().isFocused());
+          log.add("after: b " + s.opened.window().isFocused());
+          loop.get().stop();
+        }
+      });
+      Desktop.run(loop.get(), () -> "the window opens and the press ends: " + log);
+      assertEquals(List.of("during the press: a true, b false", "released", "after: b true"), log,
+          "the first window keeps the focus during the press, and the new one takes it after");
     }
   }
 
