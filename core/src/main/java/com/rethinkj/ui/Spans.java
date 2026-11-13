@@ -15,7 +15,7 @@ import java.util.Objects;
  * <p>Colours ({@link #color}) cost nothing beyond the glyphs: they need no shaping. A font
  * ({@link #font}) is another cut at the text's size, such as the bold one: its range is shaped on
  * its own, so carets, selection and wrapping follow its wider glyphs. Backgrounds, underlines and
- * the line's background are drawn in a {@link El#multiline multi-line} field only, before its
+ * the line's background and struck-out ranges are drawn in a {@link El#multiline multi-line} field only, before its
  * selection and glyphs.
  */
 public final class Spans {
@@ -24,6 +24,7 @@ public final class Spans {
   static final int FONT = 1;
   static final int BACKGROUND = 2;
   static final int UNDERLINE = 3;
+  static final int STRIKE = 4;
 
   private final int length;
   private final boolean discard; // only the state is wanted: adds do nothing
@@ -64,7 +65,7 @@ public final class Spans {
       out.append("line ").append(Integer.toHexString(lineBackground).toUpperCase(Locale.ROOT))
           .append('\n');
     }
-    String[] names = {"color", "font", "background", "underline"};
+    String[] names = {"color", "font", "background", "underline", "strike"};
     for (int i = 0; i < count; i++) {
       out.append(names[kinds[i]]).append(' ').append(froms[i]).append('-').append(tos[i])
           .append(' ').append(kinds[i] == FONT ? fonts[i].toString()
@@ -101,6 +102,14 @@ public final class Spans {
    */
   public Spans underline(int from, int to, int argb) {
     return add(UNDERLINE, from, to, argb, null);
+  }
+
+  /**
+   * A straight line through the middle of the range's lower-case letters, in colour {@code argb},
+   * as thick as an {@link #underline}: struck-out text. It lies behind the glyphs.
+   */
+  public Spans strike(int from, int to, int argb) {
+    return add(STRIKE, from, to, argb, null);
   }
 
   /**

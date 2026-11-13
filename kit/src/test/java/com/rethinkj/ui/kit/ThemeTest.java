@@ -75,6 +75,24 @@ class ThemeTest {
     });
     check(failures, "bracket", code.operator(), Map.of("bracket", over(line, code.bracket())), 4.5);
     check(failures, "line number", t.text().muted(), Map.of("raised", s.raised()), 4.5);
+    // A document on a card: text, quotes, links and inline code on the panel, under the pointer
+    // and on inline code's background; code blocks on the raised surface, as above.
+    Theme.Prose prose = t.prose();
+    Map<String, Integer> page = Map.of(
+        "panel", s.panel(),
+        "inline code", over(s.panel(), prose.code()),
+        "link hovered", over(s.panel(), s.hover()),
+        "link pressed", over(s.panel(), s.pressed()),
+        "table header", s.band());
+    check(failures, "document text", t.text().primary(), page, 4.5);
+    check(failures, "selected document text", t.text().primary(),
+        Map.of("selected", over(s.panel(), t.accent().selection())), 4.5);
+    check(failures, "selected link", prose.link(),
+        Map.of("selected", over(s.panel(), t.accent().selection())), 3);
+    check(failures, "quoted text", t.text().muted(), Map.of("panel", s.panel(),
+        "inline code", over(s.panel(), prose.code())), 4.5);
+    check(failures, "link", prose.link(), page, 4.5);
+    check(failures, "quote's line", prose.quote(), Map.of("panel", s.panel()), 1.5);
     check(failures, "disabled text", t.text().disabled(), surfaces, 2);
     check(failures, "status", t.status().danger(), Map.of("grid selected", t.grid().selected()),
         4.5);

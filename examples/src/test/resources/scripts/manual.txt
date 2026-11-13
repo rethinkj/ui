@@ -1,0 +1,62 @@
+# The manual (Manual): three places of the document, the top, the lists and the code with the
+# table, in the dark and the light theme at scales 1 and 2; links that scroll and a toast.
+size 960 640
+frame
+snap manual-dark-1x-top
+press role=link label="tables"   # a link to a heading of the document scrolls there
+frame
+snap manual-dark-1x-linked
+press role=option label="Lists"
+frame
+snap manual-dark-1x-lists
+press role=option label="Code blocks"
+frame
+move role=code label="sql"
+frame
+advance 1
+frame
+snap manual-dark-1x-code
+
+press role=switch label="Dark"
+frame
+advance 1
+frame
+snap manual-light-1x-code
+press role=option label="Writing documents"
+frame
+snap manual-light-1x-top
+press role=option label="Lists"
+frame
+snap manual-light-1x-lists
+
+size 960 640 scale 2
+frame
+snap manual-light-2x-lists
+press role=option label="Writing documents"
+frame
+snap manual-light-2x-top
+press role=option label="Code blocks"
+frame
+move role=code label="sql"
+frame
+advance 1
+frame
+snap manual-light-2x-code
+press role=switch label="Dark"
+frame
+advance 1
+frame
+snap manual-dark-2x-code
+press role=option label="Lists"
+frame
+snap manual-dark-2x-lists
+press role=option label="Writing documents"
+frame
+snap manual-dark-2x-top
+
+# A link out of the document shows its address in a toast.
+press role=link label="inline"
+frame
+advance 1
+frame
+snap manual-toast

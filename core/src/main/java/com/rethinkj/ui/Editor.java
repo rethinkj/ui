@@ -1194,6 +1194,7 @@ final class Editor {
         : null;
     t.decorate(viewX, selection, box, underline);
     t.showCaret(caretOn);
+    el.placeRanges();
     el.placeGutter(lines().line(Math.min(caret, text.length())));
   }
 

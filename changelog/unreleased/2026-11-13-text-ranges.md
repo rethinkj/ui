@@ -1,0 +1,1 @@
+- Added: `El.range(from, to)` lays a child of a multi-line field over a range of its text, hit, filled and focus-ringed on the range's rows only, which makes links in a paragraph; `El.fitLines()` makes a multi-line field as high as all its rows; `El.skipTab()` lets Tab pass a focusable element by.
