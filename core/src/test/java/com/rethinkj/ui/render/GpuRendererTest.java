@@ -236,6 +236,7 @@ class GpuRendererTest {
       cases.add(text("text-clipped" + at, clippedText(), 240, 120, scale));
       cases.add(text("text-overlaps" + at, overlappingText(), 240, 120, scale));
       cases.add(textPages(scale));
+      cases.add(text("text-highlighted" + at, highlighted(), 280, 72, scale));
       if (scale != 2) {
         cases.add(field("field-selected" + at, scale,
             "press #name\ntype \"SELECT name FROM customers\"\nkey ArrowLeft control shift\n"));
@@ -865,6 +866,25 @@ class GpuRendererTest {
 
   private static final String UPPER = "ABCDEFGHIJKLMNOPQRSTUVWXYZ ÄÖÜ 0123456789 €$§%&@#";
   private static final String LOWER = "abcdefghijklmnopqrstuvwxyz äöüß ()[]{}<>/|+-*=?!;:,.";
+
+  /**
+   * Glyphs of one run in several colours, as a highlighter colours code: dark on light and light
+   * on dark, so that each glyph gets its own correction, with a bold range shaped on its own.
+   */
+  private static El highlighted() {
+    com.rethinkj.ui.Highlighter code = (line, state, out) -> {
+      out.color(0, 6, 0xFF7C3AED).font(0, 6, Font.monoBold()); // SELECT
+      out.color(10, 13, 0xFF15803D); // 'x'
+      out.color(21, 26, 0xFF94A3B8); // -- 42
+      return null;
+    };
+    String sql = "SELECT id, 'x' FROM t -- 42";
+    return col().wFull().hFull().children(
+        el().wFull().padding(6).fill(0xFFFFFFFF).child(
+            El.text(sql).font(Font.mono()).fontSize(13).color(0xFF1A1A1A).highlight(1, code)),
+        el().wFull().padding(6).fill(0xFF1E1E2E).child(
+            El.text(sql).font(Font.mono()).fontSize(13).color(0xFFE0E0E0).highlight(1, code)));
+  }
 
   /** One line of text on white, at {@code x} in a window of 200 by 40. */
   private static El label(String text, int colour, float x) {

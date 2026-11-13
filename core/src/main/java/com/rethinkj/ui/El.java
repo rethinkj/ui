@@ -862,6 +862,28 @@ public final class El {
     return this;
   }
 
+  /**
+   * Colours parts of this text element's string, and sets them in other fonts of its size, as a
+   * highlighter of code does: {@code highlighter} says per line which ranges have which colour or
+   * font ({@link Spans}). A {@link #multiline} field asks only about the lines it shapes and keeps
+   * the answers across rebuilds while {@code key} stays equal, so a view that passes the same key
+   * with the same highlighter costs nothing; another key asks again. Each line gets the state the
+   * line before ended in, as a tokenizer needs inside a block comment or a string; see {@link
+   * Highlighter} for what that costs. Other text, a single-line field among them, is one line, asked
+   * whenever the view is built. A {@link #masked} field and a placeholder are not highlighted.
+   *
+   * <p>Colours need no shaping, and carets, selection and wrapping do not change with them; a
+   * range in another font is shaped on its own, and they follow its glyphs.
+   *
+   * @param key compared with {@link Object#equals}: a new key when the highlighting changes, such
+   *     as another language or theme; not null
+   * @param highlighter the function, or null for none
+   */
+  public El highlight(Object key, Highlighter highlighter) {
+    textOnly("highlight").highlight(Objects.requireNonNull(key, "key"), highlighter);
+    return this;
+  }
+
   // Editing, for elements made with text()
 
   /**
