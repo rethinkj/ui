@@ -176,8 +176,7 @@ public final class Split {
     }
 
     // Moves the line by a distance from where it is in the view the drag began in, or in the view
-    // a key goes to; keys that reach a view before the next is built go on from each other.
-    float[] keyed = {0};
+    // a key goes to, which is built after the key before it.
     DoubleConsumer move = delta -> {
       float room = Math.max(size(split, across) - stroke, 0);
       float size = Math.max(minFirst,
@@ -206,8 +205,7 @@ public final class Split {
           if (k.modifiers() != 0 || !(k.name().equals(back) || k.name().equals(forth))) {
             return false;
           }
-          keyed[0] += k.name().equals(back) ? -step : step;
-          move.accept(keyed[0]);
+          move.accept(k.name().equals(back) ? -step : step);
           return true;
         });
     if (reset != null) {

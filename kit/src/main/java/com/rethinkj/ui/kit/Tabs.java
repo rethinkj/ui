@@ -90,23 +90,14 @@ public final class Tabs {
       Theme t, List<Tab> tabs, int active, IntConsumer onSelect, IntConsumer onClose,
       El content) {
     boolean enabled = onSelect != null;
-    // Several presses and keys may reach the handlers of this view before the next one is built:
-    // each goes on from the tab the last one chose, and after a close, which leaves the indexes
-    // of this view behind, they do nothing.
-    int[] at = {active};
-    boolean[] closed = {false};
+    // Each input reaches the handlers of a view built after the one before it, so this view's
+    // indexes are those of the state.
     IntConsumer select = !enabled ? null : i -> {
-      if (!closed[0] && i != at[0]) {
-        at[0] = i;
+      if (i != active) {
         onSelect.accept(i);
       }
     };
-    IntConsumer close = onClose == null ? null : i -> {
-      if (!closed[0]) {
-        closed[0] = true;
-        onClose.accept(i);
-      }
-    };
+    IntConsumer close = onClose;
     El list = row().key("tablist").role("tablist")
         .gap(t.space().xs())
         .radius(t.radius().medium())
@@ -137,7 +128,7 @@ public final class Tabs {
       if (k.modifiers() != 0) {
         return false;
       }
-      int from = at[0];
+      int from = active;
       int next = switch (k.name()) {
         case "ArrowLeft" -> from <= 0 ? last : from - 1;
         case "ArrowRight" -> from >= last || from < 0 ? 0 : from + 1;
@@ -153,7 +144,7 @@ public final class Tabs {
     });
     return root.onKey(k -> {
       String name = k.name();
-      int from = at[0];
+      int from = active;
       if (name.equals("Tab") && (k.modifiers() & ~Key.SHIFT) == Key.CONTROL) {
         boolean back = (k.modifiers() & Key.SHIFT) != 0;
         select.accept(from < 0 ? (back ? last : 0) : Math.floorMod(from + (back ? -1 : 1),
