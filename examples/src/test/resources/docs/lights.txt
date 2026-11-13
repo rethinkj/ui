@@ -1,0 +1,11 @@
+# docs:start lights-script
+size 360 240 scale 2
+frame
+snap off
+
+press role=switch label="Lamp"
+frame
+advance 1
+frame
+snap on
+# docs:end lights-script

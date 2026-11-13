@@ -113,7 +113,9 @@ Run with `--enable-native-access=ALL-UNNAMED` (or `=com.rethinkj.ui` on the modu
 
 ## Documentation
 
-[AGENTS.md](AGENTS.md) is the reference: every script step, the element API by topic, each component of the kit, the renderers, windows and native libraries. It is written for agents and for people alike. Changes since the last release are under [`changelog/unreleased`](changelog/unreleased).
+**[ui.rethinkj.com](https://ui.rethinkj.com)** is the documentation for users of the library: getting started, concepts, a page per component, and how to drive an app without a window. Every page is also Markdown for agents: [llms.txt](https://ui.rethinkj.com/llms.txt) lists them, and [llms-full.txt](https://ui.rethinkj.com/llms-full.txt) holds them all. Its source is in [`docs/`](docs).
+
+[AGENTS.md](AGENTS.md) is the reference for working on the framework itself: every script step, the element API by topic, each component of the kit, the renderers, windows and native libraries. It is written for agents and for people alike. Changes since the last release are under [`changelog/unreleased`](changelog/unreleased).
 
 ## License
 

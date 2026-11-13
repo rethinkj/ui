@@ -1,0 +1,67 @@
+---
+title: Windows, icons and dialogs
+description: Frameless windows with their own title bar, icons and identity on the taskbar, badges, the system's appearance, file dialogs and message boxes.
+---
+
+`Window` opens SDL windows on Windows and Linux; `WindowLoop` runs an app in them. This page covers what an app does with the system around its window: draw its own title bar, show an icon and group under its own taskbar button, follow the system's dark or light appearance, and ask the system for files.
+
+```java snippet="window"
+```
+
+## Window options
+
+| `Window.options()` | |
+| --- | --- |
+| `frameless()` | No system frame: the app draws its title bar with the kit's [TitleBar](/docs/components/title-bar) |
+| `minimumSize(w, h)`, `fixedSize()` | Limits of resizing |
+| `icon(WindowIcon)` | The icon of the window and its taskbar button |
+| `position(x, y)` | Where it opens |
+| `underPointer()` | For a window that opens under the pointer during a drag: no opening animation, and the keyboard focus stays where it was |
+
+A frameless window marks the parts of its own title bar with `El.windowPart(...)`: the drag area, minimize, maximize and close. The window asks the app about them, so it moves, snaps, maximizes and shows Windows 11's snap layouts and system menu like a framed one, and resizes at its edges.
+
+## Identity and icons
+
+`Window.identity(id, name)`, before the first window, groups the app's windows under a taskbar button of their own instead of under `java.exe` (on Windows), and names the app for Wayland and X11. `WindowIcon.of(pixels...)` takes images; `WindowIcon.of(size -> view)` draws a view at each size the system asks for, and the kit's `AppIcon.appIcon(theme, size, colour, symbol)` is a rounded square with a symbol.
+
+## Taskbar
+
+```java snippet="taskbar"
+```
+
+`window.badge(icon, description)` puts an overlay icon on the taskbar button (Windows only; `AppIcon.count` and `AppIcon.dot` make one); `window.attention(...)` flashes it, `BRIEFLY` or `UNTIL_FOCUSED`.
+
+## The system's appearance
+
+`WindowLoop.appearance(handler)` hands the app a `SystemAppearance` at the start and whenever it changes: dark or light, the accent colour (Windows) and high contrast. `window.frameDark(boolean)` makes a framed window's caption follow the app's theme instead of the system's.
+
+## File dialogs
+
+```java snippet="images"
+```
+
+`app.fileDialog(dialog, onChoice, onError)` shows the system's dialog and posts the choice; the window draws on while it is open.
+
+| `FileDialog` | |
+| --- | --- |
+| `open(title)`, `.many()` | Choose one file, or several |
+| `save(title)`, `.fileName("orders.csv")` | Choose where to save |
+| `chooseFolder(title)` | Choose a folder |
+| `.filter("SQL", "sql")`, `.in(folder)` | Filters by extension, and where it starts |
+
+The `Choice` has the paths (empty when cancelled) and the filter chosen. On Linux it goes through the XDG desktop portal, or zenity without one.
+
+## Message boxes
+
+```java snippet="message-box"
+```
+
+`app.messageBox(box, onButton, onError)` shows `MessageBox.information`, `warning` or `error` with up to three buttons and posts the index of the one pressed. It blocks all windows while it is open, so it is for what cannot be shown in the window; the kit's [Dialog](/docs/components/dialog) asks inside one.
+
+## Under a script
+
+A script never shows the system's dialogs: `dialog "<path>"`, `dialog cancel` and `dialog button "<text>"` answer them in order, and `drop` drops files from outside. See [Scripts](/docs/testing/scripts).
+
+## Clipboard
+
+`app.clipboard()` is the system's clipboard in a window and an in-memory one under a script; pass it to the components that copy.

@@ -1,0 +1,36 @@
+---
+title: MenuBar
+description: A row of menu titles, File, Edit and View, with mnemonics, Alt and F10, and the items' shortcuts.
+---
+
+`MenuBar.menuBar` is a row of titles, each opening its [Menu](/docs/components/menu) below it, as a desktop app's menu bar. It handles the pointer, Alt and F10, mnemonics such as Alt+F, and the key combinations of all items. Put it in the window's [TitleBar](/docs/components/title-bar) with `TitleBar.withMenus`. For a few actions, a [Toolbar](/docs/components/toolbar) or a dropdown is enough.
+
+<Shot src="kit/menubar-{theme}-2x-open" alt="A menu bar in a title bar with the File menu open" />
+
+## Example
+
+```java snippet="menu-bar"
+```
+
+- Each menu is a `Menu.submenu("&File", items)`. The `&` marks the mnemonic, the letter that opens the menu with Alt; `&&` is an ampersand.
+- The app keeps a `MenuBar.State`.
+- `MenuBar.keys(state, menus)` on the root gives the bar Alt, F10 and the mnemonics, and runs the items' key combinations. `MenuBar.keysUp` gives it Alt pressed and released alone. Combine them with other handlers with `Predicate.or`.
+
+## What the user can do
+
+- A press on a title opens its menu, a press on the open title closes it; while a menu is open, a press on another title, or the pointer moving onto it, switches.
+- Alt pressed and released alone, or F10, gives the bar the keys with the first title highlighted; Left and Right move, Down, Up, Enter and Space open, a letter opens the menu of its mnemonic.
+- Alt with a mnemonic's letter opens that menu from anywhere.
+- In a menu, Right on an item without a submenu and Left go to the next and previous menu. Escape steps back one level, then gives the focus back to where it was.
+- Mnemonics are underlined while Alt is held or the bar has the keys.
+
+The titles leave the focus where it is, so the menu gives it back to the editor. A combination that is Alt with a title's mnemonic is refused, as two items with one combination are.
+
+On Windows, the system's own handling of Alt, F10 and Alt+Space is off, so these reach the app; Alt+Space that no handler takes opens the window menu. Desktops on Linux take some combinations first, usually those with Super, Alt+Tab, Alt+F4 and Ctrl+Alt+F1 to F12.
+
+## In a tree dump
+
+The bar is `role=menubar`, its titles `role=menuitem` with the key `title-<index>` and `expanded` or `expanded=false`; the open menu is an overlay on its title:
+
+```text file="examples/src/test/resources/golden/docs/menu-bar/open.tree.txt" start="#menubar" count="4"
+```

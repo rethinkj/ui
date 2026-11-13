@@ -1,0 +1,16 @@
+---
+title: ConnectionDialog
+description: The dialog in which a database tool asks where to connect, as a window of its own.
+---
+
+ConnectionDialog is a window that is a dialog: host, port, a database as a free combo box with suggestions, user and a password field with a button that shows it, built with [Form](/docs/components/form). Enter connects, as a dialog's default button.
+
+<Shot dark="examples/connection-filled" light="examples/connection-light" alt="A connection form with its fields filled and the password masked" />
+
+```sh
+mvn -q -pl examples -am compile exec:exec -Dexample=ConnectionDialog
+```
+
+## Where to look in the source
+
+[`ConnectionDialog.java`](https://github.com/rethinkj/ui/blob/main/examples/src/main/java/com/rethinkj/ui/examples/ConnectionDialog.java): `view` builds the form; `port` refuses an edit that is not digits by storing nothing; `valid` enables Connect; the root takes Enter with `Dialog.enterPresses`.

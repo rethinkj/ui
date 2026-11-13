@@ -1,0 +1,47 @@
+---
+title: Text fields and editors
+description: Single-line fields and multi-line editors in core, whose string is the app's, with caret, selection, undo, input methods and highlighting.
+---
+
+`El.text(value).editable(onEdit)` makes a text field, and `.multiline()` an editor of several lines that handles 100 000 lines. The string belongs to the app: the view builds the field with the current value, and every edit hands the new string to `onEdit`, which stores it. The kit's [TextField](/docs/components/text-field) and [CodeEditor](/docs/components/code-editor) are built on these; use them unless you need your own look.
+
+```java snippet="field"
+```
+
+## The string is the app's
+
+A handler may refuse an edit (store nothing) or change it, such as keep only digits: the field then shows the app's string, with the caret where it fits. A value the app changes on its own keeps the caret near its text and ends the undo history.
+
+## What the app keeps for a field
+
+Caret, selection, scroll, undo history (100 steps) and an input method's composition are kept by the field's identity, and forgotten when the field leaves the tree, as the content of a tab that is not active. `.fieldState(FieldState)` keeps them in an object of your state instead, so a tab's editor comes back exactly as it was, also in another window.
+
+## Options
+
+| Call | |
+| --- | --- |
+| `multiline()`, `lines(n)`, `fitLines()` | Several lines; `n` lines high; as high as all its lines |
+| `wrapText()` | Break lines at the width instead of scrolling sideways |
+| `readOnly()`, `editable(null)` | Select and copy only; disabled |
+| `maxLength(n)` | At most `n` code points |
+| `masked()`, `maskCharacter(c)` | A password field |
+| `placeholder(text, argb)`, `caretColor(argb)`, `selectionColor(argb)` | The look |
+| `tabIndents(spaces)`, `tabSize(n)` | Tab indents in a multi-line field |
+| `codeWords()` | Words are runs of letters, digits and `_` |
+| `onSelect((caret, anchor) -> …)` | Told where the caret is |
+| `highlight(key, highlighter)` | Colours, fonts, backgrounds, underlines per range |
+| `decorate(decorator)` | Backgrounds and underlines for the lines in view: the caret's line, matches, errors |
+| `gutter((line, caret) -> cell)` | An element per line at the left: line numbers |
+
+From handlers, `app.edit(field, from, to, text, caret)` replaces a range as one step of the undo history, `app.select(field, caret, anchor)` selects, and `app.undo(field)` and `app.redo(field)` step through the history, for an Edit menu.
+
+## Keys and pointer
+
+Arrows, Home, End, Page Up and Down, with Shift to select and Control by words; Backspace and Delete; Control+A, C, X, V, Z, Y and Control+Shift+Z. A double press selects a word, a triple one a line or everything. The caret stops only between whole characters (graphemes), never inside an emoji or between a letter and its accent. In a multi-line field Enter breaks the line, and Control+Enter goes on to the app's handlers.
+
+Input methods compose in place, underlined; the composition shows in the tree as `composing "…"`.
+
+## In a tree dump
+
+```text file="examples/src/test/resources/golden/docs/field/view.tree.txt"
+```

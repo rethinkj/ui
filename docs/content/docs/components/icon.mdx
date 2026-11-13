@@ -1,0 +1,28 @@
+---
+title: Icon
+description: A symbol of the icon font, Fluent UI System Icons, in the text colour or a status colour.
+---
+
+`Icon.icon` shows a `Symbol` of the icon font as a square glyph, 16 pixels unless given, in the text colour or a variant's colour. The font is Fluent UI System Icons, in `rethinkj-ui-icons`; each symbol has drawings made for several sizes, and the icon picks the nearest. Icons inside buttons, tabs, menus and the grid come with those components.
+
+<Shot src="kit/icons-{theme}-2x" alt="A sheet of every symbol at 16 and 20 pixels with their names" />
+
+## Example
+
+```java snippet="icon"
+```
+
+| Call | |
+| --- | --- |
+| `icon(t, symbol)` | In the text colour, `size().icon()` (16) square |
+| `icon(t, symbol, variant)` | `NORMAL`, `MUTED`, `DISABLED`, `DANGER`, `WARNING` or `SUCCESS` |
+| `icon(t, symbol, variant, size)` | Another size |
+
+`Symbol` has the names of Fluent's icons in upper case: `TABLE`, `KEY`, `SEARCH`, `CHEVRON_RIGHT`, and the kinds of data, such as `NUMBER_SYMBOL`, `CALENDAR_CLOCK`, `FINGERPRINT`. The sheet above lists all. An icon that stands alone, such as in a button without text, needs a label on the element that takes the press.
+
+## In a tree dump
+
+A text element of one glyph whose label is the symbol's name in lower case, so that a dump says which icon it is:
+
+```text file="examples/src/test/resources/golden/docs/parts/view.tree.txt" start="label=\"table\"" count="3"
+```

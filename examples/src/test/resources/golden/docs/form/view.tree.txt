@@ -1,0 +1,26 @@
+el 0,0 480x260
+  el 12,12 440x186
+    el 25,25 414x124
+      el 25,25 414x24
+        el 25,25 38x24
+          text "Host" 25,29 29x16
+          text "*" 56,29 7x16
+        el 71,25 368x24
+          text role=textbox label="Host" "localhost" 71,25 200x24
+      el 25,57 414x42
+        el 25,57 38x24
+          text "Port" 25,61 25x16
+        el 71,57 368x42
+          text role=textbox label="Port" "5432" 71,57 80x24
+          text "The server's TCP port." 71,83 368x16
+      el 25,107 414x42
+        el 25,107 38x24
+          text "User" 25,111 30x16
+        el 71,107 368x42
+          text role=textbox label="User" "" 71,107 200x24 invalid
+          text "A user is required." 71,133 368x16
+    el 25,161 414x24
+      el role=button label="Cancel" 281,161 70x24
+        text "Cancel" 294,165 44x16
+      el role=button label="Connect" 359,161 80x24 disabled
+        text "Connect" 372,165 54x16

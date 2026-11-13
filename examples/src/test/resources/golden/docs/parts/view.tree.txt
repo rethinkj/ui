@@ -1,0 +1,23 @@
+el 0,0 400x200
+  el 12,12 215x17
+    text "Orders" 12,12 47x17
+    text "1 000 000 rows" 67,12 96x17
+    text "a3f9c2e1" 171,12 56x17
+  el 12,37 68x20
+    text label="table" "\u{EBF4}" 12,37 16x20
+    text label="key" "\u{E740}" 36,37 16x20
+    text label="error_circle" "\u{F3F1}" 60,37 20x20
+  el 12,65 176x18
+    el label="bigint" 12,65 43x18
+      text "bigint" 18,67 31x15
+    el label="PK" 59,65 28x18
+      text "PK" 65,67 16x15
+    el label="status = paid" 91,65 97x18
+      text "status = paid" 97,67 73x15
+      el #remove role=button label="Remove status = paid" 172,67 14x14
+        text label="dismiss" "\u{F367}" 173,68 12x12
+  el 12,91 52x24
+    el role=img label="prod-eu" 12,91 24x24
+      text "PE" 18,97 12x12
+    el role=img label="localhost" 40,91 24x24
+      text label="server" "\u{F0360}" 45,96 14x14

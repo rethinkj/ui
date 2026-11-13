@@ -1,0 +1,7 @@
+el 0,0 280x160
+  el #actions role=button label="Actions" 12,12 73x24
+    text "Actions" 25,16 47x16
+overlay bottom start gap 4 on #actions role=button label="Actions" 12,12 73x24
+  el #menu role=menu 12,40 66x30
+    el #open role=button label="Open" 15,43 60x24 focused
+      text "Open" 28,47 34x16

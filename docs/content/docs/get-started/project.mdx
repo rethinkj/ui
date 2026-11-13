@@ -1,0 +1,81 @@
+---
+title: Use it in a project
+description: The artifacts, how to depend on them before there is a release, and how to run the app.
+---
+
+rethinkj UI is not on Maven Central yet. Until the first release, build it on your machine and depend on the snapshot it installs in your local Maven repository. The API still changes between commits.
+
+## The artifacts
+
+All share the group `com.rethinkj.ui` and the version `0.1.0-SNAPSHOT`.
+
+| Artifact | What it is | Needed |
+| --- | --- | --- |
+| `rethinkj-ui-core` | The framework: elements, layout, text, input, rendering, windows, scripts | Always |
+| `rethinkj-ui-kit` | The theme and the components | For the components |
+| `rethinkj-ui-fonts` | Inter and JetBrains Mono, the default fonts | For text with the default fonts |
+| `rethinkj-ui-icons` | Fluent UI System Icons, the icon font | For icons, the tree's marks, the grid's sort arrows |
+| `rethinkj-ui-natives-linux-x64`, `rethinkj-ui-natives-windows-x64` | SDL3, wgpu-native, FreeType and HarfBuzz for one platform | At run time, for the platform it runs on |
+
+`core` and `kit` depend on `java.base` only. The native libraries are loaded on first use, so code that only renders without a window and draws no text needs none of them.
+
+## Install the snapshot
+
+In your clone of the repository:
+
+```sh
+mvn install -DskipTests
+```
+
+## Depend on it
+
+```xml title="pom.xml"
+<dependencies>
+  <dependency>
+    <groupId>com.rethinkj.ui</groupId>
+    <artifactId>rethinkj-ui-kit</artifactId>
+    <version>0.1.0-SNAPSHOT</version>
+  </dependency>
+  <dependency>
+    <groupId>com.rethinkj.ui</groupId>
+    <artifactId>rethinkj-ui-fonts</artifactId>
+    <version>0.1.0-SNAPSHOT</version>
+  </dependency>
+  <dependency>
+    <groupId>com.rethinkj.ui</groupId>
+    <artifactId>rethinkj-ui-icons</artifactId>
+    <version>0.1.0-SNAPSHOT</version>
+  </dependency>
+  <!-- the platform you run on; a profile per platform picks the right one -->
+  <dependency>
+    <groupId>com.rethinkj.ui</groupId>
+    <artifactId>rethinkj-ui-natives-linux-x64</artifactId>
+    <version>0.1.0-SNAPSHOT</version>
+    <scope>runtime</scope>
+  </dependency>
+</dependencies>
+```
+
+The kit brings core with it. The repository's `examples/pom.xml` shows profiles that choose the natives by operating system.
+
+## Run
+
+Native code is called through the Foreign Function and Memory API, which needs native access:
+
+```sh
+java --enable-native-access=ALL-UNNAMED -cp <class path> com.example.Main
+```
+
+On the module path, use `--enable-native-access=com.rethinkj.ui` and add the natives module with `--add-modules com.rethinkj.ui.natives.linux.x64` (or `windows.x64`).
+
+On first use, the libraries are unpacked from the natives JAR into a per-user cache: `%LOCALAPPDATA%\rethinkj-ui\natives\` on Windows and `$XDG_CACHE_HOME/rethinkj-ui/natives/` (by default `~/.cache`) on Linux. Two system properties change that:
+
+| Property | Effect |
+| --- | --- |
+| `rethinkj.ui.natives.dir` | Load the libraries from this folder, which holds them with their `manifest.txt` as the JAR has them. Nothing is unpacked or checked. For packaged apps. |
+| `rethinkj.ui.natives.cache` | Unpack into this folder instead of the per-user cache. |
+
+## Next
+
+- [App, state and view](/docs/concepts/app)
+- [Platforms and native libraries](/docs/reference/platforms)

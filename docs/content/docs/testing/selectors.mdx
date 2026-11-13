@@ -1,0 +1,50 @@
+---
+title: Targets and selectors
+description: How script steps find the element they act on.
+---
+
+The target of a `press`, `move`, `wheel`, `focus` or `scroll` is a position or a selector. A selector finds exactly one element of the last frame by what a person would call it: its role and label, its key, its text, its states.
+
+## Targets
+
+| Target | Meaning |
+| --- | --- |
+| `x,y` | A position in logical pixels. |
+| `#key` | The element with this key, anywhere in the tree and its overlays. |
+| `role=<role>` | The element with this role, such as `button`, `switch`, `textbox`, `gridcell`, `treeitem`. |
+| `label="<text>"` | The element with this label. `\"` and `\\` inside. |
+| `text="<string>"` | The text element showing exactly this string, written as the tree writes it. |
+| a state | `selected`, `current`, `checked`, `checked=false`, `checked=mixed`, `expanded`, `expanded=false`, `disabled`, `readonly`, `password`, `invalid`, `busy`, `grabbed`, `level=<n>`, `pos=<n>/<size>`, `sort=ascending`, `sort=descending`, `value="<text>"`. |
+| `in <window> <target>` | A target in another window. |
+| `screen <x>,<y>` | A point of the script's screen in physical pixels, in whichever window lies there. |
+
+Combine parts with spaces: all must match.
+
+```text
+press role=switch label="Lights"
+press role=treeitem expanded label="public"
+press #cell-2-1 clicks 2
+move role=button label="Refresh"
+```
+
+A selector presses the centre of the element's rectangle. Elements that are fading out (`exiting`) or at opacity 0 never match.
+
+## Lists of rows
+
+A list of rows builds only the rows in view and a few around them, so a selector finds only those. Scroll first, then press:
+
+```text
+scroll #rows row 765432
+frame
+press #row-765432
+```
+
+## When a selector fails
+
+When a selector matches nothing, the error lists the keys, roles, labels and states there are, the texts if there are any, and the lists of rows with the rows that exist. When only its states match nothing, it lists the lines of the elements that match the rest, which show their states. When it matches several, it lists them with their rectangles. The message is written to be acted on: an agent can pick the right selector from it.
+
+## Choosing good selectors
+
+- Prefer `role` and `label`: they survive layout changes and read like the user's action.
+- Give elements a `.key(...)` where there are many of a kind, such as rows and cells; the kit's components do (`row-<index>`, `cell-<row>-<column>`, `item-<index>`).
+- Each component's page lists what it shows in the tree, under "In a tree dump".

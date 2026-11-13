@@ -1,0 +1,66 @@
+---
+title: Input, focus and keys
+description: Presses, keys, text and the wheel; the keyboard focus and Tab; hover and pressed looks; drags.
+---
+
+Elements take input through handlers. The app finds the element under the pointer, or the one with the keyboard focus, and runs its handler; if the handler changes the state, the view is built again. Kit components set all of this up; this page is for your own elements.
+
+```java snippet="input"
+```
+
+## Pointer
+
+| Call | |
+| --- | --- |
+| `onPress(Runnable)` | A press: down and up on the element. Enter and Space press a focused element. |
+| `onPress((clicks, modifiers) -> …)` | With the click count (2 for a double press) and the modifiers held |
+| `onPress((clicks, modifiers, x, y) -> …)` | And where, in the element's content |
+| `onSecondaryPress((x, y) -> …)` | The right button, where a context menu opens |
+| `onPointerDown(...)` | As the button goes down, before anything moves |
+| `onDrag(drag -> …)` | A drag, after the pointer moved more than 4 pixels |
+| `cursor(Cursor.POINTER)` | The pointer's shape over the element |
+
+A press goes to the innermost element with a press handler under the pointer, and counts only when the button goes down and up on it.
+
+```java snippet="drag"
+```
+
+A `Drag` has its `phase` (`START`, `MOVE`, `END`, `CANCEL`), the step `dx`, `dy`, and where the pointer is in the element's content (`x`, `y`). Escape cancels a drag.
+
+## Keyboard and focus
+
+| Call | |
+| --- | --- |
+| `focusable()` | Tab reaches the element; a press focuses it |
+| `onKey(key -> …)` | A key while the element or something inside it has the focus; return true to take it |
+| `onKeyUp(...)`, `onText(text -> …)` | Releases, and typed text |
+| `keepFocus()` | A press leaves the focus where it was: for buttons that act on an editor |
+| `skipTab()` | Tab passes it by; a press still focuses it |
+| `autofocus()` | Takes the focus in the build that adds it |
+| `focusRing(argb)`, `focusRingGap(px)` | The ring drawn when the keyboard moved the focus |
+
+Keys go to the focused element and then up through its ancestors until a handler takes one. If none does, Tab and Shift+Tab move the focus through the focusable elements in tree order, and Enter and Space press the focused element. A `Key` has the web's key name (`"Enter"`, `"ArrowDown"`, `"A"`) and modifiers (`Key.CONTROL`, `SHIFT`, `ALT`, `META`).
+
+When a rebuild leaves out the focused element, the focus goes to the nearest focusable element along its old place, so closing a tab puts the focus into the next tab's content. `app.focus(el)` moves the focus from a handler.
+
+## Looks
+
+| Call | |
+| --- | --- |
+| `whenHovered(e -> …)` | While the pointer is over it, or a press would go to it |
+| `whenPressed(e -> …)` | While pressed |
+| `whenFocused(e -> …)`, `whenFocusWithin(e -> …)` | While it, or something inside it, has the focus |
+| `whenHoveredFor(seconds, e -> …)` | After the pointer rested on it: how a tooltip appears |
+
+A look changes the element after it is built; with `motion`, the change springs.
+
+## The wheel
+
+The wheel scrolls the innermost scroll area under the pointer that can still move that way, then the next one out. Shift turns it sideways. `app.scrollTo(area, x, y)` and `scrollToRow(list, row)` scroll from a handler.
+
+## In a tree dump
+
+The focused element ends in `focused`, the one a press would reach in `hovered`:
+
+```text file="examples/src/test/resources/golden/docs/input/pressed.tree.txt"
+```

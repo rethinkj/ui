@@ -1,0 +1,12 @@
+# docs:start menu-script
+size 360 260
+frame
+press #options          # the button's handler toggles the menu's state
+frame
+advance 0.3             # past the fade
+frame
+snap open
+key ArrowDown           # the highlight moves; Enter chooses
+frame
+snap highlighted
+# docs:end menu-script

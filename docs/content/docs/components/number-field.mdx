@@ -1,0 +1,28 @@
+---
+title: NumberField
+description: A text field for a whole number in a range, with buttons to step it.
+---
+
+`NumberField.numberField` is a text field for a whole number with Decrease and Increase buttons inside its frame. Use it for counts and sizes with a small step, such as a fetch size or a tab width. For a value one adjusts by feel, use a [Slider](/docs/components/slider).
+
+<Shot src="kit/gallery-{theme}-2x" rows="number" alt="A number field in each state" />
+
+## Example
+
+```java snippet="number-field"
+```
+
+`NumberField.numberField(t, value, min, max, step, onChange)`. Typing hands on every whole number, also outside the range, which then shows as `invalid`; an edit that leaves no number is refused. The buttons keep the focus in the field and are disabled at the ends.
+
+## Keyboard
+
+Up and Down step, Page Up and Page Down by ten steps, within the range.
+
+## In a tree dump
+
+The field is a text element with `role=spinbutton` and its number; the buttons are `role=button` `label="Decrease"` and `"Increase"`:
+
+```text file="examples/src/test/resources/golden/docs/choices/view.tree.txt" start="label=\"Fetch size\"" count="4"
+```
+
+A `.label(...)` on the result labels the box around field and buttons, not the `spinbutton`: find the field by its role.

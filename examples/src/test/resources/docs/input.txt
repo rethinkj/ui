@@ -1,0 +1,6 @@
+size 280 140
+frame
+press #counter
+press #counter
+frame
+snap pressed

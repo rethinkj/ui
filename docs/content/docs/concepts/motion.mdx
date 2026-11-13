@@ -1,0 +1,42 @@
+---
+title: Motion
+description: Springs that move elements to their new size, place and colour; presence for elements that come and go; cycles for spinners.
+---
+
+Elements do not jump when the view changes: with `.motion(spring)`, an element's size, position, colour, opacity and radii spring from what the last frame showed to what the new view says. Elements with a key and motion fade in when they appear and out when a rebuild leaves them out. `.cycle(...)` is a look without an end, for spinners and running bars. All of it runs on the app's clock, which a script moves with `advance`.
+
+```java snippet="motion"
+```
+
+## Springs
+
+`Spring(duration, bounce)`: how long the motion takes to arrive and how much it overshoots. The presets:
+
+| Spring | For |
+| --- | --- |
+| `INSTANT` | Tied to the pointer: takes the edge off a jump |
+| `SNAP` | Small controls answering a click |
+| `SETTLE` | The default state change: arrives and stops |
+| `REFLOW` | Layout moving out of the way |
+| `GLIDE` | Big surfaces travelling: drawers, sheets |
+| `MORPH` | One shape becoming another |
+| `POP` | A release with a little life in it |
+| `DRIFT` | Slow reveals the eye should follow |
+| `NONE` | No motion |
+
+The kit's theme names its springs: `t.motion().move()`, `feedback()`, `fade()`. A spring keeps its velocity when the target changes in the middle of a motion, so a quick second press turns the motion round smoothly.
+
+## Presence
+
+An element with a key and `motion` that a rebuild leaves out stays where it was and fades out, takes no input, and is removed once invisible; in a tree dump its line ends in `exiting`. Menus, dialogs and toasts fade in and out this way.
+
+## Cycles
+
+```java snippet="cycle"
+```
+
+`cycle(seconds, (element, phase) -> …)` runs in every frame while the element is shown, with the phase from 0 to 1 of a period on the app's clock. The look may place the element, fill it and set its opacity; it runs after layout and motion. While a cycle is shown, a window draws one frame per refresh; when none is, it is idle. Under a script, `advance` moves it.
+
+## Idle windows
+
+A window draws only when something changes: an input, a moving spring, a cycle, a caret that blinks, a timer that is due. Otherwise it waits and uses no CPU.

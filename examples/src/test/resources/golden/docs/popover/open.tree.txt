@@ -1,0 +1,14 @@
+el 0,0 420x260
+  el role=button label="Filter" 12,12 77x24
+    text label="filter" "\u{E60A}" 25,16 16x16
+    text "Filter" 45,16 31x16
+overlay bottom start gap 2 on role=button label="Filter" 12,12 77x24
+  el #popover role=dialog label="Add a filter" 12,38 226x114
+    el 25,51 200x88
+      text role=heading "Add a filter" 25,51 200x16 level=3
+      text role=textbox label="Condition" "" 25,79 200x24 focused caret 0
+      el 25,115 200x24
+        el role=button label="Cancel" 96,115 70x24
+          text "Cancel" 109,119 44x16
+        el role=button label="Add" 174,115 51x24
+          text "Add" 187,119 25x16

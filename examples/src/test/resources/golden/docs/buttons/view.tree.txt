@@ -1,0 +1,30 @@
+el 0,0 520x120
+  el 12,12 326x24
+    el role=button label="Run" 12,12 70x24
+      text label="play" "\u{E990}" 25,16 16x16
+      text "Run" 45,16 24x16
+    el role=button label="Cancel" 86,12 70x24
+      text "Cancel" 99,16 44x16
+    el role=button label="Format" 160,12 69x24 disabled
+      text "Format" 173,16 43x16
+    el role=button label="Refresh" 233,12 24x24
+      text label="arrow_clockwise" "\u{E0AA}" 237,16 16x16
+    el role=button label="Running" 261,12 77x24 busy
+      text "Running" 274,16 51x16
+      el role=progressbar label="Loading" 292,16 16x16
+        el 292,16 16x16
+        el 292,16 16x16
+        el 292,16 16x16
+        el 292,16 16x16
+        el 292,16 16x16
+  el 12,44 162x24
+    el role=button label="Pin" 12,44 65x24 checked=false
+      text label="pin" "\u{F600}" 25,48 16x16
+      text "Pin" 45,48 19x16
+    el #split 81,44 93x24
+      el #main role=button label="Run" 81,44 70x24
+        text label="play" "\u{E990}" 94,48 16x16
+        text "Run" 114,48 24x16
+      el 151,44 1x24
+      el #arrow role=button label="More Run" 152,44 22x24
+        text label="chevron_down" "\u{F2A2}" 155,48 16x16

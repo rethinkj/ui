@@ -1,0 +1,5 @@
+el 0,0 320x200
+  text "Orders" 12,12 66x24
+  text "Each order belongs to a customer and has one or more items." 12,44 240x34
+  text "a very long value that does not fit in its column" 12,86 160x17
+  text "x -> x != null" 12,111 112x18

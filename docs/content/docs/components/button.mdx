@@ -1,0 +1,48 @@
+---
+title: Button
+description: Primary, secondary and ghost buttons, icon buttons, busy buttons, toggle buttons and split buttons.
+---
+
+`Button.button` is a button with text and an optional icon, in three variants: `PRIMARY` for the main action of a view, `SECONDARY` for the others, `GHOST` for quiet actions in toolbars. `Button.icon` is a square button with an icon alone, `Button.toggle` a button that stays on, and `Button.split` a main action with a menu of related ones. A null handler disables any of them. For an on/off setting, use a [Toggle](/docs/components/toggle); for several actions in a row, a [Toolbar](/docs/components/toolbar).
+
+<Shot src="kit/gallery-{theme}-2x" rows="primary,secondary,busy,ghost,toggle button,toggle on 2" alt="Buttons at rest, hovered, pressed, focused and disabled" />
+
+## Example
+
+```java snippet="button"
+```
+
+```java snippet="button-toggle"
+```
+
+## Variants and options
+
+| Call | |
+| --- | --- |
+| `button(t, variant, text, onPress)` | Text alone |
+| `button(t, variant, icon, text, onPress)` | An icon before the text |
+| `button(t, variant, icon, text, busy, onPress)` | While `busy`, a spinner in place of the icon, or over the text where there is no icon, so that the button keeps its width; it takes no press but keeps its place for Tab and the focus |
+| `icon(t, variant, symbol, label, onPress)` | The icon alone; the label shows in a tooltip and the tree |
+| `toggle(t, icon, text, on, onToggle)`, `toggleIcon(t, icon, label, on, onToggle)` | A button that stays on: the selection's tint and the icon in the accent while on |
+| `split(t, variant, icon, text, onPress, menuState, items)` | A main action and a chevron that opens a [Menu](/docs/components/menu) |
+
+| Variant | |
+| --- | --- |
+| `PRIMARY` | The accent fill; one per view |
+| `SECONDARY` | The raised surface with an edge |
+| `GHOST` | Shows its surface only under the pointer |
+
+The result is an `El`: chain `.key("save")` or a width onto it.
+
+## Focus and keyboard
+
+A press leaves the keyboard focus where it was, in the editor or grid the button acts on; Tab reaches the button, and Enter and Space press it. The primary button draws its focus ring with a gap, so that the surface shows between fill and ring.
+
+## In a tree dump
+
+`role=button` with the text as label (or the icon button's label); `disabled` without a handler, `busy` while busy, `checked` or `checked=false` for a toggle button. A split button's parts are `#main` and `#arrow` (`label="More <text>"`).
+
+```text file="examples/src/test/resources/golden/docs/buttons/view.tree.txt" start="label=\"Format\"" count="7"
+```
+
+Find a button with `press role=button label="Run"`, a busy one with `role=button busy`.

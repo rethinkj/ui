@@ -1,0 +1,16 @@
+---
+title: Showcase
+description: Every component of the kit in the arrangements a database tool has them in, one section at a time.
+---
+
+Showcase shows every component of the kit, a section at a time: buttons, fields, menus and dialogs, the data grid, the tree, tabs and splits as the frame of a database tool, a table's details, the code editor, progress, the text styles, every colour token, the contrast of each colour on each background, and the icons. A select switches between the two themes or follows the system.
+
+<Shot src="kit/frame-{theme}-2x" alt="The frame of a database tool: a schema beside queries in tabs, an editor over its results" />
+
+```sh
+mvn -q -pl examples -am compile exec:exec -Dexample=Showcase
+```
+
+## Where to look in the source
+
+[`Showcase.java`](https://github.com/rethinkj/ui/blob/main/examples/src/main/java/com/rethinkj/ui/examples/Showcase.java) holds the state and the frame; [`Sections.java`](https://github.com/rethinkj/ui/blob/main/examples/src/main/java/com/rethinkj/ui/examples/Sections.java) one method per section. It is the place to see how a component is meant to be combined with others, for instance the context menu on a list of saved queries, the rename dialog, or the grid with a filter bar in a flush card.

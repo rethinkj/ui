@@ -1,0 +1,31 @@
+---
+title: Select
+description: A button showing the current choice that opens a menu of a few choices.
+---
+
+`Select.select` is a button with the current choice and a chevron that opens a [Menu](/docs/components/menu) of the choices below it, the current one checked. Use it for a few choices that one reads, such as a driver, an encoding or an isolation level. For more than a screenful, or where the user knows what to type, use a [ComboBox](/docs/components/combo-box); for two or three choices always in view, [Radio](/docs/components/radio) or [Segmented](/docs/components/segmented).
+
+<Shot src="kit/select-{theme}-2x-open" alt="A select with its list of choices open below it" />
+
+## Example
+
+```java snippet="select"
+```
+
+`Select.select(t, choices, selected, menuState, onSelect)`: the choices as texts, the index of the current one, a `Menu.State` the app keeps, and a handler told the new index. A null handler disables it. It has the text field's frame and width.
+
+## Keyboard
+
+| Keys | Action |
+| --- | --- |
+| Enter, Space, Alt+Down, Alt+Up | Open; in the menu, as a menu's keys |
+| Down, Up (closed) | Choose the next and the previous choice |
+| Home, End (closed) | The first and the last |
+| A letter or digit (closed) | The next choice that starts with it |
+
+## In a tree dump
+
+`role=combobox` with the choice as text and `expanded` or `expanded=false`; its label is the one you give:
+
+```text file="examples/src/test/resources/golden/docs/choices/view.tree.txt" start="label=\"Driver\"" count="2"
+```

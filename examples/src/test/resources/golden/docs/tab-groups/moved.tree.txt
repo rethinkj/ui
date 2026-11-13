@@ -1,0 +1,19 @@
+el 0,0 420x260
+  el 8,8 404x244
+    el #bar 9,9 402x33
+      el #tablist role=tablist 11,9 117x32
+        el #tab-0 role=tab label="Groceries" 11,9 117x32 selected
+          el 11,39 117x2
+          text label="document" "\u{E4D7}" 19,17 16x16
+          text "Groceries" 39,17 61x16
+          el #close-0 role=button label="Close Groceries" 104,17 16x16
+            text label="dismiss" "\u{F368}" 104,17 16x16
+    el #panel role=tabpanel label="Groceries" 9,42 402x209
+      el 9,42 402x209
+        text "Milk" 21,54 378x16
+overlay at 174.5,25 bottom start on #bar 9,9 402x33
+  el #menu role=menu 175,25 184x34 exiting
+    el #item-0 role=menuitem label="Move to new window" 180,30 174x24
+      el 180,30 174x24
+        el 188,42 16x0
+        text "Move to new window" 212,34 134x16

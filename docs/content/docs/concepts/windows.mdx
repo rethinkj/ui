@@ -1,0 +1,35 @@
+---
+title: Several windows
+description: Windows that share one state, opened from handlers, with drags that carry a payload from one window to another.
+---
+
+One `WindowLoop` runs any number of windows, each with an `App` of its own (focus, hover, scroll, animations) and the same state object where they show the same data. A press in one window shows in the others in the same frames. Handlers open windows with `app.windows().open(...)`; drags can leave a window and drop in another. The kit's [TabGroups](/docs/components/tab-groups) uses all of it for tabs that tear off.
+
+<Shot src="examples/notes-torn" alt="A note torn off into its own window, beside the row of notes it came from" />
+
+## Opening a window
+
+```java snippet="tab-groups"
+```
+
+`windows.open(title, width, height, options, app)` opens and shows a window that runs `app` and returns a `Windows.Handle`: `close()`, `raise()`, `moveTo(x, y)`, `onCloseRequest(handler)`, `isOpen()` and the window's place and scale. `windows.all()` lists the open windows, `of(app)` finds an app's.
+
+Apps made with the same state object are built again together: when a handler of one runs, the others' views are built in the same pass.
+
+## Closing
+
+A close request (the close button, Alt+F4, a script's `close`) runs the window's `onCloseRequest` handler, which closes the window now or after asking, or keeps it open. Without a handler the window closes, and the loop ends with its last window.
+
+## Drags between windows
+
+`El.dragPayload(object)` on an element with `onDrag` makes its drags carry the object; `El.onDrop(drop -> …)` lets an element in any window take it, with `OVER`, `LEAVE` and `DROP`. Each `Drag` step also says where the pointer is on the screen, whether it is outside the window it began in, and which window it is over, so a handler can open a window that follows the pointer.
+
+Files and text dropped from other applications reach `El.onFileDrop`.
+
+## Platforms
+
+On Windows and X11 windows are placed and moved anywhere. Wayland lets no app place its top-level windows: a torn-off window opens where the compositor puts it and does not follow the pointer, and the menus' Move to new window and Move back are the way to move tabs there.
+
+## Under a script
+
+A script is a runner too: `open` adds a window named by its title, `window <name>` sends the steps after it there, `snap` writes every window, and targets may say `in <window>`. See [Scripts](/docs/testing/scripts).

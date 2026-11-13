@@ -1,0 +1,61 @@
+---
+title: Selection and copying
+description: The grid's cursor, selected rows or cells, and copying them as tab-separated text.
+---
+
+A `DataGrid.Selection` holds the grid's cursor, the anchor that Shift extends from, and the selected ranges. The app keeps it in its state; the grid changes it in its handlers, as a person selects. Pass it with `options().select(selection)` to make the grid selectable; most other options need it.
+
+<Shot src="kit/cells-{theme}-range" alt="A range of selected cells in the data grid, with the cursor's cell outlined" />
+
+## Rows or cells
+
+```java snippet="grid-modes"
+```
+
+The example on [DataGrid](/docs/components/data-grid) uses cells:
+
+```java snippet="grid"
+```
+
+A million selected rows are one range, so selecting everything costs nothing.
+
+## What the user does
+
+- A press selects at the moment the button goes down. Shift extends from the anchor, Control adds or removes.
+- Dragging extends to the cell under the pointer; beyond an edge it scrolls one step per movement of the pointer.
+- A press on a row number selects the row.
+- The arrows, Page Up and Page Down, Home and End move the cursor; with Shift they extend. Control+A selects all. The rows and columns follow the cursor.
+
+## What the app reads and does
+
+| Method | |
+| --- | --- |
+| `mode()`, `row()`, `column()` | The mode and the cursor's cell |
+| `anchorRow()`, `anchorColumn()` | Where Shift extends from |
+| `ranges()` | The selected `Range`s: `top`, `left`, `bottom`, `right`, inclusive; `Range.ALL` columns for whole rows |
+| `contains(row, column)`, `isRowSelected(row)`, `isEmpty()`, `rowCount()` | Questions |
+| `select(row, column)`, `extend(row, column)`, `toggle(row, column)`, `selectAll(rowCount)`, `clear()` | Select from the app's own handlers |
+| `reset()` | Clear everything and scroll back to the start, for a new result |
+
+The selection also remembers where the grid is scrolled to, so a grid built again with it, after its tab was away or in another window, comes back to the same rows and columns. One selection belongs to one grid at a time.
+
+`onSelect(handler)` tells the app when the selection changes, for a status line such as "3 cells selected". `DataGrid.cellCount(ranges, columns)` counts them.
+
+## Copying
+
+`options().copy(clipboard)` lets Control+C and Control+Insert put the selection on the clipboard as tab-separated lines: the rows and columns that have a selected cell, in quotes only where a tab, line break or quote needs them. Pass `app.clipboard()`, which is the system's clipboard in a window and an in-memory one under a script.
+
+| Option | |
+| --- | --- |
+| `nullText(String)` | What a copied `NULL` is; `""` unless set, as spreadsheets read an empty cell. |
+| `copyLimit(cells, handler)` | The grid copies at most this many cells itself (100 000 unless set) and hands a larger copy, or one with rows not loaded, to the handler as a `Copy` (ranges, headers, cell count). Build its text with `DataGrid.copyText` on another thread, or fetch it from the database. |
+| `contextMenu(state, items)` | Adds Copy and Copy with headers to the grid's menu, before your items. |
+
+`DataGrid.copyText(columns, ranges, headers, nullText)` builds the same text from your code, and `DataGrid.parseText(text)` reads it back into rows of cells.
+
+## In a tree dump
+
+Selected cells (or rows in row mode) say `selected`, the cursor's `current`:
+
+```text file="examples/src/test/resources/golden/docs/grid/selected.tree.txt" start="#cell-2-1" count="1"
+```

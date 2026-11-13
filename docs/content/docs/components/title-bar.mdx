@@ -1,0 +1,28 @@
+---
+title: TitleBar
+description: A frameless window's own title bar with an icon, a title, a menu bar, controls and the window's buttons.
+---
+
+`TitleBar.titleBar` is the title bar of a frameless window: a mark or the app's icon, the title, optionally a menu bar, the app's own controls, and minimize, maximize and close, as Windows 11 draws them. The window moves when the bar is dragged, and snaps, maximizes and shows the system menu as with a system title bar. Every example of the repository uses it. Open the window with `Window.options().frameless()`.
+
+<Shot src="examples/workbench-dark-2x" light="examples/workbench-light-2x" alt="The Workbench with its own title bar, menu bar and theme switch" />
+
+## Example
+
+```java snippet="title-bar"
+```
+
+| Call | |
+| --- | --- |
+| `titleBar(t, title, mark, controls...)` | A coloured square as the mark |
+| `withMenus(t, title, mark, menus, controls...)` | With a [MenuBar](/docs/components/menu-bar) after the title |
+| `titleBar(t, title, icon, menus, maximized, controls...)` | Any icon element, and Restore in place of Maximize while `maximized` |
+
+`TitleBar.HEIGHT` (32) and `BUTTON` (46) are Windows 11's sizes. The parts are marked with `El.windowPart`, which the window asks to know what is a drag area and what is a button; see [Windows, icons and dialogs](/docs/concepts/platform).
+
+## In a tree dump
+
+The bar is `window=drag`; the buttons are `role=button` with `window=minimize`, `window=maximize` and `window=close`:
+
+```text file="examples/src/test/resources/golden/docs/bars/view.tree.txt" start="window=drag" count="7"
+```

@@ -1,0 +1,38 @@
+---
+title: App, state and view
+description: An app is a state object and a view function; handlers change the state, and the view is built again.
+---
+
+An app in rethinkj UI is two things you write: a **state**, an ordinary object with the app's data, and a **view**, a function from the state to a tree of elements. `new App<>(state, view)` joins them. Handlers that the view attaches to elements change the state; after each input a handler took, the app builds the view again and draws it. There is no binding, no observer and no diffing to think about.
+
+```java snippet="lights-app" title="Lights.java"
+```
+
+## The loop
+
+1. Input arrives: a press, a key, a wheel step, text, a task from another thread.
+2. The app finds the element it is for, by hit testing or by the focus, and runs its handler.
+3. The handler changes the state.
+4. The app builds the view again from the state, lays it out, and animates what changed.
+5. The frame is drawn.
+
+Each input is handled against the view that the input before it left. Two Down keys before a frame move a selection by two rows; a key right after the press that opened a menu goes to the menu.
+
+## Rules for the view
+
+- **Build, never change.** The view reads the state and returns elements. It must not change the state; only handlers do.
+- **Build everything.** The view is called again after every input; build the whole tree from the state each time. A million-row list builds only its visible rows itself (see [Lists of many rows](/docs/concepts/rows)).
+- **Give identity with keys.** `.key("lamp")` gives an element an identity among its siblings. Animations, focus, scroll offsets and the caret of a text field hang on identity, and scripts find elements by key.
+- **Keep the theme explicit.** The kit's components take the theme as their first parameter. The view gets it from the state or a constant.
+
+## What the app keeps for you
+
+The `App` keeps what is not the app's business: which element has the focus and the hover, scroll offsets, running animations, the caret, selection and undo history of text fields, the clock. It keeps them by the element's identity, and forgets them when the element leaves the tree. To keep them across that, put a `FieldState` or `ScrollState` in your state ([Text fields](/docs/concepts/text-fields)).
+
+## Running it
+
+- In a window: `WindowLoop.run(window, app, presenter)`, as above. The loop draws only when something changed, and waits otherwise.
+- Without a window: `Script.handle(args, app)` or `Script.run(text, app, folder)` ([Testing and agents](/docs/testing)).
+- One view alone: `Headless.render(root, width, height, scale)` returns the pixels and the tree.
+
+An app, its state and its elements belong to the thread that runs it. Work that takes long runs elsewhere and comes back with `App.post` or `App.background` ([Work off the app's thread](/docs/concepts/background-work)).

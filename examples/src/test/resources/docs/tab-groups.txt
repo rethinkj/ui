@@ -1,0 +1,11 @@
+# docs:start tab-groups-script
+size 420 260
+frame
+press role=tab label="Ideas" right      # the tab's menu
+frame
+advance 0.3
+frame
+press role=menuitem label="Move to new window"
+frame
+snap moved                              # writes moved.png and ideas-moved.png
+# docs:end tab-groups-script

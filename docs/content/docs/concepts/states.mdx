@@ -1,0 +1,38 @@
+---
+title: States and roles
+description: Roles, labels and states say in words what an element is and what the app's state is, for the tree dump, scripts and assistive tools.
+---
+
+An element's **role** says what it is (`button`, `switch`, `textbox`, `grid`, `treeitem`), its **label** what it is called, and its **states** what the app's state is: `checked`, `selected`, `expanded`, `disabled` and more, with their names from WAI-ARIA. They change nothing about how the element looks or takes input. They are what a [tree dump](/docs/testing/tree-dump) shows and what [selectors](/docs/testing/selectors) match, so that a script presses `role=switch label="Lamp"` and checks `checked` without reading colours.
+
+```java snippet="states"
+```
+
+```text file="examples/src/test/resources/golden/docs/states/view.tree.txt" start="#row-3" count="1"
+```
+
+## The calls
+
+| Call | In the tree |
+| --- | --- |
+| `role(name)`, `label(text)` | `role=…`, `label="…"` |
+| `disabled(boolean)` | `disabled` |
+| `invalid(boolean)` | `invalid` |
+| `busy(boolean)` | `busy` |
+| `selected(boolean)` | `selected` |
+| `current(boolean)` | `current`: the cursor among the selected |
+| `grabbed(boolean)` | `grabbed`: being dragged |
+| `checked(boolean)`, `checkedMixed()` | `checked`, `checked=false`, `checked=mixed` |
+| `expanded(boolean)` | `expanded`, `expanded=false` |
+| `level(n)` | `level=<n>` |
+| `position(n, size)` | `pos=<n>/<size>` |
+| `sortAscending()`, `sortDescending()` | `sort=ascending`, `sort=descending` |
+| `value(text)` | `value="…"` |
+
+A text field's `disabled`, `readonly` and `password` come from the field itself.
+
+## Rules
+
+- **Every state shown by colour should also be a state.** If a row is selected because it is tinted, set `selected(true)` too. The kit's components do; do the same in your own.
+- **Label what has no text.** An icon button needs a label on the element that takes the press.
+- **Mark the cursor.** A component with a cursor marks it `current` (or `selected` where only one thing can be selected): the Menu key opens a context menu there.

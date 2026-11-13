@@ -1,0 +1,45 @@
+---
+title: TabGroups
+description: Tabs in several windows that move, tear off into a window of their own and dock again.
+---
+
+`TabGroups` keeps an app's tabs in groups, one per window, as browsers and editors do: the user moves tabs along a bar, drags one out into a new window that follows the pointer, and drops it on a bar of any window. The app keeps one `TabGroups` in its state and builds each window's tabs with `groups.tabs(...)`; everything the user does goes through it. For tabs in one window, plain [Tabs](/docs/components/tabs) are enough.
+
+<Shot src="examples/documents-torn" alt="A document torn off into a window of its own, following the pointer" />
+
+## Example
+
+```java snippet="tab-groups"
+```
+
+- The opener opens the window of a new group with an `App` of the same state, so that a change in one window shows in all. The options it gets say where the window opens; add your own (`frameless()`, an icon) and pass them on.
+- `groups.tabs(theme, group, tab, content)` builds a window's tabs: a function from your tab to a `Tabs.Tab`, and one from your tab to its content (called with null for an empty group).
+- `groups.main()` is the group of the first window.
+
+A script moves a tab to a window of its own through its menu:
+
+```text snippet="tab-groups-script"
+```
+
+```text file="examples/src/test/resources/golden/docs/tab-groups/ideas-moved.tree.txt" start="#tablist" count="2"
+```
+
+## What the user can do
+
+- Drag a tab along its bar to move it; out of the bar to tear it off into a window that follows the pointer; over any bar to dock it there, before the tab the marker shows.
+- Drag a window's only tab to move the whole window.
+- Escape, or a release that gets lost, puts a torn tab back where it was.
+- The tab's menu has Move to new window and, in a group's window, Move back to main window. On Wayland, where apps cannot place windows, these are the way to do it.
+
+## The rest of the API
+
+| | |
+| --- | --- |
+| `onWindowClose(group -> …)` | What closing a group's window does: `dockAll` (the default) or `closeAll` |
+| `onCloseTab((group, index) -> …)` | What closing a tab by its cross, Control+W or Control+F4 does: `close` unless set; a handler that asks about unsaved changes first calls `close` once the user agrees |
+| `onClosed(tab -> …)` | Told of each closed tab |
+| `groups()`, `groupOf(tab)`, `isDragging()` | Questions |
+| `select`, `add`, `close`, `move`, `dock`, `toNewWindow`, `dockAll`, `closeAll` | The same from code |
+| `Group.tabs()`, `active()`, `activeTab()`, `window()` | A group's tabs and window |
+
+Content is built only for each group's active tab. What the app keeps by an element's identity, a field's caret and undo history or a scroll offset, stays with the window that showed it; keep it in the tab's own state (`FieldState`, `ScrollState`) to take it along. See [Several windows](/docs/concepts/windows).

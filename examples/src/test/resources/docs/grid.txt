@@ -1,0 +1,7 @@
+size 520 300
+frame
+press #cell-2-1
+key ArrowDown shift
+key ArrowRight shift
+frame
+snap selected

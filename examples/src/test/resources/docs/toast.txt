@@ -1,0 +1,7 @@
+size 420 200
+frame
+press role=button label="Drop orders"
+frame
+advance 0.3
+frame
+snap shown
