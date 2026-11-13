@@ -148,18 +148,27 @@ final class Search {
         .useAnchoringBounds(false);
   }
 
-  /** The next match of {@code m} that counts, or false; {@code to} ends the part. */
-  private static boolean find(Matcher m, String text, int to) {
-    while (m.find()) {
-      if (accepted(m, text)) {
-        return true;
+  /**
+   * The next match of {@code m} that counts, or false; {@code to} ends the part.
+   *
+   * @throws Stopped past the deadline, and for a pattern whose matching recursed too deep for the
+   *     thread's stack, as {@code (a|b)+} does on a long run of {@code a}
+   */
+  private static boolean find(Matcher m, Graphemes graphemes, int to) {
+    try {
+      while (m.find()) {
+        if (accepted(m, graphemes)) {
+          return true;
+        }
+        if (m.start() + 1 > to) {
+          return false;
+        }
+        m.region(m.start() + 1, to); // past a match inside a grapheme, which may hide another
       }
-      if (m.start() + 1 > to) {
-        return false;
-      }
-      m.region(m.start() + 1, to); // past a match inside a grapheme, which may hide another
+      return false;
+    } catch (StackOverflowError deep) {
+      throw new Stopped();
     }
-    return false;
   }
 
   /**
@@ -171,8 +180,9 @@ final class Search {
     int[] ends = new int[16];
     int n = 0;
     Matcher m = matcher(pattern, text, from, to, deadline);
+    Graphemes graphemes = new Graphemes(text);
     try {
-      while (find(m, text, to)) {
+      while (find(m, graphemes, to)) {
         if (n == limit) {
           return new Matches(starts, ends, n, true, false);
         }
@@ -198,12 +208,13 @@ final class Search {
    */
   static int[] next(Pattern pattern, String text, int lo, int hi, int from, long deadline) {
     from = Math.clamp(from, lo, hi);
+    Graphemes graphemes = new Graphemes(text);
     Matcher m = matcher(pattern, text, from, hi, deadline);
-    if (find(m, text, hi)) {
+    if (find(m, graphemes, hi)) {
       return new int[] {m.start(), m.end()};
     }
     m = matcher(pattern, text, lo, hi, deadline);
-    return find(m, text, hi) && m.start() < from ? new int[] {m.start(), m.end()} : null;
+    return find(m, graphemes, hi) && m.start() < from ? new int[] {m.start(), m.end()} : null;
   }
 
   /**
@@ -224,59 +235,114 @@ final class Search {
   private static int[] last(
       Pattern pattern, String text, int from, int hi, int before, long deadline) {
     Matcher m = matcher(pattern, text, from, hi, deadline);
+    Graphemes graphemes = new Graphemes(text);
     int[] found = null;
-    while (find(m, text, hi) && m.start() < before) {
+    while (find(m, graphemes, hi) && m.start() < before) {
       found = new int[] {m.start(), m.end()};
     }
     return found;
   }
 
   /** Whether a match counts: it is not empty and lies on grapheme boundaries. */
-  private static boolean accepted(Matcher m, String text) {
-    return m.end() > m.start() && boundary(text, m.start()) && boundary(text, m.end());
+  private static boolean accepted(Matcher m, Graphemes graphemes) {
+    return m.end() > m.start() && graphemes.boundary(m.start()) && graphemes.boundary(m.end());
   }
 
   /** Whether a position of the text lies between two graphemes. */
   static boolean boundary(String text, int at) {
-    if (at <= 0 || at >= text.length()) {
-      return true;
-    }
-    char before = text.charAt(at - 1);
-    char after = text.charAt(at);
-    // Below U+0300, the combining marks, every pair of characters but CR LF is a boundary.
-    if (before < 0x300 && after < 0x300) {
-      return before != '\r' || after != '\n';
-    }
-    // Else ask the JDK about the line around the position alone, as the editor does.
-    int start = text.lastIndexOf('\n', at - 1) + 1;
-    int end = text.indexOf('\n', at);
-    end = end < 0 ? text.length() : end;
-    start = Math.max(start, at - 256);
-    end = Math.min(end, at + 256);
-    BreakIterator graphemes = BreakIterator.getCharacterInstance();
-    graphemes.setText(text.substring(start, end));
-    return graphemes.isBoundary(at - start);
+    return new Graphemes(text).boundary(at);
   }
 
   /**
-   * What replaces the match from {@code start} to {@code end}: the replacement as it is for a
-   * search that is not a regular expression; for one, with {@code $1}, {@code ${name}} and {@code
-   * $0} the groups of the match, as {@link Matcher#appendReplacement} writes them, and {@code \$}
-   * and {@code \\} a dollar and a backslash.
+   * The grapheme boundaries of a text, asked about mostly in the order of positions, as a search
+   * does. Below U+0300, the combining marks, every pair of characters but CR LF is a boundary, and
+   * so is every position next to a line feed. Elsewhere the JDK's iterator answers, over a window
+   * that starts at such a boundary or at one it found before, never in the middle of a run that
+   * depends on what came before it, as regional indicators pair up from the run's start; the
+   * window ends 256 characters after the position, as a boundary depends on one character after
+   * it. Each new window starts at the last boundary the window before knew, so a long line costs
+   * in proportion to its length, not to the positions asked.
+   */
+  static final class Graphemes {
+    private final String text;
+    private final BreakIterator iterator = BreakIterator.getCharacterInstance();
+    private int from = -1; // the window, from a boundary
+    private int to = -1;
+
+    Graphemes(String text) {
+      this.text = text;
+    }
+
+    boolean boundary(int at) {
+      if (at <= 0 || at >= text.length()) {
+        return true;
+      }
+      if (known(at)) {
+        return !crlf(at);
+      }
+      if (from < 0 || at <= from || at + 1 >= to && to < text.length()) {
+        int start = 0;
+        if (from >= 0 && at > from) {
+          start = from + iterator.preceding(Math.min(at, to - 1) - from);
+        }
+        for (int i = at - 1; i > start; i--) {
+          if (known(i) && !crlf(i)) {
+            start = i;
+            break;
+          }
+        }
+        from = start;
+        to = Math.min(text.length(), at + 256);
+        iterator.setText(text.substring(from, to));
+      }
+      return iterator.isBoundary(at - from);
+    }
+
+    private boolean crlf(int at) {
+      return text.charAt(at - 1) == '\r' && text.charAt(at) == '\n';
+    }
+
+    /** Whether the rule without the JDK decides at {@code at}, from 1 to the text's length less 1. */
+    private boolean known(int at) {
+      char before = text.charAt(at - 1);
+      char after = text.charAt(at);
+      return before < 0x300 && after < 0x300 || before == '\n' || after == '\n';
+    }
+  }
+
+  /**
+   * What replaces the selection from {@code start} to {@code end} if it is a match of a search of
+   * the part that ends at {@code to}, as {@link #scan} finds them; null if it is not one. That is
+   * the replacement as it is for a search that is not a regular expression; for one, with {@code
+   * $1}, {@code ${name}} and {@code $0} the groups of the match, as {@link
+   * Matcher#appendReplacement} writes them, and {@code \$} and {@code \\} a dollar and a
+   * backslash.
    *
    * @throws IllegalArgumentException for a group that the pattern does not have
+   * @throws Stopped past the deadline
    */
   static String replacement(
-      Query query, Pattern pattern, String text, int start, int end, String replacement) {
-    if (!query.regex()) {
-      return replacement;
+      Query query,
+      Pattern pattern,
+      String text,
+      int start,
+      int end,
+      int to,
+      String replacement,
+      long deadline) {
+    if (start >= end || end > to) {
+      return null;
     }
-    Matcher m = pattern.matcher(text);
-    m.region(start, text.length()).useTransparentBounds(true).useAnchoringBounds(false);
-    if (!m.lookingAt() || m.end() != end) {
-      return replacement; // the text changed under the match
+    Matcher m = matcher(pattern, text, start, to, deadline);
+    Graphemes graphemes = new Graphemes(text);
+    try {
+      if (!m.lookingAt() || m.end() != end || !accepted(m, graphemes)) {
+        return null;
+      }
+    } catch (StackOverflowError deep) {
+      throw new Stopped();
     }
-    return expand(m, replacement);
+    return query.regex() ? expand(m, replacement) : replacement;
   }
 
   /** {@code replacement} with the groups of the match {@code m} put in. */
@@ -338,11 +404,12 @@ final class Search {
       String replacement,
       long deadline) {
     Matcher m = matcher(pattern, text, from, to, deadline);
+    Graphemes graphemes = new Graphemes(text);
     StringBuilder out = new StringBuilder();
     int first = -1;
     int last = -1;
     int count = 0;
-    while (find(m, text, to)) {
+    while (find(m, graphemes, to)) {
       if (first < 0) {
         first = m.start();
       } else {

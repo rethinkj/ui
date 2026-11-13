@@ -450,6 +450,13 @@ public final class Markdown {
         }
       }
       int to = text.length();
+      // Font and line belong to the parts that hold text; spans of the parts around them, laid
+      // over their spans after them, would take the inner part's style away (*a **b** c*).
+      if (part instanceof MarkdownDocument.Emphasis
+          || part instanceof MarkdownDocument.Strong
+          || part instanceof MarkdownDocument.Strike) {
+        continue;
+      }
       if (to > from && !(part instanceof MarkdownDocument.Code)) {
         Font font = switch (style) {
           case EM -> Font.sansItalic();

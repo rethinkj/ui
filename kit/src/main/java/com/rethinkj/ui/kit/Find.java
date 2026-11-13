@@ -17,7 +17,6 @@ import com.rethinkj.ui.Side;
 import com.rethinkj.ui.Style;
 import com.rethinkj.ui.Work;
 import java.util.function.Predicate;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
@@ -114,6 +113,7 @@ public final class Find {
     For working;
     String workingText;
     Work jump;
+    String jumpText; // the text the jump searches
     // The elements of the last build, for the handlers.
     El field;
     El findField;
@@ -168,6 +168,7 @@ public final class Find {
       if (jump != null) {
         jump.cancel();
         jump = null;
+        jumpText = null;
       }
     }
 
@@ -230,6 +231,11 @@ public final class Find {
         ownSelect.select(caret, anchor);
       }
     });
+    if (state.jump != null && !text.equals(state.jumpText)) {
+      state.jump.cancel(); // its offsets are those of a text that is gone
+      state.jump = null;
+      state.jumpText = null;
+    }
     Predicate<Key> own = field.onKey();
     field.onKey(k -> fieldKey(app, state, k) || own != null && own.test(k));
     Pattern pattern = state.open && state.mode != Mode.LINE ? state.pattern() : null;
@@ -512,16 +518,23 @@ public final class Find {
         if (state.jump != null) {
           state.jump.cancel();
         }
+        state.jumpText = text;
         state.jump = state.app.background(
             "Find the next match",
             () -> direct(pattern, text, target, direction, from, start, BACKGROUND_MILLIS),
             found -> {
               state.jump = null;
-              if (found != null && state.field != null) {
+              state.jumpText = null;
+              if (found != null
+                  && state.field != null
+                  && state.field.text().string().equals(text)) {
                 select(state, found);
               }
             },
-            failure -> state.jump = null);
+            failure -> {
+              state.jump = null;
+              state.jumpText = null;
+            });
         return;
       }
     }
@@ -559,16 +572,30 @@ public final class Find {
     int s = Math.min(state.caret, state.anchor);
     int e = Math.max(state.caret, state.anchor);
     state.replaceError = null;
-    if (s < e && isMatch(pattern, text, s, e)) {
-      String with;
-      try {
-        with = Search.replacement(state.search(), pattern, text, s, e, state.replacement);
-      } catch (IllegalArgumentException | IndexOutOfBoundsException wrong) {
-        state.replaceError = wrong.getMessage();
-        return;
-      }
+    For target = state.target(text.length());
+    String with;
+    try {
+      // Only a match inside the part searched: never text outside a search in the selection.
+      with = s < target.from()
+          ? null
+          : Search.replacement(
+              state.search(),
+              pattern,
+              text,
+              s,
+              e,
+              target.to(),
+              state.replacement,
+              Search.deadline(SYNC_MILLIS));
+    } catch (Search.Stopped stopped) {
+      state.replaceError = "Replacing took too long";
+      return;
+    } catch (IllegalArgumentException | IndexOutOfBoundsException wrong) {
+      state.replaceError = wrong.getMessage();
+      return;
+    }
+    if (with != null) {
       int delta = with.length() - (e - s);
-      For target = state.target(text.length());
       int[] next;
       try {
         next =
@@ -627,15 +654,6 @@ public final class Find {
       state.scopeTo += replaced.text().length() - (replaced.to() - replaced.from());
     }
     state.caret = state.anchor = end;
-  }
-
-  private static boolean isMatch(Pattern pattern, String text, int s, int e) {
-    Matcher m = pattern
-        .matcher(text)
-        .region(s, text.length())
-        .useTransparentBounds(true)
-        .useAnchoringBounds(false);
-    return m.lookingAt() && m.end() == e && Search.boundary(text, s) && Search.boundary(text, e);
   }
 
   /** Goes to the line, and column, the line field holds, and closes the bar. */

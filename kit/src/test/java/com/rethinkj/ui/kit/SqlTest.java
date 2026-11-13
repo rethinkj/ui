@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 
 import com.rethinkj.ui.Spans;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
@@ -91,5 +92,65 @@ class SqlTest {
     assertArrayEquals(new int[] {5, 7}, CodeEditor.matching(text, 5), "the one after the caret");
     assertArrayEquals(new int[0], CodeEditor.matching(text, 3));
     assertArrayEquals(new int[] {0}, CodeEditor.matching("(a", 0), "no partner");
+  }
+
+  @Test
+  void lineByLineAfterEachEditColoursAsOnePassOverTheWholeText() {
+    String[] sources = {
+      "SELECT 'a\nb''c' AS x",
+      "SELECT $tag$a\nb$tag$ FROM x",
+      "SELECT /* a\n/* b */\nc */ FROM x",
+      "SELECT \"a\nb\" FROM x"
+    };
+    for (String source : sources) {
+      for (int at = 0; at <= source.length(); at++) {
+        for (String insert : new String[] {"'", "\"", "$t$", "/*", "*/"}) {
+          sameAsOnePass(source.substring(0, at) + insert + source.substring(at));
+        }
+        if (at < source.length() && source.charAt(at) != '\n') {
+          sameAsOnePass(source.substring(0, at) + source.substring(at + 1));
+        }
+      }
+    }
+  }
+
+  private static void sameAsOnePass(String source) {
+    Spans whole = new Spans(source.length());
+    Object wholeState = SQL.line(source, null, whole);
+    int[] expected = colours(whole, source.length());
+    int[] actual = new int[source.length()];
+    Object state = null;
+    int start = 0;
+    for (String line : source.split("\n", -1)) {
+      Spans spans = new Spans(line.length());
+      state = SQL.line(line, state, spans);
+      System.arraycopy(colours(spans, line.length()), 0, actual, start, line.length());
+      start += line.length() + 1;
+    }
+    for (int i = 0; i < source.length(); i++) {
+      if (source.charAt(i) == '\n') {
+        expected[i] = 0;
+      }
+    }
+    assertArrayEquals(expected, actual, source);
+    assertEquals(wholeState, state, source);
+  }
+
+  /** The colour of each character, from the text of {@link Spans#toString}. */
+  private static int[] colours(Spans spans, int length) {
+    int[] out = new int[length];
+    for (String line : spans.toString().split("\n")) {
+      if (line.isEmpty()) {
+        continue;
+      }
+      String[] parts = line.split(" ");
+      String[] range = parts[1].split("-");
+      Arrays.fill(
+          out,
+          Integer.parseInt(range[0]),
+          Integer.parseInt(range[1]),
+          Integer.parseInt(parts[2], 16));
+    }
+    return out;
   }
 }

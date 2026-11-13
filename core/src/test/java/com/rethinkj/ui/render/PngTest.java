@@ -149,6 +149,25 @@ class PngTest {
   }
 
   @Test
+  void refusesAHeaderWithoutPixelsOnOneSideOrWithARowTooLongForAnArray() {
+    int[][] sizes = {{Integer.MAX_VALUE, 0}, {0, 5}, {1 << 28, 1}};
+    for (int[] size : sizes) {
+      java.io.ByteArrayOutputStream png = new java.io.ByteArrayOutputStream();
+      png.writeBytes(new byte[] {(byte) 0x89, 'P', 'N', 'G', '\r', '\n', 0x1A, '\n'});
+      chunk(
+          png,
+          "IHDR",
+          java.nio.ByteBuffer.allocate(13)
+              .putInt(size[0])
+              .putInt(size[1])
+              .put(new byte[] {16, 6, 0, 0, 0})
+              .array());
+      chunk(png, "IEND", new byte[0]);
+      assertThrows(IllegalArgumentException.class, () -> Png.decode(png.toByteArray()));
+    }
+  }
+
+  @Test
   void rejectsWhatIsNotPng() {
     assertThrows(IllegalArgumentException.class, () -> Png.decode(new byte[] {1, 2, 3}));
     assertThrows(IllegalArgumentException.class, () -> Png.decode("not a png at all".getBytes()));
