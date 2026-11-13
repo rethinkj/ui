@@ -19,10 +19,11 @@ import java.util.function.IntConsumer;
 /**
  * Choices of which one is chosen, one below the other, each a round mark and its text. A press on
  * a choice or its text chooses it. The group is one stop for Tab, with the ring around it: the
- * arrow keys choose the choice before or after the current one, around at the ends, and Home and
- * End the first and the last. The app keeps the index. In a tree dump the group is {@code
- * role=radiogroup} and each choice {@code role=radio} with its text as the label and {@code
- * checked} or {@code checked=false}; a group without handler is {@code disabled}.
+ * arrow keys choose the choice before or after the current one, around at the ends, Home and End
+ * the first and the last, and Space the first while none is chosen. The app keeps the index. In a
+ * tree dump the group is {@code role=radiogroup} and each choice {@code role=radio} with its text
+ * as the label and {@code checked} or {@code checked=false}; a group without handler is {@code
+ * disabled}.
  */
 public final class Radio {
 
@@ -130,7 +131,8 @@ public final class Radio {
 
   /**
    * Makes a group of choices one stop for Tab whose arrow keys choose the one before or after,
-   * around at the ends, and Home and End the first and the last.
+   * around at the ends, Home and End the first and the last, and Space the first while none is
+   * chosen.
    */
   static El keys(Theme t, El group, int count, int selected, IntConsumer onSelect) {
     if (onSelect == null || count == 0) {
@@ -156,6 +158,8 @@ public final class Radio {
       case "ArrowDown", "ArrowRight" -> selected < 0 || selected == count - 1 ? 0 : selected + 1;
       case "Home" -> 0;
       case "End" -> count - 1;
+      // WAI-ARIA's radio group: with none checked, Space checks the first
+      case "Space" -> Math.max(selected, 0);
       default -> -2;
     };
   }
