@@ -1448,7 +1448,9 @@ public final class Text implements Measure {
         || decorator == null
             && (highlighter == null
                 || placed.stream()
-                    .noneMatch(row -> row.para.spans != null && row.para.spans.count > 0))) {
+                    .noneMatch(row -> row.para.spans != null
+                        && (row.para.spans.count > 0
+                            || row.para.spans.lineBackground >>> 24 != 0)))) {
       return List.of();
     }
     Lines lines = shownLines();
