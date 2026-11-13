@@ -182,6 +182,39 @@ class LinesTest {
     lines.spans(0, "b", none, none);
   }
 
+  @Test
+  void highlightedLinesAfterEditsAreAsIfAskedAfresh() {
+    // A state carried across lines: the count of + less -, which every edit may change below it.
+    Highlighter depth = (line, state, out) -> {
+      int next = state == null ? 0 : (Integer) state;
+      for (char c : line.toCharArray()) {
+        next += c == '+' ? 1 : c == '-' ? -1 : 0;
+      }
+      out.color(0, line.length(), 0xFF000000 | (line.hashCode() ^ next) & 0xFFFFFF);
+      out.lineBackground(0xFF000000 | next & 0xFFFFFF);
+      return next;
+    };
+    Random random = new Random(859731);
+    String text = "a+\nb-\n\nc\n".repeat(60);
+    Lines lines = Lines.of(text);
+    for (int edit = 0; edit < 3000; edit++) {
+      int at = random.nextInt(text.length() + 1);
+      int removed = random.nextInt(Math.min(8, text.length() - at) + 1);
+      String inserted = randomText(random, "ab+-\n\n\t", random.nextInt(9));
+      lines.edit(at, removed, inserted);
+      text = text.substring(0, at) + inserted + text.substring(at + removed);
+      Lines fresh = Lines.of(text);
+      assertSameLines(fresh, lines, text);
+      for (int sample = 0; sample < 5; sample++) {
+        int line = random.nextInt(fresh.count());
+        assertEquals(
+            fresh.spans(line, text, depth, depth).toString(),
+            lines.spans(line, text, depth, depth).toString(),
+            "edit " + edit + ", line " + line);
+      }
+    }
+  }
+
   private static void assertSameLines(Lines expected, Lines actual, String text) {
     assertEquals(expected.count(), actual.count(), text);
     assertEquals(expected.length(), actual.length(), text);
