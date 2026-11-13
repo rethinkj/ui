@@ -37,7 +37,8 @@ class GridCellsTest {
   private static final Theme T = Theme.DARK;
   private static final int ALL = Range.ALL;
 
-  @TempDir Path out;
+  @TempDir
+  Path out;
 
   @BeforeEach
   void textLibraries() {
@@ -70,10 +71,18 @@ class GridCellsTest {
     String note = "say \"hi\"\tthen\r\nbreak\nhere";
     Selection selection = new Selection(Mode.CELLS);
     Clipboard clipboard = Clipboard.inMemory();
-    App<Object> app = new App<>(new Object(), s -> El.col().size(560, 240).child(
-        DataGrid.dataGrid(T, List.of(new DataGrid.Column("note", 400, DataGrid.Align.LEFT, false,
-                i -> note)), 3, DataGrid.options().select(selection).copy(clipboard))
-            .key("grid").grow(1)));
+    App<Object> app = new App<>(
+        new Object(),
+        s -> El.col()
+            .size(560, 240)
+            .child(DataGrid.dataGrid(
+                    T,
+                    List.of(
+                        new DataGrid.Column("note", 400, DataGrid.Align.LEFT, false, i -> note)),
+                    3,
+                    DataGrid.options().select(selection).copy(clipboard))
+                .key("grid")
+                .grow(1)));
     run(app, "frame\npress #cell-0-0\nkey C control\nframe");
     El cell = Workbench.find(app, "cell-0-0");
     Text text = cell.children().getFirst().text();
@@ -91,7 +100,8 @@ class GridCellsTest {
     run(app, "press #cell-1-1\npress #cell-4-2 shift\nframe");
     Selection s = orders.selection;
     assertEquals(List.of(new Range(1, 1, 4, 2)), s.ranges());
-    assertEquals(List.of(4, 2, 1, 1), List.of(s.row(), s.column(), s.anchorRow(), s.anchorColumn()));
+    assertEquals(
+        List.of(4, 2, 1, 1), List.of(s.row(), s.column(), s.anchorRow(), s.anchorColumn()));
     assertTrue(line(app, "cell-2-1").endsWith(" selected pos=2/7"), line(app, "cell-2-1"));
     assertTrue(line(app, "cell-4-2").endsWith(" selected current pos=3/7"));
     assertTrue(line(app, "cell-4-3").endsWith(" 149x23 pos=4/7"), "outside the range");
@@ -150,8 +160,8 @@ class GridCellsTest {
     run(app, "move 720,100\nframe");
     assertEquals(6, s.column());
     // 964 pixels of columns and the 10 of the rows' bar after them.
-    assertEquals(974 - 544, find(app, "orders").scrollX(),
-        "the last column whole, clear of the rows' bar");
+    assertEquals(
+        974 - 544, find(app, "orders").scrollX(), "the last column whole, clear of the rows' bar");
     run(app, "up 720,100\nframe");
     assertEquals(new Range(2, 1, s.row(), 6), s.ranges().getFirst());
     assertEquals(1, s.ranges().size());
@@ -160,7 +170,8 @@ class GridCellsTest {
   private static void assertCursorRowInView(App<?> app, int row) {
     El rows = find(app, "rows");
     El el = find(app, "row-" + row);
-    assertTrue(el != null && el.y() >= 0 && el.y() + el.height() <= rows.height(),
+    assertTrue(
+        el != null && el.y() >= 0 && el.y() + el.height() <= rows.height(),
         "row " + row + " in view at " + rows.scrollY());
   }
 
@@ -178,7 +189,9 @@ class GridCellsTest {
     assertEquals(List.of(new Range(3, 0, 3, 0)), s.ranges(), "the first column of the row");
     run(app, "key End\nframe");
     assertEquals(List.of(3, 6), List.of(s.row(), s.column()));
-    assertEquals(974 - 544, find(app, "orders").scrollX(),
+    assertEquals(
+        974 - 544,
+        find(app, "orders").scrollX(),
         "the last column scrolled into view, clear of the rows' bar");
     run(app, "key Home control\nframe");
     assertEquals(List.of(0, 0), List.of(s.row(), s.column()));
@@ -237,8 +250,9 @@ class GridCellsTest {
     assertTrue(line(app, "row-4").endsWith(" pos=5/1000000"));
     assertTrue(line(app, "cell-2-1").endsWith(" pos=2/7"), "cells carry no selection in rows");
     run(app, "press #row-2 control\nframe");
-    assertEquals(List.of(new Range(1, 0, 1, ALL), new Range(3, 0, 3, ALL),
-        new Range(6, 0, 6, ALL)), s.ranges());
+    assertEquals(
+        List.of(new Range(1, 0, 1, ALL), new Range(3, 0, 3, ALL), new Range(6, 0, 6, ALL)),
+        s.ranges());
     assertTrue(line(app, "row-2").endsWith(" current pos=3/1000000"));
     assertEquals(3, s.rowCount());
   }
@@ -257,12 +271,17 @@ class GridCellsTest {
     run(app, "press #cell-4-3\nkey ArrowRight shift\nkey ArrowDown shift\nkey C control\nframe");
     assertEquals(List.of(new Range(4, 3, 5, 4)), orders.selection.ranges());
     assertEquals(null, cell(orders, 5, 4), "row 5 has no amount");
-    assertEquals(cell(orders, 4, 3) + "\t" + cell(orders, 4, 4) + "\n" + cell(orders, 5, 3) + "\t",
+    assertEquals(
+        cell(orders, 4, 3) + "\t" + cell(orders, 4, 4) + "\n" + cell(orders, 5, 3) + "\t",
         app.clipboard().read());
     // Scrolled back first: the frozen id and numbers lie over customer while amount shows.
-    run(app, "wheel #rows -1000 0\nframe\npress #cell-1-1\npress #cell-3-1 control\n"
-        + "key Insert control\nframe");
-    assertEquals(cell(orders, 1, 1) + "\n" + cell(orders, 3, 1), app.clipboard().read(),
+    run(
+        app,
+        "wheel #rows -1000 0\nframe\npress #cell-1-1\npress #cell-3-1 control\n"
+            + "key Insert control\nframe");
+    assertEquals(
+        cell(orders, 1, 1) + "\n" + cell(orders, 3, 1),
+        app.clipboard().read(),
         "the rows with a selected cell");
   }
 
@@ -271,14 +290,18 @@ class GridCellsTest {
     Orders orders = Orders.cells(T);
     App<Orders> app = start(orders);
     Selection s = orders.selection;
-    run(app, "press #cell-1-1\npress #cell-2-2 shift\nframe\npress #cell-2-1 right\nframe\n"
-        + "advance 0.25\nframe"); // past the menu's fade
+    run(
+        app,
+        "press #cell-1-1\npress #cell-2-2 shift\nframe\npress #cell-2-1 right\nframe\n"
+            + "advance 0.25\nframe"); // past the menu's fade
     assertEquals(List.of(new Range(1, 1, 2, 2)), s.ranges(), "inside the range: it stays");
     assertTrue(orders.menu.isOpen());
     assertTrue(line(app, "item-0").contains("label=\"Copy\""));
     run(app, "press #item-1\nframe"); // Copy with headers
-    assertEquals("customer\temail\n" + cell(orders, 1, 1) + "\t" + cell(orders, 1, 2) + "\n"
-        + cell(orders, 2, 1) + "\t" + cell(orders, 2, 2), app.clipboard().read());
+    assertEquals(
+        "customer\temail\n" + cell(orders, 1, 1) + "\t" + cell(orders, 1, 2) + "\n"
+            + cell(orders, 2, 1) + "\t" + cell(orders, 2, 2),
+        app.clipboard().read());
     assertFalse(orders.menu.isOpen());
 
     // Outside the range: the cell is selected first.
@@ -306,8 +329,10 @@ class GridCellsTest {
     Orders lazy = Orders.cells(T); // rows from 1000 on are not loaded, and no handler is set
     App<Orders> lazyApp = start(lazy);
     lazyApp.clipboard().write("before");
-    run(lazyApp, "press #cell-1-1\nframe\nscroll #rows row 995\nframe\npress #cell-1001-1 shift\n"
-        + "key C control\nframe");
+    run(
+        lazyApp,
+        "press #cell-1-1\nframe\nscroll #rows row 995\nframe\npress #cell-1001-1 shift\n"
+            + "key C control\nframe");
     assertEquals(List.of(new Range(1, 1, 1001, 1)), lazy.selection.ranges());
     assertEquals("before", lazyApp.clipboard().read());
     run(lazyApp, "press #cell-998-1 shift\nkey C control\nframe");
@@ -331,13 +356,25 @@ class GridCellsTest {
     run(app, "press #column-0 shift\nframe\npress #column-2 shift\nframe");
     assertEquals(1, mark(app, 0).children().size(), "one key: no number");
     run(app, "press #column-0\nframe\npress #column-1\nframe\npress #column-1\nframe");
-    assertEquals(List.of("sort [+0, +2]", "sort [+0, -2]", "sort [-0, -2]", "sort [-0]",
-        "sort []", "sort [+1]", "sort [-1]"), orders.log);
+    assertEquals(
+        List.of(
+            "sort [+0, +2]",
+            "sort [+0, -2]",
+            "sort [-0, -2]",
+            "sort [-0]",
+            "sort []",
+            "sort [+1]",
+            "sort [-1]"),
+        orders.log);
 
     run(app, "move #column-3\nframe"); // created_at cannot be sorted: no pointer, no press
     assertEquals(Cursor.DEFAULT, app.cursor());
-    assertFalse(app.tree().dump().contains("el #column-3 role=columnheader label=\"created_at\""
-        + " 412,8 149x22 pos=4/7 hovered"), "a press would go to the grid, not to the header");
+    assertFalse(
+        app.tree()
+            .dump()
+            .contains("el #column-3 role=columnheader label=\"created_at\""
+                + " 412,8 149x22 pos=4/7 hovered"),
+        "a press would go to the grid, not to the header");
     run(app, "press #column-3\nframe");
     assertEquals("sort [-1]", orders.log.getLast());
     run(app, "move #column-2\nframe");
@@ -371,10 +408,10 @@ class GridCellsTest {
     Script.run("size 1100 240\npress #resize-6\npress #resize-6 clicks 2\nframe", app, out);
     assertEquals(T.grid().maxColumn(), orders.widths[6], "the note is longer than allowed");
     Script.run("size 1100 240\npress #resize-0\npress #resize-0 clicks 2\nframe", app, out);
-    assertTrue(orders.widths[0] < 64 && orders.widths[0] >= T.grid().minColumn(),
-        "" + orders.widths[0]);
-    assertEquals(List.of("resize 2 " + email, "resize 6 480.0", "resize 0 " + orders.widths[0]),
-        orders.log);
+    assertTrue(
+        orders.widths[0] < 64 && orders.widths[0] >= T.grid().minColumn(), "" + orders.widths[0]);
+    assertEquals(
+        List.of("resize 2 " + email, "resize 6 480.0", "resize 0 " + orders.widths[0]), orders.log);
   }
 
   /** How many cells of the column that exist end in an ellipsis. */
@@ -481,10 +518,18 @@ class GridCellsTest {
   void aFrameOfScrollingCostsAboutAsMuchWithThreeHundredColumnsAsWithTwenty() throws IOException {
     long[] twenty = scrolling(20);
     long[] wide = scrolling(300);
-    System.out.printf("DataGrid, a million rows: 20 columns %.1f µs a frame of scrolling, %.1f µs"
+    System.out.printf(
+        "DataGrid, a million rows: 20 columns %.1f µs a frame of scrolling, %.1f µs"
             + " one that builds the view after a key, %d elements, CPU render %.1f ms; 300 columns"
-            + " %.1f µs, %.1f µs, %d elements, %.1f ms%n", twenty[0] / 1000.0, twenty[3] / 1000.0,
-        twenty[1], twenty[2] / 1e6, wide[0] / 1000.0, wide[3] / 1000.0, wide[1], wide[2] / 1e6);
+            + " %.1f µs, %.1f µs, %d elements, %.1f ms%n",
+        twenty[0] / 1000.0,
+        twenty[3] / 1000.0,
+        twenty[1],
+        twenty[2] / 1e6,
+        wide[0] / 1000.0,
+        wide[3] / 1000.0,
+        wide[1],
+        wide[2] / 1e6);
     assertTrue(wide[1] < twenty[1] + 300 * 5, wide[1] + " elements, " + twenty[1] + " with 20");
   }
 
@@ -572,8 +617,9 @@ class GridCellsTest {
     run(app, "scroll #rows row 3000\nframe\nframe");
     assertEquals(List.of("rows 2997-3011"), orders.log);
     assertTrue(orders.asked.contains(3001));
-    assertEquals(cell(orders, 3001, 3), find(app, "cell-3001-3").children().getFirst().text()
-        .string());
+    assertEquals(
+        cell(orders, 3001, 3),
+        find(app, "cell-3001-3").children().getFirst().text().string());
     run(app, "frame\nframe");
     assertEquals(1, orders.log.size());
   }

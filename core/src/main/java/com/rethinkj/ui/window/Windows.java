@@ -37,8 +37,8 @@ public interface Windows {
   /** The windows of an app that no runner runs: none, and none opens. */
   Windows NONE = new Windows() {
     @Override
-    public Handle open(String title, float width, float height, Window.Options options,
-        App<?> app) {
+    public Handle open(
+        String title, float width, float height, Window.Options options, App<?> app) {
       throw new IllegalStateException("No runner runs this app, so it cannot open a window. Run"
           + " it in a WindowLoop or a Script, which set App.windows().");
     }

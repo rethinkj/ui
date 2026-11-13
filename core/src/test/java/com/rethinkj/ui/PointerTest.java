@@ -31,10 +31,14 @@ class PointerTest {
   private static App<Cards> cards() {
     App<Cards> app = new App<>(new Cards(), state -> {
       state.builds++;
-      return row().children(
-          el().key("plain").size(50, 50).fill(GREY),
-          el().key("card").size(100, 100).fill(GREY).whenHovered(e -> e.fill(LIGHT).radius(8))
-              .child(el().key("inner").size(40, 40).fill(GREY)));
+      return row()
+          .children(
+              el().key("plain").size(50, 50).fill(GREY),
+              el().key("card")
+                  .size(100, 100)
+                  .fill(GREY)
+                  .whenHovered(e -> e.fill(LIGHT).radius(8))
+                  .child(el().key("inner").size(40, 40).fill(GREY)));
     });
     app.resize(200, 100, 1);
     app.frame();
@@ -78,9 +82,13 @@ class PointerTest {
 
   @Test
   void theAncestorsOfTheElementUnderThePointerAreHoveredToo() {
-    App<Object> app = new App<>(new Object(), s ->
-        el().key("outer").size(100, 100).whenHovered(e -> e.fill(LIGHT))
-            .child(el().key("middle").size(60, 60)
+    App<Object> app = new App<>(
+        new Object(),
+        s -> el().key("outer")
+            .size(100, 100)
+            .whenHovered(e -> e.fill(LIGHT))
+            .child(el().key("middle")
+                .size(60, 60)
                 .child(el().key("inner").size(20, 20).whenHovered(e -> e.fill(DARK)))));
     app.resize(100, 100, 1);
     app.frame();
@@ -121,12 +129,19 @@ class PointerTest {
   @Test
   void pressedAndFocusedLooksAndTheOrderInWhichTheyWin() {
     List<String> log = new ArrayList<>();
-    App<List<String>> app = new App<>(log, l -> row().children(
-        el().key("button").size(50, 50).fill(GREY).focusable().onPress(() -> l.add("press"))
-            .whenHovered(e -> e.fill(LIGHT).radius(4))
-            .whenFocused(e -> e.fill(BLUE).border(2, DARK))
-            .whenPressed(e -> e.fill(DARK)),
-        el().key("other").size(50, 50).focusable()));
+    App<List<String>> app = new App<>(
+        log,
+        l -> row()
+            .children(
+                el().key("button")
+                    .size(50, 50)
+                    .fill(GREY)
+                    .focusable()
+                    .onPress(() -> l.add("press"))
+                    .whenHovered(e -> e.fill(LIGHT).radius(4))
+                    .whenFocused(e -> e.fill(BLUE).border(2, DARK))
+                    .whenPressed(e -> e.fill(DARK)),
+                el().key("other").size(50, 50).focusable()));
     app.resize(100, 50, 1);
     app.frame();
     El button = find(app, "button");
@@ -163,9 +178,12 @@ class PointerTest {
 
   @Test
   void aPressedLookStaysUntilThePointerIsUpWhereverThatIs() {
-    App<Object> app = new App<>(new Object(), s ->
-        row().children(el().key("a").size(50, 50).onPress(() -> {}).whenPressed(e -> e.fill(DARK)),
-            el().key("b").size(50, 50)));
+    App<Object> app = new App<>(
+        new Object(),
+        s -> row()
+            .children(
+                el().key("a").size(50, 50).onPress(() -> {}).whenPressed(e -> e.fill(DARK)),
+                el().key("b").size(50, 50)));
     app.resize(100, 50, 1);
     app.frame();
     app.pointerDown(25, 25);
@@ -183,8 +201,12 @@ class PointerTest {
 
   @Test
   void withMotionALookSpringsInAndOut() {
-    App<Object> app = new App<>(new Object(), s ->
-        el().key("box").size(50, 50).fill(GREY).motion(Spring.SNAP)
+    App<Object> app = new App<>(
+        new Object(),
+        s -> el().key("box")
+            .size(50, 50)
+            .fill(GREY)
+            .motion(Spring.SNAP)
             .whenHovered(e -> e.fill(LIGHT).w(70)));
     app.resize(100, 50, 1);
     app.frame();
@@ -198,7 +220,8 @@ class PointerTest {
     int halfway = app.tree().fill();
     assertNotEquals(GREY, halfway);
     assertNotEquals(LIGHT, halfway);
-    assertTrue(app.tree().width() > 50 && app.tree().width() < 70, "" + app.tree().width());
+    assertTrue(
+        app.tree().width() > 50 && app.tree().width() < 70, "" + app.tree().width());
     app.advance(1);
     app.frame();
     assertEquals(LIGHT, app.tree().fill());
@@ -216,8 +239,9 @@ class PointerTest {
 
   @Test
   void aLookThatChangesChildrenOrHandlersFails() {
-    App<Object> app = new App<>(new Object(), s ->
-        el().key("card").role("button").size(50, 50).whenHovered(e -> e.child(el())));
+    App<Object> app = new App<>(
+        new Object(),
+        s -> el().key("card").role("button").size(50, 50).whenHovered(e -> e.child(el())));
     app.resize(50, 50, 1);
     app.frame();
     app.pointerMove(10, 10);
@@ -228,23 +252,29 @@ class PointerTest {
             + " and the handlers in the view.",
         e.getMessage());
 
-    App<Object> handlers = new App<>(new Object(), s ->
-        el().size(50, 50).focusable().whenFocused(f -> f.onPress(() -> {})));
+    App<Object> handlers = new App<>(
+        new Object(), s -> el().size(50, 50).focusable().whenFocused(f -> f.onPress(() -> {})));
     handlers.resize(50, 50, 1);
     handlers.frame();
     handlers.focus(handlers.tree());
     e = assertThrows(IllegalStateException.class, handlers::frame);
-    assertTrue(e.getMessage().startsWith("The whenFocused look of el changed its handlers."),
+    assertTrue(
+        e.getMessage().startsWith("The whenFocused look of el changed its handlers."),
         e.getMessage());
   }
 
   @Test
   void theCursorIsInheritedAndDefaultWhereNoneIsSet() {
-    App<Object> app = new App<>(new Object(), s -> row().children(
-        el().key("link").size(50, 50).cursor(Cursor.POINTER)
-            .child(el().key("icon").size(20, 20)),
-        el().key("field").size(50, 50).cursor(Cursor.TEXT),
-        el().key("plain").size(50, 50)));
+    App<Object> app = new App<>(
+        new Object(),
+        s -> row()
+            .children(
+                el().key("link")
+                    .size(50, 50)
+                    .cursor(Cursor.POINTER)
+                    .child(el().key("icon").size(20, 20)),
+                el().key("field").size(50, 50).cursor(Cursor.TEXT),
+                el().key("plain").size(50, 50)));
     app.resize(200, 50, 1);
     app.frame();
     assertEquals(Cursor.DEFAULT, app.cursor(), "the pointer has not come in yet");
@@ -328,13 +358,11 @@ class PointerTest {
     app.frame();
     app.pointerMove(100, 60); // on the knob, which has no handler of its own
     app.frame();
-    assertEquals(
-        """
+    assertEquals("""
         el 0,0 200x120
           el #switch role=switch label="Lights" 81,49 38x22 checked=false hovered
             el #knob 83,51 18x18
-        """,
-        app.tree().dump());
+        """, app.tree().dump());
     assertEquals(Cursor.POINTER, app.cursor());
     app.pointerMove(10, 10);
     app.frame();
@@ -356,12 +384,16 @@ class PointerTest {
   @Test
   void aRebuildThatMovesOtherElementsUnderTheStillPointerMovesTheHoverLookToThem() {
     boolean[] pushed = {false};
-    App<Object> app = new App<>(new Object(), s -> El.col().wFull().hFull()
-        .onKey(k -> pushed[0] = true)
-        .children(
-            el().key("spacer").h(pushed[0] ? 40 : 0).shrink(0),
-            el().key("a").h(40).shrink(0).fill(GREY).whenHovered(e -> e.fill(BLUE)),
-            el().key("b").h(40).shrink(0).fill(GREY).whenHovered(e -> e.fill(BLUE))));
+    App<Object> app = new App<>(
+        new Object(),
+        s -> El.col()
+            .wFull()
+            .hFull()
+            .onKey(k -> pushed[0] = true)
+            .children(
+                el().key("spacer").h(pushed[0] ? 40 : 0).shrink(0),
+                el().key("a").h(40).shrink(0).fill(GREY).whenHovered(e -> e.fill(BLUE)),
+                el().key("b").h(40).shrink(0).fill(GREY).whenHovered(e -> e.fill(BLUE))));
     app.resize(100, 200, 1);
     app.frame();
     app.pointerMove(50, 60);

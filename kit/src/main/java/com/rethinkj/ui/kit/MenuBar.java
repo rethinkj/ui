@@ -149,13 +149,18 @@ public final class MenuBar {
   public static El menuBar(Theme t, State state, List<Menu.Item> menus) {
     table(menus); // refuses conflicts when the view is built
     boolean marks = state.alt || state.title >= 0;
-    El bar = row().key("menubar").role("menubar").align(Style.Align.CENTER).keepFocus()
+    El bar = row()
+        .key("menubar")
+        .role("menubar")
+        .align(Style.Align.CENTER)
+        .keepFocus()
         .onAnyPointerDown(() -> state.armed = false) // Alt held during a press is not alone
-        .onAnyKeyDown(k -> { // nor Alt with a key that another element took, as a find bar's
-          if (!k.name().equals("Alt")) {
-            state.armed = false;
-          }
-        });
+        .onAnyKeyDown(
+            k -> { // nor Alt with a key that another element took, as a find bar's
+              if (!k.name().equals("Alt")) {
+                state.armed = false;
+              }
+            });
     Menu.Bar owner = new Menu.Bar(d -> state.step(menus, d), () -> state.title = -1, state);
     for (int i = 0; i < menus.size(); i++) {
       bar.child(title(t, state, menus, i, marks, owner));
@@ -178,8 +183,13 @@ public final class MenuBar {
     if (marks && mnemonic >= 0) {
       label.underline(mnemonic, text.offsetByCodePoints(mnemonic, 1));
     }
-    El title = row().key("title-" + i).role("menuitem").label(text)
-        .h(t.size().control()).padding(0, t.space().m()).align(Style.Align.CENTER)
+    El title = row()
+        .key("title-" + i)
+        .role("menuitem")
+        .label(text)
+        .h(t.size().control())
+        .padding(0, t.space().m())
+        .align(Style.Align.CENTER)
         .radius(t.radius().small())
         .fill(lit ? t.surface().pressed() : 0)
         .disabled(!enabled)
@@ -187,7 +197,8 @@ public final class MenuBar {
     if (!enabled) {
       return title;
     }
-    title.expanded(open)
+    title
+        .expanded(open)
         .dismissGroup(state)
         .onPress(() -> {
           if (open) {
@@ -342,9 +353,12 @@ public final class MenuBar {
     for (int i = 0; i < menus.size(); i++) {
       String label = menus.get(i).label();
       int at = mnemonic(label);
-      if (at >= 0 && menus.get(i).isEnabled()
-          && text(label).substring(at, text(label).offsetByCodePoints(at, 1))
-              .toUpperCase(Locale.ROOT).equals(key)) {
+      if (at >= 0
+          && menus.get(i).isEnabled()
+          && text(label)
+              .substring(at, text(label).offsetByCodePoints(at, 1))
+              .toUpperCase(Locale.ROOT)
+              .equals(key)) {
         return i;
       }
     }
@@ -365,8 +379,10 @@ public final class MenuBar {
         continue;
       }
       String text = text(menu.label());
-      Key alt = new Key(text.substring(at, text.offsetByCodePoints(at, 1))
-          .toUpperCase(Locale.ROOT), Key.ALT, false);
+      Key alt = new Key(
+          text.substring(at, text.offsetByCodePoints(at, 1)).toUpperCase(Locale.ROOT),
+          Key.ALT,
+          false);
       Menu.Item taken = table.get(alt);
       if (taken != null) {
         throw new IllegalArgumentException(Menu.shortcutText(alt) + " is the shortcut of \""

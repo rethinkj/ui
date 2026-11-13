@@ -88,76 +88,95 @@ class DocsExamplesTest {
     return all;
   }
 
-  private static void controls(Map<String, Example> all, String name,
-      Function<Controls, El> view, int width, int height) {
+  private static void controls(
+      Map<String, Example> all, String name, Function<Controls, El> view, int width, int height) {
     all.put(name, new Example(() -> new App<>(new Controls(), view), width, height));
   }
 
-  private static void layouts(Map<String, Example> all, String name,
-      Function<Layouts, El> view, int width, int height) {
+  private static void layouts(
+      Map<String, Example> all, String name, Function<Layouts, El> view, int width, int height) {
     all.put(name, new Example(() -> new App<>(new Layouts(), view), width, height));
   }
 
-  private static void overlays(Map<String, Example> all, String name,
-      Function<Overlays, El> view, int width, int height) {
+  private static void overlays(
+      Map<String, Example> all, String name, Function<Overlays, El> view, int width, int height) {
     all.put(name, new Example(() -> new App<>(new Overlays(), view), width, height));
   }
 
-  private static void grids(Map<String, Example> all, String name, Function<Grids, El> view,
-      int width, int height) {
-    all.put(name, new Example(() -> {
-      Grids state = new Grids();
-      App<Grids> app = new App<>(state, view);
-      state.app = app;
-      return app;
-    }, width, height));
+  private static void grids(
+      Map<String, Example> all, String name, Function<Grids, El> view, int width, int height) {
+    all.put(
+        name,
+        new Example(
+            () -> {
+              Grids state = new Grids();
+              App<Grids> app = new App<>(state, view);
+              state.app = app;
+              return app;
+            },
+            width,
+            height));
   }
 
-  private static void editors(Map<String, Example> all, String name, Function<Editors, El> view,
-      int width, int height) {
-    all.put(name, new Example(() -> {
-      Editors state = new Editors();
-      App<Editors> app = new App<>(state, view);
-      state.app = app;
-      return app;
-    }, width, height));
+  private static void editors(
+      Map<String, Example> all, String name, Function<Editors, El> view, int width, int height) {
+    all.put(
+        name,
+        new Example(
+            () -> {
+              Editors state = new Editors();
+              App<Editors> app = new App<>(state, view);
+              state.app = app;
+              return app;
+            },
+            width,
+            height));
   }
 
-  private static void concepts(Map<String, Example> all, String name,
-      Function<Concepts, El> view, int width, int height) {
-    all.put(name, new Example(() -> {
-      Concepts state = new Concepts();
-      App<Concepts> app = new App<>(state, view);
-      state.app = app;
-      return app;
-    }, width, height));
+  private static void concepts(
+      Map<String, Example> all, String name, Function<Concepts, El> view, int width, int height) {
+    all.put(
+        name,
+        new Example(
+            () -> {
+              Concepts state = new Concepts();
+              App<Concepts> app = new App<>(state, view);
+              state.app = app;
+              return app;
+            },
+            width,
+            height));
   }
 
   @TestFactory
   Stream<DynamicTest> eachExampleRunsAndShowsTheStoredTrees() throws IOException {
     try (var files = Files.list(SCRIPTS)) {
       for (Path script : files.toList()) {
-        assertTrue(examples().containsKey(script.getFileName().toString().replace(".txt", "")),
+        assertTrue(
+            examples().containsKey(script.getFileName().toString().replace(".txt", "")),
             script + " has no example");
       }
     }
-    return examples().entrySet().stream().map(e -> DynamicTest.dynamicTest(e.getKey(), () -> {
-      assumeText();
-      Example example = e.getValue();
-      App<?> app = example.app().get();
-      app.textRendering(TextRendering.LINUX); // the same trees on every platform
-      Path out = Path.of("target/docs", e.getKey());
-      Path file = SCRIPTS.resolve(e.getKey() + ".txt");
-      String script = Files.exists(file) ? Files.readString(file)
-          : "size " + example.width() + " " + example.height() + "\nframe\nsnap view\n";
-      Script.run(script, app, out);
-      compare(out, STORED.resolve(e.getKey()));
-    }));
+    return examples().entrySet().stream()
+        .map(e -> DynamicTest.dynamicTest(e.getKey(), () -> {
+          assumeText();
+          Example example = e.getValue();
+          App<?> app = example.app().get();
+          app.textRendering(TextRendering.LINUX); // the same trees on every platform
+          Path out = Path.of("target/docs", e.getKey());
+          Path file = SCRIPTS.resolve(e.getKey() + ".txt");
+          String script = Files.exists(file)
+              ? Files.readString(file)
+              : "size " + example.width() + " " + example.height() + "\nframe\nsnap view\n";
+          Script.run(script, app, out);
+          compare(out, STORED.resolve(e.getKey()));
+        }));
   }
 
   private static void compare(Path out, Path stored) throws IOException {
     try (var files = Files.list(out)) {
-      for (Path written : files.filter(p -> p.toString().endsWith(".tree.txt")).sorted().toList()) {
+      for (Path written :
+          files.filter(p -> p.toString().endsWith(".tree.txt")).sorted().toList()) {
         Path kept = stored.resolve(written.getFileName());
         if (Boolean.getBoolean("golden.update")) {
           Files.createDirectories(stored);
@@ -165,7 +184,9 @@ class DocsExamplesTest {
           continue;
         }
         assertTrue(Files.exists(kept), "No stored " + kept + "; run with -Dgolden.update=true");
-        assertEquals(Files.readString(kept), Files.readString(written),
+        assertEquals(
+            Files.readString(kept),
+            Files.readString(written),
             written.toAbsolutePath() + " differs from " + kept);
       }
     }

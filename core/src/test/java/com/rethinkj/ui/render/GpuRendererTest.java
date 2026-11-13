@@ -111,8 +111,10 @@ class GpuRendererTest {
     try {
       return create.get();
     } catch (UnsatisfiedLinkError e) {
-      assumeTrue(false, "Skipped: wgpu-native cannot be loaded (no natives module for this"
-          + " platform on the class path?). " + e.getMessage());
+      assumeTrue(
+          false,
+          "Skipped: wgpu-native cannot be loaded (no natives module for this"
+              + " platform on the class path?). " + e.getMessage());
     } catch (GpuException e) {
       if (e.kind() == GpuException.Kind.ADAPTER_UNAVAILABLE) {
         assumeTrue(false, "Skipped: no GPU adapter on this machine. " + e.wgpuMessage());
@@ -160,13 +162,16 @@ class GpuRendererTest {
     // Text fields: the selection and the caret are rectangles, the line under a composition too,
     // and the glyphs are moved by the field's scroll and clipped to it.
     cases.addAll(script("field.txt", () -> new App<>(new Examples.Form(), Examples::form)));
-    cases.addAll(script("field-rows.txt",
-        () -> new App<>(new Examples.Names(), Examples::fieldRows)));
+    cases.addAll(
+        script("field-rows.txt", () -> new App<>(new Examples.Names(), Examples::fieldRows)));
     // The kit's data grid, which Examples.grid builds as the kit does: first the snaps of kit's
     // script behind its stored images grid-dark-*, then at the other scales. Header, lines and
     // cells on whole pixels or not, clipped cells, rows a million down, the ring and the accent.
-    List<Case> grid = script(Files.readString(KIT.resolve("scripts/grid.txt")), "grid-dark-",
-        KIT.resolve("golden"), GpuRendererTest::grid);
+    List<Case> grid = script(
+        Files.readString(KIT.resolve("scripts/grid.txt")),
+        "grid-dark-",
+        KIT.resolve("golden"),
+        GpuRendererTest::grid);
     if (grid.size() != 5) {
       throw new AssertionError("Expected the 5 snaps of kit's grid.txt, found " + grid);
     }
@@ -174,8 +179,8 @@ class GpuRendererTest {
     for (float scale : new float[] {2, 1.5f}) {
       String at = at(scale);
       cases.add(grid("grid-focused" + at, scale, "key Tab\nkey ArrowDown\nkey ArrowDown\n"));
-      cases.add(grid("grid-far-sideways" + at, scale,
-          "scroll #rows row 765432\nframe\nwheel #rows 300 0\n"));
+      cases.add(grid(
+          "grid-far-sideways" + at, scale, "scroll #rows row 765432\nframe\nwheel #rows 300 0\n"));
       cases.add(grid("grid-resizing" + at, scale, "down #resize-1\nmove 252,19\n"));
     }
     // Overlays, drawn after the tree with clips of their own: the stored images of overlay.txt,
@@ -196,22 +201,57 @@ class GpuRendererTest {
     }
     cases.addAll(script(BADGE, "badge-", GpuRendererTest::badge));
     for (int scale = 1; scale <= 2; scale++) {
-      cases.add(text("text-sizes-" + scale + "x", Examples.textSizes(), 720, 176, scale,
-          TextRendering.LINUX, new Atlas(), true));
+      cases.add(text(
+          "text-sizes-" + scale + "x",
+          Examples.textSizes(),
+          720,
+          176,
+          scale,
+          TextRendering.LINUX,
+          new Atlas(),
+          true));
     }
-    cases.add(text("text-grey-on-light", Examples.greyOnLight(), 480, 104, 2,
-        TextRendering.LINUX, new Atlas(), true));
-    cases.add(text("text-opacity", Examples.textOpacity(), 336, 76, 2, TextRendering.LINUX,
-        new Atlas(), true));
+    cases.add(text(
+        "text-grey-on-light",
+        Examples.greyOnLight(),
+        480,
+        104,
+        2,
+        TextRendering.LINUX,
+        new Atlas(),
+        true));
+    cases.add(text(
+        "text-opacity",
+        Examples.textOpacity(),
+        336,
+        76,
+        2,
+        TextRendering.LINUX,
+        new Atlas(),
+        true));
     for (float scale : new float[] {1, 2, 1.5f}) { // lines shortened with an ellipsis
       boolean stored = scale != 1.5f;
-      cases.add(text(stored ? "text-ellipsis-" + (int) scale + "x" : "text-ellipsis" + at(scale),
-          Examples.ellipsisText(), 360, 236, scale, TextRendering.LINUX, new Atlas(), stored));
+      cases.add(text(
+          stored ? "text-ellipsis-" + (int) scale + "x" : "text-ellipsis" + at(scale),
+          Examples.ellipsisText(),
+          360,
+          236,
+          scale,
+          TextRendering.LINUX,
+          new Atlas(),
+          stored));
     }
     for (float scale : new float[] {1, 2, 1.5f}) { // lines aligned in their boxes
       boolean stored = scale != 1.5f;
-      cases.add(text(stored ? "text-align-" + (int) scale + "x" : "text-align" + at(scale),
-          Examples.alignedText(), 360, 172, scale, TextRendering.LINUX, new Atlas(), stored));
+      cases.add(text(
+          stored ? "text-align-" + (int) scale + "x" : "text-align" + at(scale),
+          Examples.alignedText(),
+          360,
+          172,
+          scale,
+          TextRendering.LINUX,
+          new Atlas(),
+          stored));
     }
     cases.add(textScrolled());
     // Scenes that stress one formula each.
@@ -239,8 +279,15 @@ class GpuRendererTest {
       if (scale == 1.5f) {
         cases.add(text("text-sizes-linux" + at, Examples.textSizes(), 720, 176, scale));
       }
-      cases.add(text("text-sizes-windows" + at, Examples.textSizes(), 720, 176, scale,
-          TextRendering.WINDOWS, new Atlas(), false));
+      cases.add(text(
+          "text-sizes-windows" + at,
+          Examples.textSizes(),
+          720,
+          176,
+          scale,
+          TextRendering.WINDOWS,
+          new Atlas(),
+          false));
       if (scale != 2) {
         cases.add(text("text-grey-on-light" + at, Examples.greyOnLight(), 480, 104, scale));
         cases.add(text("text-opacity" + at, Examples.textOpacity(), 336, 76, scale));
@@ -251,13 +298,18 @@ class GpuRendererTest {
       cases.add(text("text-highlighted" + at, highlighted(), 280, 72, scale));
       cases.add(marked("area-marked" + at, scale));
       if (scale != 2) {
-        cases.add(field("field-selected" + at, scale,
+        cases.add(field(
+            "field-selected" + at,
+            scale,
             "press #name\ntype \"SELECT name FROM customers\"\nkey ArrowLeft control shift\n"));
-        cases.add(field("field-composing" + at, scale,
+        cases.add(field(
+            "field-composing" + at,
+            scale,
             "press #name\ntype \"SELECT name\"\nkey ArrowLeft shift\ncompose \"ni\"\n"));
       }
     }
-    // Images: one to one, magnified, made smaller and 4000 pixels made 60 and 100, with alpha over and
+    // Images: one to one, magnified, made smaller and 4000 pixels made 60 and 100, with alpha over
+    // and
     // under text, in rounded clips, at half opacity, covering and contained, on light and dark.
     for (float scale : new float[] {1, 1.5f, 2}) {
       cases.add(text("images" + at(scale), Examples.images(scale), 320, 220, scale));
@@ -266,8 +318,15 @@ class GpuRendererTest {
     // Hebrew right to left, Thai with its marks, Inter's "not defined" glyph.
     for (float scale : new float[] {1, 2, 1.5f}) {
       boolean stored = scale != 1.5f;
-      cases.add(text(stored ? "fallback-" + (int) scale + "x" : "fallback" + at(scale),
-          Examples.fallbackText(), 360, 128, scale, TextRendering.LINUX, new Atlas(), stored));
+      cases.add(text(
+          stored ? "fallback-" + (int) scale + "x" : "fallback" + at(scale),
+          Examples.fallbackText(),
+          360,
+          128,
+          scale,
+          TextRendering.LINUX,
+          new Atlas(),
+          stored));
       cases.add(fallbackField(scale == 2 ? "fallback-field" : "fallback-field" + at(scale), scale));
     }
     return cases;
@@ -277,8 +336,10 @@ class GpuRendererTest {
   private static Case fallbackField(String name, float scale) throws IOException {
     App<Examples.Form> app = new App<>(new Examples.Form(), Examples::fallbackField);
     app.textRendering(TextRendering.LINUX);
-    Script.run("size 240 80 scale " + scale + "\nframe\n" + Examples.FALLBACK_FIELD + "frame\n",
-        app, Path.of("target/gpu-vs-cpu-scripts"));
+    Script.run(
+        "size 240 80 scale " + scale + "\nframe\n" + Examples.FALLBACK_FIELD + "frame\n",
+        app,
+        Path.of("target/gpu-vs-cpu-scripts"));
     return scene(name, app.scene(), 240, 80, scale, scale == 2);
   }
 
@@ -289,11 +350,14 @@ class GpuRendererTest {
   @Test
   void theCasesIncludeTheViewBehindEveryStoredImageOfCore() throws IOException {
     Set<String> drawn = new HashSet<>();
-    cases().filter(c -> c.stored() != null && c.stored().getParent().equals(STORED))
+    cases()
+        .filter(c -> c.stored() != null && c.stored().getParent().equals(STORED))
         .forEach(c -> drawn.add(c.name()));
     Set<String> stored = new HashSet<>();
     try (Stream<Path> files = Files.list(STORED)) {
-      files.map(f -> f.getFileName().toString()).filter(f -> f.endsWith(".png"))
+      files
+          .map(f -> f.getFileName().toString())
+          .filter(f -> f.endsWith(".png"))
           .forEach(f -> stored.add(f.substring(0, f.length() - ".png".length())));
     }
     assertEquals(new TreeSet<>(stored), new TreeSet<>(drawn));
@@ -304,7 +368,8 @@ class GpuRendererTest {
   void theGpuDrawsWhatTheCpuDraws(Case c) throws IOException {
     if (c.stored() != null) {
       Pixels stored = Png.decode(Files.readAllBytes(c.stored()));
-      assertArrayEquals(stored.rgba(),
+      assertArrayEquals(
+          stored.rgba(),
           CpuRenderer.render(c.scene(), c.width(), c.height(), c.scale()).rgba(),
           "the case is not the view behind the stored image " + c.name());
     }
@@ -326,17 +391,25 @@ class GpuRendererTest {
     String dark = "let dark = 1.0 - pow(1.0 - a, bitcast<f32>(instance.more.z));";
     String mix = "var glyph_cover = dark + (light - dark) * bitcast<f32>(instance.more.y);";
     return Stream.of(
-        Arguments.of("every texel one pixel to the right", texel,
+        Arguments.of(
+            "every texel one pixel to the right",
+            texel,
             "let texel = vec2i(floor(in.position.xy) - glyph_origin(instance)) - vec2i(1, 0);"),
-        Arguments.of("texels filtered half a texel off", read,
+        Arguments.of(
+            "texels filtered half a texel off",
+            read,
             "let a = (textureLoad(atlas, corner + texel, instance.more.x, 0).r"
                 + " + textureLoad(atlas, corner + texel + vec2i(1, 0), instance.more.x, 0).r)"
                 + " / 2.0;"),
-        Arguments.of("dark exponent 1.6 instead of 1.8", dark,
+        Arguments.of(
+            "dark exponent 1.6 instead of 1.8",
+            dark,
             "let dark = 1.0 - pow(1.0 - a, bitcast<f32>(instance.more.z) - 0.2);"),
         Arguments.of("every glyph corrected as dark text", mix, "var glyph_cover = dark;"),
         Arguments.of("no correction", mix, "var glyph_cover = a;"),
-        Arguments.of("the clip left out", "glyph_cover *= clip_coverage(instance.clip, point);",
+        Arguments.of(
+            "the clip left out",
+            "glyph_cover *= clip_coverage(instance.clip, point);",
             "glyph_cover *= 1.0;"));
   }
 
@@ -346,7 +419,8 @@ class GpuRendererTest {
     String wgsl = GpuRenderer.WGSL.replace(line, broken);
     assertTrue(!wgsl.equals(GpuRenderer.WGSL), "the shader has no line " + line);
     try (GpuRenderer wrong = GpuRenderer.create(wgsl)) {
-      for (Case c : List.of(text("text-sizes-broken", Examples.textSizes(), 720, 176, 1.5f),
+      for (Case c : List.of(
+          text("text-sizes-broken", Examples.textSizes(), 720, 176, 1.5f),
           text("text-clipped-broken", clippedText(), 240, 120, 2))) {
         Comparison comparison = compare(wrong, c, false);
         System.out.println("GPU with " + what + " vs CPU " + comparison);
@@ -364,13 +438,17 @@ class GpuRendererTest {
   static Stream<Arguments> shadowBreaks() {
     String deviation = "return sqrt(sigma * sigma + 1.0 / (12.0 * globals.scale * globals.scale));";
     return Stream.of(
-        Arguments.of("the blur a tenth wider", deviation,
+        Arguments.of(
+            "the blur a tenth wider",
+            deviation,
             "return 1.1 * sqrt(sigma * sigma + 1.0 / (12.0 * globals.scale * globals.scale));"),
         Arguments.of("no share of the pixel in the blur", deviation, "return sigma;"),
         Arguments.of("square corners", "if radius > 0.0 {", "if radius < 0.0 {"),
-        Arguments.of("slices taken at their top", "let middle = top - step / 2.0;",
-            "let middle = top;"),
-        Arguments.of("the clip left out", "shadow_cover *= clip_coverage(instance.clip, point);",
+        Arguments.of(
+            "slices taken at their top", "let middle = top - step / 2.0;", "let middle = top;"),
+        Arguments.of(
+            "the clip left out",
+            "shadow_cover *= clip_coverage(instance.clip, point);",
             "shadow_cover *= 1.0;"));
   }
 
@@ -381,8 +459,8 @@ class GpuRendererTest {
     assertTrue(!wgsl.equals(GpuRenderer.WGSL), "the shader has no line " + line);
     try (GpuRenderer wrong = GpuRenderer.create(wgsl)) {
       for (float scale : new float[] {1, 2}) {
-        Comparison comparison = compare(wrong, text("shadows-broken" + at(scale), shadows(), 240,
-            160, scale), false);
+        Comparison comparison =
+            compare(wrong, text("shadows-broken" + at(scale), shadows(), 240, 160, scale), false);
         System.out.println("GPU with " + what + " vs CPU " + comparison);
         assertTrue(comparison.beyond() > 50, what + ": " + comparison);
       }
@@ -396,16 +474,21 @@ class GpuRendererTest {
    */
   static Stream<Arguments> shapeBreaks() {
     return Stream.of(
-        Arguments.of("the corners on the right swapped", "return select(1u, 2u, p.y > 0.0);",
+        Arguments.of(
+            "the corners on the right swapped",
+            "return select(1u, 2u, p.y > 0.0);",
             "return select(2u, 1u, p.y > 0.0);"),
         Arguments.of("inner corners circles", "if r.x == r.y {", "if true {"),
-        Arguments.of("the fill's edge on the side without a border",
+        Arguments.of(
+            "the fill's edge on the side without a border",
             "select(vec4f(-1.0 / globals.scale), borders, borders > vec4f(0.0))",
             "select(vec4f(0.0), borders, borders > vec4f(0.0))"),
-        Arguments.of("a shadow's corners all the top left one",
-            "if all(radii == vec4f(radii.x)) {", "if true {"),
-        Arguments.of("a clip's corners all the top left one", "clip.radii[corner(p)]",
-            "clip.radii.x"));
+        Arguments.of(
+            "a shadow's corners all the top left one",
+            "if all(radii == vec4f(radii.x)) {",
+            "if true {"),
+        Arguments.of(
+            "a clip's corners all the top left one", "clip.radii[corner(p)]", "clip.radii.x"));
   }
 
   @ParameterizedTest(name = "{0}")
@@ -427,18 +510,24 @@ class GpuRendererTest {
    */
   static Stream<Arguments> imageBreaks() {
     return Stream.of(
-        Arguments.of("the point a quarter texel off", "let p = uv * vec2f(dims) / size - 0.5;",
+        Arguments.of(
+            "the point a quarter texel off",
+            "let p = uv * vec2f(dims) / size - 0.5;",
             "let p = uv * vec2f(dims) / size - 0.25;"),
-        Arguments.of("the nearest texel instead of four", "let f = p - floor(p);",
-            "let f = vec2f(0.0);"),
-        Arguments.of("the finer level alone",
+        Arguments.of(
+            "the nearest texel instead of four", "let f = p - floor(p);", "let f = vec2f(0.0);"),
+        Arguments.of(
+            "the finer level alone",
             "image_level(instance, uv, size, u32(k) + 1u), lod - k);",
             "image_level(instance, uv, size, u32(k) + 1u), 0.0);"),
-        Arguments.of("one to one a texel off",
+        Arguments.of(
+            "one to one a texel off",
             "let texel = clamp(vec2i(floor(pixel) - snapped), vec2i(0), vec2i(size) - 1);",
             "let texel = clamp(vec2i(floor(pixel) - snapped) + vec2i(1, 0), vec2i(0),"
                 + " vec2i(size) - 1);"),
-        Arguments.of("the clip left out", "image_cover *= clip_coverage(instance.clip, point);",
+        Arguments.of(
+            "the clip left out",
+            "image_cover *= clip_coverage(instance.clip, point);",
             "image_cover *= 1.0;"));
   }
 
@@ -449,8 +538,10 @@ class GpuRendererTest {
     assertTrue(!wgsl.equals(GpuRenderer.WGSL), "the shader has no line " + line);
     try (GpuRenderer wrong = GpuRenderer.create(wgsl)) {
       for (float scale : new float[] {1.5f, 2}) {
-        Comparison comparison = compare(wrong, text("images-broken" + at(scale),
-            Examples.images(scale), 320, 220, scale), false);
+        Comparison comparison = compare(
+            wrong,
+            text("images-broken" + at(scale), Examples.images(scale), 320, 220, scale),
+            false);
         System.out.println("GPU with " + what + " vs CPU " + comparison);
         assertTrue(comparison.beyond() > 50, what + ": " + comparison);
       }
@@ -463,7 +554,9 @@ class GpuRendererTest {
     Image b = Image.of(Examples.photo(48, 64));
     Image c = Image.of(Examples.disc(40));
     long uploads = gpu.imageUploads();
-    Scene first = scene(El.image(a).absolute(0, 0), El.image(b).absolute(70, 0),
+    Scene first = scene(
+        El.image(a).absolute(0, 0),
+        El.image(b).absolute(70, 0),
         El.image(a).absolute(0, 50).size(32, 24));
     gpu.render(first, 120, 120, 1);
     assertEquals(2, gpu.imageUploads() - uploads, "two images, the first drawn twice");
@@ -495,24 +588,45 @@ class GpuRendererTest {
     Atlas atlas = new Atlas();
     long writes = gpu.atlasWrites();
     long texels = gpu.atlasTexels();
-    Case first = text("upload-first", label("Kunde Müller", 0xFF1A1A1A, 8), 200, 40, 1,
-        TextRendering.LINUX, atlas, false);
+    Case first = text(
+        "upload-first",
+        label("Kunde Müller", 0xFF1A1A1A, 8),
+        200,
+        40,
+        1,
+        TextRendering.LINUX,
+        atlas,
+        false);
     assertEquals(0, compare(gpu, first).beyond());
     assertEquals(1, gpu.atlasWrites() - writes, "the new page");
     assertEquals((long) Atlas.PAGE_SIZE * Atlas.PAGE_SIZE, gpu.atlasTexels() - texels, "whole");
 
     // The same glyphs in another colour and place, twice: nothing to write.
     writes = gpu.atlasWrites();
-    Case recoloured = text("upload-recoloured", label("Kunde Müller", 0xFF2563EB, 13), 200, 40,
-        1, TextRendering.LINUX, atlas, false);
+    Case recoloured = text(
+        "upload-recoloured",
+        label("Kunde Müller", 0xFF2563EB, 13),
+        200,
+        40,
+        1,
+        TextRendering.LINUX,
+        atlas,
+        false);
     assertEquals(0, compare(gpu, recoloured).beyond());
     gpu.render(recoloured.scene(), 200, 40, 1);
     assertEquals(writes, gpu.atlasWrites(), "no change, no upload");
 
     // New glyphs: only the region they went to.
     texels = gpu.atlasTexels();
-    Case more = text("upload-more", label("Kunde Müller, Köln: 1.234,56 €", 0xFF1A1A1A, 8),
-        200, 40, 1, TextRendering.LINUX, atlas, false);
+    Case more = text(
+        "upload-more",
+        label("Kunde Müller, Köln: 1.234,56 €", 0xFF1A1A1A, 8),
+        200,
+        40,
+        1,
+        TextRendering.LINUX,
+        atlas,
+        false);
     Atlas.Region changed = atlas.pages().getFirst().changed();
     assertEquals(0, compare(gpu, more).beyond());
     assertEquals(writes + 1, gpu.atlasWrites());
@@ -525,23 +639,24 @@ class GpuRendererTest {
     // Room for one page of 64 texels: each frame needs more, so the atlas grows for it, and
     // empties pages of the frame before for the next.
     Atlas atlas = new Atlas(64, 64 * 64, 4096);
-    Case upper = text("pages-upper", paragraph(UPPER), 300, 120, 2, TextRendering.LINUX, atlas,
-        false);
+    Case upper =
+        text("pages-upper", paragraph(UPPER), 300, 120, 2, TextRendering.LINUX, atlas, false);
     int pages = atlas.pages().size();
     assertTrue(pages >= 3, pages + " pages");
     assertEquals(0, compare(gpu, upper).beyond());
 
-    Case lower = text("pages-lower", paragraph(LOWER), 300, 120, 2, TextRendering.LINUX, atlas,
-        false);
+    Case lower =
+        text("pages-lower", paragraph(LOWER), 300, 120, 2, TextRendering.LINUX, atlas, false);
     List<Atlas.Page> emptied = atlas.pages().subList(0, pages).stream()
-        .filter(page -> page.changed().equals(new Atlas.Region(0, 0, 64, 64))).toList();
+        .filter(page -> page.changed().equals(new Atlas.Region(0, 0, 64, 64)))
+        .toList();
     assertTrue(!emptied.isEmpty(), "a page of the first frame was emptied for the second");
     long texels = gpu.atlasTexels();
     assertEquals(0, compare(gpu, lower).beyond());
     assertTrue(gpu.atlasTexels() - texels >= emptied.size() * 64L * 64);
 
-    Case again = text("pages-upper-again", paragraph(UPPER), 300, 120, 2, TextRendering.LINUX,
-        atlas, false);
+    Case again =
+        text("pages-upper-again", paragraph(UPPER), 300, 120, 2, TextRendering.LINUX, atlas, false);
     assertEquals(0, compare(gpu, again).beyond());
   }
 
@@ -598,8 +713,15 @@ class GpuRendererTest {
    * @param maxAtTwo the largest difference where at most two instances draw
    * @param maxSlack the most steps that the rounding of alpha added to the tolerance at a pixel
    */
-  record Comparison(Case c, int[] max, int differing, int beyond, int layers, int maxAtTwo,
-      int maxSlack, String first) {
+  record Comparison(
+      Case c,
+      int[] max,
+      int differing,
+      int beyond,
+      int layers,
+      int maxAtTwo,
+      int maxSlack,
+      String first) {
     @Override
     public String toString() {
       return c.name + " (" + c.width + "x" + c.height + " @" + c.scale + ", " + c.scene.count()
@@ -645,8 +767,8 @@ class GpuRendererTest {
   static Comparison compare(GpuRenderer renderer, Case c, boolean writeImages) {
     // In light, per channel: how far rounding the alpha of every blend may move the GPU's value.
     double[] slack = new double[c.width * c.height * 4];
-    float[] frame = CpuRenderer.renderLinear(c.scene, c.width, c.height, c.scale,
-        (image, at, alpha) -> {
+    float[] frame =
+        CpuRenderer.renderLinear(c.scene, c.width, c.height, c.scale, (image, at, alpha) -> {
           for (int channel = 0; channel < 4; channel++) {
             slack[at + channel] = slack[at + channel] * (1 - alpha + ALPHA_STEP)
                 + Math.abs(image[at + channel]) * ALPHA_STEP;
@@ -673,8 +795,8 @@ class GpuRendererTest {
         boolean out = false;
         for (int channel = 0; channel < 4; channel++) {
           double value = Math.clamp(frame[at + channel], 0, 1);
-          expected[channel] = channel == 3 ? (int) Math.round(value * 255)
-              : CpuRenderer.encode(value);
+          expected[channel] =
+              channel == 3 ? (int) Math.round(value * 255) : CpuRenderer.encode(value);
           int d = Math.abs((stored[gpuAt + channel] & 0xFF) - expected[channel]);
           int allowed = tolerance(n) + steps(value, slack[at + channel], channel == 3);
           max[channel] = Math.max(max[channel], d);
@@ -692,14 +814,23 @@ class GpuRendererTest {
         }
         if (out) {
           if (beyond++ == 0) {
-            first = String.format("at %d,%d, %d layers: CPU %02X%02X%02X%02X, GPU %s"
-                + " (premultiplied), %d allowed", x, y, n, expected[0], expected[1], expected[2],
-                expected[3], hex(stored, gpuAt), tolerance);
+            first = String.format(
+                "at %d,%d, %d layers: CPU %02X%02X%02X%02X, GPU %s"
+                    + " (premultiplied), %d allowed",
+                x,
+                y,
+                n,
+                expected[0],
+                expected[1],
+                expected[2],
+                expected[3],
+                hex(stored, gpuAt),
+                tolerance);
           }
         }
         // Black where equal, grey to light grey within the tolerance, red beyond it.
-        int shade = worst == 0 ? 0 : out ? -1 : 0x50 + 0x50 * Math.min(worst, tolerance)
-            / tolerance;
+        int shade =
+            worst == 0 ? 0 : out ? -1 : 0x50 + 0x50 * Math.min(worst, tolerance) / tolerance;
         diff[at] = (byte) (shade < 0 ? 0xFF : shade);
         diff[at + 1] = (byte) (shade < 0 ? 0 : shade);
         diff[at + 2] = (byte) (shade < 0 ? 0 : shade);
@@ -711,12 +842,14 @@ class GpuRendererTest {
     if (beyond > 0 && writeImages) {
       try {
         Files.createDirectories(FAILED);
-        Files.write(FAILED.resolve(c.name + ".cpu.png"),
+        Files.write(
+            FAILED.resolve(c.name + ".cpu.png"),
             Png.encode(CpuRenderer.render(c.scene, c.width, c.height, c.scale)));
-        Files.write(FAILED.resolve(c.name + ".gpu.png"),
+        Files.write(
+            FAILED.resolve(c.name + ".gpu.png"),
             Png.encode(GpuRenderer.straight(stored, c.width, c.height)));
-        Files.write(FAILED.resolve(c.name + ".diff.png"),
-            Png.encode(new Pixels(c.width, c.height, diff)));
+        Files.write(
+            FAILED.resolve(c.name + ".diff.png"), Png.encode(new Pixels(c.width, c.height, diff)));
       } catch (IOException e) {
         throw new UncheckedIOException(e);
       }
@@ -749,23 +882,30 @@ class GpuRendererTest {
         y1 = y0 + (size >>> 16);
         x0 = Math.max(x0, (int) Math.floor(s.clipGet(clip, Scene.X) * c.scale) - 1);
         y0 = Math.max(y0, (int) Math.floor(s.clipGet(clip, Scene.Y) * c.scale) - 1);
-        x1 = Math.min(x1, (int) Math.ceil(
-            (s.clipGet(clip, Scene.X) + s.clipGet(clip, Scene.WIDTH)) * c.scale) + 1);
-        y1 = Math.min(y1, (int) Math.ceil(
-            (s.clipGet(clip, Scene.Y) + s.clipGet(clip, Scene.HEIGHT)) * c.scale) + 1);
+        x1 = Math.min(
+            x1,
+            (int) Math.ceil((s.clipGet(clip, Scene.X) + s.clipGet(clip, Scene.WIDTH)) * c.scale)
+                + 1);
+        y1 = Math.min(
+            y1,
+            (int) Math.ceil((s.clipGet(clip, Scene.Y) + s.clipGet(clip, Scene.HEIGHT)) * c.scale)
+                + 1);
         x0 = Math.max(x0, 0);
         y0 = Math.max(y0, 0);
         x1 = Math.min(x1, c.width);
         y1 = Math.min(y1, c.height);
       } else {
         // A shadow reaches three deviations beyond its shape.
-        double reach = s.getInt(i, Scene.KIND) != Scene.SHADOW ? 0
+        double reach = s.getInt(i, Scene.KIND) != Scene.SHADOW
+            ? 0
             : 3 * CpuRenderer.deviation(s.get(i, Scene.SIGMA), c.scale);
         double left = Math.max(s.get(i, Scene.X) - reach, s.clipGet(clip, Scene.X));
         double top = Math.max(s.get(i, Scene.Y) - reach, s.clipGet(clip, Scene.Y));
-        double right = Math.min(s.get(i, Scene.X) + s.get(i, Scene.WIDTH) + reach,
+        double right = Math.min(
+            s.get(i, Scene.X) + s.get(i, Scene.WIDTH) + reach,
             s.clipGet(clip, Scene.X) + s.clipGet(clip, Scene.WIDTH));
-        double bottom = Math.min(s.get(i, Scene.Y) + s.get(i, Scene.HEIGHT) + reach,
+        double bottom = Math.min(
+            s.get(i, Scene.Y) + s.get(i, Scene.HEIGHT) + reach,
             s.clipGet(clip, Scene.Y) + s.clipGet(clip, Scene.HEIGHT));
         x0 = Math.max((int) Math.floor(left * c.scale) - 1, 0);
         y0 = Math.max((int) Math.floor(top * c.scale) - 1, 0);
@@ -800,15 +940,15 @@ class GpuRendererTest {
     return scene(name, scene, width, height, scale, false);
   }
 
-  private static Case scene(String name, Scene scene, float width, float height, float scale,
-      boolean stored) {
+  private static Case scene(
+      String name, Scene scene, float width, float height, float scale, boolean stored) {
     return scene(name, scene, width, height, scale, stored ? STORED.resolve(name + ".png") : null);
   }
 
-  private static Case scene(String name, Scene scene, float width, float height, float scale,
-      Path stored) {
-    return new Case(name, scene, Math.round(width * scale), Math.round(height * scale), scale,
-        stored);
+  private static Case scene(
+      String name, Scene scene, float width, float height, float scale, Path stored) {
+    return new Case(
+        name, scene, Math.round(width * scale), Math.round(height * scale), scale, stored);
   }
 
   /** The script of {@code PresenceTest} that makes the stored images badge-*. */
@@ -863,8 +1003,8 @@ class GpuRendererTest {
   }
 
   /** As {@link #script(String, String, Supplier)}, with the stored images in {@code stored}. */
-  private static List<Case> script(String script, String prefix, Path stored,
-      Supplier<App<?>> apps) throws IOException {
+  private static List<Case> script(String script, String prefix, Path stored, Supplier<App<?>> apps)
+      throws IOException {
     List<String> lines = script.lines().toList();
     List<Case> cases = new ArrayList<>();
     float[] size = new float[3];
@@ -875,14 +1015,15 @@ class GpuRendererTest {
         size[0] = Float.parseFloat(words[1]);
         size[1] = Float.parseFloat(words[2]);
         size[2] = words.length > 4 && words[3].equals("scale") ? Float.parseFloat(words[4]) : 1;
-      } else if (words[0].equals("snap") && !SNAPPED.contains(name)
+      } else if (words[0].equals("snap")
+          && !SNAPPED.contains(name)
           && Files.exists(stored.resolve(name + ".png"))) {
         App<?> app = apps.get();
         app.textRendering(TextRendering.LINUX);
-        Script.run(String.join("\n", lines.subList(0, i + 1)), app,
-            Path.of("target/gpu-vs-cpu-scripts"));
-        cases.add(scene(name, app.scene(), size[0], size[1], size[2],
-            stored.resolve(name + ".png")));
+        Script.run(
+            String.join("\n", lines.subList(0, i + 1)), app, Path.of("target/gpu-vs-cpu-scripts"));
+        cases.add(
+            scene(name, app.scene(), size[0], size[1], size[2], stored.resolve(name + ".png")));
         SNAPPED.add(name);
       }
     }
@@ -907,8 +1048,8 @@ class GpuRendererTest {
       app.advance(0.04);
       app.frame();
     }
-    return scene(String.format("switch-moving-%03dms", 40 * frames), app.scene(), 200, 120, 2,
-        true);
+    return scene(
+        String.format("switch-moving-%03dms", 40 * frames), app.scene(), 200, 120, 2, true);
   }
 
   /** As the stored image text-scrolled: 13.25 pixels down, lines cut by the rounded clip. */
@@ -935,7 +1076,9 @@ class GpuRendererTest {
   private static Case grid(String name, float scale, String steps) throws IOException {
     App<?> app = grid();
     app.textRendering(TextRendering.LINUX);
-    Script.run("size 560 240 scale " + scale + "\nframe\n" + steps + "frame\n", app,
+    Script.run(
+        "size 560 240 scale " + scale + "\nframe\n" + steps + "frame\n",
+        app,
         Path.of("target/gpu-vs-cpu-scripts"));
     return scene(name, app.scene(), 560, 240, scale);
   }
@@ -947,8 +1090,10 @@ class GpuRendererTest {
   private static Case overlay(String name, float scale, String steps) throws IOException {
     App<Examples.Menus> app = new App<>(new Examples.Menus(), Examples::overlays);
     app.textRendering(TextRendering.LINUX);
-    Script.run("size 240 200 scale " + scale + "\nframe\nwheel #list 0 13.25\nframe\n"
-        + "press #row-3 right\nframe\n" + steps + "frame\n", app,
+    Script.run(
+        "size 240 200 scale " + scale + "\nframe\nwheel #list 0 13.25\nframe\n"
+            + "press #row-3 right\nframe\n" + steps + "frame\n",
+        app,
         Path.of("target/gpu-vs-cpu-scripts"));
     assertTrue(!app.tree().shownOverlays().isEmpty(), "an overlay shows");
     return scene(name, app.scene(), 240, 200, scale);
@@ -958,7 +1103,9 @@ class GpuRendererTest {
   private static Case shapes(float scale) throws IOException {
     App<Object> app = new App<>(new Object(), s -> Examples.shapes());
     app.textRendering(TextRendering.LINUX);
-    Script.run("size 240 152 scale " + scale + "\nframe\nfocus #ringed\nframe\n", app,
+    Script.run(
+        "size 240 152 scale " + scale + "\nframe\nfocus #ringed\nframe\n",
+        app,
         Path.of("target/gpu-vs-cpu-scripts"));
     return scene("shapes" + at(scale), app.scene(), 240, 152, scale);
   }
@@ -967,7 +1114,9 @@ class GpuRendererTest {
   private static Case field(String name, float scale, String steps) throws IOException {
     App<Examples.Form> app = new App<>(new Examples.Form(), Examples::form);
     app.textRendering(TextRendering.LINUX);
-    Script.run("size 240 80 scale " + scale + "\nframe\n" + steps + "frame\n", app,
+    Script.run(
+        "size 240 80 scale " + scale + "\nframe\n" + steps + "frame\n",
+        app,
         Path.of("target/gpu-vs-cpu-scripts"));
     assertTrue(app.focused().text().caret() != null, "the caret shows");
     return scene(name, app.scene(), 240, 80, scale);
@@ -979,11 +1128,18 @@ class GpuRendererTest {
   }
 
   /** A view with text, laid out for the scale, its glyphs in {@code atlas}. */
-  private static Case text(String name, El root, float width, float height, float scale,
-      TextRendering rendering, Atlas atlas, boolean stored) {
+  private static Case text(
+      String name,
+      El root,
+      float width,
+      float height,
+      float scale,
+      TextRendering rendering,
+      Atlas atlas,
+      boolean stored) {
     Examples.laidOut(root, width, height, scale);
-    return scene(name, Scene.of(root, null, 0, atlas, rendering, scale), width, height, scale,
-        stored);
+    return scene(
+        name, Scene.of(root, null, 0, atlas, rendering, scale), width, height, scale, stored);
   }
 
   private static void press(App<?> app, float x, float y) {
@@ -1008,11 +1164,26 @@ class GpuRendererTest {
       return null;
     };
     String sql = "SELECT id, 'x' FROM t -- 42";
-    return col().wFull().hFull().children(
-        el().wFull().padding(6).fill(0xFFFFFFFF).child(
-            El.text(sql).font(Font.mono()).fontSize(13).color(0xFF1A1A1A).highlight(1, code)),
-        el().wFull().padding(6).fill(0xFF1E1E2E).child(
-            El.text(sql).font(Font.mono()).fontSize(13).color(0xFFE0E0E0).highlight(1, code)));
+    return col()
+        .wFull()
+        .hFull()
+        .children(
+            el().wFull()
+                .padding(6)
+                .fill(0xFFFFFFFF)
+                .child(El.text(sql)
+                    .font(Font.mono())
+                    .fontSize(13)
+                    .color(0xFF1A1A1A)
+                    .highlight(1, code)),
+            el().wFull()
+                .padding(6)
+                .fill(0xFF1E1E2E)
+                .child(El.text(sql)
+                    .font(Font.mono())
+                    .fontSize(13)
+                    .color(0xFFE0E0E0)
+                    .highlight(1, code)));
   }
 
   /**
@@ -1025,37 +1196,63 @@ class GpuRendererTest {
       out.color(0, Math.min(6, line.length()), 0xFF7C3AED).font(0, 5, Font.monoBold());
       return null;
     };
-    App<Object> app = new App<>(new Object(), s -> col().wFull().hFull().padding(8)
-        .fill(0xFFFFFFFF).child(El.text(value[0]).editable(v -> value[0] = v).multiline()
-            .key("area").font(Font.mono()).fontSize(13).color(0xFF1A1A1A).w(220).lines(3)
-            .padding(4).fill(0xFFF4F4F5).highlight(1, code)
-            .decorate((line, start, text, out) -> {
-              if (line == 1) {
-                out.lineBackground(0xFFE0E7FF).background(6, 7, 0xFFFDE68A)
-                    .background(12, 13, 0xFFFDE68A);
-              }
-              if (line == 2) {
-                out.underline(6, 7, 0xFFDC2626);
-              }
-            })));
+    App<Object> app = new App<>(
+        new Object(),
+        s -> col()
+            .wFull()
+            .hFull()
+            .padding(8)
+            .fill(0xFFFFFFFF)
+            .child(El.text(value[0])
+                .editable(v -> value[0] = v)
+                .multiline()
+                .key("area")
+                .font(Font.mono())
+                .fontSize(13)
+                .color(0xFF1A1A1A)
+                .w(220)
+                .lines(3)
+                .padding(4)
+                .fill(0xFFF4F4F5)
+                .highlight(1, code)
+                .decorate((line, start, text, out) -> {
+                  if (line == 1) {
+                    out.lineBackground(0xFFE0E7FF)
+                        .background(6, 7, 0xFFFDE68A)
+                        .background(12, 13, 0xFFFDE68A);
+                  }
+                  if (line == 2) {
+                    out.underline(6, 7, 0xFFDC2626);
+                  }
+                })));
     app.textRendering(TextRendering.LINUX);
-    Script.run("size 240 80 scale " + scale + "\nframe\nfocus #area\nkey ArrowDown\n"
-        + "key ArrowDown shift\nkey End shift\nwheel #area 0 9\nframe\n", app,
+    Script.run(
+        "size 240 80 scale " + scale + "\nframe\nfocus #area\nkey ArrowDown\n"
+            + "key ArrowDown shift\nkey End shift\nwheel #area 0 9\nframe\n",
+        app,
         Path.of("target/gpu-vs-cpu-scripts"));
     return scene(name, app.scene(), 240, 80, scale);
   }
 
-    /** One line of text on white, at {@code x} in a window of 200 by 40. */
+  /** One line of text on white, at {@code x} in a window of 200 by 40. */
   private static El label(String text, int colour, float x) {
-    return el().wFull().hFull().fill(0xFFFFFFFF)
+    return el().wFull()
+        .hFull()
+        .fill(0xFFFFFFFF)
         .child(El.text(text).color(colour).absolute(x, 10));
   }
 
   /** A text in Inter at 14 and JetBrains Mono at 12 pixels, wrapped, dark on white. */
   private static El paragraph(String text) {
-    return col().wFull().hFull().padding(6).gap(4).fill(0xFFFFFFFF).children(
-        El.text(text).fontSize(14).color(0xFF1A1A1A).wrapText(),
-        El.text(text).font(Font.mono()).fontSize(12).color(0xFF1A1A1A).wrapText());
+    return col()
+        .wFull()
+        .hFull()
+        .padding(6)
+        .gap(4)
+        .fill(0xFFFFFFFF)
+        .children(
+            El.text(text).fontSize(14).color(0xFF1A1A1A).wrapText(),
+            El.text(text).font(Font.mono()).fontSize(12).color(0xFF1A1A1A).wrapText());
   }
 
   /**
@@ -1064,8 +1261,15 @@ class GpuRendererTest {
    */
   private static Case textPages(float scale) {
     Atlas atlas = new Atlas(64, 64 * 64, 4096);
-    Case c = text("text-pages" + at(scale), paragraph(UPPER + " " + LOWER), 300, 160, scale,
-        TextRendering.LINUX, atlas, false);
+    Case c = text(
+        "text-pages" + at(scale),
+        paragraph(UPPER + " " + LOWER),
+        300,
+        160,
+        scale,
+        TextRendering.LINUX,
+        atlas,
+        false);
     assertTrue(atlas.pages().size() > 2, atlas.pages().size() + " pages");
     return c;
   }
@@ -1075,18 +1279,36 @@ class GpuRendererTest {
    * positions, dark on light and light on dark, and a clip whose corner cuts through a glyph.
    */
   private static El clippedText() {
-    El inner = el().absolute(118.4f, 46.3f).size(100, 50).radius(16).clip().fill(0xFFF8FAFC)
+    El inner = el().absolute(118.4f, 46.3f)
+        .size(100, 50)
+        .radius(16)
+        .clip()
+        .fill(0xFFF8FAFC)
         .child(El.text("Größe & Söhne").fontSize(14).color(0xFF111827).absolute(-10, -5))
-        .child(El.text("Kunde Müller 1.234,56 €").fontSize(13).color(0xFF1F2937)
-            .absolute(-20.3f, 17))
-        .child(El.text("Köln: AVATAR").font(Font.mono()).fontSize(12).color(0xFF6B6B6B)
+        .child(
+            El.text("Kunde Müller 1.234,56 €").fontSize(13).color(0xFF1F2937).absolute(-20.3f, 17))
+        .child(El.text("Köln: AVATAR")
+            .font(Font.mono())
+            .fontSize(12)
+            .color(0xFF6B6B6B)
             .absolute(44, 36));
-    El outer = el().absolute(10.5f, 8.25f).size(200, 100).radius(24).clip().fill(0xFF1E1F22)
-        .child(El.text("Zeile 1: Größe & Söhne GmbH, Köln").fontSize(14).color(0xFFE4E4E7)
+    El outer = el().absolute(10.5f, 8.25f)
+        .size(200, 100)
+        .radius(24)
+        .clip()
+        .fill(0xFF1E1F22)
+        .child(El.text("Zeile 1: Größe & Söhne GmbH, Köln")
+            .fontSize(14)
+            .color(0xFFE4E4E7)
             .absolute(-6, -4))
-        .child(El.text("SELECT id FROM kunden; -- ÄÖÜ").font(Font.mono()).fontSize(13)
-            .color(0xFFDCDCDC).absolute(4.6f, 26))
-        .child(El.text("am runden Rand entlang geschnitten").fontSize(12).color(0xFF9CA3AF)
+        .child(El.text("SELECT id FROM kunden; -- ÄÖÜ")
+            .font(Font.mono())
+            .fontSize(13)
+            .color(0xFFDCDCDC)
+            .absolute(4.6f, 26))
+        .child(El.text("am runden Rand entlang geschnitten")
+            .fontSize(12)
+            .color(0xFF9CA3AF)
             .absolute(-30, 86))
         .child(inner);
     return el().wFull().hFull().fill(0xFF101014).child(outer);
@@ -1097,23 +1319,30 @@ class GpuRendererTest {
    * glyphs with rectangles in both orders, in one draw call.
    */
   private static El overlappingText() {
-    return el().wFull().hFull().fill(0xFFF5F5F4).children(
-        // Text, then a translucent box over part of it.
-        El.text("Kunde Müller, Köln").fontSize(14).color(0xFF1A1A1A).absolute(8, 8),
-        el().absolute(60.5f, 4.25f).size(70, 26).radius(6).fill(0x803B82F6),
-        // A translucent dark box, then light text over it.
-        el().absolute(8, 40).size(150, 34).radius(8).fill(0xB0111827),
-        El.text("1.234,56 € AVATAR").fontSize(13).color(0xFFF9FAFB).absolute(14.3f, 48),
-        // Translucent text over translucent text.
-        El.text("Größe").fontSize(14).color(0xC0DC2626).absolute(8, 84),
-        El.text("Söhne").fontSize(14).color(0xA02563EB).absolute(14.5f, 88),
-        // Light text on a dark panel, under a translucent white bar.
-        el().absolute(160, 8).size(72, 104).fill(0xFF1E1F22),
-        El.text("SELECT id").font(Font.mono()).fontSize(12).color(0xFFE4E4E7).absolute(166, 26),
-        el().absolute(150, 30).size(90, 12).fill(0x60FFFFFF),
-        // Grey text under its translucent white background box, light text fading out.
-        El.text("Zeile 2").fontSize(12).color(0xFF999999).absolute(170, 60).opacity(0.5f),
-        el().absolute(166, 58).size(60, 20).radius(4).fill(0x40FFFFFF));
+    return el().wFull()
+        .hFull()
+        .fill(0xFFF5F5F4)
+        .children(
+            // Text, then a translucent box over part of it.
+            El.text("Kunde Müller, Köln").fontSize(14).color(0xFF1A1A1A).absolute(8, 8),
+            el().absolute(60.5f, 4.25f).size(70, 26).radius(6).fill(0x803B82F6),
+            // A translucent dark box, then light text over it.
+            el().absolute(8, 40).size(150, 34).radius(8).fill(0xB0111827),
+            El.text("1.234,56 € AVATAR").fontSize(13).color(0xFFF9FAFB).absolute(14.3f, 48),
+            // Translucent text over translucent text.
+            El.text("Größe").fontSize(14).color(0xC0DC2626).absolute(8, 84),
+            El.text("Söhne").fontSize(14).color(0xA02563EB).absolute(14.5f, 88),
+            // Light text on a dark panel, under a translucent white bar.
+            el().absolute(160, 8).size(72, 104).fill(0xFF1E1F22),
+            El.text("SELECT id")
+                .font(Font.mono())
+                .fontSize(12)
+                .color(0xFFE4E4E7)
+                .absolute(166, 26),
+            el().absolute(150, 30).size(90, 12).fill(0x60FFFFFF),
+            // Grey text under its translucent white background box, light text fading out.
+            El.text("Zeile 2").fontSize(12).color(0xFF999999).absolute(170, 60).opacity(0.5f),
+            el().absolute(166, 58).size(60, 20).radius(4).fill(0x40FFFFFF));
   }
 
   // ---- scenes that stress the formulas ------------------------------------------------------
@@ -1198,19 +1427,35 @@ class GpuRendererTest {
 
   /** Rounded clips, nested and cutting through rectangles, borders and translucent groups. */
   private static El clips() {
-    El inner = el().absolute(30.5f, 12.25f).size(70, 40).radius(12).clip().fill(0xFF1F2937)
+    El inner = el().absolute(30.5f, 12.25f)
+        .size(70, 40)
+        .radius(12)
+        .clip()
+        .fill(0xFF1F2937)
         .border(1.5f, 0xFF9CA3AF)
         .child(el().absolute(-10, -6).size(40, 30).radius(6).fill(0xFF3B82F6))
         .child(el().absolute(52, 20).size(40, 40).radius(20).fill(0xC0F43F5E))
         .child(el().absolute(10.3f, 30.6f).size(50, 8).border(2, 0xFFFDE047));
-    El outer = el().absolute(8.5f, 8.5f).size(110, 80).radius(20).clip().fill(0xFF0F172A)
+    El outer = el().absolute(8.5f, 8.5f)
+        .size(110, 80)
+        .radius(20)
+        .clip()
+        .fill(0xFF0F172A)
         .child(el().absolute(-15, 50).size(60, 60).radius(8).fill(0xFF22C55E))
         .child(el().absolute(80, -10).size(60, 30).fill(0xFFF59E0B))
         .child(inner)
-        .child(el().absolute(5, 60).size(100, 30).opacity(0.5f).clip().radius(6)
+        .child(el().absolute(5, 60)
+            .size(100, 30)
+            .opacity(0.5f)
+            .clip()
+            .radius(6)
             .child(el().absolute(-4, 4).size(60, 30).radius(4).fill(0xFFFFFFFF))
             .child(el().absolute(40, -8).size(80, 20).radius(10).fill(0xFFA855F7)));
-    El thin = el().absolute(124.25f, 10).size(28, 80).radius(14).clip().fill(0xFF334155)
+    El thin = el().absolute(124.25f, 10)
+        .size(28, 80)
+        .radius(14)
+        .clip()
+        .fill(0xFF334155)
         .child(el().absolute(-6, 20.5f).size(40, 0.7f).fill(0xFFFFFFFF))
         .child(el().absolute(10, -5).size(8, 100).radius(4).fill(0x8038BDF8));
     return col().wFull().hFull().fill(BACKGROUND).child(outer).child(thin);
@@ -1224,8 +1469,15 @@ class GpuRendererTest {
   private static Case bars(String name, float scale, boolean hovered) {
     Scrollbars look = new Scrollbars(7, 2.5f, 3.5f, 20, 0xB0A1A1AA, 0xE0D4D4D8, 0xFFFFFFFF);
     App<Object> app = new App<>(new Object(), s -> {
-      El area = col().key("area").size(140, 80).scrollBoth().radius(14).padding(4).gap(3)
-          .fill(0xFF1F2937).scrollbars(look);
+      El area = col()
+          .key("area")
+          .size(140, 80)
+          .scrollBoth()
+          .radius(14)
+          .padding(4)
+          .gap(3)
+          .fill(0xFF1F2937)
+          .scrollbars(look);
       for (int i = 0; i < 12; i++) {
         area.child(el().size(250, 13).radius(4).fill(i % 2 == 0 ? 0xFF3B82F6 : 0xFFF59E0B));
       }
@@ -1253,33 +1505,80 @@ class GpuRendererTest {
   private static El shadows() {
     Shadow tight = new Shadow(0, 1, 3, 0, 0x33000000);
     Shadow wide = new Shadow(0, 6, 16, 0, 0x29000000);
-    El light = el().absolute(0, 0).size(120, 160).fill(0xFFF5F5F4).children(
-        el().absolute(10.5f, 8.25f).size(46, 30).radius(6).fill(0xFFFFFFFF).shadow(tight, wide)
-            .child(El.text("Karte").fontSize(12).color(0xFF1A1A1A).absolute(6, 8)),
-        El.text("unter Text").fontSize(13).color(0xFF1F2937).absolute(8, 38),
-        el().absolute(66, 8).size(44, 30).radius(15).fill(0x803B82F6)
-            .shadow(new Shadow(2, 3, 8, 1, 0x40000000)),
-        el().absolute(76, 30).size(36, 18).radius(4).fill(0x60EF4444),
-        el().absolute(8, 62).size(104, 40).radius(14).clip().fill(0xFFE7E5E4).children(
-            el().absolute(-6, 12.3f).size(40, 20).radius(5).fill(0xFFFFFFFF)
-                .shadow(new Shadow(0, 4, 12, 2, 0x4D000000)),
-            el().absolute(70, 18).size(40, 30).radius(8).fill(0xFFFAFAF9).shadow(tight, wide)),
-        el().absolute(8, 112).size(40, 36).radius(8).fill(0xFFFFFFFF).opacity(0.5f)
-            .shadow(tight, wide, new Shadow(2.3f, 2.7f, 0, 0, 0x59000000)),
-        el().absolute(56, 110).size(34, 26).radius(6).fill(0xFFFFFFFF).shadow(tight, wide),
-        el().absolute(74.5f, 124.5f).size(34, 26).radius(6).fill(0xFFFFFFFF).shadow(tight, wide));
-    El dark = el().absolute(120, 0).size(120, 160).fill(0xFF1B1C1F).children(
-        el().absolute(12, 10).size(48, 34).radius(8).fill(0xFF2D2E33)
-            .shadow(new Shadow(0, 2, 4, 0, 0x80000000), new Shadow(0, 8, 24, 0, 0x66000000)),
-        El.text("SELECT 1").font(Font.mono()).fontSize(12).color(0xFFE4E5E9).absolute(14, 44),
-        el().absolute(72, 12).size(36, 30).fill(0xFF2D2E33)
-            .shadow(new Shadow(3.3f, 2.6f, 0, 0, 0xFF000000)),
-        el().absolute(14, 70).size(40, 30).radius(10).fill(0xFF26262E)
-            .shadow(new Shadow(0, 0, 18, 2, 0xB33B82F6)),
-        el().absolute(66, 64).size(44, 44).radius(6).fill(0xFF2D2E33)
-            .shadow(new Shadow(0, 10, 60, 0, 0x99000000)),
-        el().absolute(10, 122).size(100, 22).radius(11).fill(0xFF3A3B42)
-            .shadow(new Shadow(0, 3, 6, -1, 0x99000000), new Shadow(-4, 0, 10, 0, 0x4022C55E)));
+    El light = el().absolute(0, 0)
+        .size(120, 160)
+        .fill(0xFFF5F5F4)
+        .children(
+            el().absolute(10.5f, 8.25f)
+                .size(46, 30)
+                .radius(6)
+                .fill(0xFFFFFFFF)
+                .shadow(tight, wide)
+                .child(El.text("Karte").fontSize(12).color(0xFF1A1A1A).absolute(6, 8)),
+            El.text("unter Text").fontSize(13).color(0xFF1F2937).absolute(8, 38),
+            el().absolute(66, 8)
+                .size(44, 30)
+                .radius(15)
+                .fill(0x803B82F6)
+                .shadow(new Shadow(2, 3, 8, 1, 0x40000000)),
+            el().absolute(76, 30).size(36, 18).radius(4).fill(0x60EF4444),
+            el().absolute(8, 62)
+                .size(104, 40)
+                .radius(14)
+                .clip()
+                .fill(0xFFE7E5E4)
+                .children(
+                    el().absolute(-6, 12.3f)
+                        .size(40, 20)
+                        .radius(5)
+                        .fill(0xFFFFFFFF)
+                        .shadow(new Shadow(0, 4, 12, 2, 0x4D000000)),
+                    el().absolute(70, 18)
+                        .size(40, 30)
+                        .radius(8)
+                        .fill(0xFFFAFAF9)
+                        .shadow(tight, wide)),
+            el().absolute(8, 112)
+                .size(40, 36)
+                .radius(8)
+                .fill(0xFFFFFFFF)
+                .opacity(0.5f)
+                .shadow(tight, wide, new Shadow(2.3f, 2.7f, 0, 0, 0x59000000)),
+            el().absolute(56, 110).size(34, 26).radius(6).fill(0xFFFFFFFF).shadow(tight, wide),
+            el().absolute(74.5f, 124.5f)
+                .size(34, 26)
+                .radius(6)
+                .fill(0xFFFFFFFF)
+                .shadow(tight, wide));
+    El dark = el().absolute(120, 0)
+        .size(120, 160)
+        .fill(0xFF1B1C1F)
+        .children(
+            el().absolute(12, 10)
+                .size(48, 34)
+                .radius(8)
+                .fill(0xFF2D2E33)
+                .shadow(new Shadow(0, 2, 4, 0, 0x80000000), new Shadow(0, 8, 24, 0, 0x66000000)),
+            El.text("SELECT 1").font(Font.mono()).fontSize(12).color(0xFFE4E5E9).absolute(14, 44),
+            el().absolute(72, 12)
+                .size(36, 30)
+                .fill(0xFF2D2E33)
+                .shadow(new Shadow(3.3f, 2.6f, 0, 0, 0xFF000000)),
+            el().absolute(14, 70)
+                .size(40, 30)
+                .radius(10)
+                .fill(0xFF26262E)
+                .shadow(new Shadow(0, 0, 18, 2, 0xB33B82F6)),
+            el().absolute(66, 64)
+                .size(44, 44)
+                .radius(6)
+                .fill(0xFF2D2E33)
+                .shadow(new Shadow(0, 10, 60, 0, 0x99000000)),
+            el().absolute(10, 122)
+                .size(100, 22)
+                .radius(11)
+                .fill(0xFF3A3B42)
+                .shadow(new Shadow(0, 3, 6, -1, 0x99000000), new Shadow(-4, 0, 10, 0, 0x4022C55E)));
     return el().wFull().hFull().children(light, dark);
   }
 
@@ -1291,17 +1590,33 @@ class GpuRendererTest {
   private static Scene sides() {
     Scene scene = new Scene();
     scene.rect(0, 0, 160, 100, 0, 0, BACKGROUND, 0);
-    float[][] borders = {{0, 0, 1, 0}, {1.5f, 0, 0, 3}, {2, 4, 2, 4}, {0.5f, 1, 2.5f, 6},
-        {5, 0, 5, 0}, {12, 12, 12, 0}};
-    float[][] radii = {{0, 0, 0, 0}, {6, 6, 6, 6}, {10, 0, 4, 2.5f}, {3.3f, 14, 0, 8},
-        {12, 12, 0, 0}, {20, 1, 20, 1}};
+    float[][] borders = {
+      {0, 0, 1, 0}, {1.5f, 0, 0, 3}, {2, 4, 2, 4}, {0.5f, 1, 2.5f, 6}, {5, 0, 5, 0}, {12, 12, 12, 0}
+    };
+    float[][] radii = {
+      {0, 0, 0, 0}, {6, 6, 6, 6}, {10, 0, 4, 2.5f}, {3.3f, 14, 0, 8}, {12, 12, 0, 0}, {20, 1, 20, 1}
+    };
     for (int i = 0; i < borders.length; i++) {
       float x = 4 + i * 26.3f;
       scene.rect(x, 4.25f, 23, 26, radii[i], borders[i], 0xFF2563EB, 0xFFF8FAFC);
-      scene.rect(x + 0.4f, 34.5f, 22, 26, radii[(i + 2) % radii.length], borders[i], 0xFF1E293B,
+      scene.rect(
+          x + 0.4f,
+          34.5f,
+          22,
+          26,
+          radii[(i + 2) % radii.length],
+          borders[i],
+          0xFF1E293B,
           0xFFFACC15);
-      scene.rect(x, 64.75f, 23, 30, radii[(i + 4) % radii.length], borders[(i + 3) % 6],
-          0x80F97316, 0xC0FFFFFF);
+      scene.rect(
+          x,
+          64.75f,
+          23,
+          30,
+          radii[(i + 4) % radii.length],
+          borders[(i + 3) % 6],
+          0x80F97316,
+          0xC0FFFFFF);
     }
     return scene;
   }

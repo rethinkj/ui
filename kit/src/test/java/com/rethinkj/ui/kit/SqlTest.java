@@ -32,9 +32,11 @@ class SqlTest {
         }
         String[] parts = range.split(" ");
         String[] at = parts[1].split("-");
-        tokens.append(tokens.isEmpty() ? "" : " ")
+        tokens
+            .append(tokens.isEmpty() ? "" : " ")
             .append(line, Integer.parseInt(at[0]), Integer.parseInt(at[1]))
-            .append(':').append(parts[2]);
+            .append(':')
+            .append(parts[2]);
       }
       out.add(tokens.toString());
     }
@@ -43,23 +45,30 @@ class SqlTest {
 
   @Test
   void keywordsNumbersAndOperators() {
-    assertEquals(List.of("select:1 ,:5 1.5:3 ,:5 .5:3 ,:5 2e-3:3 from:1 (:5 =:5 ):5 ;:5"),
+    assertEquals(
+        List.of("select:1 ,:5 1.5:3 ,:5 .5:3 ,:5 2e-3:3 from:1 (:5 =:5 ):5 ;:5"),
         tokens("select id, 1.5, .5, 2e-3 from t(a = b);"));
-    assertEquals(List.of("SELECT:1 ,:5 Order:1 ::5 ::5"),
-        tokens("SELECT selected, Order::text_x"), "words that only start like keywords are none");
+    assertEquals(
+        List.of("SELECT:1 ,:5 Order:1 ::5 ::5"),
+        tokens("SELECT selected, Order::text_x"),
+        "words that only start like keywords are none");
   }
 
   @Test
   void stringsWithDoubledQuotesAndQuotedIdentifiers() {
-    assertEquals(List.of("WHERE:1 =:5 'it''s':2 AND:1 =:5 '':2"),
+    assertEquals(
+        List.of("WHERE:1 =:5 'it''s':2 AND:1 =:5 '':2"),
         tokens("WHERE \"select\" = 'it''s' AND \"a\"\"b\" = ''"));
-    assertEquals(List.of("'one:2", "two'':2", "three':2 ;:5"),
-        tokens("'one", "two''", "three';"), "a string across lines");
+    assertEquals(
+        List.of("'one:2", "two'':2", "three':2 ;:5"),
+        tokens("'one", "two''", "three';"),
+        "a string across lines");
   }
 
   @Test
   void dollarQuotedStrings() {
-    assertEquals(List.of("AS:1 $fn$ BEGIN 'x' $$:2", "  RETURN 1; -- no:2", "$fn$:2 LANGUAGE:1 ;:5"),
+    assertEquals(
+        List.of("AS:1 $fn$ BEGIN 'x' $$:2", "  RETURN 1; -- no:2", "$fn$:2 LANGUAGE:1 ;:5"),
         tokens("AS $fn$ BEGIN 'x' $$", "  RETURN 1; -- no", "$fn$ LANGUAGE plpgsql;"));
     assertEquals(List.of("$$x$$:2 =:5 $1:3"), tokens("$$x$$ = $1"), "a parameter is a number");
   }
@@ -67,8 +76,8 @@ class SqlTest {
   @Test
   void commentsNestAndGoOnAcrossLines() {
     assertEquals(List.of("AS:1 -- x 'y':4"), tokens("AS -- x 'y'"));
-    assertEquals(List.of("/* a /* b */:4", "c */:4 SELECT:1"),
-        tokens("/* a /* b */", "c */ SELECT"));
+    assertEquals(
+        List.of("/* a /* b */:4", "c */:4 SELECT:1"), tokens("/* a /* b */", "c */ SELECT"));
     Object state = SQL.line("/* open", null, new Spans(7));
     assertEquals(state, SQL.line("still", state, new Spans(5)), "the same state, equal");
     assertNull(SQL.line("end */", state, new Spans(6)));

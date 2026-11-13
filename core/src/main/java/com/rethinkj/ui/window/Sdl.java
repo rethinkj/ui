@@ -235,7 +235,8 @@ final class Sdl {
   // ---- callbacks
 
   /** {@code SDL_HitTestResult (*SDL_HitTest)(SDL_Window *win, const SDL_Point *area, void *data)} */
-  static final FunctionDescriptor HIT_TEST = FunctionDescriptor.of(JAVA_INT, ADDRESS, ADDRESS, ADDRESS);
+  static final FunctionDescriptor HIT_TEST =
+      FunctionDescriptor.of(JAVA_INT, ADDRESS, ADDRESS, ADDRESS);
 
   /** {@code bool (*SDL_EventFilter)(void *userdata, SDL_Event *event)} */
   static final FunctionDescriptor EVENT_FILTER =
@@ -279,7 +280,8 @@ final class Sdl {
       FunctionDescriptor.of(JAVA_BOOLEAN, ADDRESS, JAVA_INT, JAVA_INT);
   static final FunctionDescriptor SDL_SET_WINDOW_MINIMUM_SIZE =
       FunctionDescriptor.of(JAVA_BOOLEAN, ADDRESS, JAVA_INT, JAVA_INT);
-  static final FunctionDescriptor SDL_CAPTURE_MOUSE = FunctionDescriptor.of(JAVA_BOOLEAN, JAVA_BOOLEAN);
+  static final FunctionDescriptor SDL_CAPTURE_MOUSE =
+      FunctionDescriptor.of(JAVA_BOOLEAN, JAVA_BOOLEAN);
   static final FunctionDescriptor SDL_GET_GLOBAL_MOUSE_STATE =
       FunctionDescriptor.of(JAVA_INT, ADDRESS, ADDRESS);
   static final FunctionDescriptor SDL_GET_WINDOW_POSITION =
@@ -318,6 +320,7 @@ final class Sdl {
   static final FunctionDescriptor SDL_GET_DISPLAYS = FunctionDescriptor.of(ADDRESS, ADDRESS);
   /** {@code SDL_Rect}: int x, y, w, h. */
   static final long RECT_SIZE = 16;
+
   static final FunctionDescriptor SDL_SET_WINDOW_HIT_TEST =
       FunctionDescriptor.of(JAVA_BOOLEAN, ADDRESS, ADDRESS, ADDRESS);
   static final FunctionDescriptor SDL_SHOW_WINDOW_SYSTEM_MENU =
@@ -333,10 +336,12 @@ final class Sdl {
   /** {@code bool SDL_StartTextInputWithProperties(SDL_Window *window, SDL_PropertiesID props)} */
   static final FunctionDescriptor SDL_START_TEXT_INPUT_WITH_PROPERTIES =
       FunctionDescriptor.of(JAVA_BOOLEAN, ADDRESS, JAVA_INT);
+
   static final FunctionDescriptor SDL_STOP_TEXT_INPUT =
       FunctionDescriptor.of(JAVA_BOOLEAN, ADDRESS);
   /** {@code SDL_PropertiesID SDL_CreateProperties(void)}, a Uint32, 0 on failure */
   static final FunctionDescriptor SDL_CREATE_PROPERTIES = FunctionDescriptor.of(JAVA_INT);
+
   static final FunctionDescriptor SDL_SET_NUMBER_PROPERTY =
       FunctionDescriptor.of(JAVA_BOOLEAN, JAVA_INT, ADDRESS, JAVA_LONG);
   static final FunctionDescriptor SDL_DESTROY_PROPERTIES = FunctionDescriptor.ofVoid(JAVA_INT);
@@ -355,6 +360,7 @@ final class Sdl {
   /** {@code bool SDL_ShowMessageBox(const SDL_MessageBoxData *messageboxdata, int *buttonid)} */
   static final FunctionDescriptor SDL_SHOW_MESSAGE_BOX =
       FunctionDescriptor.of(JAVA_BOOLEAN, ADDRESS, ADDRESS);
+
   static final FunctionDescriptor SDL_TEXT_INPUT_ACTIVE =
       FunctionDescriptor.of(JAVA_BOOLEAN, ADDRESS);
   /** {@code bool SDL_SetTextInputArea(SDL_Window *window, const SDL_Rect *rect, int cursor)} */
@@ -365,10 +371,12 @@ final class Sdl {
       FunctionDescriptor.of(JAVA_BOOLEAN, ADDRESS, ADDRESS, ADDRESS);
   /** {@code SDL_Keymod SDL_GetModState(void)}, a Uint16 */
   static final FunctionDescriptor SDL_GET_MOD_STATE = FunctionDescriptor.of(JAVA_SHORT);
+
   static final FunctionDescriptor SDL_SET_CLIPBOARD_TEXT =
       FunctionDescriptor.of(JAVA_BOOLEAN, ADDRESS);
   /** {@code char *SDL_GetClipboardText(void)}, which the caller frees with SDL_free */
   static final FunctionDescriptor SDL_GET_CLIPBOARD_TEXT = FunctionDescriptor.of(ADDRESS);
+
   static final FunctionDescriptor SDL_FREE = FunctionDescriptor.ofVoid(ADDRESS);
   static final FunctionDescriptor SDL_ADD_EVENT_WATCH =
       FunctionDescriptor.of(JAVA_BOOLEAN, ADDRESS, ADDRESS);
@@ -385,6 +393,7 @@ final class Sdl {
   /** {@code SDL_Surface *SDL_CreateSurface(int width, int height, SDL_PixelFormat format)} */
   static final FunctionDescriptor SDL_CREATE_SURFACE =
       FunctionDescriptor.of(ADDRESS, JAVA_INT, JAVA_INT, JAVA_INT);
+
   static final FunctionDescriptor SDL_DESTROY_SURFACE = FunctionDescriptor.ofVoid(ADDRESS);
   static final FunctionDescriptor SDL_ADD_SURFACE_ALTERNATE_IMAGE =
       FunctionDescriptor.of(JAVA_BOOLEAN, ADDRESS, ADDRESS);
@@ -397,6 +406,7 @@ final class Sdl {
   /** {@code bool SDL_SetAppMetadata(const char *name, const char *version, const char *id)} */
   static final FunctionDescriptor SDL_SET_APP_METADATA =
       FunctionDescriptor.of(JAVA_BOOLEAN, ADDRESS, ADDRESS, ADDRESS);
+
   static final FunctionDescriptor SDL_GET_APP_METADATA_PROPERTY =
       FunctionDescriptor.of(ADDRESS, ADDRESS);
 
@@ -518,11 +528,10 @@ final class Sdl {
         bind("SDL_GetAppMetadataProperty", SDL_GET_APP_METADATA_PROPERTY);
 
     private static MethodHandle bind(String name, FunctionDescriptor descriptor) {
-      MemorySegment symbol =
-          Natives.lookup("sdl3")
-              .find(name)
-              .orElseThrow(() -> new UnsatisfiedLinkError("SDL 3 has no function " + name
-                  + "; rethinkj UI needs SDL 3.4 or later."));
+      MemorySegment symbol = Natives.lookup("sdl3")
+          .find(name)
+          .orElseThrow(() -> new UnsatisfiedLinkError(
+              "SDL 3 has no function " + name + "; rethinkj UI needs SDL 3.4 or later."));
       return Linker.nativeLinker().downcallHandle(symbol, descriptor);
     }
   }
@@ -814,8 +823,8 @@ final class Sdl {
   static int[] windowBordersSize(MemorySegment window) {
     try (Arena arena = Arena.ofConfined()) {
       MemorySegment sides = arena.allocate(JAVA_INT, 4);
-      boolean ok = (boolean) H.GET_WINDOW_BORDERS_SIZE.invokeExact(window, sides,
-          sides.asSlice(4), sides.asSlice(8), sides.asSlice(12));
+      boolean ok = (boolean) H.GET_WINDOW_BORDERS_SIZE.invokeExact(
+          window, sides, sides.asSlice(4), sides.asSlice(8), sides.asSlice(12));
       return ok ? sides.toArray(JAVA_INT) : null;
     } catch (Throwable t) {
       throw failed(t);
@@ -849,7 +858,8 @@ final class Sdl {
     }
   }
 
-  static boolean setWindowHitTest(MemorySegment window, MemorySegment callback, MemorySegment data) {
+  static boolean setWindowHitTest(
+      MemorySegment window, MemorySegment callback, MemorySegment data) {
     try {
       return (boolean) H.SET_WINDOW_HIT_TEST.invokeExact(window, callback, data);
     } catch (Throwable t) {
@@ -912,8 +922,8 @@ final class Sdl {
       }
       try {
         return (boolean) H.SET_NUMBER_PROPERTY.invokeExact(
-                properties, arena.allocateFrom(PROP_TEXTINPUT_TYPE_NUMBER),
-                (long) TEXTINPUT_TYPE_TEXT_PASSWORD_HIDDEN)
+                properties, arena.allocateFrom(PROP_TEXTINPUT_TYPE_NUMBER), (long)
+                    TEXTINPUT_TYPE_TEXT_PASSWORD_HIDDEN)
             && (boolean) H.START_TEXT_INPUT_WITH_PROPERTIES.invokeExact(window, properties);
       } finally {
         H.DESTROY_PROPERTIES.invokeExact(properties);
@@ -942,8 +952,8 @@ final class Sdl {
 
   static boolean setPointerProperty(int properties, String name, MemorySegment value) {
     try (Arena arena = Arena.ofConfined()) {
-      return (boolean) H.SET_POINTER_PROPERTY.invokeExact(properties, arena.allocateFrom(name),
-          value);
+      return (boolean)
+          H.SET_POINTER_PROPERTY.invokeExact(properties, arena.allocateFrom(name), value);
     } catch (Throwable t) {
       throw failed(t);
     }
@@ -951,8 +961,8 @@ final class Sdl {
 
   static boolean setNumberProperty(int properties, String name, long value) {
     try (Arena arena = Arena.ofConfined()) {
-      return (boolean) H.SET_NUMBER_PROPERTY.invokeExact(properties, arena.allocateFrom(name),
-          value);
+      return (boolean)
+          H.SET_NUMBER_PROPERTY.invokeExact(properties, arena.allocateFrom(name), value);
     } catch (Throwable t) {
       throw failed(t);
     }
@@ -961,8 +971,8 @@ final class Sdl {
   /** SDL keeps a copy of the string. */
   static boolean setStringProperty(int properties, String name, String value) {
     try (Arena arena = Arena.ofConfined()) {
-      return (boolean) H.SET_STRING_PROPERTY.invokeExact(properties, arena.allocateFrom(name),
-          arena.allocateFrom(value));
+      return (boolean) H.SET_STRING_PROPERTY.invokeExact(
+          properties, arena.allocateFrom(name), arena.allocateFrom(value));
     } catch (Throwable t) {
       throw failed(t);
     }
@@ -970,8 +980,8 @@ final class Sdl {
 
   static boolean setBooleanProperty(int properties, String name, boolean value) {
     try (Arena arena = Arena.ofConfined()) {
-      return (boolean) H.SET_BOOLEAN_PROPERTY.invokeExact(properties, arena.allocateFrom(name),
-          value);
+      return (boolean)
+          H.SET_BOOLEAN_PROPERTY.invokeExact(properties, arena.allocateFrom(name), value);
     } catch (Throwable t) {
       throw failed(t);
     }
@@ -981,8 +991,8 @@ final class Sdl {
    * Returns at once; SDL calls {@code callback} later, on this thread while it pumps events or on
    * one of its own, or at once on failure.
    */
-  static void showFileDialogWithProperties(int type, MemorySegment callback,
-      MemorySegment userdata, int properties) {
+  static void showFileDialogWithProperties(
+      int type, MemorySegment callback, MemorySegment userdata, int properties) {
     try {
       H.SHOW_FILE_DIALOG_WITH_PROPERTIES.invokeExact(type, callback, userdata, properties);
     } catch (Throwable t) {
@@ -1038,8 +1048,13 @@ final class Sdl {
       if (!(boolean) H.GET_TEXT_INPUT_AREA.invokeExact(window, rect, cursor)) {
         throw new IllegalStateException("SDL_GetTextInputArea failed: " + getError());
       }
-      return new int[] {rect.get(JAVA_INT, 0), rect.get(JAVA_INT, 4), rect.get(JAVA_INT, 8),
-          rect.get(JAVA_INT, 12), cursor.get(JAVA_INT, 0)};
+      return new int[] {
+        rect.get(JAVA_INT, 0),
+        rect.get(JAVA_INT, 4),
+        rect.get(JAVA_INT, 8),
+        rect.get(JAVA_INT, 12),
+        cursor.get(JAVA_INT, 0)
+      };
     } catch (Throwable t) {
       throw failed(t);
     }
@@ -1152,8 +1167,8 @@ final class Sdl {
    */
   static MemorySegment createSurface(Pixels image) {
     try {
-      MemorySegment surface = (MemorySegment) H.CREATE_SURFACE.invokeExact(
-          image.width(), image.height(), PIXELFORMAT_ABGR8888);
+      MemorySegment surface = (MemorySegment)
+          H.CREATE_SURFACE.invokeExact(image.width(), image.height(), PIXELFORMAT_ABGR8888);
       if (surface.equals(MemorySegment.NULL)) {
         return surface;
       }

@@ -41,7 +41,8 @@ class GridIconsTest {
 
   private static final Theme T = Theme.DARK;
 
-  @TempDir Path out;
+  @TempDir
+  Path out;
 
   @BeforeEach
   void textLibraries() {
@@ -93,13 +94,17 @@ class GridIconsTest {
     orders.widths[0] = 120; // room for its type
     App<Orders> app = start(orders);
     El id = find(app, "column-0");
-    assertEquals(List.of("el", icon(Symbol.KEY), "el"), children(id),
+    assertEquals(
+        List.of("el", icon(Symbol.KEY), "el"),
+        children(id),
         "the arrow, the key, then the title and the type");
-    assertEquals(List.of("text \"id\"", "text \"bigint\""), children(id.children().get(2)));
+    assertEquals(
+        List.of("text \"id\"", "text \"bigint\""), children(id.children().get(2)));
     assertEquals(List.of(icon(Symbol.TEXT_CASE_TITLE), "el"), children(app, "column-2"));
     assertTrue(app.tree().dump().contains("text \"order_status\""), "the type, in the dump");
     assertEquals(T.status().warning(), id.children().get(1).text().color());
-    assertEquals(T.text().muted(), find(app, "column-2").children().getFirst().text().color());
+    assertEquals(
+        T.text().muted(), find(app, "column-2").children().getFirst().text().color());
     assertEquals(T.text().muted(), type(find(app, "column-2")).text().color());
 
     run(app, "press #column-4\nframe"); // status, left-aligned: the mark after the type
@@ -122,7 +127,8 @@ class GridIconsTest {
     orders.widths[4] = 90;
     run(app, "frame");
     status = find(app, "column-4");
-    assertTrue(type(status).width() > 0 && type(status).width() < natural(type(status)),
+    assertTrue(
+        type(status).width() > 0 && type(status).width() < natural(type(status)),
         "the type is cut short: " + type(status).width());
     assertFalse(title(status).text().shortened(), "the title is whole");
 
@@ -141,8 +147,8 @@ class GridIconsTest {
     assertEquals(16, status.children().getFirst().height());
     El arrow = status.children().getLast().children().getFirst();
     assertEquals(T.grid().mark(), arrow.width(), "and so does the arrow");
-    assertTrue(x(app, arrow) + arrow.width() <= x(app, status) + status.width(),
-        "inside the header cell");
+    assertTrue(
+        x(app, arrow) + arrow.width() <= x(app, status) + status.width(), "inside the header cell");
   }
 
   @Test
@@ -162,8 +168,10 @@ class GridIconsTest {
           gone++;
         } else {
           shown++;
-          assertTrue(type(header).width() >= least - 0.01f, type + " at " + width + ": "
-              + type(header).width() + " wide, less than its first character and an ellipsis");
+          assertTrue(
+              type(header).width() >= least - 0.01f,
+              type + " at " + width + ": " + type(header).width()
+                  + " wide, less than its first character and an ellipsis");
         }
       }
       orders.widths[column] = 200;
@@ -206,13 +214,17 @@ class GridIconsTest {
     assertTrue(line(app, "cell-6-3").contains(" label=\"NULL\" "), "the NULL marker");
     assertEquals(List.of(icon(Symbol.PROHIBITED)), children(app, "cell-6-3"));
     assertNull(find(app, "cell-1-2").label(), "a cell with text has no label");
-    assertEquals(List.of("text \"Grace Lovelace\""), children(app, "cell-1-2"),
+    assertEquals(
+        List.of("text \"Grace Lovelace\""),
+        children(app, "cell-1-2"),
         "and a cell without an icon one element less");
 
-    assertEquals(T.status().success(), find(app, "cell-0-3").children().getFirst().text().color());
-    assertEquals(T.status().danger(), find(app, "cell-1-4").children().getFirst().text().color());
-    assertEquals(T.status().warning(),
-        find(app, "cell-3-4").children().getFirst().text().color());
+    assertEquals(
+        T.status().success(), find(app, "cell-0-3").children().getFirst().text().color());
+    assertEquals(
+        T.status().danger(), find(app, "cell-1-4").children().getFirst().text().color());
+    assertEquals(
+        T.status().warning(), find(app, "cell-3-4").children().getFirst().text().color());
     El link = find(app, "cell-1-1"); // right-aligned: icon and number at the right
     El number = link.children().getLast();
     assertEquals(x(app, link) + link.width() - T.space().s(), x(app, number) + number.width());
@@ -232,7 +244,8 @@ class GridIconsTest {
     for (String line : app.tree().dump().lines().toList()) {
       if (line.strip().startsWith("text label=") && !line.contains("\"arrow_up\"")) {
         String[] at = line.replaceAll(
-            ".* (-?[\\d.]+),(-?[\\d.]+) ([\\d.]+)x([\\d.]+).*", "$1 $2 $3 $4").split(" ");
+                ".* (-?[\\d.]+),(-?[\\d.]+) ([\\d.]+)x([\\d.]+).*", "$1 $2 $3 $4")
+            .split(" ");
         float x = Float.parseFloat(at[0]);
         float y = Float.parseFloat(at[1]);
         assertEquals(16, Float.parseFloat(at[3]), line);
@@ -265,7 +278,9 @@ class GridIconsTest {
     assertEquals(T.grid().selected(), find(app, "cell-3-4").fill());
     El icon = find(app, "cell-3-4").children().getFirst();
     assertEquals(T.status().warning(), icon.text().color(), "on the selection too");
-    assertEquals(x(app, find(app, "cell-3-4")) + T.space().s(), x(app, icon),
+    assertEquals(
+        x(app, find(app, "cell-3-4")) + T.space().s(),
+        x(app, icon),
         "where it was without the cursor's outline");
   }
 
@@ -331,10 +346,12 @@ class GridIconsTest {
     App<Orders> app = start(orders);
     run(app, "press #resize-4\npress #resize-4 clicks 2\nframe");
     El status = find(app, "column-4");
-    float header = 16 + T.space().s() + natural(title(status)) + T.space().s()
-        + natural(type(status));
-    assertEquals((float) Math.ceil(header) + 2 * T.space().s() + T.size().stroke(),
-        orders.widths[4], "the header is the widest: icon, title and type");
+    float header =
+        16 + T.space().s() + natural(title(status)) + T.space().s() + natural(type(status));
+    assertEquals(
+        (float) Math.ceil(header) + 2 * T.space().s() + T.size().stroke(),
+        orders.widths[4],
+        "the header is the widest: icon, title and type");
     assertEquals(natural(type(status)), type(status).width(), "all of it shows");
     assertFalse(title(status).text().shortened());
 
@@ -342,7 +359,8 @@ class GridIconsTest {
     run(app, "frame\npress #resize-1\npress #resize-1 clicks 2\nframe");
     El widest = find(app, "cell-1-1");
     float cell = 16 + T.space().s() + natural(widest.children().getLast());
-    assertTrue(orders.widths[1] >= Math.ceil(cell) + 2 * T.space().s() + T.size().stroke(),
+    assertTrue(
+        orders.widths[1] >= Math.ceil(cell) + 2 * T.space().s() + T.size().stroke(),
         "" + orders.widths[1]);
     assertFalse(widest.children().getLast().text().shortened());
   }
@@ -383,13 +401,15 @@ class GridIconsTest {
         }
       }
     }
-    System.out.printf("DataGrid, 300 columns of a million rows: %d elements without icons and"
-        + " types, %d with them (%d cells with an icon before their text, %d with one alone)%n",
+    System.out.printf(
+        "DataGrid, 300 columns of a million rows: %d elements without icons and"
+            + " types, %d with them (%d cells with an icon before their text, %d with one alone)%n",
         without, with, before, alone);
     assertTrue(before > 0 && alone > 0, before + " before, " + alone + " alone");
     // Each header has an icon, and the box of title and type and the type where it has room.
     long types = find(app, "header").children().stream()
-        .filter(h -> "columnheader".equals(h.role()) && name(h) != null).count();
+        .filter(h -> "columnheader".equals(h.role()) && name(h) != null)
+        .count();
     assertTrue(types > 0 && types < 300, types + " headers with their type");
     assertEquals(without + 300 + 2 * types + before, with);
   }
@@ -434,8 +454,10 @@ class GridIconsTest {
     List<Path> files = Script.run("size 720 240 scale " + scale + "\n" + script, app, out);
     for (int i = 0; i < files.size(); i += 2) {
       String snap = files.get(i).getFileName().toString().replace(".png", "");
-      Golden.assertMatches("grid-icons-" + name + "-" + scale + "x-" + snap,
-          Png.decode(Files.readAllBytes(files.get(i))), Files.readString(files.get(i + 1)));
+      Golden.assertMatches(
+          "grid-icons-" + name + "-" + scale + "x-" + snap,
+          Png.decode(Files.readAllBytes(files.get(i))),
+          Files.readString(files.get(i + 1)));
     }
     assertEquals(12, files.size());
   }
@@ -465,7 +487,8 @@ class GridIconsTest {
   /** The box of the title and the type in a header cell, or null where it shows no type. */
   private static El name(El header) {
     for (El child : header.children()) {
-      if (child.text() == null && child.children().size() == 2
+      if (child.text() == null
+          && child.children().size() == 2
           && child.children().getFirst().text() != null
           && child.children().getFirst().text().font() != Font.icons()) {
         return child;
@@ -475,7 +498,8 @@ class GridIconsTest {
   }
 
   private static float natural(El text) {
-    return text.text().measure(Float.NaN, Float.NaN, Measure.MAX_CONTENT, Measure.MAX_CONTENT)
+    return text.text()
+        .measure(Float.NaN, Float.NaN, Measure.MAX_CONTENT, Measure.MAX_CONTENT)
         .width();
   }
 

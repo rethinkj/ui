@@ -5,7 +5,6 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.rethinkj.ui.Key;
-
 import org.junit.jupiter.api.Test;
 
 /** Key names and modifiers from SDL's codes; needs no window. */
@@ -70,7 +69,6 @@ class KeysTest {
     assertEquals(Key.ALT, Window.modifiers((short) 0x0100));
     assertEquals(Key.META, Window.modifiers((short) 0x0800));
     assertEquals(0, Window.modifiers((short) 0x3000), "num lock and caps lock");
-    assertEquals(Key.SHIFT | Key.CONTROL | Key.ALT | Key.META,
-        Window.modifiers((short) 0x0FC3));
+    assertEquals(Key.SHIFT | Key.CONTROL | Key.ALT | Key.META, Window.modifiers((short) 0x0FC3));
   }
 }

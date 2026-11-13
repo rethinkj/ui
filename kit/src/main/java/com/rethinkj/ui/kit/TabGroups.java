@@ -210,16 +210,24 @@ public final class TabGroups<T> {
   public El tabs(Theme t, Group<T> group, Function<T, Tabs.Tab> tab, Function<T, El> content) {
     boolean alone = group.window != null && group.tabs.size() == 1;
     List<Menu.Item> items = new ArrayList<>();
-    items.add(Menu.item("Move to new window", alone || group.active < 0 ? null
-        : () -> toNewWindow(group, group.active)));
+    items.add(Menu.item(
+        "Move to new window",
+        alone || group.active < 0 ? null : () -> toNewWindow(group, group.active)));
     if (group.window != null) {
-      items.add(Menu.item("Move back to main window",
-          () -> dock(group, group.active, main, main.tabs.size())));
+      items.add(Menu.item(
+          "Move back to main window", () -> dock(group, group.active, main, main.tabs.size())));
     }
     T active = group.activeTab();
-    return Tabs.tabs(t, group.tabs.stream().map(tab).toList(), group.active,
-        i -> select(group, i), i -> onCloseTab.accept(group, i), content.apply(active),
-        Tabs.options().drag(dragging).id(group)
+    return Tabs.tabs(
+        t,
+        group.tabs.stream().map(tab).toList(),
+        group.active,
+        i -> select(group, i),
+        i -> onCloseTab.accept(group, i),
+        content.apply(active),
+        Tabs.options()
+            .drag(dragging)
+            .id(group)
             .onMove((from, to) -> move(group, from, to))
             .onTearOff(this::torn)
             .tearOffAtStart(alone)
@@ -349,9 +357,14 @@ public final class TabGroups<T> {
         origin = group;
         originIndex = o.index();
         float scale = o.window() == null ? 1 : o.window().screenScale();
-        following = split(group, o.index(), Window.options().position(
-            Math.round(d.screenX() - (firstX + o.grabX()) * scale),
-            Math.round(d.screenY() - (firstY + o.grabY()) * scale)).underPointer());
+        following = split(
+            group,
+            o.index(),
+            Window.options()
+                .position(
+                    Math.round(d.screenX() - (firstX + o.grabX()) * scale),
+                    Math.round(d.screenY() - (firstY + o.grabY()) * scale))
+                .underPointer());
         dragging.moved(following, 0);
       }
       following.window.dropTarget(false); // so that the windows under it take the drop

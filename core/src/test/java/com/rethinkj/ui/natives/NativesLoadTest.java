@@ -55,6 +55,7 @@ class NativesLoadTest {
   /** {@code FT_Error FT_Init_FreeType(FT_Library *)}, and {@code FT_Done_FreeType(FT_Library)}. */
   private static final FunctionDescriptor FT_INIT_FREETYPE =
       FunctionDescriptor.of(JAVA_INT, ADDRESS);
+
   private static final FunctionDescriptor FT_DONE_FREETYPE =
       FunctionDescriptor.of(JAVA_INT, ADDRESS);
 
@@ -88,13 +89,17 @@ class NativesLoadTest {
   @BeforeEach
   void needsTheNativesModule() throws IOException {
     String platform = Natives.platform(osName, osArch);
-    assumeTrue(platform != null,
+    assumeTrue(
+        platform != null,
         "Skipped: rethinkj UI has no native libraries for " + osName + " on " + osArch);
     String resource = Natives.RESOURCES + platform + "/" + Natives.MANIFEST;
     try (InputStream in = getClass().getClassLoader().getResourceAsStream(resource)) {
-      assumeTrue(in != null, "Skipped: rethinkj-ui-natives-" + platform + " is not on the test"
-          + " class path. It is built only on " + platform + ", by the profile natives-" + platform
-          + ", and not every platform has one yet.");
+      assumeTrue(
+          in != null,
+          "Skipped: rethinkj-ui-natives-" + platform + " is not on the test"
+              + " class path. It is built only on " + platform + ", by the profile natives-"
+              + platform
+              + ", and not every platform has one yet.");
       manifest = Manifest.parse(new String(in.readAllBytes(), StandardCharsets.UTF_8), resource);
     }
   }
@@ -165,8 +170,10 @@ class NativesLoadTest {
     assumeTrue(osName.equals("Linux"), "Skipped: the reason comes from Linux's dynamic linker");
     Path dir = Files.createDirectories(fresh("junk"));
     Files.writeString(dir.resolve("junk.so"), "not a library");
-    Files.writeString(dir.resolve(Natives.MANIFEST), "rethinkj-ui-natives 1\nplatform linux-x64\n"
-        + "library junk 1 junk.so " + "0".repeat(64) + "\n");
+    Files.writeString(
+        dir.resolve(Natives.MANIFEST),
+        "rethinkj-ui-natives 1\nplatform linux-x64\n" + "library junk 1 junk.so " + "0".repeat(64)
+            + "\n");
     Natives natives = new Natives(osName, osArch, dir, null, new URLClassLoader(new URL[0], null));
 
     UnsatisfiedLinkError error =
@@ -180,22 +187,29 @@ class NativesLoadTest {
 
   private void assertVersions(Function<String, SymbolLookup> lookup) {
     int sdl = (int) call(lookup.apply("sdl3"), "SDL_GetVersion", SDL_GET_VERSION);
-    assertEquals(manifest.library("sdl3").version(),
-        sdl / 1_000_000 + "." + sdl / 1000 % 1000 + "." + sdl % 1000, "SDL_GetVersion");
+    assertEquals(
+        manifest.library("sdl3").version(),
+        sdl / 1_000_000 + "." + sdl / 1000 % 1000 + "." + sdl % 1000,
+        "SDL_GetVersion");
 
     int wgpu = (int) call(lookup.apply("wgpu_native"), "wgpuGetVersion", WGPU_GET_VERSION);
-    assertEquals(manifest.library("wgpu_native").version(),
+    assertEquals(
+        manifest.library("wgpu_native").version(),
         (wgpu >>> 24) + "." + (wgpu >>> 16 & 0xFF) + "." + (wgpu >>> 8 & 0xFF) + "."
             + (wgpu & 0xFF),
         "wgpuGetVersion");
 
-    assertEquals(manifest.library("freetype").version(), freetype(lookup.apply("freetype")),
+    assertEquals(
+        manifest.library("freetype").version(),
+        freetype(lookup.apply("freetype")),
         "FT_Library_Version");
 
     MemorySegment harfbuzz =
         (MemorySegment) call(lookup.apply("harfbuzz"), "hb_version_string", HB_VERSION_STRING);
-    assertEquals(manifest.library("harfbuzz").version(),
-        harfbuzz.reinterpret(Integer.MAX_VALUE).getString(0), "hb_version_string");
+    assertEquals(
+        manifest.library("harfbuzz").version(),
+        harfbuzz.reinterpret(Integer.MAX_VALUE).getString(0),
+        "hb_version_string");
   }
 
   /**
@@ -208,16 +222,24 @@ class NativesLoadTest {
       assertEquals(0, call(freetype, "FT_Init_FreeType", FT_INIT_FREETYPE, out));
       MemorySegment library = out.get(ADDRESS, 0);
       try {
-        assertEquals(FT_TRUETYPE_ENGINE_TYPE_PATENTED,
+        assertEquals(
+            FT_TRUETYPE_ENGINE_TYPE_PATENTED,
             call(freetype, "FT_Get_TrueType_Engine_Type", FT_GET_TRUETYPE_ENGINE_TYPE, library),
             "FreeType without the TrueType bytecode interpreter");
         MemorySegment autofitter = arena.allocateFrom("autofitter");
-        assertNotEquals(MemorySegment.NULL,
+        assertNotEquals(
+            MemorySegment.NULL,
             call(freetype, "FT_Get_Module", FT_GET_MODULE, library, autofitter),
             "FreeType without the auto-hinter");
         MemorySegment version = arena.allocate(JAVA_INT, 3);
-        call(freetype, "FT_Library_Version", FT_LIBRARY_VERSION,
-            library, version, version.asSlice(4), version.asSlice(8));
+        call(
+            freetype,
+            "FT_Library_Version",
+            FT_LIBRARY_VERSION,
+            library,
+            version,
+            version.asSlice(4),
+            version.asSlice(8));
         return version.getAtIndex(JAVA_INT, 0) + "." + version.getAtIndex(JAVA_INT, 1) + "."
             + version.getAtIndex(JAVA_INT, 2);
       } finally {
@@ -226,8 +248,8 @@ class NativesLoadTest {
     }
   }
 
-  private static Object call(SymbolLookup library, String function, FunctionDescriptor descriptor,
-      Object... arguments) {
+  private static Object call(
+      SymbolLookup library, String function, FunctionDescriptor descriptor, Object... arguments) {
     MethodHandle handle =
         Linker.nativeLinker().downcallHandle(library.find(function).orElseThrow(), descriptor);
     try {

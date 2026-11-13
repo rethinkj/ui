@@ -43,41 +43,38 @@ public final class HarfBuzz {
   // ---- structs -----------------------------------------------------------------------------
 
   /** {@code hb_glyph_info_t}. */
-  public static final StructLayout GLYPH_INFO =
-      struct(
-          JAVA_INT.withName("codepoint"),
-          JAVA_INT.withName("mask"),
-          JAVA_INT.withName("cluster"),
-          JAVA_INT.withName("var1"),
-          JAVA_INT.withName("var2"));
+  public static final StructLayout GLYPH_INFO = struct(
+      JAVA_INT.withName("codepoint"),
+      JAVA_INT.withName("mask"),
+      JAVA_INT.withName("cluster"),
+      JAVA_INT.withName("var1"),
+      JAVA_INT.withName("var2"));
 
   /** {@code hb_glyph_position_t}, in the font's scale. */
-  public static final StructLayout GLYPH_POSITION =
-      struct(
-          JAVA_INT.withName("x_advance"),
-          JAVA_INT.withName("y_advance"),
-          JAVA_INT.withName("x_offset"),
-          JAVA_INT.withName("y_offset"),
-          JAVA_INT.withName("var"));
+  public static final StructLayout GLYPH_POSITION = struct(
+      JAVA_INT.withName("x_advance"),
+      JAVA_INT.withName("y_advance"),
+      JAVA_INT.withName("x_offset"),
+      JAVA_INT.withName("y_offset"),
+      JAVA_INT.withName("var"));
 
   /** {@code hb_feature_t}. */
-  public static final StructLayout FEATURE =
-      struct(
-          JAVA_INT.withName("tag"),
-          JAVA_INT.withName("value"),
-          JAVA_INT.withName("start"),
-          JAVA_INT.withName("end"));
+  public static final StructLayout FEATURE = struct(
+      JAVA_INT.withName("tag"),
+      JAVA_INT.withName("value"),
+      JAVA_INT.withName("start"),
+      JAVA_INT.withName("end"));
 
   /** {@code hb_font_extents_t}: three positions and nine reserved ones. */
-  public static final StructLayout FONT_EXTENTS =
-      struct(
-          JAVA_INT.withName("ascender"),
-          JAVA_INT.withName("descender"),
-          JAVA_INT.withName("line_gap"),
-          MemoryLayout.sequenceLayout(9, JAVA_INT).withName("reserved"));
+  public static final StructLayout FONT_EXTENTS = struct(
+      JAVA_INT.withName("ascender"),
+      JAVA_INT.withName("descender"),
+      JAVA_INT.withName("line_gap"),
+      MemoryLayout.sequenceLayout(9, JAVA_INT).withName("reserved"));
 
   /** The glyph id: after shaping, {@code codepoint} holds the glyph, 0 for a missing one. */
   public static final long INFO_GLYPH = offset(GLYPH_INFO, "codepoint");
+
   public static final long INFO_CLUSTER = offset(GLYPH_INFO, "cluster");
   public static final long POSITION_X_ADVANCE = offset(GLYPH_POSITION, "x_advance");
   public static final long POSITION_X_OFFSET = offset(GLYPH_POSITION, "x_offset");
@@ -176,9 +173,10 @@ public final class HarfBuzz {
         bind("hb_feature_from_string", HarfBuzz.FEATURE_FROM_STRING);
 
     private static MethodHandle bind(String name, FunctionDescriptor descriptor) {
-      MemorySegment symbol = LIBRARY.find(name).orElseThrow(() -> new UnsatisfiedLinkError(
-          "The harfbuzz library has no function " + name + ". The natives module does not"
-              + " match this version of rethinkj-ui-core."));
+      MemorySegment symbol = LIBRARY
+          .find(name)
+          .orElseThrow(() -> new UnsatisfiedLinkError("The harfbuzz library has no function " + name
+              + ". The natives module does not" + " match this version of rethinkj-ui-core."));
       return Linker.nativeLinker().downcallHandle(symbol, descriptor);
     }
   }
@@ -186,8 +184,8 @@ public final class HarfBuzz {
   /** No destroy callback: the caller keeps the bytes valid until the blob and its face are gone. */
   public static MemorySegment blobCreate(MemorySegment data, int length, int mode) {
     try {
-      return (MemorySegment) Fn.BLOB_CREATE.invokeExact(data, length, mode, MemorySegment.NULL,
-          MemorySegment.NULL);
+      return (MemorySegment)
+          Fn.BLOB_CREATE.invokeExact(data, length, mode, MemorySegment.NULL, MemorySegment.NULL);
     } catch (Throwable t) {
       throw rethrow(t);
     }
@@ -250,8 +248,8 @@ public final class HarfBuzz {
   }
 
   /** Cluster values are indexes of UTF-16 code units in {@code text}. */
-  public static void bufferAddUtf16(MemorySegment buffer, MemorySegment text, int textLength,
-      int itemOffset, int itemLength) {
+  public static void bufferAddUtf16(
+      MemorySegment buffer, MemorySegment text, int textLength, int itemOffset, int itemLength) {
     try {
       Fn.BUFFER_ADD_UTF16.invokeExact(buffer, text, textLength, itemOffset, itemLength);
     } catch (Throwable t) {
@@ -285,8 +283,8 @@ public final class HarfBuzz {
     return getGlyphs(Fn.BUFFER_GET_GLYPH_INFOS, buffer, lengthOut);
   }
 
-  public static MemorySegment bufferGetGlyphPositions(MemorySegment buffer,
-      MemorySegment lengthOut) {
+  public static MemorySegment bufferGetGlyphPositions(
+      MemorySegment buffer, MemorySegment lengthOut) {
     return getGlyphs(Fn.BUFFER_GET_GLYPH_POSITIONS, buffer, lengthOut);
   }
 
@@ -294,8 +292,8 @@ public final class HarfBuzz {
     voidHandle(Fn.BUFFER_DESTROY, buffer);
   }
 
-  public static void shape(MemorySegment font, MemorySegment buffer, MemorySegment features,
-      int count) {
+  public static void shape(
+      MemorySegment font, MemorySegment buffer, MemorySegment features, int count) {
     try {
       Fn.SHAPE.invokeExact(font, buffer, features, count);
     } catch (Throwable t) {
@@ -322,8 +320,8 @@ public final class HarfBuzz {
     }
   }
 
-  private static MemorySegment getGlyphs(MethodHandle handle, MemorySegment buffer,
-      MemorySegment lengthOut) {
+  private static MemorySegment getGlyphs(
+      MethodHandle handle, MemorySegment buffer, MemorySegment lengthOut) {
     try {
       return (MemorySegment) handle.invokeExact(buffer, lengthOut);
     } catch (Throwable t) {

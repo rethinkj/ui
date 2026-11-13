@@ -18,16 +18,29 @@ class PressPositionTest {
 
   /** A track of 200 by 20 at 30, 40 in a scroll area at 20, 20 scrolled by 15, and a box in it. */
   private static App<List<String>> app() {
-    return new App<>(new ArrayList<>(), log -> el().wFull().hFull().child(
-        col().key("area").absolute(20, 20).size(240, 100).scroll().children(
-            el().h(20).shrink(0),
-            el().key("track").role("slider").focusable().size(200, 20).shrink(0)
-                .margin(0, 0, 0, 10)
-                .onPress((clicks, modifiers, x, y) -> log.add("press " + clicks + " " + modifiers
-                    + " at " + x + "," + y))
-                .onPointerDown((clicks, modifiers, x, y) -> log.add("down at " + x + "," + y))
-                .child(el().key("knob").size(10, 10)),
-            el().h(200).shrink(0))));
+    return new App<>(
+        new ArrayList<>(),
+        log -> el().wFull()
+            .hFull()
+            .child(col()
+                .key("area")
+                .absolute(20, 20)
+                .size(240, 100)
+                .scroll()
+                .children(
+                    el().h(20).shrink(0),
+                    el().key("track")
+                        .role("slider")
+                        .focusable()
+                        .size(200, 20)
+                        .shrink(0)
+                        .margin(0, 0, 0, 10)
+                        .onPress((clicks, modifiers, x, y) ->
+                            log.add("press " + clicks + " " + modifiers + " at " + x + "," + y))
+                        .onPointerDown(
+                            (clicks, modifiers, x, y) -> log.add("down at " + x + "," + y))
+                        .child(el().key("knob").size(10, 10)),
+                    el().h(200).shrink(0))));
   }
 
   @Test
@@ -69,7 +82,14 @@ class PressPositionTest {
         press 40,40
         frame
         """, app, out);
-    assertEquals(List.of("down at 100.0,10.0", "press 1 0 at 100.0,10.0", "down at 100.0,10.0",
-        "press 2 0 at 100.0,10.0", "down at 10.0,15.0", "press 1 0 at 10.0,15.0"), app.state());
+    assertEquals(
+        List.of(
+            "down at 100.0,10.0",
+            "press 1 0 at 100.0,10.0",
+            "down at 100.0,10.0",
+            "press 2 0 at 100.0,10.0",
+            "down at 10.0,15.0",
+            "press 1 0 at 10.0,15.0"),
+        app.state());
   }
 }

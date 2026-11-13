@@ -5,7 +5,6 @@ import static com.rethinkj.ui.kit.Workbench.labelled;
 import static com.rethinkj.ui.kit.Workbench.x;
 import static com.rethinkj.ui.kit.Workbench.y;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
 
 import com.rethinkj.ui.App;
 import com.rethinkj.ui.El;
@@ -27,7 +26,8 @@ import org.junit.jupiter.params.provider.ValueSource;
  */
 class WorkbenchTest {
 
-  @TempDir Path out;
+  @TempDir
+  Path out;
 
   @BeforeEach
   void textLibraries() {
@@ -55,8 +55,10 @@ class WorkbenchTest {
     assertEquals(182, editor.height(), "half of 365 less the line");
 
     run(app, "down 200,300\nmove 260,300\nup 260,300\nframe"); // the schema's line
-    assertEquals(List.of("sidebar " + Position.first(260), "sidebar " + Position.first(260)),
-        w.log, "moved, then ended");
+    assertEquals(
+        List.of("sidebar " + Position.first(260), "sidebar " + Position.first(260)),
+        w.log,
+        "moved, then ended");
     assertEquals(262, x(app, labelled(app, "Query")));
     assertEquals(182, labelled(app, "Query").height(), "the editor keeps its height");
 

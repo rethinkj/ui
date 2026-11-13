@@ -7,7 +7,6 @@ import com.rethinkj.ui.Highlighter;
 import com.rethinkj.ui.Key;
 import com.rethinkj.ui.Style;
 import java.util.function.Consumer;
-import java.util.function.Predicate;
 
 /**
  * An editor of code, such as the SQL of a query: a {@link TextField#codeArea} with line numbers in
@@ -72,8 +71,10 @@ public final class CodeEditor {
     int mods = k.modifiers();
     int controlShift = Key.CONTROL | Key.SHIFT;
     return switch (k.name()) {
-      case "D" -> mods == Key.CONTROL ? Command.SELECT_NEXT
-          : mods == controlShift ? Command.DUPLICATE_LINES : null;
+      case "D" ->
+        mods == Key.CONTROL
+            ? Command.SELECT_NEXT
+            : mods == controlShift ? Command.DUPLICATE_LINES : null;
       case "K" -> mods == controlShift ? Command.DELETE_LINES : null;
       case "ArrowUp" -> mods == Key.ALT ? Command.MOVE_LINES_UP : null;
       case "ArrowDown" -> mods == Key.ALT ? Command.MOVE_LINES_DOWN : null;
@@ -166,8 +167,8 @@ public final class CodeEditor {
    *     such as {@link Sql#of} of the same theme
    * @param onChange receives the new string after each edit; null disables the editor
    */
-  public static El codeEditor(Theme t, String value, State state, Highlighter highlighter,
-      Consumer<String> onChange) {
+  public static El codeEditor(
+      Theme t, String value, State state, Highlighter highlighter, Consumer<String> onChange) {
     return codeEditor(t, null, value, state, highlighter, onChange);
   }
 
@@ -177,16 +178,23 @@ public final class CodeEditor {
    *
    * @param app the app the editor is in; null for an editor without find and commands
    */
-  public static El codeEditor(Theme t, App<?> app, String value, State state,
-      Highlighter highlighter, Consumer<String> onChange) {
+  public static El codeEditor(
+      Theme t,
+      App<?> app,
+      String value,
+      State state,
+      Highlighter highlighter,
+      Consumer<String> onChange) {
     Theme.Code code = t.code();
     int[] pair = matching(value, state.caret);
-    String word = state.occurrences && !state.find.isOpen()
-        ? word(value, state.caret, state.anchor) : null;
+    String word =
+        state.occurrences && !state.find.isOpen() ? word(value, state.caret, state.anchor) : null;
     // Where the word at the caret starts, which is not marked: only its other occurrences are.
-    int own = word == null ? -1 : state.caret == state.anchor
-        ? Completion.wordStart(value, Math.min(state.caret, value.length()))
-        : Math.min(state.caret, state.anchor);
+    int own = word == null
+        ? -1
+        : state.caret == state.anchor
+            ? Completion.wordStart(value, Math.min(state.caret, value.length()))
+            : Math.min(state.caret, state.anchor);
     Theme.TextStyle mono = t.type().mono();
     El editor = TextField.codeArea(t, value, null, onChange)
         .fieldState(state.field)
@@ -211,7 +219,8 @@ public final class CodeEditor {
             }
           }
           if (state.errorTo > start && state.errorFrom <= end) {
-            out.underline(state.errorFrom - start, state.errorTo - start, t.status().danger());
+            out.underline(
+                state.errorFrom - start, state.errorTo - start, t.status().danger());
           }
         })
         .gutter((line, caret) -> El.text(String.valueOf(line + 1))
@@ -288,8 +297,10 @@ public final class CodeEditor {
       case MOVE_LINES_UP -> LineEdits.move(text, caret, anchor, -1);
       case MOVE_LINES_DOWN -> LineEdits.move(text, caret, anchor, 1);
       case DELETE_LINES -> LineEdits.delete(text, caret, anchor);
-      case TOGGLE_COMMENT -> state.lineComment == null ? null
-          : LineEdits.comment(text, caret, anchor, state.lineComment);
+      case TOGGLE_COMMENT ->
+        state.lineComment == null
+            ? null
+            : LineEdits.comment(text, caret, anchor, state.lineComment);
       default -> null;
     };
     if (edit == null) {
@@ -301,8 +312,8 @@ public final class CodeEditor {
     state.anchor = edit.anchor();
   }
 
-  private static void selectNext(App<?> app, State state, El editor, String text, int caret,
-      int anchor) {
+  private static void selectNext(
+      App<?> app, State state, El editor, String text, int caret, int anchor) {
     int s = Math.min(caret, anchor);
     int e = Math.max(caret, anchor);
     int[] next;
@@ -317,8 +328,8 @@ public final class CodeEditor {
       state.nextWords = ours && state.nextWords;
       Search.Query query = new Search.Query(text.substring(s, e), true, state.nextWords, false);
       try {
-        next = Search.next(query.compile(), text, 0, text.length(), e,
-            Search.deadline(Find.SYNC_MILLIS));
+        next = Search.next(
+            query.compile(), text, 0, text.length(), e, Search.deadline(Find.SYNC_MILLIS));
       } catch (Search.Stopped stopped) {
         return;
       }

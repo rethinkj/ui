@@ -96,8 +96,8 @@ public record FileDialog(
     if (fileName != null && kind != Kind.SAVE) {
       throw new IllegalArgumentException("Only a save dialog suggests a file name");
     }
-    if (fileName != null && (fileName.isEmpty() || fileName.contains("/")
-        || fileName.contains("\\"))) {
+    if (fileName != null
+        && (fileName.isEmpty() || fileName.contains("/") || fileName.contains("\\"))) {
       throw new IllegalArgumentException("A file name without a folder: " + fileName);
     }
   }

@@ -64,18 +64,21 @@ class FocusTest {
 
   @Test
   void tabGoesThroughNestedElementsInTreeOrderAndWrapsAround() {
-    App<Object> app =
-        start(
-            new App<>(
-                new Object(),
-                s -> col().children(
-                    el().key("a").focusable().size(40, 10)
+    App<Object> app = start(
+        new App<>(
+            new Object(),
+            s -> col()
+                .children(
+                    el().key("a")
+                        .focusable()
+                        .size(40, 10)
                         .child(el().key("b").focusable().size(10, 10)),
-                    el().key("plain").size(40, 10)
+                    el().key("plain")
+                        .size(40, 10)
                         .child(el().key("c").focusable().size(10, 10)),
                     el().key("d").focusable().size(40, 10))),
-            100,
-            100);
+        100,
+        100);
     List<String> order = new ArrayList<>();
     for (int i = 0; i < 5; i++) {
       tab(app);
@@ -93,12 +96,15 @@ class FocusTest {
 
   @Test
   void shiftTabWithoutFocusStartsAtTheEnd() {
-    App<Object> app =
-        start(
-            new App<>(new Object(), s -> col().children(
-                el().key("a").focusable().size(10, 10), el().key("b").focusable().size(10, 10))),
-            100,
-            100);
+    App<Object> app = start(
+        new App<>(
+            new Object(),
+            s -> col()
+                .children(
+                    el().key("a").focusable().size(10, 10),
+                    el().key("b").focusable().size(10, 10))),
+        100,
+        100);
     key(app, "Tab", Key.SHIFT);
     assertEquals("b", focusedKey(app));
   }
@@ -106,24 +112,26 @@ class FocusTest {
   @Test
   void tabSkipsWhatTakesNoInputButNotWhatIsScrolledOutOfView() {
     boolean[] leaving = {true};
-    App<boolean[]> app =
-        new App<>(
-            leaving,
-            l -> {
-              El root = col().children(
-                  el().key("first").focusable().size(10, 10),
-                  el().key("hidden").focusable().size(10, 10).opacity(0),
-                  el().h(0).clip().child(el().key("collapsed").focusable().size(10, 10)),
-                  el().key("nested").opacity(0).child(el().key("inside").focusable().size(5, 5)),
-                  col().key("list").scroll().size(50, 20).children(
+    App<boolean[]> app = new App<>(leaving, l -> {
+      El root = col()
+          .children(
+              el().key("first").focusable().size(10, 10),
+              el().key("hidden").focusable().size(10, 10).opacity(0),
+              el().h(0).clip().child(el().key("collapsed").focusable().size(10, 10)),
+              el().key("nested").opacity(0).child(el().key("inside").focusable().size(5, 5)),
+              col()
+                  .key("list")
+                  .scroll()
+                  .size(50, 20)
+                  .children(
                       el().key("row0").focusable().size(50, 20),
                       el().key("row1").focusable().size(50, 20)));
-              if (!l[0]) {
-                root.child(el().key("leaving").focusable().size(10, 10).motion(Spring.SNAP));
-              }
-              root.child(el().key("last").focusable().size(10, 10));
-              return root;
-            });
+      if (!l[0]) {
+        root.child(el().key("leaving").focusable().size(10, 10).motion(Spring.SNAP));
+      }
+      root.child(el().key("last").focusable().size(10, 10));
+      return root;
+    });
     start(app, 100, 200);
     leaving[0] = false;
     app.resize(100, 200, 1); // rebuilds: "leaving" is there now
@@ -174,11 +182,22 @@ class FocusTest {
   void anElementThatFadesInTakesTheFocusFromTheFrameThatAddsIt() {
     boolean[] shown = {false};
     List<String> keys = new ArrayList<>();
-    App<Object> app = start(new App<>(new Object(), s -> {
-      El root = col().wFull().hFull().child(el().key("hidden").size(20, 20).focusable().opacity(0));
-      return shown[0] ? root.child(el().key("new").size(20, 20).focusable().motion(Spring.SNAP)
-          .onKey(k -> keys.add(k.name()))) : root;
-    }), 100, 100);
+    App<Object> app = start(
+        new App<>(new Object(), s -> {
+          El root = col()
+              .wFull()
+              .hFull()
+              .child(el().key("hidden").size(20, 20).focusable().opacity(0));
+          return shown[0]
+              ? root.child(el().key("new")
+                  .size(20, 20)
+                  .focusable()
+                  .motion(Spring.SNAP)
+                  .onKey(k -> keys.add(k.name())))
+              : root;
+        }),
+        100,
+        100);
     shown[0] = true;
     app.resize(100, 100, 1); // a rebuild, as after a handler that opens it
     app.frame();
@@ -202,19 +221,16 @@ class FocusTest {
   @Test
   void theFocusFollowsItsKeyAcrossRebuildsAndIsClearedWhenTheElementGoes() {
     List<String> items = new ArrayList<>(List.of("a", "b", "c"));
-    App<List<String>> app =
-        start(
-            new App<>(
-                items,
-                list -> {
-                  El root = row();
-                  for (String item : list) {
-                    root.child(el().key(item).focusable().size(20, 20));
-                  }
-                  return root;
-                }),
-            100,
-            20);
+    App<List<String>> app = start(
+        new App<>(items, list -> {
+          El root = row();
+          for (String item : list) {
+            root.child(el().key(item).focusable().size(20, 20));
+          }
+          return root;
+        }),
+        100,
+        20);
     El b = find(app.tree(), "b");
     app.focus(b);
     app.frame();
@@ -226,7 +242,8 @@ class FocusTest {
     assertNotEquals(b, app.focused(), "a new tree");
     assertEquals("b", focusedKey(app), "the same identity");
     assertEquals(0, app.focused().x(), "where it moved to");
-    assertTrue(app.tree().dump().contains("el #b 0,0 20x20 focused\n"), app.tree().dump());
+    assertTrue(
+        app.tree().dump().contains("el #b 0,0 20x20 focused\n"), app.tree().dump());
 
     items.remove("b");
     app.resize(100, 20, 1);
@@ -237,24 +254,29 @@ class FocusTest {
 
   /** Two pages of a panel, each with its own fields, as two tabs' contents; a key flips them. */
   private static App<int[]> pages(List<String> keys) {
-    return start(new App<>(new int[] {0}, page -> {
-      El content = col().key("page-" + page[0]);
-      for (int i = 0; i < (page[0] == 0 ? 2 : 1); i++) {
-        content.child(el().key("field-" + page[0] + "-" + i).focusable().size(40, 10));
-      }
-      return col().children(
-          el().key("bar").focusable().size(40, 10),
-          col().key("panel")
-              .onKey(k -> {
-                keys.add(k.name());
-                if (k.name().equals("PageDown")) {
-                  page[0] = 1 - page[0];
-                  return true;
-                }
-                return false;
-              })
-              .child(content));
-    }), 100, 100);
+    return start(
+        new App<>(new int[] {0}, page -> {
+          El content = col().key("page-" + page[0]);
+          for (int i = 0; i < (page[0] == 0 ? 2 : 1); i++) {
+            content.child(el().key("field-" + page[0] + "-" + i).focusable().size(40, 10));
+          }
+          return col()
+              .children(
+                  el().key("bar").focusable().size(40, 10),
+                  col()
+                      .key("panel")
+                      .onKey(k -> {
+                        keys.add(k.name());
+                        if (k.name().equals("PageDown")) {
+                          page[0] = 1 - page[0];
+                          return true;
+                        }
+                        return false;
+                      })
+                      .child(content));
+        }),
+        100,
+        100);
   }
 
   @Test
@@ -271,17 +293,27 @@ class FocusTest {
     assertTrue(ring(app.scene()) >= 0, "a key moved it: the ring stays");
     key(app, "PageDown", 0);
     assertEquals("field-0-0", focusedKey(app), "back on the first page, at its first field");
-    assertEquals(List.of("Tab", "PageDown", "PageDown"), keys,
+    assertEquals(
+        List.of("Tab", "PageDown", "PageDown"),
+        keys,
         "the panel sees the keys from wherever the focus is inside it");
   }
 
   @Test
   void afterAPressTheFocusThatMovesOnHasNoRing() {
     int[] page = {0};
-    App<int[]> app = start(new App<>(page, p -> col().children(
-        col().key("panel").child(p[0] == 0
-            ? el().key("first").focusable().size(40, 10).onPress(() -> p[0] = 1)
-            : el().key("second").focusable().size(40, 10)))), 100, 100);
+    App<int[]> app = start(
+        new App<>(
+            page,
+            p -> col()
+                .children(col()
+                    .key("panel")
+                    .child(
+                        p[0] == 0
+                            ? el().key("first").focusable().size(40, 10).onPress(() -> p[0] = 1)
+                            : el().key("second").focusable().size(40, 10)))),
+        100,
+        100);
     press(app, 10, 5);
     assertEquals("second", focusedKey(app));
     assertEquals(-1, ring(app.scene()), "no ring");
@@ -290,13 +322,16 @@ class FocusTest {
   @Test
   void aFocusableAncestorTakesTheFocusBackAndWithoutAnyBelowTheRootItIsCleared() {
     boolean[] inner = {true};
-    App<boolean[]> app = start(new App<>(inner, f -> {
-      El list = col().key("list").focusable().size(40, 40);
-      if (f[0]) {
-        list.child(el().key("item").focusable().size(40, 10));
-      }
-      return col().children(list, el().key("loose").focusable().size(40, 10));
-    }), 100, 100);
+    App<boolean[]> app = start(
+        new App<>(inner, f -> {
+          El list = col().key("list").focusable().size(40, 40);
+          if (f[0]) {
+            list.child(el().key("item").focusable().size(40, 10));
+          }
+          return col().children(list, el().key("loose").focusable().size(40, 10));
+        }),
+        100,
+        100);
     tab(app);
     tab(app);
     assertEquals("item", focusedKey(app));
@@ -308,9 +343,16 @@ class FocusTest {
     // A child of the root that goes: nothing around it below the root, so nothing.
     tab(app);
     assertEquals("loose", focusedKey(app));
-    App<boolean[]> two = start(new App<>(new boolean[] {true}, f -> f[0]
-        ? row().children(el().key("a").focusable().size(10, 10), el().key("b").size(10, 10))
-        : row().child(el().key("b").focusable().size(10, 10))), 100, 100);
+    App<boolean[]> two = start(
+        new App<>(
+            new boolean[] {true},
+            f -> f[0]
+                ? row()
+                    .children(
+                        el().key("a").focusable().size(10, 10), el().key("b").size(10, 10))
+                : row().child(el().key("b").focusable().size(10, 10))),
+        100,
+        100);
     tab(two);
     two.state()[0] = false;
     two.resize(100, 100, 1);
@@ -322,15 +364,26 @@ class FocusTest {
 
   /** A grid with an editor that Enter opens over it and Escape closes, as a cell editor. */
   private static App<boolean[]> editorOverAGrid() {
-    return start(new App<>(new boolean[] {false}, open -> {
-      El area = col().key("area").child(el().key("grid").focusable().size(80, 40)
-          .onKey(k -> k.name().equals("Enter") && !open[0] && (open[0] = true)));
-      if (open[0]) {
-        area.child(el().key("editor").focusable().autofocus().absolute(0, 10).size(80, 10)
-            .onKey(k -> k.name().equals("Escape") && !(open[0] = false)));
-      }
-      return col().children(el().key("before").focusable().size(10, 10), area);
-    }), 100, 100);
+    return start(
+        new App<>(new boolean[] {false}, open -> {
+          El area = col()
+              .key("area")
+              .child(el().key("grid")
+                  .focusable()
+                  .size(80, 40)
+                  .onKey(k -> k.name().equals("Enter") && !open[0] && (open[0] = true)));
+          if (open[0]) {
+            area.child(el().key("editor")
+                .focusable()
+                .autofocus()
+                .absolute(0, 10)
+                .size(80, 10)
+                .onKey(k -> k.name().equals("Escape") && !(open[0] = false)));
+          }
+          return col().children(el().key("before").focusable().size(10, 10), area);
+        }),
+        100,
+        100);
   }
 
   @Test
@@ -361,11 +414,17 @@ class FocusTest {
   @Test
   void theFirstAutofocusElementTakesTheFocusAtTheStartAndAKeyTakesItAgain() {
     int[] saves = {0};
-    App<int[]> app = start(new App<>(saves, n -> col().children(
-        el().key("name").focusable().size(40, 10),
-        el().key("port").focusable().size(40, 10).autofocus(n[0] == 0 ? null : n[0]),
-        el().key("start").focusable().size(40, 10).autofocus(),
-        el().key("save").focusable().size(40, 10).onPress(() -> n[0]++))), 100, 100);
+    App<int[]> app = start(
+        new App<>(
+            saves,
+            n -> col()
+                .children(
+                    el().key("name").focusable().size(40, 10),
+                    el().key("port").focusable().size(40, 10).autofocus(n[0] == 0 ? null : n[0]),
+                    el().key("start").focusable().size(40, 10).autofocus(),
+                    el().key("save").focusable().size(40, 10).onPress(() -> n[0]++))),
+        100,
+        100);
     assertEquals("start", focusedKey(app), "the first one that asks, at the start");
     assertEquals(-1, ring(app.scene()), "nothing moved it with a key");
     press(app, 5, 35); // Save: port has an error now
@@ -382,11 +441,25 @@ class FocusTest {
   @Test
   void anOverlayThatOpensFocusesItsAutofocusElement() {
     boolean[] open = {false};
-    App<boolean[]> app = start(new App<>(open, o -> col().wFull().hFull().child(
-        el().key("button").focusable().size(40, 10).onPress(() -> o[0] = true))
-        .overlay(!o[0] ? null : col().key("dialog").modal().centerInWindow().children(
-            el().key("first").focusable().size(40, 10),
-            el().key("second").focusable().size(40, 10).autofocus()))), 100, 100);
+    App<boolean[]> app = start(
+        new App<>(
+            open,
+            o -> col()
+                .wFull()
+                .hFull()
+                .child(el().key("button").focusable().size(40, 10).onPress(() -> o[0] = true))
+                .overlay(
+                    !o[0]
+                        ? null
+                        : col()
+                            .key("dialog")
+                            .modal()
+                            .centerInWindow()
+                            .children(
+                                el().key("first").focusable().size(40, 10),
+                                el().key("second").focusable().size(40, 10).autofocus()))),
+        100,
+        100);
     press(app, 5, 5);
     assertEquals("second", focusedKey(app));
   }
@@ -394,14 +467,13 @@ class FocusTest {
   @Test
   void anElementThatStopsBeingFocusableLosesTheFocus() {
     boolean[] focusable = {true};
-    App<boolean[]> app =
-        start(
-            new App<>(focusable, f -> {
-              El button = el().key("button").size(10, 10);
-              return el().child(f[0] ? button.focusable() : button);
-            }),
-            100,
-            100);
+    App<boolean[]> app = start(
+        new App<>(focusable, f -> {
+          El button = el().key("button").size(10, 10);
+          return el().child(f[0] ? button.focusable() : button);
+        }),
+        100,
+        100);
     tab(app);
     assertEquals("button", focusedKey(app));
     focusable[0] = false;
@@ -428,11 +500,21 @@ class FocusTest {
 
   @Test
   void aFocusWithinLookShowsWhileTheFocusIsOnTheElementOrInsideIt() {
-    App<Object> app = start(new App<>(new Object(), s -> col().children(
-        row().key("frame").fill(0xFF000000).whenFocusWithin(e -> e.fill(0xFFFFFFFF)).children(
-            el().key("field").focusable().size(40, 10),
-            el().key("button").focusable().size(10, 10)),
-        el().key("outside").focusable().size(40, 10))), 100, 100);
+    App<Object> app = start(
+        new App<>(
+            new Object(),
+            s -> col()
+                .children(
+                    row()
+                        .key("frame")
+                        .fill(0xFF000000)
+                        .whenFocusWithin(e -> e.fill(0xFFFFFFFF))
+                        .children(
+                            el().key("field").focusable().size(40, 10),
+                            el().key("button").focusable().size(10, 10)),
+                    el().key("outside").focusable().size(40, 10))),
+        100,
+        100);
     assertEquals(0xFF000000, find(app.tree(), "frame").fill());
     tab(app);
     assertEquals(0xFFFFFFFF, find(app.tree(), "frame").fill(), "on the field inside");
@@ -448,10 +530,21 @@ class FocusTest {
 
   @Test
   void aFocusWithinLookReachesTheRowsOfAListAndTheListAroundThem() {
-    App<Object> app = start(new App<>(new Object(), s -> col().key("list").size(100, 40)
-        .whenFocusWithin(e -> e.fill(0xFF0000FF))
-        .rows(100, 20, i -> row().whenFocusWithin(e -> e.fill(0xFFFF0000))
-            .child(el().key("cell").focusable().size(20, 20)))), 100, 40);
+    App<Object> app = start(
+        new App<>(
+            new Object(),
+            s -> col()
+                .key("list")
+                .size(100, 40)
+                .whenFocusWithin(e -> e.fill(0xFF0000FF))
+                .rows(
+                    100,
+                    20,
+                    i -> row()
+                        .whenFocusWithin(e -> e.fill(0xFFFF0000))
+                        .child(el().key("cell").focusable().size(20, 20)))),
+        100,
+        40);
     tab(app);
     tab(app);
     El list = app.tree();
@@ -465,16 +558,19 @@ class FocusTest {
   @Test
   void keysGoFromTheFocusedElementUpToTheRootUntilOneTakesThem() {
     List<String> log = new ArrayList<>();
-    App<List<String>> app =
-        start(
-            new App<>(
-                log,
-                l -> el().key("root").onKey(k -> l.add("root " + k.name()))
-                    .child(el().key("parent").onKey(k -> l.add("parent " + k.name()) && false)
-                        .child(el().key("child").focusable().size(10, 10)
-                            .onKey(k -> l.add("child " + k.name()) && k.name().equals("A"))))),
-            100,
-            100);
+    App<List<String>> app = start(
+        new App<>(
+            log,
+            l -> el().key("root")
+                .onKey(k -> l.add("root " + k.name()))
+                .child(el().key("parent")
+                    .onKey(k -> l.add("parent " + k.name()) && false)
+                    .child(el().key("child")
+                        .focusable()
+                        .size(10, 10)
+                        .onKey(k -> l.add("child " + k.name()) && k.name().equals("A"))))),
+        100,
+        100);
     key(app, "B", 0);
     assertEquals(List.of("root B"), log, "without focus only the root sees the key");
 
@@ -497,15 +593,17 @@ class FocusTest {
   @Test
   void keyUpsGoTheSameWayAndDoNothingElse() {
     List<String> log = new ArrayList<>();
-    App<List<String>> app =
-        start(
-            new App<>(
-                log,
-                l -> el().onKeyUp(k -> l.add("root up " + k.name()))
-                    .child(el().key("child").focusable().size(10, 10).onPress(() -> l.add("press"))
-                        .onKeyUp(k -> l.add("child up " + k.name()) && false))),
-            100,
-            100);
+    App<List<String>> app = start(
+        new App<>(
+            log,
+            l -> el().onKeyUp(k -> l.add("root up " + k.name()))
+                .child(el().key("child")
+                    .focusable()
+                    .size(10, 10)
+                    .onPress(() -> l.add("press"))
+                    .onKeyUp(k -> l.add("child up " + k.name()) && false))),
+        100,
+        100);
     tab(app);
     app.keyUp(new Key("Space"));
     app.frame();
@@ -530,15 +628,16 @@ class FocusTest {
   @Test
   void aKeyHandlerOnTheFocusedElementComesBeforeItsPress() {
     List<String> log = new ArrayList<>();
-    App<List<String>> app =
-        start(
-            new App<>(
-                log,
-                l -> el().onKey(k -> l.add("root " + k.name()) && false)
-                    .child(el().focusable().size(10, 10).onPress(() -> l.add("press"))
-                        .onKey(k -> k.name().equals("Space") && l.add("handled Space")))),
-            100,
-            100);
+    App<List<String>> app = start(
+        new App<>(
+            log,
+            l -> el().onKey(k -> l.add("root " + k.name()) && false)
+                .child(el().focusable()
+                    .size(10, 10)
+                    .onPress(() -> l.add("press"))
+                    .onKey(k -> k.name().equals("Space") && l.add("handled Space")))),
+        100,
+        100);
     tab(app);
     log.clear();
     key(app, "Space", 0);
@@ -555,14 +654,13 @@ class FocusTest {
   @Test
   void textGoesToTheFocusedElementOnly() {
     List<String> log = new ArrayList<>();
-    App<List<String>> app =
-        start(
-            new App<>(
-                log,
-                l -> el().onText(t -> l.add("root " + t))
-                    .child(el().key("field").focusable().size(10, 10).onText(t -> l.add(t)))),
-            100,
-            100);
+    App<List<String>> app = start(
+        new App<>(
+            log,
+            l -> el().onText(t -> l.add("root " + t))
+                .child(el().key("field").focusable().size(10, 10).onText(t -> l.add(t)))),
+        100,
+        100);
     app.textInput("lost");
     app.frame();
     assertEquals(List.of(), log, "without focus text is dropped");
@@ -614,11 +712,20 @@ class FocusTest {
 
   @Test
   void anElementsOwnRingColourWinsOverTheAppsAndZeroDrawsNone() {
-    App<Object> app = start(new App<>(new Object(), s -> row().wFull().hFull().center().gap(20)
-        .children(
-            el().key("own").size(30, 20).focusable().focusRing(0xFFFF0000),
-            el().key("app").size(30, 20).focusable(),
-            el().key("none").size(30, 20).focusable().focusRing(0))), 200, 120);
+    App<Object> app = start(
+        new App<>(
+            new Object(),
+            s -> row()
+                .wFull()
+                .hFull()
+                .center()
+                .gap(20)
+                .children(
+                    el().key("own").size(30, 20).focusable().focusRing(0xFFFF0000),
+                    el().key("app").size(30, 20).focusable(),
+                    el().key("none").size(30, 20).focusable().focusRing(0))),
+        200,
+        120);
     int plain = app.scene().count();
     app.focusRing(0xFF00FF00);
     tab(app);
@@ -638,17 +745,16 @@ class FocusTest {
 
   @Test
   void focusingARowOutsideTheListScrollsItIntoViewAndTheRingLiesInsideTheRowAtTheListsEdge() {
-    App<Object> app =
-        start(
-            new App<>(new Object(), s -> {
-              El list = col().key("list").scroll().size(100, 50).fill(0xFF000000);
-              for (int i = 0; i < 10; i++) {
-                list.child(el().key("row" + i).focusable().h(20).fill(0xFFFFFFFF));
-              }
-              return col().padding(10).child(list);
-            }),
-            120,
-            70);
+    App<Object> app = start(
+        new App<>(new Object(), s -> {
+          El list = col().key("list").scroll().size(100, 50).fill(0xFF000000);
+          for (int i = 0; i < 10; i++) {
+            list.child(el().key("row" + i).focusable().h(20).fill(0xFFFFFFFF));
+          }
+          return col().padding(10).child(list);
+        }),
+        120,
+        70);
     tab(app);
     tab(app);
     assertEquals(0, find(app.tree(), "list").scrollY(), "rows 0 and 1 are in view");
@@ -677,9 +783,17 @@ class FocusTest {
 
   @Test
   void aRingThatFitsStaysOutsideAndOneAtTheWindowsEdgeLiesInside() {
-    App<Object> app = start(new App<>(new Object(), s -> col().wFull().hFull().children(
-        el().key("edge").focusable().size(40, 10),
-        el().key("inside").focusable().size(40, 10).margin(10))), 100, 100);
+    App<Object> app = start(
+        new App<>(
+            new Object(),
+            s -> col()
+                .wFull()
+                .hFull()
+                .children(
+                    el().key("edge").focusable().size(40, 10),
+                    el().key("inside").focusable().size(40, 10).margin(10))),
+        100,
+        100);
     tab(app);
     Scene scene = app.scene();
     int ring = ring(scene);
@@ -697,17 +811,16 @@ class FocusTest {
 
   @Test
   void aPressDoesNotScrollAndTheWheelKeepsTheFocus() {
-    App<Object> app =
-        start(
-            new App<>(new Object(), s -> {
-              El list = col().key("list").scroll().size(100, 50);
-              for (int i = 0; i < 10; i++) {
-                list.child(el().key("row" + i).focusable().h(20));
-              }
-              return list;
-            }),
-            100,
-            50);
+    App<Object> app = start(
+        new App<>(new Object(), s -> {
+          El list = col().key("list").scroll().size(100, 50);
+          for (int i = 0; i < 10; i++) {
+            list.child(el().key("row" + i).focusable().h(20));
+          }
+          return list;
+        }),
+        100,
+        50);
     press(app, 50, 45); // on row 2, half of which is in view
     assertEquals("row2", focusedKey(app));
     assertEquals(0, find(app.tree(), "list").scrollY());

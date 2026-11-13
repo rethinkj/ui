@@ -34,12 +34,20 @@ public final class Lights {
   // The view: a function from the state to a tree of elements, built again after each input.
   static El view(Lights s) {
     Theme t = Theme.DARK;
-    El lamp = el().key("lamp").size(56, 56).radius(28)
+    El lamp = el().key("lamp")
+        .size(56, 56)
+        .radius(28)
         .fill(s.on ? Colors.rgb(0xFACC15) : t.surface().raised())
         .motion(t.motion().move()); // the colour springs to its new value
-    return col().wFull().hFull().fill(t.surface().window()).center()
+    return col()
+        .wFull()
+        .hFull()
+        .fill(t.surface().window())
+        .center()
         .child(Card.card(t, lamp, toggle(t, s.on, "Lamp", () -> s.on = !s.on))
-            .padding(t.space().xxl()).gap(t.space().xl()).align(Style.Align.CENTER));
+            .padding(t.space().xxl())
+            .gap(t.space().xl())
+            .align(Style.Align.CENTER));
   }
 }
 // docs:end lights-app

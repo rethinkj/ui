@@ -57,13 +57,16 @@ public final class LayoutCheck {
   private static final String JEXTRACT = "jextract.wgpu.";
 
   /** One handwritten layout stands for the five callback info structs that have a mode. */
-  private static final List<String> CALLBACK_INFOS = List.of("WGPURequestAdapterCallbackInfo",
-      "WGPURequestDeviceCallbackInfo", "WGPUPopErrorScopeCallbackInfo",
-      "WGPUDeviceLostCallbackInfo", "WGPUBufferMapCallbackInfo");
+  private static final List<String> CALLBACK_INFOS = List.of(
+      "WGPURequestAdapterCallbackInfo",
+      "WGPURequestDeviceCallbackInfo",
+      "WGPUPopErrorScopeCallbackInfo",
+      "WGPUDeviceLostCallbackInfo",
+      "WGPUBufferMapCallbackInfo");
 
   /** Where the bindings differ from the header on purpose, and why. */
-  private static final Map<String, String> KNOWN = Map.of("wgpuDevicePoll",
-      "returns a one-byte Rust bool, though wgpu.h declares a uint32_t WGPUBool");
+  private static final Map<String, String> KNOWN = Map.of(
+      "wgpuDevicePoll", "returns a one-byte Rust bool, though wgpu.h declares a uint32_t WGPUBool");
 
   public static void main(String[] args) throws ReflectiveOperationException {
     List<StructLayout> layouts = field("Structs", "ALL");
@@ -83,15 +86,19 @@ public final class LayoutCheck {
         List<String> mine = members(written);
         List<String> theirs = members(generated);
         boolean same = written.byteSize() == generated.byteSize()
-            && written.byteAlignment() == generated.byteAlignment() && mine.equals(theirs);
-        System.out.printf("struct   %-38s %3d bytes, %2d members  %s%n", target,
-            written.byteSize(), mine.size(), same ? "same" : "DIFFERENT");
+            && written.byteAlignment() == generated.byteAlignment()
+            && mine.equals(theirs);
+        System.out.printf(
+            "struct   %-38s %3d bytes, %2d members  %s%n",
+            target, written.byteSize(), mine.size(), same ? "same" : "DIFFERENT");
         if (!same) {
           different++;
-          System.out.printf("    handwritten: %d bytes, align %d, %s%n", written.byteSize(),
-              written.byteAlignment(), mine);
-          System.out.printf("    jextract:    %d bytes, align %d, %s%n", generated.byteSize(),
-              generated.byteAlignment(), theirs);
+          System.out.printf(
+              "    handwritten: %d bytes, align %d, %s%n",
+              written.byteSize(), written.byteAlignment(), mine);
+          System.out.printf(
+              "    jextract:    %d bytes, align %d, %s%n",
+              generated.byteSize(), generated.byteAlignment(), theirs);
         }
       }
     }
@@ -111,17 +118,23 @@ public final class LayoutCheck {
       different += outcome == 1 ? 1 : 0;
       known += outcome == 2 ? 1 : 0;
     }
-    System.out.printf("%d compared: %d struct layouts, %d functions, %d callbacks; %d different,"
-        + " %d known differences%n", compared, compared - functions.size() - callbacks.size(),
-        functions.size(), callbacks.size(), different, known);
+    System.out.printf(
+        "%d compared: %d struct layouts, %d functions, %d callbacks; %d different,"
+            + " %d known differences%n",
+        compared,
+        compared - functions.size() - callbacks.size(),
+        functions.size(),
+        callbacks.size(),
+        different,
+        known);
     if (different > 0) {
       System.exit(1);
     }
   }
 
   /** 0 if the same, 1 if different, 2 if different as {@link #KNOWN} says. */
-  private static int compare(String what, String name, FunctionDescriptor written,
-      FunctionDescriptor generated) {
+  private static int compare(
+      String what, String name, FunctionDescriptor written, FunctionDescriptor generated) {
     String mine = shape(written);
     String theirs = shape(generated);
     if (mine.equals(theirs)) {
@@ -129,16 +142,18 @@ public final class LayoutCheck {
       return 0;
     }
     String reason = KNOWN.get(name);
-    System.out.printf("%-8s %-38s %s%n", what, name,
-        reason == null ? "DIFFERENT" : "different as intended: " + reason);
+    System.out.printf(
+        "%-8s %-38s %s%n",
+        what, name, reason == null ? "DIFFERENT" : "different as intended: " + reason);
     System.out.printf("    handwritten: %s%n    jextract:    %s%n", mine, theirs);
     return reason == null ? 1 : 2;
   }
 
   /** "(int, ptr, WGPUStringView{16/8}) -> void". */
   private static String shape(FunctionDescriptor descriptor) {
-    return descriptor.argumentLayouts().stream().map(LayoutCheck::type)
-        .collect(Collectors.joining(", ", "(", ")"))
+    return descriptor.argumentLayouts().stream()
+            .map(LayoutCheck::type)
+            .collect(Collectors.joining(", ", "(", ")"))
         + " -> " + descriptor.returnLayout().map(LayoutCheck::type).orElse("void");
   }
 
@@ -146,8 +161,9 @@ public final class LayoutCheck {
     return switch (layout) {
       case AddressLayout address -> "ptr";
       case ValueLayout value -> value.carrier().getSimpleName() + value.byteSize();
-      case GroupLayout group -> structName(group) + "{" + group.byteSize() + "/"
-          + group.byteAlignment() + " " + members(group) + "}";
+      case GroupLayout group ->
+        structName(group) + "{" + group.byteSize() + "/" + group.byteAlignment() + " "
+            + members(group) + "}";
       default -> layout.toString();
     };
   }
@@ -173,7 +189,8 @@ public final class LayoutCheck {
         if (member instanceof StructLayout struct) {
           collect(struct, path + ".", offset, out);
         } else {
-          String type = member instanceof ValueLayout ? type(member)
+          String type = member instanceof ValueLayout
+              ? type(member)
               : member instanceof java.lang.foreign.UnionLayout ? "union" : member.toString();
           out.add(path + "@" + offset + "+" + member.byteSize() + ":" + type);
         }

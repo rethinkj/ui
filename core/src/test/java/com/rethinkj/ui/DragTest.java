@@ -20,7 +20,8 @@ class DragTest {
   private static final int GREY = 0xFF808080;
   private static final int BLUE = 0xFF3B82F6;
 
-  @TempDir Path out;
+  @TempDir
+  Path out;
 
   /** A bar whose width the drag of its handle changes, as a column's edge does. */
   static final class Bar {
@@ -40,8 +41,13 @@ class DragTest {
       float start = b.width;
       El root = row().wFull().hFull().fill(GREY).onPress(() -> b.log.add("root"));
       if (b.shown) {
-        root.child(el().key("bar").size(b.width, 20).fill(GREY).child(
-            el().key("handle").absolute(b.width - 10, 0).size(10, 20).fill(GREY)
+        root.child(el().key("bar")
+            .size(b.width, 20)
+            .fill(GREY)
+            .child(el().key("handle")
+                .absolute(b.width - 10, 0)
+                .size(10, 20)
+                .fill(GREY)
                 .cursor(Cursor.EW_RESIZE)
                 .whenPressed(e -> e.fill(BLUE))
                 .onPress(() -> b.log.add("press"))
@@ -157,8 +163,12 @@ class DragTest {
 
   @Test
   void aPressOnAnElementWithADragHandlerOnlyDoesNotReachItsAncestors() {
-    App<List<String>> app = new App<>(new ArrayList<>(), log ->
-        row().wFull().hFull().onPress(() -> log.add("root"))
+    App<List<String>> app = new App<>(
+        new ArrayList<>(),
+        log -> row()
+            .wFull()
+            .hFull()
+            .onPress(() -> log.add("root"))
             .child(el().key("edge").size(10, 10).onDrag(d -> log.add(d.phase().name()))));
     app.resize(100, 100, 1);
     app.frame();
@@ -167,16 +177,22 @@ class DragTest {
     app.pointerUp(5, 5);
     app.frame();
     assertEquals(List.of(), app.state());
-    assertTrue(app.tree().dump().contains("el #edge 0,0 10x10 hovered\n"), app.tree().dump());
+    assertTrue(
+        app.tree().dump().contains("el #edge 0,0 10x10 hovered\n"), app.tree().dump());
   }
 
   @Test
   void theWheelScrollsDuringADragInsideAScrollArea() {
     List<String> log = new ArrayList<>();
-    App<List<String>> app = new App<>(log, l ->
-        col().key("area").size(100, 100).scroll().children(
-            el().key("knob").size(100, 20).onDrag(d -> l.add(d.phase() + " " + d.dy())),
-            el().size(100, 300)));
+    App<List<String>> app = new App<>(
+        log,
+        l -> col()
+            .key("area")
+            .size(100, 100)
+            .scroll()
+            .children(
+                el().key("knob").size(100, 20).onDrag(d -> l.add(d.phase() + " " + d.dy())),
+                el().size(100, 300)));
     app.resize(100, 100, 1);
     app.frame();
     app.pointerDown(50, 10);
@@ -198,7 +214,8 @@ class DragTest {
     App<Bar> app = bar();
     Script.run(
         "size 300 100\nframe\ndown #handle\nmove 160,10\nframe\nsnap dragging\nup 160,10\nframe",
-        app, out);
+        app,
+        out);
     assertEquals(List.of("START 65.0,0.0", "END 65.0,0.0"), app.state().log);
     assertEquals(165, find(app, "bar").width());
     assertNull(app.pressed());
@@ -212,8 +229,13 @@ class DragTest {
   }
 
   private static App<Rows> rows() {
-    App<Rows> app = new App<>(new Rows(), r ->
-        col().key("list").wFull().hFull().revealRow(r.shown)
+    App<Rows> app = new App<>(
+        new Rows(),
+        r -> col()
+            .key("list")
+            .wFull()
+            .hFull()
+            .revealRow(r.shown)
             .rows(1000, 20, i -> el().key("row-" + i)));
     app.resize(100, 100, 1);
     app.frame();

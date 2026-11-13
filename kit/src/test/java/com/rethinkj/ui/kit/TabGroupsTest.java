@@ -37,7 +37,8 @@ class TabGroupsTest {
 
   private static final Theme T = Theme.DARK;
 
-  @TempDir Path out;
+  @TempDir
+  Path out;
 
   @BeforeEach
   void textLibraries() {
@@ -55,13 +56,17 @@ class TabGroupsTest {
     }
 
     Windows.Handle open(Group<String> group, Window.Options options) {
-      return app.windows().open(group.activeTab(), 300, 160, options,
-          new App<>(this, s -> s.view(group)));
+      return app.windows()
+          .open(group.activeTab(), 300, 160, options, new App<>(this, s -> s.view(group)));
     }
 
     El view(Group<String> group) {
-      return col().wFull().hFull().child(
-          groups.tabs(T, group, Tab::new, s -> s == null ? null : Label.label(T, s).key("text"))
+      return col()
+          .wFull()
+          .hFull()
+          .child(groups
+              .tabs(
+                  T, group, Tab::new, s -> s == null ? null : Label.label(T, s).key("text"))
               .grow(1));
     }
   }
@@ -218,8 +223,7 @@ class TabGroupsTest {
         frame
         snap docking
         up screen 205,220""");
-    assertTrue(line(tree("b-docking"), "#marker").startsWith("el #marker 45,"),
-        tree("b-docking"));
+    assertTrue(line(tree("b-docking"), "#marker").startsWith("el #marker 45,"), tree("b-docking"));
     assertEquals(List.of(List.of("a", "d"), List.of("b", "c")), order(app.state()));
   }
 
@@ -358,7 +362,8 @@ class TabGroupsTest {
         advance 1
         frame
         snap menu""");
-    assertTrue(line(tree("c-menu"), "label=\"Move to new window\"").contains("disabled"),
+    assertTrue(
+        line(tree("c-menu"), "label=\"Move to new window\"").contains("disabled"),
         "a window's only tab is in a window of its own: " + tree("c-menu"));
     run(app, """
         window c
@@ -375,8 +380,8 @@ class TabGroupsTest {
   void withoutHandlersTabsDoNotMove() throws IOException {
     List<String> log = new ArrayList<>();
     List<Tab> tabs = List.of(new Tab("a"), new Tab("b"), new Tab("c"));
-    App<Object> plain = new App<>(new Object(), s -> Tabs.tabs(T, tabs, 0, i -> log.add("select " + i),
-        null, null));
+    App<Object> plain = new App<>(
+        new Object(), s -> Tabs.tabs(T, tabs, 0, i -> log.add("select " + i), null, null));
     Script.run("""
         size 400 160
         frame
@@ -392,8 +397,16 @@ class TabGroupsTest {
     assertEquals(List.of(), log, "no drag, no press, no move");
 
     // With a move handler but no drag state, only the keys move tabs.
-    App<Object> keys = new App<>(new Object(), s -> Tabs.tabs(T, tabs, 0, i -> {}, null, null,
-        Tabs.options().onMove((from, to) -> log.add("move " + from + " " + to))));
+    App<Object> keys = new App<>(
+        new Object(),
+        s -> Tabs.tabs(
+            T,
+            tabs,
+            0,
+            i -> {},
+            null,
+            null,
+            Tabs.options().onMove((from, to) -> log.add("move " + from + " " + to))));
     Script.run("""
         size 400 160
         frame

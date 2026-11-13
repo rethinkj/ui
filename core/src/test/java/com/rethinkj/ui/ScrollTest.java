@@ -19,7 +19,8 @@ import org.junit.jupiter.api.io.TempDir;
 /** Scroll areas: the wheel, offsets kept across rebuilds, and what is scrolled out of view. */
 class ScrollTest {
 
-  @TempDir Path out;
+  @TempDir
+  Path out;
 
   /** Rows of 20 pixels with a key each in an area 50 pixels tall; ten scroll 150 pixels. */
   private static El rows(String key, int count) {
@@ -76,11 +77,9 @@ class ScrollTest {
   @Test
   void theInnermostAreaScrollsFirstAndTheOuterOneTakesOverAtItsEnd() {
     // An outer area 50 tall holds the inner one, 50 tall with 150 to go, and 40 more pixels.
-    App<Object> app =
-        new App<>(
-            new Object(),
-            s -> col().key("outer").scroll().size(100, 50)
-                .children(rows("inner", 10), el().h(40)));
+    App<Object> app = new App<>(
+        new Object(),
+        s -> col().key("outer").scroll().size(100, 50).children(rows("inner", 10), el().h(40)));
     app.resize(100, 50, 1);
     app.frame();
     El outer = find(app, "outer");
@@ -106,11 +105,13 @@ class ScrollTest {
 
   @Test
   void bothAxesScrollIndependently() {
-    App<Object> app =
-        new App<>(
-            new Object(),
-            s -> col().key("outer").scroll().size(100, 50)
-                .child(el().key("wide").scrollBoth().size(100, 50).child(el().size(300, 80))));
+    App<Object> app = new App<>(
+        new Object(),
+        s -> col()
+            .key("outer")
+            .scroll()
+            .size(100, 50)
+            .child(el().key("wide").scrollBoth().size(100, 50).child(el().size(300, 80))));
     app.resize(100, 50, 1);
     app.frame();
     app.wheel(50, 25, 500, 10);
@@ -133,8 +134,9 @@ class ScrollTest {
 
   @Test
   void aWheelThatTurnsOnlyUpAndDownMovesAnAreaThatScrollsOnlySideways() {
-    App<Object> app = new App<>(new Object(), s -> col().key("page").scroll().size(100, 50)
-        .children(tabs(-1), el().h(100)));
+    App<Object> app = new App<>(
+        new Object(),
+        s -> col().key("page").scroll().size(100, 50).children(tabs(-1), el().h(100)));
     app.resize(100, 50, 1);
     app.frame();
     El bar = find(app, "bar");
@@ -191,16 +193,13 @@ class ScrollTest {
   @Test
   void theOffsetSurvivesARebuildAndFollowsItsKeyAcrossAnInsertedSibling() {
     boolean[] banner = {false};
-    App<boolean[]> app =
-        new App<>(
-            banner,
-            b -> {
-              El root = col().key("root").size(100, 60).onPress(() -> b[0] = !b[0]);
-              if (b[0]) {
-                root.child(el().key("banner").size(100, 10));
-              }
-              return root.child(rows("row", 10));
-            });
+    App<boolean[]> app = new App<>(banner, b -> {
+      El root = col().key("root").size(100, 60).onPress(() -> b[0] = !b[0]);
+      if (b[0]) {
+        root.child(el().key("banner").size(100, 10));
+      }
+      return root.child(rows("row", 10));
+    });
     app.resize(100, 60, 1);
     app.frame();
     app.wheel(50, 25, 0, 40);
@@ -217,8 +216,7 @@ class ScrollTest {
           el #banner 0,0 100x10
           el #row 0,10 100x50 scroll 0,40
             el #row0 label="row 0" 0,-30 100x20
-        """,
-        app.tree().dump().lines().limit(4).map(l -> l + "\n").reduce("", String::concat));
+        """, app.tree().dump().lines().limit(4).map(l -> l + "\n").reduce("", String::concat));
 
     app.resize(100, 60, 2);
     app.frame();
@@ -229,8 +227,7 @@ class ScrollTest {
   void aRebuildClampsTheOffsetToTheNewContent() {
     int[] count = {10};
     App<int[]> app =
-        new App<>(
-            count, c -> col().size(100, 60).onPress(() -> c[0] = 3).child(rows("row", c[0])));
+        new App<>(count, c -> col().size(100, 60).onPress(() -> c[0] = 3).child(rows("row", c[0])));
     app.resize(100, 60, 1);
     app.frame();
     app.wheel(50, 25, 0, 100);
@@ -244,14 +241,14 @@ class ScrollTest {
   @Test
   void anAppScrollsToTheTopOrTheEndItself() {
     List<App<Object>> self = new ArrayList<>();
-    App<Object> app =
-        new App<>(
-            new Object(),
-            s -> col().size(100, 60)
-                .child(rows("row", 10))
-                .child(
-                    el().key("top").h(10).onPress(
-                        () -> self.getFirst().scrollTo(find(self.getFirst(), "row"), 0, 0))));
+    App<Object> app = new App<>(
+        new Object(),
+        s -> col()
+            .size(100, 60)
+            .child(rows("row", 10))
+            .child(el().key("top")
+                .h(10)
+                .onPress(() -> self.getFirst().scrollTo(find(self.getFirst(), "row"), 0, 0))));
     self.add(app);
     app.resize(100, 60, 1);
     app.frame();
@@ -272,19 +269,18 @@ class ScrollTest {
   @Test
   void rowsOutsideTheAreaAreNeitherDrawnNorHitNorFound() throws IOException {
     List<String> pressed = new ArrayList<>();
-    App<List<String>> app =
-        new App<>(
-            pressed,
-            log -> {
-              El list = col().key("list").scroll().size(100, 50);
-              for (int i = 0; i < 10; i++) {
-                int row = i;
-                list.child(
-                    el().label("Row " + i).h(20).fill(0xFFFFFFFF).onPress(() -> log.add("" + row)));
-              }
-              return col().size(100, 100).fill(0xFF000000).onPress(() -> log.add("root"))
-                  .child(list);
-            });
+    App<List<String>> app = new App<>(pressed, log -> {
+      El list = col().key("list").scroll().size(100, 50);
+      for (int i = 0; i < 10; i++) {
+        int row = i;
+        list.child(el().label("Row " + i).h(20).fill(0xFFFFFFFF).onPress(() -> log.add("" + row)));
+      }
+      return col()
+          .size(100, 100)
+          .fill(0xFF000000)
+          .onPress(() -> log.add("root"))
+          .child(list);
+    });
     app.resize(100, 100, 1);
     app.frame();
     app.wheel(50, 25, 0, 20);
@@ -312,8 +308,7 @@ class ScrollTest {
           What matches label="Row 0" is clipped away in the last frame, for example scrolled out\
          of its scroll area, so it cannot be pressed or scrolled. Bring it into view first, for\
          example with `wheel <target> <deltaX> <deltaY>` over its scroll area.""",
-        assertThrows(
-                Script.Failure.class, () -> Script.run("press label=\"Row 0\"\n", app, out))
+        assertThrows(Script.Failure.class, () -> Script.run("press label=\"Row 0\"\n", app, out))
             .getMessage());
     assertThrows(
         Script.Failure.class, () -> Script.run("press label=\"Row 4\"\n", app, out), "below");
@@ -324,15 +319,12 @@ class ScrollTest {
   @Test
   void aClippedAwayPartTakesNoPress() {
     List<String> pressed = new ArrayList<>();
-    App<List<String>> app =
-        new App<>(
-            pressed,
-            log -> {
-              El child = el().absolute(20, 20).size(60, 60).onPress(() -> log.add("child"));
-              return el().size(100, 100)
-                  .onPress(() -> log.add("root"))
-                  .child(el().clip().size(40, 40).radius(20).child(child));
-            });
+    App<List<String>> app = new App<>(pressed, log -> {
+      El child = el().absolute(20, 20).size(60, 60).onPress(() -> log.add("child"));
+      return el().size(100, 100)
+          .onPress(() -> log.add("root"))
+          .child(el().clip().size(40, 40).radius(20).child(child));
+    });
     app.resize(100, 100, 1);
     app.frame();
     press(app, 30, 30); // inside the clip
@@ -348,8 +340,13 @@ class ScrollTest {
   }
 
   private static String line(App<?> app, String key) {
-    return app.tree().dump().lines().map(String::strip).filter(l -> l.startsWith("el " + key + " "))
-        .findFirst().orElseThrow();
+    return app.tree()
+        .dump()
+        .lines()
+        .map(String::strip)
+        .filter(l -> l.startsWith("el " + key + " "))
+        .findFirst()
+        .orElseThrow();
   }
 
   static El find(App<?> app, String key) {

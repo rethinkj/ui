@@ -63,14 +63,18 @@ class EditorTest {
   void codeWordsEndAtPointsAndOtherPunctuation() {
     String sql = "FROM shop.public.orders_2026 o";
     assertArrayEquals(new int[] {10, 16}, Editor.codeWord(sql, 12), "a double press on public");
-    assertArrayEquals(new int[] {5, 23}, Editor.word(sql, 12),
+    assertArrayEquals(
+        new int[] {5, 23},
+        Editor.word(sql, 12),
         "text's words do not end at a point between letters");
     assertArrayEquals(new int[] {17, 28}, Editor.codeWord(sql, 20), "_ and digits belong to it");
     assertArrayEquals(new int[] {9, 10}, Editor.codeWord(sql, 9), "the point on its own");
     assertArrayEquals(new int[] {28, 29}, Editor.codeWord(sql, 28), "a space");
     assertArrayEquals(new int[] {1, 5}, Editor.codeWord("a  \t b", 3), "spaces and tabs");
     assertArrayEquals(new int[] {0, 2}, Editor.codeWord("e\u0301.", 1), "a mark with its letter");
-    assertArrayEquals(new int[] {0, 3}, Editor.codeWord("a\uD835\uDC00", 2),
+    assertArrayEquals(
+        new int[] {0, 3},
+        Editor.codeWord("a\uD835\uDC00", 2),
         "inside a surrogate pair: the letter of the pair");
     assertArrayEquals(new int[] {0, 0}, Editor.codeWord("", 0));
 

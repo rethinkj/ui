@@ -83,7 +83,8 @@ class SeveralWindowsTest {
       Desktop.Redraws redraws = new Desktop.Redraws();
       AtomicReference<WindowLoop> loop = new AtomicReference<>();
       loop.set(new WindowLoop(a, appA, new Recorder("A", appA, a, log, redraws))
-          .presenters(w -> new Recorder("B", appB, w, log, redraws)).listener(redraws));
+          .presenters(w -> new Recorder("B", appB, w, log, redraws))
+          .listener(redraws));
       Windows.Handle b = loop.get().open(TITLE + " B", 120, 80, Window.options(), appB);
       Desktop.settle();
       int[] idle = new int[1];
@@ -105,8 +106,10 @@ class SeveralWindowsTest {
 
       int pass = log.indexOf("A a-1");
       assertTrue(pass > 0, log::toString);
-      assertEquals(List.of("A a-1", "B b-1", "idle", "moved", "idle"),
-          log.subList(pass, log.size() - 1), "B shows it in the same pass, then nothing: " + log);
+      assertEquals(
+          List.of("A a-1", "B b-1", "idle", "moved", "idle"),
+          log.subList(pass, log.size() - 1),
+          "B shows it in the same pass, then nothing: " + log);
       assertFalse(b.isOpen(), "the loop closed the window it opened");
       assertTrue(log.contains("B closed, window open"), "the presenter before its window");
       assertTrue(a.isOpen(), "the first window is its owner's");
@@ -149,14 +152,26 @@ class SeveralWindowsTest {
   void aWindowOpenedUnderThePointerDuringAPressTakesTheFocusOnlyAfterTheRelease() {
     try (Window a = Window.open(TITLE, 160, 100, Window.options().position(200, 200))) {
       Desktop.settle();
-      assumeTrue(Desktop.pollUntil(a::isFocused),
+      assumeTrue(
+          Desktop.pollUntil(a::isFocused),
           "Skipped: the window manager gives the first window no focus here");
       Shared s = new Shared();
       App<Shared> appB = new App<>(s, x -> row().key("b").wFull().hFull());
       AtomicReference<WindowLoop> loop = new AtomicReference<>();
-      App<Shared> appA = new App<>(s, x -> row().key("a").wFull().hFull().onPointerDown(
-          (clicks, modifiers) -> x.opened = loop.get().windows().open(TITLE + " B", 120, 80,
-              Window.options().position(420, 200).underPointer(), appB)));
+      App<Shared> appA = new App<>(
+          s,
+          x -> row()
+              .key("a")
+              .wFull()
+              .hFull()
+              .onPointerDown((clicks, modifiers) -> x.opened = loop.get()
+                  .windows()
+                  .open(
+                      TITLE + " B",
+                      120,
+                      80,
+                      Window.options().position(420, 200).underPointer(),
+                      appB)));
       loop.set(new WindowLoop(a, appA, (scene, w, h, scale) -> {}));
       List<String> log = new ArrayList<>();
       int[] idle = new int[1];
@@ -168,7 +183,8 @@ class SeveralWindowsTest {
           Desktop.button(a, true, Sdl.BUTTON_LEFT, 80, 50, 1);
         } else if (s.opened != null && !log.contains("released")) {
           Desktop.settle(); // what the window's showing caused
-          log.add("during the press: a " + a.isFocused() + ", b " + s.opened.window().isFocused());
+          log.add("during the press: a " + a.isFocused() + ", b "
+              + s.opened.window().isFocused());
           log.add("released");
           Desktop.button(a, false, Sdl.BUTTON_LEFT, 80, 50, 1);
         } else if (log.contains("released")) {
@@ -180,9 +196,12 @@ class SeveralWindowsTest {
       Desktop.run(loop.get(), () -> "the window opens and the press ends: " + log);
       // A window manager may focus a new window whatever its client asks, as GNOME's does on
       // X11; the keys of the press still go to the window it began in (WindowLoop routes them).
-      assumeTrue(!log.getFirst().equals("during the press: a false, b true"),
+      assumeTrue(
+          !log.getFirst().equals("during the press: a false, b true"),
           "Skipped: the window manager gives the new window the focus as it shows");
-      assertEquals(List.of("during the press: a true, b false", "released", "after: b true"), log,
+      assertEquals(
+          List.of("during the press: a true, b false", "released", "after: b true"),
+          log,
           "the first window keeps the focus during the press, and the new one takes it after");
     }
   }
@@ -218,17 +237,17 @@ class SeveralWindowsTest {
       List<String> log = s.log;
       WindowLoop loop = new WindowLoop(a, s.app, new Recorder("A", s.app, a, log, null))
           .presenters(w -> new WindowLoop.Presenter() {
-        boolean pressed;
+            boolean pressed;
 
-        @Override
-        public void present(Scene scene, float width, float height, float scale) {
-          log.add("B " + s.opened.app().tree().key());
-          if (!pressed) {
-            pressed = true;
-            Desktop.click(w, 50, 30); // closes both
-          }
-        }
-      });
+            @Override
+            public void present(Scene scene, float width, float height, float scale) {
+              log.add("B " + s.opened.app().tree().key());
+              if (!pressed) {
+                pressed = true;
+                Desktop.click(w, 50, 30); // closes both
+              }
+            }
+          });
       Desktop.settle();
       Desktop.click(a, 60, 40);
       Desktop.run(loop, () -> "a press opens B, a press in B closes both: " + log);
@@ -289,10 +308,15 @@ class SeveralWindowsTest {
     try (Window a = Window.open(TITLE, 160, 100, Window.options().position(100, 200))) {
       Shared s = new Shared();
       List<Drag> drags = new ArrayList<>();
-      App<Shared> appA = new App<>(s, x -> row().wFull().hFull()
-          .child(el().key("chip").size(40, 40).dragPayload("chip").onDrag(drags::add)));
-      App<Shared> appB = new App<>(s, x -> row().wFull().hFull()
-          .child(el().key("target").size(100, 60).onDrop(d -> {
+      App<Shared> appA = new App<>(
+          s,
+          x -> row()
+              .wFull()
+              .hFull()
+              .child(el().key("chip").size(40, 40).dragPayload("chip").onDrag(drags::add)));
+      App<Shared> appB = new App<>(
+          s,
+          x -> row().wFull().hFull().child(el().key("target").size(100, 60).onDrop(d -> {
             x.log.add(d.phase() + " " + d.payload() + " " + Math.round(d.x()));
             if (d.phase() == Drop.Phase.DROP) {
               x.count++;
@@ -301,8 +325,8 @@ class SeveralWindowsTest {
       AtomicReference<WindowLoop> loop = new AtomicReference<>();
       loop.set(new WindowLoop(a, appA, (scene, w, h, sc) -> {})
           .presenters(w -> (scene, wi, h, sc) -> {}));
-      Windows.Handle b = loop.get().open(TITLE + " B", 160, 100,
-          Window.options().position(400, 200), appB);
+      Windows.Handle b =
+          loop.get().open(TITLE + " B", 160, 100, Window.options().position(400, 200), appB);
       Desktop.settle();
       int[] idle = new int[1];
       float[] bx = new float[1];
@@ -347,15 +371,21 @@ class SeveralWindowsTest {
     try (Window a = Window.open(TITLE, 160, 100, Window.options().position(100, 200))) {
       List<Drag> drags = new ArrayList<>();
       List<String> pressesB = new ArrayList<>();
-      App<Object> appA = new App<>(new Object(), x -> row().wFull().hFull()
-          .child(el().key("chip").size(40, 40).onDrag(drags::add)));
-      App<Object> appB = new App<>(new Object(), x -> row().wFull().hFull()
-          .onPress(() -> pressesB.add("press")).onDrag(d -> pressesB.add("drag")));
+      App<Object> appA = new App<>(
+          new Object(),
+          x -> row().wFull().hFull().child(el().key("chip").size(40, 40).onDrag(drags::add)));
+      App<Object> appB = new App<>(
+          new Object(),
+          x -> row()
+              .wFull()
+              .hFull()
+              .onPress(() -> pressesB.add("press"))
+              .onDrag(d -> pressesB.add("drag")));
       AtomicReference<WindowLoop> loop = new AtomicReference<>();
       loop.set(new WindowLoop(a, appA, (scene, w, h, sc) -> {})
           .presenters(w -> (scene, wi, h, sc) -> {}));
-      Windows.Handle b = loop.get().open(TITLE + " B", 160, 100,
-          Window.options().position(400, 200), appB);
+      Windows.Handle b =
+          loop.get().open(TITLE + " B", 160, 100, Window.options().position(400, 200), appB);
       Desktop.settle();
       float[] expected = new float[2];
       int[] idle = new int[1];
@@ -377,7 +407,8 @@ class SeveralWindowsTest {
       });
       Desktop.run(loop.get(), () -> "the drag ends in A: " + drags);
 
-      assertEquals(List.of(Drag.Phase.START, Drag.Phase.MOVE, Drag.Phase.END),
+      assertEquals(
+          List.of(Drag.Phase.START, Drag.Phase.MOVE, Drag.Phase.END),
           drags.stream().map(Drag::phase).toList());
       assertEquals(expected[0] - 20, drags.getLast().dx(), 0.01);
       assertEquals(expected[1] - 20, drags.getLast().dy(), 0.01);
@@ -394,16 +425,20 @@ class SeveralWindowsTest {
   void thePressedWindowGetsTheKeysThatAnotherWindowReports() {
     try (Window a = Window.open(TITLE, 160, 100, Window.options().position(100, 200))) {
       List<String> log = new ArrayList<>();
-      App<Object> appA = new App<>(new Object(), x -> row().wFull().hFull()
-          .onKey(k -> log.add("A " + k.name()))
-          .child(el().key("chip").size(40, 40).onDrag(d -> log.add("A " + d.phase()))));
-      App<Object> appB = new App<>(new Object(), x -> row().wFull().hFull()
-          .onKey(k -> log.add("B " + k.name())));
+      App<Object> appA = new App<>(
+          new Object(),
+          x -> row()
+              .wFull()
+              .hFull()
+              .onKey(k -> log.add("A " + k.name()))
+              .child(el().key("chip").size(40, 40).onDrag(d -> log.add("A " + d.phase()))));
+      App<Object> appB =
+          new App<>(new Object(), x -> row().wFull().hFull().onKey(k -> log.add("B " + k.name())));
       AtomicReference<WindowLoop> loop = new AtomicReference<>();
       loop.set(new WindowLoop(a, appA, (scene, w, h, sc) -> {})
           .presenters(w -> (scene, wi, h, sc) -> {}));
-      Windows.Handle b = loop.get().open(TITLE + " B", 160, 100,
-          Window.options().position(400, 200), appB);
+      Windows.Handle b =
+          loop.get().open(TITLE + " B", 160, 100, Window.options().position(400, 200), appB);
       Desktop.settle();
       int[] idle = new int[1];
       loop.get().waits((millis, holdBack) -> {
@@ -440,22 +475,23 @@ class SeveralWindowsTest {
     try (Window a = Window.open(TITLE, 120, 80)) {
       int[] keysA = new int[1];
       int[] keysB = new int[1];
-      App<int[]> appA = new App<>(keysA, k -> el().key("a-" + k[0]).wFull().hFull()
-          .onKey(key -> ++k[0] > 0));
-      App<int[]> appB = new App<>(keysB, k -> el().key("b-" + k[0]).wFull().hFull()
-          .onKey(key -> ++k[0] > 0));
+      App<int[]> appA =
+          new App<>(keysA, k -> el().key("a-" + k[0]).wFull().hFull().onKey(key -> ++k[0] > 0));
+      App<int[]> appB =
+          new App<>(keysB, k -> el().key("b-" + k[0]).wFull().hFull().onKey(key -> ++k[0] > 0));
       List<String> log = new ArrayList<>();
       AtomicReference<WindowLoop> loop = new AtomicReference<>();
       AtomicReference<Windows.Handle> b = new AtomicReference<>();
       int[] round = new int[1]; // A's count that the round's first key brings
       loop.set(new WindowLoop(a, appA, (scene, w, h, sc) -> {
-        log.add("A " + keysA[0]);
-        if (keysA[0] == round[0] && round[0] > 0 && !log.contains("sent " + round[0])) {
-          log.add("sent " + round[0]);
-          Desktop.key(a, true, 'k', 0, false);
-          Desktop.key(b.get().window(), true, 'k', 0, false);
-        }
-      }).presenters(w -> (scene, wi, h, sc) -> log.add("B " + keysB[0])));
+            log.add("A " + keysA[0]);
+            if (keysA[0] == round[0] && round[0] > 0 && !log.contains("sent " + round[0])) {
+              log.add("sent " + round[0]);
+              Desktop.key(a, true, 'k', 0, false);
+              Desktop.key(b.get().window(), true, 'k', 0, false);
+            }
+          })
+          .presenters(w -> (scene, wi, h, sc) -> log.add("B " + keysB[0])));
       b.set(loop.get().open(TITLE + " B", 100, 60, Window.options(), appB));
       Desktop.settle();
       loop.get().waits((millis, holdBack) -> {
@@ -488,20 +524,24 @@ class SeveralWindowsTest {
   void tasksPostedToTwoAppsAreOneFrameEach() {
     try (Window a = Window.open(TITLE, 120, 80)) {
       int[] counts = new int[2];
-      App<Object> appA = new App<>(new Object(), c -> el().key("a-" + counts[0]).wFull().hFull());
-      App<Object> appB = new App<>(new Object(), c -> el().key("b-" + counts[1]).wFull().hFull());
+      App<Object> appA =
+          new App<>(new Object(), c -> el().key("a-" + counts[0]).wFull().hFull());
+      App<Object> appB =
+          new App<>(new Object(), c -> el().key("b-" + counts[1]).wFull().hFull());
       List<String> log = new ArrayList<>();
       Desktop.Redraws redraws = new Desktop.Redraws();
       AtomicReference<WindowLoop> loop = new AtomicReference<>();
       loop.set(new WindowLoop(a, appA, (scene, w, h, sc) -> {
-        if (!redraws.asked()) {
-          log.add("A " + counts[0]);
-        }
-      }).listener(redraws).presenters(w -> (scene, wi, h, sc) -> {
-        if (!redraws.asked()) {
-          log.add("B " + counts[1]);
-        }
-      }));
+            if (!redraws.asked()) {
+              log.add("A " + counts[0]);
+            }
+          })
+          .listener(redraws)
+          .presenters(w -> (scene, wi, h, sc) -> {
+            if (!redraws.asked()) {
+              log.add("B " + counts[1]);
+            }
+          }));
       loop.get().open(TITLE + " B", 100, 60, Window.options(), appB);
       Desktop.settle();
       int[] idle = new int[1];

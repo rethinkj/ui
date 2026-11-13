@@ -22,8 +22,20 @@ import java.util.Locale;
  * reaches wgpu: wgpu-native ends the process for a NULL handle.
  */
 public abstract sealed class GpuObject implements AutoCloseable
-    permits Instance, Adapter, Surface, SurfaceFrame, Device, ShaderModule, Buffer, Texture,
-        TextureView, BindGroupLayout, BindGroup, RenderPipeline, CommandEncoder, RenderPass,
+    permits Instance,
+        Adapter,
+        Surface,
+        SurfaceFrame,
+        Device,
+        ShaderModule,
+        Buffer,
+        Texture,
+        TextureView,
+        BindGroupLayout,
+        BindGroup,
+        RenderPipeline,
+        CommandEncoder,
+        RenderPass,
         CommandBuffer {
 
   final Instance instance;

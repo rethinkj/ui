@@ -28,7 +28,8 @@ class RowsTest {
   private static final int WHITE = 0xFFFFFFFF;
   private static final int HOVER = 0xFF3B82F6;
 
-  @TempDir Path out;
+  @TempDir
+  Path out;
 
   /** The state of the list views: the number of rows, and what the view and rows were asked. */
   static final class Data {
@@ -46,14 +47,20 @@ class RowsTest {
   /** A list that fills the window, with rows that count their calls and log their presses. */
   private static El list(Data data, float rowHeight) {
     data.views++;
-    return col().key("list").wFull().hFull()
+    return col()
+        .key("list")
+        .wFull()
+        .hFull()
         .onKey(k -> {
           data.log.add("list " + k.name());
           return false;
         })
         .rows(data.count, rowHeight, i -> {
           data.built.add(i);
-          return el().key("row-" + i).label("Row " + i).fill(WHITE).focusable()
+          return el().key("row-" + i)
+              .label("Row " + i)
+              .fill(WHITE)
+              .focusable()
               .onPress(() -> data.log.add("press " + i));
         });
   }
@@ -196,11 +203,20 @@ class RowsTest {
    * anew most of the time, up and down within the first 4000 pixels; and the elements in the tree.
    */
   private static long[] wheelFrames(int count) {
-    App<Data> app =
-        new App<>(
-            new Data(count),
-            d -> col().key("list").wFull().hFull().rows(d.count, 28, i ->
-                row().key("row-" + i).padding(4).gap(4).fill(WHITE)
+    App<Data> app = new App<>(
+        new Data(count),
+        d -> col()
+            .key("list")
+            .wFull()
+            .hFull()
+            .rows(
+                d.count,
+                28,
+                i -> row()
+                    .key("row-" + i)
+                    .padding(4)
+                    .gap(4)
+                    .fill(WHITE)
                     .children(el().size(14, 14), el().grow(1), el().w(40))));
     app.resize(400, 600, 1);
     app.frame();
@@ -262,11 +278,18 @@ class RowsTest {
   @Test
   void rowsKeepTheirMovementsAcrossRebuildsButMoveWithTheListAtOnce() {
     Data data = new Data(1000);
-    App<Data> app =
-        new App<>(
-            data,
-            d -> col().key("list").wFull().hFull().rows(d.count, 28, i ->
-                el().key("row-" + i).fill(i == d.selected ? HOVER : WHITE).motion(Spring.SNAP)));
+    App<Data> app = new App<>(
+        data,
+        d -> col()
+            .key("list")
+            .wFull()
+            .hFull()
+            .rows(
+                d.count,
+                28,
+                i -> el().key("row-" + i)
+                    .fill(i == d.selected ? HOVER : WHITE)
+                    .motion(Spring.SNAP)));
     app.resize(200, 300, 1);
     app.frame();
     data.selected = 2;
@@ -294,9 +317,14 @@ class RowsTest {
   void aListOfAHundredMillionRowsGrowsToTheExactPixelAndEndsWithItsLastRow() {
     for (int count : new int[] {1_000_000, 100_000_000}) {
       // As the data grid: a header and a line above rows that grow into the rest, 201 pixels.
-      App<Data> app = new App<>(new Data(count), d -> col().size(544, 224).children(
-          el().h(22).shrink(0), el().h(1).shrink(0),
-          col().key("list").grow(1).padding(0, 0, 3, 0).rows(d.count, 22, i -> el())));
+      App<Data> app = new App<>(
+          new Data(count),
+          d -> col()
+              .size(544, 224)
+              .children(
+                  el().h(22).shrink(0),
+                  el().h(1).shrink(0),
+                  col().key("list").grow(1).padding(0, 0, 3, 0).rows(d.count, 22, i -> el())));
       app.resize(560, 240, 1);
       app.frame();
       El list = find(app.tree(), "list");
@@ -345,12 +373,22 @@ class RowsTest {
     Data data = new Data(1_000_000);
     App<Data> app = new App<>(data, d -> {
       d.views++;
-      return col().key("list").wFull().hFull().rows(d.count, 28, i ->
-          row().key("row-" + i).fill(WHITE).focusable().onPress(() -> {})
-              .child(el().key("cell-" + i).size(10, 10))
-              .whenHovered(e -> e.fill(HOVER).padding(0, 0, 0, 8))
-              .whenFocused(e -> e.border(2, 0xFF000000))
-              .whenPressed(e -> e.radius(4)));
+      return col()
+          .key("list")
+          .wFull()
+          .hFull()
+          .rows(
+              d.count,
+              28,
+              i -> row()
+                  .key("row-" + i)
+                  .fill(WHITE)
+                  .focusable()
+                  .onPress(() -> {})
+                  .child(el().key("cell-" + i).size(10, 10))
+                  .whenHovered(e -> e.fill(HOVER).padding(0, 0, 0, 8))
+                  .whenFocused(e -> e.border(2, 0xFF000000))
+                  .whenPressed(e -> e.radius(4)));
     });
     app.resize(200, 300, 1);
     app.frame();
@@ -380,21 +418,29 @@ class RowsTest {
   @Test
   void selectorsHitTestingAndHoverWorkOnTheRowsThatExist() throws IOException {
     Data data = new Data(1_000_000);
-    App<Data> app =
-        new App<>(
-            data,
-            d -> col().key("list").wFull().hFull().rows(d.count, 28, i ->
-                el().key("row-" + i).label("Row " + i).fill(WHITE)
+    App<Data> app = new App<>(
+        data,
+        d -> col()
+            .key("list")
+            .wFull()
+            .hFull()
+            .rows(
+                d.count,
+                28,
+                i -> el().key("row-" + i)
+                    .label("Row " + i)
+                    .fill(WHITE)
                     .whenHovered(e -> e.fill(HOVER))
                     .onPress(() -> d.log.add("press " + i))));
-    Script.run("size 200 300\nframe\npress #row-3\npress 100,20\nmove label=\"Row 5\"\nframe\n",
-        app, out);
+    Script.run(
+        "size 200 300\nframe\npress #row-3\npress 100,20\nmove label=\"Row 5\"\nframe\n", app, out);
     assertEquals(List.of("press 3", "press 0"), data.log);
     El list = app.tree();
     assertEquals("row-5", app.hovered().key());
     assertEquals(HOVER, list.children().get(5).fill(), "its hover look");
     assertEquals(WHITE, list.children().get(4).fill());
-    assertTrue(app.tree().dump()
+    assertTrue(app.tree()
+        .dump()
         .contains("el #row-5 label=\"Row 5\" 0,140 200x28 pos=6/1000000 hovered\n"));
 
     app.wheel(100, 154, 0, 200); // rows 4 to 20 now, row 12 under the pointer
@@ -406,8 +452,9 @@ class RowsTest {
     Script.Failure failure =
         assertThrows(Script.Failure.class, () -> Script.run("press #row-500\n", app, out));
     assertTrue(
-        failure.getMessage().endsWith(
-            " every element with its rectangle.\n"
+        failure
+            .getMessage()
+            .endsWith(" every element with its rectangle.\n"
                 + "  A list of rows has only the rows near its visible part as elements, and a"
                 + " selector finds only those. The last frame has these lists, with the rows that"
                 + " exist and how many there are:\n"
@@ -424,28 +471,28 @@ class RowsTest {
   void theScrollStepNamesItsMistakes() {
     Data data = new Data(1000);
     App<Data> app = start(data, 28, 200, 300);
-    assertTrue(
-        failure("scroll #list row 1000\n", app)
-            .endsWith("The list has 1000 rows, from 0 to 999. Write a row in that range."));
+    assertTrue(failure("scroll #list row 1000\n", app)
+        .endsWith("The list has 1000 rows, from 0 to 999. Write a row in that range."));
     assertTrue(failure("scroll #list 3\n", app).contains("Write `scroll <target> row <index>`"));
     App<Object> plain = new App<>(new Object(), s -> el().key("box").size(10, 10));
-    assertTrue(
-        failure("size 10 10\nframe\nscroll #box row 3\n", plain)
-            .contains("There is no list of rows at #box."));
+    assertTrue(failure("size 10 10\nframe\nscroll #box row 3\n", plain)
+        .contains("There is no list of rows at #box."));
   }
 
   private String failure(String script, App<?> app) {
-    return assertThrows(Script.Failure.class, () -> Script.run(script, app, out)).getMessage();
+    return assertThrows(Script.Failure.class, () -> Script.run(script, app, out))
+        .getMessage();
   }
 
   // Focus
 
   /** A focusable element before a list of 200 pixels with focusable rows, and one after it. */
   private static App<Data> focusApp(Data data) {
-    App<Data> app =
-        new App<>(
-            data,
-            d -> col().size(200, 240).children(
+    App<Data> app = new App<>(
+        data,
+        d -> col()
+            .size(200, 240)
+            .children(
                 el().key("before").focusable().h(20),
                 list(d, 28).h(200),
                 el().key("after").focusable().h(20)));
@@ -474,7 +521,8 @@ class RowsTest {
     app.scrollToRow(list(app), 0);
     app.frame();
     assertEquals("row-0", key(app.focused()));
-    assertTrue(app.tree().dump()
+    assertTrue(app.tree()
+        .dump()
         .contains("el #row-0 label=\"Row 0\" 0,20 200x28 pos=1/1000000 focused\n"));
   }
 
@@ -560,9 +608,11 @@ class RowsTest {
   @Test
   void aListOfManyMillionRowsFillsWhatItGrowsIntoExactly() {
     for (int count : new int[] {1_000_000, 10_000_000, 100_000_000}) {
-      App<Object> app = new App<>(new Object(), s -> col().size(300, 500).children(
-          el().h(23).shrink(0),
-          col().grow(1).rows(count, 22, i -> el().h(22))));
+      App<Object> app = new App<>(
+          new Object(),
+          s -> col()
+              .size(300, 500)
+              .children(el().h(23).shrink(0), col().grow(1).rows(count, 22, i -> el().h(22))));
       app.resize(300, 500, 1);
       app.frame();
       assertEquals(477, app.tree().children().get(1).height(), count + " rows");

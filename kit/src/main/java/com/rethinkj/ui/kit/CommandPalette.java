@@ -54,6 +54,7 @@ public final class CommandPalette {
 
   /** The group of the commands chosen last, while nothing is typed, and of the others. */
   static final String RECENT = "Recently used";
+
   static final String OTHERS = "Other commands";
 
   /** How many commands chosen last it remembers. */
@@ -71,8 +72,8 @@ public final class CommandPalette {
   public record Source(String prefix, String what, FilterList.Entries entries) {
     public Source {
       if (prefix.isEmpty() || prefix.equals(">")) {
-        throw new IllegalArgumentException("A source needs a prefix of its own, not \"" + prefix
-            + "\": commands have none, or >");
+        throw new IllegalArgumentException(
+            "A source needs a prefix of its own, not \"" + prefix + "\": commands have none, or >");
       }
       Objects.requireNonNull(entries, "entries");
     }
@@ -92,20 +93,24 @@ public final class CommandPalette {
    *     none
    * @param onEnter receives the text when Enter is pressed, for a step that asks for one
    */
-  public record Stage(String placeholder, String text, List<FilterList.Entry> entries,
-      int highlight, Consumer<FilterList.Entry> onHighlight, Runnable onCancel,
+  public record Stage(
+      String placeholder,
+      String text,
+      List<FilterList.Entry> entries,
+      int highlight,
+      Consumer<FilterList.Entry> onHighlight,
+      Runnable onCancel,
       Consumer<String> onEnter) {
 
     /** A list to choose from, the entry at {@code highlight} highlighted first. */
-    public static Stage choose(String placeholder, List<FilterList.Entry> entries,
-        int highlight) {
+    public static Stage choose(String placeholder, List<FilterList.Entry> entries, int highlight) {
       return new Stage(placeholder, "", List.copyOf(entries), highlight, null, null, null);
     }
 
     /** A text to type, beginning with {@code text}, which Enter hands to {@code onEnter}. */
     public static Stage input(String placeholder, String text, Consumer<String> onEnter) {
-      return new Stage(placeholder, text, null, -1, null, null,
-          Objects.requireNonNull(onEnter, "onEnter"));
+      return new Stage(
+          placeholder, text, null, -1, null, null, Objects.requireNonNull(onEnter, "onEnter"));
     }
 
     /**
@@ -218,8 +223,7 @@ public final class CommandPalette {
     return commands;
   }
 
-  private static void collect(List<Menu.Item> items, String path,
-      List<FilterList.Entry> into) {
+  private static void collect(List<Menu.Item> items, String path, List<FilterList.Entry> into) {
     for (Menu.Item item : items) {
       if (item.isSeparator()) {
         continue;
@@ -229,10 +233,12 @@ public final class CommandPalette {
         collect(item.submenu(), path + label + " › ", into);
         continue;
       }
-      FilterList.Entry e = FilterList.entry(path + label, item.onChoose())
-          .shortcut(item.shortcut());
-      into.add(item.checked() ? e.symbol(Menu.CHECKED) : item.icon() != null
-          ? e.symbol(item.icon()) : e);
+      FilterList.Entry e =
+          FilterList.entry(path + label, item.onChoose()).shortcut(item.shortcut());
+      into.add(
+          item.checked()
+              ? e.symbol(Menu.CHECKED)
+              : item.icon() != null ? e.symbol(item.icon()) : e);
     }
   }
 
@@ -254,7 +260,8 @@ public final class CommandPalette {
   /** The text after a source's prefix, or after {@code >}, else the whole text. */
   private static String query(String text, List<Source> sources) {
     Source source = source(text, sources);
-    String rest = source != null ? text.substring(source.prefix().length())
+    String rest = source != null
+        ? text.substring(source.prefix().length())
         : text.startsWith(">") ? text.substring(1) : text;
     return rest.stripLeading();
   }
@@ -279,8 +286,8 @@ public final class CommandPalette {
    *     menus and commands of its own
    * @param sources the kinds found after their prefixes
    */
-  public static El palette(Theme t, State state, List<FilterList.Entry> commands,
-      List<Source> sources) {
+  public static El palette(
+      Theme t, State state, List<FilterList.Entry> commands, List<Source> sources) {
     if (!state.open) {
       return null;
     }
@@ -289,8 +296,7 @@ public final class CommandPalette {
     boolean ofCommands = stage == null && source == null;
     FilterList.Entries entries = stage != null
         ? stage.entries() == null ? null : FilterList.Entries.of(stage.entries())
-        : source != null ? source.entries()
-        : FilterList.Entries.of(ranked(commands, state.recent));
+        : source != null ? source.entries() : FilterList.Entries.of(ranked(commands, state.recent));
     state.list.onHighlight = stage == null ? null : stage.onHighlight();
     state.list.query = stage != null ? state.text : query(state.text, sources);
     Consumer<FilterList.Entry> choose = e -> {
@@ -312,11 +318,15 @@ public final class CommandPalette {
             }
           }
         })
-        .key("query-" + state.steps).label(stage != null ? stage.placeholder() : "Command")
+        .key("query-" + state.steps)
+        .label(stage != null ? stage.placeholder() : "Command")
         .autofocus(state.steps)
         .wFull()
         .onKey(k -> key(k, state, stage, choose));
-    El panel = col().key("palette").role("dialog").label("Command palette")
+    El panel = col()
+        .key("palette")
+        .role("dialog")
+        .label("Command palette")
         .w(t.size().palette())
         .padding(t.space().s())
         .gap(t.space().s())
@@ -338,8 +348,8 @@ public final class CommandPalette {
   }
 
   /** The commands, those chosen last first, in their own group, while there are any. */
-  private static List<FilterList.Entry> ranked(List<FilterList.Entry> commands,
-      List<String> recent) {
+  private static List<FilterList.Entry> ranked(
+      List<FilterList.Entry> commands, List<String> recent) {
     if (recent.isEmpty()) {
       return commands;
     }
@@ -392,7 +402,7 @@ public final class CommandPalette {
             return true;
           }
         }
-        default -> { }
+        default -> {}
       }
     }
     if (k.name().equals("Tab") && k.modifiers() == Key.SHIFT) {

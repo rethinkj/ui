@@ -129,13 +129,17 @@ final class LineEdits {
         out.append(line, 0, indent).append(prefix).append(' ').append(line, indent, line.length());
       }
     }
-    return new Edit(b[0], b[1], out.toString(), shifted(text, b[0], caret, at, removed, added),
+    return new Edit(
+        b[0],
+        b[1],
+        out.toString(),
+        shifted(text, b[0], caret, at, removed, added),
         shifted(text, b[0], anchor, at, removed, added));
   }
 
   /** Where a position of the lines from {@code start} on lies after the per-line changes. */
-  private static int shifted(String text, int start, int position, int[] at, int[] removed,
-      int[] added) {
+  private static int shifted(
+      String text, int start, int position, int[] at, int[] removed, int[] added) {
     int lineStart = start;
     int delta = 0;
     for (int n = 0; n < at.length; n++) {

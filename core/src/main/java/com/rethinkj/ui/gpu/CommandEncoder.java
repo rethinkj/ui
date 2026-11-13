@@ -57,7 +57,9 @@ public final class CommandEncoder extends GpuObject {
     try (Arena arena = Arena.ofConfined()) {
       MemorySegment attachment = RenderPassColorAttachment.allocate(arena);
       attachment.set(ADDRESS, RenderPassColorAttachment.VIEW, view);
-      attachment.set(JAVA_INT, RenderPassColorAttachment.LOAD_OP,
+      attachment.set(
+          JAVA_INT,
+          RenderPassColorAttachment.LOAD_OP,
           clear == null ? Wgpu.LOAD_OP_LOAD : Wgpu.LOAD_OP_CLEAR);
       attachment.set(JAVA_INT, RenderPassColorAttachment.STORE_OP, Wgpu.STORE_OP_STORE);
       if (clear != null) {
@@ -86,14 +88,14 @@ public final class CommandEncoder extends GpuObject {
    *
    * @param bytesPerRow a multiple of 256 that holds a row of the texture
    */
-  public void copyTextureToBuffer(Texture source, Buffer destination, long offset,
-      int bytesPerRow) {
+  public void copyTextureToBuffer(
+      Texture source, Buffer destination, long offset, int bytesPerRow) {
     MemorySegment encoder = recording();
     MemorySegment texture = device.owned(source).handle();
     MemorySegment buffer = device.owned(destination).handle();
     if (bytesPerRow <= 0 || bytesPerRow % 256 != 0) {
-      throw new IllegalArgumentException("bytesPerRow is " + bytesPerRow + "; wgpu needs a"
-          + " positive multiple of 256.");
+      throw new IllegalArgumentException(
+          "bytesPerRow is " + bytesPerRow + "; wgpu needs a" + " positive multiple of 256.");
     }
     try (Arena arena = Arena.ofConfined()) {
       MemorySegment from = arena.allocate(TexelCopyTextureInfo.LAYOUT);
@@ -150,8 +152,8 @@ public final class CommandEncoder extends GpuObject {
       throw new IllegalStateException(this + " is finished; it cannot record any more.");
     }
     if (pass != null) {
-      throw new IllegalStateException(pass + " is open; the encoder records only into it until"
-          + " it ends.");
+      throw new IllegalStateException(
+          pass + " is open; the encoder records only into it until" + " it ends.");
     }
     return encoder;
   }

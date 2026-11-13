@@ -71,11 +71,12 @@ public final class Popover {
    *
    * @return the anchor
    */
-  public static El popover(Theme t, El anchor, State state, Side side, Style.Align align,
-      String label, El content) {
-    return anchor.overlay(state.isOpen()
-        ? panel(t, state, label, content).side(side, align, t.space().xs())
-        : null);
+  public static El popover(
+      Theme t, El anchor, State state, Side side, Style.Align align, String label, El content) {
+    return anchor.overlay(
+        state.isOpen()
+            ? panel(t, state, label, content).side(side, align, t.space().xs())
+            : null);
   }
 
   /**
@@ -86,12 +87,22 @@ public final class Popover {
    * @param buttons the actions, in the order shown, the main one usually last
    * @return the anchor
    */
-  public static El form(Theme t, El anchor, State state, String title, El content,
-      List<El> buttons) {
-    return popover(t, anchor, state, title, col().gap(t.space().l()).children(
-        label(t, Label.Variant.STRONG, title).role("heading").level(3),
-        content,
-        row().gap(t.space().m()).justify(Style.Content.END).children(buttons.toArray(El[]::new))));
+  public static El form(
+      Theme t, El anchor, State state, String title, El content, List<El> buttons) {
+    return popover(
+        t,
+        anchor,
+        state,
+        title,
+        col()
+            .gap(t.space().l())
+            .children(
+                label(t, Label.Variant.STRONG, title).role("heading").level(3),
+                content,
+                row()
+                    .gap(t.space().m())
+                    .justify(Style.Content.END)
+                    .children(buttons.toArray(El[]::new))));
   }
 
   /**
@@ -99,7 +110,10 @@ public final class Popover {
    * {@link #popover} does; a press outside it and Escape call {@link State#close}.
    */
   public static El panel(Theme t, State state, String label, El content) {
-    return col().key("popover").role("dialog").label(label)
+    return col()
+        .key("popover")
+        .role("dialog")
+        .label(label)
         .onDismiss(state::close)
         .onKey(k -> {
           if (!k.name().equals("Escape") || k.modifiers() != 0) {

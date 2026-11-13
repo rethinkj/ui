@@ -28,6 +28,7 @@ final class MarkdownParser {
   static final int MAX_DEPTH = 32;
   /** Link destinations and titles are looked for this far at most, so that each costs a bound. */
   private static final int MAX_SCAN = 4096;
+
   private static final int CODE_INDENT = 4;
 
   private MarkdownParser() {}
@@ -135,7 +136,9 @@ final class MarkdownParser {
         break; // the text ends in a line break: no last empty line
       }
       incorporate(text.substring(at, end));
-      if (end < length && text.charAt(end) == '\r' && end + 1 < length
+      if (end < length
+          && text.charAt(end) == '\r'
+          && end + 1 < length
           && text.charAt(end + 1) == '\n') {
         end++;
       }
@@ -179,8 +182,10 @@ final class MarkdownParser {
     }
     allClosed = container == oldTip;
     lastMatched = container;
-    boolean matchedLeaf = container.type == HEADING || container.type == BREAK
-        || container.type == FENCE || container.type == INDENTED;
+    boolean matchedLeaf = container.type == HEADING
+        || container.type == BREAK
+        || container.type == FENCE
+        || container.type == INDENTED;
     while (!matchedLeaf) {
       findNextNonspace();
       int result = start(container);
@@ -202,8 +207,10 @@ final class MarkdownParser {
       container.last().lastLineBlank = true;
     }
     int t = container.type;
-    boolean lastLineBlank = blank && !(t == QUOTE || t == FENCE
-        || t == ITEM && container.children.isEmpty() && container.startLine == lineNumber);
+    boolean lastLineBlank = blank
+        && !(t == QUOTE
+            || t == FENCE
+            || t == ITEM && container.children.isEmpty() && container.startLine == lineNumber);
     for (B b = container; b != null; b = b.parent) {
       b.lastLineBlank = lastLineBlank;
     }
@@ -387,14 +394,16 @@ final class MarkdownParser {
         return 2;
       }
     }
-    if (!indented && container.type == PARA && c == '|' || !indented && container.type == PARA
-        && rest.indexOf('|') >= 0 || !indented && container.type == PARA && (c == '-' || c == ':')
-        && delimiterRow(rest)) {
+    if (!indented && container.type == PARA && c == '|'
+        || !indented && container.type == PARA && rest.indexOf('|') >= 0
+        || !indented && container.type == PARA && (c == '-' || c == ':') && delimiterRow(rest)) {
       if (table(container, rest)) {
         return 2;
       }
     }
-    if (!indented && container.type == PARA && (c == '=' || c == '-')
+    if (!indented
+        && container.type == PARA
+        && (c == '=' || c == '-')
         && SETEXT.matcher(rest).lookingAt()) {
       closeUnmatched();
       references(container);
@@ -466,8 +475,8 @@ final class MarkdownParser {
     for (String d : delimiters) {
       boolean left = d.startsWith(":");
       boolean right = d.endsWith(":");
-      aligns.add(left && right ? Align.CENTER : left ? Align.LEFT : right ? Align.RIGHT
-          : Align.NONE);
+      aligns.add(
+          left && right ? Align.CENTER : left ? Align.LEFT : right ? Align.RIGHT : Align.NONE);
     }
     B parent = para.parent;
     if (cut == 0) {
@@ -837,9 +846,11 @@ final class MarkdownParser {
 
   private void convert(B b, List<Block> out) {
     switch (b.type) {
-      case PARA -> out.add(new MarkdownDocument.Paragraph(inlines(b.content.toString().strip())));
-      case HEADING -> out.add(new MarkdownDocument.Heading(b.level,
-          inlines(b.content.toString().strip()), ""));
+      case PARA ->
+        out.add(new MarkdownDocument.Paragraph(inlines(b.content.toString().strip())));
+      case HEADING ->
+        out.add(
+            new MarkdownDocument.Heading(b.level, inlines(b.content.toString().strip()), ""));
       case FENCE -> {
         String content = b.content.toString();
         int cut = content.indexOf('\n');
@@ -870,9 +881,12 @@ final class MarkdownParser {
             B child = item.children.get(i);
             if (i == 0 && child.type == PARA) {
               String content = child.content.toString();
-              if (content.length() >= 3 && content.charAt(0) == '['
-                  && " xX".indexOf(content.charAt(1)) >= 0 && content.charAt(2) == ']'
-                  && (content.length() == 3 || isSpaceOrTab(content.charAt(3))
+              if (content.length() >= 3
+                  && content.charAt(0) == '['
+                  && " xX".indexOf(content.charAt(1)) >= 0
+                  && content.charAt(2) == ']'
+                  && (content.length() == 3
+                      || isSpaceOrTab(content.charAt(3))
                       || content.charAt(3) == '\n')) {
                 task = content.charAt(1) != ' ';
                 String rest = content.substring(3).strip();
@@ -917,21 +931,26 @@ final class MarkdownParser {
   private static List<Block> identify(List<Block> blocks, Map<String, Integer> seen) {
     List<Block> out = new ArrayList<>(blocks.size());
     for (Block b : blocks) {
-      out.add(switch (b) {
-        case MarkdownDocument.Heading h -> {
-          String slug = slug(MarkdownDocument.plainText(h.content()));
-          Integer n = seen.get(slug);
-          String id = n == null ? slug : slug + "-" + n;
-          seen.put(slug, n == null ? 1 : n + 1);
-          yield new MarkdownDocument.Heading(h.level(), h.content(), id);
-        }
-        case MarkdownDocument.Quote q -> new MarkdownDocument.Quote(identify(q.blocks(), seen));
-        case MarkdownDocument.ListBlock l -> new MarkdownDocument.ListBlock(l.ordered(),
-            l.start(), l.tight(), l.items().stream()
-                .map(i -> new MarkdownDocument.Item(i.task(), identify(i.blocks(), seen)))
-                .toList());
-        default -> b;
-      });
+      out.add(
+          switch (b) {
+            case MarkdownDocument.Heading h -> {
+              String slug = slug(MarkdownDocument.plainText(h.content()));
+              Integer n = seen.get(slug);
+              String id = n == null ? slug : slug + "-" + n;
+              seen.put(slug, n == null ? 1 : n + 1);
+              yield new MarkdownDocument.Heading(h.level(), h.content(), id);
+            }
+            case MarkdownDocument.Quote q -> new MarkdownDocument.Quote(identify(q.blocks(), seen));
+            case MarkdownDocument.ListBlock l ->
+              new MarkdownDocument.ListBlock(
+                  l.ordered(),
+                  l.start(),
+                  l.tight(),
+                  l.items().stream()
+                      .map(i -> new MarkdownDocument.Item(i.task(), identify(i.blocks(), seen)))
+                      .toList());
+            default -> b;
+          });
     }
     return out;
   }
@@ -1187,7 +1206,9 @@ final class MarkdownParser {
   }
 
   private static boolean isAsciiPunctuation(char c) {
-    return c >= '!' && c <= '/' || c >= ':' && c <= '@' || c >= '[' && c <= '`'
+    return c >= '!' && c <= '/'
+        || c >= ':' && c <= '@'
+        || c >= '[' && c <= '`'
         || c >= '{' && c <= '~';
   }
 
@@ -1217,7 +1238,8 @@ final class MarkdownParser {
         }
       }
       backtickRuns = new HashMap<>();
-      runs.forEach((k, v) -> backtickRuns.put(k, v.stream().mapToInt(Integer::intValue).toArray()));
+      runs.forEach(
+          (k, v) -> backtickRuns.put(k, v.stream().mapToInt(Integer::intValue).toArray()));
       backtickNext = new HashMap<>();
     }
     int[] runs = backtickRuns.get(length);
@@ -1229,8 +1251,10 @@ final class MarkdownParser {
     if (runs != null && next < runs.length) {
       int close = runs[next];
       String content = subject.substring(pos, close).replace('\n', ' ');
-      if (content.length() >= 2 && content.charAt(0) == ' '
-          && content.charAt(content.length() - 1) == ' ' && !content.isBlank()) {
+      if (content.length() >= 2
+          && content.charAt(0) == ' '
+          && content.charAt(content.length() - 1) == ' '
+          && !content.isBlank()) {
         content = content.substring(1, content.length() - 1);
       }
       block.append(new N(CODE, content));
@@ -1276,17 +1300,27 @@ final class MarkdownParser {
   }
 
   private static boolean isWhitespace(int c) {
-    return c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == '\f'
+    return c == ' '
+        || c == '\t'
+        || c == '\n'
+        || c == '\r'
+        || c == '\f'
         || Character.getType(c) == Character.SPACE_SEPARATOR;
   }
 
   private static boolean isPunctuation(int c) {
     return switch (Character.getType(c)) {
-      case Character.CONNECTOR_PUNCTUATION, Character.DASH_PUNCTUATION,
-          Character.START_PUNCTUATION, Character.END_PUNCTUATION,
-          Character.INITIAL_QUOTE_PUNCTUATION, Character.FINAL_QUOTE_PUNCTUATION,
-          Character.OTHER_PUNCTUATION, Character.MATH_SYMBOL, Character.CURRENCY_SYMBOL,
-          Character.MODIFIER_SYMBOL, Character.OTHER_SYMBOL -> true;
+      case Character.CONNECTOR_PUNCTUATION,
+          Character.DASH_PUNCTUATION,
+          Character.START_PUNCTUATION,
+          Character.END_PUNCTUATION,
+          Character.INITIAL_QUOTE_PUNCTUATION,
+          Character.FINAL_QUOTE_PUNCTUATION,
+          Character.OTHER_PUNCTUATION,
+          Character.MATH_SYMBOL,
+          Character.CURRENCY_SYMBOL,
+          Character.MODIFIER_SYMBOL,
+          Character.OTHER_SYMBOL -> true;
       default -> false;
     };
   }
@@ -1314,15 +1348,20 @@ final class MarkdownParser {
         closer = closer.next;
         continue;
       }
-      String key = closer.c == '~' ? "~" + closer.count
+      String key = closer.c == '~'
+          ? "~" + closer.count
           : closer.c + "" + (closer.canOpen ? 3 : 0) + closer.origCount % 3;
       Delimiter opener = closer.prev;
       boolean found = false;
       Delimiter floor = openersBottom.get(key);
       while (opener != null && opener != bottom && opener != floor) {
-        boolean oddMatch = closer.c != '~' && (closer.canOpen || opener.canClose)
-            && closer.origCount % 3 != 0 && (opener.origCount + closer.origCount) % 3 == 0;
-        if (opener.c == closer.c && opener.canOpen && !oddMatch
+        boolean oddMatch = closer.c != '~'
+            && (closer.canOpen || opener.canClose)
+            && closer.origCount % 3 != 0
+            && (opener.origCount + closer.origCount) % 3 == 0;
+        if (opener.c == closer.c
+            && opener.canOpen
+            && !oddMatch
             && (closer.c != '~' || opener.count == closer.count)) {
           found = true;
           break;
@@ -1331,8 +1370,7 @@ final class MarkdownParser {
       }
       Delimiter oldCloser = closer;
       if (found) {
-        int use = closer.c == '~' ? closer.count
-            : closer.count >= 2 && opener.count >= 2 ? 2 : 1;
+        int use = closer.c == '~' ? closer.count : closer.count >= 2 && opener.count >= 2 ? 2 : 1;
         opener.count -= use;
         closer.count -= use;
         opener.node.text = opener.node.text.substring(0, opener.node.text.length() - use);
@@ -1487,7 +1525,10 @@ final class MarkdownParser {
   }
 
   private static String normalizeLabel(String label) {
-    return label.strip().replaceAll("[ \\t\\r\\n]+", " ").toUpperCase(Locale.ROOT)
+    return label
+        .strip()
+        .replaceAll("[ \\t\\r\\n]+", " ")
+        .toUpperCase(Locale.ROOT)
         .toLowerCase(Locale.ROOT);
   }
 
@@ -1550,8 +1591,9 @@ final class MarkdownParser {
         q++;
       }
     }
-    if (q == limit && limit < s.length() || depth != 0 || q == p && (q >= s.length()
-        || s.charAt(q) != ')')) {
+    if (q == limit && limit < s.length()
+        || depth != 0
+        || q == p && (q >= s.length() || s.charAt(q) != ')')) {
       return null;
     }
     end[0] = q;
@@ -1570,7 +1612,11 @@ final class MarkdownParser {
     }
     int limit = Math.min(s.length(), p + MAX_SCAN);
     // The end found last time holds for every start before it: no closing mark lies between.
-    if (s == subject && open != '(' && quoteFrom >= 0 && quoteChar == open && p >= quoteFrom
+    if (s == subject
+        && open != '('
+        && quoteFrom >= 0
+        && quoteChar == open
+        && p >= quoteFrom
         && quoteFound > p) {
       int q = quoteFound;
       if (q < limit) {
@@ -1627,21 +1673,22 @@ final class MarkdownParser {
     pos++;
   }
 
-
   /** GitHub's autolinks without angle brackets: {@code www.}, {@code http://}, {@code https://}. */
   private boolean bareUrl(N block) {
     if (pos > 0 && !boundary(subject.charAt(pos - 1))) {
       return false;
     }
-    String head = subject.substring(pos, Math.min(subject.length(), pos + 8))
-        .toLowerCase(Locale.ROOT);
-    int prefix = head.startsWith("https://") ? 8 : head.startsWith("http://") ? 7
-        : head.startsWith("www.") ? 4 : 0;
+    String head =
+        subject.substring(pos, Math.min(subject.length(), pos + 8)).toLowerCase(Locale.ROOT);
+    int prefix = head.startsWith("https://")
+        ? 8
+        : head.startsWith("http://") ? 7 : head.startsWith("www.") ? 4 : 0;
     if (prefix == 0) {
       return false;
     }
     int stop = pos + prefix;
-    while (stop < subject.length() && !Character.isWhitespace(subject.charAt(stop))
+    while (stop < subject.length()
+        && !Character.isWhitespace(subject.charAt(stop))
         && subject.charAt(stop) != '<') {
       stop++;
     }
@@ -1665,7 +1712,8 @@ final class MarkdownParser {
         }
       } else if (c == ';') {
         int amp = url.lastIndexOf('&', end - 1);
-        if (amp >= 0 && url.substring(amp + 1, end - 1).chars().allMatch(Character::isLetterOrDigit)
+        if (amp >= 0
+            && url.substring(amp + 1, end - 1).chars().allMatch(Character::isLetterOrDigit)
             && amp + 1 < end - 1) {
           end = amp;
         } else {
@@ -1678,13 +1726,16 @@ final class MarkdownParser {
     url = url.substring(0, end);
     // The domain: at least one period after www., and none of the last two segments with "_".
     int domainEnd = domainStart;
-    while (domainEnd < url.length() && (Character.isLetterOrDigit(url.charAt(domainEnd))
-        || "._-".indexOf(url.charAt(domainEnd)) >= 0)) {
+    while (domainEnd < url.length()
+        && (Character.isLetterOrDigit(url.charAt(domainEnd))
+            || "._-".indexOf(url.charAt(domainEnd)) >= 0)) {
       domainEnd++;
     }
     String domain = url.substring(domainStart, domainEnd);
     String[] segments = domain.split("\\.", -1);
-    if (domain.isEmpty() || domain.endsWith(".") || segments.length < 2
+    if (domain.isEmpty()
+        || domain.endsWith(".")
+        || segments.length < 2
         || segments[segments.length - 1].contains("_")
         || segments.length >= 2 && segments[segments.length - 2].contains("_")) {
       return false;
@@ -1727,8 +1778,11 @@ final class MarkdownParser {
     if (body.startsWith("#")) {
       boolean hex = body.length() > 1 && (body.charAt(1) == 'x' || body.charAt(1) == 'X');
       String digits = body.substring(hex ? 2 : 1);
-      if (digits.isEmpty() || digits.length() > (hex ? 6 : 7)
-          || !digits.chars().allMatch(c -> hex ? Character.digit(c, 16) >= 0 : c >= '0' && c <= '9')) {
+      if (digits.isEmpty()
+          || digits.length() > (hex ? 6 : 7)
+          || !digits
+              .chars()
+              .allMatch(c -> hex ? Character.digit(c, 16) >= 0 : c >= '0' && c <= '9')) {
         return null;
       }
       int code = Integer.parseInt(digits, hex ? 16 : 10);
@@ -1781,8 +1835,8 @@ final class MarkdownParser {
         case IMAGE -> {
           List<Inline> alt = new ArrayList<>();
           collect(n, alt, depth + 1, inLink);
-          out.add(new MarkdownDocument.Image(n.destination, n.title,
-              MarkdownDocument.plainText(alt)));
+          out.add(
+              new MarkdownDocument.Image(n.destination, n.title, MarkdownDocument.plainText(alt)));
         }
         default -> {
           List<Inline> content = new ArrayList<>();
@@ -1796,12 +1850,13 @@ final class MarkdownParser {
             out.addAll(content);
             continue;
           }
-          out.add(switch (n.kind) {
-            case EMPH -> new MarkdownDocument.Emphasis(content);
-            case STRONG -> new MarkdownDocument.Strong(content);
-            case STRIKE -> new MarkdownDocument.Strike(content);
-            default -> new MarkdownDocument.Link(n.destination, n.title, content);
-          });
+          out.add(
+              switch (n.kind) {
+                case EMPH -> new MarkdownDocument.Emphasis(content);
+                case STRONG -> new MarkdownDocument.Strong(content);
+                case STRIKE -> new MarkdownDocument.Strike(content);
+                default -> new MarkdownDocument.Link(n.destination, n.title, content);
+              });
         }
       }
     }
@@ -1877,24 +1932,36 @@ final class MarkdownParser {
         tree(p.content(), depth + 1, out);
       }
       case MarkdownDocument.CodeBlock c ->
-          line(out, depth, "code " + quote(c.language()) + " " + quote(c.code()));
+        line(out, depth, "code " + quote(c.language()) + " " + quote(c.code()));
       case MarkdownDocument.Quote q -> {
         line(out, depth, "quote");
         q.blocks().forEach(b -> tree(b, depth + 1, out));
       }
       case MarkdownDocument.ListBlock l -> {
-        line(out, depth, "list " + (l.ordered() ? "ordered start=" + l.start() : "bullet")
-            + (l.tight() ? " tight" : " loose"));
+        line(
+            out,
+            depth,
+            "list " + (l.ordered() ? "ordered start=" + l.start() : "bullet")
+                + (l.tight() ? " tight" : " loose"));
         for (MarkdownDocument.Item item : l.items()) {
-          line(out, depth + 1, item.task() == null ? "item"
-              : item.task() ? "item task=[x]" : "item task=[ ]");
+          line(
+              out,
+              depth + 1,
+              item.task() == null ? "item" : item.task() ? "item task=[x]" : "item task=[ ]");
           item.blocks().forEach(b -> tree(b, depth + 2, out));
         }
       }
       case MarkdownDocument.ThematicBreak t -> line(out, depth, "hr");
       case MarkdownDocument.Table t -> {
-        line(out, depth, "table " + String.join(",",
-            t.aligns().stream().map(a -> a.name().toLowerCase(Locale.ROOT)).toList()));
+        line(
+            out,
+            depth,
+            "table "
+                + String.join(
+                    ",",
+                    t.aligns().stream()
+                        .map(a -> a.name().toLowerCase(Locale.ROOT))
+                        .toList()));
         line(out, depth + 1, "header");
         for (List<Inline> cell : t.header()) {
           line(out, depth + 2, "cell");
@@ -1929,12 +1996,19 @@ final class MarkdownParser {
         }
         case MarkdownDocument.Code c -> line(out, depth, "code " + quote(c.code()));
         case MarkdownDocument.Link l -> {
-          line(out, depth, "link " + quote(l.destination())
-              + (l.title().isEmpty() ? "" : " " + quote(l.title())));
+          line(
+              out,
+              depth,
+              "link " + quote(l.destination())
+                  + (l.title().isEmpty() ? "" : " " + quote(l.title())));
           tree(l.content(), depth + 1, out);
         }
-        case MarkdownDocument.Image m -> line(out, depth, "image " + quote(m.source())
-            + (m.title().isEmpty() ? "" : " " + quote(m.title())) + " alt=" + quote(m.alt()));
+        case MarkdownDocument.Image m ->
+          line(
+              out,
+              depth,
+              "image " + quote(m.source()) + (m.title().isEmpty() ? "" : " " + quote(m.title()))
+                  + " alt=" + quote(m.alt()));
         case MarkdownDocument.SoftBreak s -> line(out, depth, "softbreak");
         case MarkdownDocument.HardBreak h -> line(out, depth, "hardbreak");
       }
@@ -1942,7 +2016,8 @@ final class MarkdownParser {
   }
 
   private static String quote(String s) {
-    return "\"" + s.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n")
-        .replace("\t", "\\t") + "\"";
+    return "\""
+        + s.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n").replace("\t", "\\t")
+        + "\"";
   }
 }

@@ -23,14 +23,19 @@ class FuzzyTest {
 
   @Test
   void theStartsOfWordsComeFirst() {
-    assertEquals(List.of("orders_total", "customer_note"),
+    assertEquals(
+        List.of("orders_total", "customer_note"),
         ranked("ot", "customer_note", "orders_total", "status"));
-    assertEquals(List.of("order_items", "customer_id", "provider_index"),
+    assertEquals(
+        List.of("order_items", "customer_id", "provider_index"),
         ranked("oi", "provider_index", "customer_id", "order_items"));
     assertEquals(List.of("customerId", "musician"), ranked("ci", "musician", "customerId"));
-    assertEquals(List.of("cobalt", "customers_old"), ranked("co", "customers_old", "cobalt"),
+    assertEquals(
+        List.of("cobalt", "customers_old"),
+        ranked("co", "customers_old", "cobalt"),
         "a prefix beats the starts of two words");
-    assertEquals(List.of("File: New query", "Query: Run query"),
+    assertEquals(
+        List.of("File: New query", "Query: Run query"),
         ranked("nq", "Query: Run query", "File: New query"));
   }
 
@@ -99,15 +104,15 @@ class FuzzyTest {
       assertEquals(Character.toLowerCase(query.charAt(j)), Character.toLowerCase(text.charAt(i)));
       char before = i == 0 ? ' ' : text.charAt(i - 1);
       char c = text.charAt(i);
-      int bonus = before == ' ' ? Fuzzy.BOUNDARY
-          : ".-_/\\:,;".indexOf(before) >= 0 ? Fuzzy.SEPARATOR
-          : Character.isLowerCase(before) && Character.isUpperCase(c) ? Fuzzy.CAMEL
-          : 0;
+      int bonus = before == ' '
+          ? Fuzzy.BOUNDARY
+          : ".-_/\\:,;".indexOf(before) >= 0
+              ? Fuzzy.SEPARATOR
+              : Character.isLowerCase(before) && Character.isUpperCase(c) ? Fuzzy.CAMEL : 0;
       sum += Fuzzy.MATCH + (j == 0 ? 2 : 1) * bonus;
       if (j > 0) {
         int gap = i - at[j - 1] - 1;
-        sum += gap == 0 ? Fuzzy.CONSECUTIVE
-            : -Fuzzy.GAP_START - Fuzzy.GAP_EXTENSION * (gap - 1);
+        sum += gap == 0 ? Fuzzy.CONSECUTIVE : -Fuzzy.GAP_START - Fuzzy.GAP_EXTENSION * (gap - 1);
       }
     }
     assertTrue(m.matches(text));

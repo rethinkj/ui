@@ -126,8 +126,15 @@ public final class Split {
    * @param minSecond the least width or height of the second part
    */
   public static El split(
-      Theme t, Direction direction, Position position, Position reset, Consumer<Position> onMove,
-      El first, float minFirst, El second, float minSecond) {
+      Theme t,
+      Direction direction,
+      Position position,
+      Position reset,
+      Consumer<Position> onMove,
+      El first,
+      float minFirst,
+      El second,
+      float minSecond) {
     return split(t, direction, position, reset, onMove, first, minFirst, second, minSecond, false);
   }
 
@@ -137,14 +144,29 @@ public final class Split {
    * dragged, and their boxes do not clip them, so that the cards' lifts show.
    */
   public static El cards(
-      Theme t, Direction direction, Position position, Position reset, Consumer<Position> onMove,
-      El first, float minFirst, El second, float minSecond) {
+      Theme t,
+      Direction direction,
+      Position position,
+      Position reset,
+      Consumer<Position> onMove,
+      El first,
+      float minFirst,
+      El second,
+      float minSecond) {
     return split(t, direction, position, reset, onMove, first, minFirst, second, minSecond, true);
   }
 
   private static El split(
-      Theme t, Direction direction, Position position, Position reset, Consumer<Position> onMove,
-      El first, float minFirst, El second, float minSecond, boolean cards) {
+      Theme t,
+      Direction direction,
+      Position position,
+      Position reset,
+      Consumer<Position> onMove,
+      El first,
+      float minFirst,
+      El second,
+      float minSecond,
+      boolean cards) {
     Objects.requireNonNull(position, "position");
     boolean across = direction == Direction.ROW;
     // Between cards the gap takes the line's place, which shows in its middle.
@@ -157,10 +179,14 @@ public final class Split {
 
     El mark = el().fill(cards ? 0 : t.border().subtle());
     El line = cards ? (across ? row() : col()).justify(Style.Content.CENTER).child(mark) : mark;
-    El divider = (across ? row() : col()).key("divider").role("separator")
+    El divider = (across ? row() : col())
+        .key("divider")
+        .role("separator")
         .label(first.label() == null ? "Resize" : "Resize " + first.label())
         .value(position.kind().name().toLowerCase(Locale.ROOT) + " "
-            + new BigDecimal(Float.toString(position.value())).stripTrailingZeros().toPlainString())
+            + new BigDecimal(Float.toString(position.value()))
+                .stripTrailingZeros()
+                .toPlainString())
         .justify(Style.Content.CENTER)
         .shrink(0)
         .child(line);
@@ -172,8 +198,7 @@ public final class Split {
       split.clip();
     }
     zeroMin(split); // it fills the room it is given, whatever the parts hold
-    rest.style().direction =
-        across ? Style.Direction.ROW_REVERSE : Style.Direction.COLUMN_REVERSE;
+    rest.style().direction = across ? Style.Direction.ROW_REVERSE : Style.Direction.COLUMN_REVERSE;
     zeroMin(rest);
     float hair = t.size().stroke();
     if (across) {
@@ -214,19 +239,23 @@ public final class Split {
     // a key goes to, which is built after the key before it.
     DoubleConsumer move = delta -> {
       float room = Math.max(size(split, across) - stroke, 0);
-      float size = Math.max(minFirst,
-          Math.min(size(one, across) + (float) delta, room - minSecond));
-      onMove.accept(switch (position.kind()) {
-        case FIRST -> Position.first(size);
-        case SECOND -> Position.second(Math.max(room - size, 0));
-        case SHARE -> room > 0 ? Position.share(Math.clamp(size / room, 0, 1)) : position;
-      });
+      float size =
+          Math.max(minFirst, Math.min(size(one, across) + (float) delta, room - minSecond));
+      onMove.accept(
+          switch (position.kind()) {
+            case FIRST -> Position.first(size);
+            case SECOND -> Position.second(Math.max(room - size, 0));
+            case SHARE -> room > 0 ? Position.share(Math.clamp(size / room, 0, 1)) : position;
+          });
     };
     float step = t.size().step();
     String back = across ? "ArrowLeft" : "ArrowUp";
     String forth = across ? "ArrowRight" : "ArrowDown";
     // Tab reaches it; a press or a drag leaves the focus in the part that has it.
-    divider.focusable().keepFocus().focusRing(t.accent().edge())
+    divider
+        .focusable()
+        .keepFocus()
+        .focusRing(t.accent().edge())
         .cursor(across ? Cursor.EW_RESIZE : Cursor.NS_RESIZE)
         .whenHovered(e -> mark.fill(t.border().strong()))
         .whenPressed(e -> mark.fill(t.accent().color()))

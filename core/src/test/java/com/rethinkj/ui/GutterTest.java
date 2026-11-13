@@ -34,7 +34,9 @@ class GutterTest {
 
   /** Line numbers in JetBrains Mono, with a padding of 4 at the right, which tell presses. */
   private El.Gutter numbers() {
-    return (line, caret) -> El.row().padding(0, 4, 0, 0).onPress(() -> pressed.add("" + line))
+    return (line, caret) -> El.row()
+        .padding(0, 4, 0, 0)
+        .onPress(() -> pressed.add("" + line))
         .child(El.text((caret ? ">" : "") + (line + 1)).font(Font.mono()).fontSize(14));
   }
 
@@ -60,7 +62,8 @@ class GutterTest {
   private static List<String> cells(App<?> app) {
     List<String> out = new ArrayList<>();
     for (El cell : column(app).children()) {
-      out.add(cell.key() + " " + cell.y() + " " + cell.children().getFirst().text().string());
+      out.add(
+          cell.key() + " " + cell.y() + " " + cell.children().getFirst().text().string());
     }
     return out;
   }
@@ -77,7 +80,8 @@ class GutterTest {
     app.pointerDown(10 + 4 + 20 + 8 * 3, 14 + 18 + 9);
     app.pointerUp(10 + 4 + 20 + 8 * 3, 14 + 18 + 9);
     app.frame();
-    assertTrue(show(app).startsWith("line 0\nlin|e 1"), "presses in the text after it: " + show(app));
+    assertTrue(
+        show(app).startsWith("line 0\nlin|e 1"), "presses in the text after it: " + show(app));
     assertTrue(app.tree().dump().contains("el #gutter"), app.tree().dump());
   }
 
@@ -109,8 +113,10 @@ class GutterTest {
     App<Model> app = area(text(5), f -> f);
     assertEquals(">1", cells(app).getFirst().split(" ")[2]);
     key(app, "ArrowDown");
-    assertEquals(List.of("1", ">2"), cells(app).subList(0, 2).stream()
-        .map(c -> c.split(" ")[2]).toList(), "built again for the caret's new line");
+    assertEquals(
+        List.of("1", ">2"),
+        cells(app).subList(0, 2).stream().map(c -> c.split(" ")[2]).toList(),
+        "built again for the caret's new line");
     int built = field(app).editor().lineIndex().gutterCells;
     app.frame();
     app.advance(0.6); // the caret blinks: the rows are laid out again, the cells stay
@@ -132,13 +138,15 @@ class GutterTest {
     key(app, "End", Key.CONTROL);
     List<String> end = cells(app);
     assertTrue(end.getLast().startsWith("line-99999 "), end.toString());
-    assertTrue(lines.gutterCells - first <= 3 * 8, "only the lines at the end: "
-        + (lines.gutterCells - first));
+    assertTrue(
+        lines.gutterCells - first <= 3 * 8,
+        "only the lines at the end: " + (lines.gutterCells - first));
   }
 
   @Test
   void onlyAMultiLineFieldHasAGutter() {
-    assertThrows(IllegalStateException.class,
+    assertThrows(
+        IllegalStateException.class,
         () -> El.text("x").editable(v -> {}).gutter((line, caret) -> El.el()));
   }
 }

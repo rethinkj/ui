@@ -22,7 +22,8 @@ import org.junit.jupiter.params.provider.CsvSource;
  */
 class ToastTest {
 
-  @TempDir Path out;
+  @TempDir
+  Path out;
 
   @BeforeEach
   void textLibraries() {

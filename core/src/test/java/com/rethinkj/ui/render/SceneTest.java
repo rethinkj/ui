@@ -63,8 +63,10 @@ class SceneTest {
 
   @Test
   void drawsShadowsRightUnderTheirElementTheFirstOnTop() {
-    El card = el().fill(0xFFFFFFFF).radius(6).opacity(0.5f).shadow(
-        new Shadow(0, 2, 4, 0, 0x40000000), new Shadow(1, 8, 24, -2, 0x26000000));
+    El card = el().fill(0xFFFFFFFF)
+        .radius(6)
+        .opacity(0.5f)
+        .shadow(new Shadow(0, 2, 4, 0, 0x40000000), new Shadow(1, 8, 24, -2, 0x26000000));
     El root = el().fill(0xFF808080).child(el().fill(0xFF000000)).child(card);
     root.place(0, 0, 100, 100);
     root.children().getFirst().place(0, 0, 10, 10);
@@ -116,8 +118,8 @@ class SceneTest {
   void aShadowTakesTheClipOfItsElementAndIsLeftOutWhereNothingOfItShows() {
     El inside = el().fill(0xFFFFFFFF).shadow(new Shadow(0, 4, 8, 0, 0x80000000));
     El far = el().shadow(new Shadow(0, 0, 8, 0, 0x80000000));
-    El empty = el().fill(0xFFFFFFFF).shadow(new Shadow(0, 0, 8, -10, 0x80000000),
-        new Shadow(0, 0, 8, 0, 0x00000000));
+    El empty = el().fill(0xFFFFFFFF)
+        .shadow(new Shadow(0, 0, 8, -10, 0x80000000), new Shadow(0, 0, 8, 0, 0x00000000));
     El panel = el().clip().radius(8).child(inside).child(far).child(empty);
     El root = el().child(panel);
     root.place(0, 0, 200, 200);

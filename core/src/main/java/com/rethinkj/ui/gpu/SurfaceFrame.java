@@ -18,8 +18,15 @@ public final class SurfaceFrame extends GpuObject {
   private TextureView view;
   private boolean presented;
 
-  SurfaceFrame(Surface surface, Device device, String label, MemorySegment texture, int width,
-      int height, TextureFormat format, boolean suboptimal) {
+  SurfaceFrame(
+      Surface surface,
+      Device device,
+      String label,
+      MemorySegment texture,
+      int width,
+      int height,
+      TextureFormat format,
+      boolean suboptimal) {
     super(surface.instance, surface, label, texture);
     this.surface = surface;
     this.device = device;
@@ -53,8 +60,8 @@ public final class SurfaceFrame extends GpuObject {
   public TextureView view() {
     MemorySegment texture = held();
     if (view == null) {
-      view = Texture.createView(this, device, texture, label() + " view", width, height, format,
-          false, this);
+      view = Texture.createView(
+          this, device, texture, label() + " view", width, height, format, false, this);
     }
     return view;
   }

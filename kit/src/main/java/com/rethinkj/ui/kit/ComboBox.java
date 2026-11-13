@@ -108,8 +108,8 @@ public final class ComboBox {
    * @param state whether the list is open and what was typed; the app keeps it
    * @param onSelect told the index of the choice made; null disables the combo box
    */
-  public static El comboBox(Theme t, List<String> choices, int selected, State state,
-      IntConsumer onSelect) {
+  public static El comboBox(
+      Theme t, List<String> choices, int selected, State state, IntConsumer onSelect) {
     boolean enabled = onSelect != null;
     String text = selected >= 0 && selected < choices.size() ? choices.get(selected) : "";
     if (!enabled || !state.open) {
@@ -151,7 +151,8 @@ public final class ComboBox {
     /** An image before the text, fitted into an icon's square, such as a database's logo. */
     public Item image(com.rethinkj.ui.Image image) {
       Objects.requireNonNull(image, "image");
-      return leading(t -> El.image(image).size(t.size().icon(), t.size().icon())
+      return leading(t -> El.image(image)
+          .size(t.size().icon(), t.size().icon())
           .fit(com.rethinkj.ui.Image.Fit.CONTAIN));
     }
 
@@ -185,12 +186,13 @@ public final class ComboBox {
    * @param state whether the list is open and what was typed; the app keeps it
    * @param onSelect told the index of the choice made; null disables the combo box
    */
-  public static El items(Theme t, List<Item> items, int selected, State state,
-      IntConsumer onSelect) {
+  public static El items(
+      Theme t, List<Item> items, int selected, State state, IntConsumer onSelect) {
     boolean enabled = onSelect != null;
     Item current = selected >= 0 && selected < items.size() ? items.get(selected) : null;
     String text = current == null ? "" : current.text();
-    El lead = current == null || current.leading() == null ? null : current.leading().apply(t);
+    El lead =
+        current == null || current.leading() == null ? null : current.leading().apply(t);
     if (!enabled || !state.open) {
       if (state.open) {
         state.close();
@@ -212,7 +214,9 @@ public final class ComboBox {
         int at = i;
         Item item = items.get(i);
         entries.add(FilterList.entry(item.text(), () -> state.choose.accept(at))
-            .leading(item.leading()).detail(item.detail()).checked(i == selected));
+            .leading(item.leading())
+            .detail(item.detail())
+            .checked(i == selected));
       }
       state.choices = items;
       state.chosen = selected;
@@ -233,18 +237,24 @@ public final class ComboBox {
    * @param onChange receives the new text after each edit and the suggestion chosen; null
    *     disables the combo box
    */
-  public static El free(Theme t, String value, List<String> suggestions, State state,
-      Consumer<String> onChange) {
+  public static El free(
+      Theme t, String value, List<String> suggestions, State state, Consumer<String> onChange) {
     boolean enabled = onChange != null;
     state.free = true;
     if (!enabled) {
       state.open = false;
     }
-    El field = TextField.textField(t, value, null, !enabled ? null : v -> {
-      onChange.accept(v);
-      state.open = true;
-      state.list.typed(v, false);
-    });
+    El field = TextField.textField(
+        t,
+        value,
+        null,
+        !enabled
+            ? null
+            : v -> {
+              onChange.accept(v);
+              state.open = true;
+              state.list.typed(v, false);
+            });
     if (!state.open) {
       return frame(t, value, field.key("field-" + state.picked), null, state, false, enabled);
     }
@@ -261,8 +271,8 @@ public final class ComboBox {
    * The entries of these choices, made once for the same list and choice and kept in the state,
    * so that the list's filter keeps what it found.
    */
-  private static List<FilterList.Entry> entries(State state, List<String> choices, int selected,
-      IntConsumer choose) {
+  private static List<FilterList.Entry> entries(
+      State state, List<String> choices, int selected, IntConsumer choose) {
     // The handlers of the entries go through the state, which holds the handler of this build.
     state.choose = choose;
     if (choices == state.choices && selected == state.chosen && state.entries != null) {
@@ -283,7 +293,9 @@ public final class ComboBox {
   /** The closed look of {@link #comboBox}: a {@link Select}'s. */
   private static El closed(Theme t, String text, El lead, boolean enabled, State state) {
     int fill = t.surface().raised();
-    El box = row().role("combobox").label(text)
+    El box = row()
+        .role("combobox")
+        .label(text)
         .disabled(!enabled)
         .expanded(false)
         .w(t.size().field())
@@ -299,13 +311,17 @@ public final class ComboBox {
       box.child(leadBox(t, lead));
     }
     box.children(
-        label(t, text).color(enabled ? t.text().primary() : t.text().disabled()).grow(1)
-            .minSize(0, 0).ellipsis(),
+        label(t, text)
+            .color(enabled ? t.text().primary() : t.text().disabled())
+            .grow(1)
+            .minSize(0, 0)
+            .ellipsis(),
         Icon.icon(t, OPENS, enabled ? Icon.Variant.MUTED : Icon.Variant.DISABLED));
     if (!enabled) {
       return box;
     }
-    return box.focusable().focusRing(t.accent().edge())
+    return box.focusable()
+        .focusRing(t.accent().edge())
         .cursor(Cursor.POINTER)
         .onPress((Runnable) state::open)
         .onKey(k -> {
@@ -315,7 +331,8 @@ public final class ComboBox {
             return true;
           }
           String name = k.name();
-          if ((k.modifiers() & ~Key.SHIFT) == 0 && name.codePointCount(0, name.length()) == 1
+          if ((k.modifiers() & ~Key.SHIFT) == 0
+              && name.codePointCount(0, name.length()) == 1
               && Character.isLetterOrDigit(name.codePointAt(0))) {
             state.open(k.modifiers() == Key.SHIFT ? name : name.toLowerCase(Locale.ROOT));
             return true;
@@ -327,13 +344,16 @@ public final class ComboBox {
 
   /** An item's own element in an icon's square, which takes no input. */
   private static El leadBox(Theme t, El lead) {
-    return el().key("lead").size(t.size().icon(), t.size().icon()).shrink(0).center()
+    return el().key("lead")
+        .size(t.size().icon(), t.size().icon())
+        .shrink(0)
+        .center()
         .child(lead.shrink(0));
   }
 
   /** A field in the frame with the chevron, which opens and closes the list. */
-  private static El frame(Theme t, String value, El field, El lead, State state, boolean choice,
-      boolean enabled) {
+  private static El frame(
+      Theme t, String value, El field, El lead, State state, boolean choice, boolean enabled) {
     float side = t.size().control();
     field.wFull().hFull().style().paddingRight = Len.px(side); // the text stops before the mark
     El before = null;
@@ -343,11 +363,14 @@ public final class ComboBox {
       place.position = Style.Position.ABSOLUTE;
       place.left = Len.px(t.space().m());
       place.top = Len.px((side - t.size().icon()) / 2);
-      field.style().paddingLeft = Len.px(t.space().m() + t.size().icon() + t.space().s());
+      field.style().paddingLeft =
+          Len.px(t.space().m() + t.size().icon() + t.space().s());
     }
     field.autofocus(state.opened == 0 ? null : state.opened);
-    El mark = el().role("button").label(state.open ? "Close" : "Open")
-        .size(side, side).center()
+    El mark = el().role("button")
+        .label(state.open ? "Close" : "Open")
+        .size(side, side)
+        .center()
         .child(Icon.icon(t, OPENS, enabled ? Icon.Variant.MUTED : Icon.Variant.DISABLED));
     Style at = mark.style();
     at.position = Style.Position.ABSOLUTE;
@@ -363,8 +386,12 @@ public final class ComboBox {
         }
       });
     }
-    El box = el().role("combobox").label(value).expanded(state.open).disabled(!enabled)
-        .w(t.size().field()).h(t.size().control())
+    El box = el().role("combobox")
+        .label(value)
+        .expanded(state.open)
+        .disabled(!enabled)
+        .w(t.size().field())
+        .h(t.size().control())
         .children(field, mark);
     if (before != null) {
       box.child(before);
@@ -413,22 +440,30 @@ public final class ComboBox {
             return true;
           }
         }
-        default -> { }
+        default -> {}
       }
     }
     return FilterList.key(k, state.list, ROWS, e -> e.onChoose().run());
   }
 
   /** The open combo box: the field in its frame and the list below it. */
-  private static El open(Theme t, String value, El field, El lead, FilterList.Entries entries,
-      State state, boolean choice) {
+  private static El open(
+      Theme t,
+      String value,
+      El field,
+      El lead,
+      FilterList.Entries entries,
+      State state,
+      boolean choice) {
     FilterList.Shown shown = FilterList.shown(state.list, entries);
     El box = frame(t, value, field, lead, state, choice, true);
     if (!choice && shown.count() == 0) {
       return box.expanded(false); // no suggestion for what is typed: nothing to show
     }
-    El list = FilterList.list(t, state.list, shown, ROWS, value, e -> e.onChoose().run());
-    El panel = col().key("choices")
+    El list =
+        FilterList.list(t, state.list, shown, ROWS, value, e -> e.onChoose().run());
+    El panel = col()
+        .key("choices")
         .padding(t.space().s())
         .radius(t.radius().medium())
         .fill(t.surface().raised())

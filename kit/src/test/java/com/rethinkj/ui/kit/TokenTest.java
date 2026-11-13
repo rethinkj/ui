@@ -28,7 +28,8 @@ class TokenTest {
   void componentsHaveNoColourOrSpringOfTheirOwn() throws IOException {
     List<String> found = new ArrayList<>();
     try (Stream<Path> files = Files.list(SOURCES)) {
-      for (Path file : files.filter(f -> f.toString().endsWith(".java")).sorted().toList()) {
+      for (Path file :
+          files.filter(f -> f.toString().endsWith(".java")).sorted().toList()) {
         String name = file.getFileName().toString();
         List<String> lines = Files.readAllLines(file);
         for (int i = 0; i < lines.size(); i++) {
@@ -39,7 +40,7 @@ class TokenTest {
         }
       }
     }
-    assertTrue(found.size() == 0,
-        "Take these from the theme instead:\n" + String.join("\n", found));
+    assertTrue(
+        found.size() == 0, "Take these from the theme instead:\n" + String.join("\n", found));
   }
 }

@@ -49,10 +49,16 @@ class FieldStateTest {
   }
 
   private static App<Model> start(Model model) {
-    App<Model> app = new App<>(model, m -> col().wFull().hFull().padding(10).gap(4).children(
-        // The same place for either query: the identity of the field is the same.
-        query(m, m.active),
-        el().key("bar").focusable().size(10, 10)));
+    App<Model> app = new App<>(
+        model,
+        m -> col()
+            .wFull()
+            .hFull()
+            .padding(10)
+            .gap(4)
+            .children(
+                // The same place for either query: the identity of the field is the same.
+                query(m, m.active), el().key("bar").focusable().size(10, 10)));
     app.textRendering(TextRendering.LINUX);
     app.resize(320, 240, 1);
     app.frame();
@@ -88,9 +94,12 @@ class FieldStateTest {
     model.sql[1] = "b";
     model.shared = true;
     FieldState shared = new FieldState();
-    App<Model> app = new App<>(model, m -> col().children(
-        El.text("a").editable(v -> {}).key("one").fieldState(shared),
-        El.text("b").editable(v -> {}).key("two").fieldState(shared)));
+    App<Model> app = new App<>(
+        model,
+        m -> col()
+            .children(
+                El.text("a").editable(v -> {}).key("one").fieldState(shared),
+                El.text("b").editable(v -> {}).key("two").fieldState(shared)));
     app.resize(320, 240, 1);
     IllegalStateException e = assertThrows(IllegalStateException.class, app::frame);
     assertTrue(e.getMessage().contains("FieldState of its own"), e.getMessage());
@@ -123,10 +132,17 @@ class FieldStateTest {
 
   /** The view of a window that shows the first query while {@code active} names it. */
   private static App<Model> window(Model model, int window) {
-    App<Model> app = new App<>(model, m -> col().key("window-" + window).wFull().hFull()
-        .padding(10).gap(4).children(
-        m.active == window ? query(m, 0) : el().key("empty").size(10, 10),
-        el().key("bar").focusable().size(10, 10)));
+    App<Model> app = new App<>(
+        model,
+        m -> col()
+            .key("window-" + window)
+            .wFull()
+            .hFull()
+            .padding(10)
+            .gap(4)
+            .children(
+                m.active == window ? query(m, 0) : el().key("empty").size(10, 10),
+                el().key("bar").focusable().size(10, 10)));
     app.textRendering(TextRendering.LINUX);
     app.resize(320, 240, 1);
     app.frame();
@@ -261,7 +277,9 @@ class FieldStateTest {
     app.focus(field(app));
     app.frame();
     key(app, "Z", Key.CONTROL);
-    assertEquals("xSELECT 1", app.state().sql[0],
+    assertEquals(
+        "xSELECT 1",
+        app.state().sql[0],
         "as before: the identity's editor took the other string, which ended the history");
   }
 
@@ -301,8 +319,10 @@ class FieldStateTest {
       back[i] = (System.nanoTime() - start) / 1e6;
     }
     assertSame(lines, field(app).editor().lineIndex(), "the lines are not counted again");
-    System.out.printf("FieldStateTest, 100000 lines (3.5 MB): back to the tab in %s ms%n",
+    System.out.printf(
+        "FieldStateTest, 100000 lines (3.5 MB): back to the tab in %s ms%n",
         java.util.Arrays.toString(java.util.Arrays.stream(back)
-            .map(ms -> Math.round(ms * 100) / 100.0).toArray()));
+            .map(ms -> Math.round(ms * 100) / 100.0)
+            .toArray()));
   }
 }

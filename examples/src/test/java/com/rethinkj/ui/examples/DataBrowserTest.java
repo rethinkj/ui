@@ -30,16 +30,22 @@ class DataBrowserTest {
     DataBrowser browser = new DataBrowser();
     App<DataBrowser> app = new App<>(browser, DataBrowser::view);
     browser.app = app;
-    Script.run("size 1000 600\nframe\npress #cell-0-1\nkey Enter\nframe\nkey A control\n"
-        + "type \"Zoe\"\nframe\nkey S control\nframe", app, out);
+    Script.run(
+        "size 1000 600\nframe\npress #cell-0-1\nkey Enter\nframe\nkey A control\n"
+            + "type \"Zoe\"\nframe\nkey S control\nframe",
+        app,
+        out);
     assertFalse(browser.selection.isEditing());
     assertTrue(browser.changes.isEmpty(), "written");
     assertEquals("1 change written", browser.toast);
     assertEquals("Zoe", browser.changes.cell(1).apply(0));
 
     browser.toast = null;
-    Script.run("size 1000 600\nkey End\nkey ArrowLeft\nkey ArrowLeft\nkey ArrowLeft\nframe\n"
-        + "type \"2026-02-30 10:00\"\nframe\nkey S control\nframe", app, out);
+    Script.run(
+        "size 1000 600\nkey End\nkey ArrowLeft\nkey ArrowLeft\nkey ArrowLeft\nframe\n"
+            + "type \"2026-02-30 10:00\"\nframe\nkey S control\nframe",
+        app,
+        out);
     assertTrue(browser.selection.isEditing(), "the editor stays with its message");
     assertEquals("2026-02-30 10:00", browser.selection.draft());
     assertTrue(app.tree().dump().contains("role=alert"), app.tree().dump());
@@ -52,8 +58,8 @@ class DataBrowserTest {
     DataBrowser browser = new DataBrowser();
     App<DataBrowser> app = new App<>(browser, DataBrowser::view);
     browser.app = app;
-    Script.run("size 1000 600\nframe\nfocus #orders\nkey A control\nkey C control\nframe",
-        app, out);
+    Script.run(
+        "size 1000 600\nframe\nfocus #orders\nkey A control\nkey C control\nframe", app, out);
     String copied = app.clipboard().read();
     assertTrue(copied == null || copied.isEmpty(), "nothing copied");
     assertTrue(browser.toast.contains(" cells are too many to copy"), browser.toast);
@@ -137,7 +143,11 @@ class DataBrowserTest {
     var m = java.util.regex.Pattern.compile(" (-?[\\d.]+),(-?[\\d.]+) ([\\d.]+)x([\\d.]+)")
         .matcher(line.replaceAll("\"(\\\\.|[^\"\\\\])*\"", "\"\""));
     assertTrue(m.find(), line);
-    return new float[] {Float.parseFloat(m.group(1)), Float.parseFloat(m.group(2)),
-        Float.parseFloat(m.group(3)), Float.parseFloat(m.group(4))};
+    return new float[] {
+      Float.parseFloat(m.group(1)),
+      Float.parseFloat(m.group(2)),
+      Float.parseFloat(m.group(3)),
+      Float.parseFloat(m.group(4))
+    };
   }
 }

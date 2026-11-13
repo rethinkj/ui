@@ -51,8 +51,7 @@ public final class TitleBar {
    * As {@link #titleBar(Theme, String, int, El...)}, for a window that may be maximized: the
    * maximize button shows Restore while {@code maximized}, usually {@code app.windowMaximized()}.
    */
-  public static El titleBar(Theme t, String title, int mark, boolean maximized,
-      El... controls) {
+  public static El titleBar(Theme t, String title, int mark, boolean maximized, El... controls) {
     return titleBar(t, title, mark(mark), null, maximized, controls);
   }
 
@@ -68,8 +67,8 @@ public final class TitleBar {
    * As {@link #withMenus(Theme, String, int, El, El...)}, with Restore in place of Maximize while
    * {@code maximized}, usually {@code app.windowMaximized()}.
    */
-  public static El withMenus(Theme t, String title, int mark, El menus, boolean maximized,
-      El... controls) {
+  public static El withMenus(
+      Theme t, String title, int mark, El menus, boolean maximized, El... controls) {
     return titleBar(t, title, mark(mark), menus, maximized, controls);
   }
 
@@ -82,10 +81,14 @@ public final class TitleBar {
    *     show as Restore
    * @param controls the app's own, before the window's buttons
    */
-  public static El titleBar(Theme t, String title, El icon, El menus, boolean maximized,
-      El... controls) {
+  public static El titleBar(
+      Theme t, String title, El icon, El menus, boolean maximized, El... controls) {
     int glyph = t.text().primary();
-    El bar = row().wFull().h(HEIGHT).shrink(0).align(Style.Align.CENTER)
+    El bar = row()
+        .wFull()
+        .h(HEIGHT)
+        .shrink(0)
+        .align(Style.Align.CENTER)
         .fill(t.surface().window())
         .windowPart(WindowPart.DRAG);
     if (icon != null) {
@@ -97,14 +100,19 @@ public final class TitleBar {
     }
     bar.child(el().grow(1));
     if (controls.length > 0) {
-      bar.child(row().gap(t.space().l()).margin(0, t.space().l(), 0, 0)
-          .align(Style.Align.CENTER).children(controls));
+      bar.child(row()
+          .gap(t.space().l())
+          .margin(0, t.space().l(), 0, 0)
+          .align(Style.Align.CENTER)
+          .children(controls));
     }
     El restore = maximized
         ? Icon.icon(t, Symbol.SQUARE_MULTIPLE, Icon.Variant.NORMAL, 12)
         : el().size(10, 10).border(1, glyph);
-    return bar.child(Tooltip.tooltip(t,
-            button(t, WindowPart.MINIMIZE, "Minimize", el().size(10, 1).fill(glyph)), "Minimize"))
+    return bar.child(Tooltip.tooltip(
+            t,
+            button(t, WindowPart.MINIMIZE, "Minimize", el().size(10, 1).fill(glyph)),
+            "Minimize"))
         .child(button(t, WindowPart.MAXIMIZE, maximized ? "Restore" : "Maximize", restore))
         .child(Tooltip.tooltip(t, close(t), "Close"));
   }
@@ -120,7 +128,11 @@ public final class TitleBar {
    * it shows the press.
    */
   private static El button(Theme t, WindowPart part, String label, El glyph) {
-    return el().role("button").label(label).size(BUTTON, HEIGHT).center().windowPart(part)
+    return el().role("button")
+        .label(label)
+        .size(BUTTON, HEIGHT)
+        .center()
+        .windowPart(part)
         .child(glyph)
         .onPress(() -> {})
         .whenHovered(b -> b.fill(t.surface().hover()))
@@ -130,12 +142,14 @@ public final class TitleBar {
   /** The close button, red with a white cross under the pointer, as the system's is. */
   private static El close(Theme t) {
     El cross = Icon.icon(t, Symbol.DISMISS, Icon.Variant.NORMAL, 12);
-    return button(t, WindowPart.CLOSE, "Close", cross).whenHovered(b -> {
-      b.fill(t.caption().closeHover());
-      cross.color(t.caption().onClose());
-    }).whenPressed(b -> {
-      b.fill(t.caption().closePressed());
-      cross.color(t.caption().onClose());
-    });
+    return button(t, WindowPart.CLOSE, "Close", cross)
+        .whenHovered(b -> {
+          b.fill(t.caption().closeHover());
+          cross.color(t.caption().onClose());
+        })
+        .whenPressed(b -> {
+          b.fill(t.caption().closePressed());
+          cross.color(t.caption().onClose());
+        });
   }
 }

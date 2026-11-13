@@ -41,12 +41,14 @@ public final class Slider {
     float track = 2 * t.space().xs();
     // The rail runs between the knob's centre at either end, so that shares of it place the knob
     // at any width.
-    El done = el().h(track).radius(track / 2)
+    El done = el().h(track)
+        .radius(track / 2)
         .fill(enabled ? t.accent().color() : t.border().subtle())
         .motion(t.motion().move());
     done.style().width = Len.percent(share);
     int fill = t.surface().raised();
-    El thumb = el().size(knob, knob).radius(knob / 2)
+    El thumb = el().size(knob, knob)
+        .radius(knob / 2)
         .fill(fill)
         .border(t.size().stroke(), enabled ? t.border().strong() : t.border().subtle())
         .motion(t.motion().move());
@@ -55,10 +57,15 @@ public final class Slider {
     place.left = Len.percent(share);
     place.top = Len.px((track - knob) / 2);
     place.marginLeft = Len.px(-knob / 2);
-    El rail = el().h(track).grow(1).radius(track / 2)
+    El rail = el().h(track)
+        .grow(1)
+        .radius(track / 2)
         .fill(enabled ? t.border().strong() : t.border().subtle())
         .children(done, thumb);
-    El slider = row().role("slider").value(Integer.toString(value)).disabled(!enabled)
+    El slider = row()
+        .role("slider")
+        .value(Integer.toString(value))
+        .disabled(!enabled)
         .w(t.size().field())
         .h(t.size().control())
         .padding(0, knob / 2)
@@ -77,7 +84,10 @@ public final class Slider {
         onChange.accept(next);
       }
     };
-    return slider.focusable().keepFocus().focusRing(t.accent().edge())
+    return slider
+        .focusable()
+        .keepFocus()
+        .focusRing(t.accent().edge())
         .cursor(Cursor.POINTER)
         .onPress((clicks, modifiers, x, y) -> put.accept(x))
         .onDrag(d -> {
@@ -109,7 +119,8 @@ public final class Slider {
           return true;
         })
         .whenHovered(e -> thumb.fill(over(fill, t.surface().hover())))
-        .whenPressed(e -> thumb.fill(over(fill, t.surface().pressed()))
+        .whenPressed(e -> thumb
+            .fill(over(fill, t.surface().pressed()))
             .border(t.size().stroke(), t.accent().color()));
   }
 

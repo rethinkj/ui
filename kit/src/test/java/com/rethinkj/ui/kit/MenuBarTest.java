@@ -30,7 +30,8 @@ import org.junit.jupiter.params.provider.CsvSource;
  */
 class MenuBarTest {
 
-  @TempDir Path out;
+  @TempDir
+  Path out;
 
   @BeforeEach
   void textLibraries() {
@@ -71,14 +72,14 @@ class MenuBarTest {
 
   @ParameterizedTest(name = "{0} at {1}x")
   @CsvSource({"dark, 1", "dark, 2", "light, 1", "light, 2"})
-  void aPressOpensAMenuAndThePointerSwitchesToAnother(String theme, int scale)
-      throws IOException {
+  void aPressOpensAMenuAndThePointerSwitchesToAnother(String theme, int scale) throws IOException {
     App<Studio> app = Studio.assertScript("menubar", theme, scale, out);
     String open = Studio.tree(out, "menubar", theme, scale, "open");
-    assertEquals("el #title-0 role=menuitem label=\"File\" 28,4 38x24 expanded",
-        line(open, "title-0"));
-    assertTrue(open.contains("\noverlay bottom start gap 2 on #title-0 role=menuitem"
-        + " label=\"File\""), open);
+    assertEquals(
+        "el #title-0 role=menuitem label=\"File\" 28,4 38x24 expanded", line(open, "title-0"));
+    assertTrue(
+        open.contains("\noverlay bottom start gap 2 on #title-0 role=menuitem" + " label=\"File\""),
+        open);
     assertTrue(line(open, "item-6").endsWith(" disabled"), "Close");
     assertTrue(line(open, "menu").endsWith(" focused"), open);
     String switched = Studio.tree(out, "menubar", theme, scale, "switched");
@@ -96,8 +97,9 @@ class MenuBarTest {
     assertEquals(4, deep.split("\noverlay ", -1).length - 1, "the menu and three submenus");
     assertTrue(line(deep, "item-4").endsWith(" expanded"), deep);
     Menu.State menu = app.state().bar.menu();
-    assertEquals(List.of(4, 2, 1, 0), List.of(menu.active(0), menu.active(1), menu.active(2),
-        menu.active(3)));
+    assertEquals(
+        List.of(4, 2, 1, 0),
+        List.of(menu.active(0), menu.active(1), menu.active(2), menu.active(3)));
     float[] script = rect(line(app, "subitem-1 role=menuitem label=\"Script\""));
     assertTrue(line(app, "subitem-1 role=menuitem label=\"Script\"").endsWith(" expanded"));
     El last = app.tree().shownOverlays().getLast();
@@ -124,22 +126,32 @@ class MenuBarTest {
     App<Studio> app = studio.app();
     Menu.State menu = studio.bar.menu();
     // Each menu fades in for 0.2 seconds before the pointer can reach its items.
-    run(app, "frame\npress #title-0\nframe\nadvance 0.25\nframe\nmove label=\"Export\"\nframe\n"
-        + "advance 0.3\nframe\nadvance 0.25\nframe\nmove label=\"SQL\"\nframe\n");
+    run(
+        app,
+        "frame\npress #title-0\nframe\nadvance 0.25\nframe\nmove label=\"Export\"\nframe\n"
+            + "advance 0.3\nframe\nadvance 0.25\nframe\nmove label=\"SQL\"\nframe\n");
     assertEquals(2, menu.active(1), "the pointer highlights at once");
     assertEquals(-1, menu.submenu(1), "the submenu waits");
-    run(app, "advance 0.3\nframe\nadvance 0.25\nframe\nmove label=\"Script\"\nframe\n"
-        + "advance 0.3\nframe\nadvance 0.25\nframe\n");
+    run(
+        app,
+        "advance 0.3\nframe\nadvance 0.25\nframe\nmove label=\"Script\"\nframe\n"
+            + "advance 0.3\nframe\nadvance 0.25\nframe\n");
     assertEquals(List.of(4, 2, 1), List.of(menu.submenu(0), menu.submenu(1), menu.submenu(2)));
-    run(app, "move label=\"Schema and data\"\nframe\nmove label=\"CSV\"\nframe\nadvance 0.1\n"
-        + "frame\n");
+    run(
+        app,
+        "move label=\"Schema and data\"\nframe\nmove label=\"CSV\"\nframe\nadvance 0.1\n"
+            + "frame\n");
     assertEquals(2, menu.submenu(1), "passing over another item keeps them");
     run(app, "advance 0.25\nframe\n");
-    assertEquals(List.of(4, -1, -1), List.of(menu.submenu(0), menu.submenu(1), menu.submenu(2)),
+    assertEquals(
+        List.of(4, -1, -1),
+        List.of(menu.submenu(0), menu.submenu(1), menu.submenu(2)),
         "resting on CSV closes SQL's and the one inside it");
     assertEquals("submenu", app.focused().key(), "Export's, which the closed ones gave it back to");
     run(app, "key ArrowDown\nkey ArrowDown\nkey Enter\nframe\n");
-    assertEquals(List.of(4, 2, -1), List.of(menu.submenu(0), menu.submenu(1), menu.submenu(2)),
+    assertEquals(
+        List.of(4, 2, -1),
+        List.of(menu.submenu(0), menu.submenu(1), menu.submenu(2)),
         "the keys there: Down to SQL, Enter opens its submenu");
     assertEquals(0, menu.active(2), "with Inserts highlighted");
     run(app, "key Escape\nframe\n");
@@ -247,7 +259,8 @@ class MenuBarTest {
 
   @Test
   void aKeyThatTypesIsNamedInUpperCase() {
-    IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
+    IllegalArgumentException e = assertThrows(
+        IllegalArgumentException.class,
         () -> Menu.item("New", () -> {}).shortcut(Key.CONTROL, "n"));
     assertTrue(e.getMessage().contains("\"N\""), e.getMessage());
   }
@@ -318,11 +331,19 @@ class MenuBarTest {
     MenuBar.State bar = new MenuBar.State();
     int[] taken = {0};
     List<Menu.Item> menus = List.of(Menu.submenu("&File", List.of(Menu.item("Open", () -> {}))));
-    App<Object> app = new App<>(new Object(), s -> col().wFull().hFull()
-        .onKey(MenuBar.keys(bar, menus)).onKeyUp(MenuBar.keysUp(bar, menus))
-        .child(MenuBar.menuBar(Theme.DARK, bar, menus))
-        .child(el().key("finder").size(100, 30).focusable().onPress(() -> {})
-            .onKey(k -> k.modifiers() == Key.ALT && k.name().equals("C") && ++taken[0] > 0)));
+    App<Object> app = new App<>(
+        new Object(),
+        s -> col()
+            .wFull()
+            .hFull()
+            .onKey(MenuBar.keys(bar, menus))
+            .onKeyUp(MenuBar.keysUp(bar, menus))
+            .child(MenuBar.menuBar(Theme.DARK, bar, menus))
+            .child(el().key("finder")
+                .size(100, 30)
+                .focusable()
+                .onPress(() -> {})
+                .onKey(k -> k.modifiers() == Key.ALT && k.name().equals("C") && ++taken[0] > 0)));
     app.resize(400, 200, 1);
     app.frame();
     app.focus(find(app.tree(), "finder"));
@@ -355,8 +376,7 @@ class MenuBarTest {
   }
 
   @Test
-  void keyCombinationsRunTheirItemsUnlessAFieldTakesTheKeyOrTheItemIsDisabled()
-      throws IOException {
+  void keyCombinationsRunTheirItemsUnlessAFieldTakesTheKeyOrTheItemIsDisabled() throws IOException {
     Studio studio = new Studio(Theme.DARK);
     App<Studio> app = studio.app();
     run(app, "frame\npress #query\nkey N control\nframe\n");
@@ -382,18 +402,22 @@ class MenuBarTest {
   void twoItemsWithOneCombinationAreRefusedWithBothLabels() {
     List<Menu.Item> items = List.of(
         Menu.item("New query", () -> {}).shortcut(Key.CONTROL, "N"),
-        Menu.submenu("More", List.of(Menu.item("New window", () -> {})
-            .shortcut(Key.CONTROL, "N"))));
+        Menu.submenu(
+            "More", List.of(Menu.item("New window", () -> {}).shortcut(Key.CONTROL, "N"))));
     IllegalArgumentException e =
         assertThrows(IllegalArgumentException.class, () -> Menu.shortcuts(items));
-    assertTrue(e.getMessage().contains("\"New query\"") && e.getMessage().contains("\"New window\"")
-        && e.getMessage().startsWith("Ctrl+N "), e.getMessage());
-    List<Menu.Item> menus = List.of(Menu.submenu("&File", List.of(
-        Menu.item("Find", () -> {}).shortcut(Key.ALT, "F"))));
-    e = assertThrows(IllegalArgumentException.class,
-        () -> MenuBar.menuBar(Theme.DARK, new MenuBar.State(), menus));
-    assertTrue(e.getMessage().contains("\"Find\"") && e.getMessage().contains("\"File\""),
+    assertTrue(
+        e.getMessage().contains("\"New query\"")
+            && e.getMessage().contains("\"New window\"")
+            && e.getMessage().startsWith("Ctrl+N "),
         e.getMessage());
+    List<Menu.Item> menus =
+        List.of(Menu.submenu("&File", List.of(Menu.item("Find", () -> {}).shortcut(Key.ALT, "F"))));
+    e = assertThrows(
+        IllegalArgumentException.class,
+        () -> MenuBar.menuBar(Theme.DARK, new MenuBar.State(), menus));
+    assertTrue(
+        e.getMessage().contains("\"Find\"") && e.getMessage().contains("\"File\""), e.getMessage());
   }
 
   @Test

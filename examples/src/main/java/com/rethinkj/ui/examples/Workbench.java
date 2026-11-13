@@ -2,15 +2,15 @@ package com.rethinkj.ui.examples;
 
 import static com.rethinkj.ui.El.col;
 import static com.rethinkj.ui.El.row;
-import static com.rethinkj.ui.kit.TitleBar.titleBar;
-import static com.rethinkj.ui.kit.TitleBar.withMenus;
+import static com.rethinkj.ui.kit.Button.Variant.GHOST;
 import static com.rethinkj.ui.kit.Button.Variant.PRIMARY;
 import static com.rethinkj.ui.kit.Button.Variant.SECONDARY;
 import static com.rethinkj.ui.kit.Button.button;
-import static com.rethinkj.ui.kit.DataGrid.dataGrid;
-import static com.rethinkj.ui.kit.Button.Variant.GHOST;
 import static com.rethinkj.ui.kit.CodeEditor.codeEditor;
+import static com.rethinkj.ui.kit.DataGrid.dataGrid;
 import static com.rethinkj.ui.kit.TextField.textField;
+import static com.rethinkj.ui.kit.TitleBar.titleBar;
+import static com.rethinkj.ui.kit.TitleBar.withMenus;
 import static com.rethinkj.ui.kit.Toggle.toggle;
 import static com.rethinkj.ui.kit.Tree.tree;
 
@@ -19,14 +19,12 @@ import com.rethinkj.ui.El;
 import com.rethinkj.ui.Key;
 import com.rethinkj.ui.Script;
 import com.rethinkj.ui.Work;
+import com.rethinkj.ui.kit.AppIcon;
 import com.rethinkj.ui.kit.Button;
 import com.rethinkj.ui.kit.Card;
 import com.rethinkj.ui.kit.CodeEditor;
 import com.rethinkj.ui.kit.CommandPalette;
 import com.rethinkj.ui.kit.Completion;
-import com.rethinkj.ui.kit.FilterList;
-import com.rethinkj.ui.kit.Find;
-import com.rethinkj.ui.kit.AppIcon;
 import com.rethinkj.ui.kit.DataGrid;
 import com.rethinkj.ui.kit.DataGrid.CellIcon;
 import com.rethinkj.ui.kit.DataGrid.Column;
@@ -35,19 +33,21 @@ import com.rethinkj.ui.kit.DataGrid.Filter;
 import com.rethinkj.ui.kit.DataGrid.Mode;
 import com.rethinkj.ui.kit.DataGrid.Selection;
 import com.rethinkj.ui.kit.Dialog;
+import com.rethinkj.ui.kit.Divider;
+import com.rethinkj.ui.kit.FilterList;
+import com.rethinkj.ui.kit.Find;
+import com.rethinkj.ui.kit.GridChanges;
 import com.rethinkj.ui.kit.Icon;
 import com.rethinkj.ui.kit.Icon.Variant;
-import com.rethinkj.ui.kit.Divider;
-import com.rethinkj.ui.kit.GridChanges;
 import com.rethinkj.ui.kit.Label;
-import com.rethinkj.ui.kit.Split;
 import com.rethinkj.ui.kit.Menu;
 import com.rethinkj.ui.kit.MenuBar;
 import com.rethinkj.ui.kit.Progress;
-import com.rethinkj.ui.kit.Sql;
-import com.rethinkj.ui.kit.StatusBar;
+import com.rethinkj.ui.kit.Split;
 import com.rethinkj.ui.kit.Split.Direction;
 import com.rethinkj.ui.kit.Split.Position;
+import com.rethinkj.ui.kit.Sql;
+import com.rethinkj.ui.kit.StatusBar;
 import com.rethinkj.ui.kit.Symbol;
 import com.rethinkj.ui.kit.TabGroups;
 import com.rethinkj.ui.kit.Tabs.Tab;
@@ -73,8 +73,8 @@ import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 import java.util.function.Predicate;
 import java.util.regex.Matcher;
@@ -113,7 +113,13 @@ import java.util.regex.Pattern;
  */
 public final class Workbench implements Tree.Model<Workbench.Node> {
 
-  enum Kind { SERVER, DATABASE, SCHEMA, TABLE, COLUMN }
+  enum Kind {
+    SERVER,
+    DATABASE,
+    SCHEMA,
+    TABLE,
+    COLUMN
+  }
 
   /** A node of the catalogue, told apart by identity. */
   static final class Node {
@@ -224,15 +230,19 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
   private static final CellIcon PAID = CellIcon.instead(Symbol.CHECKMARK, Variant.SUCCESS);
   private static final CellIcon UNPAID = CellIcon.instead(Symbol.SUBTRACT, Variant.MUTED);
   private static final CellIcon[] MARKS = { // paid, pending, shipped, refunded
-    CellIcon.before(Symbol.RECORD, Variant.SUCCESS), CellIcon.before(Symbol.RECORD, Variant.WARNING),
-    CellIcon.before(Symbol.RECORD, Variant.NORMAL), CellIcon.before(Symbol.RECORD, Variant.DANGER)};
+    CellIcon.before(Symbol.RECORD, Variant.SUCCESS),
+        CellIcon.before(Symbol.RECORD, Variant.WARNING),
+    CellIcon.before(Symbol.RECORD, Variant.NORMAL), CellIcon.before(Symbol.RECORD, Variant.DANGER)
+  };
   private static final String[] TABLES = {
     "accounts", "addresses", "audit_log", "carts", "categories", "coupons", "customers",
     "deliveries", "employees", "events", "invoices", "invoice_lines", "orders", "order_items",
     "payments", "prices", "products", "refunds", "reviews", "sessions", "shipments",
-    "stock_moves", "suppliers", "users", "warehouses"};
+    "stock_moves", "suppliers", "users", "warehouses"
+  };
   private static final String[] NAMES = {
-    "ada", "grace", "linus", "margaret", "ken", "barbara", "edsger", "frances", "donald", "radia"};
+    "ada", "grace", "linus", "margaret", "ken", "barbara", "edsger", "frances", "donald", "radia"
+  };
   private static final String[] STATUS = {"paid", "pending", "shipped", "refunded"};
   private static final LocalDateTime START = LocalDateTime.of(2026, 1, 5, 8, 0);
   private static final DateTimeFormatter TIME = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
@@ -245,8 +255,8 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
   private static final Pattern LIMIT =
       Pattern.compile("\\bLIMIT\\s+(\\d{1,9})\\b", Pattern.CASE_INSENSITIVE);
   // And which table: the name after FROM, of one to three parts.
-  private static final Pattern FROM = Pattern.compile(
-      "\\bFROM\\s+(\\w+(?:\\.\\w+){0,2})", Pattern.CASE_INSENSITIVE);
+  private static final Pattern FROM =
+      Pattern.compile("\\bFROM\\s+(\\w+(?:\\.\\w+){0,2})", Pattern.CASE_INSENSITIVE);
   private static final int SUGGESTIONS = 50; // the most completions for a word
 
   Duration latency = Duration.ofMillis(800); // of every answer of the made-up servers
@@ -258,7 +268,8 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
   final Opened start = new Opened();
   // The tabs of every window: the first window's, Start among them, and those torn off.
   final TabGroups<Opened> groups = new TabGroups<>(List.of(start), this::openWindow)
-      .onClosed(this::closed).onCloseTab(this::closeTab);
+      .onClosed(this::closed)
+      .onCloseTab(this::closeTab);
   Position sidebar = SIDEBAR;
   boolean dark = true;
   String message; // in the status line for a while, or null
@@ -356,7 +367,8 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
   static int count(String path, Duration latency) throws InterruptedException {
     answerAfter(path, latency);
     return path.equals("localhost/shop/public/orders")
-        ? 1_000_000 : Math.floorMod(path.hashCode(), 40) * 997 + 3;
+        ? 1_000_000
+        : Math.floorMod(path.hashCode(), 40) * 997 + 3;
   }
 
   private static void answerAfter(String path, Duration latency) throws InterruptedException {
@@ -396,13 +408,16 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
       return Progress.spinner(t).label("Connecting");
     }
     return switch (node.kind) {
-      case SERVER -> Icon.icon(t, Symbol.SERVER,
-          node.children == null ? Variant.DISABLED : Variant.SUCCESS); // connected or not
+      case SERVER ->
+        Icon.icon(
+            t,
+            Symbol.SERVER,
+            node.children == null ? Variant.DISABLED : Variant.SUCCESS); // connected or not
       case DATABASE -> Icon.icon(t, Symbol.DATABASE, Variant.MUTED);
       case SCHEMA -> Icon.icon(t, Symbol.FOLDER, Variant.MUTED);
       case TABLE -> Icon.icon(t, Symbol.TABLE, Variant.MUTED);
-      case COLUMN -> Icon.icon(t, node.name.equals("id") ? Symbol.KEY : Symbol.COLUMN_SINGLE,
-          Variant.MUTED);
+      case COLUMN ->
+        Icon.icon(t, node.name.equals("id") ? Symbol.KEY : Symbol.COLUMN_SINGLE, Variant.MUTED);
     };
   }
 
@@ -423,12 +438,14 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
       refused.remove(node);
       String server = node.name;
       Duration wait = latency;
-      app.background("databases of " + server, () -> connect(server, wait),
+      app.background(
+          "databases of " + server,
+          () -> connect(server, wait),
           names -> {
             connecting.remove(node);
             node.children = new ArrayList<>();
-            names.forEach(name -> schema(database(node, name), "public",
-                name.equals("shop") ? TABLES.length : 3));
+            names.forEach(name ->
+                schema(database(node, name), "public", name.equals("shop") ? TABLES.length : 3));
             connected++;
             tell(server + ": " + names.size() + " databases");
             answered();
@@ -465,8 +482,7 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
   }
 
   private void openTab(TabGroups.Group<Opened> group, Node table) {
-    Opened o = new Opened(table, stored.computeIfAbsent(table.path(),
-        p -> new TableRows.Stored()));
+    Opened o = new Opened(table, stored.computeIfAbsent(table.path(), p -> new TableRows.Stored()));
     ask(o, Integer.MAX_VALUE, null, 0, 0);
     groups.add(group, group.tabs().size(), o);
     taskbar(); // again, now that the tab counts
@@ -539,7 +555,8 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
     Set<String> tables = new HashSet<>();
     tables(server, tables);
     Duration wait = latency;
-    o.asking = app.background("rows of " + path,
+    o.asking = app.background(
+        "rows of " + path,
         () -> Math.min(count(path, name, tables, wait), limit),
         rows -> {
           o.rows = rows;
@@ -602,8 +619,8 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
       collect(server, start, found, columns);
     }
     for (Node column : columns) {
-      found.putIfAbsent(column.name,
-          new Completion.Entry(column.name, Symbol.COLUMN_SINGLE, "column"));
+      found.putIfAbsent(
+          column.name, new Completion.Entry(column.name, Symbol.COLUMN_SINGLE, "column"));
     }
     for (String keyword : Sql.keywords().stream().sorted().toList()) {
       if (keyword.toLowerCase(Locale.ROOT).startsWith(start)) {
@@ -615,8 +632,8 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
     return entries.subList(0, Math.min(entries.size(), SUGGESTIONS));
   }
 
-  private static void collect(Node node, String start, Map<String, Completion.Entry> tables,
-      List<Node> columns) {
+  private static void collect(
+      Node node, String start, Map<String, Completion.Entry> tables, List<Node> columns) {
     if (node.children == null) {
       return; // not connected
     }
@@ -654,18 +671,25 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
     }
     List<FilterList.Entry> commands = new ArrayList<>(CommandPalette.commands(menus(group)));
     commands.add(FilterList.entry("Change theme…", () -> changeTheme(state)));
-    return CommandPalette.palette(t, state, commands, List.of(
-        new CommandPalette.Source("@", "to open a table", FilterList.Entries.of(catalogue())),
-        new CommandPalette.Source(":", "to go to a line",
-            FilterList.Entries.by(text -> line(shown(group), text)))));
+    return CommandPalette.palette(
+        t,
+        state,
+        commands,
+        List.of(
+            new CommandPalette.Source("@", "to open a table", FilterList.Entries.of(catalogue())),
+            new CommandPalette.Source(
+                ":", "to go to a line", FilterList.Entries.by(text -> line(shown(group), text)))));
   }
 
   /** The themes, each shown as the keys or the pointer reach it, the one before on Escape. */
   private void changeTheme(CommandPalette.State state) {
     boolean before = dark;
-    state.ask(CommandPalette.Stage.choose("Choose a theme", List.of(
-            mark(FilterList.entry("Dark", () -> dark = true), dark),
-            mark(FilterList.entry("Light", () -> dark = false), !dark)), dark ? 0 : 1)
+    state.ask(CommandPalette.Stage.choose(
+            "Choose a theme",
+            List.of(
+                mark(FilterList.entry("Dark", () -> dark = true), dark),
+                mark(FilterList.entry("Light", () -> dark = false), !dark)),
+            dark ? 0 : 1)
         .preview(e -> dark = e.text().equals("Dark"), () -> dark = before));
   }
 
@@ -696,11 +720,13 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
         continue;
       }
       String path = node.path().replace('/', '.');
-      into.add(FilterList.entry(child.name, () -> activate(child)).symbol(Symbol.TABLE)
+      into.add(FilterList.entry(child.name, () -> activate(child))
+          .symbol(Symbol.TABLE)
           .detail(path));
       for (Node column : child.children) {
         into.add(FilterList.entry(child.name + "." + column.name, () -> activate(column))
-            .symbol(Symbol.COLUMN_SINGLE).detail(path));
+            .symbol(Symbol.COLUMN_SINGLE)
+            .detail(path));
       }
     }
   }
@@ -713,15 +739,16 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
     int lines = (int) o.query.chars().filter(c -> c == '\n').count() + 1;
     String typed = text.strip();
     if (typed.isEmpty()) {
-      return List.of(FilterList.entry("Type a line, 1 to " + lines + ", and a column after :",
-          null));
+      return List.of(
+          FilterList.entry("Type a line, 1 to " + lines + ", and a column after :", null));
     }
     if (!typed.matches("\\d{1,9}(:\\d{1,9})?")) {
       return List.of(FilterList.entry("Not a line: " + typed, null));
     }
-    return List.of(FilterList.entry("Go to line " + typed,
-        () -> Find.goToLine(o.editor.find(), typed)).symbol(Symbol.ARROW_RIGHT)
-        .detail(lines == 1 ? "of 1 line" : "of " + lines + " lines"));
+    return List.of(
+        FilterList.entry("Go to line " + typed, () -> Find.goToLine(o.editor.find(), typed))
+            .symbol(Symbol.ARROW_RIGHT)
+            .detail(lines == 1 ? "of 1 line" : "of " + lines + " lines"));
   }
 
   /** A tab was closed, in any window. */
@@ -761,8 +788,8 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
         return;
       }
     }
-    List<Opened> changed = tabs.stream().filter(o -> o.table != null && !o.changes.isEmpty())
-        .toList();
+    List<Opened> changed =
+        tabs.stream().filter(o -> o.table != null && !o.changes.isEmpty()).toList();
     if (changed.isEmpty()) {
       then.run();
     } else {
@@ -824,8 +851,9 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
     for (GridChanges.Change c : changes) {
       if (c.kind() == GridChanges.Kind.UPDATE) {
         Map<Integer, String> values = new HashMap<>();
-        c.values().keySet().forEach(column -> values.put(column,
-            o.data.stored.value(c.key(), column)));
+        c.values()
+            .keySet()
+            .forEach(column -> values.put(column, o.data.stored.value(c.key(), column)));
         was.put(c.key(), values);
       }
     }
@@ -833,7 +861,8 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
     String name = o.table.name;
     int count = o.changes.count();
     Duration wait = latency;
-    o.committing = app.background("commit to " + path,
+    o.committing = app.background(
+        "commit to " + path,
         () -> TableRows.write(path, changes, was, wait),
         refused -> {
           o.committing = null;
@@ -901,7 +930,10 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
     window.textRendering(app.textRendering());
     Windows windows = app.windows();
     windows.of(app).onCloseRequest(this::exit); // closing the first window closes them all
-    return windows.open(group.activeTab().title(), TAB_WIDTH, TAB_HEIGHT,
+    return windows.open(
+        group.activeTab().title(),
+        TAB_WIDTH,
+        TAB_HEIGHT,
         options.frameless().minimumSize(480, 320).icon(Identity.icon(MARK, Symbol.DATABASE)),
         window);
   }
@@ -921,9 +953,11 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
   static Path placementFile() {
     String appData = System.getenv("APPDATA");
     String config = System.getenv("XDG_CONFIG_HOME");
-    Path base = File.separatorChar == '\\' && appData != null ? Path.of(appData)
-        : config != null && !config.isEmpty() ? Path.of(config)
-        : Path.of(System.getProperty("user.home"), ".config");
+    Path base = File.separatorChar == '\\' && appData != null
+        ? Path.of(appData)
+        : config != null && !config.isEmpty()
+            ? Path.of(config)
+            : Path.of(System.getProperty("user.home"), ".config");
     return base.resolve("rethinkj-ui-examples").resolve("Workbench").resolve("window.txt");
   }
 
@@ -974,11 +1008,11 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
     if (node == null) {
       return List.of();
     }
-    Runnable opens = node.kind == Kind.TABLE || node.kind == Kind.COLUMN ? () -> activate(node)
+    Runnable opens = node.kind == Kind.TABLE || node.kind == Kind.COLUMN
+        ? () -> activate(node)
         : open.contains(node) ? null : () -> openOrClose(node, true);
-    List<Menu.Item> items = new ArrayList<>(List.of(
-        Menu.item("Open", opens),
-        Menu.item("Copy name", () -> {
+    List<Menu.Item> items =
+        new ArrayList<>(List.of(Menu.item("Open", opens), Menu.item("Copy name", () -> {
           app.clipboard().write(node.name);
           tell("Copied " + node.name);
         })));
@@ -999,8 +1033,10 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
 
   /** The questions on their way: servers connecting and tables counting their rows. */
   int running() {
-    return connecting.size() + (int) tables().stream()
-        .filter(o -> o.asking != null || o.committing != null).count();
+    return connecting.size()
+        + (int) tables().stream()
+            .filter(o -> o.asking != null || o.committing != null)
+            .count();
   }
 
   /**
@@ -1014,8 +1050,7 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
     int n = running();
     Theme t = theme();
     WindowIcon badge = WindowIcon.of(size -> AppIcon.count(t, size, t.accent().color(), n));
-    window.badge(n == 0 ? null : badge,
-        n == 1 ? "1 question running" : n + " questions running");
+    window.badge(n == 0 ? null : badge, n == 1 ? "1 question running" : n + " questions running");
     window.progress(n == 0 ? Window.Progress.NONE : Window.Progress.INDETERMINATE, 0);
   }
 
@@ -1025,8 +1060,9 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
    */
   void answered() {
     taskbar();
-    if (window != null && app.windows().all().stream()
-        .noneMatch(h -> h.window() != null && h.window().isFocused())) {
+    if (window != null
+        && app.windows().all().stream()
+            .noneMatch(h -> h.window() != null && h.window().isFocused())) {
       window.attention(Window.Attention.UNTIL_FOCUSED);
     }
   }
@@ -1055,8 +1091,9 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
     }
     s.latency = Duration.ofMillis(800);
     app.textRendering(TextRendering.platform());
-    Window.Options options = Identity.options(Workbench.class, "Workbench", MARK,
-        Symbol.DATABASE).frameless().minimumSize(640, 400);
+    Window.Options options = Identity.options(Workbench.class, "Workbench", MARK, Symbol.DATABASE)
+        .frameless()
+        .minimumSize(640, 400);
     s.placementFile = placementFile();
     Window.Placement was = savedPlacement(s.placementFile);
     if (was != null) {
@@ -1076,35 +1113,69 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
   static El view(Workbench s) {
     Theme t = s.theme();
     El right = s.tabs(t, s.groups.main());
-    El tree = tree(t, s, s.open::contains, s.selected, n -> s.selected = n, s::openOrClose,
-        s::activate).key("catalogue").label("Catalogue");
-    El catalogue = Card.flush(t,
-        Card.toolbar(t, "Connections", null, Button.icon(t, GHOST, Symbol.ADD, "Add connection",
-            () -> s.tell("Adding a connection is not part of this example"))),
+    El tree = tree(
+            t, s, s.open::contains, s.selected, n -> s.selected = n, s::openOrClose, s::activate)
+        .key("catalogue")
+        .label("Catalogue");
+    El catalogue = Card.flush(
+        t,
+        Card.toolbar(
+            t,
+            "Connections",
+            null,
+            Button.icon(
+                t,
+                GHOST,
+                Symbol.ADD,
+                "Add connection",
+                () -> s.tell("Adding a connection is not part of this example"))),
         Card.inset(t, Menu.contextMenu(t, tree, s.menu, s.menuItems())));
     List<Menu.Item> menus = s.menus(s.groups.main());
-    El root = col().wFull().hFull().fill(t.surface().window())
+    El root = col()
+        .wFull()
+        .hFull()
+        .fill(t.surface().window())
         // The menus' keys, then the tabs' keys also while the tree has the focus.
-        .onKey(or(MenuBar.keys(s.bar, menus).or(CommandPalette.keys(s.palette(s.groups.main()))),
+        .onKey(or(
+            MenuBar.keys(s.bar, menus).or(CommandPalette.keys(s.palette(s.groups.main()))),
             right.onKey()))
         .onKeyUp(MenuBar.keysUp(s.bar, menus))
         .overlay(s.palette(t, s.groups.main()))
-        .child(withMenus(t, "Workbench", t.accent().color(), MenuBar.menuBar(t, s.bar, menus),
+        .child(withMenus(
+            t,
+            "Workbench",
+            t.accent().color(),
+            MenuBar.menuBar(t, s.bar, menus),
             Identity.maximized(s.app),
             toggle(t, s.dark, "Dark", () -> s.dark = !s.dark)))
-        .child(Split.cards(t, Direction.ROW, s.sidebar, SIDEBAR, p -> s.sidebar = p,
-            catalogue, 160, right.key("tabs"), 320).grow(1)
+        .child(Split.cards(
+                t,
+                Direction.ROW,
+                s.sidebar,
+                SIDEBAR,
+                p -> s.sidebar = p,
+                catalogue,
+                160,
+                right.key("tabs"),
+                320)
+            .grow(1)
             .padding(0, t.space().m(), 0, t.space().m()))
         .child(s.statusBar(t));
     if (s.dropping != null) {
       String name = s.dropping.name;
-      El drop = button(t, PRIMARY, "Drop", s.confirm.equals(name) ? s::drop : null).key("drop");
-      root.overlay(Dialog.dialog(t, "Drop table",
-          col().gap(t.space().m()).children(
-              Label.label(t, "Drop " + s.dropping.path() + " and all its rows?"),
-              Label.label(t, Label.Variant.MUTED, "Type the table's name to confirm."),
-              textField(t, s.confirm, name, v -> s.confirm = v).key("confirm")
-                  .label("Table name")),
+      El drop =
+          button(t, PRIMARY, "Drop", s.confirm.equals(name) ? s::drop : null).key("drop");
+      root.overlay(Dialog.dialog(
+          t,
+          "Drop table",
+          col()
+              .gap(t.space().m())
+              .children(
+                  Label.label(t, "Drop " + s.dropping.path() + " and all its rows?"),
+                  Label.label(t, Label.Variant.MUTED, "Type the table's name to confirm."),
+                  textField(t, s.confirm, name, v -> s.confirm = v)
+                      .key("confirm")
+                      .label("Table name")),
           List.of(button(t, SECONDARY, "Cancel", () -> s.dropping = null).key("cancel"), drop),
           drop, // Enter in the field drops once the name is typed
           () -> s.dropping = null));
@@ -1126,17 +1197,28 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
     int count = q.tabs().stream().mapToInt(o -> o.changes.count()).sum();
     String what = q.tabs().size() == 1
         ? q.tabs().getFirst().table.name + " has " + (count == 1 ? "1 change" : count + " changes")
-        : q.tabs().stream().map(o -> o.table.name + " (" + o.changes.count() + ")")
-            .collect(java.util.stream.Collectors.joining(", ")) + " have changes";
+        : q.tabs().stream()
+                .map(o -> o.table.name + " (" + o.changes.count() + ")")
+                .collect(java.util.stream.Collectors.joining(", "))
+            + " have changes";
     El commit = button(t, PRIMARY, "Commit", this::commitAsked).key("commit-changes");
-    return Dialog.dialog(t, "Changes not committed",
-        col().gap(t.space().m()).children(
-            Label.label(t, what + " that the server does not have yet.").key("unsaved"),
-            Label.label(t, Label.Variant.MUTED,
-                "Commit them before you " + q.doing() + ", or discard them?")),
-        List.of(button(t, SECONDARY, "Cancel", () -> question = null).key("keep"),
-            button(t, SECONDARY, "Discard", this::discard).key("discard"), commit),
-        commit, () -> question = null);
+    return Dialog.dialog(
+        t,
+        "Changes not committed",
+        col()
+            .gap(t.space().m())
+            .children(
+                Label.label(t, what + " that the server does not have yet.").key("unsaved"),
+                Label.label(
+                    t,
+                    Label.Variant.MUTED,
+                    "Commit them before you " + q.doing() + ", or discard them?")),
+        List.of(
+            button(t, SECONDARY, "Cancel", () -> question = null).key("keep"),
+            button(t, SECONDARY, "Discard", this::discard).key("discard"),
+            commit),
+        commit,
+        () -> question = null);
   }
 
   /** The statements that Commit sends for a tab's changes, in a dialog of its window, or null. */
@@ -1146,22 +1228,44 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
       return null;
     }
     Node schema = o.table.parent;
-    String sql = TableRows.sql(schema.parent.name + "." + schema.name + "." + o.table.name,
-        o.changes.changes(), key -> o.data.stored.value(key, 0));
-    El editor = codeEditor(t, sql, preview, Sql.of(t), v -> {}).readOnly()
-        .key("statements").label("Statements").w(560).lines(8);
+    String sql = TableRows.sql(
+        schema.parent.name + "." + schema.name + "." + o.table.name,
+        o.changes.changes(),
+        key -> o.data.stored.value(key, 0));
+    El editor = codeEditor(t, sql, preview, Sql.of(t), v -> {})
+        .readOnly()
+        .key("statements")
+        .label("Statements")
+        .w(560)
+        .lines(8);
     boolean free = !o.changes.isEmpty() && o.committing == null;
-    El commit = button(t, PRIMARY, Symbol.SAVE, "Commit", false, !free ? null : () -> {
-      previewing = null;
-      commit(o, null);
-    }).key("commit-preview");
-    return Dialog.dialog(t, "Changes to " + o.table.name, editor,
-        List.of(button(t, SECONDARY, "Close", () -> previewing = null).key("close-preview"),
+    El commit = button(
+            t,
+            PRIMARY,
+            Symbol.SAVE,
+            "Commit",
+            false,
+            !free
+                ? null
+                : () -> {
+                  previewing = null;
+                  commit(o, null);
+                })
+        .key("commit-preview");
+    return Dialog.dialog(
+        t,
+        "Changes to " + o.table.name,
+        editor,
+        List.of(
+            button(t, SECONDARY, "Close", () -> previewing = null).key("close-preview"),
             button(t, SECONDARY, Symbol.COPY, "Copy", false, () -> {
-              appOf(group).clipboard().write(sql);
-              tell("Copied the statements");
-            }).key("copy-preview"), commit),
-        commit, () -> previewing = null);
+                  appOf(group).clipboard().write(sql);
+                  tell("Copied the statements");
+                })
+                .key("copy-preview"),
+            commit),
+        commit,
+        () -> previewing = null);
   }
 
   /**
@@ -1171,20 +1275,33 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
   private El statusBar(Theme t) {
     List<El> servers = new ArrayList<>();
     for (Node server : roots()) {
-      StatusBar.State state = connecting.contains(server) ? StatusBar.State.BUSY
-          : refused.contains(server) ? StatusBar.State.ERROR
-          : server.children == null ? StatusBar.State.IDLE : StatusBar.State.CONNECTED;
+      StatusBar.State state = connecting.contains(server)
+          ? StatusBar.State.BUSY
+          : refused.contains(server)
+              ? StatusBar.State.ERROR
+              : server.children == null ? StatusBar.State.IDLE : StatusBar.State.CONNECTED;
       servers.add(StatusBar.status(t, state, server.name, () -> selected = server)
           .key("server-" + server.name));
     }
     int running = running();
     int changed = changed();
     // The changes not committed, in every tab, while there are: a press goes to the next tab.
-    El changes = changed == 0 ? null : StatusBar.item(t, Symbol.EDIT,
-        changed == 1 ? "1 change" : changed + " changes", this::nextChanged).key("changes");
-    return StatusBar.statusBar(t, servers, java.util.Arrays.asList(changes, StatusBar.text(t,
-        running == 0 ? "Idle" : running == 1 ? "1 question running" : running + " questions running")
-        .key("running")));
+    El changes = changed == 0
+        ? null
+        : StatusBar.item(
+                t, Symbol.EDIT, changed == 1 ? "1 change" : changed + " changes", this::nextChanged)
+            .key("changes");
+    return StatusBar.statusBar(
+        t,
+        servers,
+        java.util.Arrays.asList(
+            changes,
+            StatusBar.text(
+                    t,
+                    running == 0
+                        ? "Idle"
+                        : running == 1 ? "1 question running" : running + " questions running")
+                .key("running")));
   }
 
   /**
@@ -1196,16 +1313,24 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
     Theme t = theme();
     El tabs = tabs(t, group);
     Opened active = group.activeTab();
-    return col().wFull().hFull().fill(t.surface().window())
-        .onKey(or(Menu.shortcuts(menus(group)).or(CommandPalette.keys(palette(group))),
-            tabs.onKey()))
+    return col()
+        .wFull()
+        .hFull()
+        .fill(t.surface().window())
+        .onKey(
+            or(Menu.shortcuts(menus(group)).or(CommandPalette.keys(palette(group))), tabs.onKey()))
         .overlay(palette(t, group))
         .overlay(question(t, group))
         .overlay(preview(t, group))
-        .child(titleBar(t, active == null ? "Workbench" : active.title(), t.accent().color(),
+        .child(titleBar(
+            t,
+            active == null ? "Workbench" : active.title(),
+            t.accent().color(),
             Identity.maximized(group.window() == null ? null : group.window().app())))
         // No minimum height from the tabs, whose grid would otherwise make it as high as its rows.
-        .child(col().grow(1).minSize(0, 0)
+        .child(col()
+            .grow(1)
+            .minSize(0, 0)
             .padding(0, t.space().m(), t.space().m(), t.space().m())
             .child(tabs.key("tabs").grow(1)));
   }
@@ -1218,19 +1343,29 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
   /** The tabs of a window, each the tab's content over a footer with its status. */
   private El tabs(Theme t, TabGroups.Group<Opened> group) {
     boolean main = group == groups.main();
-    return groups.tabs(t, group,
-        o -> o.table == null ? new Tab("Start", false, false) : new Tab(o.table.name)
-            .icon(Symbol.TABLE),
+    return groups.tabs(
+        t,
+        group,
+        o -> o.table == null
+            ? new Tab("Start", false, false)
+            : new Tab(o.table.name).icon(Symbol.TABLE),
         o -> {
           // The tab's content over a footer with the status, which shows on every tab, and where
           // the caret of the tab's query is.
           Opened shown = o == null || o.table == null ? null : o;
-          return col().grow(1)
+          return col()
+              .grow(1)
               .child(shown == null ? start(t) : table(t, this, shown, appOf(group)))
-              .child(Card.footer(t, Label.label(t, Label.Variant.MUTED, status(shown, main))
-                  .key("status").ellipsis(), shown == null ? new El[0]
-                  : new El[] {Label.label(t, Label.Variant.MUTED, position(shown))
-                      .key("position")}));
+              .child(Card.footer(
+                  t,
+                  Label.label(t, Label.Variant.MUTED, status(shown, main))
+                      .key("status")
+                      .ellipsis(),
+                  shown == null
+                      ? new El[0]
+                      : new El[] {
+                        Label.label(t, Label.Variant.MUTED, position(shown)).key("position")
+                      }));
         });
   }
 
@@ -1239,36 +1374,49 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
     Opened o = shown(group);
     Node table = queryTable(group);
     return List.of(
-        Menu.submenu("&File", List.of(
-            Menu.item("New query", table == null ? null : () -> openTab(group, table))
-                .icon(Symbol.ADD).shortcut(Key.CONTROL, "N"),
-            Menu.item("Close tab", o == null ? null : () -> closeTab(group, group.active()))
-                .shortcut(Key.CONTROL, "W"),
-            Menu.separator(),
-            Menu.item("Exit", this::exit))),
+        Menu.submenu(
+            "&File",
+            List.of(
+                Menu.item("New query", table == null ? null : () -> openTab(group, table))
+                    .icon(Symbol.ADD)
+                    .shortcut(Key.CONTROL, "N"),
+                Menu.item("Close tab", o == null ? null : () -> closeTab(group, group.active()))
+                    .shortcut(Key.CONTROL, "W"),
+                Menu.separator(),
+                Menu.item("Exit", this::exit))),
         Menu.submenu("&Edit", edits(o, appOf(group))),
-        Menu.submenu("&View", List.of(
-            Menu.item("Command palette…", palette(group)::open).icon(Symbol.SEARCH)
-                .shortcut("Ctrl+Shift+P"),
-            Menu.item("Go to table…", () -> palette(group).open("@")).icon(Symbol.TABLE)
-                .shortcut(Key.CONTROL, "P"),
-            Menu.separator(),
-            Menu.item("Dark theme", () -> dark = true).checked(dark),
-            Menu.item("Light theme", () -> dark = false).checked(!dark))),
-        Menu.submenu("&Query", List.of(
-            Menu.item("Run", o == null ? null : () -> run(o)).icon(Symbol.PLAY)
-                .shortcut(Key.CONTROL, "Enter"),
-            Menu.separator(),
-            Menu.item("Commit", !committable(o) ? null : () -> commit(o, null)).icon(Symbol.SAVE)
-                .shortcut(Key.CONTROL, "S"),
-            Menu.item("Revert", !settled(o) ? null : o.changes::clear).icon(Symbol.ARROW_UNDO),
-            Menu.item("Preview changes…", !settled(o) ? null : () -> previewing = o)
-                .icon(Symbol.CODE))));
+        Menu.submenu(
+            "&View",
+            List.of(
+                Menu.item("Command palette…", palette(group)::open)
+                    .icon(Symbol.SEARCH)
+                    .shortcut("Ctrl+Shift+P"),
+                Menu.item("Go to table…", () -> palette(group).open("@"))
+                    .icon(Symbol.TABLE)
+                    .shortcut(Key.CONTROL, "P"),
+                Menu.separator(),
+                Menu.item("Dark theme", () -> dark = true).checked(dark),
+                Menu.item("Light theme", () -> dark = false).checked(!dark))),
+        Menu.submenu(
+            "&Query",
+            List.of(
+                Menu.item("Run", o == null ? null : () -> run(o))
+                    .icon(Symbol.PLAY)
+                    .shortcut(Key.CONTROL, "Enter"),
+                Menu.separator(),
+                Menu.item("Commit", !committable(o) ? null : () -> commit(o, null))
+                    .icon(Symbol.SAVE)
+                    .shortcut(Key.CONTROL, "S"),
+                Menu.item("Revert", !settled(o) ? null : o.changes::clear).icon(Symbol.ARROW_UNDO),
+                Menu.item("Preview changes…", !settled(o) ? null : () -> previewing = o)
+                    .icon(Symbol.CODE))));
   }
 
   /** Whether Commit has something to write: changes, or a value in an open editor. */
   private static boolean committable(Opened o) {
-    return o != null && o.table != null && o.committing == null
+    return o != null
+        && o.table != null
+        && o.committing == null
         && (!o.changes.isEmpty() || o.selection.isEditing());
   }
 
@@ -1288,15 +1436,27 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
     }
     // The grid had the focus: the history of its changes, and its keys for the clipboard.
     boolean free = o.committing == null;
-    items.set(0, Menu.item("Undo", free && o.changes.canUndo() ? o.changes::undo : null)
-        .icon(Symbol.ARROW_UNDO).shortcut("Ctrl+Z"));
-    items.set(1, Menu.item("Redo", free && o.changes.canRedo() ? o.changes::redo : null)
-        .icon(Symbol.ARROW_REDO).shortcut("Ctrl+Shift+Z"));
+    items.set(
+        0,
+        Menu.item("Undo", free && o.changes.canUndo() ? o.changes::undo : null)
+            .icon(Symbol.ARROW_UNDO)
+            .shortcut("Ctrl+Z"));
+    items.set(
+        1,
+        Menu.item("Redo", free && o.changes.canRedo() ? o.changes::redo : null)
+            .icon(Symbol.ARROW_REDO)
+            .shortcut("Ctrl+Shift+Z"));
     items.set(3, Menu.item("Cut", null).icon(Symbol.CUT).shortcut(Key.CONTROL, "X"));
-    items.set(4, Menu.item("Copy", o.selection.isEmpty() ? null : () -> gridKey(o, app, "C"))
-        .icon(Symbol.COPY).shortcut(Key.CONTROL, "C"));
-    items.set(5, Menu.item("Paste", free ? () -> gridKey(o, app, "V") : null)
-        .icon(Symbol.CLIPBOARD_PASTE).shortcut(Key.CONTROL, "V"));
+    items.set(
+        4,
+        Menu.item("Copy", o.selection.isEmpty() ? null : () -> gridKey(o, app, "C"))
+            .icon(Symbol.COPY)
+            .shortcut(Key.CONTROL, "C"));
+    items.set(
+        5,
+        Menu.item("Paste", free ? () -> gridKey(o, app, "V") : null)
+            .icon(Symbol.CLIPBOARD_PASTE)
+            .shortcut(Key.CONTROL, "V"));
     items.set(7, Menu.item("Select all", () -> gridKey(o, app, "A")).shortcut(Key.CONTROL, "A"));
     return items;
   }
@@ -1311,34 +1471,51 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
 
   private List<Menu.Item> queryEdits(Opened o, App<Workbench> app) {
     int from = o == null ? 0 : Math.min(o.editor.caret(), o.editor.anchor());
-    int to = o == null ? 0 : Math.min(Math.max(o.editor.caret(), o.editor.anchor()),
-        o.query.length());
+    int to =
+        o == null ? 0 : Math.min(Math.max(o.editor.caret(), o.editor.anchor()), o.query.length());
     boolean some = o != null && from < to;
     return List.of(
         Menu.item("Undo", o == null ? null : () -> app.undo(query(o, app)))
-            .icon(Symbol.ARROW_UNDO).shortcut("Ctrl+Z"),
+            .icon(Symbol.ARROW_UNDO)
+            .shortcut("Ctrl+Z"),
         Menu.item("Redo", o == null ? null : () -> app.redo(query(o, app)))
             .icon(Symbol.ARROW_REDO)
             .shortcut("Ctrl+Shift+Z"),
         Menu.separator(),
-        Menu.item("Cut", !some ? null : () -> {
-          app.clipboard().write(o.query.substring(from, to));
-          app.edit(query(o, app), from, to, "", from);
-        }).icon(Symbol.CUT).shortcut(Key.CONTROL, "X"),
+        Menu.item(
+                "Cut",
+                !some
+                    ? null
+                    : () -> {
+                      app.clipboard().write(o.query.substring(from, to));
+                      app.edit(query(o, app), from, to, "", from);
+                    })
+            .icon(Symbol.CUT)
+            .shortcut(Key.CONTROL, "X"),
         Menu.item("Copy", !some ? null : () -> app.clipboard().write(o.query.substring(from, to)))
-            .icon(Symbol.COPY).shortcut(Key.CONTROL, "C"),
-        Menu.item("Paste", o == null ? null : () -> {
-          String text = app.clipboard().read();
-          if (text != null && !text.isEmpty()) {
-            app.edit(query(o, app), from, to, text, from + text.length());
-          }
-        }).icon(Symbol.CLIPBOARD_PASTE).shortcut(Key.CONTROL, "V"),
+            .icon(Symbol.COPY)
+            .shortcut(Key.CONTROL, "C"),
+        Menu.item(
+                "Paste",
+                o == null
+                    ? null
+                    : () -> {
+                      String text = app.clipboard().read();
+                      if (text != null && !text.isEmpty()) {
+                        app.edit(query(o, app), from, to, text, from + text.length());
+                      }
+                    })
+            .icon(Symbol.CLIPBOARD_PASTE)
+            .shortcut(Key.CONTROL, "V"),
         Menu.separator(),
-        Menu.item("Select all", o == null ? null
-            : () -> app.select(query(o, app), o.query.length(), 0)).shortcut(Key.CONTROL, "A"),
+        Menu.item(
+                "Select all",
+                o == null ? null : () -> app.select(query(o, app), o.query.length(), 0))
+            .shortcut(Key.CONTROL, "A"),
         Menu.separator(),
         Menu.item("Find…", o == null ? null : () -> Find.open(o.editor.find()))
-            .icon(Symbol.SEARCH).shortcut(Key.CONTROL, "F"),
+            .icon(Symbol.SEARCH)
+            .shortcut(Key.CONTROL, "F"),
         Menu.item("Replace…", o == null ? null : () -> Find.openReplace(o.editor.find()))
             .shortcut(Key.CONTROL, "H"),
         Menu.item("Find next", o == null ? null : () -> Find.next(o.editor.find()))
@@ -1356,8 +1533,8 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
         command(app, o, "Toggle comment", CodeEditor.Command.TOGGLE_COMMENT, "Ctrl+/"));
   }
 
-  private static Menu.Item command(App<Workbench> app, Opened o, String label,
-      CodeEditor.Command command, String keys) {
+  private static Menu.Item command(
+      App<Workbench> app, Opened o, String label, CodeEditor.Command command, String keys) {
     return Menu.item(label, o == null ? null : () -> CodeEditor.run(app, o.editor, command))
         .shortcut(keys);
   }
@@ -1411,23 +1588,34 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
     }
     long chosen = o.selection.rowCount();
     return String.format(Locale.ROOT, "%s · %,d rows", o.table.path(), o.changes.rowCount())
-        + (chosen == 0 ? "" : chosen == 1
-            ? String.format(Locale.ROOT, " · row %,d selected", o.selection.row() + 1)
-            : String.format(Locale.ROOT, " · %,d rows selected", chosen));
+        + (chosen == 0
+            ? ""
+            : chosen == 1
+                ? String.format(Locale.ROOT, " · row %,d selected", o.selection.row() + 1)
+                : String.format(Locale.ROOT, " · %,d rows selected", chosen));
   }
 
   private static El start(Theme t) {
-    return col().grow(1).padding(t.space().xxl()).gap(t.space().m())
+    return col()
+        .grow(1)
+        .padding(t.space().xxl())
+        .gap(t.space().m())
         .child(Label.label(t, Label.Variant.HEADING, "The frame of a database manager"))
-        .child(Label.label(t, Label.Variant.MUTED,
+        .child(Label.label(
+            t,
+            Label.Variant.MUTED,
             "Open a table from the catalogue: double-click it, or select it and press Enter."))
-        .child(Label.label(t, Label.Variant.MUTED,
+        .child(Label.label(
+            t,
+            Label.Variant.MUTED,
             "Control+Tab and Control+Shift+Tab go through the tabs; Control+W closes one."))
-        .child(Label.label(t, Label.Variant.MUTED,
-            "staging answers slowly, and prod-eu refuses to connect."))
-        .child(Label.label(t, Label.Variant.MUTED,
-            "Edits of a table's rows wait for Commit, Control+S."))
-        .child(Label.label(t, Label.Variant.MUTED,
+        .child(Label.label(
+            t, Label.Variant.MUTED, "staging answers slowly, and prod-eu refuses to connect."))
+        .child(Label.label(
+            t, Label.Variant.MUTED, "Edits of a table's rows wait for Commit, Control+S."))
+        .child(Label.label(
+            t,
+            Label.Variant.MUTED,
             "The servers refuse an amount below zero, and a paid order going back to pending."));
   }
 
@@ -1437,7 +1625,10 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
           o.failure = null; // the next edit takes the error away
           o.editor.noError();
         })
-        .key("query-" + o.table.path()).label("Query").wFull().shrink(0);
+        .key("query-" + o.table.path())
+        .label("Query")
+        .wFull()
+        .shrink(0);
     Predicate<Key> run = k -> {
       boolean enter = k.name().equals("Enter") && k.modifiers() == Key.CONTROL;
       if (enter) {
@@ -1446,18 +1637,30 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
       return enter;
     };
     area.onKey(run.or(area.onKey())); // and the editor's own keys
-    Completion.complete(t, app, area, o.editor.caret(), o.completion,
-        word -> s.suggest(o, word));
-    El query = col().padding(t.space().m(), t.space().l()).shrink(0).child(area)
+    Completion.complete(t, app, area, o.editor.caret(), o.completion, word -> s.suggest(o, word));
+    El query = col()
+        .padding(t.space().m(), t.space().l())
+        .shrink(0)
+        .child(area)
         .whenFocusWithin(e -> o.inGrid = false);
-    if (o.asking != null || o.committing != null) { // a line runs over the toolbar's hairline while the server answers
+    if (o.asking != null
+        || o.committing
+            != null) { // a line runs over the toolbar's hairline while the server answers
       query.child(Progress.line(t).absolute(0, -t.size().stroke()).key("running"));
     }
     if (o.rows < 0) {
-      return col().grow(1).minSize(0, 0).children(toolbar(t, s, o), Divider.divider(t), query,
-          Divider.divider(t), col().padding(t.space().xxl())
-          .child(Label.label(t, Label.Variant.MUTED,
-              "Loading the rows of " + o.table.path() + "…")));
+      return col()
+          .grow(1)
+          .minSize(0, 0)
+          .children(
+              toolbar(t, s, o),
+              Divider.divider(t),
+              query,
+              Divider.divider(t),
+              col()
+                  .padding(t.space().xxl())
+                  .child(Label.label(
+                      t, Label.Variant.MUTED, "Loading the rows of " + o.table.path() + "…")));
     }
     // The columns edit by their type, but the key; while the server writes, none edits.
     boolean edits = o.committing == null;
@@ -1466,26 +1669,31 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
     for (int c = 0; c < o.widths.length; c++) {
       Field f = field(o.table.children.get(c).name);
       int at = c;
-      Column column = new Column(f.name(), o.widths[c], f.kind(), changes.cell(c))
-          .typeName(f.type());
+      Column column =
+          new Column(f.name(), o.widths[c], f.kind(), changes.cell(c)).typeName(f.type());
       if (edits && c > 0) {
         column = column.editable();
       }
-      columns.add(switch (f.name()) {
-        case "id" -> column.icon(Symbol.KEY, Variant.WARNING);
-        case "customer_id" -> column.icon(Symbol.LINK).cellIcon(i -> LINK);
-        case "status" -> column.cellIcon(i -> {
-          String status = changes.cell(i, at);
-          int which = status == null ? -1 : List.of(STATUS).indexOf(status);
-          return which < 0 ? null : MARKS[which];
-        }).choices(List.of(STATUS));
-        case "paid" -> column.cellIcon(i -> {
-          String paid = changes.cell(i, at);
-          return paid == null ? null : paid.equals("true") ? PAID : UNPAID;
-        });
-        case "note", "updated_at", "deleted_at" -> column.nullable();
-        default -> column;
-      });
+      columns.add(
+          switch (f.name()) {
+            case "id" -> column.icon(Symbol.KEY, Variant.WARNING);
+            case "customer_id" -> column.icon(Symbol.LINK).cellIcon(i -> LINK);
+            case "status" ->
+              column
+                  .cellIcon(i -> {
+                    String status = changes.cell(i, at);
+                    int which = status == null ? -1 : List.of(STATUS).indexOf(status);
+                    return which < 0 ? null : MARKS[which];
+                  })
+                  .choices(List.of(STATUS));
+            case "paid" ->
+              column.cellIcon(i -> {
+                String paid = changes.cell(i, at);
+                return paid == null ? null : paid.equals("true") ? PAID : UNPAID;
+              });
+            case "note", "updated_at", "deleted_at" -> column.nullable();
+            default -> column;
+          });
     }
     DataGrid.Options options = DataGrid.options()
         .select(o.selection)
@@ -1501,34 +1709,48 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
       options.status(changes::rowStatus, changes::cellStatus).errors(changes::errorText);
     }
     El grid = dataGrid(t, columns, changes.rowCount(), options)
-        .key("grid-" + o.table.path()).label(o.table.name)
+        .key("grid-" + o.table.path())
+        .label(o.table.name)
         .whenFocusWithin(e -> o.inGrid = true);
     El bar = DataGrid.filterBar(t, columns, o.filters, o::filter);
     El tab = col().grow(1).minSize(0, 0).child(toolbar(t, s, o));
     if (bar != null) { // the filters set, under the toolbar
       tab.child(row().padding(0, t.space().l(), t.space().m(), t.space().l()).child(bar));
     }
-    return tab.children(Divider.divider(t), query, Divider.divider(t),
-        grid.grow(1).minSize(0, 0));
+    return tab.children(
+        Divider.divider(t), query, Divider.divider(t), grid.grow(1).minSize(0, 0));
   }
 
   /** The table's name, its number of rows and the button that runs the query. */
   private static El toolbar(Theme t, Workbench s, Opened o) {
-    String rows = o.rows < 0 ? "counting the rows"
+    String rows = o.rows < 0
+        ? "counting the rows"
         : String.format(Locale.ROOT, "%,d rows", o.changes.rowCount());
     int changed = o.changes.count();
     if (changed == 0) {
-      return Card.toolbar(t, o.table.name, rows,
+      return Card.toolbar(
+          t,
+          o.table.name,
+          rows,
           Button.button(t, PRIMARY, Symbol.PLAY, "Run", o.asking != null, () -> s.run(o))
               .key("run"));
     }
     // With changes, Commit is the primary action, and Run a secondary one.
     boolean writing = o.committing != null;
-    return Card.toolbar(t, o.table.name, rows,
+    return Card.toolbar(
+        t,
+        o.table.name,
+        rows,
         button(t, GHOST, Symbol.ARROW_UNDO, "Revert", writing ? null : o.changes::clear)
             .key("revert"),
-        Button.button(t, PRIMARY, Symbol.SAVE, "Commit (" + changed + ")", writing,
-            () -> s.commit(o, null)).key("commit"),
+        Button.button(
+                t,
+                PRIMARY,
+                Symbol.SAVE,
+                "Commit (" + changed + ")",
+                writing,
+                () -> s.commit(o, null))
+            .key("commit"),
         Button.button(t, SECONDARY, Symbol.PLAY, "Run", o.asking != null, () -> s.run(o))
             .key("run"));
   }

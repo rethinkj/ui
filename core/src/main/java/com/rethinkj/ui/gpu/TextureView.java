@@ -15,8 +15,15 @@ public final class TextureView extends GpuObject {
   /** The surface frame this is a view of, or null. */
   final SurfaceFrame frame;
 
-  TextureView(GpuObject texture, Device device, String label, MemorySegment handle, int width,
-      int height, TextureFormat format, SurfaceFrame frame) {
+  TextureView(
+      GpuObject texture,
+      Device device,
+      String label,
+      MemorySegment handle,
+      int width,
+      int height,
+      TextureFormat format,
+      SurfaceFrame frame) {
     super(device.instance, texture, label, handle);
     this.device = device;
     this.width = width;

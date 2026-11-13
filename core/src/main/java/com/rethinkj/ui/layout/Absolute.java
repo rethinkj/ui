@@ -148,24 +148,22 @@ final class Absolute {
       if (hadAutoMargin) {
         return boxStart + marginStart;
       }
-      int edge =
-          align == null
-              ? START
-              : switch (align) {
-                case CENTER -> CENTER;
-                case END, FLEX_END -> END;
-                case START, FLEX_START, BASELINE, STRETCH -> START;
-              };
+      int edge = align == null
+          ? START
+          : switch (align) {
+            case CENTER -> CENTER;
+            case END, FLEX_END -> END;
+            case START, FLEX_START, BASELINE, STRETCH -> START;
+          };
       float start = align(boxStart, boxEnd, marginBox, edge);
       if (marginBox > boxEnd - boxStart && align != null) {
         // Too large for the box: stay inside the parent as far as possible, and never go out at
         // the start. https://www.w3.org/TR/css-align-3/#auto-safety-position
         float limitStart = Math.min(boxStart, 0);
         float limitEnd = scrolls ? Float.POSITIVE_INFINITY : Math.max(boxEnd, size);
-        start =
-            marginBox <= limitEnd - limitStart
-                ? Math.max(Math.min(start, limitEnd - marginBox), limitStart)
-                : limitStart;
+        start = marginBox <= limitEnd - limitStart
+            ? Math.max(Math.min(start, limitEnd - marginBox), limitStart)
+            : limitStart;
       }
       return start + marginStart;
     }
@@ -201,26 +199,20 @@ final class Absolute {
     float boxHeight = contentBox ? edgesHeight : 0;
     float ratio = s.aspectRatio;
 
-    float minWidth =
-        Math.max(
-            or(size(s.minWidth, s.minHeight, areaWidth, areaHeight, ratio, true, boxWidth), 0),
-            edgesWidth);
-    float minHeight =
-        Math.max(
-            or(size(s.minHeight, s.minWidth, areaHeight, areaWidth, ratio, false, boxHeight), 0),
-            edgesHeight);
+    float minWidth = Math.max(
+        or(size(s.minWidth, s.minHeight, areaWidth, areaHeight, ratio, true, boxWidth), 0),
+        edgesWidth);
+    float minHeight = Math.max(
+        or(size(s.minHeight, s.minWidth, areaHeight, areaWidth, ratio, false, boxHeight), 0),
+        edgesHeight);
     float maxWidth = size(s.maxWidth, s.maxHeight, areaWidth, areaHeight, ratio, true, boxWidth);
     float maxHeight = size(s.maxHeight, s.maxWidth, areaHeight, areaWidth, ratio, false, boxHeight);
-    float width =
-        clamp(
-            size(s.width, s.height, areaWidth, areaHeight, ratio, true, boxWidth),
-            minWidth,
-            maxWidth);
-    float height =
-        clamp(
-            size(s.height, s.width, areaHeight, areaWidth, ratio, false, boxHeight),
-            minHeight,
-            maxHeight);
+    float width = clamp(
+        size(s.width, s.height, areaWidth, areaHeight, ratio, true, boxWidth), minWidth, maxWidth);
+    float height = clamp(
+        size(s.height, s.width, areaHeight, areaWidth, ratio, false, boxHeight),
+        minHeight,
+        maxHeight);
 
     horizontal.size = areaWidth;
     horizontal.staticStart -= areaX;
@@ -260,38 +252,35 @@ final class Absolute {
     float availableHeight = clamp(vertical.stretchSize(), minHeight, maxHeight);
     if (!(some(width) && some(height))) {
       // Otherwise the content decides: shrink to fit.
-      Out measured =
-          node.layout(
-              new In(
-                  false,
-                  false,
-                  BOTH,
-                  width,
-                  height,
-                  true,
-                  true,
-                  areaWidth,
-                  areaHeight,
-                  availableWidth,
-                  availableHeight));
+      Out measured = node.layout(new In(
+          false,
+          false,
+          BOTH,
+          width,
+          height,
+          true,
+          true,
+          areaWidth,
+          areaHeight,
+          availableWidth,
+          availableHeight));
       width = or(width, measured.width());
       height = or(height, measured.height());
     }
     width = clamp(width, minWidth, maxWidth);
     height = clamp(height, minHeight, maxHeight);
-    node.layout(
-        new In(
-            true,
-            false,
-            BOTH,
-            width,
-            height,
-            true,
-            true,
-            areaWidth,
-            areaHeight,
-            availableWidth,
-            availableHeight));
+    node.layout(new In(
+        true,
+        false,
+        BOTH,
+        width,
+        height,
+        true,
+        true,
+        areaWidth,
+        areaHeight,
+        availableWidth,
+        availableHeight));
 
     boolean autoMarginX = !some(horizontal.marginStart) || !some(horizontal.marginEnd);
     boolean autoMarginY = !some(vertical.marginStart) || !some(vertical.marginEnd);

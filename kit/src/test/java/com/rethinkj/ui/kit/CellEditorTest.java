@@ -38,7 +38,8 @@ class CellEditorTest {
 
   private static final Theme T = Theme.DARK;
 
-  @TempDir Path out;
+  @TempDir
+  Path out;
 
   @BeforeEach
   void textLibraries() {
@@ -65,31 +66,44 @@ class CellEditorTest {
       List<Column> columns = List.of(
           new Column("id", widths[0], Align.RIGHT, true, i -> String.valueOf(i + 1)),
           new Column("name", widths[1], Align.LEFT, false, i -> names[i]));
-      El grid = dataGrid(T, columns, names.length, DataGrid.options()
-          .select(selection)
-          .onResize((c, w) -> {
-            log.add("resize " + c + " " + w);
-            widths[c] = w;
-          })
-          .onEdit((row, column) -> {
-            log.add("edit " + row + "," + column);
-            if (column == 1) { // only names
-              editing = row;
-              draft = names[row];
-            }
-          }))
-          .key("sheet").label("Customers").grow(1);
+      El grid = dataGrid(
+              T,
+              columns,
+              names.length,
+              DataGrid.options()
+                  .select(selection)
+                  .onResize((c, w) -> {
+                    log.add("resize " + c + " " + w);
+                    widths[c] = w;
+                  })
+                  .onEdit((row, column) -> {
+                    log.add("edit " + row + "," + column);
+                    if (column == 1) { // only names
+                      editing = row;
+                      draft = names[row];
+                    }
+                  }))
+          .key("sheet")
+          .label("Customers")
+          .grow(1);
       El area = col().key("area").grow(1).child(grid);
       if (editing >= 0) {
         // Over the name's cell: the rows begin below the header and its line; no scrolling here.
         float rowHeight = T.grid().rowHeight();
-        area.child(textField(T, draft, v -> draft = v).key("editor").label("Name")
+        area.child(textField(T, draft, v -> draft = v)
+            .key("editor")
+            .label("Name")
             .absolute(widths[0], rowHeight + T.size().stroke() + editing * rowHeight)
-            .w(widths[1] - T.size().stroke()).h(rowHeight)
+            .w(widths[1] - T.size().stroke())
+            .h(rowHeight)
             .autofocus()
             .onKey(this::editorKey));
       }
-      return col().wFull().hFull().padding(T.space().m()).gap(T.space().m())
+      return col()
+          .wFull()
+          .hFull()
+          .padding(T.space().m())
+          .gap(T.space().m())
           .fill(T.surface().panel())
           .children(textField(T, filter, "Filter", v -> filter = v).key("filter"), area);
     }
@@ -146,7 +160,8 @@ class CellEditorTest {
     assertEquals("editor", app.focused().key());
     assertEquals(before + " Jr.", sheet.draft);
     assertEquals(before, sheet.names[3], "not yet committed");
-    assertTrue(line(app, "editor").endsWith("focused caret " + (before.length() + 4)),
+    assertTrue(
+        line(app, "editor").endsWith("focused caret " + (before.length() + 4)),
         line(app, "editor"));
 
     run(app, "advance 1\nframe\nkey Enter\nframe"); // once it has faded in
@@ -176,16 +191,25 @@ class CellEditorTest {
     run(app, "press #cell-7-1\npress #cell-7-1 clicks 2\nframe");
     assertEquals(7, sheet.editing);
     assertTrue(line(app, "cell-7-1").contains(" selected current "), line(app, "cell-7-1"));
-    assertEquals(List.of("edit 3,1", "commit 3 " + before + " Jr.", "edit 4,1", "cancel 4",
-        "edit 6,0", "edit 7,1"), sheet.log);
+    assertEquals(
+        List.of(
+            "edit 3,1",
+            "commit 3 " + before + " Jr.",
+            "edit 4,1",
+            "cancel 4",
+            "edit 6,0",
+            "edit 7,1"),
+        sheet.log);
   }
 
   @Test
   void resizingAColumnLeavesTheCaretAndSelectionOfAFieldElsewhereAlone() throws IOException {
     App<Sheet> app = start();
     Sheet sheet = app.state();
-    run(app, "frame\npress #filter\ntype \"SELECT name\"\nkey ArrowLeft shift\n"
-        + "key ArrowLeft shift\nframe");
+    run(
+        app,
+        "frame\npress #filter\ntype \"SELECT name\"\nkey ArrowLeft shift\n"
+            + "key ArrowLeft shift\nframe");
     assertTrue(line(app, "filter").endsWith("focused caret 9 anchor 11"), line(app, "filter"));
 
     El edge = find(app, "resize-1");
@@ -196,8 +220,9 @@ class CellEditorTest {
     run(app, "move #filter\nframe"); // over the field: the drag goes on and selects nothing
     assertSame(find(app, "resize-1"), app.hovered(), "the edge stays under the pointer");
     assertEquals(36, sheet.widths[1], "the edge follows the pointer over the field");
-    run(app, "move " + (x + 20) + "," + (y + 100) + "\nup " + (x + 20) + "," + (y + 100)
-        + "\nframe");
+    run(
+        app,
+        "move " + (x + 20) + "," + (y + 100) + "\nup " + (x + 20) + "," + (y + 100) + "\nframe");
     assertEquals(180, sheet.widths[1]);
     assertEquals("resize 1 180.0", sheet.log.getLast(), "the end of the drag");
     assertEquals("sheet", app.focused().key(), "the press on the edge focused the grid");
@@ -213,8 +238,13 @@ class CellEditorTest {
 
   /** The line of the element with this key in the dump of the tree. */
   private static String line(App<?> app, String key) {
-    return app.tree().dump().lines().filter(l -> l.strip().contains(" #" + key + " "))
-        .findFirst().orElseThrow().strip();
+    return app.tree()
+        .dump()
+        .lines()
+        .filter(l -> l.strip().contains(" #" + key + " "))
+        .findFirst()
+        .orElseThrow()
+        .strip();
   }
 
   private static float x(App<?> app, El el) {

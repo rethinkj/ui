@@ -25,12 +25,21 @@ class PlacementTest {
 
   @Test
   void whatIsNoPlacementIsRefusedWithWhatOneLooksLike() {
-    for (String line : new String[] {"", "120,80", "120,80 0x720", "a,b 1x1",
-        "120,80 1200x720 minimized", "120,80 1200x720 display \"open"}) {
-      IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
-          () -> Window.Placement.parse(line), line);
-      assertEquals(true, e.getMessage().startsWith("Not a window's placement")
-          || e.getMessage().startsWith("Size "), e.getMessage());
+    for (String line : new String[] {
+      "",
+      "120,80",
+      "120,80 0x720",
+      "a,b 1x1",
+      "120,80 1200x720 minimized",
+      "120,80 1200x720 display \"open"
+    }) {
+      IllegalArgumentException e =
+          assertThrows(IllegalArgumentException.class, () -> Window.Placement.parse(line), line);
+      assertEquals(
+          true,
+          e.getMessage().startsWith("Not a window's placement")
+              || e.getMessage().startsWith("Size "),
+          e.getMessage());
     }
   }
 }

@@ -25,8 +25,8 @@ import org.junit.jupiter.api.Test;
 class SystemFontsTest {
 
   /** Japanese, Chinese, Korean, Arabic, Thai, an emoji and two symbols, none of them Inter's. */
-  private static final List<String> SAMPLES = List.of("日本語のテキスト", "中文文本", "한국어 텍스트",
-      "نص عربي", "ข้อความภาษาไทย", "😀", "∀", "☃");
+  private static final List<String> SAMPLES =
+      List.of("日本語のテキスト", "中文文本", "한국어 텍스트", "نص عربي", "ข้อความภาษาไทย", "😀", "∀", "☃");
 
   @BeforeEach
   void needsTheTextLibraries() {
@@ -74,9 +74,14 @@ class SystemFontsTest {
     List<SystemFonts.Face> faces = SystemFonts.faces();
     assumeFalse(faces.isEmpty(), "Skipped: no fonts in " + SystemFonts.folders());
     long ranges = faces.stream().mapToLong(f -> f.ranges().length).sum();
-    System.out.printf("System fonts: %d files, %d faces, scanned in %.0f ms; the index holds"
-            + " %d ranges of characters, %d KB%n", SystemFonts.files(), faces.size(),
-        SystemFonts.scanNanos() / 1e6, ranges / 2, ranges * 4 / 1024);
+    System.out.printf(
+        "System fonts: %d files, %d faces, scanned in %.0f ms; the index holds"
+            + " %d ranges of characters, %d KB%n",
+        SystemFonts.files(),
+        faces.size(),
+        SystemFonts.scanNanos() / 1e6,
+        ranges / 2,
+        ranges * 4 / 1024);
     for (String sample : SAMPLES) {
       List<Integer> bounds = Runs.clusters(sample);
       Set<String> chosen = new LinkedHashSet<>();
@@ -90,12 +95,14 @@ class SystemFontsTest {
         Font font = SystemFonts.find(cluster, 0);
         chosen.add(font == null ? "missing" : font.toString());
         if (font != null) {
-          assertTrue(cluster.codePoints().allMatch(c -> Runs.hidden(c) || font.has(c)),
+          assertTrue(
+              cluster.codePoints().allMatch(c -> Runs.hidden(c) || font.has(c)),
               font + " has " + cluster);
         }
       }
-      System.out.printf("  %s: %s (%.1f ms)%n", sample, String.join(", ", chosen),
-          (System.nanoTime() - start) / 1e6);
+      System.out.printf(
+          "  %s: %s (%.1f ms)%n",
+          sample, String.join(", ", chosen), (System.nanoTime() - start) / 1e6);
     }
   }
 

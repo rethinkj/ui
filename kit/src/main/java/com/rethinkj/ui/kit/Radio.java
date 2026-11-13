@@ -31,10 +31,12 @@ public final class Radio {
    * @param onSelect told the index of the choice the user makes, only when it changes; null
    *     disables the group
    */
-  public static El radioGroup(
-      Theme t, List<String> choices, int selected, IntConsumer onSelect) {
+  public static El radioGroup(Theme t, List<String> choices, int selected, IntConsumer onSelect) {
     boolean enabled = onSelect != null;
-    El group = col().role("radiogroup").disabled(!enabled).gap(t.space().s())
+    El group = col()
+        .role("radiogroup")
+        .disabled(!enabled)
+        .gap(t.space().s())
         // Room for the ring around the choices, taken back by the margin, as a toggle has it.
         .padding(t.space().xs(), t.space().s())
         .margin(-t.space().xs(), -t.space().s(), -t.space().xs(), -t.space().s())
@@ -50,26 +52,36 @@ public final class Radio {
     Theme.Surfaces s = t.surface();
     float side = t.size().checkbox();
     int fill = on ? (enabled ? t.accent().color() : t.border().subtle()) : s.raised();
-    int edge = !enabled ? t.border().subtle() : on ? t.accent().pressed() : t.border().strong();
-    El mark = el().size(side, side).shrink(0).center()
+    int edge =
+        !enabled ? t.border().subtle() : on ? t.accent().pressed() : t.border().strong();
+    El mark = el().size(side, side)
+        .shrink(0)
+        .center()
         .radius(side / 2)
         .fill(fill)
         .border(t.size().stroke(), edge)
         .motion(t.motion().feedback());
     if (on) {
       float dot = Math.round(side * 3 / 8);
-      mark.child(el().size(dot, dot).radius(dot / 2)
+      mark.child(el().size(dot, dot)
+          .radius(dot / 2)
           .fill(enabled ? t.text().onAccent() : t.text().disabled()));
     }
-    El radio = row().role("radio").label(text).checked(on).gap(t.space().m())
+    El radio = row()
+        .role("radio")
+        .label(text)
+        .checked(on)
+        .gap(t.space().m())
         .align(Style.Align.CENTER)
-        .children(mark, label(t, text).color(enabled ? t.text().primary() : t.text().disabled()));
+        .children(
+            mark, label(t, text).color(enabled ? t.text().primary() : t.text().disabled()));
     if (!enabled) {
       return radio;
     }
     int hover = on ? t.accent().hover() : over(fill, s.hover());
     int pressed = on ? t.accent().pressed() : over(fill, s.pressed());
-    return radio.cursor(Cursor.POINTER)
+    return radio
+        .cursor(Cursor.POINTER)
         .onPress(onPress)
         .whenHovered(e -> mark.fill(hover))
         .whenPressed(e -> mark.fill(pressed));

@@ -17,8 +17,9 @@ class NotesTest {
   void theScriptShowsTheStoredFramesOfEachWindow() throws IOException {
     Snaps.check("notes", Notes::main);
     assertTrue(Files.exists(Path.of("target/notes/groceries-notes-torn.png")));
-    assertTrue(Snaps.line("notes", "notes-edited", "#text-Groceries")
-        .contains("Coffee, bread, milk"), "the row shows the edit of the note's window");
+    assertTrue(
+        Snaps.line("notes", "notes-edited", "#text-Groceries").contains("Coffee, bread, milk"),
+        "the row shows the edit of the note's window");
     assertTrue(Snaps.line("notes", "notes-reorder-marker", "#marker").startsWith("el #marker"));
   }
 }

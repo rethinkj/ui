@@ -55,7 +55,10 @@ class SharedGpuTest {
   }
 
   private static El view(Shared s) {
-    return row().key("count-" + s.count).wFull().hFull()
+    return row()
+        .key("count-" + s.count)
+        .wFull()
+        .hFull()
         .fill(s.count % 2 == 0 ? 0xFF2050A0 : 0xFFA05020);
   }
 
@@ -118,10 +121,20 @@ class SharedGpuTest {
       }));
       List<Windows.Handle> handles = new ArrayList<>();
       handles.add(loop.get().windows().of(appA));
-      handles.add(loop.get().open(TITLE + " 1", 120, 80, Window.options().position(300, 100),
-          new App<>(s, SharedGpuTest::view)));
-      handles.add(loop.get().open(TITLE + " 2", 120, 80, Window.options().position(500, 100),
-          new App<>(s, SharedGpuTest::view)));
+      handles.add(loop.get()
+          .open(
+              TITLE + " 1",
+              120,
+              80,
+              Window.options().position(300, 100),
+              new App<>(s, SharedGpuTest::view)));
+      handles.add(loop.get()
+          .open(
+              TITLE + " 2",
+              120,
+              80,
+              Window.options().position(500, 100),
+              new App<>(s, SharedGpuTest::view)));
       long[] seen = new long[3];
       int[] closed = new int[1];
       loop.get().waits((millis, holdBack) -> {
@@ -132,8 +145,10 @@ class SharedGpuTest {
         for (int i = 0; i < 3; i++) {
           if (handles.get(i).isOpen()) {
             long frames = presenters.get(i).gpu.frames();
-            assertTrue(frames > seen[i], which + ": window " + i + " drew " + frames
-                + " frames, as before the last close: " + log);
+            assertTrue(
+                frames > seen[i],
+                which + ": window " + i + " drew " + frames + " frames, as before the last close: "
+                    + log);
             seen[i] = frames;
           }
         }
@@ -146,8 +161,11 @@ class SharedGpuTest {
       });
       Desktop.run(loop.get(), () -> which + ": the three windows close: " + log);
       assertEquals(3, closed[0], which);
-      assertEquals(List.of(String.valueOf(order[0]) + " closed",
-          String.valueOf(order[1]) + " closed", String.valueOf(order[2]) + " closed"),
+      assertEquals(
+          List.of(
+              String.valueOf(order[0]) + " closed",
+              String.valueOf(order[1]) + " closed",
+              String.valueOf(order[2]) + " closed"),
           log.stream().filter(l -> l.endsWith(" closed")).toList(),
           which + ": each presenter closed with its window");
     }
@@ -158,7 +176,8 @@ class SharedGpuTest {
   @Test
   void aWindowOpenedAfterAllOthersClosedMakesANewDevice() {
     long devices = Device.created();
-    try (Window a = Window.open(TITLE, 120, 80); GpuPresenter gpu = presenter(a)) {
+    try (Window a = Window.open(TITLE, 120, 80);
+        GpuPresenter gpu = presenter(a)) {
       Desktop.settle();
       Shared s = new Shared();
       App<Shared> app = new App<>(s, SharedGpuTest::view);
@@ -168,7 +187,8 @@ class SharedGpuTest {
       assertEquals(1, gpu.frames());
     }
     assertEquals(1, Device.created() - devices);
-    try (Window b = Window.open(TITLE + " later", 120, 80); GpuPresenter gpu = presenter(b)) {
+    try (Window b = Window.open(TITLE + " later", 120, 80);
+        GpuPresenter gpu = presenter(b)) {
       Desktop.settle();
       App<Shared> app = new App<>(new Shared(), SharedGpuTest::view);
       app.resize(b.width(), b.height(), b.scale());

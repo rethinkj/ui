@@ -18,7 +18,8 @@ import org.junit.jupiter.api.io.TempDir;
 /** Rows in a group, pressable cards and forms, driven by scripts against {@link Sheets}. */
 class GroupTest {
 
-  @TempDir Path out;
+  @TempDir
+  Path out;
 
   @BeforeEach
   void textLibraries() {
@@ -39,10 +40,18 @@ class GroupTest {
       run(app, "key Tab");
       order.add(app.focused().role() + " " + app.focused().label());
     }
-    assertEquals(List.of(
-        "switch Word wrap", "switch Line numbers", "combobox JetBrains Mono",
-        "spinbutton Tab size", "button Keymap", "button Advanced", "switch Insert spaces",
-        "radiogroup Line endings", "switch Word wrap"), order,
+    assertEquals(
+        List.of(
+            "switch Word wrap",
+            "switch Line numbers",
+            "combobox JetBrains Mono",
+            "spinbutton Tab size",
+            "button Keymap",
+            "button Advanced",
+            "switch Insert spaces",
+            "radiogroup Line endings",
+            "switch Word wrap"),
+        order,
         "the disabled row is left out, and so are the number field's buttons");
   }
 
@@ -50,8 +59,10 @@ class GroupTest {
   void aPressAnywhereOnASwitchRowAndItsKeysFlipIt() throws IOException {
     Sheets s = new Sheets(Theme.DARK);
     App<Sheets> app = s.app(Sheets::rows);
-    run(app, "press text=\"Wrap long lines at the edge of the editor instead of scrolling"
-        + " sideways\"");
+    run(
+        app,
+        "press text=\"Wrap long lines at the edge of the editor instead of scrolling"
+            + " sideways\"");
     assertFalse(s.wrap);
     run(app, "focus role=switch label=\"Word wrap\"\nkey Space\nframe\nkey Enter");
     assertFalse(s.wrap, "twice more");
@@ -66,8 +77,7 @@ class GroupTest {
     App<Sheets> app = s.app(Sheets::rows);
     run(app, "");
     assertTrue(app.tree().dump().contains("label=\"Advanced\" "));
-    assertTrue(StructureTest.line(app.tree().dump(), "label=\"Advanced\"")
-        .contains(" expanded"));
+    assertTrue(StructureTest.line(app.tree().dump(), "label=\"Advanced\"").contains(" expanded"));
     run(app, "focus role=button label=\"Advanced\"\nkey Enter");
     String dump = app.tree().dump();
     assertTrue(StructureTest.line(dump, "label=\"Advanced\"").contains(" expanded=false"), dump);
@@ -126,10 +136,16 @@ class GroupTest {
   @Test
   void aCardsHeaderIsAHeadingOfTheThirdLevelBelowASectionsAndAPagesTitle() throws IOException {
     Theme t = Theme.DARK;
-    App<Object> app = new App<>(new Object(), x -> col().wFull().hFull().child(
-        Section.page(t, "Settings",
-            Section.section(t, "Editor", null, Card.card(t, Card.header(t, "Font", null))))
-            .grow(1)));
+    App<Object> app = new App<>(
+        new Object(),
+        x -> col()
+            .wFull()
+            .hFull()
+            .child(Section.page(
+                    t,
+                    "Settings",
+                    Section.section(t, "Editor", null, Card.card(t, Card.header(t, "Font", null))))
+                .grow(1)));
     run(app, "");
     String dump = app.tree().dump();
     assertTrue(dump.contains("text role=heading \"Settings\" ") && dump.contains(" level=1"), dump);

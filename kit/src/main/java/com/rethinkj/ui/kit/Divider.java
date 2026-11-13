@@ -25,13 +25,20 @@ public final class Divider {
 
   /** A line across a column with a label in muted text in its middle. */
   public static El divider(Theme t, String label) {
-    return row().role("separator").label(label).gap(t.space().m()).align(Style.Align.CENTER)
+    return row()
+        .role("separator")
+        .label(label)
+        .gap(t.space().m())
+        .align(Style.Align.CENTER)
         .children(line(t).grow(1), label(t, Label.Variant.MUTED, label), line(t).grow(1));
   }
 
   /** An upright line in a row, as high as the row. */
   public static El vertical(Theme t) {
-    return el().role("separator").w(t.size().stroke()).shrink(0).fill(t.border().subtle())
+    return el().role("separator")
+        .w(t.size().stroke())
+        .shrink(0)
+        .fill(t.border().subtle())
         .alignSelf(Style.Align.STRETCH);
   }
 

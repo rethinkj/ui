@@ -35,7 +35,8 @@ public final class Section {
    *     out, so that a view can write {@code changed ? callout(...) : null}
    */
   public static El section(Theme t, String title, String description, El... content) {
-    El head = col().gap(t.space().xs())
+    El head = col()
+        .gap(t.space().xs())
         .child(label(t, Label.Variant.HEADING, title).role("heading").level(2));
     if (description != null) {
       head.child(label(t, Label.Variant.MUTED, description).wrapText());
@@ -49,8 +50,11 @@ public final class Section {
    * to grow, as any scroll area.
    */
   public static El page(Theme t, String title, El... sections) {
-    return col().scroll().scrollbars(t.scrollbars())
-        .padding(t.space().xxl()).gap(t.space().xxl())
+    return col()
+        .scroll()
+        .scrollbars(t.scrollbars())
+        .padding(t.space().xxl())
+        .gap(t.space().xxl())
         .child(label(t, Label.Variant.TITLE, title).role("heading").level(1))
         .children(present(sections));
   }

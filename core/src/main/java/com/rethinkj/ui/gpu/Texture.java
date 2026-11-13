@@ -23,8 +23,17 @@ public final class Texture extends GpuObject {
   private final TextureFormat format;
   private final Set<TextureUsage> usages;
 
-  Texture(Device device, GpuObject parent, String label, MemorySegment handle, int width,
-      int height, int layers, boolean array, int levels, TextureFormat format,
+  Texture(
+      Device device,
+      GpuObject parent,
+      String label,
+      MemorySegment handle,
+      int width,
+      int height,
+      int layers,
+      boolean array,
+      int levels,
+      TextureFormat format,
       Set<TextureUsage> usages) {
     super(device.instance, parent, label, handle);
     this.device = device;
@@ -91,8 +100,15 @@ public final class Texture extends GpuObject {
   }
 
   /** A view of all mip levels and layers of a texture, for this class and surface frames. */
-  static TextureView createView(GpuObject owner, Device device, MemorySegment texture,
-      String label, int width, int height, TextureFormat format, boolean array,
+  static TextureView createView(
+      GpuObject owner,
+      Device device,
+      MemorySegment texture,
+      String label,
+      int width,
+      int height,
+      TextureFormat format,
+      boolean array,
       SurfaceFrame frame) {
     device.usable();
     try (Arena arena = Arena.ofConfined()) {
@@ -100,11 +116,14 @@ public final class Texture extends GpuObject {
       Structs.string(descriptor, TextureViewDescriptor.LABEL, label, arena);
       if (array) {
         // Undefined would be 2D for a texture of one layer.
-        descriptor.set(JAVA_INT, TextureViewDescriptor.DIMENSION,
-            Wgpu.TEXTURE_VIEW_DIMENSION_2D_ARRAY);
+        descriptor.set(
+            JAVA_INT, TextureViewDescriptor.DIMENSION, Wgpu.TEXTURE_VIEW_DIMENSION_2D_ARRAY);
       }
-      MemorySegment view = device.create("creating texture view", label,
-          () -> Wgpu.textureCreateView(texture, descriptor), Wgpu::textureViewRelease);
+      MemorySegment view = device.create(
+          "creating texture view",
+          label,
+          () -> Wgpu.textureCreateView(texture, descriptor),
+          Wgpu::textureViewRelease);
       return new TextureView(owner, device, label, view, width, height, format, frame);
     }
   }

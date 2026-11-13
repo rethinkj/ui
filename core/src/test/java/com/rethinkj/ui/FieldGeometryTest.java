@@ -110,8 +110,10 @@ class FieldGeometryTest {
     Text text = field(app).text();
     assertEquals(2, text.caret().width());
     assertEquals(text.x(5), text.caret().x());
-    assertEquals(text.lines().getFirst().baseline() - text.lineHeight() / 2,
-        text.caret().y() + text.caret().height() / 2, text.lineHeight() / 2,
+    assertEquals(
+        text.lines().getFirst().baseline() - text.lineHeight() / 2,
+        text.caret().y() + text.caret().height() / 2,
+        text.lineHeight() / 2,
         "around the line");
   }
 
@@ -186,7 +188,10 @@ class FieldGeometryTest {
     assertTrue(shown.scroll() > 0, "scrolled");
     int caret = field(app).editor().caret();
     assertTrue(caret > edge, "the caret went beyond what showed: " + caret + " > " + edge);
-    assertEquals(shown.x(caret), shown.scroll() + shown.contentWidth() - Editor.MARGIN - 1, 1,
+    assertEquals(
+        shown.x(caret),
+        shown.scroll() + shown.contentWidth() - Editor.MARGIN - 1,
+        1,
         "the caret at the edge");
     assertCaretInView(shown);
     app.pointerMove(-100, 22); // far to the left, beyond the window, as a captured pointer goes
@@ -207,8 +212,10 @@ class FieldGeometryTest {
     float width = text.contentWidth();
     assertTrue(text.scroll() > 0);
     assertCaretInView(text);
-    assertEquals(Editor.MARGIN,
-        width - (text.caret().x() + text.caret().width()), 0.5,
+    assertEquals(
+        Editor.MARGIN,
+        width - (text.caret().x() + text.caret().width()),
+        0.5,
         "the margin after the end");
 
     for (int i = 0; i < 26; i++) {
@@ -236,7 +243,8 @@ class FieldGeometryTest {
     if (caret == null) {
       return; // blinked off
     }
-    assertTrue(caret.x() >= 0 && caret.x() + caret.width() <= text.contentWidth(),
+    assertTrue(
+        caret.x() >= 0 && caret.x() + caret.width() <= text.contentWidth(),
         "caret at " + caret.x() + " in " + text.contentWidth());
   }
 

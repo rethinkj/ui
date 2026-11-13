@@ -2,6 +2,7 @@ package com.rethinkj.ui.window;
 
 import com.rethinkj.ui.App;
 import com.rethinkj.ui.Key;
+import com.rethinkj.ui.render.GpuPresenter;
 import com.rethinkj.ui.render.Scene;
 import com.rethinkj.ui.window.WindowEvent.AppearanceChanged;
 import com.rethinkj.ui.window.WindowEvent.CloseRequested;
@@ -23,7 +24,6 @@ import com.rethinkj.ui.window.WindowEvent.StateChanged;
 import com.rethinkj.ui.window.WindowEvent.TextEditing;
 import com.rethinkj.ui.window.WindowEvent.TextInput;
 import com.rethinkj.ui.window.WindowEvent.Wheel;
-import com.rethinkj.ui.render.GpuPresenter;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -258,8 +258,8 @@ public final class WindowLoop {
   /** The loop's {@link Windows}, which its apps get. */
   private final class LoopWindows implements Windows {
     @Override
-    public Handle open(String title, float width, float height, Window.Options options,
-        App<?> app) {
+    public Handle open(
+        String title, float width, float height, Window.Options options, App<?> app) {
       Objects.requireNonNull(app, "app");
       if (of(app) != null) {
         throw new IllegalArgumentException("The app runs in a window already");
@@ -334,8 +334,11 @@ public final class WindowLoop {
    * {@link #open} or from the apps' handlers ({@link App#windows()}).
    */
   public WindowLoop(Window window, App<?> app, Presenter presenter) {
-    add(new Entry(Objects.requireNonNull(window, "window"), Objects.requireNonNull(app, "app"),
-        Objects.requireNonNull(presenter, "presenter"), false));
+    add(new Entry(
+        Objects.requireNonNull(window, "window"),
+        Objects.requireNonNull(app, "app"),
+        Objects.requireNonNull(presenter, "presenter"),
+        false));
   }
 
   /** Runs {@code app} in {@code window} until the window asks to close. */
@@ -347,8 +350,8 @@ public final class WindowLoop {
    * Opens another window that runs {@code app}, as an app's handler does with {@link
    * App#windows()}; also before {@link #run}. The loop closes it, with its presenter, when it ends.
    */
-  public Windows.Handle open(String title, float width, float height, Window.Options options,
-      App<?> app) {
+  public Windows.Handle open(
+      String title, float width, float height, Window.Options options, App<?> app) {
     return windows.open(title, width, height, options, app);
   }
 
@@ -496,7 +499,8 @@ public final class WindowLoop {
           } else {
             double change = e.app.nextChange() - e.app.time();
             wait = change < Double.POSITIVE_INFINITY
-                ? Math.max(1, (long) Math.ceil(change * 1000)) : -1;
+                ? Math.max(1, (long) Math.ceil(change * 1000))
+                : -1;
           }
           if (wait >= 0 && (millis < 0 || wait < millis)) {
             millis = wait;
@@ -665,10 +669,11 @@ public final class WindowLoop {
     app.windowMaximized(e.window.isMaximized()); // for its title bar's Restore
     e.window.listener(event -> event(e, event));
     e.window.parts(app::windowPart);
-    app.onPost(() -> { // a task from another thread ends the wait
-      e.input = true;
-      Window.wake();
-    });
+    app.onPost(
+        () -> { // a task from another thread ends the wait
+          e.input = true;
+          Window.wake();
+        });
     refreshRate(e);
   }
 
@@ -740,14 +745,21 @@ public final class WindowLoop {
       return;
     }
     App<?> app = e.app;
-    if (event instanceof PointerDown || event instanceof PointerUp || event instanceof PointerMove
-        || event instanceof PointerLeave || event instanceof Wheel || event instanceof KeyDown
-        || event instanceof KeyUp || event instanceof TextInput || event instanceof KeyText
+    if (event instanceof PointerDown
+        || event instanceof PointerUp
+        || event instanceof PointerMove
+        || event instanceof PointerLeave
+        || event instanceof Wheel
+        || event instanceof KeyDown
+        || event instanceof KeyUp
+        || event instanceof TextInput
+        || event instanceof KeyText
         || event instanceof TextEditing) {
       e.input = true;
     }
     switch (event) {
-      case PointerDown down when down.button() == PointerButton.LEFT -> {
+      case PointerDown down
+      when down.button() == PointerButton.LEFT -> {
         for (Entry each : entries) {
           each.moved = false;
         }
@@ -755,20 +767,21 @@ public final class WindowLoop {
         app.pointerDown(down.x(), down.y(), down.clicks(), down.modifiers());
         textInput(e); // on before the frame when the press lands in a field: see App.inputArea
       }
-      case PointerUp up when up.button() == PointerButton.LEFT -> {
+      case PointerUp up
+      when up.button() == PointerButton.LEFT -> {
         released(e);
         app.pointerUp(up.x(), up.y());
       }
-      case PointerDown down when down.button() == PointerButton.RIGHT ->
-          app.secondaryDown(down.x(), down.y());
+      case PointerDown down
+      when down.button() == PointerButton.RIGHT -> app.secondaryDown(down.x(), down.y());
       case PointerUp up when up.button() == PointerButton.RIGHT -> app.secondaryUp(up.x(), up.y());
       case PointerMove move -> app.pointerMove(move.x(), move.y());
       case PointerLeave leave -> app.pointerLeave();
       // The window's dy is positive away from the user, the app's towards the end.
       case Wheel wheel ->
-          app.wheel(wheel.x(), wheel.y(), wheel.dx() * WHEEL_STEP, -wheel.dy() * WHEEL_STEP);
-      case KeyDown down -> app.keyDown(down.key(),
-          opensSystemMenu(down.key()) ? e.window::showSystemMenu : null);
+        app.wheel(wheel.x(), wheel.y(), wheel.dx() * WHEEL_STEP, -wheel.dy() * WHEEL_STEP);
+      case KeyDown down ->
+        app.keyDown(down.key(), opensSystemMenu(down.key()) ? e.window::showSystemMenu : null);
       case KeyUp up -> app.keyUp(up.key());
       case KeyText text -> app.keyText(text.text()); // its key may have taken the focus to a field
       case TextInput text -> app.textInput(text.text());
@@ -849,7 +862,8 @@ public final class WindowLoop {
         x = move.x();
         y = move.y();
       }
-      case PointerUp up when up.button() == PointerButton.LEFT -> {
+      case PointerUp up
+      when up.button() == PointerButton.LEFT -> {
         x = up.x();
         y = up.y();
       }
@@ -914,7 +928,9 @@ public final class WindowLoop {
    * that leaves the pointer where it was in that window, which is every move once it caught up.
    */
   private boolean polls() {
-    return pressed != null && pressed.isOpen() && Window.knowsPositions()
+    return pressed != null
+        && pressed.isOpen()
+        && Window.knowsPositions()
         && (tracking || pressed.moved);
   }
 

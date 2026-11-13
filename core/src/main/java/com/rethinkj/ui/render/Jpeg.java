@@ -29,9 +29,11 @@ public final class Jpeg {
   public static final long MAX_PIXELS = 40_000_000;
 
   /** The position in a block, in rows of 8, of each coefficient in the order of the file. */
-  private static final int[] ZIGZAG = {0, 1, 8, 16, 9, 2, 3, 10, 17, 24, 32, 25, 18, 11, 4, 5, 12,
-      19, 26, 33, 40, 48, 41, 34, 27, 20, 13, 6, 7, 14, 21, 28, 35, 42, 49, 56, 57, 50, 43, 36, 29,
-      22, 15, 23, 30, 37, 44, 51, 58, 59, 52, 45, 38, 31, 39, 46, 53, 60, 61, 54, 47, 55, 62, 63};
+  private static final int[] ZIGZAG = {
+    0, 1, 8, 16, 9, 2, 3, 10, 17, 24, 32, 25, 18, 11, 4, 5, 12, 19, 26, 33, 40, 48, 41, 34, 27, 20,
+    13, 6, 7, 14, 21, 28, 35, 42, 49, 56, 57, 50, 43, 36, 29, 22, 15, 23, 30, 37, 44, 51, 58, 59,
+    52, 45, 38, 31, 39, 46, 53, 60, 61, 54, 47, 55, 62, 63
+  };
 
   private Jpeg() {}
 
@@ -73,9 +75,11 @@ public final class Jpeg {
     int quant;
     /** Samples across and down, rounded up: the component's own size. */
     int width;
+
     int height;
     /** Blocks across and down that hold its samples, and that the file has room for. */
     int blocksAcross;
+
     int blocksDown;
     int stride;
     int rows;
@@ -110,6 +114,7 @@ public final class Jpeg {
     private int bitCount;
     /** The data ran out or reached a marker while a scan still needed bits. */
     private boolean exhausted;
+
     private int eobRun;
 
     Decoder(byte[] data) {
@@ -199,8 +204,9 @@ public final class Jpeg {
       }
       int length = u16(pos);
       if (length < 2 || pos + length > data.length) {
-        throw new IllegalArgumentException(String.format("The JPEG segment of marker FF%02X"
-            + " says it has %d bytes, but %d are left.", marker, length, data.length - pos));
+        throw new IllegalArgumentException(String.format(
+            "The JPEG segment of marker FF%02X" + " says it has %d bytes, but %d are left.",
+            marker, length, data.length - pos));
       }
       pos += 2;
       return length;
@@ -235,8 +241,8 @@ public final class Jpeg {
       }
       int precision = data[pos] & 0xFF;
       if (precision != 8) {
-        throw new IllegalArgumentException("The JPEG file has " + precision + " bits per sample;"
-            + " only 8 are supported.");
+        throw new IllegalArgumentException(
+            "The JPEG file has " + precision + " bits per sample;" + " only 8 are supported.");
       }
       height = u16(pos + 1);
       width = u16(pos + 3);
@@ -302,8 +308,8 @@ public final class Jpeg {
         int id = data[pos] & 0x0F;
         int size = precision == 0 ? 64 : 128;
         if (id > 3 || precision > 1 || pos + 1 + size > end) {
-          throw new IllegalArgumentException("A quantization table of the JPEG file is"
-              + " malformed.");
+          throw new IllegalArgumentException(
+              "A quantization table of the JPEG file is" + " malformed.");
         }
         int[] table = new int[64];
         for (int i = 0; i < 64; i++) {
@@ -385,8 +391,8 @@ public final class Jpeg {
     /** A scan: its header, then its entropy-coded data, after which pos is at the next marker. */
     private void scan(int end) {
       if (components == null) {
-        throw new IllegalArgumentException("The JPEG file has image data (SOS) before its frame"
-            + " header (SOF).");
+        throw new IllegalArgumentException(
+            "The JPEG file has image data (SOS) before its frame" + " header (SOF).");
       }
       int count = pos < end ? data[pos] & 0xFF : 0;
       if (count < 1 || count > 4 || pos + 1 + 2 * count + 3 > end) {
@@ -402,8 +408,8 @@ public final class Jpeg {
           }
         }
         if (scanned[i] == null) {
-          throw new IllegalArgumentException("A scan of the JPEG file names component " + id
-              + ", which the frame does not have.");
+          throw new IllegalArgumentException(
+              "A scan of the JPEG file names component " + id + ", which the frame does not have.");
         }
         scanned[i].dc = dcTables[(tables >> 4) & 3];
         scanned[i].ac = acTables[tables & 3];
@@ -419,7 +425,10 @@ public final class Jpeg {
         high = 0;
         low = 0;
       }
-      if (start > stop || stop > 63 || low > 13 || start == 0 && stop != 0 && progressive
+      if (start > stop
+          || stop > 63
+          || low > 13
+          || start == 0 && stop != 0 && progressive
           || start > 0 && count != 1) {
         throw new IllegalArgumentException("A scan of the JPEG file has the spectral selection "
             + start + " to " + stop + " and approximation " + high + "/" + low + ", which the"
@@ -429,8 +438,8 @@ public final class Jpeg {
         boolean needsDc = start == 0 && high == 0;
         boolean needsAc = stop > 0;
         if (needsDc && c.dc == null || needsAc && c.ac == null) {
-          throw new IllegalArgumentException("A scan of the JPEG file uses a Huffman table it"
-              + " has not defined.");
+          throw new IllegalArgumentException(
+              "A scan of the JPEG file uses a Huffman table it" + " has not defined.");
         }
       }
       pos = end;
@@ -511,8 +520,7 @@ public final class Jpeg {
       }
     }
 
-    private void block(Component c, int row, int column, int start, int stop, int high,
-        int low) {
+    private void block(Component c, int row, int column, int start, int stop, int high, int low) {
       int offset = (row * c.stride + column) * 64;
       short[] coefficients = c.coefficients;
       if (start == 0) {
@@ -522,8 +530,8 @@ public final class Jpeg {
             if (exhausted) {
               return;
             }
-            throw new IllegalArgumentException("The JPEG file's data is corrupt: a DC difference"
-                + " of " + size + " bits.");
+            throw new IllegalArgumentException(
+                "The JPEG file's data is corrupt: a DC difference" + " of " + size + " bits.");
           }
           c.dcPrediction += receive(size);
           coefficients[offset] = (short) (c.dcPrediction * (1 << low));
@@ -565,8 +573,8 @@ public final class Jpeg {
       }
     }
 
-    private void firstAc(Component c, short[] coefficients, int offset, int start, int stop,
-        int low) {
+    private void firstAc(
+        Component c, short[] coefficients, int offset, int start, int stop, int low) {
       if (eobRun > 0) {
         eobRun--;
         return;
@@ -593,8 +601,8 @@ public final class Jpeg {
     }
 
     /** A refining scan of AC coefficients, as libjpeg's {@code decode_mcu_AC_refine}. */
-    private void refineAc(Component c, short[] coefficients, int offset, int start, int stop,
-        int low) {
+    private void refineAc(
+        Component c, short[] coefficients, int offset, int start, int stop, int low) {
       int plus = 1 << low;
       int minus = -1 << low;
       int k = start;
@@ -658,8 +666,8 @@ public final class Jpeg {
       if (exhausted) {
         return 0;
       }
-      throw new IllegalArgumentException("The JPEG file's data is corrupt: a Huffman code that"
-          + " its table does not have.");
+      throw new IllegalArgumentException(
+          "The JPEG file's data is corrupt: a Huffman code that" + " its table does not have.");
     }
 
     /** {@code size} bits as a signed value, as the format extends them. */
@@ -713,8 +721,8 @@ public final class Jpeg {
       for (Component c : components) {
         int[] table = quant[c.quant];
         if (table == null) {
-          throw new IllegalArgumentException("The JPEG file uses quantization table " + c.quant
-              + ", which it does not define.");
+          throw new IllegalArgumentException(
+              "The JPEG file uses quantization table " + c.quant + ", which it does not define.");
         }
         c.samples = new byte[c.stride * 8 * c.rows * 8];
         int[] block = new int[64];
@@ -738,9 +746,13 @@ public final class Jpeg {
         strides[i] = c.width * (hMax / c.h);
       }
       byte[] rgba = new byte[width * height * 4];
-      boolean rgb = components.length == 3 && (adobeTransform == 0 || !jfif
-          && adobeTransform < 0 && components[0].id == 'R' && components[1].id == 'G'
-          && components[2].id == 'B');
+      boolean rgb = components.length == 3
+          && (adobeTransform == 0
+              || !jfif
+                  && adobeTransform < 0
+                  && components[0].id == 'R'
+                  && components[1].id == 'G'
+                  && components[2].id == 'B');
       for (int y = 0; y < height; y++) {
         for (int x = 0; x < width; x++) {
           int at = (y * width + x) * 4;
@@ -906,8 +918,12 @@ public final class Jpeg {
     /** A dequantized block, in rows of 8, into 8 by 8 samples at {@code to}, rows apart. */
     private static void idct(int[] in, int[] work, byte[] out, int to, int stride) {
       for (int column = 0; column < 8; column++) {
-        if (in[8 + column] == 0 && in[16 + column] == 0 && in[24 + column] == 0
-            && in[32 + column] == 0 && in[40 + column] == 0 && in[48 + column] == 0
+        if (in[8 + column] == 0
+            && in[16 + column] == 0
+            && in[24 + column] == 0
+            && in[32 + column] == 0
+            && in[40 + column] == 0
+            && in[48 + column] == 0
             && in[56 + column] == 0) {
           int dc = in[column] << PASS1_BITS;
           for (int row = 0; row < 8; row++) {
@@ -1018,13 +1034,34 @@ public final class Jpeg {
           int sx;
           int sy;
           switch (orientation) {
-            case 2 -> { sx = w - 1 - x; sy = y; }
-            case 3 -> { sx = w - 1 - x; sy = h - 1 - y; }
-            case 4 -> { sx = x; sy = h - 1 - y; }
-            case 5 -> { sx = y; sy = x; }
-            case 6 -> { sx = y; sy = h - 1 - x; }
-            case 7 -> { sx = w - 1 - y; sy = h - 1 - x; }
-            default -> { sx = w - 1 - y; sy = x; } // 8
+            case 2 -> {
+              sx = w - 1 - x;
+              sy = y;
+            }
+            case 3 -> {
+              sx = w - 1 - x;
+              sy = h - 1 - y;
+            }
+            case 4 -> {
+              sx = x;
+              sy = h - 1 - y;
+            }
+            case 5 -> {
+              sx = y;
+              sy = x;
+            }
+            case 6 -> {
+              sx = y;
+              sy = h - 1 - x;
+            }
+            case 7 -> {
+              sx = w - 1 - y;
+              sy = h - 1 - x;
+            }
+            default -> {
+              sx = w - 1 - y;
+              sy = x;
+            } // 8
           }
           turned[y * outWidth + x] = pixels[sy * w + sx];
         }

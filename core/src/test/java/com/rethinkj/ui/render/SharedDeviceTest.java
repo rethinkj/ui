@@ -42,7 +42,8 @@ class SharedDeviceTest {
 
   @BeforeEach
   void needsWindows() {
-    assumeTrue(Boolean.getBoolean("windows.tests"),
+    assumeTrue(
+        Boolean.getBoolean("windows.tests"),
         "Skipped: opens real windows on the screen; run with -Dwindows.tests=true");
     try {
       Natives.lookup("sdl3");
@@ -50,7 +51,8 @@ class SharedDeviceTest {
     } catch (UnsatisfiedLinkError e) {
       assumeTrue(false, "Skipped: " + e.getMessage());
     }
-    if (System.getProperty("os.name").equals("Linux") && System.getenv("DISPLAY") == null
+    if (System.getProperty("os.name").equals("Linux")
+        && System.getenv("DISPLAY") == null
         && System.getenv("WAYLAND_DISPLAY") == null) {
       assumeTrue(false, "Skipped: no display");
     }
@@ -68,7 +70,11 @@ class SharedDeviceTest {
   }
 
   private static El view(Integer count) {
-    return row().key("count-" + count).wFull().hFull().fill(0xFF203040)
+    return row()
+        .key("count-" + count)
+        .wFull()
+        .hFull()
+        .fill(0xFF203040)
         .child(El.image(PICTURE).w(32).h(32));
   }
 
@@ -84,8 +90,8 @@ class SharedDeviceTest {
   }
 
   private static GpuPresenter presenter(Window window) {
-    return presenter(window, List.of(TextureFormat.BGRA8_UNORM_SRGB,
-        TextureFormat.RGBA8_UNORM_SRGB));
+    return presenter(
+        window, List.of(TextureFormat.BGRA8_UNORM_SRGB, TextureFormat.RGBA8_UNORM_SRGB));
   }
 
   /** Builds the app's frame and presents it. */
@@ -100,7 +106,8 @@ class SharedDeviceTest {
   void aSecondSurfaceFormatGetsAPipelineOfItsOwnAndAnImageGoesUpOnce() {
     long devices = Device.created();
     long pipelines = RenderPipeline.created();
-    try (Window a = Window.open(TITLE, 120, 80); Window b = Window.open(TITLE + " B", 120, 80);
+    try (Window a = Window.open(TITLE, 120, 80);
+        Window b = Window.open(TITLE + " B", 120, 80);
         GpuPresenter first = presenter(a)) {
       GpuPresenter second;
       try {
@@ -118,7 +125,9 @@ class SharedDeviceTest {
         assertEquals(1, second.frames());
         assertSame(first.device(), second.device(), "one device");
         assertEquals("RGBA8_UNORM_SRGB", second.surfaceFormat());
-        assertEquals(first.surfaceFormat().equals("RGBA8_UNORM_SRGB") ? 1 : 2, first.pipelines(),
+        assertEquals(
+            first.surfaceFormat().equals("RGBA8_UNORM_SRGB") ? 1 : 2,
+            first.pipelines(),
             "a pipeline per format");
         assertEquals(first.pipelines(), RenderPipeline.created() - pipelines);
         assertEquals(1, first.imageUploads(), "the picture went to the GPU for the first window");
@@ -132,9 +141,12 @@ class SharedDeviceTest {
   void aLostDeviceStopsEveryWindowAndThePresentersCloseInAnyOrder() {
     long devices = Device.created();
     Device lost;
-    try (Window a = Window.open(TITLE, 120, 80); Window b = Window.open(TITLE + " B", 120, 80);
-        Window c = Window.open(TITLE + " C", 120, 80); GpuPresenter pa = presenter(a);
-        GpuPresenter pb = presenter(b); GpuPresenter pc = presenter(c)) {
+    try (Window a = Window.open(TITLE, 120, 80);
+        Window b = Window.open(TITLE + " B", 120, 80);
+        Window c = Window.open(TITLE + " C", 120, 80);
+        GpuPresenter pa = presenter(a);
+        GpuPresenter pb = presenter(b);
+        GpuPresenter pc = presenter(c)) {
       App<Integer> appA = new App<>(0, SharedDeviceTest::view);
       App<Integer> appB = new App<>(0, SharedDeviceTest::view);
       App<Integer> appC = new App<>(0, SharedDeviceTest::view);
@@ -146,8 +158,8 @@ class SharedDeviceTest {
       DeviceLoss.lose(lost, "lost for the test");
       for (Window w : List.of(b, a, c)) {
         GpuPresenter p = w == a ? pa : w == b ? pb : pc;
-        GpuException e = assertThrows(GpuException.class,
-            () -> draw(w, new App<>(1, SharedDeviceTest::view), p), w.title());
+        GpuException e = assertThrows(
+            GpuException.class, () -> draw(w, new App<>(1, SharedDeviceTest::view), p), w.title());
         assertEquals(GpuException.Kind.DEVICE_LOST, e.kind());
         assertTrue(e.getMessage().contains("lost for the test"), e.getMessage());
         assertEquals(1, p.frames(), "nothing more was presented");
@@ -159,7 +171,8 @@ class SharedDeviceTest {
     assertTrue(lost.isClosed(), "closed with the last presenter");
     assertEquals(1, Device.created() - devices, "no other device was made meanwhile");
 
-    try (Window d = Window.open(TITLE + " D", 120, 80); GpuPresenter pd = presenter(d)) {
+    try (Window d = Window.open(TITLE + " D", 120, 80);
+        GpuPresenter pd = presenter(d)) {
       draw(d, new App<>(0, SharedDeviceTest::view), pd);
       assertEquals(1, pd.frames(), "a window opened afterwards draws");
       assertNotSame(lost, pd.device());
@@ -169,11 +182,12 @@ class SharedDeviceTest {
 
   @Test
   void aLostDeviceEndsTheLoopWithItsException() {
-    try (Window a = Window.open(TITLE, 120, 80); GpuPresenter pa = presenter(a)) {
+    try (Window a = Window.open(TITLE, 120, 80);
+        GpuPresenter pa = presenter(a)) {
       App<Integer> app = new App<>(0, SharedDeviceTest::view);
       WindowLoop loop = new WindowLoop(a, app, pa);
-      Windows.Handle b = loop.open(TITLE + " B", 120, 80, Window.options(),
-          new App<>(0, SharedDeviceTest::view));
+      Windows.Handle b =
+          loop.open(TITLE + " B", 120, 80, Window.options(), new App<>(0, SharedDeviceTest::view));
       app.post(() -> DeviceLoss.lose(pa.device(), "lost in the loop"));
       Thread stop = Thread.ofPlatform().daemon().start(() -> {
         try {

@@ -30,7 +30,9 @@ class FileDropTest {
   private static App<Shelf> shelf() {
     App<Shelf> app = new App<>(new Shelf(), s -> {
       El top = el().key("top").size(200, 50).onFileDrop(d -> s.log.add("top " + describe(d)));
-      top.child(el().key("inner").size(40, 40).margin(5, 0, 0, 5)
+      top.child(el().key("inner")
+          .size(40, 40)
+          .margin(5, 0, 0, 5)
           .onFileDrop(d -> s.log.add("inner " + describe(d))));
       El root = col().wFull().hFull().child(top);
       if (s.withField) {
@@ -44,7 +46,8 @@ class FileDropTest {
   }
 
   private static String describe(Drop d) {
-    return d.phase() + (d.payload() == null ? "" : " " + d.payload())
+    return d.phase()
+        + (d.payload() == null ? "" : " " + d.payload())
         + (Double.isNaN(d.x()) ? "" : " " + (int) d.x() + "," + (int) d.y());
   }
 
@@ -57,8 +60,15 @@ class FileDropTest {
     app.fileDragOver(150, 30);
     app.fileDrop(150, 30, List.of(Path.of("ä b.sql"), Path.of("c.csv")), null);
     app.frame();
-    assertEquals(List.of("top OVER 100,20", "top LEAVE", "inner OVER 15,15", "inner LEAVE",
-        "top OVER 150,30", "top DROP [ä b.sql, c.csv] 150,30"), app.state().log);
+    assertEquals(
+        List.of(
+            "top OVER 100,20",
+            "top LEAVE",
+            "inner OVER 15,15",
+            "inner LEAVE",
+            "top OVER 150,30",
+            "top DROP [ä b.sql, c.csv] 150,30"),
+        app.state().log);
   }
 
   @Test
@@ -68,7 +78,8 @@ class FileDropTest {
     app.fileDragLeave();
     app.fileDrop(100, 20, List.of(), "a line\nanother");
     app.frame();
-    assertEquals(List.of("inner OVER 15,15", "inner LEAVE", "top DROP a line\nanother 100,20"),
+    assertEquals(
+        List.of("inner OVER 15,15", "inner LEAVE", "top DROP a line\nanother 100,20"),
         app.state().log);
   }
 
@@ -102,13 +113,18 @@ class FileDropTest {
         drop 100,25 text "dropped"
         frame
         """, app, out);
-    assertEquals(List.of("inner OVER 20,20", "inner LEAVE", "top OVER 100,25",
-        "top DROP [one.sql, " + Path.of("Ördner mit Leerzeichen", "two.md") + "] 100,25",
-        "top OVER 100,25",
-        "top DROP dropped 100,25"), app.state().log);
-    Script.Failure failure = assertThrows(Script.Failure.class,
-        () -> Script.run("drop #top", app, out));
-    assertTrue(failure.getMessage().contains("Write `drop <target> \"<path>\"`"),
-        failure.getMessage());
+    assertEquals(
+        List.of(
+            "inner OVER 20,20",
+            "inner LEAVE",
+            "top OVER 100,25",
+            "top DROP [one.sql, " + Path.of("Ördner mit Leerzeichen", "two.md") + "] 100,25",
+            "top OVER 100,25",
+            "top DROP dropped 100,25"),
+        app.state().log);
+    Script.Failure failure =
+        assertThrows(Script.Failure.class, () -> Script.run("drop #top", app, out));
+    assertTrue(
+        failure.getMessage().contains("Write `drop <target> \"<path>\"`"), failure.getMessage());
   }
 }

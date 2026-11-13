@@ -68,32 +68,42 @@ final class Structs {
   // ---- instance ----------------------------------------------------------------------------
 
   static final class InstanceDescriptor {
-    static final StructLayout LAYOUT = struct("WGPUInstanceDescriptor",
-        ADDRESS.withName("nextInChain"), JAVA_LONG.withName("requiredFeatureCount"),
-        ADDRESS.withName("requiredFeatures"), ADDRESS.withName("requiredLimits"));
+    static final StructLayout LAYOUT = struct(
+        "WGPUInstanceDescriptor",
+        ADDRESS.withName("nextInChain"),
+        JAVA_LONG.withName("requiredFeatureCount"),
+        ADDRESS.withName("requiredFeatures"),
+        ADDRESS.withName("requiredLimits"));
     static final long NEXT_IN_CHAIN = offset(LAYOUT, "nextInChain");
   }
 
   static final class XlibDisplayHandle {
-    static final StructLayout LAYOUT = struct("WGPUXlibDisplayHandle",
-        ADDRESS.withName("display"), JAVA_INT.withName("screen"));
+    static final StructLayout LAYOUT =
+        struct("WGPUXlibDisplayHandle", ADDRESS.withName("display"), JAVA_INT.withName("screen"));
   }
 
   static final class NativeDisplayHandle {
     /** The union's largest members, {@code xlib} and {@code xcb}, have the same shape. */
-    static final StructLayout LAYOUT = struct("WGPUNativeDisplayHandle",
+    static final StructLayout LAYOUT = struct(
+        "WGPUNativeDisplayHandle",
         JAVA_INT.withName("type"),
         MemoryLayout.unionLayout(XlibDisplayHandle.LAYOUT.withName("xlib")).withName("data"));
   }
 
   /** wgpu.h. Zero members are the defaults, except {@code dxcPath}. */
   static final class InstanceExtras {
-    static final StructLayout LAYOUT = struct("WGPUInstanceExtras",
-        CHAINED_STRUCT.withName("chain"), JAVA_LONG.withName("backends"),
-        JAVA_LONG.withName("flags"), JAVA_INT.withName("dx12ShaderCompiler"),
-        JAVA_INT.withName("gles3MinorVersion"), JAVA_INT.withName("glFenceBehaviour"),
-        STRING_VIEW.withName("dxcPath"), JAVA_INT.withName("dxcMaxShaderModel"),
-        JAVA_INT.withName("dx12PresentationSystem"), ADDRESS.withName("budgetForDeviceCreation"),
+    static final StructLayout LAYOUT = struct(
+        "WGPUInstanceExtras",
+        CHAINED_STRUCT.withName("chain"),
+        JAVA_LONG.withName("backends"),
+        JAVA_LONG.withName("flags"),
+        JAVA_INT.withName("dx12ShaderCompiler"),
+        JAVA_INT.withName("gles3MinorVersion"),
+        JAVA_INT.withName("glFenceBehaviour"),
+        STRING_VIEW.withName("dxcPath"),
+        JAVA_INT.withName("dxcMaxShaderModel"),
+        JAVA_INT.withName("dx12PresentationSystem"),
+        ADDRESS.withName("budgetForDeviceCreation"),
         ADDRESS.withName("budgetForDeviceLoss"),
         NativeDisplayHandle.LAYOUT.withName("displayHandle"));
     static final long BACKENDS = offset(LAYOUT, "backends");
@@ -111,41 +121,54 @@ final class Structs {
   // ---- surface -----------------------------------------------------------------------------
 
   static final class SurfaceDescriptor {
-    static final StructLayout LAYOUT = struct("WGPUSurfaceDescriptor",
-        ADDRESS.withName("nextInChain"), STRING_VIEW.withName("label"));
+    static final StructLayout LAYOUT = struct(
+        "WGPUSurfaceDescriptor", ADDRESS.withName("nextInChain"), STRING_VIEW.withName("label"));
     static final long NEXT_IN_CHAIN = offset(LAYOUT, "nextInChain");
     static final long LABEL = offset(LAYOUT, "label");
   }
 
   static final class SurfaceSourceWindowsHwnd {
-    static final StructLayout LAYOUT = struct("WGPUSurfaceSourceWindowsHWND",
-        CHAINED_STRUCT.withName("chain"), ADDRESS.withName("hinstance"), ADDRESS.withName("hwnd"));
+    static final StructLayout LAYOUT = struct(
+        "WGPUSurfaceSourceWindowsHWND",
+        CHAINED_STRUCT.withName("chain"),
+        ADDRESS.withName("hinstance"),
+        ADDRESS.withName("hwnd"));
     static final long HINSTANCE = offset(LAYOUT, "hinstance");
     static final long HWND = offset(LAYOUT, "hwnd");
   }
 
   /** The window is an XID: {@code uint64_t} in the header, whatever size C {@code long} has. */
   static final class SurfaceSourceXlibWindow {
-    static final StructLayout LAYOUT = struct("WGPUSurfaceSourceXlibWindow",
-        CHAINED_STRUCT.withName("chain"), ADDRESS.withName("display"),
+    static final StructLayout LAYOUT = struct(
+        "WGPUSurfaceSourceXlibWindow",
+        CHAINED_STRUCT.withName("chain"),
+        ADDRESS.withName("display"),
         JAVA_LONG.withName("window"));
     static final long DISPLAY = offset(LAYOUT, "display");
     static final long WINDOW = offset(LAYOUT, "window");
   }
 
   static final class SurfaceSourceWaylandSurface {
-    static final StructLayout LAYOUT = struct("WGPUSurfaceSourceWaylandSurface",
-        CHAINED_STRUCT.withName("chain"), ADDRESS.withName("display"), ADDRESS.withName("surface"));
+    static final StructLayout LAYOUT = struct(
+        "WGPUSurfaceSourceWaylandSurface",
+        CHAINED_STRUCT.withName("chain"),
+        ADDRESS.withName("display"),
+        ADDRESS.withName("surface"));
     static final long DISPLAY = offset(LAYOUT, "display");
     static final long SURFACE = offset(LAYOUT, "surface");
   }
 
   static final class SurfaceCapabilities {
-    static final StructLayout LAYOUT = struct("WGPUSurfaceCapabilities",
-        ADDRESS.withName("nextInChain"), JAVA_LONG.withName("usages"),
-        JAVA_LONG.withName("formatCount"), ADDRESS.withName("formats"),
-        JAVA_LONG.withName("presentModeCount"), ADDRESS.withName("presentModes"),
-        JAVA_LONG.withName("alphaModeCount"), ADDRESS.withName("alphaModes"));
+    static final StructLayout LAYOUT = struct(
+        "WGPUSurfaceCapabilities",
+        ADDRESS.withName("nextInChain"),
+        JAVA_LONG.withName("usages"),
+        JAVA_LONG.withName("formatCount"),
+        ADDRESS.withName("formats"),
+        JAVA_LONG.withName("presentModeCount"),
+        ADDRESS.withName("presentModes"),
+        JAVA_LONG.withName("alphaModeCount"),
+        ADDRESS.withName("alphaModes"));
     static final long USAGES = offset(LAYOUT, "usages");
     static final long FORMAT_COUNT = offset(LAYOUT, "formatCount");
     static final long FORMATS = offset(LAYOUT, "formats");
@@ -156,11 +179,18 @@ final class Structs {
   }
 
   static final class SurfaceConfiguration {
-    static final StructLayout LAYOUT = struct("WGPUSurfaceConfiguration",
-        ADDRESS.withName("nextInChain"), ADDRESS.withName("device"), JAVA_INT.withName("format"),
-        JAVA_LONG.withName("usage"), JAVA_INT.withName("width"), JAVA_INT.withName("height"),
-        JAVA_LONG.withName("viewFormatCount"), ADDRESS.withName("viewFormats"),
-        JAVA_INT.withName("alphaMode"), JAVA_INT.withName("presentMode"));
+    static final StructLayout LAYOUT = struct(
+        "WGPUSurfaceConfiguration",
+        ADDRESS.withName("nextInChain"),
+        ADDRESS.withName("device"),
+        JAVA_INT.withName("format"),
+        JAVA_LONG.withName("usage"),
+        JAVA_INT.withName("width"),
+        JAVA_INT.withName("height"),
+        JAVA_LONG.withName("viewFormatCount"),
+        ADDRESS.withName("viewFormats"),
+        JAVA_INT.withName("alphaMode"),
+        JAVA_INT.withName("presentMode"));
     static final long DEVICE = offset(LAYOUT, "device");
     static final long FORMAT = offset(LAYOUT, "format");
     static final long USAGE = offset(LAYOUT, "usage");
@@ -178,8 +208,11 @@ final class Structs {
   }
 
   static final class SurfaceTexture {
-    static final StructLayout LAYOUT = struct("WGPUSurfaceTexture",
-        ADDRESS.withName("nextInChain"), ADDRESS.withName("texture"), JAVA_INT.withName("status"));
+    static final StructLayout LAYOUT = struct(
+        "WGPUSurfaceTexture",
+        ADDRESS.withName("nextInChain"),
+        ADDRESS.withName("texture"),
+        JAVA_INT.withName("status"));
     static final long TEXTURE = offset(LAYOUT, "texture");
     static final long STATUS = offset(LAYOUT, "status");
   }
@@ -187,10 +220,14 @@ final class Structs {
   // ---- adapter and device ------------------------------------------------------------------
 
   static final class RequestAdapterOptions {
-    static final StructLayout LAYOUT = struct("WGPURequestAdapterOptions",
-        ADDRESS.withName("nextInChain"), JAVA_INT.withName("featureLevel"),
-        JAVA_INT.withName("powerPreference"), JAVA_INT.withName("forceFallbackAdapter"),
-        JAVA_INT.withName("backendType"), ADDRESS.withName("compatibleSurface"));
+    static final StructLayout LAYOUT = struct(
+        "WGPURequestAdapterOptions",
+        ADDRESS.withName("nextInChain"),
+        JAVA_INT.withName("featureLevel"),
+        JAVA_INT.withName("powerPreference"),
+        JAVA_INT.withName("forceFallbackAdapter"),
+        JAVA_INT.withName("backendType"),
+        ADDRESS.withName("compatibleSurface"));
     static final long POWER_PREFERENCE = offset(LAYOUT, "powerPreference");
     static final long BACKEND_TYPE = offset(LAYOUT, "backendType");
     static final long COMPATIBLE_SURFACE = offset(LAYOUT, "compatibleSurface");
@@ -202,9 +239,13 @@ final class Structs {
    * WGPUBufferMapCallbackInfo}: the same members, only the type of the function pointer differs.
    */
   static final class CallbackInfo {
-    static final StructLayout LAYOUT = struct("WGPU*CallbackInfo",
-        ADDRESS.withName("nextInChain"), JAVA_INT.withName("mode"), ADDRESS.withName("callback"),
-        ADDRESS.withName("userdata1"), ADDRESS.withName("userdata2"));
+    static final StructLayout LAYOUT = struct(
+        "WGPU*CallbackInfo",
+        ADDRESS.withName("nextInChain"),
+        JAVA_INT.withName("mode"),
+        ADDRESS.withName("callback"),
+        ADDRESS.withName("userdata1"),
+        ADDRESS.withName("userdata2"));
     static final long MODE = offset(LAYOUT, "mode");
     static final long CALLBACK = offset(LAYOUT, "callback");
     static final long USERDATA1 = offset(LAYOUT, "userdata1");
@@ -225,20 +266,29 @@ final class Structs {
 
   /** The only callback info without a mode. */
   static final class UncapturedErrorCallbackInfo {
-    static final StructLayout LAYOUT = struct("WGPUUncapturedErrorCallbackInfo",
-        ADDRESS.withName("nextInChain"), ADDRESS.withName("callback"),
-        ADDRESS.withName("userdata1"), ADDRESS.withName("userdata2"));
+    static final StructLayout LAYOUT = struct(
+        "WGPUUncapturedErrorCallbackInfo",
+        ADDRESS.withName("nextInChain"),
+        ADDRESS.withName("callback"),
+        ADDRESS.withName("userdata1"),
+        ADDRESS.withName("userdata2"));
     static final long CALLBACK = offset(LAYOUT, "callback");
     static final long USERDATA1 = offset(LAYOUT, "userdata1");
   }
 
   static final class AdapterInfo {
-    static final StructLayout LAYOUT = struct("WGPUAdapterInfo",
-        ADDRESS.withName("nextInChain"), STRING_VIEW.withName("vendor"),
-        STRING_VIEW.withName("architecture"), STRING_VIEW.withName("device"),
-        STRING_VIEW.withName("description"), JAVA_INT.withName("backendType"),
-        JAVA_INT.withName("adapterType"), JAVA_INT.withName("vendorID"),
-        JAVA_INT.withName("deviceID"), JAVA_INT.withName("subgroupMinSize"),
+    static final StructLayout LAYOUT = struct(
+        "WGPUAdapterInfo",
+        ADDRESS.withName("nextInChain"),
+        STRING_VIEW.withName("vendor"),
+        STRING_VIEW.withName("architecture"),
+        STRING_VIEW.withName("device"),
+        STRING_VIEW.withName("description"),
+        JAVA_INT.withName("backendType"),
+        JAVA_INT.withName("adapterType"),
+        JAVA_INT.withName("vendorID"),
+        JAVA_INT.withName("deviceID"),
+        JAVA_INT.withName("subgroupMinSize"),
         JAVA_INT.withName("subgroupMaxSize"));
     static final long VENDOR = offset(LAYOUT, "vendor");
     static final long ARCHITECTURE = offset(LAYOUT, "architecture");
@@ -252,10 +302,14 @@ final class Structs {
 
   /** Written by {@code wgpuAdapterGetLimits} and {@code wgpuDeviceGetLimits}. */
   static final class Limits {
-    static final StructLayout LAYOUT = struct("WGPULimits",
-        ADDRESS.withName("nextInChain"), JAVA_INT.withName("maxTextureDimension1D"),
-        JAVA_INT.withName("maxTextureDimension2D"), JAVA_INT.withName("maxTextureDimension3D"),
-        JAVA_INT.withName("maxTextureArrayLayers"), JAVA_INT.withName("maxBindGroups"),
+    static final StructLayout LAYOUT = struct(
+        "WGPULimits",
+        ADDRESS.withName("nextInChain"),
+        JAVA_INT.withName("maxTextureDimension1D"),
+        JAVA_INT.withName("maxTextureDimension2D"),
+        JAVA_INT.withName("maxTextureDimension3D"),
+        JAVA_INT.withName("maxTextureArrayLayers"),
+        JAVA_INT.withName("maxBindGroups"),
         JAVA_INT.withName("maxBindGroupsPlusVertexBuffers"),
         JAVA_INT.withName("maxBindingsPerBindGroup"),
         JAVA_INT.withName("maxDynamicUniformBuffersPerPipelineLayout"),
@@ -268,10 +322,13 @@ final class Structs {
         JAVA_LONG.withName("maxUniformBufferBindingSize"),
         JAVA_LONG.withName("maxStorageBufferBindingSize"),
         JAVA_INT.withName("minUniformBufferOffsetAlignment"),
-        JAVA_INT.withName("minStorageBufferOffsetAlignment"), JAVA_INT.withName("maxVertexBuffers"),
-        JAVA_LONG.withName("maxBufferSize"), JAVA_INT.withName("maxVertexAttributes"),
+        JAVA_INT.withName("minStorageBufferOffsetAlignment"),
+        JAVA_INT.withName("maxVertexBuffers"),
+        JAVA_LONG.withName("maxBufferSize"),
+        JAVA_INT.withName("maxVertexAttributes"),
         JAVA_INT.withName("maxVertexBufferArrayStride"),
-        JAVA_INT.withName("maxInterStageShaderVariables"), JAVA_INT.withName("maxColorAttachments"),
+        JAVA_INT.withName("maxInterStageShaderVariables"),
+        JAVA_INT.withName("maxColorAttachments"),
         JAVA_INT.withName("maxColorAttachmentBytesPerSample"),
         JAVA_INT.withName("maxComputeWorkgroupStorageSize"),
         JAVA_INT.withName("maxComputeInvocationsPerWorkgroup"),
@@ -301,16 +358,20 @@ final class Structs {
   }
 
   static final class QueueDescriptor {
-    static final StructLayout LAYOUT = struct("WGPUQueueDescriptor",
-        ADDRESS.withName("nextInChain"), STRING_VIEW.withName("label"));
+    static final StructLayout LAYOUT = struct(
+        "WGPUQueueDescriptor", ADDRESS.withName("nextInChain"), STRING_VIEW.withName("label"));
     static final long LABEL = offset(LAYOUT, "label");
   }
 
   static final class DeviceDescriptor {
-    static final StructLayout LAYOUT = struct("WGPUDeviceDescriptor",
-        ADDRESS.withName("nextInChain"), STRING_VIEW.withName("label"),
-        JAVA_LONG.withName("requiredFeatureCount"), ADDRESS.withName("requiredFeatures"),
-        ADDRESS.withName("requiredLimits"), QueueDescriptor.LAYOUT.withName("defaultQueue"),
+    static final StructLayout LAYOUT = struct(
+        "WGPUDeviceDescriptor",
+        ADDRESS.withName("nextInChain"),
+        STRING_VIEW.withName("label"),
+        JAVA_LONG.withName("requiredFeatureCount"),
+        ADDRESS.withName("requiredFeatures"),
+        ADDRESS.withName("requiredLimits"),
+        QueueDescriptor.LAYOUT.withName("defaultQueue"),
         CallbackInfo.LAYOUT.withName("deviceLostCallbackInfo"),
         UncapturedErrorCallbackInfo.LAYOUT.withName("uncapturedErrorCallbackInfo"));
     static final long LABEL = offset(LAYOUT, "label");
@@ -323,30 +384,38 @@ final class Structs {
   // ---- shaders, buffers, textures ----------------------------------------------------------
 
   static final class ShaderModuleDescriptor {
-    static final StructLayout LAYOUT = struct("WGPUShaderModuleDescriptor",
-        ADDRESS.withName("nextInChain"), STRING_VIEW.withName("label"));
+    static final StructLayout LAYOUT = struct(
+        "WGPUShaderModuleDescriptor",
+        ADDRESS.withName("nextInChain"),
+        STRING_VIEW.withName("label"));
     static final long NEXT_IN_CHAIN = offset(LAYOUT, "nextInChain");
     static final long LABEL = offset(LAYOUT, "label");
   }
 
   static final class ShaderSourceWgsl {
-    static final StructLayout LAYOUT = struct("WGPUShaderSourceWGSL",
-        CHAINED_STRUCT.withName("chain"), STRING_VIEW.withName("code"));
+    static final StructLayout LAYOUT = struct(
+        "WGPUShaderSourceWGSL", CHAINED_STRUCT.withName("chain"), STRING_VIEW.withName("code"));
     static final long CODE = offset(LAYOUT, "code");
   }
 
   static final class BufferDescriptor {
-    static final StructLayout LAYOUT = struct("WGPUBufferDescriptor",
-        ADDRESS.withName("nextInChain"), STRING_VIEW.withName("label"), JAVA_LONG.withName("usage"),
-        JAVA_LONG.withName("size"), JAVA_INT.withName("mappedAtCreation"));
+    static final StructLayout LAYOUT = struct(
+        "WGPUBufferDescriptor",
+        ADDRESS.withName("nextInChain"),
+        STRING_VIEW.withName("label"),
+        JAVA_LONG.withName("usage"),
+        JAVA_LONG.withName("size"),
+        JAVA_INT.withName("mappedAtCreation"));
     static final long LABEL = offset(LAYOUT, "label");
     static final long USAGE = offset(LAYOUT, "usage");
     static final long SIZE = offset(LAYOUT, "size");
   }
 
   static final class Extent3D {
-    static final StructLayout LAYOUT = struct("WGPUExtent3D",
-        JAVA_INT.withName("width"), JAVA_INT.withName("height"),
+    static final StructLayout LAYOUT = struct(
+        "WGPUExtent3D",
+        JAVA_INT.withName("width"),
+        JAVA_INT.withName("height"),
         JAVA_INT.withName("depthOrArrayLayers"));
     static final long WIDTH = offset(LAYOUT, "width");
     static final long HEIGHT = offset(LAYOUT, "height");
@@ -366,19 +435,25 @@ final class Structs {
   }
 
   static final class Origin3D {
-    static final StructLayout LAYOUT = struct("WGPUOrigin3D",
-        JAVA_INT.withName("x"), JAVA_INT.withName("y"), JAVA_INT.withName("z"));
+    static final StructLayout LAYOUT = struct(
+        "WGPUOrigin3D", JAVA_INT.withName("x"), JAVA_INT.withName("y"), JAVA_INT.withName("z"));
     static final long X = offset(LAYOUT, "x");
     static final long Y = offset(LAYOUT, "y");
     static final long Z = offset(LAYOUT, "z");
   }
 
   static final class TextureDescriptor {
-    static final StructLayout LAYOUT = struct("WGPUTextureDescriptor",
-        ADDRESS.withName("nextInChain"), STRING_VIEW.withName("label"), JAVA_LONG.withName("usage"),
-        JAVA_INT.withName("dimension"), Extent3D.LAYOUT.withName("size"),
-        JAVA_INT.withName("format"), JAVA_INT.withName("mipLevelCount"),
-        JAVA_INT.withName("sampleCount"), JAVA_LONG.withName("viewFormatCount"),
+    static final StructLayout LAYOUT = struct(
+        "WGPUTextureDescriptor",
+        ADDRESS.withName("nextInChain"),
+        STRING_VIEW.withName("label"),
+        JAVA_LONG.withName("usage"),
+        JAVA_INT.withName("dimension"),
+        Extent3D.LAYOUT.withName("size"),
+        JAVA_INT.withName("format"),
+        JAVA_INT.withName("mipLevelCount"),
+        JAVA_INT.withName("sampleCount"),
+        JAVA_LONG.withName("viewFormatCount"),
         ADDRESS.withName("viewFormats"));
     static final long LABEL = offset(LAYOUT, "label");
     static final long USAGE = offset(LAYOUT, "usage");
@@ -400,11 +475,17 @@ final class Structs {
   }
 
   static final class TextureViewDescriptor {
-    static final StructLayout LAYOUT = struct("WGPUTextureViewDescriptor",
-        ADDRESS.withName("nextInChain"), STRING_VIEW.withName("label"), JAVA_INT.withName("format"),
-        JAVA_INT.withName("dimension"), JAVA_INT.withName("baseMipLevel"),
-        JAVA_INT.withName("mipLevelCount"), JAVA_INT.withName("baseArrayLayer"),
-        JAVA_INT.withName("arrayLayerCount"), JAVA_INT.withName("aspect"),
+    static final StructLayout LAYOUT = struct(
+        "WGPUTextureViewDescriptor",
+        ADDRESS.withName("nextInChain"),
+        STRING_VIEW.withName("label"),
+        JAVA_INT.withName("format"),
+        JAVA_INT.withName("dimension"),
+        JAVA_INT.withName("baseMipLevel"),
+        JAVA_INT.withName("mipLevelCount"),
+        JAVA_INT.withName("baseArrayLayer"),
+        JAVA_INT.withName("arrayLayerCount"),
+        JAVA_INT.withName("aspect"),
         JAVA_LONG.withName("usage"));
     static final long LABEL = offset(LAYOUT, "label");
     static final long DIMENSION = offset(LAYOUT, "dimension");
@@ -427,27 +508,36 @@ final class Structs {
   // ---- bind groups -------------------------------------------------------------------------
 
   static final class BufferBindingLayout {
-    static final StructLayout LAYOUT = struct("WGPUBufferBindingLayout",
-        ADDRESS.withName("nextInChain"), JAVA_INT.withName("type"),
-        JAVA_INT.withName("hasDynamicOffset"), JAVA_LONG.withName("minBindingSize"));
+    static final StructLayout LAYOUT = struct(
+        "WGPUBufferBindingLayout",
+        ADDRESS.withName("nextInChain"),
+        JAVA_INT.withName("type"),
+        JAVA_INT.withName("hasDynamicOffset"),
+        JAVA_LONG.withName("minBindingSize"));
     static final long TYPE = offset(LAYOUT, "type");
     static final long MIN_BINDING_SIZE = offset(LAYOUT, "minBindingSize");
   }
 
   static final class SamplerBindingLayout {
-    static final StructLayout LAYOUT = struct("WGPUSamplerBindingLayout",
-        ADDRESS.withName("nextInChain"), JAVA_INT.withName("type"));
+    static final StructLayout LAYOUT = struct(
+        "WGPUSamplerBindingLayout", ADDRESS.withName("nextInChain"), JAVA_INT.withName("type"));
   }
 
   static final class TextureBindingLayout {
-    static final StructLayout LAYOUT = struct("WGPUTextureBindingLayout",
-        ADDRESS.withName("nextInChain"), JAVA_INT.withName("sampleType"),
-        JAVA_INT.withName("viewDimension"), JAVA_INT.withName("multisampled"));
+    static final StructLayout LAYOUT = struct(
+        "WGPUTextureBindingLayout",
+        ADDRESS.withName("nextInChain"),
+        JAVA_INT.withName("sampleType"),
+        JAVA_INT.withName("viewDimension"),
+        JAVA_INT.withName("multisampled"));
   }
 
   static final class StorageTextureBindingLayout {
-    static final StructLayout LAYOUT = struct("WGPUStorageTextureBindingLayout",
-        ADDRESS.withName("nextInChain"), JAVA_INT.withName("access"), JAVA_INT.withName("format"),
+    static final StructLayout LAYOUT = struct(
+        "WGPUStorageTextureBindingLayout",
+        ADDRESS.withName("nextInChain"),
+        JAVA_INT.withName("access"),
+        JAVA_INT.withName("format"),
         JAVA_INT.withName("viewDimension"));
   }
 
@@ -459,9 +549,12 @@ final class Structs {
    * does not: it ends the process. So a texture entry always sets its dimension.
    */
   static final class BindGroupLayoutEntry {
-    static final StructLayout LAYOUT = struct("WGPUBindGroupLayoutEntry",
-        ADDRESS.withName("nextInChain"), JAVA_INT.withName("binding"),
-        JAVA_LONG.withName("visibility"), JAVA_INT.withName("bindingArraySize"),
+    static final StructLayout LAYOUT = struct(
+        "WGPUBindGroupLayoutEntry",
+        ADDRESS.withName("nextInChain"),
+        JAVA_INT.withName("binding"),
+        JAVA_LONG.withName("visibility"),
+        JAVA_INT.withName("bindingArraySize"),
         BufferBindingLayout.LAYOUT.withName("buffer"),
         SamplerBindingLayout.LAYOUT.withName("sampler"),
         TextureBindingLayout.LAYOUT.withName("texture"),
@@ -475,18 +568,26 @@ final class Structs {
   }
 
   static final class BindGroupLayoutDescriptor {
-    static final StructLayout LAYOUT = struct("WGPUBindGroupLayoutDescriptor",
-        ADDRESS.withName("nextInChain"), STRING_VIEW.withName("label"),
-        JAVA_LONG.withName("entryCount"), ADDRESS.withName("entries"));
+    static final StructLayout LAYOUT = struct(
+        "WGPUBindGroupLayoutDescriptor",
+        ADDRESS.withName("nextInChain"),
+        STRING_VIEW.withName("label"),
+        JAVA_LONG.withName("entryCount"),
+        ADDRESS.withName("entries"));
     static final long LABEL = offset(LAYOUT, "label");
     static final long ENTRY_COUNT = offset(LAYOUT, "entryCount");
     static final long ENTRIES = offset(LAYOUT, "entries");
   }
 
   static final class BindGroupEntry {
-    static final StructLayout LAYOUT = struct("WGPUBindGroupEntry",
-        ADDRESS.withName("nextInChain"), JAVA_INT.withName("binding"), ADDRESS.withName("buffer"),
-        JAVA_LONG.withName("offset"), JAVA_LONG.withName("size"), ADDRESS.withName("sampler"),
+    static final StructLayout LAYOUT = struct(
+        "WGPUBindGroupEntry",
+        ADDRESS.withName("nextInChain"),
+        JAVA_INT.withName("binding"),
+        ADDRESS.withName("buffer"),
+        JAVA_LONG.withName("offset"),
+        JAVA_LONG.withName("size"),
+        ADDRESS.withName("sampler"),
         ADDRESS.withName("textureView"));
     static final long BINDING = offset(LAYOUT, "binding");
     static final long BUFFER = offset(LAYOUT, "buffer");
@@ -496,9 +597,13 @@ final class Structs {
   }
 
   static final class BindGroupDescriptor {
-    static final StructLayout LAYOUT = struct("WGPUBindGroupDescriptor",
-        ADDRESS.withName("nextInChain"), STRING_VIEW.withName("label"), ADDRESS.withName("layout"),
-        JAVA_LONG.withName("entryCount"), ADDRESS.withName("entries"));
+    static final StructLayout LAYOUT = struct(
+        "WGPUBindGroupDescriptor",
+        ADDRESS.withName("nextInChain"),
+        STRING_VIEW.withName("label"),
+        ADDRESS.withName("layout"),
+        JAVA_LONG.withName("entryCount"),
+        ADDRESS.withName("entries"));
     static final long LABEL = offset(LAYOUT, "label");
     static final long LAYOUT_HANDLE = offset(LAYOUT, "layout");
     static final long ENTRY_COUNT = offset(LAYOUT, "entryCount");
@@ -506,9 +611,12 @@ final class Structs {
   }
 
   static final class PipelineLayoutDescriptor {
-    static final StructLayout LAYOUT = struct("WGPUPipelineLayoutDescriptor",
-        ADDRESS.withName("nextInChain"), STRING_VIEW.withName("label"),
-        JAVA_LONG.withName("bindGroupLayoutCount"), ADDRESS.withName("bindGroupLayouts"),
+    static final StructLayout LAYOUT = struct(
+        "WGPUPipelineLayoutDescriptor",
+        ADDRESS.withName("nextInChain"),
+        STRING_VIEW.withName("label"),
+        JAVA_LONG.withName("bindGroupLayoutCount"),
+        ADDRESS.withName("bindGroupLayouts"),
         JAVA_INT.withName("immediateSize"));
     static final long LABEL = offset(LAYOUT, "label");
     static final long BIND_GROUP_LAYOUT_COUNT = offset(LAYOUT, "bindGroupLayoutCount");
@@ -518,8 +626,11 @@ final class Structs {
   // ---- render pipeline ---------------------------------------------------------------------
 
   static final class VertexAttribute {
-    static final StructLayout LAYOUT = struct("WGPUVertexAttribute",
-        ADDRESS.withName("nextInChain"), JAVA_INT.withName("format"), JAVA_LONG.withName("offset"),
+    static final StructLayout LAYOUT = struct(
+        "WGPUVertexAttribute",
+        ADDRESS.withName("nextInChain"),
+        JAVA_INT.withName("format"),
+        JAVA_LONG.withName("offset"),
         JAVA_INT.withName("shaderLocation"));
     static final long FORMAT = offset(LAYOUT, "format");
     static final long OFFSET = offset(LAYOUT, "offset");
@@ -527,9 +638,12 @@ final class Structs {
   }
 
   static final class VertexBufferLayout {
-    static final StructLayout LAYOUT = struct("WGPUVertexBufferLayout",
-        ADDRESS.withName("nextInChain"), JAVA_INT.withName("stepMode"),
-        JAVA_LONG.withName("arrayStride"), JAVA_LONG.withName("attributeCount"),
+    static final StructLayout LAYOUT = struct(
+        "WGPUVertexBufferLayout",
+        ADDRESS.withName("nextInChain"),
+        JAVA_INT.withName("stepMode"),
+        JAVA_LONG.withName("arrayStride"),
+        JAVA_LONG.withName("attributeCount"),
         ADDRESS.withName("attributes"));
     static final long STEP_MODE = offset(LAYOUT, "stepMode");
     static final long ARRAY_STRIDE = offset(LAYOUT, "arrayStride");
@@ -538,29 +652,42 @@ final class Structs {
   }
 
   static final class VertexState {
-    static final StructLayout LAYOUT = struct("WGPUVertexState",
-        ADDRESS.withName("nextInChain"), ADDRESS.withName("module"),
-        STRING_VIEW.withName("entryPoint"), JAVA_LONG.withName("constantCount"),
-        ADDRESS.withName("constants"), JAVA_LONG.withName("bufferCount"),
+    static final StructLayout LAYOUT = struct(
+        "WGPUVertexState",
+        ADDRESS.withName("nextInChain"),
+        ADDRESS.withName("module"),
+        STRING_VIEW.withName("entryPoint"),
+        JAVA_LONG.withName("constantCount"),
+        ADDRESS.withName("constants"),
+        JAVA_LONG.withName("bufferCount"),
         ADDRESS.withName("buffers"));
   }
 
   static final class PrimitiveState {
-    static final StructLayout LAYOUT = struct("WGPUPrimitiveState",
-        ADDRESS.withName("nextInChain"), JAVA_INT.withName("topology"),
-        JAVA_INT.withName("stripIndexFormat"), JAVA_INT.withName("frontFace"),
-        JAVA_INT.withName("cullMode"), JAVA_INT.withName("unclippedDepth"));
+    static final StructLayout LAYOUT = struct(
+        "WGPUPrimitiveState",
+        ADDRESS.withName("nextInChain"),
+        JAVA_INT.withName("topology"),
+        JAVA_INT.withName("stripIndexFormat"),
+        JAVA_INT.withName("frontFace"),
+        JAVA_INT.withName("cullMode"),
+        JAVA_INT.withName("unclippedDepth"));
   }
 
   static final class MultisampleState {
-    static final StructLayout LAYOUT = struct("WGPUMultisampleState",
-        ADDRESS.withName("nextInChain"), JAVA_INT.withName("count"), JAVA_INT.withName("mask"),
+    static final StructLayout LAYOUT = struct(
+        "WGPUMultisampleState",
+        ADDRESS.withName("nextInChain"),
+        JAVA_INT.withName("count"),
+        JAVA_INT.withName("mask"),
         JAVA_INT.withName("alphaToCoverageEnabled"));
   }
 
   static final class BlendComponent {
-    static final StructLayout LAYOUT = struct("WGPUBlendComponent",
-        JAVA_INT.withName("operation"), JAVA_INT.withName("srcFactor"),
+    static final StructLayout LAYOUT = struct(
+        "WGPUBlendComponent",
+        JAVA_INT.withName("operation"),
+        JAVA_INT.withName("srcFactor"),
         JAVA_INT.withName("dstFactor"));
     static final long OPERATION = offset(LAYOUT, "operation");
     static final long SRC_FACTOR = offset(LAYOUT, "srcFactor");
@@ -568,15 +695,20 @@ final class Structs {
   }
 
   static final class BlendState {
-    static final StructLayout LAYOUT = struct("WGPUBlendState",
-        BlendComponent.LAYOUT.withName("color"), BlendComponent.LAYOUT.withName("alpha"));
+    static final StructLayout LAYOUT = struct(
+        "WGPUBlendState",
+        BlendComponent.LAYOUT.withName("color"),
+        BlendComponent.LAYOUT.withName("alpha"));
     static final long COLOR = offset(LAYOUT, "color");
     static final long ALPHA = offset(LAYOUT, "alpha");
   }
 
   static final class ColorTargetState {
-    static final StructLayout LAYOUT = struct("WGPUColorTargetState",
-        ADDRESS.withName("nextInChain"), JAVA_INT.withName("format"), ADDRESS.withName("blend"),
+    static final StructLayout LAYOUT = struct(
+        "WGPUColorTargetState",
+        ADDRESS.withName("nextInChain"),
+        JAVA_INT.withName("format"),
+        ADDRESS.withName("blend"),
         JAVA_LONG.withName("writeMask"));
     static final long FORMAT = offset(LAYOUT, "format");
     static final long BLEND = offset(LAYOUT, "blend");
@@ -584,10 +716,14 @@ final class Structs {
   }
 
   static final class FragmentState {
-    static final StructLayout LAYOUT = struct("WGPUFragmentState",
-        ADDRESS.withName("nextInChain"), ADDRESS.withName("module"),
-        STRING_VIEW.withName("entryPoint"), JAVA_LONG.withName("constantCount"),
-        ADDRESS.withName("constants"), JAVA_LONG.withName("targetCount"),
+    static final StructLayout LAYOUT = struct(
+        "WGPUFragmentState",
+        ADDRESS.withName("nextInChain"),
+        ADDRESS.withName("module"),
+        STRING_VIEW.withName("entryPoint"),
+        JAVA_LONG.withName("constantCount"),
+        ADDRESS.withName("constants"),
+        JAVA_LONG.withName("targetCount"),
         ADDRESS.withName("targets"));
     static final long MODULE = offset(LAYOUT, "module");
     static final long ENTRY_POINT = offset(LAYOUT, "entryPoint");
@@ -603,10 +739,15 @@ final class Structs {
   }
 
   static final class RenderPipelineDescriptor {
-    static final StructLayout LAYOUT = struct("WGPURenderPipelineDescriptor",
-        ADDRESS.withName("nextInChain"), STRING_VIEW.withName("label"), ADDRESS.withName("layout"),
-        VertexState.LAYOUT.withName("vertex"), PrimitiveState.LAYOUT.withName("primitive"),
-        ADDRESS.withName("depthStencil"), MultisampleState.LAYOUT.withName("multisample"),
+    static final StructLayout LAYOUT = struct(
+        "WGPURenderPipelineDescriptor",
+        ADDRESS.withName("nextInChain"),
+        STRING_VIEW.withName("label"),
+        ADDRESS.withName("layout"),
+        VertexState.LAYOUT.withName("vertex"),
+        PrimitiveState.LAYOUT.withName("primitive"),
+        ADDRESS.withName("depthStencil"),
+        MultisampleState.LAYOUT.withName("multisample"),
         ADDRESS.withName("fragment"));
     static final long LABEL = offset(LAYOUT, "label");
     static final long LAYOUT_HANDLE = offset(LAYOUT, "layout");
@@ -636,16 +777,24 @@ final class Structs {
   // ---- commands ----------------------------------------------------------------------------
 
   static final class Color {
-    static final StructLayout LAYOUT = struct("WGPUColor",
-        JAVA_DOUBLE.withName("r"), JAVA_DOUBLE.withName("g"), JAVA_DOUBLE.withName("b"),
+    static final StructLayout LAYOUT = struct(
+        "WGPUColor",
+        JAVA_DOUBLE.withName("r"),
+        JAVA_DOUBLE.withName("g"),
+        JAVA_DOUBLE.withName("b"),
         JAVA_DOUBLE.withName("a"));
   }
 
   static final class RenderPassColorAttachment {
-    static final StructLayout LAYOUT = struct("WGPURenderPassColorAttachment",
-        ADDRESS.withName("nextInChain"), ADDRESS.withName("view"), JAVA_INT.withName("depthSlice"),
-        ADDRESS.withName("resolveTarget"), JAVA_INT.withName("loadOp"),
-        JAVA_INT.withName("storeOp"), Color.LAYOUT.withName("clearValue"));
+    static final StructLayout LAYOUT = struct(
+        "WGPURenderPassColorAttachment",
+        ADDRESS.withName("nextInChain"),
+        ADDRESS.withName("view"),
+        JAVA_INT.withName("depthSlice"),
+        ADDRESS.withName("resolveTarget"),
+        JAVA_INT.withName("loadOp"),
+        JAVA_INT.withName("storeOp"),
+        Color.LAYOUT.withName("clearValue"));
     static final long VIEW = offset(LAYOUT, "view");
     static final long DEPTH_SLICE = offset(LAYOUT, "depthSlice");
     static final long LOAD_OP = offset(LAYOUT, "loadOp");
@@ -664,10 +813,14 @@ final class Structs {
   }
 
   static final class RenderPassDescriptor {
-    static final StructLayout LAYOUT = struct("WGPURenderPassDescriptor",
-        ADDRESS.withName("nextInChain"), STRING_VIEW.withName("label"),
-        JAVA_LONG.withName("colorAttachmentCount"), ADDRESS.withName("colorAttachments"),
-        ADDRESS.withName("depthStencilAttachment"), ADDRESS.withName("occlusionQuerySet"),
+    static final StructLayout LAYOUT = struct(
+        "WGPURenderPassDescriptor",
+        ADDRESS.withName("nextInChain"),
+        STRING_VIEW.withName("label"),
+        JAVA_LONG.withName("colorAttachmentCount"),
+        ADDRESS.withName("colorAttachments"),
+        ADDRESS.withName("depthStencilAttachment"),
+        ADDRESS.withName("occlusionQuerySet"),
         ADDRESS.withName("timestampWrites"));
     static final long LABEL = offset(LAYOUT, "label");
     static final long COLOR_ATTACHMENT_COUNT = offset(LAYOUT, "colorAttachmentCount");
@@ -675,14 +828,18 @@ final class Structs {
   }
 
   static final class CommandEncoderDescriptor {
-    static final StructLayout LAYOUT = struct("WGPUCommandEncoderDescriptor",
-        ADDRESS.withName("nextInChain"), STRING_VIEW.withName("label"));
+    static final StructLayout LAYOUT = struct(
+        "WGPUCommandEncoderDescriptor",
+        ADDRESS.withName("nextInChain"),
+        STRING_VIEW.withName("label"));
     static final long LABEL = offset(LAYOUT, "label");
   }
 
   static final class CommandBufferDescriptor {
-    static final StructLayout LAYOUT = struct("WGPUCommandBufferDescriptor",
-        ADDRESS.withName("nextInChain"), STRING_VIEW.withName("label"));
+    static final StructLayout LAYOUT = struct(
+        "WGPUCommandBufferDescriptor",
+        ADDRESS.withName("nextInChain"),
+        STRING_VIEW.withName("label"));
     static final long LABEL = offset(LAYOUT, "label");
   }
 
@@ -691,17 +848,22 @@ final class Structs {
    * {@code Undefined}, which wgpu-native takes as {@code All}.
    */
   static final class TexelCopyTextureInfo {
-    static final StructLayout LAYOUT = struct("WGPUTexelCopyTextureInfo",
-        ADDRESS.withName("texture"), JAVA_INT.withName("mipLevel"),
-        Origin3D.LAYOUT.withName("origin"), JAVA_INT.withName("aspect"));
+    static final StructLayout LAYOUT = struct(
+        "WGPUTexelCopyTextureInfo",
+        ADDRESS.withName("texture"),
+        JAVA_INT.withName("mipLevel"),
+        Origin3D.LAYOUT.withName("origin"),
+        JAVA_INT.withName("aspect"));
     static final long TEXTURE = offset(LAYOUT, "texture");
     static final long MIP_LEVEL = offset(LAYOUT, "mipLevel");
     static final long ORIGIN = offset(LAYOUT, "origin");
   }
 
   static final class TexelCopyBufferLayout {
-    static final StructLayout LAYOUT = struct("WGPUTexelCopyBufferLayout",
-        JAVA_LONG.withName("offset"), JAVA_INT.withName("bytesPerRow"),
+    static final StructLayout LAYOUT = struct(
+        "WGPUTexelCopyBufferLayout",
+        JAVA_LONG.withName("offset"),
+        JAVA_INT.withName("bytesPerRow"),
         JAVA_INT.withName("rowsPerImage"));
     static final long OFFSET = offset(LAYOUT, "offset");
     static final long BYTES_PER_ROW = offset(LAYOUT, "bytesPerRow");
@@ -720,8 +882,10 @@ final class Structs {
   }
 
   static final class TexelCopyBufferInfo {
-    static final StructLayout LAYOUT = struct("WGPUTexelCopyBufferInfo",
-        TexelCopyBufferLayout.LAYOUT.withName("layout"), ADDRESS.withName("buffer"));
+    static final StructLayout LAYOUT = struct(
+        "WGPUTexelCopyBufferInfo",
+        TexelCopyBufferLayout.LAYOUT.withName("layout"),
+        ADDRESS.withName("buffer"));
     static final long OFFSET = offset(LAYOUT, "layout", "offset");
     static final long BYTES_PER_ROW = offset(LAYOUT, "layout", "bytesPerRow");
     static final long ROWS_PER_IMAGE = offset(LAYOUT, "layout", "rowsPerImage");
@@ -737,24 +901,62 @@ final class Structs {
   }
 
   /** Every layout above with the name of its C struct, for {@code scripts/LayoutCheck.java}. */
-  static final List<StructLayout> ALL = List.of(STRING_VIEW, CHAINED_STRUCT, FUTURE,
-      InstanceDescriptor.LAYOUT, XlibDisplayHandle.LAYOUT, NativeDisplayHandle.LAYOUT,
-      InstanceExtras.LAYOUT, SurfaceDescriptor.LAYOUT, SurfaceSourceWindowsHwnd.LAYOUT,
-      SurfaceSourceXlibWindow.LAYOUT, SurfaceSourceWaylandSurface.LAYOUT,
-      SurfaceCapabilities.LAYOUT, SurfaceConfiguration.LAYOUT, SurfaceTexture.LAYOUT,
-      RequestAdapterOptions.LAYOUT, CallbackInfo.LAYOUT, UncapturedErrorCallbackInfo.LAYOUT,
-      AdapterInfo.LAYOUT, Limits.LAYOUT, QueueDescriptor.LAYOUT, DeviceDescriptor.LAYOUT,
-      ShaderModuleDescriptor.LAYOUT, ShaderSourceWgsl.LAYOUT, BufferDescriptor.LAYOUT,
-      Extent3D.LAYOUT, Origin3D.LAYOUT, TextureDescriptor.LAYOUT, TextureViewDescriptor.LAYOUT,
-      BufferBindingLayout.LAYOUT, SamplerBindingLayout.LAYOUT, TextureBindingLayout.LAYOUT,
-      StorageTextureBindingLayout.LAYOUT, BindGroupLayoutEntry.LAYOUT,
-      BindGroupLayoutDescriptor.LAYOUT, BindGroupEntry.LAYOUT, BindGroupDescriptor.LAYOUT,
-      PipelineLayoutDescriptor.LAYOUT, VertexAttribute.LAYOUT, VertexBufferLayout.LAYOUT,
-      VertexState.LAYOUT, PrimitiveState.LAYOUT, MultisampleState.LAYOUT, BlendComponent.LAYOUT,
-      BlendState.LAYOUT, ColorTargetState.LAYOUT, FragmentState.LAYOUT,
-      RenderPipelineDescriptor.LAYOUT, Color.LAYOUT, RenderPassColorAttachment.LAYOUT,
-      RenderPassDescriptor.LAYOUT, CommandEncoderDescriptor.LAYOUT, CommandBufferDescriptor.LAYOUT,
-      TexelCopyTextureInfo.LAYOUT, TexelCopyBufferLayout.LAYOUT, TexelCopyBufferInfo.LAYOUT);
+  static final List<StructLayout> ALL = List.of(
+      STRING_VIEW,
+      CHAINED_STRUCT,
+      FUTURE,
+      InstanceDescriptor.LAYOUT,
+      XlibDisplayHandle.LAYOUT,
+      NativeDisplayHandle.LAYOUT,
+      InstanceExtras.LAYOUT,
+      SurfaceDescriptor.LAYOUT,
+      SurfaceSourceWindowsHwnd.LAYOUT,
+      SurfaceSourceXlibWindow.LAYOUT,
+      SurfaceSourceWaylandSurface.LAYOUT,
+      SurfaceCapabilities.LAYOUT,
+      SurfaceConfiguration.LAYOUT,
+      SurfaceTexture.LAYOUT,
+      RequestAdapterOptions.LAYOUT,
+      CallbackInfo.LAYOUT,
+      UncapturedErrorCallbackInfo.LAYOUT,
+      AdapterInfo.LAYOUT,
+      Limits.LAYOUT,
+      QueueDescriptor.LAYOUT,
+      DeviceDescriptor.LAYOUT,
+      ShaderModuleDescriptor.LAYOUT,
+      ShaderSourceWgsl.LAYOUT,
+      BufferDescriptor.LAYOUT,
+      Extent3D.LAYOUT,
+      Origin3D.LAYOUT,
+      TextureDescriptor.LAYOUT,
+      TextureViewDescriptor.LAYOUT,
+      BufferBindingLayout.LAYOUT,
+      SamplerBindingLayout.LAYOUT,
+      TextureBindingLayout.LAYOUT,
+      StorageTextureBindingLayout.LAYOUT,
+      BindGroupLayoutEntry.LAYOUT,
+      BindGroupLayoutDescriptor.LAYOUT,
+      BindGroupEntry.LAYOUT,
+      BindGroupDescriptor.LAYOUT,
+      PipelineLayoutDescriptor.LAYOUT,
+      VertexAttribute.LAYOUT,
+      VertexBufferLayout.LAYOUT,
+      VertexState.LAYOUT,
+      PrimitiveState.LAYOUT,
+      MultisampleState.LAYOUT,
+      BlendComponent.LAYOUT,
+      BlendState.LAYOUT,
+      ColorTargetState.LAYOUT,
+      FragmentState.LAYOUT,
+      RenderPipelineDescriptor.LAYOUT,
+      Color.LAYOUT,
+      RenderPassColorAttachment.LAYOUT,
+      RenderPassDescriptor.LAYOUT,
+      CommandEncoderDescriptor.LAYOUT,
+      CommandBufferDescriptor.LAYOUT,
+      TexelCopyTextureInfo.LAYOUT,
+      TexelCopyBufferLayout.LAYOUT,
+      TexelCopyBufferInfo.LAYOUT);
 
   /** A struct layout with the padding a C compiler puts between and after the members. */
   static StructLayout struct(String name, MemoryLayout... members) {

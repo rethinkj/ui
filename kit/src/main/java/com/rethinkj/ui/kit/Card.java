@@ -101,12 +101,16 @@ public final class Card {
   static El surface(Theme t, Variant variant) {
     El card = col().radius(t.radius().large()).clip().motion(t.motion().feedback());
     return switch (variant) {
-      case OUTLINED -> card.fill(t.surface().panel()).border(t.size().stroke(), t.border().subtle())
-          .shadow(t.elevation().card());
+      case OUTLINED ->
+        card.fill(t.surface().panel())
+            .border(t.size().stroke(), t.border().subtle())
+            .shadow(t.elevation().card());
       // The edge is there but transparent, so that the variants lay out alike.
       case FILLED -> card.fill(t.surface().panel()).border(t.size().stroke(), 0);
-      case ELEVATED -> card.fill(t.surface().panel()).border(t.size().stroke(), t.border().subtle())
-          .shadow(t.elevation().popup());
+      case ELEVATED ->
+        card.fill(t.surface().panel())
+            .border(t.size().stroke(), t.border().subtle())
+            .shadow(t.elevation().popup());
     };
   }
 
@@ -120,10 +124,18 @@ public final class Card {
    */
   public static El toolbar(Theme t, String title, String secondary, El... actions) {
     Theme.TextStyle style = t.type().heading();
-    El bar = row().padding(t.space().m(), t.space().l()).gap(t.space().m())
+    El bar = row()
+        .padding(t.space().m(), t.space().l())
+        .gap(t.space().m())
         .align(Style.Align.CENTER)
-        .child(El.text(title).font(style.font().get()).fontSize(style.size())
-            .color(t.text().primary()).role("heading").level(3).ellipsis().minSize(0, 0));
+        .child(El.text(title)
+            .font(style.font().get())
+            .fontSize(style.size())
+            .color(t.text().primary())
+            .role("heading")
+            .level(3)
+            .ellipsis()
+            .minSize(0, 0));
     if (secondary != null) {
       bar.child(label(t, Label.Variant.MUTED, secondary).shrink(0));
     }
@@ -148,9 +160,14 @@ public final class Card {
    * @param end at the right, in the order shown
    */
   public static El footer(Theme t, El start, El... end) {
-    El row = row().h(footerHeight(t)).shrink(0)
-        .padding(0, t.space().l()).gap(t.space().l()).align(Style.Align.CENTER)
-        .fill(t.surface().band()).border(t.size().stroke(), 0, 0, 0, t.border().subtle());
+    El row = row()
+        .h(footerHeight(t))
+        .shrink(0)
+        .padding(0, t.space().l())
+        .gap(t.space().l())
+        .align(Style.Align.CENTER)
+        .fill(t.surface().band())
+        .border(t.size().stroke(), 0, 0, 0, t.border().subtle());
     if (start != null) {
       row.child(start.shrink(1).minSize(0, 0));
     }
@@ -167,8 +184,7 @@ public final class Card {
    * card's. It grows to fill the card.
    */
   public static El inset(Theme t, El list) {
-    El body = col().grow(1).padding(t.space().s())
-        .child(list.grow(1));
+    El body = col().grow(1).padding(t.space().s()).child(list.grow(1));
     body.style().minHeight = Len.ZERO;
     return body;
   }
@@ -182,7 +198,9 @@ public final class Card {
    * @param actions buttons or a menu button, in the order shown
    */
   public static El header(Theme t, String title, String description, El... actions) {
-    El text = col().grow(1).gap(t.space().xs())
+    El text = col()
+        .grow(1)
+        .gap(t.space().xs())
         .child(label(t, Label.Variant.STRONG, title).role("heading").level(3));
     text.style().minWidth = Len.ZERO;
     if (description != null) {
@@ -209,8 +227,7 @@ public final class Card {
    *     focus order and leaves its content to the app to draw as disabled
    * @return the card
    */
-  public static El pressable(
-      Theme t, El card, String label, boolean selected, Runnable onPress) {
+  public static El pressable(Theme t, El card, String label, boolean selected, Runnable onPress) {
     card.role("button").label(label).selected(selected).disabled(onPress == null);
     if (selected) {
       card.border(t.size().stroke(), t.accent().edge());
@@ -222,7 +239,8 @@ public final class Card {
     boolean opaque = fill >>> 24 == 0xFF;
     int hover = opaque ? over(fill, t.surface().hover()) : t.surface().hover();
     int pressed = opaque ? over(fill, t.surface().pressed()) : t.surface().pressed();
-    return card.focusable().keepFocus()
+    return card.focusable()
+        .keepFocus()
         .focusRing(t.accent().edge())
         .cursor(Cursor.POINTER)
         .onPress(onPress)

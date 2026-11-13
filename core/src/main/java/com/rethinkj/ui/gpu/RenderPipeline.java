@@ -35,9 +35,15 @@ public final class RenderPipeline extends GpuObject {
    * @param fragmentEntryPoint the {@code @fragment} function, or null if the module has only one
    * @param targets one per {@code @location} the fragment shader writes
    */
-  public record Descriptor(String label, List<BindGroupLayout> bindGroupLayouts,
-      ShaderModule module, String vertexEntryPoint, List<VertexBuffer> vertexBuffers,
-      String fragmentEntryPoint, List<ColorTarget> targets, Topology topology) {
+  public record Descriptor(
+      String label,
+      List<BindGroupLayout> bindGroupLayouts,
+      ShaderModule module,
+      String vertexEntryPoint,
+      List<VertexBuffer> vertexBuffers,
+      String fragmentEntryPoint,
+      List<ColorTarget> targets,
+      Topology topology) {
 
     public Descriptor {
       Objects.requireNonNull(label, "label");
@@ -61,8 +67,8 @@ public final class RenderPipeline extends GpuObject {
       Objects.requireNonNull(stepMode, "stepMode");
       attributes = List.copyOf(attributes);
       if (arrayStride < 0 || arrayStride % 4 != 0) {
-        throw new IllegalArgumentException("A vertex buffer's stride must be a multiple of 4: "
-            + arrayStride);
+        throw new IllegalArgumentException(
+            "A vertex buffer's stride must be a multiple of 4: " + arrayStride);
       }
     }
   }
@@ -79,7 +85,8 @@ public final class RenderPipeline extends GpuObject {
 
   /** {@code WGPUVertexStepMode}. */
   public enum StepMode {
-    VERTEX(1), INSTANCE(2);
+    VERTEX(1),
+    INSTANCE(2);
 
     final int value;
 
@@ -90,7 +97,11 @@ public final class RenderPipeline extends GpuObject {
 
   /** {@code WGPUPrimitiveTopology}. */
   public enum Topology {
-    POINT_LIST(1), LINE_LIST(2), LINE_STRIP(3), TRIANGLE_LIST(4), TRIANGLE_STRIP(5);
+    POINT_LIST(1),
+    LINE_LIST(2),
+    LINE_STRIP(3),
+    TRIANGLE_LIST(4),
+    TRIANGLE_STRIP(5);
 
     final int value;
 
@@ -116,8 +127,8 @@ public final class RenderPipeline extends GpuObject {
 
     /** Source over destination for straight alpha. */
     public static final Blend ALPHA = new Blend(
-        new BlendComponent(BlendOperation.ADD, BlendFactor.SRC_ALPHA,
-            BlendFactor.ONE_MINUS_SRC_ALPHA),
+        new BlendComponent(
+            BlendOperation.ADD, BlendFactor.SRC_ALPHA, BlendFactor.ONE_MINUS_SRC_ALPHA),
         new BlendComponent(BlendOperation.ADD, BlendFactor.ONE, BlendFactor.ONE_MINUS_SRC_ALPHA));
 
     public Blend {
@@ -127,8 +138,8 @@ public final class RenderPipeline extends GpuObject {
   }
 
   /** {@code WGPUBlendComponent}: {@code src * srcFactor operation dst * dstFactor}. */
-  public record BlendComponent(BlendOperation operation, BlendFactor srcFactor,
-      BlendFactor dstFactor) {
+  public record BlendComponent(
+      BlendOperation operation, BlendFactor srcFactor, BlendFactor dstFactor) {
     public BlendComponent {
       Objects.requireNonNull(operation, "operation");
       Objects.requireNonNull(srcFactor, "srcFactor");
@@ -138,7 +149,11 @@ public final class RenderPipeline extends GpuObject {
 
   /** {@code WGPUBlendOperation}. */
   public enum BlendOperation {
-    ADD(1), SUBTRACT(2), REVERSE_SUBTRACT(3), MIN(4), MAX(5);
+    ADD(1),
+    SUBTRACT(2),
+    REVERSE_SUBTRACT(3),
+    MIN(4),
+    MAX(5);
 
     final int value;
 
@@ -149,8 +164,16 @@ public final class RenderPipeline extends GpuObject {
 
   /** {@code WGPUBlendFactor}. */
   public enum BlendFactor {
-    ZERO(1), ONE(2), SRC(3), ONE_MINUS_SRC(4), SRC_ALPHA(5), ONE_MINUS_SRC_ALPHA(6), DST(7),
-    ONE_MINUS_DST(8), DST_ALPHA(9), ONE_MINUS_DST_ALPHA(10);
+    ZERO(1),
+    ONE(2),
+    SRC(3),
+    ONE_MINUS_SRC(4),
+    SRC_ALPHA(5),
+    ONE_MINUS_SRC_ALPHA(6),
+    DST(7),
+    ONE_MINUS_DST(8),
+    DST_ALPHA(9),
+    ONE_MINUS_DST_ALPHA(10);
 
     final int value;
 
@@ -177,16 +200,21 @@ public final class RenderPipeline extends GpuObject {
     MemorySegment module = device.owned(d.module()).handle();
     String label = d.label();
     try (Arena arena = Arena.ofConfined()) {
-      MemorySegment layouts = arena.allocate(ADDRESS, Math.max(1, d.bindGroupLayouts().size()));
+      MemorySegment layouts =
+          arena.allocate(ADDRESS, Math.max(1, d.bindGroupLayouts().size()));
       for (int i = 0; i < d.bindGroupLayouts().size(); i++) {
         layouts.setAtIndex(ADDRESS, i, device.owned(d.bindGroupLayouts().get(i)).handle());
       }
       MemorySegment layoutDescriptor = arena.allocate(PipelineLayoutDescriptor.LAYOUT);
       Structs.string(layoutDescriptor, PipelineLayoutDescriptor.LABEL, label, arena);
-      layoutDescriptor.set(JAVA_LONG, PipelineLayoutDescriptor.BIND_GROUP_LAYOUT_COUNT,
+      layoutDescriptor.set(
+          JAVA_LONG,
+          PipelineLayoutDescriptor.BIND_GROUP_LAYOUT_COUNT,
           d.bindGroupLayouts().size());
       layoutDescriptor.set(ADDRESS, PipelineLayoutDescriptor.BIND_GROUP_LAYOUTS, layouts);
-      MemorySegment pipelineLayout = device.create("creating pipeline layout", label,
+      MemorySegment pipelineLayout = device.create(
+          "creating pipeline layout",
+          label,
           () -> Wgpu.deviceCreatePipelineLayout(deviceHandle, layoutDescriptor),
           Wgpu::pipelineLayoutRelease);
       try {
@@ -194,11 +222,15 @@ public final class RenderPipeline extends GpuObject {
         Structs.string(descriptor, RenderPipelineDescriptor.LABEL, label, arena);
         descriptor.set(ADDRESS, RenderPipelineDescriptor.LAYOUT_HANDLE, pipelineLayout);
         descriptor.set(ADDRESS, RenderPipelineDescriptor.VERTEX_MODULE, module);
-        Structs.string(descriptor, RenderPipelineDescriptor.VERTEX_ENTRY_POINT,
-            d.vertexEntryPoint(), arena);
-        descriptor.set(JAVA_LONG, RenderPipelineDescriptor.VERTEX_BUFFER_COUNT,
+        Structs.string(
+            descriptor, RenderPipelineDescriptor.VERTEX_ENTRY_POINT, d.vertexEntryPoint(), arena);
+        descriptor.set(
+            JAVA_LONG,
+            RenderPipelineDescriptor.VERTEX_BUFFER_COUNT,
             d.vertexBuffers().size());
-        descriptor.set(ADDRESS, RenderPipelineDescriptor.VERTEX_BUFFERS,
+        descriptor.set(
+            ADDRESS,
+            RenderPipelineDescriptor.VERTEX_BUFFERS,
             vertexBuffers(d.vertexBuffers(), arena));
         descriptor.set(JAVA_INT, RenderPipelineDescriptor.PRIMITIVE_TOPOLOGY, d.topology().value);
         MemorySegment fragment = FragmentState.allocate(arena);
@@ -207,7 +239,9 @@ public final class RenderPipeline extends GpuObject {
         fragment.set(JAVA_LONG, FragmentState.TARGET_COUNT, d.targets().size());
         fragment.set(ADDRESS, FragmentState.TARGETS, targets(d.targets(), arena));
         descriptor.set(ADDRESS, RenderPipelineDescriptor.FRAGMENT, fragment);
-        MemorySegment pipeline = device.create("creating render pipeline", label,
+        MemorySegment pipeline = device.create(
+            "creating render pipeline",
+            label,
             () -> Wgpu.deviceCreateRenderPipeline(deviceHandle, descriptor),
             Wgpu::renderPipelineRelease);
         CREATED.incrementAndGet();
@@ -231,7 +265,8 @@ public final class RenderPipeline extends GpuObject {
       b.set(JAVA_INT, VertexBufferLayout.STEP_MODE, buffer.stepMode().value);
       b.set(JAVA_LONG, VertexBufferLayout.ARRAY_STRIDE, buffer.arrayStride());
       b.set(JAVA_LONG, VertexBufferLayout.ATTRIBUTE_COUNT, buffer.attributes().size());
-      MemorySegment attributes = buffer.attributes().isEmpty() ? MemorySegment.NULL
+      MemorySegment attributes = buffer.attributes().isEmpty()
+          ? MemorySegment.NULL
           : arena.allocate(VertexAttribute.LAYOUT, buffer.attributes().size());
       for (int j = 0; j < buffer.attributes().size(); j++) {
         Attribute attribute = buffer.attributes().get(j);

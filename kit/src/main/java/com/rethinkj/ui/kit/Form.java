@@ -54,8 +54,7 @@ public final class Form {
    *     value is not accepted; null for none
    * @param isRequired whether the label is followed by a {@code *}
    */
-  public record Field(
-      String label, El control, String help, String error, boolean isRequired) {
+  public record Field(String label, El control, String help, String error, boolean isRequired) {
 
     /** This field with muted help below it. */
     public Field help(String text) {
@@ -98,11 +97,11 @@ public final class Form {
       } else if (field.error() != null && target != null) {
         target.invalid(true);
       }
-      El body = col().gap(t.space().xs())
-          .child(field.control().alignSelf(Style.Align.START));
+      El body = col().gap(t.space().xs()).child(field.control().alignSelf(Style.Align.START));
       String below = field.error() != null ? field.error() : field.help();
       if (below != null) {
-        body.child(label(t, Label.Variant.MUTED, below).wrapText()
+        body.child(label(t, Label.Variant.MUTED, below)
+            .wrapText()
             .color(field.error() != null ? t.status().danger() : t.text().muted()));
       }
       if (labels == Labels.ABOVE) {
@@ -122,7 +121,10 @@ public final class Form {
    * apart, the main action usually last, as a dialog has them.
    */
   public static El buttons(Theme t, El... buttons) {
-    return row().gap(t.space().m()).justify(Style.Content.END).align(Style.Align.CENTER)
+    return row()
+        .gap(t.space().m())
+        .justify(Style.Content.END)
+        .align(Style.Align.CENTER)
         .children(buttons);
   }
 
@@ -139,7 +141,9 @@ public final class Form {
   private static float width(El head) {
     float width = 0;
     for (El child : head.children()) {
-      width += child.text().measure(Float.NaN, Float.NaN, Measure.MAX_CONTENT, Measure.MAX_CONTENT)
+      width += child
+          .text()
+          .measure(Float.NaN, Float.NaN, Measure.MAX_CONTENT, Measure.MAX_CONTENT)
           .width();
     }
     return width + (head.children().size() - 1) * head.style().columnGap.value();

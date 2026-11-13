@@ -38,10 +38,18 @@ public final class Image {
     if (image != null) {
       return El.image(image).label(alt).radius(t.radius().medium());
     }
-    return row().role("img").label(alt).gap(t.space().m()).align(Style.Align.CENTER)
-        .justify(Style.Content.CENTER).padding(t.space().l()).radius(t.radius().medium())
-        .border(t.size().stroke(), t.border().subtle()).fill(t.surface().band())
-        .children(Icon.icon(t, Symbol.IMAGE, Icon.Variant.MUTED),
+    return row()
+        .role("img")
+        .label(alt)
+        .gap(t.space().m())
+        .align(Style.Align.CENTER)
+        .justify(Style.Content.CENTER)
+        .padding(t.space().l())
+        .radius(t.radius().medium())
+        .border(t.size().stroke(), t.border().subtle())
+        .fill(t.surface().band())
+        .children(
+            Icon.icon(t, Symbol.IMAGE, Icon.Variant.MUTED),
             Label.label(t, Label.Variant.MUTED, alt).wrapText().shrink(1).minSize(0, 0));
   }
 }

@@ -34,13 +34,17 @@ public final class Tooltip {
         e.overlay(panel(t, text));
       }
     };
-    return anchor.whenHoveredFor(t.motion().tooltipDelay(), show)
+    return anchor
+        .whenHoveredFor(t.motion().tooltipDelay(), show)
         .whenFocusVisibleFor(t.motion().tooltipDelay(), show);
   }
 
   /** The tooltip's overlay, for components that decide in their own look whether it shows. */
   static El panel(Theme t, String text) {
-    return row().key("tooltip").role("tooltip").label(text)
+    return row()
+        .key("tooltip")
+        .role("tooltip")
+        .label(text)
         .padding(t.space().xs(), t.space().s())
         .radius(t.radius().small())
         .fill(t.surface().raised())

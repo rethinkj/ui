@@ -62,14 +62,23 @@ public final class Spans {
   public String toString() {
     StringBuilder out = new StringBuilder();
     if (lineBackground != 0) {
-      out.append("line ").append(Integer.toHexString(lineBackground).toUpperCase(Locale.ROOT))
+      out.append("line ")
+          .append(Integer.toHexString(lineBackground).toUpperCase(Locale.ROOT))
           .append('\n');
     }
     String[] names = {"color", "font", "background", "underline", "strike"};
     for (int i = 0; i < count; i++) {
-      out.append(names[kinds[i]]).append(' ').append(froms[i]).append('-').append(tos[i])
-          .append(' ').append(kinds[i] == FONT ? fonts[i].toString()
-              : Integer.toHexString(colors[i]).toUpperCase(Locale.ROOT)).append('\n');
+      out.append(names[kinds[i]])
+          .append(' ')
+          .append(froms[i])
+          .append('-')
+          .append(tos[i])
+          .append(' ')
+          .append(
+              kinds[i] == FONT
+                  ? fonts[i].toString()
+                  : Integer.toHexString(colors[i]).toUpperCase(Locale.ROOT))
+          .append('\n');
     }
     return out.toString();
   }

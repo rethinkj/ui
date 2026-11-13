@@ -21,7 +21,8 @@ import org.junit.jupiter.api.io.TempDir;
  */
 class TableTest {
 
-  @TempDir Path out;
+  @TempDir
+  Path out;
 
   /** The app's state: a log, and what the views read. */
   static final class Log {
@@ -41,22 +42,34 @@ class TableTest {
 
   @Test
   void aPressHandlerIsToldTheModifiersAndAPointerDownHandlerRunsAtOnce() throws IOException {
-    App<Log> app = app(s -> col().wFull().hFull()
+    App<Log> app = app(s -> col()
+        .wFull()
+        .hFull()
         .onPointerDown((clicks, modifiers) -> s.lines.add("down " + clicks + " " + modifiers))
-        .child(el().key("box").size(80, 40).focusable()
+        .child(el().key("box")
+            .size(80, 40)
+            .focusable()
             .onPress((clicks, modifiers) -> s.lines.add("press " + clicks + " " + modifiers))));
     run(app, "frame\ndown #box shift\nframe");
     assertEquals(List.of("down 1 1"), app.state().lines, "at once, from the ancestor");
     run(app, "up #box\nframe\npress #box clicks 2 control\nframe\nkey Enter\nframe");
-    assertEquals(List.of("down 1 1", "press 1 1", "down 2 2", "press 2 2", "press 1 0"),
-        app.state().lines, "the modifiers held when the pointer went down; Enter has none");
+    assertEquals(
+        List.of("down 1 1", "press 1 1", "down 2 2", "press 2 2", "press 1 0"),
+        app.state().lines,
+        "the modifiers held when the pointer went down; Enter has none");
   }
 
   @Test
   void aDragIsToldWhereThePointerIsInTheContentOfItsScrolledElement() throws IOException {
-    App<Log> app = app(s -> col().wFull().hFull().padding(10).child(
-        col().key("area").scroll().h(80).onDrag(d -> s.lines.add(
-                d.phase() + " " + d.x() + "," + d.y()))
+    App<Log> app = app(s -> col()
+        .wFull()
+        .hFull()
+        .padding(10)
+        .child(col()
+            .key("area")
+            .scroll()
+            .h(80)
+            .onDrag(d -> s.lines.add(d.phase() + " " + d.x() + "," + d.y()))
             .child(el().h(1000).w(100))));
     run(app, "frame\ndown 20,20\nmove 20,30\nframe");
     assertEquals(List.of("START 10.0,20.0"), app.state().lines, "from the area's top left");
@@ -67,11 +80,23 @@ class TableTest {
 
   @Test
   void aFixedElementStaysInPlaceSidewaysAndTakesThePressThere() throws IOException {
-    App<Log> app = app(s -> row().key("area").scrollBoth().w(200).h(60).child(
-        row().w(600).h(60).padding(0, 0, 0, 50).children(
-            el().key("moving").w(100).h(60).onPress(() -> s.lines.add("moving")),
-            el().key("fixed").absolute(0, 0).size(50, 60).fill(0xFF000000).fixedX()
-                .onPress(() -> s.lines.add("fixed")))));
+    App<Log> app = app(s -> row()
+        .key("area")
+        .scrollBoth()
+        .w(200)
+        .h(60)
+        .child(row()
+            .w(600)
+            .h(60)
+            .padding(0, 0, 0, 50)
+            .children(
+                el().key("moving").w(100).h(60).onPress(() -> s.lines.add("moving")),
+                el().key("fixed")
+                    .absolute(0, 0)
+                    .size(50, 60)
+                    .fill(0xFF000000)
+                    .fixedX()
+                    .onPress(() -> s.lines.add("fixed")))));
     run(app, "frame\nwheel 100,30 80 0\nframe");
     assertEquals(80, find(app.tree(), "area").scrollX());
     assertEquals(0, x(app.tree(), "fixed"), "kept in place");
@@ -84,8 +109,12 @@ class TableTest {
   @Test
   void rowsAreBuiltForThePartInViewSidewaysAndAnewBeyondIt() throws IOException {
     List<String> built = new ArrayList<>();
-    App<Log> app = app(s -> row().key("area").scrollBoth().w(200).h(100).child(
-        col().w(1000).h(100).child(col().key("list").grow(1).rows(50, 20, (i, from, to) -> {
+    App<Log> app = app(s -> row()
+        .key("area")
+        .scrollBoth()
+        .w(200)
+        .h(100)
+        .child(col().w(1000).h(100).child(col().key("list").grow(1).rows(50, 20, (i, from, to) -> {
           if (i == 0) {
             built.add(from + "-" + to);
           }
@@ -103,7 +132,11 @@ class TableTest {
 
   @Test
   void aKeyKeepsItsRectangleInViewWhenItChangesAndOnlyThen() throws IOException {
-    App<Log> app = app(s -> row().key("area").scrollBoth().w(200).h(50)
+    App<Log> app = app(s -> row()
+        .key("area")
+        .scrollBoth()
+        .w(200)
+        .h(50)
         .reveal(s.reveal, s.revealX, 0, 60, 0)
         .child(el().w(1000).h(50).onPress(() -> s.lines.add("press"))));
     run(app, "frame");
@@ -125,7 +158,10 @@ class TableTest {
 
   @Test
   void aListTellsWhichRowsItBuiltWhenTheyChangeInTheNextFrame() throws IOException {
-    App<Log> app = app(s -> col().key("list").wFull().hFull()
+    App<Log> app = app(s -> col()
+        .key("list")
+        .wFull()
+        .hFull()
         .onRowsBuilt((first, last) -> s.lines.add(first + "-" + last))
         .rows(s.rows, 20, i -> el().key("row-" + i).onPress(() -> s.lines.add("press"))));
     run(app, "frame");
@@ -141,9 +177,12 @@ class TableTest {
 
   @Test
   void theCurrentStateIsDumpedAndSelected() throws IOException {
-    App<Log> app = app(s -> col().wFull().hFull().children(
-        el().key("a").size(20, 20).selected(true),
-        el().key("b").size(20, 20).selected(true).current(true)));
+    App<Log> app = app(s -> col()
+        .wFull()
+        .hFull()
+        .children(
+            el().key("a").size(20, 20).selected(true),
+            el().key("b").size(20, 20).selected(true).current(true)));
     run(app, "frame");
     assertTrue(app.tree().dump().contains("el #b 0,20 20x20 selected current\n"));
     run(app, "press selected current\nframe"); // one element: the current one

@@ -102,7 +102,12 @@ public final class Completion {
    * @param suggest the entries for the part of the word before the caret
    * @return the field
    */
-  public static El complete(Theme t, App<?> app, El field, int caret, State state,
+  public static El complete(
+      Theme t,
+      App<?> app,
+      El field,
+      int caret,
+      State state,
       Function<String, List<Entry>> suggest) {
     String text = field.text().string();
     caret = Math.clamp(caret, 0, text.length());
@@ -140,7 +145,10 @@ public final class Completion {
     if (entries.isEmpty()) {
       return field;
     }
-    El list = col().key("completions").role("listbox").label("Completions")
+    El list = col()
+        .key("completions")
+        .role("listbox")
+        .label("Completions")
         .padding(t.space().s())
         .radius(t.radius().medium())
         .fill(t.surface().raised())
@@ -169,16 +177,30 @@ public final class Completion {
     if (entry.symbol() != null) {
       mark.child(icon(t, entry.symbol(), Icon.Variant.MUTED));
     }
-    El content = row().wFull().hFull().padding(0, t.space().m()).gap(t.space().m())
+    El content = row()
+        .wFull()
+        .hFull()
+        .padding(0, t.space().m())
+        .gap(t.space().m())
         .align(Style.Align.CENTER)
-        .children(mark, label(t, entry.text()).font(t.type().mono().font().get())
-            .fontSize(t.type().mono().size()).grow(1));
+        .children(
+            mark,
+            label(t, entry.text())
+                .font(t.type().mono().font().get())
+                .fontSize(t.type().mono().size())
+                .grow(1));
     if (entry.kind() != null) {
-      content.child(label(t, Label.Variant.MUTED, entry.kind()).margin(0, 0, 0, t.space().l()));
+      content.child(
+          label(t, Label.Variant.MUTED, entry.kind()).margin(0, 0, 0, t.space().l()));
     }
-    return row().key("option-" + i).role("option").label(entry.text())
+    return row()
+        .key("option-" + i)
+        .role("option")
+        .label(entry.text())
         .selected(lit)
-        .h(t.size().control()).shrink(0).radius(t.radius().small())
+        .h(t.size().control())
+        .shrink(0)
+        .radius(t.radius().small())
         .fill(lit ? t.grid().selected() : 0)
         .onHoverFor(0, () -> state.highlight = i)
         .onPress(() -> take.accept(i))
@@ -232,17 +254,21 @@ public final class Completion {
       prefix++;
     }
     int suffix = 0;
-    while (suffix < shorter - prefix && before.charAt(before.length() - 1 - suffix)
-        == after.charAt(after.length() - 1 - suffix)) {
+    while (suffix < shorter - prefix
+        && before.charAt(before.length() - 1 - suffix)
+            == after.charAt(after.length() - 1 - suffix)) {
       suffix++;
     }
     String removed = before.substring(prefix, before.length() - suffix);
     String inserted = after.substring(prefix, after.length() - suffix);
-    if (removed.isEmpty() && inserted.codePointCount(0, inserted.length()) == 1
+    if (removed.isEmpty()
+        && inserted.codePointCount(0, inserted.length()) == 1
         && word(inserted.codePointAt(0))) {
       state.typed = prefix + inserted.length(); // the build after it may open the list
       state.highlight = 0; // what it shows changes
-    } else if (inserted.isEmpty() && !removed.isEmpty() && state.open
+    } else if (inserted.isEmpty()
+        && !removed.isEmpty()
+        && state.open
         && wordStart(after, prefix) < prefix) {
       state.highlight = 0;
     } else {
@@ -256,7 +282,8 @@ public final class Completion {
       return true;
     }
     int type = Character.getType(c);
-    return type == Character.NON_SPACING_MARK || type == Character.COMBINING_SPACING_MARK
+    return type == Character.NON_SPACING_MARK
+        || type == Character.COMBINING_SPACING_MARK
         || type == Character.ENCLOSING_MARK;
   }
 

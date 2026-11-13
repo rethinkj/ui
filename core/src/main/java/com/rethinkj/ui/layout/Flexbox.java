@@ -138,11 +138,10 @@ final class Flexbox {
       this.node = node;
       this.s = node.style;
       Style container = Flexbox.this.s;
-      shrink =
-          Flexbox.this.node.el.isScrollArea()
-                  && (isRow ? container.overflowX : container.overflowY) == Style.Overflow.SCROLL
-              ? 0
-              : s.shrink;
+      shrink = Flexbox.this.node.el.isScrollArea()
+              && (isRow ? container.overflowX : container.overflowY) == Style.Overflow.SCROLL
+          ? 0
+          : s.shrink;
       float innerWidth = width(innerM, innerC);
       float innerHeight = height(innerM, innerC);
       // A main size that comes from the container's own content is no basis for percentages.
@@ -358,40 +357,36 @@ final class Flexbox {
       float parentWidth = in.parentWidth();
       float parentHeight = in.parentHeight();
       boolean contentBox = s.boxSizing == Style.BoxSizing.CONTENT_BOX;
-      styleWidth =
-          clamp(
-              size(
-                  s.width,
-                  s.height,
-                  parentWidth,
-                  parentHeight,
-                  s.aspectRatio,
-                  true,
-                  contentBox ? edgesWidth : 0),
-              minWidth,
-              maxWidth);
-      styleHeight =
-          clamp(
-              size(
-                  s.height,
-                  s.width,
-                  parentHeight,
-                  parentWidth,
-                  s.aspectRatio,
-                  false,
-                  contentBox ? edgesHeight : 0),
-              minHeight,
-              maxHeight);
+      styleWidth = clamp(
+          size(
+              s.width,
+              s.height,
+              parentWidth,
+              parentHeight,
+              s.aspectRatio,
+              true,
+              contentBox ? edgesWidth : 0),
+          minWidth,
+          maxWidth);
+      styleHeight = clamp(
+          size(
+              s.height,
+              s.width,
+              parentHeight,
+              parentWidth,
+              s.aspectRatio,
+              false,
+              contentBox ? edgesHeight : 0),
+          minHeight,
+          maxHeight);
     }
     // A maximum at or below the minimum fixes the size.
-    float knownWidth =
-        or(
-            in.knownWidth(),
-            max(or(maxWidth <= minWidth ? minWidth : Float.NaN, styleWidth), edgesWidth));
-    float knownHeight =
-        or(
-            in.knownHeight(),
-            max(or(maxHeight <= minHeight ? minHeight : Float.NaN, styleHeight), edgesHeight));
+    float knownWidth = or(
+        in.knownWidth(),
+        max(or(maxWidth <= minWidth ? minWidth : Float.NaN, styleWidth), edgesWidth));
+    float knownHeight = or(
+        in.knownHeight(),
+        max(or(maxHeight <= minHeight ? minHeight : Float.NaN, styleHeight), edgesHeight));
 
     if (!in.perform()) {
       if (some(knownWidth) && some(knownHeight)) {
@@ -412,16 +407,14 @@ final class Flexbox {
         items.add(new Item(child));
       }
     }
-    availableM =
-        some(knownM)
-            ? Math.max(knownM - insetStartM - insetEndM, 0)
-            : availableMax(
-                main(in.availableWidth(), in.availableHeight()) - insetStartM - insetEndM, 0);
-    availableC =
-        some(knownC)
-            ? Math.max(knownC - insetStartC - insetEndC, 0)
-            : availableMax(
-                cross(in.availableWidth(), in.availableHeight()) - insetStartC - insetEndC, 0);
+    availableM = some(knownM)
+        ? Math.max(knownM - insetStartM - insetEndM, 0)
+        : availableMax(
+            main(in.availableWidth(), in.availableHeight()) - insetStartM - insetEndM, 0);
+    availableC = some(knownC)
+        ? Math.max(knownC - insetStartC - insetEndC, 0)
+        : availableMax(
+            cross(in.availableWidth(), in.availableHeight()) - insetStartC - insetEndC, 0);
     flexBaseSizes();
 
     // 9.3 Main size determination
@@ -513,11 +506,8 @@ final class Flexbox {
       // The space across for sizing the item, without its margins.
       float spaceC;
       if (definite(availableC)) {
-        spaceC =
-            clamp(
-                Math.max(or(innerC, availableC) - item.marginC(), 0),
-                item.ratioMinC,
-                item.ratioMaxC);
+        spaceC = clamp(
+            Math.max(or(innerC, availableC) - item.marginC(), 0), item.ratioMinC, item.ratioMaxC);
       } else if (availableC == MIN_CONTENT) {
         spaceC = or(item.ratioMinC, MIN_CONTENT);
       } else {
@@ -526,17 +516,19 @@ final class Flexbox {
 
       boolean crossIsDefinite = some(item.sizeC);
       float knownItemC = item.knownC();
-      if (item.align == Align.STRETCH && !item.fitsCross && !item.autoStartC && !item.autoEndC
+      if (item.align == Align.STRETCH
+          && !item.fitsCross
+          && !item.autoStartC
+          && !item.autoEndC
           && !some(knownItemC)) {
         knownItemC = pixels(spaceC);
         crossIsDefinite = !isWrap && hasDefiniteCross && some(innerC);
       }
 
       // A: a definite flex basis, or the main size when the basis is auto.
-      float basis =
-          or(
-              resolve(item.s.basis, basisM) + item.boxM,
-              item.s.basis.isAuto() ? item.sizeM : Float.NaN);
+      float basis = or(
+          resolve(item.s.basis, basisM) + item.boxM,
+          item.s.basis.isAuto() ? item.sizeM : Float.NaN);
       if (some(basis)) {
         item.basisIsDefinite = true;
       } else if (crossIsDefinite && some(item.ratio) && some(knownItemC)) {
@@ -545,14 +537,13 @@ final class Flexbox {
         basis = mainFromCross(knownItemC, item.ratio);
       } else {
         // C and E: the size of the content.
-        basis =
-            measureMain(
-                item,
-                knownItemC,
-                Float.NaN,
-                innerC,
-                availableM == MIN_CONTENT ? MIN_CONTENT : MAX_CONTENT,
-                spaceC);
+        basis = measureMain(
+            item,
+            knownItemC,
+            Float.NaN,
+            innerC,
+            availableM == MIN_CONTENT ? MIN_CONTENT : MAX_CONTENT,
+            spaceC);
       }
       // The specification leaves the content box unfloored here; browsers floor it.
       item.basis = Math.max(basis, item.edgesM);
@@ -860,27 +851,23 @@ final class Flexbox {
         float spaceM = Math.max(containerM - item.marginM(), 0);
         float spaceC = availableC;
         if (definite(spaceC)) {
-          spaceC =
-              Math.max(
-                  clamp(Math.max(spaceC - item.marginC(), 0), item.ratioMinC, item.ratioMaxC),
-                  item.edgesC);
+          spaceC = Math.max(
+              clamp(Math.max(spaceC - item.marginC(), 0), item.ratioMinC, item.ratioMaxC),
+              item.edgesC);
         }
-        Out out =
-            child(
-                item,
-                false,
-                isRow ? VERTICAL : HORIZONTAL,
-                false,
-                item.targetM,
-                Float.NaN,
-                innerM,
-                innerC,
-                spaceM,
-                spaceC);
-        cross =
-            Math.max(
-                clamp(cross(out.width(), out.height()), item.ratioMinC, item.ratioMaxC),
-                item.edgesC);
+        Out out = child(
+            item,
+            false,
+            isRow ? VERTICAL : HORIZONTAL,
+            false,
+            item.targetM,
+            Float.NaN,
+            innerM,
+            innerC,
+            spaceM,
+            spaceC);
+        cross = Math.max(
+            clamp(cross(out.width(), out.height()), item.ratioMinC, item.ratioMaxC), item.edgesC);
       }
       item.hypotheticalC = cross;
       item.hypotheticalOuterC = cross + item.marginC();
@@ -907,18 +894,17 @@ final class Flexbox {
         if (!item.alignsBaseline()) {
           continue;
         }
-        Out out =
-            child(
-                item,
-                true,
-                BOTH,
-                false,
-                item.targetM,
-                item.hypotheticalC,
-                innerM,
-                innerC,
-                availableMax(containerM - item.marginM(), 0),
-                availableMax(or(knownC, availableC) - item.marginC(), 0));
+        Out out = child(
+            item,
+            true,
+            BOTH,
+            false,
+            item.targetM,
+            item.hypotheticalC,
+            innerM,
+            innerC,
+            availableMax(containerM - item.marginM(), 0),
+            availableMax(or(knownC, availableC) - item.marginC(), 0));
         item.baseline = baseline(out, item) + item.marginStartC;
       }
     }
@@ -938,12 +924,11 @@ final class Flexbox {
       float cross = 0;
       for (int i = line.start; i < line.end; i++) {
         Item item = items.get(i);
-        cross =
-            Math.max(
-                cross,
-                item.alignsBaseline()
-                    ? maxBaseline - item.baseline + item.hypotheticalOuterC
-                    : item.hypotheticalOuterC);
+        cross = Math.max(
+            cross,
+            item.alignsBaseline()
+                ? maxBaseline - item.baseline + item.hypotheticalOuterC
+                : item.hypotheticalOuterC);
       }
       line.cross = cross;
     }
@@ -978,10 +963,9 @@ final class Flexbox {
       for (int i = line.start; i < line.end; i++) {
         Item item = items.get(i);
         // Here the maximum does not transfer through the aspect ratio; browsers agree on that.
-        item.targetC =
-            item.stretches()
-                ? clamp(Math.max(line.cross - item.marginC(), 0), item.minC, item.maxC)
-                : item.hypotheticalC;
+        item.targetC = item.stretches()
+            ? clamp(Math.max(line.cross - item.marginC(), 0), item.minC, item.maxC)
+            : item.hypotheticalC;
         item.outerTargetC = item.targetC + item.marginC();
       }
     }
@@ -1044,23 +1028,22 @@ final class Flexbox {
         } else if (item.autoEndC) {
           item.marginEndC = freeSpace;
         } else {
-          item.offsetC =
-              switch (item.align) {
-                case START -> 0;
-                case END -> freeSpace;
-                case FLEX_START, STRETCH -> isWrapReverse ? freeSpace : 0;
-                case FLEX_END -> isWrapReverse ? 0 : freeSpace;
-                case CENTER -> freeSpace / 2;
-                case BASELINE -> {
-                  if (!isRow) {
-                    yield isWrapReverse ? freeSpace : 0;
-                  }
-                  // wrap-reverse flips the cross axis, so the group sits at the bottom.
-                  yield isWrapReverse
-                      ? line.cross - maxBelowBaseline - item.baseline
-                      : maxBaseline - item.baseline;
-                }
-              };
+          item.offsetC = switch (item.align) {
+            case START -> 0;
+            case END -> freeSpace;
+            case FLEX_START, STRETCH -> isWrapReverse ? freeSpace : 0;
+            case FLEX_END -> isWrapReverse ? 0 : freeSpace;
+            case CENTER -> freeSpace / 2;
+            case BASELINE -> {
+              if (!isRow) {
+                yield isWrapReverse ? freeSpace : 0;
+              }
+              // wrap-reverse flips the cross axis, so the group sits at the bottom.
+              yield isWrapReverse
+                  ? line.cross - maxBelowBaseline - item.baseline
+                  : maxBaseline - item.baseline;
+            }
+          };
         }
       }
     }
@@ -1073,10 +1056,9 @@ final class Flexbox {
       linesCross += line.cross;
     }
     float insetC = insetStartC + insetEndC;
-    float outer =
-        Math.max(
-            clamp(or(knownC, linesCross + gaps(gapC, lines.size()) + insetC), minC, maxC),
-            insetC - scrollbarC);
+    float outer = Math.max(
+        clamp(or(knownC, linesCross + gaps(gapC, lines.size()) + insetC), minC, maxC),
+        insetC - scrollbarC);
     containerC = outer;
     innerContainerC = Math.max(outer - insetC, 0);
     return linesCross;
@@ -1101,18 +1083,17 @@ final class Flexbox {
       float offsetM = insetStartM;
       for (int k = 0; k < line.count(); k++) {
         Item item = items.get(isReverse ? line.end - 1 - k : line.start + k);
-        Out out =
-            child(
-                item,
-                true,
-                BOTH,
-                false,
-                item.targetM,
-                item.targetC,
-                innerM,
-                innerC,
-                Math.max(containerM - item.marginM(), 0),
-                Math.max(containerC - item.marginC(), 0));
+        Out out = child(
+            item,
+            true,
+            BOTH,
+            false,
+            item.targetM,
+            item.targetC,
+            innerM,
+            innerC,
+            Math.max(containerM - item.marginM(), 0),
+            Math.max(containerC - item.marginC(), 0));
         float startM = offsetM + item.offsetM + item.marginStartM;
         float startC = offsetC + item.offsetC + line.offset + item.marginStartC;
         // From here on the baseline is measured from the top of the container.
@@ -1134,23 +1115,21 @@ final class Flexbox {
    * the container, which {@code justify-content} and {@code align-self} decide.
    */
   private void placeAbsolute(Node child) {
-    int edgeM =
-        switch (justifyContent) {
-          case START -> Absolute.START;
-          case END -> Absolute.END;
-          case FLEX_START, STRETCH, SPACE_BETWEEN -> isReverse ? Absolute.END : Absolute.START;
-          case FLEX_END -> isReverse ? Absolute.START : Absolute.END;
-          case CENTER, SPACE_AROUND, SPACE_EVENLY -> Absolute.CENTER;
-        };
+    int edgeM = switch (justifyContent) {
+      case START -> Absolute.START;
+      case END -> Absolute.END;
+      case FLEX_START, STRETCH, SPACE_BETWEEN -> isReverse ? Absolute.END : Absolute.START;
+      case FLEX_END -> isReverse ? Absolute.START : Absolute.END;
+      case CENTER, SPACE_AROUND, SPACE_EVENLY -> Absolute.CENTER;
+    };
     Align self = child.style.alignSelf != null ? child.style.alignSelf : alignItems;
-    int edgeC =
-        switch (self) {
-          case START, BASELINE -> Absolute.START;
-          case END -> Absolute.END;
-          case FLEX_START, STRETCH -> isWrapReverse ? Absolute.END : Absolute.START;
-          case FLEX_END -> isWrapReverse ? Absolute.START : Absolute.END;
-          case CENTER -> Absolute.CENTER;
-        };
+    int edgeC = switch (self) {
+      case START, BASELINE -> Absolute.START;
+      case END -> Absolute.END;
+      case FLEX_START, STRETCH -> isWrapReverse ? Absolute.END : Absolute.START;
+      case FLEX_END -> isWrapReverse ? Absolute.START : Absolute.END;
+      case CENTER -> Absolute.CENTER;
+    };
 
     // Insets and percentages refer to the padding box.
     float left = border.left();
@@ -1258,36 +1237,34 @@ final class Flexbox {
       float spaceC) {
     boolean definiteM = definite || item.mainIsDefinite();
     boolean definiteC = definite || item.crossIsDefinite();
-    return item.node.layout(
-        new In(
-            perform,
-            false,
-            axis,
-            width(knownM, knownC),
-            height(knownM, knownC),
-            isRow ? definiteM : definiteC,
-            isRow ? definiteC : definiteM,
-            width(parentM, parentC),
-            height(parentM, parentC),
-            width(spaceM, spaceC),
-            height(spaceM, spaceC)));
+    return item.node.layout(new In(
+        perform,
+        false,
+        axis,
+        width(knownM, knownC),
+        height(knownM, knownC),
+        isRow ? definiteM : definiteC,
+        isRow ? definiteC : definiteM,
+        width(parentM, parentC),
+        height(parentM, parentC),
+        width(spaceM, spaceC),
+        height(spaceM, spaceC)));
   }
 
   /** The main size of an item's content under the given constraints. */
   private float measureMain(
       Item item, float knownC, float parentM, float parentC, float spaceM, float spaceC) {
-    Out out =
-        child(
-            item,
-            false,
-            isRow ? HORIZONTAL : VERTICAL,
-            true,
-            Float.NaN,
-            knownC,
-            parentM,
-            parentC,
-            spaceM,
-            spaceC);
+    Out out = child(
+        item,
+        false,
+        isRow ? HORIZONTAL : VERTICAL,
+        true,
+        Float.NaN,
+        knownC,
+        parentM,
+        parentC,
+        spaceM,
+        spaceC);
     return main(out.width(), out.height());
   }
 

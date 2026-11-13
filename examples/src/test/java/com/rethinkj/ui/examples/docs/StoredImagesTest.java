@@ -57,8 +57,10 @@ class StoredImagesTest {
         Files.createDirectories(stored);
         Files.copy(file, kept, StandardCopyOption.REPLACE_EXISTING);
       } else if (file.toString().endsWith(".png")) {
-        assertArrayEquals(Png.decode(Files.readAllBytes(kept)).rgba(),
-            Png.decode(Files.readAllBytes(file)).rgba(), file + " differs from " + kept);
+        assertArrayEquals(
+            Png.decode(Files.readAllBytes(kept)).rgba(),
+            Png.decode(Files.readAllBytes(file)).rgba(),
+            file + " differs from " + kept);
       } else {
         assertEquals(Files.readString(kept), Files.readString(file));
       }

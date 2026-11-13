@@ -50,10 +50,14 @@ class TextAreaTest {
   @Test
   void enterBreaksTheLineAndControlEnterGoesOnToTheHandlers() {
     List<String> seen = new ArrayList<>();
-    App<Model> app = Areas.start("ab", f -> f, 1, root -> root.onKey(k -> {
-      seen.add(k.name() + (k.modifiers() == CONTROL ? "+control" : ""));
-      return true;
-    }));
+    App<Model> app = Areas.start(
+        "ab",
+        f -> f,
+        1,
+        root -> root.onKey(k -> {
+          seen.add(k.name() + (k.modifiers() == CONTROL ? "+control" : ""));
+          return true;
+        }));
     focus(app);
     key(app, "ArrowRight");
     key(app, "Enter");
@@ -95,14 +99,16 @@ class TextAreaTest {
     key(app, "ArrowUp");
     key(app, "ArrowUp");
     key(app, "ArrowUp");
-    assertEquals("SELECT na|me\nFROM t\n\nWHERE id = 42", show(app),
+    assertEquals(
+        "SELECT na|me\nFROM t\n\nWHERE id = 42",
+        show(app),
         "the end of the last line kept the column");
     key(app, "End");
     key(app, "ArrowDown");
     key(app, "ArrowDown");
     key(app, "ArrowDown");
-    assertEquals("SELECT name\nFROM t\n\nWHERE id = |42", show(app),
-        "a horizontal move sets a new column");
+    assertEquals(
+        "SELECT name\nFROM t\n\nWHERE id = |42", show(app), "a horizontal move sets a new column");
     key(app, "ArrowUp");
     key(app, "ArrowUp");
     key(app, "ArrowUp");
@@ -113,7 +119,9 @@ class TextAreaTest {
     key(app, "ArrowDown", SHIFT);
     assertEquals("S^ELECT name\nFROM t\n|\nWHERE id = 42", show(app), "Shift selects");
     key(app, "ArrowUp");
-    assertEquals("SELECT name\nF|ROM t\n\nWHERE id = 42", show(app),
+    assertEquals(
+        "SELECT name\nF|ROM t\n\nWHERE id = 42",
+        show(app),
         "without Shift from the caret, and the selection is gone");
   }
 
@@ -160,7 +168,9 @@ class TextAreaTest {
     assertEquals(90, field(app).scrollY(), "and the view moved by them");
     key(app, "PageDown", SHIFT);
     assertEquals(10, caretLine(app));
-    assertEquals(1, field(app).editor().anchor() - field(app).editor().text().indexOf("line 5"),
+    assertEquals(
+        1,
+        field(app).editor().anchor() - field(app).editor().text().indexOf("line 5"),
         "Shift selects, and the column is kept");
     key(app, "PageUp");
     assertEquals(5, caretLine(app));
@@ -216,7 +226,9 @@ class TextAreaTest {
     assertEquals(text.indexOf(" today") + 6, editor.caret(), "the end of the last row");
     key(app, "ArrowUp");
     key(app, "End");
-    assertEquals(text.indexOf(" the lazy"), editor.caret(),
+    assertEquals(
+        text.indexOf(" the lazy"),
+        editor.caret(),
         "a wrapped row ends before the space it wraps at");
     key(app, "Home");
     assertEquals(text.indexOf("jumps"), editor.caret(), "the start of the row");
@@ -238,10 +250,11 @@ class TextAreaTest {
     assertTrue(caret > 180 && caret <= 192 - Editor.MARGIN, "near the right edge: " + caret);
     key(app, "ArrowDown");
     assertEquals(text.length(), f.editor().caret());
-    assertEquals(40 - Editor.MARGIN, field(app).scrollX(),
-        "the end of a short line, just far enough");
+    assertEquals(
+        40 - Editor.MARGIN, field(app).scrollX(), "the end of a short line, just far enough");
     key(app, "ArrowUp");
-    assertTrue(field(app).scrollX() > 2000, "the column of the end kept: " + field(app).scrollX());
+    assertTrue(
+        field(app).scrollX() > 2000, "the column of the end kept: " + field(app).scrollX());
   }
 
   // Tabs
@@ -301,8 +314,8 @@ class TextAreaTest {
     app = focused("\tx\n\ty", f -> f.tabIndents(false));
     key(app, "End", CONTROL | SHIFT);
     key(app, "Tab");
-    assertEquals("^\t\tx\n\t\ty|", show(app),
-        "a selection from the start of a line keeps the indent in it");
+    assertEquals(
+        "^\t\tx\n\t\ty|", show(app), "a selection from the start of a line keeps the indent in it");
     key(app, "Tab", SHIFT);
     key(app, "Tab", SHIFT);
     key(app, "Tab", SHIFT);
@@ -446,8 +459,7 @@ class TextAreaTest {
     key(app, "End");
     app.textComposition("ni", -1);
     app.frame();
-    assertTrue(Areas.line(app).endsWith("focused caret 7 (2:4) composing \"ni\""),
-        Areas.line(app));
+    assertTrue(Areas.line(app).endsWith("focused caret 7 (2:4) composing \"ni\""), Areas.line(app));
     Text text = field(app).text();
     float y = text.composition().y();
     assertTrue(y > 18 && y < 36, "under the second row: " + y);
@@ -462,8 +474,9 @@ class TextAreaTest {
 
   @Test
   void graphemesAndFallbackFontsWorkOnEveryLine() {
-    App<Model> app = focused("é\n👍🏽\nשלום x", f -> f.font(
-        Font.mono().withFallback(Font.sans(), Examples.fallbackChain())));
+    App<Model> app = focused(
+        "é\n👍🏽\nשלום x",
+        f -> f.font(Font.mono().withFallback(Font.sans(), Examples.fallbackChain())));
     key(app, "ArrowRight");
     assertEquals("é|\n👍🏽\nשלום x", show(app), "a letter with its mark");
     key(app, "ArrowRight");
@@ -492,8 +505,10 @@ class TextAreaTest {
     App<Model> app = focused(text.toString());
     String line = Areas.line(app);
     assertTrue(line.startsWith("text #f role=textbox \"line 1\\nline 2\\n"), line);
-    assertTrue(line.contains("\\nline 13\\nline \" … \"line 36\\nline 37\\nline 38\\nline 39"
-        + "\\nline 40\\n\" length 311 10,10 200x98 lines 1-5/41 focused caret 0 (1:1)"), line);
+    assertTrue(
+        line.contains("\\nline 13\\nline \" … \"line 36\\nline 37\\nline 38\\nline 39"
+            + "\\nline 40\\n\" length 311 10,10 200x98 lines 1-5/41 focused caret 0 (1:1)"),
+        line);
     for (int i = 0; i < 22; i++) {
       key(app, "ArrowDown");
     }
@@ -515,19 +530,20 @@ class TextAreaTest {
         frame
         snap pressed
         """, app, out);
-    assertTrue(java.nio.file.Files.readString(out.resolve("pressed.tree.txt"))
-        .contains("focused caret"));
+    assertTrue(
+        java.nio.file.Files.readString(out.resolve("pressed.tree.txt")).contains("focused caret"));
   }
 
   // Masking
 
   @Test
   void aMaskedFieldCannotBeMultiline() {
-    IllegalStateException one =
-        assertThrows(IllegalStateException.class,
-            () -> El.text("").editable(s -> {}).masked().multiline());
+    IllegalStateException one = assertThrows(
+        IllegalStateException.class,
+        () -> El.text("").editable(s -> {}).masked().multiline());
     assertTrue(one.getMessage().contains("a password has one line"), one.getMessage());
-    assertThrows(IllegalStateException.class,
+    assertThrows(
+        IllegalStateException.class,
         () -> El.text("").editable(s -> {}).multiline().masked());
     El shown = El.text("").editable(s -> {}).multiline().masked(false);
     assertTrue(shown.text().multiline());

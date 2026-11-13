@@ -30,7 +30,8 @@ class FindKeysTest {
       select * from Orders o where o.name = 'STRASSE';
       UPDATE orders SET name = 'x' WHERE id = 1;""";
 
-  @TempDir Path out;
+  @TempDir
+  Path out;
 
   @BeforeEach
   void needsText() {
@@ -55,11 +56,19 @@ class FindKeysTest {
     App<Doc> app = new App<>(doc, s -> {
       El field;
       if (s.area) {
-        field = Find.find(t, s.app, TextField.textArea(t, s.text, "Notes", v -> s.text = v)
-            .key("query").lines(6).wFull(), s.find);
+        field = Find.find(
+            t,
+            s.app,
+            TextField.textArea(t, s.text, "Notes", v -> s.text = v)
+                .key("query")
+                .lines(6)
+                .wFull(),
+            s.find);
       } else {
         field = codeEditor(t, s.app, s.text, s.editor, Sql.of(t), v -> s.text = v)
-            .key("query").lines(6).wFull();
+            .key("query")
+            .lines(6)
+            .wFull();
         if (s.readOnly) {
           field.readOnly();
         }
@@ -87,7 +96,9 @@ class FindKeysTest {
   }
 
   private static String line(String tree, String key) {
-    return tree.lines().filter(l -> l.contains("#" + key + " ")).findFirst()
+    return tree.lines()
+        .filter(l -> l.contains("#" + key + " "))
+        .findFirst()
         .orElseThrow(() -> new AssertionError("no #" + key + " in\n" + tree));
   }
 
@@ -107,8 +118,9 @@ class FindKeysTest {
         key ArrowRight
         key F control""");
     assertTrue(tree.contains("el #find role=search label=\"Find\""), tree);
-    assertTrue(line(tree, "find-field").contains("\"SELECT\"")
-        && line(tree, "find-field").contains("focused caret 6 anchor 0"),
+    assertTrue(
+        line(tree, "find-field").contains("\"SELECT\"")
+            && line(tree, "find-field").contains("focused caret 6 anchor 0"),
         "the word at the caret, selected in the focused field:\n" + tree);
     // SELECT and select: case is not matched.
     assertEquals("1 of 2", count(tree));
@@ -125,7 +137,8 @@ class FindKeysTest {
 
     tree = run(app, "key Escape");
     assertFalse(tree.contains("role=search"), tree);
-    assertTrue(line(tree, "query").contains("focused caret 6 (1:7) anchor 0"),
+    assertTrue(
+        line(tree, "query").contains("focused caret 6 (1:7) anchor 0"),
         "the editor has the focus back with the last match selected:\n" + tree);
     run(app, "key F3");
     assertEquals("select", selected(doc), "F3 goes on with the closed bar's text");
@@ -146,8 +159,10 @@ class FindKeysTest {
     assertEquals(TEXT.indexOf("orders of"), doc.editor.anchor());
     tree = run(app, "type \"x\"");
     assertEquals("No results", count(tree));
-    tree = run(app, "key Backspace\nkey Backspace\nkey Backspace\nkey Backspace\n"
-        + "key Backspace\nkey Backspace\nkey Backspace");
+    tree = run(
+        app,
+        "key Backspace\nkey Backspace\nkey Backspace\nkey Backspace\n"
+            + "key Backspace\nkey Backspace\nkey Backspace");
     assertEquals("", count(tree), "nothing to find");
   }
 
@@ -240,9 +255,11 @@ class FindKeysTest {
     run(app, "key Escape\nkey Z control");
     assertEquals(TEXT.replaceFirst("orders", "sales"), doc.text, "one step takes all back");
 
-    run(app, "key H control\nframe\nadvance 0.25\nframe\nkey A control\n"
-        + "type \"(\\\\w+) = '(\\\\w+)'\"\nkey R alt\n"
-        + "focus #replace\nkey A control\ntype \"$2 = $1\"\npress #replace-all");
+    run(
+        app,
+        "key H control\nframe\nadvance 0.25\nframe\nkey A control\n"
+            + "type \"(\\\\w+) = '(\\\\w+)'\"\nkey R alt\n"
+            + "focus #replace\nkey A control\ntype \"$2 = $1\"\npress #replace-all");
     assertTrue(doc.text.contains("where o.STRASSE = name;"), doc.text);
     assertTrue(doc.text.contains("SET x = name WHERE"), doc.text);
   }
@@ -262,8 +279,10 @@ class FindKeysTest {
     tree = run(app, "type \"orders\"\nkey L alt");
     assertTrue(line(tree, "in-selection").contains(" checked"), tree);
     assertEquals("1 of 2", count(tree), "the second and third lines only");
-    tree = run(app, "key H control\nframe\nadvance 0.25\nframe\nfocus #replace\ntype \"o\"\n"
-        + "press #replace-all");
+    tree = run(
+        app,
+        "key H control\nframe\nadvance 0.25\nframe\nfocus #replace\ntype \"o\"\n"
+            + "press #replace-all");
     assertTrue(doc.text.startsWith("SELECT id, name FROM orders;\n-- o of"), doc.text);
     assertTrue(doc.text.endsWith("UPDATE orders SET name = 'x' WHERE id = 1;"), doc.text);
   }
@@ -371,44 +390,59 @@ class FindKeysTest {
       }
     };
     String[] lines = TEXT.split("\n");
-    assertEquals(String.join("\n", lines[0], lines[0], lines[1], lines[2], lines[3]),
+    assertEquals(
+        String.join("\n", lines[0], lines[0], lines[1], lines[2], lines[3]),
         undoAfter.apply("key D control shift"));
-    assertEquals(String.join("\n", lines[1], lines[0], lines[2], lines[3]),
+    assertEquals(
+        String.join("\n", lines[1], lines[0], lines[2], lines[3]),
         undoAfter.apply("key ArrowDown alt"));
-    assertEquals(String.join("\n", lines[0], lines[2], lines[1], lines[3]),
+    assertEquals(
+        String.join("\n", lines[0], lines[2], lines[1], lines[3]),
         undoAfter.apply("key ArrowDown\nkey ArrowDown\nkey ArrowUp alt"));
     assertEquals(TEXT, undoAfter.apply("key ArrowUp alt"), "the first line goes no higher");
     assertEquals(TEXT, undoAfter.apply("key End control\nkey ArrowDown alt"), "nor the last lower");
-    assertEquals(String.join("\n", lines[0], lines[1], lines[2], lines[3], lines[3]),
+    assertEquals(
+        String.join("\n", lines[0], lines[1], lines[2], lines[3], lines[3]),
         undoAfter.apply("key End control\nkey D control shift"));
-    assertEquals(String.join("\n", lines[0], lines[1], lines[3], lines[2]),
+    assertEquals(
+        String.join("\n", lines[0], lines[1], lines[3], lines[2]),
         undoAfter.apply("key End control\nkey ArrowUp alt"));
-    assertEquals(String.join("\n", lines[1], lines[2], lines[3]),
-        undoAfter.apply("key K control shift"));
-    assertEquals(String.join("\n", lines[0], lines[2], lines[3]),
+    assertEquals(
+        String.join("\n", lines[1], lines[2], lines[3]), undoAfter.apply("key K control shift"));
+    assertEquals(
+        String.join("\n", lines[0], lines[2], lines[3]),
         undoAfter.apply("key ArrowDown\nkey K control shift"));
-    assertEquals(String.join("\n", lines[0], lines[1], lines[2], lines[1], lines[2], lines[3]),
-        undoAfter.apply("key ArrowDown\nkey ArrowDown shift\nkey ArrowDown shift\n"
-            + "key D control shift"));
-    assertEquals(String.join("\n", lines[0], lines[3], lines[1], lines[2]),
-        undoAfter.apply("key ArrowDown\nkey ArrowDown shift\nkey ArrowDown shift\n"
-            + "key ArrowDown alt"));
-    assertEquals(String.join("\n", lines[0], lines[1], lines[2]),
+    assertEquals(
+        String.join("\n", lines[0], lines[1], lines[2], lines[1], lines[2], lines[3]),
+        undoAfter.apply(
+            "key ArrowDown\nkey ArrowDown shift\nkey ArrowDown shift\n" + "key D control shift"));
+    assertEquals(
+        String.join("\n", lines[0], lines[3], lines[1], lines[2]),
+        undoAfter.apply(
+            "key ArrowDown\nkey ArrowDown shift\nkey ArrowDown shift\n" + "key ArrowDown alt"));
+    assertEquals(
+        String.join("\n", lines[0], lines[1], lines[2]),
         undoAfter.apply("key End control\nkey K control shift"));
-    assertEquals(String.join("\n", lines[0], lines[3]),
-        undoAfter.apply("key ArrowDown\nkey ArrowDown shift\nkey ArrowDown shift\n"
-            + "key K control shift"));
-    assertEquals(String.join("\n", "-- " + lines[0], lines[1], lines[2], lines[3]),
+    assertEquals(
+        String.join("\n", lines[0], lines[3]),
+        undoAfter.apply(
+            "key ArrowDown\nkey ArrowDown shift\nkey ArrowDown shift\n" + "key K control shift"));
+    assertEquals(
+        String.join("\n", "-- " + lines[0], lines[1], lines[2], lines[3]),
         undoAfter.apply("key / control"));
-    assertEquals(String.join("\n", lines[0], lines[1], lines[2], "-- " + lines[3]),
+    assertEquals(
+        String.join("\n", lines[0], lines[1], lines[2], "-- " + lines[3]),
         undoAfter.apply("key End control\nkey / control"));
-    assertEquals(String.join("\n", lines[0], "orders of the Straße", lines[2], lines[3]),
+    assertEquals(
+        String.join("\n", lines[0], "orders of the Straße", lines[2], lines[3]),
         undoAfter.apply("key ArrowDown\nkey 7 control shift"),
         "Control+Shift+7, the / of a German keyboard, takes the comment away");
-    assertEquals(String.join("\n", lines[0], "-- -- orders of the Straße", "-- " + lines[2],
-        lines[3]), undoAfter.apply("key ArrowDown\nkey ArrowDown shift\nkey End shift\n"
-            + "key NumpadDivide control"));
-    assertEquals(CodeEditor.Command.TOGGLE_COMMENT,
+    assertEquals(
+        String.join("\n", lines[0], "-- -- orders of the Straße", "-- " + lines[2], lines[3]),
+        undoAfter.apply(
+            "key ArrowDown\nkey ArrowDown shift\nkey End shift\n" + "key NumpadDivide control"));
+    assertEquals(
+        CodeEditor.Command.TOGGLE_COMMENT,
         CodeEditor.command(new com.rethinkj.ui.Key("#", com.rethinkj.ui.Key.CONTROL, false)),
         "Control+#, where a German keyboard has VS Code's");
   }

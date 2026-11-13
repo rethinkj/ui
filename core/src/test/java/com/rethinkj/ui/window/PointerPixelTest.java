@@ -28,9 +28,15 @@ class PointerPixelTest {
   void thePointerOnAPixelReachesTheBoxThatDrawsIt(float scale) {
     // Boxes at odd logical positions and widths, a pixel apart, so that their edges fall on every
     // fraction of a physical pixel at these scales.
-    App<Object> app = new App<>(new Object(), s -> row().wFull().hFull().fill(BACK)
-        .padding(3, 0, 0, 1).gap(1).children(
-            box("a", 0xFFFF0000, 7), box("b", 0xFF00FF00, 9), box("c", 0xFF0000FF, 3)));
+    App<Object> app = new App<>(
+        new Object(),
+        s -> row()
+            .wFull()
+            .hFull()
+            .fill(BACK)
+            .padding(3, 0, 0, 1)
+            .gap(1)
+            .children(box("a", 0xFFFF0000, 7), box("b", 0xFF00FF00, 9), box("c", 0xFF0000FF, 3)));
     app.resize(40, 16, scale);
     app.frame();
     Pixels pixels = app.render().pixels();

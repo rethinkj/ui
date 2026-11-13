@@ -36,8 +36,9 @@ final class Snaps {
   static void check(String name, Main main) throws IOException {
     assumeText();
     Path out = Path.of("target", name);
-    main.run(new String[] {
-        "--script", SCRIPTS.resolve(name + ".txt").toString(), "--out", out.toString()});
+    main.run(
+        new String[] {"--script", SCRIPTS.resolve(name + ".txt").toString(), "--out", out.toString()
+        });
     compare(out, STORED);
   }
 
@@ -78,8 +79,10 @@ final class Snaps {
         if (written.toString().endsWith(".png")) {
           Pixels expected = Png.decode(Files.readAllBytes(kept));
           Pixels actual = Png.decode(Files.readAllBytes(written));
-          assertEquals(expected.width() + "x" + expected.height(),
-              actual.width() + "x" + actual.height(), failure);
+          assertEquals(
+              expected.width() + "x" + expected.height(),
+              actual.width() + "x" + actual.height(),
+              failure);
           assertTrue(Arrays.equals(expected.rgba(), actual.rgba()), failure);
         } else {
           assertEquals(Files.readString(kept), Files.readString(written), failure);
@@ -91,6 +94,9 @@ final class Snaps {
   /** The first line that contains {@code part} in the tree of a snap that {@link #check} wrote. */
   static String line(String name, String snap, String part) throws IOException {
     return Files.readAllLines(Path.of("target", name, snap + ".tree.txt")).stream()
-        .filter(l -> l.contains(part)).findFirst().orElseThrow().strip();
+        .filter(l -> l.contains(part))
+        .findFirst()
+        .orElseThrow()
+        .strip();
   }
 }

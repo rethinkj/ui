@@ -67,9 +67,10 @@ public class GenerateSymbols {
     for (Map.Entry<Integer, Integer> e : codePoints.entrySet()) {
       Matcher m = name.matcher(glyphNames[e.getKey()]);
       if (m.matches()) {
-        drawings.computeIfAbsent(m.group(1), k -> new TreeMap<>())
-            .merge(Integer.parseInt(m.group(2)), e.getValue(),
-                (a, b) -> m.group(3) == null ? b : a);
+        drawings
+            .computeIfAbsent(m.group(1), k -> new TreeMap<>())
+            .merge(
+                Integer.parseInt(m.group(2)), e.getValue(), (a, b) -> m.group(3) == null ? b : a);
       }
     }
     StringBuilder constants = new StringBuilder();
@@ -86,19 +87,23 @@ public class GenerateSymbols {
       constants.append("  ").append(fluent.toUpperCase(Locale.ROOT)).append('(');
       for (int i = 0; i < SIZES.length; i++) {
         Integer cp = sizes.get(SIZES[i]);
-        constants.append(i == 0 ? "" : ", ")
-            .append(cp == null ? "0" : String.format("0x%04X", cp));
+        constants.append(i == 0 ? "" : ", ").append(cp == null ? "0" : String.format("0x%04X", cp));
       }
       constants.append("),\n");
     }
     constants.setLength(constants.length() - 2);
-    String sizes = String.join(", ",
-        java.util.Arrays.stream(SIZES).mapToObj(String::valueOf).toList());
-    String source = TEMPLATE.replace("$SIZES", sizes).replace("$CONSTANTS", constants)
+    String sizes = String.join(
+        ", ", java.util.Arrays.stream(SIZES).mapToObj(String::valueOf).toList());
+    String source = TEMPLATE
+        .replace("$SIZES", sizes)
+        .replace("$CONSTANTS", constants)
         .replace("$COUNT", String.valueOf(wanted.size()))
-        .replace("$UNDRAWN", wanted.stream().filter(n -> !drawings.get(n).containsKey(16))
-            .map(n -> "{@link #" + n.toUpperCase(Locale.ROOT) + "}")
-            .collect(java.util.stream.Collectors.joining(", ")));
+        .replace(
+            "$UNDRAWN",
+            wanted.stream()
+                .filter(n -> !drawings.get(n).containsKey(16))
+                .map(n -> "{@link #" + n.toUpperCase(Locale.ROOT) + "}")
+                .collect(java.util.stream.Collectors.joining(", ")));
     Files.writeString(OUT, source);
     System.out.println("Wrote " + wanted.size() + " symbols to " + OUT);
   }
@@ -118,8 +123,8 @@ public class GenerateSymbols {
   /** The glyph names of a {@code post} table of format 2. */
   static String[] glyphNames(ByteBuffer f, int post) {
     if (f.getInt(post) != 0x20000) {
-      throw new IllegalArgumentException("The post table has no glyph names: format "
-          + Integer.toHexString(f.getInt(post)));
+      throw new IllegalArgumentException(
+          "The post table has no glyph names: format " + Integer.toHexString(f.getInt(post)));
     }
     int glyphs = Short.toUnsignedInt(f.getShort(post + 32));
     int[] index = new int[glyphs];

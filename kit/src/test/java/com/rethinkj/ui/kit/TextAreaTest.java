@@ -38,7 +38,8 @@ class TextAreaTest {
       ORDER BY o.total DESC
       LIMIT 50;""";
 
-  @TempDir Path out;
+  @TempDir
+  Path out;
 
   @BeforeEach
   void needsText() {
@@ -51,10 +52,23 @@ class TextAreaTest {
   }
 
   static App<Notes> app(Theme t) {
-    App<Notes> app = new App<>(new Notes(), s -> col().wFull().hFull().padding(12).gap(8)
-        .fill(t.surface().window()).children(
-            codeArea(t, s.query, "SQL", v -> s.query = v).key("query").lines(6).wFull(),
-            textArea(t, s.notes, "Notes", v -> s.notes = v).key("notes").lines(2).wFull()));
+    App<Notes> app = new App<>(
+        new Notes(),
+        s -> col()
+            .wFull()
+            .hFull()
+            .padding(12)
+            .gap(8)
+            .fill(t.surface().window())
+            .children(
+                codeArea(t, s.query, "SQL", v -> s.query = v)
+                    .key("query")
+                    .lines(6)
+                    .wFull(),
+                textArea(t, s.notes, "Notes", v -> s.notes = v)
+                    .key("notes")
+                    .lines(2)
+                    .wFull()));
     app.textRendering(TextRendering.LINUX);
     return app;
   }
@@ -67,10 +81,13 @@ class TextAreaTest {
     List<Path> files = Script.run("size 360 220 scale 2\n" + script, app, out);
     for (int i = 0; i < files.size(); i += 2) {
       String snap = files.get(i).getFileName().toString().replace(".png", "");
-      Golden.assertMatches("area-" + theme + "-" + snap,
-          Png.decode(Files.readAllBytes(files.get(i))), Files.readString(files.get(i + 1)));
+      Golden.assertMatches(
+          "area-" + theme + "-" + snap,
+          Png.decode(Files.readAllBytes(files.get(i))),
+          Files.readString(files.get(i + 1)));
     }
-    assertTrue(app.state().query.startsWith("    SELECT o.id,\n    \to.total,\n\tc.name"),
+    assertTrue(
+        app.state().query.startsWith("    SELECT o.id,\n    \to.total,\n\tc.name"),
         app.state().query);
     assertTrue(app.state().notes.endsWith("the gate closes at five."), app.state().notes);
     String caret = Files.readString(out.resolve("caret.tree.txt"));

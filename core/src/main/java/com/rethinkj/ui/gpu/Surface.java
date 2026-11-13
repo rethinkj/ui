@@ -33,7 +33,10 @@ public final class Surface extends GpuObject {
   /** {@code WGPUPresentMode}. */
   public enum PresentMode {
     /** Waits for the display's refresh; always supported. */
-    FIFO(1), FIFO_RELAXED(2), IMMEDIATE(3), MAILBOX(4);
+    FIFO(1),
+    FIFO_RELAXED(2),
+    IMMEDIATE(3),
+    MAILBOX(4);
 
     final int value;
 
@@ -54,7 +57,11 @@ public final class Surface extends GpuObject {
   /** {@code WGPUCompositeAlphaMode}: how the compositor treats the frame's alpha. */
   public enum AlphaMode {
     /** Lets wgpu choose among the supported modes. */
-    AUTO(0), OPAQUE(1), PREMULTIPLIED(2), UNPREMULTIPLIED(3), INHERIT(4);
+    AUTO(0),
+    OPAQUE(1),
+    PREMULTIPLIED(2),
+    UNPREMULTIPLIED(3),
+    INHERIT(4);
 
     final int value;
 
@@ -73,8 +80,11 @@ public final class Surface extends GpuObject {
   }
 
   /** What the surface supports with a device's adapter. Formats not in the enum are left out. */
-  public record Capabilities(Set<TextureUsage> usages, List<TextureFormat> formats,
-      List<PresentMode> presentModes, List<AlphaMode> alphaModes) {}
+  public record Capabilities(
+      Set<TextureUsage> usages,
+      List<TextureFormat> formats,
+      List<PresentMode> presentModes,
+      List<AlphaMode> alphaModes) {}
 
   /**
    * How to configure a surface. The frames' usage is always {@link
@@ -83,8 +93,8 @@ public final class Surface extends GpuObject {
    * @param width the window's width in pixels, not 0
    * @param height the window's height in pixels, not 0
    */
-  public record Configuration(TextureFormat format, int width, int height,
-      PresentMode presentMode, AlphaMode alphaMode) {
+  public record Configuration(
+      TextureFormat format, int width, int height, PresentMode presentMode, AlphaMode alphaMode) {
     public Configuration {
       Objects.requireNonNull(format, "format");
       Objects.requireNonNull(presentMode, "presentMode");
@@ -99,7 +109,13 @@ public final class Surface extends GpuObject {
 
   /** {@code WGPUSurfaceGetCurrentTextureStatus}: the outcome of the last {@link #acquireFrame}. */
   public enum FrameStatus {
-    OPTIMAL, SUBOPTIMAL, TIMEOUT, OUTDATED, LOST, OCCLUDED, ERROR
+    OPTIMAL,
+    SUBOPTIMAL,
+    TIMEOUT,
+    OUTDATED,
+    LOST,
+    OCCLUDED,
+    ERROR
   }
 
   private Device device;
@@ -122,17 +138,30 @@ public final class Surface extends GpuObject {
       MemorySegment caps = arena.allocate(SurfaceCapabilities.LAYOUT);
       if (Wgpu.surfaceGetCapabilities(surface, device.adapterHandle(), caps)
           != Wgpu.STATUS_SUCCESS) {
-        throw new GpuException(GpuException.Kind.VALIDATION, "getting the capabilities of surface",
-            label(), "wgpuSurfaceGetCapabilities failed: the adapter of " + device
+        throw new GpuException(
+            GpuException.Kind.VALIDATION,
+            "getting the capabilities of surface",
+            label(),
+            "wgpuSurfaceGetCapabilities failed: the adapter of " + device
                 + " cannot present to this surface.");
       }
       try {
-        return new Capabilities(TextureUsage.of(caps.get(JAVA_LONG, SurfaceCapabilities.USAGES)),
-            values(caps, SurfaceCapabilities.FORMAT_COUNT, SurfaceCapabilities.FORMATS,
+        return new Capabilities(
+            TextureUsage.of(caps.get(JAVA_LONG, SurfaceCapabilities.USAGES)),
+            values(
+                caps,
+                SurfaceCapabilities.FORMAT_COUNT,
+                SurfaceCapabilities.FORMATS,
                 TextureFormat::of),
-            values(caps, SurfaceCapabilities.PRESENT_MODE_COUNT, SurfaceCapabilities.PRESENT_MODES,
+            values(
+                caps,
+                SurfaceCapabilities.PRESENT_MODE_COUNT,
+                SurfaceCapabilities.PRESENT_MODES,
                 PresentMode::of),
-            values(caps, SurfaceCapabilities.ALPHA_MODE_COUNT, SurfaceCapabilities.ALPHA_MODES,
+            values(
+                caps,
+                SurfaceCapabilities.ALPHA_MODE_COUNT,
+                SurfaceCapabilities.ALPHA_MODES,
                 AlphaMode::of));
       } finally {
         Wgpu.surfaceCapabilitiesFreeMembers(caps);
@@ -156,13 +185,13 @@ public final class Surface extends GpuObject {
       throw unsupported(device, "format " + configuration.format(), capabilities.formats());
     }
     if (!capabilities.presentModes().contains(configuration.presentMode())) {
-      throw unsupported(device, "present mode " + configuration.presentMode(),
-          capabilities.presentModes());
+      throw unsupported(
+          device, "present mode " + configuration.presentMode(), capabilities.presentModes());
     }
     if (configuration.alphaMode() != AlphaMode.AUTO
         && !capabilities.alphaModes().contains(configuration.alphaMode())) {
-      throw unsupported(device, "alpha mode " + configuration.alphaMode(),
-          capabilities.alphaModes());
+      throw unsupported(
+          device, "alpha mode " + configuration.alphaMode(), capabilities.alphaModes());
     }
     if (!capabilities.usages().contains(TextureUsage.RENDER_ATTACHMENT)) {
       throw unsupported(device, "usage RENDER_ATTACHMENT", capabilities.usages());
@@ -223,8 +252,8 @@ public final class Surface extends GpuObject {
     device.usable();
     if (frame != null) {
       if (frame.isHeld()) {
-        throw new IllegalStateException(frame + " is still held; present or close it before"
-            + " acquiring the next frame.");
+        throw new IllegalStateException(
+            frame + " is still held; present or close it before" + " acquiring the next frame.");
       }
       // Released before the next texture is requested: wgpu-native would otherwise give the new
       // texture back when the old one is released.
@@ -237,11 +266,16 @@ public final class Surface extends GpuObject {
         Wgpu.surfaceGetCurrentTexture(surface, result);
         MemorySegment texture = result.get(ADDRESS, SurfaceTexture.TEXTURE);
         lastStatus = status(result.get(JAVA_INT, SurfaceTexture.STATUS));
-        boolean success =
-            lastStatus == FrameStatus.OPTIMAL || lastStatus == FrameStatus.SUBOPTIMAL;
+        boolean success = lastStatus == FrameStatus.OPTIMAL || lastStatus == FrameStatus.SUBOPTIMAL;
         if (success && !texture.equals(MemorySegment.NULL)) {
-          frame = new SurfaceFrame(this, device, label() + " frame", texture,
-              configuration.width(), configuration.height(), configuration.format(),
+          frame = new SurfaceFrame(
+              this,
+              device,
+              label() + " frame",
+              texture,
+              configuration.width(),
+              configuration.height(),
+              configuration.format(),
               lastStatus == FrameStatus.SUBOPTIMAL);
           return frame;
         }
@@ -293,8 +327,8 @@ public final class Surface extends GpuObject {
   }
 
   private IllegalArgumentException unsupported(Device device, String what, Object supported) {
-    return new IllegalArgumentException(this + " does not support " + what + " with "
-        + device + "; it supports " + supported + ".");
+    return new IllegalArgumentException(this + " does not support " + what + " with " + device
+        + "; it supports " + supported + ".");
   }
 
   private static FrameStatus status(int value) {
@@ -310,8 +344,8 @@ public final class Surface extends GpuObject {
   }
 
   /** The values of an array in the capabilities; values the enum does not know are left out. */
-  private static <T> List<T> values(MemorySegment caps, long countOffset, long arrayOffset,
-      IntFunction<T> of) {
+  private static <T> List<T> values(
+      MemorySegment caps, long countOffset, long arrayOffset, IntFunction<T> of) {
     long count = caps.get(JAVA_LONG, countOffset);
     MemorySegment array = caps.get(ADDRESS, arrayOffset);
     List<T> values = new ArrayList<>();

@@ -23,7 +23,8 @@ class CompletionTest {
   private static final List<String> NAMES =
       List.of("customers", "customer_id", "count", "select", "status");
 
-  @TempDir Path out;
+  @TempDir
+  Path out;
 
   static final class Query {
     String sql = "";
@@ -44,10 +45,16 @@ class CompletionTest {
     Query q = new Query();
     App<Query> app = new App<>(q, s -> {
       El editor = codeEditor(t, s.sql, s.editor, Sql.of(t), v -> s.sql = v)
-          .key("query").lines(4).wFull();
-      return col().wFull().hFull().padding(12).fill(t.surface().window()).child(
-          Completion.complete(t, s.app, editor, s.editor.caret(), s.completion,
-              CompletionTest::suggest));
+          .key("query")
+          .lines(4)
+          .wFull();
+      return col()
+          .wFull()
+          .hFull()
+          .padding(12)
+          .fill(t.surface().window())
+          .child(Completion.complete(
+              t, s.app, editor, s.editor.caret(), s.completion, CompletionTest::suggest));
     });
     q.app = app;
     app.textRendering(TextRendering.LINUX);
@@ -89,7 +96,8 @@ class CompletionTest {
     assertTrue(tree.contains("el #option-0 role=option label=\"customers\""), tree);
     assertTrue(tree.contains("label=\"customers\"") && tree.contains(" selected"), tree);
     assertFalse(tree.contains("label=\"count\""), "narrowed to what starts with cu");
-    assertTrue(tree.contains("text #query role=textbox") && tree.contains("focused caret 9"),
+    assertTrue(
+        tree.contains("text #query role=textbox") && tree.contains("focused caret 9"),
         "the focus stays in the field");
 
     tree = run(app, "key ArrowDown\nframe\nkey Enter");

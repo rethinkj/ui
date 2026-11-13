@@ -64,8 +64,9 @@ class GridSelectionTest {
     s.toggle(12, 1);
     assertEquals(List.of(new Range(5, 0, 8, ALL), new Range(12, 0, 12, ALL)), s.ranges());
     s.toggle(6, 4); // removes the whole row, whatever the column
-    assertEquals(List.of(new Range(5, 0, 5, ALL), new Range(7, 0, 8, ALL),
-        new Range(12, 0, 12, ALL)), s.ranges());
+    assertEquals(
+        List.of(new Range(5, 0, 5, ALL), new Range(7, 0, 8, ALL), new Range(12, 0, 12, ALL)),
+        s.ranges());
     assertTrue(s.isRowSelected(7));
     assertFalse(s.isRowSelected(6));
     assertEquals(4, s.rowCount());
@@ -108,13 +109,17 @@ class GridSelectionTest {
   @Test
   void copiedTextIsTabSeparatedWithQuotesWhereAFieldNeedsThem() {
     List<Range> ranges = List.of(new Range(0, 0, 4, 2));
-    assertEquals(String.join("\n",
-        "1\tplain\t",
-        "2\t\"tab\there\"\tn1",
-        "3\t\"say \"\"hi\"\"\"\t",
-        "4\t\"two\nlines\"\tn3",
-        "5\t\"carriage\rreturn\"\t"), DataGrid.copyText(COLUMNS, ranges, false, ""));
-    assertEquals("id\tname\tnote\n1\tplain\tNULL",
+    assertEquals(
+        String.join(
+            "\n",
+            "1\tplain\t",
+            "2\t\"tab\there\"\tn1",
+            "3\t\"say \"\"hi\"\"\"\t",
+            "4\t\"two\nlines\"\tn3",
+            "5\t\"carriage\rreturn\"\t"),
+        DataGrid.copyText(COLUMNS, ranges, false, ""));
+    assertEquals(
+        "id\tname\tnote\n1\tplain\tNULL",
         DataGrid.copyText(COLUMNS, List.of(new Range(0, 0, 0, ALL)), true, "NULL"),
         "whole rows reach the last column; NULL as the app says");
   }
@@ -145,9 +150,10 @@ class GridSelectionTest {
     List<SortKey> two = DataGrid.nextSort(up, 4, true);
     assertEquals(List.of(new SortKey(2, false), new SortKey(4, false)), two);
     // With Shift a key changes direction in its place, and goes after descending.
-    assertEquals(List.of(new SortKey(2, true), new SortKey(4, false)),
-        DataGrid.nextSort(two, 2, true));
-    assertEquals(List.of(new SortKey(4, false)),
+    assertEquals(
+        List.of(new SortKey(2, true), new SortKey(4, false)), DataGrid.nextSort(two, 2, true));
+    assertEquals(
+        List.of(new SortKey(4, false)),
         DataGrid.nextSort(List.of(new SortKey(2, true), new SortKey(4, false)), 2, true));
   }
 }

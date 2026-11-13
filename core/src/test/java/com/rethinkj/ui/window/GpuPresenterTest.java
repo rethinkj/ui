@@ -89,26 +89,30 @@ class GpuPresenterTest {
         AtomicReference<WindowLoop> next = new AtomicReference<>();
         Desktop.Redraws redraws = new Desktop.Redraws(); // frames the desktop asked for
         next.set(new WindowLoop(window, app, new WindowLoop.Presenter() {
-          @Override
-          public void present(Scene scene, float width, float height, float scale) {
-            redraws.asked();
-            gpu.present(scene, width, height, scale);
-          }
+              @Override
+              public void present(Scene scene, float width, float height, float scale) {
+                redraws.asked();
+                gpu.present(scene, width, height, scale);
+              }
 
-          @Override
-          public boolean pending() {
-            return gpu.pending();
-          }
-        }).listener(redraws).waits((millis, holdBack) -> {
-          if (millis == -1 && ++idle[0] == 1) {
-            Desktop.motion(window, 10, 10);
-          } else if (millis == -1 && idle[0] == 2) {
-            seen[0] = gpu.frames();
-            next.get().stop();
-          }
-        }));
+              @Override
+              public boolean pending() {
+                return gpu.pending();
+              }
+            })
+            .listener(redraws)
+            .waits((millis, holdBack) -> {
+              if (millis == -1 && ++idle[0] == 1) {
+                Desktop.motion(window, 10, 10);
+              } else if (millis == -1 && idle[0] == 2) {
+                seen[0] = gpu.frames();
+                next.get().stop();
+              }
+            }));
         Desktop.run(next.get(), "the new loop waits for events alone, twice");
-        assertEquals(animated + 1 + redraws.count(), seen[0],
+        assertEquals(
+            animated + 1 + redraws.count(),
+            seen[0],
             "the idle loop's first frame, and none for the move; " + redraws.count() + " redraws");
         assertEquals(uploads, gpu.atlasUploads(), "and no glyph is uploaded");
       }

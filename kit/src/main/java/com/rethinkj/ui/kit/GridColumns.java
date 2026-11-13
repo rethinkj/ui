@@ -34,9 +34,11 @@ final class GridColumns {
       return;
     }
     DataGrid.Options o = b.o;
-    if (o.onSort != null && b.columns.get(index).sortable() || b.filtering(index)
+    if (o.onSort != null && b.columns.get(index).sortable()
+        || b.filtering(index)
         || o.layout != null
-        || o.onFreeze != null || o.onResize != null) { // as items(b, index) has some
+        || o.onFreeze != null
+        || o.onResize != null) { // as items(b, index) has some
       cell.onSecondaryPress((x, y) -> {
         sel.headerColumn = index;
         sel.headerMenu.openAt(x, y);
@@ -60,7 +62,7 @@ final class GridColumns {
     if (sel.headerColumn < 0 || sel.headerColumn >= n) {
       sel.headerMenu.close();
     } else {
-      header.onSecondaryPress((x, y) -> { }); // beside the cells it opens nothing
+      header.onSecondaryPress((x, y) -> {}); // beside the cells it opens nothing
       Menu.contextMenu(b.t, header, sel.headerMenu, items(b, sel.headerColumn));
     }
     Layout l = b.o.layout;
@@ -68,9 +70,11 @@ final class GridColumns {
     if (at >= 0) {
       // Under the header cell it was opened from, or the one in its place once that is hidden: on
       // an element of its own, so that it and its focus stay while the columns change.
-      El anchor = el().key("chooser-anchor").absolute(b.xs[at], b.g.rowHeight())
+      El anchor = el().key("chooser-anchor")
+          .absolute(b.xs[at], b.g.rowHeight())
           .size(b.columns.get(at).width(), 0)
-          .overlay(chooser(b.t, l).side(Side.BOTTOM, Style.Align.START, b.t.space().xs()));
+          .overlay(
+              chooser(b.t, l).side(Side.BOTTOM, Style.Align.START, b.t.space().xs()));
       if (at < b.frozen) {
         anchor.fixedX();
       }
@@ -78,8 +82,10 @@ final class GridColumns {
     }
     if (sel.dragColumn >= 0 && sel.dropAt >= b.frozen && sel.dropAt <= n) {
       float line = b.t.size().indicator();
-      header.child(el().key("marker").absolute(b.xs[sel.dropAt] - line / 2, 0)
-          .size(line, b.g.rowHeight()).fill(b.t.accent().edge()));
+      header.child(el().key("marker")
+          .absolute(b.xs[sel.dropAt] - line / 2, 0)
+          .size(line, b.g.rowHeight())
+          .fill(b.t.accent().edge()));
     }
   }
 
@@ -90,15 +96,20 @@ final class GridColumns {
     List<Menu.Item> items = new ArrayList<>();
     if (o.onSort != null && column.sortable()) {
       boolean sorted = o.sort.stream().anyMatch(k -> k.column() == c);
-      items.add(Menu.item("Sort ascending",
-          () -> o.onSort.accept(List.of(new SortKey(c, false)))).icon(Symbol.ARROW_SORT_UP));
-      items.add(Menu.item("Sort descending",
-          () -> o.onSort.accept(List.of(new SortKey(c, true)))).icon(Symbol.ARROW_SORT_DOWN));
-      items.add(Menu.item("Clear sort", !sorted ? null : () -> o.onSort.accept(
-          o.sort.stream().filter(k -> k.column() != c).toList())));
+      items.add(Menu.item("Sort ascending", () -> o.onSort.accept(List.of(new SortKey(c, false))))
+          .icon(Symbol.ARROW_SORT_UP));
+      items.add(Menu.item("Sort descending", () -> o.onSort.accept(List.of(new SortKey(c, true))))
+          .icon(Symbol.ARROW_SORT_DOWN));
+      items.add(Menu.item(
+          "Clear sort",
+          !sorted
+              ? null
+              : () ->
+                  o.onSort.accept(o.sort.stream().filter(k -> k.column() != c).toList())));
     }
     if (b.filtering(c)) {
-      items.add(Menu.item("Filter…", () -> GridFilter.open(b, c)).icon(Symbol.FILTER)
+      items.add(Menu.item("Filter…", () -> GridFilter.open(b, c))
+          .icon(Symbol.FILTER)
           .shortcut("Alt+Down"));
     }
     List<Menu.Item> columns = new ArrayList<>();
@@ -109,8 +120,10 @@ final class GridColumns {
           .icon(Symbol.EYE_OFF));
     }
     if (o.onFreeze != null) {
-      columns.add(c < b.frozen ? Menu.item("Unfreeze columns", () -> o.onFreeze.accept(0))
-          : Menu.item("Freeze up to here", () -> o.onFreeze.accept(c + 1)).icon(Symbol.PIN));
+      columns.add(
+          c < b.frozen
+              ? Menu.item("Unfreeze columns", () -> o.onFreeze.accept(0))
+              : Menu.item("Freeze up to here", () -> o.onFreeze.accept(c + 1)).icon(Symbol.PIN));
     }
     if (o.onResize != null) {
       columns.add(Menu.item("Fit width", () -> o.onResize.resize(c, DataGrid.fit(b, c))));
@@ -119,10 +132,11 @@ final class GridColumns {
       Layout l = o.layout;
       int full = o.full[c];
       columns.add(Menu.item("Columns…", () -> {
-        l.from = full;
-        l.search = "";
-        l.chooser.open();
-      }).icon(Symbol.COLUMN_SINGLE));
+            l.from = full;
+            l.search = "";
+            l.chooser.open();
+          })
+          .icon(Symbol.COLUMN_SINGLE));
     }
     if (!items.isEmpty() && !columns.isEmpty()) {
       items.add(Menu.separator());
@@ -162,10 +176,14 @@ final class GridColumns {
 
   /** {@link DataGrid#columnsButton}. */
   static El button(Theme t, Layout l) {
-    El button = Button.button(t, Button.Variant.GHOST, Symbol.COLUMN_SINGLE, "Columns",
-        l::toggleChooser).key("columns-button").expanded(l.chooser.isOpen() && l.from < 0);
-    return button.overlay(l.chooser.isOpen() && l.from < 0
-        ? chooser(t, l).side(Side.BOTTOM, Style.Align.END, t.space().xs()) : null);
+    El button = Button.button(
+            t, Button.Variant.GHOST, Symbol.COLUMN_SINGLE, "Columns", l::toggleChooser)
+        .key("columns-button")
+        .expanded(l.chooser.isOpen() && l.from < 0);
+    return button.overlay(
+        l.chooser.isOpen() && l.from < 0
+            ? chooser(t, l).side(Side.BOTTOM, Style.Align.END, t.space().xs())
+            : null);
   }
 
   /**
@@ -175,8 +193,14 @@ final class GridColumns {
    */
   static El chooser(Theme t, Layout l) {
     String search = l.search.toLowerCase(Locale.ROOT).strip();
-    El list = col().key("columns").role("list").label("Columns").gap(t.space().xs())
-        .padding(t.space().xs(), t.space().s()).scroll().scrollbars(t.scrollbars())
+    El list = col()
+        .key("columns")
+        .role("list")
+        .label("Columns")
+        .gap(t.space().xs())
+        .padding(t.space().xs(), t.space().s())
+        .scroll()
+        .scrollbars(t.scrollbars())
         .maxSize(Float.POSITIVE_INFINITY, 10 * (t.size().control() - t.space().xs()));
     for (int full : l.order()) {
       String title = l.titles.get(full);
@@ -184,14 +208,19 @@ final class GridColumns {
         continue;
       }
       boolean shown = !l.isHidden(full);
-      list.child(Checkbox.checkbox(t, shown, title,
-              !shown || l.shownCount() > 1 ? () -> {
-                if (l.isHidden(full)) {
-                  l.show(full);
-                } else {
-                  l.hide(full);
-                }
-              } : null)
+      list.child(Checkbox.checkbox(
+              t,
+              shown,
+              title,
+              !shown || l.shownCount() > 1
+                  ? () -> {
+                    if (l.isHidden(full)) {
+                      l.show(full);
+                    } else {
+                      l.hide(full);
+                    }
+                  }
+                  : null)
           .key("show-" + full)
           .onKey(k -> {
             boolean up = k.name().equals("ArrowUp");
@@ -202,17 +231,31 @@ final class GridColumns {
             return true;
           }));
     }
-    El content = col().gap(t.space().s())
+    El content = col()
+        .gap(t.space().s())
         .child(Label.label(t, Label.Variant.STRONG, "Columns").role("heading").level(3));
     if (l.titles.size() > 8) {
-      content.child(TextField.withIcon(t, textField(t, l.search, "Search columns",
-          v -> l.search = v).key("search").w(t.size().field()).autofocus(), Symbol.SEARCH));
+      content.child(TextField.withIcon(
+          t,
+          textField(t, l.search, "Search columns", v -> l.search = v)
+              .key("search")
+              .w(t.size().field())
+              .autofocus(),
+          Symbol.SEARCH));
     }
-    content.child(list).child(Label.label(t, Label.Variant.MUTED, "Alt+↑ and Alt+↓ move one"))
-        .child(row().gap(t.space().s()).justify(Style.Content.END).children(
-            Button.button(t, Button.Variant.GHOST, "Show all",
-                l.shownCount() == l.titles.size() ? null : l::showAll),
-            Button.button(t, Button.Variant.SECONDARY, "Reset", l::reset)));
+    content
+        .child(list)
+        .child(Label.label(t, Label.Variant.MUTED, "Alt+↑ and Alt+↓ move one"))
+        .child(row()
+            .gap(t.space().s())
+            .justify(Style.Content.END)
+            .children(
+                Button.button(
+                    t,
+                    Button.Variant.GHOST,
+                    "Show all",
+                    l.shownCount() == l.titles.size() ? null : l::showAll),
+                Button.button(t, Button.Variant.SECONDARY, "Reset", l::reset)));
     return Popover.panel(t, l.chooser, "Columns", content).key("chooser");
   }
 }

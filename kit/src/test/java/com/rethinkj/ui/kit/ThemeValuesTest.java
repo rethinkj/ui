@@ -40,12 +40,40 @@ class ThemeValuesTest {
       Theme.Accent a = t.accent();
       write(out, "Accent(3) " + name, new Theme.Accent(a.color(), a.hover(), a.pressed()));
       Theme.Grid g = t.grid();
-      write(out, "Grid(12) " + name, new Theme.Grid(g.rowHeight(), g.minColumn(), g.maxColumn(),
-          g.handle(), g.mark(), g.header(), g.row(), g.stripe(), g.selected(),
-          g.selectedInactive(), g.cursor(), g.cursorWidth()));
+      write(
+          out,
+          "Grid(12) " + name,
+          new Theme.Grid(
+              g.rowHeight(),
+              g.minColumn(),
+              g.maxColumn(),
+              g.handle(),
+              g.mark(),
+              g.header(),
+              g.row(),
+              g.stripe(),
+              g.selected(),
+              g.selectedInactive(),
+              g.cursor(),
+              g.cursorWidth()));
       Theme.Surfaces s = t.surface();
-      write(out, "Theme(13) " + name, new Theme(s, t.text(), b, a, t.status(), t.space(),
-          t.radius(), t.type(), t.size(), t.motion(), g, t.scrollbars(), t.elevation()));
+      write(
+          out,
+          "Theme(13) " + name,
+          new Theme(
+              s,
+              t.text(),
+              b,
+              a,
+              t.status(),
+              t.space(),
+              t.radius(),
+              t.type(),
+              t.size(),
+              t.motion(),
+              g,
+              t.scrollbars(),
+              t.elevation()));
     }
     write(out, "Caption(2)", new Theme.Caption(0xFFC42B1C, 0xFFFFFFFF));
     String text = out.toString();
@@ -59,11 +87,11 @@ class ThemeValuesTest {
 
   private static void write(StringBuilder out, String path, Object value) {
     switch (value) {
-      case Integer i -> out.append(path).append(" = ").append(String.format("%08X", i))
-          .append('\n');
+      case Integer i ->
+        out.append(path).append(" = ").append(String.format("%08X", i)).append('\n');
       case Float f -> out.append(path).append(" = ").append(f).append('\n');
       case Double d -> out.append(path).append(" = ").append(d).append('\n');
-      case Supplier<?> s -> { }
+      case Supplier<?> s -> {}
       case List<?> list -> {
         for (int i = 0; i < list.size(); i++) {
           write(out, path + "[" + i + "]", list.get(i));

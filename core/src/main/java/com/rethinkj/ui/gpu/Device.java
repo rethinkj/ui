@@ -49,19 +49,27 @@ public final class Device extends GpuObject {
   private final Callbacks.DeviceEvents events;
   /** The id of the device's callback target; package-private for a test. */
   final long eventsId;
+
   private final Queue queue;
   private final Limits limits;
   /** Structs that every error scope pop reuses, for the life of the device. */
   private final Arena arena = Arena.ofConfined();
+
   private final MemorySegment popInfo;
   private final SegmentAllocator future;
   /** Error scopes pushed and not yet popped; popping one more ends the process. */
   private int scopes;
+
   private CommandEncoder recording;
   private final List<Surface> surfaces = new ArrayList<>();
 
-  Device(Instance instance, String label, MemorySegment handle, MemorySegment adapter,
-      Callbacks.DeviceEvents events, long eventsId) {
+  Device(
+      Instance instance,
+      String label,
+      MemorySegment handle,
+      MemorySegment adapter,
+      Callbacks.DeviceEvents events,
+      long eventsId) {
     super(instance, instance, label, handle);
     this.adapter = adapter;
     this.events = events;
@@ -121,8 +129,11 @@ public final class Device extends GpuObject {
       MemorySegment descriptor = arena.allocate(ShaderModuleDescriptor.LAYOUT);
       descriptor.set(ADDRESS, ShaderModuleDescriptor.NEXT_IN_CHAIN, source);
       Structs.string(descriptor, ShaderModuleDescriptor.LABEL, label, arena);
-      MemorySegment module = create("creating shader module", label,
-          () -> Wgpu.deviceCreateShaderModule(device, descriptor), Wgpu::shaderModuleRelease);
+      MemorySegment module = create(
+          "creating shader module",
+          label,
+          () -> Wgpu.deviceCreateShaderModule(device, descriptor),
+          Wgpu::shaderModuleRelease);
       return new ShaderModule(this, label, module);
     }
   }
@@ -145,15 +156,23 @@ public final class Device extends GpuObject {
       Structs.string(descriptor, BufferDescriptor.LABEL, label, arena);
       descriptor.set(JAVA_LONG, BufferDescriptor.USAGE, BufferUsage.bits(usages));
       descriptor.set(JAVA_LONG, BufferDescriptor.SIZE, size);
-      MemorySegment buffer = create("creating buffer", label,
-          () -> Wgpu.deviceCreateBuffer(device, descriptor), Wgpu::bufferRelease);
+      MemorySegment buffer = create(
+          "creating buffer",
+          label,
+          () -> Wgpu.deviceCreateBuffer(device, descriptor),
+          Wgpu::bufferRelease);
       return new Buffer(this, label, buffer, size, usages);
     }
   }
 
   /** A 2D texture with one mip level and one sample. */
-  public Texture createTexture(String label, int width, int height, TextureFormat format,
-      TextureUsage usage, TextureUsage... more) {
+  public Texture createTexture(
+      String label,
+      int width,
+      int height,
+      TextureFormat format,
+      TextureUsage usage,
+      TextureUsage... more) {
     return createTexture(label, width, height, 1, false, 1, format, EnumSet.of(usage, more));
   }
 
@@ -165,8 +184,14 @@ public final class Device extends GpuObject {
    *
    * @param levels from 1 to the number of halvings that leave a side of at least 1, plus 1
    */
-  public Texture createTexture(String label, int width, int height, int levels,
-      TextureFormat format, TextureUsage usage, TextureUsage... more) {
+  public Texture createTexture(
+      String label,
+      int width,
+      int height,
+      int levels,
+      TextureFormat format,
+      TextureUsage usage,
+      TextureUsage... more) {
     return createTexture(label, width, height, 1, false, levels, format, EnumSet.of(usage, more));
   }
 
@@ -177,13 +202,26 @@ public final class Device extends GpuObject {
    *
    * @param layers from 1 to {@link Limits#maxTextureArrayLayers}
    */
-  public Texture createTextureArray(String label, int width, int height, int layers,
-      TextureFormat format, TextureUsage usage, TextureUsage... more) {
+  public Texture createTextureArray(
+      String label,
+      int width,
+      int height,
+      int layers,
+      TextureFormat format,
+      TextureUsage usage,
+      TextureUsage... more) {
     return createTexture(label, width, height, layers, true, 1, format, EnumSet.of(usage, more));
   }
 
-  private Texture createTexture(String label, int width, int height, int layers, boolean array,
-      int levels, TextureFormat format, Set<TextureUsage> usages) {
+  private Texture createTexture(
+      String label,
+      int width,
+      int height,
+      int layers,
+      boolean array,
+      int levels,
+      TextureFormat format,
+      Set<TextureUsage> usages) {
     requireLabel(label);
     checkSize("texture '" + label + "'", width, height);
     int most = 32 - Integer.numberOfLeadingZeros(Math.max(width, height));
@@ -205,10 +243,13 @@ public final class Device extends GpuObject {
       Structs.Extent3D.set(descriptor, TextureDescriptor.SIZE, width, height, layers);
       descriptor.set(JAVA_INT, TextureDescriptor.FORMAT, format.value);
       descriptor.set(JAVA_INT, TextureDescriptor.MIP_LEVEL_COUNT, levels);
-      MemorySegment texture = create("creating texture", label,
-          () -> Wgpu.deviceCreateTexture(device, descriptor), Wgpu::textureRelease);
-      return new Texture(this, this, label, texture, width, height, layers, array, levels,
-          format, usages);
+      MemorySegment texture = create(
+          "creating texture",
+          label,
+          () -> Wgpu.deviceCreateTexture(device, descriptor),
+          Wgpu::textureRelease);
+      return new Texture(
+          this, this, label, texture, width, height, layers, array, levels, format, usages);
     }
   }
 
@@ -231,11 +272,12 @@ public final class Device extends GpuObject {
         switch (entry.type()) {
           case BindGroupLayout.BufferType buffer -> {
             e.set(JAVA_INT, BindGroupLayoutEntry.BUFFER_TYPE, buffer.value);
-            e.set(JAVA_LONG, BindGroupLayoutEntry.BUFFER_MIN_BINDING_SIZE,
-                entry.minBindingSize());
+            e.set(JAVA_LONG, BindGroupLayoutEntry.BUFFER_MIN_BINDING_SIZE, entry.minBindingSize());
           }
           case BindGroupLayout.TextureType texture -> {
-            e.set(JAVA_INT, BindGroupLayoutEntry.TEXTURE_SAMPLE_TYPE,
+            e.set(
+                JAVA_INT,
+                BindGroupLayoutEntry.TEXTURE_SAMPLE_TYPE,
                 Wgpu.TEXTURE_SAMPLE_TYPE_UNFILTERABLE_FLOAT);
             e.set(JAVA_INT, BindGroupLayoutEntry.TEXTURE_VIEW_DIMENSION, texture.viewDimension);
           }
@@ -245,7 +287,9 @@ public final class Device extends GpuObject {
       Structs.string(descriptor, BindGroupLayoutDescriptor.LABEL, label, arena);
       descriptor.set(JAVA_LONG, BindGroupLayoutDescriptor.ENTRY_COUNT, entries.length);
       descriptor.set(ADDRESS, BindGroupLayoutDescriptor.ENTRIES, array);
-      MemorySegment layout = create("creating bind group layout", label,
+      MemorySegment layout = create(
+          "creating bind group layout",
+          label,
           () -> Wgpu.deviceCreateBindGroupLayout(device, descriptor),
           Wgpu::bindGroupLayoutRelease);
       return new BindGroupLayout(this, label, layout, List.of(entries));
@@ -253,8 +297,8 @@ public final class Device extends GpuObject {
   }
 
   /** Binds buffers and texture views to the bindings of {@code layout}. */
-  public BindGroup createBindGroup(String label, BindGroupLayout layout,
-      BindGroup.Entry... entries) {
+  public BindGroup createBindGroup(
+      String label, BindGroupLayout layout, BindGroup.Entry... entries) {
     requireLabel(label);
     MemorySegment device = usable();
     MemorySegment layoutHandle = owned(layout).handle();
@@ -278,8 +322,11 @@ public final class Device extends GpuObject {
       descriptor.set(ADDRESS, BindGroupDescriptor.LAYOUT_HANDLE, layoutHandle);
       descriptor.set(JAVA_LONG, BindGroupDescriptor.ENTRY_COUNT, entries.length);
       descriptor.set(ADDRESS, BindGroupDescriptor.ENTRIES, array);
-      MemorySegment group = create("creating bind group", label,
-          () -> Wgpu.deviceCreateBindGroup(device, descriptor), Wgpu::bindGroupRelease);
+      MemorySegment group = create(
+          "creating bind group",
+          label,
+          () -> Wgpu.deviceCreateBindGroup(device, descriptor),
+          Wgpu::bindGroupRelease);
       return new BindGroup(this, label, group);
     }
   }
@@ -340,10 +387,11 @@ public final class Device extends GpuObject {
 
   /** Checks that {@code object} was created by this device. */
   <T extends GpuObject> T owned(T object) {
-    GpuObject owner = object instanceof TextureView view ? view.device
-        : object instanceof Texture texture ? texture.device
-        : object instanceof Buffer buffer ? buffer.device
-        : object.parent;
+    GpuObject owner = object instanceof TextureView view
+        ? view.device
+        : object instanceof Texture texture
+            ? texture.device
+            : object instanceof Buffer buffer ? buffer.device : object.parent;
     if (owner != this) {
       throw new IllegalArgumentException(object + " belongs to " + owner + ", not to " + this);
     }
@@ -362,7 +410,10 @@ public final class Device extends GpuObject {
    * Runs a create function inside error scopes. If they caught an error, the handle wgpu returned
    * anyway is released and the error thrown.
    */
-  MemorySegment create(String what, String label, Supplier<MemorySegment> function,
+  MemorySegment create(
+      String what,
+      String label,
+      Supplier<MemorySegment> function,
       Consumer<MemorySegment> release) {
     MemorySegment handle = MemorySegment.NULL;
     GpuException error;
@@ -436,8 +487,8 @@ public final class Device extends GpuObject {
         || events.scopeType == Wgpu.ERROR_TYPE_NO_ERROR) {
       return null;
     }
-    return new GpuException(GpuException.kindOf(events.scopeType), what, label,
-        events.scopeMessage);
+    return new GpuException(
+        GpuException.kindOf(events.scopeType), what, label, events.scopeMessage);
   }
 
   /** The adapter the device came from, which it keeps a reference to. */

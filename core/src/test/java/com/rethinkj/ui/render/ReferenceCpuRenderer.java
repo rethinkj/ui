@@ -66,8 +66,8 @@ final class ReferenceCpuRenderer {
     return frame;
   }
 
-  private static void rect(Scene scene, int i, float[] frame, int width, int height, double scale,
-      Blends blends) {
+  private static void rect(
+      Scene scene, int i, float[] frame, int width, int height, double scale, Blends blends) {
     double w = scene.get(i, Scene.WIDTH);
     double h = scene.get(i, Scene.HEIGHT);
     if (!(w > 0 && h > 0)) {
@@ -78,10 +78,12 @@ final class ReferenceCpuRenderer {
     double centerX = scene.get(i, Scene.X) + halfW;
     double centerY = scene.get(i, Scene.Y) + halfH;
     double[] radii = radii(scene, i, halfW, halfH);
-    double[] borders = {Math.max(scene.get(i, Scene.BORDER_WIDTH), 0),
-        Math.max(scene.get(i, Scene.BORDER_RIGHT), 0),
-        Math.max(scene.get(i, Scene.BORDER_BOTTOM), 0),
-        Math.max(scene.get(i, Scene.BORDER_LEFT), 0)};
+    double[] borders = {
+      Math.max(scene.get(i, Scene.BORDER_WIDTH), 0),
+      Math.max(scene.get(i, Scene.BORDER_RIGHT), 0),
+      Math.max(scene.get(i, Scene.BORDER_BOTTOM), 0),
+      Math.max(scene.get(i, Scene.BORDER_LEFT), 0)
+    };
     boolean border = borders[0] > 0 || borders[1] > 0 || borders[2] > 0 || borders[3] > 0;
     // The border lies inside the rectangle, and a side without one moves the fill's edge out by a
     // physical pixel; what remains for the fill may be empty.
@@ -133,11 +135,10 @@ final class ReferenceCpuRenderer {
             double ix = (px + 0.5) / scale - innerX;
             double iy = (py + 0.5) / scale - innerY;
             int c = corner(ix, iy);
-            double across = Math.min(Math.max(radii[c] - borders[c == 0 || c == 3 ? 3 : 1], 0),
-                innerHalfW);
+            double across =
+                Math.min(Math.max(radii[c] - borders[c == 0 || c == 3 ? 3 : 1], 0), innerHalfW);
             double down = Math.min(Math.max(radii[c] - borders[c < 2 ? 0 : 2], 0), innerHalfH);
-            fillShare =
-                coverage(distance(ix, iy, innerHalfW, innerHalfH, across, down), scale);
+            fillShare = coverage(distance(ix, iy, innerHalfW, innerHalfH, across, down), scale);
           }
         }
         int at = (py * width + px) * 4;
@@ -155,8 +156,8 @@ final class ReferenceCpuRenderer {
   }
 
   /** Draws a glyph's bitmap one texel to one physical pixel, with its coverage corrected. */
-  private static void glyph(Scene scene, int i, float[] frame, int width, int height,
-      double scale, Blends blends) {
+  private static void glyph(
+      Scene scene, int i, float[] frame, int width, int height, double scale, Blends blends) {
     int atlas = scene.getInt(i, Scene.ATLAS);
     int size = scene.getInt(i, Scene.ATLAS_SIZE);
     Atlas.Page page = scene.pages().get(scene.getInt(i, Scene.PAGE));
@@ -200,8 +201,8 @@ final class ReferenceCpuRenderer {
   }
 
   /** Draws an image: its texels sampled, with the coverage of its square rectangle and its clip. */
-  private static void image(Scene scene, int i, float[] frame, int width, int height,
-      double scale, Blends blends) {
+  private static void image(
+      Scene scene, int i, float[] frame, int width, int height, double scale, Blends blends) {
     double w = scene.get(i, Scene.WIDTH);
     double h = scene.get(i, Scene.HEIGHT);
     if (!(w > 0 && h > 0)) {
@@ -266,7 +267,8 @@ final class ReferenceCpuRenderer {
     double originY = scene.get(i, Scene.Y) * scale;
     double extentW = scene.get(i, Scene.WIDTH) * scale;
     double extentH = scene.get(i, Scene.HEIGHT) * scale;
-    if (Math.abs(extentW - width0) < 1e-3 && Math.abs(extentH - height0) < 1e-3
+    if (Math.abs(extentW - width0) < 1e-3
+        && Math.abs(extentH - height0) < 1e-3
         && Math.abs(originX - Math.floor(originX + 0.5)) < 1e-3
         && Math.abs(originY - Math.floor(originY + 0.5)) < 1e-3) {
       int w = image.levelWidth(0);
@@ -298,8 +300,8 @@ final class ReferenceCpuRenderer {
   }
 
   /** Level {@code k} at the point {@code u, v} of level 0, from its four texels around it. */
-  private static void bilinear(Image image, int k, int width0, int height0, double u, double v,
-      double[] out) {
+  private static void bilinear(
+      Image image, int k, int width0, int height0, double u, double v, double[] out) {
     int w = image.levelWidth(k);
     int h = image.levelHeight(k);
     double fx = u * w / width0 - 0.5;
@@ -326,8 +328,8 @@ final class ReferenceCpuRenderer {
   }
 
   /** Draws a shadow: its shape blurred, over the shape grown by three deviations. */
-  private static void shadow(Scene scene, int i, float[] frame, int width, int height,
-      double scale, Blends blends) {
+  private static void shadow(
+      Scene scene, int i, float[] frame, int width, int height, double scale, Blends blends) {
     double w = scene.get(i, Scene.WIDTH);
     double h = scene.get(i, Scene.HEIGHT);
     if (!(w > 0 && h > 0)) {
@@ -354,10 +356,10 @@ final class ReferenceCpuRenderer {
       double clipY = scene.clipGet(clip, Scene.Y);
       left = Math.max(left, (int) Math.floor(clipX * scale) - 1);
       top = Math.max(top, (int) Math.floor(clipY * scale) - 1);
-      right = Math.min(right,
-          (int) Math.ceil((clipX + scene.clipGet(clip, Scene.WIDTH)) * scale) + 1);
-      bottom = Math.min(bottom,
-          (int) Math.ceil((clipY + scene.clipGet(clip, Scene.HEIGHT)) * scale) + 1);
+      right =
+          Math.min(right, (int) Math.ceil((clipX + scene.clipGet(clip, Scene.WIDTH)) * scale) + 1);
+      bottom = Math.min(
+          bottom, (int) Math.ceil((clipY + scene.clipGet(clip, Scene.HEIGHT)) * scale) + 1);
     }
     for (int py = top; py < bottom; py++) {
       for (int px = left; px < right; px++) {
@@ -399,8 +401,8 @@ final class ReferenceCpuRenderer {
    * rounded rectangle centred on the origin: two crossed boxes, whose blur is exact, and the
    * quarter discs at their corners.
    */
-  static double shadow(double x, double y, double halfW, double halfH, double radius,
-      double sigma) {
+  static double shadow(
+      double x, double y, double halfW, double halfH, double radius, double sigma) {
     double straightW = halfW - radius;
     double straightH = halfH - radius;
     double wide = across(x, halfW, sigma);
@@ -421,8 +423,8 @@ final class ReferenceCpuRenderer {
    * With a radius per corner: the box, less each rounded corner's square, plus its quarter disc;
    * as the crossed boxes where all four are equal.
    */
-  static double shadow(double x, double y, double halfW, double halfH, double[] radii,
-      double sigma) {
+  static double shadow(
+      double x, double y, double halfW, double halfH, double[] radii, double sigma) {
     if (radii[1] == radii[0] && radii[2] == radii[0] && radii[3] == radii[0]) {
       return shadow(x, y, halfW, halfH, radii[0], sigma);
     }
@@ -435,7 +437,7 @@ final class ReferenceCpuRenderer {
         double straightH = halfH - r;
         coverage += quarter(sideX - (halfW - r), sideY - straightH, r, sigma)
             - (below(halfW - sideX, sigma) - below(halfW - r - sideX, sigma))
-            * (below(halfH - sideY, sigma) - below(straightH - sideY, sigma));
+                * (below(halfH - sideY, sigma) - below(straightH - sideY, sigma));
       }
     }
     return Math.min(coverage, 1);
@@ -484,8 +486,14 @@ final class ReferenceCpuRenderer {
    */
   static double erf(double x) {
     double a = Math.min(Math.abs(x), 4);
-    double p = 1 + a * (0.0705230784 + a * (0.0422820123 + a * (0.0092705272
-        + a * (0.0001520143 + a * (0.0002765672 + a * 0.0000430638)))));
+    double p = 1
+        + a
+            * (0.0705230784
+                + a
+                    * (0.0422820123
+                        + a
+                            * (0.0092705272
+                                + a * (0.0001520143 + a * (0.0002765672 + a * 0.0000430638)))));
     p *= p;
     p *= p;
     p *= p;
@@ -499,18 +507,20 @@ final class ReferenceCpuRenderer {
     double halfH = scene.clipGet(clip, Scene.HEIGHT) / 2;
     double dx = x - (scene.clipGet(clip, Scene.X) + halfW);
     double dy = y - (scene.clipGet(clip, Scene.Y) + halfH);
-    double radius = Math.clamp(scene.clipGet(clip, Scene.RADIUS + 4 * corner(dx, dy)), 0,
-        Math.min(halfW, halfH));
+    double radius = Math.clamp(
+        scene.clipGet(clip, Scene.RADIUS + 4 * corner(dx, dy)), 0, Math.min(halfW, halfH));
     return coverage(distance(dx, dy, halfW, halfH, radius, radius), scale);
   }
 
   /** The radii of the corners, top left, top right, bottom right, bottom left, clamped. */
   private static double[] radii(Scene scene, int i, double halfW, double halfH) {
     double most = Math.min(halfW, halfH);
-    return new double[] {Math.clamp(scene.get(i, Scene.RADIUS), 0, most),
-        Math.clamp(scene.get(i, Scene.RADIUS_TOP_RIGHT), 0, most),
-        Math.clamp(scene.get(i, Scene.RADIUS_BOTTOM_RIGHT), 0, most),
-        Math.clamp(scene.get(i, Scene.RADIUS_BOTTOM_LEFT), 0, most)};
+    return new double[] {
+      Math.clamp(scene.get(i, Scene.RADIUS), 0, most),
+      Math.clamp(scene.get(i, Scene.RADIUS_TOP_RIGHT), 0, most),
+      Math.clamp(scene.get(i, Scene.RADIUS_BOTTOM_RIGHT), 0, most),
+      Math.clamp(scene.get(i, Scene.RADIUS_BOTTOM_LEFT), 0, most)
+    };
   }
 
   /** The corner on the side of {@code x, y}: 0 top left, 1 top right, 2 bottom right, 3 bottom left. */
@@ -522,8 +532,8 @@ final class ReferenceCpuRenderer {
    * Signed distance to a rounded rectangle centred on the origin whose corner on the point's side
    * has the radius {@code rx} across and {@code ry} from top to bottom; negative inside.
    */
-  private static double distance(double x, double y, double halfW, double halfH, double rx,
-      double ry) {
+  private static double distance(
+      double x, double y, double halfW, double halfH, double rx, double ry) {
     if (rx == ry) {
       return distance(x, y, halfW, halfH, rx);
     }

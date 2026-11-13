@@ -69,8 +69,8 @@ class ColorsTest {
   void contrastAndLightnessAreWcagsAndCielabs() {
     assertEquals(21, Colors.contrast(Colors.BLACK, Colors.WHITE), 1e-12);
     assertEquals(1, Colors.contrast(0xFF777777, 0xFF777777), 1e-12);
-    assertEquals(Colors.contrast(0xFF3D6FE6, Colors.WHITE),
-        Colors.contrast(Colors.WHITE, 0xFF3D6FE6));
+    assertEquals(
+        Colors.contrast(0xFF3D6FE6, Colors.WHITE), Colors.contrast(Colors.WHITE, 0xFF3D6FE6));
     assertEquals(4.55, Colors.contrast(Colors.WHITE, 0xFF3D6FE6), 0.005);
     assertEquals(100, Colors.lightness(Colors.WHITE), 1e-9);
     assertEquals(0, Colors.lightness(Colors.BLACK), 1e-12);
@@ -87,8 +87,8 @@ class ColorsTest {
     assertEquals(a, Colors.mix(a, b, 0));
     assertEquals(b, Colors.mix(a, b, 1));
     for (int s = 0; s <= 255; s++) {
-      assertEquals(Colors.over(a, Colors.alpha(b, s / 255f)), Colors.mix(a, b, s / 255.0),
-          "share " + s);
+      assertEquals(
+          Colors.over(a, Colors.alpha(b, s / 255f)), Colors.mix(a, b, s / 255.0), "share " + s);
     }
     assertEquals(0x80FFFFFF, Colors.mix(0xFF000000, 0x00FFFFFF, 0.5) | 0x00FFFFFF);
   }
@@ -103,10 +103,14 @@ class ColorsTest {
   void theCalculationsThatWereRepeatedGiveTheSameBits() {
     for (int i = 0; i < 256; i++) {
       double c = i / 255.0;
-      assertEquals(Double.doubleToRawLongBits(oldLinear(c)),
-          Double.doubleToRawLongBits(Colors.linear(c)), "linear " + i);
-      assertEquals(Double.doubleToRawLongBits(oldLinear((i - 0.5) / 255.0)),
-          Double.doubleToRawLongBits(Colors.linear((i - 0.5) / 255.0)), "threshold " + i);
+      assertEquals(
+          Double.doubleToRawLongBits(oldLinear(c)),
+          Double.doubleToRawLongBits(Colors.linear(c)),
+          "linear " + i);
+      assertEquals(
+          Double.doubleToRawLongBits(oldLinear((i - 0.5) / 255.0)),
+          Double.doubleToRawLongBits(Colors.linear((i - 0.5) / 255.0)),
+          "threshold " + i);
     }
     for (int i = 0; i <= 4096; i++) {
       double l = i / 4096.0;
@@ -119,9 +123,9 @@ class ColorsTest {
       int overlay = random.nextInt();
       assertEquals(oldOver(base, overlay), Colors.over(base, overlay));
       if (Double.doubleToRawLongBits(oldContrast(base, overlay))
-          != Double.doubleToRawLongBits(Colors.contrast(base, overlay))
+              != Double.doubleToRawLongBits(Colors.contrast(base, overlay))
           || Double.doubleToRawLongBits(oldLightness(base))
-          != Double.doubleToRawLongBits(Colors.lightness(base))) {
+              != Double.doubleToRawLongBits(Colors.lightness(base))) {
         mathDiffers++;
       }
       // Math's and StrictMath's powers may differ in the last bit; never by more than that.

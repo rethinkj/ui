@@ -32,7 +32,8 @@ class GridEditTest {
 
   private static final Theme T = Theme.DARK;
 
-  @TempDir Path out;
+  @TempDir
+  Path out;
 
   @BeforeEach
   void textLibraries() {
@@ -70,11 +71,14 @@ class GridEditTest {
     Path folder = out.resolve(name);
     String text = Files.readString(Path.of("src/test/resources/scripts/edit.txt"));
     List<Path> files = Script.run(text, app, folder).stream()
-        .filter(f -> !f.toString().endsWith(".clipboard.txt")).toList();
+        .filter(f -> !f.toString().endsWith(".clipboard.txt"))
+        .toList();
     for (int i = 0; i < files.size(); i += 2) {
       String snap = files.get(i).getFileName().toString().replace(".png", "");
-      Golden.assertMatches("edit-" + name + "-" + snap,
-          Png.decode(Files.readAllBytes(files.get(i))), Files.readString(files.get(i + 1)));
+      Golden.assertMatches(
+          "edit-" + name + "-" + snap,
+          Png.decode(Files.readAllBytes(files.get(i))),
+          Files.readString(files.get(i + 1)));
     }
     assertEquals(14, files.size());
   }
@@ -87,7 +91,8 @@ class GridEditTest {
     ledger.changes.error(ledger.changes.changes().getFirst(), 2, "qty must be even");
     App<Ledger> app = start(ledger);
     run(app, "move #cell-2-2\nframe\nadvance 1\nframe\nadvance 1\nframe");
-    assertTrue(app.tree().dump().contains("role=tooltip label=\"qty must be even\""),
+    assertTrue(
+        app.tree().dump().contains("role=tooltip label=\"qty must be even\""),
         app.tree().dump());
     assertTrue(line(app, "cell-2-2").contains("invalid"), line(app, "cell-2-2"));
   }
@@ -166,8 +171,10 @@ class GridEditTest {
     assertNotNull(CellEditorTest.find(app, "editor"));
     // A double press opens it.
     run(app, "key Escape\nframe\npress #cell-5-1\npress #cell-5-1 clicks 2\nframe");
-    assertTrue(line(app, "field").contains("\"Radia Lovelace\"") || line(app, "field")
-        .contains(ledger.changes.cell(5, 1)), line(app, "field"));
+    assertTrue(
+        line(app, "field").contains("\"Radia Lovelace\"")
+            || line(app, "field").contains(ledger.changes.cell(5, 1)),
+        line(app, "field"));
   }
 
   @Test
@@ -228,9 +235,11 @@ class GridEditTest {
     Ledger ledger = new Ledger(T, 40);
     App<Ledger> app = ledger.app();
     app.textRendering(rendering); // the Windows one hints natively: its advances follow the scale
-    Script.run("size 640 260 scale " + scale + "\nframe\nfocus #ledger\nframe\n"
-        + "key ArrowDown\nkey ArrowRight\nkey ArrowRight\nframe\nkey Enter\nframe",
-        app, out);
+    Script.run(
+        "size 640 260 scale " + scale + "\nframe\nfocus #ledger\nframe\n"
+            + "key ArrowDown\nkey ArrowRight\nkey ArrowRight\nframe\nkey Enter\nframe",
+        app,
+        out);
     El field = CellEditorTest.find(app, "field");
     El text = CellEditorTest.find(app, "cell-1-3").children().getFirst();
     assertNotNull(field, app.tree().dump());
@@ -239,17 +248,20 @@ class GridEditTest {
     String cell = dump.substring(dump.indexOf("#cell-1-3 "));
     float textRight = rect(cell.substring(cell.indexOf('\n') + 1))[2]; // the cell's text
     // With room for the caret after the text, as the field scrolls its text otherwise.
-    assertTrue(field.width() >= text.width() + T.space().xs() - 0.5f, "the field "
-        + field.width() + " wide, its text "
-        + text.width() + " at " + scale + " with " + rendering);
-    assertTrue(right >= textRight, "it ends where the cell's text ends: " + right + ", "
-        + textRight);
+    assertTrue(
+        field.width() >= text.width() + T.space().xs() - 0.5f,
+        "the field "
+            + field.width() + " wide, its text "
+            + text.width() + " at " + scale + " with " + rendering);
+    assertTrue(
+        right >= textRight, "it ends where the cell's text ends: " + right + ", " + textRight);
   }
 
   /** The left and right edge of the first rectangle of a dump's line, in window coordinates. */
   private static float[] rect(String line) {
-    java.util.regex.Matcher m = java.util.regex.Pattern
-        .compile(" (-?[0-9.]+),(-?[0-9.]+) ([0-9.]+)x([0-9.]+)").matcher(line);
+    java.util.regex.Matcher m = java.util.regex.Pattern.compile(
+            " (-?[0-9.]+),(-?[0-9.]+) ([0-9.]+)x([0-9.]+)")
+        .matcher(line);
     assertTrue(m.find(), line);
     float x = Float.parseFloat(m.group(1));
     return new float[] {x, Float.parseFloat(m.group(2)), x + Float.parseFloat(m.group(3))};
@@ -294,8 +306,10 @@ class GridEditTest {
     App<Ledger> app = start(ledger);
     run(app, "press #cell-1-4\nframe"); // "false"
     run(app, "key Space\nframe\nkey Space\nframe\nkey Space\nframe\nkey Enter\nframe");
-    assertEquals(List.of("commit 1,4 true", "commit 1,4 null", "commit 1,4 false",
-        "commit 1,4 true"), ledger.log, "Enter switches it too");
+    assertEquals(
+        List.of("commit 1,4 true", "commit 1,4 null", "commit 1,4 false", "commit 1,4 true"),
+        ledger.log,
+        "Enter switches it too");
     assertNull(CellEditorTest.find(app, "editor"), "no editor");
     run(app, "type \"x\"\nframe");
     assertNull(CellEditorTest.find(app, "editor"), "letters do nothing");
@@ -326,8 +340,19 @@ class GridEditTest {
   @Test
   void aLongEnumerationFiltersItsChoicesAsTyped() throws IOException {
     Ledger ledger = new Ledger(T, 40);
-    ledger.choices = List.of("paid", "pending", "shipped", "refunded", "returned", "cancelled",
-        "on hold", "backordered", "disputed", "lost", "delivered", "archived");
+    ledger.choices = List.of(
+        "paid",
+        "pending",
+        "shipped",
+        "refunded",
+        "returned",
+        "cancelled",
+        "on hold",
+        "backordered",
+        "disputed",
+        "lost",
+        "delivered",
+        "archived");
     App<Ledger> app = start(ledger);
     run(app, "press #cell-0-5\nframe\nkey Enter\nframe\nadvance 1\nframe");
     assertEquals("field", app.focused().key(), "the field takes the keys");
@@ -365,8 +390,10 @@ class GridEditTest {
     run(app, "key Enter\nframe");
     assertEquals("commit 0,7 null", ledger.log.getLast());
 
-    run(app, "key Home\nkey ArrowRight\nkey ArrowRight\nkey ArrowRight\nframe\nkey F2\nframe\nkey Backspace\nkey Backspace\nkey Backspace\n"
-        + "key Backspace\nkey Backspace\nkey Backspace\nkey Enter\nframe");
+    run(
+        app,
+        "key Home\nkey ArrowRight\nkey ArrowRight\nkey ArrowRight\nframe\nkey F2\nframe\nkey Backspace\nkey Backspace\nkey Backspace\n"
+            + "key Backspace\nkey Backspace\nkey Backspace\nkey Enter\nframe");
     assertEquals("commit 1,3 null", ledger.log.getLast(), "amount allows NULL");
     run(app, "key ArrowUp\nkey ArrowLeft\nframe\nkey F2\nframe\nkey Backspace\nkey Enter\nframe");
     assertTrue(app.tree().dump().contains("role=alert label=\"A value is required\""));
@@ -376,8 +403,10 @@ class GridEditTest {
   void deleteClearsTheSelectionAndControlZeroSetsItNullInOneChange() throws IOException {
     Ledger ledger = new Ledger(T, 40);
     App<Ledger> app = start(ledger);
-    run(app, "press #cell-0-1\ndown #cell-0-1\nmove #cell-2-3\nup #cell-2-3\nframe\nkey Delete\n"
-        + "frame");
+    run(
+        app,
+        "press #cell-0-1\ndown #cell-0-1\nmove #cell-2-3\nup #cell-2-3\nframe\nkey Delete\n"
+            + "frame");
     // Customer is text without NULL: empty; qty is a number without NULL: left; amount NULL.
     assertEquals("", ledger.changes.cell(1, 1));
     assertEquals(Ledger.cell(1, 2), ledger.changes.cell(1, 2));
@@ -396,8 +425,10 @@ class GridEditTest {
   void pastedTextGoesFromTheCursorOnAndASingleValueIntoEverySelectedCell() throws IOException {
     Ledger ledger = new Ledger(T, 40);
     App<Ledger> app = start(ledger);
-    run(app, "clipboard \"Ann\\t7\\n\\\"B\\tC\\\"\\tx\\n\"\npress #cell-2-1\nframe\n"
-        + "key V control\nframe");
+    run(
+        app,
+        "clipboard \"Ann\\t7\\n\\\"B\\tC\\\"\\tx\\n\"\npress #cell-2-1\nframe\n"
+            + "key V control\nframe");
     assertEquals("Ann", ledger.changes.cell(2, 1));
     assertEquals("7", ledger.changes.cell(2, 2));
     assertEquals("B\tC", ledger.changes.cell(3, 1));
@@ -412,8 +443,7 @@ class GridEditTest {
   }
 
   @Test
-  void rowsAreAddedAfterTheCursorAndMarkedToBeDeletedAndTheChangesListThem()
-      throws IOException {
+  void rowsAreAddedAfterTheCursorAndMarkedToBeDeletedAndTheChangesListThem() throws IOException {
     Ledger ledger = new Ledger(T, 40);
     App<Ledger> app = start(ledger);
     run(app, "press #cell-1-1\nframe\nkey Insert\nframe");
@@ -428,7 +458,8 @@ class GridEditTest {
     assertTrue(line(app, "row-5").contains("value=\"deleted\""), line(app, "row-5"));
     run(app, "key F2\nframe");
     assertNull(CellEditorTest.find(app, "editor"), "a deleted row is not edited");
-    assertEquals(List.of(GridChanges.Kind.DELETE, GridChanges.Kind.INSERT),
+    assertEquals(
+        List.of(GridChanges.Kind.DELETE, GridChanges.Kind.INSERT),
         ledger.changes.changes().stream().map(GridChanges.Change::kind).toList());
     assertEquals(4, ledger.changes.changes().getFirst().key(), "the row's key");
     assertEquals(2, ledger.changes.count());
@@ -486,13 +517,15 @@ class GridEditTest {
     run(app, "key Enter\ntype \"Jr.\"\nkey Enter control\nframe");
     assertEquals("commit 0,1 Ada Lovelace\nJr.", ledger.log.getLast());
 
-    run(app, "key ArrowDown\nkey F2\nframe\ntype \" of the analytical engine\"\nkey Home\n"
-        + "frame\npress #expand\nframe\nadvance 1\nframe");
+    run(
+        app,
+        "key ArrowDown\nkey F2\nframe\ntype \" of the analytical engine\"\nkey Home\n"
+            + "frame\npress #expand\nframe\nadvance 1\nframe");
     assertTrue(line(app, "text").contains("focused caret 0"), line(app, "text"));
     run(app, "type \"Lady \"\nkey Enter control\nframe");
     String handed = ledger.log.getLast();
-    assertTrue(handed.startsWith("commit 1,1 Lady ") && handed.endsWith(" analytical engine"),
-        handed);
+    assertTrue(
+        handed.startsWith("commit 1,1 Lady ") && handed.endsWith(" analytical engine"), handed);
   }
 
   /** A value longer than its cell has a button in the editor that opens the field of lines. */
@@ -511,13 +544,13 @@ class GridEditTest {
     assertTrue(app.tree().dump().contains("role=dialog label=\"Edit customer\""));
     assertEquals("text", app.focused().key(), "the field of lines has the focus");
     run(app, "key Enter control\nframe");
-    assertEquals("commit 0,1 Ada Lovelace and the analytical engine of Charles Babbage",
+    assertEquals(
+        "commit 0,1 Ada Lovelace and the analytical engine of Charles Babbage",
         ledger.log.getLast());
   }
 
   @Test
-  void theEditorKeepsItsTextCaretAndFocusWhileDataArrivesAndItsRowScrollsAway()
-      throws IOException {
+  void theEditorKeepsItsTextCaretAndFocusWhileDataArrivesAndItsRowScrollsAway() throws IOException {
     Ledger ledger = new Ledger(T, 400);
     App<Ledger> app = start(ledger);
     run(app, "key F2\ntype \"!\"\nframe\nkey ArrowLeft\nframe");
@@ -538,8 +571,8 @@ class GridEditTest {
   @Test
   void anEditorOfTheAppsOwnTakesTheFocusAndTheGridsKeysEndIt() throws IOException {
     Ledger ledger = new Ledger(T, 40);
-    ledger.custom = (value, onChange) -> TextField.textField(T, value, onChange).key("mine")
-        .label("Own editor");
+    ledger.custom = (value, onChange) ->
+        TextField.textField(T, value, onChange).key("mine").label("Own editor");
     App<Ledger> app = start(ledger);
     run(app, "key F2\nframe\nframe");
     assertEquals("mine", app.focused().key(), app.tree().dump());
@@ -552,8 +585,10 @@ class GridEditTest {
   void theLastRowOfAMillionAndTheLastOfThreeHundredColumnsAreEdited() throws IOException {
     Ledger ledger = new Ledger(T, 1_000_000);
     App<Ledger> app = start(ledger);
-    run(app, "key End control\nframe\nkey Home\nkey ArrowRight\nframe\ntype \"Last\"\n"
-        + "key Enter\nframe");
+    run(
+        app,
+        "key End control\nframe\nkey Home\nkey ArrowRight\nframe\ntype \"Last\"\n"
+            + "key Enter\nframe");
     assertEquals("commit 999999,1 Last", ledger.log.getLast());
     assertEquals("Last", ledger.changes.cell(999_999, 1));
 
@@ -565,8 +600,11 @@ class GridEditTest {
     });
     orders.editable = true;
     App<Orders> wide = orders.app();
-    Script.run("size 560 240\nframe\nfocus #orders\nkey End control\nframe\ntype \"x\"\n"
-        + "key Enter\nframe", wide, out);
+    Script.run(
+        "size 560 240\nframe\nfocus #orders\nkey End control\nframe\ntype \"x\"\n"
+            + "key Enter\nframe",
+        wide,
+        out);
     assertEquals(List.of("999999,299 x"), log);
   }
 }

@@ -258,11 +258,11 @@ public final class Window implements AutoCloseable {
    *
    * @param display the name of the display, or null where the system gives none
    */
-  public record Placement(int x, int y, float width, float height, boolean maximized,
-      String display) {
+  public record Placement(
+      int x, int y, float width, float height, boolean maximized, String display) {
 
-    private static final Pattern LINE = Pattern.compile(
-        "(-?\\d+),(-?\\d+) (\\d+(?:\\.\\d+)?)x(\\d+(?:\\.\\d+)?)( maximized)?"
+    private static final Pattern LINE =
+        Pattern.compile("(-?\\d+),(-?\\d+) (\\d+(?:\\.\\d+)?)x(\\d+(?:\\.\\d+)?)( maximized)?"
             + "(?: display \"((?:[^\"\\\\]|\\\\.)*)\")?");
 
     public Placement {
@@ -274,8 +274,14 @@ public final class Window implements AutoCloseable {
     /** The line that {@link #parse} reads. */
     @Override
     public String toString() {
-      StringBuilder line = new StringBuilder().append(x).append(',').append(y).append(' ')
-          .append(number(width)).append('x').append(number(height));
+      StringBuilder line = new StringBuilder()
+          .append(x)
+          .append(',')
+          .append(y)
+          .append(' ')
+          .append(number(width))
+          .append('x')
+          .append(number(height));
       if (maximized) {
         line.append(" maximized");
       }
@@ -300,10 +306,13 @@ public final class Window implements AutoCloseable {
             + " 1200x720 maximized display \"Name\": " + line);
       }
       try {
-        String display = m.group(6) == null ? null
-            : m.group(6).replaceAll("\\\\(.)", "$1");
-        return new Placement(Integer.parseInt(m.group(1)), Integer.parseInt(m.group(2)),
-            Float.parseFloat(m.group(3)), Float.parseFloat(m.group(4)), m.group(5) != null,
+        String display = m.group(6) == null ? null : m.group(6).replaceAll("\\\\(.)", "$1");
+        return new Placement(
+            Integer.parseInt(m.group(1)),
+            Integer.parseInt(m.group(2)),
+            Float.parseFloat(m.group(3)),
+            Float.parseFloat(m.group(4)),
+            m.group(5) != null,
             display);
       } catch (NumberFormatException e) {
         throw new IllegalArgumentException("Not a window's placement: " + line, e);
@@ -340,9 +349,11 @@ public final class Window implements AutoCloseable {
   private static final ArrayDeque<Posted> pending = new ArrayDeque<>();
   /** What has to wait until no event is being delivered, such as the system menu. */
   private static final ArrayDeque<Runnable> deferred = new ArrayDeque<>();
+
   private static boolean dispatching;
   /** What an upcall caught, for {@link #rethrow}. */
   private static Throwable failure;
+
   private static MemorySegment buffer;
   private static MemorySegment ints;
   /** SDL's cursors by {@link Cursor#ordinal}, made on first use; SDL_Quit frees them. */
@@ -351,6 +362,7 @@ public final class Window implements AutoCloseable {
   private static Cursor cursorShown = Cursor.DEFAULT;
   /** What {@link #identity} set, for the next {@link #start}; guarded by {@link #LOCK}. */
   private static String appId;
+
   private static String appName;
   /** The appearance last delivered, or null before the first. */
   private static SystemAppearance appearance;
@@ -422,12 +434,14 @@ public final class Window implements AutoCloseable {
   private boolean pointerIn;
   /** What another application drops, as SDL hands it over until DROP_COMPLETE. */
   private final List<Path> dropFiles = new ArrayList<>();
+
   private StringBuilder dropText;
   private float pointerX;
   private float pointerY;
   private Cursor cursor = Cursor.DEFAULT;
   /** The text input area last set, in window coordinates, while text input is on; else null. */
   private int[] textInput;
+
   private boolean passwordInput; // whether the text input on is for a password
   // Text input on since a press or key that may take the focus to a field, until the loop says
   // whether one has it (textInputArea, stopTextInput); not on Windows: see textSoon.
@@ -481,11 +495,12 @@ public final class Window implements AutoCloseable {
     if (!(content > 0)) {
       content = 1;
     }
-    long flags = Sdl.WINDOW_HIDDEN | Sdl.WINDOW_HIGH_PIXEL_DENSITY
+    long flags = Sdl.WINDOW_HIDDEN
+        | Sdl.WINDOW_HIGH_PIXEL_DENSITY
         | (options.frameless ? Sdl.WINDOW_BORDERLESS : 0)
         | (options.resizable ? Sdl.WINDOW_RESIZABLE : 0);
-    MemorySegment sdl = Sdl.createWindow(
-        title, Math.round(width * content), Math.round(height * content), flags);
+    MemorySegment sdl =
+        Sdl.createWindow(title, Math.round(width * content), Math.round(height * content), flags);
     if (sdl.equals(MemorySegment.NULL)) {
       String error = Sdl.getError();
       stopIfUnused();
@@ -670,7 +685,10 @@ public final class Window implements AutoCloseable {
    * held with Control and without Alt.
    */
   void systemChar(char c) {
-    if (c >= 0x20 && c != 0x7F && charOfKey && lastKeyDown != null
+    if (c >= 0x20
+        && c != 0x7F
+        && charOfKey
+        && lastKeyDown != null
         && lastKeyDown.event instanceof KeyDown(Key key)
         && (key.modifiers() & (Key.CONTROL | Key.ALT)) == Key.ALT) {
       // A key held with Alt alone that makes a character (Alt with a letter makes WM_SYSCHAR,
@@ -678,8 +696,8 @@ public final class Window implements AutoCloseable {
       // Windows adds: say Control with Alt, as for AltGr elsewhere, so that no Alt shortcut
       // (a menu bar's Alt+Q, AltGr+Q being @ on a German keyboard) takes the key from the field
       // its character goes to.
-      lastKeyDown.event = new KeyDown(new Key(key.name(), key.modifiers() | Key.CONTROL,
-          key.repeat()));
+      lastKeyDown.event =
+          new KeyDown(new Key(key.name(), key.modifiers() | Key.CONTROL, key.repeat()));
     }
     if (textInput != null || !open) {
       highSurrogate = 0;
@@ -690,9 +708,12 @@ public final class Window implements AutoCloseable {
       return;
     }
     String text = Character.isLowSurrogate(c) && highSurrogate != 0
-        ? new String(new char[] {highSurrogate, c}) : String.valueOf(c);
+        ? new String(new char[] {highSurrogate, c})
+        : String.valueOf(c);
     highSurrogate = 0;
-    if (c < 0x20 || c == 0x7F || text.length() == 1 && Character.isSurrogate(c)
+    if (c < 0x20
+        || c == 0x7F
+        || text.length() == 1 && Character.isSurrogate(c)
         || afterControlKey) {
       return;
     }
@@ -730,21 +751,25 @@ public final class Window implements AutoCloseable {
   private void deliver(WindowEvent event) {
     WindowPart click = null;
     switch (event) {
-      case PointerDown down when down.button() == PointerButton.LEFT ->
-          pressed = button(part(down.x(), down.y()));
-      case PointerUp up when up.button() == PointerButton.LEFT -> {
+      case PointerDown down
+      when down.button() == PointerButton.LEFT -> pressed = button(part(down.x(), down.y()));
+      case PointerUp up
+      when up.button() == PointerButton.LEFT -> {
         WindowPart part = button(part(up.x(), up.y()));
         click = part != null && part == pressed ? part : null;
         pressed = null;
       }
       // A secondary press on a drag area is the system menu's, as on a system title bar: the
       // listener gets neither half, and the menu opens if it ends there too.
-      case PointerDown down when down.button() == PointerButton.RIGHT && frameless
+      case PointerDown down
+      when down.button() == PointerButton.RIGHT
+          && frameless
           && part(down.x(), down.y()) == WindowPart.DRAG -> {
         menuPress = true;
         return;
       }
-      case PointerUp up when up.button() == PointerButton.RIGHT && menuPress -> {
+      case PointerUp up
+      when up.button() == PointerButton.RIGHT && menuPress -> {
         menuPress = false;
         if (part(up.x(), up.y()) == WindowPart.DRAG) {
           // The menu runs a loop of its own; deliver the events before it first.
@@ -801,7 +826,9 @@ public final class Window implements AutoCloseable {
    * #systemChar}).
    */
   private void textSoon() {
-    if (textInput == null && !textSoon && !(handle instanceof WindowHandle.Win32)
+    if (textInput == null
+        && !textSoon
+        && !(handle instanceof WindowHandle.Win32)
         && Sdl.startTextInput(sdl)) {
       textSoon = true;
       passwordInput = false;
@@ -889,10 +916,13 @@ public final class Window implements AutoCloseable {
         }
       }
       // As the system reports it, so that natural scrolling is already applied.
-      case Sdl.EVENT_MOUSE_WHEEL -> post(wheel(e.get(JAVA_FLOAT, Sdl.WHEEL_X),
-          e.get(JAVA_FLOAT, Sdl.WHEEL_Y), logical(e.get(JAVA_FLOAT, Sdl.WHEEL_MOUSE_X)),
-          logical(e.get(JAVA_FLOAT, Sdl.WHEEL_MOUSE_Y)),
-          (Sdl.getModState() & Sdl.KMOD_SHIFT) != 0));
+      case Sdl.EVENT_MOUSE_WHEEL ->
+        post(wheel(
+            e.get(JAVA_FLOAT, Sdl.WHEEL_X),
+            e.get(JAVA_FLOAT, Sdl.WHEEL_Y),
+            logical(e.get(JAVA_FLOAT, Sdl.WHEEL_MOUSE_X)),
+            logical(e.get(JAVA_FLOAT, Sdl.WHEEL_MOUSE_Y)),
+            (Sdl.getModState() & Sdl.KMOD_SHIFT) != 0));
       case Sdl.EVENT_KEY_DOWN, Sdl.EVENT_KEY_UP -> {
         String key = Keys.name(e.get(JAVA_INT, Sdl.KEY_KEY));
         int modifiers = modifiers(e.get(JAVA_SHORT, Sdl.KEY_MOD));
@@ -924,7 +954,8 @@ public final class Window implements AutoCloseable {
         int start = e.get(JAVA_INT, Sdl.EDITING_START);
         post(new TextEditing(text, compositionCursor(text, start)));
       }
-      case Sdl.EVENT_WINDOW_RESIZED, Sdl.EVENT_WINDOW_PIXEL_SIZE_CHANGED,
+      case Sdl.EVENT_WINDOW_RESIZED,
+          Sdl.EVENT_WINDOW_PIXEL_SIZE_CHANGED,
           Sdl.EVENT_WINDOW_DISPLAY_SCALE_CHANGED -> {
         float oldWidth = width;
         float oldHeight = height;
@@ -969,8 +1000,9 @@ public final class Window implements AutoCloseable {
         dropFiles.clear();
         dropText = null;
       }
-      case Sdl.EVENT_DROP_POSITION -> post(new FileDragOver(
-          logical(e.get(JAVA_FLOAT, Sdl.DROP_X)), logical(e.get(JAVA_FLOAT, Sdl.DROP_Y))));
+      case Sdl.EVENT_DROP_POSITION ->
+        post(new FileDragOver(
+            logical(e.get(JAVA_FLOAT, Sdl.DROP_X)), logical(e.get(JAVA_FLOAT, Sdl.DROP_Y))));
       case Sdl.EVENT_DROP_FILE -> {
         String file = Sdl.string(e.get(ADDRESS, Sdl.DROP_DATA));
         try {
@@ -984,16 +1016,18 @@ public final class Window implements AutoCloseable {
       case Sdl.EVENT_DROP_TEXT -> {
         String text = Sdl.string(e.get(ADDRESS, Sdl.DROP_DATA));
         if (text != null) {
-          dropText = dropText == null ? new StringBuilder(text)
-              : dropText.append('\n').append(text);
+          dropText =
+              dropText == null ? new StringBuilder(text) : dropText.append('\n').append(text);
         }
       }
       case Sdl.EVENT_DROP_COMPLETE -> {
         if (dropFiles.isEmpty() && dropText == null) {
           post(new FileDragLeave());
         } else {
-          post(new FileDrop(logical(e.get(JAVA_FLOAT, Sdl.DROP_X)),
-              logical(e.get(JAVA_FLOAT, Sdl.DROP_Y)), dropFiles,
+          post(new FileDrop(
+              logical(e.get(JAVA_FLOAT, Sdl.DROP_X)),
+              logical(e.get(JAVA_FLOAT, Sdl.DROP_Y)),
+              dropFiles,
               dropFiles.isEmpty() ? dropText.toString() : null));
         }
         dropFiles.clear();
@@ -1044,8 +1078,8 @@ public final class Window implements AutoCloseable {
         return Sdl.HITTEST_NORMAL;
       }
       MemorySegment point = area.reinterpret(8);
-      return window.zone(window.logical(point.get(JAVA_INT, 0)),
-          window.logical(point.get(JAVA_INT, 4)));
+      return window.zone(
+          window.logical(point.get(JAVA_INT, 0)), window.logical(point.get(JAVA_INT, 4)));
     } catch (Throwable t) {
       fail(t);
       return Sdl.HITTEST_NORMAL;
@@ -1070,8 +1104,8 @@ public final class Window implements AutoCloseable {
       case CONTROL, MINIMIZE, MAXIMIZE, CLOSE -> true;
       case CONTENT, DRAG -> false;
     };
-    int edge = edge(x, y, width, height, control ? Math.min(margin, CONTROL_MARGIN) : margin,
-        2 * margin + 2);
+    int edge = edge(
+        x, y, width, height, control ? Math.min(margin, CONTROL_MARGIN) : margin, 2 * margin + 2);
     if (edge != Sdl.HITTEST_NORMAL) {
       return edge;
     }
@@ -1087,8 +1121,7 @@ public final class Window implements AutoCloseable {
   }
 
   /** As {@link #edge(float, float, float, float, float)}, with the corners' reach given. */
-  private static int edge(
-      float x, float y, float width, float height, float margin, float corner) {
+  private static int edge(float x, float y, float width, float height, float margin, float corner) {
     if (!(margin > 0)) {
       return Sdl.HITTEST_NORMAL;
     }
@@ -1217,8 +1250,10 @@ public final class Window implements AutoCloseable {
    */
   public boolean keepReachable() {
     checkOpen();
-    if (!knowsPositions() || (Sdl.getWindowFlags(sdl)
-        & (Sdl.WINDOW_MAXIMIZED | Sdl.WINDOW_MINIMIZED | Sdl.WINDOW_FULLSCREEN)) != 0) {
+    if (!knowsPositions()
+        || (Sdl.getWindowFlags(sdl)
+                & (Sdl.WINDOW_MAXIMIZED | Sdl.WINDOW_MINIMIZED | Sdl.WINDOW_FULLSCREEN))
+            != 0) {
       return false;
     }
     Sdl.getWindowPosition(sdl, ints);
@@ -1233,8 +1268,8 @@ public final class Window implements AutoCloseable {
     int[] bar = frame[0] > 0
         ? new int[] {x - frame[1], y - frame[0], w + frame[1] + frame[3], frame[0]}
         : dragArea(x, y);
-    int display = Sdl.displayForRect(x - frame[1], y - frame[0], w + frame[1] + frame[3],
-        h + frame[0] + frame[2]);
+    int display = Sdl.displayForRect(
+        x - frame[1], y - frame[0], w + frame[1] + frame[3], h + frame[0] + frame[2]);
     int[] area = display == 0 ? null : Sdl.displayBounds(display, true);
     if (area == null) {
       return false;
@@ -1257,14 +1292,20 @@ public final class Window implements AutoCloseable {
     checkOpen();
     rememberNormal(); // as it is now, unless maximized or minimized
     int display = Sdl.getDisplayForWindow(sdl);
-    return new Placement(normalX, normalY, normalWidth, normalHeight, isMaximized(),
+    return new Placement(
+        normalX,
+        normalY,
+        normalWidth,
+        normalHeight,
+        isMaximized(),
         display == 0 ? null : Sdl.displayName(display));
   }
 
   /** Keeps where the window is, if it is neither maximized nor minimized nor fullscreen. */
   private void rememberNormal() {
     if ((Sdl.getWindowFlags(sdl)
-        & (Sdl.WINDOW_MAXIMIZED | Sdl.WINDOW_MINIMIZED | Sdl.WINDOW_FULLSCREEN)) != 0) {
+            & (Sdl.WINDOW_MAXIMIZED | Sdl.WINDOW_MINIMIZED | Sdl.WINDOW_FULLSCREEN))
+        != 0) {
       return;
     }
     // While Windows maximizes a window, it moves and sizes it before SDL has the flag.
@@ -1293,8 +1334,8 @@ public final class Window implements AutoCloseable {
     }
     int w = units(width);
     int h = units(height);
-    int display = Sdl.displayForRect(x - frame[1], y - frame[0], w + frame[1] + frame[3],
-        h + frame[0] + frame[2]);
+    int display = Sdl.displayForRect(
+        x - frame[1], y - frame[0], w + frame[1] + frame[3], h + frame[0] + frame[2]);
     int[] area = display == 0 ? null : Sdl.displayBounds(display, true);
     if (area == null) {
       return;
@@ -1309,11 +1350,16 @@ public final class Window implements AutoCloseable {
     }
     // On no display at all, as when its display is gone: wholly into the nearest work area.
     int[] bounds = Sdl.displayBounds(display, false);
-    if (bounds != null && (x + w <= bounds[0] || x - frame[1] >= bounds[0] + bounds[2]
-        || y + h <= bounds[1] || y - frame[0] >= bounds[1] + bounds[3])) {
+    if (bounds != null
+        && (x + w <= bounds[0]
+            || x - frame[1] >= bounds[0] + bounds[2]
+            || y + h <= bounds[1]
+            || y - frame[0] >= bounds[1] + bounds[3])) {
       int left = area[0] + frame[1];
       int top = area[1] + frame[0];
-      Sdl.setWindowPosition(sdl, Math.clamp(x, left, Math.max(left, left + most - w)),
+      Sdl.setWindowPosition(
+          sdl,
+          Math.clamp(x, left, Math.max(left, left + most - w)),
           Math.clamp(y, top, Math.max(top, top + tallest - h)));
     }
   }
@@ -1344,8 +1390,7 @@ public final class Window implements AutoCloseable {
     if (top < 0) {
       return new int[] {x, y, units(width), units(Math.min(height, 32))};
     }
-    return new int[] {x + units(left), y + units(top), units(right - left),
-        units(bottom - top)};
+    return new int[] {x + units(left), y + units(top), units(right - left), units(bottom - top)};
   }
 
   /**
@@ -1585,11 +1630,13 @@ public final class Window implements AutoCloseable {
    */
   public boolean attention(Attention attention) {
     checkOpen();
-    return Sdl.flashWindow(sdl, switch (Objects.requireNonNull(attention, "attention")) {
-      case NONE -> Sdl.FLASH_CANCEL;
-      case BRIEFLY -> Sdl.FLASH_BRIEFLY;
-      case UNTIL_FOCUSED -> Sdl.FLASH_UNTIL_FOCUSED;
-    });
+    return Sdl.flashWindow(
+        sdl,
+        switch (Objects.requireNonNull(attention, "attention")) {
+          case NONE -> Sdl.FLASH_CANCEL;
+          case BRIEFLY -> Sdl.FLASH_BRIEFLY;
+          case UNTIL_FOCUSED -> Sdl.FLASH_UNTIL_FOCUSED;
+        });
   }
 
   /**
@@ -1689,8 +1736,8 @@ public final class Window implements AutoCloseable {
       default -> SystemAppearance.Scheme.UNKNOWN;
     };
     boolean windows = "windows".equals(Sdl.getCurrentVideoDriver());
-    return new SystemAppearance(scheme, windows ? Win32Shell.accent() : 0,
-        windows && Win32Shell.highContrast());
+    return new SystemAppearance(
+        scheme, windows ? Win32Shell.accent() : 0, windows && Win32Shell.highContrast());
   }
 
   /** A message said that the system's colours may have changed: tells the windows if they did. */
@@ -1728,16 +1775,17 @@ public final class Window implements AutoCloseable {
     }
     MemorySegment shape = cursors[cursor.ordinal()];
     if (shape == null) {
-      shape = Sdl.createSystemCursor(switch (cursor) {
-        case DEFAULT -> Sdl.SYSTEM_CURSOR_DEFAULT;
-        case POINTER -> Sdl.SYSTEM_CURSOR_POINTER;
-        case TEXT -> Sdl.SYSTEM_CURSOR_TEXT;
-        case NOT_ALLOWED -> Sdl.SYSTEM_CURSOR_NOT_ALLOWED;
-        case EW_RESIZE -> Sdl.SYSTEM_CURSOR_EW_RESIZE;
-        case NS_RESIZE -> Sdl.SYSTEM_CURSOR_NS_RESIZE;
-        case NWSE_RESIZE -> Sdl.SYSTEM_CURSOR_NWSE_RESIZE;
-        case NESW_RESIZE -> Sdl.SYSTEM_CURSOR_NESW_RESIZE;
-      });
+      shape = Sdl.createSystemCursor(
+          switch (cursor) {
+            case DEFAULT -> Sdl.SYSTEM_CURSOR_DEFAULT;
+            case POINTER -> Sdl.SYSTEM_CURSOR_POINTER;
+            case TEXT -> Sdl.SYSTEM_CURSOR_TEXT;
+            case NOT_ALLOWED -> Sdl.SYSTEM_CURSOR_NOT_ALLOWED;
+            case EW_RESIZE -> Sdl.SYSTEM_CURSOR_EW_RESIZE;
+            case NS_RESIZE -> Sdl.SYSTEM_CURSOR_NS_RESIZE;
+            case NWSE_RESIZE -> Sdl.SYSTEM_CURSOR_NWSE_RESIZE;
+            case NESW_RESIZE -> Sdl.SYSTEM_CURSOR_NESW_RESIZE;
+          });
       if (shape.equals(MemorySegment.NULL)) {
         return; // a video driver without cursors: the pointer keeps its shape
       }
@@ -1771,7 +1819,8 @@ public final class Window implements AutoCloseable {
     if (!Sdl.setTextInputArea(sdl, area[0], area[1], area[2], area[3], area[4])) {
       throw new IllegalStateException("SDL_SetTextInputArea failed: " + Sdl.getError());
     }
-    if (textInput == null && !textSoon
+    if (textInput == null
+        && !textSoon
         && !(password ? Sdl.startPasswordInput(sdl) : Sdl.startTextInput(sdl))) {
       throw new IllegalStateException("SDL_StartTextInput failed: " + Sdl.getError());
     }
@@ -1947,8 +1996,8 @@ public final class Window implements AutoCloseable {
       }
     }
     if (!Sdl.init(Sdl.INIT_VIDEO)) {
-      throw new IllegalStateException("Cannot open windows here: SDL_Init failed: "
-          + Sdl.getError());
+      throw new IllegalStateException(
+          "Cannot open windows here: SDL_Init failed: " + Sdl.getError());
     }
     if (buffer == null) {
       buffer = Arena.global().allocate(Sdl.EVENT_SIZE, 8);
@@ -1976,8 +2025,8 @@ public final class Window implements AutoCloseable {
     if (!System.getProperty("os.name", "").startsWith("Windows")) {
       return 5;
     }
-    int box = Math.max(Win32.getSystemMetrics(Win32.SM_CXDOUBLECLK),
-        Win32.getSystemMetrics(Win32.SM_CYDOUBLECLK));
+    int box = Math.max(
+        Win32.getSystemMetrics(Win32.SM_CXDOUBLECLK), Win32.getSystemMetrics(Win32.SM_CYDOUBLECLK));
     return box > 0 ? Math.max(1, box / 2) : 2;
   }
 
@@ -2060,15 +2109,18 @@ public final class Window implements AutoCloseable {
     int properties = Sdl.getWindowProperties(sdl);
     String driver = Sdl.getCurrentVideoDriver();
     return switch (driver == null ? "" : driver) {
-      case "windows" -> new WindowHandle.Win32(
-          Sdl.getPointerProperty(properties, Sdl.PROP_WINDOW_WIN32_HWND_POINTER),
-          Sdl.getPointerProperty(properties, Sdl.PROP_WINDOW_WIN32_INSTANCE_POINTER));
-      case "x11" -> new WindowHandle.Xlib(
-          Sdl.getPointerProperty(properties, Sdl.PROP_WINDOW_X11_DISPLAY_POINTER),
-          Sdl.getNumberProperty(properties, Sdl.PROP_WINDOW_X11_WINDOW_NUMBER));
-      case "wayland" -> new WindowHandle.Wayland(
-          Sdl.getPointerProperty(properties, Sdl.PROP_WINDOW_WAYLAND_DISPLAY_POINTER),
-          Sdl.getPointerProperty(properties, Sdl.PROP_WINDOW_WAYLAND_SURFACE_POINTER));
+      case "windows" ->
+        new WindowHandle.Win32(
+            Sdl.getPointerProperty(properties, Sdl.PROP_WINDOW_WIN32_HWND_POINTER),
+            Sdl.getPointerProperty(properties, Sdl.PROP_WINDOW_WIN32_INSTANCE_POINTER));
+      case "x11" ->
+        new WindowHandle.Xlib(
+            Sdl.getPointerProperty(properties, Sdl.PROP_WINDOW_X11_DISPLAY_POINTER),
+            Sdl.getNumberProperty(properties, Sdl.PROP_WINDOW_X11_WINDOW_NUMBER));
+      case "wayland" ->
+        new WindowHandle.Wayland(
+            Sdl.getPointerProperty(properties, Sdl.PROP_WINDOW_WAYLAND_DISPLAY_POINTER),
+            Sdl.getPointerProperty(properties, Sdl.PROP_WINDOW_WAYLAND_SURFACE_POINTER));
       default -> null;
     };
   }

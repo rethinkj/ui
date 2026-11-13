@@ -14,8 +14,7 @@ class SpringTest {
   static final double[] VELOCITIES = {-40, 0, 25};
 
   // Underdamped, critical, overdamped, and both sides of the band that counts as critical.
-  static final String REGIMES =
-      """
+  static final String REGIMES = """
       0.5,  0.6
       0.25, 0.15
       0.1,  0.3
@@ -117,7 +116,8 @@ class SpringTest {
   void rejectsParametersThatMakeNoSense() {
     for (double duration : new double[] {-0.1, Double.NaN, Double.POSITIVE_INFINITY}) {
       var e = assertThrows(IllegalArgumentException.class, () -> new Spring(duration, 0));
-      assertEquals("duration must be 0 or a positive finite number of seconds, was " + duration,
+      assertEquals(
+          "duration must be 0 or a positive finite number of seconds, was " + duration,
           e.getMessage());
     }
     for (double bounce : new double[] {-1, 1, 1.5, Double.NaN}) {

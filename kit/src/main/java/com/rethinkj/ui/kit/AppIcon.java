@@ -31,10 +31,18 @@ public final class AppIcon {
     int margin = Math.max(1, Math.round(size / 16f));
     int inner = size - 2 * margin;
     float glyph = Math.round(size * 0.625f);
-    return el().wFull().hFull().padding(margin)
-        .child(el().size(inner, inner).radius(inner * 0.2f).fill(fill).center()
+    return el().wFull()
+        .hFull()
+        .padding(margin)
+        .child(el().size(inner, inner)
+            .radius(inner * 0.2f)
+            .fill(fill)
+            .center()
             .child(El.text(Character.toString(symbol.codePoint(glyph)))
-                .font(Font.icons()).fontSize(glyph).color(t.text().onAccent()).shrink(0)));
+                .font(Font.icons())
+                .fontSize(glyph)
+                .color(t.text().onAccent())
+                .shrink(0)));
   }
 
   /**
@@ -46,7 +54,11 @@ public final class AppIcon {
    */
   public static El dot(Theme t, int size, int fill) {
     float ring = Math.max(1, Math.round(size / 8f));
-    return el().wFull().hFull().radius(size / 2f).fill(t.text().onAccent()).padding(ring)
+    return el().wFull()
+        .hFull()
+        .radius(size / 2f)
+        .fill(t.text().onAccent())
+        .padding(ring)
         .child(el().wFull().hFull().radius(size / 2f - ring).fill(fill));
   }
 
@@ -58,10 +70,18 @@ public final class AppIcon {
    */
   public static El count(Theme t, int size, int fill, int count) {
     String text = count > 99 ? "99+" : Integer.toString(Math.max(0, count));
-    float fontSize = Math.round(size * (text.length() == 1 ? 0.75f : text.length() == 2 ? 0.6f
-        : 0.45f));
-    return el().wFull().hFull().radius(size / 2f).fill(fill).center()
-        .child(El.text(text).font(Font.sansBold()).fontSize(fontSize).color(t.text().onAccent())
-            .textBackground(fill).shrink(0));
+    float fontSize =
+        Math.round(size * (text.length() == 1 ? 0.75f : text.length() == 2 ? 0.6f : 0.45f));
+    return el().wFull()
+        .hFull()
+        .radius(size / 2f)
+        .fill(fill)
+        .center()
+        .child(El.text(text)
+            .font(Font.sansBold())
+            .fontSize(fontSize)
+            .color(t.text().onAccent())
+            .textBackground(fill)
+            .shrink(0));
   }
 }

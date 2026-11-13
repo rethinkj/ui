@@ -40,8 +40,10 @@ public final class LightSwitch {
       return;
     }
     app.textRendering(TextRendering.platform());
-    Window.Options options = Identity.options(LightSwitch.class, "Lights", Identity.AMBER, Symbol.FLASH)
-        .frameless().minimumSize(240, 160);
+    Window.Options options = Identity.options(
+            LightSwitch.class, "Lights", Identity.AMBER, Symbol.FLASH)
+        .frameless()
+        .minimumSize(240, 160);
     try (Window window = Window.open("Lights", 360, 240, options);
         GpuPresenter presenter = new GpuPresenter(window)) {
       WindowLoop.run(window, app, presenter);
@@ -50,12 +52,22 @@ public final class LightSwitch {
 
   static El view(LightSwitch s) {
     Theme t = THEME;
-    El lamp = el().key("lamp").size(56, 56).radius(28).fill(s.on ? LAMP : t.surface().raised())
+    El lamp = el().key("lamp")
+        .size(56, 56)
+        .radius(28)
+        .fill(s.on ? LAMP : t.surface().raised())
         .motion(t.motion().move());
-    return col().wFull().hFull().fill(t.surface().window())
+    return col()
+        .wFull()
+        .hFull()
+        .fill(t.surface().window())
         .child(titleBar(t, "Lights", LAMP, Identity.maximized(s.app)))
-        .child(col().grow(1).center()
+        .child(col()
+            .grow(1)
+            .center()
             .child(Card.card(t, lamp, toggle(t, s.on, "Lamp", () -> s.on = !s.on))
-                .padding(t.space().xxl()).gap(t.space().xl()).align(Style.Align.CENTER)));
+                .padding(t.space().xxl())
+                .gap(t.space().xl())
+                .align(Style.Align.CENTER)));
   }
 }

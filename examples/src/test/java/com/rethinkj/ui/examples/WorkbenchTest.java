@@ -29,7 +29,8 @@ import org.junit.jupiter.api.io.TempDir;
 
 class WorkbenchTest {
 
-  @TempDir Path out;
+  @TempDir
+  Path out;
 
   /** Runs the example's {@code main} on {@code workbench.txt}; see {@link Snaps#check}. */
   @Test
@@ -37,30 +38,43 @@ class WorkbenchTest {
     Snaps.check("workbench", Workbench::main);
     assertTrue(Snaps.line("workbench", "workbench-refused", "#status")
         .contains("prod-eu: connection refused"));
-    assertTrue(Snaps.line("workbench", "workbench-light", "#status")
-        .endsWith("\"localhost/shop/public/orders · 1,000,000 rows\" 289,549 286x16"),
+    assertTrue(
+        Snaps.line("workbench", "workbench-light", "#status")
+            .endsWith("\"localhost/shop/public/orders · 1,000,000 rows\" 289,549 286x16"),
         "the message went after five seconds");
-    assertTrue(Snaps.line("workbench", "workbench-completion", "#option-0")
-        .contains("label=\"customer_id\"") && Snaps.line("workbench", "workbench-completion",
-        "#option-0").contains(" selected"), "the completions at the caret");
-    assertTrue(Snaps.line("workbench", "workbench-completion", "#position")
-        .contains("\"Ln 3, Col 9\""));
+    assertTrue(
+        Snaps.line("workbench", "workbench-completion", "#option-0")
+                .contains("label=\"customer_id\"")
+            && Snaps.line("workbench", "workbench-completion", "#option-0").contains(" selected"),
+        "the completions at the caret");
+    assertTrue(
+        Snaps.line("workbench", "workbench-completion", "#position").contains("\"Ln 3, Col 9\""));
     assertTrue(Snaps.line("workbench", "workbench-error", "#status")
         .contains("relation \\\"shop.public.ordrs\\\" does not exist"));
     assertTrue(Snaps.line("workbench", "workbench-edit-menu", "#title-1").contains("expanded"));
-    assertTrue(Snaps.line("workbench", "orders-workbench-torn", "#status")
-        .contains("\"localhost/shop/public/orders · 5 rows\""), "the answer in the torn window");
+    assertTrue(
+        Snaps.line("workbench", "orders-workbench-torn", "#status")
+            .contains("\"localhost/shop/public/orders · 5 rows\""),
+        "the answer in the torn window");
     assertTrue(Snaps.line("workbench", "workbench-docking", "#marker").startsWith("el #marker"));
-    assertTrue(Snaps.line("workbench", "workbench-find", "#count").contains("\"1 of 2\""),
+    assertTrue(
+        Snaps.line("workbench", "workbench-find", "#count").contains("\"1 of 2\""),
         "the query's find bar: the O of FROM and the o of orders");
-    assertTrue(Snaps.line("workbench", "workbench-edit-menu", "#item-12")
-        .contains("label=\"Go to line…\""), "the editor's commands in the Edit menu");
-    assertTrue(Snaps.line("workbench", "workbench-palette", "#option-0")
-        .contains("label=\"File: New query\""), "the menus' commands in the palette");
-    assertTrue(Snaps.line("workbench", "workbench-palette-tables", "#option-0")
-        .contains("label=\"orders.customer_id\""), "a column of orders after @");
-    assertTrue(Snaps.line("workbench", "workbench-palette-light", "#option-1")
-        .contains(" selected"), "the light theme lit and shown");
+    assertTrue(
+        Snaps.line("workbench", "workbench-edit-menu", "#item-12")
+            .contains("label=\"Go to line…\""),
+        "the editor's commands in the Edit menu");
+    assertTrue(
+        Snaps.line("workbench", "workbench-palette", "#option-0")
+            .contains("label=\"File: New query\""),
+        "the menus' commands in the palette");
+    assertTrue(
+        Snaps.line("workbench", "workbench-palette-tables", "#option-0")
+            .contains("label=\"orders.customer_id\""),
+        "a column of orders after @");
+    assertTrue(
+        Snaps.line("workbench", "workbench-palette-light", "#option-1").contains(" selected"),
+        "the light theme lit and shown");
     assertFalse(Files.exists(Path.of("target/workbench/orders-workbench-docked.png")));
   }
 
@@ -130,8 +144,11 @@ class WorkbenchTest {
     }
     orders.query = lines + "\n  0);";
     String field = "query-localhost/shop/public/orders";
-    Script.run("size 1000 600\nframe\nfocus #" + field + "\nkey End control\ntype \" -- x\"\n"
-        + "key ArrowLeft shift\nframe", app, out);
+    Script.run(
+        "size 1000 600\nframe\nfocus #" + field + "\nkey End control\ntype \" -- x\"\n"
+            + "key ArrowLeft shift\nframe",
+        app,
+        out);
     int caret = orders.editor.caret();
     int anchor = orders.editor.anchor();
     double scrolled = find(app.tree(), field).scrollY();
@@ -174,14 +191,16 @@ class WorkbenchTest {
 
     Workbench.Opened customers = s.groups.main().activeTab();
     customers.query = "SELECT *\nFROM customers\nLIMIT 3;";
-    Script.run("size 1000 600\nframe\nkey F1\nframe\ntype \":3:4\"\nframe\nkey Enter\nframe",
-        app, out);
-    assertEquals(customers.query.indexOf("LIMIT") + 3, customers.editor.caret(),
-        "line 3, column 4");
+    Script.run(
+        "size 1000 600\nframe\nkey F1\nframe\ntype \":3:4\"\nframe\nkey Enter\nframe", app, out);
+    assertEquals(
+        customers.query.indexOf("LIMIT") + 3, customers.editor.caret(), "line 3, column 4");
     assertTrue(app.tree().dump().contains("Ln 3, Col 4"), "the footer says so");
 
-    Script.run("size 1000 600\nkey P control shift\nframe\ntype \"light\"\nframe\nkey Enter\n"
-        + "frame", app, out);
+    Script.run(
+        "size 1000 600\nkey P control shift\nframe\ntype \"light\"\nframe\nkey Enter\n" + "frame",
+        app,
+        out);
     assertFalse(s.dark, "View: Light theme ran");
     assertEquals(List.of("View: Light theme"), s.palette(s.groups.main()).recent());
 
@@ -202,7 +221,8 @@ class WorkbenchTest {
         key Enter
         frame
         """, app, out);
-    assertTrue(s.groups.groups().size() == 1, "File: Close tab closed its last tab, and its window");
+    assertTrue(
+        s.groups.groups().size() == 1, "File: Close tab closed its last tab, and its window");
     assertTrue(s.palette(s.groups.main()).recent().size() == 1, "each window has its own");
   }
 
@@ -213,8 +233,11 @@ class WorkbenchTest {
     Script.run(OPEN_ORDERS, app, out);
     Workbench.Opened orders = s.tables().getFirst();
     orders.query = "SELECT * FROM shop.public.ordrs";
-    Script.run("size 1000 600\nframe\nfocus #query-localhost/shop/public/orders\n"
-        + "key Enter control\nframe\nawait\nframe", app, out);
+    Script.run(
+        "size 1000 600\nframe\nfocus #query-localhost/shop/public/orders\n"
+            + "key Enter control\nframe\nawait\nframe",
+        app,
+        out);
     assertEquals("relation \"shop.public.ordrs\" does not exist", orders.failure);
     assertEquals(1_000_000, orders.rows, "the rows of before stay");
     assertTrue(app.tree().dump().contains("does not exist"), "the status line says why");
@@ -230,8 +253,11 @@ class WorkbenchTest {
     Workbench.Opened orders = s.tables().getFirst();
     orders.query = "SELECT * FROM shop.public.ordrs";
     // Control+Enter twice before the answer: the second question cancels the first.
-    Script.run("size 1000 600\nframe\nfocus #query-localhost/shop/public/orders\n"
-        + "key Enter control\nframe\nkey Enter control\nframe\nawait\nframe", app, out);
+    Script.run(
+        "size 1000 600\nframe\nfocus #query-localhost/shop/public/orders\n"
+            + "key Enter control\nframe\nkey Enter control\nframe\nawait\nframe",
+        app,
+        out);
     assertEquals("relation \"shop.public.ordrs\" does not exist", orders.failure);
     assertEquals(1_000_000, orders.rows, "the rows of before stay, not \"counting the rows\"");
   }
@@ -251,7 +277,9 @@ class WorkbenchTest {
   private static Workbench.Node table(Workbench s, String name) {
     Workbench.Node shop = s.servers.getFirst().children.get(1);
     return shop.children.getFirst().children.stream()
-        .filter(n -> n.name.equals(name)).findFirst().orElseThrow();
+        .filter(n -> n.name.equals(name))
+        .findFirst()
+        .orElseThrow();
   }
 
   private static El find(El el, String key) {
@@ -317,8 +345,9 @@ class WorkbenchTest {
         .matcher(window.tree().dump());
     assertTrue(status.find(), window.tree().dump());
     float bottom = Integer.parseInt(status.group(2)) + Integer.parseInt(status.group(4));
-    assertTrue(bottom <= window.tree().height(), "the status line ends at " + bottom
-        + ", in a window " + window.tree().height() + " high");
+    assertTrue(
+        bottom <= window.tree().height(),
+        "the status line ends at " + bottom + ", in a window " + window.tree().height() + " high");
   }
 
   /**
@@ -354,7 +383,8 @@ class WorkbenchTest {
     assertTrue(torn != app && s.groups.groups().size() == 2, s.groups.groups().toString());
     assertEquals(List.of(s.start), s.groups.main().tabs(), "Start alone in the first window");
     assertEquals(1_000_000, orders.rows, "the answer arrived");
-    assertTrue(torn.tree().dump().contains("localhost/shop/public/orders · 1,000,000 rows"),
+    assertTrue(
+        torn.tree().dump().contains("localhost/shop/public/orders · 1,000,000 rows"),
         "in the tab's window");
     String query = orders.query;
     int caret = orders.editor.caret();
@@ -488,8 +518,11 @@ class WorkbenchTest {
     Script.run("size 1000 600\nawait\nframe", app, out);
     assertEquals(3, orders.rows);
 
-    Script.run("size 1000 600\nkey Enter control\nframe\n" + MOVE_ORDERS_OUT
-        + "window orders\nkey W control\nframe\nawait\nframe\nwindow main", app, out);
+    Script.run(
+        "size 1000 600\nkey Enter control\nframe\n" + MOVE_ORDERS_OUT
+            + "window orders\nkey W control\nframe\nawait\nframe\nwindow main",
+        app,
+        out);
     assertTrue(s.tables().isEmpty(), "closed");
     assertEquals(1, app.windows().all().size(), "with its window");
     assertEquals(-1, orders.rows, "its question given up");
@@ -545,8 +578,11 @@ class WorkbenchTest {
     Workbench s = app.state();
     Script.run(OPEN_ORDERS, app, out);
     Workbench.Opened orders = s.tables().getFirst();
-    Script.run("size 1000 600\nfocus #query-localhost/shop/public/orders\nkey Enter control\n"
-        + "frame\n" + MOVE_ORDERS_OUT + "window main\nclose\nframe", app, out);
+    Script.run(
+        "size 1000 600\nfocus #query-localhost/shop/public/orders\nkey Enter control\n" + "frame\n"
+            + MOVE_ORDERS_OUT + "window main\nclose\nframe",
+        app,
+        out);
     assertTrue(app.windows().all().isEmpty());
     assertTrue(orders.asking == null || orders.rows < 0);
     assertEquals(-1, orders.rows, "its question given up");
@@ -615,7 +651,9 @@ class WorkbenchTest {
     assertFalse(dump(app).contains("#changes"));
 
     Script.run("size 1000 600\nkey N control\nframe\nawait\nframe", app, out);
-    assertEquals("1.00", s.tables().get(1).changes.cell(0, 3),
+    assertEquals(
+        "1.00",
+        s.tables().get(1).changes.cell(0, 3),
         "another tab of the table shows what was written");
   }
 
@@ -629,16 +667,22 @@ class WorkbenchTest {
     Workbench s = app.state();
     Script.run(OPEN_ORDERS, app, out);
     Workbench.Opened orders = s.tables().getFirst();
-    Script.run("size 1000 600\npress #cell-0-5\nkey Enter\nframe\nkey A control\n"
-        + "type \"x@example.com\"\nframe\nkey S control\nframe", app, out);
+    Script.run(
+        "size 1000 600\npress #cell-0-5\nkey Enter\nframe\nkey A control\n"
+            + "type \"x@example.com\"\nframe\nkey S control\nframe",
+        app,
+        out);
     assertFalse(orders.selection.isEditing());
     assertNotNull(orders.committing, "on its way, with what was typed");
     Script.run("size 1000 600\nawait\nframe", app, out);
     assertEquals("x@example.com", s.stored.get("localhost/shop/public/orders").value(0, 5));
 
     // A day that does not exist: the editor stays with its message, and nothing goes on.
-    Script.run("size 1000 600\nkey ArrowRight\nkey ArrowRight\nframe\n"
-        + "type \"2026-02-30 10:00\"\nframe\nkey S control\nframe", app, out);
+    Script.run(
+        "size 1000 600\nkey ArrowRight\nkey ArrowRight\nframe\n"
+            + "type \"2026-02-30 10:00\"\nframe\nkey S control\nframe",
+        app,
+        out);
     assertTrue(orders.selection.isEditing());
     assertEquals("2026-02-30 10:00", orders.selection.draft());
     assertNull(orders.committing);
@@ -649,8 +693,11 @@ class WorkbenchTest {
     assertTrue(orders.selection.isEditing());
 
     // A value that is taken becomes a change, which closing the tab asks about.
-    Script.run("size 1000 600\nkey Escape\nframe\ntype \"2026-02-28 10:00\"\nframe\n"
-        + "key W control\nframe\nadvance 0.25\nframe", app, out);
+    Script.run(
+        "size 1000 600\nkey Escape\nframe\ntype \"2026-02-28 10:00\"\nframe\n"
+            + "key W control\nframe\nadvance 0.25\nframe",
+        app,
+        out);
     assertFalse(orders.selection.isEditing());
     assertEquals(1, orders.changes.count());
     assertNotNull(s.question, "asked whether to commit or discard it");
@@ -677,8 +724,8 @@ class WorkbenchTest {
 
     Script.run(close + "press #discard\nframe", app, out);
     assertTrue(s.tables().isEmpty(), "customers closed");
-    assertNull(s.stored.get("localhost/shop/public/customers").written.get(0L),
-        "without its change");
+    assertNull(
+        s.stored.get("localhost/shop/public/customers").written.get(0L), "without its change");
   }
 
   /** Run asks about the changes of its tab, and closing the first window about every tab's. */
@@ -699,8 +746,11 @@ class WorkbenchTest {
     changed(app);
     Script.run("size 1000 600\nframe\nclose\nframe\nadvance 0.25\nframe", app, out);
     assertTrue(dump(app).contains("orders (1), customers (1) have changes"), dump(app));
-    Script.run("size 1000 600\npress #keep\nframe\nclose\nframe\nadvance 0.25\nframe\n"
-        + "press #commit-changes\nframe", app, out);
+    Script.run(
+        "size 1000 600\npress #keep\nframe\nclose\nframe\nadvance 0.25\nframe\n"
+            + "press #commit-changes\nframe",
+        app,
+        out);
     assertFalse(app.windows().all().isEmpty(), "open until the server took them");
     Script.run("size 1000 600\nawait\nframe", app, out);
     assertTrue(app.windows().all().isEmpty(), "closed once both were written");
@@ -713,8 +763,11 @@ class WorkbenchTest {
     Workbench s = app.state();
     Script.run(OPEN_ORDERS, app, out);
     Workbench.Opened orders = s.tables().getFirst();
-    Script.run("size 1000 600\npress #cell-0-5\nkey Enter\nframe\nkey A control\n"
-        + "type \"x@example.com\"\nkey Enter\nframe", app, out);
+    Script.run(
+        "size 1000 600\npress #cell-0-5\nkey Enter\nframe\nkey A control\n"
+            + "type \"x@example.com\"\nkey Enter\nframe",
+        app,
+        out);
     assertEquals(1, orders.changes.count());
     Script.run(MOVE_ORDERS_OUT, app, out);
     App<Workbench> window = windowOf(s, orders);

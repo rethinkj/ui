@@ -60,8 +60,8 @@ public final class Manual {
    *
    * @param folder where its images are, null for the manual's resources
    */
-  record Doc(String title, Symbol icon, MarkdownDocument document, Markdown.State selection,
-      Path folder) {
+  record Doc(
+      String title, Symbol icon, MarkdownDocument document, Markdown.State selection, Path folder) {
     Doc(String title, Symbol icon, String source, Path folder) {
       this(title, icon, Markdown.parse(source), new Markdown.State(), folder);
     }
@@ -76,6 +76,7 @@ public final class Manual {
   App<Manual> app;
   /** The images read so far, by document and address, and those asked for. */
   final Map<String, Image> images = new HashMap<>();
+
   private final Set<String> asked = new HashSet<>();
 
   Manual(List<Path> files) {
@@ -83,7 +84,10 @@ public final class Manual {
     docs.add(new Doc("Changelog", Symbol.HISTORY, changelog(), null));
     for (Path file : files) {
       try {
-        docs.add(new Doc(file.getFileName().toString(), Symbol.DOCUMENT, Files.readString(file),
+        docs.add(new Doc(
+            file.getFileName().toString(),
+            Symbol.DOCUMENT,
+            Files.readString(file),
             file.toAbsolutePath().getParent()));
       } catch (IOException e) {
         throw new UncheckedIOException("Cannot read " + file, e);
@@ -112,17 +116,21 @@ public final class Manual {
     String key = doc.title() + "\n" + source;
     if (app != null && !source.contains(":") && asked.add(key)) {
       Path folder = doc.folder();
-      app.background("image " + source, () -> {
-        if (folder != null) {
-          return Image.decode(Files.readAllBytes(folder.resolve(source)));
-        }
-        try (InputStream in = Manual.class.getResourceAsStream("manual/" + source)) {
-          if (in == null) {
-            throw new IOException("No image " + source);
-          }
-          return Image.decode(in.readAllBytes(), 2);
-        }
-      }, image -> images.put(key, image), failure -> {}); // the placeholder stays
+      app.background(
+          "image " + source,
+          () -> {
+            if (folder != null) {
+              return Image.decode(Files.readAllBytes(folder.resolve(source)));
+            }
+            try (InputStream in = Manual.class.getResourceAsStream("manual/" + source)) {
+              if (in == null) {
+                throw new IOException("No image " + source);
+              }
+              return Image.decode(in.readAllBytes(), 2);
+            }
+          },
+          image -> images.put(key, image),
+          failure -> {}); // the placeholder stays
     }
     return images.get(key);
   }
@@ -138,15 +146,17 @@ public final class Manual {
       return resource("changelog.md");
     }
     try (Stream<Path> files = Files.list(folder)) {
-      List<Path> entries = files.filter(f -> f.toString().endsWith(".md")).sorted().toList()
-          .reversed();
-      return changelog(entries.stream().map(f -> {
-        try {
-          return Files.readString(f);
-        } catch (IOException e) {
-          throw new UncheckedIOException(e);
-        }
-      }).toList());
+      List<Path> entries =
+          files.filter(f -> f.toString().endsWith(".md")).sorted().toList().reversed();
+      return changelog(entries.stream()
+          .map(f -> {
+            try {
+              return Files.readString(f);
+            } catch (IOException e) {
+              throw new UncheckedIOException(e);
+            }
+          })
+          .toList());
     } catch (IOException e) {
       throw new UncheckedIOException(e);
     }
@@ -157,8 +167,10 @@ public final class Manual {
     StringBuilder out = new StringBuilder("# Changelog\n\nWhat changed since the last release,"
         + " for users of the library.\n\n## Unreleased\n");
     for (String kind : List.of("Added", "Changed", "Fixed", "Other")) {
-      List<String> items = entries.stream().map(String::strip)
-          .filter(e -> kind.equals(kindOf(e))).toList();
+      List<String> items = entries.stream()
+          .map(String::strip)
+          .filter(e -> kind.equals(kindOf(e)))
+          .toList();
       if (items.isEmpty()) {
         continue;
       }
@@ -231,7 +243,9 @@ public final class Manual {
   public static void main(String[] args) throws IOException {
     int script = Arrays.asList(args).indexOf("--script");
     List<Path> files = Arrays.stream(args, 0, script < 0 ? args.length : script)
-        .filter(a -> a.toLowerCase(Locale.ROOT).endsWith(".md")).map(Path::of).toList();
+        .filter(a -> a.toLowerCase(Locale.ROOT).endsWith(".md"))
+        .map(Path::of)
+        .toList();
     String[] rest = script < 0 ? new String[0] : Arrays.copyOfRange(args, script, args.length);
     Manual manual = new Manual(files);
     App<Manual> app = new App<>(manual, Manual::view);
@@ -242,8 +256,10 @@ public final class Manual {
       return;
     }
     app.textRendering(TextRendering.platform());
-    Window.Options options = Identity.options(Manual.class, "Manual", Identity.TEAL, Symbol.DOCUMENT)
-        .frameless().minimumSize(640, 420);
+    Window.Options options = Identity.options(
+            Manual.class, "Manual", Identity.TEAL, Symbol.DOCUMENT)
+        .frameless()
+        .minimumSize(640, 420);
     try (Window window = Window.open("Manual", 1100, 760, options);
         GpuPresenter presenter = new GpuPresenter(window)) {
       new WindowLoop(window, app, presenter).run();
@@ -253,39 +269,66 @@ public final class Manual {
   static El view(Manual s) {
     Theme t = s.theme();
     Doc doc = s.docs.get(s.doc);
-    List<NavList.Item> documents = s.docs.stream().map(d -> NavList.item(d.icon(), d.title()))
-        .toList();
-    List<MarkdownDocument.Heading> headings = doc.document().headings().stream()
-        .filter(h -> h.level() <= 3).toList();
+    List<NavList.Item> documents =
+        s.docs.stream().map(d -> NavList.item(d.icon(), d.title())).toList();
+    List<MarkdownDocument.Heading> headings =
+        doc.document().headings().stream().filter(h -> h.level() <= 3).toList();
     List<NavList.Item> outline = headings.stream()
-        .map(h -> NavList.item(("  ".repeat(Math.max(0, h.level() - 2)))
-            + MarkdownDocument.plainText(h.content())))
+        .map(h -> NavList.item(
+            ("  ".repeat(Math.max(0, h.level() - 2))) + MarkdownDocument.plainText(h.content())))
         .toList();
-    El side = col().grow(1).minSize(0, 0).children(
-        NavList.navList(t, documents, s.doc, i -> {
-          s.doc = i;
-          s.heading = -1;
-          s.scrollTo(null);
-        }).key("documents").label("Documents"),
-        Divider.divider(t).margin(t.space().s(), 0, t.space().s(), 0),
-        Label.label(t, Label.Variant.MUTED, "On this page")
-            .margin(t.space().xs(), t.space().m(), t.space().s(), t.space().m()),
-        NavList.navList(t, outline, s.heading, i -> {
-          s.heading = i;
-          s.scrollTo(headings.get(i).id());
-        }).key("outline").label("On this page").grow(1).minSize(0, 0));
-    El document = Markdown.markdown(t, doc.document(), Markdown.options()
-        .onLink(s::link).copy(s.app == null ? null : s.app.clipboard())
-        .state(doc.selection()).images(source -> s.image(doc, source)))
-        .key("doc-" + s.doc).grow(1).minSize(0, 0);
-    El root = col().wFull().hFull().fill(t.surface().window())
-        .child(titleBar(t, "Manual", t.accent().color(), Identity.maximized(s.app),
+    El side = col()
+        .grow(1)
+        .minSize(0, 0)
+        .children(
+            NavList.navList(t, documents, s.doc, i -> {
+                  s.doc = i;
+                  s.heading = -1;
+                  s.scrollTo(null);
+                })
+                .key("documents")
+                .label("Documents"),
+            Divider.divider(t).margin(t.space().s(), 0, t.space().s(), 0),
+            Label.label(t, Label.Variant.MUTED, "On this page")
+                .margin(t.space().xs(), t.space().m(), t.space().s(), t.space().m()),
+            NavList.navList(t, outline, s.heading, i -> {
+                  s.heading = i;
+                  s.scrollTo(headings.get(i).id());
+                })
+                .key("outline")
+                .label("On this page")
+                .grow(1)
+                .minSize(0, 0));
+    El document = Markdown.markdown(
+            t,
+            doc.document(),
+            Markdown.options()
+                .onLink(s::link)
+                .copy(s.app == null ? null : s.app.clipboard())
+                .state(doc.selection())
+                .images(source -> s.image(doc, source)))
+        .key("doc-" + s.doc)
+        .grow(1)
+        .minSize(0, 0);
+    El root = col()
+        .wFull()
+        .hFull()
+        .fill(t.surface().window())
+        .child(titleBar(
+            t,
+            "Manual",
+            t.accent().color(),
+            Identity.maximized(s.app),
             toggle(t, s.dark, "Dark", () -> s.dark = !s.dark)))
-        .child(row().grow(1).minSize(0, 0).padding(0, t.space().m(), t.space().m(), t.space().m())
-            .gap(t.space().m()).children(
+        .child(row()
+            .grow(1)
+            .minSize(0, 0)
+            .padding(0, t.space().m(), t.space().m(), t.space().m())
+            .gap(t.space().m())
+            .children(
                 Card.flush(t, Card.inset(t, side)).w(240).shrink(0),
                 Card.flush(t, document).grow(1).minSize(0, 0)));
-    return root.overlay(s.toast == null ? null
-        : Toast.toast(t, s.toast, null, null, () -> s.toast = null));
+    return root.overlay(
+        s.toast == null ? null : Toast.toast(t, s.toast, null, null, () -> s.toast = null));
   }
 }

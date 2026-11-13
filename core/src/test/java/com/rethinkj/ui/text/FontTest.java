@@ -123,8 +123,8 @@ class FontTest {
     font.close();
     IllegalStateException e =
         assertThrows(IllegalStateException.class, () -> font.shape("select", 13, 1));
-    assertEquals("JetBrains Mono Bold is closed: this Font cannot be used any more.",
-        e.getMessage());
+    assertEquals(
+        "JetBrains Mono Bold is closed: this Font cannot be used any more.", e.getMessage());
     assertEquals(6, before.count(), "runs shaped before stay readable");
     font.close(); // a second close does nothing
     assertThrows(UnsupportedOperationException.class, () -> Font.sans().close());
@@ -135,7 +135,8 @@ class FontTest {
     TextLibraries.assumeLoaded();
     IllegalArgumentException e =
         assertThrows(IllegalArgumentException.class, () -> Font.of(new byte[] {1, 2, 3, 4}));
-    assertTrue(e.getMessage().startsWith("These bytes are not a font that FreeType can read"),
+    assertTrue(
+        e.getMessage().startsWith("These bytes are not a font that FreeType can read"),
         e.getMessage());
     assertThrows(IllegalArgumentException.class, () -> Font.of(new byte[0]));
     assertThrows(IllegalArgumentException.class, () -> Font.resource(FontTest.class, "none.ttf"));
@@ -145,8 +146,8 @@ class FontTest {
   void theDefaultFontsNeedTheFontsModule() {
     // Needs no native library: the resource is looked for first.
     ClassLoader empty = new ClassLoader(null) {};
-    IllegalStateException e =
-        assertThrows(IllegalStateException.class, () -> Font.builtIn("fonts/Inter-Regular.ttf", empty));
+    IllegalStateException e = assertThrows(
+        IllegalStateException.class, () -> Font.builtIn("fonts/Inter-Regular.ttf", empty));
     assertEquals(
         "The default fonts are in the artifact com.rethinkj.ui:rethinkj-ui-fonts, which is not on"
             + " the class path: META-INF/rethinkj-ui/fonts/Inter-Regular.ttf is missing. Add that"
@@ -177,8 +178,7 @@ class FontTest {
   private static final String ADD = "\uF108";
 
   @Test
-  void theIconFontsLineIsItsEmSquareAndItsGlyphsSitOnWholePixelsAtEveryScale()
-      throws IOException {
+  void theIconFontsLineIsItsEmSquareAndItsGlyphsSitOnWholePixelsAtEveryScale() throws IOException {
     TextLibraries.assumeLoaded();
     Font icons = Font.icons();
     assertEquals("FluentSystemIcons-Regular Regular", icons.toString());
@@ -193,7 +193,8 @@ class FontTest {
     assertNotEquals(0, run.glyph(0));
     assertEquals(20, run.x(1));
     assertEquals(40, run.width());
-    try (InputStream in = Font.class.getClassLoader()
+    try (InputStream in = Font.class
+            .getClassLoader()
             .getResourceAsStream("META-INF/rethinkj-ui/icons/FluentSystemIcons-Regular.ttf");
         Font plain = Font.of(in.readAllBytes())) {
       assertEquals(19.5f, plain.shape(ADD, 13, 1.5f).width(), "the same font as any other");
@@ -229,7 +230,8 @@ class FontTest {
   @Test
   void theDefaultIconFontNeedsTheIconsModule() {
     ClassLoader empty = new ClassLoader(null) {};
-    IllegalStateException e = assertThrows(IllegalStateException.class,
+    IllegalStateException e = assertThrows(
+        IllegalStateException.class,
         () -> Font.builtIn("icons/FluentSystemIcons-Regular.ttf", empty));
     assertEquals(
         "The default icon font is in the artifact com.rethinkj.ui:rethinkj-ui-icons, which is not"

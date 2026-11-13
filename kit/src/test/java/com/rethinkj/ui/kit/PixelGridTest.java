@@ -23,11 +23,11 @@ import com.rethinkj.ui.render.Pixels;
 import com.rethinkj.ui.render.Png;
 import com.rethinkj.ui.render.Scene;
 import com.rethinkj.ui.text.TextRendering;
-import java.util.ArrayList;
-import java.util.List;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -53,27 +53,58 @@ class PixelGridTest {
     selection.select(1, 0);
     Menu.State menu = new Menu.State();
     menu.open();
-    return row().wFull().hFull().fill(T.surface().window()).padding(12 + shift, 0, 0, 12 + shift)
-        .gap(16).children(
-            col().gap(12).w(220).children(
-                textField(T, "Orders", v -> {}).key("field").w(220),
-                row().gap(8).children(
-                    button(T, Variant.PRIMARY, "Run", () -> {}).key("run"),
-                    button(T, Variant.SECONDARY, "Cancel", () -> {}).key("cancel"),
-                    checkbox(T, true, "Wrap", () -> {}).key("wrap")),
-                Tabs.tabs(T, List.of(new Tabs.Tab("orders", true, false),
-                    new Tabs.Tab("customers", true, true)), 0, i -> {}, i -> {},
-                    label(T, "Rows").key("tab-content")).key("tabs").h(64),
-                // not in a card of its own: the group's shadow would tint that card's border
-                Group.group(T,
-                    Group.switchRow(T, "Autocommit", null, true, () -> {}),
-                    Group.row(T, "Timeout", "Seconds", label(T, "30")),
-                    Group.linkRow(T, "Driver", null, "PostgreSQL", () -> {})).key("card")),
-            col().gap(12).children(
-                dataGrid(T, columns, 40, DataGrid.options().select(selection)).key("grid")
-                    .label("Orders").w(260).h(170),
-                Menu.menu(T, menu, List.of(Menu.item("Open", () -> {}),
-                    Menu.separator(), Menu.item("Copy name", () -> {}))).key("menu")));
+    return row()
+        .wFull()
+        .hFull()
+        .fill(T.surface().window())
+        .padding(12 + shift, 0, 0, 12 + shift)
+        .gap(16)
+        .children(
+            col()
+                .gap(12)
+                .w(220)
+                .children(
+                    textField(T, "Orders", v -> {}).key("field").w(220),
+                    row()
+                        .gap(8)
+                        .children(
+                            button(T, Variant.PRIMARY, "Run", () -> {}).key("run"),
+                            button(T, Variant.SECONDARY, "Cancel", () -> {}).key("cancel"),
+                            checkbox(T, true, "Wrap", () -> {}).key("wrap")),
+                    Tabs.tabs(
+                            T,
+                            List.of(
+                                new Tabs.Tab("orders", true, false),
+                                new Tabs.Tab("customers", true, true)),
+                            0,
+                            i -> {},
+                            i -> {},
+                            label(T, "Rows").key("tab-content"))
+                        .key("tabs")
+                        .h(64),
+                    // not in a card of its own: the group's shadow would tint that card's border
+                    Group.group(
+                            T,
+                            Group.switchRow(T, "Autocommit", null, true, () -> {}),
+                            Group.row(T, "Timeout", "Seconds", label(T, "30")),
+                            Group.linkRow(T, "Driver", null, "PostgreSQL", () -> {}))
+                        .key("card")),
+            col()
+                .gap(12)
+                .children(
+                    dataGrid(T, columns, 40, DataGrid.options().select(selection))
+                        .key("grid")
+                        .label("Orders")
+                        .w(260)
+                        .h(170),
+                    Menu.menu(
+                            T,
+                            menu,
+                            List.of(
+                                Menu.item("Open", () -> {}),
+                                Menu.separator(),
+                                Menu.item("Copy name", () -> {})))
+                        .key("menu")));
   }
 
   private static Headless.Frame render(float shift, float scale) {
@@ -86,7 +117,8 @@ class PixelGridTest {
     TextLibraries.assumeLoaded();
     for (float shift : new float[] {0, 1}) {
       El root = sheet(shift);
-      Pixels pixels = Headless.render(root, WIDTH, HEIGHT, scale, TextRendering.LINUX).pixels();
+      Pixels pixels =
+          Headless.render(root, WIDTH, HEIGHT, scale, TextRendering.LINUX).pixels();
       Path out = Path.of("target/pixel-grid");
       Files.createDirectories(out);
       Files.write(out.resolve("sheet-" + scale + "x-" + (int) shift + ".png"), Png.encode(pixels));
@@ -167,16 +199,20 @@ class PixelGridTest {
       float x = px + el.x();
       float y = py + el.y();
       if (el.text() != null && !el.text().isField() && el.isPlaced()) {
-        boolean whole = x >= clip[0] && y >= clip[1] && x + el.width() <= clip[2]
-            && y + el.height() <= clip[3];
+        boolean whole =
+            x >= clip[0] && y >= clip[1] && x + el.width() <= clip[2] && y + el.height() <= clip[3];
         boxes.add(whole ? new float[] {x, y, el.width(), el.height()} : null);
         names.add(el.text().string());
       }
       Style s = el.style();
       float[] inner = s.overflowX == Style.Overflow.VISIBLE && s.overflowY == Style.Overflow.VISIBLE
           ? clip
-          : new float[] {Math.max(clip[0], x), Math.max(clip[1], y),
-              Math.min(clip[2], x + el.width()), Math.min(clip[3], y + el.height())};
+          : new float[] {
+            Math.max(clip[0], x),
+            Math.max(clip[1], y),
+            Math.min(clip[2], x + el.width()),
+            Math.min(clip[3], y + el.height())
+          };
       for (El child : el.children()) {
         texts(child, x, y, inner);
       }
@@ -217,8 +253,8 @@ class PixelGridTest {
     TextLibraries.assumeLoaded();
     for (int shift = 0; shift < 2; shift++) {
       Headless.Frame frame = render(shift, 1.5f);
-      Golden.assertMatches("pixel-grid-1.5x-" + (shift == 0 ? "whole" : "half"), frame.pixels(),
-          frame.tree());
+      Golden.assertMatches(
+          "pixel-grid-1.5x-" + (shift == 0 ? "whole" : "half"), frame.pixels(), frame.tree());
     }
   }
 
@@ -322,8 +358,8 @@ class PixelGridTest {
       Style st = el.style();
       // Per side, top, right, bottom, left: a border's run of pixels in its colour, else the fill's
       // edge.
-      float[] widths = {px(st.borderTop), px(st.borderRight), px(st.borderBottom),
-          px(st.borderLeft)};
+      float[] widths = {px(st.borderTop), px(st.borderRight), px(st.borderBottom), px(st.borderLeft)
+      };
       boolean coloured = el.borderColor() >>> 24 == 0xFF;
       boolean filled = el.fill() >>> 24 == 0xFF;
       int[] runs = new int[4];
@@ -348,34 +384,58 @@ class PixelGridTest {
         if (cx > clip[0] + 2 && cx < clip[2] - 2 && w > 2 * r + 2) {
           if (thinY) {
             if (y >= clip[1] + 1 && y + h <= clip[3] - 1) {
-              side(name + " hairline", edge(cx, scale), edge(y, scale), stroke(h, scale), false,
-                  el.fill(), true);
+              side(
+                  name + " hairline",
+                  edge(cx, scale),
+                  edge(y, scale),
+                  stroke(h, scale),
+                  false,
+                  el.fill(),
+                  true);
             }
           } else {
             if (y >= clip[1] + 1 && colours[0] != 0) {
-              side(name + " top", edge(cx, scale), edge(y, scale), runs[0], false, colours[0],
-                  true);
+              side(
+                  name + " top", edge(cx, scale), edge(y, scale), runs[0], false, colours[0], true);
             }
             if (y + h <= clip[3] - 1 && colours[2] != 0) {
-              side(name + " bottom", edge(cx, scale), edge(y + h, scale) - runs[2], runs[2], false,
-                  colours[2], true);
+              side(
+                  name + " bottom",
+                  edge(cx, scale),
+                  edge(y + h, scale) - runs[2],
+                  runs[2],
+                  false,
+                  colours[2],
+                  true);
             }
           }
         }
         if (cy > clip[1] + 2 && cy < clip[3] - 2 && h > 2 * r + 2) {
           if (thinX) {
             if (x >= clip[0] + 1 && x + w <= clip[2] - 1) {
-              side(name + " hairline", edge(x, scale), edge(cy, scale), stroke(w, scale), true,
-                  el.fill(), true);
+              side(
+                  name + " hairline",
+                  edge(x, scale),
+                  edge(cy, scale),
+                  stroke(w, scale),
+                  true,
+                  el.fill(),
+                  true);
             }
           } else {
             if (x >= clip[0] + 1 && colours[3] != 0) {
-              side(name + " left", edge(x, scale), edge(cy, scale), runs[3], true, colours[3],
-                  true);
+              side(
+                  name + " left", edge(x, scale), edge(cy, scale), runs[3], true, colours[3], true);
             }
             if (x + w <= clip[2] - 1 && colours[1] != 0) {
-              side(name + " right", edge(x + w, scale) - runs[1], edge(cy, scale), runs[1], true,
-                  colours[1], true);
+              side(
+                  name + " right",
+                  edge(x + w, scale) - runs[1],
+                  edge(cy, scale),
+                  runs[1],
+                  true,
+                  colours[1],
+                  true);
             }
           }
         }
@@ -383,8 +443,12 @@ class PixelGridTest {
       float[] inner = clip;
       Style s = st;
       if (s.overflowX != Style.Overflow.VISIBLE || s.overflowY != Style.Overflow.VISIBLE) {
-        inner = new float[] {Math.max(clip[0], x), Math.max(clip[1], y),
-            Math.min(clip[2], x + w), Math.min(clip[3], y + h)};
+        inner = new float[] {
+          Math.max(clip[0], x),
+          Math.max(clip[1], y),
+          Math.min(clip[2], x + w),
+          Math.min(clip[3], y + h)
+        };
       }
       for (El child : el.children()) {
         walk(child, x, y, inner);
@@ -401,7 +465,9 @@ class PixelGridTest {
       int start = across ? x : y;
       int limit = across ? pixels.width() : pixels.height();
       int other = across ? y : x;
-      if (start - 2 < 0 || start + run + 2 > limit || other < 0
+      if (start - 2 < 0
+          || start + run + 2 > limit
+          || other < 0
           || other >= (across ? pixels.height() : pixels.width())) {
         return;
       }
@@ -416,22 +482,26 @@ class PixelGridTest {
       checked++;
       for (int i = 2; i < 2 + run; i++) {
         if (p[i] != colour) {
-          failures.add(name + ": not " + run + " pixels of " + hex(colour).substring(2)
-              + " from " + start + ":" + hexes(p));
+          failures.add(name + ": not " + run + " pixels of " + hex(colour).substring(2) + " from "
+              + start + ":" + hexes(p));
           return;
         }
       }
       // a neighbour's hairline or an ancestor's border is a whole pixel of its colour, no blend
       if (!shadowed && !line(p[1]) && blend(p[0], p[1], colour)) {
         failures.add(name + ": the pixel before " + start + " is a blend:" + hexes(p));
-      } else if (!shadowed && inside && run > 0 && !line(p[2 + run])
+      } else if (!shadowed
+          && inside
+          && run > 0
+          && !line(p[2 + run])
           && blend(colour, p[2 + run], p[3 + run])) {
         failures.add(name + ": the pixel after the run is a blend:" + hexes(p));
       }
     }
 
     private static boolean line(int argb) {
-      return argb == T.border().subtle() || argb == T.border().control()
+      return argb == T.border().subtle()
+          || argb == T.border().control()
           || argb == T.border().strong();
     }
 

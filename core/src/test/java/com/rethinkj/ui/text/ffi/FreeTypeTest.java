@@ -88,8 +88,8 @@ class FreeTypeTest {
 
   private void open(String file, int pixels) throws IOException {
     byte[] bytes;
-    try (InputStream in = Font.class.getClassLoader()
-        .getResourceAsStream("META-INF/rethinkj-ui/fonts/" + file)) {
+    try (InputStream in =
+        Font.class.getClassLoader().getResourceAsStream("META-INF/rethinkj-ui/fonts/" + file)) {
       bytes = in.readAllBytes();
     }
     MemorySegment out = arena.allocate(ADDRESS);
@@ -104,10 +104,10 @@ class FreeTypeTest {
   }
 
   private Bitmap render(int glyph) {
-    assertEquals(0, FreeType.loadGlyph(face, glyph,
-        FreeType.LOAD_TARGET_LIGHT | FreeType.LOAD_NO_BITMAP));
-    MemorySegment slot = face.get(ADDRESS, FreeType.FACE_GLYPH)
-        .reinterpret(FreeType.GLYPH_SLOT.byteSize());
+    assertEquals(
+        0, FreeType.loadGlyph(face, glyph, FreeType.LOAD_TARGET_LIGHT | FreeType.LOAD_NO_BITMAP));
+    MemorySegment slot =
+        face.get(ADDRESS, FreeType.FACE_GLYPH).reinterpret(FreeType.GLYPH_SLOT.byteSize());
     assertEquals(0, FreeType.renderGlyph(slot, FreeType.RENDER_MODE_LIGHT));
     long bitmap = FreeType.SLOT_BITMAP;
     int rows = slot.get(JAVA_INT, bitmap + FreeType.BITMAP_ROWS);
@@ -115,16 +115,21 @@ class FreeTypeTest {
     int pitch = slot.get(JAVA_INT, bitmap + FreeType.BITMAP_PITCH);
     int inked = 0;
     if (rows > 0) {
-      MemorySegment pixels = slot.get(ADDRESS, bitmap + FreeType.BITMAP_BUFFER)
-          .reinterpret((long) pitch * rows);
+      MemorySegment pixels =
+          slot.get(ADDRESS, bitmap + FreeType.BITMAP_BUFFER).reinterpret((long) pitch * rows);
       for (int y = 0; y < rows; y++) {
         for (int x = 0; x < width; x++) {
           inked += (pixels.get(JAVA_BYTE, (long) y * pitch + x) & 0xFF) > 128 ? 1 : 0;
         }
       }
     }
-    return new Bitmap(slot.get(JAVA_INT, FreeType.SLOT_BITMAP_LEFT),
-        slot.get(JAVA_INT, FreeType.SLOT_BITMAP_TOP), width, rows, pitch,
-        slot.get(JAVA_BYTE, bitmap + FreeType.BITMAP_PIXEL_MODE), inked);
+    return new Bitmap(
+        slot.get(JAVA_INT, FreeType.SLOT_BITMAP_LEFT),
+        slot.get(JAVA_INT, FreeType.SLOT_BITMAP_TOP),
+        width,
+        rows,
+        pitch,
+        slot.get(JAVA_BYTE, bitmap + FreeType.BITMAP_PIXEL_MODE),
+        inked);
   }
 }

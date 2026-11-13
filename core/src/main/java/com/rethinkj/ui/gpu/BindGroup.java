@@ -16,7 +16,8 @@ public final class BindGroup extends GpuObject {
    */
   public record Entry(int binding, Buffer buffer, long offset, long size, TextureView view) {
     public Entry {
-      if (binding < 0 || (buffer == null) == (view == null)
+      if (binding < 0
+          || (buffer == null) == (view == null)
           || buffer != null && (offset < 0 || size < -1 || size == 0)
           || view != null && (offset != 0 || size != Wgpu.WHOLE_SIZE)) {
         throw new IllegalArgumentException("A bind group entry needs a binding number of 0 or"

@@ -55,10 +55,11 @@ final class Win32 {
    * {@code LRESULT (*SUBCLASSPROC)(HWND, UINT msg, WPARAM, LPARAM, UINT_PTR idSubclass, DWORD_PTR
    * refData)}
    */
-  static final FunctionDescriptor SUBCLASS_PROC =
-      FunctionDescriptor.of(JAVA_LONG, ADDRESS, JAVA_INT, JAVA_LONG, JAVA_LONG, JAVA_LONG, JAVA_LONG);
+  static final FunctionDescriptor SUBCLASS_PROC = FunctionDescriptor.of(
+      JAVA_LONG, ADDRESS, JAVA_INT, JAVA_LONG, JAVA_LONG, JAVA_LONG, JAVA_LONG);
 
-  static final FunctionDescriptor SCREEN_TO_CLIENT = FunctionDescriptor.of(JAVA_INT, ADDRESS, ADDRESS);
+  static final FunctionDescriptor SCREEN_TO_CLIENT =
+      FunctionDescriptor.of(JAVA_INT, ADDRESS, ADDRESS);
   static final FunctionDescriptor TRACK_MOUSE_EVENT = FunctionDescriptor.of(JAVA_INT, ADDRESS);
   static final FunctionDescriptor IS_ICONIC = FunctionDescriptor.of(JAVA_INT, ADDRESS);
   static final FunctionDescriptor IS_ZOOMED = FunctionDescriptor.of(JAVA_INT, ADDRESS);
@@ -79,6 +80,7 @@ final class Win32 {
   static final int WM_KEYDOWN = 0x0100;
   /** The key of a character that SendInput sends as such (KEYEVENTF_UNICODE): no key of SDL. */
   static final int VK_PACKET = 0xE7;
+
   static final int WM_SYSCOLORCHANGE = 0x0015;
   static final int WM_SETICON = 0x0080;
   static final int WM_GETICON = 0x007F;
@@ -90,10 +92,12 @@ final class Win32 {
   static final int HCF_HIGHCONTRASTON = 0x1;
   /** {@code HIGHCONTRASTW}: UINT cbSize, DWORD dwFlags, LPWSTR lpszDefaultScheme. */
   static final long HIGHCONTRAST_SIZE = 16;
+
   static final int DWMWA_USE_IMMERSIVE_DARK_MODE = 20;
   static final int DWMWA_TRANSITIONS_FORCEDISABLED = 3;
   /** {@code HKEY_CURRENT_USER}, a LONG sign-extended into a handle. */
   static final long HKEY_CURRENT_USER = 0xFFFFFFFF80000001L;
+
   static final int RRF_RT_REG_DWORD = 0x10;
   static final int CLSCTX_INPROC_SERVER = 0x1;
   static final int S_OK = 0;
@@ -103,11 +107,11 @@ final class Win32 {
   static final int ICON_RESOURCE_VERSION = 0x00030000;
 
   /** {@code CLSID_TaskbarList}, {56FDF344-FD6D-11d0-958A-006097C9A090}, as a GUID's bytes. */
-  static final byte[] CLSID_TASKBAR_LIST = guid(0x56FDF344, 0xFD6D, 0x11D0,
-      0x95, 0x8A, 0x00, 0x60, 0x97, 0xC9, 0xA0, 0x90);
+  static final byte[] CLSID_TASKBAR_LIST =
+      guid(0x56FDF344, 0xFD6D, 0x11D0, 0x95, 0x8A, 0x00, 0x60, 0x97, 0xC9, 0xA0, 0x90);
   /** {@code IID_ITaskbarList3}, {EA1AFB91-9E28-4B86-90E9-9E9F8A5EEFAF}. */
-  static final byte[] IID_ITASKBAR_LIST3 = guid(0xEA1AFB91, 0x9E28, 0x4B86,
-      0x90, 0xE9, 0x9E, 0x9F, 0x8A, 0x5E, 0xEF, 0xAF);
+  static final byte[] IID_ITASKBAR_LIST3 =
+      guid(0xEA1AFB91, 0x9E28, 0x4B86, 0x90, 0xE9, 0x9E, 0x9F, 0x8A, 0x5E, 0xEF, 0xAF);
 
   // The slots of ITaskbarList3's vtable that the shell calls: IUnknown, then ITaskbarList's
   // HrInit, AddTab, DeleteTab, ActivateTab, SetActiveAlt, ITaskbarList2's MarkFullscreenWindow,
@@ -135,6 +139,7 @@ final class Win32 {
    */
   static final FunctionDescriptor CREATE_ICON_FROM_RESOURCE_EX = FunctionDescriptor.of(
       ADDRESS, ADDRESS, JAVA_INT, JAVA_INT, JAVA_INT, JAVA_INT, JAVA_INT, JAVA_INT);
+
   static final FunctionDescriptor DESTROY_ICON = FunctionDescriptor.of(JAVA_INT, ADDRESS);
   static final FunctionDescriptor REGISTER_WINDOW_MESSAGE =
       FunctionDescriptor.of(JAVA_INT, ADDRESS);
@@ -143,6 +148,7 @@ final class Win32 {
   static final FunctionDescriptor SET_APP_USER_MODEL_ID = FunctionDescriptor.of(JAVA_INT, ADDRESS);
   /** {@code HRESULT GetCurrentProcessExplicitAppUserModelID(PWSTR *AppID)} */
   static final FunctionDescriptor GET_APP_USER_MODEL_ID = FunctionDescriptor.of(JAVA_INT, ADDRESS);
+
   static final FunctionDescriptor CO_TASK_MEM_FREE = FunctionDescriptor.ofVoid(ADDRESS);
   /** {@code HRESULT CoCreateInstance(REFCLSID, LPUNKNOWN, DWORD, REFIID, LPVOID *)} */
   static final FunctionDescriptor CO_CREATE_INSTANCE =
@@ -185,8 +191,9 @@ final class Win32 {
       FunctionDescriptor.of(JAVA_INT, ADDRESS, ADDRESS, JAVA_INT);
 
   /** {@code int MessageBoxW(HWND hWnd, LPCWSTR lpText, LPCWSTR lpCaption, UINT uType)} */
-  static final FunctionDescriptor MESSAGE_BOX = FunctionDescriptor.of(JAVA_INT, ADDRESS, ADDRESS,
-      ADDRESS, JAVA_INT);
+  static final FunctionDescriptor MESSAGE_BOX =
+      FunctionDescriptor.of(JAVA_INT, ADDRESS, ADDRESS, ADDRESS, JAVA_INT);
+
   static final int MB_ICONERROR = 0x10;
   static final int MB_TASKMODAL = 0x2000;
   static final int MB_SETFOREGROUND = 0x10000;
@@ -204,6 +211,7 @@ final class Win32 {
   /** {@code BOOL PostMessageW(HWND, UINT, WPARAM, LPARAM)} */
   static final FunctionDescriptor POST_MESSAGE =
       FunctionDescriptor.of(JAVA_INT, ADDRESS, JAVA_INT, JAVA_LONG, JAVA_LONG);
+
   static final int GW_OWNER = 4;
   static final int WM_CLOSE = 0x0010;
 
@@ -227,8 +235,7 @@ final class Win32 {
     static final SymbolLookup DWMAPI = SymbolLookup.libraryLookup("dwmapi", Arena.global());
     static final SymbolLookup COMCTL32 = SymbolLookup.libraryLookup("comctl32", Arena.global());
 
-    static final MethodHandle SCREEN_TO_CLIENT_H =
-        bind(USER32, "ScreenToClient", SCREEN_TO_CLIENT);
+    static final MethodHandle SCREEN_TO_CLIENT_H = bind(USER32, "ScreenToClient", SCREEN_TO_CLIENT);
     static final MethodHandle TRACK_MOUSE_EVENT_H =
         bind(USER32, "TrackMouseEvent", TRACK_MOUSE_EVENT);
     static final MethodHandle IS_ICONIC_H = bind(USER32, "IsIconic", IS_ICONIC);
@@ -245,7 +252,8 @@ final class Win32 {
         bind(COMCTL32, "DefSubclassProc", DEF_SUBCLASS_PROC);
 
     private static MethodHandle bind(SymbolLookup library, String name, FunctionDescriptor d) {
-      MemorySegment symbol = library.find(name)
+      MemorySegment symbol = library
+          .find(name)
           .orElseThrow(() -> new UnsatisfiedLinkError("Windows has no function " + name));
       return Linker.nativeLinker().downcallHandle(symbol, d);
     }
@@ -318,8 +326,8 @@ final class Win32 {
   /** @return the icon, or NULL if Windows could not make it */
   static MemorySegment createIconFromResource(MemorySegment resource, int width, int height) {
     try {
-      return (MemorySegment) Shell.CREATE_ICON_FROM_RESOURCE_EX_H.invokeExact(resource,
-          (int) resource.byteSize(), 1, ICON_RESOURCE_VERSION, width, height, 0);
+      return (MemorySegment) Shell.CREATE_ICON_FROM_RESOURCE_EX_H.invokeExact(
+          resource, (int) resource.byteSize(), 1, ICON_RESOURCE_VERSION, width, height, 0);
     } catch (Throwable t) {
       throw Sdl.failed(t);
     }
@@ -387,8 +395,13 @@ final class Win32 {
       MemorySegment data = arena.allocate(JAVA_INT);
       MemorySegment size = arena.allocateFrom(JAVA_INT, 4);
       int status = (int) Shell.REG_GET_VALUE_H.invokeExact(
-          MemorySegment.ofAddress(HKEY_CURRENT_USER), wide(arena, key), wide(arena, value),
-          RRF_RT_REG_DWORD, MemorySegment.NULL, data, size);
+          MemorySegment.ofAddress(HKEY_CURRENT_USER),
+          wide(arena, key),
+          wide(arena, value),
+          RRF_RT_REG_DWORD,
+          MemorySegment.NULL,
+          data,
+          size);
       return status == 0 ? data.get(JAVA_INT, 0) : null;
     } catch (Throwable t) {
       throw Sdl.failed(t);
@@ -416,8 +429,12 @@ final class Win32 {
   static MemorySegment coCreateInstance(byte[] clsid, byte[] iid, int[] hresult) {
     try (Arena arena = Arena.ofConfined()) {
       MemorySegment out = arena.allocate(ADDRESS);
-      int hr = (int) Shell.CO_CREATE_INSTANCE_H.invokeExact(arena.allocateFrom(JAVA_BYTE, clsid),
-          MemorySegment.NULL, CLSCTX_INPROC_SERVER, arena.allocateFrom(JAVA_BYTE, iid), out);
+      int hr = (int) Shell.CO_CREATE_INSTANCE_H.invokeExact(
+          arena.allocateFrom(JAVA_BYTE, clsid),
+          MemorySegment.NULL,
+          CLSCTX_INPROC_SERVER,
+          arena.allocateFrom(JAVA_BYTE, iid),
+          out);
       hresult[0] = hr;
       return hr == S_OK ? out.get(ADDRESS, 0) : MemorySegment.NULL;
     } catch (Throwable t) {
@@ -428,7 +445,8 @@ final class Win32 {
   /** The function in slot {@code index} of a COM object's vtable. */
   static MemorySegment method(MemorySegment object, int index) {
     MemorySegment vtable = object.reinterpret(ADDRESS.byteSize()).get(ADDRESS, 0);
-    return vtable.reinterpret((index + 1) * ADDRESS.byteSize())
+    return vtable
+        .reinterpret((index + 1) * ADDRESS.byteSize())
         .get(ADDRESS, index * ADDRESS.byteSize());
   }
 
@@ -460,7 +478,8 @@ final class Win32 {
    * answer comes back without.
    */
   static String longPathName(String path) {
-    String in = path.startsWith("\\\\?\\") ? path
+    String in = path.startsWith("\\\\?\\")
+        ? path
         : path.startsWith("\\\\") ? "\\\\?\\UNC\\" + path.substring(2) : "\\\\?\\" + path;
     try (Arena arena = Arena.ofConfined()) {
       MemorySegment from = wide(arena, in);
@@ -473,7 +492,8 @@ final class Win32 {
         }
         if (n < size) {
           String out = to.getString(0, StandardCharsets.UTF_16LE);
-          return out.startsWith("\\\\?\\UNC\\") ? "\\\\" + out.substring(8)
+          return out.startsWith("\\\\?\\UNC\\")
+              ? "\\\\" + out.substring(8)
               : out.startsWith("\\\\?\\") ? out.substring(4) : out;
         }
         size = n;
@@ -492,8 +512,12 @@ final class Win32 {
    */
   static boolean errorBox(String title, String text) {
     try (Arena arena = Arena.ofConfined()) {
-      return (int) Box.MESSAGE_BOX_H.invokeExact(MemorySegment.NULL, wide(arena, text),
-          wide(arena, title), MB_ICONERROR | MB_TASKMODAL | MB_SETFOREGROUND) != 0;
+      return (int) Box.MESSAGE_BOX_H.invokeExact(
+              MemorySegment.NULL,
+              wide(arena, text),
+              wide(arena, title),
+              MB_ICONERROR | MB_TASKMODAL | MB_SETFOREGROUND)
+          != 0;
     } catch (Throwable t) {
       throw Sdl.failed(t);
     }
@@ -603,8 +627,8 @@ final class Win32 {
   /** @return the HRESULT */
   static int dwmSetWindowAttribute(MemorySegment hwnd, int attribute, MemorySegment value) {
     try {
-      return (int) H.DWM_SET_WINDOW_ATTRIBUTE_H.invokeExact(
-          hwnd, attribute, value, (int) value.byteSize());
+      return (int)
+          H.DWM_SET_WINDOW_ATTRIBUTE_H.invokeExact(hwnd, attribute, value, (int) value.byteSize());
     } catch (Throwable t) {
       throw Sdl.failed(t);
     }

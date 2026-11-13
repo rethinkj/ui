@@ -415,8 +415,11 @@ public final class App<S> {
       focus(field, false);
       float[] at = local(field, x, y);
       Editor editor = field.editor();
-      editor.press(editor.fromShown(field.text().nearest(at[0], at[1])),
-          editor.fromShown(field.text().hit(at[0], at[1])), clicks, (modifiers & Key.SHIFT) != 0);
+      editor.press(
+          editor.fromShown(field.text().nearest(at[0], at[1])),
+          editor.fromShown(field.text().hit(at[0], at[1])),
+          clicks,
+          (modifiers & Key.SHIFT) != 0);
       return true;
     }
     Target target = target(x, y);
@@ -645,7 +648,9 @@ public final class App<S> {
     if (press) {
       for (Object id : List.copyOf(opened.keySet())) {
         El holder = animator.element(id);
-        if (holder != null && holder.holdsFocus() && holder.onDismiss() != null
+        if (holder != null
+            && holder.holdsFocus()
+            && holder.onDismiss() != null
             && !under.contains(holder)) {
           holder.onDismiss().run();
           handled = dismissed = true;
@@ -695,7 +700,8 @@ public final class App<S> {
       y += on.y();
     }
     return new float[] {
-        Math.clamp(x, left, right), Math.clamp(y + cursor.getLast().height(), top, bottom)};
+      Math.clamp(x, left, right), Math.clamp(y + cursor.getLast().height(), top, bottom)
+    };
   }
 
   /**
@@ -797,12 +803,22 @@ public final class App<S> {
       place = new Windows.Place(px, py, null, outside ? Float.NaN : px, outside ? Float.NaN : py);
     }
     if (d.payload != null) {
-      App<?> over = place.window() != null ? place.window().app()
+      App<?> over = place.window() != null
+          ? place.window().app()
           : windows.of(this) == null && !outside ? this : null;
       drop(d, now, over, place.x(), place.y());
     }
-    d.handler.accept(new Drag(now, dx, dy, at[0], at[1], place.screenX(), place.screenY(),
-        outside, place.window(), place.window() == null ? Float.NaN : place.x(),
+    d.handler.accept(new Drag(
+        now,
+        dx,
+        dy,
+        at[0],
+        at[1],
+        place.screenX(),
+        place.screenY(),
+        outside,
+        place.window(),
+        place.window() == null ? Float.NaN : place.x(),
         place.window() == null ? Float.NaN : place.y()));
     handled = true;
     return true;
@@ -909,7 +925,9 @@ public final class App<S> {
       if (keyUntaken && untaken != null) {
         untaken.run();
       }
-      if (Objects.equals(before, focusId) && !focusKeyed && focused != null
+      if (Objects.equals(before, focusId)
+          && !focusKeyed
+          && focused != null
           && focused.focusRestLook() != null) {
         focusKeyed = true; // the look of a stay goes
         handled = true;
@@ -946,8 +964,8 @@ public final class App<S> {
           && key.modifiers() == 0
           && (key.name().equals("Enter") || key.name().equals("Space"))) {
         if (!key.repeat()) {
-          el.onPress().press(1, 0, el.width() / 2.0 + el.scrollX(),
-              el.height() / 2.0 + el.scrollY());
+          el.onPress()
+              .press(1, 0, el.width() / 2.0 + el.scrollX(), el.height() / 2.0 + el.scrollY());
           handled = true;
         }
         return true;
@@ -1067,8 +1085,8 @@ public final class App<S> {
    */
   public void textComposition(String text, int cursor) {
     Objects.requireNonNull(text, "text");
-    enqueue(() -> focused != null && focused.editor() != null
-        && focused.editor().compose(text, cursor));
+    enqueue(() ->
+        focused != null && focused.editor() != null && focused.editor().compose(text, cursor));
   }
 
   /** Where cut and copied text go and paste takes it from; {@link Clipboard#inMemory} at first. */
@@ -1108,21 +1126,24 @@ public final class App<S> {
    *     error -> status = "No dialog: " + error);
    * }</pre>
    */
-  public void fileDialog(FileDialog dialog, Consumer<FileDialog.Choice> onChoice,
-      Consumer<String> onError) {
+  public void fileDialog(
+      FileDialog dialog, Consumer<FileDialog.Choice> onChoice, Consumer<String> onError) {
     Objects.requireNonNull(dialog, "dialog");
     Objects.requireNonNull(onChoice, "onChoice");
     Objects.requireNonNull(onError, "onError");
     AtomicBoolean answered = new AtomicBoolean(); // once, whatever the implementation does
-    dialogs.file(dialog, choice -> {
-      if (answered.compareAndSet(false, true)) {
-        post(() -> onChoice.accept(choice));
-      }
-    }, error -> {
-      if (answered.compareAndSet(false, true)) {
-        post(() -> onError.accept(error));
-      }
-    });
+    dialogs.file(
+        dialog,
+        choice -> {
+          if (answered.compareAndSet(false, true)) {
+            post(() -> onChoice.accept(choice));
+          }
+        },
+        error -> {
+          if (answered.compareAndSet(false, true)) {
+            post(() -> onError.accept(error));
+          }
+        });
   }
 
   /**
@@ -1138,15 +1159,18 @@ public final class App<S> {
     Objects.requireNonNull(onButton, "onButton");
     Objects.requireNonNull(onError, "onError");
     AtomicBoolean answered = new AtomicBoolean();
-    dialogs.message(box, button -> {
-      if (answered.compareAndSet(false, true)) {
-        post(() -> onButton.accept(button));
-      }
-    }, error -> {
-      if (answered.compareAndSet(false, true)) {
-        post(() -> onError.accept(error));
-      }
-    });
+    dialogs.message(
+        box,
+        button -> {
+          if (answered.compareAndSet(false, true)) {
+            post(() -> onButton.accept(button));
+          }
+        },
+        error -> {
+          if (answered.compareAndSet(false, true)) {
+            post(() -> onError.accept(error));
+          }
+        });
   }
 
   /**
@@ -1184,14 +1208,19 @@ public final class App<S> {
     if (end && text != null && files.isEmpty()) {
       List<El> hit = hit(x, y);
       El field = hit.isEmpty() ? null : hit.getLast();
-      if (field != null && field.takesEdits() && field.editor() != null
+      if (field != null
+          && field.takesEdits()
+          && field.editor() != null
           && field.editor().editable()) {
         fileLeave();
         focus(field, false);
         float[] at = local(field, x, y);
         Editor editor = field.editor();
-        editor.press(editor.fromShown(field.text().nearest(at[0], at[1])),
-            editor.fromShown(field.text().hit(at[0], at[1])), 1, false);
+        editor.press(
+            editor.fromShown(field.text().nearest(at[0], at[1])),
+            editor.fromShown(field.text().hit(at[0], at[1])),
+            1,
+            false);
         Clipboard dropped = Clipboard.inMemory();
         dropped.write(text);
         editor.paste(dropped);
@@ -1209,8 +1238,10 @@ public final class App<S> {
     fileOver = end ? null : id;
     fileOverHandler = end ? null : target.el.onFileDrop();
     Object payload = !end ? null : files.isEmpty() ? text : files;
-    target.el.onFileDrop().accept(new Drop(end ? Drop.Phase.DROP : Drop.Phase.OVER, payload,
-        at[0], at[1]));
+    target
+        .el
+        .onFileDrop()
+        .accept(new Drop(end ? Drop.Phase.DROP : Drop.Phase.OVER, payload, at[0], at[1]));
     handled = true;
     return true;
   }
@@ -1289,8 +1320,8 @@ public final class App<S> {
     if (editor != null && focused.text().multiline()) { // the caret's row, inside the field
       Text t = focused.text();
       float row = t.lineHeight() / t.scale();
-      float top = Math.clamp(contentTop(focused) + editor.caretTopOffset(), 0,
-          Math.max(focused.height() - row, 0));
+      float top = Math.clamp(
+          contentTop(focused) + editor.caretTopOffset(), 0, Math.max(focused.height() - row, 0));
       return new InputArea(x, y + top, focused.width(), row, cursor, false);
     }
     return new InputArea(x, y, focused.width(), focused.height(), cursor, password);
@@ -1534,8 +1565,8 @@ public final class App<S> {
    */
   public void imageMemory(long bytes) {
     if (bytes < 0) {
-      throw new IllegalArgumentException("The image memory is " + bytes + " bytes; it must be 0"
-          + " or more.");
+      throw new IllegalArgumentException(
+          "The image memory is " + bytes + " bytes; it must be 0" + " or more.");
     }
     imageMemory = bytes;
   }
@@ -1553,7 +1584,6 @@ public final class App<S> {
       return true;
     });
   }
-
 
   /**
    * Sets whether characters that a text's font and its fallbacks lack come from the fonts installed
@@ -1851,16 +1881,23 @@ public final class App<S> {
     if (root != null) {
       float far = Float.POSITIVE_INFINITY;
       El modal = modal(); // the focus stays inside it
-      focusables(modal != null ? modal : root, 0, 0, -far, -far, far, far, root.shownOverlays(),
-          found);
+      focusables(
+          modal != null ? modal : root, 0, 0, -far, -far, far, far, root.shownOverlays(), found);
     }
     return found;
   }
 
   /** The overlays shown come right after their anchor and what is inside it. */
   private static void focusables(
-      El el, float parentX, float parentY, float clipLeft, float clipTop, float clipRight,
-      float clipBottom, List<El> shown, List<El> found) {
+      El el,
+      float parentX,
+      float parentY,
+      float clipLeft,
+      float clipTop,
+      float clipRight,
+      float clipBottom,
+      List<El> shown,
+      List<El> found) {
     if (!el.isPlaced() || el.targetOpacity() == 0 || el.isExiting()) {
       return;
     }
@@ -1869,7 +1906,10 @@ public final class App<S> {
     float right = left + el.width();
     float bottom = top + el.height();
     if (el.isFocusable()
-        && left < clipRight && right > clipLeft && top < clipBottom && bottom > clipTop) {
+        && left < clipRight
+        && right > clipLeft
+        && top < clipBottom
+        && bottom > clipTop) {
       found.add(el);
     }
     Style s = el.style();
@@ -1928,8 +1968,8 @@ public final class App<S> {
    */
   public void wheel(float x, float y, float deltaX, float deltaY) {
     if (!Float.isFinite(deltaX) || !Float.isFinite(deltaY)) {
-      throw new IllegalArgumentException("wheel deltas must be finite, were " + deltaX + ", "
-          + deltaY);
+      throw new IllegalArgumentException(
+          "wheel deltas must be finite, were " + deltaX + ", " + deltaY);
     }
     enqueue(() -> {
       if (rowsPending) {
@@ -1940,8 +1980,8 @@ public final class App<S> {
       }
       List<El> areas = hit(x, y).reversed();
       boolean sideways = deltaX == 0;
-      scrolled |= scroll(areas, true, deltaX, false)
-          | scroll(areas, false, deltaY, sideways); // not ||
+      scrolled |=
+          scroll(areas, true, deltaX, false) | scroll(areas, false, deltaY, sideways); // not ||
       return false;
     });
   }
@@ -1954,8 +1994,10 @@ public final class App<S> {
             ? area.scrollTo(area.scrollX() + delta, area.scrollY())
             : area.scrollTo(area.scrollX(), area.scrollY() + delta);
       }
-      if (sideways && area.style().overflowX == Style.Overflow.SCROLL
-          && area.style().overflowY != Style.Overflow.SCROLL && area.canScroll(true, delta)) {
+      if (sideways
+          && area.style().overflowX == Style.Overflow.SCROLL
+          && area.style().overflowY != Style.Overflow.SCROLL
+          && area.canScroll(true, delta)) {
         return area.scrollTo(area.scrollX() + delta, area.scrollY());
       }
     }
@@ -2120,8 +2162,11 @@ public final class App<S> {
    *     {@code "rows of orders"}
    * @return the work, to cancel it
    */
-  public <T> Work background(String name, Callable<? extends T> compute,
-      Consumer<? super T> onResult, Consumer<? super Exception> onFailure) {
+  public <T> Work background(
+      String name,
+      Callable<? extends T> compute,
+      Consumer<? super T> onResult,
+      Consumer<? super Exception> onFailure) {
     Objects.requireNonNull(name, "name");
     Objects.requireNonNull(compute, "compute");
     Objects.requireNonNull(onResult, "onResult");
@@ -2393,7 +2438,8 @@ public final class App<S> {
     scrolled = false;
     rowsPending = between && (focusId == null || animator.inRow(focusId) == null);
     if (rowsPending) {
-      caretOverlays = Overlays.place(root, width, height); // as fillRows does: the focus may be in one
+      caretOverlays =
+          Overlays.place(root, width, height); // as fillRows does: the focus may be in one
       refocus();
       return;
     }
@@ -2566,8 +2612,8 @@ public final class App<S> {
   public void edit(El field, int from, int to, String text, int caret) {
     Objects.requireNonNull(text, "text");
     if (from < 0 || to < from) {
-      throw new IllegalArgumentException("from must be 0 or more and to at least from, were "
-          + from + " and " + to);
+      throw new IllegalArgumentException(
+          "from must be 0 or more and to at least from, were " + from + " and " + to);
     }
     Object id = fieldId(field, "edit");
     enqueue(() -> {
@@ -2662,7 +2708,8 @@ public final class App<S> {
     }
     float[] at = local(el, x, y);
     Editor editor = el.editor();
-    return editor.drag(editor.fromShown(el.text().nearest(at[0], at[1])),
+    return editor.drag(
+        editor.fromShown(el.text().nearest(at[0], at[1])),
         editor.fromShown(el.text().hit(at[0], at[1])));
   }
 
@@ -2705,8 +2752,14 @@ public final class App<S> {
    * rested} are those with a {@link El#whenHoveredFor} look that is due, and {@code hoversRun}
    * counts the {@link El#onHoverFor} handlers run, so that one that ran builds the view again.
    */
-  private record Looks(List<Object> hovered, List<Object> rested, Object focused,
-      boolean focusRested, List<Object> within, Object pressed, int hoversRun) {
+  private record Looks(
+      List<Object> hovered,
+      List<Object> rested,
+      Object focused,
+      boolean focusRested,
+      List<Object> within,
+      Object pressed,
+      int hoversRun) {
 
     /** These looks without those of elements in the rows of a list, which were built anew. */
     Looks without(Object list) {
@@ -2785,8 +2838,8 @@ public final class App<S> {
         reveal = true;
       }
       animator.rows(el, id, time);
-      range = el.measuresRows() ? el.wantedRows(left, top, clipLeft, clipRight, width, height)
-          : null;
+      range =
+          el.measuresRows() ? el.wantedRows(left, top, clipLeft, clipRight, width, height) : null;
     }
     if (el.style().overflowX != Style.Overflow.VISIBLE) {
       clipLeft = Math.max(clipLeft, left);
@@ -2838,11 +2891,12 @@ public final class App<S> {
     long rows = (long) first << 32 | last & 0xFFFFFFFFL;
     Long before = toldRows.put(id, rows);
     if (before == null || before != rows) {
-      queued.add(() -> { // after the input of this frame, or in the next one
-        handler.accept(first, last);
-        handled = true;
-        return true;
-      });
+      queued.add(
+          () -> { // after the input of this frame, or in the next one
+            handler.accept(first, last);
+            handled = true;
+            return true;
+          });
     }
   }
 
@@ -2882,8 +2936,8 @@ public final class App<S> {
           took = true;
         }
         for (Object id : Animator.lineage(focusId)) {
-          if (Animator.isBelow(id, listId) && look(Animator.find(row, rowId, id),
-              El::focusWithinLook, "whenFocusWithin")) {
+          if (Animator.isBelow(id, listId)
+              && look(Animator.find(row, rowId, id), El::focusWithinLook, "whenFocusWithin")) {
             within.add(id);
             took = true;
           }
@@ -2899,8 +2953,8 @@ public final class App<S> {
         list.layoutRow(i, scale, systemFonts); // a look may change the layout
       }
     }
-    shown = new Looks(hovered, rested, focus, shown.focusRested(), within, press,
-        shown.hoversRun());
+    shown =
+        new Looks(hovered, rested, focus, shown.focusRested(), within, press, shown.hoversRun());
   }
 
   /**
@@ -3047,8 +3101,11 @@ public final class App<S> {
     }
     for (Map.Entry<Object, El> overlay : now.entrySet()) {
       Object id = overlay.getKey();
-      if (opened.containsKey(id) && opened.get(id) == null && focusId != null
-          && !focusId.equals(id) && !Animator.isBelow(focusId, id)) {
+      if (opened.containsKey(id)
+          && opened.get(id) == null
+          && focusId != null
+          && !focusId.equals(id)
+          && !Animator.isBelow(focusId, id)) {
         outside.put(id, new Focus(focusId, ring));
       }
       if (opened.containsKey(overlay.getKey())) {
@@ -3140,7 +3197,8 @@ public final class App<S> {
     }
     openAndClose(tree); // after the looks, which may attach overlays, and before the focus look
     El focus = focusId == null ? null : Animator.find(tree, focusId);
-    boolean focusLook = focus != null && focus.isFocusable() // or it loses the focus
+    boolean focusLook = focus != null
+        && focus.isFocusable() // or it loses the focus
         && look(focus, El::focusLook, "whenFocused");
     boolean focusRested = focus != null && focus.isFocusable() && focusRested(focus);
     if (focusRested) {
@@ -3157,8 +3215,14 @@ public final class App<S> {
     Object pressId = pressedId();
     boolean pressLook =
         pressId != null && look(Animator.find(tree, pressId), El::pressLook, "whenPressed");
-    return new Looks(hovered, rested, focusLook ? focusId : null, focusRested, within,
-        pressLook ? pressId : null, hoversRun);
+    return new Looks(
+        hovered,
+        rested,
+        focusLook ? focusId : null,
+        focusRested,
+        within,
+        pressLook ? pressId : null,
+        hoversRun);
   }
 
   /** Applies {@code el}'s look of one state, if it has one; false if not. */
@@ -3188,9 +3252,13 @@ public final class App<S> {
     El last = under.isEmpty() ? null : under.getLast();
     if (grabbed != null) {
       barArea = grabbed;
-      now = new Hot(grabbed, grab.vertical(), grabbed.scrollbars() == null ? 0
-          : grabbed.scrollbars().thumbDragged());
-    } else if (pointerIn && last != null && selecting == null
+      now = new Hot(
+          grabbed,
+          grab.vertical(),
+          grabbed.scrollbars() == null ? 0 : grabbed.scrollbars().thumbDragged());
+    } else if (pointerIn
+        && last != null
+        && selecting == null
         && (dragging == null || !dragging.started)) {
       Scrollbars.Bar bar = last.barAt(pointerX, pointerY);
       if (bar != null) {
@@ -3261,10 +3329,9 @@ public final class App<S> {
 
   /** The identity of the element that a drag, a selection or a thumb's drag holds, or null. */
   private Object held() {
-    return selecting != null ? selecting
-        : dragging != null && dragging.started ? dragging.id
-        : grab != null ? grab.id()
-        : null;
+    return selecting != null
+        ? selecting
+        : dragging != null && dragging.started ? dragging.id : grab != null ? grab.id() : null;
   }
 
   /**
@@ -3427,8 +3494,9 @@ public final class App<S> {
     if (rows != null) { // over a range of its parent's text: only its rows
       float rx = x - parentX - el.x();
       float ry = y - parentY - el.y();
-      return rows.stream().anyMatch(r -> rx >= r.x() && rx < r.x() + r.width()
-          && ry >= r.y() && ry < r.y() + r.height());
+      return rows.stream()
+          .anyMatch(
+              r -> rx >= r.x() && rx < r.x() + r.width() && ry >= r.y() && ry < r.y() + r.height());
     }
     float halfW = el.width() / 2;
     float halfH = el.height() / 2;
@@ -3436,8 +3504,8 @@ public final class App<S> {
     float dy = y - (parentY + el.y() + halfH);
     // The corner on the point's side: top left, top right, bottom right, bottom left.
     float[] radii = el.radii();
-    float radius = Math.clamp(radii[dx > 0 ? dy > 0 ? 2 : 1 : dy > 0 ? 3 : 0], 0,
-        Math.min(halfW, halfH));
+    float radius =
+        Math.clamp(radii[dx > 0 ? dy > 0 ? 2 : 1 : dy > 0 ? 3 : 0], 0, Math.min(halfW, halfH));
     float qx = Math.abs(dx) - halfW + radius;
     float qy = Math.abs(dy) - halfH + radius;
     if (qx <= 0 || qy <= 0) {

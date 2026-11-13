@@ -8,10 +8,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import com.rethinkj.ui.App;
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.Script;
+import com.rethinkj.ui.render.Pixels;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import com.rethinkj.ui.render.Pixels;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -27,7 +27,8 @@ import org.junit.jupiter.api.io.TempDir;
  */
 class MarkdownTest {
 
-  @TempDir Path out;
+  @TempDir
+  Path out;
 
   private static final String DOC = """
       # Guide
@@ -69,9 +70,21 @@ class MarkdownTest {
   private static App<Doc> app(String source) {
     Doc doc = new Doc(source);
     Theme t = Theme.DARK;
-    App<Doc> app = new App<>(doc, d -> col().wFull().hFull().fill(t.surface().panel()).child(
-        Markdown.markdown(t, d.document, Markdown.options().onLink(d.links::add)
-            .copy(d.app.clipboard()).state(d.selection).images(d.images::get)).grow(1)));
+    App<Doc> app = new App<>(
+        doc,
+        d -> col()
+            .wFull()
+            .hFull()
+            .fill(t.surface().panel())
+            .child(Markdown.markdown(
+                    t,
+                    d.document,
+                    Markdown.options()
+                        .onLink(d.links::add)
+                        .copy(d.app.clipboard())
+                        .state(d.selection)
+                        .images(d.images::get))
+                .grow(1)));
     doc.app = app;
     return app;
   }
@@ -82,8 +95,11 @@ class MarkdownTest {
   }
 
   private static String line(String tree, String part) {
-    return tree.lines().filter(l -> l.contains(part)).findFirst().orElseThrow(() ->
-        new AssertionError("no line with " + part + " in\n" + tree)).strip();
+    return tree.lines()
+        .filter(l -> l.contains(part))
+        .findFirst()
+        .orElseThrow(() -> new AssertionError("no line with " + part + " in\n" + tree))
+        .strip();
   }
 
   @BeforeEach
@@ -126,8 +142,10 @@ class MarkdownTest {
   void aBlockCopiesItsSelectionAndControlACopiesTheWholeDocument() throws IOException {
     App<Doc> app = app(DOC);
     // A double press selects a word of the paragraph, Control+C copies it.
-    String tree = run(app, "frame\npress text=\"Guide\" clicks 1\npress text=\"Guide\" clicks 2"
-        + "\nkey C control\nframe");
+    String tree = run(
+        app,
+        "frame\npress text=\"Guide\" clicks 1\npress text=\"Guide\" clicks 2"
+            + "\nkey C control\nframe");
     assertEquals("Guide", app.clipboard().read(), tree);
     // Control+A selects the document, which shows in every block; Control+C copies all of it.
     run(app, "key A control\nframe\nkey C control\nframe");
@@ -167,14 +185,21 @@ class MarkdownTest {
   void aLongDocumentBuildsTheBlocksInViewOnly() throws IOException {
     StringBuilder source = new StringBuilder();
     for (int i = 0; i < 2000; i++) {
-      source.append("## Part ").append(i).append("\n\nParagraph ").append(i)
-          .append(" with a [link](#part-").append(i).append(").\n\n");
+      source
+          .append("## Part ")
+          .append(i)
+          .append("\n\nParagraph ")
+          .append(i)
+          .append(" with a [link](#part-")
+          .append(i)
+          .append(").\n\n");
     }
     App<Doc> app = app(source.toString());
     String tree = run(app, "frame");
     String list = line(tree, "role=document");
     assertTrue(list.contains("/4000"), list);
-    assertTrue(tree.lines().count() < 200, "a few blocks, not 4000: " + tree.lines().count());
+    assertTrue(
+        tree.lines().count() < 200, "a few blocks, not 4000: " + tree.lines().count());
     // To the row of a heading far down, as an app does for a link to it.
     El document = app.tree().children().getFirst();
     app.scrollToRow(document, Markdown.rowOf(app.state().document, "part-1500"));
@@ -212,8 +237,10 @@ class MarkdownTest {
     app.state().images.put("inline.png", picture(60, 30));
     String tree = run(app, "frame");
     // 640 wide less the document's padding of 24 on each side: 592, and a quarter as high.
-    assertTrue(line(tree, "label=\"The frame\"").matches("image role=img label=\"The frame\""
-        + " 24,24 592x148"), tree);
+    assertTrue(
+        line(tree, "label=\"The frame\"")
+            .matches("image role=img label=\"The frame\"" + " 24,24 592x148"),
+        tree);
     assertTrue(line(tree, "label=\"An icon\"").endsWith(" 40x20"), "as large as its pixels");
     // The paragraph broke at its image: the text before it, the image in its column, the text.
     List<String> lines = tree.lines().map(String::strip).toList();
@@ -221,12 +248,10 @@ class MarkdownTest {
     assertTrue(lines.get(inline - 2).contains("role=paragraph \"Before\""), tree);
     assertTrue(lines.get(inline + 1).contains("role=paragraph \"and after.\""), tree);
     // An image the app does not have: its placeholder, with its description.
-    assertTrue(line(tree, "label=\"Missing\"").startsWith("el role=img label=\"Missing\""),
-        tree);
+    assertTrue(line(tree, "label=\"Missing\"").startsWith("el role=img label=\"Missing\""), tree);
     // The title is the image's tooltip.
     tree = run(app, "move label=\"The frame\"\nframe\nadvance 1\nframe");
-    assertTrue(line(tree, "role=tooltip").contains("label=\"The frame of the workbench\""),
-        tree);
+    assertTrue(line(tree, "role=tooltip").contains("label=\"The frame of the workbench\""), tree);
   }
 
   @Test

@@ -37,7 +37,8 @@ class TreeTest {
 
   private static final Theme T = Theme.DARK;
 
-  @TempDir Path out;
+  @TempDir
+  Path out;
 
   @BeforeEach
   void textLibraries() {
@@ -71,15 +72,16 @@ class TreeTest {
     assertEquals(row, selectedRow(app), "still selected");
     tree = Workbench.find(app, "schema");
     float shown = Math.min((row + 1 + table.children.size()) * h, row * h + tree.height());
-    assertTrue(tree.scrollY() + tree.height() >= shown - 0.5f,
+    assertTrue(
+        tree.scrollY() + tree.height() >= shown - 0.5f,
         "its columns below it, as far as there is room: " + tree.scrollY());
     assertTrue(tree.scrollY() <= row * h + 0.5f, "and the table itself");
   }
 
   /** The index of the selected row, from the dump. */
   private static int selectedRow(App<?> app) {
-    Matcher m = Pattern.compile("#row-(\\d+) role=treeitem [^\\n]* selected").matcher(
-        app.tree().dump());
+    Matcher m = Pattern.compile("#row-(\\d+) role=treeitem [^\\n]* selected")
+        .matcher(app.tree().dump());
     assertTrue(m.find(), "a selected row");
     return Integer.parseInt(m.group(1));
   }
@@ -123,11 +125,16 @@ class TreeTest {
     El tree = find(app, "schema");
     int last = first + tree.children().size() - 1;
     assertTrue(last - first + 1 <= 13 + 1 + 2 * El.OVERSCAN, "" + (last - first + 1));
-    Matcher line = Pattern.compile("el #schema role=tree label=\"Schema\" .* rows (\\d+)-(\\d+)/(\\d+)")
+    Matcher line = Pattern.compile(
+            "el #schema role=tree label=\"Schema\" .* rows (\\d+)-(\\d+)/(\\d+)")
         .matcher(app.tree().dump());
     assertTrue(line.find(), app.tree().dump());
-    assertEquals(List.of(first, last, SHOWN), List.of(Integer.parseInt(line.group(1)),
-        Integer.parseInt(line.group(2)), Integer.parseInt(line.group(3))));
+    assertEquals(
+        List.of(first, last, SHOWN),
+        List.of(
+            Integer.parseInt(line.group(1)),
+            Integer.parseInt(line.group(2)),
+            Integer.parseInt(line.group(3))));
     assertEquals(last - first + 1, app.tree().dump().split("role=treeitem", -1).length - 1);
   }
 
@@ -152,8 +159,8 @@ class TreeTest {
 
   @Test
   void aRebuildWithAHundredThousandNodesStaysWellUnderAFrame() throws IOException {
-    long[] small = rebuilds(new Catalog(T).opened("localhost", "localhost/shop",
-        "localhost/shop/public")); // 308 nodes
+    long[] small = rebuilds(
+        new Catalog(T).opened("localhost", "localhost/shop", "localhost/shop/public")); // 308 nodes
     long[] large = rebuilds(hundredThousand());
     System.out.printf(
         "Tree: a rebuild after ArrowDown, median of %d: frame() %.2f ms and the tree's view"
@@ -181,8 +188,10 @@ class TreeTest {
     assertLabelledOnce(catalog, app);
     long one = keyFrames(hundredThousand(), 1);
     long ten = keyFrames(hundredThousand(), 10);
-    System.out.printf("Tree: frame() after keys, median of %d, %d nodes shown: %.2f ms after one"
-        + " ArrowDown, %.2f ms after ten%n", REBUILDS, SHOWN, one / 1e6, ten / 1e6);
+    System.out.printf(
+        "Tree: frame() after keys, median of %d, %d nodes shown: %.2f ms after one"
+            + " ArrowDown, %.2f ms after ten%n",
+        REBUILDS, SHOWN, one / 1e6, ten / 1e6);
   }
 
   private static final int REBUILDS = 200;
@@ -265,9 +274,16 @@ class TreeTest {
     Catalog catalog = new Catalog(T);
     Menu.State menu = new Menu.State();
     List<String> chosen = new ArrayList<>();
-    App<Catalog> app = new App<>(catalog, c -> col().wFull().hFull().child(
-        Menu.contextMenu(T, c.tree().key("schema").grow(1), menu, List.of(
-            Menu.item("Copy name", () -> chosen.add("copy " + c.selected))))));
+    App<Catalog> app = new App<>(
+        catalog,
+        c -> col()
+            .wFull()
+            .hFull()
+            .child(Menu.contextMenu(
+                T,
+                c.tree().key("schema").grow(1),
+                menu,
+                List.of(Menu.item("Copy name", () -> chosen.add("copy " + c.selected))))));
     catalog.app = app;
     run(app, "frame\npress #row-1 right\nframe");
     assertEquals(List.of("select prod-eu"), catalog.log, "the row under the pointer first");
@@ -287,11 +303,18 @@ class TreeTest {
     Menu.State menu = new Menu.State();
     MenuBar.State bar = new MenuBar.State();
     List<Menu.Item> menus = List.of(Menu.submenu("&File", List.of(Menu.item("Quit", () -> {}))));
-    App<Catalog> app = new App<>(catalog, c -> col().wFull().hFull()
-        .onKey(MenuBar.keys(bar, menus))
-        .child(MenuBar.menuBar(T, bar, menus))
-        .child(Menu.contextMenu(T, c.tree().key("schema").grow(1), menu,
-            List.of(Menu.item("Copy name", () -> {})))));
+    App<Catalog> app = new App<>(
+        catalog,
+        c -> col()
+            .wFull()
+            .hFull()
+            .onKey(MenuBar.keys(bar, menus))
+            .child(MenuBar.menuBar(T, bar, menus))
+            .child(Menu.contextMenu(
+                T,
+                c.tree().key("schema").grow(1),
+                menu,
+                List.of(Menu.item("Copy name", () -> {})))));
     catalog.app = app;
     run(app, "frame\npress #row-1\nframe\nkey F10 shift\nframe");
     assertTrue(menu.isOpen(), "the tree's menu");
@@ -301,7 +324,8 @@ class TreeTest {
     assertTrue(rect.find());
     int bottom = Integer.parseInt(rect.group(2)) + Integer.parseInt(rect.group(4));
     String at = "overlay at " + rect.group(1) + "," + bottom + " ";
-    assertTrue(app.tree().dump().lines().anyMatch(l -> l.startsWith(at)), app.tree().dump());
+    assertTrue(
+        app.tree().dump().lines().anyMatch(l -> l.startsWith(at)), app.tree().dump());
     run(app, "key Escape\nframe\nkey F10\nframe");
     assertEquals(0, bar.title(), "F10 alone gives the bar the keys");
   }
@@ -342,20 +366,29 @@ class TreeTest {
     App<Catalog> app = start(catalog);
     run(app, "press role=treeitem label=\"billing\"\nframe");
     run(app, "press role=treeitem label=\"billing\" clicks 2\nframe");
-    assertEquals(List.of("select prod-eu/billing", "close prod-eu/billing",
-        "activate prod-eu/billing"), catalog.log);
+    assertEquals(
+        List.of("select prod-eu/billing", "close prod-eu/billing", "activate prod-eu/billing"),
+        catalog.log);
     run(app, "press role=treeitem label=\"billing\" clicks 2\nframe"); // a double press alone
     run(app, "press role=treeitem label=\"invoices\" clicks 2\nframe");
-    assertEquals(List.of("open prod-eu/billing", "activate prod-eu/billing",
-        "select prod-eu/billing/public/invoices", "open prod-eu/billing/public/invoices",
-        "activate prod-eu/billing/public/invoices"), catalog.log.subList(3, 8));
+    assertEquals(
+        List.of(
+            "open prod-eu/billing",
+            "activate prod-eu/billing",
+            "select prod-eu/billing/public/invoices",
+            "open prod-eu/billing/public/invoices",
+            "activate prod-eu/billing/public/invoices"),
+        catalog.log.subList(3, 8));
 
     catalog.log.clear();
     run(app, "press role=treeitem label=\"amount\"\nframe"); // a column of invoices
     run(app, "press role=treeitem label=\"amount\" clicks 2\nframe");
     run(app, "press role=treeitem label=\"amount\" clicks 3\nframe"); // a third press selects
-    assertEquals(List.of("select prod-eu/billing/public/invoices/amount",
-        "activate prod-eu/billing/public/invoices/amount"), catalog.log);
+    assertEquals(
+        List.of(
+            "select prod-eu/billing/public/invoices/amount",
+            "activate prod-eu/billing/public/invoices/amount"),
+        catalog.log);
   }
 
   // The keys
@@ -387,18 +420,31 @@ class TreeTest {
     assertEquals("localhost", key(app, catalog, "Home"));
     assertEquals("localhost", key(app, catalog, "ArrowUp"), "stays at the start");
     key(app, catalog, "Enter");
-    assertEquals(List.of("select localhost", "select localhost/analytics",
-        "open localhost/analytics", "select localhost/analytics/public",
-        "select localhost/analytics", "close localhost/analytics", "select localhost/postgres",
-        "select localhost/shop", "select prod-eu", "select localhost/shop", "select localhost",
-        "close localhost", "select staging", "select localhost", "activate localhost"),
-        catalog.log, "told only of changes");
+    assertEquals(
+        List.of(
+            "select localhost",
+            "select localhost/analytics",
+            "open localhost/analytics",
+            "select localhost/analytics/public",
+            "select localhost/analytics",
+            "close localhost/analytics",
+            "select localhost/postgres",
+            "select localhost/shop",
+            "select prod-eu",
+            "select localhost/shop",
+            "select localhost",
+            "close localhost",
+            "select staging",
+            "select localhost",
+            "activate localhost"),
+        catalog.log,
+        "told only of changes");
   }
 
   @Test
   void aLeafNeitherOpensNorHasChildrenToGoTo() throws IOException {
-    Catalog catalog = new Catalog(T).opened("prod-eu", "prod-eu/shop", "prod-eu/shop/public",
-        "prod-eu/shop/public/orders");
+    Catalog catalog = new Catalog(T)
+        .opened("prod-eu", "prod-eu/shop", "prod-eu/shop/public", "prod-eu/shop/public/orders");
     catalog.selected = catalog.node("prod-eu/shop/public/orders/id");
     App<Catalog> app = start(catalog);
     run(app, "focus #schema\nframe");
@@ -439,13 +485,22 @@ class TreeTest {
   void keysInOneFrameWalkIntoANodeThatAnEarlierOneOpened() throws IOException {
     Catalog catalog = new Catalog(T).opened("localhost");
     App<Catalog> app = start(catalog);
-    run(app, "focus #schema\nkey Home\nkey ArrowDown\nframe\n" // localhost/analytics, closed
-        + "key ArrowRight\nkey ArrowRight\nkey ArrowRight\nkey ArrowRight\nframe");
-    assertEquals(catalog.node("localhost/analytics/public/events"), catalog.selected,
+    run(
+        app,
+        "focus #schema\nkey Home\nkey ArrowDown\nframe\n" // localhost/analytics, closed
+            + "key ArrowRight\nkey ArrowRight\nkey ArrowRight\nkey ArrowRight\nframe");
+    assertEquals(
+        catalog.node("localhost/analytics/public/events"),
+        catalog.selected,
         "each Right goes on in the rows the one before it opened");
-    assertEquals(List.of("select localhost", "select localhost/analytics",
-        "open localhost/analytics", "select localhost/analytics/public",
-        "open localhost/analytics/public", "select localhost/analytics/public/events"),
+    assertEquals(
+        List.of(
+            "select localhost",
+            "select localhost/analytics",
+            "open localhost/analytics",
+            "select localhost/analytics/public",
+            "open localhost/analytics/public",
+            "select localhost/analytics/public/events"),
         catalog.log.subList(0, 6));
   }
 
@@ -467,10 +522,15 @@ class TreeTest {
   @Test
   void theTreeIsOneStopForTabAndLeavesOtherKeysAlone() throws IOException {
     Catalog catalog = new Catalog(T);
-    App<Catalog> app = new App<>(catalog, c -> col().wFull().hFull().children(
-        button(T, Variant.SECONDARY, "Before", () -> {}),
-        c.tree().key("schema").grow(1),
-        button(T, Variant.SECONDARY, "After", () -> {})));
+    App<Catalog> app = new App<>(
+        catalog,
+        c -> col()
+            .wFull()
+            .hFull()
+            .children(
+                button(T, Variant.SECONDARY, "Before", () -> {}),
+                c.tree().key("schema").grow(1),
+                button(T, Variant.SECONDARY, "After", () -> {})));
     run(app, "frame\nkey Tab\nframe\nkey Tab\nframe");
     assertEquals("schema", app.focused().key());
     run(app, "key Tab\nframe");
@@ -490,8 +550,12 @@ class TreeTest {
   /** Presses the key and returns the row of the selected node. */
   private static int row(App<Catalog> app, Catalog catalog, String name) {
     key(app, catalog, name);
-    List<String> said = app.tree().dump().lines().map(String::strip)
-        .filter(l -> l.contains(" selected ")).toList();
+    List<String> said = app.tree()
+        .dump()
+        .lines()
+        .map(String::strip)
+        .filter(l -> l.contains(" selected "))
+        .toList();
     for (El row : find(app, "schema").children()) {
       if (row.fill() == T.grid().selected()) {
         assertEquals(List.of(dumpLine(app, row.key())), said, "the dump says which is selected");
@@ -505,7 +569,8 @@ class TreeTest {
   private static void assertInView(App<?> app, int row) {
     El tree = find(app, "schema");
     El el = find(app, "row-" + row);
-    assertTrue(el != null && el.y() >= 0 && el.y() + el.height() <= tree.height(),
+    assertTrue(
+        el != null && el.y() >= 0 && el.y() + el.height() <= tree.height(),
         "row " + row + " in view at " + tree.scrollY());
   }
 
@@ -535,9 +600,11 @@ class TreeTest {
 
     run(app, "await\nframe");
     assertEquals(5, find(app, "schema").rowCount());
-    assertEquals(List.of("localhost", "prod-eu", "staging", "scratch", "shop"),
+    assertEquals(
+        List.of("localhost", "prod-eu", "staging", "scratch", "shop"),
         find(app, "schema").children().stream().map(El::label).toList());
-    assertEquals(T.space().s() + T.space().xl(), find(app, "row-3").children().getFirst().x());
+    assertEquals(
+        T.space().s() + T.space().xl(), find(app, "row-3").children().getFirst().x());
     assertEquals("staging/shop", key(app, catalog, "End"));
   }
 
@@ -546,9 +613,14 @@ class TreeTest {
   @Test
   void withoutHandlersTheTreeOnlyShows() throws IOException {
     Catalog catalog = new Catalog(T).opened("localhost");
-    App<Catalog> app = new App<>(catalog, c -> col().wFull().hFull().child(
-        Tree.tree(T, c, c.open::contains, c.node("localhost/shop"), null, null, null)
-            .key("schema").grow(1)));
+    App<Catalog> app = new App<>(
+        catalog,
+        c -> col()
+            .wFull()
+            .hFull()
+            .child(Tree.tree(T, c, c.open::contains, c.node("localhost/shop"), null, null, null)
+                .key("schema")
+                .grow(1)));
     run(app, "frame\nmove #row-1\npress #row-1\npress #mark-0\nkey Tab\nframe");
     assertNull(app.focused());
     assertEquals(0, find(app, "row-1").fill(), "no hover");
@@ -575,14 +647,24 @@ class TreeTest {
     }
     assertEquals(12, files.size());
     assertEquals(
-        List.of("select localhost", "open localhost", "select localhost/shop",
-            "open localhost/shop", "activate localhost/shop", "select localhost/shop/public",
-            "open localhost/shop/public", "activate localhost/shop/public",
-            "select localhost/shop/public/accounts", "open localhost/shop/public/accounts",
+        List.of(
+            "select localhost",
+            "open localhost",
+            "select localhost/shop",
+            "open localhost/shop",
+            "activate localhost/shop",
+            "select localhost/shop/public",
+            "open localhost/shop/public",
+            "activate localhost/shop/public",
+            "select localhost/shop/public/accounts",
+            "open localhost/shop/public/accounts",
             "activate localhost/shop/public/accounts",
             "select localhost/shop/public/accounts/id",
-            "select localhost/shop/public/accounts/created_at", "select localhost",
-            "close localhost", "select staging", "open staging"),
+            "select localhost/shop/public/accounts/created_at",
+            "select localhost",
+            "close localhost",
+            "select staging",
+            "open staging"),
         catalog.log);
   }
 

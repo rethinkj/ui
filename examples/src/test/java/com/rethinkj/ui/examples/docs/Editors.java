@@ -45,10 +45,18 @@ final class Editors {
     Theme t = s.t;
     // docs:start code-editor
     El editor = CodeEditor.codeEditor(t, s.app, s.sql, s.editor, Sql.of(t), v -> s.sql = v)
-        .key("query").label("Query").lines(8).wFull();
+        .key("query")
+        .label("Query")
+        .lines(8)
+        .wFull();
     // docs:end code-editor
     // docs:start completion
-    El withCompletions = Completion.complete(t, s.app, editor, s.editor.caret(), s.completion,
+    El withCompletions = Completion.complete(
+        t,
+        s.app,
+        editor,
+        s.editor.caret(),
+        s.completion,
         word -> TABLES.stream()
             .filter(name -> name.startsWith(word.toLowerCase(Locale.ROOT)))
             .map(name -> new Completion.Entry(name, Symbol.TABLE, "table"))
@@ -61,7 +69,9 @@ final class Editors {
     Theme t = s.t;
     // docs:start find
     El notes = TextField.textArea(t, s.notes, "Notes", v -> s.notes = v)
-        .key("notes").lines(6).w(360);
+        .key("notes")
+        .lines(6)
+        .w(360);
     El withFind = Find.find(t, s.app, notes, s.find); // Control+F, Control+H, F3, Control+G
     // docs:end find
     return Frame.of(t, withFind);
@@ -70,10 +80,12 @@ final class Editors {
   static El markdown(Editors s) {
     Theme t = s.t;
     // docs:start markdown
-    El document = Markdown.markdown(t, s.readme, Markdown.options()
-            .onLink(destination -> s.link = destination)
-            .copy(s.app.clipboard()))
-        .key("readme").grow(1);
+    El document = Markdown.markdown(
+            t,
+            s.readme,
+            Markdown.options().onLink(destination -> s.link = destination).copy(s.app.clipboard()))
+        .key("readme")
+        .grow(1);
     // docs:end markdown
     return Frame.of(t, Card.flush(t, document).wFull().grow(1));
   }

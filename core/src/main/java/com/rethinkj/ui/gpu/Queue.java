@@ -47,7 +47,9 @@ public final class Queue {
         from = arena.allocate(size, 8).copyFrom(data);
       }
       MemorySegment bytes = from;
-      device.run("writing buffer", buffer.label(),
+      device.run(
+          "writing buffer",
+          buffer.label(),
           () -> Wgpu.queueWriteBuffer(queue, target, offset, bytes, size));
     }
   }
@@ -67,8 +69,16 @@ public final class Queue {
    * @param bytesPerRow the distance between rows in {@code data}, at least a row of the rectangle;
    *     unlike a copy between buffer and texture, it need not be a multiple of 256
    */
-  public void writeTexture(Texture texture, int x, int y, int layer, int width, int height,
-      MemorySegment data, long offset, int bytesPerRow) {
+  public void writeTexture(
+      Texture texture,
+      int x,
+      int y,
+      int layer,
+      int width,
+      int height,
+      MemorySegment data,
+      long offset,
+      int bytesPerRow) {
     writeTexture(texture, 0, x, y, layer, width, height, data, offset, bytesPerRow);
   }
 
@@ -76,19 +86,33 @@ public final class Queue {
    * As {@link #writeTexture(Texture, int, int, int, int, int, MemorySegment, long, int)}, into mip
    * level {@code level}, whose size is {@link Texture#width(int)} by {@link Texture#height(int)}.
    */
-  public void writeTexture(Texture texture, int level, int x, int y, int layer, int width,
-      int height, MemorySegment data, long offset, int bytesPerRow) {
+  public void writeTexture(
+      Texture texture,
+      int level,
+      int x,
+      int y,
+      int layer,
+      int width,
+      int height,
+      MemorySegment data,
+      long offset,
+      int bytesPerRow) {
     MemorySegment queue = usable();
     MemorySegment target = device.owned(texture).handle();
     if (!texture.usages().contains(TextureUsage.COPY_DST)) {
-      throw new IllegalArgumentException(texture + " was not created with"
-          + " TextureUsage.COPY_DST.");
+      throw new IllegalArgumentException(
+          texture + " was not created with" + " TextureUsage.COPY_DST.");
     }
     if (level < 0 || level >= texture.levels()) {
       throw new IllegalArgumentException("Cannot write into mip level " + level + " of " + texture
           + ", which has " + texture.levels() + ".");
     }
-    if (x < 0 || y < 0 || width < 0 || height < 0 || layer < 0 || layer >= texture.layers()
+    if (x < 0
+        || y < 0
+        || width < 0
+        || height < 0
+        || layer < 0
+        || layer >= texture.layers()
         || (long) x + width > texture.width(level)
         || (long) y + height > texture.height(level)) {
       throw new IllegalArgumentException("Cannot write " + width + "x" + height + " texels at "
@@ -127,7 +151,9 @@ public final class Queue {
       MemorySegment extent = arena.allocate(Structs.Extent3D.LAYOUT);
       Structs.Extent3D.set(extent, 0, width, height);
       MemorySegment bytes = from;
-      device.run("writing texture", texture.label(),
+      device.run(
+          "writing texture",
+          texture.label(),
           () -> Wgpu.queueWriteTexture(queue, destination, bytes, size, layout, extent));
     }
   }

@@ -55,16 +55,23 @@ final class Workbench {
 
   /** The frame's queries, with the third one modified and active. */
   static Workbench frame(Theme theme) {
-    Workbench w = new Workbench(theme,
-        "Console", "customers.sql", "orders by month.sql*", "products.sql");
+    Workbench w =
+        new Workbench(theme, "Console", "customers.sql", "orders by month.sql*", "products.sql");
     w.active = 2;
     return w;
   }
 
   /** More queries than a bar of 400 has room for, the second one modified. */
   static Workbench many(Theme theme) {
-    return new Workbench(theme, "customers.sql", "orders by month.sql*", "Console",
-        "products.sql", "invoices 2026.sql", "slow queries.sql", "schema diff.sql",
+    return new Workbench(
+        theme,
+        "customers.sql",
+        "orders by month.sql*",
+        "Console",
+        "products.sql",
+        "invoices 2026.sql",
+        "slow queries.sql",
+        "schema diff.sql",
         "migration 042.sql");
   }
 
@@ -72,14 +79,18 @@ final class Workbench {
 
   /** The schema and an editor side by side, the schema at least 120 wide, the editor 160. */
   El splitView() {
-    return window(split(theme, Direction.ROW, sidebar, SIDEBAR, this::sidebar,
-        schema(), 120, editorPane(), 160).key("split").grow(1));
+    return window(split(
+            theme, Direction.ROW, sidebar, SIDEBAR, this::sidebar, schema(), 120, editorPane(), 160)
+        .key("split")
+        .grow(1));
   }
 
   /** The editor over its results, at least 40 high each. */
   El columnView() {
-    return window(split(theme, Direction.COLUMN, editor, EDITOR, this::editor,
-        editorPane(), 40, results(), 40).key("split").grow(1));
+    return window(split(
+            theme, Direction.COLUMN, editor, EDITOR, this::editor, editorPane(), 40, results(), 40)
+        .key("split")
+        .grow(1));
   }
 
   /** The queries in tabs, the active one with a field for a filter. */
@@ -93,9 +104,10 @@ final class Workbench {
    */
   El frameView() {
     El queries = queries();
-    return window(split(theme, Direction.ROW, sidebar, SIDEBAR, this::sidebar,
-        schema(), 160,
-        queries, 320).key("frame").grow(1))
+    return window(split(
+                theme, Direction.ROW, sidebar, SIDEBAR, this::sidebar, schema(), 160, queries, 320)
+            .key("frame")
+            .grow(1))
         .onKey(queries.onKey());
   }
 
@@ -107,11 +119,24 @@ final class Workbench {
     List<Tab> tabs = queries.stream()
         .map(q -> new Tab(q.title().replace("*", ""), q.closable(), q.modified()))
         .toList();
-    El content = active < 0 || active >= queries.size() ? null
+    El content = active < 0 || active >= queries.size()
+        ? null
         : queries.get(active).title().startsWith("orders")
-            ? split(theme, Direction.COLUMN, editor, EDITOR, this::editor,
-                editorPane(), 80, results(), 80).key("work")
-            : col().key("work").padding(theme.space().m()).gap(theme.space().s())
+            ? split(
+                    theme,
+                    Direction.COLUMN,
+                    editor,
+                    EDITOR,
+                    this::editor,
+                    editorPane(),
+                    80,
+                    results(),
+                    80)
+                .key("work")
+            : col()
+                .key("work")
+                .padding(theme.space().m())
+                .gap(theme.space().s())
                 .children(
                     label(theme, Variant.MUTED, queries.get(active).title().replace("*", "")),
                     textField(theme, filter, "Filter", f -> filter = f).key("filter"));
@@ -119,8 +144,12 @@ final class Workbench {
   }
 
   private El schema() {
-    El schema = col().key("schema").label("Schema").fill(theme.surface().panel())
-        .padding(theme.space().m()).gap(theme.space().s())
+    El schema = col()
+        .key("schema")
+        .label("Schema")
+        .fill(theme.surface().panel())
+        .padding(theme.space().m())
+        .gap(theme.space().s())
         .child(label(theme, Variant.HEADING, "public"));
     for (String table : List.of("customers", "orders", "order_items", "products", "invoices")) {
       schema.child(label(theme, table));
@@ -129,18 +158,27 @@ final class Workbench {
   }
 
   private El editorPane() {
-    El editor = col().key("editor").label("Query").padding(theme.space().m())
+    El editor = col()
+        .key("editor")
+        .label("Query")
+        .padding(theme.space().m())
         .gap(theme.space().xs());
-    for (String line : List.of("SELECT date_trunc('month', o.created_at) AS month,",
-        "       count(*) AS orders, sum(o.amount) AS total", "FROM orders o",
-        "GROUP BY 1", "ORDER BY 1 DESC;")) {
+    for (String line : List.of(
+        "SELECT date_trunc('month', o.created_at) AS month,",
+        "       count(*) AS orders, sum(o.amount) AS total",
+        "FROM orders o",
+        "GROUP BY 1",
+        "ORDER BY 1 DESC;")) {
       editor.child(label(theme, Variant.MONO, line));
     }
     return editor;
   }
 
   private El results() {
-    return col().key("results").label("Results").fill(theme.surface().panel())
+    return col()
+        .key("results")
+        .label("Results")
+        .fill(theme.surface().panel())
         .padding(theme.space().m())
         .child(label(theme, Variant.MUTED, "12 rows in 18 ms"));
   }
@@ -206,9 +244,13 @@ final class Workbench {
 
   /** The line of the tree dump of the first element with this key, without the indent, or null. */
   static String dumpLine(App<?> app, String key) {
-    return app.tree().dump().lines().map(String::strip)
+    return app.tree()
+        .dump()
+        .lines()
+        .map(String::strip)
         .filter(l -> l.startsWith("el #" + key + " ") || l.startsWith("text #" + key + " "))
-        .findFirst().orElse(null);
+        .findFirst()
+        .orElse(null);
   }
 
   /** The first element with this label in tree order, or null. */

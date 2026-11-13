@@ -217,32 +217,43 @@ class MaskedFieldTest {
   @Test
   void theDumpSelectorsAndScriptErrorsSeeOnlyTheMask(@TempDir Path out) throws Exception {
     App<Model> app = masked("");
-    Script.run("size 200 80\nframe\npress #f\ntype \"" + SECRET + "\"\nkey ArrowLeft shift\n"
-        + "frame\nsnap typed\n", app, out);
+    Script.run(
+        "size 200 80\nframe\npress #f\ntype \"" + SECRET + "\"\nkey ArrowLeft shift\n"
+            + "frame\nsnap typed\n",
+        app,
+        out);
     assertEquals(SECRET, app.state().value);
     String dump = app.tree().dump();
-    assertTrue(dump.contains("text #f role=textbox \"" + DOTS + "\" 10,10 100x24 password"
-        + " focused caret 6 anchor 7\n"), dump);
+    assertTrue(
+        dump.contains("text #f role=textbox \"" + DOTS + "\" 10,10 100x24 password"
+            + " focused caret 6 anchor 7\n"),
+        dump);
     try (Stream<Path> files = Files.list(out)) {
       for (Path file : files.toList()) {
-        assertFalse(Files.readString(file, java.nio.charset.StandardCharsets.ISO_8859_1)
-            .contains(SECRET), file.toString());
+        assertFalse(
+            Files.readString(file, java.nio.charset.StandardCharsets.ISO_8859_1).contains(SECRET),
+            file.toString());
       }
     }
 
-    Script.run("size 200 80\nframe\npress role=textbox password\npress text=\"" + DOTS + "\"\n"
-        + "frame\n", app, out);
+    Script.run(
+        "size 200 80\nframe\npress role=textbox password\npress text=\"" + DOTS + "\"\n"
+            + "frame\n",
+        app,
+        out);
     String[] failing = {
-        "press #nowhere\n", // lists the texts there are
-        "press role=textbox disabled\n", // lists the lines of the textboxes
-        "press role=textbox label=\"x\"\n",
-        "press text=\"" + SECRET + "\"\n", // its value finds nothing
+      "press #nowhere\n", // lists the texts there are
+      "press role=textbox disabled\n", // lists the lines of the textboxes
+      "press role=textbox label=\"x\"\n",
+      "press text=\"" + SECRET + "\"\n", // its value finds nothing
     };
     for (String step : failing) {
-      Script.Failure failure = assertThrows(Script.Failure.class,
-          () -> Script.run("size 200 80\nframe\n" + step, app, out));
+      Script.Failure failure = assertThrows(
+          Script.Failure.class, () -> Script.run("size 200 80\nframe\n" + step, app, out));
       // Without the step, which quotes what the script says.
-      String message = failure.getMessage().replace(step.strip(), "")
+      String message = failure
+          .getMessage()
+          .replace(step.strip(), "")
           .replace(step.strip().substring("press ".length()), "");
       assertFalse(message.contains(SECRET), message);
       assertTrue(message.contains(DOTS), message);
@@ -295,8 +306,8 @@ class MaskedFieldTest {
     rebuild(app);
     assertEquals("open sesame plea|se^", show(app));
     String dump = app.tree().dump();
-    assertTrue(dump.contains("\"open sesame please\" 10,10 100x24 focused caret 16 anchor 18\n"),
-        dump);
+    assertTrue(
+        dump.contains("\"open sesame please\" 10,10 100x24 focused caret 16 anchor 18\n"), dump);
     Text text = field(app).text();
     float caret = text.caret().x() - text.scroll();
     assertTrue(caret > 0 && caret < 92, "the caret is still in view: " + caret);
@@ -325,7 +336,8 @@ class MaskedFieldTest {
     El field = El.text("").editable(s -> {});
     assertThrows(IllegalArgumentException.class, () -> field.maskCharacter(' '));
     assertThrows(IllegalArgumentException.class, () -> field.maskCharacter(0x301), "a mark");
-    assertThrows(IllegalArgumentException.class, () -> field.maskCharacter(0x1F1E9), "a flag's half");
+    assertThrows(
+        IllegalArgumentException.class, () -> field.maskCharacter(0x1F1E9), "a flag's half");
     assertThrows(IllegalStateException.class, () -> El.text("x").masked(), "only for fields");
   }
 
@@ -334,10 +346,23 @@ class MaskedFieldTest {
   @Test
   void aMaskedFieldInARowOfAVirtualList() {
     Map<Integer, String> values = new HashMap<>();
-    App<Map<Integer, String>> app = new App<>(values, v -> col().wFull().hFull().children(
-        col().key("rows").grow(1).rows(1000, 30, i ->
-            El.text(v.getOrDefault(i, "")).editable(s -> v.put(i, s)).masked().key("pin-" + i)
-                .h(30).padding(0, 4))));
+    App<Map<Integer, String>> app = new App<>(
+        values,
+        v -> col()
+            .wFull()
+            .hFull()
+            .children(col()
+                .key("rows")
+                .grow(1)
+                .rows(
+                    1000,
+                    30,
+                    i -> El.text(v.getOrDefault(i, ""))
+                        .editable(s -> v.put(i, s))
+                        .masked()
+                        .key("pin-" + i)
+                        .h(30)
+                        .padding(0, 4))));
     app.textRendering(TextRendering.LINUX);
     app.resize(200, 120, 1);
     app.frame();
@@ -348,8 +373,10 @@ class MaskedFieldTest {
     app.frame();
     assertEquals(Map.of(2, SECRET), values);
     String dump = app.tree().dump();
-    assertTrue(dump.contains("text #pin-2 role=textbox \"" + DOTS + "\" 0,60 200x30 password"
-        + " pos=3/1000 focused caret 7\n"), dump);
+    assertTrue(
+        dump.contains("text #pin-2 role=textbox \"" + DOTS + "\" 0,60 200x30 password"
+            + " pos=3/1000 focused caret 7\n"),
+        dump);
     assertFalse(dump.contains(SECRET), dump);
 
     app.scrollToRow(app.tree().children().getFirst(), 500);

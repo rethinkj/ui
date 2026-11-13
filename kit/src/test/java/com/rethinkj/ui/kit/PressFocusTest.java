@@ -37,7 +37,8 @@ class PressFocusTest {
 
   private static final Theme T = Theme.DARK;
 
-  @TempDir Path out;
+  @TempDir
+  Path out;
 
   @BeforeEach
   void textLibraries() {
@@ -56,18 +57,36 @@ class PressFocusTest {
 
     El view() {
       List<Column> columns = List.of(new Column("id", 60, Align.RIGHT, true, String::valueOf));
-      El grid = dataGrid(T, columns, 5, DataGrid.options()
-          .select(new DataGrid.Selection(DataGrid.Mode.ROWS))).key("grid").label("Rows");
-      return col().wFull().hFull().fill(T.surface().window()).children(
-          row().key("toolbar").gap(T.space().s()).padding(T.space().s()).children(
-              button(T, Variant.PRIMARY, "Run", () -> runs++).key("run"),
-              toggle(T, on, "Auto", () -> on = !on).key("auto"),
-              checkbox(T, checked, "Wrap", () -> checked = !checked).key("wrap"),
-              Select.select(T, List.of("one", "two"), choice, select, i -> choice = i)
-                  .key("select")),
-          split(T, Direction.ROW, split, null, p -> split = p,
-              textField(T, query, "Query", v -> query = v).key("query"), 100, grid, 100)
-              .grow(1));
+      El grid = dataGrid(
+              T, columns, 5, DataGrid.options().select(new DataGrid.Selection(DataGrid.Mode.ROWS)))
+          .key("grid")
+          .label("Rows");
+      return col()
+          .wFull()
+          .hFull()
+          .fill(T.surface().window())
+          .children(
+              row()
+                  .key("toolbar")
+                  .gap(T.space().s())
+                  .padding(T.space().s())
+                  .children(
+                      button(T, Variant.PRIMARY, "Run", () -> runs++).key("run"),
+                      toggle(T, on, "Auto", () -> on = !on).key("auto"),
+                      checkbox(T, checked, "Wrap", () -> checked = !checked).key("wrap"),
+                      Select.select(T, List.of("one", "two"), choice, select, i -> choice = i)
+                          .key("select")),
+              split(
+                      T,
+                      Direction.ROW,
+                      split,
+                      null,
+                      p -> split = p,
+                      textField(T, query, "Query", v -> query = v).key("query"),
+                      100,
+                      grid,
+                      100)
+                  .grow(1));
     }
   }
 
@@ -76,8 +95,7 @@ class PressFocusTest {
   }
 
   @Test
-  void controlsAndTheDividerLeaveTheFocusWhereItIsAndTheFieldAndGridTakeIt()
-      throws IOException {
+  void controlsAndTheDividerLeaveTheFocusWhereItIsAndTheFieldAndGridTakeIt() throws IOException {
     App<Tool> app = new App<>(new Tool(), Tool::view);
     app.textRendering(TextRendering.LINUX);
     run(app, "frame\npress #query\nframe");
@@ -85,7 +103,8 @@ class PressFocusTest {
 
     run(app, "press #run\npress #auto\npress #wrap\nframe");
     assertEquals(1, app.state().runs);
-    assertEquals(find(app, "query"), app.focused(), "the buttons did their work, the field kept it");
+    assertEquals(
+        find(app, "query"), app.focused(), "the buttons did their work, the field kept it");
 
     float x = Workbench.x(app, find(app, "divider")) + 30;
     run(app, "down #divider\nmove " + x + ",120\nup " + x + ",120\nframe");

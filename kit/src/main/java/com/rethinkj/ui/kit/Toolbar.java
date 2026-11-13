@@ -41,7 +41,14 @@ public final class Toolbar {
 
   private Toolbar() {}
 
-  private enum Kind { BUTTON, TEXT, TOGGLE, SPLIT, SEPARATOR, SPACER }
+  private enum Kind {
+    BUTTON,
+    TEXT,
+    TOGGLE,
+    SPLIT,
+    SEPARATOR,
+    SPACER
+  }
 
   /** One part of a toolbar; made by the static methods of {@link Toolbar}. */
   public static final class Item {
@@ -55,8 +62,16 @@ public final class Toolbar {
     final Menu.State menu;
     final List<Menu.Item> items;
 
-    private Item(Kind kind, String label, Symbol icon, Button.Variant variant, boolean on,
-        Runnable onPress, Consumer<Boolean> onToggle, Menu.State menu, List<Menu.Item> items) {
+    private Item(
+        Kind kind,
+        String label,
+        Symbol icon,
+        Button.Variant variant,
+        boolean on,
+        Runnable onPress,
+        Consumer<Boolean> onToggle,
+        Menu.State menu,
+        List<Menu.Item> items) {
       this.kind = kind;
       this.label = label;
       this.icon = icon;
@@ -88,8 +103,16 @@ public final class Toolbar {
 
   /** A ghost button with an icon alone; its label shows in a tooltip. */
   public static Item button(Symbol icon, String label, Runnable onPress) {
-    return new Item(Kind.BUTTON, label, Objects.requireNonNull(icon, "icon"),
-        Button.Variant.GHOST, false, onPress, null, null, null);
+    return new Item(
+        Kind.BUTTON,
+        label,
+        Objects.requireNonNull(icon, "icon"),
+        Button.Variant.GHOST,
+        false,
+        onPress,
+        null,
+        null,
+        null);
   }
 
   /** A ghost button with an icon, if any, and text. */
@@ -104,15 +127,36 @@ public final class Toolbar {
 
   /** A toggle button with an icon alone ({@link Button#toggleIcon}). */
   public static Item toggle(Symbol icon, String label, boolean on, Consumer<Boolean> onToggle) {
-    return new Item(Kind.TOGGLE, label, Objects.requireNonNull(icon, "icon"),
-        Button.Variant.GHOST, on, null, onToggle, null, null);
+    return new Item(
+        Kind.TOGGLE,
+        label,
+        Objects.requireNonNull(icon, "icon"),
+        Button.Variant.GHOST,
+        on,
+        null,
+        onToggle,
+        null,
+        null);
   }
 
   /** A split button ({@link Button#split}): the main action and a menu of related ones. */
-  public static Item split(Button.Variant variant, Symbol icon, String text, Runnable onPress,
-      Menu.State menu, List<Menu.Item> items) {
-    return new Item(Kind.SPLIT, text, icon, variant, false, onPress, null,
-        Objects.requireNonNull(menu, "menu"), List.copyOf(items));
+  public static Item split(
+      Button.Variant variant,
+      Symbol icon,
+      String text,
+      Runnable onPress,
+      Menu.State menu,
+      List<Menu.Item> items) {
+    return new Item(
+        Kind.SPLIT,
+        text,
+        icon,
+        variant,
+        false,
+        onPress,
+        null,
+        Objects.requireNonNull(menu, "menu"),
+        List.copyOf(items));
   }
 
   /** A hairline between groups of items. */
@@ -132,9 +176,16 @@ public final class Toolbar {
     float gap = t.space().xs();
     int shown = fit(t, state, items, gap);
     // grow(1) fills a row's width; the most height keeps it a row high in a column with room.
-    El bar = row().role("toolbar").label(label).h(t.size().control()).grow(1)
-        .minSize(0, t.size().control()).maxSize(Float.POSITIVE_INFINITY, t.size().control())
-        .gap(gap).align(Style.Align.CENTER).clip()
+    El bar = row()
+        .role("toolbar")
+        .label(label)
+        .h(t.size().control())
+        .grow(1)
+        .minSize(0, t.size().control())
+        .maxSize(Float.POSITIVE_INFINITY, t.size().control())
+        .gap(gap)
+        .align(Style.Align.CENTER)
+        .clip()
         .onResize((w, h) -> state.width = w);
     List<El> stops = new ArrayList<>();
     for (int i = 0; i < shown; i++) {
@@ -144,23 +195,28 @@ public final class Toolbar {
       }
       El el = build(t, item, stops);
       String id = id(items, i);
-      bar.child(item.kind == Kind.SEPARATOR || item.kind == Kind.SPACER ? el
-          : el.onResize((w, h) -> state.widths.put(id, w)));
+      bar.child(
+          item.kind == Kind.SEPARATOR || item.kind == Kind.SPACER
+              ? el
+              : el.onResize((w, h) -> state.widths.put(id, w)));
     }
     if (shown < items.size()) {
       List<Menu.Item> hidden = new ArrayList<>();
       for (int i = shown; i < items.size(); i++) {
         Menu.Item entry = entry(items.get(i));
         boolean separator = entry != null && entry.isSeparator();
-        if (entry != null && !(separator && (hidden.isEmpty() || hidden.getLast().isSeparator()))) {
+        if (entry != null
+            && !(separator && (hidden.isEmpty() || hidden.getLast().isSeparator()))) {
           hidden.add(entry);
         }
       }
       if (!hidden.isEmpty() && hidden.getLast().isSeparator()) {
         hidden.removeLast();
       }
-      El more = Button.icon(t, Button.Variant.GHOST, Symbol.MORE_HORIZONTAL, "More",
-          state.more::toggle).key("more").onResize((w, h) -> state.widths.put("more", w));
+      El more = Button.icon(
+              t, Button.Variant.GHOST, Symbol.MORE_HORIZONTAL, "More", state.more::toggle)
+          .key("more")
+          .onResize((w, h) -> state.widths.put("more", w));
       stops.add(more);
       bar.child(Menu.dropdown(t, more, state.more, hidden));
     }
@@ -189,8 +245,8 @@ public final class Toolbar {
       if (kind == Kind.SPACER) {
         continue; // takes what is left, nothing when nothing is
       }
-      Float w = kind == Kind.SEPARATOR
-          ? Float.valueOf(separator(t)) : state.widths.get(id(items, i));
+      Float w =
+          kind == Kind.SEPARATOR ? Float.valueOf(separator(t)) : state.widths.get(id(items, i));
       if (w == null) {
         return items.size();
       }
@@ -212,23 +268,36 @@ public final class Toolbar {
   /** Builds an item; the elements Tab and the arrows reach go into {@code stops}. */
   private static El build(Theme t, Item item, List<El> stops) {
     return switch (item.kind) {
-      case BUTTON -> stop(stops, Button.icon(t, item.variant, item.icon, item.label,
-          item.onPress), item.onPress != null);
-      case TEXT -> stop(stops, Button.button(t, item.variant, item.icon, item.label,
-          item.onPress), item.onPress != null);
-      case TOGGLE -> stop(stops, Button.toggleIcon(t, item.icon, item.label, item.on,
-          item.onToggle), item.onToggle != null);
+      case BUTTON ->
+        stop(
+            stops,
+            Button.icon(t, item.variant, item.icon, item.label, item.onPress),
+            item.onPress != null);
+      case TEXT ->
+        stop(
+            stops,
+            Button.button(t, item.variant, item.icon, item.label, item.onPress),
+            item.onPress != null);
+      case TOGGLE ->
+        stop(
+            stops,
+            Button.toggleIcon(t, item.icon, item.label, item.on, item.onToggle),
+            item.onToggle != null);
       case SPLIT -> {
-        El split = Button.split(t, item.variant, item.icon, item.label, item.onPress,
-            item.menu, item.items);
+        El split = Button.split(
+            t, item.variant, item.icon, item.label, item.onPress, item.menu, item.items);
         stop(stops, split.children().getFirst(), item.onPress != null);
         El more = split.children().getLast();
         stop(stops, more, more.onPress() != null);
         yield split;
       }
-      case SEPARATOR -> el().w(t.size().stroke()).h(t.size().control() - 2 * t.space().s())
-          .shrink(0).margin(0, t.space().xs(), 0, t.space().xs()).fill(t.border().subtle())
-          .role("separator");
+      case SEPARATOR ->
+        el().w(t.size().stroke())
+            .h(t.size().control() - 2 * t.space().s())
+            .shrink(0)
+            .margin(0, t.space().xs(), 0, t.space().xs())
+            .fill(t.border().subtle())
+            .role("separator");
       case SPACER -> el().grow(1);
     };
   }
@@ -252,12 +321,15 @@ public final class Toolbar {
         Menu.Item entry = Menu.item(item.label, item.onPress);
         yield item.icon == null ? entry : entry.icon(item.icon);
       }
-      case TOGGLE -> Menu.item(item.label, item.onToggle == null ? null
-          : () -> item.onToggle.accept(!item.on)).checked(item.on);
+      case TOGGLE ->
+        Menu.item(item.label, item.onToggle == null ? null : () -> item.onToggle.accept(!item.on))
+            .checked(item.on);
       case SPLIT -> {
         List<Menu.Item> all = new ArrayList<>();
-        all.add(item.icon == null ? Menu.item(item.label, item.onPress)
-            : Menu.item(item.label, item.onPress).icon(item.icon));
+        all.add(
+            item.icon == null
+                ? Menu.item(item.label, item.onPress)
+                : Menu.item(item.label, item.onPress).icon(item.icon));
         all.add(Menu.separator());
         all.addAll(item.items);
         yield Menu.submenu(item.label, all);

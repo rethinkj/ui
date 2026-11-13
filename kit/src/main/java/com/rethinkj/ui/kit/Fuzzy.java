@@ -103,10 +103,11 @@ public final class Fuzzy {
 
   /** The bonus of a match of {@code c} after {@code before}. */
   private static int bonus(char before, char c) {
-    return before == ' ' || before == '\t' ? BOUNDARY
-        : separator(before) ? SEPARATOR
-        : isLower(before) && isUpper(c) || isLetter(before) && isDigit(c) ? CAMEL
-        : 0;
+    return before == ' ' || before == '\t'
+        ? BOUNDARY
+        : separator(before)
+            ? SEPARATOR
+            : isLower(before) && isUpper(c) || isLetter(before) && isDigit(c) ? CAMEL : 0;
   }
 
   /** A matcher for this query, to score many texts. */
@@ -191,8 +192,8 @@ public final class Fuzzy {
       if (query.length == 1) {
         int best = NO_MATCH;
         for (int i = lo; i >= 0; i = compared.indexOf(query[0], i + 1)) {
-          best = Math.max(best, MATCH + 2 * bonus(i == 0 ? ' ' : text.charAt(i - 1),
-              text.charAt(i)));
+          best =
+              Math.max(best, MATCH + 2 * bonus(i == 0 ? ' ' : text.charAt(i - 1), text.charAt(i)));
         }
         return best;
       }
@@ -208,7 +209,6 @@ public final class Fuzzy {
       }
       return best <= NONE / 2 ? NO_MATCH : best;
     }
-
 
     /** The positions of the best match, as {@link Fuzzy#positions} has them. */
     public int[] positions(String text) {

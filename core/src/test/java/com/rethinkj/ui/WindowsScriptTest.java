@@ -28,7 +28,8 @@ class WindowsScriptTest {
   private static final int RED = 0xFFDC2626;
   private static final int GREY = 0xFF808080;
 
-  @TempDir Path out;
+  @TempDir
+  Path out;
 
   /**
    * Three slots in the main window, 100 by 100 each; a chip in one of them, or in a window of its
@@ -50,7 +51,9 @@ class WindowsScriptTest {
       El root = row().wFull().hFull();
       for (int i = 0; i < 3; i++) {
         int index = i;
-        El box = el().key("slot-" + i).size(100, 100).fill(over == i ? RED : 0xFFFFFFFF)
+        El box = el().key("slot-" + i)
+            .size(100, 100)
+            .fill(over == i ? RED : 0xFFFFFFFF)
             .onDrop(d -> drop(index, d));
         if (slot == i) {
           box.child(chip());
@@ -65,8 +68,10 @@ class WindowsScriptTest {
     }
 
     El torn() {
-      return row().wFull().hFull().child(el().key("count-" + count).size(40, 40)
-          .onPress(() -> count++));
+      return row()
+          .wFull()
+          .hFull()
+          .child(el().key("count-" + count).size(40, 40).onPress(() -> count++));
     }
 
     void drop(int index, Drop d) {
@@ -87,9 +92,16 @@ class WindowsScriptTest {
         // Out of the window: the chip becomes a window of its own under the pointer.
         App<Board> chipApp = new App<>(this, Board::torn);
         float scale = app.windows().of(app).screenScale(); // as the new window's, likely
-        window = app.windows().open("Chip", 60, 60, Window.options()
-            .position(Math.round(d.screenX() - grabX * scale),
-                Math.round(d.screenY() - grabY * scale)), chipApp);
+        window = app.windows()
+            .open(
+                "Chip",
+                60,
+                60,
+                Window.options()
+                    .position(
+                        Math.round(d.screenX() - grabX * scale),
+                        Math.round(d.screenY() - grabY * scale)),
+                chipApp);
         window.dropTarget(false); // it lies under the pointer, over what it is dropped on
         window.onCloseRequest(() -> {
           if (!veto) {
@@ -98,7 +110,8 @@ class WindowsScriptTest {
         });
         slot = -1;
       } else if (window != null && moving) {
-        window.moveTo(Math.round(d.screenX() - grabX * window.screenScale()),
+        window.moveTo(
+            Math.round(d.screenX() - grabX * window.screenScale()),
             Math.round(d.screenY() - grabY * window.screenScale()));
       } else if (window != null && d.phase() == Drag.Phase.END) {
         if (slot >= 0) { // a slot took it
@@ -151,7 +164,8 @@ class WindowsScriptTest {
         snap docked
         """, app, out);
 
-    assertEquals(List.of("0 OVER", "0 LEAVE", "1 OVER", "1 LEAVE", "2 OVER", "2 DROP"),
+    assertEquals(
+        List.of("0 OVER", "0 LEAVE", "1 OVER", "1 LEAVE", "2 OVER", "2 DROP"),
         b.log.subList(b.log.indexOf("0 OVER"), b.log.size()));
     assertEquals(2, b.slot);
     assertNull(b.window);
@@ -244,12 +258,15 @@ class WindowsScriptTest {
 
   @Test
   void stepsNameTheWindowsThereAre() {
-    Script.Failure failure = assertThrows(Script.Failure.class, () -> Script.run("""
+    Script.Failure failure =
+        assertThrows(Script.Failure.class, () -> Script.run("""
         size 300 100
         frame
         window Nope
         """, board(), out));
-    assertEquals("line 3: window Nope\n  There is no open window Nope. The open windows are"
-        + " \"main\"; `main` is the first.", failure.getMessage());
+    assertEquals(
+        "line 3: window Nope\n  There is no open window Nope. The open windows are"
+            + " \"main\"; `main` is the first.",
+        failure.getMessage());
   }
 }

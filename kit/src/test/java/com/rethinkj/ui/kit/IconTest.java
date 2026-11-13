@@ -69,8 +69,8 @@ class IconTest {
     El small = icon(T, Symbol.TABLE);
     El large = icon(T, Symbol.TABLE, Variant.NORMAL, 20);
     El after = label(T, "orders");
-    El line = row().gap(T.space().s()).align(Style.Align.CENTER)
-        .children(before, small, large, after);
+    El line =
+        row().gap(T.space().s()).align(Style.Align.CENTER).children(before, small, large, after);
     Headless.render(col().padding(3.25f).child(line), 300, 60, scale, TextRendering.LINUX);
     assertEquals(16, small.width());
     assertEquals(16, small.height());
@@ -84,11 +84,19 @@ class IconTest {
   void theVariantsTakeTheThemesColours() {
     TextLibraries.assumeLoaded();
     for (Theme t : new Theme[] {Theme.DARK, Theme.LIGHT}) {
-      int[] colours = {t.text().primary(), t.text().muted(), t.text().disabled(),
-          t.status().danger(), t.status().warning(), t.status().success()};
+      int[] colours = {
+        t.text().primary(),
+        t.text().muted(),
+        t.text().disabled(),
+        t.status().danger(),
+        t.status().warning(),
+        t.status().success()
+      };
       for (Variant variant : Variant.values()) {
-        assertEquals(colours[variant.ordinal()],
-            icon(t, Symbol.WARNING, variant).text().color(), variant.name());
+        assertEquals(
+            colours[variant.ordinal()],
+            icon(t, Symbol.WARNING, variant).text().color(),
+            variant.name());
       }
     }
   }
@@ -99,8 +107,8 @@ class IconTest {
     TextLibraries.assumeLoaded();
     Theme t = name.equals("dark") ? Theme.DARK : Theme.LIGHT;
     int rows = 1 + (Symbol.values().length + COLUMNS - 1) / COLUMNS;
-    Headless.Frame frame = Headless.render(
-        sheet(t), CELL * COLUMNS, rows * ROW, scale, TextRendering.LINUX);
+    Headless.Frame frame =
+        Headless.render(sheet(t), CELL * COLUMNS, rows * ROW, scale, TextRendering.LINUX);
     Golden.assertMatches("icons-" + name + "-" + scale + "x", frame.pixels(), frame.tree());
   }
 
@@ -111,19 +119,26 @@ class IconTest {
   private static El sheet(Theme t) {
     El variants = cell(t).w(CELL * COLUMNS).child(label(t, Label.Variant.MUTED, "variants"));
     for (Variant variant : Variant.values()) {
-      variants.children(icon(t, Symbol.WARNING, variant),
-          label(t, variant.name().toLowerCase(Locale.ROOT)));
+      variants.children(
+          icon(t, Symbol.WARNING, variant), label(t, variant.name().toLowerCase(Locale.ROOT)));
     }
     El sheet = row().wrap().wFull().hFull().fill(t.surface().window()).child(variants);
     for (Symbol symbol : Symbol.values()) {
-      sheet.child(cell(t).children(icon(t, symbol), icon(t, symbol, Variant.NORMAL, 20),
-          label(t, symbol.name().toLowerCase(Locale.ROOT))));
+      sheet.child(cell(t)
+          .children(
+              icon(t, symbol),
+              icon(t, symbol, Variant.NORMAL, 20),
+              label(t, symbol.name().toLowerCase(Locale.ROOT))));
     }
     return sheet;
   }
 
   private static El cell(Theme t) {
-    return row().w(CELL).h(ROW).padding(0, t.space().m()).gap(t.space().m())
+    return row()
+        .w(CELL)
+        .h(ROW)
+        .padding(0, t.space().m())
+        .gap(t.space().m())
         .align(Style.Align.CENTER);
   }
 }

@@ -77,8 +77,8 @@ public final class Properties {
    * @param copied the app's state of the copy buttons, which confirm a copy for a moment; null
    *     for no confirmation
    */
-  public static El properties(Theme t, List<Property> properties, Clipboard clipboard,
-      Button.Copied copied) {
+  public static El properties(
+      Theme t, List<Property> properties, Clipboard clipboard, Button.Copied copied) {
     return list(t, properties, column(t, properties), clipboard, copied);
   }
 
@@ -96,24 +96,27 @@ public final class Properties {
    *
    * @param copied the app's state of the copy buttons; null for no confirmation
    */
-  public static El groups(Theme t, List<Group> groups, Clipboard clipboard,
-      Button.Copied copied) {
+  public static El groups(Theme t, List<Group> groups, Clipboard clipboard, Button.Copied copied) {
     float column = 0;
     for (Group group : groups) {
       column = Math.max(column, column(t, group.properties()));
     }
     El out = col().gap(t.space().l());
     for (Group group : groups) {
-      out.child(col().gap(t.space().xs()).children(
-          label(t, Label.Variant.STRONG, group.title()).role("heading").level(3)
-              .padding(0, t.space().s()),
-          list(t, group.properties(), column, clipboard, copied).label(group.title())));
+      out.child(col()
+          .gap(t.space().xs())
+          .children(
+              label(t, Label.Variant.STRONG, group.title())
+                  .role("heading")
+                  .level(3)
+                  .padding(0, t.space().s()),
+              list(t, group.properties(), column, clipboard, copied).label(group.title())));
     }
     return out;
   }
 
-  private static El list(Theme t, List<Property> properties, float column, Clipboard clipboard,
-      Button.Copied copied) {
+  private static El list(
+      Theme t, List<Property> properties, float column, Clipboard clipboard, Button.Copied copied) {
     El list = col().role("list");
     for (Property p : properties) {
       list.child(entry(t, p, column, clipboard, copied));
@@ -121,32 +124,51 @@ public final class Properties {
     return list;
   }
 
-  private static El entry(Theme t, Property p, float column, Clipboard clipboard,
-      Button.Copied copied) {
+  private static El entry(
+      Theme t, Property p, float column, Clipboard clipboard, Button.Copied copied) {
     Theme.TextStyle style = p.isMono() ? t.type().mono() : t.type().body();
-    El name = label(t, Label.Variant.MUTED, p.name()).ellipsis().w(column).shrink(0)
-        .minSize(0, 0);
-    El value = El.text(p.value()).editable(v -> {}).readOnly().skipTab().ellipsis()
-        .font(style.font().get()).fontSize(style.size()).color(t.text().primary())
+    El name =
+        label(t, Label.Variant.MUTED, p.name()).ellipsis().w(column).shrink(0).minSize(0, 0);
+    El value = El.text(p.value())
+        .editable(v -> {})
+        .readOnly()
+        .skipTab()
+        .ellipsis()
+        .font(style.font().get())
+        .fontSize(style.size())
+        .color(t.text().primary())
         .selectionColor(t.accent().selection())
-        .grow(1).minSize(0, 0).h(t.size().control());
+        .grow(1)
+        .minSize(0, 0)
+        .h(t.size().control());
     // A field measures 0 wide: the same text alone says how long the value is.
     if (width(El.text(p.value()).font(style.font().get()).fontSize(style.size()))
         > t.size().field()) {
       Tooltip.tooltip(t, value, p.value());
     }
-    El entry = row().role("listitem").label(p.name()).value(p.value())
-        .h(t.size().control()).padding(0, t.space().s()).gap(t.space().m())
-        .align(Style.Align.CENTER).radius(t.radius().small())
+    El entry = row()
+        .role("listitem")
+        .label(p.name())
+        .value(p.value())
+        .h(t.size().control())
+        .padding(0, t.space().s())
+        .gap(t.space().m())
+        .align(Style.Align.CENTER)
+        .radius(t.radius().small())
         .children(name, value);
     if (clipboard != null) {
-      boolean shown = copied != null && copied.shows("Copy " + p.name(), p.value()); // seen while it confirms
-      El copy = Button.copy(t, clipboard, p.value(), "Copy " + p.name(), copied).key("copy")
+      boolean shown =
+          copied != null && copied.shows("Copy " + p.name(), p.value()); // seen while it confirms
+      El copy = Button.copy(t, clipboard, p.value(), "Copy " + p.name(), copied)
+          .key("copy")
           .opacity(shown ? 1 : 0);
-      entry.child(copy).whenHovered(e -> {
-        e.fill(t.surface().hover());
-        copy.opacity(1);
-      }).whenFocusWithin(e -> copy.opacity(1));
+      entry
+          .child(copy)
+          .whenHovered(e -> {
+            e.fill(t.surface().hover());
+            copy.opacity(1);
+          })
+          .whenFocusWithin(e -> copy.opacity(1));
     }
     return entry;
   }
@@ -162,7 +184,8 @@ public final class Properties {
   }
 
   private static float width(El text) {
-    return text.text().measure(Float.NaN, Float.NaN, Measure.MAX_CONTENT, Measure.MAX_CONTENT)
+    return text.text()
+        .measure(Float.NaN, Float.NaN, Measure.MAX_CONTENT, Measure.MAX_CONTENT)
         .width();
   }
 }

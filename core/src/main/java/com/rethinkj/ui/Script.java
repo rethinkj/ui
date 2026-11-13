@@ -83,12 +83,12 @@ public final class Script {
           + " checked=false, expanded, level=2, value=\"<text>\") such as role=switch"
           + " label=\"Lights\"";
   /** A state of a selector, as {@link El#dump} writes it, but the value; =true may be added. */
-  private static final Pattern STATE =
-      Pattern.compile(
-          "disabled|readonly|password|invalid|busy|selected|current|grabbed|checked(=true|=false|=mixed)?|expanded(=true|=false)?"
-              + "|level=[1-9]\\d{0,9}|pos=[1-9]\\d{0,9}/[1-9]\\d{0,9}|sort=(ascending|descending)");
+  private static final Pattern STATE = Pattern.compile(
+      "disabled|readonly|password|invalid|busy|selected|current|grabbed|checked(=true|=false|=mixed)?|expanded(=true|=false)?"
+          + "|level=[1-9]\\d{0,9}|pos=[1-9]\\d{0,9}/[1-9]\\d{0,9}|sort=(ascending|descending)");
   /** How many seconds {@code await} waits for the app's work unless it says otherwise. */
   private static final double AWAIT = 10;
+
   private static final Pattern NUMBER = Pattern.compile("\\d+(\\.\\d+)?");
   private static final Pattern INDEX = Pattern.compile("\\d{1,10}");
   private static final Pattern CLICKS = Pattern.compile("[1-9]\\d{0,2}");
@@ -177,14 +177,15 @@ public final class Script {
           int[] at = null;
           int where = size.indexOf("at");
           if (where >= 2) {
-            Matcher position = where + 1 < size.size()
-                ? POSITION.matcher(size.get(where + 1)) : null;
+            Matcher position =
+                where + 1 < size.size() ? POSITION.matcher(size.get(where + 1)) : null;
             if (position == null || !position.matches()) {
               throw line.usage(step);
             }
             at = new int[] {
-                Math.round(Float.parseFloat(position.group(1))),
-                Math.round(Float.parseFloat(position.group(2)))};
+              Math.round(Float.parseFloat(position.group(1))),
+              Math.round(Float.parseFloat(position.group(2)))
+            };
             size.subList(where, where + 2).clear();
           }
           boolean scaled = size.size() == 4 && size.get(2).equals("scale");
@@ -226,7 +227,8 @@ public final class Script {
             } else if (modifier != 0) {
               modifiers |= modifier;
               target.removeLast();
-            } else if (!step.equals("up") && target.size() > 1
+            } else if (!step.equals("up")
+                && target.size() > 1
                 && target.get(target.size() - 2).equals("clicks")) {
               if (!CLICKS.matcher(target.getLast()).matches()) {
                 throw line.usage(step);
@@ -312,10 +314,10 @@ public final class Script {
           }
           long row = Long.parseLong(args.getLast());
           if (row >= list.rowCount()) {
-            throw line.fail(
-                "The list has " + list.rowCount() + " rows, "
-                    + (list.rowCount() == 0 ? "so none to scroll to." : "from 0 to "
-                        + (list.rowCount() - 1) + ". Write a row in that range."));
+            throw line.fail("The list has " + list.rowCount() + " rows, "
+                + (list.rowCount() == 0
+                    ? "so none to scroll to."
+                    : "from 0 to " + (list.rowCount() - 1) + ". Write a row in that range."));
           }
           app.scrollToRow(list, (int) row);
         }
@@ -421,7 +423,9 @@ public final class Script {
             List<String> target = new ArrayList<>(over ? args.subList(1, args.size()) : args);
             String text = null;
             List<Path> files = new ArrayList<>();
-            if (!over && target.size() >= 3 && target.get(target.size() - 2).equals("text")
+            if (!over
+                && target.size() >= 3
+                && target.get(target.size() - 2).equals("text")
                 && quoted(target.getLast())) {
               text = unescape(strip(target.removeLast()));
               target.removeLast();
@@ -511,24 +515,27 @@ public final class Script {
           }
         }
         default ->
-            throw line.fail(
-                "There is no step " + step
-                    + ". The steps are size, window, close, press, down, up, move, leave,"
-                    + " wheel, scroll, key, type, compose, clipboard, dialog, drop, focus, advance,"
-                    + " await, frame and snap.");
+          throw line.fail("There is no step " + step
+              + ". The steps are size, window, close, press, down, up, move, leave,"
+              + " wheel, scroll, key, type, compose, clipboard, dialog, drop, focus, advance,"
+              + " await, frame and snap.");
       }
       if (step.equals("frame")) {
         pending = null;
-      } else if (!step.equals("snap") && !step.equals("clipboard") && !step.equals("window")
-          && !step.equals("dialog") && pending == null) {
+      } else if (!step.equals("snap")
+          && !step.equals("clipboard")
+          && !step.equals("window")
+          && !step.equals("dialog")
+          && pending == null) {
         pending = line;
       }
     }
     Answer unused = desk.answers.peek();
     if (unused != null) {
-      throw unused.line.fail("No dialog opened after this answer, so it answered nothing. A `dialog`"
-          + " step answers the next dialog the app opens, in a frame after it: write it before the"
-          + " step whose handler opens the dialog, as before `press #open` and its `frame`.");
+      throw unused.line.fail(
+          "No dialog opened after this answer, so it answered nothing. A `dialog`"
+              + " step answers the next dialog the app opens, in a frame after it: write it before the"
+              + " step whose handler opens the dialog, as before `press #open` and its `frame`.");
     }
     return written;
   }
@@ -547,10 +554,12 @@ public final class Script {
     if (args.size() == 1 && args.getFirst().equals("cancel")) {
       return new Answer(line, List.of(), -1, null, null);
     }
-    if (args.size() == 2 && (args.getFirst().equals("error") || args.getFirst().equals("button"))
+    if (args.size() == 2
+        && (args.getFirst().equals("error") || args.getFirst().equals("button"))
         && quoted(args.getLast())) {
       String text = unescape(strip(args.getLast()));
-      return args.getFirst().equals("error") ? new Answer(line, List.of(), -1, text, null)
+      return args.getFirst().equals("error")
+          ? new Answer(line, List.of(), -1, text, null)
           : new Answer(line, List.of(), -1, null, text);
     }
     List<String> rest = new ArrayList<>(args);
@@ -641,7 +650,8 @@ public final class Script {
         return new float[] {x, y};
       }
       return new float[] {
-          (win.x + x * win.scale - to.x) / to.scale, (win.y + y * win.scale - to.y) / to.scale};
+        (win.x + x * win.scale - to.x) / to.scale, (win.y + y * win.scale - to.y) / to.scale
+      };
     }
   }
 
@@ -782,8 +792,8 @@ public final class Script {
     /** The dialogs of the script's windows: each takes the next answer of a `dialog` step. */
     final Dialogs dialogs = new Dialogs() {
       @Override
-      public void file(FileDialog dialog, Consumer<FileDialog.Choice> chosen,
-          Consumer<String> failed) {
+      public void file(
+          FileDialog dialog, Consumer<FileDialog.Choice> chosen, Consumer<String> failed) {
         Answer answer = answers.poll();
         if (answer == null) {
           unanswered.add(dialog.toString());
@@ -886,8 +896,8 @@ public final class Script {
         float sy = Float.parseFloat(position.group(2));
         Win at = held != null ? held : under(sx, sy, false);
         if (at == null) {
-          throw line.fail("No window lies at " + target.getLast() + " on the screen, so "
-              + consequence + ".");
+          throw line.fail(
+              "No window lies at " + target.getLast() + " on the screen, so " + consequence + ".");
         }
         return new Aim(at, (sx - at.x) / at.scale, (sy - at.y) / at.scale);
       }
@@ -901,8 +911,8 @@ public final class Script {
         rest = target.subList(2, target.size());
       }
       if (in.app.tree() == null) {
-        throw line.fail("No frame has run yet, so " + consequence + ". Add `frame` before this"
-            + " line.");
+        throw line.fail(
+            "No frame has run yet, so " + consequence + ". Add `frame` before this" + " line.");
       }
       float[] at = line.point(rest, in.app.tree());
       return new Aim(in, at[0], at[1]);
@@ -921,8 +931,7 @@ public final class Script {
       for (Win w : front) {
         float x = (sx - w.x) / w.scale;
         float y = (sy - w.y) / w.scale;
-        if (w.open && (!drops || w.dropTarget) && x >= 0 && y >= 0 && x < w.width
-            && y < w.height) {
+        if (w.open && (!drops || w.dropTarget) && x >= 0 && y >= 0 && x < w.width && y < w.height) {
           return w;
         }
       }
@@ -949,8 +958,7 @@ public final class Script {
           if (w.app.ranHandlers()) {
             for (int j = 0; j < wins.size(); j++) {
               Win other = wins.get(j);
-              if (other != w && other.open && !other.fresh
-                  && other.app.state() == w.app.state()) {
+              if (other != w && other.open && !other.fresh && other.app.state() == w.app.state()) {
                 other.app.invalidate();
                 (j < i ? again : due).add(other);
               }
@@ -962,8 +970,12 @@ public final class Script {
     }
 
     @Override
-    public Handle open(String title, float width, float height,
-        com.rethinkj.ui.window.Window.Options options, App<?> app) {
+    public Handle open(
+        String title,
+        float width,
+        float height,
+        com.rethinkj.ui.window.Window.Options options,
+        App<?> app) {
       Objects.requireNonNull(title, "title");
       if (of(app) != null) {
         throw new IllegalArgumentException("The app runs in a window already");
@@ -1012,7 +1024,8 @@ public final class Script {
       float sx = from.x + x * from.scale;
       float sy = from.y + y * from.scale;
       Win at = under(sx, sy, true);
-      return at == null ? new Place(sx, sy, null, Float.NaN, Float.NaN)
+      return at == null
+          ? new Place(sx, sy, null, Float.NaN, Float.NaN)
           : new Place(sx, sy, at, (sx - at.x) / at.scale, (sy - at.y) / at.scale);
     }
   }
@@ -1020,13 +1033,14 @@ public final class Script {
   /** A window's name without the quotes around it, if it has them. */
   private static String unquote(String word) {
     return word.length() > 1 && word.startsWith("\"") && word.endsWith("\"")
-        ? unescape(word.substring(1, word.length() - 1)) : word;
+        ? unescape(word.substring(1, word.length() - 1))
+        : word;
   }
 
   /** A title as a part of a file name: lower case, words joined by hyphens. */
   static String slug(String title) {
-    String slug = title.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]+", "-")
-        .replaceAll("^-|-$", "");
+    String slug =
+        title.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]+", "-").replaceAll("^-|-$", "");
     return slug.isEmpty() ? "window" : slug;
   }
 
@@ -1042,70 +1056,70 @@ public final class Script {
     }
 
     Failure usage(String step) {
-      return fail(
-          "Write "
-              + switch (step) {
-                case "size" ->
-                    "`size <width> <height>` or `size <width> <height> scale <factor>`, with"
-                        + " numbers above 0, for example `size 200 120 scale 2`, and `at <x>,<y>`"
-                        + " after it for the window's place on the screen, in physical pixels.";
-                case "window" ->
-                    "`window <name>`: `main` for the first window, else a window's title, quoted"
-                        + " if it has spaces, as in `window \"Note 2\"`.";
-                case "close" -> "`close` with nothing after it.";
-                case "await" ->
-                    "`await`, or `await <seconds>` with a number above 0 to wait longer than "
-                        + (int) AWAIT + " seconds, for example `await 30`.";
-                case "advance" ->
-                    "`advance <seconds>`, with a number of 0 or more, for example `advance 0.04`.";
-                case "frame", "leave" -> "`" + step + "` with nothing after it.";
-                case "key" ->
-                    "`key <name>`, followed by any of shift, control, alt and meta that are held,"
-                        + " for example `key Enter` or `key Tab shift` for Shift+Tab.";
-                case "type" ->
-                    "`type \"<text>\"`, with \\\" for a quote and \\\\ for a backslash in the"
-                        + " text, for example `type \"hello\"`.";
-                case "compose" ->
-                    "`compose \"<text>\"`, the composition of an input method, quoted as for"
-                        + " `type`, for example `compose \"ni\"`; `compose \"\"` ends it.";
-                case "clipboard" ->
-                    "`clipboard \"<text>\"`, the text to put on the clipboard, quoted as for"
-                        + " `type`, for example `clipboard \"SELECT 1\"`.";
-                case "press", "down" ->
-                    "`" + step + " <target>`, then `clicks <n>` for the second or third press in a"
-                        + " row and any of shift, control, alt and meta that are held, for example"
-                        + " `" + step + " #name clicks 2` or `" + step + " #name shift`, or `"
-                        + step + " <target> right` for the secondary button, without them. A"
-                        + " target is " + TARGET + ".";
-                case "up" ->
-                    "`up <target>`, or `up <target> right` for the secondary button. A target is "
-                        + TARGET + ".";
-                case "wheel" ->
-                    "`wheel <target> <deltaX> <deltaY>`, with distances in logical pixels that are"
-                        + " positive to scroll down or right, for example `wheel #list 0 40`. A"
-                        + " target is " + TARGET + ".";
-                case "scroll" ->
-                    "`scroll <target> row <index>`, which scrolls the list of rows at the target so"
-                        + " that the row with that index, counted from 0, is at its top, for"
-                        + " example `scroll #list row 5000`. A target is " + TARGET + ".";
-                case "dialog" ->
-                    "`dialog \"<path>\"` with one or more quoted paths, and `filter <n>` after"
-                        + " them for the filter chosen, counted from 0, to answer the next file"
-                        + " dialog the app opens; `dialog cancel` to cancel it or close a message"
-                        + " box; `dialog button \"<text>\"` to press a message box's button;"
-                        + " `dialog error \"<text>\"` for a dialog that fails. Write it before the"
-                        + " step that opens the dialog.";
-                case "drop" ->
-                    "`drop <target> \"<path>\"` with one or more quoted paths, the files another"
-                        + " application drops there; `drop <target> text \"<text>\"` for text;"
-                        + " `drop over <target>` for such a drag over the target, not yet released;"
-                        + " `drop leave` for one that leaves. A target is " + TARGET + ".";
-                case "snap" ->
-                    "`snap <name>`, for example `snap after-press`, to write after-press.png and"
-                        + " after-press.tree.txt into the output folder.";
-                default -> "`" + step + " <target>`. A target is " + TARGET + ", or in another"
-                    + " window `in <window> <target>`, or a point of the screen `screen <x>,<y>`.";
-              });
+      return fail("Write "
+          + switch (step) {
+            case "size" ->
+              "`size <width> <height>` or `size <width> <height> scale <factor>`, with"
+                  + " numbers above 0, for example `size 200 120 scale 2`, and `at <x>,<y>`"
+                  + " after it for the window's place on the screen, in physical pixels.";
+            case "window" ->
+              "`window <name>`: `main` for the first window, else a window's title, quoted"
+                  + " if it has spaces, as in `window \"Note 2\"`.";
+            case "close" -> "`close` with nothing after it.";
+            case "await" ->
+              "`await`, or `await <seconds>` with a number above 0 to wait longer than "
+                  + (int) AWAIT + " seconds, for example `await 30`.";
+            case "advance" ->
+              "`advance <seconds>`, with a number of 0 or more, for example `advance 0.04`.";
+            case "frame", "leave" -> "`" + step + "` with nothing after it.";
+            case "key" ->
+              "`key <name>`, followed by any of shift, control, alt and meta that are held,"
+                  + " for example `key Enter` or `key Tab shift` for Shift+Tab.";
+            case "type" ->
+              "`type \"<text>\"`, with \\\" for a quote and \\\\ for a backslash in the"
+                  + " text, for example `type \"hello\"`.";
+            case "compose" ->
+              "`compose \"<text>\"`, the composition of an input method, quoted as for"
+                  + " `type`, for example `compose \"ni\"`; `compose \"\"` ends it.";
+            case "clipboard" ->
+              "`clipboard \"<text>\"`, the text to put on the clipboard, quoted as for"
+                  + " `type`, for example `clipboard \"SELECT 1\"`.";
+            case "press", "down" ->
+              "`" + step + " <target>`, then `clicks <n>` for the second or third press in a"
+                  + " row and any of shift, control, alt and meta that are held, for example"
+                  + " `" + step + " #name clicks 2` or `" + step + " #name shift`, or `"
+                  + step + " <target> right` for the secondary button, without them. A"
+                  + " target is " + TARGET + ".";
+            case "up" ->
+              "`up <target>`, or `up <target> right` for the secondary button. A target is "
+                  + TARGET + ".";
+            case "wheel" ->
+              "`wheel <target> <deltaX> <deltaY>`, with distances in logical pixels that are"
+                  + " positive to scroll down or right, for example `wheel #list 0 40`. A"
+                  + " target is " + TARGET + ".";
+            case "scroll" ->
+              "`scroll <target> row <index>`, which scrolls the list of rows at the target so"
+                  + " that the row with that index, counted from 0, is at its top, for"
+                  + " example `scroll #list row 5000`. A target is " + TARGET + ".";
+            case "dialog" ->
+              "`dialog \"<path>\"` with one or more quoted paths, and `filter <n>` after"
+                  + " them for the filter chosen, counted from 0, to answer the next file"
+                  + " dialog the app opens; `dialog cancel` to cancel it or close a message"
+                  + " box; `dialog button \"<text>\"` to press a message box's button;"
+                  + " `dialog error \"<text>\"` for a dialog that fails. Write it before the"
+                  + " step that opens the dialog.";
+            case "drop" ->
+              "`drop <target> \"<path>\"` with one or more quoted paths, the files another"
+                  + " application drops there; `drop <target> text \"<text>\"` for text;"
+                  + " `drop over <target>` for such a drag over the target, not yet released;"
+                  + " `drop leave` for one that leaves. A target is " + TARGET + ".";
+            case "snap" ->
+              "`snap <name>`, for example `snap after-press`, to write after-press.png and"
+                  + " after-press.tree.txt into the output folder.";
+            default ->
+              "`" + step + " <target>`. A target is " + TARGET + ", or in another"
+                  + " window `in <window> <target>`, or a point of the screen `screen <x>,<y>`.";
+          });
     }
 
     /**
@@ -1217,11 +1231,10 @@ public final class Script {
           for (Found found : near.subList(0, Math.min(near.size(), 20))) {
             found.el.describe(lines.append("    "), found.left, found.top);
           }
-          throw fail(
-              near.size() + " elements of the last frame match " + String.join(" ", others)
-                  + ", but none has the states of " + text + ":\n" + lines
-                  + (near.size() > 20 ? "    and " + (near.size() - 20) + " more\n" : "")
-                  + "  Their lines show the states they have after the rectangle." + lists(all));
+          throw fail(near.size() + " elements of the last frame match " + String.join(" ", others)
+              + ", but none has the states of " + text + ":\n" + lines
+              + (near.size() > 20 ? "    and " + (near.size() - 20) + " more\n" : "")
+              + "  Their lines show the states they have after the rectangle." + lists(all));
         }
       }
       if (matches.isEmpty()) {
@@ -1249,24 +1262,22 @@ public final class Script {
             }
           }
         }
-        throw fail(
-            "No element of the last frame matches " + text + ". It has\n"
-                + "    keys:   " + listing(keys) + "\n"
-                + "    roles:  " + listing(roles) + "\n"
-                + "    labels: " + listing(labels) + "\n"
-                + (texts.isEmpty() ? "" : "    texts:  " + listing(texts) + "\n")
-                + (states.isEmpty() ? "" : "    states: " + listing(states) + "\n")
-                + "  Select with these, or press a position x,y. The .tree.txt of a snap shows"
-                + " every element with its rectangle." + lists(all));
+        throw fail("No element of the last frame matches " + text + ". It has\n"
+            + "    keys:   " + listing(keys) + "\n"
+            + "    roles:  " + listing(roles) + "\n"
+            + "    labels: " + listing(labels) + "\n"
+            + (texts.isEmpty() ? "" : "    texts:  " + listing(texts) + "\n")
+            + (states.isEmpty() ? "" : "    states: " + listing(states) + "\n")
+            + "  Select with these, or press a position x,y. The .tree.txt of a snap shows"
+            + " every element with its rectangle." + lists(all));
       }
       StringBuilder rows = new StringBuilder();
       for (Found found : matches) {
         found.el.describe(rows.append("    "), found.left, found.top);
       }
-      throw fail(
-          matches.size() + " elements match " + text + ":\n" + rows
-              + "  Add #key, role=, label= or a state to the selector until it matches one, or press"
-              + " a position x,y inside one of these rectangles.");
+      throw fail(matches.size() + " elements match " + text + ":\n" + rows
+          + "  Add #key, role=, label= or a state to the selector until it matches one, or press"
+          + " a position x,y inside one of these rectangles.");
     }
   }
 
@@ -1285,8 +1296,15 @@ public final class Script {
    * children too. The clip is a rectangle in window coordinates.
    */
   private static void walk(
-      El el, float parentX, float parentY, float clipLeft, float clipTop, float clipRight,
-      float clipBottom, List<Found> all, List<Found> clipped) {
+      El el,
+      float parentX,
+      float parentY,
+      float clipLeft,
+      float clipTop,
+      float clipRight,
+      float clipBottom,
+      List<Found> all,
+      List<Found> clipped) {
     if (!el.isPlaced() || el.opacity() == 0 || el.isExiting()) {
       return;
     }
@@ -1300,14 +1318,13 @@ public final class Script {
     float visibleTop = Math.max(top, clipTop);
     float visibleRight = Math.min(right, clipRight);
     float visibleBottom = Math.min(bottom, clipBottom);
-    Found found =
-        new Found(
-            el, left, top, (visibleLeft + visibleRight) / 2, (visibleTop + visibleBottom) / 2);
+    Found found = new Found(
+        el, left, top, (visibleLeft + visibleRight) / 2, (visibleTop + visibleBottom) / 2);
     List<Text.Box> rows = el.rangeBoxes();
     if (rows != null && !rows.isEmpty()) { // a range: the middle of its first row
       Text.Box row = rows.getFirst();
-      found = new Found(el, left, top, left + row.x() + row.width() / 2,
-          top + row.y() + row.height() / 2);
+      found = new Found(
+          el, left, top, left + row.x() + row.width() / 2, top + row.y() + row.height() / 2);
     }
     boolean visible = left < clipRight && right > clipLeft && top < clipBottom && bottom > clipTop;
     (visible ? all : clipped).add(found);

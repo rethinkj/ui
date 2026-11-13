@@ -40,9 +40,15 @@ class ScrollbarTest {
    * vertical track runs from 192,2 down 96 pixels, and its thumb is 24 long.
    */
   private static App<Log> million() {
-    App<Log> app = new App<>(new Log(), l -> col().key("list").wFull().hFull().scrollbars(LOOK)
-        .onPress(() -> l.log.add("list"))
-        .rows(1_000_000, 20, i -> el().key("row-" + i).onPress(() -> l.log.add("row " + i))));
+    App<Log> app = new App<>(
+        new Log(),
+        l -> col()
+            .key("list")
+            .wFull()
+            .hFull()
+            .scrollbars(LOOK)
+            .onPress(() -> l.log.add("list"))
+            .rows(1_000_000, 20, i -> el().key("row-" + i).onPress(() -> l.log.add("row " + i))));
     app.resize(200, 100, 1);
     app.frame();
     return app;
@@ -62,10 +68,13 @@ class ScrollbarTest {
     app.pointerMove(195, 500); // far beyond the end of the track and the window
     app.frame();
     String dump = app.tree().dump();
-    assertTrue(dump.startsWith(
-        "el #list 0,0 200x100 rows 999992-999999/1000000 scroll 0,19999900 thumb-y 192,74 6x24"
-            + " hovered\n"), dump);
-    assertTrue(dump.contains("\n  el #row-999999 0,80 200x20 pos=1000000/1000000\n"),
+    assertTrue(
+        dump.startsWith(
+            "el #list 0,0 200x100 rows 999992-999999/1000000 scroll 0,19999900 thumb-y 192,74 6x24"
+                + " hovered\n"),
+        dump);
+    assertTrue(
+        dump.contains("\n  el #row-999999 0,80 200x20 pos=1000000/1000000\n"),
         "the last row at the bottom");
     app.pointerUp(195, 500);
     app.frame();
@@ -101,8 +110,9 @@ class ScrollbarTest {
   /** A scroll area of 100 by 100 with one child of this height, and the look's minimum. */
   private static App<Object> area(float content, float minThumb) {
     Scrollbars look = new Scrollbars(6, 2, 3, minThumb, REST, HOVERED, DRAGGED);
-    App<Object> app = new App<>(new Object(), s -> col().key("area").size(100, 100).scroll()
-        .scrollbars(look).child(el().h(content)));
+    App<Object> app = new App<>(
+        new Object(),
+        s -> col().key("area").size(100, 100).scroll().scrollbars(look).child(el().h(content)));
     app.resize(100, 100, 1);
     app.frame();
     return app;
@@ -110,8 +120,8 @@ class ScrollbarTest {
 
   @ParameterizedTest(name = "content {0}, minimum {1}: thumb {2} long")
   @CsvSource({
-    "200, 24, 48",  // half in view: half the track of 96
-    "400, 24, 24",  // a quarter: 24, the minimum
+    "200, 24, 48", // half in view: half the track of 96
+    "400, 24, 24", // a quarter: 24, the minimum
     "1000, 24, 24", // a tenth would be 9.6
     "1000, 0, 9.6",
     "200, 500, 96", // a minimum beyond the track: the whole track
@@ -140,12 +150,15 @@ class ScrollbarTest {
       assertNull(app.tree().verticalBar(), "content " + content);
       assertFalse(app.tree().dump().contains("thumb"), app.tree().dump());
     }
-    App<Object> app = new App<>(new Object(), s -> col().size(100, 100).scrollBoth()
-        .scrollbars(LOOK).child(el().size(300, 50)));
+    App<Object> app = new App<>(
+        new Object(),
+        s -> col().size(100, 100).scrollBoth().scrollbars(LOOK).child(el().size(300, 50)));
     app.resize(100, 100, 1);
     app.frame();
     assertNull(app.tree().verticalBar(), "wider, not taller");
-    assertEquals(new Scrollbars.Bar(2, 92, 96, 6, 2, 92, 32, 6, REST), app.tree().horizontalBar(),
+    assertEquals(
+        new Scrollbars.Bar(2, 92, 96, 6, 2, 92, 32, 6, REST),
+        app.tree().horizontalBar(),
         "the whole width without a vertical bar");
   }
 
@@ -154,9 +167,14 @@ class ScrollbarTest {
    * at 0,0 in a window of the same size.
    */
   private static App<Log> both() {
-    App<Log> app = new App<>(new Log(), l -> col().key("area").size(100, 100).scrollBoth()
-        .scrollbars(LOOK)
-        .child(el().key("content").size(300, 200).onPress(() -> l.log.add("content"))));
+    App<Log> app = new App<>(
+        new Log(),
+        l -> col()
+            .key("area")
+            .size(100, 100)
+            .scrollBoth()
+            .scrollbars(LOOK)
+            .child(el().key("content").size(300, 200).onPress(() -> l.log.add("content"))));
     app.resize(100, 100, 1);
     app.frame();
     return app;
@@ -168,12 +186,14 @@ class ScrollbarTest {
     El area = app.tree();
     // 88 long each: 100 less the margins at both ends and the other bar with its margin. Each
     // axis scrolls 10 further, the strip of the other bar: 210 sideways, 110 down.
-    assertEquals(new Scrollbars.Bar(92, 2, 6, 88, 92, 2, 6, 88 * 100 / 210f, REST),
-        area.verticalBar());
-    assertEquals(new Scrollbars.Bar(2, 92, 88, 6, 2, 92, 88 * 100 / 310f, 6, REST),
-        area.horizontalBar());
-    assertTrue(area.dump().startsWith("el #area 0,0 100x100 thumb-x 2,92 28.39x6 thumb-y 92,2"
-        + " 6x41.9"), area.dump());
+    assertEquals(
+        new Scrollbars.Bar(92, 2, 6, 88, 92, 2, 6, 88 * 100 / 210f, REST), area.verticalBar());
+    assertEquals(
+        new Scrollbars.Bar(2, 92, 88, 6, 2, 92, 88 * 100 / 310f, 6, REST), area.horizontalBar());
+    assertTrue(
+        area.dump()
+            .startsWith("el #area 0,0 100x100 thumb-x 2,92 28.39x6 thumb-y 92,2" + " 6x41.9"),
+        area.dump());
 
     app.pointerDown(96, 96); // the corner
     app.pointerUp(96, 96);
@@ -187,8 +207,9 @@ class ScrollbarTest {
     assertEquals(100, area.scrollY(), "a page of the height");
     assertEquals(100, area.scrollX(), "a page of the width");
     float thumb = 88 * 100 / 210f;
-    assertEquals(new Scrollbars.Bar(92, 2, 6, 88, 92, 2 + (88 - thumb) * 100 / 110, 6, thumb,
-        REST), area.verticalBar());
+    assertEquals(
+        new Scrollbars.Bar(92, 2, 6, 88, 92, 2 + (88 - thumb) * 100 / 110, 6, thumb, REST),
+        area.verticalBar());
 
     app.pointerDown(10, 95); // the track before the horizontal thumb, now at 30.39
     app.pointerUp(10, 95);
@@ -203,10 +224,16 @@ class ScrollbarTest {
   @Test
   void theBarOfAnAreaInsideAnotherStaysInItsVisiblePartAndOutOfTheOuterBar() {
     // As the data grid: the rows scroll up and down inside content that scrolls sideways.
-    App<Object> app = new App<>(new Object(), s -> row().key("outer").size(100, 100).scrollBoth()
-        .scrollbars(LOOK)
-        .child(col().w(300).child(
-            col().key("inner").grow(1).scrollbars(LOOK).rows(100, 20, i -> el()))));
+    App<Object> app = new App<>(
+        new Object(),
+        s -> row()
+            .key("outer")
+            .size(100, 100)
+            .scrollBoth()
+            .scrollbars(LOOK)
+            .child(col()
+                .w(300)
+                .child(col().key("inner").grow(1).scrollbars(LOOK).rows(100, 20, i -> el()))));
     app.resize(100, 100, 1);
     app.frame();
     El outer = app.tree();
@@ -234,10 +261,21 @@ class ScrollbarTest {
    * rows of 20, the look if {@code listBars}, and keeps the row {@code reveal} in view.
    */
   private static App<Object> under(boolean outerBars, boolean listBars, int rows, int reveal) {
-    App<Object> app = new App<>(new Object(), s -> row().key("outer").size(100, 100).scrollBoth()
-        .scrollbars(outerBars ? LOOK : null)
-        .child(col().w(300).child(col().key("list").grow(1).scrollbars(listBars ? LOOK : null)
-            .revealRow(reveal).rows(rows, 20, i -> el().key("row-" + i)))));
+    App<Object> app = new App<>(
+        new Object(),
+        s -> row()
+            .key("outer")
+            .size(100, 100)
+            .scrollBoth()
+            .scrollbars(outerBars ? LOOK : null)
+            .child(col()
+                .w(300)
+                .child(col()
+                    .key("list")
+                    .grow(1)
+                    .scrollbars(listBars ? LOOK : null)
+                    .revealRow(reveal)
+                    .rows(rows, 20, i -> el().key("row-" + i)))));
     app.resize(100, 100, 1);
     app.frame();
     return app;
@@ -279,8 +317,10 @@ class ScrollbarTest {
     assertNull(find(app.tree(), "list").verticalBar());
     app = under(true, true, 5, -1); // they end at 100, under it
     El list = find(app.tree(), "list");
-    assertEquals(new Scrollbars.Bar(92, 2, 6, 86, 92, 2, 6, 86 * 100 / 110f, REST),
-        list.verticalBar(), "10 pixels to scroll");
+    assertEquals(
+        new Scrollbars.Bar(92, 2, 6, 86, 92, 2, 6, 86 * 100 / 110f, REST),
+        list.verticalBar(),
+        "10 pixels to scroll");
     app.wheel(50, 50, 0, 1000);
     app.frame();
     assertEquals(90, bottomOf(app, 4));
@@ -295,9 +335,20 @@ class ScrollbarTest {
       assertEquals(100, bottomOf(app, 99));
     }
     // The outer area is as wide as its content: no bar along its bottom.
-    App<Object> app = new App<>(new Object(), s -> row().size(300, 100).scrollBoth()
-        .scrollbars(LOOK).child(col().w(300).child(col().key("list").grow(1).scrollbars(LOOK)
-            .revealRow(99).rows(100, 20, i -> el().key("row-" + i)))));
+    App<Object> app = new App<>(
+        new Object(),
+        s -> row()
+            .size(300, 100)
+            .scrollBoth()
+            .scrollbars(LOOK)
+            .child(col()
+                .w(300)
+                .child(col()
+                    .key("list")
+                    .grow(1)
+                    .scrollbars(LOOK)
+                    .revealRow(99)
+                    .rows(100, 20, i -> el().key("row-" + i)))));
     app.resize(300, 100, 1);
     app.frame();
     assertEquals(1900, find(app.tree(), "list").scrollY());
@@ -337,7 +388,12 @@ class ScrollbarTest {
     int[] views = {0};
     App<Object> app = new App<>(new Object(), s -> {
       views[0]++;
-      return col().key("list").wFull().hFull().scrollbars(LOOK).cursor(Cursor.POINTER)
+      return col()
+          .key("list")
+          .wFull()
+          .hFull()
+          .scrollbars(LOOK)
+          .cursor(Cursor.POINTER)
           .rows(1000, 20, i -> el());
     });
     app.resize(200, 100, 1);
@@ -348,8 +404,11 @@ class ScrollbarTest {
     assertTrue(!app.frame() || app.tree().verticalBar().color() == REST);
     assertEquals(REST, app.tree().verticalBar().color());
     assertEquals(Cursor.DEFAULT, app.cursor(), "the arrow over a bar, not the area's cursor");
-    assertTrue(app.tree().dump().startsWith("el #list 0,0 200x100 rows 0-7/1000 thumb-y 192,2 6x24"
-        + " hovered\n"), "a press would go to the area's bar");
+    assertTrue(
+        app.tree()
+            .dump()
+            .startsWith("el #list 0,0 200x100 rows 0-7/1000 thumb-y 192,2 6x24" + " hovered\n"),
+        "a press would go to the area's bar");
 
     app.pointerMove(195, 10);
     assertTrue(app.frame(), "a new colour to draw");
@@ -374,10 +433,21 @@ class ScrollbarTest {
 
   @Test
   void aRowUnderABarTakesNoHoverLookAlsoWhenARebuildBuildsItAgain() {
-    App<Object> app = new App<>(new Object(), s -> col().key("list").wFull().hFull()
-        .scrollbars(LOOK)
-        .rows(1000, 20, i -> el().key("row-" + i).wFull().h(20).fill(REST)
-            .whenHovered(e -> e.fill(HOVERED))));
+    App<Object> app = new App<>(
+        new Object(),
+        s -> col()
+            .key("list")
+            .wFull()
+            .hFull()
+            .scrollbars(LOOK)
+            .rows(
+                1000,
+                20,
+                i -> el().key("row-" + i)
+                    .wFull()
+                    .h(20)
+                    .fill(REST)
+                    .whenHovered(e -> e.fill(HOVERED))));
     app.resize(200, 100, 1);
     app.frame();
     app.pointerMove(195, 30); // on the bar, over row 1
@@ -397,13 +467,26 @@ class ScrollbarTest {
   @Test
   void aPressOnABarReachesNoRowAncestorOrDragAndKeepsTheFocus() {
     Log state = new Log();
-    App<Log> app = new App<>(state, l -> col().wFull().hFull()
-        .onPress(() -> l.log.add("root")).onDrag(d -> l.log.add("drag " + d.phase()))
-        .children(
-            el().key("button").h(10).focusable().onPress(() -> l.log.add("button")),
-            col().key("list").grow(1).scrollbars(LOOK).rows(1000, 20, i -> el().key("row-" + i)
-                .focusable().whenHovered(e -> e.fill(0xFF0000FF))
-                .onPress(() -> l.log.add("row " + i)))));
+    App<Log> app = new App<>(
+        state,
+        l -> col()
+            .wFull()
+            .hFull()
+            .onPress(() -> l.log.add("root"))
+            .onDrag(d -> l.log.add("drag " + d.phase()))
+            .children(
+                el().key("button").h(10).focusable().onPress(() -> l.log.add("button")),
+                col()
+                    .key("list")
+                    .grow(1)
+                    .scrollbars(LOOK)
+                    .rows(
+                        1000,
+                        20,
+                        i -> el().key("row-" + i)
+                            .focusable()
+                            .whenHovered(e -> e.fill(0xFF0000FF))
+                            .onPress(() -> l.log.add("row " + i)))));
     app.resize(200, 110, 1);
     app.frame();
     El button = app.tree().children().getFirst();
@@ -415,7 +498,8 @@ class ScrollbarTest {
     app.pointerMove(150, 30); // onto the rows, beyond any drag threshold
     app.frame();
     assertNull(app.pressed());
-    assertTrue(app.tree().children().get(1).children().stream().allMatch(r -> r.fill() == 0),
+    assertTrue(
+        app.tree().children().get(1).children().stream().allMatch(r -> r.fill() == 0),
         "no row is hovered meanwhile");
     app.pointerUp(150, 30);
     app.frame();
@@ -437,10 +521,20 @@ class ScrollbarTest {
   void aPressOnABarOverATextFieldSelectsNothing() {
     TextLibraries.assumeLoaded();
     String[] value = {"hello world"};
-    App<Object> app = new App<>(new Object(), s -> col().key("area").size(100, 60).scroll()
-        .scrollbars(LOOK).children(
-            El.text(value[0]).editable(v -> value[0] = v).key("field").w(100).h(24),
-            el().h(200)));
+    App<Object> app = new App<>(
+        new Object(),
+        s -> col()
+            .key("area")
+            .size(100, 60)
+            .scroll()
+            .scrollbars(LOOK)
+            .children(
+                El.text(value[0])
+                    .editable(v -> value[0] = v)
+                    .key("field")
+                    .w(100)
+                    .h(24),
+                el().h(200)));
     app.textRendering(TextRendering.LINUX);
     app.resize(100, 60, 1);
     app.frame();
@@ -468,19 +562,23 @@ class ScrollbarTest {
 
   @Test
   void headlessDrawsTheBarsAtTheStart() {
-    El view = col().key("area").size(100, 100).scrollBoth().scrollbars(LOOK)
-        .child(el().size(300, 200));
+    El view =
+        col().key("area").size(100, 100).scrollBoth().scrollbars(LOOK).child(el().size(300, 200));
     Headless.Frame frame = Headless.render(view, 100, 100, 1);
-    assertTrue(frame.tree().startsWith("el #area 0,0 100x100 thumb-x 2,92 28.39x6 thumb-y 92,2"
-        + " 6x41.9"), frame.tree());
+    assertTrue(
+        frame
+            .tree()
+            .startsWith("el #area 0,0 100x100 thumb-x 2,92 28.39x6 thumb-y 92,2" + " 6x41.9"),
+        frame.tree());
     assertEquals(0xFF505050, frame.pixels().argb(95, 20), "the vertical thumb");
     assertEquals(0, frame.pixels().argb(95, 60), "the track has no fill");
   }
 
   @Test
   void anAreaWithoutTheLookHasNoBars() {
-    App<Object> app = new App<>(new Object(), s -> col().size(100, 100).scrollBoth()
-        .child(el().size(300, 200).onPress(() -> {})));
+    App<Object> app = new App<>(
+        new Object(),
+        s -> col().size(100, 100).scrollBoth().child(el().size(300, 200).onPress(() -> {})));
     app.resize(100, 100, 1);
     app.frame();
     assertNull(app.tree().verticalBar());

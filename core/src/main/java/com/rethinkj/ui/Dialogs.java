@@ -14,8 +14,8 @@ public interface Dialogs {
   /** For an app that no runner runs: every dialog fails, saying so. */
   Dialogs NONE = new Dialogs() {
     @Override
-    public void file(FileDialog dialog, Consumer<FileDialog.Choice> chosen,
-        Consumer<String> failed) {
+    public void file(
+        FileDialog dialog, Consumer<FileDialog.Choice> chosen, Consumer<String> failed) {
       failed.accept(MISSING);
     }
 

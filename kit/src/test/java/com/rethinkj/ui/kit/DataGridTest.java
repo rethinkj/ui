@@ -41,7 +41,8 @@ class DataGridTest {
   // a million rows, so that its floats add up to the pixel.
   private static final int PAGE = 8;
 
-  @TempDir Path out;
+  @TempDir
+  Path out;
 
   @BeforeEach
   void textLibraries() {
@@ -68,7 +69,9 @@ class DataGridTest {
     assertAskedForExistingRows(orders, app);
     El rows = find(app, "rows");
     assertEquals(199, rows.height(), "down to the bottom of the grid");
-    assertTrue(rows.children().size() <= PAGE + 1 + 2 * El.OVERSCAN, "" + rows.children().size());
+    assertTrue(
+        rows.children().size() <= PAGE + 1 + 2 * El.OVERSCAN,
+        "" + rows.children().size());
 
     orders.asked.clear();
     run(app, "scroll #rows row 654321\nframe");
@@ -86,11 +89,15 @@ class DataGridTest {
    */
   private static void assertAskedForExistingRows(Orders orders, App<?> app) {
     El rows = find(app, "rows");
-    List<Integer> exist =
-        IntStream.range(rows.firstRow(), rows.firstRow() + rows.children().size()).boxed().toList();
+    List<Integer> exist = IntStream.range(
+            rows.firstRow(), rows.firstRow() + rows.children().size())
+        .boxed()
+        .toList();
     assertEquals(exist, List.copyOf(new TreeSet<>(orders.asked)));
-    long cells = rows.children().stream().flatMap(r -> r.children().stream())
-        .filter(c -> "gridcell".equals(c.role())).count();
+    long cells = rows.children().stream()
+        .flatMap(r -> r.children().stream())
+        .filter(c -> "gridcell".equals(c.role()))
+        .count();
     assertEquals(cells, orders.asked.size(), "each cell once");
     assertTrue(cells < exist.size() * 20L / 2, cells + " cells of " + exist.size() * 20);
   }
@@ -136,8 +143,10 @@ class DataGridTest {
     // frame's work: ten keys cost far less than ten frames of one.
     long one = keyFrames(1);
     long ten = keyFrames(10);
-    System.out.printf("DataGrid, 20 columns, a million rows: frame() after keys, median of %d:"
-        + " %.2f ms after one ArrowDown, %.2f ms after ten%n", FRAMES, one / 1e6, ten / 1e6);
+    System.out.printf(
+        "DataGrid, 20 columns, a million rows: frame() after keys, median of %d:"
+            + " %.2f ms after one ArrowDown, %.2f ms after ten%n",
+        FRAMES, one / 1e6, ten / 1e6);
     // The work is counted in theViewIsBuiltAfterEachKeyOfABurstButTheRowsOnce; times only print.
   }
 
@@ -195,8 +204,8 @@ class DataGridTest {
     assertEquals(6, orders.selected());
     assertEquals("orders", app.focused().key());
     assertEquals(T.grid().selected(), find(app, "row-6").fill(), "the focused grid's selection");
-    assertTrue(dumpLine(app, "row-6").endsWith(" selected current pos=7/1000000"),
-        dumpLine(app, "row-6"));
+    assertTrue(
+        dumpLine(app, "row-6").endsWith(" selected current pos=7/1000000"), dumpLine(app, "row-6"));
 
     run(app, "press 2,2\nframe"); // the window around the grid: the focus leaves it
     assertNull(app.focused());
@@ -232,9 +241,17 @@ class DataGridTest {
     assertEquals(0, key(app, orders, "ArrowUp"), "stays at the start");
     assertEquals(0, key(app, orders, "PageUp"));
     assertEquals(
-        List.of("select 3", "select 2", "select 10", "select 18", "select 10", "select 999999",
-            "select 999991", "select 0"),
-        orders.log, "told only of changes");
+        List.of(
+            "select 3",
+            "select 2",
+            "select 10",
+            "select 18",
+            "select 10",
+            "select 999999",
+            "select 999991",
+            "select 0"),
+        orders.log,
+        "told only of changes");
   }
 
   @Test
@@ -274,10 +291,15 @@ class DataGridTest {
   @Test
   void theGridIsOneStopForTabAndLeavesOtherKeysAlone() throws IOException {
     Orders orders = new Orders(T, 1_000_000);
-    App<Orders> app = new App<>(orders, o -> col().wFull().hFull().children(
-        button(T, Variant.SECONDARY, "Before", () -> {}),
-        o.grid().key("orders").grow(1),
-        button(T, Variant.SECONDARY, "After", () -> {})));
+    App<Orders> app = new App<>(
+        orders,
+        o -> col()
+            .wFull()
+            .hFull()
+            .children(
+                button(T, Variant.SECONDARY, "Before", () -> {}),
+                o.grid().key("orders").grow(1),
+                button(T, Variant.SECONDARY, "After", () -> {})));
     run(app, "frame\nkey Tab\nframe\nkey Tab\nframe");
     assertEquals("orders", app.focused().key());
     run(app, "key Tab\nframe");
@@ -298,7 +320,8 @@ class DataGridTest {
   private static void assertInView(App<?> app, int row) {
     El rows = find(app, "rows");
     El el = find(app, "row-" + row);
-    assertTrue(el != null && el.y() >= 0 && el.y() + el.height() <= rows.height(),
+    assertTrue(
+        el != null && el.y() >= 0 && el.y() + el.height() <= rows.height(),
         "row " + row + " in view at " + rows.scrollY());
     assertEquals(T.grid().selected(), el.fill());
     assertTrue(dumpLine(app, "row-" + row).contains(" selected "));
@@ -370,16 +393,20 @@ class DataGridTest {
     assertEquals(188, orders.widths[1]);
     assertEquals(
         List.of("resize 1 158.0", "resize 1 32.0", "resize 1 188.0", "resize 1 188.0"),
-        orders.log, "no sort, no selection");
+        orders.log,
+        "no sort, no selection");
   }
 
   @Test
   void aPressOnAHeaderSortsAndAPressOnAnEdgeDoesNothing() throws IOException {
     Orders orders = new Orders(T, 1_000_000);
     App<Orders> app = start(orders);
-    String up = "\\u{" + Integer.toHexString(Symbol.ARROW_UP.codePoint(T.grid().mark()))
-        .toUpperCase(java.util.Locale.ROOT) + "}";
-    assertTrue(app.tree().dump().contains("text label=\"arrow_up\" \"" + up + "\""),
+    String up = "\\u{"
+        + Integer.toHexString(Symbol.ARROW_UP.codePoint(T.grid().mark()))
+            .toUpperCase(java.util.Locale.ROOT)
+        + "}";
+    assertTrue(
+        app.tree().dump().contains("text label=\"arrow_up\" \"" + up + "\""),
         "sorted by id, ascending");
     assertTrue(dumpLine(app, "column-0").endsWith(" pos=1/7 sort=ascending"));
     assertTrue(dumpLine(app, "column-2").endsWith(" pos=3/7"));
@@ -389,8 +416,10 @@ class DataGridTest {
     run(app, "press #column-2\nframe");
     assertEquals(List.of(new DataGrid.SortKey(2, true)), orders.sort);
     El email = find(app, "column-2");
-    assertEquals(Character.toString(Symbol.ARROW_DOWN.codePoint(T.grid().mark())),
-        email.children().getLast().children().getFirst().text().string(), "after the title");
+    assertEquals(
+        Character.toString(Symbol.ARROW_DOWN.codePoint(T.grid().mark())),
+        email.children().getLast().children().getFirst().text().string(),
+        "after the title");
     assertTrue(dumpLine(app, "column-2").endsWith(" pos=3/7 sort=descending"));
     assertTrue(dumpLine(app, "column-0").endsWith(" pos=1/7"));
     run(app, "down #resize-2\nmove 412,19\nup 412,19\nframe"); // within the threshold
@@ -444,12 +473,12 @@ class DataGridTest {
     int rest = T.scrollbars().thumb();
     // The rows' bar at the grid's right edge, although the rows reach 420 pixels beyond it, from
     // below the header to above the bar along the bottom.
-    assertEquals(new Scrollbars.Bar(544, 35, 6, 185, 544, 35, 6, 24, rest),
+    assertEquals(
+        new Scrollbars.Bar(544, 35, 6, 185, 544, 35, 6, 24, rest),
         find(app, "rows").verticalBar());
     // 964 pixels of columns and 10 for the rows' bar after them.
     Scrollbars.Bar sideways = find(app, "orders").horizontalBar();
-    assertEquals(new Scrollbars.Bar(10, 224, 540, 6, 10, 224, 540 * 544 / 974f, 6, rest),
-        sideways);
+    assertEquals(new Scrollbars.Bar(10, 224, 540, 6, 10, 224, 540 * 544 / 974f, 6, rest), sideways);
     assertNull(find(app, "orders").verticalBar(), "the grid itself does not scroll up and down");
 
     run(app, "down 547,40\nmove 547,400\nframe"); // the rows' thumb, to the end
@@ -457,7 +486,9 @@ class DataGridTest {
     assertEquals(1_000_000 * 24.0 + 10 - rows.height(), rows.scrollY(), "10 past the last row");
     assertEquals(999_999, rows.firstRow() + rows.children().size() - 1);
     El last = find(app, "row-999999");
-    assertEquals(sideways.trackY() - T.scrollbars().margin(), y(app, last) + last.height(),
+    assertEquals(
+        sideways.trackY() - T.scrollbars().margin(),
+        y(app, last) + last.height(),
         "the last row whole above the strip of the bar along the bottom");
     assertEquals(List.of(), orders.log, "no row selected");
     assertNull(app.focused(), "and the grid not focused");
@@ -467,11 +498,11 @@ class DataGridTest {
     Scrollbars.Bar down = find(app, "rows").verticalBar();
     assertEquals(544, down.thumbX(), "the rows' bar stays");
     El cell = find(app, "cell-999999-6"); // of the last column, whose line follows it
-    assertEquals(down.trackX() - T.scrollbars().margin(),
+    assertEquals(
+        down.trackX() - T.scrollbars().margin(),
         x(app, cell) + cell.width() + T.size().stroke(),
         "the last column whole left of the strip of the rows' bar");
-    assertEquals(x(app, find(app, "column-6")), x(app, cell),
-        "the header moved with the rows");
+    assertEquals(x(app, find(app, "column-6")), x(app, cell), "the header moved with the rows");
   }
 
   @Test
@@ -504,12 +535,15 @@ class DataGridTest {
       Scrollbars.Bar sideways = find(app, "orders").horizontalBar();
       El last = find(app, "cell-999999-6");
       // The cell ends above its row's hairline.
-      assertEquals(sideways.trackY() - m, y(app, last) + last.height() + T.size().stroke(), way);
+      assertEquals(
+          sideways.trackY() - m, y(app, last) + last.height() + T.size().stroke(), way);
       assertEquals(down.trackX() - m, x(app, last) + last.width() + T.size().stroke(), way);
       El number = find(app, "number-999999");
       assertEquals(x(app, find(app, "orders")), x(app, number), "the row numbers stay: " + way);
-      assertEquals(x(app, number) + number.width() + T.size().stroke(),
-          x(app, find(app, "cell-999999-0")), "and the frozen id after them: " + way);
+      assertEquals(
+          x(app, number) + number.width() + T.size().stroke(),
+          x(app, find(app, "cell-999999-0")),
+          "and the frozen id after them: " + way);
     }
   }
 
@@ -521,14 +555,18 @@ class DataGridTest {
     run(app, "key Tab\nkey ArrowRight\nkey ArrowRight\nkey ArrowRight\nframe");
     El cell = find(app, "cell-2-3");
     assertTrue(find(app, "orders").scrollX() > 0, "scrolled to show it");
-    assertEquals(find(app, "rows").verticalBar().trackX() - m,
-        x(app, cell) + cell.width() + T.size().stroke(), "its right edge at the strip");
+    assertEquals(
+        find(app, "rows").verticalBar().trackX() - m,
+        x(app, cell) + cell.width() + T.size().stroke(),
+        "its right edge at the strip");
 
     run(app, "key PageDown\nframe");
     cell = find(app, "cell-" + orders.selection.row() + "-3");
     assertTrue(find(app, "rows").scrollY() > 0, "scrolled to show it");
-    assertEquals(find(app, "orders").horizontalBar().trackY() - m,
-        y(app, cell) + cell.height() + T.size().stroke(), "its row's bottom at the strip");
+    assertEquals(
+        find(app, "orders").horizontalBar().trackY() - m,
+        y(app, cell) + cell.height() + T.size().stroke(),
+        "its row's bottom at the strip");
   }
 
   // Images
@@ -567,8 +605,9 @@ class DataGridTest {
   private static int snaps(String script, String theme, Orders orders) throws IOException {
     Path folder = Path.of("target/" + script, theme);
     String text = Files.readString(Path.of("src/test/resources/scripts/" + script + ".txt"));
-    List<Path> files = Script.run(text, orders.app(), folder)
-        .stream().filter(f -> !f.toString().endsWith(".clipboard.txt")).toList();
+    List<Path> files = Script.run(text, orders.app(), folder).stream()
+        .filter(f -> !f.toString().endsWith(".clipboard.txt"))
+        .toList();
     for (int i = 0; i < files.size(); i += 2) {
       String snap = files.get(i).getFileName().toString().replace(".png", "");
       Golden.assertMatches(

@@ -46,6 +46,7 @@ final class Wgpu {
   static final long STRLEN = -1L;
   /** {@code WGPU_WHOLE_SIZE}. */
   static final long WHOLE_SIZE = -1L;
+
   static final int MIP_LEVEL_COUNT_UNDEFINED = 0xFFFFFFFF;
   static final int ARRAY_LAYER_COUNT_UNDEFINED = 0xFFFFFFFF;
   static final int COPY_STRIDE_UNDEFINED = 0xFFFFFFFF;
@@ -68,6 +69,7 @@ final class Wgpu {
 
   /** wgpu.h, {@code WGPUInstanceBackend}: a 64-bit flag set. Zero would enable every backend. */
   static final long INSTANCE_BACKEND_VULKAN = 1L << 0;
+
   static final long INSTANCE_BACKEND_DX12 = 1L << 3;
 
   static final int POWER_PREFERENCE_UNDEFINED = 0;
@@ -91,6 +93,7 @@ final class Wgpu {
    * process.
    */
   static final int ERROR_FILTER_VALIDATION = 1;
+
   static final int ERROR_FILTER_OUT_OF_MEMORY = 2;
 
   static final int SURFACE_TEXTURE_SUCCESS_OPTIMAL = 1;
@@ -105,9 +108,11 @@ final class Wgpu {
   static final int TEXTURE_DIMENSION_2D = 2;
   /** {@code WGPUTextureViewDimension}. Zero, undefined, ends the process in a layout entry. */
   static final int TEXTURE_VIEW_DIMENSION_2D = 2;
+
   static final int TEXTURE_VIEW_DIMENSION_2D_ARRAY = 3;
   /** {@code WGPUTextureSampleType}; zero means that a layout entry binds no texture. */
   static final int TEXTURE_SAMPLE_TYPE_UNFILTERABLE_FLOAT = 3;
+
   static final int BUFFER_BINDING_TYPE_UNIFORM = 2;
   static final int BUFFER_BINDING_TYPE_READ_ONLY_STORAGE = 4;
   static final int LOAD_OP_LOAD = 1;
@@ -116,6 +121,7 @@ final class Wgpu {
 
   /** wgpu.h. */
   static final int LOG_LEVEL_ERROR = 1;
+
   static final int LOG_LEVEL_WARN = 2;
   static final int LOG_LEVEL_INFO = 3;
   static final int LOG_LEVEL_DEBUG = 4;
@@ -198,6 +204,7 @@ final class Wgpu {
    */
   static final FunctionDescriptor DEVICE_POLL =
       FunctionDescriptor.of(JAVA_BYTE, ADDRESS, JAVA_INT, ADDRESS);
+
   static final FunctionDescriptor SURFACE_GET_CAPABILITIES =
       FunctionDescriptor.of(JAVA_INT, ADDRESS, ADDRESS, ADDRESS);
   static final FunctionDescriptor SURFACE_CAPABILITIES_FREE_MEMBERS =
@@ -213,8 +220,9 @@ final class Wgpu {
   /** The fourth argument is a {@code size_t}. */
   static final FunctionDescriptor QUEUE_WRITE_TEXTURE =
       FunctionDescriptor.ofVoid(ADDRESS, ADDRESS, ADDRESS, JAVA_LONG, ADDRESS, ADDRESS);
-  static final FunctionDescriptor BUFFER_MAP_ASYNC = FunctionDescriptor.of(Structs.FUTURE,
-      ADDRESS, JAVA_LONG, JAVA_LONG, JAVA_LONG, CallbackInfo.LAYOUT);
+
+  static final FunctionDescriptor BUFFER_MAP_ASYNC = FunctionDescriptor.of(
+      Structs.FUTURE, ADDRESS, JAVA_LONG, JAVA_LONG, JAVA_LONG, CallbackInfo.LAYOUT);
   static final FunctionDescriptor BUFFER_GET_CONST_MAPPED_RANGE =
       FunctionDescriptor.of(ADDRESS, ADDRESS, JAVA_LONG, JAVA_LONG);
   static final FunctionDescriptor COMMAND_ENCODER_COPY_TEXTURE_TO_BUFFER =
@@ -350,8 +358,7 @@ final class Wgpu {
     static final MethodHandle SURFACE_RELEASE = bind("wgpuSurfaceRelease");
     static final MethodHandle SHADER_MODULE_RELEASE = bind("wgpuShaderModuleRelease");
     static final MethodHandle BUFFER_MAP_ASYNC = bind("wgpuBufferMapAsync");
-    static final MethodHandle BUFFER_GET_CONST_MAPPED_RANGE =
-        bind("wgpuBufferGetConstMappedRange");
+    static final MethodHandle BUFFER_GET_CONST_MAPPED_RANGE = bind("wgpuBufferGetConstMappedRange");
     static final MethodHandle BUFFER_UNMAP = bind("wgpuBufferUnmap");
     static final MethodHandle BUFFER_RELEASE = bind("wgpuBufferRelease");
     static final MethodHandle TEXTURE_CREATE_VIEW = bind("wgpuTextureCreateView");
@@ -385,9 +392,11 @@ final class Wgpu {
       if (descriptor == null) {
         throw new IllegalStateException(name + " is not listed in Wgpu.FUNCTIONS");
       }
-      MemorySegment symbol = LIBRARY.find(name).orElseThrow(() -> new UnsatisfiedLinkError(
-          "The wgpu_native library has no function " + name + ". The natives module does not"
-              + " match this version of rethinkj-ui-core."));
+      MemorySegment symbol = LIBRARY
+          .find(name)
+          .orElseThrow(
+              () -> new UnsatisfiedLinkError("The wgpu_native library has no function " + name
+                  + ". The natives module does not" + " match this version of rethinkj-ui-core."));
       return Linker.nativeLinker().downcallHandle(symbol, descriptor);
     }
   }
@@ -434,8 +443,11 @@ final class Wgpu {
   }
 
   /** The callback runs inside this call in wgpu-native v29. */
-  static void instanceRequestAdapter(SegmentAllocator allocator, MemorySegment instance,
-      MemorySegment options, MemorySegment callbackInfo) {
+  static void instanceRequestAdapter(
+      SegmentAllocator allocator,
+      MemorySegment instance,
+      MemorySegment options,
+      MemorySegment callbackInfo) {
     try {
       MemorySegment future = (MemorySegment)
           Fn.INSTANCE_REQUEST_ADAPTER.invokeExact(allocator, instance, options, callbackInfo);
@@ -467,8 +479,11 @@ final class Wgpu {
   }
 
   /** The callback runs inside this call in wgpu-native v29. */
-  static void adapterRequestDevice(SegmentAllocator allocator, MemorySegment adapter,
-      MemorySegment descriptor, MemorySegment callbackInfo) {
+  static void adapterRequestDevice(
+      SegmentAllocator allocator,
+      MemorySegment adapter,
+      MemorySegment descriptor,
+      MemorySegment callbackInfo) {
     try {
       MemorySegment future = (MemorySegment)
           Fn.ADAPTER_REQUEST_DEVICE.invokeExact(allocator, adapter, descriptor, callbackInfo);
@@ -511,8 +526,8 @@ final class Wgpu {
    * The callback runs inside this call, with a lock of wgpu-native held: it must not call back
    * into wgpu. Popping a scope that was not pushed ends the process.
    */
-  static void devicePopErrorScope(SegmentAllocator allocator, MemorySegment device,
-      MemorySegment callbackInfo) {
+  static void devicePopErrorScope(
+      SegmentAllocator allocator, MemorySegment device, MemorySegment callbackInfo) {
     try {
       MemorySegment future =
           (MemorySegment) Fn.DEVICE_POP_ERROR_SCOPE.invokeExact(allocator, device, callbackInfo);
@@ -533,8 +548,7 @@ final class Wgpu {
     return create(Fn.DEVICE_CREATE_TEXTURE, device, descriptor);
   }
 
-  static MemorySegment deviceCreateBindGroupLayout(MemorySegment device,
-      MemorySegment descriptor) {
+  static MemorySegment deviceCreateBindGroupLayout(MemorySegment device, MemorySegment descriptor) {
     return create(Fn.DEVICE_CREATE_BIND_GROUP_LAYOUT, device, descriptor);
   }
 
@@ -542,18 +556,15 @@ final class Wgpu {
     return create(Fn.DEVICE_CREATE_BIND_GROUP, device, descriptor);
   }
 
-  static MemorySegment deviceCreatePipelineLayout(MemorySegment device,
-      MemorySegment descriptor) {
+  static MemorySegment deviceCreatePipelineLayout(MemorySegment device, MemorySegment descriptor) {
     return create(Fn.DEVICE_CREATE_PIPELINE_LAYOUT, device, descriptor);
   }
 
-  static MemorySegment deviceCreateRenderPipeline(MemorySegment device,
-      MemorySegment descriptor) {
+  static MemorySegment deviceCreateRenderPipeline(MemorySegment device, MemorySegment descriptor) {
     return create(Fn.DEVICE_CREATE_RENDER_PIPELINE, device, descriptor);
   }
 
-  static MemorySegment deviceCreateCommandEncoder(MemorySegment device,
-      MemorySegment descriptor) {
+  static MemorySegment deviceCreateCommandEncoder(MemorySegment device, MemorySegment descriptor) {
     return create(Fn.DEVICE_CREATE_COMMAND_ENCODER, device, descriptor);
   }
 
@@ -584,8 +595,8 @@ final class Wgpu {
     }
   }
 
-  static void queueWriteBuffer(MemorySegment queue, MemorySegment buffer, long offset,
-      MemorySegment data, long size) {
+  static void queueWriteBuffer(
+      MemorySegment queue, MemorySegment buffer, long offset, MemorySegment data, long size) {
     try {
       Fn.QUEUE_WRITE_BUFFER.invokeExact(queue, buffer, offset, data, size);
     } catch (Throwable t) {
@@ -597,11 +608,15 @@ final class Wgpu {
    * Ends the process if a pointer is NULL, or if the layout's {@code bytesPerRow} or {@code
    * rowsPerImage} is 0; other errors go to the error scopes.
    */
-  static void queueWriteTexture(MemorySegment queue, MemorySegment destination,
-      MemorySegment data, long dataSize, MemorySegment dataLayout, MemorySegment writeSize) {
+  static void queueWriteTexture(
+      MemorySegment queue,
+      MemorySegment destination,
+      MemorySegment data,
+      long dataSize,
+      MemorySegment dataLayout,
+      MemorySegment writeSize) {
     try {
-      Fn.QUEUE_WRITE_TEXTURE.invokeExact(queue, destination, data, dataSize, dataLayout,
-          writeSize);
+      Fn.QUEUE_WRITE_TEXTURE.invokeExact(queue, destination, data, dataSize, dataLayout, writeSize);
     } catch (Throwable t) {
       throw rethrow(t);
     }
@@ -613,8 +628,8 @@ final class Wgpu {
 
   // ---- surface -----------------------------------------------------------------------------
 
-  static int surfaceGetCapabilities(MemorySegment surface, MemorySegment adapter,
-      MemorySegment capabilities) {
+  static int surfaceGetCapabilities(
+      MemorySegment surface, MemorySegment adapter, MemorySegment capabilities) {
     try {
       return (int) Fn.SURFACE_GET_CAPABILITIES.invokeExact(surface, adapter, capabilities);
     } catch (Throwable t) {
@@ -671,8 +686,13 @@ final class Wgpu {
   }
 
   /** The callback runs inside a later {@link #devicePoll}. */
-  static void bufferMapAsync(SegmentAllocator allocator, MemorySegment buffer, long mode,
-      long offset, long size, MemorySegment callbackInfo) {
+  static void bufferMapAsync(
+      SegmentAllocator allocator,
+      MemorySegment buffer,
+      long mode,
+      long offset,
+      long size,
+      MemorySegment callbackInfo) {
     try {
       MemorySegment future = (MemorySegment)
           Fn.BUFFER_MAP_ASYNC.invokeExact(allocator, buffer, mode, offset, size, callbackInfo);
@@ -731,16 +751,18 @@ final class Wgpu {
 
   // ---- commands ----------------------------------------------------------------------------
 
-  static MemorySegment commandEncoderBeginRenderPass(MemorySegment encoder,
-      MemorySegment descriptor) {
+  static MemorySegment commandEncoderBeginRenderPass(
+      MemorySegment encoder, MemorySegment descriptor) {
     return create(Fn.COMMAND_ENCODER_BEGIN_RENDER_PASS, encoder, descriptor);
   }
 
-  static void commandEncoderCopyTextureToBuffer(MemorySegment encoder, MemorySegment source,
-      MemorySegment destination, MemorySegment copySize) {
+  static void commandEncoderCopyTextureToBuffer(
+      MemorySegment encoder,
+      MemorySegment source,
+      MemorySegment destination,
+      MemorySegment copySize) {
     try {
-      Fn.COMMAND_ENCODER_COPY_TEXTURE_TO_BUFFER.invokeExact(encoder, source, destination,
-          copySize);
+      Fn.COMMAND_ENCODER_COPY_TEXTURE_TO_BUFFER.invokeExact(encoder, source, destination, copySize);
     } catch (Throwable t) {
       throw rethrow(t);
     }
@@ -776,8 +798,8 @@ final class Wgpu {
   }
 
   /** A size of zero ends the process; {@link #WHOLE_SIZE} means up to the end of the buffer. */
-  static void renderPassSetVertexBuffer(MemorySegment pass, int slot, MemorySegment buffer,
-      long offset, long size) {
+  static void renderPassSetVertexBuffer(
+      MemorySegment pass, int slot, MemorySegment buffer, long offset, long size) {
     try {
       Fn.RENDER_PASS_SET_VERTEX_BUFFER.invokeExact(pass, slot, buffer, offset, size);
     } catch (Throwable t) {
@@ -793,8 +815,14 @@ final class Wgpu {
     }
   }
 
-  static void renderPassSetViewport(MemorySegment pass, float x, float y, float width,
-      float height, float minDepth, float maxDepth) {
+  static void renderPassSetViewport(
+      MemorySegment pass,
+      float x,
+      float y,
+      float width,
+      float height,
+      float minDepth,
+      float maxDepth) {
     try {
       Fn.RENDER_PASS_SET_VIEWPORT.invokeExact(pass, x, y, width, height, minDepth, maxDepth);
     } catch (Throwable t) {
@@ -802,11 +830,10 @@ final class Wgpu {
     }
   }
 
-  static void renderPassDraw(MemorySegment pass, int vertexCount, int instanceCount,
-      int firstVertex, int firstInstance) {
+  static void renderPassDraw(
+      MemorySegment pass, int vertexCount, int instanceCount, int firstVertex, int firstInstance) {
     try {
-      Fn.RENDER_PASS_DRAW.invokeExact(pass, vertexCount, instanceCount, firstVertex,
-          firstInstance);
+      Fn.RENDER_PASS_DRAW.invokeExact(pass, vertexCount, instanceCount, firstVertex, firstInstance);
     } catch (Throwable t) {
       throw rethrow(t);
     }
@@ -847,8 +874,8 @@ final class Wgpu {
 
   // ---- helpers -----------------------------------------------------------------------------
 
-  private static MemorySegment create(MethodHandle handle, MemorySegment parent,
-      MemorySegment descriptor) {
+  private static MemorySegment create(
+      MethodHandle handle, MemorySegment parent, MemorySegment descriptor) {
     try {
       return (MemorySegment) handle.invokeExact(parent, descriptor);
     } catch (Throwable t) {

@@ -66,7 +66,10 @@ public final class Buffer extends GpuObject {
     if (!usages.contains(BufferUsage.MAP_READ)) {
       throw new IllegalArgumentException(this + " was not created with BufferUsage.MAP_READ.");
     }
-    if (offset < 0 || offset % MAP_ALIGNMENT != 0 || length <= 0 || length % 4 != 0
+    if (offset < 0
+        || offset % MAP_ALIGNMENT != 0
+        || length <= 0
+        || length % 4 != 0
         || offset + length > size) {
       throw new IllegalArgumentException("Cannot read " + length + " bytes at " + offset
           + " from " + this + " of " + size + " bytes: the offset must be a multiple of 8, the"
@@ -81,8 +84,10 @@ public final class Buffer extends GpuObject {
     try {
       try (Arena arena = Arena.ofConfined()) {
         MemorySegment info = CallbackInfo.allocate(arena, Callbacks.BUFFER_MAP, id);
-        device.run("mapping buffer", label(), () -> Wgpu.bufferMapAsync(arena, buffer,
-            Wgpu.MAP_MODE_READ, offset, length, info));
+        device.run(
+            "mapping buffer",
+            label(),
+            () -> Wgpu.bufferMapAsync(arena, buffer, Wgpu.MAP_MODE_READ, offset, length, info));
       }
       requested = true;
       for (int i = 0; i < MAP_POLLS && !map.done; i++) {
@@ -94,8 +99,8 @@ public final class Buffer extends GpuObject {
             + " after waiting for the GPU " + MAP_POLLS + " times.");
       }
       if (map.status != Wgpu.MAP_ASYNC_STATUS_SUCCESS) {
-        throw new GpuException(GpuException.Kind.MAP_FAILED, "mapping buffer", label(),
-            map.message);
+        throw new GpuException(
+            GpuException.Kind.MAP_FAILED, "mapping buffer", label(), map.message);
       }
       // The exact range that was mapped: any other range ends the process.
       MemorySegment mapped = Wgpu.bufferGetConstMappedRange(buffer, offset, length);

@@ -26,21 +26,29 @@ class StatusBarTest {
   }
 
   private El view(Theme t) {
-    return col().wFull().hFull().fill(t.surface().window())
+    return col()
+        .wFull()
+        .hFull()
+        .fill(t.surface().window())
         .child(el().grow(1))
-        .child(StatusBar.statusBar(t,
-            Arrays.asList(
-                StatusBar.status(t, StatusBar.State.CONNECTED, "localhost / shop",
-                    () -> presses[0]++),
-                null, // left out, so that a view writes `connected ? part : null`
-                StatusBar.text(t, "PostgreSQL 17.2 on a host with a long name")),
-            List.of(StatusBar.text(t, "Ln 4, Col 12"),
-                StatusBar.item(t, Symbol.DATABASE, "UTF-8", null))).key("bar"));
+        .child(StatusBar.statusBar(
+                t,
+                Arrays.asList(
+                    StatusBar.status(
+                        t, StatusBar.State.CONNECTED, "localhost / shop", () -> presses[0]++),
+                    null, // left out, so that a view writes `connected ? part : null`
+                    StatusBar.text(t, "PostgreSQL 17.2 on a host with a long name")),
+                List.of(
+                    StatusBar.text(t, "Ln 4, Col 12"),
+                    StatusBar.item(t, Symbol.DATABASE, "UTF-8", null)))
+            .key("bar"));
   }
 
   private App<Object> run(int width, String steps) throws IOException {
     App<Object> app = new App<>(new Object(), s -> view(Theme.DARK));
-    Script.run("size " + width + " 120\nframe\n" + steps + "\nframe", app,
+    Script.run(
+        "size " + width + " 120\nframe\n" + steps + "\nframe",
+        app,
         Path.of("target/status-bar-test"));
     return app;
   }
@@ -48,12 +56,14 @@ class StatusBarTest {
   @Test
   void theDumpNamesTheBarItsPartsAndAStatesValue() throws IOException {
     String dump = run(640, "").tree().dump();
-    assertTrue(StructureTest.line(dump, "#bar").contains("role=status label=\"Status bar\""),
+    assertTrue(StructureTest.line(dump, "#bar").contains("role=status label=\"Status bar\""), dump);
+    assertTrue(
+        StructureTest.line(dump, "label=\"localhost / shop\"").contains("role=button")
+            && StructureTest.line(dump, "label=\"localhost / shop\"")
+                .endsWith("value=\"connected\""),
         dump);
-    assertTrue(StructureTest.line(dump, "label=\"localhost / shop\"")
-        .contains("role=button") && StructureTest.line(dump, "label=\"localhost / shop\"")
-        .endsWith("value=\"connected\""), dump);
-    assertTrue(!StructureTest.line(dump, "label=\"UTF-8\"").contains("role="),
+    assertTrue(
+        !StructureTest.line(dump, "label=\"UTF-8\"").contains("role="),
         "a part without a handler is no button");
   }
 
@@ -62,7 +72,9 @@ class StatusBarTest {
     App<Object> app = run(640, "press role=button label=\"localhost / shop\"");
     assertEquals(1, presses[0]);
     assertEquals(null, app.focused());
-    Script.run("size 640 120\nframe\nkey Tab\nframe\nkey Enter\nframe", app,
+    Script.run(
+        "size 640 120\nframe\nkey Tab\nframe\nkey Enter\nframe",
+        app,
         Path.of("target/status-bar-test"));
     assertEquals(2, presses[0], "Tab reaches it and Enter presses it");
   }

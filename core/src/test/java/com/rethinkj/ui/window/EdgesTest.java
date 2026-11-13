@@ -80,13 +80,24 @@ class EdgesTest {
    */
   private static App<Object> framed() {
     Scrollbars look = new Scrollbars(6, 2, 3, 24, 0xFF505050, 0xFF707070, 0xFF909090);
-    App<Object> app = new App<>(new Object(), s -> col().size(300, 200)
-        .child(row().wFull().h(30).windowPart(WindowPart.DRAG)
-            .child(el().grow(1))
-            .child(el().size(46, 30).windowPart(WindowPart.CLOSE)))
-        .child(col().key("list").wFull().grow(1).minSize(0, 0).scrollbars(look)
-            .rows(1000, 20, i -> el().key("row-" + i).onPress(() -> {})))
-        .child(el().wFull().h(30).shrink(0)));
+    App<Object> app = new App<>(
+        new Object(),
+        s -> col()
+            .size(300, 200)
+            .child(row()
+                .wFull()
+                .h(30)
+                .windowPart(WindowPart.DRAG)
+                .child(el().grow(1))
+                .child(el().size(46, 30).windowPart(WindowPart.CLOSE)))
+            .child(col()
+                .key("list")
+                .wFull()
+                .grow(1)
+                .minSize(0, 0)
+                .scrollbars(look)
+                .rows(1000, 20, i -> el().key("row-" + i).onPress(() -> {})))
+            .child(el().wFull().h(30).shrink(0)));
     app.resize(300, 200, 1);
     app.frame();
     return app;
@@ -99,8 +110,14 @@ class EdgesTest {
   @Test
   void theMarginGivesWayToWhatTakesPresses() {
     App<Object> app = framed();
-    assertEquals("el #list 0,30 300x140 rows 0-9/1000 thumb-y 292,32 6x24",
-        app.tree().dump().lines().filter(l -> l.contains("#list")).findFirst().orElseThrow()
+    assertEquals(
+        "el #list 0,30 300x140 rows 0-9/1000 thumb-y 292,32 6x24",
+        app.tree()
+            .dump()
+            .lines()
+            .filter(l -> l.contains("#list"))
+            .findFirst()
+            .orElseThrow()
             .strip());
     assertEquals(WindowPart.CONTROL, app.windowPart(297, 40), "the scrollbar");
     assertEquals(Sdl.HITTEST_NORMAL, zone(app, 297, 40), "the thumb's outer pixel");

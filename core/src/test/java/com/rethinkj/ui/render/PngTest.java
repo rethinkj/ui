@@ -46,8 +46,19 @@ class PngTest {
    * chose and with transparency by palette and by colour key, against the pixels Pillow reads.
    */
   @ParameterizedTest
-  @ValueSource(strings = {"rgba8", "rgb8", "gray8", "graya8", "palette8", "palette4", "palette1",
-      "gray1", "gray16", "rgbkey"})
+  @ValueSource(
+      strings = {
+        "rgba8",
+        "rgb8",
+        "gray8",
+        "graya8",
+        "palette8",
+        "palette4",
+        "palette1",
+        "gray1",
+        "gray16",
+        "rgbkey"
+      })
   void readsWhatOtherToolsWrite(String name) throws IOException {
     Pixels read = Png.decode(resource(name + ".png"));
     assertEquals(13, read.width());
@@ -76,15 +87,17 @@ class PngTest {
         int b = y > 0 ? rgba[(y - 1) * rowBytes + i] & 0xFF : 0;
         int c = i >= 4 && y > 0 ? rgba[(y - 1) * rowBytes + i - 4] & 0xFF : 0;
         int p = a + b - c;
-        int paeth = Math.abs(p - a) <= Math.abs(p - b) && Math.abs(p - a) <= Math.abs(p - c) ? a
+        int paeth = Math.abs(p - a) <= Math.abs(p - b) && Math.abs(p - a) <= Math.abs(p - c)
+            ? a
             : Math.abs(p - b) <= Math.abs(p - c) ? b : c;
-        raw.write(x - switch (filter) {
-          case 1 -> a;
-          case 2 -> b;
-          case 3 -> (a + b) / 2;
-          case 4 -> paeth;
-          default -> 0;
-        });
+        raw.write(x
+            - switch (filter) {
+              case 1 -> a;
+              case 2 -> b;
+              case 3 -> (a + b) / 2;
+              case 4 -> paeth;
+              default -> 0;
+            });
       }
     }
     java.util.zip.Deflater deflater = new java.util.zip.Deflater();
@@ -95,8 +108,14 @@ class PngTest {
     deflater.end();
     java.io.ByteArrayOutputStream png = new java.io.ByteArrayOutputStream();
     png.writeBytes(new byte[] {(byte) 0x89, 'P', 'N', 'G', '\r', '\n', 0x1A, '\n'});
-    chunk(png, "IHDR", java.nio.ByteBuffer.allocate(13).putInt(width).putInt(height)
-        .put(new byte[] {8, 6, 0, 0, 0}).array());
+    chunk(
+        png,
+        "IHDR",
+        java.nio.ByteBuffer.allocate(13)
+            .putInt(width)
+            .putInt(height)
+            .put(new byte[] {8, 6, 0, 0, 0})
+            .array());
     chunk(png, "IDAT", idat);
     chunk(png, "IEND", new byte[0]);
     assertArrayEquals(rgba, Png.decode(png.toByteArray()).rgba());
@@ -115,8 +134,8 @@ class PngTest {
 
   @Test
   void refusesInterlacedImagesAndSaysWhy() throws IOException {
-    IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
-        () -> Png.decode(resource("interlaced.png")));
+    IllegalArgumentException e =
+        assertThrows(IllegalArgumentException.class, () -> Png.decode(resource("interlaced.png")));
     assertTrue(e.getMessage().contains("interlac"), e.getMessage());
   }
 
@@ -124,8 +143,8 @@ class PngTest {
   void refusesAChunkWhoseCrcIsWrong() throws IOException {
     byte[] png = resource("rgba8.png");
     png[20] ^= 1; // inside IHDR
-    IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
-        () -> Png.decode(png));
+    IllegalArgumentException e =
+        assertThrows(IllegalArgumentException.class, () -> Png.decode(png));
     assertTrue(e.getMessage().contains("CRC"), e.getMessage());
   }
 

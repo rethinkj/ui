@@ -55,8 +55,7 @@ final class Editor {
    * Whether Ctrl+Right and Ctrl+Delete go to the end of a word, as on Linux, rather than to the
    * start of the next one, as on Windows.
    */
-  static final boolean WORD_ENDS =
-      !System.getProperty("os.name", "").startsWith("Windows");
+  static final boolean WORD_ENDS = !System.getProperty("os.name", "").startsWith("Windows");
 
   /** Edits that coalesce into one step of the history while they follow each other. */
   private enum Run {
@@ -70,8 +69,14 @@ final class Editor {
    * A step of the history: {@code removed} at {@code at} replaced by {@code inserted}, with the
    * caret and the anchor before and after.
    */
-  private record Step(int at, String removed, String inserted, int caretBefore, int anchorBefore,
-      int caretAfter, int anchorAfter) {}
+  private record Step(
+      int at,
+      String removed,
+      String inserted,
+      int caretBefore,
+      int anchorBefore,
+      int caretAfter,
+      int anchorAfter) {}
 
   private El el; // in the current tree, for its handler and settings
   private String text;
@@ -256,8 +261,13 @@ final class Editor {
         && a.charAt(a.length() - 1 - suffix) == to.charAt(to.length() - 1 - suffix)) {
       suffix++;
     }
-    return new Step(prefix, a.substring(prefix, a.length() - suffix),
-        to.substring(prefix, to.length() - suffix), from.caret, from.anchor, caretAfter,
+    return new Step(
+        prefix,
+        a.substring(prefix, a.length() - suffix),
+        to.substring(prefix, to.length() - suffix),
+        from.caret,
+        from.anchor,
+        caretAfter,
         anchorAfter);
   }
 
@@ -282,7 +292,9 @@ final class Editor {
       t.compose(null, null);
       return;
     }
-    if (shownFor != text || shownComposition != composition || shownStart != start()
+    if (shownFor != text
+        || shownComposition != composition
+        || shownStart != start()
         || shownEnd != end()) {
       shownFor = text;
       shownComposition = composition;
@@ -388,8 +400,9 @@ final class Editor {
     left += s.paddingLeft.kind() == Len.Kind.PX ? s.paddingLeft.value() : 0;
     int shownCaret = composition.isEmpty() ? caret : start() + compositionCursor;
     float rowTop = t.multiline() ? caretTopOffset() : t.lineTop(t.lineOf(shownCaret)) / scale;
-    return new float[] {left + caretOffset(), top + rowTop, caretWidth(scale) / scale,
-        t.lineHeight() / scale};
+    return new float[] {
+      left + caretOffset(), top + rowTop, caretWidth(scale) / scale, t.lineHeight() / scale
+    };
   }
 
   /** Whether something changed since the last call; a change keeps the caret on for a while. */
@@ -475,8 +488,7 @@ final class Editor {
         if (!plain) {
           return false;
         }
-        int to = word ? wordStart()
-            : caret != anchor && !shift ? start() : previous(caret);
+        int to = word ? wordStart() : caret != anchor && !shift ? start() : previous(caret);
         moveTo(to, shift);
         return true;
       }
@@ -484,8 +496,7 @@ final class Editor {
         if (!plain) {
           return false;
         }
-        int to = word ? wordEnd()
-            : caret != anchor && !shift ? end() : next(caret);
+        int to = word ? wordEnd() : caret != anchor && !shift ? end() : next(caret);
         moveTo(to, shift);
         return true;
       }
@@ -564,8 +575,8 @@ final class Editor {
    * The keys of a multi-line field that a single-line one does not have, or has otherwise; null
    * for the others.
    */
-  private Boolean lineKey(String name, int modifiers, boolean shift, int other,
-      boolean afterEscape) {
+  private Boolean lineKey(
+      String name, int modifiers, boolean shift, int other, boolean afterEscape) {
     Text t = el.text();
     switch (name) {
       case "Enter", "NumpadEnter" -> {
@@ -601,8 +612,8 @@ final class Editor {
         int to = row;
         if (caret == row && t.startsLine(caret)) {
           int indent = row; // a second Home goes to the first character that is not blank
-          while (indent < text.length() && (text.charAt(indent) == ' '
-              || text.charAt(indent) == '\t')) {
+          while (indent < text.length()
+              && (text.charAt(indent) == ' ' || text.charAt(indent) == '\t')) {
             indent++;
           }
           to = indent;
@@ -622,7 +633,10 @@ final class Editor {
         return false;
       }
       case "Tab" -> {
-        if (!el.tabIndents() || tabMovesFocus || afterEscape || !editable()
+        if (!el.tabIndents()
+            || tabMovesFocus
+            || afterEscape
+            || !editable()
             || (modifiers & ~Key.SHIFT) != 0) {
           return false;
         }
@@ -813,8 +827,16 @@ final class Editor {
     if (editable() && !undo.isEmpty()) {
       Step step = undo.pop();
       // Redo comes back to the caret and selection of now, as undo to those before the edit.
-      push(redo, new Step(step.at, step.removed, step.inserted, step.caretBefore,
-          step.anchorBefore, caret, anchor));
+      push(
+          redo,
+          new Step(
+              step.at,
+              step.removed,
+              step.inserted,
+              step.caretBefore,
+              step.anchorBefore,
+              caret,
+              anchor));
       propose(step.at, step.inserted.length(), step.removed, step.caretBefore, step.anchorBefore);
       run = null;
     }
@@ -823,8 +845,16 @@ final class Editor {
   void redo() {
     if (editable() && !redo.isEmpty()) {
       Step step = redo.pop();
-      push(undo, new Step(step.at, step.removed, step.inserted, caret, anchor, step.caretAfter,
-          step.anchorAfter));
+      push(
+          undo,
+          new Step(
+              step.at,
+              step.removed,
+              step.inserted,
+              caret,
+              anchor,
+              step.caretAfter,
+              step.anchorAfter));
       propose(step.at, step.removed.length(), step.inserted, step.caretAfter, step.anchorAfter);
       run = null;
     }
@@ -876,7 +906,13 @@ final class Editor {
    * of its own or, with {@code coalesce}, as part of the run the last step holds where it adjoins
    * it.
    */
-  private void edit(int at, int removed, String inserted, int newCaret, int newAnchor, Run kind,
+  private void edit(
+      int at,
+      int removed,
+      String inserted,
+      int newCaret,
+      int newAnchor,
+      Run kind,
       boolean coalesce) {
     if (before == null) { // the history as it was, for an edit the app refuses
       undoBefore = new ArrayDeque<>(undo);
@@ -886,15 +922,21 @@ final class Editor {
     Step top = coalesce ? undo.peek() : null;
     Step merged = null;
     if (top != null && removed == 0 && at == top.at + top.inserted.length()) { // typing on
-      merged = new Step(top.at, top.removed, top.inserted + inserted, top.caretBefore,
-          top.anchorBefore, newCaret, newAnchor);
+      merged = new Step(
+          top.at,
+          top.removed,
+          top.inserted + inserted,
+          top.caretBefore,
+          top.anchorBefore,
+          newCaret,
+          newAnchor);
     } else if (top != null && inserted.isEmpty() && top.inserted.isEmpty()) {
       if (at + removed == top.at) { // Backspace on
-        merged = new Step(at, gone + top.removed, "", top.caretBefore, top.anchorBefore, newCaret,
-            newAnchor);
+        merged = new Step(
+            at, gone + top.removed, "", top.caretBefore, top.anchorBefore, newCaret, newAnchor);
       } else if (at == top.at) { // Delete on
-        merged = new Step(at, top.removed + gone, "", top.caretBefore, top.anchorBefore,
-            newCaret, newAnchor);
+        merged = new Step(
+            at, top.removed + gone, "", top.caretBefore, top.anchorBefore, newCaret, newAnchor);
       }
     }
     if (merged != null) {
@@ -970,10 +1012,7 @@ final class Editor {
     if (text.indexOf('\r') < 0 && text.indexOf(' ') < 0 && text.indexOf(' ') < 0) {
       return text;
     }
-    return text.replace("\r\n", "\n")
-        .replace('\r', '\n')
-        .replace(' ', '\n')
-        .replace(' ', '\n');
+    return text.replace("\r\n", "\n").replace('\r', '\n').replace(' ', '\n').replace(' ', '\n');
   }
 
   // ---- Moves
@@ -1199,8 +1238,7 @@ final class Editor {
       float to = t.rowStart(start()) == t.rowStart(start() + composition.length())
           ? t.x(start() + composition.length())
           : t.x(t.rowEnd(start()));
-      float y = t.shownBaseline(start())
-          + Math.round(t.font().descent() * t.size() * scale / 2);
+      float y = t.shownBaseline(start()) + Math.round(t.font().descent() * t.size() * scale / 2);
       underline = new Text.Box(from - viewX, y, to - from, caretWidth);
     }
     Text.Box box = focused
@@ -1260,7 +1298,8 @@ final class Editor {
     if (masked()) {
       return text.length();
     }
-    return el.isCodeWords() ? codeWordRight(text, caret, WORD_ENDS)
+    return el.isCodeWords()
+        ? codeWordRight(text, caret, WORD_ENDS)
         : wordRight(text, caret, WORD_ENDS);
   }
 
@@ -1409,7 +1448,8 @@ final class Editor {
       return true;
     }
     int type = Character.getType(c);
-    return type == Character.NON_SPACING_MARK || type == Character.COMBINING_SPACING_MARK
+    return type == Character.NON_SPACING_MARK
+        || type == Character.COMBINING_SPACING_MARK
         || type == Character.ENCLOSING_MARK;
   }
 
@@ -1445,7 +1485,8 @@ final class Editor {
   /** {@link #wordRight} with the words of code. */
   static int codeWordRight(String text, int index, boolean ends) {
     int at = Math.clamp(index, 0, text.length());
-    return ends ? forwardOver(text, forwardOver(text, at, false), true)
+    return ends
+        ? forwardOver(text, forwardOver(text, at, false), true)
         : forwardOver(text, forwardOver(text, at, true), false);
   }
 
@@ -1458,7 +1499,8 @@ final class Editor {
       return new int[] {0, 0};
     }
     index = Math.clamp(index, 0, text.length() - 1);
-    if (index > 0 && Character.isLowSurrogate(text.charAt(index))
+    if (index > 0
+        && Character.isLowSurrogate(text.charAt(index))
         && Character.isHighSurrogate(text.charAt(index - 1))) {
       index--;
     }

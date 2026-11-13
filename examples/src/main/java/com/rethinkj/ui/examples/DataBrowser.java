@@ -3,29 +3,28 @@ package com.rethinkj.ui.examples;
 import static com.rethinkj.ui.El.col;
 import static com.rethinkj.ui.El.row;
 import static com.rethinkj.ui.kit.Button.button;
-import static com.rethinkj.ui.kit.TitleBar.titleBar;
-import static com.rethinkj.ui.kit.Toggle.toggle;
 import static com.rethinkj.ui.kit.DataGrid.dataGrid;
 import static com.rethinkj.ui.kit.Label.Variant.MUTED;
 import static com.rethinkj.ui.kit.Label.label;
 import static com.rethinkj.ui.kit.TextField.textField;
+import static com.rethinkj.ui.kit.TitleBar.titleBar;
+import static com.rethinkj.ui.kit.Toggle.toggle;
 
 import com.rethinkj.ui.App;
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.Key;
 import com.rethinkj.ui.Script;
-import com.rethinkj.ui.Style;
+import com.rethinkj.ui.kit.Button;
 import com.rethinkj.ui.kit.Card;
 import com.rethinkj.ui.kit.DataGrid;
 import com.rethinkj.ui.kit.DataGrid.CellIcon;
 import com.rethinkj.ui.kit.DataGrid.Column;
 import com.rethinkj.ui.kit.DataGrid.DataType;
+import com.rethinkj.ui.kit.DataGrid.Filter;
+import com.rethinkj.ui.kit.DataGrid.Layout;
 import com.rethinkj.ui.kit.DataGrid.Mode;
 import com.rethinkj.ui.kit.DataGrid.Selection;
 import com.rethinkj.ui.kit.DataGrid.SortKey;
-import com.rethinkj.ui.kit.Button;
-import com.rethinkj.ui.kit.DataGrid.Filter;
-import com.rethinkj.ui.kit.DataGrid.Layout;
 import com.rethinkj.ui.kit.Divider;
 import com.rethinkj.ui.kit.GridChanges;
 import com.rethinkj.ui.kit.Icon.Variant;
@@ -33,8 +32,8 @@ import com.rethinkj.ui.kit.Menu;
 import com.rethinkj.ui.kit.Symbol;
 import com.rethinkj.ui.kit.TextField;
 import com.rethinkj.ui.kit.Theme;
-import com.rethinkj.ui.kit.Tooltip;
 import com.rethinkj.ui.kit.Toast;
+import com.rethinkj.ui.kit.Tooltip;
 import com.rethinkj.ui.render.GpuPresenter;
 import com.rethinkj.ui.text.TextRendering;
 import com.rethinkj.ui.window.Window;
@@ -73,21 +72,37 @@ public final class DataBrowser {
   static final int PERIOD = 1000;
 
   private static final String[] FIRST = {
-    "Ada", "Grace", "Linus", "Margaret", "Ken", "Barbara", "Edsger", "Frances", "Donald", "Radia"};
+    "Ada", "Grace", "Linus", "Margaret", "Ken", "Barbara", "Edsger", "Frances", "Donald", "Radia"
+  };
   private static final String[] LAST = {
-    "Lovelace", "Hopper", "Torvalds", "Hamilton", "Thompson", "Liskov", "Dijkstra", "Allen",
-    "Knuth", "Perlman"};
+    "Lovelace",
+    "Hopper",
+    "Torvalds",
+    "Hamilton",
+    "Thompson",
+    "Liskov",
+    "Dijkstra",
+    "Allen",
+    "Knuth",
+    "Perlman"
+  };
   private static final String[] DOMAIN = {
-    "example.com", "example.org", "example.net", "mail.example", "shop.example"};
+    "example.com", "example.org", "example.net", "mail.example", "shop.example"
+  };
   private static final String[] CITY = {
-    "Berlin", "Paris", "Lisbon", "Oslo", "Vienna", "Madrid", "Dublin", "Prague", "Warsaw", "Rome"};
-  private static final String[] COUNTRY = {"DE", "FR", "PT", "NO", "AT", "ES", "IE", "CZ", "PL", "IT"};
+    "Berlin", "Paris", "Lisbon", "Oslo", "Vienna", "Madrid", "Dublin", "Prague", "Warsaw", "Rome"
+  };
+  private static final String[] COUNTRY = {
+    "DE", "FR", "PT", "NO", "AT", "ES", "IE", "CZ", "PL", "IT"
+  };
   private static final String[] PRODUCT = {
-    "Keyboard", "Monitor", "Laptop", "Mouse", "Headset", "Dock", "Webcam", "Cable"};
+    "Keyboard", "Monitor", "Laptop", "Mouse", "Headset", "Dock", "Webcam", "Cable"
+  };
   private static final int[] CENTS = {4990, 22900, 129900, 1990, 8900, 17900, 6900, 990};
   private static final String[] STATUS = {"paid", "pending", "shipped", "refunded"};
   private static final String[] NOTE = {
-    null, "Leave at the door", null, null, "Gift wrap", null, "Call before delivery", null};
+    null, "Leave at the door", null, null, "Gift wrap", null, "Call before delivery", null
+  };
   private static final LocalDateTime START = LocalDateTime.of(2026, 1, 5, 8, 0);
   private static final DateTimeFormatter TIME = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
 
@@ -101,8 +116,13 @@ public final class DataBrowser {
   private static final List<Field> FIELDS = List.of(
       new Field("id", 72, DataType.INTEGER, false, i -> String.valueOf(i + 1)),
       new Field("customer", 140, DataType.TEXT, true, DataBrowser::customer),
-      new Field("email", 220, DataType.TEXT, true, i -> customer(i).toLowerCase(Locale.ROOT)
-          .replace(' ', '.') + "@" + DOMAIN[i / 100 % DOMAIN.length]),
+      new Field(
+          "email",
+          220,
+          DataType.TEXT,
+          true,
+          i -> customer(i).toLowerCase(Locale.ROOT).replace(' ', '.') + "@"
+              + DOMAIN[i / 100 % DOMAIN.length]),
       new Field("city", 90, DataType.TEXT, true, i -> CITY[i / 4 % CITY.length]),
       new Field("country", 80, DataType.TEXT, true, i -> COUNTRY[i / 4 % COUNTRY.length]),
       new Field("product", 100, DataType.TEXT, true, i -> PRODUCT[product(i)]),
@@ -112,14 +132,22 @@ public final class DataBrowser {
         return String.format(Locale.ROOT, "%d.%02d", cents / 100, cents % 100);
       }),
       new Field("created_at", 140, DataType.DATE_TIME, false, i -> created(i).format(TIME)),
-      new Field("shipped_at", 140, DataType.DATE_TIME, false, i -> !status(i).equals("shipped")
-          ? null : created(i).plusMinutes(i * 7919L % 4320).format(TIME)),
+      new Field(
+          "shipped_at",
+          140,
+          DataType.DATE_TIME,
+          false,
+          i -> !status(i).equals("shipped")
+              ? null
+              : created(i).plusMinutes(i * 7919L % 4320).format(TIME)),
       new Field("status", 90, DataType.ENUM, true, DataBrowser::status),
       new Field("note", 180, DataType.TEXT, true, i -> NOTE[i % NOTE.length]));
   // A coloured mark before each status, in the order of STATUS: constants, allocated once.
   private static final CellIcon[] MARKS = {
-    CellIcon.before(Symbol.RECORD, Variant.SUCCESS), CellIcon.before(Symbol.RECORD, Variant.WARNING),
-    CellIcon.before(Symbol.RECORD, Variant.NORMAL), CellIcon.before(Symbol.RECORD, Variant.DANGER)};
+    CellIcon.before(Symbol.RECORD, Variant.SUCCESS),
+        CellIcon.before(Symbol.RECORD, Variant.WARNING),
+    CellIcon.before(Symbol.RECORD, Variant.NORMAL), CellIcon.before(Symbol.RECORD, Variant.DANGER)
+  };
 
   boolean dark = true;
   String filter = "";
@@ -200,7 +228,8 @@ public final class DataBrowser {
   int placeShown(int order) {
     if (order >= ROWS) {
       return order - ROWS < added.size() && !removed.contains(order)
-          ? count() - gone.length + order - ROWS : -1;
+          ? count() - gone.length + order - ROWS
+          : -1;
     }
     int place = placeOf(order);
     if (place < 0 || removed.contains(order)) {
@@ -212,8 +241,12 @@ public final class DataBrowser {
 
   /** The places of the deleted orders the filters keep, after the filters or the sort changed. */
   private void places() {
-    gone = removed.stream().filter(o -> o < ROWS).mapToInt(this::placeOf).filter(p -> p >= 0)
-        .sorted().toArray();
+    gone = removed.stream()
+        .filter(o -> o < ROWS)
+        .mapToInt(this::placeOf)
+        .filter(p -> p >= 0)
+        .sorted()
+        .toArray();
   }
 
   static String customer(int i) {
@@ -259,8 +292,9 @@ public final class DataBrowser {
     int count = 0;
     for (int r = 0; r < PERIOD; r++) {
       int row = r;
-      if (matches(row, words) && filters.stream()
-          .allMatch(f -> f.matches(FIELDS.get(f.column()).cell().apply(row)))) {
+      if (matches(row, words)
+          && filters.stream()
+              .allMatch(f -> f.matches(FIELDS.get(f.column()).cell().apply(row)))) {
         found[count++] = row;
       }
     }
@@ -282,7 +316,8 @@ public final class DataBrowser {
 
   /** The grid moved the cursor: its order is the selected one, unless it is a new row. */
   void selected() {
-    long key = selection.row() < 0 || selection.row() >= changes.rowCount() ? -1
+    long key = selection.row() < 0 || selection.row() >= changes.rowCount()
+        ? -1
         : changes.key(selection.row());
     selected = key < 0 ? -1 : (int) key;
   }
@@ -306,8 +341,10 @@ public final class DataBrowser {
       switch (change.kind()) {
         case UPDATE -> {
           int order = (int) change.key();
-          (order >= ROWS ? added.get(order - ROWS)
-              : written.computeIfAbsent(order, o -> new HashMap<>())).putAll(change.values());
+          (order >= ROWS
+                  ? added.get(order - ROWS)
+                  : written.computeIfAbsent(order, o -> new HashMap<>()))
+              .putAll(change.values());
         }
         case INSERT -> added.add(new HashMap<>(change.values()));
         case DELETE -> removed.add((int) change.key());
@@ -369,8 +406,8 @@ public final class DataBrowser {
   }
 
   private String rows() {
-    String rows = String.format(Locale.ROOT, "%,d of %,d orders", shownCount(),
-        ROWS - removed.size() + added.size());
+    String rows = String.format(
+        Locale.ROOT, "%,d of %,d orders", shownCount(), ROWS - removed.size() + added.size());
     long many = selection.rowCount();
     if (many > 1) {
       return rows + String.format(Locale.ROOT, " · %,d orders selected", many);
@@ -392,8 +429,10 @@ public final class DataBrowser {
       return;
     }
     app.textRendering(TextRendering.platform());
-    Window.Options options = Identity.options(DataBrowser.class, "Orders", Identity.BLUE, Symbol.TABLE)
-        .frameless().minimumSize(480, 320);
+    Window.Options options = Identity.options(
+            DataBrowser.class, "Orders", Identity.BLUE, Symbol.TABLE)
+        .frameless()
+        .minimumSize(480, 320);
     try (Window window = Window.open("Orders", 1000, 600, options);
         GpuPresenter presenter = new GpuPresenter(window)) {
       WindowLoop.run(window, app, presenter);
@@ -407,23 +446,30 @@ public final class DataBrowser {
       Field f = FIELDS.get(c);
       Column column = new Column(f.title(), s.widths[c], f.kind(), s.changes.cell(c))
           .sortable(c == 0); // id sorts
-      columns.add(switch (f.title()) {
-        case "id" -> column.icon(Symbol.KEY, Variant.WARNING);
-        case "status" -> column.cellIcon(shown -> {
-          String status = s.changes.cell(shown, 10);
-          int at = status == null ? -1 : List.of(STATUS).indexOf(status);
-          return at < 0 ? null : MARKS[at];
-        }).editable().choices(List.of(STATUS));
-        case "product" -> column.editable().choices(List.of(PRODUCT));
-        case "shipped_at", "note" -> column.editable().nullable();
-        default -> column.editable();
-      });
+      columns.add(
+          switch (f.title()) {
+            case "id" -> column.icon(Symbol.KEY, Variant.WARNING);
+            case "status" ->
+              column
+                  .cellIcon(shown -> {
+                    String status = s.changes.cell(shown, 10);
+                    int at = status == null ? -1 : List.of(STATUS).indexOf(status);
+                    return at < 0 ? null : MARKS[at];
+                  })
+                  .editable()
+                  .choices(List.of(STATUS));
+            case "product" -> column.editable().choices(List.of(PRODUCT));
+            case "shipped_at", "note" -> column.editable().nullable();
+            default -> column.editable();
+          });
     }
     DataGrid.Options options = DataGrid.options()
-        .select(s.selection).onSelect(s::selected)
+        .select(s.selection)
+        .onSelect(s::selected)
         .sort(List.of(new SortKey(0, s.descending)), s::sort)
         .onResize((c, width) -> s.widths[c] = width)
-        .rowNumbers().frozen(1)
+        .rowNumbers()
+        .frozen(1)
         .contextMenu(s.menu, List.of())
         .changes(s.changes)
         .filters(s.filters, s::filters)
@@ -433,44 +479,85 @@ public final class DataBrowser {
       options.copy(s.app.clipboard());
     }
     // The grid copies nothing beyond its limit; a toast says why instead of nothing happening.
-    options.copyLimit(COPY_LIMIT, copy -> s.toast = String.format(Locale.ROOT,
-        "%,d cells are too many to copy at once: at most %,d", copy.cells(), COPY_LIMIT));
+    options.copyLimit(
+        COPY_LIMIT,
+        copy -> s.toast = String.format(
+            Locale.ROOT,
+            "%,d cells are too many to copy at once: at most %,d",
+            copy.cells(),
+            COPY_LIMIT));
     El grid = dataGrid(t, columns, s.changes.rowCount(), options);
-    El filter = TextField.withIcon(t, textField(t, s.filter, "Filter", s::filter).key("filter")
-        .w(280), Symbol.SEARCH);
-    filter = Tooltip.tooltip(t, filter, "Words in customer, email, city, country, product,"
-        + " status or note");
+    El filter = TextField.withIcon(
+        t, textField(t, s.filter, "Filter", s::filter).key("filter").w(280), Symbol.SEARCH);
+    filter = Tooltip.tooltip(
+        t, filter, "Words in customer, email, city, country, product," + " status or note");
     int changed = s.changes.count();
-    El revert = button(t, Button.Variant.GHOST, Symbol.ARROW_UNDO, "Revert",
-        changed == 0 ? null : s.changes::clear).key("revert");
-    El commit = button(t, Button.Variant.PRIMARY, Symbol.SAVE,
-        changed == 0 ? "Commit" : "Commit (" + changed + ")",
-        changed == 0 && !s.selection.isEditing() ? null : s::commit)
+    El revert = button(
+            t,
+            Button.Variant.GHOST,
+            Symbol.ARROW_UNDO,
+            "Revert",
+            changed == 0 ? null : s.changes::clear)
+        .key("revert");
+    El commit = button(
+            t,
+            Button.Variant.PRIMARY,
+            Symbol.SAVE,
+            changed == 0 ? "Commit" : "Commit (" + changed + ")",
+            changed == 0 && !s.selection.isEditing() ? null : s::commit)
         .key("commit");
     El bar = DataGrid.filterBar(t, columns, s.filters, s::filters);
-    return col().wFull().hFull().fill(t.surface().window())
-        .onKey(k -> { // Control+S commits, as in Workbench
-          if (k.modifiers() == Key.CONTROL && k.name().equals("S")) {
-            s.commit();
-            return true;
-          }
-          return false;
-        })
+    return col()
+        .wFull()
+        .hFull()
+        .fill(t.surface().window())
+        .onKey(
+            k -> { // Control+S commits, as in Workbench
+              if (k.modifiers() == Key.CONTROL && k.name().equals("S")) {
+                s.commit();
+                return true;
+              }
+              return false;
+            })
         // Above the card's footer, its edge and the space below the card: the status stays seen.
-        .overlay(s.toast == null ? null : Toast.toast(t, s.toast, null, null,
-            () -> s.toast = null, Card.footerHeight(t) + t.size().stroke() + t.space().m()))
-        .child(titleBar(t, "Orders", t.accent().color(), Identity.maximized(s.app),
+        .overlay(
+            s.toast == null
+                ? null
+                : Toast.toast(
+                    t,
+                    s.toast,
+                    null,
+                    null,
+                    () -> s.toast = null,
+                    Card.footerHeight(t) + t.size().stroke() + t.space().m()))
+        .child(titleBar(
+            t,
+            "Orders",
+            t.accent().color(),
+            Identity.maximized(s.app),
             toggle(t, s.dark, "Dark", () -> s.dark = !s.dark)))
-        .child(col().grow(1).minSize(0, 0).padding(0, t.space().m(), t.space().m(), t.space().m())
-            .child(Card.flush(t,
-                Card.toolbar(t, "orders", String.format(Locale.ROOT, "%,d rows",
-                    s.changes.rowCount()), filter, DataGrid.columnsButton(t, s.layout), revert,
-                    commit),
-                bar == null ? null : row().padding(0, t.space().l(), t.space().m(),
-                    t.space().l()).child(bar),
-                Divider.divider(t),
-                grid.key("orders").label("Orders").grow(1),
-                Card.footer(t, label(t, MUTED, s.status()).key("status").ellipsis()))
+        .child(col()
+            .grow(1)
+            .minSize(0, 0)
+            .padding(0, t.space().m(), t.space().m(), t.space().m())
+            .child(Card.flush(
+                    t,
+                    Card.toolbar(
+                        t,
+                        "orders",
+                        String.format(Locale.ROOT, "%,d rows", s.changes.rowCount()),
+                        filter,
+                        DataGrid.columnsButton(t, s.layout),
+                        revert,
+                        commit),
+                    bar == null
+                        ? null
+                        : row()
+                            .padding(0, t.space().l(), t.space().m(), t.space().l())
+                            .child(bar),
+                    Divider.divider(t),
+                    grid.key("orders").label("Orders").grow(1),
+                    Card.footer(t, label(t, MUTED, s.status()).key("status").ellipsis()))
                 .grow(1)));
   }
 }

@@ -37,10 +37,21 @@ class FieldDragTest {
    * of 200 by 80 that has a press and a drag handler.
    */
   private static App<Model> start() {
-    App<Model> app = new App<>(new Model(), m -> col().key("panel").wFull().hFull().padding(10)
-        .onPress(() -> m.log.add("press"))
-        .onDrag(d -> m.log.add(d.phase().name()))
-        .child(El.text(m.value).editable(v -> m.value = v).key("f").w(100).h(24).padding(0, 4)));
+    App<Model> app = new App<>(
+        new Model(),
+        m -> col()
+            .key("panel")
+            .wFull()
+            .hFull()
+            .padding(10)
+            .onPress(() -> m.log.add("press"))
+            .onDrag(d -> m.log.add(d.phase().name()))
+            .child(El.text(m.value)
+                .editable(v -> m.value = v)
+                .key("f")
+                .w(100)
+                .h(24)
+                .padding(0, 4)));
     app.textRendering(TextRendering.LINUX);
     app.resize(200, 80, 1);
     app.frame();
@@ -68,11 +79,22 @@ class FieldDragTest {
   void aFieldHasItsPressedLookWhileAPressSelectsInItAndTheColumnHasNone() {
     int pressedField = 0xFF3B82F6;
     int pressedPanel = 0xFF1C1C22;
-    App<Model> app = new App<>(new Model(), m -> col().key("panel").wFull().hFull().padding(10)
-        .onPress(() -> m.log.add("press"))
-        .whenPressed(e -> e.fill(pressedPanel))
-        .child(El.text(m.value).editable(v -> m.value = v).key("f").w(100).h(24).padding(0, 4)
-            .whenPressed(e -> e.fill(pressedField))));
+    App<Model> app = new App<>(
+        new Model(),
+        m -> col()
+            .key("panel")
+            .wFull()
+            .hFull()
+            .padding(10)
+            .onPress(() -> m.log.add("press"))
+            .whenPressed(e -> e.fill(pressedPanel))
+            .child(El.text(m.value)
+                .editable(v -> m.value = v)
+                .key("f")
+                .w(100)
+                .h(24)
+                .padding(0, 4)
+                .whenPressed(e -> e.fill(pressedField))));
     app.textRendering(TextRendering.LINUX);
     app.resize(200, 80, 1);
     app.frame();
@@ -192,12 +214,27 @@ class FieldDragTest {
 
   @Test
   void aPressOnAFieldInARowIsTheFieldsAndBesideItTheRows() {
-    App<Rows> app = new App<>(new Rows(), r -> col().key("list").wFull().hFull()
-        .rows(r.names.size(), 30, i -> row().key("row-" + i).h(30).padding(3)
-            .onPress(() -> r.selected = i)
-            .onDrag(d -> r.log.add(i + " " + d.phase()))
-            .child(El.text(r.names.get(i)).editable(v -> r.names.set(i, v))
-                .key("name").w(100).h(24).padding(0, 4))));
+    App<Rows> app = new App<>(
+        new Rows(),
+        r -> col()
+            .key("list")
+            .wFull()
+            .hFull()
+            .rows(
+                r.names.size(),
+                30,
+                i -> row()
+                    .key("row-" + i)
+                    .h(30)
+                    .padding(3)
+                    .onPress(() -> r.selected = i)
+                    .onDrag(d -> r.log.add(i + " " + d.phase()))
+                    .child(El.text(r.names.get(i))
+                        .editable(v -> r.names.set(i, v))
+                        .key("name")
+                        .w(100)
+                        .h(24)
+                        .padding(0, 4))));
     app.textRendering(TextRendering.LINUX);
     app.resize(200, 150, 1);
     app.frame();

@@ -72,8 +72,10 @@ class TextAreaPointerTest {
     app.pointerMove(x(3), y(2));
     app.frame();
     assertEquals("o^ne\ntwo\nthr|ee", show(app));
-    assertEquals(3, field(app).text().selection().size(), "a rectangle per row: "
-        + field(app).text().selection());
+    assertEquals(
+        3,
+        field(app).text().selection().size(),
+        "a rectangle per row: " + field(app).text().selection());
     app.pointerMove(x(0), y(1));
     app.pointerUp(x(0), y(1));
     app.frame();
@@ -99,7 +101,8 @@ class TextAreaPointerTest {
     double down = f.scrollY();
     app.pointerMove(x(1), 200);
     app.frame();
-    assertTrue(field(app).scrollY() > down, "further below goes faster: " + field(app).scrollY());
+    assertTrue(
+        field(app).scrollY() > down, "further below goes faster: " + field(app).scrollY());
     for (int i = 0; i < 20; i++) {
       app.pointerMove(x(1), -20 - i); // above it
       app.frame();
@@ -151,8 +154,8 @@ class TextAreaPointerTest {
 
   @Test
   void theWheelScrollsTheFieldWhileItCanAndThenWhatIsAroundIt() {
-    App<Model> app = Areas.start(lines(20), UnaryOperator.identity(), 1,
-        root -> root.scroll().h(100));
+    App<Model> app = Areas.start(
+        lines(20), UnaryOperator.identity(), 1, root -> root.scroll().h(100));
     app.wheel(x(1), y(1), 0, 100);
     app.frame();
     assertEquals(100, field(app).scrollY());
@@ -168,8 +171,8 @@ class TextAreaPointerTest {
 
   @Test
   void theBarsMoveTheFieldAsAnyScrollArea() {
-    App<Model> app = Areas.start(lines(40).replace("line 3", "line 3" + "y".repeat(60)),
-        f -> f.scrollbars(BARS), 1);
+    App<Model> app = Areas.start(
+        lines(40).replace("line 3", "line 3" + "y".repeat(60)), f -> f.scrollbars(BARS), 1);
     El f = field(app);
     Scrollbars.Bar bar = f.verticalBar();
     assertNotNull(bar);

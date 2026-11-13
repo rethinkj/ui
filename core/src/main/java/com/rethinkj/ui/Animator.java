@@ -158,8 +158,11 @@ final class Animator {
         }
       }
       El parent = i > 0 ? path.get(i - 1) : null;
-      id = new Id(id, parent != null && parent.isVirtualList()
-          ? Integer.valueOf(parent.firstRow() + index) : part(el, index));
+      id = new Id(
+          id,
+          parent != null && parent.isVirtualList()
+              ? Integer.valueOf(parent.firstRow() + index)
+              : part(el, index));
       ids.add(id);
     }
     return ids;
@@ -544,8 +547,11 @@ final class Animator {
     int index = 0;
     for (int i = 0; i < ids.length; i++) {
       El child = children.get(i);
-      ids[i] = new Id(id, el.isVirtualList() ? Integer.valueOf(el.firstRow() + i)
-          : child.isExiting() ? child.key() : part(child, index++));
+      ids[i] = new Id(
+          id,
+          el.isVirtualList()
+              ? Integer.valueOf(el.firstRow() + i)
+              : child.isExiting() ? child.key() : part(child, index++));
     }
     return ids;
   }
@@ -733,7 +739,9 @@ final class Animator {
 
     void present(double now) {
       el.place(at(0, now), at(1, now), at(2, now), at(3, now));
-      el.moving(!(tracks[0].isAtRest(now) && tracks[1].isAtRest(now) && tracks[2].isAtRest(now)
+      el.moving(!(tracks[0].isAtRest(now)
+          && tracks[1].isAtRest(now)
+          && tracks[2].isAtRest(now)
           && tracks[3].isAtRest(now)));
       el.radius(at(RADIUS, now), at(RADIUS + 1, now), at(RADIUS + 2, now), at(RADIUS + 3, now));
       el.fill(colour(FILL, now));
@@ -741,7 +749,8 @@ final class Animator {
       if (el.text() != null) {
         el.text().shownColor(colour(TEXT, now));
       }
-      el.shownOpacity((float) Math.clamp(tracks[OPACITY].value(now), 0.0, 1.0)); // a bounce overshoots
+      el.shownOpacity(
+          (float) Math.clamp(tracks[OPACITY].value(now), 0.0, 1.0)); // a bounce overshoots
     }
 
     private float at(int index, double now) {

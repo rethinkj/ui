@@ -150,10 +150,11 @@ class FieldTest {
   @Test
   void enterAndEscapeGoOnToTheHandlersAndTypingKeysDoNot() {
     List<String> log = new ArrayList<>();
-    App<List<String>> app = new App<>(log, l -> col()
-        .onKey(k -> l.add("app " + k.name()))
-        .child(El.text("x").editable(s -> {}).key("f").w(100)
-            .onKey(k -> {
+    App<List<String>> app = new App<>(
+        log,
+        l -> col()
+            .onKey(k -> l.add("app " + k.name()))
+            .child(El.text("x").editable(s -> {}).key("f").w(100).onKey(k -> {
               l.add("field " + k.name());
               return false;
             })));
@@ -165,15 +166,21 @@ class FieldTest {
       key(app, name);
     }
     key(app, "S", CONTROL);
-    assertEquals(List.of(
-        "field Enter", "app Enter",
-        "field Escape", "app Escape",
-        "field A",
-        "field Space",
-        "field ArrowLeft",
-        "field F5", "app F5",
-        "field Numpad1",
-        "field S", "app S"), log);
+    assertEquals(
+        List.of(
+            "field Enter",
+            "app Enter",
+            "field Escape",
+            "app Escape",
+            "field A",
+            "field Space",
+            "field ArrowLeft",
+            "field F5",
+            "app F5",
+            "field Numpad1",
+            "field S",
+            "app S"),
+        log);
   }
 
   @Test
@@ -480,8 +487,11 @@ class FieldTest {
   @Test
   void aDisabledFieldTakesNeitherFocusNorPresses() {
     List<String> log = new ArrayList<>();
-    App<List<String>> app = new App<>(log, l -> col().onPress(() -> l.add("parent"))
-        .child(El.text("x").editable(null).key("f").w(100).h(20)));
+    App<List<String>> app = new App<>(
+        log,
+        l -> col()
+            .onPress(() -> l.add("parent"))
+            .child(El.text("x").editable(null).key("f").w(100).h(20)));
     app.textRendering(TextRendering.LINUX);
     app.resize(200, 40, 1);
     app.frame();
@@ -511,7 +521,9 @@ class FieldTest {
     El field = field(app);
     assertEquals(4, field.text().lines().getFirst().glyphs().count(), "a, b, n and i");
     assertNotNull(field.text().composition(), "underlined");
-    assertTrue(app.tree().dump().contains("focused caret 2 composing \"ni\"\n"), app.tree().dump());
+    assertTrue(
+        app.tree().dump().contains("focused caret 2 composing \"ni\"\n"),
+        app.tree().dump());
     assertEquals(field.text().x(4), field.text().caret().x(), "the caret after it");
 
     app.textComposition("nihon", 2);
@@ -654,8 +666,10 @@ class FieldTest {
   @Test
   void aFieldThatFadesOutHasNoCaretSelectionOrCompositionAndNoFocus() {
     boolean[] hidden = {false};
-    App<Model> app = start("hello", f -> hidden[0] ? el().size(0, 0)
-        : f.motion(com.rethinkj.ui.motion.Spring.SNAP), 1);
+    App<Model> app = start(
+        "hello",
+        f -> hidden[0] ? el().size(0, 0) : f.motion(com.rethinkj.ui.motion.Spring.SNAP),
+        1);
     focus(app);
     key(app, "ArrowLeft", SHIFT);
     El field = field(app);
@@ -695,12 +709,14 @@ class FieldTest {
     key(app, "Tab");
     assertNull(app.inputArea(), "a focusable box takes no text");
 
-    App<Object> plain = new App<>(new Object(), s -> el().size(10, 10).focusable().onText(t -> {}));
+    App<Object> plain =
+        new App<>(new Object(), s -> el().size(10, 10).focusable().onText(t -> {}));
     plain.resize(20, 20, 1);
     plain.frame();
     plain.focus(plain.tree());
     plain.frame();
-    assertEquals(new App.InputArea(0, 0, 10, 10, 0, false), plain.inputArea(), "but one with onText");
+    assertEquals(
+        new App.InputArea(0, 0, 10, 10, 0, false), plain.inputArea(), "but one with onText");
   }
 
   @Test

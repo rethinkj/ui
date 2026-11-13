@@ -81,7 +81,12 @@ final class FetchNatives {
       Pattern.compile("--\\s+(\\S+)\\s+\\(Wanted: ON\\): (\\S+)");
 
   /** {@code cmake} is null for a release archive, else the options to build the source with. */
-  record Library(String name, String version, URI archive, String archiveSha256, String entry,
+  record Library(
+      String name,
+      String version,
+      URI archive,
+      String archiveSha256,
+      String entry,
       List<String> cmake) {
 
     boolean built() {
@@ -157,7 +162,10 @@ final class FetchNatives {
       Library library = new Library(
           name,
           value(properties, config, name + ".version", TOKEN),
-          uri(config, name + ".archive", value(properties, config, name + ".archive", null),
+          uri(
+              config,
+              name + ".archive",
+              value(properties, config, name + ".archive", null),
               cmake != null),
           value(properties, config, name + ".archive.sha256", SHA256),
           value(properties, config, name + ".entry", ENTRY),
@@ -190,14 +198,15 @@ final class FetchNatives {
       Path out = staging.resolve(RESOURCES + platform);
       Files.createDirectories(out);
       StringBuilder manifest = new StringBuilder()
-          .append("# The native libraries for ").append(platform).append(", in load order.\n")
+          .append("# The native libraries for ")
+          .append(platform)
+          .append(", in load order.\n")
           .append("# library <name> <version> <file> <sha256>\n");
       if (libraries.stream().anyMatch(Library::built)) {
         manifest.append("# built <name> <sha256 of the source archive>: built from source by the"
             + " machine that wrote\n# this file, so the library's own hash is pinned nowhere.\n");
       }
-      manifest.append(FORMAT).append('\n')
-          .append("platform ").append(platform).append('\n');
+      manifest.append(FORMAT).append('\n').append("platform ").append(platform).append('\n');
       for (Library library : libraries) {
         Path file = out.resolve(library.file());
         Path archive = archives.resolve(library.archiveName());
@@ -223,14 +232,33 @@ final class FetchNatives {
               + "; a library that needs it looks for that name.");
         }
         String sha256 = sha256(file);
-        manifest.append("library ").append(library.name()).append(' ').append(library.version())
-            .append(' ').append(library.file()).append(' ').append(sha256).append('\n');
+        manifest
+            .append("library ")
+            .append(library.name())
+            .append(' ')
+            .append(library.version())
+            .append(' ')
+            .append(library.file())
+            .append(' ')
+            .append(sha256)
+            .append('\n');
         if (library.built()) {
-          manifest.append("built ").append(library.name()).append(' ')
-              .append(library.archiveSha256()).append('\n');
+          manifest
+              .append("built ")
+              .append(library.name())
+              .append(' ')
+              .append(library.archiveSha256())
+              .append('\n');
         }
-        System.out.printf(Locale.ROOT, "%s: %s %s, %s, %,d bytes, sha256 %s%n", label,
-            library.name(), library.version(), library.file(), Files.size(file), sha256);
+        System.out.printf(
+            Locale.ROOT,
+            "%s: %s %s, %s, %,d bytes, sha256 %s%n",
+            label,
+            library.name(),
+            library.version(),
+            library.file(),
+            Files.size(file),
+            sha256);
       }
       Files.writeString(out.resolve(MANIFEST), manifest);
 
@@ -291,8 +319,11 @@ final class FetchNatives {
       for (int attempt = 1; ; attempt++) {
         String failure;
         try {
-          HttpResponse<Path> response = client().send(request, HttpResponse.BodyHandlers.ofFile(
-              part, StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING));
+          HttpResponse<Path> response = client()
+              .send(
+                  request,
+                  HttpResponse.BodyHandlers.ofFile(
+                      part, StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING));
           if (response.statusCode() == 200) {
             break;
           }
@@ -328,14 +359,16 @@ final class FetchNatives {
    * the built file: with make for Linux, with Visual Studio's compiler for Windows. A build of the
    * same archive, options and entry is reused.
    */
-  private static Path build(String label, Path config, String platform, Library library,
-      Path archive, Path builds) throws IOException, InterruptedException, Failure {
+  private static Path build(
+      String label, Path config, String platform, Library library, Path archive, Path builds)
+      throws IOException, InterruptedException, Failure {
     Path work = builds.resolve(library.name());
     Path built = work.resolve(library.file());
     Path stamp = work.resolve("inputs.txt");
     String inputs = library.archiveSha256() + "\n" + String.join(" ", library.cmake()) + "\n"
         + library.entry() + "\n";
-    if (Files.isRegularFile(built) && Files.isRegularFile(stamp)
+    if (Files.isRegularFile(built)
+        && Files.isRegularFile(stamp)
         && Files.readString(stamp).equals(inputs)) {
       System.out.println(label + ": " + library.name() + " is already built");
       return built;
@@ -346,7 +379,8 @@ final class FetchNatives {
       windows = WindowsTools.find(label, library);
     } else {
       String cc = System.getenv("CC") == null || System.getenv("CC").isBlank()
-          ? "cc" : System.getenv("CC").trim().split("\\s+")[0];
+          ? "cc"
+          : System.getenv("CC").trim().split("\\s+")[0];
       require(label, library, "cmake", "CMake 3.16 or later", "cmake");
       require(label, library, "make", "make", "make");
       require(label, library, cc, "a C compiler", "build-essential");
@@ -364,8 +398,12 @@ final class FetchNatives {
       windows.untar(label, library, archive, source, log);
     } else if (library.archiveName().endsWith(".tar.xz")) {
       // The JDK cannot read xz. GNU tar strips a leading / and refuses names that contain "..".
-      run(label, library,
-          List.of("tar", "-xJf", archive.toString(), "-C", source.toString()), log, null);
+      run(
+          label,
+          library,
+          List.of("tar", "-xJf", archive.toString(), "-C", source.toString()),
+          log,
+          null);
     } else {
       unzip(archive, source);
     }
@@ -377,16 +415,25 @@ final class FetchNatives {
         root = list.getFirst();
       }
     }
-    List<String> configure = new ArrayList<>(windows != null
-        ? List.of(windows.cmake().toString(), "-S", root.toString(), "-B", tree.toString(), "-G",
-            windows.generator())
-        : List.of("cmake", "-S", root.toString(), "-B", tree.toString(), "-G", "Unix Makefiles"));
+    List<String> configure = new ArrayList<>(
+        windows != null
+            ? List.of(
+                windows.cmake().toString(),
+                "-S",
+                root.toString(),
+                "-B",
+                tree.toString(),
+                "-G",
+                windows.generator())
+            : List.of(
+                "cmake", "-S", root.toString(), "-B", tree.toString(), "-G", "Unix Makefiles"));
     configure.addAll(library.cmake());
     run(label, library, configure, log, windows);
     List<String> off = new ArrayList<>();
     for (String line : read(log)) {
       Matcher result = CMAKE_RESULT.matcher(line.strip());
-      if (result.matches() && !result.group(2).equals("ON")
+      if (result.matches()
+          && !result.group(2).equals("ON")
           && library.cmake().contains("-D" + result.group(1) + "=ON")) {
         off.add(result.group(1));
       }
@@ -404,10 +451,15 @@ final class FetchNatives {
           + "Install them and build again, or build without the native libraries:"
           + " mvn verify -P '!" + label + "'");
     }
-    run(label, library, windows != null
-        ? List.of(windows.cmake().toString(), "--build", tree.toString())
-        : List.of("make", "-C", tree.toString(), "-j" + Runtime.getRuntime().availableProcessors()),
-        log, windows);
+    run(
+        label,
+        library,
+        windows != null
+            ? List.of(windows.cmake().toString(), "--build", tree.toString())
+            : List.of(
+                "make", "-C", tree.toString(), "-j" + Runtime.getRuntime().availableProcessors()),
+        log,
+        windows);
     Path entry = tree.resolve(library.entry());
     if (!Files.isRegularFile(entry)) {
       throw new Failure(config + ": the build of " + library.name() + " made no file "
@@ -417,14 +469,19 @@ final class FetchNatives {
     deleteTree(source);
     deleteTree(tree);
     Files.writeString(stamp, inputs);
-    System.out.printf(Locale.ROOT, "%s: built %s in %d s%n",
-        label, library.name(), (System.nanoTime() - start) / 1_000_000_000L);
+    System.out.printf(
+        Locale.ROOT,
+        "%s: built %s in %d s%n",
+        label,
+        library.name(),
+        (System.nanoTime() - start) / 1_000_000_000L);
     return built;
   }
 
   /** Fails with what to install if {@code tool --version} cannot be run. */
-  private static void require(String label, Library library, String tool, String what,
-      String debian) throws InterruptedException, Failure {
+  private static void require(
+      String label, Library library, String tool, String what, String debian)
+      throws InterruptedException, Failure {
     try {
       Process process = new ProcessBuilder(tool, "--version")
           .redirectErrorStream(true)
@@ -446,10 +503,14 @@ final class FetchNatives {
    * Runs {@code command}, appending its output to {@code log}: for Windows ({@code windows} not
    * null) in the environment of Visual Studio's developer prompt, else in this process's.
    */
-  private static void run(String label, Library library, List<String> command, Path log,
-      WindowsTools windows) throws IOException, InterruptedException, Failure {
-    Files.writeString(log, "$ " + String.join(" ", command) + "\n",
-        StandardOpenOption.CREATE, StandardOpenOption.APPEND);
+  private static void run(
+      String label, Library library, List<String> command, Path log, WindowsTools windows)
+      throws IOException, InterruptedException, Failure {
+    Files.writeString(
+        log,
+        "$ " + String.join(" ", command) + "\n",
+        StandardOpenOption.CREATE,
+        StandardOpenOption.APPEND);
     ProcessBuilder builder = new ProcessBuilder(command)
         .redirectErrorStream(true)
         .redirectOutput(ProcessBuilder.Redirect.appendTo(log.toFile()));
@@ -555,18 +616,28 @@ final class FetchNatives {
         return vs;
       }
       String programs = System.getenv("ProgramFiles(x86)");
-      Path vswhere = Path.of(programs == null || programs.isBlank() ? "C:\\Program Files (x86)"
-          : programs.strip(), "Microsoft Visual Studio", "Installer", "vswhere.exe");
+      Path vswhere = Path.of(
+          programs == null || programs.isBlank() ? "C:\\Program Files (x86)" : programs.strip(),
+          "Microsoft Visual Studio",
+          "Installer",
+          "vswhere.exe");
       if (Files.isRegularFile(vswhere)) {
         for (List<String> components : List.of(List.of(VC_TOOLS, VC_CMAKE), List.of(VC_TOOLS))) {
-          List<String> command = new ArrayList<>(List.of(vswhere.toString(), "-latest",
-              "-products", "*", "-utf8", "-property", "installationPath", "-requires"));
+          List<String> command = new ArrayList<>(List.of(
+              vswhere.toString(),
+              "-latest",
+              "-products",
+              "*",
+              "-utf8",
+              "-property",
+              "installationPath",
+              "-requires"));
           command.addAll(components);
           Process process = new ProcessBuilder(command)
               .redirectError(ProcessBuilder.Redirect.DISCARD)
               .start();
-          String out = new String(process.getInputStream().readAllBytes(), StandardCharsets.UTF_8)
-              .strip();
+          String out =
+              new String(process.getInputStream().readAllBytes(), StandardCharsets.UTF_8).strip();
           Path vs = process.waitFor() == 0 && !out.isEmpty() ? path(out) : null;
           if (vs != null && Files.isRegularFile(vs.resolve(VSDEVCMD))) {
             return vs;
@@ -575,7 +646,8 @@ final class FetchNatives {
       }
       throw new Failure(label + ": building " + library.name() + " needs Visual Studio 2022 or"
           + " later, or its Build Tools,\nwith the C++ x64 tools, but "
-          + (Files.isRegularFile(vswhere) ? "vswhere.exe finds no such installation."
+          + (Files.isRegularFile(vswhere)
+              ? "vswhere.exe finds no such installation."
               : "there is no " + vswhere + ",\nwhich the Visual Studio Installer puts there.")
           + "\nInstall the workload \"Desktop development with C++\" with the Visual Studio"
           + " Installer\n(https://visualstudio.microsoft.com/downloads/; the Build Tools are"
@@ -596,22 +668,25 @@ final class FetchNatives {
       Path dir = Files.createTempDirectory("rethinkj-ui-vsdevcmd-");
       try {
         Path log = dir.resolve("vsdevcmd.log");
-        Files.writeString(dir.resolve("environment.cmd"), "@echo off\r\n"
-            + "set \"" + NO_CURRENT_FOLDER + "=\"\r\n"
-            + "call \"%" + SCRIPT_VARIABLE + "%\" -arch=amd64 -host_arch=amd64 -no_logo"
-            + " > vsdevcmd.log 2>&1\r\n"
-            + "if errorlevel 1 exit /b 1\r\n"
-            + "set \"" + SCRIPT_VARIABLE + "=\"\r\n"
-            + "\"%ComSpec%\" /d /u /c set\r\n", StandardCharsets.US_ASCII);
-        ProcessBuilder builder = new ProcessBuilder(cmd.toString(), "/d", "/c",
-            ".\\environment.cmd")
+        Files.writeString(
+            dir.resolve("environment.cmd"),
+            "@echo off\r\n"
+                + "set \"" + NO_CURRENT_FOLDER + "=\"\r\n"
+                + "call \"%" + SCRIPT_VARIABLE + "%\" -arch=amd64 -host_arch=amd64 -no_logo"
+                + " > vsdevcmd.log 2>&1\r\n"
+                + "if errorlevel 1 exit /b 1\r\n"
+                + "set \"" + SCRIPT_VARIABLE + "=\"\r\n"
+                + "\"%ComSpec%\" /d /u /c set\r\n",
+            StandardCharsets.US_ASCII);
+        ProcessBuilder builder = new ProcessBuilder(
+                cmd.toString(), "/d", "/c", ".\\environment.cmd")
             .directory(dir.toFile())
-            .redirectError(ProcessBuilder.Redirect.appendTo(dir.resolve("cmd.log").toFile()));
+            .redirectError(
+                ProcessBuilder.Redirect.appendTo(dir.resolve("cmd.log").toFile()));
         builder.environment().put(SCRIPT_VARIABLE, vs.resolve(VSDEVCMD).toString());
         builder.environment().put("ComSpec", cmd.toString());
         Process process = builder.start();
-        String out = new String(process.getInputStream().readAllBytes(),
-            StandardCharsets.UTF_16LE);
+        String out = new String(process.getInputStream().readAllBytes(), StandardCharsets.UTF_16LE);
         int status = process.waitFor();
         Map<String, String> environment = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
         for (String line : out.split("\r\n")) {
@@ -646,8 +721,8 @@ final class FetchNatives {
     }
 
     /** The cmake to build with. */
-    private static Path cmake(String label, Library library, Path vs,
-        Map<String, String> environment) throws Failure {
+    private static Path cmake(
+        String label, Library library, Path vs, Map<String, String> environment) throws Failure {
       String named = System.getenv("CMAKE");
       if (named != null && !named.isBlank()) {
         Path cmake = path(named);
@@ -675,16 +750,19 @@ final class FetchNatives {
     }
 
     /** The first line of {@code cmake --version}, such as "cmake version 4.3.1". */
-    private static String cmakeVersion(String label, Library library, Path cmake,
-        Map<String, String> environment) throws InterruptedException, Failure {
+    private static String cmakeVersion(
+        String label, Library library, Path cmake, Map<String, String> environment)
+        throws InterruptedException, Failure {
       try {
-        ProcessBuilder builder = new ProcessBuilder(cmake.toString(), "--version")
-            .redirectErrorStream(true);
+        ProcessBuilder builder =
+            new ProcessBuilder(cmake.toString(), "--version").redirectErrorStream(true);
         builder.environment().clear();
         builder.environment().putAll(environment);
         Process process = builder.start();
-        List<String> lines = new String(process.getInputStream().readAllBytes(),
-            StandardCharsets.UTF_8).lines().toList();
+        List<String> lines = new String(
+                process.getInputStream().readAllBytes(), StandardCharsets.UTF_8)
+            .lines()
+            .toList();
         if (process.waitFor() == 0 && !lines.isEmpty()) {
           return lines.getFirst().strip();
         }
@@ -712,16 +790,29 @@ final class FetchNatives {
             + ", which Windows has had since Windows 10 version 1803.");
       }
       Path zip = source.resolveSibling("source.zip");
-      run(label, library, List.of(tar.toString(), "-c", "-f", zip.toString(), "--format", "zip",
-          "--options", "zip:compression=store", "@" + archive), log, this);
+      run(
+          label,
+          library,
+          List.of(
+              tar.toString(),
+              "-c",
+              "-f",
+              zip.toString(),
+              "--format",
+              "zip",
+              "--options",
+              "zip:compression=store",
+              "@" + archive),
+          log,
+          this);
       unzip(zip, source);
       Files.delete(zip);
     }
 
     private static Path system32(String file) {
       String root = System.getenv("SystemRoot");
-      return Path.of(root == null || root.isBlank() ? "C:\\Windows" : root.strip(), "System32",
-          file);
+      return Path.of(
+          root == null || root.isBlank() ? "C:\\Windows" : root.strip(), "System32", file);
     }
 
     /** The file in the first folder of the environment's PATH that has it, or null. */
@@ -880,7 +971,8 @@ final class FetchNatives {
     try {
       URI uri = new URI(value);
       String path = uri.getPath();
-      if ("https".equals(uri.getScheme()) && path != null
+      if ("https".equals(uri.getScheme())
+          && path != null
           && (path.endsWith(".zip") || source && path.endsWith(".tar.xz"))) {
         return uri;
       }

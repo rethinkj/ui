@@ -15,8 +15,13 @@ public final class RenderPass extends GpuObject {
   private final int height;
   private boolean ended;
 
-  RenderPass(CommandEncoder encoder, Device device, String label, MemorySegment handle,
-      int width, int height) {
+  RenderPass(
+      CommandEncoder encoder,
+      Device device,
+      String label,
+      MemorySegment handle,
+      int width,
+      int height) {
     super(device.instance, encoder, label, handle);
     this.encoder = encoder;
     this.device = device;
@@ -56,7 +61,11 @@ public final class RenderPass extends GpuObject {
   /** Limits drawing to a rectangle of the target, in pixels. */
   public void setScissorRect(int x, int y, int width, int height) {
     MemorySegment pass = recording();
-    if (x < 0 || y < 0 || width < 0 || height < 0 || (long) x + width > this.width
+    if (x < 0
+        || y < 0
+        || width < 0
+        || height < 0
+        || (long) x + width > this.width
         || (long) y + height > this.height) {
       throw new IllegalArgumentException("The scissor rectangle " + x + "," + y + " " + width
           + "x" + height + " does not fit into the target of " + this.width + "x" + this.height

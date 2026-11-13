@@ -105,8 +105,8 @@ public final class Atlas {
     public Region changed() {
       return changedRight <= changedLeft
           ? Region.EMPTY
-          : new Region(changedLeft, changedTop, changedRight - changedLeft,
-              changedBottom - changedTop);
+          : new Region(
+              changedLeft, changedTop, changedRight - changedLeft, changedBottom - changedTop);
     }
 
     /**
@@ -188,8 +188,8 @@ public final class Atlas {
     }
   }
 
-  private record Key(Font font, float pixelSize, TextRendering.Hinting hinting, int glyph,
-      int quarter) {}
+  private record Key(
+      Font font, float pixelSize, TextRendering.Hinting hinting, int glyph, int quarter) {}
 
   private static final class Entry {
     final Slot slot;
@@ -219,7 +219,9 @@ public final class Atlas {
    * @param maxEntries how many glyphs the atlas keeps, at least 1
    */
   public Atlas(int pageSize, long maxBytes, int maxEntries) {
-    if (pageSize < 16 || pageSize > 8192 || maxBytes < (long) pageSize * pageSize
+    if (pageSize < 16
+        || pageSize > 8192
+        || maxBytes < (long) pageSize * pageSize
         || maxEntries < 1) {
       throw new IllegalArgumentException("an atlas needs pages of 16 to 8192 texels, room for one"
           + " page and one entry, was " + pageSize + ", " + maxBytes + ", " + maxEntries);
@@ -244,8 +246,8 @@ public final class Atlas {
    * @param pixelSize the size in physical pixels, as {@link GlyphRun#pixelSize}
    * @param quarter how many quarter pixels right of a whole pixel the glyph's origin lies, 0 to 3
    */
-  public Slot glyph(Font font, float pixelSize, TextRendering.Hinting hinting, int glyph,
-      int quarter) {
+  public Slot glyph(
+      Font font, float pixelSize, TextRendering.Hinting hinting, int glyph, int quarter) {
     if (quarter < 0 || quarter > 3) {
       throw new IllegalArgumentException("quarter must be from 0 to 3, was " + quarter);
     }
@@ -309,8 +311,8 @@ public final class Atlas {
     Page page = pages.get(index);
     page.write(at[0], at[1], bitmap);
     page.live++;
-    return new Slot(index, at[0], at[1], bitmap.width(), bitmap.height(), bitmap.left(),
-        bitmap.top());
+    return new Slot(
+        index, at[0], at[1], bitmap.width(), bitmap.height(), bitmap.left(), bitmap.top());
   }
 
   /** The page used longest ago and not in this frame, or -1 if every page is in use. */

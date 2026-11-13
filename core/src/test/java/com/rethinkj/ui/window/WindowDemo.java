@@ -87,7 +87,8 @@ public final class WindowDemo {
         height = Float.parseFloat(value.split(",")[1]);
       } else if (arg.startsWith("--pos=")) {
         position = new int[] {
-            Integer.parseInt(value.split(",")[0]), Integer.parseInt(value.split(",")[1])};
+          Integer.parseInt(value.split(",")[0]), Integer.parseInt(value.split(",")[1])
+        };
       } else if (arg.equals("--framed")) {
         framed = true;
       } else if (arg.startsWith("--progress=")) {
@@ -114,31 +115,41 @@ public final class WindowDemo {
       if (position != null) {
         window.moveTo(position[0], position[1]);
       }
-      log(start, "open: " + window.width() + "x" + window.height() + " at " + window.x() + ","
-          + window.y() + ", scale " + window.scale() + ", " + window.pixelWidth() + "x"
-          + window.pixelHeight() + " pixels, " + window.refreshRate() + " Hz, " + window.handle());
+      log(
+          start,
+          "open: " + window.width() + "x" + window.height() + " at " + window.x() + ","
+              + window.y() + ", scale " + window.scale() + ", " + window.pixelWidth() + "x"
+              + window.pixelHeight() + " pixels, " + window.refreshRate() + " Hz, "
+              + window.handle());
       if (progress >= 0) {
-        log(start, "progress " + progress + ": "
-            + window.progress(Window.Progress.NORMAL, progress));
+        log(
+            start,
+            "progress " + progress + ": " + window.progress(Window.Progress.NORMAL, progress));
       }
       State state = new State(window);
       App<State> app = new App<>(state, WindowDemo::view);
       app.textRendering(text);
       try (GpuPresenter gpu = new GpuPresenter(window)) {
-        log(start, "renderer " + gpu.adapter() + ", surface " + gpu.surfaceFormat() + ", text "
-            + (text.equals(TextRendering.LINUX) ? "LINUX" : text.equals(TextRendering.WINDOWS)
-                ? "WINDOWS" : text));
+        log(
+            start,
+            "renderer " + gpu.adapter() + ", surface " + gpu.surfaceFormat() + ", text "
+                + (text.equals(TextRendering.LINUX)
+                    ? "LINUX"
+                    : text.equals(TextRendering.WINDOWS) ? "WINDOWS" : text));
         WindowLoop.Presenter presenter = new WindowLoop.Presenter() {
           @Override
           public void present(Scene scene, float w, float h, float scale) {
             long before = gpu.frames();
             gpu.present(scene, w, h, scale);
-            String what = gpu.frames() > before ? "present " + gpu.frames()
+            String what = gpu.frames() > before
+                ? "present " + gpu.frames()
                 : gpu.pending() ? "pending" : "not shown";
-            log(start, what + ": " + w + "x" + h + " @" + scale + ", " + window.pixelWidth()
-                + "x" + window.pixelHeight() + " pixels, lights "
-                + (state.lights.on ? "on" : "off") + (app.isMoving() ? ", moving" : "")
-                + ", atlas uploads " + gpu.atlasUploads());
+            log(
+                start,
+                what + ": " + w + "x" + h + " @" + scale + ", " + window.pixelWidth()
+                    + "x" + window.pixelHeight() + " pixels, lights "
+                    + (state.lights.on ? "on" : "off") + (app.isMoving() ? ", moving" : "")
+                    + ", atlas uploads " + gpu.atlasUploads());
           }
 
           @Override
@@ -174,8 +185,10 @@ public final class WindowDemo {
         if (cpuPng != null) {
           Pixels pixels = app.render().pixels();
           Files.write(cpuPng, Png.encode(pixels));
-          log(start, "wrote the CPU's " + pixels.width() + "x" + pixels.height() + " image of the"
-              + " last frame to " + cpuPng.toAbsolutePath());
+          log(
+              start,
+              "wrote the CPU's " + pixels.width() + "x" + pixels.height() + " image of the"
+                  + " last frame to " + cpuPng.toAbsolutePath());
         }
       }
     }
@@ -184,27 +197,32 @@ public final class WindowDemo {
 
   static El view(State state) {
     boolean maximized = state.window.isOpen() && state.window.isMaximized();
-    El bar =
-        row().key("title-bar")
-            .wFull()
-            .h(TITLE_BAR)
-            .shrink(0)
-            .align(Style.Align.CENTER)
-            .fill(BAR)
-            .windowPart(WindowPart.DRAG)
-            .child(el().key("icon").size(14, 14).radius(4).fill(0xFF3B82F6).margin(0, 10, 0, 12))
-            .child(el().key("title").size(120, 6).radius(3).fill(0xFF4A5068))
-            .child(el().grow(1))
-            .child(button("minimize", WindowPart.MINIMIZE, BUTTON, minimizeGlyph()))
-            .child(button("maximize", WindowPart.MAXIMIZE, BUTTON,
-                maximized ? restoreGlyph() : maximizeGlyph()))
-            .child(button("close", WindowPart.CLOSE, CLOSE_BUTTON, closeGlyph()));
+    El bar = row()
+        .key("title-bar")
+        .wFull()
+        .h(TITLE_BAR)
+        .shrink(0)
+        .align(Style.Align.CENTER)
+        .fill(BAR)
+        .windowPart(WindowPart.DRAG)
+        .child(el().key("icon").size(14, 14).radius(4).fill(0xFF3B82F6).margin(0, 10, 0, 12))
+        .child(el().key("title").size(120, 6).radius(3).fill(0xFF4A5068))
+        .child(el().grow(1))
+        .child(button("minimize", WindowPart.MINIMIZE, BUTTON, minimizeGlyph()))
+        .child(button(
+            "maximize", WindowPart.MAXIMIZE, BUTTON, maximized ? restoreGlyph() : maximizeGlyph()))
+        .child(button("close", WindowPart.CLOSE, CLOSE_BUTTON, closeGlyph()));
     El body = Examples.lights(state.lights).grow(1);
     return col().wFull().hFull().fill(0xFF101014).child(bar).child(body);
   }
 
   private static El button(String key, WindowPart part, int fill, El glyph) {
-    return el().key(key).size(46, TITLE_BAR).center().fill(fill).windowPart(part).child(glyph);
+    return el().key(key)
+        .size(46, TITLE_BAR)
+        .center()
+        .fill(fill)
+        .windowPart(part)
+        .child(glyph);
   }
 
   private static El minimizeGlyph() {

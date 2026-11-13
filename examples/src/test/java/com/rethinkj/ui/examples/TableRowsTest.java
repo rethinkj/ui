@@ -58,8 +58,11 @@ class TableRowsTest {
         long key = random.nextInt(Math.max(rows.base, 1));
         switch (random.nextInt(3)) {
           case 0 -> rows.stored.removed.add(key);
-          case 1 -> rows.stored.written.computeIfAbsent(key, k -> new HashMap<>())
-              .put(2, random.nextBoolean() ? "paid" : "refunded");
+          case 1 ->
+            rows.stored
+                .written
+                .computeIfAbsent(key, k -> new HashMap<>())
+                .put(2, random.nextBoolean() ? "paid" : "refunded");
           default -> {
             Map<Integer, String> values = new HashMap<>();
             values.put(5, random.nextBoolean() ? "ada@example.com" : "x@example.com");
@@ -101,22 +104,26 @@ class TableRowsTest {
     Change status = new Change(Kind.UPDATE, 1, new TreeMap<>(Map.of(2, "pending")));
     Change fine = new Change(Kind.UPDATE, 2, new TreeMap<>(Map.of(2, "pending", 3, "5.00")));
     Map<Long, Map<Integer, String>> was = Map.of(1L, Map.of(2, "paid"), 2L, Map.of(2, "shipped"));
-    List<TableRows.Refusal> refused = TableRows.write("localhost/shop/public/orders",
-        List.of(amount, status, fine), was, Duration.ZERO);
-    assertEquals(List.of(new TableRows.Refusal(amount, 3, "amount must not be negative"),
-        new TableRows.Refusal(status, 2, "a paid order cannot go back to pending")), refused);
+    List<TableRows.Refusal> refused = TableRows.write(
+        "localhost/shop/public/orders", List.of(amount, status, fine), was, Duration.ZERO);
+    assertEquals(
+        List.of(
+            new TableRows.Refusal(amount, 3, "amount must not be negative"),
+            new TableRows.Refusal(status, 2, "a paid order cannot go back to pending")),
+        refused);
     assertTrue(TableRows.write("p", List.of(fine), was, Duration.ZERO).isEmpty());
   }
 
   @Test
   void theStatementsQuoteTextAndNotNumbers() {
-    GridChanges changes = new GridChanges(3, (r, c) -> Workbench.cell(
-        Workbench.FIELDS.get(c).name(), r));
+    GridChanges changes =
+        new GridChanges(3, (r, c) -> Workbench.cell(Workbench.FIELDS.get(c).name(), r));
     changes.set(1, 5, "o'neil@example.com");
     changes.set(1, 3, "2.50");
     changes.delete(List.of(new com.rethinkj.ui.kit.DataGrid.Range(0, 0, 0, 0)));
     changes.insert(2);
-    assertEquals("""
+    assertEquals(
+        """
         DELETE FROM shop.public.orders WHERE id = 1;
         UPDATE shop.public.orders
           SET amount = 2.50, email = 'o''neil@example.com'

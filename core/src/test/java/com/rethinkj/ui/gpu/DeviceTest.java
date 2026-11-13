@@ -48,7 +48,8 @@ class DeviceTest {
       System.out.println("wgpu-native " + Instance.version() + ", adapter: " + info);
       assertEquals("29.0.1.1", Instance.version());
       assertEquals(Backend.forPlatform(), info.backend());
-      assertTrue(adapter.limits().maxTextureDimension2D() >= 2048, adapter.limits().toString());
+      assertTrue(
+          adapter.limits().maxTextureDimension2D() >= 2048, adapter.limits().toString());
 
       Device device = adapter.requestDevice("renderer");
       assertTrue(device.limits().maxTextureDimension2D() >= 2048);
@@ -60,10 +61,11 @@ class DeviceTest {
   @Test
   void aWgslErrorIsAnExceptionWithLineColumnAndLabelAndTheDeviceLivesOn() {
     try (Device device = Gpus.device("renderer")) {
-      String broken = Quads.WGSL.replace("vec4f(pixel / globals.size", "vec3f(pixel / globals.size")
+      String broken = Quads.WGSL
+          .replace("vec4f(pixel / globals.size", "vec3f(pixel / globals.size")
           .replace(", 0.0, 1.0);", ", 0.0);");
-      GpuException e = assertThrows(GpuException.class,
-          () -> device.createShaderModule("broken quads", broken));
+      GpuException e =
+          assertThrows(GpuException.class, () -> device.createShaderModule("broken quads", broken));
 
       assertEquals(GpuException.Kind.VALIDATION, e.kind());
       assertEquals("broken quads", e.label());
@@ -74,8 +76,10 @@ class DeviceTest {
       assertTrue(e.wgpuMessage().contains("broken quads:" + line + ":" + column), e.wgpuMessage());
       // Box-drawing characters arrive as they are: the text is decoded as UTF-8.
       assertTrue(e.wgpuMessage().contains("┌─"), e.wgpuMessage());
-      assertTrue(e.getMessage().startsWith(
-          "Validation error while creating shader module 'broken quads':\n"), e.getMessage());
+      assertTrue(
+          e.getMessage()
+              .startsWith("Validation error while creating shader module 'broken quads':\n"),
+          e.getMessage());
 
       device.createShaderModule("quads", Quads.WGSL).close();
       assertEquals(List.of(), device.children());
@@ -89,15 +93,20 @@ class DeviceTest {
       Device device = Gpus.adapter(instance).requestDevice("renderer");
       Quads quads = new Quads(device, 2);
       RenderPipeline pipeline = quads.pipeline("quads", TextureFormat.RGBA8_UNORM, "vs_main");
-      Texture target = device.createTexture("target", WIDTH, HEIGHT, TextureFormat.RGBA8_UNORM,
-          TextureUsage.RENDER_ATTACHMENT, TextureUsage.COPY_SRC);
+      Texture target = device.createTexture(
+          "target",
+          WIDTH,
+          HEIGHT,
+          TextureFormat.RGBA8_UNORM,
+          TextureUsage.RENDER_ATTACHMENT,
+          TextureUsage.COPY_SRC);
       TextureView view = target.createView("target");
-      Buffer readback = device.createBuffer("readback", (long) BYTES_PER_ROW * HEIGHT,
-          BufferUsage.MAP_READ, BufferUsage.COPY_DST);
+      Buffer readback = device.createBuffer(
+          "readback", (long) BYTES_PER_ROW * HEIGHT, BufferUsage.MAP_READ, BufferUsage.COPY_DST);
 
       quads.upload(WIDTH, HEIGHT, new float[] {
-          8, 4, 16, 8, 1, 0, 0, 1, // opaque red
-          40, 16, 16, 12, 0, 0.5f, 0, 0.5f, // half-transparent green, premultiplied
+        8, 4, 16, 8, 1, 0, 0, 1, // opaque red
+        40, 16, 16, 12, 0, 0.5f, 0, 0.5f, // half-transparent green, premultiplied
       });
       try (CommandEncoder encoder = device.createCommandEncoder("frame")) {
         quads.draw(encoder, view, new Color(0, 0, 1, 1), pipeline, 2);
@@ -159,33 +168,46 @@ class DeviceTest {
         }
         """;
     try (Device device = Gpus.device("renderer")) {
-      assertTrue(device.limits().maxStorageBufferBindingSize() >= 128L << 20,
+      assertTrue(
+          device.limits().maxStorageBufferBindingSize() >= 128L << 20,
           device.limits().toString());
       assertTrue(device.limits().maxStorageBuffersPerShaderStage() >= 8);
       assertTrue(Long.bitCount(device.limits().minStorageBufferOffsetAlignment()) == 1);
 
       ShaderModule module = device.createShaderModule("storage quads", wgsl);
-      BindGroupLayout layout = device.createBindGroupLayout("quads",
+      BindGroupLayout layout = device.createBindGroupLayout(
+          "quads",
           BindGroupLayout.Entry.readOnlyStorage(0, ShaderStage.VERTEX, ShaderStage.FRAGMENT));
-      assertEquals(BindGroupLayout.BufferType.READ_ONLY_STORAGE, layout.entries().get(0).type());
-      Buffer quads = device.createBuffer("quads", 2 * 32, BufferUsage.STORAGE,
-          BufferUsage.COPY_DST);
+      assertEquals(
+          BindGroupLayout.BufferType.READ_ONLY_STORAGE, layout.entries().get(0).type());
+      Buffer quads =
+          device.createBuffer("quads", 2 * 32, BufferUsage.STORAGE, BufferUsage.COPY_DST);
       device.queue().writeBuffer(quads, 0, MemorySegment.ofArray(new float[] {
-          8, 4, 16, 8, 1, 0, 0, 1, // red
-          40, 16, 16, 12, 0, 1, 0, 1, // green
+        8, 4, 16, 8, 1, 0, 0, 1, // red
+        40, 16, 16, 12, 0, 1, 0, 1, // green
       }));
       BindGroup group = device.createBindGroup("quads", layout, BindGroup.Entry.buffer(0, quads));
       RenderPipeline pipeline = device.createRenderPipeline(new RenderPipeline.Descriptor(
-          "storage quads", List.of(layout), module, "vs_main", List.of(), "fs_main",
+          "storage quads",
+          List.of(layout),
+          module,
+          "vs_main",
+          List.of(),
+          "fs_main",
           List.of(new RenderPipeline.ColorTarget(TextureFormat.RGBA8_UNORM, null)),
           RenderPipeline.Topology.TRIANGLE_STRIP));
-      Texture target = device.createTexture("target", WIDTH, HEIGHT, TextureFormat.RGBA8_UNORM,
-          TextureUsage.RENDER_ATTACHMENT, TextureUsage.COPY_SRC);
-      Buffer readback = device.createBuffer("readback", (long) BYTES_PER_ROW * HEIGHT,
-          BufferUsage.MAP_READ, BufferUsage.COPY_DST);
+      Texture target = device.createTexture(
+          "target",
+          WIDTH,
+          HEIGHT,
+          TextureFormat.RGBA8_UNORM,
+          TextureUsage.RENDER_ATTACHMENT,
+          TextureUsage.COPY_SRC);
+      Buffer readback = device.createBuffer(
+          "readback", (long) BYTES_PER_ROW * HEIGHT, BufferUsage.MAP_READ, BufferUsage.COPY_DST);
       try (CommandEncoder encoder = device.createCommandEncoder("frame")) {
-        try (RenderPass pass = encoder.beginRenderPass("quads", target.createView("target"),
-            Color.BLACK)) {
+        try (RenderPass pass =
+            encoder.beginRenderPass("quads", target.createView("target"), Color.BLACK)) {
           pass.setPipeline(pipeline);
           pass.setBindGroup(0, group);
           pass.draw(4, 2, 0, 0);
@@ -201,11 +223,14 @@ class DeviceTest {
 
       // A buffer without STORAGE cannot be bound there: an exception, and the device goes on.
       Buffer uniform = device.createBuffer("uniform", 64, BufferUsage.UNIFORM);
-      GpuException e = assertThrows(GpuException.class, () -> device.createBindGroup("wrong",
-          layout, BindGroup.Entry.buffer(0, uniform)));
+      GpuException e = assertThrows(
+          GpuException.class,
+          () -> device.createBindGroup("wrong", layout, BindGroup.Entry.buffer(0, uniform)));
       assertEquals(GpuException.Kind.VALIDATION, e.kind());
       assertEquals("wrong", e.label());
-      device.createBindGroup("quads again", layout, BindGroup.Entry.buffer(0, quads)).close();
+      device
+          .createBindGroup("quads again", layout, BindGroup.Entry.buffer(0, quads))
+          .close();
     }
   }
 
@@ -214,10 +239,10 @@ class DeviceTest {
     // Submitting such a command buffer ends the process in wgpu-native.
     try (Device device = Gpus.device("renderer")) {
       Quads quads = new Quads(device, 1);
-      RenderPipeline wrongFormat = quads.pipeline("rgba16f quads", TextureFormat.RGBA16_FLOAT,
-          "vs_main");
-      Texture target = device.createTexture("target", WIDTH, HEIGHT, TextureFormat.RGBA8_UNORM,
-          TextureUsage.RENDER_ATTACHMENT);
+      RenderPipeline wrongFormat =
+          quads.pipeline("rgba16f quads", TextureFormat.RGBA16_FLOAT, "vs_main");
+      Texture target = device.createTexture(
+          "target", WIDTH, HEIGHT, TextureFormat.RGBA8_UNORM, TextureUsage.RENDER_ATTACHMENT);
       TextureView view = target.createView("target");
       quads.upload(WIDTH, HEIGHT, new float[] {0, 0, 8, 8, 1, 1, 1, 1});
 
@@ -238,8 +263,8 @@ class DeviceTest {
         // Submitting twice ends the process in wgpu-native.
         IllegalStateException twice =
             assertThrows(IllegalStateException.class, () -> device.queue().submit(commands));
-        assertEquals("Command buffer 'frame' is submitted; it cannot be used any more.",
-            twice.getMessage());
+        assertEquals(
+            "Command buffer 'frame' is submitted; it cannot be used any more.", twice.getMessage());
       }
       device.waitIdle();
     }
@@ -249,11 +274,12 @@ class DeviceTest {
   void aPipelineErrorNamesThePipeline() {
     try (Device device = Gpus.device("renderer")) {
       Quads quads = new Quads(device, 1);
-      GpuException e = assertThrows(GpuException.class,
-          () -> quads.pipeline("typo", TextureFormat.RGBA8_UNORM, "vs_mian"));
+      GpuException e = assertThrows(
+          GpuException.class, () -> quads.pipeline("typo", TextureFormat.RGBA8_UNORM, "vs_mian"));
       assertEquals("typo", e.label());
       assertTrue(e.wgpuMessage().contains("vs_mian"), e.wgpuMessage());
-      assertTrue(e.getMessage().startsWith("Validation error while creating render pipeline"),
+      assertTrue(
+          e.getMessage().startsWith("Validation error while creating render pipeline"),
           e.getMessage());
     }
   }
@@ -271,8 +297,8 @@ class DeviceTest {
       Structs.string(descriptor, Structs.ShaderModuleDescriptor.LABEL, "unscoped", arena);
       Wgpu.shaderModuleRelease(Wgpu.deviceCreateShaderModule(device.handle(), descriptor));
 
-      GpuException e = assertThrows(GpuException.class,
-          () -> device.createBuffer("next", 16, BufferUsage.UNIFORM));
+      GpuException e = assertThrows(
+          GpuException.class, () -> device.createBuffer("next", 16, BufferUsage.UNIFORM));
       assertEquals(GpuException.Kind.VALIDATION, e.kind());
       assertTrue(e.wgpuMessage().contains("label = 'unscoped'"), e.wgpuMessage());
       // Reported once; the device is usable again.
@@ -286,16 +312,20 @@ class DeviceTest {
         Arena arena = Arena.ofConfined()) {
       // Calls the uncaptured-error upcall as wgpu would, with a message too long for a Java
       // string: the upcall throws inside, which would end the JVM if it got out.
-      MethodHandle upcall = Linker.nativeLinker().downcallHandle(Callbacks.UNCAPTURED_ERROR,
-          Wgpu.UNCAPTURED_ERROR_CALLBACK);
+      MethodHandle upcall = Linker.nativeLinker()
+          .downcallHandle(Callbacks.UNCAPTURED_ERROR, Wgpu.UNCAPTURED_ERROR_CALLBACK);
       MemorySegment message = arena.allocate(Structs.STRING_VIEW);
       message.set(ADDRESS, 0, arena.allocate(8));
       message.set(JAVA_LONG, 8, Long.MAX_VALUE / 2);
-      upcall.invokeExact(MemorySegment.NULL, Wgpu.ERROR_TYPE_VALIDATION, message,
-          MemorySegment.ofAddress(device.eventsId), MemorySegment.NULL);
+      upcall.invokeExact(
+          MemorySegment.NULL,
+          Wgpu.ERROR_TYPE_VALIDATION,
+          message,
+          MemorySegment.ofAddress(device.eventsId),
+          MemorySegment.NULL);
 
-      IllegalStateException e = assertThrows(IllegalStateException.class,
-          () -> device.createBuffer("next", 16, BufferUsage.UNIFORM));
+      IllegalStateException e = assertThrows(
+          IllegalStateException.class, () -> device.createBuffer("next", 16, BufferUsage.UNIFORM));
       assertTrue(e.getMessage().startsWith("A wgpu callback failed"), e.getMessage());
       assertInstanceOf(RuntimeException.class, e.getCause());
       device.createBuffer("next", 16, BufferUsage.UNIFORM).close();
@@ -306,26 +336,30 @@ class DeviceTest {
   void argumentsThatEndTheProcessInWgpuNativeAreRefusedFirst() {
     try (Device device = Gpus.device("renderer")) {
       Quads quads = new Quads(device, 1);
-      Texture target = device.createTexture("target", WIDTH, HEIGHT, TextureFormat.RGBA8_UNORM,
-          TextureUsage.RENDER_ATTACHMENT);
+      Texture target = device.createTexture(
+          "target", WIDTH, HEIGHT, TextureFormat.RGBA8_UNORM, TextureUsage.RENDER_ATTACHMENT);
       TextureView view = target.createView("target");
 
-      assertThrows(IllegalArgumentException.class, () -> device.createTexture("empty", 0, 16,
-          TextureFormat.RGBA8_UNORM, TextureUsage.RENDER_ATTACHMENT));
+      assertThrows(
+          IllegalArgumentException.class,
+          () -> device.createTexture(
+              "empty", 0, 16, TextureFormat.RGBA8_UNORM, TextureUsage.RENDER_ATTACHMENT));
       int tooLarge = device.limits().maxTextureDimension2D() + 1;
-      assertThrows(IllegalArgumentException.class, () -> device.createTexture("huge", tooLarge,
-          16, TextureFormat.RGBA8_UNORM, TextureUsage.RENDER_ATTACHMENT));
+      assertThrows(
+          IllegalArgumentException.class,
+          () -> device.createTexture(
+              "huge", tooLarge, 16, TextureFormat.RGBA8_UNORM, TextureUsage.RENDER_ATTACHMENT));
 
       try (CommandEncoder encoder = device.createCommandEncoder("frame")) {
         // One encoder at a time: its error scopes stay open until it finishes.
         assertThrows(IllegalStateException.class, () -> device.createCommandEncoder("second"));
         try (RenderPass pass = encoder.beginRenderPass("pass", view, Color.BLACK)) {
           // A vertex buffer range of size 0 ends the process.
-          assertThrows(IllegalArgumentException.class,
-              () -> pass.setVertexBuffer(0, quads.instances, 0, 0));
+          assertThrows(
+              IllegalArgumentException.class, () -> pass.setVertexBuffer(0, quads.instances, 0, 0));
           // So would recording into the encoder while its pass is open, as an error at finish.
-          assertThrows(IllegalStateException.class,
-              () -> encoder.beginRenderPass("second", view, null));
+          assertThrows(
+              IllegalStateException.class, () -> encoder.beginRenderPass("second", view, null));
         }
         // A buffer that cannot be mapped is not mapped.
         assertThrows(IllegalArgumentException.class, () -> quads.instances.read(0, 16));
@@ -344,11 +378,11 @@ class DeviceTest {
     Device device = adapter.requestDevice("renderer");
     ShaderModule module = device.createShaderModule("quads", Quads.WGSL);
     Buffer buffer = device.createBuffer("globals", 16, BufferUsage.UNIFORM);
-    Texture texture = device.createTexture("target", 8, 8, TextureFormat.RGBA8_UNORM,
-        TextureUsage.RENDER_ATTACHMENT);
+    Texture texture = device.createTexture(
+        "target", 8, 8, TextureFormat.RGBA8_UNORM, TextureUsage.RENDER_ATTACHMENT);
     texture.createView("target");
-    BindGroupLayout layout = device.createBindGroupLayout("globals",
-        BindGroupLayout.Entry.uniform(0, ShaderStage.VERTEX));
+    BindGroupLayout layout = device.createBindGroupLayout(
+        "globals", BindGroupLayout.Entry.uniform(0, ShaderStage.VERTEX));
     device.createBindGroup("globals", layout, BindGroup.Entry.buffer(0, buffer));
     CommandEncoder encoder = device.createCommandEncoder("frame");
     encoder.beginRenderPass("pass", texture.createView("second view"), Color.BLACK);
@@ -358,37 +392,38 @@ class DeviceTest {
     released.clear();
 
     instance.close();
-    assertEquals(List.of(
-        "Render pass 'pass'",
-        "Command encoder 'frame'",
-        "Bind group 'globals'",
-        "Bind group layout 'globals'",
-        "Texture view 'second view'",
-        "Texture view 'target'",
-        "Texture 'target'",
-        "Buffer 'globals'",
-        "Device 'renderer'",
-        "Adapter '" + Backend.forPlatform() + " adapter'",
-        "Instance '" + Backend.forPlatform().name().toLowerCase(Locale.ROOT) + "'"),
+    assertEquals(
+        List.of(
+            "Render pass 'pass'",
+            "Command encoder 'frame'",
+            "Bind group 'globals'",
+            "Bind group layout 'globals'",
+            "Texture view 'second view'",
+            "Texture view 'target'",
+            "Texture 'target'",
+            "Buffer 'globals'",
+            "Device 'renderer'",
+            "Adapter '" + Backend.forPlatform() + " adapter'",
+            "Instance '" + Backend.forPlatform().name().toLowerCase(Locale.ROOT) + "'"),
         released);
   }
 
   @Test
   void closingTwiceOrUsingAClosedObjectFailsWithAClearMessage() {
     Device device = Gpus.device("renderer");
-    Buffer buffer = device.createBuffer("globals", 16, BufferUsage.UNIFORM,
-        BufferUsage.COPY_DST);
+    Buffer buffer = device.createBuffer("globals", 16, BufferUsage.UNIFORM, BufferUsage.COPY_DST);
     device.close();
 
     IllegalStateException twice = assertThrows(IllegalStateException.class, device::close);
     assertEquals("Device 'renderer' is already closed.", twice.getMessage());
-    IllegalStateException used = assertThrows(IllegalStateException.class,
-        () -> device.createBuffer("more", 16, BufferUsage.UNIFORM));
+    IllegalStateException used = assertThrows(
+        IllegalStateException.class, () -> device.createBuffer("more", 16, BufferUsage.UNIFORM));
     assertEquals("Device 'renderer' is closed; it cannot be used any more.", used.getMessage());
-    IllegalStateException child = assertThrows(IllegalStateException.class,
-        () -> buffer.read(0, 16));
-    assertEquals("Buffer 'globals' is closed with its device 'renderer'; it cannot be used any"
-        + " more.", child.getMessage());
+    IllegalStateException child =
+        assertThrows(IllegalStateException.class, () -> buffer.read(0, 16));
+    assertEquals(
+        "Buffer 'globals' is closed with its device 'renderer'; it cannot be used any" + " more.",
+        child.getMessage());
     assertTrue(buffer.isClosed());
 
     Instance instance = device.instance;
@@ -426,13 +461,16 @@ class DeviceTest {
 
   private static int[] channels(byte[] pixels, int x, int y) {
     int at = y * BYTES_PER_ROW + x * 4;
-    return new int[] {pixels[at] & 0xFF, pixels[at + 1] & 0xFF, pixels[at + 2] & 0xFF,
-        pixels[at + 3] & 0xFF};
+    return new int[] {
+      pixels[at] & 0xFF, pixels[at + 1] & 0xFF, pixels[at + 2] & 0xFF, pixels[at + 3] & 0xFF
+    };
   }
 
   private static void assertPixel(int expected, byte[] pixels, int x, int y) {
     int[] c = channels(pixels, x, y);
-    assertEquals(String.format("%08X", expected), String.format("%08X", rgba(c[0], c[1], c[2],
-        c[3])), "pixel " + x + "," + y);
+    assertEquals(
+        String.format("%08X", expected),
+        String.format("%08X", rgba(c[0], c[1], c[2], c[3])),
+        "pixel " + x + "," + y);
   }
 }

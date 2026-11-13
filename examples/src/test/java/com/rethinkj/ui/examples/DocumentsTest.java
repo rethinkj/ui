@@ -30,29 +30,38 @@ class DocumentsTest {
   void theScriptShowsTheStoredFramesOfEachWindow() throws IOException {
     Files.deleteIfExists(Path.of("target/orders copy.sql"));
     Snaps.check("documents", Documents::main);
-    assertTrue(Snaps.line("documents", "documents-moving", "#tab-0").contains("grabbed"),
+    assertTrue(
+        Snaps.line("documents", "documents-moving", "#tab-0").contains("grabbed"),
         "the tab being moved");
     assertTrue(Snaps.line("documents", "documents-moving", "#marker").startsWith("el #marker"));
-    assertTrue(Snaps.line("documents", "documents-docked", "#tab-1").contains("\"Query\""),
+    assertTrue(
+        Snaps.line("documents", "documents-docked", "#tab-1").contains("\"Query\""),
         "docked between Notes and Todo");
     assertTrue(Files.exists(Path.of("target/documents/query-documents-torn.png")));
-    assertFalse(Files.exists(Path.of("target/documents/query-documents-docked.png")),
-        "its window closed");
-    assertTrue(Snaps.line("documents", "ideas-documents-light-docked", "#tab-1")
-        .contains("\"Notes\""), "in the window of Ideas, after it");
+    assertFalse(
+        Files.exists(Path.of("target/documents/query-documents-docked.png")), "its window closed");
+    assertTrue(
+        Snaps.line("documents", "ideas-documents-light-docked", "#tab-1").contains("\"Notes\""),
+        "in the window of Ideas, after it");
 
-    assertTrue(Snaps.line("documents", "documents-opened", "#tab-5").contains("\"orders.sql\""),
+    assertTrue(
+        Snaps.line("documents", "documents-opened", "#tab-5").contains("\"orders.sql\""),
         "a file the dialog chose, read into a new tab");
     assertTrue(Snaps.line("documents", "documents-opened", "#toast")
         .contains("label=\"Cannot open missing.md: it is not there\""));
-    assertEquals(Files.readString(Path.of("src/test/resources/documents/orders.sql")),
-        Files.readString(Path.of("target/orders copy.sql")), "Save As wrote the active document");
-    assertTrue(Snaps.line("documents", "documents-saved", "#tab-5")
-        .contains("\"orders copy.sql\""), "named after its file");
-    assertTrue(Snaps.line("documents", "documents-drop-over", "#drop-hint")
-        .contains("role=status"), "a drag from a file manager over the window");
-    assertTrue(Snaps.line("documents", "documents-dropped", "#tab-6")
-        .contains("\"notes ü.md\""), "the dropped file in a new tab");
+    assertEquals(
+        Files.readString(Path.of("src/test/resources/documents/orders.sql")),
+        Files.readString(Path.of("target/orders copy.sql")),
+        "Save As wrote the active document");
+    assertTrue(
+        Snaps.line("documents", "documents-saved", "#tab-5").contains("\"orders copy.sql\""),
+        "named after its file");
+    assertTrue(
+        Snaps.line("documents", "documents-drop-over", "#drop-hint").contains("role=status"),
+        "a drag from a file manager over the window");
+    assertTrue(
+        Snaps.line("documents", "documents-dropped", "#tab-6").contains("\"notes ü.md\""),
+        "the dropped file in a new tab");
   }
 
   /** A file too large, one the dialog could not show, and text dropped beside the editor. */
@@ -96,8 +105,11 @@ class DocumentsTest {
     Path tiny = Files.writeString(folder.resolve("drei.md"), "# 3");
     Documents s = new Documents();
     s.app = new App<>(s, d -> d.view(d.groups.main(), d.app));
-    String quoted = String.join(" ", java.util.stream.Stream.of(large, small, tiny)
-        .map(p -> "\"" + p.toString().replace("\\", "\\\\") + "\"").toList());
+    String quoted = String.join(
+        " ",
+        java.util.stream.Stream.of(large, small, tiny)
+            .map(p -> "\"" + p.toString().replace("\\", "\\\\") + "\"")
+            .toList());
     Script.run("""
         size 640 360
         frame
@@ -108,7 +120,8 @@ class DocumentsTest {
         snap dropped
         """.formatted(quoted), s.app, folder.resolve("out"));
     List<String> titles = s.groups.main().tabs().stream().map(d -> d.title).toList();
-    assertEquals(List.of("eins.txt", "zwei.sql", "drei.md"),
+    assertEquals(
+        List.of("eins.txt", "zwei.sql", "drei.md"),
         titles.subList(titles.size() - 3, titles.size()));
   }
 
@@ -135,10 +148,13 @@ class DocumentsTest {
         snap readme
         """, s.app, folder);
     String notes = Files.readString(folder.resolve("notes.tree.txt"));
-    assertTrue(notes.contains("label=\"Notes\" \"Coffee, bread\"") && !notes.contains("caret 13"),
+    assertTrue(
+        notes.contains("label=\"Notes\" \"Coffee, bread\"") && !notes.contains("caret 13"),
         "Notes' caret is its own, not Readme's: " + notes);
-    assertEquals("Tabs that move, tear off and dock.\nDrag one out of the bar.",
-        s.groups.main().activeTab().text, "Readme's history came back with it");
+    assertEquals(
+        "Tabs that move, tear off and dock.\nDrag one out of the bar.",
+        s.groups.main().activeTab().text,
+        "Readme's history came back with it");
   }
 
   /** Save As starts with the filter of the document's kind, which the dialog shows first. */
@@ -149,8 +165,8 @@ class DocumentsTest {
     List<FileDialog> asked = new ArrayList<>();
     s.app.dialogs(new Dialogs() {
       @Override
-      public void file(FileDialog dialog, Consumer<FileDialog.Choice> chosen,
-          Consumer<String> failed) {
+      public void file(
+          FileDialog dialog, Consumer<FileDialog.Choice> chosen, Consumer<String> failed) {
         asked.add(dialog);
       }
 
@@ -169,7 +185,9 @@ class DocumentsTest {
 
   private static String lineOf(Path folder, String snap) throws IOException {
     String line = Files.readAllLines(folder.resolve("out").resolve(snap + ".tree.txt")).stream()
-        .filter(l -> l.contains("#toast")).findFirst().orElseThrow();
+        .filter(l -> l.contains("#toast"))
+        .findFirst()
+        .orElseThrow();
     return line.substring(line.indexOf("label=\"") + 7, line.indexOf("\" "));
   }
 

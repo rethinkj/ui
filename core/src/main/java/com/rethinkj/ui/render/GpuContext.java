@@ -70,10 +70,10 @@ final class GpuContext {
   private BindGroupLayout layout;
   private BindGroupLayout imageLayout;
   private Resident blank;
-  private final Map<TextureFormat, RenderPipeline> pipelines =
-      new EnumMap<>(TextureFormat.class);
+  private final Map<TextureFormat, RenderPipeline> pipelines = new EnumMap<>(TextureFormat.class);
   /** The images on the GPU, the one drawn least recently first. */
   private final LinkedHashMap<Image, Resident> images = new LinkedHashMap<>(16, 0.75f, true);
+
   private long imageBytes;
   /** The renderers on the device, whose last scenes' images are not given up. */
   private final List<GpuRenderer> renderers = new ArrayList<>();
@@ -130,8 +130,8 @@ final class GpuContext {
   Device deviceFor(Surface surface) {
     Device device = device(surface);
     if (surface.capabilities(device).formats().isEmpty()) {
-      throw new IllegalStateException("The window's surface cannot be presented to by "
-          + info + ", which draws the other windows of this thread.");
+      throw new IllegalStateException("The window's surface cannot be presented to by " + info
+          + ", which draws the other windows of this thread.");
     }
     return device;
   }
@@ -158,18 +158,22 @@ final class GpuContext {
     }
     try {
       module = made.createShaderModule("scene", wgsl);
-      layout = made.createBindGroupLayout("scene",
+      layout = made.createBindGroupLayout(
+          "scene",
           BindGroupLayout.Entry.uniform(0, ShaderStage.VERTEX, ShaderStage.FRAGMENT),
           BindGroupLayout.Entry.readOnlyStorage(1, ShaderStage.VERTEX, ShaderStage.FRAGMENT),
           BindGroupLayout.Entry.readOnlyStorage(2, ShaderStage.VERTEX, ShaderStage.FRAGMENT),
           BindGroupLayout.Entry.textureArray(3, ShaderStage.FRAGMENT));
-      imageLayout = made.createBindGroupLayout("image",
-          BindGroupLayout.Entry.texture(0, ShaderStage.FRAGMENT));
-      Texture texture = made.createTexture("no image", 1, 1, GpuRenderer.IMAGE_FORMAT,
-          TextureUsage.TEXTURE_BINDING);
+      imageLayout = made.createBindGroupLayout(
+          "image", BindGroupLayout.Entry.texture(0, ShaderStage.FRAGMENT));
+      Texture texture = made.createTexture(
+          "no image", 1, 1, GpuRenderer.IMAGE_FORMAT, TextureUsage.TEXTURE_BINDING);
       TextureView view = texture.createView("no image");
-      blank = new Resident(texture, view,
-          made.createBindGroup("no image", imageLayout, BindGroup.Entry.texture(0, view)), 0);
+      blank = new Resident(
+          texture,
+          view,
+          made.createBindGroup("no image", imageLayout, BindGroup.Entry.texture(0, view)),
+          0);
     } catch (RuntimeException | Error e) {
       made.close();
       throw e;
@@ -208,8 +212,13 @@ final class GpuContext {
         throw new IllegalArgumentException("Cannot draw into a target of format " + format
             + ": the renderer blends in linear light and needs an sRGB format.");
       }
-      pipeline = device.createRenderPipeline(new RenderPipeline.Descriptor("scene " + format,
-          List.of(layout, imageLayout), module, "vs_main", List.of(), "fs_main",
+      pipeline = device.createRenderPipeline(new RenderPipeline.Descriptor(
+          "scene " + format,
+          List.of(layout, imageLayout),
+          module,
+          "vs_main",
+          List.of(),
+          "fs_main",
           List.of(new RenderPipeline.ColorTarget(format, RenderPipeline.Blend.PREMULTIPLIED_ALPHA)),
           RenderPipeline.Topology.TRIANGLE_STRIP));
       pipelines.put(format, pipeline);
@@ -317,22 +326,38 @@ final class GpuContext {
   private Resident upload(Image image) {
     int first = firstLevel(image);
     int levels = image.levels() - first;
-    Texture texture = device.createTexture("image", image.levelWidth(first),
-        image.levelHeight(first), levels, GpuRenderer.IMAGE_FORMAT, TextureUsage.TEXTURE_BINDING,
+    Texture texture = device.createTexture(
+        "image",
+        image.levelWidth(first),
+        image.levelHeight(first),
+        levels,
+        GpuRenderer.IMAGE_FORMAT,
+        TextureUsage.TEXTURE_BINDING,
         TextureUsage.COPY_DST);
     try {
       long bytes = 0;
       for (int k = 0; k < levels; k++) {
         int width = image.levelWidth(first + k);
         byte[] texels = image.level(first + k);
-        device.queue().writeTexture(texture, k, 0, 0, 0, width, image.levelHeight(first + k),
-            MemorySegment.ofArray(texels), 0, width * 4);
+        device
+            .queue()
+            .writeTexture(
+                texture,
+                k,
+                0,
+                0,
+                0,
+                width,
+                image.levelHeight(first + k),
+                MemorySegment.ofArray(texels),
+                0,
+                width * 4);
         bytes += texels.length;
       }
       TextureView view = texture.createView("image");
       try {
-        BindGroup group = device.createBindGroup("image", imageLayout,
-            BindGroup.Entry.texture(0, view));
+        BindGroup group =
+            device.createBindGroup("image", imageLayout, BindGroup.Entry.texture(0, view));
         return new Resident(texture, view, group, bytes);
       } catch (RuntimeException | Error e) {
         view.close();

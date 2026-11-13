@@ -67,6 +67,7 @@ public final class Natives {
   /** {@code void *dlopen(const char *file, int mode)} and {@code char *dlerror(void)}. */
   private static final FunctionDescriptor DLOPEN =
       FunctionDescriptor.of(ADDRESS, ADDRESS, JAVA_INT);
+
   private static final FunctionDescriptor DLERROR = FunctionDescriptor.of(ADDRESS);
   private static final int RTLD_LAZY = 1;
 
@@ -129,8 +130,10 @@ public final class Natives {
     }
     Path from = prepare();
     if (manifest.library(name) == null) {
-      throw error("There is no native library '" + name + "'. The manifest in " + from + " lists "
-          + String.join(", ", manifest.names()) + ".", null);
+      throw error(
+          "There is no native library '" + name + "'. The manifest in " + from + " lists "
+              + String.join(", ", manifest.names()) + ".",
+          null);
     }
     for (Library library : manifest.libraries()) {
       if (!loaded.containsKey(library.name())) {
@@ -155,16 +158,22 @@ public final class Natives {
       return folder;
     }
     if (platform == null) {
-      throw error("rethinkj UI has no native libraries for " + osName + " on " + osArch
-          + "; there are some for " + String.join(" and ", PLATFORMS) + ". To use libraries built"
-          + " for this system, set -D" + DIR_PROPERTY + "=<folder> to a folder that holds them and"
-          + " a manifest.txt.", null);
+      throw error(
+          "rethinkj UI has no native libraries for " + osName + " on " + osArch
+              + "; there are some for " + String.join(" and ", PLATFORMS)
+              + ". To use libraries built"
+              + " for this system, set -D" + DIR_PROPERTY
+              + "=<folder> to a folder that holds them and"
+              + " a manifest.txt.",
+          null);
     }
     Manifest read = fromClassPath();
     if (cache == null) {
-      throw error("There is no folder to unpack the native libraries into, because neither"
-          + " LOCALAPPDATA, XDG_CACHE_HOME nor user.home is set. Set -D" + CACHE_PROPERTY
-          + "=<folder>, or unpack them yourself and set -D" + DIR_PROPERTY + "=<folder>.", null);
+      throw error(
+          "There is no folder to unpack the native libraries into, because neither"
+              + " LOCALAPPDATA, XDG_CACHE_HOME nor user.home is set. Set -D" + CACHE_PROPERTY
+              + "=<folder>, or unpack them yourself and set -D" + DIR_PROPERTY + "=<folder>.",
+          null);
     }
     Path target = cache.resolve(read.folderName());
     unpack(read, target);
@@ -178,8 +187,8 @@ public final class Natives {
     String hint = " Copy all files under META-INF/rethinkj-ui/natives/<platform>/ in the natives"
         + " JAR into that folder, " + MANIFEST + " included, or unset -D" + DIR_PROPERTY + ".";
     if (!Files.isRegularFile(file)) {
-      throw error("-D" + DIR_PROPERTY + " names " + dir + ", which has no " + MANIFEST + "." + hint,
-          null);
+      throw error(
+          "-D" + DIR_PROPERTY + " names " + dir + ", which has no " + MANIFEST + "." + hint, null);
     }
     Manifest read;
     try {
@@ -190,8 +199,10 @@ public final class Natives {
       throw error(e.getMessage(), e);
     }
     if (platform != null && !read.platform().equals(platform)) {
-      throw error(file + " lists libraries for " + read.platform() + ", but this is " + platform
-          + "." + hint, null);
+      throw error(
+          file + " lists libraries for " + read.platform() + ", but this is " + platform + "."
+              + hint,
+          null);
     }
     for (Library library : read.libraries()) {
       if (!Files.isRegularFile(dir.resolve(library.file()))) {
@@ -207,12 +218,15 @@ public final class Natives {
     String text;
     try (InputStream in = resources == null ? null : resources.getResourceAsStream(resource)) {
       if (in == null) {
-        throw error("No native libraries for " + platform + " on the class path. Add the artifact"
-            + " com.rethinkj.ui:" + artifact() + ", in the same version as rethinkj-ui-core, to the"
-            + " class path (on the module path, also pass --add-modules "
-            + "com.rethinkj.ui.natives." + platform.replace('-', '.') + "), or set -D"
-            + DIR_PROPERTY + "=<folder> to a folder that holds the libraries and their "
-            + MANIFEST + ".", null);
+        throw error(
+            "No native libraries for " + platform + " on the class path. Add the artifact"
+                + " com.rethinkj.ui:" + artifact()
+                + ", in the same version as rethinkj-ui-core, to the"
+                + " class path (on the module path, also pass --add-modules "
+                + "com.rethinkj.ui.natives." + platform.replace('-', '.') + "), or set -D"
+                + DIR_PROPERTY + "=<folder> to a folder that holds the libraries and their "
+                + MANIFEST + ".",
+            null);
       }
       text = new String(in.readAllBytes(), StandardCharsets.UTF_8);
     } catch (IOException e) {
@@ -300,9 +314,12 @@ public final class Natives {
           return;
         }
         if (attempt == 5) {
-          throw error("Cannot replace " + file + ", which differs from the one in the natives"
-              + " module: " + e + ". Another program may be using it. Close the programs that use"
-              + " rethinkj UI and delete " + target + ".", e);
+          throw error(
+              "Cannot replace " + file + ", which differs from the one in the natives"
+                  + " module: " + e
+                  + ". Another program may be using it. Close the programs that use"
+                  + " rethinkj UI and delete " + target + ".",
+              e);
         }
       }
       try {
@@ -319,15 +336,20 @@ public final class Natives {
       return SymbolLookup.libraryLookup(file, Arena.global());
     } catch (IllegalArgumentException e) {
       if (!osName.equals("Linux")) {
-        throw error("Cannot load " + file + ": " + e.getMessage() + ". The file may be damaged, or"
-            + " the system lacks a library it needs.", e);
+        throw error(
+            "Cannot load " + file + ": " + e.getMessage() + ". The file may be damaged, or"
+                + " the system lacks a library it needs.",
+            e);
       }
       String reason = dlerror(file);
-      throw error("Cannot load " + file + ": " + e.getMessage()
-          + (reason == null ? "" : " (" + reason + ")") + ". The file may be damaged, the system"
-          + " may lack a library it needs or have an older glibc than it needs, or the folder may"
-          + " be on a file system mounted noexec; then choose another with -D" + CACHE_PROPERTY
-          + "=<folder>, or unpack the libraries yourself and set -D" + DIR_PROPERTY + "=<folder>.",
+      throw error(
+          "Cannot load " + file + ": " + e.getMessage()
+              + (reason == null ? "" : " (" + reason + ")")
+              + ". The file may be damaged, the system"
+              + " may lack a library it needs or have an older glibc than it needs, or the folder may"
+              + " be on a file system mounted noexec; then choose another with -D" + CACHE_PROPERTY
+              + "=<folder>, or unpack the libraries yourself and set -D" + DIR_PROPERTY
+              + "=<folder>.",
           e);
     }
   }
@@ -435,14 +457,19 @@ public final class Natives {
   }
 
   private UnsatisfiedLinkError damaged(String what) {
-    return error("The natives module " + artifact() + " is damaged: " + what
-        + " Delete the JAR from the Maven or Gradle cache and build again.", null);
+    return error(
+        "The natives module " + artifact() + " is damaged: " + what
+            + " Delete the JAR from the Maven or Gradle cache and build again.",
+        null);
   }
 
   private static UnsatisfiedLinkError notWritable(Path target, IOException e) {
-    return error("Cannot unpack the native libraries into " + target + ": " + e + ". Make that"
-        + " folder writable, choose another one with -D" + CACHE_PROPERTY + "=<folder>, or unpack"
-        + " them yourself and set -D" + DIR_PROPERTY + "=<folder>.", e);
+    return error(
+        "Cannot unpack the native libraries into " + target + ": " + e + ". Make that"
+            + " folder writable, choose another one with -D" + CACHE_PROPERTY
+            + "=<folder>, or unpack"
+            + " them yourself and set -D" + DIR_PROPERTY + "=<folder>.",
+        e);
   }
 
   private static UnsatisfiedLinkError error(String message, Throwable cause) {

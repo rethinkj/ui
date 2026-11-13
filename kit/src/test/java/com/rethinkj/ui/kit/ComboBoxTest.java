@@ -30,13 +30,26 @@ import org.junit.jupiter.params.provider.CsvSource;
  */
 class ComboBoxTest {
 
-  static final List<String> DATABASES = List.of("analytics", "billing", "customer_events",
-      "inventory", "marketing", "orders_archive", "orders_total", "postgres", "reporting",
-      "sessions", "shop", "staging_copy", "customer_notes", "warehouse");
-  static final List<String> HOSTS = List.of("localhost", "db.staging.internal",
-      "db-eu-1.example.com", "db-us-1.example.com");
+  static final List<String> DATABASES = List.of(
+      "analytics",
+      "billing",
+      "customer_events",
+      "inventory",
+      "marketing",
+      "orders_archive",
+      "orders_total",
+      "postgres",
+      "reporting",
+      "sessions",
+      "shop",
+      "staging_copy",
+      "customer_notes",
+      "warehouse");
+  static final List<String> HOSTS =
+      List.of("localhost", "db.staging.internal", "db-eu-1.example.com", "db-us-1.example.com");
 
-  @TempDir Path out;
+  @TempDir
+  Path out;
 
   @BeforeEach
   void textLibraries() {
@@ -58,17 +71,32 @@ class ComboBoxTest {
     }
 
     El view() {
-      return col().wFull().hFull().padding(t.space().l()).gap(t.space().m())
+      return col()
+          .wFull()
+          .hFull()
+          .padding(t.space().l())
+          .gap(t.space().m())
           .fill(t.surface().window())
           .children(
-              row().gap(t.space().m()).align(Style.Align.CENTER).children(
-                  Select.select(t, Bench.ENCODINGS, encoding, encodings, i -> encoding = i)
-                      .key("encoding").w(140),
-                  ComboBox.comboBox(t, DATABASES, chosen, database,
-                      disabled ? null : i -> chosen = i).key("database").w(180)),
-              ComboBox.free(t, hostName, HOSTS, host, v -> hostName = v).key("host").w(240),
-              label(t, Label.Variant.MUTED, DATABASES.get(chosen) + " on "
-                  + (hostName.isEmpty() ? "no host" : hostName)).key("status"));
+              row()
+                  .gap(t.space().m())
+                  .align(Style.Align.CENTER)
+                  .children(
+                      Select.select(t, Bench.ENCODINGS, encoding, encodings, i -> encoding = i)
+                          .key("encoding")
+                          .w(140),
+                      ComboBox.comboBox(
+                              t, DATABASES, chosen, database, disabled ? null : i -> chosen = i)
+                          .key("database")
+                          .w(180)),
+              ComboBox.free(t, hostName, HOSTS, host, v -> hostName = v)
+                  .key("host")
+                  .w(240),
+              label(
+                      t,
+                      Label.Variant.MUTED,
+                      DATABASES.get(chosen) + " on " + (hostName.isEmpty() ? "no host" : hostName))
+                  .key("status"));
     }
 
     App<Form> app() {
@@ -96,13 +124,15 @@ class ComboBoxTest {
     assertTrue(tree.contains("el #database role=combobox label=\"shop\""), tree);
     assertTrue(line(tree, "#database").endsWith(" expanded"), tree);
     assertTrue(tree.contains("role=textbox label=\"shop\"") && tree.contains("focused"), tree);
-    assertTrue(tree.contains("el #option-10 role=option label=\"shop\"") , tree);
+    assertTrue(tree.contains("el #option-10 role=option label=\"shop\""), tree);
     assertTrue(line(tree, "#option-10").contains(" selected"), "the current choice: " + tree);
 
     tree = run("type \"ot\"");
     List<String> options = options(tree);
-    assertEquals(List.of("orders_total", "customer_notes", "postgres", "reporting", "customer_events"),
-        options, tree);
+    assertEquals(
+        List.of("orders_total", "customer_notes", "postgres", "reporting", "customer_events"),
+        options,
+        tree);
     assertTrue(line(tree, "#option-0").contains(" selected"), "the best match: " + tree);
 
     run("key ArrowDown\nkey Enter");
@@ -138,7 +168,8 @@ class ComboBoxTest {
   void aFreeComboBoxTakesWhatIsTypedAndOffersWhatMatches() throws IOException {
     String tree = run("press #host\ntype \"db\"");
     assertEquals("db", app.state().hostName, "each edit is the value");
-    assertEquals(List.of("db-eu-1.example.com", "db-us-1.example.com", "db.staging.internal"),
+    assertEquals(
+        List.of("db-eu-1.example.com", "db-us-1.example.com", "db.staging.internal"),
         options(tree).stream().sorted().toList());
     assertFalse(tree.contains(" selected"), "nothing highlighted: " + tree);
     run("key Enter");
@@ -189,14 +220,17 @@ class ComboBoxTest {
     List<Path> files = Script.run("size 360 260 scale " + scale + "\n" + script, form, folder);
     for (int i = 0; i < files.size(); i += 2) {
       String snap = files.get(i).getFileName().toString().replace(".png", "");
-      Golden.assertMatches("combobox-" + theme + "-" + scale + "x-" + snap,
-          Png.decode(Files.readAllBytes(files.get(i))), Files.readString(files.get(i + 1)));
+      Golden.assertMatches(
+          "combobox-" + theme + "-" + scale + "x-" + snap,
+          Png.decode(Files.readAllBytes(files.get(i))),
+          Files.readString(files.get(i + 1)));
     }
   }
 
   /** The labels of the options, in order. */
   static List<String> options(String tree) {
-    return tree.lines().filter(l -> l.contains("role=option label=\""))
+    return tree.lines()
+        .filter(l -> l.contains("role=option label=\""))
         .map(l -> l.substring(l.indexOf("label=\"") + 7, l.indexOf('"', l.indexOf("label=\"") + 7)))
         .toList();
   }

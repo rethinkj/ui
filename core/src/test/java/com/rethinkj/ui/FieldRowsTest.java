@@ -111,8 +111,13 @@ class FieldRowsTest {
 
   /** The line of the dump that has this key. */
   private static String line(App<?> app, String key) {
-    return app.tree().dump().lines().filter(l -> l.contains(" #" + key + " ")).findFirst()
-        .orElseThrow().strip();
+    return app.tree()
+        .dump()
+        .lines()
+        .filter(l -> l.contains(" #" + key + " "))
+        .findFirst()
+        .orElseThrow()
+        .strip();
   }
 
   // Fields in the rows of a virtual list
@@ -126,8 +131,10 @@ class FieldRowsTest {
     type(app, "old_");
     assertEquals("old_addresses", app.state().name(1));
     assertEquals(1, app.state().edited.size(), "the other rows are as they were");
-    assertEquals("text #name-1 role=textbox label=\"Name of row 1\" \"old_addresses\" 60,80"
-        + " 200x24 focused caret 4", line(app, "name-1"));
+    assertEquals(
+        "text #name-1 role=textbox label=\"Name of row 1\" \"old_addresses\" 60,80"
+            + " 200x24 focused caret 4",
+        line(app, "name-1"));
     assertTrue(line(app, "rows").endsWith(" rows 0-7/1000"), line(app, "rows"));
 
     key(app, "Z", Key.CONTROL);
@@ -160,7 +167,9 @@ class FieldRowsTest {
     assertSame(field, app.focused(), "the focus came back with the row");
     assertSame(two, field.editor(), "and with it the field's editor");
     assertTrue(line(app, "name-2").endsWith(" focused caret 2 anchor 0"), line(app, "name-2"));
-    assertNotSame(zero, find(app, "name-0").editor(),
+    assertNotSame(
+        zero,
+        find(app, "name-0").editor(),
         "an unfocused field's state went with its row, as everything else the app keeps of it");
     assertNotNull(field.text().caret(), "the caret shows at once");
 
@@ -174,9 +183,17 @@ class FieldRowsTest {
     int[] views = {0};
     App<Names> app = new App<>(new Names(), n -> {
       views[0]++;
-      return col().key("rows").wFull().hFull()
-          .rows(1000, 32, i -> El.text(n.name(i)).editable(s -> n.edited.put(i, s))
-              .key("name-" + i).padding(0, 4));
+      return col()
+          .key("rows")
+          .wFull()
+          .hFull()
+          .rows(
+              1000,
+              32,
+              i -> El.text(n.name(i))
+                  .editable(s -> n.edited.put(i, s))
+                  .key("name-" + i)
+                  .padding(0, 4));
     });
     app.textRendering(TextRendering.LINUX);
     app.resize(280, 200, 1);
@@ -262,8 +279,13 @@ class FieldRowsTest {
       El area = col().key("area").scroll().w(160).h(60).gap(4);
       for (int i = 0; i < v.size(); i++) {
         int index = i;
-        area.child(El.text(v.get(i)).editable(s -> v.set(index, s)).key("f-" + i).h(24)
-            .padding(0, 4).fill(0xFF000000).whenHovered(e -> e.fill(HOVER)));
+        area.child(El.text(v.get(i))
+            .editable(s -> v.set(index, s))
+            .key("f-" + i)
+            .h(24)
+            .padding(0, 4)
+            .fill(0xFF000000)
+            .whenHovered(e -> e.fill(HOVER)));
       }
       return area;
     });

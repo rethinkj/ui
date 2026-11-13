@@ -46,13 +46,15 @@ class NativesTest {
 
   /** Two made-up libraries; the second is large, so that concurrent writes overlap. */
   private static final byte[] FIRST = "the first library".getBytes(StandardCharsets.UTF_8);
+
   private static final byte[] SECOND = new byte[4 << 20];
 
   static {
     new Random(1).nextBytes(SECOND);
   }
 
-  @TempDir Path temp;
+  @TempDir
+  Path temp;
 
   @Test
   void readsTheManifestInLoadOrder() {
@@ -74,24 +76,31 @@ class NativesTest {
         manifest.libraries());
     assertTrue(manifest.folderName().matches("windows-x64-[0-9a-f]{16}"), manifest.folderName());
 
-    Manifest other = Manifest.parse(HEADER
-        + "library sdl3 3.4.20 SDL3.dll " + B + "\n"
-        + "library wgpu_native 29.0.1.1 wgpu_native.dll " + B, "test");
+    Manifest other = Manifest.parse(
+        HEADER
+            + "library sdl3 3.4.20 SDL3.dll " + B + "\n"
+            + "library wgpu_native 29.0.1.1 wgpu_native.dll " + B,
+        "test");
     assertNotEquals(manifest.folderName(), other.folderName());
 
     // Written on Windows by an editor that puts a byte order mark first and ends lines with CR LF.
-    Manifest edited = Manifest.parse(BYTE_ORDER_MARK + HEADER.replace("\n", "\r\n")
-        + "library sdl3 3.4.20 SDL3.dll " + B + "\r\n", "test");
+    Manifest edited = Manifest.parse(
+        BYTE_ORDER_MARK + HEADER.replace("\n", "\r\n") + "library sdl3 3.4.20 SDL3.dll " + B
+            + "\r\n",
+        "test");
     assertEquals(List.of(new Library("sdl3", "3.4.20", "SDL3.dll", B)), edited.libraries());
   }
 
   @Test
   void rejectsManifestsItCannotRead() {
-    assertMessage(() -> Manifest.parse("rethinkj-ui-natives 2\nplatform windows-x64\n", "m"),
-        "m, line 1: the manifest has format 2", "same version of rethinkj-ui-core");
-    assertMessage(() -> Manifest.parse("platform windows-x64\n", "m"),
-        "expected 'rethinkj-ui-natives 1'");
-    assertMessage(() -> Manifest.parse(HEADER + "library a 1 ../a.dll " + A, "m"),
+    assertMessage(
+        () -> Manifest.parse("rethinkj-ui-natives 2\nplatform windows-x64\n", "m"),
+        "m, line 1: the manifest has format 2",
+        "same version of rethinkj-ui-core");
+    assertMessage(
+        () -> Manifest.parse("platform windows-x64\n", "m"), "expected 'rethinkj-ui-natives 1'");
+    assertMessage(
+        () -> Manifest.parse(HEADER + "library a 1 ../a.dll " + A, "m"),
         "line 3: expected 'library <name> <version> <file> <sha256>'");
     assertMessage(() -> Manifest.parse(HEADER + "library a 1 a.dll 0123", "m"), "line 3");
     assertMessage(
@@ -118,14 +127,17 @@ class NativesTest {
         "XDG_CACHE_HOME", temp.resolve("xdg").toString());
     Map<String, String> none = Map.of();
 
-    assertEquals(temp.resolve("local/rethinkj-ui/natives"),
+    assertEquals(
+        temp.resolve("local/rethinkj-ui/natives"),
         Natives.defaultCache("windows-x64", env::get, home));
-    assertEquals(temp.resolve("home/AppData/Local/rethinkj-ui/natives"),
+    assertEquals(
+        temp.resolve("home/AppData/Local/rethinkj-ui/natives"),
         Natives.defaultCache("windows-x64", none::get, home));
-    assertEquals(temp.resolve("xdg/rethinkj-ui/natives"),
-        Natives.defaultCache("linux-x64", env::get, home));
+    assertEquals(
+        temp.resolve("xdg/rethinkj-ui/natives"), Natives.defaultCache("linux-x64", env::get, home));
     // A relative XDG_CACHE_HOME is ignored, as the XDG base directory specification says.
-    assertEquals(temp.resolve("home/.cache/rethinkj-ui/natives"),
+    assertEquals(
+        temp.resolve("home/.cache/rethinkj-ui/natives"),
         Natives.defaultCache("linux-x64", Map.of("XDG_CACHE_HOME", "cache")::get, home));
     assertNull(Natives.defaultCache("linux-x64", none::get, null));
     assertNull(Natives.defaultCache(null, env::get, home));
@@ -135,8 +147,10 @@ class NativesTest {
   void anUnsupportedPlatformSaysWhichOnesAreSupported() {
     Natives natives = new Natives("Mac OS X", "aarch64", null, temp, nothing());
 
-    assertMessage(() -> natives.find("sdl3"),
-        "no native libraries for Mac OS X on aarch64", "windows-x64 and linux-x64",
+    assertMessage(
+        () -> natives.find("sdl3"),
+        "no native libraries for Mac OS X on aarch64",
+        "windows-x64 and linux-x64",
         Natives.DIR_PROPERTY);
   }
 
@@ -145,7 +159,8 @@ class NativesTest {
     Path cache = temp.resolve("cache");
     Natives natives = new Natives("Windows 11", "amd64", null, cache, nothing());
 
-    assertMessage(() -> natives.find("sdl3"),
+    assertMessage(
+        () -> natives.find("sdl3"),
         "No native libraries for windows-x64 on the class path",
         "Add the artifact com.rethinkj.ui:rethinkj-ui-natives-windows-x64",
         "--add-modules com.rethinkj.ui.natives.windows.x64",
@@ -237,7 +252,8 @@ class NativesTest {
     Path empty = Files.createDirectories(temp.resolve("empty"));
     Natives natives = new Natives("Linux", "amd64", empty, temp.resolve("cache"), nothing());
 
-    assertMessage(natives::prepare,
+    assertMessage(
+        natives::prepare,
         "-D" + Natives.DIR_PROPERTY + " names " + empty + ", which has no manifest.txt",
         "META-INF/rethinkj-ui/natives/<platform>/");
 
@@ -255,7 +271,8 @@ class NativesTest {
     Files.writeString(jar.resolve("second.so"), "cut");
     Path cache = temp.resolve("cache");
 
-    assertMessage(() -> natives(module, cache).prepare(),
+    assertMessage(
+        () -> natives(module, cache).prepare(),
         "rethinkj-ui-natives-linux-x64 is damaged",
         "second.so has the SHA-256",
         "Delete the JAR");
@@ -270,7 +287,8 @@ class NativesTest {
     Path cache = temp.resolve("cache");
     Files.writeString(cache, "a file where the cache folder belongs");
 
-    assertMessage(() -> natives(module, cache).prepare(),
+    assertMessage(
+        () -> natives(module, cache).prepare(),
         "Cannot unpack the native libraries into " + cache,
         "-D" + Natives.CACHE_PROPERTY + "=<folder>",
         "-D" + Natives.DIR_PROPERTY + "=<folder>");
@@ -280,8 +298,8 @@ class NativesTest {
   void anUnknownLibraryIsReportedWithTheKnownOnes() throws IOException {
     Natives natives = natives(module(temp.resolve("jar")), temp.resolve("cache"));
 
-    assertMessage(() -> natives.find("vulkan"),
-        "There is no native library 'vulkan'", "lists first, second");
+    assertMessage(
+        () -> natives.find("vulkan"), "There is no native library 'vulkan'", "lists first, second");
   }
 
   private static Natives natives(ClassLoader module, Path cache) {
@@ -293,10 +311,12 @@ class NativesTest {
     Path folder = Files.createDirectories(root.resolve(Natives.RESOURCES + "linux-x64"));
     Files.write(folder.resolve("first.so"), FIRST);
     Files.write(folder.resolve("second.so"), SECOND);
-    Files.writeString(folder.resolve(Natives.MANIFEST), "rethinkj-ui-natives 1\n"
-        + "platform linux-x64\n"
-        + "library first 1.0 first.so " + sha256(FIRST) + "\n"
-        + "library second 2.0 second.so " + sha256(SECOND) + "\n");
+    Files.writeString(
+        folder.resolve(Natives.MANIFEST),
+        "rethinkj-ui-natives 1\n"
+            + "platform linux-x64\n"
+            + "library first 1.0 first.so " + sha256(FIRST) + "\n"
+            + "library second 2.0 second.so " + sha256(SECOND) + "\n");
     return new URLClassLoader(new URL[] {root.toUri().toURL()}, null);
   }
 
@@ -328,10 +348,12 @@ class NativesTest {
 
   private static void assertMessage(Executable executable, String... parts) {
     Throwable thrown = assertThrows(Throwable.class, executable);
-    assertTrue(thrown instanceof UnsatisfiedLinkError || thrown instanceof IllegalArgumentException,
+    assertTrue(
+        thrown instanceof UnsatisfiedLinkError || thrown instanceof IllegalArgumentException,
         thrown::toString);
     for (String part : parts) {
-      assertTrue(thrown.getMessage().contains(part),
+      assertTrue(
+          thrown.getMessage().contains(part),
           () -> "'" + part + "' is missing from: " + thrown.getMessage());
     }
   }

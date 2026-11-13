@@ -7,7 +7,6 @@ import static java.lang.foreign.ValueLayout.JAVA_FLOAT;
 import static java.lang.foreign.ValueLayout.JAVA_INT;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import com.rethinkj.ui.App;
@@ -46,21 +45,25 @@ class TabTearOffWindowTest {
 
     Windows.Handle open(TabGroups.Group<String> group, Window.Options options) {
       log.add("open " + group.activeTab());
-      return app.windows().open(group.activeTab(), 300, 160, options,
-          new App<>(this, s -> s.view(group)));
+      return app.windows()
+          .open(group.activeTab(), 300, 160, options, new App<>(this, s -> s.view(group)));
     }
 
     El view(TabGroups.Group<String> group) {
-      return col().wFull().hFull().child(
-          groups.tabs(T, group, Tab::new, s -> s == null ? null : Label.label(T, s)).grow(1));
+      return col()
+          .wFull()
+          .hFull()
+          .child(groups
+              .tabs(T, group, Tab::new, s -> s == null ? null : Label.label(T, s))
+              .grow(1));
     }
   }
 
   @Test
   void aTabTornOffIntoAWindowDocksBackWhereItIsReleased() {
     assumeWindows();
-    try (Window a = Window.open("rethinkj tab tear-off test", 400, 160,
-        Window.options().position(100, 200))) {
+    try (Window a =
+        Window.open("rethinkj tab tear-off test", 400, 160, Window.options().position(100, 200))) {
       Docs d = new Docs();
       d.app = new App<>(d, s -> s.view(s.groups.main()));
       WindowLoop loop = new WindowLoop(a, d.app, (scene, w, h, sc) -> {})
@@ -79,7 +82,8 @@ class TabTearOffWindowTest {
             step[0]++;
           }
           case 1 -> {
-            if (d.groups.groups().size() == 2) { // its window is open: over the bar, between c and d
+            if (d.groups.groups().size()
+                == 2) { // its window is open: over the bar, between c and d
               d.log.add("torn " + d.groups.groups().get(1).window().isOpen());
               motion(a, 100, 17);
               button(a, false, 100, 17);
@@ -105,7 +109,8 @@ class TabTearOffWindowTest {
   // Copied from core's test helper Desktop, whose test sources kit's tests do not see.
 
   private static void assumeWindows() {
-    assumeTrue(Boolean.getBoolean("windows.tests"),
+    assumeTrue(
+        Boolean.getBoolean("windows.tests"),
         "Skipped: opens real windows on the screen; run with -Dwindows.tests=true");
     try {
       Natives.lookup("sdl3");
@@ -113,7 +118,8 @@ class TabTearOffWindowTest {
     } catch (UnsatisfiedLinkError e) {
       assumeTrue(false, "Skipped: SDL 3 or the text libraries cannot be loaded. " + e.getMessage());
     }
-    if (System.getProperty("os.name").equals("Linux") && System.getenv("DISPLAY") == null
+    if (System.getProperty("os.name").equals("Linux")
+        && System.getenv("DISPLAY") == null
         && System.getenv("WAYLAND_DISPLAY") == null) {
       assumeTrue(false, "Skipped: no display, neither DISPLAY nor WAYLAND_DISPLAY is set");
     }

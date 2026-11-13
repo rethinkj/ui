@@ -77,6 +77,7 @@ public final class Style {
    * SCROLL} also lets the wheel scroll that axis. See {@link El#clip} and {@link El#scroll}.
    */
   public Overflow overflowX = Overflow.VISIBLE;
+
   public Overflow overflowY = Overflow.VISIBLE;
   public float scrollbarWidth;
 

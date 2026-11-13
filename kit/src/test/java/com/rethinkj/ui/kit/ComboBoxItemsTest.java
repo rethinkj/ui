@@ -45,7 +45,8 @@ class ComboBoxItemsTest {
   private static final com.rethinkj.ui.Image POSTGRES = logo(0xFF336791);
   private static final com.rethinkj.ui.Image MYSQL = logo(0xFFE48E00);
 
-  @TempDir Path out;
+  @TempDir
+  Path out;
 
   @BeforeEach
   void textLibraries() {
@@ -67,8 +68,8 @@ class ComboBoxItemsTest {
           ComboBox.item("PostgreSQL").image(POSTGRES).detail("9.6 or later"),
           ComboBox.item("MySQL").image(MYSQL).detail("8.0"),
           ComboBox.item("SQLite").icon(Symbol.DATABASE).detail("a file"),
-          ComboBox.item("Custom driver").leading(th -> Avatar.avatar(th, "Custom driver",
-              null, th.size().icon())),
+          ComboBox.item("Custom driver")
+              .leading(th -> Avatar.avatar(th, "Custom driver", null, th.size().icon())),
           ComboBox.item("Plain"));
     }
 
@@ -76,11 +77,16 @@ class ComboBoxItemsTest {
     final List<ComboBox.Item> items = items();
 
     El view() {
-      return col().wFull().hFull().padding(t.space().l()).gap(t.space().m())
+      return col()
+          .wFull()
+          .hFull()
+          .padding(t.space().l())
+          .gap(t.space().m())
           .fill(t.surface().window())
           .children(
               ComboBox.items(t, items, chosen, state, disabled ? null : i -> chosen = i)
-                  .key("provider").w(240),
+                  .key("provider")
+                  .w(240),
               label(t, Label.Variant.MUTED, items.get(chosen).text()).key("status"));
     }
 
@@ -113,14 +119,19 @@ class ComboBoxItemsTest {
     assertTrue(closed.contains("el #lead ") && closed.contains("image role=img"), closed);
 
     String open = run("press #provider");
-    assertEquals(List.of("PostgreSQL", "MySQL", "SQLite", "Custom driver", "Plain"),
+    assertEquals(
+        List.of("PostgreSQL", "MySQL", "SQLite", "Custom driver", "Plain"),
         ComboBoxTest.options(open));
     assertTrue(open.contains("\"9.6 or later\"") && open.contains("\"a file\""), open);
-    assertEquals(3, open.lines().filter(l -> l.contains("image role=img")).count(),
+    assertEquals(
+        3,
+        open.lines().filter(l -> l.contains("image role=img")).count(),
         "the box's and two rows' images: " + open);
     assertTrue(open.contains("label=\"database\""), "SQLite's icon: " + open);
     assertTrue(open.contains("role=img label=\"Custom driver\""), "the avatar: " + open);
-    assertEquals(1, open.lines().filter(l -> l.contains("label=\"checkmark\"")).count(),
+    assertEquals(
+        1,
+        open.lines().filter(l -> l.contains("label=\"checkmark\"")).count(),
         "one check mark, on the current choice: " + open);
   }
 
@@ -150,10 +161,14 @@ class ComboBoxItemsTest {
   void theOpenListOfItems(String theme, int scale) throws IOException {
     App<Form> a = new Form(theme.equals("dark") ? Theme.DARK : Theme.LIGHT).app();
     Path folder = out.resolve(theme + scale);
-    List<Path> files = Script.run("size 300 260 scale " + scale
-        + "\nframe\npress #provider\nframe\nadvance 0.25\nframe\nkey ArrowDown\nframe\nsnap open",
-        a, folder);
-    Golden.assertMatches("combobox-items-" + theme + "-" + scale + "x-open",
-        Png.decode(Files.readAllBytes(files.get(0))), Files.readString(files.get(1)));
+    List<Path> files = Script.run(
+        "size 300 260 scale " + scale
+            + "\nframe\npress #provider\nframe\nadvance 0.25\nframe\nkey ArrowDown\nframe\nsnap open",
+        a,
+        folder);
+    Golden.assertMatches(
+        "combobox-items-" + theme + "-" + scale + "x-open",
+        Png.decode(Files.readAllBytes(files.get(0))),
+        Files.readString(files.get(1)));
   }
 }

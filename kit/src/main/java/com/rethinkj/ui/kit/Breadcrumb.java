@@ -57,9 +57,16 @@ public final class Breadcrumb {
     float gap = t.space().xs();
     int first = first(t, state, parts, gap);
     // grow(1) fills a row's width; the most height keeps it a row high in a column with room.
-    El bar = row().role("navigation").label("Breadcrumb").h(t.size().control()).grow(1)
-        .minSize(0, t.size().control()).maxSize(Float.POSITIVE_INFINITY, t.size().control())
-        .gap(gap).align(Style.Align.CENTER).clip()
+    El bar = row()
+        .role("navigation")
+        .label("Breadcrumb")
+        .h(t.size().control())
+        .grow(1)
+        .minSize(0, t.size().control())
+        .maxSize(Float.POSITIVE_INFINITY, t.size().control())
+        .gap(gap)
+        .align(Style.Align.CENTER)
+        .clip()
         .onResize((w, h) -> state.width = w);
     List<El> stops = new ArrayList<>();
     if (first > 0) {
@@ -68,28 +75,44 @@ public final class Breadcrumb {
         int at = i;
         items.add(Menu.item(parts.get(i), onSelect == null ? null : () -> onSelect.accept(at)));
       }
-      El more = part(t, "…", null, state.hidden::toggle).key("more").role("button")
-          .label("Hidden parts").onResize((w, h) -> state.widths.put("more", w));
+      El more = part(t, "…", null, state.hidden::toggle)
+          .key("more")
+          .role("button")
+          .label("Hidden parts")
+          .onResize((w, h) -> state.widths.put("more", w));
       stops.add(more);
       bar.child(Menu.dropdown(t, more, state.hidden, items));
     }
     for (int i = first; i < parts.size(); i++) {
       int at = i;
       boolean current = i == parts.size() - 1;
-      El unit = row().key("crumb-" + i).gap(gap).align(Style.Align.CENTER).shrink(0)
+      El unit = row()
+          .key("crumb-" + i)
+          .gap(gap)
+          .align(Style.Align.CENTER)
+          .shrink(0)
           .onResize((w, h) -> state.widths.put(id(parts, at), w));
       if (i > 0) {
-        unit.child(Icon.icon(t, Symbol.CHEVRON_RIGHT, Icon.Variant.MUTED, t.badge().text().size()));
+        unit.child(Icon.icon(
+            t, Symbol.CHEVRON_RIGHT, Icon.Variant.MUTED, t.badge().text().size()));
       }
       if (current) {
         Theme.TextStyle style = t.type().strong();
-        unit.child(row().role("link").label(parts.get(i)).current(true).h(t.size().control())
-            .padding(0, t.space().s()).align(Style.Align.CENTER)
-            .child(El.text(parts.get(i)).font(style.font().get()).fontSize(style.size())
+        unit.child(row()
+            .role("link")
+            .label(parts.get(i))
+            .current(true)
+            .h(t.size().control())
+            .padding(0, t.space().s())
+            .align(Style.Align.CENTER)
+            .child(El.text(parts.get(i))
+                .font(style.font().get())
+                .fontSize(style.size())
                 .color(t.text().primary())));
       } else {
-        El link = part(t, parts.get(i), parts.get(i),
-            onSelect == null ? null : () -> onSelect.accept(at)).role("link");
+        El link = part(
+                t, parts.get(i), parts.get(i), onSelect == null ? null : () -> onSelect.accept(at))
+            .role("link");
         if (onSelect != null) {
           stops.add(link);
         }
@@ -103,18 +126,28 @@ public final class Breadcrumb {
 
   /** A pressable part: muted text, primary under the pointer, on the hover's fill. */
   private static El part(Theme t, String text, String label, Runnable onPress) {
-    El el = row().label(label).h(t.size().control()).padding(0, t.space().s())
-        .align(Style.Align.CENTER).radius(t.radius().small()).shrink(0)
+    El el = row()
+        .label(label)
+        .h(t.size().control())
+        .padding(0, t.space().s())
+        .align(Style.Align.CENTER)
+        .radius(t.radius().small())
+        .shrink(0)
         .disabled(onPress == null)
         .motion(t.motion().feedback());
     Theme.TextStyle style = t.type().body();
-    El words = El.text(text).font(style.font().get()).fontSize(style.size())
+    El words = El.text(text)
+        .font(style.font().get())
+        .fontSize(style.size())
         .color(onPress == null ? t.text().disabled() : t.text().muted());
     el.child(words);
     if (onPress == null) {
       return el;
     }
-    return el.focusable().keepFocus().focusRing(t.accent().edge()).cursor(Cursor.POINTER)
+    return el.focusable()
+        .keepFocus()
+        .focusRing(t.accent().edge())
+        .cursor(Cursor.POINTER)
         .onPress(onPress)
         .whenHovered(e -> {
           e.fill(t.surface().hover());

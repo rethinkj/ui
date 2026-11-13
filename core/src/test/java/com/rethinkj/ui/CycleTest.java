@@ -26,15 +26,19 @@ class CycleTest {
 
   /** A track of 100 by 4 whose piece, laid out over the whole track, shows a fifth of it. */
   private static El view(Shown s) {
-    El piece = el().key("piece").absolute(0, 0).wFull().hFull().fill(0xFF0000FF)
-        .motion(Spring.SETTLE);
+    El piece =
+        el().key("piece").absolute(0, 0).wFull().hFull().fill(0xFF0000FF).motion(Spring.SETTLE);
     if (s.cycles) {
       piece.cycle(2, (e, phase) -> {
         s.phases.add(phase);
         e.place(e.x() + (float) phase * e.width(), e.y(), e.width() / 5, e.height());
       });
     }
-    El track = el().key("track").absolute(10, s.top).w(100).h(4).opacity(s.opacity)
+    El track = el().key("track")
+        .absolute(10, s.top)
+        .w(100)
+        .h(4)
+        .opacity(s.opacity)
         .children(s.piece ? new El[] {piece} : new El[0]);
     return el().wFull().hFull().children(track);
   }
@@ -152,9 +156,17 @@ class CycleTest {
   @Test
   void rowsOfAVirtualListCycleWhileBuiltAndKeepTheirPhase() {
     List<Double> seen = new ArrayList<>();
-    App<Object> app = new App<>(new Object(), state -> col().key("list").w(100).h(40)
-        .rows(1000, 20, i -> el().key("row-" + i)
-            .cycle(1, i == 0 ? (e, phase) -> seen.add(phase) : (e, phase) -> {})));
+    App<Object> app = new App<>(
+        new Object(),
+        state -> col()
+            .key("list")
+            .w(100)
+            .h(40)
+            .rows(
+                1000,
+                20,
+                i -> el().key("row-" + i)
+                    .cycle(1, i == 0 ? (e, phase) -> seen.add(phase) : (e, phase) -> {})));
     app.resize(100, 40, 1);
     app.frame();
     assertTrue(app.isMoving());
@@ -181,9 +193,14 @@ class CycleTest {
   @Test
   void twoPeriodsGoRoundEachAtItsOwnPace() {
     double[] phases = new double[2];
-    App<Object> app = new App<>(new Object(), state -> col().wFull().hFull().children(
-        el().w(10).h(10).cycle(1, (e, phase) -> phases[0] = phase),
-        el().w(10).h(10).cycle(0.4, (e, phase) -> phases[1] = phase)));
+    App<Object> app = new App<>(
+        new Object(),
+        state -> col()
+            .wFull()
+            .hFull()
+            .children(
+                el().w(10).h(10).cycle(1, (e, phase) -> phases[0] = phase),
+                el().w(10).h(10).cycle(0.4, (e, phase) -> phases[1] = phase)));
     app.resize(100, 100, 1);
     app.frame();
     app.advance(0.5);

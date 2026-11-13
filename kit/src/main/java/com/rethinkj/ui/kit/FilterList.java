@@ -56,14 +56,26 @@ public final class FilterList {
    * @param leading builds what stands before the text in place of the icon, or null
    * @param checked whether a check mark stands at the right end
    */
-  public record Entry(String text, Symbol symbol, String detail, String shortcut, String group,
-      Runnable onChoose, Function<Theme, El> leading, boolean checked) {
+  public record Entry(
+      String text,
+      Symbol symbol,
+      String detail,
+      String shortcut,
+      String group,
+      Runnable onChoose,
+      Function<Theme, El> leading,
+      boolean checked) {
     public Entry {
       Objects.requireNonNull(text, "text");
     }
 
     /** An entry with an icon or nothing before its text, and no check mark. */
-    public Entry(String text, Symbol symbol, String detail, String shortcut, String group,
+    public Entry(
+        String text,
+        Symbol symbol,
+        String detail,
+        String shortcut,
+        String group,
         Runnable onChoose) {
       this(text, symbol, detail, shortcut, group, onChoose, null, false);
     }
@@ -96,7 +108,8 @@ public final class FilterList {
     /** An image before the text, fitted into an icon's square, such as a product's logo. */
     public Entry image(com.rethinkj.ui.Image image) {
       Objects.requireNonNull(image, "image");
-      return leading(t -> El.image(image).size(t.size().icon(), t.size().icon())
+      return leading(t -> El.image(image)
+          .size(t.size().icon(), t.size().icon())
           .fit(com.rethinkj.ui.Image.Fit.CONTAIN));
     }
 
@@ -219,7 +232,12 @@ public final class FilterList {
   }
 
   /** What the list shows: its rows, each an entry's index or a group's heading. */
-  record Shown(List<Entry> entries, int[] rows, String[] groups, String query, boolean loading,
+  record Shown(
+      List<Entry> entries,
+      int[] rows,
+      String[] groups,
+      String query,
+      boolean loading,
       String failure) {
 
     int count() {
@@ -253,8 +271,8 @@ public final class FilterList {
   static Shown shown(State s, Entries entries) {
     Shown shown = switch (entries) {
       case Fixed f -> filter(s, f.all());
-      case Found f when f.app() == null -> rows(f.find().apply(s.query), null, s.query, false,
-          null);
+      case Found f
+      when f.app() == null -> rows(f.find().apply(s.query), null, s.query, false, null);
       case Found f -> ask(s, f);
     };
     s.shown = shown;
@@ -282,24 +300,27 @@ public final class FilterList {
       }
       s.asked = query;
       Function<String, List<Entry>> find = f.find();
-      s.work = f.app().background(f.name(), () -> find.apply(query),
-          found -> {
-            s.answer = List.copyOf(found);
-            s.failure = null;
-            s.work = null;
-          },
-          error -> {
-            s.answer = List.of();
-            s.failure = error.getMessage() == null ? error.toString() : error.getMessage();
-            s.work = null;
-          });
+      s.work = f.app()
+          .background(
+              f.name(),
+              () -> find.apply(query),
+              found -> {
+                s.answer = List.copyOf(found);
+                s.failure = null;
+                s.work = null;
+              },
+              error -> {
+                s.answer = List.of();
+                s.failure = error.getMessage() == null ? error.toString() : error.getMessage();
+                s.work = null;
+              });
     }
     return rows(s.answer, null, query, s.work != null, s.failure);
   }
 
   /** The entries in their order, with a heading before each group. */
-  private static Shown rows(List<Entry> entries, int[] order, String query, boolean loading,
-      String failure) {
+  private static Shown rows(
+      List<Entry> entries, int[] order, String query, boolean loading, String failure) {
     Map<String, Integer> groups = new HashMap<>();
     List<String> names = new ArrayList<>();
     int n = order == null ? entries.size() : order.length;
@@ -327,8 +348,8 @@ public final class FilterList {
       }
       rows[count++] = at;
     }
-    return new Shown(entries, Arrays.copyOf(rows, count), names.toArray(String[]::new), query,
-        loading, failure);
+    return new Shown(
+        entries, Arrays.copyOf(rows, count), names.toArray(String[]::new), query, loading, failure);
   }
 
   /**
@@ -341,8 +362,8 @@ public final class FilterList {
       return s.shown;
     }
     if (all.size() >= 1 << INDEX_BITS) {
-      throw new IllegalArgumentException("A list holds fewer than " + (1 << INDEX_BITS)
-          + " entries, not " + all.size());
+      throw new IllegalArgumentException(
+          "A list holds fewer than " + (1 << INDEX_BITS) + " entries, not " + all.size());
     }
     if (all != s.source) {
       // What the list's texts are compared as, and the index of each entry's group from 1, in
@@ -362,8 +383,12 @@ public final class FilterList {
     }
     Fuzzy.Matcher m = Fuzzy.matcher(query);
     // A text that only grows matches among what the shorter one matched.
-    int[] candidates = all == s.source && s.matched != null && !s.filtered.isEmpty()
-        && query.startsWith(s.filtered) ? s.matched : null;
+    int[] candidates = all == s.source
+            && s.matched != null
+            && !s.filtered.isEmpty()
+            && query.startsWith(s.filtered)
+        ? s.matched
+        : null;
     int n = candidates == null ? all.size() : candidates.length;
     long[] keys = new long[n];
     int[] matched = new int[n];
@@ -374,9 +399,17 @@ public final class FilterList {
       // Many entries: in parts on the common pool's threads, each into its own range.
       int parts = Math.min(PARTS, n / (PARALLEL / 4));
       int[] counts = new int[parts];
-      IntStream.range(0, parts).parallel().forEach(p -> counts[p] = score(s, all, query,
-          candidates, (int) ((long) n * p / parts), (int) ((long) n * (p + 1) / parts), keys,
-          matched));
+      IntStream.range(0, parts)
+          .parallel()
+          .forEach(p -> counts[p] = score(
+              s,
+              all,
+              query,
+              candidates,
+              (int) ((long) n * p / parts),
+              (int) ((long) n * (p + 1) / parts),
+              keys,
+              matched));
       count = 0;
       for (int p = 0; p < parts; p++) { // closes the gaps between the parts
         int from = (int) ((long) n * p / parts);
@@ -400,14 +433,22 @@ public final class FilterList {
 
   /** Entries filtered at once on the app's thread; from this many, in parts on others too. */
   static final int PARALLEL = 4_000;
+
   private static final int PARTS = 16;
 
   /**
    * Scores the entries from {@code from} to {@code to} of the candidates, or of all for null, and
    * writes the sort key and index of each that matches from {@code from} on; returns how many.
    */
-  private static int score(State s, List<Entry> all, String query, int[] candidates, int from,
-      int to, long[] keys, int[] matched) {
+  private static int score(
+      State s,
+      List<Entry> all,
+      String query,
+      int[] candidates,
+      int from,
+      int to,
+      long[] keys,
+      int[] matched) {
     Fuzzy.Matcher m = Fuzzy.matcher(query); // one per thread
     int count = from;
     for (int c = from; c < to; c++) {
@@ -417,7 +458,8 @@ public final class FilterList {
       if (score == Fuzzy.NO_MATCH) {
         continue;
       }
-      long rank = m.isEmpty() ? 0
+      long rank = m.isEmpty()
+          ? 0
           : (long) (SCORE_LIMIT - Math.clamp(score, -SCORE_LIMIT + 1, SCORE_LIMIT - 1)) << 10
               | Math.min(e.text().length(), 1023);
       keys[count] = (long) s.groupOf[i] << 47 | rank << INDEX_BITS | i;
@@ -479,9 +521,12 @@ public final class FilterList {
     float height = Math.max(1, Math.min(count + (note && count > 0 ? 1 : 0), most)) * rowHeight;
     El list = col().key("options").role("listbox").label(label).h(height).shrink(0);
     if (count == 0) {
-      String text = shown.failure() != null ? shown.failure()
-          : shown.loading() ? "Loading…" : "No results";
-      return list.child(row().key("empty").h(rowHeight).padding(0, t.space().m())
+      String text =
+          shown.failure() != null ? shown.failure() : shown.loading() ? "Loading…" : "No results";
+      return list.child(row()
+          .key("empty")
+          .h(rowHeight)
+          .padding(0, t.space().m())
           .align(Style.Align.CENTER)
           .child(label(t, Label.Variant.MUTED, text).key("note")));
     }
@@ -494,18 +539,27 @@ public final class FilterList {
     Font strong = t.type().heading().font().get();
     return list.scrollbars(t.scrollbars())
         .revealRow(s.highlight)
-        .rows(rows, rowHeight, i -> i == count
-            ? row().key("loading").padding(0, t.space().m()).align(Style.Align.CENTER)
-                .child(label(t, Label.Variant.MUTED, "Loading…"))
-            : option(t, s, shown, i, strong, choose));
+        .rows(
+            rows,
+            rowHeight,
+            i -> i == count
+                ? row()
+                    .key("loading")
+                    .padding(0, t.space().m())
+                    .align(Style.Align.CENTER)
+                    .child(label(t, Label.Variant.MUTED, "Loading…"))
+                : option(t, s, shown, i, strong, choose));
   }
 
-  private static El option(Theme t, State s, Shown shown, int i, Font strong,
-      Consumer<Entry> choose) {
+  private static El option(
+      Theme t, State s, Shown shown, int i, Font strong, Consumer<Entry> choose) {
     Entry entry = shown.entry(i);
     if (entry == null) {
       String group = shown.groups()[-1 - shown.rows()[i]];
-      return row().key("group-" + i).role("group").label(group)
+      return row()
+          .key("group-" + i)
+          .role("group")
+          .label(group)
           .padding(t.space().s(), t.space().m(), 0, t.space().m())
           .align(Style.Align.CENTER)
           .child(label(t, Label.Variant.MUTED, group).fontSize(t.type().body().size()));
@@ -535,19 +589,30 @@ public final class FilterList {
         return null;
       });
     }
-    El content = row().wFull().hFull().padding(0, t.space().m()).gap(t.space().m())
-        .align(Style.Align.CENTER).children(mark, name);
+    El content = row()
+        .wFull()
+        .hFull()
+        .padding(0, t.space().m())
+        .gap(t.space().m())
+        .align(Style.Align.CENTER)
+        .children(mark, name);
     if (entry.detail() != null) {
-      content.child(label(t, entry.detail()).color(quiet).minSize(0, 0).shrink(2).ellipsis());
+      content.child(
+          label(t, entry.detail()).color(quiet).minSize(0, 0).shrink(2).ellipsis());
     }
     if (entry.shortcut() != null) {
-      content.child(label(t, entry.shortcut()).color(quiet).shrink(0)
+      content.child(label(t, entry.shortcut())
+          .color(quiet)
+          .shrink(0)
           .margin(0, 0, 0, t.space().s()));
     }
     if (entry.checked()) {
       content.child(icon(t, Menu.CHECKED).color(quiet));
     }
-    El row = row().key("option-" + i).role("option").label(entry.text())
+    El row = row()
+        .key("option-" + i)
+        .role("option")
+        .label(entry.text())
         .selected(lit)
         .disabled(!enabled)
         .radius(t.radius().small())

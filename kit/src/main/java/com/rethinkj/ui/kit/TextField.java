@@ -48,8 +48,7 @@ public final class TextField {
    *     sets another; null for none
    * @param onChange receives the new string after each edit; null disables the field
    */
-  public static El textField(
-      Theme t, String value, String placeholder, Consumer<String> onChange) {
+  public static El textField(Theme t, String value, String placeholder, Consumer<String> onChange) {
     return frame(t, El.text(value).editable(onChange), t.type().body(), placeholder, onChange)
         .h(t.size().control())
         .padding(0, t.space().m());
@@ -67,8 +66,7 @@ public final class TextField {
    *     sets another; null for none
    * @param onChange receives the new string after each edit; null disables the area
    */
-  public static El textArea(
-      Theme t, String value, String placeholder, Consumer<String> onChange) {
+  public static El textArea(Theme t, String value, String placeholder, Consumer<String> onChange) {
     return area(t, t.type().body(), value, placeholder, onChange).wrapText();
   }
 
@@ -79,17 +77,17 @@ public final class TextField {
    * focus. Words are those of code ({@link El#codeWords}): a double press on {@code orders} in
    * {@code shop.public.orders} selects that name alone.
    */
-  public static El codeArea(
-      Theme t, String value, String placeholder, Consumer<String> onChange) {
-    El area = area(t, t.type().mono(), value, placeholder, onChange).tabIndents(true).codeWords();
+  public static El codeArea(Theme t, String value, String placeholder, Consumer<String> onChange) {
+    El area =
+        area(t, t.type().mono(), value, placeholder, onChange).tabIndents(true).codeWords();
     // Below the last line, the room of the bar along the bottom, which shows for a long line.
     Scrollbars bars = t.scrollbars();
     area.style().paddingBottom = Len.px(t.space().s() + bars.thickness() + bars.margin());
     return area;
   }
 
-  private static El area(Theme t, Theme.TextStyle style, String value, String placeholder,
-      Consumer<String> onChange) {
+  private static El area(
+      Theme t, Theme.TextStyle style, String value, String placeholder, Consumer<String> onChange) {
     return frame(t, El.text(value).editable(onChange).multiline(), style, placeholder, onChange)
         .lines(4)
         .padding(t.space().s(), t.space().m())
@@ -97,11 +95,12 @@ public final class TextField {
   }
 
   /** The look a field and an area share: type, colours, frame and the looks of their states. */
-  private static El frame(Theme t, El field, Theme.TextStyle style, String placeholder,
-      Consumer<String> onChange) {
+  private static El frame(
+      Theme t, El field, Theme.TextStyle style, String placeholder, Consumer<String> onChange) {
     boolean enabled = onChange != null;
     int fill = t.surface().raised();
-    field.focusRing(t.accent().edge())
+    field
+        .focusRing(t.accent().edge())
         .label(placeholder)
         .font(style.font().get())
         .fontSize(style.size())
@@ -169,22 +168,24 @@ public final class TextField {
     float size = t.size().control() - 2 * inset;
     Style pad = field.masked(!revealed).style();
     pad.paddingRight = Len.px(t.size().control()); // the text stops before the button
-    El button =
-        el().role("button")
-            .label(revealed ? "Hide password" : "Show password")
-            .disabled(!enabled)
-            .size(size, size)
-            .center()
-            .radius(t.radius().small())
-            .motion(t.motion().feedback())
-            .child(icon(t, revealed ? Symbol.EYE_OFF : Symbol.EYE,
-                enabled ? Icon.Variant.MUTED : Icon.Variant.DISABLED));
+    El button = el().role("button")
+        .label(revealed ? "Hide password" : "Show password")
+        .disabled(!enabled)
+        .size(size, size)
+        .center()
+        .radius(t.radius().small())
+        .motion(t.motion().feedback())
+        .child(icon(
+            t,
+            revealed ? Symbol.EYE_OFF : Symbol.EYE,
+            enabled ? Icon.Variant.MUTED : Icon.Variant.DISABLED));
     Style at = button.style();
     at.position = Style.Position.ABSOLUTE;
     at.right = Len.px(inset);
     at.top = Len.px(inset);
     if (enabled) {
-      button.focusable()
+      button
+          .focusable()
           .keepFocus()
           .focusRing(t.accent().edge())
           .cursor(Cursor.POINTER)

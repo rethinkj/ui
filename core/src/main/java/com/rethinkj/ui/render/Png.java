@@ -36,7 +36,11 @@ public final class Png {
     chunk(
         out,
         "IHDR",
-        ByteBuffer.allocate(13).putInt(width).putInt(height).put(new byte[] {8, 6, 0, 0, 0}).array());
+        ByteBuffer.allocate(13)
+            .putInt(width)
+            .putInt(height)
+            .put(new byte[] {8, 6, 0, 0, 0})
+            .array());
     chunk(out, "IDAT", deflate(raw));
     chunk(out, "IEND", new byte[0]);
     return out.toByteArray();
@@ -91,8 +95,8 @@ public final class Png {
             throw new IllegalArgumentException("unknown PNG compression or filter method");
           }
           if (header.get() != 0) {
-            throw new IllegalArgumentException("interlaced PNGs are not read; save the image"
-                + " without interlacing (Adam7)");
+            throw new IllegalArgumentException(
+                "interlaced PNGs are not read; save the image" + " without interlacing (Adam7)");
           }
           if (width < 0 || height < 0 || (long) width * height > 1 << 28) {
             throw new IllegalArgumentException("PNG of " + Integer.toUnsignedString(width) + " by "
@@ -135,8 +139,8 @@ public final class Png {
     int bits = channels * depth;
     int bytesPerPixel = Math.max(1, bits / 8); // the distance a filter looks back
     int rowBytes = (int) (((long) width * bits + 7) / 8);
-    byte[] raw = inflate(compressed.toByteArray(), (int) Math.min((rowBytes + 1L) * height,
-        Integer.MAX_VALUE - 8));
+    byte[] raw = inflate(
+        compressed.toByteArray(), (int) Math.min((rowBytes + 1L) * height, Integer.MAX_VALUE - 8));
     byte[] rgba = new byte[width * height * 4];
     byte[] previous = new byte[rowBytes];
     byte[] row = new byte[rowBytes];
@@ -154,27 +158,29 @@ public final class Png {
   }
 
   /** Undoes a row's filter into {@code row}, from the filtered bytes at {@code from}. */
-  private static void unfilter(int filter, byte[] raw, int from, byte[] row, byte[] previous,
-      int bpp) {
+  private static void unfilter(
+      int filter, byte[] raw, int from, byte[] row, byte[] previous, int bpp) {
     for (int i = 0; i < row.length; i++) {
       int x = raw[from + i] & 0xFF;
       int a = i >= bpp ? row[i - bpp] & 0xFF : 0;
       int b = previous[i] & 0xFF;
       int c = i >= bpp ? previous[i - bpp] & 0xFF : 0;
-      row[i] = (byte) switch (filter) {
-        case 0 -> x;
-        case 1 -> x + a;
-        case 2 -> x + b;
-        case 3 -> x + (a + b) / 2;
-        case 4 -> {
-          int p = a + b - c;
-          int pa = Math.abs(p - a);
-          int pb = Math.abs(p - b);
-          int pc = Math.abs(p - c);
-          yield x + (pa <= pb && pa <= pc ? a : pb <= pc ? b : c);
-        }
-        default -> throw new IllegalArgumentException("PNG row filter " + filter + " is unknown");
-      };
+      row[i] = (byte)
+          switch (filter) {
+            case 0 -> x;
+            case 1 -> x + a;
+            case 2 -> x + b;
+            case 3 -> x + (a + b) / 2;
+            case 4 -> {
+              int p = a + b - c;
+              int pa = Math.abs(p - a);
+              int pb = Math.abs(p - b);
+              int pc = Math.abs(p - c);
+              yield x + (pa <= pb && pa <= pc ? a : pb <= pc ? b : c);
+            }
+            default ->
+              throw new IllegalArgumentException("PNG row filter " + filter + " is unknown");
+          };
     }
   }
 
@@ -196,8 +202,15 @@ public final class Png {
   }
 
   /** One pixel of a row as straight RGBA in 8 bits. */
-  private static void pixel(byte[] row, int x, int depth, int colour, byte[] palette,
-      byte[] transparency, byte[] out, int at) {
+  private static void pixel(
+      byte[] row,
+      int x,
+      int depth,
+      int colour,
+      byte[] palette,
+      byte[] transparency,
+      byte[] out,
+      int at) {
     switch (colour) {
       case 3 -> {
         int index = sample(row, x, depth);
@@ -208,8 +221,8 @@ public final class Png {
         out[at] = palette[index * 3];
         out[at + 1] = palette[index * 3 + 1];
         out[at + 2] = palette[index * 3 + 2];
-        out[at + 3] = transparency != null && index < transparency.length
-            ? transparency[index] : (byte) 0xFF;
+        out[at + 3] =
+            transparency != null && index < transparency.length ? transparency[index] : (byte) 0xFF;
       }
       case 0, 4 -> {
         int grey = sample(row, x * (colour == 4 ? 2 : 1), depth);
@@ -220,7 +233,8 @@ public final class Png {
         if (colour == 4) {
           out[at + 3] = (byte) eight(sample(row, x * 2 + 1, depth), depth);
         } else {
-          boolean keyed = transparency != null && transparency.length >= 2
+          boolean keyed = transparency != null
+              && transparency.length >= 2
               && grey == ((transparency[0] & 0xFF) << 8 | transparency[1] & 0xFF);
           out[at + 3] = keyed ? 0 : (byte) 0xFF;
         }
@@ -236,7 +250,8 @@ public final class Png {
         if (colour == 6) {
           out[at + 3] = (byte) eight(sample(row, x * n + 3, depth), depth);
         } else {
-          boolean keyed = transparency != null && transparency.length >= 6
+          boolean keyed = transparency != null
+              && transparency.length >= 6
               && r == ((transparency[0] & 0xFF) << 8 | transparency[1] & 0xFF)
               && g == ((transparency[2] & 0xFF) << 8 | transparency[3] & 0xFF)
               && b == ((transparency[4] & 0xFF) << 8 | transparency[5] & 0xFF);
@@ -292,7 +307,8 @@ public final class Png {
         read += n;
       }
       if (read != size) {
-        throw new IllegalArgumentException("PNG image data is " + read + " bytes, expected " + size);
+        throw new IllegalArgumentException(
+            "PNG image data is " + read + " bytes, expected " + size);
       }
       return raw;
     } catch (DataFormatException e) {

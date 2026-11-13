@@ -19,15 +19,16 @@ final class Desktop {
   /** Opens the Lights app in a frameless window with an icon of its own; not run by the tests. */
   static void open() throws Exception {
     // docs:start window
-    Window.identity("com.example.Lights", "Lights");          // the taskbar groups by it
-    WindowIcon icon = WindowIcon.of(size ->                    // drawn for each size asked
+    Window.identity("com.example.Lights", "Lights"); // the taskbar groups by it
+    WindowIcon icon = WindowIcon.of(
+        size -> // drawn for each size asked
         AppIcon.appIcon(Theme.DARK, size, Colors.rgb(0xD97706), Symbol.FLASH));
     Window.Options options = Window.options().frameless().minimumSize(240, 160).icon(icon);
     App<Lights> app = new App<>(new Lights(), Lights::view);
     try (Window window = Window.open("Lights", 360, 240, options);
         GpuPresenter presenter = new GpuPresenter(window)) {
       new WindowLoop(window, app, presenter)
-          .appearance(look -> { })                             // the system's dark or light, accent
+          .appearance(look -> {}) // the system's dark or light, accent
           .run();
     }
     // docs:end window
@@ -35,22 +36,24 @@ final class Desktop {
 
   static void taskbar(Window window, Theme t) {
     // docs:start taskbar
-    window.badge(WindowIcon.of(size -> AppIcon.count(t, size, t.accent().color(), 3)),
-        "3 queries running");                                  // Windows only
-    window.attention(Window.Attention.BRIEFLY);                // flash the taskbar button
+    window.badge(
+        WindowIcon.of(size -> AppIcon.count(t, size, t.accent().color(), 3)),
+        "3 queries running"); // Windows only
+    window.attention(Window.Attention.BRIEFLY); // flash the taskbar button
     // docs:end taskbar
   }
 
   static void message(App<?> app) {
     // docs:start message-box
-    app.messageBox(MessageBox.warning("Close Workbench", "2 queries are still running.")
+    app.messageBox(
+        MessageBox.warning("Close Workbench", "2 queries are still running.")
             .buttons("Close", "Cancel"),
         button -> {
           if (button == 0) {
             app.windows().all().forEach(w -> w.close());
           }
         },
-        error -> { });
+        error -> {});
     // docs:end message-box
   }
 }

@@ -29,11 +29,12 @@ public final class Segmented {
    * @param onSelect told the index of the choice the user makes, only when it changes; null
    *     disables the control
    */
-  public static El segmented(
-      Theme t, List<String> choices, int selected, IntConsumer onSelect) {
+  public static El segmented(Theme t, List<String> choices, int selected, IntConsumer onSelect) {
     boolean enabled = onSelect != null;
     int fill = t.surface().panel();
-    El group = row().role("radiogroup").disabled(!enabled)
+    El group = row()
+        .role("radiogroup")
+        .disabled(!enabled)
         .h(t.size().control())
         .padding(t.space().xs())
         .gap(t.space().xs())
@@ -44,9 +45,14 @@ public final class Segmented {
     for (int i = 0; i < choices.size(); i++) {
       boolean on = i == selected;
       int back = on ? (enabled ? t.accent().color() : t.border().subtle()) : 0;
-      int text = !enabled ? t.text().disabled() : on ? t.text().onAccent() : t.text().primary();
-      El choice = row().role("radio").label(choices.get(i)).checked(on)
-          .padding(0, t.space().l()).align(Style.Align.CENTER)
+      int text =
+          !enabled ? t.text().disabled() : on ? t.text().onAccent() : t.text().primary();
+      El choice = row()
+          .role("radio")
+          .label(choices.get(i))
+          .checked(on)
+          .padding(0, t.space().l())
+          .align(Style.Align.CENTER)
           .radius(t.radius().small())
           .fill(back)
           .motion(t.motion().feedback())
@@ -54,7 +60,8 @@ public final class Segmented {
       if (enabled) {
         int hover = on ? t.accent().hover() : over(fill, t.surface().hover());
         int pressed = on ? t.accent().pressed() : over(fill, t.surface().pressed());
-        choice.cursor(Cursor.POINTER)
+        choice
+            .cursor(Cursor.POINTER)
             .onPress(Radio.choose(onSelect, selected, i))
             .whenHovered(e -> e.fill(hover))
             .whenPressed(e -> e.fill(pressed));

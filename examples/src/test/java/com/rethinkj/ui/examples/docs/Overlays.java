@@ -48,18 +48,28 @@ final class Overlays {
         Menu.item("Run selection", () -> s.said = "run").shortcut(Key.CONTROL, "Enter"),
         Menu.item("Autocommit", () -> s.autocommit = !s.autocommit).checked(s.autocommit),
         Menu.separator(),
-        Menu.submenu("Export", List.of(
-            Menu.item("CSV", () -> s.said = "csv"),
-            Menu.item("JSON", null))));             // null: disabled
+        Menu.submenu(
+            "Export",
+            List.of(
+                Menu.item("CSV", () -> s.said = "csv"),
+                Menu.item("JSON", null)))); // null: disabled
     El button = Button.button(t, SECONDARY, "Options", s.options::toggle).key("options");
     El dropdown = Menu.dropdown(t, button, s.options, items);
     // docs:end menu
     // docs:start context-menu
-    El row = row().key("row").padding(8).child(Label.label(t, "orders"))
-        .role("listitem").label("orders");
-    El withMenu = Menu.contextMenu(t, row, s.context, List.of(
-        Menu.item("Open", () -> s.said = "open"),
-        Menu.item("Copy name", () -> s.said = "copy")));
+    El row = row()
+        .key("row")
+        .padding(8)
+        .child(Label.label(t, "orders"))
+        .role("listitem")
+        .label("orders");
+    El withMenu = Menu.contextMenu(
+        t,
+        row,
+        s.context,
+        List.of(
+            Menu.item("Open", () -> s.said = "open"),
+            Menu.item("Copy name", () -> s.said = "copy")));
     // docs:end context-menu
     return Frame.of(t, dropdown, withMenu).onKey(Menu.shortcuts(items));
   }
@@ -68,17 +78,23 @@ final class Overlays {
     Theme t = s.t;
     // docs:start menu-bar
     List<Menu.Item> menus = List.of(
-        Menu.submenu("&File", List.of(
-            Menu.item("New query", () -> s.said = "new").icon(Symbol.ADD)
-                .shortcut(Key.CONTROL, "N"),
-            Menu.item("Exit", () -> s.said = "exit"))),
-        Menu.submenu("&Edit", List.of(
-            Menu.item("Undo", () -> s.said = "undo").shortcut(Key.CONTROL, "Z"))));
-    El root = col().wFull().hFull().fill(t.surface().window())
+        Menu.submenu(
+            "&File",
+            List.of(
+                Menu.item("New query", () -> s.said = "new")
+                    .icon(Symbol.ADD)
+                    .shortcut(Key.CONTROL, "N"),
+                Menu.item("Exit", () -> s.said = "exit"))),
+        Menu.submenu(
+            "&Edit", List.of(Menu.item("Undo", () -> s.said = "undo").shortcut(Key.CONTROL, "Z"))));
+    El root = col()
+        .wFull()
+        .hFull()
+        .fill(t.surface().window())
         .child(row().padding(4).child(MenuBar.menuBar(t, s.bar, menus)))
         .child(el().grow(1))
-        .onKey(MenuBar.keys(s.bar, menus))         // Alt, F10, Alt+F, and Ctrl+N
-        .onKeyUp(MenuBar.keysUp(s.bar, menus));    // Alt alone gives the bar the keys
+        .onKey(MenuBar.keys(s.bar, menus)) // Alt, F10, Alt+F, and Ctrl+N
+        .onKeyUp(MenuBar.keysUp(s.bar, menus)); // Alt alone gives the bar the keys
     // docs:end menu-bar
     return root;
   }
@@ -87,9 +103,14 @@ final class Overlays {
     Theme t = s.t;
     // docs:start popover
     El button = Button.button(t, SECONDARY, Symbol.FILTER, "Filter", s.filterPopover::toggle);
-    El filter = Popover.form(t, button, s.filterPopover, "Add a filter",
+    El filter = Popover.form(
+        t,
+        button,
+        s.filterPopover,
+        "Add a filter",
         TextField.textField(t, s.filter, "status = 'paid'", v -> s.filter = v).label("Condition"),
-        List.of(Button.button(t, SECONDARY, "Cancel", s.filterPopover::close),
+        List.of(
+            Button.button(t, SECONDARY, "Cancel", s.filterPopover::close),
             Button.button(t, PRIMARY, "Add", () -> s.filterPopover.close())));
     // docs:end popover
     return Frame.of(t, filter);
@@ -98,7 +119,8 @@ final class Overlays {
   static El tooltip(Overlays s) {
     Theme t = s.t;
     // docs:start tooltip
-    El refresh = Tooltip.tooltip(t,
+    El refresh = Tooltip.tooltip(
+        t,
         Button.button(t, GHOST, Symbol.ARROW_CLOCKWISE, "Refresh", () -> s.said = "refresh")
             .key("refresh"),
         "Refresh the schema (F5)");
@@ -114,14 +136,25 @@ final class Overlays {
       s.renaming = true;
     });
     Runnable cancel = () -> s.renaming = false;
-    El dialog = !s.renaming ? null : Dialog.dialog(t, "Rename table",
-        TextField.textField(t, s.newName, "Name", v -> s.newName = v).label("Name"),
-        List.of(Button.button(t, SECONDARY, "Cancel", cancel),
-            Button.button(t, PRIMARY, "Rename", s.newName.isBlank() ? null : () -> {
-              s.name = s.newName;
-              s.renaming = false;
-            })),
-        cancel);
+    El dialog = !s.renaming
+        ? null
+        : Dialog.dialog(
+            t,
+            "Rename table",
+            TextField.textField(t, s.newName, "Name", v -> s.newName = v).label("Name"),
+            List.of(
+                Button.button(t, SECONDARY, "Cancel", cancel),
+                Button.button(
+                    t,
+                    PRIMARY,
+                    "Rename",
+                    s.newName.isBlank()
+                        ? null
+                        : () -> {
+                          s.name = s.newName;
+                          s.renaming = false;
+                        })),
+            cancel);
     El root = Frame.of(t, Label.label(t, s.name), open).overlay(dialog);
     // docs:end dialog
     return root;
@@ -131,9 +164,16 @@ final class Overlays {
     Theme t = s.t;
     // docs:start toast
     El drop = Button.button(t, SECONDARY, "Drop orders", () -> s.dropped = "orders");
-    El root = Frame.of(t, drop).overlay(s.dropped == null ? null
-        : Toast.toast(t, "Dropped " + s.dropped, "Undo", () -> s.said = "restore",
-            () -> s.dropped = null));
+    El root = Frame.of(t, drop)
+        .overlay(
+            s.dropped == null
+                ? null
+                : Toast.toast(
+                    t,
+                    "Dropped " + s.dropped,
+                    "Undo",
+                    () -> s.said = "restore",
+                    () -> s.dropped = null));
     // docs:end toast
     return root;
   }
@@ -141,17 +181,22 @@ final class Overlays {
   static El palette(Overlays s) {
     Theme t = s.t;
     // docs:start command-palette
-    List<Menu.Item> menus = List.of(Menu.submenu("Query", List.of(
-        Menu.item("Run", () -> s.said = "run").shortcut(Key.CONTROL, "Enter"),
-        Menu.item("Format", () -> s.said = "format"))));
+    List<Menu.Item> menus = List.of(Menu.submenu(
+        "Query",
+        List.of(
+            Menu.item("Run", () -> s.said = "run").shortcut(Key.CONTROL, "Enter"),
+            Menu.item("Format", () -> s.said = "format"))));
     List<FilterList.Entry> tables = List.of(
         FilterList.entry("orders", () -> s.said = "orders").symbol(Symbol.TABLE).detail("public"),
         FilterList.entry("customers", () -> s.said = "customers").symbol(Symbol.TABLE));
     El root = Frame.of(t, Label.label(t, "Control+Shift+P opens the palette."))
         .onKey(Menu.shortcuts(menus).or(CommandPalette.keys(s.palette)))
-        .overlay(CommandPalette.palette(t, s.palette, CommandPalette.commands(menus),
-            List.of(new CommandPalette.Source("@", "to open a table",
-                FilterList.Entries.of(tables)))));
+        .overlay(CommandPalette.palette(
+            t,
+            s.palette,
+            CommandPalette.commands(menus),
+            List.of(
+                new CommandPalette.Source("@", "to open a table", FilterList.Entries.of(tables)))));
     // docs:end command-palette
     return root;
   }

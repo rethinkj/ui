@@ -54,9 +54,15 @@ final class GridFilter {
     }
     return switch (c.type()) {
       case INTEGER, DECIMAL, DATE, TIME, DATE_TIME, INTERVAL ->
-          List.of(Kind.BETWEEN, Kind.EQUALS, Kind.IS_NULL, Kind.NOT_NULL);
-      default -> List.of(Kind.CONTAINS, Kind.STARTS_WITH, Kind.EQUALS, Kind.MATCHES,
-          Kind.IS_NULL, Kind.NOT_NULL);
+        List.of(Kind.BETWEEN, Kind.EQUALS, Kind.IS_NULL, Kind.NOT_NULL);
+      default ->
+        List.of(
+            Kind.CONTAINS,
+            Kind.STARTS_WITH,
+            Kind.EQUALS,
+            Kind.MATCHES,
+            Kind.IS_NULL,
+            Kind.NOT_NULL);
     };
   }
 
@@ -95,11 +101,17 @@ final class GridFilter {
     if (set != null) {
       icon.color(t.accent().edge());
     }
-    El funnel = row().key("filter-" + column).role("button").label("Filter " + c.title())
-        .size(t.size().icon(), t.size().icon()).shrink(0).center()
+    El funnel = row()
+        .key("filter-" + column)
+        .role("button")
+        .label("Filter " + c.title())
+        .size(t.size().icon(), t.size().icon())
+        .shrink(0)
+        .center()
         .radius(t.radius().small())
         .opacity(set != null || open ? 1 : 0)
-        .cursor(Cursor.POINTER).keepFocus()
+        .cursor(Cursor.POINTER)
+        .keepFocus()
         .onPress(() -> open(b, column))
         .whenHovered(e -> e.fill(t.surface().hover()))
         .child(icon);
@@ -107,9 +119,11 @@ final class GridFilter {
       funnel.value(set.describe(c.title()));
     }
     if (open) {
-      funnel.overlay(panel(b, column).side(Side.BOTTOM,
-          c.align() == DataGrid.Align.RIGHT ? Style.Align.END : Style.Align.START,
-          t.space().s()));
+      funnel.overlay(panel(b, column)
+          .side(
+              Side.BOTTOM,
+              c.align() == DataGrid.Align.RIGHT ? Style.Align.END : Style.Align.START,
+              t.space().s()));
     }
     return funnel;
   }
@@ -139,8 +153,8 @@ final class GridFilter {
   private static Object made(Selection sel, Column c, int column) {
     Kind kind = sel.filterKind;
     return switch (kind) {
-      case CONTAINS, STARTS_WITH, EQUALS -> sel.filterValue.isEmpty() ? null
-          : Filter.of(column, kind, sel.filterValue);
+      case CONTAINS, STARTS_WITH, EQUALS ->
+        sel.filterValue.isEmpty() ? null : Filter.of(column, kind, sel.filterValue);
       case MATCHES -> {
         try {
           Pattern.compile(sel.filterValue);
@@ -149,8 +163,10 @@ final class GridFilter {
           yield "Not a regular expression";
         }
       }
-      case BETWEEN -> sel.filterValue.isBlank() && sel.filterTo.isBlank() ? null
-          : Filter.between(column, sel.filterValue.strip(), sel.filterTo.strip());
+      case BETWEEN ->
+        sel.filterValue.isBlank() && sel.filterTo.isBlank()
+            ? null
+            : Filter.between(column, sel.filterValue.strip(), sel.filterTo.strip());
       case ONE_OF -> {
         List<String> kept = new ArrayList<>();
         for (String value : values(c)) {
@@ -192,46 +208,78 @@ final class GridFilter {
     String error = made instanceof String message ? message : null;
     Filter filter = made instanceof Filter f ? f : null;
     float width = t.size().field();
-    El content = col().gap(t.space().s()).child(Select.select(t,
-        kinds.stream().map(GridFilter::name).toList(), kinds.indexOf(sel.filterKind),
-        sel.filterKinds, i -> sel.filterKind = kinds.get(i)).key("kind").w(width));
+    El content = col()
+        .gap(t.space().s())
+        .child(Select.select(
+                t,
+                kinds.stream().map(GridFilter::name).toList(),
+                kinds.indexOf(sel.filterKind),
+                sel.filterKinds,
+                i -> sel.filterKind = kinds.get(i))
+            .key("kind")
+            .w(width));
     switch (sel.filterKind) {
       case CONTAINS, STARTS_WITH, EQUALS, MATCHES -> {
         El field = textField(t, sel.filterValue, "Value", v -> sel.filterValue = v)
-            .key("value").w(width).autofocus();
+            .key("value")
+            .w(width)
+            .autofocus();
         content.child(error == null ? field : TextField.invalid(t, field));
       }
-      case BETWEEN -> content.child(row().gap(t.space().s()).children(
-          textField(t, sel.filterValue, "From", v -> sel.filterValue = v).key("from")
-              .w((width - t.space().s()) / 2).autofocus(),
-          textField(t, sel.filterTo, "To", v -> sel.filterTo = v).key("to")
-              .w((width - t.space().s()) / 2)));
+      case BETWEEN ->
+        content.child(row()
+            .gap(t.space().s())
+            .children(
+                textField(t, sel.filterValue, "From", v -> sel.filterValue = v)
+                    .key("from")
+                    .w((width - t.space().s()) / 2)
+                    .autofocus(),
+                textField(t, sel.filterTo, "To", v -> sel.filterTo = v)
+                    .key("to")
+                    .w((width - t.space().s()) / 2)));
       case ONE_OF -> {
         El list = col().key("values").gap(t.space().xs());
         for (String value : values(c)) {
           list.child(Checkbox.checkbox(t, sel.filterValues.contains(value), value, () -> {
-            if (!sel.filterValues.remove(value)) {
-              sel.filterValues.add(value);
-            }
-          }).key("value-" + value));
+                if (!sel.filterValues.remove(value)) {
+                  sel.filterValues.add(value);
+                }
+              })
+              .key("value-" + value));
         }
         content.child(list);
       }
-      default -> { }
+      default -> {}
     }
     if (error != null) {
-      content.child(Label.label(t, error).key("error").role("alert").label(error)
+      content.child(Label.label(t, error)
+          .key("error")
+          .role("alert")
+          .label(error)
           .color(t.status().danger()));
     }
     Runnable apply = error == null ? () -> apply(b, column, filter) : null;
-    content.child(row().gap(t.space().s()).justify(Style.Content.END).children(
-        button(t, Button.Variant.SECONDARY, "Clear",
-            filterOf(b, column) == null ? null : () -> apply(b, column, null)),
-        button(t, Button.Variant.PRIMARY, "Apply", apply)));
-    El panel = Popover.panel(t, sel.filtering, "Filter " + c.title(), col()
-        .gap(t.space().m())
-        .children(Label.label(t, Label.Variant.STRONG, "Filter " + c.title()).role("heading")
-            .level(3), content));
+    content.child(row()
+        .gap(t.space().s())
+        .justify(Style.Content.END)
+        .children(
+            button(
+                t,
+                Button.Variant.SECONDARY,
+                "Clear",
+                filterOf(b, column) == null ? null : () -> apply(b, column, null)),
+            button(t, Button.Variant.PRIMARY, "Apply", apply)));
+    El panel = Popover.panel(
+        t,
+        sel.filtering,
+        "Filter " + c.title(),
+        col()
+            .gap(t.space().m())
+            .children(
+                Label.label(t, Label.Variant.STRONG, "Filter " + c.title())
+                    .role("heading")
+                    .level(3),
+                content));
     Predicate<Key> own = panel.onKey();
     return panel.key("filter").onDismiss(() -> close(sel)).onKey(k -> {
       if (k.modifiers() == 0 && k.name().equals("Enter")) {
@@ -249,22 +297,31 @@ final class GridFilter {
   }
 
   /** {@link DataGrid#filterBar}. */
-  static El bar(Theme t, List<Column> columns, List<Filter> filters,
-      Consumer<List<Filter>> onFilter) {
+  static El bar(
+      Theme t, List<Column> columns, List<Filter> filters, Consumer<List<Filter>> onFilter) {
     if (filters.isEmpty()) {
       return null;
     }
-    El bar = row().key("filters").role("list").label("Filters").wrap()
-        .gap(t.space().xs()).align(Style.Align.CENTER);
+    El bar = row()
+        .key("filters")
+        .role("list")
+        .label("Filters")
+        .wrap()
+        .gap(t.space().xs())
+        .align(Style.Align.CENTER);
     for (Filter f : filters) {
-      String title = f.column() < columns.size() ? columns.get(f.column()).title()
+      String title = f.column() < columns.size()
+          ? columns.get(f.column()).title()
           : "column " + (f.column() + 1);
-      bar.child(Badge.badge(t, f.describe(title), Badge.options().toolbar().icon(Symbol.FILTER)
-          .onRemove(() -> {
-            List<Filter> left = new ArrayList<>(filters);
-            left.remove(f);
-            onFilter.accept(List.copyOf(left));
-          })).role("listitem"));
+      bar.child(Badge.badge(
+              t,
+              f.describe(title),
+              Badge.options().toolbar().icon(Symbol.FILTER).onRemove(() -> {
+                List<Filter> left = new ArrayList<>(filters);
+                left.remove(f);
+                onFilter.accept(List.copyOf(left));
+              }))
+          .role("listitem"));
     }
     if (filters.size() > 1) {
       bar.child(button(t, Button.Variant.GHOST, "Clear all", () -> onFilter.accept(List.of()))

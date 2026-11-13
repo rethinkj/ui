@@ -5,7 +5,6 @@ import static com.rethinkj.ui.El.row;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -24,7 +23,8 @@ import org.junit.jupiter.api.io.TempDir;
 /** Elements that fade in when they appear and fade out when a rebuild leaves them out. */
 class PresenceTest {
 
-  @TempDir Path out;
+  @TempDir
+  Path out;
 
   @Test
   void aLeavingElementFadesOutWhereItWasAndIsThenRemoved() {
@@ -66,22 +66,18 @@ class PresenceTest {
   @Test
   void theOthersTakeTheirNewPlacesAtOnceOrSpringThereWhileTheLeavingOneStaysPut() {
     boolean[] shown = {true};
-    App<boolean[]> app =
-        new App<>(
-            shown,
-            s -> {
-              El root = row().size(100, 20).onPress(() -> s[0] = false);
-              root.child(el().key("a").size(20, 20));
-              if (s[0]) {
-                root.child(
-                    el().key("b")
-                        .size(20, 20)
-                        .motion(Spring.SNAP)
-                        .child(el().key("dot").absolute(5, 5).size(10, 10)));
-              }
-              return root.children(
-                  el().key("c").size(20, 20), el().key("d").size(20, 20).motion(Spring.SNAP));
-            });
+    App<boolean[]> app = new App<>(shown, s -> {
+      El root = row().size(100, 20).onPress(() -> s[0] = false);
+      root.child(el().key("a").size(20, 20));
+      if (s[0]) {
+        root.child(el().key("b")
+            .size(20, 20)
+            .motion(Spring.SNAP)
+            .child(el().key("dot").absolute(5, 5).size(10, 10)));
+      }
+      return root.children(
+          el().key("c").size(20, 20), el().key("d").size(20, 20).motion(Spring.SNAP));
+    });
     app.resize(100, 20, 1);
     app.frame();
     press(app, 90, 10);
@@ -105,30 +101,24 @@ class PresenceTest {
     assertEquals(20, find(app, "b").x());
     app.advance(1);
     app.frame();
-    assertEquals(
-        """
+    assertEquals("""
         el 0,0 100x20
           el #a 0,0 20x20
           el #c 20,0 20x20
           el #d 40,0 20x20
-        """,
-        app.tree().dump());
+        """, app.tree().dump());
   }
 
   @Test
   void anElementThatComesBackWhileLeavingGoesOnFromItsOpacityAndPosition() {
     int[] step = {0};
-    App<int[]> app =
-        new App<>(
-            step,
-            s -> {
-              El root = el().size(200, 20).onPress(() -> s[0]++);
-              if (s[0] != 2) {
-                root.child(
-                    el().key("box").size(20, 20).absolute(s[0] * 50, 0).motion(Spring.SETTLE));
-              }
-              return root;
-            });
+    App<int[]> app = new App<>(step, s -> {
+      El root = el().size(200, 20).onPress(() -> s[0]++);
+      if (s[0] != 2) {
+        root.child(el().key("box").size(20, 20).absolute(s[0] * 50, 0).motion(Spring.SETTLE));
+      }
+      return root;
+    });
     app.resize(200, 20, 1);
     app.frame();
     press(app, 190, 10); // the box starts towards 50
@@ -197,20 +187,16 @@ class PresenceTest {
   @Test
   void whatAppearsWithItsParentFadesInWithIt() {
     boolean[] shown = {false};
-    App<boolean[]> app =
-        new App<>(
-            shown,
-            s -> {
-              El root = el().size(100, 100).onPress(() -> s[0] = true);
-              if (s[0]) {
-                root.child(
-                    el().key("card")
-                        .size(50, 50)
-                        .motion(Spring.SNAP)
-                        .child(el().key("title").size(20, 20).motion(Spring.SNAP)));
-              }
-              return root;
-            });
+    App<boolean[]> app = new App<>(shown, s -> {
+      El root = el().size(100, 100).onPress(() -> s[0] = true);
+      if (s[0]) {
+        root.child(el().key("card")
+            .size(50, 50)
+            .motion(Spring.SNAP)
+            .child(el().key("title").size(20, 20).motion(Spring.SNAP)));
+      }
+      return root;
+    });
     app.resize(100, 100, 1);
     app.frame();
     press(app, 90, 90);
@@ -225,16 +211,13 @@ class PresenceTest {
   @Test
   void opacityNeverOvershoots() {
     boolean[] shown = {false};
-    App<boolean[]> app =
-        new App<>(
-            shown,
-            s -> {
-              El root = el().size(100, 100).onPress(() -> s[0] = !s[0]);
-              if (s[0]) {
-                root.child(el().key("pop").size(20, 20).motion(new Spring(0.3, 0.6)));
-              }
-              return root;
-            });
+    App<boolean[]> app = new App<>(shown, s -> {
+      El root = el().size(100, 100).onPress(() -> s[0] = !s[0]);
+      if (s[0]) {
+        root.child(el().key("pop").size(20, 20).motion(new Spring(0.3, 0.6)));
+      }
+      return root;
+    });
     app.resize(100, 100, 1);
     app.frame();
     press(app, 90, 90);
@@ -260,17 +243,13 @@ class PresenceTest {
   @Test
   void anElementWithoutKeyOrMotionDisappearsAtOnce() {
     boolean[] shown = {true};
-    App<boolean[]> app =
-        new App<>(
-            shown,
-            s -> {
-              El root = row().size(100, 20).onPress(() -> s[0] = false);
-              if (s[0]) {
-                root.children(
-                    el().size(20, 20).motion(Spring.SNAP), el().key("k").size(20, 20));
-              }
-              return root;
-            });
+    App<boolean[]> app = new App<>(shown, s -> {
+      El root = row().size(100, 20).onPress(() -> s[0] = false);
+      if (s[0]) {
+        root.children(el().size(20, 20).motion(Spring.SNAP), el().key("k").size(20, 20));
+      }
+      return root;
+    });
     app.resize(100, 20, 1);
     app.frame();
     press(app, 90, 10);
@@ -283,32 +262,23 @@ class PresenceTest {
   void neitherALeavingNorAnInvisibleElementIsHit() throws IOException {
     List<String> log = new ArrayList<>();
     boolean[] shown = {true};
-    App<List<String>> app =
-        new App<>(
-            log,
-            l -> {
-              El root =
-                  el().size(100, 100)
-                      .onPress(() -> l.add("root"))
-                      .child(
-                          el().key("ghost")
-                              .absolute(60, 0)
-                              .size(40, 40)
-                              .opacity(0)
-                              .onPress(() -> l.add("ghost")));
-              if (shown[0]) {
-                root.child(
-                    el().key("box")
-                        .absolute(0, 0)
-                        .size(40, 40)
-                        .motion(Spring.SNAP)
-                        .onPress(() -> {
-                          l.add("box");
-                          shown[0] = false;
-                        }));
-              }
-              return root;
-            });
+    App<List<String>> app = new App<>(log, l -> {
+      El root = el().size(100, 100)
+          .onPress(() -> l.add("root"))
+          .child(el().key("ghost")
+              .absolute(60, 0)
+              .size(40, 40)
+              .opacity(0)
+              .onPress(() -> l.add("ghost")));
+      if (shown[0]) {
+        root.child(
+            el().key("box").absolute(0, 0).size(40, 40).motion(Spring.SNAP).onPress(() -> {
+              l.add("box");
+              shown[0] = false;
+            }));
+      }
+      return root;
+    });
     app.resize(100, 100, 1);
     app.frame();
     press(app, 20, 20);
@@ -320,19 +290,17 @@ class PresenceTest {
     assertEquals(List.of("box", "root", "root"), log);
 
     for (String target : List.of("#box", "#ghost")) {
-      String message =
-          assertThrows(
-                  Script.Failure.class,
-                  () -> Script.run("size 100 100\npress " + target + "\n", app, out))
-              .getMessage();
+      String message = assertThrows(
+              Script.Failure.class,
+              () -> Script.run("size 100 100\npress " + target + "\n", app, out))
+          .getMessage();
       assertTrue(message.contains("No element of the last frame matches " + target), message);
     }
   }
 
   @Test
   void theStoredSequenceOfTheBadgeLeavingAndComingBack() throws IOException {
-    String script =
-        """
+    String script = """
         size 200 120 scale 2
         frame
         snap on
@@ -359,15 +327,14 @@ class PresenceTest {
         snap gone
         """;
     Script.run(script, badgeApp(true), out);
-    for (String[] snap :
-        new String[][] {
-          {"on", "badge-on"},
-          {"leaving-060ms", "badge-leaving-060ms"},
-          {"leaving-120ms", "badge-leaving-120ms"},
-          {"back-060ms", "badge-back-060ms"},
-          {"back", "badge-on"},
-          {"gone", "badge-gone"},
-        }) {
+    for (String[] snap : new String[][] {
+      {"on", "badge-on"},
+      {"leaving-060ms", "badge-leaving-060ms"},
+      {"leaving-120ms", "badge-leaving-120ms"},
+      {"back-060ms", "badge-back-060ms"},
+      {"back", "badge-on"},
+      {"gone", "badge-gone"},
+    }) {
       String tree = Files.readString(out.resolve(snap[0] + ".tree.txt"));
       Golden.assertMatches(
           snap[1],

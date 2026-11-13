@@ -45,8 +45,7 @@ class SettingsTest {
     assertTrue(Snaps.line("settings", "settings-dialog", "label=\"Add\"").contains(" disabled"));
     assertTrue(Snaps.line("settings", "settings-added", "role=button label=\"backup\"")
         .contains(" selected"));
-    assertTrue(Snaps.line("settings", "settings-restart", "role=slider")
-        .contains("value=\"16\""));
+    assertTrue(Snaps.line("settings", "settings-restart", "role=slider").contains("value=\"16\""));
     assertTrue(Snaps.line("settings", "settings-restart", "role=note")
         .contains("label=\"Restart to apply\""));
     assertTrue(Snaps.line("settings", "settings-light-appearance", "role=radio label=\"Light\"")

@@ -38,7 +38,8 @@ class GridChangesTest {
     }
 
     String cell(int column) {
-      return values.containsKey(column) ? values.get(column)
+      return values.containsKey(column)
+          ? values.get(column)
           : added ? null : base((int) key, column);
     }
   }
@@ -69,7 +70,8 @@ class GridChangesTest {
         for (int k = random.nextInt(3); k >= 0; k--) {
           int row = random.nextInt(n);
           int column = random.nextInt(COLUMNS);
-          String value = random.nextInt(4) == 0 ? rows.get(row).cell(column)
+          String value = random.nextInt(4) == 0
+              ? rows.get(row).cell(column)
               : values[random.nextInt(values.length)];
           if (!rows.get(row).added() && random.nextInt(5) == 0) {
             value = base((int) rows.get(row).key(), column); // back to the app's
@@ -145,7 +147,9 @@ class GridChangesTest {
     for (int i = 0; i < a.size(); i++) {
       Row x = a.get(i);
       Row y = b.get(i);
-      if (x.added() != y.added() || x.deleted() != y.deleted() || !x.added() && x.key() != y.key()
+      if (x.added() != y.added()
+          || x.deleted() != y.deleted()
+          || !x.added() && x.key() != y.key()
           || !x.values().equals(y.values())) {
         return false;
       }
@@ -160,13 +164,17 @@ class GridChangesTest {
     int deletes = 0;
     for (int r = 0; r < rows.size(); r++) {
       Row row = rows.get(r);
-      Status status = row.added() ? Status.NEW : row.deleted() ? Status.DELETED
-          : row.values().isEmpty() ? Status.UNCHANGED : Status.CHANGED;
+      Status status = row.added()
+          ? Status.NEW
+          : row.deleted()
+              ? Status.DELETED
+              : row.values().isEmpty() ? Status.UNCHANGED : Status.CHANGED;
       assertEquals(status, changes.rowStatus(r), did + ", row " + r);
       for (int c = 0; c < COLUMNS; c++) {
         assertEquals(row.cell(c), changes.cell(r, c), did + ", row " + r + " column " + c);
         Status cell = status == Status.CHANGED
-            ? (row.values().containsKey(c) ? Status.CHANGED : Status.UNCHANGED) : status;
+            ? (row.values().containsKey(c) ? Status.CHANGED : Status.UNCHANGED)
+            : status;
         assertEquals(cell, changes.cellStatus(r, c), did + ", cell " + r + "," + c);
       }
       if (row.added()) {
@@ -205,7 +213,8 @@ class GridChangesTest {
     changes.rows(rows(filtered));
     assertEquals(5, changes.rowCount());
     assertEquals(Status.NEW, changes.rowStatus(4));
-    assertEquals(List.of(Kind.DELETE, Kind.UPDATE, Kind.INSERT),
+    assertEquals(
+        List.of(Kind.DELETE, Kind.UPDATE, Kind.INSERT),
         changes.changes().stream().map(GridChanges.Change::kind).toList());
     assertEquals(4, changes.changes().get(0).key());
     assertEquals(Map.of(0, "two"), changes.changes().get(1).values());
@@ -263,22 +272,29 @@ class GridChangesTest {
     DataGrid.Filter contains = DataGrid.Filter.of(0, DataGrid.Filter.Kind.CONTAINS, "LOVE");
     assertEquals(true, contains.matches("Ada Lovelace"));
     assertEquals(false, contains.matches(null), "NULL contains nothing");
-    assertEquals(true, DataGrid.Filter.of(0, DataGrid.Filter.Kind.STARTS_WITH, "ada")
-        .matches("Ada Lovelace"));
-    assertEquals(true, DataGrid.Filter.of(0, DataGrid.Filter.Kind.MATCHES, "^a.a\\b")
-        .matches("Ada Lovelace"));
-    assertEquals(false, DataGrid.Filter.of(0, DataGrid.Filter.Kind.MATCHES, "(")
-        .matches("("), "not a regular expression: nothing");
+    assertEquals(
+        true,
+        DataGrid.Filter.of(0, DataGrid.Filter.Kind.STARTS_WITH, "ada").matches("Ada Lovelace"));
+    assertEquals(
+        true,
+        DataGrid.Filter.of(0, DataGrid.Filter.Kind.MATCHES, "^a.a\\b").matches("Ada Lovelace"));
+    assertEquals(
+        false,
+        DataGrid.Filter.of(0, DataGrid.Filter.Kind.MATCHES, "(").matches("("),
+        "not a regular expression: nothing");
     DataGrid.Filter range = DataGrid.Filter.between(0, "9", "100");
     assertEquals(true, range.matches("10.5"), "as numbers, not as text");
     assertEquals(false, range.matches("100.01"));
-    assertEquals(true, DataGrid.Filter.between(0, "2026-01-01", "")
-        .matches("2026-03-01 08:00"), "dates as text, an open end");
+    assertEquals(
+        true,
+        DataGrid.Filter.between(0, "2026-01-01", "").matches("2026-03-01 08:00"),
+        "dates as text, an open end");
     assertEquals(true, DataGrid.Filter.oneOf(0, List.of("paid", "shipped")).matches("paid"));
     assertEquals(true, DataGrid.Filter.of(0, DataGrid.Filter.Kind.IS_NULL, "").matches(null));
     assertEquals(false, DataGrid.Filter.of(0, DataGrid.Filter.Kind.NOT_NULL, "").matches(null));
     assertEquals("amount 9 – 100", range.describe("amount"));
-    assertEquals("status in paid, shipped",
+    assertEquals(
+        "status in paid, shipped",
         DataGrid.Filter.oneOf(0, List.of("paid", "shipped")).describe("status"));
   }
 
@@ -293,7 +309,9 @@ class GridChangesTest {
     assertEquals(List.of(List.of("a", "")), DataGrid.parseText("a\t"));
     assertEquals(List.of(List.of("a\"bc", "d")), DataGrid.parseText("\"a\"\"b\"c\td"));
     assertEquals(List.of(List.of("one\ttwo\nthree")), DataGrid.parseText("\"one\ttwo\nthree\""));
-    assertEquals(List.of(List.of("\"ab"), List.of("c")), DataGrid.parseText("\"ab\nc"),
+    assertEquals(
+        List.of(List.of("\"ab"), List.of("c")),
+        DataGrid.parseText("\"ab\nc"),
         "a quote never closed is text");
     assertEquals(List.of(List.of("a\"b")), DataGrid.parseText("a\"b"));
   }
@@ -323,8 +341,8 @@ class GridChangesTest {
       if (columns == 1 && rows > 0 && cells[rows - 1][0].isEmpty()) {
         cells[rows - 1][0] = "z"; // an empty last line is no line, as for spreadsheets
       }
-      String text = DataGrid.copyText(list, List.of(new Range(0, 0, rows - 1, columns - 1)),
-          false, "");
+      String text =
+          DataGrid.copyText(list, List.of(new Range(0, 0, rows - 1, columns - 1)), false, "");
       List<List<String>> read = DataGrid.parseText(text);
       List<List<String>> expected = new ArrayList<>();
       for (String[] row : cells) {

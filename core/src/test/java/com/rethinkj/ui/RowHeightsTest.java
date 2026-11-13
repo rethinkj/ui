@@ -51,8 +51,14 @@ class RowHeightsTest {
   /** Row i is 20 + 10 * (i % 4) high, estimated at 25: a list 100 high in a window of 200. */
   private static App<RowHeights> app() {
     RowHeights heights = new RowHeights(i -> 25);
-    App<RowHeights> app = new App<>(heights, h -> col().wFull().hFull().child(
-        el().key("list").h(100).rows(1000, h, i -> el().key("row").h(20 + 10 * (i % 4)))));
+    App<RowHeights> app = new App<>(
+        heights,
+        h -> col()
+            .wFull()
+            .hFull()
+            .child(el().key("list")
+                .h(100)
+                .rows(1000, h, i -> el().key("row").h(20 + 10 * (i % 4)))));
     app.resize(200, 200, 1);
     app.frame();
     return app;

@@ -32,14 +32,13 @@ import org.junit.jupiter.api.io.TempDir;
 class SystemDialogsTest {
 
   /** The callback as native code calls it: a downcall to the stub's address. */
-  private static final MethodHandle CALL = Linker.nativeLinker().downcallHandle(
-      SystemDialogs.callback(), Sdl.DIALOG_FILE_CALLBACK);
+  private static final MethodHandle CALL =
+      Linker.nativeLinker().downcallHandle(SystemDialogs.callback(), Sdl.DIALOG_FILE_CALLBACK);
 
   private record Answer(FileDialog.Choice choice, String error, String thread) {}
 
   /** Calls the callback with these strings as SDL's list, or with NULL for {@code null}. */
-  private static Answer call(List<String> files, int filter, boolean otherThread)
-      throws Exception {
+  private static Answer call(List<String> files, int filter, boolean otherThread) throws Exception {
     AtomicReference<Answer> answer = new AtomicReference<>();
     long id = SystemDialogs.expect(
         c -> answer.set(new Answer(c, null, Thread.currentThread().getName())),
@@ -87,14 +86,16 @@ class SystemDialogsTest {
 
   /** {@code DWORD GetShortPathNameW(LPCWSTR, LPWSTR, DWORD)}, the other way round, for the test. */
   private static String shortPathName(String path) throws Throwable {
-    MethodHandle h = Linker.nativeLinker().downcallHandle(
-        SymbolLookup.libraryLookup("kernel32", Arena.global()).find("GetShortPathNameW")
-            .orElseThrow(),
-        FunctionDescriptor.of(JAVA_INT, ADDRESS, ADDRESS, JAVA_INT));
+    MethodHandle h = Linker.nativeLinker()
+        .downcallHandle(
+            SymbolLookup.libraryLookup("kernel32", Arena.global())
+                .find("GetShortPathNameW")
+                .orElseThrow(),
+            FunctionDescriptor.of(JAVA_INT, ADDRESS, ADDRESS, JAVA_INT));
     try (Arena arena = Arena.ofConfined()) {
       MemorySegment to = arena.allocate(2 * 4096, 2);
-      int n = (int) h.invokeExact(arena.allocateFrom("\\\\?\\" + path, StandardCharsets.UTF_16LE),
-          to, 4096);
+      int n = (int)
+          h.invokeExact(arena.allocateFrom("\\\\?\\" + path, StandardCharsets.UTF_16LE), to, 4096);
       String out = n == 0 ? path : to.getString(0, StandardCharsets.UTF_16LE);
       return out.startsWith("\\\\?\\") ? out.substring(4) : out;
     }
@@ -106,7 +107,8 @@ class SystemDialogsTest {
     // The long form of the temporary folder, which may hold 8.3 names itself (C:\Users\RUNNER~1).
     Path folder = temp.toRealPath();
     for (int i = 0; i < 4; i++) {
-      folder = folder.resolve("ein sehr langer Ordner mit Ümlauten und Leerzeichen 0123456789 " + i);
+      folder =
+          folder.resolve("ein sehr langer Ordner mit Ümlauten und Leerzeichen 0123456789 " + i);
     }
     Files.createDirectories(folder);
     Path file = Files.writeString(folder.resolve("lange Datei.txt"), "x");
@@ -116,9 +118,11 @@ class SystemDialogsTest {
     String shortFolder = shortPathName(folder.toString());
 
     // As SDL hands over what the dialog answered: the short form of a long path.
-    Answer answer = call(List.of(shortName, shortFolder + File.separator + "neue Datei.sql"), 0,
-        true);
-    assertEquals(List.of(file, folder.resolve("neue Datei.sql")), answer.choice().paths(),
+    Answer answer =
+        call(List.of(shortName, shortFolder + File.separator + "neue Datei.sql"), 0, true);
+    assertEquals(
+        List.of(file, folder.resolve("neue Datei.sql")),
+        answer.choice().paths(),
         "a file that is not there yet keeps its name after its folder's long form");
   }
 
@@ -143,9 +147,11 @@ class SystemDialogsTest {
   @Test
   void aHandlerThatThrowsBecomesAFailureInsteadOfEndingTheJvm() throws Exception {
     List<String> failures = new ArrayList<>();
-    long id = SystemDialogs.expect(c -> {
-      throw new IllegalStateException("broken");
-    }, failures::add);
+    long id = SystemDialogs.expect(
+        c -> {
+          throw new IllegalStateException("broken");
+        },
+        failures::add);
     try (Arena arena = Arena.ofConfined()) {
       MemorySegment list = arena.allocate(ADDRESS, 2);
       list.setAtIndex(ADDRESS, 0, arena.allocateFrom("a.sql"));
@@ -156,8 +162,10 @@ class SystemDialogsTest {
         throw new AssertionError(t);
       }
     }
-    assertEquals(List.of("The file dialog's answer could not be read:"
-        + " java.lang.IllegalStateException: broken"), failures);
+    assertEquals(
+        List.of("The file dialog's answer could not be read:"
+            + " java.lang.IllegalStateException: broken"),
+        failures);
     assertTrue(!SystemDialogs.waiting(), "nothing is left waiting");
   }
 
@@ -167,8 +175,8 @@ class SystemDialogsTest {
     Window window = Window.open("rethinkj closed dialog test", 80, 60);
     window.close();
     List<String> failures = new ArrayList<>();
-    new SystemDialogs(window).file(FileDialog.open("x"), c -> failures.add("chosen " + c),
-        failures::add);
+    new SystemDialogs(window)
+        .file(FileDialog.open("x"), c -> failures.add("chosen " + c), failures::add);
     assertEquals(List.of("The window of this dialog has closed."), failures);
     assertTrue(!SystemDialogs.waiting());
   }
@@ -181,10 +189,11 @@ class SystemDialogsTest {
       List<String> told = new ArrayList<>();
       // The first dialog of the window is open: registered as file() registers it.
       long first = SystemDialogs.expect(window, c -> told.add("first " + c.paths()), told::add);
-      new SystemDialogs(window).file(FileDialog.open("Second"), c -> told.add("second " + c),
-          told::add);
-      assertEquals(List.of("A file dialog of this window is open; it answers before another"
-          + " opens."), told);
+      new SystemDialogs(window)
+          .file(FileDialog.open("Second"), c -> told.add("second " + c), told::add);
+      assertEquals(
+          List.of("A file dialog of this window is open; it answers before another" + " opens."),
+          told);
       assertTrue(SystemDialogs.waiting(), "the first still waits for its answer");
 
       try (Arena arena = Arena.ofConfined()) {
@@ -192,8 +201,11 @@ class SystemDialogsTest {
         none.setAtIndex(ADDRESS, 0, MemorySegment.NULL);
         CALL.invokeExact(MemorySegment.ofAddress(first), none, -1); // cancelled
       }
-      assertEquals(List.of("A file dialog of this window is open; it answers before another"
-          + " opens.", "first []"), told);
+      assertEquals(
+          List.of(
+              "A file dialog of this window is open; it answers before another" + " opens.",
+              "first []"),
+          told);
       assertTrue(!SystemDialogs.waiting(), "nothing is left waiting; the next one may open");
     } finally {
       window.close();
@@ -209,8 +221,11 @@ class SystemDialogsTest {
     try {
       MemorySegment hwnd = ((WindowHandle.Win32) window.handle()).hwnd();
       List<String> told = new java.util.concurrent.CopyOnWriteArrayList<>();
-      new SystemDialogs(window).file(FileDialog.open("Closed under its dialog"),
-          c -> told.add("chosen " + c.paths()), told::add);
+      new SystemDialogs(window)
+          .file(
+              FileDialog.open("Closed under its dialog"),
+              c -> told.add("chosen " + c.paths()),
+              told::add);
       assertTrue(Desktop.pollUntil(() -> !Win32.ownedDialogs(hwnd).isEmpty()), "it opened");
       window.close();
       assertTrue(Desktop.pollUntil(() -> !told.isEmpty()), "it answered");
@@ -226,9 +241,12 @@ class SystemDialogsTest {
   void theDialogStartsInItsFolderOrAtItsSuggestedFile() {
     Path folder = Path.of("exports").toAbsolutePath();
     assertNull(SystemDialogs.location(FileDialog.open("x")));
-    assertEquals(folder + File.separator, SystemDialogs.location(FileDialog.open("x").in(folder)),
+    assertEquals(
+        folder + File.separator,
+        SystemDialogs.location(FileDialog.open("x").in(folder)),
         "a separator after it, or Windows takes the folder for a file's name");
-    assertEquals(folder.resolve("orders.csv").toString(),
+    assertEquals(
+        folder.resolve("orders.csv").toString(),
         SystemDialogs.location(FileDialog.save("x").in(folder).fileName("orders.csv")));
     assertEquals("orders.csv", SystemDialogs.location(FileDialog.save("x").fileName("orders.csv")));
   }
@@ -245,11 +263,17 @@ class SystemDialogsTest {
   void whereSdlCannotShowTheFailureTheFallbackShowsIt() {
     Throwable failure = new UnsatisfiedLinkError("There is no native library 'sdl3'");
     List<String> shown = new ArrayList<>();
-    SystemDialogs.tell("Documents", failure, box -> {
-      throw new UnsatisfiedLinkError("SDL cannot load");
-    }, box -> shown.add(box.title() + ": " + box.text()));
-    assertEquals(List.of("Documents: Documents stopped because of an error.\n\n"
-        + "UnsatisfiedLinkError: There is no native library 'sdl3'"), shown);
+    SystemDialogs.tell(
+        "Documents",
+        failure,
+        box -> {
+          throw new UnsatisfiedLinkError("SDL cannot load");
+        },
+        box -> shown.add(box.title() + ": " + box.text()));
+    assertEquals(
+        List.of("Documents: Documents stopped because of an error.\n\n"
+            + "UnsatisfiedLinkError: There is no native library 'sdl3'"),
+        shown);
     assertEquals(0, failure.getSuppressed().length, "it was shown, so nothing is left to say");
 
     // SDL shows it: the fallback is not asked.
@@ -257,25 +281,36 @@ class SystemDialogsTest {
     assertEquals(1, shown.size());
 
     // Neither shows it, or there is no fallback (Linux): the reasons go into the failure.
-    SystemDialogs.tell("Documents", failure, box -> {
-      throw new IllegalStateException("No display");
-    }, box -> false);
-    SystemDialogs.tell("Documents", failure, box -> {
-      throw new IllegalStateException("No display either");
-    }, null);
-    assertEquals(List.of("No display", "No display either"),
-        java.util.Arrays.stream(failure.getSuppressed()).map(Throwable::getMessage).toList());
+    SystemDialogs.tell(
+        "Documents",
+        failure,
+        box -> {
+          throw new IllegalStateException("No display");
+        },
+        box -> false);
+    SystemDialogs.tell(
+        "Documents",
+        failure,
+        box -> {
+          throw new IllegalStateException("No display either");
+        },
+        null);
+    assertEquals(
+        List.of("No display", "No display either"),
+        java.util.Arrays.stream(failure.getSuppressed())
+            .map(Throwable::getMessage)
+            .toList());
   }
 
   @Test
   void aFailureAtTheStartIsToldWithItsCauses() {
-    Throwable failure = new IllegalStateException("No GPU adapter",
+    Throwable failure = new IllegalStateException(
+        "No GPU adapter",
         new UnsatisfiedLinkError("libvulkan.so.1: cannot open shared object file"));
     assertEquals("""
         Documents stopped because of an error.
 
         IllegalStateException: No GPU adapter
-        UnsatisfiedLinkError: libvulkan.so.1: cannot open shared object file""",
-        SystemDialogs.failureText("Documents", failure));
+        UnsatisfiedLinkError: libvulkan.so.1: cannot open shared object file""", SystemDialogs.failureText("Documents", failure));
   }
 }

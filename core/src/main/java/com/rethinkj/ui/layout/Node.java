@@ -87,19 +87,18 @@ final class Node {
       return new Out(0, 0, Float.NaN);
     }
     if (!(in.widthDefinite && in.heightDefinite)) {
-      in =
-          new In(
-              in.perform,
-              in.inherent,
-              in.axis,
-              in.knownWidth,
-              in.knownHeight,
-              in.widthDefinite || Float.isNaN(in.knownWidth),
-              in.heightDefinite || Float.isNaN(in.knownHeight),
-              in.parentWidth,
-              in.parentHeight,
-              in.availableWidth,
-              in.availableHeight);
+      in = new In(
+          in.perform,
+          in.inherent,
+          in.axis,
+          in.knownWidth,
+          in.knownHeight,
+          in.widthDefinite || Float.isNaN(in.knownWidth),
+          in.heightDefinite || Float.isNaN(in.knownHeight),
+          in.parentWidth,
+          in.parentHeight,
+          in.availableWidth,
+          in.availableHeight);
     }
     // Only the latest full layout is kept: its inputs are the ones the descendants were placed for.
     if (in.perform) {
@@ -152,10 +151,8 @@ final class Node {
       ratio = s.aspectRatio;
       nodeWidth =
           or(nodeWidth, size(s.width, s.height, parentWidth, parentHeight, ratio, true, boxWidth));
-      nodeHeight =
-          or(
-              nodeHeight,
-              size(s.height, s.width, parentHeight, parentWidth, ratio, false, boxHeight));
+      nodeHeight = or(
+          nodeHeight, size(s.height, s.width, parentHeight, parentWidth, ratio, false, boxHeight));
       minWidth = size(s.minWidth, s.minHeight, parentWidth, parentHeight, ratio, true, boxWidth);
       minHeight = size(s.minHeight, s.minWidth, parentHeight, parentWidth, ratio, false, boxHeight);
       maxWidth = Maybe.resolve(s.maxWidth, parentWidth) + boxWidth;

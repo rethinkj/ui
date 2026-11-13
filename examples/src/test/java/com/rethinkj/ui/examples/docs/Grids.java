@@ -1,6 +1,5 @@
 package com.rethinkj.ui.examples.docs;
 
-import static com.rethinkj.ui.El.col;
 import static com.rethinkj.ui.El.row;
 import static com.rethinkj.ui.kit.Button.Variant.PRIMARY;
 import static com.rethinkj.ui.kit.Button.Variant.SECONDARY;
@@ -48,7 +47,7 @@ final class Grids {
 
   static List<DataGrid.Selection> modes() {
     // docs:start grid-modes
-    var rows = new DataGrid.Selection(DataGrid.Mode.ROWS);   // whole rows, as results are read
+    var rows = new DataGrid.Selection(DataGrid.Mode.ROWS); // whole rows, as results are read
     var cells = new DataGrid.Selection(DataGrid.Mode.CELLS); // cells, and rows by their numbers
     // docs:end grid-modes
     return List.of(rows, cells);
@@ -68,16 +67,24 @@ final class Grids {
     Theme t = s.t;
     // docs:start grid
     List<Column> columns = List.of(
-        new Column("id", 80, DataType.INTEGER, i -> value(i, 0)).typeName("bigint")
+        new Column("id", 80, DataType.INTEGER, i -> value(i, 0))
+            .typeName("bigint")
             .icon(Symbol.KEY, Icon.Variant.WARNING),
         new Column("customer", 120, DataType.TEXT, i -> value(i, 1)),
         new Column("amount", 100, DataType.DECIMAL, i -> value(i, 2)).typeName("numeric"),
         new Column("status", 100, DataType.TEXT, i -> value(i, 3)));
-    El grid = DataGrid.dataGrid(t, columns, COUNT, DataGrid.options()
-            .select(s.selection)          // the app keeps the selection
-            .rowNumbers().frozen(1)       // numbers and the id stay at the left
-            .copy(s.app.clipboard()))     // Control+C copies tab-separated text
-        .key("orders").label("Orders").grow(1);
+    El grid = DataGrid.dataGrid(
+            t,
+            columns,
+            COUNT,
+            DataGrid.options()
+                .select(s.selection) // the app keeps the selection
+                .rowNumbers()
+                .frozen(1) // numbers and the id stay at the left
+                .copy(s.app.clipboard())) // Control+C copies tab-separated text
+        .key("orders")
+        .label("Orders")
+        .grow(1);
     // docs:end grid
     return Frame.of(t, Card.flush(t, grid).wFull().grow(1));
   }
@@ -89,16 +96,25 @@ final class Grids {
     List<Column> all = new ArrayList<>();
     for (int c = 0; c < 4; c++) {
       int column = c;
-      all.add(new Column(title(c), s.widths[c], c == 2 ? DataType.DECIMAL : DataType.TEXT,
+      all.add(new Column(
+          title(c),
+          s.widths[c],
+          c == 2 ? DataType.DECIMAL : DataType.TEXT,
           i -> value(order[i], column)));
     }
-    El grid = DataGrid.dataGrid(t, all, COUNT, DataGrid.options()
-            .select(s.selection)
-            .sort(s.sort, keys -> s.sort = keys)              // the app sorts, see order()
-            .onResize((column, width) -> s.widths[column] = width)
-            .columns(s.layout)                                // order and hidden columns
-            .contextMenu(s.gridMenu, List.of()))
-        .key("orders").label("Orders").grow(1);
+    El grid = DataGrid.dataGrid(
+            t,
+            all,
+            COUNT,
+            DataGrid.options()
+                .select(s.selection)
+                .sort(s.sort, keys -> s.sort = keys) // the app sorts, see order()
+                .onResize((column, width) -> s.widths[column] = width)
+                .columns(s.layout) // order and hidden columns
+                .contextMenu(s.gridMenu, List.of()))
+        .key("orders")
+        .label("Orders")
+        .grow(1);
     El toolbar = Card.toolbar(t, "orders", COUNT + " rows", DataGrid.columnsButton(t, s.layout));
     // docs:end grid-sort
     return Frame.of(t, Card.flush(t, toolbar, grid).wFull().grow(1));
@@ -131,23 +147,40 @@ final class Grids {
     List<Column> columns = List.of(
         new Column("id", 80, DataType.INTEGER, s.changes.cell(0)),
         new Column("customer", 120, DataType.TEXT, s.changes.cell(1)).editable(),
-        new Column("amount", 100, DataType.DECIMAL, s.changes.cell(2)).editable().nullable(),
-        new Column("status", 100, DataType.ENUM, s.changes.cell(3)).editable()
+        new Column("amount", 100, DataType.DECIMAL, s.changes.cell(2))
+            .editable()
+            .nullable(),
+        new Column("status", 100, DataType.ENUM, s.changes.cell(3))
+            .editable()
             .choices(List.of(STATUSES)));
-    El grid = DataGrid.dataGrid(t, columns, s.changes.rowCount(), DataGrid.options()
-            .select(s.selection)
-            .changes(s.changes))          // edits, pastes, new and deleted rows, undo
-        .key("orders").label("Orders").grow(1);
+    El grid = DataGrid.dataGrid(
+            t,
+            columns,
+            s.changes.rowCount(),
+            DataGrid.options()
+                .select(s.selection)
+                .changes(s.changes)) // edits, pastes, new and deleted rows, undo
+        .key("orders")
+        .label("Orders")
+        .grow(1);
     int count = s.changes.count();
-    El commit = Button.button(t, PRIMARY, count == 0 ? "Commit" : "Commit (" + count + ")",
-        count == 0 ? null : () -> {
-          s.said = s.changes.changes().toString(); // UPDATE, INSERT and DELETE to write
-          s.changes.clear();
-        });
+    El commit = Button.button(
+        t,
+        PRIMARY,
+        count == 0 ? "Commit" : "Commit (" + count + ")",
+        count == 0
+            ? null
+            : () -> {
+              s.said = s.changes.changes().toString(); // UPDATE, INSERT and DELETE to write
+              s.changes.clear();
+            });
     El revert = Button.button(t, SECONDARY, "Revert", count == 0 ? null : s.changes::clear);
     // docs:end grid-edit
-    return Frame.of(t, Card.flush(t, Card.toolbar(t, "orders", null, revert, commit), grid)
-        .wFull().grow(1));
+    return Frame.of(
+        t,
+        Card.flush(t, Card.toolbar(t, "orders", null, revert, commit), grid)
+            .wFull()
+            .grow(1));
   }
 
   static El filtered(Grids s) {
@@ -159,18 +192,34 @@ final class Grids {
     List<Column> columns = new ArrayList<>();
     for (int c = 0; c < 4; c++) {
       int column = c;
-      columns.add(new Column(title(c), 110, c == 2 ? DataType.DECIMAL : DataType.TEXT,
-          i -> value(rows[i], column)));
+      columns.add(new Column(
+          title(c), 110, c == 2 ? DataType.DECIMAL : DataType.TEXT, i -> value(rows[i], column)));
     }
-    El grid = DataGrid.dataGrid(t, columns, rows.length, DataGrid.options()
-            .select(s.selection)
-            .filters(s.filters, f -> s.filters = f))     // the grid filters nothing itself
-        .key("orders").label("Orders").grow(1);
+    El grid = DataGrid.dataGrid(
+            t,
+            columns,
+            rows.length,
+            DataGrid.options()
+                .select(s.selection)
+                .filters(s.filters, f -> s.filters = f)) // the grid filters nothing itself
+        .key("orders")
+        .label("Orders")
+        .grow(1);
     El bar = DataGrid.filterBar(t, columns, s.filters, f -> s.filters = f); // null without any
     // docs:end grid-filter
-    return Frame.of(t, Card.flush(t, Card.toolbar(t, "orders", rows.length + " rows"),
-        bar == null ? null : row().padding(0, t.space().l(), t.space().m(), t.space().l())
-            .child(bar), grid).wFull().grow(1));
+    return Frame.of(
+        t,
+        Card.flush(
+                t,
+                Card.toolbar(t, "orders", rows.length + " rows"),
+                bar == null
+                    ? null
+                    : row()
+                        .padding(0, t.space().l(), t.space().m(), t.space().l())
+                        .child(bar),
+                grid)
+            .wFull()
+            .grow(1));
   }
 
   // docs:start tree-model
@@ -180,31 +229,41 @@ final class Grids {
     }
   }
 
-  static final Node SHOP = new Node("shop", Symbol.DATABASE, List.of(
-      new Node("public", Symbol.FOLDER, List.of(
-          new Node("orders", Symbol.TABLE), new Node("customers", Symbol.TABLE))),
-      new Node("audit", Symbol.FOLDER, List.of(new Node("events", Symbol.TABLE)))));
+  static final Node SHOP = new Node(
+      "shop",
+      Symbol.DATABASE,
+      List.of(
+          new Node(
+              "public",
+              Symbol.FOLDER,
+              List.of(new Node("orders", Symbol.TABLE), new Node("customers", Symbol.TABLE))),
+          new Node("audit", Symbol.FOLDER, List.of(new Node("events", Symbol.TABLE)))));
 
   /** What the tree asks of the app's nodes. */
   static Tree.Model<Node> model(Theme t) {
     return new Tree.Model<>() {
-      @Override public List<Node> roots() {
+      @Override
+      public List<Node> roots() {
         return List.of(SHOP);
       }
 
-      @Override public List<Node> children(Node node) {
+      @Override
+      public List<Node> children(Node node) {
         return node.children(); // null while not known: the tree shows a loading row
       }
 
-      @Override public boolean isLeaf(Node node) {
+      @Override
+      public boolean isLeaf(Node node) {
         return node.children() == null;
       }
 
-      @Override public String label(Node node) {
+      @Override
+      public String label(Node node) {
         return node.name();
       }
 
-      @Override public El icon(Node node) {
+      @Override
+      public El icon(Node node) {
         return Icon.icon(t, node.icon(), Icon.Variant.MUTED);
       }
     };
@@ -214,18 +273,23 @@ final class Grids {
   static El tree(Grids s) {
     Theme t = s.t;
     // docs:start tree
-    El tree = Tree.tree(t, model(t),
-        node -> s.open.contains(node.name()),                  // which nodes are open
-        s.selected, node -> s.selected = node,                 // the selection
-        (node, open) -> {                                      // open or close one
-          if (open) {
-            s.open.add(node.name());
-          } else {
-            s.open.remove(node.name());
-          }
-        },
-        node -> s.said = "open " + node.name())                // Enter, a double press
-        .key("schema").label("Schema").grow(1);
+    El tree = Tree.tree(
+            t,
+            model(t),
+            node -> s.open.contains(node.name()), // which nodes are open
+            s.selected,
+            node -> s.selected = node, // the selection
+            (node, open) -> { // open or close one
+              if (open) {
+                s.open.add(node.name());
+              } else {
+                s.open.remove(node.name());
+              }
+            },
+            node -> s.said = "open " + node.name()) // Enter, a double press
+        .key("schema")
+        .label("Schema")
+        .grow(1);
     // docs:end tree
     return Frame.of(t, Card.inset(t, tree).w(260).grow(1));
   }

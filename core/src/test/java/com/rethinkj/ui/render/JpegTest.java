@@ -31,8 +31,16 @@ class JpegTest {
   private static final Path FILES = Path.of("src/test/resources/jpeg");
 
   static Stream<String> files() {
-    return Stream.of("baseline-444", "baseline-422", "baseline-420", "baseline-440", "grey",
-        "progressive-444", "progressive-420", "progressive-grey", "restart-420",
+    return Stream.of(
+        "baseline-444",
+        "baseline-422",
+        "baseline-420",
+        "baseline-440",
+        "grey",
+        "progressive-444",
+        "progressive-420",
+        "progressive-grey",
+        "restart-420",
         "restart-progressive");
   }
 
@@ -44,8 +52,8 @@ class JpegTest {
     assertEquals(expected.width(), decoded.width());
     assertEquals(expected.height(), decoded.height());
     int[] worst = difference(expected, decoded);
-    System.out.println(name + ": against libjpeg, largest difference " + worst[0] + ", "
-        + worst[1] + " channels differ");
+    System.out.println(name + ": against libjpeg, largest difference " + worst[0] + ", " + worst[1]
+        + " channels differ");
     assertEquals(0, worst[0], name + " differs from what libjpeg decodes");
   }
 
@@ -82,8 +90,8 @@ class JpegTest {
   }
 
   private static int luma(int argb) {
-    return (int) Math.round(0.299 * (argb >> 16 & 0xFF) + 0.587 * (argb >> 8 & 0xFF)
-        + 0.114 * (argb & 0xFF));
+    return (int) Math.round(
+        0.299 * (argb >> 16 & 0xFF) + 0.587 * (argb >> 8 & 0xFF) + 0.114 * (argb & 0xFF));
   }
 
   @Test
@@ -109,7 +117,9 @@ class JpegTest {
         int[][] corners = {{0, 0}, {w - 1, 0}, {0, h - 1}, {w - 1, h - 1}};
         for (int[] c : corners) {
           int[] at = displayed(c[0], c[1], w, h, orientation);
-          assertEquals(upright.argb(c[0], c[1]), turned.argb(at[0], at[1]),
+          assertEquals(
+              upright.argb(c[0], c[1]),
+              turned.argb(at[0], at[1]),
               "orientation " + orientation + ", corner " + c[0] + "," + c[1]);
         }
       }
@@ -133,8 +143,10 @@ class JpegTest {
   /** The file with an EXIF block after its start that holds only the orientation. */
   private static byte[] withOrientation(byte[] jpeg, int orientation, boolean little) {
     ByteArrayOutputStream tiff = new ByteArrayOutputStream();
-    tiff.writeBytes(little ? new byte[] {'I', 'I', 42, 0, 8, 0, 0, 0}
-        : new byte[] {'M', 'M', 0, 42, 0, 0, 0, 8});
+    tiff.writeBytes(
+        little
+            ? new byte[] {'I', 'I', 42, 0, 8, 0, 0, 0}
+            : new byte[] {'M', 'M', 0, 42, 0, 0, 0, 8});
     short16(tiff, 2, little); // two entries: something else first, then the orientation
     entry(tiff, 0x010F, 2, 1, 0, little);
     entry(tiff, 0x0112, 3, 1, orientation, little);
@@ -154,8 +166,8 @@ class JpegTest {
     return out.toByteArray();
   }
 
-  private static void entry(ByteArrayOutputStream out, int tag, int type, int count, int value,
-      boolean little) {
+  private static void entry(
+      ByteArrayOutputStream out, int tag, int type, int count, int value, boolean little) {
     short16(out, tag, little);
     short16(out, type, little);
     if (little) {
@@ -188,8 +200,8 @@ class JpegTest {
     int[] worst = difference(whole, cut);
     assertTrue(worst[0] < 64, "close to the whole, from the earlier scans: " + worst[0]);
     // Every length: decoded, or refused with a message; nothing else, and never for long.
-    for (String name : new String[] {"baseline-420", "progressive-420", "restart-progressive",
-        "grey"}) {
+    for (String name :
+        new String[] {"baseline-420", "progressive-420", "restart-progressive", "grey"}) {
       byte[] file = read(name + ".jpg");
       assertTimeoutPreemptively(Duration.ofSeconds(20), () -> {
         for (int length = 0; length < file.length; length++) {
@@ -269,8 +281,8 @@ class JpegTest {
   }
 
   private static void assertRefused(byte[] jpeg, String saying) {
-    IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
-        () -> Jpeg.decode(jpeg));
+    IllegalArgumentException e =
+        assertThrows(IllegalArgumentException.class, () -> Jpeg.decode(jpeg));
     assertTrue(e.getMessage().contains(saying), e.getMessage());
   }
 

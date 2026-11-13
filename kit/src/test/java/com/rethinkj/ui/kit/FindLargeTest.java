@@ -39,12 +39,13 @@ class FindLargeTest {
   static String text() {
     StringBuilder out = new StringBuilder();
     for (int i = 0; i < LINES; i++) {
-      out.append(switch (i % 4) {
-        case 0 -> "SELECT o.id, o.total * 1.19 AS gross -- " + i;
-        case 1 -> "FROM orders o WHERE o.note <> 'it''s' AND";
-        case 2 -> "  o.status IN ('paid', 'shipped') /* x */";
-        default -> "  AND o.id > " + i + ";";
-      });
+      out.append(
+          switch (i % 4) {
+            case 0 -> "SELECT o.id, o.total * 1.19 AS gross -- " + i;
+            case 1 -> "FROM orders o WHERE o.note <> 'it''s' AND";
+            case 2 -> "  o.status IN ('paid', 'shipped') /* x */";
+            default -> "  AND o.id > " + i + ";";
+          });
       if (i + 1 < LINES) {
         out.append('\n');
       }
@@ -55,7 +56,10 @@ class FindLargeTest {
   private static String ms(double[] millis) {
     double[] sorted = millis.clone();
     Arrays.sort(sorted);
-    return String.format(Locale.ROOT, "median %.2f ms, most %.2f ms", sorted[sorted.length / 2],
+    return String.format(
+        Locale.ROOT,
+        "median %.2f ms, most %.2f ms",
+        sorted[sorted.length / 2],
         sorted[sorted.length - 1]);
   }
 
@@ -100,29 +104,40 @@ class FindLargeTest {
   void aWholeSearchCostsTensOfMillisecondsAndRunsOffTheAppsThread() throws Exception {
     String text = text();
     // What a search of the whole text costs, warm, for the decision in Find.
-    String[][] queries = {{"orders", "plain"}, {"zzzq", "plain, no match"},
-        {"o\\.id\\s*>\\s*\\d+", "regex"}, {"o", "whole word, 150 000 matches"}};
+    String[][] queries = {
+      {"orders", "plain"},
+      {"zzzq", "plain, no match"},
+      {"o\\.id\\s*>\\s*\\d+", "regex"},
+      {"o", "whole word, 150 000 matches"}
+    };
     for (String[] q : queries) {
-      Search.Query query = new Search.Query(q[0], false, q[1].startsWith("whole"),
-          q[1].equals("regex"));
+      Search.Query query =
+          new Search.Query(q[0], false, q[1].startsWith("whole"), q[1].equals("regex"));
       Pattern p = query.compile();
       double[] millis = new double[5];
       for (int i = 0; i < 7; i++) {
-        double took = time(() -> Search.scan(p, text, 0, text.length(), Integer.MAX_VALUE,
-            Search.deadline(10_000)));
+        double took = time(() ->
+            Search.scan(p, text, 0, text.length(), Integer.MAX_VALUE, Search.deadline(10_000)));
         if (i >= 2) {
           millis[i - 2] = took;
         }
       }
-      System.out.printf(Locale.ROOT, "find, the whole text, %s (%s): %s%n", q[0], q[1],
-          ms(millis));
+      System.out.printf(Locale.ROOT, "find, the whole text, %s (%s): %s%n", q[0], q[1], ms(millis));
     }
 
     Query query = new Query();
     query.sql = text;
-    App<Query> app = new App<>(query, s -> col().wFull().hFull().padding(12).child(
-        codeEditor(Theme.DARK, s.app, s.sql, s.editor, Sql.of(Theme.DARK), v -> s.sql = v)
-            .key("query").lines(9).wFull()));
+    App<Query> app = new App<>(
+        query,
+        s -> col()
+            .wFull()
+            .hFull()
+            .padding(12)
+            .child(
+                codeEditor(Theme.DARK, s.app, s.sql, s.editor, Sql.of(Theme.DARK), v -> s.sql = v)
+                    .key("query")
+                    .lines(9)
+                    .wFull()));
     query.app = app;
     app.textRendering(TextRendering.LINUX);
     app.resize(640, 240, 1);
@@ -168,16 +183,21 @@ class FindLargeTest {
       app.await(Duration.ofSeconds(10));
       app.frame();
     });
-    assertEquals(text.length() - "99999;".length() - 2, query.editor.anchor(),
+    assertEquals(
+        text.length() - "99999;".length() - 2,
+        query.editor.anchor(),
         "the last line's match selected");
     assertEquals("1 of 1", count(app));
 
     System.out.printf(Locale.ROOT, "find, a character typed with its frame: %s%n", ms(typing));
-    System.out.printf(Locale.ROOT, "find, the count on another thread and its frame: %.2f ms%n",
-        counting);
+    System.out.printf(
+        Locale.ROOT, "find, the count on another thread and its frame: %.2f ms%n", counting);
     System.out.printf(Locale.ROOT, "find, Enter to the next match with its frame: %s%n", ms(next));
-    System.out.printf(Locale.ROOT,
-        "find, a match at the end typed: %.2f ms, its answer and frame %.2f ms%n", far, farAnswer);
+    System.out.printf(
+        Locale.ROOT,
+        "find, a match at the end typed: %.2f ms, its answer and frame %.2f ms%n",
+        far,
+        farAnswer);
     assertTrue(Arrays.stream(typing).max().orElseThrow() < 500, "typing stays quick");
   }
 }

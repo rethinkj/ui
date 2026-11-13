@@ -21,9 +21,15 @@ class WindowIconTest {
 
   /** A rounded square with a dot, all on whole pixels at every size; no text. */
   private static El view(int size) {
-    return el().wFull().hFull().padding(1).child(el().wFull().hFull().radius(size / 5f)
-        .fill(0xFF2E62D9).center().child(el().size(size / 4f, size / 4f).radius(size / 8f)
-            .fill(0xFFFFFFFF)));
+    return el().wFull()
+        .hFull()
+        .padding(1)
+        .child(el().wFull()
+            .hFull()
+            .radius(size / 5f)
+            .fill(0xFF2E62D9)
+            .center()
+            .child(el().size(size / 4f, size / 4f).radius(size / 8f).fill(0xFFFFFFFF)));
   }
 
   @Test
@@ -37,8 +43,8 @@ class WindowIconTest {
       Pixels image = icon.image(size);
       assertEquals(size, image.width());
       assertEquals(size, image.height());
-      Pixels expected = Headless.render(view(size), size, size, 1, TextRendering.platform())
-          .pixels();
+      Pixels expected =
+          Headless.render(view(size), size, size, 1, TextRendering.platform()).pixels();
       assertArrayEquals(expected.rgba(), image.rgba(), "size " + size);
     }
     // Transparent outside the square, opaque inside it.
@@ -67,7 +73,8 @@ class WindowIconTest {
   @Test
   void imagesAreSquareAndNotTooLarge() {
     assertThrows(IllegalArgumentException.class, WindowIcon::of);
-    assertThrows(IllegalArgumentException.class,
+    assertThrows(
+        IllegalArgumentException.class,
         () -> WindowIcon.of(new Pixels(16, 8, new byte[16 * 8 * 4])));
     assertThrows(IllegalArgumentException.class, () -> WindowIcon.of(square(2048)));
     assertThrows(IllegalArgumentException.class, () -> WindowIcon.of(square(16)).image(0));

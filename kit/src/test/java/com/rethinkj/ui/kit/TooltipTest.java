@@ -19,7 +19,8 @@ import org.junit.jupiter.params.provider.CsvSource;
  */
 class TooltipTest {
 
-  @TempDir Path out;
+  @TempDir
+  Path out;
 
   @BeforeEach
   void textLibraries() {
@@ -34,8 +35,8 @@ class TooltipTest {
     assertFalse(waiting.contains("overlay"), waiting);
     assertTrue(waiting.contains("label=\"?\""), waiting);
     String shown = Bench.tree(out, "tooltip", theme, scale, "shown");
-    assertTrue(shown.contains("\noverlay bottom center gap 2 on #help role=button label=\"?\""),
-        shown);
+    assertTrue(
+        shown.contains("\noverlay bottom center gap 2 on #help role=button label=\"?\""), shown);
     assertTrue(shown.contains(" role=tooltip label=\"Keyboard shortcuts\" "), shown);
   }
 
@@ -45,14 +46,14 @@ class TooltipTest {
       throws IOException {
     App<Bench> app = Bench.assertScript("keytip", theme, scale, out);
     String shown = Bench.tree(out, "keytip", theme, scale, "shown");
-    assertTrue(shown.contains("\noverlay bottom center gap 2 on #help role=button label=\"?\""),
-        shown);
+    assertTrue(
+        shown.contains("\noverlay bottom center gap 2 on #help role=button label=\"?\""), shown);
     assertTrue(shown.contains(" label=\"?\" ") && shown.contains(" focused\n"), shown);
     String size = "size 360 240 scale " + scale + "\n";
     Script.run(size + "key A\nframe\nadvance 0.25\nframe\n", app, out); // it fades out
     assertFalse(app.tree().dump().contains("role=tooltip"), "a key hid it");
-    Script.run(size + "advance 1\nframe\nkey Tab shift\nkey Tab\nframe\nadvance 0.5\nframe\n",
-        app, out);
+    Script.run(
+        size + "advance 1\nframe\nkey Tab shift\nkey Tab\nframe\nadvance 0.5\nframe\n", app, out);
     assertTrue(app.tree().dump().contains("role=tooltip"), "back with the focus");
     Script.run(size + "key Tab\nframe\nadvance 0.25\nframe\n", app, out);
     assertFalse(app.tree().dump().contains("role=tooltip"), "the focus left");

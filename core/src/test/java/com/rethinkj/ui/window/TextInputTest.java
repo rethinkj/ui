@@ -43,9 +43,21 @@ class TextInputTest {
   }
 
   private static App<Form> app() {
-    App<Form> app = new App<>(new Form(), f -> col().wFull().hFull().padding(20).gap(10).children(
-        El.text(f.name).editable(s -> f.name = s).key("name").w(160).h(28).padding(0, 8),
-        el().key("button").size(40, 20).focusable().onPress(() -> {})));
+    App<Form> app = new App<>(
+        new Form(),
+        f -> col()
+            .wFull()
+            .hFull()
+            .padding(20)
+            .gap(10)
+            .children(
+                El.text(f.name)
+                    .editable(s -> f.name = s)
+                    .key("name")
+                    .w(160)
+                    .h(28)
+                    .padding(0, 8),
+                el().key("button").size(40, 20).focusable().onPress(() -> {})));
     app.textRendering(TextRendering.LINUX);
     return app;
   }
@@ -67,17 +79,26 @@ class TextInputTest {
       tab(window);
       Desktop.text(window, "SELECT");
       Desktop.editing(window, "ni", -1);
-      runUntil(window, app, () -> app.tree().dump().contains("composing \"ni\""),
+      runUntil(
+          window,
+          app,
+          () -> app.tree().dump().contains("composing \"ni\""),
           "the field shows the composition");
 
       assertEquals("SELECT", app.state().name, "the composition is not in the string");
-      assertTrue(app.tree().dump().contains("\"SELECT\" 20,20 160x28 focused caret 6 composing"
-          + " \"ni\"\n"), app.tree().dump());
+      assertTrue(
+          app.tree()
+              .dump()
+              .contains("\"SELECT\" 20,20 160x28 focused caret 6 composing" + " \"ni\"\n"),
+          app.tree().dump());
 
       Desktop.text(window, "日本"); // committed
       Desktop.editing(window, "", -1);
-      runUntil(window, app, () -> app.state().name.equals("SELECT日本")
-          && !app.tree().dump().contains("composing"), "the committed text is in the string");
+      runUntil(
+          window,
+          app,
+          () -> app.state().name.equals("SELECT日本") && !app.tree().dump().contains("composing"),
+          "the committed text is in the string");
       assertEquals("SELECT日本", app.state().name);
     }
   }
@@ -98,8 +119,13 @@ class TextInputTest {
       assertEquals(28, area.height());
       assertTrue(area.cursor() > 8, "after the padding and the text: " + area.cursor());
       assertArrayEquals(
-          new int[] {window.units(20), window.units(20), window.units(160), window.units(28),
-              window.units(area.cursor())},
+          new int[] {
+            window.units(20),
+            window.units(20),
+            window.units(160),
+            window.units(28),
+            window.units(area.cursor())
+          },
           Sdl.getTextInputArea(window.sdlWindow()));
     }
   }
@@ -109,11 +135,21 @@ class TextInputTest {
     try (Window window = Window.open(TITLE, 240, 120)) {
       Desktop.settle();
       String[] secret = {""};
-      App<Form> app = new App<>(new Form(), f -> col().wFull().hFull().padding(20).gap(10)
-          .children(
-              El.text(f.name).editable(s -> f.name = s).key("name").w(160).h(28),
-              El.text(secret[0]).editable(s -> secret[0] = s).masked().key("secret").w(160)
-                  .h(28)));
+      App<Form> app = new App<>(
+          new Form(),
+          f -> col()
+              .wFull()
+              .hFull()
+              .padding(20)
+              .gap(10)
+              .children(
+                  El.text(f.name).editable(s -> f.name = s).key("name").w(160).h(28),
+                  El.text(secret[0])
+                      .editable(s -> secret[0] = s)
+                      .masked()
+                      .key("secret")
+                      .w(160)
+                      .h(28)));
       app.textRendering(TextRendering.LINUX);
       tab(window);
       runUntil(window, app, () -> app.focused() != null, "Tab focuses the field");
@@ -127,7 +163,8 @@ class TextInputTest {
       runUntil(window, app, () -> secret[0].equals("hunter2"), "the password is typed");
       assertEquals("hunter2", secret[0]);
       tab(window);
-      runUntil(window, app, () -> "name".equals(app.focused().key()), "Tab goes around to the field");
+      runUntil(
+          window, app, () -> "name".equals(app.focused().key()), "Tab goes around to the field");
       assertTrue(Sdl.textInputActive(window.sdlWindow()), "and again for text");
     }
   }
@@ -177,40 +214,42 @@ class TextInputTest {
       };
       AtomicReference<WindowLoop> loop = new AtomicReference<>();
       loop.set(new WindowLoop(window, app, (scene, w, h, s) -> {
-        if (redraws.asked()) {
-          restart.run();
-          return;
-        }
-        if (app.focused() == null) {
-          return;
-        }
-        if (carets.isEmpty()) {
-          at[0] = System.nanoTime();
-        }
-        carets.add(app.focused().text().caret() != null);
-        sent[1] = true;
-        if (carets.size() == 3) {
-          at[1] = System.nanoTime();
-          loop.get().stop();
-        }
-      }).waits((millis, holdBack) -> {
-        if (sent[1]) {
-          waits.add(millis);
-          sent[1] = false;
-        }
-        if (millis == -1 && !sent[0]) { // the first frame is drawn: Tab to the field
-          sent[0] = true;
-          tab(window);
-        }
-      }).listener(event -> {
-        redraws.event(event);
-        if (event instanceof FocusChanged focus) { // not sent by the test: count from here
-          restart.run();
-          if (!focus.focused()) {
-            Desktop.windowEvent(window, Sdl.EVENT_WINDOW_FOCUS_GAINED, 0, 0);
-          }
-        }
-      }));
+            if (redraws.asked()) {
+              restart.run();
+              return;
+            }
+            if (app.focused() == null) {
+              return;
+            }
+            if (carets.isEmpty()) {
+              at[0] = System.nanoTime();
+            }
+            carets.add(app.focused().text().caret() != null);
+            sent[1] = true;
+            if (carets.size() == 3) {
+              at[1] = System.nanoTime();
+              loop.get().stop();
+            }
+          })
+          .waits((millis, holdBack) -> {
+            if (sent[1]) {
+              waits.add(millis);
+              sent[1] = false;
+            }
+            if (millis == -1 && !sent[0]) { // the first frame is drawn: Tab to the field
+              sent[0] = true;
+              tab(window);
+            }
+          })
+          .listener(event -> {
+            redraws.event(event);
+            if (event instanceof FocusChanged focus) { // not sent by the test: count from here
+              restart.run();
+              if (!focus.focused()) {
+                Desktop.windowEvent(window, Sdl.EVENT_WINDOW_FOCUS_GAINED, 0, 0);
+              }
+            }
+          }));
       Desktop.run(loop.get(), () -> "three frames of the caret, " + carets + " drawn");
 
       assertEquals("name", app.focused().key());
@@ -222,8 +261,10 @@ class TextInputTest {
         assertTrue(millis > 250 && millis <= 501, "it waits for the next turn: " + waits);
       }
       double seconds = (at[1] - at[0]) / 1e9;
-      assertTrue(seconds >= 0.9, "two turns take a second, not " + seconds + " s; " + restarts[0]
-          + " restarts after focus changes and redraws");
+      assertTrue(
+          seconds >= 0.9,
+          "two turns take a second, not " + seconds + " s; " + restarts[0]
+              + " restarts after focus changes and redraws");
     }
   }
 
@@ -244,37 +285,43 @@ class TextInputTest {
       int[] taken = new int[1]; // activations by the desktop that the test took back
       AtomicReference<WindowLoop> loop = new AtomicReference<>();
       loop.set(new WindowLoop(window, app, (scene, w, h, s) -> {
-        boolean redraw = redraws.asked();
-        if (step[0] == 2 && app.focused().text().caret() != null) {
-          loop.get().stop();
-        } else if (step[0] == 2 && !redraw) {
-          throw new AssertionError("a frame after the activation shows no caret");
-        }
-      }).listener(event -> {
-        redraws.event(event);
-        if (event instanceof FocusChanged focus) {
-          active[0] = focus.focused();
-        }
-      }).waits((millis, holdBack) -> {
-        if (step[0] == 1 && active[0]) { // the desktop activated it: inactive again
-          taken[0]++;
-          Desktop.windowEvent(window, Sdl.EVENT_WINDOW_FOCUS_LOST, 0, 0);
-        } else if (millis != -1) {
-          return;
-        } else if (step[0] == 0) { // the first frame is drawn
-          step[0] = 1;
-          tab(window);
-          Desktop.windowEvent(window, Sdl.EVENT_WINDOW_FOCUS_LOST, 0, 0);
-        } else if (step[0] == 1 && app.focused() != null) { // idle, inactive, with the focus
-          assertEquals("name", app.focused().key(), "the field keeps the focus");
-          assertNull(app.focused().text().caret(), "no caret");
-          step[0] = 2;
-          Desktop.windowEvent(window, Sdl.EVENT_WINDOW_FOCUS_GAINED, 0, 0);
-        }
-      }));
-      Desktop.run(loop.get(), () -> (step[0] < 2 ? "the inactive window waits for events alone"
-          : "the active window shows the caret") + "; " + taken[0]
-          + " activations by the desktop taken back");
+            boolean redraw = redraws.asked();
+            if (step[0] == 2 && app.focused().text().caret() != null) {
+              loop.get().stop();
+            } else if (step[0] == 2 && !redraw) {
+              throw new AssertionError("a frame after the activation shows no caret");
+            }
+          })
+          .listener(event -> {
+            redraws.event(event);
+            if (event instanceof FocusChanged focus) {
+              active[0] = focus.focused();
+            }
+          })
+          .waits((millis, holdBack) -> {
+            if (step[0] == 1 && active[0]) { // the desktop activated it: inactive again
+              taken[0]++;
+              Desktop.windowEvent(window, Sdl.EVENT_WINDOW_FOCUS_LOST, 0, 0);
+            } else if (millis != -1) {
+              return;
+            } else if (step[0] == 0) { // the first frame is drawn
+              step[0] = 1;
+              tab(window);
+              Desktop.windowEvent(window, Sdl.EVENT_WINDOW_FOCUS_LOST, 0, 0);
+            } else if (step[0] == 1 && app.focused() != null) { // idle, inactive, with the focus
+              assertEquals("name", app.focused().key(), "the field keeps the focus");
+              assertNull(app.focused().text().caret(), "no caret");
+              step[0] = 2;
+              Desktop.windowEvent(window, Sdl.EVENT_WINDOW_FOCUS_GAINED, 0, 0);
+            }
+          }));
+      Desktop.run(
+          loop.get(),
+          () -> (step[0] < 2
+                  ? "the inactive window waits for events alone"
+                  : "the active window shows the caret")
+              + "; " + taken[0]
+              + " activations by the desktop taken back");
     }
   }
 
@@ -286,10 +333,12 @@ class TextInputTest {
       window.listener(events::add);
       Desktop.button(window, true, Sdl.BUTTON_LEFT, 40, 30, 2);
       Window.pollEvents();
-      PointerDown down = (PointerDown) events.stream()
-          .filter(PointerDown.class::isInstance).findFirst().orElseThrow();
+      PointerDown down = (PointerDown)
+          events.stream().filter(PointerDown.class::isInstance).findFirst().orElseThrow();
       assertEquals(2, down.clicks());
-      assertEquals(Window.modifiers(Sdl.getModState()), down.modifiers(),
+      assertEquals(
+          Window.modifiers(Sdl.getModState()),
+          down.modifiers(),
           "the modifiers SDL knows, from the real keyboard");
     }
   }
@@ -318,7 +367,8 @@ class TextInputTest {
    */
   @Test
   void theSystemClipboardTakesWhatIsCopied() {
-    assumeTrue(Boolean.getBoolean("rethinkj.ui.test.clipboard"),
+    assumeTrue(
+        Boolean.getBoolean("rethinkj.ui.test.clipboard"),
         "Skipped: writes to the system clipboard; -Drethinkj.ui.test.clipboard=true runs it");
     try (Window window = Window.open(TITLE, 120, 80)) {
       SystemClipboard clipboard = new SystemClipboard();
@@ -339,11 +389,30 @@ class TextInputTest {
   }
 
   private static App<Asking> asking() {
-    App<Asking> app = new App<>(new Asking(), a -> col().wFull().hFull().padding(20).child(
-        el().key("open").size(40, 20).focusable().onPress(() -> a.open = true)
-            .overlay(a.open ? col().centerInWindow().modal().padding(10).child(
-                El.text(a.query).editable(s -> a.query = s).key("query").autofocus()
-                    .w(120).h(28).padding(0, 8)) : null)));
+    App<Asking> app = new App<>(
+        new Asking(),
+        a -> col()
+            .wFull()
+            .hFull()
+            .padding(20)
+            .child(el().key("open")
+                .size(40, 20)
+                .focusable()
+                .onPress(() -> a.open = true)
+                .overlay(
+                    a.open
+                        ? col()
+                            .centerInWindow()
+                            .modal()
+                            .padding(10)
+                            .child(El.text(a.query)
+                                .editable(s -> a.query = s)
+                                .key("query")
+                                .autofocus()
+                                .w(120)
+                                .h(28)
+                                .padding(0, 8))
+                        : null)));
     app.textRendering(TextRendering.LINUX);
     return app;
   }
@@ -364,7 +433,8 @@ class TextInputTest {
   }
 
   private static void assumeSdlMakesTheText() {
-    assumeTrue(!System.getProperty("os.name").startsWith("Windows"),
+    assumeTrue(
+        !System.getProperty("os.name").startsWith("Windows"),
         "Skipped: on Windows the window makes the text of such keys itself (TextInBatchTest)");
   }
 

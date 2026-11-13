@@ -65,7 +65,9 @@ public final class BindGroupLayout extends GpuObject {
     public Entry {
       Objects.requireNonNull(type, "type");
       visibility = Set.copyOf(visibility);
-      if (binding < 0 || visibility.isEmpty() || minBindingSize < 0
+      if (binding < 0
+          || visibility.isEmpty()
+          || minBindingSize < 0
           || type instanceof TextureType && minBindingSize != 0) {
         throw new IllegalArgumentException("A binding needs a binding number of 0 or more, at"
             + " least one stage and a minimum size of 0 or more, 0 for a texture: " + binding

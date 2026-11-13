@@ -72,8 +72,8 @@ class LinesTest {
         int added = (int) inserted.chars().filter(c -> c == '\n').count();
         int[] next = new int[lines.count() - (lastLine - firstLine) + added];
         System.arraycopy(measured, 0, next, 0, firstLine);
-        System.arraycopy(measured, lastLine + 1, next, firstLine + 1 + added,
-            measured.length - lastLine - 1);
+        System.arraycopy(
+            measured, lastLine + 1, next, firstLine + 1 + added, measured.length - lastLine - 1);
         measured = next; // the edited lines are not measured any more
         lines.edit(at, removed, inserted);
         text = text.substring(0, at) + inserted + text.substring(at + removed);
@@ -125,12 +125,13 @@ class LinesTest {
     String shortOne = "x".repeat(El.QUOTED);
     assertEquals("\"" + shortOne + "\"", El.quoteText(shortOne));
     String text = "a".repeat(100) + "b".repeat(1000) + "c".repeat(40);
-    assertEquals("\"" + "a".repeat(100) + "\" … \"" + "c".repeat(40) + "\" length 1140",
-        El.quoteText(text));
-    String emoji = "a".repeat(99) + "😀" + "d".repeat(200) + "😀"
-        + "e".repeat(39);
+    assertEquals(
+        "\"" + "a".repeat(100) + "\" … \"" + "c".repeat(40) + "\" length 1140", El.quoteText(text));
+    String emoji = "a".repeat(99) + "😀" + "d".repeat(200) + "😀" + "e".repeat(39);
     String quoted = El.quoteText(emoji);
-    assertEquals("\"" + "a".repeat(99) + "\" … \"" + "e".repeat(39) + "\" length 342", quoted,
+    assertEquals(
+        "\"" + "a".repeat(99) + "\" … \"" + "e".repeat(39) + "\" length 342",
+        quoted,
         "no half of a surrogate pair at either cut");
     assertEquals("\"a\\tb\\nc\"", El.quote("a\tb\nc"));
   }
@@ -141,8 +142,8 @@ class LinesTest {
     for (int line = 0; line < fresh.count(); line++) {
       assertEquals(sum, lines.rowsBefore(line), "rows before line " + line);
       int characters = fresh.end(line) - fresh.start(line);
-      long rows = measured[line] > 0 ? measured[line]
-          : Math.max(1, (long) Math.ceil(characters / perRow));
+      long rows =
+          measured[line] > 0 ? measured[line] : Math.max(1, (long) Math.ceil(characters / perRow));
       for (long r = sum; r < sum + rows; r++) {
         assertEquals(line, lines.lineOfRow(r), "the line of row " + r);
       }

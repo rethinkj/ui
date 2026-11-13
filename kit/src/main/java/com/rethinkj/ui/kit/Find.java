@@ -212,7 +212,8 @@ public final class Find {
     String text = field.text().string();
     // A view may make the field read-only after this call, as after CodeEditor's: the last build's
     // field says so too, and the bar only shows after a handler that ran on that build.
-    boolean editable = field.onEdit() != null && !field.isReadOnly()
+    boolean editable = field.onEdit() != null
+        && !field.isReadOnly()
         && (state.field == null || !state.field.isReadOnly());
     if (!editable && state.mode == Mode.REPLACE) {
       state.mode = Mode.FIND;
@@ -325,8 +326,8 @@ public final class Find {
       }
     }
     state.origin = origin;
-    state.mode = mode == Mode.REPLACE && (field.onEdit() == null || field.isReadOnly())
-        ? Mode.FIND : mode;
+    state.mode =
+        mode == Mode.REPLACE && (field.onEdit() == null || field.isReadOnly()) ? Mode.FIND : mode;
     state.open = true;
     state.opened++;
     state.slow = false;
@@ -406,7 +407,8 @@ public final class Find {
       return true;
     }
     if ((name.equals("Enter") || name.equals("NumpadEnter"))
-        && mods == (Key.CONTROL | Key.ALT) && state.mode == Mode.REPLACE) {
+        && mods == (Key.CONTROL | Key.ALT)
+        && state.mode == Mode.REPLACE) {
       replaceAll(app, state);
       return true;
     }
@@ -434,8 +436,8 @@ public final class Find {
     For target = state.target(text.length());
     if (text.length() <= SYNC_CHARS) {
       state.cancel();
-      state.matches = Search.scan(pattern, text, target.from(), target.to(), LIMIT,
-          Search.deadline(SYNC_MILLIS));
+      state.matches = Search.scan(
+          pattern, text, target.from(), target.to(), LIMIT, Search.deadline(SYNC_MILLIS));
       state.searched = text;
       state.searchedFor = target;
       return;
@@ -448,9 +450,10 @@ public final class Find {
     }
     state.working = target;
     state.workingText = text;
-    state.work = app.background("Find",
-        () -> Search.scan(pattern, text, target.from(), target.to(), LIMIT,
-            Search.deadline(BACKGROUND_MILLIS)),
+    state.work = app.background(
+        "Find",
+        () -> Search.scan(
+            pattern, text, target.from(), target.to(), LIMIT, Search.deadline(BACKGROUND_MILLIS)),
         matches -> {
           state.work = null;
           state.working = null;
@@ -493,8 +496,7 @@ public final class Find {
         hit = i < m.count() ? match(m, i) : m.complete() && m.count() > 0 ? match(m, 0) : null;
       } else {
         int i = m.firstStartingFrom(from) - 1;
-        hit = i >= 0 ? match(m, i) : m.complete() && m.count() > 0 ? match(m, m.count() - 1)
-            : null;
+        hit = i >= 0 ? match(m, i) : m.complete() && m.count() > 0 ? match(m, m.count() - 1) : null;
         floor = m.count() > 0 ? m.starts()[m.count() - 1] : floor;
       }
       if (hit == null && m.complete()) {
@@ -510,7 +512,8 @@ public final class Find {
         if (state.jump != null) {
           state.jump.cancel();
         }
-        state.jump = state.app.background("Find the next match",
+        state.jump = state.app.background(
+            "Find the next match",
             () -> direct(pattern, text, target, direction, from, start, BACKGROUND_MILLIS),
             found -> {
               state.jump = null;
@@ -527,8 +530,8 @@ public final class Find {
     }
   }
 
-  private static int[] direct(Pattern pattern, String text, For target, int direction, int from,
-      int floor, long millis) {
+  private static int[] direct(
+      Pattern pattern, String text, For target, int direction, int from, int floor, long millis) {
     long deadline = Search.deadline(millis);
     return direction >= 0
         ? Search.next(pattern, text, target.from(), target.to(), from, deadline)
@@ -568,8 +571,8 @@ public final class Find {
       For target = state.target(text.length());
       int[] next;
       try {
-        next = Search.next(pattern, text, target.from(), target.to(), e,
-            Search.deadline(SYNC_MILLIS));
+        next =
+            Search.next(pattern, text, target.from(), target.to(), e, Search.deadline(SYNC_MILLIS));
       } catch (Search.Stopped stopped) {
         next = null;
       }
@@ -600,8 +603,14 @@ public final class Find {
     Search.Replaced replaced;
     state.replaceError = null;
     try {
-      replaced = Search.replaceAll(state.search(), pattern, text, target.from(), target.to(),
-          state.replacement, Search.deadline(BACKGROUND_MILLIS));
+      replaced = Search.replaceAll(
+          state.search(),
+          pattern,
+          text,
+          target.from(),
+          target.to(),
+          state.replacement,
+          Search.deadline(BACKGROUND_MILLIS));
     } catch (Search.Stopped stopped) {
       state.replaceError = "Replacing took too long";
       return;
@@ -621,8 +630,11 @@ public final class Find {
   }
 
   private static boolean isMatch(Pattern pattern, String text, int s, int e) {
-    Matcher m = pattern.matcher(text).region(s, text.length())
-        .useTransparentBounds(true).useAnchoringBounds(false);
+    Matcher m = pattern
+        .matcher(text)
+        .region(s, text.length())
+        .useTransparentBounds(true)
+        .useAnchoringBounds(false);
     return m.lookingAt() && m.end() == e && Search.boundary(text, s) && Search.boundary(text, e);
   }
 
@@ -663,8 +675,8 @@ public final class Find {
   }
 
   /** The matches in a line: the current one stronger, and the selection searched in. */
-  private static Decorator marks(Theme t, State state, Pattern pattern, String text,
-      Decorator own) {
+  private static Decorator marks(
+      Theme t, State state, Pattern pattern, String text, Decorator own) {
     Theme.Code code = t.code();
     int edge = t.accent().edge();
     boolean fresh = pattern != null && state.fresh(text);
@@ -674,8 +686,10 @@ public final class Find {
     return (line, start, string, out) -> {
       int end = start + string.length();
       if (state.inSelection() && target.to() > start && target.from() <= end) {
-        out.background(Math.max(target.from(), start) - start,
-            Math.min(target.to(), end + 1) - start, code.line());
+        out.background(
+            Math.max(target.from(), start) - start,
+            Math.min(target.to(), end + 1) - start,
+            code.line());
       }
       if (pattern != null) {
         Search.Matches m = state.matches;
@@ -689,8 +703,7 @@ public final class Find {
           int from = Math.max(start, target.from());
           int to = Math.min(end, target.to());
           if (from < to) {
-            Search.Matches here = Search.scan(pattern, text, from, to, LIMIT,
-                Search.deadline(1));
+            Search.Matches here = Search.scan(pattern, text, from, to, LIMIT, Search.deadline(1));
             state.slow |= here.stopped();
             for (int i = 0; i < here.count(); i++) {
               mark(out, start, end, here.starts()[i], here.ends()[i], s, e, code, edge);
@@ -705,8 +718,16 @@ public final class Find {
   }
 
   /** A match's background, the current one's stronger and underlined in the accent's edge. */
-  private static void mark(com.rethinkj.ui.Spans out, int start, int end, int from, int to,
-      int s, int e, Theme.Code code, int edge) {
+  private static void mark(
+      com.rethinkj.ui.Spans out,
+      int start,
+      int end,
+      int from,
+      int to,
+      int s,
+      int e,
+      Theme.Code code,
+      int edge) {
     int a = Math.max(from, start) - start;
     int b = Math.min(to, end + 1) - start;
     if (b <= a) {
@@ -753,7 +774,10 @@ public final class Find {
         .shadow(t.elevation().popup());
     // Over the top right corner of the field, clear of its scrollbar: the root's padding.
     Scrollbars bars = t.scrollbars();
-    El bar = row().key("find").role("search").label("Find")
+    El bar = row()
+        .key("find")
+        .role("search")
+        .label("Find")
         .padding(0, bars.thickness() + 2 * bars.margin(), 0, 0)
         .motion(t.motion().fade())
         .side(Side.TOP, Style.Align.END, -(barHeight(t, state) + t.space().xs()))
@@ -765,57 +789,96 @@ public final class Find {
     }
     float lead = t.size().control();
     El toggle = editable
-        ? tool(t, state.mode == Mode.REPLACE ? Symbol.CHEVRON_DOWN : Symbol.CHEVRON_RIGHT,
-            "Toggle replace", "Toggle replace (Ctrl+H)", null, () -> {
-              state.mode = state.mode == Mode.REPLACE ? Mode.FIND : Mode.REPLACE;
-            }).key("toggle-replace")
+        ? tool(
+                t,
+                state.mode == Mode.REPLACE ? Symbol.CHEVRON_DOWN : Symbol.CHEVRON_RIGHT,
+                "Toggle replace",
+                "Toggle replace (Ctrl+H)",
+                null,
+                () -> {
+                  state.mode = state.mode == Mode.REPLACE ? Mode.FIND : Mode.REPLACE;
+                })
+            .key("toggle-replace")
         : null;
     El query = queryField(t, state);
     String said = count(state, text);
-    El count = label(t, Label.Variant.MUTED, said).key("count").shrink(0)
-        .fontFeatures("+tnum");
+    El count = label(t, Label.Variant.MUTED, said).key("count").shrink(0).fontFeatures("+tnum");
     count.style().minWidth = Len.px(3 * t.size().control());
     boolean searchable = !state.query.isEmpty() && state.error == null;
     El findRow = row().gap(t.space().xs()).align(Style.Align.CENTER);
     if (toggle != null) {
       findRow.child(toggle);
     }
-    findRow.child(query)
+    findRow
+        .child(query)
         .child(count)
-        .child(tool(t, Symbol.SELECT_ALL_ON, "Find in selection", "Find in selection (Alt+L)",
-            state.inSelection(), state.scopeTo > state.scopeFrom ? () -> {
-              state.inSelection = !state.inSelection;
-              changed(state);
-            } : null).key("in-selection"))
-        .child(tool(t, Symbol.ARROW_UP, "Previous match", "Previous match (Shift+Enter)", null,
-            searchable ? () -> go(state, -1) : null).key("previous"))
-        .child(tool(t, Symbol.ARROW_DOWN, "Next match", "Next match (Enter)", null,
-            searchable ? () -> go(state, 1) : null).key("next"))
+        .child(tool(
+                t,
+                Symbol.SELECT_ALL_ON,
+                "Find in selection",
+                "Find in selection (Alt+L)",
+                state.inSelection(),
+                state.scopeTo > state.scopeFrom
+                    ? () -> {
+                      state.inSelection = !state.inSelection;
+                      changed(state);
+                    }
+                    : null)
+            .key("in-selection"))
+        .child(tool(
+                t,
+                Symbol.ARROW_UP,
+                "Previous match",
+                "Previous match (Shift+Enter)",
+                null,
+                searchable ? () -> go(state, -1) : null)
+            .key("previous"))
+        .child(tool(
+                t,
+                Symbol.ARROW_DOWN,
+                "Next match",
+                "Next match (Enter)",
+                null,
+                searchable ? () -> go(state, 1) : null)
+            .key("next"))
         .child(tool(t, Symbol.DISMISS, "Close", "Close (Escape)", null, state::close)
             .key("close"));
     panel.child(findRow);
     if (state.mode == Mode.REPLACE) {
       El replace = TextField.textField(t, state.replacement, "Replace", v -> {
-        state.replacement = v;
-        state.replaceError = null;
-      }).key("replace").label("Replace").onKey(k -> {
-        boolean enter = (k.name().equals("Enter") || k.name().equals("NumpadEnter"))
-            && k.modifiers() == 0;
-        if (enter) {
-          replace(app, state);
-        }
-        return enter;
-      });
+            state.replacement = v;
+            state.replaceError = null;
+          })
+          .key("replace")
+          .label("Replace")
+          .onKey(k -> {
+            boolean enter =
+                (k.name().equals("Enter") || k.name().equals("NumpadEnter")) && k.modifiers() == 0;
+            if (enter) {
+              replace(app, state);
+            }
+            return enter;
+          });
       if (state.replaceError != null) {
         replace = Tooltip.tooltip(t, TextField.invalid(t, replace), state.replaceError);
       }
-      panel.child(row().gap(t.space().xs()).align(Style.Align.CENTER)
+      panel.child(row()
+          .gap(t.space().xs())
+          .align(Style.Align.CENTER)
           .padding(0, 0, 0, lead + t.space().xs())
           .child(replace)
-          .child(Button.button(t, Button.Variant.SECONDARY, "Replace",
-              searchable ? () -> replace(app, state) : null).key("replace-one"))
-          .child(Button.button(t, Button.Variant.SECONDARY, "Replace all",
-              searchable ? () -> replaceAll(app, state) : null).key("replace-all")));
+          .child(Button.button(
+                  t,
+                  Button.Variant.SECONDARY,
+                  "Replace",
+                  searchable ? () -> replace(app, state) : null)
+              .key("replace-one"))
+          .child(Button.button(
+                  t,
+                  Button.Variant.SECONDARY,
+                  "Replace all",
+                  searchable ? () -> replaceAll(app, state) : null)
+              .key("replace-all")));
     }
     return bar;
   }
@@ -823,16 +886,20 @@ public final class Find {
   /** The height of the bar, to lay it over the field's top. */
   static float barHeight(Theme t, State state) {
     int rows = state.mode == Mode.REPLACE ? 2 : 1;
-    return rows * t.size().control() + (rows - 1) * t.space().xs()
+    return rows * t.size().control()
+        + (rows - 1) * t.space().xs()
         + 2 * (t.space().xs() + t.size().stroke());
   }
 
   /** The field to find, with the switches of case, words and regular expressions inside. */
   private static El queryField(Theme t, State state) {
     El field = TextField.textField(t, state.query, "Find", v -> {
-      state.query = v;
-      changed(state);
-    }).key("find-field").label("Find").autofocus(state.opened)
+          state.query = v;
+          changed(state);
+        })
+        .key("find-field")
+        .label("Find")
+        .autofocus(state.opened)
         .onSelect((caret, anchor) -> {
           if (state.selectQuery && state.findField != null) {
             state.selectQuery = false;
@@ -854,29 +921,52 @@ public final class Find {
     if (state.error != null) {
       TextField.invalid(t, field);
     }
-    El switches = row().gap(0)
-        .child(tool(t, Symbol.TEXT_CASE_TITLE, "Match case", "Match case (Alt+C)",
-            state.matchCase, () -> {
-              state.matchCase = !state.matchCase;
-              changed(state);
-            }).key("match-case").size(size, size))
-        .child(tool(t, Symbol.TEXT_WHOLE_WORD, "Whole word", "Whole word (Alt+W)",
-            state.wholeWord, () -> {
-              state.wholeWord = !state.wholeWord;
-              changed(state);
-            }).key("whole-word").size(size, size))
-        .child(tool(t, Symbol.TEXT_ASTERISK, "Regular expression", "Regular expression (Alt+R)",
-            state.regex, () -> {
-              state.regex = !state.regex;
-              changed(state);
-            }).key("regex").size(size, size));
+    El switches = row()
+        .gap(0)
+        .child(tool(
+                t,
+                Symbol.TEXT_CASE_TITLE,
+                "Match case",
+                "Match case (Alt+C)",
+                state.matchCase,
+                () -> {
+                  state.matchCase = !state.matchCase;
+                  changed(state);
+                })
+            .key("match-case")
+            .size(size, size))
+        .child(tool(
+                t,
+                Symbol.TEXT_WHOLE_WORD,
+                "Whole word",
+                "Whole word (Alt+W)",
+                state.wholeWord,
+                () -> {
+                  state.wholeWord = !state.wholeWord;
+                  changed(state);
+                })
+            .key("whole-word")
+            .size(size, size))
+        .child(tool(
+                t,
+                Symbol.TEXT_ASTERISK,
+                "Regular expression",
+                "Regular expression (Alt+R)",
+                state.regex,
+                () -> {
+                  state.regex = !state.regex;
+                  changed(state);
+                })
+            .key("regex")
+            .size(size, size));
     Style at = switches.style();
     at.position = Style.Position.ABSOLUTE;
     at.right = Len.px(inset);
     at.top = Len.px(inset);
     El box = el().children(field, switches)
-        .whenFocusWithin(e -> field.border(t.size().stroke(), state.error != null
-            ? t.status().danger() : t.accent().color()));
+        .whenFocusWithin(e -> field.border(
+            t.size().stroke(),
+            state.error != null ? t.status().danger() : t.accent().color()));
     box.style().width = Len.FIT_CONTENT;
     return state.error != null ? Tooltip.tooltip(t, box, state.error) : box;
   }
@@ -884,7 +974,9 @@ public final class Find {
   /** The field of the line to go to and the lines there are. */
   private static El lineRow(Theme t, State state, String text) {
     El field = TextField.textField(t, state.line, "Line or line:column", v -> state.line = v)
-        .key("line-field").label("Go to line").autofocus(state.opened)
+        .key("line-field")
+        .label("Go to line")
+        .autofocus(state.opened)
         .onSelect((caret, anchor) -> {
           if (state.selectQuery && state.lineField != null) {
             state.selectQuery = false;
@@ -892,8 +984,8 @@ public final class Find {
           }
         })
         .onKey(k -> {
-          boolean enter = (k.name().equals("Enter") || k.name().equals("NumpadEnter"))
-              && k.modifiers() == 0;
+          boolean enter =
+              (k.name().equals("Enter") || k.name().equals("NumpadEnter")) && k.modifiers() == 0;
           if (enter) {
             jumpToLine(state);
           }
@@ -907,10 +999,15 @@ public final class Find {
     for (int i = text.indexOf('\n'); i >= 0; i = text.indexOf('\n', i + 1)) {
       lines++;
     }
-    return row().gap(t.space().xs()).align(Style.Align.CENTER)
+    return row()
+        .gap(t.space().xs())
+        .align(Style.Align.CENTER)
         .child(field)
-        .child(label(t, Label.Variant.MUTED, "1 to " + lines).key("count").shrink(0)
-            .fontFeatures("+tnum").margin(0, t.space().s(), 0, t.space().s()))
+        .child(label(t, Label.Variant.MUTED, "1 to " + lines)
+            .key("count")
+            .shrink(0)
+            .fontFeatures("+tnum")
+            .margin(0, t.space().s(), 0, t.space().s()))
         .child(tool(t, Symbol.DISMISS, "Close", "Close (Escape)", null, state::close)
             .key("close"));
   }
@@ -919,19 +1016,22 @@ public final class Find {
    * A small square button with an icon in the bar: a switch when {@code checked} is not null. It
    * leaves the focus where it is when pressed, and Tab reaches it.
    */
-  private static El tool(Theme t, Symbol symbol, String label, String tip, Boolean checked,
-      Runnable onPress) {
+  private static El tool(
+      Theme t, Symbol symbol, String label, String tip, Boolean checked, Runnable onPress) {
     boolean enabled = onPress != null;
     boolean on = checked != null && checked;
-    El button = el().role("button").label(label)
+    El button = el().role("button")
+        .label(label)
         .disabled(!enabled)
         .size(t.size().control(), t.size().control())
         .shrink(0)
         .center()
         .radius(t.radius().small())
         .motion(t.motion().feedback())
-        .child(icon(t, symbol, !enabled ? Icon.Variant.DISABLED
-            : on ? Icon.Variant.NORMAL : Icon.Variant.MUTED));
+        .child(icon(
+            t,
+            symbol,
+            !enabled ? Icon.Variant.DISABLED : on ? Icon.Variant.NORMAL : Icon.Variant.MUTED));
     if (checked != null) {
       button.checked(on);
     }
@@ -942,14 +1042,16 @@ public final class Find {
       return button;
     }
     int rest = on ? t.grid().selected() : 0;
-    button.focusable()
+    button
+        .focusable()
         .keepFocus()
         .focusRing(t.accent().edge())
         .cursor(Cursor.POINTER)
         .onPress(onPress)
-        .whenHovered(e -> e.fill(on ? Theme.over(rest, t.surface().hover()) : t.surface().hover()))
-        .whenPressed(e -> e.fill(on ? Theme.over(rest, t.surface().pressed())
-            : t.surface().pressed()));
+        .whenHovered(
+            e -> e.fill(on ? Theme.over(rest, t.surface().hover()) : t.surface().hover()))
+        .whenPressed(e ->
+            e.fill(on ? Theme.over(rest, t.surface().pressed()) : t.surface().pressed()));
     return Tooltip.tooltip(t, button, tip);
   }
 

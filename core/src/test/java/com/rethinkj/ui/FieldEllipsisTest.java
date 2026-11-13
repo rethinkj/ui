@@ -14,10 +14,18 @@ class FieldEllipsisTest {
   @Test
   void aFieldEndsInAnEllipsisOnlyWithoutTheFocus() {
     TextLibraries.assumeLoaded();
-    App<Object> app = new App<>(new Object(), s -> col().children(
-        El.text("shop.public.orders_by_customer_and_month").editable(v -> {}).readOnly()
-            .ellipsis().key("value").w(80).h(20),
-        El.el().key("other").focusable().size(10, 10)));
+    App<Object> app = new App<>(
+        new Object(),
+        s -> col()
+            .children(
+                El.text("shop.public.orders_by_customer_and_month")
+                    .editable(v -> {})
+                    .readOnly()
+                    .ellipsis()
+                    .key("value")
+                    .w(80)
+                    .h(20),
+                El.el().key("other").focusable().size(10, 10)));
     app.textRendering(TextRendering.LINUX);
     app.resize(200, 100, 1);
     app.frame();

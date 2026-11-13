@@ -16,7 +16,12 @@ package com.rethinkj.ui;
  * @param thumbDragged its colour while it is dragged
  */
 public record Scrollbars(
-    float thickness, float margin, float radius, float minThumb, int thumb, int thumbHovered,
+    float thickness,
+    float margin,
+    float radius,
+    float minThumb,
+    int thumb,
+    int thumbHovered,
     int thumbDragged) {
 
   public Scrollbars {
@@ -39,8 +44,15 @@ public record Scrollbars(
    * @param color the thumb's colour of the moment: at rest, hovered or dragged
    */
   public record Bar(
-      float trackX, float trackY, float trackWidth, float trackHeight, float thumbX, float thumbY,
-      float thumbWidth, float thumbHeight, int color) {
+      float trackX,
+      float trackY,
+      float trackWidth,
+      float trackHeight,
+      float thumbX,
+      float thumbY,
+      float thumbWidth,
+      float thumbHeight,
+      int color) {
 
     Bar color(int argb) {
       return new Bar(

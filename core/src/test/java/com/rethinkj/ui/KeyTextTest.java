@@ -29,12 +29,38 @@ class KeyTextTest {
   }
 
   private static App<Form> app() {
-    App<Form> app = new App<>(new Form(), f -> col().wFull().hFull().padding(20).gap(10).children(
-        El.text(f.name).editable(s -> f.name = s).key("name").w(160).h(28).padding(0, 8),
-        el().key("open").size(40, 20).focusable().onPress(() -> f.dialog = true)
-            .overlay(f.dialog ? col().key("dialog").padding(10).child(
-                El.text(f.inDialog).editable(s -> f.inDialog = s).key("in-dialog").autofocus()
-                    .w(120).h(28)).centerInWindow().modal() : null)));
+    App<Form> app = new App<>(
+        new Form(),
+        f -> col()
+            .wFull()
+            .hFull()
+            .padding(20)
+            .gap(10)
+            .children(
+                El.text(f.name)
+                    .editable(s -> f.name = s)
+                    .key("name")
+                    .w(160)
+                    .h(28)
+                    .padding(0, 8),
+                el().key("open")
+                    .size(40, 20)
+                    .focusable()
+                    .onPress(() -> f.dialog = true)
+                    .overlay(
+                        f.dialog
+                            ? col()
+                                .key("dialog")
+                                .padding(10)
+                                .child(El.text(f.inDialog)
+                                    .editable(s -> f.inDialog = s)
+                                    .key("in-dialog")
+                                    .autofocus()
+                                    .w(120)
+                                    .h(28))
+                                .centerInWindow()
+                                .modal()
+                            : null)));
     app.resize(240, 140, 1);
     app.frame();
     return app;

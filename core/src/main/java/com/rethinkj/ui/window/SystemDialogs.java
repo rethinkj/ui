@@ -57,13 +57,13 @@ public final class SystemDialogs implements Dialogs {
   private static final AtomicLong IDS = new AtomicLong();
 
   /** A dialog that has not answered yet, and the window it belongs to (null for none). */
-  private record Pending(Arena arena, Window owner, Consumer<FileDialog.Choice> chosen,
-      Consumer<String> failed) {}
+  private record Pending(
+      Arena arena, Window owner, Consumer<FileDialog.Choice> chosen, Consumer<String> failed) {}
 
   /** The upcall stub, made on first use and kept for the life of the process. */
   private static final class Upcalls {
-    static final MemorySegment FILES = Window.upcall(MethodHandles.lookup(),
-        SystemDialogs.class, "answer", Sdl.DIALOG_FILE_CALLBACK);
+    static final MemorySegment FILES = Window.upcall(
+        MethodHandles.lookup(), SystemDialogs.class, "answer", Sdl.DIALOG_FILE_CALLBACK);
   }
 
   private final Window window;
@@ -96,8 +96,7 @@ public final class SystemDialogs implements Dialogs {
   }
 
   @Override
-  public void file(FileDialog dialog, Consumer<FileDialog.Choice> chosen,
-      Consumer<String> failed) {
+  public void file(FileDialog dialog, Consumer<FileDialog.Choice> chosen, Consumer<String> failed) {
     if (window != null && !window.isOpen()) {
       failed.accept("The window of this dialog has closed.");
       return;
@@ -122,17 +121,18 @@ public final class SystemDialogs implements Dialogs {
         MemorySegment array = arena.allocate(Sdl.FILTER_SIZE * filters.size(), 8);
         for (int i = 0; i < filters.size(); i++) {
           FileDialog.Filter filter = filters.get(i);
-          array.set(ADDRESS, i * Sdl.FILTER_SIZE + Sdl.FILTER_NAME,
-              arena.allocateFrom(filter.name()));
-          array.set(ADDRESS, i * Sdl.FILTER_SIZE + Sdl.FILTER_PATTERN,
+          array.set(
+              ADDRESS, i * Sdl.FILTER_SIZE + Sdl.FILTER_NAME, arena.allocateFrom(filter.name()));
+          array.set(
+              ADDRESS,
+              i * Sdl.FILTER_SIZE + Sdl.FILTER_PATTERN,
               arena.allocateFrom(String.join(";", filter.extensions())));
         }
         Sdl.setPointerProperty(properties, Sdl.PROP_FILE_DIALOG_FILTERS_POINTER, array);
         Sdl.setNumberProperty(properties, Sdl.PROP_FILE_DIALOG_NFILTERS_NUMBER, filters.size());
       }
       if (window != null) {
-        Sdl.setPointerProperty(properties, Sdl.PROP_FILE_DIALOG_WINDOW_POINTER,
-            window.sdlWindow());
+        Sdl.setPointerProperty(properties, Sdl.PROP_FILE_DIALOG_WINDOW_POINTER, window.sdlWindow());
       }
       String location = location(dialog);
       if (location != null) {
@@ -144,11 +144,15 @@ public final class SystemDialogs implements Dialogs {
       Sdl.setBooleanProperty(properties, Sdl.PROP_FILE_DIALOG_MANY_BOOLEAN, dialog.multiple());
       PENDING.put(id, new Pending(arena, window, chosen, failed));
       registered = true;
-      Sdl.showFileDialogWithProperties(switch (dialog.kind()) {
-        case OPEN -> Sdl.FILEDIALOG_OPENFILE;
-        case SAVE -> Sdl.FILEDIALOG_SAVEFILE;
-        case FOLDER -> Sdl.FILEDIALOG_OPENFOLDER;
-      }, Upcalls.FILES, MemorySegment.ofAddress(id), properties);
+      Sdl.showFileDialogWithProperties(
+          switch (dialog.kind()) {
+            case OPEN -> Sdl.FILEDIALOG_OPENFILE;
+            case SAVE -> Sdl.FILEDIALOG_SAVEFILE;
+            case FOLDER -> Sdl.FILEDIALOG_OPENFOLDER;
+          },
+          Upcalls.FILES,
+          MemorySegment.ofAddress(id),
+          properties);
     } catch (RuntimeException e) {
       // Once registered, the callback may have answered already, and closed the arena.
       if (!registered || PENDING.remove(id) != null) {
@@ -168,9 +172,12 @@ public final class SystemDialogs implements Dialogs {
    * the suggested name; null for neither.
    */
   static String location(FileDialog dialog) {
-    String folder = dialog.folder() == null ? null : dialog.folder().toAbsolutePath().toString();
+    String folder =
+        dialog.folder() == null ? null : dialog.folder().toAbsolutePath().toString();
     if (dialog.fileName() != null) {
-      return folder == null ? dialog.fileName() : Path.of(folder, dialog.fileName()).toString();
+      return folder == null
+          ? dialog.fileName()
+          : Path.of(folder, dialog.fileName()).toString();
     }
     return folder == null || folder.endsWith(File.separator) ? folder : folder + File.separator;
   }
@@ -306,8 +313,8 @@ public final class SystemDialogs implements Dialogs {
         case ERROR -> Sdl.MESSAGEBOX_ERROR;
       };
       data.set(JAVA_INT, Sdl.MESSAGEBOX_FLAGS, kind | Sdl.MESSAGEBOX_BUTTONS_LEFT_TO_RIGHT);
-      data.set(ADDRESS, Sdl.MESSAGEBOX_WINDOW,
-          parent == null ? MemorySegment.NULL : parent.sdlWindow());
+      data.set(
+          ADDRESS, Sdl.MESSAGEBOX_WINDOW, parent == null ? MemorySegment.NULL : parent.sdlWindow());
       data.set(ADDRESS, Sdl.MESSAGEBOX_TITLE, arena.allocateFrom(box.title()));
       data.set(ADDRESS, Sdl.MESSAGEBOX_MESSAGE, arena.allocateFrom(box.text()));
       data.set(JAVA_INT, Sdl.MESSAGEBOX_NUMBUTTONS, buttons.size());
@@ -357,7 +364,10 @@ public final class SystemDialogs implements Dialogs {
   }
 
   private static void tell(String app, Throwable failure) {
-    tell(app, failure, SystemDialogs::show,
+    tell(
+        app,
+        failure,
+        SystemDialogs::show,
         File.separatorChar == '\\' ? box -> Win32.errorBox(box.title(), box.text()) : null);
   }
 
@@ -371,8 +381,7 @@ public final class SystemDialogs implements Dialogs {
    * Windows user32's {@code MessageBoxW}, which needs no SDL, as when SDL itself is the library
    * that cannot load. What neither could show goes into the failure as suppressed exceptions.
    */
-  static void tell(String app, Throwable failure, ToIntFunction<MessageBox> sdl,
-      Shows fallback) {
+  static void tell(String app, Throwable failure, ToIntFunction<MessageBox> sdl, Shows fallback) {
     MessageBox box = MessageBox.error(app, failureText(app, failure));
     try {
       sdl.applyAsInt(box);

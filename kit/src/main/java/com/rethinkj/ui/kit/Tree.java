@@ -120,8 +120,13 @@ public final class Tree {
    * @param onActivate told the node the user activates with a double press or Enter; null for none
    */
   public static <N> El tree(
-      Theme t, Model<N> model, Predicate<? super N> isOpen, N selected,
-      Consumer<? super N> onSelect, Toggle<? super N> onToggle, Consumer<? super N> onActivate) {
+      Theme t,
+      Model<N> model,
+      Predicate<? super N> isOpen,
+      N selected,
+      Consumer<? super N> onSelect,
+      Toggle<? super N> onToggle,
+      Consumer<? super N> onActivate) {
     Rows<N> rows = new Rows<>(model, isOpen, selected);
     float height = t.grid().rowHeight();
     float indent = t.space().xl();
@@ -131,12 +136,15 @@ public final class Tree {
     El tree = col().role("tree").scrollbars(t.scrollbars()).revealRow(rows.selected);
     tree.rows(rows.count, height, i -> {
       N node = rows.node(i);
-      El r = row().key("row-" + i).radius(t.radius().medium())
+      El r = row()
+          .key("row-" + i)
+          .radius(t.radius().medium())
           .padding(0, t.space().s(), 0, t.space().s() + rows.depth(i) * indent)
           .gap(t.space().s())
           .align(Style.Align.CENTER);
       if (node == null) { // the children of the row's parent are not known yet
-        return r.children(el().w(indent).shrink(0),
+        return r.children(
+            el().w(indent).shrink(0),
             Label.label(t, Label.Variant.MUTED, model.loading(rows.parent(i))));
       }
       boolean leaf = model.isLeaf(node);
@@ -158,7 +166,9 @@ public final class Tree {
         }
       }
       String label = model.label(node);
-      r.role("treeitem").label(label).child(mark)
+      r.role("treeitem")
+          .label(label)
+          .child(mark)
           .selected(isSelected)
           .level(rows.depth(i) + 1)
           .position(rows.positions[i], rows.sizes[i]);
@@ -184,17 +194,19 @@ public final class Tree {
           secondary.accept(x, y);
         });
       }
-      return !presses ? r : r.onPress(clicks -> {
-        select.run();
-        if (clicks == 2) {
-          if (!leaf && onToggle != null) {
-            onToggle.toggle(node, !open);
-          }
-          if (onActivate != null) {
-            onActivate.accept(node);
-          }
-        }
-      });
+      return !presses
+          ? r
+          : r.onPress(clicks -> {
+            select.run();
+            if (clicks == 2) {
+              if (!leaf && onToggle != null) {
+                onToggle.toggle(node, !open);
+              }
+              if (onActivate != null) {
+                onActivate.accept(node);
+              }
+            }
+          });
     });
     if (rows.selected >= 0) {
       // When nodes open or close, the number of rows changes: the tree shows the selected node's
@@ -208,15 +220,23 @@ public final class Tree {
     if (onSelect == null) {
       return tree;
     }
-    return tree.focusable().focusRing(t.accent().edge())
+    return tree.focusable()
+        .focusRing(t.accent().edge())
         .whenFocused(e -> focused[0] = true)
         .onKey(k -> key(k, model, isOpen, rows, tree, height, onSelect, onToggle, onActivate));
   }
 
   /** What a key does to the tree with the focus; whether the tree took it. */
   private static <N> boolean key(
-      Key k, Model<N> model, Predicate<? super N> isOpen, Rows<N> rows, El tree, float height,
-      Consumer<? super N> onSelect, Toggle<? super N> onToggle, Consumer<? super N> onActivate) {
+      Key k,
+      Model<N> model,
+      Predicate<? super N> isOpen,
+      Rows<N> rows,
+      El tree,
+      float height,
+      Consumer<? super N> onSelect,
+      Toggle<? super N> onToggle,
+      Consumer<? super N> onActivate) {
     if (k.modifiers() != 0 || rows.count == 0) {
       return false;
     }
@@ -239,7 +259,9 @@ public final class Tree {
         if (!model.isLeaf(node) && !open && onToggle != null) {
           onToggle.toggle(node, true);
         }
-        boolean child = open && from + 1 < rows.count && rows.depth(from + 1) > rows.depth(from)
+        boolean child = open
+            && from + 1 < rows.count
+            && rows.depth(from + 1) > rows.depth(from)
             && rows.node(from + 1) != null;
         yield child ? from + 1 : from;
       }

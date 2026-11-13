@@ -53,8 +53,18 @@ class TextInBatchTest {
   }
 
   private static App<Form> app() {
-    App<Form> app = new App<>(new Form(), f -> col().wFull().hFull().padding(20).child(
-        El.text(f.name).editable(s -> f.name = s).key("name").w(160).h(28).padding(0, 8)));
+    App<Form> app = new App<>(
+        new Form(),
+        f -> col()
+            .wFull()
+            .hFull()
+            .padding(20)
+            .child(El.text(f.name)
+                .editable(s -> f.name = s)
+                .key("name")
+                .w(160)
+                .h(28)
+                .padding(0, 8)));
     app.textRendering(TextRendering.LINUX);
     return app;
   }
@@ -68,9 +78,11 @@ class TextInBatchTest {
     if (System.getProperty("os.name").startsWith("Windows")) {
       SymbolLookup user32 = SymbolLookup.libraryLookup("user32", Arena.global());
       Linker linker = Linker.nativeLinker();
-      post = linker.downcallHandle(user32.find("PostMessageW").orElseThrow(),
+      post = linker.downcallHandle(
+          user32.find("PostMessageW").orElseThrow(),
           FunctionDescriptor.of(JAVA_INT, ADDRESS, JAVA_INT, JAVA_LONG, JAVA_LONG));
-      map = linker.downcallHandle(user32.find("MapVirtualKeyW").orElseThrow(),
+      map = linker.downcallHandle(
+          user32.find("MapVirtualKeyW").orElseThrow(),
           FunctionDescriptor.of(JAVA_INT, JAVA_INT, JAVA_INT));
     }
     POST_MESSAGE = post;
@@ -123,7 +135,10 @@ class TextInBatchTest {
     try (Window window = open(app)) {
       Desktop.click(window, 100, 34); // in the field: text input is off until the loop has it
       abc(window);
-      Desktop.runUntil(window, app, () -> app.state().name.equals("abc"),
+      Desktop.runUntil(
+          window,
+          app,
+          () -> app.state().name.equals("abc"),
           "the keys after the click are in the field");
       assertEquals("abc", app.state().name);
     }
@@ -138,8 +153,8 @@ class TextInBatchTest {
       post(window, WM_CHAR, 'é', 1);
       post(window, WM_CHAR, '\uD83D', 1);
       post(window, WM_CHAR, '\uDE00', 1);
-      Desktop.runUntil(window, app, () -> app.state().name.equals("é😀"),
-          "the characters are in the field");
+      Desktop.runUntil(
+          window, app, () -> app.state().name.equals("é😀"), "the characters are in the field");
     }
   }
 
@@ -169,14 +184,18 @@ class TextInBatchTest {
       window.stopTextInput();
       Window.pollEvents();
       List<String> keys = events.stream()
-          .filter(e -> e instanceof WindowEvent.KeyDown || e instanceof WindowEvent.KeyText
+          .filter(e -> e instanceof WindowEvent.KeyDown
+              || e instanceof WindowEvent.KeyText
               || e instanceof WindowEvent.TextInput)
           .map(e -> e instanceof WindowEvent.KeyDown(Key k)
-              ? k.name() + " " + k.modifiers() : e.toString())
+              ? k.name() + " " + k.modifiers()
+              : e.toString())
           .toList();
       int altGr = Key.CONTROL | Key.ALT;
-      assertEquals(List.of("Q " + altGr, "KeyText[text=@]", "Q " + Key.ALT, "E " + altGr,
-          "TextInput[text=€]"), keys);
+      assertEquals(
+          List.of(
+              "Q " + altGr, "KeyText[text=@]", "Q " + Key.ALT, "E " + altGr, "TextInput[text=€]"),
+          keys);
     }
   }
 
@@ -186,8 +205,8 @@ class TextInBatchTest {
     try (Window window = open(app)) {
       key(window, 0x09); // Tab, from nothing to the field; its character is not text
       abc(window);
-      Desktop.runUntil(window, app, () -> app.state().name.equals("abc"),
-          "the keys after Tab are in the field");
+      Desktop.runUntil(
+          window, app, () -> app.state().name.equals("abc"), "the keys after Tab are in the field");
     }
   }
 }

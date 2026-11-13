@@ -33,8 +33,16 @@ final class Orders {
     "Ada", "Grace", "Linus", "Margaret", "Ken", "Barbara", "Edsger", "Frances", "Donald", "Radia"
   };
   private static final String[] LAST = {
-    "Lovelace", "Hopper", "Torvalds", "Hamilton", "Thompson", "Liskov", "Dijkstra", "Allen",
-    "Knuth", "Perlman"
+    "Lovelace",
+    "Hopper",
+    "Torvalds",
+    "Hamilton",
+    "Thompson",
+    "Liskov",
+    "Dijkstra",
+    "Allen",
+    "Knuth",
+    "Perlman"
   };
   private static final String[] STATUS = {"paid", "pending", "shipped", "refunded"};
   private static final LocalDateTime START = LocalDateTime.of(2026, 3, 1, 8, 0);
@@ -46,12 +54,22 @@ final class Orders {
   private static final List<Column> BASE = List.of(
       new Column("id", 64, Align.RIGHT, true, i -> String.valueOf(i + 1)),
       new Column("customer", 140, Align.LEFT, false, Orders::customer),
-      new Column("email", 200, Align.LEFT, false,
+      new Column(
+          "email",
+          200,
+          Align.LEFT,
+          false,
           i -> customer(i).toLowerCase(Locale.ROOT).replace(' ', '.') + "@example.com"),
-      new Column("created_at", 150, Align.LEFT, true,
-          i -> START.plusSeconds(i * 97L).format(TIME)),
-      new Column("amount", 90, Align.RIGHT, true, i -> i % 11 == 5 ? null
-          : String.format(Locale.ROOT, "%d.%02d", i * 7919 % 250_000 / 100, i * 13 % 100)),
+      new Column(
+          "created_at", 150, Align.LEFT, true, i -> START.plusSeconds(i * 97L).format(TIME)),
+      new Column(
+          "amount",
+          90,
+          Align.RIGHT,
+          true,
+          i -> i % 11 == 5
+              ? null
+              : String.format(Locale.ROOT, "%d.%02d", i * 7919 % 250_000 / 100, i * 13 % 100)),
       new Column("status", 80, Align.LEFT, false, i -> STATUS[i * 7 % STATUS.length]),
       new Column("note", 240, Align.LEFT, false, i -> i % 3 != 1 ? null : NOTE));
 
@@ -59,8 +77,8 @@ final class Orders {
   static final CellIcon PAID = CellIcon.instead(Symbol.CHECKMARK, Icon.Variant.SUCCESS);
   static final CellIcon UNPAID = CellIcon.instead(Symbol.SUBTRACT, Icon.Variant.MUTED);
   static final CellIcon UNKNOWN = CellIcon.instead(Symbol.PROHIBITED, Icon.Variant.MUTED);
-  static final CellIcon LINK = CellIcon.before(Symbol.LINK, Icon.Variant.MUTED)
-      .tooltip("References customers.id");
+  static final CellIcon LINK =
+      CellIcon.before(Symbol.LINK, Icon.Variant.MUTED).tooltip("References customers.id");
   private static final CellIcon[] MARKS = {
     CellIcon.before(Symbol.RECORD, Icon.Variant.SUCCESS),
     CellIcon.before(Symbol.RECORD, Icon.Variant.WARNING),
@@ -75,19 +93,33 @@ final class Orders {
    */
   private static final List<Column> TYPED = List.of(
       new Column("id", 64, DataType.INTEGER, i -> String.valueOf(i + 1))
-          .typeName("bigint").icon(Symbol.KEY, Icon.Variant.WARNING),
+          .typeName("bigint")
+          .icon(Symbol.KEY, Icon.Variant.WARNING),
       new Column("customer_id", 128, DataType.INTEGER, i -> String.valueOf(1 + i * 7919 % 5000))
-          .typeName("integer").icon(Symbol.LINK).cellIcon(i -> LINK),
+          .typeName("integer")
+          .icon(Symbol.LINK)
+          .cellIcon(i -> LINK),
       new Column("customer", 140, DataType.TEXT, Orders::customer).typeName("text"),
-      new Column("paid", 80, DataType.BOOLEAN, Orders::paid).typeName("boolean")
+      new Column("paid", 80, DataType.BOOLEAN, Orders::paid)
+          .typeName("boolean")
           .cellIcon(i -> paid(i) == null ? UNKNOWN : paid(i).equals("true") ? PAID : UNPAID),
       new Column("status", 130, DataType.ENUM, i -> STATUS[i * 7 % STATUS.length])
-          .typeName("order_status").cellIcon(i -> MARKS[i * 7 % STATUS.length]),
-      new Column("amount", 100, DataType.DECIMAL, i -> i % 11 == 5 ? null
-          : String.format(Locale.ROOT, "%d.%02d", i * 7919 % 250_000 / 100, i * 13 % 100))
+          .typeName("order_status")
+          .cellIcon(i -> MARKS[i * 7 % STATUS.length]),
+      new Column(
+              "amount",
+              100,
+              DataType.DECIMAL,
+              i -> i % 11 == 5
+                  ? null
+                  : String.format(Locale.ROOT, "%d.%02d", i * 7919 % 250_000 / 100, i * 13 % 100))
           .typeName("numeric(10,2)"),
-      new Column("created_at", 190, DataType.DATE_TIME,
-          i -> START.plusSeconds(i * 97L).format(TIME)).typeName("timestamptz"),
+      new Column(
+              "created_at",
+              190,
+              DataType.DATE_TIME,
+              i -> START.plusSeconds(i * 97L).format(TIME))
+          .typeName("timestamptz"),
       new Column("note", 240, DataType.TEXT, i -> i % 3 != 1 ? null : NOTE).typeName("text"));
 
   final Theme theme;
@@ -155,37 +187,56 @@ final class Orders {
       IntFunction<CellIcon> icons = column.cellIcon();
       Column made = new Column(
           c < base.size() ? column.title() : column.title() + "_" + c / base.size(),
-          widths[c], column.align(), column.mono(), c != unsortable, i -> {
+          widths[c],
+          column.align(),
+          column.mono(),
+          c != unsortable,
+          i -> {
             asked.add(i);
             return cell.apply(i);
-          }, bare ? null : column.icon(), column.iconVariant(), bare ? null : column.typeName(),
-          bare || icons == null ? null : i -> {
-            askedIcons.add(i);
-            return icons.apply(i);
-          });
+          },
+          bare ? null : column.icon(),
+          column.iconVariant(),
+          bare ? null : column.typeName(),
+          bare || icons == null
+              ? null
+              : i -> {
+                askedIcons.add(i);
+                return icons.apply(i);
+              });
       columns.add(editable ? made.editable() : made);
     }
     return columns;
   }
 
   El view() {
-    return col().wFull().hFull().padding(theme.space().m()).fill(theme.surface().panel())
+    return col()
+        .wFull()
+        .hFull()
+        .padding(theme.space().m())
+        .fill(theme.surface().panel())
         .child(grid().key("orders").label("Orders").grow(1));
   }
 
   El grid() {
-    return dataGrid(theme, columns(), count, more.apply(DataGrid.options()
-        .select(selection)
-        .onSelect(() -> log.add("select " + selection.row()))
-        .onResize((c, w) -> {
-          log.add("resize " + c + " " + w);
-          widths[c] = w;
-        })
-        .sort(sort, keys -> {
-          log.add("sort " + keys.stream()
-              .map(k -> (k.descending() ? "-" : "+") + k.column()).toList());
-          sort = keys;
-        })));
+    return dataGrid(
+        theme,
+        columns(),
+        count,
+        more.apply(DataGrid.options()
+            .select(selection)
+            .onSelect(() -> log.add("select " + selection.row()))
+            .onResize((c, w) -> {
+              log.add("resize " + c + " " + w);
+              widths[c] = w;
+            })
+            .sort(sort, keys -> {
+              log.add("sort "
+                  + keys.stream()
+                      .map(k -> (k.descending() ? "-" : "+") + k.column())
+                      .toList());
+              sort = keys;
+            })));
   }
 
   /**
@@ -195,11 +246,12 @@ final class Orders {
   static Orders cells(Theme theme) {
     Orders orders = new Orders(theme, 1_000_000, BASE.size(), Mode.CELLS);
     orders.loaded = 1000;
-    orders.more = o -> o.rowNumbers().frozen(1)
+    orders.more = o -> o.rowNumbers()
+        .frozen(1)
         .copy(orders.app.clipboard())
         .contextMenu(orders.menu, List.of(Menu.item("Export…", () -> orders.log.add("export"))))
-        .loading(i -> i < orders.loaded, (first, last) -> orders.log.add(
-            "rows " + first + "-" + last));
+        .loading(
+            i -> i < orders.loaded, (first, last) -> orders.log.add("rows " + first + "-" + last));
     return orders;
   }
 

@@ -32,27 +32,24 @@ class TaffyFlexTest {
    * The test cases that are left out, by what they use. A case that uses a style property or value
    * not listed here and not known to {@link #style} fails.
    */
-  private static final List<Skip> SKIPPED =
-      List.of(
-          new Skip("Style has no writing direction, so no rtl", uses("direction", "rtl")),
-          new Skip("block and grid layout are not implemented", uses("display", "block|grid")),
-          new Skip(
-              "Style has no position: static, which the data writes by leaving position out",
-              xml -> xml.anyMatch(element -> !element.attributes.containsKey("position"))),
-          new Skip(
-              "Style has no flex-wrap: balance and no flex-line-count",
-              uses("flex-wrap", ".*balance").or(uses("flex-line-count", ".*"))),
-          new Skip(
-              "Style.Align and Style.Content have no safe and unsafe",
-              uses("align-items|align-self|align-content|justify-content", "(un)?safe .*")),
-          new Skip(
-              "Style.Align has no self-start and self-end",
-              uses("align-items|align-self", "self-(start|end)")),
-          new Skip(
-              "Len has no min-content, max-content, fit-content, stretch and content",
-              uses(
-                  "width|height|flex-basis",
-                  "min-content|max-content|fit-content|stretch|content")));
+  private static final List<Skip> SKIPPED = List.of(
+      new Skip("Style has no writing direction, so no rtl", uses("direction", "rtl")),
+      new Skip("block and grid layout are not implemented", uses("display", "block|grid")),
+      new Skip(
+          "Style has no position: static, which the data writes by leaving position out",
+          xml -> xml.anyMatch(element -> !element.attributes.containsKey("position"))),
+      new Skip(
+          "Style has no flex-wrap: balance and no flex-line-count",
+          uses("flex-wrap", ".*balance").or(uses("flex-line-count", ".*"))),
+      new Skip(
+          "Style.Align and Style.Content have no safe and unsafe",
+          uses("align-items|align-self|align-content|justify-content", "(un)?safe .*")),
+      new Skip(
+          "Style.Align has no self-start and self-end",
+          uses("align-items|align-self", "self-(start|end)")),
+      new Skip(
+          "Len has no min-content, max-content, fit-content, stretch and content",
+          uses("width|height|flex-basis", "min-content|max-content|fit-content|stretch|content")));
 
   private record Skip(String reason, Predicate<Xml> applies) {}
 
@@ -69,7 +66,8 @@ class TaffyFlexTest {
     List<Xml> cases = cases();
     for (Skip skip : SKIPPED) {
       assertTrue(
-          cases.stream().anyMatch(test -> skip.applies.test(test.child("input").children.get(0))),
+          cases.stream()
+              .anyMatch(test -> skip.applies.test(test.child("input").children.get(0))),
           "no test case is skipped because: " + skip.reason);
     }
   }
@@ -99,14 +97,13 @@ class TaffyFlexTest {
     StringBuilder differences = new StringBuilder();
     compare(root, expected, "root", differences);
     if (!differences.isEmpty()) {
-      fail(
-          test.get("name")
-              + "\n"
-              + differences
-              + "\nlayout:\n"
-              + root.dump()
-              + "\ninput:\n"
-              + input);
+      fail(test.get("name")
+          + "\n"
+          + differences
+          + "\nlayout:\n"
+          + root.dump()
+          + "\ninput:\n"
+          + input);
     }
   }
 
@@ -162,7 +159,7 @@ class TaffyFlexTest {
       case "scrollbar-width" -> s.scrollbarWidth = Float.parseFloat(value);
       case "flex-direction" -> s.direction = keyword(Style.Direction.class, value);
       case "flex-wrap" ->
-          s.wrap = keyword(Style.Wrap.class, value.equals("nowrap") ? "no-wrap" : value);
+        s.wrap = keyword(Style.Wrap.class, value.equals("nowrap") ? "no-wrap" : value);
       case "align-items" -> s.alignItems = keyword(Style.Align.class, value);
       case "align-self" -> s.alignSelf = keyword(Style.Align.class, value);
       case "align-content" -> s.alignContent = keyword(Style.Content.class, value);
@@ -249,10 +246,9 @@ class TaffyFlexTest {
       float block = vertical ? knownWidth : knownHeight;
       float available = vertical ? availableHeight : availableWidth;
       if (Float.isNaN(inline)) {
-        inline =
-            available == Measure.MIN_CONTENT
-                ? minContent
-                : available == Measure.MAX_CONTENT ? maxContent : Math.min(available, maxContent);
+        inline = available == Measure.MIN_CONTENT
+            ? minContent
+            : available == Measure.MAX_CONTENT ? maxContent : Math.min(available, maxContent);
       }
       inline = Math.max(inline, minContent);
       if (Float.isNaN(block)) {
@@ -281,14 +277,9 @@ class TaffyFlexTest {
   private static Predicate<Xml> uses(String names, String values) {
     Pattern name = Pattern.compile(names);
     Pattern value = Pattern.compile(values);
-    return xml ->
-        xml.anyMatch(
-            element ->
-                element.attributes.entrySet().stream()
-                    .anyMatch(
-                        attribute ->
-                            name.matcher(attribute.getKey()).matches()
-                                && value.matcher(attribute.getValue()).matches()));
+    return xml -> xml.anyMatch(element -> element.attributes.entrySet().stream()
+        .anyMatch(attribute -> name.matcher(attribute.getKey()).matches()
+            && value.matcher(attribute.getValue()).matches()));
   }
 
   private static final class Xml {
@@ -302,7 +293,10 @@ class TaffyFlexTest {
     }
 
     Xml child(String name) {
-      return children.stream().filter(child -> child.name.equals(name)).findFirst().orElseThrow();
+      return children.stream()
+          .filter(child -> child.name.equals(name))
+          .findFirst()
+          .orElseThrow();
     }
 
     /** Whether this element or one below it matches. */

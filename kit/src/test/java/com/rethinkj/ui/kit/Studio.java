@@ -35,7 +35,8 @@ final class Studio {
   final CommandPalette.State palette = new CommandPalette.State();
   // The tables the palette finds after @, kept so that it filters each list once.
   final List<FilterList.Entry> tables = java.util.Arrays.stream(Bench.TABLES)
-      .map(name -> FilterList.entry(name, () -> status = "Open " + name).symbol(Symbol.TABLE)
+      .map(name -> FilterList.entry(name, () -> status = "Open " + name)
+          .symbol(Symbol.TABLE)
           .detail("shop.public." + name))
       .toList();
   java.util.function.Function<String, List<FilterList.Entry>> server; // what # asks, or null
@@ -63,60 +64,82 @@ final class Studio {
 
   List<Menu.Item> menus() {
     return List.of(
-        Menu.submenu("&File", List.of(
-            Menu.item("New query", says("New query")).icon(Symbol.ADD)
-                .shortcut(Key.CONTROL, "N"),
-            Menu.item("Open…", says("Open")).icon(Symbol.FOLDER_OPEN)
-                .shortcut(Key.CONTROL, "O"),
-            Menu.item("Save", says("Saved")).icon(Symbol.SAVE).shortcut(Key.CONTROL, "S"),
-            Menu.separator(),
-            Menu.submenu("Export", List.of(
-                Menu.item("CSV", says("Exported as CSV")),
-                Menu.item("JSON", says("Exported as JSON")),
-                Menu.submenu("SQL", List.of(
-                    Menu.item("Inserts", says("Exported as inserts")),
-                    Menu.submenu("Script", List.of(
-                        Menu.item("Schema", says("Exported the schema")),
-                        Menu.item("Schema and data", says("Exported everything")))))))),
-            Menu.separator(),
-            Menu.item("Close", null).shortcut(Key.CONTROL, "W"),
-            Menu.item("Quit", says("Quit")).shortcut(Key.CONTROL, "Q"))),
-        Menu.submenu("&Edit", List.of(
-            Menu.item("Undo", says("Undone")).icon(Symbol.ARROW_UNDO)
-                .shortcut(Key.CONTROL, "Z"),
-            Menu.item("Redo", says("Redone")).icon(Symbol.ARROW_REDO)
-                .shortcut(Key.CONTROL | Key.SHIFT, "Z"),
-            Menu.separator(),
-            Menu.item("Cut", says("Cut")).icon(Symbol.CUT).shortcut(Key.CONTROL, "X"),
-            Menu.item("Copy", says("Copied")).icon(Symbol.COPY).shortcut(Key.CONTROL, "C"),
-            Menu.item("Paste", says("Pasted")).icon(Symbol.CLIPBOARD_PASTE)
-                .shortcut(Key.CONTROL, "V"),
-            Menu.separator(),
-            Menu.item("Clear", this::clear).icon(Symbol.DELETE))),
-        Menu.submenu("&View", List.of(
-            Menu.item("Word wrap", () -> wrap = !wrap).checked(wrap),
-            Menu.item("Line numbers", () -> numbers = !numbers).checked(numbers),
-            Menu.separator(),
-            Menu.item("Refresh", says("Refreshed")).icon(Symbol.ARROW_CLOCKWISE)
-                .shortcut(0, "F5"))),
-        Menu.submenu("&Help", List.of(
-            Menu.item("About", says("About")).icon(Symbol.INFO))));
+        Menu.submenu(
+            "&File",
+            List.of(
+                Menu.item("New query", says("New query"))
+                    .icon(Symbol.ADD)
+                    .shortcut(Key.CONTROL, "N"),
+                Menu.item("Open…", says("Open"))
+                    .icon(Symbol.FOLDER_OPEN)
+                    .shortcut(Key.CONTROL, "O"),
+                Menu.item("Save", says("Saved")).icon(Symbol.SAVE).shortcut(Key.CONTROL, "S"),
+                Menu.separator(),
+                Menu.submenu(
+                    "Export",
+                    List.of(
+                        Menu.item("CSV", says("Exported as CSV")),
+                        Menu.item("JSON", says("Exported as JSON")),
+                        Menu.submenu(
+                            "SQL",
+                            List.of(
+                                Menu.item("Inserts", says("Exported as inserts")),
+                                Menu.submenu(
+                                    "Script",
+                                    List.of(
+                                        Menu.item("Schema", says("Exported the schema")),
+                                        Menu.item(
+                                            "Schema and data", says("Exported everything")))))))),
+                Menu.separator(),
+                Menu.item("Close", null).shortcut(Key.CONTROL, "W"),
+                Menu.item("Quit", says("Quit")).shortcut(Key.CONTROL, "Q"))),
+        Menu.submenu(
+            "&Edit",
+            List.of(
+                Menu.item("Undo", says("Undone"))
+                    .icon(Symbol.ARROW_UNDO)
+                    .shortcut(Key.CONTROL, "Z"),
+                Menu.item("Redo", says("Redone"))
+                    .icon(Symbol.ARROW_REDO)
+                    .shortcut(Key.CONTROL | Key.SHIFT, "Z"),
+                Menu.separator(),
+                Menu.item("Cut", says("Cut")).icon(Symbol.CUT).shortcut(Key.CONTROL, "X"),
+                Menu.item("Copy", says("Copied")).icon(Symbol.COPY).shortcut(Key.CONTROL, "C"),
+                Menu.item("Paste", says("Pasted"))
+                    .icon(Symbol.CLIPBOARD_PASTE)
+                    .shortcut(Key.CONTROL, "V"),
+                Menu.separator(),
+                Menu.item("Clear", this::clear).icon(Symbol.DELETE))),
+        Menu.submenu(
+            "&View",
+            List.of(
+                Menu.item("Word wrap", () -> wrap = !wrap).checked(wrap),
+                Menu.item("Line numbers", () -> numbers = !numbers).checked(numbers),
+                Menu.separator(),
+                Menu.item("Refresh", says("Refreshed"))
+                    .icon(Symbol.ARROW_CLOCKWISE)
+                    .shortcut(0, "F5"))),
+        Menu.submenu("&Help", List.of(Menu.item("About", says("About")).icon(Symbol.INFO))));
   }
 
   /** The palette's commands: the menus', then two of its own that ask for a second step. */
   private List<FilterList.Entry> commands(List<Menu.Item> menus) {
     List<FilterList.Entry> commands = new java.util.ArrayList<>(CommandPalette.commands(menus));
     commands.add(FilterList.entry("Change theme…", this::changeTheme));
-    commands.add(FilterList.entry("Rename query…", () -> palette.ask(CommandPalette.Stage.input(
-        "The query's new name", "orders", name -> status = "Renamed to " + name))));
+    commands.add(FilterList.entry(
+        "Rename query…",
+        () -> palette.ask(CommandPalette.Stage.input(
+            "The query's new name", "orders", name -> status = "Renamed to " + name))));
     return commands;
   }
 
   private List<CommandPalette.Source> sources() {
-    List<CommandPalette.Source> sources = new java.util.ArrayList<>(List.of(
-        new CommandPalette.Source("@", "to open a table", FilterList.Entries.of(tables))));
+    List<CommandPalette.Source> sources = new java.util.ArrayList<>(
+        List.of(new CommandPalette.Source("@", "to open a table", FilterList.Entries.of(tables))));
     if (server != null) {
-      sources.add(new CommandPalette.Source("#", "to ask the server",
+      sources.add(new CommandPalette.Source(
+          "#",
+          "to ask the server",
           FilterList.Entries.background(app, "tables of the server", server)));
     }
     return sources;
@@ -142,34 +165,65 @@ final class Studio {
 
   El view() {
     List<Menu.Item> menus = menus();
-    El titleBar = row().key("titlebar").wFull().h(32).shrink(0).align(Style.Align.CENTER)
-        .padding(0, 0, 0, t.space().m()).gap(t.space().s())
-        .fill(t.surface().panel()).windowPart(WindowPart.DRAG)
+    El titleBar = row()
+        .key("titlebar")
+        .wFull()
+        .h(32)
+        .shrink(0)
+        .align(Style.Align.CENTER)
+        .padding(0, 0, 0, t.space().m())
+        .gap(t.space().s())
+        .fill(t.surface().panel())
+        .windowPart(WindowPart.DRAG)
         .children(
             icon(t, Symbol.DATABASE, Icon.Variant.MUTED),
             MenuBar.menuBar(t, bar, menus),
             el().grow(1),
             frameButton(WindowPart.MINIMIZE, "Minimize", Symbol.SUBTRACT),
             frameButton(WindowPart.CLOSE, "Close", Symbol.DISMISS));
-    return col().wFull().hFull().fill(t.surface().window())
+    return col()
+        .wFull()
+        .hFull()
+        .fill(t.surface().window())
         .children(
             titleBar,
-            col().grow(1).padding(t.space().l()).gap(t.space().m()).children(
-                textField(t, query, "Query", v -> query = v).key("query").wFull(),
-                label(t, Label.Variant.MUTED, status + (wrap ? " · wrap" : "")
-                    + (numbers ? " · numbers" : "")).key("status")))
+            col()
+                .grow(1)
+                .padding(t.space().l())
+                .gap(t.space().m())
+                .children(
+                    textField(t, query, "Query", v -> query = v).key("query").wFull(),
+                    label(
+                            t,
+                            Label.Variant.MUTED,
+                            status + (wrap ? " · wrap" : "") + (numbers ? " · numbers" : ""))
+                        .key("status")))
         .onKey(MenuBar.keys(bar, menus).or(CommandPalette.keys(palette)))
         .onKeyUp(MenuBar.keysUp(bar, menus))
         .overlay(CommandPalette.palette(t, palette, commands(menus), sources()))
-        .overlay(cleared == null ? null : Toast.toast(t, "Query cleared", "Undo", () -> {
-          query = cleared;
-          status = "Restored";
-        }, () -> cleared = null));
+        .overlay(
+            cleared == null
+                ? null
+                : Toast.toast(
+                    t,
+                    "Query cleared",
+                    "Undo",
+                    () -> {
+                      query = cleared;
+                      status = "Restored";
+                    },
+                    () -> cleared = null));
   }
 
   private El frameButton(WindowPart part, String label, Symbol symbol) {
-    return row().key(part.name().toLowerCase(java.util.Locale.ROOT)).role("button").label(label)
-        .size(40, 32).center().windowPart(part).child(icon(t, symbol));
+    return row()
+        .key(part.name().toLowerCase(java.util.Locale.ROOT))
+        .role("button")
+        .label(label)
+        .size(40, 32)
+        .center()
+        .windowPart(part)
+        .child(icon(t, symbol));
   }
 
   /**
@@ -190,13 +244,15 @@ final class Studio {
     App<Studio> app = studio.app();
     String script = Files.readString(Path.of("src/test/resources/scripts", file + ".txt"));
     Path folder = out.resolve(file + "-" + theme + "-" + scale + "x");
-    List<Path> files = Script.run(
-        "size " + width + " " + height + " scale " + scale + "\n" + script, app, folder);
+    List<Path> files =
+        Script.run("size " + width + " " + height + " scale " + scale + "\n" + script, app, folder);
     for (int i = 0; i < files.size(); i += 2) {
       String snap = files.get(i).getFileName().toString().replace(".png", "");
       assertEquals(snap + ".tree.txt", files.get(i + 1).getFileName().toString());
-      Golden.assertMatches(file + "-" + theme + "-" + scale + "x-" + snap,
-          Png.decode(Files.readAllBytes(files.get(i))), Files.readString(files.get(i + 1)));
+      Golden.assertMatches(
+          file + "-" + theme + "-" + scale + "x-" + snap,
+          Png.decode(Files.readAllBytes(files.get(i))),
+          Files.readString(files.get(i + 1)));
     }
     return app;
   }
@@ -204,7 +260,7 @@ final class Studio {
   /** The tree of a snap of the last {@link #assertScript} with these arguments. */
   static String tree(Path out, String file, String theme, int scale, String snap)
       throws IOException {
-    return Files.readString(out.resolve(file + "-" + theme + "-" + scale + "x")
-        .resolve(snap + ".tree.txt"));
+    return Files.readString(
+        out.resolve(file + "-" + theme + "-" + scale + "x").resolve(snap + ".tree.txt"));
   }
 }

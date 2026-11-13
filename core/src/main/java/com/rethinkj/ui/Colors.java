@@ -51,8 +51,10 @@ public final class Colors {
 
   /** The colour of these channels, each from 0 to 255. */
   public static int argb(int alpha, int red, int green, int blue) {
-    return channel("alpha", alpha) << 24 | channel("red", red) << 16
-        | channel("green", green) << 8 | channel("blue", blue);
+    return channel("alpha", alpha) << 24
+        | channel("red", red) << 16
+        | channel("green", green) << 8
+        | channel("blue", blue);
   }
 
   /**
@@ -99,8 +101,8 @@ public final class Colors {
       int value = Integer.parseUnsignedInt(digits, 16);
       return digits.length() == 6 ? 0xFF000000 | value : value;
     }
-    throw new IllegalArgumentException("\"" + text
-        + "\" is no colour: write #RRGGBB, as #3D6FE6, or #AARRGGBB, as #663D6FE6");
+    throw new IllegalArgumentException(
+        "\"" + text + "\" is no colour: write #RRGGBB, as #3D6FE6, or #AARRGGBB, as #663D6FE6");
   }
 
   /** The colour as {@code #RRGGBB} when it is opaque, else as {@code #AARRGGBB}, in capitals. */
@@ -138,8 +140,8 @@ public final class Colors {
     int alpha = (int) Math.round(alpha(a) + (alpha(b) - alpha(a)) * t);
     int argb = alpha;
     for (int shift = 16; shift >= 0; shift -= 8) {
-      double mixed = linear((a >>> shift & 0xFF) / 255.0) * (1 - t)
-          + linear((b >>> shift & 0xFF) / 255.0) * t;
+      double mixed =
+          linear((a >>> shift & 0xFF) / 255.0) * (1 - t) + linear((b >>> shift & 0xFF) / 255.0) * t;
       argb = argb << 8 | (int) Math.round(srgb(mixed) * 255);
     }
     return argb;
@@ -147,7 +149,8 @@ public final class Colors {
 
   /** WCAG's relative luminance, from 0 for black to 1 for white; the alpha is ignored. */
   public static double luminance(int argb) {
-    return 0.2126 * linear(red(argb) / 255.0) + 0.7152 * linear(green(argb) / 255.0)
+    return 0.2126 * linear(red(argb) / 255.0)
+        + 0.7152 * linear(green(argb) / 255.0)
         + 0.0722 * linear(blue(argb) / 255.0);
   }
 
@@ -174,9 +177,7 @@ public final class Colors {
 
   /** A value in linear light from 0 to 1 as sRGB, from 0 to 1, not rounded. */
   public static double srgb(double linear) {
-    return linear <= 0.0031308
-        ? linear * 12.92
-        : 1.055 * StrictMath.pow(linear, 1 / 2.4) - 0.055;
+    return linear <= 0.0031308 ? linear * 12.92 : 1.055 * StrictMath.pow(linear, 1 / 2.4) - 0.055;
   }
 
   private static int channel(String name, int value) {

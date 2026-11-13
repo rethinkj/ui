@@ -38,13 +38,13 @@ class ScriptTest {
   private static final Path OVERLAY = Path.of("src/test/resources/scripts/overlay.txt");
   private static final Path SHAPES = Path.of("src/test/resources/scripts/shapes.txt");
 
-  @TempDir Path out;
+  @TempDir
+  Path out;
 
   @Test
   void reproducesTheStoredFramesOfTheSwitch() throws IOException {
     TextLibraries.assumeLoaded();
-    String script =
-        """
+    String script = """
         size 200 120
         frame
         snap switch-off
@@ -70,15 +70,14 @@ class ScriptTest {
         frame
         snap switch-on
         """;
-    List<String> names =
-        List.of(
-            "switch-off",
-            "switch-moving-040ms",
-            "switch-moving-080ms",
-            "switch-moving-120ms",
-            "switch-moving-160ms",
-            "switch-moving-200ms",
-            "switch-on");
+    List<String> names = List.of(
+        "switch-off",
+        "switch-moving-040ms",
+        "switch-moving-080ms",
+        "switch-moving-120ms",
+        "switch-moving-160ms",
+        "switch-moving-200ms",
+        "switch-on");
     App<Lights> app = new App<>(new Lights(), Examples::lights);
     app.textRendering(TextRendering.LINUX);
     List<Path> written = Script.run(script, app, out);
@@ -140,8 +139,8 @@ class ScriptTest {
     Examples.main(new String[] {"rows", "--script", ROWS.toString(), "--out", out.toString()});
 
     assertSnapsMatchGolden(List.of("rows-top", "rows-scrolled", "rows-far"));
-    assertTrue(
-        Files.readString(out.resolve("rows-far.tree.txt")).contains(
+    assertTrue(Files.readString(out.resolve("rows-far.tree.txt"))
+        .contains(
             "el #rows role=grid 16,44 248x160 rows 765429-765440/1000000 scroll 0,21432096\n"));
   }
 
@@ -156,17 +155,18 @@ class ScriptTest {
     Examples.main(new String[] {"bars", "--script", BARS.toString(), "--out", out.toString()});
 
     assertSnapsMatchGolden(List.of("bars-top", "bars-end", "bars-paged", "bars-back"));
-    assertTrue(Files.readString(out.resolve("bars-top.tree.txt")).contains(
-        "el #rows role=grid 16,44 248x160 rows 0-8/1000000 thumb-y 256,46 6x24\n"));
-    assertTrue(Files.readString(out.resolve("bars-end.tree.txt")).contains(
-        "el #rows role=grid 16,44 248x160 rows 999991-999999/1000000 scroll 0,27999840"
+    assertTrue(Files.readString(out.resolve("bars-top.tree.txt"))
+        .contains("el #rows role=grid 16,44 248x160 rows 0-8/1000000 thumb-y 256,46 6x24\n"));
+    assertTrue(Files.readString(out.resolve("bars-end.tree.txt"))
+        .contains("el #rows role=grid 16,44 248x160 rows 999991-999999/1000000 scroll 0,27999840"
             + " thumb-y 256,178 6x24 hovered\n"));
     assertTrue(Files.readString(out.resolve("bars-end.tree.txt"))
         .contains("el #row-999999 role=row label=\"suppliers\" 16,176 248x28"
             + " pos=1000000/1000000\n"));
-    assertTrue(Files.readString(out.resolve("bars-paged.tree.txt")).contains(" scroll 0,27999680 "));
-    assertTrue(Files.readString(out.resolve("bars-back.tree.txt")).contains(
-        "el #rows role=grid 16,44 248x160 rows 0-8/1000000 thumb-y 256,46 6x24\n"));
+    assertTrue(
+        Files.readString(out.resolve("bars-paged.tree.txt")).contains(" scroll 0,27999680 "));
+    assertTrue(Files.readString(out.resolve("bars-back.tree.txt"))
+        .contains("el #rows role=grid 16,44 248x160 rows 0-8/1000000 thumb-y 256,46 6x24\n"));
   }
 
   @Test
@@ -180,10 +180,9 @@ class ScriptTest {
     Examples.main(new String[] {"--script", FOCUS.toString(), "--out", out.toString()});
 
     assertSnapsMatchGolden(List.of("switch-focused", "switch-focused-on"));
-    assertTrue(
-        Files.readString(out.resolve("switch-focused.tree.txt"))
-            .contains("el #switch role=switch label=\"Lights\" 39,49 38x22 checked=false"
-                + " focused\n"));
+    assertTrue(Files.readString(out.resolve("switch-focused.tree.txt"))
+        .contains(
+            "el #switch role=switch label=\"Lights\" 39,49 38x22 checked=false" + " focused\n"));
   }
 
   @Test
@@ -198,10 +197,9 @@ class ScriptTest {
 
     assertSnapsMatchGolden(
         List.of("switch-hovered", "switch-pressed", "switch-hovered-on", "switch-on"));
-    assertTrue(
-        Files.readString(out.resolve("switch-hovered.tree.txt"))
-            .contains("el #switch role=switch label=\"Lights\" 39,49 38x22 checked=false"
-                + " hovered\n"));
+    assertTrue(Files.readString(out.resolve("switch-hovered.tree.txt"))
+        .contains(
+            "el #switch role=switch label=\"Lights\" 39,49 38x22 checked=false" + " hovered\n"));
   }
 
   @Test
@@ -214,22 +212,25 @@ class ScriptTest {
 
     Examples.main(new String[] {"field", "--script", FIELD.toString(), "--out", out.toString()});
 
-    assertSnapsMatchGolden(List.of("field-empty", "field-typed", "field-word", "field-home",
-        "field-dragged", "field-composing"));
-    assertTrue(
-        Files.readString(out.resolve("field-word.tree.txt"))
-            .contains(" \"SELECT name FROM customers\" 40,26 160x28 focused caret 17 anchor 26\n"));
+    assertSnapsMatchGolden(List.of(
+        "field-empty",
+        "field-typed",
+        "field-word",
+        "field-home",
+        "field-dragged",
+        "field-composing"));
+    assertTrue(Files.readString(out.resolve("field-word.tree.txt"))
+        .contains(" \"SELECT name FROM customers\" 40,26 160x28 focused caret 17 anchor 26\n"));
   }
 
   @Test
   void theStepsOfListsAndFieldsDriveTheFieldsInTheRowsOfAList() throws IOException {
     TextLibraries.assumeLoaded();
-    Examples.main(new String[] {
-      "field-rows", "--script", FIELD_ROWS.toString(), "--out", out.toString()
-    });
+    Examples.main(
+        new String[] {"field-rows", "--script", FIELD_ROWS.toString(), "--out", out.toString()});
 
-    assertSnapsMatchGolden(List.of("field-rows-pasted", "field-rows-wheeled", "field-rows-away",
-        "field-rows-back"));
+    assertSnapsMatchGolden(
+        List.of("field-rows-pasted", "field-rows-wheeled", "field-rows-away", "field-rows-back"));
     assertEquals("ledger", Files.readString(out.resolve("field-rows-pasted.clipboard.txt")));
     assertTrue(Files.readString(out.resolve("field-rows-pasted.tree.txt"))
         .contains(" \"ledger\" 60,112 200x24 focused caret 6\n"));
@@ -245,23 +246,26 @@ class ScriptTest {
   @Test
   void theSecondaryButtonOpensAMenuAboveTheTreeWithASubmenuAndADialog() throws IOException {
     TextLibraries.assumeLoaded();
-    Examples.main(new String[] {
-      "overlay", "--script", OVERLAY.toString(), "--out", out.toString()
-    });
+    Examples.main(
+        new String[] {"overlay", "--script", OVERLAY.toString(), "--out", out.toString()});
 
-    assertSnapsMatchGolden(List.of("overlay-menu", "overlay-submenu", "overlay-dialog",
-        "overlay-closed"));
+    assertSnapsMatchGolden(
+        List.of("overlay-menu", "overlay-submenu", "overlay-dialog", "overlay-closed"));
     String menu = Files.readString(out.resolve("overlay-menu.tree.txt"));
-    assertTrue(menu.contains("\noverlay at 120,85 bottom start on #list role=list"
-        + " label=\"Tables\" 16,16 208x146\n  el #menu role=menu 120,85 81x86\n"), menu);
+    assertTrue(
+        menu.contains("\noverlay at 120,85 bottom start on #list role=list"
+            + " label=\"Tables\" 16,16 208x146\n  el #menu role=menu 120,85 81x86\n"),
+        menu);
     assertTrue(menu.contains(" #open role=menuitem label=\"Open\" 125,90 71x24 focused\n"), menu);
     String submenu = Files.readString(out.resolve("overlay-submenu.tree.txt"));
-    assertTrue(submenu.contains("\noverlay right start gap 6 on #export role=menuitem"
-        + " label=\"Export\" 125,116 71x24\n  el #formats role=menu 53,116 66x60\n"), submenu);
+    assertTrue(
+        submenu.contains("\noverlay right start gap 6 on #export role=menuitem"
+            + " label=\"Export\" 125,116 71x24\n  el #formats role=menu 53,116 66x60\n"),
+        submenu);
     String dialog = Files.readString(out.resolve("overlay-dialog.tree.txt"));
     assertTrue(dialog.contains("\noverlay center modal scrim on 0,0 240x200\n"), dialog);
-    assertTrue(dialog.contains(" #cancel role=button label=\"Cancel\" 51,101 67x28 focused\n"),
-        dialog);
+    assertTrue(
+        dialog.contains(" #cancel role=button label=\"Cancel\" 51,101 67x28 focused\n"), dialog);
     assertTrue(Files.readString(out.resolve("overlay-closed.tree.txt"))
         .contains(" #list role=list label=\"Tables\" 16,16 208x146 scroll 0,40 focused\n"));
   }
@@ -271,8 +275,7 @@ class ScriptTest {
     TextLibraries.assumeLoaded();
     App<Examples.Form> app = new App<>(new Examples.Form(), Examples::form);
     app.textRendering(TextRendering.LINUX);
-    List<Path> written = Script.run(
-        """
+    List<Path> written = Script.run("""
         size 240 80
         frame
         clipboard "SELECT\\n1"       # put on the app's clipboard; a step that needs no frame
@@ -287,12 +290,14 @@ class ScriptTest {
         press 50,40
         press 150,40 shift
         frame
-        """,
-        app,
-        out);
+        """, app, out);
     assertEquals("SELECT 1", app.state().name, "the line break became a space");
-    assertEquals(List.of(out.resolve("copied.png"), out.resolve("copied.tree.txt"),
-        out.resolve("copied.clipboard.txt")), written);
+    assertEquals(
+        List.of(
+            out.resolve("copied.png"),
+            out.resolve("copied.tree.txt"),
+            out.resolve("copied.clipboard.txt")),
+        written);
     assertEquals("SELECT", Files.readString(out.resolve("copied.clipboard.txt")));
     El field = app.tree().children().getFirst();
     assertTrue(field.editor().anchor() < field.editor().caret(), "Shift extended the selection");
@@ -325,10 +330,11 @@ class ScriptTest {
   @Test
   void keyTypeAndFocusReachTheApp() throws IOException {
     List<String> log = new ArrayList<>();
-    App<List<String>> app =
-        new App<>(
-            log,
-            l -> row().onKey(k -> l.add(k.name() + " " + k.modifiers()) && false).children(
+    App<List<String>> app = new App<>(
+        log,
+        l -> row()
+            .onKey(k -> l.add(k.name() + " " + k.modifiers()) && false)
+            .children(
                 el().key("a").focusable().size(20, 20),
                 el().key("b").focusable().size(20, 20).onText(l::add)));
     Script.run(
@@ -346,8 +352,7 @@ class ScriptTest {
   void wheelScrollsTheAreaUnderItsTarget() throws IOException {
     TextLibraries.assumeLoaded();
     App<Object> app = new App<>(new Object(), s -> Examples.list());
-    Script.run(
-        "size 240 200\nframe\nwheel 100,100 0 30.5\nwheel #row-1 0 -0.5\nframe\n", app, out);
+    Script.run("size 240 200\nframe\nwheel 100,100 0 30.5\nwheel #row-1 0 -0.5\nframe\n", app, out);
     El list = app.tree().children().getFirst();
     assertEquals(30, list.scrollY());
     Script.run("size 240 200\nwheel label=\"audit_log\" 0 -100\nframe\n", app, out);
@@ -399,17 +404,14 @@ class ScriptTest {
   @Test
   void aSelectorPressesTheCentreOfItsElement() throws IOException {
     List<String> log = new ArrayList<>();
-    App<List<String>> app =
-        new App<>(
-            log,
-            l ->
-                el().size(100, 100)
-                    .onPress(() -> l.add("outside"))
-                    .child(
-                        el().absolute(40, 40)
-                            .size(20, 20)
-                            .label("Say \"hi\" \\ bye")
-                            .onPress(() -> l.add("centre"))));
+    App<List<String>> app = new App<>(
+        log,
+        l -> el().size(100, 100)
+            .onPress(() -> l.add("outside"))
+            .child(el().absolute(40, 40)
+                .size(20, 20)
+                .label("Say \"hi\" \\ bye")
+                .onPress(() -> l.add("centre"))));
     Script.run("size 100 100\nframe\npress label=\"Say \\\"hi\\\" \\\\ bye\"\nframe\n", app, out);
     assertEquals(List.of("centre"), log);
   }
@@ -442,12 +444,10 @@ class ScriptTest {
 
   @Test
   void snapRefusesAFrameThatDoesNotShowTheStepsBeforeIt() {
-    assertEquals(
-        """
+    assertEquals("""
         line 4: snap pressed
           The last frame does not show line 3 (press #switch) yet. Add `frame` before this line:\
-         only `frame` runs the handlers, rebuilds the view and moves what is animated.""",
-        failure("size 200 120\nframe\npress #switch\nsnap pressed\n"));
+         only `frame` runs the handlers, rebuilds the view and moves what is animated.""", failure("size 200 120\nframe\npress #switch\nsnap pressed\n"));
     assertFailure("size 200 120\nframe\nadvance 1\nsnap later\n", "line 3 (advance 1)");
     assertFailure("size 200 120\nframe\nsize 300 120\nsnap wider", "line 3 (size 300 120)");
     assertFailure("size 200 120\nsnap first\n", "line 2: snap first\n  No frame has run yet");
@@ -455,13 +455,11 @@ class ScriptTest {
 
   @Test
   void anUnknownStepListsTheKnownOnes() {
-    assertEquals(
-        """
+    assertEquals("""
         line 3: pres #switch
           There is no step pres. The steps are size, window, close, press, down, up, move,\
          leave, wheel, scroll, key, type, compose, clipboard, dialog, drop, focus, advance,\
-         await, frame and snap.""",
-        failure("size 200 120\nframe\npres #switch\n"));
+         await, frame and snap.""", failure("size 200 120\nframe\npres #switch\n"));
   }
 
   @Test
@@ -482,67 +480,72 @@ class ScriptTest {
   @Test
   void statesSelectAsTheTreeDumpWritesThem() throws IOException {
     List<String> log = new ArrayList<>();
-    App<List<String>> app = new App<>(log, l -> col().wFull().children(
-        el().role("row").label("a").h(10).onPress(() -> l.add("a")),
-        el().role("row").label("b").h(10).selected(true).onPress(() -> l.add("b")),
-        el().role("checkbox").label("c").h(10).checked(false).onPress(() -> l.add("c")),
-        el().role("checkbox").label("d").h(10).checked(true).onPress(() -> l.add("d")),
-        el().role("treeitem").label("e").h(10).expanded(false).level(2).onPress(() -> l.add("e")),
-        el().role("separator").h(10).value("first 240").onPress(() -> l.add("f"))));
-    Script.run("size 100 60\nframe\npress role=row selected\npress role=checkbox checked=false\n"
-        + "press checked=true\npress expanded=false level=2\npress value=\"first 240\"\nframe\n",
-        app, out);
+    App<List<String>> app = new App<>(
+        log,
+        l -> col()
+            .wFull()
+            .children(
+                el().role("row").label("a").h(10).onPress(() -> l.add("a")),
+                el().role("row").label("b").h(10).selected(true).onPress(() -> l.add("b")),
+                el().role("checkbox").label("c").h(10).checked(false).onPress(() -> l.add("c")),
+                el().role("checkbox").label("d").h(10).checked(true).onPress(() -> l.add("d")),
+                el().role("treeitem")
+                    .label("e")
+                    .h(10)
+                    .expanded(false)
+                    .level(2)
+                    .onPress(() -> l.add("e")),
+                el().role("separator").h(10).value("first 240").onPress(() -> l.add("f"))));
+    Script.run(
+        "size 100 60\nframe\npress role=row selected\npress role=checkbox checked=false\n"
+            + "press checked=true\npress expanded=false level=2\npress value=\"first 240\"\nframe\n",
+        app,
+        out);
     assertEquals(List.of("b", "c", "d", "e", "f"), log);
 
-    assertEquals(
-        """
+    assertEquals("""
         line 3: press role=checkbox checked=mixed
           2 elements of the last frame match role=checkbox, but none has the states of\
          role=checkbox checked=mixed:
             el role=checkbox label="c" 0,20 100x10 checked=false
             el role=checkbox label="d" 0,30 100x10 checked
-          Their lines show the states they have after the rectangle.""",
-        failure("size 100 60\nframe\npress role=checkbox checked=mixed\n", app));
+          Their lines show the states they have after the rectangle.""", failure("size 100 60\nframe\npress role=checkbox checked=mixed\n", app));
     assertFailure("size 100 60\nframe\npress selected=false\n", "selected=false is not a target");
     assertFailure("size 100 60\nframe\npress level=x\n", "level=x is not a target");
-    assertFailure("size 100 60\nframe\npress expanded\n",
-        "states: checked checked=false expanded=false level=2 selected\n", app);
+    assertFailure(
+        "size 100 60\nframe\npress expanded\n",
+        "states: checked checked=false expanded=false level=2 selected\n",
+        app);
   }
 
   @Test
   void aSelectorThatMatchesSeveralListsThemWithTheirRectangles() {
-    App<Object> app =
-        new App<>(
-            new Object(),
-            s ->
-                row().children(
-                        el().key("ok").role("button").size(50, 20).onPress(() -> {}),
-                        el().key("cancel").role("button").size(50, 20).onPress(() -> {})));
-    assertEquals(
-        """
+    App<Object> app = new App<>(
+        new Object(),
+        s -> row()
+            .children(
+                el().key("ok").role("button").size(50, 20).onPress(() -> {}),
+                el().key("cancel").role("button").size(50, 20).onPress(() -> {})));
+    assertEquals("""
         line 3: press role=button
           2 elements match role=button:
             el #ok role=button 0,0 50x20
             el #cancel role=button 50,0 50x20
           Add #key, role=, label= or a state to the selector until it matches one, or press a\
-         position x,y inside one of these rectangles.""",
-        failure("size 100 20\nframe\npress role=button\n", app));
+         position x,y inside one of these rectangles.""", failure("size 100 20\nframe\npress role=button\n", app));
   }
 
   @Test
   void aSnapCannotLeaveTheOutputFolderOrOverwriteAnother() throws IOException {
     Path inside = out.resolve("inside");
     App<Lights> app = switchApp();
-    Script.Failure failure =
-        assertThrows(
-            Script.Failure.class,
-            () -> Script.run("size 200 120\nframe\nsnap ../outside\n", app, inside));
-    assertEquals(
-        """
+    Script.Failure failure = assertThrows(
+        Script.Failure.class,
+        () -> Script.run("size 200 120\nframe\nsnap ../outside\n", app, inside));
+    assertEquals("""
         line 3: snap ../outside
           ../outside leads out of the output folder. Use a name inside it, such as after-press or\
-         press/after.""",
-        failure.getMessage());
+         press/after.""", failure.getMessage());
     assertFalse(Files.exists(out.resolve("outside.png")));
 
     assertFailure("size 200 120\nframe\nsnap /outside\n", "leads out of the output folder");
@@ -569,8 +572,10 @@ class ScriptTest {
     assertFailure("advance -1\n", "line 1: advance -1\n  Write `advance <seconds>`");
     assertFailure("frame now\n", "line 1: frame now\n  Write `frame` with nothing");
     assertFailure("snap\n", "line 1: snap\n  Write `snap <name>`");
-    assertFailure("up\n", "line 1: up\n  Write `up <target>`, or `up <target> right` for the"
-        + " secondary button. A target is a position");
+    assertFailure(
+        "up\n",
+        "line 1: up\n  Write `up <target>`, or `up <target> right` for the"
+            + " secondary button. A target is a position");
     assertFailure("move\n", "line 1: move\n  Write `move <target>`. A target is a position");
     assertEquals(
         "line 1: move #switch\n  No frame has run yet, so there is nothing to move over. Add"
@@ -579,7 +584,8 @@ class ScriptTest {
     assertFailure(
         "size 200 120\nframe\nmove #swich\n",
         "line 3: move #swich\n  No element of the last frame matches #swich.");
-    assertEquals("line 1: leave now\n  Write `leave` with nothing after it.", failure("leave now\n"));
+    assertEquals(
+        "line 1: leave now\n  Write `leave` with nothing after it.", failure("leave now\n"));
     assertFailure("size 200 120\nframe\nleave\nsnap out\n", "line 3 (leave)");
     assertEquals(
         "line 1: wheel #list 40\n  Write `wheel <target> <deltaX> <deltaY>`, with distances in"
@@ -615,8 +621,10 @@ class ScriptTest {
             + " 1 and -. The Javadoc of com.rethinkj.ui.Key lists them all.",
         failure("size 200 120\nframe\nkey Entr\n"));
     assertFailure("key enter\n", "line 1: key enter\n  There is no key enter. Write Enter.");
-    assertFailure("key a\n", "There is no key a. Keys that type a character are named by it in"
-        + " upper case, with or without shift: write A.");
+    assertFailure(
+        "key a\n",
+        "There is no key a. Keys that type a character are named by it in"
+            + " upper case, with or without shift: write A.");
     assertEquals(
         "line 1: key Tab shfit\n  Write `key <name>`, followed by any of shift, control, alt and"
             + " meta that are held, for example `key Enter` or `key Tab shift` for Shift+Tab.",
@@ -637,8 +645,8 @@ class ScriptTest {
         "line 1: compose ni\n  Write `compose \"<text>\"`, the composition of an input method,"
             + " quoted as for `type`, for example `compose \"ni\"`; `compose \"\"` ends it.",
         failure("compose ni\n"));
-    assertFailure("compose \"ni\"\n", "No frame has run yet, so nothing can take the"
-        + " composition.");
+    assertFailure(
+        "compose \"ni\"\n", "No frame has run yet, so nothing can take the" + " composition.");
     assertEquals(
         "line 1: clipboard\n  Write `clipboard \"<text>\"`, the text to put on the clipboard,"
             + " quoted as for `type`, for example `clipboard \"SELECT 1\"`.",
@@ -656,14 +664,12 @@ class ScriptTest {
     assertFailure("size 200 120\nframe\ndown shift\n", "Write `down <target>`, then `clicks");
     assertFailure("size 200 120\nframe\nup #switch shift\n", "shift is not a target");
     assertFailure("focus\n", "line 1: focus\n  Write `focus <target>`. A target is");
-    assertEquals(
-        """
+    assertEquals("""
         line 3: focus 10,10
           Neither the element at 10,10 nor one around it is focusable, so the focus cannot go\
          there. These elements of the last frame are:
             el #switch role=switch label="Lights" 81,49 38x22 checked=false
-          Select one of them.""",
-        failure("size 200 120\nframe\nfocus 10,10\n"));
+          Select one of them.""", failure("size 200 120\nframe\nfocus 10,10\n"));
     App<Object> plain = new App<>(new Object(), o -> el().key("box").size(10, 10));
     assertFailure(
         "size 10 10\nframe\nfocus #box\n",
@@ -691,7 +697,8 @@ class ScriptTest {
   }
 
   private String failure(String script, App<?> app) {
-    return assertThrows(Script.Failure.class, () -> Script.run(script, app, out)).getMessage();
+    return assertThrows(Script.Failure.class, () -> Script.run(script, app, out))
+        .getMessage();
   }
 
   /** Asserts that the script fails with a message that contains {@code part}. */
@@ -705,7 +712,8 @@ class ScriptTest {
   }
 
   private String cli(String... args) {
-    return assertThrows(Script.Failure.class, () -> Script.handle(args, switchApp())).getMessage();
+    return assertThrows(Script.Failure.class, () -> Script.handle(args, switchApp()))
+        .getMessage();
   }
 
   private void assertSnapsMatchGolden(List<String> names) throws IOException {

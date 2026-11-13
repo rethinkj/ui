@@ -25,7 +25,8 @@ import org.junit.jupiter.api.io.TempDir;
  */
 class OverlayTest {
 
-  @TempDir Path out;
+  @TempDir
+  Path out;
 
   /** The state of the views: whether things are open, and what the handlers did. */
   static final class State {
@@ -87,48 +88,61 @@ class OverlayTest {
   }
 
   /** A 60 by 50 box beside a 40 by 20 anchor at x, y in a window of this size. */
-  private static float[] placed(float x, float y, float width, float height,
-      Function<El, El> place) {
+  private static float[] placed(
+      float x, float y, float width, float height, Function<El, El> place) {
     El overlay = place.apply(el().key("pop").size(60, 50));
-    App<State> app = app(new State(), s -> el().size(width, height)
-        .child(el().key("anchor").absolute(x, y).size(40, 20).overlay(overlay)), width, height);
+    App<State> app = app(
+        new State(),
+        s -> el().size(width, height)
+            .child(el().key("anchor").absolute(x, y).size(40, 20).overlay(overlay)),
+        width,
+        height);
     El pop = find(app, "pop");
     return new float[] {pop.x(), pop.y(), pop.width(), pop.height()};
   }
 
   private static void assertRect(float[] expected, float[] actual) {
-    assertEquals(List.of(expected[0], expected[1], expected[2], expected[3]),
+    assertEquals(
+        List.of(expected[0], expected[1], expected[2], expected[3]),
         List.of(actual[0], actual[1], actual[2], actual[3]));
   }
 
   @Test
   void anOverlayGoesBesideItsAnchorAndFlipsShiftsOrShrinksWhereItDoesNotFit() {
     // Below, at the start, 4 away.
-    assertRect(new float[] {10, 34, 60, 50},
+    assertRect(
+        new float[] {10, 34, 60, 50},
         placed(10, 10, o -> o.side(Side.BOTTOM, Style.Align.START, 4)));
     // No room below: above.
-    assertRect(new float[] {10, 96, 60, 50},
+    assertRect(
+        new float[] {10, 96, 60, 50},
         placed(10, 150, o -> o.side(Side.BOTTOM, Style.Align.START, 4)));
     // No room at the start: aligned with the anchor's end.
-    assertRect(new float[] {130, 34, 60, 50},
+    assertRect(
+        new float[] {130, 34, 60, 50},
         placed(150, 10, o -> o.side(Side.BOTTOM, Style.Align.START, 4)));
     // Centred along the side, and moved into the window where it sticks out.
-    assertRect(new float[] {0, 34, 60, 50},
+    assertRect(
+        new float[] {0, 34, 60, 50},
         placed(0, 10, o -> o.side(Side.BOTTOM, Style.Align.CENTER, 4)));
     // To the right, or the left where the right has no room.
-    assertRect(new float[] {54, 10, 60, 50},
+    assertRect(
+        new float[] {54, 10, 60, 50},
         placed(10, 10, o -> o.side(Side.RIGHT, Style.Align.START, 4)));
-    assertRect(new float[] {106, 10, 60, 50},
+    assertRect(
+        new float[] {106, 10, 60, 50},
         placed(170, 10, o -> o.side(Side.RIGHT, Style.Align.START, 4)));
     // Room on neither side: as near as it fits, over the anchor.
-    assertRect(new float[] {10, 150, 60, 50},
+    assertRect(
+        new float[] {10, 150, 60, 50},
         placed(10, 90, o -> o.size(60, 50).side(Side.BOTTOM, Style.Align.START, 200)));
     // At a point, flipped up and to the left in the corner.
     assertRect(new float[] {135, 145, 60, 50}, placed(10, 10, o -> o.atPoint(195, 195)));
     // In the middle of the window.
     assertRect(new float[] {70, 75, 60, 50}, placed(10, 10, El::centerInWindow));
     // At least as wide as the anchor.
-    assertRect(new float[] {10, 30, 40, 50},
+    assertRect(
+        new float[] {10, 30, 40, 50},
         placed(10, 10, o -> o.w(20).side(Side.BOTTOM, Style.Align.STRETCH, 0)));
   }
 
@@ -136,12 +150,20 @@ class OverlayTest {
   void submenusGoOnToTheSideTheFirstThatFlippedWentTo() {
     // Each level 50 wide, to the right of an item as wide as its menu, in a window 180 wide.
     El third = el().key("third").size(50, 20).side(Side.RIGHT, Style.Align.START, 0);
-    El second = el().key("second").size(50, 20).side(Side.RIGHT, Style.Align.START, 0)
+    El second = el().key("second")
+        .size(50, 20)
+        .side(Side.RIGHT, Style.Align.START, 0)
         .child(el().size(50, 20).overlay(third));
-    El first = el().key("first").size(50, 20).side(Side.RIGHT, Style.Align.START, 0)
+    El first = el().key("first")
+        .size(50, 20)
+        .side(Side.RIGHT, Style.Align.START, 0)
         .child(el().size(50, 20).overlay(second));
-    App<State> app = app(new State(), s -> el().size(180, 100)
-        .child(el().key("anchor").absolute(50, 0).size(50, 20).overlay(first)), 180, 100);
+    App<State> app = app(
+        new State(),
+        s -> el().size(180, 100)
+            .child(el().key("anchor").absolute(50, 0).size(50, 20).overlay(first)),
+        180,
+        100);
     assertEquals(100, find(app, "first").x(), "right of its anchor");
     assertEquals(50, find(app, "second").x(), "no room on the right: to the left");
     assertEquals(0, find(app, "third").x(), "and on to the left, although the right fits");
@@ -150,8 +172,11 @@ class OverlayTest {
   @Test
   void anOverlayLargerThanTheWindowIsLimitedToItAndScrolls() {
     El big = col().key("big").scroll().child(el().size(50, 500));
-    App<State> app = app(new State(), s -> el().size(200, 200)
-        .child(el().absolute(10, 10).size(40, 20).overlay(big)), 200, 200);
+    App<State> app = app(
+        new State(),
+        s -> el().size(200, 200).child(el().absolute(10, 10).size(40, 20).overlay(big)),
+        200,
+        200);
     El shown = find(app, "big");
     assertEquals(0, shown.y());
     assertEquals(200, shown.height());
@@ -170,8 +195,9 @@ class OverlayTest {
       }
       area.child(r);
     }
-    return el().size(200, 200).fill(0xFF101010).children(area,
-        el().key("later").absolute(0, 150).size(200, 50).fill(0xFF22C55E));
+    return el().size(200, 200)
+        .fill(0xFF101010)
+        .children(area, el().key("later").absolute(0, 150).size(200, 50).fill(0xFF22C55E));
   }
 
   @Test
@@ -205,21 +231,29 @@ class OverlayTest {
     if (s.open) {
       El item = el().key("item").size(60, 20).onPress(() -> s.log.add("item"));
       if (s.sub) {
-        item.overlay(el().key("sub").size(50, 30).side(Side.RIGHT, Style.Align.START, 0)
+        item.overlay(el().key("sub")
+            .size(50, 30)
+            .side(Side.RIGHT, Style.Align.START, 0)
             .onDismiss(() -> {
               s.log.add("sub dismissed");
               s.sub = false;
             })
             .child(el().key("subitem").size(50, 30).onPress(() -> s.log.add("subitem"))));
       }
-      open.overlay(col().key("menu").padding(5).onDismiss(() -> {
-        s.log.add("dismissed");
-        s.open = false;
-        s.sub = false;
-      }).children(item, el().key("second").size(60, 20).onPress(() -> s.log.add("second"))));
+      open.overlay(col()
+          .key("menu")
+          .padding(5)
+          .onDismiss(() -> {
+            s.log.add("dismissed");
+            s.open = false;
+            s.sub = false;
+          })
+          .children(item, el().key("second").size(60, 20).onPress(() -> s.log.add("second"))));
     }
-    return row().size(200, 200).gap(20).children(open,
-        el().key("other").size(40, 20).onPress(() -> s.log.add("other")));
+    return row()
+        .size(200, 200)
+        .gap(20)
+        .children(open, el().key("other").size(40, 20).onPress(() -> s.log.add("other")));
   }
 
   @Test
@@ -283,14 +317,20 @@ class OverlayTest {
   @Test
   void theRowsOfAListInAnOverlayThatOpenedInTheFrameAreThereForThePressAfterIt() {
     State s = new State();
-    App<State> app = app(s, st -> {
-      El open = el().key("open").size(40, 20).onPress(() -> st.open = true);
-      if (st.open) {
-        open.overlay(col().key("list").size(100, 100).rows(1000, 20, i ->
-            el().key("row").onPress(() -> st.log.add("row " + i))));
-      }
-      return el().size(200, 200).child(open);
-    }, 200, 200);
+    App<State> app = app(
+        s,
+        st -> {
+          El open = el().key("open").size(40, 20).onPress(() -> st.open = true);
+          if (st.open) {
+            open.overlay(col()
+                .key("list")
+                .size(100, 100)
+                .rows(1000, 20, i -> el().key("row").onPress(() -> st.log.add("row " + i))));
+          }
+          return el().size(200, 200).child(open);
+        },
+        200,
+        200);
     click(app, 20, 10);
     click(app, 30, 70); // the overlay is at 0,20: row 2
     app.frame();
@@ -322,16 +362,23 @@ class OverlayTest {
   void theWheelOutsideDismissesAndScrollsButNotOutsideAModalOverlay() {
     State s = new State();
     s.open = true;
-    App<State> app = app(s, st -> {
-      El area = scrolled(st).children().getFirst();
-      if (st.open) {
-        area.overlay(el().key("menu").size(50, 30).onDismiss(() -> {
-          st.log.add("dismissed");
-          st.open = false;
-        }).atPoint(150, 20));
-      }
-      return el().size(200, 200).child(area);
-    }, 200, 200);
+    App<State> app = app(
+        s,
+        st -> {
+          El area = scrolled(st).children().getFirst();
+          if (st.open) {
+            area.overlay(el().key("menu")
+                .size(50, 30)
+                .onDismiss(() -> {
+                  st.log.add("dismissed");
+                  st.open = false;
+                })
+                .atPoint(150, 20));
+          }
+          return el().size(200, 200).child(area);
+        },
+        200,
+        200);
     app.wheel(50, 50, 0, 20);
     app.frame();
     assertEquals(List.of("dismissed"), s.log);
@@ -340,16 +387,29 @@ class OverlayTest {
 
   /** A box with a hover look and a press handler behind a modal dialog with two buttons. */
   private static El modal(State s) {
-    El root = col().size(200, 200).onKey(k -> {
-      s.log.add("root " + k.name());
-      return true;
-    }).children(
-        el().key("behind").size(60, 20).focusable().onPress(() -> s.log.add("behind"))
-            .whenHovered(e -> e.fill(0xFF888888)),
-        col().key("area").size(100, 40).scroll().child(el().size(100, 200)));
+    El root = col()
+        .size(200, 200)
+        .onKey(k -> {
+          s.log.add("root " + k.name());
+          return true;
+        })
+        .children(
+            el().key("behind")
+                .size(60, 20)
+                .focusable()
+                .onPress(() -> s.log.add("behind"))
+                .whenHovered(e -> e.fill(0xFF888888)),
+            col().key("area").size(100, 40).scroll().child(el().size(100, 200)));
     if (s.open) {
-      root.overlay(col().key("dialog").centerInWindow().modal().scrim(0x80000000).padding(10)
-          .gap(10).onDismiss(() -> s.log.add("dismissed")).children(
+      root.overlay(col()
+          .key("dialog")
+          .centerInWindow()
+          .modal()
+          .scrim(0x80000000)
+          .padding(10)
+          .gap(10)
+          .onDismiss(() -> s.log.add("dismissed"))
+          .children(
               el().key("ok").size(40, 20).focusable().onPress(() -> s.log.add("ok")),
               el().key("cancel").size(40, 20).focusable()));
     }
@@ -359,16 +419,34 @@ class OverlayTest {
   @Test
   void aRowBehindAModalOverlayTakesNoHoverLookAlsoWhenARebuildBuildsItAgain() {
     State s = new State();
-    App<State> app = app(s, st -> {
-      El root = col().size(200, 200).child(col().key("list").size(200, 200)
-          .rows(20, 20, i -> el().key("row-" + i).wFull().h(20).fill(0xFF101010)
-              .whenHovered(e -> e.fill(0xFF888888))));
-      if (st.open) {
-        root.overlay(col().key("dialog").centerInWindow().modal().scrim(0x80000000)
-            .child(el().key("ok").size(40, 20).focusable().onPress(() -> {})));
-      }
-      return root;
-    }, 200, 200);
+    App<State> app = app(
+        s,
+        st -> {
+          El root = col()
+              .size(200, 200)
+              .child(col()
+                  .key("list")
+                  .size(200, 200)
+                  .rows(
+                      20,
+                      20,
+                      i -> el().key("row-" + i)
+                          .wFull()
+                          .h(20)
+                          .fill(0xFF101010)
+                          .whenHovered(e -> e.fill(0xFF888888))));
+          if (st.open) {
+            root.overlay(col()
+                .key("dialog")
+                .centerInWindow()
+                .modal()
+                .scrim(0x80000000)
+                .child(el().key("ok").size(40, 20).focusable().onPress(() -> {})));
+          }
+          return root;
+        },
+        200,
+        200);
     app.pointerMove(20, 10);
     app.frame();
     assertEquals(0xFF888888, find(app, "row-0").fill(), "under the pointer");
@@ -415,26 +493,36 @@ class OverlayTest {
   private static El opener(State s) {
     El open = el().key("opener").size(40, 20).focusable().onPress(() -> s.open = true);
     if (s.open) {
-      open.overlay(col().key("pop").onKey(k -> {
-        s.log.add("pop " + k.name());
-        if (k.name().equals("Escape")) {
-          s.open = false;
-          return true;
-        }
-        return false;
-      }).children(
-          el().key("first").size(40, 20).focusable(),
-          el().key("second").size(40, 20).focusable()));
+      open.overlay(col()
+          .key("pop")
+          .onKey(k -> {
+            s.log.add("pop " + k.name());
+            if (k.name().equals("Escape")) {
+              s.open = false;
+              return true;
+            }
+            return false;
+          })
+          .children(
+              el().key("first").size(40, 20).focusable(),
+              el().key("second").size(40, 20).focusable()));
     }
-    return row().size(200, 200).gap(10).onKey(k -> {
-      s.log.add("root " + k.name());
-      return false;
-    }).children(
-        row().key("anchors").onKey(k -> {
-          s.log.add("anchors " + k.name());
+    return row()
+        .size(200, 200)
+        .gap(10)
+        .onKey(k -> {
+          s.log.add("root " + k.name());
           return false;
-        }).child(open),
-        el().key("after").size(40, 20).focusable());
+        })
+        .children(
+            row()
+                .key("anchors")
+                .onKey(k -> {
+                  s.log.add("anchors " + k.name());
+                  return false;
+                })
+                .child(open),
+            el().key("after").size(40, 20).focusable());
   }
 
   @Test
@@ -457,7 +545,9 @@ class OverlayTest {
     key(app, "Tab", 0);
     s.log.clear();
     key(app, "F5", 0);
-    assertEquals(List.of("pop F5", "anchors F5", "root F5"), s.log,
+    assertEquals(
+        List.of("pop F5", "anchors F5", "root F5"),
+        s.log,
         "keys go from the overlay on to its anchor's ancestors");
     key(app, "Escape", 0);
     assertFalse(s.open);
@@ -481,12 +571,18 @@ class OverlayTest {
   @Test
   void theSecondaryButtonAndTheMenuKeyRunTheNearestHandlerWithAPosition() throws Exception {
     List<String> log = new ArrayList<>();
-    App<List<String>> app = new App<>(log, l -> col().size(200, 200)
-        .onSecondaryPress((x, y) -> l.add("root " + x + "," + y))
-        .children(
-            el().key("row").size(100, 20).focusable().onPress(() -> l.add("press"))
-                .onSecondaryPress((x, y) -> l.add("row " + x + "," + y)),
-            el().key("plain").size(100, 20)));
+    App<List<String>> app = new App<>(
+        log,
+        l -> col()
+            .size(200, 200)
+            .onSecondaryPress((x, y) -> l.add("root " + x + "," + y))
+            .children(
+                el().key("row")
+                    .size(100, 20)
+                    .focusable()
+                    .onPress(() -> l.add("press"))
+                    .onSecondaryPress((x, y) -> l.add("row " + x + "," + y)),
+                el().key("plain").size(100, 20)));
     app.resize(200, 200, 1);
     app.frame();
     app.secondaryDown(30, 10);
@@ -505,8 +601,7 @@ class OverlayTest {
     key(app, "ContextMenu", 0);
     key(app, "F10", Key.SHIFT);
     assertEquals(List.of("row 0.0,20.0", "row 0.0,20.0"), log, "at its bottom left");
-    assertThrows(Script.Failure.class,
-        () -> Script.run("press #row right clicks 2\n", app, out));
+    assertThrows(Script.Failure.class, () -> Script.run("press #row right clicks 2\n", app, out));
   }
 
   /**
@@ -518,12 +613,24 @@ class OverlayTest {
     List<String> log = new ArrayList<>();
     int[] cursor = {-1};
     int[] selected = {-1};
-    App<List<String>> app = new App<>(log, l -> col().size(200, 200).child(
-        col().key("list").size(200, 100).margin(0, 0, 0, 10).scroll().focusable()
-            .onSecondaryPress((x, y) -> l.add(x + "," + y))
-            .rows(100, 20, i -> el().key("row-" + i).padding(0, 0, 0, 30)
-                .child(el().key("cell-" + i).size(50, 20).current(i == cursor[0]))
-                .selected(i == selected[0]))));
+    App<List<String>> app = new App<>(
+        log,
+        l -> col()
+            .size(200, 200)
+            .child(col()
+                .key("list")
+                .size(200, 100)
+                .margin(0, 0, 0, 10)
+                .scroll()
+                .focusable()
+                .onSecondaryPress((x, y) -> l.add(x + "," + y))
+                .rows(
+                    100,
+                    20,
+                    i -> el().key("row-" + i)
+                        .padding(0, 0, 0, 30)
+                        .child(el().key("cell-" + i).size(50, 20).current(i == cursor[0]))
+                        .selected(i == selected[0]))));
     app.resize(200, 200, 1);
     app.frame();
     app.focus(find(app, "list"));
@@ -553,9 +660,17 @@ class OverlayTest {
   @Test
   void aLookAfterAStayShowsATooltipWhenTheClockSaysAndAPressHidesIt() {
     State s = new State();
-    App<State> app = app(s, st -> el().size(200, 200).child(el().key("anchor").size(40, 20)
-        .whenHoveredFor(0.5, e -> e.overlay(el().key("tip").size(60, 16)
-            .side(Side.BOTTOM, Style.Align.START, 4)))), 200, 200);
+    App<State> app = app(
+        s,
+        st -> el().size(200, 200)
+            .child(el().key("anchor")
+                .size(40, 20)
+                .whenHoveredFor(
+                    0.5,
+                    e -> e.overlay(
+                        el().key("tip").size(60, 16).side(Side.BOTTOM, Style.Align.START, 4)))),
+        200,
+        200);
     assertEquals(Double.POSITIVE_INFINITY, app.nextChange());
     app.pointerMove(10, 10);
     app.frame();
@@ -586,10 +701,18 @@ class OverlayTest {
   @Test
   void aLookAfterTheKeyboardFocusShowsATooltipUntilAKeyOrTheFocusMoves() {
     State s = new State();
-    App<State> app = app(s, st -> row().size(200, 200).children(
-        el().key("before").size(40, 20).focusable(),
-        el().key("anchor").size(40, 20).focusable()
-            .whenFocusVisibleFor(0.5, e -> e.overlay(el().key("tip").size(60, 16)))), 200, 200);
+    App<State> app = app(
+        s,
+        st -> row()
+            .size(200, 200)
+            .children(
+                el().key("before").size(40, 20).focusable(),
+                el().key("anchor")
+                    .size(40, 20)
+                    .focusable()
+                    .whenFocusVisibleFor(0.5, e -> e.overlay(el().key("tip").size(60, 16)))),
+        200,
+        200);
     key(app, "Tab", 0);
     key(app, "Tab", 0);
     assertEquals("anchor", app.focused().key());
@@ -626,19 +749,23 @@ class OverlayTest {
     float[] across = {54, 15, 60, 50};
     assertRect(across, tooltip(200, o -> o.side(Side.BOTTOM, Style.Align.CENTER, 4)));
     // An overlay that no delayed look attached stays as near as it fits, over its anchor.
-    assertRect(new float[] {0, 30, 60, 50},
+    assertRect(
+        new float[] {0, 30, 60, 50},
         placed(10, 30, 200, 80, o -> o.side(Side.BOTTOM, Style.Align.CENTER, 4)));
   }
 
   @Test
   void aTooltipMovedAlongItsSideKeepsItsGapFromTheWindowsEdge() {
     // Centred below its anchor at 10,30 it would start at 0, flush with the left edge.
-    assertRect(new float[] {4, 54, 60, 50},
+    assertRect(
+        new float[] {4, 54, 60, 50},
         tooltip(200, 120, o -> o.side(Side.BOTTOM, Style.Align.CENTER, 4)));
     // Without a gap, flush; a menu, which no delayed look attached, lies flush too.
-    assertRect(new float[] {0, 50, 60, 50},
+    assertRect(
+        new float[] {0, 50, 60, 50},
         tooltip(200, 120, o -> o.side(Side.BOTTOM, Style.Align.CENTER, 0)));
-    assertRect(new float[] {0, 54, 60, 50},
+    assertRect(
+        new float[] {0, 54, 60, 50},
         placed(10, 30, 200, 120, o -> o.side(Side.BOTTOM, Style.Align.CENTER, 4)));
   }
 
@@ -649,10 +776,15 @@ class OverlayTest {
 
   /** Where a 60 by 50 tooltip of a 40 by 20 anchor at 10,30 shows in a window of this size. */
   private static float[] tooltip(float width, float height, Function<El, El> place) {
-    App<State> app = app(new State(), s -> el().size(width, height).child(el().key("anchor")
-        .absolute(10, 30).size(40, 20)
-        .whenHoveredFor(0, e -> e.overlay(place.apply(el().key("pop").size(60, 50))))),
-        width, height);
+    App<State> app = app(
+        new State(),
+        s -> el().size(width, height)
+            .child(el().key("anchor")
+                .absolute(10, 30)
+                .size(40, 20)
+                .whenHoveredFor(0, e -> e.overlay(place.apply(el().key("pop").size(60, 50))))),
+        width,
+        height);
     app.pointerMove(20, 40);
     app.frame();
     El pop = find(app, "pop");
@@ -662,18 +794,30 @@ class OverlayTest {
   @Test
   void aNotificationAtTheWindowsEdgeClosesItselfWhenTheClockSaysAndPresentsNothingMeanwhile() {
     State s = new State();
-    App<State> app = app(s, st -> el().size(200, 100).child(el().key("field").size(40, 20)
-        .focusable()).overlay(st.open ? row().key("toast").size(80, 20).keepFocus()
-            .atWindowEdge(Side.BOTTOM, Style.Align.CENTER, 10)
-            .onShownFor(5, () -> {
-              st.log.add("timeout");
-              st.open = false;
-            }) : null), 200, 100);
+    App<State> app = app(
+        s,
+        st -> el().size(200, 100)
+            .child(el().key("field").size(40, 20).focusable())
+            .overlay(
+                st.open
+                    ? row()
+                        .key("toast")
+                        .size(80, 20)
+                        .keepFocus()
+                        .atWindowEdge(Side.BOTTOM, Style.Align.CENTER, 10)
+                        .onShownFor(5, () -> {
+                          st.log.add("timeout");
+                          st.open = false;
+                        })
+                    : null),
+        200,
+        100);
     press(app, 10, 10);
     s.open = true;
     rebuild(app);
     El toast = find(app, "toast"); // the rebuild made the window 200 high
-    assertRect(new float[] {60, 170, 80, 20},
+    assertRect(
+        new float[] {60, 170, 80, 20},
         new float[] {toast.x(), toast.y(), toast.width(), toast.height()});
     assertTrue(app.render().tree().contains("\noverlay edge bottom center gap 10 on 0,0 200x100"));
     assertEquals("field", app.focused().key(), "it kept the focus where it was");
@@ -690,11 +834,24 @@ class OverlayTest {
   @Test
   void aStayInARowGoesOnThroughAFrameWhoseKeysBuildTheViewBetweenThem() {
     State s = new State();
-    App<State> app = app(s, st -> el().size(200, 200).focusable().onKey(k -> {
-      st.log.add(k.name());
-      return true;
-    }).child(col().key("list").size(100, 100).rows(10, 20, i -> el().key("cell")
-        .whenHoveredFor(0.5, e -> e.overlay(el().key("tip").size(60, 16))))), 200, 200);
+    App<State> app = app(
+        s,
+        st -> el().size(200, 200)
+            .focusable()
+            .onKey(k -> {
+              st.log.add(k.name());
+              return true;
+            })
+            .child(col()
+                .key("list")
+                .size(100, 100)
+                .rows(
+                    10,
+                    20,
+                    i -> el().key("cell")
+                        .whenHoveredFor(0.5, e -> e.overlay(el().key("tip").size(60, 16))))),
+        200,
+        200);
     app.focus(app.tree());
     app.pointerMove(10, 30); // row 1
     app.frame();
@@ -712,12 +869,21 @@ class OverlayTest {
   @Test
   void aHandlerAfterAStayRunsOnceAndRebuildsTheView() {
     State s = new State();
-    App<State> app = app(s, st -> el().size(200, 200).children(
-        el().key("now").size(40, 20).onHoverFor(0, () -> st.log.add("now")),
-        el().key("later").absolute(100, 0).size(40, 20).onHoverFor(0.3, () -> {
-          st.log.add("later");
-          st.open = true;
-        }).overlay(st.open ? el().key("opened").size(10, 10) : null)), 200, 200);
+    App<State> app = app(
+        s,
+        st -> el().size(200, 200)
+            .children(
+                el().key("now").size(40, 20).onHoverFor(0, () -> st.log.add("now")),
+                el().key("later")
+                    .absolute(100, 0)
+                    .size(40, 20)
+                    .onHoverFor(0.3, () -> {
+                      st.log.add("later");
+                      st.open = true;
+                    })
+                    .overlay(st.open ? el().key("opened").size(10, 10) : null)),
+        200,
+        200);
     app.pointerMove(10, 10);
     app.frame();
     app.pointerMove(12, 10);
@@ -735,9 +901,21 @@ class OverlayTest {
   @Test
   void anOverlayWithAKeyAndMotionFadesInAndOutAndTakesNoInputMeanwhile() {
     State s = new State();
-    App<State> app = app(s, st -> el().size(200, 200).child(el().key("anchor").size(40, 20)
-        .overlay(st.open ? el().key("pop").size(60, 40).fill(0xFFFFFFFF).motion(Spring.SNAP)
-            .onPress(() -> st.log.add("pop")) : null)), 200, 200);
+    App<State> app = app(
+        s,
+        st -> el().size(200, 200)
+            .child(el().key("anchor")
+                .size(40, 20)
+                .overlay(
+                    st.open
+                        ? el().key("pop")
+                            .size(60, 40)
+                            .fill(0xFFFFFFFF)
+                            .motion(Spring.SNAP)
+                            .onPress(() -> st.log.add("pop"))
+                        : null)),
+        200,
+        200);
     s.open = true;
     rebuild(app);
     El pop = find(app, "pop");
@@ -777,8 +955,10 @@ class OverlayTest {
           el #sub 65,25 50x30
             el #subitem 65,25 50x30
         """, app.render().tree());
-    assertEquals(Headless.render(OverlayTest.menuButton(s), 200, 200, 1).tree(),
-        app.render().tree(), "Headless places them as the app does");
+    assertEquals(
+        Headless.render(OverlayTest.menuButton(s), 200, 200, 1).tree(),
+        app.render().tree(),
+        "Headless places them as the app does");
   }
 
   /** The state of a bar of two titles that open a menu each. */
@@ -801,11 +981,15 @@ class OverlayTest {
         b.open = b.open == at ? -1 : at;
       });
       if (b.open == i) {
-        title.overlay(col().key("menu").dismissGroup(b).onDismiss(() -> {
-          b.log.add("dismissed");
-          b.open = -1;
-          b.active = false;
-        }).child(el().key("item").size(60, 20).focusable().onPress(() -> b.log.add("item"))));
+        title.overlay(col()
+            .key("menu")
+            .dismissGroup(b)
+            .onDismiss(() -> {
+              b.log.add("dismissed");
+              b.open = -1;
+              b.active = false;
+            })
+            .child(el().key("item").size(60, 20).focusable().onPress(() -> b.log.add("item"))));
       }
       bar.child(title);
     }
@@ -815,8 +999,11 @@ class OverlayTest {
         b.active = false;
       });
     }
-    return col().size(200, 200).gap(10).children(bar,
-        el().key("field").size(100, 20).focusable().onPress(() -> b.log.add("field")));
+    return col()
+        .size(200, 200)
+        .gap(10)
+        .children(
+            bar, el().key("field").size(100, 20).focusable().onPress(() -> b.log.add("field")));
   }
 
   @Test
@@ -857,12 +1044,27 @@ class OverlayTest {
   @Test
   void anOverlayThatKeepsTheFocusOpensWithoutItAndTabStillReachesIt() {
     State s = new State();
-    App<State> app = app(s, st -> el().size(200, 200).child(row().children(
-        el().key("field").size(40, 20).focusable(),
-        el().key("after").size(40, 20).focusable().overlay(st.open
-            ? col().key("toast").keepFocus().child(
-                el().key("undo").size(40, 20).focusable().onPress(() -> st.log.add("undo")))
-            : null))), 200, 200);
+    App<State> app = app(
+        s,
+        st -> el().size(200, 200)
+            .child(row()
+                .children(
+                    el().key("field").size(40, 20).focusable(),
+                    el().key("after")
+                        .size(40, 20)
+                        .focusable()
+                        .overlay(
+                            st.open
+                                ? col()
+                                    .key("toast")
+                                    .keepFocus()
+                                    .child(el().key("undo")
+                                        .size(40, 20)
+                                        .focusable()
+                                        .onPress(() -> st.log.add("undo")))
+                                : null))),
+        200,
+        200);
     press(app, 20, 10);
     assertEquals("field", app.focused().key());
     s.open = true;

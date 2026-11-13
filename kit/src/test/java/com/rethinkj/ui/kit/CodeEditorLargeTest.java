@@ -54,12 +54,13 @@ class CodeEditorLargeTest {
   private static String text() {
     StringBuilder out = new StringBuilder();
     for (int i = 0; i < LINES; i++) {
-      out.append(switch (i % 4) {
-        case 0 -> "SELECT o.id, o.total * 1.19 AS gross -- " + i;
-        case 1 -> "FROM orders o WHERE o.note <> 'it''s' AND";
-        case 2 -> "  o.status IN ('paid', 'shipped') /* x */";
-        default -> "  AND o.id > " + i + ";";
-      });
+      out.append(
+          switch (i % 4) {
+            case 0 -> "SELECT o.id, o.total * 1.19 AS gross -- " + i;
+            case 1 -> "FROM orders o WHERE o.note <> 'it''s' AND";
+            case 2 -> "  o.status IN ('paid', 'shipped') /* x */";
+            default -> "  AND o.id > " + i + ";";
+          });
       if (i + 1 < LINES) {
         out.append('\n');
       }
@@ -109,9 +110,16 @@ class CodeEditorLargeTest {
   void aHundredThousandLinesOfSqlAskTheHighlighterAboutTheLinesInViewOnly() {
     Query query = new Query();
     query.sql = text();
-    App<Query> app = new App<>(query, s -> col().wFull().hFull().padding(12).child(
-        codeEditor(Theme.DARK, s.sql, s.editor, s.highlighter, v -> s.sql = v)
-            .key("query").lines(9).wFull()));
+    App<Query> app = new App<>(
+        query,
+        s -> col()
+            .wFull()
+            .hFull()
+            .padding(12)
+            .child(codeEditor(Theme.DARK, s.sql, s.editor, s.highlighter, v -> s.sql = v)
+                .key("query")
+                .lines(9)
+                .wFull()));
     app.textRendering(TextRendering.LINUX);
     app.resize(480, 240, 1);
     long start = System.nanoTime();

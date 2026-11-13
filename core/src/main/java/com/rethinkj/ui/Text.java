@@ -203,8 +203,14 @@ public final class Text implements Measure {
   private record Row(int line, int row, Para para, double top) {}
 
   /** What the rows of wrapped lines depend on: another value breaks them anew. */
-  private record Wrapping(float width, Font font, float size, float scale, List<String> features,
-      int tabSize, boolean systemFonts) {}
+  private record Wrapping(
+      float width,
+      Font font,
+      float size,
+      float scale,
+      List<String> features,
+      int tabSize,
+      boolean systemFonts) {}
 
   Text(String string) {
     if (string == null) {
@@ -426,7 +432,9 @@ public final class Text implements Measure {
     BreakIterator chars = BreakIterator.getCharacterInstance(Locale.ROOT);
     chars.setText(one + one);
     // Two of them must be two graphemes: no combining mark, joiner or half of a flag.
-    if (one.isEmpty() || Character.isWhitespace(character) || Character.isISOControl(character)
+    if (one.isEmpty()
+        || Character.isWhitespace(character)
+        || Character.isISOControl(character)
         || !chars.isBoundary(one.length())) {
       throw new IllegalArgumentException(
           "The mask of a field must be a visible character that stands alone, such as '*' or"
@@ -652,8 +660,12 @@ public final class Text implements Measure {
         shortened = true;
       } else {
         Para para = paras[span.paragraph];
-        line = new Line(para.slice(span.from, span.to), span.width, baseline,
-            para.colors(span.from, span.to), 0);
+        line = new Line(
+            para.slice(span.from, span.to),
+            span.width,
+            baseline,
+            para.colors(span.from, span.to),
+            0);
       }
       float x = aligned(line.width());
       lineX[placed.size()] = x;
@@ -663,8 +675,10 @@ public final class Text implements Measure {
     if (underlineTo > underlineFrom && !field && !spans.isEmpty()) {
       int line = lineOf(underlineFrom);
       float from = x(underlineFrom);
-      composition = new Box(from, baseline(line)
-          + Math.round(font().descent() * size * scale / 2), x(underlineTo) - from,
+      composition = new Box(
+          from,
+          baseline(line) + Math.round(font().descent() * size * scale / 2),
+          x(underlineTo) - from,
           Math.max(1, Math.round(scale)));
     }
   }
@@ -701,12 +715,14 @@ public final class Text implements Measure {
     // rather than inside it; cut inside it when right-to-left text needs it.
     Para para = paras[span.paragraph];
     String text = para.text;
-    float room = placedWidth + SLACK - shaping.shape(ELLIPSIS, size, scale, features).width();
+    float room =
+        placedWidth + SLACK - shaping.shape(ELLIPSIS, size, scale, features).width();
     BreakIterator chars = BreakIterator.getCharacterInstance(Locale.ROOT);
     chars.setText(text);
     List<Integer> fits = new ArrayList<>();
     fits.add(span.from);
-    for (int b = chars.following(span.from); b != BreakIterator.DONE && b <= span.to;
+    for (int b = chars.following(span.from);
+        b != BreakIterator.DONE && b <= span.to;
         b = chars.next()) {
       if (para.width(span.from, b) > room) {
         break;
@@ -828,8 +844,11 @@ public final class Text implements Measure {
       Arrays.fill(byChar, viewColor);
       for (int i = 0; i < spans.count; i++) {
         if (spans.kinds[i] == Spans.COLOR) {
-          Arrays.fill(byChar, Math.clamp(spans.froms[i] - offset, 0, limit),
-              Math.clamp(spans.tos[i] - offset, 0, limit), spans.colors[i]);
+          Arrays.fill(
+              byChar,
+              Math.clamp(spans.froms[i] - offset, 0, limit),
+              Math.clamp(spans.tos[i] - offset, 0, limit),
+              spans.colors[i]);
         }
       }
       colors = new int[run.count()];
@@ -859,8 +878,11 @@ public final class Text implements Measure {
     Font[] byChar = new Font[text.length()];
     for (int i = 0; i < spans.count; i++) {
       if (spans.kinds[i] == Spans.FONT) {
-        Arrays.fill(byChar, Math.clamp(spans.froms[i] - offset, 0, limit),
-            Math.clamp(spans.tos[i] - offset, 0, limit), spans.fonts[i]);
+        Arrays.fill(
+            byChar,
+            Math.clamp(spans.froms[i] - offset, 0, limit),
+            Math.clamp(spans.tos[i] - offset, 0, limit),
+            spans.fonts[i]);
       }
     }
     List<GlyphRun> parts = new ArrayList<>();
@@ -1003,7 +1025,8 @@ public final class Text implements Measure {
       int end = g < run.count() ? run.cluster(g) : text.length();
       int graphemes = graphemes(text, start, end);
       float from = run.pen(first);
-      return graphemes == 0 ? from
+      return graphemes == 0
+          ? from
           : from + (run.pen(g) - from) * graphemes(text, start, at) / graphemes;
     }
 
@@ -1036,7 +1059,8 @@ public final class Text implements Measure {
 
   /** A position in the text of the glyphs, at a grapheme boundary, in the shown string. */
   private int fromGlyphs(int index) {
-    return maskBounds == null ? index
+    return maskBounds == null
+        ? index
         : maskBounds[Math.min(index / Character.charCount(mask), maskBounds.length - 1)];
   }
 
@@ -1255,8 +1279,9 @@ public final class Text implements Measure {
     if (!laidOut) {
       return; // the rows are for the width layout gives, which the next placed() tells
     }
-    shownLines.wrap(new Wrapping(placedWidth, font(), size, scale, List.of(features), tabSize,
-        systemFonts), Math.max(placedWidth / Math.max(advance, 1), 1));
+    shownLines.wrap(
+        new Wrapping(placedWidth, font(), size, scale, List.of(features), tabSize, systemFonts),
+        Math.max(placedWidth / Math.max(advance, 1), 1));
   }
 
   /** Line {@code line} of the shown string shaped, with its rows at the width; measured once. */
@@ -1267,7 +1292,8 @@ public final class Text implements Measure {
       if (shapedLines.size() >= 4096) {
         shapedLines.clear(); // keys that walk far in one tree: keep what this tree shapes bounded
       }
-      Spans spans = highlighter == null || placeholderShown ? null
+      Spans spans = highlighter == null || placeholderShown
+          ? null
           : lines.spans(line, shown, highlighter, highlightKey);
       String text = shown.substring(lines.start(line), lines.end(line));
       para = shape(text, spans, 0, text.length());
@@ -1392,8 +1418,11 @@ public final class Text implements Measure {
         if (top >= to) {
           break;
         }
-        laid.add(new Line(para.slice(para.rowStart(r), para.rowEnd(r)), para.rowWidths[r],
-            (float) (top - viewY + firstBaseline), para.colors(para.rowStart(r), para.rowEnd(r)),
+        laid.add(new Line(
+            para.slice(para.rowStart(r), para.rowEnd(r)),
+            para.rowWidths[r],
+            (float) (top - viewY + firstBaseline),
+            para.colors(para.rowStart(r), para.rowEnd(r)),
             0));
         placed.add(new Row(line, r, para, top));
         if (top < viewY + placedHeight && top + lh > viewY) {
@@ -1410,8 +1439,11 @@ public final class Text implements Measure {
 
   /** The marks of the rows laid out, from the highlighter's spans and the decorator's. */
   private List<Mark> marks(List<Row> placed) {
-    if (placeholderShown || decorator == null && (highlighter == null || placed.stream()
-        .noneMatch(row -> row.para.spans != null && row.para.spans.count > 0))) {
+    if (placeholderShown
+        || decorator == null
+            && (highlighter == null
+                || placed.stream()
+                    .noneMatch(row -> row.para.spans != null && row.para.spans.count > 0))) {
       return List.of();
     }
     Lines lines = shownLines();

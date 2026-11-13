@@ -55,16 +55,28 @@ class CpuRendererEquivalenceTest {
     for (float scale : new float[] {1, 1.25f, 1.5f, 2, 3}) {
       for (float size : new float[] {37, 18.5f, 9.25f, 4, 1.5f, 60, 120}) {
         for (float at : new float[] {3, 3.5f, 3.25f}) {
-          El root = el().size(140, 60).fill(0xFFF0F0F0).children(
-              El.image(photo).absolute(at, at).size(size, size * 23 / 37),
-              El.image(photo).absolute(at + 40, 2).size(size, 20).radius(3, 0, 6, 1)
-                  .fit(Image.Fit.COVER),
-              El.image(disc).absolute(at + 70, 30).size(size, size / 2).fit(Image.Fit.CONTAIN)
-                  .opacity(0.6f),
-              El.image(disc).absolute(at + 100, at).size(size / 2, size).radius(5));
+          El root = el().size(140, 60)
+              .fill(0xFFF0F0F0)
+              .children(
+                  El.image(photo).absolute(at, at).size(size, size * 23 / 37),
+                  El.image(photo)
+                      .absolute(at + 40, 2)
+                      .size(size, 20)
+                      .radius(3, 0, 6, 1)
+                      .fit(Image.Fit.COVER),
+                  El.image(disc)
+                      .absolute(at + 70, 30)
+                      .size(size, size / 2)
+                      .fit(Image.Fit.CONTAIN)
+                      .opacity(0.6f),
+                  El.image(disc).absolute(at + 100, at).size(size / 2, size).radius(5));
           Flex.layout(root, 140, 60);
-          assertSame("images " + size + " at " + at + " @" + scale, Scene.of(root, scale),
-              Math.round(140 * scale), Math.round(60 * scale), scale);
+          assertSame(
+              "images " + size + " at " + at + " @" + scale,
+              Scene.of(root, scale),
+              Math.round(140 * scale),
+              Math.round(60 * scale),
+              scale);
         }
       }
     }
@@ -73,24 +85,41 @@ class CpuRendererEquivalenceTest {
   /** The shapes of {@code ShadowTest}, at three scales, clipped by a rounded box or not. */
   @Test
   void drawsShadowsAsBefore() {
-    float[][] shapes = {{20, 12, 0, 4}, {20, 12, 2, 3}, {20, 12, 12, 4}, {20, 12, 8, 2},
-        {20, 12, 8, 12}, {26, 18, 14, 6}, {80, 60, 4, 1.5f}};
+    float[][] shapes = {
+      {20, 12, 0, 4},
+      {20, 12, 2, 3},
+      {20, 12, 12, 4},
+      {20, 12, 8, 2},
+      {20, 12, 8, 12},
+      {26, 18, 14, 6},
+      {80, 60, 4, 1.5f}
+    };
     for (float scale : new float[] {1, 1.5f, 2}) {
       for (float[] s : shapes) {
         for (boolean clipped : new boolean[] {false, true}) {
           float width = 2 * s[0] + 6 * s[3] + 20;
           float height = 2 * s[1] + 6 * s[3] + 20;
-          El shadow = el().absolute(3 * s[3] + 10.3f, 3 * s[3] + 9.6f).size(2 * s[0], 2 * s[1])
-              .radius(s[2]).fill(0xFFFFFFFF).shadow(new Shadow(0.5f, 1.25f, 2 * s[3], 0,
-                  0xB3203040), new Shadow(-1, 0, s[3], 1.5f, 0x660000FF));
+          El shadow = el().absolute(3 * s[3] + 10.3f, 3 * s[3] + 9.6f)
+              .size(2 * s[0], 2 * s[1])
+              .radius(s[2])
+              .fill(0xFFFFFFFF)
+              .shadow(
+                  new Shadow(0.5f, 1.25f, 2 * s[3], 0, 0xB3203040),
+                  new Shadow(-1, 0, s[3], 1.5f, 0x660000FF));
           El parent = clipped
-              ? el().absolute(5.5f, 4.25f).size(width - 14, height - 9).radius(9).clip()
+              ? el().absolute(5.5f, 4.25f)
+                  .size(width - 14, height - 9)
+                  .radius(9)
+                  .clip()
                   .child(shadow.absolute(3 * s[3] + 4.8f, 3 * s[3] + 5.35f))
               : shadow;
           El root = el().size(width, height).fill(0xFF2A2A2A).child(parent);
           Flex.layout(root, width, height);
-          assertSame("shadow " + Arrays.toString(s) + (clipped ? " clipped" : "") + " @"
-                  + scale, Scene.of(root), Math.round(width * scale), Math.round(height * scale),
+          assertSame(
+              "shadow " + Arrays.toString(s) + (clipped ? " clipped" : "") + " @" + scale,
+              Scene.of(root),
+              Math.round(width * scale),
+              Math.round(height * scale),
               scale);
         }
       }
@@ -116,8 +145,11 @@ class CpuRendererEquivalenceTest {
       List<int[]> glyphs = new ArrayList<>();
       for (int i = 0; i < scene.count(); i++) {
         if (scene.getInt(i, Scene.KIND) == Scene.GLYPH) {
-          glyphs.add(new int[] {scene.getInt(i, Scene.ATLAS), scene.getInt(i, Scene.ATLAS_SIZE),
-              scene.getInt(i, Scene.PAGE)});
+          glyphs.add(new int[] {
+            scene.getInt(i, Scene.ATLAS),
+            scene.getInt(i, Scene.ATLAS_SIZE),
+            scene.getInt(i, Scene.PAGE)
+          });
         }
       }
       int count = 1 + random.nextInt(14);
@@ -127,8 +159,8 @@ class CpuRendererEquivalenceTest {
       if (n % 2 == 0) {
         addImage(scene, random, width, height);
       }
-      assertSame("random scene " + n, scene, Math.round(width * scale),
-          Math.round(height * scale), scale);
+      assertSame(
+          "random scene " + n, scene, Math.round(width * scale), Math.round(height * scale), scale);
     }
   }
 
@@ -146,7 +178,8 @@ class CpuRendererEquivalenceTest {
       float[] frame = new float[width * height * 4];
       for (int at = 0; at < frame.length; at += 4) {
         for (int c = 0; c < 4; c++) {
-          frame[at + c] = c == varied || varied == 4 ? value(random)
+          frame[at + c] = c == varied || varied == 4
+              ? value(random)
               : new float[] {0.2f, 0.75f, 1}[random.nextInt(3)];
         }
       }
@@ -175,20 +208,31 @@ class CpuRendererEquivalenceTest {
 
   /** A scene whose clip table has rounded and square clips, nested, and text if asked. */
   private static Scene base(float width, float height, float scale, boolean text) {
-    El nested = el().absolute(3.5f, -2.25f).size(width / 2, height)
-        .radius(height / 3, 0, 2.5f, height / 2).clip()
+    El nested = el().absolute(3.5f, -2.25f)
+        .size(width / 2, height)
+        .radius(height / 3, 0, 2.5f, height / 2)
+        .clip()
         .child(el().absolute(1, 1).size(4, 4).fill(0x40FF0000));
-    El rounded = el().absolute(1.25f, 2.5f).size(width * 0.7f, height * 0.6f).radius(5.5f).clip()
-        .child(el().absolute(0.5f, 0.5f).size(3, 2).fill(0x8000FF00)).child(nested);
-    El square = el().absolute(width * 0.4f, height * 0.35f).size(width * 0.5f, height * 0.55f)
-        .clip().child(el().absolute(-1, -1).size(5, 5).fill(0xFF0000FF));
-    El root = el().size(width, height).fill(0xFFF0F0F0).child(rounded).child(square)
+    El rounded = el().absolute(1.25f, 2.5f)
+        .size(width * 0.7f, height * 0.6f)
+        .radius(5.5f)
+        .clip()
+        .child(el().absolute(0.5f, 0.5f).size(3, 2).fill(0x8000FF00))
+        .child(nested);
+    El square = el().absolute(width * 0.4f, height * 0.35f)
+        .size(width * 0.5f, height * 0.55f)
+        .clip()
+        .child(el().absolute(-1, -1).size(5, 5).fill(0xFF0000FF));
+    El root = el().size(width, height)
+        .fill(0xFFF0F0F0)
+        .child(rounded)
+        .child(square)
         .child(El.image(BASE_IMAGES[0]).absolute(1, 1).size(3, 2))
         .child(El.image(BASE_IMAGES[1]).absolute(2, 3).size(4, 4));
     if (text) {
       rounded.child(El.text("Ag é").fontSize(9).color(0xFF101010).absolute(0.3f, 0.6f));
-      square.child(El.text("W1").font(Font.mono()).fontSize(11).color(0xFFFFFFFF)
-          .absolute(-2.5f, 1));
+      square.child(
+          El.text("W1").font(Font.mono()).fontSize(11).color(0xFFFFFFFF).absolute(-2.5f, 1));
       Examples.laidOut(root, width, height, scale);
     } else {
       Flex.layout(root, width, height);
@@ -197,8 +241,9 @@ class CpuRendererEquivalenceTest {
   }
 
   /** Images for the random scenes: a photo with levels down to 1 by 1, and a disc with alpha. */
-  private static final Image[] BASE_IMAGES = {Image.of(Examples.photo(29, 11)),
-      Image.of(Examples.disc(12))};
+  private static final Image[] BASE_IMAGES = {
+    Image.of(Examples.photo(29, 11)), Image.of(Examples.disc(12))
+  };
 
   /**
    * An image instance at a random rectangle: one of the scene's images, now and then with a size
@@ -218,12 +263,17 @@ class CpuRendererEquivalenceTest {
     put(data, at + Scene.Y, y);
     put(data, at + Scene.WIDTH, exact ? image.width() / scale : length(random, width));
     put(data, at + Scene.HEIGHT, exact ? image.height() / scale : length(random, height));
-    int size = random.nextInt(8) == 0 ? random.nextInt(1, 64) | random.nextInt(1, 64) << 16
+    int size = random.nextInt(8) == 0
+        ? random.nextInt(1, 64) | random.nextInt(1, 64) << 16
         : image.width() | image.height() << 16;
     data.set(ValueLayout.JAVA_INT, at + Scene.IMAGE_SIZE, size);
-    data.set(ValueLayout.JAVA_INT, at + Scene.LEVELS,
+    data.set(
+        ValueLayout.JAVA_INT,
+        at + Scene.LEVELS,
         random.nextInt(8) == 0 ? random.nextInt(8) : image.levels());
-    data.set(ValueLayout.JAVA_INT, at + Scene.CLIP,
+    data.set(
+        ValueLayout.JAVA_INT,
+        at + Scene.CLIP,
         random.nextInt(3) == 0 ? 0 : random.nextInt(scene.clipCount()));
     data.set(ValueLayout.JAVA_INT, at + Scene.KIND, Scene.IMAGE);
     float opacity = random.nextBoolean() ? 1 : random.nextFloat();
@@ -233,12 +283,13 @@ class CpuRendererEquivalenceTest {
     data.set(ValueLayout.JAVA_INT, at + Scene.IMAGE_INDEX, index);
   }
 
-  private static void addRandom(Scene scene, Random random, float width, float height,
-      List<int[]> glyphs) {
+  private static void addRandom(
+      Scene scene, Random random, float width, float height, List<int[]> glyphs) {
     scene.rect(0, 0, 1, 1, 0, 0, 0, 0);
     long at = (long) (scene.count() - 1) * Scene.STRIDE;
     MemorySegment data = scene.data();
-    int kind = random.nextInt(10) < 6 ? Scene.RECT
+    int kind = random.nextInt(10) < 6
+        ? Scene.RECT
         : random.nextBoolean() || glyphs.isEmpty() ? Scene.SHADOW : Scene.GLYPH;
     float w = length(random, width);
     float h = length(random, height);
@@ -246,7 +297,9 @@ class CpuRendererEquivalenceTest {
     put(data, at + Scene.Y, position(random, height));
     put(data, at + Scene.WIDTH, w);
     put(data, at + Scene.HEIGHT, h);
-    data.set(ValueLayout.JAVA_INT, at + Scene.CLIP,
+    data.set(
+        ValueLayout.JAVA_INT,
+        at + Scene.CLIP,
         random.nextInt(3) == 0 ? 0 : random.nextInt(scene.clipCount()));
     data.set(ValueLayout.JAVA_INT, at + Scene.KIND, kind);
     colour(data, at + Scene.FILL, random);
@@ -255,10 +308,14 @@ class CpuRendererEquivalenceTest {
       data.set(ValueLayout.JAVA_INT, at + Scene.ATLAS, glyph[0]);
       data.set(ValueLayout.JAVA_INT, at + Scene.ATLAS_SIZE, glyph[1]);
       data.set(ValueLayout.JAVA_INT, at + Scene.PAGE, glyph[2]);
-      put(data, at + Scene.LIGHT_SHARE, random.nextBoolean() ? random.nextInt(2)
-          : random.nextFloat());
-      put(data, at + Scene.DARK_GAMMA, new float[] {1, 1.8f, 1 + random.nextFloat()}[
-          random.nextInt(3)]);
+      put(
+          data,
+          at + Scene.LIGHT_SHARE,
+          random.nextBoolean() ? random.nextInt(2) : random.nextFloat());
+      put(
+          data,
+          at + Scene.DARK_GAMMA,
+          new float[] {1, 1.8f, 1 + random.nextFloat()}[random.nextInt(3)]);
       put(data, at + Scene.LIGHT_GAMMA, new float[] {1, 1.4f, 1.8f}[random.nextInt(3)]);
       return;
     }
@@ -266,8 +323,9 @@ class CpuRendererEquivalenceTest {
     // As often all four corners alike as each its own, and so for the sides.
     boolean alike = random.nextBoolean();
     float radius = radius(random, half);
-    for (int field : new int[] {Scene.RADIUS, Scene.RADIUS_TOP_RIGHT, Scene.RADIUS_BOTTOM_RIGHT,
-        Scene.RADIUS_BOTTOM_LEFT}) {
+    for (int field : new int[] {
+      Scene.RADIUS, Scene.RADIUS_TOP_RIGHT, Scene.RADIUS_BOTTOM_RIGHT, Scene.RADIUS_BOTTOM_LEFT
+    }) {
       put(data, at + field, alike ? radius : radius(random, half));
     }
     if (kind == Scene.SHADOW) {
@@ -276,8 +334,9 @@ class CpuRendererEquivalenceTest {
     }
     alike = random.nextBoolean();
     float border = border(random, half);
-    for (int field : new int[] {Scene.BORDER_WIDTH, Scene.BORDER_RIGHT, Scene.BORDER_BOTTOM,
-        Scene.BORDER_LEFT}) {
+    for (int field :
+        new int[] {Scene.BORDER_WIDTH, Scene.BORDER_RIGHT, Scene.BORDER_BOTTOM, Scene.BORDER_LEFT
+        }) {
       put(data, at + field, alike ? border : border(random, half));
     }
     colour(data, at + Scene.BORDER, random);
@@ -323,8 +382,10 @@ class CpuRendererEquivalenceTest {
       case 1 -> -3;
       case 2 -> Float.POSITIVE_INFINITY;
       case 3 -> Float.NaN;
-      default -> random.nextBoolean() ? random.nextInt(1, 4 * (int) extent) / 4f
-          : random.nextFloat() * extent;
+      default ->
+        random.nextBoolean()
+            ? random.nextInt(1, 4 * (int) extent) / 4f
+            : random.nextFloat() * extent;
     };
   }
 
@@ -363,8 +424,8 @@ class CpuRendererEquivalenceTest {
   private static void assertSame(String name, Scene scene, int width, int height, float scale) {
     Recorder expected = new Recorder();
     Recorder actual = new Recorder();
-    float[] before = ReferenceCpuRenderer.renderLinear(scene, width, height, scale,
-        expected::blend);
+    float[] before =
+        ReferenceCpuRenderer.renderLinear(scene, width, height, scale, expected::blend);
     float[] after = CpuRenderer.renderLinear(scene, width, height, scale, actual::blend);
     for (int i = 0; i < before.length; i++) {
       if (Float.floatToIntBits(before[i]) != Float.floatToIntBits(after[i])) {
@@ -380,8 +441,8 @@ class CpuRendererEquivalenceTest {
     for (int i = 0; i < image.length; i++) {
       if (image[i] != reference[i]) {
         int pixel = i / 4;
-        fail(name + ": byte " + i % 4 + " of pixel " + pixel % width + "," + pixel / width
-            + " is " + (image[i] & 0xFF) + ", was " + (reference[i] & 0xFF));
+        fail(name + ": byte " + i % 4 + " of pixel " + pixel % width + "," + pixel / width + " is "
+            + (image[i] & 0xFF) + ", was " + (reference[i] & 0xFF));
       }
     }
   }
@@ -397,9 +458,13 @@ class CpuRendererEquivalenceTest {
     Map<Floats, Integer> distinct = new HashMap<>();
     int[] index = new int[frame.length / 4];
     for (int at = 0; at < frame.length; at += 4) {
-      index[at / 4] = distinct.computeIfAbsent(new Floats(Float.floatToRawIntBits(frame[at]),
-          Float.floatToRawIntBits(frame[at + 1]), Float.floatToRawIntBits(frame[at + 2]),
-          Float.floatToRawIntBits(frame[at + 3])), key -> distinct.size());
+      index[at / 4] = distinct.computeIfAbsent(
+          new Floats(
+              Float.floatToRawIntBits(frame[at]),
+              Float.floatToRawIntBits(frame[at + 1]),
+              Float.floatToRawIntBits(frame[at + 2]),
+              Float.floatToRawIntBits(frame[at + 3])),
+          key -> distinct.size());
     }
     float[] pixels = new float[distinct.size() * 4];
     distinct.forEach((key, i) -> {

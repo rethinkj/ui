@@ -441,8 +441,7 @@ public final class Scene {
    * @param ringColour the colour of the ring as 0xAARRGGBB, unless the element sets its own ({@link
    *     El#focusRing(int)})
    */
-  public static Scene of(
-      El root, El ring, int ringColour, Atlas atlas, TextRendering rendering) {
+  public static Scene of(El root, El ring, int ringColour, Atlas atlas, TextRendering rendering) {
     return of(root, ring, ringColour, atlas, rendering, Float.NaN);
   }
 
@@ -451,8 +450,8 @@ public final class Scene {
    * are snapped to the physical pixel grid, as {@link Scene} says. Without a scale (NaN), every
    * box is drawn where layout put it.
    */
-  public static Scene of(El root, El ring, int ringColour, Atlas atlas, TextRendering rendering,
-      float scale) {
+  public static Scene of(
+      El root, El ring, int ringColour, Atlas atlas, TextRendering rendering, float scale) {
     Scene scene = new Scene(atlas, rendering);
     scene.scale = scale > 0 && Float.isFinite(scale) ? scale : Float.NaN;
     scene.ring = ring;
@@ -463,8 +462,17 @@ public final class Scene {
     scene.add(root, 0, 0, 1, 0, Float.NaN, false, null);
     for (El overlay : root.shownOverlays()) {
       if (overlay.scrim() >>> 24 != 0 && overlay.opacity() > 0) {
-        scene.rect(-NO_CLIP, -NO_CLIP, 2 * NO_CLIP, 2 * NO_CLIP, 0, 0, overlay.scrim(), 0,
-            overlay.opacity(), 0);
+        scene.rect(
+            -NO_CLIP,
+            -NO_CLIP,
+            2 * NO_CLIP,
+            2 * NO_CLIP,
+            0,
+            0,
+            overlay.scrim(),
+            0,
+            overlay.opacity(),
+            0);
       }
       scene.add(overlay, 0, 0, 1, 0, Float.NaN, false, null);
     }
@@ -477,8 +485,15 @@ public final class Scene {
    * @param box the parent's content box as layout put it and as drawn, null for a parent
    *     without a border, whose content box needs no mapping of its own
    */
-  private void add(El el, float parentX, float parentY, float parentOpacity, int clip,
-      float behind, boolean moving, ContentBox box) {
+  private void add(
+      El el,
+      float parentX,
+      float parentY,
+      float parentOpacity,
+      int clip,
+      float behind,
+      boolean moving,
+      ContentBox box) {
     // shortcut: opacity is multiplied into each instance, so overlapping descendants of a
     // translucent element show through each other; true group opacity needs an off-screen layer.
     float opacity = parentOpacity * el.opacity();
@@ -504,8 +519,12 @@ public final class Scene {
     float clipRight = clipX + clipGet(clip, WIDTH);
     float clipBottom = clipY + clipGet(clip, HEIGHT);
     Style s = el.style();
-    float[] borders = {stroke(px(s.borderTop)), stroke(px(s.borderRight)),
-        stroke(px(s.borderBottom)), stroke(px(s.borderLeft))};
+    float[] borders = {
+      stroke(px(s.borderTop)),
+      stroke(px(s.borderRight)),
+      stroke(px(s.borderBottom)),
+      stroke(px(s.borderLeft))
+    };
     boolean hasBorder = (borders[0] > 0 || borders[1] > 0 || borders[2] > 0 || borders[3] > 0)
         && el.borderColor() >>> 24 != 0;
     float[] radii = el.radii();
@@ -516,8 +535,17 @@ public final class Scene {
       shadow(shadows.get(i), left, top, width, height, radii, opacity, clip);
     }
     if ((el.fill() >>> 24 != 0 || hasBorder) && inside) {
-      rect(left, top, width, height, radii, hasBorder ? borders : NO_BORDER, el.fill(),
-          el.borderColor(), opacity, clip);
+      rect(
+          left,
+          top,
+          width,
+          height,
+          radii,
+          hasBorder ? borders : NO_BORDER,
+          el.fill(),
+          el.borderColor(),
+          opacity,
+          clip);
     }
     if (el.image() != null && inside) {
       image(el, left, top, width, height, borders, radii, opacity, clip, free);
@@ -566,8 +594,10 @@ public final class Scene {
       for (int c = 0; c < 4; c++) {
         ringRadii[c] = radii[c] > 0 ? radii[c] + out : 0;
       }
-      if (l < Math.max(clipX, 0) || t < Math.max(clipY, 0)
-          || r > Math.min(clipRight, windowWidth) || b > Math.min(clipBottom, windowHeight)) {
+      if (l < Math.max(clipX, 0)
+          || t < Math.max(clipY, 0)
+          || r > Math.min(clipRight, windowWidth)
+          || b > Math.min(clipBottom, windowHeight)) {
         // A clip or the window would cut the ring outside, as a pane does around a grid in it.
         l = left;
         t = top;
@@ -576,8 +606,17 @@ public final class Scene {
         ringRadii = radii;
       }
       if (l < clipRight && r > clipX && t < clipBottom && b > clipY) {
-        rect(l, t, r - l, b - t, ringRadii, new float[] {ringWidth, ringWidth, ringWidth,
-            ringWidth}, 0, ringed, opacity, clip);
+        rect(
+            l,
+            t,
+            r - l,
+            b - t,
+            ringRadii,
+            new float[] {ringWidth, ringWidth, ringWidth, ringWidth},
+            0,
+            ringed,
+            opacity,
+            clip);
       }
     }
   }
@@ -587,8 +626,17 @@ public final class Scene {
    * the pixel grid unless a spring moves the element, within a clip of the content box with the
    * element's corners where the element is rounded or the image reaches beyond the box.
    */
-  private void image(El el, float left, float top, float width, float height, float[] borders,
-      float[] radii, float opacity, int clip, boolean free) {
+  private void image(
+      El el,
+      float left,
+      float top,
+      float width,
+      float height,
+      float[] borders,
+      float[] radii,
+      float opacity,
+      int clip,
+      boolean free) {
     Image image = el.image();
     Style s = el.style();
     float insetLeft = borders[3] + px(s.paddingLeft);
@@ -638,10 +686,12 @@ public final class Scene {
     float clipRight = clipX + clipGet(clip, WIDTH);
     float clipBottom = clipY + clipGet(clip, HEIGHT);
     if (rounded || beyond) {
-      float[] inner = {Math.max(radii[0] - Math.max(insetLeft, insetTop), 0),
-          Math.max(radii[1] - Math.max(insetRight, insetTop), 0),
-          Math.max(radii[2] - Math.max(insetRight, insetBottom), 0),
-          Math.max(radii[3] - Math.max(insetLeft, insetBottom), 0)};
+      float[] inner = {
+        Math.max(radii[0] - Math.max(insetLeft, insetTop), 0),
+        Math.max(radii[1] - Math.max(insetRight, insetTop), 0),
+        Math.max(radii[2] - Math.max(insetRight, insetBottom), 0),
+        Math.max(radii[3] - Math.max(insetLeft, insetBottom), 0)
+      };
       float cl = Math.max(l, clipX);
       float ct = Math.max(t, clipY);
       float cw = Math.min(r, clipRight) - cl;
@@ -689,8 +739,14 @@ public final class Scene {
    * the text element itself, so that a link at the edge of a paragraph keeps its whole ring. Its
    * children are not drawn.
    */
-  private void range(El el, float parentX, float parentY, float parentOpacity, int clip,
-      int ringClip, boolean moving) {
+  private void range(
+      El el,
+      float parentX,
+      float parentY,
+      float parentOpacity,
+      int clip,
+      int ringClip,
+      boolean moving) {
     float opacity = parentOpacity * el.opacity();
     if (!el.isPlaced() || opacity == 0) {
       return;
@@ -715,8 +771,16 @@ public final class Scene {
         rect(left, top, width, height, el.radius(), 0, el.fill(), 0, opacity, clip);
       }
       if (ringed >>> 24 != 0) {
-        rect(left - ringWidth, top - ringWidth, width + 2 * ringWidth, height + 2 * ringWidth,
-            el.radius() > 0 ? el.radius() + ringWidth : 0, ringWidth, 0, ringed, opacity,
+        rect(
+            left - ringWidth,
+            top - ringWidth,
+            width + 2 * ringWidth,
+            height + 2 * ringWidth,
+            el.radius() > 0 ? el.radius() + ringWidth : 0,
+            ringWidth,
+            0,
+            ringed,
+            opacity,
             ringClip);
       }
     }
@@ -735,11 +799,18 @@ public final class Scene {
    * snapped to whole pixels, inside its borders of {@link #stroke} widths. Children whose edges lie
    * on it are snapped onto it, so that what fills a bordered box meets its border with no gap.
    */
-  private record ContentBox(float left, float top, float right, float bottom, float snappedLeft,
-      float snappedTop, float snappedRight, float snappedBottom) {}
+  private record ContentBox(
+      float left,
+      float top,
+      float right,
+      float bottom,
+      float snappedLeft,
+      float snappedTop,
+      float snappedRight,
+      float snappedBottom) {}
 
-  private ContentBox contentBox(El el, float x, float y, float left, float top, float width,
-      float height) {
+  private ContentBox contentBox(
+      El el, float x, float y, float left, float top, float width, float height) {
     Style s = el.style();
     float l = px(s.borderLeft);
     float t = px(s.borderTop);
@@ -748,8 +819,15 @@ public final class Scene {
     if (Float.isNaN(scale) || l == 0 && t == 0 && r == 0 && b == 0) {
       return null;
     }
-    return new ContentBox(x + l, y + t, x + el.width() - r, y + el.height() - b, left + stroke(l),
-        top + stroke(t), left + width - stroke(r), top + height - stroke(b));
+    return new ContentBox(
+        x + l,
+        y + t,
+        x + el.width() - r,
+        y + el.height() - b,
+        left + stroke(l),
+        top + stroke(t),
+        left + width - stroke(r),
+        top + height - stroke(b));
   }
 
   /** {@link #edge} across, onto the parent's drawn content box where it lies on it. */
@@ -794,8 +872,15 @@ public final class Scene {
    * or outside its clip. The spread grows the radius as CSS's does: less where the radius is
    * smaller than the spread, so that a square corner stays square.
    */
-  private void shadow(Shadow shadow, float x, float y, float width, float height, float[] radii,
-      float opacity, int clip) {
+  private void shadow(
+      Shadow shadow,
+      float x,
+      float y,
+      float width,
+      float height,
+      float[] radii,
+      float opacity,
+      int clip) {
     float spread = shadow.spread();
     float w = width + 2 * spread;
     float h = height + 2 * spread;
@@ -819,8 +904,10 @@ public final class Scene {
     float reach = 3 * sigma + 4;
     float clipX = clipGet(clip, X);
     float clipY = clipGet(clip, Y);
-    if (left - reach >= clipX + clipGet(clip, WIDTH) || left + w + reach <= clipX
-        || top - reach >= clipY + clipGet(clip, HEIGHT) || top + h + reach <= clipY) {
+    if (left - reach >= clipX + clipGet(clip, WIDTH)
+        || left + w + reach <= clipX
+        || top - reach >= clipY + clipGet(clip, HEIGHT)
+        || top + h + reach <= clipY) {
       return;
     }
     long offset = next();
@@ -842,21 +929,22 @@ public final class Scene {
    * are snapped, its ends are not: where it is along the bar and how long it is measure the scroll
    * offset, and they move with it as smoothly as a box that a spring moves.
    */
-  private void thumb(Scrollbars.Bar bar, boolean vertical, float radius, float opacity, int clip,
-      boolean free) {
+  private void thumb(
+      Scrollbars.Bar bar, boolean vertical, float radius, float opacity, int clip, boolean free) {
     if (bar == null || bar.color() >>> 24 == 0) {
       return;
     }
     float x = free || !vertical ? bar.thumbX() : edge(bar.thumbX());
     float y = free || vertical ? bar.thumbY() : edge(bar.thumbY());
-    float width =
-        free || !vertical ? bar.thumbWidth() : edge(bar.thumbX() + bar.thumbWidth()) - x;
+    float width = free || !vertical ? bar.thumbWidth() : edge(bar.thumbX() + bar.thumbWidth()) - x;
     float height =
         free || vertical ? bar.thumbHeight() : edge(bar.thumbY() + bar.thumbHeight()) - y;
     float clipX = clipGet(clip, X);
     float clipY = clipGet(clip, Y);
-    if (x < clipX + clipGet(clip, WIDTH) && x + width > clipX
-        && y < clipY + clipGet(clip, HEIGHT) && y + height > clipY) {
+    if (x < clipX + clipGet(clip, WIDTH)
+        && x + width > clipX
+        && y < clipY + clipGet(clip, HEIGHT)
+        && y + height > clipY) {
       rect(x, y, width, height, radius, 0, bar.color(), 0, opacity, clip);
     }
   }
@@ -952,8 +1040,9 @@ public final class Scene {
         // On the quarter grid, or whole below 1.5, as the line's start is.
         double origin = left + line.x() + run.x(i) - scroll;
         double whole = Math.floor(origin);
-        Atlas.Slot slot = atlas.glyph(run.font(i), run.pixelSize(), rendering.hinting(),
-            run.glyph(i), (int) ((origin - whole) * 4));
+        Atlas.Slot slot =
+            atlas.glyph(run.font(i), run.pixelSize(), rendering.hinting(), run.glyph(i), (int)
+                ((origin - whole) * 4));
         if (slot.isEmpty()) {
           continue;
         }
@@ -962,7 +1051,9 @@ public final class Scene {
             (float) ((Math.round(top + line.baseline() + run.y(i)) - slot.top()) / scale);
         float width = (float) (slot.width() / scale);
         float height = (float) (slot.height() / scale);
-        if (glyphX < clipRight && glyphX + width > clipX && glyphY < clipBottom
+        if (glyphX < clipRight
+            && glyphX + width > clipX
+            && glyphY < clipBottom
             && glyphY + height > clipY) {
           glyph(glyphX, glyphY, width, height, slot, glyphColour, opacity, clip, share);
         }
@@ -986,12 +1077,14 @@ public final class Scene {
     boolean rows = el.text().multiline();
     // Out to whole physical pixels, so that the clip cuts no glyph that the box holds.
     float left = Math.max(outward(x + px(s.borderLeft) + px(s.paddingLeft), -1), clipGet(clip, X));
-    float top = Math.max(outward(y + px(s.borderTop) + (rows ? px(s.paddingTop) : 0), -1),
-        clipGet(clip, Y));
-    float right = Math.min(outward(x + el.width() - px(s.borderRight) - px(s.paddingRight), 1),
+    float top = Math.max(
+        outward(y + px(s.borderTop) + (rows ? px(s.paddingTop) : 0), -1), clipGet(clip, Y));
+    float right = Math.min(
+        outward(x + el.width() - px(s.borderRight) - px(s.paddingRight), 1),
         clipGet(clip, X) + clipGet(clip, WIDTH));
-    float bottom = Math.min(outward(y + el.height() - px(s.borderBottom)
-        - (rows ? px(s.paddingBottom) : 0), 1), clipGet(clip, Y) + clipGet(clip, HEIGHT));
+    float bottom = Math.min(
+        outward(y + el.height() - px(s.borderBottom) - (rows ? px(s.paddingBottom) : 0), 1),
+        clipGet(clip, Y) + clipGet(clip, HEIGHT));
     return right > left && bottom > top ? clip(left, top, right - left, bottom - top, 0) : -1;
   }
 
@@ -999,8 +1092,8 @@ public final class Scene {
    * A rectangle of a field, in physical pixels from the content box at {@code left, top}, with its
    * edges rounded to whole physical pixels; left out when its clip leaves nothing of it.
    */
-  private void box(Text.Box box, double left, double top, double scale, int argb, float opacity,
-      int clip) {
+  private void box(
+      Text.Box box, double left, double top, double scale, int argb, float opacity, int clip) {
     if (argb >>> 24 == 0 || !(box.width() > 0 && box.height() > 0)) {
       return;
     }
@@ -1014,7 +1107,9 @@ public final class Scene {
     float height = (float) ((y1 - y0) / scale);
     float clipX = clipGet(clip, X);
     float clipY = clipGet(clip, Y);
-    if (x < clipX + clipGet(clip, WIDTH) && x + width > clipX && y < clipY + clipGet(clip, HEIGHT)
+    if (x < clipX + clipGet(clip, WIDTH)
+        && x + width > clipX
+        && y < clipY + clipGet(clip, HEIGHT)
         && y + height > clipY) {
       rect(x, y, width, height, 0, 0, argb, 0, opacity, clip);
     }
@@ -1033,8 +1128,16 @@ public final class Scene {
     return len.kind() == Len.Kind.PX ? len.value() : 0;
   }
 
-  private void glyph(float x, float y, float width, float height, Atlas.Slot slot, int colour,
-      float opacity, int clip, float lightShare) {
+  private void glyph(
+      float x,
+      float y,
+      float width,
+      float height,
+      Atlas.Slot slot,
+      int colour,
+      float opacity,
+      int clip,
+      float lightShare) {
     long offset = next();
     put(offset + X, x);
     put(offset + Y, y);
@@ -1093,7 +1196,13 @@ public final class Scene {
    * @param border the border colour as 0xAARRGGBB
    */
   public void rect(
-      float x, float y, float width, float height, float radius, float borderWidth, int fill,
+      float x,
+      float y,
+      float width,
+      float height,
+      float radius,
+      float borderWidth,
+      int fill,
       int border) {
     rect(x, y, width, height, radius, borderWidth, fill, border, 1, 0);
   }
@@ -1106,21 +1215,53 @@ public final class Scene {
    * @param fill the fill colour as 0xAARRGGBB
    * @param border the border colour as 0xAARRGGBB
    */
-  public void rect(float x, float y, float width, float height, float[] radii, float[] borders,
-      int fill, int border) {
+  public void rect(
+      float x,
+      float y,
+      float width,
+      float height,
+      float[] radii,
+      float[] borders,
+      int fill,
+      int border) {
     rect(x, y, width, height, radii, borders, fill, border, 1, 0);
   }
 
   private void rect(
-      float x, float y, float width, float height, float radius, float borderWidth, int fill,
-      int border, float opacity, int clip) {
-    rect(x, y, width, height, new float[] {radius, radius, radius, radius},
-        new float[] {borderWidth, borderWidth, borderWidth, borderWidth}, fill, border, opacity,
+      float x,
+      float y,
+      float width,
+      float height,
+      float radius,
+      float borderWidth,
+      int fill,
+      int border,
+      float opacity,
+      int clip) {
+    rect(
+        x,
+        y,
+        width,
+        height,
+        new float[] {radius, radius, radius, radius},
+        new float[] {borderWidth, borderWidth, borderWidth, borderWidth},
+        fill,
+        border,
+        opacity,
         clip);
   }
 
-  private void rect(float x, float y, float width, float height, float[] radii, float[] borders,
-      int fill, int border, float opacity, int clip) {
+  private void rect(
+      float x,
+      float y,
+      float width,
+      float height,
+      float[] radii,
+      float[] borders,
+      int fill,
+      int border,
+      float opacity,
+      int clip) {
     long offset = next();
     put(offset + X, x);
     put(offset + Y, y);
@@ -1206,8 +1347,8 @@ public final class Scene {
   /** Sets {@link #imageMemory()}. */
   public Scene imageMemory(long bytes) {
     if (bytes < 0) {
-      throw new IllegalArgumentException("The image memory is " + bytes + " bytes; it must be 0"
-          + " or more.");
+      throw new IllegalArgumentException(
+          "The image memory is " + bytes + " bytes; it must be 0" + " or more.");
     }
     imageMemory = bytes;
     return this;

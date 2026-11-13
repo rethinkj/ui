@@ -29,7 +29,8 @@ import org.junit.jupiter.api.io.TempDir;
  */
 class TextTest {
 
-  @TempDir Path out;
+  @TempDir
+  Path out;
 
   @Test
   void aTextElementInARowTakesItsShapedWidthAndPushesItsSibling() {
@@ -121,8 +122,13 @@ class TextTest {
   @Test
   void theDumpShowsTheStringOfATextElement() {
     // Before layout: no shaping, so no native library.
-    assertEquals("text #save role=button label=\"Save all\" \"Save \\\"all\\\"\\nnow\"\n",
-        El.text("Save \"all\"\nnow").key("save").role("button").label("Save all").dump());
+    assertEquals(
+        "text #save role=button label=\"Save all\" \"Save \\\"all\\\"\\nnow\"\n",
+        El.text("Save \"all\"\nnow")
+            .key("save")
+            .role("button")
+            .label("Save all")
+            .dump());
     TextLibraries.assumeLoaded();
     El root = row().child(El.text("Save\nnow").font(Font.mono()));
     String tree = Headless.render(root, 200, 50, 1).tree();
@@ -147,8 +153,8 @@ class TextTest {
     int width = at10.width();
     for (int y = 0; y < at10.height(); y++) {
       int row = y * width * 4;
-      if (!Arrays.equals(at11.rgba(), row + 8, row + width * 4,
-          at10.rgba(), row, row + width * 4 - 8)) {
+      if (!Arrays.equals(
+          at11.rgba(), row + 8, row + width * 4, at10.rgba(), row, row + width * 4 - 8)) {
         return false;
       }
     }
@@ -157,7 +163,11 @@ class TextTest {
 
   private static Pixels drawnAt(Font font, String string, float x) {
     // The fraction in the text's own padding: its box at 0 is on whole pixels at every position.
-    El view = row().wFull().hFull().fill(0xFFFFFFFF).padding(2, 0, 0, 0)
+    El view = row()
+        .wFull()
+        .hFull()
+        .fill(0xFFFFFFFF)
+        .padding(2, 0, 0, 0)
         .child(El.text(string).font(font).fontSize(16).padding(0, 0, 0, x));
     return Headless.render(view, 40, 24, 1.5f, TextRendering.LINUX).pixels();
   }
@@ -169,7 +179,8 @@ class TextTest {
     assertEquals("text \"\\u{E0EB}\\u{F0283}\uFFFDa\"\n", El.text(icons).dump());
     TextLibraries.assumeLoaded();
     List<String> pressed = new ArrayList<>();
-    App<List<String>> app = new App<>(pressed,
+    App<List<String>> app = new App<>(
+        pressed,
         s -> row().child(el().padding(4).onPress(() -> s.add("icons")).child(El.text(icons))));
     Script.run("size 100 40\nframe\npress text=\"\\u{e0eb}\\u{F0283}\uFFFDa\"\nframe\n", app, out);
     assertEquals(List.of("icons"), pressed);
@@ -179,27 +190,29 @@ class TextTest {
   void aScriptPressesTheElementThatHoldsATextAndListsTheTexts() throws IOException {
     TextLibraries.assumeLoaded();
     List<String> pressed = new ArrayList<>();
-    App<List<String>> app =
-        new App<>(
-            pressed,
-            s ->
-                row().gap(8).children(
-                        el().padding(4).onPress(() -> s.add("save")).child(El.text("Save")),
-                        el().padding(4).onPress(() -> s.add("both")).child(El.text("Two\nlines")),
-                        El.text("Cancel")));
+    App<List<String>> app = new App<>(
+        pressed,
+        s -> row()
+            .gap(8)
+            .children(
+                el().padding(4).onPress(() -> s.add("save")).child(El.text("Save")),
+                el().padding(4).onPress(() -> s.add("both")).child(El.text("Two\nlines")),
+                El.text("Cancel")));
     Script.run(
         "size 300 60 scale 2\nframe\npress text=\"Save\"\npress text=\"Two\\nlines\"\nframe\n",
-        app, out);
+        app,
+        out);
     assertEquals(List.of("save", "both"), pressed);
-    assertEquals(2, app.tree().children().getFirst().children().getFirst().text().scale());
+    assertEquals(
+        2, app.tree().children().getFirst().children().getFirst().text().scale());
 
-    Script.Failure failure =
-        assertThrows(
-            Script.Failure.class,
-            () -> Script.run("size 300 60\nframe\npress text=\"Sav\"\n", app, out));
+    Script.Failure failure = assertThrows(
+        Script.Failure.class,
+        () -> Script.run("size 300 60\nframe\npress text=\"Sav\"\n", app, out));
     assertTrue(
-        failure.getMessage().contains(
-            "    texts:  text=\"Cancel\" text=\"Save\" text=\"Two\\nlines\"\n"),
+        failure
+            .getMessage()
+            .contains("    texts:  text=\"Cancel\" text=\"Save\" text=\"Two\\nlines\"\n"),
         failure.getMessage());
   }
 

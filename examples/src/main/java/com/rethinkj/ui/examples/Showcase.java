@@ -1,37 +1,36 @@
 package com.rethinkj.ui.examples;
 
 import static com.rethinkj.ui.El.col;
-import static com.rethinkj.ui.El.el;
 import static com.rethinkj.ui.El.row;
-import static com.rethinkj.ui.kit.TitleBar.titleBar;
 import static com.rethinkj.ui.kit.Label.Variant.MUTED;
 import static com.rethinkj.ui.kit.Label.label;
+import static com.rethinkj.ui.kit.TitleBar.titleBar;
 
 import com.rethinkj.ui.App;
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.Script;
+import com.rethinkj.ui.kit.Breadcrumb;
 import com.rethinkj.ui.kit.Button;
 import com.rethinkj.ui.kit.Card;
+import com.rethinkj.ui.kit.CodeEditor;
+import com.rethinkj.ui.kit.ComboBox;
+import com.rethinkj.ui.kit.CommandPalette;
+import com.rethinkj.ui.kit.Completion;
 import com.rethinkj.ui.kit.DataGrid;
 import com.rethinkj.ui.kit.DataGrid.Column;
 import com.rethinkj.ui.kit.DataGrid.Filter;
-import com.rethinkj.ui.kit.GridChanges;
 import com.rethinkj.ui.kit.DataGrid.Mode;
 import com.rethinkj.ui.kit.DataGrid.Selection;
 import com.rethinkj.ui.kit.DataGrid.SortKey;
-import com.rethinkj.ui.kit.CodeEditor;
-import com.rethinkj.ui.kit.Completion;
-import com.rethinkj.ui.kit.Breadcrumb;
+import com.rethinkj.ui.kit.GridChanges;
 import com.rethinkj.ui.kit.Menu;
 import com.rethinkj.ui.kit.Popover;
-import com.rethinkj.ui.kit.Toolbar;
-import com.rethinkj.ui.kit.ComboBox;
-import com.rethinkj.ui.kit.CommandPalette;
 import com.rethinkj.ui.kit.Select;
 import com.rethinkj.ui.kit.Split.Position;
 import com.rethinkj.ui.kit.Symbol;
 import com.rethinkj.ui.kit.Tabs.Tab;
 import com.rethinkj.ui.kit.Theme;
+import com.rethinkj.ui.kit.Toolbar;
 import com.rethinkj.ui.kit.Tree;
 import com.rethinkj.ui.render.GpuPresenter;
 import com.rethinkj.ui.text.TextRendering;
@@ -75,20 +74,29 @@ public final class Showcase {
 
   /** The sections, in the order of the list at the left. */
   enum Section {
-    BUTTONS("Buttons", "Buttons, toggles and checkboxes, at rest and in their states.",
-        Symbol.CIRCLE),
+    BUTTONS(
+        "Buttons", "Buttons, toggles and checkboxes, at rest and in their states.", Symbol.CIRCLE),
     FIELDS("Text fields", "Fields in their states, and a form with selects.", Symbol.TEXT_T),
-    MENUS("Menus and overlays",
+    MENUS(
+        "Menus and overlays",
         "A dropdown, a context menu, tooltips, a dialog, combo boxes and the command palette.",
         Symbol.NAVIGATION),
-    GRID("Data grid", "A result set: numbers, dates, NULLs, long text, two sort keys.",
+    GRID(
+        "Data grid",
+        "A result set: numbers, dates, NULLs, long text, two sort keys.",
         Symbol.TABLE),
-    TREE("Tree", "The schema of three servers, with the columns of a table beside it.",
+    TREE(
+        "Tree",
+        "The schema of three servers, with the columns of a table beside it.",
         Symbol.DATABASE),
     WORKBENCH("Tabs and split", "The frame of a database tool, in small.", Symbol.WINDOW),
-    DETAILS("Table details", "A table's path, tools, properties and columns, with a filter.",
+    DETAILS(
+        "Table details",
+        "A table's path, tools, properties and columns, with a filter.",
         Symbol.DOCUMENT_TABLE),
-    PROGRESS("Progress", "Bars, a running bar, a line on a card's edge and spinners.",
+    PROGRESS(
+        "Progress",
+        "Bars, a running bar, a line on a card's edge and spinners.",
         Symbol.ARROW_DOWNLOAD),
     TYPE("Typography", "The theme's text styles, figures and letterforms.", Symbol.TEXT_T),
     COLOUR("Colour", "Every colour of the theme, by group.", Symbol.SQUARE_MULTIPLE),
@@ -111,6 +119,7 @@ public final class Showcase {
   boolean systemDark;
   /** The system's accent colour, 0 where it has none: the title bar's mark in the system look. */
   int systemAccent;
+
   Section section = Section.BUTTONS;
   final Menu.State lookMenu = new Menu.State();
   String said = ""; // what the last action did, in the status line
@@ -201,8 +210,11 @@ public final class Showcase {
   // Tabs and split
   final Set<Samples.Node> benchOpen = new HashSet<>();
   Samples.Node benchNode;
-  List<Tab> tabs = List.of(new Tab("Console", false, false), new Tab("customers.sql"),
-      new Tab("orders by month.sql", true, true), new Tab("products.sql"));
+  List<Tab> tabs = List.of(
+      new Tab("Console", false, false),
+      new Tab("customers.sql"),
+      new Tab("orders by month.sql", true, true),
+      new Tab("products.sql"));
   int tab = 2;
   Position sidebar = Position.first(200);
   Position editor = Position.share(0.42f);
@@ -226,6 +238,7 @@ public final class Showcase {
    * into menus, as the narrow step of showcase.txt shows them.
    */
   static final float MIN_WIDTH = 620;
+
   static final float MIN_HEIGHT = 480;
 
   // Progress
@@ -270,8 +283,11 @@ public final class Showcase {
     Window window = handle == null ? null : handle.window();
     if (window != null) {
       float done = (float) (downloaded / SIZE);
-      window.progress(failed ? Window.Progress.ERROR
-          : downloading ? Window.Progress.NORMAL : Window.Progress.NONE, done);
+      window.progress(
+          failed
+              ? Window.Progress.ERROR
+              : downloading ? Window.Progress.NORMAL : Window.Progress.NONE,
+          done);
     }
   }
 
@@ -313,9 +329,10 @@ public final class Showcase {
   private List<Samples.Order> keep() {
     List<Column> columns = Samples.orderColumns(rows);
     return java.util.stream.IntStream.range(0, rows.size())
-        .filter(i -> gridFilters.stream().allMatch(f -> f.matches(columns.get(f.column()).cell()
-            .apply(i))))
-        .mapToObj(rows::get).toList();
+        .filter(i -> gridFilters.stream()
+            .allMatch(f -> f.matches(columns.get(f.column()).cell().apply(i))))
+        .mapToObj(rows::get)
+        .toList();
   }
 
   /** A row in each state: a changed customer, a new row, a deleted row and a refused amount. */
@@ -362,8 +379,10 @@ public final class Showcase {
     app.textRendering(TextRendering.platform());
     Showcase s = app.state();
     s.look = Look.SYSTEM; // the window follows the system until another look is chosen
-    Window.Options options = Identity.options(Showcase.class, "Showcase", Identity.VIOLET, Symbol.SHAPES)
-        .frameless().minimumSize(MIN_WIDTH, MIN_HEIGHT);
+    Window.Options options = Identity.options(
+            Showcase.class, "Showcase", Identity.VIOLET, Symbol.SHAPES)
+        .frameless()
+        .minimumSize(MIN_WIDTH, MIN_HEIGHT);
     try (Window window = Window.open("Showcase", 1100, 720, options);
         GpuPresenter presenter = new GpuPresenter(window)) {
       new WindowLoop(window, app, presenter)
@@ -377,22 +396,47 @@ public final class Showcase {
 
   static El view(Showcase s) {
     Theme t = s.theme();
-    El nav = Tree.tree(t, new Sections.Nav(t), section -> false, s.section,
-            section -> s.section = section, null, null)
-        .key("sections").label("Sections").grow(1);
+    El nav = Tree.tree(
+            t,
+            new Sections.Nav(t),
+            section -> false,
+            s.section,
+            section -> s.section = section,
+            null,
+            null)
+        .key("sections")
+        .label("Sections")
+        .grow(1);
     List<String> looks = Arrays.stream(Look.values()).map(l -> l.title).toList();
-    El sidebar = Card.flush(t,
-        Card.inset(t, nav),
-        col().padding(0, t.space().m(), t.space().m(), t.space().m()).gap(t.space().s())
-            .child(label(t, MUTED, "Theme"))
-            .child(Select.select(t, looks, s.look.ordinal(), s.lookMenu,
-                i -> s.look = Look.values()[i]).key("look").label("Theme").wFull()))
-        .w(200).shrink(0);
-    El root = col().wFull().hFull().fill(t.surface().window())
-        .child(titleBar(t, "Showcase · " + s.lookTitle(),
-            s.look == Look.SYSTEM && s.systemAccent != 0 ? s.systemAccent : t.accent().color(),
+    El sidebar = Card.flush(
+            t,
+            Card.inset(t, nav),
+            col()
+                .padding(0, t.space().m(), t.space().m(), t.space().m())
+                .gap(t.space().s())
+                .child(label(t, MUTED, "Theme"))
+                .child(Select.select(
+                        t, looks, s.look.ordinal(), s.lookMenu, i -> s.look = Look.values()[i])
+                    .key("look")
+                    .label("Theme")
+                    .wFull()))
+        .w(200)
+        .shrink(0);
+    El root = col()
+        .wFull()
+        .hFull()
+        .fill(t.surface().window())
+        .child(titleBar(
+            t,
+            "Showcase · " + s.lookTitle(),
+            s.look == Look.SYSTEM && s.systemAccent != 0
+                ? s.systemAccent
+                : t.accent().color(),
             Identity.maximized(s.app)))
-        .child(row().grow(1).minSize(0, 0).padding(0, t.space().m(), t.space().m(), t.space().m())
+        .child(row()
+            .grow(1)
+            .minSize(0, 0)
+            .padding(0, t.space().m(), t.space().m(), t.space().m())
             .gap(t.space().m())
             .child(sidebar)
             .child(Sections.section(s, t)));

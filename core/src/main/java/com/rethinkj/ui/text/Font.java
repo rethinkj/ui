@@ -46,9 +46,14 @@ public final class Font implements AutoCloseable {
   private static final String DEFAULTS = "META-INF/rethinkj-ui/";
   private static final String ICONS = "icons/";
   private static final String[] DEFAULT_FILES = {
-    "fonts/Inter-Regular.ttf", "fonts/Inter-Bold.ttf", "fonts/JetBrainsMono-Regular.ttf",
-    "fonts/JetBrainsMono-Bold.ttf", ICONS + "FluentSystemIcons-Regular.ttf",
-    "fonts/Inter-Medium.ttf", "fonts/Inter-SemiBold.ttf", "fonts/Inter-Italic.ttf",
+    "fonts/Inter-Regular.ttf",
+    "fonts/Inter-Bold.ttf",
+    "fonts/JetBrainsMono-Regular.ttf",
+    "fonts/JetBrainsMono-Bold.ttf",
+    ICONS + "FluentSystemIcons-Regular.ttf",
+    "fonts/Inter-Medium.ttf",
+    "fonts/Inter-SemiBold.ttf",
+    "fonts/Inter-Italic.ttf",
     "fonts/Inter-BoldItalic.ttf"
   };
   private static final Font[] DEFAULT_FONTS = new Font[DEFAULT_FILES.length];
@@ -118,8 +123,7 @@ public final class Font implements AutoCloseable {
   }
 
   /** A font of the data, which {@code data}'s arena holds; the font closes the arena. */
-  private Font(
-      Map.Entry<Arena, MemorySegment> data, int index, boolean shared, boolean icons) {
+  private Font(Map.Entry<Arena, MemorySegment> data, int index, boolean shared, boolean icons) {
     this.shared = shared;
     this.icons = icons;
     base = this;
@@ -136,7 +140,9 @@ public final class Font implements AutoCloseable {
         + string(face.get(ADDRESS, FreeType.FACE_STYLE_NAME));
     styleFlags = (int) (FreeType.getLong(face, FreeType.FACE_STYLE_FLAGS)
         & (FreeType.STYLE_FLAG_BOLD | FreeType.STYLE_FLAG_ITALIC));
-    blob = HarfBuzz.blobCreate(data.getValue(), Math.toIntExact(data.getValue().byteSize()),
+    blob = HarfBuzz.blobCreate(
+        data.getValue(),
+        Math.toIntExact(data.getValue().byteSize()),
         HarfBuzz.MEMORY_MODE_READONLY);
     hbFace = HarfBuzz.faceCreate(blob, index);
     hbFont = HarfBuzz.fontCreate(hbFace);
@@ -279,8 +285,8 @@ public final class Font implements AutoCloseable {
     }
     synchronized (this) {
       checkOpen();
-      return derived.computeIfAbsent(List.of(fallback, system),
-          k -> new Font(this, fallback, system));
+      return derived.computeIfAbsent(
+          List.of(fallback, system), k -> new Font(this, fallback, system));
     }
   }
 
@@ -352,14 +358,15 @@ public final class Font implements AutoCloseable {
     boolean icons = file.startsWith(ICONS);
     try (InputStream in = loader.getResourceAsStream(path)) {
       if (in == null) {
-        throw new IllegalStateException(icons
-            ? "The default icon font is in the artifact com.rethinkj.ui:rethinkj-ui-icons, which"
-                + " is not on the class path: " + path + " is missing. Add that artifact as a"
-                + " dependency (on the module path, also --add-modules com.rethinkj.ui.icons)."
-            : "The default fonts are in the artifact com.rethinkj.ui:rethinkj-ui-fonts, which is"
-                + " not on the class path: " + path + " is missing. Add that artifact as a"
-                + " dependency (on the module path, also --add-modules com.rethinkj.ui.fonts), or"
-                + " load a font of your own with Font.of or Font.resource.");
+        throw new IllegalStateException(
+            icons
+                ? "The default icon font is in the artifact com.rethinkj.ui:rethinkj-ui-icons, which"
+                    + " is not on the class path: " + path + " is missing. Add that artifact as a"
+                    + " dependency (on the module path, also --add-modules com.rethinkj.ui.icons)."
+                : "The default fonts are in the artifact com.rethinkj.ui:rethinkj-ui-fonts, which is"
+                    + " not on the class path: " + path + " is missing. Add that artifact as a"
+                    + " dependency (on the module path, also --add-modules com.rethinkj.ui.fonts), or"
+                    + " load a font of your own with Font.of or Font.resource.");
       }
       return new Font(in.readAllBytes(), true, icons);
     } catch (IOException e) {
@@ -432,7 +439,9 @@ public final class Font implements AutoCloseable {
       MemorySegment features = call.allocate(HarfBuzz.FEATURE, count);
       for (int i = 0; i < count; i++) {
         String feature = i == 0 ? DEFAULT_FEATURES : key.features.get(i - 1);
-        if (!HarfBuzz.featureFromString(call.allocateFrom(feature), -1,
+        if (!HarfBuzz.featureFromString(
+            call.allocateFrom(feature),
+            -1,
             features.asSlice(i * HarfBuzz.FEATURE.byteSize(), HarfBuzz.FEATURE))) {
           throw new IllegalArgumentException(
               "\"" + feature + "\" is not an OpenType feature in HarfBuzz's syntax, such as"
@@ -481,8 +490,8 @@ public final class Font implements AutoCloseable {
   }
 
   /** Shapes one run of the text with this font, which has native objects. */
-  private GlyphRun shapeRun(Key key, MemorySegment utf16, int length, Runs.Run run,
-      MemorySegment features, int count) {
+  private GlyphRun shapeRun(
+      Key key, MemorySegment utf16, int length, Runs.Run run, MemorySegment features, int count) {
     synchronized (this) {
       checkOpen();
       try (Arena call = Arena.ofConfined()) {
@@ -490,8 +499,8 @@ public final class Font implements AutoCloseable {
         try {
           // The whole text is context, for letters that join across the edges of the run.
           HarfBuzz.bufferAddUtf16(buffer, utf16, length, run.from(), run.to() - run.from());
-          HarfBuzz.bufferSetDirection(buffer,
-              run.rtl() ? HarfBuzz.DIRECTION_RTL : HarfBuzz.DIRECTION_LTR);
+          HarfBuzz.bufferSetDirection(
+              buffer, run.rtl() ? HarfBuzz.DIRECTION_RTL : HarfBuzz.DIRECTION_LTR);
           HarfBuzz.bufferGuessSegmentProperties(buffer); // the script of the run's letters
           HarfBuzz.shape(hbFont, buffer, features, count);
           if (!HarfBuzz.bufferAllocationSuccessful(buffer)) {
@@ -515,8 +524,7 @@ public final class Font implements AutoCloseable {
    * Scales HarfBuzz's font units to physical pixels and rounds them to the grid. A right-to-left
    * run's glyphs come in visual order, their clusters falling; they all get {@code cluster}.
    */
-  private GlyphRun run(Key key, MemorySegment infos, MemorySegment positions, int n,
-      int cluster) {
+  private GlyphRun run(Key key, MemorySegment infos, MemorySegment positions, int n, int cluster) {
     // shortcut: HarfBuzz shapes in font units, which are then scaled here. The same as setting
     // the scale on the font, minus its rounding to 1/64 pixels, and the font stays unchanged.
     double perUnit = key.pixelSize / unitsPerEm;
@@ -535,8 +543,7 @@ public final class Font implements AutoCloseable {
           + round(positions.get(JAVA_INT, position + HarfBuzz.POSITION_X_ADVANCE), perUnit, grid);
       dx[i] = round(positions.get(JAVA_INT, position + HarfBuzz.POSITION_X_OFFSET), perUnit, grid);
       // HarfBuzz's y grows upwards.
-      dy[i] = round(-positions.get(JAVA_INT, position + HarfBuzz.POSITION_Y_OFFSET), perUnit,
-          grid);
+      dy[i] = round(-positions.get(JAVA_INT, position + HarfBuzz.POSITION_Y_OFFSET), perUnit, grid);
     }
     return new GlyphRun(this, key.pixelSize, glyphs, clusters, pen, dx, dy, null);
   }
@@ -574,15 +581,18 @@ public final class Font implements AutoCloseable {
         FreeType.setLong(delta, FreeType.C_LONG.byteSize(), 0);
         FreeType.setTransform(face, MemorySegment.NULL, delta); // copies the vector
       }
-      int flags = FreeType.LOAD_NO_BITMAP | (icons ? ICON_HINTING : switch (hinting) {
-        case LIGHT -> FreeType.LOAD_FORCE_AUTOHINT | FreeType.LOAD_TARGET_LIGHT;
-        case NATIVE -> FreeType.LOAD_DEFAULT;
-      });
+      int flags = FreeType.LOAD_NO_BITMAP
+          | (icons
+              ? ICON_HINTING
+              : switch (hinting) {
+                case LIGHT -> FreeType.LOAD_FORCE_AUTOHINT | FreeType.LOAD_TARGET_LIGHT;
+                case NATIVE -> FreeType.LOAD_DEFAULT;
+              });
       check(FreeType.loadGlyph(face, glyph, flags), "load glyph " + glyph + " of");
       MemorySegment slot =
           face.get(ADDRESS, FreeType.FACE_GLYPH).reinterpret(FreeType.GLYPH_SLOT.byteSize());
-      check(FreeType.renderGlyph(slot, FreeType.RENDER_MODE_NORMAL),
-          "render glyph " + glyph + " of");
+      check(
+          FreeType.renderGlyph(slot, FreeType.RENDER_MODE_NORMAL), "render glyph " + glyph + " of");
       long bitmap = FreeType.SLOT_BITMAP;
       int rows = slot.get(JAVA_INT, bitmap + FreeType.BITMAP_ROWS);
       int width = slot.get(JAVA_INT, bitmap + FreeType.BITMAP_WIDTH);
@@ -594,14 +604,18 @@ public final class Font implements AutoCloseable {
           throw new IllegalStateException("FreeType rendered glyph " + glyph + " of " + name
               + " in an unexpected format: pitch " + pitch + " for width " + width);
         }
-        MemorySegment pixels = slot.get(ADDRESS, bitmap + FreeType.BITMAP_BUFFER)
-            .reinterpret((long) pitch * rows);
+        MemorySegment pixels =
+            slot.get(ADDRESS, bitmap + FreeType.BITMAP_BUFFER).reinterpret((long) pitch * rows);
         for (int y = 0; y < rows; y++) {
           MemorySegment.copy(pixels, JAVA_BYTE, (long) y * pitch, coverage, y * width, width);
         }
       }
-      return new Bitmap(slot.get(JAVA_INT, FreeType.SLOT_BITMAP_LEFT),
-          slot.get(JAVA_INT, FreeType.SLOT_BITMAP_TOP), width, rows, coverage);
+      return new Bitmap(
+          slot.get(JAVA_INT, FreeType.SLOT_BITMAP_LEFT),
+          slot.get(JAVA_INT, FreeType.SLOT_BITMAP_TOP),
+          width,
+          rows,
+          coverage);
     }
   }
 
@@ -758,8 +772,11 @@ public final class Font implements AutoCloseable {
               || (flags & FreeType.FACE_FLAG_COLOR) != 0 && !outlined(face, ranges)) {
             continue;
           }
-          faces.add(new SystemFonts.Face(path, i, string(face.get(ADDRESS,
-              FreeType.FACE_FAMILY_NAME)), string(face.get(ADDRESS, FreeType.FACE_STYLE_NAME)),
+          faces.add(new SystemFonts.Face(
+              path,
+              i,
+              string(face.get(ADDRESS, FreeType.FACE_FAMILY_NAME)),
+              string(face.get(ADDRESS, FreeType.FACE_STYLE_NAME)),
               (int) (FreeType.getLong(face, FreeType.FACE_STYLE_FLAGS)
                   & (FreeType.STYLE_FLAG_BOLD | FreeType.STYLE_FLAG_ITALIC)),
               ranges));
@@ -775,7 +792,8 @@ public final class Font implements AutoCloseable {
   private static int[] ranges(MemorySegment face, MemorySegment glyph) {
     int[] ranges = new int[16];
     int n = 0;
-    for (long c = FreeType.getFirstChar(face, glyph); glyph.get(JAVA_INT, 0) != 0;
+    for (long c = FreeType.getFirstChar(face, glyph);
+        glyph.get(JAVA_INT, 0) != 0;
         c = FreeType.getNextChar(face, c, glyph)) {
       int code = (int) c;
       if (n > 0 && ranges[n - 1] == code - 1) {
@@ -804,7 +822,8 @@ public final class Font implements AutoCloseable {
       }
     }
     int index = FreeType.getCharIndex(face, sample);
-    if (index == 0 || FreeType.setCharSize(face, 0, 32 * 64, 72, 72) != 0
+    if (index == 0
+        || FreeType.setCharSize(face, 0, 32 * 64, 72, 72) != 0
         || FreeType.loadGlyph(face, index, FreeType.LOAD_NO_BITMAP) != 0) {
       return false;
     }
@@ -816,7 +835,8 @@ public final class Font implements AutoCloseable {
   }
 
   private static String string(MemorySegment pointer) {
-    return pointer.equals(MemorySegment.NULL) ? "?"
+    return pointer.equals(MemorySegment.NULL)
+        ? "?"
         : pointer.reinterpret(Long.MAX_VALUE).getString(0);
   }
 }

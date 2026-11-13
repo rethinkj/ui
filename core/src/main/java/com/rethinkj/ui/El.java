@@ -899,8 +899,7 @@ public final class El {
   }
 
   private double rowSize(int index) {
-    return heights == null ? rowHeight
-        : index >= 0 && index < rowCount ? heights.height(index) : 0;
+    return heights == null ? rowHeight : index >= 0 && index < rowCount ? heights.height(index) : 0;
   }
 
   /** The row at this distance below the top of the content box, or past the last. */
@@ -1077,8 +1076,8 @@ public final class El {
   public El underline(int from, int to) {
     Text t = textOnly("underline");
     if (from < 0 || to < from || to > t.string().length()) {
-      throw new IllegalArgumentException("underline " + from + " to " + to + " is not inside \""
-          + t.string() + "\"");
+      throw new IllegalArgumentException(
+          "underline " + from + " to " + to + " is not inside \"" + t.string() + "\"");
     }
     t.underline(from, to);
     return this;
@@ -1127,8 +1126,8 @@ public final class El {
       if (child.rangeFrom < 0) {
         continue;
       }
-      List<Text.Box> rows = text.selectionBoxes(Math.min(child.rangeFrom, length),
-          Math.min(child.rangeTo, length), 0);
+      List<Text.Box> rows = text.selectionBoxes(
+          Math.min(child.rangeFrom, length), Math.min(child.rangeTo, length), 0);
       if (rows.isEmpty()) {
         child.rangeBoxes = List.of();
         child.place(left, top, 0, 0);
@@ -1146,8 +1145,11 @@ public final class El {
       }
       List<Text.Box> boxes = new ArrayList<>(rows.size());
       for (Text.Box row : rows) {
-        boxes.add(new Text.Box((row.x() - x0) / scale, (row.y() - y0) / scale,
-            row.width() / scale, row.height() / scale));
+        boxes.add(new Text.Box(
+            (row.x() - x0) / scale,
+            (row.y() - y0) / scale,
+            row.width() / scale,
+            row.height() / scale));
       }
       child.rangeBoxes = List.copyOf(boxes);
       child.place(left + x0 / scale, top + y0 / scale, (x1 - x0) / scale, (y1 - y0) / scale);
@@ -1250,7 +1252,7 @@ public final class El {
     return text == null ? null : text.decorator();
   }
 
-    // Editing, for elements made with text()
+  // Editing, for elements made with text()
 
   /**
    * Makes this text element a single-line text field, or with {@link #multiline} one of several
@@ -1349,7 +1351,8 @@ public final class El {
   public El gutter(Gutter cells) {
     Text t = editableOnly("gutter");
     if (!t.multiline()) {
-      throw new IllegalStateException("gutter is for multi-line fields: call it after multiline().");
+      throw new IllegalStateException(
+          "gutter is for multi-line fields: call it after multiline().");
     }
     this.gutter = Objects.requireNonNull(cells, "cells");
     return this;
@@ -1414,8 +1417,11 @@ public final class El {
       column.children.add(cell);
     }
     // The column stays where the content box is: the scroll that shifts it is added back.
-    column.place(px(style.borderLeft) + gutterLeft + (float) scrollX, top + (float) scrollY,
-        gutterWidth, text.contentHeight() / scale);
+    column.place(
+        px(style.borderLeft) + gutterLeft + (float) scrollX,
+        top + (float) scrollY,
+        gutterWidth,
+        text.contentHeight() / scale);
     children.clear();
     children.add(column);
     scrollTo(scrollX, scrollY);
@@ -1446,7 +1452,8 @@ public final class El {
   public El fitLines() {
     Text t = editableOnly("fitLines");
     if (!t.multiline()) {
-      throw new IllegalStateException("fitLines is for multi-line fields: call it after multiline().");
+      throw new IllegalStateException(
+          "fitLines is for multi-line fields: call it after multiline().");
     }
     t.visibleLines(0);
     return this;
@@ -1674,8 +1681,8 @@ public final class El {
    * a table sorts by a second column with Shift. Enter and Space give 1 and no modifiers.
    */
   public El onPress(PressHandler handler) {
-    this.onPress = handler == null ? null : (clicks, modifiers, x, y) -> handler.press(clicks,
-        modifiers);
+    this.onPress =
+        handler == null ? null : (clicks, modifiers, x, y) -> handler.press(clicks, modifiers);
     return this;
   }
 
@@ -1700,8 +1707,8 @@ public final class El {
    * @param handler told how, or null for none
    */
   public El onPointerDown(PressHandler handler) {
-    this.onPointerDown = handler == null ? null : (clicks, modifiers, x, y) -> handler.press(
-        clicks, modifiers);
+    this.onPointerDown =
+        handler == null ? null : (clicks, modifiers, x, y) -> handler.press(clicks, modifiers);
     return this;
   }
 
@@ -1758,7 +1765,6 @@ public final class El {
     this.onPressOutside = handler;
     return this;
   }
-
 
   /**
    * Runs {@code handler} when the secondary button, usually the right one, is pressed and released
@@ -2060,8 +2066,8 @@ public final class El {
    */
   public El cycle(double seconds, ObjDoubleConsumer<El> look) {
     if (!(seconds > 0 && seconds < Double.POSITIVE_INFINITY)) {
-      throw new IllegalArgumentException("a cycle needs a period of more than 0 seconds, was "
-          + seconds);
+      throw new IllegalArgumentException(
+          "a cycle needs a period of more than 0 seconds, was " + seconds);
     }
     this.cycleSeconds = seconds;
     this.cycle = look;
@@ -2089,7 +2095,12 @@ public final class El {
   }
 
   private boolean cycles(
-      double time, float parentX, float parentY, float clipLeft, float clipTop, float clipRight,
+      double time,
+      float parentX,
+      float parentY,
+      float clipLeft,
+      float clipTop,
+      float clipRight,
       float clipBottom) {
     if (!placed) {
       return false;
@@ -2116,7 +2127,9 @@ public final class El {
       }
       float left = parentX + x();
       float top = parentY + y();
-      if (left < clipRight && left + width > clipLeft && top < clipBottom
+      if (left < clipRight
+          && left + width > clipLeft
+          && top < clipBottom
           && top + height > clipTop) {
         double turns = (time - cycleSince) / cycleSeconds;
         cycle.accept(this, Math.clamp(turns - Math.floor(turns), 0.0, 1.0));
@@ -2938,8 +2951,14 @@ public final class El {
     }
     if (rowBuilder != null) {
       maxScrollX = 0;
-      maxScrollY = Math.max(rowsTop() + rowsTotal() + px(style.paddingBottom)
-          + px(style.borderBottom) + coverY - height, 0);
+      maxScrollY = Math.max(
+          rowsTop()
+              + rowsTotal()
+              + px(style.paddingBottom)
+              + px(style.borderBottom)
+              + coverY
+              - height,
+          0);
       return;
     }
     float right = 0;
@@ -2991,8 +3010,13 @@ public final class El {
    * @param clipRight the right edge of the padding boxes those bars lie in
    * @param clipBottom the bottom edge of those padding boxes
    */
-  private void measureScrolls(float parentX, float parentY, float barLeft, float barTop,
-      float clipRight, float clipBottom) {
+  private void measureScrolls(
+      float parentX,
+      float parentY,
+      float barLeft,
+      float barTop,
+      float clipRight,
+      float clipBottom) {
     coverX = 0;
     coverY = 0;
     if (!placed) {
@@ -3133,7 +3157,8 @@ public final class El {
           barX = bar(false, boxBottom - m - t, boxLeft + m, boxRight - m - (tall ? t + m : 0));
         }
         if (tall && boxRight - boxLeft >= t + 2 * m) {
-          barY = bar(true, boxRight - m - t, boxTop + m, boxBottom - m - (barX != null ? t + m : 0));
+          barY =
+              bar(true, boxRight - m - t, boxTop + m, boxBottom - m - (barX != null ? t + m : 0));
         }
         if (barX != null) { // the bars of areas inside stay out of these strips
           bottom = Math.min(bottom, barX.trackY() - m);
@@ -3160,8 +3185,8 @@ public final class El {
     double view = vertical ? height : width;
     double max = vertical ? maxScrollY : maxScrollX;
     double offset = vertical ? scrollY : scrollX;
-    float thumb = (float) Math.min(Math.max(track * view / (view + max), scrollbars.minThumb()),
-        track);
+    float thumb =
+        (float) Math.min(Math.max(track * view / (view + max), scrollbars.minThumb()), track);
     float at = start + (float) ((track - thumb) * (offset / max));
     float t = scrollbars.thickness();
     int colour = scrollbars.thumb();
@@ -3177,8 +3202,11 @@ public final class El {
   Scrollbars.Bar barAt(float x, float y) {
     for (Scrollbars.Bar bar : new Scrollbars.Bar[] {barY, barX}) {
       float m = scrollbars == null ? 0 : scrollbars.margin();
-      if (bar != null && x >= bar.trackX() - m && x < bar.trackX() + bar.trackWidth() + m
-          && y >= bar.trackY() - m && y < bar.trackY() + bar.trackHeight() + m) {
+      if (bar != null
+          && x >= bar.trackX() - m
+          && x < bar.trackX() + bar.trackWidth() + m
+          && y >= bar.trackY() - m
+          && y < bar.trackY() + bar.trackHeight() + m) {
         return bar;
       }
     }
@@ -3206,13 +3234,12 @@ public final class El {
     if (bar == null) {
       return false;
     }
-    double free = vertical ? bar.trackHeight() - bar.thumbHeight()
-        : bar.trackWidth() - bar.thumbWidth();
+    double free =
+        vertical ? bar.trackHeight() - bar.thumbHeight() : bar.trackWidth() - bar.thumbWidth();
     double share = free > 0
-        ? Math.clamp((start - (vertical ? bar.trackY() : bar.trackX())) / free, 0.0, 1.0) : 0;
-    return vertical
-        ? scrollTo(scrollX, share * maxScrollY)
-        : scrollTo(share * maxScrollX, scrollY);
+        ? Math.clamp((start - (vertical ? bar.trackY() : bar.trackX())) / free, 0.0, 1.0)
+        : 0;
+    return vertical ? scrollTo(scrollX, share * maxScrollY) : scrollTo(share * maxScrollX, scrollY);
   }
 
   /** Scrolls one page, the height or width of the area, towards the end or, with -1, the start. */
@@ -3239,8 +3266,13 @@ public final class El {
    * @param top the top of the border box in window coordinates
    */
   int[] wantedRows(float top, float windowHeight) {
-    return wantedRows(0, top, Float.NEGATIVE_INFINITY, Float.POSITIVE_INFINITY,
-        Float.POSITIVE_INFINITY, windowHeight);
+    return wantedRows(
+        0,
+        top,
+        Float.NEGATIVE_INFINITY,
+        Float.POSITIVE_INFINITY,
+        Float.POSITIVE_INFINITY,
+        windowHeight);
   }
 
   /**
@@ -3249,7 +3281,12 @@ public final class El {
    * clip of its ancestors from {@code clipLeft} to {@code clipRight}. Such a list also wants new
    * rows when that part is no longer inside the one its rows were built for.
    */
-  int[] wantedRows(float left, float top, float clipLeft, float clipRight, float windowWidth,
+  int[] wantedRows(
+      float left,
+      float top,
+      float clipLeft,
+      float clipRight,
+      float windowWidth,
       float windowHeight) {
     if (rowBuilder == null) {
       return null;
@@ -3266,7 +3303,9 @@ public final class El {
       shown = Math.max(Math.max(Math.max(left, clipLeft), 0) - origin, 0);
       shownTo = Math.max(Math.min(Math.min(left + width, clipRight), windowWidth) - origin, shown);
     }
-    if (rowsBuilt && first >= firstRow && end <= firstRow + children.size()
+    if (rowsBuilt
+        && first >= firstRow
+        && end <= firstRow + children.size()
         && (!spans || shown >= spanFrom && shownTo <= spanTo)) {
       return null;
     }
@@ -3275,8 +3314,7 @@ public final class El {
       spanFrom = Math.max(shown - margin, 0);
       spanTo = shownTo + margin;
     }
-    return new int[] {
-      Math.max(first - OVERSCAN, 0), (int) Math.min(end + (long) OVERSCAN, rowCount)
+    return new int[] {Math.max(first - OVERSCAN, 0), (int) Math.min(end + (long) OVERSCAN, rowCount)
     };
   }
 
@@ -3339,9 +3377,11 @@ public final class El {
    */
   void revealArea() {
     double dx = style.overflowX == Style.Overflow.SCROLL
-        ? nearest(revealX - scrollX, revealWidth, width - coverX) : 0;
+        ? nearest(revealX - scrollX, revealWidth, width - coverX)
+        : 0;
     double dy = style.overflowY == Style.Overflow.SCROLL
-        ? nearest(revealY - scrollY, revealHeight, height - coverY) : 0;
+        ? nearest(revealY - scrollY, revealHeight, height - coverY)
+        : 0;
     scrollTo(scrollX + dx, scrollY + dy);
   }
 
@@ -3371,9 +3411,8 @@ public final class El {
   /** Lays out the row that is the child with this index, as {@link #layoutRows} does. */
   void layoutRow(int index, float scale, boolean systemFonts) {
     float left = px(style.borderLeft) + px(style.paddingLeft);
-    float inner =
-        Math.max(width - left - px(style.paddingRight) - px(style.borderRight)
-            - style.scrollbarWidth, 0);
+    float inner = Math.max(
+        width - left - px(style.paddingRight) - px(style.borderRight) - style.scrollbarWidth, 0);
     El row = children.get(index);
     row.style.width = Len.px(inner);
     if (heights != null) { // as high as its content or its own height, measured and kept
@@ -3386,8 +3425,7 @@ public final class El {
       row.place(left, (float) (rowsTop() + rowTop(firstRow + index) - first), inner, high);
       for (int i = index + 1; moved && i < children.size(); i++) { // those below follow
         El below = children.get(i);
-        below.place(left, (float) (rowsTop() + rowTop(firstRow + i) - first), inner,
-            below.height);
+        below.place(left, (float) (rowsTop() + rowTop(firstRow + i) - first), inner, below.height);
       }
       return;
     }
@@ -3415,7 +3453,8 @@ public final class El {
   void revealChild(int index) {
     for (El child : children) {
       if (!child.exiting && index-- == 0) {
-        scrollTo(scrollX + nearest(child.x - scrollX, child.width, width - coverX),
+        scrollTo(
+            scrollX + nearest(child.x - scrollX, child.width, width - coverX),
             scrollY + nearest(child.y - scrollY, child.height, height - coverY));
         return;
       }
@@ -3500,16 +3539,22 @@ public final class El {
     Consumer<String> edit = onEdit;
     boolean wasFocusable = focusable;
     look.accept(this);
-    String changed =
-        !children.equals(before) ? "children"
-            : !Objects.equals(key, keyBefore) ? "key"
-            : onPress != press || onPointerDown != down || onAnyPointerDown != any
-                || onAnyKeyDown != anyKey
-                || onPressOutside != outside || onDrag != drag || onKey != keyDown
-                || onKeyUp != up
-                || onText != text || onEdit != edit ? "handlers"
-            : focusable != wasFocusable ? "focusable()"
-            : null;
+    String changed = !children.equals(before)
+        ? "children"
+        : !Objects.equals(key, keyBefore)
+            ? "key"
+            : onPress != press
+                    || onPointerDown != down
+                    || onAnyPointerDown != any
+                    || onAnyKeyDown != anyKey
+                    || onPressOutside != outside
+                    || onDrag != drag
+                    || onKey != keyDown
+                    || onKeyUp != up
+                    || onText != text
+                    || onEdit != edit
+                ? "handlers"
+                : focusable != wasFocusable ? "focusable()" : null;
     if (changed != null) {
       StringBuilder line = new StringBuilder();
       describe(line, 0, 0);
@@ -3614,7 +3659,9 @@ public final class El {
       if (l.centered) {
         out.append(" center");
       } else if (l.edge != null) {
-        out.append(" edge ").append(l.edge.name().toLowerCase(Locale.ROOT)).append(' ')
+        out.append(" edge ")
+            .append(l.edge.name().toLowerCase(Locale.ROOT))
+            .append(' ')
             .append(l.align.name().toLowerCase(Locale.ROOT));
         if (l.gap != 0) {
           number(out.append(" gap "), l.gap);
@@ -3624,7 +3671,9 @@ public final class El {
           number(out.append(" at "), l.pointX).append(',');
           number(out, l.pointY);
         }
-        out.append(' ').append(l.side.name().toLowerCase(Locale.ROOT)).append(' ')
+        out.append(' ')
+            .append(l.side.name().toLowerCase(Locale.ROOT))
+            .append(' ')
             .append(l.align.name().toLowerCase(Locale.ROOT));
         if (l.gap != 0) {
           number(out.append(" gap "), l.gap);
@@ -3849,7 +3898,9 @@ public final class El {
       } else if (c == '\t') {
         out.append("\\t");
       } else if (Character.getType(c) == Character.PRIVATE_USE) {
-        out.append("\\u{").append(Integer.toHexString(c).toUpperCase(Locale.ROOT)).append('}');
+        out.append("\\u{")
+            .append(Integer.toHexString(c).toUpperCase(Locale.ROOT))
+            .append('}');
       } else {
         out.appendCodePoint(c);
       }

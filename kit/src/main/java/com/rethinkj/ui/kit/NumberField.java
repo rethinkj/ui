@@ -64,19 +64,29 @@ public final class NumberField {
           "Needs min <= max and a step of 1 or more, was " + min + ", " + max + ", " + step);
     }
     boolean enabled = onChange != null;
-    El field = TextField.textField(t, Integer.toString(value),
-            enabled ? s -> edit(s, min, value, onChange) : null)
-        .role("spinbutton").label(label);
+    El field = TextField.textField(
+            t, Integer.toString(value), enabled ? s -> edit(s, min, value, onChange) : null)
+        .role("spinbutton")
+        .label(label);
     if (value < min || value > max) {
       TextField.invalid(t, field);
     }
     float inset = t.space().xs();
     float size = t.size().control() - 2 * inset;
     field.wFull().style().paddingRight = Len.px(2 * size + inset + t.space().xs());
-    El buttons = row().gap(t.space().xs())
-        .child(button(t, Symbol.SUBTRACT, "Decrease", enabled && value > min,
+    El buttons = row()
+        .gap(t.space().xs())
+        .child(button(
+            t,
+            Symbol.SUBTRACT,
+            "Decrease",
+            enabled && value > min,
             () -> onChange.accept(step(value, -step, min, max))))
-        .child(button(t, Symbol.ADD, "Increase", enabled && value < max,
+        .child(button(
+            t,
+            Symbol.ADD,
+            "Increase",
+            enabled && value < max,
             () -> onChange.accept(step(value, step, min, max))));
     Style at = buttons.style();
     at.position = Style.Position.ABSOLUTE;
@@ -84,13 +94,15 @@ public final class NumberField {
     at.top = Len.px(inset);
     if (enabled) {
       field.onKey(k -> {
-        int by = k.modifiers() != 0 ? 0 : switch (k.name()) {
-          case "ArrowUp" -> step;
-          case "ArrowDown" -> -step;
-          case "PageUp" -> 10 * step;
-          case "PageDown" -> -10 * step;
-          default -> 0;
-        };
+        int by = k.modifiers() != 0
+            ? 0
+            : switch (k.name()) {
+              case "ArrowUp" -> step;
+              case "ArrowDown" -> -step;
+              case "PageUp" -> 10 * step;
+              case "PageDown" -> -10 * step;
+              default -> 0;
+            };
         if (by == 0) {
           return false;
         }
@@ -123,15 +135,19 @@ public final class NumberField {
   private static El button(
       Theme t, Symbol symbol, String label, boolean enabled, Runnable onPress) {
     float size = t.size().control() - 2 * t.space().xs();
-    El button = el().role("button").label(label).disabled(!enabled)
-        .size(size, size).center()
+    El button = el().role("button")
+        .label(label)
+        .disabled(!enabled)
+        .size(size, size)
+        .center()
         .radius(t.radius().small())
         .motion(t.motion().feedback())
         .child(icon(t, symbol, enabled ? Icon.Variant.MUTED : Icon.Variant.DISABLED));
     if (!enabled) {
       return button;
     }
-    return button.keepFocus()
+    return button
+        .keepFocus()
         .cursor(Cursor.POINTER)
         .onPress(onPress)
         .whenHovered(e -> e.fill(t.surface().hover()))

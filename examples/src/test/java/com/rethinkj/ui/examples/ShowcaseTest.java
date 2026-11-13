@@ -1,8 +1,8 @@
 package com.rethinkj.ui.examples;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.rethinkj.ui.Script;
 import com.rethinkj.ui.examples.Showcase.Look;
@@ -19,7 +19,8 @@ import org.junit.jupiter.params.provider.MethodSource;
 class ShowcaseTest {
 
   static Stream<Arguments> looks() {
-    return Arrays.stream(Look.values()).filter(look -> look != Look.SYSTEM) // dark or light
+    return Arrays.stream(Look.values())
+        .filter(look -> look != Look.SYSTEM) // dark or light
         .flatMap(look -> Stream.of(Arguments.of(look, 1), Arguments.of(look, 2)));
   }
 
@@ -32,10 +33,12 @@ class ShowcaseTest {
   /** The window can be made as narrow as the step where the path and toolbar give way. */
   @Test
   void theWindowGoesAsNarrowAsThePathAndToolbarGiveWay() throws IOException {
-    java.util.regex.Matcher narrow = java.util.regex.Pattern
-        .compile("(?m)^size (\\d+) (\\d+) +# narrow").matcher(Snaps.script("showcase"));
+    java.util.regex.Matcher narrow = java.util.regex.Pattern.compile(
+            "(?m)^size (\\d+) (\\d+) +# narrow")
+        .matcher(Snaps.script("showcase"));
     assertTrue(narrow.find(), "showcase.txt has its narrow step");
-    assertTrue(Showcase.MIN_WIDTH <= Integer.parseInt(narrow.group(1)),
+    assertTrue(
+        Showcase.MIN_WIDTH <= Integer.parseInt(narrow.group(1)),
         "a window of " + Showcase.MIN_WIDTH + " at least never shows what the step shows at "
             + narrow.group(1));
   }
@@ -75,7 +78,8 @@ class ShowcaseTest {
     String folder = look.slug() + "-" + scale + "x";
     Path out = Path.of("target", "showcase", folder);
     assertFalse(Script.run(scaled, Showcase.app(look), out).isEmpty(), "the script snaps");
-    assertTrue(Files.readString(out.resolve("find.tree.txt")).contains("role=search"),
+    assertTrue(
+        Files.readString(out.resolve("find.tree.txt")).contains("role=search"),
         "the code editor's find bar");
   }
 }

@@ -70,7 +70,9 @@ final class Win32Frame {
     Win32Frame frame = new Win32Frame(window, hwnd);
     try (Arena arena = Arena.ofConfined()) {
       // Fails before Windows 11, which has no rounded corners; the window keeps square ones.
-      Win32.dwmSetWindowAttribute(hwnd, Win32.DWMWA_WINDOW_CORNER_PREFERENCE,
+      Win32.dwmSetWindowAttribute(
+          hwnd,
+          Win32.DWMWA_WINDOW_CORNER_PREFERENCE,
           arena.allocateFrom(JAVA_INT, Win32.DWMWCP_ROUND));
     }
     frame.subclassed = Win32.setWindowSubclass(hwnd, Upcalls.PROC, SUBCLASS_ID, window.id());
@@ -143,8 +145,7 @@ final class Win32Frame {
         toClient(lParam);
         float x = window.logical(point.get(JAVA_INT, 0));
         float y = window.logical(point.get(JAVA_INT, 4));
-        if (window.zone(x, y) == Sdl.HITTEST_NORMAL
-            && window.part(x, y) == WindowPart.MAXIMIZE) {
+        if (window.zone(x, y) == Sdl.HITTEST_NORMAL && window.part(x, y) == WindowPart.MAXIMIZE) {
           return Win32.HTMAXBUTTON;
         }
       }

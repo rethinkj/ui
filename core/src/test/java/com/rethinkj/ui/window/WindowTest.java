@@ -50,10 +50,9 @@ class WindowTest {
     if (y >= 30) {
       return WindowPart.CONTENT;
     }
-    return x >= 254 ? WindowPart.CLOSE
-        : x >= 208 ? WindowPart.MAXIMIZE
-        : x >= 162 ? WindowPart.MINIMIZE
-        : WindowPart.DRAG;
+    return x >= 254
+        ? WindowPart.CLOSE
+        : x >= 208 ? WindowPart.MAXIMIZE : x >= 162 ? WindowPart.MINIMIZE : WindowPart.DRAG;
   };
 
   private final List<WindowEvent> events = new ArrayList<>();
@@ -64,9 +63,10 @@ class WindowTest {
   }
 
   private static void assertAt(Window.Placement expected, Window.Placement actual) {
-    assertEquals(expected.x() + "," + expected.y() + " " + expected.width() + "x"
-        + expected.height(), actual.x() + "," + actual.y() + " " + actual.width() + "x"
-        + actual.height(), actual.toString());
+    assertEquals(
+        expected.x() + "," + expected.y() + " " + expected.width() + "x" + expected.height(),
+        actual.x() + "," + actual.y() + " " + actual.width() + "x" + actual.height(),
+        actual.toString());
   }
 
   @Test
@@ -117,10 +117,12 @@ class WindowTest {
       int w = window.units(window.width()) + frame[1] + frame[3];
       int h = window.units(window.height()) + frame[0] + frame[2];
       int[] area = Sdl.displayBounds(Sdl.displayForRect(x, y, w, h), true);
-      assertTrue(w <= area[2] && h <= area[3], "as large as the work area at most: " + w + "x"
-          + h + " in " + area[2] + "x" + area[3]);
-      assertTrue(x >= area[0] && y >= area[1] && x + w <= area[0] + area[2]
-          && y + h <= area[1] + area[3], "and inside it: " + x + "," + y);
+      assertTrue(
+          w <= area[2] && h <= area[3],
+          "as large as the work area at most: " + w + "x" + h + " in " + area[2] + "x" + area[3]);
+      assertTrue(
+          x >= area[0] && y >= area[1] && x + w <= area[0] + area[2] && y + h <= area[1] + area[3],
+          "and inside it: " + x + "," + y);
     }
   }
 
@@ -206,10 +208,13 @@ class WindowTest {
       Desktop.windowEvent(window, Sdl.EVENT_WINDOW_EXPOSED, 0, 0);
       Window.pollEvents();
 
-      assertEquals(List.of(new Redraw(false)),
-          events.stream().filter(Redraw.class::isInstance).toList(), events.toString());
-      assertTrue(events.indexOf(new PointerMove(at(window, 40), at(window, 30)))
-          < events.indexOf(new Redraw(false)),
+      assertEquals(
+          List.of(new Redraw(false)),
+          events.stream().filter(Redraw.class::isInstance).toList(),
+          events.toString());
+      assertTrue(
+          events.indexOf(new PointerMove(at(window, 40), at(window, 30)))
+              < events.indexOf(new Redraw(false)),
           "the redraw comes after the move: " + events);
     }
   }
@@ -242,7 +247,8 @@ class WindowTest {
       assertEquals(Sdl.HITTEST_NORMAL, window.zone(1, 100), "a maximized window does not resize");
       assertEquals(Sdl.HITTEST_DRAGGABLE, window.zone(100, 2));
     }
-    try (Window window = Window.open(TITLE, 300, 200, Window.options().frameless().fixedSize())) {
+    try (Window window =
+        Window.open(TITLE, 300, 200, Window.options().frameless().fixedSize())) {
       window.parts(PARTS);
       assertEquals(Sdl.HITTEST_NORMAL, window.zone(1, 100));
       assertEquals(Sdl.HITTEST_DRAGGABLE, window.zone(100, 2));
@@ -287,7 +293,8 @@ class WindowTest {
       Desktop.button(window, true, Sdl.BUTTON_LEFT, 280, 15, 1);
       Desktop.button(window, false, Sdl.BUTTON_LEFT, 180, 15, 1);
       Window.pollEvents();
-      assertFalse(events.contains(new CloseRequested()), "a press that ends elsewhere does nothing");
+      assertFalse(
+          events.contains(new CloseRequested()), "a press that ends elsewhere does nothing");
       assertFalse(window.isMinimized());
 
       Desktop.click(window, 230, 15);
@@ -306,8 +313,10 @@ class WindowTest {
   void aDoublePressNeedsThePressesAsCloseAsTheSystemSays() {
     assumeTrue(System.getenv(Sdl.HINT_MOUSE_DOUBLE_CLICK_RADIUS) == null, "set by the environment");
     try (Window window = Window.open(TITLE, 120, 80)) {
-      assertEquals(String.valueOf(Window.doubleClickRadius()),
-          Sdl.getHint(Sdl.HINT_MOUSE_DOUBLE_CLICK_RADIUS), "not SDL's 32, made for touch screens");
+      assertEquals(
+          String.valueOf(Window.doubleClickRadius()),
+          Sdl.getHint(Sdl.HINT_MOUSE_DOUBLE_CLICK_RADIUS),
+          "not SDL's 32, made for touch screens");
       assertTrue(Window.doubleClickRadius() < 11, "presses on two rows of a table are two");
     }
   }
@@ -339,11 +348,16 @@ class WindowTest {
       Desktop.text(window, "a");
       Window.pollEvents();
 
-      List<WindowEvent> texts = events.stream().filter(TextInput.class::isInstance).toList();
+      List<WindowEvent> texts =
+          events.stream().filter(TextInput.class::isInstance).toList();
       boolean windows = window.handle() instanceof WindowHandle.Win32;
-      assertEquals(windows ? List.of(new TextInput("@"), new TextInput("a"))
-          : List.of(new TextInput(" "), new TextInput("@"), new TextInput("a")), texts);
-      assertTrue(events.contains(new KeyDown(new Key("Space", Key.CONTROL, false))),
+      assertEquals(
+          windows
+              ? List.of(new TextInput("@"), new TextInput("a"))
+              : List.of(new TextInput(" "), new TextInput("@"), new TextInput("a")),
+          texts);
+      assertTrue(
+          events.contains(new KeyDown(new Key("Space", Key.CONTROL, false))),
           "the key itself arrives: " + events);
     }
   }
@@ -364,14 +378,18 @@ class WindowTest {
       Desktop.button(window, true, Sdl.BUTTON_RIGHT, 100, 100, 1);
       Desktop.button(window, false, Sdl.BUTTON_RIGHT, 100, 15, 1);
       Window.pollEvents();
-      assertEquals(List.of(
-          new PointerDown(at(window, 100), at(window, 100), PointerButton.RIGHT, 1),
-          new PointerUp(at(window, 100), at(window, 15), PointerButton.RIGHT)), presses());
+      assertEquals(
+          List.of(
+              new PointerDown(at(window, 100), at(window, 100), PointerButton.RIGHT, 1),
+              new PointerUp(at(window, 100), at(window, 15), PointerButton.RIGHT)),
+          presses());
     }
   }
 
   private List<WindowEvent> presses() {
-    return events.stream().filter(e -> e instanceof PointerDown || e instanceof PointerUp).toList();
+    return events.stream()
+        .filter(e -> e instanceof PointerDown || e instanceof PointerUp)
+        .toList();
   }
 
   @Test
@@ -380,9 +398,12 @@ class WindowTest {
       assumeTrue(window.handle() instanceof WindowHandle.Win32, "Windows only");
       MemorySegment hwnd = ((WindowHandle.Win32) window.handle()).hwnd();
       // As the taskbar does it, from outside, not through SDL, which expects the sizes on the way.
-      MethodHandle showWindow = Linker.nativeLinker().downcallHandle(
-          SymbolLookup.libraryLookup("user32", Arena.global()).find("ShowWindow").orElseThrow(),
-          FunctionDescriptor.of(JAVA_INT, ADDRESS, JAVA_INT));
+      MethodHandle showWindow = Linker.nativeLinker()
+          .downcallHandle(
+              SymbolLookup.libraryLookup("user32", Arena.global())
+                  .find("ShowWindow")
+                  .orElseThrow(),
+              FunctionDescriptor.of(JAVA_INT, ADDRESS, JAVA_INT));
       Desktop.settle();
       window.listener(events::add);
       elsewhere(showWindow, hwnd, 6); // SW_MINIMIZE

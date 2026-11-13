@@ -66,8 +66,17 @@ final class Catalog implements Tree.Model<Catalog.Node> {
     "warehouses", "wishlists"
   };
   private static final String[] COLUMNS = {
-    "id", "created_at", "updated_at", "customer_id", "status", "amount", "currency", "email",
-    "note", "deleted_at", "version"
+    "id",
+    "created_at",
+    "updated_at",
+    "customer_id",
+    "status",
+    "amount",
+    "currency",
+    "email",
+    "note",
+    "deleted_at",
+    "version"
   };
 
   final Theme theme;
@@ -109,13 +118,14 @@ final class Catalog implements Tree.Model<Catalog.Node> {
       int count = columns > 0 ? columns : 3 + i % 8;
       for (int c = 0; c < count; c++) {
         String column = COLUMNS[c % COLUMNS.length];
-        new Node(Kind.COLUMN, c < COLUMNS.length ? column : column + "_" + c / COLUMNS.length,
-            table);
+        new Node(
+            Kind.COLUMN, c < COLUMNS.length ? column : column + "_" + c / COLUMNS.length, table);
       }
     }
     Node prod = new Node(Kind.SERVER, "prod-eu", null);
     for (String database : List.of("billing", "shop")) {
-      tables(new Node(Kind.SCHEMA, "public", new Node(Kind.DATABASE, database, prod)),
+      tables(
+          new Node(Kind.SCHEMA, "public", new Node(Kind.DATABASE, database, prod)),
           List.of("customers", "invoices", "orders"));
     }
     Node staging = new Node(Kind.SERVER, "staging", null);
@@ -137,8 +147,10 @@ final class Catalog implements Tree.Model<Catalog.Node> {
     List<Node> level = roots;
     Node found = null;
     for (String name : path.split("/")) {
-      found = level.stream().filter(n -> n.name.equals(name)).findFirst().orElseThrow(
-          () -> new IllegalArgumentException("no " + name + " in " + path));
+      found = level.stream()
+          .filter(n -> n.name.equals(name))
+          .findFirst()
+          .orElseThrow(() -> new IllegalArgumentException("no " + name + " in " + path));
       level = found.children;
     }
     return found;
@@ -197,8 +209,8 @@ final class Catalog implements Tree.Model<Catalog.Node> {
   public El icon(Node node) {
     return switch (node.kind) {
       // The colour says whether the server is connected.
-      case SERVER -> Icon.icon(theme, Symbol.SERVER,
-          node.children == null ? Variant.DISABLED : Variant.SUCCESS);
+      case SERVER ->
+        Icon.icon(theme, Symbol.SERVER, node.children == null ? Variant.DISABLED : Variant.SUCCESS);
       case DATABASE -> Icon.icon(theme, Symbol.DATABASE, Variant.MUTED);
       case SCHEMA -> Icon.icon(theme, Symbol.FOLDER, Variant.MUTED);
       case TABLE -> Icon.icon(theme, Symbol.TABLE, Variant.MUTED);
@@ -209,12 +221,20 @@ final class Catalog implements Tree.Model<Catalog.Node> {
   // The view
 
   El view() {
-    return col().wFull().hFull().padding(theme.space().m()).fill(theme.surface().panel())
+    return col()
+        .wFull()
+        .hFull()
+        .padding(theme.space().m())
+        .fill(theme.surface().panel())
         .child(tree().key("schema").label("Schema").grow(1));
   }
 
   El tree() {
-    return Tree.tree(theme, this, open::contains, selected,
+    return Tree.tree(
+        theme,
+        this,
+        open::contains,
+        selected,
         node -> {
           log.add("select " + node);
           selected = node;
@@ -229,7 +249,9 @@ final class Catalog implements Tree.Model<Catalog.Node> {
           if (node.children == null && !loading.contains(node)) {
             loading.add(node);
             String name = node.name; // the work gets the name, not the node
-            app.background("databases of " + name, () -> databases(name),
+            app.background(
+                "databases of " + name,
+                () -> databases(name),
                 names -> arrive(node, names),
                 failure -> log.add("failed " + node + ": " + failure.getMessage()));
           }

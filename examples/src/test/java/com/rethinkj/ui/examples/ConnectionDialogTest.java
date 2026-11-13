@@ -31,9 +31,10 @@ class ConnectionDialogTest {
     }
     assertTrue(Snaps.line("connection-dialog", "connection-connecting", "text \"Connecting")
         .contains("as admin with SSL\""));
-    assertTrue(Snaps.line("connection-dialog", "connection-shown", "#password")
-        .contains("\"hunter2\""));
-    assertTrue(Snaps.line("connection-dialog", "connection-shown", "#port")
-        .endsWith("focused caret 4"), "the button left the focus where it was");
+    assertTrue(
+        Snaps.line("connection-dialog", "connection-shown", "#password").contains("\"hunter2\""));
+    assertTrue(
+        Snaps.line("connection-dialog", "connection-shown", "#port").endsWith("focused caret 4"),
+        "the button left the focus where it was");
   }
 }

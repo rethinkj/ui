@@ -69,7 +69,8 @@ public final class Progress {
   /** A bar that runs while the length of the work is not known. */
   public static El indeterminate(Theme t) {
     return track(t, t.size().progress(), true, Double.NaN, State.NORMAL)
-        .role("progressbar").w(t.size().field());
+        .role("progressbar")
+        .w(t.size().field());
   }
 
   /**
@@ -78,13 +79,15 @@ public final class Progress {
    * something loads without taking room from what is around it.
    */
   public static El line(Theme t, double fraction) {
-    return states(track(t, t.size().indicator(), false, fraction, State.NORMAL), fraction,
-        State.NORMAL).wFull();
+    return states(
+            track(t, t.size().indicator(), false, fraction, State.NORMAL), fraction, State.NORMAL)
+        .wFull();
   }
 
   /** A {@link #line} that runs while the length of the work is not known. */
   public static El line(Theme t) {
-    return track(t, t.size().indicator(), false, Double.NaN, State.NORMAL).role("progressbar")
+    return track(t, t.size().indicator(), false, Double.NaN, State.NORMAL)
+        .role("progressbar")
         .wFull();
   }
 
@@ -102,16 +105,23 @@ public final class Progress {
   /** As {@link #labeled(Theme, String, double, String)}, coloured by what became of the work. */
   public static El labeled(Theme t, String label, double fraction, String detail, State state) {
     Theme.TextStyle body = t.type().body();
-    El name = El.text(label).font(body.font().get()).fontSize(body.size())
-        .color(t.text().primary()).ellipsis().minSize(0, 0).shrink(1);
-    El text = El.text(detail == null ? percent(fraction) : detail).font(body.font().get())
-        .fontSize(body.size()).fontFeatures("+tnum")
-        .color(state == State.ERROR ? t.status().danger() : t.text().muted()).shrink(0);
-    El top = row().gap(t.space().m()).align(Style.Align.CENTER).children(name, el().grow(1),
-        text);
+    El name = El.text(label)
+        .font(body.font().get())
+        .fontSize(body.size())
+        .color(t.text().primary())
+        .ellipsis()
+        .minSize(0, 0)
+        .shrink(1);
+    El text = El.text(detail == null ? percent(fraction) : detail)
+        .font(body.font().get())
+        .fontSize(body.size())
+        .fontFeatures("+tnum")
+        .color(state == State.ERROR ? t.status().danger() : t.text().muted())
+        .shrink(0);
+    El top = row().gap(t.space().m()).align(Style.Align.CENTER).children(name, el().grow(1), text);
     El bar = track(t, t.size().progress(), true, fraction, state).wFull();
-    return states(col().gap(t.space().xs()).w(t.size().field()).children(top, bar), fraction,
-        state).label(label);
+    return states(col().gap(t.space().xs()).w(t.size().field()).children(top, bar), fraction, state)
+        .label(label);
   }
 
   /** A spinner of {@link Theme.Sizes#icon}, labelled "Loading". */
@@ -138,15 +148,20 @@ public final class Progress {
   static El spinner(Theme t, float size, int arc, int ring) {
     float width = size / 8; // 2 at 16, the stroke of the icons drawn for 16
     double period = t.motion().spin();
-    El spinner = el().role("progressbar").label("Loading").size(size, size).shrink(0)
+    El spinner = el().role("progressbar")
+        .label("Loading")
+        .size(size, size)
+        .shrink(0)
         .child(el().absolute(0, 0).size(size, size).radius(size / 2).border(width, ring));
     // top, right, bottom, left: each a border on one side of the ring's box, which tapers to
     // nothing a quarter of a turn either way; a box with two sides would light three quarters
     for (int i = 0; i < 4; i++) {
       double at = i / 4.0;
-      spinner.child(el().absolute(0, 0).size(size, size).radius(size / 2)
-          .border(i == 0 ? width : 0, i == 1 ? width : 0, i == 2 ? width : 0, i == 3 ? width : 0,
-              arc)
+      spinner.child(el().absolute(0, 0)
+          .size(size, size)
+          .radius(size / 2)
+          .border(
+              i == 0 ? width : 0, i == 1 ? width : 0, i == 2 ? width : 0, i == 3 ? width : 0, arc)
           .cycle(period, (e, phase) -> {
             double away = Math.abs(((phase - at) % 1 + 1.5) % 1 - 0.5); // 0 to 1/2 of a turn
             e.opacity((float) Math.max(0, Math.cos(Math.PI * away * 2)));
@@ -184,7 +199,11 @@ public final class Progress {
       case DONE -> t.status().success();
       case PAUSED -> t.text().muted();
     };
-    El fill = el().key("fill").absolute(0, 0).hFull().radius(radius).fill(colour)
+    El fill = el().key("fill")
+        .absolute(0, 0)
+        .hFull()
+        .radius(radius)
+        .fill(colour)
         .motion(t.motion().move());
     if (Double.isNaN(fraction)) {
       fill.wFull().cycle(t.motion().progress(), (e, phase) -> {
@@ -197,8 +216,12 @@ public final class Progress {
     } else {
       fill.style().width = Len.percent((float) clamp(fraction));
     }
-    return el().h(thickness).shrink(0).radius(radius).clip()
-        .fill(round ? t.border().control() : 0).child(fill);
+    return el().h(thickness)
+        .shrink(0)
+        .radius(radius)
+        .clip()
+        .fill(round ? t.border().control() : 0)
+        .child(fill);
   }
 
   /** Cubic easing in and out, from 0 to 1. */

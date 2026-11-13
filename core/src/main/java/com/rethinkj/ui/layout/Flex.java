@@ -41,20 +41,18 @@ public final class Flex {
     float parentWidth = pixels(availableWidth);
     float parentHeight = pixels(availableHeight);
     Edges margin = Edges.margin(s, parentWidth);
-    Out out =
-        node.layout(
-            new In(
-                true,
-                true,
-                Node.BOTH,
-                Float.NaN,
-                Float.NaN,
-                true,
-                true,
-                parentWidth,
-                parentHeight,
-                availableMax(availableWidth - margin.horizontal(), 0),
-                availableMax(availableHeight - margin.vertical(), 0)));
+    Out out = node.layout(new In(
+        true,
+        true,
+        Node.BOTH,
+        Float.NaN,
+        Float.NaN,
+        true,
+        true,
+        parentWidth,
+        parentHeight,
+        availableMax(availableWidth - margin.horizontal(), 0),
+        availableMax(availableHeight - margin.vertical(), 0)));
     // shortcut: a root with position: absolute is placed like a relative one, so its insets
     // move it but do not size it. Upgrade when a root needs to stretch between insets.
     node.x =

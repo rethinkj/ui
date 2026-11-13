@@ -155,9 +155,18 @@ public final class DataGrid {
    * @param editing whether and how its cells are edited; {@link Editing#NONE} for not at all
    */
   public record Column(
-      String title, float width, Align align, boolean mono, boolean sortable,
-      IntFunction<String> cell, Symbol icon, Icon.Variant iconVariant, String typeName,
-      IntFunction<CellIcon> cellIcon, DataType type, Editing editing) {
+      String title,
+      float width,
+      Align align,
+      boolean mono,
+      boolean sortable,
+      IntFunction<String> cell,
+      Symbol icon,
+      Icon.Variant iconVariant,
+      String typeName,
+      IntFunction<CellIcon> cellIcon,
+      DataType type,
+      Editing editing) {
 
     public Column {
       Objects.requireNonNull(iconVariant, "iconVariant");
@@ -166,15 +175,39 @@ public final class DataGrid {
     }
 
     /** A column with icons and type, of {@link DataType#OTHER} and not editable. */
-    public Column(String title, float width, Align align, boolean mono, boolean sortable,
-        IntFunction<String> cell, Symbol icon, Icon.Variant iconVariant, String typeName,
+    public Column(
+        String title,
+        float width,
+        Align align,
+        boolean mono,
+        boolean sortable,
+        IntFunction<String> cell,
+        Symbol icon,
+        Icon.Variant iconVariant,
+        String typeName,
         IntFunction<CellIcon> cellIcon) {
-      this(title, width, align, mono, sortable, cell, icon, iconVariant, typeName, cellIcon,
-          DataType.OTHER, Editing.NONE);
+      this(
+          title,
+          width,
+          align,
+          mono,
+          sortable,
+          cell,
+          icon,
+          iconVariant,
+          typeName,
+          cellIcon,
+          DataType.OTHER,
+          Editing.NONE);
     }
 
     /** A column that sorts or not, without icons or type. */
-    public Column(String title, float width, Align align, boolean mono, boolean sortable,
+    public Column(
+        String title,
+        float width,
+        Align align,
+        boolean mono,
+        boolean sortable,
         IntFunction<String> cell) {
       this(title, width, align, mono, sortable, cell, null, Icon.Variant.MUTED, null, null);
     }
@@ -189,14 +222,36 @@ public final class DataGrid {
      * its editor ({@link DataType}).
      */
     public Column(String title, float width, DataType type, IntFunction<String> cell) {
-      this(title, width, type.align(), type.mono(), true, cell, type.symbol(), Icon.Variant.MUTED,
-          null, null, type, Editing.NONE);
+      this(
+          title,
+          width,
+          type.align(),
+          type.mono(),
+          true,
+          cell,
+          type.symbol(),
+          Icon.Variant.MUTED,
+          null,
+          null,
+          type,
+          Editing.NONE);
     }
 
     /** This column, sortable or not. */
     public Column sortable(boolean on) {
-      return new Column(title, width, align, mono, on, cell, icon, iconVariant, typeName,
-          cellIcon, type, editing);
+      return new Column(
+          title,
+          width,
+          align,
+          mono,
+          on,
+          cell,
+          icon,
+          iconVariant,
+          typeName,
+          cellIcon,
+          type,
+          editing);
     }
 
     /** This column with {@code symbol} in muted text before the title in the header. */
@@ -206,20 +261,43 @@ public final class DataGrid {
 
     /** This column with {@code symbol} before the title in the header; null for none. */
     public Column icon(Symbol symbol, Icon.Variant variant) {
-      return new Column(title, width, align, mono, sortable, cell, symbol, variant, typeName,
-          cellIcon, type, editing);
+      return new Column(
+          title, width, align, mono, sortable, cell, symbol, variant, typeName, cellIcon, type,
+          editing);
     }
 
     /** This column with {@code name} after the title in the header; null for none. */
     public Column typeName(String name) {
-      return new Column(title, width, align, mono, sortable, cell, icon, iconVariant, name,
-          cellIcon, type, editing);
+      return new Column(
+          title,
+          width,
+          align,
+          mono,
+          sortable,
+          cell,
+          icon,
+          iconVariant,
+          name,
+          cellIcon,
+          type,
+          editing);
     }
 
     /** This column with an icon in each cell for which {@code icons} gives one. */
     public Column cellIcon(IntFunction<CellIcon> icons) {
-      return new Column(title, width, align, mono, sortable, cell, icon, iconVariant, typeName,
-          icons, type, editing);
+      return new Column(
+          title,
+          width,
+          align,
+          mono,
+          sortable,
+          cell,
+          icon,
+          iconVariant,
+          typeName,
+          icons,
+          type,
+          editing);
     }
 
     /** This column with its cells editable in every row, when the grid edits ({@link Options#onCommit}). */
@@ -229,8 +307,11 @@ public final class DataGrid {
 
     /** This column with the cells of the rows that {@code rows} accepts editable. */
     public Column editable(IntPredicate rows) {
-      return with(new Editing(Objects.requireNonNull(rows, "rows"), editing.nullable(),
-          editing.choices(), editing.editor()));
+      return with(new Editing(
+          Objects.requireNonNull(rows, "rows"),
+          editing.nullable(),
+          editing.choices(),
+          editing.editor()));
     }
 
     /**
@@ -249,13 +330,27 @@ public final class DataGrid {
 
     /** This column edited by an editor of the app's in place of the one of its type. */
     public Column editor(CellEditor editor) {
-      return with(new Editing(editing.rows(), editing.nullable(), editing.choices(),
+      return with(new Editing(
+          editing.rows(),
+          editing.nullable(),
+          editing.choices(),
           Objects.requireNonNull(editor, "editor")));
     }
 
     private Column with(Editing editing) {
-      return new Column(title, width, align, mono, sortable, cell, icon, iconVariant, typeName,
-          cellIcon, type, editing);
+      return new Column(
+          title,
+          width,
+          align,
+          mono,
+          sortable,
+          cell,
+          icon,
+          iconVariant,
+          typeName,
+          cellIcon,
+          type,
+          editing);
     }
   }
 
@@ -275,8 +370,8 @@ public final class DataGrid {
    * @param choices what an enumeration's cells choose from; empty for free input
    * @param editor the app's own editor, which replaces the one of the type; null for none
    */
-  public record Editing(IntPredicate rows, boolean nullable, List<String> choices,
-      CellEditor editor) {
+  public record Editing(
+      IntPredicate rows, boolean nullable, List<String> choices, CellEditor editor) {
 
     /** Not editable. */
     public static final Editing NONE = new Editing(null, false, List.of(), null);
@@ -406,14 +501,18 @@ public final class DataGrid {
         case EQUALS -> low.equals(want);
         case MATCHES -> {
           try {
-            yield java.util.regex.Pattern.compile(value, java.util.regex.Pattern.CASE_INSENSITIVE
-                | java.util.regex.Pattern.UNICODE_CASE).matcher(cell).find();
+            yield java.util.regex.Pattern.compile(
+                    value,
+                    java.util.regex.Pattern.CASE_INSENSITIVE | java.util.regex.Pattern.UNICODE_CASE)
+                .matcher(cell)
+                .find();
           } catch (java.util.regex.PatternSyntaxException e) {
             yield false;
           }
         }
-        case BETWEEN -> (value.isBlank() || compare(cell, value) >= 0)
-            && (to.isBlank() || compare(cell, to) <= 0);
+        case BETWEEN ->
+          (value.isBlank() || compare(cell, value) >= 0)
+              && (to.isBlank() || compare(cell, to) <= 0);
         case ONE_OF -> values.contains(cell);
         default -> true;
       };
@@ -429,18 +528,21 @@ public final class DataGrid {
 
     /** What it keeps, in words, after the column's title: {@code status in paid, shipped}. */
     public String describe(String title) {
-      return title + switch (kind) {
-        case CONTAINS -> " contains " + value;
-        case STARTS_WITH -> " starts with " + value;
-        case EQUALS -> " = " + value;
-        case MATCHES -> " matches " + value;
-        case BETWEEN -> to.isBlank() ? " ≥ " + value : value.isBlank() ? " ≤ " + to
-            : " " + value + " – " + to;
-        case ONE_OF -> values.size() == 1 ? " = " + values.getFirst()
-            : " in " + String.join(", ", values);
-        case IS_NULL -> " is NULL";
-        case NOT_NULL -> " is not NULL";
-      };
+      return title
+          + switch (kind) {
+            case CONTAINS -> " contains " + value;
+            case STARTS_WITH -> " starts with " + value;
+            case EQUALS -> " = " + value;
+            case MATCHES -> " matches " + value;
+            case BETWEEN ->
+              to.isBlank()
+                  ? " ≥ " + value
+                  : value.isBlank() ? " ≤ " + to : " " + value + " – " + to;
+            case ONE_OF ->
+              values.size() == 1 ? " = " + values.getFirst() : " in " + String.join(", ", values);
+            case IS_NULL -> " is NULL";
+            case NOT_NULL -> " is not NULL";
+          };
     }
   }
 
@@ -1004,8 +1106,11 @@ public final class DataGrid {
 
     private Range range(int row1, int column1, int row2, int column2, boolean rows) {
       boolean whole = rows || mode == Mode.ROWS;
-      return new Range(Math.min(row1, row2), whole ? 0 : Math.min(column1, column2),
-          Math.max(row1, row2), whole ? Range.ALL : Math.max(column1, column2));
+      return new Range(
+          Math.min(row1, row2),
+          whole ? 0 : Math.min(column1, column2),
+          Math.max(row1, row2),
+          whole ? Range.ALL : Math.max(column1, column2));
     }
 
     /** What the grid's views compare to tell the app of a change only. */
@@ -1308,7 +1413,8 @@ public final class DataGrid {
       if (onSort != null) {
         Consumer<List<SortKey>> to = onSort;
         onSort = next -> to.accept(next.stream()
-            .map(k -> new SortKey(full[k.column()], k.descending())).toList());
+            .map(k -> new SortKey(full[k.column()], k.descending()))
+            .toList());
       }
       if (onResize != null) {
         Resize to = onResize;
@@ -1325,7 +1431,8 @@ public final class DataGrid {
       if (onPaste != null) {
         Consumer<List<CellValue>> to = onPaste;
         onPaste = cells -> to.accept(cells.stream()
-            .map(v -> new CellValue(v.row(), full[v.column()], v.value())).toList());
+            .map(v -> new CellValue(v.row(), full[v.column()], v.value()))
+            .toList());
       }
       if (cellStatus != null) {
         CellStatus to = cellStatus;
@@ -1483,7 +1590,8 @@ public final class DataGrid {
     Theme.Grid g = b.g;
     El header = header(b);
     Selection sel = b.sel;
-    if (sel != null && sel.isEditing()
+    if (sel != null
+        && sel.isEditing()
         && (!b.edits || sel.editRow >= b.rows || sel.editColumn >= columns.size())) {
       sel.cancelEdit(); // the rows or columns it was on are gone
     }
@@ -1493,12 +1601,14 @@ public final class DataGrid {
     if (sel != null && !sel.headerMenu.isOpen()) {
       sel.headerColumn = -1;
     }
-    if (sel != null && (!sel.filtering.isOpen() || sel.filterColumn >= columns.size()
-        || !b.filtering())) {
+    if (sel != null
+        && (!sel.filtering.isOpen() || sel.filterColumn >= columns.size() || !b.filtering())) {
       sel.filtering.close(); // dismissed, or its column is gone
       sel.filterColumn = -1;
     }
-    El body = col().key("rows").grow(1)
+    El body = col()
+        .key("rows")
+        .grow(1)
         .rows(b.rows, g.rowHeight(), (i, from, to) -> dataRow(b, i, from, to))
         .scrollbars(t.scrollbars());
     b.body = body;
@@ -1522,8 +1632,8 @@ public final class DataGrid {
     content.children(header, body);
     content.style().minWidth = Len.percent(1); // the rows reach across a grid wider than them
     // Header and rows scroll sideways together in the grid; the rows scroll up and down alone.
-    El grid = row().role("grid").scrollBoth().scrollbars(t.scrollbars()).fill(g.row())
-        .child(content);
+    El grid =
+        row().role("grid").scrollBoth().scrollbars(t.scrollbars()).fill(g.row()).child(content);
     b.grid = grid;
     if (sel != null) {
       grid.scrollState(sel.gridScroll);
@@ -1552,8 +1662,12 @@ public final class DataGrid {
     Theme.Grid g = b.g;
     int n = b.columns.size();
     // The line under it is its border, which the cells and the pinned parts end above.
-    El header = row().key("header").h(g.rowHeight() + t.size().stroke()).shrink(0)
-        .fill(g.header()).border(0, 0, t.size().stroke(), 0, t.border().control())
+    El header = row()
+        .key("header")
+        .h(g.rowHeight() + t.size().stroke())
+        .shrink(0)
+        .fill(g.header())
+        .border(0, 0, t.size().stroke(), 0, t.border().control())
         .padding(0, 0, 0, b.fixedWidth());
     El[] lines = new El[n];
     List<El> pinned = new ArrayList<>();
@@ -1605,16 +1719,26 @@ public final class DataGrid {
     if (column.typeName() != null && typeFits(b, index)) {
       // The title keeps its width as long as the type has any, and never more than the room.
       title.shrink(0).style().maxWidth = Len.percent(1);
-      name = row().align(Style.Align.CENTER).gap(t.space().s()).minSize(0, 0).clip()
-          .children(title, Label.label(t, Label.Variant.MUTED, column.typeName())
-              .ellipsis().minSize(0, 0));
+      name = row()
+          .align(Style.Align.CENTER)
+          .gap(t.space().s())
+          .minSize(0, 0)
+          .clip()
+          .children(
+              title,
+              Label.label(t, Label.Variant.MUTED, column.typeName()).ellipsis().minSize(0, 0));
     }
-    El cell = cellBox(t, column.align(), column.width()).key("column-" + index)
-        .role("columnheader").label(column.title()).gap(t.space().xs())
+    El cell = cellBox(t, column.align(), column.width())
+        .key("column-" + index)
+        .role("columnheader")
+        .label(column.title())
+        .gap(t.space().xs())
         .position(index + 1, b.columns.size());
     // Apart from the title by the gap of an icon in a cell, as the cell's gap is the mark's.
-    El icon = column.icon() == null ? null : Icon.icon(t, column.icon(), column.iconVariant())
-        .margin(0, t.space().s() - t.space().xs(), 0, 0);
+    El icon = column.icon() == null
+        ? null
+        : Icon.icon(t, column.icon(), column.iconVariant())
+            .margin(0, t.space().s() - t.space().xs(), 0, 0);
     int at = -1;
     for (int k = 0; k < b.o.sort.size(); k++) {
       if (b.o.sort.get(k).column() == index) {
@@ -1625,8 +1749,11 @@ public final class DataGrid {
     if (at >= 0) {
       boolean descending = b.o.sort.get(at).descending();
       // The arrow, and its number among the keys when there are more, as one mark.
-      mark = row().align(Style.Align.CENTER).shrink(0).child(Icon.icon(t,
-          descending ? Symbol.ARROW_DOWN : Symbol.ARROW_UP, Icon.Variant.MUTED, b.g.mark()));
+      mark = row()
+          .align(Style.Align.CENTER)
+          .shrink(0)
+          .child(Icon.icon(
+              t, descending ? Symbol.ARROW_DOWN : Symbol.ARROW_UP, Icon.Variant.MUTED, b.g.mark()));
       if (b.o.sort.size() > 1) {
         mark.child(Label.label(t, Label.Variant.MUTED, String.valueOf(at + 1)));
         if (column.align() == Align.RIGHT) { // the number apart from the title after it
@@ -1660,14 +1787,18 @@ public final class DataGrid {
       cell.children(el().grow(1).minSize(0, 0), funnel);
     } else if (funnel != null && !inFlow) {
       float inset = t.space().xs();
-      cell.child(funnel.absolute(column.align() == Align.RIGHT ? inset
-          : column.width() - t.size().stroke() - inset - t.size().icon(),
-          (b.g.rowHeight() - t.size().icon()) / 2).fill(b.g.header()));
+      cell.child(funnel
+          .absolute(
+              column.align() == Align.RIGHT
+                  ? inset
+                  : column.width() - t.size().stroke() - inset - t.size().icon(),
+              (b.g.rowHeight() - t.size().icon()) / 2)
+          .fill(b.g.header()));
     }
     // The whole title and type where anything is cut short, measured only when it may show.
     float room = column.width() - t.size().stroke() - 2 * t.space().s();
-    String whole = column.typeName() == null ? column.title()
-        : column.title() + " " + column.typeName();
+    String whole =
+        column.typeName() == null ? column.title() : column.title() + " " + column.typeName();
     cell.whenHoveredFor(t.motion().tooltipDelay(), e -> {
       if (headerWidth(b, index) > room + 0.5f) {
         e.overlay(Tooltip.panel(t, whole));
@@ -1724,15 +1855,20 @@ public final class DataGrid {
     Resize onResize = b.o.onResize;
     Selection sel = b.sel;
     // The edge goes to the handler of the view the drag began in, with the width of then.
-    return el().key("resize-" + c).role("separator").label("Resize " + column.title())
-        .absolute(b.xs[c + 1] - g.handle() / 2, 0).size(g.handle(), g.rowHeight())
+    return el().key("resize-" + c)
+        .role("separator")
+        .label("Resize " + column.title())
+        .absolute(b.xs[c + 1] - g.handle() / 2, 0)
+        .size(g.handle(), g.rowHeight())
         .cursor(Cursor.EW_RESIZE)
         .whenHovered(e -> line.fill(t.border().strong()))
         .whenPressed(e -> line.fill(t.accent().color()))
         .onDrag(d -> {
-          onResize.resize(c, d.phase() == Drag.Phase.CANCEL
-              ? column.width()
-              : Math.max(column.width() + d.dx(), g.minColumn()));
+          onResize.resize(
+              c,
+              d.phase() == Drag.Phase.CANCEL
+                  ? column.width()
+                  : Math.max(column.width() + d.dx(), g.minColumn()));
           if (sel != null && c >= b.frozen && d.phase() != Drag.Phase.CANCEL) {
             sel.moves++; // the edge stays in view while it is dragged beyond the grid's side
             sel.edgeColumn = c;
@@ -1761,7 +1897,8 @@ public final class DataGrid {
           for (El part : cell.children()) {
             width += natural(part);
           }
-          widest = Math.max(widest,
+          widest = Math.max(
+              widest,
               width + Math.max(cell.children().size() - 1, 0) * t.space().s());
         }
       }
@@ -1808,14 +1945,18 @@ public final class DataGrid {
       return true;
     }
     int first = type.offsetByCodePoints(0, 1);
-    return first < type.length() && left >= natural(
-        Label.label(t, Label.Variant.MUTED, type.substring(0, first) + Text.ELLIPSIS));
+    return first < type.length()
+        && left
+            >= natural(
+                Label.label(t, Label.Variant.MUTED, type.substring(0, first) + Text.ELLIPSIS));
   }
 
   /** The width a text element takes on one line, in logical pixels. */
   static float natural(El text) {
-    return text.text() == null ? 0
-        : text.text().measure(Float.NaN, Float.NaN, Measure.MAX_CONTENT, Measure.MAX_CONTENT)
+    return text.text() == null
+        ? 0
+        : text.text()
+            .measure(Float.NaN, Float.NaN, Measure.MAX_CONTENT, Measure.MAX_CONTENT)
             .width();
   }
 
@@ -1835,7 +1976,11 @@ public final class DataGrid {
     }
     float stroke = t.size().stroke();
     // A hairline along the bottom, its border, which the cells end above.
-    El r = row().key("row-" + i).role("row").fill(fill).selected(rowSelected)
+    El r = row()
+        .key("row-" + i)
+        .role("row")
+        .fill(fill)
+        .selected(rowSelected)
         .current(sel != null && !b.cells && sel.row() == i)
         .border(0, 0, stroke, 0, t.border().subtle());
     if (status != Status.UNCHANGED) {
@@ -1866,12 +2011,15 @@ public final class DataGrid {
     if (b.numbers > 0) {
       // The numbers lie on the row's fill, which they need over the cells scrolled under them.
       String shown = append ? "*" : status == Status.NEW ? "+" : String.valueOf(i + 1);
-      El number = cellBox(t, Align.RIGHT, b.numbers).key("number-" + i).role("rowheader")
-          .fill(fill).child(text(t, true, shown, t.text().muted()));
+      El number = cellBox(t, Align.RIGHT, b.numbers)
+          .key("number-" + i)
+          .role("rowheader")
+          .fill(fill)
+          .child(text(t, true, shown, t.text().muted()));
       pinned.add(number);
       if (sel != null) {
-        number.onPointerDown((clicks, modifiers) -> down(b, i, Math.max(sel.column(), 0), true,
-            clicks, modifiers));
+        number.onPointerDown(
+            (clicks, modifiers) -> down(b, i, Math.max(sel.column(), 0), true, clicks, modifiers));
       }
       // The lines in the frozen part are filled, so that nothing scrolled under it shows.
       El after = line(t, false).fill(fill);
@@ -1895,8 +2043,7 @@ public final class DataGrid {
       r.child(GridEdit.editor(b, i, sel.editColumn));
     }
     if (status != Status.UNCHANGED) { // the mark at the start, over the numbers or first cell
-      r.child(pinRow(b, el().key("mark").w(t.size().indicator()).fill(markColour(t, status)),
-          0));
+      r.child(pinRow(b, el().key("mark").w(t.size().indicator()).fill(markColour(t, status)), 0));
     }
     if (rowSelected) {
       return r;
@@ -1912,11 +2059,14 @@ public final class DataGrid {
     Theme t = b.t;
     Selection sel = b.sel;
     Column column = b.columns.get(c);
-    El box = cellBox(t, column.align(), column.width()).key("cell-" + i + "-" + c)
-        .role("gridcell").position(c + 1, b.columns.size());
+    El box = cellBox(t, column.align(), column.width())
+        .key("cell-" + i + "-" + c)
+        .role("gridcell")
+        .position(c + 1, b.columns.size());
     boolean append = i >= b.rowCount;
-    Status status = append || b.o.cellStatus == null || row == Status.NEW
-        || row == Status.DELETED ? Status.UNCHANGED : b.o.cellStatus.status(i, c);
+    Status status = append || b.o.cellStatus == null || row == Status.NEW || row == Status.DELETED
+        ? Status.UNCHANGED
+        : b.o.cellStatus.status(i, c);
     boolean selected = b.cells && sel.contains(i, c);
     boolean ring = b.cells && sel.row() == i && sel.column() == c && b.focused[0];
     if (b.cells) {
@@ -1927,7 +2077,8 @@ public final class DataGrid {
       }
       if (ring) {
         float w = b.g.cursorWidth();
-        box.border(w, b.g.cursor()).radius(t.radius().small())
+        box.border(w, b.g.cursor())
+            .radius(t.radius().small())
             .padding(0, Math.max(t.space().s() - w, 0));
       }
     }
@@ -1940,14 +2091,15 @@ public final class DataGrid {
         box.invalid(true);
         if (!ring) { // a line of the danger colour inside the cell, where the cursor's would be
           float w = t.size().stroke();
-          box.border(w, t.status().danger()).radius(t.radius().small())
+          box.border(w, t.status().danger())
+              .radius(t.radius().small())
               .padding(0, Math.max(t.space().s() - w, 0));
         }
       }
     }
     String value = loaded && !append ? column.cell().apply(i) : null;
-    CellIcon icon = loaded && !append && column.cellIcon() != null
-        ? column.cellIcon().apply(i) : null;
+    CellIcon icon =
+        loaded && !append && column.cellIcon() != null ? column.cellIcon().apply(i) : null;
     if (!loaded) {
       box.child(text(t, false, Text.ELLIPSIS, t.text().muted()));
     } else if (!append) {
@@ -1955,18 +2107,23 @@ public final class DataGrid {
         box.gap(t.space().s()).child(Icon.icon(t, icon.symbol(), icon.variant()));
       }
       if (icon == null || !icon.alone()) {
-        El text = text(t, column.mono(), value == null ? "NULL" : oneLine(value),
+        El text = text(
+            t,
+            column.mono(),
+            value == null ? "NULL" : oneLine(value),
             value == null || row == Status.DELETED ? t.text().muted() : t.text().primary());
         box.child(text);
         if (row == Status.DELETED) { // struck through, a line as the text is wide
           float pad = t.space().s();
           float before = icon == null ? 0 : t.size().icon() + pad;
-          float width = Math.min(natural(text), column.width() - t.size().stroke() - 2 * pad
-              - before);
-          float x = column.align() == Align.RIGHT ? column.width() - t.size().stroke() - pad
-              - width : pad + before;
+          float width =
+              Math.min(natural(text), column.width() - t.size().stroke() - 2 * pad - before);
+          float x = column.align() == Align.RIGHT
+              ? column.width() - t.size().stroke() - pad - width
+              : pad + before;
           box.child(el().absolute(x, Math.round((b.g.rowHeight() - t.size().stroke()) / 2))
-              .size(Math.max(width, 0), t.size().stroke()).fill(t.text().muted()));
+              .size(Math.max(width, 0), t.size().stroke())
+              .fill(t.text().muted()));
         }
       } else {
         box.label(value == null ? "NULL" : value); // what the icon stands for, in a dump
@@ -1985,20 +2142,23 @@ public final class DataGrid {
       }
     }
     boolean alone = icon != null && icon.alone();
-    String error = status == Status.ERROR && b.o.cellError != null
-        ? b.o.cellError.message(i, c) : null;
+    String error =
+        status == Status.ERROR && b.o.cellError != null ? b.o.cellError.message(i, c) : null;
     String told = icon == null ? null : icon.tooltip();
     // What is wrong first, then what the icon says.
     String own = error == null ? told : told == null ? error : error + "\n" + told;
     if (value != null || alone || own != null) {
       // The icon's own tooltip, else the text an icon alone stands for, and the whole text where
       // the column cuts it short.
-      float room = column.width() - t.size().stroke() - 2 * t.space().s()
+      float room = column.width()
+          - t.size().stroke()
+          - 2 * t.space().s()
           - (icon == null ? 0 : t.size().icon() + t.space().s());
       box.whenHoveredFor(t.motion().tooltipDelay(), e -> {
-        String cut = !alone && value != null && natural(e.children().getLast()) > room + 0.5f
-            ? value : null;
-        String tip = own == null ? (alone ? (value == null ? "NULL" : value) : cut)
+        String cut =
+            !alone && value != null && natural(e.children().getLast()) > room + 0.5f ? value : null;
+        String tip = own == null
+            ? (alone ? (value == null ? "NULL" : value) : cut)
             : cut == null ? own : own + "\n" + cut;
         if (tip != null) {
           e.overlay(Tooltip.panel(t, tip));
@@ -2074,7 +2234,9 @@ public final class DataGrid {
       }
     }
     int to = column;
-    change(b, () -> sel.extend(row, to, !sel.ranges.isEmpty() && sel.ranges.getLast().wholeRows()));
+    change(
+        b,
+        () -> sel.extend(row, to, !sel.ranges.isEmpty() && sel.ranges.getLast().wholeRows()));
   }
 
   /**
@@ -2105,8 +2267,8 @@ public final class DataGrid {
     float fixed = b.fixedWidth();
     if (sel.edgeColumn >= b.frozen && sel.edgeColumn < n) {
       float edge = b.xs[sel.edgeColumn + 1];
-      b.grid.reveal(sel.moves, edge - fixed - b.g.handle(), 0,
-          fixed + 2 * b.g.handle() + b.room, 0);
+      b.grid.reveal(
+          sel.moves, edge - fixed - b.g.handle(), 0, fixed + 2 * b.g.handle() + b.room, 0);
     } else if (sel.start) {
       b.grid.reveal(sel.moves, 0, 0, fixed, 0);
     } else if (b.cells && sel.column() >= b.frozen && sel.column() < n) {
@@ -2129,7 +2291,9 @@ public final class DataGrid {
     if (GridEdit.gridKey(b, k)) {
       return true;
     }
-    if (mods == Key.ALT && k.name().equals("ArrowDown") && n > 0
+    if (mods == Key.ALT
+        && k.name().equals("ArrowDown")
+        && n > 0
         && b.filtering(Math.clamp(sel.column(), 0, n - 1))) {
       GridFilter.open(b, Math.clamp(sel.column(), 0, n - 1));
       return true;
@@ -2140,8 +2304,7 @@ public final class DataGrid {
     boolean shift = (mods & Key.SHIFT) != 0;
     boolean control = (mods & Key.CONTROL) != 0;
     String name = k.name();
-    if (control && !shift && (name.equals("C") || name.equals("Insert"))
-        && b.o.clipboard != null) {
+    if (control && !shift && (name.equals("C") || name.equals("Insert")) && b.o.clipboard != null) {
       copy(b, false);
       return true;
     }
@@ -2149,8 +2312,11 @@ public final class DataGrid {
       change(b, () -> sel.selectAll(b.rowCount));
       return true;
     }
-    if (mods == 0 && (name.equals("Enter") || name.equals("F2")) && b.o.onEdit != null
-        && sel.row() >= 0 && sel.row() < b.rowCount) {
+    if (mods == 0
+        && (name.equals("Enter") || name.equals("F2"))
+        && b.o.onEdit != null
+        && sel.row() >= 0
+        && sel.row() < b.rowCount) {
       b.o.onEdit.accept(sel.row(), Math.clamp(sel.column(), 0, n - 1));
       return true;
     }
@@ -2225,8 +2391,8 @@ public final class DataGrid {
       if (!items.isEmpty()) {
         items.add(Menu.separator());
       }
-      items.add(Menu.submenu("Column " + b.columns.get(c).title(), column)
-          .icon(Symbol.COLUMN_SINGLE));
+      items.add(
+          Menu.submenu("Column " + b.columns.get(c).title(), column).icon(Symbol.COLUMN_SINGLE));
     }
     if (!items.isEmpty() && !b.o.menuItems.isEmpty()) {
       items.add(Menu.separator());
@@ -2239,8 +2405,8 @@ public final class DataGrid {
     List<Range> ranges = new ArrayList<>();
     for (Range range : b.sel.ranges()) { // without the row to append, which has no cells
       if (range.top() < b.rowCount) {
-        ranges.add(new Range(range.top(), range.left(), Math.min(range.bottom(), b.rowCount - 1),
-            range.right()));
+        ranges.add(new Range(
+            range.top(), range.left(), Math.min(range.bottom(), b.rowCount - 1), range.right()));
       }
     }
     if (ranges.isEmpty()) {
@@ -2322,8 +2488,8 @@ public final class DataGrid {
    * @param columns the grid's columns, whose titles the badges name
    * @param onFilter told the filters left
    */
-  public static El filterBar(Theme t, List<Column> columns, List<Filter> filters,
-      Consumer<List<Filter>> onFilter) {
+  public static El filterBar(
+      Theme t, List<Column> columns, List<Filter> filters, Consumer<List<Filter>> onFilter) {
     return GridFilter.bar(t, columns, filters, onFilter);
   }
 
@@ -2365,7 +2531,9 @@ public final class DataGrid {
         field.setLength(0);
         end = i;
       }
-      while (end < n && text.charAt(end) != '\t' && text.charAt(end) != '\n'
+      while (end < n
+          && text.charAt(end) != '\t'
+          && text.charAt(end) != '\n'
           && text.charAt(end) != '\r') {
         field.append(text.charAt(end++));
       }
@@ -2406,7 +2574,9 @@ public final class DataGrid {
     if (!first) {
       out.append('\t');
     }
-    if (value.indexOf('\t') < 0 && value.indexOf('\n') < 0 && value.indexOf('\r') < 0
+    if (value.indexOf('\t') < 0
+        && value.indexOf('\n') < 0
+        && value.indexOf('\r') < 0
         && value.indexOf('"') < 0) {
       out.append(value);
     } else {
@@ -2449,19 +2619,27 @@ public final class DataGrid {
     if (value.indexOf('\n') < 0 && value.indexOf('\r') < 0 && value.indexOf('\t') < 0) {
       return value;
     }
-    return value.replace("\r\n", LINE_BREAK).replace('\r', '\n').replace("\n", LINE_BREAK)
+    return value
+        .replace("\r\n", LINE_BREAK)
+        .replace('\r', '\n')
+        .replace("\n", LINE_BREAK)
         .replace("\t", TAB);
   }
 
   static El text(Theme t, boolean mono, String text, int colour) {
     Theme.TextStyle style = mono ? t.type().mono() : t.type().body();
-    return El.text(text).font(style.font().get()).fontSize(style.size()).color(colour)
-        .ellipsis().minSize(0, 0);
+    return El.text(text)
+        .font(style.font().get())
+        .fontSize(style.size())
+        .color(colour)
+        .ellipsis()
+        .minSize(0, 0);
   }
 
   /** A cell's box: its column's width less the line, which clips what is wider. */
   private static El cellBox(Theme t, Align align, float width) {
-    return row().w(Math.max(width - t.size().stroke(), 0))
+    return row()
+        .w(Math.max(width - t.size().stroke(), 0))
         .padding(0, t.space().s())
         .align(Style.Align.CENTER)
         .justify(align == Align.RIGHT ? Style.Content.END : Style.Content.START)
@@ -2479,7 +2657,9 @@ public final class DataGrid {
   /** A column's title, in the medium weight of {@link Theme.Type#strong}. */
   private static El title(Theme t, String text) {
     Theme.TextStyle style = t.type().strong();
-    return El.text(text).font(style.font().get()).fontSize(style.size())
+    return El.text(text)
+        .font(style.font().get())
+        .fontSize(style.size())
         .color(t.text().primary());
   }
 

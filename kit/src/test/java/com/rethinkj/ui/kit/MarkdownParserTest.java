@@ -39,9 +39,9 @@ class MarkdownParserTest {
       String markdown = part.substring(0, dot + 1).replace('→', '\t');
       String tree = part.substring(dot + 3, part.indexOf(FENCE));
       int n = i;
-      tests.add(DynamicTest.dynamicTest("example " + n + ": " + markdown.lines().findFirst()
-          .orElse(""), () -> assertEquals(tree, MarkdownDocument.parse(markdown).tree(),
-              markdown)));
+      tests.add(DynamicTest.dynamicTest(
+          "example " + n + ": " + markdown.lines().findFirst().orElse(""),
+          () -> assertEquals(tree, MarkdownDocument.parse(markdown).tree(), markdown)));
     }
     return tests.stream();
   }
@@ -54,14 +54,15 @@ class MarkdownParserTest {
   void headingsGetGitHubsAnchorsMadeUnique() {
     MarkdownDocument doc = MarkdownDocument.parse(
         "# Text fields\n## Text fields\n### `El.rows` and *more*!\n> # Quoted");
-    assertEquals(List.of("text-fields", "text-fields-1", "elrows-and-more", "quoted"),
+    assertEquals(
+        List.of("text-fields", "text-fields-1", "elrows-and-more", "quoted"),
         doc.headings().stream().map(MarkdownDocument.Heading::id).toList());
   }
 
   @Test
   void plainTextIsTheTextAsShown() {
-    MarkdownDocument.Paragraph p = (MarkdownDocument.Paragraph) MarkdownDocument.parse(
-        "a *b* `c` [d](e)\n![f](g) h  \ni").blocks().getFirst();
+    MarkdownDocument.Paragraph p = (MarkdownDocument.Paragraph)
+        MarkdownDocument.parse("a *b* `c` [d](e)\n![f](g) h  \ni").blocks().getFirst();
     assertEquals("a b c d f h\ni", MarkdownDocument.plainText(p.content()));
   }
 
@@ -80,14 +81,21 @@ class MarkdownParserTest {
   void nestingDeeperThanTheLimitIsText() {
     int deep = 10_000;
     String quotes = tree(">".repeat(deep) + " a");
-    assertEquals(MarkdownParser.MAX_DEPTH, quotes.lines().filter(l -> l.strip().equals("quote"))
-        .count());
+    assertEquals(
+        MarkdownParser.MAX_DEPTH,
+        quotes.lines().filter(l -> l.strip().equals("quote")).count());
     String lists = tree("- ".repeat(deep) + "a");
     assertTrue(lists.lines().filter(l -> l.strip().startsWith("list")).count()
         <= MarkdownParser.MAX_DEPTH);
     String emphasis = tree("*a ".repeat(deep) + "b" + " c*".repeat(deep));
-    assertTrue(emphasis.lines().mapToInt(l -> l.length() - l.stripLeading().length()).max()
-        .orElse(0) <= 2 * (MarkdownParser.MAX_DEPTH + 2), "bounded depth");
+    assertTrue(
+        emphasis
+                .lines()
+                .mapToInt(l -> l.length() - l.stripLeading().length())
+                .max()
+                .orElse(0)
+            <= 2 * (MarkdownParser.MAX_DEPTH + 2),
+        "bounded depth");
     String links = tree("[".repeat(deep) + "a" + "](b)".repeat(deep));
     assertTrue(links.contains("link \"b\""), links.substring(0, 200));
   }
@@ -101,8 +109,10 @@ class MarkdownParserTest {
       int length = random.nextInt(200);
       StringBuilder s = new StringBuilder();
       for (int i = 0; i < length; i++) {
-        s.append(random.nextInt(20) == 0 ? (char) random.nextInt(0x3000)
-            : alphabet.charAt(random.nextInt(alphabet.length())));
+        s.append(
+            random.nextInt(20) == 0
+                ? (char) random.nextInt(0x3000)
+                : alphabet.charAt(random.nextInt(alphabet.length())));
       }
       String text = s.toString();
       MarkdownDocument doc = MarkdownParser.read(text); // throws where parse would hide it
@@ -141,9 +151,11 @@ class MarkdownParserTest {
       MarkdownParser.read(small); // warm up
       long smallTime = time(small);
       long largeTime = assertTimeoutPreemptively(Duration.ofSeconds(20), () -> time(large));
-      System.out.printf("Markdown of 1 MB of \"%s\": %d ms (512 KB: %d ms)%n",
+      System.out.printf(
+          "Markdown of 1 MB of \"%s\": %d ms (512 KB: %d ms)%n",
           kind.replace("\n", "\\n"), largeTime / 1_000_000, smallTime / 1_000_000);
-      assertTrue(largeTime < 4 * smallTime + 50_000_000L,
+      assertTrue(
+          largeTime < 4 * smallTime + 50_000_000L,
           "1 MB of \"" + kind + "\" took " + largeTime / 1e6 + " ms, 512 KB " + smallTime / 1e6);
     }
   }

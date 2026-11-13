@@ -100,14 +100,16 @@ final class Runs {
       } else {
         p = strongBefore[k];
         q = strongAfter[k];
-        scripts[k] = p >= 0 && !ownRtl[p] ? own[p]
-            : q >= 0 && !ownRtl[q] ? own[q] : UnicodeScript.COMMON;
+        scripts[k] =
+            p >= 0 && !ownRtl[p] ? own[p] : q >= 0 && !ownRtl[q] ? own[q] : UnicodeScript.COMMON;
       }
     }
     List<Run> runs = new ArrayList<>();
     for (int k = 0; k < n; k++) {
       Run last = runs.isEmpty() ? null : runs.getLast();
-      if (last != null && last.font == font[k] && last.rtl == rtl[k]
+      if (last != null
+          && last.font == font[k]
+          && last.rtl == rtl[k]
           && scripts[k] == scripts[k - 1]) {
         runs.set(runs.size() - 1, new Run(last.from, bounds.get(k + 1), font[k], rtl[k]));
       } else {
@@ -170,9 +172,12 @@ final class Runs {
    */
   static boolean hidden(int c) {
     int type = Character.getType(c);
-    return type == Character.FORMAT || type == Character.CONTROL
-        || c >= 0xFE00 && c <= 0xFE0F || c >= 0xE0100 && c <= 0xE01EF
-        || c >= 0x180B && c <= 0x180F || c == 0x034F;
+    return type == Character.FORMAT
+        || type == Character.CONTROL
+        || c >= 0xFE00 && c <= 0xFE0F
+        || c >= 0xE0100 && c <= 0xE01EF
+        || c >= 0x180B && c <= 0x180F
+        || c == 0x034F;
   }
 
   /** The script of the cluster's first character of a script of its own, or null for neutrals. */
@@ -180,8 +185,10 @@ final class Runs {
     for (int i = 0; i < cluster.length(); ) {
       int c = cluster.codePointAt(i);
       UnicodeScript s = UnicodeScript.of(c);
-      if (s != UnicodeScript.COMMON && s != UnicodeScript.INHERITED
-          && s != UnicodeScript.UNKNOWN && !number(c)) {
+      if (s != UnicodeScript.COMMON
+          && s != UnicodeScript.INHERITED
+          && s != UnicodeScript.UNKNOWN
+          && !number(c)) {
         return s;
       }
       i += Character.charCount(c);

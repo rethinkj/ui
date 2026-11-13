@@ -120,7 +120,11 @@ public final class Badge {
     int ink = o.strong ? tone.strongText() : tone.softText();
     float height = o.toolbar ? b.toolbar() : b.row();
     float side = o.toolbar ? t.space().m() : t.space().s() + t.space().xs();
-    El badge = row().label(text).h(height).shrink(0).align(Style.Align.CENTER)
+    El badge = row()
+        .label(text)
+        .h(height)
+        .shrink(0)
+        .align(Style.Align.CENTER)
         .gap(t.space().xs())
         .padding(0, o.onRemove == null ? side : t.space().xs(), 0, side)
         .radius(t.radius().small())
@@ -129,22 +133,35 @@ public final class Badge {
     if (o.icon != null) {
       badge.child(Icon.icon(t, o.icon, Icon.Variant.MUTED, b.text().size()).color(ink));
     }
-    badge.child(El.text(text).font(b.text().font().get()).fontSize(b.text().size()).color(ink));
+    badge.child(
+        El.text(text).font(b.text().font().get()).fontSize(b.text().size()).color(ink));
     if (o.onRemove != null) {
       float cross = height - 2 * t.space().xs();
-      badge.child(el().key("remove").role("button").label("Remove " + text)
-          .size(cross, cross).shrink(0).center().radius(t.radius().small())
-          .focusable().keepFocus().focusRing(t.accent().edge())
+      badge.child(el().key("remove")
+          .role("button")
+          .label("Remove " + text)
+          .size(cross, cross)
+          .shrink(0)
+          .center()
+          .radius(t.radius().small())
+          .focusable()
+          .keepFocus()
+          .focusRing(t.accent().edge())
           .cursor(Cursor.POINTER)
           .onPress(o.onRemove)
           .whenHovered(e -> e.fill(t.surface().hover()))
           .whenPressed(e -> e.fill(t.surface().pressed()))
-          .child(Icon.icon(t, Symbol.DISMISS, Icon.Variant.MUTED, b.text().size()).color(ink)));
+          .child(
+              Icon.icon(t, Symbol.DISMISS, Icon.Variant.MUTED, b.text().size()).color(ink)));
     }
     if (o.onPress != null) {
       int hover = o.strong ? over(fill, t.surface().hover()) : deeper(fill, HOVER);
       int pressed = o.strong ? over(fill, t.surface().pressed()) : deeper(fill, PRESSED);
-      badge.role("button").focusable().keepFocus().focusRing(t.accent().edge())
+      badge
+          .role("button")
+          .focusable()
+          .keepFocus()
+          .focusRing(t.accent().edge())
           .cursor(Cursor.POINTER)
           .onPress(o.onPress)
           .whenHovered(e -> e.fill(hover))

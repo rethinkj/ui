@@ -42,8 +42,7 @@ public final class Dialog {
    * @param buttons the actions, in the order shown, the main one usually last
    * @param onDismiss runs on Escape and on a press outside the dialog
    */
-  public static El dialog(
-      Theme t, String title, El content, List<El> buttons, Runnable onDismiss) {
+  public static El dialog(Theme t, String title, El content, List<El> buttons, Runnable onDismiss) {
     return dialog(t, title, content, buttons, null, onDismiss);
   }
 
@@ -58,14 +57,17 @@ public final class Dialog {
    * @param onDismiss runs on Escape and on a press outside the dialog
    * @throws IllegalArgumentException if {@code defaultButton} is not one of {@code buttons}
    */
-  public static El dialog(Theme t, String title, El content, List<El> buttons,
-      El defaultButton, Runnable onDismiss) {
+  public static El dialog(
+      Theme t, String title, El content, List<El> buttons, El defaultButton, Runnable onDismiss) {
     if (defaultButton != null && buttons.stream().noneMatch(b -> b == defaultButton)) {
       throw new IllegalArgumentException(
           "The default button must be one of the dialog's buttons, the same El.");
     }
     Predicate<Key> enter = defaultButton == null ? k -> false : enterPresses(defaultButton);
-    return col().key("dialog").role("dialog").label(title)
+    return col()
+        .key("dialog")
+        .role("dialog")
+        .label(title)
         .centerInWindow()
         .modal()
         .scrim(t.surface().scrim())
@@ -87,7 +89,9 @@ public final class Dialog {
         .children(
             label(t, Label.Variant.HEADING, title),
             content,
-            row().gap(t.space().m()).justify(Style.Content.END)
+            row()
+                .gap(t.space().m())
+                .justify(Style.Content.END)
                 .children(buttons.toArray(El[]::new)));
   }
 

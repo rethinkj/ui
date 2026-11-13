@@ -43,8 +43,8 @@ final class TableRows implements GridChanges.Rows {
 
     /** A cell of the row with this key, null for NULL. */
     String value(long key, int column) {
-      Map<Integer, String> values = key >= ADDED ? added.get((int) (key - ADDED))
-          : written.get(key);
+      Map<Integer, String> values =
+          key >= ADDED ? added.get((int) (key - ADDED)) : written.get(key);
       if (values != null && values.containsKey(column)) {
         return values.get(column);
       }
@@ -55,9 +55,11 @@ final class TableRows implements GridChanges.Rows {
     void apply(List<Change> changes) {
       for (Change change : changes) {
         switch (change.kind()) {
-          case UPDATE -> (change.key() >= ADDED ? added.get((int) (change.key() - ADDED))
-              : written.computeIfAbsent(change.key(), k -> new HashMap<>()))
-              .putAll(change.values());
+          case UPDATE ->
+            (change.key() >= ADDED
+                    ? added.get((int) (change.key() - ADDED))
+                    : written.computeIfAbsent(change.key(), k -> new HashMap<>()))
+                .putAll(change.values());
           case INSERT -> {
             Map<Integer, String> values = new HashMap<>(change.values());
             values.put(0, String.valueOf(nextId++));
@@ -102,7 +104,10 @@ final class TableRows implements GridChanges.Rows {
     matching = Arrays.copyOf(found, m);
     Set<Long> touched = new HashSet<>(stored.removed);
     touched.addAll(stored.written.keySet());
-    long[] keys = touched.stream().mapToLong(Long::longValue).filter(k -> k < base).sorted()
+    long[] keys = touched.stream()
+        .mapToLong(Long::longValue)
+        .filter(k -> k < base)
+        .sorted()
         .toArray();
     List<long[]> differ = new ArrayList<>(); // key, kept now, made-up rows before it
     for (long k : keys) {
@@ -207,7 +212,8 @@ final class TableRows implements GridChanges.Rows {
       return -1;
     }
     int at = Arrays.binarySearch(special, key);
-    boolean shown = at >= 0 ? kept[at]
+    boolean shown = at >= 0
+        ? kept[at]
         : matching.length > 0 && Arrays.binarySearch(matching, (int) (key % PERIOD)) >= 0;
     if (!shown) {
       return -1;
@@ -232,8 +238,9 @@ final class TableRows implements GridChanges.Rows {
    *
    * @param was the values the changes replace, by the row's key and column
    */
-  static List<Refusal> write(String path, List<Change> changes,
-      Map<Long, Map<Integer, String>> was, Duration latency) throws InterruptedException {
+  static List<Refusal> write(
+      String path, List<Change> changes, Map<Long, Map<Integer, String>> was, Duration latency)
+      throws InterruptedException {
     Thread.sleep(path.startsWith("staging") ? latency.multipliedBy(3) : latency);
     List<Refusal> refused = new ArrayList<>();
     for (Change change : changes) {
@@ -261,13 +268,19 @@ final class TableRows implements GridChanges.Rows {
         out.append('\n');
       }
       switch (change.kind()) {
-        case DELETE -> out.append("DELETE FROM ").append(table).append(" WHERE id = ")
-            .append(id.apply(change.key())).append(';');
+        case DELETE ->
+          out.append("DELETE FROM ")
+              .append(table)
+              .append(" WHERE id = ")
+              .append(id.apply(change.key()))
+              .append(';');
         case UPDATE -> {
           out.append("UPDATE ").append(table).append("\n  SET ");
           String sep = "";
           for (Map.Entry<Integer, String> e : change.values().entrySet()) {
-            out.append(sep).append(Workbench.FIELDS.get(e.getKey()).name()).append(" = ")
+            out.append(sep)
+                .append(Workbench.FIELDS.get(e.getKey()).name())
+                .append(" = ")
                 .append(literal(e.getKey(), e.getValue()));
             sep = ", ";
           }
@@ -284,8 +297,13 @@ final class TableRows implements GridChanges.Rows {
             names.add(Workbench.FIELDS.get(c).name());
             values.add(literal(c, v));
           });
-          out.append("INSERT INTO ").append(table).append(" (").append(String.join(", ", names))
-              .append(")\n  VALUES (").append(String.join(", ", values)).append(");");
+          out.append("INSERT INTO ")
+              .append(table)
+              .append(" (")
+              .append(String.join(", ", names))
+              .append(")\n  VALUES (")
+              .append(String.join(", ", values))
+              .append(");");
         }
       }
     }
@@ -299,6 +317,7 @@ final class TableRows implements GridChanges.Rows {
     }
     DataType kind = Workbench.FIELDS.get(column).kind();
     return kind == DataType.INTEGER || kind == DataType.DECIMAL || kind == DataType.BOOLEAN
-        ? value : "'" + value.replace("'", "''") + "'";
+        ? value
+        : "'" + value.replace("'", "''") + "'";
   }
 }

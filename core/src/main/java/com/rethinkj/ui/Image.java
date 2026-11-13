@@ -84,8 +84,8 @@ public final class Image {
   public static Image of(Pixels pixels, float scale) {
     Objects.requireNonNull(pixels, "pixels");
     if (pixels.width() <= 0 || pixels.height() <= 0) {
-      throw new IllegalArgumentException("An image needs pixels; this one is " + pixels.width()
-          + "x" + pixels.height() + ".");
+      throw new IllegalArgumentException(
+          "An image needs pixels; this one is " + pixels.width() + "x" + pixels.height() + ".");
     }
     if (!(scale > 0 && Float.isFinite(scale))) {
       throw new IllegalArgumentException("The scale is " + scale + "; it must be above 0.");
@@ -105,8 +105,12 @@ public final class Image {
     byte[][] levels = new byte[count][];
     levels[0] = level;
     for (int k = 1; k < count; k++) {
-      levels[k] = halve(levels[k - 1], Math.max(1, w >> (k - 1)), Math.max(1, h >> (k - 1)),
-          Math.max(1, w >> k), Math.max(1, h >> k));
+      levels[k] = halve(
+          levels[k - 1],
+          Math.max(1, w >> (k - 1)),
+          Math.max(1, h >> (k - 1)),
+          Math.max(1, w >> k),
+          Math.max(1, h >> k));
     }
     return new Image(levels, w, h, scale);
   }
@@ -124,16 +128,21 @@ public final class Image {
    */
   public static Image decode(byte[] bytes, float scale) {
     Objects.requireNonNull(bytes, "bytes");
-    if (bytes.length >= 8 && (bytes[0] & 0xFF) == 0x89 && bytes[1] == 'P' && bytes[2] == 'N'
+    if (bytes.length >= 8
+        && (bytes[0] & 0xFF) == 0x89
+        && bytes[1] == 'P'
+        && bytes[2] == 'N'
         && bytes[3] == 'G') {
       return of(Png.decode(bytes), scale);
     }
-    if (bytes.length >= 3 && (bytes[0] & 0xFF) == 0xFF && (bytes[1] & 0xFF) == 0xD8
+    if (bytes.length >= 3
+        && (bytes[0] & 0xFF) == 0xFF
+        && (bytes[1] & 0xFF) == 0xD8
         && (bytes[2] & 0xFF) == 0xFF) {
       return of(Jpeg.decode(bytes), scale);
     }
-    throw new IllegalArgumentException("Not a PNG or JPEG file: it starts with "
-        + start(bytes) + "; PNG starts with 89 50 4E 47, JPEG with FF D8 FF.");
+    throw new IllegalArgumentException("Not a PNG or JPEG file: it starts with " + start(bytes)
+        + "; PNG starts with 89 50 4E 47, JPEG with FF D8 FF.");
   }
 
   private static String start(byte[] bytes) {

@@ -32,14 +32,22 @@ class FileDropWindowTest {
   void filesAndTextFromAnotherApplicationReachTheHandlerUnderThem() {
     try (Window window = Window.open(TITLE, 160, 100)) {
       List<String> log = new ArrayList<>();
-      App<List<String>> app = new App<>(log, l -> col().wFull().hFull()
-          .child(el().key("target").size(160, 50).onFileDrop(d -> l.add(d.phase()
-              + (d.payload() == null ? "" : " " + d.payload())
-              + (d.phase() == Drop.Phase.LEAVE ? "" : " " + (int) d.x() + "," + (int) d.y())))));
+      App<List<String>> app = new App<>(
+          log,
+          l -> col()
+              .wFull()
+              .hFull()
+              .child(el().key("target")
+                  .size(160, 50)
+                  .onFileDrop(d -> l.add(d.phase()
+                      + (d.payload() == null ? "" : " " + d.payload())
+                      + (d.phase() == Drop.Phase.LEAVE
+                          ? ""
+                          : " " + (int) d.x() + "," + (int) d.y())))));
       String deep = "/Ordner mit Ümlauten/" + "sehr lang/".repeat(60) + "Größe 1.sql";
       AtomicReference<WindowLoop> loop = new AtomicReference<>();
       int[] step = new int[1];
-      loop.set(new WindowLoop(window, app, (scene, w, h, s) -> { }));
+      loop.set(new WindowLoop(window, app, (scene, w, h, s) -> {}));
       loop.get().waits((millis, holdBack) -> {
         if (millis != -1) {
           return;
@@ -69,9 +77,16 @@ class FileDropWindowTest {
         }
       });
       Desktop.run(loop.get(), () -> "the drops arrive: " + log);
-      assertEquals(List.of("OVER 30,20", "OVER 40,25", "DROP " + List.of(Path.of("/tmp/a b.sql"),
-              Path.of(deep)) + " 40,25", "OVER 10,10", "LEAVE", "OVER 50,10",
-          "DROP SELECT 1\nFROM dual 50,10"), log);
+      assertEquals(
+          List.of(
+              "OVER 30,20",
+              "OVER 40,25",
+              "DROP " + List.of(Path.of("/tmp/a b.sql"), Path.of(deep)) + " 40,25",
+              "OVER 10,10",
+              "LEAVE",
+              "OVER 50,10",
+              "DROP SELECT 1\nFROM dual 50,10"),
+          log);
     }
   }
 }

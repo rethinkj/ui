@@ -75,19 +75,15 @@ class MotionTest {
   @Test
   void withoutMotionAChangeIsImmediateAndANewElementDoesNotMove() {
     Lights state = new Lights();
-    App<Lights> app =
-        new App<>(
-            state,
-            s -> {
-              El root =
-                  el().size(200, 100)
-                      .onPress(() -> s.on = true)
-                      .child(el().size(20, 20).absolute(s.on ? 100 : 0, 0).fill(s.on ? 2 : 1));
-              if (s.on) {
-                root.child(el().size(20, 20).absolute(50, 50).fill(3).motion(Spring.DRIFT));
-              }
-              return root;
-            });
+    App<Lights> app = new App<>(state, s -> {
+      El root = el().size(200, 100)
+          .onPress(() -> s.on = true)
+          .child(el().size(20, 20).absolute(s.on ? 100 : 0, 0).fill(s.on ? 2 : 1));
+      if (s.on) {
+        root.child(el().size(20, 20).absolute(50, 50).fill(3).motion(Spring.DRIFT));
+      }
+      return root;
+    });
     app.resize(200, 100, 1);
     app.frame();
     press(app, 190, 90);
@@ -110,16 +106,13 @@ class MotionTest {
   @Test
   void aKeyedElementKeepsItsIdentityWhenASiblingIsInsertedBeforeIt() {
     List<String> names = new ArrayList<>(List.of("a", "b"));
-    App<List<String>> app =
-        new App<>(
-            names,
-            list -> {
-              El root = row().size(100, 20).onPress(() -> list.addFirst("c"));
-              for (String name : list) {
-                root.child(el().key(name).size(20, 20).motion(Spring.SNAP));
-              }
-              return root;
-            });
+    App<List<String>> app = new App<>(names, list -> {
+      El root = row().size(100, 20).onPress(() -> list.addFirst("c"));
+      for (String name : list) {
+        root.child(el().key(name).size(20, 20).motion(Spring.SNAP));
+      }
+      return root;
+    });
     app.resize(100, 20, 1);
     app.frame();
     press(app, 90, 10);
@@ -137,20 +130,17 @@ class MotionTest {
   void hitTestingUsesThePositionOnScreen() {
     List<String> log = new ArrayList<>();
     boolean[] right = {false};
-    App<List<String>> app =
-        new App<>(
-            log,
-            l ->
-                el().size(200, 100)
-                    .onPress(() -> {
-                      l.add("root");
-                      right[0] = true;
-                    })
-                    .child(
-                        el().size(20, 20)
-                            .absolute(right[0] ? 160 : 0, 0)
-                            .motion(Spring.SETTLE)
-                            .onPress(() -> l.add("box"))));
+    App<List<String>> app = new App<>(
+        log,
+        l -> el().size(200, 100)
+            .onPress(() -> {
+              l.add("root");
+              right[0] = true;
+            })
+            .child(el().size(20, 20)
+                .absolute(right[0] ? 160 : 0, 0)
+                .motion(Spring.SETTLE)
+                .onPress(() -> l.add("box"))));
     app.resize(200, 100, 1);
     app.frame();
     press(app, 100, 80);
@@ -205,7 +195,8 @@ class MotionTest {
   private static String positions(App<?> app) {
     StringBuilder out = new StringBuilder();
     for (El child : app.tree().children()) {
-      out.append(out.isEmpty() ? "" : " ").append((int) child.x()).append(',').append((int) child.y());
+      out.append(out.isEmpty() ? "" : " ").append((int) child.x()).append(',').append((int)
+          child.y());
     }
     return out.toString();
   }

@@ -34,8 +34,8 @@ class ChoiceTest {
     assertEquals(1, s.endings);
     run(app, "press role=radio label=\"As in the file\"");
     assertEquals(2, s.endings);
-    assertTrue(StructureTest.line(app.tree().dump(), "label=\"As in the file\"")
-        .endsWith(" checked"));
+    assertTrue(
+        StructureTest.line(app.tree().dump(), "label=\"As in the file\"").endsWith(" checked"));
 
     run(app, "press role=radio label=\"System\"");
     assertEquals(2, s.theme, "the press chooses System");
@@ -45,8 +45,7 @@ class ChoiceTest {
   }
 
   @Test
-  void aNumberFieldStepsInsideItsRangeAndShowsATypedNumberOutsideItAsInvalid()
-      throws IOException {
+  void aNumberFieldStepsInsideItsRangeAndShowsATypedNumberOutsideItAsInvalid() throws IOException {
     Sheets s = new Sheets(Theme.DARK);
     App<Sheets> app = s.app(Sheets::choices);
     run(app, "focus role=spinbutton\nkey ArrowUp\nframe\nkey PageUp");
@@ -69,8 +68,11 @@ class ChoiceTest {
   @Test
   void aNumberFieldsLabelIsItsSpinbuttons() throws IOException {
     int[] size = {5};
-    App<Object> app = new App<>(new Object(), x -> col().child(NumberField.numberField(
-        Theme.DARK, "Fetch size", size[0], 1, 100, 1, v -> size[0] = v)));
+    App<Object> app = new App<>(
+        new Object(),
+        x -> col()
+            .child(NumberField.numberField(
+                Theme.DARK, "Fetch size", size[0], 1, 100, 1, v -> size[0] = v)));
     run(app, "focus role=spinbutton label=\"Fetch size\"\nkey ArrowUp");
     assertEquals(6, size[0]);
   }
@@ -86,8 +88,10 @@ class ChoiceTest {
     assertTrue(StructureTest.line(app.tree().dump(), "role=slider").contains(" value=\"11\""));
     float[] r = StructureTest.rect(StructureTest.line(app.tree().dump(), "role=slider"));
     float y = r[1] + r[3] / 2;
-    run(app, "down " + (r[0] + 8) + "," + y + "\nmove " + (r[0] + r[2] / 2) + "," + y
-        + "\nmove " + (r[0] + r[2] - 8) + "," + y + "\nup " + (r[0] + r[2] - 8) + "," + y);
+    run(
+        app,
+        "down " + (r[0] + 8) + "," + y + "\nmove " + (r[0] + r[2] / 2) + "," + y + "\nmove "
+            + (r[0] + r[2] - 8) + "," + y + "\nup " + (r[0] + r[2] - 8) + "," + y);
     assertEquals(16, s.fontSize, "dragged from one end to the other");
     run(app, "press " + (r[0] + 8) + "," + y);
     assertEquals(11, s.fontSize, "a press on the track puts the knob there");
@@ -98,12 +102,15 @@ class ChoiceTest {
   @Test
   void aDisabledChoiceTakesNoFocusAndSaysSo() throws IOException {
     Theme t = Theme.DARK;
-    App<Object> app = new App<>(new Object(), x -> col().children(
-        Radio.radioGroup(t, List.of("A", "B"), 0, null),
-        Segmented.segmented(t, List.of("C", "D"), 0, null),
-        NumberField.numberField(t, 1, 0, 2, 1, null),
-        Slider.slider(t, 1, 0, 2, 1, null),
-        NavList.navList(t, List.of(NavList.item("E")), 0, null)));
+    App<Object> app = new App<>(
+        new Object(),
+        x -> col()
+            .children(
+                Radio.radioGroup(t, List.of("A", "B"), 0, null),
+                Segmented.segmented(t, List.of("C", "D"), 0, null),
+                NumberField.numberField(t, 1, 0, 2, 1, null),
+                Slider.slider(t, 1, 0, 2, 1, null),
+                NavList.navList(t, List.of(NavList.item("E")), 0, null)));
     run(app, "key Tab");
     assertEquals(null, app.focused());
     String dump = app.tree().dump();

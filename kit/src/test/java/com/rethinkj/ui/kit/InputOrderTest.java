@@ -29,7 +29,8 @@ import org.junit.jupiter.api.io.TempDir;
  */
 class InputOrderTest {
 
-  @TempDir Path out;
+  @TempDir
+  Path out;
 
   @BeforeEach
   void textLibraries() {
@@ -48,8 +49,7 @@ class InputOrderTest {
   // Menus
 
   @Test
-  void keysAfterThePressThatOpensAMenuGoToTheMenuAndEnterChoosesWhereTheyWent()
-      throws IOException {
+  void keysAfterThePressThatOpensAMenuGoToTheMenuAndEnterChoosesWhereTheyWent() throws IOException {
     Bench bench = new Bench(Theme.DARK);
     App<Bench> app = bench.app();
     run(app, "frame\npress #file\nkey ArrowDown\nkey ArrowDown\nkey Enter\nframe");
@@ -62,9 +62,13 @@ class InputOrderTest {
   void keysOfOneFrameWalkIntoTheSubmenuThatAnEarlierOneOpened() throws IOException {
     Bench bench = new Bench(Theme.DARK);
     App<Bench> app = bench.app();
-    run(app, "frame\npress #file\nframe\n" + keys("ArrowDown", 3) // New query, Open…, Export
-        + "key ArrowRight\nkey ArrowDown\nkey Enter\nframe");
-    assertEquals("Exported as JSON", bench.status,
+    run(
+        app,
+        "frame\npress #file\nframe\n" + keys("ArrowDown", 3) // New query, Open…, Export
+            + "key ArrowRight\nkey ArrowDown\nkey Enter\nframe");
+    assertEquals(
+        "Exported as JSON",
+        bench.status,
         "ArrowDown went to the submenu that ArrowRight opened, which took the focus");
     assertFalse(bench.file.isOpen());
   }
@@ -122,7 +126,8 @@ class InputOrderTest {
     // and after them, while the pointer rests on the help button.
     run(app, "frame\nmove #help\nframe\nadvance 0.5\nfocus #file\nkey Enter\nkey Escape\nframe");
     assertFalse(bench.file.isOpen());
-    assertTrue(app.tree().dump().contains("role=tooltip label=\"Keyboard shortcuts\""),
+    assertTrue(
+        app.tree().dump().contains("role=tooltip label=\"Keyboard shortcuts\""),
         app.tree().dump());
 
     run(app, "leave\nframe\nmove #help\nframe\nadvance 0.5\npress #tables\nframe");
@@ -149,16 +154,21 @@ class InputOrderTest {
 
     El view() {
       Theme t = Theme.DARK;
-      El root = col().wFull().hFull().child(button(t, SECONDARY, "Port…", () -> asking = true)
-          .key("open"));
+      El root = col()
+          .wFull()
+          .hFull()
+          .child(button(t, SECONDARY, "Port…", () -> asking = true).key("open"));
       if (asking) {
-        root.overlay(Dialog.dialog(t, "Port",
+        root.overlay(Dialog.dialog(
+            t,
+            "Port",
             textField(t, port, "Port", v -> {
-              edits++;
-              if (v.chars().allMatch(Character::isDigit)) {
-                port = v;
-              }
-            }).key("port"),
+                  edits++;
+                  if (v.chars().allMatch(Character::isDigit)) {
+                    port = v;
+                  }
+                })
+                .key("port"),
             List.of(button(t, PRIMARY, "OK", () -> asking = false).key("ok")),
             () -> asking = false));
       }
@@ -167,8 +177,7 @@ class InputOrderTest {
   }
 
   @Test
-  void aFieldInADialogOpenedInTheSameFrameTakesAnEditAfterOneTheAppRefused()
-      throws IOException {
+  void aFieldInADialogOpenedInTheSameFrameTakesAnEditAfterOneTheAppRefused() throws IOException {
     Port s = new Port();
     App<Port> app = new App<>(s, Port::view);
     app.textRendering(TextRendering.LINUX);
@@ -176,23 +185,29 @@ class InputOrderTest {
     assertEquals("54", s.port, "each edit builds on the field as the app left it");
     assertEquals(4, s.edits);
     assertEquals("port", app.focused().key());
-    assertTrue(app.tree().dump().contains("\"54\" ") && app.tree().dump().contains(
-        " focused caret 2\n"), app.tree().dump());
+    assertTrue(
+        app.tree().dump().contains("\"54\" ") && app.tree().dump().contains(" focused caret 2\n"),
+        app.tree().dump());
   }
 
   // Lists with scrollbars
 
   @Test
   void aBurstOfArrowDownsInTheGridEndsWhereOneKeyPerFrameEnds() throws IOException {
-    assertBurstAsSteps(() -> new Orders(Theme.DARK, 1_000_000).app(),
-        "size 560 240\nframe\nfocus #orders\nframe\n", 30);
+    assertBurstAsSteps(
+        () -> new Orders(Theme.DARK, 1_000_000).app(),
+        "size 560 240\nframe\nfocus #orders\nframe\n",
+        30);
   }
 
   @Test
   void aBurstOfArrowDownsInTheTreeEndsWhereOneKeyPerFrameEnds() throws IOException {
-    assertBurstAsSteps(() -> new Catalog(Theme.DARK).opened("localhost", "localhost/shop",
-            "localhost/shop/public").app(),
-        "size 280 300\nframe\nfocus #schema\nkey Home\nframe\n", 30);
+    assertBurstAsSteps(
+        () -> new Catalog(Theme.DARK)
+            .opened("localhost", "localhost/shop", "localhost/shop/public")
+            .app(),
+        "size 280 300\nframe\nfocus #schema\nkey Home\nframe\n",
+        30);
   }
 
   /**

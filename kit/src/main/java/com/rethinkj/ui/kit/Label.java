@@ -27,14 +27,13 @@ public final class Label {
   }
 
   public static El label(Theme t, Variant variant, String text) {
-    Theme.TextStyle style =
-        switch (variant) {
-          case NORMAL, MUTED -> t.type().body();
-          case MONO -> t.type().mono();
-          case HEADING -> t.type().heading();
-          case TITLE -> t.type().title();
-          case STRONG -> t.type().strong();
-        };
+    Theme.TextStyle style = switch (variant) {
+      case NORMAL, MUTED -> t.type().body();
+      case MONO -> t.type().mono();
+      case HEADING -> t.type().heading();
+      case TITLE -> t.type().title();
+      case STRONG -> t.type().strong();
+    };
     return El.text(text)
         .font(style.font().get())
         .fontSize(style.size())

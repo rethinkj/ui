@@ -43,7 +43,9 @@ class SearchTest {
   void caseFoldsLettersOneByOne() {
     String text = "Ärger ärger ÄRGER straße STRASSE STRAẞE Σίσυφος ΣΊΣΥΦΟΣ";
     assertEquals(3, found(text, plain("ärger")).size());
-    assertEquals(List.of("18:straße", "33:STRAẞE"), found(text, plain("straße")),
+    assertEquals(
+        List.of("18:straße", "33:STRAẞE"),
+        found(text, plain("straße")),
         "ß finds the capital ẞ, but not the two letters SS");
     assertEquals(2, found(text, plain("σίσυφος")).size());
     assertEquals(List.of("6:ärger"), found(text, new Search.Query("ärger", true, false, false)));
@@ -52,11 +54,13 @@ class SearchTest {
   @Test
   void aWholeWordHasNoLetterDigitMarkOrUnderscoreBesideIt() {
     Search.Query word = new Search.Query("id", false, true, false);
-    assertEquals(List.of("0:id", "16:id", "25:id"),
-        found("id, order_id, o.id, idx, id", word));
-    assertEquals(List.of(), found("idé x", new Search.Query("ide", false, true, false)),
+    assertEquals(List.of("0:id", "16:id", "25:id"), found("id, order_id, o.id, idx, id", word));
+    assertEquals(
+        List.of(),
+        found("idé x", new Search.Query("ide", false, true, false)),
         "an e with its combining accent goes on");
-    assertEquals(List.of("0:straße"),
+    assertEquals(
+        List.of("0:straße"),
         found("straße straßen", new Search.Query("straße", true, true, false)));
     assertEquals(List.of("5:a.b"), found("xa.b a.b", new Search.Query("a\\.b", false, true, true)));
   }
@@ -64,8 +68,8 @@ class SearchTest {
   @Test
   void aMatchBeginsAndEndsBetweenGraphemes() {
     String accent = "café cafe";
-    assertEquals(List.of("6:cafe"), found(accent, plain("cafe")),
-        "not the e that carries an accent");
+    assertEquals(
+        List.of("6:cafe"), found(accent, plain("cafe")), "not the e that carries an accent");
     assertEquals(List.of("0:café"), found(accent, plain("café")));
     String family = "👨‍👩‍👧 👨";
     assertEquals(List.of("9:👨"), found(family, plain("👨")), "not the man inside the family");
@@ -81,10 +85,12 @@ class SearchTest {
   void aRegularExpressionMatchesLinesAndNeverEmpty() {
     Search.Query lines = new Search.Query("^\\w+", true, false, true);
     assertEquals(List.of("0:SELECT", "9:FROM"), found("SELECT *\nFROM t", lines));
-    assertEquals(List.of("1:b", "3:b"),
-        found("ab_b", new Search.Query("b*", true, false, true)), "no empty matches");
-    assertThrows(PatternSyntaxException.class,
-        () -> new Search.Query("(x", false, false, true).compile());
+    assertEquals(
+        List.of("1:b", "3:b"),
+        found("ab_b", new Search.Query("b*", true, false, true)),
+        "no empty matches");
+    assertThrows(
+        PatternSyntaxException.class, () -> new Search.Query("(x", false, false, true).compile());
   }
 
   @Test
@@ -97,11 +103,12 @@ class SearchTest {
     String evil = "x".repeat(5000);
     Pattern backtracks = new Search.Query("(x+x+)+y", true, false, true).compile();
     long start = System.nanoTime();
-    Search.Matches slow = Search.scan(backtracks, evil, 0, evil.length(), 1000,
-        Search.deadline(50));
+    Search.Matches slow =
+        Search.scan(backtracks, evil, 0, evil.length(), 1000, Search.deadline(50));
     assertTrue(slow.stopped());
     assertTrue((System.nanoTime() - start) / 1e6 < 1000, "stopped soon after its deadline");
-    assertThrows(Search.Stopped.class,
+    assertThrows(
+        Search.Stopped.class,
         () -> Search.next(backtracks, evil, 0, evil.length(), 0, Search.deadline(50)));
   }
 
@@ -123,11 +130,13 @@ class SearchTest {
     Pattern p = swap.compile();
     String text = "a = 1, b = 2";
     assertEquals("1 = a", Search.replacement(swap, p, text, 0, 5, "${v} = $1"));
-    assertEquals("$1", Search.replacement(plain("a = 1"), plain("a = 1").compile(), text, 0, 5,
-        "$1"), "a plain search's replacement is taken as it is");
+    assertEquals(
+        "$1",
+        Search.replacement(plain("a = 1"), plain("a = 1").compile(), text, 0, 5, "$1"),
+        "a plain search's replacement is taken as it is");
     assertEquals("\\$a", Search.replacement(swap, p, text, 0, 5, "\\\\\\$$1"));
-    assertThrows(IllegalArgumentException.class,
-        () -> Search.replacement(swap, p, text, 0, 5, "$3"));
+    assertThrows(
+        IllegalArgumentException.class, () -> Search.replacement(swap, p, text, 0, 5, "$3"));
     Search.Replaced all = Search.replaceAll(swap, p, text, 0, text.length(), "$2=$1", NONE);
     assertEquals(new Search.Replaced(0, 12, "1=a, 2=b", 2), all);
     assertNull(Search.replaceAll(swap, p, text, 0, 3, "x", NONE), "no match inside 0 to 3");

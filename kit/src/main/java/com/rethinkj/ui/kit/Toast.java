@@ -48,9 +48,12 @@ public final class Toast {
    *
    * @param above how high, in logical pixels, what it must not cover reaches up from the bottom
    */
-  public static El toast(Theme t, String message, String action, Runnable onAction,
-      Runnable onClose, float above) {
-    El toast = row().key("toast").role("status").label(message)
+  public static El toast(
+      Theme t, String message, String action, Runnable onAction, Runnable onClose, float above) {
+    El toast = row()
+        .key("toast")
+        .role("status")
+        .label(message)
         .atWindowEdge(Side.BOTTOM, Style.Align.CENTER, above + t.space().xl())
         .keepFocus()
         .onShownFor(t.motion().toast(), onClose)
@@ -72,9 +75,10 @@ public final class Toast {
         .child(label(t, message));
     if (action != null) {
       toast.child(button(t, Button.Variant.GHOST, action, () -> {
-        onAction.run();
-        onClose.run();
-      }).key("action"));
+            onAction.run();
+            onClose.run();
+          })
+          .key("action"));
     }
     return toast;
   }

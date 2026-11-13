@@ -42,7 +42,9 @@ public final class Select {
     boolean enabled = onSelect != null;
     String text = selected >= 0 && selected < choices.size() ? choices.get(selected) : "";
     int fill = t.surface().raised();
-    El select = row().role("combobox").label(text)
+    El select = row()
+        .role("combobox")
+        .label(text)
         .disabled(!enabled)
         .expanded(state.isOpen())
         .w(t.size().field())
@@ -55,7 +57,9 @@ public final class Select {
         .border(t.size().stroke(), enabled ? t.border().strong() : t.border().subtle())
         .motion(t.motion().feedback())
         .children(
-            label(t, text).color(enabled ? t.text().primary() : t.text().disabled()).grow(1),
+            label(t, text)
+                .color(enabled ? t.text().primary() : t.text().disabled())
+                .grow(1),
             Icon.icon(t, OPENS, enabled ? Icon.Variant.MUTED : Icon.Variant.DISABLED));
     if (!enabled) {
       return select;
@@ -70,7 +74,10 @@ public final class Select {
       items.add(Menu.item(choices.get(i), () -> onSelect.accept(choice)).checked(i == selected));
     }
     // As a button: a press leaves the focus where it is, and its menu gives it back there.
-    return select.focusable().keepFocus().focusRing(t.accent().edge())
+    return select
+        .focusable()
+        .keepFocus()
+        .focusRing(t.accent().edge())
         .cursor(Cursor.POINTER)
         .onPress(open)
         .onKey(k -> {
@@ -92,9 +99,10 @@ public final class Select {
             case "ArrowUp" -> Math.max(selected - 1, 0);
             case "Home" -> 0;
             case "End" -> last;
-            default -> k.name().length() == 1 && Character.isLetterOrDigit(k.name().charAt(0))
-                ? Menu.startingWith(items, selected, k.name())
-                : -2;
+            default ->
+              k.name().length() == 1 && Character.isLetterOrDigit(k.name().charAt(0))
+                  ? Menu.startingWith(items, selected, k.name())
+                  : -2;
           };
           if (next == -2) {
             return false;
@@ -105,8 +113,10 @@ public final class Select {
           return true;
         })
         .whenHovered(e -> e.fill(over(fill, t.surface().hover())))
-        .overlay(state.isOpen()
-            ? Menu.menu(t, state, items).side(Side.BOTTOM, Style.Align.STRETCH, t.space().xs())
-            : null);
+        .overlay(
+            state.isOpen()
+                ? Menu.menu(t, state, items)
+                    .side(Side.BOTTOM, Style.Align.STRETCH, t.space().xs())
+                : null);
   }
 }

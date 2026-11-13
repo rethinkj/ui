@@ -36,8 +36,14 @@ class PressAreaTest {
     TextLibraries.assumeLoaded();
     int[] presses = {0};
     Style.Align[] align = {null}; // the column's default: stretch
-    App<Object> app = new App<>(new Object(), s -> col().wFull().hFull().padding(20)
-        .align(align[0]).child(control.apply(() -> presses[0]++).key("c")));
+    App<Object> app = new App<>(
+        new Object(),
+        s -> col()
+            .wFull()
+            .hFull()
+            .padding(20)
+            .align(align[0])
+            .child(control.apply(() -> presses[0]++).key("c")));
     app.textRendering(TextRendering.LINUX);
     app.resize(400, 120, 1);
     app.frame();

@@ -31,7 +31,8 @@ class AtlasTest {
     boolean differ = false;
     GlyphRun run = inter.shape("Kunde Müller, Köln", 13, 1);
     for (int i = 0; i < run.count() && !differ; i++) {
-      differ = !Arrays.equals(inter.rasterize(run.glyph(i), 13, LIGHT, 0).coverage(),
+      differ = !Arrays.equals(
+          inter.rasterize(run.glyph(i), 13, LIGHT, 0).coverage(),
           inter.rasterize(run.glyph(i), 13, Hinting.NATIVE, 0).coverage());
     }
     assertTrue(differ, "the two hintings give the same bitmaps");
@@ -47,8 +48,10 @@ class AtlasTest {
     assertEquals(1, atlas.size());
     assertEquals(64 * 64, atlas.bytes());
     Atlas.Page page = atlas.pages().getFirst();
-    assertEquals(new Atlas.Region(slot.x(), slot.y(), slot.width() + 1, slot.height() + 1),
-        page.takeChanged(), "the bitmap and the empty texels right of it and below");
+    assertEquals(
+        new Atlas.Region(slot.x(), slot.y(), slot.width() + 1, slot.height() + 1),
+        page.takeChanged(),
+        "the bitmap and the empty texels right of it and below");
     assertSame(Atlas.Region.EMPTY, page.changed());
 
     Font.Bitmap bitmap = Font.sans().rasterize(glyph("H"), 14, LIGHT, 1);
@@ -57,7 +60,8 @@ class AtlasTest {
     for (int y = 0; y <= slot.height(); y++) {
       for (int x = 0; x <= slot.width(); x++) {
         int expected = x < slot.width() && y < slot.height()
-            ? bitmap.coverage()[y * slot.width() + x] & 0xFF : 0;
+            ? bitmap.coverage()[y * slot.width() + x] & 0xFF
+            : 0;
         assertEquals(expected, page.coverage(slot.x() + x, slot.y() + y), x + "," + y);
       }
     }
@@ -68,11 +72,13 @@ class AtlasTest {
     assertTrue(page.changed().isEmpty(), "nothing written");
     Atlas.Slot other = atlas.glyph(Font.sans(), 14, LIGHT, glyph("H"), 2);
     assertNotEquals(slot, other, "another offset is another bitmap");
-    assertEquals(new Atlas.Region(other.x(), other.y(), other.width() + 1, other.height() + 1),
-        page.takeChanged(), "only the new glyph changed");
+    assertEquals(
+        new Atlas.Region(other.x(), other.y(), other.width() + 1, other.height() + 1),
+        page.takeChanged(),
+        "only the new glyph changed");
     assertTrue(atlas.glyph(Font.sans(), 14, LIGHT, glyph(" "), 0).isEmpty());
-    assertThrows(IllegalArgumentException.class,
-        () -> atlas.glyph(Font.sans(), 14, LIGHT, glyph("H"), 4));
+    assertThrows(
+        IllegalArgumentException.class, () -> atlas.glyph(Font.sans(), 14, LIGHT, glyph("H"), 4));
   }
 
   @Test

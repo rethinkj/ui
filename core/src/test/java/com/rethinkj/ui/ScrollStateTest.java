@@ -31,11 +31,13 @@ class ScrollStateTest {
   private static El view(Model m) {
     int t = m.active;
     El list = (m.measured
-        ? col().rows(1000, m.heights[t], i -> el().h(10 + i % 3 * 10))
-        : col().rows(1000, 20, i -> el().h(20)))
-        .key("list-" + t).w(100).h(100).revealRow(m.reveal);
-    El panel = col().key("panel-" + t).scrollBoth().size(100, 100)
-        .child(el().size(400, 400));
+            ? col().rows(1000, m.heights[t], i -> el().h(10 + i % 3 * 10))
+            : col().rows(1000, 20, i -> el().h(20)))
+        .key("list-" + t)
+        .w(100)
+        .h(100)
+        .revealRow(m.reveal);
+    El panel = col().key("panel-" + t).scrollBoth().size(100, 100).child(el().size(400, 400));
     if (m.keep) {
       list.scrollState(m.rows[t]);
       panel.scrollState(m.panels[m.shared ? 0 : t]);

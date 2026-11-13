@@ -51,11 +51,38 @@ public record Key(String name, int modifiers, boolean repeat) {
   public static final int META = 8;
 
   static final Set<String> NAMED = new HashSet<>(Set.of(
-      "Enter", "Tab", "Space", "Backspace", "Delete", "Escape", "Insert",
-      "ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Home", "End", "PageUp", "PageDown",
-      "NumpadAdd", "NumpadSubtract", "NumpadMultiply", "NumpadDivide", "NumpadDecimal",
-      "NumpadEnter", "Shift", "Control", "Alt", "Meta", "CapsLock", "NumLock", "ScrollLock",
-      "PrintScreen", "Pause", "ContextMenu", "Unidentified"));
+      "Enter",
+      "Tab",
+      "Space",
+      "Backspace",
+      "Delete",
+      "Escape",
+      "Insert",
+      "ArrowLeft",
+      "ArrowRight",
+      "ArrowUp",
+      "ArrowDown",
+      "Home",
+      "End",
+      "PageUp",
+      "PageDown",
+      "NumpadAdd",
+      "NumpadSubtract",
+      "NumpadMultiply",
+      "NumpadDivide",
+      "NumpadDecimal",
+      "NumpadEnter",
+      "Shift",
+      "Control",
+      "Alt",
+      "Meta",
+      "CapsLock",
+      "NumLock",
+      "ScrollLock",
+      "PrintScreen",
+      "Pause",
+      "ContextMenu",
+      "Unidentified"));
 
   static {
     for (int i = 1; i <= 24; i++) {

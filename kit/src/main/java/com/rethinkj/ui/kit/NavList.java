@@ -126,12 +126,15 @@ public final class NavList {
 
     El list(El list) {
       // Rounded, so that the focus ring is, without clipping the items' rounded fills.
-      list.role("listbox").radius(t.radius().medium()).scrollbars(t.scrollbars())
+      list.role("listbox")
+          .radius(t.radius().medium())
+          .scrollbars(t.scrollbars())
           .revealRow(selected);
       if (onSelect == null) {
         return list.disabled(true);
       }
-      return list.focusable().focusRing(t.accent().edge())
+      return list.focusable()
+          .focusRing(t.accent().edge())
           .whenFocused(e -> {
             focused[0] = true;
             if (selectedPill != null) {
@@ -145,18 +148,24 @@ public final class NavList {
       Item entry = item.apply(i);
       boolean enabled = onSelect != null;
       if (entry.heading()) {
-        return row().key("item-" + i).align(Style.Align.CENTER)
+        return row()
+            .key("item-" + i)
+            .align(Style.Align.CENTER)
             .padding(0, t.space().m(), 0, 2 * t.space().xs() + t.space().s())
             .child(label(t, Label.Variant.MUTED, entry.label()));
       }
       boolean on = i == selected;
       float mark = t.size().icon();
-      El pill = row().grow(1).gap(t.space().s()).align(Style.Align.CENTER)
+      El pill = row()
+          .grow(1)
+          .gap(t.space().s())
+          .align(Style.Align.CENTER)
           .padding(0, t.space().m(), 0, t.space().xs())
           .radius(t.radius().medium())
           .fill(on ? focused[0] ? t.grid().selected() : t.grid().selectedInactive() : 0)
           .motion(t.motion().feedback())
-          .child(el().size(t.space().xs(), mark).radius(t.space().xs() / 2)
+          .child(el().size(t.space().xs(), mark)
+              .radius(t.space().xs() / 2)
               .fill(on ? t.accent().edge() : 0));
       if (on) {
         selectedPill = pill;
@@ -164,14 +173,22 @@ public final class NavList {
       if (entry.icon() != null) {
         pill.child(icon(t, entry.icon(), enabled ? Icon.Variant.MUTED : Icon.Variant.DISABLED));
       }
-      pill.child(label(t, entry.label()).color(enabled ? t.text().primary() : t.text().disabled())
-          .grow(1).ellipsis().minSize(0, 0));
+      pill.child(label(t, entry.label())
+          .color(enabled ? t.text().primary() : t.text().disabled())
+          .grow(1)
+          .ellipsis()
+          .minSize(0, 0));
       if (entry.count() != null) {
         pill.child(label(t, Label.Variant.MUTED, entry.count())
             .color(enabled ? t.text().muted() : t.text().disabled()));
       }
-      El r = row().key("item-" + i).role("option").label(entry.label()).selected(on)
-          .padding(t.space().xs(), 0).child(pill);
+      El r = row()
+          .key("item-" + i)
+          .role("option")
+          .label(entry.label())
+          .selected(on)
+          .padding(t.space().xs(), 0)
+          .child(pill);
       if (!enabled) {
         return r;
       }

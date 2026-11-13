@@ -15,28 +15,49 @@ import org.junit.jupiter.api.Test;
 class WgpuTest {
 
   /** The functions of webgpu.h that wgpu-native v29 leaves unimplemented; each ends the process. */
-  private static final List<String> UNIMPLEMENTED = List.of("wgpuGetProcAddress",
-      "wgpuBindGroupSetLabel", "wgpuBindGroupLayoutSetLabel", "wgpuBufferGetMapState",
-      "wgpuBufferSetLabel", "wgpuCommandBufferSetLabel", "wgpuCommandEncoderSetLabel",
-      "wgpuComputePassEncoderSetLabel", "wgpuComputePipelineSetLabel",
-      "wgpuDeviceCreateComputePipelineAsync", "wgpuDeviceCreateRenderPipelineAsync",
-      "wgpuDeviceGetAdapterInfo", "wgpuDeviceGetLostFuture", "wgpuDeviceSetLabel",
-      "wgpuInstanceGetWGSLLanguageFeatures", "wgpuInstanceHasWGSLLanguageFeature",
-      "wgpuPipelineLayoutSetLabel", "wgpuQuerySetSetLabel", "wgpuQueueSetLabel",
-      "wgpuRenderBundleSetLabel", "wgpuRenderBundleEncoderSetLabel",
-      "wgpuRenderPassEncoderSetLabel", "wgpuRenderPipelineSetLabel", "wgpuSamplerSetLabel",
-      "wgpuShaderModuleGetCompilationInfo", "wgpuShaderModuleSetLabel",
-      "wgpuSupportedWGSLLanguageFeaturesFreeMembers", "wgpuSurfaceSetLabel",
-      "wgpuTextureSetLabel", "wgpuTextureViewSetLabel", "wgpuInstanceWaitAny",
-      "wgpuExternalTextureSetLabel", "wgpuExternalTextureAddRef", "wgpuExternalTextureRelease",
+  private static final List<String> UNIMPLEMENTED = List.of(
+      "wgpuGetProcAddress",
+      "wgpuBindGroupSetLabel",
+      "wgpuBindGroupLayoutSetLabel",
+      "wgpuBufferGetMapState",
+      "wgpuBufferSetLabel",
+      "wgpuCommandBufferSetLabel",
+      "wgpuCommandEncoderSetLabel",
+      "wgpuComputePassEncoderSetLabel",
+      "wgpuComputePipelineSetLabel",
+      "wgpuDeviceCreateComputePipelineAsync",
+      "wgpuDeviceCreateRenderPipelineAsync",
+      "wgpuDeviceGetAdapterInfo",
+      "wgpuDeviceGetLostFuture",
+      "wgpuDeviceSetLabel",
+      "wgpuInstanceGetWGSLLanguageFeatures",
+      "wgpuInstanceHasWGSLLanguageFeature",
+      "wgpuPipelineLayoutSetLabel",
+      "wgpuQuerySetSetLabel",
+      "wgpuQueueSetLabel",
+      "wgpuRenderBundleSetLabel",
+      "wgpuRenderBundleEncoderSetLabel",
+      "wgpuRenderPassEncoderSetLabel",
+      "wgpuRenderPipelineSetLabel",
+      "wgpuSamplerSetLabel",
+      "wgpuShaderModuleGetCompilationInfo",
+      "wgpuShaderModuleSetLabel",
+      "wgpuSupportedWGSLLanguageFeaturesFreeMembers",
+      "wgpuSurfaceSetLabel",
+      "wgpuTextureSetLabel",
+      "wgpuTextureViewSetLabel",
+      "wgpuInstanceWaitAny",
+      "wgpuExternalTextureSetLabel",
+      "wgpuExternalTextureAddRef",
+      "wgpuExternalTextureRelease",
       "wgpuTextureGetTextureBindingViewDimension");
 
   @Test
   void noFunctionThatWgpuNativeLeavesUnimplementedIsBound() {
     assertEquals(35, UNIMPLEMENTED.size());
     Set<String> bound = Wgpu.FUNCTIONS.keySet();
-    assertEquals(Set.of(), bound.stream().filter(UNIMPLEMENTED::contains)
-        .collect(Collectors.toSet()));
+    assertEquals(
+        Set.of(), bound.stream().filter(UNIMPLEMENTED::contains).collect(Collectors.toSet()));
     // Nothing that sets a label, whatever its object.
     assertFalse(bound.stream().anyMatch(name -> name.endsWith("SetLabel")));
   }
@@ -59,24 +80,35 @@ class WgpuTest {
   void defaultsAreTheHeadersInitValuesNotZero() {
     try (var arena = java.lang.foreign.Arena.ofConfined()) {
       var view = Structs.TextureViewDescriptor.allocate(arena);
-      assertEquals(-1, view.get(java.lang.foreign.ValueLayout.JAVA_INT,
-          Structs.TextureViewDescriptor.MIP_LEVEL_COUNT));
-      assertEquals(-1L, view.get(java.lang.foreign.ValueLayout.JAVA_LONG,
-          Structs.TextureViewDescriptor.LABEL + 8));
+      assertEquals(
+          -1,
+          view.get(
+              java.lang.foreign.ValueLayout.JAVA_INT,
+              Structs.TextureViewDescriptor.MIP_LEVEL_COUNT));
+      assertEquals(
+          -1L,
+          view.get(
+              java.lang.foreign.ValueLayout.JAVA_LONG, Structs.TextureViewDescriptor.LABEL + 8));
       var attachment = Structs.RenderPassColorAttachment.allocate(arena);
-      assertEquals(-1, attachment.get(java.lang.foreign.ValueLayout.JAVA_INT,
-          Structs.RenderPassColorAttachment.DEPTH_SLICE));
+      assertEquals(
+          -1,
+          attachment.get(
+              java.lang.foreign.ValueLayout.JAVA_INT,
+              Structs.RenderPassColorAttachment.DEPTH_SLICE));
     }
   }
 
   @Test
   void aSurfaceOfSizeZeroIsRefusedBeforeWgpuSeesIt() {
-    IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
-        () -> new Surface.Configuration(TextureFormat.BGRA8_UNORM, 0, 600,
-            Surface.PresentMode.FIFO, Surface.AlphaMode.AUTO));
+    IllegalArgumentException e = assertThrows(
+        IllegalArgumentException.class,
+        () -> new Surface.Configuration(
+            TextureFormat.BGRA8_UNORM, 0, 600, Surface.PresentMode.FIFO, Surface.AlphaMode.AUTO));
     assertTrue(e.getMessage().contains("0x600"), e.getMessage());
-    assertThrows(IllegalArgumentException.class, () -> new Surface.Configuration(
-        TextureFormat.BGRA8_UNORM, 800, 0, Surface.PresentMode.FIFO, Surface.AlphaMode.AUTO));
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> new Surface.Configuration(
+            TextureFormat.BGRA8_UNORM, 800, 0, Surface.PresentMode.FIFO, Surface.AlphaMode.AUTO));
   }
 
   @Test

@@ -66,10 +66,16 @@ class WindowLoopTest {
     try (Window window = Window.open(TITLE, 200, 120)) {
       Desktop.settle();
       List<String> log = new ArrayList<>();
-      App<List<String>> app = new App<>(log, l -> col().wFull().hFull()
-          .child(el().key("field").size(50, 20).focusable()
-              .onPress(() -> l.add("press"))
-              .onText(l::add)));
+      App<List<String>> app = new App<>(
+          log,
+          l -> col()
+              .wFull()
+              .hFull()
+              .child(el().key("field")
+                  .size(50, 20)
+                  .focusable()
+                  .onPress(() -> l.add("press"))
+                  .onText(l::add)));
       AtomicReference<WindowLoop> loop = new AtomicReference<>();
       loop.set(new WindowLoop(window, app, (scene, w, h, s) -> {
         if (log.size() == 2) {
@@ -93,12 +99,15 @@ class WindowLoopTest {
     try (Window window = Window.open(TITLE, 240, 200)) {
       Desktop.settle();
       int hover = 0xFF202028;
-      App<Object> app = new App<>(new Object(), s ->
-          Examples.list().whenHovered(e -> e.fill(hover)).cursor(Cursor.TEXT));
+      App<Object> app = new App<>(
+          new Object(), s -> Examples.list().whenHovered(e -> e.fill(hover)).cursor(Cursor.TEXT));
       Desktop.motion(window, 120, 100);
       Desktop.wheel(window, 0, -1, 120, 100); // a step towards the user scrolls down
       Desktop.wheel(window, 0, -0.25f, 120, 100); // a quarter step, as from a touchpad
-      Desktop.runUntil(window, app, () -> app.tree().fill() == hover && list(app).scrollY() > 50,
+      Desktop.runUntil(
+          window,
+          app,
+          () -> app.tree().fill() == hover && list(app).scrollY() > 50,
           "the list is hovered and scrolled");
 
       assertEquals(1.25f * WindowLoop.WHEEL_STEP, list(app).scrollY());
@@ -135,10 +144,12 @@ class WindowLoopTest {
       int[] seen = {-1}; // the frames presented when the loop went idle after the move
       CountDownLatch waiting = new CountDownLatch(1);
       WindowLoop loop = new WindowLoop(window, app, (scene, w, h, s) -> {
-        if (!redraws.asked()) {
-          presents.incrementAndGet();
-        }
-      }).listener(redraws).waits((millis, holdBack) -> {
+            if (!redraws.asked()) {
+              presents.incrementAndGet();
+            }
+          })
+          .listener(redraws)
+          .waits((millis, holdBack) -> {
             if (millis == -1 && ++idle[0] == 1) {
               Desktop.motion(window, 10, 10); // beside the switch: nothing changes
             } else if (millis == -1 && idle[0] == 2) {
@@ -196,7 +207,8 @@ class WindowLoopTest {
       // From the third frame on, when the first wheel steps are under way. The present of a frame
       // comes after its building began, by less than a refresh unless the machine stalls.
       double refreshes = (times.getLast() - times.get(2)) / refresh;
-      assertTrue(times.size() - 3 <= refreshes + 2,
+      assertTrue(
+          times.size() - 3 <= refreshes + 2,
           times.size() - 3 + " frames after the third in " + refreshes + " refreshes of "
               + refresh / 1e6 + " ms");
     }
@@ -237,8 +249,8 @@ class WindowLoopTest {
           loop.get().stop();
         }
       }));
-      Desktop.run(loop.get(), () -> "the loop waits for events alone, after " + presents
-          + " frames");
+      Desktop.run(
+          loop.get(), () -> "the loop waits for events alone, after " + presents + " frames");
 
       assertEquals(4, idle[0], "offered three more times, then nothing changes");
     }
@@ -249,9 +261,13 @@ class WindowLoopTest {
     try (Window window = Window.open(TITLE, 300, 120)) {
       Desktop.settle();
       float[] told = {-1}; // the width the handler was told, which the view is built from
-      App<float[]> app = new App<>(told, t -> col().wFull().hFull()
-          .child(el().key("measured").wFull().h(20).onResize((w, h) -> t[0] = w))
-          .child(el().key("shown").size(t[0] < 0 ? 1 : t[0] / 10, 10)));
+      App<float[]> app = new App<>(
+          told,
+          t -> col()
+              .wFull()
+              .hFull()
+              .child(el().key("measured").wFull().h(20).onResize((w, h) -> t[0] = w))
+              .child(el().key("shown").size(t[0] < 0 ? 1 : t[0] / 10, 10)));
       float[] shown = {-1}; // the width of #shown in the frame presented last
       WindowLoop.Presenter presenter = (scene, w, h, s) -> {
         for (El child : app.tree().children()) {
@@ -314,23 +330,27 @@ class WindowLoopTest {
   private static int[] workArea(Window window) {
     int[] frame = Sdl.windowBordersSize(window.sdlWindow());
     int top = frame == null || window.isFrameless() ? 0 : frame[0];
-    int display = Sdl.displayForRect(window.x(), window.y() - top,
-        window.units(window.width()), window.units(window.height()) + top);
+    int display = Sdl.displayForRect(
+        window.x(),
+        window.y() - top,
+        window.units(window.width()),
+        window.units(window.height()) + top);
     return Sdl.displayBounds(display, true);
   }
 
   @Test
   void aWindowOpenedOutsideEveryDisplayOpensWhereItCanBeGrabbed() {
     assumeTrue(Window.knowsPositions());
-    try (Window window = Window.open(TITLE, 300, 200,
-        Window.options().position(-20_000, -20_000))) {
+    try (Window window =
+        Window.open(TITLE, 300, 200, Window.options().position(-20_000, -20_000))) {
       int[] frame = Sdl.windowBordersSize(window.sdlWindow());
       int top = frame == null ? 0 : frame[0];
       int right = frame == null ? 0 : frame[3];
       int[] area = workArea(window);
       assertTrue(window.y() - top >= area[1], "its title bar below the top: " + window.y());
-      assertTrue(window.x() + window.units(300) + right
-          >= area[0] + window.units(Window.REACHABLE), "and far enough across: " + window.x());
+      assertTrue(
+          window.x() + window.units(300) + right >= area[0] + window.units(Window.REACHABLE),
+          "and far enough across: " + window.x());
     }
   }
 
@@ -341,10 +361,18 @@ class WindowLoopTest {
       Desktop.settle();
       @SuppressWarnings("unchecked")
       App<Object>[] self = new App[1];
-      self[0] = new App<>(new Object(), s -> col().wFull().hFull()
-          .child(el().key("bar").wFull().h(30).windowPart(WindowPart.DRAG))
-          .child(el().key("handle").size(100, 100).onDrag(d ->
-              self[0].windows().of(self[0]).moveTo(window.x(), -3000)))); // above the screen
+      self[0] = new App<>(
+          new Object(),
+          s -> col()
+              .wFull()
+              .hFull()
+              .child(el().key("bar").wFull().h(30).windowPart(WindowPart.DRAG))
+              .child(el().key("handle")
+                  .size(100, 100)
+                  .onDrag(d -> self[0]
+                      .windows()
+                      .of(self[0])
+                      .moveTo(window.x(), -3000)))); // above the screen
       int[] lowest = {Integer.MAX_VALUE};
       int[] step = {0};
       AtomicReference<WindowLoop> loop = new AtomicReference<>();
@@ -363,11 +391,13 @@ class WindowLoopTest {
           loop.get().stop();
         }
       }));
-      Desktop.run(loop.get(), () -> "dragged to " + lowest[0] + " and back to " + window.y()
-          + ", step " + step[0]);
+      Desktop.run(
+          loop.get(),
+          () -> "dragged to " + lowest[0] + " and back to " + window.y() + ", step " + step[0]);
       assertTrue(lowest[0] < -1000, "the app moved it above the screen: " + lowest[0]);
       int[] area = workArea(window);
-      assertTrue(window.y() >= area[1] && window.y() + window.units(30) <= area[1] + area[3],
+      assertTrue(
+          window.y() >= area[1] && window.y() + window.units(30) <= area[1] + area[3],
           "its drag area back inside the work area: " + window.y());
     }
   }
@@ -421,50 +451,62 @@ class WindowLoopTest {
       long[] at = new long[2]; // posted, the task ran
       AtomicReference<WindowLoop> loop = new AtomicReference<>();
       loop.set(new WindowLoop(window, app, (scene, w, h, s) -> {
-        if (!presented.isEmpty() && presented.getLast() == count[0]) {
-          return; // nothing new: the desktop asked for it, with a redraw or a resize
-        }
-        presented.add(count[0]);
-        if (count[0] == 1) { // the task's frame: the burst comes before it is done
-          other(() -> {
-            for (int i = 0; i < 1000; i++) {
-              app.post(() -> count[0]++);
+            if (!presented.isEmpty() && presented.getLast() == count[0]) {
+              return; // nothing new: the desktop asked for it, with a redraw or a resize
             }
-          });
-        }
-      }).listener(event -> events[0]++).waits((millis, holdBack) -> {
-        if (millis != -1) {
-          return;
-        }
-        if (idle[0] == -1) {
-          idle[0] = presented.size();
-        }
-        if (count[0] == 0 && posts[0] == posts[1]) { // none waits: post one
-          posts[0]++;
-          events[0] = 0;
-          Thread.ofPlatform().start(() -> { // posts while the loop waits, or just before
-            at[0] = System.nanoTime();
-            app.post(() -> {
-              posts[1]++;
-              if (events[0] == 0) { // the post woke the loop, nothing else did
-                at[1] = System.nanoTime();
-                count[0] = 1;
-              }
-            });
-          });
-        } else if (count[0] == 1001) {
-          loop.get().stop();
-        }
-      }));
-      Desktop.run(loop.get(), () -> "the task and the burst are drawn and the loop waits; "
-          + (count[0] == 0 ? posts[1] + " of " + posts[0] + " posts ran, after other events"
-              : "the frames show " + presented));
+            presented.add(count[0]);
+            if (count[0] == 1) { // the task's frame: the burst comes before it is done
+              other(() -> {
+                for (int i = 0; i < 1000; i++) {
+                  app.post(() -> count[0]++);
+                }
+              });
+            }
+          })
+          .listener(event -> events[0]++)
+          .waits((millis, holdBack) -> {
+            if (millis != -1) {
+              return;
+            }
+            if (idle[0] == -1) {
+              idle[0] = presented.size();
+            }
+            if (count[0] == 0 && posts[0] == posts[1]) { // none waits: post one
+              posts[0]++;
+              events[0] = 0;
+              Thread.ofPlatform()
+                  .start(
+                      () -> { // posts while the loop waits, or just before
+                        at[0] = System.nanoTime();
+                        app.post(() -> {
+                          posts[1]++;
+                          if (events[0] == 0) { // the post woke the loop, nothing else did
+                            at[1] = System.nanoTime();
+                            count[0] = 1;
+                          }
+                        });
+                      });
+            } else if (count[0] == 1001) {
+              loop.get().stop();
+            }
+          }));
+      Desktop.run(
+          loop.get(),
+          () -> "the task and the burst are drawn and the loop waits; "
+              + (count[0] == 0
+                  ? posts[1] + " of " + posts[0] + " posts ran, after other events"
+                  : "the frames show " + presented));
 
       assertEquals(1, idle[0], "the first frame, then nothing while no task comes");
-      assertEquals(List.of(0, 1, 1001), presented,
+      assertEquals(
+          List.of(0, 1, 1001),
+          presented,
           "one frame for the task and one for the burst, then nothing");
-      System.out.printf(Locale.ROOT, "WindowLoopTest: a post to a waiting loop ran after %.2f ms,"
-          + " %d posts%n", (at[1] - at[0]) / 1e6, posts[0]);
+      System.out.printf(
+          Locale.ROOT,
+          "WindowLoopTest: a post to a waiting loop ran after %.2f ms," + " %d posts%n",
+          (at[1] - at[0]) / 1e6,
+          posts[0]);
     }
   }
 
@@ -485,9 +527,12 @@ class WindowLoopTest {
     try (Window window = Window.open(TITLE, 200, 120)) {
       Desktop.settle();
       int[] state = new int[2]; // set by the tasks, and the keys that reached the app
-      App<int[]> app = new App<>(state, c -> el().wFull().hFull()
-          .fill(0xFF000000 | (c[0] & 0xFF) << 8 | c[1])
-          .onKey(key -> ++c[1] > 0));
+      App<int[]> app = new App<>(
+          state,
+          c -> el().wFull()
+              .hFull()
+              .fill(0xFF000000 | (c[0] & 0xFF) << 8 | c[1])
+              .onKey(key -> ++c[1] > 0));
       List<String> log = new ArrayList<>(); // frames as task,keys; the waits that hold back
       long[] at = new long[2]; // the wait that held the key back, the frame after the post
       long[] millis = new long[1]; // how long that wait was to take
@@ -496,55 +541,69 @@ class WindowLoopTest {
       AtomicReference<WindowLoop> loop = new AtomicReference<>();
       Desktop.Redraws redraws = new Desktop.Redraws();
       loop.set(new WindowLoop(window, app, (scene, w, h, s) -> {
-        log.add((redraws.asked() ? "redraw " : "") + state[0] + "," + state[1]);
-        if (sent[2]) {
-          at[1] = System.nanoTime();
-        } else if (round[0] > 0 && state[0] == round[0] && !sent[0]) { // input after its frame
-          sent[0] = true;
-          log.add("key");
-          Desktop.key(window, true, 'k', 0, false);
-          Desktop.key(window, false, 'k', 0, false);
-        }
-      }).listener(redraws).waits((wait, holdBack) -> {
-        boolean spoiled = sent[0] && log.subList(log.lastIndexOf("key"), log.size()).stream()
-            .anyMatch(e -> e.startsWith("redraw")); // the desktop asked for a frame meanwhile
-        if (holdBack && sent[0]) {
-          log.add("hold " + wait);
-          sent[1] = true;
-          if (!sent[2] && wait >= 5) {
-            sent[2] = true;
-            millis[0] = wait;
-            at[0] = System.nanoTime();
-            app.post(() -> state[0] = -1);
-            log.add("post");
-          }
-        } else if (wait != -1) {
-          return;
-        } else if (sent[2] && !spoiled) {
-          if (!log.getLast().equals("-1," + round[0])) {
-            throw new AssertionError("the task was not drawn with the key: " + log);
-          }
-          loop.get().stop();
-        } else if (!sent[0] || state[1] == round[0]) { // idle: a new round
-          round[0]++;
-          sent[0] = false;
-          sent[1] = false;
-          sent[2] = false;
-          app.post(() -> state[0] = round[0]);
-        }
-      }));
-      Desktop.run(loop.get(), () -> "a key held back for the refresh, and a task posted"
-          + " meanwhile drawn with it; " + log);
+            log.add((redraws.asked() ? "redraw " : "") + state[0] + "," + state[1]);
+            if (sent[2]) {
+              at[1] = System.nanoTime();
+            } else if (round[0] > 0 && state[0] == round[0] && !sent[0]) { // input after its frame
+              sent[0] = true;
+              log.add("key");
+              Desktop.key(window, true, 'k', 0, false);
+              Desktop.key(window, false, 'k', 0, false);
+            }
+          })
+          .listener(redraws)
+          .waits((wait, holdBack) -> {
+            boolean spoiled = sent[0]
+                && log.subList(log.lastIndexOf("key"), log.size()).stream()
+                    .anyMatch(
+                        e -> e.startsWith("redraw")); // the desktop asked for a frame meanwhile
+            if (holdBack && sent[0]) {
+              log.add("hold " + wait);
+              sent[1] = true;
+              if (!sent[2] && wait >= 5) {
+                sent[2] = true;
+                millis[0] = wait;
+                at[0] = System.nanoTime();
+                app.post(() -> state[0] = -1);
+                log.add("post");
+              }
+            } else if (wait != -1) {
+              return;
+            } else if (sent[2] && !spoiled) {
+              if (!log.getLast().equals("-1," + round[0])) {
+                throw new AssertionError("the task was not drawn with the key: " + log);
+              }
+              loop.get().stop();
+            } else if (!sent[0] || state[1] == round[0]) { // idle: a new round
+              round[0]++;
+              sent[0] = false;
+              sent[1] = false;
+              sent[2] = false;
+              app.post(() -> state[0] = round[0]);
+            }
+          }));
+      Desktop.run(
+          loop.get(),
+          () -> "a key held back for the refresh, and a task posted" + " meanwhile drawn with it; "
+              + log);
 
       List<String> after = log.subList(log.lastIndexOf("post") + 1, log.size());
-      assertEquals(List.of("-1," + round[0]), after.stream().filter(e -> e.contains(","))
-          .toList(), "one frame for the key and the task, and no other after the post: " + log);
+      assertEquals(
+          List.of("-1," + round[0]),
+          after.stream().filter(e -> e.contains(",")).toList(),
+          "one frame for the key and the task, and no other after the post: " + log);
       double waited = (at[1] - at[0]) / 1e6;
-      System.out.printf(Locale.ROOT, "WindowLoopTest: a task posted as input waited %d ms for the"
-          + " refresh was drawn %.2f ms later, in round %d%n", millis[0], waited, round[0]);
+      System.out.printf(
+          Locale.ROOT,
+          "WindowLoopTest: a task posted as input waited %d ms for the"
+              + " refresh was drawn %.2f ms later, in round %d%n",
+          millis[0],
+          waited,
+          round[0]);
       // The wait was to take millis[0], rounded up from what was left of the refresh. The loop
       // either waits again for the rest, or a stall of the machine used that rest up meanwhile.
-      assertTrue(after.stream().anyMatch(e -> e.startsWith("hold")) || waited >= millis[0] - 2,
+      assertTrue(
+          after.stream().anyMatch(e -> e.startsWith("hold")) || waited >= millis[0] - 2,
           "the frame waited for the refresh: " + waited + " ms, " + log);
     }
   }
@@ -559,8 +618,12 @@ class WindowLoopTest {
   }
 
   private static El titleBar(Object state) {
-    return col().wFull().hFull()
-        .child(el().wFull().h(30).windowPart(WindowPart.DRAG)
+    return col()
+        .wFull()
+        .hFull()
+        .child(el().wFull()
+            .h(30)
+            .windowPart(WindowPart.DRAG)
             .child(el().absolute(254, 0).size(46, 30).windowPart(WindowPart.CLOSE)));
   }
 }

@@ -26,10 +26,23 @@ class TitleBarsTest {
     workbench.app = new App<>(workbench, Workbench::view);
     Documents documents = new Documents();
     documents.app = new App<>(documents, d -> d.view(d.groups.main(), d.app));
-    return Map.of("LightSwitch", lights.app, "ConnectionDialog", dialog.app,
-        "Settings", settings.app, "DataBrowser", browser.app, "Manual", manual.app,
-        "Showcase", Showcase.app(Showcase.Look.DARK), "Workbench", workbench.app,
-        "Documents", documents.app);
+    return Map.of(
+        "LightSwitch",
+        lights.app,
+        "ConnectionDialog",
+        dialog.app,
+        "Settings",
+        settings.app,
+        "DataBrowser",
+        browser.app,
+        "Manual",
+        manual.app,
+        "Showcase",
+        Showcase.app(Showcase.Look.DARK),
+        "Workbench",
+        workbench.app,
+        "Documents",
+        documents.app);
   }
 
   @Test

@@ -33,8 +33,8 @@ class ShadowTest {
 
   @ParameterizedTest(name = "{0}")
   @MethodSource("shapes")
-  void theBlurIsWithinAHundredthOfTheTrueGaussian(String name, double halfW, double halfH,
-      double radius, double sigma) {
+  void theBlurIsWithinAHundredthOfTheTrueGaussian(
+      String name, double halfW, double halfH, double radius, double sigma) {
     double worst = 0;
     String where = "";
     // A grid over a quarter of the shadow, which is symmetric, and a line across the corner.
@@ -63,8 +63,8 @@ class ShadowTest {
         where = x + "," + y;
       }
     }
-    System.out.printf(Locale.ROOT, "Shadow of %s: at most %.5f from the true blur, at %s%n", name, worst,
-        where);
+    System.out.printf(
+        Locale.ROOT, "Shadow of %s: at most %.5f from the true blur, at %s%n", name, worst, where);
     assertTrue(worst < (radius == 0 ? 1e-4 : 0.01), name + ": " + worst + " at " + where);
   }
 
@@ -73,8 +73,8 @@ class ShadowTest {
    * each cell inside the shape, times the cell's area, over cells of a sixty-fourth of the
    * deviation whose edges lie on the shape's straight edges, within five deviations of the point.
    */
-  private static double brute(double x, double y, double halfW, double halfH, double radius,
-      double sigma) {
+  private static double brute(
+      double x, double y, double halfW, double halfH, double radius, double sigma) {
     double h = sigma / 64;
     int columns = (int) Math.ceil(2 * halfW / h);
     int rows = (int) Math.ceil(2 * halfH / h);
@@ -117,8 +117,8 @@ class ShadowTest {
 
   @ParameterizedTest(name = "{0}")
   @MethodSource("corners")
-  void theBlurOfCornersOfTheirOwnIsWithinAHundredthOfTheTrueGaussian(String name, double halfW,
-      double halfH, double[] radii, double sigma) {
+  void theBlurOfCornersOfTheirOwnIsWithinAHundredthOfTheTrueGaussian(
+      String name, double halfW, double halfH, double[] radii, double sigma) {
     double worst = 0;
     String where = "";
     double reachW = halfW + 3 * sigma;
@@ -135,14 +135,14 @@ class ShadowTest {
         }
       }
     }
-    System.out.printf(Locale.ROOT, "Shadow of %s: at most %.5f from the true blur, at %s%n", name,
-        worst, where);
+    System.out.printf(
+        Locale.ROOT, "Shadow of %s: at most %.5f from the true blur, at %s%n", name, worst, where);
     assertTrue(worst < 0.01, name + ": " + worst + " at " + where);
   }
 
   /** As the other brute force, with a radius per corner and cells tested one by one. */
-  private static double brute(double x, double y, double halfW, double halfH, double[] radii,
-      double sigma) {
+  private static double brute(
+      double x, double y, double halfW, double halfH, double[] radii, double sigma) {
     double h = sigma / 32;
     int columns = (int) Math.ceil(2 * halfW / h);
     int rows = (int) Math.ceil(2 * halfH / h);
@@ -173,8 +173,16 @@ class ShadowTest {
   @Test
   void erfIsWithinItsBound() {
     // Values of erf to ten places.
-    double[][] known = {{0, 0}, {0.1, 0.1124629160}, {0.5, 0.5204998778}, {1, 0.8427007929},
-        {1.5, 0.9661051465}, {2, 0.9953222650}, {3, 0.9999779095}, {5, 1}};
+    double[][] known = {
+      {0, 0},
+      {0.1, 0.1124629160},
+      {0.5, 0.5204998778},
+      {1, 0.8427007929},
+      {1.5, 0.9661051465},
+      {2, 0.9953222650},
+      {3, 0.9999779095},
+      {5, 1}
+    };
     for (double[] k : known) {
       assertEquals(k[1], CpuRenderer.erf(k[0]), 3e-7, "erf " + k[0]);
       assertEquals(-k[1], CpuRenderer.erf(-k[0]), 3e-7, "erf -" + k[0]);

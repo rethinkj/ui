@@ -33,17 +33,16 @@ public final class Examples {
    */
   public static void main(String[] args) throws IOException {
     String view = args.length > 0 && !args[0].startsWith("--") ? args[0] : "";
-    App<?> app =
-        switch (view) {
-          case "list" -> new App<>(new Object(), s -> list());
-          case "rows" -> new App<>(new Object(), s -> rows());
-          case "bars" -> new App<>(new Object(), s -> bars());
-          case "field" -> new App<>(new Form(), Examples::form);
-          case "field-rows" -> new App<>(new Names(), Examples::fieldRows);
-          case "overlay" -> new App<>(new Menus(), Examples::overlays);
-          case "shapes" -> new App<>(new Object(), s -> shapes());
-          default -> new App<>(new Lights(), Examples::lights);
-        };
+    App<?> app = switch (view) {
+      case "list" -> new App<>(new Object(), s -> list());
+      case "rows" -> new App<>(new Object(), s -> rows());
+      case "bars" -> new App<>(new Object(), s -> bars());
+      case "field" -> new App<>(new Form(), Examples::form);
+      case "field-rows" -> new App<>(new Names(), Examples::fieldRows);
+      case "overlay" -> new App<>(new Menus(), Examples::overlays);
+      case "shapes" -> new App<>(new Object(), s -> shapes());
+      default -> new App<>(new Lights(), Examples::lights);
+    };
     app.textRendering(TextRendering.LINUX); // as the stored images
     if (!Script.handle(view.isEmpty() ? args : Arrays.copyOfRange(args, 1, args.length), app)) {
       System.err.println("There is no window yet. Run with --script <file> --out <folder>.");
@@ -58,25 +57,33 @@ public final class Examples {
 
   /** Twenty tables of a database in a rounded scroll area, more than fit into it. */
   public static El list() {
-    El list =
-        col().key("list").role("list").scroll().grow(1).padding(8).gap(4).radius(12)
-            .fill(0xFF1C1C22);
+    El list = col()
+        .key("list")
+        .role("list")
+        .scroll()
+        .grow(1)
+        .padding(8)
+        .gap(4)
+        .radius(12)
+        .fill(0xFF1C1C22);
     for (int i = 1; i <= 20; i++) {
-      list.child(
-          row().key("row-" + i)
-              .role("listitem")
-              .label(TABLES[i - 1])
-              .h(28)
-              .padding(0, 8)
-              .gap(8)
-              .align(Style.Align.CENTER)
-              .radius(6)
-              .fill(i % 2 == 0 ? 0xFF26262E : 0xFF2E2E38)
-              .children(
-                  el().size(14, 14).radius(7).fill(i % 3 == 0 ? 0xFF22C55E : 0xFF3B82F6),
-                  El.text(TABLES[i - 1]).fontSize(13).color(0xFFE4E4E7).grow(1),
-                  El.text(String.valueOf(i * 37 % 90 * 113)).font(Font.mono()).fontSize(12)
-                      .color(0xFF8A8A99)));
+      list.child(row()
+          .key("row-" + i)
+          .role("listitem")
+          .label(TABLES[i - 1])
+          .h(28)
+          .padding(0, 8)
+          .gap(8)
+          .align(Style.Align.CENTER)
+          .radius(6)
+          .fill(i % 2 == 0 ? 0xFF26262E : 0xFF2E2E38)
+          .children(
+              el().size(14, 14).radius(7).fill(i % 3 == 0 ? 0xFF22C55E : 0xFF3B82F6),
+              El.text(TABLES[i - 1]).fontSize(13).color(0xFFE4E4E7).grow(1),
+              El.text(String.valueOf(i * 37 % 90 * 113))
+                  .font(Font.mono())
+                  .fontSize(12)
+                  .color(0xFF8A8A99)));
     }
     return col().wFull().hFull().padding(16).fill(0xFF101014).child(list);
   }
@@ -99,22 +106,32 @@ public final class Examples {
   }
 
   private static El rows(Scrollbars bars) {
-    El header =
-        row().h(28).shrink(0).padding(0, 12).gap(12).align(Style.Align.CENTER).fill(0xFF26262E)
-            .children(
-                El.text("#").font(Font.mono()).fontSize(12).color(0xFF8A8A99).w(56),
-                El.text("table").fontSize(12).color(0xFFA1A1AA).grow(1),
-                El.text("rows").fontSize(12).color(0xFFA1A1AA));
-    El grid =
-        col().key("rows").role("grid").grow(1).fill(0xFF1C1C22)
-            .rows(1_000_000, 28, Examples::tableRow).scrollbars(bars);
+    El header = row()
+        .h(28)
+        .shrink(0)
+        .padding(0, 12)
+        .gap(12)
+        .align(Style.Align.CENTER)
+        .fill(0xFF26262E)
+        .children(
+            El.text("#").font(Font.mono()).fontSize(12).color(0xFF8A8A99).w(56),
+            El.text("table").fontSize(12).color(0xFFA1A1AA).grow(1),
+            El.text("rows").fontSize(12).color(0xFFA1A1AA));
+    El grid = col()
+        .key("rows")
+        .role("grid")
+        .grow(1)
+        .fill(0xFF1C1C22)
+        .rows(1_000_000, 28, Examples::tableRow)
+        .scrollbars(bars);
     return col().wFull().hFull().padding(16).fill(0xFF101014).children(header, grid);
   }
 
   /** The row of {@link #rows} with this index. */
   private static El tableRow(int i) {
     String table = TABLES[i % TABLES.length];
-    return row().key("row-" + i)
+    return row()
+        .key("row-" + i)
         .role("row")
         .label(table)
         .padding(0, 12)
@@ -122,9 +139,15 @@ public final class Examples {
         .align(Style.Align.CENTER)
         .fill(i % 2 == 0 ? 0xFF1C1C22 : 0xFF22222A)
         .children(
-            El.text(String.valueOf(i)).font(Font.mono()).fontSize(12).color(0xFF8A8A99).w(56),
+            El.text(String.valueOf(i))
+                .font(Font.mono())
+                .fontSize(12)
+                .color(0xFF8A8A99)
+                .w(56),
             El.text(table).fontSize(13).color(0xFFE4E4E7).grow(1),
-            El.text(String.valueOf(i * 37L % 90 * 113)).font(Font.mono()).fontSize(12)
+            El.text(String.valueOf(i * 37L % 90 * 113))
+                .font(Font.mono())
+                .fontSize(12)
                 .color(0xFF8A8A99));
   }
 
@@ -135,8 +158,13 @@ public final class Examples {
 
   /** A text field for the name of a table, with a placeholder, in the middle of the window. */
   public static El form(Form form) {
-    return col().wFull().hFull().center().fill(0xFF101014).child(
-        El.text(form.name).editable(name -> form.name = name)
+    return col()
+        .wFull()
+        .hFull()
+        .center()
+        .fill(0xFF101014)
+        .child(El.text(form.name)
+            .editable(name -> form.name = name)
             .key("name")
             .label("Table name")
             .placeholder("Table name", 0xFF8A8A99)
@@ -167,22 +195,43 @@ public final class Examples {
    * text field for a filter.
    */
   public static El fieldRows(Names names) {
-    El filter = field(names.filter, f -> names.filter = f).key("filter").label("Filter")
-        .placeholder("Filter", 0xFF8A8A99).w(160).shrink(0);
-    El grid = col().key("rows").role("grid").grow(1).fill(0xFF1C1C22).rows(1000, 32, i ->
-        row().role("row").padding(0, 8).gap(8).align(Style.Align.CENTER)
-            .fill(i % 2 == 0 ? 0xFF1C1C22 : 0xFF22222A)
-            .children(
-                El.text(String.valueOf(i)).font(Font.mono()).fontSize(12).color(0xFF8A8A99)
-                    .w(32),
-                field(names.name(i), name -> names.edited.put(i, name)).key("name-" + i)
-                    .label("Name of row " + i).grow(1)));
+    El filter = field(names.filter, f -> names.filter = f)
+        .key("filter")
+        .label("Filter")
+        .placeholder("Filter", 0xFF8A8A99)
+        .w(160)
+        .shrink(0);
+    El grid = col()
+        .key("rows")
+        .role("grid")
+        .grow(1)
+        .fill(0xFF1C1C22)
+        .rows(
+            1000,
+            32,
+            i -> row()
+                .role("row")
+                .padding(0, 8)
+                .gap(8)
+                .align(Style.Align.CENTER)
+                .fill(i % 2 == 0 ? 0xFF1C1C22 : 0xFF22222A)
+                .children(
+                    El.text(String.valueOf(i))
+                        .font(Font.mono())
+                        .fontSize(12)
+                        .color(0xFF8A8A99)
+                        .w(32),
+                    field(names.name(i), name -> names.edited.put(i, name))
+                        .key("name-" + i)
+                        .label("Name of row " + i)
+                        .grow(1)));
     return col().wFull().hFull().padding(12).gap(8).fill(0xFF101014).children(filter, grid);
   }
 
   /** A text field as in {@link #form}, without a width. */
   private static El field(String value, Consumer<String> onEdit) {
-    return El.text(value).editable(onEdit)
+    return El.text(value)
+        .editable(onEdit)
         .color(0xFFE4E4E7)
         .caretColor(0xFF93C5FD)
         .selectionColor(0x803B82F6)
@@ -215,12 +264,28 @@ public final class Examples {
    * what was chosen last.
    */
   public static El overlays(Menus s) {
-    El list = col().key("list").role("list").label("Tables").focusable().scroll().grow(1)
-        .padding(6).gap(4).radius(12).fill(0xFF1C1C22);
+    El list = col()
+        .key("list")
+        .role("list")
+        .label("Tables")
+        .focusable()
+        .scroll()
+        .grow(1)
+        .padding(6)
+        .gap(4)
+        .radius(12)
+        .fill(0xFF1C1C22);
     for (int i = 0; i < 12; i++) {
       int at = i;
-      list.child(row().key("row-" + i).role("listitem").label(TABLES[i]).h(26).shrink(0)
-          .padding(0, 8).align(Style.Align.CENTER).radius(6)
+      list.child(row()
+          .key("row-" + i)
+          .role("listitem")
+          .label(TABLES[i])
+          .h(26)
+          .shrink(0)
+          .padding(0, 8)
+          .align(Style.Align.CENTER)
+          .radius(6)
           .fill(i == s.row ? 0xFF1E3A8A : i % 2 == 0 ? 0xFF26262E : 0xFF2E2E38)
           .onSecondaryPress((x, y) -> {
             s.menu = true;
@@ -234,13 +299,16 @@ public final class Examples {
     if (s.menu) {
       El export = menuItem("export", "Export", () -> s.submenu = !s.submenu);
       if (s.submenu) {
-        export.overlay(menu("formats").side(Side.RIGHT, Style.Align.START, 6)
+        export.overlay(menu("formats")
+            .side(Side.RIGHT, Style.Align.START, 6)
             .onDismiss(() -> s.submenu = false)
             .children(
                 menuItem("csv", "CSV", () -> chose(s, "csv")),
                 menuItem("json", "JSON", () -> chose(s, "json"))));
       }
-      list.overlay(menu("menu").atPoint(s.x, s.y).onDismiss(() -> s.menu = false)
+      list.overlay(menu("menu")
+          .atPoint(s.x, s.y)
+          .onDismiss(() -> s.menu = false)
           .onKey(k -> {
             if (!k.name().equals("Escape")) {
               return false;
@@ -256,12 +324,23 @@ public final class Examples {
                 s.dialog = true;
               })));
     }
-    El root = col().wFull().hFull().padding(16).gap(8).fill(0xFF101014).children(list,
-        El.text("Chose " + s.chosen).key("chosen").fontSize(12).color(0xFFA1A1AA));
+    El root = col()
+        .wFull()
+        .hFull()
+        .padding(16)
+        .gap(8)
+        .fill(0xFF101014)
+        .children(list, El.text("Chose " + s.chosen).key("chosen").fontSize(12).color(0xFFA1A1AA));
     if (s.dialog) {
       Runnable close = () -> s.dialog = false;
-      root.overlay(col().key("dialog").role("dialog").label("Delete").centerInWindow().modal()
-          .scrim(0x99000000).onDismiss(close)
+      root.overlay(col()
+          .key("dialog")
+          .role("dialog")
+          .label("Delete")
+          .centerInWindow()
+          .modal()
+          .scrim(0x99000000)
+          .onDismiss(close)
           .onKey(k -> {
             if (!k.name().equals("Escape")) {
               return false;
@@ -269,17 +348,23 @@ public final class Examples {
             close.run();
             return true;
           })
-          .padding(16).gap(12).radius(10).fill(0xFF26262E).border(1, 0xFF4A4A55)
+          .padding(16)
+          .gap(12)
+          .radius(10)
+          .fill(0xFF26262E)
+          .border(1, 0xFF4A4A55)
           .shadow(new Shadow(0, 2, 4, 0, 0x73000000), new Shadow(0, 8, 24, 0, 0x80000000))
           .children(
-              El.text("Delete " + TABLES[Math.max(s.row, 0)] + "?").fontSize(14)
-                  .color(0xFFF4F4F5),
-              row().gap(8).justify(Style.Content.END).children(
-                  dialogButton("cancel", "Cancel", 0xFF3A3A44, close),
-                  dialogButton("confirm", "Delete", 0xFFB91C1C, () -> {
-                    s.dialog = false;
-                    s.chosen = "delete " + TABLES[Math.max(s.row, 0)];
-                  }))));
+              El.text("Delete " + TABLES[Math.max(s.row, 0)] + "?").fontSize(14).color(0xFFF4F4F5),
+              row()
+                  .gap(8)
+                  .justify(Style.Content.END)
+                  .children(
+                      dialogButton("cancel", "Cancel", 0xFF3A3A44, close),
+                      dialogButton("confirm", "Delete", 0xFFB91C1C, () -> {
+                        s.dialog = false;
+                        s.chosen = "delete " + TABLES[Math.max(s.row, 0)];
+                      }))));
     }
     return root;
   }
@@ -295,21 +380,45 @@ public final class Examples {
    * theme.
    */
   private static El menu(String key) {
-    return col().key(key).role("menu").padding(4).gap(2).radius(8).clip().fill(0xFF2A2A33)
+    return col()
+        .key(key)
+        .role("menu")
+        .padding(4)
+        .gap(2)
+        .radius(8)
+        .clip()
+        .fill(0xFF2A2A33)
         .border(1, 0xFF4A4A55)
         .shadow(new Shadow(0, 1, 2, 0, 0x73000000), new Shadow(0, 4, 10, 0, 0x66000000));
   }
 
   private static El menuItem(String key, String text, Runnable onPress) {
-    return row().key(key).role("menuitem").label(text).h(24).padding(0, 10).radius(4)
-        .align(Style.Align.CENTER).focusable().onPress(onPress)
+    return row()
+        .key(key)
+        .role("menuitem")
+        .label(text)
+        .h(24)
+        .padding(0, 10)
+        .radius(4)
+        .align(Style.Align.CENTER)
+        .focusable()
+        .onPress(onPress)
         .whenHovered(e -> e.fill(0xFF3B82F6))
         .child(El.text(text).fontSize(13).color(0xFFF4F4F5));
   }
 
   private static El dialogButton(String key, String text, int fill, Runnable onPress) {
-    return row().key(key).role("button").label(text).h(28).padding(0, 12).radius(6)
-        .align(Style.Align.CENTER).fill(fill).focusable().onPress(onPress)
+    return row()
+        .key(key)
+        .role("button")
+        .label(text)
+        .h(28)
+        .padding(0, 12)
+        .radius(6)
+        .align(Style.Align.CENTER)
+        .fill(fill)
+        .focusable()
+        .onPress(onPress)
         .child(El.text(text).fontSize(13).color(0xFFF4F4F5));
   }
 
@@ -328,14 +437,23 @@ public final class Examples {
     "Ada", "Grace", "Linus", "Margaret", "Ken", "Barbara", "Edsger", "Frances", "Donald", "Radia"
   };
   private static final String[] LAST = {
-    "Lovelace", "Hopper", "Torvalds", "Hamilton", "Thompson", "Liskov", "Dijkstra", "Allen",
-    "Knuth", "Perlman"
+    "Lovelace",
+    "Hopper",
+    "Torvalds",
+    "Hamilton",
+    "Thompson",
+    "Liskov",
+    "Dijkstra",
+    "Allen",
+    "Knuth",
+    "Perlman"
   };
   private static final String[] STATUS = {"paid", "pending", "shipped", "refunded"};
   private static final LocalDateTime START = LocalDateTime.of(2026, 3, 1, 8, 0);
   private static final DateTimeFormatter TIME = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-  private static final String[] TITLES =
-      {"id", "customer", "email", "created_at", "amount", "status", "note"};
+  private static final String[] TITLES = {
+    "id", "customer", "email", "created_at", "amount", "status", "note"
+  };
   private static final boolean[] RIGHT = {true, false, false, false, true, false, false};
   private static final boolean[] MONO = {true, false, false, true, true, false, false};
 
@@ -349,10 +467,12 @@ public final class Examples {
       Examples::customer,
       i -> customer(i).toLowerCase(Locale.ROOT).replace(' ', '.') + "@example.com",
       i -> START.plusSeconds(i * 97L).format(TIME),
-      i -> i % 11 == 5 ? null
+      i -> i % 11 == 5
+          ? null
           : String.format(Locale.ROOT, "%d.%02d", i * 7919 % 250_000 / 100, i * 13 % 100),
       i -> STATUS[i * 7 % STATUS.length],
-      i -> i % 3 != 1 ? null
+      i -> i % 3 != 1
+          ? null
           : "Customer asked to split the delivery into two parcels and to leave them next door");
 
   // The values of the kit's Theme.DARK that the grid reads.
@@ -388,33 +508,51 @@ public final class Examples {
       total += width;
     }
     // The line under the header is its border, as the kit's.
-    El header = row().key("header").h(ROW_HEIGHT + 1).shrink(0).fill(HEADER)
-        .border(0, 0, 1, 0, CONTROL);
+    El header =
+        row().key("header").h(ROW_HEIGHT + 1).shrink(0).fill(HEADER).border(0, 0, 1, 0, CONTROL);
     El[] lines = new El[TITLES.length];
     for (int c = 0; c < TITLES.length; c++) {
       lines[c] = gridLine();
-      El cell = gridCell(s.widths[c], RIGHT[c]).key("column-" + c).role("columnheader")
-          .label(TITLES[c]).position(c + 1, TITLES.length).gap(2);
-      El title = El.text(TITLES[c]).font(Font.sansMedium()).fontSize(13).color(PRIMARY)
-          .ellipsis().minSize(0, 0);
+      El cell = gridCell(s.widths[c], RIGHT[c])
+          .key("column-" + c)
+          .role("columnheader")
+          .label(TITLES[c])
+          .position(c + 1, TITLES.length)
+          .gap(2);
+      El title = El.text(TITLES[c])
+          .font(Font.sansMedium())
+          .fontSize(13)
+          .color(PRIMARY)
+          .ellipsis()
+          .minSize(0, 0);
       if (c == 0) { // sorted by id, ascending; the arrow before the title of a right column
-        El arrow = El.text(Character.toString(ARROW_UP_12)).font(Font.icons()).fontSize(12)
-            .color(MUTED).shrink(0);
+        El arrow = El.text(Character.toString(ARROW_UP_12))
+            .font(Font.icons())
+            .fontSize(12)
+            .color(MUTED)
+            .shrink(0);
         cell.sortAscending().children(arrow, title);
       } else {
         cell.child(title);
       }
-      header.children(cell.cursor(Cursor.POINTER).onPress(() -> {})
-          .whenHovered(e -> e.fill(over(HEADER, HOVER)))
-          .whenPressed(e -> e.fill(over(HEADER, PRESSED))), lines[c]);
+      header.children(
+          cell.cursor(Cursor.POINTER)
+              .onPress(() -> {})
+              .whenHovered(e -> e.fill(over(HEADER, HOVER)))
+              .whenPressed(e -> e.fill(over(HEADER, PRESSED))),
+          lines[c]);
     }
     float edge = 0;
     for (int c = 0; c < TITLES.length; c++) {
       edge += s.widths[c];
       int index = c;
       float width = s.widths[c];
-      header.child(el().key("resize-" + c).role("separator").label("Resize " + TITLES[c])
-          .absolute(edge - 3, 0).size(6, ROW_HEIGHT).cursor(Cursor.EW_RESIZE)
+      header.child(el().key("resize-" + c)
+          .role("separator")
+          .label("Resize " + TITLES[c])
+          .absolute(edge - 3, 0)
+          .size(6, ROW_HEIGHT)
+          .cursor(Cursor.EW_RESIZE)
           .whenHovered(e -> lines[index].fill(STRONG))
           .whenPressed(e -> lines[index].fill(ACCENT))
           .onDrag(d -> s.widths[index] =
@@ -422,25 +560,41 @@ public final class Examples {
     }
     boolean[] focused = {false};
     int selected = s.selected;
-    El body = col().key("rows").grow(1).revealRow(selected).rows(1_000_000, ROW_HEIGHT, i -> {
-      int fill = i == selected ? (focused[0] ? SELECTED : SELECTED_INACTIVE) : ROW;
-      // A hairline along the bottom, its border, which the cells end above.
-      El r = row().key("row-" + i).role("row").selected(i == selected).fill(fill)
-          .border(0, 0, 1, 0, SUBTLE);
-      for (int c = 0; c < TITLES.length; c++) {
-        String text = CELLS.get(c).apply(i);
-        r.children(gridCell(s.widths[c], RIGHT[c]).child(
-            gridText(text == null ? "NULL" : text, text == null ? MUTED : PRIMARY, MONO[c])),
-            gridLine());
-      }
-      r.onPress(() -> s.selected = i);
-      return i == selected ? r : r.whenHovered(e -> e.fill(over(fill, HOVER)));
-    }).scrollbars(GRID_BARS);
+    El body = col()
+        .key("rows")
+        .grow(1)
+        .revealRow(selected)
+        .rows(1_000_000, ROW_HEIGHT, i -> {
+          int fill = i == selected ? (focused[0] ? SELECTED : SELECTED_INACTIVE) : ROW;
+          // A hairline along the bottom, its border, which the cells end above.
+          El r = row()
+              .key("row-" + i)
+              .role("row")
+              .selected(i == selected)
+              .fill(fill)
+              .border(0, 0, 1, 0, SUBTLE);
+          for (int c = 0; c < TITLES.length; c++) {
+            String text = CELLS.get(c).apply(i);
+            r.children(
+                gridCell(s.widths[c], RIGHT[c])
+                    .child(gridText(
+                        text == null ? "NULL" : text, text == null ? MUTED : PRIMARY, MONO[c])),
+                gridLine());
+          }
+          r.onPress(() -> s.selected = i);
+          return i == selected ? r : r.whenHovered(e -> e.fill(over(fill, HOVER)));
+        })
+        .scrollbars(GRID_BARS);
     // Room for the rows' bar after the last column, as the kit leaves.
     float room = GRID_BARS.thickness() + 2 * GRID_BARS.margin();
     El content = col().key("content").w(total + room).children(header, body);
     content.style().minWidth = Len.percent(1);
-    El grid = row().role("grid").scrollBoth().scrollbars(GRID_BARS).fill(ROW).child(content)
+    El grid = row()
+        .role("grid")
+        .scrollBoth()
+        .scrollbars(GRID_BARS)
+        .fill(ROW)
+        .child(content)
         .focusable()
         .focusRing(EDGE) // accent().edge()
         .whenFocused(e -> focused[0] = true)
@@ -458,18 +612,30 @@ public final class Examples {
           s.selected = next;
           return true;
         });
-    return col().wFull().hFull().padding(8).fill(PANEL)
+    return col()
+        .wFull()
+        .hFull()
+        .padding(8)
+        .fill(PANEL)
         .child(grid.key("orders").label("Orders").grow(1));
   }
 
   private static El gridCell(float width, boolean right) {
-    return row().w(Math.max(width - 1, 0)).padding(0, 4).align(Style.Align.CENTER)
-        .justify(right ? Style.Content.END : Style.Content.START).clip();
+    return row()
+        .w(Math.max(width - 1, 0))
+        .padding(0, 4)
+        .align(Style.Align.CENTER)
+        .justify(right ? Style.Content.END : Style.Content.START)
+        .clip();
   }
 
   private static El gridText(String text, int colour, boolean mono) {
-    return El.text(text).font(mono ? Font.mono() : Font.sans()).fontSize(mono ? 12 : 13)
-        .color(colour).ellipsis().minSize(0, 0);
+    return El.text(text)
+        .font(mono ? Font.mono() : Font.sans())
+        .fontSize(mono ? 12 : 13)
+        .color(colour)
+        .ellipsis()
+        .minSize(0, 0);
   }
 
   /** The room after a column, which shows a line only while its header's edge is in use. */
@@ -501,7 +667,8 @@ public final class Examples {
    * on. The label is as wide for both texts, so that the switch stays where it is.
    */
   static El lightSwitch(boolean on, Runnable onPress) {
-    return row().wFull()
+    return row()
+        .wFull()
         .hFull()
         .center()
         .gap(12)
@@ -530,22 +697,21 @@ public final class Examples {
 
   /** The switch with a badge beside it that is there while the lights are on. */
   public static El badged(Lights state) {
-    El root =
-        row().wFull()
-            .hFull()
-            .center()
-            .gap(12)
-            .fill(0xFF101014)
-            .child(toggle(state.on, () -> state.on = !state.on));
+    El root = row()
+        .wFull()
+        .hFull()
+        .center()
+        .gap(12)
+        .fill(0xFF101014)
+        .child(toggle(state.on, () -> state.on = !state.on));
     if (state.on) {
-      root.child(
-          el().key("badge")
-              .role("status")
-              .label("On")
-              .size(12, 12)
-              .radius(6)
-              .fill(0xFF22C55E)
-              .motion(Spring.SNAP));
+      root.child(el().key("badge")
+          .role("status")
+          .label("On")
+          .size(12, 12)
+          .radius(6)
+          .fill(0xFF22C55E)
+          .motion(Spring.SNAP));
     }
     return root;
   }
@@ -570,7 +736,10 @@ public final class Examples {
    * 176: the stored images text-sizes-1x and -2x.
    */
   public static El textSizes() {
-    return row().padding(8).gap(8).fill(0xFF808080)
+    return row()
+        .padding(8)
+        .gap(8)
+        .fill(0xFF808080)
         .children(textSheet(0xFF1A1A1A, 0xFFFFFFFF), textSheet(0xFFDCDCDC, 0xFF1E1F22));
   }
 
@@ -580,7 +749,9 @@ public final class Examples {
     for (Font font : new Font[] {Font.sans(), Font.mono()}) {
       for (int size = 11; size <= 14; size++) {
         sheet.child(El.text(size + "  " + (font == Font.sans() ? SANS_SAMPLE : MONO_SAMPLE))
-            .font(font).fontSize(size).color(colour));
+            .font(font)
+            .fontSize(size)
+            .color(colour));
       }
     }
     return sheet;
@@ -604,7 +775,8 @@ public final class Examples {
       }
       texts.child(El.text(titles[column]).fontSize(11).color(0xFF1A1A1A));
       for (int grey : new int[] {0xFF6B6B6B, 0xFF808080, 0xFF999999, 0xFFAAAAAA}) {
-        El text = El.text(String.format("#%06X Kunde Müller", grey & 0xFFFFFF)).fontSize(13)
+        El text = El.text(String.format("#%06X Kunde Müller", grey & 0xFFFFFF))
+            .fontSize(13)
             .color(grey);
         texts.child(column == 2 ? text.textBackground(0xFFFFFFFF) : text);
       }
@@ -651,28 +823,62 @@ public final class Examples {
   public static El shapes() {
     int ink = 0xFF1F2937;
     int line = 0xFF2563EB;
-    El light = el().absolute(0, 0).size(240, 92).fill(0xFFF5F5F4).children(
-        el().absolute(8, 8).size(40, 28).fill(0xFFDBEAFE).border(1, 2, 3, 4, ink),
-        el().absolute(56, 8).size(40, 28).radius(8).fill(0xFFDBEAFE).border(1, 3, 1, 3, ink),
-        el().absolute(104, 8).size(40, 28).fill(0xFFFFFFFF).border(0, 0, 2, 0, line),
-        el().absolute(152, 8).size(40, 28).radius(10).fill(0xFFFFFFFF).border(0, 0, 2, 0, line),
-        el().absolute(200, 8).size(32, 28).radius(14, 0, 14, 0).fill(0xFFFFFFFF)
-            .border(0, 1, 0, 1, ink),
-        el().absolute(8, 46).size(40, 36).radius(0, 6, 16, 3).fill(0xFFF97316),
-        el().absolute(56, 46).size(40, 36).radius(12, 2, 8, 0).fill(0xFFFFFFFF).border(2, ink),
-        el().absolute(104, 46).size(80, 38).radius(14, 2, 10, 0).clip().children(
-            el().wFull().hFull().fill(0xFFE7E5E4),
-            el().absolute(-4, -4).size(30, 20).fill(0xFF60A5FA),
-            El.text("Ecken über Text, abgeschnitten").fontSize(13).color(ink).absolute(4, 12)),
-        el().absolute(196, 50).size(36, 30).radius(12, 0, 12, 0).fill(0xFFFFFFFF)
-            .shadow(new Shadow(0, 3, 8, 0, 0x4D000000)));
-    El dark = el().absolute(0, 92).size(240, 60).fill(0xFF1B1C1F).children(
-        el().absolute(12, 12).size(56, 28).fill(0xFF26262E).border(0, 0, 1, 0, 0xFF3F3F46),
-        el().absolute(80, 12).size(48, 28).radius(6, 6, 0, 0).fill(0xFF2D2E33)
-            .border(1, 1, 0, 1, 0xFF52525B),
-        el().key("ringed").role("button").label("Run").focusable().absolute(148, 14).size(56, 24)
-            .radius(6).fill(0xFF3B82F6).focusRing(0xFF60A5FA).focusRingGap(2)
-            .child(El.text("Run").fontSize(12).color(0xFFFFFFFF).absolute(16, 4)));
+    El light = el().absolute(0, 0)
+        .size(240, 92)
+        .fill(0xFFF5F5F4)
+        .children(
+            el().absolute(8, 8).size(40, 28).fill(0xFFDBEAFE).border(1, 2, 3, 4, ink),
+            el().absolute(56, 8).size(40, 28).radius(8).fill(0xFFDBEAFE).border(1, 3, 1, 3, ink),
+            el().absolute(104, 8).size(40, 28).fill(0xFFFFFFFF).border(0, 0, 2, 0, line),
+            el().absolute(152, 8).size(40, 28).radius(10).fill(0xFFFFFFFF).border(0, 0, 2, 0, line),
+            el().absolute(200, 8)
+                .size(32, 28)
+                .radius(14, 0, 14, 0)
+                .fill(0xFFFFFFFF)
+                .border(0, 1, 0, 1, ink),
+            el().absolute(8, 46).size(40, 36).radius(0, 6, 16, 3).fill(0xFFF97316),
+            el().absolute(56, 46)
+                .size(40, 36)
+                .radius(12, 2, 8, 0)
+                .fill(0xFFFFFFFF)
+                .border(2, ink),
+            el().absolute(104, 46)
+                .size(80, 38)
+                .radius(14, 2, 10, 0)
+                .clip()
+                .children(
+                    el().wFull().hFull().fill(0xFFE7E5E4),
+                    el().absolute(-4, -4).size(30, 20).fill(0xFF60A5FA),
+                    El.text("Ecken über Text, abgeschnitten")
+                        .fontSize(13)
+                        .color(ink)
+                        .absolute(4, 12)),
+            el().absolute(196, 50)
+                .size(36, 30)
+                .radius(12, 0, 12, 0)
+                .fill(0xFFFFFFFF)
+                .shadow(new Shadow(0, 3, 8, 0, 0x4D000000)));
+    El dark = el().absolute(0, 92)
+        .size(240, 60)
+        .fill(0xFF1B1C1F)
+        .children(
+            el().absolute(12, 12).size(56, 28).fill(0xFF26262E).border(0, 0, 1, 0, 0xFF3F3F46),
+            el().absolute(80, 12)
+                .size(48, 28)
+                .radius(6, 6, 0, 0)
+                .fill(0xFF2D2E33)
+                .border(1, 1, 0, 1, 0xFF52525B),
+            el().key("ringed")
+                .role("button")
+                .label("Run")
+                .focusable()
+                .absolute(148, 14)
+                .size(56, 24)
+                .radius(6)
+                .fill(0xFF3B82F6)
+                .focusRing(0xFF60A5FA)
+                .focusRingGap(2)
+                .child(El.text("Run").fontSize(12).color(0xFFFFFFFF).absolute(16, 4)));
     return el().wFull().hFull().children(light, dark);
   }
 
@@ -688,13 +894,25 @@ public final class Examples {
       El panel = col().padding(6).gap(2).fill(theme[1]);
       for (float width : new float[] {150, 100, 61, 30, 8}) {
         for (boolean mono : new boolean[] {false, true}) {
-          panel.child(row().w(width).h(18).clip().align(Style.Align.CENTER)
+          panel.child(row()
+              .w(width)
+              .h(18)
+              .clip()
+              .align(Style.Align.CENTER)
               .justify(width == 61 ? Style.Content.END : Style.Content.START)
-              .child(El.text(mono ? MONO_SAMPLE : SANS_SAMPLE).font(mono ? Font.mono() : Font.sans())
-                  .fontSize(13).color(theme[0]).ellipsis().minSize(0, 0)));
+              .child(El.text(mono ? MONO_SAMPLE : SANS_SAMPLE)
+                  .font(mono ? Font.mono() : Font.sans())
+                  .fontSize(13)
+                  .color(theme[0])
+                  .ellipsis()
+                  .minSize(0, 0)));
         }
       }
-      panel.child(row().w(150).h(18).clip().align(Style.Align.CENTER)
+      panel.child(row()
+          .w(150)
+          .h(18)
+          .clip()
+          .align(Style.Align.CENTER)
           .child(El.text("Köln").fontSize(13).color(theme[0]).ellipsis().minSize(0, 0)));
       root.child(panel);
     }
@@ -710,20 +928,37 @@ public final class Examples {
     String paragraph = "No rows match the filter. Change it or clear it to see all orders.";
     El root = col().padding(8).gap(6).fill(0xFFFFFFFF);
     El paragraphs = row().gap(8);
-    for (Style.Align align : new Style.Align[] {
-        Style.Align.START, Style.Align.CENTER, Style.Align.END}) {
-      paragraphs.child(el().w(108).padding(4).fill(0xFFF1F5F9).child(El.text(paragraph)
-          .fontSize(13).color(0xFF1A1A1A).wrapText().textAlign(align).wFull()));
+    for (Style.Align align :
+        new Style.Align[] {Style.Align.START, Style.Align.CENTER, Style.Align.END}) {
+      paragraphs.child(el().w(108)
+          .padding(4)
+          .fill(0xFFF1F5F9)
+          .child(El.text(paragraph)
+              .fontSize(13)
+              .color(0xFF1A1A1A)
+              .wrapText()
+              .textAlign(align)
+              .wFull()));
     }
     root.child(paragraphs);
     for (String number : new String[] {"7", "1.234,56", "-98 765 432,10"}) {
       El cells = row().gap(8);
       for (float width : new float[] {140, 80, 44}) {
         for (boolean mono : new boolean[] {false, true}) {
-          cells.child(row().w(width / 2 + (mono ? 8 : 0)).h(18).clip().fill(0xFFF1F5F9)
-              .align(Style.Align.CENTER).child(El.text(number)
-                  .font(mono ? Font.mono() : Font.sans()).fontSize(13).color(0xFF1A1A1A)
-                  .ellipsis().textAlign(Style.Align.END).wFull().minSize(0, 0)));
+          cells.child(row()
+              .w(width / 2 + (mono ? 8 : 0))
+              .h(18)
+              .clip()
+              .fill(0xFFF1F5F9)
+              .align(Style.Align.CENTER)
+              .child(El.text(number)
+                  .font(mono ? Font.mono() : Font.sans())
+                  .fontSize(13)
+                  .color(0xFF1A1A1A)
+                  .ellipsis()
+                  .textAlign(Style.Align.END)
+                  .wFull()
+                  .minSize(0, 0)));
         }
       }
       root.child(cells);
@@ -780,7 +1015,9 @@ public final class Examples {
       sheet.child(El.text(line).font(chain).fontSize(13).color(0xFF1A1A1A));
     }
     sheet.child(El.text("SELECT '★ ① ♥' AS note; -- ✓")
-        .font(Font.mono().withFallback(Font.sans())).fontSize(13).color(0xFF1A1A1A));
+        .font(Font.mono().withFallback(Font.sans()))
+        .fontSize(13)
+        .color(0xFF1A1A1A));
     return sheet;
   }
 
@@ -801,20 +1038,26 @@ public final class Examples {
 
   /** A text field as in {@link #form}, 200 wide, in the fonts of {@link #fallbackChain}. */
   public static El fallbackField(Form form) {
-    return col().wFull().hFull().center().fill(0xFF101014).child(
-        field(form.name, name -> form.name = name).key("name").label("Name")
-            .font(fallbackChain()).w(200));
+    return col()
+        .wFull()
+        .hFull()
+        .center()
+        .fill(0xFF101014)
+        .child(field(form.name, name -> form.name = name)
+            .key("name")
+            .label("Name")
+            .font(fallbackChain())
+            .w(200));
   }
 
   /** Lighter while the pointer is over it, darker while it is pressed, and a hand as the cursor. */
   private static El toggle(boolean on, Runnable onPress) {
-    El knob =
-        el().key("knob")
-            .size(18, 18)
-            .radius(9)
-            .fill(0xFFFFFFFF)
-            .absolute(on ? 18 : 2, 2)
-            .motion(Spring.SNAP);
+    El knob = el().key("knob")
+        .size(18, 18)
+        .radius(9)
+        .fill(0xFFFFFFFF)
+        .absolute(on ? 18 : 2, 2)
+        .motion(Spring.SNAP);
     return el().key("switch")
         .role("switch")
         .label("Lights")
@@ -902,28 +1145,55 @@ public final class Examples {
     Image medium = image("medium", photo(400, 300), 1);
     Image huge = image("huge", photo(4000, 2000), 1);
     Image disc = image("disc", disc(48), 1);
-    El light = el().absolute(0, 0).size(160, 220).fill(0xFFF5F5F4).children(
-        El.image(exact).absolute(8, 8).key("exact"),
-        El.image(tiny).absolute(56, 8).size(80, 64).key("magnified"),
-        El.image(medium).absolute(8, 80).size(80, 60).key("smaller"),
-        El.image(huge).absolute(92, 80).size(60, 30).key("huge"),
-        El.text("Unter dem Bild").fontSize(13).color(0xFF1F2937).absolute(8, 150),
-        El.image(disc).absolute(20, 140).size(36, 36).key("over-text"),
-        El.image(disc).absolute(92, 120).key("disc"),
-        El.text("Über dem Bild").fontSize(13).color(0xFF111827).absolute(84, 136),
-        El.image(medium).absolute(8, 186).size(60, 28).radius(10, 2, 14, 0).fit(Image.Fit.COVER)
-            .key("cover"),
-        El.image(medium).absolute(76, 186).size(76, 28).fit(Image.Fit.CONTAIN).fill(0xFFE7E5E4)
-            .radius(6).key("contain"));
-    El dark = el().absolute(160, 0).size(160, 220).fill(0xFF1B1C1F).children(
-        El.image(disc).absolute(8, 8).key("disc-dark"),
-        El.image(disc).absolute(64, 8).size(72, 72).opacity(0.5f).key("half"),
-        El.image(medium).absolute(8.5f, 90.25f).size(70.5f, 52.3f).radius(16).key("rounded"),
-        el().absolute(84, 90).size(68, 50).radius(12).clip().child(
-            El.image(huge).absolute(-16, 0).size(100, 50).key("clipped")),
-        El.text("SELECT 1").font(Font.mono()).fontSize(12).color(0xFFE4E5E9).absolute(10, 154),
-        El.image(disc).absolute(40, 146).size(30, 30).key("over-mono"),
-        El.image(tiny).absolute(90, 150).size(62, 62).radius(31).opacity(0.75f).key("round"));
+    El light = el().absolute(0, 0)
+        .size(160, 220)
+        .fill(0xFFF5F5F4)
+        .children(
+            El.image(exact).absolute(8, 8).key("exact"),
+            El.image(tiny).absolute(56, 8).size(80, 64).key("magnified"),
+            El.image(medium).absolute(8, 80).size(80, 60).key("smaller"),
+            El.image(huge).absolute(92, 80).size(60, 30).key("huge"),
+            El.text("Unter dem Bild").fontSize(13).color(0xFF1F2937).absolute(8, 150),
+            El.image(disc).absolute(20, 140).size(36, 36).key("over-text"),
+            El.image(disc).absolute(92, 120).key("disc"),
+            El.text("Über dem Bild").fontSize(13).color(0xFF111827).absolute(84, 136),
+            El.image(medium)
+                .absolute(8, 186)
+                .size(60, 28)
+                .radius(10, 2, 14, 0)
+                .fit(Image.Fit.COVER)
+                .key("cover"),
+            El.image(medium)
+                .absolute(76, 186)
+                .size(76, 28)
+                .fit(Image.Fit.CONTAIN)
+                .fill(0xFFE7E5E4)
+                .radius(6)
+                .key("contain"));
+    El dark = el().absolute(160, 0)
+        .size(160, 220)
+        .fill(0xFF1B1C1F)
+        .children(
+            El.image(disc).absolute(8, 8).key("disc-dark"),
+            El.image(disc).absolute(64, 8).size(72, 72).opacity(0.5f).key("half"),
+            El.image(medium)
+                .absolute(8.5f, 90.25f)
+                .size(70.5f, 52.3f)
+                .radius(16)
+                .key("rounded"),
+            el().absolute(84, 90)
+                .size(68, 50)
+                .radius(12)
+                .clip()
+                .child(El.image(huge).absolute(-16, 0).size(100, 50).key("clipped")),
+            El.text("SELECT 1").font(Font.mono()).fontSize(12).color(0xFFE4E5E9).absolute(10, 154),
+            El.image(disc).absolute(40, 146).size(30, 30).key("over-mono"),
+            El.image(tiny)
+                .absolute(90, 150)
+                .size(62, 62)
+                .radius(31)
+                .opacity(0.75f)
+                .key("round"));
     return el().wFull().hFull().children(light, dark);
   }
 }

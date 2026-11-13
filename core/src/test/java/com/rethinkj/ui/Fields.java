@@ -31,20 +31,27 @@ final class Fields {
   static App<Model> start(String value, UnaryOperator<El> field, float scale) {
     Model model = new Model();
     model.value = value;
-    App<Model> app = new App<>(model, m -> col().wFull().hFull().padding(10).gap(4).children(
-        field.apply(El.text(m.value)
-            .editable(edit -> {
-              m.edits.add(edit);
-              String accepted = m.accept.apply(edit);
-              if (accepted != null) {
-                m.value = accepted;
-              }
-            })
-            .key("f")
-            .w(100)
-            .h(24)
-            .padding(0, 4)),
-        el().key("other").focusable().size(10, 10)));
+    App<Model> app = new App<>(
+        model,
+        m -> col()
+            .wFull()
+            .hFull()
+            .padding(10)
+            .gap(4)
+            .children(
+                field.apply(El.text(m.value)
+                    .editable(edit -> {
+                      m.edits.add(edit);
+                      String accepted = m.accept.apply(edit);
+                      if (accepted != null) {
+                        m.value = accepted;
+                      }
+                    })
+                    .key("f")
+                    .w(100)
+                    .h(24)
+                    .padding(0, 4)),
+                el().key("other").focusable().size(10, 10)));
     app.textRendering(TextRendering.LINUX);
     app.resize(200, 80, scale);
     app.frame();

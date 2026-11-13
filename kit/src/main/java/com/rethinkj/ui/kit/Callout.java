@@ -43,22 +43,27 @@ public final class Callout {
     if (text != null) {
       words.child(label(t, Label.Variant.MUTED, text).wrapText());
     }
-    El callout = row().role("note").label(title)
+    El callout = row()
+        .role("note")
+        .label(title)
         .padding(t.space().m(), t.space().l())
         .gap(t.space().m())
         .align(Style.Align.START)
         .radius(t.radius().medium())
         .fill(t.surface().raised())
         .border(t.size().stroke(), edge)
-        .child(icon(t, switch (kind) {
-          case INFO -> Symbol.INFO;
-          case WARNING -> Symbol.WARNING;
-          case DANGER -> Symbol.ERROR_CIRCLE;
-        }, switch (kind) {
-          case INFO -> Icon.Variant.NORMAL;
-          case WARNING -> Icon.Variant.WARNING;
-          case DANGER -> Icon.Variant.DANGER;
-        }))
+        .child(icon(
+            t,
+            switch (kind) {
+              case INFO -> Symbol.INFO;
+              case WARNING -> Symbol.WARNING;
+              case DANGER -> Symbol.ERROR_CIRCLE;
+            },
+            switch (kind) {
+              case INFO -> Icon.Variant.NORMAL;
+              case WARNING -> Icon.Variant.WARNING;
+              case DANGER -> Icon.Variant.DANGER;
+            }))
         .child(words);
     for (El action : actions) {
       callout.child(action.shrink(0).alignSelf(Style.Align.CENTER));

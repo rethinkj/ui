@@ -28,7 +28,8 @@ class PostTest {
 
   private static final Duration LONG = Duration.ofSeconds(10);
 
-  @TempDir Path out;
+  @TempDir
+  Path out;
 
   /** A count that keys raise from the value their view saw, and what the tasks saw. */
   static final class Counter {
@@ -74,8 +75,8 @@ class PostTest {
           int task = i;
           app.post(() -> {
             if (Thread.currentThread() != appThread || next[thread] != task) {
-              wrong.add(thread + "/" + task + " after " + next[thread] + " on "
-                  + Thread.currentThread());
+              wrong.add(
+                  thread + "/" + task + " after " + next[thread] + " on " + Thread.currentThread());
             }
             next[thread] = task + 1;
             ran.incrementAndGet();
@@ -105,15 +106,18 @@ class PostTest {
     App<Counter> app = start();
     Counter s = app.state();
     app.keyDown(new Key("ArrowUp"));
-    Thread other = Thread.ofPlatform().start(() -> app.post(() -> {
-      s.log.add("task saw " + s.count);
-      s.count *= 10;
-    }));
+    Thread other = Thread.ofPlatform()
+        .start(() -> app.post(() -> {
+          s.log.add("task saw " + s.count);
+          s.count *= 10;
+        }));
     other.join(); // posted before the second key comes
     app.keyDown(new Key("ArrowUp"));
     assertTrue(app.frame());
 
-    assertEquals(List.of("key 1", "task saw 1", "key 11"), s.log,
+    assertEquals(
+        List.of("key 1", "task saw 1", "key 11"),
+        s.log,
         "the task sees the first key's count, and the second key a view built after the task");
     assertEquals(11, s.count);
   }
@@ -195,13 +199,17 @@ class PostTest {
     Counter s = app.state();
     Thread appThread = Thread.currentThread();
     Thread[] ranOn = new Thread[2];
-    app.background("answer", () -> {
-      ranOn[0] = Thread.currentThread();
-      return 42;
-    }, result -> {
-      ranOn[1] = Thread.currentThread();
-      s.result = result;
-    }, failure -> s.failure = failure);
+    app.background(
+        "answer",
+        () -> {
+          ranOn[0] = Thread.currentThread();
+          return 42;
+        },
+        result -> {
+          ranOn[1] = Thread.currentThread();
+          s.result = result;
+        },
+        failure -> s.failure = failure);
     app.await(LONG);
     assertTrue(app.frame());
 
@@ -215,9 +223,13 @@ class PostTest {
     App<Counter> app = start();
     Counter s = app.state();
     Exception error = new java.io.IOException("relation \"orders\" does not exist");
-    app.background("rows of orders", () -> {
-      throw error;
-    }, result -> s.result = result, failure -> s.failure = failure);
+    app.background(
+        "rows of orders",
+        () -> {
+          throw error;
+        },
+        result -> s.result = result,
+        failure -> s.failure = failure);
     app.await(LONG);
     app.frame();
 
@@ -228,9 +240,13 @@ class PostTest {
   @Test
   void anErrorOfTheComputationIsThrownOnTheAppsThread() throws InterruptedException {
     App<Counter> app = start();
-    app.background("deep", () -> {
-      throw new StackOverflowError("too deep");
-    }, result -> {}, failure -> {});
+    app.background(
+        "deep",
+        () -> {
+          throw new StackOverflowError("too deep");
+        },
+        result -> {},
+        failure -> {});
     app.await(LONG);
     StackOverflowError thrown = assertThrows(StackOverflowError.class, app::frame);
     assertEquals("too deep", thrown.getMessage());
@@ -242,16 +258,20 @@ class PostTest {
     Counter s = app.state();
     CountDownLatch started = new CountDownLatch(1);
     CountDownLatch interrupted = new CountDownLatch(1);
-    Work work = app.background("slow", () -> {
-      started.countDown();
-      try {
-        Thread.sleep(LONG);
-        return "late";
-      } catch (InterruptedException e) {
-        interrupted.countDown();
-        throw e;
-      }
-    }, result -> s.result = result, failure -> s.failure = failure);
+    Work work = app.background(
+        "slow",
+        () -> {
+          started.countDown();
+          try {
+            Thread.sleep(LONG);
+            return "late";
+          } catch (InterruptedException e) {
+            interrupted.countDown();
+            throw e;
+          }
+        },
+        result -> s.result = result,
+        failure -> s.failure = failure);
     started.await();
     work.cancel();
     assertTrue(interrupted.await(LONG.toSeconds(), TimeUnit.SECONDS));
@@ -280,14 +300,18 @@ class PostTest {
   void awaitNamesTheWorkThatStillRunsAfterItsTimeout() throws InterruptedException {
     App<Counter> app = start();
     CountDownLatch release = new CountDownLatch(1);
-    Work work = app.background("databases of staging", () -> {
-      release.await();
-      return List.of("shop");
-    }, r -> {}, f -> {});
+    Work work = app.background(
+        "databases of staging",
+        () -> {
+          release.await();
+          return List.of("shop");
+        },
+        r -> {},
+        f -> {});
     IllegalStateException thrown =
         assertThrows(IllegalStateException.class, () -> app.await(Duration.ofMillis(50)));
-    assertTrue(thrown.getMessage().contains("still runs: databases of staging."),
-        thrown.getMessage());
+    assertTrue(
+        thrown.getMessage().contains("still runs: databases of staging."), thrown.getMessage());
     work.cancel();
     app.await(Duration.ofMillis(50));
     release.countDown();
@@ -299,9 +323,13 @@ class PostTest {
   @Test
   void aScriptLetsTheResultsInOnlyAtAwait() throws IOException {
     AtomicReference<App<Counter>> holder = new AtomicReference<>();
-    App<Counter> app = new App<>(new Counter(), c -> el().wFull().hFull().key("load")
-        .label(c.result == null ? "empty" : "loaded " + c.result)
-        .onPress(() -> holder.get().background("rows", () -> 3, r -> c.result = r, f -> {})));
+    App<Counter> app = new App<>(
+        new Counter(),
+        c -> el().wFull()
+            .hFull()
+            .key("load")
+            .label(c.result == null ? "empty" : "loaded " + c.result)
+            .onPress(() -> holder.get().background("rows", () -> 3, r -> c.result = r, f -> {})));
     holder.set(app);
     Script.run("size 100 100\nframe\npress #load\nframe\nframe\nsnap pressed\n", app, out);
     assertEquals("empty", app.tree().label(), "however fast the work was");
@@ -313,13 +341,25 @@ class PostTest {
   void aScriptsAwaitThatTimesOutNamesTheLineAndTheWork() {
     CountDownLatch release = new CountDownLatch(1);
     AtomicReference<App<Counter>> holder = new AtomicReference<>();
-    holder.set(new App<>(new Counter(), c -> el().wFull().hFull().key("load")
-        .onPress(() -> holder.get().background("rows of orders", () -> {
-          release.await();
-          return 1;
-        }, r -> {}, f -> {}))));
-    Script.Failure failure = assertThrows(Script.Failure.class, () -> Script.run(
-        "size 100 100\nframe\npress #load\nframe\nawait 0.05\n", holder.get(), out));
+    holder.set(new App<>(
+        new Counter(),
+        c -> el().wFull()
+            .hFull()
+            .key("load")
+            .onPress(() -> holder
+                .get()
+                .background(
+                    "rows of orders",
+                    () -> {
+                      release.await();
+                      return 1;
+                    },
+                    r -> {},
+                    f -> {}))));
+    Script.Failure failure = assertThrows(
+        Script.Failure.class,
+        () ->
+            Script.run("size 100 100\nframe\npress #load\nframe\nawait 0.05\n", holder.get(), out));
     release.countDown();
     assertTrue(failure.getMessage().startsWith("line 5: await 0.05\n"), failure.getMessage());
     assertTrue(failure.getMessage().contains("still runs: rows of orders."), failure.getMessage());

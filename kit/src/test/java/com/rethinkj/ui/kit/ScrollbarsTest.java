@@ -26,8 +26,16 @@ import org.junit.jupiter.params.provider.CsvSource;
 class ScrollbarsTest {
 
   private static final String[] TABLES = {
-    "accounts", "addresses", "audit_log", "carts", "categories", "customers", "deliveries",
-    "discounts", "employees", "inventory"
+    "accounts",
+    "addresses",
+    "audit_log",
+    "carts",
+    "categories",
+    "customers",
+    "deliveries",
+    "discounts",
+    "employees",
+    "inventory"
   };
 
   @BeforeEach
@@ -40,19 +48,36 @@ class ScrollbarsTest {
    * of 240 by 200.
    */
   static El view(Theme t, int[] selected) {
-    El list = col().key("tables").role("list").label("Tables").grow(1)
-        .padding(t.space().s()).radius(t.radius().large()).fill(t.surface().panel())
+    El list = col()
+        .key("tables")
+        .role("list")
+        .label("Tables")
+        .grow(1)
+        .padding(t.space().s())
+        .radius(t.radius().large())
+        .fill(t.surface().panel())
         .border(t.size().stroke(), t.border().subtle())
         .rows(40, t.size().control(), i -> {
           int fill = i == selected[0] ? t.grid().selected() : t.surface().panel();
-          El r = row().key("table-" + i).role("listitem").label(TABLES[i % TABLES.length])
-              .padding(0, t.space().m()).align(Style.Align.CENTER).radius(t.radius().medium())
-              .fill(fill).onPress(() -> selected[0] = i)
+          El r = row()
+              .key("table-" + i)
+              .role("listitem")
+              .label(TABLES[i % TABLES.length])
+              .padding(0, t.space().m())
+              .align(Style.Align.CENTER)
+              .radius(t.radius().medium())
+              .fill(fill)
+              .onPress(() -> selected[0] = i)
               .child(Label.label(t, TABLES[i % TABLES.length] + "_" + i));
           return r.whenHovered(e -> e.fill(Theme.over(fill, t.surface().hover())));
         })
         .scrollbars(t.scrollbars());
-    return col().wFull().hFull().padding(t.space().l()).fill(t.surface().window()).child(list);
+    return col()
+        .wFull()
+        .hFull()
+        .padding(t.space().l())
+        .fill(t.surface().window())
+        .child(list);
   }
 
   @ParameterizedTest(name = "{0} at {1}x")

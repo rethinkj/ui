@@ -73,6 +73,7 @@ public final class GpuPresenter implements WindowLoop.Presenter, AutoCloseable {
   private boolean pending;
   /** True when the surface asked to be configured again, even if the size is the same. */
   private boolean stale = true;
+
   private long frames;
   private boolean closed;
 
@@ -110,23 +111,26 @@ public final class GpuPresenter implements WindowLoop.Presenter, AutoCloseable {
   /** Chooses the surface's format and alpha mode for the adapter of {@code device}. */
   private void choose(Device device, Surface surface) {
     Surface.Capabilities capabilities = surface.capabilities(device);
-    format = formats.stream().filter(capabilities.formats()::contains).findFirst()
+    format = formats.stream()
+        .filter(capabilities.formats()::contains)
+        .findFirst()
         .orElseThrow(() -> new IllegalStateException("The window's surface offers no sRGB"
             + " format, only " + capabilities.formats() + "; the renderer blends in linear"
             + " light and needs one of " + formats + "."));
     alphaMode = capabilities.alphaModes().contains(Surface.AlphaMode.OPAQUE)
-        ? Surface.AlphaMode.OPAQUE : Surface.AlphaMode.AUTO;
+        ? Surface.AlphaMode.OPAQUE
+        : Surface.AlphaMode.AUTO;
   }
 
   /** The surface's source for the window's handles. */
   private static SurfaceSource source(WindowHandle handle) {
     return switch (handle) {
       case WindowHandle.Win32(var hwnd, var hinstance) ->
-          new SurfaceSource.WindowsHwnd(hinstance.address(), hwnd.address());
+        new SurfaceSource.WindowsHwnd(hinstance.address(), hwnd.address());
       case WindowHandle.Xlib(var display, long window) ->
-          new SurfaceSource.XlibWindow(display.address(), window);
+        new SurfaceSource.XlibWindow(display.address(), window);
       case WindowHandle.Wayland(var display, var wlSurface) ->
-          new SurfaceSource.WaylandSurface(display.address(), wlSurface.address());
+        new SurfaceSource.WaylandSurface(display.address(), wlSurface.address());
     };
   }
 
@@ -141,10 +145,14 @@ public final class GpuPresenter implements WindowLoop.Presenter, AutoCloseable {
     }
     Device device = context.device(surface);
     Surface.Configuration configuration = surface.configuration();
-    if (configuration == null || stale || configuration.width() != pixelWidth
+    if (configuration == null
+        || stale
+        || configuration.width() != pixelWidth
         || configuration.height() != pixelHeight) {
-      surface.configure(device, new Surface.Configuration(format, pixelWidth, pixelHeight,
-          Surface.PresentMode.FIFO, alphaMode));
+      surface.configure(
+          device,
+          new Surface.Configuration(
+              format, pixelWidth, pixelHeight, Surface.PresentMode.FIFO, alphaMode));
       stale = false;
     }
     SurfaceFrame frame = surface.acquireFrame();
@@ -159,8 +167,9 @@ public final class GpuPresenter implements WindowLoop.Presenter, AutoCloseable {
         case TIMEOUT -> pending = true;
         // Hidden: the window asks for a redraw when it shows again.
         case OCCLUDED -> {}
-        default -> throw new IllegalStateException("The window's surface gave no frame to draw"
-            + " into: " + surface.lastStatus());
+        default ->
+          throw new IllegalStateException(
+              "The window's surface gave no frame to draw" + " into: " + surface.lastStatus());
       }
       return;
     }

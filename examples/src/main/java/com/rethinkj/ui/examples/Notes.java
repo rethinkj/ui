@@ -96,33 +96,55 @@ public final class Notes {
 
   static El view(Notes s) {
     Theme t = THEME;
-    El cards = row().key("row").grow(1).gap(t.space().m()).padding(t.space().l())
+    El cards = row()
+        .key("row")
+        .grow(1)
+        .gap(t.space().m())
+        .padding(t.space().l())
         .onDrop(d -> s.overRow(d));
     for (int i = 0; i <= s.row.size(); i++) {
       if (i == s.marker) {
-        cards.child(el().key("marker").w(t.size().stroke() * 3).hFull()
-            .radius(t.radius().small()).fill(t.accent().color()));
+        cards.child(el().key("marker")
+            .w(t.size().stroke() * 3)
+            .hFull()
+            .radius(t.radius().small())
+            .fill(t.accent().color()));
       }
       if (i < s.row.size()) {
         Note note = s.row.get(i);
         El card = note.window != null
-            ? card(t, Card.Variant.FILLED, // in its own window: shown, not edited, here
+            ? card(
+                t,
+                Card.Variant.FILLED, // in its own window: shown, not edited, here
                 label(t, Label.Variant.MUTED, note.title),
-                label(t, Label.Variant.MUTED, note.text).key("text-" + note.title).wrapText())
-            : card(t, handle(t, note, s), textArea(t, note.text, "Empty", text -> note.text = text)
-                .key("text-" + note.title).wFull().grow(1));
+                label(t, Label.Variant.MUTED, note.text)
+                    .key("text-" + note.title)
+                    .wrapText())
+            : card(
+                t,
+                handle(t, note, s),
+                textArea(t, note.text, "Empty", text -> note.text = text)
+                    .key("text-" + note.title)
+                    .wFull()
+                    .grow(1));
         cards.child(card.key("card-" + note.title).w(CARD).shrink(0));
       }
     }
-    return col().wFull().hFull().fill(t.surface().window())
-        .child(row().padding(t.space().l(), t.space().l(), 0, t.space().l())
+    return col()
+        .wFull()
+        .hFull()
+        .fill(t.surface().window())
+        .child(row()
+            .padding(t.space().l(), t.space().l(), 0, t.space().l())
             .child(label(t, Label.Variant.HEADING, "Notes")))
         .child(cards);
   }
 
   /** A note's title, which drags the note: along the row, out of the window, back. */
   static El handle(Theme t, Note note, Notes s) {
-    return row().key("handle-" + note.title).cursor(Cursor.POINTER)
+    return row()
+        .key("handle-" + note.title)
+        .cursor(Cursor.POINTER)
         .child(label(t, Label.Variant.STRONG, note.title))
         .dragPayload(note)
         .onDrag(d -> s.drag(note, d));
@@ -192,19 +214,25 @@ public final class Notes {
     App<Notes> noteApp = new App<>(this, s -> s.noteView(note));
     noteApp.textRendering(app.textRendering());
     float scale = app.windows().of(app).screenScale(); // the new window's, unless it differs
-    note.window = app.windows().open(note.title, NOTE_WIDTH, NOTE_HEIGHT,
-        Identity.options(Notes.class, "Notes", Identity.VIOLET, Symbol.EDIT)
-            .position(Math.round(d.screenX() - grabX * scale),
-                Math.round(d.screenY() - grabY * scale))
-            .underPointer(),
-        noteApp);
+    note.window = app.windows()
+        .open(
+            note.title,
+            NOTE_WIDTH,
+            NOTE_HEIGHT,
+            Identity.options(Notes.class, "Notes", Identity.VIOLET, Symbol.EDIT)
+                .position(
+                    Math.round(d.screenX() - grabX * scale),
+                    Math.round(d.screenY() - grabY * scale))
+                .underPointer(),
+            noteApp);
     note.window.dropTarget(false); // it lies under the pointer, over the row it may go back to
-    note.window.onCloseRequest(() -> { // closing it docks the note where its muted card is
-      if (note.window != null) {
-        note.window.close();
-        note.window = null;
-      }
-    });
+    note.window.onCloseRequest(
+        () -> { // closing it docks the note where its muted card is
+          if (note.window != null) {
+            note.window.close();
+            note.window = null;
+          }
+        });
   }
 
   void follow(Windows.Handle window, Drag d) {
@@ -216,10 +244,16 @@ public final class Notes {
 
   El noteView(Note note) {
     Theme t = THEME;
-    return col().wFull().hFull().fill(t.surface().window()).padding(t.space().l())
+    return col()
+        .wFull()
+        .hFull()
+        .fill(t.surface().window())
+        .padding(t.space().l())
         .gap(t.space().l())
         .child(label(t, Label.Variant.STRONG, note.title).key("title"))
-        .child(textArea(t, note.text, "Empty", text -> note.text = text).key("text").wFull()
+        .child(textArea(t, note.text, "Empty", text -> note.text = text)
+            .key("text")
+            .wFull()
             .grow(1));
   }
 }

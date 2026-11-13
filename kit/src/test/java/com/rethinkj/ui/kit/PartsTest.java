@@ -24,7 +24,8 @@ import org.junit.jupiter.params.provider.CsvSource;
  */
 class PartsTest {
 
-  @TempDir Path out;
+  @TempDir
+  Path out;
 
   @BeforeEach
   void textLibraries() {
@@ -36,12 +37,22 @@ class PartsTest {
   }
 
   /** Runs the steps in a window of this size and compares the snap {@code parts-<name>-…}. */
-  private String check(String name, String theme, int scale, int width, int height,
-      Function<Parts, El> view, String steps) throws IOException {
+  private String check(
+      String name,
+      String theme,
+      int scale,
+      int width,
+      int height,
+      Function<Parts, El> view,
+      String steps)
+      throws IOException {
     App<Parts> app = new Parts(theme(theme)).app(view);
     String image = "parts-" + name + "-" + theme + "-" + scale + "x";
-    Script.run("size " + width + " " + height + " scale " + scale + "\nframe\nframe\n" + steps
-        + "\nadvance 1\nframe\nsnap " + image, app, out);
+    Script.run(
+        "size " + width + " " + height + " scale " + scale + "\nframe\nframe\n" + steps
+            + "\nadvance 1\nframe\nsnap " + image,
+        app,
+        out);
     String tree = Files.readString(out.resolve(image + ".tree.txt"));
     Golden.assertMatches(image, Png.decode(Files.readAllBytes(out.resolve(image + ".png"))), tree);
     return tree;
@@ -54,14 +65,23 @@ class PartsTest {
     check("detail", theme, scale, 720, 420, Parts::detail, "");
     // Narrow: the toolbar's end and the breadcrumb's start go into menus.
     check("detail-narrow", theme, scale, 330, 420, Parts::detail, "");
-    check("popover", theme, scale, 720, 420, Parts::detail,
+    check(
+        "popover",
+        theme,
+        scale,
+        720,
+        420,
+        Parts::detail,
         "press #filter\nframe\nadvance 0.25\nframe");
   }
 
   private App<Parts> run(int width, String steps) throws IOException {
     App<Parts> app = new Parts(Theme.DARK).app(Parts::detail);
-    Script.run("size " + width + " 420\nframe\nframe\nadvance 1\nframe\n" + steps
-        + "\nframe\nadvance 1\nframe", app, out);
+    Script.run(
+        "size " + width + " 420\nframe\nframe\nadvance 1\nframe\n" + steps
+            + "\nframe\nadvance 1\nframe",
+        app,
+        out);
     return app;
   }
 
@@ -81,15 +101,24 @@ class PartsTest {
     String narrow = app.tree().dump();
     assertTrue(narrow.contains("role=button label=\"More\""), narrow);
     assertTrue(!narrow.contains("role=button label=\"Export\""), narrow);
-    more(app, out, 330, "press role=button label=\"More\"\nframe\nadvance 0.25\nframe\n"
-        + "press role=menuitem label=\"Export\"\nframe");
+    more(
+        app,
+        out,
+        330,
+        "press role=button label=\"More\"\nframe\nadvance 0.25\nframe\n"
+            + "press role=menuitem label=\"Export\"\nframe");
     assertEquals("export", app.state().log.getLast(), "the menu runs the same action");
-    more(app, out, 240, "frame\nframe\nframe\nadvance 1\nframe\npress role=button label=\"More\"\nframe\n"
-        + "advance 0.25\nframe\npress role=menuitem label=\"Wrap values\"\nframe");
+    more(
+        app,
+        out,
+        240,
+        "frame\nframe\nframe\nadvance 1\nframe\npress role=button label=\"More\"\nframe\n"
+            + "advance 0.25\nframe\npress role=menuitem label=\"Wrap values\"\nframe");
     assertTrue(app.state().wrap, "a toggle as a checked item");
     more(app, out, 720, "frame\nframe");
     assertTrue(app.tree().dump().contains("role=button label=\"Wrap values\" "), "back");
-    assertTrue(StructureTest.line(app.tree().dump(), "label=\"Wrap values\"").contains(" checked"),
+    assertTrue(
+        StructureTest.line(app.tree().dump(), "label=\"Wrap values\"").contains(" checked"),
         app.tree().dump());
   }
 
@@ -117,8 +146,12 @@ class PartsTest {
   void theSplitButtonRunsAndOpensItsMenu() throws IOException {
     App<Parts> app = run(720, "press #main\nframe");
     assertEquals("run", app.state().log.getLast());
-    more(app, out, 720, "press label=\"More Run\"\nframe\nadvance 0.25\nframe\n"
-        + "press role=menuitem label=\"Explain\"\nframe");
+    more(
+        app,
+        out,
+        720,
+        "press label=\"More Run\"\nframe\nadvance 0.25\nframe\n"
+            + "press role=menuitem label=\"Explain\"\nframe");
     assertEquals("explain", app.state().log.getLast());
   }
 
@@ -128,16 +161,26 @@ class PartsTest {
     Theme t = Theme.DARK;
     Breadcrumb.State crumbs = new Breadcrumb.State();
     Toolbar.State tools = new Toolbar.State();
-    App<Object> app = new App<>(new Object(), x -> El.col().h(300).children(
-        Breadcrumb.breadcrumb(t, crumbs, java.util.List.of("localhost", "shop"), i -> { }),
-        Toolbar.toolbar(t, tools, "Table", java.util.List.of(
-            Toolbar.button(Symbol.ARROW_CLOCKWISE, "Refresh", () -> { })))));
+    App<Object> app = new App<>(
+        new Object(),
+        x -> El.col()
+            .h(300)
+            .children(
+                Breadcrumb.breadcrumb(t, crumbs, java.util.List.of("localhost", "shop"), i -> {}),
+                Toolbar.toolbar(
+                    t,
+                    tools,
+                    "Table",
+                    java.util.List.of(
+                        Toolbar.button(Symbol.ARROW_CLOCKWISE, "Refresh", () -> {})))));
     Script.run("size 400 320\nframe\nframe", app, out);
     String dump = app.tree().dump();
-    assertEquals(t.size().control(),
-        StructureTest.rect(StructureTest.line(dump, "role=navigation"))[3], dump);
-    assertEquals(t.size().control(),
-        StructureTest.rect(StructureTest.line(dump, "role=toolbar"))[3], dump);
+    assertEquals(
+        t.size().control(),
+        StructureTest.rect(StructureTest.line(dump, "role=navigation"))[3],
+        dump);
+    assertEquals(
+        t.size().control(), StructureTest.rect(StructureTest.line(dump, "role=toolbar"))[3], dump);
   }
 
   @Test
@@ -145,9 +188,11 @@ class PartsTest {
     App<Parts> app = run(720, "");
     String dump = app.tree().dump();
     assertTrue(dump.contains("role=navigation label=\"Breadcrumb\""), dump);
-    assertTrue(StructureTest.line(dump, "label=\"orders_by_customer_and_month\"")
-        .contains("role=link") && StructureTest.line(dump, "label=\"orders_by_customer_and_month\"")
-        .contains(" current"), dump);
+    assertTrue(
+        StructureTest.line(dump, "label=\"orders_by_customer_and_month\"").contains("role=link")
+            && StructureTest.line(dump, "label=\"orders_by_customer_and_month\"")
+                .contains(" current"),
+        dump);
     more(app, out, 720, "focus role=link label=\"localhost\"\nframe");
     more(app, out, 720, "key Tab shift\nkey Tab\nframe");
     assertEquals("localhost", app.focused().label(), "one stop, at the first part");
@@ -161,8 +206,12 @@ class PartsTest {
     String shortened = narrow.tree().dump();
     assertTrue(shortened.contains("role=button label=\"Hidden parts\""), shortened);
     assertTrue(!shortened.contains("label=\"localhost\""), shortened);
-    more(narrow, out, 200, "press label=\"Hidden parts\"\nframe\nadvance 0.25\nframe\n"
-        + "press role=menuitem label=\"localhost\"\nframe");
+    more(
+        narrow,
+        out,
+        200,
+        "press label=\"Hidden parts\"\nframe\nadvance 0.25\nframe\n"
+            + "press role=menuitem label=\"localhost\"\nframe");
     assertEquals("crumb localhost", narrow.state().log.getLast());
   }
 
@@ -171,8 +220,9 @@ class PartsTest {
     App<Parts> app = run(720, "move label=\"Rows\"\nframe");
     String dump = app.tree().dump();
     more(app, out, 720, "press label=\"Copy Rows\"\nframe");
-    assertTrue(StructureTest.line(dump, "role=listitem label=\"Rows\"")
-        .contains("value=\"1,000,000\""), dump);
+    assertTrue(
+        StructureTest.line(dump, "role=listitem label=\"Rows\"").contains("value=\"1,000,000\""),
+        dump);
     assertEquals("1,000,000", app.state().clipboard.read());
     String copied = app.tree().dump();
     assertTrue(copied.contains("role=tooltip label=\"Copied\""), copied);
@@ -180,8 +230,11 @@ class PartsTest {
     more(app, out, 720, "advance 2\nframe\nadvance 1\nframe");
     assertTrue(!app.tree().dump().contains("label=\"checkmark\""), "the copy icon back");
     more(app, out, 720, "press label=\"Owner\"\nframe");
-    assertTrue(app.focused() == null || app.focused().isEditable() == false
-        || "shop_admin".equals(app.focused().text().string()), "a press selects in the value");
+    assertTrue(
+        app.focused() == null
+            || app.focused().isEditable() == false
+            || "shop_admin".equals(app.focused().text().string()),
+        "a press selects in the value");
   }
 
   @Test
@@ -202,8 +255,10 @@ class PartsTest {
   @Test
   void aRemovableBadgeHasACrossAndAPressableOneIsAButton() throws IOException {
     App<Parts> app = new Parts(Theme.DARK).app(Parts::badges);
-    Script.run("size 560 360\nframe\npress label=\"Remove status = paid\"\nframe\n"
-        + "press #add\nframe", app, out);
+    Script.run(
+        "size 560 360\nframe\npress label=\"Remove status = paid\"\nframe\n" + "press #add\nframe",
+        app,
+        out);
     assertEquals(java.util.List.of("total > 100"), app.state().filters);
     assertEquals("add", app.state().log.getLast());
     assertEquals(null, app.focused(), "neither takes the focus from a press");

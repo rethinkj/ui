@@ -12,7 +12,13 @@ final class Frame {
   private Frame() {}
 
   static El of(Theme t, El... content) {
-    return col().wFull().hFull().fill(t.surface().window()).padding(t.space().l())
-        .gap(t.space().m()).align(Style.Align.START).children(content);
+    return col()
+        .wFull()
+        .hFull()
+        .fill(t.surface().window())
+        .padding(t.space().l())
+        .gap(t.space().m())
+        .align(Style.Align.START)
+        .children(content);
   }
 }

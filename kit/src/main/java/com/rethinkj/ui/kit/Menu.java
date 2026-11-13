@@ -91,8 +91,14 @@ public final class Menu {
    * @param onChoose runs when the item is chosen; null disables an item without a submenu
    * @param submenu the items of the submenu the item opens, or null for none
    */
-  public record Item(String label, String shortcut, Key keys, boolean checked, Symbol icon,
-      Runnable onChoose, List<Item> submenu) {
+  public record Item(
+      String label,
+      String shortcut,
+      Key keys,
+      boolean checked,
+      Symbol icon,
+      Runnable onChoose,
+      List<Item> submenu) {
 
     /** This item with a text shown at its right, which only shows: no key runs the item. */
     public Item shortcut(String text) {
@@ -185,23 +191,25 @@ public final class Menu {
       text.append("Shift+");
     }
     String name = key.name();
-    return text.append(switch (name) {
-      case "ArrowUp" -> "Up";
-      case "ArrowDown" -> "Down";
-      case "ArrowLeft" -> "Left";
-      case "ArrowRight" -> "Right";
-      case "Escape" -> "Esc";
-      case "Delete" -> windows ? "Del" : "Delete";
-      case "Insert" -> windows ? "Ins" : "Insert";
-      case "PageUp" -> windows ? "PgUp" : "Page Up";
-      case "PageDown" -> windows ? "PgDn" : "Page Down";
-      case "NumpadAdd" -> "Num +";
-      case "NumpadSubtract" -> "Num -";
-      case "NumpadMultiply" -> "Num *";
-      case "NumpadDivide" -> "Num /";
-      case "NumpadDecimal" -> "Num .";
-      default -> name.startsWith("Numpad") ? "Num " + name.substring(6) : name;
-    }).toString();
+    return text.append(
+            switch (name) {
+              case "ArrowUp" -> "Up";
+              case "ArrowDown" -> "Down";
+              case "ArrowLeft" -> "Left";
+              case "ArrowRight" -> "Right";
+              case "Escape" -> "Esc";
+              case "Delete" -> windows ? "Del" : "Delete";
+              case "Insert" -> windows ? "Ins" : "Insert";
+              case "PageUp" -> windows ? "PgUp" : "Page Up";
+              case "PageDown" -> windows ? "PgDn" : "Page Down";
+              case "NumpadAdd" -> "Num +";
+              case "NumpadSubtract" -> "Num -";
+              case "NumpadMultiply" -> "Num *";
+              case "NumpadDivide" -> "Num /";
+              case "NumpadDecimal" -> "Num .";
+              default -> name.startsWith("Numpad") ? "Num " + name.substring(6) : name;
+            })
+        .toString();
   }
 
   /**
@@ -360,9 +368,11 @@ public final class Menu {
    * @return the anchor
    */
   public static El dropdown(Theme t, El anchor, State state, List<Item> items) {
-    return anchor.overlay(state.isOpen()
-        ? menu(t, state, items).side(Side.BOTTOM, Style.Align.START, t.space().xs())
-        : null);
+    return anchor.overlay(
+        state.isOpen()
+            ? menu(t, state, items)
+                .side(Side.BOTTOM, Style.Align.START, t.space().xs())
+            : null);
   }
 
   /**
@@ -396,7 +406,10 @@ public final class Menu {
   }
 
   private static El panel(Theme t, State state, List<Item> items, int level, Bar bar) {
-    El panel = col().key(level == 0 ? "menu" : "submenu").role("menu").focusable()
+    El panel = col()
+        .key(level == 0 ? "menu" : "submenu")
+        .role("menu")
+        .focusable()
         .focusRing(t.accent().edge())
         .padding(t.space().s())
         .radius(t.radius().medium())
@@ -408,10 +421,13 @@ public final class Menu {
         .scrollbars(t.scrollbars())
         .onKey(k -> key(k, state, items, level, bar));
     for (int i = 0; i < items.size(); i++) {
-      panel.child(items.get(i).isSeparator()
-          ? el().h(t.size().stroke()).shrink(0).margin(t.space().xs(), 0, t.space().xs(), 0)
-              .fill(t.border().subtle())
-          : item(t, state, items, i, level, bar));
+      panel.child(
+          items.get(i).isSeparator()
+              ? el().h(t.size().stroke())
+                  .shrink(0)
+                  .margin(t.space().xs(), 0, t.space().xs(), 0)
+                  .fill(t.border().subtle())
+              : item(t, state, items, i, level, bar));
     }
     return panel;
   }
@@ -428,24 +444,34 @@ public final class Menu {
     } else if (item.icon() != null) {
       mark.child(icon(t, item.icon()).color(text));
     }
-    El content = row().wFull().hFull().padding(0, t.space().m()).gap(t.space().m())
+    El content = row()
+        .wFull()
+        .hFull()
+        .padding(0, t.space().m())
+        .gap(t.space().m())
         .align(Style.Align.CENTER)
         .children(mark, label(t, item.label()).color(text).grow(1));
     boolean opens = item.opens();
     if (opens) {
       content.child(icon(t, SUBMENU).color(quiet));
     } else if (item.shortcut() != null) {
-      content.child(label(t, item.shortcut()).color(quiet).margin(0, 0, 0, t.space().l()));
+      content.child(
+          label(t, item.shortcut()).color(quiet).margin(0, 0, 0, t.space().l()));
     }
     // After a rest, the item's submenu opens and any other of its level closes.
     content.onHoverFor(t.motion().submenuDelay(), () -> state.openSubmenu(level, opens ? i : -1));
     // The highlight is the calm tint of a selection; the full accent belongs to primary buttons.
-    int fill = !lit ? 0
-        : enabled ? t.grid().selected()
-        : over(t.surface().raised(), t.surface().hover());
-    El el = row().key((level == 0 ? "item-" : "subitem-") + i).role("menuitem")
+    int fill = !lit
+        ? 0
+        : enabled ? t.grid().selected() : over(t.surface().raised(), t.surface().hover());
+    El el = row()
+        .key((level == 0 ? "item-" : "subitem-") + i)
+        .role("menuitem")
         .label(item.label())
-        .h(t.size().control()).shrink(0).radius(t.radius().small()).fill(fill)
+        .h(t.size().control())
+        .shrink(0)
+        .radius(t.radius().small())
+        .fill(fill)
         .onHoverFor(0, () -> state.highlight(level, i))
         .disabled(!enabled)
         .current(lit) // the highlight, which a dump would otherwise show only as a colour

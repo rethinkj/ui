@@ -21,7 +21,11 @@ public final class EmptyState {
    * @param action a button below the text; null for none
    */
   public static El emptyState(Theme t, Symbol symbol, String title, String text, El action) {
-    El empty = col().role("status").label(title).grow(1).center()
+    El empty = col()
+        .role("status")
+        .label(title)
+        .grow(1)
+        .center()
         .padding(t.space().xxl())
         .gap(t.space().m())
         .child(icon(t, symbol, Icon.Variant.MUTED, 2 * t.size().control()))

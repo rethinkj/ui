@@ -17,8 +17,16 @@ final class Contrast {
 
   /** The backgrounds of the showcase's matrix, in its order; see {@link #backgrounds}. */
   static final List<String> BACKGROUNDS = List.of(
-      "window", "panel", "raised", "band", "hover r.", "hover p.", "grid row", "header",
-      "selected", "inactive");
+      "window",
+      "panel",
+      "raised",
+      "band",
+      "hover r.",
+      "hover p.",
+      "grid row",
+      "header",
+      "selected",
+      "inactive");
 
   /**
    * The colours of {@link #BACKGROUNDS}: the hover over raised (buttons, fields, selects) and over
@@ -27,8 +35,16 @@ final class Contrast {
   static List<Integer> backgrounds(Theme t) {
     Theme.Surfaces s = t.surface();
     Theme.Grid g = t.grid();
-    return List.of(s.window(), s.panel(), s.raised(), s.band(), Theme.over(s.raised(), s.hover()),
-        Theme.over(s.panel(), s.hover()), g.row(), g.header(), g.selected(),
+    return List.of(
+        s.window(),
+        s.panel(),
+        s.raised(),
+        s.band(),
+        Theme.over(s.raised(), s.hover()),
+        Theme.over(s.panel(), s.hover()),
+        g.row(),
+        g.header(),
+        g.selected(),
         g.selectedInactive());
   }
 

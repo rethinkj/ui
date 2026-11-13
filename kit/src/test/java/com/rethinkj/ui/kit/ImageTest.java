@@ -5,7 +5,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.rethinkj.ui.El;
-import com.rethinkj.ui.layout.Flex;
 import com.rethinkj.ui.render.Pixels;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -21,7 +20,9 @@ class ImageTest {
           com.rethinkj.ui.Image.of(new Pixels(80, 40, new byte[80 * 40 * 4]), 2);
       El image = Image.image(t, picture, "A chart");
       El placeholder = Image.image(t, null, "A chart").w(200);
-      El root = col().size(300, 200).align(com.rethinkj.ui.Style.Align.START)
+      El root = col()
+          .size(300, 200)
+          .align(com.rethinkj.ui.Style.Align.START)
           .children(image, placeholder);
       com.rethinkj.ui.Headless.render(root, 300, 200, 1);
       List<String> lines = root.dump().lines().map(String::strip).toList();

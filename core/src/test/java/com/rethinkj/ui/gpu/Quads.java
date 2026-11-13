@@ -59,21 +59,27 @@ final class Quads implements AutoCloseable {
   Quads(Device device, int capacity) {
     this.device = device;
     module = device.createShaderModule("quads", WGSL);
-    layout = device.createBindGroupLayout("globals",
-        BindGroupLayout.Entry.uniform(0, ShaderStage.VERTEX));
+    layout = device.createBindGroupLayout(
+        "globals", BindGroupLayout.Entry.uniform(0, ShaderStage.VERTEX));
     globals = device.createBuffer("globals", 16, BufferUsage.UNIFORM, BufferUsage.COPY_DST);
     group = device.createBindGroup("globals", layout, BindGroup.Entry.buffer(0, globals));
-    instances = device.createBuffer("quads", (long) capacity * STRIDE, BufferUsage.VERTEX,
-        BufferUsage.COPY_DST);
+    instances = device.createBuffer(
+        "quads", (long) capacity * STRIDE, BufferUsage.VERTEX, BufferUsage.COPY_DST);
   }
 
   /** A pipeline that draws the quads into a target of {@code format}. */
   RenderPipeline pipeline(String label, TextureFormat format, String vertexEntryPoint) {
-    return device.createRenderPipeline(new RenderPipeline.Descriptor(label, List.of(layout),
-        module, vertexEntryPoint,
-        List.of(new RenderPipeline.VertexBuffer(STRIDE, RenderPipeline.StepMode.INSTANCE, List.of(
-            new RenderPipeline.Attribute(VertexFormat.FLOAT32X4, 0, 0),
-            new RenderPipeline.Attribute(VertexFormat.FLOAT32X4, 16, 1)))),
+    return device.createRenderPipeline(new RenderPipeline.Descriptor(
+        label,
+        List.of(layout),
+        module,
+        vertexEntryPoint,
+        List.of(new RenderPipeline.VertexBuffer(
+            STRIDE,
+            RenderPipeline.StepMode.INSTANCE,
+            List.of(
+                new RenderPipeline.Attribute(VertexFormat.FLOAT32X4, 0, 0),
+                new RenderPipeline.Attribute(VertexFormat.FLOAT32X4, 16, 1)))),
         "fs_main",
         List.of(new RenderPipeline.ColorTarget(format, RenderPipeline.Blend.PREMULTIPLIED_ALPHA)),
         RenderPipeline.Topology.TRIANGLE_STRIP));
@@ -91,8 +97,8 @@ final class Quads implements AutoCloseable {
   }
 
   /** Records a pass that clears {@code target} and draws {@code count} quads. */
-  void draw(CommandEncoder encoder, TextureView target, Color clear, RenderPipeline pipeline,
-      int count) {
+  void draw(
+      CommandEncoder encoder, TextureView target, Color clear, RenderPipeline pipeline, int count) {
     try (RenderPass pass = encoder.beginRenderPass("quads", target, clear)) {
       pass.setPipeline(pipeline);
       pass.setBindGroup(0, group);

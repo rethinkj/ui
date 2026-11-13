@@ -43,7 +43,8 @@ class CodeEditorTest {
         SELECT n * 1.19
       $$ LANGUAGE sql;""";
 
-  @TempDir Path out;
+  @TempDir
+  Path out;
 
   @BeforeEach
   void needsText() {
@@ -62,9 +63,17 @@ class CodeEditorTest {
 
   static App<Query> app(Theme t) {
     Sql sql = Sql.of(t);
-    App<Query> app = new App<>(new Query(), s -> col().wFull().hFull().padding(12)
-        .fill(t.surface().window()).child(
-            codeEditor(t, s.sql, s.editor, sql, v -> s.sql = v).key("query").lines(9).wFull()));
+    App<Query> app = new App<>(
+        new Query(),
+        s -> col()
+            .wFull()
+            .hFull()
+            .padding(12)
+            .fill(t.surface().window())
+            .child(codeEditor(t, s.sql, s.editor, sql, v -> s.sql = v)
+                .key("query")
+                .lines(9)
+                .wFull()));
     app.textRendering(TextRendering.LINUX);
     return app;
   }
@@ -77,14 +86,18 @@ class CodeEditorTest {
     List<Path> files = Script.run("size 420 220 scale " + scale + "\n" + script, app, out);
     for (int i = 0; i < files.size(); i += 2) {
       String snap = files.get(i).getFileName().toString().replace(".png", "");
-      Golden.assertMatches("code-editor-" + theme + "-" + scale + "x-" + snap,
-          Png.decode(Files.readAllBytes(files.get(i))), Files.readString(files.get(i + 1)));
+      Golden.assertMatches(
+          "code-editor-" + theme + "-" + scale + "x-" + snap,
+          Png.decode(Files.readAllBytes(files.get(i))),
+          Files.readString(files.get(i + 1)));
     }
     String brackets = Files.readString(out.resolve("brackets.tree.txt"));
     assertTrue(brackets.contains("text #line-8 \"9\""), brackets);
     int after = QUERY.indexOf("'shipped')") + "'shipped')".length();
     assertTrue(brackets.contains(" caret " + after + " (9:38)"), brackets);
-    assertEquals(QUERY.length(), app.state().editor.caret(),
+    assertEquals(
+        QUERY.length(),
+        app.state().editor.caret(),
         "the editor keeps the caret in the state, at the end after the last snap");
     String scrolled = Files.readString(out.resolve("scrolled.tree.txt"));
     assertTrue(scrolled.contains("text #line-15 \"16\""), scrolled);

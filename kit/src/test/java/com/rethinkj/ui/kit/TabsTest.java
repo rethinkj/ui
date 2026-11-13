@@ -34,7 +34,8 @@ class TabsTest {
 
   private static final Theme T = Theme.DARK;
 
-  @TempDir Path out;
+  @TempDir
+  Path out;
 
   @BeforeEach
   void textLibraries() {
@@ -56,13 +57,26 @@ class TabsTest {
 
   @Test
   void aListOfRowsInTheContentScrollsInsideTabsInAColumnThatGrows() {
-    App<Object> app = new App<>(new Object(), s -> col().wFull().hFull().child(
-        tabs(T, List.of(new Tab("rows")), 0, i -> {}, null,
-            col().key("list").rows(1000, 20, i -> El.el())).key("tabs").grow(1)));
+    App<Object> app = new App<>(
+        new Object(),
+        s -> col()
+            .wFull()
+            .hFull()
+            .child(tabs(
+                    T,
+                    List.of(new Tab("rows")),
+                    0,
+                    i -> {},
+                    null,
+                    col().key("list").rows(1000, 20, i -> El.el()))
+                .key("tabs")
+                .grow(1)));
     app.resize(300, 200, 1);
     app.frame();
     assertEquals(200, find(app, "tabs").height());
-    assertEquals(200 - T.size().stroke(), find(app, "panel").y() + find(app, "list").height(),
+    assertEquals(
+        200 - T.size().stroke(),
+        find(app, "panel").y() + find(app, "list").height(),
         "the content fills the panel below the bar, inside the card's edge");
     app.wheel(20, 150, 0, 100);
     app.frame();
@@ -79,7 +93,9 @@ class TabsTest {
     assertEquals("products.sql", find(app, "panel").label());
     assertNull(app.focused(), "nowhere, as before the press");
     assertTrue(app.tree().dump().contains("text \"products.sql\"")); // in the content too
-    assertEquals(T.accent().edge(), find(app, "tab-3").children().getFirst().fill(),
+    assertEquals(
+        T.accent().edge(),
+        find(app, "tab-3").children().getFirst().fill(),
         "the active tab has the line at its bottom");
     assertEquals(0, find(app, "tab-3").fill(), "and shows the bar");
     assertEquals(0, find(app, "tab-0").fill(), "as the others");
@@ -138,7 +154,8 @@ class TabsTest {
     assertEquals(List.of("select 1", "select 0", "select 7"), w.log, "around at the start");
     run(app, "key ArrowRight\nframe\nkey Home\nframe\nkey End\nframe\nkey End\nframe");
     assertEquals(
-        List.of("select 1", "select 0", "select 7", "select 0", "select 7"), w.log,
+        List.of("select 1", "select 0", "select 7", "select 0", "select 7"),
+        w.log,
         "around at the end; told only of changes");
     run(app, "key ArrowLeft\nkey ArrowLeft\nframe");
     assertEquals(5, w.active, "two keys in one frame take two steps");
@@ -188,9 +205,19 @@ class TabsTest {
     assertEquals(find(app, "filter"), app.focused(), "closed: into the next tab's field");
 
     int[] active = {0};
-    App<int[]> bare = new App<>(active, a -> col().wFull().hFull().child(
-        tabs(T, List.of(new Tab("one"), new Tab("two")), a[0], i -> a[0] = i, null,
-            a[0] == 0 ? textField(T, "", v -> {}).key("field") : null).grow(1)));
+    App<int[]> bare = new App<>(
+        active,
+        a -> col()
+            .wFull()
+            .hFull()
+            .child(tabs(
+                    T,
+                    List.of(new Tab("one"), new Tab("two")),
+                    a[0],
+                    i -> a[0] = i,
+                    null,
+                    a[0] == 0 ? textField(T, "", v -> {}).key("field") : null)
+                .grow(1)));
     run(bare, "frame\npress #field\nkey Tab control\nframe");
     assertEquals(1, active[0]);
     assertEquals(find(bare, "tablist"), bare.focused(), "nothing to focus in the content: the bar");
@@ -208,8 +235,8 @@ class TabsTest {
     // hidden: it chooses that tab.
     assertEquals(List.of("close 0", "close 0", "select 1"), app.state().log);
     assertEquals(1, app.state().active);
-    assertEquals(app.state().queries.get(1).title().replace("*", ""),
-        find(app, "panel").label());
+    assertEquals(
+        app.state().queries.get(1).title().replace("*", ""), find(app, "panel").label());
   }
 
   // An overfull bar
@@ -242,14 +269,20 @@ class TabsTest {
 
   @Test
   void aBarWithoutASelectHandlerTakesNoFocusAndNoPress() throws IOException {
-    App<Object> app = new App<>(new Object(), s -> col().wFull().hFull().child(
-        tabs(T, List.of(new Tab("one"), new Tab("two")), 0, null, i -> {}, null).grow(1)));
+    App<Object> app = new App<>(
+        new Object(),
+        s -> col()
+            .wFull()
+            .hFull()
+            .child(tabs(T, List.of(new Tab("one"), new Tab("two")), 0, null, i -> {}, null)
+                .grow(1)));
     run(app, "frame\nkey Tab\nframe");
     assertNull(app.focused());
     assertFalse(find(app, "tablist").isFocusable());
     assertNull(find(app, "close-0"));
     assertNull(find(app, "tab-1").onPress());
-    assertEquals(T.text().disabled(), find(app, "tab-1").children().getFirst().text().color());
+    assertEquals(
+        T.text().disabled(), find(app, "tab-1").children().getFirst().text().color());
     assertTrue(dumpLine(app, "tab-0").endsWith(" disabled selected"));
     assertTrue(dumpLine(app, "tab-1").endsWith(" disabled"));
   }
@@ -257,9 +290,19 @@ class TabsTest {
   @Test
   void withoutAnActiveTabTheFirstKeyChoosesAnEnd() throws IOException {
     int[] chosen = {-1};
-    App<int[]> app = new App<>(chosen, c -> col().wFull().hFull().child(
-        tabs(T, List.of(new Tab("one"), new Tab("two"), new Tab("three")), c[0],
-            i -> c[0] = i, null, null).grow(1)));
+    App<int[]> app = new App<>(
+        chosen,
+        c -> col()
+            .wFull()
+            .hFull()
+            .child(tabs(
+                    T,
+                    List.of(new Tab("one"), new Tab("two"), new Tab("three")),
+                    c[0],
+                    i -> c[0] = i,
+                    null,
+                    null)
+                .grow(1)));
     run(app, "frame\nkey Tab\nkey Tab control shift\nframe");
     assertEquals(2, chosen[0]);
     assertNull(find(app, "close-2"), "no close handler: no crosses");
@@ -279,16 +322,16 @@ class TabsTest {
    * card's rounded top corners inside the card's clip.
    */
   @ParameterizedTest(name = "{0} at {1}x")
-  @org.junit.jupiter.params.provider.CsvSource({"dark, 1.5", "dark, 2", "light, 1.5",
-      "light, 2"})
+  @org.junit.jupiter.params.provider.CsvSource({"dark, 1.5", "dark, 2", "light, 1.5", "light, 2"})
   void theFocusedBarsRingFollowsTheCard(String name, String scale) throws IOException {
     Workbench w = Workbench.many(name.equals("dark") ? Theme.DARK : Theme.LIGHT);
     App<Workbench> app = w.app(Workbench::tabsView);
     String image = "tabs-focused-" + name + "-" + scale.replace(".", "_") + "x";
-    Script.run("size 400 160 scale " + scale + "\nframe\nkey Tab\nframe\nsnap " + image, app,
-        out);
-    Golden.assertMatches(image, com.rethinkj.ui.render.Png.decode(
-        java.nio.file.Files.readAllBytes(out.resolve(image + ".png"))),
+    Script.run("size 400 160 scale " + scale + "\nframe\nkey Tab\nframe\nsnap " + image, app, out);
+    Golden.assertMatches(
+        image,
+        com.rethinkj.ui.render.Png.decode(
+            java.nio.file.Files.readAllBytes(out.resolve(image + ".png"))),
         java.nio.file.Files.readString(out.resolve(image + ".tree.txt")));
   }
 }

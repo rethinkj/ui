@@ -73,12 +73,14 @@ class SystemIntegrationTest {
     Linker linker = Linker.nativeLinker();
     SymbolLookup user32 = SymbolLookup.libraryLookup("user32", Arena.global());
     SymbolLookup gdi32 = SymbolLookup.libraryLookup("gdi32", Arena.global());
-    MethodHandle getIconInfo = linker.downcallHandle(user32.find("GetIconInfo").orElseThrow(),
+    MethodHandle getIconInfo = linker.downcallHandle(
+        user32.find("GetIconInfo").orElseThrow(),
         FunctionDescriptor.of(JAVA_INT, ADDRESS, ADDRESS));
-    MethodHandle getObject = linker.downcallHandle(gdi32.find("GetObjectW").orElseThrow(),
+    MethodHandle getObject = linker.downcallHandle(
+        gdi32.find("GetObjectW").orElseThrow(),
         FunctionDescriptor.of(JAVA_INT, ADDRESS, JAVA_INT, ADDRESS));
-    MethodHandle deleteObject = linker.downcallHandle(gdi32.find("DeleteObject").orElseThrow(),
-        FunctionDescriptor.of(JAVA_INT, ADDRESS));
+    MethodHandle deleteObject = linker.downcallHandle(
+        gdi32.find("DeleteObject").orElseThrow(), FunctionDescriptor.of(JAVA_INT, ADDRESS));
     long icon = Win32.sendMessage(hwnd, Win32.WM_GETICON, kind, 0);
     assertNotEquals(0, icon, "the window has an icon of kind " + kind);
     try (Arena arena = Arena.ofConfined()) {
@@ -106,14 +108,16 @@ class SystemIntegrationTest {
     assertThrows(IllegalArgumentException.class, () -> Window.identity("with space", null));
     try (Window window = Window.open(TITLE, 300, 200)) {
       assertEquals(id, Sdl.getAppMetadataProperty(Sdl.PROP_APP_METADATA_IDENTIFIER_STRING));
-      assertEquals("System integration test",
-          Sdl.getAppMetadataProperty(Sdl.PROP_APP_METADATA_NAME_STRING));
+      assertEquals(
+          "System integration test", Sdl.getAppMetadataProperty(Sdl.PROP_APP_METADATA_NAME_STRING));
       if (WINDOWS) {
         assertEquals(id, Win32.currentProcessExplicitAppUserModelId());
       }
       // The same again, as code that opens a later window may set up its options: nothing changes.
       Window.identity(id, "System integration test");
-      assertThrows(IllegalStateException.class, () -> Window.identity(id, null),
+      assertThrows(
+          IllegalStateException.class,
+          () -> Window.identity(id, null),
           "the identity is set before the first window");
     }
   }
@@ -128,7 +132,8 @@ class SystemIntegrationTest {
             "Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize",
             "AppsUseLightTheme");
         SystemAppearance.Scheme expected = light == null || light != 0
-            ? SystemAppearance.Scheme.LIGHT : SystemAppearance.Scheme.DARK;
+            ? SystemAppearance.Scheme.LIGHT
+            : SystemAppearance.Scheme.DARK;
         assertEquals(expected, now.scheme());
         assertEquals(0xFF000000, now.accent() & 0xFF000000, "an opaque accent");
       } else {
@@ -143,9 +148,11 @@ class SystemIntegrationTest {
       // As SDL sends it when the system switches between light and dark.
       Desktop.systemEvent(Sdl.EVENT_SYSTEM_THEME_CHANGED);
       assertTrue(Desktop.pollUntil(() -> !one.isEmpty() && !two.isEmpty()), "both windows");
-      assertEquals(List.of(new AppearanceChanged(now)),
+      assertEquals(
+          List.of(new AppearanceChanged(now)),
           one.stream().filter(e -> e instanceof AppearanceChanged).toList());
-      assertEquals(List.of(new AppearanceChanged(now)),
+      assertEquals(
+          List.of(new AppearanceChanged(now)),
           two.stream().filter(e -> e instanceof AppearanceChanged).toList());
     }
   }
@@ -159,21 +166,25 @@ class SystemIntegrationTest {
       AtomicReference<WindowLoop> loop = new AtomicReference<>();
       boolean[] pushed = {false};
       loop.set(new WindowLoop(window, app, (scene, w, h, s) -> {
-        if (seen.size() == 1 && !pushed[0]) {
-          pushed[0] = true;
-          Desktop.systemEvent(Sdl.EVENT_SYSTEM_THEME_CHANGED); // once the first is in
-        } else if (seen.size() == 2) {
-          loop.get().stop();
-        }
-      }).appearance(seen::add));
-      Thread.ofPlatform().daemon().start(() -> { // a guard, so that a failure does not hang
-        try {
-          Thread.sleep(10_000);
-        } catch (InterruptedException e) {
-          return;
-        }
-        loop.get().stop();
-      });
+            if (seen.size() == 1 && !pushed[0]) {
+              pushed[0] = true;
+              Desktop.systemEvent(Sdl.EVENT_SYSTEM_THEME_CHANGED); // once the first is in
+            } else if (seen.size() == 2) {
+              loop.get().stop();
+            }
+          })
+          .appearance(seen::add));
+      Thread.ofPlatform()
+          .daemon()
+          .start(
+              () -> { // a guard, so that a failure does not hang
+                try {
+                  Thread.sleep(10_000);
+                } catch (InterruptedException e) {
+                  return;
+                }
+                loop.get().stop();
+              });
       loop.get().run();
       SystemAppearance now = Window.systemAppearance();
       assertEquals(List.of(now, now), seen);
@@ -222,8 +233,8 @@ class SystemIntegrationTest {
         assertTrue(window.attention(Window.Attention.UNTIL_FOCUSED));
       }
       window.attention(Window.Attention.NONE);
-      WindowIcon dot = WindowIcon.of(size -> el().wFull().hFull().radius(size / 2f)
-          .fill(0xFF16A34A));
+      WindowIcon dot =
+          WindowIcon.of(size -> el().wFull().hFull().radius(size / 2f).fill(0xFF16A34A));
       assertThrows(NullPointerException.class, () -> window.badge(dot, null));
       assertEquals(WINDOWS, window.badge(dot, "Connected"));
       assertEquals(WINDOWS, window.badge(null, null));

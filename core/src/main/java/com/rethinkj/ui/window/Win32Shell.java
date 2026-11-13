@@ -45,6 +45,7 @@ final class Win32Shell {
   private static int taskbarButtonCreated;
   /** The ITaskbarList3 of the windows' thread, made on first use; released before SDL quits. */
   private static MemorySegment taskbar = MemorySegment.NULL;
+
   private static boolean taskbarFailed;
 
   private final Window window;
@@ -131,14 +132,18 @@ final class Win32Shell {
       return false;
     }
     progressApplied++;
-    int hr = Win32.taskbarSetProgressState(list, hwnd, switch (progress) {
-      case NONE -> Win32.TBPF_NOPROGRESS;
-      case INDETERMINATE -> Win32.TBPF_INDETERMINATE;
-      case NORMAL -> Win32.TBPF_NORMAL;
-      case PAUSED -> Win32.TBPF_PAUSED;
-      case ERROR -> Win32.TBPF_ERROR;
-    });
-    if (hr == Win32.S_OK && progress != Window.Progress.NONE
+    int hr = Win32.taskbarSetProgressState(
+        list,
+        hwnd,
+        switch (progress) {
+          case NONE -> Win32.TBPF_NOPROGRESS;
+          case INDETERMINATE -> Win32.TBPF_INDETERMINATE;
+          case NORMAL -> Win32.TBPF_NORMAL;
+          case PAUSED -> Win32.TBPF_PAUSED;
+          case ERROR -> Win32.TBPF_ERROR;
+        });
+    if (hr == Win32.S_OK
+        && progress != Window.Progress.NONE
         && progress != Window.Progress.INDETERMINATE) {
       hr = Win32.taskbarSetProgressValue(list, hwnd, Math.round(progressValue * TOTAL), TOTAL);
     }
@@ -236,8 +241,8 @@ final class Win32Shell {
     if (list == null) {
       return false;
     }
-    MemorySegment made = badge == null ? MemorySegment.NULL
-        : create(badge.image(Math.round(16 * scale)));
+    MemorySegment made =
+        badge == null ? MemorySegment.NULL : create(badge.image(Math.round(16 * scale)));
     int hr = Win32.taskbarSetOverlayIcon(list, hwnd, made, badge == null ? null : badgeDescription);
     destroy(badgeIcon);
     badgeIcon = made;
@@ -247,8 +252,8 @@ final class Win32Shell {
   private static MemorySegment taskbar() {
     if (taskbar.equals(MemorySegment.NULL) && !taskbarFailed) {
       int[] hr = new int[1];
-      MemorySegment list = Win32.coCreateInstance(
-          Win32.CLSID_TASKBAR_LIST, Win32.IID_ITASKBAR_LIST3, hr);
+      MemorySegment list =
+          Win32.coCreateInstance(Win32.CLSID_TASKBAR_LIST, Win32.IID_ITASKBAR_LIST3, hr);
       if (list.equals(MemorySegment.NULL)
           || Win32.comCall(list, Win32.VTBL_HR_INIT) != Win32.S_OK) {
         if (!list.equals(MemorySegment.NULL)) {
@@ -310,7 +315,8 @@ final class Win32Shell {
       return;
     }
     switch (message) {
-      case Win32.WM_SETTINGCHANGE, Win32.WM_SYSCOLORCHANGE,
+      case Win32.WM_SETTINGCHANGE,
+          Win32.WM_SYSCOLORCHANGE,
           Win32.WM_DWMCOLORIZATIONCOLORCHANGED -> {
         if (frameDark != null) {
           applyFrameDark(); // SDL has set the system's again
@@ -367,10 +373,17 @@ final class Win32Shell {
     int maskRow = (w + 31) / 32 * 4;
     ByteBuffer b = ByteBuffer.allocate(Win32.BITMAPINFOHEADER_SIZE + w * h * 4 + maskRow * h)
         .order(ByteOrder.LITTLE_ENDIAN);
-    b.putInt(Win32.BITMAPINFOHEADER_SIZE).putInt(w).putInt(2 * h)
-        .putShort((short) 1).putShort((short) 32) // planes, bits per pixel
-        .putInt(0).putInt(w * h * 4) // BI_RGB, the size of the colours
-        .putInt(0).putInt(0).putInt(0).putInt(0);
+    b.putInt(Win32.BITMAPINFOHEADER_SIZE)
+        .putInt(w)
+        .putInt(2 * h)
+        .putShort((short) 1)
+        .putShort((short) 32) // planes, bits per pixel
+        .putInt(0)
+        .putInt(w * h * 4) // BI_RGB, the size of the colours
+        .putInt(0)
+        .putInt(0)
+        .putInt(0)
+        .putInt(0);
     byte[] rgba = image.rgba();
     for (int y = h - 1; y >= 0; y--) {
       for (int x = 0; x < w; x++) {

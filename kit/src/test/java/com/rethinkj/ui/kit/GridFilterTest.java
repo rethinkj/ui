@@ -28,7 +28,8 @@ class GridFilterTest {
 
   private static final Theme T = Theme.DARK;
 
-  @TempDir Path out;
+  @TempDir
+  Path out;
 
   @BeforeEach
   void textLibraries() {
@@ -63,7 +64,8 @@ class GridFilterTest {
     run(app, "type \"ada\"\nkey Enter\nframe");
     assertEquals(List.of(Filter.of(1, Filter.Kind.CONTAINS, "ada")), ledger.filters);
     run(app, "leave\nadvance 1\nframe");
-    assertTrue(line(app, "filter-1").contains("value=\"customer contains ada\""),
+    assertTrue(
+        line(app, "filter-1").contains("value=\"customer contains ada\""),
         "it shows while set: " + line(app, "filter-1"));
     assertEquals("ledger", app.focused().key(), "the focus back on the grid");
     // The bar above the grid says it, and removes it.
@@ -81,15 +83,19 @@ class GridFilterTest {
     run(app, "type \"10\"\nkey Tab\ntype \"100\"\nkey Enter\nframe");
     assertEquals(List.of(Filter.between(3, "10", "100")), ledger.filters);
 
-    run(app, "advance 1\nframe\nkey ArrowRight\nkey ArrowRight\nkey ArrowDown alt\nframe\n"
-        + "advance 1\nframe\npress #value-paid\npress #value-refunded\nframe\n"
-        + "press label=\"Apply\"\nframe");
+    run(
+        app,
+        "advance 1\nframe\nkey ArrowRight\nkey ArrowRight\nkey ArrowDown alt\nframe\n"
+            + "advance 1\nframe\npress #value-paid\npress #value-refunded\nframe\n"
+            + "press label=\"Apply\"\nframe");
     assertEquals(Filter.oneOf(5, List.of("pending", "shipped")), ledger.filters.getLast());
     assertEquals(2, ledger.filters.size());
 
-    run(app, "advance 1\nframe\nkey End\nkey ArrowDown alt\nframe\nadvance 1\nframe\n"
-        + "press #kind\nframe\nadvance 1\nframe\npress label=\"Is NULL\"\nframe\n"
-        + "press label=\"Apply\"\nframe");
+    run(
+        app,
+        "advance 1\nframe\nkey End\nkey ArrowDown alt\nframe\nadvance 1\nframe\n"
+            + "press #kind\nframe\nadvance 1\nframe\npress label=\"Is NULL\"\nframe\n"
+            + "press label=\"Apply\"\nframe");
     assertEquals(Filter.of(7, Filter.Kind.IS_NULL, ""), ledger.filters.getLast());
     run(app, "advance 1\nframe");
     assertTrue(app.tree().dump().contains("label=\"Clear all\""), app.tree().dump());
@@ -98,13 +104,14 @@ class GridFilterTest {
   }
 
   @Test
-  void aWrongRegularExpressionCannotBeAppliedAndEscapeLeavesTheFilterAsItWas()
-      throws IOException {
+  void aWrongRegularExpressionCannotBeAppliedAndEscapeLeavesTheFilterAsItWas() throws IOException {
     Ledger ledger = new Ledger(T, 40);
     App<Ledger> app = start(ledger);
-    run(app, "key ArrowDown alt\nframe\nadvance 1\nframe\npress #kind\nframe\nadvance 1\nframe\n"
-        + "press label=\"Matches regular expression\"\nframe\npress #value\ntype \"(ab\"\n"
-        + "frame");
+    run(
+        app,
+        "key ArrowDown alt\nframe\nadvance 1\nframe\npress #kind\nframe\nadvance 1\nframe\n"
+            + "press label=\"Matches regular expression\"\nframe\npress #value\ntype \"(ab\"\n"
+            + "frame");
     assertTrue(app.tree().dump().contains("role=alert label=\"Not a regular expression\""));
     assertTrue(line(app, "value").contains(" invalid"), line(app, "value"));
     run(app, "key Enter\nframe");
@@ -123,11 +130,14 @@ class GridFilterTest {
     App<Ledger> app = ledger.app();
     String text = Files.readString(Path.of("src/test/resources/scripts/filter.txt"));
     List<Path> files = Script.run(text, app, out.resolve(name)).stream()
-        .filter(f -> !f.toString().endsWith(".clipboard.txt")).toList();
+        .filter(f -> !f.toString().endsWith(".clipboard.txt"))
+        .toList();
     for (int i = 0; i < files.size(); i += 2) {
       String snap = files.get(i).getFileName().toString().replace(".png", "");
-      Golden.assertMatches("filter-" + name + "-" + snap,
-          Png.decode(Files.readAllBytes(files.get(i))), Files.readString(files.get(i + 1)));
+      Golden.assertMatches(
+          "filter-" + name + "-" + snap,
+          Png.decode(Files.readAllBytes(files.get(i))),
+          Files.readString(files.get(i + 1)));
     }
     assertEquals(4, files.size());
   }

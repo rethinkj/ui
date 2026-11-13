@@ -107,8 +107,8 @@ final class Search {
 
     @Override
     public char charAt(int index) {
-      if ((++reads & 0xFFF) == 0 && (System.nanoTime() - deadline > 0
-          || Thread.currentThread().isInterrupted())) {
+      if ((++reads & 0xFFF) == 0
+          && (System.nanoTime() - deadline > 0 || Thread.currentThread().isInterrupted())) {
         throw new Stopped();
       }
       return text.charAt(index);
@@ -141,8 +141,11 @@ final class Search {
    * ^} and {@code $} match at lines, not at the part's ends.
    */
   private static Matcher matcher(Pattern pattern, String text, int from, int to, long deadline) {
-    return pattern.matcher(new Bounded(text, deadline)).region(from, to)
-        .useTransparentBounds(true).useAnchoringBounds(false);
+    return pattern
+        .matcher(new Bounded(text, deadline))
+        .region(from, to)
+        .useTransparentBounds(true)
+        .useAnchoringBounds(false);
   }
 
   /** The next match of {@code m} that counts, or false; {@code to} ends the part. */
@@ -210,16 +213,16 @@ final class Search {
    *
    * @throws Stopped past the deadline
    */
-  static int[] previous(Pattern pattern, String text, int lo, int hi, int before, int floor,
-      long deadline) {
+  static int[] previous(
+      Pattern pattern, String text, int lo, int hi, int before, int floor, long deadline) {
     before = Math.clamp(before, lo, hi);
     int[] found = last(pattern, text, Math.clamp(floor, lo, before), hi, before, deadline);
     return found != null ? found : last(pattern, text, before, hi, hi, deadline);
   }
 
   /** The last match from {@code from} to {@code hi} that starts before {@code before}. */
-  private static int[] last(Pattern pattern, String text, int from, int hi, int before,
-      long deadline) {
+  private static int[] last(
+      Pattern pattern, String text, int from, int hi, int before, long deadline) {
     Matcher m = matcher(pattern, text, from, hi, deadline);
     int[] found = null;
     while (find(m, text, hi) && m.start() < before) {
@@ -263,8 +266,8 @@ final class Search {
    *
    * @throws IllegalArgumentException for a group that the pattern does not have
    */
-  static String replacement(Query query, Pattern pattern, String text, int start, int end,
-      String replacement) {
+  static String replacement(
+      Query query, Pattern pattern, String text, int start, int end, String replacement) {
     if (!query.regex()) {
       return replacement;
     }
@@ -326,8 +329,14 @@ final class Search {
    *
    * @throws Stopped past the deadline
    */
-  static Replaced replaceAll(Query query, Pattern pattern, String text, int from, int to,
-      String replacement, long deadline) {
+  static Replaced replaceAll(
+      Query query,
+      Pattern pattern,
+      String text,
+      int from,
+      int to,
+      String replacement,
+      long deadline) {
     Matcher m = matcher(pattern, text, from, to, deadline);
     StringBuilder out = new StringBuilder();
     int first = -1;

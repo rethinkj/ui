@@ -149,8 +149,15 @@ public final class Tabs {
    * @param firstY the same downwards
    * @param window the window the drag began in, or null without a runner
    */
-  public record TearOff(Object bar, int index, Drag drag, float grabX, float grabY, float firstX,
-      float firstY, Windows.Handle window) {}
+  public record TearOff(
+      Object bar,
+      int index,
+      Drag drag,
+      float grabX,
+      float grabY,
+      float firstX,
+      float firstY,
+      Windows.Handle window) {}
 
   /**
    * What the app keeps of the drag of a tab: which tab, whether it left its bar, and the bar that
@@ -334,7 +341,8 @@ public final class Tabs {
       g.grabX = (float) d.x() - d.dx();
       g.grabY = (float) d.y() - d.dy();
       // The tabs lie side by side in the list, which is where the first one lies in the window.
-      g.firstX = d.windowX() - (float) d.x() - (built.get(index).x() - built.getFirst().x());
+      g.firstX =
+          d.windowX() - (float) d.x() - (built.get(index).x() - built.getFirst().x());
       g.firstY = d.windowY() - (float) d.y();
       g.window = d.window();
       g.torn = o.onTearOff != null && o.tearOffAtStart;
@@ -352,13 +360,17 @@ public final class Tabs {
     g.steps++;
     boolean moving = phase == Drag.Phase.START || phase == Drag.Phase.MOVE;
     float reach = t.size().control();
-    if (moving && !g.torn && o.onTearOff != null && (d.outside()
-        || d.y() < -reach || d.y() > t.size().control() + t.space().m() + reach)) {
+    if (moving
+        && !g.torn
+        && o.onTearOff != null
+        && (d.outside()
+            || d.y() < -reach
+            || d.y() > t.size().control() + t.space().m() + reach)) {
       g.torn = true;
     }
     if (g.torn) {
-      o.onTearOff.accept(new TearOff(g.bar, g.index, d, g.grabX, g.grabY, g.firstX, g.firstY,
-          g.window));
+      o.onTearOff.accept(
+          new TearOff(g.bar, g.index, d, g.grabX, g.grabY, g.firstX, g.firstY, g.window));
     }
     if (!moving) {
       g.clear();
@@ -373,7 +385,8 @@ public final class Tabs {
     }
     boolean own = Objects.equals(g.bar, o.id);
     boolean takes = own && !g.torn ? o.onMove != null : o.onDock != null;
-    if (d.phase() == Drop.Phase.LEAVE || !takes
+    if (d.phase() == Drop.Phase.LEAVE
+        || !takes
         || own && o.tearOffAtStart && o.onTearOff != null) { // its window moves along
       if (Objects.equals(g.overBar, o.id)) {
         g.overBar = null;
@@ -419,9 +432,11 @@ public final class Tabs {
     int slot = slot(built, x);
     float gap = t.space().xs();
     float line = t.size().indicator();
-    float edge = built.isEmpty() ? 0
-        : slot < built.size() ? built.get(slot).x() - gap / 2
-        : built.getLast().x() + built.getLast().width() + gap / 2;
+    float edge = built.isEmpty()
+        ? 0
+        : slot < built.size()
+            ? built.get(slot).x() - gap / 2
+            : built.getLast().x() + built.getLast().width() + gap / 2;
     g.overBar = o.id;
     g.slot = slot;
     g.marked = g.steps;
@@ -447,30 +462,38 @@ public final class Tabs {
    * @param content the content of the active tab, which fills the rest; null for none
    */
   public static El tabs(
-      Theme t, List<Tab> tabs, int active, IntConsumer onSelect, IntConsumer onClose,
-      El content) {
+      Theme t, List<Tab> tabs, int active, IntConsumer onSelect, IntConsumer onClose, El content) {
     return tabs(t, tabs, active, onSelect, onClose, content, options());
   }
 
   /** The tabs with what {@code options} turns on: moving, tearing off, docking, a menu. */
   public static El tabs(
-      Theme t, List<Tab> tabs, int active, IntConsumer onSelect, IntConsumer onClose,
-      El content, Options o) {
+      Theme t,
+      List<Tab> tabs,
+      int active,
+      IntConsumer onSelect,
+      IntConsumer onClose,
+      El content,
+      Options o) {
     boolean enabled = onSelect != null;
     Dragging dragging = o.dragging;
     boolean drags = enabled && dragging != null && (o.onMove != null || o.onTearOff != null);
     // Each input reaches the handlers of a view built after the one before it, so this view's
     // indexes are those of the state.
-    IntConsumer select = !enabled ? null : i -> {
-      if (i != active) {
-        onSelect.accept(i);
-      }
-    };
+    IntConsumer select = !enabled
+        ? null
+        : i -> {
+          if (i != active) {
+            onSelect.accept(i);
+          }
+        };
     IntConsumer close = onClose;
     // Its top corners follow the card's, inside its border and the bar's padding, so that the
     // focus ring, which the card's clip puts inside the bar, follows them too.
     float corner = t.radius().large() - t.size().stroke() - t.space().xs();
-    El list = row().key("tablist").role("tablist")
+    El list = row()
+        .key("tablist")
+        .role("tablist")
         .radius(corner, corner, 0, 0)
         .gap(t.space().xs())
         .scrollBoth()
@@ -482,8 +505,15 @@ public final class Tabs {
       boolean grabbed = dragging != null && dragging.on(o.id, i);
       // While a tab is dragged the others do not light up: the drag's element is the one under
       // the pointer, by its key, which another tab has once the dragged one left.
-      El tab = tab(t, tabs.get(i), i, i == active, grabbed && !dragging.torn,
-          dragging != null && dragging.isActive(), select, close)
+      El tab = tab(
+              t,
+              tabs.get(i),
+              i,
+              i == active,
+              grabbed && !dragging.torn,
+              dragging != null && dragging.isActive(),
+              select,
+              close)
           .grabbed(grabbed);
       if (drags) {
         int index = i;
@@ -499,14 +529,21 @@ public final class Tabs {
       built.add(tab);
       list.child(tab);
     }
-    El bar = row().key("bar").fill(t.surface().band()).padding(0, t.space().xs()).shrink(0)
-        .border(0, 0, t.size().stroke(), 0, t.border().subtle()).child(list);
+    El bar = row()
+        .key("bar")
+        .fill(t.surface().band())
+        .padding(0, t.space().xs())
+        .shrink(0)
+        .border(0, 0, t.size().stroke(), 0, t.border().subtle())
+        .child(list);
     if (enabled && dragging != null) {
       bar.onDrop(d -> over(t, o, list, built, d));
       if (dragging.slot >= 0 && Objects.equals(dragging.overBar, o.id)) {
         float side = t.size().control();
-        bar.child(el().key("marker").absolute(dragging.markerX, (t.space().m()) / 2)
-            .size(t.size().indicator(), side).fill(t.accent().edge()));
+        bar.child(el().key("marker")
+            .absolute(dragging.markerX, (t.space().m()) / 2)
+            .size(t.size().indicator(), side)
+            .fill(t.accent().edge()));
         if (dragging.reveal != null) {
           list.reveal(dragging.reveal, dragging.revealX, 0, 1, 1);
         }
@@ -515,7 +552,9 @@ public final class Tabs {
     if (enabled && o.menu != null) { // a press beside the tabs opens the active one's menu
       Menu.contextMenu(t, bar, o.menu, o.menuItems);
     }
-    El panel = col().key("panel").role("tabpanel")
+    El panel = col()
+        .key("panel")
+        .role("tabpanel")
         .label(active >= 0 && active < tabs.size() ? tabs.get(active).title() : null)
         .grow(1);
     panel.style().minHeight = Len.ZERO;
@@ -562,17 +601,23 @@ public final class Tabs {
       int from = active;
       if (name.equals("Tab") && (k.modifiers() & ~Key.SHIFT) == Key.CONTROL) {
         boolean back = (k.modifiers() & Key.SHIFT) != 0;
-        select.accept(from < 0 ? (back ? last : 0) : Math.floorMod(from + (back ? -1 : 1),
-            tabs.size()));
+        select.accept(
+            from < 0 ? (back ? last : 0) : Math.floorMod(from + (back ? -1 : 1), tabs.size()));
         return true;
       }
-      if (k.modifiers() == (Key.CONTROL | Key.SHIFT) && o.onMove != null && from >= 0
+      if (k.modifiers() == (Key.CONTROL | Key.SHIFT)
+          && o.onMove != null
+          && from >= 0
           && (name.equals("PageUp") && from > 0 || name.equals("PageDown") && from < last)) {
         o.onMove.move(from, name.equals("PageUp") ? from - 1 : from + 1);
         return true;
       }
-      if (k.modifiers() == Key.CONTROL && (name.equals("W") || name.equals("F4"))
-          && close != null && from >= 0 && from <= last && tabs.get(from).closable()) {
+      if (k.modifiers() == Key.CONTROL
+          && (name.equals("W") || name.equals("F4"))
+          && close != null
+          && from >= 0
+          && from <= last
+          && tabs.get(from).closable()) {
         close.accept(from);
         return true;
       }
@@ -581,16 +626,26 @@ public final class Tabs {
   }
 
   private static El tab(
-      Theme t, Tab tab, int index, boolean active, boolean muted, boolean quiet,
-      IntConsumer onSelect, IntConsumer onClose) {
+      Theme t,
+      Tab tab,
+      int index,
+      boolean active,
+      boolean muted,
+      boolean quiet,
+      IntConsumer onSelect,
+      IntConsumer onClose) {
     boolean enabled = onSelect != null;
     Theme.Surfaces s = t.surface();
-    int ink = !enabled || muted ? t.text().disabled()
+    int ink = !enabled || muted
+        ? t.text().disabled()
         : active ? t.text().primary() : t.text().muted();
     // The tabs fill the bar's height; the active one has a line at its bottom, the others show
     // the band, with the translucent overlays on it under the pointer.
     float height = t.size().control() + t.space().m();
-    El el = row().key("tab-" + index).role("tab").label(tab.title())
+    El el = row()
+        .key("tab-" + index)
+        .role("tab")
+        .label(tab.title())
         .selected(active)
         .disabled(!enabled)
         .h(height)
@@ -615,7 +670,9 @@ public final class Tabs {
     El close = null;
     if (tab.closable() && onClose != null) {
       float side = t.size().checkbox();
-      close = el().key("close-" + index).role("button").label("Close " + tab.title())
+      close = el().key("close-" + index)
+          .role("button")
+          .label("Close " + tab.title())
           .size(side, side)
           .shrink(0)
           .center()
@@ -643,8 +700,7 @@ public final class Tabs {
         cross.opacity(1);
       }
     };
-    return el
-        .whenHovered(lit.andThen(e -> e.fill(s.hover())))
+    return el.whenHovered(lit.andThen(e -> e.fill(s.hover())))
         .whenPressed(lit.andThen(e -> e.fill(s.pressed())));
   }
 }

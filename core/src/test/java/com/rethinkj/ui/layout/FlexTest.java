@@ -20,15 +20,13 @@ class FlexTest {
   @Test
   void measuresContentWithoutPaddingAndBorder() {
     float[] seen = new float[2];
-    El text =
-        el().padding(5)
-            .border(1, 0xFF000000)
-            .measure(
-                (knownWidth, knownHeight, availableWidth, availableHeight) -> {
-                  seen[0] = availableWidth;
-                  seen[1] = knownHeight;
-                  return new Measure.Size(40, 10);
-                });
+    El text = el().padding(5)
+        .border(1, 0xFF000000)
+        .measure((knownWidth, knownHeight, availableWidth, availableHeight) -> {
+          seen[0] = availableWidth;
+          seen[1] = knownHeight;
+          return new Measure.Size(40, 10);
+        });
     El root = col().w(100).align(Style.Align.START).child(text);
     Flex.layout(root, 300, 300);
 

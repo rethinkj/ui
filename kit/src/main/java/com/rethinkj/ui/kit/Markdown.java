@@ -172,11 +172,19 @@ public final class Markdown {
     Prepared prepared = prepared(t, document);
     Context c = new Context(t, options, prepared, t.text().primary(), 0);
     List<Unit> units = prepared.units;
-    El list = col().role("document").key("markdown").padding(t.space().xxl())
+    El list = col()
+        .role("document")
+        .key("markdown")
+        .padding(t.space().xxl())
         .scrollbars(t.scrollbars())
-        .rows(units.size(), prepared.heights, i -> col().align(Style.Align.CENTER)
-            .child(unit(c, units.get(i)).wFull()
-                .maxSize(t.prose().measure(), Float.POSITIVE_INFINITY)));
+        .rows(
+            units.size(),
+            prepared.heights,
+            i -> col()
+                .align(Style.Align.CENTER)
+                .child(unit(c, units.get(i))
+                    .wFull()
+                    .maxSize(t.prose().measure(), Float.POSITIVE_INFINITY)));
     State state = options.state;
     if (state != null) {
       list.onAnyPointerDown(() -> state.all = false);
@@ -196,8 +204,11 @@ public final class Markdown {
   public static int rowOf(MarkdownDocument document, String id) {
     List<Unit> units = units(document);
     for (int i = 0; i < units.size(); i++) {
-      List<Block> inside = units.get(i).item < 0 ? List.of(units.get(i).block)
-          : ((MarkdownDocument.ListBlock) units.get(i).block).items().get(units.get(i).item)
+      List<Block> inside = units.get(i).item < 0
+          ? List.of(units.get(i).block)
+          : ((MarkdownDocument.ListBlock) units.get(i).block)
+              .items()
+              .get(units.get(i).item)
               .blocks();
       if (new MarkdownDocument(inside).headings().stream().anyMatch(h -> h.id().equals(id))) {
         return i;
@@ -273,8 +284,12 @@ public final class Markdown {
       this.units = units(document);
       this.heights = new RowHeights(i -> {
         Unit u = units.get(i);
-        return (u.item < 0 ? estimate(t, u.block) : ((MarkdownDocument.ListBlock) u.block).items()
-            .get(u.item).blocks().stream().mapToDouble(b -> estimate(t, b)).sum())
+        return (u.item < 0
+                ? estimate(t, u.block)
+                : ((MarkdownDocument.ListBlock) u.block)
+                    .items().get(u.item).blocks().stream()
+                        .mapToDouble(b -> estimate(t, b))
+                        .sum())
             + t.space().l();
       });
     }
@@ -288,17 +303,23 @@ public final class Markdown {
     double line = t.prose().body().size() * 1.25;
     double perLine = Math.max(t.prose().measure() / (t.prose().body().size() * 0.5), 1);
     return switch (block) {
-      case MarkdownDocument.Heading h -> t.prose().headings().get(h.level() - 1).size() * 1.25
-          + t.space().xxl();
+      case MarkdownDocument.Heading h ->
+        t.prose().headings().get(h.level() - 1).size() * 1.25 + t.space().xxl();
       case MarkdownDocument.Paragraph p ->
-          Math.ceil(MarkdownDocument.plainText(p.content()).length() / perLine) * line;
-      case MarkdownDocument.CodeBlock code -> code.code().lines().count()
-          * t.type().mono().size() * 1.35 + 2 * t.space().l();
-      case MarkdownDocument.Quote q -> q.blocks().stream().mapToDouble(b -> estimate(t, b)).sum();
-      case MarkdownDocument.ListBlock l -> l.items().stream().flatMap(i -> i.blocks().stream())
-          .mapToDouble(b -> estimate(t, b) + t.space().xs()).sum();
+        Math.ceil(MarkdownDocument.plainText(p.content()).length() / perLine) * line;
+      case MarkdownDocument.CodeBlock code ->
+        code.code().lines().count() * t.type().mono().size() * 1.35
+            + 2 * t.space().l();
+      case MarkdownDocument.Quote q ->
+        q.blocks().stream().mapToDouble(b -> estimate(t, b)).sum();
+      case MarkdownDocument.ListBlock l ->
+        l.items().stream()
+            .flatMap(i -> i.blocks().stream())
+            .mapToDouble(b -> estimate(t, b) + t.space().xs())
+            .sum();
       case MarkdownDocument.ThematicBreak b -> 2 * t.space().m();
-      case MarkdownDocument.Table table -> (table.rows().size() + 1) * (line + 2 * t.space().s());
+      case MarkdownDocument.Table table ->
+        (table.rows().size() + 1) * (line + 2 * t.space().s());
     };
   }
 
@@ -365,6 +386,7 @@ public final class Markdown {
 
   /** The bits of inline style that choose a font. */
   private static final int EM = 1;
+
   private static final int STRONG = 2;
 
   /** Makes the piece of a run of inline parts, once per document and theme. */
@@ -382,8 +404,16 @@ public final class Markdown {
     return piece;
   }
 
-  private static void inline(Context c, List<Inline> parts, int style, String link,
-      boolean strike, boolean heading, StringBuilder text, List<Span> spans, List<Link> links) {
+  private static void inline(
+      Context c,
+      List<Inline> parts,
+      int style,
+      String link,
+      boolean strike,
+      boolean heading,
+      StringBuilder text,
+      List<Span> spans,
+      List<Link> links) {
     Theme t = c.t;
     for (Inline part : parts) {
       int from = text.length();
@@ -397,11 +427,11 @@ public final class Markdown {
           spans.add(new Span(BACKGROUND, from, text.length(), t.prose().code(), null));
         }
         case MarkdownDocument.Emphasis x ->
-            inline(c, x.content(), style | EM, link, strike, heading, text, spans, links);
+          inline(c, x.content(), style | EM, link, strike, heading, text, spans, links);
         case MarkdownDocument.Strong x ->
-            inline(c, x.content(), style | STRONG, link, strike, heading, text, spans, links);
+          inline(c, x.content(), style | STRONG, link, strike, heading, text, spans, links);
         case MarkdownDocument.Strike x ->
-            inline(c, x.content(), style, link, true, heading, text, spans, links);
+          inline(c, x.content(), style, link, true, heading, text, spans, links);
         case MarkdownDocument.Link x -> {
           inline(c, x.content(), style, x.destination(), strike, heading, text, spans, links);
           if (text.length() > from) {
@@ -484,14 +514,20 @@ public final class Markdown {
       case MarkdownDocument.Quote q -> {
         El content = col().grow(1).minSize(0, 0);
         blocks(c.muted(), q.blocks(), false, content);
-        yield row().role("blockquote").gap(t.space().l()).children(
-            el().w(t.size().indicator() + 1).shrink(0).radius(t.radius().small() / 2)
-                .fill(t.prose().quote()).alignSelf(Style.Align.STRETCH),
-            content);
+        yield row()
+            .role("blockquote")
+            .gap(t.space().l())
+            .children(
+                el().w(t.size().indicator() + 1)
+                    .shrink(0)
+                    .radius(t.radius().small() / 2)
+                    .fill(t.prose().quote())
+                    .alignSelf(Style.Align.STRETCH),
+                content);
       }
       case MarkdownDocument.ListBlock l -> list(c, l);
-      case MarkdownDocument.ThematicBreak x -> Divider.divider(t)
-          .margin(t.space().m(), 0, t.space().m(), 0);
+      case MarkdownDocument.ThematicBreak x ->
+        Divider.divider(t).margin(t.space().m(), 0, t.space().m(), 0);
       case MarkdownDocument.Table table -> table(c, table);
     };
   }
@@ -499,9 +535,16 @@ public final class Markdown {
   /** A read-only field for a block of text: selectable, passed by Tab, as high as its rows. */
   private static El field(Context c, Piece piece, Theme.TextStyle style, int color) {
     Theme t = c.t;
-    El field = El.text(piece.text).editable(text -> {}).readOnly().multiline().wrapText()
-        .fitLines().skipTab()
-        .font(style.font().get()).fontSize(style.size()).color(color)
+    El field = El.text(piece.text)
+        .editable(text -> {})
+        .readOnly()
+        .multiline()
+        .wrapText()
+        .fitLines()
+        .skipTab()
+        .font(style.font().get())
+        .fontSize(style.size())
+        .color(color)
         .selectionColor(t.accent().selection())
         .caretColor(color)
         .highlight(piece, piece);
@@ -514,11 +557,17 @@ public final class Markdown {
     for (int i = 0; i < piece.links.size(); i++) {
       Link link = piece.links.get(i);
       Consumer<String> onLink = c.options.onLink;
-      El el = el().key("link-" + i).role("link").label(link.label).value(link.destination)
-          .range(link.from, link.to).radius(t.radius().small())
-          .focusable().focusRing(t.accent().edge());
+      El el = el().key("link-" + i)
+          .role("link")
+          .label(link.label)
+          .value(link.destination)
+          .range(link.from, link.to)
+          .radius(t.radius().small())
+          .focusable()
+          .focusRing(t.accent().edge());
       if (onLink != null) {
-        el.cursor(Cursor.POINTER).onPress(() -> onLink.accept(link.destination))
+        el.cursor(Cursor.POINTER)
+            .onPress(() -> onLink.accept(link.destination))
             .whenHovered(e -> e.fill(t.surface().hover()))
             .whenPressed(e -> e.fill(t.surface().pressed()));
       }
@@ -537,7 +586,8 @@ public final class Markdown {
       state.all = true;
       return true;
     }
-    if ((k.name().equals("C") || k.name().equals("Insert")) && state.all
+    if ((k.name().equals("C") || k.name().equals("Insert"))
+        && state.all
         && c.options.clipboard != null) {
       Prepared p = c.prepared;
       if (p.text == null) {
@@ -556,10 +606,13 @@ public final class Markdown {
   private static El heading(Context c, MarkdownDocument.Heading h) {
     Theme t = c.t;
     Theme.TextStyle style = t.prose().headings().get(h.level() - 1);
-    int color = h.level() == 6 ? t.text().muted() : c.color == t.text().muted() ? c.color
-        : t.text().primary();
+    int color = h.level() == 6
+        ? t.text().muted()
+        : c.color == t.text().muted() ? c.color : t.text().primary();
     El field = field(c, piece(c, h, h.content(), true), style, color)
-        .role("heading").level(h.level()).key("heading-" + h.id());
+        .role("heading")
+        .level(h.level())
+        .key("heading-" + h.id());
     if (h.level() > 2) {
       return field;
     }
@@ -598,12 +651,14 @@ public final class Markdown {
 
   /** A run of a paragraph's text between its images, without the breaks around it, if any. */
   private static void run(Context c, Object owner, List<Inline> run, El into) {
-    while (!run.isEmpty() && (run.getFirst() instanceof MarkdownDocument.SoftBreak
-        || run.getFirst() instanceof MarkdownDocument.HardBreak)) {
+    while (!run.isEmpty()
+        && (run.getFirst() instanceof MarkdownDocument.SoftBreak
+            || run.getFirst() instanceof MarkdownDocument.HardBreak)) {
       run.removeFirst();
     }
-    while (!run.isEmpty() && (run.getLast() instanceof MarkdownDocument.SoftBreak
-        || run.getLast() instanceof MarkdownDocument.HardBreak)) {
+    while (!run.isEmpty()
+        && (run.getLast() instanceof MarkdownDocument.SoftBreak
+            || run.getLast() instanceof MarkdownDocument.HardBreak)) {
       run.removeLast();
     }
     if (!run.isEmpty() && run.getFirst() instanceof MarkdownDocument.Text x) {
@@ -615,8 +670,8 @@ public final class Markdown {
     if (MarkdownDocument.plainText(run).isBlank()) {
       return;
     }
-    into.child(field(c, piece(c, owner, run, false), c.t.prose().body(), c.color)
-        .role("paragraph"));
+    into.child(
+        field(c, piece(c, owner, run, false), c.t.prose().body(), c.color).role("paragraph"));
   }
 
   /**
@@ -627,8 +682,8 @@ public final class Markdown {
   private static El image(Context c, MarkdownDocument.Image image) {
     Theme t = c.t;
     String alt = image.alt().isEmpty() ? image.source() : image.alt();
-    com.rethinkj.ui.Image picture = c.options.images == null ? null
-        : c.options.images.apply(image.source());
+    com.rethinkj.ui.Image picture =
+        c.options.images == null ? null : c.options.images.apply(image.source());
     El el = Image.image(t, picture, alt);
     if (picture == null) {
       el.justify(Style.Content.START);
@@ -646,17 +701,27 @@ public final class Markdown {
   private static El codeBlock(Context c, MarkdownDocument.CodeBlock block) {
     Theme t = c.t;
     String code = block.code().endsWith("\n")
-        ? block.code().substring(0, block.code().length() - 1) : block.code();
+        ? block.code().substring(0, block.code().length() - 1)
+        : block.code();
     String language = block.language();
     Highlighter highlighter = c.options.languages.apply(language);
     if (highlighter == null && language.toLowerCase(Locale.ROOT).matches("sql|pgsql|postgresql")) {
       highlighter = Sql.of(t);
     }
     Theme.TextStyle mono = t.type().mono();
-    El field = El.text(code).editable(text -> {}).readOnly().multiline().fitLines().skipTab()
-        .role("code").label(language.isEmpty() ? null : language)
-        .font(mono.font().get()).fontSize(mono.size()).color(t.text().primary())
-        .selectionColor(t.accent().selection()).caretColor(t.text().primary())
+    El field = El.text(code)
+        .editable(text -> {})
+        .readOnly()
+        .multiline()
+        .fitLines()
+        .skipTab()
+        .role("code")
+        .label(language.isEmpty() ? null : language)
+        .font(mono.font().get())
+        .fontSize(mono.size())
+        .color(t.text().primary())
+        .selectionColor(t.accent().selection())
+        .caretColor(t.text().primary())
         .scrollbars(t.scrollbars());
     // Below the last line, the room of the bar along the bottom, which shows for a long line.
     float bar = t.scrollbars().thickness() + t.scrollbars().margin();
@@ -670,15 +735,20 @@ public final class Markdown {
       field.decorate((line, start, text, out) -> out.background(0, text.length() + 1, selection));
     }
     field.onKey(k -> keys(c, k));
-    El box = col().role("group").fill(t.surface().raised())
-        .border(t.size().stroke(), t.border().subtle()).radius(t.radius().medium()).clip()
+    El box = col()
+        .role("group")
+        .fill(t.surface().raised())
+        .border(t.size().stroke(), t.border().subtle())
+        .radius(t.radius().medium())
+        .clip()
         .child(field);
     Clipboard clipboard = c.options.clipboard;
     if (clipboard != null) {
       Button.Copied copied = c.options.state == null ? null : c.options.state.copied;
-      boolean shown = copied != null && copied.shows("Copy code", code); // confirming: seen till it ends
-      El copy = Button.copy(t, clipboard, code, "Copy code", copied).key("copy")
-          .opacity(shown ? 1 : 0);
+      boolean shown =
+          copied != null && copied.shows("Copy code", code); // confirming: seen till it ends
+      El copy =
+          Button.copy(t, clipboard, code, "Copy code", copied).key("copy").opacity(shown ? 1 : 0);
       copy.style().position = Style.Position.ABSOLUTE;
       copy.style().top = Len.px(t.space().s());
       copy.style().right = Len.px(t.space().s());
@@ -705,8 +775,12 @@ public final class Markdown {
     float column = t.space().l();
     if (list.ordered()) {
       for (int i = 0; i < list.items().size(); i++) {
-        column = Math.max(column, marker(t, (list.start() + i) + ".", c.color).text()
-            .measure(Float.NaN, Float.NaN, Measure.MAX_CONTENT, Measure.MAX_CONTENT).width());
+        column = Math.max(
+            column,
+            marker(t, (list.start() + i) + ".", c.color)
+                .text()
+                .measure(Float.NaN, Float.NaN, Measure.MAX_CONTENT, Measure.MAX_CONTENT)
+                .width());
       }
     }
     return (float) Math.ceil(column);
@@ -722,20 +796,26 @@ public final class Markdown {
       // The box on the middle of the first line, which is the body's line height high.
       Font font = body.font().get();
       float line = Math.round((font.ascent() + font.descent() + font.lineGap()) * body.size());
-      marker = row().w(t.size().checkbox() + t.space().xs()).shrink(0)
+      marker = row()
+          .w(t.size().checkbox() + t.space().xs())
+          .shrink(0)
           .padding(Math.max(0, (line - t.size().checkbox()) / 2), 0, 0, 0)
           .child(Checkbox.checkbox(t, item.task(), null));
     } else {
       // The bullet goes by how deep the list is in other lists.
-      String text = list.ordered() ? (list.start() + i) + "."
-          : BULLETS[c.depth % BULLETS.length];
-      marker = marker(t, text, c.color).w(column).shrink(0)
+      String text = list.ordered() ? (list.start() + i) + "." : BULLETS[c.depth % BULLETS.length];
+      marker = marker(t, text, c.color)
+          .w(column)
+          .shrink(0)
           .textAlign(list.ordered() ? Style.Align.END : Style.Align.CENTER);
     }
     El content = col().grow(1).minSize(0, 0);
     blocks(c.deeper(), item.blocks(), list.tight(), content);
-    El line = row().role("listitem").position(i + 1, list.items().size())
-        .gap(t.space().s()).children(marker, content);
+    El line = row()
+        .role("listitem")
+        .position(i + 1, list.items().size())
+        .gap(t.space().s())
+        .children(marker, content);
     if (item.task() != null) {
       line.checked(item.task());
     }
@@ -744,7 +824,10 @@ public final class Markdown {
 
   private static El marker(Theme t, String text, int color) {
     Theme.TextStyle body = t.prose().body();
-    return El.text(text).font(body.font().get()).fontSize(body.size()).color(color)
+    return El.text(text)
+        .font(body.font().get())
+        .fontSize(body.size())
+        .color(color)
         .fontFeatures("+tnum");
   }
 
@@ -774,14 +857,21 @@ public final class Markdown {
       for (int j = 0; j < columns; j++) {
         Piece piece = cells.get(r).get(j);
         Theme.TextStyle style = r == 0 ? head : body;
-        float width = El.text(piece.text).font(style.font().get()).fontSize(style.size())
-            .highlight(piece, piece).text()
-            .measure(Float.NaN, Float.NaN, Measure.MAX_CONTENT, Measure.MAX_CONTENT).width();
+        float width = El.text(piece.text)
+            .font(style.font().get())
+            .fontSize(style.size())
+            .highlight(piece, piece)
+            .text()
+            .measure(Float.NaN, Float.NaN, Measure.MAX_CONTENT, Measure.MAX_CONTENT)
+            .width();
         widths[j] = Math.max(widths[j], Math.min(width + 2, t.prose().measure() / 2));
       }
     }
-    El grid = col().role("table").radius(t.radius().medium())
-        .border(t.size().stroke(), t.border().subtle()).clip();
+    El grid = col()
+        .role("table")
+        .radius(t.radius().medium())
+        .border(t.size().stroke(), t.border().subtle())
+        .clip();
     grid.style().width = Len.FIT_CONTENT;
     for (int r = 0; r < cells.size(); r++) {
       El line = row().role("row");
@@ -796,14 +886,23 @@ public final class Markdown {
           case RIGHT -> Style.Content.END;
           default -> Style.Content.START;
         };
-        float measured = El.text(piece.text).font((r == 0 ? head : body).font().get())
-            .fontSize((r == 0 ? head : body).size()).highlight(piece, piece).text()
-            .measure(Float.NaN, Float.NaN, Measure.MAX_CONTENT, Measure.MAX_CONTENT).width();
+        float measured = El.text(piece.text)
+            .font((r == 0 ? head : body).font().get())
+            .fontSize((r == 0 ? head : body).size())
+            .highlight(piece, piece)
+            .text()
+            .measure(Float.NaN, Float.NaN, Measure.MAX_CONTENT, Measure.MAX_CONTENT)
+            .width();
         if (measured + 2 < widths[j]) {
           field.w((float) Math.ceil(measured + 2));
         }
-        line.child(row().role(r == 0 ? "columnheader" : "cell").w(widths[j] + 2 * pad).shrink(0)
-            .justify(justify).padding(t.space().s(), pad).child(field));
+        line.child(row()
+            .role(r == 0 ? "columnheader" : "cell")
+            .w(widths[j] + 2 * pad)
+            .shrink(0)
+            .justify(justify)
+            .padding(t.space().s(), pad)
+            .child(field));
       }
       if (r > 0) {
         grid.child(Divider.divider(t));
@@ -811,7 +910,8 @@ public final class Markdown {
       grid.child(line);
     }
     El area = col().scrollBoth().scrollbars(t.scrollbars()).child(grid);
-    area.style().paddingBottom = Len.px(t.scrollbars().thickness() + t.scrollbars().margin());
+    area.style().paddingBottom =
+        Len.px(t.scrollbars().thickness() + t.scrollbars().margin());
     return area;
   }
 
@@ -821,10 +921,11 @@ public final class Markdown {
     for (Block b : blocks) {
       switch (b) {
         case MarkdownDocument.Heading h ->
-            out.append(indent).append(MarkdownDocument.plainText(h.content())).append("\n\n");
-        case MarkdownDocument.Paragraph p -> out.append(indent)
-            .append(MarkdownDocument.plainText(p.content()).replace("\n", "\n" + indent))
-            .append("\n\n");
+          out.append(indent).append(MarkdownDocument.plainText(h.content())).append("\n\n");
+        case MarkdownDocument.Paragraph p ->
+          out.append(indent)
+              .append(MarkdownDocument.plainText(p.content()).replace("\n", "\n" + indent))
+              .append("\n\n");
         case MarkdownDocument.CodeBlock code -> {
           for (String line : code.code().split("\n", -1)) {
             out.append(indent).append(line).append('\n');
@@ -844,19 +945,25 @@ public final class Markdown {
             String[] lines = inner.toString().strip().split("\n", -1);
             String pad = " ".repeat(marker.length());
             for (int k = 0; k < lines.length; k++) {
-              out.append(indent).append(k == 0 ? marker : lines[k].isEmpty() ? "" : pad)
-                  .append(lines[k]).append('\n');
+              out.append(indent)
+                  .append(k == 0 ? marker : lines[k].isEmpty() ? "" : pad)
+                  .append(lines[k])
+                  .append('\n');
             }
           }
           out.append('\n');
         }
         case MarkdownDocument.ThematicBreak x -> out.append(indent).append("---\n\n");
         case MarkdownDocument.Table table -> {
-          out.append(indent).append(String.join("\t",
-              table.header().stream().map(MarkdownDocument::plainText).toList())).append('\n');
+          out.append(indent)
+              .append(String.join(
+                  "\t", table.header().stream().map(MarkdownDocument::plainText).toList()))
+              .append('\n');
           for (List<List<Inline>> row : table.rows()) {
-            out.append(indent).append(String.join("\t",
-                row.stream().map(MarkdownDocument::plainText).toList())).append('\n');
+            out.append(indent)
+                .append(String.join(
+                    "\t", row.stream().map(MarkdownDocument::plainText).toList()))
+                .append('\n');
           }
           out.append('\n');
         }

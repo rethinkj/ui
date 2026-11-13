@@ -52,8 +52,8 @@ final class Golden {
       Files.createDirectories(FAILED);
       Files.write(FAILED.resolve(name + ".expected.png"), Png.encode(expected));
       Files.write(FAILED.resolve(name + ".actual.png"), Png.encode(pixels));
-      String difference = expected.width() + "x" + expected.height() + " stored, "
-          + pixels.width() + "x" + pixels.height() + " rendered";
+      String difference = expected.width() + "x" + expected.height() + " stored, " + pixels.width()
+          + "x" + pixels.height() + " rendered";
       if (expected.width() == pixels.width() && expected.height() == pixels.height()) {
         byte[] diff = new byte[pixels.rgba().length];
         int count = 0;

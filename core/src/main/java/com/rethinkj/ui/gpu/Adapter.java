@@ -16,8 +16,15 @@ import java.lang.foreign.MemorySegment;
 public final class Adapter extends GpuObject {
 
   /** What wgpu says about an adapter. */
-  public record Info(String vendor, String architecture, String device, String description,
-      Backend backend, Type type, int vendorId, int deviceId) {
+  public record Info(
+      String vendor,
+      String architecture,
+      String device,
+      String description,
+      Backend backend,
+      Type type,
+      int vendorId,
+      int deviceId) {
 
     @Override
     public String toString() {
@@ -29,7 +36,10 @@ public final class Adapter extends GpuObject {
 
   /** {@code WGPUAdapterType}. */
   public enum Type {
-    DISCRETE_GPU, INTEGRATED_GPU, CPU, UNKNOWN;
+    DISCRETE_GPU,
+    INTEGRATED_GPU,
+    CPU,
+    UNKNOWN;
 
     static Type of(int value) {
       return switch (value) {
@@ -103,14 +113,19 @@ public final class Adapter extends GpuObject {
       MemorySegment descriptor = arena.allocate(DeviceDescriptor.LAYOUT);
       Structs.string(descriptor, DeviceDescriptor.LABEL, label, arena);
       Structs.string(descriptor, DeviceDescriptor.DEFAULT_QUEUE_LABEL, label + " queue", arena);
-      CallbackInfo.set(descriptor, DeviceDescriptor.DEVICE_LOST_CALLBACK_INFO,
-          Callbacks.DEVICE_LOST, eventsId);
+      CallbackInfo.set(
+          descriptor, DeviceDescriptor.DEVICE_LOST_CALLBACK_INFO, Callbacks.DEVICE_LOST, eventsId);
       long uncaptured = DeviceDescriptor.UNCAPTURED_ERROR_CALLBACK_INFO;
-      descriptor.set(ADDRESS, uncaptured + UncapturedErrorCallbackInfo.CALLBACK,
-          Callbacks.UNCAPTURED_ERROR);
-      descriptor.set(ADDRESS, uncaptured + UncapturedErrorCallbackInfo.USERDATA1,
+      descriptor.set(
+          ADDRESS, uncaptured + UncapturedErrorCallbackInfo.CALLBACK, Callbacks.UNCAPTURED_ERROR);
+      descriptor.set(
+          ADDRESS,
+          uncaptured + UncapturedErrorCallbackInfo.USERDATA1,
           MemorySegment.ofAddress(eventsId));
-      Wgpu.adapterRequestDevice(arena, adapter, descriptor,
+      Wgpu.adapterRequestDevice(
+          arena,
+          adapter,
+          descriptor,
           CallbackInfo.allocate(arena, Callbacks.REQUEST_DEVICE, requestId));
     } catch (RuntimeException | Error e) {
       Callbacks.unregister(eventsId);
@@ -124,8 +139,8 @@ public final class Adapter extends GpuObject {
         throw Instance.notSynchronous("wgpuAdapterRequestDevice");
       }
       if (request.status != Wgpu.REQUEST_DEVICE_STATUS_SUCCESS) {
-        throw new GpuException(GpuException.Kind.REQUEST_FAILED, "requesting device", label,
-            request.message);
+        throw new GpuException(
+            GpuException.Kind.REQUEST_FAILED, "requesting device", label, request.message);
       }
     } catch (RuntimeException e) {
       Callbacks.unregister(eventsId);

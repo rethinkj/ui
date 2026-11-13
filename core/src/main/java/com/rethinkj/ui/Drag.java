@@ -32,8 +32,18 @@ import com.rethinkj.ui.window.Windows;
  * @param windowX where the pointer is in {@code window}, in its logical pixels; NaN without one
  * @param windowY the same downwards
  */
-public record Drag(Phase phase, float dx, float dy, double x, double y, float screenX,
-    float screenY, boolean outside, Windows.Handle window, float windowX, float windowY) {
+public record Drag(
+    Phase phase,
+    float dx,
+    float dy,
+    double x,
+    double y,
+    float screenX,
+    float screenY,
+    boolean outside,
+    Windows.Handle window,
+    float windowX,
+    float windowY) {
 
   /** A step that knows nothing of the screen, as in a test of a drag handler. */
   public Drag(Phase phase, float dx, float dy, double x, double y) {

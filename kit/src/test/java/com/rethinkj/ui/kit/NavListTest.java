@@ -32,11 +32,24 @@ class NavListTest {
   }
 
   private App<NavListTest> app(boolean virtual) {
-    App<NavListTest> app = new App<>(this, s -> col().wFull().hFull().child(virtual
-        ? NavList.navList(T, 100_000,
-            i -> i % 10 == 0 ? NavList.heading("Group " + i / 10)
-                : NavList.item("Item " + i), selected, i -> selected = i).key("list").grow(1)
-        : NavList.navList(T, PAGES, selected, i -> selected = i).key("list")));
+    App<NavListTest> app = new App<>(
+        this,
+        s -> col()
+            .wFull()
+            .hFull()
+            .child(
+                virtual
+                    ? NavList.navList(
+                            T,
+                            100_000,
+                            i -> i % 10 == 0
+                                ? NavList.heading("Group " + i / 10)
+                                : NavList.item("Item " + i),
+                            selected,
+                            i -> selected = i)
+                        .key("list")
+                        .grow(1)
+                    : NavList.navList(T, PAGES, selected, i -> selected = i).key("list")));
     app.textRendering(TextRendering.LINUX);
     return app;
   }
@@ -60,8 +73,8 @@ class NavListTest {
     assertEquals(2, selected);
     String dump = app.tree().dump();
     assertTrue(dump.contains("el #list role=listbox "), dump);
-    assertTrue(StructureTest.line(dump, "label=\"Connections\"").contains(" selected pos=3/5"),
-        dump);
+    assertTrue(
+        StructureTest.line(dump, "label=\"Connections\"").contains(" selected pos=3/5"), dump);
     assertTrue(dump.contains("text \"3\""), "the count");
   }
 

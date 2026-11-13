@@ -91,12 +91,13 @@ public final class Documents {
   final MenuBar.State bar = new MenuBar.State();
   String toast; // a message at the bottom of the first window, or null
   TabGroups.Group<Doc> dropping; // the group whose window a file manager's drag is over
-  final TabGroups<Doc> groups = new TabGroups<>(List.of(
-      new Doc("Readme", "Tabs that move, tear off and dock.\nDrag one out of the bar."),
-      new Doc("Notes", "Coffee, bread"),
-      new Doc("Todo", "Write the release notes\nTry the tabs on Windows"),
-      new Doc("Query", "SELECT id, name\nFROM customers\nWHERE active;"),
-      new Doc("Ideas", "A window per group of tabs")),
+  final TabGroups<Doc> groups = new TabGroups<>(
+      List.of(
+          new Doc("Readme", "Tabs that move, tear off and dock.\nDrag one out of the bar."),
+          new Doc("Notes", "Coffee, bread"),
+          new Doc("Todo", "Write the release notes\nTry the tabs on Windows"),
+          new Doc("Query", "SELECT id, name\nFROM customers\nWHERE active;"),
+          new Doc("Ideas", "A window per group of tabs")),
       this::open);
 
   Theme theme() {
@@ -112,8 +113,9 @@ public final class Documents {
       return;
     }
     s.app.textRendering(TextRendering.platform());
-    Window.Options options = Identity.options(Documents.class, "Documents", MARK,
-        Symbol.DOCUMENT).frameless().minimumSize(360, 240);
+    Window.Options options = Identity.options(Documents.class, "Documents", MARK, Symbol.DOCUMENT)
+        .frameless()
+        .minimumSize(360, 240);
     // Without a GPU or a native library, a message box says why instead of nothing at all.
     SystemDialogs.reportFailure("Documents", () -> {
       try (Window window = Window.open("Documents", WIDTH, HEIGHT, options);
@@ -136,9 +138,13 @@ public final class Documents {
     App<Documents>[] window = new App[1];
     window[0] = new App<>(this, s -> s.view(group, window[0]));
     window[0].textRendering(app.textRendering());
-    return app.windows().open(group.activeTab().title, TAB_WIDTH, TAB_HEIGHT,
-        options.frameless().minimumSize(240, 160).icon(Identity.icon(MARK, Symbol.DOCUMENT)),
-        window[0]);
+    return app.windows()
+        .open(
+            group.activeTab().title,
+            TAB_WIDTH,
+            TAB_HEIGHT,
+            options.frameless().minimumSize(240, 160).icon(Identity.icon(MARK, Symbol.DOCUMENT)),
+            window[0]);
   }
 
   /**
@@ -149,28 +155,38 @@ public final class Documents {
    */
   El view(TabGroups.Group<Doc> group, App<Documents> window) {
     Theme t = theme();
-    El tabs = groups.tabs(t, group, d -> new Tab(d.title).icon(Symbol.DOCUMENT),
+    El tabs = groups.tabs(
+        t,
+        group,
+        d -> new Tab(d.title).icon(Symbol.DOCUMENT),
         d -> d == null
-            ? EmptyState.emptyState(t, Symbol.DOCUMENT, "No documents",
-                "Drag a tab here from another window.", null)
+            ? EmptyState.emptyState(
+                t, Symbol.DOCUMENT, "No documents", "Drag a tab here from another window.", null)
             : editor(t, d, window));
     if (dropping == group) { // the card's edge in the accent, as wide as before
       tabs.border(t.size().stroke(), t.accent().edge());
     }
     El dark = toggle(t, this.dark, "Dark", () -> this.dark = !this.dark);
-    El root = col().wFull().hFull().fill(t.surface().window())
-        .onFileDrop(d -> drop(group, d));
+    El root = col().wFull().hFull().fill(t.surface().window()).onFileDrop(d -> drop(group, d));
     if (group == groups.main()) {
       List<Menu.Item> menus = menus(group);
       root.onKey(MenuBar.keys(bar, menus).or(tabs.onKey())) // the tabs' keys from anywhere
           .onKeyUp(MenuBar.keysUp(bar, menus))
-          .child(withMenus(t, "Documents", MARK, MenuBar.menuBar(t, bar, menus),
-          Identity.maximized(window), dark));
+          .child(withMenus(
+              t,
+              "Documents",
+              MARK,
+              MenuBar.menuBar(t, bar, menus),
+              Identity.maximized(window),
+              dark));
     } else {
       root.onKey(tabs.onKey())
           .child(titleBar(t, "Documents", MARK, Identity.maximized(window), dark));
     }
-    root.child(col().key("tabs").grow(1).padding(0, t.space().m(), t.space().m(), t.space().m())
+    root.child(col()
+        .key("tabs")
+        .grow(1)
+        .padding(0, t.space().m(), t.space().m(), t.space().m())
         .child(tabs.grow(1)));
     if (dropping == group) {
       root.overlay(hint(t));
@@ -183,24 +199,32 @@ public final class Documents {
   /** The menus of the first window's title bar. */
   List<Menu.Item> menus(TabGroups.Group<Doc> group) {
     Doc active = group.tabs().isEmpty() ? null : group.activeTab();
-    return List.of(Menu.submenu("&File", List.of(
-        Menu.item("Open…", () -> openFiles(group)).icon(Symbol.FOLDER_OPEN)
-            .shortcut(Key.CONTROL, "O"),
-        Menu.item("Save As…", active == null ? null : () -> saveAs(active)).icon(Symbol.SAVE)
-            .shortcut(Key.CONTROL | Key.SHIFT, "S"))));
+    return List.of(Menu.submenu(
+        "&File",
+        List.of(
+            Menu.item("Open…", () -> openFiles(group))
+                .icon(Symbol.FOLDER_OPEN)
+                .shortcut(Key.CONTROL, "O"),
+            Menu.item("Save As…", active == null ? null : () -> saveAs(active))
+                .icon(Symbol.SAVE)
+                .shortcut(Key.CONTROL | Key.SHIFT, "S"))));
   }
 
   /** File › Open…: the system's dialog, then each file read off the app's thread. */
   void openFiles(TabGroups.Group<Doc> group) {
-    app.fileDialog(FileDialog.open("Open").filter("Documents", "sql", "txt", "md")
-            .filter("All files", "*").many(),
+    app.fileDialog(
+        FileDialog.open("Open")
+            .filter("Documents", "sql", "txt", "md")
+            .filter("All files", "*")
+            .many(),
         choice -> read(group, choice.paths()),
         error -> toast = "No file dialog: " + error);
   }
 
   /** File › Save As…: the system's dialog, then the text written off the app's thread. */
   void saveAs(Doc d) {
-    String name = d.path != null ? d.path.getFileName().toString()
+    String name = d.path != null
+        ? d.path.getFileName().toString()
         : d.title + (d.title.equals("Query") ? ".sql" : ".txt");
     // The document's own kind first: the dialog starts with the first filter.
     FileDialog dialog = name.toLowerCase(Locale.ROOT).endsWith(".sql")
@@ -210,18 +234,25 @@ public final class Documents {
     if (d.path != null && d.path.toAbsolutePath().getParent() != null) {
       dialog = dialog.in(d.path.toAbsolutePath().getParent());
     }
-    app.fileDialog(dialog, choice -> {
-      if (choice.cancelled()) {
-        return;
-      }
-      Path to = choice.path();
-      String text = d.text; // the state stays on the app's thread
-      app.background("save " + to.getFileName(), () -> Files.writeString(to, text), saved -> {
-        d.path = to;
-        d.title = to.getFileName().toString();
-        toast = "Saved " + d.title;
-      }, e -> toast = "Cannot save " + to.getFileName() + ": " + why(e));
-    }, error -> toast = "No file dialog: " + error);
+    app.fileDialog(
+        dialog,
+        choice -> {
+          if (choice.cancelled()) {
+            return;
+          }
+          Path to = choice.path();
+          String text = d.text; // the state stays on the app's thread
+          app.background(
+              "save " + to.getFileName(),
+              () -> Files.writeString(to, text),
+              saved -> {
+                d.path = to;
+                d.title = to.getFileName().toString();
+                toast = "Saved " + d.title;
+              },
+              e -> toast = "Cannot save " + to.getFileName() + ": " + why(e));
+        },
+        error -> toast = "No file dialog: " + error);
   }
 
   /** A drag from a file manager: the look while it is over, new tabs when it drops. */
@@ -249,34 +280,39 @@ public final class Documents {
     if (files.isEmpty()) {
       return;
     }
-    app.background("read " + files.size() + " files", () -> {
-      List<Object> read = new ArrayList<>(); // the text, or what went wrong
-      for (Path file : files) {
-        try {
-          if (Files.size(file) > LIMIT) {
-            throw new IOException("it is larger than " + LIMIT / 1024 + " KB");
+    app.background(
+        "read " + files.size() + " files",
+        () -> {
+          List<Object> read = new ArrayList<>(); // the text, or what went wrong
+          for (Path file : files) {
+            try {
+              if (Files.size(file) > LIMIT) {
+                throw new IOException("it is larger than " + LIMIT / 1024 + " KB");
+              }
+              read.add(Files.readString(file));
+            } catch (IOException e) {
+              read.add(e);
+            }
           }
-          read.add(Files.readString(file));
-        } catch (IOException e) {
-          read.add(e);
-        }
-      }
-      return read;
-    }, read -> {
-      TabGroups.Group<Doc> to = groups.groups().contains(group) ? group : groups.main();
-      for (int i = 0; i < files.size(); i++) {
-        Path file = files.get(i);
-        String name = file.getFileName() == null ? file.toString()
-            : file.getFileName().toString();
-        if (read.get(i) instanceof String text) {
-          Doc doc = new Doc(name, text);
-          doc.path = file;
-          groups.add(to, to.tabs().size(), doc);
-        } else {
-          toast = "Cannot open " + name + ": " + why((Exception) read.get(i));
-        }
-      }
-    }, e -> toast = "Cannot open the files: " + why(e));
+          return read;
+        },
+        read -> {
+          TabGroups.Group<Doc> to = groups.groups().contains(group) ? group : groups.main();
+          for (int i = 0; i < files.size(); i++) {
+            Path file = files.get(i);
+            String name = file.getFileName() == null
+                ? file.toString()
+                : file.getFileName().toString();
+            if (read.get(i) instanceof String text) {
+              Doc doc = new Doc(name, text);
+              doc.path = file;
+              groups.add(to, to.tabs().size(), doc);
+            } else {
+              toast = "Cannot open " + name + ": " + why((Exception) read.get(i));
+            }
+          }
+        },
+        e -> toast = "Cannot open the files: " + why(e));
   }
 
   /** What went wrong with a file, in words. */
@@ -291,7 +327,10 @@ public final class Documents {
 
   /** What a window shows while a file manager's drag is over it. */
   static El hint(Theme t) {
-    return row().key("drop-hint").role("status").label("Drop to open in a new tab")
+    return row()
+        .key("drop-hint")
+        .role("status")
+        .label("Drop to open in a new tab")
         .atWindowEdge(Side.BOTTOM, Style.Align.CENTER, t.space().xl())
         .keepFocus()
         .padding(t.space().s(), t.space().l(), t.space().s(), t.space().l())
@@ -310,7 +349,9 @@ public final class Documents {
         ? TextField.codeArea(t, d.text, "Empty", v -> d.text = v)
         : TextField.textArea(t, d.text, "Empty", v -> d.text = v);
     area.fieldState(d.field);
-    return col().grow(1).padding(t.space().l())
+    return col()
+        .grow(1)
+        .padding(t.space().l())
         .child(Find.find(t, app, area.key("text").label(d.title).wFull().grow(1), d.find));
   }
 }

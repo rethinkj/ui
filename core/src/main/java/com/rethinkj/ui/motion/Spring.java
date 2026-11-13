@@ -94,9 +94,11 @@ public record Spring(double duration, double bounce) {
       // offset = e^(−σt)·(a·cos ωd·t + (k/ωd)·sin ωd·t), with |sin ωd·t| ≤ min(1, ωd·t)
       double s = z * w, wd = w * StrictMath.sqrt((1 - z) * (1 + z)), k = v0 + s * a;
       double vk = a * wd * wd + s * k;
-      x = Math.min(decay(StrictMath.hypot(a, k / wd), -s, tolerance),
+      x = Math.min(
+          decay(StrictMath.hypot(a, k / wd), -s, tolerance),
           tail(Math.abs(a), Math.abs(k), s, tolerance));
-      v = Math.min(decay(StrictMath.hypot(v0, vk / wd), -s, tolerance),
+      v = Math.min(
+          decay(StrictMath.hypot(v0, vk / wd), -s, tolerance),
           tail(Math.abs(v0), Math.abs(vk), s, tolerance));
     } else {
       // offset = e^(r1·t)·(a + k·(1 − e^(−d·t))/d), with (1 − e^(−d·t))/d ≤ t

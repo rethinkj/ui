@@ -113,12 +113,23 @@ class BurstTest {
   void editsOfAFieldInARowEachGetTheAppsAnswer() {
     TextLibraries.assumeLoaded();
     Digits s = new Digits();
-    App<Digits> app = new App<>(s, d -> col().key("rows").wFull().hFull().rows(3, 30, i ->
-        El.text(d.values[i]).editable(v -> {
-          if (v.chars().allMatch(Character::isDigit)) {
-            d.values[i] = v;
-          }
-        }).key("field").w(100)));
+    App<Digits> app = new App<>(
+        s,
+        d -> col()
+            .key("rows")
+            .wFull()
+            .hFull()
+            .rows(
+                3,
+                30,
+                i -> El.text(d.values[i])
+                    .editable(v -> {
+                      if (v.chars().allMatch(Character::isDigit)) {
+                        d.values[i] = v;
+                      }
+                    })
+                    .key("field")
+                    .w(100)));
     app.textRendering(TextRendering.LINUX);
     app.resize(100, 90, 1);
     app.frame();

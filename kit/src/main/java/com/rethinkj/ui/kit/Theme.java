@@ -75,37 +75,143 @@ public record Theme(
    * Code#LIGHT} on a light one, with the default {@link Caption}, and whose documents look as
    * {@link Prose#DARK} or {@link Prose#LIGHT} by the same rule.
    */
-  public Theme(Surfaces surface, TextColors text, Borders border, Accent accent, Status status,
-      Spacing space, Radii radius, Type type, Sizes size, Motion motion, Grid grid,
-      Scrollbars scrollbars, Elevation elevation) {
-    this(surface, text, border, accent, status, space, radius, type, size, motion, grid,
-        scrollbars, elevation, lightness(surface.raised()) < 0.5 ? Code.DARK : Code.LIGHT,
+  public Theme(
+      Surfaces surface,
+      TextColors text,
+      Borders border,
+      Accent accent,
+      Status status,
+      Spacing space,
+      Radii radius,
+      Type type,
+      Sizes size,
+      Motion motion,
+      Grid grid,
+      Scrollbars scrollbars,
+      Elevation elevation) {
+    this(
+        surface,
+        text,
+        border,
+        accent,
+        status,
+        space,
+        radius,
+        type,
+        size,
+        motion,
+        grid,
+        scrollbars,
+        elevation,
+        lightness(surface.raised()) < 0.5 ? Code.DARK : Code.LIGHT,
         CAPTION);
   }
 
   /** A theme with the default {@link Caption} and the {@link Prose} of its lightness, as above. */
-  public Theme(Surfaces surface, TextColors text, Borders border, Accent accent, Status status,
-      Spacing space, Radii radius, Type type, Sizes size, Motion motion, Grid grid,
-      Scrollbars scrollbars, Elevation elevation, Code code) {
-    this(surface, text, border, accent, status, space, radius, type, size, motion, grid,
-        scrollbars, elevation, code, CAPTION);
+  public Theme(
+      Surfaces surface,
+      TextColors text,
+      Borders border,
+      Accent accent,
+      Status status,
+      Spacing space,
+      Radii radius,
+      Type type,
+      Sizes size,
+      Motion motion,
+      Grid grid,
+      Scrollbars scrollbars,
+      Elevation elevation,
+      Code code) {
+    this(
+        surface,
+        text,
+        border,
+        accent,
+        status,
+        space,
+        radius,
+        type,
+        size,
+        motion,
+        grid,
+        scrollbars,
+        elevation,
+        code,
+        CAPTION);
   }
 
   /** A theme whose documents look as {@link Prose#DARK} or {@link Prose#LIGHT}, as above. */
-  public Theme(Surfaces surface, TextColors text, Borders border, Accent accent, Status status,
-      Spacing space, Radii radius, Type type, Sizes size, Motion motion, Grid grid,
-      Scrollbars scrollbars, Elevation elevation, Code code, Caption caption) {
-    this(surface, text, border, accent, status, space, radius, type, size, motion, grid,
-        scrollbars, elevation, code, caption,
+  public Theme(
+      Surfaces surface,
+      TextColors text,
+      Borders border,
+      Accent accent,
+      Status status,
+      Spacing space,
+      Radii radius,
+      Type type,
+      Sizes size,
+      Motion motion,
+      Grid grid,
+      Scrollbars scrollbars,
+      Elevation elevation,
+      Code code,
+      Caption caption) {
+    this(
+        surface,
+        text,
+        border,
+        accent,
+        status,
+        space,
+        radius,
+        type,
+        size,
+        motion,
+        grid,
+        scrollbars,
+        elevation,
+        code,
+        caption,
         lightness(surface.raised()) < 0.5 ? Prose.DARK : Prose.LIGHT);
   }
 
   /** A theme whose badges look as {@link Badges#DARK} or {@link Badges#LIGHT}, as above. */
-  public Theme(Surfaces surface, TextColors text, Borders border, Accent accent, Status status,
-      Spacing space, Radii radius, Type type, Sizes size, Motion motion, Grid grid,
-      Scrollbars scrollbars, Elevation elevation, Code code, Caption caption, Prose prose) {
-    this(surface, text, border, accent, status, space, radius, type, size, motion, grid,
-        scrollbars, elevation, code, caption, prose,
+  public Theme(
+      Surfaces surface,
+      TextColors text,
+      Borders border,
+      Accent accent,
+      Status status,
+      Spacing space,
+      Radii radius,
+      Type type,
+      Sizes size,
+      Motion motion,
+      Grid grid,
+      Scrollbars scrollbars,
+      Elevation elevation,
+      Code code,
+      Caption caption,
+      Prose prose) {
+    this(
+        surface,
+        text,
+        border,
+        accent,
+        status,
+        space,
+        radius,
+        type,
+        size,
+        motion,
+        grid,
+        scrollbars,
+        elevation,
+        code,
+        caption,
+        prose,
         lightness(surface.raised()) < 0.5 ? Badges.DARK : Badges.LIGHT);
   }
 
@@ -138,8 +244,17 @@ public record Theme(
    *     of both default themes, so that one palette serves both
    * @param onAvatar the initials and icon on those fills, 4.5:1 on each
    */
-  public record Badges(Tone neutral, Tone accent, Tone success, Tone warning, Tone danger,
-      float row, float toolbar, TextStyle text, List<Integer> avatars, int onAvatar) {
+  public record Badges(
+      Tone neutral,
+      Tone accent,
+      Tone success,
+      Tone warning,
+      Tone danger,
+      float row,
+      float toolbar,
+      TextStyle text,
+      List<Integer> avatars,
+      int onAvatar) {
 
     public Badges {
       if (avatars.isEmpty()) {
@@ -149,8 +264,16 @@ public record Theme(
     }
 
     private static final TextStyle TEXT = new TextStyle(Font::sansMedium, 12);
-    private static final List<Integer> AVATARS = List.of(BLUE_490, VIOLET_478, PURPLE_490,
-        PINK_491, RED_493, ORANGE_488, AMBER_491, GREEN_492, TEAL_490);
+    private static final List<Integer> AVATARS = List.of(
+        BLUE_490,
+        VIOLET_478,
+        PURPLE_490,
+        PINK_491,
+        RED_493,
+        ORANGE_488,
+        AMBER_491,
+        GREEN_492,
+        TEAL_490);
 
     /** For dark surfaces. */
     public static final Badges DARK = new Badges(
@@ -159,7 +282,11 @@ public record Theme(
         new Tone(alpha(GREEN_735, 0.1f), GREEN_826, GREEN_452, WHITE),
         new Tone(alpha(AMBER_745, 0.1f), AMBER_835, AMBER_745, GREY_108),
         new Tone(alpha(RED_649, 0.1f), RED_803, RED_457, WHITE),
-        18, 22, TEXT, AVATARS, WHITE);
+        18,
+        22,
+        TEXT,
+        AVATARS,
+        WHITE);
 
     /** For light surfaces. */
     public static final Badges LIGHT = new Badges(
@@ -168,7 +295,11 @@ public record Theme(
         new Tone(alpha(GREEN_389, 0.13f), GREEN_333, GREEN_389, WHITE),
         new Tone(alpha(AMBER_622, 0.17f), AMBER_327, AMBER_735, GREY_108),
         new Tone(alpha(RED_395, 0.12f), RED_345, RED_395, WHITE),
-        18, 22, TEXT, AVATARS, WHITE);
+        18,
+        22,
+        TEXT,
+        AVATARS,
+        WHITE);
   }
 
   /**
@@ -183,8 +314,8 @@ public record Theme(
    * @param quote the line along the left of a quote
    * @param measure the widest the column of blocks runs, for lines that stay easy to read
    */
-  public record Prose(TextStyle body, List<TextStyle> headings, int link, int code, int quote,
-      float measure) {
+  public record Prose(
+      TextStyle body, List<TextStyle> headings, int link, int code, int quote, float measure) {
 
     public Prose {
       if (headings.size() != 6) {
@@ -200,14 +331,13 @@ public record Theme(
         new TextStyle(Font::sansSemibold, 14), new TextStyle(Font::sansSemibold, 13));
 
     /** For a dark panel. */
-    public static final Prose DARK = new Prose(BODY, HEADINGS, BLUE_694, alpha(WHITE, 0.024f),
-        GREY_311, 720);
+    public static final Prose DARK =
+        new Prose(BODY, HEADINGS, BLUE_694, alpha(WHITE, 0.024f), GREY_311, 720);
 
     /** For a light panel. */
-    public static final Prose LIGHT = new Prose(BODY, HEADINGS, BLUE_403, alpha(BLACK, 0.08f),
-        GREY_805, 720);
+    public static final Prose LIGHT =
+        new Prose(BODY, HEADINGS, BLUE_403, alpha(BLACK, 0.08f), GREY_805, 720);
   }
-
 
   /**
    * Whether a colour is light, from 0 to 1: the luma of its sRGB values as they are, not in linear
@@ -235,26 +365,58 @@ public record Theme(
    * @param current translucent, behind the current match of a find, stronger than {@code match}
    * @param occurrence translucent, behind the other occurrences of the word at the caret
    */
-  public record Code(int keyword, int string, int number, int comment, int operator, int line,
-      int bracket, int match, int current, int occurrence) {
+  public record Code(
+      int keyword,
+      int string,
+      int number,
+      int comment,
+      int operator,
+      int line,
+      int bracket,
+      int match,
+      int current,
+      int occurrence) {
 
     /** For dark surfaces. */
-    public static final Code DARK = new Code(VIOLET_782, GREEN_823, ORANGE_806, GREY_747,
-        CYAN_843, alpha(WHITE, 0.016f), alpha(WHITE, 0.047f), alpha(AMBER_323, 0.376f),
-        alpha(AMBER_467, 0.267f), alpha(WHITE, 0.03f));
+    public static final Code DARK = new Code(
+        VIOLET_782,
+        GREEN_823,
+        ORANGE_806,
+        GREY_747,
+        CYAN_843,
+        alpha(WHITE, 0.016f),
+        alpha(WHITE, 0.047f),
+        alpha(AMBER_323, 0.376f),
+        alpha(AMBER_467, 0.267f),
+        alpha(WHITE, 0.03f));
 
     /** For light surfaces. */
-    public static final Code LIGHT = new Code(VIOLET_362, GREEN_378, ORANGE_380, GREY_386,
-        CYAN_363, alpha(BLACK, 0.063f), alpha(BLACK, 0.15f), alpha(AMBER_768, 0.25f),
-        alpha(AMBER_720, 0.5f), alpha(BLACK, 0.11f));
+    public static final Code LIGHT = new Code(
+        VIOLET_362,
+        GREEN_378,
+        ORANGE_380,
+        GREY_386,
+        CYAN_363,
+        alpha(BLACK, 0.063f),
+        alpha(BLACK, 0.15f),
+        alpha(AMBER_768, 0.25f),
+        alpha(AMBER_720, 0.5f),
+        alpha(BLACK, 0.11f));
 
     /**
      * The colours of code with the backgrounds of a find and of a word's occurrences of {@link
      * #DARK} where the caret's line is light on dark, else of {@link #LIGHT}.
      */
-    public Code(int keyword, int string, int number, int comment, int operator, int line,
-        int bracket) {
-      this(keyword, string, number, comment, operator, line, bracket,
+    public Code(
+        int keyword, int string, int number, int comment, int operator, int line, int bracket) {
+      this(
+          keyword,
+          string,
+          number,
+          comment,
+          operator,
+          line,
+          bracket,
           alpha(line, 1) == WHITE ? DARK.match : LIGHT.match,
           alpha(line, 1) == WHITE ? DARK.current : LIGHT.current,
           alpha(line, 1) == WHITE ? DARK.occurrence : LIGHT.occurrence);
@@ -337,7 +499,8 @@ public record Theme(
    * badge's accent stay the theme's blue.
    */
   public enum Hue {
-    BLUE(new Accent(BLUE_496, BLUE_469, BLUE_430, alpha(BLUE_496, 0.4f), BLUE_694),
+    BLUE(
+        new Accent(BLUE_496, BLUE_469, BLUE_430, alpha(BLUE_496, 0.4f), BLUE_694),
         new Accent(BLUE_447, BLUE_391, BLUE_335, alpha(BLUE_447, 0.35f), BLUE_447)),
     VIOLET(VIOLET_478, VIOLET_700),
     PURPLE(PURPLE_490, PURPLE_702),
@@ -358,13 +521,14 @@ public record Theme(
     }
 
     Hue(int fill, int edge) {
-      this(new Accent(fill, mix(fill, BLACK, 0.12), mix(fill, BLACK, 0.24),
-          alpha(fill, 0.4f), edge), light(mix(fill, BLACK, 0.25)));
+      this(
+          new Accent(fill, mix(fill, BLACK, 0.12), mix(fill, BLACK, 0.24), alpha(fill, 0.4f), edge),
+          light(mix(fill, BLACK, 0.25)));
     }
 
     private static Accent light(int fill) {
-      return new Accent(fill, mix(fill, BLACK, 0.12), mix(fill, BLACK, 0.24),
-          alpha(fill, 0.35f), fill);
+      return new Accent(
+          fill, mix(fill, BLACK, 0.12), mix(fill, BLACK, 0.24), alpha(fill, 0.35f), fill);
     }
 
     /** The accent of this hue for a dark theme. */
@@ -446,40 +610,106 @@ public record Theme(
       float palette) {
 
     /** Sizes with a command palette 560 wide. */
-    public Sizes(float control, float checkbox, float switchWidth, float switchHeight,
-        float stroke, float field, float handle, float step, float icon, float indicator,
-        float ringGap, float progress) {
-      this(control, checkbox, switchWidth, switchHeight, stroke, field, handle, step, icon,
-          indicator, ringGap, progress, 560);
+    public Sizes(
+        float control,
+        float checkbox,
+        float switchWidth,
+        float switchHeight,
+        float stroke,
+        float field,
+        float handle,
+        float step,
+        float icon,
+        float indicator,
+        float ringGap,
+        float progress) {
+      this(
+          control,
+          checkbox,
+          switchWidth,
+          switchHeight,
+          stroke,
+          field,
+          handle,
+          step,
+          icon,
+          indicator,
+          ringGap,
+          progress,
+          560);
     }
 
     /** Sizes with progress bars 4 thick. */
-    public Sizes(float control, float checkbox, float switchWidth, float switchHeight,
-        float stroke, float field, float handle, float step, float icon, float indicator,
+    public Sizes(
+        float control,
+        float checkbox,
+        float switchWidth,
+        float switchHeight,
+        float stroke,
+        float field,
+        float handle,
+        float step,
+        float icon,
+        float indicator,
         float ringGap) {
-      this(control, checkbox, switchWidth, switchHeight, stroke, field, handle, step, icon,
-          indicator, ringGap, 4);
+      this(
+          control,
+          checkbox,
+          switchWidth,
+          switchHeight,
+          stroke,
+          field,
+          handle,
+          step,
+          icon,
+          indicator,
+          ringGap,
+          4);
     }
 
     /** Sizes with a gap of 2 between a primary button and its ring. */
-    public Sizes(float control, float checkbox, float switchWidth, float switchHeight,
-        float stroke, float field, float handle, float step, float icon, float indicator) {
-      this(control, checkbox, switchWidth, switchHeight, stroke, field, handle, step, icon,
-          indicator, 2);
+    public Sizes(
+        float control,
+        float checkbox,
+        float switchWidth,
+        float switchHeight,
+        float stroke,
+        float field,
+        float handle,
+        float step,
+        float icon,
+        float indicator) {
+      this(
+          control,
+          checkbox,
+          switchWidth,
+          switchHeight,
+          stroke,
+          field,
+          handle,
+          step,
+          icon,
+          indicator,
+          2);
     }
 
     /**
      * Sizes with text fields 200 wide, a split's handle 7 wide, steps of 16, icons 16 and a tab's
      * line 2 thick.
      */
-    public Sizes(float control, float checkbox, float switchWidth, float switchHeight,
-        float stroke) {
+    public Sizes(
+        float control, float checkbox, float switchWidth, float switchHeight, float stroke) {
       this(control, checkbox, switchWidth, switchHeight, stroke, 200);
     }
 
     /** Sizes with a split's handle 7 wide, steps of 16, icons 16 and a tab's line 2 thick. */
-    public Sizes(float control, float checkbox, float switchWidth, float switchHeight,
-        float stroke, float field) {
+    public Sizes(
+        float control,
+        float checkbox,
+        float switchWidth,
+        float switchHeight,
+        float stroke,
+        float field) {
       this(control, checkbox, switchWidth, switchHeight, stroke, field, 7, 16, 16, 2);
     }
   }
@@ -497,18 +727,38 @@ public record Theme(
    * @param spin seconds a {@link Progress#spinner} takes to go round once
    * @param confirm seconds a {@link Button#copy} button shows that it copied
    */
-  public record Motion(Spring feedback, Spring move, double submenuDelay, double tooltipDelay,
-      Spring fade, double toast, double progress, double spin, double confirm) {
+  public record Motion(
+      Spring feedback,
+      Spring move,
+      double submenuDelay,
+      double tooltipDelay,
+      Spring fade,
+      double toast,
+      double progress,
+      double spin,
+      double confirm) {
 
     /** Motion whose copy buttons confirm for 1.5 seconds. */
-    public Motion(Spring feedback, Spring move, double submenuDelay, double tooltipDelay,
-        Spring fade, double toast, double progress, double spin) {
+    public Motion(
+        Spring feedback,
+        Spring move,
+        double submenuDelay,
+        double tooltipDelay,
+        Spring fade,
+        double toast,
+        double progress,
+        double spin) {
       this(feedback, move, submenuDelay, tooltipDelay, fade, toast, progress, spin, 1.5);
     }
 
     /** Motion with a running bar's pass of 2 seconds and a spinner's turn of 1.2 seconds. */
-    public Motion(Spring feedback, Spring move, double submenuDelay, double tooltipDelay,
-        Spring fade, double toast) {
+    public Motion(
+        Spring feedback,
+        Spring move,
+        double submenuDelay,
+        double tooltipDelay,
+        Spring fade,
+        double toast) {
       this(feedback, move, submenuDelay, tooltipDelay, fade, toast, 2, 1.2);
     }
 
@@ -553,19 +803,53 @@ public record Theme(
    *     Status#danger}
    */
   public record Grid(
-      float rowHeight, float minColumn, float maxColumn, float handle, float mark, int header,
-      int row, int stripe, int selected, int selectedInactive, int cursor, float cursorWidth,
-      int changed, int added, int deleted, int error) {
+      float rowHeight,
+      float minColumn,
+      float maxColumn,
+      float handle,
+      float mark,
+      int header,
+      int row,
+      int stripe,
+      int selected,
+      int selectedInactive,
+      int cursor,
+      float cursorWidth,
+      int changed,
+      int added,
+      int deleted,
+      int error) {
 
     /**
      * A grid whose changed, new, deleted and failed rows and cells are tinted as the default
      * theme of its lightness tints them.
      */
-    public Grid(float rowHeight, float minColumn, float maxColumn, float handle, float mark,
-        int header, int row, int stripe, int selected, int selectedInactive, int cursor,
+    public Grid(
+        float rowHeight,
+        float minColumn,
+        float maxColumn,
+        float handle,
+        float mark,
+        int header,
+        int row,
+        int stripe,
+        int selected,
+        int selectedInactive,
+        int cursor,
         float cursorWidth) {
-      this(rowHeight, minColumn, maxColumn, handle, mark, header, row, stripe, selected,
-          selectedInactive, cursor, cursorWidth,
+      this(
+          rowHeight,
+          minColumn,
+          maxColumn,
+          handle,
+          mark,
+          header,
+          row,
+          stripe,
+          selected,
+          selectedInactive,
+          cursor,
+          cursorWidth,
           lightness(row) < 0.5 ? alpha(BLUE_694, 0.03f) : alpha(BLUE_447, 0.11f),
           lightness(row) < 0.5 ? alpha(GREEN_735, 0.03f) : alpha(GREEN_389, 0.11f),
           lightness(row) < 0.5 ? alpha(RED_649, 0.03f) : alpha(RED_395, 0.094f),
@@ -611,13 +895,12 @@ public record Theme(
 
   private static final Spacing SPACE = new Spacing(2, 4, 8, 12, 16, 24);
   private static final Radii RADIUS = new Radii(4, 6, 10);
-  private static final Type TYPE =
-      new Type(
-          new TextStyle(Font::sans, 13),
-          new TextStyle(Font::mono, 12),
-          new TextStyle(Font::sansSemibold, 14),
-          new TextStyle(Font::sansSemibold, 20),
-          new TextStyle(Font::sansMedium, 13));
+  private static final Type TYPE = new Type(
+      new TextStyle(Font::sans, 13),
+      new TextStyle(Font::mono, 12),
+      new TextStyle(Font::sansSemibold, 14),
+      new TextStyle(Font::sansSemibold, 20),
+      new TextStyle(Font::sansMedium, 13));
   private static final Sizes SIZE = new Sizes(24, 16, 28, 16, 1, 200, 7, 16, 16, 2, 2, 4, 560);
   private static final Motion MOTION =
       new Motion(Spring.INSTANT, Spring.SNAP, 0.3, 0.5, Spring.INSTANT, 5, 2, 1.2, 1.5);
@@ -671,81 +954,155 @@ public record Theme(
    */
 
   /** Neutral greys with a blue accent, light text on dark surfaces. */
-  public static final Theme DARK =
-      new Theme(
-          new Surfaces(GREY_047, GREY_083, GREY_122, GREY_099,
-              alpha(GREY_298, 0.25f), alpha(GREY_298, 0.45f), alpha(BLACK, 0.6f)),
-          new TextColors(GREY_916, GREY_648, GREY_425, WHITE),
-          new Borders(GREY_157, GREY_477, GREY_226, alpha(GREY_477, 0.35f)),
-          Hue.BLUE.dark(),
-          new Status(RED_649, AMBER_745, GREEN_735),
-          SPACE,
-          RADIUS,
-          TYPE,
-          SIZE,
-          MOTION,
-          new Grid(24, 32, 480, 6, 12, GREY_099, GREY_083, GREY_083, BLUE_180,
-              GREY_208, BLUE_694, 1),
-          new Scrollbars(6, 2, 3, 24, GREY_568, GREY_655, GREY_759),
-          new Elevation(
-              List.of(new Shadow(0, 1, 2, 0, alpha(BLACK, 0.8f)),
-                  new Shadow(0, 6, 16, 0, alpha(BLACK, 0.55f))),
-              List.of(new Shadow(0, 1, 2, 0, alpha(BLACK, 0.6f)),
-                  new Shadow(0, 4, 12, 0, alpha(BLACK, 0.5f))),
-              List.of(new Shadow(0, 2, 4, 0, alpha(BLACK, 0.6f)),
-                  new Shadow(0, 12, 32, 0, alpha(BLACK, 0.6f)))),
-          Code.DARK,
-          CAPTION);
+  public static final Theme DARK = new Theme(
+      new Surfaces(
+          GREY_047,
+          GREY_083,
+          GREY_122,
+          GREY_099,
+          alpha(GREY_298, 0.25f),
+          alpha(GREY_298, 0.45f),
+          alpha(BLACK, 0.6f)),
+      new TextColors(GREY_916, GREY_648, GREY_425, WHITE),
+      new Borders(GREY_157, GREY_477, GREY_226, alpha(GREY_477, 0.35f)),
+      Hue.BLUE.dark(),
+      new Status(RED_649, AMBER_745, GREEN_735),
+      SPACE,
+      RADIUS,
+      TYPE,
+      SIZE,
+      MOTION,
+      new Grid(24, 32, 480, 6, 12, GREY_099, GREY_083, GREY_083, BLUE_180, GREY_208, BLUE_694, 1),
+      new Scrollbars(6, 2, 3, 24, GREY_568, GREY_655, GREY_759),
+      new Elevation(
+          List.of(
+              new Shadow(0, 1, 2, 0, alpha(BLACK, 0.8f)),
+              new Shadow(0, 6, 16, 0, alpha(BLACK, 0.55f))),
+          List.of(
+              new Shadow(0, 1, 2, 0, alpha(BLACK, 0.6f)),
+              new Shadow(0, 4, 12, 0, alpha(BLACK, 0.5f))),
+          List.of(
+              new Shadow(0, 2, 4, 0, alpha(BLACK, 0.6f)),
+              new Shadow(0, 12, 32, 0, alpha(BLACK, 0.6f)))),
+      Code.DARK,
+      CAPTION);
 
   /** Neutral greys with a blue accent, dark text on light surfaces. */
-  public static final Theme LIGHT =
-      new Theme(
-          new Surfaces(GREY_941, WHITE, WHITE, GREY_976,
-              alpha(GREY_773, 0.3f), alpha(GREY_773, 0.5f), alpha(BLACK, 0.35f)),
-          new TextColors(GREY_108, GREY_407, GREY_605, WHITE),
-          new Borders(GREY_919, GREY_551, GREY_844, alpha(GREY_551, 0.4f)),
-          Hue.BLUE.light(),
-          new Status(RED_395, AMBER_384, GREEN_389),
-          SPACE,
-          RADIUS,
-          TYPE,
-          SIZE,
-          MOTION,
-          new Grid(24, 32, 480, 6, 12, GREY_976, WHITE, WHITE, BLUE_918,
-              GREY_890, BLUE_447, 1),
-          new Scrollbars(6, 2, 3, 24, GREY_516, GREY_423, GREY_327),
-          new Elevation(
-              List.of(new Shadow(0, 1, 2, 0, alpha(GREY_084, 0.16f)),
-                  new Shadow(0, 6, 18, 0, alpha(GREY_084, 0.145f))),
-              List.of(new Shadow(0, 1, 3, 0, alpha(BLACK, 0.25f)),
-                  new Shadow(0, 6, 16, 0, alpha(BLACK, 0.22f))),
-              List.of(new Shadow(0, 2, 6, 0, alpha(BLACK, 0.25f)),
-                  new Shadow(0, 16, 40, 0, alpha(BLACK, 0.3f)))),
-          Code.LIGHT,
-          CAPTION);
+  public static final Theme LIGHT = new Theme(
+      new Surfaces(
+          GREY_941,
+          WHITE,
+          WHITE,
+          GREY_976,
+          alpha(GREY_773, 0.3f),
+          alpha(GREY_773, 0.5f),
+          alpha(BLACK, 0.35f)),
+      new TextColors(GREY_108, GREY_407, GREY_605, WHITE),
+      new Borders(GREY_919, GREY_551, GREY_844, alpha(GREY_551, 0.4f)),
+      Hue.BLUE.light(),
+      new Status(RED_395, AMBER_384, GREEN_389),
+      SPACE,
+      RADIUS,
+      TYPE,
+      SIZE,
+      MOTION,
+      new Grid(24, 32, 480, 6, 12, GREY_976, WHITE, WHITE, BLUE_918, GREY_890, BLUE_447, 1),
+      new Scrollbars(6, 2, 3, 24, GREY_516, GREY_423, GREY_327),
+      new Elevation(
+          List.of(
+              new Shadow(0, 1, 2, 0, alpha(GREY_084, 0.16f)),
+              new Shadow(0, 6, 18, 0, alpha(GREY_084, 0.145f))),
+          List.of(
+              new Shadow(0, 1, 3, 0, alpha(BLACK, 0.25f)),
+              new Shadow(0, 6, 16, 0, alpha(BLACK, 0.22f))),
+          List.of(
+              new Shadow(0, 2, 6, 0, alpha(BLACK, 0.25f)),
+              new Shadow(0, 16, 40, 0, alpha(BLACK, 0.3f)))),
+      Code.LIGHT,
+      CAPTION);
 
   public Theme withSurface(Surfaces surface) {
     return new Theme(
-        surface, text, border, accent, status, space, radius, type, size, motion, grid,
-        scrollbars, elevation, code, caption, prose, badge);
+        surface,
+        text,
+        border,
+        accent,
+        status,
+        space,
+        radius,
+        type,
+        size,
+        motion,
+        grid,
+        scrollbars,
+        elevation,
+        code,
+        caption,
+        prose,
+        badge);
   }
 
   public Theme withText(TextColors text) {
     return new Theme(
-        surface, text, border, accent, status, space, radius, type, size, motion, grid,
-        scrollbars, elevation, code, caption, prose, badge);
+        surface,
+        text,
+        border,
+        accent,
+        status,
+        space,
+        radius,
+        type,
+        size,
+        motion,
+        grid,
+        scrollbars,
+        elevation,
+        code,
+        caption,
+        prose,
+        badge);
   }
 
   public Theme withBorder(Borders border) {
     return new Theme(
-        surface, text, border, accent, status, space, radius, type, size, motion, grid,
-        scrollbars, elevation, code, caption, prose, badge);
+        surface,
+        text,
+        border,
+        accent,
+        status,
+        space,
+        radius,
+        type,
+        size,
+        motion,
+        grid,
+        scrollbars,
+        elevation,
+        code,
+        caption,
+        prose,
+        badge);
   }
 
   public Theme withAccent(Accent accent) {
     return new Theme(
-        surface, text, border, accent, status, space, radius, type, size, motion, grid,
-        scrollbars, elevation, code, caption, prose, badge);
+        surface,
+        text,
+        border,
+        accent,
+        status,
+        space,
+        radius,
+        type,
+        size,
+        motion,
+        grid,
+        scrollbars,
+        elevation,
+        code,
+        caption,
+        prose,
+        badge);
   }
 
   /**
@@ -758,80 +1115,275 @@ public record Theme(
 
   public Theme withStatus(Status status) {
     return new Theme(
-        surface, text, border, accent, status, space, radius, type, size, motion, grid,
-        scrollbars, elevation, code, caption, prose, badge);
+        surface,
+        text,
+        border,
+        accent,
+        status,
+        space,
+        radius,
+        type,
+        size,
+        motion,
+        grid,
+        scrollbars,
+        elevation,
+        code,
+        caption,
+        prose,
+        badge);
   }
 
   public Theme withSpace(Spacing space) {
     return new Theme(
-        surface, text, border, accent, status, space, radius, type, size, motion, grid,
-        scrollbars, elevation, code, caption, prose, badge);
+        surface,
+        text,
+        border,
+        accent,
+        status,
+        space,
+        radius,
+        type,
+        size,
+        motion,
+        grid,
+        scrollbars,
+        elevation,
+        code,
+        caption,
+        prose,
+        badge);
   }
 
   public Theme withRadius(Radii radius) {
     return new Theme(
-        surface, text, border, accent, status, space, radius, type, size, motion, grid,
-        scrollbars, elevation, code, caption, prose, badge);
+        surface,
+        text,
+        border,
+        accent,
+        status,
+        space,
+        radius,
+        type,
+        size,
+        motion,
+        grid,
+        scrollbars,
+        elevation,
+        code,
+        caption,
+        prose,
+        badge);
   }
 
   public Theme withType(Type type) {
     return new Theme(
-        surface, text, border, accent, status, space, radius, type, size, motion, grid,
-        scrollbars, elevation, code, caption, prose, badge);
+        surface,
+        text,
+        border,
+        accent,
+        status,
+        space,
+        radius,
+        type,
+        size,
+        motion,
+        grid,
+        scrollbars,
+        elevation,
+        code,
+        caption,
+        prose,
+        badge);
   }
 
   public Theme withSize(Sizes size) {
     return new Theme(
-        surface, text, border, accent, status, space, radius, type, size, motion, grid,
-        scrollbars, elevation, code, caption, prose, badge);
+        surface,
+        text,
+        border,
+        accent,
+        status,
+        space,
+        radius,
+        type,
+        size,
+        motion,
+        grid,
+        scrollbars,
+        elevation,
+        code,
+        caption,
+        prose,
+        badge);
   }
 
   public Theme withMotion(Motion motion) {
     return new Theme(
-        surface, text, border, accent, status, space, radius, type, size, motion, grid,
-        scrollbars, elevation, code, caption, prose, badge);
+        surface,
+        text,
+        border,
+        accent,
+        status,
+        space,
+        radius,
+        type,
+        size,
+        motion,
+        grid,
+        scrollbars,
+        elevation,
+        code,
+        caption,
+        prose,
+        badge);
   }
 
   public Theme withGrid(Grid grid) {
     return new Theme(
-        surface, text, border, accent, status, space, radius, type, size, motion, grid,
-        scrollbars, elevation, code, caption, prose, badge);
+        surface,
+        text,
+        border,
+        accent,
+        status,
+        space,
+        radius,
+        type,
+        size,
+        motion,
+        grid,
+        scrollbars,
+        elevation,
+        code,
+        caption,
+        prose,
+        badge);
   }
 
   public Theme withScrollbars(Scrollbars scrollbars) {
     return new Theme(
-        surface, text, border, accent, status, space, radius, type, size, motion, grid,
-        scrollbars, elevation, code, caption, prose, badge);
+        surface,
+        text,
+        border,
+        accent,
+        status,
+        space,
+        radius,
+        type,
+        size,
+        motion,
+        grid,
+        scrollbars,
+        elevation,
+        code,
+        caption,
+        prose,
+        badge);
   }
 
   public Theme withCode(Code code) {
     return new Theme(
-        surface, text, border, accent, status, space, radius, type, size, motion, grid,
-        scrollbars, elevation, code, caption, prose, badge);
+        surface,
+        text,
+        border,
+        accent,
+        status,
+        space,
+        radius,
+        type,
+        size,
+        motion,
+        grid,
+        scrollbars,
+        elevation,
+        code,
+        caption,
+        prose,
+        badge);
   }
 
   public Theme withElevation(Elevation elevation) {
     return new Theme(
-        surface, text, border, accent, status, space, radius, type, size, motion, grid,
-        scrollbars, elevation, code, caption, prose, badge);
+        surface,
+        text,
+        border,
+        accent,
+        status,
+        space,
+        radius,
+        type,
+        size,
+        motion,
+        grid,
+        scrollbars,
+        elevation,
+        code,
+        caption,
+        prose,
+        badge);
   }
 
   public Theme withProse(Prose prose) {
     return new Theme(
-        surface, text, border, accent, status, space, radius, type, size, motion, grid,
-        scrollbars, elevation, code, caption, prose, badge);
+        surface,
+        text,
+        border,
+        accent,
+        status,
+        space,
+        radius,
+        type,
+        size,
+        motion,
+        grid,
+        scrollbars,
+        elevation,
+        code,
+        caption,
+        prose,
+        badge);
   }
 
   public Theme withBadge(Badges badge) {
     return new Theme(
-        surface, text, border, accent, status, space, radius, type, size, motion, grid,
-        scrollbars, elevation, code, caption, prose, badge);
+        surface,
+        text,
+        border,
+        accent,
+        status,
+        space,
+        radius,
+        type,
+        size,
+        motion,
+        grid,
+        scrollbars,
+        elevation,
+        code,
+        caption,
+        prose,
+        badge);
   }
 
   public Theme withCaption(Caption caption) {
     return new Theme(
-        surface, text, border, accent, status, space, radius, type, size, motion, grid,
-        scrollbars, elevation, code, caption, prose, badge);
+        surface,
+        text,
+        border,
+        accent,
+        status,
+        space,
+        radius,
+        type,
+        size,
+        motion,
+        grid,
+        scrollbars,
+        elevation,
+        code,
+        caption,
+        prose,
+        badge);
   }
 
   /**

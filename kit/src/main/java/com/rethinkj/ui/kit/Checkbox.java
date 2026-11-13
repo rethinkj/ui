@@ -32,36 +32,38 @@ public final class Checkbox {
     boolean enabled = onToggle != null;
     Theme.Surfaces s = t.surface();
     int fill = checked ? (enabled ? t.accent().color() : t.border().subtle()) : s.raised();
-    int edge = !enabled ? t.border().subtle() : checked ? t.accent().pressed() : t.border().strong();
+    int edge = !enabled
+        ? t.border().subtle()
+        : checked ? t.accent().pressed() : t.border().strong();
     float side = t.size().checkbox();
-    El box =
-        el().size(side, side)
-            .center()
-            .radius(t.radius().small())
-            .fill(fill)
-            .border(t.size().stroke(), edge)
-            .motion(t.motion().feedback());
+    El box = el().size(side, side)
+        .center()
+        .radius(t.radius().small())
+        .fill(fill)
+        .border(t.size().stroke(), edge)
+        .motion(t.motion().feedback());
     if (checked) {
       box.child(label(t, "✓").color(enabled ? t.text().onAccent() : t.text().disabled()));
     }
-    El checkbox =
-        row().role("checkbox")
-            .label(text)
-            .checked(checked)
-            .disabled(!enabled)
-            .gap(t.space().m())
-            // Room for the focus ring around the text, taken back by the margin, so that the
-            // row lines up with what is above and below it.
-            .padding(t.space().xs(), t.space().s())
-            .margin(-t.space().xs(), -t.space().s(), -t.space().xs(), -t.space().s())
-            .align(Style.Align.CENTER)
-            .radius(t.radius().medium())
-            .child(box);
+    El checkbox = row()
+        .role("checkbox")
+        .label(text)
+        .checked(checked)
+        .disabled(!enabled)
+        .gap(t.space().m())
+        // Room for the focus ring around the text, taken back by the margin, so that the
+        // row lines up with what is above and below it.
+        .padding(t.space().xs(), t.space().s())
+        .margin(-t.space().xs(), -t.space().s(), -t.space().xs(), -t.space().s())
+        .align(Style.Align.CENTER)
+        .radius(t.radius().medium())
+        .child(box);
     // Only as wide as the control and its text, so that a column that stretches its children
     // stretches neither the press area nor the ring; one that centres them still centres it.
     checkbox.style().width = Len.FIT_CONTENT;
     if (text != null) {
-      checkbox.child(label(t, text).color(enabled ? t.text().primary() : t.text().disabled()));
+      checkbox.child(
+          label(t, text).color(enabled ? t.text().primary() : t.text().disabled()));
     }
     if (!enabled) {
       return checkbox;
@@ -69,7 +71,8 @@ public final class Checkbox {
     int hover = checked ? t.accent().hover() : over(fill, s.hover());
     int pressed = checked ? t.accent().pressed() : over(fill, s.pressed());
     // The whole row takes the press, text included, and its looks restyle the box.
-    return checkbox.focusable()
+    return checkbox
+        .focusable()
         .keepFocus() // as a button: Tab reaches it, a press leaves the focus where it is
         .focusRing(t.accent().edge())
         .cursor(Cursor.POINTER)

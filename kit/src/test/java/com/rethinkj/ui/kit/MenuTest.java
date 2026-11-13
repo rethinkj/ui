@@ -24,7 +24,8 @@ import org.junit.jupiter.params.provider.CsvSource;
  */
 class MenuTest {
 
-  @TempDir Path out;
+  @TempDir
+  Path out;
 
   @BeforeEach
   void textLibraries() {
@@ -42,13 +43,15 @@ class MenuTest {
       throws IOException {
     App<Bench> app = Bench.assertScript("menu", theme, scale, out);
     String open = Bench.tree(out, "menu", theme, scale, "open");
-    assertTrue(open.contains("\noverlay bottom start gap 2 on #file role=button label=\"File\""),
-        open);
+    assertTrue(
+        open.contains("\noverlay bottom start gap 2 on #file role=button label=\"File\""), open);
     assertTrue(open.contains("  el #menu role=menu "), open);
     assertTrue(open.contains(" focused\n"), "the menu took the focus");
     String submenu = Bench.tree(out, "menu", theme, scale, "submenu");
-    assertTrue(submenu.contains("\noverlay right start gap 5 on #item-3 role=menuitem"
-        + " label=\"Export\""), submenu);
+    assertTrue(
+        submenu.contains(
+            "\noverlay right start gap 5 on #item-3 role=menuitem" + " label=\"Export\""),
+        submenu);
     String dismissed = Bench.tree(out, "menu", theme, scale, "dismissed");
     assertFalse(dismissed.contains("overlay"), dismissed);
     assertTrue(dismissed.contains("\"Exported as JSON · orders · UTF-8 · wrap\""), dismissed);
@@ -88,7 +91,8 @@ class MenuTest {
     float[] box = rect(menu);
     assertTrue(box[1] + box[3] <= button[1], "above the button: " + anchor + " / " + menu);
     assertEquals(button[0] + button[2], box[0] + box[2], 0.01, "its right edge at the button's");
-    assertTrue(box[0] >= 0 && box[1] >= 0 && box[0] + box[2] <= 360 && box[1] + box[3] <= 240,
+    assertTrue(
+        box[0] >= 0 && box[1] >= 0 && box[0] + box[2] <= 360 && box[1] + box[3] <= 240,
         "inside the window: " + menu);
   }
 
@@ -99,8 +103,12 @@ class MenuTest {
         int i = line.indexOf(" " + word + " ") + word.length() + 2;
         String[] size = line.substring(i).split(" ")[0].split("x");
         String[] at = word.split(",");
-        return new float[] {Float.parseFloat(at[0]), Float.parseFloat(at[1]),
-            Float.parseFloat(size[0]), Float.parseFloat(size[1])};
+        return new float[] {
+          Float.parseFloat(at[0]),
+          Float.parseFloat(at[1]),
+          Float.parseFloat(size[0]),
+          Float.parseFloat(size[1])
+        };
       }
     }
     throw new AssertionError("no rectangle in " + line);
@@ -112,8 +120,10 @@ class MenuTest {
       throws IOException {
     App<Bench> app = Bench.assertScript("select", theme, scale, out);
     String open = Bench.tree(out, "select", theme, scale, "open");
-    assertTrue(open.contains("\noverlay bottom stretch gap 2 on #encoding role=combobox"
-        + " label=\"UTF-8\""), open);
+    assertTrue(
+        open.contains(
+            "\noverlay bottom stretch gap 2 on #encoding role=combobox" + " label=\"UTF-8\""),
+        open);
     assertEquals(1, app.state().encoding, "Arrow Down and Enter chose UTF-16");
   }
 

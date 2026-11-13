@@ -66,8 +66,11 @@ public final class Instance extends GpuObject {
       descriptor.set(ADDRESS, InstanceDescriptor.NEXT_IN_CHAIN, extras);
       MemorySegment handle = Wgpu.createInstance(descriptor);
       if (handle.equals(MemorySegment.NULL)) {
-        throw new GpuException(GpuException.Kind.REQUEST_FAILED, "creating instance",
-            backend.name(), "wgpuCreateInstance returned NULL");
+        throw new GpuException(
+            GpuException.Kind.REQUEST_FAILED,
+            "creating instance",
+            backend.name(),
+            "wgpuCreateInstance returned NULL");
       }
       return new Instance(backend, handle);
     }
@@ -131,8 +134,8 @@ public final class Instance extends GpuObject {
       options.set(JAVA_INT, RequestAdapterOptions.POWER_PREFERENCE, power.value);
       options.set(JAVA_INT, RequestAdapterOptions.BACKEND_TYPE, backend.type);
       options.set(ADDRESS, RequestAdapterOptions.COMPATIBLE_SURFACE, surface);
-      Wgpu.instanceRequestAdapter(arena, instance, options,
-          CallbackInfo.allocate(arena, Callbacks.REQUEST_ADAPTER, id));
+      Wgpu.instanceRequestAdapter(
+          arena, instance, options, CallbackInfo.allocate(arena, Callbacks.REQUEST_ADAPTER, id));
     } finally {
       Callbacks.unregister(id);
     }
@@ -141,9 +144,13 @@ public final class Instance extends GpuObject {
       throw notSynchronous("wgpuInstanceRequestAdapter");
     }
     if (request.status != Wgpu.REQUEST_ADAPTER_STATUS_SUCCESS) {
-      throw new GpuException(request.status == Wgpu.REQUEST_ADAPTER_STATUS_UNAVAILABLE
-          ? GpuException.Kind.ADAPTER_UNAVAILABLE : GpuException.Kind.REQUEST_FAILED,
-          "requesting", label, request.message);
+      throw new GpuException(
+          request.status == Wgpu.REQUEST_ADAPTER_STATUS_UNAVAILABLE
+              ? GpuException.Kind.ADAPTER_UNAVAILABLE
+              : GpuException.Kind.REQUEST_FAILED,
+          "requesting",
+          label,
+          request.message);
     }
     return new Adapter(this, label, request.handle);
   }

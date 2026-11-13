@@ -17,9 +17,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
-import org.junit.jupiter.api.Test;
 
 /**
  * The scene snaps the boxes at rest to the physical pixel grid: measured from the pixels the CPU
@@ -57,7 +57,8 @@ class PixelGridTest {
     int run = 0;
     for (int x = left; x < right; x++) {
       int pixel = pixels.argb(x, y);
-      assertTrue(pixel == BLACK || pixel == WHITE,
+      assertTrue(
+          pixel == BLACK || pixel == WHITE,
           "pixel " + x + " at " + scale + " is " + Integer.toHexString(pixel));
       if (x > left && pixel != pixels.argb(x - 1, y)) {
         widths.add(run);
@@ -83,10 +84,13 @@ class PixelGridTest {
   @ValueSource(floats = {1.25f, 1.5f, 1.75f, 2.5f, 3})
   void bordersAndHairlinesAreWholePixels(float scale) {
     for (int at = 10; at < 14; at++) {
-      El root = el().wFull().hFull().fill(WHITE).children(
-          el().absolute(at, at).size(40, 20).fill(WHITE).border(1, GREY),
-          el().absolute(at, at + 30).size(40, 1).fill(BLACK),
-          el().absolute(at + 50, at).size(1, 40).fill(BLACK));
+      El root = el().wFull()
+          .hFull()
+          .fill(WHITE)
+          .children(
+              el().absolute(at, at).size(40, 20).fill(WHITE).border(1, GREY),
+              el().absolute(at, at + 30).size(40, 1).fill(BLACK),
+              el().absolute(at + 50, at).size(1, 40).fill(BLACK));
       Pixels pixels = Headless.render(root, 100, 80, scale).pixels();
       int ring = stroke(1, scale);
       int x = edge(at + 20, scale);
@@ -97,18 +101,22 @@ class PixelGridTest {
       int y = edge(at + 20, scale);
       int line = edge(at + 50, scale);
       for (int i = -1; i <= ring; i++) {
-        assertEquals(i >= 0 && i < ring ? BLACK : WHITE, pixels.argb(line + i, y),
+        assertEquals(
+            i >= 0 && i < ring ? BLACK : WHITE,
+            pixels.argb(line + i, y),
             "upright hairline at " + at + ", pixel " + i);
       }
     }
   }
 
   /** From y - 1 to y + run: the outside, {@code run} pixels of {@code colour}, the inside. */
-  private static void assertColumn(Pixels pixels, int x, int y, int run, int colour, int around,
-      String what) {
+  private static void assertColumn(
+      Pixels pixels, int x, int y, int run, int colour, int around, String what) {
     for (int i = -1; i <= run; i++) {
-      assertEquals(Integer.toHexString(i >= 0 && i < run ? colour : around),
-          Integer.toHexString(pixels.argb(x, y + i)), what + ", pixel " + i);
+      assertEquals(
+          Integer.toHexString(i >= 0 && i < run ? colour : around),
+          Integer.toHexString(pixels.argb(x, y + i)),
+          what + ", pixel " + i);
     }
   }
 
@@ -120,8 +128,14 @@ class PixelGridTest {
   @ValueSource(floats = {1.25f, 1.5f, 1.75f, 2.5f, 3})
   void aChildFillingARoundedClipShowsNoFringe(float scale) {
     for (int at = 10; at < 14; at++) {
-      El root = el().wFull().hFull().fill(WHITE).child(
-          el().absolute(at, at).size(41, 23).radius(8).border(1, GREY).clip()
+      El root = el().wFull()
+          .hFull()
+          .fill(WHITE)
+          .child(el().absolute(at, at)
+              .size(41, 23)
+              .radius(8)
+              .border(1, GREY)
+              .clip()
               .child(el().wFull().hFull().fill(BLUE)));
       Pixels pixels = Headless.render(root, 80, 60, scale).pixels();
       int ring = stroke(1, scale);
@@ -169,7 +183,13 @@ class PixelGridTest {
       int x = edge(40, scale);
       for (int i = 1; i < 4; i++) { // the tops of the rows in view
         int top = edge(10 + 11 * i - offset, scale);
-        assertColumn(pixels, x, top - ring, 2 * ring, GREY, WHITE,
+        assertColumn(
+            pixels,
+            x,
+            top - ring,
+            2 * ring,
+            GREY,
+            WHITE,
             "rows " + (i - 1) + " and " + i + " scrolled by " + offset);
       }
     }
@@ -191,8 +211,10 @@ class PixelGridTest {
     for (int at = 10; at < 14; at++) {
       El text = El.text("Save").color(BLACK);
       El icon = El.text("\uF108").font(Font.icons()).fontSize(16).color(BLACK);
-      El root = el().wFull().hFull().fill(WHITE).child(
-          row().absolute(at, 10).padding(3, 7).fill(GREY).gap(5).children(text, icon));
+      El root = el().wFull()
+          .hFull()
+          .fill(WHITE)
+          .child(row().absolute(at, 10).padding(3, 7).fill(GREY).gap(5).children(text, icon));
       Pixels pixels = Headless.render(root, 100, 40, scale, TextRendering.LINUX).pixels();
       List<int[]> crops = new ArrayList<>();
       for (El el : List.of(text, icon)) {
@@ -224,10 +246,17 @@ class PixelGridTest {
   @Test
   void scalesOneAndTwoDrawWhatLayoutSays() {
     for (float scale : new float[] {1, 2}) {
-      El list = El.col().absolute(16, 16).size(120, 90).radius(8).border(1, GREY).clip().scroll()
+      El list = El.col()
+          .absolute(16, 16)
+          .size(120, 90)
+          .radius(8)
+          .border(1, GREY)
+          .clip()
+          .scroll()
           .shadow(new Shadow(0, 2, 6, 0, 0x40000000));
       for (int i = 0; i < 9; i++) {
-        list.children(el().h(21).shrink(0).fill(i % 2 == 0 ? WHITE : BLUE),
+        list.children(
+            el().h(21).shrink(0).fill(i % 2 == 0 ? WHITE : BLUE),
             el().h(1).shrink(0).fill(GREY));
       }
       El root = el().wFull().hFull().fill(WHITE).child(list);
@@ -238,8 +267,10 @@ class PixelGridTest {
       Scene plain = Scene.of(root);
       Scene snapped = Scene.of(root, scale);
       assertEquals(plain.count(), snapped.count());
-      assertArrayEquals(plain.data().toArray(java.lang.foreign.ValueLayout.JAVA_BYTE),
-          snapped.data().toArray(java.lang.foreign.ValueLayout.JAVA_BYTE), "at " + scale);
+      assertArrayEquals(
+          plain.data().toArray(java.lang.foreign.ValueLayout.JAVA_BYTE),
+          snapped.data().toArray(java.lang.foreign.ValueLayout.JAVA_BYTE),
+          "at " + scale);
     }
   }
 
@@ -313,5 +344,4 @@ class PixelGridTest {
     }
     return null;
   }
-
 }

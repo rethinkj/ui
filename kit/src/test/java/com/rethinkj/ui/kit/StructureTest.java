@@ -25,7 +25,8 @@ import org.junit.jupiter.params.provider.ValueSource;
  */
 class StructureTest {
 
-  @TempDir Path out;
+  @TempDir
+  Path out;
 
   @BeforeEach
   void textLibraries() {
@@ -61,12 +62,13 @@ class StructureTest {
    *
    * @return the snap's tree
    */
-  private String check(String name, String theme, int scale, int width, int height,
-      Function<Sheets, El> view) throws IOException {
+  private String check(
+      String name, String theme, int scale, int width, int height, Function<Sheets, El> view)
+      throws IOException {
     App<Sheets> app = new Sheets(theme.equals("dark") ? Theme.DARK : Theme.LIGHT).app(view);
     String image = "structure-" + name + "-" + theme + "-" + scale + "x";
-    Script.run("size " + width + " " + height + " scale " + scale + "\nframe\nsnap " + image, app,
-        out);
+    Script.run(
+        "size " + width + " " + height + " scale " + scale + "\nframe\nsnap " + image, app, out);
     String tree = Files.readString(out.resolve(image + ".tree.txt"));
     Golden.assertMatches(image, Png.decode(Files.readAllBytes(out.resolve(image + ".png"))), tree);
     return tree;
@@ -82,8 +84,12 @@ class StructureTest {
     var m = java.util.regex.Pattern.compile(" (-?[\\d.]+),(-?[\\d.]+) ([\\d.]+)x([\\d.]+)")
         .matcher(plain);
     assertTrue(m.find(), line);
-    return new float[] {Float.parseFloat(m.group(1)), Float.parseFloat(m.group(2)),
-        Float.parseFloat(m.group(3)), Float.parseFloat(m.group(4))};
+    return new float[] {
+      Float.parseFloat(m.group(1)),
+      Float.parseFloat(m.group(2)),
+      Float.parseFloat(m.group(3)),
+      Float.parseFloat(m.group(4))
+    };
   }
 
   private static String size(String line) {

@@ -108,7 +108,8 @@ class TextRenderTest {
         boolean fits = t.string().equals("Köln");
         assertEquals(!fits, t.shortened(), t.string() + " in " + text.width());
         Text.Line line = t.lines().getFirst();
-        assertTrue(line.width() <= text.width() * scale + 0.01f || text.width() < 10,
+        assertTrue(
+            line.width() <= text.width() * scale + 0.01f || text.width() < 10,
             line.width() + " in " + text.width() * scale);
       }
       assertTrue(frame.tree().contains(El.quote(Examples.SANS_SAMPLE)), "the whole string");
@@ -139,7 +140,9 @@ class TextRenderTest {
   void aFieldWithFallbackFontsSelectsAcrossThem() throws IOException {
     App<Examples.Form> app = new App<>(new Examples.Form(), Examples::fallbackField);
     app.textRendering(PINNED);
-    Script.run("size 240 80 scale 2\nframe\n" + Examples.FALLBACK_FIELD + "frame\n", app,
+    Script.run(
+        "size 240 80 scale 2\nframe\n" + Examples.FALLBACK_FIELD + "frame\n",
+        app,
         Path.of("target/fallback-field"));
     Headless.Frame frame = app.render();
     Golden.assertMatches("fallback-field", frame.pixels(), frame.tree());
@@ -179,9 +182,14 @@ class TextRenderTest {
     double thinned = inkRatio(0xFF999999, 0xFFFFFFFF, PINNED, 0xFF000000); // told it is on black
     assertTrue(greyOnLight >= 1 && greyOnLight < 1.2, "grey on light: " + greyOnLight);
     assertTrue(Math.abs(thinned - 1) > greyOnLight - 1, "thinned: " + thinned);
-    System.out.printf(Locale.ROOT,
+    System.out.printf(
+        Locale.ROOT,
         "Ink against gamma space: dark on light %.3f, light on dark %.3f, grey on light %.3f"
-            + " (thinned %.3f)%n", darkOnLight, lightOnDark, greyOnLight, thinned);
+            + " (thinned %.3f)%n",
+        darkOnLight,
+        lightOnDark,
+        greyOnLight,
+        thinned);
   }
 
   /**
@@ -238,7 +246,9 @@ class TextRenderTest {
   @Test
   void glyphsAreInstancesBetweenTheBoxesInTreeOrder() {
     El label = El.text("Hi").color(0x80FFFFFF);
-    El root = row().padding(4).fill(0xFF000000)
+    El root = row()
+        .padding(4)
+        .fill(0xFF000000)
         .children(el().size(10, 10).fill(0xFFFF0000), label, el().size(10, 10).fill(0xFF00FF00));
     Headless.render(root, 100, 30, 2, PINNED);
     Scene scene = Scene.of(root, null, 0, new Atlas(), PINNED);
@@ -273,7 +283,9 @@ class TextRenderTest {
   void theCorrectionFollowsTheBackgroundOrElseTheBiasedRule() {
     assertEquals(0, share(el().fill(0xFFFFFFFF), 0xFF999999), "grey on white thickens");
     assertEquals(1, share(el().fill(0xFF1E1F22), 0xFF999999), "grey on near black thins");
-    assertEquals(1, share(el().fill(0xFF000000).child(el().fill(0x40FFFFFF)), 0xFFA0A0A0),
+    assertEquals(
+        1,
+        share(el().fill(0xFF000000).child(el().fill(0x40FFFFFF)), 0xFFA0A0A0),
         "a quarter of white over black is still darker than the text");
     assertEquals(0, share(el().fill(0xFF000000).child(el().fill(0xC0FFFFFF)), 0xFFA0A0A0));
     // Unknown: an empty root, or a fill that is translucent over it.
@@ -349,8 +361,11 @@ class TextRenderTest {
   void theColourOfTextSpringsAndLeavingTextFadesOut() {
     boolean[] on = {false};
     App<boolean[]> app = new App<>(on, s -> {
-      El root = col().fill(0xFF000000)
-          .child(El.text("Status").key("status").motion(Spring.SNAP)
+      El root = col()
+          .fill(0xFF000000)
+          .child(El.text("Status")
+              .key("status")
+              .motion(Spring.SNAP)
               .color(s[0] ? 0xFFFFFFFF : 0xFF808080));
       if (!s[0]) {
         root.child(El.text("Bye").key("bye").motion(Spring.SNAP).color(0xFFFFFFFF));

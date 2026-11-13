@@ -34,8 +34,8 @@ class CaretTest {
   }
 
   private App<Model> area(String value, UnaryOperator<El> field) {
-    App<Model> app = Areas.start(value, f -> field.apply(
-        f.onSelect((caret, anchor) -> told.add(caret + ":" + anchor))), 1);
+    App<Model> app = Areas.start(
+        value, f -> field.apply(f.onSelect((caret, anchor) -> told.add(caret + ":" + anchor))), 1);
     told.clear();
     focus(app);
     return app;
@@ -43,8 +43,8 @@ class CaretTest {
 
   @Test
   void theHandlerIsToldEveryChangeOnce() {
-    App<Model> app = Areas.start("ab\ncd", f -> f.onSelect(
-        (caret, anchor) -> told.add(caret + ":" + anchor)), 1);
+    App<Model> app = Areas.start(
+        "ab\ncd", f -> f.onSelect((caret, anchor) -> told.add(caret + ":" + anchor)), 1);
     assertEquals(List.of("0:0"), told, "a new field tells where its caret starts");
     focus(app);
     key(app, "ArrowRight");
@@ -89,7 +89,9 @@ class CaretTest {
     app.state().accept = edit -> edit;
     app.edit(field(app), 0, 0, "a\r\nb", 99);
     app.frame();
-    assertEquals("a\nbSELECT name FROM t|", show(app),
+    assertEquals(
+        "a\nbSELECT name FROM t|",
+        show(app),
         "line breaks as the field keeps them, the caret clamped to the end");
     assertThrows(IllegalArgumentException.class, () -> app.edit(El.el(), 0, 0, "", 0));
   }
@@ -97,13 +99,16 @@ class CaretTest {
   @Test
   void aHandlerEditsTheFieldOfTheTreeItRunsIn() {
     List<App<Model>> apps = new ArrayList<>();
-    App<Model> app = Areas.start("(a", f -> f.onKey(k -> {
-      if (k.name().equals("F2")) { // closes the bracket, with the caret before it
-        apps.getFirst().edit(f, 2, 2, ")", 2);
-        return true;
-      }
-      return false;
-    }), 1);
+    App<Model> app = Areas.start(
+        "(a",
+        f -> f.onKey(k -> {
+          if (k.name().equals("F2")) { // closes the bracket, with the caret before it
+            apps.getFirst().edit(f, 2, 2, ")", 2);
+            return true;
+          }
+          return false;
+        }),
+        1);
     apps.add(app);
     focus(app);
     key(app, "End");
@@ -145,8 +150,12 @@ class CaretTest {
 
   @Test
   void anOverlayAtTheCaretLiesBelowItAndFollowsIt() {
-    App<Model> app = area("SELECT ", f -> f.overlay(completing
-        ? El.el().key("list").size(60, 40).fill(0xFF000000).atCaret().keepFocus() : null));
+    App<Model> app = area(
+        "SELECT ",
+        f -> f.overlay(
+            completing
+                ? El.el().key("list").size(60, 40).fill(0xFF000000).atCaret().keepFocus()
+                : null));
     key(app, "End");
     completing = true;
     type(app, "n");

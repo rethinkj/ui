@@ -22,12 +22,20 @@ public final class GlyphRun {
   private final int[] clusters;
   /** The pen before each glyph; one more than glyphs, the last is the width. */
   private final float[] pen;
+
   private final float[] dx;
   private final float[] dy;
   private final Font[] fonts; // per glyph, or null when all are font's
 
-  GlyphRun(Font font, float pixelSize, int[] glyphs, int[] clusters, float[] pen, float[] dx,
-      float[] dy, Font[] fonts) {
+  GlyphRun(
+      Font font,
+      float pixelSize,
+      int[] glyphs,
+      int[] clusters,
+      float[] pen,
+      float[] dx,
+      float[] dy,
+      Font[] fonts) {
     this.font = font;
     this.pixelSize = pixelSize;
     this.glyphs = glyphs;
@@ -181,8 +189,13 @@ public final class GlyphRun {
     for (int i = 0; i < moved.length; i++) {
       moved[i] -= start;
     }
-    return new GlyphRun(font, pixelSize, Arrays.copyOfRange(glyphs, from, to),
-        Arrays.copyOfRange(clusters, from, to), moved, Arrays.copyOfRange(dx, from, to),
+    return new GlyphRun(
+        font,
+        pixelSize,
+        Arrays.copyOfRange(glyphs, from, to),
+        Arrays.copyOfRange(clusters, from, to),
+        moved,
+        Arrays.copyOfRange(dx, from, to),
         Arrays.copyOfRange(dy, from, to),
         fonts == null ? null : Arrays.copyOfRange(fonts, from, to));
   }

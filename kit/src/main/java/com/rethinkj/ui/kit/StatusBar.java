@@ -49,16 +49,27 @@ public final class StatusBar {
    * @param end the parts at the right, in the order shown; null parts are left out
    */
   public static El statusBar(Theme t, List<El> start, List<El> end) {
-    El left = row().gap(t.space().xs()).align(Style.Align.CENTER).grow(1).shrink(1)
-        .minSize(0, 0).clip();
+    El left = row()
+        .gap(t.space().xs())
+        .align(Style.Align.CENTER)
+        .grow(1)
+        .shrink(1)
+        .minSize(0, 0)
+        .clip();
     for (El part : start) {
       if (part != null) {
         left.child(part);
       }
     }
-    El bar = row().role("status").label("Status bar").wFull().shrink(0)
+    El bar = row()
+        .role("status")
+        .label("Status bar")
+        .wFull()
+        .shrink(0)
         .h(height(t))
-        .padding(0, t.space().m()).gap(t.space().xs()).align(Style.Align.CENTER)
+        .padding(0, t.space().m())
+        .gap(t.space().xs())
+        .align(Style.Align.CENTER)
         .fill(t.surface().window())
         .child(left);
     for (El part : end) {
@@ -101,15 +112,23 @@ public final class StatusBar {
     };
     // In a box as wide as an icon, so that texts after dots and after icons line up; what is on
     // its way turns, as everything that waits does.
-    El dot = state == State.BUSY ? Progress.spinner(t)
-        : el().size(t.size().icon(), t.size().icon()).center().shrink(0)
+    El dot = state == State.BUSY
+        ? Progress.spinner(t)
+        : el().size(t.size().icon(), t.size().icon())
+            .center()
+            .shrink(0)
             .child(el().size(side, side).radius(side / 2).fill(colour));
     return part(t, dot, text, onPress).value(state.name().toLowerCase(java.util.Locale.ROOT));
   }
 
   private static El part(Theme t, El before, String text, Runnable onPress) {
-    El part = row().label(text).h(t.size().control()).padding(0, t.space().s())
-        .gap(t.space().s()).align(Style.Align.CENTER).radius(t.radius().small())
+    El part = row()
+        .label(text)
+        .h(t.size().control())
+        .padding(0, t.space().s())
+        .gap(t.space().s())
+        .align(Style.Align.CENTER)
+        .radius(t.radius().small())
         .minSize(0, 0);
     if (before != null) {
       part.child(before);
@@ -118,7 +137,8 @@ public final class StatusBar {
     if (onPress == null) {
       return part;
     }
-    return part.role("button").focusable()
+    return part.role("button")
+        .focusable()
         .keepFocus() // a press leaves the focus in the editor or grid the bar is about
         .focusRing(t.accent().edge())
         .cursor(Cursor.POINTER)

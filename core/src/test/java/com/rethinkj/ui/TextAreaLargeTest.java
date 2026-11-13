@@ -71,7 +71,8 @@ class TextAreaLargeTest {
       App<Model> app = Areas.start(text, f -> f.wrapText(wraps), 1);
       focus(app);
       El f = field(app);
-      assertTrue(Areas.line(app).contains(wraps ? " lines 1-3/100000 " : " lines 1-5/100000 "),
+      assertTrue(
+          Areas.line(app).contains(wraps ? " lines 1-3/100000 " : " lines 1-5/100000 "),
           Areas.line(app)); // wrapped, a line takes two rows
       assertTrue(f.editor().lineIndex().shaped < 40, "the first frames shaped what they show");
 
@@ -95,11 +96,13 @@ class TextAreaLargeTest {
       // 300 pages of five rows: 1500 lines, or 750 of two rows each.
       assertEquals(middle + 20 + (wraps ? 750 : 1500), paged, "PageDown went on");
       double[] end = steps(app, 1, () -> app.keyDown(new Key("End", Key.CONTROL, false)));
-      assertTrue(Areas.line(app).contains(
-          wraps ? " lines 100018-100020/100020 " : " lines 100016-100020/100020 "),
+      assertTrue(
+          Areas.line(app)
+              .contains(wraps ? " lines 100018-100020/100020 " : " lines 100016-100020/100020 "),
           Areas.line(app));
       double[] home = steps(app, 1, () -> app.keyDown(new Key("Home", Key.CONTROL, false)));
-      assertTrue(Areas.line(app).contains(wraps ? " lines 1-3/100020 " : " lines 1-5/100020 "),
+      assertTrue(
+          Areas.line(app).contains(wraps ? " lines 1-3/100020 " : " lines 1-5/100020 "),
           Areas.line(app));
       double[] all = steps(app, 1, () -> {
         app.keyDown(new Key("A", Key.CONTROL, false));

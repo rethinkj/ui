@@ -55,8 +55,8 @@ class DropTest {
     app.pointerUp(250, 10);
     app.frame();
 
-    assertEquals(List.of("0 OVER 20", "0 LEAVE", "1 OVER 50", "1 LEAVE", "2 OVER 50", "2 DROP 50"),
-        s.log);
+    assertEquals(
+        List.of("0 OVER 20", "0 LEAVE", "1 OVER 50", "1 LEAVE", "2 OVER 50", "2 DROP 50"), s.log);
     assertEquals(2, s.chip);
     assertEquals("slot-2", app.tree().children().get(2).key());
     assertEquals(1, app.tree().children().get(2).children().size(), "the chip moved there");
@@ -97,9 +97,13 @@ class DropTest {
   @Test
   void aDragWithoutPayloadReachesNoDropHandler() {
     List<String> log = new ArrayList<>();
-    App<Object> app = new App<>(new Object(), x -> row().wFull().hFull()
-        .onDrop(d -> log.add(d.phase().name()))
-        .child(el().size(20, 20).onDrag(d -> {})));
+    App<Object> app = new App<>(
+        new Object(),
+        x -> row()
+            .wFull()
+            .hFull()
+            .onDrop(d -> log.add(d.phase().name()))
+            .child(el().size(20, 20).onDrag(d -> {})));
     app.resize(200, 100, 1);
     app.frame();
     app.pointerDown(10, 10);

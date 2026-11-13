@@ -94,8 +94,7 @@ final class Callbacks {
   static final MemorySegment UNCAPTURED_ERROR =
       stub("uncapturedError", Wgpu.UNCAPTURED_ERROR_CALLBACK);
   static final MemorySegment DEVICE_LOST = stub("deviceLost", Wgpu.DEVICE_LOST_CALLBACK);
-  static final MemorySegment POP_ERROR_SCOPE =
-      stub("popErrorScope", Wgpu.POP_ERROR_SCOPE_CALLBACK);
+  static final MemorySegment POP_ERROR_SCOPE = stub("popErrorScope", Wgpu.POP_ERROR_SCOPE_CALLBACK);
   static final MemorySegment BUFFER_MAP = stub("bufferMap", Wgpu.BUFFER_MAP_CALLBACK);
   static final MemorySegment LOG = stub("log", Wgpu.LOG_CALLBACK);
 
@@ -113,8 +112,12 @@ final class Callbacks {
 
   // ---- the upcalls; none may throw ---------------------------------------------------------
 
-  private static void requestAdapter(int status, MemorySegment adapter, MemorySegment message,
-      MemorySegment userdata1, MemorySegment userdata2) {
+  private static void requestAdapter(
+      int status,
+      MemorySegment adapter,
+      MemorySegment message,
+      MemorySegment userdata1,
+      MemorySegment userdata2) {
     try {
       if (target(userdata1) instanceof Request request) {
         request.status = status;
@@ -127,8 +130,12 @@ final class Callbacks {
     }
   }
 
-  private static void requestDevice(int status, MemorySegment device, MemorySegment message,
-      MemorySegment userdata1, MemorySegment userdata2) {
+  private static void requestDevice(
+      int status,
+      MemorySegment device,
+      MemorySegment message,
+      MemorySegment userdata1,
+      MemorySegment userdata2) {
     try {
       if (target(userdata1) instanceof Request request) {
         request.status = status;
@@ -141,20 +148,28 @@ final class Callbacks {
     }
   }
 
-  private static void uncapturedError(MemorySegment device, int type, MemorySegment message,
-      MemorySegment userdata1, MemorySegment userdata2) {
+  private static void uncapturedError(
+      MemorySegment device,
+      int type,
+      MemorySegment message,
+      MemorySegment userdata1,
+      MemorySegment userdata2) {
     try {
       if (target(userdata1) instanceof DeviceEvents events) {
-        events.uncaptured.add(new GpuException(GpuException.kindOf(type), "using device",
-            events.label, Wgpu.string(message, 0)));
+        events.uncaptured.add(new GpuException(
+            GpuException.kindOf(type), "using device", events.label, Wgpu.string(message, 0)));
       }
     } catch (Throwable t) {
       fail(userdata1, t);
     }
   }
 
-  private static void deviceLost(MemorySegment device, int reason, MemorySegment message,
-      MemorySegment userdata1, MemorySegment userdata2) {
+  private static void deviceLost(
+      MemorySegment device,
+      int reason,
+      MemorySegment message,
+      MemorySegment userdata1,
+      MemorySegment userdata2) {
     try {
       if (target(userdata1) instanceof DeviceEvents events) {
         String text = Wgpu.string(message, 0);
@@ -166,8 +181,12 @@ final class Callbacks {
   }
 
   /** Runs with a lock of wgpu-native held: calls nothing in wgpu. */
-  private static void popErrorScope(int status, int type, MemorySegment message,
-      MemorySegment userdata1, MemorySegment userdata2) {
+  private static void popErrorScope(
+      int status,
+      int type,
+      MemorySegment message,
+      MemorySegment userdata1,
+      MemorySegment userdata2) {
     try {
       if (target(userdata1) instanceof DeviceEvents events) {
         events.scopeStatus = status;
@@ -180,8 +199,8 @@ final class Callbacks {
     }
   }
 
-  private static void bufferMap(int status, MemorySegment message, MemorySegment userdata1,
-      MemorySegment userdata2) {
+  private static void bufferMap(
+      int status, MemorySegment message, MemorySegment userdata1, MemorySegment userdata2) {
     try {
       if (target(userdata1) instanceof MapRequest map) {
         map.status = status;

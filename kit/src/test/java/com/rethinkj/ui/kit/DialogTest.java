@@ -26,7 +26,8 @@ import org.junit.jupiter.params.provider.CsvSource;
  */
 class DialogTest {
 
-  @TempDir Path out;
+  @TempDir
+  Path out;
 
   @BeforeEach
   void textLibraries() {
@@ -64,8 +65,10 @@ class DialogTest {
     run(app, "frame\npress #rename\nframe\npress 10,230\nframe\n");
     assertFalse(bench.renaming, "a press on the scrim dismisses it");
     assertEquals("Ready", bench.status, "and presses nothing under it");
-    run(app, "press #rename\nframe\nadvance 0.25\nframe\nkey A control\ntype \"order_lines\"\n"
-        + "press #ok\nframe\n");
+    run(
+        app,
+        "press #rename\nframe\nadvance 0.25\nframe\nkey A control\ntype \"order_lines\"\n"
+            + "press #ok\nframe\n");
     assertFalse(bench.renaming);
     assertEquals("order_lines", bench.name);
   }
@@ -78,15 +81,27 @@ class DialogTest {
 
     El view() {
       Theme t = Theme.DARK;
-      El ok = Button.button(t, Button.Variant.PRIMARY, "OK",
-          name.isBlank() ? null : () -> log.add("ok")).key("ok");
-      return El.col().wFull().hFull().overlay(Dialog.dialog(t, "Ask",
-          El.col().children(
-              TextField.textField(t, name, "Name", v -> name = v).key("name"),
-              TextField.textArea(t, note, "Note", v -> note = v).key("note").h(60)),
-          List.of(Button.button(t, Button.Variant.SECONDARY, "Cancel", () -> log.add("cancel"))
-              .key("cancel"), ok),
-          ok, () -> log.add("dismiss")));
+      El ok = Button.button(
+              t, Button.Variant.PRIMARY, "OK", name.isBlank() ? null : () -> log.add("ok"))
+          .key("ok");
+      return El.col()
+          .wFull()
+          .hFull()
+          .overlay(Dialog.dialog(
+              t,
+              "Ask",
+              El.col()
+                  .children(
+                      TextField.textField(t, name, "Name", v -> name = v).key("name"),
+                      TextField.textArea(t, note, "Note", v -> note = v)
+                          .key("note")
+                          .h(60)),
+              List.of(
+                  Button.button(t, Button.Variant.SECONDARY, "Cancel", () -> log.add("cancel"))
+                      .key("cancel"),
+                  ok),
+              ok,
+              () -> log.add("dismiss")));
     }
   }
 
@@ -120,7 +135,8 @@ class DialogTest {
     Theme t = Theme.DARK;
     El ok = Button.button(t, Button.Variant.PRIMARY, "OK", () -> {});
     El other = Button.button(t, Button.Variant.PRIMARY, "OK", () -> {});
-    assertThrows(IllegalArgumentException.class,
+    assertThrows(
+        IllegalArgumentException.class,
         () -> Dialog.dialog(t, "Ask", El.col(), List.of(ok), other, () -> {}));
   }
 }

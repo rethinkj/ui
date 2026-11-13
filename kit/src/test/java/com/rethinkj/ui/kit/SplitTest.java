@@ -36,7 +36,8 @@ class SplitTest {
 
   private static final Theme T = Theme.DARK;
 
-  @TempDir Path out;
+  @TempDir
+  Path out;
 
   @BeforeEach
   void textLibraries() {
@@ -56,7 +57,10 @@ class SplitTest {
   /** Runs the steps in the window of the last {@code size} step, which each script needs first. */
   private void run(App<?> app, String steps) throws IOException {
     Script.run(size + steps, app, out);
-    steps.lines().filter(l -> l.startsWith("size ")).reduce((a, b) -> b)
+    steps
+        .lines()
+        .filter(l -> l.startsWith("size "))
+        .reduce((a, b) -> b)
         .ifPresent(l -> size = l + "\n");
   }
 
@@ -76,10 +80,23 @@ class SplitTest {
   @Test
   void aListOfRowsInAPartScrollsInsideASplitInAColumnThatGrows() {
     for (Direction direction : Direction.values()) {
-      App<Object> app = new App<>(new Object(), s -> col().wFull().hFull().child(
-          split(T, direction, Position.first(100), null, null,
-              col().key("list").rows(1000, 20, i -> El.el()), 50,
-              col().key("other").rows(1000, 20, i -> El.el()), 50).key("split").grow(1)));
+      App<Object> app = new App<>(
+          new Object(),
+          s -> col()
+              .wFull()
+              .hFull()
+              .child(split(
+                      T,
+                      direction,
+                      Position.first(100),
+                      null,
+                      null,
+                      col().key("list").rows(1000, 20, i -> El.el()),
+                      50,
+                      col().key("other").rows(1000, 20, i -> El.el()),
+                      50)
+                  .key("split")
+                  .grow(1)));
       app.resize(300, 200, 1);
       app.frame();
       assertEquals(200, find(app, "split").height(), direction.toString());
@@ -157,8 +174,11 @@ class SplitTest {
     assertEquals(Cursor.EW_RESIZE, app.cursor(), "the strip's, wherever the pointer is");
     run(app, "up 470,150\nframe");
     assertEquals(
-        List.of("sidebar " + Position.first(280), "sidebar " + Position.first(120),
-            "sidebar " + Position.first(319), "sidebar " + Position.first(319)),
+        List.of(
+            "sidebar " + Position.first(280),
+            "sidebar " + Position.first(120),
+            "sidebar " + Position.first(319),
+            "sidebar " + Position.first(319)),
         w.log);
     assertEquals(T.border().subtle(), line(app).fill(), "the pointer is over the editor");
   }
@@ -225,9 +245,12 @@ class SplitTest {
     assertParts(app, 184, 295);
     run(app, "key ArrowUp\nkey ArrowRight shift\nkey ArrowRight control\nframe");
     assertEquals(
-        List.of("sidebar " + Position.first(216), "sidebar " + Position.first(200),
+        List.of(
+            "sidebar " + Position.first(216),
+            "sidebar " + Position.first(200),
             "sidebar " + Position.first(184)),
-        w.log, "two keys in one frame take two steps; the others are not the line's");
+        w.log,
+        "two keys in one frame take two steps; the others are not the line's");
     run(app, "key ArrowLeft\nkey ArrowLeft\nkey ArrowLeft\nkey ArrowLeft\nframe");
     assertParts(app, 120, 359);
   }
@@ -245,9 +268,22 @@ class SplitTest {
 
   @Test
   void withoutAHandlerTheLineStaysWhereItIs() throws IOException {
-    App<Object> app = new App<>(new Object(), s -> col().wFull().hFull().child(
-        split(T, Direction.ROW, Position.first(200), Position.first(100), null,
-            col(), 120, col(), 160).grow(1)));
+    App<Object> app = new App<>(
+        new Object(),
+        s -> col()
+            .wFull()
+            .hFull()
+            .child(split(
+                    T,
+                    Direction.ROW,
+                    Position.first(200),
+                    Position.first(100),
+                    null,
+                    col(),
+                    120,
+                    col(),
+                    160)
+                .grow(1)));
     run(app, "size 480 200\nframe\nmove 200,100\nframe");
     assertEquals(Cursor.DEFAULT, app.cursor());
     assertFalse(find(app, "divider").isFocusable());

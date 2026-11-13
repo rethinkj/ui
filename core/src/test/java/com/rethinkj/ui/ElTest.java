@@ -11,13 +11,11 @@ class ElTest {
 
   @Test
   void dumpsTheTreeOneElementPerLine() {
-    assertEquals(
-        """
+    assertEquals("""
         el
           el #switch role=switch label="Lights" checked
             el #knob
-        """,
-        Examples.switchAlone(true).dump());
+        """, Examples.switchAlone(true).dump());
   }
 
   @Test
@@ -27,12 +25,10 @@ class ElTest {
     root.place(10, 20, 200, 100.5f);
     child.place(1.25f, -2, 50, 30);
 
-    assertEquals(
-        """
+    assertEquals("""
         el 10,20 200x100.5
           el #child 11.25,18 50x30
-        """,
-        root.dump());
+        """, root.dump());
   }
 
   @Test
@@ -40,13 +36,11 @@ class ElTest {
     El root = Examples.switchAlone(true);
     Flex.layout(root, 200, 100);
 
-    assertEquals(
-        """
+    assertEquals("""
         el 0,0 200x100
           el #switch role=switch label="Lights" 81,39 38x22 checked
             el #knob 99,41 18x18
-        """,
-        root.dump());
+        """, root.dump());
   }
 
   @Test
@@ -60,9 +54,18 @@ class ElTest {
 
   @Test
   void dumpsStatesAfterTheRectangleInAFixedOrder() {
-    El node = el().key("node").role("treeitem").label("public")
-        .value("2 tables").sortDescending().position(1, 2).level(3).expanded(true).checkedMixed()
-        .selected(true).disabled(true).busy(true);
+    El node = el().key("node")
+        .role("treeitem")
+        .label("public")
+        .value("2 tables")
+        .sortDescending()
+        .position(1, 2)
+        .level(3)
+        .expanded(true)
+        .checkedMixed()
+        .selected(true)
+        .disabled(true)
+        .busy(true);
     node.place(0, 66, 400, 22);
     assertEquals(
         "el #node role=treeitem label=\"public\" 0,66 400x22 disabled busy selected checked=mixed"
@@ -73,13 +76,19 @@ class ElTest {
         el().checked(false).expanded(false).sortAscending().dump());
     assertEquals(
         "el checked\n",
-        el().selected(true).selected(false).disabled(true).disabled(false).checked(true).dump(),
+        el().selected(true)
+            .selected(false)
+            .disabled(true)
+            .disabled(false)
+            .checked(true)
+            .dump(),
         "the last call wins");
   }
 
   @Test
   void aTextFieldIsDisabledOrReadOnlyByWhatMakesItSo() {
-    assertEquals("text role=textbox \"a\" disabled\n", El.text("a").editable(null).dump());
+    assertEquals(
+        "text role=textbox \"a\" disabled\n", El.text("a").editable(null).dump());
     String readOnly = "text role=textbox \"a\" readonly\n";
     assertEquals(readOnly, El.text("a").editable(null).readOnly().dump());
     assertEquals(readOnly, El.text("a").editable(s -> {}).readOnly().dump());

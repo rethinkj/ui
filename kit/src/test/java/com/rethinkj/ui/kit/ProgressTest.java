@@ -42,22 +42,27 @@ class ProgressTest {
   @Test
   void aDumpSaysRoleValueAndStateAndNothingTakesTheFocus() throws IOException {
     TextLibraries.assumeLoaded();
-    App<Object> app = new App<>(new Object(), s -> col().gap(8).children(
-        Progress.bar(T, 0.42).key("bar").label("Export"),
-        Progress.bar(T, 0.5, Progress.State.ERROR).key("failed"),
-        Progress.indeterminate(T).key("running"),
-        Progress.labeled(T, "orders.csv", 0.25, "20 MB of 80 MB").key("labeled"),
-        Progress.spinner(T).key("spinner")));
+    App<Object> app = new App<>(
+        new Object(),
+        s -> col()
+            .gap(8)
+            .children(
+                Progress.bar(T, 0.42).key("bar").label("Export"),
+                Progress.bar(T, 0.5, Progress.State.ERROR).key("failed"),
+                Progress.indeterminate(T).key("running"),
+                Progress.labeled(T, "orders.csv", 0.25, "20 MB of 80 MB").key("labeled"),
+                Progress.spinner(T).key("spinner")));
     run(app, "key Tab");
     String dump = app.tree().dump();
     assertTrue(StructureTest.line(dump, "#bar").contains("role=progressbar label=\"Export\""));
     assertTrue(StructureTest.line(dump, "#bar").endsWith(" value=\"42%\""), dump);
     assertTrue(StructureTest.line(dump, "#failed").endsWith(" invalid value=\"50%\""), dump);
     assertFalse(StructureTest.line(dump, "#running").contains("value="), dump);
-    assertTrue(StructureTest.line(dump, "#labeled")
-        .contains("role=progressbar label=\"orders.csv\""), dump);
-    assertTrue(StructureTest.line(dump, "#spinner")
-        .contains("role=progressbar label=\"Loading\" "), dump);
+    assertTrue(
+        StructureTest.line(dump, "#labeled").contains("role=progressbar label=\"orders.csv\""),
+        dump);
+    assertTrue(
+        StructureTest.line(dump, "#spinner").contains("role=progressbar label=\"Loading\" "), dump);
     assertNull(app.focused(), "none takes the focus");
     assertTrue(app.isMoving(), "the running bar and the spinner go round");
   }
@@ -66,8 +71,12 @@ class ProgressTest {
   void aBusyButtonKeepsItsPlaceForTabButTakesNoPress() throws IOException {
     TextLibraries.assumeLoaded();
     Shown s = new Shown();
-    App<Shown> app = new App<>(s, st -> col().child(Button.button(T, Button.Variant.PRIMARY,
-        Symbol.PLAY, "Run", st.busy, () -> st.pressed++).key("run")));
+    App<Shown> app = new App<>(
+        s,
+        st -> col()
+            .child(Button.button(
+                    T, Button.Variant.PRIMARY, Symbol.PLAY, "Run", st.busy, () -> st.pressed++)
+                .key("run")));
     run(app, "key Tab\nframe\nkey Enter\nframe\npress role=button busy");
     assertEquals(0, s.pressed);
     assertEquals("run", app.focused().key());
@@ -89,13 +98,19 @@ class ProgressTest {
     TextLibraries.assumeLoaded();
     for (Symbol icon : new Symbol[] {Symbol.PLAY, null}) {
       Shown s = new Shown();
-      App<Shown> app = new App<>(s, st -> col().child(Button.button(T, Button.Variant.PRIMARY,
-          icon, "Downloading", st.busy, () -> st.pressed++).key("run")));
+      App<Shown> app = new App<>(
+          s,
+          st -> col()
+              .child(Button.button(
+                      T, Button.Variant.PRIMARY, icon, "Downloading", st.busy, () -> st.pressed++)
+                  .key("run")));
       run(app, "");
       El busy = CellEditorTest.find(app, "run");
       float width = busy.width();
-      El spinner = busy.children().stream().filter(c -> "progressbar".equals(c.role()))
-          .findFirst().orElseThrow();
+      El spinner = busy.children().stream()
+          .filter(c -> "progressbar".equals(c.role()))
+          .findFirst()
+          .orElseThrow();
       s.busy = false;
       app.invalidate();
       run(app, "");
@@ -110,9 +125,15 @@ class ProgressTest {
   @Test
   void aRunningBarThatLearnsItsValueSpringsFromWhereItRan() {
     Shown s = new Shown();
-    App<Shown> app = new App<>(s, st -> col().w(300).child(
-        (Double.isNaN(st.fraction) ? Progress.indeterminate(T) : Progress.bar(T, st.fraction))
-            .key("bar").w(200)));
+    App<Shown> app = new App<>(
+        s,
+        st -> col()
+            .w(300)
+            .child((Double.isNaN(st.fraction)
+                    ? Progress.indeterminate(T)
+                    : Progress.bar(T, st.fraction))
+                .key("bar")
+                .w(200)));
     app.resize(300, 100, 1);
     app.frame();
     app.advance(T.motion().progress() / 2);

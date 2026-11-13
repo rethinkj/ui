@@ -26,7 +26,8 @@ class PasswordFieldTest {
   private static final Theme T = Theme.DARK;
   private static final String DOTS = "\u2022".repeat(7);
 
-  @TempDir Path out;
+  @TempDir
+  Path out;
 
   @BeforeEach
   void needsText() {
@@ -39,9 +40,16 @@ class PasswordFieldTest {
   }
 
   private static App<Login> app(UnaryOperator<El> field) {
-    App<Login> app = new App<>(new Login(), s -> col().padding(16).child(revealable(T,
-        field.apply(passwordField(T, s.password, "Password", v -> s.password = v).key("pw")),
-        s.revealed, () -> s.revealed = !s.revealed)));
+    App<Login> app = new App<>(
+        new Login(),
+        s -> col()
+            .padding(16)
+            .child(revealable(
+                T,
+                field.apply(passwordField(T, s.password, "Password", v -> s.password = v)
+                    .key("pw")),
+                s.revealed,
+                () -> s.revealed = !s.revealed)));
     app.textRendering(TextRendering.LINUX);
     return app;
   }
@@ -52,7 +60,12 @@ class PasswordFieldTest {
 
   /** The dump's line of the element with this key or label. */
   private static String line(App<?> app, String part) {
-    return app.tree().dump().lines().filter(l -> l.contains(part)).findFirst().orElseThrow()
+    return app.tree()
+        .dump()
+        .lines()
+        .filter(l -> l.contains(part))
+        .findFirst()
+        .orElseThrow()
         .strip();
   }
 
@@ -61,8 +74,10 @@ class PasswordFieldTest {
     App<Login> app = app(f -> f);
     run(app, "press #pw\ntype \"hunter2\"\nkey ArrowLeft shift");
     assertEquals("hunter2", app.state().password);
-    assertTrue(line(app, "#pw").contains("\"" + DOTS + "\" 16,16 200x24 password focused caret 6"
-        + " anchor 7"), line(app, "#pw"));
+    assertTrue(
+        line(app, "#pw")
+            .contains("\"" + DOTS + "\" 16,16 200x24 password focused caret 6" + " anchor 7"),
+        line(app, "#pw"));
     assertFalse(app.tree().dump().contains("hunter2"));
 
     run(app, "move role=button\nframe");
@@ -70,7 +85,8 @@ class PasswordFieldTest {
     run(app, "press role=button label=\"Show password\"");
     assertTrue(app.state().revealed);
     assertEquals("pw", app.focused().key(), "the press left the focus in the field");
-    assertTrue(line(app, "#pw").endsWith("\"hunter2\" 16,16 200x24 focused caret 6 anchor 7"),
+    assertTrue(
+        line(app, "#pw").endsWith("\"hunter2\" 16,16 200x24 focused caret 6 anchor 7"),
         line(app, "#pw"));
     assertTrue(line(app, "role=button").contains("label=\"Hide password\""));
 
@@ -80,7 +96,9 @@ class PasswordFieldTest {
     run(app, "key Tab\nframe\nkey Space");
     assertEquals("Show password", app.focused().label(), "Tab reached the button, Space hid");
     run(app, "advance 1"); // past the frame's spring
-    assertEquals(T.accent().color(), find(app, "pw").borderColor(),
+    assertEquals(
+        T.accent().color(),
+        find(app, "pw").borderColor(),
         "the field's frame keeps its focused look while its button has the focus");
     app.focus(null);
     run(app, "advance 1");
@@ -109,9 +127,15 @@ class PasswordFieldTest {
     assertTrue(line(readOnly, "#pw").contains("\"hunter2\""), line(readOnly, "#pw"));
 
     Login login = new Login();
-    App<Login> disabled = new App<>(login, s -> col().padding(16).child(revealable(T,
-        passwordField(T, "hunter2", "Password", null).key("pw"), s.revealed,
-        () -> s.revealed = true)));
+    App<Login> disabled = new App<>(
+        login,
+        s -> col()
+            .padding(16)
+            .child(revealable(
+                T,
+                passwordField(T, "hunter2", "Password", null).key("pw"),
+                s.revealed,
+                () -> s.revealed = true)));
     disabled.textRendering(TextRendering.LINUX);
     run(disabled, "press role=button\nframe\nkey Tab");
     assertFalse(login.revealed);

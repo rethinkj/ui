@@ -83,10 +83,12 @@ class AppTest {
   @Test
   void aDueActionRunsAfterTheInputAndTheTasksThatCameBeforeItsFrame() {
     List<String> log = new ArrayList<>();
-    App<List<String>> app = new App<>(log, l -> el().size(10, 10).onKey(k -> {
-      log.add("key " + k.name() + " sees " + l.size());
-      return true;
-    }));
+    App<List<String>> app = new App<>(
+        log,
+        l -> el().size(10, 10).onKey(k -> {
+          log.add("key " + k.name() + " sees " + l.size());
+          return true;
+        }));
     app.resize(100, 100, 1);
     app.frame();
     app.after(1, () -> log.add("action"));
@@ -96,16 +98,20 @@ class AppTest {
     app.post(() -> log.add("second task"));
     assertEquals(1, app.nextChange());
     app.frame();
-    assertEquals(List.of("task", "key A sees 1", "second task", "action"), log,
+    assertEquals(
+        List.of("task", "key A sees 1", "second task", "action"),
+        log,
         "the input and the tasks in the order they came, then the action");
   }
 
   @Test
   void aKeyThatNothingTakesRunsWhatTheRunnerHandedOnWithIt() {
     List<String> log = new ArrayList<>();
-    App<List<String>> app = new App<>(log, l -> el().size(100, 100)
-        .onKey(k -> k.name().equals("A"))
-        .child(el().key("button").size(20, 20).focusable().onPress(() -> l.add("press"))));
+    App<List<String>> app = new App<>(
+        log,
+        l -> el().size(100, 100)
+            .onKey(k -> k.name().equals("A"))
+            .child(el().key("button").size(20, 20).focusable().onPress(() -> l.add("press"))));
     app.resize(100, 100, 1);
     app.frame();
     Key altSpace = new Key("Space", Key.ALT, false);
@@ -168,18 +174,27 @@ class AppTest {
   void handlersOfAnyPointerDownSeeEveryPressAndTakeNothingFromIt() {
     List<String> log = new ArrayList<>();
     boolean[] open = {true};
-    App<List<String>> app = new App<>(log, l -> El.col().size(100, 100)
-        .child(el().key("bar").size(10, 10).onAnyPointerDown(() -> l.add("any")))
-        .child(el().key("list").size(100, 50).scroll()
-            .scrollbars(new Scrollbars(6, 2, 3, 24, 0xFF5A5A66, 0xFF7A7A88, 0xFFA1A1AA))
-            .child(el().size(100, 500)))
-        .child(el().size(40, 40).onPress(() -> l.add("press")))
-        .overlay(!open[0] ? null : el().size(20, 20).atPoint(80, 80)
-            .onDismiss(() -> {
-              l.add("dismissed");
-              open[0] = false;
-            })
-            .onAnyPointerDown(() -> l.add("overlay"))));
+    App<List<String>> app = new App<>(
+        log,
+        l -> El.col()
+            .size(100, 100)
+            .child(el().key("bar").size(10, 10).onAnyPointerDown(() -> l.add("any")))
+            .child(el().key("list")
+                .size(100, 50)
+                .scroll()
+                .scrollbars(new Scrollbars(6, 2, 3, 24, 0xFF5A5A66, 0xFF7A7A88, 0xFFA1A1AA))
+                .child(el().size(100, 500)))
+            .child(el().size(40, 40).onPress(() -> l.add("press")))
+            .overlay(
+                !open[0]
+                    ? null
+                    : el().size(20, 20)
+                        .atPoint(80, 80)
+                        .onDismiss(() -> {
+                          l.add("dismissed");
+                          open[0] = false;
+                        })
+                        .onAnyPointerDown(() -> l.add("overlay"))));
     app.resize(100, 100, 1);
     app.frame();
     app.secondaryDown(85, 85); // inside the overlay
@@ -188,21 +203,26 @@ class AppTest {
     press(app, 20, 70); // now it presses
     press(app, 97, 55); // on the track of the list's scrollbar, which takes the press alone
     app.frame();
-    assertEquals(List.of("any", "overlay", "any", "overlay", "dismissed", "any", "press", "any"),
-        log);
+    assertEquals(
+        List.of("any", "overlay", "any", "overlay", "dismissed", "any", "press", "any"), log);
     assertTrue(app.tree().children().get(1).scrollY() > 0, "the bar paged the list");
   }
 
   @Test
   void handlersOfAnyKeyDownSeeEveryKeyFirstAndTakeNothingFromIt() {
     List<String> log = new ArrayList<>();
-    App<List<String>> app = new App<>(log, l -> El.col().size(100, 100)
-        .onKey(k -> l.add("root " + k.name()))
-        .child(el().key("any").size(10, 10).onAnyKeyDown(k -> l.add("any " + k.name())))
-        .child(el().key("taker").size(40, 40).focusable()
-            .onKey(k -> k.name().equals("C") && l.add("taken C")))
-        .overlay(el().size(20, 20).atPoint(80, 80)
-            .onAnyKeyDown(k -> l.add("overlay " + k.name()))));
+    App<List<String>> app = new App<>(
+        log,
+        l -> El.col()
+            .size(100, 100)
+            .onKey(k -> l.add("root " + k.name()))
+            .child(el().key("any").size(10, 10).onAnyKeyDown(k -> l.add("any " + k.name())))
+            .child(el().key("taker")
+                .size(40, 40)
+                .focusable()
+                .onKey(k -> k.name().equals("C") && l.add("taken C")))
+            .overlay(
+                el().size(20, 20).atPoint(80, 80).onAnyKeyDown(k -> l.add("overlay " + k.name()))));
     app.resize(100, 100, 1);
     app.frame();
     app.focus(app.tree().children().get(1));
@@ -215,17 +235,16 @@ class AppTest {
   @Test
   void theElementOnTopGetsThePressAndRoundedCornersAreNotPartOfIt() {
     List<String> pressed = new ArrayList<>();
-    App<List<String>> app =
-        new App<>(
-            pressed,
-            log ->
-                el().size(100, 100)
-                    .onPress(() -> log.add("root"))
-                    .child(el().size(60, 60).absolute(0, 0).onPress(() -> log.add("below")))
-                    .child(
-                        el().size(60, 60).radius(30).absolute(20, 20)
-                            .onPress(() -> log.add("round"))
-                            .child(el().size(10, 10).absolute(25, 25))));
+    App<List<String>> app = new App<>(
+        pressed,
+        log -> el().size(100, 100)
+            .onPress(() -> log.add("root"))
+            .child(el().size(60, 60).absolute(0, 0).onPress(() -> log.add("below")))
+            .child(el().size(60, 60)
+                .radius(30)
+                .absolute(20, 20)
+                .onPress(() -> log.add("round"))
+                .child(el().size(10, 10).absolute(25, 25))));
     app.resize(100, 100, 1);
     app.frame();
 
@@ -241,8 +260,9 @@ class AppTest {
   @Test
   void aPressHandlerIsToldHowManyPressesItCompletes() {
     List<String> pressed = new ArrayList<>();
-    App<List<String>> app = new App<>(pressed, log -> el().size(100, 100).focusable()
-        .onPress(clicks -> log.add("clicks " + clicks)));
+    App<List<String>> app = new App<>(
+        pressed,
+        log -> el().size(100, 100).focusable().onPress(clicks -> log.add("clicks " + clicks)));
     app.resize(100, 100, 1);
     app.frame();
 

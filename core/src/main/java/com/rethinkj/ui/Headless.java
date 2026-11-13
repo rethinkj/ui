@@ -61,8 +61,15 @@ public final class Headless {
    * Builds the rows of the virtual lists ({@link El#rows}) that show at their offset of 0, and
    * measures how far each scroll area could scroll, for its bars.
    */
-  private static void fillRows(El el, float parentX, float parentY, float clipLeft,
-      float clipRight, float windowWidth, float windowHeight, float scale) {
+  private static void fillRows(
+      El el,
+      float parentX,
+      float parentY,
+      float clipLeft,
+      float clipRight,
+      float windowWidth,
+      float windowHeight,
+      float scale) {
     if (!el.isPlaced()) {
       return;
     }

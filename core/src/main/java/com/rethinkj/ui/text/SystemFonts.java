@@ -72,8 +72,16 @@ final class SystemFonts {
   }
 
   private static final Set<String> EXTENSIONS = Set.of("ttf", "otf", "ttc", "otc");
-  private static final Set<String> PLAIN = Set.of("regular", "book", "normal", "roman", "bold",
-      "italic", "oblique", "bold italic", "bold oblique");
+  private static final Set<String> PLAIN = Set.of(
+      "regular",
+      "book",
+      "normal",
+      "roman",
+      "bold",
+      "italic",
+      "oblique",
+      "bold italic",
+      "bold oblique");
 
   private static List<Face> faces; // null until the first lookup
   private static final AtomicBoolean prepared = new AtomicBoolean();
@@ -108,8 +116,10 @@ final class SystemFonts {
       }
       candidates.sort(Comparator.<Face>comparingInt(f -> rank(f.family, preferred))
           .thenComparingInt(f -> styleDistance(f, styleFlags))
-          .thenComparing(Face::family).thenComparing(Face::style)
-          .thenComparing(Face::path).thenComparingInt(Face::index));
+          .thenComparing(Face::family)
+          .thenComparing(Face::style)
+          .thenComparing(Face::path)
+          .thenComparingInt(Face::index));
       for (Face face : candidates) {
         font = open(face);
         if (font != null) {
@@ -137,7 +147,8 @@ final class SystemFonts {
 
   private static boolean meaningful(int c) {
     int type = Character.getType(c);
-    return type != Character.PRIVATE_USE && type != Character.UNASSIGNED
+    return type != Character.PRIVATE_USE
+        && type != Character.UNASSIGNED
         && type != Character.SURROGATE;
   }
 
@@ -189,7 +200,8 @@ final class SystemFonts {
   }
 
   private static List<Face> inspect(Path path) {
-    try (Arena arena = Arena.ofConfined(); FileChannel channel = FileChannel.open(path)) {
+    try (Arena arena = Arena.ofConfined();
+        FileChannel channel = FileChannel.open(path)) {
       MemorySegment data = channel.map(FileChannel.MapMode.READ_ONLY, 0, channel.size(), arena);
       return Font.inspect(path, data);
     } catch (IOException | RuntimeException e) {
@@ -214,8 +226,11 @@ final class SystemFonts {
       return folders;
     }
     String data = System.getenv("XDG_DATA_HOME");
-    return List.of(Path.of("/usr/share/fonts"), Path.of("/usr/local/share/fonts"),
-        data != null && !data.isEmpty() ? Path.of(data, "fonts")
+    return List.of(
+        Path.of("/usr/share/fonts"),
+        Path.of("/usr/local/share/fonts"),
+        data != null && !data.isEmpty()
+            ? Path.of(data, "fonts")
             : Path.of(home, ".local", "share", "fonts"),
         Path.of(home, ".fonts"));
   }
@@ -228,13 +243,14 @@ final class SystemFonts {
         continue;
       }
       try {
-        Files.walkFileTree(folder, EnumSet.of(FileVisitOption.FOLLOW_LINKS), 16,
-            new SimpleFileVisitor<>() {
+        Files.walkFileTree(
+            folder, EnumSet.of(FileVisitOption.FOLLOW_LINKS), 16, new SimpleFileVisitor<>() {
               @Override
               public FileVisitResult visitFile(Path file, BasicFileAttributes attributes) {
                 String name = file.getFileName().toString().toLowerCase(Locale.ROOT);
                 int dot = name.lastIndexOf('.');
-                if (attributes.isRegularFile() && dot >= 0
+                if (attributes.isRegularFile()
+                    && dot >= 0
                     && EXTENSIONS.contains(name.substring(dot + 1))) {
                   try {
                     paths.add(file.toRealPath());
@@ -265,8 +281,10 @@ final class SystemFonts {
     int index = preferred.indexOf(family);
     for (int i = 0; i < preferred.size() && index < 0; i++) {
       String p = preferred.get(i);
-      if (p.endsWith("*") && family.startsWith(p.substring(0, p.length() - 1))
-          && !family.contains(" Mono") && !family.contains(" CJK")) {
+      if (p.endsWith("*")
+          && family.startsWith(p.substring(0, p.length() - 1))
+          && !family.contains(" Mono")
+          && !family.contains(" CJK")) {
         index = i;
       }
     }
@@ -288,8 +306,10 @@ final class SystemFonts {
     boolean emoji = Character.isEmojiPresentation(first) || cluster.indexOf('\uFE0F') >= 0;
     // CJK fonts have most symbols too, drawn wide: they come first only for CJK scripts.
     List<String> cjk = cjk(script, windows, locale);
-    boolean cjkFirst = script == UnicodeScript.HAN || script == UnicodeScript.HIRAGANA
-        || script == UnicodeScript.KATAKANA || script == UnicodeScript.HANGUL
+    boolean cjkFirst = script == UnicodeScript.HAN
+        || script == UnicodeScript.HIRAGANA
+        || script == UnicodeScript.KATAKANA
+        || script == UnicodeScript.HANGUL
         || script == UnicodeScript.BOPOMOFO;
     List<String> order = new ArrayList<>();
     if (emoji) {
@@ -299,11 +319,23 @@ final class SystemFonts {
       order.addAll(cjk);
     }
     if (windows) {
-      order.addAll(List.of("Segoe UI", "Segoe UI Symbol", "Segoe UI Emoji", "Leelawadee UI",
-          "Nirmala UI", "Segoe UI Historic"));
+      order.addAll(List.of(
+          "Segoe UI",
+          "Segoe UI Symbol",
+          "Segoe UI Emoji",
+          "Leelawadee UI",
+          "Nirmala UI",
+          "Segoe UI Historic"));
     } else {
-      order.addAll(List.of("Noto Sans", "Noto Sans Symbols", "Noto Sans Symbols2",
-          "Noto Sans Symbols 2", "Noto Sans *", "DejaVu Sans", "Noto Emoji", "Noto Color Emoji",
+      order.addAll(List.of(
+          "Noto Sans",
+          "Noto Sans Symbols",
+          "Noto Sans Symbols2",
+          "Noto Sans Symbols 2",
+          "Noto Sans *",
+          "DejaVu Sans",
+          "Noto Emoji",
+          "Noto Color Emoji",
           "Symbola"));
     }
     order.addAll(cjk);
@@ -313,13 +345,17 @@ final class SystemFonts {
   /** The CJK families in the order the locale and the script ask for. */
   private static List<String> cjk(UnicodeScript script, boolean windows, Locale locale) {
     String country = locale.getCountry();
-    boolean traditional = locale.getScript().equals("Hant") || country.equals("TW")
-        || country.equals("HK") || country.equals("MO");
-    List<String> order = new ArrayList<>(switch (locale.getLanguage()) {
-      case "ko" -> List.of("KR", "JP", "SC", "TC");
-      case "zh" -> traditional ? List.of("TC", "SC", "JP", "KR") : List.of("SC", "TC", "JP", "KR");
-      default -> List.of("JP", "SC", "TC", "KR");
-    });
+    boolean traditional = locale.getScript().equals("Hant")
+        || country.equals("TW")
+        || country.equals("HK")
+        || country.equals("MO");
+    List<String> order = new ArrayList<>(
+        switch (locale.getLanguage()) {
+          case "ko" -> List.of("KR", "JP", "SC", "TC");
+          case "zh" ->
+            traditional ? List.of("TC", "SC", "JP", "KR") : List.of("SC", "TC", "JP", "KR");
+          default -> List.of("JP", "SC", "TC", "KR");
+        });
     if (script == UnicodeScript.HANGUL) {
       order.remove("KR");
       order.addFirst("KR");
@@ -328,14 +364,17 @@ final class SystemFonts {
       order.addFirst("JP");
     }
     if (!windows) { // Noto Sans CJK has Hong Kong's forms too
-      order.add(order.indexOf("TC") + (country.equals("HK") || country.equals("MO") ? 0 : 1),
-          "HK");
+      order.add(order.indexOf("TC") + (country.equals("HK") || country.equals("MO") ? 0 : 1), "HK");
     }
-    return order.stream().map(code -> windows ? switch (code) {
-      case "JP" -> "Yu Gothic UI";
-      case "SC" -> "Microsoft YaHei UI";
-      case "TC" -> "Microsoft JhengHei UI";
-      default -> "Malgun Gothic";
-    } : "Noto Sans CJK " + code).toList();
+    return order.stream()
+        .map(code -> windows
+            ? switch (code) {
+              case "JP" -> "Yu Gothic UI";
+              case "SC" -> "Microsoft YaHei UI";
+              case "TC" -> "Microsoft JhengHei UI";
+              default -> "Malgun Gothic";
+            }
+            : "Noto Sans CJK " + code)
+        .toList();
   }
 }

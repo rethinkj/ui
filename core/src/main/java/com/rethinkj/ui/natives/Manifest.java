@@ -96,8 +96,8 @@ record Manifest(String platform, List<Library> libraries) {
                 at + "expected 'library <name> <version> <file> <sha256>', got '" + line + "'");
           }
           if (!names.add(words[1]) || !files.add(words[3].toLowerCase(Locale.ROOT))) {
-            throw new IllegalArgumentException(at + "library " + words[1] + " or file " + words[3]
-                + " is listed twice");
+            throw new IllegalArgumentException(
+                at + "library " + words[1] + " or file " + words[3] + " is listed twice");
           }
           libraries.add(new Library(words[1], words[2], words[3], words[4]));
         }

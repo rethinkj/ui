@@ -5,7 +5,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.rethinkj.ui.App;
-import com.rethinkj.ui.El;
 import com.rethinkj.ui.Script;
 import com.rethinkj.ui.WindowPart;
 import com.rethinkj.ui.render.Pixels;
@@ -21,7 +20,8 @@ import org.junit.jupiter.api.io.TempDir;
 /** The title bar of a frameless window: its parts, the buttons' looks and Restore. */
 class TitleBarTest {
 
-  @TempDir Path out;
+  @TempDir
+  Path out;
 
   @BeforeEach
   void textLibraries() {
@@ -30,10 +30,19 @@ class TitleBarTest {
 
   private App<Object> app(boolean maximized) {
     Theme t = Theme.DARK;
-    App<Object> app = new App<>(new Object(), s -> col().wFull().hFull()
-        .fill(t.surface().window())
-        .child(TitleBar.titleBar(t, "Orders", null, null, maximized,
-            Button.button(t, Button.Variant.GHOST, "Run", () -> {}))));
+    App<Object> app = new App<>(
+        new Object(),
+        s -> col()
+            .wFull()
+            .hFull()
+            .fill(t.surface().window())
+            .child(TitleBar.titleBar(
+                t,
+                "Orders",
+                null,
+                null,
+                maximized,
+                Button.button(t, Button.Variant.GHOST, "Run", () -> {}))));
     app.textRendering(TextRendering.LINUX);
     return app;
   }
@@ -67,8 +76,10 @@ class TitleBarTest {
     Theme.Caption c = Theme.DARK.caption();
     assertEquals(c.closeHover(), pixel("hovered", 400 - 3, 3), "red under the pointer");
     assertEquals(c.closePressed(), pixel("pressed", 400 - 3, 3), "lighter while pressed");
-    assertEquals(Theme.over(Theme.DARK.surface().window(), Theme.DARK.surface().pressed()),
-        pixel("minimize", 400 - 2 * 46 - 3, 3), "a caption button darkens while pressed");
+    assertEquals(
+        Theme.over(Theme.DARK.surface().window(), Theme.DARK.surface().pressed()),
+        pixel("minimize", 400 - 2 * 46 - 3, 3),
+        "a caption button darkens while pressed");
     assertEquals(WindowPart.DRAG, app.windowPart(120, 16));
     assertEquals(WindowPart.CLOSE, app.windowPart(400 - 10, 16));
     assertEquals(WindowPart.MINIMIZE, app.windowPart(400 - 46 * 3 + 10, 16));

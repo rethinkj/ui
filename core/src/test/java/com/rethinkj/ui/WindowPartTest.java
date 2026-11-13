@@ -16,15 +16,20 @@ class WindowPartTest {
    * 40 each, the last one round.
    */
   private static El window(Object state) {
-    El bar =
-        row().key("bar").wFull().h(30).windowPart(WindowPart.DRAG)
-            .child(el().key("menu").size(40, 30).onPress(() -> {}))
-            .child(el().key("search").size(60, 30).windowPart(WindowPart.CONTENT))
-            .child(el().key("space").grow(1).h(30).child(el().key("dot").size(10, 10)))
-            .child(el().key("min").size(40, 30).windowPart(WindowPart.MINIMIZE))
-            .child(el().key("max").size(40, 30).windowPart(WindowPart.MAXIMIZE)
-                .child(el().key("glyph").size(10, 10).absolute(15, 10)))
-            .child(el().key("close").size(40, 30).radius(15).windowPart(WindowPart.CLOSE));
+    El bar = row()
+        .key("bar")
+        .wFull()
+        .h(30)
+        .windowPart(WindowPart.DRAG)
+        .child(el().key("menu").size(40, 30).onPress(() -> {}))
+        .child(el().key("search").size(60, 30).windowPart(WindowPart.CONTENT))
+        .child(el().key("space").grow(1).h(30).child(el().key("dot").size(10, 10)))
+        .child(el().key("min").size(40, 30).windowPart(WindowPart.MINIMIZE))
+        .child(el().key("max")
+            .size(40, 30)
+            .windowPart(WindowPart.MAXIMIZE)
+            .child(el().key("glyph").size(10, 10).absolute(15, 10)))
+        .child(el().key("close").size(40, 30).radius(15).windowPart(WindowPart.CLOSE));
     return col().size(300, 200).child(bar).child(el().key("body").grow(1).onPress(() -> {}));
   }
 
@@ -66,7 +71,10 @@ class WindowPartTest {
   private static El withDialog(Dialog d) {
     El window = window(null);
     if (d.open) {
-      window.overlay(el().key("dialog").size(100, 60).centerInWindow().modal()
+      window.overlay(el().key("dialog")
+          .size(100, 60)
+          .centerInWindow()
+          .modal()
           .onDismiss(() -> {
             d.log.add("dismissed");
             d.open = false;

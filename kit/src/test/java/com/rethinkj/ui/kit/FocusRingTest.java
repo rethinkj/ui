@@ -27,21 +27,30 @@ class FocusRingTest {
   /** The focusable components of the kit in one theme, on that theme's window colour. */
   private static El panel(Theme t) {
     List<Column> columns = List.of(new Column("id", 60, Align.RIGHT, true, String::valueOf));
-    return col().grow(1).padding(t.space().xl()).gap(t.space().xl()).fill(t.surface().window())
+    return col()
+        .grow(1)
+        .padding(t.space().xl())
+        .gap(t.space().xl())
+        .fill(t.surface().window())
         .children(
             button(t, Variant.SECONDARY, "Save", () -> {}),
             checkbox(t, false, "Read only", () -> {}),
             toggle(t, false, "Autocommit", () -> {}),
             textField(t, "", v -> {}).label("Name"),
-            dataGrid(t, columns, 3, DataGrid.options()
-                .select(new DataGrid.Selection(DataGrid.Mode.ROWS))).label("Rows").h(80));
+            dataGrid(
+                    t,
+                    columns,
+                    3,
+                    DataGrid.options().select(new DataGrid.Selection(DataGrid.Mode.ROWS)))
+                .label("Rows")
+                .h(80));
   }
 
   @Test
   void twoThemesOnScreenEachDrawTheirOwnRing() {
     TextLibraries.assumeLoaded();
-    App<Object> app = new App<>(new Object(), s -> row().wFull().hFull()
-        .children(panel(Theme.DARK), panel(Theme.LIGHT)));
+    App<Object> app = new App<>(
+        new Object(), s -> row().wFull().hFull().children(panel(Theme.DARK), panel(Theme.LIGHT)));
     app.textRendering(TextRendering.LINUX);
     app.focusRing(0xFFFF00FF); // the app's colour, which no component may show
     app.resize(640, 420, 1);
@@ -57,7 +66,9 @@ class FocusRingTest {
       Pixels pixels = app.render().pixels();
       int x = Math.round(at[0] + focused.width() / 2);
       int y = (int) Math.ceil(at[1] - 2);
-      assertEquals(hex(t.accent().edge()), hex(pixels.argb(x, y)),
+      assertEquals(
+          hex(t.accent().edge()),
+          hex(pixels.argb(x, y)),
           "the ring of " + focused.role() + " in the " + (i < 5 ? "dark" : "light") + " theme");
     }
   }

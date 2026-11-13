@@ -38,14 +38,16 @@ final class Desktop {
    * keyboard focus for a moment, so an ordinary build leaves them out.
    */
   static void assumeWindows() {
-    assumeTrue(Boolean.getBoolean("windows.tests"),
+    assumeTrue(
+        Boolean.getBoolean("windows.tests"),
         "Skipped: opens real windows on the screen; run with -Dwindows.tests=true");
     try {
       Natives.lookup("sdl3");
     } catch (UnsatisfiedLinkError e) {
       assumeTrue(false, "Skipped: SDL 3 cannot be loaded. " + e.getMessage());
     }
-    if (System.getProperty("os.name").equals("Linux") && System.getenv("DISPLAY") == null
+    if (System.getProperty("os.name").equals("Linux")
+        && System.getenv("DISPLAY") == null
         && System.getenv("WAYLAND_DISPLAY") == null) {
       assumeTrue(false, "Skipped: no display, neither DISPLAY nor WAYLAND_DISPLAY is set");
     }
@@ -257,7 +259,8 @@ final class Desktop {
     }
   }
 
-  private static void push(Window window, int type, java.util.function.Consumer<MemorySegment> fill) {
+  private static void push(
+      Window window, int type, java.util.function.Consumer<MemorySegment> fill) {
     try (Arena arena = Arena.ofConfined()) {
       MemorySegment event = arena.allocate(Sdl.EVENT_SIZE, 8);
       event.set(JAVA_INT, Sdl.EVENT_TYPE, type);

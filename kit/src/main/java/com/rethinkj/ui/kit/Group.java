@@ -88,7 +88,10 @@ public final class Group {
       Theme t, Symbol icon, String title, String description, boolean on, Runnable onToggle) {
     boolean enabled = onToggle != null;
     El row = base(t, icon, title, description, enabled)
-        .role("switch").label(title).checked(on).disabled(!enabled)
+        .role("switch")
+        .label(title)
+        .checked(on)
+        .disabled(!enabled)
         .child(Toggle.track(t, on, enabled).shrink(0));
     return press(t, row, onToggle);
   }
@@ -110,18 +113,22 @@ public final class Group {
       Theme t, Symbol icon, String title, String description, String value, Runnable onPress) {
     boolean enabled = onPress != null;
     El row = base(t, icon, title, description, enabled)
-        .role("button").label(title).value(value).disabled(!enabled);
+        .role("button")
+        .label(title)
+        .value(value)
+        .disabled(!enabled);
     if (value != null) {
       row.child(label(t, Label.Variant.MUTED, value)
-          .color(enabled ? t.text().muted() : t.text().disabled()).shrink(0));
+          .color(enabled ? t.text().muted() : t.text().disabled())
+          .shrink(0));
     }
     row.child(icon(t, Symbol.CHEVRON_RIGHT, enabled ? Icon.Variant.MUTED : Icon.Variant.DISABLED));
     return press(t, row, onPress);
   }
 
   /** A row that opens to show more rows below it. */
-  public static El expander(Theme t, String title, String description, boolean open,
-      Runnable onToggle, El... content) {
+  public static El expander(
+      Theme t, String title, String description, boolean open, Runnable onToggle, El... content) {
     return expander(t, null, title, description, open, onToggle, content);
   }
 
@@ -133,12 +140,23 @@ public final class Group {
    *
    * @param onToggle runs when the row is pressed; null disables it
    */
-  public static El expander(Theme t, Symbol icon, String title, String description, boolean open,
-      Runnable onToggle, El... content) {
+  public static El expander(
+      Theme t,
+      Symbol icon,
+      String title,
+      String description,
+      boolean open,
+      Runnable onToggle,
+      El... content) {
     boolean enabled = onToggle != null;
     El head = base(t, icon, title, description, enabled)
-        .role("button").label(title).expanded(open).disabled(!enabled)
-        .child(icon(t, open ? Symbol.CHEVRON_UP : Symbol.CHEVRON_DOWN,
+        .role("button")
+        .label(title)
+        .expanded(open)
+        .disabled(!enabled)
+        .child(icon(
+            t,
+            open ? Symbol.CHEVRON_UP : Symbol.CHEVRON_DOWN,
             enabled ? Icon.Variant.MUTED : Icon.Variant.DISABLED));
     El expander = col().child(press(t, head, onToggle));
     if (open && content.length > 0) {
@@ -155,23 +173,28 @@ public final class Group {
    * radio group or a paragraph: its children stacked {@link Theme.Spacing#m} apart.
    */
   public static El box(Theme t, El... content) {
-    return col().padding(t.space().m() - Scene.RING, t.space().l() - Scene.RING)
+    return col()
+        .padding(t.space().m() - Scene.RING, t.space().l() - Scene.RING)
         .gap(t.space().m())
         .children(content);
   }
 
   /** A row's icon and text, with the padding, radius and height every row has. */
-  private static El base(
-      Theme t, Symbol icon, String title, String description, boolean enabled) {
-    El text = col().grow(1).gap(t.space().xs())
-        .child(label(t, title).color(enabled ? t.text().primary() : t.text().disabled())
+  private static El base(Theme t, Symbol icon, String title, String description, boolean enabled) {
+    El text = col()
+        .grow(1)
+        .gap(t.space().xs())
+        .child(label(t, title)
+            .color(enabled ? t.text().primary() : t.text().disabled())
             .wrapText());
     text.style().minWidth = Len.ZERO;
     if (description != null) {
       text.child(label(t, Label.Variant.MUTED, description)
-          .color(enabled ? t.text().muted() : t.text().disabled()).wrapText());
+          .color(enabled ? t.text().muted() : t.text().disabled())
+          .wrapText());
     }
-    El row = El.row().padding(t.space().m() - Scene.RING, t.space().l() - Scene.RING)
+    El row = El.row()
+        .padding(t.space().m() - Scene.RING, t.space().l() - Scene.RING)
         .gap(t.space().l())
         .align(Style.Align.CENTER)
         // Concentric with the card's corner, so that the ring follows it in the first row.
@@ -189,7 +212,8 @@ public final class Group {
     if (onPress == null) {
       return row;
     }
-    return row.focusable().keepFocus()
+    return row.focusable()
+        .keepFocus()
         .focusRing(t.accent().edge())
         .cursor(Cursor.POINTER)
         .onPress(onPress)
@@ -212,7 +236,9 @@ public final class Group {
    * with such a band above and below it.
    */
   private static El line(Theme t) {
-    return el().h(t.size().stroke()).shrink(0).fill(t.border().subtle())
+    return el().h(t.size().stroke())
+        .shrink(0)
+        .fill(t.border().subtle())
         .margin(Scene.RING, -Scene.RING, Scene.RING, -Scene.RING);
   }
 }

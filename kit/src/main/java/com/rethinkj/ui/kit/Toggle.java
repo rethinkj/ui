@@ -33,19 +33,19 @@ public final class Toggle {
     float height = t.size().switchHeight();
     int fill = fill(t, on, enabled);
     El track = track(t, on, enabled);
-    El toggle =
-        row().role("switch")
-            .label(text)
-            .checked(on)
-            .disabled(!enabled)
-            .gap(t.space().m())
-            // Room for the focus ring around the text, taken back by the margin, so that the
-            // row lines up with what is above and below it.
-            .padding(t.space().xs(), t.space().s())
-            .margin(-t.space().xs(), -t.space().s(), -t.space().xs(), -t.space().s())
-            .align(Style.Align.CENTER)
-            .radius(height / 2 + t.space().xs())
-            .child(track);
+    El toggle = row()
+        .role("switch")
+        .label(text)
+        .checked(on)
+        .disabled(!enabled)
+        .gap(t.space().m())
+        // Room for the focus ring around the text, taken back by the margin, so that the
+        // row lines up with what is above and below it.
+        .padding(t.space().xs(), t.space().s())
+        .margin(-t.space().xs(), -t.space().s(), -t.space().xs(), -t.space().s())
+        .align(Style.Align.CENTER)
+        .radius(height / 2 + t.space().xs())
+        .child(track);
     // Only as wide as the control and its text, so that a column that stretches its children
     // stretches neither the press area nor the ring; one that centres them still centres it.
     toggle.style().width = Len.FIT_CONTENT;
@@ -58,7 +58,8 @@ public final class Toggle {
     int hover = on ? t.accent().hover() : over(fill, t.surface().hover());
     int pressed = on ? t.accent().pressed() : over(fill, t.surface().pressed());
     // The whole row takes the press, text included, and its looks restyle the track.
-    return toggle.focusable()
+    return toggle
+        .focusable()
         .keepFocus() // as a button: Tab reaches it, a press leaves the focus where it is
         .focusRing(t.accent().edge())
         .cursor(Cursor.POINTER)
@@ -77,12 +78,11 @@ public final class Toggle {
         .radius(height / 2)
         .fill(fill(t, on, enabled))
         .motion(t.motion().feedback())
-        .child(
-            el().size(knob, knob)
-                .radius(knob / 2)
-                .fill(enabled ? t.text().onAccent() : t.text().disabled())
-                .absolute(on ? width - inset - knob : inset, inset)
-                .motion(t.motion().move()));
+        .child(el().size(knob, knob)
+            .radius(knob / 2)
+            .fill(enabled ? t.text().onAccent() : t.text().disabled())
+            .absolute(on ? width - inset - knob : inset, inset)
+            .motion(t.motion().move()));
   }
 
   private static int fill(Theme t, boolean on, boolean enabled) {

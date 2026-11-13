@@ -73,7 +73,11 @@ public final class GridChanges {
   }
 
   /** What a change does to the database. */
-  public enum Kind { UPDATE, INSERT, DELETE }
+  public enum Kind {
+    UPDATE,
+    INSERT,
+    DELETE
+  }
 
   /**
    * A change to write: an update of a row's changed columns, the insert of a new row with the
@@ -293,8 +297,9 @@ public final class GridChanges {
       }
       Object before = value(key, cell.column());
       Object after = cell.value() == null ? NULL : cell.value();
-      if (key >= 0 && Objects.equals(cell.value(), rows.cell(cell.row() - newBefore(cell.row()),
-          cell.column()))) {
+      if (key >= 0
+          && Objects.equals(
+              cell.value(), rows.cell(cell.row() - newBefore(cell.row()), cell.column()))) {
         after = null; // back to the app's value
       }
       if (!Objects.equals(before, after)) {

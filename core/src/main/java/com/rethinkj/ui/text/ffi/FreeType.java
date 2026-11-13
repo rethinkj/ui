@@ -75,64 +75,61 @@ public final class FreeType {
 
   public static final StructLayout VECTOR = struct(C_LONG.withName("x"), C_LONG.withName("y"));
 
-  public static final StructLayout BITMAP =
-      struct(
-          JAVA_INT.withName("rows"),
-          JAVA_INT.withName("width"),
-          JAVA_INT.withName("pitch"),
-          ADDRESS.withName("buffer"),
-          JAVA_SHORT.withName("num_grays"),
-          JAVA_BYTE.withName("pixel_mode"),
-          JAVA_BYTE.withName("palette_mode"),
-          ADDRESS.withName("palette"));
+  public static final StructLayout BITMAP = struct(
+      JAVA_INT.withName("rows"),
+      JAVA_INT.withName("width"),
+      JAVA_INT.withName("pitch"),
+      ADDRESS.withName("buffer"),
+      JAVA_SHORT.withName("num_grays"),
+      JAVA_BYTE.withName("pixel_mode"),
+      JAVA_BYTE.withName("palette_mode"),
+      ADDRESS.withName("palette"));
 
   /**
    * {@code FT_FaceRec} up to {@code charmap}: the public fields. The rest is FreeType's own; a face
    * is never allocated here, only read.
    */
-  public static final StructLayout FACE =
-      struct(
-          C_LONG.withName("num_faces"),
-          C_LONG.withName("face_index"),
-          C_LONG.withName("face_flags"),
-          C_LONG.withName("style_flags"),
-          C_LONG.withName("num_glyphs"),
-          ADDRESS.withName("family_name"),
-          ADDRESS.withName("style_name"),
-          JAVA_INT.withName("num_fixed_sizes"),
-          ADDRESS.withName("available_sizes"),
-          JAVA_INT.withName("num_charmaps"),
-          ADDRESS.withName("charmaps"),
-          GENERIC.withName("generic"),
-          MemoryLayout.sequenceLayout(4, C_LONG).withName("bbox"),
-          JAVA_SHORT.withName("units_per_EM"),
-          JAVA_SHORT.withName("ascender"),
-          JAVA_SHORT.withName("descender"),
-          JAVA_SHORT.withName("height"),
-          JAVA_SHORT.withName("max_advance_width"),
-          JAVA_SHORT.withName("max_advance_height"),
-          JAVA_SHORT.withName("underline_position"),
-          JAVA_SHORT.withName("underline_thickness"),
-          ADDRESS.withName("glyph"),
-          ADDRESS.withName("size"),
-          ADDRESS.withName("charmap"));
+  public static final StructLayout FACE = struct(
+      C_LONG.withName("num_faces"),
+      C_LONG.withName("face_index"),
+      C_LONG.withName("face_flags"),
+      C_LONG.withName("style_flags"),
+      C_LONG.withName("num_glyphs"),
+      ADDRESS.withName("family_name"),
+      ADDRESS.withName("style_name"),
+      JAVA_INT.withName("num_fixed_sizes"),
+      ADDRESS.withName("available_sizes"),
+      JAVA_INT.withName("num_charmaps"),
+      ADDRESS.withName("charmaps"),
+      GENERIC.withName("generic"),
+      MemoryLayout.sequenceLayout(4, C_LONG).withName("bbox"),
+      JAVA_SHORT.withName("units_per_EM"),
+      JAVA_SHORT.withName("ascender"),
+      JAVA_SHORT.withName("descender"),
+      JAVA_SHORT.withName("height"),
+      JAVA_SHORT.withName("max_advance_width"),
+      JAVA_SHORT.withName("max_advance_height"),
+      JAVA_SHORT.withName("underline_position"),
+      JAVA_SHORT.withName("underline_thickness"),
+      ADDRESS.withName("glyph"),
+      ADDRESS.withName("size"),
+      ADDRESS.withName("charmap"));
 
   /** {@code FT_GlyphSlotRec} up to {@code bitmap_top}, the fields a rasteriser reads. */
-  public static final StructLayout GLYPH_SLOT =
-      struct(
-          ADDRESS.withName("library"),
-          ADDRESS.withName("face"),
-          ADDRESS.withName("next"),
-          JAVA_INT.withName("glyph_index"),
-          GENERIC.withName("generic"),
-          MemoryLayout.sequenceLayout(8, C_LONG).withName("metrics"),
-          C_LONG.withName("linearHoriAdvance"),
-          C_LONG.withName("linearVertAdvance"),
-          VECTOR.withName("advance"),
-          JAVA_INT.withName("format"),
-          BITMAP.withName("bitmap"),
-          JAVA_INT.withName("bitmap_left"),
-          JAVA_INT.withName("bitmap_top"));
+  public static final StructLayout GLYPH_SLOT = struct(
+      ADDRESS.withName("library"),
+      ADDRESS.withName("face"),
+      ADDRESS.withName("next"),
+      JAVA_INT.withName("glyph_index"),
+      GENERIC.withName("generic"),
+      MemoryLayout.sequenceLayout(8, C_LONG).withName("metrics"),
+      C_LONG.withName("linearHoriAdvance"),
+      C_LONG.withName("linearVertAdvance"),
+      VECTOR.withName("advance"),
+      JAVA_INT.withName("format"),
+      BITMAP.withName("bitmap"),
+      JAVA_INT.withName("bitmap_left"),
+      JAVA_INT.withName("bitmap_top"));
 
   public static final long FACE_NUM_FACES = offset(FACE, "num_faces");
   public static final long FACE_FACE_FLAGS = offset(FACE, "face_flags");
@@ -215,9 +212,10 @@ public final class FreeType {
 
     /** A downcall whose C longs are Java longs, also where a C long has 32 bits. */
     private static MethodHandle bind(String name, FunctionDescriptor descriptor) {
-      MemorySegment symbol = LIBRARY.find(name).orElseThrow(() -> new UnsatisfiedLinkError(
-          "The freetype library has no function " + name + ". The natives module does not"
-              + " match this version of rethinkj-ui-core."));
+      MemorySegment symbol = LIBRARY
+          .find(name)
+          .orElseThrow(() -> new UnsatisfiedLinkError("The freetype library has no function " + name
+              + ". The natives module does not" + " match this version of rethinkj-ui-core."));
       MethodHandle handle = Linker.nativeLinker().downcallHandle(symbol, descriptor);
       MethodType type = handle.type();
       List<MemoryLayout> arguments = descriptor.argumentLayouts();
@@ -243,8 +241,8 @@ public final class FreeType {
   }
 
   /** The bytes have to stay valid until {@link #doneFace}. */
-  public static int newMemoryFace(MemorySegment library, MemorySegment data, long size,
-      long faceIndex, MemorySegment faceOut) {
+  public static int newMemoryFace(
+      MemorySegment library, MemorySegment data, long size, long faceIndex, MemorySegment faceOut) {
     try {
       return (int) Fn.NEW_MEMORY_FACE.invokeExact(library, data, size, faceIndex, faceOut);
     } catch (Throwable t) {
@@ -261,11 +259,11 @@ public final class FreeType {
   }
 
   /** Sizes in 1/64 points; at 72 dots per inch a point is a pixel. */
-  public static int setCharSize(MemorySegment face, long width26, long height26, int horizontalDpi,
-      int verticalDpi) {
+  public static int setCharSize(
+      MemorySegment face, long width26, long height26, int horizontalDpi, int verticalDpi) {
     try {
-      return (int) Fn.SET_CHAR_SIZE.invokeExact(face, width26, height26, horizontalDpi,
-          verticalDpi);
+      return (int)
+          Fn.SET_CHAR_SIZE.invokeExact(face, width26, height26, horizontalDpi, verticalDpi);
     } catch (Throwable t) {
       throw rethrow(t);
     }
@@ -325,9 +323,7 @@ public final class FreeType {
   // ---- C long in structs -------------------------------------------------------------------
 
   public static long getLong(MemorySegment struct, long offset) {
-    return C_LONG.byteSize() == 8
-        ? struct.get(JAVA_LONG, offset)
-        : struct.get(JAVA_INT, offset);
+    return C_LONG.byteSize() == 8 ? struct.get(JAVA_LONG, offset) : struct.get(JAVA_INT, offset);
   }
 
   public static void setLong(MemorySegment struct, long offset, long value) {

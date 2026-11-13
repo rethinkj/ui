@@ -14,10 +14,19 @@ import java.util.Objects;
  * @param cancelButton the index of the button that Escape presses, and the answer when the box
  *     is closed without a button
  */
-public record MessageBox(Kind kind, String title, String text, List<String> buttons,
-    int defaultButton, int cancelButton) {
+public record MessageBox(
+    Kind kind,
+    String title,
+    String text,
+    List<String> buttons,
+    int defaultButton,
+    int cancelButton) {
 
-  public enum Kind { INFORMATION, WARNING, ERROR }
+  public enum Kind {
+    INFORMATION,
+    WARNING,
+    ERROR
+  }
 
   public MessageBox {
     Objects.requireNonNull(kind, "kind");
@@ -27,7 +36,9 @@ public record MessageBox(Kind kind, String title, String text, List<String> butt
     if (buttons.isEmpty() || buttons.size() > 3) {
       throw new IllegalArgumentException("A message box has one to three buttons");
     }
-    if (defaultButton < 0 || defaultButton >= buttons.size() || cancelButton < 0
+    if (defaultButton < 0
+        || defaultButton >= buttons.size()
+        || cancelButton < 0
         || cancelButton >= buttons.size()) {
       throw new IllegalArgumentException("The default and cancel buttons are indexes of buttons");
     }

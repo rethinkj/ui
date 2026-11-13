@@ -40,7 +40,8 @@ class ComponentTest {
 
   private static final Theme T = Theme.DARK;
 
-  @TempDir Path out;
+  @TempDir
+  Path out;
 
   /**
    * A component built with a handler, the selector that finds it, and whether it has text, which
@@ -48,42 +49,80 @@ class ComponentTest {
    */
   static Stream<Arguments> components() {
     return Stream.of(
-        Arguments.of("button", (Function<Runnable, El>) h ->
-            button(T, Variant.SECONDARY, "Save", h), "role=button label=\"Save\"", true),
-        Arguments.of("toggle", (Function<Runnable, El>) h ->
-            toggle(T, false, "Autocommit", h), "role=switch label=\"Autocommit\"", true),
-        Arguments.of("toggle by its text", (Function<Runnable, El>) h ->
-            toggle(T, false, "Autocommit", h), "text=\"Autocommit\"", true),
-        Arguments.of("toggle without text", (Function<Runnable, El>) h ->
-            toggle(T, true, h).label("Wi-Fi"), "role=switch label=\"Wi-Fi\"", false),
-        Arguments.of("checkbox", (Function<Runnable, El>) h ->
-            checkbox(T, false, "Read only", h), "role=checkbox label=\"Read only\"", true),
-        Arguments.of("checkbox by its text", (Function<Runnable, El>) h ->
-            checkbox(T, false, "Read only", h), "text=\"Read only\"", true),
-        Arguments.of("switch row", (Function<Runnable, El>) h ->
-            Group.switchRow(T, "Word wrap", "At the edge", true, h),
-            "role=switch label=\"Word wrap\"", true),
-        Arguments.of("switch row by its description", (Function<Runnable, El>) h ->
-            Group.switchRow(T, "Word wrap", "At the edge", true, h), "text=\"At the edge\"",
+        Arguments.of(
+            "button",
+            (Function<Runnable, El>) h -> button(T, Variant.SECONDARY, "Save", h),
+            "role=button label=\"Save\"",
             true),
-        Arguments.of("link row", (Function<Runnable, El>) h ->
-            Group.linkRow(T, Symbol.KEY, "Keymap", null, "Default", h),
-            "role=button label=\"Keymap\"", true),
-        Arguments.of("expander", (Function<Runnable, El>) h ->
-            Group.expander(T, "Advanced", null, false, h), "role=button label=\"Advanced\"",
+        Arguments.of(
+            "toggle",
+            (Function<Runnable, El>) h -> toggle(T, false, "Autocommit", h),
+            "role=switch label=\"Autocommit\"",
             true),
-        Arguments.of("pressable card", (Function<Runnable, El>) h ->
-            Card.pressable(T, Card.card(T, Label.label(T, "staging")), "staging", false, h),
-            "role=button label=\"staging\"", true),
-        Arguments.of("status bar item", (Function<Runnable, El>) h ->
-            StatusBar.item(T, Symbol.PLUG_CONNECTED, "localhost", h), "text=\"localhost\"",
+        Arguments.of(
+            "toggle by its text",
+            (Function<Runnable, El>) h -> toggle(T, false, "Autocommit", h),
+            "text=\"Autocommit\"",
             true),
-        Arguments.of("badge", (Function<Runnable, El>) h ->
-            Badge.badge(T, "Add filter", Badge.options().onPress(h)),
-            "label=\"Add filter\"", true), // without a handler it only shows, without a role
-        Arguments.of("toggle button", (Function<Runnable, El>) h ->
-            Button.toggle(T, Symbol.PIN, "Pin", false, h == null ? null : on -> h.run()),
-            "role=button label=\"Pin\"", true));
+        Arguments.of(
+            "toggle without text",
+            (Function<Runnable, El>) h -> toggle(T, true, h).label("Wi-Fi"),
+            "role=switch label=\"Wi-Fi\"",
+            false),
+        Arguments.of(
+            "checkbox",
+            (Function<Runnable, El>) h -> checkbox(T, false, "Read only", h),
+            "role=checkbox label=\"Read only\"",
+            true),
+        Arguments.of(
+            "checkbox by its text",
+            (Function<Runnable, El>) h -> checkbox(T, false, "Read only", h),
+            "text=\"Read only\"",
+            true),
+        Arguments.of(
+            "switch row",
+            (Function<Runnable, El>) h -> Group.switchRow(T, "Word wrap", "At the edge", true, h),
+            "role=switch label=\"Word wrap\"",
+            true),
+        Arguments.of(
+            "switch row by its description",
+            (Function<Runnable, El>) h -> Group.switchRow(T, "Word wrap", "At the edge", true, h),
+            "text=\"At the edge\"",
+            true),
+        Arguments.of(
+            "link row",
+            (Function<Runnable, El>)
+                h -> Group.linkRow(T, Symbol.KEY, "Keymap", null, "Default", h),
+            "role=button label=\"Keymap\"",
+            true),
+        Arguments.of(
+            "expander",
+            (Function<Runnable, El>) h -> Group.expander(T, "Advanced", null, false, h),
+            "role=button label=\"Advanced\"",
+            true),
+        Arguments.of(
+            "pressable card",
+            (Function<Runnable, El>) h ->
+                Card.pressable(T, Card.card(T, Label.label(T, "staging")), "staging", false, h),
+            "role=button label=\"staging\"",
+            true),
+        Arguments.of(
+            "status bar item",
+            (Function<Runnable, El>) h -> StatusBar.item(T, Symbol.PLUG_CONNECTED, "localhost", h),
+            "text=\"localhost\"",
+            true),
+        Arguments.of(
+            "badge",
+            (Function<Runnable, El>)
+                h -> Badge.badge(T, "Add filter", Badge.options().onPress(h)),
+            "label=\"Add filter\"",
+            true), // without a handler it only shows, without a role
+        Arguments.of(
+            "toggle button",
+            (Function<Runnable, El>)
+                h -> Button.toggle(T, Symbol.PIN, "Pin", false, h == null ? null : on -> h.run()),
+            "role=button label=\"Pin\"",
+            true));
   }
 
   private App<Object> app(El view) {
@@ -133,57 +172,61 @@ class ComponentTest {
   @Test
   void theTreeNamesEachComponentAndSaysItsState() throws IOException {
     TextLibraries.assumeLoaded();
-    App<Object> app = app(col().children(
-        button(T, Variant.PRIMARY, "Run", () -> {}),
-        toggle(T, true, "Autocommit", () -> {}),
-        toggle(T, false, () -> {}).label("Wi-Fi"),
-        checkbox(T, true, "Read only", () -> {}),
-        checkbox(T, false, "Strict", null),
-        button(T, Variant.GHOST, "Format", null),
-        textField(T, "", "Search", s -> {}),
-        textField(T, "x", s -> {}).label("Name"),
-        textField(T, "y", "Id", s -> {}).readOnly(),
-        textField(T, "z", "Owner", null),
-        revealable(T, passwordField(T, "pw", "Password", s -> {}), false, () -> {}),
-        revealable(T, passwordField(T, "pw", "Key", null), true, () -> {}),
-        textArea(T, "a\nb", "Notes", s -> {}),
-        codeArea(T, "SELECT 1;", "SQL", s -> {}).readOnly(),
-        textArea(T, "", "Comment", null)));
+    App<Object> app = app(col()
+        .children(
+            button(T, Variant.PRIMARY, "Run", () -> {}),
+            toggle(T, true, "Autocommit", () -> {}),
+            toggle(T, false, () -> {}).label("Wi-Fi"),
+            checkbox(T, true, "Read only", () -> {}),
+            checkbox(T, false, "Strict", null),
+            button(T, Variant.GHOST, "Format", null),
+            textField(T, "", "Search", s -> {}),
+            textField(T, "x", s -> {}).label("Name"),
+            textField(T, "y", "Id", s -> {}).readOnly(),
+            textField(T, "z", "Owner", null),
+            revealable(T, passwordField(T, "pw", "Password", s -> {}), false, () -> {}),
+            revealable(T, passwordField(T, "pw", "Key", null), true, () -> {}),
+            textArea(T, "a\nb", "Notes", s -> {}),
+            codeArea(T, "SELECT 1;", "SQL", s -> {}).readOnly(),
+            textArea(T, "", "Comment", null)));
     run(app, "");
 
     // The role and label, then what follows the rectangle: the states.
     List<String> named = new ArrayList<>();
     Matcher m = Pattern.compile(
-        "(role=\\S+ label=\"[^\"]*\")(?: \"[^\"]*\")? \\S+,\\S+ \\S+x\\S+(.*)")
+            "(role=\\S+ label=\"[^\"]*\")(?: \"[^\"]*\")? \\S+,\\S+ \\S+x\\S+(.*)")
         .matcher(app.tree().dump());
     while (m.find()) {
       named.add(m.group(1) + m.group(2));
     }
-    assertEquals(List.of(
-        "role=button label=\"Run\"",
-        "role=switch label=\"Autocommit\" checked",
-        "role=switch label=\"Wi-Fi\" checked=false",
-        "role=checkbox label=\"Read only\" checked",
-        "role=checkbox label=\"Strict\" disabled checked=false",
-        "role=button label=\"Format\" disabled",
-        "role=textbox label=\"Search\"",
-        "role=textbox label=\"Name\"",
-        "role=textbox label=\"Id\" readonly",
-        "role=textbox label=\"Owner\" disabled",
-        "role=textbox label=\"Password\" password",
-        "role=button label=\"Show password\"",
-        "role=textbox label=\"Key\" disabled",
-        "role=button label=\"Hide password\" disabled",
-        "role=textbox label=\"Notes\" lines 1-2/2",
-        "role=textbox label=\"SQL\" readonly lines 1-1/1",
-        "role=textbox label=\"Comment\" disabled lines 1-1/1"), named);
+    assertEquals(
+        List.of(
+            "role=button label=\"Run\"",
+            "role=switch label=\"Autocommit\" checked",
+            "role=switch label=\"Wi-Fi\" checked=false",
+            "role=checkbox label=\"Read only\" checked",
+            "role=checkbox label=\"Strict\" disabled checked=false",
+            "role=button label=\"Format\" disabled",
+            "role=textbox label=\"Search\"",
+            "role=textbox label=\"Name\"",
+            "role=textbox label=\"Id\" readonly",
+            "role=textbox label=\"Owner\" disabled",
+            "role=textbox label=\"Password\" password",
+            "role=button label=\"Show password\"",
+            "role=textbox label=\"Key\" disabled",
+            "role=button label=\"Hide password\" disabled",
+            "role=textbox label=\"Notes\" lines 1-2/2",
+            "role=textbox label=\"SQL\" readonly lines 1-1/1",
+            "role=textbox label=\"Comment\" disabled lines 1-1/1"),
+        named);
   }
 
   @Test
   void aTextFieldHandsEachEditToItsHandlerAndShowsTheTextCursor() throws IOException {
     TextLibraries.assumeLoaded();
     String[] value = {""};
-    App<Object> app = new App<>(new Object(),
+    App<Object> app = new App<>(
+        new Object(),
         s -> row().child(textField(T, value[0], "Search", v -> value[0] = v).key("q")));
     app.textRendering(TextRendering.LINUX);
     run(app, "move #q\npress #q\nframe\ntype \"orders\"\nframe\nkey Backspace");
@@ -197,14 +240,15 @@ class ComponentTest {
   void aDisabledTextFieldTakesNoFocusAndAReadOnlyOneTakesNoEdits() throws IOException {
     TextLibraries.assumeLoaded();
     App<Object> disabled = app(row().child(textField(T, "x", "Search", null)));
-    run(disabled,
+    run(
+        disabled,
         "move role=textbox disabled\npress role=textbox\nframe\nkey Tab\nframe\ntype \"y\"");
     assertNull(disabled.focused());
     assertEquals(Cursor.DEFAULT, disabled.cursor());
 
     String[] value = {"fixed"};
-    App<Object> readOnly = app(row().child(
-        textField(T, value[0], "Search", v -> value[0] = v).readOnly().maxLength(10)));
+    App<Object> readOnly = app(row()
+        .child(textField(T, value[0], "Search", v -> value[0] = v).readOnly().maxLength(10)));
     run(readOnly, "key Tab\nframe\ntype \"y\"\nframe\nkey C control");
     assertEquals("textbox", readOnly.focused().role());
     assertEquals("fixed", value[0]);
@@ -214,13 +258,14 @@ class ComponentTest {
   @Test
   void tabSkipsWhatIsDisabled() throws IOException {
     TextLibraries.assumeLoaded();
-    App<Object> app = app(row().children(
-        button(T, Variant.PRIMARY, "Run", () -> {}),
-        button(T, Variant.SECONDARY, "Cancel", null),
-        toggle(T, false, "Autocommit", () -> {}),
-        checkbox(T, false, "Read only", () -> {}),
-        toggle(T, false, "Disabled", null),
-        button(T, Variant.GHOST, "Format", () -> {})));
+    App<Object> app = app(row()
+        .children(
+            button(T, Variant.PRIMARY, "Run", () -> {}),
+            button(T, Variant.SECONDARY, "Cancel", null),
+            toggle(T, false, "Autocommit", () -> {}),
+            checkbox(T, false, "Read only", () -> {}),
+            toggle(T, false, "Disabled", null),
+            button(T, Variant.GHOST, "Format", () -> {})));
     run(app, "");
 
     List<String> order = new ArrayList<>();

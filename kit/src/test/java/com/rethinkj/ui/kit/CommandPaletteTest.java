@@ -27,7 +27,8 @@ import org.junit.jupiter.params.provider.CsvSource;
  */
 class CommandPaletteTest {
 
-  @TempDir Path out;
+  @TempDir
+  Path out;
 
   private App<Studio> app;
 
@@ -112,7 +113,8 @@ class CommandPaletteTest {
     List<String> options = ComboBoxTest.options(tree);
     assertEquals(List.of("File: Export › CSV", "View: Refresh"), options.subList(0, 2));
     assertTrue(tree.contains("role=group label=\"Other commands\""), tree);
-    assertEquals(List.of("File: Export › CSV", "View: Refresh"), app.state().palette.recent());
+    assertEquals(
+        List.of("File: Export › CSV", "View: Refresh"), app.state().palette.recent());
   }
 
   @Test
@@ -130,7 +132,7 @@ class CommandPaletteTest {
   @Test
   void aSourceOnAnotherThreadShowsLoadingUntilItsAnswer() throws IOException {
     run("");
-    app.state().server = text -> List.of(FilterList.entry("remote_" + text, () -> { }));
+    app.state().server = text -> List.of(FilterList.entry("remote_" + text, () -> {}));
     String tree = run("key F1\nframe\ntype \"#ord\"");
     assertTrue(tree.contains("\"Loading…\""), tree);
     tree = run("await");

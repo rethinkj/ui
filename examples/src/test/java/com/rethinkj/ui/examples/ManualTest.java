@@ -21,8 +21,8 @@ class ManualTest {
     String heading = Snaps.line("manual", "manual-dark-1x-linked", "#heading-tables");
     int y = Integer.parseInt(heading.replaceAll(".* \\d+,(\\d+)(\\.\\d+)? \\d+x\\d+.*", "$1"));
     assertTrue(y > 33 && y < 640, heading);
-    assertTrue(Snaps.line("manual", "manual-dark-1x-lists", "role=checkbox")
-        .endsWith("disabled checked"));
+    assertTrue(
+        Snaps.line("manual", "manual-dark-1x-lists", "role=checkbox").endsWith("disabled checked"));
     assertTrue(Snaps.line("manual", "manual-toast", "role=status")
         .contains("label=\"Opens https://commonmark.org\""));
     // The images, read off the app's thread: a PNG made for scale 2 at half its pixels, a JPEG
@@ -40,7 +40,9 @@ class ManualTest {
   @Test
   void theChangelogGroupsItsEntriesByWhatTheyDo() {
     String log = Manual.changelog(List.of(
-        "- Fixed: a crash.\n", "- Added: `A.b()` does c.\n", "- Something else.\n",
+        "- Fixed: a crash.\n",
+        "- Added: `A.b()` does c.\n",
+        "- Something else.\n",
         "- Added: d.\n"));
     assertEquals("""
         # Changelog
