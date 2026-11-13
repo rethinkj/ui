@@ -1502,6 +1502,7 @@ public final class Window implements AutoCloseable {
         win32.detach();
       }
       if (shell != null) {
+        shell.closeDialogs(); // a file dialog it owns answers as cancelled
         shell.detach();
       }
       Sdl.destroyWindow(sdl);

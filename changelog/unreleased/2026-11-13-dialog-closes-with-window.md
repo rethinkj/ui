@@ -1,0 +1,1 @@
+- On Windows, closing a window while its file dialog is open closes the dialog too, and the app gets its answer as cancelled; before, the dialog stayed on the screen without an owner and never answered.

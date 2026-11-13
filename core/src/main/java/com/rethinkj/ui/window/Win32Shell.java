@@ -145,6 +145,17 @@ final class Win32Shell {
     }
   }
 
+  /**
+   * Closes the system's dialogs the window owns, before SDL destroys it: a file dialog that SDL
+   * shows on a thread of its own outlives its owner's destruction, stays on the screen without an
+   * owner and never answers. Asked to close, it answers as cancelled.
+   */
+  void closeDialogs() {
+    for (MemorySegment dialog : Win32.ownedDialogs(hwnd)) {
+      Win32.postClose(dialog);
+    }
+  }
+
   /** Removes the subclass; before SDL destroys the window. */
   void detach() {
     if (subclassed) {

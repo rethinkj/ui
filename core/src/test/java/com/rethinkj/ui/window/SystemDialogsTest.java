@@ -200,6 +200,28 @@ class SystemDialogsTest {
   }
 
   @Test
+  void closingAWindowCancelsTheFileDialogItOwns() {
+    Desktop.assumeWindows();
+    assumeTrue(File.separatorChar == '\\', "the dialog's own thread is Windows'");
+    Window window = Window.open("rethinkj closed under its dialog", 80, 60);
+    Window other = Window.open("rethinkj stays open", 80, 60); // the app goes on
+    try {
+      MemorySegment hwnd = ((WindowHandle.Win32) window.handle()).hwnd();
+      List<String> told = new java.util.concurrent.CopyOnWriteArrayList<>();
+      new SystemDialogs(window).file(FileDialog.open("Closed under its dialog"),
+          c -> told.add("chosen " + c.paths()), told::add);
+      assertTrue(Desktop.pollUntil(() -> !Win32.ownedDialogs(hwnd).isEmpty()), "it opened");
+      window.close();
+      assertTrue(Desktop.pollUntil(() -> !told.isEmpty()), "it answered");
+      assertEquals(List.of("chosen []"), told, "as cancelled");
+      assertTrue(!SystemDialogs.waiting(), "nothing is left waiting");
+    } finally {
+      window.close();
+      other.close();
+    }
+  }
+
+  @Test
   void theDialogStartsInItsFolderOrAtItsSuggestedFile() {
     Path folder = Path.of("exports").toAbsolutePath();
     assertNull(SystemDialogs.location(FileDialog.open("x")));

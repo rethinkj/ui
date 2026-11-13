@@ -12,6 +12,8 @@ import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SymbolLookup;
 import java.lang.invoke.MethodHandle;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Handwritten bindings for the Win32, DWM, common-controls, shell and COM calls that the window
@@ -173,6 +175,24 @@ final class Win32 {
   /** The handle of user32's message box, bound on first use; it needs no SDL. */
   private static final class Box {
     static final MethodHandle MESSAGE_BOX_H = H.bind(H.USER32, "MessageBoxW", MESSAGE_BOX);
+  }
+
+  /** {@code HWND FindWindowExW(HWND hWndParent, HWND hWndChildAfter, LPCWSTR, LPCWSTR)} */
+  static final FunctionDescriptor FIND_WINDOW_EX =
+      FunctionDescriptor.of(ADDRESS, ADDRESS, ADDRESS, ADDRESS, ADDRESS);
+  /** {@code HWND GetWindow(HWND hWnd, UINT uCmd)} */
+  static final FunctionDescriptor GET_WINDOW = FunctionDescriptor.of(ADDRESS, ADDRESS, JAVA_INT);
+  /** {@code BOOL PostMessageW(HWND, UINT, WPARAM, LPARAM)} */
+  static final FunctionDescriptor POST_MESSAGE =
+      FunctionDescriptor.of(JAVA_INT, ADDRESS, JAVA_INT, JAVA_LONG, JAVA_LONG);
+  static final int GW_OWNER = 4;
+  static final int WM_CLOSE = 0x0010;
+
+  /** The handles that find and close the dialogs a window owns, bound on first use. */
+  private static final class Owned {
+    static final MethodHandle FIND_WINDOW_EX_H = H.bind(H.USER32, "FindWindowExW", FIND_WINDOW_EX);
+    static final MethodHandle GET_WINDOW_H = H.bind(H.USER32, "GetWindow", GET_WINDOW);
+    static final MethodHandle POST_MESSAGE_H = H.bind(H.USER32, "PostMessageW", POST_MESSAGE);
   }
 
   /** The handles of the file system's calls, bound on first use. */
@@ -450,6 +470,42 @@ final class Win32 {
     try (Arena arena = Arena.ofConfined()) {
       return (int) Box.MESSAGE_BOX_H.invokeExact(MemorySegment.NULL, wide(arena, text),
           wide(arena, title), MB_ICONERROR | MB_TASKMODAL | MB_SETFOREGROUND) != 0;
+    } catch (Throwable t) {
+      throw Sdl.failed(t);
+    }
+  }
+
+  /**
+   * The system's dialogs (window class {@code #32770}) that {@code owner} owns, such as a file
+   * dialog that SDL shows on a thread of its own.
+   */
+  static List<MemorySegment> ownedDialogs(MemorySegment owner) {
+    List<MemorySegment> found = new ArrayList<>();
+    try (Arena arena = Arena.ofConfined()) {
+      MemorySegment dialogClass = wide(arena, "#32770");
+      MemorySegment after = MemorySegment.NULL;
+      for (int i = 0; i < 10_000; i++) {
+        MemorySegment next = (MemorySegment) Owned.FIND_WINDOW_EX_H.invokeExact(
+            MemorySegment.NULL, after, dialogClass, MemorySegment.NULL);
+        if (next.equals(MemorySegment.NULL)) {
+          break;
+        }
+        MemorySegment by = (MemorySegment) Owned.GET_WINDOW_H.invokeExact(next, GW_OWNER);
+        if (by.address() == owner.address()) {
+          found.add(next);
+        }
+        after = next;
+      }
+      return found;
+    } catch (Throwable t) {
+      throw Sdl.failed(t);
+    }
+  }
+
+  /** Asks a window to close ({@code WM_CLOSE}), as its close button does; a dialog cancels. */
+  static boolean postClose(MemorySegment hwnd) {
+    try {
+      return (int) Owned.POST_MESSAGE_H.invokeExact(hwnd, WM_CLOSE, 0L, 0L) != 0;
     } catch (Throwable t) {
       throw Sdl.failed(t);
     }
