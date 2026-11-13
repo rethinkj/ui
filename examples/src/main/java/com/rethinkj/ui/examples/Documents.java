@@ -39,6 +39,7 @@ import java.nio.file.AccessDeniedException;
 import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
@@ -239,22 +240,43 @@ public final class Documents {
     }
   }
 
-  /** Reads files, each into a new tab of the group as it arrives, or a toast that says why not. */
+  /**
+   * Reads files off the app's thread, then puts each into a new tab of the group, in the order
+   * given, or says in a toast why one could not be read. One piece of work for all, so that the
+   * tabs come in the order of the files, not in the order their reads end.
+   */
   void read(TabGroups.Group<Doc> group, List<Path> files) {
-    for (Path file : files) {
-      String name = file.getFileName() == null ? file.toString() : file.getFileName().toString();
-      app.background("read " + name, () -> {
-        if (Files.size(file) > LIMIT) {
-          throw new IOException("it is larger than " + LIMIT / 1024 + " KB");
-        }
-        return Files.readString(file);
-      }, text -> {
-        TabGroups.Group<Doc> to = groups.groups().contains(group) ? group : groups.main();
-        Doc doc = new Doc(name, text);
-        doc.path = file;
-        groups.add(to, to.tabs().size(), doc);
-      }, e -> toast = "Cannot open " + name + ": " + why(e));
+    if (files.isEmpty()) {
+      return;
     }
+    app.background("read " + files.size() + " files", () -> {
+      List<Object> read = new ArrayList<>(); // the text, or what went wrong
+      for (Path file : files) {
+        try {
+          if (Files.size(file) > LIMIT) {
+            throw new IOException("it is larger than " + LIMIT / 1024 + " KB");
+          }
+          read.add(Files.readString(file));
+        } catch (IOException e) {
+          read.add(e);
+        }
+      }
+      return read;
+    }, read -> {
+      TabGroups.Group<Doc> to = groups.groups().contains(group) ? group : groups.main();
+      for (int i = 0; i < files.size(); i++) {
+        Path file = files.get(i);
+        String name = file.getFileName() == null ? file.toString()
+            : file.getFileName().toString();
+        if (read.get(i) instanceof String text) {
+          Doc doc = new Doc(name, text);
+          doc.path = file;
+          groups.add(to, to.tabs().size(), doc);
+        } else {
+          toast = "Cannot open " + name + ": " + why((Exception) read.get(i));
+        }
+      }
+    }, e -> toast = "Cannot open the files: " + why(e));
   }
 
   /** What went wrong with a file, in words. */

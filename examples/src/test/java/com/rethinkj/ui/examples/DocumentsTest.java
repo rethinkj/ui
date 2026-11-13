@@ -87,6 +87,31 @@ class DocumentsTest {
     assertEquals("dropped text", s.groups.main().activeTab().text);
   }
 
+  /** Files dropped together open in the order they came, whichever is read first. */
+  @Test
+  void droppedFilesOpenInTheirOrder(@TempDir Path folder) throws IOException {
+    Snaps.assumeText();
+    Path large = Files.writeString(folder.resolve("eins.txt"), "x".repeat(900_000));
+    Path small = Files.writeString(folder.resolve("zwei.sql"), "SELECT 2;");
+    Path tiny = Files.writeString(folder.resolve("drei.md"), "# 3");
+    Documents s = new Documents();
+    s.app = new App<>(s, d -> d.view(d.groups.main(), d.app));
+    String quoted = String.join(" ", java.util.stream.Stream.of(large, small, tiny)
+        .map(p -> "\"" + p.toString().replace("\\", "\\\\") + "\"").toList());
+    Script.run("""
+        size 640 360
+        frame
+        drop #tabs %s
+        frame
+        await
+        frame
+        snap dropped
+        """.formatted(quoted), s.app, folder.resolve("out"));
+    List<String> titles = s.groups.main().tabs().stream().map(d -> d.title).toList();
+    assertEquals(List.of("eins.txt", "zwei.sql", "drei.md"),
+        titles.subList(titles.size() - 3, titles.size()));
+  }
+
   /** Each document keeps its caret and history across the tabs; they were one editor's. */
   @Test
   void eachDocumentKeepsItsCaretAndHistory(@TempDir Path folder) throws IOException {
