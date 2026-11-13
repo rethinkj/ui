@@ -17,7 +17,8 @@ import java.util.function.IntConsumer;
  * A button that shows the current choice and opens a {@link Menu} of all choices below it, at
  * least as wide as the button, with the current one checked and highlighted. A press on the
  * button, Enter, Space, Alt+Arrow Down and Alt+Arrow Up open it; the menu's keys and pointer
- * choose, and Alt+Arrow Down or Up close it again. While it is closed and has the focus, Arrow
+ * choose, and Alt+Arrow Down or Up close it again. Tab reaches it; a press leaves the focus where
+ * it is, as a {@link Button}'s does, and the menu gives it back there. While it is closed and has the focus, Arrow
  * Down and Arrow Up choose the next and the previous choice, Home and End the first and the last,
  * and a letter or digit the next choice that starts with it, as an open menu goes to it. The app
  * keeps the choice and the menu's {@link Menu.State}. In a tree dump it is {@code role=combobox}
@@ -68,7 +69,8 @@ public final class Select {
       int choice = i;
       items.add(Menu.item(choices.get(i), () -> onSelect.accept(choice)).checked(i == selected));
     }
-    return select.focusable().focusRing(t.border().focus())
+    // As a button: a press leaves the focus where it is, and its menu gives it back there.
+    return select.focusable().keepFocus().focusRing(t.border().focus())
         .cursor(Cursor.POINTER)
         .onPress(open)
         .onKey(k -> {

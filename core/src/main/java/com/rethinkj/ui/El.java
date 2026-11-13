@@ -1412,6 +1412,11 @@ public final class El {
    * focusable elements inside it in the usual order: an overlay's right after its anchor. A menu
    * bar's titles keep the focus in the editor whose menus they open, and a notification with an
    * Undo button opens without taking the focus from what the user types.
+   *
+   * <p>On a {@link #focusable} element it makes one that only the keyboard focuses: Tab reaches
+   * it, and Enter and Space press it there, but a press or a drag on it leaves the focus in the
+   * editor or grid it acts on. The kit's buttons, toggles, checkboxes, selects, tab bar and split
+   * dividers are made so.
    */
   public El keepFocus() {
     this.keepsFocus = true;

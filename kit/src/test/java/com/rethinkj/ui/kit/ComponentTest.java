@@ -84,7 +84,8 @@ class ComponentTest {
     run(app, "move " + target + "\npress " + target);
     assertEquals(1, calls[0]);
     assertEquals(Cursor.POINTER, app.cursor());
-    run(app, "key Enter\nframe\nkey Space");
+    assertNull(app.focused(), "a press leaves the focus where it was");
+    run(app, "focus " + target + "\nkey Enter\nframe\nkey Space");
     assertEquals(3, calls[0]);
   }
 

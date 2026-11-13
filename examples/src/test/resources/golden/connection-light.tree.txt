@@ -39,7 +39,7 @@ el 0,0 440x432
         text #port role=textbox label="Port" "5432" 104,150 72x24
       el 24,182 392x24
         text "Database" 24,186 72x16
-        text #database role=textbox label="Database" "inventory" 104,182 260x24
+        text #database role=textbox label="Database" "inventory" 104,182 260x24 focused caret 9 anchor 0
       el 24,214 392x24
         text "User" 24,218 72x16
         text #user role=textbox label="User" "admin" 104,214 260x24
@@ -60,7 +60,7 @@ el 0,0 440x432
     el 24,342 392x2
     text "Connecting to inventory on localhost:5432 as admin with SSL" 24,356 392x16
     el 24,384 392x24
-      el role=button label="Reset" 269,384 61x24 focused
+      el role=button label="Reset" 269,384 61x24
         text "Reset" 282,388 35x16
       el role=button label="Connect" 338,384 78x24
         text "Connect" 351,388 52x16

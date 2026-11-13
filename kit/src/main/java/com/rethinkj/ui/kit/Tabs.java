@@ -26,7 +26,8 @@ import java.util.function.IntConsumer;
  *     .key("queries").grow(1);
  * }</pre>
  *
- * <p>A press on a tab chooses it. A tab that can be closed has a cross after its title, which
+ * <p>A press on a tab chooses it and leaves the focus where it was: in the content it goes on into
+ * the new content, as below. A tab that can be closed has a cross after its title, which
  * shows on the active tab and under the pointer; a press on it closes the tab. A modified tab has
  * a dot before its title. Tabs keep the width of their titles; when they are wider than the bar
  * together, the bar scrolls sideways under the wheel, and whenever the active tab changes the bar
@@ -131,7 +132,9 @@ public final class Tabs {
     }
 
     int last = tabs.size() - 1;
-    list.focusable().focusRing(t.border().focus()).onKey(k -> {
+    // Tab reaches the bar; a press on a tab leaves the focus where it is, so that from the content
+    // it goes on into the new content.
+    list.focusable().keepFocus().focusRing(t.border().focus()).onKey(k -> {
       if (k.modifiers() != 0) {
         return false;
       }

@@ -69,14 +69,14 @@ class TabsTest {
   }
 
   @Test
-  void aPressChoosesATabAndFocusesTheBarWithoutARing() throws IOException {
+  void aPressChoosesATabAndLeavesTheFocusWhereItWas() throws IOException {
     App<Workbench> app = start();
     Workbench w = app.state();
     assertEquals("customers.sql", find(app, "panel").label());
     run(app, "press #tab-3\nframe");
     assertEquals(List.of("select 3"), w.log);
     assertEquals("products.sql", find(app, "panel").label());
-    assertEquals(find(app, "tablist"), app.focused());
+    assertNull(app.focused(), "nowhere, as before the press");
     assertTrue(app.tree().dump().contains("text \"products.sql\"")); // in the content too
     assertEquals(T.surface().raised(), find(app, "tab-3").fill(), "the active tab is raised");
     assertEquals(0, find(app, "tab-0").fill(), "the others show the bar");

@@ -8,7 +8,7 @@ el 0,0 140x40
     text "Run query" 39,12 62x16
 # primary, pressed
 el 0,0 140x40
-  el #c role=button label="Run query" 26,8 88x24 hovered focused
+  el #c role=button label="Run query" 26,8 88x24 hovered
     text "Run query" 39,12 62x16
 # primary, focused
 el 0,0 140x40
@@ -28,7 +28,7 @@ el 0,0 140x40
     text "Cancel" 49,12 42x16
 # secondary, pressed
 el 0,0 140x40
-  el #c role=button label="Cancel" 36,8 68x24 hovered focused
+  el #c role=button label="Cancel" 36,8 68x24 hovered
     text "Cancel" 49,12 42x16
 # secondary, focused
 el 0,0 140x40
@@ -48,7 +48,7 @@ el 0,0 140x40
     text "Format" 49,12 42x16
 # ghost, pressed
 el 0,0 140x40
-  el #c role=button label="Format" 36,8 68x24 hovered focused
+  el #c role=button label="Format" 36,8 68x24 hovered
     text "Format" 49,12 42x16
 # ghost, focused
 el 0,0 140x40
@@ -72,7 +72,7 @@ el 0,0 140x40
     text "Autocommit" 51,12 74x16
 # toggle off, pressed
 el 0,0 140x40
-  el #c role=switch label="Autocommit" 11,10 118x20 checked=false hovered focused
+  el #c role=switch label="Autocommit" 11,10 118x20 checked=false hovered
     el 15,12 28x16
       el 17,14 12x12
     text "Autocommit" 51,12 74x16
@@ -102,7 +102,7 @@ el 0,0 140x40
     text "Autocommit" 51,12 74x16
 # toggle on, pressed
 el 0,0 140x40
-  el #c role=switch label="Autocommit" 11,10 118x20 checked hovered focused
+  el #c role=switch label="Autocommit" 11,10 118x20 checked hovered
     el 15,12 28x16
       el 29,14 12x12
     text "Autocommit" 51,12 74x16
@@ -130,7 +130,7 @@ el 0,0 140x40
     text "Read only" 52,12 60x16
 # checkbox off, pressed
 el 0,0 140x40
-  el #c role=checkbox label="Read only" 24,10 92x20 checked=false hovered focused
+  el #c role=checkbox label="Read only" 24,10 92x20 checked=false hovered
     el 28,12 16x16
     text "Read only" 52,12 60x16
 # checkbox off, focused
@@ -157,7 +157,7 @@ el 0,0 140x40
     text "Read only" 52,12 60x16
 # checkbox on, pressed
 el 0,0 140x40
-  el #c role=checkbox label="Read only" 24,10 92x20 checked hovered focused
+  el #c role=checkbox label="Read only" 24,10 92x20 checked hovered
     el 28,12 16x16
       text "✓" 30,12 11x16
     text "Read only" 52,12 60x16

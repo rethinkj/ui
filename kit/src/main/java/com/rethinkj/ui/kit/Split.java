@@ -40,7 +40,8 @@ import java.util.function.DoubleConsumer;
  * {@link Theme.Sizes#handle} along it takes the pointer: it shows the resize cursor of its
  * direction, the strong border under the pointer and the accent while it is dragged. A double
  * press puts it back where the caller says. The strip is one stop for Tab, and while it has the
- * focus the arrow keys along the split move it by {@link Theme.Sizes#step}.
+ * focus the arrow keys along the split move it by {@link Theme.Sizes#step}. A press or a drag on
+ * it leaves the focus where it is, in the part that has it ({@link El#keepFocus}).
  *
  * <p>Each part fills its side: the split makes it {@link El#grow} in a box of its own that clips
  * it, with no minimum size of its own. The split itself needs a size of its own or room to grow,
@@ -193,7 +194,8 @@ public final class Split {
     float step = t.size().step();
     String back = across ? "ArrowLeft" : "ArrowUp";
     String forth = across ? "ArrowRight" : "ArrowDown";
-    divider.focusable().focusRing(t.border().focus())
+    // Tab reaches it; a press or a drag leaves the focus in the part that has it.
+    divider.focusable().keepFocus().focusRing(t.border().focus())
         .cursor(across ? Cursor.EW_RESIZE : Cursor.NS_RESIZE)
         .whenHovered(e -> line.fill(t.border().strong()))
         .whenPressed(e -> line.fill(t.accent().color()))

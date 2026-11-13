@@ -1,7 +1,7 @@
 # The File menu of kit's workbench (MenuTest): opened by its button, walked with the keys into
 # its submenu, chosen, opened again with the pointer resting on Export, and dismissed.
 frame
-press #file                     # opens the menu below the button; the focus goes to it
+press #file                     # opens the menu below the button; the focus goes to the menu
 frame
 advance 0.25                    # past the theme's fade
 frame
@@ -17,7 +17,7 @@ frame
 snap submenu
 
 key ArrowDown                   # JSON
-key Enter                       # chooses it: the menus close, the focus goes back to File
+key Enter                       # chooses it: the menus close, the focus goes back to where it was
 frame
 press #file
 frame
