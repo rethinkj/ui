@@ -56,14 +56,13 @@ class WorkbenchTest {
         frame
         await
         frame
-        wheel #catalogue 0 400
-        wheel 600,300 0 400
-        frame
         """, app, out);
+    float before = find(app.tree(), "catalogue").scrollY(); // the tree showed orders' columns
+    Script.run("size 1000 600\nwheel #catalogue 0 400\nwheel 600,300 0 400\nframe", app, out);
     El tree = find(app.tree(), "catalogue");
     El grid = find(app.tree(), "grid-localhost/shop/public/orders");
     assertTrue(tree.height() < 600 && grid.height() < 600, tree.height() + ", " + grid.height());
-    assertEquals(400, tree.scrollY(), "the tree scrolled");
+    assertEquals(before + 400, tree.scrollY(), "the tree scrolled");
     assertEquals(400, find(grid, "rows").scrollY(), "the rows scrolled");
   }
 
