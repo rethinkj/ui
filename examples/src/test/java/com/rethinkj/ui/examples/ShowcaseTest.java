@@ -16,7 +16,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 class ShowcaseTest {
 
   static Stream<Arguments> looks() {
-    return Arrays.stream(Look.values())
+    return Arrays.stream(Look.values()).filter(look -> look != Look.SYSTEM) // dark or light
         .flatMap(look -> Stream.of(Arguments.of(look, 1), Arguments.of(look, 2)));
   }
 

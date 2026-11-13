@@ -1,0 +1,1 @@
+- `window.frameDark(boolean)` draws a framed window's caption and border on Windows dark or light to match the app's theme instead of the system's setting.

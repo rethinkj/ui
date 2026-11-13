@@ -44,6 +44,7 @@ import com.rethinkj.ui.kit.Symbol;
 import com.rethinkj.ui.kit.Theme;
 import com.rethinkj.ui.render.GpuPresenter;
 import com.rethinkj.ui.text.TextRendering;
+import com.rethinkj.ui.window.SystemAppearance;
 import com.rethinkj.ui.window.Window;
 import com.rethinkj.ui.window.WindowLoop;
 import java.io.IOException;
@@ -54,9 +55,10 @@ import java.util.Locale;
 /**
  * The settings of a database tool in a frameless window: its pages in a navigation list at the
  * left, the page chosen at the right, which scrolls. Built from the kit's pages, sections, groups
- * of rows, cards and forms, with its controls: the theme switches between light and dark and the
- * accent changes the whole window; the other settings are only kept. Connections are cards that
- * select, filter and open a menu, and a dialog with a form adds one. The state is this class.
+ * of rows, cards and forms, with its controls: the theme switches between light and dark, or
+ * follows the system's setting in a window, and the accent changes the whole window; the other
+ * settings are only kept. Connections are cards that select, filter and open a menu, and a dialog
+ * with a form adds one. The state is this class.
  */
 public final class Settings {
 
@@ -128,8 +130,14 @@ public final class Settings {
   String host = "";
   String port = "5432";
 
+  /** The system's appearance in a window, from the window loop; null under a script. */
+  SystemAppearance system;
+
   Theme theme() {
-    Theme base = theme == 0 ? Theme.LIGHT : Theme.DARK; // the example cannot ask the system
+    // System is dark unless the system says light; under a script the example cannot ask it.
+    boolean light = theme == 0
+        || theme == 2 && system != null && system.scheme() == SystemAppearance.Scheme.LIGHT;
+    Theme base = light ? Theme.LIGHT : Theme.DARK;
     return switch (accent) {
       case 1 -> base.withAccent(new Theme.Accent(0xFF7C3AED, 0xFF8B5CF6, 0xFF6D28D9));
       case 2 -> base.withAccent(new Theme.Accent(0xFF15803D, 0xFF16A34A, 0xFF166534));
@@ -166,10 +174,12 @@ public final class Settings {
       return;
     }
     app.textRendering(TextRendering.platform());
-    Window.Options options = Window.options().frameless().minimumSize(560, 400);
+    Window.Options options =
+        Identity.options(Settings.class, "Settings", 0xFF475569, Symbol.SETTINGS)
+            .frameless().minimumSize(560, 400);
     try (Window window = Window.open("Settings", 880, 600, options);
         GpuPresenter presenter = new GpuPresenter(window)) {
-      WindowLoop.run(window, app, presenter);
+      new WindowLoop(window, app, presenter).appearance(a -> app.state().system = a).run();
     }
   }
 
@@ -212,7 +222,9 @@ public final class Settings {
   static El appearance(Theme t, Settings s) {
     return page(t, "Appearance",
         section(t, "Colours", null, group(t,
-            Group.row(t, "Theme", "System follows the dark theme in this example",
+            Group.row(t, "Theme", s.system == null
+                    ? "System follows the dark theme in this example"
+                    : "System follows the system's light or dark setting",
                 segmented(t, THEMES, s.theme, i -> s.theme = i)),
             Group.row(t, "Accent colour", "Buttons, switches and selections",
                 select(t, ACCENTS, s.accent, s.accents, i -> s.accent = i).w(160)))),

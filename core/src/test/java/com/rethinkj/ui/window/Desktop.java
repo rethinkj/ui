@@ -131,6 +131,15 @@ final class Desktop {
     });
   }
 
+  /** An event of the whole app, of no window, such as the system theme's change. */
+  static void systemEvent(int type) {
+    try (Arena arena = Arena.ofConfined()) {
+      MemorySegment event = arena.allocate(Sdl.EVENT_SIZE, 8);
+      event.set(JAVA_INT, Sdl.EVENT_TYPE, type);
+      Sdl.pushEvent(event);
+    }
+  }
+
   private static void push(Window window, int type, java.util.function.Consumer<MemorySegment> fill) {
     try (Arena arena = Arena.ofConfined()) {
       MemorySegment event = arena.allocate(Sdl.EVENT_SIZE, 8);

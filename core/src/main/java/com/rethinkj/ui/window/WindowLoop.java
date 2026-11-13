@@ -2,6 +2,7 @@ package com.rethinkj.ui.window;
 
 import com.rethinkj.ui.App;
 import com.rethinkj.ui.render.Scene;
+import com.rethinkj.ui.window.WindowEvent.AppearanceChanged;
 import com.rethinkj.ui.window.WindowEvent.CloseRequested;
 import com.rethinkj.ui.window.WindowEvent.FocusChanged;
 import com.rethinkj.ui.window.WindowEvent.KeyDown;
@@ -17,6 +18,7 @@ import com.rethinkj.ui.window.WindowEvent.TextEditing;
 import com.rethinkj.ui.window.WindowEvent.TextInput;
 import com.rethinkj.ui.window.WindowEvent.Wheel;
 import java.util.Objects;
+import java.util.function.Consumer;
 
 /**
  * Runs an {@link App} in a {@link Window}: feeds it the window's pointer, wheel, key and text input
@@ -93,6 +95,7 @@ public final class WindowLoop {
   private final App<?> app;
   private final Presenter presenter;
   private WindowListener listener;
+  private Consumer<SystemAppearance> appearance;
   private volatile boolean running;
   private float width = -1;
   private float height = -1;
@@ -124,6 +127,27 @@ public final class WindowLoop {
    */
   public WindowLoop listener(WindowListener listener) {
     this.listener = listener;
+    return this;
+  }
+
+  /**
+   * Hands the system's appearance to the app: {@code handler} gets {@link
+   * Window#systemAppearance()} once when {@link #run} starts and again after each {@link
+   * WindowEvent.AppearanceChanged}, as a task of the app ({@link App#post}), so that it may change
+   * the app's state and the view is built anew. An app that follows the system chooses its theme
+   * there; nothing changes by itself.
+   *
+   * <pre>{@code
+   * new WindowLoop(window, app, presenter)
+   *     .appearance(a -> app.state().dark = a.dark())
+   *     .run();
+   * }</pre>
+   *
+   * @param handler the handler, or null for none
+   * @return this loop
+   */
+  public WindowLoop appearance(Consumer<SystemAppearance> handler) {
+    this.appearance = handler;
     return this;
   }
 
@@ -160,6 +184,7 @@ public final class WindowLoop {
       Window.wake();
     });
     try {
+      handOn(Window.systemAppearance());
       clock = System.nanoTime();
       refreshRate();
       while (running && window.isOpen()) {
@@ -249,7 +274,15 @@ public final class WindowLoop {
       }
       case Redraw redraw -> draw(!redraw.live());
       case CloseRequested close -> running = false;
+      case AppearanceChanged changed -> handOn(changed.appearance());
       default -> {}
+    }
+  }
+
+  private void handOn(SystemAppearance now) {
+    Consumer<SystemAppearance> handler = appearance;
+    if (handler != null) {
+      app.post(() -> handler.accept(now));
     }
   }
 

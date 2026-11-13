@@ -2,12 +2,14 @@ package com.rethinkj.ui.window;
 
 import static java.lang.foreign.ValueLayout.ADDRESS;
 import static java.lang.foreign.ValueLayout.JAVA_BOOLEAN;
+import static java.lang.foreign.ValueLayout.JAVA_BYTE;
 import static java.lang.foreign.ValueLayout.JAVA_FLOAT;
 import static java.lang.foreign.ValueLayout.JAVA_INT;
 import static java.lang.foreign.ValueLayout.JAVA_LONG;
 import static java.lang.foreign.ValueLayout.JAVA_SHORT;
 
 import com.rethinkj.ui.natives.Natives;
+import com.rethinkj.ui.render.Pixels;
 import java.lang.foreign.Arena;
 import java.lang.foreign.FunctionDescriptor;
 import java.lang.foreign.Linker;
@@ -53,6 +55,7 @@ final class Sdl {
   // SDL_EventType
   static final int EVENT_FIRST = 0;
   static final int EVENT_LAST = 0xFFFF;
+  static final int EVENT_SYSTEM_THEME_CHANGED = 0x108;
   static final int EVENT_WINDOW_SHOWN = 0x202;
   static final int EVENT_WINDOW_EXPOSED = 0x204;
   static final int EVENT_WINDOW_MOVED = 0x205;
@@ -115,6 +118,25 @@ final class Sdl {
   static final String PROP_TEXTINPUT_TYPE_NUMBER = "SDL.textinput.type";
   // SDL_TextInputType
   static final int TEXTINPUT_TYPE_TEXT_PASSWORD_HIDDEN = 4;
+
+  // SDL_PixelFormat: bytes R, G, B, A in memory on little-endian machines, as Pixels holds them
+  static final int PIXELFORMAT_ABGR8888 = 0x16762004;
+  // SDL_Surface: SDL_SurfaceFlags flags, SDL_PixelFormat format, int w, h, pitch, void *pixels
+  static final long SURFACE_PITCH = 16;
+  static final long SURFACE_PIXELS = 24;
+
+  // SDL_FlashOperation
+  static final int FLASH_CANCEL = 0;
+  static final int FLASH_BRIEFLY = 1;
+  static final int FLASH_UNTIL_FOCUSED = 2;
+
+  // SDL_SystemTheme
+  static final int SYSTEM_THEME_UNKNOWN = 0;
+  static final int SYSTEM_THEME_LIGHT = 1;
+  static final int SYSTEM_THEME_DARK = 2;
+
+  static final String PROP_APP_METADATA_NAME_STRING = "SDL.app.metadata.name";
+  static final String PROP_APP_METADATA_IDENTIFIER_STRING = "SDL.app.metadata.identifier";
 
   static final String HINT_NO_SIGNAL_HANDLERS = "SDL_NO_SIGNAL_HANDLERS";
   static final String HINT_IME_IMPLEMENTED_UI = "SDL_IME_IMPLEMENTED_UI";
@@ -273,6 +295,23 @@ final class Sdl {
   static final FunctionDescriptor SDL_CREATE_SYSTEM_CURSOR =
       FunctionDescriptor.of(ADDRESS, JAVA_INT);
   static final FunctionDescriptor SDL_SET_CURSOR = FunctionDescriptor.of(JAVA_BOOLEAN, ADDRESS);
+  /** {@code SDL_Surface *SDL_CreateSurface(int width, int height, SDL_PixelFormat format)} */
+  static final FunctionDescriptor SDL_CREATE_SURFACE =
+      FunctionDescriptor.of(ADDRESS, JAVA_INT, JAVA_INT, JAVA_INT);
+  static final FunctionDescriptor SDL_DESTROY_SURFACE = FunctionDescriptor.ofVoid(ADDRESS);
+  static final FunctionDescriptor SDL_ADD_SURFACE_ALTERNATE_IMAGE =
+      FunctionDescriptor.of(JAVA_BOOLEAN, ADDRESS, ADDRESS);
+  static final FunctionDescriptor SDL_SET_WINDOW_ICON =
+      FunctionDescriptor.of(JAVA_BOOLEAN, ADDRESS, ADDRESS);
+  static final FunctionDescriptor SDL_FLASH_WINDOW =
+      FunctionDescriptor.of(JAVA_BOOLEAN, ADDRESS, JAVA_INT);
+  /** {@code SDL_SystemTheme SDL_GetSystemTheme(void)} */
+  static final FunctionDescriptor SDL_GET_SYSTEM_THEME = FunctionDescriptor.of(JAVA_INT);
+  /** {@code bool SDL_SetAppMetadata(const char *name, const char *version, const char *id)} */
+  static final FunctionDescriptor SDL_SET_APP_METADATA =
+      FunctionDescriptor.of(JAVA_BOOLEAN, ADDRESS, ADDRESS, ADDRESS);
+  static final FunctionDescriptor SDL_GET_APP_METADATA_PROPERTY =
+      FunctionDescriptor.of(ADDRESS, ADDRESS);
 
   /** The handles, bound on first use. Initialising this class loads SDL. */
   private static final class H {
@@ -362,6 +401,16 @@ final class Sdl {
     static final MethodHandle CREATE_SYSTEM_CURSOR =
         bind("SDL_CreateSystemCursor", SDL_CREATE_SYSTEM_CURSOR);
     static final MethodHandle SET_CURSOR = bind("SDL_SetCursor", SDL_SET_CURSOR);
+    static final MethodHandle CREATE_SURFACE = bind("SDL_CreateSurface", SDL_CREATE_SURFACE);
+    static final MethodHandle DESTROY_SURFACE = bind("SDL_DestroySurface", SDL_DESTROY_SURFACE);
+    static final MethodHandle ADD_SURFACE_ALTERNATE_IMAGE =
+        bind("SDL_AddSurfaceAlternateImage", SDL_ADD_SURFACE_ALTERNATE_IMAGE);
+    static final MethodHandle SET_WINDOW_ICON = bind("SDL_SetWindowIcon", SDL_SET_WINDOW_ICON);
+    static final MethodHandle FLASH_WINDOW = bind("SDL_FlashWindow", SDL_FLASH_WINDOW);
+    static final MethodHandle GET_SYSTEM_THEME = bind("SDL_GetSystemTheme", SDL_GET_SYSTEM_THEME);
+    static final MethodHandle SET_APP_METADATA = bind("SDL_SetAppMetadata", SDL_SET_APP_METADATA);
+    static final MethodHandle GET_APP_METADATA_PROPERTY =
+        bind("SDL_GetAppMetadataProperty", SDL_GET_APP_METADATA_PROPERTY);
 
     private static MethodHandle bind(String name, FunctionDescriptor descriptor) {
       MemorySegment symbol =
@@ -839,6 +888,95 @@ final class Sdl {
   static boolean setCursor(MemorySegment cursor) {
     try {
       return (boolean) H.SET_CURSOR.invokeExact(cursor);
+    } catch (Throwable t) {
+      throw failed(t);
+    }
+  }
+
+  /**
+   * A surface that SDL owns, holding a copy of the image. SDL keeps alternate images by
+   * reference, so their pixels have to live as long as SDL holds them.
+   *
+   * @return the surface, or NULL if SDL could not make it
+   */
+  static MemorySegment createSurface(Pixels image) {
+    try {
+      MemorySegment surface = (MemorySegment) H.CREATE_SURFACE.invokeExact(
+          image.width(), image.height(), PIXELFORMAT_ABGR8888);
+      if (surface.equals(MemorySegment.NULL)) {
+        return surface;
+      }
+      MemorySegment s = surface.reinterpret(SURFACE_PIXELS + 8);
+      int pitch = s.get(JAVA_INT, SURFACE_PITCH);
+      MemorySegment pixels =
+          s.get(ADDRESS, SURFACE_PIXELS).reinterpret((long) pitch * image.height());
+      int row = image.width() * 4;
+      for (int y = 0; y < image.height(); y++) {
+        MemorySegment.copy(image.rgba(), y * row, pixels, JAVA_BYTE, (long) y * pitch, row);
+      }
+      return surface;
+    } catch (Throwable t) {
+      throw failed(t);
+    }
+  }
+
+  static void destroySurface(MemorySegment surface) {
+    try {
+      H.DESTROY_SURFACE.invokeExact(surface);
+    } catch (Throwable t) {
+      throw failed(t);
+    }
+  }
+
+  static boolean addSurfaceAlternateImage(MemorySegment surface, MemorySegment image) {
+    try {
+      return (boolean) H.ADD_SURFACE_ALTERNATE_IMAGE.invokeExact(surface, image);
+    } catch (Throwable t) {
+      throw failed(t);
+    }
+  }
+
+  static boolean setWindowIcon(MemorySegment window, MemorySegment surface) {
+    try {
+      return (boolean) H.SET_WINDOW_ICON.invokeExact(window, surface);
+    } catch (Throwable t) {
+      throw failed(t);
+    }
+  }
+
+  static boolean flashWindow(MemorySegment window, int operation) {
+    try {
+      return (boolean) H.FLASH_WINDOW.invokeExact(window, operation);
+    } catch (Throwable t) {
+      throw failed(t);
+    }
+  }
+
+  /** An SDL_SystemTheme. */
+  static int getSystemTheme() {
+    try {
+      return (int) H.GET_SYSTEM_THEME.invokeExact();
+    } catch (Throwable t) {
+      throw failed(t);
+    }
+  }
+
+  /** Each argument may be null, which leaves that part unset. */
+  static boolean setAppMetadata(String name, String version, String id) {
+    try (Arena arena = Arena.ofConfined()) {
+      MemorySegment n = name == null ? MemorySegment.NULL : arena.allocateFrom(name);
+      MemorySegment v = version == null ? MemorySegment.NULL : arena.allocateFrom(version);
+      MemorySegment i = id == null ? MemorySegment.NULL : arena.allocateFrom(id);
+      return (boolean) H.SET_APP_METADATA.invokeExact(n, v, i);
+    } catch (Throwable t) {
+      throw failed(t);
+    }
+  }
+
+  static String getAppMetadataProperty(String name) {
+    try (Arena arena = Arena.ofConfined()) {
+      return string(
+          (MemorySegment) H.GET_APP_METADATA_PROPERTY.invokeExact(arena.allocateFrom(name)));
     } catch (Throwable t) {
       throw failed(t);
     }
