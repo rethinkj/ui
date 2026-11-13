@@ -1,0 +1,2526 @@
+# Examples of the CommonMark Spec 0.31.2 (https://spec.commonmark.org/0.31.2/) and of GitHub
+# Flavored Markdown's extensions (https://github.github.com/gfm/), by John MacFarlane and
+# GitHub, licensed CC BY-SA 4.0, with the tree MarkdownDocument.tree() gives for each instead of
+# the HTML. A selection: tabs, thematic breaks, ATX and setext headings, indented and fenced
+# code, paragraphs, link reference definitions, block quotes, list items and lists, task list
+# items, backslash escapes, entities, code spans, emphasis, links, images, autolinks, bare URLs,
+# strikethrough and tables. HTML blocks and raw HTML are left out, as the reader keeps them as
+# text. A tab is written as →.
+
+```````````````````````````````` example
+→foo→baz→→bim
+.
+code "" "foo\tbaz\t\tbim\n"
+````````````````````````````````
+
+```````````````````````````````` example
+  - foo
+
+→bar
+.
+list bullet loose
+  item
+    paragraph
+      text "foo"
+    paragraph
+      text "bar"
+````````````````````````````````
+
+```````````````````````````````` example
+- `one
+- two`
+.
+list bullet tight
+  item
+    paragraph
+      text "`one"
+  item
+    paragraph
+      text "two`"
+````````````````````````````````
+
+```````````````````````````````` example
+***
+---
+___
+.
+hr
+hr
+hr
+````````````````````````````````
+
+```````````````````````````````` example
++++
+.
+paragraph
+  text "+++"
+````````````````````````````````
+
+```````````````````````````````` example
+ ***
+  ***
+   ***
+.
+hr
+hr
+hr
+````````````````````````````````
+
+```````````````````````````````` example
+Foo
+    ***
+.
+paragraph
+  text "Foo"
+  softbreak
+  text "***"
+````````````````````````````````
+
+```````````````````````````````` example
+_____________________________________
+.
+hr
+````````````````````````````````
+
+```````````````````````````````` example
+ - - -
+.
+hr
+````````````````````````````````
+
+```````````````````````````````` example
+- foo
+***
+- bar
+.
+list bullet tight
+  item
+    paragraph
+      text "foo"
+hr
+list bullet tight
+  item
+    paragraph
+      text "bar"
+````````````````````````````````
+
+```````````````````````````````` example
+Foo
+---
+bar
+.
+heading 2 #foo
+  text "Foo"
+paragraph
+  text "bar"
+````````````````````````````````
+
+```````````````````````````````` example
+# foo
+## foo
+### foo
+#### foo
+##### foo
+###### foo
+.
+heading 1 #foo
+  text "foo"
+heading 2 #foo-1
+  text "foo"
+heading 3 #foo-2
+  text "foo"
+heading 4 #foo-3
+  text "foo"
+heading 5 #foo-4
+  text "foo"
+heading 6 #foo-5
+  text "foo"
+````````````````````````````````
+
+```````````````````````````````` example
+####### foo
+.
+paragraph
+  text "####### foo"
+````````````````````````````````
+
+```````````````````````````````` example
+#5 bolt
+
+#hashtag
+.
+paragraph
+  text "#5 bolt"
+paragraph
+  text "#hashtag"
+````````````````````````````````
+
+```````````````````````````````` example
+\## foo
+.
+paragraph
+  text "## foo"
+````````````````````````````````
+
+```````````````````````````````` example
+# foo *bar* \*baz\*
+.
+heading 1 #foo-bar-baz
+  text "foo "
+  emphasis
+    text "bar"
+  text " *baz*"
+````````````````````````````````
+
+```````````````````````````````` example
+# foo ##################################
+##### foo ##
+.
+heading 1 #foo
+  text "foo"
+heading 5 #foo-1
+  text "foo"
+````````````````````````````````
+
+```````````````````````````````` example
+### foo ### b
+.
+heading 3 #foo--b
+  text "foo ### b"
+````````````````````````````````
+
+```````````````````````````````` example
+# foo#
+.
+heading 1 #foo
+  text "foo#"
+````````````````````````````````
+
+```````````````````````````````` example
+### foo \###
+.
+heading 3 #foo-
+  text "foo ###"
+````````````````````````````````
+
+```````````````````````````````` example
+## 
+#
+### ###
+.
+heading 2 #
+heading 1 #-1
+heading 3 #-2
+````````````````````````````````
+
+```````````````````````````````` example
+Foo *bar*
+=========
+
+Foo *bar*
+---------
+.
+heading 1 #foo-bar
+  text "Foo "
+  emphasis
+    text "bar"
+heading 2 #foo-bar-1
+  text "Foo "
+  emphasis
+    text "bar"
+````````````````````````````````
+
+```````````````````````````````` example
+Foo
+= =
+
+Foo
+--- -
+.
+paragraph
+  text "Foo"
+  softbreak
+  text "= ="
+paragraph
+  text "Foo"
+hr
+````````````````````````````````
+
+```````````````````````````````` example
+Foo\
+----
+.
+heading 2 #foo
+  text "Foo\\"
+````````````````````````````````
+
+```````````````````````````````` example
+`Foo
+----
+`
+
+<a title="a lot
+---
+of dashes"/>
+.
+heading 2 #foo
+  text "`Foo"
+paragraph
+  text "`"
+heading 2 #a-titlea-lot
+  text "<a title=\"a lot"
+paragraph
+  text "of dashes\"/>"
+````````````````````````````````
+
+```````````````````````````````` example
+> foo
+-----
+.
+quote
+  paragraph
+    text "foo"
+hr
+````````````````````````````````
+
+```````````````````````````````` example
+- Foo
+---
+.
+list bullet tight
+  item
+    paragraph
+      text "Foo"
+hr
+````````````````````````````````
+
+```````````````````````````````` example
+Foo
+Bar
+---
+.
+heading 2 #foo-bar
+  text "Foo"
+  softbreak
+  text "Bar"
+````````````````````````````````
+
+```````````````````````````````` example
+---
+Foo
+---
+Bar
+---
+Baz
+.
+hr
+heading 2 #foo
+  text "Foo"
+heading 2 #bar
+  text "Bar"
+paragraph
+  text "Baz"
+````````````````````````````````
+
+```````````````````````````````` example
+    a simple
+      indented code block
+.
+code "" "a simple\n  indented code block\n"
+````````````````````````````````
+
+```````````````````````````````` example
+  - foo
+
+    bar
+.
+list bullet loose
+  item
+    paragraph
+      text "foo"
+    paragraph
+      text "bar"
+````````````````````````````````
+
+```````````````````````````````` example
+    chunk1
+
+    chunk2
+  
+ 
+ 
+    chunk3
+.
+code "" "chunk1\n\nchunk2\n\n\n\nchunk3\n"
+````````````````````````````````
+
+```````````````````````````````` example
+Foo
+    bar
+.
+paragraph
+  text "Foo"
+  softbreak
+  text "bar"
+````````````````````````````````
+
+```````````````````````````````` example
+```
+<
+ >
+```
+.
+code "" "<\n >\n"
+````````````````````````````````
+
+```````````````````````````````` example
+```
+aaa
+~~~
+```
+.
+code "" "aaa\n~~~\n"
+````````````````````````````````
+
+```````````````````````````````` example
+````
+aaa
+```
+``````
+.
+code "" "aaa\n```\n"
+````````````````````````````````
+
+```````````````````````````````` example
+```
+.
+code "" ""
+````````````````````````````````
+
+```````````````````````````````` example
+> ```
+> aaa
+
+bbb
+.
+quote
+  code "" "aaa\n"
+paragraph
+  text "bbb"
+````````````````````````````````
+
+```````````````````````````````` example
+ ```
+ aaa
+aaa
+```
+.
+code "" "aaa\naaa\n"
+````````````````````````````````
+
+```````````````````````````````` example
+```ruby
+def foo(x)
+  return 3
+end
+```
+.
+code "ruby" "def foo(x)\n  return 3\nend\n"
+````````````````````````````````
+
+```````````````````````````````` example
+~~~~    ruby startline=3 $%@#$
+def foo(x)
+  return 3
+end
+~~~~~~~
+.
+code "ruby" "def foo(x)\n  return 3\nend\n"
+````````````````````````````````
+
+```````````````````````````````` example
+``` aa ```
+foo
+.
+paragraph
+  code "aa"
+  softbreak
+  text "foo"
+````````````````````````````````
+
+```````````````````````````````` example
+aaa
+bbb
+
+ccc
+.
+paragraph
+  text "aaa"
+  softbreak
+  text "bbb"
+paragraph
+  text "ccc"
+````````````````````````````````
+
+```````````````````````````````` example
+aaa
+             bbb
+                                       ccc
+.
+paragraph
+  text "aaa"
+  softbreak
+  text "bbb"
+  softbreak
+  text "ccc"
+````````````````````````````````
+
+```````````````````````````````` example
+aaa     
+bbb     
+.
+paragraph
+  text "aaa"
+  hardbreak
+  text "bbb"
+````````````````````````````````
+
+```````````````````````````````` example
+[foo]: /url "title"
+
+[foo]
+.
+paragraph
+  link "/url" "title"
+    text "foo"
+````````````````````````````````
+
+```````````````````````````````` example
+   [foo]: 
+      /url  
+           'the title'  
+
+[foo]
+.
+paragraph
+  link "/url" "the title"
+    text "foo"
+````````````````````````````````
+
+```````````````````````````````` example
+[foo]: /url 'title
+
+with blank line'
+
+[foo]
+.
+paragraph
+  text "[foo]: /url 'title"
+paragraph
+  text "with blank line'"
+paragraph
+  text "[foo]"
+````````````````````````````````
+
+```````````````````````````````` example
+[foo]:
+/url
+
+[foo]
+.
+paragraph
+  link "/url"
+    text "foo"
+````````````````````````````````
+
+```````````````````````````````` example
+[foo]: /url\bar\*baz "foo\"bar\baz"
+
+[foo]
+.
+paragraph
+  link "/url\\bar*baz" "foo\"bar\\baz"
+    text "foo"
+````````````````````````````````
+
+```````````````````````````````` example
+[FOO]: /url
+
+[Foo]
+.
+paragraph
+  link "/url"
+    text "Foo"
+````````````````````````````````
+
+```````````````````````````````` example
+[ΑΓΩ]: /φου
+
+[αγω]
+.
+paragraph
+  link "/φου"
+    text "αγω"
+````````````````````````````````
+
+```````````````````````````````` example
+[foo]: /url "title" ok
+.
+paragraph
+  text "[foo]: /url \"title\" ok"
+````````````````````````````````
+
+```````````````````````````````` example
+[foo]: /foo-url "foo"
+[bar]: /bar-url
+  "bar"
+[baz]: /baz-url
+
+[foo],
+[bar],
+[baz]
+.
+paragraph
+  link "/foo-url" "foo"
+    text "foo"
+  text ","
+  softbreak
+  link "/bar-url" "bar"
+    text "bar"
+  text ","
+  softbreak
+  link "/baz-url"
+    text "baz"
+````````````````````````````````
+
+```````````````````````````````` example
+> # Foo
+> bar
+> baz
+.
+quote
+  heading 1 #foo
+    text "Foo"
+  paragraph
+    text "bar"
+    softbreak
+    text "baz"
+````````````````````````````````
+
+```````````````````````````````` example
+> # Foo
+> bar
+baz
+.
+quote
+  heading 1 #foo
+    text "Foo"
+  paragraph
+    text "bar"
+    softbreak
+    text "baz"
+````````````````````````````````
+
+```````````````````````````````` example
+> foo
+---
+.
+quote
+  paragraph
+    text "foo"
+hr
+````````````````````````````````
+
+```````````````````````````````` example
+> - foo
+- bar
+.
+quote
+  list bullet tight
+    item
+      paragraph
+        text "foo"
+list bullet tight
+  item
+    paragraph
+      text "bar"
+````````````````````````````````
+
+```````````````````````````````` example
+>     foo
+    bar
+.
+quote
+  code "" "foo\n"
+code "" "bar\n"
+````````````````````````````````
+
+```````````````````````````````` example
+> foo
+
+> bar
+.
+quote
+  paragraph
+    text "foo"
+quote
+  paragraph
+    text "bar"
+````````````````````````````````
+
+```````````````````````````````` example
+> bar
+baz
+> foo
+.
+quote
+  paragraph
+    text "bar"
+    softbreak
+    text "baz"
+    softbreak
+    text "foo"
+````````````````````````````````
+
+```````````````````````````````` example
+> > > foo
+bar
+.
+quote
+  quote
+    quote
+      paragraph
+        text "foo"
+        softbreak
+        text "bar"
+````````````````````````````````
+
+```````````````````````````````` example
+A paragraph
+with two lines.
+
+    indented code
+
+> A block quote.
+.
+paragraph
+  text "A paragraph"
+  softbreak
+  text "with two lines."
+code "" "indented code\n"
+quote
+  paragraph
+    text "A block quote."
+````````````````````````````````
+
+```````````````````````````````` example
+1.  A paragraph
+    with two lines.
+
+        indented code
+
+    > A block quote.
+.
+list ordered start=1 loose
+  item
+    paragraph
+      text "A paragraph"
+      softbreak
+      text "with two lines."
+    code "" "indented code\n"
+    quote
+      paragraph
+        text "A block quote."
+````````````````````````````````
+
+```````````````````````````````` example
+- one
+
+ two
+.
+list bullet tight
+  item
+    paragraph
+      text "one"
+paragraph
+  text "two"
+````````````````````````````````
+
+```````````````````````````````` example
+- one
+
+  two
+.
+list bullet loose
+  item
+    paragraph
+      text "one"
+    paragraph
+      text "two"
+````````````````````````````````
+
+```````````````````````````````` example
+ -    one
+
+     two
+.
+list bullet tight
+  item
+    paragraph
+      text "one"
+code "" " two\n"
+````````````````````````````````
+
+```````````````````````````````` example
+ -    one
+
+      two
+.
+list bullet loose
+  item
+    paragraph
+      text "one"
+    paragraph
+      text "two"
+````````````````````````````````
+
+```````````````````````````````` example
+   > > 1.  one
+>>
+>>     two
+.
+quote
+  quote
+    list ordered start=1 loose
+      item
+        paragraph
+          text "one"
+        paragraph
+          text "two"
+````````````````````````````````
+
+```````````````````````````````` example
+-one
+
+2.two
+.
+paragraph
+  text "-one"
+paragraph
+  text "2.two"
+````````````````````````````````
+
+```````````````````````````````` example
+- foo
+
+
+  bar
+.
+list bullet loose
+  item
+    paragraph
+      text "foo"
+    paragraph
+      text "bar"
+````````````````````````````````
+
+```````````````````````````````` example
+123456789. ok
+.
+list ordered start=123456789 tight
+  item
+    paragraph
+      text "ok"
+````````````````````````````````
+
+```````````````````````````````` example
+1234567890. not ok
+.
+paragraph
+  text "1234567890. not ok"
+````````````````````````````````
+
+```````````````````````````````` example
+0. ok
+.
+list ordered start=0 tight
+  item
+    paragraph
+      text "ok"
+````````````````````````````````
+
+```````````````````````````````` example
+003. ok
+.
+list ordered start=3 tight
+  item
+    paragraph
+      text "ok"
+````````````````````````````````
+
+```````````````````````````````` example
+-1. not ok
+.
+paragraph
+  text "-1. not ok"
+````````````````````````````````
+
+```````````````````````````````` example
+- foo
+
+      bar
+.
+list bullet loose
+  item
+    paragraph
+      text "foo"
+    code "" "bar\n"
+````````````````````````````````
+
+```````````````````````````````` example
+-
+  foo
+-
+  ```
+  bar
+  ```
+-
+      baz
+.
+list bullet tight
+  item
+    paragraph
+      text "foo"
+  item
+    code "" "bar\n"
+  item
+    code "" "baz\n"
+````````````````````````````````
+
+```````````````````````````````` example
+-   
+  foo
+.
+list bullet tight
+  item
+    paragraph
+      text "foo"
+````````````````````````````````
+
+```````````````````````````````` example
+- foo
+-   
+- bar
+.
+list bullet tight
+  item
+    paragraph
+      text "foo"
+  item
+  item
+    paragraph
+      text "bar"
+````````````````````````````````
+
+```````````````````````````````` example
+*
+.
+list bullet tight
+  item
+````````````````````````````````
+
+```````````````````````````````` example
+foo
+*
+
+foo
+1.
+.
+paragraph
+  text "foo"
+  softbreak
+  text "*"
+paragraph
+  text "foo"
+  softbreak
+  text "1."
+````````````````````````````````
+
+```````````````````````````````` example
+- foo
+  - bar
+    - baz
+      - boo
+.
+list bullet tight
+  item
+    paragraph
+      text "foo"
+    list bullet tight
+      item
+        paragraph
+          text "bar"
+        list bullet tight
+          item
+            paragraph
+              text "baz"
+            list bullet tight
+              item
+                paragraph
+                  text "boo"
+````````````````````````````````
+
+```````````````````````````````` example
+10) foo
+    - bar
+.
+list ordered start=10 tight
+  item
+    paragraph
+      text "foo"
+    list bullet tight
+      item
+        paragraph
+          text "bar"
+````````````````````````````````
+
+```````````````````````````````` example
+- # Foo
+- Bar
+  ---
+  baz
+.
+list bullet tight
+  item
+    heading 1 #foo
+      text "Foo"
+  item
+    heading 2 #bar
+      text "Bar"
+    paragraph
+      text "baz"
+````````````````````````````````
+
+```````````````````````````````` example
+- foo
+- bar
++ baz
+.
+list bullet tight
+  item
+    paragraph
+      text "foo"
+  item
+    paragraph
+      text "bar"
+list bullet tight
+  item
+    paragraph
+      text "baz"
+````````````````````````````````
+
+```````````````````````````````` example
+Foo
+- bar
+- baz
+.
+paragraph
+  text "Foo"
+list bullet tight
+  item
+    paragraph
+      text "bar"
+  item
+    paragraph
+      text "baz"
+````````````````````````````````
+
+```````````````````````````````` example
+The number of windows in my house is
+14.  The number of doors is 6.
+.
+paragraph
+  text "The number of windows in my house is"
+  softbreak
+  text "14.  The number of doors is 6."
+````````````````````````````````
+
+```````````````````````````````` example
+- foo
+
+- bar
+
+
+- baz
+.
+list bullet loose
+  item
+    paragraph
+      text "foo"
+  item
+    paragraph
+      text "bar"
+  item
+    paragraph
+      text "baz"
+````````````````````````````````
+
+```````````````````````````````` example
+- a
+ - b
+  - c
+   - d
+  - e
+ - f
+- g
+.
+list bullet tight
+  item
+    paragraph
+      text "a"
+  item
+    paragraph
+      text "b"
+  item
+    paragraph
+      text "c"
+  item
+    paragraph
+      text "d"
+  item
+    paragraph
+      text "e"
+  item
+    paragraph
+      text "f"
+  item
+    paragraph
+      text "g"
+````````````````````````````````
+
+```````````````````````````````` example
+1. a
+
+  2. b
+
+   3. c
+.
+list ordered start=1 loose
+  item
+    paragraph
+      text "a"
+  item
+    paragraph
+      text "b"
+  item
+    paragraph
+      text "c"
+````````````````````````````````
+
+```````````````````````````````` example
+- a
+- b
+
+- c
+.
+list bullet loose
+  item
+    paragraph
+      text "a"
+  item
+    paragraph
+      text "b"
+  item
+    paragraph
+      text "c"
+````````````````````````````````
+
+```````````````````````````````` example
+* a
+*
+
+* c
+.
+list bullet loose
+  item
+    paragraph
+      text "a"
+  item
+  item
+    paragraph
+      text "c"
+````````````````````````````````
+
+```````````````````````````````` example
+- a
+- b
+
+  c
+- d
+.
+list bullet loose
+  item
+    paragraph
+      text "a"
+  item
+    paragraph
+      text "b"
+    paragraph
+      text "c"
+  item
+    paragraph
+      text "d"
+````````````````````````````````
+
+```````````````````````````````` example
+- a
+- b
+
+  [ref]: /url
+- d
+.
+list bullet loose
+  item
+    paragraph
+      text "a"
+  item
+    paragraph
+      text "b"
+  item
+    paragraph
+      text "d"
+````````````````````````````````
+
+```````````````````````````````` example
+- a
+  - b
+
+    c
+- d
+.
+list bullet tight
+  item
+    paragraph
+      text "a"
+    list bullet loose
+      item
+        paragraph
+          text "b"
+        paragraph
+          text "c"
+  item
+    paragraph
+      text "d"
+````````````````````````````````
+
+```````````````````````````````` example
+* a
+  > b
+  >
+* c
+.
+list bullet tight
+  item
+    paragraph
+      text "a"
+    quote
+      paragraph
+        text "b"
+  item
+    paragraph
+      text "c"
+````````````````````````````````
+
+```````````````````````````````` example
+- a
+  > b
+  ```
+  c
+  ```
+- d
+.
+list bullet tight
+  item
+    paragraph
+      text "a"
+    quote
+      paragraph
+        text "b"
+    code "" "c\n"
+  item
+    paragraph
+      text "d"
+````````````````````````````````
+
+```````````````````````````````` example
+1. ```
+   foo
+   ```
+
+   bar
+.
+list ordered start=1 loose
+  item
+    code "" "foo\n"
+    paragraph
+      text "bar"
+````````````````````````````````
+
+```````````````````````````````` example
+* foo
+  * bar
+
+  baz
+.
+list bullet loose
+  item
+    paragraph
+      text "foo"
+    list bullet tight
+      item
+        paragraph
+          text "bar"
+    paragraph
+      text "baz"
+````````````````````````````````
+
+```````````````````````````````` example
+- [ ] foo
+- [x] bar
+.
+list bullet tight
+  item task=[ ]
+    paragraph
+      text "foo"
+  item task=[x]
+    paragraph
+      text "bar"
+````````````````````````````````
+
+```````````````````````````````` example
+- [x] foo
+  - [ ] bar
+  - [x] baz
+- [ ] bim
+.
+list bullet tight
+  item task=[x]
+    paragraph
+      text "foo"
+    list bullet tight
+      item task=[ ]
+        paragraph
+          text "bar"
+      item task=[x]
+        paragraph
+          text "baz"
+  item task=[ ]
+    paragraph
+      text "bim"
+````````````````````````````````
+
+```````````````````````````````` example
+\!\"\#\$\%\&\'\(\)\*\+\,\-\.\/\:\;\<\=\>\?\@\[\\\]\^\_\`\{\|\}\~
+.
+paragraph
+  text "!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~"
+````````````````````````````````
+
+```````````````````````````````` example
+\→\A\a\ \3\φ\«
+.
+paragraph
+  text "\\\t\\A\\a\\ \\3\\φ\\«"
+````````````````````````````````
+
+```````````````````````````````` example
+\*not emphasized*
+\<br/> not a tag
+\[not a link](/foo)
+\`not code`
+1\. not a list
+\* not a list
+\# not a heading
+\[foo]: /url "not a reference"
+\&ouml; not a character entity
+.
+paragraph
+  text "*not emphasized*"
+  softbreak
+  text "<br/> not a tag"
+  softbreak
+  text "[not a link](/foo)"
+  softbreak
+  text "`not code`"
+  softbreak
+  text "1. not a list"
+  softbreak
+  text "* not a list"
+  softbreak
+  text "# not a heading"
+  softbreak
+  text "[foo]: /url \"not a reference\""
+  softbreak
+  text "&ouml; not a character entity"
+````````````````````````````````
+
+```````````````````````````````` example
+foo\
+bar
+.
+paragraph
+  text "foo"
+  hardbreak
+  text "bar"
+````````````````````````````````
+
+```````````````````````````````` example
+`` \[\` ``
+.
+paragraph
+  code "\\[\\`"
+````````````````````````````````
+
+```````````````````````````````` example
+&nbsp; &amp; &copy; &AElig; &Dcaron;
+&frac34; &HilbertSpace; &DifferentialD;
+&ClockwiseContourIntegral; &ngE;
+.
+paragraph
+  text "  & © Æ Ď"
+  softbreak
+  text "¾ ℋ ⅆ"
+  softbreak
+  text "∲ ≧̸"
+````````````````````````````````
+
+```````````````````````````````` example
+&#35; &#1234; &#992; &#0;
+.
+paragraph
+  text "# Ӓ Ϡ �"
+````````````````````````````````
+
+```````````````````````````````` example
+&#X22; &#XD06; &#xcab;
+.
+paragraph
+  text "\" ആ ಫ"
+````````````````````````````````
+
+```````````````````````````````` example
+&nbsp &x; &#; &#x;
+&#87654321;
+&#abcdef0;
+&ThisIsNotDefined; &hi?;
+.
+paragraph
+  text "&nbsp &x; &#; &#x;"
+  softbreak
+  text "&#87654321;"
+  softbreak
+  text "&#abcdef0;"
+  softbreak
+  text "&ThisIsNotDefined; &hi?;"
+````````````````````````````````
+
+```````````````````````````````` example
+&copy
+.
+paragraph
+  text "&copy"
+````````````````````````````````
+
+```````````````````````````````` example
+[foo](/f&ouml;&ouml; "f&ouml;&ouml;")
+.
+paragraph
+  link "/föö" "föö"
+    text "foo"
+````````````````````````````````
+
+```````````````````````````````` example
+`foo`
+.
+paragraph
+  code "foo"
+````````````````````````````````
+
+```````````````````````````````` example
+`` foo ` bar ``
+.
+paragraph
+  code "foo ` bar"
+````````````````````````````````
+
+```````````````````````````````` example
+` `` `
+.
+paragraph
+  code "``"
+````````````````````````````````
+
+```````````````````````````````` example
+`  ``  `
+.
+paragraph
+  code " `` "
+````````````````````````````````
+
+```````````````````````````````` example
+` a`
+.
+paragraph
+  code " a"
+````````````````````````````````
+
+```````````````````````````````` example
+``
+foo
+bar  
+baz
+``
+.
+paragraph
+  code "foo bar   baz"
+````````````````````````````````
+
+```````````````````````````````` example
+`foo\`bar`
+.
+paragraph
+  code "foo\\"
+  text "bar`"
+````````````````````````````````
+
+```````````````````````````````` example
+*foo`*`
+.
+paragraph
+  text "*foo"
+  code "*"
+````````````````````````````````
+
+```````````````````````````````` example
+`foo``bar``
+.
+paragraph
+  text "`foo"
+  code "bar"
+````````````````````````````````
+
+```````````````````````````````` example
+*foo bar*
+.
+paragraph
+  emphasis
+    text "foo bar"
+````````````````````````````````
+
+```````````````````````````````` example
+a * foo bar*
+.
+paragraph
+  text "a * foo bar*"
+````````````````````````````````
+
+```````````````````````````````` example
+a*"foo"*
+.
+paragraph
+  text "a*\"foo\"*"
+````````````````````````````````
+
+```````````````````````````````` example
+foo*bar*
+.
+paragraph
+  text "foo"
+  emphasis
+    text "bar"
+````````````````````````````````
+
+```````````````````````````````` example
+5*6*78
+.
+paragraph
+  text "5"
+  emphasis
+    text "6"
+  text "78"
+````````````````````````````````
+
+```````````````````````````````` example
+_foo bar_
+.
+paragraph
+  emphasis
+    text "foo bar"
+````````````````````````````````
+
+```````````````````````````````` example
+_ foo bar_
+.
+paragraph
+  text "_ foo bar_"
+````````````````````````````````
+
+```````````````````````````````` example
+a_"foo"_
+.
+paragraph
+  text "a_\"foo\"_"
+````````````````````````````````
+
+```````````````````````````````` example
+foo_bar_
+.
+paragraph
+  text "foo_bar_"
+````````````````````````````````
+
+```````````````````````````````` example
+пристаням_стремятся_
+.
+paragraph
+  text "пристаням_стремятся_"
+````````````````````````````````
+
+```````````````````````````````` example
+aa_"bb"_cc
+.
+paragraph
+  text "aa_\"bb\"_cc"
+````````````````````````````````
+
+```````````````````````````````` example
+foo-_(bar)_
+.
+paragraph
+  text "foo-"
+  emphasis
+    text "(bar)"
+````````````````````````````````
+
+```````````````````````````````` example
+*(*foo)
+.
+paragraph
+  text "*(*foo)"
+````````````````````````````````
+
+```````````````````````````````` example
+*(*foo*)*
+.
+paragraph
+  emphasis
+    text "("
+    emphasis
+      text "foo"
+    text ")"
+````````````````````````````````
+
+```````````````````````````````` example
+_foo_bar_baz_
+.
+paragraph
+  emphasis
+    text "foo_bar_baz"
+````````````````````````````````
+
+```````````````````````````````` example
+**foo bar**
+.
+paragraph
+  strong
+    text "foo bar"
+````````````````````````````````
+
+```````````````````````````````` example
+** foo bar**
+.
+paragraph
+  text "** foo bar**"
+````````````````````````````````
+
+```````````````````````````````` example
+foo**bar**
+.
+paragraph
+  text "foo"
+  strong
+    text "bar"
+````````````````````````````````
+
+```````````````````````````````` example
+__foo bar__
+.
+paragraph
+  strong
+    text "foo bar"
+````````````````````````````````
+
+```````````````````````````````` example
+__foo, __bar__, baz__
+.
+paragraph
+  strong
+    text "foo, "
+    strong
+      text "bar"
+    text ", baz"
+````````````````````````````````
+
+```````````````````````````````` example
+*foo [bar](/url)*
+.
+paragraph
+  emphasis
+    text "foo "
+    link "/url"
+      text "bar"
+````````````````````````````````
+
+```````````````````````````````` example
+_foo __bar__ baz_
+.
+paragraph
+  emphasis
+    text "foo "
+    strong
+      text "bar"
+    text " baz"
+````````````````````````````````
+
+```````````````````````````````` example
+*foo *bar**
+.
+paragraph
+  emphasis
+    text "foo "
+    emphasis
+      text "bar"
+````````````````````````````````
+
+```````````````````````````````` example
+***foo** bar*
+.
+paragraph
+  emphasis
+    strong
+      text "foo"
+    text " bar"
+````````````````````````````````
+
+```````````````````````````````` example
+foo***bar***baz
+.
+paragraph
+  text "foo"
+  emphasis
+    strong
+      text "bar"
+  text "baz"
+````````````````````````````````
+
+```````````````````````````````` example
+foo******bar*********baz
+.
+paragraph
+  text "foo"
+  strong
+    strong
+      strong
+        text "bar"
+  text "***baz"
+````````````````````````````````
+
+```````````````````````````````` example
+*foo **bar *baz* bim** bop*
+.
+paragraph
+  emphasis
+    text "foo "
+    strong
+      text "bar "
+      emphasis
+        text "baz"
+      text " bim"
+    text " bop"
+````````````````````````````````
+
+```````````````````````````````` example
+** is not an empty emphasis
+.
+paragraph
+  text "** is not an empty emphasis"
+````````````````````````````````
+
+```````````````````````````````` example
+**foo*
+.
+paragraph
+  text "*"
+  emphasis
+    text "foo"
+````````````````````````````````
+
+```````````````````````````````` example
+*foo**
+.
+paragraph
+  emphasis
+    text "foo"
+  text "*"
+````````````````````````````````
+
+```````````````````````````````` example
+***foo***
+.
+paragraph
+  emphasis
+    strong
+      text "foo"
+````````````````````````````````
+
+```````````````````````````````` example
+_____foo_____
+.
+paragraph
+  emphasis
+    strong
+      strong
+        text "foo"
+````````````````````````````````
+
+```````````````````````````````` example
+*foo _bar* baz_
+.
+paragraph
+  emphasis
+    text "foo _bar"
+  text " baz_"
+````````````````````````````````
+
+```````````````````````````````` example
+**foo*bar**
+.
+paragraph
+  strong
+    text "foo*bar"
+````````````````````````````````
+
+```````````````````````````````` example
+*[bar*](/url)
+.
+paragraph
+  text "*"
+  link "/url"
+    text "bar*"
+````````````````````````````````
+
+```````````````````````````````` example
+_foo [bar_](/url)
+.
+paragraph
+  text "_foo "
+  link "/url"
+    text "bar_"
+````````````````````````````````
+
+```````````````````````````````` example
+**a<http://foo.bar/?q=**>
+.
+paragraph
+  text "**a"
+  link "http://foo.bar/?q=**"
+    text "http://foo.bar/?q=**"
+````````````````````````````````
+
+```````````````````````````````` example
+[link](/uri "title")
+.
+paragraph
+  link "/uri" "title"
+    text "link"
+````````````````````````````````
+
+```````````````````````````````` example
+[link](/uri)
+.
+paragraph
+  link "/uri"
+    text "link"
+````````````````````````````````
+
+```````````````````````````````` example
+[link]()
+.
+paragraph
+  link ""
+    text "link"
+````````````````````````````````
+
+```````````````````````````````` example
+[link](<>)
+.
+paragraph
+  link ""
+    text "link"
+````````````````````````````````
+
+```````````````````````````````` example
+[link](/my uri)
+.
+paragraph
+  text "[link](/my uri)"
+````````````````````````````````
+
+```````````````````````````````` example
+[link](<foo
+bar>)
+.
+paragraph
+  text "[link](<foo"
+  softbreak
+  text "bar>)"
+````````````````````````````````
+
+```````````````````````````````` example
+[a](<b)c>)
+.
+paragraph
+  link "b)c"
+    text "a"
+````````````````````````````````
+
+```````````````````````````````` example
+[link](\(foo\))
+.
+paragraph
+  link "(foo)"
+    text "link"
+````````````````````````````````
+
+```````````````````````````````` example
+[link](foo(and(bar)))
+.
+paragraph
+  link "foo(and(bar))"
+    text "link"
+````````````````````````````````
+
+```````````````````````````````` example
+[link](foo\(and\(bar\))
+.
+paragraph
+  link "foo(and(bar)"
+    text "link"
+````````````````````````````````
+
+```````````````````````````````` example
+[link](foo\)\:)
+.
+paragraph
+  link "foo):"
+    text "link"
+````````````````````````````````
+
+```````````````````````````````` example
+[link](#fragment)
+
+[link](http://example.com#fragment)
+.
+paragraph
+  link "#fragment"
+    text "link"
+paragraph
+  link "http://example.com#fragment"
+    text "link"
+````````````````````````````````
+
+```````````````````````````````` example
+[link](foo\bar)
+.
+paragraph
+  link "foo\\bar"
+    text "link"
+````````````````````````````````
+
+```````````````````````````````` example
+[link](/url "title")
+[link](/url 'title')
+[link](/url (title))
+.
+paragraph
+  link "/url" "title"
+    text "link"
+  softbreak
+  link "/url" "title"
+    text "link"
+  softbreak
+  link "/url" "title"
+    text "link"
+````````````````````````````````
+
+```````````````````````````````` example
+[link](/url "title "and" title")
+.
+paragraph
+  text "[link](/url \"title \"and\" title\")"
+````````````````````````````````
+
+```````````````````````````````` example
+[link](   /uri
+  "title"  )
+.
+paragraph
+  link "/uri" "title"
+    text "link"
+````````````````````````````````
+
+```````````````````````````````` example
+[link [foo [bar]]](/uri)
+.
+paragraph
+  link "/uri"
+    text "link [foo [bar]]"
+````````````````````````````````
+
+```````````````````````````````` example
+[link] bar](/uri)
+.
+paragraph
+  text "[link] bar](/uri)"
+````````````````````````````````
+
+```````````````````````````````` example
+[link \[bar](/uri)
+.
+paragraph
+  link "/uri"
+    text "link [bar"
+````````````````````````````````
+
+```````````````````````````````` example
+[link *foo **bar** `#`*](/uri)
+.
+paragraph
+  link "/uri"
+    text "link "
+    emphasis
+      text "foo "
+      strong
+        text "bar"
+      text " "
+      code "#"
+````````````````````````````````
+
+```````````````````````````````` example
+[![moon](moon.jpg)](/uri)
+.
+paragraph
+  link "/uri"
+    image "moon.jpg" alt="moon"
+````````````````````````````````
+
+```````````````````````````````` example
+[foo [bar](/uri)](/uri)
+.
+paragraph
+  text "[foo "
+  link "/uri"
+    text "bar"
+  text "](/uri)"
+````````````````````````````````
+
+```````````````````````````````` example
+![[[foo](uri1)](uri2)](uri3)
+.
+paragraph
+  image "uri3" alt="[foo](uri2)"
+````````````````````````````````
+
+```````````````````````````````` example
+*[foo*](/uri)
+.
+paragraph
+  text "*"
+  link "/uri"
+    text "foo*"
+````````````````````````````````
+
+```````````````````````````````` example
+[foo *bar](baz*)
+.
+paragraph
+  link "baz*"
+    text "foo *bar"
+````````````````````````````````
+
+```````````````````````````````` example
+[foo`](/uri)`
+.
+paragraph
+  text "[foo"
+  code "](/uri)"
+````````````````````````````````
+
+```````````````````````````````` example
+[foo][bar]
+
+[bar]: /url "title"
+.
+paragraph
+  link "/url" "title"
+    text "foo"
+````````````````````````````````
+
+```````````````````````````````` example
+[foo][BaR]
+
+[bar]: /url
+.
+paragraph
+  link "/url"
+    text "foo"
+````````````````````````````````
+
+```````````````````````````````` example
+[foo] [bar]
+
+[bar]: /url "title"
+.
+paragraph
+  text "[foo] "
+  link "/url" "title"
+    text "bar"
+````````````````````````````````
+
+```````````````````````````````` example
+[foo]: /url1
+
+[foo]: /url2
+
+[bar][foo]
+.
+paragraph
+  link "/url1"
+    text "bar"
+````````````````````````````````
+
+```````````````````````````````` example
+[bar][foo\!]
+
+[foo!]: /url
+.
+paragraph
+  text "[bar][foo!]"
+````````````````````````````````
+
+```````````````````````````````` example
+[foo][]
+
+[foo]: /url "title"
+.
+paragraph
+  link "/url" "title"
+    text "foo"
+````````````````````````````````
+
+```````````````````````````````` example
+[*foo* bar]
+
+[*foo* bar]: /url "title"
+.
+paragraph
+  link "/url" "title"
+    emphasis
+      text "foo"
+    text " bar"
+````````````````````````````````
+
+```````````````````````````````` example
+[foo]bar
+
+[foo]: /url
+.
+paragraph
+  link "/url"
+    text "foo"
+  text "bar"
+````````````````````````````````
+
+```````````````````````````````` example
+![foo](/url "title")
+.
+paragraph
+  image "/url" "title" alt="foo"
+````````````````````````````````
+
+```````````````````````````````` example
+![foo *bar*]
+
+[foo *bar*]: train.jpg "train & tracks"
+.
+paragraph
+  image "train.jpg" "train & tracks" alt="foo bar"
+````````````````````````````````
+
+```````````````````````````````` example
+![foo](<url>)
+.
+paragraph
+  image "url" alt="foo"
+````````````````````````````````
+
+```````````````````````````````` example
+<http://foo.bar.baz>
+.
+paragraph
+  link "http://foo.bar.baz"
+    text "http://foo.bar.baz"
+````````````````````````````````
+
+```````````````````````````````` example
+<https://foo.bar.baz/test?q=hello&id=22&boolean>
+.
+paragraph
+  link "https://foo.bar.baz/test?q=hello&id=22&boolean"
+    text "https://foo.bar.baz/test?q=hello&id=22&boolean"
+````````````````````````````````
+
+```````````````````````````````` example
+<MAILTO:FOO@BAR.BAZ>
+.
+paragraph
+  link "MAILTO:FOO@BAR.BAZ"
+    text "MAILTO:FOO@BAR.BAZ"
+````````````````````````````````
+
+```````````````````````````````` example
+<http://foo.bar/baz bim>
+.
+paragraph
+  text "<http://foo.bar/baz bim>"
+````````````````````````````````
+
+```````````````````````````````` example
+<foo@bar.example.com>
+.
+paragraph
+  link "mailto:foo@bar.example.com"
+    text "foo@bar.example.com"
+````````````````````````````````
+
+```````````````````````````````` example
+<foo\+@bar.example.com>
+.
+paragraph
+  text "<foo+@bar.example.com>"
+````````````````````````````````
+
+```````````````````````````````` example
+<a><bab><c2c>
+.
+paragraph
+  text "<a><bab><c2c>"
+````````````````````````````````
+
+```````````````````````````````` example
+<a  /><b2
+data="foo" >
+.
+paragraph
+  text "<a  /><b2"
+  softbreak
+  text "data=\"foo\" >"
+````````````````````````````````
+
+```````````````````````````````` example
+www.commonmark.org
+.
+paragraph
+  link "http://www.commonmark.org"
+    text "www.commonmark.org"
+````````````````````````````````
+
+```````````````````````````````` example
+Visit www.commonmark.org/help for more information.
+.
+paragraph
+  text "Visit "
+  link "http://www.commonmark.org/help"
+    text "www.commonmark.org/help"
+  text " for more information."
+````````````````````````````````
+
+```````````````````````````````` example
+Visit www.commonmark.org.
+
+Visit www.commonmark.org/a.b.
+.
+paragraph
+  text "Visit "
+  link "http://www.commonmark.org"
+    text "www.commonmark.org"
+  text "."
+paragraph
+  text "Visit "
+  link "http://www.commonmark.org/a.b"
+    text "www.commonmark.org/a.b"
+  text "."
+````````````````````````````````
+
+```````````````````````````````` example
+www.google.com/search?q=Markup+(business)
+
+www.google.com/search?q=Markup+(business)))
+
+(www.google.com/search?q=Markup+(business))
+.
+paragraph
+  link "http://www.google.com/search?q=Markup+(business)"
+    text "www.google.com/search?q=Markup+(business)"
+paragraph
+  link "http://www.google.com/search?q=Markup+(business)"
+    text "www.google.com/search?q=Markup+(business)"
+  text "))"
+paragraph
+  text "("
+  link "http://www.google.com/search?q=Markup+(business)"
+    text "www.google.com/search?q=Markup+(business)"
+  text ")"
+````````````````````````````````
+
+```````````````````````````````` example
+www.commonmark.org/he<lp
+.
+paragraph
+  link "http://www.commonmark.org/he"
+    text "www.commonmark.org/he"
+  text "<lp"
+````````````````````````````````
+
+```````````````````````````````` example
+http://commonmark.org
+
+(Visit https://encrypted.google.com/search?q=Markup+(business))
+.
+paragraph
+  link "http://commonmark.org"
+    text "http://commonmark.org"
+paragraph
+  text "(Visit "
+  link "https://encrypted.google.com/search?q=Markup+(business)"
+    text "https://encrypted.google.com/search?q=Markup+(business)"
+  text ")"
+````````````````````````````````
+
+```````````````````````````````` example
+~~Hi~~ Hello, ~there~ world!
+.
+paragraph
+  strike
+    text "Hi"
+  text " Hello, "
+  strike
+    text "there"
+  text " world!"
+````````````````````````````````
+
+```````````````````````````````` example
+This ~~has a
+
+new paragraph~~.
+.
+paragraph
+  text "This ~~has a"
+paragraph
+  text "new paragraph~~."
+````````````````````````````````
+
+```````````````````````````````` example
+This will ~~~not~~~ strike.
+.
+paragraph
+  text "This will ~~~not~~~ strike."
+````````````````````````````````
+
+```````````````````````````````` example
+| foo | bar |
+| --- | --- |
+| baz | bim |
+.
+table none,none
+  header
+    cell
+      text "foo"
+    cell
+      text "bar"
+  row
+    cell
+      text "baz"
+    cell
+      text "bim"
+````````````````````````````````
+
+```````````````````````````````` example
+| abc | defghi |
+:-: | -----------:
+bar | baz
+.
+table center,right
+  header
+    cell
+      text "abc"
+    cell
+      text "defghi"
+  row
+    cell
+      text "bar"
+    cell
+      text "baz"
+````````````````````````````````
+
+```````````````````````````````` example
+| f\|oo  |
+| ------ |
+| b `\|` az |
+| b **\|** im |
+.
+table none
+  header
+    cell
+      text "f|oo"
+  row
+    cell
+      text "b "
+      code "|"
+      text " az"
+  row
+    cell
+      text "b "
+      strong
+        text "|"
+      text " im"
+````````````````````````````````
+
+```````````````````````````````` example
+| abc | def |
+| --- | --- |
+| bar | baz |
+> bar
+.
+table none,none
+  header
+    cell
+      text "abc"
+    cell
+      text "def"
+  row
+    cell
+      text "bar"
+    cell
+      text "baz"
+quote
+  paragraph
+    text "bar"
+````````````````````````````````
+
+```````````````````````````````` example
+| abc | def |
+| --- | --- |
+| bar | baz |
+bar
+
+bar
+.
+table none,none
+  header
+    cell
+      text "abc"
+    cell
+      text "def"
+  row
+    cell
+      text "bar"
+    cell
+      text "baz"
+  row
+    cell
+      text "bar"
+    cell
+paragraph
+  text "bar"
+````````````````````````````````
+
+```````````````````````````````` example
+| abc | def |
+| --- |
+| bar |
+.
+paragraph
+  text "| abc | def |"
+  softbreak
+  text "| --- |"
+  softbreak
+  text "| bar |"
+````````````````````````````````
+
+```````````````````````````````` example
+| abc | def |
+| --- | --- |
+| bar |
+| bar | baz | boo |
+.
+table none,none
+  header
+    cell
+      text "abc"
+    cell
+      text "def"
+  row
+    cell
+      text "bar"
+    cell
+  row
+    cell
+      text "bar"
+    cell
+      text "baz"
+````````````````````````````````
+
+```````````````````````````````` example
+| abc | def |
+| --- | --- |
+.
+table none,none
+  header
+    cell
+      text "abc"
+    cell
+      text "def"
+````````````````````````````````
+
+```````````````````````````````` example
+para
+| a | b |
+|---|:--|
+| 1 | 2 |
+.
+paragraph
+  text "para"
+table none,left
+  header
+    cell
+      text "a"
+    cell
+      text "b"
+  row
+    cell
+      text "1"
+    cell
+      text "2"
+````````````````````````````````
+

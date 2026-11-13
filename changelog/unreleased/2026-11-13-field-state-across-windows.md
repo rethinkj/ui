@@ -1,0 +1,1 @@
+- A text field with a `FieldState` keeps its caret, selection, scroll and undo history when it moves to the tree of another `App` of the same state, as a tab moved to another window, whichever of the two apps builds first.

@@ -24,6 +24,9 @@ package com.rethinkj.ui;
 public final class FieldState {
 
   Editor editor;
+  // The app whose tree has the field: another app of the same state takes it over, as a window
+  // that a tab moves to.
+  Object app;
   // The identity of the field that has it in the build of this number, to find two fields with one.
   Object id;
   long build = -1;

@@ -422,6 +422,11 @@ final class Editor {
     leftY = el.scrollY();
   }
 
+  /** The field it was attached to last. */
+  El element() {
+    return el;
+  }
+
   /**
    * The editor comes back into the tree with a field of a new tree, as a {@link FieldState} brings
    * it: the field scrolls to where it was when it left, or to the start the first time.
@@ -1199,6 +1204,7 @@ final class Editor {
         : null;
     t.decorate(viewX, selection, box, underline);
     t.showCaret(caretOn);
+    el.placeRanges();
     el.placeGutter(lines().line(Math.min(caret, text.length())));
   }
 

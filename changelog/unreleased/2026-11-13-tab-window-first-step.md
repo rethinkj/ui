@@ -1,0 +1,1 @@
+- `TabGroups`: a window dragged by its only tab stays where the pointer holds the tab also when the drag's first step is already over another window.

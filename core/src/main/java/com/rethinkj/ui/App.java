@@ -217,7 +217,7 @@ public final class App<S> {
   private boolean ran; // a handler ran in this frame; see ranHandlers()
   private Object selecting; // the identity of the field a press is selecting in, until pointer up
   private Editor blinking; // the editor of the focused field
-  private long builds; // the number of the view's last build, for the fields' FieldState
+  long builds; // the number of the view's last build, for the fields' FieldState; tests read it
   private El typingSoon; // a field of the last tree that a press not dispatched yet lands in
   private double blinkStart; // when its caret last turned on
   private boolean caretOn;
@@ -922,6 +922,7 @@ public final class App<S> {
       settle();
       wake();
       List<El> order = focusables();
+      order.removeIf(el -> el.skipsTab() && el != focused);
       if (!order.isEmpty()) {
         int step = key.modifiers() == Key.SHIFT ? -1 : 1;
         int at = order.indexOf(focused);
@@ -1725,7 +1726,7 @@ public final class App<S> {
     enqueue(() -> {
       settle();
       El el = id == null ? null : animator.element(id);
-      scrolled |= el != null && el.scrollTo(el.scrollX(), row * (double) el.rowHeight());
+      scrolled |= el != null && el.scrollTo(el.scrollX(), el.rowOffset(row));
       return false;
     });
   }
@@ -2179,13 +2180,17 @@ public final class App<S> {
       FieldState state = el.fieldState();
       Editor editor = state == null ? editors.computeIfAbsent(id, i -> new Editor(el)) : null;
       if (state != null) {
-        if (state.build == builds && !state.id.equals(id)) {
+        if (state.app == this && state.build == builds && !state.id.equals(id)) {
           throw new IllegalStateException("Two text fields have the same FieldState. Give each"
               + " field a FieldState of its own, kept in the app's state with what it edits.");
+        }
+        if (state.app != this && state.app != null && state.editor != null) {
+          state.editor.leave(); // from another app's tree, as a tab to another window: once more
         }
         if (state.id != null && !state.id.equals(id) && editors.get(state.id) == state.editor) {
           editors.remove(state.id); // the field moved
         }
+        state.app = this;
         state.build = builds;
         state.id = id;
         if (state.editor == null) {
@@ -2230,7 +2235,10 @@ public final class App<S> {
       if (editor == waiting || kept.contains(editor)) {
         return false;
       }
-      editor.leave(); // its element may be fading out
+      FieldState state = editor.element().fieldState();
+      if (state == null || state.app == this) { // not taken by another app's tree meanwhile
+        editor.leave(); // its element may be fading out
+      }
       return true;
     });
     blink(focused == null ? null : focused.editor());
@@ -2467,7 +2475,9 @@ public final class App<S> {
     float top = parentY + el.y();
     int[] range = el.wantedRows(left, top, clipLeft, clipRight, width, height);
     boolean built = range != null;
-    if (built) {
+    // Rows as high as their content may cover less or more than estimated: a second pass, or a
+    // third, builds the rows the measured heights show.
+    for (int pass = 0; range != null && pass < 3; pass++) {
       Object id = Animator.identities(path).getLast();
       el.makeRows(range[0], range[1]);
       tellRows(el, id, range[0], range[1] - 1);
@@ -2481,6 +2491,8 @@ public final class App<S> {
         Overlays.layout(row, width, height); // after the looks, which may attach overlays
       }
       animator.rows(el, id, time);
+      range = el.measuresRows() ? el.wantedRows(left, top, clipLeft, clipRight, width, height)
+          : null;
     }
     if (el.style().overflowX != Style.Overflow.VISIBLE) {
       clipLeft = Math.max(clipLeft, left);
@@ -3088,6 +3100,13 @@ public final class App<S> {
   private static boolean contains(El el, float parentX, float parentY, float x, float y) {
     if (!el.isPlaced() || el.opacity() == 0 || el.isExiting()) {
       return false;
+    }
+    List<Text.Box> rows = el.rangeBoxes();
+    if (rows != null) { // over a range of its parent's text: only its rows
+      float rx = x - parentX - el.x();
+      float ry = y - parentY - el.y();
+      return rows.stream().anyMatch(r -> rx >= r.x() && rx < r.x() + r.width()
+          && ry >= r.y() && ry < r.y() + r.height());
     }
     float halfW = el.width() / 2;
     float halfH = el.height() / 2;

@@ -1,6 +1,7 @@
 package com.rethinkj.ui.examples;
 
 import static com.rethinkj.ui.El.col;
+import static com.rethinkj.ui.examples.TitleBar.titleBar;
 import static com.rethinkj.ui.examples.TitleBar.withMenus;
 import static com.rethinkj.ui.kit.Button.Variant.PRIMARY;
 import static com.rethinkj.ui.kit.Button.Variant.SECONDARY;
@@ -8,7 +9,6 @@ import static com.rethinkj.ui.kit.Button.button;
 import static com.rethinkj.ui.kit.DataGrid.dataGrid;
 import static com.rethinkj.ui.kit.Button.Variant.GHOST;
 import static com.rethinkj.ui.kit.CodeEditor.codeEditor;
-import static com.rethinkj.ui.kit.Tabs.tabs;
 import static com.rethinkj.ui.kit.TextField.textField;
 import static com.rethinkj.ui.kit.Toggle.toggle;
 import static com.rethinkj.ui.kit.Tree.tree;
@@ -41,6 +41,7 @@ import com.rethinkj.ui.kit.Sql;
 import com.rethinkj.ui.kit.Split.Direction;
 import com.rethinkj.ui.kit.Split.Position;
 import com.rethinkj.ui.kit.Symbol;
+import com.rethinkj.ui.kit.TabGroups;
 import com.rethinkj.ui.kit.Tabs.Tab;
 import com.rethinkj.ui.kit.Theme;
 import com.rethinkj.ui.kit.Tree;
@@ -49,6 +50,7 @@ import com.rethinkj.ui.text.TextRendering;
 import com.rethinkj.ui.window.Window;
 import com.rethinkj.ui.window.WindowIcon;
 import com.rethinkj.ui.window.WindowLoop;
+import com.rethinkj.ui.window.Windows;
 import java.io.IOException;
 import java.net.ConnectException;
 import java.time.Duration;
@@ -61,6 +63,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Locale;
 import java.util.Set;
+import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -81,7 +84,15 @@ import java.util.regex.Pattern;
  * com.rethinkj.ui.kit.TextField#codeArea}) holds its statement; Control+Enter runs it, which asks
  * for the number of rows again, at most as many as its {@code LIMIT} says, on a thread of its own.
  * The taskbar button counts the questions on their way, and asks for attention when an answer
- * arrives while the window is in the background.
+ * arrives while the windows are in the background.
+ *
+ * <p>The tabs move and tear off ({@link TabGroups}): a tab dragged out of the bar gets a window
+ * of its own, the workbench in small, with its title bar, the tabs and the tab's status line, and
+ * goes back into any bar it is dropped on; its menu does the same without dragging. A tab keeps
+ * its statement with caret, selection, scroll and history ({@link CodeEditor.State}), its
+ * completions and its selection in the grid in its own state, so that it comes to another window
+ * as it was, and an answer on its way arrives in whichever window the tab is in then. Closing a
+ * tab's window puts its tabs back into the first window; closing the first closes them all.
  *
  * <p>The work gets the names it asks about, never the nodes: they are the app's state, which only
  * the handlers touch, on the app's thread. Under a script the latency is 0, and the script's
@@ -115,7 +126,7 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
 
   /** A table in a tab: its number of rows once the server said, its selection and widths. */
   static final class Opened {
-    final Node table;
+    final Node table; // null for the Start tab
     int rows = -1; // until the server answers
     int answered = -1; // the rows of the last answer, which a statement that fails leaves shown
     Work asking; // the question for the rows, cancelled with the tab or by the next one
@@ -126,6 +137,13 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
     final Selection selection = new Selection(Mode.ROWS);
     final float[] widths;
 
+    /** The Start tab, which says how to open a table. */
+    Opened() {
+      table = null;
+      query = "";
+      widths = new float[0];
+    }
+
     Opened(Node table) {
       this.table = table;
       query = "SELECT *\nFROM " + table.parent.parent.name + "." + table.parent.name + "."
@@ -134,6 +152,16 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
       for (int c = 0; c < widths.length; c++) {
         widths[c] = field(table.children.get(c).name).width();
       }
+    }
+
+    /** The title of its tab, also of a window it has alone. */
+    String title() {
+      return table == null ? "Start" : table.name;
+    }
+
+    @Override
+    public String toString() {
+      return title();
     }
   }
 
@@ -170,6 +198,9 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
   private static final LocalDateTime START = LocalDateTime.of(2026, 1, 5, 8, 0);
   private static final DateTimeFormatter TIME = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
   static final Position SIDEBAR = Position.first(260);
+  static final int MARK = 0xFF0F766E; // the app's colour, in its icon
+  static final float TAB_WIDTH = 760; // a tab's window
+  static final float TAB_HEIGHT = 480;
   static final double MESSAGE_SECONDS = 5; // how long a message stays in the status line
   // What the made-up server reads of a statement: how many rows it asks for.
   private static final Pattern LIMIT =
@@ -184,8 +215,10 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
   final Set<Node> open = new HashSet<>();
   final Set<Node> connecting = new HashSet<>(); // servers whose answer is on its way
   Node selected;
-  final List<Opened> tables = new ArrayList<>(); // the tabs after the first
-  int active; // the index of the active tab, 0 for the first
+  final Opened start = new Opened();
+  // The tabs of every window: the first window's, Start among them, and those torn off.
+  final TabGroups<Opened> groups = new TabGroups<>(List.of(start), this::openWindow)
+      .onClosed(this::closed);
   Position sidebar = SIDEBAR;
   boolean dark = true;
   String message; // in the status line for a while, or null
@@ -194,8 +227,7 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
   final Menu.State menu = new Menu.State(); // the tree's context menu, for the selected node
   Node dropping; // the table the dialog asks about, or null while it is closed
   String confirm = ""; // the name typed into the dialog
-  Window window; // the window it runs in, for the taskbar; null under a script
-  Runnable quit; // ends the window's loop; null under a script
+  Window window; // the first window, for the taskbar; null under a script
   final MenuBar.State bar = new MenuBar.State();
 
   Workbench() {
@@ -352,27 +384,46 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
     if (table.kind != Kind.TABLE) {
       return;
     }
-    for (int i = 0; i < tables.size(); i++) {
-      if (tables.get(i).table == table) {
-        active = i + 1;
-        return;
+    for (TabGroups.Group<Opened> g : groups.groups()) { // in whichever window it is
+      for (int i = 0; i < g.tabs().size(); i++) {
+        if (g.tabs().get(i).table == table) {
+          groups.select(g, i);
+          if (g.window() != null) {
+            g.window().raise();
+          }
+          return;
+        }
       }
     }
-    openTab(table);
+    openTab(groups.main(), table);
   }
 
-  private void openTab(Node table) {
+  private void openTab(TabGroups.Group<Opened> group, Node table) {
     Opened o = new Opened(table);
     ask(o, Integer.MAX_VALUE, null, 0, 0);
-    tables.add(o);
-    active = tables.size();
+    groups.add(group, group.tabs().size(), o);
     taskbar(); // again, now that the tab counts
   }
 
+  /** The tables open in tabs, in every window. */
+  List<Opened> tables() {
+    List<Opened> all = new ArrayList<>();
+    for (TabGroups.Group<Opened> g : groups.groups()) {
+      g.tabs().stream().filter(o -> o.table != null).forEach(all::add);
+    }
+    return all;
+  }
+
+  /** The active tab of a window if it shows a table, else null. */
+  static Opened shown(TabGroups.Group<Opened> group) {
+    Opened o = group.activeTab();
+    return o == null || o.table == null ? null : o;
+  }
+
   /** The table File's New query opens another tab of: the active tab's, else the selected. */
-  Node queryTable() {
-    if (active > 0) {
-      return tables.get(active - 1).table;
+  Node queryTable(TabGroups.Group<Opened> group) {
+    if (shown(group) != null) {
+      return shown(group).table;
     }
     if (selected == null || selected.kind != Kind.TABLE && selected.kind != Kind.COLUMN) {
       return null;
@@ -510,14 +561,43 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
     }
   }
 
-  void close(int tab) {
-    Opened o = tables.remove(tab - 1);
+  /** A tab was closed, in any window. */
+  void closed(Opened o) {
     if (o.asking != null) {
       o.asking.cancel(); // its answer is not wanted any more
     }
     taskbar();
-    if (tab < active || active > tables.size()) {
-      active--;
+  }
+
+  /**
+   * Opens the window of a tab torn off or moved to a new window: the workbench in small, with the
+   * app's icon and a view of its own over the same state.
+   */
+  Windows.Handle openWindow(TabGroups.Group<Opened> group, Window.Options options) {
+    App<Workbench> window = new App<>(this, s -> s.windowView(group));
+    window.textRendering(app.textRendering());
+    Windows windows = app.windows();
+    windows.of(app).onCloseRequest(this::quit); // closing the first window closes them all
+    return windows.open(group.activeTab().title(), TAB_WIDTH, TAB_HEIGHT,
+        options.frameless().minimumSize(480, 320).icon(Identity.icon(MARK, Symbol.DATABASE)),
+        window);
+  }
+
+  /** The app of a group's window, where its fields and handlers are. */
+  @SuppressWarnings("unchecked") // every window runs an app of this state
+  App<Workbench> appOf(TabGroups.Group<Opened> group) {
+    return group.window() == null ? app : (App<Workbench>) group.window().app();
+  }
+
+  /** Closes every window, which ends the app, and gives up the questions on their way. */
+  void quit() {
+    for (Opened o : tables()) {
+      if (o.asking != null) {
+        o.asking.cancel();
+      }
+    }
+    for (Windows.Handle open : app.windows().all()) {
+      open.close();
     }
   }
 
@@ -552,7 +632,7 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
 
   /** The questions on their way: servers connecting and tables counting their rows. */
   int running() {
-    return connecting.size() + (int) tables.stream().filter(o -> o.asking != null).count();
+    return connecting.size() + (int) tables().stream().filter(o -> o.asking != null).count();
   }
 
   /** Shows the number of questions on their way on the taskbar button, or nothing for none. */
@@ -567,10 +647,14 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
         n == 1 ? "1 question running" : n + " questions running");
   }
 
-  /** An answer arrived: the badge counts one less, and a window in the background asks to look. */
+  /**
+   * An answer arrived: the badge counts one less, and while no window of the app has the focus,
+   * the first asks to look.
+   */
   void answered() {
     taskbar();
-    if (window != null && !window.isFocused()) {
+    if (window != null && app.windows().all().stream()
+        .noneMatch(h -> h.window() != null && h.window().isFocused())) {
       window.attention(Window.Attention.UNTIL_FOCUSED);
     }
   }
@@ -599,42 +683,31 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
     }
     s.latency = Duration.ofMillis(800);
     app.textRendering(TextRendering.platform());
-    Window.Options options = Identity.options(Workbench.class, "Workbench", 0xFF0F766E,
+    Window.Options options = Identity.options(Workbench.class, "Workbench", MARK,
         Symbol.DATABASE).frameless().minimumSize(640, 400);
     try (Window window = Window.open("Workbench", 1200, 720, options);
         GpuPresenter presenter = new GpuPresenter(window)) {
       s.window = window;
-      WindowLoop loop = new WindowLoop(window, app, presenter);
-      s.quit = loop::stop;
-      loop.run();
+      new WindowLoop(window, app, presenter).run();
     }
   }
 
   // The view
 
+  /** The first window's view: the catalogue beside the tabs of the main group. */
   static El view(Workbench s) {
     Theme t = s.theme();
-    List<Tab> tabs = new ArrayList<>(List.of(new Tab("Start", false, false)));
-    s.tables.forEach(o -> tabs.add(new Tab(o.table.name).icon(Symbol.TABLE)));
-    // The tab's content over a footer with the status, which shows on every tab, and where the
-    // caret of the tab's query is.
-    Opened shown = s.active == 0 ? null : s.tables.get(s.active - 1);
-    El content = col().grow(1)
-        .child(shown == null ? start(t) : table(t, s, shown))
-        .child(Card.footer(t, Label.label(t, Label.Variant.MUTED, s.status()).key("status")
-            .ellipsis(), shown == null ? new El[0]
-            : new El[] {Label.label(t, Label.Variant.MUTED, position(shown)).key("position")}));
-    El right = tabs(t, tabs, s.active, i -> s.active = i, s::close, content);
+    El right = s.tabs(t, s.groups.main());
     El tree = tree(t, s, s.open::contains, s.selected, n -> s.selected = n, s::openOrClose,
         s::activate).key("catalogue").label("Catalogue");
     El catalogue = Card.flush(t,
         Card.toolbar(t, "Connections", null, Button.icon(t, GHOST, Symbol.ADD, "Add connection",
             () -> s.tell("Adding a connection is not part of this example"))),
         Card.inset(t, Menu.contextMenu(t, tree, s.menu, s.menuItems())));
-    List<Menu.Item> menus = s.menus();
+    List<Menu.Item> menus = s.menus(s.groups.main());
     El root = col().wFull().hFull().fill(t.surface().window())
         // The menus' keys, then the tabs' keys also while the tree has the focus.
-        .onKey(MenuBar.keys(s.bar, menus).or(right.onKey()))
+        .onKey(or(MenuBar.keys(s.bar, menus), right.onKey()))
         .onKeyUp(MenuBar.keysUp(s.bar, menus))
         .child(withMenus(t, "Workbench", t.accent().color(), MenuBar.menuBar(t, s.bar, menus),
             toggle(t, s.dark, "Dark", () -> s.dark = !s.dark)))
@@ -657,23 +730,59 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
     return root;
   }
 
-  /** The menus of the title bar. */
-  List<Menu.Item> menus() {
-    Opened o = active == 0 ? null : tables.get(active - 1);
-    Node table = queryTable();
+  /**
+   * The view of a tab's window, the workbench in small: the title bar with the active tab's
+   * title over the group's tabs, without the catalogue, the theme's switch and the menu bar,
+   * whose key combinations work here too, for this window's tabs.
+   */
+  El windowView(TabGroups.Group<Opened> group) {
+    Theme t = theme();
+    El tabs = tabs(t, group);
+    Opened active = group.activeTab();
+    return col().wFull().hFull().fill(t.surface().window())
+        .onKey(or(Menu.shortcuts(menus(group)), tabs.onKey()))
+        .child(titleBar(t, active == null ? "Workbench" : active.title(), t.accent().color()))
+        .child(col().grow(1).padding(0, t.space().m(), t.space().m(), t.space().m())
+            .child(tabs.key("tabs").grow(1)));
+  }
+
+  /** The menus' keys, then the tabs' keys, which an empty group has none of. */
+  private static Predicate<Key> or(Predicate<Key> menus, Predicate<Key> tabs) {
+    return tabs == null ? menus : menus.or(tabs);
+  }
+
+  /** The tabs of a window, each the tab's content over a footer with its status. */
+  private El tabs(Theme t, TabGroups.Group<Opened> group) {
+    boolean main = group == groups.main();
+    return groups.tabs(t, group,
+        o -> o.table == null ? new Tab("Start", false, false) : new Tab(o.table.name)
+            .icon(Symbol.TABLE),
+        o -> {
+          // The tab's content over a footer with the status, which shows on every tab, and where
+          // the caret of the tab's query is.
+          Opened shown = o == null || o.table == null ? null : o;
+          return col().grow(1)
+              .child(shown == null ? start(t) : table(t, this, shown, appOf(group)))
+              .child(Card.footer(t, Label.label(t, Label.Variant.MUTED, status(shown, main))
+                  .key("status").ellipsis(), shown == null ? new El[0]
+                  : new El[] {Label.label(t, Label.Variant.MUTED, position(shown))
+                      .key("position")}));
+        });
+  }
+
+  /** The menus of the title bar, for the tabs of a window. */
+  List<Menu.Item> menus(TabGroups.Group<Opened> group) {
+    Opened o = shown(group);
+    Node table = queryTable(group);
     return List.of(
         Menu.submenu("&File", List.of(
-            Menu.item("New query", table == null ? null : () -> openTab(table))
+            Menu.item("New query", table == null ? null : () -> openTab(group, table))
                 .icon(Symbol.ADD).shortcut(Key.CONTROL, "N"),
-            Menu.item("Close tab", o == null ? null : () -> close(active))
+            Menu.item("Close tab", o == null ? null : () -> groups.close(group, group.active()))
                 .shortcut(Key.CONTROL, "W"),
             Menu.separator(),
-            Menu.item("Exit", () -> {
-              if (quit != null) {
-                quit.run();
-              }
-            }))),
-        Menu.submenu("&Edit", edits(o)),
+            Menu.item("Exit", this::quit))),
+        Menu.submenu("&Edit", edits(o, appOf(group))),
         Menu.submenu("&View", List.of(
             Menu.item("Dark theme", () -> dark = true).checked(dark),
             Menu.item("Light theme", () -> dark = false).checked(!dark))),
@@ -686,36 +795,37 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
    * Edit's items, for the query of the active tab: what the app can do with {@link App#edit},
    * {@link App#select}, {@link App#undo}, {@link App#redo} and the clipboard.
    */
-  private List<Menu.Item> edits(Opened o) {
+  private List<Menu.Item> edits(Opened o, App<Workbench> app) {
     int from = o == null ? 0 : Math.min(o.editor.caret(), o.editor.anchor());
     int to = o == null ? 0 : Math.min(Math.max(o.editor.caret(), o.editor.anchor()),
         o.query.length());
     boolean some = o != null && from < to;
     return List.of(
-        Menu.item("Undo", o == null ? null : () -> app.undo(query(o))).icon(Symbol.ARROW_UNDO)
-            .shortcut("Ctrl+Z"),
-        Menu.item("Redo", o == null ? null : () -> app.redo(query(o))).icon(Symbol.ARROW_REDO)
+        Menu.item("Undo", o == null ? null : () -> app.undo(query(o, app)))
+            .icon(Symbol.ARROW_UNDO).shortcut("Ctrl+Z"),
+        Menu.item("Redo", o == null ? null : () -> app.redo(query(o, app)))
+            .icon(Symbol.ARROW_REDO)
             .shortcut("Ctrl+Shift+Z"),
         Menu.separator(),
         Menu.item("Cut", !some ? null : () -> {
           app.clipboard().write(o.query.substring(from, to));
-          app.edit(query(o), from, to, "", from);
+          app.edit(query(o, app), from, to, "", from);
         }).icon(Symbol.CUT).shortcut(Key.CONTROL, "X"),
         Menu.item("Copy", !some ? null : () -> app.clipboard().write(o.query.substring(from, to)))
             .icon(Symbol.COPY).shortcut(Key.CONTROL, "C"),
         Menu.item("Paste", o == null ? null : () -> {
           String text = app.clipboard().read();
           if (text != null && !text.isEmpty()) {
-            app.edit(query(o), from, to, text, from + text.length());
+            app.edit(query(o, app), from, to, text, from + text.length());
           }
         }).icon(Symbol.CLIPBOARD_PASTE).shortcut(Key.CONTROL, "V"),
         Menu.separator(),
         Menu.item("Select all", o == null ? null
-            : () -> app.select(query(o), o.query.length(), 0)).shortcut(Key.CONTROL, "A"));
+            : () -> app.select(query(o, app), o.query.length(), 0)).shortcut(Key.CONTROL, "A"));
   }
 
-  /** The query field of a tab in the tree the handlers run in. */
-  private El query(Opened o) {
+  /** The query field of a tab in the tree of the window it is in. */
+  private static El query(Opened o, App<Workbench> app) {
     return find(app.tree(), "query-" + o.table.path());
   }
 
@@ -744,15 +854,17 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
     return "Ln " + line + ", Col " + column;
   }
 
-  /** The message, or else what the active tab shows. */
-  String status() {
-    if (message != null) {
+  /**
+   * What the status line of a window says: in the first a message, or else what the tab shows,
+   * null for Start, which the first fills with the selected node.
+   */
+  String status(Opened o, boolean main) {
+    if (main && message != null) {
       return message;
     }
-    if (active == 0) {
-      return selected == null ? "" : selected.path();
+    if (o == null) {
+      return !main || selected == null ? "" : selected.path();
     }
-    Opened o = tables.get(active - 1);
     if (o.failure != null) {
       return o.table.path() + " · " + o.failure;
     }
@@ -777,7 +889,7 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
             "staging answers slowly, and prod-eu refuses to connect."));
   }
 
-  private static El table(Theme t, Workbench s, Opened o) {
+  private static El table(Theme t, Workbench s, Opened o, App<Workbench> app) {
     El area = codeEditor(t, o.query, o.editor, Sql.of(t), q -> {
           o.query = q;
           o.failure = null; // the next edit takes the error away
@@ -790,7 +902,7 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
           }
           return run;
         });
-    Completion.complete(t, s.app, area, o.editor.caret(), o.completion,
+    Completion.complete(t, app, area, o.editor.caret(), o.completion,
         word -> s.suggest(o, word));
     El query = col().padding(t.space().m(), t.space().l()).shrink(0).child(area);
     if (o.rows < 0) {

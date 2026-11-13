@@ -1,0 +1,1 @@
+- Added: `El.rows(count, heights, row)` is a virtual list whose rows are as high as their content, with their heights kept in a `RowHeights` the app holds; `Spans.strike(from, to, argb)` strikes out a range of a multi-line field.

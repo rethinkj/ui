@@ -162,6 +162,8 @@ class FontTest {
     assertEquals("Inter Bold", Font.sansBold().toString());
     assertEquals("Inter Medium", Font.sansMedium().toString());
     assertEquals("Inter SemiBold", Font.sansSemibold().toString());
+    assertEquals("Inter Italic", Font.sansItalic().toString());
+    assertEquals("Inter Bold Italic", Font.sansBoldItalic().toString());
     assertEquals("JetBrains Mono Regular", Font.mono().toString());
     assertEquals("JetBrains Mono Bold", Font.monoBold().toString());
     assertSame(Font.mono(), Font.mono());
