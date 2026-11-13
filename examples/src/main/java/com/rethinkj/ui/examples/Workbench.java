@@ -719,6 +719,7 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
         .onKey(or(MenuBar.keys(s.bar, menus), right.onKey()))
         .onKeyUp(MenuBar.keysUp(s.bar, menus))
         .child(withMenus(t, "Workbench", t.accent().color(), MenuBar.menuBar(t, s.bar, menus),
+            Identity.maximized(s.app),
             toggle(t, s.dark, "Dark", () -> s.dark = !s.dark)))
         .child(Split.cards(t, Direction.ROW, s.sidebar, SIDEBAR, p -> s.sidebar = p,
             catalogue, 160, right.key("tabs"), 320).grow(1)
@@ -770,7 +771,8 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
     Opened active = group.activeTab();
     return col().wFull().hFull().fill(t.surface().window())
         .onKey(or(Menu.shortcuts(menus(group)), tabs.onKey()))
-        .child(titleBar(t, active == null ? "Workbench" : active.title(), t.accent().color()))
+        .child(titleBar(t, active == null ? "Workbench" : active.title(), t.accent().color(),
+            Identity.maximized(group.window() == null ? null : group.window().app())))
         // No minimum height from the tabs, whose grid would otherwise make it as high as its rows.
         .child(col().grow(1).minSize(0, 0)
             .padding(0, t.space().m(), t.space().m(), t.space().m())

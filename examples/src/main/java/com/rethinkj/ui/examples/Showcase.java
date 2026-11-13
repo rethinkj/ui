@@ -294,7 +294,8 @@ public final class Showcase {
         .w(200).shrink(0);
     El root = col().wFull().hFull().fill(t.surface().window())
         .child(titleBar(t, "Showcase · " + s.lookTitle(),
-            s.look == Look.SYSTEM && s.systemAccent != 0 ? s.systemAccent : t.accent().color()))
+            s.look == Look.SYSTEM && s.systemAccent != 0 ? s.systemAccent : t.accent().color(),
+            Identity.maximized(s.app)))
         .child(row().grow(1).minSize(0, 0).padding(0, t.space().m(), t.space().m(), t.space().m())
             .gap(t.space().m())
             .child(sidebar)

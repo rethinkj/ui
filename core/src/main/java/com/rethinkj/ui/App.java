@@ -235,6 +235,7 @@ public final class App<S> {
   private final PriorityQueue<Timer> timers = new PriorityQueue<>();
   private long timersAsked;
   private boolean active = true; // the window has the system's keyboard focus
+  private boolean maximized; // the window is maximized
   private Object secondary; // the identity of the element a secondary press is on, until it is up
   // The overlays of the last tree the view built, in the order they opened, with where the focus
   // was before each took it; null for one that took none.
@@ -1478,6 +1479,30 @@ public final class App<S> {
       blinkStart = time;
       return false;
     });
+  }
+
+  /**
+   * The window became maximized or was restored, as a window reports it ({@link
+   * com.rethinkj.ui.window.WindowLoop} passes it on); the view is built again in the next {@link
+   * #frame}, so that a title bar of its own shows Restore in place of Maximize ({@link
+   * #windowMaximized()}).
+   */
+  public void windowMaximized(boolean maximized) {
+    enqueue(() -> {
+      if (this.maximized == maximized) {
+        return false;
+      }
+      this.maximized = maximized;
+      return true;
+    });
+  }
+
+  /**
+   * Whether the window that runs this app is maximized, as it last said ({@link
+   * #windowMaximized(boolean)}); false without a window, as in a script.
+   */
+  public boolean windowMaximized() {
+    return maximized;
   }
 
   /**

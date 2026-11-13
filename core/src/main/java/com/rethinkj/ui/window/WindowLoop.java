@@ -19,6 +19,7 @@ import com.rethinkj.ui.window.WindowEvent.PointerUp;
 import com.rethinkj.ui.window.WindowEvent.Redraw;
 import com.rethinkj.ui.window.WindowEvent.Resized;
 import com.rethinkj.ui.window.WindowEvent.ScaleChanged;
+import com.rethinkj.ui.window.WindowEvent.StateChanged;
 import com.rethinkj.ui.window.WindowEvent.TextEditing;
 import com.rethinkj.ui.window.WindowEvent.TextInput;
 import com.rethinkj.ui.window.WindowEvent.Wheel;
@@ -655,6 +656,7 @@ public final class WindowLoop {
     app.dialogs(new SystemDialogs(e.window));
     app.systemFonts(systemFonts);
     app.windows(windows);
+    app.windowMaximized(e.window.isMaximized()); // for its title bar's Restore
     e.window.listener(event -> event(e, event));
     e.window.parts(app::windowPart);
     app.onPost(() -> { // a task from another thread ends the wait
@@ -783,6 +785,7 @@ public final class WindowLoop {
           toFront(e);
         }
       }
+      case StateChanged state -> app.windowMaximized(state.maximized());
       case Resized resized -> resize(e);
       case ScaleChanged changed -> {
         resize(e);

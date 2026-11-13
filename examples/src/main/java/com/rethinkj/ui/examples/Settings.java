@@ -95,6 +95,7 @@ public final class Settings {
   }
 
   int page;
+  App<Settings> app; // whose window says whether it is maximized
   // General
   boolean reopen = true;
   boolean updates = true;
@@ -181,6 +182,7 @@ public final class Settings {
 
   public static void main(String[] args) throws IOException {
     App<Settings> app = new App<>(new Settings(), Settings::view);
+    app.state().app = app;
     // A script's images are stored, so they must not depend on the platform.
     app.textRendering(TextRendering.LINUX);
     if (Script.handle(args, app)) {
@@ -213,7 +215,7 @@ public final class Settings {
     Theme t = s.theme();
     El pages = navList(t, PAGES, s.page, i -> s.page = i).key("pages").label("Settings").grow(1);
     El root = col().wFull().hFull().fill(t.surface().window())
-        .child(titleBar(t, "Settings", t.accent().color()))
+        .child(titleBar(t, "Settings", t.accent().color(), Identity.maximized(s.app)))
         .child(row().grow(1).minSize(0, 0).padding(0, t.space().m(), t.space().m(), t.space().m())
             .gap(t.space().m()).children(
             Card.flush(t, Card.inset(t, pages)).w(200).shrink(0),

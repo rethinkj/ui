@@ -29,9 +29,11 @@ public final class LightSwitch {
   private static final int LAMP = 0xFFFACC15;
 
   boolean on;
+  App<LightSwitch> app; // whose window says whether it is maximized
 
   public static void main(String[] args) throws IOException {
     App<LightSwitch> app = new App<>(new LightSwitch(), LightSwitch::view);
+    app.state().app = app;
     // A script's images are stored, so they must not depend on the platform.
     app.textRendering(TextRendering.LINUX);
     if (Script.handle(args, app)) {
@@ -51,7 +53,7 @@ public final class LightSwitch {
     El lamp = el().key("lamp").size(56, 56).radius(28).fill(s.on ? LAMP : t.surface().raised())
         .motion(t.motion().move());
     return col().wFull().hFull().fill(t.surface().window())
-        .child(titleBar(t, "Lights", LAMP))
+        .child(titleBar(t, "Lights", LAMP, Identity.maximized(s.app)))
         .child(col().grow(1).center()
             .child(Card.card(t, lamp, toggle(t, s.on, "Lamp", () -> s.on = !s.on))
                 .padding(t.space().xxl()).gap(t.space().xl()).align(Style.Align.CENTER)));

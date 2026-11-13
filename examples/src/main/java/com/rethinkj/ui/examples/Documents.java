@@ -160,9 +160,11 @@ public final class Documents {
       List<Menu.Item> menus = menus(group);
       root.onKey(MenuBar.keys(bar, menus).or(tabs.onKey())) // the tabs' keys from anywhere
           .onKeyUp(MenuBar.keysUp(bar, menus))
-          .child(withMenus(t, "Documents", MARK, MenuBar.menuBar(t, bar, menus), dark));
+          .child(withMenus(t, "Documents", MARK, MenuBar.menuBar(t, bar, menus),
+          Identity.maximized(window), dark));
     } else {
-      root.onKey(tabs.onKey()).child(titleBar(t, "Documents", MARK, dark));
+      root.onKey(tabs.onKey())
+          .child(titleBar(t, "Documents", MARK, Identity.maximized(window), dark));
     }
     root.child(col().key("tabs").grow(1).padding(0, t.space().m(), t.space().m(), t.space().m())
         .child(tabs.grow(1)));

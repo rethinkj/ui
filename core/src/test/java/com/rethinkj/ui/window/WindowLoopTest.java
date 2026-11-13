@@ -276,6 +276,40 @@ class WindowLoopTest {
   }
 
   @Test
+  void theAppHearsWhetherItsWindowIsMaximized() {
+    try (Window window = Window.open(TITLE, 300, 200)) {
+      Desktop.settle();
+      List<Boolean> built = new ArrayList<>(); // what each build of the view was told
+      @SuppressWarnings("unchecked")
+      App<List<Boolean>>[] self = new App[1];
+      self[0] = new App<>(built, b -> {
+        b.add(self[0].windowMaximized());
+        return el().size(10, 10);
+      });
+      App<List<Boolean>> told = self[0];
+      int[] step = {0};
+      AtomicReference<WindowLoop> loop = new AtomicReference<>();
+      loop.set(new WindowLoop(window, told, (scene, w, h, s) -> {}).waits((millis, held) -> {
+        if (step[0] == 0 && !built.isEmpty()) {
+          step[0] = 1;
+          window.maximize();
+        } else if (step[0] == 1 && told.windowMaximized()) {
+          step[0] = 2;
+          window.restore();
+        } else if (step[0] == 2 && !told.windowMaximized()) {
+          step[0] = 3;
+          loop.get().stop();
+        }
+      }));
+      Desktop.run(loop.get(), () -> "maximized and restored, step " + step[0] + ", " + built);
+      assertEquals(3, step[0]);
+      assertEquals(Boolean.FALSE, built.getFirst());
+      assertTrue(built.contains(Boolean.TRUE), "a build while maximized: " + built);
+      assertEquals(Boolean.FALSE, built.getLast(), "and one after the restore");
+    }
+  }
+
+  @Test
   void theClosePartEndsTheLoop() {
     try (Window window = Window.open(TITLE, 300, 200, Window.options().frameless())) {
       Desktop.settle();
