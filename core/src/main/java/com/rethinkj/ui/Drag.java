@@ -14,8 +14,9 @@ import com.rethinkj.ui.window.Windows;
  * @param x where the pointer is in the element's content, in logical pixels: from the left of its
  *     border box as the last frame shows it, plus its own horizontal scroll offset; so in a scroll
  *     area, which content is under the pointer, also when the area scrolled during the drag. The
- *     wheel's scrolling of the frame that runs this step comes after it. NaN for a cancel because
- *     the element has left the tree.
+ *     wheel's scrolling of the frame that runs this step comes after it. NaN once the element has
+ *     left the tree: for a cancel, and for the steps of a drag with a {@link El#dragPayload
+ *     payload}, which goes on without it.
  * @param y the same downwards; a double, exact in a list of rows millions of pixels tall
  * @param screenX where the pointer is on the screen, in the units of {@link
  *     com.rethinkj.ui.window.Window#moveTo}: physical pixels on Windows and X11, on Wayland its
@@ -53,8 +54,9 @@ public record Drag(Phase phase, float dx, float dy, double x, double y, float sc
     /** The button was released: the drag is done, with this distance. */
     END,
     /**
-     * The drag was given up before the button was released: its element left the tree, or the
-     * pointer went down again without a release in between. Undo what it changed.
+     * The drag was given up before the button was released: its element left the tree, unless
+     * the drag carries a {@link El#dragPayload payload}, or the pointer went down again without a
+     * release in between. Undo what it changed.
      */
     CANCEL
   }

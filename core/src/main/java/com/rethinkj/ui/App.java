@@ -699,9 +699,12 @@ public final class App<S> {
       return false;
     }
     El el = animator.element(d.id);
-    boolean gone = el == null || el.isExiting();
+    // A drag that carries a payload goes on without its element: what moves is the payload, as a
+    // tab torn out of its bar.
+    boolean left = el == null || el.isExiting();
+    boolean gone = left && d.payload == null;
     d.over = gone || phase == Drag.Phase.END || phase == Drag.Phase.CANCEL;
-    double[] at = gone ? new double[] {Double.NaN, Double.NaN} : content(el, d.x + dx, d.y + dy);
+    double[] at = left ? new double[] {Double.NaN, Double.NaN} : content(el, d.x + dx, d.y + dy);
     Drag.Phase now = gone ? Drag.Phase.CANCEL : phase;
     float px = d.x + dx;
     float py = d.y + dy;
@@ -1188,6 +1191,20 @@ public final class App<S> {
     textRendering = Objects.requireNonNull(rendering, "rendering");
     stale = true;
   }
+  /** The rendering of {@link #textRendering(TextRendering)}. */
+  public TextRendering textRendering() {
+    return textRendering;
+  }
+
+  /** For {@link Script}: runs {@code handler} as the handler of an input, at its turn. */
+  void request(Runnable handler) {
+    enqueue(() -> {
+      handled = true;
+      handler.run();
+      return true;
+    });
+  }
+
 
   /**
    * Sets whether characters that a text's font and its fallbacks lack come from the fonts installed
