@@ -74,7 +74,7 @@ snap switch-on
 Run it, and look at the three images and trees in `core/target/switch`:
 
 ```sh
-mvn -q -pl core test-compile
+mvn -q -pl core -am test-compile
 java -cp core/target/classes:core/target/test-classes com.rethinkj.ui.Examples \
   --script core/src/test/resources/scripts/switch.txt --out core/target/switch
 ```
