@@ -120,7 +120,8 @@ public final class Progress {
   }
 
   /**
-   * A spinner: a faint ring in {@link Theme.Borders#subtle} round which a light arc in the accent's
+   * A spinner: a faint ring in {@link Theme.Borders#track}, which shows on every surface and
+   * selection, round which a light arc in the accent's
    * edge runs once per {@link Theme.Motion#spin} seconds. The core has no rotation and no arcs, so
    * the arc is four crescents, each the ring's box with a border on one side alone, which tapers
    * to nothing a quarter of a turn either way; their opacities follow the light round, each fading
@@ -130,7 +131,7 @@ public final class Progress {
    * @param size the side, such as {@code size().icon()} for a button or a row
    */
   public static El spinner(Theme t, float size) {
-    return spinner(t, size, t.accent().edge(), t.border().subtle());
+    return spinner(t, size, t.accent().edge(), t.border().track());
   }
 
   /** A spinner in other colours, as on a primary button. */

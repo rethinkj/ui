@@ -274,8 +274,17 @@ public record Theme(
    *     checkbox's box, which stand out 3:1 from the surfaces
    * @param control the edge of a button and of other controls that their text names, quieter
    *     than {@code strong}, and of popups and dialogs
+   * @param track translucent, a faint line that keeps one contrast on every surface, band and
+   *     selection it lies on: a {@link Progress#spinner}'s ring
    */
-  public record Borders(int subtle, int strong, int control) {}
+  public record Borders(int subtle, int strong, int control, int track) {
+
+    /** Borders whose track is {@code strong} at 35 % in a dark theme, 40 % in a light one. */
+    public Borders(int subtle, int strong, int control) {
+      this(subtle, strong, control,
+          (lightness(subtle) < 0.5 ? 0x59000000 : 0x66000000) | strong & 0xFFFFFF);
+    }
+  }
 
   /**
    * The colour of the main action and of what is on, with its hover and pressed variants.
@@ -585,7 +594,7 @@ public record Theme(
           new Surfaces(0xFF0F1013, 0xFF17181C, 0xFF1E2025, 0xFF1A1B20, 0x4045464C, 0x7345464C,
               0x99000000),
           new TextColors(0xFFE6E7EA, 0xFF9A9DA9, 0xFF62646D, 0xFFFFFFFF),
-          new Borders(0xFF25272D, 0xFF6E717B, 0xFF33363D),
+          new Borders(0xFF25272D, 0xFF6E717B, 0xFF33363D, 0x596E717B),
           new Accent(0xFF3D6FE6, 0xFF3768DD, 0xFF2F5ED0, 0x663D6FE6, 0xFF86A8F8),
           new Status(0xFFF2797A, 0xFFE0B04C, 0xFF5CC98A),
           SPACE,
@@ -609,7 +618,7 @@ public record Theme(
           new Surfaces(0xFFECEEF2, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFF7F8FA, 0x4DBDBFC5, 0x80BDBFC5,
               0x59000000),
           new TextColors(0xFF1B1D22, 0xFF5C606B, 0xFF8F929A, 0xFFFFFFFF),
-          new Borders(0xFFE6E8EC, 0xFF80848D, 0xFFCFD3DA),
+          new Borders(0xFFE6E8EC, 0xFF80848D, 0xFFCFD3DA, 0x6680848D),
           new Accent(0xFF2E62D9, 0xFF2755C0, 0xFF2048A8, 0x592E62D9, 0xFF2E62D9),
           new Status(0xFFB42318, 0xFF7A5300, 0xFF17693A),
           SPACE,

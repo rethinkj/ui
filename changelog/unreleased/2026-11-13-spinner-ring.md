@@ -1,0 +1,1 @@
+- The ring of `Progress.spinner` is the new translucent token `border().track()`, which stays visible on every surface and on selected rows in both themes; `Theme.Borders` takes it as a fourth value, and its constructor of three derives it from the strong border.

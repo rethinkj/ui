@@ -71,7 +71,7 @@ public final class Button {
         .gap(t.space().s());
     if (busy && onPress != null) {
       El spinner = Progress.spinner(t, t.size().icon(), look.text(),
-          variant == Variant.PRIMARY ? t.accent().pressed() : t.border().control());
+          variant == Variant.PRIMARY ? t.accent().pressed() : t.border().track());
       Theme.TextStyle style = t.type().strong();
       El label = El.text(text).font(style.font().get()).fontSize(style.size())
           .color(look.text());
