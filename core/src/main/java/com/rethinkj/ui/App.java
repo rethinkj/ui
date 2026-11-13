@@ -1059,8 +1059,9 @@ public final class App<S> {
   /**
    * Sets the colour of the focus ring, as 0xAARRGGBB, for elements that set none themselves ({@link
    * El#focusRing(int)}); 0 draws none. The ring is 2 pixels wide and lies just outside the
-   * element's border box, with its corners, or just inside it where the clips around the element
-   * or the window's edge would cut it ({@link Scene}).
+   * element's border box, or its {@link El#focusRingGap} beyond it, with its corners, or just
+   * inside it where the clips around the element or the window's edge would cut it ({@link
+   * Scene}).
    */
   public void focusRing(int argb) {
     ringColour = argb;
