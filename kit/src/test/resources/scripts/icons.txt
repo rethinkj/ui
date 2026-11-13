@@ -1,0 +1,37 @@
+# Icons in the data grid in cells (GridIconsTest), a window of 720 by 240 at a scale the test
+# puts first: a million orders with their types (Orders.typed), the id and the customer's id
+# frozen, a check, a dash or the NULL marker alone for paid, and a coloured mark before a status.
+frame
+snap top               # a key, a link and a type icon with the type's name in each header
+
+press #cell-1-3        # paid in row 1: the cursor on an icon alone
+press #cell-3-4 shift  # to the status of row 3: icons on the focused selection
+frame
+snap selected
+
+down #resize-4         # status's edge, at 608, to 548: the column 70 wide
+move 548,19
+up 548,19
+frame
+down #resize-5         # amount's edge, now at 648, to 604: 56 wide
+move 604,19
+up 604,19
+frame
+snap narrow            # status without its type, amount's title cut; icons and arrow stay
+
+move #column-5
+frame
+advance 0.5            # the theme's tooltip delay
+frame
+snap header-tooltip    # the title and the type whole
+
+move #cell-4-1         # a link before the customer's id
+frame
+advance 0.5
+frame
+snap cell-tooltip      # the icon's own tooltip
+
+leave
+wheel #rows 300 0      # sideways: the frozen key and links stay at the left
+frame
+snap frozen

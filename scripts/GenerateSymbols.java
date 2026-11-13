@@ -49,6 +49,9 @@ public class GenerateSymbols {
       question_circle record_stop save search server settings shield split_horizontal
       split_vertical square_multiple star stop subtract table table_simple tag text_sort_ascending
       text_sort_descending text_t warning window
+      book_number calculator calendar_clock checkbox_checked document_data
+      fingerprint flash globe image location mail money number_circle_1 prohibited record shapes
+      text_asterisk text_bullet_list_ltr text_case_title timer
       """;
 
   public static void main(String[] args) throws IOException {
@@ -206,8 +209,8 @@ public class GenerateSymbols {
 
       /**
        * The icons of the default icon font, {@link com.rethinkj.ui.text.Font#icons()} (Fluent
-       * UI System Icons), that the kit names: $COUNT of them, for a database tool and the parts
-       * of a window. {@link Icon#icon} shows one.
+       * UI System Icons), that the kit names: $COUNT of them, for a database tool, the parts of a
+       * window and the data in a table. {@link Icon#icon} shows one.
        *
        * <p>Each symbol is Fluent's icon of the same name: {@link #CHEVRON_RIGHT} is {@code
        * ic_fluent_chevron_right_<size>_regular}. Fluent draws an icon anew for some of the sizes

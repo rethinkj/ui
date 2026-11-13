@@ -6,7 +6,9 @@ import static com.rethinkj.ui.kit.DataGrid.dataGrid;
 import com.rethinkj.ui.App;
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.kit.DataGrid.Align;
+import com.rethinkj.ui.kit.DataGrid.CellIcon;
 import com.rethinkj.ui.kit.DataGrid.Column;
+import com.rethinkj.ui.kit.DataGrid.DataType;
 import com.rethinkj.ui.kit.DataGrid.Mode;
 import com.rethinkj.ui.kit.DataGrid.Selection;
 import com.rethinkj.ui.kit.DataGrid.SortKey;
@@ -53,7 +55,43 @@ final class Orders {
       new Column("status", 80, Align.LEFT, false, i -> STATUS[i * 7 % STATUS.length]),
       new Column("note", 240, Align.LEFT, false, i -> i % 3 != 1 ? null : NOTE));
 
+  // Paid, not paid, and NULL as a marker; a status as a coloured mark before its text.
+  static final CellIcon PAID = CellIcon.instead(Symbol.CHECKMARK, Icon.Variant.SUCCESS);
+  static final CellIcon UNPAID = CellIcon.instead(Symbol.SUBTRACT, Icon.Variant.MUTED);
+  static final CellIcon UNKNOWN = CellIcon.instead(Symbol.PROHIBITED, Icon.Variant.MUTED);
+  static final CellIcon LINK = CellIcon.before(Symbol.LINK, Icon.Variant.MUTED)
+      .tooltip("References customers.id");
+  private static final CellIcon[] MARKS = {
+    CellIcon.before(Symbol.RECORD, Icon.Variant.SUCCESS),
+    CellIcon.before(Symbol.RECORD, Icon.Variant.WARNING),
+    CellIcon.before(Symbol.RECORD, Icon.Variant.SUCCESS),
+    CellIcon.before(Symbol.RECORD, Icon.Variant.DANGER)
+  };
+
+  /**
+   * Orders as a database tool shows a table: a type icon and the type's name in each header, a
+   * key on the id, a link before the customer's id, paid as a check, a dash or the NULL marker
+   * alone, and the status after a coloured mark. Repeated beyond eight as {@link #BASE} is.
+   */
+  private static final List<Column> TYPED = List.of(
+      new Column("id", 64, DataType.INTEGER, i -> String.valueOf(i + 1))
+          .typeName("bigint").icon(Symbol.KEY, Icon.Variant.WARNING),
+      new Column("customer_id", 128, DataType.INTEGER, i -> String.valueOf(1 + i * 7919 % 5000))
+          .typeName("integer").icon(Symbol.LINK).cellIcon(i -> LINK),
+      new Column("customer", 140, DataType.TEXT, Orders::customer).typeName("text"),
+      new Column("paid", 80, DataType.BOOLEAN, Orders::paid).typeName("boolean")
+          .cellIcon(i -> paid(i) == null ? UNKNOWN : paid(i).equals("true") ? PAID : UNPAID),
+      new Column("status", 130, DataType.ENUM, i -> STATUS[i * 7 % STATUS.length])
+          .typeName("order_status").cellIcon(i -> MARKS[i * 7 % STATUS.length]),
+      new Column("amount", 100, DataType.DECIMAL, i -> i % 11 == 5 ? null
+          : String.format(Locale.ROOT, "%d.%02d", i * 7919 % 250_000 / 100, i * 13 % 100))
+          .typeName("numeric(10,2)"),
+      new Column("created_at", 190, DataType.DATE_TIME,
+          i -> START.plusSeconds(i * 97L).format(TIME)).typeName("timestamptz"),
+      new Column("note", 240, DataType.TEXT, i -> i % 3 != 1 ? null : NOTE).typeName("text"));
+
   final Theme theme;
+  final List<Column> base;
   int count;
   final Selection selection;
   final float[] widths;
@@ -61,10 +99,12 @@ final class Orders {
   final Menu.State menu = new Menu.State();
   UnaryOperator<DataGrid.Options> more = o -> o;
   int unsortable = -1; // a column that cannot be sorted
+  boolean bare; // the columns without their icons and types
   int loaded = Integer.MAX_VALUE; // the rows below this one are loaded, with cells()
   App<Orders> app;
   final List<String> log = new ArrayList<>();
   final List<Integer> asked = new ArrayList<>(); // the rows whose cells were asked for
+  final List<Integer> askedIcons = new ArrayList<>(); // the rows whose cell icons were asked for
 
   Orders(Theme theme, int count) {
     this(theme, count, BASE.size());
@@ -75,14 +115,31 @@ final class Orders {
   }
 
   Orders(Theme theme, int count, int columns, Mode mode) {
+    this(theme, count, columns, mode, BASE);
+  }
+
+  private Orders(Theme theme, int count, int columns, Mode mode, List<Column> base) {
     this.theme = theme;
+    this.base = base;
     this.count = count;
     this.selection = new Selection(mode);
     selection.select(2, 0);
     this.widths = new float[columns];
     for (int c = 0; c < columns; c++) {
-      widths[c] = BASE.get(c % BASE.size()).width();
+      widths[c] = base.get(c % base.size()).width();
     }
+  }
+
+  /** {@link #TYPED} in cells, with row numbers, the id and the customer's id frozen, copying. */
+  static Orders typed(Theme theme, int columns) {
+    Orders orders = new Orders(theme, 1_000_000, columns, Mode.CELLS, TYPED);
+    orders.more = o -> o.rowNumbers().frozen(2).copy(orders.app.clipboard());
+    return orders;
+  }
+
+  /** Whether the order is paid, "true" or "false", or null where nobody knows yet. */
+  static String paid(int i) {
+    return i % 7 == 6 ? null : String.valueOf(i % 3 != 1);
   }
 
   static String customer(int i) {
@@ -92,13 +149,18 @@ final class Orders {
   List<Column> columns() {
     List<Column> columns = new ArrayList<>();
     for (int c = 0; c < widths.length; c++) {
-      Column base = BASE.get(c % BASE.size());
-      IntFunction<String> cell = base.cell();
+      Column column = base.get(c % base.size());
+      IntFunction<String> cell = column.cell();
+      IntFunction<CellIcon> icons = column.cellIcon();
       columns.add(new Column(
-          c < BASE.size() ? base.title() : base.title() + "_" + c / BASE.size(),
-          widths[c], base.align(), base.mono(), c != unsortable, i -> {
+          c < base.size() ? column.title() : column.title() + "_" + c / base.size(),
+          widths[c], column.align(), column.mono(), c != unsortable, i -> {
             asked.add(i);
             return cell.apply(i);
+          }, bare ? null : column.icon(), column.iconVariant(), bare ? null : column.typeName(),
+          bare || icons == null ? null : i -> {
+            askedIcons.add(i);
+            return icons.apply(i);
           }));
     }
     return columns;
