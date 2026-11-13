@@ -1,0 +1,171 @@
+el 0,0 520x420
+  el 13,13 220x407
+    text #field role=textbox "Orders" 13,13 220x24
+    el 13,49 220x24
+      el #run role=button label="Run" 13,49 50x24
+        text "Run" 26,53 24x16
+      el #cancel role=button label="Cancel" 71,49 68x24
+        text "Cancel" 84,53 42x16
+      el #wrap role=checkbox label="Wrap" 143,47 65x28 checked
+        el 147,53 16x16
+          text "✓" 150,53 11x16
+        text "Wrap" 171,53 33x16
+    el #tabs 13,85 220x64
+      el #bar 13,85 220x28
+        el #tablist role=tablist 15,87 198x24
+          el #tab-0 role=tab label="orders" 15,87 78x24 selected
+            text "orders" 24,91 40x16
+            el #close-0 role=button label="Close orders" 68,91 16x16
+              text label="dismiss" "\u{F368}" 68,91 16x16
+          el #tab-1 role=tab label="customers" 95,87 118x24
+            text "●" 104,91 12x16
+            text "customers" 120,91 64x16
+            el #close-1 role=button label="Close customers" 188,91 16x16
+              text label="dismiss" "\u{F368}" 188,91 16x16
+      el 13,113 220x1
+      el #panel role=tabpanel label="orders" 13,114 220x35
+        text #tab-content "Rows" 13,114 220x35
+    el #card 13,161 220x160
+      el 26,174 194x134
+        el role=switch label="Autocommit" 29,177 188x36 checked
+          el 39,187 128x16
+            text "Autocommit" 39,187 128x16
+          el 179,187 28x16
+            el 193,189 12x12
+        el 27,215 192x1
+        el 29,218 188x46
+          el 39,224 140x34
+            text "Timeout" 39,224 140x16
+            text "Seconds" 39,242 140x16
+          text "30" 191,233 16x16
+        el 27,266 192x1
+        el role=button label="Driver" 29,269 188x36 value="PostgreSQL"
+          el 39,279 55x16
+            text "Driver" 39,279 55x16
+          text "PostgreSQL" 106,279 73x16
+          text label="chevron_right" "\u{F2AF}" 191,279 16x16
+  el 249,13 260x407
+    el #grid role=grid label="Orders" 249,13 260x170
+      el #content 249,13 260x170
+        el #header 249,13 260x22
+          el #column-0 role=columnheader label="id" 249,13 59x22 pos=1/3
+            text "id" 293,16 11x16
+          el 308,13 1x22
+          el #column-1 role=columnheader label="customer" 309,13 109x22 pos=2/3
+            text "customer" 313,16 58x16
+          el 418,13 1x22
+          el #column-2 role=columnheader label="total" 419,13 69x22 pos=3/3
+            text "total" 457,16 27x16
+          el 488,13 1x22
+        el 249,35 260x1
+        el #rows 249,36 260x147 rows 0-9/40 thumb-y 501,38 6x24
+          el #row-0 role=row 249,36 260x22 pos=1/40
+            el #cell-0-0 role=gridcell 249,36 59x22 pos=1/3
+              text "0" 297,39 7x16
+            el 308,36 1x22
+            el #cell-0-1 role=gridcell 309,36 109x22 pos=2/3
+              text "Customer 0" 313,39 72x16
+            el 418,36 1x22
+            el #cell-0-2 role=gridcell 419,36 69x22 pos=3/3
+              text "0.50" 455,39 29x16
+            el 488,36 1x22
+          el #row-1 role=row 249,58 260x22 selected current pos=2/40
+            el #cell-1-0 role=gridcell 249,58 59x22 pos=1/3
+              text "1" 297,61 7x16
+            el 308,58 1x22
+            el #cell-1-1 role=gridcell 309,58 109x22 pos=2/3
+              text "Customer 1" 313,61 69x16
+            el 418,58 1x22
+            el #cell-1-2 role=gridcell 419,58 69x22 pos=3/3
+              text "7.50" 455,61 29x16
+            el 488,58 1x22
+          el #row-2 role=row 249,80 260x22 pos=3/40
+            el #cell-2-0 role=gridcell 249,80 59x22 pos=1/3
+              text "2" 297,83 7x16
+            el 308,80 1x22
+            el #cell-2-1 role=gridcell 309,80 109x22 pos=2/3
+              text "Customer 2" 313,83 71x16
+            el 418,80 1x22
+            el #cell-2-2 role=gridcell 419,80 69x22 pos=3/3
+              text "14.50" 448,83 36x16
+            el 488,80 1x22
+          el #row-3 role=row 249,102 260x22 pos=4/40
+            el #cell-3-0 role=gridcell 249,102 59x22 pos=1/3
+              text "3" 297,105 7x16
+            el 308,102 1x22
+            el #cell-3-1 role=gridcell 309,102 109x22 pos=2/3
+              text "Customer 3" 313,105 71x16
+            el 418,102 1x22
+            el #cell-3-2 role=gridcell 419,102 69x22 pos=3/3
+              text "21.50" 448,105 36x16
+            el 488,102 1x22
+          el #row-4 role=row 249,124 260x22 pos=5/40
+            el #cell-4-0 role=gridcell 249,124 59x22 pos=1/3
+              text "4" 297,127 7x16
+            el 308,124 1x22
+            el #cell-4-1 role=gridcell 309,124 109x22 pos=2/3
+              text "Customer 4" 313,127 72x16
+            el 418,124 1x22
+            el #cell-4-2 role=gridcell 419,124 69x22 pos=3/3
+              text "28.50" 448,127 36x16
+            el 488,124 1x22
+          el #row-5 role=row 249,146 260x22 pos=6/40
+            el #cell-5-0 role=gridcell 249,146 59x22 pos=1/3
+              text "5" 297,149 7x16
+            el 308,146 1x22
+            el #cell-5-1 role=gridcell 309,146 109x22 pos=2/3
+              text "Customer 5" 313,149 71x16
+            el 418,146 1x22
+            el #cell-5-2 role=gridcell 419,146 69x22 pos=3/3
+              text "35.50" 448,149 36x16
+            el 488,146 1x22
+          el #row-6 role=row 249,168 260x22 pos=7/40
+            el #cell-6-0 role=gridcell 249,168 59x22 pos=1/3
+              text "6" 297,171 7x16
+            el 308,168 1x22
+            el #cell-6-1 role=gridcell 309,168 109x22 pos=2/3
+              text "Customer 6" 313,171 71x16
+            el 418,168 1x22
+            el #cell-6-2 role=gridcell 419,168 69x22 pos=3/3
+              text "42.50" 448,171 36x16
+            el 488,168 1x22
+          el #row-7 role=row 249,190 260x22 pos=8/40
+            el #cell-7-0 role=gridcell 249,190 59x22 pos=1/3
+              text "7" 297,193 7x16
+            el 308,190 1x22
+            el #cell-7-1 role=gridcell 309,190 109x22 pos=2/3
+              text "Customer 7" 313,193 71x16
+            el 418,190 1x22
+            el #cell-7-2 role=gridcell 419,190 69x22 pos=3/3
+              text "49.50" 448,193 36x16
+            el 488,190 1x22
+          el #row-8 role=row 249,212 260x22 pos=9/40
+            el #cell-8-0 role=gridcell 249,212 59x22 pos=1/3
+              text "8" 297,215 7x16
+            el 308,212 1x22
+            el #cell-8-1 role=gridcell 309,212 109x22 pos=2/3
+              text "Customer 8" 313,215 71x16
+            el 418,212 1x22
+            el #cell-8-2 role=gridcell 419,212 69x22 pos=3/3
+              text "56.50" 448,215 36x16
+            el 488,212 1x22
+          el #row-9 role=row 249,234 260x22 pos=10/40
+            el #cell-9-0 role=gridcell 249,234 59x22 pos=1/3
+              text "9" 297,237 7x16
+            el 308,234 1x22
+            el #cell-9-1 role=gridcell 309,234 109x22 pos=2/3
+              text "Customer 9" 313,237 71x16
+            el 418,234 1x22
+            el #cell-9-2 role=gridcell 419,234 69x22 pos=3/3
+              text "63.50" 448,237 36x16
+            el 488,234 1x22
+    el #menu role=menu 249,195 260x63
+      el #item-0 role=menuitem label="Open" 254,200 250x24
+        el 254,200 250x24
+          el 262,212 16x0
+          text "Open" 286,204 210x16
+      el 254,226 250x1
+      el #item-2 role=menuitem label="Copy name" 254,229 250x24
+        el 254,229 250x24
+          el 262,241 16x0
+          text "Copy name" 286,233 210x16
