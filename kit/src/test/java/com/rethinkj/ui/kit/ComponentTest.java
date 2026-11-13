@@ -4,8 +4,10 @@ import static com.rethinkj.ui.El.col;
 import static com.rethinkj.ui.El.row;
 import static com.rethinkj.ui.kit.Button.button;
 import static com.rethinkj.ui.kit.Checkbox.checkbox;
+import static com.rethinkj.ui.kit.TextField.codeArea;
 import static com.rethinkj.ui.kit.TextField.passwordField;
 import static com.rethinkj.ui.kit.TextField.revealable;
+import static com.rethinkj.ui.kit.TextField.textArea;
 import static com.rethinkj.ui.kit.TextField.textField;
 import static com.rethinkj.ui.kit.Toggle.toggle;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -119,7 +121,10 @@ class ComponentTest {
         textField(T, "y", "Id", s -> {}).readOnly(),
         textField(T, "z", "Owner", null),
         revealable(T, passwordField(T, "pw", "Password", s -> {}), false, () -> {}),
-        revealable(T, passwordField(T, "pw", "Key", null), true, () -> {})));
+        revealable(T, passwordField(T, "pw", "Key", null), true, () -> {}),
+        textArea(T, "a\nb", "Notes", s -> {}),
+        codeArea(T, "SELECT 1;", "SQL", s -> {}).readOnly(),
+        textArea(T, "", "Comment", null)));
     run(app, "");
 
     // The role and label, then what follows the rectangle: the states.
@@ -144,7 +149,10 @@ class ComponentTest {
         "role=textbox label=\"Password\" password",
         "role=button label=\"Show password\"",
         "role=textbox label=\"Key\" disabled",
-        "role=button label=\"Hide password\" disabled"), named);
+        "role=button label=\"Hide password\" disabled",
+        "role=textbox label=\"Notes\" lines 1-2/2",
+        "role=textbox label=\"SQL\" readonly lines 1-1/1",
+        "role=textbox label=\"Comment\" disabled lines 1-1/1"), named);
   }
 
   @Test

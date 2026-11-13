@@ -379,7 +379,8 @@ class DataGridTest {
     App<Orders> app = start(orders);
     String up = "\\u{" + Integer.toHexString(Symbol.ARROW_UP.codePoint(T.grid().mark()))
         .toUpperCase(java.util.Locale.ROOT) + "}";
-    assertTrue(app.tree().dump().contains("text \"" + up + "\""), "sorted by id, ascending");
+    assertTrue(app.tree().dump().contains("text label=\"arrow_up\" \"" + up + "\""),
+        "sorted by id, ascending");
     assertTrue(dumpLine(app, "column-0").endsWith(" pos=1/7 sort=ascending"));
     assertTrue(dumpLine(app, "column-2").endsWith(" pos=3/7"));
 

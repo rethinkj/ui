@@ -30,7 +30,7 @@ el 0,0 560x240
         el 65,8 1x22
         el #column-0 role=columnheader label="id" 66,8 63x22 pos=1/7 sort=ascending
           el 100,13 12x12
-            text "\u{E12A}" 100,13 12x12
+            text label="arrow_up" "\u{E12A}" 100,13 12x12
           text "id" 114,11 11x16
         el 129,8 1x22
         el #resize-0 role=separator label="Resize id" 127,8 6x22

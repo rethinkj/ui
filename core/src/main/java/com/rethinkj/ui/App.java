@@ -114,7 +114,8 @@ import java.util.function.Predicate;
  * when that is. Cut, copy and paste go through the app's {@link #clipboard}. A field that loses
  * the focus to another element, or to none, shows the start of its text and no selection, as
  * browsers do, and forgets how far it was scrolled; when the focus comes back, the text scrolls
- * just far enough to show the caret. Losing the focus of the window is not that: the field keeps
+ * just far enough to show the caret. A {@link El#multiline multi-line} field is a scroll area and
+ * keeps its scroll. Losing the focus of the window is not that: the field keeps
  * the app's focus, its scroll, caret and selection, and only stops drawing the caret until the
  * window has the focus again.
  *
@@ -743,8 +744,8 @@ public final class App<S> {
         int at = order.indexOf(focused);
         int next = at >= 0 ? at + step : step > 0 ? 0 : -1;
         El el = enter(order.get(Math.floorMod(next, order.size())), step);
-        if (el.editor() != null) {
-          el.editor().selectAll(); // as browsers do when Tab enters a field
+        if (el.editor() != null && !el.text().multiline()) {
+          el.editor().selectAll(); // as browsers do when Tab enters a field, but not a text area
         }
         return focus(el, true);
       }
@@ -842,6 +843,13 @@ public final class App<S> {
     }
     float cursor = editor == null ? 0 : contentLeft(focused) + editor.caretOffset();
     boolean password = editor != null && focused.text().masked();
+    if (editor != null && focused.text().multiline()) { // the caret's row, inside the field
+      Text t = focused.text();
+      float row = t.lineHeight() / t.scale();
+      float top = Math.clamp(contentTop(focused) + editor.caretTopOffset(), 0,
+          Math.max(focused.height() - row, 0));
+      return new InputArea(x, y + top, focused.width(), row, cursor, false);
+    }
     return new InputArea(x, y, focused.width(), focused.height(), cursor, password);
   }
 
@@ -1880,6 +1888,8 @@ public final class App<S> {
     if (fillRows() | pending) { // not ||
       refocus();
       placeEditors();
+    } else {
+      placeEditors(); // a multi-line field that scrolled lays out the rows it shows now
     }
     El.placeBars(root);
     return true;
@@ -1898,6 +1908,9 @@ public final class App<S> {
         blinking.blur();
       }
       blinking = editing;
+      if (editing != null) {
+        editing.focusGained();
+      }
     }
     if (editing != null && (editing.takeChanged() | moved)) {
       blinkStart = time;
@@ -1997,7 +2010,14 @@ public final class App<S> {
       top += el.y();
     }
     Text text = field.text();
-    return new float[] {(x - left) * text.scale() + text.scroll(), (y - top) * text.scale()};
+    return new float[] {
+      (x - left) * text.scale() + text.scroll(), (y - top) * text.scale() + text.scrollY()
+    };
+  }
+
+  /** The distance from an element's border box to its content box at the top. */
+  private static float contentTop(El el) {
+    return px(el.style().paddingTop) + px(el.style().borderTop);
   }
 
   /** The distance from an element's border box to its content box on the left. */

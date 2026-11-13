@@ -30,6 +30,8 @@ await                                      # the answer for customers never arri
 frame
 snap workbench-closed
 
+wheel #catalogue 0 -1000                   # back to the top: opening orders showed its columns
+frame
 press #mark-0                              # closes localhost
 frame
 press role=treeitem label="staging"
