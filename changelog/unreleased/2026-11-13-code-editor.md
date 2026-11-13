@@ -1,0 +1,1 @@
+- The kit has `CodeEditor.codeEditor`, a code area with line numbers, the caret's line and matching brackets highlighted and an error underlined, and `Sql`, a highlighter of SQL and PostgreSQL. `Theme` has a new token group `code` with the colours of code in both themes; the constructor without it picks them by the theme's lightness.

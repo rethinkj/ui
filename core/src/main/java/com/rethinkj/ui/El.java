@@ -66,6 +66,12 @@ public final class El {
   private Consumer<String> onText;
   private boolean editable;
   private Consumer<String> onEdit;
+  private Gutter gutter;
+  private SelectHandler onSelect;
+  private float gutterLeft = Float.NaN; // where the gutter starts, the padding before it
+  private float gutterWidth;
+  private float gutterScale; // the scale gutterWidth was measured at
+  private Object gutterShown; // what the cells were built for: their lines, tops and the caret
   private boolean readOnly;
   private int maxLength = -1;
   private int tabIndents; // 0: Tab moves the focus; 1: it indents with tabs; 2: with spaces
@@ -183,6 +189,28 @@ public final class El {
     El row(int index, float from, float to);
   }
 
+  /**
+   * Builds the cell of a line in the {@link #gutter} of a multi-line field: its number, a marker,
+   * a fold arrow.
+   */
+  @FunctionalInterface
+  public interface Gutter {
+    /**
+     * @param line the line's index, from 0; its number is one more
+     * @param caret whether the caret is on this line
+     */
+    El cell(int line, boolean caret);
+  }
+
+  /**
+   * Told the caret and the other end of the selection of a text field, as indexes into its string;
+   * equal when nothing is selected.
+   */
+  @FunctionalInterface
+  public interface SelectHandler {
+    void select(int caret, int anchor);
+  }
+
   /** Told the first and the last row, both included, that a virtual list has built. */
   @FunctionalInterface
   public interface RowsHandler {
@@ -197,6 +225,7 @@ public final class El {
     float pointX = Float.NaN;
     float pointY = Float.NaN;
     boolean centered;
+    boolean atCaret; // see El#atCaret
     Side edge; // see El#atWindowEdge; null for beside the anchor
     boolean modal;
     int scrim;
@@ -876,7 +905,68 @@ public final class El {
     return this;
   }
 
-  // Editing, for elements made with text()
+  /**
+   * Aligns each line of this text element in its content box: at the start (the left, the
+   * default), in the centre or at the end, as CSS's {@code text-align} does, for a text of one
+   * line and for one that {@link #wrapText wraps}, also where a line ends in an {@link #ellipsis}:
+   * an empty state's centred message, a column of numbers aligned at the right. Each line on its
+   * own, on the grid of glyph positions. Text fields, which scroll their lines, start at the left.
+   *
+   * @param align {@link Style.Align#START}, {@link Style.Align#CENTER} or {@link Style.Align#END}
+   */
+  public El textAlign(Style.Align align) {
+    Text t = textOnly("textAlign");
+    if (align != Style.Align.START && align != Style.Align.CENTER && align != Style.Align.END) {
+      throw new IllegalArgumentException(
+          "textAlign takes START, CENTER or END, as CSS's text-align does; was " + align);
+    }
+    t.align(align);
+    return this;
+  }
+
+  /**
+   * Colours parts of this text element's string, and sets them in other fonts of its size, as a
+   * highlighter of code does: {@code highlighter} says per line which ranges have which colour or
+   * font ({@link Spans}). A {@link #multiline} field asks only about the lines it shapes and keeps
+   * the answers across rebuilds while {@code key} stays equal, so a view that passes the same key
+   * with the same highlighter costs nothing; another key asks again. Each line gets the state the
+   * line before ended in, as a tokenizer needs inside a block comment or a string; see {@link
+   * Highlighter} for what that costs. Other text, a single-line field among them, is one line, asked
+   * whenever the view is built. A {@link #masked} field and a placeholder are not highlighted.
+   *
+   * <p>Colours need no shaping, and carets, selection and wrapping do not change with them; a
+   * range in another font is shaped on its own, and they follow its glyphs.
+   *
+   * @param key compared with {@link Object#equals}: a new key when the highlighting changes, such
+   *     as another language or theme; not null
+   * @param highlighter the function, or null for none
+   */
+  public El highlight(Object key, Highlighter highlighter) {
+    textOnly("highlight").highlight(Objects.requireNonNull(key, "key"), highlighter);
+    return this;
+  }
+
+  /**
+   * Draws backgrounds and underlines behind the lines of a {@link #multiline} field that are in
+   * view, before its selection: the line of the caret, matches of a search, a pair of brackets, an
+   * error. The decorator is asked about each line in view and a few around it whenever the field
+   * lays out its rows, keeps nothing, and so may read anything of the app's state; its colours and
+   * fonts are ignored, which are a {@link #highlight highlighter}'s.
+   *
+   * @param decorator the function, or null for none
+   * @throws IllegalStateException if this is not a multi-line field
+   */
+  public El decorate(Decorator decorator) {
+    Text t = editableOnly("decorate");
+    if (!t.multiline()) {
+      throw new IllegalStateException(
+          "decorate is for multi-line fields: call it after multiline().");
+    }
+    t.decorator(decorator);
+    return this;
+  }
+
+    // Editing, for elements made with text()
 
   /**
    * Makes this text element a single-line text field, or with {@link #multiline} one of several
@@ -958,6 +1048,98 @@ public final class El {
   }
 
   /**
+   * Gives a {@link #multiline} field a gutter at its left, inside its border and padding, as the
+   * line numbers of a code editor: a column of cells that {@code cells} builds, one per line, at
+   * the line's first row, for the lines in view and a few around them only, as {@link #rows} builds
+   * rows. It scrolls up and down with the text and stays in place sideways; the text starts after
+   * it, so the gutter is part of the field's box, inside its frame and focus ring. The cells are
+   * built again when the lines in view, their places or the caret's line change, also without a
+   * rebuild of the view; each is a line high, and as wide as the cell of the last line, the widest
+   * number, laid out at its natural width when the tree is built, unless the cells set a width.
+   * Presses on a cell reach its handlers; a press elsewhere in the gutter focuses the field. In a
+   * {@code .tree.txt} the gutter is {@code el #gutter}, inside the field's line, with the cells
+   * keyed {@code line-<index>} unless they have keys.
+   *
+   * @throws IllegalStateException if this is not a multi-line field
+   */
+  public El gutter(Gutter cells) {
+    Text t = editableOnly("gutter");
+    if (!t.multiline()) {
+      throw new IllegalStateException("gutter is for multi-line fields: call it after multiline().");
+    }
+    this.gutter = Objects.requireNonNull(cells, "cells");
+    return this;
+  }
+
+  /**
+   * For {@link #scaleText}: measures the gutter's width from the cell of the last line at the
+   * text's scale and moves the text after it, by widening the left padding.
+   */
+  private void measureGutter() {
+    float scale = text.scale();
+    if (gutterScale == scale) {
+      return;
+    }
+    if (Float.isNaN(gutterLeft)) {
+      gutterLeft = px(style.paddingLeft);
+    }
+    El last = gutter.cell(text.lineTotal() - 1, false);
+    scaleText(last, scale, text.systemFonts());
+    Flex.layout(last, Float.POSITIVE_INFINITY, Float.POSITIVE_INFINITY);
+    gutterWidth = (float) Math.ceil(last.width);
+    gutterScale = scale;
+    style.paddingLeft = Len.px(gutterLeft + gutterWidth);
+    gutterShown = null;
+  }
+
+  /**
+   * For {@link Editor}, once the rows of a multi-line field are laid out and scrolled: builds the
+   * cells of its gutter for the lines laid out, unless they are built for these lines, places and
+   * caret line, and places them.
+   *
+   * @return whether the cells were built
+   */
+  boolean placeGutter(int caretLine) {
+    if (gutter == null || !text.laidOut() || gutterScale == 0) {
+      return false;
+    }
+    List<Text.Start> starts = text.lineStarts();
+    float scale = text.scale();
+    List<Object> shown = List.of(starts, caretLine, scrollX, scrollY, width, height);
+    if (shown.equals(gutterShown)) {
+      return false;
+    }
+    gutterShown = shown;
+    float rowHeight = text.lineHeight() / scale;
+    float top = px(style.borderTop) + px(style.paddingTop);
+    El column = el().key("gutter").clip();
+    for (Text.Start start : starts) {
+      El cell = gutter.cell(start.line(), start.line() == caretLine);
+      if (cell == null) {
+        throw new IllegalStateException(
+            "The gutter's function returned null for line " + start.line());
+      }
+      if (cell.key == null) {
+        cell.key("line-" + start.line());
+      }
+      cell.style.width = Len.px(gutterWidth);
+      cell.style.height = Len.px(rowHeight);
+      scaleText(cell, scale, text.systemFonts());
+      Flex.layout(cell, gutterWidth, rowHeight);
+      cell.place(0, start.top() / scale, gutterWidth, rowHeight);
+      column.children.add(cell);
+    }
+    // The column stays where the content box is: the scroll that shifts it is added back.
+    column.place(px(style.borderLeft) + gutterLeft + (float) scrollX, top + (float) scrollY,
+        gutterWidth, text.contentHeight() / scale);
+    children.clear();
+    children.add(column);
+    scrollTo(scrollX, scrollY);
+    text.shownIndex().gutterCells += starts.size();
+    return true;
+  }
+
+  /**
    * How many lines high layout measures a {@link #multiline} field whose style gives it no height,
    * as the {@code rows} of an HTML {@code textarea}; 1 unless set. The lines have the font's line
    * height at the window's scale, so that exactly this many fit.
@@ -998,6 +1180,24 @@ public final class El {
     editableOnly("tabIndents");
     this.tabIndents = spaces ? 2 : 1;
     return this;
+  }
+
+  /**
+   * Tells {@code handler} where the caret and the selection of an {@link #editable} field are,
+   * whenever they change: by keys, presses, edits, {@link App#edit} and {@link App#select}, and
+   * when the field is new or the app's string moved them. The handler runs after the input that
+   * moved them, as a handler of input does, and the next input sees the view built from what it
+   * stored: the line of the caret for {@link #decorate}, the word before it for completions. For
+   * the caret's rectangle, place an overlay {@link #atCaret}.
+   */
+  public El onSelect(SelectHandler handler) {
+    editableOnly("onSelect");
+    this.onSelect = handler;
+    return this;
+  }
+
+  SelectHandler onSelect() {
+    return onSelect;
   }
 
   /**
@@ -1504,6 +1704,25 @@ public final class El {
     return this;
   }
 
+  /**
+   * Places this overlay beside the caret of its anchor, a text field ({@link #editable}), instead
+   * of beside the anchor's rectangle: as {@link #side} says, with the caret, a line high, as the
+   * rectangle; below it and starting at it by default, as a list of completions. It follows the
+   * caret as the field scrolls and the caret moves, also without a rebuild of the view. Usually
+   * with {@link #keepFocus}, so that the field keeps the keys; its {@link #onKey} sees them first
+   * and can take Up, Down, Enter and Escape for the overlay.
+   *
+   * <pre>{@code
+   * El editor = El.text(s.sql).editable(v -> s.sql = v).multiline()
+   *     .onSelect((caret, anchor) -> s.caret = caret);
+   * editor.overlay(s.completing ? completions(s).atCaret().keepFocus() : null);
+   * }</pre>
+   */
+  public El atCaret() {
+    layer().atCaret = true;
+    return this;
+  }
+
   /** Places this overlay in the middle of the window, as a dialog. */
   public El centerInWindow() {
     layer().centered = true;
@@ -2003,6 +2222,9 @@ public final class El {
     if (el.text != null) {
       el.text.scale(scale);
       el.text.systemFonts(systemFonts);
+      if (el.gutter != null) {
+        el.measureGutter();
+      }
     }
     for (El child : el.children) {
       scaleText(child, scale, systemFonts);

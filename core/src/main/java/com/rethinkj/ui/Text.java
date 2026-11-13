@@ -59,14 +59,34 @@ public final class Text implements Measure {
    * @param width the width the line takes, without the spaces at the end of a wrapped line
    * @param baseline the distance from the top of the content box down to the line's baseline; in
    *     a multi-line field after its vertical scroll, so negative for a line above the box
+   * @param colors the colour of each glyph as 0xAARRGGBB, where a {@link Highlighter} coloured
+   *     the line; null when every glyph has the text's colour
+   * @param x where the pen starts, from the left edge of the content box: 0, or further right in
+   *     text {@link El#textAlign aligned} to the centre or the end, on the grid of glyph positions
    */
-  public record Line(GlyphRun glyphs, float width, float baseline) {}
+  public record Line(GlyphRun glyphs, float width, float baseline, int[] colors, float x) {
+
+    /** A line at the left edge whose glyphs all have the text's colour. */
+    public Line(GlyphRun glyphs, float width, float baseline) {
+      this(glyphs, width, baseline, null, 0);
+    }
+  }
 
   /**
    * A rectangle in physical pixels relative to the top left of the content box, in the same
    * coordinates as the glyphs of {@link #lines} once they are moved left by {@link #scroll}.
    */
   public record Box(float x, float y, float width, float height) {}
+
+  /**
+   * A rectangle drawn behind the glyphs of a multi-line field, before its selection: the
+   * background of a line or a range, or the line under a range, from a {@link Highlighter} or a
+   * {@link Decorator}.
+   *
+   * @param box where, as the selection's rectangles are
+   * @param color as 0xAARRGGBB
+   */
+  public record Mark(Box box, int color) {}
 
   /** What ends a line that {@link El#ellipsis} shortens. */
   public static final String ELLIPSIS = "…";
@@ -100,6 +120,12 @@ public final class Text implements Measure {
   private int caretColor;
   private int selectionColor = SELECTION;
   private int tabSize = 4;
+  private Style.Align align = Style.Align.START;
+  private float[] lineX = {}; // per line placed: where its pen starts, after the alignment
+  private Highlighter highlighter;
+  private Object highlightKey;
+  private Decorator decorator;
+  private List<Mark> marks = List.of();
   private int visibleLines = 1;
   // What a field draws besides its glyphs; see Editor#place.
   private float scroll;
@@ -162,6 +188,12 @@ public final class Text implements Measure {
 
   /** A line of the text: characters {@code from} to {@code to} of a paragraph. */
   private record Span(int paragraph, int from, int to, float width) {}
+
+  /**
+   * Where a line of a multi-line field begins, for its gutter: its first row's top, in physical
+   * pixels from the top of the content box, after the scroll.
+   */
+  record Start(int line, float top) {}
 
   /** A row of a multi-line field as laid out: row {@code row} of line {@code line}. */
   private record Row(int line, int row, Para para, double top) {}
@@ -265,6 +297,11 @@ public final class Text implements Measure {
     return lines;
   }
 
+  /** Whether a {@link Highlighter} colours the text; see {@link El#highlight}. */
+  public boolean highlighted() {
+    return highlighter != null;
+  }
+
   /** The OpenType features set with {@link El#fontFeatures}, applied when the text is shaped. */
   public List<String> features() {
     return List.of(features);
@@ -315,6 +352,16 @@ public final class Text implements Measure {
    */
   public List<Box> selection() {
     return selection;
+  }
+
+  /**
+   * What a multi-line field draws behind its selection on the rows of {@link #lines}: the
+   * backgrounds of lines, then those of ranges, then the lines under ranges, each in the order
+   * the lines and their {@link Spans} have them; empty for other text.
+   */
+  public List<Mark> marks() {
+    lines();
+    return marks;
   }
 
   /**
@@ -402,6 +449,26 @@ public final class Text implements Measure {
 
   int tabSize() {
     return tabSize;
+  }
+
+  void decorator(Decorator decorator) {
+    this.decorator = decorator;
+    viewStale = true;
+  }
+
+  void align(Style.Align align) {
+    this.align = align;
+  }
+
+  /** How lines are aligned in the content box; see {@link El#textAlign}. */
+  public Style.Align align() {
+    return align;
+  }
+
+  void highlight(Object key, Highlighter highlighter) {
+    this.highlightKey = key;
+    this.highlighter = highlighter;
+    invalidate();
   }
 
   void visibleLines(int lines) {
@@ -553,15 +620,21 @@ public final class Text implements Measure {
     offsetY = field ? Math.round((placedHeight - spans.size() * lineHeight) / 2) : 0;
     List<Line> placed = new ArrayList<>();
     shortened = false;
+    lineX = new float[spans.size()];
     for (Span span : spans) {
       float baseline = offsetY + firstBaseline + placed.size() * lineHeight;
+      Line line;
       if (ellipsis && !field && span.width > placedWidth + SLACK) {
-        placed.add(shorten(span, baseline));
+        line = shorten(span, baseline);
         shortened = true;
-        continue;
+      } else {
+        Para para = paras[span.paragraph];
+        line = new Line(para.slice(span.from, span.to), span.width, baseline,
+            para.colors(span.from, span.to), 0);
       }
-      placed.add(new Line(paras[span.paragraph].slice(span.from, span.to), span.width,
-          baseline));
+      float x = aligned(line.width());
+      lineX[placed.size()] = x;
+      placed.add(x == 0 ? line : new Line(line.glyphs(), line.width(), baseline, line.colors(), x));
     }
     lines = List.copyOf(placed);
     if (underlineTo > underlineFrom && !field && !spans.isEmpty()) {
@@ -571,6 +644,23 @@ public final class Text implements Measure {
           + Math.round(font().descent() * size * scale / 2), x(underlineTo) - from,
           Math.max(1, Math.round(scale)));
     }
+  }
+
+  /**
+   * Where a line this wide starts in the content box as the alignment puts it, on the grid of
+   * glyph positions; 0 in a field, which scrolls instead.
+   */
+  private float aligned(float width) {
+    float share = switch (align) {
+      case CENTER -> 0.5f;
+      case END, FLEX_END -> 1;
+      default -> 0;
+    };
+    if (share == 0 || field) {
+      return 0;
+    }
+    double grid = scale >= 1.5 && !font().wholePixels() ? 4 : 1;
+    return (float) (Math.floor(Math.max(placedWidth - width, 0) * share * grid) / grid);
   }
 
   void underline(int from, int to) {
@@ -601,10 +691,12 @@ public final class Text implements Measure {
       fits.add(b);
     }
     for (int i = fits.size() - 1; ; i--) {
-      String shown = text.substring(span.from, fits.get(i)).stripTrailing() + ELLIPSIS;
-      GlyphRun run = shaping.shape(shown, size, scale, features);
+      String kept = text.substring(span.from, fits.get(i)).stripTrailing();
+      // The ranges of the kept part stay; the ellipsis has the text's colour and font.
+      Para shortened = shape(kept + ELLIPSIS, para.spans, para.offset + span.from, kept.length());
+      GlyphRun run = shortened.run;
       if (run.width() <= placedWidth + SLACK || i == 0) {
-        return new Line(run, run.width(), baseline);
+        return new Line(run, run.width(), baseline, shortened.colors, 0);
       }
     }
   }
@@ -673,25 +765,55 @@ public final class Text implements Measure {
     for (int p = 1; p < split.length; p++) {
       starts[p] = starts[p - 1] + split[p - 1].length() + 1;
     }
+    // The whole string is one line for the highlighter; each paragraph takes its part.
+    Spans whole = null;
+    if (highlighter != null && !placeholderShown && !masked) {
+      whole = new Spans(shown.length(), false);
+      highlighter.line(shown, null, whole);
+    }
     paras = new Para[split.length];
     for (int p = 0; p < split.length; p++) {
-      paras[p] = shape(split[p]);
+      paras[p] = shape(split[p], whole, starts[p], split[p].length());
     }
   }
 
-  /** Shapes a paragraph, with tab stops in a multi-line field. */
-  private Para shape(String text) {
+  /**
+   * Shapes a paragraph, with tab stops in a multi-line field, and with the colours and fonts of
+   * {@code spans}, whose position {@code offset} is the paragraph's start, as far as {@code limit}
+   * in the paragraph: what lies after it, an ellipsis, has the text's.
+   */
+  private Para shape(String text, Spans spans, int offset, int limit) {
+    boolean tabbed = multiline && text.indexOf('\t') >= 0;
+    String shaped = tabbed ? text.replace('\t', ' ') : text;
     GlyphRun run;
-    if (multiline && text.indexOf('\t') >= 0) {
+    if (spans != null && spans.has(Spans.FONT)) {
+      run = shapeFonts(shaped, spans, offset, limit);
+    } else {
+      run = shaping.shape(shaped, size, scale, features);
+    }
+    if (tabbed) {
       int[] tabs = new int[text.length()];
       int n = 0;
       for (int i = text.indexOf('\t'); i >= 0; i = text.indexOf('\t', i + 1)) {
         tabs[n++] = i;
       }
-      run = shaping.shape(text.replace('\t', ' '), size, scale, features)
-          .tabbed(Arrays.copyOf(tabs, n), tabStop);
-    } else {
-      run = shaping.shape(text, size, scale, features);
+      run = run.tabbed(Arrays.copyOf(tabs, n), tabStop);
+    }
+    int[] colors = null;
+    if (spans != null && spans.has(Spans.COLOR)) {
+      int[] byChar = new int[text.length()];
+      Arrays.fill(byChar, color);
+      for (int i = 0; i < spans.count; i++) {
+        if (spans.kinds[i] == Spans.COLOR) {
+          Arrays.fill(byChar, Math.clamp(spans.froms[i] - offset, 0, limit),
+              Math.clamp(spans.tos[i] - offset, 0, limit), spans.colors[i]);
+        }
+      }
+      colors = new int[run.count()];
+      for (int g = 0; g < colors.length; g++) {
+        int c = run.cluster(g);
+        colors[g] = c < byChar.length ? byChar[c] : color;
+      }
     }
     int[] breaks = null;
     if (wraps) {
@@ -703,7 +825,35 @@ public final class Text implements Measure {
       }
       breaks = found.stream().mapToInt(Integer::intValue).toArray();
     }
-    return new Para(text, run, breaks);
+    return new Para(text, run, breaks, colors, spans, offset);
+  }
+
+  /**
+   * Shapes a string whose ranges have fonts of their own: each stretch of one font on its own,
+   * the text's font with its fallbacks where no range sets one, then joined.
+   */
+  private GlyphRun shapeFonts(String text, Spans spans, int offset, int limit) {
+    Font[] byChar = new Font[text.length()];
+    for (int i = 0; i < spans.count; i++) {
+      if (spans.kinds[i] == Spans.FONT) {
+        Arrays.fill(byChar, Math.clamp(spans.froms[i] - offset, 0, limit),
+            Math.clamp(spans.tos[i] - offset, 0, limit), spans.fonts[i]);
+      }
+    }
+    List<GlyphRun> parts = new ArrayList<>();
+    List<Integer> from = new ArrayList<>();
+    for (int start = 0, end; start < text.length() || parts.isEmpty(); start = end) {
+      Font font = start < text.length() ? byChar[start] : null;
+      end = start + 1;
+      while (end < text.length() && byChar[end] == font) {
+        end++;
+      }
+      end = Math.min(end, text.length());
+      Font shaper = font == null ? shaping : systemFonts ? font.withSystemFonts() : font;
+      parts.add(shaper.shape(text.substring(start, end), size, scale, features));
+      from.add(start);
+    }
+    return GlyphRun.concat(parts, from.stream().mapToInt(Integer::intValue).toArray());
   }
 
   /**
@@ -713,16 +863,22 @@ public final class Text implements Measure {
   private static final class Para {
     final String text;
     final GlyphRun run;
+    final int[] colors; // per glyph, or null for the text's colour
+    final Spans spans; // what the highlighter said about it, or null
+    final int offset; // where the paragraph starts in the positions of spans
     final int[] glyphAt;
     final int[] breaks; // null without wrapping
     float limit = Float.NaN; // the width rowStarts are for
     int[] rowStarts = {0};
     float[] rowWidths;
 
-    Para(String text, GlyphRun run, int[] breaks) {
+    Para(String text, GlyphRun run, int[] breaks, int[] colors, Spans spans, int offset) {
       this.text = text;
       this.run = run;
       this.breaks = breaks;
+      this.colors = colors;
+      this.spans = spans;
+      this.offset = offset;
       // The first glyph of each character; clusters only grow, see GlyphRun#cluster.
       int[] at = new int[text.length() + 1];
       int glyph = 0;
@@ -794,6 +950,11 @@ public final class Text implements Measure {
 
     GlyphRun slice(int from, int to) {
       return run.slice(glyphAt[from], glyphAt[to]);
+    }
+
+    /** The colours of the glyphs of characters {@code from} to {@code to}, or null. */
+    int[] colors(int from, int to) {
+      return colors == null ? null : Arrays.copyOfRange(colors, glyphAt[from], glyphAt[to]);
     }
 
     /** The width of characters {@code from} to {@code to}, without the white space at the end. */
@@ -939,10 +1100,11 @@ public final class Text implements Measure {
     if (placedSpans.isEmpty()) {
       return 0;
     }
-    Span span = placedSpans.get(line(index));
+    int line = line(index);
+    Span span = placedSpans.get(line);
     int p = span.paragraph;
     int at = Math.clamp(index - starts[p], span.from, span.to);
-    return paras[p].pen(at) - paras[p].pen(span.from);
+    return (line < lineX.length ? lineX[line] : 0) + paras[p].pen(at) - paras[p].pen(span.from);
   }
 
   /** The number of grapheme boundaries after {@code from} up to and with {@code to}. */
@@ -1082,7 +1244,10 @@ public final class Text implements Measure {
       if (shapedLines.size() >= 4096) {
         shapedLines.clear(); // keys that walk far in one tree: keep what this tree shapes bounded
       }
-      para = shape(shown.substring(lines.start(line), lines.end(line)));
+      Spans spans = highlighter == null || placeholderShown ? null
+          : lines.spans(line, shown, highlighter, highlightKey);
+      String text = shown.substring(lines.start(line), lines.end(line));
+      para = shape(text, spans, 0, text.length());
       shapedLines.put(line, para);
       lines.shaped++;
     }
@@ -1179,7 +1344,8 @@ public final class Text implements Measure {
           break;
         }
         laid.add(new Line(para.slice(para.rowStart(r), para.rowEnd(r)), para.rowWidths[r],
-            (float) (top - viewY + firstBaseline)));
+            (float) (top - viewY + firstBaseline), para.colors(para.rowStart(r), para.rowEnd(r)),
+            0));
         placed.add(new Row(line, r, para, top));
         if (top < viewY + placedHeight && top + lh > viewY) {
           firstInView = firstInView < 0 ? line : firstInView;
@@ -1189,7 +1355,81 @@ public final class Text implements Measure {
     }
     this.lines = List.copyOf(laid);
     this.rows = placed;
+    marks = marks(placed);
     return (float) ((lines.rowsBefore(anchor) - anchorRows) * lh);
+  }
+
+  /** The marks of the rows laid out, from the highlighter's spans and the decorator's. */
+  private List<Mark> marks(List<Row> placed) {
+    if (placeholderShown || decorator == null && (highlighter == null || placed.stream()
+        .noneMatch(row -> row.para.spans != null && row.para.spans.count > 0))) {
+      return List.of();
+    }
+    Lines lines = shownLines();
+    List<Mark> lineMarks = new ArrayList<>();
+    List<Mark> ranges = new ArrayList<>();
+    List<Mark> unders = new ArrayList<>();
+    Map<Integer, Spans> decorated = new HashMap<>();
+    float thick = Math.max(1, Math.round(scale));
+    float under = firstBaseline + Math.round(font().descent() * size * scale / 2);
+    for (Row row : placed) {
+      Para para = row.para;
+      Spans decor = null;
+      if (decorator != null) {
+        decor = decorated.computeIfAbsent(row.line, line -> {
+          Spans out = new Spans(para.text.length(), false);
+          decorator.line(line, lines.start(line), para.text, out);
+          return out;
+        });
+      }
+      float top = (float) (row.top - viewY);
+      float left = para.pen(para.rowStart(row.row));
+      int from = para.rowStart(row.row);
+      int to = para.rowEnd(row.row);
+      for (Spans spans : new Spans[] {para.spans, decor}) {
+        if (spans == null) {
+          continue;
+        }
+        if (spans.lineBackground >>> 24 != 0) {
+          lineMarks.add(new Mark(new Box(0, top, placedWidth, lineHeight), spans.lineBackground));
+        }
+        for (int i = 0; i < spans.count; i++) {
+          int kind = spans.kinds[i];
+          int a = Math.max(spans.froms[i], from);
+          int b = Math.min(spans.tos[i], to);
+          if (kind != Spans.BACKGROUND && kind != Spans.UNDERLINE || b <= a) {
+            continue;
+          }
+          float x0 = para.pen(a) - left - viewX;
+          float x1 = para.pen(b) - left - viewX;
+          if (kind == Spans.BACKGROUND) {
+            ranges.add(new Mark(new Box(x0, top, x1 - x0, lineHeight), spans.colors[i]));
+          } else {
+            unders.add(new Mark(new Box(x0, top + under, x1 - x0, thick), spans.colors[i]));
+          }
+        }
+      }
+    }
+    lineMarks.addAll(ranges);
+    lineMarks.addAll(unders);
+    return List.copyOf(lineMarks);
+  }
+
+  /** The lines whose first row is laid out, with where it is, top to bottom. */
+  List<Start> lineStarts() {
+    lines();
+    List<Start> starts = new ArrayList<>();
+    for (Row row : rows) {
+      if (row.row == 0) {
+        starts.add(new Start(row.line, (float) (row.top - viewY)));
+      }
+    }
+    return starts;
+  }
+
+  /** Whether characters the fonts lack come from the system's fonts. */
+  boolean systemFonts() {
+    return systemFonts;
   }
 
   /** For the dump: the lines with a row in the content box, from 0, and -1 for none. */

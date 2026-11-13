@@ -1,0 +1,47 @@
+el 0,0 356x176
+  el 8,8 340x88
+    el 8,8 108x88
+      text "No rows match the filter. Change it or clear it to see all orders." 12,12 100x80
+    el 124,8 108x88
+      text "No rows match the filter. Change it or clear it to see all orders." 128,12 100x80
+    el 240,8 108x88
+      text "No rows match the filter. Change it or clear it to see all orders." 244,12 100x80
+  el 8,102 340x18
+    el 8,102 70x18
+      text "7" 8,103 70x16
+    el 86,102 78x18
+      text "7" 86,103 78x17
+    el 172,102 40x18
+      text "7" 172,103 40x16
+    el 220,102 48x18
+      text "7" 220,103 48x17
+    el 276,102 22x18
+      text "7" 276,103 22x16
+    el 306,102 30x18
+      text "7" 306,103 30x17
+  el 8,126 340x18
+    el 8,126 70x18
+      text "1.234,56" 8,127 70x16
+    el 86,126 78x18
+      text "1.234,56" 86,127 78x17
+    el 172,126 40x18
+      text "1.234,56" 172,127 40x16
+    el 220,126 48x18
+      text "1.234,56" 220,127 48x17
+    el 276,126 22x18
+      text "1.234,56" 276,127 22x16
+    el 306,126 30x18
+      text "1.234,56" 306,127 30x17
+  el 8,150 340x18
+    el 8,150 70x18
+      text "-98 765 432,10" 8,151 70x16
+    el 86,150 78x18
+      text "-98 765 432,10" 86,151 78x17
+    el 172,150 40x18
+      text "-98 765 432,10" 172,151 40x16
+    el 220,150 48x18
+      text "-98 765 432,10" 220,151 48x17
+    el 276,150 22x18
+      text "-98 765 432,10" 276,151 22x16
+    el 306,150 30x18
+      text "-98 765 432,10" 306,151 30x17
