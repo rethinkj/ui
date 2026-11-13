@@ -152,6 +152,25 @@ class ComboBoxTest {
     assertEquals("db-eu-1.example.comx", app.state().hostName);
   }
 
+  /** Nothing is highlighted in a free one until a key does it, also when the view is rebuilt. */
+  @Test
+  void aFreeComboBoxHighlightsNothingAcrossRebuildsUntilArrowDown() throws IOException {
+    run("press #host\ntype \"db\"");
+    app.invalidate(); // another handler or posted task rebuilds the view
+    String tree = run("");
+    assertFalse(tree.contains(" selected"), "still nothing highlighted: " + tree);
+    run("key Enter");
+    assertEquals("db", app.state().hostName, "Enter keeps what was typed");
+
+    run("key ArrowDown alt");
+    app.invalidate();
+    tree = run("");
+    assertTrue(tree.contains("role=listbox"), tree);
+    assertFalse(tree.contains(" selected"), "all of them, none highlighted: " + tree);
+    tree = run("key ArrowDown");
+    assertTrue(line(tree, "#option-0").contains(" selected"), "Arrow Down, the first: " + tree);
+  }
+
   @Test
   void aDisabledComboBoxTakesNothing() throws IOException {
     String tree = run("");

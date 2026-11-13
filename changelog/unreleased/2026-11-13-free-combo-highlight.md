@@ -1,0 +1,1 @@
+- A free `ComboBox` keeps its suggestions unhighlighted until Arrow Down, also when the view is rebuilt meanwhile; after any rebuild it highlighted the first one, which Enter then took instead of the typed text, and the first Arrow Down after Alt+Down went to the second.
