@@ -155,3 +155,40 @@ frame
 advance 1
 frame
 snap workbench-dark-2x
+
+# The tabs in windows of their own (TabGroups): orders torn off into a window, its query run
+# there, and its tab docked back into the first window's bar.
+size 1000 600 at 100,100                   # one pixel per pixel again, at a place on the screen
+frame
+down #tab-1                                # orders out of the bar, down into its rows
+move 380,60
+move 380,300
+frame
+up 380,300
+frame                                      # its own window under the pointer, titled orders
+window orders
+press #query-localhost/shop/public/orders
+key A control
+type "SELECT * FROM orders LIMIT 5;"
+key Enter control                          # runs it in the new window
+frame
+await                                      # and the answer arrives there
+frame
+advance 1
+frame
+snap workbench-torn                        # the first window on Start; orders with 5 rows
+
+window main
+press role=switch label="Dark"             # the light theme, in every window
+frame
+advance 1
+frame
+window orders
+down #tab-0                                # its only tab drags the window along
+move screen 600,300
+frame
+move screen 440,148                        # over the first window's bar, after Start
+frame
+snap workbench-docking                     # the marker there; the window below the bar
+up screen 440,148
+frame                                      # orders back in the first window, its window gone

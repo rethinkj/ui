@@ -217,7 +217,7 @@ public final class App<S> {
   private boolean ran; // a handler ran in this frame; see ranHandlers()
   private Object selecting; // the identity of the field a press is selecting in, until pointer up
   private Editor blinking; // the editor of the focused field
-  private long builds; // the number of the view's last build, for the fields' FieldState
+  long builds; // the number of the view's last build, for the fields' FieldState; tests read it
   private El typingSoon; // a field of the last tree that a press not dispatched yet lands in
   private double blinkStart; // when its caret last turned on
   private boolean caretOn;
@@ -2180,13 +2180,17 @@ public final class App<S> {
       FieldState state = el.fieldState();
       Editor editor = state == null ? editors.computeIfAbsent(id, i -> new Editor(el)) : null;
       if (state != null) {
-        if (state.build == builds && !state.id.equals(id)) {
+        if (state.app == this && state.build == builds && !state.id.equals(id)) {
           throw new IllegalStateException("Two text fields have the same FieldState. Give each"
               + " field a FieldState of its own, kept in the app's state with what it edits.");
+        }
+        if (state.app != this && state.app != null && state.editor != null) {
+          state.editor.leave(); // from another app's tree, as a tab to another window: once more
         }
         if (state.id != null && !state.id.equals(id) && editors.get(state.id) == state.editor) {
           editors.remove(state.id); // the field moved
         }
+        state.app = this;
         state.build = builds;
         state.id = id;
         if (state.editor == null) {
@@ -2231,7 +2235,10 @@ public final class App<S> {
       if (editor == waiting || kept.contains(editor)) {
         return false;
       }
-      editor.leave(); // its element may be fading out
+      FieldState state = editor.element().fieldState();
+      if (state == null || state.app == this) { // not taken by another app's tree meanwhile
+        editor.leave(); // its element may be fading out
+      }
       return true;
     });
     blink(focused == null ? null : focused.editor());
