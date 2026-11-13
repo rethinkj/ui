@@ -84,6 +84,7 @@ class DocsExamplesTest {
     concepts(all, "background", Concepts::background, 420, 140);
     concepts(all, "images", Concepts::images, 280, 120);
     concepts(all, "theme", Concepts::theme, 200, 80);
+    all.put("tab-groups", new Example(Notebook::app, 420, 260));
     return all;
   }
 

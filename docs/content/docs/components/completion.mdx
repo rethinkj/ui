@@ -1,0 +1,46 @@
+---
+title: Completion
+description: A list of completions at the caret of a text field, such as table and column names in a query.
+---
+
+`Completion.complete` gives a text field, usually a [CodeEditor](/docs/components/code-editor), a list of completions below its caret. The app's function gets the part of the word before the caret and returns the entries; the list opens as the user types, and Enter or Tab puts the chosen entry in place. For choosing among fixed values in a form, use a [ComboBox](/docs/components/combo-box).
+
+<Shot src="examples/workbench-completion" alt="Completions of column names below the caret in the Workbench's query editor" />
+
+## Example
+
+```java snippet="completion"
+```
+
+- `field` is the editable field; `caret` is where its caret is, which a `CodeEditor.State` knows.
+- The app keeps a `Completion.State`.
+- `new Completion.Entry(text, symbol, kind)` shows an optional icon and a muted kind at the right. The kit filters nothing: return the entries in the order to show.
+- The function runs on every keystroke while the list is open; keep it fast, or look things up off the app's thread and keep the answers in the state.
+
+A script that opens it:
+
+```text snippet="completion-script"
+```
+
+## When it opens and closes
+
+A single letter, digit or `_` typed opens the list once the word has two characters and the caret stands right after it; Control+Space opens it with an empty word. A deletion keeps it open while the word is not empty; any other edit closes it. A press elsewhere and the wheel dismiss it.
+
+## Keyboard
+
+| Keys | Action |
+| --- | --- |
+| Up, Down | Move the highlight, around the ends |
+| Page Up, Page Down | By eight |
+| Enter, Tab | Put the highlighted entry in place, as one step of the undo history |
+| Escape | Close |
+| Left, Right, Home, End | Close and move the caret |
+
+Keys it does not take reach the field's own handler, Control+Enter among them.
+
+## In a tree dump
+
+The list is an overlay at the caret, `role=listbox` `label="Completions"`, its entries `role=option` with their text as label and the key `option-<index>`, the highlighted one `selected`:
+
+```text file="examples/src/test/resources/golden/docs/code-editor/completions.tree.txt" start="overlay" count="3"
+```

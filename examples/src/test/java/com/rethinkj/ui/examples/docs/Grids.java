@@ -46,6 +46,14 @@ final class Grids {
   Node selected;
   String said = "";
 
+  static List<DataGrid.Selection> modes() {
+    // docs:start grid-modes
+    var rows = new DataGrid.Selection(DataGrid.Mode.ROWS);   // whole rows, as results are read
+    var cells = new DataGrid.Selection(DataGrid.Mode.CELLS); // cells, and rows by their numbers
+    // docs:end grid-modes
+    return List.of(rows, cells);
+  }
+
   /** The made-up orders: row {@code i}, column {@code c}. */
   static String value(int i, int c) {
     return switch (c) {

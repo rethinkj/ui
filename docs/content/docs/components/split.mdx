@@ -1,0 +1,43 @@
+---
+title: Split
+description: Two parts side by side or one above the other, with a line the user drags.
+---
+
+`Split.split` puts two parts beside each other (`Direction.ROW`) or one above the other (`COLUMN`), with a line between them that the pointer and the keyboard move. `Split.cards` does the same for two cards on the window's background, with the line in the gap between them. Use it for a sidebar beside an editor, or an editor over its results.
+
+<Shot src="kit/split-{theme}-rest" alt="A schema beside an editor over its results, split twice" />
+
+## Example
+
+```java snippet="split"
+```
+
+`Split.cards(theme, direction, position, reset, onMove, first, minFirst, second, minSecond)`, and the same for `Split.split`:
+
+| Parameter | |
+| --- | --- |
+| `position` | Where the line is, a `Split.Position` the app keeps |
+| `reset` | Where a double press on the line puts it |
+| `onMove` | Told a new position while the line is dragged or moved by keys |
+| `minFirst`, `minSecond` | The smallest sizes of the parts; layout keeps them when the split is smaller, without changing the position |
+
+The kind of position says what stays when the split grows:
+
+| Position | |
+| --- | --- |
+| `Position.first(pixels)` | The first part keeps its size, as a side panel |
+| `Position.second(pixels)` | The second part keeps its size |
+| `Position.share(fraction)` | The first part keeps its share, as an editor over its results |
+
+Neither the split nor its parts take a minimum size from what they hold, so a list or a tree in a part scrolls inside it. Splits nest.
+
+## Keyboard
+
+The line is one stop for Tab, after the second part. The arrow keys along the split move it by the theme's `size().step()`. A press or drag on it leaves the focus in the part that has it.
+
+## In a tree dump
+
+The line is `role=separator`, labelled `Resize` and the first part's label, with its position as `value`:
+
+```text file="examples/src/test/resources/golden/docs/split/view.tree.txt" start="#divider" count="1"
+```

@@ -1,0 +1,13 @@
+el 0,0 420x260
+  el 8,8 404x244
+    el #bar 9,9 402x33
+      el #tablist role=tablist 11,9 89x32
+        el #tab-0 role=tab label="Ideas" 11,9 89x32 selected
+          el 11,39 89x2
+          text label="document" "\u{E4D7}" 19,17 16x16
+          text "Ideas" 39,17 33x16
+          el #close-0 role=button label="Close Ideas" 76,17 16x16
+            text label="dismiss" "\u{F368}" 76,17 16x16
+    el #panel role=tabpanel label="Ideas" 9,42 402x209
+      el 9,42 402x209
+        text "A tree of tables" 21,54 378x16

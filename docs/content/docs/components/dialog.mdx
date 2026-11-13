@@ -1,0 +1,45 @@
+---
+title: Dialog
+description: A modal dialog in the middle of the window over a scrim, with a title, content and buttons.
+---
+
+`Dialog.dialog` is a modal overlay in the middle of the window: a title, the content and buttons at the bottom right, over a scrim that dims the rest. It takes the focus as it opens, keeps it inside, and gives it back when it closes. Use it to ask before something that cannot be undone, or for a short form. For something light that need not block the window, use a [Popover](/docs/components/popover); for a message that goes by itself, a [Toast](/docs/components/toast).
+
+<Shot src="kit/dialog-{theme}-2x-open" alt="A modal dialog with a field and two buttons over a dimmed window" />
+
+## Example
+
+```java snippet="dialog"
+```
+
+Whether it is open is the app's state: the root attaches it with `root.overlay(open ? dialog : null)`.
+
+| Parameter | |
+| --- | --- |
+| `title` | The heading, and the dialog's label |
+| `content` | Any element |
+| `buttons` | Shown at the bottom right, in order |
+| `defaultButton` | One of `buttons` that Enter presses while it is enabled (the variant with it) |
+| `onDismiss` | Escape and a press on the scrim: cancel |
+
+Enter without modifiers presses the default button from a field of the dialog; a focused button, checkbox or select presses itself, and a multi-line field keeps Enter for its line breaks. `Dialog.enterPresses(button)` is that key handler alone, for a window that is a dialog itself.
+
+A frameless window's own title bar stays usable under a dialog. Closing the window closes the dialog without its dismiss handler.
+
+## Keyboard
+
+| Keys | Action |
+| --- | --- |
+| Tab, Shift+Tab | Go around inside the dialog |
+| Enter | Press the default button |
+| Escape | `onDismiss` |
+
+## In a tree dump
+
+The dialog is an overlay `center modal scrim`, `role=dialog` with the title as label:
+
+```text snippet="dialog-script"
+```
+
+```text file="examples/src/test/resources/golden/docs/dialog/open.tree.txt" start="overlay"
+```

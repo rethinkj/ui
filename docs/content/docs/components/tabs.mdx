@@ -1,0 +1,50 @@
+---
+title: Tabs
+description: A card with a bar of tabs over the content of the active one.
+---
+
+`Tabs.tabs` is a card whose first row is a bar of tabs over the content of the active tab, which fills the card edge to edge. Use it for open documents, queries or tables. The app owns the list and the active index; the content is built for the active tab only. To let tabs move between windows, use [TabGroups](/docs/components/tab-groups); for a choice of two or three views, a [Segmented](/docs/components/segmented) control.
+
+<Shot src="kit/tabs-{theme}-first" alt="A card with a bar of tabs, the active tab marked by an accent line" />
+
+## Example
+
+```java snippet="tabs"
+```
+
+```java snippet="tabs-close"
+```
+
+`Tabs.Tab(title, closable, modified)` has a title, whether it can be closed and whether it is modified (a dot before the title); `.icon(Symbol)` adds an icon. `onSelect` and `onClose` get the index. Closing is the app's: it removes the tab and picks the next active one.
+
+## Options
+
+`Tabs.tabs(theme, tabs, active, onSelect, onClose, content, Tabs.options()…)`:
+
+| Option | What it does |
+| --- | --- |
+| `onMove((from, to) -> …)` | Control+Shift+Page Up and Page Down move the active tab; `Tabs.move(list, active, from, to)` moves an element and returns the new active index |
+| `drag(Tabs.Dragging)` | Tabs can be dragged along the bar, with a marker where they go |
+| `onTearOff(handler)`, `tearOffAtStart(boolean)` | Told when a tab is dragged out of the bar |
+| `id(object)`, `onDock((fromBar, from, at) -> …)` | Lets a bar take a tab from another bar with the same `Dragging` |
+| `contextMenu(state, items)` | A menu for a tab, at a secondary press or the Menu key |
+
+[TabGroups](/docs/components/tab-groups) wires all of these for you.
+
+## Keyboard
+
+| Keys | Action |
+| --- | --- |
+| Left, Right, Home, End | Choose a tab, while the bar has the focus |
+| Control+Tab, Control+Shift+Tab | Next and previous tab, from the bar or the content |
+| Control+W, Control+F4 | Close the active tab |
+| Control+Shift+Page Up, Page Down | Move the active tab, with `onMove` |
+
+The bar is one stop for Tab. For the shortcuts to work while the focus is elsewhere, give the root the same handler: `root.onKey(tabs.onKey())`.
+
+## In a tree dump
+
+The bar is `role=tablist` with the key `tablist`; each tab `role=tab` with its title as label and the key `tab-<index>`, the active one `selected`; a close button `role=button` with `label="Close <title>"` and the key `close-<index>`. A tab being dragged is `grabbed`.
+
+```text file="examples/src/test/resources/golden/docs/tabs/view.tree.txt" start="#tablist" count="7"
+```
