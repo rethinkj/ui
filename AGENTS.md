@@ -257,7 +257,7 @@ On Windows, separate the class path with `;`. The snaps equal the stored images 
 - The clipboard is `App.clipboard()`, a `Clipboard`: `Clipboard.inMemory()` at first, which scripts and tests use, and the system's (SDL) once a `WindowLoop` runs the app.
 - `App.inputArea()` is the focused field's box and caret for the system's input method, or null when the focused element takes no text; `WindowLoop` turns the window's text input on with it (`Window.textInputArea`) and off without (`Window.stopTextInput`), so an on-screen keyboard shows only for a field. Compositions arrive as `WindowEvent.TextEditing` and go to `App.textComposition`; the window asks SDL to leave drawing them to the app (`SDL_IME_IMPLEMENTED_UI=composition`).
 - A field in a row of a virtual list (`El.rows`) gets its editor when the list builds the row, by the row's index. The editor goes when the row leaves the rows that exist, as everything else the app keeps of a row, except the focused field's: it stays with the focus and comes back with the row, without its composition.
-- `FieldTest` and `FieldGeometryTest` drive fields through `App`; `EditorTest` checks boundaries and needs no native libraries.
+- `FieldTest` and `FieldGeometryTest` drive fields through `App`, `FieldRowsTest` drives them in the rows of a list and in a scroll area; `EditorTest` checks boundaries and needs no native libraries.
 
 ## Examples
 

@@ -1,0 +1,27 @@
+el 0,0 280x200
+  text #filter role=textbox label="Filter" "" 12,12 160x24
+  el #rows role=grid 12,44 256x144 rows 0-7/1000
+    el role=row 12,44 256x32
+      text "0" 20,52 32x16
+      text #name-0 role=textbox label="Name of row 0" "accounts" 60,48 200x24
+    el role=row 12,76 256x32
+      text "1" 20,84 32x16
+      text #name-1 role=textbox label="Name of row 1" "addresses" 60,80 200x24
+    el role=row 12,108 256x32
+      text "2" 20,116 32x16
+      text #name-2 role=textbox label="Name of row 2" "ledger" 60,112 200x24 focused caret 5 anchor 6 composing "ni"
+    el role=row 12,140 256x32
+      text "3" 20,148 32x16
+      text #name-3 role=textbox label="Name of row 3" "carts" 60,144 200x24
+    el role=row 12,172 256x32
+      text "4" 20,180 32x16
+      text #name-4 role=textbox label="Name of row 4" "categories" 60,176 200x24
+    el role=row 12,204 256x32
+      text "5" 20,212 32x16
+      text #name-5 role=textbox label="Name of row 5" "customers" 60,208 200x24
+    el role=row 12,236 256x32
+      text "6" 20,244 32x16
+      text #name-6 role=textbox label="Name of row 6" "deliveries" 60,240 200x24
+    el role=row 12,268 256x32
+      text "7" 20,276 32x16
+      text #name-7 role=textbox label="Name of row 7" "discounts" 60,272 200x24

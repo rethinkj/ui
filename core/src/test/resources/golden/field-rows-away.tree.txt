@@ -1,0 +1,36 @@
+el 0,0 280x200
+  text #filter role=textbox label="Filter" "" 12,12 160x24
+  el #rows role=grid 12,44 256x144 rows 497-507/1000 scroll 0,16000
+    el role=row 12,-52 256x32
+      text "497" 20,-44 32x16
+      text #name-497 role=textbox label="Name of row 497" "sessions" 60,-48 200x24
+    el role=row 12,-20 256x32
+      text "498" 20,-12 32x16
+      text #name-498 role=textbox label="Name of row 498" "shipments" 60,-16 200x24
+    el role=row 12,12 256x32
+      text "499" 20,20 32x16
+      text #name-499 role=textbox label="Name of row 499" "suppliers" 60,16 200x24
+    el role=row 12,44 256x32
+      text "500" 20,52 32x16
+      text #name-500 role=textbox label="Name of row 500" "accounts" 60,48 200x24
+    el role=row 12,76 256x32
+      text "501" 20,84 32x16
+      text #name-501 role=textbox label="Name of row 501" "addresses" 60,80 200x24
+    el role=row 12,108 256x32
+      text "502" 20,116 32x16
+      text #name-502 role=textbox label="Name of row 502" "audit_log" 60,112 200x24
+    el role=row 12,140 256x32
+      text "503" 20,148 32x16
+      text #name-503 role=textbox label="Name of row 503" "carts" 60,144 200x24
+    el role=row 12,172 256x32
+      text "504" 20,180 32x16
+      text #name-504 role=textbox label="Name of row 504" "categories" 60,176 200x24
+    el role=row 12,204 256x32
+      text "505" 20,212 32x16
+      text #name-505 role=textbox label="Name of row 505" "customers" 60,208 200x24
+    el role=row 12,236 256x32
+      text "506" 20,244 32x16
+      text #name-506 role=textbox label="Name of row 506" "deliveries" 60,240 200x24
+    el role=row 12,268 256x32
+      text "507" 20,276 32x16
+      text #name-507 role=textbox label="Name of row 507" "discounts" 60,272 200x24

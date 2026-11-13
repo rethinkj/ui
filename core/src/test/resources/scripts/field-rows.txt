@@ -1,0 +1,23 @@
+# Text fields in the rows of a virtual list (Examples field-rows), with the steps of both.
+size 280 200 scale 2
+frame
+press #name-2 clicks 2   # a double press in row 2 selects the word under the pointer
+clipboard "ledger"
+key V control            # and a paste replaces it
+frame
+snap field-rows-pasted
+
+wheel #rows 0 20         # within the rows that exist: the caret moves with its row
+frame
+snap field-rows-wheeled
+
+scroll #rows row 500     # row 2 leaves the rows that exist; its field keeps the focus
+frame
+snap field-rows-away
+
+scroll #rows row 0       # back: the field is focused again, its caret where it was
+frame
+key ArrowLeft shift
+compose "ni"             # an input method composes in place of the selection
+frame
+snap field-rows-back

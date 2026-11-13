@@ -10,6 +10,9 @@ import com.rethinkj.ui.text.Font;
 import com.rethinkj.ui.text.TextRendering;
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.function.Consumer;
 
 /** Views shared by tests. */
 public final class Examples {
@@ -18,8 +21,8 @@ public final class Examples {
 
   /**
    * The switch as a program: {@code --script <file> --out <folder>} runs a script against it, and
-   * with {@code list}, {@code rows} or {@code field} before that against the list, the million
-   * rows or the text field.
+   * with {@code list}, {@code rows}, {@code field} or {@code field-rows} before that against the
+   * list, the million rows, the text field or the fields in rows.
    */
   public static void main(String[] args) throws IOException {
     String view = args.length > 0 && !args[0].startsWith("--") ? args[0] : "";
@@ -28,6 +31,7 @@ public final class Examples {
           case "list" -> new App<>(new Object(), s -> list());
           case "rows" -> new App<>(new Object(), s -> rows());
           case "field" -> new App<>(new Form(), Examples::form);
+          case "field-rows" -> new App<>(new Names(), Examples::fieldRows);
           default -> new App<>(new Lights(), Examples::lights);
         };
     app.textRendering(TextRendering.LINUX); // as the stored images
@@ -123,6 +127,49 @@ public final class Examples {
             .fill(0xFF1C1C22)
             .border(1, 0xFF3A3A40)
             .whenFocused(e -> e.border(1, 0xFF3B82F6)));
+  }
+
+  /** The state of {@link #fieldRows}: a filter, and the names that edits gave rows. */
+  public static final class Names {
+    public String filter = "";
+    public final Map<Integer, String> edited = new HashMap<>();
+
+    public String name(int row) {
+      return edited.getOrDefault(row, TABLES[row % TABLES.length]);
+    }
+  }
+
+  /**
+   * A thousand rows in a virtual list, each with a text field for the name of a table, under a
+   * text field for a filter.
+   */
+  public static El fieldRows(Names names) {
+    El filter = field(names.filter, f -> names.filter = f).key("filter").label("Filter")
+        .placeholder("Filter", 0xFF8A8A99).w(160).shrink(0);
+    El grid = col().key("rows").role("grid").grow(1).fill(0xFF1C1C22).rows(1000, 32, i ->
+        row().role("row").padding(0, 8).gap(8).align(Style.Align.CENTER)
+            .fill(i % 2 == 0 ? 0xFF1C1C22 : 0xFF22222A)
+            .children(
+                El.text(String.valueOf(i)).font(Font.mono()).fontSize(12).color(0xFF8A8A99)
+                    .w(32),
+                field(names.name(i), name -> names.edited.put(i, name)).key("name-" + i)
+                    .label("Name of row " + i).grow(1)));
+    return col().wFull().hFull().padding(12).gap(8).fill(0xFF101014).children(filter, grid);
+  }
+
+  /** A text field as in {@link #form}, without a width. */
+  private static El field(String value, Consumer<String> onEdit) {
+    return El.text(value).editable(onEdit)
+        .color(0xFFE4E4E7)
+        .caretColor(0xFF93C5FD)
+        .selectionColor(0x803B82F6)
+        .h(24)
+        .padding(0, 6)
+        .radius(4)
+        .fill(0xFF16161B)
+        .border(1, 0xFF3A3A40)
+        .whenHovered(e -> e.fill(0xFF26262E))
+        .whenFocused(e -> e.border(1, 0xFF3B82F6));
   }
 
   /** The state of the switch example. */

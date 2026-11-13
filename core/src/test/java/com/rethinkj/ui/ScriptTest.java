@@ -32,6 +32,7 @@ class ScriptTest {
   private static final Path FOCUS = Path.of("src/test/resources/scripts/focus.txt");
   private static final Path HOVER = Path.of("src/test/resources/scripts/hover.txt");
   private static final Path FIELD = Path.of("src/test/resources/scripts/field.txt");
+  private static final Path FIELD_ROWS = Path.of("src/test/resources/scripts/field-rows.txt");
 
   @TempDir Path out;
 
@@ -178,6 +179,27 @@ class ScriptTest {
     assertTrue(
         Files.readString(out.resolve("field-word.tree.txt"))
             .contains(" \"SELECT name FROM customers\" 40,26 160x28 focused caret 17 anchor 26\n"));
+  }
+
+  @Test
+  void theStepsOfListsAndFieldsDriveTheFieldsInTheRowsOfAList() throws IOException {
+    TextLibraries.assumeLoaded();
+    Examples.main(new String[] {
+      "field-rows", "--script", FIELD_ROWS.toString(), "--out", out.toString()
+    });
+
+    assertSnapsMatchGolden(List.of("field-rows-pasted", "field-rows-wheeled", "field-rows-away",
+        "field-rows-back"));
+    assertEquals("ledger", Files.readString(out.resolve("field-rows-pasted.clipboard.txt")));
+    assertTrue(Files.readString(out.resolve("field-rows-pasted.tree.txt"))
+        .contains(" \"ledger\" 60,112 200x24 focused caret 6\n"));
+    assertTrue(Files.readString(out.resolve("field-rows-wheeled.tree.txt"))
+        .contains(" \"ledger\" 60,92 200x24 focused caret 6\n"));
+    String away = Files.readString(out.resolve("field-rows-away.tree.txt"));
+    assertTrue(away.contains(" rows 497-507/1000 scroll 0,16000\n"), away);
+    assertFalse(away.contains("focused"), "the focused row does not exist");
+    assertTrue(Files.readString(out.resolve("field-rows-back.tree.txt"))
+        .contains(" \"ledger\" 60,112 200x24 focused caret 5 anchor 6 composing \"ni\"\n"));
   }
 
   @Test
