@@ -138,6 +138,11 @@ class GpuRendererTest {
     cases.addAll(script("focus.txt", () -> new App<>(new Lights(), Examples::lights)));
     cases.addAll(script("hover.txt", () -> new App<>(new Lights(), Examples::lights)));
     cases.addAll(script("list.txt", () -> new App<>(new Object(), s -> Examples.list())));
+    // Text fields: the selection and the caret are rectangles, the line under a composition too,
+    // and the glyphs are moved by the field's scroll and clipped to it.
+    cases.addAll(script("field.txt", () -> new App<>(new Examples.Form(), Examples::form)));
+    cases.addAll(script("field-rows.txt",
+        () -> new App<>(new Examples.Names(), Examples::fieldRows)));
     for (int frames = 2; frames <= 5; frames++) {
       cases.add(switchMoving(frames));
     }
@@ -163,8 +168,8 @@ class GpuRendererTest {
     }
     // Text: 11 to 14 pixels in both fonts, dark on light, light on dark and grey on light, with
     // both renderings, under opacity, cut by rounded clips, overlapping translucent boxes and
-    // other text, and spread over the pages of a small atlas. At the scales of the stored images
-    // in the views above, and at the others here.
+    // other text, and spread over the pages of a small atlas; and text fields, selected and
+    // composing. At the scales of the stored images in the views above, and at the others here.
     for (float scale : new float[] {1, 2, 1.5f}) {
       String at = at(scale);
       if (scale == 1.5f) {
@@ -179,6 +184,12 @@ class GpuRendererTest {
       cases.add(text("text-clipped" + at, clippedText(), 240, 120, scale));
       cases.add(text("text-overlaps" + at, overlappingText(), 240, 120, scale));
       cases.add(textPages(scale));
+      if (scale != 2) {
+        cases.add(field("field-selected" + at, scale,
+            "press #name\ntype \"SELECT name FROM customers\"\nkey ArrowLeft control shift\n"));
+        cases.add(field("field-composing" + at, scale,
+            "press #name\ntype \"SELECT name\"\nkey ArrowLeft shift\ncompose \"ni\"\n"));
+      }
     }
     return cases.stream();
   }
@@ -660,6 +671,16 @@ class GpuRendererTest {
     app.wheel(100, 45, 0, 13.25f);
     app.frame();
     return scene("text-scrolled", app.scene(), 200, 90, 2, true);
+  }
+
+  /** The text field of the stored images field-*, after these steps of a script and a frame. */
+  private static Case field(String name, float scale, String steps) throws IOException {
+    App<Examples.Form> app = new App<>(new Examples.Form(), Examples::form);
+    app.textRendering(TextRendering.LINUX);
+    Script.run("size 240 80 scale " + scale + "\nframe\n" + steps + "frame\n", app,
+        Path.of("target/gpu-vs-cpu-scripts"));
+    assertTrue(app.focused().text().caret() != null, "the caret shows");
+    return scene(name, app.scene(), 240, 80, scale);
   }
 
   /** A view with text, laid out for the scale, its glyphs in an atlas of its own. */
