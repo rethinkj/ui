@@ -1,0 +1,1 @@
+- `El.whenFocusWithin(look)` changes how an element looks while the keyboard focus is on it or inside it, as CSS's `:focus-within`. The kit's password field with its show button keeps the accent border of the focus while the button has the focus.

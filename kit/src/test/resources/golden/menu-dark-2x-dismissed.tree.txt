@@ -1,6 +1,6 @@
 el 0,0 360x240
   el 12,12 336x24
-    el #file role=button label="File" 12,12 48x24 focused
+    el #file role=button label="File" 12,12 48x24
       text "File" 25,16 22x16
     el #rename role=button label="Rename…" 64,12 86x24
       text "Rename…" 77,16 60x16

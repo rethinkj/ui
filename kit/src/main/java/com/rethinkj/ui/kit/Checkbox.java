@@ -12,7 +12,8 @@ import com.rethinkj.ui.Style;
 
 /**
  * A box with a check mark, and an optional text beside it. A press on the box or on its text
- * checks or clears it, and so do Enter and Space while it has the focus.
+ * checks or clears it, and so do Enter and Space while it has the focus. Tab reaches it; a press
+ * leaves the focus where it is, as a {@link Button}'s does.
  */
 public final class Checkbox {
 
@@ -69,6 +70,7 @@ public final class Checkbox {
     int pressed = checked ? t.accent().pressed() : over(fill, s.pressed());
     // The whole row takes the press, text included, and its looks restyle the box.
     return checkbox.focusable()
+        .keepFocus() // as a button: Tab reaches it, a press leaves the focus where it is
         .focusRing(t.border().focus())
         .cursor(Cursor.POINTER)
         .onPress(onToggle)

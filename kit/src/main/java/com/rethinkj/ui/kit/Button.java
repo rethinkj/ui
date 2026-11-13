@@ -7,7 +7,11 @@ import static com.rethinkj.ui.kit.Theme.over;
 import com.rethinkj.ui.Cursor;
 import com.rethinkj.ui.El;
 
-/** A button with text. A press runs its handler, and so do Enter and Space while it is focused. */
+/**
+ * A button with text. A press runs its handler, and so do Enter and Space while it is focused. Tab
+ * reaches it, but a press leaves the keyboard focus where it is ({@link El#keepFocus}), so that
+ * the editor or grid a toolbar button acts on keeps it.
+ */
 public final class Button {
 
   public enum Variant {
@@ -46,6 +50,7 @@ public final class Button {
       return button;
     }
     return button.focusable()
+        .keepFocus() // a press leaves the focus in the editor or grid the button acts on
         .focusRing(t.border().focus())
         .cursor(Cursor.POINTER)
         .onPress(onPress)

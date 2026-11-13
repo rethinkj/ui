@@ -77,17 +77,29 @@ import java.util.function.Predicate;
  * press on it or inside it, or from {@link #focus}. Keys then go up through its ancestors until a
  * handler takes them ({@link El#onKey}); text goes to it alone ({@link El#onText}). When the
  * keyboard or the app moved the focus, the scene draws a ring around the focused element, and
- * scroll areas around it scroll it into view.
+ * scroll areas around it scroll it into view. When a rebuild leaves the focused element out, the
+ * focus goes to the nearest element around where it was that can take it, as {@link #focused}
+ * says, so that keys keep reaching the handlers around it.
  *
  * <p>The app also follows the pointer ({@link #pointerMove}, {@link #pointerLeave}): it knows the
  * element under it ({@link #hovered}), the one a press is on ({@link #pressed}) and the {@link
  * #cursor} they ask for. Elements change how they look in these states with {@link
- * El#whenHovered}, {@link El#whenFocused} and {@link El#whenPressed}: the view says how, and the
- * app applies the looks of the moment to each tree the view builds, before layout. A state that
+ * El#whenHovered}, {@link El#whenFocused}, {@link El#whenFocusWithin} and {@link El#whenPressed}:
+ * the view says how, and the app applies the looks of the moment to each tree the view builds,
+ * before layout. A state that
  * changes for elements without such a look rebuilds nothing. A press that moves on an element
  * with {@link El#onDrag} becomes a drag, during which that element counts as the one under the
  * pointer; so does a text field while a press in it selects. A press that lands in a field selects
  * text and never drags an element around it.
+ *
+ * <p>The pointer finds its element by descending from the root: at each element the last child
+ * whose rounded border box holds the point, since later children are drawn on top, then its
+ * children in the same way. A child that sticks out of its parent's box is therefore hit only
+ * inside that box, also where the parent does not clip; such a child is drawn whole but takes
+ * the pointer only where its parent does. A view that wants a part to take the pointer beyond its
+ * neighbour's edge gives it a parent that covers that area, as the kit's split puts its divider's
+ * strip and the second part in one box. This keeps hit testing a single walk down the tree,
+ * in proportion to its depth and the children along the way, however large the tree.
  *
  * <p>A scroll area with {@link El#scrollbars} gets its bars from the app, which places them after
  * each frame from the area's size, content and offset, over the content. The bars come first for
@@ -177,13 +189,14 @@ public final class App<S> {
   private float pointerY;
   private List<El> under = List.of(); // the elements under the pointer in the current tree
   private El marked; // the one of them a press would go to, marked for the dump
-  private Looks shown = new Looks(List.of(), List.of(), null, false, null, 0); // of current tree
+  private Looks shown = new Looks(List.of(), List.of(), null, false, List.of(), null, 0); // of tree
   private El focused; // in the current tree
   private Object focusId; // its identity, to find it in the next tree
   private boolean ring; // the keyboard or the app moved the focus: draw the ring
   private double focusSince; // when the focus moved there, for El#whenFocusVisibleFor
   private boolean focusKeyed; // a key went down since then that did not move the focus
   private boolean reveal; // scroll the focused element into view after the next rebuild
+  private Focus beforeAsked; // where an El#autofocus took the focus from, until refocus finds it
   // The identity of the element that last had the focus in a virtual list, by the list's identity.
   // shortcut: lists that are gone stay in it, one small entry each; drop them in update() when
   // apps create lists by the thousand.
@@ -959,6 +972,17 @@ public final class App<S> {
    * The element of the last frame's {@link #tree} that has the keyboard focus, or null. Also null
    * while the focus is on a row of a virtual list that has scrolled out of the rows that exist:
    * the app keeps it, and the row is focused again when it comes back.
+   *
+   * <p>When a rebuild leaves out the focused element, or it can no longer take the focus (it is
+   * no longer focusable, takes no input or is clipped away), the focus does not vanish: it goes to
+   * the nearest element along the old element's identity path that is still there, below the
+   * root, and either takes the focus itself or holds an element that does, then to that element,
+   * the first in tree order. This returns that element from the same frame on. Closing the active
+   * tab from inside its content puts the focus into the content of the tab that takes over, and an
+   * editor laid over a grid's cell gives it back to the grid when it goes. Only when no ancestor
+   * below the root holds a focusable element is the focus cleared, and this returns null. The
+   * ring stays as it was: where a key moved the focus away, the new place shows it and scrolls
+   * into view; where a press did, it does not.
    */
   public El focused() {
     return focused;
@@ -1007,8 +1031,8 @@ public final class App<S> {
    * handler may call this too, with an element of the tree it runs in, and the frame focuses right
    * after the handler, the element with the same identity in the tree built from what the handler
    * changed, if it is still there and can take the focus. The app keeps the focus on the element
-   * of later trees that has the same identity, and clears it once there is none, or when that
-   * element is no longer focusable or takes no input.
+   * of later trees that has the same identity; when there is none, or that element is no longer
+   * focusable or takes no input, the focus goes where {@link #focused} says.
    *
    * @throws IllegalArgumentException if the element is not {@link El#focusable}, not in the last
    *     frame's tree, or takes no input there: it is leaving, the view made it or an ancestor
@@ -1032,7 +1056,8 @@ public final class App<S> {
   /**
    * Sets the colour of the focus ring, as 0xAARRGGBB, for elements that set none themselves ({@link
    * El#focusRing(int)}); 0 draws none. The ring is 2 pixels wide and lies just outside the
-   * element's border box, with its corners.
+   * element's border box, with its corners, or just inside it where the clips around the element
+   * or the window's edge would cut it ({@link Scene}).
    */
   public void focusRing(int argb) {
     ringColour = argb;
@@ -1179,8 +1204,8 @@ public final class App<S> {
   }
 
   /**
-   * Finds the focused element in a new tree by its identity, or clears the focus when it is gone or
-   * can no longer take it, and scrolls it into view if that is due.
+   * Finds the focused element in a new tree by its identity, or where the focus goes when it is
+   * gone or can no longer take it ({@link #recover}), and scrolls it into view if that is due.
    */
   private void refocus() {
     if (focusId == null) {
@@ -1190,17 +1215,40 @@ public final class App<S> {
       focused.focused(false);
     }
     El el = animator.element(focusId);
+    if (beforeAsked != null) {
+      Focus before = beforeAsked;
+      beforeAsked = null;
+      if (el == null || !focusables().contains(el)) { // the element asked for cannot take it
+        focusId = before.id();
+        ring = before.ring();
+        reveal = false;
+        refocus();
+        return;
+      }
+    }
     if (el == null && focusWaits()) {
       focused = null; // kept by its identity until the row exists again
       reveal = false;
       return;
     }
-    if (el == null || !focusables().contains(el)) {
-      focused = null;
-      focusId = null;
-      ring = false;
-      reveal = false;
-      return;
+    List<El> order = focusables();
+    if (el == null || !order.contains(el)) {
+      el = recover(focusId, order);
+      if (el == null) {
+        focused = null;
+        focusId = null;
+        ring = false;
+        reveal = false;
+        return;
+      }
+      focusId = animator.identity(el);
+      reveal = ring; // the ring stays as it was: after a key, the new place shows it
+      focusSince = time;
+      focusKeyed = false;
+      Animator.InRow in = animator.inRow(focusId);
+      if (in != null) {
+        remembered.put(in.listId(), focusId);
+      }
     }
     focused = el;
     el.focused(true);
@@ -1211,6 +1259,40 @@ public final class App<S> {
         refocus(); // its row was built again
       }
     }
+  }
+
+  /**
+   * Where the focus goes when the element with identity {@code lost} is gone or can no longer take
+   * it: to the nearest of it and its ancestors below the root that is still there and can take the
+   * focus, or else has an element inside it that can, the first {@link El#autofocus} one in tree
+   * order or else the first one; null if none has.
+   */
+  private El recover(Object lost, List<El> order) {
+    List<Object> lineage = Animator.lineage(lost);
+    for (int i = lineage.size() - 1; i >= 1; i--) {
+      El scope = animator.element(lineage.get(i));
+      if (scope == null || scope.isExiting()) {
+        continue;
+      }
+      if (order.contains(scope)) {
+        return scope;
+      }
+      Set<El> inside = Collections.newSetFromMap(new IdentityHashMap<>());
+      collect(scope, inside);
+      El first = null;
+      for (El el : order) {
+        if (inside.contains(el)) {
+          if (el.autofocusKey() != null) {
+            return el;
+          }
+          first = first == null ? el : first;
+        }
+      }
+      if (first != null) {
+        return first;
+      }
+    }
+    return null;
   }
 
   /**
@@ -2006,7 +2088,7 @@ public final class App<S> {
    * counts the {@link El#onHoverFor} handlers run, so that one that ran builds the view again.
    */
   private record Looks(List<Object> hovered, List<Object> rested, Object focused,
-      boolean focusRested, Object pressed, int hoversRun) {
+      boolean focusRested, List<Object> within, Object pressed, int hoversRun) {
 
     /** These looks without those of elements in the rows of a list, which were built anew. */
     Looks without(Object list) {
@@ -2014,11 +2096,14 @@ public final class App<S> {
       kept.removeIf(id -> Animator.isBelow(id, list));
       List<Object> keptRested = new ArrayList<>(rested);
       keptRested.removeIf(id -> Animator.isBelow(id, list));
+      List<Object> keptWithin = new ArrayList<>(within);
+      keptWithin.removeIf(id -> Animator.isBelow(id, list));
       return new Looks(
           kept,
           keptRested,
           Animator.isBelow(focused, list) ? null : focused,
           focusRested,
+          keptWithin,
           Animator.isBelow(pressed, list) ? null : pressed,
           hoversRun);
     }
@@ -2109,6 +2194,7 @@ public final class App<S> {
     List<Object> hovered = new ArrayList<>(shown.hovered());
     List<Object> rested = new ArrayList<>(shown.rested());
     Object focus = shown.focused();
+    List<Object> within = new ArrayList<>(shown.within());
     Object press = shown.pressed();
     for (int i = 0; i < list.children().size(); i++) {
       El row = list.children().get(i);
@@ -2133,6 +2219,13 @@ public final class App<S> {
           focus = focusId;
           took = true;
         }
+        for (Object id : Animator.lineage(focusId)) {
+          if (Animator.isBelow(id, listId) && look(Animator.find(row, rowId, id),
+              El::focusWithinLook, "whenFocusWithin")) {
+            within.add(id);
+            took = true;
+          }
+        }
       }
       Object pressId = pressedId();
       if (Animator.isBelow(pressId, listId)
@@ -2144,7 +2237,8 @@ public final class App<S> {
         list.layoutRow(i, scale, systemFonts); // a look may change the layout
       }
     }
-    shown = new Looks(hovered, rested, focus, shown.focusRested(), press, shown.hoversRun());
+    shown = new Looks(hovered, rested, focus, shown.focusRested(), within, press,
+        shown.hoversRun());
   }
 
   /**
@@ -2162,6 +2256,15 @@ public final class App<S> {
     }
     List<Object> rested = rest(path, ids);
     El focus = focusId == null ? null : animator.element(focusId);
+    List<Object> within = new ArrayList<>();
+    if (focusId != null) {
+      for (Object id : Animator.lineage(focusId)) {
+        El el = animator.element(id);
+        if (el != null && el.focusWithinLook() != null) {
+          within.add(id);
+        }
+      }
+    }
     Object pressId = pressedId();
     El press = pressId == null ? null : animator.element(pressId);
     return new Looks(
@@ -2169,6 +2272,7 @@ public final class App<S> {
         rested,
         focus != null && focus.focusLook() != null ? focusId : null,
         focusRested(focus),
+        within,
         press != null && press.pressLook() != null ? pressId : null,
         hoversRun);
   }
@@ -2253,12 +2357,15 @@ public final class App<S> {
    * Before layout of a tree the view has just built: each overlay it no longer has gives the
    * focus back to where it was before the overlay took it, the newest first, if the focus is
    * still inside the overlay or nowhere; then each overlay that opens moves the focus to its first
-   * focusable element, without a ring, unless it {@link El#keepFocus keeps the focus} where it is.
+   * {@link El#autofocus} element or else its first focusable one, without a ring, unless it {@link
+   * El#keepFocus keeps the focus} where it is. Unless one did, the first element that asks for the
+   * focus with {@link El#autofocus} takes it.
    * A modal overlay without one takes the focus away until it closes. An element that {@link
    * El#holdFocus holds the focus} counts as an overlay that is open while it is marked so. {@link
    * #refocus} finds the element after layout.
    */
   private void openAndClose(El tree) {
+    boolean took = false;
     Map<Object, El> now = Animator.overlays(tree);
     List<Object> before = new ArrayList<>(opened.keySet());
     for (Object id : before.reversed()) {
@@ -2282,11 +2389,18 @@ public final class App<S> {
       opened.put(overlay.getKey(), takes ? new Focus(focusId, ring) : null);
       if (takes) {
         moveFocus(first, false);
+        took = true;
       }
       if (el.onShownFor() != null) {
         shownSince.put(overlay.getKey(), time);
         shownDue = Math.min(shownDue, time + el.shownDelay());
       }
+    }
+    Object asked = took ? null : animator.autofocus(tree);
+    if (asked != null && !asked.equals(focusId)) {
+      beforeAsked = new Focus(focusId, ring);
+      moveFocus(asked, ring);
+      reveal = true;
     }
   }
 
@@ -2358,10 +2472,18 @@ public final class App<S> {
     if (focusRested) {
       delayedLook(focus, focus.focusRestLook(), "whenFocusVisibleFor");
     }
+    List<Object> within = new ArrayList<>();
+    if (focusId != null) {
+      for (Object id : Animator.lineage(focusId)) {
+        if (look(Animator.find(tree, id), El::focusWithinLook, "whenFocusWithin")) {
+          within.add(id);
+        }
+      }
+    }
     Object pressId = pressedId();
     boolean pressLook =
         pressId != null && look(Animator.find(tree, pressId), El::pressLook, "whenPressed");
-    return new Looks(hovered, rested, focusLook ? focusId : null, focusRested,
+    return new Looks(hovered, rested, focusLook ? focusId : null, focusRested, within,
         pressLook ? pressId : null, hoversRun);
   }
 

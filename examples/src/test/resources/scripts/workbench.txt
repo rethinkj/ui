@@ -30,6 +30,9 @@ await                                      # the answer for customers never arri
 frame
 snap workbench-closed
 
+wheel #catalogue 0 -1000                   # back to the top: opening orders showed its columns
+frame
+
 press role=treeitem label="deliveries" right  # selects the table and opens its menu there
 frame
 advance 0.25                               # past the menu's fade
