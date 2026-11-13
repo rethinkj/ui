@@ -131,24 +131,49 @@ public final class Device extends GpuObject {
   /** A 2D texture with one mip level and one sample. */
   public Texture createTexture(String label, int width, int height, TextureFormat format,
       TextureUsage usage, TextureUsage... more) {
+    return createTexture(label, width, height, 1, false, format, EnumSet.of(usage, more));
+  }
+
+  /**
+   * An array of {@code layers} 2D textures of the same size and format, with one mip level and one
+   * sample. Its views are 2D arrays of all layers, even of one, which a shader reads as {@code
+   * texture_2d_array}.
+   *
+   * @param layers from 1 to {@link Limits#maxTextureArrayLayers}
+   */
+  public Texture createTextureArray(String label, int width, int height, int layers,
+      TextureFormat format, TextureUsage usage, TextureUsage... more) {
+    return createTexture(label, width, height, layers, true, format, EnumSet.of(usage, more));
+  }
+
+  private Texture createTexture(String label, int width, int height, int layers, boolean array,
+      TextureFormat format, Set<TextureUsage> usages) {
     requireLabel(label);
-    Set<TextureUsage> usages = EnumSet.of(usage, more);
     checkSize("texture '" + label + "'", width, height);
+    int maxLayers = limits.maxTextureArrayLayers();
+    if (layers < 1 || layers > maxLayers) {
+      throw new IllegalArgumentException("Texture '" + label + "' has " + layers + " layers;"
+          + " it needs between 1 and " + maxLayers + ", the device's limit.");
+    }
     MemorySegment device = usable();
     try (Arena arena = Arena.ofConfined()) {
       MemorySegment descriptor = TextureDescriptor.allocate(arena);
       Structs.string(descriptor, TextureDescriptor.LABEL, label, arena);
       descriptor.set(JAVA_LONG, TextureDescriptor.USAGE, TextureUsage.bits(usages));
       descriptor.set(JAVA_INT, TextureDescriptor.DIMENSION, Wgpu.TEXTURE_DIMENSION_2D);
-      Structs.Extent3D.set(descriptor, TextureDescriptor.SIZE, width, height);
+      Structs.Extent3D.set(descriptor, TextureDescriptor.SIZE, width, height, layers);
       descriptor.set(JAVA_INT, TextureDescriptor.FORMAT, format.value);
       MemorySegment texture = create("creating texture", label,
           () -> Wgpu.deviceCreateTexture(device, descriptor), Wgpu::textureRelease);
-      return new Texture(this, this, label, texture, width, height, format, usages);
+      return new Texture(this, this, label, texture, width, height, layers, array, format,
+          usages);
     }
   }
 
-  /** A layout of buffer bindings: uniform and read-only storage buffers. */
+  /**
+   * A layout of bindings: uniform and read-only storage buffers, and textures read with {@code
+   * textureLoad}.
+   */
   public BindGroupLayout createBindGroupLayout(String label, BindGroupLayout.Entry... entries) {
     requireLabel(label);
     MemorySegment device = usable();
@@ -160,8 +185,19 @@ public final class Device extends GpuObject {
         MemorySegment e = array.asSlice(i * BindGroupLayoutEntry.LAYOUT.byteSize());
         e.set(JAVA_INT, BindGroupLayoutEntry.BINDING, entry.binding());
         e.set(JAVA_LONG, BindGroupLayoutEntry.VISIBILITY, ShaderStage.bits(entry.visibility()));
-        e.set(JAVA_INT, BindGroupLayoutEntry.BUFFER_TYPE, entry.type().value);
-        e.set(JAVA_LONG, BindGroupLayoutEntry.BUFFER_MIN_BINDING_SIZE, entry.minBindingSize());
+        // The other binding layouts stay zero: not used.
+        switch (entry.type()) {
+          case BindGroupLayout.BufferType buffer -> {
+            e.set(JAVA_INT, BindGroupLayoutEntry.BUFFER_TYPE, buffer.value);
+            e.set(JAVA_LONG, BindGroupLayoutEntry.BUFFER_MIN_BINDING_SIZE,
+                entry.minBindingSize());
+          }
+          case BindGroupLayout.TextureType texture -> {
+            e.set(JAVA_INT, BindGroupLayoutEntry.TEXTURE_SAMPLE_TYPE,
+                Wgpu.TEXTURE_SAMPLE_TYPE_UNFILTERABLE_FLOAT);
+            e.set(JAVA_INT, BindGroupLayoutEntry.TEXTURE_VIEW_DIMENSION, texture.viewDimension);
+          }
+        }
       }
       MemorySegment descriptor = arena.allocate(BindGroupLayoutDescriptor.LAYOUT);
       Structs.string(descriptor, BindGroupLayoutDescriptor.LABEL, label, arena);
@@ -174,7 +210,7 @@ public final class Device extends GpuObject {
     }
   }
 
-  /** Binds buffers to the bindings of {@code layout}. */
+  /** Binds buffers and texture views to the bindings of {@code layout}. */
   public BindGroup createBindGroup(String label, BindGroupLayout layout,
       BindGroup.Entry... entries) {
     requireLabel(label);
@@ -186,7 +222,12 @@ public final class Device extends GpuObject {
         BindGroup.Entry entry = entries[i];
         MemorySegment e = array.asSlice(i * BindGroupEntry.LAYOUT.byteSize());
         e.set(JAVA_INT, BindGroupEntry.BINDING, entry.binding());
-        e.set(ADDRESS, BindGroupEntry.BUFFER, owned(entry.buffer()).handle());
+        // wgpu-native takes the buffer if there is one, else the sampler, else the view.
+        if (entry.buffer() != null) {
+          e.set(ADDRESS, BindGroupEntry.BUFFER, owned(entry.buffer()).handle());
+        } else {
+          e.set(ADDRESS, BindGroupEntry.TEXTURE_VIEW, owned(entry.view()).handle());
+        }
         e.set(JAVA_LONG, BindGroupEntry.OFFSET, entry.offset());
         e.set(JAVA_LONG, BindGroupEntry.SIZE, entry.size());
       }

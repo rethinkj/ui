@@ -281,6 +281,7 @@ final class Structs {
         JAVA_INT.withName("maxComputeWorkgroupsPerDimension"),
         JAVA_INT.withName("maxImmediateSize"));
     static final long MAX_TEXTURE_DIMENSION_2D = offset(LAYOUT, "maxTextureDimension2D");
+    static final long MAX_TEXTURE_ARRAY_LAYERS = offset(LAYOUT, "maxTextureArrayLayers");
     static final long MAX_BIND_GROUPS = offset(LAYOUT, "maxBindGroups");
     static final long MAX_UNIFORM_BUFFER_BINDING_SIZE =
         offset(LAYOUT, "maxUniformBufferBindingSize");
@@ -353,15 +354,23 @@ final class Structs {
 
     /** Writes an extent of width by height by one at {@code offset}. */
     static void set(MemorySegment struct, long offset, int width, int height) {
+      set(struct, offset, width, height, 1);
+    }
+
+    /** Writes an extent of width by height by {@code layers} at {@code offset}. */
+    static void set(MemorySegment struct, long offset, int width, int height, int layers) {
       struct.set(JAVA_INT, offset + WIDTH, width);
       struct.set(JAVA_INT, offset + HEIGHT, height);
-      struct.set(JAVA_INT, offset + DEPTH_OR_ARRAY_LAYERS, 1);
+      struct.set(JAVA_INT, offset + DEPTH_OR_ARRAY_LAYERS, layers);
     }
   }
 
   static final class Origin3D {
     static final StructLayout LAYOUT = struct("WGPUOrigin3D",
         JAVA_INT.withName("x"), JAVA_INT.withName("y"), JAVA_INT.withName("z"));
+    static final long X = offset(LAYOUT, "x");
+    static final long Y = offset(LAYOUT, "y");
+    static final long Z = offset(LAYOUT, "z");
   }
 
   static final class TextureDescriptor {
@@ -398,6 +407,7 @@ final class Structs {
         JAVA_INT.withName("arrayLayerCount"), JAVA_INT.withName("aspect"),
         JAVA_LONG.withName("usage"));
     static final long LABEL = offset(LAYOUT, "label");
+    static final long DIMENSION = offset(LAYOUT, "dimension");
     static final long MIP_LEVEL_COUNT = offset(LAYOUT, "mipLevelCount");
     static final long ARRAY_LAYER_COUNT = offset(LAYOUT, "arrayLayerCount");
 
@@ -444,7 +454,9 @@ final class Structs {
   /**
    * {@code WGPU_BIND_GROUP_LAYOUT_ENTRY_INIT} is all zeros, and zero in the four binding layouts
    * means "binding not used". The buffer binding type of {@code WGPU_BUFFER_BINDING_LAYOUT_INIT},
-   * {@code Undefined}, is one, not zero.
+   * {@code Undefined}, is one, not zero. The view dimension of {@code
+   * WGPU_TEXTURE_BINDING_LAYOUT_INIT} is zero, undefined, which WebGPU takes as 2D but wgpu-native
+   * does not: it ends the process. So a texture entry always sets its dimension.
    */
   static final class BindGroupLayoutEntry {
     static final StructLayout LAYOUT = struct("WGPUBindGroupLayoutEntry",
@@ -458,6 +470,8 @@ final class Structs {
     static final long VISIBILITY = offset(LAYOUT, "visibility");
     static final long BUFFER_TYPE = offset(LAYOUT, "buffer", "type");
     static final long BUFFER_MIN_BINDING_SIZE = offset(LAYOUT, "buffer", "minBindingSize");
+    static final long TEXTURE_SAMPLE_TYPE = offset(LAYOUT, "texture", "sampleType");
+    static final long TEXTURE_VIEW_DIMENSION = offset(LAYOUT, "texture", "viewDimension");
   }
 
   static final class BindGroupLayoutDescriptor {
@@ -478,6 +492,7 @@ final class Structs {
     static final long BUFFER = offset(LAYOUT, "buffer");
     static final long OFFSET = offset(LAYOUT, "offset");
     static final long SIZE = offset(LAYOUT, "size");
+    static final long TEXTURE_VIEW = offset(LAYOUT, "textureView");
   }
 
   static final class BindGroupDescriptor {
@@ -671,17 +686,36 @@ final class Structs {
     static final long LABEL = offset(LAYOUT, "label");
   }
 
+  /**
+   * {@code WGPU_TEXEL_COPY_TEXTURE_INFO_INIT} is all zeros: mip level 0, origin 0 and the aspect
+   * {@code Undefined}, which wgpu-native takes as {@code All}.
+   */
   static final class TexelCopyTextureInfo {
     static final StructLayout LAYOUT = struct("WGPUTexelCopyTextureInfo",
         ADDRESS.withName("texture"), JAVA_INT.withName("mipLevel"),
         Origin3D.LAYOUT.withName("origin"), JAVA_INT.withName("aspect"));
     static final long TEXTURE = offset(LAYOUT, "texture");
+    static final long ORIGIN = offset(LAYOUT, "origin");
   }
 
   static final class TexelCopyBufferLayout {
     static final StructLayout LAYOUT = struct("WGPUTexelCopyBufferLayout",
         JAVA_LONG.withName("offset"), JAVA_INT.withName("bytesPerRow"),
         JAVA_INT.withName("rowsPerImage"));
+    static final long OFFSET = offset(LAYOUT, "offset");
+    static final long BYTES_PER_ROW = offset(LAYOUT, "bytesPerRow");
+    static final long ROWS_PER_IMAGE = offset(LAYOUT, "rowsPerImage");
+
+    /**
+     * {@code WGPU_TEXEL_COPY_BUFFER_LAYOUT_INIT}: both strides undefined. A stride of zero ends
+     * the process.
+     */
+    static MemorySegment allocate(Arena arena) {
+      MemorySegment s = arena.allocate(LAYOUT);
+      s.set(JAVA_INT, BYTES_PER_ROW, Wgpu.COPY_STRIDE_UNDEFINED);
+      s.set(JAVA_INT, ROWS_PER_IMAGE, Wgpu.COPY_STRIDE_UNDEFINED);
+      return s;
+    }
   }
 
   static final class TexelCopyBufferInfo {

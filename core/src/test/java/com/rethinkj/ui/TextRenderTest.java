@@ -30,8 +30,7 @@ import org.junit.jupiter.api.Test;
 class TextRenderTest {
 
   private static final TextRendering PINNED = TextRendering.LINUX;
-  private static final String SANS_SAMPLE = "Kunde Müller, Köln: 1.234,56 € (AVATAR)";
-  private static final String MONO_SAMPLE = "SELECT id FROM kunden; -- ÄÖÜ != 0";
+  private static final String SANS_SAMPLE = Examples.SANS_SAMPLE;
 
   @BeforeEach
   void needsTheTextLibraries() {
@@ -41,61 +40,21 @@ class TextRenderTest {
   @Test
   void elevenToFourteenPixelsInBothFontsOnLightAndDark() {
     for (int scale = 1; scale <= 2; scale++) {
-      El root = row().padding(8).gap(8).fill(0xFF808080)
-          .children(sheet(0xFF1A1A1A, 0xFFFFFFFF), sheet(0xFFDCDCDC, 0xFF1E1F22));
-      Headless.Frame frame = Headless.render(root, 720, 176, scale, PINNED);
+      Headless.Frame frame = Headless.render(Examples.textSizes(), 720, 176, scale, PINNED);
       Golden.assertMatches("text-sizes-" + scale + "x", frame.pixels(), frame.tree());
     }
   }
 
-  private static El sheet(int colour, int background) {
-    El sheet = col().padding(8).gap(2).fill(background).grow(1);
-    for (Font font : new Font[] {Font.sans(), Font.mono()}) {
-      for (int size = 11; size <= 14; size++) {
-        sheet.child(El.text(size + "  " + (font == Font.sans() ? SANS_SAMPLE : MONO_SAMPLE))
-            .font(font).fontSize(size).color(colour));
-      }
-    }
-    return sheet;
-  }
-
-  /**
-   * Grey text on white, in three columns: on a parent's white fill, which the scene sees, so the
-   * text is thickened; on a white box behind it that is not its ancestor, which the scene misses,
-   * so the biased rule decides by the grey alone; and there again, but told with {@code
-   * textBackground}, which draws it as the first column.
-   */
+  /** See {@link Examples#greyOnLight}. */
   @Test
   void greyTextOnALightBackground() {
-    El root = el().size(480, 104);
-    root.child(el().absolute(0, 0).size(480, 104).fill(0xFFFFFFFF)); // not an ancestor of the text
-    String[] titles = {"parent fill", "a box behind", "textBackground"};
-    for (int column = 0; column < 3; column++) {
-      El texts = col().absolute(160 * column, 0).padding(8).gap(2);
-      if (column == 0) {
-        texts.fill(0xFFFFFFFF);
-      }
-      texts.child(El.text(titles[column]).fontSize(11).color(0xFF1A1A1A));
-      for (int grey : new int[] {0xFF6B6B6B, 0xFF808080, 0xFF999999, 0xFFAAAAAA}) {
-        El text = El.text(String.format("#%06X Kunde Müller", grey & 0xFFFFFF)).fontSize(13)
-            .color(grey);
-        texts.child(column == 2 ? text.textBackground(0xFFFFFFFF) : text);
-      }
-      root.child(texts);
-    }
-    Headless.Frame frame = Headless.render(root, 480, 104, 2, PINNED);
+    Headless.Frame frame = Headless.render(Examples.greyOnLight(), 480, 104, 2, PINNED);
     Golden.assertMatches("text-grey-on-light", frame.pixels(), frame.tree());
   }
 
   @Test
   void textInAScrollAreaIsClippedByItsRoundedEdge() {
-    App<Object> app = new App<>(new Object(), s -> {
-      El list = col().key("list").scroll().padding(6).gap(2).radius(10).h(70).fill(0xFF1C1C22);
-      for (int i = 1; i <= 8; i++) {
-        list.child(El.text("Zeile " + i + ": Größe & Söhne GmbH").color(0xFFE4E4E7));
-      }
-      return col().wFull().hFull().padding(10).fill(0xFF101014).child(list);
-    });
+    App<Object> app = new App<>(new Object(), s -> Examples.scrolledText());
     app.textRendering(PINNED);
     app.resize(200, 90, 2);
     app.frame();
@@ -117,16 +76,7 @@ class TextRenderTest {
 
   @Test
   void textUnderOpacity() {
-    El root = row().padding(8).gap(8).fill(0xFF808080);
-    for (int[] theme : new int[][] {{0xFF1A1A1A, 0xFFFFFFFF}, {0xFFDCDCDC, 0xFF1E1F22}}) {
-      El panel = col().padding(8).gap(2).fill(theme[1]);
-      for (float opacity : new float[] {1, 0.6f, 0.3f}) {
-        panel.child(el().opacity(opacity)
-            .child(El.text("Opazität " + opacity + ": Größe").color(theme[0])));
-      }
-      root.child(panel);
-    }
-    Headless.Frame frame = Headless.render(root, 336, 76, 2, PINNED);
+    Headless.Frame frame = Headless.render(Examples.textOpacity(), 336, 76, 2, PINNED);
     Golden.assertMatches("text-opacity", frame.pixels(), frame.tree());
   }
 

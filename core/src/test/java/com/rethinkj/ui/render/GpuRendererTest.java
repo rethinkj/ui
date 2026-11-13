@@ -2,6 +2,7 @@ package com.rethinkj.ui.render;
 
 import static com.rethinkj.ui.El.col;
 import static com.rethinkj.ui.El.el;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -12,49 +13,74 @@ import com.rethinkj.ui.App;
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.Examples;
 import com.rethinkj.ui.Examples.Lights;
+import com.rethinkj.ui.Script;
 import com.rethinkj.ui.gpu.GpuException;
 import com.rethinkj.ui.layout.Flex;
+import com.rethinkj.ui.text.Atlas;
+import com.rethinkj.ui.text.Font;
+import com.rethinkj.ui.text.TextLibraries;
+import com.rethinkj.ui.text.TextRendering;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
 /**
- * Draws scenes on the GPU and on the CPU and compares them pixel by pixel. They cannot be equal bit
- * for bit, so each channel may differ by the {@link #tolerance}; see there for why. A scene that
- * differs by more leaves the CPU's image, the GPU's and their difference in {@code
- * target/gpu-vs-cpu}. Skipped without the natives module or an adapter.
+ * Draws scenes on the GPU and on the CPU and compares them pixel by pixel: rectangles and text, the
+ * views behind the stored images and scenes that stress one formula each. They cannot be equal bit
+ * for bit, so each channel may differ by the {@link #tolerance} and what the GPU's rounding of
+ * alpha adds to it ({@link #ALPHA_STEP}); see there for why. A scene that differs by more leaves
+ * the CPU's image, the GPU's and their difference in {@code target/gpu-vs-cpu}. Skipped without
+ * the natives module or an adapter.
  */
 class GpuRendererTest {
 
   /**
    * How far a channel of the GPU's image may lie from the CPU's, in steps of 8 bits, at a pixel
-   * that {@code layers} instances draw into: 1 step, and half a step more for every layer above
-   * the first, rounded down. One instance over an opaque background: 1. Three: 2.
+   * that {@code layers} instances draw into, before the {@link #ALPHA_STEP rounding of alpha} in
+   * blending is added: 1 step, and half a step more for every layer above the first, rounded down.
+   * One instance over an opaque background: 1. Three: 2.
    *
    * <p>Both compute the same formulas, but the GPU in 32-bit floats where the CPU computes in
-   * doubles, and it may fuse a multiply and an add or take a square root a last bit apart. That
-   * moves a value by far less than a step, but now and then across the middle between two steps,
-   * so that both round to neighbours: 1 step. Then, the GPU stores every draw into the 8-bit
-   * target, rounding it by up to half a step, and the next draw that overlaps blends with that
-   * rounded value, where the CPU keeps floats to the end. A layer above attenuates the error
-   * beneath it, in steps as well as in light, since sRGB steps are never wider for darker values;
-   * but on an anti-aliased edge, where coverage leaves a layer almost transparent, hardly at all.
-   * So each layer adds up to half a step. A wrong formula, even an edge moved by a twentieth of a
-   * pixel, differs by several times as much.
+   * doubles, and it may fuse a multiply and an add or take a square root, a power or a logarithm a
+   * last bit apart. That moves a value by far less than a step, but now and then across the middle
+   * between two steps, so that both round to neighbours: 1 step. A glyph's texel is read exactly,
+   * as its byte divided by 255. Then, the GPU stores every draw into the 8-bit target, rounding it
+   * by up to half a step, and the next draw that overlaps blends with that rounded value, where
+   * the CPU keeps floats to the end. A layer above attenuates the error beneath it, in steps as
+   * well as in light, since sRGB steps are never wider for darker values; but on an anti-aliased
+   * edge, where coverage leaves a layer almost transparent, hardly at all. So each layer adds up
+   * to half a step. A wrong formula, even an edge moved by a twentieth of a pixel, differs by
+   * several times as much.
    */
   static int tolerance(int layers) {
     return Math.max(1, (layers + 1) / 2);
   }
+
+  /**
+   * How far the GPU may round the alpha of a source when it blends, as a fraction of the light
+   * under it: one step of the target's 8-bit alpha. The blend keeps {@code 1 - alpha} of what lies
+   * under the source, and the GPU takes that alpha at the precision of the target's alpha channel,
+   * 8 bits, where the CPU keeps it exact; Direct3D lets a conversion to 8 bits be 0.6 of a step
+   * off, and this allows a whole one. Measured on an NVIDIA RTX 2000 with Direct3D 12: 0.56 of a
+   * step. So a layer lets up to 1/255 more or less of the light under it through. Over a dark
+   * pixel that is nothing; under nearly opaque dark text on white it moves the result, near black
+   * where sRGB steps are narrowest in light, by several steps: {@link #compare} adds what it can
+   * be at each pixel, in light, to the tolerance.
+   */
+  static final double ALPHA_STEP = 1 / 255.0;
 
   private static final Path FAILED = Path.of("target/gpu-vs-cpu");
 
@@ -64,6 +90,8 @@ class GpuRendererTest {
   static void open() {
     gpu = openOrSkip(GpuRenderer::create);
     System.out.println("GPU renderer on " + gpu.adapter());
+    // In the same natives module as wgpu-native, so this skips only if that one is incomplete.
+    TextLibraries.assumeLoaded();
   }
 
   @AfterAll
@@ -89,28 +117,43 @@ class GpuRendererTest {
     throw new AssertionError("unreachable");
   }
 
-  /** A scene to draw, with the size of the image in physical pixels and the scale. */
-  record Case(String name, Scene scene, int width, int height, float scale) {
+  /**
+   * A scene to draw, with the size of the image in physical pixels and the scale.
+   *
+   * @param stored true if the scene is the view behind the stored image of the same name, which
+   *     the CPU's image of the scene then equals
+   */
+  record Case(String name, Scene scene, int width, int height, float scale, boolean stored) {
     @Override
     public String toString() {
       return name;
     }
   }
 
-  static Stream<Case> cases() {
+  static Stream<Case> cases() throws IOException {
     List<Case> cases = new ArrayList<>();
-    // The views behind the stored images, in the sizes and scales of their tests.
-    cases.add(view("switch-off", Examples.lightSwitch(false), 200, 120, 1));
-    cases.add(view("switch-on", Examples.lightSwitch(true), 200, 120, 2));
-    cases.add(switchMoving(0.04));
-    cases.add(switchMoving(0.12));
-    cases.add(badgeLeaving(0.06));
-    cases.add(badgeLeaving(0.12));
-    cases.add(listScrolled(2));
-    cases.add(listScrolled(1));
+    // The views behind the stored images, built as their tests and scripts build them; all but
+    // the badge have text.
+    cases.addAll(script("switch.txt", () -> new App<>(new Lights(), Examples::lights)));
+    cases.addAll(script("focus.txt", () -> new App<>(new Lights(), Examples::lights)));
+    cases.addAll(script("hover.txt", () -> new App<>(new Lights(), Examples::lights)));
+    cases.addAll(script("list.txt", () -> new App<>(new Object(), s -> Examples.list())));
+    for (int frames = 2; frames <= 5; frames++) {
+      cases.add(switchMoving(frames));
+    }
+    cases.addAll(script(BADGE, "badge-", GpuRendererTest::badge));
+    for (int scale = 1; scale <= 2; scale++) {
+      cases.add(text("text-sizes-" + scale + "x", Examples.textSizes(), 720, 176, scale,
+          TextRendering.LINUX, new Atlas(), true));
+    }
+    cases.add(text("text-grey-on-light", Examples.greyOnLight(), 480, 104, 2,
+        TextRendering.LINUX, new Atlas(), true));
+    cases.add(text("text-opacity", Examples.textOpacity(), 336, 76, 2, TextRendering.LINUX,
+        new Atlas(), true));
+    cases.add(textScrolled());
     // Scenes that stress one formula each.
     for (float scale : new float[] {1, 2, 1.5f}) {
-      String at = "@" + (scale == (int) scale ? String.valueOf((int) scale) : "1.5");
+      String at = at(scale);
       cases.add(scene("edges" + at, edges(), 160, 100, scale));
       cases.add(scene("borders" + at, borders(), 160, 100, scale));
       cases.add(scene("radii" + at, radii(), 160, 100, scale));
@@ -118,27 +161,143 @@ class GpuRendererTest {
       cases.add(view("clips" + at, clips(), 160, 100, scale));
       cases.add(scene("transparent" + at, transparent(), 160, 100, scale));
     }
-    // The GPU does not draw glyphs yet, so scenes with text are left out until it does.
-    return cases.stream().filter(c -> !hasGlyphs(c.scene()));
+    // Text: 11 to 14 pixels in both fonts, dark on light, light on dark and grey on light, with
+    // both renderings, under opacity, cut by rounded clips, overlapping translucent boxes and
+    // other text, and spread over the pages of a small atlas. At the scales of the stored images
+    // in the views above, and at the others here.
+    for (float scale : new float[] {1, 2, 1.5f}) {
+      String at = at(scale);
+      if (scale == 1.5f) {
+        cases.add(text("text-sizes-linux" + at, Examples.textSizes(), 720, 176, scale));
+      }
+      cases.add(text("text-sizes-windows" + at, Examples.textSizes(), 720, 176, scale,
+          TextRendering.WINDOWS, new Atlas(), false));
+      if (scale != 2) {
+        cases.add(text("text-grey-on-light" + at, Examples.greyOnLight(), 480, 104, scale));
+        cases.add(text("text-opacity" + at, Examples.textOpacity(), 336, 76, scale));
+      }
+      cases.add(text("text-clipped" + at, clippedText(), 240, 120, scale));
+      cases.add(text("text-overlaps" + at, overlappingText(), 240, 120, scale));
+      cases.add(textPages(scale));
+    }
+    return cases.stream();
   }
 
-  private static boolean hasGlyphs(Scene scene) {
-    for (int i = 0; i < scene.count(); i++) {
-      if (scene.getInt(i, Scene.KIND) == Scene.GLYPH) {
-        return true;
-      }
-    }
-    return false;
+  private static String at(float scale) {
+    return "@" + (scale == (int) scale ? String.valueOf((int) scale) : "1.5");
   }
 
   @ParameterizedTest(name = "{0}")
   @MethodSource("cases")
-  void theGpuDrawsWhatTheCpuDraws(Case c) {
+  void theGpuDrawsWhatTheCpuDraws(Case c) throws IOException {
+    if (c.stored()) {
+      Pixels stored = Png.decode(Files.readAllBytes(STORED.resolve(c.name() + ".png")));
+      assertArrayEquals(stored.rgba(),
+          CpuRenderer.render(c.scene(), c.width(), c.height(), c.scale()).rgba(),
+          "the case is not the view behind the stored image " + c.name());
+    }
     Comparison comparison = compare(gpu, c);
     System.out.println("GPU vs CPU " + comparison);
     if (comparison.beyond() > 0) {
       fail(comparison + ". See " + FAILED.toAbsolutePath());
     }
+  }
+
+  /**
+   * Changes to the glyph shader that draw text only a little wrong, each of which the comparison
+   * has to notice: the texel mapping, the reading of texels, the coverage correction and the
+   * clip.
+   */
+  static Stream<Arguments> textBreaks() {
+    String texel = "let texel = vec2i(floor(in.position.xy) - glyph_origin(instance));";
+    String read = "let a = textureLoad(atlas, corner + texel, instance.more.x, 0).r;";
+    String dark = "let dark = 1.0 - pow(1.0 - a, bitcast<f32>(instance.more.z));";
+    String mix = "var glyph_cover = dark + (light - dark) * bitcast<f32>(instance.more.y);";
+    return Stream.of(
+        Arguments.of("every texel one pixel to the right", texel,
+            "let texel = vec2i(floor(in.position.xy) - glyph_origin(instance)) - vec2i(1, 0);"),
+        Arguments.of("texels filtered half a texel off", read,
+            "let a = (textureLoad(atlas, corner + texel, instance.more.x, 0).r"
+                + " + textureLoad(atlas, corner + texel + vec2i(1, 0), instance.more.x, 0).r)"
+                + " / 2.0;"),
+        Arguments.of("dark exponent 1.6 instead of 1.8", dark,
+            "let dark = 1.0 - pow(1.0 - a, bitcast<f32>(instance.more.z) - 0.2);"),
+        Arguments.of("every glyph corrected as dark text", mix, "var glyph_cover = dark;"),
+        Arguments.of("no correction", mix, "var glyph_cover = a;"),
+        Arguments.of("the clip left out", "glyph_cover *= clip_coverage(instance.clip, point);",
+            "glyph_cover *= 1.0;"));
+  }
+
+  @ParameterizedTest(name = "{0}")
+  @MethodSource("textBreaks")
+  void aWrongGlyphShaderIsNoticed(String what, String line, String broken) {
+    String wgsl = GpuRenderer.WGSL.replace(line, broken);
+    assertTrue(!wgsl.equals(GpuRenderer.WGSL), "the shader has no line " + line);
+    try (GpuRenderer wrong = GpuRenderer.create(wgsl)) {
+      for (Case c : List.of(text("text-sizes-broken", Examples.textSizes(), 720, 176, 1.5f),
+          text("text-clipped-broken", clippedText(), 240, 120, 2))) {
+        Comparison comparison = compare(wrong, c, false);
+        System.out.println("GPU with " + what + " vs CPU " + comparison);
+        if (!what.equals("the clip left out") || c.name().startsWith("text-clipped")) {
+          assertTrue(comparison.beyond() > 50, what + ": " + comparison);
+        }
+      }
+    }
+  }
+
+  @Test
+  void aPageIsWrittenWholeWhenItAppearsAndThenOnlyWhereItChanged() {
+    Atlas atlas = new Atlas();
+    long writes = gpu.atlasWrites();
+    long texels = gpu.atlasTexels();
+    Case first = text("upload-first", label("Kunde Müller", 0xFF1A1A1A, 8), 200, 40, 1,
+        TextRendering.LINUX, atlas, false);
+    assertEquals(0, compare(gpu, first).beyond());
+    assertEquals(1, gpu.atlasWrites() - writes, "the new page");
+    assertEquals((long) Atlas.PAGE_SIZE * Atlas.PAGE_SIZE, gpu.atlasTexels() - texels, "whole");
+
+    // The same glyphs in another colour and place, twice: nothing to write.
+    writes = gpu.atlasWrites();
+    Case recoloured = text("upload-recoloured", label("Kunde Müller", 0xFF2563EB, 13), 200, 40,
+        1, TextRendering.LINUX, atlas, false);
+    assertEquals(0, compare(gpu, recoloured).beyond());
+    gpu.render(recoloured.scene(), 200, 40, 1);
+    assertEquals(writes, gpu.atlasWrites(), "no change, no upload");
+
+    // New glyphs: only the region they went to.
+    texels = gpu.atlasTexels();
+    Case more = text("upload-more", label("Kunde Müller, Köln: 1.234,56 €", 0xFF1A1A1A, 8),
+        200, 40, 1, TextRendering.LINUX, atlas, false);
+    Atlas.Region changed = atlas.pages().getFirst().changed();
+    assertEquals(0, compare(gpu, more).beyond());
+    assertEquals(writes + 1, gpu.atlasWrites());
+    assertEquals((long) changed.width() * changed.height(), gpu.atlasTexels() - texels);
+    assertTrue(gpu.atlasTexels() - texels < 64 * 64, changed + " is a few glyphs");
+  }
+
+  @Test
+  void aPageThatTheAtlasEmptiedIsWrittenWholeAgain() {
+    // Room for one page of 64 texels: each frame needs more, so the atlas grows for it, and
+    // empties pages of the frame before for the next.
+    Atlas atlas = new Atlas(64, 64 * 64, 4096);
+    Case upper = text("pages-upper", paragraph(UPPER), 300, 120, 2, TextRendering.LINUX, atlas,
+        false);
+    int pages = atlas.pages().size();
+    assertTrue(pages >= 3, pages + " pages");
+    assertEquals(0, compare(gpu, upper).beyond());
+
+    Case lower = text("pages-lower", paragraph(LOWER), 300, 120, 2, TextRendering.LINUX, atlas,
+        false);
+    List<Atlas.Page> emptied = atlas.pages().subList(0, pages).stream()
+        .filter(page -> page.changed().equals(new Atlas.Region(0, 0, 64, 64))).toList();
+    assertTrue(!emptied.isEmpty(), "a page of the first frame was emptied for the second");
+    long texels = gpu.atlasTexels();
+    assertEquals(0, compare(gpu, lower).beyond());
+    assertTrue(gpu.atlasTexels() - texels >= emptied.size() * 64L * 64);
+
+    Case again = text("pages-upper-again", paragraph(UPPER), 300, 120, 2, TextRendering.LINUX,
+        atlas, false);
+    assertEquals(0, compare(gpu, again).beyond());
   }
 
   @Test
@@ -192,17 +351,39 @@ class GpuRendererTest {
    * @param beyond pixels with a channel beyond the tolerance
    * @param layers the most instances that draw into one pixel
    * @param maxAtTwo the largest difference where at most two instances draw
+   * @param maxSlack the most steps that the rounding of alpha added to the tolerance at a pixel
    */
   record Comparison(Case c, int[] max, int differing, int beyond, int layers, int maxAtTwo,
-      String first) {
+      int maxSlack, String first) {
     @Override
     public String toString() {
       return c.name + " (" + c.width + "x" + c.height + " @" + c.scale + ", " + c.scene.count()
           + " instances, up to " + layers + " in a pixel): largest difference r " + max[0]
           + " g " + max[1] + " b " + max[2] + " a " + max[3] + ", " + maxAtTwo
           + " where at most two draw; " + differing + " pixels differ, " + beyond
-          + " beyond the tolerance" + (first.isEmpty() ? "" : ", first " + first);
+          + " beyond the tolerance, which the rounding of alpha raised by up to " + maxSlack
+          + (first.isEmpty() ? "" : "; first " + first);
     }
+  }
+
+  /**
+   * The steps of 8 bits that a channel's value, in light, moves when it moves by {@code slack}
+   * either way: in sRGB for a colour, linearly for alpha. Rounded to the nearest step, so that the
+   * slack a blend over a dark pixel adds, a fraction of a step, adds nothing; the {@link
+   * #ALPHA_STEP} of a whole step, nearly twice what was measured, leaves room for that.
+   */
+  static int steps(double value, double slack, boolean alpha) {
+    if (alpha) {
+      return (int) Math.round(slack * 255);
+    }
+    double up = srgb(Math.min(value + slack, 1)) - srgb(value);
+    double down = srgb(value) - srgb(Math.max(value - slack, 0));
+    return (int) Math.round(Math.max(up, down) * 255);
+  }
+
+  /** A linear value as sRGB, from 0 to 1, not rounded. */
+  private static double srgb(double linear) {
+    return linear <= 0.0031308 ? linear * 12.92 : 1.055 * Math.pow(linear, 1 / 2.4) - 0.055;
   }
 
   static Comparison compare(GpuRenderer renderer, Case c) {
@@ -217,12 +398,21 @@ class GpuRendererTest {
    * opaque, that is the CPU's image.
    */
   static Comparison compare(GpuRenderer renderer, Case c, boolean writeImages) {
-    float[] frame = CpuRenderer.renderLinear(c.scene, c.width, c.height, c.scale);
+    // In light, per channel: how far rounding the alpha of every blend may move the GPU's value.
+    double[] slack = new double[c.width * c.height * 4];
+    float[] frame = CpuRenderer.renderLinear(c.scene, c.width, c.height, c.scale,
+        (image, at, alpha) -> {
+          for (int channel = 0; channel < 4; channel++) {
+            slack[at + channel] = slack[at + channel] * (1 - alpha + ALPHA_STEP)
+                + Math.abs(image[at + channel]) * ALPHA_STEP;
+          }
+        });
     byte[] stored = renderer.renderStored(c.scene, c.width, c.height, c.scale);
     int[] layers = layers(c);
     int[] max = new int[4];
     int maxLayers = 0;
     int maxAtTwo = 0;
+    int maxSlack = 0;
     int differing = 0;
     int beyond = 0;
     String first = "";
@@ -231,18 +421,23 @@ class GpuRendererTest {
       for (int x = 0; x < c.width; x++) {
         int at = (y * c.width + x) * 4;
         int gpuAt = y * GpuRenderer.bytesPerRow(c.width) + x * 4;
+        int n = layers[y * c.width + x];
         int[] expected = new int[4];
         int worst = 0;
+        int tolerance = tolerance(n);
+        boolean out = false;
         for (int channel = 0; channel < 4; channel++) {
           double value = Math.clamp(frame[at + channel], 0, 1);
           expected[channel] = channel == 3 ? (int) Math.round(value * 255)
               : CpuRenderer.encode(value);
           int d = Math.abs((stored[gpuAt + channel] & 0xFF) - expected[channel]);
+          int allowed = tolerance(n) + steps(value, slack[at + channel], channel == 3);
           max[channel] = Math.max(max[channel], d);
           worst = Math.max(worst, d);
+          tolerance = Math.max(tolerance, allowed);
+          maxSlack = Math.max(maxSlack, allowed - tolerance(n));
+          out |= d > allowed;
         }
-        int n = layers[y * c.width + x];
-        int tolerance = tolerance(n);
         maxLayers = Math.max(maxLayers, n);
         if (n <= 2) {
           maxAtTwo = Math.max(maxAtTwo, worst);
@@ -250,15 +445,16 @@ class GpuRendererTest {
         if (worst > 0) {
           differing++;
         }
-        if (worst > tolerance) {
+        if (out) {
           if (beyond++ == 0) {
             first = String.format("at %d,%d, %d layers: CPU %02X%02X%02X%02X, GPU %s"
-                + " (premultiplied)", x, y, n, expected[0], expected[1], expected[2], expected[3],
-                hex(stored, gpuAt));
+                + " (premultiplied), %d allowed", x, y, n, expected[0], expected[1], expected[2],
+                expected[3], hex(stored, gpuAt), tolerance);
           }
         }
         // Black where equal, grey to light grey within the tolerance, red beyond it.
-        int shade = worst == 0 ? 0 : worst > tolerance ? -1 : 0x50 + 0x50 * worst / tolerance;
+        int shade = worst == 0 ? 0 : out ? -1 : 0x50 + 0x50 * Math.min(worst, tolerance)
+            / tolerance;
         diff[at] = (byte) (shade < 0 ? 0xFF : shade);
         diff[at + 1] = (byte) (shade < 0 ? 0 : shade);
         diff[at + 2] = (byte) (shade < 0 ? 0 : shade);
@@ -266,7 +462,7 @@ class GpuRendererTest {
       }
     }
     Comparison comparison =
-        new Comparison(c, max, differing, beyond, maxLayers, maxAtTwo, first);
+        new Comparison(c, max, differing, beyond, maxLayers, maxAtTwo, maxSlack, first);
     if (beyond > 0 && writeImages) {
       try {
         Files.createDirectories(FAILED);
@@ -285,7 +481,8 @@ class GpuRendererTest {
 
   /**
    * How many instances draw into each pixel, at most: those whose pixels, bounded as the CPU
-   * renderer bounds them, include it.
+   * renderer bounds them, include it. A rectangle reaches a pixel beyond its edges; a glyph covers
+   * exactly the pixels of its texels.
    */
   private static int[] layers(Case c) {
     int[] layers = new int[c.width * c.height];
@@ -295,16 +492,38 @@ class GpuRendererTest {
         continue;
       }
       int clip = s.clipOf(i);
-      double left = Math.max(s.get(i, Scene.X), s.clipGet(clip, Scene.X));
-      double top = Math.max(s.get(i, Scene.Y), s.clipGet(clip, Scene.Y));
-      double right = Math.min(s.get(i, Scene.X) + s.get(i, Scene.WIDTH),
-          s.clipGet(clip, Scene.X) + s.clipGet(clip, Scene.WIDTH));
-      double bottom = Math.min(s.get(i, Scene.Y) + s.get(i, Scene.HEIGHT),
-          s.clipGet(clip, Scene.Y) + s.clipGet(clip, Scene.HEIGHT));
-      int x0 = Math.max((int) Math.floor(left * c.scale) - 1, 0);
-      int y0 = Math.max((int) Math.floor(top * c.scale) - 1, 0);
-      int x1 = Math.min((int) Math.ceil(right * c.scale) + 1, c.width);
-      int y1 = Math.min((int) Math.ceil(bottom * c.scale) + 1, c.height);
+      int x0;
+      int y0;
+      int x1;
+      int y1;
+      if (s.getInt(i, Scene.KIND) == Scene.GLYPH) {
+        int size = s.getInt(i, Scene.ATLAS_SIZE);
+        x0 = (int) Math.round(s.get(i, Scene.X) * (double) c.scale);
+        y0 = (int) Math.round(s.get(i, Scene.Y) * (double) c.scale);
+        x1 = x0 + (size & 0xFFFF);
+        y1 = y0 + (size >>> 16);
+        x0 = Math.max(x0, (int) Math.floor(s.clipGet(clip, Scene.X) * c.scale) - 1);
+        y0 = Math.max(y0, (int) Math.floor(s.clipGet(clip, Scene.Y) * c.scale) - 1);
+        x1 = Math.min(x1, (int) Math.ceil(
+            (s.clipGet(clip, Scene.X) + s.clipGet(clip, Scene.WIDTH)) * c.scale) + 1);
+        y1 = Math.min(y1, (int) Math.ceil(
+            (s.clipGet(clip, Scene.Y) + s.clipGet(clip, Scene.HEIGHT)) * c.scale) + 1);
+        x0 = Math.max(x0, 0);
+        y0 = Math.max(y0, 0);
+        x1 = Math.min(x1, c.width);
+        y1 = Math.min(y1, c.height);
+      } else {
+        double left = Math.max(s.get(i, Scene.X), s.clipGet(clip, Scene.X));
+        double top = Math.max(s.get(i, Scene.Y), s.clipGet(clip, Scene.Y));
+        double right = Math.min(s.get(i, Scene.X) + s.get(i, Scene.WIDTH),
+            s.clipGet(clip, Scene.X) + s.clipGet(clip, Scene.WIDTH));
+        double bottom = Math.min(s.get(i, Scene.Y) + s.get(i, Scene.HEIGHT),
+            s.clipGet(clip, Scene.Y) + s.clipGet(clip, Scene.HEIGHT));
+        x0 = Math.max((int) Math.floor(left * c.scale) - 1, 0);
+        y0 = Math.max((int) Math.floor(top * c.scale) - 1, 0);
+        x1 = Math.min((int) Math.ceil(right * c.scale) + 1, c.width);
+        y1 = Math.min((int) Math.ceil(bottom * c.scale) + 1, c.height);
+      }
       for (int y = y0; y < y1; y++) {
         for (int x = x0; x < x1; x++) {
           layers[y * c.width + x]++;
@@ -320,6 +539,9 @@ class GpuRendererTest {
 
   // ---- the views behind the stored images ---------------------------------------------------
 
+  private static final Path STORED = Path.of("src/test/resources/golden");
+  private static final Path SCRIPTS = Path.of("src/test/resources/scripts");
+
   private static Case view(String name, El root, float width, float height, float scale) {
     Flex.layout(root, width, height);
     return scene(name, Scene.of(root), width, height, scale);
@@ -327,48 +549,129 @@ class GpuRendererTest {
 
   /** A case of a scene laid out for this size in logical pixels. */
   private static Case scene(String name, Scene scene, float width, float height, float scale) {
-    return new Case(name, scene, Math.round(width * scale), Math.round(height * scale), scale);
+    return scene(name, scene, width, height, scale, false);
   }
 
-  /** As the stored images switch-moving-*: pressed, then {@code seconds} later, at scale 2. */
-  private static Case switchMoving(double seconds) {
-    App<Lights> app = new App<>(new Lights(), Examples::lights);
-    app.resize(200, 120, 2);
-    app.frame();
-    press(app, 90, 60);
-    app.frame();
-    app.advance(seconds);
-    app.frame();
-    return of(app, "switch-moving-" + Math.round(seconds * 1000) + "ms", 200, 120, 2);
+  private static Case scene(String name, Scene scene, float width, float height, float scale,
+      boolean stored) {
+    return new Case(name, scene, Math.round(width * scale), Math.round(height * scale), scale,
+        stored);
   }
 
-  /** As the stored images badge-leaving-*: the badge fades out, at scale 1. */
-  private static Case badgeLeaving(double seconds) {
+  /** The script of {@code PresenceTest} that makes the stored images badge-*. */
+  private static final String BADGE = """
+      size 200 120 scale 2
+      frame
+      snap on
+      press #switch
+      frame
+      advance 0.06
+      frame
+      snap leaving-060ms
+      advance 0.06
+      frame
+      snap leaving-120ms
+      press #switch
+      frame
+      advance 0.06
+      frame
+      snap back-060ms
+      advance 1
+      frame
+      snap back
+      press #switch
+      frame
+      advance 1
+      frame
+      snap gone
+      """;
+
+  /** The badge example after its first frame, as {@code PresenceTest} starts it. */
+  private static App<?> badge() {
     Lights lights = new Lights();
     lights.on = true;
     App<Lights> app = new App<>(lights, Examples::badged);
     app.resize(200, 120, 1);
     app.frame();
-    El toggle = find(app.tree(), "switch");
-    press(app, toggle.x() + toggle.width() / 2, toggle.y() + toggle.height() / 2);
-    app.frame();
-    app.advance(seconds);
-    app.frame();
-    return of(app, "badge-leaving-" + Math.round(seconds * 1000) + "ms", 200, 120, 1);
+    return app;
   }
 
-  /** As the stored image list-scrolled: 90 pixels down, rows cut by the rounded clip. */
-  private static Case listScrolled(float scale) {
-    App<Object> app = new App<>(new Object(), s -> Examples.list());
-    app.resize(240, 200, scale);
-    app.frame();
-    app.wheel(120, 100, 0, 90);
-    app.frame();
-    return of(app, "list-scrolled@" + (int) scale, 240, 200, scale);
+  private static List<Case> script(String file, Supplier<App<?>> apps) throws IOException {
+    return script(Files.readString(SCRIPTS.resolve(file)), "", apps);
   }
 
-  private static Case of(App<?> app, String name, float width, float height, float scale) {
-    return scene(name, app.scene(), width, height, scale);
+  /**
+   * The snaps of a script that are stored images, named {@code prefix} and the snap's name: for
+   * each, a new app runs the script up to that snap, with the text rendering of the stored images.
+   */
+  private static List<Case> script(String script, String prefix, Supplier<App<?>> apps)
+      throws IOException {
+    List<String> lines = script.lines().toList();
+    List<Case> cases = new ArrayList<>();
+    float[] size = new float[3];
+    for (int i = 0; i < lines.size(); i++) {
+      String[] words = lines.get(i).strip().split("\\s+");
+      String name = words.length > 1 ? prefix + words[1] : "";
+      if (words[0].equals("size")) {
+        size[0] = Float.parseFloat(words[1]);
+        size[1] = Float.parseFloat(words[2]);
+        size[2] = words.length > 4 && words[3].equals("scale") ? Float.parseFloat(words[4]) : 1;
+      } else if (words[0].equals("snap") && !SNAPPED.contains(name)
+          && Files.exists(STORED.resolve(name + ".png"))) {
+        App<?> app = apps.get();
+        app.textRendering(TextRendering.LINUX);
+        Script.run(String.join("\n", lines.subList(0, i + 1)), app,
+            Path.of("target/gpu-vs-cpu-scripts"));
+        cases.add(scene(name, app.scene(), size[0], size[1], size[2], true));
+        SNAPPED.add(name);
+      }
+    }
+    return cases;
+  }
+
+  /** Snaps that two scripts have, such as switch-on: compared once. */
+  private static final Set<String> SNAPPED = new HashSet<>();
+
+  /**
+   * As the stored images switch-moving-*, made by {@code MotionTest}: pressed, then 40 ms later
+   * for each frame, at scale 2.
+   */
+  private static Case switchMoving(int frames) {
+    App<Lights> app = new App<>(new Lights(), Examples::lights);
+    app.textRendering(TextRendering.LINUX);
+    app.resize(200, 120, 2);
+    app.frame();
+    press(app, 58, 60);
+    app.frame();
+    for (int i = 0; i < frames; i++) {
+      app.advance(0.04);
+      app.frame();
+    }
+    return scene(String.format("switch-moving-%03dms", 40 * frames), app.scene(), 200, 120, 2,
+        true);
+  }
+
+  /** As the stored image text-scrolled: 13.25 pixels down, lines cut by the rounded clip. */
+  private static Case textScrolled() {
+    App<Object> app = new App<>(new Object(), s -> Examples.scrolledText());
+    app.textRendering(TextRendering.LINUX);
+    app.resize(200, 90, 2);
+    app.frame();
+    app.wheel(100, 45, 0, 13.25f);
+    app.frame();
+    return scene("text-scrolled", app.scene(), 200, 90, 2, true);
+  }
+
+  /** A view with text, laid out for the scale, its glyphs in an atlas of its own. */
+  private static Case text(String name, El root, float width, float height, float scale) {
+    return text(name, root, width, height, scale, TextRendering.LINUX, new Atlas(), false);
+  }
+
+  /** A view with text, laid out for the scale, its glyphs in {@code atlas}. */
+  private static Case text(String name, El root, float width, float height, float scale,
+      TextRendering rendering, Atlas atlas, boolean stored) {
+    Examples.laidOut(root, width, height, scale);
+    return scene(name, Scene.of(root, null, 0, atlas, rendering), width, height, scale, stored);
   }
 
   private static void press(App<?> app, float x, float y) {
@@ -376,17 +679,80 @@ class GpuRendererTest {
     app.pointerUp(x, y);
   }
 
-  private static El find(El el, String key) {
-    if (key.equals(el.key())) {
-      return el;
-    }
-    for (El child : el.children()) {
-      El found = find(child, key);
-      if (found != null) {
-        return found;
-      }
-    }
-    return null;
+  // ---- text that stresses the glyph shader --------------------------------------------------
+
+  private static final String UPPER = "ABCDEFGHIJKLMNOPQRSTUVWXYZ ÄÖÜ 0123456789 €$§%&@#";
+  private static final String LOWER = "abcdefghijklmnopqrstuvwxyz äöüß ()[]{}<>/|+-*=?!;:,.";
+
+  /** One line of text on white, at {@code x} in a window of 200 by 40. */
+  private static El label(String text, int colour, float x) {
+    return el().wFull().hFull().fill(0xFFFFFFFF)
+        .child(El.text(text).color(colour).absolute(x, 10));
+  }
+
+  /** A text in Inter at 14 and JetBrains Mono at 12 pixels, wrapped, dark on white. */
+  private static El paragraph(String text) {
+    return col().wFull().hFull().padding(6).gap(4).fill(0xFFFFFFFF).children(
+        El.text(text).fontSize(14).color(0xFF1A1A1A).wrapText(),
+        El.text(text).font(Font.mono()).fontSize(12).color(0xFF1A1A1A).wrapText());
+  }
+
+  /**
+   * Two hundred different glyphs, in an atlas of pages of 64 texels with room for one page only:
+   * the frame needs several, and the atlas grows for it.
+   */
+  private static Case textPages(float scale) {
+    Atlas atlas = new Atlas(64, 64 * 64, 4096);
+    Case c = text("text-pages" + at(scale), paragraph(UPPER + " " + LOWER), 300, 160, scale,
+        TextRendering.LINUX, atlas, false);
+    assertTrue(atlas.pages().size() > 2, atlas.pages().size() + " pages");
+    return c;
+  }
+
+  /**
+   * Text cut by rounded clips: by their curved corners and straight edges, nested, at fractional
+   * positions, dark on light and light on dark, and a clip whose corner cuts through a glyph.
+   */
+  private static El clippedText() {
+    El inner = el().absolute(118.4f, 46.3f).size(100, 50).radius(16).clip().fill(0xFFF8FAFC)
+        .child(El.text("Größe & Söhne").fontSize(14).color(0xFF111827).absolute(-10, -5))
+        .child(El.text("Kunde Müller 1.234,56 €").fontSize(13).color(0xFF1F2937)
+            .absolute(-20.3f, 17))
+        .child(El.text("Köln: AVATAR").font(Font.mono()).fontSize(12).color(0xFF6B6B6B)
+            .absolute(44, 36));
+    El outer = el().absolute(10.5f, 8.25f).size(200, 100).radius(24).clip().fill(0xFF1E1F22)
+        .child(El.text("Zeile 1: Größe & Söhne GmbH, Köln").fontSize(14).color(0xFFE4E4E7)
+            .absolute(-6, -4))
+        .child(El.text("SELECT id FROM kunden; -- ÄÖÜ").font(Font.mono()).fontSize(13)
+            .color(0xFFDCDCDC).absolute(4.6f, 26))
+        .child(El.text("am runden Rand entlang geschnitten").fontSize(12).color(0xFF9CA3AF)
+            .absolute(-30, 86))
+        .child(inner);
+    return el().wFull().hFull().fill(0xFF101014).child(outer);
+  }
+
+  /**
+   * Text under translucent boxes, translucent boxes under text, and text over text: blending of
+   * glyphs with rectangles in both orders, in one draw call.
+   */
+  private static El overlappingText() {
+    return el().wFull().hFull().fill(0xFFF5F5F4).children(
+        // Text, then a translucent box over part of it.
+        El.text("Kunde Müller, Köln").fontSize(14).color(0xFF1A1A1A).absolute(8, 8),
+        el().absolute(60.5f, 4.25f).size(70, 26).radius(6).fill(0x803B82F6),
+        // A translucent dark box, then light text over it.
+        el().absolute(8, 40).size(150, 34).radius(8).fill(0xB0111827),
+        El.text("1.234,56 € AVATAR").fontSize(13).color(0xFFF9FAFB).absolute(14.3f, 48),
+        // Translucent text over translucent text.
+        El.text("Größe").fontSize(14).color(0xC0DC2626).absolute(8, 84),
+        El.text("Söhne").fontSize(14).color(0xA02563EB).absolute(14.5f, 88),
+        // Light text on a dark panel, under a translucent white bar.
+        el().absolute(160, 8).size(72, 104).fill(0xFF1E1F22),
+        El.text("SELECT id").font(Font.mono()).fontSize(12).color(0xFFE4E4E7).absolute(166, 26),
+        el().absolute(150, 30).size(90, 12).fill(0x60FFFFFF),
+        // Grey text under its translucent white background box, light text fading out.
+        El.text("Zeile 2").fontSize(12).color(0xFF999999).absolute(170, 60).opacity(0.5f),
+        el().absolute(166, 58).size(60, 20).radius(4).fill(0x40FFFFFF));
   }
 
   // ---- scenes that stress the formulas ------------------------------------------------------

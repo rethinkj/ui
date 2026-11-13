@@ -36,7 +36,9 @@ import java.util.Objects;
  * window is resized, the frame stays {@link #pending}: the loop offers the newest frame again a
  * refresh later, and the presenter then reads the window's size again and configures the surface
  * anew. Nothing is submitted for a frame that cannot be shown, and the loop calls the presenter
- * only when there is something new.
+ * only when there is something new. Text is drawn from the scene's glyph atlas, of which only
+ * what changed since the last frame drawn goes to the GPU ({@link #atlasUploads}); the presenter
+ * is meant to be the only renderer of its app's atlas.
  *
  * <p>Like the window, the presenter belongs to the thread that opened the window. Close it before
  * the window.
@@ -150,6 +152,14 @@ public final class GpuPresenter implements WindowLoop.Presenter, AutoCloseable {
   /** How many frames were drawn and presented. */
   public long frames() {
     return frames;
+  }
+
+  /**
+   * How many times a region of a glyph atlas page went to the GPU: each page whole when it first
+   * appears, then only what changed in it, and nothing in frames whose text needs no new glyphs.
+   */
+  public long atlasUploads() {
+    return renderer.atlasWrites();
   }
 
   /** What draws, as wgpu describes the adapter. */

@@ -103,6 +103,11 @@ final class Wgpu {
   static final int SURFACE_TEXTURE_OCCLUDED = 0x00030001;
 
   static final int TEXTURE_DIMENSION_2D = 2;
+  /** {@code WGPUTextureViewDimension}. Zero, undefined, ends the process in a layout entry. */
+  static final int TEXTURE_VIEW_DIMENSION_2D = 2;
+  static final int TEXTURE_VIEW_DIMENSION_2D_ARRAY = 3;
+  /** {@code WGPUTextureSampleType}; zero means that a layout entry binds no texture. */
+  static final int TEXTURE_SAMPLE_TYPE_UNFILTERABLE_FLOAT = 3;
   static final int BUFFER_BINDING_TYPE_UNIFORM = 2;
   static final int BUFFER_BINDING_TYPE_READ_ONLY_STORAGE = 4;
   static final int LOAD_OP_LOAD = 1;
@@ -205,6 +210,9 @@ final class Wgpu {
       FunctionDescriptor.ofVoid(ADDRESS, JAVA_LONG, ADDRESS);
   static final FunctionDescriptor QUEUE_WRITE_BUFFER =
       FunctionDescriptor.ofVoid(ADDRESS, ADDRESS, JAVA_LONG, ADDRESS, JAVA_LONG);
+  /** The fourth argument is a {@code size_t}. */
+  static final FunctionDescriptor QUEUE_WRITE_TEXTURE =
+      FunctionDescriptor.ofVoid(ADDRESS, ADDRESS, ADDRESS, JAVA_LONG, ADDRESS, ADDRESS);
   static final FunctionDescriptor BUFFER_MAP_ASYNC = FunctionDescriptor.of(Structs.FUTURE,
       ADDRESS, JAVA_LONG, JAVA_LONG, JAVA_LONG, CallbackInfo.LAYOUT);
   static final FunctionDescriptor BUFFER_GET_CONST_MAPPED_RANGE =
@@ -258,6 +266,7 @@ final class Wgpu {
       "wgpuDeviceRelease", VOID_HANDLE,
       "wgpuQueueSubmit", QUEUE_SUBMIT,
       "wgpuQueueWriteBuffer", QUEUE_WRITE_BUFFER,
+      "wgpuQueueWriteTexture", QUEUE_WRITE_TEXTURE,
       "wgpuQueueRelease", VOID_HANDLE,
       "wgpuSurfaceGetCapabilities", SURFACE_GET_CAPABILITIES,
       "wgpuSurfaceCapabilitiesFreeMembers", SURFACE_CAPABILITIES_FREE_MEMBERS,
@@ -329,6 +338,7 @@ final class Wgpu {
     static final MethodHandle DEVICE_RELEASE = bind("wgpuDeviceRelease");
     static final MethodHandle QUEUE_SUBMIT = bind("wgpuQueueSubmit");
     static final MethodHandle QUEUE_WRITE_BUFFER = bind("wgpuQueueWriteBuffer");
+    static final MethodHandle QUEUE_WRITE_TEXTURE = bind("wgpuQueueWriteTexture");
     static final MethodHandle QUEUE_RELEASE = bind("wgpuQueueRelease");
     static final MethodHandle SURFACE_GET_CAPABILITIES = bind("wgpuSurfaceGetCapabilities");
     static final MethodHandle SURFACE_CAPABILITIES_FREE_MEMBERS =
@@ -578,6 +588,20 @@ final class Wgpu {
       MemorySegment data, long size) {
     try {
       Fn.QUEUE_WRITE_BUFFER.invokeExact(queue, buffer, offset, data, size);
+    } catch (Throwable t) {
+      throw rethrow(t);
+    }
+  }
+
+  /**
+   * Ends the process if a pointer is NULL, or if the layout's {@code bytesPerRow} or {@code
+   * rowsPerImage} is 0; other errors go to the error scopes.
+   */
+  static void queueWriteTexture(MemorySegment queue, MemorySegment destination,
+      MemorySegment data, long dataSize, MemorySegment dataLayout, MemorySegment writeSize) {
+    try {
+      Fn.QUEUE_WRITE_TEXTURE.invokeExact(queue, destination, data, dataSize, dataLayout,
+          writeSize);
     } catch (Throwable t) {
       throw rethrow(t);
     }

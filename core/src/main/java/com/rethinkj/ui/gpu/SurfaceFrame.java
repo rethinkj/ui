@@ -54,7 +54,7 @@ public final class SurfaceFrame extends GpuObject {
     MemorySegment texture = held();
     if (view == null) {
       view = Texture.createView(this, device, texture, label() + " view", width, height, format,
-          this);
+          false, this);
     }
     return view;
   }
