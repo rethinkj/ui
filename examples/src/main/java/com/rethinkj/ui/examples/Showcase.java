@@ -36,6 +36,7 @@ import com.rethinkj.ui.render.GpuPresenter;
 import com.rethinkj.ui.text.TextRendering;
 import com.rethinkj.ui.window.Window;
 import com.rethinkj.ui.window.WindowLoop;
+import com.rethinkj.ui.window.Windows;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -218,6 +219,13 @@ public final class Showcase {
   String filterValue = "paid";
   List<String> filters = new java.util.ArrayList<>(List.of("total > 100"));
 
+  /**
+   * The smallest window, narrow enough that the path and the toolbar of Table details give way
+   * into menus, as the narrow step of showcase.txt shows them.
+   */
+  static final float MIN_WIDTH = 620;
+  static final float MIN_HEIGHT = 480;
+
   // Progress
   static final double SIZE = 80; // megabytes of the made-up download
   double downloaded; // megabytes so far
@@ -236,9 +244,11 @@ public final class Showcase {
         if (run == download) {
           downloaded = Math.min(SIZE, downloaded + 4);
           downloading = downloaded < SIZE;
+          taskbar();
         }
       });
     }
+    taskbar();
   }
 
   /** Lets the download fail where it is. */
@@ -246,6 +256,21 @@ public final class Showcase {
     download++;
     downloading = false;
     failed = true;
+    taskbar();
+  }
+
+  /**
+   * The download on the window's taskbar button as well: a bar while it runs, red where it
+   * failed, none once it is done. A script has no taskbar button.
+   */
+  private void taskbar() {
+    Windows.Handle handle = app == null ? null : app.windows().of(app);
+    Window window = handle == null ? null : handle.window();
+    if (window != null) {
+      float done = (float) (downloaded / SIZE);
+      window.progress(failed ? Window.Progress.ERROR
+          : downloading ? Window.Progress.NORMAL : Window.Progress.NONE, done);
+    }
   }
 
   Showcase(Look look) {
@@ -336,7 +361,7 @@ public final class Showcase {
     Showcase s = app.state();
     s.look = Look.SYSTEM; // the window follows the system until another look is chosen
     Window.Options options = Identity.options(Showcase.class, "Showcase", 0xFF7C3AED, Symbol.SHAPES)
-        .frameless().minimumSize(900, 600);
+        .frameless().minimumSize(MIN_WIDTH, MIN_HEIGHT);
     try (Window window = Window.open("Showcase", 1100, 720, options);
         GpuPresenter presenter = new GpuPresenter(window)) {
       new WindowLoop(window, app, presenter)
@@ -363,7 +388,8 @@ public final class Showcase {
         .w(200).shrink(0);
     El root = col().wFull().hFull().fill(t.surface().window())
         .child(titleBar(t, "Showcase · " + s.lookTitle(),
-            s.look == Look.SYSTEM && s.systemAccent != 0 ? s.systemAccent : t.accent().color()))
+            s.look == Look.SYSTEM && s.systemAccent != 0 ? s.systemAccent : t.accent().color(),
+            Identity.maximized(s.app)))
         .child(row().grow(1).minSize(0, 0).padding(0, t.space().m(), t.space().m(), t.space().m())
             .gap(t.space().m())
             .child(sidebar)

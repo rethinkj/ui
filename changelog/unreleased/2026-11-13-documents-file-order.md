@@ -1,0 +1,1 @@
+- The Documents example opens files dropped or chosen together in their order, where their tabs came in the order their reads ended.

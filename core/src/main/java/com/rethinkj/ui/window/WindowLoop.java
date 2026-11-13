@@ -19,6 +19,7 @@ import com.rethinkj.ui.window.WindowEvent.PointerUp;
 import com.rethinkj.ui.window.WindowEvent.Redraw;
 import com.rethinkj.ui.window.WindowEvent.Resized;
 import com.rethinkj.ui.window.WindowEvent.ScaleChanged;
+import com.rethinkj.ui.window.WindowEvent.StateChanged;
 import com.rethinkj.ui.window.WindowEvent.TextEditing;
 import com.rethinkj.ui.window.WindowEvent.TextInput;
 import com.rethinkj.ui.window.WindowEvent.Wheel;
@@ -208,7 +209,8 @@ public final class WindowLoop {
     public void moveTo(int x, int y) {
       if (isOpen()) {
         window.moveTo(x, y);
-        moved = pressed != null;
+        // During the press, or in the frame that handles its release, whose drag step ends it.
+        moved = pressed != null || releasedIn != null;
       }
     }
 
@@ -573,6 +575,11 @@ public final class WindowLoop {
       if (focusAfterRelease) { // the frame that handled the release has run
         focusAfterRelease = false;
         for (Entry e : List.copyOf(entries)) {
+          if (e.moved && e.isOpen()) { // the app moved it during the press, maybe off screen
+            e.window.keepReachable();
+          }
+        }
+        for (Entry e : List.copyOf(entries)) {
           if (e.focusAfterPress) {
             e.focusAfterPress = false;
             e.raise(); // if it is still open: shown without the focus, it takes it now
@@ -655,6 +662,7 @@ public final class WindowLoop {
     app.dialogs(new SystemDialogs(e.window));
     app.systemFonts(systemFonts);
     app.windows(windows);
+    app.windowMaximized(e.window.isMaximized()); // for its title bar's Restore
     e.window.listener(event -> event(e, event));
     e.window.parts(app::windowPart);
     app.onPost(() -> { // a task from another thread ends the wait
@@ -783,6 +791,7 @@ public final class WindowLoop {
           toFront(e);
         }
       }
+      case StateChanged state -> app.windowMaximized(state.maximized());
       case Resized resized -> resize(e);
       case ScaleChanged changed -> {
         resize(e);
@@ -792,6 +801,11 @@ public final class WindowLoop {
         if (!drawing) { // in a pass, the frame comes anyway
           tick();
           draw(e, !redraw.live());
+          // During the system's live resize no other frame comes until the next step: what the
+          // frame queued, such as a toolbar's resize handler, shows now, not a step late.
+          for (int i = 0; i < 3 && e.isOpen() && e.app.handlersWaiting(); i++) {
+            draw(e, false);
+          }
           // The frame may have run a task that arrived, which the others show at once too.
           for (Entry other : invalidateOthers(e)) {
             draw(other, false);

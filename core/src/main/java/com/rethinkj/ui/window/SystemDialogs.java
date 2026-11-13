@@ -19,6 +19,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 import java.util.function.IntConsumer;
+import java.util.function.ToIntFunction;
 
 /**
  * The system's dialogs through SDL, for an app in a window: a {@link WindowLoop} gives each of
@@ -37,6 +38,9 @@ import java.util.function.IntConsumer;
  * every 3 seconds while it waits. Without a portal SDL runs zenity, on a thread of its own, and
  * without either the dialog fails at once, with a message that says what to install. The callback
  * copies the paths before it returns, since SDL frees them then, and hands on only Java values.
+ * A window has one file dialog at a time: another one fails at once while it is open, since the
+ * first to close would enable the window under the second (the system's dialogs each disable
+ * their window while they are open and enable it again as they close).
  *
  * <p>A message box ({@code SDL_ShowMessageBox}) blocks the thread that shows it until it closes;
  * SDL wants that to be the thread of its parent window, here the windows' thread. So all windows
@@ -52,7 +56,8 @@ public final class SystemDialogs implements Dialogs {
   private static final Map<Long, Pending> PENDING = new ConcurrentHashMap<>();
   private static final AtomicLong IDS = new AtomicLong();
 
-  private record Pending(Arena arena, Consumer<FileDialog.Choice> chosen,
+  /** A dialog that has not answered yet, and the window it belongs to (null for none). */
+  private record Pending(Arena arena, Window owner, Consumer<FileDialog.Choice> chosen,
       Consumer<String> failed) {}
 
   /** The upcall stub, made on first use and kept for the life of the process. */
@@ -70,8 +75,13 @@ public final class SystemDialogs implements Dialogs {
 
   /** Registers the callers of an answer SDL will give, as {@link #file} does; for tests. */
   static long expect(Consumer<FileDialog.Choice> chosen, Consumer<String> failed) {
+    return expect(null, chosen, failed);
+  }
+
+  /** As {@link #expect(Consumer, Consumer)}, for a dialog of {@code owner}; for tests. */
+  static long expect(Window owner, Consumer<FileDialog.Choice> chosen, Consumer<String> failed) {
     long id = IDS.incrementAndGet();
-    PENDING.put(id, new Pending(Arena.ofShared(), chosen, failed));
+    PENDING.put(id, new Pending(Arena.ofShared(), owner, chosen, failed));
     return id;
   }
 
@@ -90,6 +100,12 @@ public final class SystemDialogs implements Dialogs {
       Consumer<String> failed) {
     if (window != null && !window.isOpen()) {
       failed.accept("The window of this dialog has closed.");
+      return;
+    }
+    // Each of the system's dialogs disables its window while it is open and enables it as it
+    // closes, also while another of its dialogs is still open, which then takes input under it.
+    if (window != null && PENDING.values().stream().anyMatch(p -> p.owner() == window)) {
+      failed.accept("A file dialog of this window is open; it answers before another opens.");
       return;
     }
     Arena arena = Arena.ofShared(); // until SDL has answered: it may read the filters until then
@@ -126,7 +142,7 @@ public final class SystemDialogs implements Dialogs {
         Sdl.setStringProperty(properties, Sdl.PROP_FILE_DIALOG_TITLE_STRING, dialog.title());
       }
       Sdl.setBooleanProperty(properties, Sdl.PROP_FILE_DIALOG_MANY_BOOLEAN, dialog.multiple());
-      PENDING.put(id, new Pending(arena, chosen, failed));
+      PENDING.put(id, new Pending(arena, window, chosen, failed));
       registered = true;
       Sdl.showFileDialogWithProperties(switch (dialog.kind()) {
         case OPEN -> Sdl.FILEDIALOG_OPENFILE;
@@ -197,12 +213,36 @@ public final class SystemDialogs implements Dialogs {
       String text = Sdl.string(path);
       if (!text.isEmpty()) {
         try {
-          paths.add(Path.of(text));
+          paths.add(longName(Path.of(text)));
         } catch (InvalidPathException e) {
           throw new IllegalStateException("The system chose a path Java cannot use: " + text, e);
         }
       }
     }
+  }
+
+  /**
+   * The path with its 8.3 short names made long again on Windows, whose file dialog answers with
+   * the short form of a path longer than {@code MAX_PATH} ({@code C:\Daten\EINSEH~1\LANGED~1.TXT}),
+   * which would name a tab or a title so. A file that is not there yet, as a save dialog's, keeps
+   * its name after its folder's long form. Elsewhere, and for a path without a {@code ~}, the path
+   * as it is.
+   */
+  static Path longName(Path path) {
+    if (File.separatorChar != '\\' || path.toString().indexOf('~') < 0) {
+      return path;
+    }
+    String full = Win32.longPathName(path.toString());
+    if (full != null) {
+      return Path.of(full);
+    }
+    Path parent = path.getParent();
+    Path name = path.getFileName();
+    if (parent == null || name == null) {
+      return path;
+    }
+    Path longParent = longName(parent);
+    return longParent.equals(parent) ? path : longParent.resolve(name);
   }
 
   /** SDL's error as the app gets it, with what to do where Linux has no dialog. */
@@ -292,8 +332,9 @@ public final class SystemDialogs implements Dialogs {
    * Runs {@code start}, the code that opens the app's window and runs its loop, and when that
    * throws, shows the reason in a message box of the system ({@link #show}) before throwing it
    * on: a user who started the app from a shortcut learns why it did not open, as when the GPU
-   * has no adapter or a native library cannot load, instead of nothing at all. Where no box can
-   * show either, what it threw gets that reason as a suppressed exception.
+   * has no adapter or a native library cannot load, instead of nothing at all. When SDL itself
+   * cannot load, Windows shows the box without it ({@code MessageBoxW}); where no box can show
+   * either, as on Linux without SDL, what it threw gets that reason as a suppressed exception.
    *
    * <pre>{@code
    * public static void main(String[] args) throws IOException {
@@ -316,9 +357,35 @@ public final class SystemDialogs implements Dialogs {
   }
 
   private static void tell(String app, Throwable failure) {
+    tell(app, failure, SystemDialogs::show,
+        File.separatorChar == '\\' ? box -> Win32.errorBox(box.title(), box.text()) : null);
+  }
+
+  /** A way to show a box; true if it showed. */
+  interface Shows {
+    boolean show(MessageBox box);
+  }
+
+  /**
+   * Shows the failure in SDL's box, else, where SDL cannot show one, in {@code fallback}: on
+   * Windows user32's {@code MessageBoxW}, which needs no SDL, as when SDL itself is the library
+   * that cannot load. What neither could show goes into the failure as suppressed exceptions.
+   */
+  static void tell(String app, Throwable failure, ToIntFunction<MessageBox> sdl,
+      Shows fallback) {
+    MessageBox box = MessageBox.error(app, failureText(app, failure));
     try {
-      show(MessageBox.error(app, failureText(app, failure)));
+      sdl.applyAsInt(box);
     } catch (Throwable t) {
+      if (fallback != null) {
+        try {
+          if (fallback.show(box)) {
+            return;
+          }
+        } catch (Throwable u) {
+          t.addSuppressed(u);
+        }
+      }
       failure.addSuppressed(t);
     }
   }

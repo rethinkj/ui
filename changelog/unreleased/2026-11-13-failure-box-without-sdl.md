@@ -1,0 +1,1 @@
+- `SystemDialogs.reportFailure` shows its message box on Windows also when SDL itself cannot load, as with an incomplete natives folder, through the system's own message box instead of showing nothing.

@@ -5,11 +5,18 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.rethinkj.ui.App;
+import com.rethinkj.ui.Dialogs;
+import com.rethinkj.ui.FileDialog;
+import com.rethinkj.ui.MessageBox;
 import com.rethinkj.ui.Script;
 import com.rethinkj.ui.text.TextRendering;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.function.Consumer;
+import java.util.function.IntConsumer;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -78,6 +85,86 @@ class DocumentsTest {
     assertEquals("No file dialog: No portal", lineOf(folder, "failed"));
     assertEquals("Dropped text", s.groups.main().activeTab().title);
     assertEquals("dropped text", s.groups.main().activeTab().text);
+  }
+
+  /** Files dropped together open in the order they came, whichever is read first. */
+  @Test
+  void droppedFilesOpenInTheirOrder(@TempDir Path folder) throws IOException {
+    Snaps.assumeText();
+    Path large = Files.writeString(folder.resolve("eins.txt"), "x".repeat(900_000));
+    Path small = Files.writeString(folder.resolve("zwei.sql"), "SELECT 2;");
+    Path tiny = Files.writeString(folder.resolve("drei.md"), "# 3");
+    Documents s = new Documents();
+    s.app = new App<>(s, d -> d.view(d.groups.main(), d.app));
+    String quoted = String.join(" ", java.util.stream.Stream.of(large, small, tiny)
+        .map(p -> "\"" + p.toString().replace("\\", "\\\\") + "\"").toList());
+    Script.run("""
+        size 640 360
+        frame
+        drop #tabs %s
+        frame
+        await
+        frame
+        snap dropped
+        """.formatted(quoted), s.app, folder.resolve("out"));
+    List<String> titles = s.groups.main().tabs().stream().map(d -> d.title).toList();
+    assertEquals(List.of("eins.txt", "zwei.sql", "drei.md"),
+        titles.subList(titles.size() - 3, titles.size()));
+  }
+
+  /** Each document keeps its caret and history across the tabs; they were one editor's. */
+  @Test
+  void eachDocumentKeepsItsCaretAndHistory(@TempDir Path folder) throws IOException {
+    Snaps.assumeText();
+    Documents s = new Documents();
+    s.app = new App<>(s, d -> d.view(d.groups.main(), d.app));
+    Script.run("""
+        size 640 360
+        frame
+        press 300,200
+        key End control
+        type "!"
+        frame
+        press role=tab label="Notes"
+        frame
+        snap notes
+        press role=tab label="Readme"
+        frame
+        key Z control
+        frame
+        snap readme
+        """, s.app, folder);
+    String notes = Files.readString(folder.resolve("notes.tree.txt"));
+    assertTrue(notes.contains("label=\"Notes\" \"Coffee, bread\"") && !notes.contains("caret 13"),
+        "Notes' caret is its own, not Readme's: " + notes);
+    assertEquals("Tabs that move, tear off and dock.\nDrag one out of the bar.",
+        s.groups.main().activeTab().text, "Readme's history came back with it");
+  }
+
+  /** Save As starts with the filter of the document's kind, which the dialog shows first. */
+  @Test
+  void saveAsOffersTheDocumentsOwnKindFirst() {
+    Documents s = new Documents();
+    s.app = new App<>(s, d -> d.view(d.groups.main(), d.app));
+    List<FileDialog> asked = new ArrayList<>();
+    s.app.dialogs(new Dialogs() {
+      @Override
+      public void file(FileDialog dialog, Consumer<FileDialog.Choice> chosen,
+          Consumer<String> failed) {
+        asked.add(dialog);
+      }
+
+      @Override
+      public void message(MessageBox box, IntConsumer pressed, Consumer<String> failed) {}
+    });
+    Documents.Doc query = new Documents.Doc("Query", "SELECT 1;");
+    Documents.Doc notes = new Documents.Doc("Notes", "Coffee");
+    s.saveAs(query);
+    s.saveAs(notes);
+    assertEquals("Query.sql", asked.get(0).fileName());
+    assertEquals("SQL", asked.get(0).filters().getFirst().name());
+    assertEquals("Notes.txt", asked.get(1).fileName());
+    assertEquals("Text", asked.get(1).filters().getFirst().name());
   }
 
   private static String lineOf(Path folder, String snap) throws IOException {

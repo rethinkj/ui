@@ -1,0 +1,1 @@
+- The kit's completion list closes when it has no entries and on a key with Control, Alt or Meta that it does not take; before, typing a number left it open unseen, and it showed up wherever Home, a press or a find bar's match put the caret next.

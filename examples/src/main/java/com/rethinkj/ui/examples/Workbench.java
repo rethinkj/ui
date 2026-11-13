@@ -59,8 +59,11 @@ import com.rethinkj.ui.window.Window;
 import com.rethinkj.ui.window.WindowIcon;
 import com.rethinkj.ui.window.WindowLoop;
 import com.rethinkj.ui.window.Windows;
+import java.io.File;
 import java.io.IOException;
 import java.net.ConnectException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -265,6 +268,7 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
   Node dropping; // the table the dialog asks about, or null while it is closed
   String confirm = ""; // the name typed into the dialog
   Window window; // the first window, for the taskbar; null under a script
+  Path placementFile; // where main keeps the first window's placement; null under a script
   final MenuBar.State bar = new MenuBar.State();
   // The command palette of each window, and what it finds after @, made anew when a server
   // connects.
@@ -886,8 +890,49 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
     return group.window() == null ? app : (App<Workbench>) group.window().app();
   }
 
+  /**
+   * Where the first window's placement is kept between runs: a line in the user's settings,
+   * {@code %APPDATA%\rethinkj-ui-examples\Workbench\window.txt} on Windows and {@code
+   * $XDG_CONFIG_HOME/rethinkj-ui-examples/Workbench/window.txt} ({@code ~/.config}) elsewhere.
+   * Which file is the app's choice; the library only reads and writes the line.
+   */
+  static Path placementFile() {
+    String appData = System.getenv("APPDATA");
+    String config = System.getenv("XDG_CONFIG_HOME");
+    Path base = File.separatorChar == '\\' && appData != null ? Path.of(appData)
+        : config != null && !config.isEmpty() ? Path.of(config)
+        : Path.of(System.getProperty("user.home"), ".config");
+    return base.resolve("rethinkj-ui-examples").resolve("Workbench").resolve("window.txt");
+  }
+
+  /** The placement kept last, or null the first time or when the line cannot be read. */
+  static Window.Placement savedPlacement(Path file) {
+    try {
+      return Window.Placement.parse(Files.readString(file));
+    } catch (IOException | IllegalArgumentException e) {
+      return null;
+    }
+  }
+
+  /**
+   * Keeps where the first window is, for the next start, while it is open; only when {@link
+   * #main} opened it, never under a script or a test.
+   */
+  void keepPlacement() {
+    if (placementFile == null || window == null || !window.isOpen()) {
+      return;
+    }
+    try {
+      Files.createDirectories(placementFile.getParent());
+      Files.writeString(placementFile, window.placement() + "\n");
+    } catch (IOException e) {
+      System.err.println("Workbench: the window's placement cannot be kept: " + e.getMessage());
+    }
+  }
+
   /** Closes every window, which ends the app, and gives up the questions on their way. */
   void quit() {
+    keepPlacement();
     for (Opened o : tables()) {
       if (o.asking != null) {
         o.asking.cancel();
@@ -936,7 +981,10 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
         .filter(o -> o.asking != null || o.committing != null).count();
   }
 
-  /** Shows the number of questions on their way on the taskbar button, or nothing for none. */
+  /**
+   * Shows the number of questions on their way on the taskbar button, with a bar that runs while
+   * there are any, or nothing for none.
+   */
   void taskbar() {
     if (window == null) {
       return;
@@ -946,6 +994,7 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
     WindowIcon badge = WindowIcon.of(size -> AppIcon.count(t, size, t.accent().color(), n));
     window.badge(n == 0 ? null : badge,
         n == 1 ? "1 question running" : n + " questions running");
+    window.progress(n == 0 ? Window.Progress.NONE : Window.Progress.INDETERMINATE, 0);
   }
 
   /**
@@ -986,10 +1035,16 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
     app.textRendering(TextRendering.platform());
     Window.Options options = Identity.options(Workbench.class, "Workbench", MARK,
         Symbol.DATABASE).frameless().minimumSize(640, 400);
+    s.placementFile = placementFile();
+    Window.Placement was = savedPlacement(s.placementFile);
+    if (was != null) {
+      options.placement(was); // where the first window was when the app last ended
+    }
     try (Window window = Window.open("Workbench", 1200, 720, options);
         GpuPresenter presenter = new GpuPresenter(window)) {
       s.window = window;
       new WindowLoop(window, app, presenter).run();
+      s.keepPlacement(); // the first window alone ended the loop and is still open
     }
   }
 
@@ -1013,6 +1068,7 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
         .onKeyUp(MenuBar.keysUp(s.bar, menus))
         .overlay(s.palette(t, s.groups.main()))
         .child(withMenus(t, "Workbench", t.accent().color(), MenuBar.menuBar(t, s.bar, menus),
+            Identity.maximized(s.app),
             toggle(t, s.dark, "Dark", () -> s.dark = !s.dark)))
         .child(Split.cards(t, Direction.ROW, s.sidebar, SIDEBAR, p -> s.sidebar = p,
             catalogue, 160, right.key("tabs"), 320).grow(1)
@@ -1124,7 +1180,8 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
         .overlay(palette(t, group))
         .overlay(question(t, group))
         .overlay(preview(t, group))
-        .child(titleBar(t, active == null ? "Workbench" : active.title(), t.accent().color()))
+        .child(titleBar(t, active == null ? "Workbench" : active.title(), t.accent().color(),
+            Identity.maximized(group.window() == null ? null : group.window().app())))
         // No minimum height from the tabs, whose grid would otherwise make it as high as its rows.
         .child(col().grow(1).minSize(0, 0)
             .padding(0, t.space().m(), t.space().m(), t.space().m())

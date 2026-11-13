@@ -444,7 +444,7 @@ public final class DataBrowser {
         // Above the card's footer, its edge and the space below the card: the status stays seen.
         .overlay(s.toast == null ? null : Toast.toast(t, s.toast, null, null,
             () -> s.toast = null, Card.footerHeight(t) + t.size().stroke() + t.space().m()))
-        .child(titleBar(t, "Orders", t.accent().color(),
+        .child(titleBar(t, "Orders", t.accent().color(), Identity.maximized(s.app),
             toggle(t, s.dark, "Dark", () -> s.dark = !s.dark)))
         .child(col().grow(1).minSize(0, 0).padding(0, t.space().m(), t.space().m(), t.space().m())
             .child(Card.flush(t,

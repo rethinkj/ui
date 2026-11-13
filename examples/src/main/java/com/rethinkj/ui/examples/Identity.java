@@ -1,5 +1,6 @@
 package com.rethinkj.ui.examples;
 
+import com.rethinkj.ui.App;
 import com.rethinkj.ui.kit.AppIcon;
 import com.rethinkj.ui.kit.Symbol;
 import com.rethinkj.ui.kit.Theme;
@@ -23,5 +24,10 @@ final class Identity {
 
   static WindowIcon icon(int colour, Symbol symbol) {
     return WindowIcon.of(size -> AppIcon.appIcon(Theme.DARK, size, colour, symbol));
+  }
+
+  /** Whether the window that runs {@code app} is maximized, for its title bar's Restore. */
+  static boolean maximized(App<?> app) {
+    return app != null && app.windowMaximized();
   }
 }

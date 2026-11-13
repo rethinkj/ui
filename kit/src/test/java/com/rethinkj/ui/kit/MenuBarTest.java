@@ -1,5 +1,7 @@
 package com.rethinkj.ui.kit;
 
+import static com.rethinkj.ui.El.col;
+import static com.rethinkj.ui.El.el;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -309,6 +311,43 @@ class MenuBarTest {
     assertEquals(-1, studio.bar.title(), "nor with the secondary button");
     run(app, "key Alt\nframe\n");
     assertEquals(0, studio.bar.title(), "Alt alone still does");
+  }
+
+  @Test
+  void altWithAKeyThatAnotherElementTookDoesNotGiveTheBarTheKeys() {
+    MenuBar.State bar = new MenuBar.State();
+    int[] taken = {0};
+    List<Menu.Item> menus = List.of(Menu.submenu("&File", List.of(Menu.item("Open", () -> {}))));
+    App<Object> app = new App<>(new Object(), s -> col().wFull().hFull()
+        .onKey(MenuBar.keys(bar, menus)).onKeyUp(MenuBar.keysUp(bar, menus))
+        .child(MenuBar.menuBar(Theme.DARK, bar, menus))
+        .child(el().key("finder").size(100, 30).focusable().onPress(() -> {})
+            .onKey(k -> k.modifiers() == Key.ALT && k.name().equals("C") && ++taken[0] > 0)));
+    app.resize(400, 200, 1);
+    app.frame();
+    app.focus(find(app.tree(), "finder"));
+    app.frame();
+    // Alt+C, which the focused element takes, as a find bar takes it for Match case.
+    app.keyDown(new Key("Alt", Key.ALT, false));
+    app.keyDown(new Key("C", Key.ALT, false));
+    app.keyUp(new Key("C", Key.ALT, false));
+    app.keyUp(new Key("Alt", 0, false));
+    app.frame();
+    assertEquals(1, taken[0]);
+    assertEquals(-1, bar.title(), "Alt was not alone");
+    assertEquals("finder", app.focused().key());
+    // Alt released before the key, as a fast hand does.
+    app.keyDown(new Key("Alt", Key.ALT, false));
+    app.keyDown(new Key("C", Key.ALT, false));
+    app.keyUp(new Key("Alt", 0, false));
+    app.keyUp(new Key("C", 0, false));
+    app.frame();
+    assertEquals(2, taken[0]);
+    assertEquals(-1, bar.title(), "nor when Alt goes up first");
+    app.keyDown(new Key("Alt", Key.ALT, false));
+    app.keyUp(new Key("Alt", 0, false));
+    app.frame();
+    assertEquals(0, bar.title(), "Alt alone still gives the bar the keys");
   }
 
   private static com.rethinkj.ui.Text.Box underline(App<?> app, String title) {

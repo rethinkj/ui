@@ -150,7 +150,12 @@ public final class MenuBar {
     table(menus); // refuses conflicts when the view is built
     boolean marks = state.alt || state.title >= 0;
     El bar = row().key("menubar").role("menubar").align(Style.Align.CENTER).keepFocus()
-        .onAnyPointerDown(() -> state.armed = false); // Alt held during a press is not alone
+        .onAnyPointerDown(() -> state.armed = false) // Alt held during a press is not alone
+        .onAnyKeyDown(k -> { // nor Alt with a key that another element took, as a find bar's
+          if (!k.name().equals("Alt")) {
+            state.armed = false;
+          }
+        });
     Menu.Bar owner = new Menu.Bar(d -> state.step(menus, d), () -> state.title = -1, state);
     for (int i = 0; i < menus.size(); i++) {
       bar.child(title(t, state, menus, i, marks, owner));

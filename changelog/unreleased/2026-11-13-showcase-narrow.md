@@ -1,0 +1,1 @@
+- The Showcase example's window can be made as narrow as 620 pixels, where the path and the toolbar of Table details give way into menus; its smallest width of 900 kept that from ever showing in a window.

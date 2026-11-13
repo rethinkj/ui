@@ -1,6 +1,7 @@
 package com.rethinkj.ui.window;
 
 import static java.lang.foreign.ValueLayout.ADDRESS;
+import static java.lang.foreign.ValueLayout.JAVA_INT;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -10,14 +11,19 @@ import com.rethinkj.ui.FileDialog;
 import com.rethinkj.ui.natives.Natives;
 import java.io.File;
 import java.lang.foreign.Arena;
+import java.lang.foreign.FunctionDescriptor;
 import java.lang.foreign.Linker;
 import java.lang.foreign.MemorySegment;
+import java.lang.foreign.SymbolLookup;
 import java.lang.invoke.MethodHandle;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 /**
  * The file dialogs' callback, called through its upcall stub as SDL calls it, on this thread and
@@ -79,6 +85,42 @@ class SystemDialogsTest {
     assertEquals(-1, here.choice().filter());
   }
 
+  /** {@code DWORD GetShortPathNameW(LPCWSTR, LPWSTR, DWORD)}, the other way round, for the test. */
+  private static String shortPathName(String path) throws Throwable {
+    MethodHandle h = Linker.nativeLinker().downcallHandle(
+        SymbolLookup.libraryLookup("kernel32", Arena.global()).find("GetShortPathNameW")
+            .orElseThrow(),
+        FunctionDescriptor.of(JAVA_INT, ADDRESS, ADDRESS, JAVA_INT));
+    try (Arena arena = Arena.ofConfined()) {
+      MemorySegment to = arena.allocate(2 * 4096, 2);
+      int n = (int) h.invokeExact(arena.allocateFrom("\\\\?\\" + path, StandardCharsets.UTF_16LE),
+          to, 4096);
+      String out = n == 0 ? path : to.getString(0, StandardCharsets.UTF_16LE);
+      return out.startsWith("\\\\?\\") ? out.substring(4) : out;
+    }
+  }
+
+  @Test
+  void aPathLongerThanMaxPathComesWithItsLongNames(@TempDir Path temp) throws Throwable {
+    assumeTrue(File.separatorChar == '\\', "8.3 names are Windows'");
+    Path folder = temp;
+    for (int i = 0; i < 4; i++) {
+      folder = folder.resolve("ein sehr langer Ordner mit Ümlauten und Leerzeichen 0123456789 " + i);
+    }
+    Files.createDirectories(folder);
+    Path file = Files.writeString(folder.resolve("lange Datei.txt"), "x");
+    assertTrue(file.toString().length() > 260, file.toString().length() + " characters");
+    String shortName = shortPathName(file.toString());
+    assumeTrue(shortName.contains("~"), "the volume makes no 8.3 names");
+    String shortFolder = shortPathName(folder.toString());
+
+    // As SDL hands over what the dialog answered: the short form of a long path.
+    Answer answer = call(List.of(shortName, shortFolder + File.separator + "neue Datei.sql"), 0,
+        true);
+    assertEquals(List.of(file, folder.resolve("neue Datei.sql")), answer.choice().paths(),
+        "a file that is not there yet keeps its name after its folder's long form");
+  }
+
   @Test
   void anEmptyListAndZenitysEmptyLineAreACancel() throws Exception {
     assertTrue(call(List.of(), -1, false).choice().cancelled());
@@ -131,6 +173,55 @@ class SystemDialogsTest {
   }
 
   @Test
+  void aSecondDialogOfAWindowFailsWhileTheFirstIsOpen() throws Throwable {
+    Desktop.assumeWindows();
+    Window window = Window.open("rethinkj second dialog test", 80, 60);
+    try {
+      List<String> told = new ArrayList<>();
+      // The first dialog of the window is open: registered as file() registers it.
+      long first = SystemDialogs.expect(window, c -> told.add("first " + c.paths()), told::add);
+      new SystemDialogs(window).file(FileDialog.open("Second"), c -> told.add("second " + c),
+          told::add);
+      assertEquals(List.of("A file dialog of this window is open; it answers before another"
+          + " opens."), told);
+      assertTrue(SystemDialogs.waiting(), "the first still waits for its answer");
+
+      try (Arena arena = Arena.ofConfined()) {
+        MemorySegment none = arena.allocate(ADDRESS, 1);
+        none.setAtIndex(ADDRESS, 0, MemorySegment.NULL);
+        CALL.invokeExact(MemorySegment.ofAddress(first), none, -1); // cancelled
+      }
+      assertEquals(List.of("A file dialog of this window is open; it answers before another"
+          + " opens.", "first []"), told);
+      assertTrue(!SystemDialogs.waiting(), "nothing is left waiting; the next one may open");
+    } finally {
+      window.close();
+    }
+  }
+
+  @Test
+  void closingAWindowCancelsTheFileDialogItOwns() {
+    Desktop.assumeWindows();
+    assumeTrue(File.separatorChar == '\\', "the dialog's own thread is Windows'");
+    Window window = Window.open("rethinkj closed under its dialog", 80, 60);
+    Window other = Window.open("rethinkj stays open", 80, 60); // the app goes on
+    try {
+      MemorySegment hwnd = ((WindowHandle.Win32) window.handle()).hwnd();
+      List<String> told = new java.util.concurrent.CopyOnWriteArrayList<>();
+      new SystemDialogs(window).file(FileDialog.open("Closed under its dialog"),
+          c -> told.add("chosen " + c.paths()), told::add);
+      assertTrue(Desktop.pollUntil(() -> !Win32.ownedDialogs(hwnd).isEmpty()), "it opened");
+      window.close();
+      assertTrue(Desktop.pollUntil(() -> !told.isEmpty()), "it answered");
+      assertEquals(List.of("chosen []"), told, "as cancelled");
+      assertTrue(!SystemDialogs.waiting(), "nothing is left waiting");
+    } finally {
+      window.close();
+      other.close();
+    }
+  }
+
+  @Test
   void theDialogStartsInItsFolderOrAtItsSuggestedFile() {
     Path folder = Path.of("exports").toAbsolutePath();
     assertNull(SystemDialogs.location(FileDialog.open("x")));
@@ -147,6 +238,32 @@ class SystemDialogsTest {
         + " SDL_HINT_FILE_DIALOG_DRIVER are 'zenity' and 'portal')");
     assertTrue(reason.contains("xdg-desktop-portal") && reason.contains("zenity"), reason);
     assertEquals("Failed to connect to DBus", SystemDialogs.reason("Failed to connect to DBus"));
+  }
+
+  @Test
+  void whereSdlCannotShowTheFailureTheFallbackShowsIt() {
+    Throwable failure = new UnsatisfiedLinkError("There is no native library 'sdl3'");
+    List<String> shown = new ArrayList<>();
+    SystemDialogs.tell("Documents", failure, box -> {
+      throw new UnsatisfiedLinkError("SDL cannot load");
+    }, box -> shown.add(box.title() + ": " + box.text()));
+    assertEquals(List.of("Documents: Documents stopped because of an error.\n\n"
+        + "UnsatisfiedLinkError: There is no native library 'sdl3'"), shown);
+    assertEquals(0, failure.getSuppressed().length, "it was shown, so nothing is left to say");
+
+    // SDL shows it: the fallback is not asked.
+    SystemDialogs.tell("Documents", failure, box -> 0, box -> shown.add("again"));
+    assertEquals(1, shown.size());
+
+    // Neither shows it, or there is no fallback (Linux): the reasons go into the failure.
+    SystemDialogs.tell("Documents", failure, box -> {
+      throw new IllegalStateException("No display");
+    }, box -> false);
+    SystemDialogs.tell("Documents", failure, box -> {
+      throw new IllegalStateException("No display either");
+    }, null);
+    assertEquals(List.of("No display", "No display either"),
+        java.util.Arrays.stream(failure.getSuppressed()).map(Throwable::getMessage).toList());
   }
 
   @Test

@@ -1,0 +1,1 @@
+- On Windows, a file chosen in the system's file dialog at the end of a path longer than 260 characters reaches the app with its long names, as `C:\Daten\ein langer Ordner\Bericht.txt`, instead of the 8.3 short names the dialog answers with (`C:\Daten\EINLAN~1\BERICH~1.TXT`), which named a tab or a title so.

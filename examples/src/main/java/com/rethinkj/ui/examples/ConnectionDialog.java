@@ -51,6 +51,7 @@ public final class ConnectionDialog {
   boolean revealed; // whether the password field shows the password
   boolean ssl = true;
   boolean dark = true;
+  App<ConnectionDialog> app; // whose window says whether it is maximized
   String status = "";
 
   /** The databases the server is known to have, which the database's field suggests. */
@@ -92,6 +93,7 @@ public final class ConnectionDialog {
 
   public static void main(String[] args) throws IOException {
     App<ConnectionDialog> app = new App<>(new ConnectionDialog(), ConnectionDialog::view);
+    app.state().app = app;
     // A script's images are stored, so they must not depend on the platform.
     app.textRendering(TextRendering.LINUX);
     if (Script.handle(args, app)) {
@@ -134,7 +136,7 @@ public final class ConnectionDialog {
     return col().wFull().hFull().fill(t.surface().window())
         // Enter in a field connects; on a button or the checkbox it presses that instead.
         .onKey(Dialog.enterPresses(connect))
-        .child(titleBar(t, "New connection", t.accent().color()))
+        .child(titleBar(t, "New connection", t.accent().color(), Identity.maximized(s.app)))
         .child(col().grow(1).padding(0, t.space().m(), t.space().m(), t.space().m())
             .child(form.grow(1)));
   }

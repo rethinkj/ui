@@ -279,7 +279,7 @@ public final class Manual {
         .state(doc.selection()).images(source -> s.image(doc, source)))
         .key("doc-" + s.doc).grow(1).minSize(0, 0);
     El root = col().wFull().hFull().fill(t.surface().window())
-        .child(titleBar(t, "Manual", t.accent().color(),
+        .child(titleBar(t, "Manual", t.accent().color(), Identity.maximized(s.app),
             toggle(t, s.dark, "Dark", () -> s.dark = !s.dark)))
         .child(row().grow(1).minSize(0, 0).padding(0, t.space().m(), t.space().m(), t.space().m())
             .gap(t.space().m()).children(

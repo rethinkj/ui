@@ -48,11 +48,29 @@ public final class TitleBar {
   }
 
   /**
+   * As {@link #titleBar(Theme, String, int, El...)}, for a window that may be maximized: the
+   * maximize button shows Restore while {@code maximized}, usually {@code app.windowMaximized()}.
+   */
+  public static El titleBar(Theme t, String title, int mark, boolean maximized,
+      El... controls) {
+    return titleBar(t, title, mark(mark), null, maximized, controls);
+  }
+
+  /**
    * A title bar with a menu bar after the title; the gaps between its titles move the window as
    * the rest of the bar does.
    */
   public static El withMenus(Theme t, String title, int mark, El menus, El... controls) {
     return titleBar(t, title, mark(mark), menus, false, controls);
+  }
+
+  /**
+   * As {@link #withMenus(Theme, String, int, El, El...)}, with Restore in place of Maximize while
+   * {@code maximized}, usually {@code app.windowMaximized()}.
+   */
+  public static El withMenus(Theme t, String title, int mark, El menus, boolean maximized,
+      El... controls) {
+    return titleBar(t, title, mark(mark), menus, maximized, controls);
   }
 
   /**
