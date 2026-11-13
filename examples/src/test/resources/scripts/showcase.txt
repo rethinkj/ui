@@ -101,6 +101,31 @@ advance 1
 frame
 snap workbench
 
+press role=treeitem label="Table details"
+frame
+frame                         # the toolbar and the path learn their widths
+advance 1
+frame
+snap details
+press #filter                 # the popover's form, the focus in its first field
+frame
+advance 1
+frame
+snap details-filter
+key Escape
+frame
+size 620 720                  # narrow: the path's start and the toolbar's end go into menus
+frame
+frame
+advance 1
+frame
+snap details-narrow
+size 1100 720
+frame
+frame
+advance 1
+frame
+
 press role=treeitem label="Progress"
 frame
 press #start                  # the made-up download: 4 MB each quarter of a second

@@ -7,7 +7,7 @@ el 0,0 360x240
       el 240,16 10x1
     el role=button label="Maximize" window=maximize 268,0 46x32
       el 286,11 10x10
-    el role=button label="Close" window=close 314,0 46x32
+    el role=button label="Close" window=close 314,0 46x32 hovered
       text label="dismiss" "\u{F367}" 331,10 12x12
   el 0,32 360x208
     el 120,67 120x138

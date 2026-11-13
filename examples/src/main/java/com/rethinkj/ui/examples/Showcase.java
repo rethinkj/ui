@@ -3,7 +3,7 @@ package com.rethinkj.ui.examples;
 import static com.rethinkj.ui.El.col;
 import static com.rethinkj.ui.El.el;
 import static com.rethinkj.ui.El.row;
-import static com.rethinkj.ui.examples.TitleBar.titleBar;
+import static com.rethinkj.ui.kit.TitleBar.titleBar;
 import static com.rethinkj.ui.kit.Label.Variant.MUTED;
 import static com.rethinkj.ui.kit.Label.label;
 
@@ -16,7 +16,10 @@ import com.rethinkj.ui.kit.DataGrid.Selection;
 import com.rethinkj.ui.kit.DataGrid.SortKey;
 import com.rethinkj.ui.kit.CodeEditor;
 import com.rethinkj.ui.kit.Completion;
+import com.rethinkj.ui.kit.Breadcrumb;
 import com.rethinkj.ui.kit.Menu;
+import com.rethinkj.ui.kit.Popover;
+import com.rethinkj.ui.kit.Toolbar;
 import com.rethinkj.ui.kit.Select;
 import com.rethinkj.ui.kit.Split.Position;
 import com.rethinkj.ui.kit.Symbol;
@@ -74,6 +77,8 @@ public final class Showcase {
     TREE("Tree", "The schema of three servers, with the columns of a table beside it.",
         Symbol.DATABASE),
     WORKBENCH("Tabs and split", "The frame of a database tool, in small.", Symbol.WINDOW),
+    DETAILS("Table details", "A table's path, tools, properties and columns, with a filter.",
+        Symbol.DOCUMENT_TABLE),
     PROGRESS("Progress", "Bars, a running bar, a line on a card's edge and spinners.",
         Symbol.ARROW_DOWNLOAD),
     TYPE("Typography", "The theme's text styles, figures and letterforms.", Symbol.TEXT_T),
@@ -157,6 +162,18 @@ public final class Showcase {
   Position sidebar = Position.first(200);
   Position editor = Position.share(0.42f);
   final Selection results = new Selection(Mode.ROWS);
+
+  // Table details
+  List<String> path = List.of("localhost", "shop", "public", "orders");
+  final Breadcrumb.State crumbs = new Breadcrumb.State();
+  final Toolbar.State tools = new Toolbar.State();
+  final Menu.State runMenu = new Menu.State();
+  final Popover.State filter = new Popover.State();
+  boolean wrapValues;
+  boolean showSystem;
+  String filterColumn = "status";
+  String filterValue = "paid";
+  List<String> filters = new java.util.ArrayList<>(List.of("total > 100"));
 
   // Progress
   static final double SIZE = 80; // megabytes of the made-up download

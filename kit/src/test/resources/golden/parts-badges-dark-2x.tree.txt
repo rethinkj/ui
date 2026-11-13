@@ -1,0 +1,129 @@
+el 0,0 560x400
+  el 12,12 536x168
+    el 25,25 510x142
+      el 25,25 510x22
+        el label="neutral" 25,27 52x18
+          text "neutral" 31,29 40x14
+        el label="neutral" 81,27 52x18
+          text "neutral" 87,29 40x14
+        el label="neutral" 137,27 66x18
+          text label="key" "\u{E740}" 143,30 12x12
+          text "neutral" 157,29 40x14
+        el label="neutral" 207,25 57x22
+          text "neutral" 215,29 41x14
+        el label="neutral" 268,25 70x22
+          text label="checkmark" "\u{F293}" 276,30 12x12
+          text "neutral" 290,29 40x14
+      el 25,55 510x22
+        el label="accent" 25,57 51x18
+          text "accent" 31,59 39x14
+        el label="accent" 80,57 51x18
+          text "accent" 86,59 39x14
+        el label="accent" 135,57 65x18
+          text label="key" "\u{E740}" 141,60 12x12
+          text "accent" 155,59 39x14
+        el label="accent" 204,55 55x22
+          text "accent" 212,59 39x14
+        el label="accent" 263,55 69x22
+          text label="checkmark" "\u{F293}" 271,60 12x12
+          text "accent" 285,59 39x14
+      el 25,85 510x22
+        el label="success" 25,87 60x18
+          text "success" 31,89 48x14
+        el label="success" 89,87 59x18
+          text "success" 95,89 47x14
+        el label="success" 152,87 74x18
+          text label="key" "\u{E740}" 158,90 12x12
+          text "success" 172,89 48x14
+        el label="success" 230,85 63x22
+          text "success" 238,89 47x14
+        el label="success" 297,85 78x22
+          text label="checkmark" "\u{F293}" 305,90 12x12
+          text "success" 319,89 48x14
+      el 25,115 510x22
+        el label="warning" 25,117 59x18
+          text "warning" 31,119 47x14
+        el label="warning" 88,117 58x18
+          text "warning" 94,119 46x14
+        el label="warning" 150,117 73x18
+          text label="key" "\u{E740}" 156,120 12x12
+          text "warning" 170,119 47x14
+        el label="warning" 227,115 62x22
+          text "warning" 235,119 46x14
+        el label="warning" 293,115 77x22
+          text label="checkmark" "\u{F293}" 301,120 12x12
+          text "warning" 315,119 47x14
+      el 25,145 510x22
+        el label="danger" 25,147 53x18
+          text "danger" 31,149 41x14
+        el label="danger" 82,147 52x18
+          text "danger" 88,149 40x14
+        el label="danger" 138,147 67x18
+          text label="key" "\u{E740}" 144,150 12x12
+          text "danger" 158,149 41x14
+        el label="danger" 209,145 56x22
+          text "danger" 217,149 40x14
+        el label="danger" 269,145 71x22
+          text label="checkmark" "\u{F293}" 277,150 12x12
+          text "danger" 291,149 41x14
+  el 12,192 536x176
+    el 25,205 510x72
+      el 25,205 510x24
+        text "id" 33,209 110x16
+        el label="bigint" 147,208 44x18
+          text "bigint" 153,210 32x14
+        el label="PK" 195,208 28x18
+          text "PK" 201,210 16x14
+        el label="NOT NULL" 227,208 73x18
+          text "NOT NULL" 233,210 61x14
+        el label="12" 304,208 24x18
+          text "12" 310,210 12x14
+      el 25,229 510x24
+        text "customer_id" 33,233 110x16
+        el label="bigint" 147,232 44x18
+          text "bigint" 153,234 32x14
+        el label="PK" 195,232 28x18
+          text "PK" 201,234 16x14
+        el label="NOT NULL" 227,232 73x18
+          text "NOT NULL" 233,234 61x14
+        el label="12" 304,232 24x18
+          text "12" 310,234 12x14
+      el 25,253 510x24
+        text "created_at" 33,257 110x16
+        el label="bigint" 147,256 44x18
+          text "bigint" 153,258 32x14
+        el label="PK" 195,256 28x18
+          text "PK" 201,258 16x14
+        el label="NOT NULL" 227,256 73x18
+          text "NOT NULL" 233,258 61x14
+        el label="12" 304,256 24x18
+          text "12" 310,258 12x14
+    el 25,289 510x22
+      el #filter-status = paid label="status = paid" 25,289 119x22
+        text label="filter" "\u{E609}" 33,294 12x12
+        text "status = paid" 47,293 75x14
+        el #remove role=button label="Remove status = paid" 124,291 18x18
+          text label="dismiss" "\u{F367}" 127,294 12x12
+      el #filter-total > 100 label="total > 100" 148,289 104x22
+        text label="filter" "\u{E609}" 156,294 12x12
+        text "total > 100" 170,293 60x14
+        el #remove role=button label="Remove total > 100" 232,291 18x18
+          text label="dismiss" "\u{F367}" 235,294 12x12
+      el #add role=button label="Add filter" 256,289 83x22
+        text label="add" "\u{F107}" 264,294 12x12
+        text "Add filter" 278,293 53x14
+    el 25,323 510x32
+      el role=img label="localhost" 25,327 24x24
+        text "L" 34,333 6x12
+      el role=img label="staging" 53,327 24x24
+        text "S" 62,333 6x12
+      el role=img label="prod-eu" 81,327 24x24
+        text "PE" 87,333 12x12
+      el role=img label="analytics" 109,327 24x24
+        text "A" 117,333 8x12
+      el role=img label="replica 2" 137,327 24x24
+        text "R2" 143,333 12x12
+      el role=img label="localhost" 165,329 20x20
+        text label="server" "\u{F0360}" 169,333 12x12
+      el role=img label="prod-eu" 189,323 32x32
+        text "PE" 197,331 16x16

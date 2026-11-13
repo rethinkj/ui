@@ -20,6 +20,8 @@ import com.rethinkj.ui.El;
 import com.rethinkj.ui.Style;
 import com.rethinkj.ui.examples.Samples.Node;
 import com.rethinkj.ui.examples.Showcase.Section;
+import com.rethinkj.ui.kit.Badge;
+import com.rethinkj.ui.kit.Breadcrumb;
 import com.rethinkj.ui.kit.Button;
 import com.rethinkj.ui.kit.Card;
 import com.rethinkj.ui.kit.CodeEditor;
@@ -31,6 +33,8 @@ import com.rethinkj.ui.kit.Dialog;
 import com.rethinkj.ui.kit.Divider;
 import com.rethinkj.ui.kit.Icon;
 import com.rethinkj.ui.kit.Menu;
+import com.rethinkj.ui.kit.Popover;
+import com.rethinkj.ui.kit.Properties;
 import com.rethinkj.ui.kit.Progress;
 import com.rethinkj.ui.kit.Select;
 import com.rethinkj.ui.kit.Split;
@@ -40,6 +44,7 @@ import com.rethinkj.ui.kit.Split.Direction;
 import com.rethinkj.ui.kit.Split.Position;
 import com.rethinkj.ui.kit.Symbol;
 import com.rethinkj.ui.kit.Tabs;
+import com.rethinkj.ui.kit.Toolbar;
 import com.rethinkj.ui.kit.Theme;
 import com.rethinkj.ui.kit.Tooltip;
 import com.rethinkj.ui.kit.Tree;
@@ -63,6 +68,7 @@ final class Sections {
       case GRID -> grid(s, t);
       case TREE -> tree(s, t);
       case WORKBENCH -> workbench(s, t);
+      case DETAILS -> details(s, t);
       case PROGRESS -> progress(s, t);
       case TYPE -> type(t);
       case COLOUR -> colour(t);
@@ -538,6 +544,115 @@ final class Sections {
         .child(status);
   }
 
+  // Table details
+
+  /** The columns of orders: name, type, and what else a database tool says of each. */
+  private static final String[][] COLUMNS = {
+      {"id", "bigint", "PK", "NOT NULL", "identity"},
+      {"customer_id", "bigint", "FK", "NOT NULL"},
+      {"amount", "numeric(12,2)", "NOT NULL"},
+      {"status", "order_status", "NOT NULL", "default 'new'"},
+      {"created_at", "timestamptz", "NOT NULL", "default now()"},
+      {"shipped_at", "timestamptz"},
+      {"note", "text"}};
+
+  /**
+   * The sheet of a table, as a database tool has it: the path to it and its tools over a card of
+   * its properties beside a card of its columns, and a popover that adds a filter.
+   */
+  private static El details(Showcase s, Theme t) {
+    El crumbs = Breadcrumb.breadcrumb(t, s.crumbs, s.path, i -> {
+      s.say("go to " + s.path.get(i));
+    }).key("path");
+    El tools = Toolbar.toolbar(t, s.tools, "Table", List.of(
+        Toolbar.button(Symbol.ARROW_CLOCKWISE, "Refresh", () -> s.say("refresh")),
+        Toolbar.split(PRIMARY, Symbol.PLAY, "Run", () -> s.say("run"), s.runMenu, List.of(
+            Menu.item("Run selection", () -> s.say("run selection")).icon(Symbol.TEXT_T),
+            Menu.item("Explain", () -> s.say("explain")).icon(Symbol.BRANCH))),
+        Toolbar.separator(),
+        Toolbar.toggle(Symbol.TEXT_T, "Wrap values", s.wrapValues, on -> s.wrapValues = on),
+        Toolbar.toggle(Symbol.EYE, "System columns", s.showSystem, on -> s.showSystem = on),
+        Toolbar.button(Symbol.COPY, "Copy DDL", () -> s.say("copy DDL")),
+        Toolbar.spacer(),
+        Toolbar.text(Symbol.ARROW_EXPORT_LTR, "Export", () -> s.say("export")),
+        Toolbar.text(Symbol.ARROW_IMPORT, "Import", () -> s.say("import")))).key("tools");
+    El filterButton = Button.button(t, SECONDARY, Symbol.FILTER, "Filter", s.filter::toggle)
+        .key("filter");
+    El form = Popover.form(t, filterButton, s.filter, "Add a filter",
+        col().gap(t.space().m()).w(240).children(
+            field(t, "Column", textField(t, s.filterColumn, "Column", v -> s.filterColumn = v)
+                .key("filter-column").grow(1)),
+            field(t, "Value", textField(t, s.filterValue, "Value", v -> s.filterValue = v)
+                .key("filter-value").grow(1))),
+        List.of(button(t, SECONDARY, "Cancel", s.filter::close),
+            button(t, PRIMARY, "Add", () -> {
+              s.filters.add(s.filterColumn + " = " + s.filterValue);
+              s.filter.close();
+            }).key("add-filter")));
+    El filters = row().gap(t.space().s()).align(Style.Align.CENTER)
+        .child(label(t, MUTED, "Filters"));
+    for (String f : s.filters) {
+      filters.child(Badge.badge(t, f, Badge.options().toolbar().icon(Symbol.FILTER)
+          .onRemove(() -> s.filters.remove(f))));
+    }
+    El head = Card.card(t,
+        row().gap(t.space().m()).align(Style.Align.CENTER).children(
+            Icon.icon(t, Symbol.TABLE, Icon.Variant.MUTED),
+            crumbs,
+            Badge.badge(t, "1,000,000 rows", Badge.options().toolbar())),
+        row().gap(t.space().s()).align(Style.Align.CENTER).children(tools, form),
+        filters);
+
+    El properties = Card.card(t, Card.header(t, "Properties", "orders in shop.public"),
+        Properties.groups(t, List.of(
+            Properties.group("General", List.of(
+                Properties.property("Schema", "public"),
+                Properties.property("Owner", "shop_admin"),
+                Properties.property("Rows", "1,000,000 (estimated)"),
+                Properties.property("Comment", "Every order a customer placed, with what it"
+                    + " cost and where it is on its way"))),
+            Properties.group("Storage", List.of(
+                Properties.property("Size", "128 MB, of which 42 MB indexes"),
+                Properties.property("Tablespace", "pg_default").mono(),
+                Properties.property("Access method", "heap").mono(),
+                Properties.property("Last vacuum", "2026-11-12 03:00:14")))),
+            s.app == null ? null : s.app.clipboard()))
+        .grow(1).minSize(320, 0);
+
+    El columns = col();
+    for (int i = 0; i < COLUMNS.length; i++) {
+      String[] c = COLUMNS[i];
+      El r = row().key("column-" + i).role("row").label(c[0]).h(t.size().control()
+              + t.space().s()).padding(0, t.space().l()).gap(t.space().s())
+          .align(Style.Align.CENTER)
+          .border(0, 0, i == COLUMNS.length - 1 ? 0 : t.size().stroke(), 0, t.border().subtle())
+          .child(Icon.icon(t, c.length > 2 && c[2].equals("PK") ? Symbol.KEY
+              : Symbol.COLUMN_SINGLE, Icon.Variant.MUTED))
+          .child(label(t, MONO, c[0]).w(110).shrink(0))
+          .child(Badge.badge(t, c[1]))
+          .child(el().grow(1));
+      for (int j = 2; j < c.length; j++) {
+        Badge.Kind kind = switch (c[j]) {
+          case "PK" -> Badge.Kind.ACCENT;
+          case "FK" -> Badge.Kind.SUCCESS;
+          case "NOT NULL" -> Badge.Kind.WARNING;
+          default -> Badge.Kind.NEUTRAL;
+        };
+        r.child(Badge.badge(t, kind, c[j]));
+      }
+      columns.child(r);
+    }
+    El columnsCard = Card.flush(t,
+        Card.toolbar(t, "Columns", COLUMNS.length + " columns",
+            Button.icon(t, GHOST, Symbol.ADD, "Add column", () -> s.say("add column"))),
+        Divider.divider(t),
+        columns).grow(1).minSize(320, 0);
+    // Side by side where there is room, the columns below the properties where there is not.
+    return col().gap(t.space().m()).children(head,
+        row().wrap().gap(t.space().m()).align(Style.Align.START)
+            .children(properties, columnsCard));
+  }
+
   // Progress
 
   private static El progress(Showcase s, Theme t) {
@@ -709,7 +824,8 @@ final class Sections {
             new Swatch("thumbHovered", t.scrollbars().thumbHovered(), 0),
             new Swatch("thumbDragged", t.scrollbars().thumbDragged(), 0)),
         List.of(new Swatch("closeHover", t.caption().closeHover(), 0),
-            new Swatch("onClose", t.caption().onClose(), 0)));
+            new Swatch("onClose", t.caption().onClose(), 0),
+            new Swatch("closePressed", t.caption().closePressed(), 0)));
   }
 
   private static final String[] GROUPS = {

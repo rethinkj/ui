@@ -273,4 +273,22 @@ class TabsTest {
     Workbench w = Workbench.many(name.equals("dark") ? Theme.DARK : Theme.LIGHT);
     assertEquals(5, Workbench.assertLooksAsStored("tabs", name, w.app(Workbench::tabsView)));
   }
+
+  /**
+   * The bar with the keyboard's focus at scales between whole pixels too: its ring follows the
+   * card's rounded top corners inside the card's clip.
+   */
+  @ParameterizedTest(name = "{0} at {1}x")
+  @org.junit.jupiter.params.provider.CsvSource({"dark, 1.5", "dark, 2", "light, 1.5",
+      "light, 2"})
+  void theFocusedBarsRingFollowsTheCard(String name, String scale) throws IOException {
+    Workbench w = Workbench.many(name.equals("dark") ? Theme.DARK : Theme.LIGHT);
+    App<Workbench> app = w.app(Workbench::tabsView);
+    String image = "tabs-focused-" + name + "-" + scale.replace(".", "_") + "x";
+    Script.run("size 400 160 scale " + scale + "\nframe\nkey Tab\nframe\nsnap " + image, app,
+        out);
+    Golden.assertMatches(image, com.rethinkj.ui.render.Png.decode(
+        java.nio.file.Files.readAllBytes(out.resolve(image + ".png"))),
+        java.nio.file.Files.readString(out.resolve(image + ".tree.txt")));
+  }
 }

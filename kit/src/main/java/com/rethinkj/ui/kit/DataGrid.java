@@ -12,6 +12,7 @@ import com.rethinkj.ui.El;
 import com.rethinkj.ui.Key;
 import com.rethinkj.ui.Len;
 import com.rethinkj.ui.Measure;
+import com.rethinkj.ui.ScrollState;
 import com.rethinkj.ui.Scrollbars;
 import com.rethinkj.ui.Style;
 import com.rethinkj.ui.Text;
@@ -354,8 +355,15 @@ public final class DataGrid {
    * Shift extends from; and ranges, which a million selected rows make one of. In {@link
    * Mode#ROWS} every range holds whole rows. The methods change it as the grid's input does, so
    * that an app can select from its own handlers too.
+   *
+   * <p>It also keeps where the grid is scrolled to ({@link ScrollState}), so that a grid built
+   * with it comes back to the same rows and columns after it was out of the tree, as the grid of
+   * a tab that is not active, or in another window, as a tab torn off. One selection belongs to
+   * one grid at a time.
    */
   public static final class Selection {
+    final ScrollState rowsScroll = new ScrollState(); // the rows, up and down
+    final ScrollState gridScroll = new ScrollState(); // header and rows, sideways
     private final Mode mode;
     private int row = -1;
     private int column = -1;
@@ -434,6 +442,16 @@ public final class DataGrid {
     public void clear() {
       row = column = anchorRow = anchorColumn = -1;
       ranges.clear();
+    }
+
+    /**
+     * Clears the selection and puts the grid back at its first row and column at the next build,
+     * as for a new result.
+     */
+    public void reset() {
+      clear();
+      rowsScroll.scrollTo(0, 0);
+      gridScroll.scrollTo(0, 0);
     }
 
     /** Selects this cell alone, or its row in {@link Mode#ROWS}, with cursor and anchor on it. */
@@ -741,6 +759,9 @@ public final class DataGrid {
         .rows(rowCount, g.rowHeight(), (i, from, to) -> dataRow(b, i, from, to))
         .scrollbars(t.scrollbars());
     b.body = body;
+    if (sel != null) {
+      body.scrollState(sel.rowsScroll);
+    }
     if (sel != null && sel.row() >= 0) {
       body.revealRow(sel.row());
     }
@@ -758,6 +779,9 @@ public final class DataGrid {
     El grid = row().role("grid").scrollBoth().scrollbars(t.scrollbars()).fill(g.row())
         .child(content);
     b.grid = grid;
+    if (sel != null) {
+      grid.scrollState(sel.gridScroll);
+    }
     reveal(b);
     if (options.menu != null) {
       Menu.contextMenu(t, grid, options.menu, menuItems(b));

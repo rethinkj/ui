@@ -1,8 +1,8 @@
 package com.rethinkj.ui.examples;
 
 import static com.rethinkj.ui.El.col;
-import static com.rethinkj.ui.examples.TitleBar.titleBar;
-import static com.rethinkj.ui.examples.TitleBar.withMenus;
+import static com.rethinkj.ui.kit.TitleBar.titleBar;
+import static com.rethinkj.ui.kit.TitleBar.withMenus;
 import static com.rethinkj.ui.kit.Button.Variant.PRIMARY;
 import static com.rethinkj.ui.kit.Button.Variant.SECONDARY;
 import static com.rethinkj.ui.kit.Button.button;
@@ -461,7 +461,7 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
       o.asking.cancel(); // the answer asked for before is not wanted any more
     }
     o.rows = -1;
-    o.selection.clear();
+    o.selection.reset();
     o.failure = null;
     o.editor.noError();
     Node server = o.table;

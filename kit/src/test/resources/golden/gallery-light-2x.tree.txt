@@ -770,3 +770,78 @@ el 0,0 140x40
     el 32,12 16x16
       el 36,16 8x8
     text "localhost" 52,12 56x16
+# badge, rest
+el 0,0 140x40
+  el #c role=button label="Add filter" 29,9 82x22
+    text label="add" "\u{F107}" 37,14 12x12
+    text "Add filter" 51,13 52x14
+# badge, hover
+el 0,0 140x40
+  el #c role=button label="Add filter" 29,9 82x22 hovered
+    text label="add" "\u{F107}" 37,14 12x12
+    text "Add filter" 51,13 52x14
+# badge, pressed
+el 0,0 140x40
+  el #c role=button label="Add filter" 29,9 82x22 hovered
+    text label="add" "\u{F107}" 37,14 12x12
+    text "Add filter" 51,13 52x14
+# badge, focused
+el 0,0 140x40
+  el #c role=button label="Add filter" 29,9 82x22 focused
+    text label="add" "\u{F107}" 37,14 12x12
+    text "Add filter" 51,13 52x14
+# badge, disabled
+el 0,0 140x40
+  el #c label="Add filter" 29,9 82x22
+    text label="add" "\u{F107}" 37,14 12x12
+    text "Add filter" 51,13 52x14
+# toggle button, rest
+el 0,0 140x40
+  el #c role=button label="Pin" 37,8 66x24 checked=false
+    text label="pin" "\u{F600}" 50,12 16x16
+    text "Pin" 70,12 20x16
+# toggle button, hover
+el 0,0 140x40
+  el #c role=button label="Pin" 37,8 66x24 checked=false hovered
+    text label="pin" "\u{F600}" 50,12 16x16
+    text "Pin" 70,12 20x16
+# toggle button, pressed
+el 0,0 140x40
+  el #c role=button label="Pin" 37,8 66x24 checked=false hovered
+    text label="pin" "\u{F600}" 50,12 16x16
+    text "Pin" 70,12 20x16
+# toggle button, focused
+el 0,0 140x40
+  el #c role=button label="Pin" 37,8 66x24 checked=false focused
+    text label="pin" "\u{F600}" 50,12 16x16
+    text "Pin" 70,12 20x16
+# toggle button, disabled
+el 0,0 140x40
+  el #c role=button label="Pin" 37,8 66x24 disabled checked=false
+    text label="pin" "\u{F600}" 50,12 16x16
+    text "Pin" 70,12 20x16
+# toggle on, rest
+el 0,0 140x40
+  el #c role=button label="Pin" 37,8 66x24 checked
+    text label="pin" "\u{F600}" 50,12 16x16
+    text "Pin" 70,12 20x16
+# toggle on, hover
+el 0,0 140x40
+  el #c role=button label="Pin" 37,8 66x24 checked hovered
+    text label="pin" "\u{F600}" 50,12 16x16
+    text "Pin" 70,12 20x16
+# toggle on, pressed
+el 0,0 140x40
+  el #c role=button label="Pin" 37,8 66x24 checked hovered
+    text label="pin" "\u{F600}" 50,12 16x16
+    text "Pin" 70,12 20x16
+# toggle on, focused
+el 0,0 140x40
+  el #c role=button label="Pin" 37,8 66x24 checked focused
+    text label="pin" "\u{F600}" 50,12 16x16
+    text "Pin" 70,12 20x16
+# toggle on, disabled
+el 0,0 140x40
+  el #c role=button label="Pin" 37,8 66x24 disabled checked
+    text label="pin" "\u{F600}" 50,12 16x16
+    text "Pin" 70,12 20x16

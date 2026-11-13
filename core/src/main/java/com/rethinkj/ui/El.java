@@ -89,6 +89,7 @@ public final class El {
   private int tabIndents; // 0: Tab moves the focus; 1: it indents with tabs; 2: with spaces
   private boolean codeWords;
   private FieldState fieldState;
+  private ScrollState scrollState;
   private Editor editor;
   private boolean focused;
   private Spring motion;
@@ -136,6 +137,7 @@ public final class El {
   private float spanFrom; // the part the rows were built for, in their coordinates
   private float spanTo;
   private RowsHandler onRowsBuilt;
+  private SizeHandler onResize;
   private int firstRow;
   private boolean rowsBuilt; // for this tree; a rebuild of the view starts without rows
   private boolean fixedX;
@@ -241,6 +243,12 @@ public final class El {
   @FunctionalInterface
   public interface RowsHandler {
     void accept(int first, int last);
+  }
+
+  /** Told the size of an element's border box as layout gave it, in logical pixels. */
+  @FunctionalInterface
+  public interface SizeHandler {
+    void accept(float width, float height);
   }
 
   /** Where an overlay goes and how it takes input, and after placement what it is beside. */
@@ -725,6 +733,24 @@ public final class El {
     return this;
   }
 
+  /**
+   * Keeps the offsets of this scroll area ({@link #scroll}, {@link #scrollBoth}, {@link #rows}) in
+   * {@code state}, which the app holds, instead of by the area's identity, so that the area keeps
+   * where it was scrolled to while it is out of the tree or in the tree of another app, as a tab's
+   * grid in a window of its own. Give the same object to the same area on every build, and each
+   * area one of its own; null, the default, keeps the offsets by identity.
+   *
+   * @throws IllegalStateException when the view is built, if two areas of the tree have one
+   */
+  public El scrollState(ScrollState state) {
+    this.scrollState = state;
+    return this;
+  }
+
+  ScrollState scrollState() {
+    return scrollState;
+  }
+
   /** Makes this element a scroll area like {@link #scroll}, along both axes. */
   public El scrollBoth() {
     scroll();
@@ -962,6 +988,26 @@ public final class El {
   }
 
   /**
+   * Tells the app the size layout gave this element, as a browser's {@code ResizeObserver} does:
+   * in the first build that has it and whenever a rebuild gives it another size than it told,
+   * so that a view can show what fits, as a toolbar that moves the buttons it has no room for
+   * into a menu. It runs as {@link #onRowsBuilt} does, after the input of the frame or in the
+   * next {@link App#frame}, and the view built from what it changed is laid out again, which may
+   * tell it again; a view that settles needs a frame or two more. Not told inside the rows of a
+   * virtual list, nor for the sizes motion passes through.
+   *
+   * @param handler told the width and height, or null for none
+   */
+  public El onResize(SizeHandler handler) {
+    this.onResize = handler;
+    return this;
+  }
+
+  SizeHandler onResize() {
+    return onResize;
+  }
+
+  /**
    * Keeps this element in place sideways while the nearest scroll area around it that scrolls
    * sideways ({@link #scrollBoth}) scrolls: it moves up and down with its parent, never sideways,
    * as the frozen columns of a table. Layout places it as usual; the offset of that area is then
@@ -1012,7 +1058,9 @@ public final class El {
    * graphemes as fit with it, without the spaces before it. Layout sizes the text as before; give
    * the element a width or let it shrink below its text ({@code minSize(0, 0)}), as a table cell
    * does. The tree dump shows the whole string, and {@link Text#shortened} says whether a line was
-   * shortened. Text fields are not shortened.
+   * shortened. A single-line text field is shortened while it does not have the focus, when it
+   * shows its start anyway, as a read-only value that can still be selected and copied; with the
+   * focus it scrolls as fields do. Multi-line fields are not shortened.
    */
   public El ellipsis() {
     textOnly("ellipsis").ellipsis(true);
@@ -2961,6 +3009,10 @@ public final class El {
     boolean changed = newX != scrollX || newY != scrollY;
     scrollX = newX;
     scrollY = newY;
+    if (scrollState != null && scrollState.el == this) {
+      scrollState.x = newX;
+      scrollState.y = newY;
+    }
     if (text != null && text.multiline()) {
       text.scrolled(newX, newY);
     }

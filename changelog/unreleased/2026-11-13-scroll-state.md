@@ -1,0 +1,1 @@
+- `El.scrollState(ScrollState)` keeps a scroll area's or list's offsets in the app's state, so it comes back where it was after leaving the tree or moving to another window; `DataGrid.Selection` holds the grid's (with `reset()` for a new result), and the Workbench's grids keep their scroll across tabs and torn-off windows.

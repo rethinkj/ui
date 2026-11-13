@@ -2,9 +2,9 @@ package com.rethinkj.ui.examples;
 
 import static com.rethinkj.ui.El.col;
 import static com.rethinkj.ui.El.row;
-import static com.rethinkj.ui.examples.TitleBar.titleBar;
-import static com.rethinkj.ui.examples.TitleBar.withMenus;
 import static com.rethinkj.ui.kit.Label.label;
+import static com.rethinkj.ui.kit.TitleBar.titleBar;
+import static com.rethinkj.ui.kit.TitleBar.withMenus;
 import static com.rethinkj.ui.kit.Toggle.toggle;
 
 import com.rethinkj.ui.App;
