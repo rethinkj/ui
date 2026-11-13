@@ -579,10 +579,7 @@ public final class GpuRenderer implements AutoCloseable {
     try {
       globals = device.createBuffer(
           "scene globals", GLOBALS_BYTES, BufferUsage.UNIFORM, BufferUsage.COPY_DST);
-      instances = storage("scene instances", FIRST_INSTANCES * Scene.STRIDE);
-      clips = storage("scene clips", FIRST_CLIPS * Scene.CLIP_STRIDE);
-      atlas(1, 1);
-      group = bindGroup();
+      replace(1, 1, FIRST_INSTANCES * Scene.STRIDE, FIRST_CLIPS * Scene.CLIP_STRIDE);
     } catch (RuntimeException | Error e) {
       closeOwn(); // on a shared device they would stay until its last window closes
       throw e;
@@ -643,24 +640,7 @@ public final class GpuRenderer implements AutoCloseable {
           "Cannot render an image of " + width + "x" + height + " pixels.");
     }
     if (texture == null || texture.width() != width || texture.height() != height) {
-      if (texture != null) {
-        readback.close();
-        textureView.close();
-        texture.close();
-      }
-      texture = device.createTexture(
-          "scene image",
-          width,
-          height,
-          TEXTURE_FORMAT,
-          TextureUsage.RENDER_ATTACHMENT,
-          TextureUsage.COPY_SRC);
-      textureView = texture.createView("scene image");
-      readback = device.createBuffer(
-          "scene readback",
-          (long) bytesPerRow(width) * height,
-          BufferUsage.MAP_READ,
-          BufferUsage.COPY_DST);
+      resize(width, height);
     }
     upload(scene, width, height, scale);
     try (CommandEncoder encoder = device.createCommandEncoder("scene image")) {
@@ -669,6 +649,49 @@ public final class GpuRenderer implements AutoCloseable {
       device.queue().submit(encoder.finish());
     }
     return readback.read(0, (int) readback.size());
+  }
+
+  /**
+   * Replaces the image texture, its view and the readback buffer with ones of this size. The size
+   * is checked and the new objects made before the old ones are closed, so that a size the device
+   * refuses leaves the renderer drawing at the size it had.
+   */
+  private void resize(int width, int height) {
+    int most = device.limits().maxTextureDimension2D();
+    long bytes = (long) bytesPerRow(Math.min(width, most)) * height;
+    if (width > most || height > most || bytes > device.limits().maxBufferSize()) {
+      throw new IllegalArgumentException("Cannot render an image of " + width + "x" + height
+          + " pixels: each side must be at most " + most + " and the image at most "
+          + device.limits().maxBufferSize() + " bytes, the device's limits.");
+    }
+    Texture newTexture = device.createTexture(
+        "scene image",
+        width,
+        height,
+        TEXTURE_FORMAT,
+        TextureUsage.RENDER_ATTACHMENT,
+        TextureUsage.COPY_SRC);
+    TextureView newView = null;
+    Buffer newReadback;
+    try {
+      newView = newTexture.createView("scene image");
+      newReadback =
+          device.createBuffer("scene readback", bytes, BufferUsage.MAP_READ, BufferUsage.COPY_DST);
+    } catch (RuntimeException | Error e) {
+      if (newView != null) {
+        newView.close();
+      }
+      newTexture.close();
+      throw e;
+    }
+    if (texture != null) {
+      readback.close();
+      textureView.close();
+      texture.close();
+    }
+    texture = newTexture;
+    textureView = newView;
+    readback = newReadback;
   }
 
   /** The bytes a row of an image of this width takes in {@link #renderStored}. */
@@ -707,23 +730,14 @@ public final class GpuRenderer implements AutoCloseable {
     boolean newAtlas = !pages.isEmpty()
         && (pages.getFirst().size() != atlas.width() || pages.size() > atlas.layers());
     if (grow || newAtlas) {
-      // Checked before anything is closed, so that the renderer can still draw a smaller scene.
+      // Checked before anything is made, so that the renderer can still draw a smaller scene.
       checkFits("instances", data.byteSize());
       checkFits("clips", table.byteSize());
-      if (newAtlas) {
-        // Created before the old one is closed, for the same reason.
-        atlas(pages.getFirst().size(), layers(pages.size()));
-      }
-      group.close();
-      if (data.byteSize() > instances.size()) {
-        instances.close();
-        instances = storage("scene instances", grown(instances.size(), data.byteSize()));
-      }
-      if (table.byteSize() > clips.size()) {
-        clips.close();
-        clips = storage("scene clips", grown(clips.size(), table.byteSize()));
-      }
-      group = bindGroup();
+      replace(
+          newAtlas ? pages.getFirst().size() : 0,
+          newAtlas ? layers(pages.size()) : 0,
+          data.byteSize() > instances.size() ? grown(instances.size(), data.byteSize()) : 0,
+          table.byteSize() > clips.size() ? grown(clips.size(), table.byteSize()) : 0);
     }
     globalsData.set(JAVA_FLOAT, 0, width);
     globalsData.set(JAVA_FLOAT, 4, height);
@@ -739,14 +753,12 @@ public final class GpuRenderer implements AutoCloseable {
    * Uploads the scene's images that are not on the GPU yet, each once, after giving up as many of
    * those drawn least recently as the scene's {@link Scene#imageMemory} needs, never one of this
    * scene nor of the last scene of another renderer on the device; a scene whose images alone
-   * take more keeps them all.
+   * take more keeps them all. A scene without images applies its memory too, to the images that
+   * earlier scenes left.
    */
   private void writeImages(Scene scene) {
     List<Image> drawn = scene.images();
     shown.clear();
-    if (drawn.isEmpty()) {
-      return;
-    }
     imageUploads += context.writeImages(drawn, scene.imageMemory(), this);
     shown.addAll(drawn);
   }
@@ -821,32 +833,73 @@ public final class GpuRenderer implements AutoCloseable {
   }
 
   /**
-   * Replaces the atlas texture with an empty one of {@code layers} pages of {@code size} texels;
-   * the bind group has to be made anew. Every layer is written whole the next time.
+   * Replaces the atlas texture with an empty one of {@code layers} pages of {@code size} texels
+   * (keeps it for 0 layers), whose every layer is then written whole the next time; the instance
+   * and clip buffers with ones of these sizes (keeps each for 0 bytes); and the bind group. All
+   * that is new is made before anything old is closed, so that where the device refuses one, the
+   * renderer keeps what it had and still draws a scene that fits.
    */
-  private void atlas(int size, int layers) {
-    Texture texture = device.createTextureArray(
-        "glyph atlas",
-        size,
-        size,
-        layers,
-        ATLAS_FORMAT,
-        TextureUsage.TEXTURE_BINDING,
-        TextureUsage.COPY_DST);
-    TextureView view;
+  private void replace(int size, int layers, long instanceBytes, long clipBytes) {
+    Texture newAtlas = null;
+    TextureView newAtlasView = null;
+    Buffer newInstances = null;
+    Buffer newClips = null;
+    BindGroup newGroup;
     try {
-      view = texture.createView("glyph atlas");
+      if (layers > 0) {
+        newAtlas = device.createTextureArray(
+            "glyph atlas",
+            size,
+            size,
+            layers,
+            ATLAS_FORMAT,
+            TextureUsage.TEXTURE_BINDING,
+            TextureUsage.COPY_DST);
+        newAtlasView = newAtlas.createView("glyph atlas");
+      }
+      if (instanceBytes > 0) {
+        newInstances = storage("scene instances", instanceBytes);
+      }
+      if (clipBytes > 0) {
+        newClips = storage("scene clips", clipBytes);
+      }
+      newGroup = bindGroup(
+          newInstances != null ? newInstances : instances,
+          newClips != null ? newClips : clips,
+          newAtlasView != null ? newAtlasView : atlasView);
     } catch (RuntimeException | Error e) {
-      texture.close();
+      for (GpuObject made : new GpuObject[] {newClips, newInstances, newAtlasView, newAtlas}) {
+        if (made != null) {
+          made.close();
+        }
+      }
       throw e;
     }
-    if (atlas != null) {
-      atlasView.close();
-      atlas.close();
+    if (group != null) {
+      group.close();
     }
-    atlas = texture;
-    atlasView = view;
-    resident = new Atlas.Page[layers];
+    group = newGroup;
+    if (newAtlas != null) {
+      if (atlas != null) {
+        atlasView.close();
+        atlas.close();
+      }
+      atlas = newAtlas;
+      atlasView = newAtlasView;
+      resident = new Atlas.Page[layers];
+    }
+    if (newInstances != null) {
+      if (instances != null) {
+        instances.close();
+      }
+      instances = newInstances;
+    }
+    if (newClips != null) {
+      if (clips != null) {
+        clips.close();
+      }
+      clips = newClips;
+    }
   }
 
   /** How many times a region of an atlas page was written to the GPU. */
@@ -921,7 +974,7 @@ public final class GpuRenderer implements AutoCloseable {
         device.limits().maxStorageBufferBindingSize(), device.limits().maxBufferSize());
   }
 
-  private BindGroup bindGroup() {
+  private BindGroup bindGroup(Buffer instances, Buffer clips, TextureView atlasView) {
     return device.createBindGroup(
         "scene",
         context.layout(),

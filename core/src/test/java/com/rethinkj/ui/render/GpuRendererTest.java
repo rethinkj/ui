@@ -576,6 +576,11 @@ class GpuRendererTest {
     assertEquals(0, compare(gpu, scene("back", back, 120, 120, 1)).beyond());
     assertEquals(4, gpu.imageUploads() - uploads, "b again");
     assertEquals(1, gpu.imagesResident(), "only the scene's own, though beyond the memory");
+
+    // A scene without images gives up those beyond its memory too.
+    gpu.render(scene().imageMemory(0), 120, 120, 1);
+    assertEquals(0, gpu.imagesResident(), "no scene shows b any more");
+    assertEquals(0, gpu.imageBytes());
   }
 
   /** A scene of these elements on a light background, laid out for 120 by 120. */
@@ -701,6 +706,22 @@ class GpuRendererTest {
     other.close();
     other.close();
     assertThrows(IllegalStateException.class, () -> other.render(new Scene(), 8, 8, 1));
+  }
+
+  @Test
+  void aSizeTheDeviceRefusesLeavesTheRendererDrawing() {
+    Scene small = new Scene();
+    small.rect(8, 8, 16, 16, 4, 0, 0xFF3B82F6, 0);
+    assertEquals(0, compare(gpu, scene("before-refused", small, 32, 32, 1)).beyond());
+    // Beyond every device's largest texture, which is 8192 or more.
+    for (int[] size : new int[][] {{Integer.MAX_VALUE, 8}, {8, 100_000}}) {
+      assertThrows(
+          IllegalArgumentException.class,
+          () -> gpu.render(small, size[0], size[1], 1),
+          size[0] + "x" + size[1]);
+      assertEquals(0, compare(gpu, scene("after-refused", small, 32, 32, 1)).beyond());
+    }
+    assertEquals(0, compare(gpu, scene("another-size", small, 40, 40, 1)).beyond());
   }
 
   // ---- comparing ---------------------------------------------------------------------------
