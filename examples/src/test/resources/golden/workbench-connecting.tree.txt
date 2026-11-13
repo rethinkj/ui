@@ -41,7 +41,12 @@ el 0,0 1000x600
             el #row-1 role=treeitem label="staging" 13,101 250x24 selected expanded level=1 pos=2/3
               el #mark-1 17,101 16x24
                 text label="chevron_down" "\u{F2A2}" 17,105 16x16
-              text label="server" "\u{F1DC}" 37,105 16x16
+              el role=progressbar label="Connecting" 37,105 16x16
+                el 37,105 16x16
+                el 37,105 16x16
+                el 37,105 16x16
+                el 37,105 16x16
+                el 37,105 16x16
               text "staging" 57,105 45x16
             el #row-2 13,125 250x24 pos=3/4
               el 33,137 16x0

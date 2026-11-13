@@ -45,9 +45,37 @@ public final class Button {
    */
   public static El button(
       Theme t, Variant variant, Symbol icon, String text, Runnable onPress) {
+    return button(t, variant, icon, text, false, onPress);
+  }
+
+  /**
+   * A button that may be busy: while its action runs, a {@link Progress#spinner} in the text's
+   * colour stands in place of its icon (or before its text), and it takes no press, but keeps its
+   * colours, its place in the order of Tab and the focus, so that nothing jumps when the work
+   * ends. In a tree dump it is then {@code busy}, WAI-ARIA's {@code aria-busy}, which a script
+   * selects as {@code role=button busy}.
+   *
+   * @param icon before the text; null for none
+   * @param busy whether its action runs
+   * @param onPress runs when the button is pressed; null disables the button, busy or not
+   */
+  public static El button(
+      Theme t, Variant variant, Symbol icon, String text, boolean busy, Runnable onPress) {
     Look look = look(t, variant, onPress != null);
     El button = frame(t, variant, look, text, onPress).padding(0, t.space().l())
         .gap(t.space().s());
+    if (busy && onPress != null) {
+      button.child(Progress.spinner(t, t.size().icon(), look.text(),
+          variant == Variant.PRIMARY ? t.accent().pressed() : t.border().control()));
+      Theme.TextStyle style = t.type().strong();
+      return button.child(El.text(text).font(style.font().get()).fontSize(style.size())
+              .color(look.text()))
+          .busy(true)
+          .focusable()
+          .keepFocus()
+          .focusRing(t.accent().edge())
+          .focusRingGap(variant == Variant.PRIMARY ? t.size().ringGap() : 0);
+    }
     if (icon != null) {
       button.child(Icon.icon(t, icon).color(look.text()));
     }

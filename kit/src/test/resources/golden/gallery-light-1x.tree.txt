@@ -1,3 +1,86 @@
+# progress, 1
+el 0,0 140x40
+  el #c role=progressbar 10,18 120x4 value="0%"
+    el #fill 10,18 0x4
+# progress, 2
+el 0,0 140x40
+  el #c role=progressbar 10,18 120x4 value="42%"
+    el #fill 10,18 50x4
+# progress, 3
+el 0,0 140x40
+  el #c role=progressbar 10,18 120x4 value="100%"
+    el #fill 10,18 120x4
+# progress, 4
+el 0,0 140x40
+  el #c role=progressbar 10,18 120x4 invalid value="64%"
+    el #fill 10,18 77x4
+# progress, 5
+el 0,0 140x40
+  el #c role=progressbar 10,18 120x4 value="100%"
+    el #fill 10,18 120x4
+# running, 1
+el 0,0 140x40
+  el #c role=progressbar 10,18 120x4 value="42%"
+    el #fill 10,18 50x4
+# running, 2
+el 0,0 140x40
+  el #c role=progressbar 10,18 120x4
+    el #fill 10.12,18 14.53x4
+# running, 3
+el 0,0 140x40
+  el #c role=progressbar 10,18 120x4
+    el #fill 50.2,18 65.16x4
+# running, 4
+el 0,0 140x40
+  el #c role=progressbar label="Loading" 62,12 16x16
+    el 62,12 16x16
+    el 62,12 16x16
+    el 62,12 16x16
+    el 62,12 16x16
+    el 62,12 16x16
+# running, 5
+el 0,0 140x40
+  el #c role=progressbar label="Loading" 62,12 16x16
+    el 62,12 16x16
+    el 62,12 16x16
+    el 62,12 16x16
+    el 62,12 16x16
+    el 62,12 16x16
+# labeled, 1
+el 0,0 140x40
+  el #c role=progressbar label="orders.csv" 10,9 120x22 value="42%"
+    el 10,9 120x16
+      text "orders.csv" 10,9 66x16
+      el 84,17 9x0
+      text "42%" 101,9 29x16
+    el 10,27 120x4
+      el #fill 10,27 50x4
+# labeled, 2
+el 0,0 140x40
+  el #c role=progressbar label="orders.csv" 10,9 120x22 invalid value="64%"
+    el 10,9 120x16
+      text "orders.csv" 10,9 66x16
+      el 84,17 2x0
+      text "Failed" 94,9 36x16
+    el 10,27 120x4
+      el #fill 10,27 77x4
+# labeled, 3
+el 0,0 140x40
+  el #c role=progressbar label="orders.csv" 10,9 120x22 value="100%"
+    el 10,9 120x16
+      text "orders.csv" 10,9 66x16
+      el 84,17 5x0
+      text "Done" 97,9 33x16
+    el 10,27 120x4
+      el #fill 10,27 120x4
+# labeled, 4
+el 0,0 140x40
+  el #c role=progressbar 10,19 120x2 value="42%"
+    el #fill 10,19 50x2
+# labeled, 5
+el 0,0 140x40
+  el #c role=progressbar 10,19 120x2
+    el #fill 10.12,19 14.53x2
 # primary, rest
 el 0,0 140x40
   el #c role=button label="Run query" 26,8 89x24
@@ -38,6 +121,50 @@ el 0,0 140x40
 el 0,0 140x40
   el #c role=button label="Cancel" 35,8 70x24 disabled
     text "Cancel" 48,12 44x16
+# busy, rest
+el 0,0 140x40
+  el #c role=button label="Running" 22,8 97x24 busy
+    el role=progressbar label="Loading" 35,12 16x16
+      el 35,12 16x16
+      el 35,12 16x16
+      el 35,12 16x16
+      el 35,12 16x16
+      el 35,12 16x16
+    text "Running" 55,12 51x16
+# busy, hover
+el 0,0 140x40
+  el #c role=button label="Running" 22,8 97x24 busy
+    el role=progressbar label="Loading" 35,12 16x16
+      el 35,12 16x16
+      el 35,12 16x16
+      el 35,12 16x16
+      el 35,12 16x16
+      el 35,12 16x16
+    text "Running" 55,12 51x16
+# busy, pressed
+el 0,0 140x40
+  el #c role=button label="Running" 22,8 97x24 busy
+    el role=progressbar label="Loading" 35,12 16x16
+      el 35,12 16x16
+      el 35,12 16x16
+      el 35,12 16x16
+      el 35,12 16x16
+      el 35,12 16x16
+    text "Running" 55,12 51x16
+# busy, focused
+el 0,0 140x40
+  el #c role=button label="Running" 22,8 97x24 busy focused
+    el role=progressbar label="Loading" 35,12 16x16
+      el 35,12 16x16
+      el 35,12 16x16
+      el 35,12 16x16
+      el 35,12 16x16
+      el 35,12 16x16
+    text "Running" 55,12 51x16
+# busy, disabled
+el 0,0 140x40
+  el #c role=button label="Running" 32,8 77x24 disabled
+    text "Running" 45,12 51x16
 # ghost, rest
 el 0,0 140x40
   el #c role=button label="Format" 36,8 69x24
@@ -613,3 +740,33 @@ el 0,0 140x40
         text label="table" "\u{EBF4}" 18,12 16x16
         text "orders" 38,12 67x16
         text "12" 109,12 13x16
+# status item, rest
+el 0,0 140x40
+  el #c role=button label="localhost" 28,8 84x24 value="connected"
+    el 32,12 16x16
+      el 36,16 8x8
+    text "localhost" 52,12 56x16
+# status item, hover
+el 0,0 140x40
+  el #c role=button label="localhost" 28,8 84x24 value="connected" hovered
+    el 32,12 16x16
+      el 36,16 8x8
+    text "localhost" 52,12 56x16
+# status item, pressed
+el 0,0 140x40
+  el #c role=button label="localhost" 28,8 84x24 value="connected" hovered
+    el 32,12 16x16
+      el 36,16 8x8
+    text "localhost" 52,12 56x16
+# status item, focused
+el 0,0 140x40
+  el #c role=button label="localhost" 28,8 84x24 value="connected" focused
+    el 32,12 16x16
+      el 36,16 8x8
+    text "localhost" 52,12 56x16
+# status item, disabled
+el 0,0 140x40
+  el #c label="localhost" 28,8 84x24 value="connected"
+    el 32,12 16x16
+      el 36,16 8x8
+    text "localhost" 52,12 56x16

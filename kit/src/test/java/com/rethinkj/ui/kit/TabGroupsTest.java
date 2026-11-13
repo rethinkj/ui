@@ -257,6 +257,26 @@ class TabGroupsTest {
     assertFalse(b.isOpen());
   }
 
+  /**
+   * A drag whose first step is already over another window, as a flick of the pointer or a
+   * script makes it, still holds the window where the pointer took its tab.
+   */
+  @Test
+  void theOnlyTabsWindowFollowsAlsoFromAFirstStepOverAnotherWindow() throws IOException {
+    App<Docs> app = start();
+    Docs d = app.state();
+    run(app, TEAR_B + """
+        move screen 400,400     # b's window at 393,383
+        up screen 400,400
+        frame
+        window b
+        down 8,17
+        move screen 300,150     # at once over the main window
+        frame""");
+    Windows.Handle b = d.groups.groups().get(1).window();
+    assertEquals(List.of(300 - 8, 150 - 17), List.of(b.x(), b.y()));
+  }
+
   @Test
   void escapeWhileTheOnlyTabMovesItsWindowPutsTheWindowBack() throws IOException {
     App<Docs> app = start();

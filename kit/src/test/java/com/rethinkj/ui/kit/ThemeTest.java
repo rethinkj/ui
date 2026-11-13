@@ -57,6 +57,14 @@ class ThemeTest {
     check(failures, "accent", t.accent().color(),
         Map.of("panel", s.panel(), "raised", s.raised()), 3);
     check(failures, "knob", t.text().onAccent(), Map.of("track off", t.border().strong()), 3);
+    // A progress bar's part done, in each of its states, on its track, and a running line, which
+    // has no track, on the surfaces it lies on; a spinner's arc on its ring.
+    Map<String, Integer> track = Map.of("progress track", t.border().control());
+    check(failures, "progress", t.accent().edge(), track, 3);
+    check(failures, "progress failed", t.status().danger(), track, 3);
+    check(failures, "progress done", t.status().success(), track, 3);
+    check(failures, "progress paused", t.text().muted(), track, 3);
+    check(failures, "progress line", t.accent().edge(), surfaces, 3);
     // Code in an editor: on the field's raised surface, hovered and on the caret's line; the
     // brackets at the caret on their background too, and every colour 3:1 under the selection.
     Theme.Code code = t.code();

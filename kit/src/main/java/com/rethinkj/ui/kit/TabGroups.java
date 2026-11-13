@@ -321,7 +321,13 @@ public final class TabGroups<T> {
         origin = null;
         startX = group.window.x();
         startY = group.window.y();
+        // Its own tree says where its tab lies, also where the first step is already over
+        // another window, whose place the step's own numbers are of.
         float[] at = firstTab(group.window.app().tree());
+        if (at != null) {
+          firstX = at[0];
+          firstY = at[1];
+        }
         tabHeight = at == null ? Float.NaN : at[2];
         placed = true;
       } else { // a window of its own, under the pointer
