@@ -1100,6 +1100,7 @@ final class Editor {
         : null;
     t.decorate(viewX, selection, box, underline);
     t.showCaret(caretOn);
+    el.placeGutter(lines().line(Math.min(caret, text.length())));
   }
 
   /** The caret's offset from the left of the content box, in logical pixels, as drawn. */

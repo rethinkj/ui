@@ -185,6 +185,12 @@ public final class Text implements Measure {
   /** A line of the text: characters {@code from} to {@code to} of a paragraph. */
   private record Span(int paragraph, int from, int to, float width) {}
 
+  /**
+   * Where a line of a multi-line field begins, for its gutter: its first row's top, in physical
+   * pixels from the top of the content box, after the scroll.
+   */
+  record Start(int line, float top) {}
+
   /** A row of a multi-line field as laid out: row {@code row} of line {@code line}. */
   private record Row(int line, int row, Para para, double top) {}
 
@@ -1370,6 +1376,23 @@ public final class Text implements Measure {
     lineMarks.addAll(ranges);
     lineMarks.addAll(unders);
     return List.copyOf(lineMarks);
+  }
+
+  /** The lines whose first row is laid out, with where it is, top to bottom. */
+  List<Start> lineStarts() {
+    lines();
+    List<Start> starts = new ArrayList<>();
+    for (Row row : rows) {
+      if (row.row == 0) {
+        starts.add(new Start(row.line, (float) (row.top - viewY)));
+      }
+    }
+    return starts;
+  }
+
+  /** Whether characters the fonts lack come from the system's fonts. */
+  boolean systemFonts() {
+    return systemFonts;
   }
 
   /** For the dump: the lines with a row in the content box, from 0, and -1 for none. */

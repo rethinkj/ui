@@ -59,6 +59,9 @@ final class Lines {
   /** For tests: how many lines have been shaped for the texts that showed these lines. */
   int shaped;
 
+  /** For tests: how many cells the gutter of the fields that showed these lines built. */
+  int gutterCells;
+
   /** For tests: how many times the highlighter was asked about a line of this text. */
   int highlighted;
 

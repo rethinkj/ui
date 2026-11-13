@@ -65,6 +65,11 @@ public final class El {
   private Consumer<String> onText;
   private boolean editable;
   private Consumer<String> onEdit;
+  private Gutter gutter;
+  private float gutterLeft = Float.NaN; // where the gutter starts, the padding before it
+  private float gutterWidth;
+  private float gutterScale; // the scale gutterWidth was measured at
+  private Object gutterShown; // what the cells were built for: their lines, tops and the caret
   private boolean readOnly;
   private int maxLength = -1;
   private int tabIndents; // 0: Tab moves the focus; 1: it indents with tabs; 2: with spaces
@@ -167,6 +172,19 @@ public final class El {
      * @param to where that part ends
      */
     El row(int index, float from, float to);
+  }
+
+  /**
+   * Builds the cell of a line in the {@link #gutter} of a multi-line field: its number, a marker,
+   * a fold arrow.
+   */
+  @FunctionalInterface
+  public interface Gutter {
+    /**
+     * @param line the line's index, from 0; its number is one more
+     * @param caret whether the caret is on this line
+     */
+    El cell(int line, boolean caret);
   }
 
   /** Told the first and the last row, both included, that a virtual list has built. */
@@ -983,6 +1001,98 @@ public final class El {
     style.overflowY = Style.Overflow.SCROLL;
     style.overflowX = t.wraps() ? Style.Overflow.HIDDEN : Style.Overflow.SCROLL;
     return this;
+  }
+
+  /**
+   * Gives a {@link #multiline} field a gutter at its left, inside its border and padding, as the
+   * line numbers of a code editor: a column of cells that {@code cells} builds, one per line, at
+   * the line's first row, for the lines in view and a few around them only, as {@link #rows} builds
+   * rows. It scrolls up and down with the text and stays in place sideways; the text starts after
+   * it, so the gutter is part of the field's box, inside its frame and focus ring. The cells are
+   * built again when the lines in view, their places or the caret's line change, also without a
+   * rebuild of the view; each is a line high, and as wide as the cell of the last line, the widest
+   * number, laid out at its natural width when the tree is built, unless the cells set a width.
+   * Presses on a cell reach its handlers; a press elsewhere in the gutter focuses the field. In a
+   * {@code .tree.txt} the gutter is {@code el #gutter}, inside the field's line, with the cells
+   * keyed {@code line-<index>} unless they have keys.
+   *
+   * @throws IllegalStateException if this is not a multi-line field
+   */
+  public El gutter(Gutter cells) {
+    Text t = editableOnly("gutter");
+    if (!t.multiline()) {
+      throw new IllegalStateException("gutter is for multi-line fields: call it after multiline().");
+    }
+    this.gutter = Objects.requireNonNull(cells, "cells");
+    return this;
+  }
+
+  /**
+   * For {@link #scaleText}: measures the gutter's width from the cell of the last line at the
+   * text's scale and moves the text after it, by widening the left padding.
+   */
+  private void measureGutter() {
+    float scale = text.scale();
+    if (gutterScale == scale) {
+      return;
+    }
+    if (Float.isNaN(gutterLeft)) {
+      gutterLeft = px(style.paddingLeft);
+    }
+    El last = gutter.cell(text.lineTotal() - 1, false);
+    scaleText(last, scale, text.systemFonts());
+    Flex.layout(last, Float.POSITIVE_INFINITY, Float.POSITIVE_INFINITY);
+    gutterWidth = (float) Math.ceil(last.width);
+    gutterScale = scale;
+    style.paddingLeft = Len.px(gutterLeft + gutterWidth);
+    gutterShown = null;
+  }
+
+  /**
+   * For {@link Editor}, once the rows of a multi-line field are laid out and scrolled: builds the
+   * cells of its gutter for the lines laid out, unless they are built for these lines, places and
+   * caret line, and places them.
+   *
+   * @return whether the cells were built
+   */
+  boolean placeGutter(int caretLine) {
+    if (gutter == null || !text.laidOut() || gutterScale == 0) {
+      return false;
+    }
+    List<Text.Start> starts = text.lineStarts();
+    float scale = text.scale();
+    List<Object> shown = List.of(starts, caretLine, scrollX, scrollY, width, height);
+    if (shown.equals(gutterShown)) {
+      return false;
+    }
+    gutterShown = shown;
+    float rowHeight = text.lineHeight() / scale;
+    float top = px(style.borderTop) + px(style.paddingTop);
+    El column = el().key("gutter").clip();
+    for (Text.Start start : starts) {
+      El cell = gutter.cell(start.line(), start.line() == caretLine);
+      if (cell == null) {
+        throw new IllegalStateException(
+            "The gutter's function returned null for line " + start.line());
+      }
+      if (cell.key == null) {
+        cell.key("line-" + start.line());
+      }
+      cell.style.width = Len.px(gutterWidth);
+      cell.style.height = Len.px(rowHeight);
+      scaleText(cell, scale, text.systemFonts());
+      Flex.layout(cell, gutterWidth, rowHeight);
+      cell.place(0, start.top() / scale, gutterWidth, rowHeight);
+      column.children.add(cell);
+    }
+    // The column stays where the content box is: the scroll that shifts it is added back.
+    column.place(px(style.borderLeft) + gutterLeft + (float) scrollX, top + (float) scrollY,
+        gutterWidth, text.contentHeight() / scale);
+    children.clear();
+    children.add(column);
+    scrollTo(scrollX, scrollY);
+    text.shownIndex().gutterCells += starts.size();
+    return true;
   }
 
   /**
@@ -1987,6 +2097,9 @@ public final class El {
     if (el.text != null) {
       el.text.scale(scale);
       el.text.systemFonts(systemFonts);
+      if (el.gutter != null) {
+        el.measureGutter();
+      }
     }
     for (El child : el.children) {
       scaleText(child, scale, systemFonts);
