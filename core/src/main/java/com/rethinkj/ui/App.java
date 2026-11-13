@@ -7,8 +7,13 @@ import com.rethinkj.ui.text.Atlas;
 import com.rethinkj.ui.text.TextRendering;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.IdentityHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -29,6 +34,10 @@ import java.util.function.Predicate;
  * <p>The app also keeps the offset of each scroll area ({@link El#scroll}), by the same identity
  * that matches elements across rebuilds, and writes it into the positions of the area's children.
  * The wheel and {@link #scrollTo} change it.
+ *
+ * <p>A virtual list ({@link El#rows}) gets its rows from the app: after the view is built and laid
+ * out, the app builds the rows the list shows and lays them out, and when scrolling shows a row
+ * that does not exist yet, it builds the list's rows again without running the view.
  *
  * <p>Keys and text go to the element that has the keyboard focus, which the app keeps by the same
  * identity: an element marked {@link El#focusable} gets it from Tab and Shift+Tab, from a pointer
@@ -77,6 +86,11 @@ public final class App<S> {
   private Object focusId; // its identity, to find it in the next tree
   private boolean ring; // the keyboard or the app moved the focus: draw the ring
   private boolean reveal; // scroll the focused element into view after the next rebuild
+  // The identity of the element that last had the focus in a virtual list, by the list's identity.
+  // shortcut: lists that are gone stay in it, one small entry each; drop them in update() when
+  // apps create lists by the thousand.
+  private final Map<Object, Object> remembered = new HashMap<>();
+  private List<Object> lookIds; // during a rebuild: the hovered identities, for rows built later
   private int ringColour = FOCUS_RING;
   private final Atlas atlas = new Atlas();
   private TextRendering textRendering = TextRendering.platform();
@@ -185,12 +199,13 @@ public final class App<S> {
         }
       }
       if (key.name().equals("Tab") && (key.modifiers() & ~Key.SHIFT) == 0) {
+        wake();
         List<El> order = focusables();
         if (!order.isEmpty()) {
           int step = key.modifiers() == Key.SHIFT ? -1 : 1;
           int at = order.indexOf(focused);
           int next = at >= 0 ? at + step : step > 0 ? 0 : -1;
-          return focus(order.get(Math.floorMod(next, order.size())), true);
+          return focus(enter(order.get(Math.floorMod(next, order.size())), step), true);
         }
       }
       return called;
@@ -232,7 +247,11 @@ public final class App<S> {
     });
   }
 
-  /** The element of the last frame's {@link #tree} that has the keyboard focus, or null. */
+  /**
+   * The element of the last frame's {@link #tree} that has the keyboard focus, or null. Also null
+   * while the focus is on a row of a virtual list that has scrolled out of the rows that exist:
+   * the app keeps it, and the row is focused again when it comes back.
+   */
   public El focused() {
     return focused;
   }
@@ -320,8 +339,78 @@ public final class App<S> {
     reveal = this.ring;
     if (el != null) {
       el.focused(true);
+      Animator.InRow in = animator.inRow(focusId);
+      if (in != null) {
+        remembered.put(in.listId(), focusId);
+      }
     }
     return ring;
+  }
+
+  /**
+   * Whether the focus is on a row of a virtual list that the list could build but does not have
+   * now, because it is out of the range that exists, or on an element inside such a row.
+   */
+  private boolean focusWaits() {
+    Animator.InRow in = focusId == null ? null : animator.inRow(focusId);
+    return in != null && in.row() < in.list().rowCount() && !in.list().hasRow(in.row());
+  }
+
+  /** Brings the row of a focus that {@link #focusWaits} into view, so that Tab goes on there. */
+  private void wake() {
+    if (focused == null && focusWaits()) {
+      Animator.InRow in = animator.inRow(focusId);
+      in.list().scrollTo(in.list().scrollX(), in.list().offsetShowing(in.row()));
+      fillRows();
+      refocus();
+    }
+  }
+
+  /**
+   * Where Tab goes instead of {@code next} when that is in a virtual list and the focus is not: to
+   * the element that last had the focus in the list, else to the first focusable element of the
+   * first row in view, or the last one of the last row in view for Shift+Tab, rather than to the
+   * first row the list built. The row is built and scrolled into view if needed.
+   */
+  private El enter(El next, int step) {
+    Animator.InRow in = animator.inRow(animator.identity(next));
+    if (in == null || Animator.isBelow(focusId, in.listId())) {
+      return next;
+    }
+    El list = in.list();
+    Object last = remembered.get(in.listId());
+    Animator.InRow was = last == null ? null : animator.inRow(last);
+    int row = was != null && was.listId().equals(in.listId()) && was.row() < list.rowCount()
+        ? was.row()
+        : list.rowInView(step < 0);
+    if (!list.hasRow(row)) {
+      list.scrollTo(list.scrollX(), list.offsetShowing(row));
+      fillRows();
+      if (!list.hasRow(row)) {
+        return next;
+      }
+    }
+    Set<El> inside = Collections.newSetFromMap(new IdentityHashMap<>());
+    collect(list.children().get(row - list.firstRow()), inside);
+    List<El> order = focusables();
+    El again = last == null ? null : animator.element(last);
+    if (again != null && inside.contains(again) && order.contains(again)) {
+      return again;
+    }
+    El found = null;
+    for (El el : order) {
+      if (inside.contains(el) && (found == null || step < 0)) {
+        found = el;
+      }
+    }
+    return found != null ? found : next;
+  }
+
+  private static void collect(El el, Set<El> into) {
+    into.add(el);
+    for (El child : el.children()) {
+      collect(child, into);
+    }
   }
 
   /**
@@ -329,11 +418,18 @@ public final class App<S> {
    * can no longer take it, and scrolls it into view if that is due.
    */
   private void refocus() {
-    if (focused == null) {
+    if (focusId == null) {
       return;
     }
-    focused.focused(false);
+    if (focused != null) {
+      focused.focused(false);
+    }
     El el = animator.element(focusId);
+    if (el == null && focusWaits()) {
+      focused = null; // kept by its identity until the row exists again
+      reveal = false;
+      return;
+    }
     if (el == null || !focusables().contains(el)) {
       focused = null;
       focusId = null;
@@ -346,13 +442,20 @@ public final class App<S> {
     if (reveal) {
       reveal = false;
       reveal(el);
+      if (fillRows()) {
+        refocus(); // its row was built again
+      }
     }
   }
 
-  /** The focused element and its ancestors, from the root; only the root without focus. */
+  /**
+   * The focused element and its ancestors, from the root; only the root without focus. While the
+   * focus is on a row out of range, the path ends at the row's list.
+   */
   private List<El> focusPath() {
     List<El> path = new ArrayList<>();
-    if (root != null && (focused == null || !pathTo(root, focused, path))) {
+    El end = focused != null ? focused : focusWaits() ? animator.inRow(focusId).list() : null;
+    if (root != null && (end == null || !pathTo(root, end, path))) {
       path.add(root);
     }
     return path;
@@ -505,15 +608,42 @@ public final class App<S> {
   /**
    * Scrolls a scroll area of the last frame's {@link #tree} to this offset from its start, in
    * logical pixels: to the top with 0, 0, for example after new data arrived, or to the end with
-   * {@link Float#POSITIVE_INFINITY}. The next {@link #frame} shows it, clamped to the content;
+   * {@link Double#POSITIVE_INFINITY}. The next {@link #frame} shows it, clamped to the content;
    * until then {@link El#scrollX} and {@link El#scrollY} keep the old offset. A handler may call
    * this too; the frame that runs it scrolls.
    */
-  public void scrollTo(El area, float x, float y) {
-    if (Float.isNaN(x) || Float.isNaN(y)) {
+  public void scrollTo(El area, double x, double y) {
+    if (Double.isNaN(x) || Double.isNaN(y)) {
       throw new IllegalArgumentException("scroll offset is NaN");
     }
     scrolls.add(() -> area.scrollTo(x, y));
+  }
+
+  /**
+   * Scrolls a virtual list ({@link El#rows}) of the last frame's {@link #tree} so that the row
+   * with this index is at the top of its content box, or as far as the end of the list allows: to
+   * an offset of {@code row * rowHeight}. The next {@link #frame} shows it and builds the rows it
+   * brings into view. A handler may call this too; the frame that runs it scrolls.
+   *
+   * @param row the index of the row, from 0; one beyond the last scrolls to the end
+   * @throws IllegalArgumentException if {@code list} is not a virtual list or {@code row} is
+   *     negative
+   */
+  public void scrollToRow(El list, int row) {
+    if (!list.isVirtualList()) {
+      throw new IllegalArgumentException(
+          "This element is not a list of rows; El.rows(count, rowHeight, row) makes one.");
+    }
+    if (row < 0) {
+      throw new IllegalArgumentException("row must be 0 or more, was " + row);
+    }
+    scrolls.add(() -> list.scrollTo(list.scrollX(), row * (double) list.rowHeight()));
+  }
+
+  /** For {@link Script}: the innermost virtual list at this point, or null. */
+  El listAt(float x, float y) {
+    Target target = target(x, y, El::isVirtualList);
+    return target == null ? null : target.el;
   }
 
   /**
@@ -554,6 +684,10 @@ public final class App<S> {
     while (!scrolls.isEmpty()) {
       scrolled |= scrolls.poll().getAsBoolean();
     }
+    // The rows that scrolling brought into view; a rebuild builds all rows anyway.
+    if (scrolled && !stale && fillRows()) {
+      refocus();
+    }
     // What the pointer is over now, in the tree on screen, after the scrolls moved it.
     List<El> path = pointerIn ? hit(pointerX, pointerY) : List.of();
     List<Object> ids = Animator.identities(path);
@@ -566,10 +700,16 @@ public final class App<S> {
       El.scaleText(root, scale);
       Flex.layout(root, width, height);
       animator.update(root, time);
+      lookIds = ids;
+      fillRows();
       refocus();
+      lookIds = null;
       stale = false;
     } else if (animator.isMoving()) {
       animator.present(time);
+      if (fillRows()) { // a list that moves may show other rows
+        refocus();
+      }
     } else {
       drawn = scrolled;
     }
@@ -578,7 +718,85 @@ public final class App<S> {
   }
 
   /** The identities of elements with looks, by the state they are in; see {@link #wanted}. */
-  private record Looks(List<Object> hovered, Object focused, Object pressed) {}
+  private record Looks(List<Object> hovered, Object focused, Object pressed) {
+
+    /** These looks without those of elements in the rows of a list, which were built anew. */
+    Looks without(Object list) {
+      List<Object> kept = new ArrayList<>(hovered);
+      kept.removeIf(id -> Animator.isBelow(id, list));
+      return new Looks(
+          kept,
+          Animator.isBelow(focused, list) ? null : focused,
+          Animator.isBelow(pressed, list) ? null : pressed);
+    }
+  }
+
+  /**
+   * Builds the rows of the virtual lists in the tree that lack rows they show: all of them after a
+   * rebuild of the view, and after scrolling those that show a row that does not exist yet. Each
+   * gets the looks of the moment during a rebuild.
+   *
+   * @return whether a list built its rows
+   */
+  private boolean fillRows() {
+    return root != null && fillRows(root, new ArrayList<>(), 0);
+  }
+
+  private boolean fillRows(El el, List<El> path, float parentY) {
+    if (!el.isPlaced() || el.isExiting()) {
+      return false;
+    }
+    path.add(el);
+    float top = parentY + el.y();
+    int[] range = el.wantedRows(top, height);
+    boolean built = range != null;
+    if (built) {
+      Object id = Animator.identities(path).getLast();
+      el.makeRows(range[0], range[1]);
+      shown = shown.without(id);
+      if (lookIds != null) {
+        rowLooks(el, id);
+      }
+      el.layoutRows(scale);
+      animator.rows(el, id, time);
+    }
+    for (El child : el.children()) {
+      built |= fillRows(child, path, top);
+    }
+    path.removeLast();
+    return built;
+  }
+
+  /**
+   * Applies the looks of the moment to the rows a list has just built, before their layout, as
+   * {@link #applyLooks} does for the rest of the tree, which did not have them yet.
+   */
+  private void rowLooks(El list, Object listId) {
+    List<Object> hovered = new ArrayList<>(shown.hovered());
+    Object focus = shown.focused();
+    Object press = shown.pressed();
+    for (int i = 0; i < list.children().size(); i++) {
+      El row = list.children().get(i);
+      Object rowId = Animator.row(listId, list.firstRow() + i);
+      for (Object id : lookIds) {
+        if (Animator.isBelow(id, listId)
+            && look(Animator.find(row, rowId, id), El::hoverLook, "whenHovered")) {
+          hovered.add(id);
+        }
+      }
+      if (Animator.isBelow(focusId, listId)) {
+        El el = Animator.find(row, rowId, focusId);
+        if (el != null && el.isFocusable() && look(el, El::focusLook, "whenFocused")) {
+          focus = focusId;
+        }
+      }
+      if (Animator.isBelow(pressed, listId)
+          && look(Animator.find(row, rowId, pressed), El::pressLook, "whenPressed")) {
+        press = pressed;
+      }
+    }
+    shown = new Looks(hovered, focus, press);
+  }
 
   /**
    * The looks that the elements of the current tree ask for in the states of the moment: those

@@ -5,8 +5,10 @@ import com.rethinkj.ui.motion.Track;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * What {@link App} keeps of each element between rebuilds, so that elements with {@link
@@ -22,6 +24,10 @@ import java.util.Map;
  * <p>An element with a key and motion that a rebuild leaves out is put back among its parent's
  * new children after layout, marked {@link El#isExiting}, with its subtree as it was, and stays
  * there until its opacity has come to rest at 0.
+ *
+ * <p>The rows of a virtual list ({@link El#rows}) are identified by their index, and they come
+ * after layout: {@link #rows} takes them each time the list builds them, and until then a
+ * rebuilt list keeps the entries of its previous rows for them.
  */
 final class Animator {
 
@@ -33,13 +39,19 @@ final class Animator {
   // quarter of a colour step, which rounds to the target; for opacity, a quarter of 1/255.
   private static final double PIXELS = 0.01, CHANNELS = 0.25;
 
-  /** The part is the element's key or, when it has none, its index as an Integer. */
+  /**
+   * The part is the element's key or, when it has none, its index as an Integer; for a row of a
+   * virtual list, the row's index.
+   */
   private record Id(Id parent, Object part) {}
+
+  /** Where an element is in a virtual list: the list, its identity and the index of the row. */
+  record InRow(El list, Object listId, int row) {}
 
   // shortcut: every element keeps eighteen tracks, also without motion, so that one that gains
   // motion moves from where it was; keep plain values for those when trees reach many thousands.
   private Map<Id, Entry> entries = new HashMap<>();
-  private final List<Entry> moving = new ArrayList<>();
+  private final Set<Entry> moving = new LinkedHashSet<>();
   private boolean started;
 
   /**
@@ -113,10 +125,41 @@ final class Animator {
           }
         }
       }
-      id = new Id(id, part(el, index));
+      El parent = i > 0 ? path.get(i - 1) : null;
+      id = new Id(id, parent != null && parent.isVirtualList()
+          ? Integer.valueOf(parent.firstRow() + index) : part(el, index));
       ids.add(id);
     }
     return ids;
+  }
+
+  /** The identity of the row with this index of the virtual list with identity {@code list}. */
+  static Object row(Object list, int index) {
+    return new Id((Id) list, index);
+  }
+
+  /** Whether {@code ancestor} is the identity of an element above the one of {@code identity}. */
+  static boolean isBelow(Object identity, Object ancestor) {
+    for (Id id = identity == null ? null : ((Id) identity).parent(); id != null; id = id.parent()) {
+      if (id.equals(ancestor)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /**
+   * The innermost virtual list of the current tree that the element with this identity is in, or
+   * would be in if its row existed, with the index of that row; null if it is in none.
+   */
+  InRow inRow(Object identity) {
+    for (Id id = (Id) identity; id != null && id.parent() != null; id = id.parent()) {
+      Entry parent = entries.get(id.parent());
+      if (parent != null && parent.el.isVirtualList() && id.part() instanceof Integer row) {
+        return new InRow(parent.el, id.parent(), row);
+      }
+    }
+    return null;
   }
 
   /**
@@ -124,15 +167,30 @@ final class Animator {
    * {@link #update} takes the tree, or null.
    */
   static El find(El root, Object identity) {
+    return find(root, new Id(null, part(root, 0)), identity);
+  }
+
+  /**
+   * Like {@link #find(El, Object)}, below {@code top}, whose identity is {@code topIdentity}: the
+   * element there that has this identity, or null if it is not below {@code top}.
+   */
+  static El find(El top, Object topIdentity, Object identity) {
     Id id = (Id) identity;
-    if (id.parent() == null) {
-      return id.part().equals(part(root, 0)) ? root : null;
+    if (id.equals(topIdentity)) {
+      return top;
     }
-    El parent = find(root, id.parent());
+    if (id.parent() == null) {
+      return null;
+    }
+    El parent = find(top, topIdentity, id.parent());
     if (parent == null) {
       return null;
     }
     List<El> children = parent.children(); // nothing is leaving yet
+    if (parent.isVirtualList()) {
+      int i = id.part() instanceof Integer row ? row - parent.firstRow() : -1;
+      return i >= 0 && i < children.size() ? children.get(i) : null;
+    }
     for (int i = 0; i < children.size(); i++) {
       if (id.part().equals(part(children.get(i), i))) {
         return children.get(i);
@@ -146,8 +204,62 @@ final class Animator {
     return !moving.isEmpty();
   }
 
-  /** @param enters whether {@code el} fades in if it is new: its parent was already there */
+  /**
+   * Takes the rows a virtual list of the current tree has just built ({@link El#makeRows}): each
+   * gets the entries of the row with the same index that the list had, so that what moves goes on
+   * moving, and the entries of the other rows it had are forgotten. A row moves with its list at
+   * once, without springing, since its place among the rows that exist changes as they do.
+   */
+  void rows(El list, Object identity, double now) {
+    Id id = (Id) identity;
+    Entry entry = entries.get(id);
+    if (entry == null) {
+      return; // not in the tree the last update took
+    }
+    Map<Id, Entry> before = new HashMap<>();
+    for (int row = entry.rowsFrom; row < entry.rowsTo; row++) {
+      Id rowId = new Id(id, row);
+      Entry old = entries.get(rowId);
+      if (old != null) {
+        move(old.el, rowId, before);
+      }
+    }
+    Map<Id, Entry> current = entries;
+    entries = before; // where visit finds the previous version of each row
+    Map<Id, Entry> next = new HashMap<>();
+    Id[] ids = ids(list, id);
+    for (int i = 0; i < ids.length; i++) {
+      visit(list.children().get(i), ids[i], false, true, next, now);
+    }
+    entries = current;
+    entries.putAll(next);
+    entry.rowsFrom = list.firstRow();
+    entry.rowsTo = list.firstRow() + ids.length;
+    present(now);
+  }
+
+  /** Moves the entries of an element and of everything below it out of {@link #entries}. */
+  private void move(El el, Id id, Map<Id, Entry> into) {
+    Entry entry = entries.remove(id);
+    if (entry == null) {
+      return;
+    }
+    into.put(id, entry);
+    Id[] ids = ids(el, id);
+    for (int i = 0; i < ids.length; i++) {
+      move(el.children().get(i), ids[i], into);
+    }
+  }
+
   private void visit(El el, Id id, boolean enters, Map<Id, Entry> next, double now) {
+    visit(el, id, enters, false, next, now);
+  }
+
+  /**
+   * @param enters whether {@code el} fades in if it is new: its parent was already there
+   * @param row whether {@code el} is a row of a virtual list, whose rectangle changes at once
+   */
+  private void visit(El el, Id id, boolean enters, boolean row, Map<Id, Entry> next, double now) {
     if (el.style().display == Style.Display.NONE) {
       return; // forgotten, so that it appears again without moving, like a new element
     }
@@ -174,7 +286,7 @@ final class Animator {
     } else {
       for (int i = 0; i < COUNT; i++) {
         Track track = entry.tracks[i];
-        if (spring == null) {
+        if (spring == null || row && i < RADIUS) {
           track.set(target[i]);
         } else if (target[i] != track.target()) {
           track.retarget(target[i], spring, now);
@@ -194,8 +306,20 @@ final class Animator {
     for (int i = 0; i < ids.length; i++) {
       visit(children.get(i), ids[i], before != null, next, now);
     }
-    if (before != null) {
-      keepLeaving(before, el, id, next, now);
+    if (el.isVirtualList()) {
+      // Its rows come later; until then the rows it had keep their entries for them.
+      for (int i = entry.rowsFrom; i < entry.rowsTo; i++) {
+        Id rowId = new Id(id, i);
+        Entry old = entries.get(rowId);
+        if (old != null) {
+          keep(old.el, rowId, next, now);
+        }
+      }
+    } else {
+      entry.rowsFrom = entry.rowsTo = 0;
+      if (before != null) {
+        keepLeaving(before, el, id, next, now);
+      }
     }
     // Clamped to the new content; also shifts the leaving children, which are the old ones.
     el.scrollTo(before == null ? 0 : before.scrollX(), before == null ? 0 : before.scrollY());
@@ -280,7 +404,8 @@ final class Animator {
     int index = 0;
     for (int i = 0; i < ids.length; i++) {
       El child = children.get(i);
-      ids[i] = new Id(id, child.isExiting() ? child.key() : part(child, index++));
+      ids[i] = new Id(id, el.isVirtualList() ? Integer.valueOf(el.firstRow() + i)
+          : child.isExiting() ? child.key() : part(child, index++));
     }
     return ids;
   }
@@ -301,6 +426,9 @@ final class Animator {
     final Id id;
     final Track[] tracks = new Track[COUNT];
     El el;
+    // For a virtual list: the rows that have entries, from rowsFrom to rowsTo, exclusive.
+    int rowsFrom;
+    int rowsTo;
 
     Entry(Id id, double[] values) {
       this.id = id;

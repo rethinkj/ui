@@ -28,6 +28,7 @@ class ScriptTest {
 
   private static final Path EXAMPLE = Path.of("src/test/resources/scripts/switch.txt");
   private static final Path LIST = Path.of("src/test/resources/scripts/list.txt");
+  private static final Path ROWS = Path.of("src/test/resources/scripts/rows.txt");
   private static final Path FOCUS = Path.of("src/test/resources/scripts/focus.txt");
   private static final Path HOVER = Path.of("src/test/resources/scripts/hover.txt");
 
@@ -110,6 +111,22 @@ class ScriptTest {
 
     assertSnapsMatchGolden(List.of("list-top", "list-scrolled", "list-end"));
     assertTrue(Files.readString(out.resolve("list-scrolled.tree.txt")).contains(" scroll 0,90\n"));
+  }
+
+  @Test
+  void theMillionRowsOfAgentsMdScrollAsTheStoredFramesShow() throws IOException {
+    TextLibraries.assumeLoaded();
+    String example = Files.readString(ROWS);
+    assertTrue(
+        Files.readString(Path.of("../AGENTS.md")).contains(example),
+        "AGENTS.md shows " + ROWS + " as it is");
+
+    Examples.main(new String[] {"rows", "--script", ROWS.toString(), "--out", out.toString()});
+
+    assertSnapsMatchGolden(List.of("rows-top", "rows-scrolled", "rows-far"));
+    assertTrue(
+        Files.readString(out.resolve("rows-far.tree.txt")).contains(
+            "el #rows role=grid 16,44 248x160 rows 765429-765440/1000000 scroll 0,21432096\n"));
   }
 
   @Test
@@ -293,8 +310,8 @@ class ScriptTest {
     assertEquals(
         """
         line 3: pres #switch
-          There is no step pres. The steps are size, press, down, up, move, leave, wheel, key,\
-         type, focus, advance, frame and snap.""",
+          There is no step pres. The steps are size, press, down, up, move, leave, wheel,\
+         scroll, key, type, focus, advance, frame and snap.""",
         failure("size 200 120\nframe\npres #switch\n"));
   }
 
