@@ -222,6 +222,9 @@ public final class App<S> {
   // The overlays of the last tree the view built, in the order they opened, with where the focus
   // was before each took it; null for one that took none.
   private final Map<Object, Focus> opened = new LinkedHashMap<>();
+  // For the open overlays that took no focus, such as a toast: where the focus was last outside
+  // each, for when the keyboard moved it inside and the overlay closes.
+  private final Map<Object, Focus> outside = new HashMap<>();
   // When the open overlays with an onShownFor handler that has not run yet opened, by identity.
   private final Map<Object, Double> shownSince = new HashMap<>();
   private double shownDue = Double.POSITIVE_INFINITY; // when the next of those handlers is
@@ -2398,13 +2401,21 @@ public final class App<S> {
         continue;
       }
       Focus back = opened.remove(id);
+      Focus left = outside.remove(id);
       shownSince.remove(id);
-      if (back != null
-          && (focusId == null || focusId.equals(id) || Animator.isBelow(focusId, id))) {
+      boolean inside = focusId != null && (focusId.equals(id) || Animator.isBelow(focusId, id));
+      if (back != null && (focusId == null || inside)) {
         moveFocus(back.id(), back.ring());
+      } else if (left != null && inside) {
+        moveFocus(left.id(), left.ring());
       }
     }
     for (Map.Entry<Object, El> overlay : now.entrySet()) {
+      Object id = overlay.getKey();
+      if (opened.containsKey(id) && opened.get(id) == null && focusId != null
+          && !focusId.equals(id) && !Animator.isBelow(focusId, id)) {
+        outside.put(id, new Focus(focusId, ring));
+      }
       if (opened.containsKey(overlay.getKey())) {
         continue;
       }
@@ -2412,6 +2423,9 @@ public final class App<S> {
       El el = overlay.getValue();
       boolean takes = (el.holdsFocus() || !el.keepsFocus()) && (first != null || el.isModal());
       opened.put(overlay.getKey(), takes ? new Focus(focusId, ring) : null);
+      if (!takes && focusId != null) {
+        outside.put(overlay.getKey(), new Focus(focusId, ring));
+      }
       if (takes) {
         moveFocus(first, false);
         took = true;
