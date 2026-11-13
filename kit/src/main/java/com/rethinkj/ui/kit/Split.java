@@ -41,7 +41,9 @@ import java.util.function.DoubleConsumer;
  * focus the arrow keys along the split move it by {@link Theme.Sizes#step}.
  *
  * <p>Each part fills its side: the split makes it {@link El#grow} in a box of its own that clips
- * it. The split itself needs a size of its own or room to grow, like a list of rows. In a tree
+ * it, with no minimum size of its own. The split itself needs a size of its own or room to grow,
+ * like a list of rows, and takes no minimum size from its parts either: a list of rows or a tree
+ * in a part scrolls inside the room the split has, also in a column that grows. In a tree
  * dump the boxes are {@code #first} and {@code #second}, the latter in {@code #rest}, and the
  * strip is {@code #divider} with {@code role=separator} and the label {@code Resize} and the first
  * part's label, if it has one.
@@ -136,6 +138,7 @@ public final class Split {
     El two = pane(second, across, minSecond).key("second").basis(0).grow(1);
     El rest = el().key("rest").child(two).child(divider);
     El split = (across ? row() : col()).clip().children(one, rest);
+    zeroMin(split); // it fills the room it is given, whatever the parts hold
     rest.style().direction =
         across ? Style.Direction.ROW_REVERSE : Style.Direction.COLUMN_REVERSE;
     zeroMin(rest);
@@ -219,6 +222,7 @@ public final class Split {
   /** A part's box: it clips the part, which fills it, and keeps the minimum along the split. */
   private static El pane(El part, boolean across, float min) {
     El pane = col().clip().child(part.grow(1));
+    zeroMin(part); // a list of rows in it is no minimum either
     zeroMin(pane);
     if (across) {
       pane.style().minWidth = Len.px(min);

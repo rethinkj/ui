@@ -1,0 +1,1 @@
+- `Split` and `Tabs` fill the room they are given and take no minimum size from their content: a tree, a data grid or another list of rows in a part or a tab scrolls inside it, also when the split or the tabs grow in a column, where they used to become as tall as the whole list. A split's parts have no minimum size of their own either.

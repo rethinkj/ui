@@ -72,6 +72,23 @@ class SplitTest {
   // What keeps its size
 
   @Test
+  void aListOfRowsInAPartScrollsInsideASplitInAColumnThatGrows() {
+    for (Direction direction : Direction.values()) {
+      App<Object> app = new App<>(new Object(), s -> col().wFull().hFull().child(
+          split(T, direction, Position.first(100), null, null,
+              col().key("list").rows(1000, 20, i -> El.el()), 50,
+              col().key("other").rows(1000, 20, i -> El.el()), 50).key("split").grow(1)));
+      app.resize(300, 200, 1);
+      app.frame();
+      assertEquals(200, find(app, "split").height(), direction.toString());
+      assertEquals(direction == Direction.ROW ? 200 : 100, find(app, "list").height());
+      app.wheel(20, 20, 0, 100);
+      app.frame();
+      assertEquals(100, find(app, "list").scrollY(), "the rows scroll inside the part");
+    }
+  }
+
+  @Test
   void theFirstPartKeepsItsWidthAndTheSecondTakesTheRest() throws IOException {
     App<Workbench> app = start(Position.first(200));
     assertParts(app, 200, 279);

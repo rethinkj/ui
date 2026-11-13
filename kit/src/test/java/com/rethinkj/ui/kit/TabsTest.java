@@ -52,6 +52,21 @@ class TabsTest {
   // The pointer
 
   @Test
+  void aListOfRowsInTheContentScrollsInsideTabsInAColumnThatGrows() {
+    App<Object> app = new App<>(new Object(), s -> col().wFull().hFull().child(
+        tabs(T, List.of(new Tab("rows")), 0, i -> {}, null,
+            col().key("list").rows(1000, 20, i -> El.el())).key("tabs").grow(1)));
+    app.resize(300, 200, 1);
+    app.frame();
+    assertEquals(200, find(app, "tabs").height());
+    assertEquals(200, find(app, "panel").y() + find(app, "list").height(),
+        "the content fills the panel below the bar, inside the window");
+    app.wheel(20, 150, 0, 100);
+    app.frame();
+    assertEquals(100, find(app, "list").scrollY());
+  }
+
+  @Test
   void aPressChoosesATabAndFocusesTheBarWithoutARing() throws IOException {
     App<Workbench> app = start();
     Workbench w = app.state();
