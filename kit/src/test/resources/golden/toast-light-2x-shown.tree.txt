@@ -1,0 +1,25 @@
+el 0,0 360x240
+  el #titlebar window=drag 0,0 360x32
+    text label="database" "\u{F0D7}" 8,8 16x16
+    el #menubar role=menubar 28,4 167x24
+      el #title-0 role=menuitem label="File" 28,4 38x24 expanded=false
+        text "File" 36,8 22x16
+      el #title-1 role=menuitem label="Edit" 66,4 39x24 expanded=false
+        text "Edit" 74,8 23x16
+      el #title-2 role=menuitem label="View" 105,4 46x24 expanded=false
+        text "View" 113,8 30x16
+      el #title-3 role=menuitem label="Help" 151,4 44x24 expanded=false
+        text "Help" 159,8 28x16
+    el 199,16 73x0
+    el #minimize role=button label="Minimize" window=minimize 276,0 40x32
+      text label="subtract" "\u{EBCF}" 288,8 16x16
+    el #close role=button label="Close" window=close 320,0 40x32
+      text label="dismiss" "\u{F368}" 332,8 16x16
+  el 0,32 360x208
+    text #query role=textbox label="Query" "" 12,44 336x24 focused caret 0
+    text #status "Ready · wrap" 12,76 336x16
+overlay edge bottom center gap 16 on 0,0 360x240
+  el #toast role=status label="Query cleared" 95,194 170x30
+    text "Query cleared" 108,201 87x16
+    el #action role=button label="Undo" 203,197 59x24
+      text "Undo" 216,201 33x16

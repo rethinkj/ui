@@ -31,45 +31,56 @@ el 0,0 900x520
     el 12,44 876x24
       text #filter role=textbox label="Filter" "ada paid" 12,44 280x24
       text "customer, email, city, country, product, status, note" 300,48 319x16
-    el #orders role=grid label="Orders" 12,76 876x408 scroll 600,0 thumb-x 368.47,476 517.53x6 focused
-      el #content -588,76 1476x408
-        el #header -588,76 1476x22
-          el #column-1 role=columnheader label="customer" -472,76 139x22 pos=2/12
-            text "customer" -468,79 58x16
-          el -333,76 1x22
-          el #column-2 role=columnheader label="email" -332,76 219x22 pos=3/12
-            text "email" -328,79 32x16
-          el -113,76 1x22
-          el #column-3 role=columnheader label="city" -112,76 89x22 pos=4/12
-            text "city" -108,79 22x16
-          el -23,76 1x22
-          el #column-4 role=columnheader label="country" -22,76 69x22 pos=5/12
-            text "country" -18,79 47x16
+    el #orders role=grid label="Orders" 12,76 876x408 scroll 610,0 thumb-x 371.95,476 514.05x6 focused
+      el #content -598,76 1486x408
+        el #header -598,76 1486x22
+          el #column-1 role=columnheader label="customer" -482,76 139x22 pos=2/12
+            text label="text_case_title" "\u{ECEC}" -478,79 16x16
+            text "customer" -458,79 58x16
+          el -343,76 1x22
+          el #column-2 role=columnheader label="email" -342,76 219x22 pos=3/12
+            text label="text_case_title" "\u{ECEC}" -338,79 16x16
+            text "email" -318,79 32x16
+          el -123,76 1x22
+          el #column-3 role=columnheader label="city" -122,76 89x22 pos=4/12
+            text label="text_case_title" "\u{ECEC}" -118,79 16x16
+            text "city" -98,79 22x16
+          el -33,76 1x22
+          el #column-4 role=columnheader label="country" -32,76 79x22 pos=5/12
+            text label="text_case_title" "\u{ECEC}" -28,79 16x16
+            text "country" -8,79 47x16
           el 47,76 1x22
           el #column-5 role=columnheader label="product" 48,76 99x22 pos=6/12
-            text "product" 52,79 48x16
+            text label="text_case_title" "\u{ECEC}" 52,79 16x16
+            text "product" 72,79 48x16
           el 147,76 1x22
           el #column-6 role=columnheader label="quantity" 148,76 79x22 pos=7/12
+            text label="number_symbol" "\u{F57C}" 153,79 16x16
             text "quantity" 173,79 50x16
           el 227,76 1x22
           el #column-7 role=columnheader label="amount" 228,76 99x22 pos=8/12
+            text label="calculator" "\u{F06B}" 257,79 16x16
             text "amount" 277,79 46x16
           el 327,76 1x22
           el #column-8 role=columnheader label="created_at" 328,76 139x22 pos=9/12
-            text "created_at" 332,79 64x16
+            text label="calendar_clock" "\u{E243}" 332,79 16x16
+            text "created_at" 352,79 64x16
           el 467,76 1x22
           el #column-9 role=columnheader label="shipped_at" 468,76 139x22 pos=10/12
-            text "shipped_at" 472,79 67x16
+            text label="calendar_clock" "\u{E243}" 472,79 16x16
+            text "shipped_at" 492,79 67x16
           el 607,76 1x22
           el #column-10 role=columnheader label="status" 608,76 89x22 pos=11/12
-            text "status" 612,79 37x16
+            text label="tag" "\u{EC70}" 612,79 16x16
+            text "status" 632,79 37x16
           el 697,76 1x22
           el #column-11 role=columnheader label="note" 698,76 179x22 pos=12/12
-            text "note" 702,79 28x16
+            text label="text_case_title" "\u{ECEC}" 702,79 16x16
+            text "note" 722,79 28x16
           el 877,76 1x22
-          el #resize-1 role=separator label="Resize customer" -335,76 6x22
-          el #resize-2 role=separator label="Resize email" -115,76 6x22
-          el #resize-3 role=separator label="Resize city" -25,76 6x22
+          el #resize-1 role=separator label="Resize customer" -345,76 6x22
+          el #resize-2 role=separator label="Resize email" -125,76 6x22
+          el #resize-3 role=separator label="Resize city" -35,76 6x22
           el #resize-4 role=separator label="Resize country" 45,76 6x22
           el #resize-5 role=separator label="Resize product" 145,76 6x22
           el #resize-6 role=separator label="Resize quantity" 225,76 6x22
@@ -81,25 +92,26 @@ el 0,0 900x520
           el #numbers 12,76 43x22
           el 55,76 1x22
           el #column-0 role=columnheader label="id" 56,76 71x22 pos=1/12 sort=ascending
-            el 98,81 12x12
-              text "\u{E12A}" 98,81 12x12
+            el 78,81 12x12
+              text label="arrow_up" "\u{E12A}" 78,81 12x12
+            text label="key" "\u{E740}" 92,79 16x16
             text "id" 112,79 11x16
           el 127,76 1x22
           el #resize-0 role=separator label="Resize id" 125,76 6x22
-        el -588,98 1476x1
-        el #rows -588,99 1476x385 rows 49979-49999/50000 scroll 0,1099625 thumb-y 880,448 6x24
-          el #row-49979 role=row -588,12 1476x22 pos=49980/50000
-            el #cell-49979-1 role=gridcell -472,12 139x22 pos=2/12
-              text "Ada Knuth" -468,15 65x16
-            el -333,12 1x22
-            el #cell-49979-2 role=gridcell -332,12 219x22 pos=3/12
-              text "ada.knuth@example.com" -328,15 155x16
-            el -113,12 1x22
-            el #cell-49979-3 role=gridcell -112,12 89x22 pos=4/12
-              text "Madrid" -108,15 43x16
-            el -23,12 1x22
-            el #cell-49979-4 role=gridcell -22,12 69x22 pos=5/12
-              text "ES" -18,15 16x16
+        el -598,98 1486x1
+        el #rows -598,99 1486x385 rows 49979-49999/50000 scroll 0,1099625 thumb-y 880,448 6x24
+          el #row-49979 role=row -598,12 1486x22 pos=49980/50000
+            el #cell-49979-1 role=gridcell -482,12 139x22 pos=2/12
+              text "Ada Knuth" -478,15 65x16
+            el -343,12 1x22
+            el #cell-49979-2 role=gridcell -342,12 219x22 pos=3/12
+              text "ada.knuth@example.com" -338,15 155x16
+            el -123,12 1x22
+            el #cell-49979-3 role=gridcell -122,12 89x22 pos=4/12
+              text "Madrid" -118,15 43x16
+            el -33,12 1x22
+            el #cell-49979-4 role=gridcell -32,12 79x22 pos=5/12
+              text "ES" -28,15 16x16
             el 47,12 1x22
             el #cell-49979-5 role=gridcell 48,12 99x22 pos=6/12
               text "Headset" 52,15 52x16
@@ -117,7 +129,8 @@ el 0,0 900x520
               text "NULL" 472,15 28x16
             el 607,12 1x22
             el #cell-49979-10 role=gridcell 608,12 89x22 pos=11/12
-              text "paid" 612,15 26x16
+              text label="record" "\u{F660}" 612,15 16x16
+              text "paid" 632,15 26x16
             el 697,12 1x22
             el #cell-49979-11 role=gridcell 698,12 179x22 pos=12/12
               text "Gift wrap" 702,15 56x16
@@ -128,18 +141,18 @@ el 0,0 900x520
             el #cell-49979-0 role=gridcell 56,12 71x22 pos=1/12
               text "999581" 81,15 42x16
             el 127,12 1x22
-          el #row-49980 role=row -588,34 1476x22 pos=49981/50000
-            el #cell-49980-1 role=gridcell -472,34 139x22 pos=2/12
-              text "Ada Lovelace" -468,37 83x16
-            el -333,34 1x22
-            el #cell-49980-2 role=gridcell -332,34 219x22 pos=3/12
-              text "ada.lovelace@example.org" -328,37 166x16
-            el -113,34 1x22
-            el #cell-49980-3 role=gridcell -112,34 89x22 pos=4/12
-              text "Berlin" -108,37 36x16
-            el -23,34 1x22
-            el #cell-49980-4 role=gridcell -22,34 69x22 pos=5/12
-              text "DE" -18,37 17x16
+          el #row-49980 role=row -598,34 1486x22 pos=49981/50000
+            el #cell-49980-1 role=gridcell -482,34 139x22 pos=2/12
+              text "Ada Lovelace" -478,37 83x16
+            el -343,34 1x22
+            el #cell-49980-2 role=gridcell -342,34 219x22 pos=3/12
+              text "ada.lovelace@example.org" -338,37 166x16
+            el -123,34 1x22
+            el #cell-49980-3 role=gridcell -122,34 89x22 pos=4/12
+              text "Berlin" -118,37 36x16
+            el -33,34 1x22
+            el #cell-49980-4 role=gridcell -32,34 79x22 pos=5/12
+              text "DE" -28,37 17x16
             el 47,34 1x22
             el #cell-49980-5 role=gridcell 48,34 99x22 pos=6/12
               text "Keyboard" 52,37 58x16
@@ -157,7 +170,8 @@ el 0,0 900x520
               text "NULL" 472,37 28x16
             el 607,34 1x22
             el #cell-49980-10 role=gridcell 608,34 89x22 pos=11/12
-              text "paid" 612,37 26x16
+              text label="record" "\u{F660}" 612,37 16x16
+              text "paid" 632,37 26x16
             el 697,34 1x22
             el #cell-49980-11 role=gridcell 698,34 179x22 pos=12/12
               text "NULL" 702,37 34x16
@@ -168,18 +182,18 @@ el 0,0 900x520
             el #cell-49980-0 role=gridcell 56,34 71x22 pos=1/12
               text "999601" 81,37 42x16
             el 127,34 1x22
-          el #row-49981 role=row -588,56 1476x22 pos=49982/50000
-            el #cell-49981-1 role=gridcell -472,56 139x22 pos=2/12
-              text "Ada Torvalds" -468,59 80x16
-            el -333,56 1x22
-            el #cell-49981-2 role=gridcell -332,56 219x22 pos=3/12
-              text "ada.torvalds@example.org" -328,59 164x16
-            el -113,56 1x22
-            el #cell-49981-3 role=gridcell -112,56 89x22 pos=4/12
-              text "Madrid" -108,59 43x16
-            el -23,56 1x22
-            el #cell-49981-4 role=gridcell -22,56 69x22 pos=5/12
-              text "ES" -18,59 16x16
+          el #row-49981 role=row -598,56 1486x22 pos=49982/50000
+            el #cell-49981-1 role=gridcell -482,56 139x22 pos=2/12
+              text "Ada Torvalds" -478,59 80x16
+            el -343,56 1x22
+            el #cell-49981-2 role=gridcell -342,56 219x22 pos=3/12
+              text "ada.torvalds@example.org" -338,59 164x16
+            el -123,56 1x22
+            el #cell-49981-3 role=gridcell -122,56 89x22 pos=4/12
+              text "Madrid" -118,59 43x16
+            el -33,56 1x22
+            el #cell-49981-4 role=gridcell -32,56 79x22 pos=5/12
+              text "ES" -28,59 16x16
             el 47,56 1x22
             el #cell-49981-5 role=gridcell 48,56 99x22 pos=6/12
               text "Headset" 52,59 52x16
@@ -197,7 +211,8 @@ el 0,0 900x520
               text "NULL" 472,59 28x16
             el 607,56 1x22
             el #cell-49981-10 role=gridcell 608,56 89x22 pos=11/12
-              text "paid" 612,59 26x16
+              text label="record" "\u{F660}" 612,59 16x16
+              text "paid" 632,59 26x16
             el 697,56 1x22
             el #cell-49981-11 role=gridcell 698,56 179x22 pos=12/12
               text "Gift wrap" 702,59 56x16
@@ -208,18 +223,18 @@ el 0,0 900x520
             el #cell-49981-0 role=gridcell 56,56 71x22 pos=1/12
               text "999621" 81,59 42x16
             el 127,56 1x22
-          el #row-49982 role=row -588,78 1476x22 pos=49983/50000
-            el #cell-49982-1 role=gridcell -472,78 139x22 pos=2/12
-              text "Ada Thompson" -468,81 94x16
-            el -333,78 1x22
-            el #cell-49982-2 role=gridcell -332,78 219x22 pos=3/12
-              text "ada.thompson@example.org" -328,81 177x16
-            el -113,78 1x22
-            el #cell-49982-3 role=gridcell -112,78 89x22 pos=4/12
-              text "Berlin" -108,81 36x16
-            el -23,78 1x22
-            el #cell-49982-4 role=gridcell -22,78 69x22 pos=5/12
-              text "DE" -18,81 17x16
+          el #row-49982 role=row -598,78 1486x22 pos=49983/50000
+            el #cell-49982-1 role=gridcell -482,78 139x22 pos=2/12
+              text "Ada Thompson" -478,81 94x16
+            el -343,78 1x22
+            el #cell-49982-2 role=gridcell -342,78 219x22 pos=3/12
+              text "ada.thompson@example.org" -338,81 177x16
+            el -123,78 1x22
+            el #cell-49982-3 role=gridcell -122,78 89x22 pos=4/12
+              text "Berlin" -118,81 36x16
+            el -33,78 1x22
+            el #cell-49982-4 role=gridcell -32,78 79x22 pos=5/12
+              text "DE" -28,81 17x16
             el 47,78 1x22
             el #cell-49982-5 role=gridcell 48,78 99x22 pos=6/12
               text "Keyboard" 52,81 58x16
@@ -237,7 +252,8 @@ el 0,0 900x520
               text "NULL" 472,81 28x16
             el 607,78 1x22
             el #cell-49982-10 role=gridcell 608,78 89x22 pos=11/12
-              text "paid" 612,81 26x16
+              text label="record" "\u{F660}" 612,81 16x16
+              text "paid" 632,81 26x16
             el 697,78 1x22
             el #cell-49982-11 role=gridcell 698,78 179x22 pos=12/12
               text "NULL" 702,81 34x16
@@ -248,18 +264,18 @@ el 0,0 900x520
             el #cell-49982-0 role=gridcell 56,78 71x22 pos=1/12
               text "999641" 81,81 42x16
             el 127,78 1x22
-          el #row-49983 role=row -588,100 1476x22 pos=49984/50000
-            el #cell-49983-1 role=gridcell -472,100 139x22 pos=2/12
-              text "Ada Dijkstra" -468,103 73x16
-            el -333,100 1x22
-            el #cell-49983-2 role=gridcell -332,100 219x22 pos=3/12
-              text "ada.dijkstra@example.org" -328,103 159x16
-            el -113,100 1x22
-            el #cell-49983-3 role=gridcell -112,100 89x22 pos=4/12
-              text "Madrid" -108,103 43x16
-            el -23,100 1x22
-            el #cell-49983-4 role=gridcell -22,100 69x22 pos=5/12
-              text "ES" -18,103 16x16
+          el #row-49983 role=row -598,100 1486x22 pos=49984/50000
+            el #cell-49983-1 role=gridcell -482,100 139x22 pos=2/12
+              text "Ada Dijkstra" -478,103 73x16
+            el -343,100 1x22
+            el #cell-49983-2 role=gridcell -342,100 219x22 pos=3/12
+              text "ada.dijkstra@example.org" -338,103 159x16
+            el -123,100 1x22
+            el #cell-49983-3 role=gridcell -122,100 89x22 pos=4/12
+              text "Madrid" -118,103 43x16
+            el -33,100 1x22
+            el #cell-49983-4 role=gridcell -32,100 79x22 pos=5/12
+              text "ES" -28,103 16x16
             el 47,100 1x22
             el #cell-49983-5 role=gridcell 48,100 99x22 pos=6/12
               text "Headset" 52,103 52x16
@@ -277,7 +293,8 @@ el 0,0 900x520
               text "NULL" 472,103 28x16
             el 607,100 1x22
             el #cell-49983-10 role=gridcell 608,100 89x22 pos=11/12
-              text "paid" 612,103 26x16
+              text label="record" "\u{F660}" 612,103 16x16
+              text "paid" 632,103 26x16
             el 697,100 1x22
             el #cell-49983-11 role=gridcell 698,100 179x22 pos=12/12
               text "Gift wrap" 702,103 56x16
@@ -288,18 +305,18 @@ el 0,0 900x520
             el #cell-49983-0 role=gridcell 56,100 71x22 pos=1/12
               text "999661" 81,103 42x16
             el 127,100 1x22
-          el #row-49984 role=row -588,122 1476x22 pos=49985/50000
-            el #cell-49984-1 role=gridcell -472,122 139x22 pos=2/12
-              text "Ada Knuth" -468,125 65x16
-            el -333,122 1x22
-            el #cell-49984-2 role=gridcell -332,122 219x22 pos=3/12
-              text "ada.knuth@example.org" -328,125 150x16
-            el -113,122 1x22
-            el #cell-49984-3 role=gridcell -112,122 89x22 pos=4/12
-              text "Berlin" -108,125 36x16
-            el -23,122 1x22
-            el #cell-49984-4 role=gridcell -22,122 69x22 pos=5/12
-              text "DE" -18,125 17x16
+          el #row-49984 role=row -598,122 1486x22 pos=49985/50000
+            el #cell-49984-1 role=gridcell -482,122 139x22 pos=2/12
+              text "Ada Knuth" -478,125 65x16
+            el -343,122 1x22
+            el #cell-49984-2 role=gridcell -342,122 219x22 pos=3/12
+              text "ada.knuth@example.org" -338,125 150x16
+            el -123,122 1x22
+            el #cell-49984-3 role=gridcell -122,122 89x22 pos=4/12
+              text "Berlin" -118,125 36x16
+            el -33,122 1x22
+            el #cell-49984-4 role=gridcell -32,122 79x22 pos=5/12
+              text "DE" -28,125 17x16
             el 47,122 1x22
             el #cell-49984-5 role=gridcell 48,122 99x22 pos=6/12
               text "Keyboard" 52,125 58x16
@@ -317,7 +334,8 @@ el 0,0 900x520
               text "NULL" 472,125 28x16
             el 607,122 1x22
             el #cell-49984-10 role=gridcell 608,122 89x22 pos=11/12
-              text "paid" 612,125 26x16
+              text label="record" "\u{F660}" 612,125 16x16
+              text "paid" 632,125 26x16
             el 697,122 1x22
             el #cell-49984-11 role=gridcell 698,122 179x22 pos=12/12
               text "NULL" 702,125 34x16
@@ -328,18 +346,18 @@ el 0,0 900x520
             el #cell-49984-0 role=gridcell 56,122 71x22 pos=1/12
               text "999681" 81,125 42x16
             el 127,122 1x22
-          el #row-49985 role=row -588,144 1476x22 pos=49986/50000
-            el #cell-49985-1 role=gridcell -472,144 139x22 pos=2/12
-              text "Ada Lovelace" -468,147 83x16
-            el -333,144 1x22
-            el #cell-49985-2 role=gridcell -332,144 219x22 pos=3/12
-              text "ada.lovelace@example.net" -328,147 165x16
-            el -113,144 1x22
-            el #cell-49985-3 role=gridcell -112,144 89x22 pos=4/12
-              text "Madrid" -108,147 43x16
-            el -23,144 1x22
-            el #cell-49985-4 role=gridcell -22,144 69x22 pos=5/12
-              text "ES" -18,147 16x16
+          el #row-49985 role=row -598,144 1486x22 pos=49986/50000
+            el #cell-49985-1 role=gridcell -482,144 139x22 pos=2/12
+              text "Ada Lovelace" -478,147 83x16
+            el -343,144 1x22
+            el #cell-49985-2 role=gridcell -342,144 219x22 pos=3/12
+              text "ada.lovelace@example.net" -338,147 165x16
+            el -123,144 1x22
+            el #cell-49985-3 role=gridcell -122,144 89x22 pos=4/12
+              text "Madrid" -118,147 43x16
+            el -33,144 1x22
+            el #cell-49985-4 role=gridcell -32,144 79x22 pos=5/12
+              text "ES" -28,147 16x16
             el 47,144 1x22
             el #cell-49985-5 role=gridcell 48,144 99x22 pos=6/12
               text "Headset" 52,147 52x16
@@ -357,7 +375,8 @@ el 0,0 900x520
               text "NULL" 472,147 28x16
             el 607,144 1x22
             el #cell-49985-10 role=gridcell 608,144 89x22 pos=11/12
-              text "paid" 612,147 26x16
+              text label="record" "\u{F660}" 612,147 16x16
+              text "paid" 632,147 26x16
             el 697,144 1x22
             el #cell-49985-11 role=gridcell 698,144 179x22 pos=12/12
               text "Gift wrap" 702,147 56x16
@@ -368,18 +387,18 @@ el 0,0 900x520
             el #cell-49985-0 role=gridcell 56,144 71x22 pos=1/12
               text "999701" 81,147 42x16
             el 127,144 1x22
-          el #row-49986 role=row -588,166 1476x22 pos=49987/50000
-            el #cell-49986-1 role=gridcell -472,166 139x22 pos=2/12
-              text "Ada Torvalds" -468,169 80x16
-            el -333,166 1x22
-            el #cell-49986-2 role=gridcell -332,166 219x22 pos=3/12
-              text "ada.torvalds@example.net" -328,169 163x16
-            el -113,166 1x22
-            el #cell-49986-3 role=gridcell -112,166 89x22 pos=4/12
-              text "Berlin" -108,169 36x16
-            el -23,166 1x22
-            el #cell-49986-4 role=gridcell -22,166 69x22 pos=5/12
-              text "DE" -18,169 17x16
+          el #row-49986 role=row -598,166 1486x22 pos=49987/50000
+            el #cell-49986-1 role=gridcell -482,166 139x22 pos=2/12
+              text "Ada Torvalds" -478,169 80x16
+            el -343,166 1x22
+            el #cell-49986-2 role=gridcell -342,166 219x22 pos=3/12
+              text "ada.torvalds@example.net" -338,169 163x16
+            el -123,166 1x22
+            el #cell-49986-3 role=gridcell -122,166 89x22 pos=4/12
+              text "Berlin" -118,169 36x16
+            el -33,166 1x22
+            el #cell-49986-4 role=gridcell -32,166 79x22 pos=5/12
+              text "DE" -28,169 17x16
             el 47,166 1x22
             el #cell-49986-5 role=gridcell 48,166 99x22 pos=6/12
               text "Keyboard" 52,169 58x16
@@ -397,7 +416,8 @@ el 0,0 900x520
               text "NULL" 472,169 28x16
             el 607,166 1x22
             el #cell-49986-10 role=gridcell 608,166 89x22 pos=11/12
-              text "paid" 612,169 26x16
+              text label="record" "\u{F660}" 612,169 16x16
+              text "paid" 632,169 26x16
             el 697,166 1x22
             el #cell-49986-11 role=gridcell 698,166 179x22 pos=12/12
               text "NULL" 702,169 34x16
@@ -408,18 +428,18 @@ el 0,0 900x520
             el #cell-49986-0 role=gridcell 56,166 71x22 pos=1/12
               text "999721" 81,169 42x16
             el 127,166 1x22
-          el #row-49987 role=row -588,188 1476x22 pos=49988/50000
-            el #cell-49987-1 role=gridcell -472,188 139x22 pos=2/12
-              text "Ada Thompson" -468,191 94x16
-            el -333,188 1x22
-            el #cell-49987-2 role=gridcell -332,188 219x22 pos=3/12
-              text "ada.thompson@example.net" -328,191 176x16
-            el -113,188 1x22
-            el #cell-49987-3 role=gridcell -112,188 89x22 pos=4/12
-              text "Madrid" -108,191 43x16
-            el -23,188 1x22
-            el #cell-49987-4 role=gridcell -22,188 69x22 pos=5/12
-              text "ES" -18,191 16x16
+          el #row-49987 role=row -598,188 1486x22 pos=49988/50000
+            el #cell-49987-1 role=gridcell -482,188 139x22 pos=2/12
+              text "Ada Thompson" -478,191 94x16
+            el -343,188 1x22
+            el #cell-49987-2 role=gridcell -342,188 219x22 pos=3/12
+              text "ada.thompson@example.net" -338,191 176x16
+            el -123,188 1x22
+            el #cell-49987-3 role=gridcell -122,188 89x22 pos=4/12
+              text "Madrid" -118,191 43x16
+            el -33,188 1x22
+            el #cell-49987-4 role=gridcell -32,188 79x22 pos=5/12
+              text "ES" -28,191 16x16
             el 47,188 1x22
             el #cell-49987-5 role=gridcell 48,188 99x22 pos=6/12
               text "Headset" 52,191 52x16
@@ -437,7 +457,8 @@ el 0,0 900x520
               text "NULL" 472,191 28x16
             el 607,188 1x22
             el #cell-49987-10 role=gridcell 608,188 89x22 pos=11/12
-              text "paid" 612,191 26x16
+              text label="record" "\u{F660}" 612,191 16x16
+              text "paid" 632,191 26x16
             el 697,188 1x22
             el #cell-49987-11 role=gridcell 698,188 179x22 pos=12/12
               text "Gift wrap" 702,191 56x16
@@ -448,18 +469,18 @@ el 0,0 900x520
             el #cell-49987-0 role=gridcell 56,188 71x22 pos=1/12
               text "999741" 81,191 42x16
             el 127,188 1x22
-          el #row-49988 role=row -588,210 1476x22 pos=49989/50000
-            el #cell-49988-1 role=gridcell -472,210 139x22 pos=2/12
-              text "Ada Dijkstra" -468,213 73x16
-            el -333,210 1x22
-            el #cell-49988-2 role=gridcell -332,210 219x22 pos=3/12
-              text "ada.dijkstra@example.net" -328,213 158x16
-            el -113,210 1x22
-            el #cell-49988-3 role=gridcell -112,210 89x22 pos=4/12
-              text "Berlin" -108,213 36x16
-            el -23,210 1x22
-            el #cell-49988-4 role=gridcell -22,210 69x22 pos=5/12
-              text "DE" -18,213 17x16
+          el #row-49988 role=row -598,210 1486x22 pos=49989/50000
+            el #cell-49988-1 role=gridcell -482,210 139x22 pos=2/12
+              text "Ada Dijkstra" -478,213 73x16
+            el -343,210 1x22
+            el #cell-49988-2 role=gridcell -342,210 219x22 pos=3/12
+              text "ada.dijkstra@example.net" -338,213 158x16
+            el -123,210 1x22
+            el #cell-49988-3 role=gridcell -122,210 89x22 pos=4/12
+              text "Berlin" -118,213 36x16
+            el -33,210 1x22
+            el #cell-49988-4 role=gridcell -32,210 79x22 pos=5/12
+              text "DE" -28,213 17x16
             el 47,210 1x22
             el #cell-49988-5 role=gridcell 48,210 99x22 pos=6/12
               text "Keyboard" 52,213 58x16
@@ -477,7 +498,8 @@ el 0,0 900x520
               text "NULL" 472,213 28x16
             el 607,210 1x22
             el #cell-49988-10 role=gridcell 608,210 89x22 pos=11/12
-              text "paid" 612,213 26x16
+              text label="record" "\u{F660}" 612,213 16x16
+              text "paid" 632,213 26x16
             el 697,210 1x22
             el #cell-49988-11 role=gridcell 698,210 179x22 pos=12/12
               text "NULL" 702,213 34x16
@@ -488,18 +510,18 @@ el 0,0 900x520
             el #cell-49988-0 role=gridcell 56,210 71x22 pos=1/12
               text "999761" 81,213 42x16
             el 127,210 1x22
-          el #row-49989 role=row -588,232 1476x22 pos=49990/50000
-            el #cell-49989-1 role=gridcell -472,232 139x22 pos=2/12
-              text "Ada Knuth" -468,235 65x16
-            el -333,232 1x22
-            el #cell-49989-2 role=gridcell -332,232 219x22 pos=3/12
-              text "ada.knuth@example.net" -328,235 149x16
-            el -113,232 1x22
-            el #cell-49989-3 role=gridcell -112,232 89x22 pos=4/12
-              text "Madrid" -108,235 43x16
-            el -23,232 1x22
-            el #cell-49989-4 role=gridcell -22,232 69x22 pos=5/12
-              text "ES" -18,235 16x16
+          el #row-49989 role=row -598,232 1486x22 pos=49990/50000
+            el #cell-49989-1 role=gridcell -482,232 139x22 pos=2/12
+              text "Ada Knuth" -478,235 65x16
+            el -343,232 1x22
+            el #cell-49989-2 role=gridcell -342,232 219x22 pos=3/12
+              text "ada.knuth@example.net" -338,235 149x16
+            el -123,232 1x22
+            el #cell-49989-3 role=gridcell -122,232 89x22 pos=4/12
+              text "Madrid" -118,235 43x16
+            el -33,232 1x22
+            el #cell-49989-4 role=gridcell -32,232 79x22 pos=5/12
+              text "ES" -28,235 16x16
             el 47,232 1x22
             el #cell-49989-5 role=gridcell 48,232 99x22 pos=6/12
               text "Headset" 52,235 52x16
@@ -517,7 +539,8 @@ el 0,0 900x520
               text "NULL" 472,235 28x16
             el 607,232 1x22
             el #cell-49989-10 role=gridcell 608,232 89x22 pos=11/12
-              text "paid" 612,235 26x16
+              text label="record" "\u{F660}" 612,235 16x16
+              text "paid" 632,235 26x16
             el 697,232 1x22
             el #cell-49989-11 role=gridcell 698,232 179x22 pos=12/12
               text "Gift wrap" 702,235 56x16
@@ -528,18 +551,18 @@ el 0,0 900x520
             el #cell-49989-0 role=gridcell 56,232 71x22 pos=1/12
               text "999781" 81,235 42x16
             el 127,232 1x22
-          el #row-49990 role=row -588,254 1476x22 pos=49991/50000
-            el #cell-49990-1 role=gridcell -472,254 139x22 pos=2/12
-              text "Ada Lovelace" -468,257 83x16
-            el -333,254 1x22
-            el #cell-49990-2 role=gridcell -332,254 219x22 pos=3/12
-              text "ada.lovelace@mail.example" -328,257 169x16
-            el -113,254 1x22
-            el #cell-49990-3 role=gridcell -112,254 89x22 pos=4/12
-              text "Berlin" -108,257 36x16
-            el -23,254 1x22
-            el #cell-49990-4 role=gridcell -22,254 69x22 pos=5/12
-              text "DE" -18,257 17x16
+          el #row-49990 role=row -598,254 1486x22 pos=49991/50000
+            el #cell-49990-1 role=gridcell -482,254 139x22 pos=2/12
+              text "Ada Lovelace" -478,257 83x16
+            el -343,254 1x22
+            el #cell-49990-2 role=gridcell -342,254 219x22 pos=3/12
+              text "ada.lovelace@mail.example" -338,257 169x16
+            el -123,254 1x22
+            el #cell-49990-3 role=gridcell -122,254 89x22 pos=4/12
+              text "Berlin" -118,257 36x16
+            el -33,254 1x22
+            el #cell-49990-4 role=gridcell -32,254 79x22 pos=5/12
+              text "DE" -28,257 17x16
             el 47,254 1x22
             el #cell-49990-5 role=gridcell 48,254 99x22 pos=6/12
               text "Keyboard" 52,257 58x16
@@ -557,7 +580,8 @@ el 0,0 900x520
               text "NULL" 472,257 28x16
             el 607,254 1x22
             el #cell-49990-10 role=gridcell 608,254 89x22 pos=11/12
-              text "paid" 612,257 26x16
+              text label="record" "\u{F660}" 612,257 16x16
+              text "paid" 632,257 26x16
             el 697,254 1x22
             el #cell-49990-11 role=gridcell 698,254 179x22 pos=12/12
               text "NULL" 702,257 34x16
@@ -568,18 +592,18 @@ el 0,0 900x520
             el #cell-49990-0 role=gridcell 56,254 71x22 pos=1/12
               text "999801" 81,257 42x16
             el 127,254 1x22
-          el #row-49991 role=row -588,276 1476x22 pos=49992/50000
-            el #cell-49991-1 role=gridcell -472,276 139x22 pos=2/12
-              text "Ada Torvalds" -468,279 80x16
-            el -333,276 1x22
-            el #cell-49991-2 role=gridcell -332,276 219x22 pos=3/12
-              text "ada.torvalds@mail.example" -328,279 167x16
-            el -113,276 1x22
-            el #cell-49991-3 role=gridcell -112,276 89x22 pos=4/12
-              text "Madrid" -108,279 43x16
-            el -23,276 1x22
-            el #cell-49991-4 role=gridcell -22,276 69x22 pos=5/12
-              text "ES" -18,279 16x16
+          el #row-49991 role=row -598,276 1486x22 pos=49992/50000
+            el #cell-49991-1 role=gridcell -482,276 139x22 pos=2/12
+              text "Ada Torvalds" -478,279 80x16
+            el -343,276 1x22
+            el #cell-49991-2 role=gridcell -342,276 219x22 pos=3/12
+              text "ada.torvalds@mail.example" -338,279 167x16
+            el -123,276 1x22
+            el #cell-49991-3 role=gridcell -122,276 89x22 pos=4/12
+              text "Madrid" -118,279 43x16
+            el -33,276 1x22
+            el #cell-49991-4 role=gridcell -32,276 79x22 pos=5/12
+              text "ES" -28,279 16x16
             el 47,276 1x22
             el #cell-49991-5 role=gridcell 48,276 99x22 pos=6/12
               text "Headset" 52,279 52x16
@@ -597,7 +621,8 @@ el 0,0 900x520
               text "NULL" 472,279 28x16
             el 607,276 1x22
             el #cell-49991-10 role=gridcell 608,276 89x22 pos=11/12
-              text "paid" 612,279 26x16
+              text label="record" "\u{F660}" 612,279 16x16
+              text "paid" 632,279 26x16
             el 697,276 1x22
             el #cell-49991-11 role=gridcell 698,276 179x22 pos=12/12
               text "Gift wrap" 702,279 56x16
@@ -608,18 +633,18 @@ el 0,0 900x520
             el #cell-49991-0 role=gridcell 56,276 71x22 pos=1/12
               text "999821" 81,279 42x16
             el 127,276 1x22
-          el #row-49992 role=row -588,298 1476x22 pos=49993/50000
-            el #cell-49992-1 role=gridcell -472,298 139x22 pos=2/12
-              text "Ada Thompson" -468,301 94x16
-            el -333,298 1x22
-            el #cell-49992-2 role=gridcell -332,298 219x22 pos=3/12
-              text "ada.thompson@mail.example" -328,301 180x16
-            el -113,298 1x22
-            el #cell-49992-3 role=gridcell -112,298 89x22 pos=4/12
-              text "Berlin" -108,301 36x16
-            el -23,298 1x22
-            el #cell-49992-4 role=gridcell -22,298 69x22 pos=5/12
-              text "DE" -18,301 17x16
+          el #row-49992 role=row -598,298 1486x22 pos=49993/50000
+            el #cell-49992-1 role=gridcell -482,298 139x22 pos=2/12
+              text "Ada Thompson" -478,301 94x16
+            el -343,298 1x22
+            el #cell-49992-2 role=gridcell -342,298 219x22 pos=3/12
+              text "ada.thompson@mail.example" -338,301 180x16
+            el -123,298 1x22
+            el #cell-49992-3 role=gridcell -122,298 89x22 pos=4/12
+              text "Berlin" -118,301 36x16
+            el -33,298 1x22
+            el #cell-49992-4 role=gridcell -32,298 79x22 pos=5/12
+              text "DE" -28,301 17x16
             el 47,298 1x22
             el #cell-49992-5 role=gridcell 48,298 99x22 pos=6/12
               text "Keyboard" 52,301 58x16
@@ -637,7 +662,8 @@ el 0,0 900x520
               text "NULL" 472,301 28x16
             el 607,298 1x22
             el #cell-49992-10 role=gridcell 608,298 89x22 pos=11/12
-              text "paid" 612,301 26x16
+              text label="record" "\u{F660}" 612,301 16x16
+              text "paid" 632,301 26x16
             el 697,298 1x22
             el #cell-49992-11 role=gridcell 698,298 179x22 pos=12/12
               text "NULL" 702,301 34x16
@@ -648,18 +674,18 @@ el 0,0 900x520
             el #cell-49992-0 role=gridcell 56,298 71x22 pos=1/12
               text "999841" 81,301 42x16
             el 127,298 1x22
-          el #row-49993 role=row -588,320 1476x22 pos=49994/50000
-            el #cell-49993-1 role=gridcell -472,320 139x22 pos=2/12
-              text "Ada Dijkstra" -468,323 73x16
-            el -333,320 1x22
-            el #cell-49993-2 role=gridcell -332,320 219x22 pos=3/12
-              text "ada.dijkstra@mail.example" -328,323 162x16
-            el -113,320 1x22
-            el #cell-49993-3 role=gridcell -112,320 89x22 pos=4/12
-              text "Madrid" -108,323 43x16
-            el -23,320 1x22
-            el #cell-49993-4 role=gridcell -22,320 69x22 pos=5/12
-              text "ES" -18,323 16x16
+          el #row-49993 role=row -598,320 1486x22 pos=49994/50000
+            el #cell-49993-1 role=gridcell -482,320 139x22 pos=2/12
+              text "Ada Dijkstra" -478,323 73x16
+            el -343,320 1x22
+            el #cell-49993-2 role=gridcell -342,320 219x22 pos=3/12
+              text "ada.dijkstra@mail.example" -338,323 162x16
+            el -123,320 1x22
+            el #cell-49993-3 role=gridcell -122,320 89x22 pos=4/12
+              text "Madrid" -118,323 43x16
+            el -33,320 1x22
+            el #cell-49993-4 role=gridcell -32,320 79x22 pos=5/12
+              text "ES" -28,323 16x16
             el 47,320 1x22
             el #cell-49993-5 role=gridcell 48,320 99x22 pos=6/12
               text "Headset" 52,323 52x16
@@ -677,7 +703,8 @@ el 0,0 900x520
               text "NULL" 472,323 28x16
             el 607,320 1x22
             el #cell-49993-10 role=gridcell 608,320 89x22 pos=11/12
-              text "paid" 612,323 26x16
+              text label="record" "\u{F660}" 612,323 16x16
+              text "paid" 632,323 26x16
             el 697,320 1x22
             el #cell-49993-11 role=gridcell 698,320 179x22 pos=12/12
               text "Gift wrap" 702,323 56x16
@@ -688,18 +715,18 @@ el 0,0 900x520
             el #cell-49993-0 role=gridcell 56,320 71x22 pos=1/12
               text "999861" 81,323 42x16
             el 127,320 1x22
-          el #row-49994 role=row -588,342 1476x22 pos=49995/50000
-            el #cell-49994-1 role=gridcell -472,342 139x22 pos=2/12
-              text "Ada Knuth" -468,345 65x16
-            el -333,342 1x22
-            el #cell-49994-2 role=gridcell -332,342 219x22 pos=3/12
-              text "ada.knuth@mail.example" -328,345 153x16
-            el -113,342 1x22
-            el #cell-49994-3 role=gridcell -112,342 89x22 pos=4/12
-              text "Berlin" -108,345 36x16
-            el -23,342 1x22
-            el #cell-49994-4 role=gridcell -22,342 69x22 pos=5/12
-              text "DE" -18,345 17x16
+          el #row-49994 role=row -598,342 1486x22 pos=49995/50000
+            el #cell-49994-1 role=gridcell -482,342 139x22 pos=2/12
+              text "Ada Knuth" -478,345 65x16
+            el -343,342 1x22
+            el #cell-49994-2 role=gridcell -342,342 219x22 pos=3/12
+              text "ada.knuth@mail.example" -338,345 153x16
+            el -123,342 1x22
+            el #cell-49994-3 role=gridcell -122,342 89x22 pos=4/12
+              text "Berlin" -118,345 36x16
+            el -33,342 1x22
+            el #cell-49994-4 role=gridcell -32,342 79x22 pos=5/12
+              text "DE" -28,345 17x16
             el 47,342 1x22
             el #cell-49994-5 role=gridcell 48,342 99x22 pos=6/12
               text "Keyboard" 52,345 58x16
@@ -717,7 +744,8 @@ el 0,0 900x520
               text "NULL" 472,345 28x16
             el 607,342 1x22
             el #cell-49994-10 role=gridcell 608,342 89x22 pos=11/12
-              text "paid" 612,345 26x16
+              text label="record" "\u{F660}" 612,345 16x16
+              text "paid" 632,345 26x16
             el 697,342 1x22
             el #cell-49994-11 role=gridcell 698,342 179x22 pos=12/12
               text "NULL" 702,345 34x16
@@ -728,18 +756,18 @@ el 0,0 900x520
             el #cell-49994-0 role=gridcell 56,342 71x22 pos=1/12
               text "999881" 81,345 42x16
             el 127,342 1x22
-          el #row-49995 role=row -588,364 1476x22 pos=49996/50000
-            el #cell-49995-1 role=gridcell -472,364 139x22 pos=2/12
-              text "Ada Lovelace" -468,367 83x16
-            el -333,364 1x22
-            el #cell-49995-2 role=gridcell -332,364 219x22 pos=3/12
-              text "ada.lovelace@shop.example" -328,367 176x16
-            el -113,364 1x22
-            el #cell-49995-3 role=gridcell -112,364 89x22 pos=4/12
-              text "Madrid" -108,367 43x16
-            el -23,364 1x22
-            el #cell-49995-4 role=gridcell -22,364 69x22 pos=5/12
-              text "ES" -18,367 16x16
+          el #row-49995 role=row -598,364 1486x22 pos=49996/50000
+            el #cell-49995-1 role=gridcell -482,364 139x22 pos=2/12
+              text "Ada Lovelace" -478,367 83x16
+            el -343,364 1x22
+            el #cell-49995-2 role=gridcell -342,364 219x22 pos=3/12
+              text "ada.lovelace@shop.example" -338,367 176x16
+            el -123,364 1x22
+            el #cell-49995-3 role=gridcell -122,364 89x22 pos=4/12
+              text "Madrid" -118,367 43x16
+            el -33,364 1x22
+            el #cell-49995-4 role=gridcell -32,364 79x22 pos=5/12
+              text "ES" -28,367 16x16
             el 47,364 1x22
             el #cell-49995-5 role=gridcell 48,364 99x22 pos=6/12
               text "Headset" 52,367 52x16
@@ -757,7 +785,8 @@ el 0,0 900x520
               text "NULL" 472,367 28x16
             el 607,364 1x22
             el #cell-49995-10 role=gridcell 608,364 89x22 pos=11/12
-              text "paid" 612,367 26x16
+              text label="record" "\u{F660}" 612,367 16x16
+              text "paid" 632,367 26x16
             el 697,364 1x22
             el #cell-49995-11 role=gridcell 698,364 179x22 pos=12/12
               text "Gift wrap" 702,367 56x16
@@ -768,18 +797,18 @@ el 0,0 900x520
             el #cell-49995-0 role=gridcell 56,364 71x22 pos=1/12
               text "999901" 81,367 42x16
             el 127,364 1x22
-          el #row-49996 role=row -588,386 1476x22 pos=49997/50000
-            el #cell-49996-1 role=gridcell -472,386 139x22 pos=2/12
-              text "Ada Torvalds" -468,389 80x16
-            el -333,386 1x22
-            el #cell-49996-2 role=gridcell -332,386 219x22 pos=3/12
-              text "ada.torvalds@shop.example" -328,389 174x16
-            el -113,386 1x22
-            el #cell-49996-3 role=gridcell -112,386 89x22 pos=4/12
-              text "Berlin" -108,389 36x16
-            el -23,386 1x22
-            el #cell-49996-4 role=gridcell -22,386 69x22 pos=5/12
-              text "DE" -18,389 17x16
+          el #row-49996 role=row -598,386 1486x22 pos=49997/50000
+            el #cell-49996-1 role=gridcell -482,386 139x22 pos=2/12
+              text "Ada Torvalds" -478,389 80x16
+            el -343,386 1x22
+            el #cell-49996-2 role=gridcell -342,386 219x22 pos=3/12
+              text "ada.torvalds@shop.example" -338,389 174x16
+            el -123,386 1x22
+            el #cell-49996-3 role=gridcell -122,386 89x22 pos=4/12
+              text "Berlin" -118,389 36x16
+            el -33,386 1x22
+            el #cell-49996-4 role=gridcell -32,386 79x22 pos=5/12
+              text "DE" -28,389 17x16
             el 47,386 1x22
             el #cell-49996-5 role=gridcell 48,386 99x22 pos=6/12
               text "Keyboard" 52,389 58x16
@@ -797,7 +826,8 @@ el 0,0 900x520
               text "NULL" 472,389 28x16
             el 607,386 1x22
             el #cell-49996-10 role=gridcell 608,386 89x22 pos=11/12
-              text "paid" 612,389 26x16
+              text label="record" "\u{F660}" 612,389 16x16
+              text "paid" 632,389 26x16
             el 697,386 1x22
             el #cell-49996-11 role=gridcell 698,386 179x22 pos=12/12
               text "NULL" 702,389 34x16
@@ -808,18 +838,18 @@ el 0,0 900x520
             el #cell-49996-0 role=gridcell 56,386 71x22 pos=1/12
               text "999921" 81,389 42x16
             el 127,386 1x22
-          el #row-49997 role=row -588,408 1476x22 pos=49998/50000
-            el #cell-49997-1 role=gridcell -472,408 139x22 pos=2/12
-              text "Ada Thompson" -468,411 94x16
-            el -333,408 1x22
-            el #cell-49997-2 role=gridcell -332,408 219x22 pos=3/12
-              text "ada.thompson@shop.example" -328,411 187x16
-            el -113,408 1x22
-            el #cell-49997-3 role=gridcell -112,408 89x22 pos=4/12
-              text "Madrid" -108,411 43x16
-            el -23,408 1x22
-            el #cell-49997-4 role=gridcell -22,408 69x22 pos=5/12
-              text "ES" -18,411 16x16
+          el #row-49997 role=row -598,408 1486x22 pos=49998/50000
+            el #cell-49997-1 role=gridcell -482,408 139x22 pos=2/12
+              text "Ada Thompson" -478,411 94x16
+            el -343,408 1x22
+            el #cell-49997-2 role=gridcell -342,408 219x22 pos=3/12
+              text "ada.thompson@shop.example" -338,411 187x16
+            el -123,408 1x22
+            el #cell-49997-3 role=gridcell -122,408 89x22 pos=4/12
+              text "Madrid" -118,411 43x16
+            el -33,408 1x22
+            el #cell-49997-4 role=gridcell -32,408 79x22 pos=5/12
+              text "ES" -28,411 16x16
             el 47,408 1x22
             el #cell-49997-5 role=gridcell 48,408 99x22 pos=6/12
               text "Headset" 52,411 52x16
@@ -837,7 +867,8 @@ el 0,0 900x520
               text "NULL" 472,411 28x16
             el 607,408 1x22
             el #cell-49997-10 role=gridcell 608,408 89x22 pos=11/12
-              text "paid" 612,411 26x16
+              text label="record" "\u{F660}" 612,411 16x16
+              text "paid" 632,411 26x16
             el 697,408 1x22
             el #cell-49997-11 role=gridcell 698,408 179x22 pos=12/12
               text "Gift wrap" 702,411 56x16
@@ -848,18 +879,18 @@ el 0,0 900x520
             el #cell-49997-0 role=gridcell 56,408 71x22 pos=1/12
               text "999941" 81,411 42x16
             el 127,408 1x22
-          el #row-49998 role=row -588,430 1476x22 pos=49999/50000
-            el #cell-49998-1 role=gridcell -472,430 139x22 pos=2/12
-              text "Ada Dijkstra" -468,433 73x16
-            el -333,430 1x22
-            el #cell-49998-2 role=gridcell -332,430 219x22 pos=3/12
-              text "ada.dijkstra@shop.example" -328,433 169x16
-            el -113,430 1x22
-            el #cell-49998-3 role=gridcell -112,430 89x22 pos=4/12
-              text "Berlin" -108,433 36x16
-            el -23,430 1x22
-            el #cell-49998-4 role=gridcell -22,430 69x22 pos=5/12
-              text "DE" -18,433 17x16
+          el #row-49998 role=row -598,430 1486x22 pos=49999/50000
+            el #cell-49998-1 role=gridcell -482,430 139x22 pos=2/12
+              text "Ada Dijkstra" -478,433 73x16
+            el -343,430 1x22
+            el #cell-49998-2 role=gridcell -342,430 219x22 pos=3/12
+              text "ada.dijkstra@shop.example" -338,433 169x16
+            el -123,430 1x22
+            el #cell-49998-3 role=gridcell -122,430 89x22 pos=4/12
+              text "Berlin" -118,433 36x16
+            el -33,430 1x22
+            el #cell-49998-4 role=gridcell -32,430 79x22 pos=5/12
+              text "DE" -28,433 17x16
             el 47,430 1x22
             el #cell-49998-5 role=gridcell 48,430 99x22 pos=6/12
               text "Keyboard" 52,433 58x16
@@ -877,7 +908,8 @@ el 0,0 900x520
               text "NULL" 472,433 28x16
             el 607,430 1x22
             el #cell-49998-10 role=gridcell 608,430 89x22 pos=11/12
-              text "paid" 612,433 26x16
+              text label="record" "\u{F660}" 612,433 16x16
+              text "paid" 632,433 26x16
             el 697,430 1x22
             el #cell-49998-11 role=gridcell 698,430 179x22 pos=12/12
               text "NULL" 702,433 34x16
@@ -888,18 +920,18 @@ el 0,0 900x520
             el #cell-49998-0 role=gridcell 56,430 71x22 pos=1/12
               text "999961" 81,433 42x16
             el 127,430 1x22
-          el #row-49999 role=row -588,452 1476x22 pos=50000/50000
-            el #cell-49999-1 role=gridcell -472,452 139x22 pos=2/12
-              text "Ada Knuth" -468,455 65x16
-            el -333,452 1x22
-            el #cell-49999-2 role=gridcell -332,452 219x22 pos=3/12
-              text "ada.knuth@shop.example" -328,455 160x16
-            el -113,452 1x22
-            el #cell-49999-3 role=gridcell -112,452 89x22 pos=4/12
-              text "Madrid" -108,455 43x16
-            el -23,452 1x22
-            el #cell-49999-4 role=gridcell -22,452 69x22 pos=5/12
-              text "ES" -18,455 16x16
+          el #row-49999 role=row -598,452 1486x22 pos=50000/50000
+            el #cell-49999-1 role=gridcell -482,452 139x22 pos=2/12
+              text "Ada Knuth" -478,455 65x16
+            el -343,452 1x22
+            el #cell-49999-2 role=gridcell -342,452 219x22 pos=3/12
+              text "ada.knuth@shop.example" -338,455 160x16
+            el -123,452 1x22
+            el #cell-49999-3 role=gridcell -122,452 89x22 pos=4/12
+              text "Madrid" -118,455 43x16
+            el -33,452 1x22
+            el #cell-49999-4 role=gridcell -32,452 79x22 pos=5/12
+              text "ES" -28,455 16x16
             el 47,452 1x22
             el #cell-49999-5 role=gridcell 48,452 99x22 pos=6/12
               text "Headset" 52,455 52x16
@@ -917,7 +949,8 @@ el 0,0 900x520
               text "NULL" 472,455 28x16
             el 607,452 1x22
             el #cell-49999-10 role=gridcell 608,452 89x22 pos=11/12
-              text "paid" 612,455 26x16
+              text label="record" "\u{F660}" 612,455 16x16
+              text "paid" 632,455 26x16
             el 697,452 1x22
             el #cell-49999-11 role=gridcell 698,452 179x22 selected current pos=12/12
               text "Gift wrap" 702,455 56x16

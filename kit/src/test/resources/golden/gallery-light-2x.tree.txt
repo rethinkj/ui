@@ -223,61 +223,106 @@ el 0,0 140x40
   el #c 10,8 120x24
     text role=textbox label="Password" "•••••••" 10,8 120x24 password
     el role=button label="Show password" 108,10 20x20
-      text "\u{E5F1}" 110,12 16x16
+      text label="eye" "\u{E5F1}" 110,12 16x16
 # password, hover
 el 0,0 140x40
   el #c 10,8 120x24
     text role=textbox label="Password" "•••••••" 10,8 120x24 password hovered
     el role=button label="Show password" 108,10 20x20
-      text "\u{E5F1}" 110,12 16x16
+      text label="eye" "\u{E5F1}" 110,12 16x16
 # password, pressed
 el 0,0 140x40
   el #c 10,8 120x24
     text role=textbox label="Password" "•••••••" 10,8 120x24 password hovered focused caret 7
     el role=button label="Show password" 108,10 20x20
-      text "\u{E5F1}" 110,12 16x16
+      text label="eye" "\u{E5F1}" 110,12 16x16
 # password, focused
 el 0,0 140x40
   el #c 10,8 120x24
     text role=textbox label="Password" "•••••••" 10,8 120x24 password focused caret 7
     el role=button label="Show password" 108,10 20x20
-      text "\u{E5F1}" 110,12 16x16
+      text label="eye" "\u{E5F1}" 110,12 16x16
 # password, disabled
 el 0,0 140x40
   el #c 10,8 120x24
     text role=textbox label="Password" "•••••••" 10,8 120x24 disabled password
     el role=button label="Show password" 108,10 20x20 disabled
-      text "\u{E5F1}" 110,12 16x16
+      text label="eye" "\u{E5F1}" 110,12 16x16
 # password shown, rest
 el 0,0 140x40
   el #c 10,8 120x24
     text role=textbox label="Password" "hunter2" 10,8 120x24
     el role=button label="Hide password" 108,10 20x20
-      text "\u{E5F4}" 110,12 16x16
+      text label="eye_off" "\u{E5F4}" 110,12 16x16
 # password shown, hover
 el 0,0 140x40
   el #c 10,8 120x24
     text role=textbox label="Password" "hunter2" 10,8 120x24 hovered
     el role=button label="Hide password" 108,10 20x20
-      text "\u{E5F4}" 110,12 16x16
+      text label="eye_off" "\u{E5F4}" 110,12 16x16
 # password shown, pressed
 el 0,0 140x40
   el #c 10,8 120x24
     text role=textbox label="Password" "hunter2" 10,8 120x24 hovered focused caret 7
     el role=button label="Hide password" 108,10 20x20
-      text "\u{E5F4}" 110,12 16x16
+      text label="eye_off" "\u{E5F4}" 110,12 16x16
 # password shown, focused
 el 0,0 140x40
   el #c 10,8 120x24
     text role=textbox label="Password" "hunter2" 10,8 120x24 focused caret 7
     el role=button label="Hide password" 108,10 20x20
-      text "\u{E5F4}" 110,12 16x16
+      text label="eye_off" "\u{E5F4}" 110,12 16x16
 # password shown, disabled
 el 0,0 140x40
   el #c 10,8 120x24
     text role=textbox label="Password" "hunter2" 10,8 120x24 disabled
     el role=button label="Hide password" 108,10 20x20 disabled
-      text "\u{E5F4}" 110,12 16x16
+      text label="eye_off" "\u{E5F4}" 110,12 16x16
+# area, rest
+el 0,0 140x72
+  text #c role=textbox label="Notes" "Ship by Friday,\nfrom the north\nwarehouse." 10,8 120x56 lines 1-3/3
+# area, hover
+el 0,0 140x72
+  text #c role=textbox label="Notes" "Ship by Friday,\nfrom the north\nwarehouse." 10,8 120x56 lines 1-3/3 hovered
+# area, pressed
+el 0,0 140x72
+  text #c role=textbox label="Notes" "Ship by Friday,\nfrom the north\nwarehouse." 10,8 120x56 lines 1-3/3 hovered focused caret 24 (2:9)
+# area, focused
+el 0,0 140x72
+  text #c role=textbox label="Notes" "Ship by Friday,\nfrom the north\nwarehouse." 10,8 120x56 lines 1-3/3 focused caret 0 (1:1)
+# area, disabled
+el 0,0 140x72
+  text #c role=textbox label="Notes" "Ship by Friday,\nfrom the north\nwarehouse." 10,8 120x56 disabled lines 1-3/3
+# area selected, rest
+el 0,0 140x72
+  text #c role=textbox label="Notes" "Ship by Friday,\nfrom the north\nwarehouse." 10,8 120x56 lines 1-3/3
+# area selected, hover
+el 0,0 140x72
+  text #c role=textbox label="Notes" "Ship by Friday,\nfrom the north\nwarehouse." 10,8 120x56 lines 1-3/3 hovered
+# area selected, pressed
+el 0,0 140x72
+  text #c role=textbox label="Notes" "Ship by Friday,\nfrom the north\nwarehouse." 10,8 120x56 lines 1-3/3 hovered focused caret 33 (3:3) anchor 2
+# area selected, focused
+el 0,0 140x72
+  text #c role=textbox label="Notes" "Ship by Friday,\nfrom the north\nwarehouse." 10,8 120x56 lines 1-3/3 focused caret 33 (3:3) anchor 2
+# area selected, disabled
+el 0,0 140x72
+  text #c role=textbox label="Notes" "Ship by Friday,\nfrom the north\nwarehouse." 10,8 120x56 disabled lines 1-3/3
+# code area, rest
+el 0,0 140x72
+  text #c role=textbox label="SQL" "SELECT id,\n\tname\nFROM t;" 10,3 120x66 lines 1-3/3
+# code area, hover
+el 0,0 140x72
+  text #c role=textbox label="SQL" "SELECT id,\n\tname\nFROM t;" 10,3 120x66 lines 1-3/3 hovered
+# code area, pressed
+el 0,0 140x72
+  text #c role=textbox label="SQL" "SELECT id,\n\tname\nFROM t;" 10,3 120x66 lines 1-3/3 hovered focused caret 15 (2:5)
+# code area, focused
+el 0,0 140x72
+  text #c role=textbox label="SQL" "SELECT id,\n\tname\nFROM t;" 10,3 120x66 lines 1-3/3 focused caret 0 (1:1)
+# code area, disabled
+el 0,0 140x72
+  text #c role=textbox label="SQL" "SELECT id,\n\tname\nFROM t;" 10,3 120x66 disabled lines 1-3/3
 # switch row, rest
 el 0,0 140x40
   el #c role=switch label="Wrap" 10,2 120x36 checked
@@ -318,66 +363,66 @@ el 0,0 140x40
   el #c role=button label="Keymap" 10,2 120x36
     el 20,12 72x16
       text "Keymap" 20,12 72x16
-    text "\u{F2AF}" 104,12 16x16
+    text label="chevron_right" "\u{F2AF}" 104,12 16x16
 # link row, hover
 el 0,0 140x40
   el #c role=button label="Keymap" 10,2 120x36 hovered
     el 20,12 72x16
       text "Keymap" 20,12 72x16
-    text "\u{F2AF}" 104,12 16x16
+    text label="chevron_right" "\u{F2AF}" 104,12 16x16
 # link row, pressed
 el 0,0 140x40
   el #c role=button label="Keymap" 10,2 120x36 hovered focused
     el 20,12 72x16
       text "Keymap" 20,12 72x16
-    text "\u{F2AF}" 104,12 16x16
+    text label="chevron_right" "\u{F2AF}" 104,12 16x16
 # link row, focused
 el 0,0 140x40
   el #c role=button label="Keymap" 10,2 120x36 focused
     el 20,12 72x16
       text "Keymap" 20,12 72x16
-    text "\u{F2AF}" 104,12 16x16
+    text label="chevron_right" "\u{F2AF}" 104,12 16x16
 # link row, disabled
 el 0,0 140x40
   el #c role=button label="Keymap" 10,2 120x36 disabled
     el 20,12 72x16
       text "Keymap" 20,12 72x16
-    text "\u{F2AF}" 104,12 16x16
+    text label="chevron_right" "\u{F2AF}" 104,12 16x16
 # expander, rest
 el 0,0 140x40
   el #c 10,2 120x36
     el role=button label="More" 10,2 120x36 expanded=false
       el 20,12 72x16
         text "More" 20,12 72x16
-      text "\u{F2A2}" 104,12 16x16
+      text label="chevron_down" "\u{F2A2}" 104,12 16x16
 # expander, hover
 el 0,0 140x40
   el #c 10,2 120x36
     el role=button label="More" 10,2 120x36 expanded=false hovered
       el 20,12 72x16
         text "More" 20,12 72x16
-      text "\u{F2A2}" 104,12 16x16
+      text label="chevron_down" "\u{F2A2}" 104,12 16x16
 # expander, pressed
 el 0,0 140x40
   el #c 10,2 120x36
     el role=button label="More" 10,2 120x36 expanded=false hovered focused
       el 20,12 72x16
         text "More" 20,12 72x16
-      text "\u{F2A2}" 104,12 16x16
+      text label="chevron_down" "\u{F2A2}" 104,12 16x16
 # expander, focused
 el 0,0 140x40
   el #c 10,2 120x36
     el role=button label="More" 10,2 120x36 expanded=false focused
       el 20,12 72x16
         text "More" 20,12 72x16
-      text "\u{F2A2}" 104,12 16x16
+      text label="chevron_down" "\u{F2A2}" 104,12 16x16
 # expander, disabled
 el 0,0 140x40
   el #c 10,2 120x36
     el role=button label="More" 10,2 120x36 disabled expanded=false
       el 20,12 72x16
         text "More" 20,12 72x16
-      text "\u{F2A2}" 104,12 16x16
+      text label="chevron_down" "\u{F2A2}" 104,12 16x16
 # radio, rest
 el 0,0 140x40
   el #c role=radiogroup 31,10 78x20
@@ -454,45 +499,45 @@ el 0,0 140x40
     text role=spinbutton "4" 20,8 100x24
     el 76,10 42x20
       el role=button label="Decrease" 76,10 20x20
-        text "\u{EBCF}" 78,12 16x16
+        text label="subtract" "\u{EBCF}" 78,12 16x16
       el role=button label="Increase" 98,10 20x20
-        text "\u{F108}" 100,12 16x16
+        text label="add" "\u{F108}" 100,12 16x16
 # number, hover
 el 0,0 140x40
   el #c 20,8 100x24
     text role=spinbutton "4" 20,8 100x24 hovered
     el 76,10 42x20
       el role=button label="Decrease" 76,10 20x20
-        text "\u{EBCF}" 78,12 16x16
+        text label="subtract" "\u{EBCF}" 78,12 16x16
       el role=button label="Increase" 98,10 20x20
-        text "\u{F108}" 100,12 16x16
+        text label="add" "\u{F108}" 100,12 16x16
 # number, pressed
 el 0,0 140x40
   el #c 20,8 100x24
     text role=spinbutton "4" 20,8 100x24 hovered focused caret 1
     el 76,10 42x20
       el role=button label="Decrease" 76,10 20x20
-        text "\u{EBCF}" 78,12 16x16
+        text label="subtract" "\u{EBCF}" 78,12 16x16
       el role=button label="Increase" 98,10 20x20
-        text "\u{F108}" 100,12 16x16
+        text label="add" "\u{F108}" 100,12 16x16
 # number, focused
 el 0,0 140x40
   el #c 20,8 100x24
     text role=spinbutton "4" 20,8 100x24 focused caret 1
     el 76,10 42x20
       el role=button label="Decrease" 76,10 20x20
-        text "\u{EBCF}" 78,12 16x16
+        text label="subtract" "\u{EBCF}" 78,12 16x16
       el role=button label="Increase" 98,10 20x20
-        text "\u{F108}" 100,12 16x16
+        text label="add" "\u{F108}" 100,12 16x16
 # number, disabled
 el 0,0 140x40
   el #c 20,8 100x24
     text role=spinbutton "4" 20,8 100x24 disabled
     el 76,10 42x20
       el role=button label="Decrease" 76,10 20x20 disabled
-        text "\u{EBCF}" 78,12 16x16
+        text label="subtract" "\u{EBCF}" 78,12 16x16
       el role=button label="Increase" 98,10 20x20 disabled
-        text "\u{F108}" 100,12 16x16
+        text label="add" "\u{F108}" 100,12 16x16
 # slider, rest
 el 0,0 140x40
   el #c role=slider label="Size" 10,8 120x24 value="13"
@@ -529,7 +574,7 @@ el 0,0 140x40
     el #item-0 role=option label="orders" 10,6 120x28 selected pos=1/1
       el 10,8 120x24
         el 12,12 2x16
-        text "\u{EBF4}" 18,12 16x16
+        text label="table" "\u{EBF4}" 18,12 16x16
         text "orders" 38,12 67x16
         text "12" 109,12 13x16
 # nav list, hover
@@ -538,7 +583,7 @@ el 0,0 140x40
     el #item-0 role=option label="orders" 10,6 120x28 selected pos=1/1 hovered
       el 10,8 120x24
         el 12,12 2x16
-        text "\u{EBF4}" 18,12 16x16
+        text label="table" "\u{EBF4}" 18,12 16x16
         text "orders" 38,12 67x16
         text "12" 109,12 13x16
 # nav list, pressed
@@ -547,7 +592,7 @@ el 0,0 140x40
     el #item-0 role=option label="orders" 10,6 120x28 selected pos=1/1 hovered
       el 10,8 120x24
         el 12,12 2x16
-        text "\u{EBF4}" 18,12 16x16
+        text label="table" "\u{EBF4}" 18,12 16x16
         text "orders" 38,12 67x16
         text "12" 109,12 13x16
 # nav list, focused
@@ -556,7 +601,7 @@ el 0,0 140x40
     el #item-0 role=option label="orders" 10,6 120x28 selected pos=1/1
       el 10,8 120x24
         el 12,12 2x16
-        text "\u{EBF4}" 18,12 16x16
+        text label="table" "\u{EBF4}" 18,12 16x16
         text "orders" 38,12 67x16
         text "12" 109,12 13x16
 # nav list, disabled
@@ -565,6 +610,6 @@ el 0,0 140x40
     el #item-0 role=option label="orders" 10,6 120x28 selected pos=1/1
       el 10,8 120x24
         el 12,12 2x16
-        text "\u{EBF4}" 18,12 16x16
+        text label="table" "\u{EBF4}" 18,12 16x16
         text "orders" 38,12 67x16
         text "12" 109,12 13x16

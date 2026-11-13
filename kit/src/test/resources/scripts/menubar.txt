@@ -1,0 +1,15 @@
+# The menu bar of kit's studio (MenuBarTest), in the title bar of a frameless window: File opened
+# by a press on its title, then Edit by moving the pointer onto its title.
+frame
+press #query                    # the field has the focus, which the menus give back
+press #title-0                  # File opens below its title and takes the focus
+frame
+advance 0.25                    # past the theme's fade
+frame
+snap open
+
+move #title-1                   # onto Edit: its menu replaces File's at once
+frame
+advance 0.25                    # past the theme's fade
+frame
+snap switched

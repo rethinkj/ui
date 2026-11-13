@@ -6,6 +6,7 @@ import static com.rethinkj.ui.kit.Theme.over;
 
 import com.rethinkj.ui.Cursor;
 import com.rethinkj.ui.El;
+import com.rethinkj.ui.Key;
 import com.rethinkj.ui.Side;
 import com.rethinkj.ui.Style;
 import java.util.ArrayList;
@@ -15,14 +16,17 @@ import java.util.function.IntConsumer;
 /**
  * A button that shows the current choice and opens a {@link Menu} of all choices below it, at
  * least as wide as the button, with the current one checked and highlighted. A press on the
- * button, Enter, Space, Arrow Down and Arrow Up open it; the menu's keys and pointer choose. The
- * app keeps the choice and the menu's {@link Menu.State}. In a tree dump it is {@code
- * role=combobox} with the current choice as the label, and its menu's items are the choices.
+ * button, Enter, Space, Alt+Arrow Down and Alt+Arrow Up open it; the menu's keys and pointer
+ * choose, and Alt+Arrow Down or Up close it again. While it is closed and has the focus, Arrow
+ * Down and Arrow Up choose the next and the previous choice, Home and End the first and the last,
+ * and a letter or digit the next choice that starts with it, as an open menu goes to it. The app
+ * keeps the choice and the menu's {@link Menu.State}. In a tree dump it is {@code role=combobox}
+ * with the current choice as the label, and its menu's items are the choices.
  */
 public final class Select {
 
   /** The mark at the right of the button. */
-  public static final String OPENS = "▼";
+  public static final Symbol OPENS = Symbol.CHEVRON_DOWN;
 
   private Select() {}
 
@@ -36,7 +40,6 @@ public final class Select {
       Theme t, List<String> choices, int selected, Menu.State state, IntConsumer onSelect) {
     boolean enabled = onSelect != null;
     String text = selected >= 0 && selected < choices.size() ? choices.get(selected) : "";
-    Theme.TextStyle mono = t.type().mono();
     int fill = t.surface().raised();
     El select = row().role("combobox").label(text)
         .disabled(!enabled)
@@ -52,14 +55,13 @@ public final class Select {
         .motion(t.motion().feedback())
         .children(
             label(t, text).color(enabled ? t.text().primary() : t.text().disabled()).grow(1),
-            El.text(OPENS).font(mono.font().get()).fontSize(mono.size())
-                .color(enabled ? t.text().muted() : t.text().disabled()));
+            Icon.icon(t, OPENS, enabled ? Icon.Variant.MUTED : Icon.Variant.DISABLED));
     if (!enabled) {
       return select;
     }
     Runnable open = () -> {
       state.open();
-      state.active = selected;
+      state.highlight(0, selected);
     };
     List<Menu.Item> items = new ArrayList<>();
     for (int i = 0; i < choices.size(); i++) {
@@ -70,11 +72,34 @@ public final class Select {
         .cursor(Cursor.POINTER)
         .onPress(open)
         .onKey(k -> {
-          if (k.modifiers() != 0 || state.isOpen()
-              || !k.name().equals("ArrowDown") && !k.name().equals("ArrowUp")) {
+          boolean arrow = k.name().equals("ArrowDown") || k.name().equals("ArrowUp");
+          if (arrow && k.modifiers() == Key.ALT) {
+            if (state.isOpen()) {
+              state.close();
+            } else {
+              open.run();
+            }
+            return true;
+          }
+          if (k.modifiers() != 0 || state.isOpen() || choices.isEmpty()) {
             return false;
           }
-          open.run();
+          int last = choices.size() - 1;
+          int next = switch (k.name()) {
+            case "ArrowDown" -> Math.min(selected + 1, last);
+            case "ArrowUp" -> Math.max(selected - 1, 0);
+            case "Home" -> 0;
+            case "End" -> last;
+            default -> k.name().length() == 1 && Character.isLetterOrDigit(k.name().charAt(0))
+                ? Menu.startingWith(items, selected, k.name())
+                : -2;
+          };
+          if (next == -2) {
+            return false;
+          }
+          if (next >= 0 && next != selected) {
+            onSelect.accept(next);
+          }
           return true;
         })
         .whenHovered(e -> e.fill(over(fill, t.surface().hover())))

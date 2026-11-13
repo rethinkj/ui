@@ -73,6 +73,12 @@ class ThemeTest {
         "grid selected inactive", g.selectedInactive());
     check(failures, "primary text", t.text().primary(), grid, 4.5);
     check(failures, "muted text", t.text().muted(), grid, 4.5);
+    // Icons in the header and the cells, graphics that say something (WCAG 1.4.11), in the
+    // colours a column gives them, also on the selection and under the pointer.
+    Map.of("normal icon", t.text().primary(), "muted icon", t.text().muted(),
+        "danger icon", t.status().danger(), "warning icon", t.status().warning(),
+        "success icon", t.status().success())
+        .forEach((what, colour) -> check(failures, what, colour, grid, 3));
     // The cursor's outline on the rows, under the pointer, and on the selection, which fills
     // selected cells as it fills selected rows.
     check(failures, "grid cursor", g.cursor(), Map.of(

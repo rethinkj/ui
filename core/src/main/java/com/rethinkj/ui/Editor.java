@@ -9,7 +9,8 @@ import java.util.Locale;
 /**
  * The editing state of one {@link El#editable} element, which {@link App} keeps by the element's
  * identity across rebuilds, as it keeps scroll offsets: the caret and the anchor of the selection,
- * the horizontal scroll, the undo history and the composition of an input method in progress.
+ * the horizontal scroll, the undo history and the composition of an input method in progress, and
+ * for a {@link El#multiline multi-line} field where its lines start ({@link Lines}).
  *
  * <p>The string belongs to the app. An edit computes the new string and hands it to the element's
  * handler; the next tree the view builds shows what the app made of it. {@link #attach} compares
@@ -21,14 +22,23 @@ import java.util.Locale;
  * <p>Positions are indexes into the Java string. The caret only stops at grapheme boundaries
  * ({@link BreakIterator#getCharacterInstance}), so it never splits a surrogate pair, a letter from
  * its combining mark or an emoji sequence, and Backspace removes a whole grapheme. Words come from
- * {@link BreakIterator#getWordInstance}: a segment with a letter or a digit is a word.
+ * {@link BreakIterator#getWordInstance}: a segment with a letter or a digit is a word. The JDK's
+ * grapheme iterator reads its whole text when it is set, so a multi-line field asks it about the
+ * line of a position alone, which a line feed bounds on both sides.
  *
- * <p>The editing works on strings and does not assume one line, except where a single-line field
- * turns line breaks into spaces and Home and End go to the ends of the text.
+ * <p>A single-line field turns line breaks into spaces, and Home and End go to the ends of the
+ * text. A multi-line field keeps them as line feeds, turning a carriage return with its line feed,
+ * a carriage return alone and the separators U+2028 and U+2029 into one ({@link #multiLine}), in
+ * typed and pasted text and in the app's string, which the field shows and edits so: the first
+ * edit hands the app the string with line feeds only.
+ *
+ * <p>The history holds edits, not states: where an edit replaced what by what, with the caret and
+ * the anchor before and after, so that the steps of a long text do not each hold a copy of it.
+ * Typing and deleting in a run grow one step; undo and redo replace back.
  *
  * <p>A {@link El#masked masked} field edits its real string as any other, but copies and cuts
  * nothing, and takes its whole string as one word, so that the keys and presses that go by words
- * do not show where its words are. The string, the states of the undo history and the
+ * do not show where its words are. The string, the steps of the undo history and the
  * composition stay in memory as they are, as the app's state does: masking hides the string from
  * the screen, the clipboard, the tree dump and the fonts, not from the process.
  */
@@ -55,32 +65,65 @@ final class Editor {
 
   private record State(String text, int caret, int anchor) {}
 
+  /**
+   * A step of the history: {@code removed} at {@code at} replaced by {@code inserted}, with the
+   * caret and the anchor before and after.
+   */
+  private record Step(int at, String removed, String inserted, int caretBefore, int anchorBefore,
+      int caretAfter, int anchorAfter) {}
+
   private El el; // in the current tree, for its handler and settings
   private String text;
   private int caret;
   private int anchor;
-  // The state before the first edit that no tree has answered yet, and what the last one proposed.
+  private Lines lines; // of text, in a multi-line field; null otherwise
+  // The state before the first edit that no tree has answered yet, the history as it was then, and
+  // what the last edit proposed.
   private State before;
+  private ArrayDeque<Step> undoBefore;
+  private ArrayDeque<Step> redoBefore;
   private String proposed;
-  private final ArrayDeque<State> undo = new ArrayDeque<>();
-  private final ArrayDeque<State> redo = new ArrayDeque<>();
+  private ArrayDeque<Step> undo = new ArrayDeque<>();
+  private ArrayDeque<Step> redo = new ArrayDeque<>();
   private Run run;
   private String composition = "";
   private int compositionCursor;
-  // What the pointer selects by while it is down: 1 graphemes, 2 words, 3 everything; and the range
-  // the press selected, which a drag by words keeps.
+  // What the pointer selects by while it is down: 1 graphemes, 2 words, 3 everything or, in a
+  // multi-line field, lines, and 4 everything; and the range the press selected, which a drag by
+  // words or lines keeps.
   private int unit = 1;
   private int pressFrom;
   private int pressTo;
   private float scroll; // in logical pixels
   private boolean changed;
+  // A multi-line field: whether the caret has moved since it was last shown, which scrolls it into
+  // view; the x Up and Down keep, in physical pixels, NaN until they move; whether Tab moves the
+  // focus after Escape, or after Control+M until the next Control+M.
+  private boolean reveal;
+  private float goal = Float.NaN;
+  private boolean escaped;
+  private boolean tabMovesFocus;
+  // The app's last string and what the field made of it, and the string with the composition.
+  private String raw;
+  private String normalized;
+  private String shownFor;
+  private String shownComposition;
+  private int shownStart;
+  private int shownEnd;
+  private String shownText;
+  private Lines shownLines;
 
-  /** A new editor with the caret at the end of the element's string. */
+  /**
+   * A new editor with the caret at the end of the element's string, or at its start in a
+   * multi-line field, whose text may be long.
+   */
   Editor(El el) {
     this.el = el;
-    this.text = el.text().value();
-    this.caret = text.length();
+    boolean multi = el.text().multiline();
+    this.text = multi ? normalized(el.text().value()) : el.text().value();
+    this.caret = multi ? 0 : text.length();
     this.anchor = caret;
+    this.lines = multi ? Lines.of(text) : null;
   }
 
   // ---- The element
@@ -91,8 +134,43 @@ final class Editor {
    */
   void attach(El el) {
     this.el = el;
-    answer(el.text().value());
-    el.text().compose(composition.isEmpty() ? null : shown());
+    Text t = el.text();
+    if (!t.multiline()) {
+      lines = null;
+      answer(t.value());
+      t.compose(composition.isEmpty() ? null : shown());
+      return;
+    }
+    String value = t.value();
+    answer(value == proposed || value == text ? value : normalized(value));
+    t.edited(text, lines());
+    showComposition();
+  }
+
+  /** The app's string with line feeds only; the same object while the app's string is. */
+  private String normalized(String value) {
+    if (value != raw) {
+      raw = value;
+      normalized = multiLine(value);
+    }
+    return normalized;
+  }
+
+  private boolean multiline() {
+    return el.text().multiline();
+  }
+
+  /** The lines of the text, made when a multi-line field first needs them. */
+  private Lines lines() {
+    if (lines == null) {
+      lines = Lines.of(text);
+    }
+    return lines;
+  }
+
+  /** For tests: the lines of a multi-line field's text, and how many the field shaped. */
+  Lines lineIndex() {
+    return lines;
   }
 
   /** Whether an edit waits for the app's answer, the string of the next tree. */
@@ -108,20 +186,28 @@ final class Editor {
    */
   private void answer(String value) {
     if (proposed != null) {
-      if (value.equals(before.text) && !value.equals(proposed)) {
+      // The answer is usually the proposal itself, which the first comparison finds at once.
+      if (!value.equals(proposed) && value.equals(before.text)) {
         // Refused: as if the edits had not happened.
         caret = before.caret;
         anchor = before.anchor;
-        if (!undo.isEmpty() && undo.peek().text.equals(value)) {
-          undo.pop();
-        }
+        undo = undoBefore;
+        redo = redoBefore;
         run = null;
+        relined(value);
       } else if (!value.equals(proposed)) {
+        // Changed: one step from before the edits to what the app made of them.
         caret = map(caret, proposed, value);
         anchor = map(anchor, proposed, value);
+        undo = undoBefore;
+        redo = new ArrayDeque<>();
+        push(undo, diff(before, value, caret, anchor));
         run = null;
+        relined(value);
       }
       before = null;
+      undoBefore = null;
+      redoBefore = null;
       proposed = null;
     } else if (!value.equals(text)) {
       // Changed by the app on its own: the history no longer leads to it.
@@ -130,10 +216,37 @@ final class Editor {
       undo.clear();
       redo.clear();
       run = null;
+      relined(value);
     }
     text = value;
-    caret = snap(text, caret);
-    anchor = snap(text, anchor);
+    caret = snap(caret);
+    anchor = snap(anchor);
+  }
+
+  /** The lines are found again in a string that no edit led to. */
+  private void relined(String value) {
+    if (lines != null) {
+      lines = Lines.of(value);
+      reveal = true;
+    }
+  }
+
+  /** The step from a state to a string that differs from its text in one place. */
+  private static Step diff(State from, String to, int caretAfter, int anchorAfter) {
+    String a = from.text;
+    int prefix = 0;
+    int shorter = Math.min(a.length(), to.length());
+    while (prefix < shorter && a.charAt(prefix) == to.charAt(prefix)) {
+      prefix++;
+    }
+    int suffix = 0;
+    while (suffix < shorter - prefix
+        && a.charAt(a.length() - 1 - suffix) == to.charAt(to.length() - 1 - suffix)) {
+      suffix++;
+    }
+    return new Step(prefix, a.substring(prefix, a.length() - suffix),
+        to.substring(prefix, to.length() - suffix), from.caret, from.anchor, caretAfter,
+        anchorAfter);
   }
 
   /** Whether the element takes edits: it has a handler and is not read-only. */
@@ -144,6 +257,30 @@ final class Editor {
   /** The string with the composition in place of the selection. */
   private String shown() {
     return text.substring(0, start()) + composition + text.substring(end());
+  }
+
+  /**
+   * Shows the composition in a multi-line field's text, with the lines of the string it makes,
+   * which are made again only when text, selection or composition change.
+   */
+  private void showComposition() {
+    Text t = el.text();
+    if (composition.isEmpty()) {
+      shownFor = null;
+      t.compose(null, null);
+      return;
+    }
+    if (shownFor != text || shownComposition != composition || shownStart != start()
+        || shownEnd != end()) {
+      shownFor = text;
+      shownComposition = composition;
+      shownStart = start();
+      shownEnd = end();
+      shownText = shown();
+      shownLines = lines().copy();
+      shownLines.edit(start(), end() - start(), composition);
+    }
+    t.compose(shownText, shownLines);
   }
 
   /** The first and the last position of the selection; equal when nothing is selected. */
@@ -178,11 +315,17 @@ final class Editor {
     return was;
   }
 
+  /** The element gained the focus: a multi-line field scrolls its caret into view. */
+  void focusGained() {
+    reveal = true;
+  }
+
   /** The element lost the focus: a composition ends without being committed. */
   void blur() {
     composition = "";
     run = null;
     unit = 1;
+    escaped = false;
     changed = true;
   }
 
@@ -203,25 +346,34 @@ final class Editor {
    *
    * @return whether the key was the field's: its own keys, and keys that type, whose text comes
    *     separately; Enter, Escape, Tab and shortcuts with Control, Alt or Meta that the field does
-   *     not know go on to the handlers
+   *     not know go on to the handlers. A multi-line field takes Enter, which breaks the line, but
+   *     not Control+Enter, and Tab only when it {@link El#tabIndents indents} with it
    */
   boolean key(Key key, Clipboard clipboard) {
     String name = key.name();
     int modifiers = key.modifiers();
     boolean shift = (modifiers & Key.SHIFT) != 0;
     int other = modifiers & ~Key.SHIFT;
+    boolean afterEscape = escaped;
+    escaped = false;
     if (!composition.isEmpty()) {
       return !name.equals("Tab"); // the input method has the keys while it composes
     }
     boolean word = other == Key.CONTROL;
     boolean plain = other == 0 || word;
+    if (multiline()) {
+      Boolean taken = lineKey(name, modifiers, shift, other, afterEscape);
+      if (taken != null) {
+        return taken;
+      }
+    }
     switch (name) {
       case "ArrowLeft" -> {
         if (!plain) {
           return false;
         }
         int to = word ? wordStart()
-            : caret != anchor && !shift ? start() : previous(text, caret);
+            : caret != anchor && !shift ? start() : previous(caret);
         moveTo(to, shift);
         return true;
       }
@@ -230,7 +382,7 @@ final class Editor {
           return false;
         }
         int to = word ? wordEnd()
-            : caret != anchor && !shift ? end() : next(text, caret);
+            : caret != anchor && !shift ? end() : next(caret);
         moveTo(to, shift);
         return true;
       }
@@ -252,14 +404,14 @@ final class Editor {
         if (!plain) {
           return false;
         }
-        delete(word ? wordStart() : previous(text, caret));
+        delete(word ? wordStart() : previous(caret));
         return true;
       }
       case "Delete" -> {
         if (modifiers == Key.SHIFT) {
           cut(clipboard);
         } else if (other == 0 || word && !shift) {
-          delete(word ? wordEnd() : next(text, caret));
+          delete(word ? wordEnd() : next(caret));
         } else {
           return false;
         }
@@ -305,12 +457,186 @@ final class Editor {
             || name.startsWith("Numpad"));
   }
 
+  /**
+   * The keys of a multi-line field that a single-line one does not have, or has otherwise; null
+   * for the others.
+   */
+  private Boolean lineKey(String name, int modifiers, boolean shift, int other,
+      boolean afterEscape) {
+    Text t = el.text();
+    switch (name) {
+      case "Enter", "NumpadEnter" -> {
+        if (other != 0) {
+          return false; // Control+Enter runs what the app runs with it
+        }
+        if (editable()) {
+          replace("\n", null);
+        }
+        return true;
+      }
+      case "ArrowUp", "ArrowDown", "PageUp", "PageDown" -> {
+        if (other != 0) {
+          return false;
+        }
+        boolean page = name.startsWith("Page");
+        int direction = name.endsWith("Up") ? -1 : 1;
+        int rows = page ? t.visibleRows() : 1;
+        float x = Float.isNaN(goal) ? t.x(caret) : goal;
+        int to = text.isEmpty() ? 0 : t.moveRows(caret, direction * rows, x);
+        if (page) { // the view moves by as much, so that the caret stays where it is in it
+          el.scrollTo(el.scrollX(), el.scrollY() + direction * rows * t.lineHeight() / t.scale());
+        }
+        moveTo(to, shift);
+        goal = x;
+        return true;
+      }
+      case "Home" -> {
+        if (other != 0) {
+          return null; // Control+Home: to the start of the text
+        }
+        int row = text.isEmpty() ? 0 : t.rowStart(caret);
+        int to = row;
+        if (caret == row && t.startsLine(caret)) {
+          int indent = row; // a second Home goes to the first character that is not blank
+          while (indent < text.length() && (text.charAt(indent) == ' '
+              || text.charAt(indent) == '\t')) {
+            indent++;
+          }
+          to = indent;
+        }
+        moveTo(to, shift);
+        return true;
+      }
+      case "End" -> {
+        if (other != 0) {
+          return null;
+        }
+        moveTo(text.isEmpty() ? 0 : t.rowEnd(caret), shift);
+        return true;
+      }
+      case "Escape" -> {
+        escaped = true; // a Tab right after it moves the focus
+        return false;
+      }
+      case "Tab" -> {
+        if (!el.tabIndents() || tabMovesFocus || afterEscape || !editable()
+            || (modifiers & ~Key.SHIFT) != 0) {
+          return false;
+        }
+        int first = lines().line(start());
+        if (shift || lines.line(end()) > first) {
+          indent(shift);
+        } else {
+          insertTab();
+        }
+        return true;
+      }
+      case "M" -> {
+        if (modifiers != Key.CONTROL || !el.tabIndents()) {
+          return null;
+        }
+        tabMovesFocus = !tabMovesFocus;
+        return true;
+      }
+      default -> {
+        return null;
+      }
+    }
+  }
+
   private int lineStart(int at) {
-    return 0; // shortcut: a single-line field; a multi-line one goes to the start of the line
+    return 0; // a single-line field; a multi-line one goes by rows, see lineKey
   }
 
   private int lineEnd(int at) {
     return text.length();
+  }
+
+  /** A tab, or spaces up to the next tab stop, in place of the selection. */
+  private void insertTab() {
+    if (!el.tabSpaces()) {
+      replace("\t", Run.TYPING);
+      return;
+    }
+    int size = el.text().tabSize();
+    int column = 0;
+    for (int i = lines().start(lines.line(start())); i < start(); ) {
+      int c = text.codePointAt(i);
+      column = c == '\t' ? (column / size + 1) * size : column + 1;
+      i += Character.charCount(c);
+    }
+    replace(" ".repeat(size - column % size), Run.TYPING);
+  }
+
+  /**
+   * Indents the lines of the selection, or of the caret, by a tab or {@link El#tabSize} spaces, or
+   * outdents them by as much as one of those, in one step of the history. A selection that ends at
+   * the start of a line leaves that line out; indenting leaves empty lines empty.
+   */
+  private void indent(boolean out) {
+    Lines ls = lines();
+    int first = ls.line(start());
+    int last = ls.line(end());
+    if (last > first && end() == ls.start(last)) {
+      last--;
+    }
+    int size = el.text().tabSize();
+    String unit = el.tabSpaces() ? " ".repeat(size) : "\t";
+    int from = ls.start(first);
+    int to = ls.end(last);
+    StringBuilder block = new StringBuilder();
+    int delta = 0;
+    int newCaret = caret > to ? caret : -1;
+    int newAnchor = anchor > to ? anchor : -1;
+    for (int l = first; l <= last; l++) {
+      int start = ls.start(l);
+      int end = ls.end(l);
+      int change;
+      if (!out) {
+        change = end > start ? unit.length() : 0;
+        block.append(change > 0 ? unit : "");
+        block.append(text, start, end);
+      } else {
+        int k = 0;
+        if (start < end && text.charAt(start) == '\t') {
+          k = 1;
+        } else {
+          while (k < size && start + k < end && text.charAt(start + k) == ' ') {
+            k++;
+          }
+        }
+        change = -k;
+        block.append(text, start + k, end);
+      }
+      if (l < last) {
+        block.append('\n');
+      }
+      if (newCaret < 0 && caret <= end) {
+        newCaret = moved(caret, start, change, delta);
+      }
+      if (newAnchor < 0 && anchor <= end) {
+        newAnchor = moved(anchor, start, change, delta);
+      }
+      delta += change;
+    }
+    if (caret > to) {
+      newCaret = caret + delta;
+    }
+    if (anchor > to) {
+      newAnchor = anchor + delta;
+    }
+    if (delta == 0 && block.length() == to - from) {
+      return; // nothing to outdent
+    }
+    run = null;
+    edit(from, to - from, block.toString(), newCaret, newAnchor, null, false);
+  }
+
+  /** Where a position of a line goes when {@code change} characters go in or out at its start. */
+  private static int moved(int at, int lineStart, int change, int delta) {
+    int column = at - lineStart;
+    int moved = change >= 0 ? (column > 0 ? column + change : 0) : Math.max(column + change, 0);
+    return lineStart + delta + moved;
   }
 
   // ---- Edits
@@ -320,10 +646,16 @@ final class Editor {
     boolean composed = !composition.isEmpty();
     composition = "";
     changed |= composed;
+    reveal |= composed;
     if (!editable()) {
       return composed;
     }
-    return replace(singleLine(typed), Run.TYPING) || composed;
+    return replace(fitLines(typed), Run.TYPING) || composed;
+  }
+
+  /** Line breaks as the field keeps them: spaces in a single-line field, line feeds otherwise. */
+  private String fitLines(String text) {
+    return multiline() ? multiLine(text) : singleLine(text);
   }
 
   /**
@@ -337,10 +669,11 @@ final class Editor {
     if (!editable() || composing.isEmpty() && composition.isEmpty()) {
       return false;
     }
-    composition = singleLine(composing);
+    composition = fitLines(composing);
     compositionCursor = cursor < 0 ? composition.length() : Math.min(cursor, composition.length());
     run = null;
     changed = true;
+    reveal = true;
     return true;
   }
 
@@ -348,6 +681,7 @@ final class Editor {
     anchor = 0;
     caret = text.length();
     run = null;
+    goal = Float.NaN;
     changed = true;
   }
 
@@ -368,34 +702,36 @@ final class Editor {
 
   void paste(Clipboard clipboard) {
     if (editable()) {
-      replace(singleLine(clipboard.read()), null);
+      replace(fitLines(clipboard.read()), null);
     }
   }
 
   void undo() {
     if (editable() && !undo.isEmpty()) {
-      push(redo, new State(text, caret, anchor));
-      restore(undo.pop());
+      Step step = undo.pop();
+      // Redo comes back to the caret and selection of now, as undo to those before the edit.
+      push(redo, new Step(step.at, step.removed, step.inserted, step.caretBefore,
+          step.anchorBefore, caret, anchor));
+      propose(step.at, step.inserted.length(), step.removed, step.caretBefore, step.anchorBefore);
+      run = null;
     }
   }
 
   void redo() {
     if (editable() && !redo.isEmpty()) {
-      push(undo, new State(text, caret, anchor));
-      restore(redo.pop());
+      Step step = redo.pop();
+      push(undo, new Step(step.at, step.removed, step.inserted, caret, anchor, step.caretAfter,
+          step.anchorAfter));
+      propose(step.at, step.removed.length(), step.inserted, step.caretAfter, step.anchorAfter);
+      run = null;
     }
   }
 
-  private static void push(ArrayDeque<State> history, State state) {
-    history.push(state);
+  private static void push(ArrayDeque<Step> history, Step step) {
+    history.push(step);
     while (history.size() > HISTORY) {
       history.removeLast();
     }
-  }
-
-  private void restore(State state) {
-    propose(state.text, state.caret, state.anchor);
-    run = null;
   }
 
   /** Deletes the selection, or from the caret to {@code to}. */
@@ -411,8 +747,7 @@ final class Editor {
       return;
     }
     int from = Math.min(to, caret);
-    String next = text.substring(0, from) + text.substring(Math.max(to, caret));
-    edit(next, from, from, Run.DELETING, run == Run.DELETING);
+    edit(from, Math.max(to, caret) - from, "", from, from, Run.DELETING, run == Run.DELETING);
   }
 
   /**
@@ -428,31 +763,68 @@ final class Editor {
     if (inserted.isEmpty() && from == to) {
       return false;
     }
-    String next = text.substring(0, from) + inserted + text.substring(to);
     int at = from + inserted.length();
-    edit(next, at, at, kind, kind != null && kind == run && from == to);
+    edit(from, to - from, inserted, at, at, kind, kind != null && kind == run && from == to);
     return true;
   }
 
-  private void edit(String next, int newCaret, int newAnchor, Run kind, boolean coalesce) {
-    if (!coalesce) {
-      push(undo, new State(text, caret, anchor));
+  /**
+   * Replaces {@code removed} characters at {@code at} by {@code inserted}, as a step of the history
+   * of its own or, with {@code coalesce}, as part of the run the last step holds where it adjoins
+   * it.
+   */
+  private void edit(int at, int removed, String inserted, int newCaret, int newAnchor, Run kind,
+      boolean coalesce) {
+    if (before == null) { // the history as it was, for an edit the app refuses
+      undoBefore = new ArrayDeque<>(undo);
+      redoBefore = new ArrayDeque<>(redo);
+    }
+    String gone = text.substring(at, at + removed);
+    Step top = coalesce ? undo.peek() : null;
+    Step merged = null;
+    if (top != null && removed == 0 && at == top.at + top.inserted.length()) { // typing on
+      merged = new Step(top.at, top.removed, top.inserted + inserted, top.caretBefore,
+          top.anchorBefore, newCaret, newAnchor);
+    } else if (top != null && inserted.isEmpty() && top.inserted.isEmpty()) {
+      if (at + removed == top.at) { // Backspace on
+        merged = new Step(at, gone + top.removed, "", top.caretBefore, top.anchorBefore, newCaret,
+            newAnchor);
+      } else if (at == top.at) { // Delete on
+        merged = new Step(at, top.removed + gone, "", top.caretBefore, top.anchorBefore,
+            newCaret, newAnchor);
+      }
+    }
+    if (merged != null) {
+      undo.pop();
+      undo.push(merged);
+    } else {
+      push(undo, new Step(at, gone, inserted, caret, anchor, newCaret, newAnchor));
     }
     redo.clear();
-    propose(next, newCaret, newAnchor);
+    propose(at, removed, inserted, newCaret, newAnchor);
     run = kind;
   }
 
   /** Hands a new string to the app, which answers with the next tree. */
-  private void propose(String next, int newCaret, int newAnchor) {
+  private void propose(int at, int removed, String inserted, int newCaret, int newAnchor) {
     if (before == null) {
       before = new State(text, caret, anchor);
+      if (undoBefore == null) { // undo and redo
+        undoBefore = new ArrayDeque<>(undo);
+        redoBefore = new ArrayDeque<>(redo);
+      }
+    }
+    String next = text.substring(0, at) + inserted + text.substring(at + removed);
+    if (lines != null) {
+      lines.edit(at, removed, inserted);
     }
     proposed = next;
     text = next;
     caret = newCaret;
     anchor = newAnchor;
     changed = true;
+    reveal = true;
+    goal = Float.NaN;
     el.onEdit().accept(next);
   }
 
@@ -486,6 +858,21 @@ final class Editor {
         .replace(' ', ' ');
   }
 
+  /**
+   * A multi-line field takes each line break as a line feed: a carriage return with the line feed
+   * after it, a carriage return alone, and the separators U+2028 and U+2029. The same string when
+   * it has none.
+   */
+  static String multiLine(String text) {
+    if (text.indexOf('\r') < 0 && text.indexOf(' ') < 0 && text.indexOf(' ') < 0) {
+      return text;
+    }
+    return text.replace("\r\n", "\n")
+        .replace('\r', '\n')
+        .replace(' ', '\n')
+        .replace(' ', '\n');
+  }
+
   // ---- Moves
 
   private void moveTo(int to, boolean extend) {
@@ -494,29 +881,36 @@ final class Editor {
       anchor = to;
     }
     run = null;
+    goal = Float.NaN;
     changed = true;
+    reveal = true;
   }
 
   // ---- The pointer
 
   /**
    * A press: places the caret at {@code boundary}, or selects the word under {@code hit} for a
-   * double click and everything for a triple one; with Shift it moves the caret and keeps the
+   * double click and everything for a triple one, or in a multi-line field the line under it with
+   * its line feed, and everything for a fourth; with Shift it moves the caret and keeps the
    * anchor.
    */
   void press(int boundary, int hit, int clicks, boolean extend) {
     composition = "";
     run = null;
+    goal = Float.NaN;
     changed = true;
+    reveal = true;
     if (extend) {
       unit = 1;
       caret = boundary;
       return;
     }
-    unit = Math.clamp(clicks, 1, 3);
+    boolean multi = multiline();
+    unit = Math.clamp(clicks, 1, multi ? 4 : 3);
     int[] range = switch (unit) {
       case 1 -> new int[] {boundary, boundary};
       case 2 -> wordAt(hit);
+      case 3 -> multi ? lineAt(hit) : new int[] {0, text.length()};
       default -> new int[] {0, text.length()};
     };
     pressFrom = range[0];
@@ -529,10 +923,14 @@ final class Editor {
   boolean drag(int boundary, int hit) {
     int oldCaret = caret;
     int oldAnchor = anchor;
+    boolean multi = multiline();
     switch (unit) {
       case 1 -> caret = boundary;
-      case 2 -> {
-        int[] range = wordAt(hit);
+      case 2, 3 -> {
+        if (unit == 3 && !multi) {
+          break;
+        }
+        int[] range = unit == 2 ? wordAt(hit) : lineAt(hit);
         if (range[0] < pressFrom) {
           anchor = pressTo;
           caret = range[0];
@@ -545,7 +943,15 @@ final class Editor {
     }
     boolean moved = caret != oldCaret || anchor != oldAnchor;
     changed |= moved;
+    reveal |= moved;
     return moved;
+  }
+
+  /** The line of a multi-line field at {@code index}, with its line feed. */
+  private int[] lineAt(int index) {
+    Lines ls = lines();
+    int line = ls.line(Math.clamp(index, 0, text.length()));
+    return new int[] {ls.start(line), line + 1 < ls.count() ? ls.start(line + 1) : text.length()};
   }
 
   /** A position of the shown string as a position of the string. */
@@ -572,6 +978,10 @@ final class Editor {
    * Without the focus the text shows its start, and neither caret nor selection.
    */
   void place(boolean focused, boolean caretOn) {
+    if (multiline()) {
+      placeLines(focused, caretOn);
+      return;
+    }
     Text t = el.text();
     if (t.lineCount() == 0) {
       t.decorate(0, List.of(), null, null); // not placed: display: none
@@ -621,11 +1031,102 @@ final class Editor {
     t.showCaret(caretOn);
   }
 
+  /**
+   * {@link #place} for a multi-line field, which scrolls as a scroll area: the wheel and the bars
+   * move it, and an edit or a move of the caret since the last call scrolls just far enough to
+   * show the caret's row whole and the caret with {@link #MARGIN} to spare sideways. Then the rows
+   * in view are laid out, and the selection is drawn on those.
+   */
+  private void placeLines(boolean focused, boolean caretOn) {
+    Text t = el.text();
+    if (!t.laidOut()) {
+      t.decorate(0, List.of(), null, null); // not placed: display: none
+      return;
+    }
+    float scale = t.scale();
+    int shownCaret = composition.isEmpty() ? caret : start() + compositionCursor;
+    float caretWidth = caretWidth(scale);
+    el.measureScroll();
+    boolean revealed = focused && reveal;
+    if (revealed) {
+      reveal = false;
+      float x = t.x(shownCaret);
+      double top = t.caretTop(shownCaret);
+      double sx = el.scrollX() * scale;
+      double sy = el.scrollY() * scale;
+      float width = t.contentWidth();
+      if (!t.wraps()) {
+        float margin = Math.min(MARGIN * scale, Math.max(0, (width - caretWidth) / 2));
+        if (x - sx < margin) {
+          sx = x - margin;
+        }
+        if (x + caretWidth - sx > width - margin) {
+          sx = x + caretWidth - width + margin;
+        }
+      }
+      float lineHeight = t.lineHeight();
+      if (top < sy) {
+        sy = top;
+      } else if (top + lineHeight > sy + t.contentHeight()) {
+        sy = top + lineHeight - t.contentHeight();
+      }
+      el.measureScroll(); // with the caret's line, which may be the widest so far
+      el.scrollTo(sx / scale, sy / scale);
+    }
+    float shift = t.layOut();
+    if (shift != 0 && !revealed) { // rows above the view were measured: what is in view stays
+      el.measureScroll();
+      el.scrollTo(el.scrollX(), el.scrollY() + shift / scale);
+    }
+    el.measureScroll();
+    el.scrollTo(el.scrollX(), el.scrollY()); // within what the rows in view measured
+    float viewX = t.viewX();
+    List<Text.Box> selection = focused && composition.isEmpty() && caret != anchor
+        ? t.selectionBoxes(start(), end(), viewX + t.contentWidth())
+        : List.of();
+    float lineHeight = t.lineHeight();
+    Text.Box underline = null;
+    if (!composition.isEmpty()) {
+      float from = t.x(start());
+      float to = t.rowStart(start()) == t.rowStart(start() + composition.length())
+          ? t.x(start() + composition.length())
+          : t.x(t.rowEnd(start()));
+      float y = t.shownBaseline(start())
+          + Math.round(t.font().descent() * t.size() * scale / 2);
+      underline = new Text.Box(from - viewX, y, to - from, caretWidth);
+    }
+    Text.Box box = focused
+        ? new Text.Box(t.x(shownCaret) - viewX, t.shownTop(shownCaret), caretWidth, lineHeight)
+        : null;
+    t.decorate(viewX, selection, box, underline);
+    t.showCaret(caretOn);
+  }
+
   /** The caret's offset from the left of the content box, in logical pixels, as drawn. */
   float caretOffset() {
     Text t = el.text();
     int shownCaret = composition.isEmpty() ? caret : start() + compositionCursor;
     return (t.x(shownCaret) - t.scroll()) / t.scale();
+  }
+
+  /**
+   * The top of the caret's row from the top of the content box, in logical pixels, as drawn: in a
+   * multi-line field after its scroll, 0 in a single-line one, whose line is the box.
+   */
+  float caretTopOffset() {
+    Text t = el.text();
+    if (!t.multiline()) {
+      return 0;
+    }
+    int shownCaret = composition.isEmpty() ? caret : start() + compositionCursor;
+    return t.shownTop(shownCaret) / t.scale();
+  }
+
+  /** The caret's line and column, from 1, the column in UTF-16 units; for the tree dump. */
+  int[] lineAndColumn() {
+    Lines ls = lines();
+    int line = ls.line(caret);
+    return new int[] {line + 1, caret - ls.start(line) + 1};
   }
 
   /** Whole physical pixels, at least one. */
@@ -652,6 +1153,52 @@ final class Editor {
   /** The word a double press at {@code hit} selects; all of a masked field. */
   private int[] wordAt(int hit) {
     return masked() ? new int[] {0, text.length()} : word(text, hit);
+  }
+
+  /**
+   * The part of the text that grapheme boundaries near {@code index} depend on: all of a
+   * single-line field, the line of a multi-line one, which a line feed bounds on both sides.
+   */
+  private int[] around(int index) {
+    if (lines == null) {
+      return new int[] {0, text.length()};
+    }
+    int line = lines.line(index);
+    return new int[] {lines.start(line), lines.end(line)};
+  }
+
+  /** The grapheme boundary at or before {@code index}. */
+  private int snap(int index) {
+    index = Math.clamp(index, 0, text.length());
+    int[] part = around(index);
+    if (part[0] == 0 && part[1] == text.length()) {
+      return snap(text, index);
+    }
+    return part[0] + snap(text.substring(part[0], part[1]), index - part[0]);
+  }
+
+  /** The grapheme boundary before {@code index}, or 0; a line feed is one. */
+  private int previous(int index) {
+    if (lines == null || index <= 0) {
+      return previous(text, index);
+    }
+    int[] part = around(index);
+    if (index == part[0]) {
+      return index - 1; // over the line feed before the line
+    }
+    return part[0] + previous(text.substring(part[0], part[1]), index - part[0]);
+  }
+
+  /** The grapheme boundary after {@code index}, or the end; a line feed is one. */
+  private int next(int index) {
+    if (lines == null || index >= text.length()) {
+      return next(text, index);
+    }
+    int[] part = around(index);
+    if (index == part[1]) {
+      return index + 1; // over the line feed after the line
+    }
+    return part[0] + next(text.substring(part[0], part[1]), index - part[0]);
   }
 
   private static BreakIterator characters(String text) {

@@ -33,34 +33,34 @@ el 0,0 880x600
         el #item-0 role=option label="General" 4,36 192x28 pos=1/7
           el 4,38 192x24
             el 6,42 2x16
-            text "\u{F6A8}" 12,42 16x16
+            text label="settings" "\u{F6A8}" 12,42 16x16
             text "General" 32,42 156x16
         el #item-1 role=option label="Appearance" 4,64 192x28 pos=2/7
           el 4,66 192x24
             el 6,70 2x16
-            text "\u{EE5D}" 12,70 16x16
+            text label="window" "\u{EE5D}" 12,70 16x16
             text "Appearance" 32,70 156x16
         el #item-2 role=option label="Editor" 4,92 192x28 pos=3/7
           el 4,94 192x24
             el 6,98 2x16
-            text "\u{F339}" 12,98 16x16
+            text label="code" "\u{F339}" 12,98 16x16
             text "Editor" 32,98 156x16
         el #item-3 role=option label="Connections" 4,120 192x28 pos=4/7
           el 4,122 192x24
             el 6,126 2x16
-            text "\u{F0D7}" 12,126 16x16
+            text label="database" "\u{F0D7}" 12,126 16x16
             text "Connections" 32,126 156x16
         el #item-4 role=option label="Keymap" 4,148 192x28 selected pos=5/7
           el 4,150 192x24
             el 6,154 2x16
-            text "\u{F0274}" 12,154 16x16
+            text label="key_multiple" "\u{F0274}" 12,154 16x16
             text "Keymap" 32,154 156x16
         el #item-5 4,176 192x28
           text "Help" 12,182 29x16
         el #item-6 role=option label="About" 4,204 192x28 pos=7/7
           el 4,206 192x24
             el 6,210 2x16
-            text "\u{F4A2}" 12,210 16x16
+            text label="info" "\u{F4A2}" 12,210 16x16
             text "About" 32,210 156x16
     el role=separator 200,32 1x568
     el 201,32 679x568

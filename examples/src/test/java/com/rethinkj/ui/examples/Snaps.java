@@ -34,33 +34,55 @@ final class Snaps {
    * examples have text.
    */
   static void check(String name, Main main) throws IOException {
+    assumeText();
+    Path out = Path.of("target", name);
+    main.run(new String[] {
+        "--script", SCRIPTS.resolve(name + ".txt").toString(), "--out", out.toString()});
+    compare(out, STORED);
+  }
+
+  /** Skips the test where FreeType and HarfBuzz cannot be loaded, since the examples have text. */
+  static void assumeText() {
     try {
       Font.sans();
     } catch (UnsatisfiedLinkError e) {
       assumeTrue(false, "Skipped: FreeType and HarfBuzz cannot be loaded. " + e.getMessage());
     }
-    Path out = Path.of("target", name);
-    main.run(new String[] {
-        "--script", SCRIPTS.resolve(name + ".txt").toString(), "--out", out.toString()});
+  }
 
+  /** The text of {@code src/test/resources/scripts/<name>.txt}. */
+  static String script(String name) throws IOException {
+    return Files.readString(SCRIPTS.resolve(name + ".txt"));
+  }
+
+  /** {@code src/test/resources/golden}, or a folder in it. */
+  static Path stored(String folder) {
+    return STORED.resolve(folder);
+  }
+
+  /**
+   * Compares each file in {@code out} with the one of the same name in {@code stored}, or with
+   * {@code -Dgolden.update=true} stores it there.
+   */
+  static void compare(Path out, Path stored) throws IOException {
     try (var files = Files.list(out)) {
       for (Path written : files.sorted().toList()) {
-        Path stored = STORED.resolve(written.getFileName());
+        Path kept = stored.resolve(written.getFileName());
         if (Boolean.getBoolean("golden.update")) {
-          Files.createDirectories(STORED);
-          Files.copy(written, stored, StandardCopyOption.REPLACE_EXISTING);
+          Files.createDirectories(stored);
+          Files.copy(written, kept, StandardCopyOption.REPLACE_EXISTING);
           continue;
         }
-        assertTrue(Files.exists(stored), "No stored " + stored + "; run with -Dgolden.update=true");
-        String failure = written.toAbsolutePath() + " differs from " + stored;
+        assertTrue(Files.exists(kept), "No stored " + kept + "; run with -Dgolden.update=true");
+        String failure = written.toAbsolutePath() + " differs from " + kept;
         if (written.toString().endsWith(".png")) {
-          Pixels expected = Png.decode(Files.readAllBytes(stored));
+          Pixels expected = Png.decode(Files.readAllBytes(kept));
           Pixels actual = Png.decode(Files.readAllBytes(written));
           assertEquals(expected.width() + "x" + expected.height(),
               actual.width() + "x" + actual.height(), failure);
           assertTrue(Arrays.equals(expected.rgba(), actual.rgba()), failure);
         } else {
-          assertEquals(Files.readString(stored), Files.readString(written), failure);
+          assertEquals(Files.readString(kept), Files.readString(written), failure);
         }
       }
     }

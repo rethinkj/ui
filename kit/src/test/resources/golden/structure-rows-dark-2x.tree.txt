@@ -5,7 +5,7 @@ el 0,0 520x640
       text "How text looks and behaves while you type" 16,36 488x16
     el 16,60 488x477
       el role=switch label="Word wrap" 19,63 482x60 checked
-        text "\u{ECAE}" 29,85 16x16
+        text label="text_t" "\u{ECAE}" 29,85 16x16
         el 57,69 394x48
           text "Word wrap" 57,69 394x15
           text "Wrap long lines at the edge of the editor instead of scrolling sideways" 57,86 394x31
@@ -22,8 +22,8 @@ el 0,0 520x640
         el 29,179 290x16
           text "Font" 29,179 290x16
         el #font role=combobox label="JetBrains Mono" 331,175 160x24 expanded=false
-          text "JetBrains Mono" 340,179 131x16
-          text "▼" 475,179 7x16
+          text "JetBrains Mono" 340,179 122x16
+          text label="chevron_down" "\u{F2A2}" 466,179 16x16
       el 17,207 486x1
       el 19,210 482x45
         el 29,216 350x33
@@ -33,23 +33,23 @@ el 0,0 520x640
           text role=spinbutton label="Tab size" "4" 391,221 100x24
           el 447,223 42x20
             el role=button label="Decrease" 447,223 20x20
-              text "\u{EBCF}" 449,225 16x16
+              text label="subtract" "\u{EBCF}" 449,225 16x16
             el role=button label="Increase" 469,223 20x20
-              text "\u{F108}" 471,225 16x16
+              text label="add" "\u{F108}" 471,225 16x16
       el 17,257 486x1
       el role=button label="Keymap" 19,260 482x36 value="Default"
-        text "\u{E740}" 29,270 16x16
+        text label="key" "\u{E740}" 29,270 16x16
         el 57,270 350x16
           text "Keymap" 57,270 350x16
         text "Default" 419,270 44x16
-        text "\u{F2AF}" 475,270 16x16
+        text label="chevron_right" "\u{F2AF}" 475,270 16x16
       el 17,298 486x1
       el 19,301 482x183
         el role=button label="Advanced" 19,301 482x45 expanded
           el 29,307 434x33
             text "Advanced" 29,307 434x16
             text "Options most people never change" 29,325 434x15
-          text "\u{F2B5}" 475,316 16x16
+          text label="chevron_up" "\u{F2B5}" 475,316 16x16
         el 17,348 486x1
         el 19,351 482x133
           el role=switch label="Insert spaces" 35,351 466x36 checked

@@ -97,12 +97,16 @@ snap settings-restart
 
 press role=combobox label="Blue"               # the accent's select
 frame
+advance 0.25                                   # past the menu's fade
+frame
 press role=menuitem label="Purple"             # changes the accent of the whole window
 frame
 advance 1
 frame
 snap settings-accent
 press role=combobox label="Purple"
+frame
+advance 0.25
 frame
 press role=menuitem label="Blue"
 frame

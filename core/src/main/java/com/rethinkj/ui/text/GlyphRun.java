@@ -124,6 +124,32 @@ public final class GlyphRun {
     return pen[glyphs.length];
   }
 
+  /**
+   * This run with tab stops, which shaping knows nothing of: the first glyph of each character
+   * whose index is in {@code tabs}, in increasing order, advances to the next multiple of {@code
+   * stop} from the start of the pen, and the glyphs after it move along. The string is shaped with
+   * a space in place of each tab, so that each tab has a glyph that draws nothing.
+   */
+  public GlyphRun tabbed(int[] tabs, float stop) {
+    int n = glyphs.length;
+    float[] moved = new float[n + 1];
+    float shift = 0;
+    int t = 0;
+    for (int i = 0; i < n; i++) {
+      moved[i] = pen[i] + shift;
+      while (t < tabs.length && tabs[t] < clusters[i]) {
+        t++; // a tab inside a cluster of right-to-left text, which has no glyph of its own
+      }
+      if (t < tabs.length && tabs[t] == clusters[i] && (i == 0 || clusters[i - 1] != clusters[i])) {
+        float next = (float) ((Math.floor(moved[i] / stop) + 1) * stop);
+        shift += next - moved[i] - (pen[i + 1] - pen[i]);
+        t++;
+      }
+    }
+    moved[n] = pen[n] + shift;
+    return new GlyphRun(font, pixelSize, glyphs, clusters, moved, dx, dy, fonts);
+  }
+
   /** Glyphs {@code from} to {@code to}, exclusive, moved left so that the pen starts at 0. */
   public GlyphRun slice(int from, int to) {
     float start = pen[from];

@@ -32,7 +32,8 @@ final class Overlays {
       s.maxWidth = limit(s.maxWidth, width);
       s.maxHeight = limit(s.maxHeight, height);
       El.Layer l = overlay.placement();
-      if (l.align == Style.Align.STRETCH && !l.centered && Float.isNaN(l.pointX)) {
+      if (l.align == Style.Align.STRETCH && !l.centered && l.edge == null
+          && Float.isNaN(l.pointX)) {
         boolean across = l.side == Side.TOP || l.side == Side.BOTTOM;
         if (across) {
           s.minWidth = Len.px(Math.max(px(s.minWidth), el.width()));
@@ -56,21 +57,25 @@ final class Overlays {
   /**
    * Places the overlays of a tree that layout and scrolling have placed, and gives its root the
    * list of those shown, in the order they opened ({@link El#shownOverlays}): an overlay shows
-   * while its anchor does, not while the anchor or an element above it is leaving or invisible,
-   * or the clips above the anchor leave nothing of its rectangle.
+   * while its anchor does, not while the anchor or an element above it is leaving or made
+   * invisible by the view, or the clips above the anchor leave nothing of its rectangle. An anchor
+   * that fades in counts from its first frame.
    */
   static void place(El root, float width, float height) {
     List<El> shown = new ArrayList<>();
     float far = Float.POSITIVE_INFINITY;
-    place(root, 0, 0, -far, -far, far, far, width, height, shown);
+    place(root, 0, 0, -far, -far, far, far, width, height, shown, null);
     shown.sort(Comparator.comparingLong(overlay -> overlay.placement().opened)); // stable
     root.shownOverlays(List.copyOf(shown));
   }
 
+  /** @param within the placement of the overlay {@code el} is in, null in the tree below */
   private static void place(
       El el, float parentX, float parentY, float clipLeft, float clipTop, float clipRight,
-      float clipBottom, float width, float height, List<El> shown) {
-    if (!el.isPlaced() || el.opacity() == 0 || el.isExiting()) {
+      float clipBottom, float width, float height, List<El> shown, El.Layer within) {
+    // As for the focus, one that fades in counts from the frame that adds it: the submenu that a
+    // key opens in the frame its menu appeared in shows, and takes the focus.
+    if (!el.isPlaced() || el.targetOpacity() == 0 || el.isExiting()) {
       return;
     }
     float left = parentX + el.x();
@@ -80,10 +85,10 @@ final class Overlays {
     if (left < clipRight && right > clipLeft && top < clipBottom && bottom > clipTop) {
       float far = Float.POSITIVE_INFINITY;
       for (El overlay : el.overlays()) {
-        place(overlay, el, left, top, width, height);
+        place(overlay, el, left, top, width, height, within);
         shown.add(overlay);
         // Its overlays follow it, free of the clips around its anchor.
-        place(overlay, 0, 0, -far, -far, far, far, width, height, shown);
+        place(overlay, 0, 0, -far, -far, far, far, width, height, shown, overlay.placement());
       }
     }
     Style s = el.style();
@@ -97,13 +102,21 @@ final class Overlays {
       }
     }
     for (El child : el.children()) {
-      place(child, left, top, clipLeft, clipTop, clipRight, clipBottom, width, height, shown);
+      place(child, left, top, clipLeft, clipTop, clipRight, clipBottom, width, height, shown,
+          within);
     }
   }
 
-  /** Places one overlay of {@code anchor}, whose border box is at {@code x, y} in the window. */
-  private static void place(El overlay, El anchor, float x, float y, float width, float height) {
+  /**
+   * Places one overlay of {@code anchor}, whose border box is at {@code x, y} in the window. An
+   * overlay inside one that went to the other side of its anchor than it asked tries that other
+   * side first too when it asks the same side, so that submenus go on the way the first that
+   * flipped at the window's edge went.
+   */
+  private static void place(
+      El overlay, El anchor, float x, float y, float width, float height, El.Layer within) {
     El.Layer l = overlay.placement();
+    l.flipped = false;
     l.anchor = anchor;
     l.anchorX = x;
     l.anchorY = y;
@@ -114,17 +127,41 @@ final class Overlays {
     if (l.centered) {
       left = (width - w) / 2;
       top = (height - h) / 2;
+    } else if (l.edge != null) {
+      boolean across = l.edge == Side.TOP || l.edge == Side.BOTTOM;
+      float along = edgeAlong(l.align, across ? w : h, across ? width : height, l.gap);
+      float off = l.edge == Side.TOP || l.edge == Side.LEFT ? l.gap
+          : (across ? height - h : width - w) - l.gap;
+      left = across ? along : off;
+      top = across ? off : along;
     } else {
       float ax = Float.isNaN(l.pointX) ? x : l.pointX;
       float ay = Float.isNaN(l.pointX) ? y : l.pointY;
       float aw = Float.isNaN(l.pointX) ? anchor.width() : 0;
       float ah = Float.isNaN(l.pointX) ? anchor.height() : 0;
+      boolean after = l.side == Side.BOTTOM || l.side == Side.RIGHT;
+      boolean turn = within != null && within.flipped && within.side == l.side;
       if (l.side == Side.TOP || l.side == Side.BOTTOM) {
-        top = beside(l.side == Side.BOTTOM, ay, ah, h, l.gap, height);
+        top = beside(after != turn, ay, ah, h, l.gap, height);
         left = along(l.align, ax, aw, w, width);
+        l.flipped = after ? top < ay : top >= ay + ah;
       } else {
-        left = beside(l.side == Side.RIGHT, ax, aw, w, l.gap, width);
+        left = beside(after != turn, ax, aw, w, l.gap, width);
         top = along(l.align, ay, ah, h, height);
+        l.flipped = after ? left < ax : left >= ax + aw;
+      }
+      // A tooltip that would cover its anchor, under the pointer that shows it, would take the
+      // hover from the anchor and hide again: it goes to a side across if one has room.
+      if (l.avoidsAnchor && Float.isNaN(l.pointX) && overlaps(left, top, w, h, ax, ay, aw, ah)) {
+        boolean down = l.side == Side.TOP || l.side == Side.BOTTOM;
+        float acrossLeft = down ? beside(true, ax, aw, w, l.gap, width) : along(l.align, ax, aw,
+            w, width);
+        float acrossTop = down ? along(l.align, ay, ah, h, height) : beside(true, ay, ah, h, l.gap,
+            height);
+        if (!overlaps(acrossLeft, acrossTop, w, h, ax, ay, aw, ah)) {
+          left = acrossLeft;
+          top = acrossTop;
+        }
       }
     }
     // On whole pixels, as layout places everything else.
@@ -171,6 +208,20 @@ final class Overlays {
       return second;
     }
     return Math.clamp(first, 0, Math.max(window - size, 0));
+  }
+
+  /** Where an overlay of this size starts along an edge of the window. */
+  private static float edgeAlong(Style.Align align, float size, float window, float gap) {
+    return switch (align) {
+      case END, FLEX_END -> window - size - gap;
+      case CENTER -> (window - size) / 2;
+      default -> gap;
+    };
+  }
+
+  private static boolean overlaps(
+      float x, float y, float w, float h, float ax, float ay, float aw, float ah) {
+    return x < ax + aw && ax < x + w && y < ay + ah && ay < y + h;
   }
 
   private static boolean fits(float start, float size, float window) {
