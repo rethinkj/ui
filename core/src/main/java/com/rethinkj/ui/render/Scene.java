@@ -114,8 +114,10 @@ import java.util.List;
  * <p>A text element's glyphs come after its own fill and border. Its content box is snapped to
  * the physical pixel grid before the glyphs are placed: vertically to whole pixels, horizontally
  * to the grid of the glyph positions, whole pixels below scale 1.5 and quarter pixels from there
- * (see {@link com.rethinkj.ui.text.Font#shape}). So text in a box at a fractional position, moving
- * or scrolled, is drawn from the same bitmaps as at a whole one.
+ * (see {@link com.rethinkj.ui.text.Font#shape}), whole pixels at every scale for a font such as
+ * the icons that is placed on {@link com.rethinkj.ui.text.Font#wholePixels whole pixels}. So text
+ * in a box at a fractional position, moving or scrolled, is drawn from the same bitmaps as at a
+ * whole one.
  *
  * <p>Which correction a glyph gets depends on the background behind its text: the colour set
  * with {@link El#textBackground}, or else the fills of the text element and its ancestors, each
@@ -349,7 +351,7 @@ public final class Scene {
     // edges layout resolved when percentages need it.
     double left = (x + px(s.paddingLeft) + px(s.borderLeft)) * scale;
     double top = (y + px(s.paddingTop) + px(s.borderTop)) * scale;
-    double grid = scale >= 1.5 ? 4 : 1;
+    double grid = scale >= 1.5 && !text.font().wholePixels() ? 4 : 1;
     left = Math.round(left * grid) / grid;
     top = Math.round(top);
     float share = lightShare(colour,

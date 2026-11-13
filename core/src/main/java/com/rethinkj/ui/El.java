@@ -1302,13 +1302,24 @@ public final class El {
   }
 
   /**
-   * The text in double quotes, with a backslash before each quote and backslash in it, and line
-   * feeds as {@code \n}, so that it stays on one line.
+   * The text in double quotes, with a backslash before each quote and backslash in it, line feeds
+   * as {@code \n}, so that it stays on one line, and a character of a private use area, such as an
+   * icon, as <code>&#92;u{E0EB}</code>, which would otherwise show as nothing or a box.
    */
   static String quote(String text) {
-    return '"'
-        + text.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n")
-        + '"';
+    StringBuilder out = new StringBuilder("\"");
+    text.codePoints().forEach(c -> {
+      if (c == '\\' || c == '"') {
+        out.append('\\').append((char) c);
+      } else if (c == '\n') {
+        out.append("\\n");
+      } else if (Character.getType(c) == Character.PRIVATE_USE) {
+        out.append("\\u{").append(Integer.toHexString(c).toUpperCase(Locale.ROOT)).append('}');
+      } else {
+        out.appendCodePoint(c);
+      }
+    });
+    return out.append('"').toString();
   }
 
   // Not String.format: its decimal separator depends on the locale.

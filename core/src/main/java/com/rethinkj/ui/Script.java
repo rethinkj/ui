@@ -681,14 +681,24 @@ public final class Script {
     return words.isEmpty() ? "none" : String.join(" ", words);
   }
 
+  /** A character as {@link El#quote} writes one of a private use area: <code>&#92;u{E0EB}</code>. */
+  private static final Pattern CODE_POINT =
+      Pattern.compile("u\\{(10\\p{XDigit}{4}|\\p{XDigit}{1,5})}");
+
   /** Undoes {@link El#quote}. {@link Line#words} made sure a character follows each backslash. */
   private static String unescape(String text) {
     StringBuilder out = new StringBuilder();
     for (int i = 0; i < text.length(); i++) {
       char c = text.charAt(i);
       if (c == '\\') {
-        c = text.charAt(++i);
-        out.append(c == 'n' ? '\n' : c);
+        Matcher codePoint = CODE_POINT.matcher(text).region(++i, text.length());
+        if (codePoint.lookingAt()) {
+          out.appendCodePoint(Integer.parseInt(codePoint.group(1), 16));
+          i = codePoint.end() - 1;
+        } else {
+          c = text.charAt(i);
+          out.append(c == 'n' ? '\n' : c);
+        }
       } else {
         out.append(c);
       }

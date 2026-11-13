@@ -34,6 +34,7 @@
     <module>core</module>
     <module>kit</module>
     <module>fonts</module>
+    <module>icons</module>
     <module>examples</module>
   </modules>
 
