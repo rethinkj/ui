@@ -75,6 +75,7 @@ public final class El {
   private WindowPart windowPart;
   private Consumer<El> hoverLook;
   private Consumer<El> focusLook;
+  private Object autofocus; // see #autofocus(Object)
   private Consumer<El> pressLook;
   private Cursor cursor;
   private boolean hovered;
@@ -1431,6 +1432,35 @@ public final class El {
     return this;
   }
 
+  /**
+   * Makes this element take the keyboard focus when it appears: in the build of the view that
+   * first has it, the first such element in tree order that can take the focus gets it, with a
+   * ring if the focus had one, and scrolled into view; later builds leave the focus alone. The
+   * editor that a key or a double press lays over a cell takes the focus this way. Inside an
+   * overlay it names the element that the overlay's opening focuses instead of its first
+   * focusable one: a dialog's second field. Where the focused element disappears, it is where the
+   * focus goes among the elements around it (see {@link App#focused}). While an overlay opens and
+   * takes the focus, the build leaves elements outside it alone. The same as {@code
+   * autofocus(Boolean.TRUE)}.
+   */
+  public El autofocus() {
+    return autofocus(Boolean.TRUE);
+  }
+
+  /**
+   * Like {@link #autofocus()}, and also takes the focus again whenever a build of the view gives
+   * this element another {@code key} than the tree before, as {@link #reveal} keeps a part in
+   * view: the first field with an error takes the focus after each Save with {@code
+   * autofocus(s.saves)}, the count of Save presses in the state. Not in the rows of a virtual
+   * list, whose rows appear whenever they scroll into view.
+   *
+   * @param key compared with {@link Object#equals}; null, the default, takes no focus
+   */
+  public El autofocus(Object key) {
+    this.autofocus = key;
+    return this;
+  }
+
   private Layer layer() {
     if (layer == null) {
       layer = new Layer();
@@ -1722,6 +1752,11 @@ public final class El {
 
   Consumer<El> focusLook() {
     return focusLook;
+  }
+
+  /** The key of {@link #autofocus(Object)}, or null. */
+  Object autofocusKey() {
+    return autofocus;
   }
 
   Consumer<El> pressLook() {

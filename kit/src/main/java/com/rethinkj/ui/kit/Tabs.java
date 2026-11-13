@@ -33,13 +33,16 @@ import java.util.function.IntConsumer;
  * scrolls it into view.
  *
  * <p>The bar is one stop for Tab. While it has the focus, Left and Right choose the tab before or
- * after the active one, around at the ends, and Home and End the first and the last. From
- * anywhere inside, the bar or the content, Control+Tab chooses the next tab and Control+Shift+Tab
- * the one before, around at the ends, and Control+W and Control+F4 close the active tab if it can
- * be closed. Keys go up from the focused element, so these work while the focus is inside. When
- * the chosen tab's content has no element where the focused one was, the focus goes with it, and
- * keys reach only the view's root. An app that wants the shortcuts then, or while the focus is
- * elsewhere, gives its root the same handler, which the tabs reach first when they have the focus:
+ * after the active one, around at the ends, and Home and End the first and the last; the focus
+ * stays on the bar, as in WAI-ARIA's tabs, so that the user can go on choosing. From anywhere
+ * inside, the bar or the content, Control+Tab chooses the next tab and Control+Shift+Tab the one
+ * before, around at the ends, and Control+W and Control+F4 close the active tab if it can be
+ * closed. Keys go up from the focused element, so these work while the focus is inside. From the
+ * content the focus goes into the content of the tab that takes over: to the element where it
+ * was if the new content has one, else to its {@link El#autofocus} element or its first focusable
+ * one, else to the bar (see {@link com.rethinkj.ui.App#focused}). An app that wants the shortcuts
+ * while the focus is elsewhere, as in a tree beside the tabs, gives its root the same handler,
+ * which the tabs reach first when they have the focus:
  *
  * <pre>{@code
  * El queries = tabs(theme, ...);

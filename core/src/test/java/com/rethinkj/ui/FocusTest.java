@@ -318,6 +318,79 @@ class FocusTest {
     assertNull(two.focused(), "not to b, which is no ancestor of a");
   }
 
+  // Autofocus
+
+  /** A grid with an editor that Enter opens over it and Escape closes, as a cell editor. */
+  private static App<boolean[]> editorOverAGrid() {
+    return start(new App<>(new boolean[] {false}, open -> {
+      El area = col().key("area").child(el().key("grid").focusable().size(80, 40)
+          .onKey(k -> k.name().equals("Enter") && !open[0] && (open[0] = true)));
+      if (open[0]) {
+        area.child(el().key("editor").focusable().autofocus().absolute(0, 10).size(80, 10)
+            .onKey(k -> k.name().equals("Escape") && !(open[0] = false)));
+      }
+      return col().children(el().key("before").focusable().size(10, 10), area);
+    }), 100, 100);
+  }
+
+  @Test
+  void anElementThatAHandlerAddsWithAutofocusTakesTheFocusAndGivesItBackWhenItGoes() {
+    App<boolean[]> app = editorOverAGrid();
+    tab(app);
+    tab(app);
+    assertEquals("grid", focusedKey(app));
+    app.keyDown(new Key("Enter", 0, false));
+    app.keyDown(new Key("X", 0, false)); // in the same frame: the editor has it already
+    app.frame();
+    assertEquals("editor", focusedKey(app));
+    assertTrue(ring(app.scene()) >= 0, "the keyboard opened it, so it has the ring");
+
+    tab(app); // around to the first element
+    assertEquals("before", focusedKey(app));
+    app.resize(100, 100, 1);
+    app.frame();
+    assertEquals("before", focusedKey(app), "only in the build that adds it");
+
+    app.focus(find(app.tree(), "editor"));
+    app.frame();
+    key(app, "Escape", 0);
+    assertNull(find(app.tree(), "editor"));
+    assertEquals("grid", focusedKey(app), "the first focusable element of the editor's area");
+  }
+
+  @Test
+  void theFirstAutofocusElementTakesTheFocusAtTheStartAndAKeyTakesItAgain() {
+    int[] saves = {0};
+    App<int[]> app = start(new App<>(saves, n -> col().children(
+        el().key("name").focusable().size(40, 10),
+        el().key("port").focusable().size(40, 10).autofocus(n[0] == 0 ? null : n[0]),
+        el().key("start").focusable().size(40, 10).autofocus(),
+        el().key("save").focusable().size(40, 10).onPress(() -> n[0]++))), 100, 100);
+    assertEquals("start", focusedKey(app), "the first one that asks, at the start");
+    assertEquals(-1, ring(app.scene()), "nothing moved it with a key");
+    press(app, 5, 35); // Save: port has an error now
+    assertEquals("port", focusedKey(app));
+    press(app, 5, 5);
+    assertEquals("name", focusedKey(app));
+    app.resize(100, 100, 1);
+    app.frame();
+    assertEquals("name", focusedKey(app), "the same key asks for nothing");
+    press(app, 5, 35);
+    assertEquals("port", focusedKey(app), "another key asks again");
+  }
+
+  @Test
+  void anOverlayThatOpensFocusesItsAutofocusElement() {
+    boolean[] open = {false};
+    App<boolean[]> app = start(new App<>(open, o -> col().wFull().hFull().child(
+        el().key("button").focusable().size(40, 10).onPress(() -> o[0] = true))
+        .overlay(!o[0] ? null : col().key("dialog").modal().centerInWindow().children(
+            el().key("first").focusable().size(40, 10),
+            el().key("second").focusable().size(40, 10).autofocus()))), 100, 100);
+    press(app, 5, 5);
+    assertEquals("second", focusedKey(app));
+  }
+
   @Test
   void anElementThatStopsBeingFocusableLosesTheFocus() {
     boolean[] focusable = {true};

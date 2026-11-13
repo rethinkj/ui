@@ -184,6 +184,7 @@ public final class App<S> {
   private double focusSince; // when the focus moved there, for El#whenFocusVisibleFor
   private boolean focusKeyed; // a key went down since then that did not move the focus
   private boolean reveal; // scroll the focused element into view after the next rebuild
+  private Focus beforeAsked; // where an El#autofocus took the focus from, until refocus finds it
   // The identity of the element that last had the focus in a virtual list, by the list's identity.
   // shortcut: lists that are gone stay in it, one small entry each; drop them in update() when
   // apps create lists by the thousand.
@@ -1143,6 +1144,17 @@ public final class App<S> {
       focused.focused(false);
     }
     El el = animator.element(focusId);
+    if (beforeAsked != null) {
+      Focus before = beforeAsked;
+      beforeAsked = null;
+      if (el == null || !focusables().contains(el)) { // the element asked for cannot take it
+        focusId = before.id();
+        ring = before.ring();
+        reveal = false;
+        refocus();
+        return;
+      }
+    }
     if (el == null && focusWaits()) {
       focused = null; // kept by its identity until the row exists again
       reveal = false;
@@ -1181,7 +1193,8 @@ public final class App<S> {
   /**
    * Where the focus goes when the element with identity {@code lost} is gone or can no longer take
    * it: to the nearest of it and its ancestors below the root that is still there and can take the
-   * focus, or else has an element inside it that can, the first in tree order; null if none has.
+   * focus, or else has an element inside it that can, the first {@link El#autofocus} one in tree
+   * order or else the first one; null if none has.
    */
   private El recover(Object lost, List<El> order) {
     List<Object> lineage = Animator.lineage(lost);
@@ -1195,10 +1208,17 @@ public final class App<S> {
       }
       Set<El> inside = Collections.newSetFromMap(new IdentityHashMap<>());
       collect(scope, inside);
+      El first = null;
       for (El el : order) {
         if (inside.contains(el)) {
-          return el;
+          if (el.autofocusKey() != null) {
+            return el;
+          }
+          first = first == null ? el : first;
         }
+      }
+      if (first != null) {
+        return first;
       }
     }
     return null;
@@ -2232,12 +2252,15 @@ public final class App<S> {
    * Before layout of a tree the view has just built: each overlay it no longer has gives the
    * focus back to where it was before the overlay took it, the newest first, if the focus is
    * still inside the overlay or nowhere; then each overlay that opens moves the focus to its first
-   * focusable element, without a ring, unless it {@link El#keepFocus keeps the focus} where it is.
+   * {@link El#autofocus} element or else its first focusable one, without a ring, unless it {@link
+   * El#keepFocus keeps the focus} where it is. Unless one did, the first element that asks for the
+   * focus with {@link El#autofocus} takes it.
    * A modal overlay without one takes the focus away until it closes. An element that {@link
    * El#holdFocus holds the focus} counts as an overlay that is open while it is marked so. {@link
    * #refocus} finds the element after layout.
    */
   private void openAndClose(El tree) {
+    boolean took = false;
     Map<Object, El> now = Animator.overlays(tree);
     List<Object> before = new ArrayList<>(opened.keySet());
     for (Object id : before.reversed()) {
@@ -2261,11 +2284,18 @@ public final class App<S> {
       opened.put(overlay.getKey(), takes ? new Focus(focusId, ring) : null);
       if (takes) {
         moveFocus(first, false);
+        took = true;
       }
       if (el.onShownFor() != null) {
         shownSince.put(overlay.getKey(), time);
         shownDue = Math.min(shownDue, time + el.shownDelay());
       }
+    }
+    Object asked = took ? null : animator.autofocus(tree);
+    if (asked != null && !asked.equals(focusId)) {
+      beforeAsked = new Focus(focusId, ring);
+      moveFocus(asked, ring);
+      reveal = true;
     }
   }
 
