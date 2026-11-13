@@ -274,6 +274,35 @@ class PixelGridTest {
     }
   }
 
+  /**
+   * Rows 10.5 high, each filled by a child: what fills a row ends where the next row's begins, as
+   * when the rows had been laid out with the list, also with the list scrolled by a fraction.
+   */
+  @ParameterizedTest
+  @ValueSource(floats = {1, 1.5f, 2})
+  void rowsOfAFractionalHeightShareTheirEdges(float scale) {
+    App<Object> app = new App<>(
+        new Object(),
+        s -> El.col()
+            .size(100, 42)
+            .rows(40, 10.5f, i -> El.col().child(el().wFull().hFull().fill(BLACK))));
+    app.resize(100, 100, scale);
+    app.frame();
+    for (double offset : new double[] {0, 21.25, 115.5}) {
+      app.scrollTo(app.tree(), 0, offset);
+      app.frame();
+      Scene scene = app.scene();
+      assertTrue(scene.count() >= 4, "the rows in view");
+      for (int i = 1; i < scene.count(); i++) {
+        assertEquals(
+            scene.get(i - 1, Scene.Y) + scene.get(i - 1, Scene.HEIGHT),
+            scene.get(i, Scene.Y),
+            1e-4,
+            "rows " + (i - 1) + " and " + i + " at " + offset);
+      }
+    }
+  }
+
   /** At 1.5 a box at 11, 11 by 11 is drawn from 17 to 33 physical pixels, its border 1 wide. */
   @Test
   void theSceneHoldsSnappedNumbers() {

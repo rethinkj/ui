@@ -29,10 +29,31 @@ public final class Flex {
    * @param availableHeight the same for the height
    */
   public static void layout(El root, float availableWidth, float availableHeight) {
-    layout(root, availableWidth, availableHeight, true);
+    layout(root, availableWidth, availableHeight, 0, 0, true);
+  }
+
+  /**
+   * Like {@link #layout(El, float, float)} for a root that lies at {@code (originX, originY)} in
+   * a parent at whole pixels, such as a row of a virtual list at the fraction of its place in the
+   * list: its rectangles are rounded there, as if the tree around it had been laid out with it, and
+   * its position includes the origin.
+   */
+  public static void layout(
+      El root, float availableWidth, float availableHeight, float originX, float originY) {
+    layout(root, availableWidth, availableHeight, originX, originY, true);
   }
 
   static void layout(El root, float availableWidth, float availableHeight, boolean round) {
+    layout(root, availableWidth, availableHeight, 0, 0, round);
+  }
+
+  private static void layout(
+      El root,
+      float availableWidth,
+      float availableHeight,
+      float originX,
+      float originY,
+      boolean round) {
     if (Float.isNaN(availableWidth) || Float.isNaN(availableHeight)) {
       throw new IllegalArgumentException("available size is NaN");
     }
@@ -55,10 +76,12 @@ public final class Flex {
         availableMax(availableHeight - margin.vertical(), 0)));
     // shortcut: a root with position: absolute is placed like a relative one, so its insets
     // move it but do not size it. Upgrade when a root needs to stretch between insets.
-    node.x =
-        margin.left() + or(resolve(s.left, parentWidth), or(-resolve(s.right, parentWidth), 0));
-    node.y =
-        margin.top() + or(resolve(s.top, parentHeight), or(-resolve(s.bottom, parentHeight), 0));
+    node.x = originX
+        + margin.left()
+        + or(resolve(s.left, parentWidth), or(-resolve(s.right, parentWidth), 0));
+    node.y = originY
+        + margin.top()
+        + or(resolve(s.top, parentHeight), or(-resolve(s.bottom, parentHeight), 0));
     node.width = out.width();
     node.height = out.height();
     place(node, 0, 0, round);

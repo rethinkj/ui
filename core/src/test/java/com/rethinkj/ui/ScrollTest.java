@@ -365,4 +365,20 @@ class ScrollTest {
     }
     return null;
   }
+
+  @Test
+  void whatSticksOutOfAChildThatDoesNotClipCanBeScrolledTo() {
+    App<Object> app = new App<>(
+        new Object(),
+        s -> col()
+            .size(100, 100)
+            .scroll()
+            .child(col().h(100).child(el().h(200).shrink(0)))
+            .child(col().h(0).scroll().child(el().h(500).shrink(0))));
+    app.resize(100, 100, 1);
+    app.frame();
+    app.scrollTo(app.tree(), 0, Double.POSITIVE_INFINITY);
+    app.frame();
+    assertEquals(100, app.tree().scrollY(), "200 high, not what the area that clips holds");
+  }
 }
