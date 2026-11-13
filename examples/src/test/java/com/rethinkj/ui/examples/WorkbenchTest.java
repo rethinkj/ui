@@ -11,6 +11,7 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
 import com.rethinkj.ui.App;
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.Script;
+import com.rethinkj.ui.kit.DataGrid;
 import com.rethinkj.ui.kit.TabGroups;
 import com.rethinkj.ui.text.Font;
 import com.rethinkj.ui.text.TextRendering;
@@ -362,8 +363,8 @@ class WorkbenchTest {
     Script.run("""
         size 1000 600
         window orders
-        press 300,300          # a row of a million, and the grid's last
-        key End
+        press 300,300          # a cell of a million rows, and the last
+        key End control
         frame
         press #tab-0 right
         frame
@@ -548,6 +549,205 @@ class WorkbenchTest {
     assertTrue(app.windows().all().isEmpty());
     assertTrue(orders.asking == null || orders.rows < 0);
     assertEquals(-1, orders.rows, "its question given up");
+  }
+
+  // Editing the rows
+
+  /** Opens orders and customers, customers active, each with a change of its first email. */
+  private App<Workbench> twoTablesChanged() throws IOException {
+    App<Workbench> app = started();
+    Script.run(OPEN_ORDERS + """
+        press role=treeitem label="customers" clicks 2
+        frame
+        await
+        frame
+        advance 1
+        frame
+        """, app, out);
+    for (Workbench.Opened o : app.state().tables()) {
+      o.changes.set(0, 5, "x@example.com");
+    }
+    changed(app);
+    Script.run("size 1000 600\nframe", app, out);
+    return app;
+  }
+
+  /** The state changed outside a handler: a frame shows it, past the fade of what came. */
+  private void changed(App<Workbench> app) throws IOException {
+    app.invalidate();
+    Script.run("size 1000 600\nframe\nadvance 1\nframe", app, out);
+  }
+
+  private static String dump(App<Workbench> app) {
+    return app.tree().dump();
+  }
+
+  /** Edits wait in their tab until Commit, and the server refuses what breaks one of its rules. */
+  @Test
+  void commitWritesTheChangesOrTheServerSaysWhyNot() throws IOException {
+    App<Workbench> app = started();
+    Workbench s = app.state();
+    Script.run(OPEN_ORDERS, app, out);
+    Workbench.Opened orders = s.tables().getFirst();
+    orders.changes.set(0, 3, "-1.00");
+    orders.changes.set(1, 5, "ada@example.org");
+    changed(app);
+    Script.run("size 1000 600\nframe\nkey S control\nframe", app, out);
+    assertTrue(orders.committing != null, "on its way");
+    assertTrue(dump(app).contains("role=button label=\"Commit (2)\""), dump(app));
+    assertTrue(dump(app).contains("busy"), "the button is busy");
+    Script.run("size 1000 600\nawait\nframe", app, out);
+    assertEquals(2, orders.changes.count(), "refused: nothing written");
+    assertEquals("amount must not be negative", orders.changes.errorText(0, 3));
+    assertEquals("orders: amount must not be negative", s.message);
+    assertTrue(dump(app).contains("2 changes"), "in the status bar");
+
+    orders.changes.set(0, 3, "1.00"); // fixed, which takes the error away
+    assertNull(orders.changes.errorText(0, 3));
+    changed(app);
+    Script.run("size 1000 600\npress #commit\nframe\nawait\nframe\nadvance 1\nframe", app, out);
+    assertTrue(orders.changes.isEmpty(), "written");
+    assertEquals("1.00", orders.changes.cell(0, 3), "as the server has it now");
+    assertEquals("ada@example.org", orders.changes.cell(1, 5));
+    assertEquals("orders: 2 changes committed", s.message);
+    assertFalse(dump(app).contains("#commit"), "Commit shows with changes only");
+    assertFalse(dump(app).contains("#changes"));
+
+    Script.run("size 1000 600\nkey N control\nframe\nawait\nframe", app, out);
+    assertEquals("1.00", s.tables().get(1).changes.cell(0, 3),
+        "another tab of the table shows what was written");
+  }
+
+  /** Closing a tab with changes asks, and each of the dialog's answers does what it says. */
+  @Test
+  void closingATabWithChangesAsksWhetherToCommitOrDiscard() throws IOException {
+    App<Workbench> app = twoTablesChanged();
+    Workbench s = app.state();
+    Workbench.Opened orders = s.tables().getFirst();
+    String close = "size 1000 600\npress #close-1\nframe\nadvance 0.25\nframe\n";
+    Script.run("size 1000 600\npress #tab-1\nframe\n" + close, app, out);
+    assertTrue(dump(app).contains("role=dialog label=\"Changes not committed\""), dump(app));
+    assertTrue(dump(app).contains("orders has 1 change that the server does not have yet."));
+    Script.run("size 1000 600\npress #keep\nframe", app, out);
+    assertEquals(2, s.tables().size(), "Cancel keeps the tab");
+    assertEquals(1, orders.changes.count(), "and its changes");
+
+    Script.run(close + "press #commit-changes\nframe\nawait\nframe", app, out);
+    assertEquals(1, s.tables().size(), "closed once written");
+    assertEquals("x@example.com", s.stored.get("localhost/shop/public/orders").value(0, 5));
+
+    Script.run(close + "press #discard\nframe", app, out);
+    assertTrue(s.tables().isEmpty(), "customers closed");
+    assertNull(s.stored.get("localhost/shop/public/customers").written.get(0L),
+        "without its change");
+  }
+
+  /** Run asks about the changes of its tab, and closing the first window about every tab's. */
+  @Test
+  void runAndExitAskAboutTheChangesFirst() throws IOException {
+    App<Workbench> app = twoTablesChanged();
+    Workbench s = app.state();
+    Workbench.Opened customers = s.tables().get(1);
+    Script.run("size 1000 600\npress #run\nframe\nadvance 0.25\nframe", app, out);
+    assertEquals(List.of(customers), s.question.tabs());
+    assertEquals(customers.answered, customers.rows, "not asked yet");
+    Script.run("size 1000 600\npress #discard\nframe", app, out);
+    assertTrue(customers.changes.isEmpty());
+    assertEquals(-1, customers.rows, "asked once discarded");
+    Script.run("size 1000 600\nawait\nframe", app, out);
+
+    customers.changes.set(0, 5, "y@example.com");
+    changed(app);
+    Script.run("size 1000 600\nframe\nclose\nframe\nadvance 0.25\nframe", app, out);
+    assertTrue(dump(app).contains("orders (1), customers (1) have changes"), dump(app));
+    Script.run("size 1000 600\npress #keep\nframe\nclose\nframe\nadvance 0.25\nframe\n"
+        + "press #commit-changes\nframe", app, out);
+    assertFalse(app.windows().all().isEmpty(), "open until the server took them");
+    Script.run("size 1000 600\nawait\nframe", app, out);
+    assertTrue(app.windows().all().isEmpty(), "closed once both were written");
+  }
+
+  /** A tab's changes go with it to a window of its own and back, and the status bar counts them. */
+  @Test
+  void aTabTakesItsChangesToAnotherWindowAndBack() throws IOException {
+    App<Workbench> app = started();
+    Workbench s = app.state();
+    Script.run(OPEN_ORDERS, app, out);
+    Workbench.Opened orders = s.tables().getFirst();
+    Script.run("size 1000 600\npress #cell-0-5\nkey Enter\nframe\nkey A control\n"
+        + "type \"x@example.com\"\nkey Enter\nframe", app, out);
+    assertEquals(1, orders.changes.count());
+    Script.run(MOVE_ORDERS_OUT, app, out);
+    App<Workbench> window = windowOf(s, orders);
+    assertNotSame(app, window);
+    Script.run("size 1000 600\nwindow orders\nframe", app, out);
+    assertTrue(dump(window).contains("label=\"Commit (1)\""), dump(window));
+    assertTrue(dump(app).contains("\"1 change\""), "the first window's status bar counts it");
+    Script.run("""
+        size 1000 600
+        window orders
+        press #tab-0 right
+        frame
+        advance 0.25
+        frame
+        press role=menuitem label="Move back to main window"
+        frame
+        window main
+        advance 1
+        frame
+        """, app, out);
+    assertEquals(List.of(s.start, orders), s.groups.main().tabs());
+    assertEquals("x@example.com", orders.changes.cell(0, 5));
+    assertTrue(dump(app).contains("label=\"Commit (1)\""));
+  }
+
+  /** Undo of the Edit menu acts on the grid's changes while the grid had the focus last. */
+  @Test
+  void editActsOnTheGridWhileItHasTheFocus() throws IOException {
+    App<Workbench> app = started();
+    Workbench s = app.state();
+    Script.run(OPEN_ORDERS, app, out);
+    Workbench.Opened orders = s.tables().getFirst();
+    String query = orders.query;
+    Script.run("size 1000 600\npress #cell-0-5\nkey Delete control\nframe\nframe", app, out);
+    assertEquals(1, orders.changes.count(), "the row marked to be deleted");
+    Script.run("""
+        size 1000 600
+        press role=menuitem label="Edit"
+        frame
+        advance 0.25
+        frame
+        press role=menuitem label="Undo"
+        frame
+        """, app, out);
+    assertTrue(orders.changes.isEmpty(), "undone in the grid");
+    assertEquals(query, orders.query, "not in the query");
+  }
+
+  /** The status bar's count of changes goes to the next tab that has some. */
+  @Test
+  void theCountOfChangesGoesToTheNextTabWithChanges() throws IOException {
+    App<Workbench> app = twoTablesChanged();
+    Workbench s = app.state();
+    s.tables().get(1).changes.clear();
+    changed(app);
+    Script.run("size 1000 600\nframe\npress #changes\nframe", app, out);
+    assertEquals(1, s.groups.main().active(), "orders, which has the change");
+  }
+
+  /** The filters of the columns keep the rows by arithmetic, and show as badges. */
+  @Test
+  void theColumnsFiltersKeepTheirRows() throws IOException {
+    App<Workbench> app = started();
+    Workbench s = app.state();
+    Script.run(OPEN_ORDERS, app, out);
+    Workbench.Opened orders = s.tables().getFirst();
+    orders.filter(List.of(DataGrid.Filter.oneOf(2, List.of("pending"))));
+    changed(app);
+    Script.run("size 1000 600\nframe", app, out);
+    assertTrue(dump(app).contains("\"250,000 rows\""), dump(app));
+    assertTrue(dump(app).contains("Remove status"), "its badge under the toolbar");
+    assertEquals("pending", orders.changes.cell(0, 2));
   }
 
   @Test

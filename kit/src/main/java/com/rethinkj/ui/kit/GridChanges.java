@@ -375,6 +375,14 @@ public final class GridChanges {
     errors.computeIfAbsent(key(row), k -> new HashMap<>()).put(column, message);
   }
 
+  /**
+   * Marks a cell of the row a change of {@link #changes()} writes as failed, as when the database
+   * refused that change, also while the row is not shown; not in the history.
+   */
+  public void error(Change change, int column, String message) {
+    errors.computeIfAbsent(change.key(), k -> new HashMap<>()).put(column, message);
+  }
+
   public void undo() {
     List<Op> step = undo.pollLast();
     if (step != null) {

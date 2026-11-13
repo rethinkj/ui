@@ -2,6 +2,7 @@ package com.rethinkj.ui.kit;
 
 import static com.rethinkj.ui.El.col;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.rethinkj.ui.App;
@@ -150,6 +151,16 @@ class MarkdownTest {
     // The button springs in with the theme's feedback, so the clock moves past it first.
     run(app, "frame\nmove role=code\nframe\nadvance 1\nframe\npress label=\"Copy code\"\nframe");
     assertEquals("SELECT 1;", app.clipboard().read());
+    // Hovered it is a ghost button's overlay, and it confirms with a check for a moment.
+    tree = run(app, "move label=\"Copy code\"\nframe\nadvance 0.25\nframe");
+    assertTrue(line(tree, "#copy").endsWith(" hovered"), tree);
+    assertTrue(tree.contains("text label=\"checkmark\""), tree);
+    assertTrue(tree.contains("role=tooltip label=\"Copied\""), tree);
+    El copy = CellEditorTest.find(app, "copy");
+    assertEquals(Theme.DARK.surface().hover(), copy.fill(), "the hover overlay");
+    tree = run(app, "advance 2\nframe\nadvance 1\nframe");
+    assertFalse(tree.contains("label=\"checkmark\""), "the copy icon back");
+    assertFalse(tree.contains("label=\"Copied\""), tree);
   }
 
   @Test

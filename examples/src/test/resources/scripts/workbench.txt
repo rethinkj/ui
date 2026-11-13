@@ -15,8 +15,9 @@ snap workbench-loading                     # which asks for its rows: "Loadingâ€
 
 await                                      # a million rows
 frame
-press 600,300                              # selects a row and focuses the grid
-key End                                    # the last of a million rows, clear of the bar
+press 600,300                              # selects a cell and focuses the grid
+key End control                            # the last cell of a million rows, clear of the bar
+key Home                                   # and the first of its row
 frame
 snap workbench-orders
 
@@ -238,3 +239,87 @@ key Escape                                 # and the dark one back
 frame
 advance 1
 frame
+
+# Editing orders' rows (GridChanges): a value, a choice, a row deleted and one added, kept until
+# Commit, which the made-up server refuses for the negative amount and the paid order going back
+# to pending; the preview of the statements; and Commit again once both are fixed.
+press #cell-0-3                            # the first amount; the grid takes the focus
+key Enter                                  # its editor over the cell
+frame
+key A control
+type "-12.50"
+key Enter                                  # handed on: changed, and the cursor a row down
+frame
+press #cell-0-2
+key Enter                                  # the list of the status's choices
+frame
+advance 0.25
+frame
+key P
+key Enter                                  # pending, for an order that is paid
+frame
+press #cell-3-1
+key Delete control                         # the fourth row marked to be deleted
+key Insert                                 # an empty row after it
+frame
+press #cell-4-1
+key Enter
+frame
+type "7"
+key Enter                                  # the new row's customer
+key Z control                              # undone, and done again
+key Y control
+frame
+advance 1
+frame
+snap workbench-changes                     # Commit (4) and Revert; 4 changes in the status bar
+press role=switch label="Dark"
+frame
+advance 1
+frame
+snap workbench-changes-light
+press role=switch label="Dark"
+frame
+advance 1
+frame
+
+key S control                              # Commit: the server answers at the await
+frame
+await
+frame
+move #cell-0-3                             # the refused amount says why after a rest
+frame
+advance 0.6
+frame
+advance 0.25
+frame
+snap workbench-commit-refused              # both cells failed, the first message in the status
+
+press #cell-0-3
+key Enter
+frame
+key A control
+type "12.50"
+key Enter
+frame
+press #cell-0-2
+key Enter
+frame
+advance 0.25
+frame
+key S
+key Enter                                  # shipped, which the server takes
+frame
+press role=menuitem label="Query"
+frame
+advance 0.25
+frame
+press role=menuitem label="Preview changesâ€¦"
+frame
+advance 0.25
+frame
+snap workbench-preview                     # the statements Commit sends
+press #commit-preview
+frame
+await
+frame                                      # written: the changes gone, the rows as written

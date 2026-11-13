@@ -78,6 +78,19 @@ class GridEditTest {
     assertEquals(14, files.size());
   }
 
+  /** A failed cell says what is wrong in its tooltip, also when it was a change that failed. */
+  @Test
+  void aFailedCellShowsItsMessageInATooltip() throws IOException {
+    Ledger ledger = new Ledger(T, 40);
+    ledger.changes.set(2, 2, "4");
+    ledger.changes.error(ledger.changes.changes().getFirst(), 2, "qty must be even");
+    App<Ledger> app = start(ledger);
+    run(app, "move #cell-2-2\nframe\nadvance 1\nframe\nadvance 1\nframe");
+    assertTrue(app.tree().dump().contains("role=tooltip label=\"qty must be even\""),
+        app.tree().dump());
+    assertTrue(line(app, "cell-2-2").contains("invalid"), line(app, "cell-2-2"));
+  }
+
   @Test
   void enterOpensTheEditorOverTheCellTypingThenEnterHandsItOnAndGoesDown() throws IOException {
     Ledger ledger = new Ledger(T, 40);
@@ -231,6 +244,34 @@ class GridEditTest {
     assertEquals("commit 0,5 pending", ledger.log.getLast(), "Escape changed nothing");
   }
 
+  /** More choices than a menu shows at once: the editor is a field that filters them. */
+  @Test
+  void aLongEnumerationFiltersItsChoicesAsTyped() throws IOException {
+    Ledger ledger = new Ledger(T, 40);
+    ledger.choices = List.of("paid", "pending", "shipped", "refunded", "returned", "cancelled",
+        "on hold", "backordered", "disputed", "lost", "delivered", "archived");
+    App<Ledger> app = start(ledger);
+    run(app, "press #cell-0-5\nframe\nkey Enter\nframe\nadvance 1\nframe");
+    assertEquals("field", app.focused().key(), "the field takes the keys");
+    String dump = app.tree().dump();
+    assertTrue(dump.contains("role=listbox label=\"Choices of status\""), dump);
+    assertTrue(line(app, "option-0").contains("selected"), "the current choice: " + dump);
+    run(app, "type \"dlv\"\nframe");
+    assertTrue(line(app, "option-0").contains("label=\"delivered\""), app.tree().dump());
+    run(app, "key Enter\nframe");
+    assertEquals("commit 0,5 delivered", ledger.log.getLast());
+    assertEquals(1, ledger.selection.row(), "Enter goes down");
+
+    run(app, "type \"ho\"\nframe\nadvance 1\nframe"); // typing opens it with the text
+    assertTrue(line(app, "option-0").contains("label=\"on hold\""), app.tree().dump());
+    run(app, "key Escape\nframe");
+    assertFalse(app.tree().dump().contains("role=listbox"));
+    assertEquals("commit 0,5 delivered", ledger.log.getLast(), "Escape changed nothing");
+    run(app, "key Enter\nframe\nadvance 1\nframe\nkey ArrowDown\nkey Tab\nframe");
+    assertTrue(ledger.log.getLast().startsWith("commit 1,5 "), ledger.log.toString());
+    assertEquals(6, ledger.selection.column(), "Tab goes right");
+  }
+
   @Test
   void controlZeroSetsNullInTheEditorAndAnEmptyEditorOfANumberIsNull() throws IOException {
     Ledger ledger = new Ledger(T, 40);
@@ -355,6 +396,26 @@ class GridEditTest {
     assertTrue(app.tree().dump().contains("role=dialog label=\"Edit customer\""));
     run(app, "key Escape\nframe");
     assertEquals(1, ledger.log.size());
+  }
+
+  /** A value longer than its cell has a button in the editor that opens the field of lines. */
+  @Test
+  void aLongValueHasAButtonForTheFieldOfSeveralLines() throws IOException {
+    Ledger ledger = new Ledger(T, 40);
+    App<Ledger> app = start(ledger);
+    run(app, "key Enter\nframe");
+    assertNull(CellEditorTest.find(app, "expand"), "Ada Lovelace fits the cell");
+    run(app, "type \" and the analytical engine of Charles Babbage\"\nframe");
+    El expand = CellEditorTest.find(app, "expand");
+    El editor = CellEditorTest.find(app, "editor");
+    assertNotNull(expand, app.tree().dump());
+    assertTrue(expand.x() + expand.width() <= editor.x() + editor.width(), "inside the editor");
+    run(app, "press #expand\nframe\nadvance 1\nframe");
+    assertTrue(app.tree().dump().contains("role=dialog label=\"Edit customer\""));
+    assertEquals("text", app.focused().key(), "the field of lines has the focus");
+    run(app, "key Enter control\nframe");
+    assertEquals("commit 0,1 Ada Lovelace and the analytical engine of Charles Babbage",
+        ledger.log.getLast());
   }
 
   @Test

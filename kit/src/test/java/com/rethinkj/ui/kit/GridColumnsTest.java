@@ -114,6 +114,21 @@ class GridColumnsTest {
     assertFalse(ledger.layout.isHidden(1));
   }
 
+  /** The keyboard reaches the header's menu of the cursor's column through the cells' menu. */
+  @Test
+  void theCellsMenuHasTheHeadersMenuOfTheCursorsColumn() throws IOException {
+    Ledger ledger = new Ledger(T, 40);
+    App<Ledger> app = start(ledger, out);
+    run(app, "key F10 shift\nframe\nadvance 1\nframe");
+    String dump = app.tree().dump();
+    assertTrue(dump.contains("role=menuitem label=\"Column customer\""), dump);
+    run(app, "key End\nkey ArrowRight\nframe\nadvance 1\nframe");
+    assertTrue(app.tree().dump().contains("role=menuitem label=\"Sort descending\""),
+        app.tree().dump());
+    run(app, "press label=\"Sort descending\"\nframe\nadvance 1\nframe");
+    assertEquals(List.of(new SortKey(1, true)), ledger.sort);
+  }
+
   @Test
   void aHeaderCellDraggedAlongTheHeaderMovesItsColumn() throws IOException {
     Ledger ledger = new Ledger(T, 40);
