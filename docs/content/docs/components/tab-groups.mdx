@@ -36,6 +36,7 @@ A script moves a tab to a window of its own through its menu:
 | | |
 | --- | --- |
 | `onWindowClose(group -> …)` | What closing a group's window does: `dockAll` (the default) or `closeAll` |
+| `onCloseTab((group, index) -> …)` | What closing a tab by its cross, Control+W or Control+F4 does: `close` unless set; a handler that asks about unsaved changes first calls `close` once the user agrees |
 | `onClosed(tab -> …)` | Told of each closed tab |
 | `groups()`, `groupOf(tab)`, `isDragging()` | Questions |
 | `select`, `add`, `close`, `move`, `dock`, `toNewWindow`, `dockAll`, `closeAll` | The same from code |

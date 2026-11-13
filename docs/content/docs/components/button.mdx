@@ -21,7 +21,7 @@ description: Primary, secondary and ghost buttons, icon buttons, busy buttons, t
 | --- | --- |
 | `button(t, variant, text, onPress)` | Text alone |
 | `button(t, variant, icon, text, onPress)` | An icon before the text |
-| `button(t, variant, icon, text, busy, onPress)` | While `busy`, a spinner in place of the icon, and no press; keeps its place for Tab and the focus |
+| `button(t, variant, icon, text, busy, onPress)` | While `busy`, a spinner in place of the icon, or over the text where there is no icon, so that the button keeps its width; it takes no press but keeps its place for Tab and the focus |
 | `icon(t, variant, symbol, label, onPress)` | The icon alone; the label shows in a tooltip and the tree |
 | `toggle(t, icon, text, on, onToggle)`, `toggleIcon(t, icon, label, on, onToggle)` | A button that stays on: the selection's tint and the icon in the accent while on |
 | `split(t, variant, icon, text, onPress, menuState, items)` | A main action and a chevron that opens a [Menu](/docs/components/menu) |

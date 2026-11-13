@@ -1,5 +1,5 @@
 el 0,0 520x120
-  el 12,12 346x24
+  el 12,12 326x24
     el role=button label="Run" 12,12 70x24
       text label="play" "\u{E990}" 25,16 16x16
       text "Run" 45,16 24x16
@@ -9,14 +9,14 @@ el 0,0 520x120
       text "Format" 173,16 43x16
     el role=button label="Refresh" 233,12 24x24
       text label="arrow_clockwise" "\u{E0AA}" 237,16 16x16
-    el role=button label="Running" 261,12 97x24 busy
-      el role=progressbar label="Loading" 274,16 16x16
-        el 274,16 16x16
-        el 274,16 16x16
-        el 274,16 16x16
-        el 274,16 16x16
-        el 274,16 16x16
-      text "Running" 294,16 51x16
+    el role=button label="Running" 261,12 77x24 busy
+      text "Running" 274,16 51x16
+      el role=progressbar label="Loading" 292,16 16x16
+        el 292,16 16x16
+        el 292,16 16x16
+        el 292,16 16x16
+        el 292,16 16x16
+        el 292,16 16x16
   el 12,44 162x24
     el role=button label="Pin" 12,44 65x24 checked=false
       text label="pin" "\u{F600}" 25,48 16x16
