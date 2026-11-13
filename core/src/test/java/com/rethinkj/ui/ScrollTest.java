@@ -121,6 +121,73 @@ class ScrollTest {
     assertEquals("el #wide 0,0 100x50 scroll 200,10", line(app, "#wide"));
   }
 
+  /** Ten tabs of 40 pixels in a row 100 wide that scrolls only sideways, as a tab bar does. */
+  private static El tabs(int shown) {
+    El bar = el().key("bar").scrollBoth().size(100, 20).revealRow(shown);
+    bar.style().overflowY = Style.Overflow.HIDDEN;
+    for (int i = 0; i < 10; i++) {
+      bar.child(el().key("tab" + i).size(40, 20).shrink(0));
+    }
+    return col().child(bar);
+  }
+
+  @Test
+  void aWheelThatTurnsOnlyUpAndDownMovesAnAreaThatScrollsOnlySideways() {
+    App<Object> app = new App<>(new Object(), s -> col().key("page").scroll().size(100, 50)
+        .children(tabs(-1), el().h(100)));
+    app.resize(100, 50, 1);
+    app.frame();
+    El bar = find(app, "bar");
+
+    app.wheel(50, 10, 0, 30);
+    app.frame();
+    assertEquals(30, bar.scrollX(), "down moves it to the right");
+    app.wheel(50, 10, 0, 10_000);
+    app.frame();
+    assertEquals(300, bar.scrollX());
+    assertEquals(0, find(app, "page").scrollY());
+    app.wheel(50, 10, 0, 10);
+    app.frame();
+    assertEquals(10, find(app, "page").scrollY(), "at its end the page around it takes over");
+
+    app.wheel(50, 5, -50, 30); // a touchpad: sideways goes sideways, down goes down
+    app.frame();
+    assertEquals(250, bar.scrollX());
+    assertEquals(40, find(app, "page").scrollY());
+    app.wheel(50, 40, 0, -30); // below the bar
+    app.frame();
+    assertEquals(250, bar.scrollX());
+    assertEquals(10, find(app, "page").scrollY());
+  }
+
+  @Test
+  void aScrollAreaKeepsTheChildItRevealsInViewWhenTheIndexChanges() {
+    int[] shown = {5};
+    App<int[]> app = new App<>(shown, s -> tabs(s[0]));
+    app.resize(100, 20, 1);
+    app.frame();
+    assertEquals(140, find(app, "bar").scrollX(), "tab 5, 200 to 240, at the right end");
+
+    app.wheel(50, 10, -100, 0);
+    app.frame();
+    app.resize(100, 20, 1); // a rebuild with the same index
+    app.frame();
+    assertEquals(40, find(app, "bar").scrollX(), "scrolled away, and it stays away");
+
+    shown[0] = 0;
+    app.resize(100, 20, 1);
+    app.frame();
+    assertEquals(0, find(app, "bar").scrollX(), "tab 0, to the left, at the left end");
+    shown[0] = 1;
+    app.resize(100, 20, 1);
+    app.frame();
+    assertEquals(0, find(app, "bar").scrollX(), "already in view");
+    shown[0] = 10;
+    app.resize(100, 20, 1);
+    app.frame();
+    assertEquals(0, find(app, "bar").scrollX(), "beyond the last: none");
+  }
+
   @Test
   void theOffsetSurvivesARebuildAndFollowsItsKeyAcrossAnInsertedSibling() {
     boolean[] banner = {false};

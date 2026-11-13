@@ -89,6 +89,35 @@ class AppTest {
     assertEquals(List.of("round", "round", "below", "root"), pressed);
   }
 
+  @Test
+  void aDoublePressRunsItsHandlerAfterThePressOfTheSecondPress() {
+    List<String> log = new ArrayList<>();
+    App<List<String>> app = new App<>(log, l -> el().size(100, 100).focusable()
+        .onPress(() -> l.add("press"))
+        .onDoublePress(() -> l.add("double"))
+        .child(el().size(20, 20).absolute(70, 70).onDoublePress(() -> l.add("inner double"))));
+    app.resize(100, 100, 1);
+    app.frame();
+
+    for (int clicks = 1; clicks <= 3; clicks++) {
+      app.pointerDown(10, 10, clicks, 0);
+      app.pointerUp(10, 10);
+    }
+    app.pointerDown(10, 10, 2, 0);
+    app.pointerUp(80, 80); // a second press that ends on another element does not count
+    app.frame();
+    assertEquals(List.of("press", "press", "double", "press"), log, "not the third");
+
+    log.clear();
+    app.pointerDown(80, 80, 1, 0); // the inner element takes the press, and does nothing
+    app.pointerUp(80, 80);
+    app.pointerDown(80, 80, 2, 0);
+    app.pointerUp(80, 80);
+    app.keyDown(new Key("Enter")); // on the focused root
+    app.frame();
+    assertEquals(List.of("inner double", "press"), log);
+  }
+
   private static void press(App<?> app, float x, float y) {
     app.pointerDown(x, y);
     app.pointerUp(x, y);

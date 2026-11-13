@@ -96,6 +96,7 @@ public final class App<S> {
   private boolean stale = true;
   private El root;
   private Object pressed; // the identity of the element a press is on, until the pointer is up
+  private boolean doublePress; // that press is the second of a double press
   private Dragging dragging; // a pointer down on an element with a drag handler, until it is up
   private boolean pointerIn;
   private float pointerX;
@@ -199,7 +200,8 @@ public final class App<S> {
    * El#editable}) a second press selects a word and a third the whole text, Shift extends the
    * selection, and moving the pointer until it is up selects. Such a press goes to the field
    * alone: it is no press and no {@link El#onDrag drag} of an element around it, and until it is
-   * up the field counts as the element under the pointer.
+   * up the field counts as the element under the pointer. Elsewhere a second press that counts
+   * also runs the element's {@link El#onDoublePress} handler.
    *
    * @param clicks 1 for a single press, 2 for the second of a double press, and so on
    * @param modifiers a combination of {@link Key#SHIFT}, {@link Key#CONTROL}, {@link Key#ALT} and
@@ -229,6 +231,7 @@ public final class App<S> {
     }
     Target target = target(x, y);
     pressed = target == null ? null : target.id();
+    doublePress = clicks == 2;
     dragging = target == null || target.el.onDrag() == null
         ? null
         : new Dragging(target.id(), target.el.onDrag(), x, y);
@@ -254,12 +257,20 @@ public final class App<S> {
     Target target = target(x, y);
     if (d != null && d.started) {
       step(d, Drag.Phase.END, x - d.x, y - d.y);
-    } else if (target != null && target.id().equals(pressed) && target.el.onPress() != null) {
+    } else if (target != null && target.id().equals(pressed)) {
       Runnable handler = target.el.onPress();
-      queued.add(() -> {
-        handler.run();
-        return true;
-      });
+      Runnable twice = doublePress ? target.el.onDoublePress() : null;
+      if (handler != null || twice != null) {
+        queued.add(() -> {
+          if (handler != null) {
+            handler.run();
+          }
+          if (twice != null) {
+            twice.run();
+          }
+          return true;
+        });
+      }
     }
     pressed = null;
   }
@@ -792,7 +803,10 @@ public final class App<S> {
    * Positive values scroll towards the end, so that the content moves up or to the left, as {@code
    * deltaY} of a browser's wheel event; SDL counts the other way. Along each axis the innermost
    * scroll area under the pointer that can still move that way takes the whole distance, clamped
-   * to its content; when none can, nothing happens. The next {@link #frame} shows it.
+   * to its content; when none can, nothing happens. A wheel that turns only up and down, as a
+   * mouse's does, moves an area that scrolls only sideways ({@code overflow-x: scroll} without
+   * {@code overflow-y: scroll}, such as a row of tabs) sideways, positive to the right. The next
+   * {@link #frame} shows it.
    */
   public void wheel(float x, float y, float deltaX, float deltaY) {
     if (!Float.isFinite(deltaX) || !Float.isFinite(deltaY)) {
@@ -800,15 +814,22 @@ public final class App<S> {
           + deltaY);
     }
     List<El> areas = hit(x, y).reversed();
-    scrolls.add(() -> scroll(areas, true, deltaX) | scroll(areas, false, deltaY)); // not ||
+    boolean sideways = deltaX == 0;
+    scrolls.add(() -> scroll(areas, true, deltaX, false)
+        | scroll(areas, false, deltaY, sideways)); // not ||
   }
 
-  private static boolean scroll(List<El> areas, boolean horizontal, float delta) {
+  /** @param sideways whether an area that scrolls only sideways takes a vertical delta sideways */
+  private static boolean scroll(List<El> areas, boolean horizontal, float delta, boolean sideways) {
     for (El area : areas) {
       if (area.canScroll(horizontal, delta)) {
         return horizontal
             ? area.scrollTo(area.scrollX() + delta, area.scrollY())
             : area.scrollTo(area.scrollX(), area.scrollY() + delta);
+      }
+      if (sideways && area.style().overflowX == Style.Overflow.SCROLL
+          && area.style().overflowY != Style.Overflow.SCROLL && area.canScroll(true, delta)) {
+        return area.scrollTo(area.scrollX() + delta, area.scrollY());
       }
     }
     return false;
@@ -1285,7 +1306,7 @@ public final class App<S> {
   }
 
   private static boolean takesPress(El el) {
-    return el.onPress() != null || el.onDrag() != null;
+    return el.onPress() != null || el.onDoublePress() != null || el.onDrag() != null;
   }
 
   /** The topmost element under the point, or its nearest ancestor that is {@code wanted}. */
