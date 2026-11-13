@@ -35,6 +35,11 @@ public final class StatusBar {
     ERROR
   }
 
+  /** The height of the bar, for what has to stay clear of it, as a {@link Toast}. */
+  public static float height(Theme t) {
+    return t.size().control() + t.space().s();
+  }
+
   /**
    * The bar: {@code start} at the left, which gives way and is cut when the window is narrow, and
    * {@code end} at the right, which keeps its size. It is as wide as what it is in and {@link
@@ -52,7 +57,7 @@ public final class StatusBar {
       }
     }
     El bar = row().role("status").label("Status bar").wFull().shrink(0)
-        .h(t.size().control() + t.space().s())
+        .h(height(t))
         .padding(0, t.space().m()).gap(t.space().xs()).align(Style.Align.CENTER)
         .fill(t.surface().window())
         .child(left);
