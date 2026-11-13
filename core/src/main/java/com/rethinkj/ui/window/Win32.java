@@ -38,6 +38,9 @@ final class Win32 {
   static final int DWMWA_WINDOW_CORNER_PREFERENCE = 33;
   static final int DWMWCP_ROUND = 2;
 
+  static final int SM_CXDOUBLECLK = 36;
+  static final int SM_CYDOUBLECLK = 37;
+
   /** {@code TRACKMOUSEEVENT}: DWORD cbSize, DWORD dwFlags, HWND hwndTrack, DWORD dwHoverTime. */
   static final long TRACKMOUSEEVENT_SIZE = 24;
 
@@ -51,6 +54,7 @@ final class Win32 {
   static final FunctionDescriptor SCREEN_TO_CLIENT = FunctionDescriptor.of(JAVA_INT, ADDRESS, ADDRESS);
   static final FunctionDescriptor TRACK_MOUSE_EVENT = FunctionDescriptor.of(JAVA_INT, ADDRESS);
   static final FunctionDescriptor IS_ICONIC = FunctionDescriptor.of(JAVA_INT, ADDRESS);
+  static final FunctionDescriptor GET_SYSTEM_METRICS = FunctionDescriptor.of(JAVA_INT, JAVA_INT);
   static final FunctionDescriptor DWM_SET_WINDOW_ATTRIBUTE =
       FunctionDescriptor.of(JAVA_INT, ADDRESS, JAVA_INT, ADDRESS, JAVA_INT);
   static final FunctionDescriptor SET_WINDOW_SUBCLASS =
@@ -70,6 +74,8 @@ final class Win32 {
     static final MethodHandle TRACK_MOUSE_EVENT_H =
         bind(USER32, "TrackMouseEvent", TRACK_MOUSE_EVENT);
     static final MethodHandle IS_ICONIC_H = bind(USER32, "IsIconic", IS_ICONIC);
+    static final MethodHandle GET_SYSTEM_METRICS_H =
+        bind(USER32, "GetSystemMetrics", GET_SYSTEM_METRICS);
     static final MethodHandle DWM_SET_WINDOW_ATTRIBUTE_H =
         bind(DWMAPI, "DwmSetWindowAttribute", DWM_SET_WINDOW_ATTRIBUTE);
     static final MethodHandle SET_WINDOW_SUBCLASS_H =
@@ -107,6 +113,15 @@ final class Win32 {
   static boolean isIconic(MemorySegment hwnd) {
     try {
       return (int) H.IS_ICONIC_H.invokeExact(hwnd) != 0;
+    } catch (Throwable t) {
+      throw Sdl.failed(t);
+    }
+  }
+
+  /** A metric or setting of the system, such as {@link #SM_CXDOUBLECLK}; 0 if it fails. */
+  static int getSystemMetrics(int index) {
+    try {
+      return (int) H.GET_SYSTEM_METRICS_H.invokeExact(index);
     } catch (Throwable t) {
       throw Sdl.failed(t);
     }

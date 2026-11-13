@@ -240,6 +240,16 @@ class WindowTest {
     }
   }
 
+  @Test
+  void aDoublePressNeedsThePressesAsCloseAsTheSystemSays() {
+    assumeTrue(System.getenv(Sdl.HINT_MOUSE_DOUBLE_CLICK_RADIUS) == null, "set by the environment");
+    try (Window window = Window.open(TITLE, 120, 80)) {
+      assertEquals(String.valueOf(Window.doubleClickRadius()),
+          Sdl.getHint(Sdl.HINT_MOUSE_DOUBLE_CLICK_RADIUS), "not SDL's 32, made for touch screens");
+      assertTrue(Window.doubleClickRadius() < 11, "presses on two rows of a table are two");
+    }
+  }
+
   /**
    * A right click on the drag area opens the system menu, which runs a loop of its own until it
    * is dismissed, so this test only sends the presses that do not open it.

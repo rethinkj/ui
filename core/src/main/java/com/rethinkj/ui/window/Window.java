@@ -1043,6 +1043,10 @@ public final class Window implements AutoCloseable {
     Sdl.setHint(Sdl.HINT_NO_SIGNAL_HANDLERS, "1");
     // The app draws the composition of an input method, the system its candidates.
     Sdl.setHint(Sdl.HINT_IME_IMPLEMENTED_UI, "composition");
+    // SDL counts a second press within 32 pixels of the first as a double press, as for fingers
+    // on a touch screen: two quick presses on neighbouring rows would be one. An environment
+    // variable of the same name still wins.
+    Sdl.setHint(Sdl.HINT_MOUSE_DOUBLE_CLICK_RADIUS, String.valueOf(doubleClickRadius()));
     if (!Sdl.init(Sdl.INIT_VIDEO)) {
       throw new IllegalStateException("Cannot open windows here: SDL_Init failed: "
           + Sdl.getError());
@@ -1062,6 +1066,20 @@ public final class Window implements AutoCloseable {
       wakeType = registered != 0 ? registered : 0x8000;
       thread = current;
     }
+  }
+
+  /**
+   * How far, in window coordinates, a second press may lie from the first along each axis to make
+   * a double press: on Windows half the system's rectangle for it ({@code SM_CXDOUBLECLK}, 4 by
+   * default, centred on the first press), elsewhere 5, GTK's default distance.
+   */
+  static int doubleClickRadius() {
+    if (!System.getProperty("os.name", "").startsWith("Windows")) {
+      return 5;
+    }
+    int box = Math.max(Win32.getSystemMetrics(Win32.SM_CXDOUBLECLK),
+        Win32.getSystemMetrics(Win32.SM_CYDOUBLECLK));
+    return box > 0 ? Math.max(1, box / 2) : 2;
   }
 
   /** Quits SDL when no window is open, so that another thread may open the next one. */

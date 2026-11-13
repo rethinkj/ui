@@ -115,6 +115,7 @@ final class Sdl {
 
   static final String HINT_NO_SIGNAL_HANDLERS = "SDL_NO_SIGNAL_HANDLERS";
   static final String HINT_IME_IMPLEMENTED_UI = "SDL_IME_IMPLEMENTED_UI";
+  static final String HINT_MOUSE_DOUBLE_CLICK_RADIUS = "SDL_MOUSE_DOUBLE_CLICK_RADIUS";
 
   // SDL_Event is a union of 128 bytes. Every member starts with Uint32 type, Uint32 reserved and
   // Uint64 timestamp; the members the window reads continue with SDL_WindowID windowID at 16.
@@ -177,6 +178,7 @@ final class Sdl {
   static final FunctionDescriptor SDL_GET_ERROR = FunctionDescriptor.of(ADDRESS);
   static final FunctionDescriptor SDL_SET_HINT =
       FunctionDescriptor.of(JAVA_BOOLEAN, ADDRESS, ADDRESS);
+  static final FunctionDescriptor SDL_GET_HINT = FunctionDescriptor.of(ADDRESS, ADDRESS);
   static final FunctionDescriptor SDL_GET_CURRENT_VIDEO_DRIVER = FunctionDescriptor.of(ADDRESS);
   static final FunctionDescriptor SDL_CREATE_WINDOW =
       FunctionDescriptor.of(ADDRESS, ADDRESS, JAVA_INT, JAVA_INT, JAVA_LONG);
@@ -267,6 +269,7 @@ final class Sdl {
     static final MethodHandle QUIT = bind("SDL_Quit", SDL_QUIT);
     static final MethodHandle GET_ERROR = bind("SDL_GetError", SDL_GET_ERROR);
     static final MethodHandle SET_HINT = bind("SDL_SetHint", SDL_SET_HINT);
+    static final MethodHandle GET_HINT = bind("SDL_GetHint", SDL_GET_HINT);
     static final MethodHandle GET_CURRENT_VIDEO_DRIVER =
         bind("SDL_GetCurrentVideoDriver", SDL_GET_CURRENT_VIDEO_DRIVER);
     static final MethodHandle CREATE_WINDOW = bind("SDL_CreateWindow", SDL_CREATE_WINDOW);
@@ -378,6 +381,15 @@ final class Sdl {
   static boolean setHint(String name, String value) {
     try (Arena arena = Arena.ofConfined()) {
       return (boolean) H.SET_HINT.invokeExact(arena.allocateFrom(name), arena.allocateFrom(value));
+    } catch (Throwable t) {
+      throw failed(t);
+    }
+  }
+
+  /** The value of a hint, from SDL_SetHint or the environment, or null where it has none. */
+  static String getHint(String name) {
+    try (Arena arena = Arena.ofConfined()) {
+      return string((MemorySegment) H.GET_HINT.invokeExact(arena.allocateFrom(name)));
     } catch (Throwable t) {
       throw failed(t);
     }
