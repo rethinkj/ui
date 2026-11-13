@@ -513,6 +513,55 @@ public final class App<S> {
   }
 
   /**
+   * Where the Menu key opens a menu for the focused element at the end of {@code path}: at the
+   * bottom left of its cursor, the first element inside it that is {@link El#current}, else the
+   * first that is {@link El#selected} (a grid's cursor cell, a tree's selected row), kept inside
+   * the focused element's box; at the focused element's bottom left when it has neither.
+   */
+  private static float[] menuPoint(List<El> path) {
+    List<El> to = new ArrayList<>(fromOverlay(path));
+    float left = 0;
+    float top = 0;
+    for (El on : to) {
+      left += on.x();
+      top += on.y();
+    }
+    El focused = to.getLast();
+    float right = left + focused.width();
+    float bottom = top + focused.height();
+    List<El> cursor = new ArrayList<>();
+    if (!firstPath(focused, El::isCurrent, cursor) && !firstPath(focused, El::isSelected, cursor)) {
+      return new float[] {left, bottom};
+    }
+    float x = left;
+    float y = top;
+    for (El on : cursor) {
+      x += on.x();
+      y += on.y();
+    }
+    return new float[] {
+        Math.clamp(x, left, right), Math.clamp(y + cursor.getLast().height(), top, bottom)};
+  }
+
+  /**
+   * Adds to {@code path} the elements below {@code from} down to the first one in tree order that
+   * is {@code wanted} and placed, without overlays; whether there is one.
+   */
+  private static boolean firstPath(El from, Predicate<El> wanted, List<El> path) {
+    for (El child : from.children()) {
+      if (!child.isPlaced()) {
+        continue;
+      }
+      path.add(child);
+      if (wanted.test(child) || firstPath(child, wanted, path)) {
+        return true;
+      }
+      path.removeLast();
+    }
+    return false;
+  }
+
+  /**
    * The part of a path from the root that begins at the innermost overlay in it, whose position
    * is in window coordinates; all of it when it has no overlay.
    */
@@ -605,7 +654,9 @@ public final class App<S> {
    * again, and Tab moves the focus to the next focusable element in tree order, Shift+Tab to the
    * previous one, around at the ends. Unlike in a browser, a press handler on the focused element
    * takes Enter and Space before its ancestors' key handlers see them. The Menu key and Shift+F10
-   * run the nearest {@link El#onSecondaryPress} handler at the focused element's bottom left.
+   * run the nearest {@link El#onSecondaryPress} handler at the bottom left of the focused
+   * element's cursor: the first element inside it that is {@link El#current}, else the first
+   * that is {@link El#selected}, else the focused element itself.
    *
    * <p>In an overlay, keys go up from the focused element to the overlay's root and on to the
    * element it is attached to and that element's ancestors; in a {@link El#modal} one they end at
@@ -643,13 +694,8 @@ public final class App<S> {
           || key.name().equals("F10") && key.modifiers() == Key.SHIFT) {
         for (El el : path.reversed()) {
           if (el.onSecondaryPress() != null) {
-            float x = 0;
-            float y = 0;
-            for (El on : fromOverlay(path)) {
-              x += on.x();
-              y += on.y();
-            }
-            el.onSecondaryPress().accept(x, y + path.getLast().height());
+            float[] at = menuPoint(path);
+            el.onSecondaryPress().accept(at[0], at[1]);
             handled = true;
             return true;
           }
