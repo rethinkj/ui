@@ -925,13 +925,22 @@ public final class El {
     return text;
   }
 
-  /** For {@link App} and {@link Headless}: text is shaped for the scale of the window. */
+  /** For {@link Headless} and tests: text is shaped for the scale, without system fonts. */
   static void scaleText(El el, float scale) {
+    scaleText(el, scale, false);
+  }
+
+  /**
+   * For {@link App} and {@link Headless}: text is shaped for the scale of the window, and falls
+   * back to the system's fonts if {@code systemFonts}.
+   */
+  static void scaleText(El el, float scale, boolean systemFonts) {
     if (el.text != null) {
       el.text.scale(scale);
+      el.text.systemFonts(systemFonts);
     }
     for (El child : el.children) {
-      scaleText(child, scale);
+      scaleText(child, scale, systemFonts);
     }
   }
 
@@ -1257,7 +1266,7 @@ public final class El {
    * Lays out each row that {@link #makeRows} made on its own, with the list's inner width and the
    * row height, and places it below the previous one.
    */
-  void layoutRows(float scale) {
+  void layoutRows(float scale, boolean systemFonts) {
     float left = px(style.borderLeft) + px(style.paddingLeft);
     float inner =
         Math.max(width - left - px(style.paddingRight) - px(style.borderRight)
@@ -1266,7 +1275,7 @@ public final class El {
       El row = children.get(i);
       row.style.width = Len.px(inner);
       row.style.height = Len.px(rowHeight);
-      scaleText(row, scale);
+      scaleText(row, scale, systemFonts);
       Flex.layout(row, inner, rowHeight);
       row.place(left, (float) (rowsTop() + i * (double) rowHeight), inner, rowHeight);
     }

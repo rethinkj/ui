@@ -37,6 +37,9 @@ public final class HarfBuzz {
   /** {@code HB_DIRECTION_LTR}. */
   public static final int DIRECTION_LTR = 4;
 
+  /** {@code HB_DIRECTION_RTL}. */
+  public static final int DIRECTION_RTL = 5;
+
   // ---- structs -----------------------------------------------------------------------------
 
   /** {@code hb_glyph_info_t}. */

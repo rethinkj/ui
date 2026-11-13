@@ -397,7 +397,7 @@ public final class Scene {
       for (int i = 0; i < run.count(); i++) {
         double origin = left + run.x(i) - scroll; // on the quarter grid, or whole below 1.5
         double whole = Math.floor(origin);
-        Atlas.Slot slot = atlas.glyph(run.font(), run.pixelSize(), rendering.hinting(),
+        Atlas.Slot slot = atlas.glyph(run.font(i), run.pixelSize(), rendering.hinting(),
             run.glyph(i), (int) ((origin - whole) * 4));
         if (slot.isEmpty()) {
           continue;

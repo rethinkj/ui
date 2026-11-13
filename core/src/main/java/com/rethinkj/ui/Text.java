@@ -27,8 +27,12 @@ import java.util.Objects;
  * horizontal scroll come from {@link App}, which keeps them per element; the methods below that
  * return them are what a renderer draws.
  *
- * <p>Not supported yet: bidirectional text, mixed scripts in one line and fallback fonts. A
- * character the font lacks shows as the font's "not defined" glyph.
+ * <p>Characters the font lacks come from its fallback fonts ({@link Font#withFallback}), and in a
+ * window from the system's ({@link App#systemFonts}); a line holds glyphs of several fonts, on one
+ * baseline, with the font's line height. A run of right-to-left text is shaped right to left but
+ * is one cluster (see {@link Font#shape}): a line does not break inside it, and a caret inside it
+ * stands in proportion to the graphemes before it, from its left edge. Lines are not reordered as
+ * bidirectional text would be.
  */
 public final class Text implements Measure {
 
@@ -75,6 +79,7 @@ public final class Text implements Measure {
   private int background;
   private boolean wraps;
   private float scale = 1;
+  private boolean systemFonts;
   private List<Line> lines = List.of();
 
   // What every measure shares, made on the first one: per paragraph its glyphs, the first glyph
@@ -283,6 +288,14 @@ public final class Text implements Measure {
     }
   }
 
+  /** For {@link App}: whether characters the fonts lack come from the system's fonts. */
+  void systemFonts(boolean on) {
+    if (on != systemFonts) {
+      systemFonts = on;
+      paragraphs = null;
+    }
+  }
+
   @Override
   public Size measure(
       float knownWidth, float knownHeight, float availableWidth, float availableHeight) {
@@ -382,11 +395,12 @@ public final class Text implements Measure {
     glyphAt = new int[split.length][];
     breaks = new int[split.length][];
     BreakIterator lineBreaks = BreakIterator.getLineInstance(Locale.ROOT);
+    Font shaping = systemFonts ? font.withSystemFonts() : font;
     for (int p = 0; p < split.length; p++) {
       String text = split[p];
-      GlyphRun run = font.shape(text, size, scale, features);
+      GlyphRun run = shaping.shape(text, size, scale, features);
       runs[p] = run;
-      // The first glyph of each character; clusters only grow, as text is shaped left to right.
+      // The first glyph of each character; clusters only grow, see GlyphRun#cluster.
       int[] at = new int[text.length() + 1];
       int glyph = 0;
       for (int c = 0; c <= text.length(); c++) {

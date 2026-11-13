@@ -21,12 +21,12 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Raw bindings for the part of FreeType 2.15 that text needs: a face opened from memory, and
- * glyphs loaded and rendered at a size and a sub-pixel offset. Constants, struct layouts written
- * by hand and the descriptor of every function as a {@code static final} constant, and one static
- * method per function that takes and returns raw handles and error codes. Nothing here checks
- * anything, and nothing here is thread-safe: FreeType wants a library and its faces used by one
- * thread at a time.
+ * Raw bindings for the part of FreeType 2.15 that text needs: a face opened from memory, its
+ * characters, and glyphs loaded and rendered at a size and a sub-pixel offset. Constants, struct
+ * layouts written by hand and the descriptor of every function as a {@code static final}
+ * constant, and one static method per function that takes and returns raw handles and error codes.
+ * Nothing here checks anything, and nothing here is thread-safe: FreeType wants a library and its
+ * faces used by one thread at a time.
  *
  * <p>FreeType's {@code FT_Long}, {@code FT_Pos}, {@code FT_Fixed} and {@code FT_F26Dot6} are C
  * longs: 64 bits on Linux, 32 on Windows. That is handled here and only here: {@link #C_LONG} is
@@ -49,6 +49,11 @@ public final class FreeType {
   // ---- constants ---------------------------------------------------------------------------
 
   public static final long FACE_FLAG_SCALABLE = 1L << 0;
+  /** {@code FT_FACE_FLAG_COLOR}: the face has colour glyphs (COLR, CBDT, sbix or SVG tables). */
+  public static final long FACE_FLAG_COLOR = 1L << 14;
+
+  public static final long STYLE_FLAG_ITALIC = 1L << 0;
+  public static final long STYLE_FLAG_BOLD = 1L << 1;
 
   public static final int LOAD_DEFAULT = 0;
   public static final int LOAD_NO_HINTING = 1 << 1;
@@ -129,7 +134,9 @@ public final class FreeType {
           JAVA_INT.withName("bitmap_left"),
           JAVA_INT.withName("bitmap_top"));
 
+  public static final long FACE_NUM_FACES = offset(FACE, "num_faces");
   public static final long FACE_FACE_FLAGS = offset(FACE, "face_flags");
+  public static final long FACE_STYLE_FLAGS = offset(FACE, "style_flags");
   public static final long FACE_NUM_GLYPHS = offset(FACE, "num_glyphs");
   public static final long FACE_FAMILY_NAME = offset(FACE, "family_name");
   public static final long FACE_STYLE_NAME = offset(FACE, "style_name");
@@ -178,6 +185,18 @@ public final class FreeType {
   public static final FunctionDescriptor RENDER_GLYPH =
       FunctionDescriptor.of(JAVA_INT, ADDRESS, JAVA_INT);
 
+  /** {@code FT_UInt FT_Get_Char_Index(FT_Face, FT_ULong charcode)}: 0 where the face lacks it. */
+  public static final FunctionDescriptor GET_CHAR_INDEX =
+      FunctionDescriptor.of(JAVA_INT, ADDRESS, C_LONG);
+
+  /** {@code FT_ULong FT_Get_First_Char(FT_Face, FT_UInt *agindex)}. */
+  public static final FunctionDescriptor GET_FIRST_CHAR =
+      FunctionDescriptor.of(C_LONG, ADDRESS, ADDRESS);
+
+  /** {@code FT_ULong FT_Get_Next_Char(FT_Face, FT_ULong char_code, FT_UInt *agindex)}. */
+  public static final FunctionDescriptor GET_NEXT_CHAR =
+      FunctionDescriptor.of(C_LONG, ADDRESS, C_LONG, ADDRESS);
+
   /** The method handles; initialising this class loads the library. */
   private static final class Fn {
     private static final SymbolLookup LIBRARY = Natives.lookup("freetype");
@@ -190,8 +209,11 @@ public final class FreeType {
     static final MethodHandle SET_TRANSFORM = bind("FT_Set_Transform", FreeType.SET_TRANSFORM);
     static final MethodHandle LOAD_GLYPH = bind("FT_Load_Glyph", FreeType.LOAD_GLYPH);
     static final MethodHandle RENDER_GLYPH = bind("FT_Render_Glyph", FreeType.RENDER_GLYPH);
+    static final MethodHandle GET_CHAR_INDEX = bind("FT_Get_Char_Index", FreeType.GET_CHAR_INDEX);
+    static final MethodHandle GET_FIRST_CHAR = bind("FT_Get_First_Char", FreeType.GET_FIRST_CHAR);
+    static final MethodHandle GET_NEXT_CHAR = bind("FT_Get_Next_Char", FreeType.GET_NEXT_CHAR);
 
-    /** A downcall whose C long parameters take a Java long, also where a C long has 32 bits. */
+    /** A downcall whose C longs are Java longs, also where a C long has 32 bits. */
     private static MethodHandle bind(String name, FunctionDescriptor descriptor) {
       MemorySegment symbol = LIBRARY.find(name).orElseThrow(() -> new UnsatisfiedLinkError(
           "The freetype library has no function " + name + ". The natives module does not"
@@ -204,7 +226,10 @@ public final class FreeType {
           type = type.changeParameterType(i, long.class);
         }
       }
-      // Narrows long to int where C_LONG is 32 bits; every value passed fits.
+      if (descriptor.returnLayout().filter(C_LONG::equals).isPresent()) {
+        type = type.changeReturnType(long.class);
+      }
+      // Narrows long to int where C_LONG is 32 bits, and widens the result; every value fits.
       return MethodHandles.explicitCastArguments(handle, type);
     }
   }
@@ -266,6 +291,32 @@ public final class FreeType {
   public static int renderGlyph(MemorySegment slot, int renderMode) {
     try {
       return (int) Fn.RENDER_GLYPH.invokeExact(slot, renderMode);
+    } catch (Throwable t) {
+      throw rethrow(t);
+    }
+  }
+
+  public static int getCharIndex(MemorySegment face, long charCode) {
+    try {
+      return (int) Fn.GET_CHAR_INDEX.invokeExact(face, charCode);
+    } catch (Throwable t) {
+      throw rethrow(t);
+    }
+  }
+
+  /** The face's first character in its charmap; the glyph goes to {@code glyphOut}, 0 if none. */
+  public static long getFirstChar(MemorySegment face, MemorySegment glyphOut) {
+    try {
+      return (long) Fn.GET_FIRST_CHAR.invokeExact(face, glyphOut);
+    } catch (Throwable t) {
+      throw rethrow(t);
+    }
+  }
+
+  /** The character after {@code charCode}; the glyph goes to {@code glyphOut}, 0 after the last. */
+  public static long getNextChar(MemorySegment face, long charCode, MemorySegment glyphOut) {
+    try {
+      return (long) Fn.GET_NEXT_CHAR.invokeExact(face, charCode, glyphOut);
     } catch (Throwable t) {
       throw rethrow(t);
     }

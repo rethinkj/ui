@@ -212,7 +212,24 @@ class GpuRendererTest {
             "press #name\ntype \"SELECT name\"\nkey ArrowLeft shift\ncompose \"ni\"\n"));
       }
     }
+    // Fallback fonts: glyphs of four fonts on one line and in a field selected across them,
+    // Hebrew right to left, Thai with its marks, Inter's "not defined" glyph.
+    for (float scale : new float[] {1, 2, 1.5f}) {
+      boolean stored = scale != 1.5f;
+      cases.add(text(stored ? "fallback-" + (int) scale + "x" : "fallback" + at(scale),
+          Examples.fallbackText(), 360, 128, scale, TextRendering.LINUX, new Atlas(), stored));
+      cases.add(fallbackField(scale == 2 ? "fallback-field" : "fallback-field" + at(scale), scale));
+    }
     return cases.stream();
+  }
+
+  /** The field of the stored image fallback-field, at a scale. */
+  private static Case fallbackField(String name, float scale) throws IOException {
+    App<Examples.Form> app = new App<>(new Examples.Form(), Examples::fallbackField);
+    app.textRendering(TextRendering.LINUX);
+    Script.run("size 240 80 scale " + scale + "\nframe\n" + Examples.FALLBACK_FIELD + "frame\n",
+        app, Path.of("target/gpu-vs-cpu-scripts"));
+    return scene(name, app.scene(), 240, 80, scale, scale == 2);
   }
 
   private static String at(float scale) {

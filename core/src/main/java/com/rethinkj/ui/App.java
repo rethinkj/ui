@@ -128,6 +128,7 @@ public final class App<S> {
   private int ringColour = FOCUS_RING;
   private final Atlas atlas = new Atlas();
   private TextRendering textRendering = TextRendering.platform();
+  private boolean systemFonts;
   private final Map<Object, Editor> editors = new HashMap<>(); // the fields' state, by identity
   private Clipboard clipboard = Clipboard.inMemory();
   private Object selecting; // the identity of the field a press is selecting in, until pointer up
@@ -604,6 +605,24 @@ public final class App<S> {
   }
 
   /**
+   * Sets whether characters that a text's font and its fallbacks lack come from the fonts installed
+   * on the system ({@link com.rethinkj.ui.text.Font#withSystemFonts}). Off until this is called,
+   * so that scripts and tests draw the same on every machine; a {@link
+   * com.rethinkj.ui.window.WindowLoop} turns it on when it starts, unless told otherwise.
+   */
+  public void systemFonts(boolean on) {
+    if (on != systemFonts) {
+      systemFonts = on;
+      stale = true;
+    }
+  }
+
+  /** Whether text falls back to the system's fonts; see {@link #systemFonts(boolean)}. */
+  public boolean systemFonts() {
+    return systemFonts;
+  }
+
+  /**
    * Focuses the element of the current tree that {@link #focusables} has, or none.
    *
    * @param ring whether the keyboard or the app moved the focus, not the pointer
@@ -996,7 +1015,7 @@ public final class App<S> {
       shown = applyLooks(built, ids);
       root = built;
       attachEditors(root, new ArrayList<>()); // before layout, which shows a composition
-      El.scaleText(root, scale);
+      El.scaleText(root, scale, systemFonts);
       Flex.layout(root, width, height);
       animator.update(root, time);
       lookIds = ids;
@@ -1205,7 +1224,7 @@ public final class App<S> {
       for (El row : el.children()) {
         attachEditors(row, path);
       }
-      el.layoutRows(scale);
+      el.layoutRows(scale, systemFonts);
       animator.rows(el, id, time);
     }
     for (El child : el.children()) {

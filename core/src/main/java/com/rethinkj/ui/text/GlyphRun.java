@@ -1,10 +1,12 @@
 package com.rethinkj.ui.text;
 
 import java.util.Arrays;
+import java.util.List;
 
 /**
- * Shaped text: the glyphs of a string in one font at one size, with their positions. Made by
- * {@link Font#shape}; immutable.
+ * Shaped text: the glyphs of a string at one size, with their positions, each glyph from the font
+ * that was shaped or from one of its fallbacks ({@link #font(int)}). Made by {@link Font#shape};
+ * immutable.
  *
  * <p>Everything is in physical pixels, on the grid {@link Font#shape} rounds to: whole pixels
  * below scale 1.5, quarter pixels from 1.5 on. x grows to the right from the pen's start, y grows
@@ -21,9 +23,10 @@ public final class GlyphRun {
   private final float[] pen;
   private final float[] dx;
   private final float[] dy;
+  private final Font[] fonts; // per glyph, or null when all are font's
 
   GlyphRun(Font font, float pixelSize, int[] glyphs, int[] clusters, float[] pen, float[] dx,
-      float[] dy) {
+      float[] dy, Font[] fonts) {
     this.font = font;
     this.pixelSize = pixelSize;
     this.glyphs = glyphs;
@@ -31,10 +34,45 @@ public final class GlyphRun {
     this.pen = pen;
     this.dx = dx;
     this.dy = dy;
+    this.fonts = fonts;
   }
 
+  /** Runs one after the other, as one run of {@code font}; their glyphs keep their fonts. */
+  static GlyphRun join(Font font, float pixelSize, List<GlyphRun> parts) {
+    if (parts.size() == 1 && parts.getFirst().font == font) {
+      return parts.getFirst();
+    }
+    int n = parts.stream().mapToInt(GlyphRun::count).sum();
+    int[] glyphs = new int[n];
+    int[] clusters = new int[n];
+    float[] pen = new float[n + 1];
+    float[] dx = new float[n];
+    float[] dy = new float[n];
+    Font[] fonts = new Font[n];
+    int at = 0;
+    for (GlyphRun part : parts) {
+      int count = part.count();
+      System.arraycopy(part.glyphs, 0, glyphs, at, count);
+      System.arraycopy(part.clusters, 0, clusters, at, count);
+      System.arraycopy(part.dx, 0, dx, at, count);
+      System.arraycopy(part.dy, 0, dy, at, count);
+      for (int i = 0; i < count; i++) {
+        fonts[at + i] = part.font(i);
+        pen[at + i + 1] = pen[at] + part.pen[i + 1];
+      }
+      at += count;
+    }
+    return new GlyphRun(font, pixelSize, glyphs, clusters, pen, dx, dy, fonts);
+  }
+
+  /** The font that was shaped, whose fallbacks may draw some glyphs: see {@link #font(int)}. */
   public Font font() {
     return font;
+  }
+
+  /** The font that draws glyph {@code i}: the one shaped, or one of its fallbacks. */
+  public Font font(int i) {
+    return fonts == null ? font : fonts[i];
   }
 
   /** The size shaped at, in physical pixels: the size in logical pixels times the scale. */
@@ -47,14 +85,15 @@ public final class GlyphRun {
     return glyphs.length;
   }
 
-  /** The glyph id in the font; 0 is the font's "not defined" glyph, drawn for missing ones. */
+  /** The glyph id in its {@link #font(int) font}; 0 is the "not defined" glyph. */
   public int glyph(int i) {
     return glyphs[i];
   }
 
   /**
    * The index in the shaped string of the first UTF-16 unit this glyph comes from. Clusters never
-   * decrease: text is shaped left to right.
+   * decrease: runs follow each other left to right, and all glyphs of a run of right-to-left text
+   * have the index of its first character.
    */
   public int cluster(int i) {
     return clusters[i];
@@ -93,6 +132,7 @@ public final class GlyphRun {
     }
     return new GlyphRun(font, pixelSize, Arrays.copyOfRange(glyphs, from, to),
         Arrays.copyOfRange(clusters, from, to), moved, Arrays.copyOfRange(dx, from, to),
-        Arrays.copyOfRange(dy, from, to));
+        Arrays.copyOfRange(dy, from, to),
+        fonts == null ? null : Arrays.copyOfRange(fonts, from, to));
   }
 }

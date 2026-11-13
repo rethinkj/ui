@@ -17,6 +17,8 @@ import com.rethinkj.ui.text.Atlas;
 import com.rethinkj.ui.text.Font;
 import com.rethinkj.ui.text.TextLibraries;
 import com.rethinkj.ui.text.TextRendering;
+import java.io.IOException;
+import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Locale;
 import org.junit.jupiter.api.BeforeEach;
@@ -78,6 +80,29 @@ class TextRenderTest {
   void textUnderOpacity() {
     Headless.Frame frame = Headless.render(Examples.textOpacity(), 336, 76, 2, PINNED);
     Golden.assertMatches("text-opacity", frame.pixels(), frame.tree());
+  }
+
+  /** See {@link Examples#fallbackText}. */
+  @Test
+  void fallbackFontsDrawWhatTheFontLacks() {
+    for (int scale = 1; scale <= 2; scale++) {
+      Headless.Frame frame = Headless.render(Examples.fallbackText(), 360, 128, scale, PINNED);
+      Golden.assertMatches("fallback-" + scale + "x", frame.pixels(), frame.tree());
+    }
+  }
+
+  /**
+   * A field in the fonts of {@link Examples#fallbackChain}: Inter, JetBrains Mono, Thai and
+   * Hebrew, with a selection from Inter into JetBrains Mono and the caret after it.
+   */
+  @Test
+  void aFieldWithFallbackFontsSelectsAcrossThem() throws IOException {
+    App<Examples.Form> app = new App<>(new Examples.Form(), Examples::fallbackField);
+    app.textRendering(PINNED);
+    Script.run("size 240 80 scale 2\nframe\n" + Examples.FALLBACK_FIELD + "frame\n", app,
+        Path.of("target/fallback-field"));
+    Headless.Frame frame = app.render();
+    Golden.assertMatches("fallback-field", frame.pixels(), frame.tree());
   }
 
   // ---- the coverage correction against blending in gamma space ------------------------------

@@ -60,7 +60,7 @@ public final class Headless {
     int[] range = el.wantedRows(top, windowHeight);
     if (range != null) {
       el.makeRows(range[0], range[1]);
-      el.layoutRows(scale);
+      el.layoutRows(scale, false);
     }
     for (El child : el.children()) {
       fillRows(child, top, windowHeight, scale);

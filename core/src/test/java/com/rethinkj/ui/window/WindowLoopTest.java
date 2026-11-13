@@ -171,6 +171,7 @@ class WindowLoopTest {
       assertTrue(seen[0] >= 1, "the first frame is drawn");
       assertEquals(seen[0], seen[1], "nothing is drawn while nothing changes");
       assertFalse(loop.isRunning());
+      assertTrue(app.systemFonts(), "a window falls back to the system's fonts");
     }
   }
 
@@ -216,9 +217,10 @@ class WindowLoopTest {
       AtomicInteger presents = new AtomicInteger();
       WindowLoop loop = new WindowLoop(window, app, (scene, w, h, s) -> presents.incrementAndGet());
       Desktop.click(window, 280, 15);
-      loop.run();
+      loop.systemFonts(false).run();
       assertTrue(presents.get() >= 1);
       assertTrue(window.isOpen());
+      assertFalse(app.systemFonts(), "unless the loop is told not to");
     }
   }
 
