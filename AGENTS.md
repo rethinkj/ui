@@ -565,6 +565,7 @@ The window (SDL3), the GPU renderer (wgpu-native) and text (HarfBuzz shapes, Fre
 - Native access must be enabled for core: `--enable-native-access=com.rethinkj.ui` (core's tests pass it). On the module path, the natives JAR is resolved only with `--add-modules com.rethinkj.ui.natives.<os>.x64`.
 - Loading happens only on first use. Never call `Natives` from a static initialiser that the headless path can reach: rendering without a window must not need the libraries.
 - Linux cannot load a library from a file system mounted `noexec`; then the cache has to move. On Linux, a failed load reports the dynamic linker's reason, which the JDK leaves out.
+- On Windows a library is loaded with `LoadLibraryExW` and its symbols found with `GetProcAddress` (`Natives.Kernel32`): `SymbolLookup.libraryLookup(Path, …)` hands the path to Windows in the ANSI code page and failed, on JDK 25.0.5 under code page 1252, for a cache in a folder named in Japanese, as a user profile may be. A failed load reports Windows' error code and its text, such as 193 for a damaged file. `NativesLoadTest` loads from folders named in Japanese, in Cyrillic and with spaces.
 - The libraries built for Linux need the glibc of the machine that built them (2.38 on Ubuntu 24.04, for SDL and FreeType), and SDL lacks what that machine had no headers for (IBus, libdecor). A build on an older distribution does not exist yet.
 
 ## GPU bindings

@@ -23,7 +23,9 @@ import java.net.URL;
 import java.net.URLClassLoader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
+import java.nio.file.attribute.DosFileAttributeView;
 import java.util.ArrayList;
 import java.util.HexFormat;
 import java.util.List;
@@ -183,6 +185,66 @@ class NativesLoadTest {
     String message = error.getMessage();
     assertTrue(message.contains("(" + dir.resolve("junk.so") + ": "), message);
     assertTrue(message.contains("mounted noexec"), message);
+  }
+
+  @Test
+  void loadsFromAFolderOfAnyName() {
+    // Japanese, as a user profile may be named, Cyrillic and spaces: on Windows the first two lie
+    // outside the ANSI code page of a system set to a Western European language.
+    for (String name : new String[] {"with  spaces", "日本語 キャッシュ", "Кэш библиотек"}) {
+      Path cache;
+      try {
+        cache = fresh(name);
+      } catch (InvalidPathException e) {
+        System.out.println("File names here cannot hold " + name + ": " + e);
+        continue;
+      }
+      Natives natives = natives(cache);
+      assertVersions(natives::find);
+      assertTrue(natives.prepare().startsWith(cache), natives.prepare().toString());
+    }
+  }
+
+  @Test
+  void onWindowsAFailedLoadGivesTheReasonOfTheSystem() throws IOException {
+    assumeTrue(osName.startsWith("Windows"), "Skipped: the reason comes from Windows");
+    Path dir = Files.createDirectories(fresh("junk"));
+    Files.writeString(dir.resolve("junk.dll"), "not a library");
+    Files.writeString(
+        dir.resolve(Natives.MANIFEST),
+        "rethinkj-ui-natives 1\nplatform windows-x64\nlibrary junk 1 junk.dll " + "0".repeat(64)
+            + "\n");
+    Natives natives = new Natives(osName, osArch, dir, null, new URLClassLoader(new URL[0], null));
+
+    UnsatisfiedLinkError error =
+        assertThrows(UnsatisfiedLinkError.class, () -> natives.find("junk"));
+
+    // ERROR_BAD_EXE_FORMAT, with the system's text in its language.
+    String message = error.getMessage();
+    assertTrue(message.contains("Cannot load " + dir.resolve("junk.dll")), message);
+    assertTrue(message.contains("Windows error 193 ("), message);
+    assertTrue(message.contains("The file may be damaged"), message);
+  }
+
+  @Test
+  void onWindowsACachedFileThatCannotBeReplacedIsReportedAndReplacedLater() throws IOException {
+    assumeTrue(osName.startsWith("Windows"), "Skipped: a read-only file is replaced elsewhere");
+    Path cache = fresh("read-only");
+    Path folder = natives(cache).prepare();
+    Path sdl = folder.resolve(manifest.library("sdl3").file());
+    Files.writeString(sdl, "half written");
+    DosFileAttributeView attributes = Files.getFileAttributeView(sdl, DosFileAttributeView.class);
+    attributes.setReadOnly(true);
+    try {
+      UnsatisfiedLinkError error =
+          assertThrows(UnsatisfiedLinkError.class, () -> natives(cache).prepare());
+      assertTrue(error.getMessage().contains("Cannot replace " + sdl), error.getMessage());
+      assertTrue(error.getMessage().contains("delete " + folder), error.getMessage());
+    } finally {
+      attributes.setReadOnly(false);
+    }
+    assertVersions(natives(cache)::find);
+    assertEquals(manifest.library("sdl3").sha256(), sha256(sdl));
   }
 
   private void assertVersions(Function<String, SymbolLookup> lookup) {
