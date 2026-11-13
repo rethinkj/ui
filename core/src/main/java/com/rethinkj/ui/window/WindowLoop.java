@@ -134,8 +134,9 @@ public final class WindowLoop {
     /**
      * Told on the loop's thread right before it waits for events.
      *
-     * @param millis the longest the wait may take, or -1 when only an event ends it: the app is
-     *     idle, nothing moves, nothing is pending and nothing is due on its clock
+     * @param millis the longest the wait may take, or -1 when only an event ends it: nothing
+     *     moves, nothing is pending and nothing is due on the app's clock. Events that arrived
+     *     while the frame was drawn may already be there and end it at once.
      * @param holdBack whether input or a posted task waits for the next refresh
      */
     void waiting(long millis, boolean holdBack);
