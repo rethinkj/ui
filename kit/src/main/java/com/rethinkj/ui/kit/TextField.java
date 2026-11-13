@@ -76,11 +76,12 @@ public final class TextField {
    * A text area for code, such as an SQL statement: {@link #textArea} in the mono type, whose
    * lines do not wrap, so that it scrolls sideways too, and in which Tab and Shift+Tab indent by
    * four spaces ({@link El#tabIndents}); Escape and then Tab, or Control+M, let Tab move the
-   * focus.
+   * focus. Words are those of code ({@link El#codeWords}): a double press on {@code orders} in
+   * {@code shop.public.orders} selects that name alone.
    */
   public static El codeArea(
       Theme t, String value, String placeholder, Consumer<String> onChange) {
-    El area = area(t, t.type().mono(), value, placeholder, onChange).tabIndents(true);
+    El area = area(t, t.type().mono(), value, placeholder, onChange).tabIndents(true).codeWords();
     // Below the last line, the room of the bar along the bottom, which shows for a long line.
     Scrollbars bars = t.scrollbars();
     area.style().paddingBottom = Len.px(t.space().s() + bars.thickness() + bars.margin());

@@ -2,7 +2,16 @@ el 0,0 1000x600
   el window=drag 0,0 1000x32
     el 12,11 10x10
     text "Workbench" 30,8 72x16
-    el 102,16 683x0
+    el #menubar role=menubar 110,4 176x24
+      el #title-0 role=menuitem label="File" 110,4 37x24 expanded=false
+        text "File" 118,8 21x16
+      el #title-1 role=menuitem label="Edit" 147,4 39x24 expanded=false
+        text "Edit" 155,8 23x16
+      el #title-2 role=menuitem label="View" 186,4 47x24 expanded=false
+        text "View" 194,8 31x16
+      el #title-3 role=menuitem label="Query" 233,4 53x24 expanded=false
+        text "Query" 241,8 37x16
+    el 286,16 499x0
     el 785,8 65x16
       el role=switch label="Dark" 781,6 73x20 checked=false
         el 785,8 28x16
@@ -93,7 +102,12 @@ el 0,0 1000x600
                     text "Run" 942,78 24x16
                 el role=separator 277,106 714x1
                 el 277,107 714x98
-                  text #query-localhost/shop/public/orders role=textbox label="Query" "SELECT *\nFROM shop.public.orders\nLIMIT 20;" 289,115 690x82 lines 1-3/3 focused caret 41 (3:9)
+                  text #query-localhost/shop/public/orders role=textbox label="Query" "SELECT *\nFROM shop.public.orders\nWHERE customer_id = 7\nLIMIT 20;" 289,115 690x82 lines 1-4/4 focused caret 63 (4:9)
+                    el #gutter 298,120 15x64
+                      text #line-0 "1" 298,120 15x16
+                      text #line-1 "2" 298,136 15x16
+                      text #line-2 "3" 298,152 15x16
+                      text #line-3 "4" 298,168 15x16
                 el role=separator 277,205 714x1
                 el #grid-localhost/shop/public/orders role=grid label="orders" 277,206 714x356 thumb-x 279,554 347.22x6
                   el #content 277,206 1460x356
@@ -643,7 +657,8 @@ el 0,0 1000x600
                 el role=separator 277,562 714x1
                 el 277,563 714x28
                   text #status "localhost/shop/public/orders · 20 rows" 289,569 237x16
-                  el 538,577 441x0
+                  el 538,577 363x0
+                  text #position "Ln 4, Col 9" 913,569 66x16
       el #divider role=separator label="Resize" 268,32 8x560 value="first 260"
         el 268,32 8x560
           el 272,32 1x560

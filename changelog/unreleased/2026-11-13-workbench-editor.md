@@ -1,0 +1,1 @@
+- The Workbench example has a query editor per tab (`CodeEditor` with `Sql`) that keeps its caret, scroll and undo history across tab switches, shows the caret's line and column, completes keywords, tables and columns, underlines a table the server does not have, and has a menu bar with File, Edit, View and Query in its title bar.

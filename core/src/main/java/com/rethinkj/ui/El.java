@@ -77,6 +77,8 @@ public final class El {
   private boolean readOnly;
   private int maxLength = -1;
   private int tabIndents; // 0: Tab moves the focus; 1: it indents with tabs; 2: with spaces
+  private boolean codeWords;
+  private FieldState fieldState;
   private Editor editor;
   private boolean focused;
   private Spring motion;
@@ -1200,6 +1202,41 @@ public final class El {
 
   SelectHandler onSelect() {
     return onSelect;
+  }
+
+  /**
+   * Keeps the editing state of an {@link #editable} field in {@code state}, which the app holds,
+   * instead of by the field's identity, so that caret, selection, scroll, undo history and the
+   * mode of Tab survive the field leaving the tree, as the content of a tab that is not active
+   * does. Give the same object to the same field on every build, and each field one of its own.
+   *
+   * @throws IllegalStateException when the view is built, if two fields of the tree have one
+   */
+  public El fieldState(FieldState state) {
+    editableOnly("fieldState");
+    this.fieldState = state;
+    return this;
+  }
+
+  FieldState fieldState() {
+    return fieldState;
+  }
+
+  /**
+   * Makes the keys and presses that go by words in an {@link #editable} field take the words of
+   * code: a word is a run of letters, digits and {@code _}, and everything else separates words,
+   * so that a double press on {@code orders} in {@code shop.public.orders} selects {@code orders}
+   * and Control+Backspace after it deletes only that. Other fields take words as text has them,
+   * where a point between letters does not end a word.
+   */
+  public El codeWords() {
+    editableOnly("codeWords");
+    this.codeWords = true;
+    return this;
+  }
+
+  boolean isCodeWords() {
+    return codeWords;
   }
 
   /**

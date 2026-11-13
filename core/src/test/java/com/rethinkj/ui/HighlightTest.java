@@ -159,6 +159,20 @@ class HighlightTest {
   }
 
   @Test
+  void glyphsWithoutAColourTakeTheTextsNewColourWhenItMoves() {
+    int white = 0xFFFFFFFF;
+    int[] colour = {TEXT};
+    App<Model> app = area("a 1", f -> f.highlight(1, COMMENTS).color(colour[0])
+        .motion(com.rethinkj.ui.motion.Spring.SNAP));
+    app.post(() -> colour[0] = white); // as a switch of the theme
+    app.frame();
+    app.advance(1);
+    app.frame();
+    assertArrayEquals(new int[] {white, white, RED}, colours(app).get(0),
+        "not the colour of the first frame of the motion");
+  }
+
+  @Test
   void otherTextIsOneLineForTheHighlighter() {
     El label = El.text("x 1\n2 y").highlight(1, COMMENTS).color(TEXT);
     El root = El.col().child(label);
