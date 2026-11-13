@@ -1,0 +1,25 @@
+---
+title: Avatar
+description: A round mark with a name's initials or an icon, on a colour the name picks.
+---
+
+`Avatar.avatar` is a round mark with the initials of a name, or an icon, on one of nine fills that the name picks by its hash: the same name always gets the same colour, so that a server is known again by its colour. Use it for servers, connections and people.
+
+<Shot src="kit/parts-badges-{theme}-2x" alt="A row of avatars below the badges" />
+
+## Example
+
+```java snippet="avatar"
+```
+
+| Call | |
+| --- | --- |
+| `avatar(t, name)` | The initials: the first letter or digit of the first two words (`prod-eu` is `PE`) |
+| `avatar(t, name, symbol, size)` | An icon instead of initials, and a size |
+
+## In a tree dump
+
+`role=img` with the name as label:
+
+```text file="examples/src/test/resources/golden/docs/parts/view.tree.txt" start="role=img" count="2"
+```

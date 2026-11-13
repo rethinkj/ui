@@ -1,0 +1,78 @@
+---
+title: Components
+description: Every component of the kit, with a picture, the smallest example, its options and what it shows in a tree dump.
+---
+
+The kit (`rethinkj-ui-kit`, package `com.rethinkj.ui.kit`) holds components built on core, for desktop tools that work with data. Each is a static function whose first parameter is the theme and which returns an `El`, which you may chain further: `Button.button(theme, PRIMARY, "Run", onRun).key("run")`. There is no base class and no global theme; the state belongs to the app, and a null handler disables a component.
+
+Every page follows the same pattern: what the component is and when to use it, a picture from the kit's tests in the dark and the light theme, the smallest example, the options with their signatures, which state the app keeps, the keys, and what the component shows in a [tree dump](/docs/testing/tree-dump), so that a script finds it.
+
+## Data
+
+<Tiles>
+<Tile href="/docs/components/data-grid" title="DataGrid" description="Query results for a million rows: selection, sorting, editing, filters." src="kit/grid-{theme}-top" />
+<Tile href="/docs/components/tree" title="Tree" description="Servers, schemas and tables that open and close." src="kit/tree-{theme}-opened" />
+<Tile href="/docs/components/code-editor" title="CodeEditor" description="Code with line numbers, highlighting and line commands." src="kit/code-editor-{theme}-2x-brackets" />
+<Tile href="/docs/components/find" title="Find" description="Find and replace in a multi-line field." src="kit/find-{theme}-2x-replace" />
+<Tile href="/docs/components/completion" title="Completion" description="Completions at the caret." src="examples/workbench-completion" />
+<Tile href="/docs/components/markdown" title="Markdown" description="A Markdown document as a scrolling page." src="examples/manual-{theme}-2x-top" />
+<Tile href="/docs/components/properties" title="Properties" description="Names and values that select and copy." src="kit/parts-detail-{theme}-2x" />
+</Tiles>
+
+## Frame
+
+<Tiles>
+<Tile href="/docs/components/tabs" title="Tabs" description="A card with a bar of tabs." src="kit/tabs-{theme}-first" />
+<Tile href="/docs/components/tab-groups" title="TabGroups" description="Tabs that tear off into windows." src="examples/documents-torn" />
+<Tile href="/docs/components/split" title="Split" description="Two parts with a line between them." src="kit/split-{theme}-rest" />
+<Tile href="/docs/components/card" title="Card" description="A rounded surface that frames a region." src="kit/structure-cards-{theme}-2x" />
+<Tile href="/docs/components/group" title="Group" description="Rows of settings in a card." src="kit/structure-rows-{theme}-2x" />
+<Tile href="/docs/components/section" title="Section and page" description="A page of sections with headings." dark="examples/settings-2x-appearance" light="examples/settings-light-2x-appearance" />
+<Tile href="/docs/components/nav-list" title="NavList" description="Pages or sections, one selected." src="kit/gallery-{theme}-2x" rows="nav list" />
+<Tile href="/docs/components/title-bar" title="TitleBar" description="A frameless window's title bar." dark="examples/workbench-dark-2x" light="examples/workbench-light-2x" />
+<Tile href="/docs/components/status-bar" title="StatusBar" description="The bar along the bottom of a window." src="kit/gallery-{theme}-2x" rows="status item" />
+<Tile href="/docs/components/toolbar" title="Toolbar" description="Actions that move into More when narrow." src="kit/parts-detail-{theme}-2x" />
+<Tile href="/docs/components/breadcrumb" title="Breadcrumb" description="A path of parts with chevrons." src="kit/parts-detail-{theme}-2x" />
+<Tile href="/docs/components/divider" title="Divider" description="A hairline, with an optional label." src="kit/structure-rows-{theme}-2x" />
+</Tiles>
+
+## Overlays
+
+<Tiles>
+<Tile href="/docs/components/menu" title="Menu" description="Dropdowns and context menus with submenus." src="kit/menu-{theme}-2x-submenu" />
+<Tile href="/docs/components/menu-bar" title="MenuBar" description="File, Edit and View, with Alt and mnemonics." src="kit/menubar-{theme}-2x-open" />
+<Tile href="/docs/components/command-palette" title="CommandPalette" description="Every command, searchable." src="kit/palette-{theme}-2x-commands" />
+<Tile href="/docs/components/dialog" title="Dialog" description="A modal dialog over a scrim." src="kit/dialog-{theme}-2x-open" />
+<Tile href="/docs/components/popover" title="Popover" description="Content below an anchor." src="kit/parts-popover-{theme}-2x" />
+<Tile href="/docs/components/tooltip" title="Tooltip" description="A short text after a rest." src="kit/tooltip-{theme}-2x-shown" />
+<Tile href="/docs/components/toast" title="Toast" description="A message that goes by itself." src="kit/toast-{theme}-2x-shown" />
+</Tiles>
+
+## Inputs
+
+<Tiles>
+<Tile href="/docs/components/button" title="Button" description="Primary, secondary, ghost, busy, toggle and split." src="kit/gallery-{theme}-2x" rows="primary,secondary,ghost" />
+<Tile href="/docs/components/toggle" title="Toggle" description="A switch for a setting." src="kit/gallery-{theme}-2x" rows="toggle off,toggle on" />
+<Tile href="/docs/components/checkbox" title="Checkbox" description="A box with a check mark." src="kit/gallery-{theme}-2x" rows="checkbox off,checkbox on" />
+<Tile href="/docs/components/text-field" title="TextField" description="Fields, passwords, text and code areas." src="kit/gallery-{theme}-2x" rows="field empty,field filled,password" />
+<Tile href="/docs/components/select" title="Select" description="One of a few choices in a menu." src="kit/select-{theme}-2x-open" />
+<Tile href="/docs/components/combo-box" title="ComboBox" description="A choice made by typing." src="kit/combobox-{theme}-2x-typed" />
+<Tile href="/docs/components/radio" title="Radio" description="One choice among a few, all in view." src="kit/gallery-{theme}-2x" rows="radio" />
+<Tile href="/docs/components/segmented" title="Segmented" description="Joined buttons for views or modes." src="kit/gallery-{theme}-2x" rows="segmented" />
+<Tile href="/docs/components/number-field" title="NumberField" description="A whole number with steps." src="kit/gallery-{theme}-2x" rows="number" />
+<Tile href="/docs/components/slider" title="Slider" description="A knob on a rail." src="kit/gallery-{theme}-2x" rows="slider" />
+<Tile href="/docs/components/form" title="Form" description="Labelled fields with help and errors." src="kit/structure-form-{theme}-2x" />
+</Tiles>
+
+## Display
+
+<Tiles>
+<Tile href="/docs/components/label" title="Label" description="Text in the theme's styles." src="kit/gallery-{theme}-2x" rows="label" />
+<Tile href="/docs/components/icon" title="Icon" description="Fluent UI System Icons." src="kit/icons-{theme}-2x" />
+<Tile href="/docs/components/badge" title="Badge" description="A short word in a small fill." src="kit/parts-badges-{theme}-2x" />
+<Tile href="/docs/components/avatar" title="Avatar" description="Initials on a colour of the name." src="kit/parts-badges-{theme}-2x" />
+<Tile href="/docs/components/image" title="Image" description="A picture, or a placeholder." src="examples/manual-{theme}-2x-images" />
+<Tile href="/docs/components/progress" title="Progress" description="Bars, running bars and spinners." src="kit/gallery-{theme}-2x" rows="progress,running,labeled" />
+<Tile href="/docs/components/callout" title="Callout" description="A note that stands out." src="kit/structure-choices-{theme}-2x" />
+<Tile href="/docs/components/empty-state" title="EmptyState" description="What to do when there is nothing." src="kit/structure-choices-{theme}-2x" />
+</Tiles>

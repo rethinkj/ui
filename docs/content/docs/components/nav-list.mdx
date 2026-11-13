@@ -1,0 +1,33 @@
+---
+title: NavList
+description: A list of pages or sections with one selected, headings between them and counts at the right.
+---
+
+`NavList.navList` is a list of items with an icon and a count, under headings, with one item selected and an accent mark at its left. Use it for the pages of a settings window or the sections of an app's sidebar. For nested data, use a [Tree](/docs/components/tree); for tabs over content, [Tabs](/docs/components/tabs).
+
+<Shot src="kit/gallery-{theme}-2x" rows="nav list" alt="A nav list item in each state" />
+
+## Example
+
+```java snippet="nav-list"
+```
+
+| | |
+| --- | --- |
+| `navList(t, items, selected, onSelect)` | A list of `NavList.Item`s |
+| `navList(t, count, index -> item, selected, onSelect)` | A virtual list for many items, building only those in view |
+| `NavList.item([icon,] label)`, `.count(text)` | An item and its count |
+| `NavList.heading(label)` | A heading, skipped by the keys |
+
+In a card, wrap it in `Card.inset(t, list)`.
+
+## Keyboard
+
+One stop for Tab; Up, Down, Home, End, Page Up and Page Down move the selection, skipping headings.
+
+## In a tree dump
+
+`role=listbox` with its label; items `role=option` with `selected` and `pos`, keys `item-<index>` counting headings:
+
+```text file="examples/src/test/resources/golden/docs/navigation/view.tree.txt" start="role=listbox" count="5"
+```

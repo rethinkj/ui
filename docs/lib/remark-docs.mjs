@@ -24,7 +24,7 @@ export function remarkDocs() {
         node.value = resolved.code;
         node.meta = cleanMeta(node.meta);
         replaceSource(file, node, `\`\`\`${node.lang ?? ''}\n${resolved.code}\n\`\`\``);
-      } else if (node.type === 'mdxJsxFlowElement' && node.name === 'Shot') {
+      } else if (node.type === 'mdxJsxFlowElement' && (node.name === 'Shot' || node.name === 'Tile')) {
         const attrs = literalAttributes(node);
         const entry = manifest[shotKey(attrs)];
         if (!entry) throw new Error(`${file.path}: <Shot> not prepared; run npm run docs:prepare`);

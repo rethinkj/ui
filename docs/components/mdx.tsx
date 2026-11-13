@@ -3,11 +3,14 @@ import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
 import { Step, Steps } from 'fumadocs-ui/components/steps';
 import type { MDXComponents } from 'mdx/types';
 import { Shot } from './shot';
+import { Tile, Tiles } from './tile';
 
 export function getMDXComponents(components?: MDXComponents) {
   return {
     ...defaultMdxComponents,
     Shot,
+    Tile,
+    Tiles,
     Tab,
     Tabs,
     Step,

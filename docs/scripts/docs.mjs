@@ -111,7 +111,7 @@ function prepare() {
             throw new DocsError(`${where}: Java code comes from a snippet: write \`\`\`java snippet="name"\`\`\` and mark the code in examples' docs package`);
           }
         }
-        for (const m of line.matchAll(/<Shot\b([^>]*?)\/?>/g)) {
+        for (const m of line.matchAll(/<(?:Shot|Tile)\b([^>]*?)\/?>/g)) {
           const attrs = attributes(m[1]);
           const images = shotImages(attrs, where);
           prepareShot(images.dark, where, manifest);

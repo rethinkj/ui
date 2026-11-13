@@ -1,0 +1,26 @@
+---
+title: Radio
+description: A group of round buttons for one choice among a few, all in view.
+---
+
+`Radio.radioGroup` shows a few choices one above the other, one of them chosen. Use it when the choices need to be read side by side, such as line endings or indentation. For a compact choice of two or three views, use [Segmented](/docs/components/segmented); for many choices, a [Select](/docs/components/select).
+
+<Shot src="kit/structure-choices-{theme}-2x" alt="A segmented control, radio buttons, a number field, a slider, a callout and an empty state" />
+
+## Example
+
+```java snippet="radio"
+```
+
+`Radio.radioGroup(t, choices, selected, onSelect)`. A null handler disables it. Give the group a `.label(...)`.
+
+## Keyboard
+
+The group is one stop for Tab. The arrows choose the next and the previous choice, around the ends; Home and End the first and the last.
+
+## In a tree dump
+
+`role=radiogroup` with its label, each choice `role=radio` with `checked` or `checked=false`:
+
+```text file="examples/src/test/resources/golden/docs/choices/view.tree.txt" start="label=\"Indent with\"" count="5"
+```

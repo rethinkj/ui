@@ -1,0 +1,26 @@
+---
+title: Segmented
+description: A row of joined buttons for one choice among two to four, such as views or modes.
+---
+
+`Segmented.segmented` is a frame of joined choices, the chosen one filled with the accent. Use it to switch between two to four views or modes: rows or cells, light, dark or system. For choices that need room to be read, use [Radio](/docs/components/radio).
+
+<Shot src="kit/gallery-{theme}-2x" rows="segmented" alt="A segmented control in each state" />
+
+## Example
+
+```java snippet="segmented"
+```
+
+`Segmented.segmented(t, choices, selected, onSelect)`. A null handler disables it.
+
+## Keyboard
+
+One stop for Tab; the arrows choose around the ends, Home and End the first and the last.
+
+## In a tree dump
+
+The same roles as a radio group: `role=radiogroup`, each choice `role=radio` with `checked` or `checked=false`:
+
+```text file="examples/src/test/resources/golden/docs/choices/view.tree.txt" start="label=\"Select\"" count="5"
+```

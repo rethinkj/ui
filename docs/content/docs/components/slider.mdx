@@ -1,0 +1,26 @@
+---
+title: Slider
+description: A knob on a rail for a whole number in a range.
+---
+
+`Slider.slider` is a rail with a knob, the part up to the knob in the accent. Use it for a value one adjusts by feel, such as a font size. For an exact number, use a [NumberField](/docs/components/number-field).
+
+<Shot src="kit/gallery-{theme}-2x" rows="slider" alt="A slider in each state" />
+
+## Example
+
+```java snippet="slider"
+```
+
+`Slider.slider(t, value, min, max, step, onChange)`. Dragging puts the knob under the pointer by steps; a press on the rail puts it there. A null handler disables it.
+
+## Keyboard
+
+The arrows step, Page Up and Page Down by a tenth of the range, Home and End go to the ends.
+
+## In a tree dump
+
+`role=slider` with its label and the value:
+
+```text file="examples/src/test/resources/golden/docs/choices/view.tree.txt" start="role=slider" count="1"
+```

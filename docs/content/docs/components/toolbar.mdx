@@ -1,0 +1,34 @@
+---
+title: Toolbar
+description: A row of buttons, toggles and split buttons that moves what has no room into a More menu.
+---
+
+`Toolbar.toolbar` is a row of actions: icon buttons, buttons with text, toggles, split buttons, separators and a spacer. It learns its width from the layout, and where the items do not fit, the last ones go into a menu behind More. It is one stop for Tab, with the arrows moving between items. For a card's title row with a few actions, `Card.toolbar` is enough ([Card](/docs/components/card)).
+
+<Shot src="kit/parts-detail-{theme}-2x" alt="A breadcrumb, a toolbar with a split Run button and toggles, and a table's properties" />
+
+## Example
+
+```java snippet="toolbar"
+```
+
+| Item | |
+| --- | --- |
+| `Toolbar.button(icon, label, onPress)` | An icon button with a tooltip |
+| `Toolbar.text([variant,] icon, text, onPress)` | A button with text |
+| `Toolbar.toggle(icon, label, on, onToggle)` | A toggle button; a checked item in the More menu |
+| `Toolbar.split(variant, icon, text, onPress, menu, items)` | A split button; a submenu in the More menu |
+| `Toolbar.separator()`, `Toolbar.spacer()` | A line, and room that pushes the rest to the right |
+
+The app keeps a `Toolbar.State`. The toolbar settles a frame after a change of width and new parts fade in, so a script advances the clock before a snap.
+
+## Keyboard
+
+One stop for Tab; Left, Right, Home and End move the focus between items; Enter and Space press. A press leaves the focus where it was.
+
+## In a tree dump
+
+`role=toolbar` with its label; the More button is `role=button` `label="More"`:
+
+```text file="examples/src/test/resources/golden/docs/details/view.tree.txt" start="role=toolbar" count="3"
+```

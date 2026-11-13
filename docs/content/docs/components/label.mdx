@@ -1,0 +1,31 @@
+---
+title: Label
+description: "Text in one of the theme's styles: normal, muted, monospaced, strong, a heading or a title."
+---
+
+`Label.label` is a text element in one of the theme's type styles and text colours. Use it for every piece of text the kit does not draw itself. For text of your own font and size, use the core's `El.text` ([Text and fonts](/docs/concepts/text)).
+
+<Shot src="kit/gallery-{theme}-2x" rows="label" alt="Labels: normal, muted, monospaced, heading and strong" />
+
+## Example
+
+```java snippet="label"
+```
+
+| Variant | |
+| --- | --- |
+| `NORMAL` | The text of the interface (the default) |
+| `MUTED` | Secondary text: hints, captions, values beside their names |
+| `MONO` | Code, identifiers and values that line up, in JetBrains Mono |
+| `HEADING` | The title of a section |
+| `TITLE` | The title of a page, above its sections |
+| `STRONG` | A title inside a section, such as a card's |
+
+The result is a text element: chain `.wrapText()` for text that wraps, `.ellipsis()` for text that is cut off.
+
+## In a tree dump
+
+A `text` line with the string:
+
+```text file="examples/src/test/resources/golden/docs/parts/view.tree.txt" start="\"Orders\"" count="3"
+```

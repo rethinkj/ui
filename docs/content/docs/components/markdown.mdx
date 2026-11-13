@@ -1,0 +1,32 @@
+---
+title: Markdown
+description: A Markdown document as a scrolling page of selectable blocks, with links, code, tables and images.
+---
+
+`Markdown.markdown` shows a `MarkdownDocument` as a scrolling page: headings, paragraphs with emphasis and links, lists and task lists, quotes, code blocks with highlighting and a copy button, tables and images. The reader follows CommonMark with GitHub's tables, task lists, strikethrough and bare URLs, never throws, and takes time in proportion to the text. Only the blocks in view are built, so long documents scroll smoothly.
+
+<Shot src="examples/manual-{theme}-2x-top" alt="The Manual example showing a Markdown document with headings, text and links" />
+
+## Example
+
+```java snippet="markdown"
+```
+
+`Markdown.parse(source)` reads a document; keep it in the state, since parsing takes a moment for long texts. `Markdown.markdown(t, document, options)` shows it.
+
+| Option | |
+| --- | --- |
+| `onLink(destination -> …)` | A link is pressed: a URL, or `#id` for a heading |
+| `images(address -> image)` | The `Image` for an address as written, or null while there is none (a placeholder shows) |
+| `languages(language -> highlighter)` | Highlighters for code blocks; `sql` uses `Sql` by default |
+| `copy(clipboard)` | Where Control+C and the code blocks' copy buttons copy to |
+| `state(Markdown.State)` | Keeps Control+A's selection of the whole document |
+
+`Markdown.rowOf(document, id)` is the row to scroll to for a heading (`app.scrollToRow`), `document.headings()` lists them with GitHub's anchors, and `Markdown.text(document)` is the plain text. Each block of text is a read-only field that selects and copies; HTML in the source shows as text.
+
+## In a tree dump
+
+`role=document`, a list of rows; headings `role=heading` with `level` and the key `heading-<id>`; links `role=link` with the destination as `value`; code blocks `role=code` with the language as label:
+
+```text file="examples/src/test/resources/golden/docs/markdown/view.tree.txt" start="#readme" count="8"
+```

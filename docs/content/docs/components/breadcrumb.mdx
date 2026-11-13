@@ -1,0 +1,26 @@
+---
+title: Breadcrumb
+description: A path of parts with chevrons between them, where the start gives way to a menu when there is no room.
+---
+
+`Breadcrumb.breadcrumb` shows a path, such as server, database, schema and table, with chevrons between the parts. Every part but the last is a link. Where the path does not fit, its start goes into a menu behind an ellipsis.
+
+<Shot src="kit/parts-detail-{theme}-2x" alt="A breadcrumb above a toolbar" />
+
+## Example
+
+```java snippet="breadcrumb"
+```
+
+`Breadcrumb.breadcrumb(t, state, parts, onSelect)`: the app keeps a `Breadcrumb.State`; `onSelect` gets the index of the part pressed. It settles a frame after a change of width.
+
+## Keyboard
+
+One stop for Tab; the arrows, Home and End move between parts; Enter presses.
+
+## In a tree dump
+
+`role=navigation` `label="Breadcrumb"`; parts `role=link`, the last `current`; the ellipsis `role=button` `label="Hidden parts"`:
+
+```text file="examples/src/test/resources/golden/docs/details/view.tree.txt" start="#crumb-2" count="6"
+```

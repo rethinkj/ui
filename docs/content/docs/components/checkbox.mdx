@@ -1,0 +1,31 @@
+---
+title: Checkbox
+description: A box with a check mark and its text, for an option in a form.
+---
+
+`Checkbox.checkbox` is a box and its text in a row; a press anywhere on the row checks or unchecks it. Use it for options in a form that apply when the form is saved, and for lists of options. For a setting that applies at once, use a [Toggle](/docs/components/toggle).
+
+<Shot src="kit/gallery-{theme}-2x" rows="checkbox off,checkbox on" alt="A checkbox unchecked and checked, in each state" />
+
+## Example
+
+```java snippet="checkbox"
+```
+
+| Call | |
+| --- | --- |
+| `checkbox(t, checked, text, onToggle)` | The box and its text |
+| `checkbox(t, checked, onToggle)` | The box alone; give it a `.label(...)` |
+
+A null handler disables it.
+
+## Keyboard
+
+Tab reaches it; Space and Enter toggle it. A press leaves the focus where it was.
+
+## In a tree dump
+
+`role=checkbox` with the text as label, `checked` or `checked=false`:
+
+```text file="examples/src/test/resources/golden/docs/toggles/view.tree.txt" start="role=checkbox" count="1"
+```

@@ -1,0 +1,42 @@
+---
+title: ComboBox
+description: A choice made by typing, a free text with suggestions, and choices with icons, images or details.
+---
+
+`ComboBox.comboBox` looks like a [Select](/docs/components/select) when closed; typing opens a field with the choices below it, filtered by fuzzy matching. Use it for many choices or ones the user knows by name: a schema among dozens, a language. `ComboBox.free` is a text field whose every edit is the value, with suggestions, for a host or a database name. `ComboBox.items` is a choice of items with an icon, image or own element and a detail.
+
+<Shot src="kit/combobox-{theme}-2x-typed" alt="A combo box with typed text and the matching choices below it" />
+
+## Example
+
+```java snippet="combo-box"
+```
+
+```java snippet="combo-items"
+```
+
+| Call | |
+| --- | --- |
+| `comboBox(t, choices, selected, state, onSelect)` | One of the choices, told by index |
+| `free(t, value, suggestions, state, onChange)` | Any text; suggestions open as one types, none highlighted, so Enter keeps what was typed |
+| `items(t, items, selected, state, onSelect)` | Items: `ComboBox.item(text).icon(symbol)`, `.image(image)`, `.leading(theme -> element)`, `.detail(text)` |
+
+The app keeps a `ComboBox.State` and the value. A null handler disables it. It is the control height unless the view sets one, so it fits a grid's cell. Pass the same list on every build, so that the box keeps what its filter found.
+
+<Shot src="kit/combobox-items-{theme}-2x-open" alt="A combo box of database products with logos and details" />
+
+## Keyboard
+
+| Keys | Action |
+| --- | --- |
+| A letter or digit, Alt+Down, Alt+Up, a press | Open |
+| Up, Down, Page Up, Page Down, Home, End | Move the highlight |
+| Enter | Choose; the focus stays on the combo box |
+| Escape, Tab, a press outside | Close; the choice stays as it was |
+
+## In a tree dump
+
+`role=combobox` with the value and `expanded` or `expanded=false`. Open, its field is `role=textbox` and the list `role=listbox` with `role=option` entries, the highlighted one `selected`. A free one's chevron is `role=button` `label="Open"`.
+
+```text file="examples/src/test/resources/golden/docs/combos/typed.tree.txt" start="overlay" count="4"
+```

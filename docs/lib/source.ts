@@ -41,9 +41,15 @@ ${shotsAsImages(await page.data.getText('processed'))}`,
 
 /** The Markdown of a `<Shot>`: its image in the dark theme. */
 function shotsAsImages(markdown: string) {
-  return markdown.replace(/<Shot\b([^>]*?)\/>/g, (_, attrs: string) => {
-    const alt = attrs.match(/\balt="([^"]*)"/)?.[1] ?? '';
-    const src = attrs.match(/\bdark="([^"]*)"/)?.[1] ?? '';
-    return `![${alt}](https://ui.rethinkj.com${src})`;
-  });
+  return markdown
+    .replace(/<Tiles>|<\/Tiles>/g, '')
+    .replace(/<Tile\b([^>]*?)\/>/g, (_, attrs: string) => {
+      const get = (name: string) => attrs.match(new RegExp(`\\b${name}="([^"]*)"`))?.[1] ?? '';
+      return `- [${get('title')}](${get('href')}): ${get('description')}`;
+    })
+    .replace(/<Shot\b([^>]*?)\/>/g, (_, attrs: string) => {
+      const alt = attrs.match(/\balt="([^"]*)"/)?.[1] ?? '';
+      const src = attrs.match(/\bdark="([^"]*)"/)?.[1] ?? '';
+      return `![${alt}](https://ui.rethinkj.com${src})`;
+    });
 }
