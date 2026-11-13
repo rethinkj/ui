@@ -47,12 +47,10 @@ el 0,0 720x240
         el #numbers 8,8 57x24
         el 65,8 1x24
         el #column-0 role=columnheader label="id" 66,8 63x24 pos=1/8 sort=ascending
-          el 70,14 12x12
-            text label="arrow_up" "\u{E12A}" 70,14 12x12
-          text label="key" "\u{E740}" 84,12 16x16
-          el 104,12 21x16
-            text "id" 104,12 11x16
-            text "bigint" 119,12 6x16
+          el 80,14 12x12
+            text label="arrow_up" "\u{E12A}" 80,14 12x12
+          text label="key" "\u{E740}" 94,12 16x16
+          text "id" 114,12 11x16
         el 129,8 1x24
         el #column-1 role=columnheader label="customer_id" 130,8 127x24 pos=2/8
           text label="link" "\u{F4E3}" 134,12 16x16
