@@ -42,6 +42,8 @@ class SharedDeviceTest {
 
   @BeforeEach
   void needsWindows() {
+    assumeTrue(Boolean.getBoolean("windows.tests"),
+        "Skipped: opens real windows on the screen; run with -Dwindows.tests=true");
     try {
       Natives.lookup("sdl3");
       Natives.lookup("wgpu_native");
