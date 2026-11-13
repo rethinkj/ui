@@ -76,7 +76,9 @@ import java.util.function.Predicate;
  * press on it or inside it, or from {@link #focus}. Keys then go up through its ancestors until a
  * handler takes them ({@link El#onKey}); text goes to it alone ({@link El#onText}). When the
  * keyboard or the app moved the focus, the scene draws a ring around the focused element, and
- * scroll areas around it scroll it into view.
+ * scroll areas around it scroll it into view. When a rebuild leaves the focused element out, the
+ * focus goes to the nearest element around where it was that can take it, as {@link #focused}
+ * says, so that keys keep reaching the handlers around it.
  *
  * <p>The app also follows the pointer ({@link #pointerMove}, {@link #pointerLeave}): it knows the
  * element under it ({@link #hovered}), the one a press is on ({@link #pressed}) and the {@link
@@ -904,6 +906,17 @@ public final class App<S> {
    * The element of the last frame's {@link #tree} that has the keyboard focus, or null. Also null
    * while the focus is on a row of a virtual list that has scrolled out of the rows that exist:
    * the app keeps it, and the row is focused again when it comes back.
+   *
+   * <p>When a rebuild leaves out the focused element, or it can no longer take the focus (it is
+   * no longer focusable, takes no input or is clipped away), the focus does not vanish: it goes to
+   * the nearest element along the old element's identity path that is still there, below the
+   * root, and either takes the focus itself or holds an element that does, then to that element,
+   * the first in tree order. This returns that element from the same frame on. Closing the active
+   * tab from inside its content puts the focus into the content of the tab that takes over, and an
+   * editor laid over a grid's cell gives it back to the grid when it goes. Only when no ancestor
+   * below the root holds a focusable element is the focus cleared, and this returns null. The
+   * ring stays as it was: where a key moved the focus away, the new place shows it and scrolls
+   * into view; where a press did, it does not.
    */
   public El focused() {
     return focused;
@@ -952,8 +965,8 @@ public final class App<S> {
    * handler may call this too, with an element of the tree it runs in, and the frame focuses right
    * after the handler, the element with the same identity in the tree built from what the handler
    * changed, if it is still there and can take the focus. The app keeps the focus on the element
-   * of later trees that has the same identity, and clears it once there is none, or when that
-   * element is no longer focusable or takes no input.
+   * of later trees that has the same identity; when there is none, or that element is no longer
+   * focusable or takes no input, the focus goes where {@link #focused} says.
    *
    * @throws IllegalArgumentException if the element is not {@link El#focusable}, not in the last
    *     frame's tree, or takes no input there: it is leaving, the view made it or an ancestor
@@ -1119,8 +1132,8 @@ public final class App<S> {
   }
 
   /**
-   * Finds the focused element in a new tree by its identity, or clears the focus when it is gone or
-   * can no longer take it, and scrolls it into view if that is due.
+   * Finds the focused element in a new tree by its identity, or where the focus goes when it is
+   * gone or can no longer take it ({@link #recover}), and scrolls it into view if that is due.
    */
   private void refocus() {
     if (focusId == null) {
@@ -1135,12 +1148,24 @@ public final class App<S> {
       reveal = false;
       return;
     }
-    if (el == null || !focusables().contains(el)) {
-      focused = null;
-      focusId = null;
-      ring = false;
-      reveal = false;
-      return;
+    List<El> order = focusables();
+    if (el == null || !order.contains(el)) {
+      el = recover(focusId, order);
+      if (el == null) {
+        focused = null;
+        focusId = null;
+        ring = false;
+        reveal = false;
+        return;
+      }
+      focusId = animator.identity(el);
+      reveal = ring; // the ring stays as it was: after a key, the new place shows it
+      focusSince = time;
+      focusKeyed = false;
+      Animator.InRow in = animator.inRow(focusId);
+      if (in != null) {
+        remembered.put(in.listId(), focusId);
+      }
     }
     focused = el;
     el.focused(true);
@@ -1151,6 +1176,32 @@ public final class App<S> {
         refocus(); // its row was built again
       }
     }
+  }
+
+  /**
+   * Where the focus goes when the element with identity {@code lost} is gone or can no longer take
+   * it: to the nearest of it and its ancestors below the root that is still there and can take the
+   * focus, or else has an element inside it that can, the first in tree order; null if none has.
+   */
+  private El recover(Object lost, List<El> order) {
+    List<Object> lineage = Animator.lineage(lost);
+    for (int i = lineage.size() - 1; i >= 1; i--) {
+      El scope = animator.element(lineage.get(i));
+      if (scope == null || scope.isExiting()) {
+        continue;
+      }
+      if (order.contains(scope)) {
+        return scope;
+      }
+      Set<El> inside = Collections.newSetFromMap(new IdentityHashMap<>());
+      collect(scope, inside);
+      for (El el : order) {
+        if (inside.contains(el)) {
+          return el;
+        }
+      }
+    }
+    return null;
   }
 
   /**

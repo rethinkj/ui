@@ -235,6 +235,89 @@ class FocusTest {
     assertFalse(app.tree().dump().contains("focused"));
   }
 
+  /** Two pages of a panel, each with its own fields, as two tabs' contents; a key flips them. */
+  private static App<int[]> pages(List<String> keys) {
+    return start(new App<>(new int[] {0}, page -> {
+      El content = col().key("page-" + page[0]);
+      for (int i = 0; i < (page[0] == 0 ? 2 : 1); i++) {
+        content.child(el().key("field-" + page[0] + "-" + i).focusable().size(40, 10));
+      }
+      return col().children(
+          el().key("bar").focusable().size(40, 10),
+          col().key("panel")
+              .onKey(k -> {
+                keys.add(k.name());
+                if (k.name().equals("PageDown")) {
+                  page[0] = 1 - page[0];
+                  return true;
+                }
+                return false;
+              })
+              .child(content));
+    }), 100, 100);
+  }
+
+  @Test
+  void whenTheFocusedElementGoesTheFocusGoesToTheFirstFocusableOneOfItsNearestAncestor() {
+    List<String> keys = new ArrayList<>();
+    App<int[]> app = pages(keys);
+    tab(app);
+    tab(app);
+    tab(app);
+    assertEquals("field-0-1", focusedKey(app));
+    key(app, "PageDown", 0); // the other page, without the focused field
+    assertEquals("field-1-0", focusedKey(app), "into the new content, not nowhere");
+    assertTrue(app.tree().dump().contains("el #field-1-0 0,10 40x10 focused\n"));
+    assertTrue(ring(app.scene()) >= 0, "a key moved it: the ring stays");
+    key(app, "PageDown", 0);
+    assertEquals("field-0-0", focusedKey(app), "back on the first page, at its first field");
+    assertEquals(List.of("Tab", "PageDown", "PageDown"), keys,
+        "the panel sees the keys from wherever the focus is inside it");
+  }
+
+  @Test
+  void afterAPressTheFocusThatMovesOnHasNoRing() {
+    int[] page = {0};
+    App<int[]> app = start(new App<>(page, p -> col().children(
+        col().key("panel").child(p[0] == 0
+            ? el().key("first").focusable().size(40, 10).onPress(() -> p[0] = 1)
+            : el().key("second").focusable().size(40, 10)))), 100, 100);
+    press(app, 10, 5);
+    assertEquals("second", focusedKey(app));
+    assertEquals(-1, ring(app.scene()), "no ring");
+  }
+
+  @Test
+  void aFocusableAncestorTakesTheFocusBackAndWithoutAnyBelowTheRootItIsCleared() {
+    boolean[] inner = {true};
+    App<boolean[]> app = start(new App<>(inner, f -> {
+      El list = col().key("list").focusable().size(40, 40);
+      if (f[0]) {
+        list.child(el().key("item").focusable().size(40, 10));
+      }
+      return col().children(list, el().key("loose").focusable().size(40, 10));
+    }), 100, 100);
+    tab(app);
+    tab(app);
+    assertEquals("item", focusedKey(app));
+    inner[0] = false;
+    app.resize(100, 100, 1);
+    app.frame();
+    assertEquals("list", focusedKey(app), "the item's own list");
+
+    // A child of the root that goes: nothing around it below the root, so nothing.
+    tab(app);
+    assertEquals("loose", focusedKey(app));
+    App<boolean[]> two = start(new App<>(new boolean[] {true}, f -> f[0]
+        ? row().children(el().key("a").focusable().size(10, 10), el().key("b").size(10, 10))
+        : row().child(el().key("b").focusable().size(10, 10))), 100, 100);
+    tab(two);
+    two.state()[0] = false;
+    two.resize(100, 100, 1);
+    two.frame();
+    assertNull(two.focused(), "not to b, which is no ancestor of a");
+  }
+
   @Test
   void anElementThatStopsBeingFocusableLosesTheFocus() {
     boolean[] focusable = {true};
