@@ -3,4 +3,5 @@ module com.rethinkj.ui {
   exports com.rethinkj.ui;
   exports com.rethinkj.ui.layout;
   exports com.rethinkj.ui.render;
+  // Not exported: com.rethinkj.ui.natives, which loads the native libraries.
 }
