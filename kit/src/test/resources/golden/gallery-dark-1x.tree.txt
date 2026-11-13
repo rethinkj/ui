@@ -1,0 +1,175 @@
+# primary, rest
+el 0,0 140x40
+  el #c role=button label="Run query" 25,8 90x24
+    text "Run query" 38,12 64x16
+# primary, hover
+el 0,0 140x40
+  el #c role=button label="Run query" 25,8 90x24 hovered
+    text "Run query" 38,12 64x16
+# primary, pressed
+el 0,0 140x40
+  el #c role=button label="Run query" 25,8 90x24 hovered focused
+    text "Run query" 38,12 64x16
+# primary, focused
+el 0,0 140x40
+  el #c role=button label="Run query" 25,8 90x24 focused
+    text "Run query" 38,12 64x16
+# primary, disabled
+el 0,0 140x40
+  el #c role=button label="Run query" 25,8 90x24
+    text "Run query" 38,12 64x16
+# secondary, rest
+el 0,0 140x40
+  el #c role=button label="Cancel" 36,8 68x24
+    text "Cancel" 49,12 42x16
+# secondary, hover
+el 0,0 140x40
+  el #c role=button label="Cancel" 36,8 68x24 hovered
+    text "Cancel" 49,12 42x16
+# secondary, pressed
+el 0,0 140x40
+  el #c role=button label="Cancel" 36,8 68x24 hovered focused
+    text "Cancel" 49,12 42x16
+# secondary, focused
+el 0,0 140x40
+  el #c role=button label="Cancel" 36,8 68x24 focused
+    text "Cancel" 49,12 42x16
+# secondary, disabled
+el 0,0 140x40
+  el #c role=button label="Cancel" 36,8 68x24
+    text "Cancel" 49,12 42x16
+# ghost, rest
+el 0,0 140x40
+  el #c role=button label="Format" 36,8 68x24
+    text "Format" 49,12 42x16
+# ghost, hover
+el 0,0 140x40
+  el #c role=button label="Format" 36,8 68x24 hovered
+    text "Format" 49,12 42x16
+# ghost, pressed
+el 0,0 140x40
+  el #c role=button label="Format" 36,8 68x24 hovered focused
+    text "Format" 49,12 42x16
+# ghost, focused
+el 0,0 140x40
+  el #c role=button label="Format" 36,8 68x24 focused
+    text "Format" 49,12 42x16
+# ghost, disabled
+el 0,0 140x40
+  el #c role=button label="Format" 36,8 68x24
+    text "Format" 49,12 42x16
+# toggle off, rest
+el 0,0 140x40
+  el #c role=switch label="Autocommit" 12,10 117x20
+    el 16,12 28x16
+      el 18,14 12x12
+    text "Autocommit" 52,12 73x16
+# toggle off, hover
+el 0,0 140x40
+  el #c role=switch label="Autocommit" 12,10 117x20 hovered
+    el 16,12 28x16
+      el 18,14 12x12
+    text "Autocommit" 52,12 73x16
+# toggle off, pressed
+el 0,0 140x40
+  el #c role=switch label="Autocommit" 12,10 117x20 hovered focused
+    el 16,12 28x16
+      el 18,14 12x12
+    text "Autocommit" 52,12 73x16
+# toggle off, focused
+el 0,0 140x40
+  el #c role=switch label="Autocommit" 12,10 117x20 focused
+    el 16,12 28x16
+      el 18,14 12x12
+    text "Autocommit" 52,12 73x16
+# toggle off, disabled
+el 0,0 140x40
+  el #c role=switch label="Autocommit" 12,10 117x20
+    el 16,12 28x16
+      el 18,14 12x12
+    text "Autocommit" 52,12 73x16
+# toggle on, rest
+el 0,0 140x40
+  el #c role=switch label="Autocommit" 12,10 117x20
+    el 16,12 28x16
+      el 30,14 12x12
+    text "Autocommit" 52,12 73x16
+# toggle on, hover
+el 0,0 140x40
+  el #c role=switch label="Autocommit" 12,10 117x20 hovered
+    el 16,12 28x16
+      el 30,14 12x12
+    text "Autocommit" 52,12 73x16
+# toggle on, pressed
+el 0,0 140x40
+  el #c role=switch label="Autocommit" 12,10 117x20 hovered focused
+    el 16,12 28x16
+      el 30,14 12x12
+    text "Autocommit" 52,12 73x16
+# toggle on, focused
+el 0,0 140x40
+  el #c role=switch label="Autocommit" 12,10 117x20 focused
+    el 16,12 28x16
+      el 30,14 12x12
+    text "Autocommit" 52,12 73x16
+# toggle on, disabled
+el 0,0 140x40
+  el #c role=switch label="Autocommit" 12,10 117x20
+    el 16,12 28x16
+      el 30,14 12x12
+    text "Autocommit" 52,12 73x16
+# checkbox off, rest
+el 0,0 140x40
+  el #c role=checkbox label="Read only" 24,10 93x20
+    el 28,12 16x16
+    text "Read only" 52,12 61x16
+# checkbox off, hover
+el 0,0 140x40
+  el #c role=checkbox label="Read only" 24,10 93x20 hovered
+    el 28,12 16x16
+    text "Read only" 52,12 61x16
+# checkbox off, pressed
+el 0,0 140x40
+  el #c role=checkbox label="Read only" 24,10 93x20 hovered focused
+    el 28,12 16x16
+    text "Read only" 52,12 61x16
+# checkbox off, focused
+el 0,0 140x40
+  el #c role=checkbox label="Read only" 24,10 93x20 focused
+    el 28,12 16x16
+    text "Read only" 52,12 61x16
+# checkbox off, disabled
+el 0,0 140x40
+  el #c role=checkbox label="Read only" 24,10 93x20
+    el 28,12 16x16
+    text "Read only" 52,12 61x16
+# checkbox on, rest
+el 0,0 140x40
+  el #c role=checkbox label="Read only" 24,10 93x20
+    el 28,12 16x16
+      text "✓" 30,12 11x16
+    text "Read only" 52,12 61x16
+# checkbox on, hover
+el 0,0 140x40
+  el #c role=checkbox label="Read only" 24,10 93x20 hovered
+    el 28,12 16x16
+      text "✓" 30,12 11x16
+    text "Read only" 52,12 61x16
+# checkbox on, pressed
+el 0,0 140x40
+  el #c role=checkbox label="Read only" 24,10 93x20 hovered focused
+    el 28,12 16x16
+      text "✓" 30,12 11x16
+    text "Read only" 52,12 61x16
+# checkbox on, focused
+el 0,0 140x40
+  el #c role=checkbox label="Read only" 24,10 93x20 focused
+    el 28,12 16x16
+      text "✓" 30,12 11x16
+    text "Read only" 52,12 61x16
+# checkbox on, disabled
+el 0,0 140x40
+  el #c role=checkbox label="Read only" 24,10 93x20
+    el 28,12 16x16
+      text "✓" 30,12 11x16
+    text "Read only" 52,12 61x16
