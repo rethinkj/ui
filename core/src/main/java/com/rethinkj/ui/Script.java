@@ -763,7 +763,8 @@ public final class Script {
 
     /**
      * Runs a frame in every open window, those that open meanwhile included, and again in those
-     * that another window's handlers invalidated after their frame, for up to three rounds; see
+     * that the handlers of another window of the same state invalidated after their frame, for up
+     * to three rounds; see
      * {@link com.rethinkj.ui.window.WindowLoop#run}.
      */
     void frame() {
@@ -780,7 +781,8 @@ public final class Script {
           if (w.app.ranHandlers()) {
             for (int j = 0; j < wins.size(); j++) {
               Win other = wins.get(j);
-              if (other != w && other.open && !other.fresh) {
+              if (other != w && other.open && !other.fresh
+                  && other.app.state() == w.app.state()) {
                 other.app.invalidate();
                 (j < i ? again : due).add(other);
               }

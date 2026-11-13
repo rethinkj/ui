@@ -370,7 +370,8 @@ public final class WindowLoop {
    * Hands the system's appearance to the apps: {@code handler} gets {@link
    * Window#systemAppearance()} once when {@link #run} starts and again after each {@link
    * WindowEvent.AppearanceChanged}, as a task of the first app ({@link App#post}), so that it may
-   * change the app's state and the view is built anew; the other apps then build theirs too. An
+   * change the app's state and the view is built anew; the other apps of that state then build
+   * theirs too. An
    * app that follows the system chooses its theme there; nothing changes by itself.
    *
    * <pre>{@code
@@ -411,8 +412,8 @@ public final class WindowLoop {
    * <p>Each pass of the loop builds a frame for each window whose input does not wait for its
    * display's next refresh, and presents those with something new. When an app ran a handler,
    * a task or an action of {@link App#after} ({@link App#ranHandlers}), the loop invalidates the
-   * other apps, which build their views again in the same pass, so that windows that show one
-   * state show the same. Then the loop waits once for all windows: for the earliest of the
+   * other apps of the same state object, which build their views again in the same pass, so that
+   * windows that show one state show the same. Then the loop waits once for all windows: for the earliest of the
    * refreshes that input waits for, the next frame of each window that moves (by its own
    * display's refresh), and the earliest {@link App#nextChange} of all apps; for events alone when
    * there is none of these.
@@ -513,7 +514,8 @@ public final class WindowLoop {
           if (e.app.ranHandlers()) {
             for (int j = 0; j < entries.size(); j++) {
               Entry other = entries.get(j);
-              if (other != e && other.isOpen() && !other.fresh) {
+              if (other != e && other.isOpen() && !other.fresh
+                  && other.app.state() == e.app.state()) {
                 other.app.invalidate();
                 if (!held.contains(other)) {
                   (j < i ? again : due).add(other);

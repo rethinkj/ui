@@ -19,10 +19,13 @@ import java.util.List;
  * }</pre>
  *
  * <p>Each window runs an {@link App} of its own, with its own view, focus, hover, scroll offsets,
- * animations and clock; apps that show one state are made with the same state object. When a
- * handler, a posted task or an action of {@link App#after} of one app of a runner has run, the
- * runner {@link App#invalidate invalidates} its other apps, which build their views again in the
- * same pass: what a press in one window changes shows in the others with the same frame.
+ * animations and clock. Apps that show one state are made with the same state object, and that is
+ * how a runner knows they share it: when a handler, a posted task or an action of {@link
+ * App#after} of one app has run, the runner {@link App#invalidate invalidates} the other apps whose
+ * {@link App#state} is the same object, which build their views again in the same pass. What a
+ * press in one window changes shows in the others with the same frame, and windows of other
+ * states draw nothing for it. A view of part of a state, such as one note, takes the whole state
+ * and picks its part.
  *
  * <p>Positions on the screen are in the units {@link Window#moveTo} takes: physical pixels on
  * Windows and X11, where a window's {@link Handle#screenScale} is its scale; on Wayland a client

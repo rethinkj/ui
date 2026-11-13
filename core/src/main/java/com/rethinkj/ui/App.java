@@ -955,7 +955,7 @@ public final class App<S> {
 
   /**
    * The state changed outside the app's own handlers: the next {@link #frame} builds the view
-   * again, as after a handler. A runner calls it on the other apps that share a state after a
+   * again, as after a handler. A runner calls it on its other apps of the same state object after a
    * handler of one ran ({@link #ranHandlers}); it is not input, and wakes nothing by itself.
    */
   public void invalidate() {
