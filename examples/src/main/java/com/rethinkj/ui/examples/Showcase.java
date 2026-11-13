@@ -38,7 +38,6 @@ import com.rethinkj.ui.window.Window;
 import com.rethinkj.ui.window.WindowLoop;
 import com.rethinkj.ui.window.Windows;
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -141,7 +140,7 @@ public final class Showcase {
   String database = "shop";
   String user = "";
   int driver = 0;
-  int isolation = 1;
+  Sections.Isolation isolation = Sections.Isolation.READ_COMMITTED;
   final Menu.State driverMenu = new Menu.State();
   final Menu.State isolationMenu = new Menu.State();
   String sql = "SELECT name, total\nFROM orders\nWHERE total > 100\nORDER BY total DESC;";
@@ -154,8 +153,8 @@ public final class Showcase {
   final ComboBox.State schemaBox = new ComboBox.State();
   int schema = 0;
   final ComboBox.State hostBox = new ComboBox.State();
-  final ComboBox.State providerBox = new ComboBox.State();
-  int provider;
+  final ComboBox.State productBox = new ComboBox.State();
+  Sections.Product product = Sections.PRODUCTS.get(0);
   String recentHost = "db.staging.internal";
   final CommandPalette.State palette = new CommandPalette.State();
   final Menu.State context = new Menu.State();
@@ -407,7 +406,6 @@ public final class Showcase {
         .key("sections")
         .label("Sections")
         .grow(1);
-    List<String> looks = Arrays.stream(Look.values()).map(l -> l.title).toList();
     El sidebar = Card.flush(
             t,
             Card.inset(t, nav),
@@ -416,7 +414,12 @@ public final class Showcase {
                 .gap(t.space().s())
                 .child(label(t, MUTED, "Theme"))
                 .child(Select.select(
-                        t, looks, s.look.ordinal(), s.lookMenu, i -> s.look = Look.values()[i])
+                        t,
+                        List.of(Look.values()),
+                        s.look,
+                        l -> l.title,
+                        s.lookMenu,
+                        l -> s.look = l)
                     .key("look")
                     .label("Theme")
                     .wFull()))
