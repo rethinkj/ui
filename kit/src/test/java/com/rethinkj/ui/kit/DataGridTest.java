@@ -178,6 +178,20 @@ class DataGridTest {
   }
 
   @Test
+  void controlWithHomeAndEndGoesToTheFirstAndLastRowAsWithout() throws IOException {
+    Orders orders = new Orders(T, 1_000_000);
+    App<Orders> app = start(orders);
+    run(app, "key Tab\nframe\nkey End control\nframe");
+    assertEquals(999_999, orders.selected);
+    assertInView(app, 999_999);
+    run(app, "key Home control\nframe");
+    assertEquals(0, orders.selected);
+    assertInView(app, 0);
+    run(app, "key ArrowDown control\nframe\nkey End shift\nframe");
+    assertEquals(0, orders.selected, "other modifiers are left to the app");
+  }
+
+  @Test
   void aKeyWithoutASelectionSelectsTheFirstRowInView() throws IOException {
     Orders orders = new Orders(T, 1_000_000);
     orders.selected = -1;
