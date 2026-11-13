@@ -5,6 +5,7 @@ import static java.lang.foreign.ValueLayout.JAVA_BOOLEAN;
 import static java.lang.foreign.ValueLayout.JAVA_FLOAT;
 import static java.lang.foreign.ValueLayout.JAVA_INT;
 import static java.lang.foreign.ValueLayout.JAVA_LONG;
+import static java.lang.foreign.ValueLayout.JAVA_SHORT;
 
 import com.rethinkj.ui.natives.Natives;
 import java.lang.foreign.Arena;
@@ -69,6 +70,7 @@ final class Sdl {
   static final int EVENT_WINDOW_LAST = 0x21A;
   static final int EVENT_KEY_DOWN = 0x300;
   static final int EVENT_KEY_UP = 0x301;
+  static final int EVENT_TEXT_EDITING = 0x302;
   static final int EVENT_TEXT_INPUT = 0x303;
   static final int EVENT_MOUSE_MOTION = 0x400;
   static final int EVENT_MOUSE_BUTTON_DOWN = 0x401;
@@ -112,6 +114,7 @@ final class Sdl {
   static final String PROP_WINDOW_WAYLAND_SURFACE_POINTER = "SDL.window.wayland.surface";
 
   static final String HINT_NO_SIGNAL_HANDLERS = "SDL_NO_SIGNAL_HANDLERS";
+  static final String HINT_IME_IMPLEMENTED_UI = "SDL_IME_IMPLEMENTED_UI";
 
   // SDL_Event is a union of 128 bytes. Every member starts with Uint32 type, Uint32 reserved and
   // Uint64 timestamp; the members the window reads continue with SDL_WindowID windowID at 16.
@@ -130,6 +133,10 @@ final class Sdl {
   static final long KEY_REPEAT = 37;
   // SDL_TextInputEvent: 4 bytes of padding, const char *text
   static final long TEXT_TEXT = 24;
+  // SDL_TextEditingEvent: 4 bytes of padding, const char *text, Sint32 start, Sint32 length
+  static final long EDITING_TEXT = 24;
+  static final long EDITING_START = 32;
+  static final long EDITING_LENGTH = 36;
   // SDL_MouseMotionEvent: SDL_MouseID which, SDL_MouseButtonFlags state, float x, y, xrel, yrel
   static final long MOTION_X = 28;
   static final long MOTION_Y = 32;
@@ -224,6 +231,23 @@ final class Sdl {
       FunctionDescriptor.of(JAVA_BOOLEAN, ADDRESS, JAVA_FLOAT);
   static final FunctionDescriptor SDL_START_TEXT_INPUT =
       FunctionDescriptor.of(JAVA_BOOLEAN, ADDRESS);
+  static final FunctionDescriptor SDL_STOP_TEXT_INPUT =
+      FunctionDescriptor.of(JAVA_BOOLEAN, ADDRESS);
+  static final FunctionDescriptor SDL_TEXT_INPUT_ACTIVE =
+      FunctionDescriptor.of(JAVA_BOOLEAN, ADDRESS);
+  /** {@code bool SDL_SetTextInputArea(SDL_Window *window, const SDL_Rect *rect, int cursor)} */
+  static final FunctionDescriptor SDL_SET_TEXT_INPUT_AREA =
+      FunctionDescriptor.of(JAVA_BOOLEAN, ADDRESS, ADDRESS, JAVA_INT);
+  /** {@code bool SDL_GetTextInputArea(SDL_Window *window, SDL_Rect *rect, int *cursor)} */
+  static final FunctionDescriptor SDL_GET_TEXT_INPUT_AREA =
+      FunctionDescriptor.of(JAVA_BOOLEAN, ADDRESS, ADDRESS, ADDRESS);
+  /** {@code SDL_Keymod SDL_GetModState(void)}, a Uint16 */
+  static final FunctionDescriptor SDL_GET_MOD_STATE = FunctionDescriptor.of(JAVA_SHORT);
+  static final FunctionDescriptor SDL_SET_CLIPBOARD_TEXT =
+      FunctionDescriptor.of(JAVA_BOOLEAN, ADDRESS);
+  /** {@code char *SDL_GetClipboardText(void)}, which the caller frees with SDL_free */
+  static final FunctionDescriptor SDL_GET_CLIPBOARD_TEXT = FunctionDescriptor.of(ADDRESS);
+  static final FunctionDescriptor SDL_FREE = FunctionDescriptor.ofVoid(ADDRESS);
   static final FunctionDescriptor SDL_ADD_EVENT_WATCH =
       FunctionDescriptor.of(JAVA_BOOLEAN, ADDRESS, ADDRESS);
   static final FunctionDescriptor SDL_REMOVE_EVENT_WATCH =
@@ -292,6 +316,19 @@ final class Sdl {
     static final MethodHandle SET_WINDOW_PROGRESS_VALUE =
         bind("SDL_SetWindowProgressValue", SDL_SET_WINDOW_PROGRESS_VALUE);
     static final MethodHandle START_TEXT_INPUT = bind("SDL_StartTextInput", SDL_START_TEXT_INPUT);
+    static final MethodHandle STOP_TEXT_INPUT = bind("SDL_StopTextInput", SDL_STOP_TEXT_INPUT);
+    static final MethodHandle TEXT_INPUT_ACTIVE =
+        bind("SDL_TextInputActive", SDL_TEXT_INPUT_ACTIVE);
+    static final MethodHandle SET_TEXT_INPUT_AREA =
+        bind("SDL_SetTextInputArea", SDL_SET_TEXT_INPUT_AREA);
+    static final MethodHandle GET_TEXT_INPUT_AREA =
+        bind("SDL_GetTextInputArea", SDL_GET_TEXT_INPUT_AREA);
+    static final MethodHandle GET_MOD_STATE = bind("SDL_GetModState", SDL_GET_MOD_STATE);
+    static final MethodHandle SET_CLIPBOARD_TEXT =
+        bind("SDL_SetClipboardText", SDL_SET_CLIPBOARD_TEXT);
+    static final MethodHandle GET_CLIPBOARD_TEXT =
+        bind("SDL_GetClipboardText", SDL_GET_CLIPBOARD_TEXT);
+    static final MethodHandle FREE = bind("SDL_free", SDL_FREE);
     static final MethodHandle ADD_EVENT_WATCH = bind("SDL_AddEventWatch", SDL_ADD_EVENT_WATCH);
     static final MethodHandle REMOVE_EVENT_WATCH =
         bind("SDL_RemoveEventWatch", SDL_REMOVE_EVENT_WATCH);
@@ -602,6 +639,83 @@ final class Sdl {
   static boolean startTextInput(MemorySegment window) {
     try {
       return (boolean) H.START_TEXT_INPUT.invokeExact(window);
+    } catch (Throwable t) {
+      throw failed(t);
+    }
+  }
+
+  static boolean stopTextInput(MemorySegment window) {
+    try {
+      return (boolean) H.STOP_TEXT_INPUT.invokeExact(window);
+    } catch (Throwable t) {
+      throw failed(t);
+    }
+  }
+
+  static boolean textInputActive(MemorySegment window) {
+    try {
+      return (boolean) H.TEXT_INPUT_ACTIVE.invokeExact(window);
+    } catch (Throwable t) {
+      throw failed(t);
+    }
+  }
+
+  /** Sets the text input area to this rectangle in window coordinates. */
+  static boolean setTextInputArea(
+      MemorySegment window, int x, int y, int width, int height, int cursor) {
+    try (Arena arena = Arena.ofConfined()) {
+      MemorySegment rect = arena.allocate(16, 4);
+      rect.set(JAVA_INT, 0, x);
+      rect.set(JAVA_INT, 4, y);
+      rect.set(JAVA_INT, 8, width);
+      rect.set(JAVA_INT, 12, height);
+      return (boolean) H.SET_TEXT_INPUT_AREA.invokeExact(window, rect, cursor);
+    } catch (Throwable t) {
+      throw failed(t);
+    }
+  }
+
+  /** The text input area as x, y, width, height and cursor in window coordinates. */
+  static int[] getTextInputArea(MemorySegment window) {
+    try (Arena arena = Arena.ofConfined()) {
+      MemorySegment rect = arena.allocate(16, 4);
+      MemorySegment cursor = arena.allocate(JAVA_INT);
+      if (!(boolean) H.GET_TEXT_INPUT_AREA.invokeExact(window, rect, cursor)) {
+        throw new IllegalStateException("SDL_GetTextInputArea failed: " + getError());
+      }
+      return new int[] {rect.get(JAVA_INT, 0), rect.get(JAVA_INT, 4), rect.get(JAVA_INT, 8),
+          rect.get(JAVA_INT, 12), cursor.get(JAVA_INT, 0)};
+    } catch (Throwable t) {
+      throw failed(t);
+    }
+  }
+
+  static short getModState() {
+    try {
+      return (short) H.GET_MOD_STATE.invokeExact();
+    } catch (Throwable t) {
+      throw failed(t);
+    }
+  }
+
+  static boolean setClipboardText(String text) {
+    try (Arena arena = Arena.ofConfined()) {
+      return (boolean) H.SET_CLIPBOARD_TEXT.invokeExact(arena.allocateFrom(text));
+    } catch (Throwable t) {
+      throw failed(t);
+    }
+  }
+
+  /** The clipboard's text, "" when it holds none or cannot be read. */
+  static String getClipboardText() {
+    try {
+      MemorySegment text = (MemorySegment) H.GET_CLIPBOARD_TEXT.invokeExact();
+      try {
+        String read = string(text);
+        return read == null ? "" : read;
+      } finally {
+        H.FREE.invokeExact(text);
+      }
     } catch (Throwable t) {
       throw failed(t);
     }

@@ -25,6 +25,7 @@ import com.rethinkj.ui.window.WindowEvent.Redraw;
 import com.rethinkj.ui.window.WindowEvent.Resized;
 import com.rethinkj.ui.window.WindowEvent.ScaleChanged;
 import com.rethinkj.ui.window.WindowEvent.StateChanged;
+import com.rethinkj.ui.window.WindowEvent.TextEditing;
 import com.rethinkj.ui.window.WindowEvent.TextInput;
 import com.rethinkj.ui.window.WindowEvent.Wheel;
 import java.lang.foreign.Arena;
@@ -61,6 +62,14 @@ import java.util.Objects;
  * the system runs a loop of its own and {@code waitEvents} does not return until the user lets go;
  * the listener is then called from inside that loop, with a {@link WindowEvent.Redraw} each time the
  * window should be drawn.
+ *
+ * <h2>Text input</h2>
+ *
+ * Text input is off until {@link #textInputArea} turns it on, which {@link WindowLoop} does while
+ * the focused element takes text, and {@link #stopTextInput} turns it off again: while it is on,
+ * keys also type text ({@link WindowEvent.TextInput}), input methods compose ({@link
+ * WindowEvent.TextEditing}), and a system with an on-screen keyboard shows it. The window draws
+ * the composition itself; the system places its candidate window below the area.
  *
  * <p>The native library is loaded by the first {@link #open}, not before. A listener that throws
  * while the system calls into Java, as it does during a move, cannot pass the exception through
@@ -194,6 +203,8 @@ public final class Window implements AutoCloseable {
   private float pointerX;
   private float pointerY;
   private Cursor cursor = Cursor.DEFAULT;
+  /** The text input area last set, in window coordinates, while text input is on; else null. */
+  private int[] textInput;
 
   private Window(MemorySegment sdl, Options options) {
     this.sdl = sdl;
@@ -273,7 +284,6 @@ public final class Window implements AutoCloseable {
         win32 = Win32Frame.attach(this, win.hwnd());
       }
     }
-    Sdl.startTextInput(sdl);
     Sdl.showWindow(sdl);
     long flags = Sdl.getWindowFlags(sdl);
     minimized = (flags & Sdl.WINDOW_MINIMIZED) != 0;
@@ -505,8 +515,9 @@ public final class Window implements AutoCloseable {
         float x = logical(e.get(JAVA_FLOAT, Sdl.BUTTON_X));
         float y = logical(e.get(JAVA_FLOAT, Sdl.BUTTON_Y));
         if (type == Sdl.EVENT_MOUSE_BUTTON_DOWN) {
-          post(new PointerDown(
-              x, y, button, Math.max(1, e.get(JAVA_BYTE, Sdl.BUTTON_CLICKS) & 0xFF)));
+          // The modifiers as SDL knows them now, while it queues the press, which is in order.
+          int clicks = Math.max(1, e.get(JAVA_BYTE, Sdl.BUTTON_CLICKS) & 0xFF);
+          post(new PointerDown(x, y, button, clicks, modifiers(Sdl.getModState())));
         } else {
           post(new PointerUp(x, y, button));
         }
@@ -530,6 +541,12 @@ public final class Window implements AutoCloseable {
         if (text != null && !text.isEmpty()) {
           post(new TextInput(text));
         }
+      }
+      case Sdl.EVENT_TEXT_EDITING -> {
+        String text = Sdl.string(e.get(ADDRESS, Sdl.EDITING_TEXT));
+        text = text == null ? "" : text;
+        int start = e.get(JAVA_INT, Sdl.EDITING_START);
+        post(new TextEditing(text, compositionCursor(text, start)));
       }
       case Sdl.EVENT_WINDOW_RESIZED, Sdl.EVENT_WINDOW_PIXEL_SIZE_CHANGED,
           Sdl.EVENT_WINDOW_DISPLAY_SCALE_CHANGED -> {
@@ -567,6 +584,18 @@ public final class Window implements AutoCloseable {
       case Sdl.EVENT_WINDOW_CLOSE_REQUESTED -> post(new CloseRequested());
       default -> {}
     }
+  }
+
+  /**
+   * The cursor of a composition, which SDL counts in characters, as a UTF-16 index into it; -1,
+   * for the end, where SDL does not say.
+   */
+  static int compositionCursor(String text, int characters) {
+    if (characters < 0) {
+      return -1;
+    }
+    int count = text.codePointCount(0, text.length());
+    return characters >= count ? text.length() : text.offsetByCodePoints(0, characters);
   }
 
   static int modifiers(short sdlModifiers) {
@@ -833,6 +862,39 @@ public final class Window implements AutoCloseable {
     cursorShown = cursor;
   }
 
+  /**
+   * Turns text input on, if it is off, and tells the system where the text is, in logical pixels:
+   * the box of the element that takes it, and the caret's distance from its left edge. The system
+   * places an input method's candidate window there, below the box. {@link WindowLoop} calls this
+   * after each frame while the focused element takes text, as {@link App#inputArea} says.
+   */
+  public void textInputArea(float x, float y, float width, float height, float cursor) {
+    checkOpen();
+    int[] area = {units(x), units(y), units(width), units(height), units(cursor)};
+    if (textInput != null && Arrays.equals(area, textInput)) {
+      return;
+    }
+    if (!Sdl.setTextInputArea(sdl, area[0], area[1], area[2], area[3], area[4])) {
+      throw new IllegalStateException("SDL_SetTextInputArea failed: " + Sdl.getError());
+    }
+    if (textInput == null && !Sdl.startTextInput(sdl)) {
+      throw new IllegalStateException("SDL_StartTextInput failed: " + Sdl.getError());
+    }
+    textInput = area;
+  }
+
+  /**
+   * Turns text input off: keys type nothing, an input method stops composing and an on-screen
+   * keyboard goes away. Calling this while it is off does nothing.
+   */
+  public void stopTextInput() {
+    checkOpen();
+    if (textInput != null) {
+      textInput = null;
+      Sdl.stopTextInput(sdl);
+    }
+  }
+
   /** The cursor this window asked for last; see {@link #cursor(Cursor)}. */
   public Cursor cursor() {
     return cursor;
@@ -938,6 +1000,8 @@ public final class Window implements AutoCloseable {
     Natives.lookup("sdl3");
     // The JVM handles SIGINT and SIGTERM itself.
     Sdl.setHint(Sdl.HINT_NO_SIGNAL_HANDLERS, "1");
+    // The app draws the composition of an input method, the system its candidates.
+    Sdl.setHint(Sdl.HINT_IME_IMPLEMENTED_UI, "composition");
     if (!Sdl.init(Sdl.INIT_VIDEO)) {
       throw new IllegalStateException("Cannot open windows here: SDL_Init failed: "
           + Sdl.getError());

@@ -1,0 +1,2 @@
+el 0,0 240x80
+  text #name role=textbox label="Table name" "SELECT name FROM customers" 40,26 160x28 focused caret 26 composing "ni"

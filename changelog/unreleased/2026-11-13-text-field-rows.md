@@ -1,0 +1,1 @@
+- Text fields work in the rows of a virtual list, and the GPU renderer draws them. A field in a row keeps its caret, selection and undo history by the row's index while the row exists. When a row scrolls out, its fields' state goes with it, except the focused field's, which stays with the focus and is there again when the row comes back; only an input method's composition ends.

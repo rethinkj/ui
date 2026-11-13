@@ -5,6 +5,7 @@ import static com.rethinkj.ui.El.row;
 import static com.rethinkj.ui.kit.Button.button;
 import static com.rethinkj.ui.kit.Checkbox.checkbox;
 import static com.rethinkj.ui.kit.Label.label;
+import static com.rethinkj.ui.kit.TextField.textField;
 import static com.rethinkj.ui.kit.Toggle.toggle;
 
 import com.rethinkj.ui.App;
@@ -30,7 +31,8 @@ import java.util.function.BiFunction;
  * trees into one text.
  *
  * <p>A new component gets its rows in {@link #ROWS}: a name and how to build it with a handler,
- * or with null, which disables it.
+ * or with null, which disables it, and steps that follow those of each state, such as selecting
+ * text in a field.
  */
 final class Gallery {
 
@@ -52,7 +54,18 @@ final class Gallery {
     }
   }
 
-  record Row(String name, BiFunction<Theme, Runnable, El> component) {}
+  record Row(String name, BiFunction<Theme, Runnable, El> component, String steps) {
+
+    Row(String name, BiFunction<Theme, Runnable, El> component) {
+      this(name, component, "");
+    }
+  }
+
+  /** A text field as wide as a cell allows, enabled when the handler is. */
+  private static El field(Theme t, String value, Runnable handler) {
+    return textField(t, value, "Search tables", handler == null ? null : s -> handler.run())
+        .w(WIDTH - 20);
+  }
 
   static final List<Row> ROWS =
       List.of(
@@ -62,7 +75,12 @@ final class Gallery {
           new Row("toggle off", (t, h) -> toggle(t, false, "Autocommit", h)),
           new Row("toggle on", (t, h) -> toggle(t, true, "Autocommit", h)),
           new Row("checkbox off", (t, h) -> checkbox(t, false, "Read only", h)),
-          new Row("checkbox on", (t, h) -> checkbox(t, true, "Read only", h)));
+          new Row("checkbox on", (t, h) -> checkbox(t, true, "Read only", h)),
+          new Row("field empty", (t, h) -> field(t, "", h)),
+          new Row("field filled", (t, h) -> field(t, "orders 2024", h)),
+          // The last word selected from the caret, wherever the state left it.
+          new Row("field selected", (t, h) -> field(t, "orders 2024", h),
+              "key ArrowRight control shift\nkey ArrowLeft control shift\nframe"));
 
   private final Theme theme;
   private final float scale;
@@ -100,7 +118,8 @@ final class Gallery {
       gallery.put(0, r + 2, gallery.name(row.name()), "");
       for (State state : State.values()) {
         El component = row.component().apply(t, state == State.DISABLED ? null : () -> {});
-        String tree = gallery.put(1 + state.ordinal(), r + 2, component.key("c"), state.steps);
+        String steps = state.steps + (row.steps().isEmpty() ? "" : "\n" + row.steps());
+        String tree = gallery.put(1 + state.ordinal(), r + 2, component.key("c"), steps);
         gallery.trees.append("# ").append(row.name()).append(", ")
             .append(state.name().toLowerCase(Locale.ROOT)).append('\n').append(tree);
       }

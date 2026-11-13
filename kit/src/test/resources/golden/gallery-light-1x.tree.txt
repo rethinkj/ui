@@ -173,3 +173,48 @@ el 0,0 140x40
     el 28,12 16x16
       text "✓" 30,12 11x16
     text "Read only" 52,12 61x16
+# field empty, rest
+el 0,0 140x40
+  text #c role=textbox label="Search tables" "" 10,8 120x24
+# field empty, hover
+el 0,0 140x40
+  text #c role=textbox label="Search tables" "" 10,8 120x24 hovered
+# field empty, pressed
+el 0,0 140x40
+  text #c role=textbox label="Search tables" "" 10,8 120x24 hovered focused caret 0
+# field empty, focused
+el 0,0 140x40
+  text #c role=textbox label="Search tables" "" 10,8 120x24 focused caret 0
+# field empty, disabled
+el 0,0 140x40
+  text #c role=textbox label="Search tables" "" 10,8 120x24
+# field filled, rest
+el 0,0 140x40
+  text #c role=textbox label="Search tables" "orders 2024" 10,8 120x24
+# field filled, hover
+el 0,0 140x40
+  text #c role=textbox label="Search tables" "orders 2024" 10,8 120x24 hovered
+# field filled, pressed
+el 0,0 140x40
+  text #c role=textbox label="Search tables" "orders 2024" 10,8 120x24 hovered focused caret 8
+# field filled, focused
+el 0,0 140x40
+  text #c role=textbox label="Search tables" "orders 2024" 10,8 120x24 focused caret 11
+# field filled, disabled
+el 0,0 140x40
+  text #c role=textbox label="Search tables" "orders 2024" 10,8 120x24
+# field selected, rest
+el 0,0 140x40
+  text #c role=textbox label="Search tables" "orders 2024" 10,8 120x24
+# field selected, hover
+el 0,0 140x40
+  text #c role=textbox label="Search tables" "orders 2024" 10,8 120x24 hovered
+# field selected, pressed
+el 0,0 140x40
+  text #c role=textbox label="Search tables" "orders 2024" 10,8 120x24 hovered focused caret 7 anchor 8
+# field selected, focused
+el 0,0 140x40
+  text #c role=textbox label="Search tables" "orders 2024" 10,8 120x24 focused caret 7 anchor 11
+# field selected, disabled
+el 0,0 140x40
+  text #c role=textbox label="Search tables" "orders 2024" 10,8 120x24

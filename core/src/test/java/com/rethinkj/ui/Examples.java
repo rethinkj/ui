@@ -18,7 +18,8 @@ public final class Examples {
 
   /**
    * The switch as a program: {@code --script <file> --out <folder>} runs a script against it, and
-   * with {@code list} or {@code rows} before that against the list or the million rows.
+   * with {@code list}, {@code rows} or {@code field} before that against the list, the million
+   * rows or the text field.
    */
   public static void main(String[] args) throws IOException {
     String view = args.length > 0 && !args[0].startsWith("--") ? args[0] : "";
@@ -26,6 +27,7 @@ public final class Examples {
         switch (view) {
           case "list" -> new App<>(new Object(), s -> list());
           case "rows" -> new App<>(new Object(), s -> rows());
+          case "field" -> new App<>(new Form(), Examples::form);
           default -> new App<>(new Lights(), Examples::lights);
         };
     app.textRendering(TextRendering.LINUX); // as the stored images
@@ -97,6 +99,30 @@ public final class Examples {
             El.text(table).fontSize(13).color(0xFFE4E4E7).grow(1),
             El.text(String.valueOf(i * 37L % 90 * 113)).font(Font.mono()).fontSize(12)
                 .color(0xFF8A8A99));
+  }
+
+  /** The state of the field example. */
+  public static final class Form {
+    public String name = "";
+  }
+
+  /** A text field for the name of a table, with a placeholder, in the middle of the window. */
+  public static El form(Form form) {
+    return col().wFull().hFull().center().fill(0xFF101014).child(
+        El.text(form.name).editable(name -> form.name = name)
+            .key("name")
+            .label("Table name")
+            .placeholder("Table name", 0xFF8A8A99)
+            .color(0xFFE4E4E7)
+            .caretColor(0xFF93C5FD)
+            .selectionColor(0x803B82F6)
+            .w(160)
+            .h(28)
+            .padding(0, 8)
+            .radius(6)
+            .fill(0xFF1C1C22)
+            .border(1, 0xFF3A3A40)
+            .whenFocused(e -> e.border(1, 0xFF3B82F6)));
   }
 
   /** The state of the switch example. */

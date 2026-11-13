@@ -12,6 +12,7 @@ import com.rethinkj.ui.window.WindowEvent.PointerUp;
 import com.rethinkj.ui.window.WindowEvent.Redraw;
 import com.rethinkj.ui.window.WindowEvent.Resized;
 import com.rethinkj.ui.window.WindowEvent.ScaleChanged;
+import com.rethinkj.ui.window.WindowEvent.TextEditing;
 import com.rethinkj.ui.window.WindowEvent.TextInput;
 import com.rethinkj.ui.window.WindowEvent.Wheel;
 import java.util.Objects;
@@ -29,9 +30,14 @@ import java.util.Objects;
  *
  * <p>The loop draws only when there is something new: when {@link App#frame} says so, when the
  * window asks for a {@link WindowEvent.Redraw}, or when the presenter could not show the last frame
- * ({@link Presenter#pending}). An idle window waits for events and does nothing else. While
- * something moves, the loop advances the app's clock by the time that passed and draws a frame per
- * refresh of the display.
+ * ({@link Presenter#pending}). An idle window waits for events and does nothing else, except for
+ * waking when the caret of a focused text field blinks ({@link App#nextChange}). While something
+ * moves, the loop advances the app's clock by the time that passed and draws a frame per refresh of
+ * the display.
+ *
+ * <p>The loop also gives the app the system's clipboard ({@link App#clipboard}), turns the
+ * window's text input on while the focused element takes text and tells it where ({@link
+ * App#inputArea}, {@link Window#textInputArea}), and passes on the compositions of input methods.
  *
  * <pre>{@code
  * try (Window window = Window.open("Lights", 480, 320, Window.options().frameless());
@@ -115,6 +121,7 @@ public final class WindowLoop {
       throw new IllegalStateException("The loop runs already");
     }
     running = true;
+    app.clipboard(new SystemClipboard());
     window.listener(this::event);
     window.parts(app::windowPart);
     try {
@@ -125,9 +132,12 @@ public final class WindowLoop {
         if (!running || !window.isOpen()) {
           break;
         }
+        double change = app.nextChange() - app.time();
         if (app.isMoving() || presenter.pending()) {
           long left = frameNanos - (System.nanoTime() - presented);
           Window.waitEvents(Math.max(0, left / 1_000_000));
+        } else if (change < Double.POSITIVE_INFINITY) {
+          Window.waitEvents(Math.max(1, (long) Math.ceil(change * 1000)));
         } else {
           Window.waitEvents();
         }
@@ -158,7 +168,7 @@ public final class WindowLoop {
     }
     switch (event) {
       case PointerDown down when down.button() == PointerButton.LEFT ->
-          app.pointerDown(down.x(), down.y());
+          app.pointerDown(down.x(), down.y(), down.clicks(), down.modifiers());
       case PointerUp up when up.button() == PointerButton.LEFT -> app.pointerUp(up.x(), up.y());
       case PointerMove move -> app.pointerMove(move.x(), move.y());
       case PointerLeave leave -> app.pointerLeave();
@@ -168,6 +178,7 @@ public final class WindowLoop {
       case KeyDown down -> app.keyDown(down.key());
       case KeyUp up -> app.keyUp(up.key());
       case TextInput text -> app.textInput(text.text());
+      case TextEditing editing -> app.textComposition(editing.text(), editing.cursor());
       case Resized resized -> resize();
       case ScaleChanged changed -> {
         resize();
@@ -190,6 +201,12 @@ public final class WindowLoop {
       presented = System.nanoTime();
     }
     window.cursor(app.cursor());
+    App.InputArea area = app.inputArea();
+    if (area == null) {
+      window.stopTextInput();
+    } else {
+      window.textInputArea(area.x(), area.y(), area.width(), area.height(), area.cursor());
+    }
   }
 
   private void resize() {

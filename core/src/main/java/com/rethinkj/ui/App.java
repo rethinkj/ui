@@ -53,6 +53,11 @@ import java.util.function.Predicate;
  * app applies the looks of the moment to each tree the view builds, before layout. A state that
  * changes for elements without such a look rebuilds nothing.
  *
+ * <p>A text field ({@link El#editable}) keeps its caret, selection, scroll, undo history and
+ * composition here too, by the same identity. Its caret blinks on the app's clock while it has the
+ * focus: {@link #frame} draws a new frame when it turns on or off, and {@link #nextChange} says
+ * when that is. Cut, copy and paste go through the app's {@link #clipboard}.
+ *
  * <p>This class needs no window. A windowed runner feeds it the window's input and draws its
  * {@link #scene}; tests and agents feed it input themselves and look at {@link #render}.
  *
@@ -62,6 +67,18 @@ public final class App<S> {
 
   /** The colour of the focus ring until {@link #focusRing} changes it, as 0xAARRGGBB. */
   public static final int FOCUS_RING = 0xFF93C5FD;
+
+  /** How long the caret of a focused field is on, and then off, in seconds of the app's clock. */
+  public static final double BLINK = 0.5;
+
+  /**
+   * Where the focused element that takes text is, in logical pixels of the window, for the
+   * system's input method: it places its candidate window below this box, and its composition at
+   * the caret.
+   *
+   * @param cursor the caret's distance from {@code x}
+   */
+  public record InputArea(float x, float y, float width, float height, float cursor) {}
 
   private final S state;
   private final Function<S, El> view;
@@ -94,6 +111,12 @@ public final class App<S> {
   private int ringColour = FOCUS_RING;
   private final Atlas atlas = new Atlas();
   private TextRendering textRendering = TextRendering.platform();
+  private final Map<Object, Editor> editors = new HashMap<>(); // the fields' state, by identity
+  private Clipboard clipboard = Clipboard.inMemory();
+  private Object selecting; // the identity of the field a press is selecting in, until pointer up
+  private Editor blinking; // the editor of the focused field
+  private double blinkStart; // when its caret last turned on
+  private boolean caretOn;
 
   public App(S state, Function<S, El> view) {
     this.state = state;
@@ -127,6 +150,10 @@ public final class App<S> {
       pointerY = y;
       return false; // the frame looks at what is under the pointer anyway
     });
+    if (selecting != null) {
+      Object field = selecting;
+      queued.add(() -> drag(field, x, y));
+    }
   }
 
   /** The pointer left the window: from the next {@link #frame} on, nothing is hovered. */
@@ -144,6 +171,36 @@ public final class App<S> {
    * ring; where there is none, it clears the focus.
    */
   public void pointerDown(float x, float y) {
+    pointerDown(x, y, 1, 0);
+  }
+
+  /**
+   * Like {@link #pointerDown(float, float)}, as the window reports it: with the number of presses
+   * in quick succession at about the same place, and the modifiers held. On a text field ({@link
+   * El#editable}) a second press selects a word and a third the whole text, Shift extends the
+   * selection, and moving the pointer until it is up selects.
+   *
+   * @param clicks 1 for a single press, 2 for the second of a double press, and so on
+   * @param modifiers a combination of {@link Key#SHIFT}, {@link Key#CONTROL}, {@link Key#ALT} and
+   *     {@link Key#META}
+   */
+  public void pointerDown(float x, float y, int clicks, int modifiers) {
+    List<El> hit = hit(x, y);
+    if (!hit.isEmpty() && hit.getLast().takesEdits()) {
+      El field = hit.getLast(); // a leaf, so nothing inside it takes the press
+      pressed = null;
+      selecting = Animator.identities(hit).getLast();
+      boolean extend = (modifiers & Key.SHIFT) != 0;
+      queued.add(() -> focus(field, false));
+      queued.add(() -> {
+        float[] at = local(field, x, y);
+        Editor editor = field.editor();
+        editor.press(editor.fromShown(field.text().nearest(at[0], at[1])),
+            editor.fromShown(field.text().hit(at[0], at[1])), clicks, extend);
+        return true;
+      });
+      return;
+    }
     Target target = target(x, y);
     pressed = target == null ? null : target.id();
     Target focus = target(x, y, El::isFocusable);
@@ -156,6 +213,12 @@ public final class App<S> {
    * recognises after rebuilds by the identity that matches elements across them.
    */
   public void pointerUp(float x, float y) {
+    if (selecting != null) {
+      Object field = selecting;
+      queued.add(() -> drag(field, x, y));
+      selecting = null;
+      return;
+    }
     Target target = target(x, y);
     if (target != null && target.id().equals(pressed)) {
       Runnable handler = target.el.onPress();
@@ -188,6 +251,9 @@ public final class App<S> {
             return true;
           }
         }
+        if (el == focused && el.editor() != null && el.editor().key(key, clipboard)) {
+          return true;
+        }
         if (el == focused
             && el.onPress() != null
             && key.modifiers() == 0
@@ -205,7 +271,11 @@ public final class App<S> {
           int step = key.modifiers() == Key.SHIFT ? -1 : 1;
           int at = order.indexOf(focused);
           int next = at >= 0 ? at + step : step > 0 ? 0 : -1;
-          return focus(enter(order.get(Math.floorMod(next, order.size())), step), true);
+          El el = enter(order.get(Math.floorMod(next, order.size())), step);
+          if (el.editor() != null) {
+            el.editor().selectAll(); // as browsers do when Tab enters a field
+          }
+          return focus(el, true);
         }
       }
       return called;
@@ -233,18 +303,83 @@ public final class App<S> {
   }
 
   /**
-   * Text was typed or composed with an input method. The next {@link #frame} gives it to the {@link
-   * El#onText} handler of the focused element; without one it is dropped.
+   * Text was typed or composed with an input method. The next {@link #frame} puts it into the
+   * focused text field ({@link El#editable}) in place of its selection, or gives it to the {@link
+   * El#onText} handler of the focused element; without either it is dropped.
    */
   public void textInput(String text) {
     Objects.requireNonNull(text, "text");
     queued.add(() -> {
+      if (focused != null && focused.editor() != null) {
+        return focused.editor().type(text);
+      }
       if (focused == null || focused.onText() == null) {
         return false;
       }
       focused.onText().accept(text);
       return true;
     });
+  }
+
+  /**
+   * An input method composes text: the next {@link #frame} shows it in the focused text field
+   * ({@link El#editable}), underlined in place of the selection, without changing the field's
+   * string. The text it commits comes with {@link #textInput}; empty text ends the composition.
+   *
+   * @param cursor where the input method's cursor is in {@code text}, in UTF-16 units; -1 for its
+   *     end
+   */
+  public void textComposition(String text, int cursor) {
+    Objects.requireNonNull(text, "text");
+    queued.add(() -> focused != null && focused.editor() != null
+        && focused.editor().compose(text, cursor));
+  }
+
+  /** Where cut and copied text go and paste takes it from; {@link Clipboard#inMemory} at first. */
+  public Clipboard clipboard() {
+    return clipboard;
+  }
+
+  /** Sets the clipboard, as a window does with the system's. */
+  public void clipboard(Clipboard clipboard) {
+    this.clipboard = Objects.requireNonNull(clipboard, "clipboard");
+  }
+
+  /**
+   * Where the focused element of the last frame that takes text is, for the system's input method:
+   * an editable text field, or an element with an {@link El#onText} handler; null when there is
+   * none, and then a window turns text input off.
+   */
+  public InputArea inputArea() {
+    if (focused == null) {
+      return null;
+    }
+    Editor editor = focused.editor();
+    if (editor == null ? focused.onText() == null : !editor.editable()) {
+      return null;
+    }
+    List<El> path = new ArrayList<>();
+    pathTo(root, focused, path);
+    float x = 0;
+    float y = 0;
+    for (El el : path) {
+      x += el.x();
+      y += el.y();
+    }
+    float cursor = editor == null ? 0 : contentLeft(focused) + editor.caretOffset();
+    return new InputArea(x, y, focused.width(), focused.height(), cursor);
+  }
+
+  /**
+   * The time on the app's clock at which the last frame changes without input or movement: when
+   * the caret of the focused field turns on or off. Positive infinity when nothing will; then an
+   * idle window can wait for input alone.
+   */
+  public double nextChange() {
+    if (blinking == null) {
+      return Double.POSITIVE_INFINITY;
+    }
+    return blinkStart + (Math.floor((time - blinkStart) / BLINK) + 1) * BLINK;
   }
 
   /**
@@ -666,8 +801,9 @@ public final class App<S> {
   /**
    * Runs the handlers queued by input, scrolls as the wheel and {@link #scrollTo} asked and, if
    * anything may have changed, builds the view again, gives it the looks of the moment ({@link
-   * El#whenHovered}) and lays it out. Then it writes the values of the moment into the elements
-   * that move.
+   * El#whenHovered}) and its text fields their editing state, lays it out and builds the rows of
+   * its virtual lists, each row the same way. Then it writes the values of the moment into the
+   * elements that move, and places the caret and selection of each field.
    *
    * @return whether there is something new to draw: the tree was rebuilt, something moved or
    *     scrolled
@@ -679,13 +815,15 @@ public final class App<S> {
       stale |= queued.poll().getAsBoolean();
     }
     stale |= focused != wasFocused || ring != hadRing;
+    stale |= blink(focused == null ? null : focused.editor());
     // After the handlers, so that one can scroll the tree it saw; a rebuild keeps the offsets.
     boolean scrolled = false;
     while (!scrolls.isEmpty()) {
       scrolled |= scrolls.poll().getAsBoolean();
     }
     // The rows that scrolling brought into view; a rebuild builds all rows anyway.
-    if (scrolled && !stale && fillRows()) {
+    boolean laidOut = scrolled && !stale && fillRows(); // whether fields were laid out anew
+    if (laidOut) {
       refocus();
     }
     // What the pointer is over now, in the tree on screen, after the scrolls moved it.
@@ -697,6 +835,7 @@ public final class App<S> {
       El built = view.apply(state);
       shown = applyLooks(built, ids);
       root = built;
+      attachEditors(root, new ArrayList<>()); // before layout, which shows a composition
       El.scaleText(root, scale);
       Flex.layout(root, width, height);
       animator.update(root, time);
@@ -704,17 +843,142 @@ public final class App<S> {
       fillRows();
       refocus();
       lookIds = null;
+      laidOut = true;
       stale = false;
     } else if (animator.isMoving()) {
       animator.present(time);
       if (fillRows()) { // a list that moves may show other rows
         refocus();
+        laidOut = true;
       }
     } else {
       drawn = scrolled;
     }
+    if (laidOut) {
+      placeEditors();
+    }
+    boolean on = blinking != null && Math.floor((time - blinkStart) / BLINK) % 2 == 0;
+    if (on != caretOn) {
+      caretOn = on;
+      if (blinking != null) {
+        blinking.place(true, on);
+      }
+      drawn = true;
+    }
     hover();
     return drawn;
+  }
+
+  /**
+   * Follows the focused field's editor: one that loses the focus ends its composition, and one
+   * that gains it or changes turns its caret on for a while.
+   *
+   * @return whether a field lost or gained the focus
+   */
+  private boolean blink(Editor editing) {
+    boolean moved = editing != blinking;
+    if (moved) {
+      if (blinking != null) {
+        blinking.blur();
+      }
+      blinking = editing;
+    }
+    if (editing != null && (editing.takeChanged() | moved)) {
+      blinkStart = time;
+    }
+    return moved;
+  }
+
+  /**
+   * Gives each field below {@code el} its editor, by its identity, before layout: the fields of a
+   * tree the view has just built, and those of rows a virtual list has just built. {@code path}
+   * leads from the root to the parent of {@code el}. {@link #placeEditors} forgets the editors of
+   * fields that are gone.
+   */
+  private void attachEditors(El el, List<El> path) {
+    path.add(el);
+    if (el.isEditable()) {
+      Editor editor = editors.computeIfAbsent(Animator.identities(path).getLast(),
+          id -> new Editor(el));
+      editor.attach(el);
+      el.editor(editor);
+    }
+    for (El child : el.children()) {
+      attachEditors(child, path);
+    }
+    path.removeLast();
+  }
+
+  /**
+   * After a rebuild, or after a virtual list built rows: forgets the editors of fields that are
+   * gone, follows the focus with the caret, and places the caret, selection and scroll of every
+   * field for its new layout. The editor of a focused field whose row scrolled out of the rows
+   * that exist stays, with the focus, for when the row comes back; the editors of other fields in
+   * such rows go with them, as everything else the app keeps of a row.
+   */
+  private void placeEditors() {
+    List<Editor> shown = new ArrayList<>();
+    collectEditors(root, shown);
+    Set<Editor> kept = Collections.newSetFromMap(new IdentityHashMap<>());
+    kept.addAll(shown);
+    Editor waiting = focusWaits() ? editors.get(focusId) : null;
+    editors.values().removeIf(editor -> editor != waiting && !kept.contains(editor));
+    blink(focused == null ? null : focused.editor());
+    for (Editor editor : shown) {
+      editor.place(editor == blinking, caretOn);
+    }
+  }
+
+  /** The editors of the fields of the current tree, without those that are leaving. */
+  private static void collectEditors(El el, List<Editor> into) {
+    if (el.isExiting()) {
+      return;
+    }
+    if (el.editor() != null) {
+      into.add(el.editor());
+    }
+    for (El child : el.children()) {
+      collectEditors(child, into);
+    }
+  }
+
+  /** The pointer moved while a press selects in a field. */
+  private boolean drag(Object field, float x, float y) {
+    El el = animator.element(field);
+    if (el == null || el.editor() == null || el.text() == null) {
+      return false;
+    }
+    float[] at = local(el, x, y);
+    Editor editor = el.editor();
+    return editor.drag(editor.fromShown(el.text().nearest(at[0], at[1])),
+        editor.fromShown(el.text().hit(at[0], at[1])));
+  }
+
+  /**
+   * A point of the window in the coordinates of a field's glyphs: physical pixels from the top
+   * left of its content box, moved by its scroll.
+   */
+  private float[] local(El field, float x, float y) {
+    List<El> path = new ArrayList<>();
+    pathTo(root, field, path);
+    float left = contentLeft(field);
+    float top = px(field.style().paddingTop) + px(field.style().borderTop);
+    for (El el : path) {
+      left += el.x();
+      top += el.y();
+    }
+    Text text = field.text();
+    return new float[] {(x - left) * text.scale() + text.scroll(), (y - top) * text.scale()};
+  }
+
+  /** The distance from an element's border box to its content box on the left. */
+  private static float contentLeft(El el) {
+    // shortcut: padding and border in pixels only, as the scene draws text.
+    return px(el.style().paddingLeft) + px(el.style().borderLeft);
+  }
+
+  private static float px(Len len) {
+    return len.kind() == Len.Kind.PX ? len.value() : 0;
   }
 
   /** The identities of elements with looks, by the state they are in; see {@link #wanted}. */
@@ -756,6 +1020,9 @@ public final class App<S> {
       shown = shown.without(id);
       if (lookIds != null) {
         rowLooks(el, id);
+      }
+      for (El row : el.children()) {
+        attachEditors(row, path);
       }
       el.layoutRows(scale);
       animator.rows(el, id, time);
@@ -856,7 +1123,7 @@ public final class App<S> {
     }
     marked = null;
     for (El el : under.reversed()) {
-      if (el.onPress() != null) {
+      if (el.onPress() != null || el.takesEdits()) {
         marked = el;
         el.hovered(true);
         break;
@@ -881,7 +1148,8 @@ public final class App<S> {
    * @return the part, {@link WindowPart#CONTENT} where nothing is marked
    */
   public WindowPart windowPart(float x, float y) {
-    Target target = target(x, y, el -> el.windowPart() != null || el.onPress() != null);
+    Target target = target(x, y,
+        el -> el.windowPart() != null || el.onPress() != null || el.takesEdits());
     if (target == null || target.el.windowPart() == null) {
       return WindowPart.CONTENT;
     }

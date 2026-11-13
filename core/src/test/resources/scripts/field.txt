@@ -1,0 +1,28 @@
+# The text field of core's tests (Examples): typing, selecting and scrolling.
+size 240 80 scale 2
+frame
+snap field-empty
+
+press #name                  # focuses the field: the caret, and the placeholder until text comes
+type "SELECT name FROM customers"
+frame                        # wider than the field: the text scrolls to keep the caret in view
+snap field-typed
+
+key ArrowLeft control shift  # selects the word before the caret
+frame
+snap field-word
+
+key Home                     # back to the start, and the text scrolls back
+frame
+snap field-home
+
+down 60,40                   # a drag from the second letter to beyond the right edge
+move 230,40
+up 230,40
+frame
+snap field-dragged
+
+key End
+compose "ni"                 # an input method composes: underlined, not yet in the string
+frame
+snap field-composing

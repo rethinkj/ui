@@ -36,7 +36,14 @@ import java.util.regex.Pattern;
  * key Tab shift                      # Shift+Tab, down and up: the focus moves back
  * type "hello"                       # text for the focused element
  * focus #name                        # gives #name the focus, as Tab would
+ * press #name clicks 2               # a double press, which selects a word in a field
+ * press #name shift                  # with Shift held, which extends a field's selection
+ * compose "ni"                       # an input method's composition in the focused field
+ * clipboard "SELECT 1"               # puts text on the app's clipboard
  * </pre>
+ *
+ * <p>{@code snap} also writes {@code <name>.clipboard.txt} with the text on the app's clipboard,
+ * when there is any.
  *
  * <p>Only {@code frame} runs a frame. As in a window, input and {@code advance} between frames
  * change nothing on screen until the next one, so {@code snap} refuses to write a frame that does
@@ -60,6 +67,7 @@ public final class Script {
           + " label=\"<text>\" and text=\"<string>\" such as role=switch label=\"Lights\"";
   private static final Pattern NUMBER = Pattern.compile("\\d+(\\.\\d+)?");
   private static final Pattern INDEX = Pattern.compile("\\d{1,10}");
+  private static final Pattern CLICKS = Pattern.compile("[1-9]\\d{0,2}");
   private static final Pattern SIGNED = Pattern.compile("-?\\d+(\\.\\d+)?");
   private static final Pattern POSITION =
       Pattern.compile("(-?\\d+(?:\\.\\d+)?),(-?\\d+(?:\\.\\d+)?)");
@@ -139,7 +147,26 @@ public final class Script {
           sized = true;
         }
         case "press", "down", "up" -> {
-          if (args.isEmpty()) {
+          // press and down: the target, then clicks <n> and the modifiers held, in any order
+          List<String> target = new ArrayList<>(args);
+          int clicks = 1;
+          int modifiers = 0;
+          while (!step.equals("up") && !target.isEmpty()) {
+            int modifier = modifier(target.getLast());
+            if (modifier != 0) {
+              modifiers |= modifier;
+              target.removeLast();
+            } else if (target.size() > 1 && target.get(target.size() - 2).equals("clicks")) {
+              if (!CLICKS.matcher(target.getLast()).matches()) {
+                throw line.usage(step);
+              }
+              clicks = Integer.parseInt(target.getLast());
+              target.subList(target.size() - 2, target.size()).clear();
+            } else {
+              break;
+            }
+          }
+          if (target.isEmpty()) {
             throw line.usage(step);
           }
           if (app.tree() == null) {
@@ -147,9 +174,9 @@ public final class Script {
                 "No frame has run yet, so there is nothing to press. Add `frame` before this"
                     + " line.");
           }
-          float[] at = line.point(args, app.tree());
+          float[] at = line.point(target, app.tree());
           if (!step.equals("up")) {
-            app.pointerDown(at[0], at[1]);
+            app.pointerDown(at[0], at[1], clicks, modifiers);
           }
           if (!step.equals("down")) {
             app.pointerUp(at[0], at[1]);
@@ -223,27 +250,37 @@ public final class Script {
           }
           int modifiers = 0;
           for (String word : args.subList(1, args.size())) {
-            modifiers |=
-                switch (word) {
-                  case "shift" -> Key.SHIFT;
-                  case "control" -> Key.CONTROL;
-                  case "alt" -> Key.ALT;
-                  case "meta" -> Key.META;
-                  default -> throw line.usage(step);
-                };
+            int modifier = modifier(word);
+            if (modifier == 0) {
+              throw line.usage(step);
+            }
+            modifiers |= modifier;
           }
           needsFrame(line, app, "nothing can take the key");
           Key key = new Key(name, modifiers, false);
           app.keyDown(key);
           app.keyUp(key);
         }
-        case "type" -> {
+        case "type", "compose", "clipboard" -> {
           String word = args.size() == 1 ? args.getFirst() : "";
-          if (word.length() < 3 || !word.startsWith("\"") || !word.endsWith("\"")) {
+          // Only type needs text: compose "" ends a composition, clipboard "" empties it.
+          if (word.length() < (step.equals("type") ? 3 : 2)
+              || !word.startsWith("\"")
+              || !word.endsWith("\"")) {
             throw line.usage(step);
           }
-          needsFrame(line, app, "nothing can take the text");
-          app.textInput(unescape(word.substring(1, word.length() - 1)));
+          String text = unescape(word.substring(1, word.length() - 1));
+          switch (step) {
+            case "type" -> {
+              needsFrame(line, app, "nothing can take the text");
+              app.textInput(text);
+            }
+            case "compose" -> {
+              needsFrame(line, app, "nothing can take the composition");
+              app.textComposition(text, -1);
+            }
+            default -> app.clipboard().write(text);
+          }
         }
         case "focus" -> {
           if (args.isEmpty()) {
@@ -330,16 +367,22 @@ public final class Script {
           Files.writeString(tree, frame.tree());
           written.add(png);
           written.add(tree);
+          String clipboard = app.clipboard().read();
+          if (!clipboard.isEmpty()) {
+            Path copied = folder.resolve(name + ".clipboard.txt").normalize();
+            Files.writeString(copied, clipboard);
+            written.add(copied);
+          }
         }
         default ->
             throw line.fail(
                 "There is no step " + step
                     + ". The steps are size, press, down, up, move, leave, wheel, scroll, key,"
-                    + " type, focus, advance, frame and snap.");
+                    + " type, compose, clipboard, focus, advance, frame and snap.");
       }
       if (step.equals("frame")) {
         pending = null;
-      } else if (!step.equals("snap") && pending == null) {
+      } else if (!step.equals("snap") && !step.equals("clipboard") && pending == null) {
         pending = line;
       }
     }
@@ -351,6 +394,17 @@ public final class Script {
       throw line.fail(
           "No frame has run yet, so " + consequence + ". Add `frame` before this line.");
     }
+  }
+
+  /** The bit of a modifier named in a script, or 0 if the word names none. */
+  private static int modifier(String word) {
+    return switch (word) {
+      case "shift" -> Key.SHIFT;
+      case "control" -> Key.CONTROL;
+      case "alt" -> Key.ALT;
+      case "meta" -> Key.META;
+      default -> 0;
+    };
   }
 
   /** What to say about a key name that {@link Key#isName} refuses. */
@@ -404,6 +458,17 @@ public final class Script {
                 case "type" ->
                     "`type \"<text>\"`, with \\\" for a quote and \\\\ for a backslash in the"
                         + " text, for example `type \"hello\"`.";
+                case "compose" ->
+                    "`compose \"<text>\"`, the composition of an input method, quoted as for"
+                        + " `type`, for example `compose \"ni\"`; `compose \"\"` ends it.";
+                case "clipboard" ->
+                    "`clipboard \"<text>\"`, the text to put on the clipboard, quoted as for"
+                        + " `type`, for example `clipboard \"SELECT 1\"`.";
+                case "press", "down" ->
+                    "`" + step + " <target>`, then `clicks <n>` for the second or third press in a"
+                        + " row and any of shift, control, alt and meta that are held, for example"
+                        + " `" + step + " #name clicks 2` or `" + step + " #name shift`. A target"
+                        + " is " + TARGET + ".";
                 case "wheel" ->
                     "`wheel <target> <deltaX> <deltaY>`, with distances in logical pixels that are"
                         + " positive to scroll down or right, for example `wheel #list 0 40`. A"

@@ -61,8 +61,18 @@ public record Theme(
    */
   public record Borders(int subtle, int strong, int focus) {}
 
-  /** The colour of the main action and of what is on, with its hover and pressed variants. */
-  public record Accent(int color, int hover, int pressed) {}
+  /**
+   * The colour of the main action and of what is on, with its hover and pressed variants.
+   *
+   * @param selection translucent, behind selected text
+   */
+  public record Accent(int color, int hover, int pressed, int selection) {
+
+    /** An accent whose selection is its colour at 40 % opacity. */
+    public Accent(int color, int hover, int pressed) {
+      this(color, hover, pressed, 0x66000000 | color & 0xFFFFFF);
+    }
+  }
 
   /** Colours of text and marks that report a state. */
   public record Status(int danger, int warning, int success) {}
@@ -91,14 +101,27 @@ public record Theme(
   public record Type(TextStyle body, TextStyle mono, TextStyle heading) {}
 
   /**
-   * @param control the height of a button
+   * @param control the height of a button and a text field
    * @param checkbox the side of a checkbox's box
    * @param switchWidth the width of a toggle's track
    * @param switchHeight the height of a toggle's track
    * @param stroke the width of a border
+   * @param field the width of a text field, unless the view gives it another
    */
   public record Sizes(
-      float control, float checkbox, float switchWidth, float switchHeight, float stroke) {}
+      float control,
+      float checkbox,
+      float switchWidth,
+      float switchHeight,
+      float stroke,
+      float field) {
+
+    /** Sizes with text fields 200 wide. */
+    public Sizes(float control, float checkbox, float switchWidth, float switchHeight,
+        float stroke) {
+      this(control, checkbox, switchWidth, switchHeight, stroke, 200);
+    }
+  }
 
   /**
    * @param feedback colours that answer the pointer and a change of state
@@ -113,7 +136,7 @@ public record Theme(
           new TextStyle(Font::sans, 13),
           new TextStyle(Font::mono, 12),
           new TextStyle(Font::sansBold, 15));
-  private static final Sizes SIZE = new Sizes(24, 16, 28, 16, 1);
+  private static final Sizes SIZE = new Sizes(24, 16, 28, 16, 1, 200);
   private static final Motion MOTION = new Motion(Spring.INSTANT, Spring.SNAP);
 
   /** Neutral greys with a blue accent, light text on dark surfaces. */
@@ -122,7 +145,7 @@ public record Theme(
           new Surfaces(0xFF1B1C1F, 0xFF232428, 0xFF2D2E33, 0x0FFFFFFF, 0x1AFFFFFF),
           new TextColors(0xFFE4E5E9, 0xFFA1A3AA, 0xFF6A6C73, 0xFFFFFFFF),
           new Borders(0xFF393A40, 0xFF7A7D86, 0xFFE4E5E9),
-          new Accent(0xFF2E62D9, 0xFF3A6EE6, 0xFF2655C2),
+          new Accent(0xFF2E62D9, 0xFF3A6EE6, 0xFF2655C2, 0x732E62D9),
           new Status(0xFFF2797A, 0xFFE0B04C, 0xFF5BC489),
           SPACE,
           RADIUS,
@@ -136,7 +159,7 @@ public record Theme(
           new Surfaces(0xFFF8F9FA, 0xFFEFF0F2, 0xFFFFFFFF, 0x0F000000, 0x1A000000),
           new TextColors(0xFF1D1E21, 0xFF5C5F66, 0xFFA3A5AB, 0xFFFFFFFF),
           new Borders(0xFFD8DADF, 0xFF878A93, 0xFF1D1E21),
-          new Accent(0xFF2E62D9, 0xFF2755C0, 0xFF2048A8),
+          new Accent(0xFF2E62D9, 0xFF2755C0, 0xFF2048A8, 0x4D2E62D9),
           new Status(0xFFC4282B, 0xFF8F5F00, 0xFF1E7A3E),
           SPACE,
           RADIUS,
