@@ -30,6 +30,30 @@ await                                      # the answer for customers never arri
 frame
 snap workbench-closed
 
+press role=treeitem label="deliveries" right  # selects the table and opens its menu there
+frame
+advance 0.25                               # past the menu's fade
+frame
+snap workbench-menu
+
+press role=menuitem label="Drop table…"      # asks in a dialog, whose field takes the focus
+type "deliver"
+frame
+advance 0.25
+frame
+snap workbench-drop                        # Drop stays disabled until the whole name is typed
+
+type "ies"
+frame
+press #drop                                # drops nothing, and the status line says so
+frame
+advance 0.25
+frame
+snap workbench-dropped                     # the focus back on the tree
+
+advance 5
+frame
+
 press #mark-0                              # closes localhost
 frame
 press role=treeitem label="staging"
@@ -55,3 +79,9 @@ frame
 advance 1
 frame
 snap workbench-light
+
+move label="Close"                         # the title bar's button says what it does after a rest
+frame
+advance 0.6
+frame
+snap workbench-tooltip                     # a gap from the window's edge

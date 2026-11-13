@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import com.rethinkj.ui.App;
+import com.rethinkj.ui.El;
 import com.rethinkj.ui.Script;
 import com.rethinkj.ui.text.Font;
 import com.rethinkj.ui.text.TextRendering;
@@ -38,6 +39,45 @@ class WorkbenchTest {
     assertEquals(List.of("scratch", "shop"), Workbench.connect("staging", Duration.ZERO));
     assertThrows(ConnectException.class, () -> Workbench.connect("prod-eu", Duration.ZERO));
     assertEquals(1_000_000, Workbench.count("localhost/shop/public/orders", Duration.ZERO));
+  }
+
+  /** The tree and the grid stay as high as their part of the split and scroll inside it. */
+  @Test
+  void theTreeAndTheGridScrollInsideTheirParts() throws IOException {
+    Snaps.assumeText();
+    Workbench s = new Workbench();
+    s.latency = Duration.ZERO;
+    App<Workbench> app = new App<>(s, Workbench::view);
+    s.app = app;
+    Script.run("""
+        size 1000 600
+        frame
+        press role=treeitem label="orders" clicks 2
+        frame
+        await
+        frame
+        wheel #catalogue 0 400
+        wheel 600,300 0 400
+        frame
+        """, app, out);
+    El tree = find(app.tree(), "catalogue");
+    El grid = find(app.tree(), "grid-localhost/shop/public/orders");
+    assertTrue(tree.height() < 600 && grid.height() < 600, tree.height() + ", " + grid.height());
+    assertEquals(400, tree.scrollY(), "the tree scrolled");
+    assertEquals(400, find(grid, "rows").scrollY(), "the rows scrolled");
+  }
+
+  private static El find(El el, String key) {
+    if (key.equals(el.key())) {
+      return el;
+    }
+    for (El child : el.children()) {
+      El found = find(child, key);
+      if (found != null) {
+        return found;
+      }
+    }
+    return null;
   }
 
   @Test

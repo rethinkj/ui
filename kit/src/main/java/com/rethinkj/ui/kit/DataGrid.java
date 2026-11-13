@@ -1264,7 +1264,11 @@ public final class DataGrid {
         sel.select(r, c);
       }
     });
-    sel.start = b.cells && c < b.frozen; // a press on a frozen cell leaves the rest where it is
+    // A frozen cell leaves the rest where it is; Home and End in rows go back to the start. The
+    // view goes to the cursor also where the key left it in place, after the wheel moved away.
+    sel.start = b.cells ? c < b.frozen : ends;
+    sel.edgeColumn = -1;
+    sel.moves++;
     return true;
   }
 

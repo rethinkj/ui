@@ -196,6 +196,23 @@ class GridCellsTest {
   }
 
   @Test
+  void controlHomeAndEndScrollBackSidewaysAlsoWhereTheCursorStays() throws IOException {
+    Orders orders = cells();
+    App<Orders> app = start(orders);
+    run(app, "key Tab\nkey Home control\nframe\nwheel #orders 300 0\nframe");
+    assertEquals(300, find(app, "orders").scrollX(), "the wheel moved away from the cursor");
+    run(app, "key Home control\nframe");
+    assertEquals(List.of(0, 0), List.of(orders.selection.row(), orders.selection.column()));
+    assertEquals(0, find(app, "orders").scrollX(), "back to the cursor, which stayed");
+
+    Orders rows = new Orders(T, 1_000_000, 7, Mode.ROWS);
+    App<Orders> rowsApp = start(rows);
+    run(rowsApp, "key Tab\nframe\nwheel #orders 300 0\nframe\nkey End control\nframe");
+    assertEquals(999_999, rows.selection.row());
+    assertEquals(0, find(rowsApp, "orders").scrollX(), "a row's start");
+  }
+
+  @Test
   void aPressOnARowNumberSelectsItsRowAndShiftTheRowsBetween() throws IOException {
     Orders orders = Orders.cells(T);
     App<Orders> app = start(orders);

@@ -2,9 +2,13 @@ package com.rethinkj.ui.examples;
 
 import static com.rethinkj.ui.El.col;
 import static com.rethinkj.ui.examples.TitleBar.titleBar;
+import static com.rethinkj.ui.kit.Button.Variant.PRIMARY;
+import static com.rethinkj.ui.kit.Button.Variant.SECONDARY;
+import static com.rethinkj.ui.kit.Button.button;
 import static com.rethinkj.ui.kit.DataGrid.dataGrid;
 import static com.rethinkj.ui.kit.Split.split;
 import static com.rethinkj.ui.kit.Tabs.tabs;
+import static com.rethinkj.ui.kit.TextField.textField;
 import static com.rethinkj.ui.kit.Toggle.toggle;
 import static com.rethinkj.ui.kit.Tree.tree;
 
@@ -18,9 +22,11 @@ import com.rethinkj.ui.kit.DataGrid.Column;
 import com.rethinkj.ui.kit.DataGrid.DataType;
 import com.rethinkj.ui.kit.DataGrid.Mode;
 import com.rethinkj.ui.kit.DataGrid.Selection;
+import com.rethinkj.ui.kit.Dialog;
 import com.rethinkj.ui.kit.Icon;
 import com.rethinkj.ui.kit.Icon.Variant;
 import com.rethinkj.ui.kit.Label;
+import com.rethinkj.ui.kit.Menu;
 import com.rethinkj.ui.kit.Split.Direction;
 import com.rethinkj.ui.kit.Split.Position;
 import com.rethinkj.ui.kit.Symbol;
@@ -53,7 +59,9 @@ import java.util.Set;
  * the question of its table, whose answer then never arrives. The rows are made up from their
  * index; localhost/shop/public/orders has a million. A message in the status line goes after a
  * few seconds on the app's clock ({@link App#after}), and the title bar switches between the dark
- * and the light theme.
+ * and the light theme. A right click on a node selects it and opens its menu: open it, copy its
+ * name, and on a table "Drop table…", which asks in a dialog for the table's name and then drops
+ * nothing, as nothing here is real.
  *
  * <p>The work gets the names it asks about, never the nodes: they are the app's state, which only
  * the handlers touch, on the app's thread. Under a script the latency is 0, and the script's
@@ -149,6 +157,9 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
   String message; // in the status line for a while, or null
   int messages; // told so far
   App<Workbench> app; // runs the work and the clock
+  final Menu.State menu = new Menu.State(); // the tree's context menu, for the selected node
+  Node dropping; // the table the dialog asks about, or null while it is closed
+  String confirm = ""; // the name typed into the dialog
 
   Workbench() {
     Node localhost = new Node(Kind.SERVER, "localhost", null);
@@ -313,6 +324,35 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
     }
   }
 
+  /** The items of the tree's context menu, for the selected node. */
+  List<Menu.Item> menuItems() {
+    Node node = selected;
+    if (node == null) {
+      return List.of();
+    }
+    Runnable opens = node.kind == Kind.TABLE || node.kind == Kind.COLUMN ? () -> activate(node)
+        : open.contains(node) ? null : () -> openOrClose(node, true);
+    List<Menu.Item> items = new ArrayList<>(List.of(
+        Menu.item("Open", opens),
+        Menu.item("Copy name", () -> {
+          app.clipboard().write(node.name);
+          tell("Copied " + node.name);
+        })));
+    if (node.kind == Kind.TABLE) {
+      items.add(Menu.separator());
+      items.add(Menu.item("Drop table…", () -> {
+        dropping = node;
+        confirm = "";
+      }));
+    }
+    return items;
+  }
+
+  void drop() {
+    tell(dropping.path() + " was not dropped: nothing here is real");
+    dropping = null;
+  }
+
   /** Shows a message in the status line for {@link #MESSAGE_SECONDS}, on the app's clock. */
   void tell(String text) {
     message = text;
@@ -352,10 +392,11 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
     s.tables.forEach(o -> tabs.add(new Tab(o.table.name)));
     El right = tabs(t, tabs, s.active, i -> s.active = i, s::close,
         s.active == 0 ? start(t) : table(t, s, s.tables.get(s.active - 1)));
+    El tree = tree(t, s, s.open::contains, s.selected, n -> s.selected = n, s::openOrClose,
+        s::activate).key("catalogue").label("Catalogue").grow(1);
     El catalogue = col().fill(t.surface().panel()).padding(t.space().s())
-        .child(tree(t, s, s.open::contains, s.selected, n -> s.selected = n, s::openOrClose,
-            s::activate).key("catalogue").label("Catalogue").grow(1));
-    return col().wFull().hFull().fill(t.surface().window())
+        .child(Menu.contextMenu(t, tree, s.menu, s.menuItems()));
+    El root = col().wFull().hFull().fill(t.surface().window())
         .onKey(right.onKey()) // the tabs' keys also while the tree has the focus
         .child(titleBar(t, "Workbench", t.accent().color(),
             toggle(t, s.dark, "Dark", () -> s.dark = !s.dark)))
@@ -363,6 +404,20 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
             catalogue, 160, right.key("tabs"), 320).grow(1))
         .child(Label.label(t, Label.Variant.MUTED, s.status()).key("status")
             .padding(t.space().s(), t.space().l()));
+    if (s.dropping != null) {
+      String name = s.dropping.name;
+      root.overlay(Dialog.dialog(t, "Drop table",
+          col().gap(t.space().m()).children(
+              Label.label(t, "Drop " + s.dropping.path() + " and all its rows?"),
+              Label.label(t, Label.Variant.MUTED, "Type the table's name to confirm."),
+              textField(t, s.confirm, name, v -> s.confirm = v).key("confirm")
+                  .label("Table name")),
+          List.of(
+              button(t, SECONDARY, "Cancel", () -> s.dropping = null).key("cancel"),
+              button(t, PRIMARY, "Drop", s.confirm.equals(name) ? s::drop : null).key("drop")),
+          () -> s.dropping = null));
+    }
+    return root;
   }
 
   /** The message, or else what the active tab shows. */
