@@ -1374,7 +1374,7 @@ public final class El {
       scaleText(child, scale, systemFonts);
     }
     for (El overlay : el.overlays()) {
-      scaleText(overlay, scale);
+      scaleText(overlay, scale, systemFonts);
     }
   }
 
