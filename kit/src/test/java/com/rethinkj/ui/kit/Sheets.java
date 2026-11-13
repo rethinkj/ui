@@ -52,7 +52,7 @@ final class Sheets {
 
   App<Sheets> app(java.util.function.Function<Sheets, El> view) {
     App<Sheets> app = new App<>(this, view);
-    app.focusRing(t.border().focus());
+    app.focusRing(t.accent().edge());
     app.textRendering(TextRendering.LINUX);
     return app;
   }

@@ -35,7 +35,7 @@ import java.util.function.IntFunction;
  * builds only the items in view, the general list of one selection among many. Items are {@link
  * Theme.Sizes#control} high with {@link Theme.Spacing#xs} above and below; the selected one has
  * the fill of the grid's selection, {@link Theme.Grid#selected} while the list has the focus, and a
- * mark of {@link Theme.Borders#selected} at its left, which stands out from the surfaces also
+ * mark of {@link Theme.Accent#edge} at its left, which stands out from the surfaces also
  * where the inactive selection's fill does not. Like any scroll area, the list needs a height of
  * its own, room to grow, or no more items than fit.
  *
@@ -131,7 +131,7 @@ public final class NavList {
       if (onSelect == null) {
         return list.disabled(true);
       }
-      return list.focusable().focusRing(t.border().focus())
+      return list.focusable().focusRing(t.accent().edge())
           .whenFocused(e -> {
             focused[0] = true;
             if (selectedPill != null) {
@@ -157,7 +157,7 @@ public final class NavList {
           .fill(on ? focused[0] ? t.grid().selected() : t.grid().selectedInactive() : 0)
           .motion(t.motion().feedback())
           .child(el().size(t.space().xs(), mark).radius(t.space().xs() / 2)
-              .fill(on ? t.border().selected() : 0));
+              .fill(on ? t.accent().edge() : 0));
       if (on) {
         selectedPill = pill;
       }

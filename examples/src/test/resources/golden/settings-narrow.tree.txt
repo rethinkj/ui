@@ -1,6 +1,6 @@
 el 0,0 560x600
   el window=drag 0,0 560x32
-    el 10,10 12x12
+    el 12,11 10x10
     text "Settings" 30,8 50x16
     el 80,16 342x0
     el role=button label="Minimize" window=minimize 422,0 46x32
@@ -28,92 +28,92 @@ el 0,0 560x600
         el 540,19 2x2
         el 532,19 2x2
   el 0,32 560x568
-    el 0,32 200x568
-      el #pages role=listbox label="Settings" 4,36 192x560
-        el #item-0 role=option label="General" 4,36 192x28 pos=1/7
-          el 4,38 192x24
-            el 6,42 2x16
-            text label="settings" "\u{F6A8}" 12,42 16x16
-            text "General" 32,42 156x16
-        el #item-1 role=option label="Appearance" 4,64 192x28 selected pos=2/7
-          el 4,66 192x24
-            el 6,70 2x16
-            text label="window" "\u{EE5D}" 12,70 16x16
-            text "Appearance" 32,70 156x16
-        el #item-2 role=option label="Editor" 4,92 192x28 pos=3/7
-          el 4,94 192x24
-            el 6,98 2x16
-            text label="code" "\u{F339}" 12,98 16x16
-            text "Editor" 32,98 156x16
-        el #item-3 role=option label="Connections" 4,120 192x28 pos=4/7
-          el 4,122 192x24
-            el 6,126 2x16
-            text label="database" "\u{F0D7}" 12,126 16x16
-            text "Connections" 32,126 156x16
-        el #item-4 role=option label="Keymap" 4,148 192x28 pos=5/7
-          el 4,150 192x24
-            el 6,154 2x16
-            text label="key_multiple" "\u{F0274}" 12,154 16x16
-            text "Keymap" 32,154 156x16
-        el #item-5 4,176 192x28
-          text "Help" 12,182 29x16
-        el #item-6 role=option label="About" 4,204 192x28 pos=7/7
-          el 4,206 192x24
-            el 6,210 2x16
-            text label="info" "\u{F4A2}" 12,210 16x16
-            text "About" 32,210 156x16
-    el role=separator 200,32 1x568
-    el 201,32 359x568 thumb-y 552,34 6x535.71
-      text role=heading "Appearance" 225,56 311x24 level=1
-      el 225,104 311x193
-        el 225,104 311x18
-          text role=heading "Colours" 225,104 311x18 level=2
-        el 225,130 311x167
-          el 228,133 305x94
-            el 238,139 88x82
-              text "Theme" 238,139 88x16
-              text "System follows the dark theme in this example" 238,157 88x64
-            el role=radiogroup label="Theme" 338,168 185x24
-              el role=radio label="Light" 341,171 54x18 checked=false
-                text "Light" 353,172 30x16
-              el role=radio label="Dark" 397,171 52x18 checked
-                text "Dark" 409,172 28x16
-              el role=radio label="System" 451,171 69x18 checked=false
-                text "System" 463,172 45x16
-          el 226,229 309x1
-          el 228,232 305x62
-            el 238,238 113x50
-              text "Accent colour" 238,238 113x16
-              text "Buttons, switches and selections" 238,256 113x32
-            el role=combobox label="Blue" 363,251 160x24 expanded=false
-              text "Blue" 372,255 122x16
-              text label="chevron_down" "\u{F2A2}" 498,255 16x16
-      el 225,321 311x285
-        el 225,321 311x18
-          text role=heading "Text and spacing" 225,321 311x18 level=2
-        el 225,347 311x167
-          el 228,350 305x46
-            el 238,356 113x34
-              text "Interface font size" 238,356 113x16
-              text "16 pixels" 238,374 113x16
-            el role=slider label="Interface font size" 363,361 160x24 value="16" focused
-              el 371,371 144x4
-                el 371,371 144x4
-                el 507,365 16x16
-          el 226,398 309x1
-          el 228,401 305x110
-            el 238,407 88x98
-              text "Density" 238,407 88x16
-              text "Space between the rows of lists, trees and grids" 238,425 88x80
-            el role=radiogroup label="Density" 338,444 185x24
-              el role=radio label="Compact" 341,447 78x18 checked
-                text "Compact" 353,448 54x16
-              el role=radio label="Comfortable" 421,447 99x18 checked=false
-                text "Comfortable" 433,448 75x16
-        el role=note label="Restart to apply" 225,522 311x84
-          text label="warning" "\u{F868}" 238,531 16x16
-          el 262,531 193x66
-            text "Restart to apply" 262,531 193x16
-            text "The interface font size changes the next time the workbench starts." 262,549 193x48
-          el role=button label="Undo" 463,552 60x24
-            text "Undo" 476,556 34x16
+    el 8,32 200x560
+      el 9,33 198x558
+        el #pages role=listbox label="Settings" 13,37 190x550
+          el #item-0 role=option label="General" 13,37 190x28 pos=1/7
+            el 13,39 190x24
+              el 15,43 2x16
+              text label="settings" "\u{F6A8}" 21,43 16x16
+              text "General" 41,43 154x16
+          el #item-1 role=option label="Appearance" 13,65 190x28 selected pos=2/7
+            el 13,67 190x24
+              el 15,71 2x16
+              text label="window" "\u{EE5D}" 21,71 16x16
+              text "Appearance" 41,71 154x16
+          el #item-2 role=option label="Editor" 13,93 190x28 pos=3/7
+            el 13,95 190x24
+              el 15,99 2x16
+              text label="code" "\u{F339}" 21,99 16x16
+              text "Editor" 41,99 154x16
+          el #item-3 role=option label="Connections" 13,121 190x28 pos=4/7
+            el 13,123 190x24
+              el 15,127 2x16
+              text label="database" "\u{F0D7}" 21,127 16x16
+              text "Connections" 41,127 154x16
+          el #item-4 role=option label="Keymap" 13,149 190x28 pos=5/7
+            el 13,151 190x24
+              el 15,155 2x16
+              text label="key_multiple" "\u{F0274}" 21,155 16x16
+              text "Keymap" 41,155 154x16
+          el #item-5 13,177 190x28
+            text "Help" 21,183 29x16
+          el #item-6 role=option label="About" 13,205 190x28 pos=7/7
+            el 13,207 190x24
+              el 15,211 2x16
+              text label="info" "\u{F4A2}" 21,211 16x16
+              text "About" 41,211 154x16
+    el 216,32 336x560 thumb-y 544,34 6x460.59
+      text role=heading "Appearance" 240,56 288x24 level=1
+      el 240,104 288x240
+        el 240,104 288x17
+          text role=heading "Colours" 240,104 288x17 level=2
+        el 240,129 288x215
+          el 243,132 282x126
+            el 253,138 65x114
+              text "Theme" 253,138 65x16
+              text "System follows the dark theme in this example" 253,156 65x96
+            el role=radiogroup label="Theme" 330,183 185x24
+              el role=radio label="Light" 333,186 54x18 checked=false
+                text "Light" 345,187 30x16
+              el role=radio label="Dark" 389,186 52x18 checked
+                text "Dark" 401,187 28x16
+              el role=radio label="System" 443,186 69x18 checked=false
+                text "System" 455,187 45x16
+          el 241,260 286x1
+          el 243,263 282x78
+            el 253,269 90x66
+              text "Accent colour" 253,269 90x16
+              text "Buttons, switches and selections" 253,287 90x48
+            el role=combobox label="Blue" 355,290 160x24 expanded=false
+              text "Blue" 364,294 122x16
+              text label="chevron_down" "\u{F2A2}" 490,294 16x16
+      el 240,368 288x316
+        el 240,368 288x17
+          text role=heading "Text and spacing" 240,368 288x17 level=2
+        el 240,393 288x199
+          el 243,396 282x62
+            el 253,402 90x50
+              text "Interface font size" 253,402 90x32
+              text "16 pixels" 253,436 90x16
+            el role=slider label="Interface font size" 355,415 160x24 value="16" focused
+              el 363,425 144x4
+                el 363,425 144x4
+                el 499,419 16x16
+          el 241,460 286x1
+          el 243,463 282x126
+            el 253,469 65x114
+              text "Density" 253,469 65x16
+              text "Space between the rows of lists, trees and grids" 253,487 65x96
+            el role=radiogroup label="Density" 330,514 185x24
+              el role=radio label="Compact" 333,517 78x18 checked
+                text "Compact" 345,518 54x16
+              el role=radio label="Comfortable" 413,517 99x18 checked=false
+                text "Comfortable" 425,518 75x16
+        el role=note label="Restart to apply" 240,600 288x84
+          text label="warning" "\u{F868}" 253,609 16x16
+          el 277,609 170x66
+            text "Restart to apply" 277,609 170x16
+            text "The interface font size changes the next time the workbench starts." 277,627 170x48
+          el role=button label="Undo" 455,630 60x24
+            text "Undo" 468,634 34x16

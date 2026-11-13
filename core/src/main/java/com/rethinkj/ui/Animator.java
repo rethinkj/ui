@@ -672,6 +672,8 @@ final class Animator {
 
     void present(double now) {
       el.place(at(0, now), at(1, now), at(2, now), at(3, now));
+      el.moving(!(tracks[0].isAtRest(now) && tracks[1].isAtRest(now) && tracks[2].isAtRest(now)
+          && tracks[3].isAtRest(now)));
       el.radius(at(RADIUS, now));
       el.fill(colour(FILL, now));
       el.borderColor(colour(BORDER, now));

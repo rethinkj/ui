@@ -37,7 +37,7 @@ el 0,0 400x560
       text "Restart" 315,218 43x16
   el role=status label="No connections match" 16,272 368x272
     text label="search" "\u{EA7E}" 176,342 48x48
-    text "No connections match" 128,398 145x16
+    text "No connections match" 130,398 141x16
     text "Try another name or host." 119,422 162x16
     el role=button label="Clear filter" 155,450 90x24
       text "Clear filter" 168,454 64x16

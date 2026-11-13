@@ -354,23 +354,24 @@ public final class Examples {
           : "Customer asked to split the delivery into two parcels and to leave them next door");
 
   // The values of the kit's Theme.DARK that the grid reads.
-  private static final int PANEL = 0xFF232428;
-  private static final int HOVER = 0x0FFFFFFF;
-  private static final int PRESSED = 0x1AFFFFFF;
-  private static final int PRIMARY = 0xFFE4E5E9;
-  private static final int MUTED = 0xFFA1A3AA;
-  private static final int SUBTLE = 0xFF393A40;
-  private static final int STRONG = 0xFF7A7D86;
-  private static final int ACCENT = 0xFF2E62D9;
-  private static final int HEADER = 0xFF232428;
-  private static final int ROW = 0xFF1B1C1F;
-  private static final int STRIPE = 0xFF1F2023;
-  private static final int SELECTED = 0xFF1C3666;
-  private static final int SELECTED_INACTIVE = 0xFF2B3240;
-  private static final float ROW_HEIGHT = 22;
+  private static final int PANEL = 0xFF17181C;
+  private static final int HOVER = 0x4045464C;
+  private static final int PRESSED = 0x7345464C;
+  private static final int PRIMARY = 0xFFE6E7EA;
+  private static final int MUTED = 0xFF9A9DA9;
+  private static final int SUBTLE = 0xFF25272D;
+  private static final int STRONG = 0xFF6E717B;
+  private static final int CONTROL = 0xFF33363D;
+  private static final int ACCENT = 0xFF3D6FE6;
+  private static final int EDGE = 0xFF86A8F8;
+  private static final int HEADER = 0xFF1A1B20;
+  private static final int ROW = 0xFF17181C;
+  private static final int SELECTED = 0xFF1C2B4D;
+  private static final int SELECTED_INACTIVE = 0xFF2E323D;
+  private static final float ROW_HEIGHT = 24;
   private static final int ARROW_UP_12 = 0xE12A; // the kit's Symbol.ARROW_UP drawn for 12
   private static final Scrollbars GRID_BARS =
-      new Scrollbars(6, 2, 3, 24, 0xFF83868F, 0xFFA1A3AA, 0xFFB9BBC1);
+      new Scrollbars(6, 2, 3, 24, 0xFF858892, 0xFF9C9FA8, 0xFFB9BBC1);
 
   /**
    * The kit's {@code DataGrid} in {@code Theme.DARK} with a million orders, as kit's {@code
@@ -390,7 +391,8 @@ public final class Examples {
       lines[c] = gridLine();
       El cell = gridCell(s.widths[c], RIGHT[c]).key("column-" + c).role("columnheader")
           .label(TITLES[c]).position(c + 1, TITLES.length).gap(2);
-      El title = gridText(TITLES[c], PRIMARY, false);
+      El title = El.text(TITLES[c]).font(Font.sansMedium()).fontSize(13).color(PRIMARY)
+          .ellipsis().minSize(0, 0);
       if (c == 0) { // sorted by id, ascending; the arrow before the title of a right column
         El arrow = El.text(Character.toString(ARROW_UP_12)).font(Font.icons()).fontSize(12)
             .color(MUTED).shrink(0);
@@ -417,9 +419,10 @@ public final class Examples {
     boolean[] focused = {false};
     int selected = s.selected;
     El body = col().key("rows").grow(1).revealRow(selected).rows(1_000_000, ROW_HEIGHT, i -> {
-      int fill = i == selected ? (focused[0] ? SELECTED : SELECTED_INACTIVE)
-          : i % 2 == 0 ? ROW : STRIPE;
-      El r = row().key("row-" + i).role("row").selected(i == selected).fill(fill);
+      int fill = i == selected ? (focused[0] ? SELECTED : SELECTED_INACTIVE) : ROW;
+      // A hairline along the bottom, under the cells, which end above it.
+      El r = row().key("row-" + i).role("row").selected(i == selected).fill(fill)
+          .padding(0, 0, 1, 0).child(el().absolute(0, ROW_HEIGHT - 1).h(1).wFull().fill(SUBTLE));
       for (int c = 0; c < TITLES.length; c++) {
         String text = CELLS.get(c).apply(i);
         r.children(gridCell(s.widths[c], RIGHT[c]).child(
@@ -429,14 +432,14 @@ public final class Examples {
       r.onPress(() -> s.selected = i);
       return i == selected ? r : r.whenHovered(e -> e.fill(over(fill, HOVER)));
     }).scrollbars(GRID_BARS);
-    El under = el().h(1).shrink(0).fill(SUBTLE);
+    El under = el().h(1).shrink(0).fill(CONTROL);
     // Room for the rows' bar after the last column, as the kit leaves.
     float room = GRID_BARS.thickness() + 2 * GRID_BARS.margin();
     El content = col().key("content").w(total + room).children(header, under, body);
     content.style().minWidth = Len.percent(1);
     El grid = row().role("grid").scrollBoth().scrollbars(GRID_BARS).fill(ROW).child(content)
         .focusable()
-        .focusRing(PRIMARY) // border().focus(), the same colour in Theme.DARK
+        .focusRing(EDGE) // accent().edge()
         .whenFocused(e -> focused[0] = true)
         .onKey(k -> {
           // From the state, not from this build: the kit's grid reads its selection live, so two
@@ -466,20 +469,31 @@ public final class Examples {
         .color(colour).ellipsis().minSize(0, 0);
   }
 
+  /** The room after a column, which shows a line only while its header's edge is in use. */
   private static El gridLine() {
-    return el().w(1).fill(SUBTLE);
+    return el().w(1).fill(0);
   }
 
-  /** The colour {@code overlay} gives over the opaque {@code base}, as the kit's Theme.over. */
+  /**
+   * The colour {@code overlay} gives over the opaque {@code base}, as the kit's Theme.over: mixed
+   * in linear light.
+   */
   private static int over(int base, int overlay) {
-    int alpha = overlay >>> 24;
+    double alpha = (overlay >>> 24) / 255.0;
     int argb = 0xFF;
     for (int shift = 16; shift >= 0; shift -= 8) {
-      int b = base >>> shift & 0xFF;
-      int o = overlay >>> shift & 0xFF;
-      argb = argb << 8 | Math.round((o * alpha + b * (255 - alpha)) / 255f);
+      double mixed = linear(overlay >>> shift & 0xFF) * alpha
+          + linear(base >>> shift & 0xFF) * (1 - alpha);
+      double srgb =
+          mixed <= 0.0031308 ? mixed * 12.92 : 1.055 * StrictMath.pow(mixed, 1 / 2.4) - 0.055;
+      argb = argb << 8 | (int) Math.round(srgb * 255);
     }
     return argb;
+  }
+
+  private static double linear(int channel) {
+    double c = channel / 255.0;
+    return c <= 0.04045 ? c / 12.92 : StrictMath.pow((c + 0.055) / 1.055, 2.4);
   }
 
   /** The state of the switch example. */

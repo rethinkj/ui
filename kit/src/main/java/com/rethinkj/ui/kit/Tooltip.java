@@ -44,7 +44,7 @@ public final class Tooltip {
         .padding(t.space().xs(), t.space().s())
         .radius(t.radius().small())
         .fill(t.surface().raised())
-        .border(t.size().stroke(), t.border().subtle())
+        .border(t.size().stroke(), t.border().control())
         .shadow(t.elevation().popup())
         .motion(t.motion().fade())
         .side(Side.BOTTOM, Style.Align.CENTER, t.space().xs())

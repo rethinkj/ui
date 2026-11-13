@@ -2,12 +2,12 @@ el 0,0 480x200
   el #split 0,0 480x200
     el #first 0,0 280x200
       el #schema label="Schema" 0,0 280x200
-        text "public" 8,8 264x18
-        text "customers" 8,30 264x16
-        text "orders" 8,50 264x16
-        text "order_items" 8,70 264x16
-        text "products" 8,90 264x16
-        text "invoices" 8,110 264x16
+        text "public" 8,8 264x17
+        text "customers" 8,29 264x16
+        text "orders" 8,49 264x16
+        text "order_items" 8,69 264x16
+        text "products" 8,89 264x16
+        text "invoices" 8,109 264x16
     el #rest 277,0 203x200
       el #second 281,0 199x200
         el #editor label="Query" 281,0 199x200

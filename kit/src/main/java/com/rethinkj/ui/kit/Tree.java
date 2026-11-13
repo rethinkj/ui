@@ -131,7 +131,7 @@ public final class Tree {
     El tree = col().role("tree").scrollbars(t.scrollbars()).revealRow(rows.selected);
     tree.rows(rows.count, height, i -> {
       N node = rows.node(i);
-      El r = row().key("row-" + i)
+      El r = row().key("row-" + i).radius(t.radius().medium())
           .padding(0, t.space().s(), 0, t.space().s() + rows.depth(i) * indent)
           .gap(t.space().s())
           .align(Style.Align.CENTER);
@@ -208,7 +208,7 @@ public final class Tree {
     if (onSelect == null) {
       return tree;
     }
-    return tree.focusable().focusRing(t.border().focus())
+    return tree.focusable().focusRing(t.accent().edge())
         .whenFocused(e -> focused[0] = true)
         .onKey(k -> key(k, model, isOpen, rows, tree, height, onSelect, onToggle, onActivate));
   }

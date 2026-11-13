@@ -240,7 +240,7 @@ final class Catalog implements Tree.Model<Catalog.Node> {
   App<Catalog> app() {
     app = new App<>(this, Catalog::view);
     app.textRendering(TextRendering.LINUX);
-    app.focusRing(theme.border().focus());
+    app.focusRing(theme.accent().edge());
     return app;
   }
 }

@@ -100,7 +100,7 @@ public final class TextField {
       Consumer<String> onChange) {
     boolean enabled = onChange != null;
     int fill = t.surface().raised();
-    field.focusRing(t.border().focus())
+    field.focusRing(t.accent().edge())
         .label(placeholder)
         .font(style.font().get())
         .fontSize(style.size())
@@ -185,7 +185,7 @@ public final class TextField {
     if (enabled) {
       button.focusable()
           .keepFocus()
-          .focusRing(t.border().focus())
+          .focusRing(t.accent().edge())
           .cursor(Cursor.POINTER)
           .onPress(onToggle)
           .whenHovered(e -> e.fill(t.surface().hover()))
@@ -196,6 +196,27 @@ public final class TextField {
     if (field.onEdit() != null) { // the frame keeps its focused look while the button has the focus
       box.whenFocusWithin(e -> field.border(t.size().stroke(), t.accent().color()));
     }
+    return box;
+  }
+
+  /**
+   * Puts an icon at the left inside the frame of a field of this class, in muted text, such as a
+   * magnifier before a filter. The result is a box with the field and the icon, as wide as the
+   * field, so chain what concerns the field ({@code .key}, {@code .label}, {@code .w}) onto the
+   * field before. The icon takes no press: one on it reaches the box, not the field.
+   *
+   * @param field a field of {@link #textField}
+   */
+  public static El withIcon(Theme t, El field, Symbol symbol) {
+    float side = t.size().control();
+    field.style().paddingLeft = Len.px(side); // the text starts after the icon
+    El mark = icon(t, symbol, field.onEdit() != null ? Icon.Variant.MUTED : Icon.Variant.DISABLED);
+    Style at = mark.style();
+    at.position = Style.Position.ABSOLUTE;
+    at.left = Len.px((side - t.size().icon()) / 2);
+    at.top = Len.px((side - t.size().icon()) / 2);
+    El box = el().children(field, mark);
+    box.style().width = Len.FIT_CONTENT;
     return box;
   }
 }

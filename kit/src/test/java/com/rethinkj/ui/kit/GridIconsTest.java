@@ -218,10 +218,11 @@ class GridIconsTest {
     for (String key : List.of("cell-3-1", "cell-3-4", "cell-3-3", "column-4")) {
       El cell = find(app, key);
       float middle = y(app, cell) + cell.height() / 2;
+      // A cell is its row less the hairline, 23 high: whole pixels put them half a pixel low.
       El icon = cell.children().getFirst();
-      assertEquals(middle, y(app, icon) + icon.height() / 2, key);
+      assertEquals(middle, y(app, icon) + icon.height() / 2, 0.5, key);
       El text = cell.children().getLast();
-      assertEquals(middle, y(app, text) + text.height() / 2, key);
+      assertEquals(middle, y(app, text) + text.height() / 2, 0.5, key);
     }
   }
 

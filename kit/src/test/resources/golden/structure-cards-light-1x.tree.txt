@@ -1,17 +1,17 @@
 el 0,0 640x400
   el 16,16 608x178
     el 29,29 582x34
-      el 29,29 516x34
-        text role=heading "Query history" 29,29 516x16 level=3
-        text "The last fifty statements run in this window" 29,47 516x16
-      el role=button label="Clear" 553,34 58x24
-        text "Clear" 566,38 32x16
+      el 29,29 515x34
+        text role=heading "Query history" 29,29 515x16 level=3
+        text "The last fifty statements run in this window" 29,47 515x16
+      el role=button label="Clear" 552,34 59x24
+        text "Clear" 565,38 33x16
     text "SELECT * FROM orders WHERE id = 42" 29,75 582x16
     el 29,103 582x42
       text "A card in a card shares its surface" 42,116 556x16
     el 29,157 582x24
-      el role=button label="Export…" 534,157 77x24
-        text "Export…" 547,161 51x16
+      el role=button label="Export…" 533,157 78x24
+        text "Export…" 546,161 52x16
   el 16,206 608x86
     el 16,206 183x86
       text "Filled" 29,219 157x16

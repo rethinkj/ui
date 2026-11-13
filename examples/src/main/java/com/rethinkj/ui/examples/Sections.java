@@ -21,10 +21,12 @@ import com.rethinkj.ui.Style;
 import com.rethinkj.ui.examples.Samples.Node;
 import com.rethinkj.ui.examples.Showcase.Section;
 import com.rethinkj.ui.kit.Button;
+import com.rethinkj.ui.kit.Card;
 import com.rethinkj.ui.kit.DataGrid;
 import com.rethinkj.ui.kit.DataGrid.Align;
 import com.rethinkj.ui.kit.DataGrid.Column;
 import com.rethinkj.ui.kit.Dialog;
+import com.rethinkj.ui.kit.Divider;
 import com.rethinkj.ui.kit.Icon;
 import com.rethinkj.ui.kit.Menu;
 import com.rethinkj.ui.kit.Select;
@@ -105,10 +107,7 @@ final class Sections {
 
   /** A card: an area set apart on the window, with a title above its content. */
   private static El card(Theme t, String title, El... content) {
-    return col().fill(t.surface().panel()).border(t.size().stroke(), t.border().subtle())
-        .radius(t.radius().large()).padding(t.space().l()).gap(t.space().m())
-        .child(label(t, MUTED, title))
-        .children(content);
+    return Card.card(t, Card.header(t, title, null)).gap(t.space().m()).children(content);
   }
 
   /** A row of a form: the name in a column of its own, then the control, which it labels. */
@@ -118,61 +117,15 @@ final class Sections {
         .child(control.label(name));
   }
 
-  /**
-   * A button with an icon before its text, or with only an icon when the text is null. The kit's
-   * button takes text alone, so this one repeats its looks from the same tokens.
-   */
+  /** A button with an icon before its text, or with only an icon when the text is null. */
   static El toolButton(Theme t, Button.Variant variant, Symbol symbol, String text,
       String label, Runnable onPress) {
-    boolean enabled = onPress != null;
-    Theme.Surfaces s = t.surface();
-    int fill;
-    int hover;
-    int pressed;
-    int edge;
-    int ink;
-    if (!enabled) {
-      fill = hover = pressed = variant == GHOST ? 0 : s.raised();
-      edge = variant == GHOST ? 0 : t.border().subtle();
-      ink = t.text().disabled();
-    } else if (variant == PRIMARY) {
-      fill = t.accent().color();
-      hover = t.accent().hover();
-      pressed = t.accent().pressed();
-      edge = 0;
-      ink = t.text().onAccent();
-    } else if (variant == SECONDARY) {
-      fill = s.raised();
-      hover = Theme.over(s.raised(), s.hover());
-      pressed = Theme.over(s.raised(), s.pressed());
-      edge = t.border().subtle();
-      ink = t.text().primary();
-    } else {
-      fill = 0;
-      hover = s.hover();
-      pressed = s.pressed();
-      edge = 0;
-      ink = t.text().primary();
-    }
-    El b = row().role("button").label(label).disabled(!enabled)
-        .h(t.size().control()).gap(t.space().s()).center().shrink(0)
-        .radius(t.radius().medium()).fill(fill).border(t.size().stroke(), edge)
-        .motion(t.motion().feedback())
-        .child(Icon.icon(t, symbol).color(ink));
-    if (text == null) {
-      b.w(t.size().control());
-    } else {
-      b.padding(0, t.space().l(), 0, t.space().m()).child(label(t, text).color(ink));
-    }
-    if (!enabled) {
-      return b;
-    }
-    return b.focusable().focusRing(t.border().focus()).cursor(Cursor.POINTER).onPress(onPress)
-        .whenHovered(e -> e.fill(hover)).whenPressed(e -> e.fill(pressed));
+    return text == null ? Button.icon(t, variant, symbol, label, onPress)
+        : Button.button(t, variant, symbol, text, onPress);
   }
 
   private static El iconButton(Theme t, Symbol symbol, String label, Runnable onPress) {
-    return toolButton(t, GHOST, symbol, null, label, onPress);
+    return Button.icon(t, GHOST, symbol, label, onPress);
   }
 
   /** A vertical line between groups of a toolbar. */
@@ -317,10 +270,10 @@ final class Sections {
         .child(el().grow(1))
         .child(button(t, SECONDARY, "Rename…", s::startRename).key("rename"))
         .child(divider(t))
-        .child(Tooltip.tooltip(t, iconButton(t, Symbol.ARROW_CLOCKWISE, "Refresh",
-            () -> s.say("refresh")).key("refresh"), "Refresh (F5)"))
-        .child(Tooltip.tooltip(t, iconButton(t, Symbol.COPY, "Copy", () -> s.say("copy"))
-            .key("copy"), "Copy the results as CSV"));
+        .child(iconButton(t, Symbol.ARROW_CLOCKWISE, "Refresh (F5)", () -> s.say("refresh"))
+            .key("refresh"))
+        .child(iconButton(t, Symbol.COPY, "Copy the results as CSV", () -> s.say("copy"))
+            .key("copy"));
 
     El list = col().key("saved").role("list").label("Saved queries");
     for (int i = 0; i < s.queries.length; i++) {
@@ -393,17 +346,23 @@ final class Sections {
         .rowNumbers().frozen(1)
         .contextMenu(s.gridMenu, List.of());
     El grid = DataGrid.dataGrid(t, columns, s.rows.size(), options)
-        .key("orders").label("Orders").h(540);
+        .key("orders").label("Orders").h(432);
     long cells = DataGrid.cellCount(s.selection.ranges(), columns.size());
     String status = s.rows.size() + " rows in 23 ms"
         + (cells > 1 ? " · " + cells + " cells selected" : "")
         + " · sorted by customer, then amount descending";
-    return col().gap(t.space().m())
-        .child(label(t, MONO, "SELECT o.id, c.name AS customer, c.email, o.amount, o.created_at,"
-            + " o.shipped_at, o.status, o.note FROM orders o JOIN customers c ON …")
-            .color(t.text().muted()).ellipsis().minSize(0, 0))
-        .child(grid)
-        .child(label(t, MUTED, status).key("grid-status"));
+    return Card.flush(t,
+        Card.toolbar(t, "Result", s.rows.size() + " rows",
+            toolButton(t, SECONDARY, Symbol.ARROW_DOWNLOAD, "Export", "Export",
+                () -> s.say("export")),
+            toolButton(t, PRIMARY, Symbol.PLAY, "Run", "Run", () -> s.say("run"))),
+        row().padding(0, t.space().l(), t.space().m(), t.space().l())
+            .child(label(t, MONO, "SELECT o.id, c.name AS customer, c.email, o.amount,"
+                + " o.created_at, o.shipped_at, o.status, o.note FROM orders o JOIN customers c"
+                + " ON …").color(t.text().muted()).ellipsis().minSize(0, 0)),
+        Divider.divider(t),
+        grid,
+        Card.footer(t, label(t, MUTED, status).key("grid-status").ellipsis()));
   }
 
   // Tree
@@ -450,16 +409,12 @@ final class Sections {
   private static El tree(Showcase s, Theme t) {
     El tree = schema(t, s, s.open, s.node, n -> s.node = n).key("schema").label("Schema")
         .grow(1);
-    El explorer = col().w(300).h(588).shrink(0).fill(t.surface().panel())
-        .border(t.size().stroke(), t.border().subtle()).radius(t.radius().large())
-        .padding(t.space().s()).gap(t.space().s())
-        .child(row().gap(t.space().xs()).align(Style.Align.CENTER)
-            .padding(0, 0, 0, t.space().s())
-            .child(label(t, MUTED, "Database").grow(1))
-            .child(iconButton(t, Symbol.ADD, "Add a connection", () -> s.say("add")))
-            .child(iconButton(t, Symbol.ARROW_SYNC, "Synchronise", () -> s.say("sync")))
-            .child(iconButton(t, Symbol.FILTER, "Filter", () -> s.say("filter"))))
-        .child(tree);
+    El explorer = Card.flush(t,
+        Card.toolbar(t, "Database", null,
+            iconButton(t, Symbol.ADD, "Add a connection", () -> s.say("add")),
+            iconButton(t, Symbol.ARROW_SYNC, "Synchronise", () -> s.say("sync")),
+            iconButton(t, Symbol.FILTER, "Filter", () -> s.say("filter"))),
+        Card.inset(t, tree)).w(300).h(588).shrink(0);
     Node table = s.node != null && s.node.level == 3 ? s.node : null;
     El details = col().grow(1).gap(t.space().m());
     if (table == null) {
@@ -474,12 +429,12 @@ final class Sections {
           new Column("default", 120, Align.LEFT, true, i -> cols.get(i).name.equals("id")
               ? "nextval(…)" : null));
       details
-          .child(row().gap(t.space().s()).align(Style.Align.CENTER)
-              .child(Icon.icon(t, Symbol.TABLE))
-              .child(label(t, "public." + table.name))
-              .child(label(t, MUTED, "· " + cols.size() + " columns · 1,204,311 rows")))
-          .child(DataGrid.dataGrid(t, columns, cols.size(),
-              DataGrid.options().select(s.columns)).key("columns").label("Columns").h(200))
+          .child(Card.flush(t,
+              Card.toolbar(t, "public." + table.name,
+                  cols.size() + " columns · 1,204,311 rows"),
+              Divider.divider(t),
+              DataGrid.dataGrid(t, columns, cols.size(),
+                  DataGrid.options().select(s.columns)).key("columns").label("Columns").h(200)))
           .child(label(t, MUTED, "The grid's selection without the focus: "
               + "selectedInactive."));
     }
@@ -504,10 +459,9 @@ final class Sections {
   private static El workbench(Showcase s, Theme t) {
     El tree = schema(t, s, s.benchOpen, s.benchNode, n -> s.benchNode = n)
         .key("bench-schema").label("Schema").grow(1);
-    El side = col().fill(t.surface().panel()).padding(t.space().xs()).child(tree);
+    El side = Card.flush(t, Card.toolbar(t, "Database", null), Card.inset(t, tree));
 
-    El lines = col().key("editor").label("Query").fill(t.surface().window())
-        .padding(t.space().m(), t.space().s());
+    El lines = col().key("editor").label("Query").padding(t.space().m(), t.space().s());
     for (int i = 0; i < QUERY.length; i++) {
       lines.child(row().gap(t.space().l())
           .child(label(t, MONO, String.valueOf(i + 1)).color(t.text().disabled()).w(16))
@@ -520,17 +474,17 @@ final class Sections {
     El results = col()
         .child(DataGrid.dataGrid(t, columns, MONTHS.length,
             DataGrid.options().select(s.results).rowNumbers()).key("results").label("Results")
-            .grow(1))
-        .child(row().padding(t.space().xs(), t.space().m()).fill(t.surface().panel())
-            .child(label(t, MUTED, "6 rows in 18 ms")));
+            .grow(1).minSize(0, 0))
+        .child(Card.footer(t, label(t, MUTED, "6 rows in 18 ms"), label(t, MUTED, "Tx: auto"),
+            label(t, MUTED, "UTF-8")));
     El content = Split.split(t, Direction.COLUMN, s.editor, Position.share(0.42f),
         p -> s.editor = p, lines, 60, results, 80);
     El queries = Tabs.tabs(t, s.tabs, s.tab, i -> s.tab = i, i -> s.say("close " + i), content)
         .key("queries");
 
-    El top = row().h(t.size().control() + 2 * t.space().xs() + t.size().stroke())
-        .padding(t.space().xs()).gap(t.space().xs()).align(Style.Align.CENTER)
-        .fill(t.surface().panel())
+    // A window in small: tools on the page, the schema's card and the queries' card.
+    El top = row().padding(t.space().xs(), t.space().m()).gap(t.space().xs())
+        .align(Style.Align.CENTER)
         .child(iconButton(t, Symbol.PLAY, "Run", () -> s.say("run")))
         .child(iconButton(t, Symbol.STOP, "Stop", null))
         .child(divider(t))
@@ -538,21 +492,13 @@ final class Sections {
         .child(iconButton(t, Symbol.ARROW_REDO, "Redo", () -> s.say("redo")))
         .child(el().grow(1))
         .child(Icon.icon(t, Symbol.PLUG_CONNECTED, Icon.Variant.SUCCESS))
-        .child(label(t, MUTED, "localhost / shop").margin(0, t.space().m(), 0, 0));
-    El status = row().h(22).padding(0, t.space().m()).gap(t.space().l())
-        .align(Style.Align.CENTER).fill(t.surface().panel())
-        .child(label(t, MUTED, "PostgreSQL 17.2").grow(1))
-        .child(label(t, MUTED, "Tx: auto"))
-        .child(label(t, MUTED, "UTF-8"));
-    El rule = el().h(t.size().stroke()).shrink(0).fill(t.border().subtle());
+        .child(label(t, MUTED, "localhost / shop · PostgreSQL 17.2"));
     return col().h(588).clip().border(t.size().stroke(), t.border().subtle())
         .radius(t.radius().large()).fill(t.surface().window())
         .child(top)
-        .child(rule)
-        .child(Split.split(t, Direction.ROW, s.sidebar, Position.first(200), p -> s.sidebar = p,
-            side.label("Database"), 140, queries, 240).key("bench").grow(1).minSize(0, 0))
-        .child(el().h(t.size().stroke()).shrink(0).fill(t.border().subtle()))
-        .child(status);
+        .child(Split.cards(t, Direction.ROW, s.sidebar, Position.first(200), p -> s.sidebar = p,
+            side.label("Database"), 140, queries, 240).key("bench").grow(1).minSize(0, 0)
+            .padding(0, t.space().m(), t.space().m(), t.space().m()));
   }
 
   // Typography
@@ -651,7 +597,7 @@ final class Sections {
             new Swatch("onAccent", t.text().onAccent(), 0)),
         List.of(new Swatch("subtle", t.border().subtle(), 0),
             new Swatch("strong", t.border().strong(), 0),
-            new Swatch("focus", t.border().focus(), 0)),
+            new Swatch("focus", t.accent().edge(), 0)),
         List.of(new Swatch("color", t.accent().color(), 0),
             new Swatch("hover", t.accent().hover(), 0),
             new Swatch("pressed", t.accent().pressed(), 0),
@@ -733,15 +679,15 @@ final class Sections {
       accent.child(ratio(t, t.text().onAccent(), fill, Contrast.TEXT));
     }
     accent.child(el().w(t.space().l()))
-        .child(label(t, MUTED, "focus ring on the accent").w(150));
+        .child(label(t, MUTED, "primary button's ring").w(150));
     for (int i = 0; i < fills.length; i++) {
-      accent.child(ratio(t, t.border().focus(), fills[i], i == 0 ? Contrast.MARK : -1));
+      accent.child(ratio(t, t.text().primary(), fills[i], i == 0 ? Contrast.MARK : -1));
     }
     El other = row().gap(t.space().xs()).align(Style.Align.CENTER)
         .child(col().w(150).shrink(0)
             .child(label(t, "selected text"))
             .child(label(t, MUTED, "in a field, on raised")))
-        .child(ratio(t, t.text().primary(), Contrast.drawn(t.surface().raised(), a.selection()),
+        .child(ratio(t, t.text().primary(), Theme.over(t.surface().raised(), a.selection()),
             Contrast.TEXT))
         .child(el().w(t.space().l() + CELL * 2 + t.space().xs() * 2))
         .child(label(t, MUTED, "cursor on the selection").w(150))
@@ -754,8 +700,8 @@ final class Sections {
             .child(label(t, MUTED, "Each cell is the pair itself: the ratio in the foreground on "
                 + "the background. An edge marks a pair the kit draws, in the danger colour when"
                 + " it is below its minimum."))
-            .child(label(t, MUTED, "hover¹: Theme.over on raised, as buttons and fields mix it. "
-                + "hover²: drawn translucent on panel, as ghost buttons, tabs and tree rows.")));
+            .child(label(t, MUTED, "Hover is the overlay on raised and on panel; Theme.over and the "
+                + "renderer both mix it in linear light.")));
   }
 
   private static final float CELL = 64;

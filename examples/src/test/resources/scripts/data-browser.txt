@@ -29,10 +29,10 @@ press #column-0                  # sorts by id, descending: the order is near th
 frame
 wheel #rows -2000 0              # the columns back to their start; the cursor stays
 frame
-down #resize-2                   # the right edge of email, at 502,87
+down #resize-2                   # the right edge of email, at 499,86
 frame
-move 562,87                      # 60 pixels to the right, a frame for each step as in a window
+move 559,86                      # 60 pixels to the right, a frame for each step as in a window
 frame
-up 562,87
+up 559,86
 frame
 snap browser-sorted
