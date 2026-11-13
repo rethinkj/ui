@@ -30,7 +30,8 @@ import java.util.function.Supplier;
  * <p>Components get the theme as their first parameter, and the view gets it from the app's state
  * or a constant. Focusable components draw their focus ring in {@code accent().edge()} of their
  * theme ({@link com.rethinkj.ui.El#focusRing(int)}); a primary button, whose fill is the accent,
- * draws it in {@code text().primary()}.
+ * draws it {@link Sizes#ringGap} away ({@link com.rethinkj.ui.El#focusRingGap}), so that the
+ * surface behind the button lies between the two.
  *
  * <p>The scrollbars are core's {@link Scrollbars}, which any scroll area or list takes as they are:
  * {@code col().scroll().scrollbars(theme.scrollbars())}. Their thumbs stand out 3:1 from the
@@ -193,6 +194,8 @@ public record Theme(
    * @param icon the side of an {@link Icon}, unless the view gives it another; the icons are
    *     sharpest at a size they are drawn for (see {@link Symbol})
    * @param indicator the thickness of the line that marks the active tab
+   * @param ringGap the gap between a primary button and its focus ring, in which what lies behind
+   *     the button shows, so that the ring in the accent's edge stands out from the accent's fill
    */
   public record Sizes(
       float control,
@@ -204,7 +207,15 @@ public record Theme(
       float handle,
       float step,
       float icon,
-      float indicator) {
+      float indicator,
+      float ringGap) {
+
+    /** Sizes with a gap of 2 between a primary button and its ring. */
+    public Sizes(float control, float checkbox, float switchWidth, float switchHeight,
+        float stroke, float field, float handle, float step, float icon, float indicator) {
+      this(control, checkbox, switchWidth, switchHeight, stroke, field, handle, step, icon,
+          indicator, 2);
+    }
 
     /**
      * Sizes with text fields 200 wide, a split's handle 7 wide, steps of 16, icons 16 and a tab's
@@ -299,7 +310,7 @@ public record Theme(
           new TextStyle(Font::sansSemibold, 14),
           new TextStyle(Font::sansSemibold, 20),
           new TextStyle(Font::sansMedium, 13));
-  private static final Sizes SIZE = new Sizes(24, 16, 28, 16, 1, 200, 7, 16, 16, 2);
+  private static final Sizes SIZE = new Sizes(24, 16, 28, 16, 1, 200, 7, 16, 16, 2, 2);
   private static final Motion MOTION =
       new Motion(Spring.INSTANT, Spring.SNAP, 0.3, 0.5, Spring.INSTANT, 5);
 

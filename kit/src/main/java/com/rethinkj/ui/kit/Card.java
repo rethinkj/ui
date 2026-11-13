@@ -143,8 +143,9 @@ public final class Card {
    * @param end at the right, in the order shown
    */
   public static El footer(Theme t, El start, El... end) {
-    El row = row().h(t.size().control() + t.space().s()).padding(0, t.space().l())
-        .gap(t.space().l()).align(Style.Align.CENTER).fill(t.surface().band());
+    El row = row().h(t.size().control() + t.space().s() + t.size().stroke()).shrink(0)
+        .padding(0, t.space().l()).gap(t.space().l()).align(Style.Align.CENTER)
+        .fill(t.surface().band()).border(t.size().stroke(), 0, 0, 0, t.border().subtle());
     if (start != null) {
       row.child(start.shrink(1).minSize(0, 0));
     }
@@ -152,7 +153,7 @@ public final class Card {
     for (El part : end) {
       row.child(part.shrink(0));
     }
-    return col().shrink(0).child(Divider.divider(t)).child(row);
+    return row;
   }
 
   /**

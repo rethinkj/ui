@@ -11,7 +11,7 @@ el 0,0 720x400
     el #rest 197,0 523x400
       el #second 201,0 519x400
         el 201,0 519x400
-          el #bar 202,1 517x32
+          el #bar 202,1 517x33
             el #tablist role=tablist 204,1 481x32
               el #tab-0 role=tab label="Console" 204,1 66x32
                 text "Console" 212,9 50x16
@@ -29,7 +29,6 @@ el 0,0 720x400
                 text "products.sql" 581,9 76x16
                 el #close-3 role=button label="Close products.sql" 661,9 16x16
                   text label="dismiss" "\u{F368}" 661,9 16x16
-          el 202,33 517x1
           el #panel role=tabpanel label="orders by month.sql" 202,34 517x365
             el #work 202,34 517x365
               el #first 202,34 517x182

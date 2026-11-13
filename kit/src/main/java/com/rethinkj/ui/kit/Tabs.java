@@ -128,8 +128,7 @@ public final class Tabs {
       list.child(tab(t, tabs.get(i), i, i == active, select, close));
     }
     El bar = row().key("bar").fill(t.surface().band()).padding(0, t.space().xs()).shrink(0)
-        .child(list);
-    El under = el().h(t.size().stroke()).shrink(0).fill(t.border().subtle());
+        .border(0, 0, t.size().stroke(), 0, t.border().subtle()).child(list);
     El panel = col().key("panel").role("tabpanel")
         .label(active >= 0 && active < tabs.size() ? tabs.get(active).title() : null)
         .grow(1);
@@ -140,7 +139,7 @@ public final class Tabs {
       content.style().minHeight = Len.ZERO;
       panel.child(content.grow(1));
     }
-    El root = Card.surface(t, Card.Variant.OUTLINED).children(bar, under, panel);
+    El root = Card.surface(t, Card.Variant.OUTLINED).children(bar, panel);
     // It fills the room it is given: a list of rows in the content is no minimum.
     root.style().minWidth = Len.ZERO;
     root.style().minHeight = Len.ZERO;

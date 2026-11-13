@@ -185,7 +185,7 @@ el 0,0 1000x600
     el #rest 268,32 724x560
       el #second 276,32 716x560
         el #tabs 276,32 716x560
-          el #bar 277,33 714x32
+          el #bar 277,33 714x33
             el #tablist role=tablist 279,33 143x32
               el #tab-0 role=tab label="Start" 279,33 44x32
                 text "Start" 287,41 28x16
@@ -195,7 +195,6 @@ el 0,0 1000x600
                 text "orders" 353,41 41x16
                 el #close-1 role=button label="Close orders" 398,41 16x16
                   text label="dismiss" "\u{F368}" 398,41 16x16
-          el 277,65 714x1
           el #panel role=tabpanel label="orders" 277,66 714x525
             el 277,66 714x525
               el 277,66 714x496
@@ -216,11 +215,9 @@ el 0,0 1000x600
                 el 277,206 714x64
                   text "Loading the rows of localhost/shop/public/orders…" 301,230 666x16
               el 277,562 714x29
-                el role=separator 277,562 714x1
-                el 277,563 714x28
-                  text #status "localhost/shop/public/orders · counting the rows" 289,569 305x16
-                  el 606,577 300x0
-                  text #position "Ln 1, Col 1" 918,569 61x16
+                text #status "localhost/shop/public/orders · counting the rows" 289,569 305x16
+                el 606,577 300x0
+                text #position "Ln 1, Col 1" 918,569 61x16
       el #divider role=separator label="Resize" 268,32 8x560 value="first 260"
         el 268,32 8x560
           el 272,32 1x560

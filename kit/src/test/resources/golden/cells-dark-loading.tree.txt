@@ -1,7 +1,7 @@
 el 0,0 560x240
   el #orders role=grid label="Orders" 8,8 544x224 scroll 400,0 thumb-x 219.3,224 284.65x6 focused
     el #content -392,8 1032x224
-      el #header -392,8 1032x24
+      el #header -392,8 1032x25
         el #column-1 role=columnheader label="customer" -270,8 139x24 pos=2/7 sort=ascending
           text "customer" -266,12 60x16
           el -204,12 20x16
@@ -38,10 +38,8 @@ el 0,0 560x240
           text "id" 114,12 11x16
         el 129,8 1x24
         el #resize-0 role=separator label="Resize id" 127,8 6x24
-      el -392,32 1032x1
       el #rows -392,33 1032x199 rows 1997-2011/1000000 scroll 0,48000 thumb-y 544,35.32 6x24
         el #row-1997 role=row -392,-39 1032x24 pos=1998/1000000
-          el -392,-16 1032x1
           el #cell-1997-1 role=gridcell -270,-39 139x23 pos=2/7
             text "…" -266,-35 11x16
           el -131,-39 1x23
@@ -67,7 +65,6 @@ el 0,0 560x240
             text "…" 114,-35 11x16
           el 129,-39 1x23
         el #row-1998 role=row -392,-15 1032x24 pos=1999/1000000
-          el -392,8 1032x1
           el #cell-1998-1 role=gridcell -270,-15 139x23 pos=2/7
             text "…" -266,-11 11x16
           el -131,-15 1x23
@@ -93,7 +90,6 @@ el 0,0 560x240
             text "…" 114,-11 11x16
           el 129,-15 1x23
         el #row-1999 role=row -392,9 1032x24 pos=2000/1000000
-          el -392,32 1032x1
           el #cell-1999-1 role=gridcell -270,9 139x23 pos=2/7
             text "…" -266,13 11x16
           el -131,9 1x23
@@ -119,7 +115,6 @@ el 0,0 560x240
             text "…" 114,13 11x16
           el 129,9 1x23
         el #row-2000 role=row -392,33 1032x24 pos=2001/1000000
-          el -392,56 1032x1
           el #cell-2000-1 role=gridcell -270,33 139x23 pos=2/7
             text "…" -266,37 11x16
           el -131,33 1x23
@@ -145,7 +140,6 @@ el 0,0 560x240
             text "…" 114,37 11x16
           el 129,33 1x23
         el #row-2001 role=row -392,57 1032x24 pos=2002/1000000
-          el -392,80 1032x1
           el #cell-2001-1 role=gridcell -270,57 139x23 pos=2/7
             text "…" -266,61 11x16
           el -131,57 1x23
@@ -171,7 +165,6 @@ el 0,0 560x240
             text "…" 114,61 11x16
           el 129,57 1x23
         el #row-2002 role=row -392,81 1032x24 pos=2003/1000000
-          el -392,104 1032x1
           el #cell-2002-1 role=gridcell -270,81 139x23 pos=2/7
             text "…" -266,85 11x16
           el -131,81 1x23
@@ -197,7 +190,6 @@ el 0,0 560x240
             text "…" 114,85 11x16
           el 129,81 1x23
         el #row-2003 role=row -392,105 1032x24 pos=2004/1000000
-          el -392,128 1032x1
           el #cell-2003-1 role=gridcell -270,105 139x23 pos=2/7
             text "…" -266,109 11x16
           el -131,105 1x23
@@ -223,7 +215,6 @@ el 0,0 560x240
             text "…" 114,109 11x16
           el 129,105 1x23
         el #row-2004 role=row -392,129 1032x24 pos=2005/1000000
-          el -392,152 1032x1
           el #cell-2004-1 role=gridcell -270,129 139x23 pos=2/7
             text "…" -266,133 11x16
           el -131,129 1x23
@@ -249,7 +240,6 @@ el 0,0 560x240
             text "…" 114,133 11x16
           el 129,129 1x23
         el #row-2005 role=row -392,153 1032x24 pos=2006/1000000
-          el -392,176 1032x1
           el #cell-2005-1 role=gridcell -270,153 139x23 pos=2/7
             text "…" -266,157 11x16
           el -131,153 1x23
@@ -275,7 +265,6 @@ el 0,0 560x240
             text "…" 114,157 11x16
           el 129,153 1x23
         el #row-2006 role=row -392,177 1032x24 pos=2007/1000000
-          el -392,200 1032x1
           el #cell-2006-1 role=gridcell -270,177 139x23 pos=2/7
             text "…" -266,181 11x16
           el -131,177 1x23
@@ -301,7 +290,6 @@ el 0,0 560x240
             text "…" 114,181 11x16
           el 129,177 1x23
         el #row-2007 role=row -392,201 1032x24 pos=2008/1000000
-          el -392,224 1032x1
           el #cell-2007-1 role=gridcell -270,201 139x23 pos=2/7
             text "…" -266,205 11x16
           el -131,201 1x23
@@ -327,7 +315,6 @@ el 0,0 560x240
             text "…" 114,205 11x16
           el 129,201 1x23
         el #row-2008 role=row -392,225 1032x24 pos=2009/1000000
-          el -392,248 1032x1
           el #cell-2008-1 role=gridcell -270,225 139x23 pos=2/7
             text "…" -266,229 11x16
           el -131,225 1x23
@@ -353,7 +340,6 @@ el 0,0 560x240
             text "…" 114,229 11x16
           el 129,225 1x23
         el #row-2009 role=row -392,249 1032x24 pos=2010/1000000
-          el -392,272 1032x1
           el #cell-2009-1 role=gridcell -270,249 139x23 pos=2/7
             text "…" -266,253 11x16
           el -131,249 1x23
@@ -379,7 +365,6 @@ el 0,0 560x240
             text "…" 114,253 11x16
           el 129,249 1x23
         el #row-2010 role=row -392,273 1032x24 pos=2011/1000000
-          el -392,296 1032x1
           el #cell-2010-1 role=gridcell -270,273 139x23 pos=2/7
             text "…" -266,277 11x16
           el -131,273 1x23
@@ -405,7 +390,6 @@ el 0,0 560x240
             text "…" 114,277 11x16
           el 129,273 1x23
         el #row-2011 role=row -392,297 1032x24 pos=2012/1000000
-          el -392,320 1032x1
           el #cell-2011-1 role=gridcell -270,297 139x23 pos=2/7
             text "…" -266,301 11x16
           el -131,297 1x23

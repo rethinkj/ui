@@ -49,7 +49,10 @@ public final class El {
   private int setSize;
   private String value;
   private int fill;
-  private float radius;
+  private float radius; // the top left corner's
+  private float radiusTopRight;
+  private float radiusBottomRight;
+  private float radiusBottomLeft;
   private int borderColor;
   private List<Shadow> shadows = List.of();
   private Measure measure;
@@ -63,6 +66,7 @@ public final class El {
   private int revealRow = -1;
   private boolean focusable;
   private Integer focusRing;
+  private float focusRingGap;
   private Predicate<Key> onKey;
   private Predicate<Key> onKeyUp;
   private Consumer<String> onText;
@@ -531,18 +535,42 @@ public final class El {
     return this;
   }
 
+  /** Rounds every corner of the border box with this radius. */
   public El radius(float pixels) {
-    this.radius = pixels;
+    return radius(pixels, pixels, pixels, pixels);
+  }
+
+  /**
+   * Rounds each corner with its own radius, in the order of CSS's {@code border-radius}. A radius
+   * larger than half the shorter side is drawn as that half. Fill, border, clip, shadows and the
+   * focus ring follow the corners, and so does what takes a press.
+   */
+  public El radius(float topLeft, float topRight, float bottomRight, float bottomLeft) {
+    this.radius = topLeft;
+    this.radiusTopRight = topRight;
+    this.radiusBottomRight = bottomRight;
+    this.radiusBottomLeft = bottomLeft;
     return this;
   }
 
-  /** @param argb the colour as 0xAARRGGBB */
+  /** A border as wide on every side. @param argb the colour as 0xAARRGGBB */
   public El border(float width, int argb) {
-    Len len = Len.px(width);
-    style.borderTop = len;
-    style.borderRight = len;
-    style.borderBottom = len;
-    style.borderLeft = len;
+    return border(width, width, width, width, argb);
+  }
+
+  /**
+   * A border of its own width on each side, in one colour, in the order of CSS's {@code
+   * border-width}; a side of width 0 has none, so {@code border(0, 0, 1, 0, c)} is a line along the
+   * bottom. The widths take room in the layout as CSS's do. Where a rounded corner joins two sides
+   * of different widths, its inner edge is the outer one moved in by each side's width, as in CSS.
+   *
+   * @param argb the colour as 0xAARRGGBB
+   */
+  public El border(float top, float right, float bottom, float left, int argb) {
+    style.borderTop = Len.px(top);
+    style.borderRight = Len.px(right);
+    style.borderBottom = Len.px(bottom);
+    style.borderLeft = Len.px(left);
     this.borderColor = argb;
     return this;
   }
@@ -1521,6 +1549,17 @@ public final class El {
   }
 
   /**
+   * Draws the focus ring this many pixels away from the border box, so that what lies behind the
+   * element shows between the two: a ring in the accent beside a button filled with the accent.
+   * The default is 0, the ring against the box. Where a clip or the window's edge would cut the
+   * ring, it lies inside the box without a gap, as without one.
+   */
+  public El focusRingGap(float pixels) {
+    this.focusRingGap = pixels;
+    return this;
+  }
+
+  /**
    * Gives {@code handler} the keys that go down while this element or one below it has the focus,
    * repeats included, before its ancestors get them. The handler returns whether it handled the
    * key; if it did, nobody else sees it. Without focus, keys go to the root element only. Enter
@@ -2020,8 +2059,14 @@ public final class El {
     return fill;
   }
 
+  /** The top left corner's radius, which is every corner's after {@link #radius(float)}. */
   public float radius() {
     return radius;
+  }
+
+  /** The radii of the corners: top left, top right, bottom right, bottom left. */
+  public float[] radii() {
+    return new float[] {radius, radiusTopRight, radiusBottomRight, radiusBottomLeft};
   }
 
   /** The shadows under this element, the topmost first; empty for none. */
@@ -2189,6 +2234,11 @@ public final class El {
   /** The colour set with {@link #focusRing(int)}, or null if none was and the app's applies. */
   public Integer focusRing() {
     return focusRing;
+  }
+
+  /** The gap set with {@link #focusRingGap}. */
+  public float focusRingGap() {
+    return focusRingGap;
   }
 
   public Predicate<Key> onKey() {
