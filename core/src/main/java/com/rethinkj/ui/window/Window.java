@@ -1154,7 +1154,9 @@ public final class Window implements AutoCloseable {
   /**
    * Sets who the app is, for windows opened after this: an id that the system groups the app's
    * windows by and finds its settings and icon with, and the app's name. It is the same for the
-   * whole process; call it before the first window opens.
+   * whole process; call it before the first window opens. Calling it again with the same id and
+   * name does nothing, also while windows are open, so that the code that opens a later window may
+   * set its options up the same way.
    *
    * <p>The id and the name go to {@code SDL_SetAppMetadata}, from which SDL takes the Wayland
    * app id and the X11 window class, which docks match with the app's {@code <id>.desktop} file.
@@ -1168,7 +1170,8 @@ public final class Window implements AutoCloseable {
    * @param id reverse DNS, such as {@code com.example.Notes}: at most 128 characters, without
    *     spaces, as Windows requires
    * @param name the app's name for people, or null
-   * @throws IllegalStateException if a window is open
+   * @throws IllegalStateException if a window is open and the id or the name differs from the one
+   *     set
    */
   public static void identity(String id, String name) {
     Objects.requireNonNull(id, "id");
@@ -1177,8 +1180,9 @@ public final class Window implements AutoCloseable {
           "An app id has 1 to 128 characters and no spaces, such as com.example.Notes: " + id);
     }
     synchronized (LOCK) {
-      if (thread != null) {
-        throw new IllegalStateException("The app's identity is set before the first window opens");
+      if (thread != null && !(id.equals(appId) && Objects.equals(name, appName))) {
+        throw new IllegalStateException("The app's identity is set before the first window opens"
+            + " and stays: " + appId + ", " + appName);
       }
       appId = id;
       appName = name;
