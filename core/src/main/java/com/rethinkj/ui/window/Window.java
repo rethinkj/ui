@@ -50,7 +50,8 @@ import java.util.Objects;
  * with {@link El#windowPart}, the window asks {@link #parts} (usually {@link App#windowPart}) what
  * lies under the pointer, and the system then moves the window from a drag area, snaps it to the
  * screen's edges and resizes it from a margin along its edges. The minimize, maximize and close
- * parts act when clicked. On Windows 11 such a window has rounded corners and the system's shadow,
+ * parts act when clicked. A right click on a drag area opens the system's window menu there, and
+ * the listener gets neither half of it, as an app gets nothing of a click on a system title bar. On Windows 11 such a window has rounded corners and the system's shadow,
  * and resting the pointer on the maximize part shows the snap layouts.
  *
  * <h2>Threads and events</h2>
@@ -198,6 +199,8 @@ public final class Window implements AutoCloseable {
   private boolean maximized;
   /** The window button a left press began on, or null. */
   private WindowPart pressed;
+  /** Whether a secondary press began on a drag area, where it belongs to the system menu. */
+  private boolean menuPress;
   /** Where the last pointer move was, in logical pixels, while the pointer is in the window. */
   private boolean pointerIn;
   private float pointerX;
@@ -419,16 +422,26 @@ public final class Window implements AutoCloseable {
         click = part != null && part == pressed ? part : null;
         pressed = null;
       }
-      case PointerUp up when up.button() == PointerButton.RIGHT && frameless
-          && part(up.x(), up.y()) == WindowPart.DRAG -> {
-        // The menu runs a loop of its own; deliver the events before it first.
-        int x = units(up.x());
-        int y = units(up.y());
-        deferred.add(() -> {
-          if (open) {
-            Sdl.showWindowSystemMenu(sdl, x, y);
-          }
-        });
+      // A secondary press on a drag area is the system menu's, as on a system title bar: the
+      // listener gets neither half, and the menu opens if it ends there too.
+      case PointerDown down when down.button() == PointerButton.RIGHT && frameless
+          && part(down.x(), down.y()) == WindowPart.DRAG -> {
+        menuPress = true;
+        return;
+      }
+      case PointerUp up when up.button() == PointerButton.RIGHT && menuPress -> {
+        menuPress = false;
+        if (part(up.x(), up.y()) == WindowPart.DRAG) {
+          // The menu runs a loop of its own; deliver the events before it first.
+          int x = units(up.x());
+          int y = units(up.y());
+          deferred.add(() -> {
+            if (open) {
+              Sdl.showWindowSystemMenu(sdl, x, y);
+            }
+          });
+        }
+        return;
       }
       default -> {}
     }

@@ -240,6 +240,35 @@ class WindowTest {
     }
   }
 
+  /**
+   * A right click on the drag area opens the system menu, which runs a loop of its own until it
+   * is dismissed, so this test only sends the presses that do not open it.
+   */
+  @Test
+  void aSecondaryPressThatBeginsOnTheDragAreaIsNotDelivered() {
+    try (Window window = Window.open(TITLE, 300, 200, Window.options().frameless())) {
+      Desktop.settle();
+      window.parts(PARTS);
+      window.listener(events::add);
+      // Begins on the drag area, ends in the content: the menu's press, which does not open it.
+      Desktop.button(window, true, Sdl.BUTTON_RIGHT, 100, 15, 1);
+      Desktop.button(window, false, Sdl.BUTTON_RIGHT, 100, 100, 1);
+      Window.pollEvents();
+      assertEquals(List.of(), presses(), "the system menu's press");
+
+      // Begins in the content and ends on the drag area: the content's.
+      Desktop.button(window, true, Sdl.BUTTON_RIGHT, 100, 100, 1);
+      Desktop.button(window, false, Sdl.BUTTON_RIGHT, 100, 15, 1);
+      Window.pollEvents();
+      assertEquals(List.of(new PointerDown(100, 100, PointerButton.RIGHT, 1),
+          new PointerUp(100, 15, PointerButton.RIGHT)), presses());
+    }
+  }
+
+  private List<WindowEvent> presses() {
+    return events.stream().filter(e -> e instanceof PointerDown || e instanceof PointerUp).toList();
+  }
+
   @Test
   void aFramelessWindowKeepsItsSizeWhenTheSystemMinimizesAndRestoresIt() {
     try (Window window = Window.open(TITLE, 300, 200, Window.options().frameless())) {
