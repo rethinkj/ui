@@ -103,7 +103,8 @@ class FileDropTest {
         frame
         """, app, out);
     assertEquals(List.of("inner OVER 20,20", "inner LEAVE", "top OVER 100,25",
-        "top DROP [one.sql, Ördner mit Leerzeichen/two.md] 100,25", "top OVER 100,25",
+        "top DROP [one.sql, " + Path.of("Ördner mit Leerzeichen", "two.md") + "] 100,25",
+        "top OVER 100,25",
         "top DROP dropped 100,25"), app.state().log);
     Script.Failure failure = assertThrows(Script.Failure.class,
         () -> Script.run("drop #top", app, out));

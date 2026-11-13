@@ -21,6 +21,7 @@ import com.rethinkj.ui.window.WindowEvent.FileDragOver;
 import com.rethinkj.ui.window.WindowEvent.FileDrop;
 import com.rethinkj.ui.window.WindowEvent.FocusChanged;
 import com.rethinkj.ui.window.WindowEvent.KeyDown;
+import com.rethinkj.ui.window.WindowEvent.KeyText;
 import com.rethinkj.ui.window.WindowEvent.KeyUp;
 import com.rethinkj.ui.window.WindowEvent.PointerDown;
 import com.rethinkj.ui.window.WindowEvent.PointerLeave;
@@ -131,8 +132,27 @@ public final class Window implements AutoCloseable {
     private boolean positioned;
     private int x;
     private int y;
+    private boolean underPointer;
 
     private Options() {}
+
+    /**
+     * For a window that opens under the pointer during a drag and follows it, as a tab torn off
+     * into a window of its own: it shows without the system's opening animation (on Windows
+     * {@code DWMWA_TRANSITIONS_FORCEDISABLED}, so that no empty frame zooms in before its first
+     * frame), and without taking the keyboard focus from the window the drag began in ({@code
+     * SDL_HINT_WINDOW_ACTIVATE_WHEN_SHOWN}), whose keys, Escape among them, reach the drag as they
+     * did. A {@link WindowLoop} gives it the focus when the press ends, if it is still open.
+     */
+    public Options underPointer() {
+      underPointer = true;
+      return this;
+    }
+
+    /** Whether {@link #underPointer} was called. */
+    public boolean isUnderPointer() {
+      return underPointer;
+    }
 
     /**
      * Where the content's top left corner opens on the screen, in the units of {@link
@@ -249,7 +269,16 @@ public final class Window implements AutoCloseable {
   /** The appearance last delivered, or null before the first. */
   private static SystemAppearance appearance;
 
-  private record Posted(Window window, WindowEvent event) {}
+  /** An event queued for a window; a key's event may still change while it waits (AltGr). */
+  private static final class Posted {
+    final Window window;
+    WindowEvent event;
+
+    Posted(Window window, WindowEvent event) {
+      this.window = window;
+      this.event = event;
+    }
+  }
 
   /** Upcall stubs, made on first use and kept for the life of the process. */
   private static final class Upcalls {
@@ -271,6 +300,7 @@ public final class Window implements AutoCloseable {
   private final boolean positioned;
   private final int x;
   private final int y;
+  private final boolean underPointer;
   private String title;
   private WindowHandle handle;
   private Win32Frame win32;
@@ -293,6 +323,9 @@ public final class Window implements AutoCloseable {
   private boolean menuPress;
   // The last event was a key pressed with Control and without Alt, whose character Windows types.
   private boolean afterControlKey;
+  private char highSurrogate; // of a WM_CHAR that SDL dropped, until its second half comes
+  private boolean charOfKey; // the last event was a key down, which a WM_CHAR belongs to
+  private Posted lastKeyDown; // the last key down queued, which a WM_CHAR may show was AltGr
   /** Where the last pointer move was, in logical pixels, while the pointer is in the window. */
   private boolean pointerIn;
   /** What another application drops, as SDL hands it over until DROP_COMPLETE. */
@@ -317,6 +350,7 @@ public final class Window implements AutoCloseable {
     this.positioned = options.positioned;
     this.x = options.x;
     this.y = options.y;
+    this.underPointer = options.underPointer;
   }
 
   /** Opens a resizable window with the system's frame. */
@@ -397,7 +431,21 @@ public final class Window implements AutoCloseable {
     if (positioned) {
       Sdl.setWindowPosition(sdl, x, y);
     }
-    Sdl.showWindow(sdl);
+    if (underPointer) {
+      if (shell != null) {
+        shell.transitions(false); // no opening animation before the first frame
+      }
+      // SDL reads the hint as it shows the window: shown, not activated.
+      String before = Sdl.getHint(Sdl.HINT_WINDOW_ACTIVATE_WHEN_SHOWN);
+      Sdl.setHint(Sdl.HINT_WINDOW_ACTIVATE_WHEN_SHOWN, "0");
+      try {
+        Sdl.showWindow(sdl);
+      } finally {
+        Sdl.setHint(Sdl.HINT_WINDOW_ACTIVATE_WHEN_SHOWN, before == null ? "1" : before);
+      }
+    } else {
+      Sdl.showWindow(sdl);
+    }
     long flags = Sdl.getWindowFlags(sdl);
     minimized = (flags & Sdl.WINDOW_MINIMIZED) != 0;
     maximized = (flags & Sdl.WINDOW_MAXIMIZED) != 0;
@@ -504,6 +552,50 @@ public final class Window implements AutoCloseable {
     }
   }
 
+  /**
+   * A character that Windows made of a key ({@code WM_CHAR}, by {@code TranslateMessage} through
+   * the keyboard layout, its dead keys and AltGr), after SDL handled the message. While text
+   * input is on, SDL made a {@link TextInput} of it; while it is off SDL drops it, which loses the
+   * keys that arrive in the same batch as the click or key that takes the focus into a field, and
+   * it goes on as a {@link KeyText}, with SDL's rules: no control characters, and none of a key
+   * held with Control and without Alt.
+   */
+  void systemChar(char c) {
+    if (c >= 0x20 && c != 0x7F && charOfKey && lastKeyDown != null
+        && lastKeyDown.event instanceof KeyDown(Key key)
+        && (key.modifiers() & (Key.CONTROL | Key.ALT)) == Key.ALT) {
+      // A key held with Alt alone that makes a character (Alt with a letter makes WM_SYSCHAR,
+      // not WM_CHAR) was held with AltGr, which SDL reports as Alt, hiding the left Control that
+      // Windows adds: say Control with Alt, as for AltGr elsewhere, so that no Alt shortcut
+      // (a menu bar's Alt+Q, AltGr+Q being @ on a German keyboard) takes the key from the field
+      // its character goes to.
+      lastKeyDown.event = new KeyDown(new Key(key.name(), key.modifiers() | Key.CONTROL,
+          key.repeat()));
+    }
+    if (textInput != null || !open) {
+      highSurrogate = 0;
+      return;
+    }
+    if (Character.isHighSurrogate(c)) {
+      highSurrogate = c; // the second half comes in the next WM_CHAR
+      return;
+    }
+    String text = Character.isLowSurrogate(c) && highSurrogate != 0
+        ? new String(new char[] {highSurrogate, c}) : String.valueOf(c);
+    highSurrogate = 0;
+    if (c < 0x20 || c == 0x7F || text.length() == 1 && Character.isSurrogate(c)
+        || afterControlKey) {
+      return;
+    }
+    // A character without its key, as one sent as VK_PACKET, is plain text, as SDL would give it.
+    post(charOfKey ? new KeyText(text) : new TextInput(text));
+  }
+
+  /** A key down of a character sent as such ({@code VK_PACKET}), which SDL reports no key of. */
+  void packetKey() {
+    charOfKey = false;
+  }
+
   /** Queues an event of this window for {@link #dispatch}. */
   void post(WindowEvent event) {
     // A redraw shows the newest state, so it replaces one of this window that is still pending,
@@ -519,7 +611,11 @@ public final class Window implements AutoCloseable {
         }
       }
     }
-    pending.add(new Posted(this, event));
+    Posted posted = new Posted(this, event);
+    pending.add(posted);
+    if (event instanceof KeyDown) {
+      lastKeyDown = posted;
+    }
   }
 
   private void deliver(WindowEvent event) {
@@ -620,6 +716,9 @@ public final class Window implements AutoCloseable {
 
   private void translate(int type, MemorySegment e) {
     boolean controlKey = afterControlKey;
+    if (type != Sdl.EVENT_KEY_UP && type != Sdl.EVENT_TEXT_INPUT) { // SDL's text of the key
+      charOfKey = type == Sdl.EVENT_KEY_DOWN; // the WM_CHAR of a key comes before its release
+    }
     afterControlKey = false;
     switch (type) {
       case Sdl.EVENT_MOUSE_MOTION -> {

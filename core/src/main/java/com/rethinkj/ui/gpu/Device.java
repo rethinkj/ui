@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
@@ -40,6 +41,9 @@ import java.util.function.Supplier;
  * created, newest first.
  */
 public final class Device extends GpuObject {
+
+  /** Devices created in this process, for the tests that count them. */
+  private static final AtomicLong CREATED = new AtomicLong();
 
   private final MemorySegment adapter;
   private final Callbacks.DeviceEvents events;
@@ -70,6 +74,15 @@ public final class Device extends GpuObject {
       throw new IllegalStateException("wgpuDeviceGetLimits failed for " + this);
     }
     this.limits = Limits.read(limits);
+    CREATED.incrementAndGet();
+  }
+
+  /**
+   * How many devices this process has created so far: a device takes 60 to 240 ms to make, so
+   * the windows of a thread share one, and tests count them.
+   */
+  public static long created() {
+    return CREATED.get();
   }
 
   public Queue queue() {
@@ -85,6 +98,16 @@ public final class Device extends GpuObject {
   /** True once wgpu reported the device lost; every call but {@link #close} then throws. */
   public boolean isLost() {
     return events.lost != null;
+  }
+
+  /**
+   * Marks the device lost as wgpu's device-lost callback does, with {@code text} as wgpu's: every
+   * call but {@link #close} throws from then on, and closing leaves the device to the end of the
+   * process. For tests of what uses a device: {@code wgpuDeviceDestroy}, which would lose it for
+   * real, ends the process on Direct3D 12 with an exception of the driver.
+   */
+  void lose(String text) {
+    events.lost = text;
   }
 
   /** Compiles WGSL. A WGSL error is a {@link GpuException} whose text gives line and column. */

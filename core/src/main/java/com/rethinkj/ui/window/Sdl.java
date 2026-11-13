@@ -185,6 +185,7 @@ final class Sdl {
   static final String HINT_NO_SIGNAL_HANDLERS = "SDL_NO_SIGNAL_HANDLERS";
   static final String HINT_IME_IMPLEMENTED_UI = "SDL_IME_IMPLEMENTED_UI";
   static final String HINT_MOUSE_DOUBLE_CLICK_RADIUS = "SDL_MOUSE_DOUBLE_CLICK_RADIUS";
+  static final String HINT_WINDOW_ACTIVATE_WHEN_SHOWN = "SDL_WINDOW_ACTIVATE_WHEN_SHOWN";
 
   // SDL_Event is a union of 128 bytes. Every member starts with Uint32 type, Uint32 reserved and
   // Uint64 timestamp; the members the window reads continue with SDL_WindowID windowID at 16.

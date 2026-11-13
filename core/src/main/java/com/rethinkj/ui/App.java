@@ -172,6 +172,8 @@ public final class App<S> {
   private boolean dispatching;
   private boolean handled; // a handler of the app took input since the tree was built
   private boolean keyUntaken; // nothing took the key that keyDownAt dispatched last
+  // The focused element took text when the last key was dispatched: its text goes in (keyText).
+  private boolean keyToText;
   private boolean scrolled; // something scrolled since the rows and bars were placed
   private boolean caretOverlays; // an overlay is placed beside a caret: see El#atCaret
   private boolean rowsPending; // the tree was built between two inputs without its lists' rows
@@ -865,6 +867,7 @@ public final class App<S> {
   public void keyDown(Key key, Runnable untaken) {
     Objects.requireNonNull(key, "key");
     enqueue(() -> {
+      keyToText = focused != null && (focused.editor() != null || focused.onText() != null);
       Object before = focusId;
       keyUntaken = false;
       boolean took = keyDownAt(key);
@@ -981,6 +984,36 @@ public final class App<S> {
         return changed;
       }
       if (focused == null || focused.onText() == null) {
+        return false;
+      }
+      focused.onText().accept(text);
+      handled = true;
+      return true;
+    });
+  }
+
+  /**
+   * Text that the system made of the last key while the window took no text, which a runner hands
+   * on where the system would have dropped it ({@link com.rethinkj.ui.window.WindowEvent.KeyText}):
+   * a click into a field, Tab into one or a key that opens a dialog with a field that takes the
+   * focus, and the keys typed right after it, may all arrive before the window turns its text
+   * input on for the field. The next {@link #frame} gives it to the focused element as {@link
+   * #textInput} does if the key went to an element that takes text, as those after the click or
+   * Tab do; the text of a key that went elsewhere, as Space that presses a button and opens a
+   * dialog, is dropped, as it would have been.
+   */
+  public void keyText(String text) {
+    Objects.requireNonNull(text, "text");
+    enqueue(() -> {
+      if (!keyToText || focused == null) {
+        return false;
+      }
+      if (focused.editor() != null) {
+        boolean changed = focused.editor().type(text);
+        handled |= focused.editor().answerPending();
+        return changed;
+      }
+      if (focused.onText() == null) {
         return false;
       }
       focused.onText().accept(text);

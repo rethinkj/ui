@@ -15,12 +15,16 @@ import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * How to draw: a vertex and a fragment shader, the vertex buffers they read, the bind group
  * layouts of their uniforms and the colour targets they write, with blending.
  */
 public final class RenderPipeline extends GpuObject {
+
+  /** Pipelines created in this process, for the tests that count them. */
+  private static final AtomicLong CREATED = new AtomicLong();
 
   /**
    * What a pipeline consists of.
@@ -159,6 +163,15 @@ public final class RenderPipeline extends GpuObject {
     super(device.instance, device, label, handle);
   }
 
+  /**
+   * How many pipelines this process has created so far: the first frame that needs one compiles
+   * its shaders, which takes over 300 ms on Direct3D 12, so the windows of a thread share theirs,
+   * and tests count them.
+   */
+  public static long created() {
+    return CREATED.get();
+  }
+
   static RenderPipeline create(Device device, Descriptor d) {
     MemorySegment deviceHandle = device.usable();
     MemorySegment module = device.owned(d.module()).handle();
@@ -197,6 +210,7 @@ public final class RenderPipeline extends GpuObject {
         MemorySegment pipeline = device.create("creating render pipeline", label,
             () -> Wgpu.deviceCreateRenderPipeline(deviceHandle, descriptor),
             Wgpu::renderPipelineRelease);
+        CREATED.incrementAndGet();
         return new RenderPipeline(device, label, pipeline);
       } finally {
         // The pipeline holds on to its layout.

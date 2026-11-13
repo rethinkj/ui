@@ -178,7 +178,9 @@ class DialogsTest {
         frame
         """, app, out);
     List<String> log = app.state().log;
-    assertEquals("[query one.sql, Ä/ünïcode.md] filter 1 on " + Thread.currentThread().getName(),
+    // The paths as the platform writes them, with its separator.
+    assertEquals("[query one.sql, " + Path.of("Ä", "ünïcode.md") + "] filter 1 on "
+        + Thread.currentThread().getName(),
         log.get(1));
     assertTrue(log.get(3).startsWith("[] filter -1"), log::toString);
     assertEquals("error No portal", log.get(5));
