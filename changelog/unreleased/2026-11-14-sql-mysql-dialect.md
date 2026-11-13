@@ -1,0 +1,1 @@
+- `Sql.of(theme, Sql.Dialect.MYSQL)` highlights SQL as MySQL and MariaDB write it: identifiers in backticks, strings in single and double quotes with the backslash as their escape, comments from `#`, block comments that do not nest; `Sql.of(theme)` stays PostgreSQL's.

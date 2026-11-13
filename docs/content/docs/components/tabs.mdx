@@ -15,7 +15,7 @@ description: A card with a bar of tabs over the content of the active one.
 ```java snippet="tabs-close"
 ```
 
-`Tabs.Tab(title, closable, modified)` has a title, whether it can be closed and whether it is modified (a dot before the title); `.icon(Symbol)` adds an icon. `onSelect` and `onClose` get the index. Closing is the app's: it removes the tab and picks the next active one.
+`Tabs.Tab(title, closable, modified)` has a title, whether it can be closed and whether it is modified (a dot before the title); `.icon(Symbol)` adds an icon, and `.hue(Theme.Hue.RED)` a line in that colour along the tab's top, which marks the tabs of a group, such as those of a connection to production; the tab then says `value="red"` in a tree dump. `onSelect` and `onClose` get the index. Closing is the app's: it removes the tab and picks the next active one.
 
 ## Options
 
