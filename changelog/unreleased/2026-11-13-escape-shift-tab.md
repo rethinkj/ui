@@ -1,0 +1,1 @@
+- In a text area that indents with Tab (a `CodeEditor`), Escape and then Shift+Tab move the focus back again with a real keyboard: the Shift key's own key press in between no longer ends what Escape started.

@@ -127,10 +127,14 @@ class GpuPresenterTest {
         assertEquals(1, gpu.frames());
         assertEquals(1, gpu.atlasUploads(), "the label's page");
 
-        // The label moves by whole pixels at any scale, so its glyphs stay as they are.
+        // The label comes to rest 60 and 30 pixels further, whole pixels at 1, 1.25, 1.5 and 2, so
+        // its glyphs stay as they are. On its way its spring draws it between pixels, which from
+        // 1.5 on, where text lies on quarter pixels, would rasterise its glyphs anew.
         window.resize(320, 180);
         assertTrue(Desktop.pollUntil(() -> window.width() == 320), "resized");
         app.resize(window.width(), window.height(), window.scale());
+        app.frame();
+        app.advance(1);
         app.frame();
         gpu.present(app.scene(), window.width(), window.height(), window.scale());
         assertEquals(2, gpu.frames());

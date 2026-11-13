@@ -1,0 +1,1 @@
+- `Window.identity` may be called again with the same id and name while windows are open; only a different identity throws. Tearing a note off in the Notes example no longer ends the app with an `IllegalStateException` in a real window.

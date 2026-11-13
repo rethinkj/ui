@@ -110,6 +110,7 @@ final class Editor {
   private int toldCaret = -1;
   private int toldAnchor = -1;
   private float goal = Float.NaN;
+  private static final List<String> MODIFIER_KEYS = List.of("Shift", "Control", "Alt", "Meta");
   private boolean escaped;
   private boolean tabMovesFocus;
   // The app's last string and what the field made of it, and the string with the composition.
@@ -450,7 +451,11 @@ final class Editor {
     boolean shift = (modifiers & Key.SHIFT) != 0;
     int other = modifiers & ~Key.SHIFT;
     boolean afterEscape = escaped;
-    escaped = false;
+    // A modifier's own key, which comes before the key it modifies, keeps Escape's effect, so that
+    // Escape and then Shift+Tab move the focus back.
+    if (!MODIFIER_KEYS.contains(name)) {
+      escaped = false;
+    }
     if (!composition.isEmpty()) {
       return !name.equals("Tab"); // the input method has the keys while it composes
     }
