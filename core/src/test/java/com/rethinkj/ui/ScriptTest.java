@@ -25,6 +25,7 @@ class ScriptTest {
 
   private static final Path EXAMPLE = Path.of("src/test/resources/scripts/switch.txt");
   private static final Path LIST = Path.of("src/test/resources/scripts/list.txt");
+  private static final Path FOCUS = Path.of("src/test/resources/scripts/focus.txt");
 
   @TempDir Path out;
 
@@ -100,6 +101,41 @@ class ScriptTest {
 
     assertSnapsMatchGolden(List.of("list-top", "list-scrolled", "list-end"));
     assertTrue(Files.readString(out.resolve("list-scrolled.tree.txt")).contains(" scroll 0,90\n"));
+  }
+
+  @Test
+  void theFocusExampleOfAgentsMdTabsToTheSwitchAndPressesItWithSpace() throws IOException {
+    String example = Files.readString(FOCUS);
+    assertTrue(
+        Files.readString(Path.of("../AGENTS.md")).contains(example),
+        "AGENTS.md shows " + FOCUS + " as it is");
+
+    Examples.main(new String[] {"--script", FOCUS.toString(), "--out", out.toString()});
+
+    assertSnapsMatchGolden(List.of("switch-focused", "switch-focused-on"));
+    assertTrue(
+        Files.readString(out.resolve("switch-focused.tree.txt"))
+            .contains("el #switch role=switch label=\"Lights\" 81,49 38x22 focused\n"));
+  }
+
+  @Test
+  void keyTypeAndFocusReachTheApp() throws IOException {
+    List<String> log = new ArrayList<>();
+    App<List<String>> app =
+        new App<>(
+            log,
+            l -> row().onKey(k -> l.add(k.name() + " " + k.modifiers()) && false).children(
+                el().key("a").focusable().size(20, 20),
+                el().key("b").focusable().size(20, 20).onText(l::add)));
+    Script.run(
+        "size 40 20\nframe\nkey Tab\nkey Tab shift control\nfocus #b\ntype \"say \\\"hi\\\"\"\n"
+            + "frame\n",
+        app,
+        out);
+    assertEquals(List.of("Tab 0", "Tab 3", "say \"hi\""), log);
+    assertEquals("b", app.focused().key());
+    Script.run("size 40 20\nfocus 5,5\nframe\n", app, out);
+    assertEquals("a", app.focused().key());
   }
 
   @Test
@@ -217,8 +253,8 @@ class ScriptTest {
     assertEquals(
         """
         line 3: pres #switch
-          There is no step pres. The steps are size, press, down, up, wheel, advance, frame and\
-         snap.""",
+          There is no step pres. The steps are size, press, down, up, wheel, key, type, focus,\
+         advance, frame and snap.""",
         failure("size 200 120\nframe\npres #switch\n"));
   }
 
@@ -321,6 +357,49 @@ class ScriptTest {
   }
 
   @Test
+  void mistakesInKeysTextAndFocusNameTheLineAndWhatToWrite() {
+    assertEquals(
+        "line 3: key Entr\n  There is no key Entr. Keys have the names of the web's key values,"
+            + " such as Enter, Tab, Space, Escape, Backspace, ArrowDown, PageUp, Home, F5 and"
+            + " Numpad1, and keys that type a character are named by it in upper case, such as A,"
+            + " 1 and -. The Javadoc of com.rethinkj.ui.Key lists them all.",
+        failure("size 200 120\nframe\nkey Entr\n"));
+    assertFailure("key enter\n", "line 1: key enter\n  There is no key enter. Write Enter.");
+    assertFailure("key a\n", "There is no key a. Keys that type a character are named by it in"
+        + " upper case, with or without shift: write A.");
+    assertEquals(
+        "line 1: key Tab shfit\n  Write `key <name>`, followed by any of shift, control, alt and"
+            + " meta that are held, for example `key Enter` or `key Tab shift` for Shift+Tab.",
+        failure("key Tab shfit\n"));
+    assertFailure("key\n", "line 1: key\n  Write `key <name>`");
+    assertEquals(
+        "line 1: key Tab\n  No frame has run yet, so nothing can take the key. Add `frame` before"
+            + " this line.",
+        failure("key Tab\n"));
+    assertEquals(
+        "line 1: type hello\n  Write `type \"<text>\"`, with \\\" for a quote and \\\\ for a"
+            + " backslash in the text, for example `type \"hello\"`.",
+        failure("type hello\n"));
+    assertFailure("type \"\"\n", "Write `type");
+    assertFailure("type \"a\" \"b\"\n", "Write `type");
+    assertFailure("type \"hello\"\n", "No frame has run yet, so nothing can take the text.");
+    assertFailure("focus\n", "line 1: focus\n  Write `focus <target>`. A target is");
+    assertEquals(
+        """
+        line 3: focus 10,10
+          Neither the element at 10,10 nor one around it is focusable, so the focus cannot go\
+         there. These elements of the last frame are:
+            el #switch role=switch label="Lights" 81,49 38x22
+          Select one of them.""",
+        failure("size 200 120\nframe\nfocus 10,10\n"));
+    App<Object> plain = new App<>(new Object(), o -> el().key("box").size(10, 10));
+    assertFailure(
+        "size 10 10\nframe\nfocus #box\n",
+        "focus cannot go there. No element of the last frame is; El.focusable() marks one.",
+        plain);
+  }
+
+  @Test
   void anExceptionOfTheAppNamesTheFrameItHappenedIn() {
     App<Object> app =
         new App<>(new Object(), s -> el().children(el().key("twice"), el().key("twice")));
@@ -344,7 +423,11 @@ class ScriptTest {
 
   /** Asserts that the script fails with a message that contains {@code part}. */
   private void assertFailure(String script, String part) {
-    String message = failure(script);
+    assertFailure(script, part, switchApp());
+  }
+
+  private void assertFailure(String script, String part, App<?> app) {
+    String message = failure(script, app);
     assertTrue(message.contains(part), message);
   }
 

@@ -1,21 +1,13 @@
 package com.rethinkj.ui.window;
 
+import com.rethinkj.ui.Key;
+
 /**
  * Something that happened to a {@link Window}, delivered to its {@link WindowListener}. Positions
  * and sizes are in logical pixels, the units {@link com.rethinkj.ui.App} lays out in; the
  * window's {@link Window#scale} converts them to physical pixels.
  */
 public sealed interface WindowEvent {
-
-  /** Bits of {@code modifiers} in key events. */
-  int SHIFT = 1;
-
-  int CONTROL = 2;
-
-  int ALT = 4;
-
-  /** The Windows key, or Super on Linux. */
-  int META = 8;
 
   /** The pointer moved over the window. */
   record PointerMove(float x, float y) implements WindowEvent {}
@@ -40,20 +32,11 @@ public sealed interface WindowEvent {
    */
   record Wheel(float dx, float dy, float x, float y) implements WindowEvent {}
 
-  /**
-   * A key went down, or repeats while held.
-   *
-   * @param key the key's name, which does not depend on the modifiers: {@code A}, {@code Enter},
-   *     {@code ArrowLeft}, {@code F5}, {@code Space}, {@code Escape}. Letters are upper case; other
-   *     keys that type a character are named by it, keys of the number pad start with {@code
-   *     Numpad}, and keys without a name are {@code Unidentified}.
-   * @param modifiers the modifiers held, a combination of {@link #SHIFT}, {@link #CONTROL}, {@link
-   *     #ALT} and {@link #META}
-   */
-  record KeyDown(String key, int modifiers, boolean repeat) implements WindowEvent {}
+  /** A key went down, or repeats while held; {@link Key} lists the names. */
+  record KeyDown(Key key) implements WindowEvent {}
 
-  /** A key was released; see {@link KeyDown} for the names. */
-  record KeyUp(String key, int modifiers) implements WindowEvent {}
+  /** A key was released; its {@link Key#repeat} is false. */
+  record KeyUp(Key key) implements WindowEvent {}
 
   /** Text typed with the keyboard or composed with an input method, to insert where the caret is. */
   record TextInput(String text) implements WindowEvent {}

@@ -42,13 +42,18 @@ One step per line. A `#` at the start of a line or before a space starts a comme
 | `press <target>` | Pointer down and up on the target. |
 | `down <target>`, `up <target>` | The two halves, for a press that ends elsewhere. A press counts only when both land on the same element. |
 | `wheel <target> <deltaX> <deltaY>` | Turns the wheel with the pointer on the target, by these distances in logical pixels; positive scrolls down or right. Along each axis the innermost scroll area under the pointer that can still move that way takes the whole distance, up to its end. |
+| `key <name> [shift] [control] [alt] [meta]` | Presses and releases a key with these modifiers held, as in `key Tab shift`. Keys have the web's key names (`Enter`, `Tab`, `Space`, `Escape`, `ArrowDown`, `F5`), and a key that types a character is named by it in upper case (`A`, `1`); the Javadoc of `com.rethinkj.ui.Key` lists them all. |
+| `type "<text>"` | Text input for the focused element (`\"` and `\\` inside). |
+| `focus <target>` | Gives the keyboard focus to the target, or the nearest focusable element around it, as Tab would. |
 | `advance <seconds>` | Moves the app's clock. |
 | `frame` | Runs one frame: the handlers and scrolls that input queued, a rebuild of the view, the animations at the current time. |
 | `snap <name>` | Writes `<name>.png` and `<name>.tree.txt` of the last frame into the output folder. `<name>` may contain `/` but must stay inside the folder. |
 
-Only `frame` runs a frame, as in a window, where input arrives between frames: `press` queues a handler, `wheel` a scroll and `advance` moves the clock, but the screen changes at the next `frame`. `snap` refuses to write a frame that does not show the steps before it.
+Only `frame` runs a frame, as in a window, where input arrives between frames: `press`, `key`, `type` and `focus` queue what they do, `wheel` a scroll and `advance` moves the clock, but the screen changes at the next `frame`. `snap` refuses to write a frame that does not show the steps before it.
 
-A `.tree.txt` has one line per element, children indented, with its rectangle in window coordinates as shown, that is, moved by the scroll offsets above it. A scroll area that is scrolled adds its offset after the rectangle, as in `el #list role=list 16,16 208x168 scroll 0,90`. A line that ends in `exiting` is an element with a key and motion that a rebuild left out: it fades out where it was, takes no input, and is removed once invisible. Selectors do not match it, nor anything at opacity 0.
+A `.tree.txt` has one line per element, children indented, with its rectangle in window coordinates as shown, that is, moved by the scroll offsets above it. A scroll area that is scrolled adds its offset after the rectangle, as in `el #list role=list 16,16 208x168 scroll 0,90`. A line that ends in `exiting` is an element with a key and motion that a rebuild left out: it fades out where it was, takes no input, and is removed once invisible. Selectors do not match it, nor anything at opacity 0. The line of the element that has the keyboard focus ends in `focused`.
+
+Keys go to the focused element and then up through its ancestors until a key handler takes them; without focus only the root gets them. If none does, Tab and Shift+Tab move the focus through the focusable elements in tree order, around at the ends, and Enter and Space press the focused element. A press focuses the focusable element it lands in and clears the focus elsewhere. Focus moved by the keyboard or by `focus` is drawn with a ring and scrolls into view; a press shows no ring.
 
 A target is a position `x,y` in logical pixels, or a selector for exactly one element of the last frame: `#key` (anywhere in the tree), `role=<role>`, `label="<text>"` (`\"` and `\\` inside), or several of them, as in `role=switch label="Lights"`. A selector presses the centre of the part of the element's rectangle that its clips leave visible, and does not match an element they clip away entirely, such as a row scrolled out of its list. When it matches nothing, the error lists the keys, roles and labels there are; when it matches several, it lists them with their rectangles.
 
@@ -100,6 +105,30 @@ snap list-end
 ```sh
 java -cp core/target/classes:core/target/test-classes com.rethinkj.ui.Examples list \
   --script core/src/test/resources/scripts/list.txt --out core/target/list
+```
+
+`core/src/test/resources/scripts/focus.txt` reaches the switch with the keyboard:
+
+```text
+# The light switch of core's tests (Examples), reached with Tab and toggled with Space.
+size 200 120 scale 2
+frame
+key Tab                # the switch takes the focus; the keyboard moved it, so it has a ring
+frame
+snap switch-focused
+
+key Space              # presses the focused switch
+frame
+advance 1
+frame
+snap switch-focused-on
+```
+
+In `switch-focused.tree.txt` the switch's line is `el #switch role=switch label="Lights" 81,49 38x22 focused`.
+
+```sh
+java -cp core/target/classes:core/target/test-classes com.rethinkj.ui.Examples \
+  --script core/src/test/resources/scripts/focus.txt --out core/target/focus
 ```
 
 On Windows, separate the class path with `;`. The snaps equal the stored images of the same names under `core/src/test/resources/golden`; `ScriptTest` checks that, and that these examples match their files.

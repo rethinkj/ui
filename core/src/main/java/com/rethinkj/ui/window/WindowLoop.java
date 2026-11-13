@@ -3,16 +3,19 @@ package com.rethinkj.ui.window;
 import com.rethinkj.ui.App;
 import com.rethinkj.ui.render.Scene;
 import com.rethinkj.ui.window.WindowEvent.CloseRequested;
+import com.rethinkj.ui.window.WindowEvent.KeyDown;
+import com.rethinkj.ui.window.WindowEvent.KeyUp;
 import com.rethinkj.ui.window.WindowEvent.PointerDown;
 import com.rethinkj.ui.window.WindowEvent.PointerUp;
 import com.rethinkj.ui.window.WindowEvent.Redraw;
 import com.rethinkj.ui.window.WindowEvent.Resized;
 import com.rethinkj.ui.window.WindowEvent.ScaleChanged;
+import com.rethinkj.ui.window.WindowEvent.TextInput;
 import java.util.Objects;
 
 /**
- * Runs an {@link App} in a {@link Window}: feeds it the window's pointer input and size, lets it
- * build frames, and hands each new frame to a {@link Presenter}, which draws it.
+ * Runs an {@link App} in a {@link Window}: feeds it the window's pointer, key and text input and
+ * its size, lets it build frames, and hands each new frame to a {@link Presenter}, which draws it.
  *
  * <p>The loop draws only when there is something new: when {@link App#frame} says so, or when the
  * window asks for a {@link WindowEvent.Redraw}. An idle window waits for events and does nothing
@@ -67,7 +70,7 @@ public final class WindowLoop {
 
   /**
    * Also gives every event to {@code listener}, before the loop handles it, for what the loop does
-   * not: keys, text, the wheel.
+   * not, such as the wheel.
    *
    * @return this loop
    */
@@ -132,6 +135,9 @@ public final class WindowLoop {
       case PointerDown down when down.button() == PointerButton.LEFT ->
           app.pointerDown(down.x(), down.y());
       case PointerUp up when up.button() == PointerButton.LEFT -> app.pointerUp(up.x(), up.y());
+      case KeyDown down -> app.keyDown(down.key());
+      case KeyUp up -> app.keyUp(up.key());
+      case TextInput text -> app.textInput(text.text());
       case Resized resized -> resize();
       case ScaleChanged changed -> {
         resize();

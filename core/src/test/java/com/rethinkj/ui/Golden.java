@@ -23,6 +23,7 @@ final class Golden {
 
   private Golden() {}
 
+  /** @param tree the tree to compare, or null to compare the image only */
   static void assertMatches(String name, Pixels pixels, String tree) {
     Path image = STORED.resolve(name + ".png");
     Path text = STORED.resolve(name + ".tree.txt");
@@ -30,13 +31,17 @@ final class Golden {
       if (Boolean.getBoolean("golden.update")) {
         Files.createDirectories(STORED);
         Files.write(image, Png.encode(pixels));
-        Files.writeString(text, tree);
+        if (tree != null) {
+          Files.writeString(text, tree);
+        }
         return;
       }
       if (!Files.exists(image) || !Files.exists(text)) {
         fail("No stored result for '" + name + "'. Run with -Dgolden.update=true to create it.");
       }
-      assertEquals(Files.readString(text), tree, "tree of '" + name + "'");
+      if (tree != null) {
+        assertEquals(Files.readString(text), tree, "tree of '" + name + "'");
+      }
 
       Pixels expected = Png.decode(Files.readAllBytes(image));
       if (expected.width() == pixels.width()

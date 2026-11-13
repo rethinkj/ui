@@ -74,6 +74,25 @@ final class Animator {
     });
   }
 
+  /** The identity of an element of the current tree, or null if it is not there. */
+  Object identity(El el) {
+    for (Entry entry : entries.values()) {
+      if (entry.el == el) {
+        return entry.id;
+      }
+    }
+    return null;
+  }
+
+  /**
+   * The element of the current tree that has this {@link #identity}, or null. It may be one that
+   * is leaving, or inside one.
+   */
+  El element(Object identity) {
+    Entry entry = entries.get(identity);
+    return entry == null ? null : entry.el;
+  }
+
   /** Whether the last update or present left something short of its target. */
   boolean isMoving() {
     return !moving.isEmpty();

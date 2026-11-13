@@ -5,6 +5,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
+import java.util.function.Consumer;
+import java.util.function.Predicate;
 
 /**
  * One element of the view tree: a box with a style, a look and children. Views build a fresh tree
@@ -27,6 +29,11 @@ public final class El {
   private int borderColor;
   private Measure measure;
   private Runnable onPress;
+  private boolean focusable;
+  private Predicate<Key> onKey;
+  private Predicate<Key> onKeyUp;
+  private Consumer<String> onText;
+  private boolean focused;
   private Spring motion;
   private float opacity = 1;
   private boolean exiting;
@@ -292,6 +299,45 @@ public final class El {
   }
 
   /**
+   * Lets this element take the keyboard focus, which {@link App} keeps across rebuilds: Tab and
+   * Shift+Tab move it through the focusable elements in tree order, and a pointer press on this
+   * element or inside it gives it focus. The focused element gets text ({@link #onText}) and keys
+   * first ({@link #onKey}); with an {@link #onPress} handler, Enter and Space press it.
+   */
+  public El focusable() {
+    this.focusable = true;
+    return this;
+  }
+
+  /**
+   * Gives {@code handler} the keys that go down while this element or one below it has the focus,
+   * repeats included, before its ancestors get them. The handler returns whether it handled the
+   * key; if it did, nobody else sees it. Without focus, keys go to the root element only. Enter
+   * and Space press a focused element with an {@link #onPress} handler after its own key handler
+   * and before its ancestors', and Tab and Shift+Tab that nobody handles move the focus. Handlers
+   * run in {@link App#frame}, like {@link #onPress}.
+   */
+  public El onKey(Predicate<Key> handler) {
+    this.onKey = handler;
+    return this;
+  }
+
+  /** Like {@link #onKey}, for keys that are released. Released keys do nothing by default. */
+  public El onKeyUp(Predicate<Key> handler) {
+    this.onKeyUp = handler;
+    return this;
+  }
+
+  /**
+   * Gives {@code handler} the text typed or composed with an input method while this element has
+   * the focus. Text goes to the focused element only, not to its ancestors.
+   */
+  public El onText(Consumer<String> handler) {
+    this.onText = handler;
+    return this;
+  }
+
+  /**
    * Lets this element spring to new values: when a rebuild of the view gives an element that was
    * already there a new rectangle, fill, border colour, radius or opacity, {@link App} moves it
    * there with {@code spring} instead of at once. Children are placed relative to their parent and
@@ -381,6 +427,22 @@ public final class El {
 
   public Spring motion() {
     return motion;
+  }
+
+  public boolean isFocusable() {
+    return focusable;
+  }
+
+  public Predicate<Key> onKey() {
+    return onKey;
+  }
+
+  public Predicate<Key> onKeyUp() {
+    return onKeyUp;
+  }
+
+  public Consumer<String> onText() {
+    return onText;
   }
 
   public WindowPart windowPart() {
@@ -483,6 +545,11 @@ public final class El {
     this.exiting = true;
   }
 
+  /** For {@link App}, which marks the focused element for {@link #dump}. */
+  void focused(boolean focused) {
+    this.focused = focused;
+  }
+
   /** For {@link App}, which shows the border colour of the moment. */
   void borderColor(int argb) {
     this.borderColor = argb;
@@ -529,8 +596,9 @@ public final class El {
    * The tree as text, one element per line, children indented by two spaces. After layout each
    * line ends with the element's rectangle in window coordinates, as {@code x,y widthxheight}, as
    * shown, that is, moved by the scroll offsets above it. A scroll area that is scrolled adds its
-   * offset, as {@code scroll x,y}, and the line of an element that is leaving ends with {@code
-   * exiting}. Tests and agents read this, so the format only changes deliberately.
+   * offset, as {@code scroll x,y}, the line of the element that has the keyboard focus ends with
+   * {@code focused}, and that of an element that is leaving with {@code exiting}. Tests and agents
+   * read this, so the format only changes deliberately.
    */
   public String dump() {
     StringBuilder out = new StringBuilder();
@@ -572,6 +640,9 @@ public final class El {
     if (scrollX != 0 || scrollY != 0) {
       number(out.append(" scroll "), scrollX).append(',');
       number(out, scrollY);
+    }
+    if (focused) {
+      out.append(" focused");
     }
     if (exiting) {
       out.append(" exiting");

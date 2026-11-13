@@ -9,6 +9,7 @@ import static java.lang.foreign.ValueLayout.JAVA_SHORT;
 
 import com.rethinkj.ui.App;
 import com.rethinkj.ui.El;
+import com.rethinkj.ui.Key;
 import com.rethinkj.ui.WindowPart;
 import com.rethinkj.ui.natives.Natives;
 import com.rethinkj.ui.window.WindowEvent.CloseRequested;
@@ -501,9 +502,9 @@ public final class Window implements AutoCloseable {
         String key = Keys.name(e.get(JAVA_INT, Sdl.KEY_KEY));
         int modifiers = modifiers(e.get(JAVA_SHORT, Sdl.KEY_MOD));
         if (type == Sdl.EVENT_KEY_DOWN) {
-          post(new KeyDown(key, modifiers, e.get(JAVA_BOOLEAN, Sdl.KEY_REPEAT)));
+          post(new KeyDown(new Key(key, modifiers, e.get(JAVA_BOOLEAN, Sdl.KEY_REPEAT))));
         } else {
-          post(new KeyUp(key, modifiers));
+          post(new KeyUp(new Key(key, modifiers, false)));
         }
       }
       case Sdl.EVENT_TEXT_INPUT -> {
@@ -551,10 +552,10 @@ public final class Window implements AutoCloseable {
 
   static int modifiers(short sdlModifiers) {
     int mod = sdlModifiers & 0xFFFF;
-    return ((mod & Sdl.KMOD_SHIFT) != 0 ? WindowEvent.SHIFT : 0)
-        | ((mod & Sdl.KMOD_CTRL) != 0 ? WindowEvent.CONTROL : 0)
-        | ((mod & Sdl.KMOD_ALT) != 0 ? WindowEvent.ALT : 0)
-        | ((mod & Sdl.KMOD_GUI) != 0 ? WindowEvent.META : 0);
+    return ((mod & Sdl.KMOD_SHIFT) != 0 ? Key.SHIFT : 0)
+        | ((mod & Sdl.KMOD_CTRL) != 0 ? Key.CONTROL : 0)
+        | ((mod & Sdl.KMOD_ALT) != 0 ? Key.ALT : 0)
+        | ((mod & Sdl.KMOD_GUI) != 0 ? Key.META : 0);
   }
 
   // ---- The frame

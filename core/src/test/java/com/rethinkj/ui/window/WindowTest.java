@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.rethinkj.ui.Key;
 import com.rethinkj.ui.WindowPart;
 import com.rethinkj.ui.window.WindowEvent.CloseRequested;
 import com.rethinkj.ui.window.WindowEvent.KeyDown;
@@ -108,11 +109,11 @@ class WindowTest {
       assertTrue(events.isEmpty(), "nothing is delivered before pollEvents: " + events);
       Window.pollEvents();
 
-      int shiftControl = WindowEvent.SHIFT | WindowEvent.CONTROL;
+      int shiftControl = Key.SHIFT | Key.CONTROL;
       List<WindowEvent> expected = List.of(
-          new KeyDown("A", shiftControl, false),
-          new KeyDown("A", shiftControl, true),
-          new KeyUp("A", shiftControl),
+          new KeyDown(new Key("A", shiftControl, false)),
+          new KeyDown(new Key("A", shiftControl, true)),
+          new KeyUp(new Key("A", shiftControl, false)),
           new TextInput("ü€"),
           new PointerMove(40, 30),
           new PointerDown(40, 30, PointerButton.RIGHT, 2),

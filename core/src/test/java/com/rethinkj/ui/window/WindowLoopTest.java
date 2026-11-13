@@ -55,6 +55,42 @@ class WindowLoopTest {
   }
 
   @Test
+  void keysAndTextFromTheWindowReachTheApp() {
+    try (Window window = Window.open(TITLE, 200, 120)) {
+      Desktop.settle();
+      List<String> log = new ArrayList<>();
+      App<List<String>> app = new App<>(log, l -> col().wFull().hFull()
+          .child(el().key("field").size(50, 20).focusable()
+              .onPress(() -> l.add("press"))
+              .onText(l::add)));
+      AtomicReference<WindowLoop> loop = new AtomicReference<>();
+      loop.set(new WindowLoop(window, app, (scene, w, h, s) -> {
+        if (log.size() == 2) {
+          loop.get().stop();
+        }
+      }));
+      Thread timeout = Thread.ofPlatform().start(() -> { // ends the loop if the events get lost
+        try {
+          Thread.sleep(3000);
+          loop.get().stop();
+        } catch (InterruptedException e) {
+          // the loop ended in time
+        }
+      });
+      Desktop.key(window, true, 0x09, 0, false); // Tab focuses the field
+      Desktop.key(window, false, 0x09, 0, false);
+      Desktop.key(window, true, ' ', 0, false); // Space presses it
+      Desktop.key(window, false, ' ', 0, false);
+      Desktop.text(window, "ü€");
+      loop.get().run();
+      timeout.interrupt();
+
+      assertEquals(List.of("press", "ü€"), log);
+      assertEquals("field", app.focused().key());
+    }
+  }
+
+  @Test
   void anIdleLoopDrawsNothingAndStopsFromAnotherThread() throws InterruptedException {
     try (Window window = Window.open(TITLE, 200, 120)) {
       Desktop.settle();

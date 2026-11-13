@@ -2,6 +2,8 @@ package com.rethinkj.ui.window;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import com.rethinkj.ui.Key;
+
 import org.junit.jupiter.api.Test;
 
 /** Key names and modifiers from SDL's codes; needs no window. */
@@ -51,13 +53,13 @@ class KeysTest {
 
   @Test
   void modifiersCombineLeftAndRightAndIgnoreLocks() {
-    assertEquals(WindowEvent.SHIFT, Window.modifiers((short) 0x0001));
-    assertEquals(WindowEvent.SHIFT, Window.modifiers((short) 0x0002));
-    assertEquals(WindowEvent.CONTROL, Window.modifiers((short) 0x0080));
-    assertEquals(WindowEvent.ALT, Window.modifiers((short) 0x0100));
-    assertEquals(WindowEvent.META, Window.modifiers((short) 0x0800));
+    assertEquals(Key.SHIFT, Window.modifiers((short) 0x0001));
+    assertEquals(Key.SHIFT, Window.modifiers((short) 0x0002));
+    assertEquals(Key.CONTROL, Window.modifiers((short) 0x0080));
+    assertEquals(Key.ALT, Window.modifiers((short) 0x0100));
+    assertEquals(Key.META, Window.modifiers((short) 0x0800));
     assertEquals(0, Window.modifiers((short) 0x3000), "num lock and caps lock");
-    assertEquals(WindowEvent.SHIFT | WindowEvent.CONTROL | WindowEvent.ALT | WindowEvent.META,
+    assertEquals(Key.SHIFT | Key.CONTROL | Key.ALT | Key.META,
         Window.modifiers((short) 0x0FC3));
   }
 }

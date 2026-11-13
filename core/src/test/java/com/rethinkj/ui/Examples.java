@@ -104,6 +104,7 @@ public final class Examples {
         .size(38, 22)
         .radius(11)
         .fill(on ? 0xFF3B82F6 : 0xFF3A3A40)
+        .focusable()
         .onPress(onPress)
         .motion(Spring.SNAP)
         .child(knob);

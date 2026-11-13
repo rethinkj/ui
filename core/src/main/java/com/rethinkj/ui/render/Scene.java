@@ -62,6 +62,10 @@ import java.lang.foreign.ValueLayout;
  * descendants, not itself. When clips are nested, an entry holds the intersection of the element's
  * border box with the clip of its ancestors, so one entry per instance is enough. Instances that
  * lie entirely outside their clip are left out.
+ *
+ * <p>The focus ring is an ordinary instance too: a border {@link #RING} pixels wide just outside
+ * the focused element's border box, with its corner radius grown by as much, drawn after the
+ * element and its children and clipped like the element.
  */
 public final class Scene {
 
@@ -81,6 +85,9 @@ public final class Scene {
   /** Bytes per entry of the clip table. Its fields are at {@link #X} to {@link #RADIUS}. */
   public static final int CLIP_STRIDE = 8 * Float.BYTES;
 
+  /** The width of the focus ring in logical pixels. */
+  public static final float RING = 2;
+
   private static final float NO_CLIP = 1e9f;
 
   private static final float[] SRGB_TO_LINEAR = new float[256];
@@ -98,6 +105,8 @@ public final class Scene {
   private int count;
   private MemorySegment clips = Arena.ofAuto().allocate(8L * CLIP_STRIDE, Float.BYTES);
   private int clipCount;
+  private El ring;
+  private int ringColour;
 
   public Scene() {
     clip(-NO_CLIP, -NO_CLIP, 2 * NO_CLIP, 2 * NO_CLIP, 0);
@@ -108,7 +117,19 @@ public final class Scene {
    * with that of their ancestors is 0, are left out, and so is what their ancestors clip away.
    */
   public static Scene of(El root) {
+    return of(root, null, 0);
+  }
+
+  /**
+   * The scene of a tree with a focus ring around one of its elements.
+   *
+   * @param ring the element with the ring, or null for none
+   * @param ringColour the colour of the ring as 0xAARRGGBB
+   */
+  public static Scene of(El root, El ring, int ringColour) {
     Scene scene = new Scene();
+    scene.ring = ring;
+    scene.ringColour = ringColour;
     scene.add(root, 0, 0, 1, 0);
     return scene;
   }
@@ -137,22 +158,32 @@ public final class Scene {
       rect(x, y, el.width(), el.height(), el.radius(), hasBorder ? borderWidth : 0, el.fill(),
           el.borderColor(), opacity, clip);
     }
+    int inner = clip;
     Style s = el.style();
     if (s.overflowX != Style.Overflow.VISIBLE || s.overflowY != Style.Overflow.VISIBLE) {
       float left = Math.max(x, clipX);
       float top = Math.max(y, clipY);
       float width = Math.min(x + el.width(), clipRight) - left;
       float height = Math.min(y + el.height(), clipBottom) - top;
-      if (!(width > 0 && height > 0)) {
-        return; // everything below is clipped away
-      }
       // shortcut: an entry has one radius, the innermost clip's, so where an inner clip sticks
       // out of a rounded outer one, the corners of the intersection take the inner radius instead
       // of following the outer curve; give each entry its parent's index when that shows.
-      clip = clip(left, top, width, height, el.radius());
+      inner = width > 0 && height > 0 ? clip(left, top, width, height, el.radius()) : -1;
     }
-    for (El child : el.children()) {
-      add(child, x, y, opacity, clip);
+    if (inner >= 0) { // else everything below is clipped away
+      for (El child : el.children()) {
+        add(child, x, y, opacity, inner);
+      }
+    }
+    if (el == ring && ringColour >>> 24 != 0) {
+      float left = x - RING;
+      float top = y - RING;
+      float right = x + el.width() + RING;
+      float bottom = y + el.height() + RING;
+      if (left < clipRight && right > clipX && top < clipBottom && bottom > clipY) {
+        rect(left, top, right - left, bottom - top, el.radius() > 0 ? el.radius() + RING : 0, RING,
+            0, ringColour, opacity, clip);
+      }
     }
   }
 

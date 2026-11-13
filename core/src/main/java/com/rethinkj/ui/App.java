@@ -6,6 +6,7 @@ import com.rethinkj.ui.render.Scene;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.function.BooleanSupplier;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -26,6 +27,13 @@ import java.util.function.Predicate;
  * that matches elements across rebuilds, and writes it into the positions of the area's children.
  * The wheel and {@link #scrollTo} change it.
  *
+ * <p>Keys and text go to the element that has the keyboard focus, which the app keeps by the same
+ * identity: an element marked {@link El#focusable} gets it from Tab and Shift+Tab, from a pointer
+ * press on it or inside it, or from {@link #focus}. Keys then go up through its ancestors until a
+ * handler takes them ({@link El#onKey}); text goes to it alone ({@link El#onText}). When the
+ * keyboard or the app moved the focus, the scene draws a ring around the focused element, and
+ * scroll areas around it scroll it into view.
+ *
  * <p>This class needs no window. A windowed runner feeds it the window's input and draws its
  * {@link #scene}; tests and agents feed it input themselves and look at {@link #render}.
  *
@@ -33,9 +41,13 @@ import java.util.function.Predicate;
  */
 public final class App<S> {
 
+  /** The colour of the focus ring until {@link #focusRing} changes it, as 0xAARRGGBB. */
+  public static final int FOCUS_RING = 0xFF93C5FD;
+
   private final S state;
   private final Function<S, El> view;
-  private final ArrayDeque<Runnable> queued = new ArrayDeque<>();
+  // Each returns whether it may have changed something that the next rebuild shows.
+  private final ArrayDeque<BooleanSupplier> queued = new ArrayDeque<>();
   private final ArrayDeque<BooleanSupplier> scrolls = new ArrayDeque<>();
   private final Animator animator = new Animator();
   private double time;
@@ -45,6 +57,11 @@ public final class App<S> {
   private boolean stale = true;
   private El root;
   private String pressed;
+  private El focused; // in the current tree
+  private Object focusId; // its identity, to find it in the next tree
+  private boolean ring; // the keyboard or the app moved the focus: draw the ring
+  private boolean reveal; // scroll the focused element into view after the next rebuild
+  private int ringColour = FOCUS_RING;
 
   public App(S state, Function<S, El> view) {
     this.state = state;
@@ -66,19 +83,313 @@ public final class App<S> {
     stale = true;
   }
 
-  /** The pointer's button went down at this position, in logical pixels. */
+  /**
+   * The pointer's button went down at this position, in logical pixels. This gives the focus to the
+   * element there, or to the nearest one around it, that is {@link El#focusable}, without a ring;
+   * where there is none, it clears the focus.
+   */
   public void pointerDown(float x, float y) {
     Target target = target(x, y);
     pressed = target == null ? null : target.path;
+    Target focus = target(x, y, El::isFocusable);
+    El el = focus == null ? null : focus.el;
+    queued.add(() -> focus(el, false));
   }
 
   /** The button was released. A press counts when it began on the same element. */
   public void pointerUp(float x, float y) {
     Target target = target(x, y);
     if (target != null && target.path.equals(pressed)) {
-      queued.add(target.el.onPress());
+      Runnable handler = target.el.onPress();
+      queued.add(() -> {
+        handler.run();
+        return true;
+      });
     }
     pressed = null;
+  }
+
+  /**
+   * A key went down or repeats. The next {@link #frame} gives it to the {@link El#onKey} handlers
+   * of the focused element and then of its ancestors, until one returns true; without focus only
+   * the root's handler sees it. If none does, Enter and Space without modifiers press the focused
+   * element if it has an {@link El#onPress} handler, which takes their repeats without pressing
+   * again, and Tab moves the focus to the next focusable element in tree order, Shift+Tab to the
+   * previous one, around at the ends. Unlike in a browser, a press handler on the focused element
+   * takes Enter and Space before its ancestors' key handlers see them.
+   */
+  public void keyDown(Key key) {
+    Objects.requireNonNull(key, "key");
+    queued.add(() -> {
+      List<El> path = focusPath();
+      boolean called = false;
+      for (El el : path.reversed()) {
+        if (el.onKey() != null) {
+          called = true;
+          if (el.onKey().test(key)) {
+            return true;
+          }
+        }
+        if (el == focused
+            && el.onPress() != null
+            && key.modifiers() == 0
+            && (key.name().equals("Enter") || key.name().equals("Space"))) {
+          if (!key.repeat()) {
+            el.onPress().run();
+          }
+          return true;
+        }
+      }
+      if (key.name().equals("Tab") && (key.modifiers() & ~Key.SHIFT) == 0) {
+        List<El> order = focusables();
+        if (!order.isEmpty()) {
+          int step = key.modifiers() == Key.SHIFT ? -1 : 1;
+          int at = order.indexOf(focused);
+          int next = at >= 0 ? at + step : step > 0 ? 0 : -1;
+          return focus(order.get(Math.floorMod(next, order.size())), true);
+        }
+      }
+      return called;
+    });
+  }
+
+  /**
+   * A key was released. The next {@link #frame} gives it to the {@link El#onKeyUp} handlers, in
+   * the order of {@link #keyDown}; it does nothing else.
+   */
+  public void keyUp(Key key) {
+    Objects.requireNonNull(key, "key");
+    queued.add(() -> {
+      boolean called = false;
+      for (El el : focusPath().reversed()) {
+        if (el.onKeyUp() != null) {
+          called = true;
+          if (el.onKeyUp().test(key)) {
+            return true;
+          }
+        }
+      }
+      return called;
+    });
+  }
+
+  /**
+   * Text was typed or composed with an input method. The next {@link #frame} gives it to the {@link
+   * El#onText} handler of the focused element; without one it is dropped.
+   */
+  public void textInput(String text) {
+    Objects.requireNonNull(text, "text");
+    queued.add(() -> {
+      if (focused == null || focused.onText() == null) {
+        return false;
+      }
+      focused.onText().accept(text);
+      return true;
+    });
+  }
+
+  /** The element of the last frame's {@link #tree} that has the keyboard focus, or null. */
+  public El focused() {
+    return focused;
+  }
+
+  /**
+   * Gives the keyboard focus to an element of the last frame's {@link #tree} as Tab would, with a
+   * ring and scrolled into view, or clears it with null. The next {@link #frame} shows it; a
+   * handler may call this too, and the frame that runs it focuses. The app keeps the focus on the
+   * element of later trees that has the same identity, and clears it once there is none, or when
+   * that element is no longer focusable or takes no input.
+   *
+   * @throws IllegalArgumentException if the element is not {@link El#focusable}, not in the last
+   *     frame's tree, or takes no input there: it is leaving, at opacity 0, or clipped away
+   */
+  public void focus(El el) {
+    if (el != null && !focusables().contains(el)) {
+      throw new IllegalArgumentException(
+          "This element cannot take the focus: it is not focusable(), not in the last frame's tree"
+              + " or takes no input there");
+    }
+    queued.add(() -> focus(el, true));
+  }
+
+  /**
+   * Sets the colour of the focus ring, as 0xAARRGGBB; 0 draws none. The ring is 2 pixels wide and
+   * lies just outside the element's border box, with its corners.
+   */
+  public void focusRing(int argb) {
+    ringColour = argb;
+    stale = true;
+  }
+
+  /**
+   * Focuses the element of the current tree that {@link #focusables} has, or none.
+   *
+   * @param ring whether the keyboard or the app moved the focus, not the pointer
+   * @return whether a rebuild is due even if the focus ends where it was: to scroll it into view
+   */
+  private boolean focus(El el, boolean ring) {
+    if (focused != null) {
+      focused.focused(false);
+    }
+    focused = el;
+    focusId = el == null ? null : animator.identity(el);
+    this.ring = ring && el != null;
+    reveal = this.ring;
+    if (el != null) {
+      el.focused(true);
+    }
+    return ring;
+  }
+
+  /**
+   * Finds the focused element in a new tree by its identity, or clears the focus when it is gone or
+   * can no longer take it, and scrolls it into view if that is due.
+   */
+  private void refocus() {
+    if (focused == null) {
+      return;
+    }
+    focused.focused(false);
+    El el = animator.element(focusId);
+    if (el == null || !focusables().contains(el)) {
+      focused = null;
+      focusId = null;
+      ring = false;
+      reveal = false;
+      return;
+    }
+    focused = el;
+    el.focused(true);
+    if (reveal) {
+      reveal = false;
+      reveal(el);
+    }
+  }
+
+  /** The focused element and its ancestors, from the root; only the root without focus. */
+  private List<El> focusPath() {
+    List<El> path = new ArrayList<>();
+    if (root != null && (focused == null || !pathTo(root, focused, path))) {
+      path.add(root);
+    }
+    return path;
+  }
+
+  /** Appends the path from {@code el} down to {@code target} if {@code target} is below it. */
+  private static boolean pathTo(El el, El target, List<El> path) {
+    path.add(el);
+    if (el == target) {
+      return true;
+    }
+    for (El child : el.children()) {
+      if (pathTo(child, target, path)) {
+        return true;
+      }
+    }
+    path.removeLast();
+    return false;
+  }
+
+  /**
+   * Scrolls the scroll areas around {@code el}, the innermost first, just far enough to show its
+   * border box whole inside theirs, or its start if it is larger.
+   */
+  private void reveal(El el) {
+    List<El> path = new ArrayList<>();
+    pathTo(root, el, path);
+    for (int i = path.size() - 2; i >= 0; i--) {
+      El area = path.get(i);
+      if (!area.isScrollArea()) {
+        continue;
+      }
+      float areaX = 0;
+      float areaY = 0;
+      for (int j = 0; j <= i; j++) {
+        areaX += path.get(j).x();
+        areaY += path.get(j).y();
+      }
+      float x = areaX;
+      float y = areaY;
+      for (int j = i + 1; j < path.size(); j++) {
+        x += path.get(j).x();
+        y += path.get(j).y();
+      }
+      area.scrollTo(
+          area.scrollX() + nearest(x, el.width(), areaX, area.width()),
+          area.scrollY() + nearest(y, el.height(), areaY, area.height()));
+    }
+  }
+
+  /** The least distance that moves a span into a view, or its start onto the view's start. */
+  private static float nearest(float start, float size, float viewStart, float viewSize) {
+    float before = start - viewStart;
+    float after = start + size - (viewStart + viewSize);
+    return before < 0 ? before : after > 0 ? Math.min(after, before) : 0;
+  }
+
+  /**
+   * The elements Tab moves through, in tree order: those that are focusable, take input and are not
+   * clipped away for good. Along an axis an ancestor scrolls, an element outside its visible part
+   * counts, since focusing it scrolls it into view.
+   */
+  List<El> focusables() {
+    List<El> found = new ArrayList<>();
+    if (root != null) {
+      float far = Float.POSITIVE_INFINITY;
+      focusables(root, 0, 0, -far, -far, far, far, found);
+    }
+    return found;
+  }
+
+  private static void focusables(
+      El el, float parentX, float parentY, float clipLeft, float clipTop, float clipRight,
+      float clipBottom, List<El> found) {
+    if (!el.isPlaced() || el.opacity() == 0 || el.isExiting()) {
+      return;
+    }
+    float left = parentX + el.x();
+    float top = parentY + el.y();
+    float right = left + el.width();
+    float bottom = top + el.height();
+    if (el.isFocusable()
+        && left < clipRight && right > clipLeft && top < clipBottom && bottom > clipTop) {
+      found.add(el);
+    }
+    Style s = el.style();
+    if (s.overflowX != Style.Overflow.VISIBLE || s.overflowY != Style.Overflow.VISIBLE) {
+      clipLeft = Math.max(left, clipLeft);
+      clipTop = Math.max(top, clipTop);
+      clipRight = Math.min(right, clipRight);
+      clipBottom = Math.min(bottom, clipBottom);
+      if (!(clipRight > clipLeft && clipBottom > clipTop)) {
+        return; // nothing below shows
+      }
+      float far = Float.POSITIVE_INFINITY;
+      if (s.overflowX == Style.Overflow.SCROLL) {
+        clipLeft = -far;
+        clipRight = far;
+      }
+      if (s.overflowY == Style.Overflow.SCROLL) {
+        clipTop = -far;
+        clipBottom = far;
+      }
+    }
+    for (El child : el.children()) {
+      focusables(child, left, top, clipLeft, clipTop, clipRight, clipBottom, found);
+    }
+  }
+
+  /**
+   * For {@link Script}: focuses as {@link #focus} does the element at this point, or the nearest
+   * focusable one around it, and returns it; null if there is none.
+   */
+  El focusAt(float x, float y) {
+    Target target = target(x, y, El::isFocusable);
+    if (target == null) {
+      return null;
+    }
+    focus(target.el);
+    return target.el;
   }
 
   /**
@@ -148,10 +459,12 @@ public final class App<S> {
    *     scrolled
    */
   public boolean frame() {
+    El wasFocused = focused;
+    boolean hadRing = ring;
     while (!queued.isEmpty()) {
-      queued.poll().run();
-      stale = true;
+      stale |= queued.poll().getAsBoolean();
     }
+    stale |= focused != wasFocused || ring != hadRing;
     // After the handlers, so that one can scroll the tree it saw; a rebuild keeps the offsets.
     boolean scrolled = false;
     while (!scrolls.isEmpty()) {
@@ -161,6 +474,7 @@ public final class App<S> {
       root = view.apply(state);
       Flex.layout(root, width, height);
       animator.update(root, time);
+      refocus();
       stale = false;
       return true;
     }
@@ -200,9 +514,9 @@ public final class App<S> {
     return root;
   }
 
-  /** What the last frame draws. */
+  /** What the last frame draws, with the focus ring if there is one. */
   public Scene scene() {
-    return Scene.of(root);
+    return Scene.of(root, ring ? focused : null, ringColour);
   }
 
   /** The last frame drawn on the CPU, with its tree as text. */

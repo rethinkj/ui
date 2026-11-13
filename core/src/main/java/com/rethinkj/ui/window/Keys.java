@@ -3,15 +3,10 @@ package com.rethinkj.ui.window;
 import java.util.Locale;
 
 /**
- * The names of keys in {@link WindowEvent.KeyDown} and {@link WindowEvent.KeyUp}, from SDL key
- * codes. A key code follows the keyboard layout but not the modifiers: the key that types "a" is
- * {@code A}, with or without shift, and keys of non-Latin layouts that have a Latin letter on them
- * report that letter, as SDL does by default.
- *
- * <p>Named keys use the names of the W3C UI Events {@code key} values ({@code Enter}, {@code
- * ArrowLeft}, {@code PageDown}, {@code F5}), with {@code Space} for the space bar and {@code
- * Numpad...} for the number pad. Other keys that type a character are named by that character in
- * upper case: {@code 1}, {@code -}, {@code Ä}. Anything else is {@code Unidentified}.
+ * The names of {@link com.rethinkj.ui.Key}s, which lists them, from SDL key codes. A key code
+ * follows the keyboard layout but not the modifiers: the key that types "a" is {@code A}, with or
+ * without shift, and keys of non-Latin layouts that have a Latin letter on them report that
+ * letter, as SDL does by default.
  */
 final class Keys {
 

@@ -9,6 +9,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
@@ -29,6 +30,9 @@ import java.util.regex.Pattern;
  * frame
  * snap moving                        # writes moving.png and moving.tree.txt
  * wheel #list 0 40                   # the wheel, 40 pixels down, over the centre of #list
+ * key Tab shift                      # Shift+Tab, down and up: the focus moves back
+ * type "hello"                       # text for the focused element
+ * focus #name                        # gives #name the focus, as Tab would
  * </pre>
  *
  * <p>Only {@code frame} runs a frame. As in a window, input and {@code advance} between frames
@@ -165,6 +169,63 @@ public final class Script {
               Float.parseFloat(args.get(args.size() - 2)),
               Float.parseFloat(args.getLast()));
         }
+        case "key" -> {
+          if (args.isEmpty()) {
+            throw line.usage(step);
+          }
+          String name = args.getFirst();
+          if (!Key.isName(name)) {
+            throw line.fail(unknownKey(name));
+          }
+          int modifiers = 0;
+          for (String word : args.subList(1, args.size())) {
+            modifiers |=
+                switch (word) {
+                  case "shift" -> Key.SHIFT;
+                  case "control" -> Key.CONTROL;
+                  case "alt" -> Key.ALT;
+                  case "meta" -> Key.META;
+                  default -> throw line.usage(step);
+                };
+          }
+          needsFrame(line, app, "nothing can take the key");
+          Key key = new Key(name, modifiers, false);
+          app.keyDown(key);
+          app.keyUp(key);
+        }
+        case "type" -> {
+          String word = args.size() == 1 ? args.getFirst() : "";
+          if (word.length() < 3 || !word.startsWith("\"") || !word.endsWith("\"")) {
+            throw line.usage(step);
+          }
+          needsFrame(line, app, "nothing can take the text");
+          app.textInput(unescape(word.substring(1, word.length() - 1)));
+        }
+        case "focus" -> {
+          if (args.isEmpty()) {
+            throw line.usage(step);
+          }
+          needsFrame(line, app, "there is nothing to focus");
+          float[] at = line.point(args, app.tree());
+          if (app.focusAt(at[0], at[1]) == null) {
+            List<Found> all = new ArrayList<>();
+            float far = Float.POSITIVE_INFINITY;
+            walk(app.tree(), 0, 0, -far, -far, far, far, all, new ArrayList<>());
+            StringBuilder rows = new StringBuilder();
+            for (Found found : all) {
+              if (found.el.isFocusable()) {
+                found.el.describe(rows.append("    "), found.left, found.top);
+              }
+            }
+            throw line.fail(
+                "Neither the element at " + String.join(" ", args) + " nor one around it is"
+                    + " focusable, so the focus cannot go there. "
+                    + (rows.isEmpty()
+                        ? "No element of the last frame is; El.focusable() marks one."
+                        : "These elements of the last frame are:\n" + rows + "  Select one of"
+                            + " them."));
+          }
+        }
         case "advance" -> {
           if (args.size() != 1) {
             throw line.usage(step);
@@ -229,7 +290,8 @@ public final class Script {
         default ->
             throw line.fail(
                 "There is no step " + step
-                    + ". The steps are size, press, down, up, wheel, advance, frame and snap.");
+                    + ". The steps are size, press, down, up, wheel, key, type, focus, advance,"
+                    + " frame and snap.");
       }
       if (step.equals("frame")) {
         pending = null;
@@ -238,6 +300,31 @@ public final class Script {
       }
     }
     return written;
+  }
+
+  private static void needsFrame(Line line, App<?> app, String consequence) {
+    if (app.tree() == null) {
+      throw line.fail(
+          "No frame has run yet, so " + consequence + ". Add `frame` before this line.");
+    }
+  }
+
+  /** What to say about a key name that {@link Key#isName} refuses. */
+  private static String unknownKey(String name) {
+    String upper = name.toUpperCase(Locale.ROOT);
+    for (String named : Key.NAMED) {
+      if (named.equalsIgnoreCase(name)) {
+        return "There is no key " + name + ". Write " + named + ".";
+      }
+    }
+    if (Key.isName(upper)) {
+      return "There is no key " + name + ". Keys that type a character are named by it in upper"
+          + " case, with or without shift: write " + upper + ".";
+    }
+    return "There is no key " + name + ". Keys have the names of the web's key values, such as"
+        + " Enter, Tab, Space, Escape, Backspace, ArrowDown, PageUp, Home, F5 and Numpad1, and"
+        + " keys that type a character are named by it in upper case, such as A, 1 and -. The"
+        + " Javadoc of com.rethinkj.ui.Key lists them all.";
   }
 
   /**
@@ -267,6 +354,12 @@ public final class Script {
                 case "advance" ->
                     "`advance <seconds>`, with a number of 0 or more, for example `advance 0.04`.";
                 case "frame" -> "`frame` with nothing after it.";
+                case "key" ->
+                    "`key <name>`, followed by any of shift, control, alt and meta that are held,"
+                        + " for example `key Enter` or `key Tab shift` for Shift+Tab.";
+                case "type" ->
+                    "`type \"<text>\"`, with \\\" for a quote and \\\\ for a backslash in the"
+                        + " text, for example `type \"hello\"`.";
                 case "wheel" ->
                     "`wheel <target> <deltaX> <deltaY>`, with distances in logical pixels that are"
                         + " positive to scroll down or right, for example `wheel #list 0 40`. A"

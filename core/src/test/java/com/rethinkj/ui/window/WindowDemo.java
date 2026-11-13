@@ -120,7 +120,7 @@ public final class WindowDemo {
           if (printMoves || !move) {
             log(start, event.toString());
           }
-          if (event instanceof KeyDown key && key.key().equals("Escape")) {
+          if (event instanceof KeyDown down && down.key().name().equals("Escape")) {
             loop.stop();
           }
         });

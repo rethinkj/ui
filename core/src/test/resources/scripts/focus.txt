@@ -1,0 +1,12 @@
+# The light switch of core's tests (Examples), reached with Tab and toggled with Space.
+size 200 120 scale 2
+frame
+key Tab                # the switch takes the focus; the keyboard moved it, so it has a ring
+frame
+snap switch-focused
+
+key Space              # presses the focused switch
+frame
+advance 1
+frame
+snap switch-focused-on
