@@ -8,14 +8,24 @@ import java.util.List;
  * shows. {@link #parse} reads CommonMark with the GitHub extensions tables, task list items,
  * strikethrough and bare URLs; it never throws and takes time in proportion to the text. Raw HTML
  * stays text. An app parses a document once and keeps it in its state, so that a rebuild of the
- * view does not read it again.
- *
- * @param blocks the document's blocks in order
+ * view does not read it again: the component keeps what it makes of the document with it. Two
+ * documents are equal only when they are the same object.
  */
-public record MarkdownDocument(List<Block> blocks) {
+public final class MarkdownDocument {
 
-  public MarkdownDocument {
-    blocks = List.copyOf(blocks);
+  private final List<Block> blocks;
+  // What Markdown made of the document for a theme, kept with it; see Markdown#prepared.
+  Object prepared;
+  Theme preparedFor;
+
+  /** A document of these blocks, as {@link #parse} gives one. */
+  public MarkdownDocument(List<Block> blocks) {
+    this.blocks = List.copyOf(blocks);
+  }
+
+  /** The document's blocks in order. */
+  public List<Block> blocks() {
+    return blocks;
   }
 
   /** Reads a Markdown text; never throws, also not on text that is not Markdown. */

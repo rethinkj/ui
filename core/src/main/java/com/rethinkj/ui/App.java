@@ -1571,7 +1571,7 @@ public final class App<S> {
     enqueue(() -> {
       settle();
       El el = id == null ? null : animator.element(id);
-      scrolled |= el != null && el.scrollTo(el.scrollX(), row * (double) el.rowHeight());
+      scrolled |= el != null && el.scrollTo(el.scrollX(), el.rowOffset(row));
       return false;
     });
   }
@@ -2253,7 +2253,9 @@ public final class App<S> {
     float top = parentY + el.y();
     int[] range = el.wantedRows(left, top, clipLeft, clipRight, width, height);
     boolean built = range != null;
-    if (built) {
+    // Rows as high as their content may cover less or more than estimated: a second pass, or a
+    // third, builds the rows the measured heights show.
+    for (int pass = 0; range != null && pass < 3; pass++) {
       Object id = Animator.identities(path).getLast();
       el.makeRows(range[0], range[1]);
       tellRows(el, id, range[0], range[1] - 1);
@@ -2267,6 +2269,8 @@ public final class App<S> {
         Overlays.layout(row, width, height); // after the looks, which may attach overlays
       }
       animator.rows(el, id, time);
+      range = el.measuresRows() ? el.wantedRows(left, top, clipLeft, clipRight, width, height)
+          : null;
     }
     if (el.style().overflowX != Style.Overflow.VISIBLE) {
       clipLeft = Math.max(clipLeft, left);

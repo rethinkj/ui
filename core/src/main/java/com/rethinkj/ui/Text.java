@@ -1402,6 +1402,7 @@ public final class Text implements Measure {
     Map<Integer, Spans> decorated = new HashMap<>();
     float thick = Math.max(1, Math.round(scale));
     float under = firstBaseline + Math.round(font().descent() * size * scale / 2);
+    float strike = firstBaseline - Math.round(size * scale * 0.3f) - Math.round(thick / 2);
     for (Row row : placed) {
       Para para = row.para;
       Spans decor = null;
@@ -1427,7 +1428,8 @@ public final class Text implements Measure {
           int kind = spans.kinds[i];
           int a = Math.max(spans.froms[i], from);
           int b = Math.min(spans.tos[i], to);
-          if (kind != Spans.BACKGROUND && kind != Spans.UNDERLINE || b <= a) {
+          if (kind != Spans.BACKGROUND && kind != Spans.UNDERLINE && kind != Spans.STRIKE
+              || b <= a) {
             continue;
           }
           float x0 = para.pen(a) - left - viewX;
@@ -1435,7 +1437,8 @@ public final class Text implements Measure {
           if (kind == Spans.BACKGROUND) {
             ranges.add(new Mark(new Box(x0, top, x1 - x0, lineHeight), spans.colors[i]));
           } else {
-            unders.add(new Mark(new Box(x0, top + under, x1 - x0, thick), spans.colors[i]));
+            float y = kind == Spans.UNDERLINE ? under : strike;
+            unders.add(new Mark(new Box(x0, top + y, x1 - x0, thick), spans.colors[i]));
           }
         }
       }

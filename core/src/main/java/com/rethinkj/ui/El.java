@@ -116,6 +116,7 @@ public final class El {
   // A virtual list: its rows, and the index of the row that is its first child.
   private int rowCount;
   private float rowHeight;
+  private RowHeights heights; // rows as high as their content; null for rows of rowHeight
   private RowBuilder rowBuilder;
   private boolean spans; // the row function takes the part of the rows in view sideways
   private float spanFrom; // the part the rows were built for, in their coordinates
@@ -740,10 +741,60 @@ public final class El {
     // add up to the pixel: 22 000 000 pixels of rows and 23 above them came to 22 000 024, and a
     // list that shrank into 224 pixels was 200 high instead of 201. The offsets of scrolling are
     // doubles and reach the last row anyway.
-    float content = (float) Math.min(count * (double) rowHeight, LAYOUT_LIMIT);
     this.measure = (knownWidth, knownHeight, availableWidth, availableHeight) ->
-        new Measure.Size(0, content);
+        new Measure.Size(0, (float) Math.min(rowsTotal(), LAYOUT_LIMIT));
     return this;
+  }
+
+  /**
+   * Makes this element a virtual list as {@link #rows(int, float, IntFunction)} does, whose rows
+   * are each as high as their content at the list's inner width: the blocks of a long document.
+   * A row's height is estimated until the list builds it, then measured by its layout and kept in
+   * {@code heights}, which the app keeps in its state and passes on every build. When rows above
+   * the first one in view turn out higher or lower than estimated, the list scrolls by as much,
+   * so that what is in view stays where it is; the thumb moves a little instead. {@link
+   * App#scrollToRow} goes to where a row starts as far as the heights are known.
+   *
+   * @param heights the heights of the rows, which it holds for as many rows as {@code count}
+   */
+  public El rows(int count, RowHeights heights, IntFunction<El> row) {
+    rows(count, 1, row);
+    this.heights = Objects.requireNonNull(heights, "heights");
+    heights.count(count);
+    return this;
+  }
+
+  /** Where a row starts below the top of the content box. */
+  private double rowTop(int index) {
+    return heights == null ? index * (double) rowHeight : heights.top(index);
+  }
+
+  private double rowSize(int index) {
+    return heights == null ? rowHeight
+        : index >= 0 && index < rowCount ? heights.height(index) : 0;
+  }
+
+  /** The row at this distance below the top of the content box, or past the last. */
+  private long rowAt(double y) {
+    return heights == null ? (long) Math.floor(y / rowHeight) : heights.at(y);
+  }
+
+  /** The first row that starts at or below this distance below the top of the content box. */
+  private long rowAfter(double y) {
+    if (heights == null) {
+      return (long) Math.ceil(y / rowHeight);
+    }
+    int at = heights.at(y);
+    return heights.top(at) < y ? at + 1L : at;
+  }
+
+  private double rowsTotal() {
+    return heights == null ? rowCount * (double) rowHeight : heights.total();
+  }
+
+  /** For {@link App#scrollToRow}: the offset that puts this row at the top of the list. */
+  double rowOffset(int index) {
+    return rowTop(index);
   }
 
   /**
@@ -2434,7 +2485,7 @@ public final class El {
     }
     if (rowBuilder != null) {
       maxScrollX = 0;
-      maxScrollY = Math.max(rowsTop() + rowCount * (double) rowHeight + px(style.paddingBottom)
+      maxScrollY = Math.max(rowsTop() + rowsTotal() + px(style.paddingBottom)
           + px(style.borderBottom) + coverY - height, 0);
       return;
     }
@@ -2572,7 +2623,7 @@ public final class El {
       text.scrolled(newX, newY);
     }
     // Rows are placed from the first one that exists, so the offset moves them from there.
-    float shiftY = (float) (rowBuilder == null ? newY : newY - firstRow * (double) rowHeight);
+    float shiftY = (float) (rowBuilder == null ? newY : newY - rowTop(firstRow));
     for (El child : children) {
       child.shiftX = (float) newX;
       child.shiftY = shiftY;
@@ -2749,8 +2800,8 @@ public final class El {
     double row0 = top + rowsTop() - scrollY; // where row 0 is in the window
     double from = Math.max(top, 0);
     double to = Math.max(Math.min(top + height, windowHeight), from);
-    int first = Math.clamp((long) Math.floor((from - row0) / rowHeight), 0, rowCount);
-    int end = Math.clamp((long) Math.ceil((to - row0) / rowHeight), first, rowCount);
+    int first = Math.clamp(rowAt(from - row0), 0, rowCount);
+    int end = Math.clamp(rowAfter(to - row0), first, rowCount);
     float shown = 0;
     float shownTo = 0;
     if (spans) { // the part in view sideways, in the coordinates of the content box
@@ -2842,10 +2893,22 @@ public final class El {
    * row height, and places it below the previous one.
    */
   void layoutRows(float scale, boolean systemFonts) {
+    // Rows that turn out higher or lower above the one at the top move it: the offset follows.
+    int anchor = heights == null ? 0 : (int) Math.clamp(rowAt(scrollY), 0, rowCount);
+    double before = heights == null ? 0 : rowTop(anchor);
     for (int i = 0; i < children.size(); i++) {
       layoutRow(i, scale, systemFonts);
     }
+    if (heights != null) {
+      measureScroll();
+      scrollY += rowTop(anchor) - before; // clamped below
+    }
     scrollTo(scrollX, scrollY); // shifts the new rows
+  }
+
+  /** Whether this is a virtual list whose rows are as high as their content. */
+  boolean measuresRows() {
+    return heights != null;
   }
 
   /** Lays out the row that is the child with this index, as {@link #layoutRows} does. */
@@ -2856,6 +2919,21 @@ public final class El {
             - style.scrollbarWidth, 0);
     El row = children.get(index);
     row.style.width = Len.px(inner);
+    if (heights != null) { // as high as its content or its own height, measured and kept
+      scaleText(row, scale, systemFonts);
+      Flex.layout(row, inner, Measure.MAX_CONTENT);
+      float high = row.height;
+      boolean moved = heights.measured(firstRow + index, high) != 0;
+      // From the first row that exists, as rows of one height are; the scroll shift adds the rest.
+      double first = rowTop(firstRow);
+      row.place(left, (float) (rowsTop() + rowTop(firstRow + index) - first), inner, high);
+      for (int i = index + 1; moved && i < children.size(); i++) { // those below follow
+        El below = children.get(i);
+        below.place(left, (float) (rowsTop() + rowTop(firstRow + i) - first), inner,
+            below.height);
+      }
+      return;
+    }
     row.style.height = Len.px(rowHeight);
     scaleText(row, scale, systemFonts);
     Flex.layout(row, inner, rowHeight);
@@ -2867,8 +2945,8 @@ public final class El {
    * offset, clear of the bars over the list's bottom, or its top if it is taller than the rest.
    */
   double offsetShowing(int index) {
-    double top = rowsTop() + index * (double) rowHeight - scrollY;
-    double after = top + rowHeight - (height - coverY);
+    double top = rowsTop() + rowTop(index) - scrollY;
+    double after = top + rowSize(index) - (height - coverY);
     return scrollY + (top < 0 ? top : after > 0 ? Math.min(after, top) : 0);
   }
 
@@ -2899,10 +2977,13 @@ public final class El {
    */
   int rowInView(boolean last) {
     double from = scrollY - rowsTop(); // the content at the top of the border box
-    long top = (long) Math.ceil(from / rowHeight);
-    long bottom = (long) Math.floor((from + height - coverY) / rowHeight) - 1;
+    long top = rowAfter(from);
+    long bottom = rowAt(from + height - coverY) - (heights == null ? 1 : 0);
+    if (heights != null && rowTop((int) Math.min(bottom + 1, rowCount)) > from + height - coverY) {
+      bottom--; // the row at the bottom edge is not whole
+    }
     if (top > bottom) {
-      top = bottom = (long) Math.floor(from / rowHeight);
+      top = bottom = rowAt(from);
     }
     return Math.clamp(last ? bottom : top, 0, Math.max(rowCount - 1, 0));
   }

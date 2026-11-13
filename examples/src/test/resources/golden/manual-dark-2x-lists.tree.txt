@@ -1,0 +1,223 @@
+el 0,0 960x640
+  el window=drag 0,0 960x32
+    el 12,11 10x10
+    text "Manual" 30,8 46x16
+    el 76,16 669x0
+    el 745,8 65x16
+      el role=switch label="Dark" 741,6 73x20 checked
+        el 745,8 28x16
+          el 759,10 12x12
+        text "Dark" 781,8 29x16
+    el role=button label="Minimize" window=minimize 822,0 46x32
+      el 840,16 10x1
+    el role=button label="Maximize" window=maximize 868,0 46x32
+      el 886,11 10x10
+    el role=button label="Close" window=close 914,0 46x32
+      el 932,11 10x10
+        el 932,11 2x2
+        el 940,11 2x2
+        el 933,12 2x2
+        el 939,12 2x2
+        el 934,13 2x2
+        el 938,13 2x2
+        el 935,14 2x2
+        el 937,14 2x2
+        el 936,15 2x2
+        el 936,15 2x2
+        el 937,16 2x2
+        el 935,16 2x2
+        el 938,17 2x2
+        el 934,17 2x2
+        el 939,18 2x2
+        el 933,18 2x2
+        el 940,19 2x2
+        el 932,19 2x2
+  el 0,32 960x608
+    el 8,32 240x600
+      el 9,33 238x598
+        el 13,37 230x590
+          el #documents role=listbox label="Documents" 13,37 230x56
+            el #item-0 role=option label="Manual" 13,37 230x28 selected pos=1/2
+              el 13,39 230x24
+                el 15,43 2x16
+                text label="document" "\u{E4D7}" 21,43 16x16
+                text "Manual" 41,43 194x16
+            el #item-1 role=option label="Changelog" 13,65 230x28 pos=2/2
+              el 13,67 230x24
+                el 15,71 2x16
+                text label="history" "\u{E705}" 21,71 16x16
+                text "Changelog" 41,71 194x16
+          el role=separator 13,97 230x1
+          text "On this page" 21,104 214x16
+          el #outline role=listbox label="On this page" 13,124 230x503 focused
+            el #item-0 role=option label="Writing documents" 13,124 230x28 pos=1/9
+              el 13,126 230x24
+                el 15,130 2x16
+                text "Writing documents" 21,130 214x15
+            el #item-1 role=option label="Text" 13,152 230x28 pos=2/9
+              el 13,154 230x24
+                el 15,158 2x16
+                text "Text" 21,158 214x15
+            el #item-2 role=option label="  Links" 13,180 230x28 pos=3/9
+              el 13,182 230x24
+                el 15,186 2x16
+                text "  Links" 21,186 214x15
+            el #item-3 role=option label="Lists" 13,208 230x28 selected pos=4/9
+              el 13,210 230x24
+                el 15,214 2x16
+                text "Lists" 21,214 214x15
+            el #item-4 role=option label="  A checklist" 13,236 230x28 pos=5/9
+              el 13,238 230x24
+                el 15,242 2x16
+                text "  A checklist" 21,242 214x15
+            el #item-5 role=option label="Quotes" 13,264 230x28 pos=6/9
+              el 13,266 230x24
+                el 15,270 2x16
+                text "Quotes" 21,270 214x15
+            el #item-6 role=option label="Code blocks" 13,292 230x28 pos=7/9
+              el 13,294 230x24
+                el 15,298 2x16
+                text "Code blocks" 21,298 214x15
+            el #item-7 role=option label="Tables" 13,320 230x28 pos=8/9
+              el 13,322 230x24
+                el 15,326 2x16
+                text "Tables" 21,326 214x15
+            el #item-8 role=option label="Images" 13,348 230x28 pos=9/9
+              el 13,350 230x24
+                el 15,354 2x16
+                text "Images" 21,354 214x15
+    el 256,32 696x600
+      el #doc-0 role=document 257,33 694x598 rows 3-26/36 scroll 0,441 thumb-y 943,176.64 6x192.06
+        el 281,-190 646x80 pos=4/36
+          text role=paragraph "A paragraph is lines of text with no blank line between them. They flow together and wrap at the wid" … "eps a character literal: *not emphasis*." length 324 281,-190 646x68 readonly lines 1-1/1
+        el 281,-110 646x63 pos=5/36
+          text role=paragraph "Two spaces at the end of a line\nbreak it without starting a new paragraph. Entities such as ©, — and € turn into their characters, and raw HTML such as <kbd>Ctrl</kbd> stays text." 281,-110 646x51 readonly lines 1-2/2
+        el 281,-47 646x41 pos=6/36
+          text #heading-links role=heading "Links" 281,-35 646x21 readonly level=3 lines 1-1/1
+        el 281,-6 646x63 pos=7/36
+          text role=paragraph "Links come inline, by reference, as autolinks such as https://spec.commonmark.org and as bare addres" … " there; any other one shows its address." length 219 281,-6 646x51 readonly lines 1-1/1
+            el #link-0 role=link label="inline" 360.25,-6 34.75x17 value="https://commonmark.org"
+            el #link-1 role=link label="reference" 423.13,-6 63.5x17 value="https://spec.commonmark.org/0.31.2/"
+            el #link-2 role=link label="https://spec.commonmark.org" 632,-6 200.38x17 value="https://spec.commonmark.org"
+            el #link-3 role=link label="www.example.com" 379.75,11 125.75x17 value="http://www.example.com"
+            el #link-4 role=link label="back to the top" 698.88,11 99.63x17 value="#writing-documents"
+        el 281,57 646x61 pos=8/36
+          el 281,81 646x29
+            text #heading-lists role=heading "Lists" 281,81 646x28 readonly level=2 lines 1-1/1
+            el role=separator 281,109 646x1
+        el 281,118 646x19 pos=9/36
+          el role=list 281,118 646x19
+            el role=listitem 281,118 646x17 pos=1/2
+              text "•" 281,118 12x17
+              el 297,118 630x17
+                text role=paragraph "Items of a bullet list" 297,118 630x17 readonly lines 1-1/1
+        el 281,137 646x84 pos=10/36
+          el role=list 281,137 646x84
+            el role=listitem 281,137 646x72 pos=2/2
+              text "•" 281,137 12x72
+              el 297,137 630x72
+                text role=paragraph "can hold more than one line of text, which wraps under the text of the item and not under its bullet, so that the bullet stands out on the left" 297,137 630x34 readonly lines 1-1/1
+                el role=list 297,173 630x36
+                  el role=listitem 297,173 630x36 pos=1/1
+                    text "◦" 297,173 12x36
+                    el 313,173 614x36
+                      text role=paragraph "and lists inside them" 313,173 614x17 readonly lines 1-1/1
+                      el role=list 313,192 614x17
+                        el role=listitem 313,192 614x17 pos=1/1
+                          text "▪" 313,192 12x17
+                          el 329,192 598x17
+                            text role=paragraph "three levels deep" 329,192 598x17 readonly lines 1-1/1
+        el 281,221 646x19 pos=11/36
+          el role=list 281,221 646x19
+            el role=listitem 281,221 646x17 pos=1/2
+              text "1." 281,221 13x17
+              el 298,221 629x17
+                text role=paragraph "Numbered lists count from where they start," 298,221 629x17 readonly lines 1-1/1
+        el 281,240 646x29 pos=12/36
+          el role=list 281,240 646x29
+            el role=listitem 281,240 646x17 pos=2/2
+              text "2." 281,240 13x17
+              el 298,240 629x17
+                text role=paragraph "and their numbers line up on the right." 298,240 629x17 readonly lines 1-1/1
+        el 281,269 646x29 pos=13/36
+          text role=paragraph "A list may start at any number:" 281,269 646x17 readonly lines 1-1/1
+        el 281,298 646x19 pos=14/36
+          el role=list 281,298 646x19
+            el role=listitem 281,298 646x17 pos=1/3
+              text "9." 281,298 22x17
+              el 307,298 620x17
+                text role=paragraph "so this one starts at nine," 307,298 620x17 readonly lines 1-1/1
+        el 281,317 646x19 pos=15/36
+          el role=list 281,317 646x19
+            el role=listitem 281,317 646x17 pos=2/3
+              text "10." 281,317 22x17
+              el 307,317 620x17
+                text role=paragraph "and its numbers grow wider" 307,317 620x17 readonly lines 1-1/1
+        el 281,336 646x29 pos=16/36
+          el role=list 281,336 646x29
+            el role=listitem 281,336 646x17 pos=3/3
+              text "11." 281,336 22x17
+              el 307,336 620x17
+                text role=paragraph "without moving the text." 307,336 620x17 readonly lines 1-1/1
+        el 281,365 646x29 pos=17/36
+          text role=paragraph "A list with blank lines between its items is loose:" 281,365 646x17 readonly lines 1-1/1
+        el 281,394 646x29 pos=18/36
+          el role=list 281,394 646x29
+            el role=listitem 281,394 646x17 pos=1/2
+              text "•" 281,394 12x17
+              el 297,394 630x17
+                text role=paragraph "Each item is a paragraph of its own." 297,394 630x17 readonly lines 1-1/1
+        el 281,423 646x29 pos=19/36
+          el role=list 281,423 646x29
+            el role=listitem 281,423 646x17 pos=2/2
+              text "•" 281,423 12x17
+              el 297,423 630x17
+                text role=paragraph "So there is more room between them." 297,423 630x17 readonly lines 1-1/1
+        el 281,452 646x41 pos=20/36
+          text #heading-a-checklist role=heading "A checklist" 281,464 646x21 readonly level=3 lines 1-1/1
+        el 281,493 646x19 pos=21/36
+          el role=list 281,493 646x19
+            el role=listitem 281,493 646x17 checked pos=1/3
+              el 281,493 18x17
+                el role=checkbox 277,491 24x21 disabled checked
+                  el 281,494 16x16
+                    text "✓" 283,494 12x16
+              el 303,493 624x17
+                text role=paragraph "Read the document" 303,493 624x17 readonly lines 1-1/1
+        el 281,512 646x19 pos=22/36
+          el role=list 281,512 646x19
+            el role=listitem 281,512 646x17 checked pos=2/3
+              el 281,512 18x17
+                el role=checkbox 277,510 24x21 disabled checked
+                  el 281,513 16x16
+                    text "✓" 283,513 12x16
+              el 303,512 624x17
+                text role=paragraph "Select some of its text and copy it" 303,512 624x17 readonly lines 1-1/1
+        el 281,531 646x29 pos=23/36
+          el role=list 281,531 646x29
+            el role=listitem 281,531 646x17 checked=false pos=3/3
+              el 281,531 18x17
+                el role=checkbox 277,529 24x21 disabled checked=false
+                  el 281,532 16x16
+              el 303,531 624x17
+                text role=paragraph "Press Control+A, then Control+C, to copy all of it" 303,531 624x17 readonly lines 1-1/1
+        el 281,560 646x61 pos=24/36
+          el 281,584 646x29
+            text #heading-quotes role=heading "Quotes" 281,584 646x28 readonly level=2 lines 1-1/1
+            el role=separator 281,612 646x1
+        el 281,621 646x87 pos=25/36
+          el role=blockquote 281,621 646x75
+            el 281,621 3x75
+            el 296,621 631x75
+              text role=paragraph "A quote has a line along its left edge, and its text is quieter than the text around it." 296,621 631x17 readonly lines 1-1/1
+              el role=blockquote 296,650 631x17
+                el 296,650 3x17
+                el 311,650 616x17
+                  text role=paragraph "Quotes may hold quotes," 311,650 616x17 readonly lines 1-1/1
+              text role=paragraph "and anything else a document holds, such as code." 296,679 631x17 readonly lines 1-1/1
+        el 281,708 646x61 pos=26/36
+          el 281,732 646x29
+            text #heading-code-blocks role=heading "Code blocks" 281,732 646x28 readonly level=2 lines 1-1/1
+            el role=separator 281,760 646x1
+        el 281,769 646x29 pos=27/36
+          text role=paragraph "A fenced code block names its language. SQL is highlighted:" 281,769 646x17 readonly lines 1-1/1
