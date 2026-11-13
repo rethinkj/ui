@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
+import java.util.TreeMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
@@ -46,19 +47,22 @@ import java.util.zip.ZipFile;
  * beside them. When {@code fetched/} already matches {@code natives.properties}, it does nothing.
  *
  * <p>A library with a {@code <name>.cmake} line comes from a source archive instead: the tool
- * builds it with cmake and make in {@code fetched/builds/<name>/}, with those options, and takes
- * the entry from the build folder. A build is reused while the archive, the options and the entry
- * stay the same. It needs cmake, make, a C compiler and pkg-config, and fails with what to install
- * when one is missing; a library in C++ needs a C++ compiler too. A source archive may also be a
- * {@code .tar.xz} file, which {@code tar} unpacks.
+ * builds it with cmake in {@code fetched/builds/<name>/}, with those options, and takes the entry
+ * from the build folder. A build is reused while the archive, the options and the entry stay the
+ * same. A source archive may also be a {@code .tar.xz} file, which {@code tar} unpacks.
+ *
+ * <p>For Linux, the build uses make and needs cmake, make, a C compiler and pkg-config, and fails
+ * with what to install when one is missing; a library in C++ needs a C++ compiler too. For
+ * Windows, it uses Visual Studio's compiler and finds its tools without the PATH; {@link
+ * WindowsTools} says how.
  *
  * <p>The manifest lists the libraries in load order with their versions and SHA-256 hashes. A
  * library built from source gets a {@code built <name> <archive sha256>} line as well: its own
  * hash differs from machine to machine and is pinned nowhere. {@code
  * com.rethinkj.ui.natives.Manifest} in core reads the manifest and ignores that line.
  *
- * <p>Needs only a JDK 25 and runs the same on Windows and Linux; a build from source, only on
- * Linux.
+ * <p>Needs only a JDK 25 and runs the same on Windows and Linux. A library is built from source
+ * only on the platform it is for.
  */
 final class FetchNatives {
 
@@ -198,7 +202,8 @@ final class FetchNatives {
         Path file = out.resolve(library.file());
         Path archive = archives.resolve(library.archiveName());
         if (library.built()) {
-          Files.copy(build(label, config, library, archive, fetched.resolve("builds")), file);
+          Files.copy(
+              build(label, config, platform, library, archive, fetched.resolve("builds")), file);
         } else {
           try (ZipFile zip = new ZipFile(archive.toFile())) {
             ZipEntry entry = zip.getEntry(library.entry());
@@ -319,11 +324,12 @@ final class FetchNatives {
   }
 
   /**
-   * Builds the library from its source archive with cmake and make in {@code builds/<name>/} and
-   * returns the built file. A build of the same archive, options and entry is reused.
+   * Builds the library from its source archive with cmake in {@code builds/<name>/} and returns
+   * the built file: with make for Linux, with Visual Studio's compiler for Windows. A build of the
+   * same archive, options and entry is reused.
    */
-  private static Path build(String label, Path config, Library library, Path archive, Path builds)
-      throws IOException, InterruptedException, Failure {
+  private static Path build(String label, Path config, String platform, Library library,
+      Path archive, Path builds) throws IOException, InterruptedException, Failure {
     Path work = builds.resolve(library.name());
     Path built = work.resolve(library.file());
     Path stamp = work.resolve("inputs.txt");
@@ -334,12 +340,18 @@ final class FetchNatives {
       System.out.println(label + ": " + library.name() + " is already built");
       return built;
     }
-    String cc = System.getenv("CC") == null || System.getenv("CC").isBlank()
-        ? "cc" : System.getenv("CC").trim().split("\\s+")[0];
-    require(label, library, "cmake", "CMake 3.16 or later", "cmake");
-    require(label, library, "make", "make", "make");
-    require(label, library, cc, "a C compiler", "build-essential");
-    require(label, library, "pkg-config", "pkg-config", "pkg-config");
+    // Null when building for Linux.
+    WindowsTools windows = null;
+    if (platform.startsWith("windows-")) {
+      windows = WindowsTools.find(label, library);
+    } else {
+      String cc = System.getenv("CC") == null || System.getenv("CC").isBlank()
+          ? "cc" : System.getenv("CC").trim().split("\\s+")[0];
+      require(label, library, "cmake", "CMake 3.16 or later", "cmake");
+      require(label, library, "make", "make", "make");
+      require(label, library, cc, "a C compiler", "build-essential");
+      require(label, library, "pkg-config", "pkg-config", "pkg-config");
+    }
 
     deleteTree(work);
     Path source = Files.createDirectories(work.resolve("source"));
@@ -348,10 +360,12 @@ final class FetchNatives {
     long start = System.nanoTime();
     System.out.println(label + ": building " + library.name() + " " + library.version() + " from "
         + library.archiveName() + ", log in " + log);
-    if (library.archiveName().endsWith(".tar.xz")) {
+    if (library.archiveName().endsWith(".tar.xz") && windows != null) {
+      windows.untar(label, library, archive, source, log);
+    } else if (library.archiveName().endsWith(".tar.xz")) {
       // The JDK cannot read xz. GNU tar strips a leading / and refuses names that contain "..".
       run(label, library,
-          List.of("tar", "-xJf", archive.toString(), "-C", source.toString()), log);
+          List.of("tar", "-xJf", archive.toString(), "-C", source.toString()), log, null);
     } else {
       unzip(archive, source);
     }
@@ -363,10 +377,12 @@ final class FetchNatives {
         root = list.getFirst();
       }
     }
-    List<String> configure = new ArrayList<>(List.of(
-        "cmake", "-S", root.toString(), "-B", tree.toString(), "-G", "Unix Makefiles"));
+    List<String> configure = new ArrayList<>(windows != null
+        ? List.of(windows.cmake().toString(), "-S", root.toString(), "-B", tree.toString(), "-G",
+            windows.generator())
+        : List.of("cmake", "-S", root.toString(), "-B", tree.toString(), "-G", "Unix Makefiles"));
     configure.addAll(library.cmake());
-    run(label, library, configure, log);
+    run(label, library, configure, log, windows);
     List<String> off = new ArrayList<>();
     for (String line : read(log)) {
       Matcher result = CMAKE_RESULT.matcher(line.strip());
@@ -375,7 +391,12 @@ final class FetchNatives {
         off.add(result.group(1));
       }
     }
-    if (!off.isEmpty()) {
+    if (!off.isEmpty() && windows != null) {
+      throw new Failure(label + ": cmake turned off " + String.join(", ", off) + ", which "
+          + library.name() + ".cmake sets ON. The log says why: " + log + "\n"
+          + "Fix that and build again, or build without the native libraries:"
+          + " mvn verify -P '!" + label + "'");
+    } else if (!off.isEmpty()) {
       throw new Failure(label + ": cmake turned off " + String.join(", ", off) + ", which "
           + library.name() + ".cmake sets ON, because development files are missing.\n"
           + "The log says which: " + log + "\n"
@@ -383,8 +404,10 @@ final class FetchNatives {
           + "Install them and build again, or build without the native libraries:"
           + " mvn verify -P '!" + label + "'");
     }
-    run(label, library, List.of(
-        "make", "-C", tree.toString(), "-j" + Runtime.getRuntime().availableProcessors()), log);
+    run(label, library, windows != null
+        ? List.of(windows.cmake().toString(), "--build", tree.toString())
+        : List.of("make", "-C", tree.toString(), "-j" + Runtime.getRuntime().availableProcessors()),
+        log, windows);
     Path entry = tree.resolve(library.entry());
     if (!Files.isRegularFile(entry)) {
       throw new Failure(config + ": the build of " + library.name() + " made no file "
@@ -419,23 +442,34 @@ final class FetchNatives {
         + "or build without the native libraries: mvn verify -P '!" + label + "'");
   }
 
-  /** Runs {@code command}, appending its output to {@code log}. */
-  private static void run(String label, Library library, List<String> command, Path log)
-      throws IOException, InterruptedException, Failure {
+  /**
+   * Runs {@code command}, appending its output to {@code log}: for Windows ({@code windows} not
+   * null) in the environment of Visual Studio's developer prompt, else in this process's.
+   */
+  private static void run(String label, Library library, List<String> command, Path log,
+      WindowsTools windows) throws IOException, InterruptedException, Failure {
     Files.writeString(log, "$ " + String.join(" ", command) + "\n",
         StandardOpenOption.CREATE, StandardOpenOption.APPEND);
-    Process process = new ProcessBuilder(command)
+    ProcessBuilder builder = new ProcessBuilder(command)
         .redirectErrorStream(true)
-        .redirectOutput(ProcessBuilder.Redirect.appendTo(log.toFile()))
-        .start();
-    int status = process.waitFor();
+        .redirectOutput(ProcessBuilder.Redirect.appendTo(log.toFile()));
+    if (windows != null) {
+      builder.environment().clear();
+      builder.environment().putAll(windows.environment());
+    }
+    int status = builder.start().waitFor();
     if (status != 0) {
       List<String> lines = read(log);
       throw new Failure(label + ": building " + library.name() + " failed: " + command.getFirst()
           + " ended with status " + status + ". The end of " + log + ":\n\n  "
           + String.join("\n  ", lines.subList(Math.max(0, lines.size() - 20), lines.size()))
-          + "\n\nA missing development package is the usual cause; natives.properties names the"
-          + " packages.\nInstall them and build again, or build without the native libraries:"
+          + (windows != null
+              ? "\n\nWhen cmake fails, the usual cause is a Visual Studio installation without a"
+                  + " Windows SDK, which its\ninstaller adds, or a CMake older than 3.16. Fix that"
+                  + " and build again, or build without the native libraries:"
+              : "\n\nA missing development package is the usual cause; natives.properties names"
+                  + " the packages.\nInstall them and build again, or build without the native"
+                  + " libraries:")
           + " mvn verify -P '!" + label + "'");
     }
   }
@@ -443,6 +477,274 @@ final class FetchNatives {
   private static List<String> read(Path log) throws IOException {
     // Compilers write in the user's locale; a malformed byte must not hide the message.
     return new String(Files.readAllBytes(log), StandardCharsets.UTF_8).lines().toList();
+  }
+
+  /**
+   * The tools that build a library from source for Windows. None of them has to be on the user's
+   * PATH:
+   *
+   * <ul>
+   *   <li>Visual Studio 2022 or later, or its Build Tools, with the C++ x64 tools: the
+   *       installation of the developer prompt the tool runs in ({@code VSINSTALLDIR}), else the
+   *       newest one that {@code vswhere.exe} finds, one with Visual Studio's own CMake first.
+   *       Every command runs in the environment that its {@code VsDevCmd.bat} sets up, which has
+   *       cl, link and nmake on the PATH.
+   *   <li>cmake: the file that the environment variable {@code CMAKE} names, else the first
+   *       {@code cmake.exe} on that environment's PATH, where VsDevCmd puts Visual Studio's own
+   *       (the component "C++ CMake tools for Windows") ahead of the user's PATH.
+   *   <li>The generator: Ninja when that PATH has {@code ninja.exe}, which the same component
+   *       brings, else NMake, which compiles one file at a time and takes more than twice as
+   *       long.
+   *   <li>Windows' own {@code tar.exe} for a {@code .tar.xz} archive.
+   * </ul>
+   *
+   * @param environment the environment of the developer prompt, with names in any case
+   */
+  record WindowsTools(Path cmake, String generator, Map<String, String> environment) {
+
+    private static final Path VSDEVCMD = Path.of("Common7", "Tools", "VsDevCmd.bat");
+    private static final String VC_TOOLS = "Microsoft.VisualStudio.Component.VC.Tools.x86.x64";
+    private static final String VC_CMAKE = "Microsoft.VisualStudio.Component.VC.CMake.Project";
+    // When set, cmd runs no program from the current folder by its bare name, as VsDevCmd does.
+    private static final String NO_CURRENT_FOLDER = "NoDefaultCurrentDirectoryInExePath";
+    private static final String SCRIPT_VARIABLE = "RETHINKJ_UI_VSDEVCMD";
+
+    private static WindowsTools found;
+
+    /** Finds the tools once per run, or fails with what is missing and how to provide it. */
+    static WindowsTools find(String label, Library library)
+        throws IOException, InterruptedException, Failure {
+      if (found != null) {
+        return found;
+      }
+      if (!System.getProperty("os.name", "").startsWith("Windows")) {
+        throw new Failure(label + ": " + library.name() + " is built from source with Visual"
+            + " Studio, which needs Windows.\nBuild " + label + " on Windows, or build without"
+            + " the native libraries: mvn verify -P '!" + label + "'");
+      }
+      Path vs = visualStudio(label, library);
+      Map<String, String> environment = developerEnvironment(label, vs);
+      if (onPath(environment, "cl.exe") == null) {
+        throw new Failure(label + ": building " + library.name() + " needs the C++ x64 tools of"
+            + " Visual Studio, but " + vs + "\nhas none: its VsDevCmd.bat puts no cl.exe on the"
+            + " PATH. Add the workload \"Desktop development with C++\"\nto it with the Visual"
+            + " Studio Installer, or set VSINSTALLDIR to an installation that has it, and build"
+            + " again,\nor build without the native libraries: mvn verify -P '!" + label + "'");
+      }
+      Path cmake = cmake(label, library, vs, environment);
+      String version = cmakeVersion(label, library, cmake, environment);
+      String generator = onPath(environment, "ninja.exe") != null ? "Ninja" : "NMake Makefiles";
+      System.out.println(label + ": building with Visual Studio "
+          + environment.get("VisualStudioVersion") + " (MSVC " + environment.get("VCToolsVersion")
+          + ") in " + vs + ", " + version + " in " + cmake + ", generator " + generator);
+      found = new WindowsTools(cmake, generator, environment);
+      return found;
+    }
+
+    /** The folder of the Visual Studio installation to build with. */
+    private static Path visualStudio(String label, Library library)
+        throws IOException, InterruptedException, Failure {
+      String chosen = System.getenv("VSINSTALLDIR");
+      if (chosen != null && !chosen.isBlank()) {
+        Path vs = path(chosen);
+        if (vs == null || !Files.isRegularFile(vs.resolve(VSDEVCMD))) {
+          throw new Failure(label + ": VSINSTALLDIR is " + chosen.strip() + ", which has no "
+              + VSDEVCMD + ".\nSet it to the folder of a Visual Studio installation, or remove it"
+              + " to build with the newest one\nthat has the C++ x64 tools, and build again.");
+        }
+        return vs;
+      }
+      String programs = System.getenv("ProgramFiles(x86)");
+      Path vswhere = Path.of(programs == null || programs.isBlank() ? "C:\\Program Files (x86)"
+          : programs.strip(), "Microsoft Visual Studio", "Installer", "vswhere.exe");
+      if (Files.isRegularFile(vswhere)) {
+        for (List<String> components : List.of(List.of(VC_TOOLS, VC_CMAKE), List.of(VC_TOOLS))) {
+          List<String> command = new ArrayList<>(List.of(vswhere.toString(), "-latest",
+              "-products", "*", "-utf8", "-property", "installationPath", "-requires"));
+          command.addAll(components);
+          Process process = new ProcessBuilder(command)
+              .redirectError(ProcessBuilder.Redirect.DISCARD)
+              .start();
+          String out = new String(process.getInputStream().readAllBytes(), StandardCharsets.UTF_8)
+              .strip();
+          Path vs = process.waitFor() == 0 && !out.isEmpty() ? path(out) : null;
+          if (vs != null && Files.isRegularFile(vs.resolve(VSDEVCMD))) {
+            return vs;
+          }
+        }
+      }
+      throw new Failure(label + ": building " + library.name() + " needs Visual Studio 2022 or"
+          + " later, or its Build Tools,\nwith the C++ x64 tools, but "
+          + (Files.isRegularFile(vswhere) ? "vswhere.exe finds no such installation."
+              : "there is no " + vswhere + ",\nwhich the Visual Studio Installer puts there.")
+          + "\nInstall the workload \"Desktop development with C++\" with the Visual Studio"
+          + " Installer\n(https://visualstudio.microsoft.com/downloads/; the Build Tools are"
+          + " enough) and build again,\nor set VSINSTALLDIR to the folder of an installation that"
+          + " has it,\nor build without the native libraries: mvn verify -P '!" + label + "'");
+    }
+
+    /**
+     * The environment that the {@code VsDevCmd.bat} of the installation sets up for x64. The
+     * script that runs it is plain ASCII and names no path, so that cmd reads it the same in
+     * every code page; the environment comes back in UTF-16 on standard output and is written to
+     * no file. VsDevCmd runs {@code vswhere.exe} from its own folder, so the variable that forbids
+     * that is unset while it runs, and set again for the build.
+     */
+    private static Map<String, String> developerEnvironment(String label, Path vs)
+        throws IOException, InterruptedException, Failure {
+      Path cmd = system32("cmd.exe");
+      Path dir = Files.createTempDirectory("rethinkj-ui-vsdevcmd-");
+      try {
+        Path log = dir.resolve("vsdevcmd.log");
+        Files.writeString(dir.resolve("environment.cmd"), "@echo off\r\n"
+            + "set \"" + NO_CURRENT_FOLDER + "=\"\r\n"
+            + "call \"%" + SCRIPT_VARIABLE + "%\" -arch=amd64 -host_arch=amd64 -no_logo"
+            + " > vsdevcmd.log 2>&1\r\n"
+            + "if errorlevel 1 exit /b 1\r\n"
+            + "set \"" + SCRIPT_VARIABLE + "=\"\r\n"
+            + "\"%ComSpec%\" /d /u /c set\r\n", StandardCharsets.US_ASCII);
+        ProcessBuilder builder = new ProcessBuilder(cmd.toString(), "/d", "/c",
+            ".\\environment.cmd")
+            .directory(dir.toFile())
+            .redirectError(ProcessBuilder.Redirect.appendTo(dir.resolve("cmd.log").toFile()));
+        builder.environment().put(SCRIPT_VARIABLE, vs.resolve(VSDEVCMD).toString());
+        builder.environment().put("ComSpec", cmd.toString());
+        Process process = builder.start();
+        String out = new String(process.getInputStream().readAllBytes(),
+            StandardCharsets.UTF_16LE);
+        int status = process.waitFor();
+        Map<String, String> environment = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
+        for (String line : out.split("\r\n")) {
+          int equals = line.indexOf('=', 1);
+          if (equals > 0) {
+            environment.put(line.substring(0, equals), line.substring(equals + 1));
+          }
+        }
+        if (status != 0 || !environment.containsKey("PATH")) {
+          List<String> lines = new ArrayList<>();
+          for (Path file : List.of(log, dir.resolve("cmd.log"))) {
+            if (Files.isRegularFile(file)) {
+              lines.addAll(read(file));
+            }
+          }
+          throw new Failure(label + ": " + vs.resolve(VSDEVCMD) + " -arch=amd64 failed with"
+              + " status " + status + ":\n\n  "
+              + String.join("\n  ", lines.subList(Math.max(0, lines.size() - 20), lines.size()))
+              + "\n\nRepair the installation with the Visual Studio Installer, or set VSINSTALLDIR"
+              + " to another one, and build again,\nor build without the native libraries:"
+              + " mvn verify -P '!" + label + "'");
+        }
+        environment.remove(NO_CURRENT_FOLDER);
+        String noCurrentFolder = System.getenv(NO_CURRENT_FOLDER);
+        if (noCurrentFolder != null) {
+          environment.put(NO_CURRENT_FOLDER, noCurrentFolder);
+        }
+        return environment;
+      } finally {
+        deleteTree(dir);
+      }
+    }
+
+    /** The cmake to build with. */
+    private static Path cmake(String label, Library library, Path vs,
+        Map<String, String> environment) throws Failure {
+      String named = System.getenv("CMAKE");
+      if (named != null && !named.isBlank()) {
+        Path cmake = path(named);
+        if (cmake == null || !Files.isRegularFile(cmake)) {
+          throw new Failure(label + ": CMAKE is " + named.strip() + ", which is not a file.\n"
+              + "Set it to the path of cmake.exe, or remove it to use the cmake.exe on the PATH"
+              + " or Visual Studio's,\nand build again.");
+        }
+        return cmake;
+      }
+      Path cmake = onPath(environment, "cmake.exe");
+      if (cmake != null) {
+        return cmake;
+      }
+      throw new Failure(label + ": building " + library.name() + " needs CMake 3.16 or later,"
+          + " but CMAKE is not set, and neither the PATH\nnor Visual Studio in " + vs
+          + " has cmake.exe. Either\n"
+          + "- add the component \"C++ CMake tools for Windows\" to that installation with the"
+          + " Visual Studio Installer\n  and build again,\n"
+          + "- or, without installing anything, unpack the Windows x64 ZIP from"
+          + " https://cmake.org/download/ anywhere\n  and build once with CMAKE set to its"
+          + " cmake.exe; later builds reuse what it builds in fetched\\builds:\n"
+          + "    $env:CMAKE = '<folder>\\bin\\cmake.exe'; mvn verify\n"
+          + "- or build without the native libraries: mvn verify -P '!" + label + "'");
+    }
+
+    /** The first line of {@code cmake --version}, such as "cmake version 4.3.1". */
+    private static String cmakeVersion(String label, Library library, Path cmake,
+        Map<String, String> environment) throws InterruptedException, Failure {
+      try {
+        ProcessBuilder builder = new ProcessBuilder(cmake.toString(), "--version")
+            .redirectErrorStream(true);
+        builder.environment().clear();
+        builder.environment().putAll(environment);
+        Process process = builder.start();
+        List<String> lines = new String(process.getInputStream().readAllBytes(),
+            StandardCharsets.UTF_8).lines().toList();
+        if (process.waitFor() == 0 && !lines.isEmpty()) {
+          return lines.getFirst().strip();
+        }
+      } catch (IOException e) {
+        // reported below
+      }
+      throw new Failure(label + ": building " + library.name() + " needs CMake 3.16 or later,"
+          + " but '" + cmake + " --version' does not run.\nRepair or replace that CMake, or set"
+          + " CMAKE to another cmake.exe, and build again,\nor build without the native"
+          + " libraries: mvn verify -P '!" + label + "'");
+    }
+
+    /**
+     * Unpacks a {@code .tar.xz} archive with Windows' own {@code tar.exe}, which reads xz. That
+     * tar cannot make a symbolic link without a privilege that few users have, and fails, so it
+     * does not unpack the archive but rewrites it as a zip archive, which the JDK unpacks. A link
+     * becomes a file that holds the path it points to, as Git makes links where it cannot make
+     * them; HarfBuzz's archive has one, CLAUDE.md.
+     */
+    void untar(String label, Library library, Path archive, Path source, Path log)
+        throws IOException, InterruptedException, Failure {
+      Path tar = system32("tar.exe");
+      if (!Files.isRegularFile(tar)) {
+        throw new Failure(label + ": unpacking " + archive.getFileName() + " needs " + tar
+            + ", which Windows has had since Windows 10 version 1803.");
+      }
+      Path zip = source.resolveSibling("source.zip");
+      run(label, library, List.of(tar.toString(), "-c", "-f", zip.toString(), "--format", "zip",
+          "--options", "zip:compression=store", "@" + archive), log, this);
+      unzip(zip, source);
+      Files.delete(zip);
+    }
+
+    private static Path system32(String file) {
+      String root = System.getenv("SystemRoot");
+      return Path.of(root == null || root.isBlank() ? "C:\\Windows" : root.strip(), "System32",
+          file);
+    }
+
+    /** The file in the first folder of the environment's PATH that has it, or null. */
+    private static Path onPath(Map<String, String> environment, String file) {
+      String path = environment.get("PATH");
+      for (String folder : path == null ? new String[0] : path.split(";")) {
+        Path candidate = path(folder.strip().replace("\"", ""));
+        if (candidate != null && Files.isRegularFile(candidate.resolve(file))) {
+          return candidate.resolve(file);
+        }
+      }
+      return null;
+    }
+
+    /** The absolute path that {@code text} names, or null. */
+    private static Path path(String text) {
+      try {
+        Path path = Path.of(text.strip());
+        return text.isBlank() || !path.isAbsolute() ? null : path;
+      } catch (java.nio.file.InvalidPathException e) {
+        return null;
+      }
+    }
   }
 
   /** Unpacks the zip archive into {@code target}, refusing entries that point outside it. */
