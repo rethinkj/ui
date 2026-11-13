@@ -2,6 +2,7 @@ package com.rethinkj.ui;
 
 import com.rethinkj.ui.text.Font;
 import java.util.Arrays;
+import java.util.Locale;
 import java.util.Objects;
 
 /**
@@ -42,6 +43,34 @@ public final class Spans {
   Spans(int length, boolean discard) {
     this.length = length;
     this.discard = discard;
+  }
+
+  /**
+   * Empty spans for a line of {@code length} characters, to test a highlighter with; {@link
+   * #toString} lists what it was told.
+   */
+  public Spans(int length) {
+    this(length, false);
+  }
+
+  /**
+   * What the spans hold, one range per line in the order given, as {@code color 0-6 FF7C3AED},
+   * with {@code line FFE0E7FF} first for a line's background.
+   */
+  @Override
+  public String toString() {
+    StringBuilder out = new StringBuilder();
+    if (lineBackground != 0) {
+      out.append("line ").append(Integer.toHexString(lineBackground).toUpperCase(Locale.ROOT))
+          .append('\n');
+    }
+    String[] names = {"color", "font", "background", "underline"};
+    for (int i = 0; i < count; i++) {
+      out.append(names[kinds[i]]).append(' ').append(froms[i]).append('-').append(tos[i])
+          .append(' ').append(kinds[i] == FONT ? fonts[i].toString()
+              : Integer.toHexString(colors[i]).toUpperCase(Locale.ROOT)).append('\n');
+    }
+    return out.toString();
   }
 
   /** The text of the range in colour {@code argb}, as 0xAARRGGBB, instead of the text's own. */
