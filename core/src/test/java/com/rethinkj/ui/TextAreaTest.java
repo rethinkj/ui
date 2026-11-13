@@ -186,7 +186,7 @@ class TextAreaTest {
     key(app, "ArrowLeft", CONTROL);
     key(app, "ArrowLeft", CONTROL);
     assertEquals("one |two\n\nthree", show(app), "over the empty line");
-    key(app, "ArrowRight", CONTROL);
+    key(app, "End"); // Control+ArrowRight would go on to "three" on Windows (Editor.WORD_ENDS)
     key(app, "ArrowRight");
     assertEquals("one two\n|\nthree", show(app), "over a line feed");
     key(app, "Delete");
