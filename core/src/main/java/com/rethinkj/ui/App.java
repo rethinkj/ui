@@ -142,6 +142,14 @@ public final class App<S> {
   /** How long the caret of a focused field is on, and then off, in seconds of the app's clock. */
   public static final double BLINK = 0.5;
 
+  /**
+   * How long, at least, the {@link El#whenPressed} look of an element that Enter or Space pressed
+   * shows, in seconds of the app's clock from the key going down, when the key comes up in a later
+   * frame than the one that pressed. A key held longer shows the look until it is up; one that goes
+   * down and up in the same frame, as a script's {@code key} step, shows none.
+   */
+  public static final double KEY_PRESS = 0.1;
+
   private boolean cycling; // whether the last frame showed an element with an El#cycle
 
   /**
@@ -187,6 +195,11 @@ public final class App<S> {
   private Object pressed; // the identity of the element a press is on, until the pointer is up
   private int pressClicks; // the presses in quick succession that the one on pressed completes
   private int pressModifiers; // the modifiers held when it went down
+  private Object keyPressed; // the element Enter or Space pressed, while its pressed look shows
+  private String keyPressKey; // the key that pressed it, until it is up
+  private long keyPressFrame; // the frame that dispatched that key
+  private double keyPressUntil; // once the key is up: when the look ends
+  private long frames; // the frames run, for keyPressFrame
   private Dragging dragging; // a pointer down on an element with a drag handler, until it is up
   private Grab grab; // a press on the thumb of a scrollbar, until the pointer is up
   private El barArea; // the scroll area whose bar is under the pointer or dragged, in this tree
@@ -964,6 +977,10 @@ public final class App<S> {
           && key.modifiers() == 0
           && (key.name().equals("Enter") || key.name().equals("Space"))) {
         if (!key.repeat()) {
+          keyPressed = animator.identity(el); // shows pressed until the key is up; see KEY_PRESS
+          keyPressKey = key.name();
+          keyPressFrame = frames;
+          keyPressUntil = time + KEY_PRESS;
           el.onPress()
               .press(1, 0, el.width() / 2.0 + el.scrollX(), el.height() / 2.0 + el.scrollY());
           handled = true;
@@ -1009,6 +1026,12 @@ public final class App<S> {
   public void keyUp(Key key) {
     Objects.requireNonNull(key, "key");
     enqueue(() -> {
+      if (key.name().equals(keyPressKey)) {
+        keyPressKey = null;
+        if (frames == keyPressFrame || time >= keyPressUntil) {
+          keyPressed = null; // in the frame that pressed, the look never showed
+        }
+      }
       boolean called = false;
       for (El el : focusPath().reversed()) {
         if (el.onKeyUp() != null) {
@@ -1352,6 +1375,9 @@ public final class App<S> {
       return time; // handlers that a frame queued, such as El#onRowsBuilt, or an El#cycle
     }
     double next = Math.min(restDue, shownDue);
+    if (keyPressed != null && keyPressKey == null) {
+      next = Math.min(next, keyPressUntil);
+    }
     if (!timers.isEmpty()) {
       next = Math.min(next, timers.peek().at());
     }
@@ -1441,7 +1467,9 @@ public final class App<S> {
   /**
    * The element of the last frame's {@link #tree} that a press is on, between the pointer down
    * that went to it and the next pointer up, or null: an element with a press or drag handler, or
-   * a text field that the press selects in.
+   * a text field that the press selects in. Also the element that Enter or Space pressed while it
+   * has the focus, from the key going down until it is up and at least {@link #KEY_PRESS} after it
+   * went down, unless it came up in the same frame.
    */
   public El pressed() {
     Object id = pressedId();
@@ -1516,6 +1544,10 @@ public final class App<S> {
     enqueue(() -> {
       this.active = active;
       blinkStart = time;
+      if (!active) { // its key comes up elsewhere, if at all
+        keyPressed = null;
+        keyPressKey = null;
+      }
       return false;
     });
   }
@@ -2321,6 +2353,10 @@ public final class App<S> {
    *     scrolled
    */
   public boolean frame() {
+    frames++;
+    if (keyPressed != null && keyPressKey == null && time >= keyPressUntil) {
+      keyPressed = null; // the look of a key that is up ends; wanted() then differs from shown
+    }
     ran = false;
     Object wasFocused = focusId;
     boolean hadRing = ring;
@@ -3321,10 +3357,11 @@ public final class App<S> {
 
   /**
    * The identity of the element a press is on: the one with a press or drag handler it went to,
-   * or the text field it selects in; null between presses.
+   * the text field it selects in, or the one Enter or Space pressed (see {@link #KEY_PRESS}); null
+   * between presses.
    */
   private Object pressedId() {
-    return pressed != null ? pressed : selecting;
+    return pressed != null ? pressed : selecting != null ? selecting : keyPressed;
   }
 
   /** The identity of the element that a drag, a selection or a thumb's drag holds, or null. */

@@ -627,7 +627,8 @@ class ScriptTest {
             + " upper case, with or without shift: write A.");
     assertEquals(
         "line 1: key Tab shfit\n  Write `key <name>`, followed by any of shift, control, alt and"
-            + " meta that are held, for example `key Enter` or `key Tab shift` for Shift+Tab.",
+            + " meta that are held, for example `key Enter` or `key Tab shift` for Shift+Tab,"
+            + " and `down` or `up` for one half of the press, as `key Space down` to hold it.",
         failure("key Tab shfit\n"));
     assertFailure("key\n", "line 1: key\n  Write `key <name>`");
     assertEquals(
