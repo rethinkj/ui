@@ -113,6 +113,40 @@ class FormatTest {
     assertEquals("", Format.DATE.text(null));
   }
 
+  /** What a format writes it reads back, also at the ends of each type. */
+  @Test
+  void theEndsOfEachTypeAreReadBackAsTheyWereWritten() {
+    List<Object[]> values = List.of(
+        new Object[] {Format.TEXT, ""},
+        new Object[] {Format.TEXT, "é 🪟\nlong text ".repeat(1000)},
+        new Object[] {Format.INTEGER, Integer.MIN_VALUE},
+        new Object[] {Format.INTEGER, Integer.MAX_VALUE},
+        new Object[] {Format.LONG, Long.MIN_VALUE},
+        new Object[] {Format.LONG, Long.MAX_VALUE},
+        new Object[] {Format.BIG_INTEGER, BigInteger.TEN.pow(200).negate()},
+        new Object[] {Format.DECIMAL, new BigDecimal("-12345678901234567890.0001")},
+        new Object[] {Format.DATE, LocalDate.MIN},
+        new Object[] {Format.DATE, LocalDate.MAX},
+        new Object[] {Format.TIME, LocalTime.MIN},
+        new Object[] {Format.TIME, LocalTime.MAX},
+        new Object[] {Format.DATE_TIME, LocalDateTime.MIN},
+        new Object[] {Format.DATE_TIME, LocalDateTime.MAX},
+        new Object[] {Format.OFFSET_DATE_TIME, OffsetDateTime.MIN},
+        new Object[] {Format.OFFSET_DATE_TIME, OffsetDateTime.MAX},
+        new Object[] {Format.BOOLEAN, true},
+        new Object[] {Format.BOOLEAN, false});
+    for (Object[] v : values) {
+      @SuppressWarnings("unchecked")
+      Format<Object> format = (Format<Object>) v[0];
+      Format.Parsed<Object> parsed = format.parse(format.text(v[1]));
+      assertTrue(parsed.valid(), parsed::toString);
+      assertEquals(v[1], parsed.value());
+      assertEquals("", format.text(null));
+      assertNull(format.optional().parse("").value());
+      assertTrue(format.optional().parse("").valid());
+    }
+  }
+
   @Test
   void choicesAreReadByTheirLabels() {
     Format<Status> format = Format.choice(List.of(Status.values()), Status::label);

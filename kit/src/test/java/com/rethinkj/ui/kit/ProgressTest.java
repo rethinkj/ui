@@ -11,6 +11,8 @@ import com.rethinkj.ui.El;
 import com.rethinkj.ui.Script;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.List;
+import java.util.function.Supplier;
 import org.junit.jupiter.api.Test;
 
 /** Bars, running bars, lines, spinners and a busy button: what a dump says and how they move. */
@@ -192,6 +194,25 @@ class ProgressTest {
     }
     assertEquals(0, fill(app).x());
     assertEquals(50, fill(app).width(), 1e-3);
+  }
+
+  /** NaN is no value, not the mark of a running bar: the forms with a value show 0 and stand. */
+  @Test
+  void aBarLineOrLabeledBarWithNanShowsNothingDoneAndDoesNotRun() {
+    TextLibraries.assumeLoaded();
+    for (Supplier<El> shown : List.<Supplier<El>>of(
+        () -> Progress.bar(T, Double.NaN),
+        () -> Progress.line(T, Double.NaN),
+        () -> Progress.labeled(T, "orders.csv", Double.NaN, "0 MB"))) {
+      App<Object> app =
+          new App<>(new Object(), x -> col().w(300).child(shown.get().key("bar")));
+      app.resize(300, 100, 1);
+      app.frame();
+      String dump = app.tree().dump();
+      assertTrue(StructureTest.line(dump, "#bar").endsWith(" value=\"0%\""), dump);
+      assertEquals(0, Workbench.find(app, "fill").width(), dump);
+      assertFalse(app.isMoving(), dump);
+    }
   }
 
   private static El fill(App<?> app) {

@@ -17,6 +17,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.function.Function;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -209,6 +210,71 @@ class ComboBoxTest {
     tree = run("press #database");
     assertTrue(line(tree, "#database").contains(" disabled"), tree);
     assertFalse(tree.contains("role=listbox"), tree);
+  }
+
+  /** Shift+Tab closes the list as Tab does, in each kind, and the focus moves back. */
+  @Test
+  void shiftTabClosesTheListAndMovesTheFocusBack() throws IOException {
+    List<String> values = List.of("A", "B");
+    List<ComboBox.Item> items = List.of(ComboBox.item("A"), ComboBox.item("B"));
+    List<Function<ComboBox.State, El>> kinds = List.of(
+        box -> ComboBox.comboBox(Theme.DARK, values, 0, box, i -> {}),
+        box -> ComboBox.items(Theme.DARK, items, 0, box, i -> {}),
+        box -> ComboBox.free(Theme.DARK, "", values, box, v -> {}));
+    for (Function<ComboBox.State, El> kind : kinds) {
+      ComboBox.State box = new ComboBox.State();
+      App<Object> other = new App<>(
+          new Object(),
+          x -> col()
+              .children(
+                  Button.button(Theme.DARK, Button.Variant.SECONDARY, "Before", () -> {})
+                      .key("before"),
+                  kind.apply(box).key("box")));
+      Script.run(
+          "size 320 200\nframe\nfocus #box\nkey ArrowDown alt\nframe\nkey Tab shift\nframe",
+          other,
+          out);
+      assertFalse(box.isOpen(), other.tree().dump());
+      assertEquals("before", other.focused().key(), other.tree().dump());
+    }
+  }
+
+  /** The app changes the choices while the list is open: the highlight goes with its entry. */
+  @Test
+  void theHighlightStaysOnItsEntryWhenTheChoicesChange() throws IOException {
+    final class Choices {
+      List<String> values = List.of("A", "B", "C");
+      String value = "B";
+      final ComboBox.State box = new ComboBox.State();
+    }
+    Choices c = new Choices();
+    App<Choices> choices = new App<>(
+        c,
+        x -> col()
+            .child(ComboBox.comboBox(Theme.DARK, x.values, x.value, v -> v, x.box, v -> {
+                  x.value = v;
+                })
+                .key("box")));
+    Script.run("size 320 200\nframe\npress #box\nframe", choices, out);
+    c.values = List.of("B", "C");
+    choices.invalidate();
+    Script.run("frame\nkey Enter\nframe", choices, out);
+    assertEquals("B", c.value, "the current choice, now in the first row");
+
+    c.values = List.of("A", "B", "C");
+    Script.run("press #box\nframe\nkey ArrowDown\nframe", choices, out);
+    c.values = List.of("C", "B");
+    choices.invalidate();
+    Script.run("frame\nsnap s", choices, out);
+    String tree = Files.readString(out.resolve("s.tree.txt"));
+    assertTrue(line(tree, "#option-0").contains(" selected"), "C, where it went: " + tree);
+    c.values = List.of("A", "B");
+    choices.invalidate();
+    Script.run("frame\nsnap s", choices, out);
+    tree = Files.readString(out.resolve("s.tree.txt"));
+    assertTrue(line(tree, "#option-1").contains(" selected"), "C gone: the current one " + tree);
+    Script.run("key Enter\nframe", choices, out);
+    assertEquals("B", c.value);
   }
 
   @ParameterizedTest(name = "{0} at {1}x")

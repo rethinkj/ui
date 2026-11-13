@@ -15,6 +15,7 @@ import com.rethinkj.ui.Script;
 import com.rethinkj.ui.text.TextRendering;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.function.UnaryOperator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -141,5 +142,37 @@ class PasswordFieldTest {
     assertFalse(login.revealed);
     assertEquals(null, disabled.focused());
     assertTrue(line(disabled, "role=button").endsWith("disabled"), line(disabled, "role=button"));
+  }
+
+  /** Invalid before {@code revealable} or made so by a form after it: the danger border stays. */
+  @Test
+  void anInvalidFieldKeepsItsDangerBorderWhileItOrItsButtonHasTheFocus() throws IOException {
+    App<Login> before = app(f -> TextField.invalid(T, f));
+    Login login = new Login();
+    App<Login> after = new App<>(
+        login,
+        s -> col()
+            .padding(16)
+            .child(Form.form(
+                T,
+                Form.Labels.ABOVE,
+                Form.field(
+                        "Password",
+                        revealable(
+                            T,
+                            passwordField(T, s.password, null, v -> s.password = v)
+                                .key("pw"),
+                            s.revealed,
+                            () -> s.revealed = !s.revealed))
+                    .error("Rejected"))));
+    after.textRendering(TextRendering.LINUX);
+    for (App<Login> app : List.of(before, after)) {
+      run(app, "focus #pw\nframe\nadvance 1");
+      assertTrue(line(app, "#pw").contains(" invalid"), line(app, "#pw"));
+      assertEquals(T.status().danger(), find(app, "pw").borderColor(), "the field focused");
+      run(app, "key Tab\nframe\nadvance 1");
+      assertEquals("Show password", app.focused().label());
+      assertEquals(T.status().danger(), find(app, "pw").borderColor(), "its button focused");
+    }
   }
 }

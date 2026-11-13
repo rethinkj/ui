@@ -179,6 +179,7 @@ public final class FilterList {
     int highlight = -1; // the row, or -1 for none
     int want = BEST; // what to highlight at the next build: an entry's index, BEST, -1 or KEEP
     boolean none; // nothing highlighted until a key or the pointer does it (a free combo box)
+    int current = -1; // the entry highlighted in place of the best while nothing is typed, or -1
     // What was filtered: of which list, for which text, the entries matched in no order.
     List<Entry> source;
     String filtered;
@@ -250,6 +251,20 @@ public final class FilterList {
       return at >= 0 ? entries.get(at) : null;
     }
 
+    /** The row of an entry that is {@code e} by its text, group and detail, or -1. */
+    int rowOf(Entry e) {
+      for (int row = 0; row < rows.length; row++) {
+        Entry at = entry(row);
+        if (at != null
+            && at.text().equals(e.text())
+            && Objects.equals(at.group(), e.group())
+            && Objects.equals(at.detail(), e.detail())) {
+          return row;
+        }
+      }
+      return -1;
+    }
+
     /** Whether a row is an entry that can be chosen. */
     boolean choosable(int row) {
       Entry e = row >= 0 && row < rows.length ? entry(row) : null;
@@ -269,6 +284,7 @@ public final class FilterList {
 
   /** The rows to show for the state's text, filtering or asking where it has to. */
   static Shown shown(State s, Entries entries) {
+    Shown before = s.shown;
     Shown shown = switch (entries) {
       case Fixed f -> filter(s, f.all());
       case Found f
@@ -276,6 +292,18 @@ public final class FilterList {
       case Found f -> ask(s, f);
     };
     s.shown = shown;
+    if (s.want == State.KEEP && before != null && before.entries() != shown.entries()) {
+      // Other entries under the same highlight: the entry again by what it is, not by its row; one
+      // highlighted while the list was loading was the best of the entries before, not a choice.
+      boolean kept = !before.loading() && before.choosable(s.highlight);
+      s.highlight = kept ? shown.rowOf(before.entry(s.highlight)) : -1;
+      if (!shown.choosable(s.highlight) && !(s.none && !kept)) {
+        s.want = State.BEST;
+      }
+    }
+    if (s.want == State.BEST && s.query.isEmpty() && s.current >= 0) {
+      s.want = s.current;
+    }
     if (s.want == State.BEST) {
       s.highlight = shown.step(-1, 1);
     } else if (s.want >= -1) {

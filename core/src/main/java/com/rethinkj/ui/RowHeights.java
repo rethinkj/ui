@@ -12,6 +12,12 @@ import java.util.function.IntToDoubleFunction;
  * <p>The heights are in a Fenwick tree, so that where a row starts, which row is at a height and
  * how high all rows are together cost a logarithm of the number of rows; measuring a row costs as
  * much. A height measured at one width stays until the row is built again, at whatever width.
+ *
+ * <p>Heights are kept by the row's index, and a change of the count keeps those of the first
+ * rows: rows inserted, removed or moved anywhere but at the end leave the heights at the indexes
+ * where they were, so that rows not built since have another row's height and the offsets above
+ * the view are off by the difference until those rows are built again. An app whose rows move
+ * makes a new {@code RowHeights} for them, which estimates them all anew.
  */
 public final class RowHeights {
 

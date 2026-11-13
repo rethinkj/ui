@@ -5,6 +5,7 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.function.IntPredicate;
 
 /**
  * The editing state of one {@link El#editable} element, which {@link App} keeps by the element's
@@ -364,7 +365,14 @@ final class Editor {
     composition = "";
     from = Math.clamp(from, 0, text.length());
     to = Math.clamp(to, from, text.length());
-    inserted = fit(fitLines(inserted), from, to);
+    String fitted = fit(fitLines(inserted), from, to);
+    if (newCaret > from) { // where the app put it, moved as the line breaks and the limit moved it
+      int offset = newCaret - from;
+      newCaret = offset <= inserted.length()
+          ? from + Math.min(fitIndex(inserted, offset), fitted.length())
+          : newCaret - inserted.length() + fitted.length();
+    }
+    inserted = fitted;
     int length = text.length() - (to - from) + inserted.length();
     newCaret = Math.clamp(newCaret, 0, length);
     run = null;
@@ -688,7 +696,8 @@ final class Editor {
   /**
    * Indents the lines of the selection, or of the caret, by a tab or {@link El#tabSize} spaces, or
    * outdents them by as much as one of those, in one step of the history. A selection that ends at
-   * the start of a line leaves that line out; indenting leaves empty lines empty.
+   * the start of a line leaves that line out; indenting leaves empty lines empty, and does nothing
+   * where it would make the text longer than {@link El#maxLength}.
    */
   private void indent(boolean out) {
     Lines ls = lines();
@@ -745,6 +754,10 @@ final class Editor {
     if (delta == 0 && block.length() == to - from) {
       return; // nothing to outdent
     }
+    int max = el.maxLength();
+    if (max >= 0 && text.codePointCount(0, text.length()) + delta > max) {
+      return; // an indent is whole or nothing, and cuts no text
+    }
     run = null;
     edit(from, to - from, block.toString(), newCaret, newAnchor, null, false);
   }
@@ -776,6 +789,18 @@ final class Editor {
   }
 
   /**
+   * Where {@code index} of {@code text} goes in what {@link #fitLines} makes of it, which turns a
+   * carriage return with its line feed into one character; between the two is after it.
+   */
+  private static int fitIndex(String text, int index) {
+    int pairs = 0;
+    for (int i = text.indexOf("\r\n"); i >= 0 && i + 1 < index; i = text.indexOf("\r\n", i + 2)) {
+      pairs++;
+    }
+    return index - pairs;
+  }
+
+  /**
    * Shows the composition of an input method in place of the selection, without changing the
    * string; empty text ends it.
    *
@@ -787,7 +812,9 @@ final class Editor {
       return false;
     }
     composition = fitLines(composing);
-    compositionCursor = cursor < 0 ? composition.length() : Math.min(cursor, composition.length());
+    compositionCursor = cursor < 0
+        ? composition.length()
+        : Math.min(fitIndex(composing, cursor), composition.length());
     run = null;
     changed = true;
     reveal = true;
@@ -825,6 +852,7 @@ final class Editor {
 
   void undo() {
     if (editable() && !undo.isEmpty()) {
+      keepHistory();
       Step step = undo.pop();
       // Redo comes back to the caret and selection of now, as undo to those before the edit.
       push(
@@ -844,6 +872,7 @@ final class Editor {
 
   void redo() {
     if (editable() && !redo.isEmpty()) {
+      keepHistory();
       Step step = redo.pop();
       push(
           undo,
@@ -914,10 +943,7 @@ final class Editor {
       int newAnchor,
       Run kind,
       boolean coalesce) {
-    if (before == null) { // the history as it was, for an edit the app refuses
-      undoBefore = new ArrayDeque<>(undo);
-      redoBefore = new ArrayDeque<>(redo);
-    }
+    keepHistory();
     String gone = text.substring(at, at + removed);
     Step top = coalesce ? undo.peek() : null;
     Step merged = null;
@@ -950,14 +976,21 @@ final class Editor {
     run = kind;
   }
 
+  /**
+   * Keeps the history as it is before the first edit, undo or redo that no tree has answered yet,
+   * for the app to refuse: each of them changes the history before it proposes the string.
+   */
+  private void keepHistory() {
+    if (before == null) {
+      undoBefore = new ArrayDeque<>(undo);
+      redoBefore = new ArrayDeque<>(redo);
+    }
+  }
+
   /** Hands a new string to the app, which answers with the next tree. */
   private void propose(int at, int removed, String inserted, int newCaret, int newAnchor) {
     if (before == null) {
       before = new State(text, caret, anchor);
-      if (undoBefore == null) { // undo and redo
-        undoBefore = new ArrayDeque<>(undo);
-        redoBefore = new ArrayDeque<>(redo);
-      }
     }
     String next = text.substring(0, at) + inserted + text.substring(at + removed);
     if (lines != null) {
@@ -965,8 +998,9 @@ final class Editor {
     }
     proposed = next;
     text = next;
-    caret = newCaret;
-    anchor = newAnchor;
+    // An edit can join what it puts in with a mark after it: the caret stays between graphemes.
+    caret = snap(newCaret);
+    anchor = snap(newAnchor);
     changed = true;
     reveal = true;
     goal = Float.NaN;
@@ -1290,7 +1324,9 @@ final class Editor {
 
   /** Where Ctrl+Left goes from the caret; to the start in a masked field, one word. */
   private int wordStart() {
-    return masked() ? 0 : el.isCodeWords() ? codeWordLeft(text, caret) : wordLeft(text, caret);
+    return masked()
+        ? 0
+        : snap(el.isCodeWords() ? codeWordLeft(text, caret) : wordLeft(text, caret));
   }
 
   /** Where Ctrl+Right goes from the caret; to the end in a masked field. */
@@ -1298,9 +1334,10 @@ final class Editor {
     if (masked()) {
       return text.length();
     }
-    return el.isCodeWords()
-        ? codeWordRight(text, caret, WORD_ENDS)
-        : wordRight(text, caret, WORD_ENDS);
+    return snapUp(
+        el.isCodeWords()
+            ? codeWordRight(text, caret, WORD_ENDS)
+            : wordRight(text, caret, WORD_ENDS));
   }
 
   /** The word a double press at {@code hit} selects; all of a masked field. */
@@ -1308,7 +1345,8 @@ final class Editor {
     if (masked()) {
       return new int[] {0, text.length()};
     }
-    return el.isCodeWords() ? codeWord(text, hit) : word(text, hit);
+    int[] word = el.isCodeWords() ? codeWord(text, hit) : word(text, hit);
+    return new int[] {snap(word[0]), snapUp(word[1])};
   }
 
   /**
@@ -1331,6 +1369,12 @@ final class Editor {
       return snap(text, index);
     }
     return part[0] + snap(text.substring(part[0], part[1]), index - part[0]);
+  }
+
+  /** The grapheme boundary at or after {@code index}. */
+  private int snapUp(int index) {
+    int at = snap(index);
+    return at == index ? at : next(at);
   }
 
   /** The grapheme boundary before {@code index}, or 0; a line feed is one. */
@@ -1442,7 +1486,10 @@ final class Editor {
 
   // ---- The words of code (El#codeWords): runs of letters, digits and '_'
 
-  /** Whether a code point belongs to a word of code; marks go with the letter before them. */
+  /**
+   * Whether a code point belongs to a word of code; a mark is one where nothing comes before it,
+   * and otherwise goes with the code point before it, whatever that is.
+   */
   static boolean codeWordChar(int c) {
     if (c == '_' || Character.isLetterOrDigit(c)) {
       return true;
@@ -1453,41 +1500,91 @@ final class Editor {
         || type == Character.ENCLOSING_MARK;
   }
 
-  /** The position before the run of code points from {@code index} back that are words or not. */
-  private static int backOver(String text, int index, boolean word) {
-    while (index > 0) {
-      int c = text.codePointBefore(index);
-      if (codeWordChar(c) != word) {
-        break;
-      }
-      index -= Character.charCount(c);
+  /**
+   * Whether the code point at {@code index} extends the grapheme before it, as far as the words of
+   * code need to know: a mark, a joiner, a variation selector, an emoji modifier or tag, or what
+   * follows a zero width joiner. A scan by code points thus never splits a letter from its mark
+   * or an emoji from its modifier, and needs no {@link BreakIterator}.
+   */
+  private static boolean extending(String text, int index) {
+    if (index > 0 && text.codePointBefore(index) == 0x200D) {
+      return true;
+    }
+    int c = text.codePointAt(index);
+    int type = Character.getType(c);
+    return type == Character.NON_SPACING_MARK
+        || type == Character.COMBINING_SPACING_MARK
+        || type == Character.ENCLOSING_MARK
+        || c == 0x200C
+        || c == 0x200D
+        || c >= 0x1F3FB && c <= 0x1F3FF
+        || c >= 0xE0020 && c <= 0xE007F;
+  }
+
+  /** The start of the cluster that the code point at {@code index} belongs to. */
+  private static int clusterStart(String text, int index) {
+    if (index > 0
+        && index < text.length()
+        && Character.isLowSurrogate(text.charAt(index))
+        && Character.isHighSurrogate(text.charAt(index - 1))) {
+      index--;
+    }
+    while (index > 0 && index < text.length() && extending(text, index)) {
+      index -= Character.charCount(text.codePointBefore(index));
     }
     return index;
   }
 
-  /** The position after the run of code points from {@code index} on that are words or not. */
-  private static int forwardOver(String text, int index, boolean word) {
-    while (index < text.length()) {
-      int c = text.codePointAt(index);
-      if (codeWordChar(c) != word) {
+  /** The end of the cluster that starts at {@code index}. */
+  private static int clusterEnd(String text, int index) {
+    index += Character.charCount(text.codePointAt(index));
+    while (index < text.length() && extending(text, index)) {
+      index += Character.charCount(text.codePointAt(index));
+    }
+    return index;
+  }
+
+  /** Whether a cluster that starts with {@code c} is a space or a tab. */
+  private static boolean blank(int c) {
+    return c == ' ' || c == '\t';
+  }
+
+  /** The position before the run of clusters from {@code index} back that start with {@code kind}. */
+  private static int backOver(String text, int index, IntPredicate kind) {
+    while (index > 0) {
+      int start = clusterStart(text, index - 1);
+      if (!kind.test(text.codePointAt(start))) {
         break;
       }
-      index += Character.charCount(c);
+      index = start;
+    }
+    return index;
+  }
+
+  /** The position after the run of clusters from {@code index} on that start with {@code kind}. */
+  private static int forwardOver(String text, int index, IntPredicate kind) {
+    while (index < text.length()) {
+      if (!kind.test(text.codePointAt(index))) {
+        break;
+      }
+      index = clusterEnd(text, index);
     }
     return index;
   }
 
   /** {@link #wordLeft} with the words of code. */
   static int codeWordLeft(String text, int index) {
-    return backOver(text, backOver(text, Math.clamp(index, 0, text.length()), false), true);
+    IntPredicate word = Editor::codeWordChar;
+    return backOver(text, backOver(text, Math.clamp(index, 0, text.length()), word.negate()), word);
   }
 
   /** {@link #wordRight} with the words of code. */
   static int codeWordRight(String text, int index, boolean ends) {
     int at = Math.clamp(index, 0, text.length());
+    IntPredicate word = Editor::codeWordChar;
     return ends
-        ? forwardOver(text, forwardOver(text, at, false), true)
-        : forwardOver(text, forwardOver(text, at, true), false);
+        ? forwardOver(text, forwardOver(text, at, word.negate()), word)
+        : forwardOver(text, forwardOver(text, at, word), word.negate());
   }
 
   /**
@@ -1498,28 +1595,13 @@ final class Editor {
     if (text.isEmpty()) {
       return new int[] {0, 0};
     }
-    index = Math.clamp(index, 0, text.length() - 1);
-    if (index > 0
-        && Character.isLowSurrogate(text.charAt(index))
-        && Character.isHighSurrogate(text.charAt(index - 1))) {
-      index--;
-    }
+    index = clusterStart(text, Math.clamp(index, 0, text.length() - 1));
     int c = text.codePointAt(index);
-    if (codeWordChar(c)) {
-      return new int[] {backOver(text, index, true), forwardOver(text, index, true)};
+    IntPredicate kind = codeWordChar(c) ? Editor::codeWordChar : blank(c) ? Editor::blank : null;
+    if (kind != null) {
+      return new int[] {backOver(text, index, kind), forwardOver(text, index, kind)};
     }
-    if (c == ' ' || c == '\t') {
-      int from = index;
-      while (from > 0 && (text.charAt(from - 1) == ' ' || text.charAt(from - 1) == '\t')) {
-        from--;
-      }
-      int to = index;
-      while (to < text.length() && (text.charAt(to) == ' ' || text.charAt(to) == '\t')) {
-        to++;
-      }
-      return new int[] {from, to};
-    }
-    return new int[] {index, index + Character.charCount(c)};
+    return new int[] {index, clusterEnd(text, index)};
   }
 
   /**
