@@ -2669,6 +2669,7 @@ public final class App<S> {
     // third, builds the rows the measured heights show.
     for (int pass = 0; range != null && pass < 3; pass++) {
       Object id = Animator.identities(path).getLast();
+      int asking = El.autofocuses();
       el.makeRows(range[0], range[1]);
       tellRows(el, id, range[0], range[1] - 1);
       shown = shown.without(id);
@@ -2680,7 +2681,8 @@ public final class App<S> {
       for (El row : el.children()) {
         Overlays.layout(row, width, height); // after the looks, which may attach overlays
       }
-      Object asked = animator.autofocusInRows(el, id); // as openAndClose for the rest
+      // As openAndClose for the rest, where a row asked for the focus.
+      Object asked = El.autofocuses() == asking ? null : animator.autofocusInRows(el, id);
       if (asked != null && !asked.equals(focusId)) {
         beforeAsked = new Focus(focusId, ring);
         moveFocus(asked, ring);

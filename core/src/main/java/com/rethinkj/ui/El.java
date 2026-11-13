@@ -2402,7 +2402,18 @@ public final class El {
    */
   public El autofocus(Object key) {
     this.autofocus = key;
+    AUTOFOCUSES.incrementAndGet();
     return this;
+  }
+
+  // How often autofocus was asked for: App looks through the rows a list built for it only when
+  // the building asked, as most rows never do.
+  private static final java.util.concurrent.atomic.AtomicInteger AUTOFOCUSES =
+      new java.util.concurrent.atomic.AtomicInteger();
+
+  /** How often {@link #autofocus(Object)} has been called, in any thread. */
+  static int autofocuses() {
+    return AUTOFOCUSES.get();
   }
 
   private Layer layer() {
