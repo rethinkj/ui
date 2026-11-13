@@ -1,6 +1,7 @@
 package com.rethinkj.ui;
 
 import com.rethinkj.ui.render.Png;
+import com.rethinkj.ui.window.Windows;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.InvalidPathException;
@@ -9,9 +10,11 @@ import java.nio.file.Path;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.function.Predicate;
@@ -140,18 +143,19 @@ public final class Script {
   public static List<Path> run(String script, App<?> app, Path out) throws IOException {
     boolean held = app.holdPosts;
     app.holdPosts = true; // what other threads post arrives where the script awaits it
+    // A script that goes on where one before it ended finds its windows, which stay the app's.
+    Desk desk = app.windows() instanceof Desk d && d.first.app == app ? d : new Desk(app);
     try {
-      return steps(script, app, out);
+      return steps(script, desk, out);
     } finally {
       app.holdPosts = held;
     }
   }
 
-  private static List<Path> steps(String script, App<?> app, Path out) throws IOException {
+  private static List<Path> steps(String script, Desk desk, Path out) throws IOException {
     Path folder = out.toAbsolutePath().normalize();
     List<Path> written = new ArrayList<>();
     Map<Path, Integer> snapped = new HashMap<>();
-    boolean sized = false;
     Line pending = null; // the first step since the last frame, which that frame does not show
     List<String> lines = script.lines().toList();
     for (int i = 0; i < lines.size(); i++) {
@@ -162,17 +166,47 @@ public final class Script {
       }
       String step = words.getFirst();
       List<String> args = words.subList(1, words.size());
+      Win win = desk.current();
+      App<?> app = win.app;
       switch (step) {
         case "size" -> {
-          boolean scaled = args.size() == 4 && args.get(2).equals("scale");
-          if (args.size() != 2 && !scaled) {
+          List<String> size = new ArrayList<>(args);
+          int[] at = null;
+          int where = size.indexOf("at");
+          if (where >= 2) {
+            Matcher position = where + 1 < size.size()
+                ? POSITION.matcher(size.get(where + 1)) : null;
+            if (position == null || !position.matches()) {
+              throw line.usage(step);
+            }
+            at = new int[] {
+                Math.round(Float.parseFloat(position.group(1))),
+                Math.round(Float.parseFloat(position.group(2)))};
+            size.subList(where, where + 2).clear();
+          }
+          boolean scaled = size.size() == 4 && size.get(2).equals("scale");
+          if (size.size() != 2 && !scaled) {
             throw line.usage(step);
           }
-          app.resize(
-              (float) line.number(args.get(0), true, step),
-              (float) line.number(args.get(1), true, step),
-              scaled ? (float) line.number(args.get(3), true, step) : 1);
-          sized = true;
+          win.resize(
+              (float) line.number(size.get(0), true, step),
+              (float) line.number(size.get(1), true, step),
+              scaled ? (float) line.number(size.get(3), true, step) : 1);
+          if (at != null) {
+            win.moveTo(at[0], at[1]);
+          }
+        }
+        case "window" -> {
+          if (args.size() != 1) {
+            throw line.usage(step);
+          }
+          desk.select(line, unquote(args.getFirst()));
+        }
+        case "close" -> {
+          if (!args.isEmpty()) {
+            throw line.usage(step);
+          }
+          win.request();
         }
         case "press", "down", "up" -> {
           // press and down: the target, then clicks <n>, the modifiers held and right, in any
@@ -203,24 +237,25 @@ public final class Script {
           if (target.isEmpty() || right && (clicks != 1 || modifiers != 0)) {
             throw line.usage(step);
           }
-          if (app.tree() == null) {
-            throw line.fail(
-                "No frame has run yet, so there is nothing to press. Add `frame` before this"
-                    + " line.");
-          }
-          float[] at = line.point(target, app.tree());
+          Aim aim = desk.aim(line, target, "there is nothing to press");
+          // The window a press began in has the pointer until its release, as SDL captures it.
+          Win to = step.equals("press") || desk.held == null ? aim.win : desk.held;
+          float[] at = aim.in(to);
+          desk.pointerTo(to);
           if (!step.equals("up")) {
+            desk.held = step.equals("down") ? to : null;
             if (right) {
-              app.secondaryDown(at[0], at[1]);
+              to.app.secondaryDown(at[0], at[1]);
             } else {
-              app.pointerDown(at[0], at[1], clicks, modifiers);
+              to.app.pointerDown(at[0], at[1], clicks, modifiers);
             }
           }
           if (!step.equals("down")) {
+            desk.held = null;
             if (right) {
-              app.secondaryUp(at[0], at[1]);
+              to.app.secondaryUp(at[0], at[1]);
             } else {
-              app.pointerUp(at[0], at[1]);
+              to.app.pointerUp(at[0], at[1]);
             }
           }
         }
@@ -228,15 +263,18 @@ public final class Script {
           if (args.isEmpty()) {
             throw line.usage(step);
           }
-          needsFrame(line, app, "there is nothing to move over");
-          float[] at = line.point(args, app.tree());
-          app.pointerMove(at[0], at[1]);
+          Aim aim = desk.aim(line, args, "there is nothing to move over");
+          Win to = desk.held == null ? aim.win : desk.held;
+          float[] at = aim.in(to);
+          desk.pointerTo(to);
+          to.app.pointerMove(at[0], at[1]);
         }
         case "leave" -> {
           if (!args.isEmpty()) {
             throw line.usage(step);
           }
-          app.pointerLeave();
+          (desk.pointer == null ? win : desk.pointer).app.pointerLeave();
+          desk.pointer = null;
         }
         case "wheel" -> {
           if (args.size() < 3
@@ -244,13 +282,9 @@ public final class Script {
               || !SIGNED.matcher(args.getLast()).matches()) {
             throw line.usage(step);
           }
-          if (app.tree() == null) {
-            throw line.fail(
-                "No frame has run yet, so there is nothing to scroll. Add `frame` before this"
-                    + " line.");
-          }
-          float[] at = line.point(args.subList(0, args.size() - 2), app.tree());
-          app.wheel(
+          Aim aim = desk.aim(line, args.subList(0, args.size() - 2), "there is nothing to scroll");
+          float[] at = aim.in(aim.win);
+          aim.win.app.wheel(
               at[0],
               at[1],
               Float.parseFloat(args.get(args.size() - 2)),
@@ -352,7 +386,10 @@ public final class Script {
           if (args.size() != 1) {
             throw line.usage(step);
           }
-          app.advance(line.number(args.getFirst(), false, step));
+          double seconds = line.number(args.getFirst(), false, step);
+          for (Win each : desk.open()) {
+            each.app.advance(seconds);
+          }
         }
         case "await" -> {
           if (args.size() > 1) {
@@ -360,7 +397,9 @@ public final class Script {
           }
           double seconds = args.isEmpty() ? AWAIT : line.number(args.getFirst(), true, step);
           try {
-            app.await(Duration.ofNanos((long) Math.min(seconds * 1e9, Long.MAX_VALUE)));
+            for (Win each : desk.open()) {
+              each.app.await(Duration.ofNanos((long) Math.min(seconds * 1e9, Long.MAX_VALUE)));
+            }
           } catch (IllegalStateException e) {
             throw line.fail(e.getMessage() + " If it needs longer, write a timeout in seconds, as"
                 + " in `await 30`; the default is " + (int) AWAIT + ".");
@@ -373,13 +412,13 @@ public final class Script {
           if (!args.isEmpty()) {
             throw line.usage(step);
           }
-          if (!sized) {
+          if (!desk.first.sized) {
             throw line.fail(
                 "The window has no size yet. Add `size <width> <height>` before this line, for"
                     + " example `size 200 120`.");
           }
           try {
-            app.frame();
+            desk.frame();
           } catch (RuntimeException e) {
             throw line.fail("The app threw " + e + " in this frame; its stack trace follows.", e);
           }
@@ -388,57 +427,62 @@ public final class Script {
           if (args.size() != 1) {
             throw line.usage(step);
           }
-          String name = args.getFirst();
-          Path png;
-          Path tree;
-          try {
-            png = folder.resolve(name + ".png").normalize();
-            tree = folder.resolve(name + ".tree.txt").normalize();
-          } catch (InvalidPathException e) {
-            throw line.fail(name + " is not a file name: " + e.getReason() + ".");
-          }
-          if (!png.startsWith(folder)) {
-            throw line.fail(
-                name + " leads out of the output folder. Use a name inside it, such as"
-                    + " after-press or press/after.");
-          }
-          Integer earlier = snapped.putIfAbsent(png, line.number);
-          if (earlier != null) {
-            throw line.fail(
-                "The snap on line " + earlier + " wrote these files. Use another name.");
-          }
-          if (app.tree() == null) {
-            throw line.fail(
-                "No frame has run yet, so there is nothing to snap. Add `frame` before this line.");
-          }
-          if (pending != null) {
+          if (pending != null && desk.first.app.tree() != null) {
             throw line.fail(
                 "The last frame does not show line " + pending.number + " (" + pending.text
                     + ") yet. Add `frame` before this line: only `frame` runs the handlers,"
                     + " rebuilds the view and moves what is animated.");
           }
-          Headless.Frame frame = app.render();
-          Files.createDirectories(png.getParent());
-          Files.write(png, Png.encode(frame.pixels()));
-          Files.writeString(tree, frame.tree());
-          written.add(png);
-          written.add(tree);
-          String clipboard = app.clipboard().read();
-          if (!clipboard.isEmpty()) {
-            Path copied = folder.resolve(name + ".clipboard.txt").normalize();
-            Files.writeString(copied, clipboard);
-            written.add(copied);
+          // Each open window, the first under the name and the others under theirs before it.
+          for (Win each : desk.open()) {
+            String name = (each == desk.first ? "" : slug(each.title) + "-") + args.getFirst();
+            Path png;
+            Path tree;
+            try {
+              png = folder.resolve(name + ".png").normalize();
+              tree = folder.resolve(name + ".tree.txt").normalize();
+            } catch (InvalidPathException e) {
+              throw line.fail(name + " is not a file name: " + e.getReason() + ".");
+            }
+            if (!png.startsWith(folder)) {
+              throw line.fail(
+                  name + " leads out of the output folder. Use a name inside it, such as"
+                      + " after-press or press/after.");
+            }
+            Integer earlier = snapped.putIfAbsent(png, line.number);
+            if (earlier != null) {
+              throw line.fail(
+                  "The snap on line " + earlier + " wrote these files. Use another name.");
+            }
+            if (each.app.tree() == null) {
+              throw line.fail("No frame has run yet, so there is nothing to snap. Add `frame`"
+                  + " before this line.");
+            }
+            Headless.Frame frame = each.app.render();
+            Files.createDirectories(png.getParent());
+            Files.write(png, Png.encode(frame.pixels()));
+            Files.writeString(tree, frame.tree());
+            written.add(png);
+            written.add(tree);
+            String clipboard = each.app.clipboard().read();
+            if (each == desk.first && !clipboard.isEmpty()) {
+              Path copied = folder.resolve(name + ".clipboard.txt").normalize();
+              Files.writeString(copied, clipboard);
+              written.add(copied);
+            }
           }
         }
         default ->
             throw line.fail(
                 "There is no step " + step
-                    + ". The steps are size, press, down, up, move, leave, wheel, scroll, key,"
-                    + " type, compose, clipboard, focus, advance, await, frame and snap.");
+                    + ". The steps are size, window, close, press, down, up, move, leave,"
+                    + " wheel, scroll, key, type, compose, clipboard, focus, advance, await, frame"
+                    + " and snap.");
       }
       if (step.equals("frame")) {
         pending = null;
-      } else if (!step.equals("snap") && !step.equals("clipboard") && pending == null) {
+      } else if (!step.equals("snap") && !step.equals("clipboard") && !step.equals("window")
+          && pending == null) {
         pending = line;
       }
     }
@@ -487,6 +531,336 @@ public final class Script {
    */
   private record Found(El el, float left, float top, float x, float y) {}
 
+  /** A target's point in logical pixels of the window it was found in. */
+  private record Aim(Win win, float x, float y) {
+    /** The point in logical pixels of {@code to}, through the screen if it is another window. */
+    float[] in(Win to) {
+      if (to == win) {
+        return new float[] {x, y};
+      }
+      return new float[] {
+          (win.x + x * win.scale - to.x) / to.scale, (win.y + y * win.scale - to.y) / to.scale};
+    }
+  }
+
+  /** A window of a script: its app and its place on the script's screen, in physical pixels. */
+  private static final class Win implements Windows.Handle {
+    final Desk desk;
+    final App<?> app;
+    final String title;
+    int x;
+    int y;
+    float width;
+    float height;
+    float scale = 1;
+    boolean sized;
+    boolean open = true;
+    boolean fresh; // opened since the last frame step
+    boolean dropTarget = true;
+    Runnable onClose;
+
+    Win(Desk desk, App<?> app, String title) {
+      this.desk = desk;
+      this.app = app;
+      this.title = title;
+    }
+
+    void resize(float width, float height, float scale) {
+      this.width = width;
+      this.height = height;
+      this.scale = scale;
+      sized = true;
+      app.resize(width, height, scale);
+    }
+
+    /** A request to close, as from the close button. */
+    void request() {
+      if (onClose != null) {
+        app.request(onClose);
+      } else {
+        close();
+      }
+    }
+
+    @Override
+    public App<?> app() {
+      return app;
+    }
+
+    @Override
+    public String title() {
+      return title;
+    }
+
+    @Override
+    public boolean isOpen() {
+      return open;
+    }
+
+    @Override
+    public void close() {
+      open = false;
+      desk.front.remove(this);
+    }
+
+    @Override
+    public void raise() {
+      if (open) {
+        desk.front.remove(this);
+        desk.front.addFirst(this);
+      }
+    }
+
+    @Override
+    public void moveTo(int x, int y) {
+      this.x = x;
+      this.y = y;
+    }
+
+    @Override
+    public int x() {
+      return x;
+    }
+
+    @Override
+    public int y() {
+      return y;
+    }
+
+    @Override
+    public float width() {
+      return width;
+    }
+
+    @Override
+    public float height() {
+      return height;
+    }
+
+    @Override
+    public float screenScale() {
+      return scale;
+    }
+
+    @Override
+    public void onCloseRequest(Runnable handler) {
+      onClose = handler;
+    }
+
+    @Override
+    public void dropTarget(boolean on) {
+      dropTarget = on;
+    }
+
+    @Override
+    public com.rethinkj.ui.window.Window window() {
+      return null;
+    }
+  }
+
+  /**
+   * The windows of a script, which its apps get as {@link App#windows()}: the app the script runs,
+   * named {@code main}, and those its handlers open, named by their titles. The steps go to the
+   * window that {@code window} chose, the first one at first and again when the chosen one
+   * closes; the pointer's steps between {@code down} and {@code up} go to the window the press
+   * began in, as the system's capture of the pointer has it.
+   */
+  private static final class Desk implements Windows {
+    final List<Win> wins = new ArrayList<>(); // in the order they opened
+    final List<Win> front = new ArrayList<>(); // front first
+    final Win first;
+    Win chosen;
+    Win held; // the window a press began in, until its release
+    Win pointer; // the window the pointer was last moved in
+
+    Desk(App<?> app) {
+      first = new Win(this, app, "main");
+      wins.add(first);
+      front.add(first);
+      chosen = first;
+      app.windows(this);
+    }
+
+    Win current() {
+      if (!chosen.open) {
+        chosen = open().isEmpty() ? first : open().getFirst();
+      }
+      return chosen;
+    }
+
+    List<Win> open() {
+      return wins.stream().filter(w -> w.open).toList();
+    }
+
+    void select(Line line, String name) {
+      for (Win w : open()) {
+        if (w.title.equals(name)) {
+          chosen = w;
+          return;
+        }
+      }
+      List<String> names = open().stream().map(w -> "\"" + w.title + "\"").toList();
+      throw line.fail("There is no open window " + name + ". The open windows are "
+          + String.join(", ", names) + "; `main` is the first.");
+    }
+
+    /**
+     * Where a target of a pointer's step is: in the chosen window, in the window that {@code in
+     * <window>} names, or at a point of the screen ({@code screen <x>,<y>}).
+     */
+    Aim aim(Line line, List<String> target, String consequence) {
+      if (target.size() == 2 && target.getFirst().equals("screen")) {
+        Matcher position = POSITION.matcher(target.getLast());
+        if (!position.matches()) {
+          throw line.fail("Write `screen <x>,<y>`, a point of the screen in physical pixels.");
+        }
+        float sx = Float.parseFloat(position.group(1));
+        float sy = Float.parseFloat(position.group(2));
+        Win at = held != null ? held : under(sx, sy, false);
+        if (at == null) {
+          throw line.fail("No window lies at " + target.getLast() + " on the screen, so "
+              + consequence + ".");
+        }
+        return new Aim(at, (sx - at.x) / at.scale, (sy - at.y) / at.scale);
+      }
+      Win in = current();
+      List<String> rest = target;
+      if (target.size() > 2 && target.getFirst().equals("in")) {
+        Win before = chosen;
+        select(line, unquote(target.get(1)));
+        in = chosen;
+        chosen = before;
+        rest = target.subList(2, target.size());
+      }
+      if (in.app.tree() == null) {
+        throw line.fail("No frame has run yet, so " + consequence + ". Add `frame` before this"
+            + " line.");
+      }
+      float[] at = line.point(rest, in.app.tree());
+      return new Aim(in, at[0], at[1]);
+    }
+
+    /** The pointer moves into {@code to}: the window it was in before sees it leave. */
+    void pointerTo(Win to) {
+      if (pointer != null && pointer != to && pointer.open) {
+        pointer.app.pointerLeave();
+      }
+      pointer = to;
+    }
+
+    /** The topmost open window whose content holds a point of the screen, or null. */
+    Win under(float sx, float sy, boolean drops) {
+      for (Win w : front) {
+        float x = (sx - w.x) / w.scale;
+        float y = (sy - w.y) / w.scale;
+        if (w.open && (!drops || w.dropTarget) && x >= 0 && y >= 0 && x < w.width
+            && y < w.height) {
+          return w;
+        }
+      }
+      return null;
+    }
+
+    /**
+     * Runs a frame in every open window, those that open meanwhile included, and again in those
+     * that the handlers of another window of the same state invalidated after their frame, for up
+     * to three rounds; see
+     * {@link com.rethinkj.ui.window.WindowLoop#run}.
+     */
+    void frame() {
+      Set<Win> due = new HashSet<>(open());
+      for (int round = 0; round < 3 && !due.isEmpty(); round++) {
+        Set<Win> again = new HashSet<>();
+        for (int i = 0; i < wins.size(); i++) {
+          Win w = wins.get(i);
+          if (!w.open || !due.contains(w) && !w.fresh) {
+            continue;
+          }
+          w.fresh = false;
+          w.app.frame();
+          if (w.app.ranHandlers()) {
+            for (int j = 0; j < wins.size(); j++) {
+              Win other = wins.get(j);
+              if (other != w && other.open && !other.fresh
+                  && other.app.state() == w.app.state()) {
+                other.app.invalidate();
+                (j < i ? again : due).add(other);
+              }
+            }
+          }
+        }
+        due = again;
+      }
+    }
+
+    @Override
+    public Handle open(String title, float width, float height,
+        com.rethinkj.ui.window.Window.Options options, App<?> app) {
+      Objects.requireNonNull(title, "title");
+      if (of(app) != null) {
+        throw new IllegalArgumentException("The app runs in a window already");
+      }
+      Win w = new Win(this, app, title);
+      // A script's images do not depend on the platform: its windows draw text as the first.
+      app.textRendering(first.app.textRendering());
+      app.clipboard(first.app.clipboard());
+      app.holdPosts = true;
+      app.windows(this);
+      w.resize(width, height, first.scale);
+      int n = wins.size();
+      if (options.isPositioned()) {
+        w.moveTo(options.x(), options.y());
+      } else {
+        w.moveTo(first.x + 32 * n, first.y + 32 * n);
+      }
+      w.fresh = true;
+      wins.add(w);
+      front.addFirst(w);
+      return w;
+    }
+
+    @Override
+    public List<Handle> all() {
+      return List.copyOf(open());
+    }
+
+    @Override
+    public Handle of(App<?> app) {
+      for (Win w : wins) {
+        if (w.app == app && w.open) {
+          return w;
+        }
+      }
+      return null;
+    }
+
+    @Override
+    public Place place(App<?> app, float x, float y) {
+      Win from = (Win) of(app);
+      if (from == null) {
+        return null;
+      }
+      float sx = from.x + x * from.scale;
+      float sy = from.y + y * from.scale;
+      Win at = under(sx, sy, true);
+      return at == null ? new Place(sx, sy, null, Float.NaN, Float.NaN)
+          : new Place(sx, sy, at, (sx - at.x) / at.scale, (sy - at.y) / at.scale);
+    }
+  }
+
+  /** A window's name without the quotes around it, if it has them. */
+  private static String unquote(String word) {
+    return word.length() > 1 && word.startsWith("\"") && word.endsWith("\"")
+        ? unescape(word.substring(1, word.length() - 1)) : word;
+  }
+
+  /** A title as a part of a file name: lower case, words joined by hyphens. */
+  static String slug(String title) {
+    String slug = title.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]+", "-")
+        .replaceAll("^-|-$", "");
+    return slug.isEmpty() ? "window" : slug;
+  }
+
   /** One line of a script, without the space around it. */
   private record Line(int number, String text) {
 
@@ -504,7 +878,12 @@ public final class Script {
               + switch (step) {
                 case "size" ->
                     "`size <width> <height>` or `size <width> <height> scale <factor>`, with"
-                        + " numbers above 0, for example `size 200 120 scale 2`.";
+                        + " numbers above 0, for example `size 200 120 scale 2`, and `at <x>,<y>`"
+                        + " after it for the window's place on the screen, in physical pixels.";
+                case "window" ->
+                    "`window <name>`: `main` for the first window, else a window's title, quoted"
+                        + " if it has spaces, as in `window \"Note 2\"`.";
+                case "close" -> "`close` with nothing after it.";
                 case "await" ->
                     "`await`, or `await <seconds>` with a number above 0 to wait longer than "
                         + (int) AWAIT + " seconds, for example `await 30`.";
@@ -543,7 +922,8 @@ public final class Script {
                 case "snap" ->
                     "`snap <name>`, for example `snap after-press`, to write after-press.png and"
                         + " after-press.tree.txt into the output folder.";
-                default -> "`" + step + " <target>`. A target is " + TARGET + ".";
+                default -> "`" + step + " <target>`. A target is " + TARGET + ", or in another"
+                    + " window `in <window> <target>`, or a point of the screen `screen <x>,<y>`.";
               });
     }
 

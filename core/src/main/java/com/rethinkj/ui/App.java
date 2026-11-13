@@ -6,6 +6,7 @@ import com.rethinkj.ui.render.Scene;
 import com.rethinkj.ui.text.Atlas;
 import com.rethinkj.ui.text.Font;
 import com.rethinkj.ui.text.TextRendering;
+import com.rethinkj.ui.window.Windows;
 import java.time.Duration;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -211,6 +212,8 @@ public final class App<S> {
   private boolean systemFonts;
   private final Map<Object, Editor> editors = new HashMap<>(); // the fields' state, by identity
   private Clipboard clipboard = Clipboard.inMemory();
+  private Windows windows = Windows.NONE;
+  private boolean ran; // a handler ran in this frame; see ranHandlers()
   private Object selecting; // the identity of the field a press is selecting in, until pointer up
   private Editor blinking; // the editor of the focused field
   private double blinkStart; // when its caret last turned on
@@ -403,7 +406,7 @@ public final class App<S> {
     pressModifiers = modifiers;
     dragging = target == null || target.el.onDrag() == null
         ? null
-        : new Dragging(target.id(), target.el.onDrag(), x, y);
+        : new Dragging(target.id(), target.el.onDrag(), target.el.dragPayload(), x, y);
     if (!keepsFocus(hit)) {
       Target focus = target(x, y, El::isFocusable);
       focus(focus == null ? null : focus.el, false);
@@ -694,6 +697,10 @@ public final class App<S> {
   private static final class Dragging {
     final Object id;
     final Consumer<Drag> handler; // the element's when the pointer went down
+    final Object payload; // likewise; null for a drag that reaches no drop handler
+    App<?> overApp; // the app whose element's drop handler the last step was over, or null
+    Object overId; // that element's identity there
+    Consumer<Drop> overHandler; // and its handler, which gets the LEAVE
     final float x;
     final float y;
     boolean started; // moved beyond the threshold
@@ -701,9 +708,10 @@ public final class App<S> {
     float dx; // the distance of the last step
     float dy;
 
-    Dragging(Object id, Consumer<Drag> handler, float x, float y) {
+    Dragging(Object id, Consumer<Drag> handler, Object payload, float x, float y) {
       this.id = id;
       this.handler = handler;
+      this.payload = payload;
       this.x = x;
       this.y = y;
     }
@@ -722,12 +730,76 @@ public final class App<S> {
       return false;
     }
     El el = animator.element(d.id);
-    boolean gone = el == null || el.isExiting();
+    // A drag that carries a payload goes on without its element: what moves is the payload, as a
+    // tab torn out of its bar.
+    boolean left = el == null || el.isExiting();
+    boolean gone = left && d.payload == null;
     d.over = gone || phase == Drag.Phase.END || phase == Drag.Phase.CANCEL;
-    double[] at = gone ? new double[] {Double.NaN, Double.NaN} : content(el, d.x + dx, d.y + dy);
-    d.handler.accept(new Drag(gone ? Drag.Phase.CANCEL : phase, dx, dy, at[0], at[1]));
+    double[] at = left ? new double[] {Double.NaN, Double.NaN} : content(el, d.x + dx, d.y + dy);
+    Drag.Phase now = gone ? Drag.Phase.CANCEL : phase;
+    float px = d.x + dx;
+    float py = d.y + dy;
+    boolean outside = !(px >= 0 && py >= 0 && px < width && py < height);
+    Windows.Place place = windows.place(this, px, py);
+    if (place == null) { // no runner: this window alone, at the origin of the screen
+      place = new Windows.Place(px, py, null, outside ? Float.NaN : px, outside ? Float.NaN : py);
+    }
+    if (d.payload != null) {
+      App<?> over = place.window() != null ? place.window().app()
+          : windows.of(this) == null && !outside ? this : null;
+      drop(d, now, over, place.x(), place.y());
+    }
+    d.handler.accept(new Drag(now, dx, dy, at[0], at[1], place.screenX(), place.screenY(),
+        outside, place.window(), place.window() == null ? Float.NaN : place.x(),
+        place.window() == null ? Float.NaN : place.y()));
     handled = true;
     return true;
+  }
+
+  /**
+   * Tells the drop handlers of a drag's step: the one it left, and the innermost one under the
+   * pointer in {@code over}'s window, hit tested in the tree that window shows.
+   *
+   * @param over the app of the window under the pointer, or null
+   * @param x the pointer in that window
+   */
+  private static void drop(Dragging d, Drag.Phase phase, App<?> over, float x, float y) {
+    Target target = null;
+    if (over != null && over.root != null && phase != Drag.Phase.CANCEL) {
+      over.settle(); // the rows of its lists, where a scroll left them to build
+      target = over.target(x, y, el -> el.onDrop() != null);
+    }
+    Object id = target == null ? null : target.id();
+    if (d.overApp != null && (d.overApp != over || !d.overId.equals(id))) {
+      Consumer<Drop> left = d.overHandler;
+      App<?> from = d.overApp;
+      d.overApp = null;
+      d.overId = null;
+      d.overHandler = null;
+      left.accept(new Drop(Drop.Phase.LEAVE, d.payload, Double.NaN, Double.NaN));
+      from.touched();
+    }
+    if (target != null) {
+      double[] at = over.content(target.el, x, y);
+      boolean end = phase == Drag.Phase.END;
+      Consumer<Drop> handler = target.el.onDrop();
+      if (!end) {
+        d.overApp = over;
+        d.overId = id;
+        d.overHandler = handler;
+      }
+      handler.accept(new Drop(end ? Drop.Phase.DROP : Drop.Phase.OVER, d.payload, at[0], at[1]));
+      over.touched();
+    }
+  }
+
+  /** A drop handler of this app ran, maybe in another app's frame: build the view again. */
+  private void touched() {
+    if (dispatching) {
+      handled = true;
+    } else {
+      stale = true;
+    }
   }
 
   /**
@@ -897,6 +969,38 @@ public final class App<S> {
   /** Sets the clipboard, as a window does with the system's. */
   public void clipboard(Clipboard clipboard) {
     this.clipboard = Objects.requireNonNull(clipboard, "clipboard");
+  }
+
+  /**
+   * The windows of the runner that runs the app, with which a handler opens and closes windows
+   * ({@link Windows}): a {@link com.rethinkj.ui.window.WindowLoop}'s or a {@link Script}'s. Until
+   * a runner sets them, opening a window throws.
+   */
+  public Windows windows() {
+    return windows;
+  }
+
+  /** Sets the runner's windows, as a {@link com.rethinkj.ui.window.WindowLoop} and a script do. */
+  public void windows(Windows windows) {
+    this.windows = Objects.requireNonNull(windows, "windows");
+  }
+
+  /**
+   * The state changed outside the app's own handlers: the next {@link #frame} builds the view
+   * again, as after a handler. A runner calls it on its other apps of the same state object after a
+   * handler of one ran ({@link #ranHandlers}); it is not input, and wakes nothing by itself.
+   */
+  public void invalidate() {
+    stale = true;
+  }
+
+  /**
+   * Whether the last {@link #frame} ran a handler of the app, a {@link #post posted} task or an
+   * action of {@link #after}: what may have changed the state, which other apps of the same state
+   * then show ({@link #invalidate}).
+   */
+  public boolean ranHandlers() {
+    return ran;
   }
 
   /**
@@ -1119,6 +1223,20 @@ public final class App<S> {
     textRendering = Objects.requireNonNull(rendering, "rendering");
     stale = true;
   }
+  /** The rendering of {@link #textRendering(TextRendering)}. */
+  public TextRendering textRendering() {
+    return textRendering;
+  }
+
+  /** For {@link Script}: runs {@code handler} as the handler of an input, at its turn. */
+  void request(Runnable handler) {
+    enqueue(() -> {
+      handled = true;
+      handler.run();
+      return true;
+    });
+  }
+
 
   /**
    * Sets whether characters that a text's font and its fallbacks lack come from the fonts installed
@@ -1841,6 +1959,7 @@ public final class App<S> {
    *     scrolled
    */
   public boolean frame() {
+    ran = false;
     Object wasFocused = focusId;
     boolean hadRing = ring;
     boolean drawn = false;
@@ -1866,6 +1985,7 @@ public final class App<S> {
       }
     }
     stale |= shownFor();
+    ran |= handled;
     stale |= handled || !Objects.equals(focusId, wasFocused) || ring != hadRing;
     stale |= blink(focused == null ? null : focused.editor());
     if (stale) { // the rebuild builds all rows anyway
@@ -1945,6 +2065,7 @@ public final class App<S> {
     Overlays.layout(root, width, height);
     animator.update(root, time);
     stale = false;
+    ran |= handled;
     handled = false;
     scrolled = false;
     rowsPending = between && (focusId == null || animator.inRow(focusId) == null);
@@ -2437,6 +2558,7 @@ public final class App<S> {
         if (due <= time) {
           rest.ran = true;
           hoversRun++;
+          ran = true; // the handler may change the state that other apps show
           el.onHoverFor().run();
         } else {
           restDue = Math.min(restDue, due);
