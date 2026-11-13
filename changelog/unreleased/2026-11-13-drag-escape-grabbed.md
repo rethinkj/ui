@@ -1,0 +1,1 @@
+- Escape now gives up a drag (`El.onDrag`): the handler gets `Drag.Phase.CANCEL`, and the release after it presses nothing. `El.grabbed(boolean)` marks an element that is being dragged; a `.tree.txt` writes it as `grabbed` after `current`, and selectors match it.

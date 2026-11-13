@@ -856,6 +856,14 @@ public final class App<S> {
   }
 
   private boolean keyDownAt(Key key) {
+    if (dragging != null && dragging.started && key.name().equals("Escape")) {
+      // Escape gives up a drag, as in browsers and editors; the release that follows presses
+      // nothing.
+      boolean changed = step(dragging, Drag.Phase.CANCEL, dragging.dx, dragging.dy);
+      dragging = null;
+      pressed = null;
+      return changed;
+    }
     List<El> path = focusPath();
     boolean called = false;
     for (El el : path.reversed()) {

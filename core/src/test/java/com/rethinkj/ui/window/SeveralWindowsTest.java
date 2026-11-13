@@ -312,6 +312,46 @@ class SeveralWindowsTest {
   }
 
   /**
+   * A window that opens under the pointer during a press takes the keyboard focus: the keys it
+   * reports until the release go to the window the press began in, where Escape gives up a drag.
+   */
+  @Test
+  void thePressedWindowGetsTheKeysThatAnotherWindowReports() {
+    try (Window a = Window.open(TITLE, 160, 100, Window.options().position(100, 200))) {
+      List<String> log = new ArrayList<>();
+      App<Object> appA = new App<>(new Object(), x -> row().wFull().hFull()
+          .onKey(k -> log.add("A " + k.name()))
+          .child(el().key("chip").size(40, 40).onDrag(d -> log.add("A " + d.phase()))));
+      App<Object> appB = new App<>(new Object(), x -> row().wFull().hFull()
+          .onKey(k -> log.add("B " + k.name())));
+      AtomicReference<WindowLoop> loop = new AtomicReference<>();
+      loop.set(new WindowLoop(a, appA, (scene, w, h, sc) -> {})
+          .presenters(w -> (scene, wi, h, sc) -> {}));
+      Windows.Handle b = loop.get().open(TITLE + " B", 160, 100,
+          Window.options().position(400, 200), appB);
+      Desktop.settle();
+      int[] idle = new int[1];
+      loop.get().waits((millis, holdBack) -> {
+        if (millis != -1) {
+          return;
+        }
+        if (idle[0]++ == 0) {
+          Desktop.button(a, true, Sdl.BUTTON_LEFT, 20, 20, 1);
+          Desktop.motion(a, 30, 20);
+          Desktop.key(b.window(), true, 'k', 0, false); // during the press: A's
+          Desktop.button(a, false, Sdl.BUTTON_LEFT, 30, 20, 1);
+          Desktop.key(b.window(), true, 'j', 0, false); // after it: B's
+        } else if (log.contains("B J")) {
+          loop.get().stop();
+        }
+      });
+      Desktop.run(loop.get(), () -> "the keys reach A, then B: " + log);
+
+      assertEquals(List.of("A START", "A K", "A END", "B J"), log);
+    }
+  }
+
+  /**
    * Input to one window right after its frame waits for that window's refresh, while input to a
    * window whose last frame is older is drawn at once, before that wait. The apps have states of
    * their own, so that one's key draws nothing in the other.

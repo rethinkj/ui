@@ -143,6 +143,19 @@ class DragTest {
   }
 
   @Test
+  void escapeCancelsADragAndTheReleaseAfterItPressesNothing() {
+    App<Bar> app = bar();
+    app.pointerDown(95, 10);
+    app.pointerMove(120, 10);
+    app.keyDown(new Key("Escape", 0, false));
+    app.pointerMove(140, 10);
+    app.pointerUp(140, 10);
+    app.frame();
+    assertEquals(List.of("START 25.0,0.0", "CANCEL 25.0,0.0"), app.state().log);
+    assertEquals(100, app.state().width);
+  }
+
+  @Test
   void aPressOnAnElementWithADragHandlerOnlyDoesNotReachItsAncestors() {
     App<List<String>> app = new App<>(new ArrayList<>(), log ->
         row().wFull().hFull().onPress(() -> log.add("root"))
