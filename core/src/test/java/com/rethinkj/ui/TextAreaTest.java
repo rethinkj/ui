@@ -342,6 +342,16 @@ class TextAreaTest {
   }
 
   @Test
+  void escapeThenShiftTabLeavesAFieldThatIndentsThoughShiftComesAsAKeyOfItsOwn() {
+    App<Model> app = focused("ab", f -> f.tabIndents(true));
+    key(app, "Escape");
+    key(app, "Shift", SHIFT); // a keyboard reports the modifier's own key before the Tab
+    key(app, "Tab", SHIFT);
+    assertEquals("other", app.focused().key(), "Escape, then Shift+Tab");
+    assertEquals("ab", app.state().value, "nothing outdented");
+  }
+
+  @Test
   void tabIntoATextAreaKeepsItsCaretInsteadOfSelectingAll() {
     App<Model> app = Areas.start("one\ntwo");
     key(app, "Tab");

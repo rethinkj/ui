@@ -2,6 +2,7 @@ package com.rethinkj.ui.examples;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -19,6 +20,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -159,6 +162,20 @@ class WorkbenchTest {
   }
 
   @Test
+  void aStatementRunAgainBeforeItsAnswerKeepsTheRowsOfBeforeWhenItFails() throws IOException {
+    App<Workbench> app = started();
+    Workbench s = app.state();
+    Script.run(OPEN_ORDERS, app, out);
+    Workbench.Opened orders = s.tables().getFirst();
+    orders.query = "SELECT * FROM shop.public.ordrs";
+    // Control+Enter twice before the answer: the second question cancels the first.
+    Script.run("size 1000 600\nframe\nfocus #query-localhost/shop/public/orders\n"
+        + "key Enter control\nframe\nkey Enter control\nframe\nawait\nframe", app, out);
+    assertEquals("relation \"shop.public.ordrs\" does not exist", orders.failure);
+    assertEquals(1_000_000, orders.rows, "the rows of before stay, not \"counting the rows\"");
+  }
+
+  @Test
   void theCompletionsHaveTheTablesAndColumnsOfConnectedServersAndKeywords() {
     Workbench s = new Workbench();
     Workbench.Opened orders = new Workbench.Opened(table(s, "orders"));
@@ -205,6 +222,28 @@ class WorkbenchTest {
   @SuppressWarnings("unchecked")
   private static App<Workbench> windowOf(Workbench s, Workbench.Opened tab) {
     return s.appOf(s.groups.groupOf(tab));
+  }
+
+  /**
+   * The window of a tab whose grid has a million rows still fits the window, with the status line
+   * at its bottom: the column around the tabs takes no minimum height from the rows.
+   */
+  @Test
+  void aTabWithAMillionRowsFitsAWindowOfItsOwn() throws IOException {
+    App<Workbench> app = started();
+    Workbench s = app.state();
+    Script.run(OPEN_ORDERS, app, out);
+    Workbench.Opened orders = s.tables().getFirst();
+    assertEquals(1_000_000, orders.rows);
+    Script.run(MOVE_ORDERS_OUT, app, out);
+    App<Workbench> window = windowOf(s, orders);
+    assertNotSame(app, window, "orders has a window of its own");
+    Matcher status = Pattern.compile("text #status .* (\\d+),(\\d+) (\\d+)x(\\d+)\\n")
+        .matcher(window.tree().dump());
+    assertTrue(status.find(), window.tree().dump());
+    float bottom = Integer.parseInt(status.group(2)) + Integer.parseInt(status.group(4));
+    assertTrue(bottom <= window.tree().height(), "the status line ends at " + bottom
+        + ", in a window " + window.tree().height() + " high");
   }
 
   /**

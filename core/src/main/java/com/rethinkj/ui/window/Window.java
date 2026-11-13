@@ -284,6 +284,8 @@ public final class Window implements AutoCloseable {
   private WindowPart pressed;
   /** Whether a secondary press began on a drag area, where it belongs to the system menu. */
   private boolean menuPress;
+  // The last event was a key pressed with Control and without Alt, whose character Windows types.
+  private boolean afterControlKey;
   /** Where the last pointer move was, in logical pixels, while the pointer is in the window. */
   private boolean pointerIn;
   private float pointerX;
@@ -606,6 +608,8 @@ public final class Window implements AutoCloseable {
   }
 
   private void translate(int type, MemorySegment e) {
+    boolean controlKey = afterControlKey;
+    afterControlKey = false;
     switch (type) {
       case Sdl.EVENT_MOUSE_MOTION -> {
         if (win32 != null) {
@@ -647,6 +651,8 @@ public final class Window implements AutoCloseable {
         String key = Keys.name(e.get(JAVA_INT, Sdl.KEY_KEY));
         int modifiers = modifiers(e.get(JAVA_SHORT, Sdl.KEY_MOD));
         if (type == Sdl.EVENT_KEY_DOWN) {
+          afterControlKey = handle instanceof WindowHandle.Win32
+              && (modifiers & (Key.CONTROL | Key.ALT)) == Key.CONTROL;
           post(new KeyDown(new Key(key, modifiers, e.get(JAVA_BOOLEAN, Sdl.KEY_REPEAT))));
         } else {
           post(new KeyUp(new Key(key, modifiers, false)));
@@ -654,7 +660,10 @@ public final class Window implements AutoCloseable {
       }
       case Sdl.EVENT_TEXT_INPUT -> {
         String text = Sdl.string(e.get(ADDRESS, Sdl.TEXT_TEXT));
-        if (text != null && !text.isEmpty()) {
+        // Windows makes a space of Control+Space, which on Linux types nothing: a shortcut, such
+        // as the one that opens completions, would type it too. Control with Alt is AltGr, whose
+        // characters stay.
+        if (text != null && !text.isEmpty() && !controlKey) {
           post(new TextInput(text));
         }
       }
@@ -1154,7 +1163,9 @@ public final class Window implements AutoCloseable {
   /**
    * Sets who the app is, for windows opened after this: an id that the system groups the app's
    * windows by and finds its settings and icon with, and the app's name. It is the same for the
-   * whole process; call it before the first window opens.
+   * whole process; call it before the first window opens. Calling it again with the same id and
+   * name does nothing, also while windows are open, so that the code that opens a later window may
+   * set its options up the same way.
    *
    * <p>The id and the name go to {@code SDL_SetAppMetadata}, from which SDL takes the Wayland
    * app id and the X11 window class, which docks match with the app's {@code <id>.desktop} file.
@@ -1168,7 +1179,8 @@ public final class Window implements AutoCloseable {
    * @param id reverse DNS, such as {@code com.example.Notes}: at most 128 characters, without
    *     spaces, as Windows requires
    * @param name the app's name for people, or null
-   * @throws IllegalStateException if a window is open
+   * @throws IllegalStateException if a window is open and the id or the name differs from the one
+   *     set
    */
   public static void identity(String id, String name) {
     Objects.requireNonNull(id, "id");
@@ -1177,8 +1189,9 @@ public final class Window implements AutoCloseable {
           "An app id has 1 to 128 characters and no spaces, such as com.example.Notes: " + id);
     }
     synchronized (LOCK) {
-      if (thread != null) {
-        throw new IllegalStateException("The app's identity is set before the first window opens");
+      if (thread != null && !(id.equals(appId) && Objects.equals(name, appName))) {
+        throw new IllegalStateException("The app's identity is set before the first window opens"
+            + " and stays: " + appId + ", " + appName);
       }
       appId = id;
       appName = name;
