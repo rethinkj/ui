@@ -51,7 +51,7 @@ public final class RenderPass extends GpuObject {
     MemorySegment pass = recording();
     MemorySegment handle = device.owned(buffer).handle();
     // A size of 0 ends the process in wgpu-native.
-    if (slot < 0 || offset < 0 || size <= 0 || offset + size > buffer.size()) {
+    if (slot < 0 || offset < 0 || size <= 0 || size > buffer.size() - offset) {
       throw new IllegalArgumentException("Cannot bind " + size + " bytes at " + offset + " of "
           + buffer + " (" + buffer.size() + " bytes) to vertex buffer slot " + slot + ".");
     }
