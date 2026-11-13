@@ -22,6 +22,8 @@ import com.rethinkj.ui.examples.Samples.Node;
 import com.rethinkj.ui.examples.Showcase.Section;
 import com.rethinkj.ui.kit.Button;
 import com.rethinkj.ui.kit.Card;
+import com.rethinkj.ui.kit.CodeEditor;
+import com.rethinkj.ui.kit.Completion;
 import com.rethinkj.ui.kit.DataGrid;
 import com.rethinkj.ui.kit.DataGrid.Align;
 import com.rethinkj.ui.kit.DataGrid.Column;
@@ -31,6 +33,7 @@ import com.rethinkj.ui.kit.Icon;
 import com.rethinkj.ui.kit.Menu;
 import com.rethinkj.ui.kit.Select;
 import com.rethinkj.ui.kit.Split;
+import com.rethinkj.ui.kit.Sql;
 import com.rethinkj.ui.kit.Split.Direction;
 import com.rethinkj.ui.kit.Split.Position;
 import com.rethinkj.ui.kit.Symbol;
@@ -235,9 +238,33 @@ final class Sections {
         row().gap(t.space().m()).justify(Style.Content.END)
             .child(button(t, SECONDARY, "Test connection", () -> s.say("test")))
             .child(button(t, PRIMARY, "Save", s.user.isBlank() ? null : () -> s.say("save"))));
-    return row().gap(t.space().l()).align(Style.Align.START)
-        .child(states.w(360).shrink(0))
-        .child(form.grow(1));
+    El editor = CodeEditor.codeEditor(t, s.sql, s.sqlEditor, Sql.of(t), v -> s.sql = v)
+        .key("sql").label("Query").lines(5).wFull();
+    El code = card(t, "Code editor",
+        label(t, MUTED, "Line numbers, colours and brackets; a word's second letter, or"
+            + " Control+Space, completes keywords and names."),
+        Completion.complete(t, s.app, editor, s.sqlEditor.caret(), s.sqlCompletion,
+            Sections::complete));
+    return col().gap(t.space().l())
+        .child(row().gap(t.space().l()).align(Style.Align.START)
+            .child(states.w(360).shrink(0))
+            .child(form.grow(1)))
+        .child(code);
+  }
+
+  private static final List<String> NAMES =
+      List.of("orders", "customers", "products", "name", "total", "created_at");
+
+  /** The names and keywords that start with the word, names first. */
+  private static List<Completion.Entry> complete(String word) {
+    String start = word.toLowerCase(Locale.ROOT);
+    List<Completion.Entry> entries = new java.util.ArrayList<>();
+    NAMES.stream().filter(n -> n.startsWith(start))
+        .forEach(n -> entries.add(new Completion.Entry(n, Symbol.TABLE, "name")));
+    Sql.keywords().stream().sorted()
+        .filter(k -> k.toLowerCase(Locale.ROOT).startsWith(start) && !k.equalsIgnoreCase(word))
+        .forEach(k -> entries.add(new Completion.Entry(k, null, "keyword")));
+    return entries;
   }
 
   // Menus and overlays
