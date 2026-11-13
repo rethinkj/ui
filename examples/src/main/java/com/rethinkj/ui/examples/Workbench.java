@@ -461,7 +461,7 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
     }
     int before = o.rows;
     o.rows = -1;
-    o.selection.clear();
+    o.selection.reset();
     o.failure = null;
     o.editor.noError();
     Node server = o.table;

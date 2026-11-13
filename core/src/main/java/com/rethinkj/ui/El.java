@@ -88,6 +88,7 @@ public final class El {
   private int tabIndents; // 0: Tab moves the focus; 1: it indents with tabs; 2: with spaces
   private boolean codeWords;
   private FieldState fieldState;
+  private ScrollState scrollState;
   private Editor editor;
   private boolean focused;
   private Spring motion;
@@ -722,6 +723,24 @@ public final class El {
     style.overflowY = Style.Overflow.SCROLL;
     scrollArea = true;
     return this;
+  }
+
+  /**
+   * Keeps the offsets of this scroll area ({@link #scroll}, {@link #scrollBoth}, {@link #rows}) in
+   * {@code state}, which the app holds, instead of by the area's identity, so that the area keeps
+   * where it was scrolled to while it is out of the tree or in the tree of another app, as a tab's
+   * grid in a window of its own. Give the same object to the same area on every build, and each
+   * area one of its own; null, the default, keeps the offsets by identity.
+   *
+   * @throws IllegalStateException when the view is built, if two areas of the tree have one
+   */
+  public El scrollState(ScrollState state) {
+    this.scrollState = state;
+    return this;
+  }
+
+  ScrollState scrollState() {
+    return scrollState;
   }
 
   /** Makes this element a scroll area like {@link #scroll}, along both axes. */
@@ -2939,6 +2958,10 @@ public final class El {
     boolean changed = newX != scrollX || newY != scrollY;
     scrollX = newX;
     scrollY = newY;
+    if (scrollState != null && scrollState.el == this) {
+      scrollState.x = newX;
+      scrollState.y = newY;
+    }
     if (text != null && text.multiline()) {
       text.scrolled(newX, newY);
     }

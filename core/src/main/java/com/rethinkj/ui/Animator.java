@@ -58,6 +58,7 @@ final class Animator {
   private final Set<Entry> moving = new LinkedHashSet<>();
   private boolean started;
   private long created; // entries made so far, which orders overlays by when they opened
+  private long passes; // updates so far, to find two scroll areas with one ScrollState
 
   /**
    * Takes a tree that layout has just placed: its values become the targets at {@code now}, and
@@ -67,6 +68,7 @@ final class Animator {
     El.measureScrolls(root); // before the offsets are clamped to what it finds
     Map<Id, Entry> next = new HashMap<>();
     moving.clear();
+    passes++;
     visit(root, new Id(null, part(root, 0)), started, next, now);
     entries = next; // drops the elements that are gone
     started = true;
@@ -386,9 +388,31 @@ final class Animator {
       }
     }
     // Clamped to the new content; also shifts the leaving children, which are the old ones.
-    el.scrollTo(before == null ? 0 : before.scrollX(), before == null ? 0 : before.scrollY());
+    ScrollState kept = el.scrollState();
+    boolean seen = before != null;
+    int revealed = before == null ? -1 : before.revealRow();
+    Object revealedKey = before == null ? null : before.revealKey();
+    if (kept == null) {
+      el.scrollTo(before == null ? 0 : before.scrollX(), before == null ? 0 : before.scrollY());
+    } else {
+      if (kept.owner == this && kept.pass == passes && !kept.id.equals(id)) {
+        throw new IllegalStateException("Two scroll areas have the same ScrollState. Give each"
+            + " area a ScrollState of its own, kept in the app's state with what it shows.");
+      }
+      if (before == null && kept.seen) { // back in the tree, or in another app's
+        seen = true;
+        revealed = kept.revealRow;
+        revealedKey = kept.revealKey;
+      }
+      kept.owner = this;
+      kept.pass = passes;
+      kept.id = id;
+      kept.el = el;
+      kept.seen = true;
+      el.scrollTo(kept.x, kept.y);
+    }
     int reveal = el.revealRow();
-    if (reveal >= 0 && (before == null || before.revealRow() != reveal)) {
+    if (reveal >= 0 && (!seen || revealed != reveal)) {
       if (el.isVirtualList()) {
         if (reveal < el.rowCount()) {
           el.scrollTo(el.scrollX(), el.offsetShowing(reveal));
@@ -398,9 +422,12 @@ final class Animator {
       }
     }
     Object key = el.revealKey();
-    if (key != null && el.isScrollArea()
-        && (before == null || !key.equals(before.revealKey()))) {
+    if (key != null && el.isScrollArea() && (!seen || !key.equals(revealedKey))) {
       el.revealArea();
+    }
+    if (kept != null) {
+      kept.revealRow = reveal;
+      kept.revealKey = key;
     }
   }
 
