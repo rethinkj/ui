@@ -22,4 +22,41 @@
       <scope>test</scope>
     </dependency>
   </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <configuration>
+          <argLine>--enable-native-access=com.rethinkj.ui</argLine>
+          <systemPropertyVariables>
+            <!-- Unpack the libraries the tests load here, not into the user's cache. -->
+            <rethinkj.ui.natives.cache>${project.build.directory}/natives-cache</rethinkj.ui.natives.cache>
+          </systemPropertyVariables>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+
+  <profiles>
+    <!-- The native libraries of the platform the build runs on, for the tests that load them.
+         Without them, those tests are skipped. -->
+    <profile>
+      <id>natives-windows-x64</id>
+      <activation>
+        <os>
+          <family>windows</family>
+          <arch>amd64</arch>
+        </os>
+      </activation>
+      <dependencies>
+        <dependency>
+          <groupId>com.rethinkj.ui</groupId>
+          <artifactId>rethinkj-ui-natives-windows-x64</artifactId>
+          <version>${project.version}</version>
+          <scope>test</scope>
+        </dependency>
+      </dependencies>
+    </profile>
+  </profiles>
 </project>
