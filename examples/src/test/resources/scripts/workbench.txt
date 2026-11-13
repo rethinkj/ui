@@ -13,6 +13,7 @@ snap workbench-loading                     # which asks for its rows: "Loadingâ€
 
 await                                      # a million rows
 frame
+advance 0.2                                # the toolbar's button fades in
 press 600,200                              # selects a row and focuses the grid
 key End                                    # the last of a million rows, clear of the bar
 frame

@@ -72,16 +72,27 @@ public final class Tabs {
    * @param title shown in the tab, also its label
    * @param closable whether it has a cross that closes it
    * @param modified whether a dot before the title says that its content has unsaved changes
+   * @param icon before the title, in the title's colour, such as a table's; null for none
    */
-  public record Tab(String title, boolean closable, boolean modified) {
+  public record Tab(String title, boolean closable, boolean modified, Symbol icon) {
 
     public Tab {
       Objects.requireNonNull(title, "title");
     }
 
+    /** A tab without an icon. */
+    public Tab(String title, boolean closable, boolean modified) {
+      this(title, closable, modified, null);
+    }
+
     /** A tab that can be closed and has no changes. */
     public Tab(String title) {
       this(title, true, false);
+    }
+
+    /** This tab with an icon before its title. */
+    public Tab icon(Symbol icon) {
+      return new Tab(title, closable, modified, icon);
     }
   }
 
@@ -118,12 +129,15 @@ public final class Tabs {
     }
     El bar = row().key("bar").fill(t.surface().band()).padding(0, t.space().xs()).shrink(0)
         .child(list);
-    El under = Divider.divider(t);
+    El under = el().h(t.size().stroke()).shrink(0).fill(t.border().subtle());
     El panel = col().key("panel").role("tabpanel")
         .label(active >= 0 && active < tabs.size() ? tabs.get(active).title() : null)
         .grow(1);
     panel.style().minHeight = Len.ZERO;
     if (content != null) {
+      // No minimum from the content either, so that a list of rows deep inside it scrolls.
+      content.style().minWidth = Len.ZERO;
+      content.style().minHeight = Len.ZERO;
       panel.child(content.grow(1));
     }
     El root = Card.surface(t, Card.Variant.OUTLINED).children(bar, under, panel);
@@ -195,6 +209,9 @@ public final class Tabs {
     }
     if (tab.modified()) {
       el.child(label(t, "●").color(ink));
+    }
+    if (tab.icon() != null) {
+      el.child(Icon.icon(t, tab.icon()).color(ink));
     }
     el.child(label(t, tab.title()).color(ink));
     if (!enabled) {

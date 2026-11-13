@@ -7,6 +7,7 @@ import static com.rethinkj.ui.kit.Label.label;
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.Style;
 import com.rethinkj.ui.WindowPart;
+import com.rethinkj.ui.kit.Label;
 import com.rethinkj.ui.kit.Theme;
 
 /**
@@ -21,10 +22,10 @@ final class TitleBar {
   static El titleBar(Theme t, String title, int mark, El... controls) {
     int glyph = t.text().primary();
     El bar = row().wFull().h(32).shrink(0).align(Style.Align.CENTER)
-        .fill(t.surface().panel())
+        .fill(t.surface().window())
         .windowPart(WindowPart.DRAG)
-        .child(el().size(12, 12).radius(6).fill(mark).margin(0, 0, 0, 10))
-        .child(label(t, title).margin(0, 0, 0, t.space().m()))
+        .child(el().size(10, 10).radius(3).fill(mark).margin(0, 0, 0, 12))
+        .child(label(t, Label.Variant.STRONG, title).margin(0, 0, 0, t.space().m()))
         .child(el().grow(1));
     if (controls.length > 0) {
       bar.child(row().gap(t.space().l()).margin(0, t.space().l(), 0, 0)
