@@ -169,6 +169,7 @@ public final class App<S> {
   private final Set<Work> running = new LinkedHashSet<>(); // of background(); guarded by itself
   private boolean dispatching;
   private boolean handled; // a handler of the app took input since the tree was built
+  private boolean keyUntaken; // nothing took the key that keyDownAt dispatched last
   private boolean scrolled; // something scrolled since the rows and bars were placed
   private boolean caretOverlays; // an overlay is placed beside a caret: see El#atCaret
   private boolean rowsPending; // the tree was built between two inputs without its lists' rows
@@ -842,10 +843,26 @@ public final class App<S> {
    * its root, which also gets them while nothing has the focus.
    */
   public void keyDown(Key key) {
+    keyDown(key, null);
+  }
+
+  /**
+   * A key went down, as {@link #keyDown(Key)}, and {@code untaken} runs in the frame that
+   * dispatches it if nothing took it: no key handler, field, press or Tab. A runner hands a key on
+   * with it for what the system does with a key no app wants, as {@link
+   * com.rethinkj.ui.window.WindowLoop} opens the window menu on Alt+Space.
+   *
+   * @param untaken runs on the app's thread, during {@link #frame}; null for nothing
+   */
+  public void keyDown(Key key, Runnable untaken) {
     Objects.requireNonNull(key, "key");
     enqueue(() -> {
       Object before = focusId;
+      keyUntaken = false;
       boolean took = keyDownAt(key);
+      if (keyUntaken && untaken != null) {
+        untaken.run();
+      }
       if (Objects.equals(before, focusId) && !focusKeyed && focused != null
           && focused.focusRestLook() != null) {
         focusKeyed = true; // the look of a stay goes
@@ -916,6 +933,7 @@ public final class App<S> {
         return focus(el, true);
       }
     }
+    keyUntaken = true;
     return called;
   }
 
@@ -2425,6 +2443,12 @@ public final class App<S> {
   private boolean fillRows() {
     if (root == null) {
       return false;
+    }
+    if (pointerIn) {
+      // The rows' looks follow what the pointer is over, and a modal overlay or a bar above a row
+      // takes it: those of a tree just built are not placed yet.
+      Overlays.place(root, width, height);
+      El.placeBars(root);
     }
     float far = Float.POSITIVE_INFINITY;
     boolean built = fillRows(root, new ArrayList<>(), 0, 0, -far, far);

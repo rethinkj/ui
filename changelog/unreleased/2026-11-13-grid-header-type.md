@@ -1,0 +1,1 @@
+- A data grid's header no longer shows a column's type as a clipped ellipsis where the column is narrow: with less room than its first character and an ellipsis, the type is left out, and the header's tooltip names it.

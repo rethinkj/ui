@@ -48,20 +48,25 @@ final class TitleBar {
     return bar.child(Tooltip.tooltip(t,
             button(WindowPart.MINIMIZE, "Minimize", el().size(10, 1).fill(glyph)), "Minimize"))
         .child(button(WindowPart.MAXIMIZE, "Maximize", el().size(10, 10).border(1, glyph)))
-        .child(Tooltip.tooltip(t, button(WindowPart.CLOSE, "Close", cross(glyph)), "Close"));
+        .child(Tooltip.tooltip(t, close(t, glyph), "Close"));
   }
 
   private static El button(WindowPart part, String label, El glyph) {
     return el().role("button").label(label).size(46, 32).center().windowPart(part).child(glyph);
   }
 
-  /** An X, from two diagonals of small squares. */
-  private static El cross(int colour) {
+  /** The close button, red with a white cross under the pointer, as the system's is. */
+  private static El close(Theme t, int glyph) {
     El cross = el().size(10, 10);
     for (int i = 0; i <= 8; i++) {
-      cross.child(el().size(2, 2).absolute(i, i).fill(colour))
-          .child(el().size(2, 2).absolute(8 - i, i).fill(colour));
+      cross.child(el().size(2, 2).absolute(i, i).fill(glyph))
+          .child(el().size(2, 2).absolute(8 - i, i).fill(glyph));
     }
-    return cross;
+    return button(WindowPart.CLOSE, "Close", cross).whenHovered(b -> {
+      b.fill(t.caption().closeHover());
+      for (El square : cross.children()) {
+        square.fill(t.caption().onClose());
+      }
+    });
   }
 }

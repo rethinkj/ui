@@ -638,11 +638,13 @@ final class Sections {
             new Swatch("cursor", g.cursor(), 0)),
         List.of(new Swatch("thumb", t.scrollbars().thumb(), 0),
             new Swatch("thumbHovered", t.scrollbars().thumbHovered(), 0),
-            new Swatch("thumbDragged", t.scrollbars().thumbDragged(), 0)));
+            new Swatch("thumbDragged", t.scrollbars().thumbDragged(), 0)),
+        List.of(new Swatch("closeHover", t.caption().closeHover(), 0),
+            new Swatch("onClose", t.caption().onClose(), 0)));
   }
 
   private static final String[] GROUPS = {
-    "surface", "text", "border", "accent", "status", "grid", "scrollbars"};
+    "surface", "text", "border", "accent", "status", "grid", "scrollbars", "caption"};
 
   private static El colour(Theme t) {
     List<List<Swatch>> groups = swatches(t);

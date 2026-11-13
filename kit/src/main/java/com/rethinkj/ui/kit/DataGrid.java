@@ -65,7 +65,8 @@ import java.util.function.IntPredicate;
  *
  * <p>A header cell shows the column's icon, its title, its type in muted text and the sort mark,
  * in this order at the left or the right as the column puts its text, the mark on the outer side.
- * Where the column is narrow, the type gives way first, then the title ends in an ellipsis; icon
+ * Where the column is narrow, the type gives way first, and goes entirely before less than its
+ * first character would show, then the title ends in an ellipsis; icon
  * and mark keep their size, and a tooltip shows title and type whole. A cell shows its icon
  * ({@link Column#cellIcon}) before its text or alone in its place.
  *
@@ -813,7 +814,8 @@ public final class DataGrid {
 
   /**
    * A header cell: the icon, the title, the type and the sort mark, in this order at the left or
-   * the right, the mark on the outer side. Where the column is narrow, the type gives way first,
+   * the right, the mark on the outer side. Where the column is narrow, the type gives way first
+   * (entirely before less than its first character would show),
    * then the title ends in an ellipsis; icon and mark keep their size.
    */
   private static El headerCell(Build b, int index) {
@@ -821,7 +823,7 @@ public final class DataGrid {
     Column column = b.columns.get(index);
     El title = title(t, column.title()).ellipsis().minSize(0, 0);
     El name = title;
-    if (column.typeName() != null) {
+    if (column.typeName() != null && typeFits(b, index)) {
       // The title keeps its width as long as the type has any, and never more than the room.
       title.shrink(0).style().maxWidth = Len.percent(1);
       name = row().align(Style.Align.CENTER).gap(t.space().s()).minSize(0, 0).clip()
@@ -986,6 +988,25 @@ public final class DataGrid {
       }
     }
     return width;
+  }
+
+  /**
+   * Whether the type of a column with one fits its header cell well enough to show: whole, or cut
+   * short after at least its first character. With less room it would be an ellipsis alone, or a
+   * part of one, so it gives way entirely and the tooltip names it.
+   */
+  private static boolean typeFits(Build b, int c) {
+    Theme t = b.t;
+    String type = b.columns.get(c).typeName();
+    float room = b.columns.get(c).width() - t.size().stroke() - 2 * t.space().s();
+    float whole = natural(Label.label(t, Label.Variant.MUTED, type));
+    float left = room - (headerWidth(b, c) - whole);
+    if (left >= whole) {
+      return true;
+    }
+    int first = type.offsetByCodePoints(0, 1);
+    return first < type.length() && left >= natural(
+        Label.label(t, Label.Variant.MUTED, type.substring(0, first) + Text.ELLIPSIS));
   }
 
   /** The width a text element takes on one line, in logical pixels. */

@@ -373,6 +373,28 @@ class ScrollbarTest {
   }
 
   @Test
+  void aRowUnderABarTakesNoHoverLookAlsoWhenARebuildBuildsItAgain() {
+    App<Object> app = new App<>(new Object(), s -> col().key("list").wFull().hFull()
+        .scrollbars(LOOK)
+        .rows(1000, 20, i -> el().key("row-" + i).wFull().h(20).fill(REST)
+            .whenHovered(e -> e.fill(HOVERED))));
+    app.resize(200, 100, 1);
+    app.frame();
+    app.pointerMove(195, 30); // on the bar, over row 1
+    app.frame();
+    assertEquals(REST, app.tree().children().get(1).fill(), "the bar's, not the row's");
+
+    app.post(() -> {}); // a rebuild of the view, with the pointer where it was
+    assertTrue(app.frame());
+    assertEquals("row-1", app.tree().children().get(1).key());
+    assertEquals(REST, app.tree().children().get(1).fill(), "still the bar's");
+
+    app.pointerMove(150, 30); // off the bar, on the row
+    app.frame();
+    assertEquals(HOVERED, app.tree().children().get(1).fill());
+  }
+
+  @Test
   void aPressOnABarReachesNoRowAncestorOrDragAndKeepsTheFocus() {
     Log state = new Log();
     App<Log> app = new App<>(state, l -> col().wFull().hFull()
