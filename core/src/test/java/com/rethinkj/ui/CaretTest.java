@@ -113,6 +113,23 @@ class CaretTest {
   }
 
   @Test
+  void undoAndRedoStepThroughTheFieldsHistoryAsItsKeysDo() {
+    App<Model> app = area("ab", f -> f);
+    focus(app);
+    key(app, "End");
+    app.edit(field(app), 2, 2, "c", 3);
+    app.frame();
+    assertEquals("abc", app.state().value);
+    app.undo(field(app));
+    app.frame();
+    assertEquals("ab", app.state().value);
+    app.undo(field(app)); // no step left
+    app.redo(field(app));
+    app.frame();
+    assertEquals("abc|", show(app));
+  }
+
+  @Test
   void selectSelectsAndScrollsIntoView() {
     StringBuilder text = new StringBuilder();
     for (int i = 0; i < 30; i++) {

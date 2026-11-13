@@ -63,7 +63,7 @@ press role=menuitem label="Edit"           # the menu bar in the title bar
 frame
 advance 0.25
 frame
-snap workbench-edit-menu                   # Undo and Redo show their keys; Cut and Copy act
+snap workbench-edit-menu                   # Undo and Redo step through the query's history
 key Escape
 key Escape                                 # the menu, then the bar: the focus back in the query
 frame

@@ -2281,6 +2281,33 @@ public final class App<S> {
     });
   }
 
+  /**
+   * Takes back the last step of a text field's history, as Control+Z in it does: an Edit menu's
+   * Undo. Nothing happens when there is no step. A handler may call this as {@link #edit}.
+   */
+  public void undo(El field) {
+    history(field, "undo", Editor::undo);
+  }
+
+  /** Does the step again that {@link #undo} or Control+Z took back last, as Control+Y does. */
+  public void redo(El field) {
+    history(field, "redo", Editor::redo);
+  }
+
+  private void history(El field, String call, Consumer<Editor> step) {
+    Object id = fieldId(field, call);
+    enqueue(() -> {
+      settle();
+      El now = animator.element(id);
+      if (now == null || now.editor() == null) {
+        return false;
+      }
+      step.accept(now.editor());
+      handled |= now.editor().answerPending();
+      return true;
+    });
+  }
+
   private Object fieldId(El field, String call) {
     Object id = field == null || !field.isEditable() ? null : animator.identity(field);
     if (id == null) {
