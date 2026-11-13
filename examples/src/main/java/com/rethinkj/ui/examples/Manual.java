@@ -7,6 +7,7 @@ import static com.rethinkj.ui.kit.Toggle.toggle;
 
 import com.rethinkj.ui.App;
 import com.rethinkj.ui.El;
+import com.rethinkj.ui.Image;
 import com.rethinkj.ui.Script;
 import com.rethinkj.ui.kit.Card;
 import com.rethinkj.ui.kit.Divider;
@@ -29,8 +30,12 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Stream;
 
 /**
@@ -42,13 +47,23 @@ import java.util.stream.Stream;
  * with the example otherwise, and the Markdown files named on the command line. A link to a
  * heading scrolls there; other links show their address in a toast. The title bar switches
  * between the dark and the light theme. The state is this class.
+ *
+ * <p>Images are read off the app's thread ({@link App#background}) the first time the document
+ * asks for one, and kept: the manual's from its resources, made for scale 2, a file's from the
+ * folder of the file, one pixel to one logical pixel. Until an image is there, or where it cannot
+ * be read, the document shows its placeholder.
  */
 public final class Manual {
 
-  /** A document of the list, read once. */
-  record Doc(String title, Symbol icon, MarkdownDocument document, Markdown.State selection) {
-    Doc(String title, Symbol icon, String source) {
-      this(title, icon, Markdown.parse(source), new Markdown.State());
+  /**
+   * A document of the list, read once.
+   *
+   * @param folder where its images are, null for the manual's resources
+   */
+  record Doc(String title, Symbol icon, MarkdownDocument document, Markdown.State selection,
+      Path folder) {
+    Doc(String title, Symbol icon, String source, Path folder) {
+      this(title, icon, Markdown.parse(source), new Markdown.State(), folder);
     }
   }
 
@@ -59,13 +74,17 @@ public final class Manual {
   String toast;
   /** The app that runs this state, for scrolling to a heading from a handler. */
   App<Manual> app;
+  /** The images read so far, by document and address, and those asked for. */
+  final Map<String, Image> images = new HashMap<>();
+  private final Set<String> asked = new HashSet<>();
 
   Manual(List<Path> files) {
-    docs.add(new Doc("Manual", Symbol.DOCUMENT, resource("manual.md")));
-    docs.add(new Doc("Changelog", Symbol.HISTORY, changelog()));
+    docs.add(new Doc("Manual", Symbol.DOCUMENT, resource("manual.md"), null));
+    docs.add(new Doc("Changelog", Symbol.HISTORY, changelog(), null));
     for (Path file : files) {
       try {
-        docs.add(new Doc(file.getFileName().toString(), Symbol.DOCUMENT, Files.readString(file)));
+        docs.add(new Doc(file.getFileName().toString(), Symbol.DOCUMENT, Files.readString(file),
+            file.toAbsolutePath().getParent()));
       } catch (IOException e) {
         throw new UncheckedIOException("Cannot read " + file, e);
       }
@@ -82,6 +101,30 @@ public final class Manual {
     } catch (IOException e) {
       throw new UncheckedIOException(e);
     }
+  }
+
+  /**
+   * The image at this address of the document, or null while it is being read or where it cannot
+   * be: the first call starts reading it off the app's thread, and the view is built again when
+   * it is there. Addresses with a scheme, such as {@code https:}, are not read.
+   */
+  Image image(Doc doc, String source) {
+    String key = doc.title() + "\n" + source;
+    if (app != null && !source.contains(":") && asked.add(key)) {
+      Path folder = doc.folder();
+      app.background("image " + source, () -> {
+        if (folder != null) {
+          return Image.decode(Files.readAllBytes(folder.resolve(source)));
+        }
+        try (InputStream in = Manual.class.getResourceAsStream("manual/" + source)) {
+          if (in == null) {
+            throw new IOException("No image " + source);
+          }
+          return Image.decode(in.readAllBytes(), 2);
+        }
+      }, image -> images.put(key, image), failure -> {}); // the placeholder stays
+    }
+    return images.get(key);
   }
 
   /**
@@ -233,7 +276,8 @@ public final class Manual {
         }).key("outline").label("On this page").grow(1).minSize(0, 0));
     El document = Markdown.markdown(t, doc.document(), Markdown.options()
         .onLink(s::link).copy(s.app == null ? null : s.app.clipboard())
-        .state(doc.selection())).key("doc-" + s.doc).grow(1).minSize(0, 0);
+        .state(doc.selection()).images(source -> s.image(doc, source)))
+        .key("doc-" + s.doc).grow(1).minSize(0, 0);
     El root = col().wFull().hFull().fill(t.surface().window())
         .child(titleBar(t, "Manual", t.accent().color(),
             toggle(t, s.dark, "Dark", () -> s.dark = !s.dark)))

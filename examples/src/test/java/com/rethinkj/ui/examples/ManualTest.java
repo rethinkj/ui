@@ -25,6 +25,16 @@ class ManualTest {
         .endsWith("disabled checked"));
     assertTrue(Snaps.line("manual", "manual-toast", "role=status")
         .contains("label=\"Opens https://commonmark.org\""));
+    // The images, read off the app's thread: a PNG made for scale 2 at half its pixels, a JPEG
+    // from the middle of a paragraph, an image that is not there as its placeholder, a title.
+    assertTrue(Snaps.line("manual", "manual-dark-1x-images", "label=\"The frame of the")
+        .matches("image role=img label=\".*\" \\d+,\\d+ 384x224"));
+    assertTrue(Snaps.line("manual", "manual-dark-1x-images", "label=\"Three notes as cards\"")
+        .endsWith(" 320x150"));
+    assertTrue(Snaps.line("manual", "manual-dark-2x-images-end", "could not read")
+        .startsWith("el role=img label=\"An image the app could not read\""));
+    assertTrue(Snaps.line("manual", "manual-dark-2x-images-end", "role=tooltip")
+        .contains("label=\"A JPEG\""));
   }
 
   @Test

@@ -92,7 +92,16 @@ sideways:
 
 ## Images
 
-![A diagram of the frame of the workbench](images/workbench.png)
+An image alone in its paragraph stands as a block, as large as its pixels and at most as wide as
+the page. Rest the pointer on it to see its title. The app reads the files off its thread and the
+page shows a placeholder with the description until an image is there.
+
+![The frame of the workbench, with rounded corners and a shadow](images/workbench.png "A PNG with alpha")
+
+An image among the text, such as ![Three notes as cards](images/notes.jpg "A JPEG") here, breaks
+the paragraph and stands as a block too.
+
+![An image the app could not read](images/missing.png)
 
 ---
 

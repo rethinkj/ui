@@ -59,8 +59,18 @@ import java.util.function.Function;
  * <p>Code blocks are in the mono type on the raised surface, scroll sideways, and are coloured by
  * the highlighter {@link Options#languages} gives for their language, {@link Sql} for {@code
  * sql}; with {@link Options#copy} a copy button shows in the corner under the pointer. Task list
- * items show the kit's checkbox, which takes no input. Images show their description in a frame,
- * as the kit has no images yet.
+ * items show the kit's checkbox, which takes no input.
+ *
+ * <p>Images come from the app: {@link Options#images} gives the image for an address, or null
+ * while it has none, and the kit's {@link Image} shows it, or its placeholder with the image's
+ * description until then. An image is as large as its pixels at its scale and at most as wide as
+ * the page, and its title, if it has one, is its tooltip. It stands as a block: an image alone in
+ * its paragraph is one, and one among the text of a paragraph breaks the paragraph there, the
+ * text before it above and the text after it below, since a block of text is one field whose
+ * lines cannot make room for an image. An image that arrives later makes its row higher; when
+ * that row is above the top of the view, the view moves along with it, so that what is in view
+ * stays where it is. Without {@link Options#images}, an image shows as its description: in a
+ * frame alone in its paragraph, in muted text among other text.
  *
  * <p>What the component makes of a document for a theme it keeps with the document, so a
  * rebuild of the view reads nothing again and highlights nothing again.
@@ -95,8 +105,20 @@ public final class Markdown {
     private Function<String, Highlighter> languages = language -> null;
     private Clipboard clipboard;
     private State state;
+    private Function<String, com.rethinkj.ui.Image> images;
 
     private Options() {}
+
+    /**
+     * The image for an image's address as written ({@code images/frame.png}), or null while the
+     * app has none, which shows a placeholder. Asked on every build of the image's row, so keep
+     * the images in the state, read off the app's thread ({@link
+     * com.rethinkj.ui.App#background}), and hand out the same image each time.
+     */
+    public Options images(Function<String, com.rethinkj.ui.Image> images) {
+      this.images = images;
+      return this;
+    }
 
     /** Takes the destination of a link that is pressed, as written: a URL, or {@code #id}. */
     public Options onLink(Consumer<String> handler) {
@@ -544,21 +566,77 @@ public final class Markdown {
 
   private static El paragraph(Context c, MarkdownDocument.Paragraph p) {
     Theme t = c.t;
-    if (p.content().size() == 1 && p.content().getFirst() instanceof MarkdownDocument.Image image) {
-      return image(t, image);
+    List<Inline> content = p.content();
+    if (content.size() == 1 && content.getFirst() instanceof MarkdownDocument.Image image) {
+      return image(c, image);
     }
-    return field(c, piece(c, p, p.content(), false),
-        t.prose().body(), c.color).role("paragraph");
+    if (c.options.images == null
+        || content.stream().noneMatch(i -> i instanceof MarkdownDocument.Image)) {
+      return field(c, piece(c, p, content, false), t.prose().body(), c.color).role("paragraph");
+    }
+    // Images among the text break the paragraph: text, image, text, each a block of its own.
+    El blocks = col().gap(t.space().l());
+    Object owner = p; // a run of text is kept by the paragraph, or by the image before it
+    List<Inline> run = new ArrayList<>();
+    for (Inline part : content) {
+      if (part instanceof MarkdownDocument.Image image) {
+        run(c, owner, run, blocks);
+        blocks.child(image(c, image));
+        owner = image;
+        run = new ArrayList<>();
+      } else {
+        run.add(part);
+      }
+    }
+    run(c, owner, run, blocks);
+    return blocks;
   }
 
-  /** An image alone in its paragraph: its description in a frame, as there are no images yet. */
-  private static El image(Theme t, MarkdownDocument.Image image) {
+  /** A run of a paragraph's text between its images, without the breaks around it, if any. */
+  private static void run(Context c, Object owner, List<Inline> run, El into) {
+    while (!run.isEmpty() && (run.getFirst() instanceof MarkdownDocument.SoftBreak
+        || run.getFirst() instanceof MarkdownDocument.HardBreak)) {
+      run.removeFirst();
+    }
+    while (!run.isEmpty() && (run.getLast() instanceof MarkdownDocument.SoftBreak
+        || run.getLast() instanceof MarkdownDocument.HardBreak)) {
+      run.removeLast();
+    }
+    if (!run.isEmpty() && run.getFirst() instanceof MarkdownDocument.Text x) {
+      run.set(0, new MarkdownDocument.Text(x.text().stripLeading()));
+    }
+    if (!run.isEmpty() && run.getLast() instanceof MarkdownDocument.Text x) {
+      run.set(run.size() - 1, new MarkdownDocument.Text(x.text().stripTrailing()));
+    }
+    if (MarkdownDocument.plainText(run).isBlank()) {
+      return;
+    }
+    into.child(field(c, piece(c, owner, run, false), c.t.prose().body(), c.color)
+        .role("paragraph"));
+  }
+
+  /**
+   * An image as a block: the app's image, at most as wide as the page, with its title as its
+   * tooltip, or the placeholder with its description until the app has it; without {@link
+   * Options#images}, the description in a frame.
+   */
+  private static El image(Context c, MarkdownDocument.Image image) {
+    Theme t = c.t;
     String alt = image.alt().isEmpty() ? image.source() : image.alt();
-    return row().role("img").label(alt).gap(t.space().m()).align(Style.Align.CENTER)
-        .padding(t.space().l()).radius(t.radius().medium())
-        .border(t.size().stroke(), t.border().subtle()).fill(t.surface().band())
-        .children(Icon.icon(t, Symbol.IMAGE, Icon.Variant.MUTED),
-            Label.label(t, Label.Variant.MUTED, alt).wrapText().grow(1).minSize(0, 0));
+    com.rethinkj.ui.Image picture = c.options.images == null ? null
+        : c.options.images.apply(image.source());
+    El el = Image.image(t, picture, alt);
+    if (picture == null) {
+      el.justify(Style.Content.START);
+      el.children().getLast().grow(1);
+      return el;
+    }
+    if (!image.title().isEmpty()) {
+      Tooltip.tooltip(t, el, image.title());
+    }
+    // In a column of its own, which the page stretches, so that a small image keeps its size and
+    // a large one is as wide as the page (El.image takes no more than the width there is).
+    return col().align(Style.Align.START).child(el);
   }
 
   private static El codeBlock(Context c, MarkdownDocument.CodeBlock block) {

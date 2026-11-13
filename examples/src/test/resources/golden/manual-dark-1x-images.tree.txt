@@ -1,0 +1,154 @@
+el 0,0 960x640
+  el window=drag 0,0 960x32
+    el 12,11 10x10
+    text "Manual" 30,8 45x16
+    el 75,16 671x0
+    el 746,8 64x16
+      el role=switch label="Dark" 742,6 72x20 checked
+        el 746,8 28x16
+          el 760,10 12x12
+        text "Dark" 782,8 28x16
+    el role=button label="Minimize" window=minimize 822,0 46x32
+      el 840,16 10x1
+    el role=button label="Maximize" window=maximize 868,0 46x32
+      el 886,11 10x10
+    el role=button label="Close" window=close 914,0 46x32
+      text label="dismiss" "\u{F367}" 931,10 12x12
+  el 0,32 960x608
+    el 8,32 240x600
+      el 9,33 238x598
+        el 13,37 230x590
+          el #documents role=listbox label="Documents" 13,37 230x56
+            el #item-0 role=option label="Manual" 13,37 230x28 selected pos=1/2
+              el 13,39 230x24
+                el 15,43 2x16
+                text label="document" "\u{E4D7}" 21,43 16x16
+                text "Manual" 41,43 194x16
+            el #item-1 role=option label="Changelog" 13,65 230x28 pos=2/2
+              el 13,67 230x24
+                el 15,71 2x16
+                text label="history" "\u{E705}" 21,71 16x16
+                text "Changelog" 41,71 194x16
+          el role=separator 13,97 230x1
+          text "On this page" 21,104 214x16
+          el #outline role=listbox label="On this page" 13,124 230x503 focused
+            el #item-0 role=option label="Writing documents" 13,124 230x28 pos=1/9
+              el 13,126 230x24
+                el 15,130 2x16
+                text "Writing documents" 21,130 214x16
+            el #item-1 role=option label="Text" 13,152 230x28 pos=2/9
+              el 13,154 230x24
+                el 15,158 2x16
+                text "Text" 21,158 214x16
+            el #item-2 role=option label="  Links" 13,180 230x28 pos=3/9
+              el 13,182 230x24
+                el 15,186 2x16
+                text "  Links" 21,186 214x16
+            el #item-3 role=option label="Lists" 13,208 230x28 pos=4/9
+              el 13,210 230x24
+                el 15,214 2x16
+                text "Lists" 21,214 214x16
+            el #item-4 role=option label="  A checklist" 13,236 230x28 pos=5/9
+              el 13,238 230x24
+                el 15,242 2x16
+                text "  A checklist" 21,242 214x16
+            el #item-5 role=option label="Quotes" 13,264 230x28 pos=6/9
+              el 13,266 230x24
+                el 15,270 2x16
+                text "Quotes" 21,270 214x16
+            el #item-6 role=option label="Code blocks" 13,292 230x28 pos=7/9
+              el 13,294 230x24
+                el 15,298 2x16
+                text "Code blocks" 21,298 214x16
+            el #item-7 role=option label="Tables" 13,320 230x28 pos=8/9
+              el 13,322 230x24
+                el 15,326 2x16
+                text "Tables" 21,326 214x16
+            el #item-8 role=option label="Images" 13,348 230x28 selected pos=9/9
+              el 13,350 230x24
+                el 15,354 2x16
+                text "Images" 21,354 214x16
+    el 256,32 696x600
+      el #doc-0 role=document 257,33 694x598 rows 27-38/39 scroll 0,1425 thumb-y 943,400.95 6x153.57
+        el 281,-212 646x150 pos=28/39
+          el role=group 281,-212 646x138
+            text role=code label="sql" "-- The ten largest orders of this year\nSELECT o.id, c.name, o.total\n  FROM orders o\n  JOIN customers" … "01-01'\n ORDER BY o.total DESC\n LIMIT 10;" length 201 282,-211 644x136 readonly lines 1-7/7
+            el #copy role=button label="Copy code" 898,-207 24x24
+              text label="copy" "\u{F32A}" 902,-203 16x16
+        el 281,-62 646x29 pos=29/39
+          text role=paragraph "An indented block is code without a language, and a line longer than the page scrolls sideways:" 281,-62 646x17 readonly lines 1-1/1
+        el 281,-33 646x54 pos=30/39
+          el role=group 281,-33 646x42
+            text role=code "java --enable-native-access=ALL-UNNAMED -cp core/target/classes:fonts/target/classes com.rethinkj.ui.examples.Manual" 282,-32 644x40 readonly lines 1-1/1
+            el #copy role=button label="Copy code" 898,-28 24x24
+              text label="copy" "\u{F32A}" 902,-24 16x16
+        el 281,21 646x61 pos=31/39
+          el 281,45 646x29
+            text #heading-tables role=heading "Tables" 281,45 646x28 readonly level=2 lines 1-1/1
+            el role=separator 281,73 646x1
+        el 281,82 646x151 pos=32/39
+          el 281,82 646x139
+            el role=table 281,82 285x131
+              el role=row 282,83 283x25
+                el role=columnheader 282,83 86x25
+                  text role=textbox "Form" 290,87 36x17 readonly lines 1-1/1
+                el role=columnheader 368,83 114x25
+                  text role=textbox "Written as" 389,87 72x17 readonly lines 1-1/1
+                el role=columnheader 482,83 83x25
+                  text role=textbox "Shown as" 490,87 67x17 readonly lines 1-1/1
+              el role=separator 282,108 283x1
+              el role=row 282,109 283x25
+                el role=cell 282,109 86x25
+                  text role=textbox "Emphasis" 290,113 64x17 readonly lines 1-1/1
+                el role=cell 368,109 114x25
+                  text role=textbox "*a*" 412,113 26x17 readonly lines 1-1/1
+                el role=cell 482,109 83x25
+                  text role=textbox "a" 546,113 11x17 readonly lines 1-1/1
+              el role=separator 282,134 283x1
+              el role=row 282,135 283x25
+                el role=cell 282,135 86x25
+                  text role=textbox "Strong" 290,139 46x17 readonly lines 1-1/1
+                el role=cell 368,135 114x25
+                  text role=textbox "**a**" 404,139 42x17 readonly lines 1-1/1
+                el role=cell 482,135 83x25
+                  text role=textbox "a" 547,139 10x17 readonly lines 1-1/1
+              el role=separator 282,160 283x1
+              el role=row 282,161 283x25
+                el role=cell 282,161 86x25
+                  text role=textbox "Struck out" 290,165 70x17 readonly lines 1-1/1
+                el role=cell 368,161 114x25
+                  text role=textbox "~~a~~" 404,165 42x17 readonly lines 1-1/1
+                el role=cell 482,161 83x25
+                  text role=textbox "a" 547,165 10x17 readonly lines 1-1/1
+              el role=separator 282,186 283x1
+              el role=row 282,187 283x25
+                el role=cell 282,187 86x25
+                  text role=textbox "Link" 290,191 29x17 readonly lines 1-1/1
+                el role=cell 368,187 114x25
+                  text role=textbox "[a](#tables)" 376,191 98x17 readonly lines 1-1/1
+                el role=cell 482,187 83x25
+                  text role=textbox "a" 547,191 10x17 readonly lines 1-1/1
+                    el #link-0 role=link label="a" 547,191 8x17 value="#tables"
+        el 281,233 646x61 pos=33/39
+          el 281,257 646x29
+            text #heading-images role=heading "Images" 281,257 646x28 readonly level=2 lines 1-1/1
+            el role=separator 281,285 646x1
+        el 281,294 646x63 pos=34/39
+          text role=paragraph "An image alone in its paragraph stands as a block, as large as its pixels and at most as wide as the" … "the description until an image is there." length 265 281,294 646x51 readonly lines 1-1/1
+        el 281,357 646x236 pos=35/39
+          el 281,357 646x224
+            image role=img label="The frame of the workbench, with rounded corners and a shadow" 281,357 384x224
+        el 281,593 646x220 pos=36/39
+          el 281,593 646x208
+            text role=paragraph "An image among the text, such as" 281,593 646x17 readonly lines 1-1/1
+            el 281,622 646x150
+              image role=img label="Three notes as cards" 281,622 320x150
+            text role=paragraph "here, breaks the paragraph and stands as a block too." 281,784 646x17 readonly lines 1-1/1
+        el 281,813 646x54 pos=37/39
+          el role=img label="An image the app could not read" 281,813 646x42
+            text label="image" "\u{F487}" 294,826 16x16
+            text "An image the app could not read" 318,826 596x16
+        el 281,867 646x13 pos=38/39
+          el role=separator 281,867 646x1
+        el 281,880 646x17 pos=39/39
+          text role=paragraph "That is all: a thematic break ends the manual." 281,880 646x17 readonly lines 1-1/1

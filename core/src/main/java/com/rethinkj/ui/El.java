@@ -286,10 +286,11 @@ public final class El {
 
   /**
    * An image element ({@link Image}): a leaf of role {@code img} that layout sizes to the image in
-   * logical pixels, its size in pixels divided by its {@link Image#scale}. A width or a height
-   * from the style scales it, and with only one of them set the other follows the image's aspect
-   * ratio (the style's {@link Style#aspectRatio}); with both, {@link #fit} says how it fills the
-   * box. The image fills the content box and is clipped to the element's rounded corners; the
+   * logical pixels, its size in pixels divided by its {@link Image#scale}, but no wider than the
+   * width there is for it, as CSS's {@code max-width: 100%} for images: a large image in a narrow
+   * column is as wide as the column and keeps its aspect ratio. A width or a height from the style
+   * scales it, and with only one of them set the other follows the image's aspect ratio (the
+   * style's {@link Style#aspectRatio}); with both, {@link #fit} says how it fills the box. The image fills the content box and is clipped to the element's rounded corners; the
    * element's fill, border, shadows, opacity and motion apply as to any element. Give it a {@link
    * #label}, the text that stands for the image, which the tree's dump shows.
    */
@@ -308,6 +309,9 @@ public final class El {
       }
       if (!Float.isNaN(knownHeight)) {
         return new Measure.Size(knownHeight * width / height, knownHeight);
+      }
+      if (availableWidth >= 0 && availableWidth < width) { // a number, and less than the image
+        return new Measure.Size(availableWidth, availableWidth * height / width);
       }
       return new Measure.Size(width, height);
     };
