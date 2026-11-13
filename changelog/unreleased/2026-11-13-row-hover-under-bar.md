@@ -1,0 +1,1 @@
+- A row of a list under a scrollbar no longer takes its hover look when the view is built again while the pointer rests on the bar; the bar takes the pointer, as it does after a move.

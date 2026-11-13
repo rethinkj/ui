@@ -987,6 +987,29 @@ public final class Window implements AutoCloseable {
     rethrow();
   }
 
+  /**
+   * Opens the system's window menu (restore, move, size, minimize, maximize, close) at the left
+   * edge, below the title bar, as Alt+Space does on a framed window: in a frameless window below
+   * the rows at the top of the left edge that the view marks as its drag area ({@link
+   * WindowPart#DRAG}). The menu runs a loop of its own, so it opens after the events queued now
+   * are delivered. Where the platform has no such menu, nothing opens.
+   */
+  public void showSystemMenu() {
+    checkOpen();
+    float below = 0;
+    if (frameless) {
+      while (below < height && part(0, below) == WindowPart.DRAG) {
+        below++;
+      }
+    }
+    int y = units(below);
+    deferred.add(() -> {
+      if (open) {
+        Sdl.showWindowSystemMenu(sdl, 0, y);
+      }
+    });
+  }
+
   /** Brings the window to the front and gives it the keyboard focus, if the system lets it. */
   public void raise() {
     checkOpen();
@@ -1348,8 +1371,25 @@ public final class Window implements AutoCloseable {
     return scale / density;
   }
 
+  /** A position the system reported, such as the pointer's, in logical pixels; see below. */
   float logical(float units) {
-    return units * density / scale;
+    return position(units, density, scale);
+  }
+
+  /**
+   * A position in window units as logical pixels. Where it is a whole physical pixel, as the
+   * pointer's always is on Windows and X11, it is that pixel's centre, a 256th of a pixel towards
+   * its top left: the scene snaps the edges of boxes to whole pixels, halves up, so a pixel is
+   * drawn as part of a box exactly when that point lies in the box's layout rectangle, edges
+   * included. A press then reaches the box that drew the pixel under it, also at 1.25 or 1.5, and
+   * not the box that ends where the pixel begins.
+   */
+  static float position(float units, float density, float scale) {
+    double pixels = (double) units * density;
+    if (pixels == Math.rint(pixels)) {
+      pixels += 0.5 - 1 / 256.0;
+    }
+    return (float) (pixels / scale);
   }
 
   int units(float logical) {

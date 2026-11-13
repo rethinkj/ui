@@ -124,10 +124,11 @@ class WindowTest {
           new KeyDown(new Key("A", shiftControl, true)),
           new KeyUp(new Key("A", shiftControl, false)),
           new TextInput("ü€"),
-          new PointerMove(40, 30),
-          new PointerDown(40, 30, PointerButton.RIGHT, 2),
-          new PointerUp(41, 31, PointerButton.RIGHT),
-          new Wheel(0, -1.5f, 41, 31));
+          // The pointer at the centre of the pixel it is on (Window.position).
+          new PointerMove(window.logical(40), window.logical(30)),
+          new PointerDown(window.logical(40), window.logical(30), PointerButton.RIGHT, 2),
+          new PointerUp(window.logical(41), window.logical(31), PointerButton.RIGHT),
+          new Wheel(0, -1.5f, window.logical(41), window.logical(31)));
       // The real pointer may cross the window meanwhile; only the sent events are compared.
       assertEquals(expected, events.stream().filter(expected::contains).toList());
     }
@@ -146,7 +147,8 @@ class WindowTest {
 
       assertEquals(List.of(new Redraw(false)),
           events.stream().filter(Redraw.class::isInstance).toList(), events.toString());
-      assertTrue(events.indexOf(new PointerMove(40, 30)) < events.indexOf(new Redraw(false)),
+      assertTrue(events.indexOf(new PointerMove(window.logical(40), window.logical(30)))
+          < events.indexOf(new Redraw(false)),
           "the redraw comes after the move: " + events);
     }
   }
@@ -269,8 +271,9 @@ class WindowTest {
       Desktop.button(window, true, Sdl.BUTTON_RIGHT, 100, 100, 1);
       Desktop.button(window, false, Sdl.BUTTON_RIGHT, 100, 15, 1);
       Window.pollEvents();
-      assertEquals(List.of(new PointerDown(100, 100, PointerButton.RIGHT, 1),
-          new PointerUp(100, 15, PointerButton.RIGHT)), presses());
+      assertEquals(List.of(
+          new PointerDown(window.logical(100), window.logical(100), PointerButton.RIGHT, 1),
+          new PointerUp(window.logical(100), window.logical(15), PointerButton.RIGHT)), presses());
     }
   }
 

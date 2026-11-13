@@ -1,0 +1,138 @@
+el 0,0 960x640
+  el window=drag 0,0 960x32
+    el 12,11 10x10
+    text "Manual" 30,8 46x16
+    el 76,16 669x0
+    el 745,8 65x16
+      el role=switch label="Dark" 741,6 73x20 checked=false
+        el 745,8 28x16
+          el 747,10 12x12
+        text "Dark" 781,8 29x16
+    el role=button label="Minimize" window=minimize 822,0 46x32
+      el 840,16 10x1
+    el role=button label="Maximize" window=maximize 868,0 46x32
+      el 886,11 10x10
+    el role=button label="Close" window=close 914,0 46x32
+      text label="dismiss" "\u{F367}" 931,10 12x12
+  el 0,32 960x608
+    el 8,32 240x600
+      el 9,33 238x598
+        el 13,37 230x590
+          el #documents role=listbox label="Documents" 13,37 230x56
+            el #item-0 role=option label="Manual" 13,37 230x28 selected pos=1/2
+              el 13,39 230x24
+                el 15,43 2x16
+                text label="document" "\u{E4D7}" 21,43 16x16
+                text "Manual" 41,43 194x16
+            el #item-1 role=option label="Changelog" 13,65 230x28 pos=2/2
+              el 13,67 230x24
+                el 15,71 2x16
+                text label="history" "\u{E705}" 21,71 16x16
+                text "Changelog" 41,71 194x16
+          el role=separator 13,97 230x1
+          text "On this page" 21,104 214x16
+          el #outline role=listbox label="On this page" 13,124 230x503 focused
+            el #item-0 role=option label="Writing documents" 13,124 230x28 selected pos=1/9
+              el 13,126 230x24
+                el 15,130 2x16
+                text "Writing documents" 21,130 214x15
+            el #item-1 role=option label="Text" 13,152 230x28 pos=2/9
+              el 13,154 230x24
+                el 15,158 2x16
+                text "Text" 21,158 214x15
+            el #item-2 role=option label="  Links" 13,180 230x28 pos=3/9
+              el 13,182 230x24
+                el 15,186 2x16
+                text "  Links" 21,186 214x15
+            el #item-3 role=option label="Lists" 13,208 230x28 pos=4/9
+              el 13,210 230x24
+                el 15,214 2x16
+                text "Lists" 21,214 214x15
+            el #item-4 role=option label="  A checklist" 13,236 230x28 pos=5/9
+              el 13,238 230x24
+                el 15,242 2x16
+                text "  A checklist" 21,242 214x15
+            el #item-5 role=option label="Quotes" 13,264 230x28 pos=6/9
+              el 13,266 230x24
+                el 15,270 2x16
+                text "Quotes" 21,270 214x15
+            el #item-6 role=option label="Code blocks" 13,292 230x28 pos=7/9
+              el 13,294 230x24
+                el 15,298 2x16
+                text "Code blocks" 21,298 214x15
+            el #item-7 role=option label="Tables" 13,320 230x28 pos=8/9
+              el 13,322 230x24
+                el 15,326 2x16
+                text "Tables" 21,326 214x15
+            el #item-8 role=option label="Images" 13,348 230x28 pos=9/9
+              el 13,350 230x24
+                el 15,354 2x16
+                text "Images" 21,354 214x15
+    el 256,32 696x600
+      el #doc-0 role=document 257,33 694x598 rows 0-12/36 thumb-y 943,35 6x196.52
+        el 281,57 646x45 pos=1/36
+          el 281,57 646x37
+            text #heading-writing-documents role=heading "Writing documents" 281,57 646x36 readonly level=1 lines 1-1/1
+            el role=separator 281,93 646x1
+        el 281,102 646x63 pos=2/36
+          text role=paragraph "A document of the kit is written in Markdown and shown by Markdown.markdown. This manual uses every " … "r jump to tables, code or the checklist." length 237 281,102 646x51 readonly lines 1-1/1
+            el #link-0 role=link label="tables" 441.25,136 40x17 value="#tables"
+            el #link-1 role=link label="code" 489.25,136 33.13x17 value="#code-blocks"
+            el #link-2 role=link label="checklist" 569,136 58.75x17 value="#a-checklist"
+        el 281,165 646x61 pos=3/36
+          el 281,189 646x29
+            text #heading-text role=heading "Text" 281,189 646x28 readonly level=2 lines 1-1/1 hovered
+            el role=separator 281,217 646x1
+        el 281,226 646x80 pos=4/36
+          text role=paragraph "A paragraph is lines of text with no blank line between them. They flow together and wrap at the wid" … "eps a character literal: *not emphasis*." length 324 281,226 646x68 readonly lines 1-1/1
+        el 281,306 646x63 pos=5/36
+          text role=paragraph "Two spaces at the end of a line\nbreak it without starting a new paragraph. Entities such as ©, — and € turn into their characters, and raw HTML such as <kbd>Ctrl</kbd> stays text." 281,306 646x51 readonly lines 1-2/2
+        el 281,369 646x41 pos=6/36
+          text #heading-links role=heading "Links" 281,381 646x21 readonly level=3 lines 1-1/1
+        el 281,410 646x63 pos=7/36
+          text role=paragraph "Links come inline, by reference, as autolinks such as https://spec.commonmark.org and as bare addres" … " there; any other one shows its address." length 219 281,410 646x51 readonly lines 1-1/1
+            el #link-0 role=link label="inline" 360.25,410 34.75x17 value="https://commonmark.org"
+            el #link-1 role=link label="reference" 423.13,410 63.5x17 value="https://spec.commonmark.org/0.31.2/"
+            el #link-2 role=link label="https://spec.commonmark.org" 632,410 200.38x17 value="https://spec.commonmark.org"
+            el #link-3 role=link label="www.example.com" 379.75,427 125.75x17 value="http://www.example.com"
+            el #link-4 role=link label="back to the top" 698.88,427 99.63x17 value="#writing-documents"
+        el 281,473 646x61 pos=8/36
+          el 281,497 646x29
+            text #heading-lists role=heading "Lists" 281,497 646x28 readonly level=2 lines 1-1/1
+            el role=separator 281,525 646x1
+        el 281,534 646x19 pos=9/36
+          el role=list 281,534 646x19
+            el role=listitem 281,534 646x17 pos=1/2
+              text "•" 281,534 12x17
+              el 297,534 630x17
+                text role=paragraph "Items of a bullet list" 297,534 630x17 readonly lines 1-1/1
+        el 281,553 646x84 pos=10/36
+          el role=list 281,553 646x84
+            el role=listitem 281,553 646x72 pos=2/2
+              text "•" 281,553 12x72
+              el 297,553 630x72
+                text role=paragraph "can hold more than one line of text, which wraps under the text of the item and not under its bullet, so that the bullet stands out on the left" 297,553 630x34 readonly lines 1-1/1
+                el role=list 297,589 630x36
+                  el role=listitem 297,589 630x36 pos=1/1
+                    text "◦" 297,589 12x36
+                    el 313,589 614x36
+                      text role=paragraph "and lists inside them" 313,589 614x17 readonly lines 1-1/1
+                      el role=list 313,608 614x17
+                        el role=listitem 313,608 614x17 pos=1/1
+                          text "▪" 313,608 12x17
+                          el 329,608 598x17
+                            text role=paragraph "three levels deep" 329,608 598x17 readonly lines 1-1/1
+        el 281,637 646x19 pos=11/36
+          el role=list 281,637 646x19
+            el role=listitem 281,637 646x17 pos=1/2
+              text "1." 281,637 13x17
+              el 298,637 629x17
+                text role=paragraph "Numbered lists count from where they start," 298,637 629x17 readonly lines 1-1/1
+        el 281,656 646x29 pos=12/36
+          el role=list 281,656 646x29
+            el role=listitem 281,656 646x17 pos=2/2
+              text "2." 281,656 13x17
+              el 298,656 629x17
+                text role=paragraph "and their numbers line up on the right." 298,656 629x17 readonly lines 1-1/1
+        el 281,685 646x29 pos=13/36
+          text role=paragraph "A list may start at any number:" 281,685 646x17 readonly lines 1-1/1

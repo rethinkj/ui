@@ -1,6 +1,7 @@
 package com.rethinkj.ui.window;
 
 import com.rethinkj.ui.App;
+import com.rethinkj.ui.Key;
 import com.rethinkj.ui.render.Scene;
 import com.rethinkj.ui.window.WindowEvent.AppearanceChanged;
 import com.rethinkj.ui.window.WindowEvent.CloseRequested;
@@ -65,7 +66,8 @@ import java.util.function.Function;
  * characters that the app's fonts lack ({@link App#systemFonts}, unless {@link #systemFonts} turned
  * that off), turns the window's text input on while the focused element takes text and tells it
  * where ({@link App#inputArea}, {@link Window#textInputArea}), and passes on the compositions of
- * input methods.
+ * input methods. Alt+Space that no key handler takes opens the system's window menu ({@link
+ * Window#showSystemMenu}), on a frameless window too.
  *
  * <pre>{@code
  * try (Window window = Window.open("Lights", 480, 320, Window.options().frameless());
@@ -584,6 +586,15 @@ public final class WindowLoop {
     return input ? Math.max(frameNanos - sinceFrame, 0) : 0;
   }
 
+  /**
+   * Whether the key opens the system's window menu when the app does not take it: Alt+Space, not
+   * its repeats. SDL keeps the system from seeing it (its menu mnemonics are off), on a framed
+   * window too.
+   */
+  static boolean opensSystemMenu(Key key) {
+    return key.name().equals("Space") && key.modifiers() == Key.ALT && !key.repeat();
+  }
+
   /** Ends {@link #run} after the event it handles now. This may be called on any thread. */
   public void stop() {
     running = false;
@@ -708,7 +719,8 @@ public final class WindowLoop {
       // The window's dy is positive away from the user, the app's towards the end.
       case Wheel wheel ->
           app.wheel(wheel.x(), wheel.y(), wheel.dx() * WHEEL_STEP, -wheel.dy() * WHEEL_STEP);
-      case KeyDown down -> app.keyDown(down.key());
+      case KeyDown down -> app.keyDown(down.key(),
+          opensSystemMenu(down.key()) ? e.window::showSystemMenu : null);
       case KeyUp up -> app.keyUp(up.key());
       case TextInput text -> app.textInput(text.text());
       case TextEditing editing -> app.textComposition(editing.text(), editing.cursor());

@@ -1,0 +1,1 @@
+- Added: `MarkdownDocument.parse(source)` in the kit reads CommonMark with GitHub's tables, task lists, strikethrough and bare URLs into a tree of blocks and inline parts, without a library; it never throws, takes time in proportion to the text, and keeps raw HTML as text.

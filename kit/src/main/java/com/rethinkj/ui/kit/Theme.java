@@ -56,18 +56,77 @@ public record Theme(
     Grid grid,
     Scrollbars scrollbars,
     Elevation elevation,
-    Code code) {
+    Code code,
+    Caption caption,
+    Prose prose) {
 
   /**
    * A theme whose colours for code are {@link Code#DARK} on a dark raised surface and {@link
-   * Code#LIGHT} on a light one.
+   * Code#LIGHT} on a light one, with the default {@link Caption}, and whose documents look as
+   * {@link Prose#DARK} or {@link Prose#LIGHT} by the same rule.
    */
   public Theme(Surfaces surface, TextColors text, Borders border, Accent accent, Status status,
       Spacing space, Radii radius, Type type, Sizes size, Motion motion, Grid grid,
       Scrollbars scrollbars, Elevation elevation) {
     this(surface, text, border, accent, status, space, radius, type, size, motion, grid,
-        scrollbars, elevation, lightness(surface.raised()) < 0.5 ? Code.DARK : Code.LIGHT);
+        scrollbars, elevation, lightness(surface.raised()) < 0.5 ? Code.DARK : Code.LIGHT,
+        CAPTION);
   }
+
+  /** A theme with the default {@link Caption} and the {@link Prose} of its lightness, as above. */
+  public Theme(Surfaces surface, TextColors text, Borders border, Accent accent, Status status,
+      Spacing space, Radii radius, Type type, Sizes size, Motion motion, Grid grid,
+      Scrollbars scrollbars, Elevation elevation, Code code) {
+    this(surface, text, border, accent, status, space, radius, type, size, motion, grid,
+        scrollbars, elevation, code, CAPTION);
+  }
+
+  /** A theme whose documents look as {@link Prose#DARK} or {@link Prose#LIGHT}, as above. */
+  public Theme(Surfaces surface, TextColors text, Borders border, Accent accent, Status status,
+      Spacing space, Radii radius, Type type, Sizes size, Motion motion, Grid grid,
+      Scrollbars scrollbars, Elevation elevation, Code code, Caption caption) {
+    this(surface, text, border, accent, status, space, radius, type, size, motion, grid,
+        scrollbars, elevation, code, caption,
+        lightness(surface.raised()) < 0.5 ? Prose.DARK : Prose.LIGHT);
+  }
+
+  /**
+   * How a document looks that {@link Markdown} shows, on a card ({@link Surfaces#panel}): its
+   * type, the colours of links, inline code and quotes, and how wide its text runs. Spaces between
+   * blocks come from {@link Spacing}, code blocks from the raised surface and the subtle border.
+   *
+   * @param body paragraphs, lists, quotes and tables
+   * @param headings the headings of levels 1 to 6, in this order
+   * @param link the text of links, 4.5:1 on the panel and on {@code code}
+   * @param code translucent, behind inline code, laid over the panel
+   * @param quote the line along the left of a quote
+   * @param measure the widest the column of blocks runs, for lines that stay easy to read
+   */
+  public record Prose(TextStyle body, List<TextStyle> headings, int link, int code, int quote,
+      float measure) {
+
+    public Prose {
+      if (headings.size() != 6) {
+        throw new IllegalArgumentException("a style for each of the six levels of headings");
+      }
+      headings = List.copyOf(headings);
+    }
+
+    private static final TextStyle BODY = new TextStyle(Font::sans, 14);
+    private static final List<TextStyle> HEADINGS = List.of(
+        new TextStyle(Font::sansSemibold, 26), new TextStyle(Font::sansSemibold, 20),
+        new TextStyle(Font::sansSemibold, 17), new TextStyle(Font::sansSemibold, 15),
+        new TextStyle(Font::sansSemibold, 14), new TextStyle(Font::sansSemibold, 13));
+
+    /** For a dark panel. */
+    public static final Prose DARK = new Prose(BODY, HEADINGS, 0xFF86A8F8, 0x06FFFFFF,
+        0xFF464952, 720);
+
+    /** For a light panel. */
+    public static final Prose LIGHT = new Prose(BODY, HEADINGS, 0xFF2557C9, 0x14000000,
+        0xFFC4C8CF, 720);
+  }
+
 
   private static double lightness(int argb) {
     return (0.2126 * (argb >> 16 & 0xFF) + 0.7152 * (argb >> 8 & 0xFF) + 0.0722 * (argb & 0xFF))
@@ -301,6 +360,14 @@ public record Theme(
     }
   }
 
+  /**
+   * The buttons at the right of a frameless window's own title bar, which draw no fill at rest.
+   *
+   * @param closeHover the close button's fill under the pointer, the red of the system's own
+   * @param onClose the close button's cross on that fill
+   */
+  public record Caption(int closeHover, int onClose) {}
+
   private static final Spacing SPACE = new Spacing(2, 4, 8, 12, 16, 24);
   private static final Radii RADIUS = new Radii(4, 6, 10);
   private static final Type TYPE =
@@ -313,6 +380,7 @@ public record Theme(
   private static final Sizes SIZE = new Sizes(24, 16, 28, 16, 1, 200, 7, 16, 16, 2, 2);
   private static final Motion MOTION =
       new Motion(Spring.INSTANT, Spring.SNAP, 0.3, 0.5, Spring.INSTANT, 5);
+  private static final Caption CAPTION = new Caption(0xFFC42B1C, 0xFFFFFFFF);
 
   /*
    * The rules the default themes follow; ThemeTest holds them to these.
@@ -347,6 +415,9 @@ public record Theme(
    * Shadows. Cards a little, popups more, dialogs most; the light theme with about twice the alpha
    * a CSS shadow has, as the renderer mixes in linear light.
    *
+   * Caption. The close button of a window's own title bar turns the red of Windows 11's under the
+   * pointer, in both themes, with a white cross at 4.5:1 or more.
+   *
    * Sizes and type. Controls 24, rows 24, text 13; radii 4 for small parts, 6 for controls, 10 for
    * cards; headings semibold, strong text, column titles and buttons medium.
    */
@@ -371,7 +442,9 @@ public record Theme(
           new Elevation(
               List.of(new Shadow(0, 1, 2, 0, 0xCC000000), new Shadow(0, 6, 16, 0, 0x8C000000)),
               List.of(new Shadow(0, 1, 2, 0, 0x99000000), new Shadow(0, 4, 12, 0, 0x80000000)),
-              List.of(new Shadow(0, 2, 4, 0, 0x99000000), new Shadow(0, 12, 32, 0, 0x99000000))));
+              List.of(new Shadow(0, 2, 4, 0, 0x99000000), new Shadow(0, 12, 32, 0, 0x99000000))),
+          Code.DARK,
+          CAPTION);
 
   /** Neutral greys with a blue accent, dark text on light surfaces. */
   public static final Theme LIGHT =
@@ -393,90 +466,104 @@ public record Theme(
           new Elevation(
               List.of(new Shadow(0, 1, 2, 0, 0x29141824), new Shadow(0, 6, 18, 0, 0x25141824)),
               List.of(new Shadow(0, 1, 3, 0, 0x40000000), new Shadow(0, 6, 16, 0, 0x38000000)),
-              List.of(new Shadow(0, 2, 6, 0, 0x40000000), new Shadow(0, 16, 40, 0, 0x4D000000))));
+              List.of(new Shadow(0, 2, 6, 0, 0x40000000), new Shadow(0, 16, 40, 0, 0x4D000000))),
+          Code.LIGHT,
+          CAPTION);
 
   public Theme withSurface(Surfaces surface) {
     return new Theme(
         surface, text, border, accent, status, space, radius, type, size, motion, grid,
-        scrollbars, elevation, code);
+        scrollbars, elevation, code, caption, prose);
   }
 
   public Theme withText(TextColors text) {
     return new Theme(
         surface, text, border, accent, status, space, radius, type, size, motion, grid,
-        scrollbars, elevation, code);
+        scrollbars, elevation, code, caption, prose);
   }
 
   public Theme withBorder(Borders border) {
     return new Theme(
         surface, text, border, accent, status, space, radius, type, size, motion, grid,
-        scrollbars, elevation, code);
+        scrollbars, elevation, code, caption, prose);
   }
 
   public Theme withAccent(Accent accent) {
     return new Theme(
         surface, text, border, accent, status, space, radius, type, size, motion, grid,
-        scrollbars, elevation, code);
+        scrollbars, elevation, code, caption, prose);
   }
 
   public Theme withStatus(Status status) {
     return new Theme(
         surface, text, border, accent, status, space, radius, type, size, motion, grid,
-        scrollbars, elevation, code);
+        scrollbars, elevation, code, caption, prose);
   }
 
   public Theme withSpace(Spacing space) {
     return new Theme(
         surface, text, border, accent, status, space, radius, type, size, motion, grid,
-        scrollbars, elevation, code);
+        scrollbars, elevation, code, caption, prose);
   }
 
   public Theme withRadius(Radii radius) {
     return new Theme(
         surface, text, border, accent, status, space, radius, type, size, motion, grid,
-        scrollbars, elevation, code);
+        scrollbars, elevation, code, caption, prose);
   }
 
   public Theme withType(Type type) {
     return new Theme(
         surface, text, border, accent, status, space, radius, type, size, motion, grid,
-        scrollbars, elevation, code);
+        scrollbars, elevation, code, caption, prose);
   }
 
   public Theme withSize(Sizes size) {
     return new Theme(
         surface, text, border, accent, status, space, radius, type, size, motion, grid,
-        scrollbars, elevation, code);
+        scrollbars, elevation, code, caption, prose);
   }
 
   public Theme withMotion(Motion motion) {
     return new Theme(
         surface, text, border, accent, status, space, radius, type, size, motion, grid,
-        scrollbars, elevation, code);
+        scrollbars, elevation, code, caption, prose);
   }
 
   public Theme withGrid(Grid grid) {
     return new Theme(
         surface, text, border, accent, status, space, radius, type, size, motion, grid,
-        scrollbars, elevation, code);
+        scrollbars, elevation, code, caption, prose);
   }
 
   public Theme withScrollbars(Scrollbars scrollbars) {
     return new Theme(
         surface, text, border, accent, status, space, radius, type, size, motion, grid,
-        scrollbars, elevation, code);
+        scrollbars, elevation, code, caption, prose);
   }
 
   public Theme withCode(Code code) {
     return new Theme(
         surface, text, border, accent, status, space, radius, type, size, motion, grid,
-        scrollbars, elevation, code);
+        scrollbars, elevation, code, caption, prose);
   }
 
   public Theme withElevation(Elevation elevation) {
     return new Theme(
         surface, text, border, accent, status, space, radius, type, size, motion, grid,
-        scrollbars, elevation, code);
+        scrollbars, elevation, code, caption, prose);
+  }
+
+  public Theme withProse(Prose prose) {
+    return new Theme(
+        surface, text, border, accent, status, space, radius, type, size, motion, grid,
+        scrollbars, elevation, code, caption, prose);
+  }
+
+  public Theme withCaption(Caption caption) {
+    return new Theme(
+        surface, text, border, accent, status, space, radius, type, size, motion, grid,
+        scrollbars, elevation, code, caption, prose);
   }
 
   /**

@@ -101,6 +101,28 @@ class AppTest {
   }
 
   @Test
+  void aKeyThatNothingTakesRunsWhatTheRunnerHandedOnWithIt() {
+    List<String> log = new ArrayList<>();
+    App<List<String>> app = new App<>(log, l -> el().size(100, 100)
+        .onKey(k -> k.name().equals("A"))
+        .child(el().key("button").size(20, 20).focusable().onPress(() -> l.add("press"))));
+    app.resize(100, 100, 1);
+    app.frame();
+    Key altSpace = new Key("Space", Key.ALT, false);
+    app.keyDown(altSpace, () -> log.add("untaken Space"));
+    app.keyDown(new Key("A", 0, false), () -> log.add("untaken A")); // the root takes it
+    app.frame();
+    assertEquals(List.of("untaken Space"), log);
+
+    log.clear();
+    app.keyDown(new Key("Tab", 0, false), () -> log.add("untaken Tab")); // focuses the button
+    app.keyDown(new Key("Space", 0, false), () -> log.add("untaken press")); // presses it
+    app.keyDown(altSpace, () -> log.add("untaken Space")); // the button takes no Alt+Space
+    app.frame();
+    assertEquals(List.of("press", "untaken Space"), log);
+  }
+
+  @Test
   void aScriptRunsAnActionWithAdvanceAndFrameAndItsAwaitDoesNotWaitForIt(@TempDir Path out)
       throws Exception {
     List<String> log = new ArrayList<>();

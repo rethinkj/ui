@@ -715,15 +715,15 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
             .padding(0, t.space().m(), t.space().m(), t.space().m()));
     if (s.dropping != null) {
       String name = s.dropping.name;
+      El drop = button(t, PRIMARY, "Drop", s.confirm.equals(name) ? s::drop : null).key("drop");
       root.overlay(Dialog.dialog(t, "Drop table",
           col().gap(t.space().m()).children(
               Label.label(t, "Drop " + s.dropping.path() + " and all its rows?"),
               Label.label(t, Label.Variant.MUTED, "Type the table's name to confirm."),
               textField(t, s.confirm, name, v -> s.confirm = v).key("confirm")
                   .label("Table name")),
-          List.of(
-              button(t, SECONDARY, "Cancel", () -> s.dropping = null).key("cancel"),
-              button(t, PRIMARY, "Drop", s.confirm.equals(name) ? s::drop : null).key("drop")),
+          List.of(button(t, SECONDARY, "Cancel", () -> s.dropping = null).key("cancel"), drop),
+          drop, // Enter in the field drops once the name is typed
           () -> s.dropping = null));
     }
     return root;

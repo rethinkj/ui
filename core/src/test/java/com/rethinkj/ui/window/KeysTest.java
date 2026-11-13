@@ -1,6 +1,8 @@
 package com.rethinkj.ui.window;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.rethinkj.ui.Key;
 
@@ -8,6 +10,15 @@ import org.junit.jupiter.api.Test;
 
 /** Key names and modifiers from SDL's codes; needs no window. */
 class KeysTest {
+
+  @Test
+  void altSpaceAloneOpensTheSystemMenu() {
+    assertTrue(WindowLoop.opensSystemMenu(new Key("Space", Key.ALT, false)));
+    assertFalse(WindowLoop.opensSystemMenu(new Key("Space", Key.ALT, true)), "a repeat");
+    assertFalse(WindowLoop.opensSystemMenu(new Key("Space", 0, false)));
+    assertFalse(WindowLoop.opensSystemMenu(new Key("Space", Key.ALT | Key.SHIFT, false)));
+    assertFalse(WindowLoop.opensSystemMenu(new Key("Enter", Key.ALT, false)));
+  }
 
   @Test
   void keysThatTypeACharacterAreNamedByItInUpperCase() {
@@ -37,7 +48,7 @@ class KeysTest {
     assertEquals("Numpad1", Keys.name(0x40000059));
     assertEquals("Numpad9", Keys.name(0x40000061));
     assertEquals("Numpad0", Keys.name(0x40000062));
-    assertEquals("NumpadEnter", Keys.name(0x40000058));
+    assertEquals("Enter", Keys.name(0x40000058), "the numpad's Enter");
     assertEquals("Shift", Keys.name(0x400000E1));
     assertEquals("Shift", Keys.name(0x400000E5));
     assertEquals("Control", Keys.name(0x400000E0));

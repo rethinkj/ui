@@ -13,25 +13,7 @@ el 0,0 640x360
     el role=button label="Maximize" window=maximize 548,0 46x32
       el 566,11 10x10
     el role=button label="Close" window=close 594,0 46x32
-      el 612,11 10x10
-        el 612,11 2x2
-        el 620,11 2x2
-        el 613,12 2x2
-        el 619,12 2x2
-        el 614,13 2x2
-        el 618,13 2x2
-        el 615,14 2x2
-        el 617,14 2x2
-        el 616,15 2x2
-        el 616,15 2x2
-        el 617,16 2x2
-        el 615,16 2x2
-        el 618,17 2x2
-        el 614,17 2x2
-        el 619,18 2x2
-        el 613,18 2x2
-        el 620,19 2x2
-        el 612,19 2x2
+      text label="dismiss" "\u{F367}" 611,10 12x12
   el #tabs 0,32 640x328
     el 8,32 624x320
       el #bar 9,33 622x33
