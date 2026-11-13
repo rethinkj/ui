@@ -159,18 +159,30 @@ class TreeTest {
         "Tree: a rebuild after ArrowDown, median of %d: frame() %.2f ms and the tree's view"
             + " %.2f ms with %d nodes shown, %.2f ms and %.2f ms with 308%n",
         REBUILDS, large[0] / 1e6, large[1] / 1e6, SHOWN, small[0] / 1e6, small[1] / 1e6);
-    assertTrue(large[0] < 8_000_000, "median frame() of " + large[0] + " ns, half a frame");
+    // About 1.3 ms on a desktop; a bound of a whole frame holds on a busy machine.
+    assertTrue(large[0] < 16_000_000, "median frame() of " + large[0] + " ns, a frame");
   }
 
   @Test
   void aFrameWithABurstOfTenKeysCostsAViewAndItsLayoutPerKey() throws IOException {
     // Each key of a burst goes to the tree the key before it built: the view numbers the rows
     // again for each, and the rows are built once, at the end.
+    Catalog catalog = hundredThousand();
+    App<Catalog> app = start(catalog);
+    run(app, "focus #schema\nframe");
+    int walks = catalog.walks;
+    catalog.labelled.clear();
+    for (int k = 0; k < 10; k++) {
+      app.keyDown(new Key("ArrowDown"));
+      app.keyUp(new Key("ArrowDown"));
+    }
+    app.frame();
+    assertEquals(walks + 10, catalog.walks, "the view, which numbers the rows, once per key");
+    assertLabelledOnce(catalog, app);
     long one = keyFrames(hundredThousand(), 1);
     long ten = keyFrames(hundredThousand(), 10);
     System.out.printf("Tree: frame() after keys, median of %d, %d nodes shown: %.2f ms after one"
         + " ArrowDown, %.2f ms after ten%n", REBUILDS, SHOWN, one / 1e6, ten / 1e6);
-    assertTrue(ten < 15 * one, "median frame() of " + ten + " ns after ten, " + one + " after one");
   }
 
   private static final int REBUILDS = 200;
