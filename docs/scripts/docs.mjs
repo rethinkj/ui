@@ -39,11 +39,15 @@ function galleryRows(name) {
   const rows = [{ name: 'header', top: 0, bottom: cell }, { name: 'label', top: cell, bottom: 2 * cell }];
   let top = 2 * cell;
   for (let i = 0; i < tree.length; i++) {
-    const m = tree[i].match(/^# (.+), (\w+)$/);
-    if (!m || rows.some((r) => r.name === m[1])) continue;
+    // A row begins with its first cell, `# <name>, rest` or `# <name>, 1`. A name that comes
+    // again (`toggle on`, the switch's and the toggle button's) is `<name> 2` the second time.
+    const m = tree[i].match(/^# (.+), (rest|1)$/);
+    if (!m) continue;
+    const same = rows.filter((r) => r.base === m[1]).length;
     const height = Number(tree[i + 1].match(/^el 0,0 \d+x(\d+)/)[1]);
-    rows.push({ name: m[1], top, bottom: top + Math.round(height * scale) });
-    top += Math.round(height * scale);
+    const bottom = top + Math.round(height * scale);
+    rows.push({ name: same ? `${m[1]} ${same + 1}` : m[1], base: m[1], top, bottom });
+    top = bottom;
   }
   return rows;
 }
@@ -56,7 +60,10 @@ function prepareShot(image, where, manifest) {
   const target = path.join(PUBLIC, 'shots', image.out);
   if (image.rows) {
     const all = galleryRows(image.name);
-    const bands = ['header', ...image.rows].map((r) => {
+    // The row of the states' names goes above rows that have states; the label's styles and the
+    // forms of progress have none.
+    const stateless = image.rows.every((r) => ['label', 'progress', 'running', 'labeled'].includes(r));
+    const bands = [...(stateless ? [] : ['header']), ...image.rows].map((r) => {
       const row = all.find((x) => x.name === r);
       if (!row) {
         throw new DocsError(`${where}: no row "${r}" in ${image.name}; there are ${all.map((x) => x.name).join(', ')}`);

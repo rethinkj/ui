@@ -31,6 +31,7 @@ export function remarkDocs() {
         const { width, height } = manifest[entry.dark];
         const keep = node.attributes.filter((a) => !['src', 'dark', 'light', 'rows'].includes(a.name));
         const set = { dark: `/shots/${entry.dark}`, light: `/shots/${entry.light}`, width: String(width), height: String(height) };
+        node.data = { ...node.data, structuredData: { contents: [] } }; // not text to search
         node.attributes = [
           ...keep,
           ...Object.entries(set).map(([name, value]) => ({ type: 'mdxJsxAttribute', name, value })),
