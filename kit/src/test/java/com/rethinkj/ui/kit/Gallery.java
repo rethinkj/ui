@@ -24,6 +24,7 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.Locale;
 import java.util.function.BiFunction;
+import java.util.function.IntConsumer;
 
 /**
  * Every component in every variant and state, as a sheet: a row per component and variant, a
@@ -90,7 +91,24 @@ final class Gallery {
           new Row("field selected", (t, h) -> field(t, "orders 2024", h),
               "key ArrowRight control shift\nkey ArrowLeft control shift\nframe"),
           new Row("password", (t, h) -> password(t, false, h)),
-          new Row("password shown", (t, h) -> password(t, true, h)));
+          new Row("password shown", (t, h) -> password(t, true, h)),
+          new Row("switch row", (t, h) -> Group.switchRow(t, "Wrap", null, true, h).w(WIDTH - 20)),
+          new Row("link row", (t, h) -> Group.linkRow(t, "Keymap", null, null, h).w(WIDTH - 20)),
+          new Row("expander", (t, h) -> Group.expander(t, "More", null, false, h).w(WIDTH - 20)),
+          new Row("radio", (t, h) -> Radio.radioGroup(t, List.of("Spaces"), 0, choose(h))),
+          new Row("segmented", (t, h) ->
+              Segmented.segmented(t, List.of("Rows", "Cells"), 0, choose(h)).label("Mode")),
+          new Row("number", (t, h) -> NumberField.numberField(t, 4, 1, 16, 1, choose(h))
+              .w(WIDTH - 40)),
+          new Row("slider", (t, h) -> Slider.slider(t, 13, 11, 16, 1, choose(h)).w(WIDTH - 20)
+              .label("Size")),
+          new Row("nav list", (t, h) -> NavList.navList(t, List.of(NavList.item(Symbol.TABLE,
+              "orders").count("12")), 0, choose(h)).w(WIDTH - 20).label("Tables")));
+
+  /** A handler of a choice that runs {@code h}, or none when {@code h} is. */
+  private static IntConsumer choose(Runnable h) {
+    return h == null ? null : i -> h.run();
+  }
 
   private final Theme theme;
   private final float scale;
@@ -122,7 +140,7 @@ final class Gallery {
     gallery.put(2, 1, label(t, Label.Variant.MUTED, "Muted"), "");
     gallery.put(3, 1, label(t, Label.Variant.MONO, "mono_0123"), "");
     gallery.put(4, 1, label(t, Label.Variant.HEADING, "Heading"), "");
-    gallery.put(5, 1, el(), "");
+    gallery.put(5, 1, label(t, Label.Variant.STRONG, "Strong"), "");
     for (int r = 0; r < ROWS.size(); r++) {
       Row row = ROWS.get(r);
       gallery.put(0, r + 2, gallery.name(row.name()), "");
