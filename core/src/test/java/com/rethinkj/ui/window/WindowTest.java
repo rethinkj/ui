@@ -265,6 +265,7 @@ class WindowTest {
     try (Window window = Window.open(TITLE, 300, 200)) {
       Desktop.settle();
       window.listener(events::add);
+      window.textInputArea(10, 10, 100, 20, 10, false); // a field's, so that text is TextInput
       int control = 0x0040; // SDL_KMOD_LCTRL
       int altGr = control | 0x0200; // SDL_KMOD_RALT with it, as Windows reports AltGr
       Desktop.key(window, true, ' ', control, false);
