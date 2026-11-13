@@ -90,11 +90,18 @@ public final class Tabs {
    * @param closable whether it has a cross that closes it
    * @param modified whether a dot before the title says that its content has unsaved changes
    * @param icon before the title, in the title's colour, such as a table's; null for none
+   * @param hue a colour that marks the tab as one of a group, as the tabs of a connection to
+   *     production: a line along its top in the hue's edge colour of the theme; null for none
    */
-  public record Tab(String title, boolean closable, boolean modified, Symbol icon) {
+  public record Tab(String title, boolean closable, boolean modified, Symbol icon, Theme.Hue hue) {
 
     public Tab {
       Objects.requireNonNull(title, "title");
+    }
+
+    /** A tab without a colour mark. */
+    public Tab(String title, boolean closable, boolean modified, Symbol icon) {
+      this(title, closable, modified, icon, null);
     }
 
     /** A tab without an icon. */
@@ -109,7 +116,15 @@ public final class Tabs {
 
     /** This tab with an icon before its title. */
     public Tab icon(Symbol icon) {
-      return new Tab(title, closable, modified, icon);
+      return new Tab(title, closable, modified, icon, hue);
+    }
+
+    /**
+     * This tab with a colour mark, which a tree dump says as its value, the hue's name in lower
+     * case ({@code value="red"}).
+     */
+    public Tab hue(Theme.Hue hue) {
+      return new Tab(title, closable, modified, icon, hue);
     }
   }
 
@@ -522,6 +537,17 @@ public final class Tabs {
               select,
               close)
           .grabbed(grabbed);
+      Theme.Hue hue = tabs.get(i).hue();
+      if (hue != null) {
+        // Along the top, where the active tab's line and the hover overlay leave it alone; added
+        // last, so that the tab's other parts keep their places.
+        tab.value(hue.name().toLowerCase(java.util.Locale.ROOT))
+            .child(el().key("hue-" + i)
+                .absolute(0, 0)
+                .h(t.size().indicator())
+                .wFull()
+                .fill(t.withAccent(hue).accent().edge()));
+      }
       if (drags) {
         int index = i;
         tab.dragPayload(dragging).onDrag(d -> drag(t, o, index, list, built, d));

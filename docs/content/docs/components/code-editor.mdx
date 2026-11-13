@@ -14,7 +14,7 @@ description: A multi-line editor for code with line numbers, highlighting, brack
 
 - `s.sql` is the text, which every edit hands to `onChange`.
 - `s.editor` is a `CodeEditor.State` the app keeps, one per editor (per tab). It holds the caret, selection, scroll and undo history, so an editor that leaves the tree comes back as it was, also in another window.
-- `Sql.of(t)` colours SQL: keywords, strings, quoted identifiers, dollar quotes, numbers, comments and operators. The highlighter is also the key the field keeps its colours by, so pass the same or an equal object each time (`Sql.of` returns a record).
+- `Sql.of(t)` colours SQL: keywords, strings, quoted identifiers, dollar quotes, numbers, comments and operators. `Sql.of(t, Sql.Dialect.MYSQL)` does it as MySQL and MariaDB write SQL: identifiers in backticks, `#` comments and the backslash as the escape in strings. The highlighter is also the key the field keeps its colours by, so pass the same or an equal object each time (`Sql.of` returns a record).
 - Passing `app` gives the editor its find bar and its commands, which edit through the app as single steps of the undo history. Without it (`codeEditor(t, value, state, highlighter, onChange)`) the editor has neither.
 - `.lines(n)` makes it `n` lines high; give it a width or let it grow.
 

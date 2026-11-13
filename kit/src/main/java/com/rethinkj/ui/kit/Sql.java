@@ -16,12 +16,43 @@ import java.util.Set;
  * <p>A record, so that two highlighters of the same colours are equal and a field keeps what it
  * asked of one while the view passes it again: {@code field.highlight(sql, sql)}. It scans each
  * line once, character by character, without regular expressions.
+ *
+ * <p>The {@link Dialect} says how the database writes what differs: {@link Dialect#POSTGRES}, the
+ * default, as above; {@link Dialect#MYSQL} for MySQL and MariaDB.
  */
-public record Sql(Theme.Code colors) implements Highlighter, CodeEditor.LineComments {
+public record Sql(Theme.Code colors, Dialect dialect)
+    implements Highlighter, CodeEditor.LineComments {
 
-  /** The highlighter in the theme's colours for code. */
+  /** How a database writes identifiers, strings and comments. */
+  public enum Dialect {
+    /** PostgreSQL, and the SQL standard where they agree. */
+    POSTGRES,
+    /**
+     * MySQL and MariaDB in their default mode: identifiers in backticks ({@code `order`}, a
+     * keyword inside is none), strings in single and in double quotes with the backslash as their
+     * escape ({@code 'it\'s'}), comments from {@code #} to the end of the line, block comments
+     * that do not nest, and no dollar quotes.
+     */
+    MYSQL
+  }
+
+  public Sql {
+    java.util.Objects.requireNonNull(dialect, "dialect");
+  }
+
+  /** PostgreSQL's highlighter in these colours. */
+  public Sql(Theme.Code colors) {
+    this(colors, Dialect.POSTGRES);
+  }
+
+  /** The highlighter in the theme's colours for code, as PostgreSQL writes SQL. */
   public static Sql of(Theme t) {
     return new Sql(t.code());
+  }
+
+  /** The highlighter in the theme's colours for code, as {@code dialect} writes SQL. */
+  public static Sql of(Theme t, Dialect dialect) {
+    return new Sql(t.code(), dialect);
   }
 
   // What a line ends inside of; null for nothing.
@@ -32,10 +63,12 @@ public record Sql(Theme.Code colors) implements Highlighter, CodeEditor.LineComm
   private static final int STRING = 2;
   private static final int QUOTED = 3;
   private static final int DOLLAR = 4;
+  private static final int BACKTICK = 5;
 
   private static final State IN_STRING = new State(STRING, 0, null);
   private static final State IN_QUOTED = new State(QUOTED, 0, null);
   private static final State IN_COMMENT = new State(COMMENT, 1, null);
+  private static final State IN_BACKTICK = new State(BACKTICK, 0, null);
 
   private static final String OPERATORS = "+-*/%<>=!~^&|#@:;,.()[]{}";
 
@@ -206,6 +239,7 @@ public record Sql(Theme.Code colors) implements Highlighter, CodeEditor.LineComm
     int start = 0; // where the string, identifier or comment the scan is inside began
     int n = line.length();
     int i = 0;
+    boolean mysql = dialect == Dialect.MYSQL;
     while (i < n) {
       char c = line.charAt(i);
       switch (kind) {
@@ -216,22 +250,24 @@ public record Sql(Theme.Code colors) implements Highlighter, CodeEditor.LineComm
               out.color(start, i, colors.comment());
               kind = NONE;
             }
-          } else if (line.startsWith("/*", i)) {
+          } else if (!mysql && line.startsWith("/*", i)) {
             depth++;
             i += 2;
           } else {
             i++;
           }
         }
-        case STRING, QUOTED -> {
-          char quote = kind == STRING ? '\'' : '"';
-          if (c != quote) {
+        case STRING, QUOTED, BACKTICK -> {
+          char quote = kind == STRING ? '\'' : kind == QUOTED ? '"' : '`';
+          if (mysql && c == '\\' && kind != BACKTICK) {
+            i = Math.min(i + 2, n); // the character after it is itself, a quote too
+          } else if (c != quote) {
             i++;
           } else if (i + 1 < n && line.charAt(i + 1) == quote) {
             i += 2; // doubled: the quote itself
           } else {
             i++;
-            if (kind == STRING) {
+            if (kind == STRING || mysql && kind == QUOTED) {
               out.color(start, i, colors.string());
             }
             kind = NONE;
@@ -249,7 +285,7 @@ public record Sql(Theme.Code colors) implements Highlighter, CodeEditor.LineComm
         default -> {
           start = i;
           char next = i + 1 < n ? line.charAt(i + 1) : 0;
-          if (c == '-' && next == '-') {
+          if (c == '-' && next == '-' || mysql && c == '#') {
             out.color(i, n, colors.comment());
             i = n;
           } else if (c == '/' && next == '*') {
@@ -262,12 +298,15 @@ public record Sql(Theme.Code colors) implements Highlighter, CodeEditor.LineComm
           } else if (c == '"') {
             kind = QUOTED;
             i++;
-          } else if (c == '$' && dollarTag(line, i) > i) {
+          } else if (mysql && c == '`') {
+            kind = BACKTICK;
+            i++;
+          } else if (!mysql && c == '$' && dollarTag(line, i) > i) {
             int end = dollarTag(line, i);
             tag = line.substring(i, end);
             kind = DOLLAR;
             i = end;
-          } else if (c == '$' && isDigit(next)) { // a parameter, $1
+          } else if (!mysql && c == '$' && isDigit(next)) { // a parameter, $1
             i = number(line, i + 1);
             out.color(start, i, colors.number());
           } else if (isDigit(c) || c == '.' && isDigit(next)) {
@@ -301,7 +340,13 @@ public record Sql(Theme.Code colors) implements Highlighter, CodeEditor.LineComm
         return IN_STRING;
       }
       case QUOTED -> {
+        if (mysql) { // a string there
+          out.color(start, n, colors.string());
+        }
         return IN_QUOTED;
+      }
+      case BACKTICK -> {
+        return IN_BACKTICK;
       }
       case DOLLAR -> {
         out.color(start, n, colors.string());
