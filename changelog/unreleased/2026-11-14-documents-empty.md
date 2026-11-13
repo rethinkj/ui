@@ -1,0 +1,1 @@
+- The Documents example no longer stops with an error when every tab of its first window is closed; the empty window takes a tab dragged back from another.

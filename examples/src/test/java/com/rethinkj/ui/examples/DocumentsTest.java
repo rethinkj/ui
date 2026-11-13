@@ -96,6 +96,40 @@ class DocumentsTest {
     assertEquals("dropped text", s.groups.main().activeTab().text);
   }
 
+  /**
+   * Closing every tab of the first window leaves its bar empty, which a tab may be dropped on, and
+   * the menus' keys go on working.
+   */
+  @Test
+  void theFirstWindowStaysOpenWithEveryTabClosed(@TempDir Path folder) throws IOException {
+    Snaps.assumeText();
+    Documents s = new Documents();
+    s.app = new App<>(s, d -> d.view(d.groups.main(), d.app));
+    Script.run("""
+        size 640 360
+        frame
+        press 300,200
+        frame
+        key W control
+        frame
+        key W control
+        frame
+        key W control
+        frame
+        key W control
+        frame
+        key W control
+        frame
+        key W control
+        frame
+        snap empty
+        """, s.app, folder.resolve("out"));
+    assertTrue(s.groups.main().tabs().isEmpty());
+    assertTrue(
+        Files.readString(folder.resolve("out/empty.tree.txt")).contains("No documents"),
+        "the empty state");
+  }
+
   /** Files dropped together open in the order they came, whichever is read first. */
   @Test
   void droppedFilesOpenInTheirOrder(@TempDir Path folder) throws IOException {
