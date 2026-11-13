@@ -1,0 +1,1 @@
+- `Breadcrumb.breadcrumb` and `Toolbar.toolbar` stay a row high in a column with room to spare, where they grew as high as the room and showed their row in the middle.
