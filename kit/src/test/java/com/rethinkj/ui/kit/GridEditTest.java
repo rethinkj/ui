@@ -12,6 +12,7 @@ import com.rethinkj.ui.El;
 import com.rethinkj.ui.Script;
 import com.rethinkj.ui.kit.DataGrid.Status;
 import com.rethinkj.ui.render.Png;
+import com.rethinkj.ui.text.TextRendering;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -212,6 +213,46 @@ class GridEditTest {
     run(app, "key Enter\nframe");
     assertEquals("Grace Hopper", ledger.changes.cell(0, 1));
     assertNull(CellEditorTest.find(app, "editor"));
+  }
+
+  /** At every scale a right-aligned editor is as wide as its text, which stays where it was. */
+  @ParameterizedTest
+  @ValueSource(floats = {1, 1.25f, 1.5f, 2})
+  void aRightAlignedEditorHoldsItsWholeTextAtEveryScale(float scale) throws IOException {
+    for (TextRendering rendering : List.of(TextRendering.LINUX, TextRendering.WINDOWS)) {
+      rightAlignedEditor(scale, rendering);
+    }
+  }
+
+  private void rightAlignedEditor(float scale, TextRendering rendering) throws IOException {
+    Ledger ledger = new Ledger(T, 40);
+    App<Ledger> app = ledger.app();
+    app.textRendering(rendering); // the Windows one hints natively: its advances follow the scale
+    Script.run("size 640 260 scale " + scale + "\nframe\nfocus #ledger\nframe\n"
+        + "key ArrowDown\nkey ArrowRight\nkey ArrowRight\nframe\nkey Enter\nframe",
+        app, out);
+    El field = CellEditorTest.find(app, "field");
+    El text = CellEditorTest.find(app, "cell-1-3").children().getFirst();
+    assertNotNull(field, app.tree().dump());
+    float right = rect(line(app, "field"))[2];
+    String dump = app.tree().dump();
+    String cell = dump.substring(dump.indexOf("#cell-1-3 "));
+    float textRight = rect(cell.substring(cell.indexOf('\n') + 1))[2]; // the cell's text
+    // With room for the caret after the text, as the field scrolls its text otherwise.
+    assertTrue(field.width() >= text.width() + T.space().xs() - 0.5f, "the field "
+        + field.width() + " wide, its text "
+        + text.width() + " at " + scale + " with " + rendering);
+    assertTrue(right >= textRight, "it ends where the cell's text ends: " + right + ", "
+        + textRight);
+  }
+
+  /** The left and right edge of the first rectangle of a dump's line, in window coordinates. */
+  private static float[] rect(String line) {
+    java.util.regex.Matcher m = java.util.regex.Pattern
+        .compile(" (-?[0-9.]+),(-?[0-9.]+) ([0-9.]+)x([0-9.]+)").matcher(line);
+    assertTrue(m.find(), line);
+    float x = Float.parseFloat(m.group(1));
+    return new float[] {x, Float.parseFloat(m.group(2)), x + Float.parseFloat(m.group(3))};
   }
 
   /** What an app's Save does first: it takes the open editor's value, or stops at a refusal. */

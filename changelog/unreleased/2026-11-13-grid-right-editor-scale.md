@@ -1,0 +1,1 @@
+- The data grid's editor of a right-aligned cell holds its whole text at display scales other than 100 %; it was measured without the window's scale and hinting, came out a few pixels too narrow and scrolled the first character out of sight (at 150 % on Windows, `47.13` showed as `7.13`).

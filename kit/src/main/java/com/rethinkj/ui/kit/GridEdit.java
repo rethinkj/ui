@@ -9,6 +9,7 @@ import com.rethinkj.ui.El;
 import com.rethinkj.ui.FieldState;
 import com.rethinkj.ui.Key;
 import com.rethinkj.ui.Side;
+import com.rethinkj.ui.Len;
 import com.rethinkj.ui.Style;
 import com.rethinkj.ui.kit.DataGrid.Build;
 import com.rethinkj.ui.kit.DataGrid.CellValue;
@@ -689,14 +690,22 @@ final class GridEdit {
       } else if (text.isEmpty() && c.editing().nullable() && textLike(c)) {
         field.placeholder("empty", t.text().muted()); // not NULL: Control+0 makes it that
       }
+      El fitted = field;
       if (right) {
-        // As wide as the text, at the right, where the cell's text ends: it does not jump.
-        field.w(Math.min(wide, width - frame - extra));
+        // As wide as the text, at the right, where the cell's text ends: it does not jump. An
+        // invisible copy of the text, no line high, gives the width as layout measures the text
+        // at the window's scale and with its hinting, which a measure here cannot know (the
+        // field, measured 0 wide, came out narrower than its text and scrolled its first
+        // character away); the field below it takes that width, the caret's room included.
+        El copy = El.text(text).font(style.font().get()).fontSize(style.size())
+            .padding(0, caret, 0, 0).h(0).minSize(0, 0).opacity(0);
+        fitted = col().key("fit").hFull().minSize(0, 0).clip().children(copy, field.wFull());
+        fitted.style().maxWidth = Len.px(Math.max(width - frame - extra, 0));
         box.padding(0, Math.max(pad - caret, 0), 0, pad);
       } else {
         field.grow(1);
       }
-      box.child(field);
+      box.child(fitted);
       if (longer) {
         int hover = t.surface().hover();
         box.gap(t.space().xs()).child(row().key("expand").role("button")
