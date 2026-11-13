@@ -27,10 +27,10 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 
 /**
- * A Markdown document as a column of blocks in the theme's {@link Theme.Prose} look, to lay into
- * a card on a page with a scroll area around it: headings, paragraphs with bold, italic, inline
- * code, struck-out text and links, code blocks, quotes, lists and task lists, tables and
- * thematic breaks. Raw HTML shows as text.
+ * A Markdown document in the theme's {@link Theme.Prose} look, as a scroll area that builds only
+ * the blocks in view, to lay into a card: headings, paragraphs with bold, italic, inline code,
+ * struck-out text and links, code blocks, quotes, lists and task lists, tables and thematic
+ * breaks. Raw HTML shows as text.
  *
  * <pre>{@code
  * // In the state, once:
@@ -39,7 +39,7 @@ import java.util.function.Function;
  * // In the view:
  * El doc = Markdown.markdown(theme, manual,
  *     Markdown.options().onLink(url -> s.open(url)).copy(app.clipboard()).state(selection));
- * El page = col().scroll().scrollbars(theme.scrollbars()).child(Card.card(theme, doc));
+ * El page = Card.flush(theme, doc.grow(1)).grow(1);
  * }</pre>
  *
  * <p>Every block of text is a read-only multi-line field ({@link El#fitLines}), as high as its
