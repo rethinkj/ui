@@ -516,6 +516,81 @@ public final class Examples {
     return root;
   }
 
+  // ---- fallback fonts ---------------------------------------------------------------------
+
+  private static Font hebrew;
+  private static Font thai;
+
+  /** Noto Sans Hebrew from the test resources, opened on first use. */
+  public static synchronized Font hebrew() {
+    if (hebrew == null) {
+      hebrew = Font.resource(Examples.class, "/fonts/NotoSansHebrew-Regular.ttf");
+    }
+    return hebrew;
+  }
+
+  /** Noto Sans Thai from the test resources, opened on first use. */
+  public static synchronized Font thai() {
+    if (thai == null) {
+      thai = Font.resource(Examples.class, "/fonts/NotoSansThai-Regular.ttf");
+    }
+    return thai;
+  }
+
+  /**
+   * Inter, falling back to JetBrains Mono for its symbols, box drawing and arrows, to Noto Sans
+   * Hebrew and to Noto Sans Thai: the chain of the stored images fallback-*.
+   */
+  public static Font fallbackChain() {
+    return Font.sans().withFallback(Font.mono(), hebrew(), thai());
+  }
+
+  /**
+   * Lines in fallback fonts, dark on white, for a window of 360 by 156: the stored images
+   * fallback-1x and -2x. JetBrains Mono's box drawing and maths after Inter, and Inter's stars
+   * and circled digits after JetBrains Mono; Hebrew, right to left within its run, around a
+   * number, whose digits stay in order; Thai, with marks above and below its letters; and Chinese,
+   * which no font of the chain has, as Inter's "not defined" glyph.
+   */
+  public static El fallbackText() {
+    Font chain = fallbackChain();
+    El sheet = col().padding(8).gap(2).fill(0xFFFFFFFF).wFull().hFull();
+    for (String line : new String[] {
+      "Kunden ├─ Bestellungen ∀ id ∈ ℕ ✕",
+      "Kunde: שלום עולם, Tel Aviv",
+      "הזמנה 1234 נשלחה",
+      "ลูกค้า: สมชาย ใจดี",
+      "中文 fehlt"
+    }) {
+      sheet.child(El.text(line).font(chain).fontSize(13).color(0xFF1A1A1A));
+    }
+    sheet.child(El.text("SELECT '★ ① ♥' AS note; -- ✓")
+        .font(Font.mono().withFallback(Font.sans())).fontSize(13).color(0xFF1A1A1A));
+    return sheet;
+  }
+
+  /**
+   * Steps of a script for {@link #fallbackField} in a window of 240 by 80: Inter, JetBrains Mono,
+   * Thai and Hebrew typed, a selection from Inter into JetBrains Mono, the caret after it.
+   */
+  public static final String FALLBACK_FIELD = """
+      press #name
+      type "id ├─ ไม้ שלום"
+      key Home
+      key ArrowRight
+      key ArrowRight
+      key ArrowRight shift
+      key ArrowRight shift
+      key ArrowRight shift
+      """;
+
+  /** A text field as in {@link #form}, 200 wide, in the fonts of {@link #fallbackChain}. */
+  public static El fallbackField(Form form) {
+    return col().wFull().hFull().center().fill(0xFF101014).child(
+        field(form.name, name -> form.name = name).key("name").label("Name")
+            .font(fallbackChain()).w(200));
+  }
+
   /** Lighter while the pointer is over it, darker while it is pressed, and a hand as the cursor. */
   private static El toggle(boolean on, Runnable onPress) {
     El knob =

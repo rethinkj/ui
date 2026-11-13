@@ -14,7 +14,13 @@ import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
+import java.nio.channels.FileChannel;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -28,6 +34,10 @@ import java.util.Objects;
  * JetBrains Mono, which come in the artifact {@code com.rethinkj.ui:rethinkj-ui-fonts}, and
  * {@link #icons()} is the default icon font, which comes in {@code rethinkj-ui-icons}. They are
  * loaded on first use and stay open while the process runs.
+ *
+ * <p>A font may fall back to other fonts for the characters it lacks: {@link #withFallback} names
+ * them, {@link #withSystemFonts} adds the fonts installed on the system after those. Such a font
+ * owns no native objects of its own; it uses the fonts it was made of.
  *
  * <p>A font may be used from several threads; its calls take turns.
  */
@@ -54,6 +64,13 @@ public final class Font implements AutoCloseable {
   private final String name;
   private final boolean shared;
   private final boolean icons;
+  // The font that owns the native objects and draws: this, or the font withFallback was called
+  // on. For a font of fallbacks, the fields of native objects below are null.
+  private final Font base;
+  private final List<Font> fallback; // fonts with native objects, tried in order after base
+  private final boolean system; // whether the system's fonts come after those
+  private final Map<List<Object>, Font> derived = new HashMap<>(); // of a base: its chains
+  private final int styleFlags; // FreeType's bold and italic flags
   private final Arena arena;
   private final MemorySegment face;
   private final MemorySegment blob;
@@ -84,26 +101,42 @@ public final class Font implements AutoCloseable {
   private record Key(String text, float pixelSize, boolean quarter, List<String> features) {}
 
   private Font(byte[] bytes, boolean shared, boolean icons) {
+    this(copy(bytes), 0, shared, icons);
+  }
+
+  private static Map.Entry<Arena, MemorySegment> copy(byte[] bytes) {
     if (bytes.length == 0) {
       throw new IllegalArgumentException("The font data is empty.");
     }
     // Loads both libraries with an explanation if one is missing, before any binding is used.
     Natives.lookup("freetype");
     Natives.lookup("harfbuzz");
+    Arena arena = Arena.ofShared();
+    return Map.entry(arena, arena.allocateFrom(JAVA_BYTE, bytes));
+  }
+
+  /** A font of the data, which {@code data}'s arena holds; the font closes the arena. */
+  private Font(
+      Map.Entry<Arena, MemorySegment> data, int index, boolean shared, boolean icons) {
     this.shared = shared;
     this.icons = icons;
-    arena = Arena.ofShared();
-    MemorySegment data = arena.allocateFrom(JAVA_BYTE, bytes);
+    base = this;
+    fallback = List.of();
+    system = false;
+    arena = data.getKey();
     try {
-      face = openFace(data);
+      face = openFace(data.getValue(), index);
     } catch (RuntimeException e) {
       arena.close();
       throw e;
     }
     name = string(face.get(ADDRESS, FreeType.FACE_FAMILY_NAME)) + " "
         + string(face.get(ADDRESS, FreeType.FACE_STYLE_NAME));
-    blob = HarfBuzz.blobCreate(data, bytes.length, HarfBuzz.MEMORY_MODE_READONLY);
-    hbFace = HarfBuzz.faceCreate(blob, 0);
+    styleFlags = (int) (FreeType.getLong(face, FreeType.FACE_STYLE_FLAGS)
+        & (FreeType.STYLE_FLAG_BOLD | FreeType.STYLE_FLAG_ITALIC));
+    blob = HarfBuzz.blobCreate(data.getValue(), Math.toIntExact(data.getValue().byteSize()),
+        HarfBuzz.MEMORY_MODE_READONLY);
+    hbFace = HarfBuzz.faceCreate(blob, index);
     hbFont = HarfBuzz.fontCreate(hbFace);
     if (HarfBuzz.faceGetGlyphCount(hbFace) == 0) {
       destroy();
@@ -120,6 +153,30 @@ public final class Font implements AutoCloseable {
       // An icon's drawing fills the em square, which is its line: a gap would move it off its box.
       lineGap = icons ? 0 : extents.get(JAVA_INT, HarfBuzz.EXTENTS_LINE_GAP) / (float) unitsPerEm;
     }
+  }
+
+  /** A font that falls back from {@code base} to other fonts; see {@link #withFallback}. */
+  private Font(Font base, List<Font> fallback, boolean system) {
+    StringBuilder chain = new StringBuilder(base.name);
+    for (Font font : fallback) {
+      chain.append(", ").append(font.name);
+    }
+    name = chain + (system ? ", system fonts" : "");
+    shared = true;
+    this.base = base;
+    this.fallback = fallback;
+    this.system = system;
+    styleFlags = base.styleFlags;
+    icons = base.icons;
+    arena = null;
+    face = null;
+    blob = null;
+    hbFace = null;
+    hbFont = null;
+    unitsPerEm = base.unitsPerEm;
+    ascent = base.ascent;
+    descent = base.descent;
+    lineGap = base.lineGap;
   }
 
   /**
@@ -148,6 +205,69 @@ public final class Font implements AutoCloseable {
       return of(in.readAllBytes());
     } catch (IOException e) {
       throw new UncheckedIOException("Cannot read the font " + name, e);
+    }
+  }
+
+  /**
+   * A font of a file, face {@code index} of a collection: mapped into memory, not read, and
+   * unmapped when the font is closed. For the system's fonts, which stay open.
+   */
+  static Font file(Path path, int index) {
+    Natives.lookup("freetype");
+    Natives.lookup("harfbuzz");
+    Arena arena = Arena.ofShared();
+    MemorySegment data;
+    try (FileChannel channel = FileChannel.open(path)) {
+      data = channel.map(FileChannel.MapMode.READ_ONLY, 0, channel.size(), arena);
+    } catch (IOException | RuntimeException e) {
+      arena.close();
+      throw new IllegalArgumentException("Cannot map the font " + path + ": " + e, e);
+    }
+    return new Font(Map.entry(arena, data), index, true, false);
+  }
+
+  /**
+   * This font, falling back to {@code fonts} in order for the characters it lacks: each grapheme
+   * cluster of a text is drawn by the first of these fonts that has all its characters, at the
+   * same size and on the same baseline; see {@link #shape}. Metrics, and so the height of a line,
+   * stay this font's. A font in {@code fonts} that falls back itself brings its fallbacks along,
+   * after it. The result is the same object for the same arguments, so that it keeps the shaped
+   * runs of earlier calls; it owns nothing and closing it does nothing.
+   *
+   * @throws IllegalStateException if this font is closed
+   */
+  public Font withFallback(Font... fonts) {
+    List<Font> chain = new ArrayList<>(fallback);
+    boolean withSystem = system;
+    for (Font font : fonts) {
+      Objects.requireNonNull(font, "fonts");
+      chain.add(font.base);
+      chain.addAll(font.fallback);
+      withSystem |= font.system;
+    }
+    chain = new ArrayList<>(new LinkedHashSet<>(chain));
+    chain.remove(base);
+    return base.derive(List.copyOf(chain), withSystem);
+  }
+
+  /**
+   * This font and its fallbacks, and then the fonts installed on the system for the characters
+   * that none of them has. The first character that needs them looks through the system's font
+   * folders, once per process; see {@code SystemFonts}. Images drawn with it depend on the
+   * machine, which is why {@code App} uses it only in a window unless told otherwise.
+   */
+  public Font withSystemFonts() {
+    return base.derive(fallback, true);
+  }
+
+  private Font derive(List<Font> fallback, boolean system) {
+    if (fallback.isEmpty() && !system) {
+      return this;
+    }
+    synchronized (this) {
+      checkOpen();
+      return derived.computeIfAbsent(List.of(fallback, system),
+          k -> new Font(this, fallback, system));
     }
   }
 
@@ -225,8 +345,17 @@ public final class Font implements AutoCloseable {
    *
    * <p>Kerning is on. Contextual alternates ({@code calt}) are off, because in JetBrains Mono and
    * similar fonts they draw {@code !=} or {@code ->} as one sign; {@code "+calt"} turns them back
-   * on. Text is shaped left to right in the script of its first letters, without bidirectional
-   * reordering, and only with this font: characters it lacks get its "not defined" glyph, 0.
+   * on.
+   *
+   * <p>The text is split into runs of one font and one script ({@code Runs}): each grapheme cluster
+   * goes to the first font of this one and its {@link #withFallback fallbacks} that has it, and
+   * neutral characters between two clusters of one fallback font stay with it. A cluster that no
+   * font has gets this font's "not defined" glyph, 0. Each run is shaped with HarfBuzz in its
+   * script and direction, with the text around it as context, and the runs follow each other from
+   * left to right in the order of the text: a run of right-to-left text, such as Arabic or Hebrew,
+   * has its letters joined and in their order, but a line is not reordered as the bidirectional
+   * algorithm would, and such a run is one cluster, all its glyphs at the index of its first
+   * character.
    *
    * @param size the font size in logical pixels
    * @param scale physical pixels per logical pixel
@@ -258,6 +387,8 @@ public final class Font implements AutoCloseable {
 
   private GlyphRun shape(Key key) {
     String text = key.text;
+    List<Font> chain = chain(text);
+    List<Runs.Run> runs = Runs.of(text, chain.size(), (f, c) -> chain.get(f).has(c));
     try (Arena call = Arena.ofConfined()) {
       int count = 1 + key.features.size();
       MemorySegment features = call.allocate(HarfBuzz.FEATURE, count);
@@ -270,33 +401,84 @@ public final class Font implements AutoCloseable {
                   + " \"-kern\", \"+calt\" or \"ss01\".");
         }
       }
-      MemorySegment buffer = HarfBuzz.bufferCreate();
-      try {
-        HarfBuzz.bufferAddUtf16(buffer, call.allocateFrom(JAVA_CHAR, text.toCharArray()),
-            text.length(), 0, text.length());
-        // shortcut: one left-to-right run in one script. Bidirectional text (UAX #9) and
-        // mixed scripts need the text split into runs first.
-        HarfBuzz.bufferSetDirection(buffer, HarfBuzz.DIRECTION_LTR);
-        HarfBuzz.bufferGuessSegmentProperties(buffer);
-        HarfBuzz.shape(hbFont, buffer, features, count);
-        if (!HarfBuzz.bufferAllocationSuccessful(buffer)) {
-          throw new OutOfMemoryError("HarfBuzz could not allocate memory to shape the text.");
+      MemorySegment utf16 = call.allocateFrom(JAVA_CHAR, text.toCharArray());
+      List<GlyphRun> parts = new ArrayList<>();
+      for (Runs.Run run : runs) {
+        parts.add(chain.get(run.font()).shapeRun(key, utf16, text.length(), run, features, count));
+      }
+      return GlyphRun.join(this, key.pixelSize, parts);
+    }
+  }
+
+  /** This font and its fallbacks, then the system's fonts for clusters that none of them has. */
+  private List<Font> chain(String text) {
+    List<Font> chain = new ArrayList<>(1 + fallback.size());
+    chain.add(base);
+    chain.addAll(fallback);
+    if (!system) {
+      return chain;
+    }
+    Runs.Coverage coverage = (f, c) -> chain.get(f).has(c);
+    List<Integer> bounds = Runs.clusters(text);
+    for (int k = 0; k + 1 < bounds.size(); k++) {
+      String cluster = text.substring(bounds.get(k), bounds.get(k + 1));
+      boolean covered = false;
+      for (int f = 0; f < chain.size() && !covered; f++) {
+        covered = Runs.covers(cluster, f, coverage);
+      }
+      Font found = covered ? null : SystemFonts.find(cluster, styleFlags);
+      if (found != null && !chain.contains(found)) {
+        chain.add(found);
+      }
+    }
+    return chain;
+  }
+
+  /** Whether the font has a glyph for the character, in its Unicode charmap. */
+  boolean has(int codePoint) {
+    synchronized (this) {
+      checkOpen();
+      return FreeType.getCharIndex(face, codePoint) != 0;
+    }
+  }
+
+  /** Shapes one run of the text with this font, which has native objects. */
+  private GlyphRun shapeRun(Key key, MemorySegment utf16, int length, Runs.Run run,
+      MemorySegment features, int count) {
+    synchronized (this) {
+      checkOpen();
+      try (Arena call = Arena.ofConfined()) {
+        MemorySegment buffer = HarfBuzz.bufferCreate();
+        try {
+          // The whole text is context, for letters that join across the edges of the run.
+          HarfBuzz.bufferAddUtf16(buffer, utf16, length, run.from(), run.to() - run.from());
+          HarfBuzz.bufferSetDirection(buffer,
+              run.rtl() ? HarfBuzz.DIRECTION_RTL : HarfBuzz.DIRECTION_LTR);
+          HarfBuzz.bufferGuessSegmentProperties(buffer); // the script of the run's letters
+          HarfBuzz.shape(hbFont, buffer, features, count);
+          if (!HarfBuzz.bufferAllocationSuccessful(buffer)) {
+            throw new OutOfMemoryError("HarfBuzz could not allocate memory to shape the text.");
+          }
+          MemorySegment out = call.allocate(JAVA_INT);
+          MemorySegment infos = HarfBuzz.bufferGetGlyphInfos(buffer, out);
+          int n = out.get(JAVA_INT, 0);
+          infos = infos.reinterpret(n * HarfBuzz.GLYPH_INFO.byteSize());
+          MemorySegment positions = HarfBuzz.bufferGetGlyphPositions(buffer, out)
+              .reinterpret(n * HarfBuzz.GLYPH_POSITION.byteSize());
+          return run(key, infos, positions, n, run.rtl() ? run.from() : -1);
+        } finally {
+          HarfBuzz.bufferDestroy(buffer);
         }
-        MemorySegment length = call.allocate(JAVA_INT);
-        MemorySegment infos = HarfBuzz.bufferGetGlyphInfos(buffer, length);
-        int n = length.get(JAVA_INT, 0);
-        infos = infos.reinterpret(n * HarfBuzz.GLYPH_INFO.byteSize());
-        MemorySegment positions = HarfBuzz.bufferGetGlyphPositions(buffer, length)
-            .reinterpret(n * HarfBuzz.GLYPH_POSITION.byteSize());
-        return run(key, infos, positions, n);
-      } finally {
-        HarfBuzz.bufferDestroy(buffer);
       }
     }
   }
 
-  /** Scales HarfBuzz's font units to physical pixels and rounds them to the grid. */
-  private GlyphRun run(Key key, MemorySegment infos, MemorySegment positions, int n) {
+  /**
+   * Scales HarfBuzz's font units to physical pixels and rounds them to the grid. A right-to-left
+   * run's glyphs come in visual order, their clusters falling; they all get {@code cluster}.
+   */
+  private GlyphRun run(Key key, MemorySegment infos, MemorySegment positions, int n,
+      int cluster) {
     // shortcut: HarfBuzz shapes in font units, which are then scaled here. The same as setting
     // the scale on the font, minus its rounding to 1/64 pixels, and the font stays unchanged.
     double perUnit = key.pixelSize / unitsPerEm;
@@ -310,7 +492,7 @@ public final class Font implements AutoCloseable {
       long info = i * HarfBuzz.GLYPH_INFO.byteSize();
       long position = i * HarfBuzz.GLYPH_POSITION.byteSize();
       glyphs[i] = infos.get(JAVA_INT, info + HarfBuzz.INFO_GLYPH);
-      clusters[i] = infos.get(JAVA_INT, info + HarfBuzz.INFO_CLUSTER);
+      clusters[i] = cluster >= 0 ? cluster : infos.get(JAVA_INT, info + HarfBuzz.INFO_CLUSTER);
       pen[i + 1] = pen[i]
           + round(positions.get(JAVA_INT, position + HarfBuzz.POSITION_X_ADVANCE), perUnit, grid);
       dx[i] = round(positions.get(JAVA_INT, position + HarfBuzz.POSITION_X_OFFSET), perUnit, grid);
@@ -318,7 +500,7 @@ public final class Font implements AutoCloseable {
       dy[i] = round(-positions.get(JAVA_INT, position + HarfBuzz.POSITION_Y_OFFSET), perUnit,
           grid);
     }
-    return new GlyphRun(this, key.pixelSize, glyphs, clusters, pen, dx, dy);
+    return new GlyphRun(this, key.pixelSize, glyphs, clusters, pen, dx, dy, null);
   }
 
   /**
@@ -414,18 +596,27 @@ public final class Font implements AutoCloseable {
    * Frees the native objects and the copy of the font data. Afterwards every call but this one
    * and {@link #toString} throws {@link IllegalStateException}. A second close does nothing.
    *
-   * @throws UnsupportedOperationException for a default font, which other code may be using
+   * <p>A font made by {@link #withFallback} or {@link #withSystemFonts} owns nothing, and closing
+   * it does nothing; close the fonts it was made of.
+   *
+   * @throws UnsupportedOperationException for a default font, which other code may be using, and
+   *     a font of the system's
    */
   @Override
   public void close() {
+    if (base != this) {
+      return;
+    }
     if (shared) {
       throw new UnsupportedOperationException(
-          name + " is a default font, which stays open while the process runs.");
+          name + " is a default font or one of the system's, which stay open while the process"
+              + " runs.");
     }
     synchronized (this) {
       if (!closed) {
         closed = true;
         runs.clear();
+        derived.clear();
         destroy();
       }
     }
@@ -442,30 +633,25 @@ public final class Font implements AutoCloseable {
   }
 
   private void checkOpen() {
-    if (closed) {
+    if (base.closed) {
       throw new IllegalStateException(name + " is closed: this Font cannot be used any more.");
     }
   }
 
-  /** The family and style, such as {@code Inter Regular}. */
+  /**
+   * The family and style, such as {@code Inter Regular}; for a font that falls back, those of its
+   * fonts in order, as {@code Inter Regular, JetBrains Mono Regular, system fonts}.
+   */
   @Override
   public String toString() {
     return name;
   }
 
   /** Opens the FreeType face; FreeType wants its library used by one thread at a time. */
-  private static synchronized MemorySegment openFace(MemorySegment data) {
+  private static synchronized MemorySegment openFace(MemorySegment data, int index) {
     try (Arena call = Arena.ofConfined()) {
-      if (library == null) {
-        MemorySegment out = call.allocate(ADDRESS);
-        int error = FreeType.initFreeType(out);
-        if (error != 0) {
-          throw new IllegalStateException("FreeType could not start: error " + error + ".");
-        }
-        library = out.get(ADDRESS, 0);
-      }
       MemorySegment out = call.allocate(ADDRESS);
-      int error = FreeType.newMemoryFace(library, data, data.byteSize(), 0, out);
+      int error = FreeType.newMemoryFace(library(), data, data.byteSize(), index, out);
       if (error != 0) {
         throw new IllegalArgumentException(
             "These bytes are not a font that FreeType can read: FreeType error " + error + ".");
@@ -479,6 +665,106 @@ public final class Font implements AutoCloseable {
       }
       return face;
     }
+  }
+
+  private static MemorySegment library() {
+    if (library == null) {
+      try (Arena call = Arena.ofConfined()) {
+        MemorySegment out = call.allocate(ADDRESS);
+        int error = FreeType.initFreeType(out);
+        if (error != 0) {
+          throw new IllegalStateException("FreeType could not start: error " + error + ".");
+        }
+        library = out.get(ADDRESS, 0);
+      }
+    }
+    return library;
+  }
+
+  /**
+   * For {@link SystemFonts}: the faces of a font file that draw outlines, each with its family,
+   * style and characters. A colour face counts only if its glyph for a sample character, an emoji
+   * where it has one, renders as an outline.
+   */
+  static synchronized List<SystemFonts.Face> inspect(Path path, MemorySegment data) {
+    Natives.lookup("freetype");
+    List<SystemFonts.Face> faces = new ArrayList<>();
+    try (Arena call = Arena.ofConfined()) {
+      MemorySegment out = call.allocate(ADDRESS);
+      MemorySegment glyph = call.allocate(JAVA_INT);
+      int count = 1;
+      for (int i = 0; i < count; i++) {
+        if (FreeType.newMemoryFace(library(), data, data.byteSize(), i, out) != 0) {
+          continue;
+        }
+        MemorySegment face = out.get(ADDRESS, 0).reinterpret(FreeType.FACE.byteSize());
+        try {
+          count = (int) Math.min(FreeType.getLong(face, FreeType.FACE_NUM_FACES), 256);
+          long flags = FreeType.getLong(face, FreeType.FACE_FACE_FLAGS);
+          if ((flags & FreeType.FACE_FLAG_SCALABLE) == 0
+              || face.get(JAVA_SHORT, FreeType.FACE_UNITS_PER_EM) == 0) {
+            continue;
+          }
+          int[] ranges = ranges(face, glyph);
+          if (ranges.length == 0
+              || (flags & FreeType.FACE_FLAG_COLOR) != 0 && !outlined(face, ranges)) {
+            continue;
+          }
+          faces.add(new SystemFonts.Face(path, i, string(face.get(ADDRESS,
+              FreeType.FACE_FAMILY_NAME)), string(face.get(ADDRESS, FreeType.FACE_STYLE_NAME)),
+              (int) (FreeType.getLong(face, FreeType.FACE_STYLE_FLAGS)
+                  & (FreeType.STYLE_FLAG_BOLD | FreeType.STYLE_FLAG_ITALIC)),
+              ranges));
+        } finally {
+          FreeType.doneFace(face);
+        }
+      }
+    }
+    return faces;
+  }
+
+  /** The characters of a face's charmap, as first and last of each run of consecutive ones. */
+  private static int[] ranges(MemorySegment face, MemorySegment glyph) {
+    int[] ranges = new int[16];
+    int n = 0;
+    for (long c = FreeType.getFirstChar(face, glyph); glyph.get(JAVA_INT, 0) != 0;
+        c = FreeType.getNextChar(face, c, glyph)) {
+      int code = (int) c;
+      if (n > 0 && ranges[n - 1] == code - 1) {
+        ranges[n - 1] = code;
+      } else {
+        if (n == ranges.length) {
+          ranges = Arrays.copyOf(ranges, n * 2);
+        }
+        ranges[n++] = code;
+        ranges[n++] = code;
+      }
+    }
+    return Arrays.copyOf(ranges, n);
+  }
+
+  /** Whether a colour face has an outline for U+1F600, or else its first character from U+2000. */
+  private static boolean outlined(MemorySegment face, int[] ranges) {
+    int sample = ranges[0];
+    for (int r = 0; r < ranges.length; r += 2) {
+      if (ranges[r] <= 0x1F600 && 0x1F600 <= ranges[r + 1]) {
+        sample = 0x1F600;
+        break;
+      }
+      if (sample < 0x2000 && ranges[r + 1] >= 0x2000) {
+        sample = Math.max(ranges[r], 0x2000);
+      }
+    }
+    int index = FreeType.getCharIndex(face, sample);
+    if (index == 0 || FreeType.setCharSize(face, 0, 32 * 64, 72, 72) != 0
+        || FreeType.loadGlyph(face, index, FreeType.LOAD_NO_BITMAP) != 0) {
+      return false;
+    }
+    MemorySegment slot =
+        face.get(ADDRESS, FreeType.FACE_GLYPH).reinterpret(FreeType.GLYPH_SLOT.byteSize());
+    return FreeType.renderGlyph(slot, FreeType.RENDER_MODE_NORMAL) == 0
+        && slot.get(JAVA_INT, FreeType.SLOT_BITMAP + FreeType.BITMAP_WIDTH) > 0
+        && slot.get(JAVA_INT, FreeType.SLOT_BITMAP + FreeType.BITMAP_ROWS) > 0;
   }
 
   private static String string(MemorySegment pointer) {

@@ -37,9 +37,11 @@ import java.util.Objects;
  * moves, the loop advances the app's clock by the time that passed and draws a frame per refresh of
  * the display.
  *
- * <p>The loop also gives the app the system's clipboard ({@link App#clipboard}), turns the
- * window's text input on while the focused element takes text and tells it where ({@link
- * App#inputArea}, {@link Window#textInputArea}), and passes on the compositions of input methods.
+ * <p>The loop also gives the app the system's clipboard ({@link App#clipboard}) and its fonts for
+ * characters that the app's fonts lack ({@link App#systemFonts}, unless {@link #systemFonts} turned
+ * that off), turns the window's text input on while the focused element takes text and tells it
+ * where ({@link App#inputArea}, {@link Window#textInputArea}), and passes on the compositions of
+ * input methods.
  *
  * <pre>{@code
  * try (Window window = Window.open("Lights", 480, 320, Window.options().frameless());
@@ -89,6 +91,7 @@ public final class WindowLoop {
   private long clock;
   private long presented;
   private long frameNanos;
+  private boolean systemFonts = true;
 
   public WindowLoop(Window window, App<?> app, Presenter presenter) {
     this.window = Objects.requireNonNull(window, "window");
@@ -113,6 +116,17 @@ public final class WindowLoop {
   }
 
   /**
+   * Whether {@link #run} gives the app the system's fonts ({@link App#systemFonts}), as it does
+   * unless this turns it off, for an app that has to look the same on every machine.
+   *
+   * @return this loop
+   */
+  public WindowLoop systemFonts(boolean on) {
+    this.systemFonts = on;
+    return this;
+  }
+
+  /**
    * Runs until the user asks to close the window or {@link #stop} is called, on the window's
    * thread. Meanwhile the loop is the window's listener and answers its {@link Window#parts} from
    * the app; afterwards the window has neither. The window stays open; close it afterwards. What a
@@ -124,6 +138,7 @@ public final class WindowLoop {
     }
     running = true;
     app.clipboard(new SystemClipboard());
+    app.systemFonts(systemFonts);
     window.listener(this::event);
     window.parts(app::windowPart);
     try {
