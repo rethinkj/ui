@@ -1,0 +1,22 @@
+el 0,0 260x220
+  el 12,12 220x196
+    el role=listbox label="Sections" 16,16 212x188
+      el #item-0 16,16 212x28
+        text "Database" 24,22 57x16
+      el #item-1 role=option label="Tables" 16,44 212x28 pos=2/5
+        el 16,46 212x24
+          el 18,50 2x16
+          text label="table" "\u{EBF4}" 24,50 16x16
+          text "Tables" 44,50 176x16
+      el #item-2 role=option label="Views" 16,72 212x28 selected pos=3/5
+        el 16,74 212x24
+          el 18,78 2x16
+          text label="code" "\u{F339}" 24,78 16x16
+          text "Views" 44,78 176x16
+      el #item-3 16,100 212x28
+        text "Server" 24,106 41x16
+      el #item-4 role=option label="Roles" 16,128 212x28 pos=5/5
+        el 16,130 212x24
+          el 18,134 2x16
+          text label="people" "\u{F5A7}" 24,134 16x16
+          text "Roles" 44,134 176x16

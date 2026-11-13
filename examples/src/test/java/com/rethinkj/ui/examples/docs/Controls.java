@@ -118,6 +118,75 @@ final class Controls {
     return Frame.of(t, indent, mode, driver, fetch, size);
   }
 
+  // docs:start choice-types
+  enum Isolation {
+    READ_COMMITTED("Read committed"),
+    REPEATABLE_READ("Repeatable read"),
+    SERIALIZABLE("Serializable");
+
+    final String title;
+
+    Isolation(String title) {
+      this.title = title;
+    }
+  }
+
+  record Schema(String name, String owner) {}
+  // docs:end choice-types
+
+  Isolation isolation = Isolation.READ_COMMITTED;
+  final Menu.State isolationMenu = new Menu.State();
+  Isolation level = Isolation.SERIALIZABLE;
+  Isolation shown;
+  Schema schemaValue;
+  final ComboBox.State schemaValueBox = new ComboBox.State();
+  Schema owned;
+  final ComboBox.State ownedBox = new ComboBox.State();
+
+  static El typed(Controls s) {
+    Theme t = s.t;
+    List<Schema> schemas = List.of(
+        new Schema("accounting", "finance"),
+        new Schema("public", "postgres"),
+        new Schema("sales", "shop"));
+    // docs:start select-typed
+    El isolation = Select.select(
+            t,
+            List.of(Isolation.values()),
+            s.isolation,
+            i -> i.title,
+            s.isolationMenu,
+            i -> s.isolation = i)
+        .label("Isolation");
+    // docs:end select-typed
+    // docs:start radio-typed
+    El level = Radio.radioGroup(
+            t, List.of(Isolation.values()), s.level, i -> i.title, i -> s.level = i)
+        .label("Level");
+    // docs:end radio-typed
+    // docs:start segmented-typed
+    El shown = Segmented.segmented( // null: none chosen yet
+            t, List.of(Isolation.values()), s.shown, i -> i.title, i -> s.shown = i)
+        .label("Show");
+    // docs:end segmented-typed
+    // docs:start combo-box-typed
+    El schema = ComboBox.comboBox(
+            t, schemas, s.schemaValue, Schema::name, s.schemaValueBox, v -> s.schemaValue = v)
+        .label("Schema");
+    // docs:end combo-box-typed
+    // docs:start combo-items-typed
+    El owned = ComboBox.items(
+            t,
+            schemas,
+            s.owned,
+            v -> ComboBox.item(v.name()).icon(Symbol.DATABASE).detail(v.owner()),
+            s.ownedBox,
+            v -> s.owned = v)
+        .label("Owned schema");
+    // docs:end combo-items-typed
+    return Frame.of(t, isolation, level, shown, schema, owned);
+  }
+
   static El combos(Controls s) {
     Theme t = s.t;
     // docs:start combo-box

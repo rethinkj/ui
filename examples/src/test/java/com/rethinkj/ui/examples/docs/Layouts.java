@@ -183,6 +183,41 @@ final class Layouts {
     return Frame.of(t, Card.inset(t, pages).w(220));
   }
 
+  // docs:start nav-list-types
+  enum Area {
+    TABLES(Symbol.TABLE, "Tables", "Database"),
+    VIEWS(Symbol.CODE, "Views", "Database"),
+    ROLES(Symbol.PEOPLE, "Roles", "Server");
+
+    final Symbol icon;
+    final String title;
+    final String group;
+
+    Area(Symbol icon, String title, String group) {
+      this.icon = icon;
+      this.title = title;
+      this.group = group;
+    }
+  }
+  // docs:end nav-list-types
+
+  Area area = Area.VIEWS;
+
+  static El typedNavigation(Layouts s) {
+    Theme t = s.t;
+    // docs:start nav-list-typed
+    El sections = NavList.navList(
+            t,
+            List.of(Area.values()),
+            s.area,
+            v -> NavList.item(v.icon, v.title),
+            v -> v.group, // a heading wherever the group changes
+            v -> s.area = v)
+        .label("Sections");
+    // docs:end nav-list-typed
+    return Frame.of(t, Card.inset(t, sections).w(220));
+  }
+
   static El split(Layouts s) {
     Theme t = s.t;
     El tree = Card.card(t, Label.label(t, "Schema")).grow(1);

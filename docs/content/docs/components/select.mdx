@@ -14,6 +14,18 @@ description: A button showing the current choice that opens a menu of a few choi
 
 `Select.select(t, choices, selected, menuState, onSelect)`: the choices as texts, the index of the current one, a `Menu.State` the app keeps, and a handler told the new index. A null handler disables it. It has the text field's frame and width.
 
+## Values instead of indexes
+
+`Select.select(t, values, selected, text, menuState, onSelect)` chooses among values of any type, an enum's constants or records, with a function that gives each its text:
+
+```java snippet="choice-types"
+```
+
+```java snippet="select-typed"
+```
+
+The selected value is found by `equals`; null, or a value that is not in the list, selects nothing. The handler gets the value; a null handler disables it. For an enum, pass `List.of(E.values())`. The tree is the one the form with indexes builds of the same texts.
+
 ## Keyboard
 
 | Keys | Action |

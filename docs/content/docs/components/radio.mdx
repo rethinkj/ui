@@ -14,6 +14,15 @@ description: A group of round buttons for one choice among a few, all in view.
 
 `Radio.radioGroup(t, choices, selected, onSelect)`. A null handler disables it. Give the group a `.label(...)`.
 
+## Values instead of indexes
+
+`Radio.radioGroup(t, values, selected, text, onSelect)` chooses among values of any type, as [Select](/docs/components/select#values-instead-of-indexes) does:
+
+```java snippet="radio-typed"
+```
+
+The selected value is found by `equals`; null, or a value that is not in the list, selects nothing. The handler gets the value; a null handler disables it. For an enum, pass `List.of(E.values())`.
+
 ## Keyboard
 
 The group is one stop for Tab. The arrows choose the next and the previous choice, around the ends; Home and End the first and the last.

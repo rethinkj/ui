@@ -25,6 +25,18 @@ The app keeps a `ComboBox.State` and the value. A null handler disables it. It i
 
 <Shot src="kit/combobox-items-{theme}-2x-open" alt="A combo box of database products with logos and details" />
 
+## Values instead of indexes
+
+`comboBox(t, values, selected, text, state, onSelect)` and `items(t, values, selected, value -> item, state, onSelect)` choose among values of any type, such as records, and tell the value:
+
+```java snippet="combo-box-typed"
+```
+
+```java snippet="combo-items-typed"
+```
+
+The selected value is found by `equals`; null, or a value not in the list, selects nothing; a null handler disables it. The texts or items are made again in every build, one call per value, and while they come out equal to the last build's (for items: equal values, texts and details), the box hands on the list of the last build, so its filter keeps what it found although the view maps its values anew. What stands before an item's text is taken to follow from its value.
+
 ## Keyboard
 
 | Keys | Action |
