@@ -1,0 +1,32 @@
+el 0,0 360x240
+  el window=drag 0,0 360x32
+    el 10,10 12x12
+    el 22,16 200x0
+    el role=button label="Minimize" window=minimize 222,0 46x32
+      el 240,16 10x1
+    el role=button label="Maximize" window=maximize 268,0 46x32
+      el 286,11 10x10
+    el role=button label="Close" window=close 314,0 46x32
+      el 332,11 10x10
+        el 332,11 2x2
+        el 340,11 2x2
+        el 333,12 2x2
+        el 339,12 2x2
+        el 334,13 2x2
+        el 338,13 2x2
+        el 335,14 2x2
+        el 337,14 2x2
+        el 336,15 2x2
+        el 336,15 2x2
+        el 337,16 2x2
+        el 335,16 2x2
+        el 338,17 2x2
+        el 334,17 2x2
+        el 339,18 2x2
+        el 333,18 2x2
+        el 340,19 2x2
+        el 332,19 2x2
+  el 0,32 360x208
+    el #lamp 152,89 56x56
+    el #switch role=switch label="Lights" 161,161 38x22 focused
+      el #knob 174.45,163 18x18

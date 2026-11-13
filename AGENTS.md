@@ -133,6 +133,16 @@ java -cp core/target/classes:core/target/test-classes com.rethinkj.ui.Examples \
 
 On Windows, separate the class path with `;`. The snaps equal the stored images of the same names under `core/src/test/resources/golden`; `ScriptTest` checks that, and that these examples match their files.
 
+## Examples
+
+`examples/` holds small apps that open a window, written as a user of the library writes them. The module is built and tested with the others but never installed or deployed. From the repository root, on Linux and Windows, this builds what it needs and starts the light switch, `com.rethinkj.ui.examples.LightSwitch`:
+
+```sh
+mvn -q -pl examples -am compile exec:exec
+```
+
+It is the switch of rune's README in a frameless window with a title bar of its own: drag the bar to move the window, use its buttons, press the switch, or Tab to it and press Space; the lamp above it shows the state. The example runs in a JVM of its own, with the JDK that runs Maven and `--enable-native-access=ALL-UNNAMED`. With `-Dargs="--script <file> --out <folder>"` it runs a script instead of opening the window, with paths relative to the folder Maven was started in. `LightSwitchTest` passes `examples/src/test/resources/scripts/light-switch.txt` to the example's `main` and compares the snaps with `examples/src/test/resources/golden`; `mvn -pl examples -am test -Dgolden.update=true` rewrites them, and core's stored images too.
+
 ## Modules
 
 | Directory              | Artifact                          | Base package          | Purpose                                                   |
@@ -142,6 +152,7 @@ On Windows, separate the class path with `;`. The snaps equal the stored images 
 | `natives-windows-x64/` | `rethinkj-ui-natives-windows-x64` | none, no Java code    | SDL3, wgpu-native, FreeType and HarfBuzz for Windows on x64 |
 | `natives-linux-x64/`   | `rethinkj-ui-natives-linux-x64`   | none, no Java code    | SDL3, wgpu-native, FreeType and HarfBuzz for Linux on x64   |
 | `fonts/`               | `rethinkj-ui-fonts`               | none, no Java code    | Inter and JetBrains Mono, the default fonts               |
+| `examples/`            | `rethinkj-ui-examples`            | `com.rethinkj.ui.examples` | Apps that open a window; not published               |
 
 All artifacts share the groupId `com.rethinkj.ui`.
 
