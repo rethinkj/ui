@@ -900,6 +900,23 @@ public final class Window implements AutoCloseable {
     return ints.get(JAVA_INT, 4);
   }
 
+  /**
+   * Where the pointer is on the desktop now, in the units of {@link #moveTo}, from {@code
+   * SDL_GetGlobalMouseState}: the system's pointer as it is when this is called, ahead of the
+   * events that wait to be delivered. On Wayland, where a client knows no positions, it is the
+   * pointer's place in the window under it, or the last one SDL knows. Needs an open window.
+   *
+   * @return x and y
+   */
+  public static float[] pointer() {
+    checkThread();
+    try (Arena arena = Arena.ofConfined()) {
+      MemorySegment at = arena.allocate(8, 4);
+      Sdl.getGlobalMouseState(at);
+      return new float[] {at.get(JAVA_FLOAT, 0), at.get(JAVA_FLOAT, 4)};
+    }
+  }
+
   public void title(String title) {
     checkOpen();
     Sdl.setWindowTitle(sdl, Objects.requireNonNull(title, "title"));

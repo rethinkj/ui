@@ -57,6 +57,8 @@ public final class El {
   private PressHandler onPress;
   private PressHandler onPointerDown;
   private Consumer<Drag> onDrag;
+  private Object dragPayload;
+  private Consumer<Drop> onDrop;
   private int revealRow = -1;
   private boolean focusable;
   private Integer focusRing;
@@ -1183,6 +1185,33 @@ public final class El {
   }
 
   /**
+   * What a drag of this element carries to the {@link #onDrop} handlers it passes over, in its own
+   * window and in the others of its runner ({@link com.rethinkj.ui.window.Windows}): a note, a
+   * tab, a row. Only a drag with a payload reaches drop handlers; the element needs an {@link
+   * #onDrag} handler, which gets each step after the drop handlers have.
+   *
+   * @param payload the payload, or null for none
+   */
+  public El dragPayload(Object payload) {
+    this.dragPayload = payload;
+    return this;
+  }
+
+  /**
+   * Lets this element take what drags carry ({@link #dragPayload}): while the pointer of such a
+   * drag is over it or inside it, and no element inside it has a drop handler of its own there,
+   * {@code handler} gets {@link Drop.Phase#OVER} on each step, {@link Drop.Phase#LEAVE} when the
+   * pointer leaves it or the drag ends elsewhere, and {@link Drop.Phase#DROP} when the button is
+   * released over it. The same handler serves a drag within its window, as to reorder rows or
+   * tabs, and one that comes from another window of the runner. It runs in the frame of the drag's
+   * own window, before the drag's handler; its app builds its view again in the same pass.
+   */
+  public El onDrop(Consumer<Drop> handler) {
+    this.onDrop = handler;
+    return this;
+  }
+
+  /**
    * Lets this element take the keyboard focus, which {@link App} keeps across rebuilds: Tab and
    * Shift+Tab move it through the focusable elements in tree order, and a pointer press on this
    * element or inside it gives it focus. The focused element gets text ({@link #onText}) and keys
@@ -1710,6 +1739,16 @@ public final class El {
 
   public Consumer<Drag> onDrag() {
     return onDrag;
+  }
+
+  /** The payload of {@link #dragPayload}, or null. */
+  public Object dragPayload() {
+    return dragPayload;
+  }
+
+  /** The handler of {@link #onDrop}, or null. */
+  public Consumer<Drop> onDrop() {
+    return onDrop;
   }
 
   public PointHandler onSecondaryPress() {
