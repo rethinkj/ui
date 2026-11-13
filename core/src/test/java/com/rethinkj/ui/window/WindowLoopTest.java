@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import com.rethinkj.ui.App;
 import com.rethinkj.ui.Cursor;
@@ -306,6 +307,68 @@ class WindowLoopTest {
       assertEquals(Boolean.FALSE, built.getFirst());
       assertTrue(built.contains(Boolean.TRUE), "a build while maximized: " + built);
       assertEquals(Boolean.FALSE, built.getLast(), "and one after the restore");
+    }
+  }
+
+  /** The work area of the display the window is mostly on, x, y, width and height. */
+  private static int[] workArea(Window window) {
+    int[] frame = Sdl.windowBordersSize(window.sdlWindow());
+    int top = frame == null || window.isFrameless() ? 0 : frame[0];
+    int display = Sdl.displayForRect(window.x(), window.y() - top,
+        window.units(window.width()), window.units(window.height()) + top);
+    return Sdl.displayBounds(display, true);
+  }
+
+  @Test
+  void aWindowOpenedOutsideEveryDisplayOpensWhereItCanBeGrabbed() {
+    assumeTrue(Window.knowsPositions());
+    try (Window window = Window.open(TITLE, 300, 200,
+        Window.options().position(-20_000, -20_000))) {
+      int[] frame = Sdl.windowBordersSize(window.sdlWindow());
+      int top = frame == null ? 0 : frame[0];
+      int right = frame == null ? 0 : frame[3];
+      int[] area = workArea(window);
+      assertTrue(window.y() - top >= area[1], "its title bar below the top: " + window.y());
+      assertTrue(window.x() + window.units(300) + right
+          >= area[0] + window.units(Window.REACHABLE), "and far enough across: " + window.x());
+    }
+  }
+
+  @Test
+  void aWindowTheAppMovedOffTheScreenDuringAPressComesBackWhenItEnds() {
+    assumeTrue(Window.knowsPositions());
+    try (Window window = Window.open(TITLE, 300, 200, Window.options().frameless())) {
+      Desktop.settle();
+      @SuppressWarnings("unchecked")
+      App<Object>[] self = new App[1];
+      self[0] = new App<>(new Object(), s -> col().wFull().hFull()
+          .child(el().key("bar").wFull().h(30).windowPart(WindowPart.DRAG))
+          .child(el().key("handle").size(100, 100).onDrag(d ->
+              self[0].windows().of(self[0]).moveTo(window.x(), -3000)))); // above the screen
+      int[] lowest = {Integer.MAX_VALUE};
+      int[] step = {0};
+      AtomicReference<WindowLoop> loop = new AtomicReference<>();
+      loop.set(new WindowLoop(window, self[0], (scene, w, h, s) -> {}).waits((millis, held) -> {
+        lowest[0] = Math.min(lowest[0], window.y());
+        if (step[0] == 0) {
+          step[0] = 1;
+          Desktop.button(window, true, Sdl.BUTTON_LEFT, 50, 80, 1);
+          Desktop.motion(window, 60, 90);
+          Desktop.motion(window, 70, 100);
+        } else if (step[0] == 1 && window.y() < -1000) {
+          step[0] = 2;
+          Desktop.button(window, false, Sdl.BUTTON_LEFT, 70, 100, 1);
+        } else if (step[0] == 2 && window.y() > -1000) {
+          step[0] = 3;
+          loop.get().stop();
+        }
+      }));
+      Desktop.run(loop.get(), () -> "dragged to " + lowest[0] + " and back to " + window.y()
+          + ", step " + step[0]);
+      assertTrue(lowest[0] < -1000, "the app moved it above the screen: " + lowest[0]);
+      int[] area = workArea(window);
+      assertTrue(window.y() >= area[1] && window.y() + window.units(30) <= area[1] + area[3],
+          "its drag area back inside the work area: " + window.y());
     }
   }
 

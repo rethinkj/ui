@@ -209,7 +209,8 @@ public final class WindowLoop {
     public void moveTo(int x, int y) {
       if (isOpen()) {
         window.moveTo(x, y);
-        moved = pressed != null;
+        // During the press, or in the frame that handles its release, whose drag step ends it.
+        moved = pressed != null || releasedIn != null;
       }
     }
 
@@ -573,6 +574,11 @@ public final class WindowLoop {
       shutClosed();
       if (focusAfterRelease) { // the frame that handled the release has run
         focusAfterRelease = false;
+        for (Entry e : List.copyOf(entries)) {
+          if (e.moved && e.isOpen()) { // the app moved it during the press, maybe off screen
+            e.window.keepReachable();
+          }
+        }
         for (Entry e : List.copyOf(entries)) {
           if (e.focusAfterPress) {
             e.focusAfterPress = false;
