@@ -49,7 +49,7 @@ class GpuPresenterTest {
   }
 
   @Test
-  void aClickAnimatesTheSwitchAndAnIdleWindowPresentsNothing() throws InterruptedException {
+  void aClickAnimatesTheSwitchAndAnIdleWindowPresentsNothing() {
     try (Window window = Window.open(TITLE, 200, 120)) {
       Desktop.settle();
       try (GpuPresenter gpu = presenter(window)) {
@@ -71,7 +71,7 @@ class GpuPresenterTest {
         }));
         // The switch, left of its label.
         Desktop.click(window, 58, 60);
-        loop.get().run();
+        Desktop.run(loop.get(), "the switch is on and rests");
 
         assertTrue(app.state().on);
         long animated = gpu.frames();
@@ -82,25 +82,34 @@ class GpuPresenterTest {
         long uploads = gpu.atlasUploads();
         assertTrue(uploads >= 1 && uploads <= 2, uploads + " uploads in " + animated + " frames");
 
-        // A new loop draws its first frame, then nothing while nothing changes.
-        WindowLoop idle = new WindowLoop(window, app, gpu);
-        long[] seen = new long[2];
-        Thread stopper = Thread.ofPlatform().start(() -> {
-          try {
-            Thread.sleep(200);
-            seen[0] = gpu.frames();
-            Thread.sleep(500);
-            seen[1] = gpu.frames();
-          } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
+        // A new loop draws its first frame, then nothing while nothing changes: after a move
+        // beside the switch, it waits for events alone.
+        long[] seen = {-1};
+        int[] idle = new int[1];
+        AtomicReference<WindowLoop> next = new AtomicReference<>();
+        Desktop.Redraws redraws = new Desktop.Redraws(); // frames the desktop asked for
+        next.set(new WindowLoop(window, app, new WindowLoop.Presenter() {
+          @Override
+          public void present(Scene scene, float width, float height, float scale) {
+            redraws.asked();
+            gpu.present(scene, width, height, scale);
           }
-          idle.stop();
-        });
-        Desktop.motion(window, 10, 10);
-        idle.run();
-        stopper.join();
-        assertEquals(animated + 1, seen[0], "the idle loop's first frame");
-        assertEquals(seen[0], seen[1], "nothing is presented while nothing changes");
+
+          @Override
+          public boolean pending() {
+            return gpu.pending();
+          }
+        }).listener(redraws).waits((millis, holdBack) -> {
+          if (millis == -1 && ++idle[0] == 1) {
+            Desktop.motion(window, 10, 10);
+          } else if (millis == -1 && idle[0] == 2) {
+            seen[0] = gpu.frames();
+            next.get().stop();
+          }
+        }));
+        Desktop.run(next.get(), "the new loop waits for events alone, twice");
+        assertEquals(animated + 1 + redraws.count(), seen[0],
+            "the idle loop's first frame, and none for the move; " + redraws.count() + " redraws");
         assertEquals(uploads, gpu.atlasUploads(), "and no glyph is uploaded");
       }
     }
