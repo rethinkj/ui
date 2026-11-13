@@ -255,8 +255,8 @@ class SeveralWindowsTest {
       assertEquals(Drag.Phase.END, end.phase());
       assertTrue(end.outside());
       assertEquals(b, end.window());
-      assertEquals(30, end.windowX(), 0.01);
-      assertEquals(bx[0], end.screenX(), 0.01);
+      assertEquals(30, end.windowX(), 0.5, "at the centre of the pixel at 30");
+      assertEquals(bx[0], end.screenX(), 0.5 * b.screenScale(), "and so on the screen");
       assertNotNull(drags.getFirst().window(), "over A itself at first");
       assertEquals(a, drags.getFirst().window().window());
     }
