@@ -580,8 +580,8 @@ public final class DataGrid {
      * Whether a typed value passes, null for NULL, read as {@code format} writes it: a range, and
      * equality of numbers, compare values where the filter's texts are values of the format and
      * the values are {@link Comparable} ({@code 10.0} equals {@code 10}, {@code 9} is below
-     * {@code 10}); text kinds and others look at the value's text, as {@link #matches(String)}
-     * does.
+     * {@code 10}); equality with a text that is no such value, blank included, passes nothing;
+     * text kinds and others look at the value's text, as {@link #matches(String)} does.
      */
     public <V> boolean matches(V cell, Format<V> format) {
       if (cell == null || kind == Kind.IS_NULL || kind == Kind.NOT_NULL) {
@@ -592,10 +592,10 @@ public final class DataGrid {
           && (kind == Kind.EQUALS || kind == Kind.BETWEEN)) {
         Format.Parsed<V> low = value.isBlank() ? null : format.parseText(value.strip());
         Format.Parsed<V> high = to.isBlank() ? null : format.parseText(to.strip());
+        if (kind == Kind.EQUALS) { // needs a value of the format: no open end here
+          return low != null && low.valid() && compareValues(cell, low.value()) == 0;
+        }
         if ((low == null || low.valid()) && (high == null || high.valid())) {
-          if (kind == Kind.EQUALS) {
-            return low == null || compareValues(cell, low.value()) == 0;
-          }
           return (low == null || compareValues(cell, low.value()) >= 0)
               && (high == null || compareValues(cell, high.value()) <= 0);
         }
@@ -967,6 +967,11 @@ public final class DataGrid {
     // The cell being edited, -1 for none, and what its editor holds.
     int editRow = -1;
     int editColumn = -1;
+    // With rows told apart by keys (Options.changes): the key of the edited row, which the
+    // editor follows wherever the rows move, or APPEND for the row to append.
+    boolean editKeyed;
+    long editKey;
+    static final long APPEND = Long.MIN_VALUE;
     String draft; // null for NULL
     String original; // the value the editing began with
     String error; // what the app or the type said is wrong with the draft, null for nothing
@@ -991,6 +996,7 @@ public final class DataGrid {
     int headerColumn = -1;
     int dragColumn = -1;
     int dropAt = -1;
+    int[] shown; // the app's column of each one shown, as the last build had them
 
     public Selection(Mode mode) {
       this.mode = Objects.requireNonNull(mode, "mode");
@@ -1101,9 +1107,14 @@ public final class DataGrid {
       return !isEditing();
     }
 
-    /** Closes the editor without handing on what it holds, as Escape does. */
+    /**
+     * Closes the editor without handing on what it holds, as Escape does: also what an app calls
+     * when it reorders or replaces the rows of a grid that edits through {@link
+     * Options#onCommit(Commit)} while an editor is open, as its row would then be another.
+     */
     public void cancelEdit() {
       editRow = editColumn = -1;
+      editKeyed = false;
       draft = original = error = null;
       multiline = false;
       choices.close();
@@ -1203,6 +1214,74 @@ public final class DataGrid {
           whole ? Range.ALL : Math.max(column1, column2));
     }
 
+    /**
+     * Carries what holds columns shown, cursor, anchor, ranges, the editor and the popovers, over
+     * to the same columns of the app's where the columns shown have changed, as when a layout hid
+     * or moved one ({@link Options#columns}). What was on a column that is no longer shown goes:
+     * the cursor, the anchor, a range's part, an editor without handing anything on.
+     *
+     * @param full the app's column of each one shown now, null without a layout
+     */
+    void showing(int[] full) {
+      int[] was = shown;
+      shown = full;
+      if (was == null || full == null || java.util.Arrays.equals(was, full)) {
+        return;
+      }
+      java.util.Map<Integer, Integer> now = new java.util.HashMap<>();
+      for (int i = 0; i < full.length; i++) {
+        now.put(full[i], i);
+      }
+      java.util.function.IntUnaryOperator to =
+          c -> c < 0 || c >= was.length ? -1 : now.getOrDefault(was[c], -1);
+      if (column >= 0 && to.applyAsInt(column) < 0) {
+        row = column = -1;
+      } else {
+        column = to.applyAsInt(column);
+      }
+      if (anchorColumn >= 0 && to.applyAsInt(anchorColumn) < 0) {
+        anchorRow = anchorColumn = -1;
+      } else {
+        anchorColumn = to.applyAsInt(anchorColumn);
+      }
+      List<Range> carried = new ArrayList<>();
+      for (Range r : ranges) {
+        if (r.wholeRows()) {
+          carried.add(r);
+          continue;
+        }
+        BitSet columns = new BitSet();
+        for (int c = r.left(); c <= Math.min(r.right(), was.length - 1); c++) {
+          if (to.applyAsInt(c) >= 0) {
+            columns.set(to.applyAsInt(c));
+          }
+        }
+        for (int c = columns.nextSetBit(0); c >= 0; c = columns.nextSetBit(c)) {
+          int end = columns.nextClearBit(c);
+          carried.add(new Range(r.top(), c, r.bottom(), end - 1));
+          c = end;
+        }
+      }
+      ranges.clear();
+      ranges.addAll(carried);
+      if (isEditing()) {
+        editColumn = to.applyAsInt(editColumn);
+        if (editColumn < 0) {
+          cancelEdit();
+        }
+      }
+      filterColumn = to.applyAsInt(filterColumn);
+      if (filterColumn < 0) {
+        filtering.close();
+      }
+      headerColumn = to.applyAsInt(headerColumn);
+      if (headerColumn < 0) {
+        headerMenu.close();
+      }
+      edgeColumn = to.applyAsInt(edgeColumn);
+      dragColumn = -1;
+    }
+
     /** What the grid's views compare to tell the app of a change only. */
     private List<Object> snapshot() {
       return List.of(row, column, anchorRow, anchorColumn, List.copyOf(ranges));
@@ -1252,8 +1331,12 @@ public final class DataGrid {
     IntPredicate filterable = c -> true;
     Layout layout;
     IntConsumer onFreeze;
+    // With changes: the key of the row shown at a place, and the place of a key, -1 for none.
+    java.util.function.IntToLongFunction rowKey;
+    java.util.function.LongToIntFunction rowPlace;
     int[] full; // with a layout: the index among all columns of each shown one
-    Consumer<List<Column>> table; // wires onCommit and onPaste to a table's columns
+    // Wires onCommit and onPaste to a table's columns and its number of rows.
+    java.util.function.ObjIntConsumer<List<Column>> table;
 
     private Options() {}
 
@@ -1378,6 +1461,12 @@ public final class DataGrid {
      * editor as on the selection. The grid hands the app the new value through {@code handler},
      * which stores it or refuses it with a message; the cells keep showing what the column's cell
      * function returns. A cell for which {@link #onEdit} asks is edited by the app as before.
+     *
+     * <p>The editor stays on the row with its index: the app must not reorder or replace the rows
+     * while it is open, or must close it first ({@link Selection#cancelEdit}) or hand its value
+     * on ({@link Selection#commitEdit}), else the value goes to the row that has the index then.
+     * Through {@link #changes}, the editor follows its row by the row's key instead, and closes
+     * without handing anything on when the row is gone.
      */
     public Options onCommit(Commit handler) {
       this.onCommit = handler;
@@ -1399,9 +1488,9 @@ public final class DataGrid {
     public <T> Options onCommit(GridTable<T> table, GridTable.RowCommit<T> handler) {
       Objects.requireNonNull(table, "table");
       Objects.requireNonNull(handler, "handler");
-      this.table = columns -> {
+      this.table = (columns, count) -> {
         onCommit = table.commit(columns, handler);
-        onPaste = table.paste(columns, handler);
+        onPaste = table.paste(columns, count, handler);
       };
       this.onCommit = (row, column, value) -> null; // turns editing on; replaced as the grid builds
       return this;
@@ -1598,7 +1687,9 @@ public final class DataGrid {
      * {@link #onCommit}, {@link #onPaste}, {@link #onInsertRow}, {@link #onDeleteRows}, {@link
      * #status}, {@link #errors} and {@link #history} do, each of which a later call replaces. The columns take
      * their cells from {@link GridChanges#cell(int)} and the grid its rows from {@link
-     * GridChanges#rowCount()}.
+     * GridChanges#rowCount()}. An open editor follows its row by the row's key ({@link
+     * GridChanges.Rows#key}) when the app sorts, filters or replaces the rows, and closes without
+     * handing anything on when its row is no longer shown.
      */
     public Options changes(GridChanges changes) {
       onCommit((row, column, value) -> {
@@ -1608,6 +1699,8 @@ public final class DataGrid {
       onPaste(changes::set);
       onInsertRow(changes::insert);
       onDeleteRows(changes::delete);
+      rowKey = changes::key;
+      rowPlace = changes::rowOf;
       status(changes::rowStatus, changes::cellStatus);
       errors(changes::errorText);
       return history(changes::undo, changes::redo);
@@ -1706,7 +1799,7 @@ public final class DataGrid {
    */
   public static El dataGrid(Theme t, List<Column> columns, int rowCount, Options options) {
     if (options.table != null) { // with all the columns, before a layout counts them its way
-      options.table.accept(columns);
+      options.table.accept(columns, rowCount);
       options.table = null;
     }
     if (options.layout != null) {
@@ -1714,10 +1807,16 @@ public final class DataGrid {
       columns = options.layout.shown(columns);
       options.showOnly(options.layout.shownColumns(), all);
     }
+    if (options.selection != null) { // without a layout the columns shown are the app's
+      options.selection.showing(options.full);
+    }
     Build b = new Build(t, columns, rowCount, options);
     Theme.Grid g = b.g;
     El header = header(b);
     Selection sel = b.sel;
+    if (sel != null && sel.isEditing() && b.edits) {
+      GridEdit.follow(b);
+    }
     if (sel != null
         && sel.isEditing()
         && (!b.edits || sel.editRow >= b.rows || sel.editColumn >= columns.size())) {
@@ -2192,9 +2291,12 @@ public final class DataGrid {
         .role("gridcell")
         .position(c + 1, b.columns.size());
     boolean append = i >= b.rowCount;
-    Status status = append || b.o.cellStatus == null || row == Status.NEW || row == Status.DELETED
+    Status status = append || b.o.cellStatus == null || row == Status.DELETED
         ? Status.UNCHANGED
         : b.o.cellStatus.status(i, c);
+    if (row == Status.NEW && status != Status.ERROR) {
+      status = Status.UNCHANGED; // the new row's tint covers its cells; a failed one shows
+    }
     boolean selected = b.cells && sel.contains(i, c);
     boolean ring = b.cells && sel.row() == i && sel.column() == c && b.focused[0];
     if (b.cells) {
@@ -2563,7 +2665,9 @@ public final class DataGrid {
    * per column with one, separated by tabs, the lines by line feeds without one at the end, and
    * the titles first with {@code headers}. Where several ranges make more than one rectangle, a
    * cell in such a row and column that is not selected is an empty field. A field holding a tab, a line feed, a carriage return or a double
-   * quote is put in double quotes, with each double quote doubled; NULL is {@code nullText}.
+   * quote is put in double quotes, with each double quote doubled, and so is an empty field that
+   * is alone on the last line, so that {@link #parseText} reads that line; NULL is {@code
+   * nullText}.
    */
   public static String copyText(
       List<Column> columns, List<Range> ranges, boolean headers, String nullText) {
@@ -2575,12 +2679,14 @@ public final class DataGrid {
       }
     }
     boolean first = !headers; // an empty first line still ends in a line feed
+    int lastLine = out.length();
     for (int[] span : rowSpans(ranges)) {
       for (int r = span[0]; r <= span[1]; r++) {
         if (!first) {
           out.append('\n');
         }
         first = false;
+        lastLine = out.length();
         for (int c = shown.nextSetBit(0); c >= 0; c = shown.nextSetBit(c + 1)) {
           String value = null;
           boolean selected = false;
@@ -2594,6 +2700,9 @@ public final class DataGrid {
           field(out, c == shown.nextSetBit(0), value == null ? "" : value);
         }
       }
+    }
+    if (!ranges.isEmpty() && shown.cardinality() == 1 && out.length() == lastLine) {
+      out.append("\"\""); // a last line of one empty field, which would read as no line
     }
     return out.toString();
   }

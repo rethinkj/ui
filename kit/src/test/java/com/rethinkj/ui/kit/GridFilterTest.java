@@ -121,6 +121,32 @@ class GridFilterTest {
     assertTrue(ledger.filters.isEmpty());
   }
 
+  @Test
+  void equalityOfANumberIsAppliedOnlyWithANumber() throws IOException {
+    Ledger ledger = new Ledger(T, 40);
+    App<Ledger> app = start(ledger);
+    run(
+        app,
+        "key ArrowRight\nkey ArrowDown alt\nframe\nadvance 1\nframe\npress #kind\nframe\n"
+            + "advance 1\nframe\npress label=\"Equals\"\nframe\nadvance 1\nframe");
+    assertTrue(line(app, "value").contains("focused"), line(app, "value"));
+    assertTrue(
+        dumpLine(app, "filter").contains("label=\"Filter qty\""), app.tree().dump());
+    java.util.function.BooleanSupplier off = () -> app.tree()
+        .dump()
+        .lines()
+        .anyMatch(l -> l.contains("role=button label=\"Apply\"") && l.endsWith(" disabled"));
+    assertTrue(off.getAsBoolean(), "nothing typed: " + app.tree().dump());
+    run(app, "type \" \"\nframe\nkey Enter\nframe");
+    assertTrue(off.getAsBoolean(), "a space");
+    assertTrue(ledger.filters.isEmpty(), "Enter applies nothing");
+    run(app, "type \"ten\"\nframe");
+    assertTrue(app.tree().dump().contains("role=alert"), app.tree().dump());
+    assertTrue(off.getAsBoolean(), "no number");
+    run(app, "key A control\ntype \"7\"\nframe\nkey Enter\nframe");
+    assertEquals(List.of(Filter.of(2, Filter.Kind.EQUALS, "7")), ledger.filters);
+  }
+
   /** filter.txt: the popover of an enumeration open, and filters set with their bar. */
   @ParameterizedTest
   @ValueSource(strings = {"dark", "light"})

@@ -684,4 +684,122 @@ class TreeTest {
     }
     return null;
   }
+
+  /**
+   * A tree of one parent beside a leaf, whose children the test sets, or of two parents with one
+   * shared child: the smallest model for the order of the app's changes and the tree's input.
+   */
+  private static class Family implements Tree.Model<String> {
+    final java.util.Set<String> open = new java.util.HashSet<>();
+    final List<String> activated = new ArrayList<>();
+    List<String> children; // the parent's, null while not known
+    String selected;
+
+    @Override
+    public List<String> roots() {
+      return List.of("parent", "other");
+    }
+
+    @Override
+    public List<String> children(String node) {
+      return children;
+    }
+
+    @Override
+    public boolean isLeaf(String node) {
+      return !node.equals("parent");
+    }
+
+    @Override
+    public String label(String node) {
+      return node;
+    }
+
+    El view() {
+      return Tree.tree(
+              T,
+              this,
+              open::contains,
+              selected,
+              s -> selected = s,
+              (node, on) -> {
+                if (on) {
+                  open.add(node);
+                } else {
+                  open.remove(node);
+                }
+              },
+              activated::add)
+          .key("tree")
+          .wFull()
+          .hFull();
+    }
+  }
+
+  @Test
+  void childrenThatArriveAfterTheirNodeClosedStayHidden() throws IOException {
+    Family family = new Family();
+    App<Family> app = new App<>(family, Family::view);
+    run(app, "frame\nfocus #tree\nkey Home\nkey ArrowRight\nframe\nkey ArrowLeft\nframe");
+    assertFalse(family.open.contains("parent"));
+    app.post(() -> family.children = List.of("late child"));
+    run(app, "await\nframe");
+    assertFalse(app.tree().dump().contains("late child"));
+    assertEquals("parent", family.selected);
+  }
+
+  @Test
+  void aSelectionThatClosingItsParentHidIsNeitherShownNorActivated() throws IOException {
+    Family family = new Family();
+    family.children = List.of("child");
+    family.open.add("parent");
+    family.selected = "child";
+    App<Family> app = new App<>(family, Family::view);
+    run(app, "frame\nfocus #tree\nframe");
+    app.post(family.open::clear);
+    run(app, "await\nframe\nkey Enter\nframe");
+    assertEquals(List.of(), family.activated);
+    assertFalse(app.tree().dump().contains(" selected"));
+  }
+
+  @Test
+  void aNodeUnderTwoParentsStaysReachableWhenTheFirstCloses() throws IOException {
+    Family family = new Family() {
+      @Override
+      public List<String> roots() {
+        return List.of("a", "b");
+      }
+
+      @Override
+      public List<String> children(String node) {
+        return List.of("shared");
+      }
+
+      @Override
+      public boolean isLeaf(String node) {
+        return node.equals("shared");
+      }
+    };
+    family.open.addAll(List.of("a", "b"));
+    family.selected = "shared";
+    App<Family> app = new App<>(family, Family::view);
+    run(app, "frame\nfocus #tree\nframe");
+    assertEquals(
+        1, app.tree().dump().lines().filter(l -> l.contains(" selected")).count());
+    app.post(() -> family.open.remove("a"));
+    run(app, "await\nframe\nkey ArrowLeft\nframe");
+    assertEquals("b", family.selected, "Left goes to the parent it is shown under");
+  }
+
+  @Test
+  void aKeyAfterAPostedChangeOfTheModelInOneFrameSeesTheChange() throws IOException {
+    Family family = new Family();
+    family.children = List.of("old child");
+    family.open.add("parent");
+    App<Family> app = new App<>(family, Family::view);
+    run(app, "frame\nfocus #tree\nkey Home\nframe");
+    app.post(() -> family.children = List.of("replacement"));
+    run(app, "await\nkey ArrowRight\nkey Enter\nframe");
+    assertEquals(List.of("replacement"), family.activated);
+  }
 }

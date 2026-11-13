@@ -152,6 +152,12 @@ final class GridFilter {
   /** The filter the popover holds, null for none, or the message of what is wrong with it. */
   private static Object made(Selection sel, Column c, int column) {
     Kind kind = sel.filterKind;
+    if (kind == Kind.EQUALS && ordered(c) && !sel.filterValue.isBlank()) {
+      String error = GridEdit.check(c, sel.filterValue.strip()); // equality needs a value
+      if (error != null) {
+        return error;
+      }
+    }
     return switch (kind) {
       case CONTAINS, STARTS_WITH, EQUALS ->
         sel.filterValue.isEmpty() ? null : Filter.of(column, kind, sel.filterValue);
@@ -178,6 +184,17 @@ final class GridFilter {
       }
       case IS_NULL, NOT_NULL -> Filter.of(column, kind, "");
     };
+  }
+
+  /** Whether the column's filters compare values, as numbers and dates do. */
+  private static boolean ordered(Column c) {
+    return kinds(c).getFirst() == Kind.BETWEEN;
+  }
+
+  /** Whether the popover holds equality with nothing to be equal to, which it does not apply. */
+  private static boolean incomplete(Selection sel, Column c) {
+    return sel.filterKind == Kind.EQUALS
+        && (ordered(c) ? sel.filterValue.isBlank() : sel.filterValue.isEmpty());
   }
 
   /** Hands the app the filters with this column's as the popover holds it, and closes it. */
@@ -258,7 +275,7 @@ final class GridFilter {
           .label(error)
           .color(t.status().danger()));
     }
-    Runnable apply = error == null ? () -> apply(b, column, filter) : null;
+    Runnable apply = error == null && !incomplete(sel, c) ? () -> apply(b, column, filter) : null;
     content.child(row()
         .gap(t.space().s())
         .justify(Style.Content.END)

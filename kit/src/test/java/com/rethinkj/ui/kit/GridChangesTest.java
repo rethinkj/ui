@@ -320,9 +320,10 @@ class GridChangesTest {
   void whatTheGridCopiesIsReadBackAsItWas() {
     Random random = new Random(7);
     String alphabet = "ab \t\n\r\"x";
-    for (int run = 0; run < 300; run++) {
+    for (int run = 0; run < 2000; run++) {
       int rows = 1 + random.nextInt(4);
       int columns = 1 + random.nextInt(4);
+      String nullText = random.nextBoolean() ? "" : "NULL";
       String[][] cells = new String[rows][columns];
       List<Column> list = new ArrayList<>();
       for (int c = 0; c < columns; c++) {
@@ -335,20 +336,89 @@ class GridChangesTest {
           for (int k = random.nextInt(5); k > 0; k--) {
             text.append(alphabet.charAt(random.nextInt(alphabet.length())));
           }
-          row[c] = text.toString().replace("\r\n", "\n").replace('\r', '\n');
+          if (random.nextInt(6) == 0) {
+            text.append("\r\n");
+          }
+          row[c] = random.nextInt(5) == 0 ? null : text.toString();
         }
       }
-      if (columns == 1 && rows > 0 && cells[rows - 1][0].isEmpty()) {
-        cells[rows - 1][0] = "z"; // an empty last line is no line, as for spreadsheets
-      }
       String text =
-          DataGrid.copyText(list, List.of(new Range(0, 0, rows - 1, columns - 1)), false, "");
+          DataGrid.copyText(list, List.of(new Range(0, 0, rows - 1, columns - 1)), false, nullText);
       List<List<String>> read = DataGrid.parseText(text);
       List<List<String>> expected = new ArrayList<>();
       for (String[] row : cells) {
-        expected.add(List.of(row));
+        List<String> fields = new ArrayList<>();
+        for (String cell : row) {
+          fields.add(cell == null ? nullText : cell);
+        }
+        expected.add(fields);
       }
       assertEquals(expected, read, text);
     }
+  }
+
+  @Test
+  void anEmptyCellAloneOnTheLastLineIsCopiedAsAnEmptyQuotedField() {
+    List<Column> names =
+        List.of(new Column("name", 100, Align.LEFT, false, row -> row == 0 ? "Ada" : ""));
+    String two = DataGrid.copyText(names, List.of(new Range(0, 0, 1, 0)), false, "NULL");
+    assertEquals("Ada\n\"\"", two);
+    assertEquals(List.of(List.of("Ada"), List.of("")), DataGrid.parseText(two));
+    String one = DataGrid.copyText(names, List.of(new Range(1, 0, 1, 0)), false, "NULL");
+    assertEquals(List.of(List.of("")), DataGrid.parseText(one), "a single empty cell");
+    assertEquals(
+        "Ada\tAda\n\t",
+        DataGrid.copyText(
+            List.of(names.getFirst(), names.getFirst()),
+            List.of(new Range(0, 0, 1, 1)),
+            false,
+            "NULL"),
+        "two empty fields are a line already");
+  }
+
+  // Errors and history
+
+  @Test
+  void undoAndRedoTakeAwayTheErrorOfTheValueTheyChange() {
+    GridChanges changes = new GridChanges(1, (r, c) -> "before");
+    changes.set(0, 0, "refused");
+    changes.error(0, 0, "violates a constraint");
+    changes.undo();
+    assertEquals("before", changes.cell(0, 0));
+    assertNull(changes.errorText(0, 0));
+    assertEquals(Status.UNCHANGED, changes.cellStatus(0, 0));
+    changes.error(0, 0, "stale");
+    changes.redo();
+    assertEquals("refused", changes.cell(0, 0));
+    assertNull(changes.errorText(0, 0), "the value it failed with is another now");
+    assertEquals(Status.CHANGED, changes.cellStatus(0, 0));
+  }
+
+  @Test
+  void aFailedCellOfANewRowIsAnErrorAndTheRowStaysNew() {
+    GridChanges changes = new GridChanges(0, (r, c) -> null);
+    changes.insert(-1);
+    changes.set(0, 0, "duplicate");
+    changes.set(0, 1, "fine");
+    changes.error(changes.changes().getFirst(), 0, "duplicate key");
+    assertEquals(Status.ERROR, changes.cellStatus(0, 0));
+    assertEquals("duplicate key", changes.errorText(0, 0));
+    assertEquals(Status.NEW, changes.cellStatus(0, 1));
+    assertEquals(Status.NEW, changes.rowStatus(0));
+    changes.undo(); // the value of another cell
+    assertEquals("duplicate key", changes.errorText(0, 0), "stays: its value did not change");
+  }
+
+  @Test
+  void aNewRowIsFoundByItsKey() {
+    GridChanges changes = new GridChanges(rows(new int[] {10, 20}));
+    changes.insert(0);
+    long key = changes.key(1);
+    assertEquals(1, changes.rowOf(key));
+    changes.rows(rows(new int[] {20, 10})); // its anchor, 10, is now the second row
+    assertEquals(2, changes.rowOf(key));
+    assertEquals(1, changes.rowOf(10));
+    changes.undo();
+    assertEquals(-1, changes.rowOf(key));
   }
 }

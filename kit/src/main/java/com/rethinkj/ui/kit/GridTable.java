@@ -177,9 +177,9 @@ public final class GridTable<T> {
       return value == null ? null : format.text(value);
     }
 
-    /** The value of a cell's text, which the grid has checked with the format. */
-    V parse(String text) {
-      return text == null ? null : format.parseText(text).value();
+    /** The value of a cell's text, null for NULL, or what is wrong with the text. */
+    Format.Parsed<V> parse(String text) {
+      return text == null ? Format.Parsed.of(null) : format.parseText(text);
     }
 
     @SuppressWarnings("unchecked")
@@ -287,37 +287,64 @@ public final class GridTable<T> {
       if (cells == null) {
         return "Not a column of this table";
       }
+      Format.Parsed<?> parsed = cells.parse(text);
+      if (!parsed.valid()) {
+        return parsed.error();
+      }
       Map<Cells<T, ?>, Object> values = new LinkedHashMap<>();
-      values.put(cells, cells.parse(text));
+      values.put(cells, parsed.value());
       return write(row, values, onRow);
     };
   }
 
   /**
    * The grid's handler of pasted and cleared cells for these columns: the cells of each row
-   * written into it at once, and {@code onRow} told each row; a refusal is not shown.
+   * written into it at once, and {@code onRow} told each row; a refusal is not shown, and a value
+   * the column's format does not read is left out. Each row is taken before {@code onRow} is told
+   * the first: a handler that sorts or refreshes the rows moves the others, which are then found
+   * again among the {@code count} rows by their objects, and left out where they are gone.
    */
-  Consumer<List<CellValue>> paste(List<Column> columns, RowCommit<T> onRow) {
+  Consumer<List<CellValue>> paste(List<Column> columns, int count, RowCommit<T> onRow) {
     return values -> {
       Map<Integer, Map<Cells<T, ?>, Object>> byRow = new LinkedHashMap<>();
       for (CellValue v : values) {
         Cells<T, ?> cells = cells(columns, v.column());
-        if (cells != null) {
-          byRow
-              .computeIfAbsent(v.row(), r -> new LinkedHashMap<>())
-              .put(cells, cells.parse(v.value()));
+        Format.Parsed<?> parsed = cells == null ? null : cells.parse(v.value());
+        if (parsed != null && parsed.valid()) {
+          byRow.computeIfAbsent(v.row(), r -> new LinkedHashMap<>()).put(cells, parsed.value());
         }
       }
-      byRow.forEach((row, cells) -> write(row, cells, onRow));
+      Map<Integer, T> targets = new LinkedHashMap<>();
+      byRow.keySet().forEach(index -> targets.put(index, rows.apply(index)));
+      targets.forEach((index, row) -> {
+        int at = row == null ? -1 : placeOf(row, index, count);
+        if (at >= 0) {
+          write(at, row, byRow.get(index), onRow);
+        }
+      });
     };
+  }
+
+  /** Where this row object is now: at {@code was} unless the app moved it; -1 when it is gone. */
+  private int placeOf(T row, int was, int count) {
+    if (was < count && rows.apply(was) == row) {
+      return was;
+    }
+    for (int i = 0; i < count; i++) {
+      if (rows.apply(i) == row) {
+        return i;
+      }
+    }
+    return -1;
   }
 
   /** Writes values into a row and tells the app; a refusal sets a setter's values back. */
   private String write(int index, Map<Cells<T, ?>, Object> values, RowCommit<T> onRow) {
     T row = rows.apply(index);
-    if (row == null) {
-      return "The row is not loaded";
-    }
+    return row == null ? "The row is not loaded" : write(index, row, values, onRow);
+  }
+
+  private String write(int index, T row, Map<Cells<T, ?>, Object> values, RowCommit<T> onRow) {
     Map<Cells<T, ?>, Object> before = new LinkedHashMap<>();
     T next = row;
     for (Map.Entry<Cells<T, ?>, Object> e : values.entrySet()) {

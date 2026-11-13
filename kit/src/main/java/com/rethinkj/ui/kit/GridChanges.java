@@ -228,16 +228,22 @@ public final class GridChanges {
     return edits.containsKey(key) ? Status.CHANGED : Status.UNCHANGED;
   }
 
-  /** What a cell holds: as its row when that is new or deleted, else failed, changed or not. */
+  /**
+   * What a cell holds: as its row when that is deleted, else failed, as its row when that is new,
+   * else changed or not.
+   */
   public Status cellStatus(int row, int column) {
     Status status = rowStatus(row);
-    if (status == Status.NEW || status == Status.DELETED || status == Status.UNCHANGED) {
+    if (status == Status.DELETED || status == Status.UNCHANGED) {
       return status;
     }
     long key = key(row);
     Map<Integer, String> failed = errors.get(key);
     if (failed != null && failed.containsKey(column)) {
       return Status.ERROR;
+    }
+    if (status == Status.NEW) {
+      return status;
     }
     Map<Integer, Object> values = edits.get(key);
     return values != null && values.containsKey(column) ? Status.CHANGED : Status.UNCHANGED;
@@ -254,8 +260,19 @@ public final class GridChanges {
     return at >= 0 ? shown[at].id() : rows.key(row - (-at - 1));
   }
 
-  /** The row at which the row with this key of the app's is shown, or -1 when it is not. */
+  /**
+   * The row at which the row with this key is shown, the app's or a new one's ({@link #key}), or
+   * -1 when it is not.
+   */
   public int rowOf(long key) {
+    if (key < 0) {
+      for (int i = 0; i < shown.length; i++) {
+        if (shown[i].id() == key) {
+          return places[i];
+        }
+      }
+      return -1;
+    }
     int place = rows.place(key);
     if (place < 0) {
       return -1;
@@ -303,7 +320,8 @@ public final class GridChanges {
    * @param table the app's rows, as {@link Rows} counts them
    * @param columns the table's columns as the grid counts them, each with {@link
    *     DataGrid.Column#cells}
-   * @throws IllegalArgumentException for a changed column without {@code cells}
+   * @throws IllegalArgumentException for a changed column without {@code cells}, or a value its
+   *     format does not read, which the grid's editing never sets
    */
   @SuppressWarnings("unchecked")
   public <T> List<RowChange<T>> changes(GridTable<T> table, List<DataGrid.Column> columns) {
@@ -321,7 +339,12 @@ public final class GridChanges {
           throw new IllegalArgumentException("Column " + column + " is not a column of a table");
         }
         Object before = row == null ? null : cells.value(row);
-        values.put(column, new ValueChange<>(column, cells, before, cells.parse(e.getValue())));
+        Format.Parsed<?> after = cells.parse(e.getValue());
+        if (!after.valid()) {
+          throw new IllegalArgumentException("The value \"" + e.getValue() + "\" of column "
+              + column + " is not one of its format: " + after.error());
+        }
+        values.put(column, new ValueChange<>(column, cells, before, after.value()));
       }
       out.add(new RowChange<>(
           change.kind(), change.key(), row, Collections.unmodifiableSortedMap(values)));
@@ -590,12 +613,15 @@ public final class GridChanges {
   }
 
   private record Put(long key, int column, Object before, Object after) implements Op {
+    // An error stays until the cell's value changes, as undoing or redoing it does.
     public void redo(GridChanges c) {
       c.put(key, column, after);
+      c.clearError(key, column);
     }
 
     public void undo(GridChanges c) {
       c.put(key, column, before);
+      c.clearError(key, column);
     }
   }
 
@@ -607,6 +633,7 @@ public final class GridChanges {
     public void undo(GridChanges c) {
       c.added.remove(row);
       c.edits.remove(row.id());
+      c.errors.remove(row.id());
     }
   }
 
