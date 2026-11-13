@@ -125,6 +125,10 @@ final class Gallery {
           new Row("radio", (t, h) -> Radio.radioGroup(t, List.of("Spaces"), 0, choose(h))),
           new Row("segmented", (t, h) ->
               Segmented.segmented(t, List.of("Rows", "Cells"), 0, choose(h)).label("Mode")),
+          new Row("combo box", (t, h) -> ComboBox.comboBox(t, List.of("analytics", "shop"), 1,
+              new ComboBox.State(), choose(h)).w(WIDTH - 20)),
+          new Row("combo free", (t, h) -> ComboBox.free(t, "localhost", List.of("localhost"),
+              new ComboBox.State(), h == null ? null : v -> h.run()).w(WIDTH - 20)),
           new Row("number", (t, h) -> NumberField.numberField(t, 4, 1, 16, 1, choose(h))
               .w(WIDTH - 40)),
           new Row("slider", (t, h) -> Slider.slider(t, 13, 11, 16, 1, choose(h)).w(WIDTH - 20)

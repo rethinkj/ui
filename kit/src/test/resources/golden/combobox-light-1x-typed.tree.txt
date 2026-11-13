@@ -1,0 +1,37 @@
+el 0,0 360x260
+  el 12,12 336x24
+    el #encoding role=combobox label="UTF-8" 12,12 140x24 expanded=false
+      text "UTF-8" 21,16 102x16
+      text label="chevron_down" "\u{F2A2}" 127,16 16x16
+    el #database role=combobox label="shop" 160,12 180x24 expanded
+      text role=textbox label="shop" "ot" 160,12 180x24 focused caret 2
+      el role=button label="Close" 316,12 24x24
+        text label="chevron_down" "\u{F2A2}" 320,16 16x16
+  el #host role=combobox label="" 12,44 240x24 expanded=false
+    text #field-0 role=textbox "" 12,44 240x24
+    el role=button label="Open" 228,44 24x24
+      text label="chevron_down" "\u{F2A2}" 232,48 16x16
+  text #status "shop on no host" 12,76 336x16
+overlay bottom stretch gap 2 on #database role=combobox label="shop" 160,12 180x24
+  el #choices 160,38 180x130
+    el #options role=listbox label="shop" 165,43 170x120 rows 0-4/5
+      el #option-0 role=option label="orders_total" 165,43 170x24 selected pos=1/5
+        el 165,43 170x24
+          el 173,55 16x0
+          text "orders_total" 197,47 130x16
+      el #option-1 role=option label="customer_notes" 165,67 170x24 pos=2/5
+        el 165,67 170x24
+          el 173,79 16x0
+          text "customer_notes" 197,71 130x16
+      el #option-2 role=option label="postgres" 165,91 170x24 pos=3/5
+        el 165,91 170x24
+          el 173,103 16x0
+          text "postgres" 197,95 130x16
+      el #option-3 role=option label="reporting" 165,115 170x24 pos=4/5
+        el 165,115 170x24
+          el 173,127 16x0
+          text "reporting" 197,119 130x16
+      el #option-4 role=option label="customer_events" 165,139 170x24 pos=5/5
+        el 165,139 170x24
+          el 173,151 16x0
+          text "customer_events" 197,143 130x16
