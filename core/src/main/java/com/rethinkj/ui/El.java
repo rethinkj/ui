@@ -27,6 +27,8 @@ public final class El {
   private Measure measure;
   private Runnable onPress;
   private Spring motion;
+  private float opacity = 1;
+  private boolean exiting;
   private boolean placed;
   private float x;
   private float y;
@@ -219,6 +221,19 @@ public final class El {
     return this;
   }
 
+  /**
+   * Makes this element and everything below it translucent: 0 is invisible, 1 (the default) is
+   * opaque. An element at 0 draws nothing and takes no presses. With {@link #motion} it springs
+   * like the other values.
+   */
+  public El opacity(float opacity) {
+    if (!(opacity >= 0 && opacity <= 1)) {
+      throw new IllegalArgumentException("opacity must be from 0 to 1, was " + opacity);
+    }
+    this.opacity = opacity;
+    return this;
+  }
+
   // Behaviour
 
   /**
@@ -233,9 +248,15 @@ public final class El {
 
   /**
    * Lets this element spring to new values: when a rebuild of the view gives an element that was
-   * already there a new rectangle, fill, border colour or radius, {@link App} moves it there with
-   * {@code spring} instead of at once. An element that appears for the first time does not move.
-   * Children are placed relative to their parent and move with it.
+   * already there a new rectangle, fill, border colour, radius or opacity, {@link App} moves it
+   * there with {@code spring} instead of at once. Children are placed relative to their parent and
+   * move with it.
+   *
+   * <p>An element that appears after the app's first frame fades in from opacity 0, in the place
+   * layout gives it. One with a {@link #key} that a rebuild leaves out fades out where it was, with
+   * everything below it, and is then removed. Until then it stays in the tree, marked {@link
+   * #isExiting}, and takes no part in layout or input. If it comes back before, it goes on from
+   * where it is.
    *
    * @param spring how to move, or null to change at once
    */
@@ -309,6 +330,20 @@ public final class El {
     return measure;
   }
 
+  public float opacity() {
+    return opacity;
+  }
+
+  /** Whether this element is fading out after a rebuild left it out; see {@link #motion}. */
+  public boolean isExiting() {
+    return exiting;
+  }
+
+  /** For {@link App}, when this element starts to leave. */
+  void exit() {
+    this.exiting = true;
+  }
+
   /** For {@link App}, which shows the border colour of the moment. */
   void borderColor(int argb) {
     this.borderColor = argb;
@@ -346,8 +381,9 @@ public final class El {
 
   /**
    * The tree as text, one element per line, children indented by two spaces. After layout each
-   * line ends with the element's rectangle in window coordinates, as {@code x,y widthxheight}.
-   * Tests and agents read this, so the format only changes deliberately.
+   * line ends with the element's rectangle in window coordinates, as {@code x,y widthxheight}, and
+   * the line of an element that is leaving with {@code exiting}. Tests and agents read this, so the
+   * format only changes deliberately.
    */
   public String dump() {
     StringBuilder out = new StringBuilder();
@@ -382,6 +418,9 @@ public final class El {
       number(out, top).append(' ');
       number(out, width).append('x');
       number(out, height);
+    }
+    if (exiting) {
+      out.append(" exiting");
     }
     out.append('\n');
   }

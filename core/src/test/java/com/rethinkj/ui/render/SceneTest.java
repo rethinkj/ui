@@ -41,6 +41,25 @@ class SceneTest {
   }
 
   @Test
+  void multipliesTheOpacityOfAnElementAndItsAncestorsIntoItsColours() {
+    El inner = el().fill(0x80FFFFFF).border(1, 0xFF000000).opacity(0.5f);
+    El hidden = el().opacity(0).child(el().fill(0xFFFFFFFF));
+    El outer = el().fill(0xFFFFFFFF).opacity(0.5f).child(inner).child(hidden);
+    for (El el : new El[] {outer, inner, hidden, hidden.children().getFirst()}) {
+      el.place(0, 0, 10, 10);
+    }
+
+    Scene scene = Scene.of(outer);
+
+    assertEquals(2, scene.count(), "nothing of the element with opacity 0");
+    assertEquals(0.5f, scene.get(0, Scene.FILL));
+    assertEquals(0.5f, scene.get(0, Scene.FILL + 12));
+    assertEquals(128 / 255f * 0.25f, scene.get(1, Scene.FILL), "premultiplied");
+    assertEquals(128 / 255f * 0.25f, scene.get(1, Scene.FILL + 12));
+    assertEquals(0.25f, scene.get(1, Scene.BORDER + 12));
+  }
+
+  @Test
   void growsPastItsFirstAllocation() {
     Scene scene = new Scene();
     for (int i = 0; i < 200; i++) {

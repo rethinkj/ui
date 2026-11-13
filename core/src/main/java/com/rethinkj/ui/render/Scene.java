@@ -46,15 +46,21 @@ public final class Scene {
   private MemorySegment data = Arena.ofAuto().allocate(64L * STRIDE, Float.BYTES);
   private int count;
 
-  /** The scene of a tree that layout has placed. Elements that were not placed are left out. */
+  /**
+   * The scene of a tree that layout has placed. Elements that were not placed, or whose opacity
+   * with that of their ancestors is 0, are left out.
+   */
   public static Scene of(El root) {
     Scene scene = new Scene();
-    scene.add(root, 0, 0);
+    scene.add(root, 0, 0, 1);
     return scene;
   }
 
-  private void add(El el, float parentX, float parentY) {
-    if (!el.isPlaced()) {
+  private void add(El el, float parentX, float parentY, float parentOpacity) {
+    // shortcut: opacity is multiplied into each instance, so overlapping descendants of a
+    // translucent element show through each other; true group opacity needs an off-screen layer.
+    float opacity = parentOpacity * el.opacity();
+    if (!el.isPlaced() || opacity == 0) {
       return;
     }
     float x = parentX + el.x();
@@ -66,10 +72,10 @@ public final class Scene {
     boolean hasBorder = borderWidth > 0 && el.borderColor() >>> 24 != 0;
     if (el.fill() >>> 24 != 0 || hasBorder) {
       rect(x, y, el.width(), el.height(), el.radius(), hasBorder ? borderWidth : 0, el.fill(),
-          el.borderColor());
+          el.borderColor(), opacity);
     }
     for (El child : el.children()) {
-      add(child, x, y);
+      add(child, x, y, opacity);
     }
   }
 
@@ -82,6 +88,12 @@ public final class Scene {
   public void rect(
       float x, float y, float width, float height, float radius, float borderWidth, int fill,
       int border) {
+    rect(x, y, width, height, radius, borderWidth, fill, border, 1);
+  }
+
+  private void rect(
+      float x, float y, float width, float height, float radius, float borderWidth, int fill,
+      int border, float opacity) {
     long offset = (long) count * STRIDE;
     if (offset == data.byteSize()) {
       MemorySegment grown = Arena.ofAuto().allocate(data.byteSize() * 2, Float.BYTES);
@@ -96,13 +108,13 @@ public final class Scene {
     put(offset + BORDER_WIDTH, borderWidth);
     put(offset + 24, 0);
     put(offset + 28, 0);
-    colour(offset + FILL, fill);
-    colour(offset + BORDER, border);
+    colour(offset + FILL, fill, opacity);
+    colour(offset + BORDER, border, opacity);
     count++;
   }
 
-  private void colour(long offset, int argb) {
-    float alpha = (argb >>> 24) / 255f;
+  private void colour(long offset, int argb, float opacity) {
+    float alpha = (argb >>> 24) / 255f * opacity;
     put(offset, SRGB_TO_LINEAR[argb >> 16 & 0xFF] * alpha);
     put(offset + 4, SRGB_TO_LINEAR[argb >> 8 & 0xFF] * alpha);
     put(offset + 8, SRGB_TO_LINEAR[argb & 0xFF] * alpha);

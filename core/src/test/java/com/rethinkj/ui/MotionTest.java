@@ -96,6 +96,11 @@ class MotionTest {
     assertEquals(2, children.get(0).fill());
     assertEquals(50, children.get(1).x());
     assertEquals(3, children.get(1).fill());
+    assertEquals(0, children.get(1).opacity(), "it only fades in");
+    app.advance(2);
+    app.frame();
+    assertEquals(50, children.get(1).x());
+    assertEquals(1, children.get(1).opacity());
     assertFalse(app.isMoving());
     assertFalse(app.frame());
   }

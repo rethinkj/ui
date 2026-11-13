@@ -361,9 +361,12 @@ public final class Script {
     }
   }
 
-  /** Collects the elements on screen; one that is not placed hides its children too. */
+  /**
+   * Collects the elements that take input; one that is not placed, invisible or leaving hides its
+   * children too.
+   */
   private static void walk(El el, float parentX, float parentY, List<Found> all) {
-    if (!el.isPlaced()) {
+    if (!el.isPlaced() || el.opacity() == 0 || el.isExiting()) {
       return;
     }
     float left = parentX + el.x();
