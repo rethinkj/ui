@@ -1,0 +1,36 @@
+# The data browser: a million made-up orders, filtered as one types, the grid's keys, the sort
+# by id and a resized column.
+size 900 520
+frame
+snap browser-top                 # a million orders, none selected
+
+press #filter
+type "ada paid"                  # each word in some text column: every twentieth order
+frame
+advance 1                        # the field's border turns to the accent colour
+frame
+snap browser-filtered
+
+key Tab                          # on to the grid, with a ring
+key ArrowDown                    # selects the first order shown
+key End                          # and then the last one
+frame
+snap browser-end
+
+press #filter
+key A control
+key Backspace                    # no filter: the order stays selected, and the grid shows it
+frame
+advance 1
+frame
+snap browser-unfiltered
+
+press #column-0                  # sorts by id, descending: the order is near the top now
+frame
+down #resize-2                   # the right edge of email, at 444,87
+frame
+move 504,87                      # 60 pixels to the right, a frame for each step as in a window
+frame
+up 504,87
+frame
+snap browser-sorted
