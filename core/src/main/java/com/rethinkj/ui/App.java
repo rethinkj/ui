@@ -121,6 +121,7 @@ public final class App<S> {
   private Editor blinking; // the editor of the focused field
   private double blinkStart; // when its caret last turned on
   private boolean caretOn;
+  private boolean active = true; // the window has the system's keyboard focus
 
   public App(S state, Function<S, El> view) {
     this.state = state;
@@ -448,7 +449,7 @@ public final class App<S> {
    * idle window can wait for input alone.
    */
   public double nextChange() {
-    if (blinking == null) {
+    if (blinking == null || !active) {
       return Double.POSITIVE_INFINITY;
     }
     return blinkStart + (Math.floor((time - blinkStart) / BLINK) + 1) * BLINK;
@@ -521,6 +522,21 @@ public final class App<S> {
   public void focusRing(int argb) {
     ringColour = argb;
     stale = true;
+  }
+
+  /**
+   * The window became active, with the system's keyboard focus, or inactive, as a window reports
+   * it; an app is active until this says otherwise. From the next {@link #frame} on, the focused
+   * text field of an inactive app shows no caret and {@link #nextChange} is infinite, so that an
+   * idle inactive window draws nothing. The focus, the selection and the ring stay as they are.
+   * When the app is active again, the caret is on and blinks from there.
+   */
+  public void windowActive(boolean active) {
+    queued.add(() -> {
+      this.active = active;
+      blinkStart = time;
+      return false;
+    });
   }
 
   /**
@@ -936,7 +952,7 @@ public final class App<S> {
     if (laidOut) {
       placeEditors();
     }
-    boolean on = blinking != null && Math.floor((time - blinkStart) / BLINK) % 2 == 0;
+    boolean on = active && blinking != null && Math.floor((time - blinkStart) / BLINK) % 2 == 0;
     if (on != caretOn) {
       caretOn = on;
       if (blinking != null) {
