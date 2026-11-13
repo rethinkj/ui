@@ -22,6 +22,7 @@ final class Parts {
 
   final Theme t;
   final Clipboard clipboard = Clipboard.inMemory();
+  final Button.Copied copied = new Button.Copied();
   final Breadcrumb.State crumbs = new Breadcrumb.State();
   final Toolbar.State tools = new Toolbar.State();
   final Menu.State run = new Menu.State();
@@ -134,7 +135,7 @@ final class Parts {
                 "Every order a customer placed, by month, for the reports of the sales team"))),
         Properties.group("Storage", List.of(
             Properties.property("Size", "128 MB"),
-            Properties.property("Tablespace", "pg_default").mono()))), clipboard);
+            Properties.property("Tablespace", "pg_default").mono()))), clipboard, copied);
     return page(Card.card(t, head), Card.card(t, props).grow(1));
   }
 }

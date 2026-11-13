@@ -411,9 +411,16 @@ public record Theme(
    * @param toast seconds a {@link Toast} stays before it closes itself
    * @param progress seconds a {@link Progress#indeterminate} bar takes for one pass along its track
    * @param spin seconds a {@link Progress#spinner} takes to go round once
+   * @param confirm seconds a {@link Button#copy} button shows that it copied
    */
   public record Motion(Spring feedback, Spring move, double submenuDelay, double tooltipDelay,
-      Spring fade, double toast, double progress, double spin) {
+      Spring fade, double toast, double progress, double spin, double confirm) {
+
+    /** Motion whose copy buttons confirm for 1.5 seconds. */
+    public Motion(Spring feedback, Spring move, double submenuDelay, double tooltipDelay,
+        Spring fade, double toast, double progress, double spin) {
+      this(feedback, move, submenuDelay, tooltipDelay, fade, toast, progress, spin, 1.5);
+    }
 
     /** Motion with a running bar's pass of 2 seconds and a spinner's turn of 1.2 seconds. */
     public Motion(Spring feedback, Spring move, double submenuDelay, double tooltipDelay,
@@ -529,7 +536,7 @@ public record Theme(
           new TextStyle(Font::sansMedium, 13));
   private static final Sizes SIZE = new Sizes(24, 16, 28, 16, 1, 200, 7, 16, 16, 2, 2, 4, 560);
   private static final Motion MOTION =
-      new Motion(Spring.INSTANT, Spring.SNAP, 0.3, 0.5, Spring.INSTANT, 5, 2, 1.2);
+      new Motion(Spring.INSTANT, Spring.SNAP, 0.3, 0.5, Spring.INSTANT, 5, 2, 1.2, 1.5);
   private static final Caption CAPTION = new Caption(0xFFC42B1C, 0xFFFFFFFF, 0xFFC8483B);
 
   /*

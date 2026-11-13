@@ -69,7 +69,17 @@ public final class Properties {
    * @param clipboard where the copy buttons copy to; null for none
    */
   public static El properties(Theme t, List<Property> properties, Clipboard clipboard) {
-    return list(t, properties, column(t, properties), clipboard);
+    return properties(t, properties, clipboard, null);
+  }
+
+  /**
+   * @param clipboard where the copy buttons copy to; null for none
+   * @param copied the app's state of the copy buttons, which confirm a copy for a moment; null
+   *     for no confirmation
+   */
+  public static El properties(Theme t, List<Property> properties, Clipboard clipboard,
+      Button.Copied copied) {
+    return list(t, properties, column(t, properties), clipboard, copied);
   }
 
   /**
@@ -78,6 +88,16 @@ public final class Properties {
    * @param clipboard where the copy buttons copy to; null for none
    */
   public static El groups(Theme t, List<Group> groups, Clipboard clipboard) {
+    return groups(t, groups, clipboard, null);
+  }
+
+  /**
+   * Groups of properties whose copy buttons confirm a copy for a moment.
+   *
+   * @param copied the app's state of the copy buttons; null for no confirmation
+   */
+  public static El groups(Theme t, List<Group> groups, Clipboard clipboard,
+      Button.Copied copied) {
     float column = 0;
     for (Group group : groups) {
       column = Math.max(column, column(t, group.properties()));
@@ -87,20 +107,22 @@ public final class Properties {
       out.child(col().gap(t.space().xs()).children(
           label(t, Label.Variant.STRONG, group.title()).role("heading").level(3)
               .padding(0, t.space().s()),
-          list(t, group.properties(), column, clipboard).label(group.title())));
+          list(t, group.properties(), column, clipboard, copied).label(group.title())));
     }
     return out;
   }
 
-  private static El list(Theme t, List<Property> properties, float column, Clipboard clipboard) {
+  private static El list(Theme t, List<Property> properties, float column, Clipboard clipboard,
+      Button.Copied copied) {
     El list = col().role("list");
     for (Property p : properties) {
-      list.child(entry(t, p, column, clipboard));
+      list.child(entry(t, p, column, clipboard, copied));
     }
     return list;
   }
 
-  private static El entry(Theme t, Property p, float column, Clipboard clipboard) {
+  private static El entry(Theme t, Property p, float column, Clipboard clipboard,
+      Button.Copied copied) {
     Theme.TextStyle style = p.isMono() ? t.type().mono() : t.type().body();
     El name = label(t, Label.Variant.MUTED, p.name()).ellipsis().w(column).shrink(0)
         .minSize(0, 0);
@@ -118,8 +140,9 @@ public final class Properties {
         .align(Style.Align.CENTER).radius(t.radius().small())
         .children(name, value);
     if (clipboard != null) {
-      El copy = Button.icon(t, Button.Variant.GHOST, Symbol.COPY, "Copy " + p.name(),
-          () -> clipboard.write(p.value())).key("copy").opacity(0);
+      boolean shown = copied != null && copied.shows("Copy " + p.name(), p.value()); // seen while it confirms
+      El copy = Button.copy(t, clipboard, p.value(), "Copy " + p.name(), copied).key("copy")
+          .opacity(shown ? 1 : 0);
       entry.child(copy).whenHovered(e -> {
         e.fill(t.surface().hover());
         copy.opacity(1);
