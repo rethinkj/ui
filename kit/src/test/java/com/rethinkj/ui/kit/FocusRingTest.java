@@ -57,7 +57,7 @@ class FocusRingTest {
       Pixels pixels = app.render().pixels();
       int x = Math.round(at[0] + focused.width() / 2);
       int y = (int) Math.ceil(at[1] - 2);
-      assertEquals(hex(t.border().focus()), hex(pixels.argb(x, y)),
+      assertEquals(hex(t.accent().edge()), hex(pixels.argb(x, y)),
           "the ring of " + focused.role() + " in the " + (i < 5 ? "dark" : "light") + " theme");
     }
   }

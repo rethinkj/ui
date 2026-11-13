@@ -6,7 +6,8 @@ import static com.rethinkj.ui.kit.Button.Variant.PRIMARY;
 import static com.rethinkj.ui.kit.Button.Variant.SECONDARY;
 import static com.rethinkj.ui.kit.Button.button;
 import static com.rethinkj.ui.kit.DataGrid.dataGrid;
-import static com.rethinkj.ui.kit.Split.split;
+import static com.rethinkj.ui.kit.Button.Variant.GHOST;
+import static com.rethinkj.ui.kit.Button.Variant.PRIMARY;
 import static com.rethinkj.ui.kit.Tabs.tabs;
 import static com.rethinkj.ui.kit.TextField.codeArea;
 import static com.rethinkj.ui.kit.TextField.textField;
@@ -18,6 +19,8 @@ import com.rethinkj.ui.El;
 import com.rethinkj.ui.Key;
 import com.rethinkj.ui.Script;
 import com.rethinkj.ui.Work;
+import com.rethinkj.ui.kit.Button;
+import com.rethinkj.ui.kit.Card;
 import com.rethinkj.ui.kit.AppIcon;
 import com.rethinkj.ui.kit.DataGrid;
 import com.rethinkj.ui.kit.DataGrid.CellIcon;
@@ -28,7 +31,9 @@ import com.rethinkj.ui.kit.DataGrid.Selection;
 import com.rethinkj.ui.kit.Dialog;
 import com.rethinkj.ui.kit.Icon;
 import com.rethinkj.ui.kit.Icon.Variant;
+import com.rethinkj.ui.kit.Divider;
 import com.rethinkj.ui.kit.Label;
+import com.rethinkj.ui.kit.Split;
 import com.rethinkj.ui.kit.Menu;
 import com.rethinkj.ui.kit.Split.Direction;
 import com.rethinkj.ui.kit.Split.Position;
@@ -57,7 +62,7 @@ import java.util.regex.Pattern;
 /**
  * The frame of a database manager over made-up servers that answer slowly: servers, databases,
  * schemas, tables and columns in a tree on the left, a tab for each table opened from it on the
- * right with the table's rows in a data grid, and a status line below. localhost is connected from
+ * right with the table's rows in a data grid, and a status line in the footer of the tabs' card. localhost is connected from
  * the start; opening staging connects to it, which takes three times {@link #latency}, and prod-eu
  * refuses to connect. Opening a table asks for its number of rows, which takes the latency too.
  * Each question runs on a thread of its own ({@link App#background}); meanwhile the tree shows
@@ -457,21 +462,26 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
   static El view(Workbench s) {
     Theme t = s.theme();
     List<Tab> tabs = new ArrayList<>(List.of(new Tab("Start", false, false)));
-    s.tables.forEach(o -> tabs.add(new Tab(o.table.name)));
-    El right = tabs(t, tabs, s.active, i -> s.active = i, s::close,
-        s.active == 0 ? start(t) : table(t, s, s.tables.get(s.active - 1)));
+    s.tables.forEach(o -> tabs.add(new Tab(o.table.name).icon(Symbol.TABLE)));
+    // The tab's content over a footer with the status, which shows on every tab.
+    El content = col().grow(1)
+        .child(s.active == 0 ? start(t) : table(t, s, s.tables.get(s.active - 1)))
+        .child(Card.footer(t, Label.label(t, Label.Variant.MUTED, s.status()).key("status")
+            .ellipsis()));
+    El right = tabs(t, tabs, s.active, i -> s.active = i, s::close, content);
     El tree = tree(t, s, s.open::contains, s.selected, n -> s.selected = n, s::openOrClose,
-        s::activate).key("catalogue").label("Catalogue").grow(1);
-    El catalogue = col().fill(t.surface().panel()).padding(t.space().s())
-        .child(Menu.contextMenu(t, tree, s.menu, s.menuItems()));
+        s::activate).key("catalogue").label("Catalogue");
+    El catalogue = Card.flush(t,
+        Card.toolbar(t, "Connections", null, Button.icon(t, GHOST, Symbol.ADD, "Add connection",
+            () -> s.tell("Adding a connection is not part of this example"))),
+        Card.inset(t, Menu.contextMenu(t, tree, s.menu, s.menuItems())));
     El root = col().wFull().hFull().fill(t.surface().window())
         .onKey(right.onKey()) // the tabs' keys also while the tree has the focus
         .child(titleBar(t, "Workbench", t.accent().color(),
             toggle(t, s.dark, "Dark", () -> s.dark = !s.dark)))
-        .child(split(t, Direction.ROW, s.sidebar, SIDEBAR, p -> s.sidebar = p,
-            catalogue, 160, right.key("tabs"), 320).grow(1))
-        .child(Label.label(t, Label.Variant.MUTED, s.status()).key("status")
-            .padding(t.space().s(), t.space().l()));
+        .child(Split.cards(t, Direction.ROW, s.sidebar, SIDEBAR, p -> s.sidebar = p,
+            catalogue, 160, right.key("tabs"), 320).grow(1)
+            .padding(0, t.space().m(), t.space().m(), t.space().m()));
     if (s.dropping != null) {
       String name = s.dropping.name;
       root.overlay(Dialog.dialog(t, "Drop table",
@@ -508,7 +518,7 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
   }
 
   private static El start(Theme t) {
-    return col().padding(t.space().xxl()).gap(t.space().m())
+    return col().grow(1).padding(t.space().xxl()).gap(t.space().m())
         .child(Label.label(t, Label.Variant.HEADING, "The frame of a database manager"))
         .child(Label.label(t, Label.Variant.MUTED,
             "Open a table from the catalogue: double-click it, or select it and press Enter."))
@@ -527,9 +537,10 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
           }
           return run;
         });
-    El tab = col().wFull().hFull().padding(t.space().s()).gap(t.space().s()).child(area);
+    El query = col().padding(t.space().m(), t.space().l()).shrink(0).child(area);
     if (o.rows < 0) {
-      return tab.child(col().padding(t.space().xxl())
+      return col().grow(1).minSize(0, 0).children(toolbar(t, s, o), Divider.divider(t), query,
+          Divider.divider(t), col().padding(t.space().xxl())
           .child(Label.label(t, Label.Variant.MUTED,
               "Loading the rows of " + o.table.path() + "…")));
     }
@@ -546,11 +557,20 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
         default -> column;
       });
     }
-    return tab.child(dataGrid(t, columns, o.rows, DataGrid.options()
+    El grid = dataGrid(t, columns, o.rows, DataGrid.options()
             .select(o.selection)
             .onResize((c, w) -> o.widths[c] = w)
             .copy(s.app.clipboard()))
-        .key("grid-" + o.table.path()).label(o.table.name).grow(1));
+        .key("grid-" + o.table.path()).label(o.table.name);
+    return col().grow(1).minSize(0, 0).children(toolbar(t, s, o), Divider.divider(t), query,
+        Divider.divider(t), grid.grow(1).minSize(0, 0));
+  }
+
+  /** The table's name, its number of rows and the button that runs the query. */
+  private static El toolbar(Theme t, Workbench s, Opened o) {
+    String rows = o.rows < 0 ? "counting the rows" : String.format(Locale.ROOT, "%,d rows", o.rows);
+    return Card.toolbar(t, o.table.name, rows,
+        Button.button(t, PRIMARY, Symbol.PLAY, "Run", () -> s.run(o)).key("run"));
   }
 
   private static Field field(String name) {

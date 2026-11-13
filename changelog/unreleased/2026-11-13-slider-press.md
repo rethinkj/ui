@@ -1,0 +1,1 @@
+- `Slider`: a press on the track puts the knob there; before, only a drag moved it. Enter and Space on a focused slider do nothing.

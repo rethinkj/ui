@@ -79,6 +79,10 @@ class ChoiceTest {
     run(app, "down " + (r[0] + 8) + "," + y + "\nmove " + (r[0] + r[2] / 2) + "," + y
         + "\nmove " + (r[0] + r[2] - 8) + "," + y + "\nup " + (r[0] + r[2] - 8) + "," + y);
     assertEquals(16, s.fontSize, "dragged from one end to the other");
+    run(app, "press " + (r[0] + 8) + "," + y);
+    assertEquals(11, s.fontSize, "a press on the track puts the knob there");
+    run(app, "focus role=slider\nkey Space\nframe\nkey Enter");
+    assertEquals(11, s.fontSize, "Space and Enter press nothing");
   }
 
   @Test

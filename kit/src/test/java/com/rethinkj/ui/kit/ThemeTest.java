@@ -14,19 +14,24 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
 /**
- * The contrast of the default themes, by WCAG 2: at least 4.5:1 for text on every background it is
- * used on, and 3:1 for the parts a control is recognised by and for the focus ring. Disabled text
- * is exempt (WCAG 1.4.3) but has to stay readable, so it gets 2:1.
+ * The default themes against the rules their comment in {@link Theme} states. Contrast by WCAG 2:
+ * at least 4.5:1 for text on every background it is used on, and 3:1 for the parts a control is
+ * recognised by and for the focus ring. Disabled text is exempt (WCAG 1.4.3) but has to stay
+ * readable, between 2.5:1 and 3.5:1, below muted text.
  */
 class ThemeTest {
+
+  static Theme theme(String name) {
+    return name.equals("dark") ? Theme.DARK : Theme.LIGHT;
+  }
 
   @ParameterizedTest
   @ValueSource(strings = {"dark", "light"})
   void textAndControlsHaveEnoughContrast(String name) {
-    Theme t = name.equals("dark") ? Theme.DARK : Theme.LIGHT;
+    Theme t = theme(name);
     Theme.Surfaces s = t.surface();
-    Map<String, Integer> surfaces =
-        Map.of("window", s.window(), "panel", s.panel(), "raised", s.raised());
+    Map<String, Integer> surfaces = Map.of("window", s.window(), "panel", s.panel(),
+        "raised", s.raised(), "band", s.band());
     Map<String, Integer> controls = Map.of(
         "raised", s.raised(),
         "raised hovered", over(s.raised(), s.hover()),
@@ -46,11 +51,21 @@ class ThemeTest {
     check(failures, "success", t.status().success(), surfaces, 4.5);
     check(failures, "text on accent", t.text().onAccent(), accents, 4.5);
     check(failures, "strong border", t.border().strong(), surfaces, 3);
-    check(failures, "focus ring", t.border().focus(), surfaces, 3);
-    // The ring lies right outside a primary button, with no gap.
-    check(failures, "focus ring", t.border().focus(), Map.of("accent", t.accent().color()), 3);
+    check(failures, "accent edge", t.accent().edge(), surfaces, 3);
+    // The ring lies right outside a primary button, with no gap: there it is the primary text.
+    check(failures, "primary button's ring", t.text().primary(),
+        Map.of("accent", t.accent().color()), 3);
+    // What is on: a checked box, a switch, the chosen choice of a segmented control.
+    check(failures, "accent", t.accent().color(),
+        Map.of("panel", s.panel(), "raised", s.raised()), 3);
     check(failures, "knob", t.text().onAccent(), Map.of("track off", t.border().strong()), 3);
     check(failures, "disabled text", t.text().disabled(), surfaces, 2);
+    check(failures, "status", t.status().danger(), Map.of("grid selected", t.grid().selected()),
+        4.5);
+    check(failures, "status", t.status().warning(), Map.of("grid selected", t.grid().selected()),
+        4.5);
+    check(failures, "status", t.status().success(), Map.of("grid selected", t.grid().selected()),
+        4.5);
     // A menu highlights a disabled item with the hover overlay on its raised surface.
     check(failures, "disabled text", t.text().disabled(),
         Map.of("raised hovered", over(s.raised(), s.hover())), 2);
@@ -103,20 +118,17 @@ class ThemeTest {
       check(failures, what, colour, surfaces, 3);
       check(failures, what, colour, grid, 3);
     });
-    // Tabs: another tab in muted text on the bar, in primary under the pointer and pressed, where
-    // its cross can be hovered and pressed too; the active one's cross on its raised fill.
-    int tabHovered = over(s.panel(), s.hover());
+    // Tabs on their band: another tab in muted text, in primary under the pointer and pressed,
+    // where its cross can be hovered and pressed too; the active one's line in the accent's edge.
+    int tabHovered = over(s.band(), s.hover());
+    check(failures, "muted text", t.text().muted(), Map.of("band", s.band()), 4.5);
     check(failures, "primary text", t.text().primary(), Map.of(
         "tab hovered", tabHovered,
-        "tab pressed", over(s.panel(), s.pressed()),
+        "tab pressed", over(s.band(), s.pressed()),
         "cross hovered", over(tabHovered, s.hover()),
-        "cross pressed", over(tabHovered, s.pressed()),
-        "active cross hovered", over(s.raised(), s.hover()),
-        "active cross pressed", over(s.raised(), s.pressed())), 4.5);
-    // A split's line under the pointer is the strong border, and its focus ring the focus ring.
+        "cross pressed", over(tabHovered, s.pressed())), 4.5);
     // A selected card's edge, and the mark of a navigation list's selected item on its fill.
-    check(failures, "selected edge", t.border().selected(), surfaces, 3);
-    check(failures, "selected mark", t.border().selected(), Map.of(
+    check(failures, "selected mark", t.accent().edge(), Map.of(
         "grid selected", g.selected(), "grid selected inactive", g.selectedInactive()), 3);
     // An invalid field's edge, on the field's raised fill.
     check(failures, "invalid edge", t.status().danger(), Map.of("raised", s.raised()), 3);
@@ -130,13 +142,66 @@ class ThemeTest {
     assertTrue(failures.isEmpty(), String.join("\n", failures));
   }
 
+  @ParameterizedTest
+  @ValueSource(strings = {"dark", "light"})
+  void disabledTextIsLegibleButBelowMuted(String name) {
+    Theme t = theme(name);
+    Theme.Surfaces s = t.surface();
+    for (int surface : new int[] {s.window(), s.panel(), s.raised()}) {
+      double ratio = contrast(t.text().disabled(), surface);
+      assertTrue(ratio >= 2.5 && ratio <= 3.5, String.format("%.2f on %08X", ratio, surface));
+      assertTrue(ratio < contrast(t.text().muted(), surface));
+    }
+  }
+
+  /** Hover 4 L* or more from each surface, pressed 3 L* or more beyond hover. */
+  @ParameterizedTest
+  @ValueSource(strings = {"dark", "light"})
+  void hoverAndPressedStandOut(String name) {
+    Theme t = theme(name);
+    Theme.Surfaces s = t.surface();
+    for (int surface : new int[] {s.window(), s.panel(), s.raised(), s.band(), t.grid().row()}) {
+      double base = lightness(surface);
+      double hover = lightness(over(surface, s.hover()));
+      double pressed = lightness(over(surface, s.pressed()));
+      String at = String.format("on %08X: %.1f, %.1f, %.1f", surface, base, hover, pressed);
+      assertTrue(Math.abs(hover - base) >= 4, at);
+      assertTrue(Math.abs(pressed - base) >= Math.abs(hover - base) + 3, at);
+    }
+  }
+
+  /** A selection without the focus is told apart from a row under the pointer. */
+  @ParameterizedTest
+  @ValueSource(strings = {"dark", "light"})
+  void anInactiveSelectionIsNotAHover(String name) {
+    Theme t = theme(name);
+    double hovered = lightness(over(t.grid().row(), t.surface().hover()));
+    assertTrue(Math.abs(lightness(t.grid().selectedInactive()) - hovered) >= 4);
+  }
+
+  /** The focused selection keeps primary text at 9:1 or more. */
+  @ParameterizedTest
+  @ValueSource(strings = {"dark", "light"})
+  void aSelectionIsCalm(String name) {
+    Theme t = theme(name);
+    assertTrue(contrast(t.text().primary(), t.grid().selected()) >= 9);
+  }
+
+  /** {@link Theme#over} mixes in linear light, as the renderer blends a translucent fill. */
+  @Test
+  void overMixesInLinearLight() {
+    assertEquals(0xFFBBBBBB, over(0xFFFFFFFF, 0x80000000)); // sRGB values would give 0x7F
+    assertEquals(0xFFFFFFFF, over(0xFF123456, 0xFFFFFFFF));
+    assertEquals(0xFF123456, over(0xFF123456, 0x00FFFFFF));
+  }
+
   @Test
   void theDarkThemesShadowsAreStrongerAndTighter() {
-    List<List<Shadow>> dark = List.of(Theme.DARK.elevation().popup(),
-        Theme.DARK.elevation().dialog());
-    List<List<Shadow>> light = List.of(Theme.LIGHT.elevation().popup(),
-        Theme.LIGHT.elevation().dialog());
-    for (int level = 0; level < 2; level++) {
+    List<List<Shadow>> dark = List.of(Theme.DARK.elevation().card(),
+        Theme.DARK.elevation().popup(), Theme.DARK.elevation().dialog());
+    List<List<Shadow>> light = List.of(Theme.LIGHT.elevation().card(),
+        Theme.LIGHT.elevation().popup(), Theme.LIGHT.elevation().dialog());
+    for (int level = 0; level < 3; level++) {
       assertEquals(2, dark.get(level).size(), "a tight and a wide shadow");
       assertEquals(2, light.get(level).size(), "a tight and a wide shadow");
       for (int layer = 0; layer < 2; layer++) {
@@ -157,6 +222,12 @@ class ThemeTest {
             "%s on %s: %.2f:1, needs %.1f:1", what, name, ratio, minimum));
       }
     });
+  }
+
+  /** CIELAB L* of an opaque colour. */
+  static double lightness(int argb) {
+    double y = luminance(argb);
+    return y > 216.0 / 24389 ? 116 * Math.cbrt(y) - 16 : y * 24389 / 27;
   }
 
   static double contrast(int a, int b) {

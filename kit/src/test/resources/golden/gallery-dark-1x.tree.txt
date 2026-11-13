@@ -1,63 +1,63 @@
 # primary, rest
 el 0,0 140x40
-  el #c role=button label="Run query" 25,8 90x24
-    text "Run query" 38,12 64x16
+  el #c role=button label="Run query" 26,8 89x24
+    text "Run query" 39,12 63x16
 # primary, hover
 el 0,0 140x40
-  el #c role=button label="Run query" 25,8 90x24 hovered
-    text "Run query" 38,12 64x16
+  el #c role=button label="Run query" 26,8 89x24 hovered
+    text "Run query" 39,12 63x16
 # primary, pressed
 el 0,0 140x40
-  el #c role=button label="Run query" 25,8 90x24 hovered
-    text "Run query" 38,12 64x16
+  el #c role=button label="Run query" 26,8 89x24 hovered
+    text "Run query" 39,12 63x16
 # primary, focused
 el 0,0 140x40
-  el #c role=button label="Run query" 25,8 90x24 focused
-    text "Run query" 38,12 64x16
+  el #c role=button label="Run query" 26,8 89x24 focused
+    text "Run query" 39,12 63x16
 # primary, disabled
 el 0,0 140x40
-  el #c role=button label="Run query" 25,8 90x24 disabled
-    text "Run query" 38,12 64x16
+  el #c role=button label="Run query" 26,8 89x24 disabled
+    text "Run query" 39,12 63x16
 # secondary, rest
 el 0,0 140x40
-  el #c role=button label="Cancel" 36,8 68x24
-    text "Cancel" 49,12 42x16
+  el #c role=button label="Cancel" 35,8 70x24
+    text "Cancel" 48,12 44x16
 # secondary, hover
 el 0,0 140x40
-  el #c role=button label="Cancel" 36,8 68x24 hovered
-    text "Cancel" 49,12 42x16
+  el #c role=button label="Cancel" 35,8 70x24 hovered
+    text "Cancel" 48,12 44x16
 # secondary, pressed
 el 0,0 140x40
-  el #c role=button label="Cancel" 36,8 68x24 hovered
-    text "Cancel" 49,12 42x16
+  el #c role=button label="Cancel" 35,8 70x24 hovered
+    text "Cancel" 48,12 44x16
 # secondary, focused
 el 0,0 140x40
-  el #c role=button label="Cancel" 36,8 68x24 focused
-    text "Cancel" 49,12 42x16
+  el #c role=button label="Cancel" 35,8 70x24 focused
+    text "Cancel" 48,12 44x16
 # secondary, disabled
 el 0,0 140x40
-  el #c role=button label="Cancel" 36,8 68x24 disabled
-    text "Cancel" 49,12 42x16
+  el #c role=button label="Cancel" 35,8 70x24 disabled
+    text "Cancel" 48,12 44x16
 # ghost, rest
 el 0,0 140x40
-  el #c role=button label="Format" 36,8 68x24
-    text "Format" 49,12 42x16
+  el #c role=button label="Format" 36,8 69x24
+    text "Format" 49,12 43x16
 # ghost, hover
 el 0,0 140x40
-  el #c role=button label="Format" 36,8 68x24 hovered
-    text "Format" 49,12 42x16
+  el #c role=button label="Format" 36,8 69x24 hovered
+    text "Format" 49,12 43x16
 # ghost, pressed
 el 0,0 140x40
-  el #c role=button label="Format" 36,8 68x24 hovered
-    text "Format" 49,12 42x16
+  el #c role=button label="Format" 36,8 69x24 hovered
+    text "Format" 49,12 43x16
 # ghost, focused
 el 0,0 140x40
-  el #c role=button label="Format" 36,8 68x24 focused
-    text "Format" 49,12 42x16
+  el #c role=button label="Format" 36,8 69x24 focused
+    text "Format" 49,12 43x16
 # ghost, disabled
 el 0,0 140x40
-  el #c role=button label="Format" 36,8 68x24 disabled
-    text "Format" 49,12 42x16
+  el #c role=button label="Format" 36,8 69x24 disabled
+    text "Format" 49,12 43x16
 # toggle off, rest
 el 0,0 140x40
   el #c role=switch label="Autocommit" 12,10 117x20 checked=false

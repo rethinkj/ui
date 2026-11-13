@@ -1,8 +1,8 @@
 el 0,0 880x600
   el window=drag 0,0 880x32
-    el 10,10 12x12
-    text "Settings" 30,8 50x16
-    el 80,16 662x0
+    el 12,11 10x10
+    text "Settings" 30,8 51x16
+    el 81,16 661x0
     el role=button label="Minimize" window=minimize 742,0 46x32
       el 760,16 10x1
     el role=button label="Maximize" window=maximize 788,0 46x32
@@ -28,87 +28,87 @@ el 0,0 880x600
         el 860,19 2x2
         el 852,19 2x2
   el 0,32 880x568
-    el 0,32 200x568
-      el #pages role=listbox label="Settings" 4,36 192x560 focused
-        el #item-0 role=option label="General" 4,36 192x28 selected pos=1/7
-          el 4,38 192x24
-            el 6,42 2x16
-            text label="settings" "\u{F6A8}" 12,42 16x16
-            text "General" 32,42 156x16
-        el #item-1 role=option label="Appearance" 4,64 192x28 pos=2/7
-          el 4,66 192x24
-            el 6,70 2x16
-            text label="window" "\u{EE5D}" 12,70 16x16
-            text "Appearance" 32,70 156x16
-        el #item-2 role=option label="Editor" 4,92 192x28 pos=3/7
-          el 4,94 192x24
-            el 6,98 2x16
-            text label="code" "\u{F339}" 12,98 16x16
-            text "Editor" 32,98 156x16
-        el #item-3 role=option label="Connections" 4,120 192x28 pos=4/7
-          el 4,122 192x24
-            el 6,126 2x16
-            text label="database" "\u{F0D7}" 12,126 16x16
-            text "Connections" 32,126 156x16
-        el #item-4 role=option label="Keymap" 4,148 192x28 pos=5/7
-          el 4,150 192x24
-            el 6,154 2x16
-            text label="key_multiple" "\u{F0274}" 12,154 16x16
-            text "Keymap" 32,154 156x16
-        el #item-5 4,176 192x28
-          text "Help" 12,182 28x16
-        el #item-6 role=option label="About" 4,204 192x28 pos=7/7
-          el 4,206 192x24
-            el 6,210 2x16
-            text label="info" "\u{F4A2}" 12,210 16x16
-            text "About" 32,210 156x16
-    el role=separator 200,32 1x568
-    el 201,32 679x568
-      text role=heading "General" 225,56 631x24 level=1
-      el 225,104 631x159
-        el 225,104 631x18
-          text role=heading "Startup" 225,104 631x18 level=2
-        el 225,130 631x133
-          el role=switch label="Reopen the last workspace" 228,133 625x45 checked
-            el 238,139 565x33
-              text "Reopen the last workspace" 238,139 565x16
-              text "Open the tabs and connections of the last session again" 238,157 565x15
-            el 815,148 28x16
-              el 829,150 12x12
-          el 226,180 629x1
-          el role=switch label="Check for updates" 228,183 625x36 checked
-            el 238,193 565x16
-              text "Check for updates" 238,193 565x16
-            el 815,193 28x16
-              el 829,195 12x12
-          el 226,221 629x1
-          el 228,224 625x36
-            el 238,234 433x16
-              text "Language" 238,234 433x16
-            el role=combobox label="English" 683,230 160x24 expanded=false
-              text "English" 692,234 122x16
-              text label="chevron_down" "\u{F2A2}" 818,234 16x16
-      el 225,287 631x145
-        el 225,287 631x36
-          text role=heading "History" 225,287 631x18 level=2
-          text "What the workbench remembers of your work" 225,307 631x16
-        el 225,331 631x101
-          el 228,334 625x45
-            el 238,340 493x33
-              text "Statements kept" 238,340 493x15
-              text "Per connection, the oldest go first" 238,357 493x16
-            el 743,344 100x24
-              text role=spinbutton label="Statements kept" "200" 743,344 100x24
-              el 799,346 42x20
-                el role=button label="Decrease" 799,346 20x20
-                  text label="subtract" "\u{EBCF}" 801,348 16x16
-                el role=button label="Increase" 821,346 20x20
-                  text label="add" "\u{F108}" 823,348 16x16
-          el 226,381 629x1
-          el role=button label="Keymap" 228,384 625x45 value="Default"
-            text label="key_multiple" "\u{F0274}" 238,398 16x16
-            el 266,390 493x33
-              text "Keymap" 266,390 493x15
-              text "The keys of every command" 266,407 493x16
-            text "Default" 771,398 44x16
-            text label="chevron_right" "\u{F2AF}" 827,398 16x16
+    el 8,32 200x560
+      el 9,33 198x558
+        el #pages role=listbox label="Settings" 13,37 190x550 focused
+          el #item-0 role=option label="General" 13,37 190x28 selected pos=1/7
+            el 13,39 190x24
+              el 15,43 2x16
+              text label="settings" "\u{F6A8}" 21,43 16x16
+              text "General" 41,43 154x16
+          el #item-1 role=option label="Appearance" 13,65 190x28 pos=2/7
+            el 13,67 190x24
+              el 15,71 2x16
+              text label="window" "\u{EE5D}" 21,71 16x16
+              text "Appearance" 41,71 154x16
+          el #item-2 role=option label="Editor" 13,93 190x28 pos=3/7
+            el 13,95 190x24
+              el 15,99 2x16
+              text label="code" "\u{F339}" 21,99 16x16
+              text "Editor" 41,99 154x16
+          el #item-3 role=option label="Connections" 13,121 190x28 pos=4/7
+            el 13,123 190x24
+              el 15,127 2x16
+              text label="database" "\u{F0D7}" 21,127 16x16
+              text "Connections" 41,127 154x16
+          el #item-4 role=option label="Keymap" 13,149 190x28 pos=5/7
+            el 13,151 190x24
+              el 15,155 2x16
+              text label="key_multiple" "\u{F0274}" 21,155 16x16
+              text "Keymap" 41,155 154x16
+          el #item-5 13,177 190x28
+            text "Help" 21,183 28x16
+          el #item-6 role=option label="About" 13,205 190x28 pos=7/7
+            el 13,207 190x24
+              el 15,211 2x16
+              text label="info" "\u{F4A2}" 21,211 16x16
+              text "About" 41,211 154x16
+    el 216,32 656x560
+      text role=heading "General" 240,56 608x24 level=1
+      el 240,104 608x158
+        el 240,104 608x17
+          text role=heading "Startup" 240,104 608x17 level=2
+        el 240,129 608x133
+          el role=switch label="Reopen the last workspace" 243,132 602x45 checked
+            el 253,138 542x33
+              text "Reopen the last workspace" 253,138 542x16
+              text "Open the tabs and connections of the last session again" 253,156 542x15
+            el 807,147 28x16
+              el 821,149 12x12
+          el 241,179 606x1
+          el role=switch label="Check for updates" 243,182 602x36 checked
+            el 253,192 542x16
+              text "Check for updates" 253,192 542x16
+            el 807,192 28x16
+              el 821,194 12x12
+          el 241,220 606x1
+          el 243,223 602x36
+            el 253,233 410x16
+              text "Language" 253,233 410x16
+            el role=combobox label="English" 675,229 160x24 expanded=false
+              text "English" 684,233 122x16
+              text label="chevron_down" "\u{F2A2}" 810,233 16x16
+      el 240,286 608x144
+        el 240,286 608x35
+          text role=heading "History" 240,286 608x17 level=2
+          text "What the workbench remembers of your work" 240,305 608x16
+        el 240,329 608x101
+          el 243,332 602x45
+            el 253,338 470x33
+              text "Statements kept" 253,338 470x15
+              text "Per connection, the oldest go first" 253,355 470x16
+            el 735,342 100x24
+              text role=spinbutton label="Statements kept" "200" 735,342 100x24
+              el 791,344 42x20
+                el role=button label="Decrease" 791,344 20x20
+                  text label="subtract" "\u{EBCF}" 793,346 16x16
+                el role=button label="Increase" 813,344 20x20
+                  text label="add" "\u{F108}" 815,346 16x16
+          el 241,379 606x1
+          el role=button label="Keymap" 243,382 602x45 value="Default"
+            text label="key_multiple" "\u{F0274}" 253,396 16x16
+            el 281,388 470x33
+              text "Keymap" 281,388 470x15
+              text "The keys of every command" 281,405 470x16
+            text "Default" 763,396 44x16
+            text label="chevron_right" "\u{F2AF}" 819,396 16x16

@@ -20,8 +20,8 @@ el 0,0 640x260
           text role=textbox label="Database" "" 81,98 180x24
           text "Leave empty for the user's own" 81,124 199x16
     el 16,152 264x24
-      el role=button label="Cancel" 148,152 68x24
-        text "Cancel" 161,156 42x16
+      el role=button label="Cancel" 146,152 70x24
+        text "Cancel" 159,156 44x16
       el role=button label="Save" 224,152 56x24
         text "Save" 237,156 30x16
   el 304,16 200x228
@@ -45,7 +45,7 @@ el 0,0 640x260
           text role=textbox label="Database" "" 304,160 180x24
           text "Leave empty for the user's own" 304,186 200x16
     el 304,214 200x24
-      el role=button label="Cancel" 372,214 68x24
-        text "Cancel" 385,218 42x16
+      el role=button label="Cancel" 370,214 70x24
+        text "Cancel" 383,218 44x16
       el role=button label="Save" 448,214 56x24
         text "Save" 461,218 30x16

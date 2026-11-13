@@ -53,7 +53,7 @@ public final class Dialog {
         .gap(t.space().l())
         .radius(t.radius().large())
         .fill(t.surface().raised())
-        .border(t.size().stroke(), t.border().subtle())
+        .border(t.size().stroke(), t.border().control())
         .shadow(t.elevation().dialog())
         .motion(t.motion().fade())
         .children(

@@ -9,7 +9,6 @@ import static com.rethinkj.ui.kit.Button.button;
 import static com.rethinkj.ui.kit.Checkbox.checkbox;
 import static com.rethinkj.ui.kit.Form.field;
 import static com.rethinkj.ui.kit.Form.form;
-import static com.rethinkj.ui.kit.Label.Variant.HEADING;
 import static com.rethinkj.ui.kit.Label.Variant.MUTED;
 import static com.rethinkj.ui.kit.Label.label;
 import static com.rethinkj.ui.kit.TextField.passwordField;
@@ -21,6 +20,7 @@ import com.rethinkj.ui.App;
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.Script;
 import com.rethinkj.ui.kit.Form;
+import com.rethinkj.ui.kit.Card;
 import com.rethinkj.ui.kit.Symbol;
 import com.rethinkj.ui.kit.Theme;
 import com.rethinkj.ui.render.GpuPresenter;
@@ -100,9 +100,8 @@ public final class ConnectionDialog {
 
   static El view(ConnectionDialog s) {
     Theme t = s.theme();
-    El form = col().grow(1).padding(t.space().xxl()).gap(t.space().l())
-        .child(label(t, HEADING, "Connect to PostgreSQL"))
-        .child(label(t, MUTED, "The server and the account to log in with."))
+    El form = Card.card(t)
+        .child(Card.header(t, "Connect to PostgreSQL", "The server and the account to log in with."))
         .child(form(t, Form.Labels.BESIDE,
             field("Host", textField(t, s.host, "Name or address", v -> s.host = v)
                 .key("host").w(260)).required(),
@@ -134,6 +133,7 @@ public final class ConnectionDialog {
           return false;
         })
         .child(titleBar(t, "New connection", t.accent().color()))
-        .child(form);
+        .child(col().grow(1).padding(0, t.space().m(), t.space().m(), t.space().m())
+            .child(form.grow(1)));
   }
 }

@@ -44,7 +44,7 @@ final class Studio {
 
   App<Studio> app() {
     App<Studio> app = new App<>(this, Studio::view);
-    app.focusRing(t.border().focus());
+    app.focusRing(t.accent().edge());
     app.textRendering(TextRendering.LINUX);
     return app;
   }

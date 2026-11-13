@@ -9,13 +9,14 @@ import com.rethinkj.ui.Drag;
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.Len;
 import com.rethinkj.ui.Style;
+import java.util.function.DoubleConsumer;
 import java.util.function.IntConsumer;
 
 /**
  * A whole number between two ends, chosen by dragging a knob along a track. The part of the track
  * up to the knob is in the accent. Dragging puts the knob under the pointer, by steps; while the
  * slider has the focus, the arrow keys move it by a step, Page Up and Page Down by a tenth of the
- * range, and Home and End to the ends. A press without dragging leaves it where it is. The app
+ * range, and Home and End to the ends. A press on the track puts the knob there. The app
  * keeps the number. It is {@link Theme.Sizes#field} wide unless the view sets a width with {@code
  * .w(...)}, and as high as a control. In a tree dump it is {@code role=slider} with its number as {@code value}.
  */
@@ -68,17 +69,20 @@ public final class Slider {
       return slider;
     }
     int page = Math.max(step, (max - min) / 10 / step * step);
-    return slider.focusable().keepFocus().focusRing(t.border().focus())
+    // Puts the knob at x of the slider as the frame the press or drag began in laid it out.
+    DoubleConsumer put = x -> {
+      double to = (x - knob / 2) / (slider.width() - knob);
+      int next = snap(min + to * (max - min), min, max, step);
+      if (next != value) {
+        onChange.accept(next);
+      }
+    };
+    return slider.focusable().keepFocus().focusRing(t.accent().edge())
         .cursor(Cursor.POINTER)
+        .onPress((clicks, modifiers, x, y) -> put.accept(x))
         .onDrag(d -> {
-          if (d.phase() == Drag.Phase.CANCEL || d.phase() == Drag.Phase.END) {
-            return;
-          }
-          // The slider as the frame the drag began in laid it out.
-          double to = (d.x() - knob / 2) / (slider.width() - knob);
-          int next = snap(min + to * (max - min), min, max, step);
-          if (next != value) {
-            onChange.accept(next);
+          if (d.phase() != Drag.Phase.CANCEL && d.phase() != Drag.Phase.END) {
+            put.accept(d.x());
           }
         })
         .onKey(k -> {
@@ -92,6 +96,7 @@ public final class Slider {
             case "PageUp" -> at + page;
             case "Home" -> min;
             case "End" -> max;
+            case "Enter", "Space" -> at; // taken, or they would press the middle of the track
             default -> Integer.MIN_VALUE;
           };
           if (next == Integer.MIN_VALUE) {

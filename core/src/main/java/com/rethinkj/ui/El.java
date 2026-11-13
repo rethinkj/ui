@@ -54,8 +54,8 @@ public final class El {
   private List<Shadow> shadows = List.of();
   private Measure measure;
   private Text text;
-  private PressHandler onPress;
-  private PressHandler onPointerDown;
+  private PressAtHandler onPress;
+  private PressAtHandler onPointerDown;
   private Consumer<Drag> onDrag;
   private Object dragPayload;
   private Consumer<Drop> onDrop;
@@ -76,6 +76,7 @@ public final class El {
   private float opacity = 1;
   private float targetOpacity = 1; // as the view set it, which motion springs towards
   private boolean exiting;
+  private boolean moving;
   private WindowPart windowPart;
   private Consumer<El> hoverLook;
   private Consumer<El> focusLook;
@@ -154,6 +155,18 @@ public final class El {
   @FunctionalInterface
   public interface PressHandler {
     void press(int clicks, int modifiers);
+  }
+
+  /**
+   * Told how a press came about, as {@link PressHandler} is, and where: {@code x} and {@code y}
+   * are where the pointer was in the element's content, in logical pixels from the left and the
+   * top of its border box as the last frame shows it, plus its own scroll offset, as {@link
+   * Drag#x} and {@link Drag#y} are; a slider puts its knob there, a colour field reads its colour
+   * there. Enter and Space give the middle of the border box.
+   */
+  @FunctionalInterface
+  public interface PressAtHandler {
+    void press(int clicks, int modifiers, double x, double y);
   }
 
   /**
@@ -1108,7 +1121,7 @@ public final class El {
    * place where an app changes its state.
    */
   public El onPress(Runnable handler) {
-    this.onPress = handler == null ? null : (clicks, modifiers) -> handler.run();
+    this.onPress = handler == null ? null : (clicks, modifiers, x, y) -> handler.run();
     return this;
   }
 
@@ -1118,7 +1131,7 @@ public final class El {
    * second of a double press, and so on. Enter and Space give 1.
    */
   public El onPress(IntConsumer handler) {
-    this.onPress = handler == null ? null : (clicks, modifiers) -> handler.accept(clicks);
+    this.onPress = handler == null ? null : (clicks, modifiers, x, y) -> handler.accept(clicks);
     return this;
   }
 
@@ -1127,6 +1140,16 @@ public final class El {
    * a table sorts by a second column with Shift. Enter and Space give 1 and no modifiers.
    */
   public El onPress(PressHandler handler) {
+    this.onPress = handler == null ? null : (clicks, modifiers, x, y) -> handler.press(clicks,
+        modifiers);
+    return this;
+  }
+
+  /**
+   * Like {@link #onPress(PressHandler)}, also told where the pointer was released, in this
+   * element's content; see {@link PressAtHandler}.
+   */
+  public El onPress(PressAtHandler handler) {
     this.onPress = handler;
     return this;
   }
@@ -1143,6 +1166,16 @@ public final class El {
    * @param handler told how, or null for none
    */
   public El onPointerDown(PressHandler handler) {
+    this.onPointerDown = handler == null ? null : (clicks, modifiers, x, y) -> handler.press(
+        clicks, modifiers);
+    return this;
+  }
+
+  /**
+   * Like {@link #onPointerDown(PressHandler)}, also told where the pointer went down, in this
+   * element's content; see {@link PressAtHandler}.
+   */
+  public El onPointerDown(PressAtHandler handler) {
     this.onPointerDown = handler;
     return this;
   }
@@ -1727,13 +1760,16 @@ public final class El {
     return borderColor;
   }
 
-  /** The press handler, which takes the presses and the modifiers; see {@link #onPress}. */
-  public PressHandler onPress() {
+  /**
+   * The press handler, which takes the presses, the modifiers and the position, whichever of
+   * them the handler given to {@link #onPress} takes; null for none.
+   */
+  public PressAtHandler onPress() {
     return onPress;
   }
 
   /** The handler of {@link #onPointerDown}, or null. */
-  public PressHandler onPointerDown() {
+  public PressAtHandler onPointerDown() {
     return onPointerDown;
   }
 
@@ -2568,6 +2604,21 @@ public final class El {
     return exiting;
   }
 
+  /**
+   * Whether a spring ({@link #motion}) is moving this element's box in the frame shown: its
+   * position or size is between where it was and where layout put it. The scene draws such a box,
+   * and everything inside it, where it is, between physical pixels, and snaps the box to them once
+   * it has come to rest.
+   */
+  public boolean isMoving() {
+    return moving;
+  }
+
+  /** For {@link Animator}, as it writes the values of the moment. */
+  void moving(boolean moving) {
+    this.moving = moving;
+  }
+
   /** For {@link App}, when this element starts to leave. */
   void exit() {
     this.exiting = true;
@@ -2591,8 +2642,8 @@ public final class El {
   void apply(Consumer<El> look, String name) {
     List<El> before = new ArrayList<>(children);
     String keyBefore = key;
-    PressHandler press = onPress;
-    PressHandler down = onPointerDown;
+    PressAtHandler press = onPress;
+    PressAtHandler down = onPointerDown;
     Consumer<Drag> drag = onDrag;
     Predicate<Key> keyDown = onKey;
     Predicate<Key> up = onKeyUp;

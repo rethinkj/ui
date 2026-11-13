@@ -70,7 +70,7 @@ public final class Select {
       items.add(Menu.item(choices.get(i), () -> onSelect.accept(choice)).checked(i == selected));
     }
     // As a button: a press leaves the focus where it is, and its menu gives it back there.
-    return select.focusable().keepFocus().focusRing(t.border().focus())
+    return select.focusable().keepFocus().focusRing(t.accent().edge())
         .cursor(Cursor.POINTER)
         .onPress(open)
         .onKey(k -> {
