@@ -257,6 +257,20 @@ class TextAreaTest {
         field(app).scrollX() > 2000, "the column of the end kept: " + field(app).scrollX());
   }
 
+  @Test
+  void anotherScaleMeasuresTheWidthOfTheLinesAgain() {
+    String value = "x".repeat(40); // wider than the field
+    App<Model> fresh = Areas.start(value, f -> f, 1);
+    fresh.scrollTo(field(fresh), 10000, 0);
+    fresh.frame();
+    App<Model> app = Areas.start(value, f -> f, 2);
+    app.resize(320, 240, 1);
+    app.frame();
+    app.scrollTo(field(app), 10000, 0);
+    app.frame();
+    assertEquals(field(fresh).scrollX(), field(app).scrollX(), "not as far as at scale 2");
+  }
+
   // Tabs
 
   @Test

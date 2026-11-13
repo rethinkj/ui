@@ -113,6 +113,19 @@ class LinesTest {
   }
 
   @Test
+  void theWidestLineIsForgottenForAnotherFontSizeOrScale() {
+    Lines lines = Lines.of("a\nbb");
+    lines.measuredFor("scale 2");
+    lines.measured(1, 40);
+    lines.measuredFor("scale 2");
+    assertEquals(40, lines.widest(), "the same layout keeps it");
+    lines.measuredFor("scale 1");
+    assertEquals(0, lines.widest(), "the lines in view measure it again");
+    lines.measured(1, 20);
+    assertEquals(20, lines.widest());
+  }
+
+  @Test
   void lineBreaksBecomeLineFeeds() {
     assertEquals("a\nb\nc\nd\ne\n", Editor.multiLine("a\r\nb\rc d e\r\n"));
     String plain = "no breaks\nbut line feeds";

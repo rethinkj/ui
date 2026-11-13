@@ -202,7 +202,10 @@ public final class Text implements Measure {
   /** A row of a multi-line field as laid out: row {@code row} of line {@code line}. */
   private record Row(int line, int row, Para para, double top) {}
 
-  /** What the rows of wrapped lines depend on: another value breaks them anew. */
+  /**
+   * What the rows of wrapped lines depend on: another value breaks them anew. Without wrapping, and
+   * a width of 0, what the widths of lines depend on.
+   */
   private record Wrapping(
       float width,
       Font font,
@@ -1274,6 +1277,8 @@ public final class Text implements Measure {
   private void wrapping() {
     if (!wraps) {
       shownLines.wrap(null, 1);
+      shownLines.measuredFor(
+          new Wrapping(0, font(), size, scale, List.of(features), tabSize, systemFonts));
       return;
     }
     if (!laidOut) {
