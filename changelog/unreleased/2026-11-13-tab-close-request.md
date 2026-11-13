@@ -1,0 +1,1 @@
+- `TabGroups.onCloseTab((group, index) -> …)` decides what closing a tab by its cross, Control+W or Control+F4 does, so that an app can ask about changes not yet saved before it calls `close`.
