@@ -130,6 +130,12 @@ public final class Settings {
   String host = "";
   String port = "5432";
 
+  /**
+   * The Java and the platform the About page names: fixed under a script, whose images are stored
+   * and compared on every platform; {@link #main} shows the real ones in a window.
+   */
+  String platform = "Java 25 · Linux x64";
+
   /** The system's appearance in a window, from the window loop; null under a script. */
   SystemAppearance system;
 
@@ -181,6 +187,7 @@ public final class Settings {
       return;
     }
     app.textRendering(TextRendering.platform());
+    app.state().platform = platform();
     Window.Options options =
         Identity.options(Settings.class, "Settings", 0xFF475569, Symbol.SETTINGS)
             .frameless().minimumSize(560, 400);
@@ -188,6 +195,18 @@ public final class Settings {
         GpuPresenter presenter = new GpuPresenter(window)) {
       new WindowLoop(window, app, presenter).appearance(a -> app.state().system = a).run();
     }
+  }
+
+  /** The Java and the platform this runs on, as the About page names them in a window. */
+  static String platform() {
+    String arch = System.getProperty("os.arch", "");
+    arch = switch (arch) {
+      case "amd64", "x86_64" -> "x64";
+      case "aarch64" -> "arm64";
+      default -> arch;
+    };
+    return "Java " + Runtime.version().feature() + " · " + System.getProperty("os.name", "")
+        + " " + arch;
   }
 
   static El view(Settings s) {
@@ -204,7 +223,7 @@ public final class Settings {
               case 2 -> editor(t, s);
               case 3 -> connections(t, s);
               case 4 -> keymap(t);
-              default -> about(t);
+              default -> about(t, s.platform);
             }));
     return root.overlay(s.adding ? newConnection(t, s) : null);
   }
@@ -343,10 +362,10 @@ public final class Settings {
         .grow(1);
   }
 
-  static El about(Theme t) {
+  static El about(Theme t, String platform) {
     return page(t, "About",
         card(t,
-            Card.header(t, "rethinkj Workbench", "Version 0.1.0 · Java 25 · Linux x64"),
+            Card.header(t, "rethinkj Workbench", "Version 0.1.0 · " + platform),
             label(t, Label.Variant.MUTED,
                 "A database tool built with rethinkj UI. Free software under the MIT licence.")
                 .wrapText()))

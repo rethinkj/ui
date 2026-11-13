@@ -13,10 +13,21 @@ import org.junit.jupiter.api.io.TempDir;
 
 class SettingsTest {
 
+  @Test
+  void theAboutPageNamesTheRealPlatformInAWindow() {
+    String platform = Settings.platform();
+    assertTrue(platform.startsWith("Java " + Runtime.version().feature() + " · "), platform);
+    assertTrue(platform.contains(System.getProperty("os.name")), platform);
+    assertFalse(platform.contains("amd64"), "the architecture as platforms name it: " + platform);
+  }
+
   /** Runs the example's {@code main} on {@code settings.txt}; see {@link Snaps#check}. */
   @Test
   void theScriptShowsTheStoredFrames() throws IOException {
     Snaps.check("settings", Settings::main);
+    // A fixed platform, so that the stored images are the same on every platform.
+    assertTrue(Snaps.line("settings", "settings-about", "text \"Version")
+        .contains("\"Version 0.1.0 · Java 25 · Linux x64\""));
     // Every setting can be read from the tree.
     assertTrue(Snaps.line("settings", "settings-appearance", "role=option label=\"Appearance\"")
         .contains(" selected"));
