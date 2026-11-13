@@ -107,3 +107,12 @@ snap workbench-query                       # "Loading…" below the statement, t
 await
 frame
 snap workbench-ran                         # twenty rows, and the status line says so
+
+size 1000 600 scale 2                      # the same at twice the pixels
+frame
+snap workbench-light-2x
+press role=switch label="Dark"
+frame
+advance 1
+frame
+snap workbench-dark-2x
