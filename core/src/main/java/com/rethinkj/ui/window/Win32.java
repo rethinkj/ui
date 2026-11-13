@@ -61,6 +61,7 @@ final class Win32 {
   static final FunctionDescriptor SCREEN_TO_CLIENT = FunctionDescriptor.of(JAVA_INT, ADDRESS, ADDRESS);
   static final FunctionDescriptor TRACK_MOUSE_EVENT = FunctionDescriptor.of(JAVA_INT, ADDRESS);
   static final FunctionDescriptor IS_ICONIC = FunctionDescriptor.of(JAVA_INT, ADDRESS);
+  static final FunctionDescriptor IS_ZOOMED = FunctionDescriptor.of(JAVA_INT, ADDRESS);
   static final FunctionDescriptor GET_SYSTEM_METRICS = FunctionDescriptor.of(JAVA_INT, JAVA_INT);
   static final FunctionDescriptor DWM_SET_WINDOW_ATTRIBUTE =
       FunctionDescriptor.of(JAVA_INT, ADDRESS, JAVA_INT, ADDRESS, JAVA_INT);
@@ -231,6 +232,7 @@ final class Win32 {
     static final MethodHandle TRACK_MOUSE_EVENT_H =
         bind(USER32, "TrackMouseEvent", TRACK_MOUSE_EVENT);
     static final MethodHandle IS_ICONIC_H = bind(USER32, "IsIconic", IS_ICONIC);
+    static final MethodHandle IS_ZOOMED_H = bind(USER32, "IsZoomed", IS_ZOOMED);
     static final MethodHandle GET_SYSTEM_METRICS_H =
         bind(USER32, "GetSystemMetrics", GET_SYSTEM_METRICS);
     static final MethodHandle DWM_SET_WINDOW_ATTRIBUTE_H =
@@ -566,6 +568,15 @@ final class Win32 {
   static boolean trackMouseEvent(MemorySegment trackMouseEvent) {
     try {
       return (int) H.TRACK_MOUSE_EVENT_H.invokeExact(trackMouseEvent) != 0;
+    } catch (Throwable t) {
+      throw Sdl.failed(t);
+    }
+  }
+
+  /** Whether the window is maximized. */
+  static boolean isZoomed(MemorySegment hwnd) {
+    try {
+      return (int) H.IS_ZOOMED_H.invokeExact(hwnd) != 0;
     } catch (Throwable t) {
       throw Sdl.failed(t);
     }

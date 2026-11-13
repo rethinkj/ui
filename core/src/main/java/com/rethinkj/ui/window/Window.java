@@ -50,6 +50,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * A native window, opened through SDL 3. It delivers its input to a {@link WindowListener} as
@@ -133,6 +135,7 @@ public final class Window implements AutoCloseable {
     private int x;
     private int y;
     private boolean underPointer;
+    private Placement placement;
 
     private Options() {}
 
@@ -164,6 +167,18 @@ public final class Window implements AutoCloseable {
       this.x = x;
       this.y = y;
       return this;
+    }
+
+    /**
+     * Opens the window where it was ({@link Window#placement}): at its position, with its size
+     * in place of the size given to {@link Window#open}, and maximized if it was, restored to that
+     * position and size. Where its display is gone or smaller now, it opens at most as large as
+     * the work area of the display it then lies on, with its title bar inside that work area
+     * ({@link Window#keepReachable}). Wayland ignores the position.
+     */
+    public Options placement(Placement placement) {
+      this.placement = Objects.requireNonNull(placement, "placement");
+      return position(placement.x(), placement.y());
     }
 
     /** Whether {@link #frameless} was called. */
@@ -226,6 +241,73 @@ public final class Window implements AutoCloseable {
     public Options resizeMargin(float pixels) {
       resizeMargin = pixels;
       return this;
+    }
+  }
+
+  /**
+   * Where a window was and how large, to open it there again ({@link Options#placement}): the
+   * position of its content in screen units ({@link #moveTo}), its size in logical pixels, whether
+   * it was maximized, and the name of its display, as {@link #placement()} reads them. While the
+   * window is maximized, position and size are those it is restored to. It prints itself as one
+   * line, {@code 120,80 1200x720 maximized display "DELL U2720Q"}, and {@link #parse} reads that
+   * line back, so that an app keeps it wherever it keeps its settings; the library writes no file.
+   *
+   * @param display the name of the display, or null where the system gives none
+   */
+  public record Placement(int x, int y, float width, float height, boolean maximized,
+      String display) {
+
+    private static final Pattern LINE = Pattern.compile(
+        "(-?\\d+),(-?\\d+) (\\d+(?:\\.\\d+)?)x(\\d+(?:\\.\\d+)?)( maximized)?"
+            + "(?: display \"((?:[^\"\\\\]|\\\\.)*)\")?");
+
+    public Placement {
+      if (!(width > 0 && height > 0 && width < 1e6f && height < 1e6f)) {
+        throw new IllegalArgumentException("Size " + width + "x" + height + " is not a window's");
+      }
+    }
+
+    /** The line that {@link #parse} reads. */
+    @Override
+    public String toString() {
+      StringBuilder line = new StringBuilder().append(x).append(',').append(y).append(' ')
+          .append(number(width)).append('x').append(number(height));
+      if (maximized) {
+        line.append(" maximized");
+      }
+      if (display != null) {
+        line.append(" display \"")
+            .append(display.replace("\\", "\\\\").replace("\"", "\\\""))
+            .append('"');
+      }
+      return line.toString();
+    }
+
+    /**
+     * Reads a line that {@link #toString} wrote.
+     *
+     * @throws IllegalArgumentException if it is not such a line, as one an older or another app
+     *     wrote; an app then opens its window as it does the first time
+     */
+    public static Placement parse(String line) {
+      Matcher m = LINE.matcher(line.strip());
+      if (!m.matches()) {
+        throw new IllegalArgumentException("Not a window's placement, which reads as 120,80"
+            + " 1200x720 maximized display \"Name\": " + line);
+      }
+      try {
+        String display = m.group(6) == null ? null
+            : m.group(6).replaceAll("\\\\(.)", "$1");
+        return new Placement(Integer.parseInt(m.group(1)), Integer.parseInt(m.group(2)),
+            Float.parseFloat(m.group(3)), Float.parseFloat(m.group(4)), m.group(5) != null,
+            display);
+      } catch (NumberFormatException e) {
+        throw new IllegalArgumentException("Not a window's placement: " + line, e);
+      }
+    }
+
+    private static String number(float f) {
+      return f == Math.rint(f) ? Long.toString((long) f) : Float.toString(f);
     }
   }
 
@@ -301,6 +383,12 @@ public final class Window implements AutoCloseable {
   private final int x;
   private final int y;
   private final boolean underPointer;
+  private final Placement placement;
+  // Where the window is when it is neither maximized nor minimized, for placement().
+  private int normalX;
+  private int normalY;
+  private float normalWidth;
+  private float normalHeight;
   private String title;
   private WindowHandle handle;
   private Win32Frame win32;
@@ -351,6 +439,7 @@ public final class Window implements AutoCloseable {
     this.x = options.x;
     this.y = options.y;
     this.underPointer = options.underPointer;
+    this.placement = options.placement;
   }
 
   /** Opens a resizable window with the system's frame. */
@@ -370,6 +459,10 @@ public final class Window implements AutoCloseable {
   public static Window open(String title, float width, float height, Options options) {
     Objects.requireNonNull(title, "title");
     Objects.requireNonNull(options, "options");
+    if (options.placement != null) {
+      width = options.placement.width();
+      height = options.placement.height();
+    }
     if (!(width > 0 && height > 0 && width < 1e6f && height < 1e6f)) {
       throw new IllegalArgumentException("Size " + width + "x" + height + " is not a window size");
     }
@@ -430,7 +523,14 @@ public final class Window implements AutoCloseable {
     }
     if (positioned) {
       Sdl.setWindowPosition(sdl, x, y);
+      if (placement != null) {
+        fitWorkArea(); // its display may be smaller now
+      }
       keepReachable(); // a position outside every work area, as of a display gone since
+    }
+    rememberNormal();
+    if (placement != null && placement.maximized()) {
+      Sdl.maximizeWindow(sdl); // shows maximized, restored to where it was
     }
     if (underPointer) {
       if (shell != null) {
@@ -790,6 +890,7 @@ public final class Window implements AutoCloseable {
         float oldHeight = height;
         float oldScale = scale;
         measure();
+        rememberNormal();
         if (scale != oldScale) {
           applyMinimumSize();
           if (shell != null) {
@@ -801,6 +902,7 @@ public final class Window implements AutoCloseable {
           post(new Resized(width, height));
         }
       }
+      case Sdl.EVENT_WINDOW_MOVED -> rememberNormal();
       case Sdl.EVENT_WINDOW_MINIMIZED, Sdl.EVENT_WINDOW_MAXIMIZED, Sdl.EVENT_WINDOW_RESTORED -> {
         long flags = Sdl.getWindowFlags(sdl);
         boolean nowMinimized = (flags & Sdl.WINDOW_MINIMIZED) != 0;
@@ -1104,6 +1206,76 @@ public final class Window implements AutoCloseable {
     Sdl.setWindowPosition(sdl, x + by[0], y + by[1]);
     rethrow();
     return true;
+  }
+
+  /**
+   * Where the window is, to open it there again ({@link Options#placement}): while it is
+   * maximized or minimized, the position and size it is restored to, and whether it is maximized;
+   * the name of its display. Save it when the app ends, before the window closes.
+   */
+  public Placement placement() {
+    checkOpen();
+    rememberNormal(); // as it is now, unless maximized or minimized
+    int display = Sdl.getDisplayForWindow(sdl);
+    return new Placement(normalX, normalY, normalWidth, normalHeight, isMaximized(),
+        display == 0 ? null : Sdl.displayName(display));
+  }
+
+  /** Keeps where the window is, if it is neither maximized nor minimized nor fullscreen. */
+  private void rememberNormal() {
+    if ((Sdl.getWindowFlags(sdl)
+        & (Sdl.WINDOW_MAXIMIZED | Sdl.WINDOW_MINIMIZED | Sdl.WINDOW_FULLSCREEN)) != 0) {
+      return;
+    }
+    // While Windows maximizes a window, it moves and sizes it before SDL has the flag.
+    if (handle instanceof WindowHandle.Win32 win
+        && (Win32.isZoomed(win.hwnd()) || Win32.isIconic(win.hwnd()))) {
+      return;
+    }
+    Sdl.getWindowPosition(sdl, ints);
+    normalX = ints.get(JAVA_INT, 0);
+    normalY = ints.get(JAVA_INT, 4);
+    normalWidth = width;
+    normalHeight = height;
+  }
+
+  /**
+   * Makes the window at most as large as the work area of the display it lies on, frame and
+   * all, for a placement whose display is smaller now.
+   */
+  private void fitWorkArea() {
+    Sdl.getWindowPosition(sdl, ints);
+    int x = ints.get(JAVA_INT, 0);
+    int y = ints.get(JAVA_INT, 4);
+    int[] frame = frameless ? null : Sdl.windowBordersSize(sdl);
+    if (frame == null) {
+      frame = new int[4];
+    }
+    int w = units(width);
+    int h = units(height);
+    int display = Sdl.displayForRect(x - frame[1], y - frame[0], w + frame[1] + frame[3],
+        h + frame[0] + frame[2]);
+    int[] area = display == 0 ? null : Sdl.displayBounds(display, true);
+    if (area == null) {
+      return;
+    }
+    int most = area[2] - frame[1] - frame[3];
+    int tallest = area[3] - frame[0] - frame[2];
+    if (w > most || h > tallest) {
+      w = Math.min(w, most);
+      h = Math.min(h, tallest);
+      Sdl.setWindowSize(sdl, w, h);
+      measure();
+    }
+    // On no display at all, as when its display is gone: wholly into the nearest work area.
+    int[] bounds = Sdl.displayBounds(display, false);
+    if (bounds != null && (x + w <= bounds[0] || x - frame[1] >= bounds[0] + bounds[2]
+        || y + h <= bounds[1] || y - frame[0] >= bounds[1] + bounds[3])) {
+      int left = area[0] + frame[1];
+      int top = area[1] + frame[0];
+      Sdl.setWindowPosition(sdl, Math.clamp(x, left, Math.max(left, left + most - w)),
+          Math.clamp(y, top, Math.max(top, top + tallest - h)));
+    }
   }
 
   /**
