@@ -11,6 +11,8 @@ import com.rethinkj.ui.kit.Badge;
 import com.rethinkj.ui.kit.Button;
 import com.rethinkj.ui.kit.Checkbox;
 import com.rethinkj.ui.kit.ComboBox;
+import com.rethinkj.ui.kit.Form;
+import com.rethinkj.ui.kit.Format;
 import com.rethinkj.ui.kit.Icon;
 import com.rethinkj.ui.kit.Label;
 import com.rethinkj.ui.kit.Menu;
@@ -23,6 +25,9 @@ import com.rethinkj.ui.kit.Symbol;
 import com.rethinkj.ui.kit.TextField;
 import com.rethinkj.ui.kit.Theme;
 import com.rethinkj.ui.kit.Toggle;
+import com.rethinkj.ui.kit.ValueField;
+import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 
 /** The examples of the pages about buttons, choices, fields and small parts. */
@@ -53,6 +58,12 @@ final class Controls {
   String note = "Ship by Friday,\nfrom the north warehouse.";
   String sql = "SELECT id,\n\tname\nFROM t;";
   final Menu.State runMenu = new Menu.State();
+  // docs:start value-state
+  BigDecimal amount = new BigDecimal("12.50");
+  final ValueField.Draft amountDraft = new ValueField.Draft();
+  LocalDate due; // null: no date yet
+  final ValueField.Draft dueDraft = new ValueField.Draft();
+  // docs:end value-state
 
   static El buttons(Controls s) {
     Theme t = s.t;
@@ -229,6 +240,35 @@ final class Controls {
     El code = TextField.codeArea(t, s.sql, "SQL", v -> s.sql = v).lines(3).w(280);
     // docs:end text-area
     return Frame.of(t, filter, name, invalid, password, note, code);
+  }
+
+  static El values(Controls s) {
+    Theme t = s.t;
+    // docs:start value-field
+    El form = Form.form(
+        t,
+        Form.Labels.BESIDE,
+        Form.field(
+                "Amount",
+                ValueField.valueField(t, Format.DECIMAL, s.amount, s.amountDraft, v -> s.amount = v)
+                    .key("amount")
+                    .w(120))
+            .required(),
+        Form.field(
+                "Due",
+                ValueField.valueField(
+                        t, Format.DATE.optional(), s.due, "2026-11-13", s.dueDraft, v -> s.due = v)
+                    .key("due")
+                    .w(120))
+            .help("Empty for none"));
+    El save = Button.button(
+        t,
+        PRIMARY,
+        "Save",
+        // A text that is no value leaves the last valid one in the state: save only without one.
+        s.amountDraft.error() == null && s.dueDraft.error() == null ? () -> s.runs++ : null);
+    // docs:end value-field
+    return Frame.of(t, form, save);
   }
 
   static El parts(Controls s) {

@@ -1,0 +1,58 @@
+---
+title: Rows of records
+description: Typed columns over records and POJOs, edited through withers and setters.
+---
+
+`DataGrid.table(rows)` makes a `GridTable<T>` over the app's rows as objects, records or POJOs, and its `column` methods make columns from getters: each column shows a typed value in its [Format](/docs/components/format), and writes an edited value back through a record's wither or a POJO's setter. Use it when the app holds its rows as Java objects rather than strings; the grid still shows text, and the app still owns, sorts and filters its rows.
+
+## Records
+
+```java snippet="typed-rows"
+```
+
+```java snippet="grid-typed"
+```
+
+- `DataGrid.table(rows)` takes an `IntFunction<T>`: the row at an index, asked for while a frame runs, for each cell of the rows in view. Keep it cheap, such as a list's `get`; a million rows stay lazy. A row that is not loaded is null: give the grid `.loading(table::loaded, onRows)` and it shows the loading cells.
+- `table.column(title, width, format, getter)` is a column that edits nothing; with a wither (`Order::withAmount`) or a setter (`Account::setBalance`) after the getter it edits. Alignment, font, header icon and editor come from the format's kind: `Format.DECIMAL` is a right-aligned monospaced number column with the decimal editor, a `Format.choice` an enumeration with its labels as choices, an `optional()` format allows NULL.
+- The result is an ordinary `Column`, so `.typeName`, `.icon`, `.cellIcon` and `.sortable` chain onto it. Its `cells()` is the typed part: `cells().value(row)`, `cells().format()`, `cells().comparator()`.
+
+## Editing
+
+`options().onCommit(table, (row, value) -> error)` lets the grid edit, paste into and clear the columns that write. The grid checks the editor's text with the column's format first (a letter in a number is refused as it is typed, `Not below zero` from a `where` shows under the editor), turns it into the value, and writes it into the row:
+
+- **Records**: the wither makes a new record, which the handler gets and stores, usually `rows.set(row, value)`. Nothing has changed if it refuses.
+- **POJOs**: the setter changes the row in place, and the handler gets that row to save or mark. If it refuses, by returning a message, the setter is called again with the value before.
+
+The handler refuses with a message, which shows under the editor, or accepts with null. NULL comes as null where the format is `optional()`. Pasted and cleared cells come one call per row, with all of its values written.
+
+```java snippet="grid-pojo"
+```
+
+Give the setter or wither as a method reference: for a lambda, Java cannot tell a setter's `BiConsumer` from a wither's `BiFunction`.
+
+```text snippet="grid-typed-script"
+```
+
+## Sorting and filtering
+
+The grid sorts and filters nothing; the app does it to its rows, with what the table gives it from the grid's state:
+
+| | |
+| --- | --- |
+| `table.comparator(columns, keys)` | A `Comparator<T>` of the sort keys, by the typed values: numbers as numbers, dates as dates, enums in their order, NULL first |
+| `table.filter(columns, filters)` | A `Predicate<T>` of the header's filters: ranges and equality of numbers, dates and times compare values (`10.0` equals `10`), text compares text |
+| `filter.matches(value, format)` | One filter on one typed value |
+
+## With GridChanges
+
+A [GridChanges](/docs/components/data-grid/editing) keeps edits as text until the app writes them. Over a table, give each column its cells through the changes, `column.cell(changes.cell(c))`, which keeps the column's format for the editor; `changes.changes(table, columns)` then lists the changes with typed values: the app's row, and for each column the value before and after in the column's type, which `apply` writes into a row through the withers or setters.
+
+```java snippet="grid-typed-changes"
+```
+
+The DataBrowser example works this way: a million made-up orders as records, `BigDecimal` amounts, `LocalDateTime`s and an enum of statuses, edited through a `GridChanges` and written through the withers on Commit.
+
+## Cost
+
+A typed cell asks for its row and its value, then writes the text, which is what a column of text does anyway: a frame of a million rows costs the same with typed columns as with text columns writing the same texts, with 20 and with 300 columns. A getter that returns a primitive boxes it, one small object per cell for a `long` id, as `String.valueOf` makes a string.

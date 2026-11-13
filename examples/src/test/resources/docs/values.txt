@@ -1,0 +1,13 @@
+# docs:start values
+size 360 240
+frame
+snap view
+
+press #amount
+key A control
+type "12e"              # no number yet: a draft, with the format's message
+frame
+advance 1               # Save moves down below the message
+frame
+snap draft
+# docs:end values

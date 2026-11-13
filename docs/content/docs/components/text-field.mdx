@@ -3,7 +3,7 @@ title: TextField
 description: Single-line fields, password fields that can show their text, text areas and code areas.
 ---
 
-`TextField.textField` is a single-line text field in the kit's frame: a border, a lighter fill under the pointer and the accent border while focused. The same file has `passwordField` and `revealable` for passwords, `textArea` for several lines of prose and `codeArea` for code. The string belongs to the app: every edit hands the new string to the handler, which stores it. For code with line numbers and highlighting, use a [CodeEditor](/docs/components/code-editor); for a whole number, a [NumberField](/docs/components/number-field).
+`TextField.textField` is a single-line text field in the kit's frame: a border, a lighter fill under the pointer and the accent border while focused. The same file has `passwordField` and `revealable` for passwords, `textArea` for several lines of prose and `codeArea` for code. The string belongs to the app: every edit hands the new string to the handler, which stores it. For code with line numbers and highlighting, use a [CodeEditor](/docs/components/code-editor); for a typed value, such as a `BigDecimal` or a `LocalDate`, a [ValueField](/docs/components/format); for a whole number stepped by buttons, a [NumberField](/docs/components/number-field).
 
 <Shot src="kit/gallery-{theme}-2x" rows="field empty,field filled,field selected" alt="Text fields empty, filled and with a selection, in each state" />
 
@@ -29,6 +29,10 @@ The result is the field itself, so the core's field calls chain onto it:
 | `.key(...)`, `.label(...)` | Identity and label |
 
 A null handler disables the field. The handler may refuse an edit (store nothing) or change it (keep only digits); the field shows the app's string. See [Text fields and editors](/docs/concepts/text-fields) for carets, selection, undo and input methods.
+
+## Typed values
+
+For a number, a date or an enum, `ValueField.valueField(t, Format.DECIMAL, s.amount, s.amountDraft, v -> s.amount = v)` is this field over a value instead of a string: it hands on values, refuses what can never become one and keeps a text that is no value yet as a draft with the format's message. See [Format and ValueField](/docs/components/format).
 
 ## Passwords
 

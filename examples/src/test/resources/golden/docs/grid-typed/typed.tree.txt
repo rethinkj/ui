@@ -1,0 +1,252 @@
+el 0,0 520x300
+  el 12,12 496x276
+    el #orders role=grid label="Orders" 13,13 494x274 thumb-x 15,279 474.63x6 focused
+      el #content 13,13 510x274
+        el #header 13,13 510x25
+          el #column-0 role=columnheader label="id" 13,13 79x24 pos=1/5
+            text label="number_symbol" "\u{F57C}" 57,17 16x16
+            text "id" 77,17 11x16
+          el 92,13 1x24
+          el #column-1 role=columnheader label="customer" 93,13 119x24 pos=2/5
+            text label="text_case_title" "\u{ECEC}" 97,17 16x16
+            text "customer" 117,17 60x16
+          el 212,13 1x24
+          el #column-2 role=columnheader label="amount" 213,13 99x24 pos=3/5 sort=ascending
+            el 227,19 12x12
+              text label="arrow_up" "\u{E12A}" 227,19 12x12
+            text label="calculator" "\u{F06B}" 241,17 16x16
+            text "amount" 261,17 47x16
+          el 312,13 1x24
+          el #column-3 role=columnheader label="due" 313,13 109x24 pos=4/5
+            text label="calendar_ltr" "\u{E24D}" 317,17 16x16
+            text "due" 337,17 24x16
+          el 422,13 1x24
+          el #column-4 role=columnheader label="status" 423,13 89x24 pos=5/5
+            text label="tag" "\u{EC70}" 427,17 16x16
+            text "status" 447,17 37x16
+          el 512,13 1x24
+        el #rows 13,38 510x249 rows 0-13/1000 thumb-y 499,40 6x24
+          el #row-0 role=row 13,38 510x24 pos=1/1000
+            el #cell-0-0 role=gridcell 13,38 79x23 pos=1/5
+              text "1000" 60,42 28x16
+            el 92,38 1x23
+            el #cell-0-1 role=gridcell 93,38 119x23 pos=2/5
+              text "Ada" 97,42 24x16
+            el 212,38 1x23
+            el #cell-0-2 role=gridcell 213,38 99x23 pos=3/5
+              text "0.00" 280,42 28x16
+            el 312,38 1x23
+            el #cell-0-3 role=gridcell 313,38 109x23 pos=4/5
+              text "NULL" 317,42 28x16
+            el 422,38 1x23
+            el #cell-0-4 role=gridcell 423,38 89x23 pos=5/5
+              text "paid" 427,42 26x16
+            el 512,38 1x23
+          el #row-1 role=row 13,62 510x24 pos=2/1000
+            el #cell-1-0 role=gridcell 13,62 79x23 pos=1/5
+              text "1202" 60,66 28x16
+            el 92,62 1x23
+            el #cell-1-1 role=gridcell 93,62 119x23 pos=2/5
+              text "Gus" 97,66 25x16
+            el 212,62 1x23
+            el #cell-1-2 role=gridcell 213,62 99x23 pos=3/5
+              text "0.26" 280,66 28x16
+            el 312,62 1x23
+            el #cell-1-3 role=gridcell 313,62 109x23 pos=4/5
+              text "2026-11-23" 317,66 70x16
+            el 422,62 1x23
+            el #cell-1-4 role=gridcell 423,62 89x23 pos=5/5
+              text "pending" 427,66 51x16
+            el 512,62 1x23
+          el #row-2 role=row 13,86 510x24 pos=3/1000
+            el #cell-2-0 role=gridcell 13,86 79x23 pos=1/5
+              text "1404" 60,90 28x16
+            el 92,86 1x23
+            el #cell-2-1 role=gridcell 93,86 119x23 pos=2/5
+              text "Farah" 97,90 34x16
+            el 212,86 1x23
+            el #cell-2-2 role=gridcell 213,86 99x23 selected current pos=3/5
+              text "0.52" 280,90 28x16
+            el 312,86 1x23
+            el #cell-2-3 role=gridcell 313,86 109x23 pos=4/5
+              text "2026-12-15" 317,90 70x16
+            el 422,86 1x23
+            el #cell-2-4 role=gridcell 423,86 89x23 pos=5/5
+              text "shipped" 427,90 50x16
+            el 512,86 1x23
+          el #row-3 role=row 13,110 510x24 pos=4/1000
+            el #cell-3-0 role=gridcell 13,110 79x23 pos=1/5
+              text "1606" 60,114 28x16
+            el 92,110 1x23
+            el #cell-3-1 role=gridcell 93,110 119x23 pos=2/5
+              text "Emeka" 97,114 41x16
+            el 212,110 1x23
+            el #cell-3-2 role=gridcell 213,110 99x23 pos=3/5
+              text "0.78" 280,114 28x16
+            el 312,110 1x23
+            el #cell-3-3 role=gridcell 313,110 109x23 pos=4/5
+              text "2026-11-07" 317,114 70x16
+            el 422,110 1x23
+            el #cell-3-4 role=gridcell 423,110 89x23 pos=5/5
+              text "paid" 427,114 26x16
+            el 512,110 1x23
+          el #row-4 role=row 13,134 510x24 pos=5/1000
+            el #cell-4-0 role=gridcell 13,134 79x23 pos=1/5
+              text "1808" 60,138 28x16
+            el 92,134 1x23
+            el #cell-4-1 role=gridcell 93,134 119x23 pos=2/5
+              text "Dagny" 97,138 38x16
+            el 212,134 1x23
+            el #cell-4-2 role=gridcell 213,134 99x23 pos=3/5
+              text "1.04" 280,138 28x16
+            el 312,134 1x23
+            el #cell-4-3 role=gridcell 313,134 109x23 pos=4/5
+              text "2026-11-29" 317,138 70x16
+            el 422,134 1x23
+            el #cell-4-4 role=gridcell 423,134 89x23 pos=5/5
+              text "pending" 427,138 51x16
+            el 512,134 1x23
+          el #row-5 role=row 13,158 510x24 pos=6/1000
+            el #cell-5-0 role=gridcell 13,158 79x23 pos=1/5
+              text "1027" 60,162 28x16
+            el 92,158 1x23
+            el #cell-5-1 role=gridcell 93,158 119x23 pos=2/5
+              text "Gus" 97,162 25x16
+            el 212,158 1x23
+            el #cell-5-2 role=gridcell 213,158 99x23 pos=3/5
+              text "2.51" 280,162 28x16
+            el 312,158 1x23
+            el #cell-5-3 role=gridcell 313,158 109x23 pos=4/5
+              text "2026-11-28" 317,162 70x16
+            el 422,158 1x23
+            el #cell-5-4 role=gridcell 423,158 89x23 pos=5/5
+              text "paid" 427,162 26x16
+            el 512,158 1x23
+          el #row-6 role=row 13,182 510x24 pos=7/1000
+            el #cell-6-0 role=gridcell 13,182 79x23 pos=1/5
+              text "1229" 60,186 28x16
+            el 92,182 1x23
+            el #cell-6-1 role=gridcell 93,182 119x23 pos=2/5
+              text "Farah" 97,186 34x16
+            el 212,182 1x23
+            el #cell-6-2 role=gridcell 213,182 99x23 pos=3/5
+              text "2.77" 280,186 28x16
+            el 312,182 1x23
+            el #cell-6-3 role=gridcell 313,182 109x23 pos=4/5
+              text "2026-12-20" 317,186 70x16
+            el 422,182 1x23
+            el #cell-6-4 role=gridcell 423,182 89x23 pos=5/5
+              text "pending" 427,186 51x16
+            el 512,182 1x23
+          el #row-7 role=row 13,206 510x24 pos=8/1000
+            el #cell-7-0 role=gridcell 13,206 79x23 pos=1/5
+              text "1431" 60,210 28x16
+            el 92,206 1x23
+            el #cell-7-1 role=gridcell 93,206 119x23 pos=2/5
+              text "Emeka" 97,210 41x16
+            el 212,206 1x23
+            el #cell-7-2 role=gridcell 213,206 99x23 pos=3/5
+              text "3.03" 280,210 28x16
+            el 312,206 1x23
+            el #cell-7-3 role=gridcell 313,206 109x23 pos=4/5
+              text "2026-11-12" 317,210 70x16
+            el 422,206 1x23
+            el #cell-7-4 role=gridcell 423,206 89x23 pos=5/5
+              text "shipped" 427,210 50x16
+            el 512,206 1x23
+          el #row-8 role=row 13,230 510x24 pos=9/1000
+            el #cell-8-0 role=gridcell 13,230 79x23 pos=1/5
+              text "1633" 60,234 28x16
+            el 92,230 1x23
+            el #cell-8-1 role=gridcell 93,230 119x23 pos=2/5
+              text "Dagny" 97,234 38x16
+            el 212,230 1x23
+            el #cell-8-2 role=gridcell 213,230 99x23 pos=3/5
+              text "3.29" 280,234 28x16
+            el 312,230 1x23
+            el #cell-8-3 role=gridcell 313,230 109x23 pos=4/5
+              text "2026-12-04" 317,234 70x16
+            el 422,230 1x23
+            el #cell-8-4 role=gridcell 423,230 89x23 pos=5/5
+              text "paid" 427,234 26x16
+            el 512,230 1x23
+          el #row-9 role=row 13,254 510x24 pos=10/1000
+            el #cell-9-0 role=gridcell 13,254 79x23 pos=1/5
+              text "1835" 60,258 28x16
+            el 92,254 1x23
+            el #cell-9-1 role=gridcell 93,254 119x23 pos=2/5
+              text "Chen" 97,258 33x16
+            el 212,254 1x23
+            el #cell-9-2 role=gridcell 213,254 99x23 pos=3/5
+              text "3.55" 280,258 28x16
+            el 312,254 1x23
+            el #cell-9-3 role=gridcell 313,254 109x23 pos=4/5
+              text "NULL" 317,258 28x16
+            el 422,254 1x23
+            el #cell-9-4 role=gridcell 423,254 89x23 pos=5/5
+              text "pending" 427,258 51x16
+            el 512,254 1x23
+          el #row-10 role=row 13,278 510x24 pos=11/1000
+            el #cell-10-0 role=gridcell 13,278 79x23 pos=1/5
+              text "1054" 60,282 28x16
+            el 92,278 1x23
+            el #cell-10-1 role=gridcell 93,278 119x23 pos=2/5
+              text "Farah" 97,282 34x16
+            el 212,278 1x23
+            el #cell-10-2 role=gridcell 213,278 99x23 pos=3/5
+              text "5.02" 280,282 28x16
+            el 312,278 1x23
+            el #cell-10-3 role=gridcell 313,278 109x23 pos=4/5
+              text "2026-12-25" 317,282 70x16
+            el 422,278 1x23
+            el #cell-10-4 role=gridcell 423,278 89x23 pos=5/5
+              text "paid" 427,282 26x16
+            el 512,278 1x23
+          el #row-11 role=row 13,302 510x24 pos=12/1000
+            el #cell-11-0 role=gridcell 13,302 79x23 pos=1/5
+              text "1256" 60,306 28x16
+            el 92,302 1x23
+            el #cell-11-1 role=gridcell 93,302 119x23 pos=2/5
+              text "Emeka" 97,306 41x16
+            el 212,302 1x23
+            el #cell-11-2 role=gridcell 213,302 99x23 pos=3/5
+              text "5.28" 280,306 28x16
+            el 312,302 1x23
+            el #cell-11-3 role=gridcell 313,302 109x23 pos=4/5
+              text "2026-11-17" 317,306 70x16
+            el 422,302 1x23
+            el #cell-11-4 role=gridcell 423,302 89x23 pos=5/5
+              text "pending" 427,306 51x16
+            el 512,302 1x23
+          el #row-12 role=row 13,326 510x24 pos=13/1000
+            el #cell-12-0 role=gridcell 13,326 79x23 pos=1/5
+              text "1458" 60,330 28x16
+            el 92,326 1x23
+            el #cell-12-1 role=gridcell 93,326 119x23 pos=2/5
+              text "Dagny" 97,330 38x16
+            el 212,326 1x23
+            el #cell-12-2 role=gridcell 213,326 99x23 pos=3/5
+              text "5.54" 280,330 28x16
+            el 312,326 1x23
+            el #cell-12-3 role=gridcell 313,326 109x23 pos=4/5
+              text "2026-12-09" 317,330 70x16
+            el 422,326 1x23
+            el #cell-12-4 role=gridcell 423,326 89x23 pos=5/5
+              text "shipped" 427,330 50x16
+            el 512,326 1x23
+          el #row-13 role=row 13,350 510x24 pos=14/1000
+            el #cell-13-0 role=gridcell 13,350 79x23 pos=1/5
+              text "1660" 60,354 28x16
+            el 92,350 1x23
+            el #cell-13-1 role=gridcell 93,350 119x23 pos=2/5
+              text "Chen" 97,354 33x16
+            el 212,350 1x23
+            el #cell-13-2 role=gridcell 213,350 99x23 pos=3/5
+              text "5.80" 280,354 28x16
+            el 312,350 1x23
+            el #cell-13-3 role=gridcell 313,350 109x23 pos=4/5
+              text "NULL" 317,354 28x16
+            el 422,350 1x23
+            el #cell-13-4 role=gridcell 423,350 89x23 pos=5/5
+              text "paid" 427,354 26x16
+            el 512,350 1x23

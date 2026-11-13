@@ -31,7 +31,9 @@ import com.rethinkj.ui.Style;
  * <p>Each label names its field: the field, or the first control inside it, gets the label as
  * its {@link El#label} when it is a text field or has no label of its own, so that {@code
  * label="Host"} finds the field and a tree dump says what it is. A select keeps its choice as its
- * label. An error makes the field {@code invalid} in the dump. {@link #buttons} ends a form, a
+ * label. An error makes the field {@code invalid} in the dump. A {@link ValueField} whose text is
+ * no value shows its format's message as the error without the app passing one; an error the
+ * app passes wins. {@link #buttons} ends a form, a
  * card or a page with its buttons at the right, as a dialog has them.
  */
 public final class Form {
@@ -92,17 +94,20 @@ public final class Form {
       Field field = fields[i];
       El target = target(field.control());
       named(field.control(), field.label());
-      if (field.error() != null && target != null && target.isEditable()) {
+      // The app's error, else the message of a typed field's text ({@link ValueField}).
+      String error =
+          field.error() != null || target == null ? field.error() : target.errorMessage();
+      if (error != null && target != null && target.isEditable()) {
         TextField.invalid(t, target);
-      } else if (field.error() != null && target != null) {
+      } else if (error != null && target != null) {
         target.invalid(true);
       }
       El body = col().gap(t.space().xs()).child(field.control().alignSelf(Style.Align.START));
-      String below = field.error() != null ? field.error() : field.help();
+      String below = error != null ? error : field.help();
       if (below != null) {
         body.child(label(t, Label.Variant.MUTED, below)
             .wrapText()
-            .color(field.error() != null ? t.status().danger() : t.text().muted()));
+            .color(error != null ? t.status().danger() : t.text().muted()));
       }
       if (labels == Labels.ABOVE) {
         form.child(col().gap(t.space().xs()).children(heads[i], body));

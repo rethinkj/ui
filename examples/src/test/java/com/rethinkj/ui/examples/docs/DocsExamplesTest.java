@@ -46,6 +46,7 @@ class DocsExamplesTest {
     controls(all, "typed", Controls::typed, 360, 420);
     controls(all, "fields", Controls::fields, 360, 400);
     controls(all, "parts", Controls::parts, 400, 200);
+    controls(all, "values", Controls::values, 360, 240);
     layouts(all, "cards", Layouts::cards, 420, 360);
     layouts(all, "groups", Layouts::groups, 460, 200);
     layouts(all, "sections", Layouts::sections, 520, 400);
@@ -70,6 +71,7 @@ class DocsExamplesTest {
     grids(all, "grid-sort", Grids::sorted, 520, 300);
     grids(all, "grid-edit", Grids::edited, 520, 300);
     grids(all, "grid-filter", Grids::filtered, 520, 300);
+    grids(all, "grid-typed", Grids::typed, 520, 300);
     grids(all, "tree", Grids::tree, 320, 260);
     editors(all, "code-editor", Editors::codeEditor, 520, 260);
     editors(all, "find", Editors::find, 440, 220);
