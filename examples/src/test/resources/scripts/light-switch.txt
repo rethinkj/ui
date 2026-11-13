@@ -13,7 +13,7 @@ advance 1
 frame
 snap light-switch-on
 
-key Tab                # the switch has the focus from the press; Tab keeps it there, with a ring
+key Tab                # the press left the focus alone; Tab gives it to the switch, with a ring
 key Space
 frame
 advance 1

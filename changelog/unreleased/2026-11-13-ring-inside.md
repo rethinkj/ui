@@ -1,0 +1,1 @@
+- The focus ring no longer disappears where an element is flush with the edge of a pane, a scroll area or the window: where a clip or the window's edge would cut the ring outside the element, it lies just inside the element's border box instead, whole. Rings with room around them stay where they were.

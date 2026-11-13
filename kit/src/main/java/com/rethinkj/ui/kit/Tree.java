@@ -41,7 +41,9 @@ import java.util.function.Predicate;
  * End, Page Up and Page Down move as in a list, and Enter activates. The rows follow the
  * selection ({@link El#revealRow}): whenever a rebuild puts the selected node in another row, as
  * when the keys move it or nodes above it open or close, the tree scrolls just far enough to show
- * it. The tree is one stop for Tab. Like a list of rows, it needs a height of its own or room to
+ * it. Whenever nodes open or close, it also scrolls the selected node's children into view below
+ * it, as far as the tree's height allows with the node still in view: a node opened at the bottom
+ * shows what it holds. The tree is one stop for Tab. Like a list of rows, it needs a height of its own or room to
  * {@link El#grow}.
  *
  * <p>In a tree dump the tree is {@code role=tree}, and its rows are {@code role=treeitem} with the
@@ -183,6 +185,15 @@ public final class Tree {
         }
       });
     });
+    if (rows.selected >= 0) {
+      // When nodes open or close, the number of rows changes: the tree shows the selected node's
+      // children below it as far as the view has room, as one just opened by Right or the mark.
+      int end = rows.selected + 1;
+      while (end < rows.count && rows.depth(end) > rows.depth(rows.selected)) {
+        end++;
+      }
+      tree.reveal(rows.count, 0, rows.selected * height, 0, (end - rows.selected) * height);
+    }
     if (onSelect == null) {
       return tree;
     }

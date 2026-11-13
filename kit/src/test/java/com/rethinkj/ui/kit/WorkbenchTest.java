@@ -1,5 +1,6 @@
 package com.rethinkj.ui.kit;
 
+import static com.rethinkj.ui.kit.Workbench.find;
 import static com.rethinkj.ui.kit.Workbench.labelled;
 import static com.rethinkj.ui.kit.Workbench.x;
 import static com.rethinkj.ui.kit.Workbench.y;
@@ -83,9 +84,10 @@ class WorkbenchTest {
     assertEquals(169, labelled(app, "Query").height(), "the line's own key");
     run(app, "key Tab control\nframe");
     assertEquals(3, app.state().active, "Control+Tab went up to the tabs");
-    assertNull(app.focused(), "the line went with the content");
+    assertEquals(find(app, "filter"), app.focused(), "into the new content's field");
 
-    run(app, "key Tab control shift\nframe"); // to the root, which has the tabs' handler too
+    app.focus(null);
+    run(app, "frame\nkey Tab control shift\nframe"); // to the root, which has the tabs' handler too
     assertEquals(2, app.state().active);
     assertEquals(169, labelled(app, "Query").height(), "the app kept the share");
     run(app, "focus #tablist\nkey Tab control\nframe");

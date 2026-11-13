@@ -29,8 +29,10 @@ import org.junit.jupiter.api.io.TempDir;
  * The grid and the text field together, as an app combines them: a field laid over a cell edits
  * it, and a field beside the grid keeps its state while a column is resized. The editor is the
  * view's, not the grid's: Enter, F2 or a double press on the grid asks the app to edit the
- * cursor's cell ({@link DataGrid.Options#onEdit}), which opens the field over it; the field's own
- * key handler commits with Enter and cancels with Escape, and gives the focus back to the grid.
+ * cursor's cell ({@link DataGrid.Options#onEdit}), which opens the field over it. The field takes
+ * the focus as it appears ({@link El#autofocus}); its own key handler commits with Enter and
+ * cancels with Escape, and when it goes the focus goes back to the grid, the first focusable
+ * element around it.
  */
 class CellEditorTest {
 
@@ -52,7 +54,6 @@ class CellEditorTest {
     String draft;
     String filter = "";
     final List<String> log = new ArrayList<>();
-    App<Sheet> app;
 
     Sheet() {
       for (int i = 0; i < names.length; i++) {
@@ -85,6 +86,7 @@ class CellEditorTest {
         area.child(textField(T, draft, v -> draft = v).key("editor").label("Name")
             .absolute(widths[0], rowHeight + T.size().stroke() + editing * rowHeight)
             .w(widths[1] - T.size().stroke()).h(rowHeight)
+            .autofocus()
             .onKey(this::editorKey));
       }
       return col().wFull().hFull().padding(T.space().m()).gap(T.space().m())
@@ -108,15 +110,12 @@ class CellEditorTest {
         }
       }
       editing = -1;
-      app.focus(find(app.tree(), "sheet"));
       return true;
     }
   }
 
   private static App<Sheet> start() {
-    Sheet sheet = new Sheet();
-    App<Sheet> app = new App<>(sheet, Sheet::view);
-    sheet.app = app;
+    App<Sheet> app = new App<>(new Sheet(), Sheet::view);
     app.textRendering(TextRendering.LINUX);
     return app;
   }
@@ -141,9 +140,9 @@ class CellEditorTest {
     assertEquals(cell.width(), editor.width());
     assertEquals(cell.height(), editor.height());
 
-    // The app focuses the editor in the frame that adds it, while it fades in.
-    app.focus(editor);
-    run(app, "frame\ntype \" Jr.\"\nframe");
+    // The editor has the focus from the frame that adds it, while it fades in.
+    assertEquals("editor", app.focused().key());
+    run(app, "type \" Jr.\"\nframe");
     assertEquals("editor", app.focused().key());
     assertEquals(before + " Jr.", sheet.draft);
     assertEquals(before, sheet.names[3], "not yet committed");
@@ -161,9 +160,7 @@ class CellEditorTest {
     assertEquals(4, sheet.selection.row(), "and the keys");
 
     String fourth = sheet.names[4];
-    run(app, "key F2\nframe");
-    app.focus(find(app, "editor"));
-    run(app, "frame\ntype \"xyz\"\nframe");
+    run(app, "key F2\ntype \"xyz\"\nframe"); // the text goes to the editor that F2 opened
     // Once it shows, a press goes to the field, not to the cell under it.
     run(app, "advance 1\nframe\npress #editor\nframe");
     assertEquals("editor", app.focused().key());

@@ -12,7 +12,8 @@ import com.rethinkj.ui.Style;
 
 /**
  * An on/off switch, with an optional text beside it. A press on the switch or on its text flips
- * it, and so do Enter and Space while it has the focus.
+ * it, and so do Enter and Space while it has the focus. Tab reaches it; a press leaves the focus
+ * where it is, as a {@link Button}'s does.
  */
 public final class Toggle {
 
@@ -71,6 +72,7 @@ public final class Toggle {
     int pressed = on ? t.accent().pressed() : over(fill, t.surface().pressed());
     // The whole row takes the press, text included, and its looks restyle the track.
     return toggle.focusable()
+        .keepFocus() // as a button: Tab reaches it, a press leaves the focus where it is
         .focusRing(t.border().focus())
         .cursor(Cursor.POINTER)
         .onPress(onToggle)

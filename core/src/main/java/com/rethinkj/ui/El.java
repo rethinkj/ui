@@ -76,6 +76,8 @@ public final class El {
   private WindowPart windowPart;
   private Consumer<El> hoverLook;
   private Consumer<El> focusLook;
+  private Object autofocus; // see #autofocus(Object)
+  private Consumer<El> focusWithinLook; // see #whenFocusWithin
   private Consumer<El> pressLook;
   private Cursor cursor;
   private boolean hovered;
@@ -1255,7 +1257,8 @@ public final class El {
    * flow and {@link #style}). It must leave the children, the key, the handlers and {@link
    * #focusable} as the view built them; the frame in which it changes them throws an {@link
    * IllegalStateException}. When more than one look applies, the hovered one goes first, then
-   * {@link #whenFocused} and then {@link #whenPressed}, so that the last one wins.
+   * {@link #whenFocused}, {@link #whenFocusWithin} and then {@link #whenPressed}, so that the last
+   * one wins.
    *
    * <p>Only elements with a look cause a rebuild when the pointer reaches or leaves them: moving
    * the pointer over plain elements rebuilds nothing.
@@ -1276,6 +1279,20 @@ public final class El {
    */
   public El whenFocused(Consumer<El> look) {
     this.focusLook = look;
+    return this;
+  }
+
+  /**
+   * Changes how this element looks while it or an element inside it has the keyboard focus, as
+   * CSS's {@code :focus-within} does: a field's frame with a button inside keeps its focused look
+   * while the button has the focus, and a row can stand out while one of its controls has it. It
+   * comes after {@link #whenFocused} and before {@link #whenPressed}. See {@link #whenHovered} for
+   * what a look may change.
+   *
+   * @param look changes the element, or null for none
+   */
+  public El whenFocusWithin(Consumer<El> look) {
+    this.focusWithinLook = look;
     return this;
   }
 
@@ -1517,6 +1534,11 @@ public final class El {
    * focusable elements inside it in the usual order: an overlay's right after its anchor. A menu
    * bar's titles keep the focus in the editor whose menus they open, and a notification with an
    * Undo button opens without taking the focus from what the user types.
+   *
+   * <p>On a {@link #focusable} element it makes one that only the keyboard focuses: Tab reaches
+   * it, and Enter and Space press it there, but a press or a drag on it leaves the focus in the
+   * editor or grid it acts on. The kit's buttons, toggles, checkboxes, selects, tab bar and split
+   * dividers are made so.
    */
   public El keepFocus() {
     this.keepsFocus = true;
@@ -1534,6 +1556,35 @@ public final class El {
    */
   public El holdFocus() {
     this.holdsFocus = true;
+    return this;
+  }
+
+  /**
+   * Makes this element take the keyboard focus when it appears: in the build of the view that
+   * first has it, the first such element in tree order that can take the focus gets it, with a
+   * ring if the focus had one, and scrolled into view; later builds leave the focus alone. The
+   * editor that a key or a double press lays over a cell takes the focus this way. Inside an
+   * overlay it names the element that the overlay's opening focuses instead of its first
+   * focusable one: a dialog's second field. Where the focused element disappears, it is where the
+   * focus goes among the elements around it (see {@link App#focused}). While an overlay opens and
+   * takes the focus, the build leaves elements outside it alone. The same as {@code
+   * autofocus(Boolean.TRUE)}.
+   */
+  public El autofocus() {
+    return autofocus(Boolean.TRUE);
+  }
+
+  /**
+   * Like {@link #autofocus()}, and also takes the focus again whenever a build of the view gives
+   * this element another {@code key} than the tree before, as {@link #reveal} keeps a part in
+   * view: the first field with an error takes the focus after each Save with {@code
+   * autofocus(s.saves)}, the count of Save presses in the state. Not in the rows of a virtual
+   * list, whose rows appear whenever they scroll into view.
+   *
+   * @param key compared with {@link Object#equals}; null, the default, takes no focus
+   */
+  public El autofocus(Object key) {
+    this.autofocus = key;
     return this;
   }
 
@@ -1838,6 +1889,15 @@ public final class El {
 
   Consumer<El> focusLook() {
     return focusLook;
+  }
+
+  Consumer<El> focusWithinLook() {
+    return focusWithinLook;
+  }
+
+  /** The key of {@link #autofocus(Object)}, or null. */
+  Object autofocusKey() {
+    return autofocus;
   }
 
   Consumer<El> pressLook() {
@@ -2466,8 +2526,8 @@ public final class El {
   }
 
   /**
-   * For {@link App}: runs a look of {@link #whenHovered}, {@link #whenFocused} or {@link
-   * #whenPressed}, named by {@code name}, and checks that it left alone what a look must not
+   * For {@link App}: runs a look of {@link #whenHovered}, {@link #whenFocused}, {@link
+   * #whenFocusWithin} or {@link #whenPressed}, named by {@code name}, and checks that it left alone what a look must not
    * change.
    */
   void apply(Consumer<El> look, String name) {

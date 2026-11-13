@@ -15,7 +15,7 @@ frame                               # the second press of a double press opens i
 press role=treeitem label="public"
 frame
 press role=treeitem label="public" clicks 2
-frame
+frame                               # opens it and scrolls it up, so that its tables show below
 press role=treeitem label="accounts"
 frame
 press role=treeitem label="accounts" clicks 2

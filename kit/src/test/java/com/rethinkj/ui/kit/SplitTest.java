@@ -237,7 +237,7 @@ class SplitTest {
     App<Workbench> app = start(Position.first(300));
     run(app, "press #divider\nframe");
     assertEquals(List.of(), app.state().log);
-    assertEquals(find(app, "divider"), app.focused(), "focused without a ring");
+    assertNull(app.focused(), "a press on the line leaves the focus where it was");
     run(app, "press #divider clicks 2\nframe");
     assertEquals(List.of("sidebar " + Workbench.SIDEBAR), app.state().log);
     assertParts(app, 200, 279);

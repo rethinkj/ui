@@ -55,6 +55,35 @@ class TreeTest {
     Script.run("size 280 300\n" + steps, app, out);
   }
 
+  @Test
+  void openingTheLastNodeByKeyboardScrollsItsChildrenIntoView() throws IOException {
+    Catalog catalog = new Catalog(T).opened("localhost", "localhost/shop", "localhost/shop/public");
+    App<Catalog> app = start(catalog);
+    run(app, "focus #schema\nkey End\nkey ArrowUp\nframe"); // a table near the end of the list
+    Node table = catalog.selected;
+    int row = selectedRow(app);
+    float h = T.grid().rowHeight();
+    El tree = Workbench.find(app, "schema");
+    assertTrue(tree.scrollY() + tree.height() < (row + 2) * h + 1, "near the bottom of the view");
+
+    run(app, "key ArrowRight\nframe");
+    assertTrue(catalog.open.contains(table), "opened");
+    assertEquals(row, selectedRow(app), "still selected");
+    tree = Workbench.find(app, "schema");
+    float shown = Math.min((row + 1 + table.children.size()) * h, row * h + tree.height());
+    assertTrue(tree.scrollY() + tree.height() >= shown - 0.5f,
+        "its columns below it, as far as there is room: " + tree.scrollY());
+    assertTrue(tree.scrollY() <= row * h + 0.5f, "and the table itself");
+  }
+
+  /** The index of the selected row, from the dump. */
+  private static int selectedRow(App<?> app) {
+    Matcher m = Pattern.compile("#row-(\\d+) role=treeitem [^\\n]* selected").matcher(
+        app.tree().dump());
+    assertTrue(m.find(), "a selected row");
+    return Integer.parseInt(m.group(1));
+  }
+
   // Rows and cost
 
   /**
