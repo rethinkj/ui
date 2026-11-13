@@ -82,7 +82,12 @@ import java.util.function.Predicate;
  * <p>A text field ({@link El#editable}) keeps its caret, selection, scroll, undo history and
  * composition here too, by the same identity. Its caret blinks on the app's clock while it has the
  * focus: {@link #frame} draws a new frame when it turns on or off, and {@link #nextChange} says
- * when that is. Cut, copy and paste go through the app's {@link #clipboard}.
+ * when that is. Cut, copy and paste go through the app's {@link #clipboard}. A field that loses
+ * the focus to another element, or to none, shows the start of its text and no selection, as
+ * browsers do, and forgets how far it was scrolled; when the focus comes back, the text scrolls
+ * just far enough to show the caret. Losing the focus of the window is not that: the field keeps
+ * the app's focus, its scroll, caret and selection, and only stops drawing the caret until the
+ * window has the focus again.
  *
  * <p>This class needs no window. A windowed runner feeds it the window's input and draws its
  * {@link #scene}; tests and agents feed it input themselves and look at {@link #render}.
