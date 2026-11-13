@@ -5,7 +5,7 @@ el 0,0 560x240
         el #column-1 role=columnheader label="customer" 130,8 139x22 pos=2/7 sort=ascending
           text "customer" 134,11 58x16
           el 194,11 20x16
-            text "\u{E12A}" 194,13 12x12
+            text label="arrow_up" "\u{E12A}" 194,13 12x12
             text "2" 206,11 8x16
         el 269,8 1x22
         el #column-2 role=columnheader label="email" 270,8 199x22 pos=3/7
@@ -33,7 +33,7 @@ el 0,0 560x240
         el 65,8 1x22
         el #column-0 role=columnheader label="id" 66,8 63x22 pos=1/7 sort=ascending
           el 93,11 17x16
-            text "\u{E12A}" 93,13 12x12
+            text label="arrow_up" "\u{E12A}" 93,13 12x12
             text "1" 105,11 5x16
           text "id" 114,11 11x16
         el 129,8 1x22

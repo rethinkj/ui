@@ -8,7 +8,7 @@ el 0,0 360x240
       text "?" 168,16 7x16
     el #encoding role=combobox label="UTF-8" 192,12 120x24 expanded
       text "UTF-8" 201,16 82x16
-      text "\u{F2A2}" 287,16 16x16
+      text label="chevron_down" "\u{F2A2}" 287,16 16x16
   el 12,44 336x160
     el #tables role=list label="Tables" 12,44 218x160
       el #table-0 role=listitem label="accounts" 17,49 208x24
@@ -44,7 +44,7 @@ overlay bottom stretch gap 2 on #encoding role=combobox label="UTF-8" 192,12 120
     el #item-0 role=menuitem label="UTF-8" 197,43 133x24 checked
       el 197,43 133x24
         el 205,47 16x16
-          text "\u{E305}" 205,47 16x16
+          text label="checkmark" "\u{E305}" 205,47 16x16
         text "UTF-8" 229,47 93x16
     el #item-1 role=menuitem label="UTF-16" 197,67 133x24
       el 197,67 133x24

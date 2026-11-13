@@ -13,12 +13,15 @@ import com.rethinkj.ui.El;
 import com.rethinkj.ui.Script;
 import com.rethinkj.ui.Style;
 import com.rethinkj.ui.kit.DataGrid;
-import com.rethinkj.ui.kit.DataGrid.Align;
+import com.rethinkj.ui.kit.DataGrid.CellIcon;
 import com.rethinkj.ui.kit.DataGrid.Column;
+import com.rethinkj.ui.kit.DataGrid.DataType;
 import com.rethinkj.ui.kit.DataGrid.Mode;
 import com.rethinkj.ui.kit.DataGrid.Selection;
 import com.rethinkj.ui.kit.DataGrid.SortKey;
+import com.rethinkj.ui.kit.Icon.Variant;
 import com.rethinkj.ui.kit.Menu;
+import com.rethinkj.ui.kit.Symbol;
 import com.rethinkj.ui.kit.Theme;
 import com.rethinkj.ui.render.GpuPresenter;
 import com.rethinkj.ui.text.TextRendering;
@@ -67,28 +70,35 @@ public final class DataBrowser {
   private static final LocalDateTime START = LocalDateTime.of(2026, 1, 5, 8, 0);
   private static final DateTimeFormatter TIME = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
 
-  /** A column of the table: its cell from a row's index, and whether the filter looks at it. */
+  /**
+   * A column of the table: its kind, its cell from a row's index, and whether the filter looks at
+   * it.
+   */
   private record Field(
-      String title, float width, Align align, boolean mono, boolean text, IntFunction<String> cell) {}
+      String title, float width, DataType kind, boolean text, IntFunction<String> cell) {}
 
   private static final List<Field> FIELDS = List.of(
-      new Field("id", 72, Align.RIGHT, true, false, i -> String.valueOf(i + 1)),
-      new Field("customer", 140, Align.LEFT, false, true, DataBrowser::customer),
-      new Field("email", 220, Align.LEFT, false, true, i -> customer(i).toLowerCase(Locale.ROOT)
+      new Field("id", 72, DataType.INTEGER, false, i -> String.valueOf(i + 1)),
+      new Field("customer", 140, DataType.TEXT, true, DataBrowser::customer),
+      new Field("email", 220, DataType.TEXT, true, i -> customer(i).toLowerCase(Locale.ROOT)
           .replace(' ', '.') + "@" + DOMAIN[i / 100 % DOMAIN.length]),
-      new Field("city", 90, Align.LEFT, false, true, i -> CITY[i / 4 % CITY.length]),
-      new Field("country", 70, Align.LEFT, false, true, i -> COUNTRY[i / 4 % COUNTRY.length]),
-      new Field("product", 100, Align.LEFT, false, true, i -> PRODUCT[product(i)]),
-      new Field("quantity", 80, Align.RIGHT, true, false, i -> String.valueOf(quantity(i))),
-      new Field("amount", 100, Align.RIGHT, true, false, i -> {
+      new Field("city", 90, DataType.TEXT, true, i -> CITY[i / 4 % CITY.length]),
+      new Field("country", 80, DataType.TEXT, true, i -> COUNTRY[i / 4 % COUNTRY.length]),
+      new Field("product", 100, DataType.TEXT, true, i -> PRODUCT[product(i)]),
+      new Field("quantity", 80, DataType.INTEGER, false, i -> String.valueOf(quantity(i))),
+      new Field("amount", 100, DataType.DECIMAL, false, i -> {
         int cents = quantity(i) * CENTS[product(i)];
         return String.format(Locale.ROOT, "%d.%02d", cents / 100, cents % 100);
       }),
-      new Field("created_at", 140, Align.LEFT, true, false, i -> created(i).format(TIME)),
-      new Field("shipped_at", 140, Align.LEFT, true, false, i -> !status(i).equals("shipped")
+      new Field("created_at", 140, DataType.DATE_TIME, false, i -> created(i).format(TIME)),
+      new Field("shipped_at", 140, DataType.DATE_TIME, false, i -> !status(i).equals("shipped")
           ? null : created(i).plusMinutes(i * 7919L % 4320).format(TIME)),
-      new Field("status", 90, Align.LEFT, false, true, DataBrowser::status),
-      new Field("note", 180, Align.LEFT, false, true, i -> NOTE[i % NOTE.length]));
+      new Field("status", 90, DataType.ENUM, true, DataBrowser::status),
+      new Field("note", 180, DataType.TEXT, true, i -> NOTE[i % NOTE.length]));
+  // A coloured mark before each status, in the order of STATUS: constants, allocated once.
+  private static final CellIcon[] MARKS = {
+    CellIcon.before(Symbol.RECORD, Variant.SUCCESS), CellIcon.before(Symbol.RECORD, Variant.WARNING),
+    CellIcon.before(Symbol.RECORD, Variant.NORMAL), CellIcon.before(Symbol.RECORD, Variant.DANGER)};
 
   String filter = "";
   int[] matching = all(); // the rows below PERIOD that the filter keeps, in order
@@ -244,8 +254,13 @@ public final class DataBrowser {
     List<Column> columns = new ArrayList<>();
     for (int c = 0; c < FIELDS.size(); c++) {
       Field f = FIELDS.get(c);
-      columns.add(new Column(f.title(), s.widths[c], f.align(), f.mono(), c == 0, // id sorts
-          shown -> f.cell().apply(s.orderAt(shown))));
+      Column column = new Column(f.title(), s.widths[c], f.kind(),
+          shown -> f.cell().apply(s.orderAt(shown))).sortable(c == 0); // id sorts
+      columns.add(switch (f.title()) {
+        case "id" -> column.icon(Symbol.KEY, Variant.WARNING);
+        case "status" -> column.cellIcon(shown -> MARKS[s.orderAt(shown) * 7 % STATUS.length]);
+        default -> column;
+      });
     }
     DataGrid.Options options = DataGrid.options()
         .select(s.selection).onSelect(s::selected)
