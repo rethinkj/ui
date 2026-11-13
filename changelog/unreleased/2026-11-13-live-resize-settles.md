@@ -1,0 +1,1 @@
+- While a window is resized with the mouse, a toolbar or breadcrumb that gives way into a menu (`El.onResize`) settles in the same step instead of one step late, where its parts overlapped and came back; `App.handlersWaiting()` tells a runner that the next frame has such handlers to run.

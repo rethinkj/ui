@@ -244,6 +244,38 @@ class WindowLoopTest {
   }
 
   @Test
+  void aLiveRedrawShowsWhatTheResizeHandlersOfItsFrameChanged() {
+    try (Window window = Window.open(TITLE, 300, 120)) {
+      Desktop.settle();
+      float[] told = {-1}; // the width the handler was told, which the view is built from
+      App<float[]> app = new App<>(told, t -> col().wFull().hFull()
+          .child(el().key("measured").wFull().h(20).onResize((w, h) -> t[0] = w))
+          .child(el().key("shown").size(t[0] < 0 ? 1 : t[0] / 10, 10)));
+      float[] shown = {-1}; // the width of #shown in the frame presented last
+      WindowLoop.Presenter presenter = (scene, w, h, s) -> {
+        for (El child : app.tree().children()) {
+          if ("shown".equals(child.key())) {
+            shown[0] = child.width();
+          }
+        }
+      };
+      float[] afterRedraw = {-1};
+      AtomicReference<WindowLoop> loop = new AtomicReference<>();
+      loop.set(new WindowLoop(window, app, presenter).waits((millis, holdBack) -> {
+        if (afterRedraw[0] < 0 && shown[0] == 30) {
+          // As in the system's resize loop: a new size, then a redraw that has to show it.
+          window.resize(400, 120);
+          Desktop.windowEvent(window, Sdl.EVENT_WINDOW_EXPOSED, 1, 0);
+          afterRedraw[0] = shown[0];
+          loop.get().stop();
+        }
+      }));
+      Desktop.run(loop.get(), () -> "the loop shows 300 wide, then redraws; shown " + shown[0]);
+      assertEquals(40, afterRedraw[0], "the redraw shows what the handler of its frame told");
+    }
+  }
+
+  @Test
   void theClosePartEndsTheLoop() {
     try (Window window = Window.open(TITLE, 300, 200, Window.options().frameless())) {
       Desktop.settle();

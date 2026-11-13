@@ -792,6 +792,11 @@ public final class WindowLoop {
         if (!drawing) { // in a pass, the frame comes anyway
           tick();
           draw(e, !redraw.live());
+          // During the system's live resize no other frame comes until the next step: what the
+          // frame queued, such as a toolbar's resize handler, shows now, not a step late.
+          for (int i = 0; i < 3 && e.isOpen() && e.app.handlersWaiting(); i++) {
+            draw(e, false);
+          }
           // The frame may have run a task that arrived, which the others show at once too.
           for (Entry other : invalidateOthers(e)) {
             draw(other, false);

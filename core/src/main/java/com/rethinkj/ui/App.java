@@ -1288,6 +1288,18 @@ public final class App<S> {
   }
 
   /**
+   * Whether the next {@link #frame} has handlers to run at once that the last one queued, such as
+   * the {@link El#onResize} handlers of elements that layout gave another size, or input and
+   * tasks that arrived since. A runner that draws a single frame when the system asks for one, as
+   * a {@link com.rethinkj.ui.window.WindowLoop} does during a live resize, draws again while this
+   * holds (a few times at most), so that a toolbar that gives way to the new width shows so in
+   * the same step instead of one step late.
+   */
+  public boolean handlersWaiting() {
+    return !queued.isEmpty();
+  }
+
+  /**
    * The time on the app's clock at which the last frame changes without input or movement: when
    * the caret of the focused field turns on or off, when the pointer will have rested long enough
    * on an element for its {@link El#whenHoveredFor} look or {@link El#onHoverFor} handler, or when
