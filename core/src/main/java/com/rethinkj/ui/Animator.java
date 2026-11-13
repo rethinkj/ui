@@ -59,6 +59,7 @@ final class Animator {
    * the elements that are leaving are put back into it.
    */
   void update(El root, double now) {
+    El.measureScrolls(root); // before the offsets are clamped to what it finds
     Map<Id, Entry> next = new HashMap<>();
     moving.clear();
     visit(root, new Id(null, part(root, 0)), started, next, now);

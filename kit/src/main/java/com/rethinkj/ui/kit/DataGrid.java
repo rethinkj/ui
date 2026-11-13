@@ -10,6 +10,7 @@ import com.rethinkj.ui.Drag;
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.Key;
 import com.rethinkj.ui.Len;
+import com.rethinkj.ui.Scrollbars;
 import com.rethinkj.ui.Style;
 import java.util.List;
 import java.util.function.IntConsumer;
@@ -38,8 +39,11 @@ import java.util.function.IntFunction;
  * column, and a press on a header cell sorts. Scrollbars ({@link Theme#scrollbars}) show where the
  * rows in view are among all of them and where the columns in view are: the one along the right
  * edge of the rows, below the header, and the one along the bottom of the grid; dragging the
- * first reaches any of a million rows. Like a list of rows, the grid needs a height of its own or
- * room to {@link El#grow}.
+ * first reaches any of a million rows. The bars lie over the rows, and the grid scrolls far enough
+ * to bring the last row and the last column out from under them: the rows past the bar along the
+ * bottom, and the columns past the rows' bar, for which the header and the rows have the bar's
+ * room after the last column. Like a list of rows, the grid needs a height of its own or room to
+ * {@link El#grow}.
  *
  * <p>In a tree dump the grid is {@code role=grid}, its header cells {@code role=columnheader} with
  * the title as label and the key {@code column-<index>}, the edges that resize them {@code
@@ -149,7 +153,11 @@ public final class DataGrid {
     }).scrollbars(t.scrollbars());
 
     El under = el().h(t.size().stroke()).shrink(0).fill(t.border().subtle());
-    El content = col().key("content").w(total).children(header, under, body);
+    // After the last column, room for the rows' bar, which lies at the right end of the rows and
+    // moves with them: scrolled to the end, the last column is clear of it.
+    Scrollbars bars = t.scrollbars();
+    float room = bars.thickness() + 2 * bars.margin();
+    El content = col().key("content").w(total + room).children(header, under, body);
     content.style().minWidth = Len.percent(1); // the rows reach across a grid wider than them
     // Header and rows scroll sideways together in the grid; the rows scroll up and down alone.
     El grid = row().role("grid").scrollBoth().scrollbars(t.scrollbars()).fill(g.row())

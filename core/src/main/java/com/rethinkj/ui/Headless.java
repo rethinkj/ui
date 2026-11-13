@@ -39,6 +39,7 @@ public final class Headless {
       El root, float width, float height, float scale, TextRendering textRendering) {
     El.scaleText(root, scale);
     Flex.layout(root, width, height);
+    El.measureScrolls(root);
     fillRows(root, 0, height, scale);
     El.placeBars(root);
     Scene scene = Scene.of(root, null, 0, new Atlas(), textRendering);

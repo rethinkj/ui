@@ -775,7 +775,8 @@ public final class App<S> {
 
   /**
    * Scrolls the scroll areas around {@code el}, the innermost first, just far enough to show its
-   * border box whole inside theirs, or its start if it is larger.
+   * border box whole inside theirs and clear of the bars over their ends, or its start if it is
+   * larger.
    */
   private void reveal(El el) {
     List<El> path = new ArrayList<>();
@@ -798,8 +799,8 @@ public final class App<S> {
         y += path.get(j).y();
       }
       area.scrollTo(
-          area.scrollX() + nearest(x, el.width(), areaX, area.width()),
-          area.scrollY() + nearest(y, el.height(), areaY, area.height()));
+          area.scrollX() + nearest(x, el.width(), areaX, area.width() - area.coverX()),
+          area.scrollY() + nearest(y, el.height(), areaY, area.height() - area.coverY()));
     }
   }
 
