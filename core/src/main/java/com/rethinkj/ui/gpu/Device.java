@@ -148,7 +148,7 @@ public final class Device extends GpuObject {
     }
   }
 
-  /** A layout of uniform buffer bindings. */
+  /** A layout of buffer bindings: uniform and read-only storage buffers. */
   public BindGroupLayout createBindGroupLayout(String label, BindGroupLayout.Entry... entries) {
     requireLabel(label);
     MemorySegment device = usable();
@@ -160,7 +160,7 @@ public final class Device extends GpuObject {
         MemorySegment e = array.asSlice(i * BindGroupLayoutEntry.LAYOUT.byteSize());
         e.set(JAVA_INT, BindGroupLayoutEntry.BINDING, entry.binding());
         e.set(JAVA_LONG, BindGroupLayoutEntry.VISIBILITY, ShaderStage.bits(entry.visibility()));
-        e.set(JAVA_INT, BindGroupLayoutEntry.BUFFER_TYPE, Wgpu.BUFFER_BINDING_TYPE_UNIFORM);
+        e.set(JAVA_INT, BindGroupLayoutEntry.BUFFER_TYPE, entry.type().value);
         e.set(JAVA_LONG, BindGroupLayoutEntry.BUFFER_MIN_BINDING_SIZE, entry.minBindingSize());
       }
       MemorySegment descriptor = arena.allocate(BindGroupLayoutDescriptor.LAYOUT);
