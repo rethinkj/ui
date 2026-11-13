@@ -901,6 +901,29 @@ public final class Window implements AutoCloseable {
     rethrow();
   }
 
+  /**
+   * Opens the system's window menu (restore, move, size, minimize, maximize, close) at the left
+   * edge, below the title bar, as Alt+Space does on a framed window: in a frameless window below
+   * the rows at the top of the left edge that the view marks as its drag area ({@link
+   * WindowPart#DRAG}). The menu runs a loop of its own, so it opens after the events queued now
+   * are delivered. Where the platform has no such menu, nothing opens.
+   */
+  public void showSystemMenu() {
+    checkOpen();
+    float below = 0;
+    if (frameless) {
+      while (below < height && part(0, below) == WindowPart.DRAG) {
+        below++;
+      }
+    }
+    int y = units(below);
+    deferred.add(() -> {
+      if (open) {
+        Sdl.showWindowSystemMenu(sdl, 0, y);
+      }
+    });
+  }
+
   /** Brings the window to the front and gives it the keyboard focus, if the system lets it. */
   public void raise() {
     checkOpen();
