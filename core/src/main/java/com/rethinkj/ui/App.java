@@ -6,6 +6,7 @@ import com.rethinkj.ui.render.Scene;
 import com.rethinkj.ui.text.Atlas;
 import com.rethinkj.ui.text.Font;
 import com.rethinkj.ui.text.TextRendering;
+import com.rethinkj.ui.window.Windows;
 import java.time.Duration;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -169,6 +170,7 @@ public final class App<S> {
   private boolean dispatching;
   private boolean handled; // a handler of the app took input since the tree was built
   private boolean scrolled; // something scrolled since the rows and bars were placed
+  private boolean caretOverlays; // an overlay is placed beside a caret: see El#atCaret
   private boolean rowsPending; // the tree was built between two inputs without its lists' rows
   private final Animator animator = new Animator();
   private double time;
@@ -210,8 +212,12 @@ public final class App<S> {
   private boolean systemFonts;
   private final Map<Object, Editor> editors = new HashMap<>(); // the fields' state, by identity
   private Clipboard clipboard = Clipboard.inMemory();
+  private Windows windows = Windows.NONE;
+  private boolean ran; // a handler ran in this frame; see ranHandlers()
   private Object selecting; // the identity of the field a press is selecting in, until pointer up
   private Editor blinking; // the editor of the focused field
+  private long builds; // the number of the view's last build, for the fields' FieldState
+  private El typingSoon; // a field of the last tree that a press not dispatched yet lands in
   private double blinkStart; // when its caret last turned on
   private boolean caretOn;
   // Actions to run when the clock reaches their time, the earliest first; see after().
@@ -222,6 +228,9 @@ public final class App<S> {
   // The overlays of the last tree the view built, in the order they opened, with where the focus
   // was before each took it; null for one that took none.
   private final Map<Object, Focus> opened = new LinkedHashMap<>();
+  // For the open overlays that took no focus, such as a toast: where the focus was last outside
+  // each, for when the keyboard moved it inside and the overlay closes.
+  private final Map<Object, Focus> outside = new HashMap<>();
   // When the open overlays with an onShownFor handler that has not run yet opened, by identity.
   private final Map<Object, Double> shownSince = new HashMap<>();
   private double shownDue = Double.POSITIVE_INFINITY; // when the next of those handlers is
@@ -349,11 +358,16 @@ public final class App<S> {
    *     {@link Key#META}
    */
   public void pointerDown(float x, float y, int clicks, int modifiers) {
+    List<El> at = root == null ? List.of() : hit(x, y);
+    if (!at.isEmpty() && at.getLast().takesEdits() && at.getLast().editor() != null) {
+      typingSoon = at.getLast(); // see inputArea
+    }
     enqueue(() -> down(x, y, clicks, modifiers));
   }
 
   private boolean down(float x, float y, int clicks, int modifiers) {
-    boolean changed = false;
+    typingSoon = null;
+    boolean changed = anyPointerDown();
     if (dragging != null && dragging.started) { // the last release got lost
       changed = step(dragging, Drag.Phase.CANCEL, dragging.dx, dragging.dy);
     }
@@ -399,7 +413,7 @@ public final class App<S> {
     pressModifiers = modifiers;
     dragging = target == null || target.el.onDrag() == null
         ? null
-        : new Dragging(target.id(), target.el.onDrag(), x, y);
+        : new Dragging(target.id(), target.el.onDrag(), target.el.dragPayload(), x, y);
     if (!keepsFocus(hit)) {
       Target focus = target(x, y, El::isFocusable);
       focus(focus == null ? null : focus.el, false);
@@ -460,11 +474,12 @@ public final class App<S> {
   }
 
   private boolean secondaryDownAt(float x, float y) {
+    boolean any = anyPointerDown();
     secondary = null;
     settle();
     restAfterPress();
     if (framePartUnderModal(x, y) || dismiss(x, y, true)) {
-      return false;
+      return any;
     }
     Target target = target(x, y, el -> el.onSecondaryPress() != null);
     secondary = target == null ? null : target.id();
@@ -472,7 +487,31 @@ public final class App<S> {
       Target focus = target(x, y, El::isFocusable);
       focus(focus == null ? null : focus.el, false);
     }
-    return false;
+    return any;
+  }
+
+  /** Runs the {@link El#onAnyPointerDown} handlers of the tree and its shown overlays. */
+  private boolean anyPointerDown() {
+    if (root == null) {
+      return false;
+    }
+    List<Runnable> handlers = new ArrayList<>();
+    anyPointerDown(root, handlers);
+    for (El overlay : root.shownOverlays()) {
+      anyPointerDown(overlay, handlers);
+    }
+    handlers.forEach(Runnable::run);
+    handled |= !handlers.isEmpty();
+    return !handlers.isEmpty();
+  }
+
+  private static void anyPointerDown(El el, List<Runnable> handlers) {
+    if (el.onAnyPointerDown() != null) {
+      handlers.add(el.onAnyPointerDown());
+    }
+    for (El child : el.children()) {
+      anyPointerDown(child, handlers);
+    }
   }
 
   /**
@@ -665,6 +704,10 @@ public final class App<S> {
   private static final class Dragging {
     final Object id;
     final Consumer<Drag> handler; // the element's when the pointer went down
+    final Object payload; // likewise; null for a drag that reaches no drop handler
+    App<?> overApp; // the app whose element's drop handler the last step was over, or null
+    Object overId; // that element's identity there
+    Consumer<Drop> overHandler; // and its handler, which gets the LEAVE
     final float x;
     final float y;
     boolean started; // moved beyond the threshold
@@ -672,9 +715,10 @@ public final class App<S> {
     float dx; // the distance of the last step
     float dy;
 
-    Dragging(Object id, Consumer<Drag> handler, float x, float y) {
+    Dragging(Object id, Consumer<Drag> handler, Object payload, float x, float y) {
       this.id = id;
       this.handler = handler;
+      this.payload = payload;
       this.x = x;
       this.y = y;
     }
@@ -693,12 +737,76 @@ public final class App<S> {
       return false;
     }
     El el = animator.element(d.id);
-    boolean gone = el == null || el.isExiting();
+    // A drag that carries a payload goes on without its element: what moves is the payload, as a
+    // tab torn out of its bar.
+    boolean left = el == null || el.isExiting();
+    boolean gone = left && d.payload == null;
     d.over = gone || phase == Drag.Phase.END || phase == Drag.Phase.CANCEL;
-    double[] at = gone ? new double[] {Double.NaN, Double.NaN} : content(el, d.x + dx, d.y + dy);
-    d.handler.accept(new Drag(gone ? Drag.Phase.CANCEL : phase, dx, dy, at[0], at[1]));
+    double[] at = left ? new double[] {Double.NaN, Double.NaN} : content(el, d.x + dx, d.y + dy);
+    Drag.Phase now = gone ? Drag.Phase.CANCEL : phase;
+    float px = d.x + dx;
+    float py = d.y + dy;
+    boolean outside = !(px >= 0 && py >= 0 && px < width && py < height);
+    Windows.Place place = windows.place(this, px, py);
+    if (place == null) { // no runner: this window alone, at the origin of the screen
+      place = new Windows.Place(px, py, null, outside ? Float.NaN : px, outside ? Float.NaN : py);
+    }
+    if (d.payload != null) {
+      App<?> over = place.window() != null ? place.window().app()
+          : windows.of(this) == null && !outside ? this : null;
+      drop(d, now, over, place.x(), place.y());
+    }
+    d.handler.accept(new Drag(now, dx, dy, at[0], at[1], place.screenX(), place.screenY(),
+        outside, place.window(), place.window() == null ? Float.NaN : place.x(),
+        place.window() == null ? Float.NaN : place.y()));
     handled = true;
     return true;
+  }
+
+  /**
+   * Tells the drop handlers of a drag's step: the one it left, and the innermost one under the
+   * pointer in {@code over}'s window, hit tested in the tree that window shows.
+   *
+   * @param over the app of the window under the pointer, or null
+   * @param x the pointer in that window
+   */
+  private static void drop(Dragging d, Drag.Phase phase, App<?> over, float x, float y) {
+    Target target = null;
+    if (over != null && over.root != null && phase != Drag.Phase.CANCEL) {
+      over.settle(); // the rows of its lists, where a scroll left them to build
+      target = over.target(x, y, el -> el.onDrop() != null);
+    }
+    Object id = target == null ? null : target.id();
+    if (d.overApp != null && (d.overApp != over || !d.overId.equals(id))) {
+      Consumer<Drop> left = d.overHandler;
+      App<?> from = d.overApp;
+      d.overApp = null;
+      d.overId = null;
+      d.overHandler = null;
+      left.accept(new Drop(Drop.Phase.LEAVE, d.payload, Double.NaN, Double.NaN));
+      from.touched();
+    }
+    if (target != null) {
+      double[] at = over.content(target.el, x, y);
+      boolean end = phase == Drag.Phase.END;
+      Consumer<Drop> handler = target.el.onDrop();
+      if (!end) {
+        d.overApp = over;
+        d.overId = id;
+        d.overHandler = handler;
+      }
+      handler.accept(new Drop(end ? Drop.Phase.DROP : Drop.Phase.OVER, d.payload, at[0], at[1]));
+      over.touched();
+    }
+  }
+
+  /** A drop handler of this app ran, maybe in another app's frame: build the view again. */
+  private void touched() {
+    if (dispatching) {
+      handled = true;
+    } else {
+      stale = true;
+    }
   }
 
   /**
@@ -871,11 +979,46 @@ public final class App<S> {
   }
 
   /**
+   * The windows of the runner that runs the app, with which a handler opens and closes windows
+   * ({@link Windows}): a {@link com.rethinkj.ui.window.WindowLoop}'s or a {@link Script}'s. Until
+   * a runner sets them, opening a window throws.
+   */
+  public Windows windows() {
+    return windows;
+  }
+
+  /** Sets the runner's windows, as a {@link com.rethinkj.ui.window.WindowLoop} and a script do. */
+  public void windows(Windows windows) {
+    this.windows = Objects.requireNonNull(windows, "windows");
+  }
+
+  /**
+   * The state changed outside the app's own handlers: the next {@link #frame} builds the view
+   * again, as after a handler. A runner calls it on its other apps of the same state object after a
+   * handler of one ran ({@link #ranHandlers}); it is not input, and wakes nothing by itself.
+   */
+  public void invalidate() {
+    stale = true;
+  }
+
+  /**
+   * Whether the last {@link #frame} ran a handler of the app, a {@link #post posted} task or an
+   * action of {@link #after}: what may have changed the state, which other apps of the same state
+   * then show ({@link #invalidate}).
+   */
+  public boolean ranHandlers() {
+    return ran;
+  }
+
+  /**
    * Where the focused element of the last frame that takes text is, for the system's input method:
    * an editable text field, or an element with an {@link El#onText} handler; null when there is
    * none, and then a window turns text input off.
    */
   public InputArea inputArea() {
+    // A press on a field that no frame has dispatched yet: text typed right after it reaches the
+    // app only while the window's text input is on, so it goes on at the press.
+    El focused = typingSoon != null ? typingSoon : this.focused;
     if (focused == null) {
       return null;
     }
@@ -1091,6 +1234,20 @@ public final class App<S> {
     textRendering = Objects.requireNonNull(rendering, "rendering");
     stale = true;
   }
+  /** The rendering of {@link #textRendering(TextRendering)}. */
+  public TextRendering textRendering() {
+    return textRendering;
+  }
+
+  /** For {@link Script}: runs {@code handler} as the handler of an input, at its turn. */
+  void request(Runnable handler) {
+    enqueue(() -> {
+      handled = true;
+      handler.run();
+      return true;
+    });
+  }
+
 
   /**
    * Sets whether characters that a text's font and its fallbacks lack come from the fonts installed
@@ -1813,6 +1970,7 @@ public final class App<S> {
    *     scrolled
    */
   public boolean frame() {
+    ran = false;
     Object wasFocused = focusId;
     boolean hadRing = ring;
     boolean drawn = false;
@@ -1828,6 +1986,7 @@ public final class App<S> {
       dispatching = true;
       try {
         stale |= queued.poll().getAsBoolean();
+        stale |= tellSelections();
       } finally {
         dispatching = false;
         for (int i = follow.size() - 1; i >= 0; i--) {
@@ -1837,6 +1996,7 @@ public final class App<S> {
       }
     }
     stale |= shownFor();
+    ran |= handled;
     stale |= handled || !Objects.equals(focusId, wasFocused) || ring != hadRing;
     stale |= blink(focused == null ? null : focused.editor());
     if (stale) { // the rebuild builds all rows anyway
@@ -1859,6 +2019,10 @@ public final class App<S> {
       // pointer is over in the tree on screen.
       for (int pass = 0; pass < 2 && stale; pass++) {
         rebuild(false);
+        // A caret that the app's string moved, or of a new field: its handler is told, once.
+        if (tellSelections()) {
+          rebuild(false);
+        }
         List<El> path = pointed();
         stale = !wanted(path, Animator.identities(path)).equals(shown);
       }
@@ -1906,17 +2070,19 @@ public final class App<S> {
     El.fix(built);
     shown = applyLooks(built, ids);
     root = built;
+    builds++;
     attachEditors(root, new ArrayList<>()); // before layout, which shows a composition
     El.scaleText(root, scale, systemFonts);
     Flex.layout(root, width, height);
     Overlays.layout(root, width, height);
     animator.update(root, time);
     stale = false;
+    ran |= handled;
     handled = false;
     scrolled = false;
     rowsPending = between && (focusId == null || animator.inRow(focusId) == null);
     if (rowsPending) {
-      Overlays.place(root, width, height); // which fillRows does otherwise: the focus may be in one
+      caretOverlays = Overlays.place(root, width, height); // as fillRows does: the focus may be in one
       refocus();
       return;
     }
@@ -1983,8 +2149,31 @@ public final class App<S> {
   private void attachEditors(El el, List<El> path) {
     path.add(el);
     if (el.isEditable()) {
-      Editor editor = editors.computeIfAbsent(Animator.identities(path).getLast(),
-          id -> new Editor(el));
+      Object id = Animator.identities(path).getLast();
+      FieldState state = el.fieldState();
+      Editor editor = state == null ? editors.computeIfAbsent(id, i -> new Editor(el)) : null;
+      if (state != null) {
+        if (state.build == builds && !state.id.equals(id)) {
+          throw new IllegalStateException("Two text fields have the same FieldState. Give each"
+              + " field a FieldState of its own, kept in the app's state with what it edits.");
+        }
+        if (state.id != null && !state.id.equals(id) && editors.get(state.id) == state.editor) {
+          editors.remove(state.id); // the field moved
+        }
+        state.build = builds;
+        state.id = id;
+        if (state.editor == null) {
+          state.editor = new Editor(el);
+        }
+        editor = state.editor;
+        Editor was = editors.put(id, editor);
+        if (was != editor) { // back in the tree, maybe where another field was
+          if (was != null) {
+            was.leave();
+          }
+          editor.returned();
+        }
+      }
       editor.attach(el);
       el.editor(editor);
     }
@@ -2022,6 +2211,84 @@ public final class App<S> {
     for (Editor editor : shown) {
       editor.place(editor == blinking, caretOn);
     }
+    if (caretOverlays) { // placed beside carets, which are placed now
+      Overlays.place(root, width, height);
+    }
+  }
+
+  /**
+   * Tells the {@link El#onSelect} handlers of the fields whose caret or selection changed.
+   *
+   * @return whether a handler was told, which the next input should find in the view
+   */
+  private boolean tellSelections() {
+    boolean told = false;
+    for (Editor editor : List.copyOf(editors.values())) {
+      told |= editor.tell();
+    }
+    handled |= told;
+    return told;
+  }
+
+  /**
+   * Replaces characters {@code from} to {@code to} of a text field's string by {@code text} and
+   * puts the caret at {@code caret} of the new string, as one step of its undo history: the edit
+   * goes to the field's {@link El#editable onEdit} handler as typed text does, so the app can refuse
+   * or change it, and the field's limits apply, {@link El#maxLength} and its line breaks among
+   * them. For completions, a matching bracket and a replace in a find. A handler may call this,
+   * with a field of the tree it runs in; the frame edits right after the handler, in the field with
+   * the same identity in the tree built from what the handler changed. A read-only or disabled
+   * field, and one no longer there, are left alone.
+   *
+   * @param from the first position, an index into the string from 0
+   * @param to the position after the last, from {@code from} to the string's length
+   * @param caret the caret's position in the string after the edit
+   */
+  public void edit(El field, int from, int to, String text, int caret) {
+    Objects.requireNonNull(text, "text");
+    if (from < 0 || to < from) {
+      throw new IllegalArgumentException("from must be 0 or more and to at least from, were "
+          + from + " and " + to);
+    }
+    Object id = fieldId(field, "edit");
+    enqueue(() -> {
+      settle();
+      El now = animator.element(id);
+      if (now == null || now.editor() == null) {
+        return false;
+      }
+      now.editor().request(from, to, text, caret);
+      handled |= now.editor().answerPending();
+      return true;
+    });
+  }
+
+  /**
+   * Selects from {@code anchor} to {@code caret} in a text field, or puts the caret there when they
+   * are equal, and scrolls it into view as a key does: a match that a find found. The positions
+   * are indexes into the string, moved to the grapheme boundary at or before them. A handler may
+   * call this as {@link #edit}.
+   */
+  public void select(El field, int caret, int anchor) {
+    Object id = fieldId(field, "select");
+    enqueue(() -> {
+      settle();
+      El now = animator.element(id);
+      if (now == null || now.editor() == null) {
+        return false;
+      }
+      now.editor().select(caret, anchor);
+      return true;
+    });
+  }
+
+  private Object fieldId(El field, String call) {
+    Object id = field == null || !field.isEditable() ? null : animator.identity(field);
+    if (id == null) {
+      throw new IllegalArgumentException(call + " is for a text field of the last frame's tree,"
+          + " which El.text(...).editable(...) makes");
+    }
+    return id;
   }
 
   /** The editors of the fields of the current tree, without those that are leaving. */
@@ -2127,7 +2394,7 @@ public final class App<S> {
     float far = Float.POSITIVE_INFINITY;
     boolean built = fillRows(root, new ArrayList<>(), 0, 0, -far, far);
     // After scrolling, movement and new rows, the overlays follow their anchors.
-    Overlays.place(root, width, height);
+    caretOverlays = Overlays.place(root, width, height);
     return built;
   }
 
@@ -2326,6 +2593,7 @@ public final class App<S> {
         if (due <= time) {
           rest.ran = true;
           hoversRun++;
+          ran = true; // the handler may change the state that other apps show
           el.onHoverFor().run();
         } else {
           restDue = Math.min(restDue, due);
@@ -2377,13 +2645,21 @@ public final class App<S> {
         continue;
       }
       Focus back = opened.remove(id);
+      Focus left = outside.remove(id);
       shownSince.remove(id);
-      if (back != null
-          && (focusId == null || focusId.equals(id) || Animator.isBelow(focusId, id))) {
+      boolean inside = focusId != null && (focusId.equals(id) || Animator.isBelow(focusId, id));
+      if (back != null && (focusId == null || inside)) {
         moveFocus(back.id(), back.ring());
+      } else if (left != null && inside) {
+        moveFocus(left.id(), left.ring());
       }
     }
     for (Map.Entry<Object, El> overlay : now.entrySet()) {
+      Object id = overlay.getKey();
+      if (opened.containsKey(id) && opened.get(id) == null && focusId != null
+          && !focusId.equals(id) && !Animator.isBelow(focusId, id)) {
+        outside.put(id, new Focus(focusId, ring));
+      }
       if (opened.containsKey(overlay.getKey())) {
         continue;
       }
@@ -2391,6 +2667,9 @@ public final class App<S> {
       El el = overlay.getValue();
       boolean takes = (el.holdsFocus() || !el.keepsFocus()) && (first != null || el.isModal());
       opened.put(overlay.getKey(), takes ? new Focus(focusId, ring) : null);
+      if (!takes && focusId != null) {
+        outside.put(overlay.getKey(), new Focus(focusId, ring));
+      }
       if (takes) {
         moveFocus(first, false);
         took = true;

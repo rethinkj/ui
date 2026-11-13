@@ -61,6 +61,12 @@ class ToastTest {
     assertEquals("action", app.focused().key(), "Tab reaches Undo");
     run(app, "key Escape\nframe\n");
     assertNull(studio.cleared, "Escape there closes it");
+    assertEquals("query", app.focused().key(), "and the focus goes back to the field");
+    run(app, "key E alt\nframe\nkey End\nkey Enter\nframe\nkey Tab\nkey Enter\nframe\n");
+    assertNull(studio.cleared, "Enter on Undo closes it");
+    assertEquals("query", app.focused().key(), "so does the focus");
+    run(app, "type \"y\"\nframe\n");
+    assertEquals("y", studio.query, "and typing goes on there");
 
     // Without a focused field, whose caret would blink meanwhile.
     run(app, "press #status\nkey E alt\nframe\nkey End\nkey Enter\nframe\n");

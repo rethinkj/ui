@@ -1,0 +1,1 @@
+- Fix: the first character typed right after a press in a text field, before the next frame, no longer gets lost when the focus was on an element that takes no text. The window's text input now goes on as the press arrives (`App.inputArea` names the field it lands in).

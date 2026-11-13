@@ -84,6 +84,15 @@ class TextRenderTest {
     Golden.assertMatches("text-opacity", frame.pixels(), frame.tree());
   }
 
+  /** See {@link Examples#alignedText}. */
+  @Test
+  void linesAlignInTheirBoxes() {
+    for (int scale = 1; scale <= 2; scale++) {
+      Headless.Frame frame = Headless.render(Examples.alignedText(), 360, 172, scale, PINNED);
+      Golden.assertMatches("text-align-" + scale + "x", frame.pixels(), frame.tree());
+    }
+  }
+
   /** See {@link Examples#ellipsisText}. */
   @Test
   void aLineTooWideForItsBoxEndsInAnEllipsis() {

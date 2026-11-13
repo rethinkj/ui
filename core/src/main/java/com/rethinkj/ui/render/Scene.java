@@ -688,7 +688,7 @@ public final class Scene {
   private void text(El el, float x, float y, float opacity, int clip, float behind) {
     Text text = el.text();
     int colour = text.isField() && text.placeholderShown() ? text.placeholderColor() : text.color();
-    if (colour >>> 24 == 0 && !text.isField()) {
+    if (colour >>> 24 == 0 && !text.isField() && !text.highlighted()) {
       return;
     }
     double scale = text.scale();
@@ -700,8 +700,8 @@ public final class Scene {
     double grid = scale >= 1.5 && !text.font().wholePixels() ? 4 : 1;
     left = Math.round(left * grid) / grid;
     top = Math.round(top);
-    float share = lightShare(colour,
-        text.background() != 0 ? luminance(text.background()) : behind);
+    float background = text.background() != 0 ? luminance(text.background()) : behind;
+    float share = lightShare(colour, background);
     double scroll = 0;
     if (text.isField()) {
       clip = fieldClip(el, x, y, clip);
@@ -709,6 +709,9 @@ public final class Scene {
         return; // clipped away
       }
       scroll = text.scroll();
+      for (Text.Mark mark : text.marks()) {
+        box(mark.box(), left, top, scale, mark.color(), opacity, clip);
+      }
       for (Text.Box box : text.selection()) {
         box(box, left, top, scale, text.selectionColor(), opacity, clip);
       }
@@ -717,10 +720,22 @@ public final class Scene {
     float clipY = clipGet(clip, Y);
     float clipRight = clipX + clipGet(clip, WIDTH);
     float clipBottom = clipY + clipGet(clip, HEIGHT);
-    for (Text.Line line : colour >>> 24 == 0 ? List.<Text.Line>of() : text.lines()) {
+    boolean drawn = colour >>> 24 != 0 || text.highlighted();
+    int shareOf = colour; // the colour `share` is for: a highlighter colours glyphs one by one
+    for (Text.Line line : drawn ? text.lines() : List.<Text.Line>of()) {
       GlyphRun run = line.glyphs();
+      int[] colours = text.placeholderShown() ? null : line.colors();
       for (int i = 0; i < run.count(); i++) {
-        double origin = left + run.x(i) - scroll; // on the quarter grid, or whole below 1.5
+        int glyphColour = colours == null ? colour : colours[i];
+        if (glyphColour >>> 24 == 0) {
+          continue;
+        }
+        if (glyphColour != shareOf) {
+          shareOf = glyphColour;
+          share = lightShare(glyphColour, background);
+        }
+        // On the quarter grid, or whole below 1.5, as the line's start is.
+        double origin = left + line.x() + run.x(i) - scroll;
         double whole = Math.floor(origin);
         Atlas.Slot slot = atlas.glyph(run.font(i), run.pixelSize(), rendering.hinting(),
             run.glyph(i), (int) ((origin - whole) * 4));
@@ -734,7 +749,7 @@ public final class Scene {
         float height = (float) (slot.height() / scale);
         if (glyphX < clipRight && glyphX + width > clipX && glyphY < clipBottom
             && glyphY + height > clipY) {
-          glyph(glyphX, glyphY, width, height, slot, colour, opacity, clip, share);
+          glyph(glyphX, glyphY, width, height, slot, glyphColour, opacity, clip, share);
         }
       }
     }

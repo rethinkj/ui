@@ -26,6 +26,18 @@ snap select
 key Escape
 frame
 
+focus #sql                    # the code editor, scrolled into view
+key End control
+key Enter
+type "SELECT o"
+type "r"                      # a word's second letter: completions at the caret
+frame
+advance 1
+frame
+snap completion
+key Escape
+frame
+
 press role=treeitem label="Menus and overlays"
 frame
 focus #options

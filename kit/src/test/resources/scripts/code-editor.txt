@@ -1,0 +1,21 @@
+# The kit's code editor (CodeEditorTest): SQL with every kind of token, line numbers, the caret's
+# line, a pair of brackets and an error underlined.
+frame
+snap rest              # without the focus: the caret's line, the first, still stands out
+
+focus #query
+key ArrowDown
+key ArrowDown
+key ArrowDown
+key ArrowDown
+key ArrowDown
+key ArrowDown
+key ArrowDown
+key ArrowDown
+key End                # after the ")" that closes the list of IN: both brackets marked
+frame
+snap brackets
+
+key End control        # the last line: the gutter scrolls with the text
+frame
+snap scrolled

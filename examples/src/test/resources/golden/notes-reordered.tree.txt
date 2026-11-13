@@ -1,0 +1,16 @@
+el 0,0 640x300
+  el 0,0 640x29
+    text "Notes" 12,12 41x17
+  el #row 0,29 640x271
+    el #card-Groceries 12,41 180x247
+      el #handle-Groceries 25,54 154x16
+        text "Groceries" 25,54 62x16
+      text #text-Groceries role=textbox label="Empty" "Coffee, bread" 25,82 154x193 lines 1-1/1
+    el #card-Todo 200,41 180x247
+      el #handle-Todo 213,54 154x16
+        text "Todo" 213,54 31x16
+      text #text-Todo role=textbox label="Empty" "Write the release notes" 213,82 154x193 lines 1-1/1
+    el #card-Ideas 388,41 180x247
+      el #handle-Ideas 401,54 154x16
+        text "Ideas" 401,54 34x16
+      text #text-Ideas role=textbox label="Empty" "Tabs that tear off\nand dock back" 401,82 154x193 lines 1-2/2

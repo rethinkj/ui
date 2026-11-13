@@ -206,6 +206,11 @@ class GpuRendererTest {
       cases.add(text(stored ? "text-ellipsis-" + (int) scale + "x" : "text-ellipsis" + at(scale),
           Examples.ellipsisText(), 360, 236, scale, TextRendering.LINUX, new Atlas(), stored));
     }
+    for (float scale : new float[] {1, 2, 1.5f}) { // lines aligned in their boxes
+      boolean stored = scale != 1.5f;
+      cases.add(text(stored ? "text-align-" + (int) scale + "x" : "text-align" + at(scale),
+          Examples.alignedText(), 360, 172, scale, TextRendering.LINUX, new Atlas(), stored));
+    }
     cases.add(textScrolled());
     // Scenes that stress one formula each.
     for (float scale : new float[] {1, 2, 1.5f}) {
@@ -241,6 +246,8 @@ class GpuRendererTest {
       cases.add(text("text-clipped" + at, clippedText(), 240, 120, scale));
       cases.add(text("text-overlaps" + at, overlappingText(), 240, 120, scale));
       cases.add(textPages(scale));
+      cases.add(text("text-highlighted" + at, highlighted(), 280, 72, scale));
+      cases.add(marked("area-marked" + at, scale));
       if (scale != 2) {
         cases.add(field("field-selected" + at, scale,
             "press #name\ntype \"SELECT name FROM customers\"\nkey ArrowLeft control shift\n"));
@@ -912,7 +919,56 @@ class GpuRendererTest {
   private static final String UPPER = "ABCDEFGHIJKLMNOPQRSTUVWXYZ ÄÖÜ 0123456789 €$§%&@#";
   private static final String LOWER = "abcdefghijklmnopqrstuvwxyz äöüß ()[]{}<>/|+-*=?!;:,.";
 
-  /** One line of text on white, at {@code x} in a window of 200 by 40. */
+  /**
+   * Glyphs of one run in several colours, as a highlighter colours code: dark on light and light
+   * on dark, so that each glyph gets its own correction, with a bold range shaped on its own.
+   */
+  private static El highlighted() {
+    com.rethinkj.ui.Highlighter code = (line, state, out) -> {
+      out.color(0, 6, 0xFF7C3AED).font(0, 6, Font.monoBold()); // SELECT
+      out.color(10, 13, 0xFF15803D); // 'x'
+      out.color(21, 26, 0xFF94A3B8); // -- 42
+      return null;
+    };
+    String sql = "SELECT id, 'x' FROM t -- 42";
+    return col().wFull().hFull().children(
+        el().wFull().padding(6).fill(0xFFFFFFFF).child(
+            El.text(sql).font(Font.mono()).fontSize(13).color(0xFF1A1A1A).highlight(1, code)),
+        el().wFull().padding(6).fill(0xFF1E1E2E).child(
+            El.text(sql).font(Font.mono()).fontSize(13).color(0xFFE0E0E0).highlight(1, code)));
+  }
+
+  /**
+   * A multi-line field with the highlighter of {@link #highlighted}, the background of its second
+   * line, a range behind brackets, a line under an error and a selection over them, scrolled.
+   */
+  private static Case marked(String name, float scale) throws IOException {
+    String[] value = {"SELECT id, 'x' FROM t -- 42\nWHERE (a = 1)\n  AND b\nLIMIT 5\n-- end"};
+    com.rethinkj.ui.Highlighter code = (line, state, out) -> {
+      out.color(0, Math.min(6, line.length()), 0xFF7C3AED).font(0, 5, Font.monoBold());
+      return null;
+    };
+    App<Object> app = new App<>(new Object(), s -> col().wFull().hFull().padding(8)
+        .fill(0xFFFFFFFF).child(El.text(value[0]).editable(v -> value[0] = v).multiline()
+            .key("area").font(Font.mono()).fontSize(13).color(0xFF1A1A1A).w(220).lines(3)
+            .padding(4).fill(0xFFF4F4F5).highlight(1, code)
+            .decorate((line, start, text, out) -> {
+              if (line == 1) {
+                out.lineBackground(0xFFE0E7FF).background(6, 7, 0xFFFDE68A)
+                    .background(12, 13, 0xFFFDE68A);
+              }
+              if (line == 2) {
+                out.underline(6, 7, 0xFFDC2626);
+              }
+            })));
+    app.textRendering(TextRendering.LINUX);
+    Script.run("size 240 80 scale " + scale + "\nframe\nfocus #area\nkey ArrowDown\n"
+        + "key ArrowDown shift\nkey End shift\nwheel #area 0 9\nframe\n", app,
+        Path.of("target/gpu-vs-cpu-scripts"));
+    return scene(name, app.scene(), 240, 80, scale);
+  }
+
+    /** One line of text on white, at {@code x} in a window of 200 by 40. */
   private static El label(String text, int colour, float x) {
     return el().wFull().hFull().fill(0xFFFFFFFF)
         .child(El.text(text).color(colour).absolute(x, 10));

@@ -717,6 +717,36 @@ public final class Examples {
     return root;
   }
 
+  /**
+   * Text aligned in its box ({@link El#textAlign}): a wrapped paragraph at the start, in the centre
+   * and at the end, and numbers in cells aligned at the end, the narrow ones shortened with an
+   * ellipsis, in both fonts, for a window of 360 by 172: the stored images text-align-1x and -2x.
+   */
+  public static El alignedText() {
+    String paragraph = "No rows match the filter. Change it or clear it to see all orders.";
+    El root = col().padding(8).gap(6).fill(0xFFFFFFFF);
+    El paragraphs = row().gap(8);
+    for (Style.Align align : new Style.Align[] {
+        Style.Align.START, Style.Align.CENTER, Style.Align.END}) {
+      paragraphs.child(el().w(108).padding(4).fill(0xFFF1F5F9).child(El.text(paragraph)
+          .fontSize(13).color(0xFF1A1A1A).wrapText().textAlign(align).wFull()));
+    }
+    root.child(paragraphs);
+    for (String number : new String[] {"7", "1.234,56", "-98 765 432,10"}) {
+      El cells = row().gap(8);
+      for (float width : new float[] {140, 80, 44}) {
+        for (boolean mono : new boolean[] {false, true}) {
+          cells.child(row().w(width / 2 + (mono ? 8 : 0)).h(18).clip().fill(0xFFF1F5F9)
+              .align(Style.Align.CENTER).child(El.text(number)
+                  .font(mono ? Font.mono() : Font.sans()).fontSize(13).color(0xFF1A1A1A)
+                  .ellipsis().textAlign(Style.Align.END).wFull().minSize(0, 0)));
+        }
+      }
+      root.child(cells);
+    }
+    return root;
+  }
+
   // ---- fallback fonts ---------------------------------------------------------------------
 
   private static Font hebrew;

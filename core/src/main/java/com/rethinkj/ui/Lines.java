@@ -25,6 +25,13 @@ import java.util.Objects;
  * <p>Without wrapping each line is one row, and the widest line that layout has shaped so far gives
  * the width of the text, which grows as longer lines come into view, as in editors; an edit of that
  * line forgets it, and the lines in view measure it again.
+ *
+ * <p>Highlighting ({@link El#highlight}): the state each line starts in, known for the lines from
+ * the first up to {@code known}, and per line the {@link Spans} the highlighter gave and the state
+ * they were given for. An edit moves both arrays along with the starts, forgets the spans of the
+ * lines it touched and lowers {@code known} to the first of them, without asking the highlighter
+ * anything: the lines are asked again when a line at or after the edit is shaped, from the edit
+ * down to that line. A line whose start state comes out as before keeps its spans.
  */
 final class Lines {
 
@@ -42,8 +49,21 @@ final class Lines {
   private float widest; // the widest line measured, in physical pixels, without wrapping
   private int widestLine = -1;
 
+  // Highlighting: the key the view gave, the state each line starts in, valid for lines 0 to
+  // known - 1, and the spans of each line, null where not asked or changed since.
+  private Object highlightKey;
+  private Object[] states;
+  private int known;
+  private Spans[] spans;
+
   /** For tests: how many lines have been shaped for the texts that showed these lines. */
   int shaped;
+
+  /** For tests: how many cells the gutter of the fields that showed these lines built. */
+  int gutterCells;
+
+  /** For tests: how many times the highlighter was asked about a line of this text. */
+  int highlighted;
 
   private Lines(int[] starts, int count, int length) {
     this.starts = starts;
@@ -69,6 +89,12 @@ final class Lines {
     Lines copy = new Lines(Arrays.copyOf(starts, Math.max(count, 1)), count, length);
     copy.widest = widest;
     copy.widestLine = widestLine;
+    if (states != null) {
+      copy.highlightKey = highlightKey;
+      copy.states = Arrays.copyOf(states, states.length);
+      copy.spans = Arrays.copyOf(spans, spans.length);
+      copy.known = known;
+    }
     return copy;
   }
 
@@ -115,6 +141,21 @@ final class Lines {
     if (newCount > starts.length) {
       starts = Arrays.copyOf(starts, Math.max(newCount, starts.length * 3 / 2));
     }
+    if (states != null) {
+      if (newCount > states.length) {
+        states = Arrays.copyOf(states, starts.length);
+        spans = Arrays.copyOf(spans, starts.length);
+      }
+      // The lines after the edit move along; those it touched are asked again.
+      System.arraycopy(states, last + 1, states, first + 1 + added, oldCount - last - 1);
+      System.arraycopy(spans, last + 1, spans, first + 1 + added, oldCount - last - 1);
+      Arrays.fill(spans, first, first + 1 + added, null);
+      if (newCount < oldCount) { // what lay after the last line
+        Arrays.fill(states, newCount, oldCount, null);
+        Arrays.fill(spans, newCount, oldCount, null);
+      }
+      known = Math.min(known, first + 1);
+    }
     // The starts after the edit move to their place and by the difference in length.
     System.arraycopy(starts, last + 1, starts, first + 1 + added, oldCount - last - 1);
     for (int l = first + 1 + added; l < newCount; l++) {
@@ -145,6 +186,52 @@ final class Lines {
       rows = next; // the lines of the edit are not measured
       build();
     }
+  }
+
+  // ---- Highlighting
+
+  /**
+   * The spans of line {@code line} of {@code text}, the string these are the lines of, as {@code
+   * highlighter} gives them: kept from before while the key, the line and the state it starts in
+   * are the same; otherwise the lines from the first whose start state is not known are asked
+   * first, keeping nothing but their end states.
+   */
+  Spans spans(int line, String text, Highlighter highlighter, Object key) {
+    if (states == null || !Objects.equals(key, highlightKey)) {
+      highlightKey = key;
+      states = new Object[starts.length];
+      spans = new Spans[starts.length];
+      known = 1; // the first line starts in null
+    }
+    for (int l = known - 1; l < line; l++) {
+      Spans kept = spans[l];
+      if (kept != null && Objects.equals(kept.startState, states[l])) {
+        states[l + 1] = kept.endState;
+      } else {
+        Spans scratch = new Spans(end(l) - start(l), true);
+        states[l + 1] = ask(highlighter, text, l, scratch);
+      }
+      known = l + 2;
+    }
+    Spans kept = spans[line];
+    if (kept != null && Objects.equals(kept.startState, states[line])) {
+      return kept;
+    }
+    Spans out = new Spans(end(line) - start(line), false);
+    Object endState = ask(highlighter, text, line, out);
+    out.startState = states[line];
+    out.endState = endState;
+    spans[line] = out;
+    if (known == line + 1 && line + 1 < count) {
+      states[line + 1] = endState;
+      known = line + 2;
+    }
+    return out;
+  }
+
+  private Object ask(Highlighter highlighter, String text, int line, Spans out) {
+    highlighted++;
+    return highlighter.line(text.substring(start(line), end(line)), states[line], out);
   }
 
   // ---- The widest line, without wrapping

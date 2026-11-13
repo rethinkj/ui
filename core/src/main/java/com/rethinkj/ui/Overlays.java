@@ -61,12 +61,13 @@ final class Overlays {
    * invisible by the view, or the clips above the anchor leave nothing of its rectangle. An anchor
    * that fades in counts from its first frame.
    */
-  static void place(El root, float width, float height) {
+  static boolean place(El root, float width, float height) {
     List<El> shown = new ArrayList<>();
     float far = Float.POSITIVE_INFINITY;
     place(root, 0, 0, -far, -far, far, far, width, height, shown, null);
     shown.sort(Comparator.comparingLong(overlay -> overlay.placement().opened)); // stable
     root.shownOverlays(List.copyOf(shown));
+    return shown.stream().anyMatch(overlay -> overlay.placement().atCaret);
   }
 
   /** @param within the placement of the overlay {@code el} is in, null in the tree below */
@@ -139,6 +140,13 @@ final class Overlays {
       float ay = Float.isNaN(l.pointX) ? y : l.pointY;
       float aw = Float.isNaN(l.pointX) ? anchor.width() : 0;
       float ah = Float.isNaN(l.pointX) ? anchor.height() : 0;
+      float[] caret = l.atCaret && anchor.editor() != null ? anchor.editor().caretBox() : null;
+      if (caret != null) {
+        ax = x + caret[0];
+        ay = y + caret[1];
+        aw = caret[2];
+        ah = caret[3];
+      }
       // A tooltip keeps its gap from the window's edges too; a menu may lie flush with them.
       float edge = l.avoidsAnchor ? l.gap : 0;
       boolean after = l.side == Side.BOTTOM || l.side == Side.RIGHT;

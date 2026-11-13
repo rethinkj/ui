@@ -40,7 +40,12 @@ public final class GlyphRun {
 
   /** Runs one after the other, as one run of {@code font}; their glyphs keep their fonts. */
   static GlyphRun join(Font font, float pixelSize, List<GlyphRun> parts) {
-    if (parts.size() == 1 && parts.getFirst().font == font) {
+    return join(font, pixelSize, parts, null);
+  }
+
+  /** {@link #join}, with the clusters of part {@code i} moved by {@code starts[i]}; null for none. */
+  private static GlyphRun join(Font font, float pixelSize, List<GlyphRun> parts, int[] starts) {
+    if (starts == null && parts.size() == 1 && parts.getFirst().font == font) {
       return parts.getFirst();
     }
     int n = parts.stream().mapToInt(GlyphRun::count).sum();
@@ -51,10 +56,13 @@ public final class GlyphRun {
     float[] dy = new float[n];
     Font[] fonts = new Font[n];
     int at = 0;
-    for (GlyphRun part : parts) {
+    for (int p = 0; p < parts.size(); p++) {
+      GlyphRun part = parts.get(p);
       int count = part.count();
       System.arraycopy(part.glyphs, 0, glyphs, at, count);
-      System.arraycopy(part.clusters, 0, clusters, at, count);
+      for (int i = 0; i < count; i++) {
+        clusters[at + i] = part.clusters[i] + (starts == null ? 0 : starts[p]);
+      }
       System.arraycopy(part.dx, 0, dx, at, count);
       System.arraycopy(part.dy, 0, dy, at, count);
       for (int i = 0; i < count; i++) {
@@ -64,6 +72,22 @@ public final class GlyphRun {
       at += count;
     }
     return new GlyphRun(font, pixelSize, glyphs, clusters, pen, dx, dy, fonts);
+  }
+
+  /**
+   * Runs of consecutive parts of one string, each shaped on its own, as one run: part {@code i}
+   * starts at index {@code starts[i]} of the string, so its clusters move by as much, and its pen
+   * follows on from the part before. The glyphs keep their fonts; {@link #font()} is the first
+   * part's. A text with ranges in another font, such as a bold keyword, is shaped so.
+   */
+  public static GlyphRun concat(List<GlyphRun> parts, int[] starts) {
+    if (parts.size() != starts.length || parts.isEmpty()) {
+      throw new IllegalArgumentException("one start per part, and at least one part");
+    }
+    if (parts.size() == 1 && starts[0] == 0) {
+      return parts.getFirst();
+    }
+    return join(parts.getFirst().font, parts.getFirst().pixelSize, parts, starts);
   }
 
   /** The font that was shaped, whose fallbacks may draw some glyphs: see {@link #font(int)}. */

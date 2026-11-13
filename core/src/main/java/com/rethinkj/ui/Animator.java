@@ -681,7 +681,7 @@ final class Animator {
       el.fill(colour(FILL, now));
       el.borderColor(colour(BORDER, now));
       if (el.text() != null) {
-        el.text().color(colour(TEXT, now));
+        el.text().shownColor(colour(TEXT, now));
       }
       el.shownOpacity((float) Math.clamp(tracks[OPACITY].value(now), 0.0, 1.0)); // a bounce overshoots
     }
