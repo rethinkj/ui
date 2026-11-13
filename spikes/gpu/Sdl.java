@@ -29,6 +29,10 @@ final class Sdl {
 
     static final String PROP_WINDOW_WIN32_HWND_POINTER = "SDL.window.win32.hwnd";
     static final String PROP_WINDOW_WIN32_INSTANCE_POINTER = "SDL.window.win32.instance";
+    static final String PROP_WINDOW_X11_DISPLAY_POINTER = "SDL.window.x11.display";
+    static final String PROP_WINDOW_X11_WINDOW_NUMBER = "SDL.window.x11.window";
+    static final String PROP_WINDOW_WAYLAND_DISPLAY_POINTER = "SDL.window.wayland.display";
+    static final String PROP_WINDOW_WAYLAND_SURFACE_POINTER = "SDL.window.wayland.surface";
 
     static final int EVENT_QUIT = 0x100;
     static final int EVENT_WINDOW_SHOWN = 0x202;
@@ -56,6 +60,8 @@ final class Sdl {
             JAVA_BOOLEAN, ADDRESS, ADDRESS.withTargetLayout(MemoryLayout.sequenceLayout(EVENT_SIZE, JAVA_BYTE)));
 
     static final Linker LINKER = Linker.nativeLinker();
+    /** SDL3.dll on Windows, libSDL3.so on Linux. */
+    private static final String FILE = System.mapLibraryName("SDL3");
     private static final SymbolLookup LIB = SymbolLookup.libraryLookup(locate(), Arena.global());
 
     static final FunctionDescriptor SDL_INIT = FunctionDescriptor.of(JAVA_BOOLEAN, JAVA_INT);
@@ -76,6 +82,9 @@ final class Sdl {
     static final FunctionDescriptor SDL_GET_WINDOW_PROPERTIES = FunctionDescriptor.of(JAVA_INT, ADDRESS);
     static final FunctionDescriptor SDL_GET_POINTER_PROPERTY =
             FunctionDescriptor.of(ADDRESS, JAVA_INT, ADDRESS, ADDRESS);
+    static final FunctionDescriptor SDL_GET_NUMBER_PROPERTY =
+            FunctionDescriptor.of(JAVA_LONG, JAVA_INT, ADDRESS, JAVA_LONG);
+    static final FunctionDescriptor SDL_GET_CURRENT_VIDEO_DRIVER = FunctionDescriptor.of(ADDRESS);
     static final FunctionDescriptor SDL_POLL_EVENT = FunctionDescriptor.of(JAVA_BOOLEAN, ADDRESS);
     static final FunctionDescriptor SDL_WAIT_EVENT_TIMEOUT = FunctionDescriptor.of(JAVA_BOOLEAN, ADDRESS, JAVA_INT);
     static final FunctionDescriptor SDL_ADD_EVENT_WATCH = FunctionDescriptor.of(JAVA_BOOLEAN, ADDRESS, ADDRESS);
@@ -95,6 +104,9 @@ final class Sdl {
     private static final MethodHandle GET_WINDOW_PROPERTIES =
             bind("SDL_GetWindowProperties", SDL_GET_WINDOW_PROPERTIES);
     private static final MethodHandle GET_POINTER_PROPERTY = bind("SDL_GetPointerProperty", SDL_GET_POINTER_PROPERTY);
+    private static final MethodHandle GET_NUMBER_PROPERTY = bind("SDL_GetNumberProperty", SDL_GET_NUMBER_PROPERTY);
+    private static final MethodHandle GET_CURRENT_VIDEO_DRIVER =
+            bind("SDL_GetCurrentVideoDriver", SDL_GET_CURRENT_VIDEO_DRIVER);
     private static final MethodHandle POLL_EVENT = bind("SDL_PollEvent", SDL_POLL_EVENT);
     private static final MethodHandle WAIT_EVENT_TIMEOUT = bind("SDL_WaitEventTimeout", SDL_WAIT_EVENT_TIMEOUT);
     private static final MethodHandle ADD_EVENT_WATCH = bind("SDL_AddEventWatch", SDL_ADD_EVENT_WATCH);
@@ -221,6 +233,24 @@ final class Sdl {
         }
     }
 
+    static long getNumberProperty(int props, MemorySegment name, long fallback) {
+        try {
+            return (long) GET_NUMBER_PROPERTY.invokeExact(props, name, fallback);
+        } catch (Throwable t) {
+            throw failed(t);
+        }
+    }
+
+    /** "windows", "x11", "wayland", ... */
+    static String getCurrentVideoDriver() {
+        try {
+            MemorySegment name = (MemorySegment) GET_CURRENT_VIDEO_DRIVER.invokeExact();
+            return name.equals(MemorySegment.NULL) ? null : name.reinterpret(Long.MAX_VALUE).getString(0);
+        } catch (Throwable t) {
+            throw failed(t);
+        }
+    }
+
     static boolean addEventWatch(MemorySegment filter, MemorySegment userdata) {
         try {
             return (boolean) ADD_EVENT_WATCH.invokeExact(filter, userdata);
@@ -230,7 +260,7 @@ final class Sdl {
     }
 
     private static MethodHandle bind(String name, FunctionDescriptor descriptor) {
-        MemorySegment symbol = LIB.find(name).orElseThrow(() -> new UnsatisfiedLinkError("SDL3.dll has no " + name));
+        MemorySegment symbol = LIB.find(name).orElseThrow(() -> new UnsatisfiedLinkError(FILE + " has no " + name));
         return LINKER.downcallHandle(symbol, descriptor);
     }
 
@@ -238,19 +268,19 @@ final class Sdl {
         return t instanceof RuntimeException r ? r : new IllegalStateException(t);
     }
 
-    /** The DLL the window spike unpacked from the official release zip into its git-ignored folder. */
+    /** The library the window spike unpacked (Windows) or built (Linux) into its git-ignored folder. */
     private static Path locate() {
         String override = System.getProperty("sdl3.dll");
         if (override != null) {
             return Path.of(override);
         }
-        for (String candidate : new String[] {"spikes/window/native/SDL3.dll", "../window/native/SDL3.dll"}) {
-            Path path = Path.of(candidate);
+        for (String folder : new String[] {"spikes/window/native/", "../window/native/",
+                "spikes/window/native/sdl3/lib/", "../window/native/sdl3/lib/"}) {
+            Path path = Path.of(folder + FILE);
             if (Files.isRegularFile(path)) {
                 return path;
             }
         }
-        throw new UnsatisfiedLinkError(
-                "SDL3.dll not found. Unpack SDL3-<version>-win32-x64.zip into spikes/window/native/.");
+        throw new UnsatisfiedLinkError(FILE + " not found. See spikes/window/Sdl.java.");
     }
 }

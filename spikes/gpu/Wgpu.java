@@ -34,6 +34,8 @@ final class Wgpu {
 
     static final int STYPE_SHADER_SOURCE_WGSL = 0x00000002;
     static final int STYPE_SURFACE_SOURCE_WINDOWS_HWND = 0x00000005;
+    static final int STYPE_SURFACE_SOURCE_XLIB_WINDOW = 0x00000006;
+    static final int STYPE_SURFACE_SOURCE_WAYLAND_SURFACE = 0x00000007;
     static final int STYPE_INSTANCE_EXTRAS = 0x00030004;
 
     static final int CALLBACK_MODE_WAIT_ANY_ONLY = 1;
@@ -150,6 +152,13 @@ final class Wgpu {
     static final StructLayout SURFACE_SOURCE_WINDOWS_HWND = struct("WGPUSurfaceSourceWindowsHWND",
             CHAINED_STRUCT.withName("chain"), ADDRESS.withName("hinstance"), ADDRESS.withName("hwnd"));
 
+    /** The window is an XID: uint64_t in the header, whatever size C long has. */
+    static final StructLayout SURFACE_SOURCE_XLIB_WINDOW = struct("WGPUSurfaceSourceXlibWindow",
+            CHAINED_STRUCT.withName("chain"), ADDRESS.withName("display"), JAVA_LONG.withName("window"));
+
+    static final StructLayout SURFACE_SOURCE_WAYLAND_SURFACE = struct("WGPUSurfaceSourceWaylandSurface",
+            CHAINED_STRUCT.withName("chain"), ADDRESS.withName("display"), ADDRESS.withName("surface"));
+
     static final StructLayout REQUEST_ADAPTER_OPTIONS = struct("WGPURequestAdapterOptions",
             ADDRESS.withName("nextInChain"), JAVA_INT.withName("featureLevel"), JAVA_INT.withName("powerPreference"),
             JAVA_INT.withName("forceFallbackAdapter"), JAVA_INT.withName("backendType"),
@@ -263,6 +272,7 @@ final class Wgpu {
     static final List<StructLayout> LAYOUTS = List.of(STRING_VIEW, CHAINED_STRUCT, FUTURE, FUTURE_WAIT_INFO,
             INSTANCE_DESCRIPTOR, XLIB_DISPLAY_HANDLE, NATIVE_DISPLAY_HANDLE, INSTANCE_EXTRAS,
             INSTANCE_ENUMERATE_ADAPTER_OPTIONS, SURFACE_DESCRIPTOR, SURFACE_SOURCE_WINDOWS_HWND,
+            SURFACE_SOURCE_XLIB_WINDOW, SURFACE_SOURCE_WAYLAND_SURFACE,
             REQUEST_ADAPTER_OPTIONS, CALLBACK_INFO, UNCAPTURED_ERROR_CALLBACK_INFO, ADAPTER_INFO, QUEUE_DESCRIPTOR,
             DEVICE_DESCRIPTOR, SURFACE_CAPABILITIES, SURFACE_CONFIGURATION, SURFACE_TEXTURE,
             SHADER_MODULE_DESCRIPTOR, SHADER_SOURCE_WGSL, VERTEX_ATTRIBUTE, VERTEX_BUFFER_LAYOUT, VERTEX_STATE,
@@ -327,6 +337,8 @@ final class Wgpu {
     // ---- functions ---------------------------------------------------------------------------
 
     static final Linker LINKER = Linker.nativeLinker();
+    /** wgpu_native.dll on Windows, libwgpu_native.so on Linux. */
+    private static final String FILE = System.mapLibraryName("wgpu_native");
     private static final SymbolLookup LIB = SymbolLookup.libraryLookup(locate(), Arena.global());
 
     static final FunctionDescriptor GET_VERSION = FunctionDescriptor.of(JAVA_INT);
@@ -824,7 +836,7 @@ final class Wgpu {
 
     private static MethodHandle bind(String name, FunctionDescriptor descriptor) {
         MemorySegment symbol =
-                LIB.find(name).orElseThrow(() -> new UnsatisfiedLinkError("wgpu_native.dll has no " + name));
+                LIB.find(name).orElseThrow(() -> new UnsatisfiedLinkError(FILE + " has no " + name));
         return LINKER.downcallHandle(symbol, descriptor);
     }
 
@@ -832,19 +844,20 @@ final class Wgpu {
         return t instanceof RuntimeException r ? r : new IllegalStateException(t);
     }
 
-    /** The DLL from the wgpu-native release zip, unpacked into the git-ignored folder next to the sources. */
+    /** The library from the wgpu-native release zip, unpacked into the git-ignored folder next to the sources. */
     private static Path locate() {
         String override = System.getProperty("wgpu.dll");
         if (override != null) {
             return Path.of(override);
         }
-        for (String candidate : new String[] {"spikes/gpu/native/lib/wgpu_native.dll", "native/lib/wgpu_native.dll"}) {
+        for (String candidate : new String[] {"spikes/gpu/native/lib/" + FILE, "native/lib/" + FILE}) {
             Path path = Path.of(candidate);
             if (Files.isRegularFile(path)) {
                 return path;
             }
         }
-        throw new UnsatisfiedLinkError("wgpu_native.dll not found. Unpack wgpu-windows-x86_64-msvc-release.zip "
+        throw new UnsatisfiedLinkError(FILE + " not found. Unpack wgpu-windows-x86_64-msvc-release.zip (Windows) "
+                + "or wgpu-linux-x86_64-release.zip (Linux) "
                 + "from github.com/gfx-rs/wgpu-native/releases into spikes/gpu/native/.");
     }
 }

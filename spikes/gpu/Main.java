@@ -31,6 +31,10 @@ import java.util.Locale;
  *
  * <pre>java --enable-native-access=ALL-UNNAMED spikes/gpu/Main.java [options]</pre>
  *
+ * <p>On Linux it needs {@code wgpu-linux-x86_64-release.zip} in the same place and the SDL3 the window spike built
+ * into {@code spikes/window/native/sdl3/}. The surface comes from the X11 display and window, or from the Wayland
+ * display and surface when SDL runs on Wayland ({@code SDL_VIDEO_DRIVER=wayland}).
+ *
  * <pre>
  * --backend=default|dx12|vulkan|gl   backends the wgpu instance may use (default: all, wgpu picks)
  * --adapters                         list every adapter of every backend and exit
@@ -228,15 +232,7 @@ public final class Main {
         check(!window.equals(MemorySegment.NULL), "SDL_CreateWindow: " + Sdl.getError());
         windowId = Sdl.getWindowID(window);
         Sdl.setWindowPosition(window, x, y);
-        int properties = Sdl.getWindowProperties(window);
-        MemorySegment hwnd = Sdl.getPointerProperty(properties,
-                ARENA.allocateFrom(Sdl.PROP_WINDOW_WIN32_HWND_POINTER), MemorySegment.NULL);
-        MemorySegment hinstance = Sdl.getPointerProperty(properties,
-                ARENA.allocateFrom(Sdl.PROP_WINDOW_WIN32_INSTANCE_POINTER), MemorySegment.NULL);
-        check(!hwnd.equals(MemorySegment.NULL), "SDL_PROP_WINDOW_WIN32_HWND_POINTER");
-        log("window hwnd 0x%X, hinstance 0x%X", hwnd.address(), hinstance.address());
-
-        createSurface(hinstance, hwnd);
+        createSurface(Sdl.getWindowProperties(window));
         requestAdapter(power);
         logAdapter("adapter", adapter);
         device = requestDevice(true);
@@ -329,16 +325,56 @@ public final class Main {
         }
     }
 
-    static void createSurface(MemorySegment hinstance, MemorySegment hwnd) {
-        MemorySegment source = ARENA.allocate(Wgpu.SURFACE_SOURCE_WINDOWS_HWND);
-        source.set(JAVA_INT, Wgpu.offset(Wgpu.SURFACE_SOURCE_WINDOWS_HWND, "chain", "sType"),
-                Wgpu.STYPE_SURFACE_SOURCE_WINDOWS_HWND);
-        source.set(ADDRESS, Wgpu.offset(Wgpu.SURFACE_SOURCE_WINDOWS_HWND, "hinstance"), hinstance);
-        source.set(ADDRESS, Wgpu.offset(Wgpu.SURFACE_SOURCE_WINDOWS_HWND, "hwnd"), hwnd);
+    /** A surface on the window's native handles; which ones depends on the video driver SDL runs on. */
+    static void createSurface(int properties) {
+        String driver = Sdl.getCurrentVideoDriver();
+        MemorySegment source = switch (driver) {
+            case "windows" -> {
+                MemorySegment hwnd = pointer(properties, Sdl.PROP_WINDOW_WIN32_HWND_POINTER);
+                MemorySegment hinstance = pointer(properties, Sdl.PROP_WINDOW_WIN32_INSTANCE_POINTER);
+                log("window hwnd 0x%X, hinstance 0x%X", hwnd.address(), hinstance.address());
+                MemorySegment s = ARENA.allocate(Wgpu.SURFACE_SOURCE_WINDOWS_HWND);
+                s.set(JAVA_INT, Wgpu.offset(Wgpu.SURFACE_SOURCE_WINDOWS_HWND, "chain", "sType"),
+                        Wgpu.STYPE_SURFACE_SOURCE_WINDOWS_HWND);
+                s.set(ADDRESS, Wgpu.offset(Wgpu.SURFACE_SOURCE_WINDOWS_HWND, "hinstance"), hinstance);
+                s.set(ADDRESS, Wgpu.offset(Wgpu.SURFACE_SOURCE_WINDOWS_HWND, "hwnd"), hwnd);
+                yield s;
+            }
+            case "x11" -> {
+                MemorySegment display = pointer(properties, Sdl.PROP_WINDOW_X11_DISPLAY_POINTER);
+                long xid = Sdl.getNumberProperty(properties, ARENA.allocateFrom(Sdl.PROP_WINDOW_X11_WINDOW_NUMBER), 0);
+                check(xid != 0, "SDL_PROP_WINDOW_X11_WINDOW_NUMBER");
+                log("video driver x11: display 0x%X, window 0x%X", display.address(), xid);
+                MemorySegment s = ARENA.allocate(Wgpu.SURFACE_SOURCE_XLIB_WINDOW);
+                s.set(JAVA_INT, Wgpu.offset(Wgpu.SURFACE_SOURCE_XLIB_WINDOW, "chain", "sType"),
+                        Wgpu.STYPE_SURFACE_SOURCE_XLIB_WINDOW);
+                s.set(ADDRESS, Wgpu.offset(Wgpu.SURFACE_SOURCE_XLIB_WINDOW, "display"), display);
+                s.set(JAVA_LONG, Wgpu.offset(Wgpu.SURFACE_SOURCE_XLIB_WINDOW, "window"), xid);
+                yield s;
+            }
+            case "wayland" -> {
+                MemorySegment display = pointer(properties, Sdl.PROP_WINDOW_WAYLAND_DISPLAY_POINTER);
+                MemorySegment wlSurface = pointer(properties, Sdl.PROP_WINDOW_WAYLAND_SURFACE_POINTER);
+                log("video driver wayland: display 0x%X, surface 0x%X", display.address(), wlSurface.address());
+                MemorySegment s = ARENA.allocate(Wgpu.SURFACE_SOURCE_WAYLAND_SURFACE);
+                s.set(JAVA_INT, Wgpu.offset(Wgpu.SURFACE_SOURCE_WAYLAND_SURFACE, "chain", "sType"),
+                        Wgpu.STYPE_SURFACE_SOURCE_WAYLAND_SURFACE);
+                s.set(ADDRESS, Wgpu.offset(Wgpu.SURFACE_SOURCE_WAYLAND_SURFACE, "display"), display);
+                s.set(ADDRESS, Wgpu.offset(Wgpu.SURFACE_SOURCE_WAYLAND_SURFACE, "surface"), wlSurface);
+                yield s;
+            }
+            default -> throw new IllegalStateException("no wgpu surface source for video driver " + driver);
+        };
         MemorySegment descriptor = ARENA.allocate(Wgpu.SURFACE_DESCRIPTOR);
         descriptor.set(ADDRESS, Wgpu.offset(Wgpu.SURFACE_DESCRIPTOR, "nextInChain"), source);
         surface = Wgpu.instanceCreateSurface(instance, descriptor);
         check(!surface.equals(MemorySegment.NULL), "wgpuInstanceCreateSurface");
+    }
+
+    static MemorySegment pointer(int properties, String name) {
+        MemorySegment value = Sdl.getPointerProperty(properties, ARENA.allocateFrom(name), MemorySegment.NULL);
+        check(!value.equals(MemorySegment.NULL), name);
+        return value;
     }
 
     static void requestAdapter(int powerPreference) {

@@ -43,6 +43,9 @@ public final class LayoutCheck {
                 com.rethinkj.ui.wgpu.WGPUInstanceEnumerateAdapterOptions.layout());
         generated.put("WGPUSurfaceDescriptor", com.rethinkj.ui.wgpu.WGPUSurfaceDescriptor.layout());
         generated.put("WGPUSurfaceSourceWindowsHWND", com.rethinkj.ui.wgpu.WGPUSurfaceSourceWindowsHWND.layout());
+        generated.put("WGPUSurfaceSourceXlibWindow", com.rethinkj.ui.wgpu.WGPUSurfaceSourceXlibWindow.layout());
+        generated.put("WGPUSurfaceSourceWaylandSurface",
+                com.rethinkj.ui.wgpu.WGPUSurfaceSourceWaylandSurface.layout());
         generated.put("WGPURequestAdapterOptions", com.rethinkj.ui.wgpu.WGPURequestAdapterOptions.layout());
         generated.put("WGPURequestAdapterCallbackInfo", com.rethinkj.ui.wgpu.WGPURequestAdapterCallbackInfo.layout());
         generated.put("WGPURequestDeviceCallbackInfo", com.rethinkj.ui.wgpu.WGPURequestDeviceCallbackInfo.layout());
