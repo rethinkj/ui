@@ -71,7 +71,7 @@ public final class Checkbox {
     // The whole row takes the press, text included, and its looks restyle the box.
     return checkbox.focusable()
         .keepFocus() // as a button: Tab reaches it, a press leaves the focus where it is
-        .focusRing(t.border().focus())
+        .focusRing(t.accent().edge())
         .cursor(Cursor.POINTER)
         .onPress(onToggle)
         .whenHovered(e -> box.fill(hover))

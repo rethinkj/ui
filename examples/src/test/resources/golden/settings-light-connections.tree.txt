@@ -1,6 +1,6 @@
 el 0,0 880x600
   el window=drag 0,0 880x32
-    el 10,10 12x12
+    el 12,11 10x10
     text "Settings" 30,8 50x16
     el 80,16 662x0
     el role=button label="Minimize" window=minimize 742,0 46x32
@@ -28,81 +28,81 @@ el 0,0 880x600
         el 860,19 2x2
         el 852,19 2x2
   el 0,32 880x568
-    el 0,32 200x568
-      el #pages role=listbox label="Settings" 4,36 192x560 focused
-        el #item-0 role=option label="General" 4,36 192x28 pos=1/7
-          el 4,38 192x24
-            el 6,42 2x16
-            text label="settings" "\u{F6A8}" 12,42 16x16
-            text "General" 32,42 156x16
-        el #item-1 role=option label="Appearance" 4,64 192x28 pos=2/7
-          el 4,66 192x24
-            el 6,70 2x16
-            text label="window" "\u{EE5D}" 12,70 16x16
-            text "Appearance" 32,70 156x16
-        el #item-2 role=option label="Editor" 4,92 192x28 pos=3/7
-          el 4,94 192x24
-            el 6,98 2x16
-            text label="code" "\u{F339}" 12,98 16x16
-            text "Editor" 32,98 156x16
-        el #item-3 role=option label="Connections" 4,120 192x28 selected pos=4/7
-          el 4,122 192x24
-            el 6,126 2x16
-            text label="database" "\u{F0D7}" 12,126 16x16
-            text "Connections" 32,126 156x16
-        el #item-4 role=option label="Keymap" 4,148 192x28 pos=5/7
-          el 4,150 192x24
-            el 6,154 2x16
-            text label="key_multiple" "\u{F0274}" 12,154 16x16
-            text "Keymap" 32,154 156x16
-        el #item-5 4,176 192x28
-          text "Help" 12,182 29x16
-        el #item-6 role=option label="About" 4,204 192x28 pos=7/7
-          el 4,206 192x24
-            el 6,210 2x16
-            text label="info" "\u{F4A2}" 12,210 16x16
-            text "About" 32,210 156x16
-    el role=separator 200,32 1x568
-    el 201,32 679x568
-      text role=heading "Connections" 225,56 631x24 level=1
-      el 225,104 631x340
-        el 225,104 631x36
-          text role=heading "Servers" 225,104 631x18 level=2
-          text "Where the workbench connects to, and how" 225,124 631x16
-        el 225,148 631x24
-          text #filter role=textbox label="Filter by name or host" "" 225,148 485x24
-          el #add role=button label="New connection…" 718,148 138x24
-            text "New connection…" 731,152 112x16
-        el 225,180 631x264
-          el #localhost role=button label="localhost" 225,180 631x60 value="connected"
-            el 238,193 605x34
-              el 238,193 536x34
-                text role=heading "localhost" 238,193 536x16 level=3
-                text "localhost:5432" 238,211 536x16
-              text label="plug_connected" "\u{F0393}" 782,202 16x16
-              el #menu role=button label="Actions for localhost" 806,198 37x24
-                text "…" 819,202 11x16
-          el #staging role=button label="staging" 225,248 631x60 value="connected"
-            el 238,261 605x34
-              el 238,261 536x34
-                text role=heading "staging" 238,261 536x16 level=3
-                text "staging.db.example.com:5432" 238,279 536x16
-              text label="plug_connected" "\u{F0393}" 782,270 16x16
-              el #menu role=button label="Actions for staging" 806,266 37x24
-                text "…" 819,270 11x16
-          el #prod-eu role=button label="prod-eu" 225,316 631x60 value="not connected"
-            el 238,329 605x34
-              el 238,329 536x34
-                text role=heading "prod-eu" 238,329 536x16 level=3
-                text "eu.db.example.com:6432" 238,347 536x16
-              text label="plug_disconnected" "\u{F0394}" 782,338 16x16
-              el #menu role=button label="Actions for prod-eu" 806,334 37x24
-                text "…" 819,338 11x16
-          el #backup role=button label="backup" 225,384 631x60 selected value="not connected"
-            el 238,397 605x34
-              el 238,397 536x34
-                text role=heading "backup" 238,397 536x16 level=3
-                text "backup.example.com:6432" 238,415 536x16
-              text label="plug_disconnected" "\u{F0394}" 782,406 16x16
-              el #menu role=button label="Actions for backup" 806,402 37x24
-                text "…" 819,406 11x16
+    el 8,32 200x560
+      el 9,33 198x558
+        el #pages role=listbox label="Settings" 13,37 190x550 focused
+          el #item-0 role=option label="General" 13,37 190x28 pos=1/7
+            el 13,39 190x24
+              el 15,43 2x16
+              text label="settings" "\u{F6A8}" 21,43 16x16
+              text "General" 41,43 154x16
+          el #item-1 role=option label="Appearance" 13,65 190x28 pos=2/7
+            el 13,67 190x24
+              el 15,71 2x16
+              text label="window" "\u{EE5D}" 21,71 16x16
+              text "Appearance" 41,71 154x16
+          el #item-2 role=option label="Editor" 13,93 190x28 pos=3/7
+            el 13,95 190x24
+              el 15,99 2x16
+              text label="code" "\u{F339}" 21,99 16x16
+              text "Editor" 41,99 154x16
+          el #item-3 role=option label="Connections" 13,121 190x28 selected pos=4/7
+            el 13,123 190x24
+              el 15,127 2x16
+              text label="database" "\u{F0D7}" 21,127 16x16
+              text "Connections" 41,127 154x16
+          el #item-4 role=option label="Keymap" 13,149 190x28 pos=5/7
+            el 13,151 190x24
+              el 15,155 2x16
+              text label="key_multiple" "\u{F0274}" 21,155 16x16
+              text "Keymap" 41,155 154x16
+          el #item-5 13,177 190x28
+            text "Help" 21,183 29x16
+          el #item-6 role=option label="About" 13,205 190x28 pos=7/7
+            el 13,207 190x24
+              el 15,211 2x16
+              text label="info" "\u{F4A2}" 21,211 16x16
+              text "About" 41,211 154x16
+    el 216,32 656x560
+      text role=heading "Connections" 240,56 608x24 level=1
+      el 240,104 608x339
+        el 240,104 608x35
+          text role=heading "Servers" 240,104 608x17 level=2
+          text "Where the workbench connects to, and how" 240,123 608x16
+        el 240,147 608x24
+          text #filter role=textbox label="Filter by name or host" "" 240,147 460x24
+          el #add role=button label="New connection…" 708,147 140x24
+            text "New connection…" 721,151 114x16
+        el 240,179 608x264
+          el #localhost role=button label="localhost" 240,179 608x60 value="connected"
+            el 253,192 582x34
+              el 253,192 512x34
+                text role=heading "localhost" 253,192 512x16 level=3
+                text "localhost:5432" 253,210 512x16
+              text label="plug_connected" "\u{F0393}" 773,201 16x16
+              el #menu role=button label="Actions for localhost" 797,197 38x24
+                text "…" 810,201 12x16
+          el #staging role=button label="staging" 240,247 608x60 value="connected"
+            el 253,260 582x34
+              el 253,260 512x34
+                text role=heading "staging" 253,260 512x16 level=3
+                text "staging.db.example.com:5432" 253,278 512x16
+              text label="plug_connected" "\u{F0393}" 773,269 16x16
+              el #menu role=button label="Actions for staging" 797,265 38x24
+                text "…" 810,269 12x16
+          el #prod-eu role=button label="prod-eu" 240,315 608x60 value="not connected"
+            el 253,328 582x34
+              el 253,328 512x34
+                text role=heading "prod-eu" 253,328 512x16 level=3
+                text "eu.db.example.com:6432" 253,346 512x16
+              text label="plug_disconnected" "\u{F0394}" 773,337 16x16
+              el #menu role=button label="Actions for prod-eu" 797,333 38x24
+                text "…" 810,337 12x16
+          el #backup role=button label="backup" 240,383 608x60 selected value="not connected"
+            el 253,396 582x34
+              el 253,396 512x34
+                text role=heading "backup" 253,396 512x16 level=3
+                text "backup.example.com:6432" 253,414 512x16
+              text label="plug_disconnected" "\u{F0394}" 773,405 16x16
+              el #menu role=button label="Actions for backup" 797,401 38x24
+                text "…" 810,405 12x16

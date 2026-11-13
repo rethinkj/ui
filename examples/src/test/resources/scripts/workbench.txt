@@ -9,11 +9,13 @@ press role=treeitem label="orders"
 frame
 press role=treeitem label="orders" clicks 2  # a double press opens the table in a tab
 frame
+advance 0.2                                # past the fade of the new tab's toolbar
+frame
 snap workbench-loading                     # which asks for its rows: "Loading…" until the answer
 
 await                                      # a million rows
 frame
-press 600,200                              # selects a row and focuses the grid
+press 600,300                              # selects a row and focuses the grid
 key End                                    # the last of a million rows, clear of the bar
 frame
 snap workbench-orders
@@ -105,3 +107,12 @@ snap workbench-query                       # "Loading…" below the statement, t
 await
 frame
 snap workbench-ran                         # twenty rows, and the status line says so
+
+size 1000 600 scale 2                      # the same at twice the pixels
+frame
+snap workbench-light-2x
+press role=switch label="Dark"
+frame
+advance 1
+frame
+snap workbench-dark-2x

@@ -147,7 +147,7 @@ class TreeTest {
       app.frame();
     }
     assertEquals(walks, catalog.walks, "the rows are numbered once, by the view");
-    assertEquals(20_000 / 22 - El.OVERSCAN, find(app, "schema").firstRow());
+    assertEquals(20_000 / 24 - El.OVERSCAN, find(app, "schema").firstRow());
   }
 
   @Test
@@ -159,18 +159,30 @@ class TreeTest {
         "Tree: a rebuild after ArrowDown, median of %d: frame() %.2f ms and the tree's view"
             + " %.2f ms with %d nodes shown, %.2f ms and %.2f ms with 308%n",
         REBUILDS, large[0] / 1e6, large[1] / 1e6, SHOWN, small[0] / 1e6, small[1] / 1e6);
-    assertTrue(large[0] < 8_000_000, "median frame() of " + large[0] + " ns, half a frame");
+    // About 1.3 ms on a desktop; a bound of a whole frame holds on a busy machine.
+    assertTrue(large[0] < 16_000_000, "median frame() of " + large[0] + " ns, a frame");
   }
 
   @Test
   void aFrameWithABurstOfTenKeysCostsAViewAndItsLayoutPerKey() throws IOException {
     // Each key of a burst goes to the tree the key before it built: the view numbers the rows
     // again for each, and the rows are built once, at the end.
+    Catalog catalog = hundredThousand();
+    App<Catalog> app = start(catalog);
+    run(app, "focus #schema\nframe");
+    int walks = catalog.walks;
+    catalog.labelled.clear();
+    for (int k = 0; k < 10; k++) {
+      app.keyDown(new Key("ArrowDown"));
+      app.keyUp(new Key("ArrowDown"));
+    }
+    app.frame();
+    assertEquals(walks + 10, catalog.walks, "the view, which numbers the rows, once per key");
+    assertLabelledOnce(catalog, app);
     long one = keyFrames(hundredThousand(), 1);
     long ten = keyFrames(hundredThousand(), 10);
     System.out.printf("Tree: frame() after keys, median of %d, %d nodes shown: %.2f ms after one"
         + " ArrowDown, %.2f ms after ten%n", REBUILDS, SHOWN, one / 1e6, ten / 1e6);
-    assertTrue(ten < 15 * one, "median frame() of " + ten + " ns after ten, " + one + " after one");
   }
 
   private static final int REBUILDS = 200;
@@ -401,15 +413,15 @@ class TreeTest {
     App<Catalog> app = start(catalog);
     run(app, "focus #schema\nframe");
     key(app, catalog, "Home");
-    // The tree is 284 high: 12 rows of 22 whole.
-    assertEquals(12, row(app, catalog, "PageDown"));
-    assertInView(app, 12);
-    assertEquals(24, row(app, catalog, "PageDown"));
-    assertInView(app, 24);
+    // The tree is 284 high: 11 rows of 24 whole.
+    assertEquals(11, row(app, catalog, "PageDown"));
+    assertInView(app, 11);
+    assertEquals(22, row(app, catalog, "PageDown"));
+    assertInView(app, 22);
     assertEquals(307, row(app, catalog, "End"));
     assertInView(app, 307);
-    assertEquals(295, row(app, catalog, "PageUp"));
-    assertInView(app, 295);
+    assertEquals(296, row(app, catalog, "PageUp"));
+    assertInView(app, 296);
     assertEquals(0, row(app, catalog, "Home"));
     assertInView(app, 0);
   }
@@ -443,13 +455,13 @@ class TreeTest {
     catalog.selected = catalog.node("localhost/analytics/public"); // inside a closed node
     App<Catalog> app = start(catalog);
     assertTrue(find(app, "schema").children().stream().allMatch(r -> r.fill() == 0), "none shown");
-    run(app, "focus #schema\nwheel #schema 0 2200\nframe"); // row 100 at the top
+    run(app, "focus #schema\nwheel #schema 0 2400\nframe"); // row 100 at the top
     for (String name : List.of("ArrowRight", "ArrowLeft", "Enter")) {
       key(app, catalog, name);
     }
     assertEquals(List.of(), catalog.log, "nothing to open, close or activate");
     assertEquals(100, row(app, catalog, "ArrowDown"));
-    assertEquals(2200, find(app, "schema").scrollY(), "already in view");
+    assertEquals(2400, find(app, "schema").scrollY(), "already in view");
   }
 
   @Test

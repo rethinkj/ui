@@ -173,7 +173,7 @@ final class Workbench {
   App<Workbench> app(Function<Workbench, El> view) {
     App<Workbench> app = new App<>(this, view);
     app.textRendering(TextRendering.LINUX);
-    app.focusRing(theme.border().focus());
+    app.focusRing(theme.accent().edge());
     return app;
   }
 

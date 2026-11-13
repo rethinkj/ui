@@ -27,7 +27,7 @@ class ConnectionDialogTest {
     for (String snap : new String[] {"connection-filled", "connection-connecting"}) {
       String tree = Files.readString(Path.of("target", "connection-dialog", snap + ".tree.txt"));
       assertFalse(tree.contains("hunter2"), snap);
-      assertTrue(tree.contains("\"" + "\u2022".repeat(7) + "\" 98,246 260x24 password"), tree);
+      assertTrue(tree.contains("\"" + "\u2022".repeat(7) + "\" 95,223 260x24 password"), tree);
     }
     assertTrue(Snaps.line("connection-dialog", "connection-connecting", "text \"Connecting")
         .contains("as admin with SSL\""));
