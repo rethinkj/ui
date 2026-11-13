@@ -19,14 +19,15 @@ import com.rethinkj.ui.kit.Card;
 import com.rethinkj.ui.kit.DataGrid;
 import com.rethinkj.ui.kit.DataGrid.CellIcon;
 import com.rethinkj.ui.kit.DataGrid.Column;
-import com.rethinkj.ui.kit.DataGrid.DataType;
 import com.rethinkj.ui.kit.DataGrid.Filter;
 import com.rethinkj.ui.kit.DataGrid.Layout;
 import com.rethinkj.ui.kit.DataGrid.Mode;
 import com.rethinkj.ui.kit.DataGrid.Selection;
 import com.rethinkj.ui.kit.DataGrid.SortKey;
 import com.rethinkj.ui.kit.Divider;
+import com.rethinkj.ui.kit.Format;
 import com.rethinkj.ui.kit.GridChanges;
+import com.rethinkj.ui.kit.GridTable;
 import com.rethinkj.ui.kit.Icon.Variant;
 import com.rethinkj.ui.kit.Menu;
 import com.rethinkj.ui.kit.Symbol;
@@ -39,8 +40,9 @@ import com.rethinkj.ui.text.TextRendering;
 import com.rethinkj.ui.window.Window;
 import com.rethinkj.ui.window.WindowLoop;
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -49,7 +51,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
-import java.util.function.IntFunction;
+import java.util.function.Predicate;
 
 /**
  * A million orders in the kit's data grid, with a filter above it and a status line below, as a
@@ -62,8 +64,10 @@ import java.util.function.IntFunction;
  * are left out of them. The order at the cursor stays selected while the filter or the sort moves
  * it, and while the filter hides it.
  *
- * <p>Edits collect in a {@link GridChanges} until Commit, which writes them: changed values
- * beside the made-up ones, new orders after the million, which no filter or sort moves, and
+ * <p>The orders are records ({@link Order}) and the columns typed values of them ({@link
+ * GridTable}): a {@code BigDecimal} amount, {@code LocalDateTime}s, an enum of statuses. Edits
+ * collect in a {@link GridChanges} until Commit, which takes them as typed values and writes them
+ * through the records' withers: changed orders beside the made-up ones, new orders after the million, which no filter or sort moves, and
  * deleted orders taken out of the rows; Revert forgets them.
  */
 public final class DataBrowser {
@@ -99,49 +103,171 @@ public final class DataBrowser {
     "Keyboard", "Monitor", "Laptop", "Mouse", "Headset", "Dock", "Webcam", "Cable"
   };
   private static final int[] CENTS = {4990, 22900, 129900, 1990, 8900, 17900, 6900, 990};
-  private static final String[] STATUS = {"paid", "pending", "shipped", "refunded"};
   private static final String[] NOTE = {
     null, "Leave at the door", null, null, "Gift wrap", null, "Call before delivery", null
   };
   private static final LocalDateTime START = LocalDateTime.of(2026, 1, 5, 8, 0);
-  private static final DateTimeFormatter TIME = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
 
-  /**
-   * A column of the table: its kind, its cell from a row's index, and whether the filter looks at
-   * it.
-   */
-  private record Field(
-      String title, float width, DataType kind, boolean text, IntFunction<String> cell) {}
+  /** The status of an order, written in lower case. */
+  enum Status {
+    PAID,
+    PENDING,
+    SHIPPED,
+    REFUNDED;
 
-  private static final List<Field> FIELDS = List.of(
-      new Field("id", 72, DataType.INTEGER, false, i -> String.valueOf(i + 1)),
-      new Field("customer", 140, DataType.TEXT, true, DataBrowser::customer),
-      new Field(
-          "email",
-          220,
-          DataType.TEXT,
-          true,
-          i -> customer(i).toLowerCase(Locale.ROOT).replace(' ', '.') + "@"
-              + DOMAIN[i / 100 % DOMAIN.length]),
-      new Field("city", 90, DataType.TEXT, true, i -> CITY[i / 4 % CITY.length]),
-      new Field("country", 80, DataType.TEXT, true, i -> COUNTRY[i / 4 % COUNTRY.length]),
-      new Field("product", 100, DataType.TEXT, true, i -> PRODUCT[product(i)]),
-      new Field("quantity", 80, DataType.INTEGER, false, i -> String.valueOf(quantity(i))),
-      new Field("amount", 100, DataType.DECIMAL, false, i -> {
-        int cents = quantity(i) * CENTS[product(i)];
-        return String.format(Locale.ROOT, "%d.%02d", cents / 100, cents % 100);
-      }),
-      new Field("created_at", 140, DataType.DATE_TIME, false, i -> created(i).format(TIME)),
-      new Field(
-          "shipped_at",
-          140,
-          DataType.DATE_TIME,
-          false,
-          i -> !status(i).equals("shipped")
-              ? null
-              : created(i).plusMinutes(i * 7919L % 4320).format(TIME)),
-      new Field("status", 90, DataType.ENUM, true, DataBrowser::status),
-      new Field("note", 180, DataType.TEXT, true, i -> NOTE[i % NOTE.length]));
+    String label() {
+      return name().toLowerCase(Locale.ROOT);
+    }
+  }
+
+  static final Format<Status> STATUS = Format.choice(Status.values(), Status::label);
+
+  /** An order; a new one holds only what was written, the rest is null. */
+  record Order(
+      Long id,
+      String customer,
+      String email,
+      String city,
+      String country,
+      String product,
+      Integer quantity,
+      BigDecimal amount,
+      LocalDateTime createdAt,
+      LocalDateTime shippedAt,
+      Status status,
+      String note) {
+
+    static final Order EMPTY =
+        new Order(null, null, null, null, null, null, null, null, null, null, null, null);
+
+    Order withCustomer(String v) {
+      return new Order(
+          id, v, email, city, country, product, quantity, amount, createdAt, shippedAt, status,
+          note);
+    }
+
+    Order withEmail(String v) {
+      return new Order(
+          id, customer, v, city, country, product, quantity, amount, createdAt, shippedAt, status,
+          note);
+    }
+
+    Order withCity(String v) {
+      return new Order(
+          id, customer, email, v, country, product, quantity, amount, createdAt, shippedAt, status,
+          note);
+    }
+
+    Order withCountry(String v) {
+      return new Order(
+          id, customer, email, city, v, product, quantity, amount, createdAt, shippedAt, status,
+          note);
+    }
+
+    Order withProduct(String v) {
+      return new Order(
+          id, customer, email, city, country, v, quantity, amount, createdAt, shippedAt, status,
+          note);
+    }
+
+    Order withQuantity(Integer v) {
+      return new Order(
+          id, customer, email, city, country, product, v, amount, createdAt, shippedAt, status,
+          note);
+    }
+
+    Order withAmount(BigDecimal v) {
+      return new Order(
+          id, customer, email, city, country, product, quantity, v, createdAt, shippedAt, status,
+          note);
+    }
+
+    Order withCreatedAt(LocalDateTime v) {
+      return new Order(
+          id, customer, email, city, country, product, quantity, amount, v, shippedAt, status,
+          note);
+    }
+
+    Order withShippedAt(LocalDateTime v) {
+      return new Order(
+          id, customer, email, city, country, product, quantity, amount, createdAt, v, status,
+          note);
+    }
+
+    Order withStatus(Status v) {
+      return new Order(
+          id, customer, email, city, country, product, quantity, amount, createdAt, shippedAt, v,
+          note);
+    }
+
+    Order withNote(String v) {
+      return new Order(
+          id, customer, email, city, country, product, quantity, amount, createdAt, shippedAt,
+          status, v);
+    }
+  }
+
+  /** The made-up order at an index. */
+  static Order madeUp(int i) {
+    int quantity = 1 + i * 13 % 9;
+    int product = i * 3 % PRODUCT.length;
+    String customer = customer(i);
+    LocalDateTime created = START.plusSeconds(i * 29L).truncatedTo(ChronoUnit.MINUTES);
+    Status status = Status.values()[i * 7 % Status.values().length];
+    return new Order(
+        i + 1L,
+        customer,
+        customer.toLowerCase(Locale.ROOT).replace(' ', '.') + "@" + DOMAIN[i / 100 % DOMAIN.length],
+        CITY[i / 4 % CITY.length],
+        COUNTRY[i / 4 % COUNTRY.length],
+        PRODUCT[product],
+        quantity,
+        BigDecimal.valueOf((long) quantity * CENTS[product], 2),
+        created,
+        status == Status.SHIPPED ? created.plusMinutes(i * 7919L % 4320) : null,
+        status,
+        NOTE[i % NOTE.length]);
+  }
+
+  /** The widths the columns start with. */
+  private static final float[] WIDTHS = {72, 140, 220, 90, 80, 100, 80, 100, 140, 140, 90, 180};
+
+  /** The columns of the orders, in the order of {@link Order}'s parts. */
+  static List<Column> columns(GridTable<Order> table, float[] widths) {
+    return List.of(
+        table.column("id", widths[0], Format.LONG, Order::id),
+        table.column("customer", widths[1], Format.TEXT, Order::customer, Order::withCustomer),
+        table.column("email", widths[2], Format.TEXT, Order::email, Order::withEmail),
+        table.column("city", widths[3], Format.TEXT, Order::city, Order::withCity),
+        table.column("country", widths[4], Format.TEXT, Order::country, Order::withCountry),
+        table
+            .column("product", widths[5], Format.TEXT, Order::product, Order::withProduct)
+            .choices(List.of(PRODUCT)),
+        table.column("quantity", widths[6], Format.INTEGER, Order::quantity, Order::withQuantity),
+        table.column("amount", widths[7], Format.DECIMAL, Order::amount, Order::withAmount),
+        table.column(
+            "created_at", widths[8], Format.DATE_TIME, Order::createdAt, Order::withCreatedAt),
+        table.column(
+            "shipped_at",
+            widths[9],
+            Format.DATE_TIME.optional(),
+            Order::shippedAt,
+            Order::withShippedAt),
+        table.column("status", widths[10], STATUS, Order::status, Order::withStatus),
+        table.column("note", widths[11], Format.TEXT.optional(), Order::note, Order::withNote));
+  }
+
+  /** The columns of the made-up orders, which the filter looks at. */
+  private static final List<Column> MADE_UP = columns(DataGrid.table(DataBrowser::madeUp), WIDTHS);
+
+  /** Whether the filter looks at a column: the columns of text. */
+  private static boolean text(int column) {
+    return switch (MADE_UP.get(column).type()) {
+      case TEXT, ENUM -> true;
+      default -> false;
+    };
+  }
+
   // A coloured mark before each status, in the order of STATUS: constants, allocated once.
   private static final CellIcon[] MARKS = {
     CellIcon.before(Symbol.RECORD, Variant.SUCCESS),
@@ -156,24 +282,27 @@ public final class DataBrowser {
   final Selection selection = new Selection(Mode.CELLS); // in the places the grid shows
   int selected = -1; // the order at the cursor, also while the filter hides it
   boolean descending; // by id
-  final float[] widths = new float[FIELDS.size()];
+  final float[] widths = new float[WIDTHS.length];
   final Menu.State menu = new Menu.State();
   String toast; // a message at the bottom of the window, or null
   App<DataBrowser> app;
   static final long COPY_LIMIT = 100_000; // the grid's own limit, said in the toast
   // What has been written: values by order and column (a null value is NULL), new orders after
   // the million, and deleted orders, with the places of those shown, ascending.
-  final Map<Integer, Map<Integer, String>> written = new HashMap<>();
-  final List<Map<Integer, String>> added = new ArrayList<>();
+  final Map<Integer, Order> written = new HashMap<>();
+  final List<Order> added = new ArrayList<>();
   final Set<Integer> removed = new TreeSet<>();
   private int[] gone = new int[0];
   final GridChanges changes;
-  final Layout layout = new Layout(FIELDS.stream().map(Field::title).toList());
+  // The orders shown, as the changes count them, and their columns, whose cells the changes show.
+  final GridTable<Order> table = DataGrid.table(row -> order(orderShown(row)));
+  final List<Column> base = columns(table, WIDTHS);
+  final Layout layout = new Layout(MADE_UP.stream().map(Column::title).toList());
+  private int last = -1; // the made-up order read last, which the cells of a row ask for again
+  private Order lastOrder;
 
   DataBrowser() {
-    for (int c = 0; c < widths.length; c++) {
-      widths[c] = FIELDS.get(c).width();
-    }
+    System.arraycopy(WIDTHS, 0, widths, 0, WIDTHS.length);
     changes = new GridChanges(new GridChanges.Rows() {
       @Override
       public int count() {
@@ -192,18 +321,25 @@ public final class DataBrowser {
 
       @Override
       public String cell(int row, int column) {
-        return value(orderShown(row), column);
+        return base.get(column).cell().apply(row);
       }
     });
   }
 
-  /** A cell of an order as written, else as made up; new orders hold only what was written. */
-  String value(int order, int column) {
-    Map<Integer, String> values = order >= ROWS ? added.get(order - ROWS) : written.get(order);
-    if (values != null && values.containsKey(column)) {
-      return values.get(column);
+  /** An order as written, else as made up; new orders hold only what was written. */
+  Order order(int order) {
+    if (order >= ROWS) {
+      return added.get(order - ROWS);
     }
-    return order >= ROWS ? null : FIELDS.get(column).cell().apply(order);
+    Order written = this.written.get(order);
+    if (written != null) {
+      return written;
+    }
+    if (order != last) { // made up once for all the cells of its row
+      last = order;
+      lastOrder = madeUp(order);
+    }
+    return lastOrder;
   }
 
   /** The rows shown: the orders the filters keep, without deleted ones, then the new ones. */
@@ -253,22 +389,6 @@ public final class DataBrowser {
     return FIRST[i % FIRST.length] + " " + LAST[i / FIRST.length % LAST.length];
   }
 
-  static int product(int i) {
-    return i * 3 % PRODUCT.length;
-  }
-
-  static int quantity(int i) {
-    return 1 + i * 13 % 9;
-  }
-
-  static LocalDateTime created(int i) {
-    return START.plusSeconds(i * 29L);
-  }
-
-  static String status(int i) {
-    return STATUS[i * 7 % STATUS.length];
-  }
-
   private static int[] all() {
     int[] rows = new int[PERIOD];
     Arrays.setAll(rows, i -> i);
@@ -288,13 +408,12 @@ public final class DataBrowser {
 
   private void refilter() {
     String[] words = filter.toLowerCase(Locale.ROOT).trim().split("\\s+");
+    Predicate<Order> keeps = DataGrid.table(DataBrowser::madeUp).filter(MADE_UP, filters);
     int[] found = new int[PERIOD];
     int count = 0;
     for (int r = 0; r < PERIOD; r++) {
       int row = r;
-      if (matches(row, words)
-          && filters.stream()
-              .allMatch(f -> f.matches(FIELDS.get(f.column()).cell().apply(row)))) {
+      if (matches(row, words) && keeps.test(madeUp(row))) {
         found[count++] = row;
       }
     }
@@ -337,17 +456,20 @@ public final class DataBrowser {
       return;
     }
     int count = changes.count();
-    for (GridChanges.Change change : changes.changes()) {
+    for (GridChanges.RowChange<Order> change : changes.changes(table, base)) {
+      int order = (int) change.key();
       switch (change.kind()) {
+        // By its key, also where the filter hides the order and the change has no row.
         case UPDATE -> {
-          int order = (int) change.key();
-          (order >= ROWS
-                  ? added.get(order - ROWS)
-                  : written.computeIfAbsent(order, o -> new HashMap<>()))
-              .putAll(change.values());
+          Order next = change.apply(order(order));
+          if (order >= ROWS) {
+            added.set(order - ROWS, next);
+          } else {
+            written.put(order, next);
+          }
         }
-        case INSERT -> added.add(new HashMap<>(change.values()));
-        case DELETE -> removed.add((int) change.key());
+        case INSERT -> added.add(change.apply(Order.EMPTY));
+        case DELETE -> removed.add(order);
       }
     }
     changes.clear();
@@ -369,8 +491,8 @@ public final class DataBrowser {
   /** The row's text columns that are not NULL: what the filter looks at. */
   static List<String> texts(int row) {
     List<String> texts = new ArrayList<>();
-    for (Field field : FIELDS) {
-      String text = field.text() ? field.cell().apply(row) : null;
+    for (int c = 0; c < MADE_UP.size(); c++) {
+      String text = text(c) ? MADE_UP.get(c).cell().apply(row) : null;
       if (text != null) {
         texts.add(text);
       }
@@ -442,25 +564,20 @@ public final class DataBrowser {
   static El view(DataBrowser s) {
     Theme t = s.dark ? Theme.DARK : Theme.LIGHT;
     List<Column> columns = new ArrayList<>();
-    for (int c = 0; c < FIELDS.size(); c++) {
-      Field f = FIELDS.get(c);
-      Column column = new Column(f.title(), s.widths[c], f.kind(), s.changes.cell(c))
-          .sortable(c == 0); // id sorts
+    List<Column> typed = columns(s.table, s.widths);
+    for (int c = 0; c < typed.size(); c++) {
+      // The cells through the changes, which show the edited values and the new rows.
+      Column column = typed.get(c).cell(s.changes.cell(c)).sortable(c == 0); // id sorts
       columns.add(
-          switch (f.title()) {
+          switch (column.title()) {
             case "id" -> column.icon(Symbol.KEY, Variant.WARNING);
             case "status" ->
-              column
-                  .cellIcon(shown -> {
-                    String status = s.changes.cell(shown, 10);
-                    int at = status == null ? -1 : List.of(STATUS).indexOf(status);
-                    return at < 0 ? null : MARKS[at];
-                  })
-                  .editable()
-                  .choices(List.of(STATUS));
-            case "product" -> column.editable().choices(List.of(PRODUCT));
-            case "shipped_at", "note" -> column.editable().nullable();
-            default -> column.editable();
+              column.cellIcon(shown -> {
+                String status = s.changes.cell(shown, 10);
+                int at = status == null ? -1 : STATUS.choices().indexOf(status);
+                return at < 0 ? null : MARKS[at];
+              });
+            default -> column;
           });
     }
     DataGrid.Options options = DataGrid.options()
@@ -473,7 +590,7 @@ public final class DataBrowser {
         .contextMenu(s.menu, List.of())
         .changes(s.changes)
         .filters(s.filters, s::filters)
-        .filterable(c -> FIELDS.get(c).text())
+        .filterable(DataBrowser::text)
         .columns(s.layout);
     if (s.app != null) { // the window's clipboard once it runs, the app's own before
       options.copy(s.app.clipboard());

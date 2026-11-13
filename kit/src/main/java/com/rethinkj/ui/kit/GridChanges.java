@@ -89,6 +89,44 @@ public final class GridChanges {
    */
   public record Change(Kind kind, long key, SortedMap<Integer, String> values) {}
 
+  /**
+   * A change of a row of a {@link GridTable} with typed values ({@link #changes(GridTable,
+   * List)}).
+   *
+   * @param key the row's key; for an insert, a key of its own below 0
+   * @param row the app's row as it is, null for an insert
+   * @param values the columns and their changes, in the order of the columns; empty for a delete
+   */
+  public record RowChange<T>(
+      Kind kind, long key, T row, SortedMap<Integer, ValueChange<T>> values) {
+
+    /**
+     * Writes the new values into a row through the columns' withers or setters: {@link #row} for
+     * an update, an empty row of the app's for an insert. Returns the new record, or the POJO the
+     * setters changed.
+     */
+    public T apply(T row) {
+      T next = row;
+      for (ValueChange<T> v : values.values()) {
+        next = v.cells().writeParsed(next, v.after());
+      }
+      return next;
+    }
+  }
+
+  /**
+   * A cell's value before and after, in the type of its column's format: a {@code BigDecimal} of
+   * {@link Format#DECIMAL}, an enum of a {@link Format#choice} of its constants; null for NULL.
+   * {@code if (v.after() instanceof BigDecimal amount) ...}
+   *
+   * @param column the column, as the grid counts them
+   * @param cells the typed part of the column, which writes the value into a row
+   * @param before the value in the app's row, null for NULL and for a new row
+   * @param after the new value
+   */
+  public record ValueChange<T>(
+      int column, GridTable.Cells<T, ?> cells, Object before, Object after) {}
+
   private static final int HISTORY = 100;
   private static final Object NULL = new Object(); // a value of NULL, besides no value at all
 
@@ -253,6 +291,40 @@ public final class GridChanges {
     }
     for (New row : added) {
       out.add(new Change(Kind.INSERT, row.id(), values(row.id())));
+    }
+    return out;
+  }
+
+  /**
+   * {@link #changes()} of the rows of a {@link GridTable} with the values in the types of its
+   * columns: each change with the app's row and, for each changed column, the value before and
+   * after, which {@link RowChange#apply} writes into a row.
+   *
+   * @param table the app's rows, as {@link Rows} counts them
+   * @param columns the table's columns as the grid counts them, each with {@link
+   *     DataGrid.Column#cells}
+   * @throws IllegalArgumentException for a changed column without {@code cells}
+   */
+  @SuppressWarnings("unchecked")
+  public <T> List<RowChange<T>> changes(GridTable<T> table, List<DataGrid.Column> columns) {
+    List<RowChange<T>> out = new ArrayList<>();
+    for (Change change : changes()) {
+      int place = change.key() >= 0 ? rows.place(change.key()) : -1;
+      T row = place < 0 ? null : table.row(place);
+      SortedMap<Integer, ValueChange<T>> values = new TreeMap<>();
+      for (Map.Entry<Integer, String> e : change.values().entrySet()) {
+        int column = e.getKey();
+        GridTable.Cells<T, ?> cells = column < columns.size()
+            ? (GridTable.Cells<T, ?>) columns.get(column).cells()
+            : null;
+        if (cells == null) {
+          throw new IllegalArgumentException("Column " + column + " is not a column of a table");
+        }
+        Object before = row == null ? null : cells.value(row);
+        values.put(column, new ValueChange<>(column, cells, before, cells.parse(e.getValue())));
+      }
+      out.add(new RowChange<>(
+          change.kind(), change.key(), row, Collections.unmodifiableSortedMap(values)));
     }
     return out;
   }

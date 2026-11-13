@@ -69,6 +69,7 @@ class DocsExamplesTest {
     grids(all, "grid-sort", Grids::sorted, 520, 300);
     grids(all, "grid-edit", Grids::edited, 520, 300);
     grids(all, "grid-filter", Grids::filtered, 520, 300);
+    grids(all, "grid-typed", Grids::typed, 520, 300);
     grids(all, "tree", Grids::tree, 320, 260);
     editors(all, "code-editor", Editors::codeEditor, 520, 260);
     editors(all, "find", Editors::find, 440, 220);

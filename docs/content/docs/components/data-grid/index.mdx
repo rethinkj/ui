@@ -30,6 +30,8 @@ The grid has no border of its own: it sits flush in a card, as `Card.flush(t, gr
 | Sorting | `.sortable(boolean)` |
 | Editing | `.editable()`, `.editable(rows)`, `.nullable()`, `.choices(list)`, `.editor(...)`, see [Editing](/docs/components/data-grid/editing) |
 
+For rows held as records or POJOs, `DataGrid.table(rows).column(title, width, Format.DECIMAL, Order::amount, Order::withAmount)` makes a typed column from a getter and a wither or setter, see [Rows of records](/docs/components/data-grid/typed).
+
 The methods return a changed copy, so a view builds columns in one expression. Hiding or reordering columns is the app's: it changes its list, or uses a `Layout` (see [Sorting and columns](/docs/components/data-grid/sorting-and-columns)).
 
 A cell's text shows on one line, a line break as `⏎` and a tab as `⇥`. Where it does not fit it ends in an ellipsis and shows whole in a tooltip. Where a header is narrow, the type gives way first, then the title.

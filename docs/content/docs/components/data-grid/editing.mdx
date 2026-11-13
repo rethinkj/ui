@@ -61,6 +61,8 @@ A press elsewhere hands the value on, unless the app refused it.
 
 ## Without GridChanges
 
+For rows of records or POJOs, `options().onCommit(table, (row, value) -> error)` hands the app the row with the typed value, see [Rows of records](/docs/components/data-grid/typed).
+
 The options that `changes` wires are there on their own, for an app that keeps changes in its own way:
 
 | Option | |

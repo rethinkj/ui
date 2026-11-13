@@ -75,6 +75,9 @@ final class GridEdit {
 
   /** Whether typing may lead to {@code text}, which a number column refuses otherwise. */
   static boolean accepts(Column c, String text) {
+    if (c.cells() != null) {
+      return c.cells().format().allows(text);
+    }
     return switch (c.type()) {
       case INTEGER -> Format.BIG_INTEGER.allows(text);
       case DECIMAL -> Format.DECIMAL.allows(text);
@@ -94,6 +97,9 @@ final class GridEdit {
     }
     if (!c.editing().choices().isEmpty()) {
       return c.editing().choices().contains(value) ? null : "Not one of the choices";
+    }
+    if (c.cells() != null) {
+      return c.cells().format().parseText(value).error();
     }
     return switch (c.type()) {
       case INTEGER -> Format.BIG_INTEGER.parseText(value).error();

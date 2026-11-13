@@ -153,6 +153,8 @@ public final class DataGrid {
    * @param type the kind of data, which chooses the editor ({@link Editing}); {@link
    *     DataType#OTHER} for a column made without one
    * @param editing whether and how its cells are edited; {@link Editing#NONE} for not at all
+   * @param cells the typed part of a column of a {@link GridTable}, whose format checks the
+   *     editor's text in place of the type's; null for a column of text
    */
   public record Column(
       String title,
@@ -166,12 +168,43 @@ public final class DataGrid {
       String typeName,
       IntFunction<CellIcon> cellIcon,
       DataType type,
-      Editing editing) {
+      Editing editing,
+      GridTable.Cells<?, ?> cells) {
 
     public Column {
       Objects.requireNonNull(iconVariant, "iconVariant");
       Objects.requireNonNull(type, "type");
       Objects.requireNonNull(editing, "editing");
+    }
+
+    /** A column of untyped text, without {@link #cells}. */
+    public Column(
+        String title,
+        float width,
+        Align align,
+        boolean mono,
+        boolean sortable,
+        IntFunction<String> cell,
+        Symbol icon,
+        Icon.Variant iconVariant,
+        String typeName,
+        IntFunction<CellIcon> cellIcon,
+        DataType type,
+        Editing editing) {
+      this(
+          title,
+          width,
+          align,
+          mono,
+          sortable,
+          cell,
+          icon,
+          iconVariant,
+          typeName,
+          cellIcon,
+          type,
+          editing,
+          null);
     }
 
     /** A column with icons and type, of {@link DataType#OTHER} and not editable. */
@@ -237,6 +270,27 @@ public final class DataGrid {
           Editing.NONE);
     }
 
+    /**
+     * This column with its text from another function, keeping its {@link #cells}: a column of a
+     * {@link GridTable} through a {@link GridChanges}, {@code column.cell(changes.cell(c))}.
+     */
+    public Column cell(IntFunction<String> cell) {
+      return new Column(
+          title,
+          width,
+          align,
+          mono,
+          sortable,
+          Objects.requireNonNull(cell, "cell"),
+          icon,
+          iconVariant,
+          typeName,
+          cellIcon,
+          type,
+          editing,
+          cells);
+    }
+
     /** This column, sortable or not. */
     public Column sortable(boolean on) {
       return new Column(
@@ -251,7 +305,8 @@ public final class DataGrid {
           typeName,
           cellIcon,
           type,
-          editing);
+          editing,
+          cells);
     }
 
     /** This column with {@code symbol} in muted text before the title in the header. */
@@ -263,7 +318,7 @@ public final class DataGrid {
     public Column icon(Symbol symbol, Icon.Variant variant) {
       return new Column(
           title, width, align, mono, sortable, cell, symbol, variant, typeName, cellIcon, type,
-          editing);
+          editing, cells);
     }
 
     /** This column with {@code name} after the title in the header; null for none. */
@@ -280,7 +335,8 @@ public final class DataGrid {
           name,
           cellIcon,
           type,
-          editing);
+          editing,
+          cells);
     }
 
     /** This column with an icon in each cell for which {@code icons} gives one. */
@@ -297,7 +353,8 @@ public final class DataGrid {
           typeName,
           icons,
           type,
-          editing);
+          editing,
+          cells);
     }
 
     /** This column with its cells editable in every row, when the grid edits ({@link Options#onCommit}). */
@@ -350,7 +407,8 @@ public final class DataGrid {
           typeName,
           cellIcon,
           type,
-          editing);
+          editing,
+          cells);
     }
   }
 
@@ -516,6 +574,38 @@ public final class DataGrid {
         case ONE_OF -> values.contains(cell);
         default -> true;
       };
+    }
+
+    /**
+     * Whether a typed value passes, null for NULL, read as {@code format} writes it: a range, and
+     * equality of numbers, compare values where the filter's texts are values of the format and
+     * the values are {@link Comparable} ({@code 10.0} equals {@code 10}, {@code 9} is below
+     * {@code 10}); text kinds and others look at the value's text, as {@link #matches(String)}
+     * does.
+     */
+    public <V> boolean matches(V cell, Format<V> format) {
+      if (cell == null || kind == Kind.IS_NULL || kind == Kind.NOT_NULL) {
+        return matches(cell == null ? null : format.text(cell));
+      }
+      if (cell instanceof Comparable<?>
+          && !(cell instanceof String) // text compares whatever the case, below
+          && (kind == Kind.EQUALS || kind == Kind.BETWEEN)) {
+        Format.Parsed<V> low = value.isBlank() ? null : format.parseText(value.strip());
+        Format.Parsed<V> high = to.isBlank() ? null : format.parseText(to.strip());
+        if ((low == null || low.valid()) && (high == null || high.valid())) {
+          if (kind == Kind.EQUALS) {
+            return low == null || compareValues(cell, low.value()) == 0;
+          }
+          return (low == null || compareValues(cell, low.value()) >= 0)
+              && (high == null || compareValues(cell, high.value()) <= 0);
+        }
+      }
+      return matches(format.text(cell));
+    }
+
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private static int compareValues(Object a, Object b) {
+      return ((Comparable) a).compareTo(b);
     }
 
     private static int compare(String a, String b) {
@@ -1163,6 +1253,7 @@ public final class DataGrid {
     Layout layout;
     IntConsumer onFreeze;
     int[] full; // with a layout: the index among all columns of each shown one
+    Consumer<List<Column>> table; // wires onCommit and onPaste to a table's columns
 
     private Options() {}
 
@@ -1290,6 +1381,29 @@ public final class DataGrid {
      */
     public Options onCommit(Commit handler) {
       this.onCommit = handler;
+      this.table = null;
+      return this;
+    }
+
+    /**
+     * Lets the grid edit the cells of a {@link GridTable}'s columns that write ({@link
+     * GridTable#column(String, float, Format, java.util.function.Function,
+     * java.util.function.BiFunction) a wither} or {@link GridTable#column(String, float, Format,
+     * java.util.function.Function, java.util.function.BiConsumer) a setter}), and paste into them,
+     * clear them and set them NULL ({@link #onPaste}): the grid checks the text with the column's
+     * format, the column writes the value into the row, and {@code handler} is told the row,
+     * which it stores or refuses with a message (a setter's value is then set back; a pasted row's
+     * refusal is not shown). The value goes through the same editors as {@link
+     * #onCommit(Commit)}'s.
+     */
+    public <T> Options onCommit(GridTable<T> table, GridTable.RowCommit<T> handler) {
+      Objects.requireNonNull(table, "table");
+      Objects.requireNonNull(handler, "handler");
+      this.table = columns -> {
+        onCommit = table.commit(columns, handler);
+        onPaste = table.paste(columns, handler);
+      };
+      this.onCommit = (row, column, value) -> null; // turns editing on; replaced as the grid builds
       return this;
     }
 
@@ -1500,6 +1614,16 @@ public final class DataGrid {
     }
   }
 
+  /**
+   * The rows of a grid as objects of the app's, records or POJOs, whose columns are typed values
+   * of them ({@link GridTable}).
+   *
+   * @param rows the row with an index, or null while it is not loaded; asked while a frame runs
+   */
+  public static <T> GridTable<T> table(IntFunction<T> rows) {
+    return GridTable.of(rows);
+  }
+
   /** Options with nothing turned on. */
   public static Options options() {
     return new Options();
@@ -1581,6 +1705,10 @@ public final class DataGrid {
    * @param options what the grid does; {@link #options()} for a grid that only shows
    */
   public static El dataGrid(Theme t, List<Column> columns, int rowCount, Options options) {
+    if (options.table != null) { // with all the columns, before a layout counts them its way
+      options.table.accept(columns);
+      options.table = null;
+    }
     if (options.layout != null) {
       int all = columns.size();
       columns = options.layout.shown(columns);

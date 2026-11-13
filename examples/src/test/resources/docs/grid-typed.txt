@@ -1,0 +1,11 @@
+# docs:start grid-typed-script
+size 520 300
+frame
+press #cell-1-2           # the amount of the second order
+type "12.5"               # a letter would be refused: no number has one
+key Enter                 # the wither makes the new record, the app stores it
+frame
+press #column-2           # sorts by the amount, as numbers
+frame
+snap typed
+# docs:end grid-typed-script

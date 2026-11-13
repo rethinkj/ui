@@ -11,12 +11,16 @@ import com.rethinkj.ui.kit.Card;
 import com.rethinkj.ui.kit.DataGrid;
 import com.rethinkj.ui.kit.DataGrid.Column;
 import com.rethinkj.ui.kit.DataGrid.DataType;
+import com.rethinkj.ui.kit.Format;
 import com.rethinkj.ui.kit.GridChanges;
+import com.rethinkj.ui.kit.GridTable;
 import com.rethinkj.ui.kit.Icon;
 import com.rethinkj.ui.kit.Menu;
 import com.rethinkj.ui.kit.Symbol;
 import com.rethinkj.ui.kit.Theme;
 import com.rethinkj.ui.kit.Tree;
+import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
@@ -182,6 +186,138 @@ final class Grids {
             .wFull()
             .grow(1));
   }
+
+  // docs:start typed-rows
+  enum Status {
+    PAID,
+    PENDING,
+    SHIPPED;
+
+    String label() {
+      return name().toLowerCase(Locale.ROOT);
+    }
+  }
+
+  static final Format<Status> STATUS = Format.choice(Status.values(), Status::label);
+
+  record Order(long id, String customer, BigDecimal amount, LocalDate due, Status status) {
+    Order withCustomer(String customer) {
+      return new Order(id, customer, amount, due, status);
+    }
+
+    Order withAmount(BigDecimal amount) {
+      return new Order(id, customer, amount, due, status);
+    }
+
+    Order withDue(LocalDate due) {
+      return new Order(id, customer, amount, due, status);
+    }
+
+    Order withStatus(Status status) {
+      return new Order(id, customer, amount, due, status);
+    }
+  }
+
+  // The app's rows, records it replaces when one changes.
+  final List<Order> orders = IntStream.range(0, COUNT)
+      .mapToObj(i -> new Order(
+          1000 + i,
+          CUSTOMERS[i % CUSTOMERS.length],
+          BigDecimal.valueOf(i * 3713L % 50_000, 2),
+          i % 5 == 0 ? null : LocalDate.of(2026, 11, 1).plusDays(i % 60),
+          Status.values()[i % 3]))
+      .collect(java.util.stream.Collectors.toCollection(ArrayList::new));
+  // docs:end typed-rows
+  List<DataGrid.SortKey> typedSort = List.of();
+
+  static El typed(Grids s) {
+    Theme t = s.t;
+    // docs:start grid-typed
+    // The rows in the order of the grid's sort keys, by their typed values.
+    List<Order> rows = s.orders;
+    GridTable<Order> table = DataGrid.table(rows::get);
+    List<Column> columns = List.of(
+        table.column("id", 80, Format.LONG, Order::id), // no wither: not editable
+        table.column("customer", 120, Format.TEXT, Order::customer, Order::withCustomer),
+        table.column("amount", 100, Format.DECIMAL, Order::amount, Order::withAmount),
+        table.column("due", 110, Format.DATE.optional(), Order::due, Order::withDue),
+        table.column("status", 90, STATUS, Order::status, Order::withStatus));
+    El grid = DataGrid.dataGrid(
+            t,
+            columns,
+            rows.size(),
+            DataGrid.options()
+                .select(s.selection)
+                .sort(s.typedSort, keys -> {
+                  s.typedSort = keys;
+                  s.orders.sort(table.comparator(columns, keys)); // the app sorts its rows
+                })
+                .onCommit(table, (row, order) -> {
+                  if (order.customer().isBlank()) {
+                    return "A customer is required"; // refused: the editor stays open
+                  }
+                  s.orders.set(row, order); // the new record from the wither
+                  return null;
+                }))
+        .key("orders")
+        .label("Orders")
+        .grow(1);
+    // docs:end grid-typed
+    return Frame.of(t, Card.flush(t, grid).wFull().grow(1));
+  }
+
+  // docs:start grid-pojo
+  /** A row of the app's with getters and setters. */
+  static final class Account {
+    private String owner;
+    private BigDecimal balance;
+
+    String getOwner() {
+      return owner;
+    }
+
+    void setOwner(String owner) {
+      this.owner = owner;
+    }
+
+    BigDecimal getBalance() {
+      return balance;
+    }
+
+    void setBalance(BigDecimal balance) {
+      this.balance = balance;
+    }
+  }
+
+  static List<Column> accounts(GridTable<Account> table) {
+    return List.of(
+        table.column("owner", 120, Format.TEXT, Account::getOwner, Account::setOwner),
+        table.column("balance", 100, Format.DECIMAL, Account::getBalance, Account::setBalance));
+  }
+  // docs:end grid-pojo
+
+  // docs:start grid-typed-changes
+  /** Writes what a GridChanges collected over the orders, as typed values. */
+  static void write(GridChanges changes, GridTable<Order> table, List<Column> columns) {
+    for (GridChanges.RowChange<Order> change : changes.changes(table, columns)) {
+      switch (change.kind()) {
+        case UPDATE -> {
+          for (GridChanges.ValueChange<Order> v : change.values().values()) {
+            if (v.after() instanceof BigDecimal amount) {
+              System.out.println("amount " + v.before() + " -> " + amount);
+            }
+          }
+          Order updated = change.apply(change.row()); // through the withers
+          System.out.println("UPDATE " + updated);
+        }
+        case INSERT ->
+          System.out.println("INSERT " + change.apply(new Order(0, "", null, null, null)));
+        case DELETE -> System.out.println("DELETE " + change.row());
+      }
+    }
+    changes.clear();
+  }
+  // docs:end grid-typed-changes
 
   static El filtered(Grids s) {
     Theme t = s.t;
