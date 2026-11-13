@@ -1285,8 +1285,25 @@ public final class Window implements AutoCloseable {
     return scale / density;
   }
 
+  /** A position the system reported, such as the pointer's, in logical pixels; see below. */
   float logical(float units) {
-    return units * density / scale;
+    return position(units, density, scale);
+  }
+
+  /**
+   * A position in window units as logical pixels. Where it is a whole physical pixel, as the
+   * pointer's always is on Windows and X11, it is that pixel's centre, a 256th of a pixel towards
+   * its top left: the scene snaps the edges of boxes to whole pixels, halves up, so a pixel is
+   * drawn as part of a box exactly when that point lies in the box's layout rectangle, edges
+   * included. A press then reaches the box that drew the pixel under it, also at 1.25 or 1.5, and
+   * not the box that ends where the pixel begins.
+   */
+  static float position(float units, float density, float scale) {
+    double pixels = (double) units * density;
+    if (pixels == Math.rint(pixels)) {
+      pixels += 0.5 - 1 / 256.0;
+    }
+    return (float) (pixels / scale);
   }
 
   int units(float logical) {

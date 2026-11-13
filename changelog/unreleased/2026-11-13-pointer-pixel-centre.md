@@ -1,0 +1,1 @@
+- In a window, a press reaches the element that drew the pixel under the pointer, also at 125 %, 150 % and 175 % scaling, where the outermost pixel row or column of a button could miss it, and no longer the element that ends where that pixel begins: the window reports the pointer at the centre of its physical pixel.
