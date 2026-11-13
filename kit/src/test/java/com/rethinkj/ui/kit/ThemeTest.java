@@ -162,6 +162,26 @@ class ThemeTest {
         "grid stripe hovered", over(g.stripe(), s.hover()),
         "grid selected", g.selected(),
         "grid header", g.header()), 3);
+    // Changes not yet written: a tint over a changed cell, a new row, a deleted row (in muted
+    // text) and a failed cell, on rows and stripes, also under the pointer, where the selection
+    // shows alone; the marks at the start of their rows, and a failed cell's edge, on the same.
+    Map<String, Integer> rows = Map.of(
+        "grid row", g.row(), "grid stripe", g.stripe(),
+        "grid row hovered", over(g.row(), s.hover()),
+        "grid stripe hovered", over(g.stripe(), s.hover()));
+    Map<String, Integer> tints = Map.of("changed", g.changed(), "new", g.added(),
+        "deleted", g.deleted(), "failed", g.error());
+    Map<String, Integer> marks = Map.of("changed", t.accent().edge(),
+        "new", t.status().success(), "deleted", t.status().danger(), "failed", t.status().danger());
+    tints.forEach((what, tint) -> {
+      Map<String, Integer> tinted = new java.util.HashMap<>();
+      rows.forEach((under, fill) -> tinted.put(what + " on " + under, over(fill, tint)));
+      check(failures, "primary text", t.text().primary(), tinted, 4.5);
+      check(failures, "muted text", t.text().muted(), tinted, 4.5);
+      check(failures, what + " mark", marks.get(what), tinted, 3);
+      check(failures, what + " mark", marks.get(what), Map.of("grid selected", g.selected(),
+          "grid selected inactive", g.selectedInactive()), 3);
+    });
     // The tree: no fill of its own, so its hovered rows lay the overlay over what it is on.
     // Labels in primary text, marks and loading rows in muted text; selected rows as the grid's.
     Map<String, Integer> tree = Map.of(

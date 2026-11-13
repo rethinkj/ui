@@ -9,11 +9,13 @@ import com.rethinkj.ui.Clipboard;
 import com.rethinkj.ui.Cursor;
 import com.rethinkj.ui.Drag;
 import com.rethinkj.ui.El;
+import com.rethinkj.ui.Highlighter;
 import com.rethinkj.ui.Key;
 import com.rethinkj.ui.Len;
 import com.rethinkj.ui.Measure;
 import com.rethinkj.ui.ScrollState;
 import com.rethinkj.ui.Scrollbars;
+import com.rethinkj.ui.Spans;
 import com.rethinkj.ui.Style;
 import com.rethinkj.ui.Text;
 import java.util.ArrayList;
@@ -22,6 +24,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
+import java.util.function.IntConsumer;
 import java.util.function.IntFunction;
 import java.util.function.IntPredicate;
 
@@ -144,14 +147,27 @@ public final class DataGrid {
    *     {@code cell} is, after it and for loaded rows only. Return constants, as the icons of a
    *     column are few, so that a cell costs no allocation for its icon; null for the function
    *     means no icons at all.
+   * @param type the kind of data, which chooses the editor ({@link Editing}); {@link
+   *     DataType#OTHER} for a column made without one
+   * @param editing whether and how its cells are edited; {@link Editing#NONE} for not at all
    */
   public record Column(
       String title, float width, Align align, boolean mono, boolean sortable,
       IntFunction<String> cell, Symbol icon, Icon.Variant iconVariant, String typeName,
-      IntFunction<CellIcon> cellIcon) {
+      IntFunction<CellIcon> cellIcon, DataType type, Editing editing) {
 
     public Column {
       Objects.requireNonNull(iconVariant, "iconVariant");
+      Objects.requireNonNull(type, "type");
+      Objects.requireNonNull(editing, "editing");
+    }
+
+    /** A column with icons and type, of {@link DataType#OTHER} and not editable. */
+    public Column(String title, float width, Align align, boolean mono, boolean sortable,
+        IntFunction<String> cell, Symbol icon, Icon.Variant iconVariant, String typeName,
+        IntFunction<CellIcon> cellIcon) {
+      this(title, width, align, mono, sortable, cell, icon, iconVariant, typeName, cellIcon,
+          DataType.OTHER, Editing.NONE);
     }
 
     /** A column that sorts or not, without icons or type. */
@@ -166,18 +182,18 @@ public final class DataGrid {
     }
 
     /**
-     * A column of a kind of data, which gives its alignment, its font and the icon in its header
-     * ({@link DataType}).
+     * A column of a kind of data, which gives its alignment, its font, the icon in its header and
+     * its editor ({@link DataType}).
      */
     public Column(String title, float width, DataType type, IntFunction<String> cell) {
       this(title, width, type.align(), type.mono(), true, cell, type.symbol(), Icon.Variant.MUTED,
-          null, null);
+          null, null, type, Editing.NONE);
     }
 
     /** This column, sortable or not. */
     public Column sortable(boolean on) {
       return new Column(title, width, align, mono, on, cell, icon, iconVariant, typeName,
-          cellIcon);
+          cellIcon, type, editing);
     }
 
     /** This column with {@code symbol} in muted text before the title in the header. */
@@ -188,20 +204,139 @@ public final class DataGrid {
     /** This column with {@code symbol} before the title in the header; null for none. */
     public Column icon(Symbol symbol, Icon.Variant variant) {
       return new Column(title, width, align, mono, sortable, cell, symbol, variant, typeName,
-          cellIcon);
+          cellIcon, type, editing);
     }
 
     /** This column with {@code name} after the title in the header; null for none. */
     public Column typeName(String name) {
       return new Column(title, width, align, mono, sortable, cell, icon, iconVariant, name,
-          cellIcon);
+          cellIcon, type, editing);
     }
 
     /** This column with an icon in each cell for which {@code icons} gives one. */
     public Column cellIcon(IntFunction<CellIcon> icons) {
       return new Column(title, width, align, mono, sortable, cell, icon, iconVariant, typeName,
-          icons);
+          icons, type, editing);
     }
+
+    /** This column with its cells editable in every row, when the grid edits ({@link Options#onCommit}). */
+    public Column editable() {
+      return editable(row -> true);
+    }
+
+    /** This column with the cells of the rows that {@code rows} accepts editable. */
+    public Column editable(IntPredicate rows) {
+      return with(new Editing(Objects.requireNonNull(rows, "rows"), editing.nullable(),
+          editing.choices(), editing.editor()));
+    }
+
+    /**
+     * This column allowing NULL: Control+0 and Delete set it, an empty editor of a column that is
+     * not text means it, and a column of {@link DataType#BOOLEAN} goes through NULL as its third
+     * state.
+     */
+    public Column nullable() {
+      return with(new Editing(editing.rows(), true, editing.choices(), editing.editor()));
+    }
+
+    /** This column choosing its values from {@code choices}, as a {@link DataType#ENUM} does. */
+    public Column choices(List<String> choices) {
+      return with(new Editing(editing.rows(), editing.nullable(), choices, editing.editor()));
+    }
+
+    /** This column edited by an editor of the app's in place of the one of its type. */
+    public Column editor(CellEditor editor) {
+      return with(new Editing(editing.rows(), editing.nullable(), editing.choices(),
+          Objects.requireNonNull(editor, "editor")));
+    }
+
+    private Column with(Editing editing) {
+      return new Column(title, width, align, mono, sortable, cell, icon, iconVariant, typeName,
+          cellIcon, type, editing);
+    }
+  }
+
+  /**
+   * How the cells of a column are edited, once the grid edits ({@link Options#onCommit}). The
+   * editor follows the column's {@link DataType}: text in a field over the cell, which grows up to
+   * the grid's edge for a long value and opens as a larger field of several lines for one with
+   * line breaks or with Alt+Enter; {@link DataType#INTEGER} and {@link DataType#DECIMAL} take
+   * only what can become such a number; {@link DataType#BOOLEAN} has no editor, as Space, Enter,
+   * F2 and a double press switch it in the cell; {@link DataType#ENUM}, or any column with
+   * choices, a list of the choices that typing goes through; {@link DataType#DATE}, {@link
+   * DataType#TIME} and {@link DataType#DATE_TIME} text in ISO 8601's form, such as {@code
+   * 2026-11-13 14:30}, checked before it is handed on; every other type text.
+   *
+   * @param rows the rows whose cells are editable; null for none, which is not editable at all
+   * @param nullable whether NULL is a value of the column
+   * @param choices what an enumeration's cells choose from; empty for free input
+   * @param editor the app's own editor, which replaces the one of the type; null for none
+   */
+  public record Editing(IntPredicate rows, boolean nullable, List<String> choices,
+      CellEditor editor) {
+
+    /** Not editable. */
+    public static final Editing NONE = new Editing(null, false, List.of(), null);
+
+    public Editing {
+      choices = List.copyOf(choices);
+    }
+  }
+
+  /**
+   * An editor of the app's for a column's cells ({@link Column#editor}): it builds the element
+   * that the grid lays over the cell, inside the editor's frame, from the value being edited, and
+   * hands each new value to {@code onChange}. The grid gives the focus to the element it returns,
+   * which is therefore focusable or a text field, and keeps the keys that end the editing: Enter,
+   * Tab and Escape, which the element lets through.
+   */
+  @FunctionalInterface
+  public interface CellEditor {
+
+    /**
+     * @param value what is being edited, null for NULL
+     * @param onChange told each new value, null for NULL
+     */
+    El editor(String value, Consumer<String> onChange);
+  }
+
+  /**
+   * Told the value of an edited cell, which the grid has checked for its column's type: the
+   * app stores it, or refuses it with a message, which the grid shows under the editor, which
+   * stays open; null accepts it.
+   */
+  @FunctionalInterface
+  public interface Commit {
+
+    /**
+     * @param row the row, from 0; the row after the last one when the grid appends a row ({@link
+     *     Options#appendRow}), which the grid has asked the app to add first
+     * @param value the new value as text, null for NULL
+     * @return null to accept it, else what is wrong with it
+     */
+    String commit(int row, int column, String value);
+  }
+
+  /** A cell and its new value, null for NULL, as pasting, clearing and Set NULL report them. */
+  public record CellValue(int row, int column, String value) {}
+
+  /** What a row or a cell holds compared with what the database has, as the app says. */
+  public enum Status {
+    UNCHANGED,
+    /** Edited and not yet written. */
+    CHANGED,
+    /** Added and not yet written. */
+    NEW,
+    /** Marked to be deleted. */
+    DELETED,
+    /** Writing it failed. */
+    ERROR
+  }
+
+  /** Told a cell, says its {@link Status}. */
+  @FunctionalInterface
+  public interface CellStatus {
+    Status status(int row, int column);
   }
 
   /**
@@ -375,6 +510,16 @@ public final class DataGrid {
     int moves;
     int edgeColumn = -1;
     boolean start; // the keys put the cursor on a frozen column: the rest scrolls to its start
+    // The cell being edited, -1 for none, and what its editor holds.
+    int editRow = -1;
+    int editColumn = -1;
+    String draft; // null for NULL
+    String original; // the value the editing began with
+    String error; // what the app or the type said is wrong with the draft, null for nothing
+    boolean multiline; // in the larger field of several lines
+    int edits; // the editors opened so far: each new one takes the focus by this key
+    float gridWidth; // the grid's width, as layout last told it, for an editor that grows
+    final Menu.State choices = new Menu.State(); // an enumeration's list
 
     public Selection(Mode mode) {
       this.mode = Objects.requireNonNull(mode, "mode");
@@ -442,6 +587,34 @@ public final class DataGrid {
     public void clear() {
       row = column = anchorRow = anchorColumn = -1;
       ranges.clear();
+    }
+
+    /** Whether an editor is open over a cell ({@link Options#onCommit}). */
+    public boolean isEditing() {
+      return editRow >= 0;
+    }
+
+    /** The row of the cell being edited, -1 for none. */
+    public int editingRow() {
+      return editRow;
+    }
+
+    /** The column of the cell being edited, -1 for none. */
+    public int editingColumn() {
+      return editColumn;
+    }
+
+    /** What the open editor holds, null for NULL or when none is open. */
+    public String draft() {
+      return draft;
+    }
+
+    /** Closes the editor without handing on what it holds, as Escape does. */
+    public void cancelEdit() {
+      editRow = editColumn = -1;
+      draft = original = error = null;
+      multiline = false;
+      choices.close();
     }
 
     /**
@@ -553,22 +726,31 @@ public final class DataGrid {
    * makes the options anew with the grid.
    */
   public static final class Options {
-    private Selection selection;
-    private Runnable onSelect;
-    private List<SortKey> sort = List.of();
-    private Consumer<List<SortKey>> onSort;
-    private Resize onResize;
-    private boolean rowNumbers;
-    private int frozen;
-    private Clipboard clipboard;
-    private String nullText = "";
-    private long copyLimit = 100_000;
-    private Consumer<Copy> onLargeCopy;
-    private Menu.State menu;
-    private List<Menu.Item> menuItems = List.of();
-    private IntPredicate loaded;
-    private El.RowsHandler onRows;
-    private CellHandler onEdit;
+    Selection selection;
+    Runnable onSelect;
+    List<SortKey> sort = List.of();
+    Consumer<List<SortKey>> onSort;
+    Resize onResize;
+    boolean rowNumbers;
+    int frozen;
+    Clipboard clipboard;
+    String nullText = "";
+    long copyLimit = 100_000;
+    Consumer<Copy> onLargeCopy;
+    Menu.State menu;
+    List<Menu.Item> menuItems = List.of();
+    IntPredicate loaded;
+    El.RowsHandler onRows;
+    CellHandler onEdit;
+    Commit onCommit;
+    Consumer<List<CellValue>> onPaste;
+    IntConsumer onInsertRow;
+    Consumer<List<Range>> onDeleteRows;
+    boolean appendRow;
+    IntFunction<Status> rowStatus;
+    CellStatus cellStatus;
+    Runnable onUndo;
+    Runnable onRedo;
 
     private Options() {}
 
@@ -682,6 +864,104 @@ public final class DataGrid {
       this.onEdit = handler;
       return this;
     }
+
+    /**
+     * Lets the user edit the cells of {@link Column#editable} columns in an editor the grid lays
+     * over the cell ({@link Editing}): Enter, F2, a double press or typing open it, typing in
+     * place of the value; Enter hands the value on and goes a row down, Shift+Enter up, Tab a
+     * column on and Shift+Tab back, to the next or the previous row at the ends; Escape closes
+     * it without handing anything on, and a press elsewhere hands it on. Space switches a
+     * boolean in the cell. Control+0 sets NULL in a {@link Column#nullable} column, in the
+     * editor as on the selection. The grid hands the app the new value through {@code handler},
+     * which stores it or refuses it with a message; the cells keep showing what the column's cell
+     * function returns. A cell for which {@link #onEdit} asks is edited by the app as before.
+     */
+    public Options onCommit(Commit handler) {
+      this.onCommit = handler;
+      return this;
+    }
+
+    /**
+     * Lets Control+V and Shift+Insert paste tab-separated text, as {@link #copyText} writes it and
+     * spreadsheets copy it ({@link #parseText}), from the cursor's cell on, and Delete clear the
+     * selected cells and Control+0 set them NULL: told the editable cells and their new values as
+     * one change, at most {@link #copyLimit} cells. A single value pastes into every selected cell.
+     * Clearing gives NULL in a {@link Column#nullable} column and empty text in another column of
+     * text. Pasting reads {@link #copy}'s clipboard, and a field equal to a {@link #nullText} that
+     * is not empty is NULL.
+     */
+    public Options onPaste(Consumer<List<CellValue>> handler) {
+      this.onPaste = handler;
+      return this;
+    }
+
+    /**
+     * Lets Insert and Control+Plus ask the app for a new row after the cursor's, told its index
+     * (-1 for a new first row); the grid then puts the cursor on the row after it.
+     */
+    public Options onInsertRow(IntConsumer handler) {
+      this.onInsertRow = handler;
+      return this;
+    }
+
+    /**
+     * Lets Control+Minus and Control+Delete mark the rows with a selected cell, or the cursor's,
+     * to be deleted: told them as ranges of whole rows. The app marks them ({@link #status}) or
+     * removes them.
+     */
+    public Options onDeleteRows(Consumer<List<Range>> handler) {
+      this.onDeleteRows = handler;
+      return this;
+    }
+
+    /**
+     * Shows an empty row after the last one, marked {@code *} in the row numbers, whose cells
+     * are edited as any: the grid asks for the row ({@link #onInsertRow}, with the last row's
+     * index) before it hands on the first value.
+     */
+    public Options appendRow() {
+      this.appendRow = true;
+      return this;
+    }
+
+    /**
+     * Shows what the rows and cells hold against the database: a mark at the start of each row
+     * that is not {@link Status#UNCHANGED}, a tint over it or over its cells, a {@code +} for the
+     * number of a new row, and the text of a deleted row struck through. In a tree dump a row and
+     * a cell say it as {@code value="changed"}, {@code "new"}, {@code "deleted"} or {@code
+     * "error"}, and a failed cell is {@code invalid}.
+     */
+    public Options status(IntFunction<Status> rows, CellStatus cells) {
+      this.rowStatus = Objects.requireNonNull(rows, "rows");
+      this.cellStatus = Objects.requireNonNull(cells, "cells");
+      return this;
+    }
+
+    /** Lets Control+Z undo and Control+Y and Control+Shift+Z redo while no editor is open. */
+    public Options history(Runnable undo, Runnable redo) {
+      this.onUndo = undo;
+      this.onRedo = redo;
+      return this;
+    }
+
+    /**
+     * Edits through {@code changes}, which keeps the changes until the app writes them: what
+     * {@link #onCommit}, {@link #onPaste}, {@link #onInsertRow}, {@link #onDeleteRows}, {@link
+     * #status} and {@link #history} do, each of which a later call replaces. The columns take
+     * their cells from {@link GridChanges#cell(int)} and the grid its rows from {@link
+     * GridChanges#rowCount()}.
+     */
+    public Options changes(GridChanges changes) {
+      onCommit((row, column, value) -> {
+        changes.set(row, column, value);
+        return null;
+      });
+      onPaste(changes::set);
+      onInsertRow(changes::insert);
+      onDeleteRows(changes::delete);
+      status(changes::rowStatus, changes::cellStatus);
+      return history(changes::undo, changes::redo);
+    }
   }
 
   /** Options with nothing turned on. */
@@ -698,11 +978,13 @@ public final class DataGrid {
   private DataGrid() {}
 
   /** What the parts of one build of the grid share. */
-  private static final class Build {
+  static final class Build {
     final Theme t;
     final Theme.Grid g;
     final List<Column> columns;
     final int rowCount;
+    final int rows; // the rows shown: the app's, and the row to append to them
+    final boolean edits; // the grid edits cells itself
     final Options o;
     final Selection sel;
     final boolean cells;
@@ -721,7 +1003,9 @@ public final class DataGrid {
       this.g = t.grid();
       this.columns = List.copyOf(columns);
       this.rowCount = rowCount;
+      this.rows = rowCount + (o.appendRow ? 1 : 0);
       this.o = o;
+      this.edits = o.onCommit != null && o.selection != null;
       this.sel = o.selection;
       this.cells = sel != null && sel.mode() == Mode.CELLS;
       this.frozen = Math.min(o.frozen, columns.size());
@@ -755,8 +1039,12 @@ public final class DataGrid {
     Theme.Grid g = b.g;
     El header = header(b);
     Selection sel = b.sel;
+    if (sel != null && sel.isEditing()
+        && (!b.edits || sel.editRow >= b.rows || sel.editColumn >= columns.size())) {
+      sel.cancelEdit(); // the rows or columns it was on are gone
+    }
     El body = col().key("rows").grow(1)
-        .rows(rowCount, g.rowHeight(), (i, from, to) -> dataRow(b, i, from, to))
+        .rows(b.rows, g.rowHeight(), (i, from, to) -> dataRow(b, i, from, to))
         .scrollbars(t.scrollbars());
     b.body = body;
     if (sel != null) {
@@ -772,8 +1060,11 @@ public final class DataGrid {
       body.onDrag(d -> drag(b, d));
     }
 
-    El content = col().key("content").w(b.xs[columns.size()] + b.room)
-        .children(header, body);
+    El content = col().key("content").w(b.xs[columns.size()] + b.room);
+    if (b.edits && sel.isEditing()) {
+      GridEdit.anchor(b, content); // first, so that what lies over it takes the presses
+    }
+    content.children(header, body);
     content.style().minWidth = Len.percent(1); // the rows reach across a grid wider than them
     // Header and rows scroll sideways together in the grid; the rows scroll up and down alone.
     El grid = row().role("grid").scrollBoth().scrollbars(t.scrollbars()).fill(g.row())
@@ -788,6 +1079,10 @@ public final class DataGrid {
     }
     if (sel == null) {
       return grid;
+    }
+    if (b.edits) {
+      grid.onResize((width, height) -> sel.gridWidth = width)
+          .onText(text -> GridEdit.typed(b, text));
     }
     return grid.focusable()
         .focusRing(t.accent().edge())
@@ -1034,7 +1329,7 @@ public final class DataGrid {
   }
 
   /** The width a text element takes on one line, in logical pixels. */
-  private static float natural(El text) {
+  static float natural(El text) {
     return text.text() == null ? 0
         : text.text().measure(Float.NaN, Float.NaN, Measure.MAX_CONTENT, Measure.MAX_CONTENT)
             .width();
@@ -1046,14 +1341,22 @@ public final class DataGrid {
     Theme t = b.t;
     Theme.Grid g = b.g;
     Selection sel = b.sel;
-    boolean loaded = b.o.loaded == null || b.o.loaded.test(i);
+    boolean append = i >= b.rowCount; // the empty row after the last, to add one
+    boolean loaded = append || b.o.loaded == null || b.o.loaded.test(i);
     boolean rowSelected = sel != null && !b.cells && sel.isRowSelected(i);
+    Status status = append || b.o.rowStatus == null ? Status.UNCHANGED : b.o.rowStatus.apply(i);
     int fill = rowSelected ? b.selectionFill() : i % 2 == 0 ? g.row() : g.stripe();
+    if (!rowSelected && (status == Status.NEW || status == Status.DELETED)) {
+      fill = over(fill, status == Status.NEW ? g.added() : g.deleted()); // the selection wins
+    }
     float stroke = t.size().stroke();
     // A hairline along the bottom, its border, which the cells end above.
     El r = row().key("row-" + i).role("row").fill(fill).selected(rowSelected)
         .current(sel != null && !b.cells && sel.row() == i)
         .border(0, 0, stroke, 0, t.border().subtle());
+    if (status != Status.UNCHANGED) {
+      r.value(statusName(status));
+    }
     int n = b.columns.size();
     int first = n;
     int last = -1;
@@ -1067,13 +1370,20 @@ public final class DataGrid {
       r.padding(0, 0, 0, b.xs[first]);
     }
     for (int c = first; c <= last; c++) {
-      r.children(cell(b, i, c, loaded, fill), line(t, false));
+      r.children(cell(b, i, c, loaded, fill, status), line(t, false));
+    }
+    // The editor lies over the cells, and the frozen ones over it unless it is one of them; it is
+    // there wherever its cell is, also scrolled out of the part the row was built for.
+    boolean editing = sel != null && sel.editRow == i && b.edits;
+    if (editing && sel.editColumn >= b.frozen) {
+      r.child(GridEdit.editor(b, i, sel.editColumn));
     }
     List<El> pinned = new ArrayList<>(); // with the row's fill, which hovering changes
     if (b.numbers > 0) {
       // The numbers lie on the row's fill, which they need over the cells scrolled under them.
+      String shown = append ? "*" : status == Status.NEW ? "+" : String.valueOf(i + 1);
       El number = cellBox(t, Align.RIGHT, b.numbers).key("number-" + i).role("rowheader")
-          .fill(fill).child(text(t, true, String.valueOf(i + 1), t.text().muted()));
+          .fill(fill).child(text(t, true, shown, t.text().muted()));
       pinned.add(number);
       if (sel != null) {
         number.onPointerDown((clicks, modifiers) -> down(b, i, Math.max(sel.column(), 0), true,
@@ -1082,13 +1392,20 @@ public final class DataGrid {
       r.children(pinRow(b, number, 0), pinRow(b, line(t, false), b.numbers - stroke));
     }
     for (int c = 0; c < b.frozen; c++) {
-      El cell = cell(b, i, c, loaded, fill);
+      El cell = cell(b, i, c, loaded, fill, status);
       if (cell.fill() == 0) {
         cell.fill(fill);
         pinned.add(cell);
       }
       r.children(pinRow(b, cell, b.xs[c]),
           pinRow(b, line(t, c == b.frozen - 1), b.xs[c + 1] - stroke));
+    }
+    if (editing && sel.editColumn < b.frozen) {
+      r.child(GridEdit.editor(b, i, sel.editColumn));
+    }
+    if (status != Status.UNCHANGED) { // the mark at the start, over the numbers or first cell
+      r.child(pinRow(b, el().key("mark").w(t.size().indicator()).fill(markColour(t, status)),
+          0));
     }
     if (rowSelected) {
       return r;
@@ -1100,36 +1417,59 @@ public final class DataGrid {
     });
   }
 
-  private static El cell(Build b, int i, int c, boolean loaded, int rowFill) {
+  private static El cell(Build b, int i, int c, boolean loaded, int rowFill, Status row) {
     Theme t = b.t;
     Selection sel = b.sel;
     Column column = b.columns.get(c);
     El box = cellBox(t, column.align(), column.width()).key("cell-" + i + "-" + c)
         .role("gridcell").position(c + 1, b.columns.size());
+    boolean append = i >= b.rowCount;
+    Status status = append || b.o.cellStatus == null || row == Status.NEW
+        || row == Status.DELETED ? Status.UNCHANGED : b.o.cellStatus.status(i, c);
+    boolean selected = b.cells && sel.contains(i, c);
+    boolean ring = b.cells && sel.row() == i && sel.column() == c && b.focused[0];
     if (b.cells) {
-      boolean selected = sel.contains(i, c);
       boolean cursor = sel.row() == i && sel.column() == c;
       box.selected(selected).current(cursor);
       if (selected) {
         box.fill(b.selectionFill());
       }
-      if (cursor && b.focused[0]) {
+      if (ring) {
         float w = b.g.cursorWidth();
         box.border(w, b.g.cursor()).radius(t.radius().small())
             .padding(0, Math.max(t.space().s() - w, 0));
       }
     }
-    String value = loaded ? column.cell().apply(i) : null;
-    CellIcon icon = loaded && column.cellIcon() != null ? column.cellIcon().apply(i) : null;
+    if (status == Status.CHANGED || status == Status.ERROR) {
+      box.value(statusName(status));
+      if (!selected && (b.cells || sel == null || !sel.isRowSelected(i))) { // the selection wins
+        box.fill(over(rowFill, status == Status.CHANGED ? b.g.changed() : b.g.error()));
+      }
+      if (status == Status.ERROR) {
+        box.invalid(true);
+        if (!ring) { // a line of the danger colour inside the cell, where the cursor's would be
+          float w = t.size().stroke();
+          box.border(w, t.status().danger()).radius(t.radius().small())
+              .padding(0, Math.max(t.space().s() - w, 0));
+        }
+      }
+    }
+    String value = loaded && !append ? column.cell().apply(i) : null;
+    CellIcon icon = loaded && !append && column.cellIcon() != null
+        ? column.cellIcon().apply(i) : null;
     if (!loaded) {
       box.child(text(t, false, Text.ELLIPSIS, t.text().muted()));
-    } else {
+    } else if (!append) {
       if (icon != null) {
         box.gap(t.space().s()).child(Icon.icon(t, icon.symbol(), icon.variant()));
       }
       if (icon == null || !icon.alone()) {
-        box.child(text(t, column.mono(), value == null ? "NULL" : oneLine(value),
-            value == null ? t.text().muted() : t.text().primary()));
+        El text = text(t, column.mono(), value == null ? "NULL" : oneLine(value),
+            value == null || row == Status.DELETED ? t.text().muted() : t.text().primary());
+        if (row == Status.DELETED) {
+          text.highlight(new Strike(t.text().muted()), new Strike(t.text().muted()));
+        }
+        box.child(text);
       } else {
         box.label(value == null ? "NULL" : value); // what the icon stands for, in a dump
       }
@@ -1166,6 +1506,29 @@ public final class DataGrid {
     return box;
   }
 
+  /** A status as a tree dump says it: {@code changed}, {@code new}, {@code deleted}, {@code error}. */
+  static String statusName(Status status) {
+    return status.name().toLowerCase(java.util.Locale.ROOT);
+  }
+
+  /** The colour of the mark at the start of a row in this status. */
+  private static int markColour(Theme t, Status status) {
+    return switch (status) {
+      case CHANGED -> t.accent().edge();
+      case NEW -> t.status().success();
+      default -> t.status().danger();
+    };
+  }
+
+  /** The text of a deleted row, struck through in its colour. */
+  private record Strike(int colour) implements Highlighter {
+    @Override
+    public Object line(String line, Object state, Spans out) {
+      out.strike(0, line.length(), colour);
+      return null;
+    }
+  }
+
   /** Places an element of a frozen column: at {@code x}, as tall as the row, kept from scrolling. */
   private static El pin(Build b, El el, float x) {
     return el.absolute(x, 0).h(b.g.rowHeight()).fixedX();
@@ -1180,6 +1543,9 @@ public final class DataGrid {
 
   private static void down(Build b, int row, int column, boolean rows, int clicks, int modifiers) {
     Selection sel = b.sel;
+    if (sel.isEditing()) {
+      return; // the press handed the value on, and the app refused it: the editor stays
+    }
     change(b, () -> {
       if ((modifiers & Key.CONTROL) != 0) {
         sel.toggle(row, column, rows);
@@ -1189,18 +1555,22 @@ public final class DataGrid {
         sel.select(row, column, rows);
       }
     });
-    if (clicks == 2 && modifiers == 0 && !rows && b.o.onEdit != null) {
-      b.o.onEdit.accept(row, column);
+    if (clicks == 2 && modifiers == 0 && !rows) {
+      if (GridEdit.editable(b, row, column)) {
+        GridEdit.start(b, row, column, null, false);
+      } else if (b.o.onEdit != null && row < b.rowCount) {
+        b.o.onEdit.accept(row, column);
+      }
     }
   }
 
   /** Extends the selection to the cell under the pointer, whose movement may scroll the grid. */
   private static void drag(Build b, Drag d) {
-    if (d.phase() == Drag.Phase.CANCEL || b.rowCount == 0 || b.columns.isEmpty()) {
+    Selection sel = b.sel;
+    if (d.phase() == Drag.Phase.CANCEL || b.rows == 0 || b.columns.isEmpty() || sel.isEditing()) {
       return;
     }
-    Selection sel = b.sel;
-    int row = (int) Math.clamp(Math.floor(d.y() / b.g.rowHeight()), 0, b.rowCount - 1);
+    int row = (int) Math.clamp(Math.floor(d.y() / b.g.rowHeight()), 0, b.rows - 1);
     // In the content: over a frozen column while the rest is scrolled, that is the column under
     // it, so the grid scrolls back first.
     int column = b.columns.size() - 1;
@@ -1218,7 +1588,7 @@ public final class DataGrid {
    * Changes the selection, scrolls what it moves the cursor to into view, and tells the app if it
    * changed.
    */
-  private static void change(Build b, Runnable change) {
+  static void change(Build b, Runnable change) {
     Selection sel = b.sel;
     List<Object> before = sel.snapshot();
     change.run();
@@ -1258,7 +1628,15 @@ public final class DataGrid {
     Selection sel = b.sel;
     int n = b.columns.size();
     int mods = k.modifiers();
-    if ((mods & (Key.ALT | Key.META)) != 0 || b.rowCount == 0 || n == 0) {
+    if (sel.isEditing()) {
+      // What the editor left goes on and moves nothing here; before the editor has the focus,
+      // in the frame that opened it, or while its row is scrolled away, its keys come here.
+      return GridEdit.editKey(b, k);
+    }
+    if (GridEdit.gridKey(b, k)) {
+      return true;
+    }
+    if ((mods & (Key.ALT | Key.META)) != 0 || b.rows == 0 || n == 0) {
       return false;
     }
     boolean shift = (mods & Key.SHIFT) != 0;
@@ -1278,14 +1656,17 @@ public final class DataGrid {
       b.o.onEdit.accept(sel.row(), Math.clamp(sel.column(), 0, n - 1));
       return true;
     }
+    if (control && !shift && name.equals("V") || shift && !control && name.equals("Insert")) {
+      return false; // pasting is the editing's, when it pastes
+    }
     boolean ends = name.equals("Home") || name.equals("End");
     if (control && !ends) {
       return false;
     }
     float rowHeight = b.g.rowHeight();
     int page = Math.max(1, (int) (b.body.height() / rowHeight));
-    boolean has = sel.row() >= 0 && sel.row() < b.rowCount;
-    int inView = Math.clamp((long) Math.ceil(b.body.scrollY() / rowHeight), 0, b.rowCount - 1);
+    boolean has = sel.row() >= 0 && sel.row() < b.rows;
+    int inView = Math.clamp((long) Math.ceil(b.body.scrollY() / rowHeight), 0, b.rows - 1);
     int row = has ? sel.row() : inView;
     int column = Math.clamp(sel.column(), 0, n - 1);
     int step = has ? 1 : 0;
@@ -1303,7 +1684,7 @@ public final class DataGrid {
       case "Home", "End" -> {
         boolean home = name.equals("Home");
         if (!b.cells || control) {
-          row = home ? 0 : b.rowCount - 1;
+          row = home ? 0 : b.rows - 1;
         }
         if (b.cells) {
           column = home ? 0 : n - 1;
@@ -1313,7 +1694,7 @@ public final class DataGrid {
         return false;
       }
     }
-    int r = Math.clamp(row, 0, b.rowCount - 1);
+    int r = Math.clamp(row, 0, b.rows - 1);
     int c = Math.clamp(column, 0, n - 1);
     change(b, () -> {
       if (shift) {
@@ -1338,6 +1719,7 @@ public final class DataGrid {
       items.add(Menu.item("Copy", () -> copy(b, false)).shortcut("Ctrl+C"));
       items.add(Menu.item("Copy with headers", () -> copy(b, true)));
     }
+    GridEdit.menuItems(b, items);
     if (!items.isEmpty() && !b.o.menuItems.isEmpty()) {
       items.add(Menu.separator());
     }
@@ -1345,8 +1727,14 @@ public final class DataGrid {
     return items;
   }
 
-  private static void copy(Build b, boolean headers) {
-    List<Range> ranges = b.sel.ranges();
+  static void copy(Build b, boolean headers) {
+    List<Range> ranges = new ArrayList<>();
+    for (Range range : b.sel.ranges()) { // without the row to append, which has no cells
+      if (range.top() < b.rowCount) {
+        ranges.add(new Range(range.top(), range.left(), Math.min(range.bottom(), b.rowCount - 1),
+            range.right()));
+      }
+    }
     if (ranges.isEmpty()) {
       return;
     }
@@ -1384,11 +1772,13 @@ public final class DataGrid {
         field(out, c == shown.nextSetBit(0), columns.get(c).title());
       }
     }
+    boolean first = !headers; // an empty first line still ends in a line feed
     for (int[] span : rowSpans(ranges)) {
       for (int r = span[0]; r <= span[1]; r++) {
-        if (!out.isEmpty()) {
+        if (!first) {
           out.append('\n');
         }
+        first = false;
         for (int c = shown.nextSetBit(0); c >= 0; c = shown.nextSetBit(c + 1)) {
           String value = null;
           boolean selected = false;
@@ -1404,6 +1794,69 @@ public final class DataGrid {
       }
     }
     return out.toString();
+  }
+
+  /**
+   * Tab-separated text, as {@link #copyText} writes it and spreadsheets copy it, as its rows of
+   * fields: a line ends in a line feed, a carriage return or both, the fields of a line are
+   * separated by tabs, and a field that begins with a double quote runs to the next double quote
+   * that is not doubled, tabs and line breaks included, each doubled quote standing for one; text
+   * after that quote up to the next tab or line end belongs to the field, and a quote that is
+   * never closed is text. A line break at the end ends the last line, and empty text has no
+   * rows. Rows may have different numbers of fields.
+   */
+  public static List<List<String>> parseText(String text) {
+    List<List<String>> rows = new ArrayList<>();
+    int n = text.length();
+    if (n == 0) {
+      return rows;
+    }
+    List<String> fields = new ArrayList<>();
+    int i = 0;
+    while (true) {
+      StringBuilder field = new StringBuilder();
+      int end = -1; // after a closed quoted field
+      if (i < n && text.charAt(i) == '"') {
+        for (int j = i + 1; j < n; j++) {
+          char ch = text.charAt(j);
+          if (ch != '"') {
+            field.append(ch);
+          } else if (j + 1 < n && text.charAt(j + 1) == '"') {
+            field.append('"');
+            j++;
+          } else {
+            end = j + 1;
+            break;
+          }
+        }
+      }
+      if (end < 0) {
+        field.setLength(0);
+        end = i;
+      }
+      while (end < n && text.charAt(end) != '\t' && text.charAt(end) != '\n'
+          && text.charAt(end) != '\r') {
+        field.append(text.charAt(end++));
+      }
+      fields.add(field.toString());
+      i = end;
+      if (i >= n) {
+        rows.add(fields);
+        return rows;
+      }
+      char separator = text.charAt(i++);
+      if (separator == '\t') {
+        continue;
+      }
+      if (separator == '\r' && i < n && text.charAt(i) == '\n') {
+        i++;
+      }
+      rows.add(fields);
+      fields = new ArrayList<>();
+      if (i >= n) {
+        return rows;
+      }
+    }
   }
 
   /**
@@ -1431,7 +1884,7 @@ public final class DataGrid {
   }
 
   /** The columns, of {@code count}, with a selected cell. */
-  private static BitSet shownColumns(List<Range> ranges, int count) {
+  static BitSet shownColumns(List<Range> ranges, int count) {
     BitSet shown = new BitSet(count);
     for (Range range : ranges) {
       if (range.left() < count) {
@@ -1442,7 +1895,7 @@ public final class DataGrid {
   }
 
   /** The rows of the ranges as spans that neither overlap nor touch, first to last. */
-  private static List<int[]> rowSpans(List<Range> ranges) {
+  static List<int[]> rowSpans(List<Range> ranges) {
     List<int[]> spans = new ArrayList<>();
     ranges.stream().sorted(Comparator.comparingInt(Range::top)).forEach(range -> {
       int[] last = spans.isEmpty() ? null : spans.getLast();
@@ -1469,7 +1922,7 @@ public final class DataGrid {
         .replace("\t", TAB);
   }
 
-  private static El text(Theme t, boolean mono, String text, int colour) {
+  static El text(Theme t, boolean mono, String text, int colour) {
     Theme.TextStyle style = mono ? t.type().mono() : t.type().body();
     return El.text(text).font(style.font().get()).fontSize(style.size()).color(colour)
         .ellipsis().minSize(0, 0);
