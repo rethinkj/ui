@@ -156,8 +156,9 @@ class TextTest {
   }
 
   private static Pixels drawnAt(Font font, String string, float x) {
-    El view = row().wFull().hFull().fill(0xFFFFFFFF).padding(2, 0, 0, x)
-        .child(El.text(string).font(font).fontSize(16));
+    // The fraction in the text's own padding: its box at 0 is on whole pixels at every position.
+    El view = row().wFull().hFull().fill(0xFFFFFFFF).padding(2, 0, 0, 0)
+        .child(El.text(string).font(font).fontSize(16).padding(0, 0, 0, x));
     return Headless.render(view, 40, 24, 1.5f, TextRendering.LINUX).pixels();
   }
 

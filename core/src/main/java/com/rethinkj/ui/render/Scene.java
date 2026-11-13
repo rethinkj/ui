@@ -244,6 +244,12 @@ public final class Scene {
   /** The width of the focus ring in logical pixels. */
   public static final float RING = 2;
 
+  /**
+   * The largest extent in logical pixels that a box's side is snapped as a hairline: as wide as
+   * a border of that width (see {@link Scene}), not from edge to edge.
+   */
+  public static final float HAIRLINE = 2;
+
   private static final float NO_CLIP = 1e9f;
 
   private static final float[] SRGB_TO_LINEAR = new float[256];
@@ -267,6 +273,7 @@ public final class Scene {
   private float windowHeight = NO_CLIP;
   private final Atlas atlas;
   private final TextRendering rendering;
+  private float scale = Float.NaN; // physical pixels per logical one; NaN draws boxes unsnapped
 
   /** An empty scene, for {@link #rect}; without text, so with an atlas of its own. */
   public Scene() {
@@ -285,6 +292,14 @@ public final class Scene {
    */
   public static Scene of(El root) {
     return of(root, null, 0);
+  }
+
+  /**
+   * The scene of a tree that layout has placed, for drawing at {@code scale}: its boxes at rest
+   * are snapped to the physical pixel grid, see {@link Scene}.
+   */
+  public static Scene of(El root, float scale) {
+    return of(root, null, 0, new Atlas(), TextRendering.platform(), scale);
   }
 
   /**
@@ -310,34 +325,54 @@ public final class Scene {
    */
   public static Scene of(
       El root, El ring, int ringColour, Atlas atlas, TextRendering rendering) {
+    return of(root, ring, ringColour, atlas, rendering, Float.NaN);
+  }
+
+  /**
+   * The same, for drawing at {@code scale} physical pixels per logical pixel: the boxes at rest
+   * are snapped to the physical pixel grid, as {@link Scene} says. Without a scale (NaN), every
+   * box is drawn where layout put it.
+   */
+  public static Scene of(El root, El ring, int ringColour, Atlas atlas, TextRendering rendering,
+      float scale) {
     Scene scene = new Scene(atlas, rendering);
+    scene.scale = scale > 0 && Float.isFinite(scale) ? scale : Float.NaN;
     scene.ring = ring;
     scene.ringColour = ringColour;
     scene.windowWidth = root.x() + root.width();
     scene.windowHeight = root.y() + root.height();
     atlas.nextFrame();
-    scene.add(root, 0, 0, 1, 0, Float.NaN);
+    scene.add(root, 0, 0, 1, 0, Float.NaN, false);
     for (El overlay : root.shownOverlays()) {
       if (overlay.scrim() >>> 24 != 0 && overlay.opacity() > 0) {
         scene.rect(-NO_CLIP, -NO_CLIP, 2 * NO_CLIP, 2 * NO_CLIP, 0, 0, overlay.scrim(), 0,
             overlay.opacity(), 0);
       }
-      scene.add(overlay, 0, 0, 1, 0, Float.NaN);
+      scene.add(overlay, 0, 0, 1, 0, Float.NaN, false);
     }
     return scene;
   }
 
-  /** @param behind the luminance of what lies behind the element, NaN where it is not known */
-  private void add(
-      El el, float parentX, float parentY, float parentOpacity, int clip, float behind) {
+  /**
+   * @param behind the luminance of what lies behind the element, NaN where it is not known
+   * @param moving whether a spring moves an ancestor's box, so that this one is not snapped
+   */
+  private void add(El el, float parentX, float parentY, float parentOpacity, int clip,
+      float behind, boolean moving) {
     // shortcut: opacity is multiplied into each instance, so overlapping descendants of a
     // translucent element show through each other; true group opacity needs an off-screen layer.
     float opacity = parentOpacity * el.opacity();
     if (!el.isPlaced() || opacity == 0) {
       return;
     }
-    float x = parentX + el.x();
+    float x = parentX + el.x(); // where layout put it, which the children's positions add up from
     float y = parentY + el.y();
+    boolean free = moving || el.isMoving();
+    // The box as drawn: its edges on whole physical pixels, unless a spring moves it.
+    float left = free ? x : edge(x);
+    float top = free ? y : edge(y);
+    float width = free ? el.width() : size(x, el.width());
+    float height = free ? el.height() : size(y, el.height());
     float clipX = clipGet(clip, X);
     float clipY = clipGet(clip, Y);
     float clipRight = clipX + clipGet(clip, WIDTH);
@@ -345,63 +380,91 @@ public final class Scene {
     // shortcut: one border width for all sides, taken from the top; per-side widths need a wider
     // instance.
     Len border = el.style().borderTop;
-    float borderWidth = border.kind() == Len.Kind.PX ? border.value() : 0;
+    float borderWidth = stroke(border.kind() == Len.Kind.PX ? border.value() : 0);
     boolean hasBorder = borderWidth > 0 && el.borderColor() >>> 24 != 0;
     boolean inside =
-        x < clipRight && x + el.width() > clipX && y < clipBottom && y + el.height() > clipY;
+        left < clipRight && left + width > clipX && top < clipBottom && top + height > clipY;
     List<Shadow> shadows = el.shadows();
     for (int i = shadows.size() - 1; i >= 0; i--) {
-      shadow(shadows.get(i), x, y, el.width(), el.height(), el.radius(), opacity, clip);
+      shadow(shadows.get(i), left, top, width, height, el.radius(), opacity, clip);
     }
     if ((el.fill() >>> 24 != 0 || hasBorder) && inside) {
-      rect(x, y, el.width(), el.height(), el.radius(), hasBorder ? borderWidth : 0, el.fill(),
+      rect(left, top, width, height, el.radius(), hasBorder ? borderWidth : 0, el.fill(),
           el.borderColor(), opacity, clip);
     }
     int inner = clip;
     Style s = el.style();
     if (s.overflowX != Style.Overflow.VISIBLE || s.overflowY != Style.Overflow.VISIBLE) {
-      float left = Math.max(x, clipX);
-      float top = Math.max(y, clipY);
-      float width = Math.min(x + el.width(), clipRight) - left;
-      float height = Math.min(y + el.height(), clipBottom) - top;
+      float l = Math.max(left, clipX);
+      float t = Math.max(top, clipY);
+      float w = Math.min(left + width, clipRight) - l;
+      float h = Math.min(top + height, clipBottom) - t;
       // shortcut: an entry has one radius, the innermost clip's, so where an inner clip sticks
       // out of a rounded outer one, the corners of the intersection take the inner radius instead
       // of following the outer curve; give each entry its parent's index when that shows.
-      inner = width > 0 && height > 0 ? clip(left, top, width, height, el.radius()) : -1;
+      inner = w > 0 && h > 0 ? clip(l, t, w, h, el.radius()) : -1;
     }
     if (inner >= 0) { // else everything below is clipped away
       float content = over(el.fill(), opacity, behind);
       if (el.text() != null) {
-        text(el, x, y, opacity, inner, content);
+        text(el, left, top, opacity, inner, content);
       }
       for (El child : el.children()) {
-        add(child, x, y, opacity, inner, content);
+        add(child, x, y, opacity, inner, content, free);
       }
       if (el.scrollbars() != null) {
-        thumb(el.horizontalBar(), el.scrollbars().radius(), opacity, inner);
-        thumb(el.verticalBar(), el.scrollbars().radius(), opacity, inner);
+        thumb(el.horizontalBar(), false, el.scrollbars().radius(), opacity, inner, free);
+        thumb(el.verticalBar(), true, el.scrollbars().radius(), opacity, inner, free);
       }
     }
     int ringed = el != ring ? 0 : el.focusRing() != null ? el.focusRing() : ringColour;
     if (ringed >>> 24 != 0) {
-      float left = x - RING;
-      float top = y - RING;
-      float right = x + el.width() + RING;
-      float bottom = y + el.height() + RING;
-      float radius = el.radius() > 0 ? el.radius() + RING : 0;
-      if (left < Math.max(clipX, 0) || top < Math.max(clipY, 0)
-          || right > Math.min(clipRight, windowWidth) || bottom > Math.min(clipBottom, windowHeight)) {
+      float ringWidth = stroke(RING);
+      float l = left - ringWidth;
+      float t = top - ringWidth;
+      float r = left + width + ringWidth;
+      float b = top + height + ringWidth;
+      float radius = el.radius() > 0 ? el.radius() + ringWidth : 0;
+      if (l < Math.max(clipX, 0) || t < Math.max(clipY, 0)
+          || r > Math.min(clipRight, windowWidth) || b > Math.min(clipBottom, windowHeight)) {
         // A clip or the window would cut the ring outside, as a pane does around a grid in it.
-        left = x;
-        top = y;
-        right = x + el.width();
-        bottom = y + el.height();
+        l = left;
+        t = top;
+        r = left + width;
+        b = top + height;
         radius = el.radius();
       }
-      if (left < clipRight && right > clipX && top < clipBottom && bottom > clipY) {
-        rect(left, top, right - left, bottom - top, radius, RING, 0, ringed, opacity, clip);
+      if (l < clipRight && r > clipX && t < clipBottom && b > clipY) {
+        rect(l, t, r - l, b - t, radius, ringWidth, 0, ringed, opacity, clip);
       }
     }
+  }
+
+  /**
+   * An edge at logical coordinate {@code v} on the physical pixel boundary nearest to it, halves
+   * up, so that two boxes that share an edge in layout share it on screen.
+   */
+  private float edge(float v) {
+    return Float.isNaN(scale) ? v : (float) (Math.floor(v * (double) scale + 0.5) / scale);
+  }
+
+  /**
+   * The size of a box from {@code start} along one axis: from edge to edge, or, for a hairline of
+   * at most {@link #HAIRLINE} logical pixels, as wide as a border of that width.
+   */
+  private float size(float start, float size) {
+    return size > 0 && size <= HAIRLINE ? stroke(size) : edge(start + size) - edge(start);
+  }
+
+  /**
+   * The width of a border, the focus ring or a hairline: whole physical pixels, rounded down as
+   * browsers round border widths, and at least one when it is more than 0.
+   */
+  private float stroke(float width) {
+    if (Float.isNaN(scale) || !(width > 0)) {
+      return width;
+    }
+    return (float) (Math.max(1, Math.floor(width * (double) scale + 1e-3)) / scale);
   }
 
   /**
@@ -449,17 +512,27 @@ public final class Scene {
     count++;
   }
 
-  /** The thumb of a scroll area's bar, if it has one, in the area's clip. */
-  private void thumb(Scrollbars.Bar bar, float radius, float opacity, int clip) {
+  /**
+   * The thumb of a scroll area's bar, if it has one, in the area's clip. Its sides along the bar
+   * are snapped, its ends are not: where it is along the bar and how long it is measure the scroll
+   * offset, and they move with it as smoothly as a box that a spring moves.
+   */
+  private void thumb(Scrollbars.Bar bar, boolean vertical, float radius, float opacity, int clip,
+      boolean free) {
     if (bar == null || bar.color() >>> 24 == 0) {
       return;
     }
+    float x = free || !vertical ? bar.thumbX() : edge(bar.thumbX());
+    float y = free || vertical ? bar.thumbY() : edge(bar.thumbY());
+    float width =
+        free || !vertical ? bar.thumbWidth() : edge(bar.thumbX() + bar.thumbWidth()) - x;
+    float height =
+        free || vertical ? bar.thumbHeight() : edge(bar.thumbY() + bar.thumbHeight()) - y;
     float clipX = clipGet(clip, X);
     float clipY = clipGet(clip, Y);
-    if (bar.thumbX() < clipX + clipGet(clip, WIDTH) && bar.thumbX() + bar.thumbWidth() > clipX
-        && bar.thumbY() < clipY + clipGet(clip, HEIGHT) && bar.thumbY() + bar.thumbHeight() > clipY) {
-      rect(bar.thumbX(), bar.thumbY(), bar.thumbWidth(), bar.thumbHeight(), radius, 0, bar.color(),
-          0, opacity, clip);
+    if (x < clipX + clipGet(clip, WIDTH) && x + width > clipX
+        && y < clipY + clipGet(clip, HEIGHT) && y + height > clipY) {
+      rect(x, y, width, height, radius, 0, bar.color(), 0, opacity, clip);
     }
   }
 
@@ -571,12 +644,14 @@ public final class Scene {
   private int fieldClip(El el, float x, float y, int clip) {
     Style s = el.style();
     boolean rows = el.text().multiline();
-    float left = Math.max(x + px(s.borderLeft) + px(s.paddingLeft), clipGet(clip, X));
-    float top = Math.max(y + px(s.borderTop) + (rows ? px(s.paddingTop) : 0), clipGet(clip, Y));
-    float right = Math.min(x + el.width() - px(s.borderRight) - px(s.paddingRight),
+    // Out to whole physical pixels, so that the clip cuts no glyph that the box holds.
+    float left = Math.max(outward(x + px(s.borderLeft) + px(s.paddingLeft), -1), clipGet(clip, X));
+    float top = Math.max(outward(y + px(s.borderTop) + (rows ? px(s.paddingTop) : 0), -1),
+        clipGet(clip, Y));
+    float right = Math.min(outward(x + el.width() - px(s.borderRight) - px(s.paddingRight), 1),
         clipGet(clip, X) + clipGet(clip, WIDTH));
-    float bottom = Math.min(y + el.height() - px(s.borderBottom)
-        - (rows ? px(s.paddingBottom) : 0), clipGet(clip, Y) + clipGet(clip, HEIGHT));
+    float bottom = Math.min(outward(y + el.height() - px(s.borderBottom)
+        - (rows ? px(s.paddingBottom) : 0), 1), clipGet(clip, Y) + clipGet(clip, HEIGHT));
     return right > left && bottom > top ? clip(left, top, right - left, bottom - top, 0) : -1;
   }
 
@@ -603,6 +678,15 @@ public final class Scene {
         && y + height > clipY) {
       rect(x, y, width, height, 0, 0, argb, 0, opacity, clip);
     }
+  }
+
+  /** {@code v} on the next physical pixel boundary in the direction of {@code sign}. */
+  private float outward(float v, int sign) {
+    if (Float.isNaN(scale)) {
+      return v;
+    }
+    double p = v * (double) scale;
+    return (float) ((sign < 0 ? Math.floor(p + 1e-3) : Math.ceil(p - 1e-3)) / scale);
   }
 
   private static float px(Len len) {

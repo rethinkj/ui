@@ -74,6 +74,7 @@ public final class El {
   private float opacity = 1;
   private float targetOpacity = 1; // as the view set it, which motion springs towards
   private boolean exiting;
+  private boolean moving;
   private WindowPart windowPart;
   private Consumer<El> hoverLook;
   private Consumer<El> focusLook;
@@ -2527,6 +2528,21 @@ public final class El {
   /** Whether this element is fading out after a rebuild left it out; see {@link #motion}. */
   public boolean isExiting() {
     return exiting;
+  }
+
+  /**
+   * Whether a spring ({@link #motion}) is moving this element's box in the frame shown: its
+   * position or size is between where it was and where layout put it. The scene draws such a box,
+   * and everything inside it, where it is, between physical pixels, and snaps the box to them once
+   * it has come to rest.
+   */
+  public boolean isMoving() {
+    return moving;
+  }
+
+  /** For {@link Animator}, as it writes the values of the moment. */
+  void moving(boolean moving) {
+    this.moving = moving;
   }
 
   /** For {@link App}, when this element starts to leave. */

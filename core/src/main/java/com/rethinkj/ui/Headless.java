@@ -50,7 +50,7 @@ public final class Headless {
       fillRows(overlay, 0, 0, -far, far, width, height, scale);
     }
     El.placeBars(root);
-    Scene scene = Scene.of(root, null, 0, new Atlas(), textRendering);
+    Scene scene = Scene.of(root, null, 0, new Atlas(), textRendering, scale);
     Pixels pixels =
         CpuRenderer.render(scene, Math.round(width * scale), Math.round(height * scale), scale);
     return new Frame(pixels, root.dump());

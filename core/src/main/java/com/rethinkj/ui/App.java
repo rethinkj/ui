@@ -2649,7 +2649,7 @@ public final class App<S> {
    * next call.
    */
   public Scene scene() {
-    return Scene.of(root, ring ? focused : null, ringColour, atlas, textRendering);
+    return Scene.of(root, ring ? focused : null, ringColour, atlas, textRendering, scale);
   }
 
   /** The last frame drawn on the CPU, with its tree as text. */
