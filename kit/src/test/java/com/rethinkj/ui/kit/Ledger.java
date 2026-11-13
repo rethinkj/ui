@@ -33,6 +33,9 @@ final class Ledger {
   String refuse; // what the app says of every value while set, null to take them
   List<DataGrid.Filter> filters = List.of();
   boolean filtering; // the header sets filters, and a bar of them lies above the grid
+  List<DataGrid.SortKey> sort = List.of();
+  DataGrid.Layout layout;
+  java.util.function.Supplier<El> top; // a part at the right above the grid, or null
   App<Ledger> app;
 
   Ledger(Theme theme, int count) {
@@ -82,7 +85,11 @@ final class Ledger {
     }) : null;
     El view = col().wFull().hFull().padding(theme.space().m()).gap(theme.space().s())
         .fill(theme.surface().panel());
-    if (bar != null) {
+    if (top != null) {
+      view.child(com.rethinkj.ui.El.row().align(com.rethinkj.ui.Style.Align.CENTER)
+          .child(bar == null ? com.rethinkj.ui.El.el() : bar).child(com.rethinkj.ui.El.el()
+              .grow(1)).child(top.get()));
+    } else if (bar != null) {
       view.child(bar);
     }
     return view.child(grid().key("ledger").label("Ledger").grow(1));

@@ -1,0 +1,22 @@
+# The columns of orders (Ledger) as the header and the chooser change them.
+size 640 260
+press #columns-button              # the chooser below the button: a box per column
+frame
+advance 1
+frame
+press #show-2                      # qty hidden
+frame
+advance 1
+frame
+snap chooser
+
+key Escape
+frame
+advance 1
+frame
+down #column-5                     # status, dragged towards amount: a line where it would go
+move 300,50
+frame
+snap dragging
+up 300,50
+frame

@@ -439,6 +439,130 @@ public final class DataGrid {
     }
   }
 
+  /**
+   * Which of the app's columns a grid shows, and in which order, which the app keeps in its
+   * state and the grid changes ({@link Options#columns}): the chooser of columns hides, shows and
+   * moves them, the header's context menu hides one, and dragging a header cell along the header
+   * moves its column. The app gives the grid all its columns; the grid shows those of the layout,
+   * and tells the app of a column by its index among all of them in every handler but the
+   * selection's, whose ranges are of the columns shown.
+   */
+  public static final class Layout {
+    final List<String> titles;
+    private final int[] order; // the app's columns in the order shown, hidden ones included
+    private final BitSet hidden = new BitSet();
+    final Popover.State chooser = new Popover.State();
+    int from = -1; // where the chooser hangs: -1 on the app's button, else on that header cell
+    String search = "";
+
+    /** All the app's columns, by their titles, shown in their order. */
+    public Layout(List<String> titles) {
+      this.titles = List.copyOf(titles);
+      this.order = new int[titles.size()];
+      reset();
+    }
+
+    /** The columns shown, of all the app's, in the order shown. */
+    public <T> List<T> shown(List<T> all) {
+      if (all.size() != order.length) {
+        throw new IllegalArgumentException(
+            "The layout has " + order.length + " columns, the grid " + all.size());
+      }
+      List<T> shown = new ArrayList<>();
+      for (int c : order) {
+        if (!hidden.get(c)) {
+          shown.add(all.get(c));
+        }
+      }
+      return shown;
+    }
+
+    /** The indexes among all columns of those shown, in the order shown. */
+    public int[] shownColumns() {
+      return java.util.Arrays.stream(order).filter(c -> !hidden.get(c)).toArray();
+    }
+
+    public boolean isHidden(int column) {
+      return hidden.get(column);
+    }
+
+    /** How many columns are shown. */
+    public int shownCount() {
+      return order.length - hidden.cardinality();
+    }
+
+    /** Hides a column, unless it is the last one shown. */
+    public void hide(int column) {
+      if (shownCount() > 1) {
+        hidden.set(column);
+      }
+    }
+
+    public void show(int column) {
+      hidden.clear(column);
+    }
+
+    /** Shows every column, in the order they have. */
+    public void showAll() {
+      hidden.clear();
+    }
+
+    /** Shows every column in the app's order. */
+    public void reset() {
+      hidden.clear();
+      for (int c = 0; c < order.length; c++) {
+        order[c] = c;
+      }
+    }
+
+    /** Moves a column to just before another, or to the end with -1. */
+    public void moveBefore(int column, int before) {
+      if (column == before) {
+        return;
+      }
+      List<Integer> list = new ArrayList<>();
+      for (int c : order) {
+        if (c != column) {
+          list.add(c);
+        }
+      }
+      int at = before < 0 ? list.size() : list.indexOf(before);
+      list.add(at < 0 ? list.size() : at, column);
+      for (int i = 0; i < order.length; i++) {
+        order[i] = list.get(i);
+      }
+    }
+
+    /** Moves a column one place up or down the order, past hidden ones too. */
+    void step(int column, int by) {
+      int at = 0;
+      while (order[at] != column) {
+        at++;
+      }
+      int to = at + by;
+      if (to >= 0 && to < order.length) {
+        order[at] = order[to];
+        order[to] = column;
+      }
+    }
+
+    /** The order of all columns, hidden ones included. */
+    public List<Integer> order() {
+      return java.util.Arrays.stream(order).boxed().toList();
+    }
+
+    /** Opens or closes the chooser of columns on the button of {@link DataGrid#columnsButton}. */
+    public void toggleChooser() {
+      if (chooser.isOpen() && from < 0) {
+        chooser.close();
+      } else {
+        from = -1;
+        search = "";
+        chooser.open();
+      }
+    }
+  }
+
   /** Told a cell, says its {@link Status}. */
   @FunctionalInterface
   public interface CellStatus {
@@ -634,6 +758,12 @@ public final class DataGrid {
     String filterTo = "";
     final java.util.Set<String> filterValues = new java.util.LinkedHashSet<>();
     final Menu.State filterKinds = new Menu.State();
+    // The header: its context menu and the column it opened on, and a column dragged along it
+    // with where it would go, -1 for none.
+    final Menu.State headerMenu = new Menu.State();
+    int headerColumn = -1;
+    int dragColumn = -1;
+    int dropAt = -1;
 
     public Selection(Mode mode) {
       this.mode = Objects.requireNonNull(mode, "mode");
@@ -867,6 +997,9 @@ public final class DataGrid {
     Runnable onRedo;
     List<Filter> filters = List.of();
     Consumer<List<Filter>> onFilter;
+    Layout layout;
+    IntConsumer onFreeze;
+    int[] full; // with a layout: the index among all columns of each shown one
 
     private Options() {}
 
@@ -1067,6 +1200,92 @@ public final class DataGrid {
       return this;
     }
 
+    /**
+     * Shows the columns of {@code layout}, of all the app's columns the grid gets, and lets the
+     * header change it: its context menu hides a column and opens the chooser of columns
+     * (Columns…), and dragging a header cell along the header moves its column, with a line where
+     * it would go. Every handler is then told columns by their index among all of them, and the
+     * sort keys and filters are of those indexes too; only the selection's ranges are of the
+     * columns shown. A column's sort key goes away while it is hidden.
+     */
+    public Options columns(Layout layout) {
+      this.layout = layout;
+      return this;
+    }
+
+    /**
+     * Lets the header's context menu freeze the columns up to the one it opened on, and unfreeze
+     * them: told how many of the columns shown to keep at the left, which the app passes to
+     * {@link #frozen}.
+     */
+    public Options onFreeze(IntConsumer handler) {
+      this.onFreeze = handler;
+      return this;
+    }
+
+    /** With a layout, these options in the indexes of the columns shown, their handlers mapped. */
+    void showOnly(int[] full, int all) {
+      this.full = full;
+      int[] shown = new int[all];
+      java.util.Arrays.fill(shown, -1);
+      for (int i = 0; i < full.length; i++) {
+        shown[full[i]] = i;
+      }
+      List<SortKey> keys = new ArrayList<>();
+      for (SortKey k : sort) {
+        if (k.column() < all && shown[k.column()] >= 0) {
+          keys.add(new SortKey(shown[k.column()], k.descending()));
+        }
+      }
+      sort = List.copyOf(keys);
+      if (onSort != null) {
+        Consumer<List<SortKey>> to = onSort;
+        onSort = next -> to.accept(next.stream()
+            .map(k -> new SortKey(full[k.column()], k.descending())).toList());
+      }
+      if (onResize != null) {
+        Resize to = onResize;
+        onResize = (c, w) -> to.resize(full[c], w);
+      }
+      if (onEdit != null) {
+        CellHandler to = onEdit;
+        onEdit = (r, c) -> to.accept(r, full[c]);
+      }
+      if (onCommit != null) {
+        Commit to = onCommit;
+        onCommit = (r, c, v) -> to.commit(r, full[c], v);
+      }
+      if (onPaste != null) {
+        Consumer<List<CellValue>> to = onPaste;
+        onPaste = cells -> to.accept(cells.stream()
+            .map(v -> new CellValue(v.row(), full[v.column()], v.value())).toList());
+      }
+      if (cellStatus != null) {
+        CellStatus to = cellStatus;
+        cellStatus = (r, c) -> to.status(r, full[c]);
+      }
+      List<Filter> hiddenFilters = new ArrayList<>();
+      List<Filter> shownFilters = new ArrayList<>();
+      for (Filter f : filters) {
+        if (f.column() < all && shown[f.column()] >= 0) {
+          shownFilters.add(new Filter(shown[f.column()], f.kind(), f.value(), f.to(), f.values()));
+        } else {
+          hiddenFilters.add(f);
+        }
+      }
+      filters = List.copyOf(shownFilters);
+      if (onFilter != null) {
+        Consumer<List<Filter>> to = onFilter;
+        onFilter = next -> {
+          List<Filter> mapped = new ArrayList<>(hiddenFilters);
+          for (Filter f : next) {
+            mapped.add(new Filter(full[f.column()], f.kind(), f.value(), f.to(), f.values()));
+          }
+          to.accept(List.copyOf(mapped));
+        };
+      }
+    }
+
     /** Lets Control+Z undo and Control+Y and Control+Shift+Z redo while no editor is open. */
     public Options history(Runnable undo, Runnable redo) {
       this.onUndo = undo;
@@ -1170,6 +1389,11 @@ public final class DataGrid {
    * @param options what the grid does; {@link #options()} for a grid that only shows
    */
   public static El dataGrid(Theme t, List<Column> columns, int rowCount, Options options) {
+    if (options.layout != null) {
+      int all = columns.size();
+      columns = options.layout.shown(columns);
+      options.showOnly(options.layout.shownColumns(), all);
+    }
     Build b = new Build(t, columns, rowCount, options);
     Theme.Grid g = b.g;
     El header = header(b);
@@ -1177,6 +1401,9 @@ public final class DataGrid {
     if (sel != null && sel.isEditing()
         && (!b.edits || sel.editRow >= b.rows || sel.editColumn >= columns.size())) {
       sel.cancelEdit(); // the rows or columns it was on are gone
+    }
+    if (sel != null && !sel.headerMenu.isOpen()) {
+      sel.headerColumn = -1;
     }
     if (sel != null && (!sel.filtering.isOpen() || sel.filterColumn >= columns.size()
         || !b.filtering())) {
@@ -1268,6 +1495,7 @@ public final class DataGrid {
     // Later children are drawn over earlier ones and hit first: the frozen part over the rest.
     edges.forEach(header::child);
     pinned.forEach(header::child);
+    GridColumns.header(b, header);
     return header;
   }
 
@@ -1353,6 +1581,7 @@ public final class DataGrid {
         e.overlay(Tooltip.panel(t, whole));
       }
     });
+    GridColumns.cell(b, index, cell);
     if (b.o.onSort == null || !column.sortable()) {
       return funnel == null ? cell : cell.whenHovered(e -> funnel.opacity(1));
     }
@@ -1428,7 +1657,7 @@ public final class DataGrid {
    * The width that shows the column's header and the cells of its rows that exist whole: their
    * icons, title, type, sort mark and text.
    */
-  private static float fit(Build b, int c) {
+  static float fit(Build b, int c) {
     Theme t = b.t;
     float widest = headerWidth(b, c);
     El body = b.body;
@@ -1959,6 +2188,16 @@ public final class DataGrid {
       }
     }
     return out.toString();
+  }
+
+  /**
+   * A quiet button, Columns with the icon of a column, that opens the chooser of {@code layout}'s columns below
+   * it: a box per column to show or hide it, in the order shown, which Alt+Arrow Up and Down change
+   * for the focused one, a field that narrows the list where there are many, Show all and Reset.
+   * The header's context menu opens the same chooser at the column it opened on.
+   */
+  public static El columnsButton(Theme t, Layout layout) {
+    return GridColumns.button(t, layout);
   }
 
   /**
