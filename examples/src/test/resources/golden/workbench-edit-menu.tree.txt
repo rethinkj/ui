@@ -185,7 +185,7 @@ el 0,0 1000x600
     el #rest 268,32 724x560
       el #second 276,32 716x560
         el #tabs 276,32 716x560
-          el #bar 277,33 714x32
+          el #bar 277,33 714x33
             el #tablist role=tablist 279,33 143x32
               el #tab-0 role=tab label="Start" 279,33 44x32
                 text "Start" 287,41 28x16
@@ -195,7 +195,6 @@ el 0,0 1000x600
                 text "orders" 353,41 41x16
                 el #close-1 role=button label="Close orders" 398,41 16x16
                   text label="dismiss" "\u{F368}" 398,41 16x16
-          el 277,65 714x1
           el #panel role=tabpanel label="orders" 277,66 714x525
             el 277,66 714x525
               el 277,66 714x496
@@ -216,7 +215,7 @@ el 0,0 1000x600
                 el role=separator 277,205 714x1
                 el #grid-localhost/shop/public/orders role=grid label="orders" 277,206 714x356 thumb-x 279,554 347.22x6
                   el #content 277,206 1460x356
-                    el #header 277,206 1460x24
+                    el #header 277,206 1460x25
                       el #column-0 role=columnheader label="id" 277,206 99x24 pos=1/9
                         text label="key" "\u{E740}" 303,210 16x16
                         el 323,210 49x16
@@ -280,10 +279,8 @@ el 0,0 1000x600
                       el #resize-6 role=separator label="Resize note" 1344,206 6x24
                       el #resize-7 role=separator label="Resize created_at" 1534,206 6x24
                       el #resize-8 role=separator label="Resize updated_at" 1724,206 6x24
-                    el 277,230 1460x1
                     el #rows 277,231 1460x331 rows 0-16/1000000 thumb-y 983,233 6x24
                       el #row-0 role=row 277,231 1460x24 pos=1/1000000
-                        el 277,254 1460x1
                         el #cell-0-0 role=gridcell 277,231 99x23 pos=1/9
                           text "1" 365,235 7x16
                         el 376,231 1x23
@@ -311,7 +308,6 @@ el 0,0 1000x600
                           text "2026-01-05 08:00" 1351,235 112x16
                         el 1536,231 1x23
                       el #row-1 role=row 277,255 1460x24 pos=2/1000000
-                        el 277,278 1460x1
                         el #cell-1-0 role=gridcell 277,255 99x23 pos=1/9
                           text "2" 365,259 7x16
                         el 376,255 1x23
@@ -339,7 +335,6 @@ el 0,0 1000x600
                           text "2026-01-05 08:00" 1351,259 112x16
                         el 1536,255 1x23
                       el #row-2 role=row 277,279 1460x24 pos=3/1000000
-                        el 277,302 1460x1
                         el #cell-2-0 role=gridcell 277,279 99x23 pos=1/9
                           text "3" 365,283 7x16
                         el 376,279 1x23
@@ -367,7 +362,6 @@ el 0,0 1000x600
                           text "2026-01-05 08:01" 1351,283 112x16
                         el 1536,279 1x23
                       el #row-3 role=row 277,303 1460x24 pos=4/1000000
-                        el 277,326 1460x1
                         el #cell-3-0 role=gridcell 277,303 99x23 pos=1/9
                           text "4" 365,307 7x16
                         el 376,303 1x23
@@ -395,7 +389,6 @@ el 0,0 1000x600
                           text "2026-01-05 08:01" 1351,307 112x16
                         el 1536,303 1x23
                       el #row-4 role=row 277,327 1460x24 pos=5/1000000
-                        el 277,350 1460x1
                         el #cell-4-0 role=gridcell 277,327 99x23 pos=1/9
                           text "5" 365,331 7x16
                         el 376,327 1x23
@@ -423,7 +416,6 @@ el 0,0 1000x600
                           text "2026-01-05 08:02" 1351,331 112x16
                         el 1536,327 1x23
                       el #row-5 role=row 277,351 1460x24 pos=6/1000000
-                        el 277,374 1460x1
                         el #cell-5-0 role=gridcell 277,351 99x23 pos=1/9
                           text "6" 365,355 7x16
                         el 376,351 1x23
@@ -451,7 +443,6 @@ el 0,0 1000x600
                           text "2026-01-05 08:03" 1351,355 112x16
                         el 1536,351 1x23
                       el #row-6 role=row 277,375 1460x24 pos=7/1000000
-                        el 277,398 1460x1
                         el #cell-6-0 role=gridcell 277,375 99x23 pos=1/9
                           text "7" 365,379 7x16
                         el 376,375 1x23
@@ -479,7 +470,6 @@ el 0,0 1000x600
                           text "2026-01-05 08:03" 1351,379 112x16
                         el 1536,375 1x23
                       el #row-7 role=row 277,399 1460x24 pos=8/1000000
-                        el 277,422 1460x1
                         el #cell-7-0 role=gridcell 277,399 99x23 pos=1/9
                           text "8" 365,403 7x16
                         el 376,399 1x23
@@ -507,7 +497,6 @@ el 0,0 1000x600
                           text "2026-01-05 08:04" 1351,403 112x16
                         el 1536,399 1x23
                       el #row-8 role=row 277,423 1460x24 pos=9/1000000
-                        el 277,446 1460x1
                         el #cell-8-0 role=gridcell 277,423 99x23 pos=1/9
                           text "9" 365,427 7x16
                         el 376,423 1x23
@@ -535,7 +524,6 @@ el 0,0 1000x600
                           text "2026-01-05 08:04" 1351,427 112x16
                         el 1536,423 1x23
                       el #row-9 role=row 277,447 1460x24 pos=10/1000000
-                        el 277,470 1460x1
                         el #cell-9-0 role=gridcell 277,447 99x23 pos=1/9
                           text "10" 358,451 14x16
                         el 376,447 1x23
@@ -563,7 +551,6 @@ el 0,0 1000x600
                           text "2026-01-05 08:05" 1351,451 112x16
                         el 1536,447 1x23
                       el #row-10 role=row 277,471 1460x24 pos=11/1000000
-                        el 277,494 1460x1
                         el #cell-10-0 role=gridcell 277,471 99x23 pos=1/9
                           text "11" 358,475 14x16
                         el 376,471 1x23
@@ -591,7 +578,6 @@ el 0,0 1000x600
                           text "2026-01-05 08:06" 1351,475 112x16
                         el 1536,471 1x23
                       el #row-11 role=row 277,495 1460x24 pos=12/1000000
-                        el 277,518 1460x1
                         el #cell-11-0 role=gridcell 277,495 99x23 pos=1/9
                           text "12" 358,499 14x16
                         el 376,495 1x23
@@ -619,7 +605,6 @@ el 0,0 1000x600
                           text "2026-01-05 08:06" 1351,499 112x16
                         el 1536,495 1x23
                       el #row-12 role=row 277,519 1460x24 pos=13/1000000
-                        el 277,542 1460x1
                         el #cell-12-0 role=gridcell 277,519 99x23 pos=1/9
                           text "13" 358,523 14x16
                         el 376,519 1x23
@@ -647,7 +632,6 @@ el 0,0 1000x600
                           text "2026-01-05 08:07" 1351,523 112x16
                         el 1536,519 1x23
                       el #row-13 role=row 277,543 1460x24 pos=14/1000000
-                        el 277,566 1460x1
                         el #cell-13-0 role=gridcell 277,543 99x23 pos=1/9
                           text "14" 358,547 14x16
                         el 376,543 1x23
@@ -675,7 +659,6 @@ el 0,0 1000x600
                           text "2026-01-05 08:08" 1351,547 112x16
                         el 1536,543 1x23
                       el #row-14 role=row 277,567 1460x24 pos=15/1000000
-                        el 277,590 1460x1
                         el #cell-14-0 role=gridcell 277,567 99x23 pos=1/9
                           text "15" 358,571 14x16
                         el 376,567 1x23
@@ -703,7 +686,6 @@ el 0,0 1000x600
                           text "2026-01-05 08:08" 1351,571 112x16
                         el 1536,567 1x23
                       el #row-15 role=row 277,591 1460x24 pos=16/1000000
-                        el 277,614 1460x1
                         el #cell-15-0 role=gridcell 277,591 99x23 pos=1/9
                           text "16" 358,595 14x16
                         el 376,591 1x23
@@ -731,7 +713,6 @@ el 0,0 1000x600
                           text "2026-01-05 08:09" 1351,595 112x16
                         el 1536,591 1x23
                       el #row-16 role=row 277,615 1460x24 pos=17/1000000
-                        el 277,638 1460x1
                         el #cell-16-0 role=gridcell 277,615 99x23 pos=1/9
                           text "17" 358,619 14x16
                         el 376,615 1x23
@@ -759,11 +740,9 @@ el 0,0 1000x600
                           text "2026-01-05 08:09" 1351,619 112x16
                         el 1536,615 1x23
               el 277,562 714x29
-                el role=separator 277,562 714x1
-                el 277,563 714x28
-                  text #status "localhost/shop/public/orders · 1,000,000 rows" 289,569 286x16
-                  el 587,577 308x0
-                  text #position "Ln 2, Col 18" 907,569 72x16
+                text #status "localhost/shop/public/orders · 1,000,000 rows" 289,569 286x16
+                el 587,577 308x0
+                text #position "Ln 2, Col 18" 907,569 72x16
       el #divider role=separator label="Resize" 268,32 8x560 value="first 260"
         el 268,32 8x560
           el 272,32 1x560
