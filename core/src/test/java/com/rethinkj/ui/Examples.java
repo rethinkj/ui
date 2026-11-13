@@ -294,6 +294,7 @@ public final class Examples {
     El content = col().key("content").w(total).children(header, under, body);
     content.style().minWidth = Len.percent(1);
     El grid = row().role("grid").scrollBoth().fill(ROW).child(content).focusable()
+        .focusRing(PRIMARY) // border().focus(), the same colour in Theme.DARK
         .whenFocused(e -> focused[0] = true)
         .onKey(k -> {
           int next = switch (k.name()) {

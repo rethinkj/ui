@@ -65,6 +65,7 @@ public final class Toggle {
     int pressed = on ? t.accent().pressed() : over(fill, t.surface().pressed());
     // The whole row takes the press, text included, and its looks restyle the track.
     return toggle.focusable()
+        .focusRing(t.border().focus())
         .cursor(Cursor.POINTER)
         .onPress(onToggle)
         .whenHovered(e -> track.fill(hover))

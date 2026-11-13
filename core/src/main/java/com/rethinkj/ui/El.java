@@ -40,6 +40,7 @@ public final class El {
   private Consumer<Drag> onDrag;
   private int revealRow = -1;
   private boolean focusable;
+  private Integer focusRing;
   private Predicate<Key> onKey;
   private Predicate<Key> onKeyUp;
   private Consumer<String> onText;
@@ -597,6 +598,17 @@ public final class El {
   }
 
   /**
+   * Sets the colour of the ring drawn around this element while it has the focus from the
+   * keyboard or the app, as 0xAARRGGBB; 0 draws none. An element that sets none gets the app's
+   * ({@link App#focusRing}). A view that draws parts of itself in different themes gives each of
+   * its focusable elements the ring of its theme here.
+   */
+  public El focusRing(int argb) {
+    this.focusRing = argb;
+    return this;
+  }
+
+  /**
    * Gives {@code handler} the keys that go down while this element or one below it has the focus,
    * repeats included, before its ancestors get them. The handler returns whether it handled the
    * key; if it did, nobody else sees it. Without focus, keys go to the root element only. Enter
@@ -802,6 +814,11 @@ public final class El {
    */
   public boolean isFocusable() {
     return focusable || editable && (onEdit != null || readOnly);
+  }
+
+  /** The colour set with {@link #focusRing(int)}, or null if none was and the app's applies. */
+  public Integer focusRing() {
+    return focusRing;
   }
 
   public Predicate<Key> onKey() {

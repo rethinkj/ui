@@ -17,8 +17,8 @@ import java.util.function.Supplier;
  * }</pre>
  *
  * <p>Components get the theme as their first parameter, and the view gets it from the app's state
- * or a constant. The focus ring is drawn by the {@link com.rethinkj.ui.App}, so an app also sets
- * its colour: {@code app.focusRing(theme.border().focus())}.
+ * or a constant. Focusable components draw their focus ring in {@code border().focus()} of their
+ * theme ({@link com.rethinkj.ui.El#focusRing(int)}).
  *
  * <p>Colours are 0xAARRGGBB, sizes logical pixels.
  */

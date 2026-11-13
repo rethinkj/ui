@@ -396,6 +396,30 @@ class FocusTest {
   }
 
   @Test
+  void anElementsOwnRingColourWinsOverTheAppsAndZeroDrawsNone() {
+    App<Object> app = start(new App<>(new Object(), s -> row().wFull().hFull().center().gap(20)
+        .children(
+            el().key("own").size(30, 20).focusable().focusRing(0xFFFF0000),
+            el().key("app").size(30, 20).focusable(),
+            el().key("none").size(30, 20).focusable().focusRing(0))), 200, 120);
+    int plain = app.scene().count();
+    app.focusRing(0xFF00FF00);
+    tab(app);
+    assertEquals("own", focusedKey(app));
+    Scene scene = app.scene();
+    assertEquals(1, scene.get(ring(scene), Scene.BORDER), "red, the element's own");
+    assertEquals(0, scene.get(ring(scene), Scene.BORDER + 4));
+    tab(app);
+    assertEquals("app", focusedKey(app));
+    scene = app.scene();
+    assertEquals(0, scene.get(ring(scene), Scene.BORDER));
+    assertEquals(1, scene.get(ring(scene), Scene.BORDER + 4), "green, the app's");
+    tab(app);
+    assertEquals("none", focusedKey(app));
+    assertEquals(plain, app.scene().count(), "0 draws none");
+  }
+
+  @Test
   void focusingARowOutsideTheListScrollsItIntoViewAndTheRingIsClippedByTheList() {
     App<Object> app =
         start(

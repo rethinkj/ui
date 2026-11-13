@@ -707,7 +707,6 @@ class GpuRendererTest {
   /** The data grid as kit's {@code Orders.app} starts it, in the dark theme. */
   private static App<?> grid() {
     App<Examples.Grid> app = new App<>(new Examples.Grid(), Examples::grid);
-    app.focusRing(0xFFE4E5E9); // Theme.DARK's focus ring
     return app;
   }
 

@@ -516,8 +516,9 @@ public final class App<S> {
   }
 
   /**
-   * Sets the colour of the focus ring, as 0xAARRGGBB; 0 draws none. The ring is 2 pixels wide and
-   * lies just outside the element's border box, with its corners.
+   * Sets the colour of the focus ring, as 0xAARRGGBB, for elements that set none themselves ({@link
+   * El#focusRing(int)}); 0 draws none. The ring is 2 pixels wide and lies just outside the
+   * element's border box, with its corners.
    */
   public void focusRing(int argb) {
     ringColour = argb;

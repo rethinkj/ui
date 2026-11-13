@@ -141,7 +141,6 @@ final class Gallery {
     El view = row().wFull().hFull().center().fill(theme.surface().window()).child(component);
     App<Object> app = new App<>(new Object(), s -> view);
     app.textRendering(TextRendering.LINUX);
-    app.focusRing(theme.border().focus());
     Path folder = out.resolve(String.valueOf(cells++));
     Script.run(
         "size " + WIDTH + " " + HEIGHT + " scale " + scale + "\nframe\n" + steps + "\nsnap cell",

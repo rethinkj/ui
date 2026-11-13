@@ -63,6 +63,7 @@ public final class Checkbox {
     int pressed = checked ? t.accent().pressed() : over(fill, s.pressed());
     // The whole row takes the press, text included, and its looks restyle the box.
     return checkbox.focusable()
+        .focusRing(t.border().focus())
         .cursor(Cursor.POINTER)
         .onPress(onToggle)
         .whenHovered(e -> box.fill(hover))

@@ -151,6 +151,7 @@ public final class DataGrid {
       return grid;
     }
     return grid.focusable()
+        .focusRing(t.border().focus())
         .whenFocused(e -> focused[0] = true)
         .onKey(k -> {
           if (k.modifiers() != 0 || rowCount == 0) {

@@ -40,8 +40,6 @@ public final class ConnectionDialog {
   boolean ssl = true;
   boolean dark = true;
   String status = "";
-  // The focus ring is drawn by the app, so a switch of the theme has to tell the app.
-  Runnable themeChanged = () -> {};
 
   Theme theme() {
     return dark ? Theme.DARK : Theme.LIGHT;
@@ -74,16 +72,8 @@ public final class ConnectionDialog {
     status = fresh.status;
   }
 
-  void switchTheme() {
-    dark = !dark;
-    themeChanged.run();
-  }
-
   public static void main(String[] args) throws IOException {
-    ConnectionDialog dialog = new ConnectionDialog();
-    App<ConnectionDialog> app = new App<>(dialog, ConnectionDialog::view);
-    dialog.themeChanged = () -> app.focusRing(dialog.theme().border().focus());
-    dialog.themeChanged.run();
+    App<ConnectionDialog> app = new App<>(new ConnectionDialog(), ConnectionDialog::view);
     // A script's images are stored, so they must not depend on the platform.
     app.textRendering(TextRendering.LINUX);
     if (Script.handle(args, app)) {
@@ -114,7 +104,7 @@ public final class ConnectionDialog {
         // As wide as box and text, not as the column, which would stretch them and their ring.
         .child(checkbox(t, s.ssl, "Require SSL", () -> s.ssl = !s.ssl)
             .alignSelf(Style.Align.START))
-        .child(toggle(t, s.dark, "Dark theme", s::switchTheme).alignSelf(Style.Align.START))
+        .child(toggle(t, s.dark, "Dark theme", () -> s.dark = !s.dark).alignSelf(Style.Align.START))
         .child(el().grow(1))
         .child(label(t, MUTED, s.status))
         .child(row().gap(t.space().m()).justify(Style.Content.END)

@@ -29,7 +29,6 @@ public final class LightSwitch {
 
   public static void main(String[] args) throws IOException {
     App<LightSwitch> app = new App<>(new LightSwitch(), LightSwitch::view);
-    app.focusRing(THEME.border().focus());
     // A script's images are stored, so they must not depend on the platform.
     app.textRendering(TextRendering.LINUX);
     if (Script.handle(args, app)) {
