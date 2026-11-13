@@ -279,8 +279,10 @@ public final class WindowLoop {
       input = true;
     }
     switch (event) {
-      case PointerDown down when down.button() == PointerButton.LEFT ->
-          app.pointerDown(down.x(), down.y(), down.clicks(), down.modifiers());
+      case PointerDown down when down.button() == PointerButton.LEFT -> {
+        app.pointerDown(down.x(), down.y(), down.clicks(), down.modifiers());
+        textInput(); // on before the frame when the press lands in a field: see App.inputArea
+      }
       case PointerUp up when up.button() == PointerButton.LEFT -> app.pointerUp(up.x(), up.y());
       case PointerDown down when down.button() == PointerButton.RIGHT ->
           app.secondaryDown(down.x(), down.y());
@@ -326,6 +328,10 @@ public final class WindowLoop {
       started = now;
     }
     window.cursor(app.cursor());
+    textInput();
+  }
+
+  private void textInput() {
     App.InputArea area = app.inputArea();
     if (area == null) {
       window.stopTextInput();

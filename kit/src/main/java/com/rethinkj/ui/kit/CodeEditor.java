@@ -1,6 +1,7 @@
 package com.rethinkj.ui.kit;
 
 import com.rethinkj.ui.El;
+import com.rethinkj.ui.FieldState;
 import com.rethinkj.ui.Highlighter;
 import com.rethinkj.ui.Style;
 import java.util.function.Consumer;
@@ -26,9 +27,13 @@ public final class CodeEditor {
   /**
    * What the app keeps of an editor in its state, as a {@link Menu.State}: where the caret and the
    * selection are, which the editor updates as they change ({@link El#onSelect}), and an error
-   * to underline, which the app sets, such as where the database said a query went wrong.
+   * to underline, which the app sets, such as where the database said a query went wrong. It also
+   * holds the field's editing state ({@link FieldState}), so that an editor that leaves the tree,
+   * as the content of a tab that is not active does, comes back with its caret, selection,
+   * scroll and undo history: keep one per editor, such as one per tab.
    */
   public static final class State {
+    private final FieldState field = new FieldState();
     private int caret;
     private int anchor;
     private int errorFrom;
@@ -75,6 +80,7 @@ public final class CodeEditor {
     int[] pair = matching(value, state.caret);
     Theme.TextStyle mono = t.type().mono();
     El editor = TextField.codeArea(t, value, null, onChange)
+        .fieldState(state.field)
         .onSelect((caret, anchor) -> {
           state.caret = caret;
           state.anchor = anchor;
