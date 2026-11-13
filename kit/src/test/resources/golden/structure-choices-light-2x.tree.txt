@@ -1,0 +1,43 @@
+el 0,0 400x560
+  el role=radiogroup label="Theme" 16,16 187x24
+    el role=radio label="Light" 19,19 54x18 checked=false
+      text "Light" 31,20 30x16
+    el role=radio label="Dark" 75,19 53x18 checked
+      text "Dark" 87,20 29x16
+    el role=radio label="System" 130,19 70x18 checked=false
+      text "System" 142,20 46x16
+  el role=radiogroup label="Line endings" 12,50 108x60
+    el role=radio label="LF" 16,52 100x16 checked
+      el 16,52 16x16
+        el 21,57 6x6
+      text "LF" 40,52 15x16
+    el role=radio label="CRLF" 16,72 100x16 checked=false
+      el 16,72 16x16
+      text "CRLF" 40,72 33x16
+    el role=radio label="As in the file" 16,92 100x16 checked=false
+      el 16,92 16x16
+      text "As in the file" 40,92 76x16
+  el #tabs 16,120 100x24
+    text role=spinbutton "4" 16,120 100x24
+    el 72,122 42x20
+      el role=button label="Decrease" 72,122 20x20
+        text label="subtract" "\u{EBCF}" 74,124 16x16
+      el role=button label="Increase" 94,122 20x20
+        text label="add" "\u{F108}" 96,124 16x16
+  el role=slider label="Font size" 16,156 200x24 value="13"
+    el 24,166 184x4
+      el 24,166 74x4
+      el 90,160 16x16
+  el role=note label="Restart to apply" 16,192 368x67
+    text label="warning" "\u{F868}" 29,201 16x16
+    el 53,201 240x49
+      text "Restart to apply" 53,201 240x16
+      text "The interface font changes after the next start." 53,219 240x31
+    el role=button label="Restart" 301,213 70x24
+      text "Restart" 314,218 44x15
+  el role=status label="No connections match" 16,271 368x273
+    text label="search" "\u{EA7E}" 176,342 48x48
+    text "No connections match" 129,398 142x15
+    text "Try another name or host." 121,421 158x16
+    el role=button label="Clear filter" 155,449 90x24
+      text "Clear filter" 168,453 64x16

@@ -59,7 +59,22 @@ class ComponentTest {
         Arguments.of("checkbox", (Function<Runnable, El>) h ->
             checkbox(T, false, "Read only", h), "role=checkbox label=\"Read only\"", true),
         Arguments.of("checkbox by its text", (Function<Runnable, El>) h ->
-            checkbox(T, false, "Read only", h), "text=\"Read only\"", true));
+            checkbox(T, false, "Read only", h), "text=\"Read only\"", true),
+        Arguments.of("switch row", (Function<Runnable, El>) h ->
+            Group.switchRow(T, "Word wrap", "At the edge", true, h),
+            "role=switch label=\"Word wrap\"", true),
+        Arguments.of("switch row by its description", (Function<Runnable, El>) h ->
+            Group.switchRow(T, "Word wrap", "At the edge", true, h), "text=\"At the edge\"",
+            true),
+        Arguments.of("link row", (Function<Runnable, El>) h ->
+            Group.linkRow(T, Symbol.KEY, "Keymap", null, "Default", h),
+            "role=button label=\"Keymap\"", true),
+        Arguments.of("expander", (Function<Runnable, El>) h ->
+            Group.expander(T, "Advanced", null, false, h), "role=button label=\"Advanced\"",
+            true),
+        Arguments.of("pressable card", (Function<Runnable, El>) h ->
+            Card.pressable(T, Card.card(T, Label.label(T, "staging")), "staging", false, h),
+            "role=button label=\"staging\"", true));
   }
 
   private App<Object> app(El view) {
@@ -86,7 +101,8 @@ class ComponentTest {
     run(app, "move " + target + "\npress " + target);
     assertEquals(1, calls[0]);
     assertEquals(Cursor.POINTER, app.cursor());
-    run(app, "key Enter\nframe\nkey Space");
+    assertNull(app.focused(), "a press leaves the focus where it was");
+    run(app, "focus " + target + "\nkey Enter\nframe\nkey Space");
     assertEquals(3, calls[0]);
   }
 

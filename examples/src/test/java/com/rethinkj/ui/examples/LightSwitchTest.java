@@ -14,6 +14,6 @@ class LightSwitchTest {
     assertTrue(Snaps.line("light-switch", "light-switch-off", "role=switch")
         .endsWith(" checked=false"));
     assertTrue(Snaps.line("light-switch", "light-switch-on", "role=switch")
-        .endsWith(" checked focused"));
+        .endsWith(" checked"), "a press leaves the focus where it was: nowhere");
   }
 }

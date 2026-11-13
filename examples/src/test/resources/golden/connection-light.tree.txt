@@ -32,23 +32,37 @@ el 0,0 440x432
     text "The server and the account to log in with." 24,86 392x16
     el 24,118 392x152
       el 24,118 392x24
-        text "Host" 24,122 72x16
-        text #host role=textbox label="Host" "localhost" 104,118 260x24
+        el 24,118 66x24
+          text "Host" 24,122 29x16
+          text "*" 55,122 7x16
+        el 98,118 318x24
+          text #host role=textbox label="Host" "localhost" 98,118 260x24
       el 24,150 392x24
-        text "Port" 24,154 72x16
-        text #port role=textbox label="Port" "5432" 104,150 72x24
+        el 24,150 66x24
+          text "Port" 24,154 25x16
+          text "*" 51,154 7x16
+        el 98,150 318x24
+          text #port role=textbox label="Port" "5432" 98,150 72x24
       el 24,182 392x24
-        text "Database" 24,186 72x16
-        text #database role=textbox label="Database" "inventory" 104,182 260x24
+        el 24,182 66x24
+          text "Database" 24,186 57x16
+          text "*" 83,186 7x16
+        el 98,182 318x24
+          text #database role=textbox label="Database" "inventory" 98,182 260x24 focused caret 9 anchor 0
       el 24,214 392x24
-        text "User" 24,218 72x16
-        text #user role=textbox label="User" "admin" 104,214 260x24
+        el 24,214 66x24
+          text "User" 24,218 30x16
+          text "*" 56,218 7x16
+        el 98,214 318x24
+          text #user role=textbox label="User" "admin" 98,214 260x24
       el 24,246 392x24
-        text "Password" 24,250 72x16
-        el 104,246 260x24
-          text #password role=textbox label="Password" "hunter2" 104,246 260x24
-          el role=button label="Hide password" 342,248 20x20
-            text label="eye_off" "\u{E5F4}" 344,250 16x16
+        el 24,246 66x24
+          text "Password" 24,250 60x16
+        el 98,246 318x24
+          el 98,246 260x24
+            text #password role=textbox label="Password" "hunter2" 98,246 260x24
+            el role=button label="Hide password" 336,248 20x20
+              text label="eye_off" "\u{E5F4}" 338,250 16x16
     el role=checkbox label="Require SSL" 20,284 107x20 checked
       el 24,286 16x16
         text "✓" 27,286 11x16
@@ -60,7 +74,7 @@ el 0,0 440x432
     el 24,342 392x2
     text "Connecting to inventory on localhost:5432 as admin with SSL" 24,356 392x16
     el 24,384 392x24
-      el role=button label="Reset" 269,384 61x24 focused
+      el role=button label="Reset" 269,384 61x24
         text "Reset" 282,388 35x16
       el role=button label="Connect" 338,384 78x24
         text "Connect" 351,388 52x16

@@ -1,0 +1,1 @@
+- The kit's tree scrolls the children of a node that opens into view below it, as far as its height allows with the node still in view: a node opened at the bottom of the tree, by the keyboard or the pointer, no longer leaves its children out of sight.

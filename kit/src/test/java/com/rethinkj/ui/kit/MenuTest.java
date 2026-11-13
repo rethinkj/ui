@@ -2,6 +2,7 @@ package com.rethinkj.ui.kit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.rethinkj.ui.App;
@@ -197,7 +198,7 @@ class MenuTest {
     run(app, "key W\nframe\nkey Enter\nframe\n");
     assertFalse(bench.wrap, "W went to Word wrap, Enter unchecked it");
     assertFalse(bench.file.isOpen());
-    assertEquals("file", app.focused().key());
+    assertNull(app.focused(), "back where it was before the press that opened the menu");
     run(app, "press #file\nframe\nkey End\nkey Enter\nframe\n");
     assertTrue(bench.file.isOpen(), "Close is disabled: Enter does nothing");
     run(app, "key Tab\nframe\n");

@@ -2,6 +2,7 @@ package com.rethinkj.ui.kit;
 
 import static com.rethinkj.ui.El.col;
 import static com.rethinkj.ui.kit.Tabs.tabs;
+import static com.rethinkj.ui.kit.TextField.textField;
 import static com.rethinkj.ui.kit.Workbench.dumpLine;
 import static com.rethinkj.ui.kit.Workbench.find;
 import static com.rethinkj.ui.kit.Workbench.x;
@@ -68,14 +69,14 @@ class TabsTest {
   }
 
   @Test
-  void aPressChoosesATabAndFocusesTheBarWithoutARing() throws IOException {
+  void aPressChoosesATabAndLeavesTheFocusWhereItWas() throws IOException {
     App<Workbench> app = start();
     Workbench w = app.state();
     assertEquals("customers.sql", find(app, "panel").label());
     run(app, "press #tab-3\nframe");
     assertEquals(List.of("select 3"), w.log);
     assertEquals("products.sql", find(app, "panel").label());
-    assertEquals(find(app, "tablist"), app.focused());
+    assertNull(app.focused(), "nowhere, as before the press");
     assertTrue(app.tree().dump().contains("text \"products.sql\"")); // in the content too
     assertEquals(T.surface().raised(), find(app, "tab-3").fill(), "the active tab is raised");
     assertEquals(0, find(app, "tab-0").fill(), "the others show the bar");
@@ -167,6 +168,30 @@ class TabsTest {
     assertEquals(find(app, "filter"), app.focused());
     assertEquals(6, w.queries.size());
     assertEquals("close 6", w.log.getLast());
+  }
+
+  @Test
+  void fromTheContentTheFocusGoesIntoTheNextTabsContentAndElseToTheBar() throws IOException {
+    App<Workbench> app = start();
+    run(app, "press #filter\nkey Tab control\nframe");
+    assertEquals("orders by month.sql", find(app, "panel").label());
+    assertTrue(find(app, "filter").isExiting(), "the content of this tab has no field");
+    assertEquals(find(app, "divider"), app.focused(), "its first stop, not nowhere");
+    run(app, "key ArrowDown\nframe");
+    assertTrue(app.state().log.getLast().startsWith("editor "), "and the keys reach it");
+    run(app, "key W control\nframe");
+    assertEquals(find(app, "filter"), app.focused(), "closed: into the next tab's field");
+
+    int[] active = {0};
+    App<int[]> bare = new App<>(active, a -> col().wFull().hFull().child(
+        tabs(T, List.of(new Tab("one"), new Tab("two")), a[0], i -> a[0] = i, null,
+            a[0] == 0 ? textField(T, "", v -> {}).key("field") : null).grow(1)));
+    run(bare, "frame\npress #field\nkey Tab control\nframe");
+    assertEquals(1, active[0]);
+    assertEquals(find(bare, "tablist"), bare.focused(), "nothing to focus in the content: the bar");
+    run(bare, "key ArrowLeft\nframe");
+    assertEquals(0, active[0], "whose keys work at once");
+    assertEquals(find(bare, "tablist"), bare.focused(), "and the focus stays on the bar");
   }
 
   @Test

@@ -7,6 +7,7 @@ import static com.rethinkj.ui.kit.Button.button;
 import static com.rethinkj.ui.kit.TextField.textField;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.rethinkj.ui.App;
@@ -54,7 +55,7 @@ class InputOrderTest {
     run(app, "frame\npress #file\nkey ArrowDown\nkey ArrowDown\nkey Enter\nframe");
     assertEquals("Open", bench.status, "the second item chosen in the frame of the press");
     assertFalse(bench.file.isOpen());
-    assertEquals("file", app.focused().key(), "the closed menu gave the focus back");
+    assertNull(app.focused(), "the closed menu gave the focus back to where the press left it");
   }
 
   @Test

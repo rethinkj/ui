@@ -1,0 +1,51 @@
+el 0,0 640x260
+  el 16,16 259x228
+    el 16,16 259x123
+      el 16,16 259x24
+        el 16,16 57x24
+          text "Host" 16,20 29x16
+          text "*" 47,20 6x16
+        el 81,16 194x24
+          text role=textbox label="Host" "db.example.com" 81,16 180x24
+      el 16,48 259x42
+        el 16,48 57x24
+          text "Port" 16,52 25x16
+        el 81,48 194x42
+          text #beside-port role=textbox label="Port" "54x" 81,48 72x24 invalid
+          text "Digits only" 81,74 194x16
+      el 16,98 259x41
+        el 16,98 57x24
+          text "Database" 16,102 58x15
+        el 81,98 194x41
+          text role=textbox label="Database" "" 81,98 180x24
+          text "Leave empty for the user's own" 81,124 194x15
+    el 16,151 259x24
+      el role=button label="Cancel" 142,151 69x24
+        text "Cancel" 155,155 43x16
+      el role=button label="Save" 219,151 56x24
+        text "Save" 232,155 30x16
+  el 299,16 200x228
+    el 299,16 200x184
+      el 299,16 200x42
+        el 299,16 200x16
+          text "Host" 299,16 28x16
+          text "*" 329,16 7x16
+        el 299,34 200x24
+          text role=textbox label="Host" "db.example.com" 299,34 180x24
+      el 299,70 200x59
+        el 299,70 200x15
+          text "Port" 299,70 25x15
+        el 299,87 200x42
+          text #above-port role=textbox label="Port" "54x" 299,87 72x24 invalid
+          text "Digits only" 299,113 200x16
+      el 299,141 200x59
+        el 299,141 200x15
+          text "Database" 299,141 58x15
+        el 299,158 200x42
+          text role=textbox label="Database" "" 299,158 180x24
+          text "Leave empty for the user's own" 299,184 200x16
+    el 299,212 200x24
+      el role=button label="Cancel" 366,212 69x24
+        text "Cancel" 379,216 43x15
+      el role=button label="Save" 443,212 56x24
+        text "Save" 456,216 30x15

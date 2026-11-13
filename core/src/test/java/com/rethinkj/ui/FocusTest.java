@@ -235,6 +235,162 @@ class FocusTest {
     assertFalse(app.tree().dump().contains("focused"));
   }
 
+  /** Two pages of a panel, each with its own fields, as two tabs' contents; a key flips them. */
+  private static App<int[]> pages(List<String> keys) {
+    return start(new App<>(new int[] {0}, page -> {
+      El content = col().key("page-" + page[0]);
+      for (int i = 0; i < (page[0] == 0 ? 2 : 1); i++) {
+        content.child(el().key("field-" + page[0] + "-" + i).focusable().size(40, 10));
+      }
+      return col().children(
+          el().key("bar").focusable().size(40, 10),
+          col().key("panel")
+              .onKey(k -> {
+                keys.add(k.name());
+                if (k.name().equals("PageDown")) {
+                  page[0] = 1 - page[0];
+                  return true;
+                }
+                return false;
+              })
+              .child(content));
+    }), 100, 100);
+  }
+
+  @Test
+  void whenTheFocusedElementGoesTheFocusGoesToTheFirstFocusableOneOfItsNearestAncestor() {
+    List<String> keys = new ArrayList<>();
+    App<int[]> app = pages(keys);
+    tab(app);
+    tab(app);
+    tab(app);
+    assertEquals("field-0-1", focusedKey(app));
+    key(app, "PageDown", 0); // the other page, without the focused field
+    assertEquals("field-1-0", focusedKey(app), "into the new content, not nowhere");
+    assertTrue(app.tree().dump().contains("el #field-1-0 0,10 40x10 focused\n"));
+    assertTrue(ring(app.scene()) >= 0, "a key moved it: the ring stays");
+    key(app, "PageDown", 0);
+    assertEquals("field-0-0", focusedKey(app), "back on the first page, at its first field");
+    assertEquals(List.of("Tab", "PageDown", "PageDown"), keys,
+        "the panel sees the keys from wherever the focus is inside it");
+  }
+
+  @Test
+  void afterAPressTheFocusThatMovesOnHasNoRing() {
+    int[] page = {0};
+    App<int[]> app = start(new App<>(page, p -> col().children(
+        col().key("panel").child(p[0] == 0
+            ? el().key("first").focusable().size(40, 10).onPress(() -> p[0] = 1)
+            : el().key("second").focusable().size(40, 10)))), 100, 100);
+    press(app, 10, 5);
+    assertEquals("second", focusedKey(app));
+    assertEquals(-1, ring(app.scene()), "no ring");
+  }
+
+  @Test
+  void aFocusableAncestorTakesTheFocusBackAndWithoutAnyBelowTheRootItIsCleared() {
+    boolean[] inner = {true};
+    App<boolean[]> app = start(new App<>(inner, f -> {
+      El list = col().key("list").focusable().size(40, 40);
+      if (f[0]) {
+        list.child(el().key("item").focusable().size(40, 10));
+      }
+      return col().children(list, el().key("loose").focusable().size(40, 10));
+    }), 100, 100);
+    tab(app);
+    tab(app);
+    assertEquals("item", focusedKey(app));
+    inner[0] = false;
+    app.resize(100, 100, 1);
+    app.frame();
+    assertEquals("list", focusedKey(app), "the item's own list");
+
+    // A child of the root that goes: nothing around it below the root, so nothing.
+    tab(app);
+    assertEquals("loose", focusedKey(app));
+    App<boolean[]> two = start(new App<>(new boolean[] {true}, f -> f[0]
+        ? row().children(el().key("a").focusable().size(10, 10), el().key("b").size(10, 10))
+        : row().child(el().key("b").focusable().size(10, 10))), 100, 100);
+    tab(two);
+    two.state()[0] = false;
+    two.resize(100, 100, 1);
+    two.frame();
+    assertNull(two.focused(), "not to b, which is no ancestor of a");
+  }
+
+  // Autofocus
+
+  /** A grid with an editor that Enter opens over it and Escape closes, as a cell editor. */
+  private static App<boolean[]> editorOverAGrid() {
+    return start(new App<>(new boolean[] {false}, open -> {
+      El area = col().key("area").child(el().key("grid").focusable().size(80, 40)
+          .onKey(k -> k.name().equals("Enter") && !open[0] && (open[0] = true)));
+      if (open[0]) {
+        area.child(el().key("editor").focusable().autofocus().absolute(0, 10).size(80, 10)
+            .onKey(k -> k.name().equals("Escape") && !(open[0] = false)));
+      }
+      return col().children(el().key("before").focusable().size(10, 10), area);
+    }), 100, 100);
+  }
+
+  @Test
+  void anElementThatAHandlerAddsWithAutofocusTakesTheFocusAndGivesItBackWhenItGoes() {
+    App<boolean[]> app = editorOverAGrid();
+    tab(app);
+    tab(app);
+    assertEquals("grid", focusedKey(app));
+    app.keyDown(new Key("Enter", 0, false));
+    app.keyDown(new Key("X", 0, false)); // in the same frame: the editor has it already
+    app.frame();
+    assertEquals("editor", focusedKey(app));
+    assertTrue(ring(app.scene()) >= 0, "the keyboard opened it, so it has the ring");
+
+    tab(app); // around to the first element
+    assertEquals("before", focusedKey(app));
+    app.resize(100, 100, 1);
+    app.frame();
+    assertEquals("before", focusedKey(app), "only in the build that adds it");
+
+    app.focus(find(app.tree(), "editor"));
+    app.frame();
+    key(app, "Escape", 0);
+    assertNull(find(app.tree(), "editor"));
+    assertEquals("grid", focusedKey(app), "the first focusable element of the editor's area");
+  }
+
+  @Test
+  void theFirstAutofocusElementTakesTheFocusAtTheStartAndAKeyTakesItAgain() {
+    int[] saves = {0};
+    App<int[]> app = start(new App<>(saves, n -> col().children(
+        el().key("name").focusable().size(40, 10),
+        el().key("port").focusable().size(40, 10).autofocus(n[0] == 0 ? null : n[0]),
+        el().key("start").focusable().size(40, 10).autofocus(),
+        el().key("save").focusable().size(40, 10).onPress(() -> n[0]++))), 100, 100);
+    assertEquals("start", focusedKey(app), "the first one that asks, at the start");
+    assertEquals(-1, ring(app.scene()), "nothing moved it with a key");
+    press(app, 5, 35); // Save: port has an error now
+    assertEquals("port", focusedKey(app));
+    press(app, 5, 5);
+    assertEquals("name", focusedKey(app));
+    app.resize(100, 100, 1);
+    app.frame();
+    assertEquals("name", focusedKey(app), "the same key asks for nothing");
+    press(app, 5, 35);
+    assertEquals("port", focusedKey(app), "another key asks again");
+  }
+
+  @Test
+  void anOverlayThatOpensFocusesItsAutofocusElement() {
+    boolean[] open = {false};
+    App<boolean[]> app = start(new App<>(open, o -> col().wFull().hFull().child(
+        el().key("button").focusable().size(40, 10).onPress(() -> o[0] = true))
+        .overlay(!o[0] ? null : col().key("dialog").modal().centerInWindow().children(
+            el().key("first").focusable().size(40, 10),
+            el().key("second").focusable().size(40, 10).autofocus()))), 100, 100);
+    press(app, 5, 5);
+    assertEquals("second", focusedKey(app));
+  }
+
   @Test
   void anElementThatStopsBeingFocusableLosesTheFocus() {
     boolean[] focusable = {true};
@@ -268,6 +424,40 @@ class FocusTest {
     app.focus(null);
     app.frame();
     assertNull(app.focused());
+  }
+
+  @Test
+  void aFocusWithinLookShowsWhileTheFocusIsOnTheElementOrInsideIt() {
+    App<Object> app = start(new App<>(new Object(), s -> col().children(
+        row().key("frame").fill(0xFF000000).whenFocusWithin(e -> e.fill(0xFFFFFFFF)).children(
+            el().key("field").focusable().size(40, 10),
+            el().key("button").focusable().size(10, 10)),
+        el().key("outside").focusable().size(40, 10))), 100, 100);
+    assertEquals(0xFF000000, find(app.tree(), "frame").fill());
+    tab(app);
+    assertEquals(0xFFFFFFFF, find(app.tree(), "frame").fill(), "on the field inside");
+    tab(app);
+    assertEquals(0xFFFFFFFF, find(app.tree(), "frame").fill(), "on the button inside");
+    tab(app);
+    assertEquals(0xFF000000, find(app.tree(), "frame").fill(), "the focus left it");
+    app.focus(null);
+    app.frame();
+    press(app, 5, 5);
+    assertEquals(0xFFFFFFFF, find(app.tree(), "frame").fill(), "a press focuses too");
+  }
+
+  @Test
+  void aFocusWithinLookReachesTheRowsOfAListAndTheListAroundThem() {
+    App<Object> app = start(new App<>(new Object(), s -> col().key("list").size(100, 40)
+        .whenFocusWithin(e -> e.fill(0xFF0000FF))
+        .rows(100, 20, i -> row().whenFocusWithin(e -> e.fill(0xFFFF0000))
+            .child(el().key("cell").focusable().size(20, 20)))), 100, 40);
+    tab(app);
+    tab(app);
+    El list = app.tree();
+    assertEquals(0xFF0000FF, list.fill(), "the list holds the focus");
+    assertEquals(0, list.children().get(0).fill(), "not the first row");
+    assertEquals(0xFFFF0000, list.children().get(1).fill(), "the second row");
   }
 
   // Keys
@@ -447,7 +637,7 @@ class FocusTest {
   }
 
   @Test
-  void focusingARowOutsideTheListScrollsItIntoViewAndTheRingIsClippedByTheList() {
+  void focusingARowOutsideTheListScrollsItIntoViewAndTheRingLiesInsideTheRowAtTheListsEdge() {
     App<Object> app =
         start(
             new App<>(new Object(), s -> {
@@ -475,10 +665,34 @@ class FocusTest {
     Scene scene = app.scene();
     int ring = ring(scene);
     int row = ring - 1;
-    assertEquals(8, scene.get(ring, Scene.Y), "2 pixels above row 0, outside the list");
+    // Outside, the list would cut off its top: it lies just inside the row instead, whole.
+    assertEquals(10, scene.get(ring, Scene.Y), "row 0's top, where the list begins");
+    assertEquals(20, scene.get(ring, Scene.HEIGHT), "the row's height");
+    assertEquals(10, scene.get(ring, Scene.X));
+    assertEquals(100, scene.get(ring, Scene.WIDTH));
     assertNotEquals(0, scene.clipOf(ring));
     assertEquals(scene.clipOf(row), scene.clipOf(ring), "clipped like the row");
     assertEquals(10, scene.clipGet(scene.clipOf(ring), Scene.Y), "by the list");
+  }
+
+  @Test
+  void aRingThatFitsStaysOutsideAndOneAtTheWindowsEdgeLiesInside() {
+    App<Object> app = start(new App<>(new Object(), s -> col().wFull().hFull().children(
+        el().key("edge").focusable().size(40, 10),
+        el().key("inside").focusable().size(40, 10).margin(10))), 100, 100);
+    tab(app);
+    Scene scene = app.scene();
+    int ring = ring(scene);
+    assertEquals(0, scene.get(ring, Scene.X), "at the window's top left: inside the element");
+    assertEquals(0, scene.get(ring, Scene.Y));
+    assertEquals(40, scene.get(ring, Scene.WIDTH));
+    tab(app);
+    scene = app.scene();
+    ring = ring(scene);
+    assertEquals(8, scene.get(ring, Scene.X), "with room around it: 2 pixels outside, as ever");
+    assertEquals(18, scene.get(ring, Scene.Y));
+    assertEquals(44, scene.get(ring, Scene.WIDTH));
+    assertEquals(14, scene.get(ring, Scene.HEIGHT));
   }
 
   @Test

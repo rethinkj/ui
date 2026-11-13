@@ -8,7 +8,7 @@ el 0,0 140x40
     text "Run query" 38,12 64x16
 # primary, pressed
 el 0,0 140x40
-  el #c role=button label="Run query" 25,8 90x24 hovered focused
+  el #c role=button label="Run query" 25,8 90x24 hovered
     text "Run query" 38,12 64x16
 # primary, focused
 el 0,0 140x40
@@ -28,7 +28,7 @@ el 0,0 140x40
     text "Cancel" 49,12 42x16
 # secondary, pressed
 el 0,0 140x40
-  el #c role=button label="Cancel" 36,8 68x24 hovered focused
+  el #c role=button label="Cancel" 36,8 68x24 hovered
     text "Cancel" 49,12 42x16
 # secondary, focused
 el 0,0 140x40
@@ -48,7 +48,7 @@ el 0,0 140x40
     text "Format" 49,12 42x16
 # ghost, pressed
 el 0,0 140x40
-  el #c role=button label="Format" 36,8 68x24 hovered focused
+  el #c role=button label="Format" 36,8 68x24 hovered
     text "Format" 49,12 42x16
 # ghost, focused
 el 0,0 140x40
@@ -72,7 +72,7 @@ el 0,0 140x40
     text "Autocommit" 52,12 73x16
 # toggle off, pressed
 el 0,0 140x40
-  el #c role=switch label="Autocommit" 12,10 117x20 checked=false hovered focused
+  el #c role=switch label="Autocommit" 12,10 117x20 checked=false hovered
     el 16,12 28x16
       el 18,14 12x12
     text "Autocommit" 52,12 73x16
@@ -102,7 +102,7 @@ el 0,0 140x40
     text "Autocommit" 52,12 73x16
 # toggle on, pressed
 el 0,0 140x40
-  el #c role=switch label="Autocommit" 12,10 117x20 checked hovered focused
+  el #c role=switch label="Autocommit" 12,10 117x20 checked hovered
     el 16,12 28x16
       el 30,14 12x12
     text "Autocommit" 52,12 73x16
@@ -130,7 +130,7 @@ el 0,0 140x40
     text "Read only" 52,12 61x16
 # checkbox off, pressed
 el 0,0 140x40
-  el #c role=checkbox label="Read only" 24,10 93x20 checked=false hovered focused
+  el #c role=checkbox label="Read only" 24,10 93x20 checked=false hovered
     el 28,12 16x16
     text "Read only" 52,12 61x16
 # checkbox off, focused
@@ -157,7 +157,7 @@ el 0,0 140x40
     text "Read only" 52,12 61x16
 # checkbox on, pressed
 el 0,0 140x40
-  el #c role=checkbox label="Read only" 24,10 93x20 checked hovered focused
+  el #c role=checkbox label="Read only" 24,10 93x20 checked hovered
     el 28,12 16x16
       text "✓" 30,12 11x16
     text "Read only" 52,12 61x16
@@ -323,3 +323,293 @@ el 0,0 140x72
 # code area, disabled
 el 0,0 140x72
   text #c role=textbox label="SQL" "SELECT id,\n\tname\nFROM t;" 10,3 120x66 disabled lines 1-3/3
+# switch row, rest
+el 0,0 140x40
+  el #c role=switch label="Wrap" 10,2 120x36 checked
+    el 20,12 60x16
+      text "Wrap" 20,12 60x16
+    el 92,12 28x16
+      el 106,14 12x12
+# switch row, hover
+el 0,0 140x40
+  el #c role=switch label="Wrap" 10,2 120x36 checked hovered
+    el 20,12 60x16
+      text "Wrap" 20,12 60x16
+    el 92,12 28x16
+      el 106,14 12x12
+# switch row, pressed
+el 0,0 140x40
+  el #c role=switch label="Wrap" 10,2 120x36 checked hovered
+    el 20,12 60x16
+      text "Wrap" 20,12 60x16
+    el 92,12 28x16
+      el 106,14 12x12
+# switch row, focused
+el 0,0 140x40
+  el #c role=switch label="Wrap" 10,2 120x36 checked focused
+    el 20,12 60x16
+      text "Wrap" 20,12 60x16
+    el 92,12 28x16
+      el 106,14 12x12
+# switch row, disabled
+el 0,0 140x40
+  el #c role=switch label="Wrap" 10,2 120x36 disabled checked
+    el 20,12 60x16
+      text "Wrap" 20,12 60x16
+    el 92,12 28x16
+      el 106,14 12x12
+# link row, rest
+el 0,0 140x40
+  el #c role=button label="Keymap" 10,2 120x36
+    el 20,12 72x16
+      text "Keymap" 20,12 72x16
+    text label="chevron_right" "\u{F2AF}" 104,12 16x16
+# link row, hover
+el 0,0 140x40
+  el #c role=button label="Keymap" 10,2 120x36 hovered
+    el 20,12 72x16
+      text "Keymap" 20,12 72x16
+    text label="chevron_right" "\u{F2AF}" 104,12 16x16
+# link row, pressed
+el 0,0 140x40
+  el #c role=button label="Keymap" 10,2 120x36 hovered
+    el 20,12 72x16
+      text "Keymap" 20,12 72x16
+    text label="chevron_right" "\u{F2AF}" 104,12 16x16
+# link row, focused
+el 0,0 140x40
+  el #c role=button label="Keymap" 10,2 120x36 focused
+    el 20,12 72x16
+      text "Keymap" 20,12 72x16
+    text label="chevron_right" "\u{F2AF}" 104,12 16x16
+# link row, disabled
+el 0,0 140x40
+  el #c role=button label="Keymap" 10,2 120x36 disabled
+    el 20,12 72x16
+      text "Keymap" 20,12 72x16
+    text label="chevron_right" "\u{F2AF}" 104,12 16x16
+# expander, rest
+el 0,0 140x40
+  el #c 10,2 120x36
+    el role=button label="More" 10,2 120x36 expanded=false
+      el 20,12 72x16
+        text "More" 20,12 72x16
+      text label="chevron_down" "\u{F2A2}" 104,12 16x16
+# expander, hover
+el 0,0 140x40
+  el #c 10,2 120x36
+    el role=button label="More" 10,2 120x36 expanded=false hovered
+      el 20,12 72x16
+        text "More" 20,12 72x16
+      text label="chevron_down" "\u{F2A2}" 104,12 16x16
+# expander, pressed
+el 0,0 140x40
+  el #c 10,2 120x36
+    el role=button label="More" 10,2 120x36 expanded=false hovered
+      el 20,12 72x16
+        text "More" 20,12 72x16
+      text label="chevron_down" "\u{F2A2}" 104,12 16x16
+# expander, focused
+el 0,0 140x40
+  el #c 10,2 120x36
+    el role=button label="More" 10,2 120x36 expanded=false focused
+      el 20,12 72x16
+        text "More" 20,12 72x16
+      text label="chevron_down" "\u{F2A2}" 104,12 16x16
+# expander, disabled
+el 0,0 140x40
+  el #c 10,2 120x36
+    el role=button label="More" 10,2 120x36 disabled expanded=false
+      el 20,12 72x16
+        text "More" 20,12 72x16
+      text label="chevron_down" "\u{F2A2}" 104,12 16x16
+# radio, rest
+el 0,0 140x40
+  el #c role=radiogroup 32,10 77x20
+    el role=radio label="Spaces" 36,12 69x16 checked
+      el 36,12 16x16
+        el 41,17 6x6
+      text "Spaces" 60,12 45x16
+# radio, hover
+el 0,0 140x40
+  el #c role=radiogroup 32,10 77x20
+    el role=radio label="Spaces" 36,12 69x16 checked hovered
+      el 36,12 16x16
+        el 41,17 6x6
+      text "Spaces" 60,12 45x16
+# radio, pressed
+el 0,0 140x40
+  el #c role=radiogroup 32,10 77x20
+    el role=radio label="Spaces" 36,12 69x16 checked hovered
+      el 36,12 16x16
+        el 41,17 6x6
+      text "Spaces" 60,12 45x16
+# radio, focused
+el 0,0 140x40
+  el #c role=radiogroup 32,10 77x20 focused
+    el role=radio label="Spaces" 36,12 69x16 checked
+      el 36,12 16x16
+        el 41,17 6x6
+      text "Spaces" 60,12 45x16
+# radio, disabled
+el 0,0 140x40
+  el #c role=radiogroup 32,10 77x20 disabled
+    el role=radio label="Spaces" 36,12 69x16 checked
+      el 36,12 16x16
+        el 41,17 6x6
+      text "Spaces" 60,12 45x16
+# segmented, rest
+el 0,0 140x40
+  el #c role=radiogroup label="Mode" 10,8 120x24
+    el role=radio label="Rows" 13,11 58x18 checked
+      text "Rows" 25,12 34x16
+    el role=radio label="Cells" 73,11 54x18 checked=false
+      text "Cells" 85,12 30x16
+# segmented, hover
+el 0,0 140x40
+  el #c role=radiogroup label="Mode" 10,8 120x24
+    el role=radio label="Rows" 13,11 58x18 checked hovered
+      text "Rows" 25,12 34x16
+    el role=radio label="Cells" 73,11 54x18 checked=false
+      text "Cells" 85,12 30x16
+# segmented, pressed
+el 0,0 140x40
+  el #c role=radiogroup label="Mode" 10,8 120x24
+    el role=radio label="Rows" 13,11 58x18 checked hovered
+      text "Rows" 25,12 34x16
+    el role=radio label="Cells" 73,11 54x18 checked=false
+      text "Cells" 85,12 30x16
+# segmented, focused
+el 0,0 140x40
+  el #c role=radiogroup label="Mode" 10,8 120x24 focused
+    el role=radio label="Rows" 13,11 58x18 checked
+      text "Rows" 25,12 34x16
+    el role=radio label="Cells" 73,11 54x18 checked=false
+      text "Cells" 85,12 30x16
+# segmented, disabled
+el 0,0 140x40
+  el #c role=radiogroup label="Mode" 10,8 120x24 disabled
+    el role=radio label="Rows" 13,11 58x18 checked
+      text "Rows" 25,12 34x16
+    el role=radio label="Cells" 73,11 54x18 checked=false
+      text "Cells" 85,12 30x16
+# number, rest
+el 0,0 140x40
+  el #c 20,8 100x24
+    text role=spinbutton "4" 20,8 100x24
+    el 76,10 42x20
+      el role=button label="Decrease" 76,10 20x20
+        text label="subtract" "\u{EBCF}" 78,12 16x16
+      el role=button label="Increase" 98,10 20x20
+        text label="add" "\u{F108}" 100,12 16x16
+# number, hover
+el 0,0 140x40
+  el #c 20,8 100x24
+    text role=spinbutton "4" 20,8 100x24 hovered
+    el 76,10 42x20
+      el role=button label="Decrease" 76,10 20x20
+        text label="subtract" "\u{EBCF}" 78,12 16x16
+      el role=button label="Increase" 98,10 20x20
+        text label="add" "\u{F108}" 100,12 16x16
+# number, pressed
+el 0,0 140x40
+  el #c 20,8 100x24
+    text role=spinbutton "4" 20,8 100x24 hovered focused caret 1
+    el 76,10 42x20
+      el role=button label="Decrease" 76,10 20x20
+        text label="subtract" "\u{EBCF}" 78,12 16x16
+      el role=button label="Increase" 98,10 20x20
+        text label="add" "\u{F108}" 100,12 16x16
+# number, focused
+el 0,0 140x40
+  el #c 20,8 100x24
+    text role=spinbutton "4" 20,8 100x24 focused caret 1
+    el 76,10 42x20
+      el role=button label="Decrease" 76,10 20x20
+        text label="subtract" "\u{EBCF}" 78,12 16x16
+      el role=button label="Increase" 98,10 20x20
+        text label="add" "\u{F108}" 100,12 16x16
+# number, disabled
+el 0,0 140x40
+  el #c 20,8 100x24
+    text role=spinbutton "4" 20,8 100x24 disabled
+    el 76,10 42x20
+      el role=button label="Decrease" 76,10 20x20 disabled
+        text label="subtract" "\u{EBCF}" 78,12 16x16
+      el role=button label="Increase" 98,10 20x20 disabled
+        text label="add" "\u{F108}" 100,12 16x16
+# slider, rest
+el 0,0 140x40
+  el #c role=slider label="Size" 10,8 120x24 value="13"
+    el 18,18 104x4
+      el 18,18 42x4
+      el 52,12 16x16
+# slider, hover
+el 0,0 140x40
+  el #c role=slider label="Size" 10,8 120x24 value="13" hovered
+    el 18,18 104x4
+      el 18,18 42x4
+      el 52,12 16x16
+# slider, pressed
+el 0,0 140x40
+  el #c role=slider label="Size" 10,8 120x24 value="13" hovered
+    el 18,18 104x4
+      el 18,18 42x4
+      el 52,12 16x16
+# slider, focused
+el 0,0 140x40
+  el #c role=slider label="Size" 10,8 120x24 value="13" focused
+    el 18,18 104x4
+      el 18,18 42x4
+      el 52,12 16x16
+# slider, disabled
+el 0,0 140x40
+  el #c role=slider label="Size" 10,8 120x24 disabled value="13"
+    el 18,18 104x4
+      el 18,18 42x4
+      el 52,12 16x16
+# nav list, rest
+el 0,0 140x40
+  el #c role=listbox label="Tables" 10,6 120x28
+    el #item-0 role=option label="orders" 10,6 120x28 selected pos=1/1
+      el 10,8 120x24
+        el 12,12 2x16
+        text label="table" "\u{EBF4}" 18,12 16x16
+        text "orders" 38,12 67x16
+        text "12" 109,12 13x16
+# nav list, hover
+el 0,0 140x40
+  el #c role=listbox label="Tables" 10,6 120x28
+    el #item-0 role=option label="orders" 10,6 120x28 selected pos=1/1 hovered
+      el 10,8 120x24
+        el 12,12 2x16
+        text label="table" "\u{EBF4}" 18,12 16x16
+        text "orders" 38,12 67x16
+        text "12" 109,12 13x16
+# nav list, pressed
+el 0,0 140x40
+  el #c role=listbox label="Tables" 10,6 120x28 focused
+    el #item-0 role=option label="orders" 10,6 120x28 selected pos=1/1 hovered
+      el 10,8 120x24
+        el 12,12 2x16
+        text label="table" "\u{EBF4}" 18,12 16x16
+        text "orders" 38,12 67x16
+        text "12" 109,12 13x16
+# nav list, focused
+el 0,0 140x40
+  el #c role=listbox label="Tables" 10,6 120x28 focused
+    el #item-0 role=option label="orders" 10,6 120x28 selected pos=1/1
+      el 10,8 120x24
+        el 12,12 2x16
+        text label="table" "\u{EBF4}" 18,12 16x16
+        text "orders" 38,12 67x16
+        text "12" 109,12 13x16
+# nav list, disabled
+el 0,0 140x40
+  el #c role=listbox label="Tables" 10,6 120x28 disabled
+    el #item-0 role=option label="orders" 10,6 120x28 selected pos=1/1
+      el 10,8 120x24
+        el 12,12 2x16
+        text label="table" "\u{EBF4}" 18,12 16x16
+        text "orders" 38,12 67x16
+        text "12" 109,12 13x16

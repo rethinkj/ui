@@ -13,7 +13,11 @@ public final class Label {
     /** Code, identifiers and values that line up. */
     MONO,
     /** The title of a section. */
-    HEADING
+    HEADING,
+    /** The title of a page, above its sections. */
+    TITLE,
+    /** A title inside a section, such as a card's: the body's size in the heading's font. */
+    STRONG
   }
 
   private Label() {}
@@ -28,6 +32,8 @@ public final class Label {
           case NORMAL, MUTED -> t.type().body();
           case MONO -> t.type().mono();
           case HEADING -> t.type().heading();
+          case TITLE -> t.type().title();
+          case STRONG -> t.type().strong();
         };
     return El.text(text)
         .font(style.font().get())
