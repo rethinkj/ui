@@ -14,6 +14,8 @@ description: Items, separators, check marks, shortcuts and submenus, as a dropdo
 
 The button's handler calls `state.toggle()`; `Menu.dropdown(theme, button, state, items)` hangs the menu below it. Choosing an item closes the menu and then runs its handler; a press outside closes it and does nothing else.
 
+Enter and Space on the button open the menu with its first enabled item highlighted, Arrow Down too and Arrow Up with the last, as WAI-ARIA's menu button; a press with the pointer highlights none.
+
 ## A context menu
 
 ```java snippet="context-menu"
@@ -57,7 +59,7 @@ The menu takes the focus as it opens and gives it back as it closes.
 | Tab | Close the menu |
 | A letter or digit | The next item that starts with it |
 
-The pointer highlights the item it rests on and opens a submenu after the theme's delay. Menus fade in and out; a script advances the clock past the fade (`advance 0.3`) before it presses an item or snaps.
+In a menu that scrolls, the item a key highlights stays in view. The pointer highlights the item it rests on and opens a submenu after the theme's delay. Menus fade in and out; a script advances the clock past the fade (`advance 0.3`) before it presses an item or snaps.
 
 ## In a tree dump
 
