@@ -370,6 +370,26 @@ class GridEditTest {
     assertEquals(1, ledger.log.size());
   }
 
+  /** A value longer than its cell has a button in the editor that opens the field of lines. */
+  @Test
+  void aLongValueHasAButtonForTheFieldOfSeveralLines() throws IOException {
+    Ledger ledger = new Ledger(T, 40);
+    App<Ledger> app = start(ledger);
+    run(app, "key Enter\nframe");
+    assertNull(CellEditorTest.find(app, "expand"), "Ada Lovelace fits the cell");
+    run(app, "type \" and the analytical engine of Charles Babbage\"\nframe");
+    El expand = CellEditorTest.find(app, "expand");
+    El editor = CellEditorTest.find(app, "editor");
+    assertNotNull(expand, app.tree().dump());
+    assertTrue(expand.x() + expand.width() <= editor.x() + editor.width(), "inside the editor");
+    run(app, "press #expand\nframe\nadvance 1\nframe");
+    assertTrue(app.tree().dump().contains("role=dialog label=\"Edit customer\""));
+    assertEquals("text", app.focused().key(), "the field of lines has the focus");
+    run(app, "key Enter control\nframe");
+    assertEquals("commit 0,1 Ada Lovelace and the analytical engine of Charles Babbage",
+        ledger.log.getLast());
+  }
+
   @Test
   void theEditorKeepsItsTextCaretAndFocusWhileDataArrivesAndItsRowScrollsAway()
       throws IOException {

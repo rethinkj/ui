@@ -4,6 +4,7 @@ import static com.rethinkj.ui.El.col;
 import static com.rethinkj.ui.El.el;
 import static com.rethinkj.ui.El.row;
 
+import com.rethinkj.ui.Cursor;
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.Key;
 import com.rethinkj.ui.Side;
@@ -636,7 +637,11 @@ final class GridEdit {
       float wide = DataGrid.natural(El.text(text).font(style.font().get())
           .fontSize(style.size())) + caret;
       float frame = 2 * (pad + w);
-      width = Math.max(cell, Math.min(wide + frame, room(b, column, right)));
+      // Longer than the cell: a button at the right opens the field of several lines.
+      boolean longer = textLike(c) && wide + frame > cell;
+      float button = t.size().icon() + 2 * stroke;
+      float extra = longer ? button + t.space().xs() : 0;
+      width = Math.max(cell, Math.min(wide + frame + extra, room(b, column, right)));
       El field = El.text(text).editable(v -> edit(c, sel, v)).key("field")
           .label("Edit " + c.title())
           .font(style.font().get()).fontSize(style.size()).color(t.text().primary())
@@ -653,12 +658,22 @@ final class GridEdit {
       }
       if (right) {
         // As wide as the text, at the right, where the cell's text ends: it does not jump.
-        field.w(Math.min(wide, width - frame));
+        field.w(Math.min(wide, width - frame - extra));
         box.padding(0, Math.max(pad - caret, 0), 0, pad);
       } else {
         field.grow(1);
       }
       box.child(field);
+      if (longer) {
+        int hover = t.surface().hover();
+        box.gap(t.space().xs()).child(row().key("expand").role("button")
+            .label("Edit in several lines").size(button, button).shrink(0).center()
+            .radius(t.radius().small()).cursor(Cursor.POINTER)
+            .keepFocus() // the caret stays in the field
+            .onPress(() -> sel.multiline = true)
+            .whenHovered(e -> e.fill(hover))
+            .child(Icon.icon(t, Symbol.ARROW_MAXIMIZE, Icon.Variant.MUTED)));
+      }
     }
     box.absolute(right ? b.xs[column + 1] - stroke - width : b.xs[column], 0).w(width);
     if (column < b.frozen) {

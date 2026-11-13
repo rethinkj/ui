@@ -1,0 +1,1 @@
+- The data grid's editor of a text cell shows a small button at its right while its text is longer than the cell, which opens the field of several lines, as Alt+Enter does.
