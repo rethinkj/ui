@@ -163,6 +163,18 @@ final class Win32 {
   static final FunctionDescriptor GET_LONG_PATH_NAME =
       FunctionDescriptor.of(JAVA_INT, ADDRESS, ADDRESS, JAVA_INT);
 
+  /** {@code int MessageBoxW(HWND hWnd, LPCWSTR lpText, LPCWSTR lpCaption, UINT uType)} */
+  static final FunctionDescriptor MESSAGE_BOX = FunctionDescriptor.of(JAVA_INT, ADDRESS, ADDRESS,
+      ADDRESS, JAVA_INT);
+  static final int MB_ICONERROR = 0x10;
+  static final int MB_TASKMODAL = 0x2000;
+  static final int MB_SETFOREGROUND = 0x10000;
+
+  /** The handle of user32's message box, bound on first use; it needs no SDL. */
+  private static final class Box {
+    static final MethodHandle MESSAGE_BOX_H = H.bind(H.USER32, "MessageBoxW", MESSAGE_BOX);
+  }
+
   /** The handles of the file system's calls, bound on first use. */
   private static final class Files {
     static final SymbolLookup KERNEL32 = SymbolLookup.libraryLookup("kernel32", Arena.global());
@@ -423,6 +435,21 @@ final class Win32 {
         size = n;
       }
       return null;
+    } catch (Throwable t) {
+      throw Sdl.failed(t);
+    }
+  }
+
+  /**
+   * Shows an error box with an OK button and waits until it closes ({@code MessageBoxW}), with no
+   * window and without SDL, for when SDL itself cannot load.
+   *
+   * @return false if Windows could not show it
+   */
+  static boolean errorBox(String title, String text) {
+    try (Arena arena = Arena.ofConfined()) {
+      return (int) Box.MESSAGE_BOX_H.invokeExact(MemorySegment.NULL, wide(arena, text),
+          wide(arena, title), MB_ICONERROR | MB_TASKMODAL | MB_SETFOREGROUND) != 0;
     } catch (Throwable t) {
       throw Sdl.failed(t);
     }

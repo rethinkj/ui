@@ -19,6 +19,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 import java.util.function.IntConsumer;
+import java.util.function.ToIntFunction;
 
 /**
  * The system's dialogs through SDL, for an app in a window: a {@link WindowLoop} gives each of
@@ -331,8 +332,9 @@ public final class SystemDialogs implements Dialogs {
    * Runs {@code start}, the code that opens the app's window and runs its loop, and when that
    * throws, shows the reason in a message box of the system ({@link #show}) before throwing it
    * on: a user who started the app from a shortcut learns why it did not open, as when the GPU
-   * has no adapter or a native library cannot load, instead of nothing at all. Where no box can
-   * show either, what it threw gets that reason as a suppressed exception.
+   * has no adapter or a native library cannot load, instead of nothing at all. When SDL itself
+   * cannot load, Windows shows the box without it ({@code MessageBoxW}); where no box can show
+   * either, as on Linux without SDL, what it threw gets that reason as a suppressed exception.
    *
    * <pre>{@code
    * public static void main(String[] args) throws IOException {
@@ -355,9 +357,35 @@ public final class SystemDialogs implements Dialogs {
   }
 
   private static void tell(String app, Throwable failure) {
+    tell(app, failure, SystemDialogs::show,
+        File.separatorChar == '\\' ? box -> Win32.errorBox(box.title(), box.text()) : null);
+  }
+
+  /** A way to show a box; true if it showed. */
+  interface Shows {
+    boolean show(MessageBox box);
+  }
+
+  /**
+   * Shows the failure in SDL's box, else, where SDL cannot show one, in {@code fallback}: on
+   * Windows user32's {@code MessageBoxW}, which needs no SDL, as when SDL itself is the library
+   * that cannot load. What neither could show goes into the failure as suppressed exceptions.
+   */
+  static void tell(String app, Throwable failure, ToIntFunction<MessageBox> sdl,
+      Shows fallback) {
+    MessageBox box = MessageBox.error(app, failureText(app, failure));
     try {
-      show(MessageBox.error(app, failureText(app, failure)));
+      sdl.applyAsInt(box);
     } catch (Throwable t) {
+      if (fallback != null) {
+        try {
+          if (fallback.show(box)) {
+            return;
+          }
+        } catch (Throwable u) {
+          t.addSuppressed(u);
+        }
+      }
       failure.addSuppressed(t);
     }
   }

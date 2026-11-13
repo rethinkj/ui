@@ -219,6 +219,32 @@ class SystemDialogsTest {
   }
 
   @Test
+  void whereSdlCannotShowTheFailureTheFallbackShowsIt() {
+    Throwable failure = new UnsatisfiedLinkError("There is no native library 'sdl3'");
+    List<String> shown = new ArrayList<>();
+    SystemDialogs.tell("Documents", failure, box -> {
+      throw new UnsatisfiedLinkError("SDL cannot load");
+    }, box -> shown.add(box.title() + ": " + box.text()));
+    assertEquals(List.of("Documents: Documents stopped because of an error.\n\n"
+        + "UnsatisfiedLinkError: There is no native library 'sdl3'"), shown);
+    assertEquals(0, failure.getSuppressed().length, "it was shown, so nothing is left to say");
+
+    // SDL shows it: the fallback is not asked.
+    SystemDialogs.tell("Documents", failure, box -> 0, box -> shown.add("again"));
+    assertEquals(1, shown.size());
+
+    // Neither shows it, or there is no fallback (Linux): the reasons go into the failure.
+    SystemDialogs.tell("Documents", failure, box -> {
+      throw new IllegalStateException("No display");
+    }, box -> false);
+    SystemDialogs.tell("Documents", failure, box -> {
+      throw new IllegalStateException("No display either");
+    }, null);
+    assertEquals(List.of("No display", "No display either"),
+        java.util.Arrays.stream(failure.getSuppressed()).map(Throwable::getMessage).toList());
+  }
+
+  @Test
   void aFailureAtTheStartIsToldWithItsCauses() {
     Throwable failure = new IllegalStateException("No GPU adapter",
         new UnsatisfiedLinkError("libvulkan.so.1: cannot open shared object file"));
