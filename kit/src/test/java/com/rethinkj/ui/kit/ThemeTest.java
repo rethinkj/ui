@@ -130,6 +130,9 @@ class ThemeTest {
     // A selected card's edge, and the mark of a navigation list's selected item on its fill.
     check(failures, "selected mark", t.accent().edge(), Map.of(
         "grid selected", g.selected(), "grid selected inactive", g.selectedInactive()), 3);
+    // The cross of a title bar's close button under the pointer, on the system's red.
+    check(failures, "close cross", t.caption().onClose(),
+        Map.of("close hovered", t.caption().closeHover()), 4.5);
     // An invalid field's edge, on the field's raised fill.
     check(failures, "invalid edge", t.status().danger(), Map.of("raised", s.raised()), 3);
     // A group's rows are pressed on a raised card, and a description stays readable under the

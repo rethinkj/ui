@@ -1,0 +1,1 @@
+- `Theme` has a new token group, `caption()` (`Theme.Caption`, `withCaption`): the red fill and the white cross of a frameless window's own close button under the pointer, as Windows 11 draws its own. The examples' title bar uses it. `Theme`'s constructor takes it as its last parameter.

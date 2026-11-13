@@ -19,3 +19,7 @@ frame
 advance 1
 frame
 snap light-switch-focused-off
+
+move role=button label="Close"   # the close button of the title bar turns red under the pointer
+frame
+snap light-switch-close-hovered

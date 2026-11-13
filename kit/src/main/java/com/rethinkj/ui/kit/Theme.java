@@ -54,7 +54,8 @@ public record Theme(
     Motion motion,
     Grid grid,
     Scrollbars scrollbars,
-    Elevation elevation) {
+    Elevation elevation,
+    Caption caption) {
 
   /**
    * Background layers, from the bottom up, and the overlays that a control lays over its
@@ -248,6 +249,14 @@ public record Theme(
     }
   }
 
+  /**
+   * The buttons at the right of a frameless window's own title bar, which draw no fill at rest.
+   *
+   * @param closeHover the close button's fill under the pointer, the red of the system's own
+   * @param onClose the close button's cross on that fill
+   */
+  public record Caption(int closeHover, int onClose) {}
+
   private static final Spacing SPACE = new Spacing(2, 4, 8, 12, 16, 24);
   private static final Radii RADIUS = new Radii(4, 6, 10);
   private static final Type TYPE =
@@ -260,6 +269,7 @@ public record Theme(
   private static final Sizes SIZE = new Sizes(24, 16, 28, 16, 1, 200, 7, 16, 16, 2);
   private static final Motion MOTION =
       new Motion(Spring.INSTANT, Spring.SNAP, 0.3, 0.5, Spring.INSTANT, 5);
+  private static final Caption CAPTION = new Caption(0xFFC42B1C, 0xFFFFFFFF);
 
   /*
    * The rules the default themes follow; ThemeTest holds them to these.
@@ -294,6 +304,9 @@ public record Theme(
    * Shadows. Cards a little, popups more, dialogs most; the light theme with about twice the alpha
    * a CSS shadow has, as the renderer mixes in linear light.
    *
+   * Caption. The close button of a window's own title bar turns the red of Windows 11's under the
+   * pointer, in both themes, with a white cross at 4.5:1 or more.
+   *
    * Sizes and type. Controls 24, rows 24, text 13; radii 4 for small parts, 6 for controls, 10 for
    * cards; headings semibold, strong text, column titles and buttons medium.
    */
@@ -318,7 +331,8 @@ public record Theme(
           new Elevation(
               List.of(new Shadow(0, 1, 2, 0, 0xCC000000), new Shadow(0, 6, 16, 0, 0x8C000000)),
               List.of(new Shadow(0, 1, 2, 0, 0x99000000), new Shadow(0, 4, 12, 0, 0x80000000)),
-              List.of(new Shadow(0, 2, 4, 0, 0x99000000), new Shadow(0, 12, 32, 0, 0x99000000))));
+              List.of(new Shadow(0, 2, 4, 0, 0x99000000), new Shadow(0, 12, 32, 0, 0x99000000))),
+          CAPTION);
 
   /** Neutral greys with a blue accent, dark text on light surfaces. */
   public static final Theme LIGHT =
@@ -340,84 +354,91 @@ public record Theme(
           new Elevation(
               List.of(new Shadow(0, 1, 2, 0, 0x29141824), new Shadow(0, 6, 18, 0, 0x25141824)),
               List.of(new Shadow(0, 1, 3, 0, 0x40000000), new Shadow(0, 6, 16, 0, 0x38000000)),
-              List.of(new Shadow(0, 2, 6, 0, 0x40000000), new Shadow(0, 16, 40, 0, 0x4D000000))));
+              List.of(new Shadow(0, 2, 6, 0, 0x40000000), new Shadow(0, 16, 40, 0, 0x4D000000))),
+          CAPTION);
 
   public Theme withSurface(Surfaces surface) {
     return new Theme(
         surface, text, border, accent, status, space, radius, type, size, motion, grid,
-        scrollbars, elevation);
+        scrollbars, elevation, caption);
   }
 
   public Theme withText(TextColors text) {
     return new Theme(
         surface, text, border, accent, status, space, radius, type, size, motion, grid,
-        scrollbars, elevation);
+        scrollbars, elevation, caption);
   }
 
   public Theme withBorder(Borders border) {
     return new Theme(
         surface, text, border, accent, status, space, radius, type, size, motion, grid,
-        scrollbars, elevation);
+        scrollbars, elevation, caption);
   }
 
   public Theme withAccent(Accent accent) {
     return new Theme(
         surface, text, border, accent, status, space, radius, type, size, motion, grid,
-        scrollbars, elevation);
+        scrollbars, elevation, caption);
   }
 
   public Theme withStatus(Status status) {
     return new Theme(
         surface, text, border, accent, status, space, radius, type, size, motion, grid,
-        scrollbars, elevation);
+        scrollbars, elevation, caption);
   }
 
   public Theme withSpace(Spacing space) {
     return new Theme(
         surface, text, border, accent, status, space, radius, type, size, motion, grid,
-        scrollbars, elevation);
+        scrollbars, elevation, caption);
   }
 
   public Theme withRadius(Radii radius) {
     return new Theme(
         surface, text, border, accent, status, space, radius, type, size, motion, grid,
-        scrollbars, elevation);
+        scrollbars, elevation, caption);
   }
 
   public Theme withType(Type type) {
     return new Theme(
         surface, text, border, accent, status, space, radius, type, size, motion, grid,
-        scrollbars, elevation);
+        scrollbars, elevation, caption);
   }
 
   public Theme withSize(Sizes size) {
     return new Theme(
         surface, text, border, accent, status, space, radius, type, size, motion, grid,
-        scrollbars, elevation);
+        scrollbars, elevation, caption);
   }
 
   public Theme withMotion(Motion motion) {
     return new Theme(
         surface, text, border, accent, status, space, radius, type, size, motion, grid,
-        scrollbars, elevation);
+        scrollbars, elevation, caption);
   }
 
   public Theme withGrid(Grid grid) {
     return new Theme(
         surface, text, border, accent, status, space, radius, type, size, motion, grid,
-        scrollbars, elevation);
+        scrollbars, elevation, caption);
   }
 
   public Theme withScrollbars(Scrollbars scrollbars) {
     return new Theme(
         surface, text, border, accent, status, space, radius, type, size, motion, grid,
-        scrollbars, elevation);
+        scrollbars, elevation, caption);
   }
 
   public Theme withElevation(Elevation elevation) {
     return new Theme(
         surface, text, border, accent, status, space, radius, type, size, motion, grid,
-        scrollbars, elevation);
+        scrollbars, elevation, caption);
+  }
+
+  public Theme withCaption(Caption caption) {
+    return new Theme(
+        surface, text, border, accent, status, space, radius, type, size, motion, grid,
+        scrollbars, elevation, caption);
   }
 
   /**
