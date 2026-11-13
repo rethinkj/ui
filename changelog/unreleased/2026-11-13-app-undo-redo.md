@@ -1,0 +1,1 @@
+- `App.undo(field)` and `App.redo(field)` step through a text field's history as Control+Z and Control+Y do, so that an Edit menu can offer Undo and Redo.

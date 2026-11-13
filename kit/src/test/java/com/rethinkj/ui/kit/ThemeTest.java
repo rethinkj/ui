@@ -52,9 +52,7 @@ class ThemeTest {
     check(failures, "text on accent", t.text().onAccent(), accents, 4.5);
     check(failures, "strong border", t.border().strong(), surfaces, 3);
     check(failures, "accent edge", t.accent().edge(), surfaces, 3);
-    // The ring lies right outside a primary button, with no gap: there it is the primary text.
-    check(failures, "primary button's ring", t.text().primary(),
-        Map.of("accent", t.accent().color()), 3);
+    // A primary button's ring lies a gap away from its accent, on the surfaces, as every ring.
     // What is on: a checked box, a switch, the chosen choice of a segmented control.
     check(failures, "accent", t.accent().color(),
         Map.of("panel", s.panel(), "raised", s.raised()), 3);
@@ -166,6 +164,9 @@ class ThemeTest {
     // A selected card's edge, and the mark of a navigation list's selected item on its fill.
     check(failures, "selected mark", t.accent().edge(), Map.of(
         "grid selected", g.selected(), "grid selected inactive", g.selectedInactive()), 3);
+    // The cross of a title bar's close button under the pointer, on the system's red.
+    check(failures, "close cross", t.caption().onClose(),
+        Map.of("close hovered", t.caption().closeHover()), 4.5);
     // An invalid field's edge, on the field's raised fill.
     check(failures, "invalid edge", t.status().danger(), Map.of("raised", s.raised()), 3);
     // A group's rows are pressed on a raised card, and a description stays readable under the

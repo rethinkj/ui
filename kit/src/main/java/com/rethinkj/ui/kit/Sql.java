@@ -60,6 +60,11 @@ public record Sql(Theme.Code colors) implements Highlighter {
 
   private static final int LONGEST = 12; // MATERIALIZED
 
+  /** The keywords this highlighter colours, in upper case, such as for completions. */
+  public static Set<String> keywords() {
+    return KEYWORDS;
+  }
+
   @Override
   public Object line(String line, Object state, Spans out) {
     State s = (State) state;

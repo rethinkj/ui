@@ -2,7 +2,16 @@ el 0,0 1000x600
   el window=drag 0,0 1000x32
     el 12,11 10x10
     text "Workbench" 30,8 72x16
-    el 102,16 684x0
+    el #menubar role=menubar 110,4 177x24
+      el #title-0 role=menuitem label="File" 110,4 38x24 expanded=false
+        text "File" 118,8 22x16
+      el #title-1 role=menuitem label="Edit" 148,4 39x24 expanded=false
+        text "Edit" 156,8 23x16
+      el #title-2 role=menuitem label="View" 187,4 46x24 expanded=false
+        text "View" 195,8 30x16
+      el #title-3 role=menuitem label="Query" 233,4 54x24 expanded=false
+        text "Query" 241,8 38x16
+    el 287,16 499x0
     el 786,8 64x16
       el role=switch label="Dark" 782,6 72x20 checked
         el 786,8 28x16
@@ -176,7 +185,7 @@ el 0,0 1000x600
     el #rest 268,32 724x560
       el #second 276,32 716x560
         el #tabs 276,32 716x560
-          el #bar 277,33 714x32
+          el #bar 277,33 714x33
             el #tablist role=tablist 279,33 143x32
               el #tab-0 role=tab label="Start" 279,33 44x32
                 text "Start" 287,41 28x16
@@ -186,7 +195,6 @@ el 0,0 1000x600
                 text "orders" 353,41 41x16
                 el #close-1 role=button label="Close orders" 398,41 16x16
                   text label="dismiss" "\u{F368}" 398,41 16x16
-          el 277,65 714x1
           el #panel role=tabpanel label="orders" 277,66 714x525
             el 277,66 714x525
               el 277,66 714x496
@@ -200,14 +208,16 @@ el 0,0 1000x600
                 el role=separator 277,106 714x1
                 el 277,107 714x98
                   text #query-localhost/shop/public/orders role=textbox label="Query" "SELECT *\nFROM shop.public.orders;" 289,115 690x82 lines 1-2/2
+                    el #gutter 298,120 15x64
+                      text #line-0 "1" 298,120 15x16
+                      text #line-1 "2" 298,136 15x16
                 el role=separator 277,205 714x1
                 el 277,206 714x64
                   text "Loading the rows of localhost/shop/public/orders…" 301,230 666x16
               el 277,562 714x29
-                el role=separator 277,562 714x1
-                el 277,563 714x28
-                  text #status "localhost/shop/public/orders · counting the rows" 289,569 305x16
-                  el 606,577 373x0
+                text #status "localhost/shop/public/orders · counting the rows" 289,569 305x16
+                el 606,577 300x0
+                text #position "Ln 1, Col 1" 918,569 61x16
       el #divider role=separator label="Resize" 268,32 8x560 value="first 260"
         el 268,32 8x560
           el 272,32 1x560

@@ -21,6 +21,7 @@ import com.rethinkj.ui.El;
 import com.rethinkj.ui.Script;
 import com.rethinkj.ui.kit.Form;
 import com.rethinkj.ui.kit.Card;
+import com.rethinkj.ui.kit.Dialog;
 import com.rethinkj.ui.kit.Symbol;
 import com.rethinkj.ui.kit.Theme;
 import com.rethinkj.ui.render.GpuPresenter;
@@ -100,6 +101,8 @@ public final class ConnectionDialog {
 
   static El view(ConnectionDialog s) {
     Theme t = s.theme();
+    // A null handler disables the button.
+    El connect = button(t, PRIMARY, "Connect", s.valid() ? s::connect : null);
     El form = Card.card(t)
         .child(Card.header(t, "Connect to PostgreSQL", "The server and the account to log in with."))
         .child(form(t, Form.Labels.BESIDE,
@@ -120,18 +123,10 @@ public final class ConnectionDialog {
         .child(el().grow(1))
         .child(label(t, MUTED, s.status))
         .child(Form.buttons(t,
-            button(t, SECONDARY, "Reset", s::reset),
-            // A null handler disables the button.
-            button(t, PRIMARY, "Connect", s.valid() ? s::connect : null)));
+            button(t, SECONDARY, "Reset", s::reset), connect));
     return col().wFull().hFull().fill(t.surface().window())
         // Enter in a field connects; on a button or the checkbox it presses that instead.
-        .onKey(key -> {
-          if (key.name().equals("Enter") && s.valid()) {
-            s.connect();
-            return true;
-          }
-          return false;
-        })
+        .onKey(Dialog.enterPresses(connect))
         .child(titleBar(t, "New connection", t.accent().color()))
         .child(col().grow(1).padding(0, t.space().m(), t.space().m(), t.space().m())
             .child(form.grow(1)));

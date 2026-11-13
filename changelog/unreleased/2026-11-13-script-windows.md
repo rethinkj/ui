@@ -1,0 +1,1 @@
+- Scripts drive apps with several windows: `window <name>` chooses the window the steps go to, `close` asks it to close, `size … at x,y` places it on the script's screen, targets may be `in <window> <target>` or `screen <x>,<y>`, and `snap` writes every open window, the others under their titles.

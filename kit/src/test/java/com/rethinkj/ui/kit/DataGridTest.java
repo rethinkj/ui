@@ -359,8 +359,7 @@ class DataGridTest {
     assertEquals(List.of("resize 1 158.0"), orders.log);
     assertEquals(158, orders.widths[1]);
     assertEquals(157, find(app, "column-1").width(), "less the line");
-    // After the row's hairline, each cell and the line after it.
-    assertEquals(157, find(app, "row-0").children().get(3).width(), "the cells too");
+    assertEquals(157, find(app, "cell-0-1").width(), "the cells too");
     assertEquals(8 + 64 + 158, x(app, find(app, "column-2")), "the next column follows");
     assertEquals(T.accent().color(), find(app, "header").children().get(3).fill(), "its line");
 
@@ -406,10 +405,10 @@ class DataGridTest {
     App<Orders> app = start(new Orders(T, 1_000_000));
     run(app, "wheel #rows 300 0\nframe");
     El row = find(app, "row-1");
-    El amount = row.children().get(9); // after the row's hairline, a cell and a line each
-    El note = row.children().get(13);
-    El nullNote = find(app, "row-0").children().get(13);
-    El nullAmount = find(app, "row-5").children().get(9);
+    El amount = row.children().get(8); // a cell and a line each
+    El note = row.children().get(12);
+    El nullNote = find(app, "row-0").children().get(12);
+    El nullAmount = find(app, "row-5").children().get(8);
 
     assertEquals("NULL", text(nullNote).text().string());
     assertEquals(T.text().muted(), text(nullNote).text().color());

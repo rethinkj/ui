@@ -90,6 +90,7 @@ class GridIconsTest {
   @Test
   void aHeaderShowsItsIconTitleTypeAndSortMarkWithTheMarkOnTheOuterSide() throws IOException {
     Orders orders = Orders.typed(T, 8); // sorted by id, which is right-aligned
+    orders.widths[0] = 120; // room for its type
     App<Orders> app = start(orders);
     El id = find(app, "column-0");
     assertEquals(List.of("el", icon(Symbol.KEY), "el"), children(id),
@@ -128,7 +129,7 @@ class GridIconsTest {
     orders.widths[4] = 70;
     run(app, "frame");
     status = find(app, "column-4");
-    assertEquals(0, type(status).width(), "no room for the type");
+    assertNull(name(status), "no room for the type: it is left out, not cut to an ellipsis");
     assertFalse(title(status).text().shortened(), "the title still fits");
 
     orders.widths[4] = 50;
@@ -142,6 +143,32 @@ class GridIconsTest {
     assertEquals(T.grid().mark(), arrow.width(), "and so does the arrow");
     assertTrue(x(app, arrow) + arrow.width() <= x(app, status) + status.width(),
         "inside the header cell");
+  }
+
+  @Test
+  void aNarrowedTypeShowsAtLeastItsFirstCharacterOrNothing() throws IOException {
+    Orders orders = Orders.typed(T, 8);
+    App<Orders> app = start(orders);
+    int shown = 0;
+    int gone = 0;
+    for (int column : new int[] {0, 4, 5}) { // id bigint, status order_status, amount numeric
+      String type = orders.columns().get(column).typeName();
+      float least = natural(Label.label(T, Label.Variant.MUTED, type.charAt(0) + Text.ELLIPSIS));
+      for (int width = 200; width >= 40; width--) {
+        orders.widths[column] = width;
+        run(app, "frame");
+        El header = find(app, "column-" + column);
+        if (name(header) == null) {
+          gone++;
+        } else {
+          shown++;
+          assertTrue(type(header).width() >= least - 0.01f, type + " at " + width + ": "
+              + type(header).width() + " wide, less than its first character and an ellipsis");
+        }
+      }
+      orders.widths[column] = 200;
+    }
+    assertTrue(shown > 0 && gone > 0, shown + " shown, " + gone + " gone");
   }
 
   @Test
@@ -360,7 +387,11 @@ class GridIconsTest {
         + " types, %d with them (%d cells with an icon before their text, %d with one alone)%n",
         without, with, before, alone);
     assertTrue(before > 0 && alone > 0, before + " before, " + alone + " alone");
-    assertEquals(without + 3 * 300 + before, with);
+    // Each header has an icon, and the box of title and type and the type where it has room.
+    long types = find(app, "header").children().stream()
+        .filter(h -> "columnheader".equals(h.role()) && name(h) != null).count();
+    assertTrue(types > 0 && types < 300, types + " headers with their type");
+    assertEquals(without + 300 + 2 * types + before, with);
   }
 
   private static long count(El el) {
@@ -411,16 +442,27 @@ class GridIconsTest {
 
   // Helpers
 
-  /** The title of a header cell with a type. */
+  /** The title of a header cell, with its type beside it or without. */
   private static El title(El header) {
-    return name(header).children().getFirst();
+    El name = name(header);
+    if (name != null) {
+      return name.children().getFirst();
+    }
+    for (El child : header.children()) {
+      if (child.text() != null && child.text().font() != Font.icons()) {
+        return child;
+      }
+    }
+    throw new AssertionError("no title in " + header.dump());
   }
 
   private static El type(El header) {
-    return name(header).children().getLast();
+    El name = name(header);
+    assertNotNull(name, "no title and type in " + header.dump());
+    return name.children().getLast();
   }
 
-  /** The box of the title and the type in a header cell. */
+  /** The box of the title and the type in a header cell, or null where it shows no type. */
   private static El name(El header) {
     for (El child : header.children()) {
       if (child.text() == null && child.children().size() == 2
@@ -429,7 +471,7 @@ class GridIconsTest {
         return child;
       }
     }
-    throw new AssertionError("no title and type in " + header.dump());
+    return null;
   }
 
   private static float natural(El text) {

@@ -95,8 +95,9 @@ public final class Button {
     }
     return button.focusable()
         .keepFocus() // a press leaves the focus in the editor or grid the button acts on
-        // The ring lies against the fill: around the accent it is the primary text.
-        .focusRing(variant == Variant.PRIMARY ? t.text().primary() : t.accent().edge())
+        .focusRing(t.accent().edge())
+        // Around the accent's fill, the surface behind the button shows between fill and ring.
+        .focusRingGap(variant == Variant.PRIMARY ? t.size().ringGap() : 0)
         .cursor(Cursor.POINTER)
         .onPress(onPress)
         .whenHovered(e -> e.fill(look.hover()))

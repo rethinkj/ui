@@ -121,8 +121,43 @@ public final class Window implements AutoCloseable {
     private float minHeight;
     private float resizeMargin = 6;
     private WindowIcon icon;
+    private boolean positioned;
+    private int x;
+    private int y;
 
     private Options() {}
+
+    /**
+     * Where the content's top left corner opens on the screen, in the units of {@link
+     * Window#moveTo}; where the system puts it unless set. Wayland ignores it: there the
+     * compositor places every window.
+     */
+    public Options position(int x, int y) {
+      positioned = true;
+      this.x = x;
+      this.y = y;
+      return this;
+    }
+
+    /** Whether {@link #frameless} was called. */
+    public boolean isFrameless() {
+      return frameless;
+    }
+
+    /** Whether {@link #position} set where the window opens. */
+    public boolean isPositioned() {
+      return positioned;
+    }
+
+    /** The position {@link #position} set, else 0. */
+    public int x() {
+      return x;
+    }
+
+    /** See {@link #x()}. */
+    public int y() {
+      return y;
+    }
 
     /**
      * The window's icon from the start, so that its taskbar button never shows another; see
@@ -226,6 +261,10 @@ public final class Window implements AutoCloseable {
   private final float minWidth;
   private final float minHeight;
   private final float resizeMargin;
+  private final boolean positioned;
+  private final int x;
+  private final int y;
+  private String title;
   private WindowHandle handle;
   private Win32Frame win32;
   private Win32Shell shell;
@@ -263,6 +302,9 @@ public final class Window implements AutoCloseable {
     this.minHeight = options.minHeight;
     this.resizeMargin = options.resizeMargin;
     this.icon = options.icon;
+    this.positioned = options.positioned;
+    this.x = options.x;
+    this.y = options.y;
   }
 
   /** Opens a resizable window with the system's frame. */
@@ -303,6 +345,7 @@ public final class Window implements AutoCloseable {
       throw new IllegalStateException("SDL_CreateWindow failed: " + error);
     }
     Window window = new Window(sdl, options);
+    window.title = title;
     windows.put(window.id, window);
     try {
       window.setUp(width, height, content);
@@ -338,6 +381,9 @@ public final class Window implements AutoCloseable {
       if (handle instanceof WindowHandle.Win32 win) {
         win32 = Win32Frame.attach(this, win.hwnd());
       }
+    }
+    if (positioned) {
+      Sdl.setWindowPosition(sdl, x, y);
     }
     Sdl.showWindow(sdl);
     long flags = Sdl.getWindowFlags(sdl);
@@ -854,9 +900,49 @@ public final class Window implements AutoCloseable {
     return ints.get(JAVA_INT, 4);
   }
 
+  /**
+   * Whether the system tells a client where its windows are and lets it move them: not on
+   * Wayland, where the compositor alone places windows and {@link #x()} is always 0.
+   */
+  static boolean knowsPositions() {
+    return !"wayland".equals(Sdl.getCurrentVideoDriver());
+  }
+
+  /**
+   * Captures the pointer for the window it is over, or lets it go: while captured, that window
+   * gets the pointer's moves and releases also outside it, as during a press.
+   */
+  static void capturePointer(boolean on) {
+    checkThread();
+    Sdl.captureMouse(on);
+  }
+
+  /**
+   * Where the pointer is on the desktop now, in the units of {@link #moveTo}, from {@code
+   * SDL_GetGlobalMouseState}: the system's pointer as it is when this is called, ahead of the
+   * events that wait to be delivered. On Wayland, where a client knows no positions, it is the
+   * pointer's place in the window under it, or the last one SDL knows. Needs an open window.
+   *
+   * @return x and y
+   */
+  public static float[] pointer() {
+    checkThread();
+    try (Arena arena = Arena.ofConfined()) {
+      MemorySegment at = arena.allocate(8, 4);
+      Sdl.getGlobalMouseState(at);
+      return new float[] {at.get(JAVA_FLOAT, 0), at.get(JAVA_FLOAT, 4)};
+    }
+  }
+
   public void title(String title) {
     checkOpen();
     Sdl.setWindowTitle(sdl, Objects.requireNonNull(title, "title"));
+    this.title = title;
+  }
+
+  /** The title the window opened with, or the last that {@link #title(String)} set. */
+  public String title() {
+    return title;
   }
 
   public boolean isOpen() {
@@ -899,6 +985,29 @@ public final class Window implements AutoCloseable {
     checkOpen();
     Sdl.restoreWindow(sdl);
     rethrow();
+  }
+
+  /**
+   * Opens the system's window menu (restore, move, size, minimize, maximize, close) at the left
+   * edge, below the title bar, as Alt+Space does on a framed window: in a frameless window below
+   * the rows at the top of the left edge that the view marks as its drag area ({@link
+   * WindowPart#DRAG}). The menu runs a loop of its own, so it opens after the events queued now
+   * are delivered. Where the platform has no such menu, nothing opens.
+   */
+  public void showSystemMenu() {
+    checkOpen();
+    float below = 0;
+    if (frameless) {
+      while (below < height && part(0, below) == WindowPart.DRAG) {
+        below++;
+      }
+    }
+    int y = units(below);
+    deferred.add(() -> {
+      if (open) {
+        Sdl.showWindowSystemMenu(sdl, 0, y);
+      }
+    });
   }
 
   /** Brings the window to the front and gives it the keyboard focus, if the system lets it. */
@@ -1262,8 +1371,25 @@ public final class Window implements AutoCloseable {
     return scale / density;
   }
 
+  /** A position the system reported, such as the pointer's, in logical pixels; see below. */
   float logical(float units) {
-    return units * density / scale;
+    return position(units, density, scale);
+  }
+
+  /**
+   * A position in window units as logical pixels. Where it is a whole physical pixel, as the
+   * pointer's always is on Windows and X11, it is that pixel's centre, a 256th of a pixel towards
+   * its top left: the scene snaps the edges of boxes to whole pixels, halves up, so a pixel is
+   * drawn as part of a box exactly when that point lies in the box's layout rectangle, edges
+   * included. A press then reaches the box that drew the pixel under it, also at 1.25 or 1.5, and
+   * not the box that ends where the pixel begins.
+   */
+  static float position(float units, float density, float scale) {
+    double pixels = (double) units * density;
+    if (pixels == Math.rint(pixels)) {
+      pixels += 0.5 - 1 / 256.0;
+    }
+    return (float) (pixels / scale);
   }
 
   int units(float logical) {

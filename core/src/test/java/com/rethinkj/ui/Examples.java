@@ -40,6 +40,7 @@ public final class Examples {
           case "field" -> new App<>(new Form(), Examples::form);
           case "field-rows" -> new App<>(new Names(), Examples::fieldRows);
           case "overlay" -> new App<>(new Menus(), Examples::overlays);
+          case "shapes" -> new App<>(new Object(), s -> shapes());
           default -> new App<>(new Lights(), Examples::lights);
         };
     app.textRendering(TextRendering.LINUX); // as the stored images
@@ -385,7 +386,9 @@ public final class Examples {
     for (float width : s.widths) {
       total += width;
     }
-    El header = row().key("header").h(ROW_HEIGHT).shrink(0).fill(HEADER);
+    // The line under the header is its border, as the kit's.
+    El header = row().key("header").h(ROW_HEIGHT + 1).shrink(0).fill(HEADER)
+        .border(0, 0, 1, 0, CONTROL);
     El[] lines = new El[TITLES.length];
     for (int c = 0; c < TITLES.length; c++) {
       lines[c] = gridLine();
@@ -420,9 +423,9 @@ public final class Examples {
     int selected = s.selected;
     El body = col().key("rows").grow(1).revealRow(selected).rows(1_000_000, ROW_HEIGHT, i -> {
       int fill = i == selected ? (focused[0] ? SELECTED : SELECTED_INACTIVE) : ROW;
-      // A hairline along the bottom, under the cells, which end above it.
+      // A hairline along the bottom, its border, which the cells end above.
       El r = row().key("row-" + i).role("row").selected(i == selected).fill(fill)
-          .padding(0, 0, 1, 0).child(el().absolute(0, ROW_HEIGHT - 1).h(1).wFull().fill(SUBTLE));
+          .border(0, 0, 1, 0, SUBTLE);
       for (int c = 0; c < TITLES.length; c++) {
         String text = CELLS.get(c).apply(i);
         r.children(gridCell(s.widths[c], RIGHT[c]).child(
@@ -432,10 +435,9 @@ public final class Examples {
       r.onPress(() -> s.selected = i);
       return i == selected ? r : r.whenHovered(e -> e.fill(over(fill, HOVER)));
     }).scrollbars(GRID_BARS);
-    El under = el().h(1).shrink(0).fill(CONTROL);
     // Room for the rows' bar after the last column, as the kit leaves.
     float room = GRID_BARS.thickness() + 2 * GRID_BARS.margin();
-    El content = col().key("content").w(total + room).children(header, under, body);
+    El content = col().key("content").w(total + room).children(header, body);
     content.style().minWidth = Len.percent(1);
     El grid = row().role("grid").scrollBoth().scrollbars(GRID_BARS).fill(ROW).child(content)
         .focusable()
@@ -654,6 +656,40 @@ public final class Examples {
       root.child(panel);
     }
     return root;
+  }
+
+  /**
+   * The shapes of corners and sides, on light and dark: borders of different widths with and
+   * without rounded corners, a border on one side, four different radii, a clip with them over
+   * text, a shadow under them and a focus ring with a gap around a button in the accent ({@code
+   * #ringed}, which {@code shapes.txt} focuses).
+   */
+  public static El shapes() {
+    int ink = 0xFF1F2937;
+    int line = 0xFF2563EB;
+    El light = el().absolute(0, 0).size(240, 92).fill(0xFFF5F5F4).children(
+        el().absolute(8, 8).size(40, 28).fill(0xFFDBEAFE).border(1, 2, 3, 4, ink),
+        el().absolute(56, 8).size(40, 28).radius(8).fill(0xFFDBEAFE).border(1, 3, 1, 3, ink),
+        el().absolute(104, 8).size(40, 28).fill(0xFFFFFFFF).border(0, 0, 2, 0, line),
+        el().absolute(152, 8).size(40, 28).radius(10).fill(0xFFFFFFFF).border(0, 0, 2, 0, line),
+        el().absolute(200, 8).size(32, 28).radius(14, 0, 14, 0).fill(0xFFFFFFFF)
+            .border(0, 1, 0, 1, ink),
+        el().absolute(8, 46).size(40, 36).radius(0, 6, 16, 3).fill(0xFFF97316),
+        el().absolute(56, 46).size(40, 36).radius(12, 2, 8, 0).fill(0xFFFFFFFF).border(2, ink),
+        el().absolute(104, 46).size(80, 38).radius(14, 2, 10, 0).clip().children(
+            el().wFull().hFull().fill(0xFFE7E5E4),
+            el().absolute(-4, -4).size(30, 20).fill(0xFF60A5FA),
+            El.text("Ecken über Text, abgeschnitten").fontSize(13).color(ink).absolute(4, 12)),
+        el().absolute(196, 50).size(36, 30).radius(12, 0, 12, 0).fill(0xFFFFFFFF)
+            .shadow(new Shadow(0, 3, 8, 0, 0x4D000000)));
+    El dark = el().absolute(0, 92).size(240, 60).fill(0xFF1B1C1F).children(
+        el().absolute(12, 12).size(56, 28).fill(0xFF26262E).border(0, 0, 1, 0, 0xFF3F3F46),
+        el().absolute(80, 12).size(48, 28).radius(6, 6, 0, 0).fill(0xFF2D2E33)
+            .border(1, 1, 0, 1, 0xFF52525B),
+        el().key("ringed").role("button").label("Run").focusable().absolute(148, 14).size(56, 24)
+            .radius(6).fill(0xFF3B82F6).focusRing(0xFF60A5FA).focusRingGap(2)
+            .child(El.text("Run").fontSize(12).color(0xFFFFFFFF).absolute(16, 4)));
+    return el().wFull().hFull().children(light, dark);
   }
 
   /**

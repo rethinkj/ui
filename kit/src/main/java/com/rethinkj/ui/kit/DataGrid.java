@@ -65,7 +65,8 @@ import java.util.function.IntPredicate;
  *
  * <p>A header cell shows the column's icon, its title, its type in muted text and the sort mark,
  * in this order at the left or the right as the column puts its text, the mark on the outer side.
- * Where the column is narrow, the type gives way first, then the title ends in an ellipsis; icon
+ * Where the column is narrow, the type gives way first, and goes entirely before less than its
+ * first character would show, then the title ends in an ellipsis; icon
  * and mark keep their size, and a tooltip shows title and type whole. A cell shows its icon
  * ({@link Column#cellIcon}) before its text or alone in its place.
  *
@@ -750,9 +751,8 @@ public final class DataGrid {
       body.onDrag(d -> drag(b, d));
     }
 
-    El under = el().h(t.size().stroke()).shrink(0).fill(t.border().control());
     El content = col().key("content").w(b.xs[columns.size()] + b.room)
-        .children(header, under, body);
+        .children(header, body);
     content.style().minWidth = Len.percent(1); // the rows reach across a grid wider than them
     // Header and rows scroll sideways together in the grid; the rows scroll up and down alone.
     El grid = row().role("grid").scrollBoth().scrollbars(t.scrollbars()).fill(g.row())
@@ -777,7 +777,9 @@ public final class DataGrid {
     Theme t = b.t;
     Theme.Grid g = b.g;
     int n = b.columns.size();
-    El header = row().key("header").h(g.rowHeight()).shrink(0).fill(g.header())
+    // The line under it is its border, which the cells and the pinned parts end above.
+    El header = row().key("header").h(g.rowHeight() + t.size().stroke()).shrink(0)
+        .fill(g.header()).border(0, 0, t.size().stroke(), 0, t.border().control())
         .padding(0, 0, 0, b.fixedWidth());
     El[] lines = new El[n];
     List<El> pinned = new ArrayList<>();
@@ -812,7 +814,8 @@ public final class DataGrid {
 
   /**
    * A header cell: the icon, the title, the type and the sort mark, in this order at the left or
-   * the right, the mark on the outer side. Where the column is narrow, the type gives way first,
+   * the right, the mark on the outer side. Where the column is narrow, the type gives way first
+   * (entirely before less than its first character would show),
    * then the title ends in an ellipsis; icon and mark keep their size.
    */
   private static El headerCell(Build b, int index) {
@@ -820,7 +823,7 @@ public final class DataGrid {
     Column column = b.columns.get(index);
     El title = title(t, column.title()).ellipsis().minSize(0, 0);
     El name = title;
-    if (column.typeName() != null) {
+    if (column.typeName() != null && typeFits(b, index)) {
       // The title keeps its width as long as the type has any, and never more than the room.
       title.shrink(0).style().maxWidth = Len.percent(1);
       name = row().align(Style.Align.CENTER).gap(t.space().s()).minSize(0, 0).clip()
@@ -987,6 +990,25 @@ public final class DataGrid {
     return width;
   }
 
+  /**
+   * Whether the type of a column with one fits its header cell well enough to show: whole, or cut
+   * short after at least its first character. With less room it would be an ellipsis alone, or a
+   * part of one, so it gives way entirely and the tooltip names it.
+   */
+  private static boolean typeFits(Build b, int c) {
+    Theme t = b.t;
+    String type = b.columns.get(c).typeName();
+    float room = b.columns.get(c).width() - t.size().stroke() - 2 * t.space().s();
+    float whole = natural(Label.label(t, Label.Variant.MUTED, type));
+    float left = room - (headerWidth(b, c) - whole);
+    if (left >= whole) {
+      return true;
+    }
+    int first = type.offsetByCodePoints(0, 1);
+    return first < type.length() && left >= natural(
+        Label.label(t, Label.Variant.MUTED, type.substring(0, first) + Text.ELLIPSIS));
+  }
+
   /** The width a text element takes on one line, in logical pixels. */
   private static float natural(El text) {
     return text.text() == null ? 0
@@ -1004,12 +1026,10 @@ public final class DataGrid {
     boolean rowSelected = sel != null && !b.cells && sel.isRowSelected(i);
     int fill = rowSelected ? b.selectionFill() : i % 2 == 0 ? g.row() : g.stripe();
     float stroke = t.size().stroke();
-    // A hairline along the bottom, under the cells, which end above it.
+    // A hairline along the bottom, its border, which the cells end above.
     El r = row().key("row-" + i).role("row").fill(fill).selected(rowSelected)
         .current(sel != null && !b.cells && sel.row() == i)
-        .padding(0, 0, stroke, 0)
-        .child(el().absolute(0, g.rowHeight() - stroke).h(stroke).wFull()
-            .fill(t.border().subtle()));
+        .border(0, 0, stroke, 0, t.border().subtle());
     int n = b.columns.size();
     int first = n;
     int last = -1;
@@ -1020,7 +1040,7 @@ public final class DataGrid {
       }
     }
     if (first < n) {
-      r.padding(0, 0, stroke, b.xs[first]);
+      r.padding(0, 0, 0, b.xs[first]);
     }
     for (int c = first; c <= last; c++) {
       r.children(cell(b, i, c, loaded, fill), line(t, false));

@@ -1,0 +1,51 @@
+# The documents of the example (Documents): a tab moved along the bar, one torn off into a
+# window that follows the pointer, and docked back where the marker shows; then the same in the
+# light theme, docked into the bar of another window torn off.
+size 640 360 at 100,100
+frame
+snap documents-start
+
+down #tab-0             # Readme along the bar, behind Todo
+move 60,48
+move 290,48
+frame
+snap documents-moving   # Readme muted in its place, the marker after Todo
+up 290,48
+frame
+snap documents-moved
+
+down #tab-3             # Query out of the bar, down into the text
+move 350,60
+move 350,160
+frame
+snap documents-torn     # its own window under the pointer, held at the tab
+move screen 700,420     # the window follows
+frame
+move screen 230,148     # back over the bar, between Notes and Todo
+frame
+snap documents-docking  # the marker there; the window of Query over the first
+up screen 230,148
+frame
+snap documents-docked   # Query in its place, its window gone
+
+press role=switch label="Dark"
+frame
+advance 1
+frame
+down #tab-4             # Ideas out of the window, below the bar: a window of its own
+move 450,60
+move 450,240
+frame
+up 450,240
+frame
+snap documents-light-torn     # its window lies at 495,291 on the screen
+down #tab-0             # Notes out of the bar and into the bar of Ideas, after it
+move 60,100
+move 60,200
+frame
+move screen 600,340
+frame
+snap documents-light-docking
+up screen 600,340
+frame
+snap documents-light-docked   # Notes in the window of Ideas, its own window gone

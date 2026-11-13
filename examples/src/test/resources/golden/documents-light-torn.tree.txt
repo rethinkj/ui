@@ -1,0 +1,62 @@
+el 0,0 640x360
+  el window=drag 0,0 640x32
+    el 12,11 10x10
+    text "Documents" 30,8 72x16
+    el 102,16 324x0
+    el 426,8 64x16
+      el role=switch label="Dark" 422,6 72x20 checked=false
+        el 426,8 28x16
+          el 428,10 12x12
+        text "Dark" 462,8 28x16
+    el role=button label="Minimize" window=minimize 502,0 46x32
+      el 520,16 10x1
+    el role=button label="Maximize" window=maximize 548,0 46x32
+      el 566,11 10x10
+    el role=button label="Close" window=close 594,0 46x32
+      el 612,11 10x10
+        el 612,11 2x2
+        el 620,11 2x2
+        el 613,12 2x2
+        el 619,12 2x2
+        el 614,13 2x2
+        el 618,13 2x2
+        el 615,14 2x2
+        el 617,14 2x2
+        el 616,15 2x2
+        el 616,15 2x2
+        el 617,16 2x2
+        el 615,16 2x2
+        el 618,17 2x2
+        el 614,17 2x2
+        el 619,18 2x2
+        el 613,18 2x2
+        el 620,19 2x2
+        el 612,19 2x2
+  el #tabs 0,32 640x328
+    el 8,32 624x320
+      el #bar 9,33 622x33
+        el #tablist role=tablist 11,33 386x32
+          el #tab-0 role=tab label="Notes" 11,33 93x32
+            text label="document" "\u{E4D7}" 19,41 16x16
+            text "Notes" 39,41 37x16
+            el #close-0 role=button label="Close Notes" 80,41 16x16
+              text label="dismiss" "\u{F368}" 80,41 16x16
+          el #tab-1 role=tab label="Query" 106,33 94x32 selected
+            el 106,63 94x2
+            text label="document" "\u{E4D7}" 114,41 16x16
+            text "Query" 134,41 38x16
+            el #close-1 role=button label="Close Query" 176,41 16x16
+              text label="dismiss" "\u{F368}" 176,41 16x16
+          el #tab-2 role=tab label="Todo" 202,33 87x32
+            text label="document" "\u{E4D7}" 210,41 16x16
+            text "Todo" 230,41 31x16
+            el #close-2 role=button label="Close Todo" 265,41 16x16
+              text label="dismiss" "\u{F368}" 265,41 16x16
+          el #tab-3 role=tab label="Readme" 291,33 106x32
+            text label="document" "\u{E4D7}" 299,41 16x16
+            text "Readme" 319,41 50x16
+            el #close-3 role=button label="Close Readme" 373,41 16x16
+              text label="dismiss" "\u{F368}" 373,41 16x16
+      el #panel role=tabpanel label="Query" 9,66 622x285
+        el 9,66 622x285
+          text #text role=textbox label="Query" "SELECT id, name\nFROM customers\nWHERE active;" 21,78 598x261 lines 1-3/3 hovered

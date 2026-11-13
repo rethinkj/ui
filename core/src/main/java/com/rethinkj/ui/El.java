@@ -37,6 +37,7 @@ public final class El {
   private static final int DESCENDING = 128;
   private static final int CURRENT = 256;
   private static final int INVALID = 512;
+  private static final int GRABBED = 1024;
 
   private final Style style = new Style();
   private final List<El> children = new ArrayList<>();
@@ -49,7 +50,10 @@ public final class El {
   private int setSize;
   private String value;
   private int fill;
-  private float radius;
+  private float radius; // the top left corner's
+  private float radiusTopRight;
+  private float radiusBottomRight;
+  private float radiusBottomLeft;
   private int borderColor;
   private List<Shadow> shadows = List.of();
   private Measure measure;
@@ -58,9 +62,12 @@ public final class El {
   private PressAtHandler onPointerDown;
   private Runnable onAnyPointerDown;
   private Consumer<Drag> onDrag;
+  private Object dragPayload;
+  private Consumer<Drop> onDrop;
   private int revealRow = -1;
   private boolean focusable;
   private Integer focusRing;
+  private float focusRingGap;
   private Predicate<Key> onKey;
   private Predicate<Key> onKeyUp;
   private Consumer<String> onText;
@@ -75,6 +82,8 @@ public final class El {
   private boolean readOnly;
   private int maxLength = -1;
   private int tabIndents; // 0: Tab moves the focus; 1: it indents with tabs; 2: with spaces
+  private boolean codeWords;
+  private FieldState fieldState;
   private Editor editor;
   private boolean focused;
   private Spring motion;
@@ -307,6 +316,14 @@ public final class El {
     return state(CURRENT, current ? CURRENT : 0);
   }
 
+  /**
+   * Whether this is being dragged, as WAI-ARIA's {@code aria-grabbed}: a tab on its way to another
+   * place in its bar or to another bar.
+   */
+  public El grabbed(boolean grabbed) {
+    return state(GRABBED, grabbed ? GRABBED : 0);
+  }
+
   /** Whether the view set {@link #selected(boolean)}. */
   boolean isSelected() {
     return (states & SELECTED) != 0;
@@ -532,18 +549,42 @@ public final class El {
     return this;
   }
 
+  /** Rounds every corner of the border box with this radius. */
   public El radius(float pixels) {
-    this.radius = pixels;
+    return radius(pixels, pixels, pixels, pixels);
+  }
+
+  /**
+   * Rounds each corner with its own radius, in the order of CSS's {@code border-radius}. A radius
+   * larger than half the shorter side is drawn as that half. Fill, border, clip, shadows and the
+   * focus ring follow the corners, and so does what takes a press.
+   */
+  public El radius(float topLeft, float topRight, float bottomRight, float bottomLeft) {
+    this.radius = topLeft;
+    this.radiusTopRight = topRight;
+    this.radiusBottomRight = bottomRight;
+    this.radiusBottomLeft = bottomLeft;
     return this;
   }
 
-  /** @param argb the colour as 0xAARRGGBB */
+  /** A border as wide on every side. @param argb the colour as 0xAARRGGBB */
   public El border(float width, int argb) {
-    Len len = Len.px(width);
-    style.borderTop = len;
-    style.borderRight = len;
-    style.borderBottom = len;
-    style.borderLeft = len;
+    return border(width, width, width, width, argb);
+  }
+
+  /**
+   * A border of its own width on each side, in one colour, in the order of CSS's {@code
+   * border-width}; a side of width 0 has none, so {@code border(0, 0, 1, 0, c)} is a line along the
+   * bottom. The widths take room in the layout as CSS's do. Where a rounded corner joins two sides
+   * of different widths, its inner edge is the outer one moved in by each side's width, as in CSS.
+   *
+   * @param argb the colour as 0xAARRGGBB
+   */
+  public El border(float top, float right, float bottom, float left, int argb) {
+    style.borderTop = Len.px(top);
+    style.borderRight = Len.px(right);
+    style.borderBottom = Len.px(bottom);
+    style.borderLeft = Len.px(left);
     this.borderColor = argb;
     return this;
   }
@@ -1341,6 +1382,41 @@ public final class El {
   }
 
   /**
+   * Keeps the editing state of an {@link #editable} field in {@code state}, which the app holds,
+   * instead of by the field's identity, so that caret, selection, scroll, undo history and the
+   * mode of Tab survive the field leaving the tree, as the content of a tab that is not active
+   * does. Give the same object to the same field on every build, and each field one of its own.
+   *
+   * @throws IllegalStateException when the view is built, if two fields of the tree have one
+   */
+  public El fieldState(FieldState state) {
+    editableOnly("fieldState");
+    this.fieldState = state;
+    return this;
+  }
+
+  FieldState fieldState() {
+    return fieldState;
+  }
+
+  /**
+   * Makes the keys and presses that go by words in an {@link #editable} field take the words of
+   * code: a word is a run of letters, digits and {@code _}, and everything else separates words,
+   * so that a double press on {@code orders} in {@code shop.public.orders} selects {@code orders}
+   * and Control+Backspace after it deletes only that. Other fields take words as text has them,
+   * where a point between letters does not end a word.
+   */
+  public El codeWords() {
+    editableOnly("codeWords");
+    this.codeWords = true;
+    return this;
+  }
+
+  boolean isCodeWords() {
+    return codeWords;
+  }
+
+  /**
    * Makes an {@link #editable} field read-only: it takes the focus, and its text can be selected
    * and copied, but not changed.
    */
@@ -1573,6 +1649,33 @@ public final class El {
   }
 
   /**
+   * What a drag of this element carries to the {@link #onDrop} handlers it passes over, in its own
+   * window and in the others of its runner ({@link com.rethinkj.ui.window.Windows}): a note, a
+   * tab, a row. Only a drag with a payload reaches drop handlers; the element needs an {@link
+   * #onDrag} handler, which gets each step after the drop handlers have.
+   *
+   * @param payload the payload, or null for none
+   */
+  public El dragPayload(Object payload) {
+    this.dragPayload = payload;
+    return this;
+  }
+
+  /**
+   * Lets this element take what drags carry ({@link #dragPayload}): while the pointer of such a
+   * drag is over it or inside it, and no element inside it has a drop handler of its own there,
+   * {@code handler} gets {@link Drop.Phase#OVER} on each step, {@link Drop.Phase#LEAVE} when the
+   * pointer leaves it or the drag ends elsewhere, and {@link Drop.Phase#DROP} when the button is
+   * released over it. The same handler serves a drag within its window, as to reorder rows or
+   * tabs, and one that comes from another window of the runner. It runs in the frame of the drag's
+   * own window, before the drag's handler; its app builds its view again in the same pass.
+   */
+  public El onDrop(Consumer<Drop> handler) {
+    this.onDrop = handler;
+    return this;
+  }
+
+  /**
    * Lets this element take the keyboard focus, which {@link App} keeps across rebuilds: Tab and
    * Shift+Tab move it through the focusable elements in tree order, and a pointer press on this
    * element or inside it gives it focus. The focused element gets text ({@link #onText}) and keys
@@ -1591,6 +1694,17 @@ public final class El {
    */
   public El focusRing(int argb) {
     this.focusRing = argb;
+    return this;
+  }
+
+  /**
+   * Draws the focus ring this many pixels away from the border box, so that what lies behind the
+   * element shows between the two: a ring in the accent beside a button filled with the accent.
+   * The default is 0, the ring against the box. Where a clip or the window's edge would cut the
+   * ring, it lies inside the box without a gap, as without one.
+   */
+  public El focusRingGap(float pixels) {
+    this.focusRingGap = pixels;
     return this;
   }
 
@@ -2108,8 +2222,14 @@ public final class El {
     return fill;
   }
 
+  /** The top left corner's radius, which is every corner's after {@link #radius(float)}. */
   public float radius() {
     return radius;
+  }
+
+  /** The radii of the corners: top left, top right, bottom right, bottom left. */
+  public float[] radii() {
+    return new float[] {radius, radiusTopRight, radiusBottomRight, radiusBottomLeft};
   }
 
   /** The shadows under this element, the topmost first; empty for none. */
@@ -2141,6 +2261,16 @@ public final class El {
 
   public Consumer<Drag> onDrag() {
     return onDrag;
+  }
+
+  /** The payload of {@link #dragPayload}, or null. */
+  public Object dragPayload() {
+    return dragPayload;
+  }
+
+  /** The handler of {@link #onDrop}, or null. */
+  public Consumer<Drop> onDrop() {
+    return onDrop;
   }
 
   public PointHandler onSecondaryPress() {
@@ -2267,6 +2397,11 @@ public final class El {
   /** The colour set with {@link #focusRing(int)}, or null if none was and the app's applies. */
   public Integer focusRing() {
     return focusRing;
+  }
+
+  /** The gap set with {@link #focusRingGap}. */
+  public float focusRingGap() {
+    return focusRingGap;
   }
 
   public Predicate<Key> onKey() {
@@ -3110,7 +3245,7 @@ public final class El {
    * that are set, in this order: {@code disabled} (also a field that {@link #editable
    * editable(null)} disables), {@code readonly} (a {@link #readOnly} field), {@code password} (a
    * {@link #masked} field, as UI Automation's {@code IsPassword}), {@code invalid}, {@code selected},
-   * {@code current}, {@code checked}, {@code checked=false} or {@code checked=mixed}, {@code expanded} or {@code
+   * {@code current}, {@code grabbed}, {@code checked}, {@code checked=false} or {@code checked=mixed}, {@code expanded} or {@code
    * expanded=false}, {@code level=2}, {@code pos=3/10} (the position in the set and its size),
    * {@code sort=ascending} or {@code sort=descending}, and {@code value="..."}, as in {@code el
    * #row-3 role=treeitem label="public" 0,66 400x22 selected expanded level=3 pos=1/2}. A scroll
@@ -3306,6 +3441,9 @@ public final class El {
     }
     if ((states & CURRENT) != 0) {
       out.append(" current");
+    }
+    if ((states & GRABBED) != 0) {
+      out.append(" grabbed");
     }
     switch (states & (CHECKED | NOT_CHECKED)) {
       case CHECKED -> out.append(" checked");

@@ -1,0 +1,1 @@
+- Fix: in a highlighted multi-line field (`El.highlight`, `CodeEditor`), a line break typed or pasted no longer throws, and the characters the highlighter leaves uncoloured take the text's new colour when it changes with motion, such as on a switch of the theme, instead of keeping the colour of the motion's first frame.

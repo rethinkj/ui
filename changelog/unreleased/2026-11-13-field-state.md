@@ -1,0 +1,1 @@
+- `El.fieldState(FieldState)` keeps a text field's caret, selection, scroll, undo history and Tab mode in an object of the app's state, so that a field that leaves the tree, as the content of a tab that is not active does, comes back as it was. `CodeEditor.State` holds one, so a `codeEditor` keeps all of that across a tab switch.

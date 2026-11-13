@@ -1,0 +1,19 @@
+el 0,0 240x152
+  el 0,0 240x92
+    el 8,8 40x28
+    el 56,8 40x28
+    el 104,8 40x28
+    el 152,8 40x28
+    el 200,8 32x28
+    el 8,46 40x36
+    el 56,46 40x36
+    el 104,46 80x38
+      el 104,46 80x38
+      el 100,42 30x20
+      text "Ecken über Text, abgeschnitten" 108,58 194x16
+    el 196,50 36x30
+  el 0,92 240x60
+    el 12,104 56x28
+    el 80,104 48x28
+    el #ringed role=button label="Run" 148,106 56x24 focused
+      text "Run" 164,110 22x15

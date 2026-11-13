@@ -22,7 +22,8 @@ import java.util.Locale;
  * <p>Positions are indexes into the Java string. The caret only stops at grapheme boundaries
  * ({@link BreakIterator#getCharacterInstance}), so it never splits a surrogate pair, a letter from
  * its combining mark or an emoji sequence, and Backspace removes a whole grapheme. Words come from
- * {@link BreakIterator#getWordInstance}: a segment with a letter or a digit is a word. The JDK's
+ * {@link BreakIterator#getWordInstance}: a segment with a letter or a digit is a word; in a field of
+ * {@link El#codeWords}, a run of letters, digits and {@code _} is. The JDK's
  * grapheme iterator reads its whole text when it is set, so a multi-line field asks it about the
  * line of a position alone, which a line feed bounds on both sides.
  *
@@ -95,6 +96,11 @@ final class Editor {
   private int pressFrom;
   private int pressTo;
   private float scroll; // in logical pixels
+  // A multi-line field's scroll when it last left the tree, and whether it comes back to it now
+  // (a FieldState keeps the editor across that).
+  private double leftX;
+  private double leftY;
+  private boolean returning;
   private boolean changed;
   // A multi-line field: whether the caret has moved since it was last shown, which scrolls it into
   // view; the x Up and Down keep, in physical pixels, NaN until they move; whether Tab moves the
@@ -411,6 +417,16 @@ final class Editor {
     blur();
     el.text().dropComposition();
     place(false, false);
+    leftX = el.scrollX();
+    leftY = el.scrollY();
+  }
+
+  /**
+   * The editor comes back into the tree with a field of a new tree, as a {@link FieldState} brings
+   * it: the field scrolls to where it was when it left, or to the start the first time.
+   */
+  void returned() {
+    returning = true;
   }
 
   // ---- Keys
@@ -1121,6 +1137,10 @@ final class Editor {
     int shownCaret = composition.isEmpty() ? caret : start() + compositionCursor;
     float caretWidth = caretWidth(scale);
     el.measureScroll();
+    if (returning) { // not where the field this identity had before scrolled to
+      returning = false;
+      el.scrollTo(leftX, leftY);
+    }
     boolean revealed = focused && reveal;
     if (revealed) {
       reveal = false;
@@ -1218,17 +1238,24 @@ final class Editor {
 
   /** Where Ctrl+Left goes from the caret; to the start in a masked field, one word. */
   private int wordStart() {
-    return masked() ? 0 : wordLeft(text, caret);
+    return masked() ? 0 : el.isCodeWords() ? codeWordLeft(text, caret) : wordLeft(text, caret);
   }
 
   /** Where Ctrl+Right goes from the caret; to the end in a masked field. */
   private int wordEnd() {
-    return masked() ? text.length() : wordRight(text, caret, WORD_ENDS);
+    if (masked()) {
+      return text.length();
+    }
+    return el.isCodeWords() ? codeWordRight(text, caret, WORD_ENDS)
+        : wordRight(text, caret, WORD_ENDS);
   }
 
   /** The word a double press at {@code hit} selects; all of a masked field. */
   private int[] wordAt(int hit) {
-    return masked() ? new int[] {0, text.length()} : word(text, hit);
+    if (masked()) {
+      return new int[] {0, text.length()};
+    }
+    return el.isCodeWords() ? codeWord(text, hit) : word(text, hit);
   }
 
   /**
@@ -1358,6 +1385,85 @@ final class Editor {
     BreakIterator words = words(text);
     int start = words.isBoundary(index) ? index : words.preceding(index);
     return new int[] {start, words.following(index)};
+  }
+
+  // ---- The words of code (El#codeWords): runs of letters, digits and '_'
+
+  /** Whether a code point belongs to a word of code; marks go with the letter before them. */
+  static boolean codeWordChar(int c) {
+    if (c == '_' || Character.isLetterOrDigit(c)) {
+      return true;
+    }
+    int type = Character.getType(c);
+    return type == Character.NON_SPACING_MARK || type == Character.COMBINING_SPACING_MARK
+        || type == Character.ENCLOSING_MARK;
+  }
+
+  /** The position before the run of code points from {@code index} back that are words or not. */
+  private static int backOver(String text, int index, boolean word) {
+    while (index > 0) {
+      int c = text.codePointBefore(index);
+      if (codeWordChar(c) != word) {
+        break;
+      }
+      index -= Character.charCount(c);
+    }
+    return index;
+  }
+
+  /** The position after the run of code points from {@code index} on that are words or not. */
+  private static int forwardOver(String text, int index, boolean word) {
+    while (index < text.length()) {
+      int c = text.codePointAt(index);
+      if (codeWordChar(c) != word) {
+        break;
+      }
+      index += Character.charCount(c);
+    }
+    return index;
+  }
+
+  /** {@link #wordLeft} with the words of code. */
+  static int codeWordLeft(String text, int index) {
+    return backOver(text, backOver(text, Math.clamp(index, 0, text.length()), false), true);
+  }
+
+  /** {@link #wordRight} with the words of code. */
+  static int codeWordRight(String text, int index, boolean ends) {
+    int at = Math.clamp(index, 0, text.length());
+    return ends ? forwardOver(text, forwardOver(text, at, false), true)
+        : forwardOver(text, forwardOver(text, at, true), false);
+  }
+
+  /**
+   * {@link #word} with the words of code: the run of word characters at {@code index}, a run of
+   * spaces and tabs, or else the one character there, such as a point or a line feed.
+   */
+  static int[] codeWord(String text, int index) {
+    if (text.isEmpty()) {
+      return new int[] {0, 0};
+    }
+    index = Math.clamp(index, 0, text.length() - 1);
+    if (index > 0 && Character.isLowSurrogate(text.charAt(index))
+        && Character.isHighSurrogate(text.charAt(index - 1))) {
+      index--;
+    }
+    int c = text.codePointAt(index);
+    if (codeWordChar(c)) {
+      return new int[] {backOver(text, index, true), forwardOver(text, index, true)};
+    }
+    if (c == ' ' || c == '\t') {
+      int from = index;
+      while (from > 0 && (text.charAt(from - 1) == ' ' || text.charAt(from - 1) == '\t')) {
+        from--;
+      }
+      int to = index;
+      while (to < text.length() && (text.charAt(to) == ' ' || text.charAt(to) == '\t')) {
+        to++;
+      }
+      return new int[] {from, to};
+    }
+    return new int[] {index, index + Character.charCount(c)};
   }
 
   /**

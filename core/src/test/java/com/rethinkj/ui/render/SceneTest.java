@@ -89,8 +89,13 @@ class SceneTest {
     assertEquals(32f, scene.get(3, Scene.Y));
     assertEquals(6f, scene.get(3, Scene.RADIUS));
     assertEquals(2f, scene.get(3, Scene.SIGMA));
+    for (int slot = Scene.RADIUS_TOP_RIGHT; slot <= Scene.RADIUS_BOTTOM_LEFT; slot += 4) {
+      assertEquals(6f, scene.get(3, slot), "every corner's radius");
+    }
     for (int slot = 48; slot < Scene.STRIDE; slot += 4) {
-      assertEquals(0, scene.getInt(3, slot), "slot " + slot + " is unused");
+      if (slot < Scene.RADIUS_TOP_RIGHT || slot > Scene.RADIUS_BOTTOM_LEFT) {
+        assertEquals(0, scene.getInt(3, slot), "slot " + slot + " is unused");
+      }
     }
   }
 
@@ -192,8 +197,9 @@ class SceneTest {
     assertEquals(y, scene.clipGet(clip, Scene.Y));
     assertEquals(width, scene.clipGet(clip, Scene.WIDTH));
     assertEquals(height, scene.clipGet(clip, Scene.HEIGHT));
-    assertEquals(radius, scene.clipGet(clip, Scene.RADIUS));
-    assertEquals(0, scene.clips().get(ValueLayout.JAVA_FLOAT, clip * Scene.CLIP_STRIDE + 20L));
+    for (int c = 0; c < 4; c++) {
+      assertEquals(radius, scene.clipGet(clip, Scene.RADIUS + 4 * c), "corner " + c);
+    }
   }
 
   @Test
@@ -220,5 +226,48 @@ class SceneTest {
     assertEquals(21, clipped.clipCount());
     assertEquals(20, clipped.clipOf(0));
     assertEquals(20f, clipped.clipGet(20, Scene.X));
+  }
+
+  @Test
+  void eachSideHasItsWidthSnappedAndEachCornerItsRadius() {
+    El line = el().fill(0xFFFFFFFF).radius(1, 2, 3, 4).border(0, 0.5f, 1, 3, 0xFF000000);
+    El root = el().child(line);
+    root.place(0, 0, 100, 60);
+    line.place(10, 10, 40, 20);
+
+    Scene scene = Scene.of(root, 1.5f);
+
+    assertEquals(1, scene.count());
+    // max(1, floor(width * scale)) physical pixels, and 0 stays 0: no border at the top.
+    assertEquals(0f, scene.get(0, Scene.BORDER_WIDTH));
+    assertEquals(1 / 1.5f, scene.get(0, Scene.BORDER_RIGHT));
+    assertEquals(1 / 1.5f, scene.get(0, Scene.BORDER_BOTTOM));
+    assertEquals((float) (4 / 1.5), scene.get(0, Scene.BORDER_LEFT), "4.5 pixels, down to 4");
+    assertEquals(1f, scene.get(0, Scene.RADIUS));
+    assertEquals(2f, scene.get(0, Scene.RADIUS_TOP_RIGHT));
+    assertEquals(3f, scene.get(0, Scene.RADIUS_BOTTOM_RIGHT));
+    assertEquals(4f, scene.get(0, Scene.RADIUS_BOTTOM_LEFT));
+  }
+
+  @Test
+  void aRingWithAGapLiesThatFarOutsideAndRoundsOnlyRoundedCorners() {
+    El button = el().fill(0xFF3B82F6).radius(6, 0, 6, 0).focusRingGap(2);
+    El root = el().child(button);
+    root.place(0, 0, 100, 60);
+    button.place(20, 20, 40, 20);
+
+    Scene scene = Scene.of(root, button, 0xFF60A5FA);
+
+    assertEquals(2, scene.count(), "the button and its ring");
+    assertEquals(16f, scene.get(1, Scene.X), "2 of gap and 2 of ring");
+    assertEquals(16f, scene.get(1, Scene.Y));
+    assertEquals(48f, scene.get(1, Scene.WIDTH));
+    assertEquals(28f, scene.get(1, Scene.HEIGHT));
+    assertEquals(Scene.RING, scene.get(1, Scene.BORDER_LEFT));
+    assertEquals(0f, scene.get(1, Scene.FILL + 12), "the gap shows what lies behind");
+    assertEquals(10f, scene.get(1, Scene.RADIUS));
+    assertEquals(0f, scene.get(1, Scene.RADIUS_TOP_RIGHT));
+    assertEquals(10f, scene.get(1, Scene.RADIUS_BOTTOM_RIGHT));
+    assertEquals(0f, scene.get(1, Scene.RADIUS_BOTTOM_LEFT));
   }
 }

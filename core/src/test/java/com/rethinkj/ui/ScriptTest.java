@@ -36,6 +36,7 @@ class ScriptTest {
   private static final Path FIELD = Path.of("src/test/resources/scripts/field.txt");
   private static final Path FIELD_ROWS = Path.of("src/test/resources/scripts/field-rows.txt");
   private static final Path OVERLAY = Path.of("src/test/resources/scripts/overlay.txt");
+  private static final Path SHAPES = Path.of("src/test/resources/scripts/shapes.txt");
 
   @TempDir Path out;
 
@@ -102,6 +103,16 @@ class ScriptTest {
     Examples.main(new String[] {"--script", EXAMPLE.toString(), "--out", out.toString()});
 
     assertSnapsMatchGolden(List.of("switch-off", "switch-moving-040ms", "switch-on"));
+  }
+
+  @Test
+  void bordersPerSideRadiiPerCornerAndARingWithAGapDrawAsStored() throws IOException {
+    TextLibraries.assumeLoaded();
+    Examples.main(new String[] {"shapes", "--script", SHAPES.toString(), "--out", out.toString()});
+
+    assertSnapsMatchGolden(List.of("shapes-1x", "shapes-2x"));
+    assertTrue(Files.readString(out.resolve("shapes-2x.tree.txt"))
+        .contains("el #ringed role=button label=\"Run\" 148,106 56x24 focused"));
   }
 
   @Test
@@ -447,8 +458,9 @@ class ScriptTest {
     assertEquals(
         """
         line 3: pres #switch
-          There is no step pres. The steps are size, press, down, up, move, leave, wheel,\
-         scroll, key, type, compose, clipboard, focus, advance, await, frame and snap.""",
+          There is no step pres. The steps are size, window, close, press, down, up, move,\
+         leave, wheel, scroll, key, type, compose, clipboard, focus, advance, await, frame and\
+         snap.""",
         failure("size 200 120\nframe\npres #switch\n"));
   }
 
