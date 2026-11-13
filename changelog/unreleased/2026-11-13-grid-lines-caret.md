@@ -1,0 +1,1 @@
+- The data grid's field of several lines (Alt+Enter or the button in a long cell's editor) now goes on from the caret, selection and undo history of the editor it replaces; it started at the beginning, so Enter and the text typed next landed before the value.

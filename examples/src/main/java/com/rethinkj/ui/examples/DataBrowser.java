@@ -12,6 +12,7 @@ import static com.rethinkj.ui.kit.TextField.textField;
 
 import com.rethinkj.ui.App;
 import com.rethinkj.ui.El;
+import com.rethinkj.ui.Key;
 import com.rethinkj.ui.Script;
 import com.rethinkj.ui.Style;
 import com.rethinkj.ui.kit.Card;
@@ -292,8 +293,14 @@ public final class DataBrowser {
     follow();
   }
 
-  /** Writes the changes: values beside the made-up ones, new orders, deleted orders. */
+  /**
+   * Writes the changes: values beside the made-up ones, new orders, deleted orders. An open
+   * editor's value comes first; a value the grid refuses keeps its editor open and writes nothing.
+   */
   void commit() {
+    if (!selection.commitEdit() || changes.isEmpty()) {
+      return;
+    }
     int count = changes.count();
     for (GridChanges.Change change : changes.changes()) {
       switch (change.kind()) {
@@ -437,10 +444,18 @@ public final class DataBrowser {
     El revert = button(t, Button.Variant.GHOST, Symbol.ARROW_UNDO, "Revert",
         changed == 0 ? null : s.changes::clear).key("revert");
     El commit = button(t, Button.Variant.PRIMARY, Symbol.SAVE,
-        changed == 0 ? "Commit" : "Commit (" + changed + ")", changed == 0 ? null : s::commit)
+        changed == 0 ? "Commit" : "Commit (" + changed + ")",
+        changed == 0 && !s.selection.isEditing() ? null : s::commit)
         .key("commit");
     El bar = DataGrid.filterBar(t, columns, s.filters, s::filters);
     return col().wFull().hFull().fill(t.surface().window())
+        .onKey(k -> { // Control+S commits, as in Workbench
+          if (k.modifiers() == Key.CONTROL && k.name().equals("S")) {
+            s.commit();
+            return true;
+          }
+          return false;
+        })
         // Above the card's footer, its edge and the space below the card: the status stays seen.
         .overlay(s.toast == null ? null : Toast.toast(t, s.toast, null, null,
             () -> s.toast = null, Card.footerHeight(t) + t.size().stroke() + t.space().m()))

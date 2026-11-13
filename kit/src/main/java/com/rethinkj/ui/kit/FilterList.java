@@ -165,6 +165,7 @@ public final class FilterList {
     String query = "";
     int highlight = -1; // the row, or -1 for none
     int want = BEST; // what to highlight at the next build: an entry's index, BEST, -1 or KEEP
+    boolean none; // nothing highlighted until a key or the pointer does it (a free combo box)
     // What was filtered: of which list, for which text, the entries matched in no order.
     List<Entry> source;
     String filtered;
@@ -186,6 +187,7 @@ public final class FilterList {
       boolean changed = row != highlight;
       highlight = row;
       want = KEEP;
+      none = false;
       if (changed && onHighlight != null && shown != null && shown.choosable(row)) {
         onHighlight.accept(shown.entry(row));
       }
@@ -195,12 +197,14 @@ public final class FilterList {
     void typed(String text, boolean highlightBest) {
       query = text;
       want = highlightBest ? BEST : -1;
+      none = !highlightBest;
     }
 
     /** Starts again: no text, and this entry highlighted at the next build, -1 for none. */
     void reset(int entry) {
       query = "";
       want = entry;
+      none = false;
       cancel();
     }
 
@@ -263,7 +267,7 @@ public final class FilterList {
           s.highlight = row;
         }
       }
-    } else if (!shown.choosable(s.highlight)) {
+    } else if (!shown.choosable(s.highlight) && !(s.none && s.highlight < 0)) {
       s.highlight = shown.step(-1, 1);
     }
     s.want = State.KEEP;

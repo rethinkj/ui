@@ -9,6 +9,7 @@ import com.rethinkj.ui.Clipboard;
 import com.rethinkj.ui.Cursor;
 import com.rethinkj.ui.Drag;
 import com.rethinkj.ui.El;
+import com.rethinkj.ui.FieldState;
 import com.rethinkj.ui.Key;
 import com.rethinkj.ui.Len;
 import com.rethinkj.ui.Measure;
@@ -495,6 +496,27 @@ public final class DataGrid {
       return order.length - hidden.cardinality();
     }
 
+    /**
+     * Where {@code column} is among those shown ({@code full}, in the order shown), or, while it
+     * is hidden, the shown column after it in the order, else the one before it; -1 for none.
+     */
+    int shownNear(int column, int[] full) {
+      int place = 0;
+      while (place < order.length && order[place] != column) {
+        place++;
+      }
+      for (int step : new int[] {1, -1}) {
+        for (int p = place; p >= 0 && p < order.length; p += step) {
+          for (int i = 0; i < full.length; i++) {
+            if (full[i] == order[p]) {
+              return i;
+            }
+          }
+        }
+      }
+      return -1;
+    }
+
     /** Hides a column, unless it is the last one shown. */
     public void hide(int column) {
       if (shownCount() > 1) {
@@ -759,6 +781,8 @@ public final class DataGrid {
     boolean multiline; // in the larger field of several lines
     int edits; // the editors opened so far: each new one takes the focus by this key
     float gridWidth; // the grid's width, as layout last told it, for an editor that grows
+    Runnable handOn; // the last grid built with it that edits: hands the draft on (commitEdit)
+    FieldState field = new FieldState(); // the open editor's, shared by its field and its lines
     final Menu.State choices = new Menu.State(); // an enumeration's list
     final FilterList.State search = new FilterList.State(); // a long enumeration's filter
     // The filter being set in its popover: its column, -1 for none, and what it holds.
@@ -862,6 +886,27 @@ public final class DataGrid {
     /** What the open editor holds, null for NULL or when none is open. */
     public String draft() {
       return draft;
+    }
+
+    /**
+     * Hands the open editor's value on as a press outside it does, through {@link
+     * Options#onCommit}, and closes it: what an app calls before it saves, runs or closes, so
+     * that what was typed is not lost. A value that the column's type or the app refuses keeps
+     * the editor open, {@code invalid}, with the message below it, as after a press outside; a
+     * list of choices closes without a change, as a press outside leaves it.
+     *
+     * @return whether no editor is open any more: true without one or when the value was taken,
+     *     false when it was refused, and the app should not go on with what it was about to do
+     */
+    public boolean commitEdit() {
+      if (!isEditing()) {
+        return true;
+      }
+      if (handOn == null) {
+        return false; // no grid built with it edits: nothing can take the value
+      }
+      handOn.run();
+      return !isEditing();
     }
 
     /** Closes the editor without handing on what it holds, as Escape does. */
@@ -1441,6 +1486,9 @@ public final class DataGrid {
     if (sel != null && sel.isEditing()
         && (!b.edits || sel.editRow >= b.rows || sel.editColumn >= columns.size())) {
       sel.cancelEdit(); // the rows or columns it was on are gone
+    }
+    if (b.edits) {
+      sel.handOn = () -> GridEdit.commit(b, GridEdit.Move.NONE);
     }
     if (sel != null && !sel.headerMenu.isOpen()) {
       sel.headerColumn = -1;

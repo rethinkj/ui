@@ -97,7 +97,9 @@ el 0,0 640x260
             text "Leave at the door⏎Call first" 665,61 151x16
           el 820,57 1x23
           el #editor 291,57 89x23
-            text #field role=textbox label="Edit amount" "47.13" 341,58 37x21 focused caret 5
+            el #fit 341,58 37x21
+              text "47.13" 341,58 37x0
+              text #field role=textbox label="Edit amount" "47.13" 341,58 37x21 focused caret 5
           el #number-1 role=rowheader 8,57 22x23
             text "2" 19,61 7x16
           el 30,57 1x23

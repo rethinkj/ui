@@ -1,0 +1,1 @@
+- A cell editor whose value is refused keeps the keyboard focus when the refusal came from a press elsewhere in the grid; the press moved the focus to the grid, so the keys no longer reached the editor that stayed open with its message.

@@ -114,6 +114,24 @@ class GridColumnsTest {
     assertFalse(ledger.layout.isHidden(1));
   }
 
+  /** The chooser opened from a header cell stays, with its focus, when it hides that column. */
+  @Test
+  void theChooserOfAHeaderCellStaysWhenItHidesThatColumn() throws IOException {
+    Ledger ledger = new Ledger(T, 40);
+    App<Ledger> app = start(ledger, out);
+    run(app, "press #column-2 right\nframe\nadvance 1\nframe\npress label=\"Columns…\"\nframe\n"
+        + "advance 1\nframe\nfocus #show-2\nframe");
+    String before = app.tree().dump();
+    assertTrue(before.contains("role=dialog label=\"Columns\""), before);
+    run(app, "key Space\nframe\nadvance 1\nframe");
+    assertTrue(ledger.layout.isHidden(2));
+    String dump = app.tree().dump();
+    assertTrue(dump.contains("role=dialog label=\"Columns\""), "still open: " + dump);
+    assertEquals("show-2", app.focused().key(), "with the focus on the box just unchecked");
+    run(app, "key Space\nframe\nadvance 1\nframe");
+    assertFalse(ledger.layout.isHidden(2), "and checked again");
+  }
+
   /** The keyboard reaches the header's menu of the cursor's column through the cells' menu. */
   @Test
   void theCellsMenuHasTheHeadersMenuOfTheCursorsColumn() throws IOException {

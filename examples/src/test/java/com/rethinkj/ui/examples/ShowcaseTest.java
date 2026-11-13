@@ -40,6 +40,31 @@ class ShowcaseTest {
             + narrow.group(1));
   }
 
+  /** A property's copy button confirms the copy with a check, as the manual's code blocks do. */
+  @Test
+  void aPropertysCopyButtonConfirmsTheCopy(@org.junit.jupiter.api.io.TempDir Path out)
+      throws IOException {
+    Snaps.assumeText();
+    var app = Showcase.app(Look.DARK);
+    Script.run("""
+        size 1100 720
+        frame
+        press role=treeitem label="Table details"
+        frame
+        move label="Owner" # the row shows its copy button, which fades in
+        frame
+        advance 0.25
+        frame
+        press label="Copy Owner"
+        frame
+        snap copied
+        """, app, out);
+    String tree = Files.readString(out.resolve("copied.tree.txt"));
+    assertTrue(tree.contains("label=\"checkmark\""), "the check: " + tree);
+    assertTrue(tree.contains("role=tooltip label=\"Copied\""), tree);
+    assertTrue(Files.readString(out.resolve("copied.clipboard.txt")).equals("shop_admin"));
+  }
+
   @ParameterizedTest(name = "{0} at {1}x")
   @MethodSource("looks")
   void theScriptShowsEverySection(Look look, int scale) throws IOException {

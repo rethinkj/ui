@@ -12,6 +12,7 @@ import com.rethinkj.ui.El;
 import com.rethinkj.ui.Script;
 import com.rethinkj.ui.kit.DataGrid.Status;
 import com.rethinkj.ui.render.Png;
+import com.rethinkj.ui.text.TextRendering;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -204,10 +205,87 @@ class GridEditTest {
     run(app, "press #cell-4-4\nframe"); // a press elsewhere tries again and selects nothing
     assertEquals(0, ledger.selection.row());
     assertNotNull(CellEditorTest.find(app, "editor"));
+    assertEquals("field", app.focused().key(), "the editor keeps the focus after the press");
+    run(app, "key Backspace\nframe");
+    assertEquals("Grace Hoppe", ledger.selection.draft(), "and the keys");
+    run(app, "type \"r\"\nframe");
     ledger.refuse = null;
     run(app, "key Enter\nframe");
     assertEquals("Grace Hopper", ledger.changes.cell(0, 1));
     assertNull(CellEditorTest.find(app, "editor"));
+  }
+
+  /** At every scale a right-aligned editor is as wide as its text, which stays where it was. */
+  @ParameterizedTest
+  @ValueSource(floats = {1, 1.25f, 1.5f, 2})
+  void aRightAlignedEditorHoldsItsWholeTextAtEveryScale(float scale) throws IOException {
+    for (TextRendering rendering : List.of(TextRendering.LINUX, TextRendering.WINDOWS)) {
+      rightAlignedEditor(scale, rendering);
+    }
+  }
+
+  private void rightAlignedEditor(float scale, TextRendering rendering) throws IOException {
+    Ledger ledger = new Ledger(T, 40);
+    App<Ledger> app = ledger.app();
+    app.textRendering(rendering); // the Windows one hints natively: its advances follow the scale
+    Script.run("size 640 260 scale " + scale + "\nframe\nfocus #ledger\nframe\n"
+        + "key ArrowDown\nkey ArrowRight\nkey ArrowRight\nframe\nkey Enter\nframe",
+        app, out);
+    El field = CellEditorTest.find(app, "field");
+    El text = CellEditorTest.find(app, "cell-1-3").children().getFirst();
+    assertNotNull(field, app.tree().dump());
+    float right = rect(line(app, "field"))[2];
+    String dump = app.tree().dump();
+    String cell = dump.substring(dump.indexOf("#cell-1-3 "));
+    float textRight = rect(cell.substring(cell.indexOf('\n') + 1))[2]; // the cell's text
+    // With room for the caret after the text, as the field scrolls its text otherwise.
+    assertTrue(field.width() >= text.width() + T.space().xs() - 0.5f, "the field "
+        + field.width() + " wide, its text "
+        + text.width() + " at " + scale + " with " + rendering);
+    assertTrue(right >= textRight, "it ends where the cell's text ends: " + right + ", "
+        + textRight);
+  }
+
+  /** The left and right edge of the first rectangle of a dump's line, in window coordinates. */
+  private static float[] rect(String line) {
+    java.util.regex.Matcher m = java.util.regex.Pattern
+        .compile(" (-?[0-9.]+),(-?[0-9.]+) ([0-9.]+)x([0-9.]+)").matcher(line);
+    assertTrue(m.find(), line);
+    float x = Float.parseFloat(m.group(1));
+    return new float[] {x, Float.parseFloat(m.group(2)), x + Float.parseFloat(m.group(3))};
+  }
+
+  /** What an app's Save does first: it takes the open editor's value, or stops at a refusal. */
+  @Test
+  void theAppTakesTheOpenEditorsValueFromOutsideOrIsToldOfARefusal() throws IOException {
+    Ledger ledger = new Ledger(T, 40);
+    App<Ledger> app = start(ledger);
+    assertTrue(ledger.selection.commitEdit(), "no editor: nothing to take");
+    run(app, "type \"Grace\"\nframe");
+    assertTrue(ledger.selection.commitEdit());
+    assertEquals(List.of("commit 0,1 Grace"), ledger.log);
+    assertEquals("Grace", ledger.changes.cell(0, 1));
+    assertFalse(ledger.selection.isEditing());
+    run(app, "frame");
+    assertNull(CellEditorTest.find(app, "editor"));
+    assertEquals(0, ledger.selection.row(), "the cursor stays where it was");
+
+    ledger.refuse = "Customer names are unique";
+    run(app, "type \"Ada\"\nframe");
+    assertFalse(ledger.selection.commitEdit(), "refused");
+    assertTrue(ledger.selection.isEditing());
+    assertEquals("Ada", ledger.selection.draft(), "what was typed stays");
+    run(app, "frame");
+    assertTrue(line(app, "editor").contains(" invalid"), line(app, "editor"));
+    assertTrue(app.tree().dump().contains("role=alert label=\"Customer names are unique\""));
+    assertEquals("field", app.focused().key(), "the editor keeps the focus");
+
+    // A date the type refuses never reaches the app.
+    ledger.refuse = null;
+    run(app, "key Escape\nkey End\nkey ArrowLeft\ntype \"2026-02-30\"\nframe");
+    int handed = ledger.log.size();
+    assertFalse(ledger.selection.commitEdit());
+    assertEquals(handed, ledger.log.size());
   }
 
   @Test
@@ -396,6 +474,25 @@ class GridEditTest {
     assertTrue(app.tree().dump().contains("role=dialog label=\"Edit customer\""));
     run(app, "key Escape\nframe");
     assertEquals(1, ledger.log.size());
+  }
+
+  /** The field of lines goes on from the caret and selection of the editor it replaces. */
+  @Test
+  void theFieldOfSeveralLinesKeepsTheCaretOfTheEditor() throws IOException {
+    Ledger ledger = new Ledger(T, 40);
+    App<Ledger> app = start(ledger);
+    run(app, "key F2\nframe\nkey Enter alt\nframe\nadvance 1\nframe");
+    assertTrue(line(app, "text").contains("focused caret 12"), line(app, "text"));
+    run(app, "key Enter\ntype \"Jr.\"\nkey Enter control\nframe");
+    assertEquals("commit 0,1 Ada Lovelace\nJr.", ledger.log.getLast());
+
+    run(app, "key ArrowDown\nkey F2\nframe\ntype \" of the analytical engine\"\nkey Home\n"
+        + "frame\npress #expand\nframe\nadvance 1\nframe");
+    assertTrue(line(app, "text").contains("focused caret 0"), line(app, "text"));
+    run(app, "type \"Lady \"\nkey Enter control\nframe");
+    String handed = ledger.log.getLast();
+    assertTrue(handed.startsWith("commit 1,1 Lady ") && handed.endsWith(" analytical engine"),
+        handed);
   }
 
   /** A value longer than its cell has a button in the editor that opens the field of lines. */

@@ -1,0 +1,1 @@
+- The data grid's column chooser opened from a header cell's menu stays open, with its focus, when it hides the column it was opened from; it closed with that column's header cell.
