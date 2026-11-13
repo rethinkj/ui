@@ -1,0 +1,3 @@
+el 0,0 260x200
+  text #title "Groceries" 12,12 236x16
+  text #text role=textbox label="Empty" "Coffee, bread, milk" 12,40 236x148 lines 1-1/1 focused caret 19 (1:20)
