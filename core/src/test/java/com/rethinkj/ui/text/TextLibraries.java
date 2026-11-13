@@ -6,8 +6,7 @@ import com.rethinkj.ui.natives.Natives;
 
 /**
  * Skips a test that needs FreeType and HarfBuzz where they cannot be loaded: without the natives
- * module (another platform, or the build without its profile), or with a natives module that does
- * not carry them yet, as on Windows for now.
+ * module (another platform, or the build without its profile).
  */
 public final class TextLibraries {
 

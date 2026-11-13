@@ -2,7 +2,7 @@
 
 A native, GPU-rendered UI framework for Java, modelled on [rune](https://github.com/anomalyco/rune) (Rust, MIT). Rune is the reference for scope and concepts: its own renderer, text, layout and animation, plus a headless mode in which an agent can render to PNG, dump the element tree and drive an app with scripted input.
 
-Status: early. `core` runs an app with and without a window: element tree, flexbox layout, springs, clipping and scrolling, pointer presses and the wheel, CPU reference renderer, PNG, scripts that drive an app, and SDL windows that feed an app their input. There is no GPU renderer, text or keyboard handling in apps yet, and `kit` is empty. The native libraries for the window and the renderer, and those for text, are packaged and loaded; `core` has bindings to wgpu-native that no renderer uses yet.
+Status: early. `core` runs an app with and without a window: element tree, flexbox layout, springs and fading, clipping and scrolling, pointer, wheel and keyboard input with focus, hover and pressed looks, a CPU reference renderer and a GPU renderer that is checked against it, PNG, scripts that drive an app, and SDL windows. Text is shaped and measured but not drawn yet, and `kit` is empty. The native libraries (SDL3, wgpu-native, FreeType, HarfBuzz) are packaged per platform and loaded on demand.
 
 - Repository: https://github.com/rethinkj/ui
 - License: MIT
@@ -227,7 +227,7 @@ Text is shaped but not drawn yet: a `Scene` has no instances for text elements.
 - `Font.shape(text, size, scale, features...)` shapes with HarfBuzz into a `GlyphRun` in physical pixels: at `size * scale`, advances and offsets rounded to whole pixels below scale 1.5 and to quarter pixels from 1.5 on. Kerning is on and `calt` off (JetBrains Mono's ligatures); features use HarfBuzz's syntax, such as `"+calt"` or `"-kern"`. Each font keeps the last 1024 runs.
 - `App` and `Headless` pass the window's scale to every text element before layout (`El.scaleText`); `Flex.layout` alone shapes at scale 1. After layout, `el.text().lines()` holds what a renderer draws: per line a `GlyphRun`, its width and its baseline, in physical pixels from the top left of the content box. Layout hands the final content size to `Measure.placed`, and the lines are broken for that width.
 - In a `.tree.txt`, a text element's line starts with `text` instead of `el` and has its string in quotes after the key, role and label: `text #save "Save\nall" 0,0 32x36`. Strings and labels are quoted with `\"`, `\\` and `\n` for a line feed. The selector `text="<string>"` matches the exact string, written the same way.
-- The bindings are in `com.rethinkj.ui.text.ffi`, not exported, in the style of `com.rethinkj.ui.gpu`. FreeType's C `long` (64 bits on Linux, 32 on Windows) is handled only in `FreeType`: `C_LONG`, its method handles, which take a Java `long` for it, and `getLong`/`setLong`. Tests that need the libraries skip themselves where the natives module lacks them, as on Windows for now.
+- The bindings are in `com.rethinkj.ui.text.ffi`, not exported, in the style of `com.rethinkj.ui.gpu`. FreeType's C `long` (64 bits on Linux, 32 on Windows) is handled only in `FreeType`: `C_LONG`, its method handles, which take a Java `long` for it, and `getLong`/`setLong`. Tests that need the libraries skip themselves where there is no natives module.
 
 ## GPU renderer
 
