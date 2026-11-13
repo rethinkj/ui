@@ -48,7 +48,7 @@ class KeysTest {
     assertEquals("Numpad1", Keys.name(0x40000059));
     assertEquals("Numpad9", Keys.name(0x40000061));
     assertEquals("Numpad0", Keys.name(0x40000062));
-    assertEquals("NumpadEnter", Keys.name(0x40000058));
+    assertEquals("Enter", Keys.name(0x40000058), "the numpad's Enter");
     assertEquals("Shift", Keys.name(0x400000E1));
     assertEquals("Shift", Keys.name(0x400000E5));
     assertEquals("Control", Keys.name(0x400000E0));

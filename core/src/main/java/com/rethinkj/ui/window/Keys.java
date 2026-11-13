@@ -68,7 +68,7 @@ final class Keys {
       case 85 -> "NumpadMultiply";
       case 86 -> "NumpadSubtract";
       case 87 -> "NumpadAdd";
-      case 88 -> "NumpadEnter";
+      case 88 -> "Enter"; // the numpad's Enter does what Enter does, as the web's key says
       case 98 -> "Numpad0";
       case 99 -> "NumpadDecimal";
       case 101 -> "ContextMenu";

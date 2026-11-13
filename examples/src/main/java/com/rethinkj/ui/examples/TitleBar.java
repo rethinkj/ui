@@ -7,7 +7,9 @@ import static com.rethinkj.ui.kit.Label.label;
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.Style;
 import com.rethinkj.ui.WindowPart;
+import com.rethinkj.ui.kit.Icon;
 import com.rethinkj.ui.kit.Label;
+import com.rethinkj.ui.kit.Symbol;
 import com.rethinkj.ui.kit.Theme;
 import com.rethinkj.ui.kit.Tooltip;
 
@@ -46,27 +48,23 @@ final class TitleBar {
           .align(Style.Align.CENTER).children(controls));
     }
     return bar.child(Tooltip.tooltip(t,
-            button(WindowPart.MINIMIZE, "Minimize", el().size(10, 1).fill(glyph)), "Minimize"))
-        .child(button(WindowPart.MAXIMIZE, "Maximize", el().size(10, 10).border(1, glyph)))
-        .child(Tooltip.tooltip(t, close(t, glyph), "Close"));
+            button(t, WindowPart.MINIMIZE, "Minimize", el().size(10, 1).fill(glyph)), "Minimize"))
+        .child(button(t, WindowPart.MAXIMIZE, "Maximize", el().size(10, 10).border(1, glyph)))
+        .child(Tooltip.tooltip(t, close(t), "Close"));
   }
 
-  private static El button(WindowPart part, String label, El glyph) {
-    return el().role("button").label(label).size(46, 32).center().windowPart(part).child(glyph);
+  /** A caption button, lighter under the pointer as the system's are. */
+  private static El button(Theme t, WindowPart part, String label, El glyph) {
+    return el().role("button").label(label).size(46, 32).center().windowPart(part).child(glyph)
+        .whenHovered(b -> b.fill(t.surface().hover()));
   }
 
   /** The close button, red with a white cross under the pointer, as the system's is. */
-  private static El close(Theme t, int glyph) {
-    El cross = el().size(10, 10);
-    for (int i = 0; i <= 8; i++) {
-      cross.child(el().size(2, 2).absolute(i, i).fill(glyph))
-          .child(el().size(2, 2).absolute(8 - i, i).fill(glyph));
-    }
-    return button(WindowPart.CLOSE, "Close", cross).whenHovered(b -> {
+  private static El close(Theme t) {
+    El cross = Icon.icon(t, Symbol.DISMISS, Icon.Variant.NORMAL, 12);
+    return button(t, WindowPart.CLOSE, "Close", cross).whenHovered(b -> {
       b.fill(t.caption().closeHover());
-      for (El square : cross.children()) {
-        square.fill(t.caption().onClose());
-      }
+      cross.color(t.caption().onClose());
     });
   }
 }

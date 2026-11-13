@@ -1,0 +1,1 @@
+- A window reports the numpad's Enter as `Enter`, so it presses a focused button, a dialog's default button and a menu item as Enter does; before, only text fields took it.

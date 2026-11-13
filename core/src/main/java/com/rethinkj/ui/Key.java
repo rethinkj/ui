@@ -20,7 +20,8 @@ import java.util.Set;
  *       {@code End}, {@code PageUp}, {@code PageDown}
  *   <li>{@code F1} to {@code F24}
  *   <li>{@code Numpad0} to {@code Numpad9}, {@code NumpadAdd}, {@code NumpadSubtract}, {@code
- *       NumpadMultiply}, {@code NumpadDivide}, {@code NumpadDecimal}, {@code NumpadEnter}
+ *       NumpadMultiply}, {@code NumpadDivide}, {@code NumpadDecimal}, {@code NumpadEnter} (a
+ *       window reports the numpad's Enter as {@code Enter}; a script may still name this one)
  *   <li>{@code Shift}, {@code Control}, {@code Alt}, {@code Meta}, {@code CapsLock}, {@code
  *       NumLock}, {@code ScrollLock}
  *   <li>{@code PrintScreen}, {@code Pause}, {@code ContextMenu}
