@@ -2,7 +2,7 @@
 
 A native, GPU-rendered UI framework for Java, modelled on [rune](https://github.com/anomalyco/rune) (Rust, MIT). Rune is the reference for scope and concepts: its own renderer, text, layout and animation, plus a headless mode in which an agent can render to PNG, dump the element tree and drive an app with scripted input.
 
-Status: early. `core` runs an app without a window: element tree, flexbox layout, springs, pointer presses, CPU reference renderer, PNG, and scripts that drive an app. There is no window, GPU renderer, text or keyboard yet, and `kit` is empty. The native libraries for the window and the renderer are packaged and loaded, but nothing calls them yet.
+Status: early. `core` runs an app without a window: element tree, flexbox layout, springs, pointer presses, CPU reference renderer, PNG, and scripts that drive an app. There is no window, GPU renderer, text or keyboard yet, and `kit` is empty. The native libraries for the window and the renderer, and on Linux those for text, are packaged and loaded, but nothing calls them yet.
 
 - Repository: https://github.com/rethinkj/ui
 - License: MIT
@@ -28,7 +28,7 @@ Image tests compare what `Headless.render` produces with the PNG and tree files 
 
 The layout is tested against Taffy's flexbox cases in `core/src/test/resources/taffy`; `scripts/import-taffy-fixtures.sh` refreshes them.
 
-On Windows and Linux, the first build downloads the native libraries (see below) and needs network access; later builds, `mvn clean` included, do not. On Linux it also builds SDL from source, which takes about half a minute and needs cmake, make, a C compiler, pkg-config and the development packages listed in `natives-linux-x64/natives.properties`. `mvn verify -P '!natives-<platform>'` builds without them and skips the tests that load them.
+On Windows and Linux, the first build downloads the native libraries (see below) and needs network access; later builds, `mvn clean` included, do not. On Linux it also builds SDL, FreeType and HarfBuzz from source, which takes about a minute and needs cmake, make, a C and a C++ compiler, pkg-config, tar with xz, and the development packages listed in `natives-linux-x64/natives.properties`. `mvn verify -P '!natives-<platform>'` builds without them and skips the tests that load them.
 
 ## Driving an app with a script
 
@@ -81,23 +81,23 @@ On Windows, separate the class path with `;`. The snaps equal the stored images 
 
 ## Modules
 
-| Directory              | Artifact                          | Base package          | Purpose                                     |
-| ---------------------- | --------------------------------- | --------------------- | ------------------------------------------- |
-| `core/`                | `rethinkj-ui-core`                | `com.rethinkj.ui`     | The framework itself                        |
-| `kit/`                 | `rethinkj-ui-kit`                 | `com.rethinkj.ui.kit` | Components built on `core`                  |
-| `natives-windows-x64/` | `rethinkj-ui-natives-windows-x64` | none, no Java code    | SDL3 and wgpu-native for Windows on x64     |
-| `natives-linux-x64/`   | `rethinkj-ui-natives-linux-x64`   | none, no Java code    | SDL3 and wgpu-native for Linux on x64       |
+| Directory              | Artifact                          | Base package          | Purpose                                                   |
+| ---------------------- | --------------------------------- | --------------------- | --------------------------------------------------------- |
+| `core/`                | `rethinkj-ui-core`                | `com.rethinkj.ui`     | The framework itself                                      |
+| `kit/`                 | `rethinkj-ui-kit`                 | `com.rethinkj.ui.kit` | Components built on `core`                                |
+| `natives-windows-x64/` | `rethinkj-ui-natives-windows-x64` | none, no Java code    | SDL3 and wgpu-native for Windows on x64                   |
+| `natives-linux-x64/`   | `rethinkj-ui-natives-linux-x64`   | none, no Java code    | SDL3, wgpu-native, FreeType and HarfBuzz for Linux on x64 |
 
 All artifacts share the groupId `com.rethinkj.ui`.
 
 ## Native libraries
 
-The window (SDL3) and the GPU renderer (wgpu-native) will call native libraries. They reach users in one JAR per platform, `rethinkj-ui-natives-<platform>`, where the platform is `windows-x64` or `linux-x64`. Both hold SDL 3.4.20 and wgpu-native 29.0.1.1.
+The window (SDL3), the GPU renderer (wgpu-native) and text (HarfBuzz shapes, FreeType rasterises) will call native libraries. They reach users in one JAR per platform, `rethinkj-ui-natives-<platform>`, where the platform is `windows-x64` or `linux-x64`. Both hold SDL 3.4.20 and wgpu-native 29.0.1.1; the Linux JAR also holds FreeType 2.15.0 and HarfBuzz 15.1.0, built without dependencies beyond the C runtime (HarfBuzz needs no libstdc++). The Windows JAR has no text libraries yet.
 
 - The JAR has no Java code. Under `META-INF/rethinkj-ui/natives/<platform>/` it holds the libraries, `manifest.txt` and the licence texts in `licenses/`. `manifest.txt` lists the libraries in load order, one line each: `library <name> <version> <file> <sha256>`, after the lines `rethinkj-ui-natives 1` (the format) and `platform <platform>`. A library built from source is followed by `built <name> <sha256 of the source archive>`, because its own hash differs between machines. `com.rethinkj.ui.natives.Manifest` reads it, ignores `built` and documents the format.
 - No binaries are committed. `natives-<platform>/natives.properties` pins each library: version, archive URL, the archive's SHA-256 and the file inside it. `scripts/FetchNatives.java` (run with `java scripts/FetchNatives.java natives-windows-x64`; it needs only the JDK) downloads the archives into `natives-<platform>/fetched/archives/`, checks their hashes, and unpacks the libraries and writes `manifest.txt` into `natives-<platform>/fetched/resources/`, which the module packages. The module's build runs it in `generate-resources`; it does nothing while `fetched/` matches `natives.properties`. `fetched/` is ignored by git and survives `mvn clean`; delete it to fetch again. Offline, put the archive at the path the error message names.
-- A library with a `<name>.cmake` line, SDL on Linux, comes from a source archive: the tool builds it with cmake and make in `fetched/builds/<name>/` and reuses that build while archive, options and entry stay the same. It fails if cmake turns off an option the line sets `ON`, such as `SDL_X11` or `SDL_WAYLAND` when their development files are missing.
-- A Linux library is packaged under its SONAME (`libSDL3.so.0`), so that a library that needs it finds the loaded copy; the tool checks that.
+- A library with a `<name>.cmake` line, every library on Linux but wgpu-native, comes from a source archive, a `.zip` or a `.tar.xz`: the tool builds it with cmake and make in `fetched/builds/<name>/` and reuses that build while archive, options and entry stay the same. It fails if cmake turns off an option the line sets `ON`, such as `SDL_X11` or `SDL_WAYLAND` when their development files are missing.
+- A Linux library is packaged under its SONAME (`libSDL3.so.0`), so that a library that needs it finds the loaded copy; the tool checks that. HarfBuzz's CMake build gives it the SONAME `libharfbuzz.so`, without the `.0` of its Meson build.
 - To change a version, edit `natives.properties`, build, and update the licence texts under `natives-<platform>/src/main/resources` if the release changed them.
 - A natives module is built only on its own platform: the root `pom.xml` lists it in a profile of the same name, activated by the operating system and architecture, and `core` has a profile with that id that adds it as a test dependency.
 - `com.rethinkj.ui.natives.Natives.lookup("sdl3")` returns a `SymbolLookup`, loading the library and every library listed before it on first use. The package is internal to `core`. It finds the manifest of the current platform on the class path and unpacks the libraries into a per-user cache, `%LOCALAPPDATA%\rethinkj-ui\natives\` on Windows and `$XDG_CACHE_HOME/rethinkj-ui/natives/` (default `~/.cache`) on Linux, in a subfolder named after their hashes. Two system properties change that:
@@ -106,7 +106,7 @@ The window (SDL3) and the GPU renderer (wgpu-native) will call native libraries.
 - Native access must be enabled for core: `--enable-native-access=com.rethinkj.ui` (core's tests pass it). On the module path, the natives JAR is resolved only with `--add-modules com.rethinkj.ui.natives.<os>.x64`.
 - Loading happens only on first use. Never call `Natives` from a static initialiser that the headless path can reach: rendering without a window must not need the libraries.
 - Linux cannot load a library from a file system mounted `noexec`; then the cache has to move. On Linux, a failed load reports the dynamic linker's reason, which the JDK leaves out.
-- The SDL built for Linux needs the glibc of the machine that built it (2.38 on Ubuntu 24.04) and lacks what that machine had no headers for (IBus, libdecor). A build on an older distribution does not exist yet.
+- The libraries built for Linux need the glibc of the machine that built them (2.38 on Ubuntu 24.04, for SDL and FreeType), and SDL lacks what that machine had no headers for (IBus, libdecor). A build on an older distribution does not exist yet.
 
 ## Conventions
 

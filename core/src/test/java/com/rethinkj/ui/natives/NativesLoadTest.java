@@ -1,9 +1,11 @@
 package com.rethinkj.ui.natives;
 
+import static java.lang.foreign.ValueLayout.ADDRESS;
 import static java.lang.foreign.ValueLayout.JAVA_INT;
 import static java.util.stream.Collectors.toSet;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
@@ -11,8 +13,10 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
 import com.rethinkj.ui.natives.Manifest.Library;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.foreign.Arena;
 import java.lang.foreign.FunctionDescriptor;
 import java.lang.foreign.Linker;
+import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SymbolLookup;
 import java.lang.invoke.MethodHandle;
 import java.net.URL;
@@ -47,6 +51,29 @@ class NativesLoadTest {
 
   /** {@code uint32_t wgpuGetVersion(void)}: the four parts of the release tag, a byte each. */
   private static final FunctionDescriptor WGPU_GET_VERSION = FunctionDescriptor.of(JAVA_INT);
+
+  /** {@code FT_Error FT_Init_FreeType(FT_Library *)}, and {@code FT_Done_FreeType(FT_Library)}. */
+  private static final FunctionDescriptor FT_INIT_FREETYPE =
+      FunctionDescriptor.of(JAVA_INT, ADDRESS);
+  private static final FunctionDescriptor FT_DONE_FREETYPE =
+      FunctionDescriptor.of(JAVA_INT, ADDRESS);
+
+  /** {@code void FT_Library_Version(FT_Library, FT_Int *major, FT_Int *minor, FT_Int *patch)}. */
+  private static final FunctionDescriptor FT_LIBRARY_VERSION =
+      FunctionDescriptor.ofVoid(ADDRESS, ADDRESS, ADDRESS, ADDRESS);
+
+  /** {@code FT_TrueTypeEngineType FT_Get_TrueType_Engine_Type(FT_Library)}. */
+  private static final FunctionDescriptor FT_GET_TRUETYPE_ENGINE_TYPE =
+      FunctionDescriptor.of(JAVA_INT, ADDRESS);
+  /** What it returns when FreeType has the TrueType bytecode interpreter. */
+  private static final int FT_TRUETYPE_ENGINE_TYPE_PATENTED = 2;
+
+  /** {@code FT_Module FT_Get_Module(FT_Library, const char *name)}. */
+  private static final FunctionDescriptor FT_GET_MODULE =
+      FunctionDescriptor.of(ADDRESS, ADDRESS, ADDRESS);
+
+  /** {@code const char *hb_version_string(void)}. */
+  private static final FunctionDescriptor HB_VERSION_STRING = FunctionDescriptor.of(ADDRESS);
 
   /**
    * Folders for the tests' own caches. Libraries stay loaded until the JVM exits, and Windows
@@ -152,22 +179,62 @@ class NativesLoadTest {
   }
 
   private void assertVersions(Function<String, SymbolLookup> lookup) {
-    int sdl = call(lookup.apply("sdl3"), "SDL_GetVersion", SDL_GET_VERSION);
+    int sdl = (int) call(lookup.apply("sdl3"), "SDL_GetVersion", SDL_GET_VERSION);
     assertEquals(manifest.library("sdl3").version(),
         sdl / 1_000_000 + "." + sdl / 1000 % 1000 + "." + sdl % 1000, "SDL_GetVersion");
 
-    int wgpu = call(lookup.apply("wgpu_native"), "wgpuGetVersion", WGPU_GET_VERSION);
+    int wgpu = (int) call(lookup.apply("wgpu_native"), "wgpuGetVersion", WGPU_GET_VERSION);
     assertEquals(manifest.library("wgpu_native").version(),
         (wgpu >>> 24) + "." + (wgpu >>> 16 & 0xFF) + "." + (wgpu >>> 8 & 0xFF) + "."
             + (wgpu & 0xFF),
         "wgpuGetVersion");
+
+    if (manifest.platform().equals("windows-x64")) {
+      return; // The Windows module has no FreeType and HarfBuzz yet.
+    }
+    assertEquals(manifest.library("freetype").version(), freetype(lookup.apply("freetype")),
+        "FT_Library_Version");
+
+    MemorySegment harfbuzz =
+        (MemorySegment) call(lookup.apply("harfbuzz"), "hb_version_string", HB_VERSION_STRING);
+    assertEquals(manifest.library("harfbuzz").version(),
+        harfbuzz.reinterpret(Integer.MAX_VALUE).getString(0), "hb_version_string");
   }
 
-  private static int call(SymbolLookup library, String function, FunctionDescriptor descriptor) {
+  /**
+   * The version that FreeType's {@code FT_Library_Version} reports, after checking that this build
+   * has the TrueType bytecode interpreter and the auto-hinter.
+   */
+  private static String freetype(SymbolLookup freetype) {
+    try (Arena arena = Arena.ofConfined()) {
+      MemorySegment out = arena.allocate(ADDRESS);
+      assertEquals(0, call(freetype, "FT_Init_FreeType", FT_INIT_FREETYPE, out));
+      MemorySegment library = out.get(ADDRESS, 0);
+      try {
+        assertEquals(FT_TRUETYPE_ENGINE_TYPE_PATENTED,
+            call(freetype, "FT_Get_TrueType_Engine_Type", FT_GET_TRUETYPE_ENGINE_TYPE, library),
+            "FreeType without the TrueType bytecode interpreter");
+        MemorySegment autofitter = arena.allocateFrom("autofitter");
+        assertNotEquals(MemorySegment.NULL,
+            call(freetype, "FT_Get_Module", FT_GET_MODULE, library, autofitter),
+            "FreeType without the auto-hinter");
+        MemorySegment version = arena.allocate(JAVA_INT, 3);
+        call(freetype, "FT_Library_Version", FT_LIBRARY_VERSION,
+            library, version, version.asSlice(4), version.asSlice(8));
+        return version.getAtIndex(JAVA_INT, 0) + "." + version.getAtIndex(JAVA_INT, 1) + "."
+            + version.getAtIndex(JAVA_INT, 2);
+      } finally {
+        call(freetype, "FT_Done_FreeType", FT_DONE_FREETYPE, library);
+      }
+    }
+  }
+
+  private static Object call(SymbolLookup library, String function, FunctionDescriptor descriptor,
+      Object... arguments) {
     MethodHandle handle =
         Linker.nativeLinker().downcallHandle(library.find(function).orElseThrow(), descriptor);
     try {
-      return (int) handle.invokeExact();
+      return handle.invokeWithArguments(arguments);
     } catch (Throwable t) {
       throw new AssertionError(function + " failed", t);
     }
