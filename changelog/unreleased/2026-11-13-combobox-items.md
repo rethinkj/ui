@@ -1,0 +1,1 @@
+- `ComboBox.items(theme, items, selected, state, onSelect)` is a combo box whose choices have an icon, an image or any element before their text and a detail after it (`ComboBox.item("PostgreSQL").image(logo).detail("9.6 or later")`), as a chooser of database products; `FilterList.Entry` got `leading`, `image` and `checked`.

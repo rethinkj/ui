@@ -53,27 +53,56 @@ public final class FilterList {
    * @param group the name of the group the entry belongs to, shown above the group's entries; null
    *     for none. The groups follow each other in the order their first entries have
    * @param onChoose runs when the entry is chosen; null disables it
+   * @param leading builds what stands before the text in place of the icon, or null
+   * @param checked whether a check mark stands at the right end
    */
   public record Entry(String text, Symbol symbol, String detail, String shortcut, String group,
-      Runnable onChoose) {
+      Runnable onChoose, Function<Theme, El> leading, boolean checked) {
     public Entry {
       Objects.requireNonNull(text, "text");
     }
 
+    /** An entry with an icon or nothing before its text, and no check mark. */
+    public Entry(String text, Symbol symbol, String detail, String shortcut, String group,
+        Runnable onChoose) {
+      this(text, symbol, detail, shortcut, group, onChoose, null, false);
+    }
+
     public Entry symbol(Symbol symbol) {
-      return new Entry(text, symbol, detail, shortcut, group, onChoose);
+      return new Entry(text, symbol, detail, shortcut, group, onChoose, leading, checked);
     }
 
     public Entry detail(String detail) {
-      return new Entry(text, symbol, detail, shortcut, group, onChoose);
+      return new Entry(text, symbol, detail, shortcut, group, onChoose, leading, checked);
     }
 
     public Entry shortcut(String shortcut) {
-      return new Entry(text, symbol, detail, shortcut, group, onChoose);
+      return new Entry(text, symbol, detail, shortcut, group, onChoose, leading, checked);
     }
 
     public Entry group(String group) {
-      return new Entry(text, symbol, detail, shortcut, group, onChoose);
+      return new Entry(text, symbol, detail, shortcut, group, onChoose, leading, checked);
+    }
+
+    /**
+     * What stands before the text in place of an icon, built for each row that shows: an image, an
+     * {@link Avatar}, a coloured mark. It should be no higher than a row, {@link
+     * Theme.Sizes#control}; the column before the texts is as wide as it, at least an icon's width.
+     */
+    public Entry leading(Function<Theme, El> leading) {
+      return new Entry(text, symbol, detail, shortcut, group, onChoose, leading, checked);
+    }
+
+    /** An image before the text, fitted into an icon's square, such as a product's logo. */
+    public Entry image(com.rethinkj.ui.Image image) {
+      Objects.requireNonNull(image, "image");
+      return leading(t -> El.image(image).size(t.size().icon(), t.size().icon())
+          .fit(com.rethinkj.ui.Image.Fit.CONTAIN));
+    }
+
+    /** A check mark at the right end of the row, as the current choice of a list has. */
+    public Entry checked(boolean checked) {
+      return new Entry(text, symbol, detail, shortcut, group, onChoose, leading, checked);
     }
 
     public boolean isEnabled() {
@@ -481,8 +510,10 @@ public final class FilterList {
     boolean lit = i == s.highlight;
     int text = enabled ? t.text().primary() : t.text().disabled();
     int quiet = enabled ? t.text().muted() : t.text().disabled();
-    El mark = el().w(t.size().icon()).shrink(0).center();
-    if (entry.symbol() != null) {
+    El mark = el().minSize(t.size().icon(), 0).shrink(0).center();
+    if (entry.leading() != null) {
+      mark.child(entry.leading().apply(t).shrink(0));
+    } else if (entry.symbol() != null) {
       mark.child(icon(t, entry.symbol()).color(enabled ? t.text().muted() : quiet));
     }
     El name = label(t, entry.text()).color(text).grow(1).minSize(0, 0).ellipsis();
@@ -508,6 +539,9 @@ public final class FilterList {
     if (entry.shortcut() != null) {
       content.child(label(t, entry.shortcut()).color(quiet).shrink(0)
           .margin(0, 0, 0, t.space().s()));
+    }
+    if (entry.checked()) {
+      content.child(icon(t, Menu.CHECKED).color(quiet));
     }
     El row = row().key("option-" + i).role("option").label(entry.text())
         .selected(lit)

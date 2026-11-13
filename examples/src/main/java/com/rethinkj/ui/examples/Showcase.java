@@ -143,6 +143,8 @@ public final class Showcase {
   final ComboBox.State schemaBox = new ComboBox.State();
   int schema = 0;
   final ComboBox.State hostBox = new ComboBox.State();
+  final ComboBox.State providerBox = new ComboBox.State();
+  int provider;
   String recentHost = "db.staging.internal";
   final CommandPalette.State palette = new CommandPalette.State();
   final Menu.State context = new Menu.State();
