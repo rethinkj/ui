@@ -26,6 +26,14 @@ public interface Measure {
   Size measure(float knownWidth, float knownHeight, float availableWidth, float availableHeight);
 
   /**
+   * Tells the content the size of its box in the final layout, before layout rounds rectangles to
+   * whole pixels; text breaks its lines for this width. Layout calls it after the measure of each
+   * full layout of the element, and the last call is the one the element is placed for. The
+   * default does nothing.
+   */
+  default void placed(float width, float height) {}
+
+  /**
    * @param baseline the distance from the top of the content to its first baseline, or NaN when it
    *     has none; then the bottom edge is used for baseline alignment
    */

@@ -48,8 +48,8 @@ public final class Script {
       "Run a script with --script <file> --out <folder>: it runs the steps in the file and writes"
           + " the snaps into the folder.";
   private static final String TARGET =
-      "a position x,y in logical pixels such as 90,60, or a selector of #key, role=<role> and"
-          + " label=\"<text>\" such as role=switch label=\"Lights\"";
+      "a position x,y in logical pixels such as 90,60, or a selector of #key, role=<role>,"
+          + " label=\"<text>\" and text=\"<string>\" such as role=switch label=\"Lights\"";
   private static final Pattern NUMBER = Pattern.compile("\\d+(\\.\\d+)?");
   private static final Pattern POSITION =
       Pattern.compile("(-?\\d+(?:\\.\\d+)?),(-?\\d+(?:\\.\\d+)?)");
@@ -313,6 +313,9 @@ public final class Script {
         } else if (word.length() > 7 && word.startsWith("label=\"") && word.endsWith("\"")) {
           String label = unescape(word.substring(7, word.length() - 1));
           tests.add(el -> label.equals(el.label()));
+        } else if (word.length() > 6 && word.startsWith("text=\"") && word.endsWith("\"")) {
+          String string = unescape(word.substring(6, word.length() - 1));
+          tests.add(el -> el.text() != null && string.equals(el.text().string()));
         } else {
           throw fail(word + " is not a target. A target is " + TARGET + ".");
         }
@@ -331,6 +334,7 @@ public final class Script {
         Set<String> keys = new TreeSet<>();
         Set<String> roles = new TreeSet<>();
         Set<String> labels = new TreeSet<>();
+        Set<String> texts = new TreeSet<>();
         for (Found found : all) {
           if (found.el.key() != null) {
             keys.add("#" + found.el.key());
@@ -341,12 +345,16 @@ public final class Script {
           if (found.el.label() != null) {
             labels.add("label=" + El.quote(found.el.label()));
           }
+          if (found.el.text() != null) {
+            texts.add("text=" + El.quote(found.el.text().string()));
+          }
         }
         throw fail(
             "No element of the last frame matches " + text + ". It has\n"
                 + "    keys:   " + listing(keys) + "\n"
                 + "    roles:  " + listing(roles) + "\n"
                 + "    labels: " + listing(labels) + "\n"
+                + (texts.isEmpty() ? "" : "    texts:  " + listing(texts) + "\n")
                 + "  Select with these, or press a position x,y. The .tree.txt of a snap shows"
                 + " every element with its rectangle.");
       }
@@ -386,7 +394,12 @@ public final class Script {
     StringBuilder out = new StringBuilder();
     for (int i = 0; i < text.length(); i++) {
       char c = text.charAt(i);
-      out.append(c == '\\' ? text.charAt(++i) : c);
+      if (c == '\\') {
+        c = text.charAt(++i);
+        out.append(c == 'n' ? '\n' : c);
+      } else {
+        out.append(c);
+      }
     }
     return out.toString();
   }

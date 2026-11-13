@@ -25,6 +25,7 @@ public final class Headless {
    * @param scale physical pixels per logical pixel, for example 2 on a high-density display
    */
   public static Frame render(El root, float width, float height, float scale) {
+    El.scaleText(root, scale);
     Flex.layout(root, width, height);
     Pixels pixels =
         CpuRenderer.render(
