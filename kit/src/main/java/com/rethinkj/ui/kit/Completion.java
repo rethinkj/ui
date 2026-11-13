@@ -69,6 +69,7 @@ public final class Completion {
     private boolean open;
     private int highlight;
     private int typed = -1; // after a character typed, where the caret goes, until the next build
+    private boolean history; // the key of this input is undo or redo: its edit is no typing
 
     public boolean isOpen() {
       return open;
@@ -118,6 +119,7 @@ public final class Completion {
       state.open();
     }
     state.typed = -1;
+    state.history = false;
     List<Entry> entries = state.open ? suggest.apply(text.substring(from, caret)) : List.of();
     if (entries.isEmpty()) {
       // A list with nothing to show is closed, or it would show wherever the caret went next,
@@ -136,12 +138,21 @@ public final class Completion {
     Consumer<String> onEdit = field.onEdit();
     if (onEdit != null) {
       field.editable(v -> {
-        follow(state, text, v);
+        if (state.history) {
+          state.close(); // a step of the history brings text back; nobody typed it
+        } else {
+          follow(state, text, v);
+        }
         onEdit.accept(v);
       });
     }
     Predicate<Key> own = field.onKey();
-    field.onKey(k -> key(k, state, entries, take) || own != null && own.test(k));
+    field.onKey(k -> {
+      // The field's keys for undo and redo; onEdit does not say where an edit came from.
+      state.history = (k.modifiers() & ~Key.SHIFT) == Key.CONTROL
+          && (k.name().equals("Z") || k.name().equals("Y"));
+      return key(k, state, entries, take) || own != null && own.test(k);
+    });
     if (entries.isEmpty()) {
       return field;
     }

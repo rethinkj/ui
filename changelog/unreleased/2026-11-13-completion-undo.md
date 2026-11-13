@@ -1,0 +1,1 @@
+- Undoing or redoing with the keyboard in a field with `Completion` no longer opens the list of completions when the step brings back a single character.
