@@ -9,6 +9,8 @@ import static com.rethinkj.ui.kit.Label.label;
 import com.rethinkj.ui.App;
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.Key;
+import com.rethinkj.ui.Len;
+import com.rethinkj.ui.Scrollbars;
 import com.rethinkj.ui.Style;
 import com.rethinkj.ui.Work;
 import com.rethinkj.ui.text.Font;
@@ -147,6 +149,18 @@ public final class FilterList {
     String asked;
     List<Entry> answer = List.of();
     String failure;
+
+    Consumer<Entry> onHighlight; // told of an entry the keys or the pointer highlight
+
+    /** Highlights a row, and tells {@link #onHighlight} of a new entry. */
+    void light(int row) {
+      boolean changed = row != highlight;
+      highlight = row;
+      want = KEEP;
+      if (changed && onHighlight != null && shown != null && shown.choosable(row)) {
+        onHighlight.accept(shown.entry(row));
+      }
+    }
 
     /** A new text was typed: the best entry, or none, is highlighted at the next build. */
     void typed(String text, boolean highlightBest) {
@@ -440,6 +454,10 @@ public final class FilterList {
     }
     // While new entries are on their way, the old ones show with a last row that says so.
     int rows = count + (shown.loading() ? 1 : 0);
+    if (rows > most) { // the rows stop short of the bar, which lies over them
+      Scrollbars bars = t.scrollbars();
+      list.style().paddingRight = Len.px(bars.thickness() + bars.margin());
+    }
     Font strong = t.type().heading().font().get();
     return list.scrollbars(t.scrollbars())
         .revealRow(s.highlight)
@@ -498,10 +516,7 @@ public final class FilterList {
         .fill(lit ? t.grid().selected() : 0)
         .child(content);
     if (enabled) {
-      row.onHoverFor(0, () -> {
-        s.highlight = i;
-        s.want = State.KEEP;
-      }).onPress(() -> choose.accept(entry));
+      row.onHoverFor(0, () -> s.light(i)).onPress(() -> choose.accept(entry));
     }
     return row;
   }
@@ -529,8 +544,7 @@ public final class FilterList {
     };
     if (next != -2) {
       if (next >= 0) {
-        s.highlight = next;
-        s.want = State.KEEP;
+        s.light(next);
       }
       return true;
     }
