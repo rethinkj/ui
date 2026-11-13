@@ -1,0 +1,1 @@
+- `StatusBar.statusBar(theme, start, end)` is a bar along the bottom of a window, with `StatusBar.text`, `item` (an icon, a text and an optional press) and `status` (a dot in the colour of a state such as connected or failed) as its parts.

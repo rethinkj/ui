@@ -74,7 +74,10 @@ class ComponentTest {
             true),
         Arguments.of("pressable card", (Function<Runnable, El>) h ->
             Card.pressable(T, Card.card(T, Label.label(T, "staging")), "staging", false, h),
-            "role=button label=\"staging\"", true));
+            "role=button label=\"staging\"", true),
+        Arguments.of("status bar item", (Function<Runnable, El>) h ->
+            StatusBar.item(T, Symbol.PLUG_CONNECTED, "localhost", h), "text=\"localhost\"",
+            true));
   }
 
   private App<Object> app(El view) {
