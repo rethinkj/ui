@@ -223,6 +223,61 @@ class OverlayTest {
     assertFalse(s.open);
   }
 
+  /** A press as the window reports it, dispatched by the next frame. */
+  private static void click(App<?> app, float x, float y) {
+    app.pointerDown(x, y);
+    app.pointerUp(x, y);
+  }
+
+  @Test
+  void eachPressOfAFrameFindsTheOverlaysThePressBeforeItOpenedOrDismissed() {
+    State s = new State();
+    App<State> app = app(s, OverlayTest::menuButton, 200, 200);
+    click(app, 20, 10);
+    click(app, 30, 35); // on the item of the menu that the press before opened
+    app.frame();
+    assertEquals(List.of("open", "item"), s.log);
+    s.log.clear();
+
+    click(app, 80, 10); // the other button: dismisses, and goes no further
+    click(app, 80, 10); // the other button again, with no menu left to dismiss
+    app.frame();
+    assertEquals(List.of("dismissed", "other"), s.log);
+    s.log.clear();
+
+    click(app, 20, 10);
+    click(app, 20, 10); // outside the menu the first opened: closes it
+    click(app, 20, 10);
+    app.frame();
+    assertEquals(List.of("open", "dismissed", "open"), s.log);
+    assertTrue(s.open);
+    s.log.clear();
+
+    app.wheel(150, 150, 0, 10); // outside: dismisses
+    click(app, 80, 10);
+    app.frame();
+    assertEquals(List.of("dismissed", "other"), s.log, "the press after the wheel finds no menu");
+  }
+
+  @Test
+  void theRowsOfAListInAnOverlayThatOpenedInTheFrameAreThereForThePressAfterIt() {
+    State s = new State();
+    App<State> app = app(s, st -> {
+      El open = el().key("open").size(40, 20).onPress(() -> st.open = true);
+      if (st.open) {
+        open.overlay(col().key("list").size(100, 100).rows(1000, 20, i ->
+            el().key("row").onPress(() -> st.log.add("row " + i))));
+      }
+      return el().size(200, 200).child(open);
+    }, 200, 200);
+    click(app, 20, 10);
+    click(app, 30, 70); // the overlay is at 0,20: row 2
+    app.frame();
+    assertEquals(List.of("row 2"), s.log);
+    String dump = app.tree().dump();
+    assertTrue(dump.contains("el #list 0,20 100x100 rows 0-7/1000"), dump);
+  }
+
   @Test
   void aPressInAMenuDismissesItsSubmenuAndCountsThere() {
     State s = new State();
@@ -438,6 +493,28 @@ class OverlayTest {
     app.pointerMove(10, 10);
     app.frame();
     assertEquals(app.time() + 0.5, app.nextChange());
+  }
+
+  @Test
+  void aStayInARowGoesOnThroughAFrameWhoseKeysBuildTheViewBetweenThem() {
+    State s = new State();
+    App<State> app = app(s, st -> el().size(200, 200).focusable().onKey(k -> {
+      st.log.add(k.name());
+      return true;
+    }).child(col().key("list").size(100, 100).rows(10, 20, i -> el().key("cell")
+        .whenHoveredFor(0.5, e -> e.overlay(el().key("tip").size(60, 16))))), 200, 200);
+    app.focus(app.tree());
+    app.pointerMove(10, 30); // row 1
+    app.frame();
+    app.advance(0.3);
+    app.keyDown(new Key("A")); // taken: the view is built again before the next key, rows later
+    app.keyDown(new Key("B"));
+    app.frame();
+    assertEquals(List.of("A", "B"), s.log);
+    assertEquals(0.5, app.nextChange(), 1e-9, "the stay began at 0, not with the keys");
+    app.advance(0.2);
+    app.frame();
+    assertEquals("tip", app.tree().shownOverlays().getFirst().key());
   }
 
   @Test

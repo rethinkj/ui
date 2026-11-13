@@ -615,6 +615,73 @@ class FieldTest {
     assertEquals(before, app.tree().dump(), "focus, caret and selection as they were");
   }
 
+  @Test
+  void anInactiveWindowsFieldKeepsItsScrollCaretAndSelectionAndTakesText() {
+    App<Model> app = start("SELECT name FROM customers WHERE id = 1"); // wider than the field
+    focus(app);
+    key(app, "End");
+    key(app, "ArrowLeft", SHIFT);
+    float scroll = field(app).text().scroll();
+    assertTrue(scroll > 0, "scrolled to the end");
+    assertEquals("SELECT name FROM customers WHERE id = |1^", show(app));
+
+    app.windowActive(false);
+    app.frame();
+    assertEquals(scroll, field(app).text().scroll(), "the scroll stays");
+    assertEquals("SELECT name FROM customers WHERE id = |1^", show(app), "caret and selection too");
+    assertEquals(1, field(app).text().selection().size());
+    assertNull(field(app).text().caret(), "only the caret is not drawn");
+    assertSame(field(app), app.focused());
+
+    app.textInput("2"); // text that reaches the app while its window is inactive
+    app.frame();
+    assertEquals("SELECT name FROM customers WHERE id = 2", app.state().value);
+    assertEquals("SELECT name FROM customers WHERE id = 2|", show(app));
+    assertNull(field(app).text().caret(), "still none while inactive");
+    assertEquals(Double.POSITIVE_INFINITY, app.nextChange(), "nothing blinks");
+    float typed = field(app).text().scroll();
+    assertTrue(typed >= scroll, "the caret stays in view");
+
+    app.windowActive(true);
+    app.textInput("3"); // in the frame that activates it
+    app.frame();
+    assertEquals("SELECT name FROM customers WHERE id = 23|", show(app));
+    assertNotNull(field(app).text().caret(), "on again");
+    assertTrue(field(app).text().scroll() >= typed);
+    assertEquals(app.time() + App.BLINK, app.nextChange());
+  }
+
+  @Test
+  void aFieldThatFadesOutHasNoCaretSelectionOrCompositionAndNoFocus() {
+    boolean[] hidden = {false};
+    App<Model> app = start("hello", f -> hidden[0] ? el().size(0, 0)
+        : f.motion(com.rethinkj.ui.motion.Spring.SNAP), 1);
+    focus(app);
+    key(app, "ArrowLeft", SHIFT);
+    El field = field(app);
+    assertFalse(field.text().selection().isEmpty());
+    app.textComposition("ni", -1);
+    app.frame();
+    assertNotNull(field(app).text().composition());
+
+    hidden[0] = true; // the view leaves the field out: it fades out where it was
+    app.resize(200, 80, 1);
+    app.frame();
+    field = field(app); // back where it was, before what the view put there
+    assertEquals("f", field.key());
+    assertTrue(field.isExiting(), app.tree().dump());
+    assertNull(field.text().caret());
+    assertEquals(List.of(), field.text().selection());
+    assertNull(field.text().composition());
+    assertEquals(5, field.text().lines().getFirst().glyphs().count(), "\"hello\" without \"ni\"");
+    assertNull(app.focused());
+    assertFalse(field.dump().contains("focused"), field.dump());
+    assertEquals(Double.POSITIVE_INFINITY, app.nextChange(), "nothing blinks");
+    app.advance(App.BLINK);
+    app.frame();
+    assertNull(field.text().caret());
+  }
+
   // What the window needs
 
   @Test

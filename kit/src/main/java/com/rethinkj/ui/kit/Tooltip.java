@@ -35,6 +35,7 @@ public final class Tooltip {
         .radius(t.radius().small())
         .fill(t.surface().raised())
         .border(t.size().stroke(), t.border().subtle())
+        .shadow(t.elevation().popup())
         .side(Side.BOTTOM, Style.Align.CENTER, t.space().xs())
         .child(label(t, text));
   }

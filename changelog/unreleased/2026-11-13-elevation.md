@@ -1,0 +1,1 @@
+- Menus, a select's list, tooltips and dialogs now lie on shadows, the new token group `Theme.elevation()`, stronger and tighter in the dark theme than in the light one. `Theme` has a new component, so code that calls its constructor needs the extra argument; `withElevation` changes it.

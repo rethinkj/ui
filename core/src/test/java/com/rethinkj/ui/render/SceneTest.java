@@ -4,6 +4,7 @@ import static com.rethinkj.ui.El.el;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import com.rethinkj.ui.El;
+import com.rethinkj.ui.Shadow;
 import java.lang.foreign.ValueLayout;
 import org.junit.jupiter.api.Test;
 
@@ -58,6 +59,73 @@ class SceneTest {
     assertEquals(128 / 255f * 0.25f, scene.get(1, Scene.FILL), "premultiplied");
     assertEquals(128 / 255f * 0.25f, scene.get(1, Scene.FILL + 12));
     assertEquals(0.25f, scene.get(1, Scene.BORDER + 12));
+  }
+
+  @Test
+  void drawsShadowsRightUnderTheirElementTheFirstOnTop() {
+    El card = el().fill(0xFFFFFFFF).radius(6).opacity(0.5f).shadow(
+        new Shadow(0, 2, 4, 0, 0x40000000), new Shadow(1, 8, 24, -2, 0x26000000));
+    El root = el().fill(0xFF808080).child(el().fill(0xFF000000)).child(card);
+    root.place(0, 0, 100, 100);
+    root.children().getFirst().place(0, 0, 10, 10);
+    card.place(20, 30, 40, 20);
+
+    Scene scene = Scene.of(root);
+
+    assertEquals(5, scene.count(), "root, its first child, two shadows, the card");
+    assertEquals(Scene.RECT, scene.getInt(1, Scene.KIND));
+    assertEquals(Scene.SHADOW, scene.getInt(2, Scene.KIND));
+    assertEquals(Scene.SHADOW, scene.getInt(3, Scene.KIND));
+    assertEquals(Scene.RECT, scene.getInt(4, Scene.KIND));
+    // The second, wide shadow lies lowest: moved and shrunk by 2, with the radius shrunk too.
+    assertEquals(23f, scene.get(2, Scene.X));
+    assertEquals(40f, scene.get(2, Scene.Y));
+    assertEquals(36f, scene.get(2, Scene.WIDTH));
+    assertEquals(16f, scene.get(2, Scene.HEIGHT));
+    assertEquals(4f, scene.get(2, Scene.RADIUS));
+    assertEquals(12f, scene.get(2, Scene.SIGMA));
+    assertEquals(0x26 / 255f * 0.5f, scene.get(2, Scene.FILL + 12), "at the card's opacity");
+    assertEquals(20f, scene.get(3, Scene.X));
+    assertEquals(32f, scene.get(3, Scene.Y));
+    assertEquals(6f, scene.get(3, Scene.RADIUS));
+    assertEquals(2f, scene.get(3, Scene.SIGMA));
+    for (int slot = 48; slot < Scene.STRIDE; slot += 4) {
+      assertEquals(0, scene.getInt(3, slot), "slot " + slot + " is unused");
+    }
+  }
+
+  @Test
+  void theSpreadGrowsTheRadiusAsInCss() {
+    // A square corner stays square, a small radius grows less than the spread, and a negative
+    // spread shrinks the radius down to 0.
+    float[][] cases = {{0, 4, 0}, {2, 4, 5.5f}, {4, 4, 8}, {8, 4, 12}, {2, -3, 0}, {6, -3, 3}};
+    for (float[] c : cases) {
+      El box = el().radius(c[0]).shadow(new Shadow(0, 0, 8, c[1], 0xFF000000));
+      box.place(10, 10, 40, 40);
+      Scene scene = Scene.of(box);
+      assertEquals(c[2], scene.get(0, Scene.RADIUS), "radius " + c[0] + ", spread " + c[1]);
+    }
+  }
+
+  @Test
+  void aShadowTakesTheClipOfItsElementAndIsLeftOutWhereNothingOfItShows() {
+    El inside = el().fill(0xFFFFFFFF).shadow(new Shadow(0, 4, 8, 0, 0x80000000));
+    El far = el().shadow(new Shadow(0, 0, 8, 0, 0x80000000));
+    El empty = el().fill(0xFFFFFFFF).shadow(new Shadow(0, 0, 8, -10, 0x80000000),
+        new Shadow(0, 0, 8, 0, 0x00000000));
+    El panel = el().clip().radius(8).child(inside).child(far).child(empty);
+    El root = el().child(panel);
+    root.place(0, 0, 200, 200);
+    panel.place(10, 10, 100, 100);
+    inside.place(10, 10, 40, 20);
+    far.place(120, 0, 10, 10); // 20 pixels right of the clip: more than its 3 deviations
+    empty.place(60, 60, 20, 20); // shrunk to nothing, and transparent
+
+    Scene scene = Scene.of(root);
+
+    assertEquals(3, scene.count(), "inside's shadow and fill, and empty's fill");
+    assertEquals(Scene.SHADOW, scene.getInt(0, Scene.KIND));
+    assertEquals(1, scene.clipOf(0));
   }
 
   @Test

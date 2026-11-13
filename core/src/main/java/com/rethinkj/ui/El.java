@@ -50,6 +50,7 @@ public final class El {
   private int fill;
   private float radius;
   private int borderColor;
+  private List<Shadow> shadows = List.of();
   private Measure measure;
   private Text text;
   private PressHandler onPress;
@@ -69,6 +70,7 @@ public final class El {
   private boolean focused;
   private Spring motion;
   private float opacity = 1;
+  private float targetOpacity = 1; // as the view set it, which motion springs towards
   private boolean exiting;
   private WindowPart windowPart;
   private Consumer<El> hoverLook;
@@ -463,6 +465,27 @@ public final class El {
   }
 
   /**
+   * Draws shadows under this element, as CSS's {@code box-shadow} does: each is the element's
+   * rounded rectangle moved, grown and blurred (see {@link Shadow}), drawn right before the
+   * element, so above everything drawn before it, in the clips of the element and at its opacity.
+   * Of several shadows the first lies on top, as in CSS; a tight one and a wide one together look
+   * lifted. A shadow takes no room in the layout and no input, and it shows also
+   * under a translucent fill. It does not spring with {@link #motion}; a look that changes it
+   * changes it at once.
+   *
+   * @param shadows the shadows, replacing those set before; none for no shadow
+   */
+  public El shadow(Shadow... shadows) {
+    return shadow(List.of(shadows));
+  }
+
+  /** As {@link #shadow(Shadow...)}, from a list such as a theme's. */
+  public El shadow(List<Shadow> shadows) {
+    this.shadows = List.copyOf(shadows);
+    return this;
+  }
+
+  /**
    * Makes this element and everything below it translucent: 0 is invisible, 1 (the default) is
    * opaque. An element at 0 draws nothing and takes no presses. With {@link #motion} it springs
    * like the other values.
@@ -472,7 +495,21 @@ public final class El {
       throw new IllegalArgumentException("opacity must be from 0 to 1, was " + opacity);
     }
     this.opacity = opacity;
+    this.targetOpacity = opacity;
     return this;
+  }
+
+  /** For {@link Animator}: the opacity of the moment while this element springs to its own. */
+  void shownOpacity(float opacity) {
+    this.opacity = opacity;
+  }
+
+  /**
+   * For {@link App}: the opacity the view gave this element, which {@link #opacity} springs
+   * towards; an element fading in has 0 there and more here.
+   */
+  float targetOpacity() {
+    return targetOpacity;
   }
 
   /**
@@ -566,8 +603,10 @@ public final class El {
    * <p>The list has no other children: {@link #child} fails on it. Its content has no width of its
    * own, so give the list a width or let its parent stretch it, and give it a height or let it
    * {@link #grow}: like any scroll area it is as tall as its content otherwise, up to {@link
-   * #LAYOUT_LIMIT}. In a column that grows itself, the column also needs a minimum height of 0
-   * (as {@code min-height: 0} in CSS), or the rows, up to that limit, are its minimum height.
+   * #LAYOUT_LIMIT}, beyond which it scrolls. Layout works in floats, which are exact to the pixel
+   * only that far; the rows themselves are placed from the first one that exists and can reach
+   * any offset. In a column that grows itself, the column also needs a minimum height of 0 (as
+   * {@code min-height: 0} in CSS), or the rows, up to that limit, are its minimum height.
    *
    * @param count the number of rows, 0 or more
    * @param rowHeight the height of every row in logical pixels, above 0
@@ -606,17 +645,21 @@ public final class El {
     this.rowHeight = rowHeight;
     this.rowBuilder = Objects.requireNonNull(row, "row");
     this.spans = true;
-    // Layout sees all rows as one leaf, as tall as they are together up to LAYOUT_LIMIT: layout
-    // works in floats, which beyond 2^24 pixels miss whole pixels when the list shrinks to fit.
-    // The offsets of scrolling are doubles and reach the last row anyway.
+    // Layout sees all rows as one leaf, as tall as they are together, but no taller than its floats
+    // add up to the pixel: 22 000 000 pixels of rows and 23 above them came to 22 000 024, and a
+    // list that shrank into 224 pixels was 200 high instead of 201. The offsets of scrolling are
+    // doubles and reach the last row anyway.
+    float content = (float) Math.min(count * (double) rowHeight, LAYOUT_LIMIT);
     this.measure = (knownWidth, knownHeight, availableWidth, availableHeight) ->
-        new Measure.Size(0, (float) Math.min(count * (double) rowHeight, LAYOUT_LIMIT));
+        new Measure.Size(0, content);
     return this;
   }
 
   /**
    * The most a {@link #rows virtual list} contributes to layout as its content's height, 2^20
-   * logical pixels: a list without a height of its own is at most this tall and scrolls beyond.
+   * logical pixels, where a float still has 3 bits below the pixel, so that sums with the sizes
+   * around the list stay exact: a list without a height of its own is at most this tall and
+   * scrolls beyond.
    */
   public static final float LAYOUT_LIMIT = 1 << 20;
 
@@ -664,8 +707,9 @@ public final class El {
    * last, whenever a frame has built others than before: after scrolling beyond them or a change
    * of their number, not on every rebuild of the view. The rows that exist are those whose cells
    * a table asks for, so an app that fetches its rows in pages starts fetching here. It runs as
-   * the handlers of input do, in the next {@link App#frame}, which {@link App#nextChange} says is
-   * due at once. A list without rows tells nothing.
+   * the handlers of input do: after the input of the frame that built the rows, or in the next
+   * {@link App#frame} when the rebuild at the end of one built them, which {@link
+   * App#nextChange} then says is due at once. A list without rows tells nothing.
    *
    * @param handler told the rows, or null for none
    */
@@ -995,10 +1039,10 @@ public final class El {
    * parent and move with it.
    *
    * <p>An element that appears after the app's first frame fades in from opacity 0, in the place
-   * layout gives it. One with a {@link #key} that a rebuild leaves out fades out where it was, with
-   * everything below it, and is then removed. Until then it stays in the tree, marked {@link
-   * #isExiting}, and takes no part in layout or input. If it comes back before, it goes on from
-   * where it is.
+   * layout gives it; it takes the focus from that frame on, and presses once it shows. One with a
+   * {@link #key} that a rebuild leaves out fades out where it was, with everything below it, and
+   * is then removed. Until then it stays in the tree, marked {@link #isExiting}, and takes no part
+   * in layout or input. If it comes back before, it goes on from where it is.
    *
    * @param spring how to move, or null to change at once
    */
@@ -1058,8 +1102,10 @@ public final class El {
 
   /**
    * Changes how this element looks while the pointer presses it: from a pointer down that goes to
-   * it, as for {@link #onPress}, to the next pointer up, wherever that is. Only an element with a
-   * press or drag handler is pressed, and Enter and Space do not show this look. See {@link
+   * it, as for {@link #onPress}, to the next pointer up, wherever that is, as CSS's {@code
+   * :active} does. Only an element with a press or drag handler is pressed, and a text field that
+   * takes input ({@link #editable}) while a press selects in it, which the elements around it do
+   * not count as a press of theirs; Enter and Space do not show this look. See {@link
    * #whenHovered} for what a look may change.
    *
    * @param look changes the element, or null for none
@@ -1298,6 +1344,11 @@ public final class El {
     return radius;
   }
 
+  /** The shadows under this element, the topmost first; empty for none. */
+  public List<Shadow> shadows() {
+    return shadows;
+  }
+
   public int borderColor() {
     return borderColor;
   }
@@ -1512,7 +1563,7 @@ public final class El {
       scaleText(child, scale, systemFonts);
     }
     for (El overlay : el.overlays()) {
-      scaleText(overlay, scale);
+      scaleText(overlay, scale, systemFonts);
     }
   }
 
@@ -1912,19 +1963,24 @@ public final class El {
    * row height, and places it below the previous one.
    */
   void layoutRows(float scale, boolean systemFonts) {
+    for (int i = 0; i < children.size(); i++) {
+      layoutRow(i, scale, systemFonts);
+    }
+    scrollTo(scrollX, scrollY); // shifts the new rows
+  }
+
+  /** Lays out the row that is the child with this index, as {@link #layoutRows} does. */
+  void layoutRow(int index, float scale, boolean systemFonts) {
     float left = px(style.borderLeft) + px(style.paddingLeft);
     float inner =
         Math.max(width - left - px(style.paddingRight) - px(style.borderRight)
             - style.scrollbarWidth, 0);
-    for (int i = 0; i < children.size(); i++) {
-      El row = children.get(i);
-      row.style.width = Len.px(inner);
-      row.style.height = Len.px(rowHeight);
-      scaleText(row, scale, systemFonts);
-      Flex.layout(row, inner, rowHeight);
-      row.place(left, (float) (rowsTop() + i * (double) rowHeight), inner, rowHeight);
-    }
-    scrollTo(scrollX, scrollY); // shifts the new rows
+    El row = children.get(index);
+    row.style.width = Len.px(inner);
+    row.style.height = Len.px(rowHeight);
+    scaleText(row, scale, systemFonts);
+    Flex.layout(row, inner, rowHeight);
+    row.place(left, (float) (rowsTop() + index * (double) rowHeight), inner, rowHeight);
   }
 
   /**

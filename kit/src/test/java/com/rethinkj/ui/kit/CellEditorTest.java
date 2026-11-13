@@ -141,16 +141,16 @@ class CellEditorTest {
     assertEquals(cell.width(), editor.width());
     assertEquals(cell.height(), editor.height());
 
-    // The app focuses the editor once a frame shows it: App.focus needs an element of that frame
-    // that takes input, and the field fades in with the theme's feedback spring.
-    run(app, "advance 1\nframe\nfocus #editor\nframe\ntype \" Jr.\"\nframe");
+    // The app focuses the editor in the frame that adds it, while it fades in.
+    app.focus(editor);
+    run(app, "frame\ntype \" Jr.\"\nframe");
     assertEquals("editor", app.focused().key());
     assertEquals(before + " Jr.", sheet.draft);
     assertEquals(before, sheet.names[3], "not yet committed");
     assertTrue(line(app, "editor").endsWith("focused caret " + (before.length() + 4)),
         line(app, "editor"));
 
-    run(app, "key Enter\nframe");
+    run(app, "advance 1\nframe\nkey Enter\nframe"); // once it has faded in
     assertTrue(find(app, "editor").isExiting(), "the editor fades out");
     assertEquals(before + " Jr.", sheet.names[3]);
     assertEquals(before + " Jr.", text(find(app, "row-3").children().get(2)), "the grid shows it");
@@ -161,8 +161,11 @@ class CellEditorTest {
     assertEquals(4, sheet.selection.row(), "and the keys");
 
     String fourth = sheet.names[4];
-    run(app, "key F2\nframe\nadvance 1\nframe\nfocus #editor\nframe\ntype \"xyz\"\nframe");
-    run(app, "press #editor\nframe"); // the press goes to the field, not to the cell under it
+    run(app, "key F2\nframe");
+    app.focus(find(app, "editor"));
+    run(app, "frame\ntype \"xyz\"\nframe");
+    // Once it shows, a press goes to the field, not to the cell under it.
+    run(app, "advance 1\nframe\npress #editor\nframe");
     assertEquals("editor", app.focused().key());
     assertEquals(4, sheet.selection.row());
     run(app, "key Escape\nframe\nadvance 1\nframe");

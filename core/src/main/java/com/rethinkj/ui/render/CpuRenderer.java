@@ -48,8 +48,11 @@ public final class CpuRenderer {
     // Starts fully transparent.
     float[] frame = new float[width * height * 4];
     for (int i = 0; i < scene.count(); i++) {
-      if (scene.getInt(i, Scene.KIND) == Scene.GLYPH) {
+      int kind = scene.getInt(i, Scene.KIND);
+      if (kind == Scene.GLYPH) {
         glyph(scene, i, frame, width, height, scale, blends);
+      } else if (kind == Scene.SHADOW) {
+        shadow(scene, i, frame, width, height, scale, blends);
       } else {
         rect(scene, i, frame, width, height, scale, blends);
       }
@@ -170,6 +173,150 @@ public final class CpuRenderer {
         }
       }
     }
+  }
+
+  /** Draws a shadow: its shape blurred, over the shape grown by three deviations. */
+  private static void shadow(Scene scene, int i, float[] frame, int width, int height,
+      double scale, Blends blends) {
+    double w = scene.get(i, Scene.WIDTH);
+    double h = scene.get(i, Scene.HEIGHT);
+    if (!(w > 0 && h > 0)) {
+      return;
+    }
+    double halfW = w / 2;
+    double halfH = h / 2;
+    double centerX = scene.get(i, Scene.X) + halfW;
+    double centerY = scene.get(i, Scene.Y) + halfH;
+    double radius = Math.clamp(scene.get(i, Scene.RADIUS), 0, Math.min(halfW, halfH));
+    double sigma = deviation(scene.get(i, Scene.SIGMA), scale);
+    // The blur reaches three deviations beyond the shape, and one pixel more as for a rectangle.
+    // shortcut: what lies beyond, at most 0.14 % of the colour, is cut off, which a light glow on
+    // black shows as a faint edge; reach four deviations if glows need it.
+    double reachW = halfW + 3 * sigma;
+    double reachH = halfH + 3 * sigma;
+    int left = Math.max((int) Math.floor((centerX - reachW) * scale) - 1, 0);
+    int top = Math.max((int) Math.floor((centerY - reachH) * scale) - 1, 0);
+    int right = Math.min((int) Math.ceil((centerX + reachW) * scale) + 1, width);
+    int bottom = Math.min((int) Math.ceil((centerY + reachH) * scale) + 1, height);
+    int clip = scene.clipOf(i);
+    if (clip != 0) {
+      double clipX = scene.clipGet(clip, Scene.X);
+      double clipY = scene.clipGet(clip, Scene.Y);
+      left = Math.max(left, (int) Math.floor(clipX * scale) - 1);
+      top = Math.max(top, (int) Math.floor(clipY * scale) - 1);
+      right = Math.min(right,
+          (int) Math.ceil((clipX + scene.clipGet(clip, Scene.WIDTH)) * scale) + 1);
+      bottom = Math.min(bottom,
+          (int) Math.ceil((clipY + scene.clipGet(clip, Scene.HEIGHT)) * scale) + 1);
+    }
+    for (int py = top; py < bottom; py++) {
+      for (int px = left; px < right; px++) {
+        double x = (px + 0.5) / scale - centerX;
+        double y = (py + 0.5) / scale - centerY;
+        double coverage = shadow(x, y, halfW, halfH, radius, sigma);
+        if (clip != 0) {
+          coverage *= clipCoverage(scene, clip, (px + 0.5) / scale, (py + 0.5) / scale, scale);
+        }
+        if (coverage <= 0) {
+          continue;
+        }
+        int at = (py * width + px) * 4;
+        double alpha = scene.get(i, Scene.FILL + 12) * coverage;
+        if (blends != null) {
+          blends.blend(frame, at, alpha);
+        }
+        for (int c = 0; c < 4; c++) {
+          double source = scene.get(i, Scene.FILL + c * 4) * coverage;
+          frame[at + c] = (float) (source + frame[at + c] * (1 - alpha));
+        }
+      }
+    }
+  }
+
+  /**
+   * A shadow's deviation with the pixel's added: a box one physical pixel wide has the variance
+   * 1/12 of a Gaussian.
+   */
+  static double deviation(double sigma, double scale) {
+    return StrictMath.sqrt(sigma * sigma + 1 / (12 * scale * scale));
+  }
+
+  /** Slices of a quarter disc in {@link #quarter}. */
+  private static final int SLICES = 8;
+
+  /**
+   * How much of a Gaussian of deviation {@code sigma} around the point {@code x, y} lies in a
+   * rounded rectangle centred on the origin: two crossed boxes, whose blur is exact, and the
+   * quarter discs at their corners.
+   */
+  static double shadow(double x, double y, double halfW, double halfH, double radius,
+      double sigma) {
+    double straightW = halfW - radius;
+    double straightH = halfH - radius;
+    double wide = across(x, halfW, sigma);
+    double narrow = across(x, straightW, sigma);
+    double tall = across(y, halfH, sigma);
+    double flat = across(y, straightH, sigma);
+    double coverage = wide * flat + narrow * tall - narrow * flat;
+    if (radius > 0) {
+      coverage += quarter(x - straightW, y - straightH, radius, sigma)
+          + quarter(-x - straightW, y - straightH, radius, sigma)
+          + quarter(x - straightW, -y - straightH, radius, sigma)
+          + quarter(-x - straightW, -y - straightH, radius, sigma);
+    }
+    return Math.min(coverage, 1);
+  }
+
+  /** The Gaussian's mass from {@code -half} to {@code half}, seen from {@code t}. */
+  private static double across(double t, double half, double sigma) {
+    return below(t + half, sigma) - below(t - half, sigma);
+  }
+
+  /**
+   * The blur of the quarter disc of radius {@code r} at the origin towards {@code +x, +y}, seen
+   * from {@code u, v}: within three deviations of {@code v}, in slices of equal height, each the
+   * Gaussian's exact mass across the slice times its mass along the disc at the slice's middle.
+   */
+  private static double quarter(double u, double v, double r, double sigma) {
+    double reach = 3 * sigma;
+    double low = Math.max(v - reach, 0);
+    double high = Math.min(v + reach, r);
+    if (!(high > low) || u < -reach || u > r + reach) {
+      return 0;
+    }
+    double step = (high - low) / SLICES;
+    double inside = below(-u, sigma);
+    double before = below(low - v, sigma);
+    double sum = 0;
+    for (int i = 1; i <= SLICES; i++) {
+      double top = low + step * i;
+      double after = below(top - v, sigma);
+      double middle = top - step / 2;
+      double extent = StrictMath.sqrt(Math.max(r * r - middle * middle, 0));
+      sum += (below(extent - u, sigma) - inside) * (after - before);
+      before = after;
+    }
+    return sum;
+  }
+
+  /** How much of a Gaussian of deviation {@code sigma} around 0 lies below {@code t}. */
+  private static double below(double t, double sigma) {
+    return 0.5 + 0.5 * erf(t * (0.7071067811865476 / sigma));
+  }
+
+  /**
+   * The error function as Abramowitz and Stegun's 7.1.28 has it, within 3e-7: arithmetic only, so
+   * that the shader computes the same.
+   */
+  static double erf(double x) {
+    double a = Math.min(Math.abs(x), 4);
+    double p = 1 + a * (0.0705230784 + a * (0.0422820123 + a * (0.0092705272
+        + a * (0.0001520143 + a * (0.0002765672 + a * 0.0000430638)))));
+    p *= p;
+    p *= p;
+    p *= p;
+    p *= p;
+    return Math.signum(x) * (1 - 1 / p);
   }
 
   /** How much of the pixel centred at {@code x, y}, in logical pixels, the clip lets through. */
