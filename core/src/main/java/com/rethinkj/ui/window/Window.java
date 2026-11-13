@@ -50,7 +50,8 @@ import java.util.Objects;
  * with {@link El#windowPart}, the window asks {@link #parts} (usually {@link App#windowPart}) what
  * lies under the pointer, and the system then moves the window from a drag area, snaps it to the
  * screen's edges and resizes it from a margin along its edges. The minimize, maximize and close
- * parts act when clicked. On Windows 11 such a window has rounded corners and the system's shadow,
+ * parts act when clicked. A right click on a drag area opens the system's window menu there, and
+ * the listener gets neither half of it, as an app gets nothing of a click on a system title bar. On Windows 11 such a window has rounded corners and the system's shadow,
  * and resting the pointer on the maximize part shows the snap layouts.
  *
  * <h2>Threads and events</h2>
@@ -131,13 +132,22 @@ public final class Window implements AutoCloseable {
 
     /**
      * How far from its edges, in logical pixels, a frameless window can be grabbed to resize it;
-     * 6 unless set. The margin lies inside the window, over its content.
+     * 6 unless set. The margin lies inside the window, over its content, and narrows to {@link
+     * Window#CONTROL_MARGIN} where something that takes presses lies under it ({@link
+     * WindowPart#CONTROL}).
      */
     public Options resizeMargin(float pixels) {
       resizeMargin = pixels;
       return this;
     }
   }
+
+  /**
+   * How far from its edges, in logical pixels, a frameless window can be grabbed to resize it
+   * where an element that takes presses lies under its resize margin ({@link
+   * WindowPart#CONTROL}), such as a scrollbar along its right edge, or a button of its title bar.
+   */
+  public static final float CONTROL_MARGIN = 2;
 
   /** Options for a resizable window with the system's frame; their methods change that. */
   public static Options options() {
@@ -201,6 +211,8 @@ public final class Window implements AutoCloseable {
   private boolean maximized;
   /** The window button a left press began on, or null. */
   private WindowPart pressed;
+  /** Whether a secondary press began on a drag area, where it belongs to the system menu. */
+  private boolean menuPress;
   /** Where the last pointer move was, in logical pixels, while the pointer is in the window. */
   private boolean pointerIn;
   private float pointerX;
@@ -423,16 +435,26 @@ public final class Window implements AutoCloseable {
         click = part != null && part == pressed ? part : null;
         pressed = null;
       }
-      case PointerUp up when up.button() == PointerButton.RIGHT && frameless
-          && part(up.x(), up.y()) == WindowPart.DRAG -> {
-        // The menu runs a loop of its own; deliver the events before it first.
-        int x = units(up.x());
-        int y = units(up.y());
-        deferred.add(() -> {
-          if (open) {
-            Sdl.showWindowSystemMenu(sdl, x, y);
-          }
-        });
+      // A secondary press on a drag area is the system menu's, as on a system title bar: the
+      // listener gets neither half, and the menu opens if it ends there too.
+      case PointerDown down when down.button() == PointerButton.RIGHT && frameless
+          && part(down.x(), down.y()) == WindowPart.DRAG -> {
+        menuPress = true;
+        return;
+      }
+      case PointerUp up when up.button() == PointerButton.RIGHT && menuPress -> {
+        menuPress = false;
+        if (part(up.x(), up.y()) == WindowPart.DRAG) {
+          // The menu runs a loop of its own; deliver the events before it first.
+          int x = units(up.x());
+          int y = units(up.y());
+          deferred.add(() -> {
+            if (open) {
+              Sdl.showWindowSystemMenu(sdl, x, y);
+            }
+          });
+        }
+        return;
       }
       default -> {}
     }
@@ -527,10 +549,10 @@ public final class Window implements AutoCloseable {
         }
       }
       // As the system reports it, so that natural scrolling is already applied.
-      case Sdl.EVENT_MOUSE_WHEEL ->
-          post(new Wheel(e.get(JAVA_FLOAT, Sdl.WHEEL_X), e.get(JAVA_FLOAT, Sdl.WHEEL_Y),
-              logical(e.get(JAVA_FLOAT, Sdl.WHEEL_MOUSE_X)),
-              logical(e.get(JAVA_FLOAT, Sdl.WHEEL_MOUSE_Y))));
+      case Sdl.EVENT_MOUSE_WHEEL -> post(wheel(e.get(JAVA_FLOAT, Sdl.WHEEL_X),
+          e.get(JAVA_FLOAT, Sdl.WHEEL_Y), logical(e.get(JAVA_FLOAT, Sdl.WHEEL_MOUSE_X)),
+          logical(e.get(JAVA_FLOAT, Sdl.WHEEL_MOUSE_Y)),
+          (Sdl.getModState() & Sdl.KMOD_SHIFT) != 0));
       case Sdl.EVENT_KEY_DOWN, Sdl.EVENT_KEY_UP -> {
         String key = Keys.name(e.get(JAVA_INT, Sdl.KEY_KEY));
         int modifiers = modifiers(e.get(JAVA_SHORT, Sdl.KEY_MOD));
@@ -591,6 +613,14 @@ public final class Window implements AutoCloseable {
   }
 
   /**
+   * The wheel's event. With Shift held, a wheel that turns only up and down scrolls sideways, as
+   * in the system's own apps on Windows and in GTK's on Linux: towards the user is to the right.
+   */
+  static Wheel wheel(float dx, float dy, float x, float y, boolean shift) {
+    return shift && dx == 0 && dy != 0 ? new Wheel(-dy, 0, x, y) : new Wheel(dx, dy, x, y);
+  }
+
+  /**
    * The cursor of a composition, which SDL counts in characters, as a UTF-16 index into it; -1,
    * for the end, where SDL does not say.
    */
@@ -633,14 +663,28 @@ public final class Window implements AutoCloseable {
 
   /** What a point in logical pixels is to the system: an SDL_HitTestResult. */
   int zone(float x, float y) {
-    if (resizable && (Sdl.getWindowFlags(sdl)
-        & (Sdl.WINDOW_MAXIMIZED | Sdl.WINDOW_FULLSCREEN)) == 0) {
-      int edge = edge(x, y, width, height, resizeMargin);
-      if (edge != Sdl.HITTEST_NORMAL) {
-        return edge;
-      }
+    boolean resizes = resizable
+        && (Sdl.getWindowFlags(sdl) & (Sdl.WINDOW_MAXIMIZED | Sdl.WINDOW_FULLSCREEN)) == 0;
+    return zone(x, y, width, height, resizes ? resizeMargin : 0, part(x, y));
+  }
+
+  /**
+   * What a point is to the system in a window of this size, with this resize margin (0 for none)
+   * and this part of the frame under the point. Where the part takes presses itself, a control
+   * or one of the window's buttons, the margin is no wider than {@link #CONTROL_MARGIN}; the
+   * corners keep their reach along the edges.
+   */
+  static int zone(float x, float y, float width, float height, float margin, WindowPart part) {
+    boolean control = switch (part) {
+      case CONTROL, MINIMIZE, MAXIMIZE, CLOSE -> true;
+      case CONTENT, DRAG -> false;
+    };
+    int edge = edge(x, y, width, height, control ? Math.min(margin, CONTROL_MARGIN) : margin,
+        2 * margin + 2);
+    if (edge != Sdl.HITTEST_NORMAL) {
+      return edge;
     }
-    return part(x, y) == WindowPart.DRAG ? Sdl.HITTEST_DRAGGABLE : Sdl.HITTEST_NORMAL;
+    return part == WindowPart.DRAG ? Sdl.HITTEST_DRAGGABLE : Sdl.HITTEST_NORMAL;
   }
 
   /**
@@ -648,10 +692,15 @@ public final class Window implements AutoCloseable {
    * Corners reach further along the edges than the margin is wide, so they are easier to grab.
    */
   static int edge(float x, float y, float width, float height, float margin) {
+    return edge(x, y, width, height, margin, 2 * margin + 2);
+  }
+
+  /** As {@link #edge(float, float, float, float, float)}, with the corners' reach given. */
+  private static int edge(
+      float x, float y, float width, float height, float margin, float corner) {
     if (!(margin > 0)) {
       return Sdl.HITTEST_NORMAL;
     }
-    float corner = 2 * margin + 2;
     boolean left = x < margin;
     boolean right = x >= width - margin;
     boolean top = y < margin;
@@ -1015,6 +1064,10 @@ public final class Window implements AutoCloseable {
     Sdl.setHint(Sdl.HINT_NO_SIGNAL_HANDLERS, "1");
     // The app draws the composition of an input method, the system its candidates.
     Sdl.setHint(Sdl.HINT_IME_IMPLEMENTED_UI, "composition");
+    // SDL counts a second press within 32 pixels of the first as a double press, as for fingers
+    // on a touch screen: two quick presses on neighbouring rows would be one. An environment
+    // variable of the same name still wins.
+    Sdl.setHint(Sdl.HINT_MOUSE_DOUBLE_CLICK_RADIUS, String.valueOf(doubleClickRadius()));
     if (!Sdl.init(Sdl.INIT_VIDEO)) {
       throw new IllegalStateException("Cannot open windows here: SDL_Init failed: "
           + Sdl.getError());
@@ -1034,6 +1087,20 @@ public final class Window implements AutoCloseable {
       wakeType = registered != 0 ? registered : 0x8000;
       thread = current;
     }
+  }
+
+  /**
+   * How far, in window coordinates, a second press may lie from the first along each axis to make
+   * a double press: on Windows half the system's rectangle for it ({@code SM_CXDOUBLECLK}, 4 by
+   * default, centred on the first press), elsewhere 5, GTK's default distance.
+   */
+  static int doubleClickRadius() {
+    if (!System.getProperty("os.name", "").startsWith("Windows")) {
+      return 5;
+    }
+    int box = Math.max(Win32.getSystemMetrics(Win32.SM_CXDOUBLECLK),
+        Win32.getSystemMetrics(Win32.SM_CYDOUBLECLK));
+    return box > 0 ? Math.max(1, box / 2) : 2;
   }
 
   /** Quits SDL when no window is open, so that another thread may open the next one. */

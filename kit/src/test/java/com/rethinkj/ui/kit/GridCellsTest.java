@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.rethinkj.ui.App;
+import com.rethinkj.ui.Clipboard;
 import com.rethinkj.ui.Cursor;
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.Key;
@@ -62,6 +63,23 @@ class GridCellsTest {
     String line = dumpLine(app, key);
     assertNotNull(line, "no #" + key);
     return line;
+  }
+
+  @Test
+  void aCellShowsItsLineBreaksAndTabsOnOneLineAndCopiesThemAsTheyAre() throws IOException {
+    String note = "say \"hi\"\tthen\r\nbreak\nhere";
+    Selection selection = new Selection(Mode.CELLS);
+    Clipboard clipboard = Clipboard.inMemory();
+    App<Object> app = new App<>(new Object(), s -> El.col().size(560, 240).child(
+        DataGrid.dataGrid(T, List.of(new DataGrid.Column("note", 400, DataGrid.Align.LEFT, false,
+                i -> note)), 3, DataGrid.options().select(selection).copy(clipboard))
+            .key("grid").grow(1)));
+    run(app, "frame\npress #cell-0-0\nkey C control\nframe");
+    El cell = Workbench.find(app, "cell-0-0");
+    Text text = cell.children().getFirst().text();
+    assertEquals("say \"hi\"⇥then⏎break⏎here", text.string());
+    assertEquals(1, text.lines().size(), "one line, as tall as the row");
+    assertEquals("\"say \"\"hi\"\"\tthen\r\nbreak\nhere\"", clipboard.read(), "copied as it is");
   }
 
   // Selecting cells
@@ -175,6 +193,23 @@ class GridCellsTest {
     run(app, "key A control\nframe");
     assertEquals(List.of(new Range(0, 0, 999_999, ALL)), s.ranges(), "one range");
     assertEquals(1_000_000, s.rowCount());
+  }
+
+  @Test
+  void controlHomeAndEndScrollBackSidewaysAlsoWhereTheCursorStays() throws IOException {
+    Orders orders = cells();
+    App<Orders> app = start(orders);
+    run(app, "key Tab\nkey Home control\nframe\nwheel #orders 300 0\nframe");
+    assertEquals(300, find(app, "orders").scrollX(), "the wheel moved away from the cursor");
+    run(app, "key Home control\nframe");
+    assertEquals(List.of(0, 0), List.of(orders.selection.row(), orders.selection.column()));
+    assertEquals(0, find(app, "orders").scrollX(), "back to the cursor, which stayed");
+
+    Orders rows = new Orders(T, 1_000_000, 7, Mode.ROWS);
+    App<Orders> rowsApp = start(rows);
+    run(rowsApp, "key Tab\nframe\nwheel #orders 300 0\nframe\nkey End control\nframe");
+    assertEquals(999_999, rows.selection.row());
+    assertEquals(0, find(rowsApp, "orders").scrollX(), "a row's start");
   }
 
   @Test

@@ -1,0 +1,1 @@
+- `DataGrid`: the arrow keys, Page Up and Down, Home and End show the cursor again after the wheel scrolled it out of view, also when the cursor stays where it is, and Home and End among rows go back to the start of the rows sideways.

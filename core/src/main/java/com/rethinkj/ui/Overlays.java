@@ -139,25 +139,27 @@ final class Overlays {
       float ay = Float.isNaN(l.pointX) ? y : l.pointY;
       float aw = Float.isNaN(l.pointX) ? anchor.width() : 0;
       float ah = Float.isNaN(l.pointX) ? anchor.height() : 0;
+      // A tooltip keeps its gap from the window's edges too; a menu may lie flush with them.
+      float edge = l.avoidsAnchor ? l.gap : 0;
       boolean after = l.side == Side.BOTTOM || l.side == Side.RIGHT;
       boolean turn = within != null && within.flipped && within.side == l.side;
       if (l.side == Side.TOP || l.side == Side.BOTTOM) {
         top = beside(after != turn, ay, ah, h, l.gap, height);
-        left = along(l.align, ax, aw, w, width);
+        left = along(l.align, ax, aw, w, width, edge);
         l.flipped = after ? top < ay : top >= ay + ah;
       } else {
         left = beside(after != turn, ax, aw, w, l.gap, width);
-        top = along(l.align, ay, ah, h, height);
+        top = along(l.align, ay, ah, h, height, edge);
         l.flipped = after ? left < ax : left >= ax + aw;
       }
       // A tooltip that would cover its anchor, under the pointer that shows it, would take the
       // hover from the anchor and hide again: it goes to a side across if one has room.
       if (l.avoidsAnchor && Float.isNaN(l.pointX) && overlaps(left, top, w, h, ax, ay, aw, ah)) {
         boolean down = l.side == Side.TOP || l.side == Side.BOTTOM;
-        float acrossLeft = down ? beside(true, ax, aw, w, l.gap, width) : along(l.align, ax, aw,
-            w, width);
-        float acrossTop = down ? along(l.align, ay, ah, h, height) : beside(true, ay, ah, h, l.gap,
-            height);
+        float acrossLeft = down ? beside(true, ax, aw, w, l.gap, width)
+            : along(l.align, ax, aw, w, width, edge);
+        float acrossTop = down ? along(l.align, ay, ah, h, height, edge)
+            : beside(true, ay, ah, h, l.gap, height);
         if (!overlaps(acrossLeft, acrossTop, w, h, ax, ay, aw, ah)) {
           left = acrossLeft;
           top = acrossTop;
@@ -191,23 +193,26 @@ final class Overlays {
 
   /**
    * Where an overlay starts along the side it is on: aligned with the anchor, else at the other
-   * end of it, else moved into the window.
+   * end of it, else moved into the window; each {@code margin} away from the window's edges where
+   * there is room for that.
    */
-  static float along(Style.Align align, float start, float extent, float size, float window) {
+  static float along(
+      Style.Align align, float start, float extent, float size, float window, float margin) {
     float end = start + extent - size;
     float first = switch (align) {
       case END, FLEX_END -> end;
       case CENTER -> start + (extent - size) / 2;
       default -> start;
     };
-    if (fits(first, size, window)) {
+    margin = Math.clamp(margin, 0, Math.max(window - size, 0) / 2);
+    if (fits(first - margin, size + 2 * margin, window)) {
       return first;
     }
     float second = first == end ? start : end;
-    if (align != Style.Align.CENTER && fits(second, size, window)) {
+    if (align != Style.Align.CENTER && fits(second - margin, size + 2 * margin, window)) {
       return second;
     }
-    return Math.clamp(first, 0, Math.max(window - size, 0));
+    return Math.clamp(first, margin, Math.max(window - size - margin, margin));
   }
 
   /** Where an overlay of this size starts along an edge of the window. */

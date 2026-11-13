@@ -23,6 +23,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * The fonts installed on the system, for the characters that the fonts of a text lack ({@link
@@ -75,6 +76,7 @@ final class SystemFonts {
       "italic", "oblique", "bold italic", "bold oblique");
 
   private static List<Face> faces; // null until the first lookup
+  private static final AtomicBoolean prepared = new AtomicBoolean();
   private static long scanNanos;
   private static int files;
   private static int lookups;
@@ -137,6 +139,23 @@ final class SystemFonts {
     int type = Character.getType(c);
     return type != Character.PRIVATE_USE && type != Character.UNASSIGNED
         && type != Character.SURROGATE;
+  }
+
+  /**
+   * Starts {@link #faces} on a virtual thread of its own, once per process. What the scan throws,
+   * as when FreeType cannot be loaded, is dropped there: the first lookup scans again and throws
+   * it on its own thread.
+   */
+  static void prepare() {
+    if (prepared.compareAndSet(false, true)) {
+      Thread.ofVirtual().name("rethinkj-ui system fonts").start(() -> {
+        try {
+          faces();
+        } catch (RuntimeException | LinkageError e) {
+          // see above
+        }
+      });
+    }
   }
 
   /** The faces of the system's fonts, scanned on the first call. */

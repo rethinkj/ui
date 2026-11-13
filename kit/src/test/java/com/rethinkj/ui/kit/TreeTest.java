@@ -249,6 +249,52 @@ class TreeTest {
   }
 
   @Test
+  void aSecondaryPressSelectsTheRowBeforeTheTreesContextMenuOpens() throws IOException {
+    Catalog catalog = new Catalog(T);
+    Menu.State menu = new Menu.State();
+    List<String> chosen = new ArrayList<>();
+    App<Catalog> app = new App<>(catalog, c -> col().wFull().hFull().child(
+        Menu.contextMenu(T, c.tree().key("schema").grow(1), menu, List.of(
+            Menu.item("Copy name", () -> chosen.add("copy " + c.selected))))));
+    catalog.app = app;
+    run(app, "frame\npress #row-1 right\nframe");
+    assertEquals(List.of("select prod-eu"), catalog.log, "the row under the pointer first");
+    assertTrue(menu.isOpen());
+    run(app, "advance 0.25\nframe\npress role=menuitem label=\"Copy name\"\nframe");
+    assertEquals(List.of("copy prod-eu"), chosen, "the menu acts on that row");
+
+    run(app, "press #row-1 right\nframe"); // the selected row: no second selection
+    assertEquals(List.of("select prod-eu"), catalog.log);
+    assertTrue(menu.isOpen());
+  }
+
+  /** Shift+F10 opens the tree's menu at the selected row, beside a menu bar that F10 opens. */
+  @Test
+  void shiftF10OpensTheMenuAtTheSelectedRowAndF10TheMenuBar() throws IOException {
+    Catalog catalog = new Catalog(T);
+    Menu.State menu = new Menu.State();
+    MenuBar.State bar = new MenuBar.State();
+    List<Menu.Item> menus = List.of(Menu.submenu("&File", List.of(Menu.item("Quit", () -> {}))));
+    App<Catalog> app = new App<>(catalog, c -> col().wFull().hFull()
+        .onKey(MenuBar.keys(bar, menus))
+        .child(MenuBar.menuBar(T, bar, menus))
+        .child(Menu.contextMenu(T, c.tree().key("schema").grow(1), menu,
+            List.of(Menu.item("Copy name", () -> {})))));
+    catalog.app = app;
+    run(app, "frame\npress #row-1\nframe\nkey F10 shift\nframe");
+    assertTrue(menu.isOpen(), "the tree's menu");
+    assertEquals(-1, bar.title(), "not the bar");
+    // The row's rectangle in the window, and the menu at its bottom left.
+    Matcher rect = Pattern.compile(" (\\d+),(\\d+) (\\d+)x(\\d+)").matcher(dumpLine(app, "row-1"));
+    assertTrue(rect.find());
+    int bottom = Integer.parseInt(rect.group(2)) + Integer.parseInt(rect.group(4));
+    String at = "overlay at " + rect.group(1) + "," + bottom + " ";
+    assertTrue(app.tree().dump().lines().anyMatch(l -> l.startsWith(at)), app.tree().dump());
+    run(app, "key Escape\nframe\nkey F10\nframe");
+    assertEquals(0, bar.title(), "F10 alone gives the bar the keys");
+  }
+
+  @Test
   void aPressOnAMarkSelectsAndOpensAndAnotherCloses() throws IOException {
     Catalog catalog = new Catalog(T);
     App<Catalog> app = start(catalog);

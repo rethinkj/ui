@@ -1,0 +1,1 @@
+- `Menu`: the highlighted item is `current` in the tree dump, so a script reads the highlight without its colour.

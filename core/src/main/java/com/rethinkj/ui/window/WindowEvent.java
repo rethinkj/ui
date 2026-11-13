@@ -36,7 +36,7 @@ public sealed interface WindowEvent {
    * The wheel or the touchpad scrolled, by {@code dx} and {@code dy} in steps of the wheel, with
    * the pointer at {@code x, y}. Positive {@code dy} scrolls up, away from the user; positive {@code
    * dx} scrolls right. Systems that flip the direction ("natural scrolling") are already accounted
-   * for.
+   * for, and so is Shift: a wheel that turns only up and down turns sideways while it is held.
    */
   record Wheel(float dx, float dy, float x, float y) implements WindowEvent {}
 

@@ -186,7 +186,9 @@ el 0,0 1000x600
           el 261,60 739x1
           el #panel role=tabpanel label="orders" 261,61 739x515
             el 261,61 739x515
-              text "Loading the rows of localhost/shop/public/orders…" 285,85 691x16
+              text #query-localhost/shop/public/orders role=textbox label="Query" "SELECT *\nFROM shop.public.orders;" 265,65 731x82 lines 1-2/2
+              el 265,151 731x64
+                text "Loading the rows of localhost/shop/public/orders…" 289,175 683x16
       el #divider role=separator label="Resize" 257,32 7x544 value="first 260"
         el 260,32 1x544
   text #status "localhost/shop/public/orders · counting the rows" 0,576 1000x24

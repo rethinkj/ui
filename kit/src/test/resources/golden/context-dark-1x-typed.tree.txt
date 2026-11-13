@@ -60,7 +60,7 @@ overlay at 121,109 bottom start on #tables role=list label="Tables" 12,44 218x16
       el 126,187 169x24
         el 134,199 16x0
         text "Duplicate" 158,191 129x16
-    el #item-5 role=menuitem label="Drop table" 126,211 169x24
+    el #item-5 role=menuitem label="Drop table" 126,211 169x24 current
       el 126,211 169x24
         el 134,223 16x0
         text "Drop table" 158,215 129x16

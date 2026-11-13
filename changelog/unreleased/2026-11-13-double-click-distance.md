@@ -1,0 +1,1 @@
+- A second press counts as a double press only within the system's double-click distance (half of `SM_CXDOUBLECLK` on Windows, 2 pixels by default, and 5 pixels on Linux) instead of SDL's 32 pixels, which turned two quick presses on neighbouring rows of a tree or grid into a double press on the second. The environment variable `SDL_MOUSE_DOUBLE_CLICK_RADIUS` still overrides it.

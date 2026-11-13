@@ -366,5 +366,5 @@ el 0,0 560x240
             text "13" 111,298 14x16
           el 129,295 1x22
 overlay bottom center gap 2 on #cell-7-6 role=gridcell 390,185 239x22
-  el #tooltip role=tooltip label="Customer asked to split the delivery into two parcels and to leave them next door" 47,209 513x22
-    text "Customer asked to split the delivery into two parcels and to leave them next door" 52,212 503x16
+  el #tooltip role=tooltip label="Customer asked to split the delivery into two parcels and to leave them next door" 45,209 513x22
+    text "Customer asked to split the delivery into two parcels and to leave them next door" 50,212 503x16
