@@ -34,8 +34,8 @@ class OverlayTest {
     final List<String> log = new ArrayList<>();
   }
 
-  private static App<State> app(State s, Function<State, El> view, float width, float height) {
-    App<State> app = new App<>(s, view);
+  private static <S> App<S> app(S s, Function<S, El> view, float width, float height) {
+    App<S> app = new App<>(s, view);
     app.resize(width, height, 1);
     app.frame();
     return app;
@@ -587,5 +587,140 @@ class OverlayTest {
         """, app.render().tree());
     assertEquals(Headless.render(OverlayTest.menuButton(s), 200, 200, 1).tree(),
         app.render().tree(), "Headless places them as the app does");
+  }
+
+  /** The state of a bar of two titles that open a menu each. */
+  static final class Bar {
+    int open = -1;
+    boolean active; // the keyboard has the bar
+    final List<String> log = new ArrayList<>();
+  }
+
+  /**
+   * A bar of two titles, 40 by 20 at 0,0 and 50,0, in one dismiss group with their menus, which
+   * keeps the focus where it is; below it a focusable field. While active, the bar holds the focus.
+   */
+  private static El bar(Bar b) {
+    El bar = row().key("bar").gap(10).keepFocus();
+    for (int i = 0; i < 2; i++) {
+      int at = i;
+      El title = el().key("title-" + i).size(40, 20).dismissGroup(b).onPress(() -> {
+        b.log.add("title " + at);
+        b.open = b.open == at ? -1 : at;
+      });
+      if (b.open == i) {
+        title.overlay(col().key("menu").dismissGroup(b).onDismiss(() -> {
+          b.log.add("dismissed");
+          b.open = -1;
+          b.active = false;
+        }).child(el().key("item").size(60, 20).focusable().onPress(() -> b.log.add("item"))));
+      }
+      bar.child(title);
+    }
+    if (b.active) {
+      bar.focusable().holdFocus().onDismiss(() -> {
+        b.log.add("bar dismissed");
+        b.active = false;
+      });
+    }
+    return col().size(200, 200).gap(10).children(bar,
+        el().key("field").size(100, 20).focusable().onPress(() -> b.log.add("field")));
+  }
+
+  @Test
+  void aPressOnAnElementOfTheOverlaysDismissGroupGoesOnToItWithoutDismissing() {
+    Bar b = new Bar();
+    App<Bar> app = app(b, OverlayTest::bar, 200, 200);
+    press(app, 20, 10);
+    assertEquals(0, b.open);
+    press(app, 70, 10); // the other title: one press switches
+    assertEquals(List.of("title 0", "title 1"), b.log);
+    assertEquals(1, b.open);
+    press(app, 70, 10); // its own title closes it
+    assertEquals(-1, b.open);
+    b.log.clear();
+
+    press(app, 20, 10);
+    press(app, 47, 10); // between the titles, outside the group: dismisses, nothing else
+    assertEquals(List.of("title 0", "dismissed"), b.log);
+    b.log.clear();
+    press(app, 20, 10);
+    press(app, 90, 45); // on the field: dismisses, nothing else, as before
+    assertEquals(List.of("title 0", "dismissed"), b.log);
+  }
+
+  @Test
+  void aPressInAnElementThatKeepsTheFocusLeavesItWhereItIs() {
+    Bar b = new Bar();
+    App<Bar> app = app(b, OverlayTest::bar, 200, 200);
+    press(app, 20, 40);
+    assertEquals("field", app.focused().key());
+    press(app, 20, 10); // the title: the menu opens and takes the focus
+    assertEquals("item", app.focused().key());
+    press(app, 20, 10); // the title again: the menu closes and gives it back
+    assertEquals(-1, b.open);
+    assertEquals("field", app.focused().key(), "the press on the title did not clear it");
+  }
+
+  @Test
+  void anOverlayThatKeepsTheFocusOpensWithoutItAndTabStillReachesIt() {
+    State s = new State();
+    App<State> app = app(s, st -> el().size(200, 200).child(row().children(
+        el().key("field").size(40, 20).focusable(),
+        el().key("after").size(40, 20).focusable().overlay(st.open
+            ? col().key("toast").keepFocus().child(
+                el().key("undo").size(40, 20).focusable().onPress(() -> st.log.add("undo")))
+            : null))), 200, 200);
+    press(app, 20, 10);
+    assertEquals("field", app.focused().key());
+    s.open = true;
+    rebuild(app);
+    assertEquals("field", app.focused().key(), "it opened without taking the focus");
+    key(app, "Tab", 0);
+    key(app, "Tab", 0);
+    assertEquals("undo", app.focused().key(), "right after its anchor");
+    key(app, "Tab", Key.SHIFT);
+    key(app, "Tab", Key.SHIFT);
+    press(app, 50, 30); // Undo, below its anchor: runs, and leaves the focus on the field
+    assertEquals(List.of("undo"), s.log);
+    assertEquals("field", app.focused().key());
+  }
+
+  @Test
+  void anElementThatHoldsTheFocusTakesItAndGivesItBackAfterTheOverlaysInsideIt() {
+    Bar b = new Bar();
+    App<Bar> app = app(b, OverlayTest::bar, 200, 200);
+    press(app, 20, 40);
+    b.active = true;
+    rebuild(app);
+    assertEquals("bar", app.focused().key(), "marked: it takes the focus");
+    b.open = 1;
+    rebuild(app);
+    assertEquals("item", app.focused().key(), "the menu inside it takes it from the bar");
+    b.open = -1;
+    rebuild(app);
+    assertEquals("bar", app.focused().key(), "and gives it back to the bar");
+    b.open = 0;
+    rebuild(app);
+    b.open = -1;
+    b.active = false;
+    rebuild(app);
+    assertEquals("field", app.focused().key(), "both closed in one build: the newest first");
+
+    b.active = true;
+    rebuild(app);
+    b.log.clear();
+    press(app, 20, 10); // a title, inside the bar
+    assertEquals(List.of("title 0"), b.log);
+    press(app, 150, 150); // outside both: the menu and the bar are dismissed, nothing else
+    assertEquals(List.of("title 0", "dismissed", "bar dismissed"), b.log);
+    assertFalse(b.active);
+    assertEquals("field", app.focused().key());
+    b.active = true;
+    rebuild(app);
+    b.log.clear();
+    press(app, 90, 45); // the field: dismisses the bar and goes no further
+    assertEquals(List.of("bar dismissed"), b.log);
+    assertEquals("field", app.focused().key());
   }
 }

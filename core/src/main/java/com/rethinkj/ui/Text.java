@@ -76,6 +76,8 @@ public final class Text implements Measure {
   private Box caret;
   private boolean caretShown;
   private Box composition;
+  private int underlineFrom; // a range El#underline marks, from == to for none
+  private int underlineTo;
   private Font font;
   private float size = 14;
   private int color = 0xFF000000;
@@ -366,6 +368,18 @@ public final class Text implements Measure {
           baseline));
     }
     lines = List.copyOf(placed);
+    if (underlineTo > underlineFrom && !field && !spans.isEmpty()) {
+      int line = lineOf(underlineFrom);
+      float from = x(underlineFrom);
+      composition = new Box(from, baseline(line)
+          + Math.round(font().descent() * size * scale / 2), x(underlineTo) - from,
+          Math.max(1, Math.round(scale)));
+    }
+  }
+
+  void underline(int from, int to) {
+    underlineFrom = from;
+    underlineTo = to;
   }
 
   /**

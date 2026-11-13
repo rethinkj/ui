@@ -537,7 +537,8 @@ final class Animator {
   /**
    * The overlays of a tree the view has just built, with their identities, in tree order: those
    * attached to its elements and to elements inside overlays, but not those in the rows of virtual
-   * lists, which are built later.
+   * lists, which are built later; and the elements that {@link El#holdFocus hold the focus}, each
+   * before the overlays inside it.
    */
   static Map<Object, El> overlays(El root) {
     Map<Object, El> found = new LinkedHashMap<>();
@@ -546,6 +547,9 @@ final class Animator {
   }
 
   private static void overlays(El el, Id id, Map<Object, El> found) {
+    if (el.holdsFocus()) {
+      found.put(id, el); // holds the focus as an open overlay does, before those inside it
+    }
     Id[] ids = ids(el, id);
     for (int i = 0; i < ids.length; i++) {
       overlays(el.children().get(i), ids[i], found);

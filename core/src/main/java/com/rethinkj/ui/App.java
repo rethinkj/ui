@@ -353,8 +353,10 @@ public final class App<S> {
     dragging = target == null || target.el.onDrag() == null
         ? null
         : new Dragging(target.id(), target.el.onDrag(), x, y);
-    Target focus = target(x, y, El::isFocusable);
-    focus(focus == null ? null : focus.el, false);
+    if (!keepsFocus(hit)) {
+      Target focus = target(x, y, El::isFocusable);
+      focus(focus == null ? null : focus.el, false);
+    }
     Target down = target(x, y, e -> e.onPointerDown() != null);
     if (down != null) {
       down.el.onPointerDown().press(clicks, modifiers);
@@ -417,8 +419,10 @@ public final class App<S> {
     }
     Target target = target(x, y, el -> el.onSecondaryPress() != null);
     secondary = target == null ? null : target.id();
-    Target focus = target(x, y, El::isFocusable);
-    focus(focus == null ? null : focus.el, false);
+    if (!keepsFocus(hit(x, y))) {
+      Target focus = target(x, y, El::isFocusable);
+      focus(focus == null ? null : focus.el, false);
+    }
     return false;
   }
 
@@ -448,6 +452,16 @@ public final class App<S> {
     }
   }
 
+  /** Whether {@link El#keepFocus} keeps the focus where it is for a press along this path. */
+  private static boolean keepsFocus(List<El> hit) {
+    for (El el : hit) {
+      if (el.keepsFocus()) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   /**
    * Whether a press at this point lands on a part of the window's own frame ({@link
    * El#windowPart}) outside a modal overlay: the window moves, minimizes, maximizes or closes, and
@@ -460,7 +474,10 @@ public final class App<S> {
   /**
    * For a press or the wheel at this point: runs the {@link El#onDismiss} handlers of the
    * overlays above the first one it lands in, the topmost first, all in the tree of the moment.
-   * A modal overlay ends the search; the wheel calls no modal overlay's handler.
+   * One whose {@link El#dismissGroup} is that of the element under the point counts as one it
+   * lands in. A modal overlay ends the search; the wheel calls no modal overlay's handler. A press
+   * outside all overlays then dismisses the elements that {@link El#holdFocus hold the focus} and
+   * that it lands outside of.
    *
    * @return whether the input goes no further: it landed outside a modal overlay, or a press
    *     landed outside all overlays and called a handler
@@ -469,12 +486,18 @@ public final class App<S> {
     if (root == null) {
       return false;
     }
+    List<El> under = hit(x, y);
+    Object group = null;
+    for (int i = under.size() - 1; i >= 0 && group == null; i--) {
+      group = under.get(i).dismissGroup();
+    }
     boolean dismissed = false;
     for (El overlay : root.shownOverlays().reversed()) {
       if (overlay.isExiting()) {
         continue;
       }
-      if (!hitFrom(overlay, x, y).isEmpty()) {
+      if (!hitFrom(overlay, x, y).isEmpty()
+          || group != null && group.equals(overlay.dismissGroup())) {
         return false;
       }
       Runnable handler = overlay.onDismiss();
@@ -484,6 +507,16 @@ public final class App<S> {
       }
       if (overlay.isModal()) {
         return true;
+      }
+    }
+    if (press) {
+      for (Object id : List.copyOf(opened.keySet())) {
+        El holder = animator.element(id);
+        if (holder != null && holder.holdsFocus() && holder.onDismiss() != null
+            && !under.contains(holder)) {
+          holder.onDismiss().run();
+          handled = dismissed = true;
+        }
       }
     }
     return press && dismissed;
@@ -1817,8 +1850,10 @@ public final class App<S> {
    * Before layout of a tree the view has just built: each overlay it no longer has gives the
    * focus back to where it was before the overlay took it, the newest first, if the focus is
    * still inside the overlay or nowhere; then each overlay that opens moves the focus to its first
-   * focusable element, without a ring. A modal overlay without one takes the focus away until it
-   * closes. {@link #refocus} finds the element after layout.
+   * focusable element, without a ring, unless it {@link El#keepFocus keeps the focus} where it is.
+   * A modal overlay without one takes the focus away until it closes. An element that {@link
+   * El#holdFocus holds the focus} counts as an overlay that is open while it is marked so. {@link
+   * #refocus} finds the element after layout.
    */
   private void openAndClose(El tree) {
     Map<Object, El> now = Animator.overlays(tree);
@@ -1838,7 +1873,8 @@ public final class App<S> {
         continue;
       }
       Object first = Animator.firstFocusable(overlay.getValue(), overlay.getKey());
-      boolean takes = first != null || overlay.getValue().isModal();
+      El el = overlay.getValue();
+      boolean takes = (el.holdsFocus() || !el.keepsFocus()) && (first != null || el.isModal());
       opened.put(overlay.getKey(), takes ? new Focus(focusId, ring) : null);
       if (takes) {
         moveFocus(first, false);

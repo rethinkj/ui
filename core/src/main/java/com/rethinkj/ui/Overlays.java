@@ -62,14 +62,15 @@ final class Overlays {
   static void place(El root, float width, float height) {
     List<El> shown = new ArrayList<>();
     float far = Float.POSITIVE_INFINITY;
-    place(root, 0, 0, -far, -far, far, far, width, height, shown);
+    place(root, 0, 0, -far, -far, far, far, width, height, shown, null);
     shown.sort(Comparator.comparingLong(overlay -> overlay.placement().opened)); // stable
     root.shownOverlays(List.copyOf(shown));
   }
 
+  /** @param within the placement of the overlay {@code el} is in, null in the tree below */
   private static void place(
       El el, float parentX, float parentY, float clipLeft, float clipTop, float clipRight,
-      float clipBottom, float width, float height, List<El> shown) {
+      float clipBottom, float width, float height, List<El> shown, El.Layer within) {
     if (!el.isPlaced() || el.opacity() == 0 || el.isExiting()) {
       return;
     }
@@ -80,10 +81,10 @@ final class Overlays {
     if (left < clipRight && right > clipLeft && top < clipBottom && bottom > clipTop) {
       float far = Float.POSITIVE_INFINITY;
       for (El overlay : el.overlays()) {
-        place(overlay, el, left, top, width, height);
+        place(overlay, el, left, top, width, height, within);
         shown.add(overlay);
         // Its overlays follow it, free of the clips around its anchor.
-        place(overlay, 0, 0, -far, -far, far, far, width, height, shown);
+        place(overlay, 0, 0, -far, -far, far, far, width, height, shown, overlay.placement());
       }
     }
     Style s = el.style();
@@ -97,13 +98,21 @@ final class Overlays {
       }
     }
     for (El child : el.children()) {
-      place(child, left, top, clipLeft, clipTop, clipRight, clipBottom, width, height, shown);
+      place(child, left, top, clipLeft, clipTop, clipRight, clipBottom, width, height, shown,
+          within);
     }
   }
 
-  /** Places one overlay of {@code anchor}, whose border box is at {@code x, y} in the window. */
-  private static void place(El overlay, El anchor, float x, float y, float width, float height) {
+  /**
+   * Places one overlay of {@code anchor}, whose border box is at {@code x, y} in the window. An
+   * overlay inside one that went to the other side of its anchor than it asked tries that other
+   * side first too when it asks the same side, so that submenus go on the way the first that
+   * flipped at the window's edge went.
+   */
+  private static void place(
+      El overlay, El anchor, float x, float y, float width, float height, El.Layer within) {
     El.Layer l = overlay.placement();
+    l.flipped = false;
     l.anchor = anchor;
     l.anchorX = x;
     l.anchorY = y;
@@ -119,12 +128,16 @@ final class Overlays {
       float ay = Float.isNaN(l.pointX) ? y : l.pointY;
       float aw = Float.isNaN(l.pointX) ? anchor.width() : 0;
       float ah = Float.isNaN(l.pointX) ? anchor.height() : 0;
+      boolean after = l.side == Side.BOTTOM || l.side == Side.RIGHT;
+      boolean turn = within != null && within.flipped && within.side == l.side;
       if (l.side == Side.TOP || l.side == Side.BOTTOM) {
-        top = beside(l.side == Side.BOTTOM, ay, ah, h, l.gap, height);
+        top = beside(after != turn, ay, ah, h, l.gap, height);
         left = along(l.align, ax, aw, w, width);
+        l.flipped = after ? top < ay : top >= ay + ah;
       } else {
-        left = beside(l.side == Side.RIGHT, ax, aw, w, l.gap, width);
+        left = beside(after != turn, ax, aw, w, l.gap, width);
         top = along(l.align, ay, ah, h, height);
+        l.flipped = after ? left < ax : left >= ax + aw;
       }
     }
     // On whole pixels, as layout places everything else.

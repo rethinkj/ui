@@ -122,6 +122,11 @@ public final class El {
   private double restDelay;
   private Runnable onHoverFor;
   private double hoverDelay;
+  private Object dismissGroup; // see #dismissGroup
+  private boolean keepsFocus; // see #keepFocus
+  private boolean holdsFocus; // see #holdFocus
+  private Consumer<El> focusRestLook; // see #whenFocusVisibleFor
+  private double focusRestDelay;
 
   /** Told a position in logical pixels of the window, as {@link #onSecondaryPress} is. */
   @FunctionalInterface
@@ -173,6 +178,7 @@ public final class El {
     Runnable onDismiss;
     Object id; // its identity, which Animator sets
     long opened; // when it first appeared, which Animator counts
+    boolean flipped; // the last placement put it on the other side of its anchor
     El anchor; // as the last placement found it, in window coordinates
     float anchorX;
     float anchorY;
@@ -776,6 +782,21 @@ public final class El {
     return this;
   }
 
+  /**
+   * Underlines characters {@code from} to {@code to} of the text, in the text's colour, as a menu
+   * marks the letter that opens it with Alt. The line lies where an input method's composition is
+   * underlined. Not for a text field, whose composition has the line.
+   */
+  public El underline(int from, int to) {
+    Text t = textOnly("underline");
+    if (from < 0 || to < from || to > t.string().length()) {
+      throw new IllegalArgumentException("underline " + from + " to " + to + " is not inside \""
+          + t.string() + "\"");
+    }
+    t.underline(from, to);
+    return this;
+  }
+
   /** Lets the text break into more lines where it is wider than its box. */
   public El wrapText() {
     textOnly("wrapText").wraps(true);
@@ -1262,6 +1283,49 @@ public final class El {
     return this;
   }
 
+  /**
+   * Puts this overlay, or this element and what is inside it, into a group for dismissing: a press
+   * or the wheel on an element of the group is not outside the overlays of the same group. They
+   * are not dismissed, and the press goes on to the element as if it had landed in an overlay below
+   * them, whose handler decides what happens. A menu bar puts its titles and their menus into one
+   * group, so that a press on another title switches menus with one click and a press on the open
+   * menu's title closes it. Groups are equal by {@link Object#equals}; the app's state object of
+   * the component is a good one.
+   *
+   * @param group the group, or null for none
+   */
+  public El dismissGroup(Object group) {
+    this.dismissGroup = group;
+    return this;
+  }
+
+  /**
+   * Makes this element leave the keyboard focus where it is. A press on it or inside it does not
+   * move the focus, also not to a focusable element inside it, except into a text field; as an
+   * overlay it opens without taking the focus, and closes without moving it. Tab still reaches the
+   * focusable elements inside it in the usual order: an overlay's right after its anchor. A menu
+   * bar's titles keep the focus in the editor whose menus they open, and a notification with an
+   * Undo button opens without taking the focus from what the user types.
+   */
+  public El keepFocus() {
+    this.keepsFocus = true;
+    return this;
+  }
+
+  /**
+   * Makes this element hold the keyboard focus while the view marks it so, as an open overlay
+   * does: the build that first marks it moves the focus to it, or to its first focusable element,
+   * without a ring, and the first build that no longer marks it gives the focus back to where it
+   * was before, with the ring it had, if the focus is still inside it or nowhere. A press outside
+   * it calls its {@link #onDismiss} handler and goes no further, as a press outside a menu does.
+   * Overlays that open inside it take the focus from it and give it back, the newest first. A menu
+   * bar holds the focus this way while the keyboard has it, from Alt or F10 until Escape.
+   */
+  public El holdFocus() {
+    this.holdsFocus = true;
+    return this;
+  }
+
   private Layer layer() {
     if (layer == null) {
       layer = new Layer();
@@ -1441,6 +1505,21 @@ public final class El {
   /** The handler set with {@link #onDismiss}, or null. */
   public Runnable onDismiss() {
     return layer == null ? null : layer.onDismiss;
+  }
+
+  /** The group set with {@link #dismissGroup}, or null. */
+  public Object dismissGroup() {
+    return dismissGroup;
+  }
+
+  /** Whether {@link #keepFocus} was called. */
+  public boolean keepsFocus() {
+    return keepsFocus;
+  }
+
+  /** Whether {@link #holdFocus} was called. */
+  public boolean holdsFocus() {
+    return holdsFocus;
   }
 
   /** For placement and {@link Animator}: where this overlay goes, null if no call said. */
