@@ -202,6 +202,11 @@ class GpuRendererTest {
       cases.add(text(stored ? "text-ellipsis-" + (int) scale + "x" : "text-ellipsis" + at(scale),
           Examples.ellipsisText(), 360, 236, scale, TextRendering.LINUX, new Atlas(), stored));
     }
+    for (float scale : new float[] {1, 2, 1.5f}) { // lines aligned in their boxes
+      boolean stored = scale != 1.5f;
+      cases.add(text(stored ? "text-align-" + (int) scale + "x" : "text-align" + at(scale),
+          Examples.alignedText(), 360, 172, scale, TextRendering.LINUX, new Atlas(), stored));
+    }
     cases.add(textScrolled());
     // Scenes that stress one formula each.
     for (float scale : new float[] {1, 2, 1.5f}) {

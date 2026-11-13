@@ -892,6 +892,25 @@ public final class El {
   }
 
   /**
+   * Aligns each line of this text element in its content box: at the start (the left, the
+   * default), in the centre or at the end, as CSS's {@code text-align} does, for a text of one
+   * line and for one that {@link #wrapText wraps}, also where a line ends in an {@link #ellipsis}:
+   * an empty state's centred message, a column of numbers aligned at the right. Each line on its
+   * own, on the grid of glyph positions. Text fields, which scroll their lines, start at the left.
+   *
+   * @param align {@link Style.Align#START}, {@link Style.Align#CENTER} or {@link Style.Align#END}
+   */
+  public El textAlign(Style.Align align) {
+    Text t = textOnly("textAlign");
+    if (align != Style.Align.START && align != Style.Align.CENTER && align != Style.Align.END) {
+      throw new IllegalArgumentException(
+          "textAlign takes START, CENTER or END, as CSS's text-align does; was " + align);
+    }
+    t.align(align);
+    return this;
+  }
+
+  /**
    * Colours parts of this text element's string, and sets them in other fonts of its size, as a
    * highlighter of code does: {@code highlighter} says per line which ranges have which colour or
    * font ({@link Spans}). A {@link #multiline} field asks only about the lines it shapes and keeps

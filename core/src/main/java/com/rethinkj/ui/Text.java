@@ -61,12 +61,14 @@ public final class Text implements Measure {
    *     a multi-line field after its vertical scroll, so negative for a line above the box
    * @param colors the colour of each glyph as 0xAARRGGBB, where a {@link Highlighter} coloured
    *     the line; null when every glyph has the text's colour
+   * @param x where the pen starts, from the left edge of the content box: 0, or further right in
+   *     text {@link El#textAlign aligned} to the centre or the end, on the grid of glyph positions
    */
-  public record Line(GlyphRun glyphs, float width, float baseline, int[] colors) {
+  public record Line(GlyphRun glyphs, float width, float baseline, int[] colors, float x) {
 
-    /** A line whose glyphs all have the text's colour. */
+    /** A line at the left edge whose glyphs all have the text's colour. */
     public Line(GlyphRun glyphs, float width, float baseline) {
-      this(glyphs, width, baseline, null);
+      this(glyphs, width, baseline, null, 0);
     }
   }
 
@@ -118,6 +120,8 @@ public final class Text implements Measure {
   private int caretColor;
   private int selectionColor = SELECTION;
   private int tabSize = 4;
+  private Style.Align align = Style.Align.START;
+  private float[] lineX = {}; // per line placed: where its pen starts, after the alignment
   private Highlighter highlighter;
   private Object highlightKey;
   private Decorator decorator;
@@ -452,6 +456,15 @@ public final class Text implements Measure {
     viewStale = true;
   }
 
+  void align(Style.Align align) {
+    this.align = align;
+  }
+
+  /** How lines are aligned in the content box; see {@link El#textAlign}. */
+  public Style.Align align() {
+    return align;
+  }
+
   void highlight(Object key, Highlighter highlighter) {
     this.highlightKey = key;
     this.highlighter = highlighter;
@@ -607,16 +620,21 @@ public final class Text implements Measure {
     offsetY = field ? Math.round((placedHeight - spans.size() * lineHeight) / 2) : 0;
     List<Line> placed = new ArrayList<>();
     shortened = false;
+    lineX = new float[spans.size()];
     for (Span span : spans) {
       float baseline = offsetY + firstBaseline + placed.size() * lineHeight;
+      Line line;
       if (ellipsis && !field && span.width > placedWidth + SLACK) {
-        placed.add(shorten(span, baseline));
+        line = shorten(span, baseline);
         shortened = true;
-        continue;
+      } else {
+        Para para = paras[span.paragraph];
+        line = new Line(para.slice(span.from, span.to), span.width, baseline,
+            para.colors(span.from, span.to), 0);
       }
-      Para para = paras[span.paragraph];
-      placed.add(new Line(para.slice(span.from, span.to), span.width, baseline,
-          para.colors(span.from, span.to)));
+      float x = aligned(line.width());
+      lineX[placed.size()] = x;
+      placed.add(x == 0 ? line : new Line(line.glyphs(), line.width(), baseline, line.colors(), x));
     }
     lines = List.copyOf(placed);
     if (underlineTo > underlineFrom && !field && !spans.isEmpty()) {
@@ -626,6 +644,23 @@ public final class Text implements Measure {
           + Math.round(font().descent() * size * scale / 2), x(underlineTo) - from,
           Math.max(1, Math.round(scale)));
     }
+  }
+
+  /**
+   * Where a line this wide starts in the content box as the alignment puts it, on the grid of
+   * glyph positions; 0 in a field, which scrolls instead.
+   */
+  private float aligned(float width) {
+    float share = switch (align) {
+      case CENTER -> 0.5f;
+      case END, FLEX_END -> 1;
+      default -> 0;
+    };
+    if (share == 0 || field) {
+      return 0;
+    }
+    double grid = scale >= 1.5 && !font().wholePixels() ? 4 : 1;
+    return (float) (Math.floor(Math.max(placedWidth - width, 0) * share * grid) / grid);
   }
 
   void underline(int from, int to) {
@@ -661,7 +696,7 @@ public final class Text implements Measure {
       Para shortened = shape(kept + ELLIPSIS, para.spans, para.offset + span.from, kept.length());
       GlyphRun run = shortened.run;
       if (run.width() <= placedWidth + SLACK || i == 0) {
-        return new Line(run, run.width(), baseline, shortened.colors);
+        return new Line(run, run.width(), baseline, shortened.colors, 0);
       }
     }
   }
@@ -1065,10 +1100,11 @@ public final class Text implements Measure {
     if (placedSpans.isEmpty()) {
       return 0;
     }
-    Span span = placedSpans.get(line(index));
+    int line = line(index);
+    Span span = placedSpans.get(line);
     int p = span.paragraph;
     int at = Math.clamp(index - starts[p], span.from, span.to);
-    return paras[p].pen(at) - paras[p].pen(span.from);
+    return (line < lineX.length ? lineX[line] : 0) + paras[p].pen(at) - paras[p].pen(span.from);
   }
 
   /** The number of grapheme boundaries after {@code from} up to and with {@code to}. */
@@ -1308,7 +1344,8 @@ public final class Text implements Measure {
           break;
         }
         laid.add(new Line(para.slice(para.rowStart(r), para.rowEnd(r)), para.rowWidths[r],
-            (float) (top - viewY + firstBaseline), para.colors(para.rowStart(r), para.rowEnd(r))));
+            (float) (top - viewY + firstBaseline), para.colors(para.rowStart(r), para.rowEnd(r)),
+            0));
         placed.add(new Row(line, r, para, top));
         if (top < viewY + placedHeight && top + lh > viewY) {
           firstInView = firstInView < 0 ? line : firstInView;

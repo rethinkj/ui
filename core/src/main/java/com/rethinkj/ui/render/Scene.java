@@ -551,7 +551,8 @@ public final class Scene {
           shareOf = glyphColour;
           share = lightShare(glyphColour, background);
         }
-        double origin = left + run.x(i) - scroll; // on the quarter grid, or whole below 1.5
+        // On the quarter grid, or whole below 1.5, as the line's start is.
+        double origin = left + line.x() + run.x(i) - scroll;
         double whole = Math.floor(origin);
         Atlas.Slot slot = atlas.glyph(run.font(i), run.pixelSize(), rendering.hinting(),
             run.glyph(i), (int) ((origin - whole) * 4));
