@@ -1,0 +1,45 @@
+# The kit's text areas (TextAreaTest): a query in a code area, whose second and third lines a tab
+# indents and whose fifth line is wider than the area, and notes in a text area that wraps.
+frame
+snap rest
+
+focus #query           # the caret at the start of the query, with the ring of the keyboard
+key ArrowDown
+key ArrowDown
+key End
+frame
+snap caret             # at the end of the third line, after the tab stop
+
+key ArrowUp            # from the end of "o.total," to ...
+key ArrowUp shift
+key ArrowRight shift
+key ArrowRight shift
+key ArrowDown shift
+key ArrowDown shift
+key ArrowDown shift
+frame
+snap selection         # ... three lines down: two line feeds selected to the right edge
+
+key End control        # the last line: down to the end of the text
+frame
+key ArrowUp
+key ArrowUp
+key ArrowUp
+key ArrowUp
+key End                # the end of the long line: scrolled down and sideways, both bars
+frame
+snap scrolled
+
+key Home control
+frame
+key ArrowDown shift
+key ArrowDown shift
+key Tab                # indents the first two lines by four spaces
+frame
+snap indented
+
+focus #notes
+key End control
+type " The courier comes at nine and leaves by noon; the gate closes at five."
+frame
+snap wrapped           # the notes wrap at the area's width and scroll down to the caret
