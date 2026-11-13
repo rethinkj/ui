@@ -1,0 +1,33 @@
+# The data grid in cells (DataGridTest): a million orders with row numbers and the id frozen, a
+# range and the cursor, two sort keys, frozen columns scrolled sideways, a shortened cell's
+# tooltip, the context menu, and rows the app has not loaded yet.
+size 560 240
+frame
+press #cell-1-1
+press #cell-4-2 shift  # a range from customer in row 1 to email in row 4, focused
+frame
+snap range             # the cursor's outline on the email of row 4
+
+press #column-1 shift  # customer as the second sort key after id
+frame
+snap sorted            # an arrow and its number on each sorted column
+
+wheel #rows 400 0      # sideways: the row numbers and the id stay at the left
+frame
+snap frozen
+
+move #cell-7-6         # a note that its column cuts short
+frame
+advance 0.5            # the theme's tooltip delay
+frame
+snap tooltip
+
+leave
+press #cell-2-5 right  # a cell outside the range: it is selected, then the menu opens
+frame
+snap menu
+
+key Escape
+scroll #rows row 2000  # the app has loaded the first 1000 rows only
+frame
+snap loading

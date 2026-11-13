@@ -25,13 +25,17 @@ public final class Tooltip {
    * @return the anchor
    */
   public static El tooltip(Theme t, El anchor, String text) {
-    return anchor.whenHoveredFor(t.motion().tooltipDelay(), e -> e.overlay(
-        row().key("tooltip").role("tooltip").label(text)
-            .padding(t.space().xs(), t.space().s())
-            .radius(t.radius().small())
-            .fill(t.surface().raised())
-            .border(t.size().stroke(), t.border().subtle())
-            .side(Side.BOTTOM, Style.Align.CENTER, t.space().xs())
-            .child(label(t, text))));
+    return anchor.whenHoveredFor(t.motion().tooltipDelay(), e -> e.overlay(panel(t, text)));
+  }
+
+  /** The tooltip's overlay, for components that decide in their own look whether it shows. */
+  static El panel(Theme t, String text) {
+    return row().key("tooltip").role("tooltip").label(text)
+        .padding(t.space().xs(), t.space().s())
+        .radius(t.radius().small())
+        .fill(t.surface().raised())
+        .border(t.size().stroke(), t.border().subtle())
+        .side(Side.BOTTOM, Style.Align.CENTER, t.space().xs())
+        .child(label(t, text));
   }
 }

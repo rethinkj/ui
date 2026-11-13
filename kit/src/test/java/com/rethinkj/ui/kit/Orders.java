@@ -7,7 +7,9 @@ import com.rethinkj.ui.App;
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.kit.DataGrid.Align;
 import com.rethinkj.ui.kit.DataGrid.Column;
-import com.rethinkj.ui.kit.DataGrid.Sort;
+import com.rethinkj.ui.kit.DataGrid.Mode;
+import com.rethinkj.ui.kit.DataGrid.Selection;
+import com.rethinkj.ui.kit.DataGrid.SortKey;
 import com.rethinkj.ui.text.TextRendering;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -15,11 +17,13 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.function.IntFunction;
+import java.util.function.UnaryOperator;
 
 /**
  * A result set of orders as a database tool holds it: the rows, made up from their index, and the
  * grid's state, which the grid's handlers change and log. The view puts the grid in a window with
- * a margin, which leaves room for the focus ring.
+ * a margin, which leaves room for the focus ring. A test turns on more of the grid with {@link
+ * #more}, which gets the options the grid has here.
  */
 final class Orders {
 
@@ -51,9 +55,14 @@ final class Orders {
 
   final Theme theme;
   int count;
-  int selected = 2;
+  final Selection selection;
   final float[] widths;
-  Sort sort = new Sort(0, false);
+  List<SortKey> sort = List.of(new SortKey(0, false));
+  final Menu.State menu = new Menu.State();
+  UnaryOperator<DataGrid.Options> more = o -> o;
+  int unsortable = -1; // a column that cannot be sorted
+  int loaded = Integer.MAX_VALUE; // the rows below this one are loaded, with cells()
+  App<Orders> app;
   final List<String> log = new ArrayList<>();
   final List<Integer> asked = new ArrayList<>(); // the rows whose cells were asked for
 
@@ -62,8 +71,14 @@ final class Orders {
   }
 
   Orders(Theme theme, int count, int columns) {
+    this(theme, count, columns, Mode.ROWS);
+  }
+
+  Orders(Theme theme, int count, int columns, Mode mode) {
     this.theme = theme;
     this.count = count;
+    this.selection = new Selection(mode);
+    selection.select(2, 0);
     this.widths = new float[columns];
     for (int c = 0; c < columns; c++) {
       widths[c] = BASE.get(c % BASE.size()).width();
@@ -81,7 +96,7 @@ final class Orders {
       IntFunction<String> cell = base.cell();
       columns.add(new Column(
           c < BASE.size() ? base.title() : base.title() + "_" + c / BASE.size(),
-          widths[c], base.align(), base.mono(), i -> {
+          widths[c], base.align(), base.mono(), c != unsortable, i -> {
             asked.add(i);
             return cell.apply(i);
           }));
@@ -95,24 +110,42 @@ final class Orders {
   }
 
   El grid() {
-    return dataGrid(theme, columns(), count, selected,
-        i -> {
-          log.add("select " + i);
-          selected = i;
-        },
-        (c, w) -> {
+    return dataGrid(theme, columns(), count, more.apply(DataGrid.options()
+        .select(selection)
+        .onSelect(() -> log.add("select " + selection.row()))
+        .onResize((c, w) -> {
           log.add("resize " + c + " " + w);
           widths[c] = w;
-        },
-        sort,
-        c -> {
-          log.add("sort " + c);
-          sort = new Sort(c, sort != null && sort.column() == c && !sort.descending());
-        });
+        })
+        .sort(sort, keys -> {
+          log.add("sort " + keys.stream()
+              .map(k -> (k.descending() ? "-" : "+") + k.column()).toList());
+          sort = keys;
+        })));
+  }
+
+  /**
+   * Orders in cells, with row numbers and the id frozen, copying onto the app's clipboard, a
+   * context menu with an item of the app's, and the first 1000 rows loaded: the grid of cells.txt.
+   */
+  static Orders cells(Theme theme) {
+    Orders orders = new Orders(theme, 1_000_000, BASE.size(), Mode.CELLS);
+    orders.loaded = 1000;
+    orders.more = o -> o.rowNumbers().frozen(1)
+        .copy(orders.app.clipboard())
+        .contextMenu(orders.menu, List.of(Menu.item("Export…", () -> orders.log.add("export"))))
+        .loading(i -> i < orders.loaded, (first, last) -> orders.log.add(
+            "rows " + first + "-" + last));
+    return orders;
+  }
+
+  /** The row the cursor is on, as the tests of a grid of rows read it. */
+  int selected() {
+    return selection.row();
   }
 
   App<Orders> app() {
-    App<Orders> app = new App<>(this, Orders::view);
+    app = new App<>(this, Orders::view);
     app.textRendering(TextRendering.LINUX);
     return app;
   }

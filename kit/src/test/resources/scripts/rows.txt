@@ -1,0 +1,11 @@
+# The data grid in rows (DataGridTest): rows selected with Shift and Control, focused by the
+# keyboard.
+size 560 240
+frame
+press #row-1
+press #row-3 shift     # rows 1 to 3
+press #row-6 control   # and row 6
+key Tab
+key Tab shift          # back to the grid, with a ring
+frame
+snap rows

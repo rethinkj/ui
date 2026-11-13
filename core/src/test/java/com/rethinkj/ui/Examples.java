@@ -363,6 +363,7 @@ public final class Examples {
   private static final int SELECTED = 0xFF1C3666;
   private static final int SELECTED_INACTIVE = 0xFF2B3240;
   private static final float ROW_HEIGHT = 22;
+  private static final int ARROW_UP_12 = 0xE12A; // the kit's Symbol.ARROW_UP drawn for 12
   private static final Scrollbars GRID_BARS =
       new Scrollbars(6, 2, 3, 24, 0xFF83868F, 0xFFA1A3AA, 0xFFB9BBC1);
 
@@ -385,8 +386,10 @@ public final class Examples {
       El cell = gridCell(s.widths[c], RIGHT[c]).key("column-" + c).role("columnheader")
           .label(TITLES[c]).position(c + 1, TITLES.length).gap(2);
       El title = gridText(TITLES[c], PRIMARY, false);
-      if (c == 0) { // sorted by id, ascending; the marker before the title of a right column
-        cell.sortAscending().children(gridText("▲", MUTED, false), title);
+      if (c == 0) { // sorted by id, ascending; the arrow before the title of a right column
+        El arrow = El.text(Character.toString(ARROW_UP_12)).font(Font.icons()).fontSize(12)
+            .color(MUTED).shrink(0);
+        cell.sortAscending().children(arrow, title);
       } else {
         cell.child(title);
       }
@@ -429,9 +432,11 @@ public final class Examples {
         .focusRing(PRIMARY) // border().focus(), the same colour in Theme.DARK
         .whenFocused(e -> focused[0] = true)
         .onKey(k -> {
+          // From the state, not from this build: the kit's grid reads its selection live, so two
+          // keys of one frame move it twice.
           int next = switch (k.name()) {
-            case "ArrowUp" -> selected - 1;
-            case "ArrowDown" -> selected + 1;
+            case "ArrowUp" -> s.selected - 1;
+            case "ArrowDown" -> s.selected + 1;
             default -> -1;
           };
           if (k.modifiers() != 0 || next < 0) {
@@ -451,7 +456,7 @@ public final class Examples {
 
   private static El gridText(String text, int colour, boolean mono) {
     return El.text(text).font(mono ? Font.mono() : Font.sans()).fontSize(mono ? 12 : 13)
-        .color(colour);
+        .color(colour).ellipsis().minSize(0, 0);
   }
 
   private static El gridLine() {

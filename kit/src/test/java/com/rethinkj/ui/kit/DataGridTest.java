@@ -61,7 +61,7 @@ class DataGridTest {
   // Rows and cost
 
   @Test
-  void aMillionRowsOfTwentyColumnsAskOnlyForTheCellsOfTheRowsThatExist() throws IOException {
+  void aMillionRowsOfTwentyColumnsAskOnlyForTheCellsThatExist() throws IOException {
     Orders orders = new Orders(T, 1_000_000, 20);
     App<Orders> app = start(orders);
     assertAskedForExistingRows(orders, app);
@@ -78,13 +78,19 @@ class DataGridTest {
     assertAskedForExistingRows(orders, app);
   }
 
-  /** Every cell of each row that exists was asked for once since the last clear, and no other. */
+  /**
+   * Every cell that exists was asked for once since the last clear, and no other: the rows that
+   * exist, each with the cells of the columns in view sideways and some more, not all 20.
+   */
   private static void assertAskedForExistingRows(Orders orders, App<?> app) {
     El rows = find(app, "rows");
     List<Integer> exist =
         IntStream.range(rows.firstRow(), rows.firstRow() + rows.children().size()).boxed().toList();
     assertEquals(exist, List.copyOf(new TreeSet<>(orders.asked)));
-    assertEquals(exist.size() * 20, orders.asked.size(), "each cell once");
+    long cells = rows.children().stream().flatMap(r -> r.children().stream())
+        .filter(c -> "gridcell".equals(c.role())).count();
+    assertEquals(cells, orders.asked.size(), "each cell once");
+    assertTrue(cells < exist.size() * 20L / 2, cells + " cells of " + exist.size() * 20);
   }
 
   @Test
@@ -138,10 +144,11 @@ class DataGridTest {
     App<Orders> app = start(orders);
     run(app, "press #row-6\nframe");
     assertEquals(List.of("select 6"), orders.log);
-    assertEquals(6, orders.selected);
+    assertEquals(6, orders.selected());
     assertEquals("orders", app.focused().key());
     assertEquals(T.grid().selected(), find(app, "row-6").fill(), "the focused grid's selection");
-    assertTrue(dumpLine(app, "row-6").endsWith(" selected pos=7/1000000"), dumpLine(app, "row-6"));
+    assertTrue(dumpLine(app, "row-6").endsWith(" selected current pos=7/1000000"),
+        dumpLine(app, "row-6"));
 
     run(app, "press 2,2\nframe"); // the window around the grid: the focus leaves it
     assertNull(app.focused());
@@ -187,19 +194,19 @@ class DataGridTest {
     Orders orders = new Orders(T, 1_000_000);
     App<Orders> app = start(orders);
     run(app, "key Tab\nframe\nkey End control\nframe");
-    assertEquals(999_999, orders.selected);
+    assertEquals(999_999, orders.selected());
     assertInView(app, 999_999);
     run(app, "key Home control\nframe");
-    assertEquals(0, orders.selected);
+    assertEquals(0, orders.selected());
     assertInView(app, 0);
-    run(app, "key ArrowDown control\nframe\nkey End shift\nframe");
-    assertEquals(0, orders.selected, "other modifiers are left to the app");
+    run(app, "key ArrowDown control\nframe\nkey ArrowDown alt\nframe");
+    assertEquals(0, orders.selected(), "other modifiers are left to the app");
   }
 
   @Test
   void aKeyWithoutASelectionSelectsTheFirstRowInView() throws IOException {
     Orders orders = new Orders(T, 1_000_000);
-    orders.selected = -1;
+    orders.selection.clear();
     App<Orders> app = start(orders);
     run(app, "focus #orders\nwheel #rows 0 4400\nframe"); // row 200 at the top
     assertEquals(200, key(app, orders, "ArrowDown"));
@@ -217,7 +224,7 @@ class DataGridTest {
     assertEquals("orders", app.focused().key());
     run(app, "key Tab\nframe");
     assertEquals("After", app.focused().label(), "not into the rows");
-    run(app, "key Tab shift\nframe\nkey A\nframe\nkey ArrowDown shift\nframe");
+    run(app, "key Tab shift\nframe\nkey A\nframe\nkey ArrowDown alt\nframe");
     assertEquals("orders", app.focused().key());
     assertEquals(List.of(), orders.log);
   }
@@ -226,7 +233,7 @@ class DataGridTest {
     app.keyDown(new Key(name));
     app.keyUp(new Key(name));
     app.frame();
-    return orders.selected;
+    return orders.selected();
   }
 
   /** The row is whole inside the grid's rows, and is the one with the selected look. */
@@ -312,20 +319,23 @@ class DataGridTest {
   void aPressOnAHeaderSortsAndAPressOnAnEdgeDoesNothing() throws IOException {
     Orders orders = new Orders(T, 1_000_000);
     App<Orders> app = start(orders);
-    assertTrue(app.tree().dump().contains("text \"▲\""), "sorted by id, ascending");
+    String up = "\\u{" + Integer.toHexString(Symbol.ARROW_UP.codePoint(T.grid().mark()))
+        .toUpperCase(java.util.Locale.ROOT) + "}";
+    assertTrue(app.tree().dump().contains("text \"" + up + "\""), "sorted by id, ascending");
     assertTrue(dumpLine(app, "column-0").endsWith(" pos=1/7 sort=ascending"));
     assertTrue(dumpLine(app, "column-2").endsWith(" pos=3/7"));
 
     run(app, "press #column-2\nframe");
-    assertEquals(new DataGrid.Sort(2, false), orders.sort);
+    assertEquals(List.of(new DataGrid.SortKey(2, false)), orders.sort);
     run(app, "press #column-2\nframe");
-    assertEquals(new DataGrid.Sort(2, true), orders.sort);
+    assertEquals(List.of(new DataGrid.SortKey(2, true)), orders.sort);
     El email = find(app, "column-2");
-    assertEquals("▼", email.children().getLast().text().string(), "after the title");
+    assertEquals(Character.toString(Symbol.ARROW_DOWN.codePoint(T.grid().mark())),
+        email.children().getLast().children().getFirst().text().string(), "after the title");
     assertTrue(dumpLine(app, "column-2").endsWith(" pos=3/7 sort=descending"));
     assertTrue(dumpLine(app, "column-0").endsWith(" pos=1/7"));
     run(app, "down #resize-2\nmove 412,19\nup 412,19\nframe"); // within the threshold
-    assertEquals(List.of("sort 2", "sort 2"), orders.log);
+    assertEquals(List.of("sort [+2]", "sort [-2]"), orders.log);
     assertEquals(200, orders.widths[2]);
   }
 
@@ -352,7 +362,8 @@ class DataGridTest {
     assertEquals(x(app, nullNote) + T.space().s(), x(app, text(nullNote)), "left");
 
     assertEquals(Orders.NOTE, text(note).text().string());
-    assertTrue(text(note).width() > note.width(), "wider than its column");
+    assertTrue(text(note).text().shortened(), "wider than its column, so it ends in an ellipsis");
+    assertTrue(text(note).width() <= note.width());
     assertEquals(Style.Overflow.CLIP, note.style().overflowX, "and clipped by it");
   }
 
@@ -391,7 +402,7 @@ class DataGridTest {
     run(app, "up 547,400\ndown 100,227\nmove 700,227\nup 700,227\nframe");
     assertEquals(964 - 544, find(app, "orders").scrollX(), "the last column in view");
     assertEquals(544, find(app, "rows").verticalBar().thumbX(), "the rows' bar stays");
-    assertEquals(x(app, find(app, "column-6")), x(app, find(app, "row-999999").children().get(12)),
+    assertEquals(x(app, find(app, "column-6")), x(app, find(app, "cell-999999-6")),
         "the header moved with the rows");
   }
 
@@ -401,17 +412,46 @@ class DataGridTest {
   @ValueSource(strings = {"dark", "light"})
   void looksAsStored(String name) throws IOException {
     Orders orders = new Orders(name.equals("dark") ? Theme.DARK : Theme.LIGHT, 1_000_000);
-    Path folder = Path.of("target/grid", name);
-    String script = Files.readString(Path.of("src/test/resources/scripts/grid.txt"));
-    List<Path> files = Script.run(script, orders.app(), folder);
+    assertEquals(10, snaps("grid", name, orders));
+  }
+
+  /** cells.txt: a range, two sort keys, frozen columns, a tooltip, the menu, rows not loaded. */
+  @ParameterizedTest
+  @ValueSource(strings = {"dark", "light"})
+  void cellsLookAsStored(String name) throws IOException {
+    assertEquals(12, snaps("cells", name, Orders.cells(theme(name))));
+  }
+
+  /** rows.txt: rows selected with Shift and Control. */
+  @ParameterizedTest
+  @ValueSource(strings = {"dark", "light"})
+  void rowsLookAsStored(String name) throws IOException {
+    assertEquals(2, snaps("rows", name, new Orders(theme(name), 1_000_000)));
+  }
+
+  private static Theme theme(String name) {
+    return name.equals("dark") ? Theme.DARK : Theme.LIGHT;
+  }
+
+  /**
+   * Runs {@code <script>.txt} against the orders and compares each snap with the stored image
+   * {@code <script>-<theme>-<snap>}, as far as the snaps are named for grid.txt: grid-dark-top.
+   *
+   * @return the number of files the script wrote
+   */
+  private static int snaps(String script, String theme, Orders orders) throws IOException {
+    Path folder = Path.of("target/" + script, theme);
+    String text = Files.readString(Path.of("src/test/resources/scripts/" + script + ".txt"));
+    List<Path> files = Script.run(text, orders.app(), folder)
+        .stream().filter(f -> !f.toString().endsWith(".clipboard.txt")).toList();
     for (int i = 0; i < files.size(); i += 2) {
       String snap = files.get(i).getFileName().toString().replace(".png", "");
       Golden.assertMatches(
-          "grid-" + name + "-" + snap,
+          script + "-" + theme + "-" + snap,
           Png.decode(Files.readAllBytes(files.get(i))),
           Files.readString(files.get(i + 1)));
     }
-    assertEquals(10, files.size());
+    return files.size();
   }
 
   private static float x(App<?> app, El el) {
