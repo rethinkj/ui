@@ -262,7 +262,16 @@ public final class Window implements AutoCloseable {
   /** The appearance last delivered, or null before the first. */
   private static SystemAppearance appearance;
 
-  private record Posted(Window window, WindowEvent event) {}
+  /** An event queued for a window; a key's event may still change while it waits (AltGr). */
+  private static final class Posted {
+    final Window window;
+    WindowEvent event;
+
+    Posted(Window window, WindowEvent event) {
+      this.window = window;
+      this.event = event;
+    }
+  }
 
   /** Upcall stubs, made on first use and kept for the life of the process. */
   private static final class Upcalls {
@@ -309,6 +318,7 @@ public final class Window implements AutoCloseable {
   private boolean afterControlKey;
   private char highSurrogate; // of a WM_CHAR that SDL dropped, until its second half comes
   private boolean charOfKey; // the last event was a key down, which a WM_CHAR belongs to
+  private Posted lastKeyDown; // the last key down queued, which a WM_CHAR may show was AltGr
   /** Where the last pointer move was, in logical pixels, while the pointer is in the window. */
   private boolean pointerIn;
   private float pointerX;
@@ -541,6 +551,17 @@ public final class Window implements AutoCloseable {
    * held with Control and without Alt.
    */
   void systemChar(char c) {
+    if (c >= 0x20 && c != 0x7F && charOfKey && lastKeyDown != null
+        && lastKeyDown.event instanceof KeyDown(Key key)
+        && (key.modifiers() & (Key.CONTROL | Key.ALT)) == Key.ALT) {
+      // A key held with Alt alone that makes a character (Alt with a letter makes WM_SYSCHAR,
+      // not WM_CHAR) was held with AltGr, which SDL reports as Alt, hiding the left Control that
+      // Windows adds: say Control with Alt, as for AltGr elsewhere, so that no Alt shortcut
+      // (a menu bar's Alt+Q, AltGr+Q being @ on a German keyboard) takes the key from the field
+      // its character goes to.
+      lastKeyDown.event = new KeyDown(new Key(key.name(), key.modifiers() | Key.CONTROL,
+          key.repeat()));
+    }
     if (textInput != null || !open) {
       highSurrogate = 0;
       return;
@@ -580,7 +601,11 @@ public final class Window implements AutoCloseable {
         }
       }
     }
-    pending.add(new Posted(this, event));
+    Posted posted = new Posted(this, event);
+    pending.add(posted);
+    if (event instanceof KeyDown) {
+      lastKeyDown = posted;
+    }
   }
 
   private void deliver(WindowEvent event) {
@@ -680,7 +705,7 @@ public final class Window implements AutoCloseable {
 
   private void translate(int type, MemorySegment e) {
     boolean controlKey = afterControlKey;
-    if (type != Sdl.EVENT_KEY_UP) {
+    if (type != Sdl.EVENT_KEY_UP && type != Sdl.EVENT_TEXT_INPUT) { // SDL's text of the key
       charOfKey = type == Sdl.EVENT_KEY_DOWN; // the WM_CHAR of a key comes before its release
     }
     afterControlKey = false;

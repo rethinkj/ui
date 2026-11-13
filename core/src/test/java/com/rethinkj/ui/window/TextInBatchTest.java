@@ -9,6 +9,7 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import com.rethinkj.ui.App;
 import com.rethinkj.ui.El;
+import com.rethinkj.ui.Key;
 import com.rethinkj.ui.text.TextLibraries;
 import com.rethinkj.ui.text.TextRendering;
 import java.lang.foreign.Arena;
@@ -17,6 +18,8 @@ import java.lang.foreign.Linker;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SymbolLookup;
 import java.lang.invoke.MethodHandle;
+import java.util.ArrayList;
+import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -137,6 +140,43 @@ class TextInBatchTest {
       post(window, WM_CHAR, '\uDE00', 1);
       Desktop.runUntil(window, app, () -> app.state().name.equals("é😀"),
           "the characters are in the field");
+    }
+  }
+
+  /**
+   * AltGr: SDL reports a key held with it as held with Alt alone, hiding the left Control that
+   * Windows adds, and Windows makes a character of it ({@code WM_CHAR}; Alt with a letter makes
+   * {@code WM_SYSCHAR} instead). The window then says Control with Alt, so that an Alt shortcut,
+   * as a menu bar's Alt+Q, does not take AltGr+Q, which is @ on a German keyboard.
+   */
+  @Test
+  void aKeyHeldWithAltThatMakesACharacterWasAltGr() {
+    try (Window window = Window.open(TITLE, 240, 100)) {
+      Desktop.settle();
+      List<WindowEvent> events = new ArrayList<>();
+      window.listener(events::add);
+      Desktop.key(window, true, 'q', Sdl.KMOD_ALT & 0x0200, false); // right Alt, as AltGr
+      window.systemChar('@'); // what Windows makes of it, after SDL has had it
+      Desktop.key(window, false, 'q', Sdl.KMOD_ALT & 0x0200, false);
+      Desktop.key(window, true, 'q', Sdl.KMOD_ALT & 0x0100, false); // left Alt, a shortcut
+      Desktop.key(window, false, 'q', Sdl.KMOD_ALT & 0x0100, false);
+      // With text input on, SDL makes its text event of the character before the window sees it.
+      window.textInputArea(10, 10, 100, 20, 10, false);
+      Desktop.key(window, true, 'e', Sdl.KMOD_ALT & 0x0200, false);
+      Desktop.text(window, "€");
+      window.systemChar('€');
+      Desktop.key(window, false, 'e', Sdl.KMOD_ALT & 0x0200, false);
+      window.stopTextInput();
+      Window.pollEvents();
+      List<String> keys = events.stream()
+          .filter(e -> e instanceof WindowEvent.KeyDown || e instanceof WindowEvent.KeyText
+              || e instanceof WindowEvent.TextInput)
+          .map(e -> e instanceof WindowEvent.KeyDown(Key k)
+              ? k.name() + " " + k.modifiers() : e.toString())
+          .toList();
+      int altGr = Key.CONTROL | Key.ALT;
+      assertEquals(List.of("Q " + altGr, "KeyText[text=@]", "Q " + Key.ALT, "E " + altGr,
+          "TextInput[text=€]"), keys);
     }
   }
 
