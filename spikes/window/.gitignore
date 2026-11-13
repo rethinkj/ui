@@ -1,0 +1,4 @@
+# The SDL3 runtime from the official release zip is unpacked here.
+native/
+# Screenshots taken while checking behaviour.
+shots/
