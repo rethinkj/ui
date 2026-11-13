@@ -51,6 +51,7 @@ public final class El {
   private int position; // in its set, from 1; 0 when not set
   private int setSize;
   private String value;
+  private String errorMessage;
   private int fill;
   private float radius; // the top left corner's
   private float radiusTopRight;
@@ -434,6 +435,22 @@ public final class El {
    */
   public El invalid(boolean invalid) {
     return state(INVALID, invalid ? INVALID : 0);
+  }
+
+  /**
+   * What is wrong with the value of this element, as WAI-ARIA's {@code aria-errormessage}: the
+   * message of a field whose text is not a valid value, which a form shows below it. A tree dump
+   * writes it after the value, as {@code error="Not a number"}; null for none. It changes nothing
+   * about how the element looks or takes input.
+   */
+  public El errorMessage(String message) {
+    this.errorMessage = message;
+    return this;
+  }
+
+  /** What {@link #errorMessage(String)} set, or null. */
+  public String errorMessage() {
+    return errorMessage;
   }
 
   /** The column this header sorts by, upwards. */
@@ -3619,7 +3636,8 @@ public final class El {
    * {@code selected},
    * {@code current}, {@code grabbed}, {@code checked}, {@code checked=false} or {@code checked=mixed}, {@code expanded} or {@code
    * expanded=false}, {@code level=2}, {@code pos=3/10} (the position in the set and its size),
-   * {@code sort=ascending} or {@code sort=descending}, and {@code value="..."}, as in {@code el
+   * {@code sort=ascending} or {@code sort=descending}, {@code value="..."} and the {@link
+   * #errorMessage} as {@code error="..."}, as in {@code el
    * #row-3 role=treeitem label="public" 0,66 400x22 selected expanded level=3 pos=1/2}. A scroll
    * area that is scrolled adds its
    * offset, as {@code scroll x,y}. A virtual list ({@link #rows}) adds, before that, its rows that
@@ -3742,6 +3760,9 @@ public final class El {
     states(out);
     if (value != null) {
       out.append(" value=").append(quote(value));
+    }
+    if (errorMessage != null) {
+      out.append(" error=").append(quote(errorMessage));
     }
     if (rowBuilder != null) {
       out.append(" rows ");

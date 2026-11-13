@@ -18,17 +18,12 @@ import com.rethinkj.ui.kit.DataGrid.DataType;
 import com.rethinkj.ui.kit.DataGrid.Range;
 import com.rethinkj.ui.kit.DataGrid.Selection;
 import com.rethinkj.ui.kit.DataGrid.Status;
-import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeFormatterBuilder;
-import java.time.format.DateTimeParseException;
-import java.time.format.ResolverStyle;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.function.Predicate;
-import java.util.regex.Pattern;
 
 /**
  * The editing of a data grid's cells ({@link DataGrid.Options#onCommit}): the editor over a cell
@@ -47,29 +42,6 @@ final class GridEdit {
     RIGHT,
     LEFT
   }
-
-  private static final Pattern INTEGER = Pattern.compile("[-+]?\\d+");
-  private static final Pattern INTEGER_TYPED = Pattern.compile("[-+]?\\d*");
-  private static final Pattern DECIMAL =
-      Pattern.compile("[-+]?(\\d+\\.?\\d*|\\.\\d+)([eE][-+]?\\d+)?");
-  private static final Pattern DECIMAL_TYPED = Pattern.compile("[-+]?\\d*\\.?\\d*([eE][-+]?\\d*)?");
-  private static final DateTimeFormatter DATE =
-      DateTimeFormatter.ISO_LOCAL_DATE.withResolverStyle(ResolverStyle.STRICT);
-  private static final DateTimeFormatter TIME =
-      DateTimeFormatter.ISO_TIME.withResolverStyle(ResolverStyle.STRICT);
-  // A date, a T or a space, and a time with an offset or without: 2026-11-13 14:30.
-  private static final DateTimeFormatter DATE_TIME = new DateTimeFormatterBuilder()
-      .parseCaseInsensitive()
-      .append(DateTimeFormatter.ISO_LOCAL_DATE)
-      .optionalStart()
-      .appendLiteral('T')
-      .optionalEnd()
-      .optionalStart()
-      .appendLiteral(' ')
-      .optionalEnd()
-      .append(DateTimeFormatter.ISO_TIME)
-      .toFormatter(Locale.ROOT)
-      .withResolverStyle(ResolverStyle.STRICT);
 
   // Types
 
@@ -104,8 +76,8 @@ final class GridEdit {
   /** Whether typing may lead to {@code text}, which a number column refuses otherwise. */
   static boolean accepts(Column c, String text) {
     return switch (c.type()) {
-      case INTEGER -> INTEGER_TYPED.matcher(text).matches();
-      case DECIMAL -> DECIMAL_TYPED.matcher(text).matches();
+      case INTEGER -> Format.BIG_INTEGER.allows(text);
+      case DECIMAL -> Format.DECIMAL.allows(text);
       default -> true;
     };
   }
@@ -124,23 +96,13 @@ final class GridEdit {
       return c.editing().choices().contains(value) ? null : "Not one of the choices";
     }
     return switch (c.type()) {
-      case INTEGER -> INTEGER.matcher(value).matches() ? null : "Not a whole number";
-      case DECIMAL -> DECIMAL.matcher(value).matches() ? null : "Not a number";
-      case DATE -> parses(DATE, value) ? null : "Expected a date such as 2026-11-13";
-      case TIME -> parses(TIME, value) ? null : "Expected a time such as 14:30 or 14:30:15";
-      case DATE_TIME ->
-        parses(DATE_TIME, value) ? null : "Expected a date and time such as 2026-11-13 14:30";
+      case INTEGER -> Format.BIG_INTEGER.parseText(value).error();
+      case DECIMAL -> Format.DECIMAL.parseText(value).error();
+      case DATE -> Format.DATE.parseText(value).error();
+      case TIME -> Format.ANY_TIME.parseText(value).error();
+      case DATE_TIME -> Format.ANY_DATE_TIME.parseText(value).error();
       default -> null;
     };
-  }
-
-  private static boolean parses(DateTimeFormatter format, String value) {
-    try {
-      format.parse(value.strip());
-      return true;
-    } catch (DateTimeParseException e) {
-      return false;
-    }
   }
 
   private static boolean truthy(String value) {

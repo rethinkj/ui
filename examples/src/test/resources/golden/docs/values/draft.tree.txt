@@ -1,0 +1,17 @@
+el 0,0 360x240
+  el 12,12 185x92
+    el 12,12 185x42
+      el 12,12 57x24
+        text "Amount" 12,16 48x16
+        text "*" 62,16 7x16
+      el 77,12 120x42
+        text #amount role=textbox label="Amount" "12e" 77,12 120x24 invalid error="Not a number" focused caret 3
+        text "Not a number" 77,38 120x16
+    el 12,62 185x42
+      el 12,62 57x24
+        text "Due" 12,66 25x16
+      el 77,62 120x42
+        text #due role=textbox label="Due" "" 77,62 120x24
+        text "Empty for none" 77,88 120x16
+  el role=button label="Save" 12,112 56x24 disabled
+    text "Save" 25,116 30x16

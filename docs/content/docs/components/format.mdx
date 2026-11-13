@@ -1,0 +1,56 @@
+---
+title: Format and ValueField
+description: Typed values in text fields and grid columns, written and read without the system's locale.
+---
+
+`Format<T>` says how a value of a Java type is written as text and read back: `BigDecimal`, `LocalDate`, an enum, or a type of the app's own. `ValueField.valueField` is a text field for such a value: it hands the app values instead of strings, and keeps a text that is no value yet as a draft with the format's message. A [DataGrid](/docs/components/data-grid)'s typed columns take their alignment, icon and editor from the same formats. Use them wherever a field or column holds something other than text; for an `int` stepped by arrows and buttons, a [NumberField](/docs/components/number-field) stays the better fit.
+
+<Shot src="kit/value-field-{theme}-2x-draft" alt="A field for an amount holding the draft 12e with the message Not a number below it, and an empty optional date field" />
+
+## Formats
+
+| Format | Type | Text |
+| --- | --- | --- |
+| `TEXT` | `String` | As it is; the empty text is the empty string |
+| `INTEGER`, `LONG`, `BIG_INTEGER` | `Integer`, `Long`, `BigInteger` | `-12`, `+7`; refused beyond the type's range |
+| `DECIMAL` | `BigDecimal` | `12.50`, `-.5`, `1e3`; written without an exponent, the scale kept |
+| `DATE` | `LocalDate` | `2026-11-13` |
+| `TIME` | `LocalTime` | `14:30`, `14:30:15` |
+| `DATE_TIME` | `LocalDateTime` | `2026-11-13 14:30`, also with a `T` |
+| `OFFSET_DATE_TIME` | `OffsetDateTime` | `2026-11-13 14:30+01:00` |
+| `BOOLEAN` | `Boolean` | `true`, `false`; also `t`, `1`, `yes`, `on` and their opposites |
+| `choice(values, label)` | any, such as an enum | Each value by its label: `Format.choice(Status.values(), Status::label)` |
+| `of(text, parse, message)` | any | The app's own: `Format.of(UUID::toString, UUID::fromString, "Expected a UUID")`; a parser that throws or returns null fails with the message |
+
+Numbers have a full stop and no grouping, dates and times are ISO 8601's, whatever the system's locale; another notation is another format. Each format answers a text that is no value with a message that says what a valid one looks like (`Expected a date such as 2026-11-13`), and says with `allows(text)` whether typing may still lead there, so that a field refuses a letter in a number but keeps `12.` and `-`.
+
+| Changed copy | |
+| --- | --- |
+| `.optional()` | The empty text is null; without it, the empty text is the message `A value is required` (`Format.REQUIRED`), except for `TEXT` |
+| `.where(test, message)` | Only values that pass, as a range: `Format.INTEGER.where(p -> p >= 1 && p <= 65535, "1 to 65535")` |
+
+`parse(text)` returns a `Format.Parsed<T>` with the value or the error, `text(value)` the text. Formats need no native libraries; keep them in constants.
+
+## A field for a value
+
+The state holds the value and the field's draft:
+
+```java snippet="value-state"
+```
+
+```java snippet="value-field"
+```
+
+`valueField(t, format, value, [placeholder,] draft, onChange)` is a [TextField](/docs/components/text-field) in every other way, so `.key`, `.w` and `.maxLength` chain onto it. How it behaves:
+
+- **When the handler runs**: on every edit whose text is a valid value, as a text field's handler runs on every edit. The state always holds what the field shows, so a button that saves needs no Enter or leaving the field first.
+- **A text that is no value yet**, such as `12e` or a half-typed date, stays in the `ValueField.Draft`, which the app keeps in its state as it keeps a `Menu.State`. The field shows it with the danger border, `invalid` and `error="…"` in the dump, and a [Form](/docs/components/form) field shows the message below it without the app passing an error; an error the app passes wins. The app's value stays the last valid one meanwhile, so a Save button checks `draft.error() == null`.
+- **The empty text** is what the format says: `A value is required`, or null handed on for an `.optional()` format. Mark the form field `.required()` for the star.
+- **A value from outside** replaces the draft: when the app's value is another than the one the field handed on last (a reset, a value loaded), the field shows its text. A handler that stores another value than it was given, or none, shows the same way. `draft.clear()` forgets the draft even where the value stays.
+- A valid text stays as typed while it stands for the value: `007` stays `007` and the app has `7`.
+
+```text file="examples/src/test/resources/docs/values.txt" start="press #amount" count="6"
+```
+
+```text file="examples/src/test/resources/golden/docs/values/draft.tree.txt" start="#amount" count="2"
+```

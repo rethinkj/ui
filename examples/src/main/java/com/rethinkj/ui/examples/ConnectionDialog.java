@@ -15,6 +15,7 @@ import static com.rethinkj.ui.kit.TextField.revealable;
 import static com.rethinkj.ui.kit.TextField.textField;
 import static com.rethinkj.ui.kit.TitleBar.titleBar;
 import static com.rethinkj.ui.kit.Toggle.toggle;
+import static com.rethinkj.ui.kit.ValueField.valueField;
 
 import com.rethinkj.ui.App;
 import com.rethinkj.ui.El;
@@ -23,8 +24,10 @@ import com.rethinkj.ui.kit.Card;
 import com.rethinkj.ui.kit.ComboBox;
 import com.rethinkj.ui.kit.Dialog;
 import com.rethinkj.ui.kit.Form;
+import com.rethinkj.ui.kit.Format;
 import com.rethinkj.ui.kit.Symbol;
 import com.rethinkj.ui.kit.Theme;
+import com.rethinkj.ui.kit.ValueField;
 import com.rethinkj.ui.render.GpuPresenter;
 import com.rethinkj.ui.text.TextRendering;
 import com.rethinkj.ui.window.Window;
@@ -36,14 +39,16 @@ import java.util.List;
  * The dialog in which a database tool asks where to connect, built from the kit: a form of text
  * fields with their labels beside them and the required ones marked, a password field with a
  * button that shows the password, a checkbox, a switch between the dark and the light theme, and
- * two buttons. Connect stays disabled until host, port, database and user are filled in, and the
- * port takes only digits. Enter in a field connects, as does Connect; the example only says where
+ * two buttons. Connect stays disabled until host, port, database and user are filled in; the
+ * port is an {@code Integer} in a {@link ValueField}, which takes only digits and says when the
+ * number is no port. Enter in a field connects, as does Connect; the example only says where
  * it would go, and never what the password is.
  */
 public final class ConnectionDialog {
 
   String host = "localhost";
-  String port = "5432";
+  Integer port = 5432; // null while the field is empty
+  final ValueField.Draft portDraft = new ValueField.Draft(); // the port's text while it is none
   String database = "";
   final ComboBox.State databases = new ComboBox.State(); // the server's, offered as one types
   String user = "";
@@ -62,17 +67,14 @@ public final class ConnectionDialog {
     return dark ? Theme.DARK : Theme.LIGHT;
   }
 
-  void port(String value) {
-    if (value.chars().allMatch(c -> c >= '0' && c <= '9')) {
-      port = value; // anything else is refused, and the field stays as it was
-    }
-  }
+  /** A port: digits alone, typing refuses anything else; the empty field is no port yet. */
+  static final Format<Integer> PORT =
+      Format.INTEGER.where(p -> p >= 1 && p <= 65535, "1 to 65535").optional();
 
   boolean valid() {
-    int number = port.isEmpty() ? 0 : Integer.parseInt(port); // at most five digits
     return !host.isBlank()
-        && number >= 1
-        && number <= 65535
+        && port != null
+        && portDraft.error() == null // the field shows a port, not a text that is none
         && !database.isBlank()
         && !user.isBlank();
   }
@@ -86,6 +88,7 @@ public final class ConnectionDialog {
     ConnectionDialog fresh = new ConnectionDialog();
     host = fresh.host;
     port = fresh.port;
+    portDraft.clear();
     database = fresh.database;
     user = fresh.user;
     password = fresh.password;
@@ -131,7 +134,7 @@ public final class ConnectionDialog {
                     .required(),
                 field(
                         "Port",
-                        textField(t, s.port, "5432", s::port)
+                        valueField(t, PORT, s.port, "5432", s.portDraft, v -> s.port = v)
                             .key("port")
                             .maxLength(5)
                             .w(72))

@@ -1,0 +1,16 @@
+el 0,0 360x240
+  el 12,12 185x74
+    el 12,12 185x24
+      el 12,12 57x24
+        text "Amount" 12,16 48x16
+        text "*" 62,16 7x16
+      el 77,12 120x24
+        text #amount role=textbox label="Amount" "12.50" 77,12 120x24
+    el 12,44 185x42
+      el 12,44 57x24
+        text "Due" 12,48 25x16
+      el 77,44 120x42
+        text #due role=textbox label="Due" "" 77,44 120x24
+        text "Empty for none" 77,70 120x16
+  el role=button label="Save" 12,94 56x24
+    text "Save" 25,98 30x16
