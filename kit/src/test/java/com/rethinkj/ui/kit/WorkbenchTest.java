@@ -50,20 +50,20 @@ class WorkbenchTest {
     Workbench w = app.state();
     assertEquals(200, labelled(app, "Schema").width());
     El editor = labelled(app, "Query");
-    assertEquals(201, x(app, editor));
-    assertEquals(29, y(app, editor), "under the bar of 28 and its line");
-    assertEquals(185, editor.height(), "half of 371 less the line");
+    assertEquals(202, x(app, editor), "inside the edge of the tabs' card");
+    assertEquals(34, y(app, editor), "under the card's edge, the bar of 32 and its line");
+    assertEquals(182, editor.height(), "half of 365 less the line");
 
     run(app, "down 200,300\nmove 260,300\nup 260,300\nframe"); // the schema's line
     assertEquals(List.of("sidebar " + Position.first(260), "sidebar " + Position.first(260)),
         w.log, "moved, then ended");
-    assertEquals(261, x(app, labelled(app, "Query")));
-    assertEquals(185, labelled(app, "Query").height(), "the editor keeps its height");
+    assertEquals(262, x(app, labelled(app, "Query")));
+    assertEquals(182, labelled(app, "Query").height(), "the editor keeps its height");
 
     run(app, "down 400,214\nmove 400,114\nup 400,114\nframe"); // the editor's line
-    assertEquals(Position.share(85 / 370f), w.editor);
-    assertEquals(29 + 85 - 3, y(app, labelled(app, "Resize Query")), "the editor's box is 85");
-    assertEquals(85, labelled(app, "Query").height(), "as its box; its taller text is clipped");
+    assertEquals(Position.share(82 / 364f), w.editor);
+    assertEquals(34 + 82 - 3, y(app, labelled(app, "Resize Query")), "the editor's box is 82");
+    assertEquals(82, labelled(app, "Query").height(), "as its box; its taller text is clipped");
     assertEquals(260, labelled(app, "Schema").width(), "the schema keeps its width");
   }
 
@@ -72,7 +72,7 @@ class WorkbenchTest {
     App<Workbench> app = start();
     Script.run("size 1000 601\nframe", app, out);
     assertEquals(200, labelled(app, "Schema").width());
-    assertEquals(286, labelled(app, "Query").height(), "half of 572 less the line");
+    assertEquals(283, labelled(app, "Query").height(), "half of 566 less the line");
     Script.run("size 500 400\nframe", app, out);
     assertEquals(179, labelled(app, "Schema").width(), "the queries keep their 320");
   }
@@ -81,7 +81,7 @@ class WorkbenchTest {
   void theKeysOfTheTabsGoUpFromTheirContentAndTheRootTakesThemWithoutFocus() throws IOException {
     App<Workbench> app = start();
     run(app, "focus role=separator label=\"Resize Query\"\nkey ArrowUp\nframe");
-    assertEquals(169, labelled(app, "Query").height(), "the line's own key");
+    assertEquals(166, labelled(app, "Query").height(), "the line's own key");
     run(app, "key Tab control\nframe");
     assertEquals(3, app.state().active, "Control+Tab went up to the tabs");
     assertEquals(find(app, "filter"), app.focused(), "into the new content's field");
@@ -89,7 +89,7 @@ class WorkbenchTest {
     app.focus(null);
     run(app, "frame\nkey Tab control shift\nframe"); // to the root, which has the tabs' handler too
     assertEquals(2, app.state().active);
-    assertEquals(169, labelled(app, "Query").height(), "the app kept the share");
+    assertEquals(166, labelled(app, "Query").height(), "the app kept the share");
     run(app, "focus #tablist\nkey Tab control\nframe");
     assertEquals(3, app.state().active, "once: the tabs took it before the root");
   }

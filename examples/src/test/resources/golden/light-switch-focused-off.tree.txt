@@ -1,8 +1,8 @@
 el 0,0 360x240
   el window=drag 0,0 360x32
-    el 10,10 12x12
-    text "Lights" 30,8 37x16
-    el 67,16 155x0
+    el 12,11 10x10
+    text "Lights" 30,8 38x16
+    el 68,16 154x0
     el role=button label="Minimize" window=minimize 222,0 46x32
       el 240,16 10x1
     el role=button label="Maximize" window=maximize 268,0 46x32
@@ -28,8 +28,9 @@ el 0,0 360x240
         el 340,19 2x2
         el 332,19 2x2
   el 0,32 360x208
-    el #lamp 152,92 56x56
-    el role=switch label="Lamp" 141,162 78x20 checked=false focused
-      el 145,164 28x16
-        el 147,166 12x12
-      text "Lamp" 181,164 34x16
+    el 120,67 120x138
+      el #lamp 152,92 56x56
+      el role=switch label="Lamp" 141,162 78x20 checked=false focused
+        el 145,164 28x16
+          el 147,166 12x12
+        text "Lamp" 181,164 34x16

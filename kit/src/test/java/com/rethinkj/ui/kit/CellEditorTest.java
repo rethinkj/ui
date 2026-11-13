@@ -133,12 +133,12 @@ class CellEditorTest {
     String before = sheet.names[3];
     run(app, "frame\npress #cell-3-1\nframe\nkey Enter\nframe");
     El editor = find(app, "editor");
-    El cell = find(app, "row-3").children().get(2);
+    El cell = find(app, "row-3").children().get(3); // after the hairline, cell 0 and its line
     assertEquals(before, text(cell), "the name's cell");
     assertEquals(x(app, cell), x(app, editor), "over the cell");
     assertEquals(y(app, cell), y(app, editor));
     assertEquals(cell.width(), editor.width());
-    assertEquals(cell.height(), editor.height());
+    assertEquals(cell.height() + 1, editor.height(), "the row's height, over its hairline too");
 
     // The editor has the focus from the frame that adds it, while it fades in.
     assertEquals("editor", app.focused().key());
@@ -152,7 +152,7 @@ class CellEditorTest {
     run(app, "advance 1\nframe\nkey Enter\nframe"); // once it has faded in
     assertTrue(find(app, "editor").isExiting(), "the editor fades out");
     assertEquals(before + " Jr.", sheet.names[3]);
-    assertEquals(before + " Jr.", text(find(app, "row-3").children().get(2)), "the grid shows it");
+    assertEquals(before + " Jr.", text(find(app, "row-3").children().get(3)), "the grid shows it");
     assertEquals("sheet", app.focused().key(), "the grid has the focus again");
     run(app, "advance 1\nframe");
     assertNull(find(app, "editor"));
