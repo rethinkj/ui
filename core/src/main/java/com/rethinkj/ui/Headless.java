@@ -38,13 +38,15 @@ public final class Headless {
    */
   public static Frame render(
       El root, float width, float height, float scale, TextRendering textRendering) {
+    El.fix(root);
     El.scaleText(root, scale);
     Flex.layout(root, width, height);
     Overlays.layout(root, width, height);
-    fillRows(root, 0, width, height, scale);
+    float far = Float.POSITIVE_INFINITY;
+    fillRows(root, 0, 0, -far, far, width, height, scale);
     Overlays.place(root, width, height);
     for (El overlay : root.shownOverlays()) {
-      fillRows(overlay, 0, width, height, scale);
+      fillRows(overlay, 0, 0, -far, far, width, height, scale);
     }
     El.placeBars(root);
     Scene scene = Scene.of(root, null, 0, new Atlas(), textRendering);
@@ -57,14 +59,15 @@ public final class Headless {
    * Builds the rows of the virtual lists ({@link El#rows}) that show at their offset of 0, and
    * measures how far each scroll area could scroll, for its bars.
    */
-  private static void fillRows(
-      El el, float parentY, float windowWidth, float windowHeight, float scale) {
+  private static void fillRows(El el, float parentX, float parentY, float clipLeft,
+      float clipRight, float windowWidth, float windowHeight, float scale) {
     if (!el.isPlaced()) {
       return;
     }
     el.measureScroll();
+    float left = parentX + el.x();
     float top = parentY + el.y();
-    int[] range = el.wantedRows(top, windowHeight);
+    int[] range = el.wantedRows(left, top, clipLeft, clipRight, windowWidth, windowHeight);
     if (range != null) {
       el.makeRows(range[0], range[1]);
       el.layoutRows(scale, false);
@@ -72,8 +75,12 @@ public final class Headless {
         Overlays.layout(row, windowWidth, windowHeight);
       }
     }
+    if (el.style().overflowX != Style.Overflow.VISIBLE) {
+      clipLeft = Math.max(clipLeft, left);
+      clipRight = Math.min(clipRight, left + el.width());
+    }
     for (El child : el.children()) {
-      fillRows(child, top, windowWidth, windowHeight, scale);
+      fillRows(child, left, top, clipLeft, clipRight, windowWidth, windowHeight, scale);
     }
   }
 }

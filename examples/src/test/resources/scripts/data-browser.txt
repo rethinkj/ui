@@ -12,8 +12,8 @@ frame
 snap browser-filtered
 
 key Tab                          # on to the grid, with a ring
-key ArrowDown                    # selects the first order shown
-key End                          # and then the last one
+key ArrowDown                    # the cursor on the first order shown
+key End control                  # and on the last cell of the last one
 frame
 snap browser-end
 
@@ -27,10 +27,12 @@ snap browser-unfiltered
 
 press #column-0                  # sorts by id, descending: the order is near the top now
 frame
-down #resize-2                   # the right edge of email, at 444,87
+wheel #rows -2000 0              # the columns back to their start; the cursor stays
 frame
-move 504,87                      # 60 pixels to the right, a frame for each step as in a window
+down #resize-2                   # the right edge of email, at 502,87
 frame
-up 504,87
+move 562,87                      # 60 pixels to the right, a frame for each step as in a window
+frame
+up 562,87
 frame
 snap browser-sorted

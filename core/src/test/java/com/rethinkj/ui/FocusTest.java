@@ -170,6 +170,33 @@ class FocusTest {
     assertFalse(app.frame(), "focused and cleared again in the same frame");
   }
 
+  @Test
+  void anElementThatFadesInTakesTheFocusFromTheFrameThatAddsIt() {
+    boolean[] shown = {false};
+    List<String> keys = new ArrayList<>();
+    App<Object> app = start(new App<>(new Object(), s -> {
+      El root = col().wFull().hFull().child(el().key("hidden").size(20, 20).focusable().opacity(0));
+      return shown[0] ? root.child(el().key("new").size(20, 20).focusable().motion(Spring.SNAP)
+          .onKey(k -> keys.add(k.name()))) : root;
+    }), 100, 100);
+    shown[0] = true;
+    app.resize(100, 100, 1); // a rebuild, as after a handler that opens it
+    app.frame();
+    El fresh = find(app.tree(), "new");
+    assertEquals(0, fresh.opacity(), "on its way in");
+    app.focus(fresh);
+    app.frame();
+    assertSame(find(app.tree(), "new"), app.focused());
+    key(app, "A", 0);
+    assertEquals(List.of("A"), keys);
+
+    app.focus(null);
+    app.frame();
+    key(app, "Tab", 0);
+    assertSame(find(app.tree(), "new"), app.focused(), "Tab reaches it, and not the invisible one");
+    assertThrows(IllegalArgumentException.class, () -> app.focus(find(app.tree(), "hidden")));
+  }
+
   // Identity
 
   @Test

@@ -177,17 +177,22 @@ public record Theme(
    * {@link Tree} takes its row height and the colours of its selected rows from here too.
    *
    * @param rowHeight the height of a row and of the header
-   * @param minColumn the narrowest a column can be made by dragging its edge
+   * @param minColumn the narrowest a column can be made by dragging its edge or fitting it
+   * @param maxColumn the widest a double press on a column's edge fits it to its content
    * @param handle the width of the strip around a header cell's right edge that resizes it
-   * @param header the background of the header
+   * @param mark the size of the sort arrows in the header
+   * @param header the background of the header and of the row numbers
    * @param row the background of the rows, and of the grid below the last one
    * @param stripe the background of every other row
-   * @param selected the selected row while the grid has the keyboard focus
-   * @param selectedInactive the selected row while the focus is elsewhere
+   * @param selected the selected rows or cells while the grid has the keyboard focus
+   * @param selectedInactive the selected rows or cells while the focus is elsewhere
+   * @param cursor the outline of the cell the cursor is on while the grid has the focus, which
+   *     stands out 3:1 from the rows and the selection
+   * @param cursorWidth the width of that outline
    */
   public record Grid(
-      float rowHeight, float minColumn, float handle, int header, int row, int stripe,
-      int selected, int selectedInactive) {}
+      float rowHeight, float minColumn, float maxColumn, float handle, float mark, int header,
+      int row, int stripe, int selected, int selectedInactive, int cursor, float cursorWidth) {}
 
   /**
    * The shadows under what lies above the rest ({@link com.rethinkj.ui.El#shadow}), each a tight
@@ -229,7 +234,8 @@ public record Theme(
           TYPE,
           SIZE,
           MOTION,
-          new Grid(22, 32, 6, 0xFF232428, 0xFF1B1C1F, 0xFF1F2023, 0xFF1C3666, 0xFF2B3240),
+          new Grid(22, 32, 480, 6, 12, 0xFF232428, 0xFF1B1C1F, 0xFF1F2023, 0xFF1C3666,
+              0xFF2B3240, 0xFF7AA2F7, 2),
           new Scrollbars(6, 2, 3, 24, 0xFF83868F, 0xFFA1A3AA, 0xFFB9BBC1),
           new Elevation(
               List.of(new Shadow(0, 1, 2, 0, 0x73000000), new Shadow(0, 4, 10, 0, 0x66000000)),
@@ -248,7 +254,8 @@ public record Theme(
           TYPE,
           SIZE,
           MOTION,
-          new Grid(22, 32, 6, 0xFFF1F2F4, 0xFFFFFFFF, 0xFFF5F6F8, 0xFFCFE0FC, 0xFFE3E6EC),
+          new Grid(22, 32, 480, 6, 12, 0xFFF1F2F4, 0xFFFFFFFF, 0xFFF5F6F8, 0xFFCFE0FC,
+              0xFFE3E6EC, 0xFF1D4ED8, 2),
           new Scrollbars(6, 2, 3, 24, 0xFF6E717A, 0xFF5C5F66, 0xFF4A4D54),
           new Elevation(
               List.of(new Shadow(0, 1, 3, 0, 0x1F000000), new Shadow(0, 6, 16, 0, 0x24000000)),

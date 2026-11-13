@@ -52,6 +52,9 @@ public final class Text implements Measure {
    */
   public record Box(float x, float y, float width, float height) {}
 
+  /** What ends a line that {@link El#ellipsis} shortens. */
+  public static final String ELLIPSIS = "\u2026";
+
   /** The colour of the selection until {@link El#selectionColor} changes it, as 0xAARRGGBB. */
   public static final int SELECTION = 0x663B82F6;
 
@@ -78,6 +81,9 @@ public final class Text implements Measure {
   private int color = 0xFF000000;
   private int background;
   private boolean wraps;
+  private boolean ellipsis;
+  private boolean shortened; // a line of the last placed() ends in the ellipsis
+  private Font shaping; // the font with the fallbacks it shaped with
   private float scale = 1;
   private boolean systemFonts;
   private List<Line> lines = List.of();
@@ -135,6 +141,16 @@ public final class Text implements Measure {
 
   public boolean wraps() {
     return wraps;
+  }
+
+  /** Whether a line wider than the box ends in {@link #ELLIPSIS}; see {@link El#ellipsis}. */
+  public boolean ellipsis() {
+    return ellipsis;
+  }
+
+  /** Whether layout shortened a line to fit the box, so that it ends in {@link #ELLIPSIS}. */
+  public boolean shortened() {
+    return shortened;
   }
 
   /** The scale the text was shaped for, in physical pixels per logical pixel. */
@@ -247,6 +263,17 @@ public final class Text implements Measure {
     }
   }
 
+  /**
+   * For {@link Editor}: shows a placed field's string without its composition, in lines placed
+   * again in the same box, for a field that leaves the tree.
+   */
+  void dropComposition() {
+    if (composed != null) {
+      compose(null);
+      placed(placedWidth / scale, placedHeight / scale);
+    }
+  }
+
   /** For {@link Editor}: what a field draws besides its glyphs. */
   void decorate(float scroll, List<Box> selection, Box caret, Box composition) {
     this.scroll = scroll;
@@ -279,6 +306,10 @@ public final class Text implements Measure {
   void wraps(boolean wraps) {
     this.wraps = wraps;
     paragraphs = null;
+  }
+
+  void ellipsis(boolean on) {
+    this.ellipsis = on;
   }
 
   void scale(float scale) {
@@ -322,12 +353,49 @@ public final class Text implements Measure {
     placedHeight = height * scale;
     offsetY = field ? Math.round((placedHeight - spans.size() * lineHeight) / 2) : 0;
     List<Line> placed = new ArrayList<>();
+    shortened = false;
     for (Span span : spans) {
+      float baseline = offsetY + firstBaseline + placed.size() * lineHeight;
+      if (ellipsis && !field && span.width > placedWidth + SLACK) {
+        placed.add(shorten(span, baseline));
+        shortened = true;
+        continue;
+      }
       int[] at = glyphAt[span.paragraph];
       placed.add(new Line(runs[span.paragraph].slice(at[span.from], at[span.to]), span.width,
-          offsetY + firstBaseline + placed.size() * lineHeight));
+          baseline));
     }
     lines = List.copyOf(placed);
+  }
+
+  /**
+   * A line that is wider than the box, shortened to the most graphemes that fit with {@link
+   * #ELLIPSIS} after them, shaped anew so that the ellipsis kerns with what it follows. Where not
+   * even the ellipsis fits, it is the ellipsis alone, which the box clips.
+   */
+  private Line shorten(Span span, float baseline) {
+    // shortcut: a right-to-left run is one cluster (see Font#shape), so the line ends before it
+    // rather than inside it; cut inside it when right-to-left text needs it.
+    String text = paragraphs[span.paragraph];
+    float room = placedWidth + SLACK - shaping.shape(ELLIPSIS, size, scale, features).width();
+    BreakIterator chars = BreakIterator.getCharacterInstance(Locale.ROOT);
+    chars.setText(text);
+    List<Integer> fits = new ArrayList<>();
+    fits.add(span.from);
+    for (int b = chars.following(span.from); b != BreakIterator.DONE && b <= span.to;
+        b = chars.next()) {
+      if (width(span.paragraph, span.from, b) > room) {
+        break;
+      }
+      fits.add(b);
+    }
+    for (int i = fits.size() - 1; ; i--) {
+      String shown = text.substring(span.from, fits.get(i)).stripTrailing() + ELLIPSIS;
+      GlyphRun run = shaping.shape(shown, size, scale, features);
+      if (run.width() <= placedWidth + SLACK || i == 0) {
+        return new Line(run, run.width(), baseline);
+      }
+    }
   }
 
   /** The lines for a box this wide in logical pixels, or {@link Measure#MAX_CONTENT} or MIN. */
@@ -395,7 +463,7 @@ public final class Text implements Measure {
     glyphAt = new int[split.length][];
     breaks = new int[split.length][];
     BreakIterator lineBreaks = BreakIterator.getLineInstance(Locale.ROOT);
-    Font shaping = systemFonts ? font.withSystemFonts() : font;
+    shaping = systemFonts ? font.withSystemFonts() : font;
     for (int p = 0; p < split.length; p++) {
       String text = split[p];
       GlyphRun run = shaping.shape(text, size, scale, features);

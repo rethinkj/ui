@@ -133,6 +133,17 @@ class TreeTest {
     assertTrue(large[0] < 8_000_000, "median frame() of " + large[0] + " ns, half a frame");
   }
 
+  @Test
+  void aFrameWithABurstOfTenKeysCostsAViewAndItsLayoutPerKey() throws IOException {
+    // Each key of a burst goes to the tree the key before it built: the view numbers the rows
+    // again for each, and the rows are built once, at the end.
+    long one = keyFrames(hundredThousand(), 1);
+    long ten = keyFrames(hundredThousand(), 10);
+    System.out.printf("Tree: frame() after keys, median of %d, %d nodes shown: %.2f ms after one"
+        + " ArrowDown, %.2f ms after ten%n", REBUILDS, SHOWN, one / 1e6, ten / 1e6);
+    assertTrue(ten < 15 * one, "median frame() of " + ten + " ns after ten, " + one + " after one");
+  }
+
   private static final int REBUILDS = 200;
 
   /**
@@ -160,6 +171,27 @@ class TreeTest {
     Arrays.sort(frames);
     Arrays.sort(views);
     return new long[] {frames[REBUILDS / 2], views[REBUILDS / 2]};
+  }
+
+  /** The median time of {@link App#frame} after {@code keys} presses of ArrowDown or ArrowUp. */
+  private long keyFrames(Catalog catalog, int keys) throws IOException {
+    App<Catalog> app = start(catalog);
+    run(app, "focus #schema\nframe");
+    long[] frames = new long[REBUILDS];
+    for (int i = -REBUILDS; i < REBUILDS; i++) { // the first round warms up
+      Key key = new Key(Math.floorMod(i, 4) < 2 ? "ArrowDown" : "ArrowUp");
+      for (int k = 0; k < keys; k++) {
+        app.keyDown(key);
+        app.keyUp(key);
+      }
+      long start = System.nanoTime();
+      app.frame();
+      if (i >= 0) {
+        frames[i] = System.nanoTime() - start;
+      }
+    }
+    Arrays.sort(frames);
+    return frames[REBUILDS / 2];
   }
 
   // The pointer
@@ -317,6 +349,20 @@ class TreeTest {
   }
 
   @Test
+  void keysInOneFrameWalkIntoANodeThatAnEarlierOneOpened() throws IOException {
+    Catalog catalog = new Catalog(T).opened("localhost");
+    App<Catalog> app = start(catalog);
+    run(app, "focus #schema\nkey Home\nkey ArrowDown\nframe\n" // localhost/analytics, closed
+        + "key ArrowRight\nkey ArrowRight\nkey ArrowRight\nkey ArrowRight\nframe");
+    assertEquals(catalog.node("localhost/analytics/public/events"), catalog.selected,
+        "each Right goes on in the rows the one before it opened");
+    assertEquals(List.of("select localhost", "select localhost/analytics",
+        "open localhost/analytics", "select localhost/analytics/public",
+        "open localhost/analytics/public", "select localhost/analytics/public/events"),
+        catalog.log.subList(0, 6));
+  }
+
+  @Test
   void withoutASelectionAKeySelectsTheFirstRowInView() throws IOException {
     Catalog catalog = new Catalog(T).opened("localhost", "localhost/shop", "localhost/shop/public");
     catalog.selected = catalog.node("localhost/analytics/public"); // inside a closed node
@@ -396,8 +442,11 @@ class TreeTest {
     run(app, "press #row-3\nframe\nfocus #schema\nkey ArrowDown\nframe\nkey End\nframe");
     assertEquals(List.of("select staging", "open staging"), catalog.log, "not a node");
 
-    catalog.arrive();
-    run(app, "frame");
+    run(app, "frame\nframe");
+    assertEquals(4, find(app, "schema").rowCount(), "a script lets the answer in at await only");
+    assertEquals(List.of(catalog.node("staging")), catalog.loading);
+
+    run(app, "await\nframe");
     assertEquals(5, find(app, "schema").rowCount());
     assertEquals(List.of("localhost", "prod-eu", "staging", "scratch", "shop"),
         find(app, "schema").children().stream().map(El::label).toList());
@@ -437,7 +486,7 @@ class TreeTest {
           Png.decode(Files.readAllBytes(files.get(i))),
           Files.readString(files.get(i + 1)));
     }
-    assertEquals(10, files.size());
+    assertEquals(12, files.size());
     assertEquals(
         List.of("select localhost", "open localhost", "select localhost/shop",
             "open localhost/shop", "activate localhost/shop", "select localhost/shop/public",

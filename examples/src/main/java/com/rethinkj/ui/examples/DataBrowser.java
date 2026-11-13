@@ -12,9 +12,13 @@ import com.rethinkj.ui.App;
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.Script;
 import com.rethinkj.ui.Style;
+import com.rethinkj.ui.kit.DataGrid;
 import com.rethinkj.ui.kit.DataGrid.Align;
 import com.rethinkj.ui.kit.DataGrid.Column;
-import com.rethinkj.ui.kit.DataGrid.Sort;
+import com.rethinkj.ui.kit.DataGrid.Mode;
+import com.rethinkj.ui.kit.DataGrid.Selection;
+import com.rethinkj.ui.kit.DataGrid.SortKey;
+import com.rethinkj.ui.kit.Menu;
 import com.rethinkj.ui.kit.Theme;
 import com.rethinkj.ui.render.GpuPresenter;
 import com.rethinkj.ui.text.TextRendering;
@@ -31,10 +35,13 @@ import java.util.function.IntFunction;
 
 /**
  * A million orders in the kit's data grid, with a filter above it and a status line below, as a
- * database tool shows a table. The rows are made up from their index; nothing is stored. Every
- * text column repeats after {@link #PERIOD} rows, so the filter tests the first thousand rows
- * only and finds the others by arithmetic, at the same speed for any filter. It keeps the rows
- * that hold each of its words in a text column; numbers and dates are left out of it.
+ * database tool shows a table: cells to select and copy, row numbers and the id frozen at the
+ * left, a context menu, and sorting by id. The rows are made up from their index; nothing is
+ * stored. Every text column repeats after {@link #PERIOD} rows, so the filter tests the first
+ * thousand rows only and finds the others by arithmetic, at the same speed for any filter. It
+ * keeps the rows that hold each of its words in a text column; numbers and dates are left out of
+ * it. The order at the cursor stays selected while the filter or the sort moves it, and while the
+ * filter hides it.
  */
 public final class DataBrowser {
 
@@ -85,9 +92,12 @@ public final class DataBrowser {
 
   String filter = "";
   int[] matching = all(); // the rows below PERIOD that the filter keeps, in order
-  int selected = -1; // the selected order's row, also while the filter hides it
+  final Selection selection = new Selection(Mode.CELLS); // in the places the grid shows
+  int selected = -1; // the order at the cursor, also while the filter hides it
   boolean descending; // by id
   final float[] widths = new float[FIELDS.size()];
+  final Menu.State menu = new Menu.State();
+  App<DataBrowser> app;
 
   DataBrowser() {
     for (int c = 0; c < widths.length; c++) {
@@ -132,6 +142,27 @@ public final class DataBrowser {
       }
     }
     matching = Arrays.copyOf(found, count);
+    follow();
+  }
+
+  /** After the filter or the sort moved the rows: the cursor goes where its order is shown. */
+  private void follow() {
+    int column = Math.max(selection.column(), 0);
+    if (selected >= 0 && placeOf(selected) >= 0) {
+      selection.select(placeOf(selected), column);
+    } else {
+      selection.clear();
+    }
+  }
+
+  /** The grid moved the cursor: its order is the selected one. */
+  void selected() {
+    selected = selection.row() < 0 ? -1 : orderAt(selection.row());
+  }
+
+  void sort(List<SortKey> keys) {
+    descending = keys.contains(new SortKey(0, true)); // none is by id, ascending
+    follow();
   }
 
   private static boolean matches(int row, String[] words) {
@@ -180,6 +211,10 @@ public final class DataBrowser {
 
   String status() {
     String rows = String.format(Locale.ROOT, "%,d of %,d orders", count(), ROWS);
+    long many = selection.rowCount();
+    if (many > 1) {
+      return rows + String.format(Locale.ROOT, " · %,d orders selected", many);
+    }
     if (selected < 0) {
       return rows;
     }
@@ -188,7 +223,9 @@ public final class DataBrowser {
   }
 
   public static void main(String[] args) throws IOException {
-    App<DataBrowser> app = new App<>(new DataBrowser(), DataBrowser::view);
+    DataBrowser browser = new DataBrowser();
+    App<DataBrowser> app = new App<>(browser, DataBrowser::view);
+    browser.app = app;
     // A script's images are stored, so they must not depend on the platform.
     app.textRendering(TextRendering.LINUX);
     if (Script.handle(args, app)) {
@@ -207,14 +244,19 @@ public final class DataBrowser {
     List<Column> columns = new ArrayList<>();
     for (int c = 0; c < FIELDS.size(); c++) {
       Field f = FIELDS.get(c);
-      columns.add(new Column(f.title(), s.widths[c], f.align(), f.mono(),
+      columns.add(new Column(f.title(), s.widths[c], f.align(), f.mono(), c == 0, // id sorts
           shown -> f.cell().apply(s.orderAt(shown))));
     }
-    El grid = dataGrid(t, columns, s.count(), s.placeOf(s.selected),
-        shown -> s.selected = s.orderAt(shown),
-        (c, width) -> s.widths[c] = width,
-        new Sort(0, s.descending),
-        c -> s.descending = c == 0 ? !s.descending : s.descending); // only id sorts
+    DataGrid.Options options = DataGrid.options()
+        .select(s.selection).onSelect(s::selected)
+        .sort(List.of(new SortKey(0, s.descending)), s::sort)
+        .onResize((c, width) -> s.widths[c] = width)
+        .rowNumbers().frozen(1)
+        .contextMenu(s.menu, List.of());
+    if (s.app != null) { // the window's clipboard once it runs, the app's own before
+      options.copy(s.app.clipboard());
+    }
+    El grid = dataGrid(t, columns, s.count(), options);
     return col().wFull().hFull().fill(t.surface().window())
         .child(titleBar(t, "Orders", t.accent().color()))
         // No smaller than its content otherwise, which is a million rows tall: min-height: 0.

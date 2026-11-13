@@ -33,9 +33,11 @@ import java.util.Objects;
  * window asks for a {@link WindowEvent.Redraw}, or when the presenter could not show the last frame
  * ({@link Presenter#pending}). An idle window waits for events and does nothing else, except for
  * waking when the caret of a focused text field blinks ({@link App#nextChange}), which it does only
- * while the window is active ({@link App#windowActive}). While something
- * moves, the loop advances the app's clock by the time that passed and draws a frame per refresh of
- * the display.
+ * while the window is active ({@link App#windowActive}), and when another thread {@link App#post
+ * posts} a task: the post pushes an event that ends the wait at once, the tasks that arrived
+ * until the frame takes them run in that one frame, and a thread that posts nothing costs
+ * nothing. While something moves, the loop advances the app's clock by the time that passed and
+ * draws a frame per refresh of the display.
  *
  * <p>The loop also gives the app the system's clipboard ({@link App#clipboard}) and its fonts for
  * characters that the app's fonts lack ({@link App#systemFonts}, unless {@link #systemFonts} turned
@@ -128,9 +130,11 @@ public final class WindowLoop {
 
   /**
    * Runs until the user asks to close the window or {@link #stop} is called, on the window's
-   * thread. Meanwhile the loop is the window's listener and answers its {@link Window#parts} from
-   * the app; afterwards the window has neither. The window stays open; close it afterwards. What a
-   * listener or the presenter throws ends the loop and comes out of here.
+   * thread. Meanwhile the loop is the window's listener, answers its {@link Window#parts} from
+   * the app and wakes for the app's posted tasks ({@link App#onPost}); afterwards it does none of
+   * that, and tasks posted later wait in the app until it runs frames again. The window stays
+   * open; close it afterwards. What a listener, the presenter or a posted task throws ends the
+   * loop and comes out of here.
    */
   public void run() {
     if (running) {
@@ -141,6 +145,7 @@ public final class WindowLoop {
     app.systemFonts(systemFonts);
     window.listener(this::event);
     window.parts(app::windowPart);
+    app.onPost(Window::wake); // a task from another thread ends the wait below
     try {
       clock = System.nanoTime();
       refreshRate();
@@ -161,6 +166,7 @@ public final class WindowLoop {
       }
     } finally {
       running = false;
+      app.onPost(null);
       if (window.isOpen()) {
         window.listener(null);
         window.parts(null);

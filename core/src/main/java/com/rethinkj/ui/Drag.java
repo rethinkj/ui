@@ -9,8 +9,14 @@ package com.rethinkj.ui;
  * @param dx how far the pointer is from where it went down, in logical pixels, positive to the
  *     right
  * @param dy the same downwards
+ * @param x where the pointer is in the element's content, in logical pixels: from the left of its
+ *     border box as the last frame shows it, plus its own horizontal scroll offset; so in a scroll
+ *     area, which content is under the pointer, also when the area scrolled during the drag. The
+ *     wheel's scrolling of the frame that runs this step comes after it. NaN for a cancel because
+ *     the element has left the tree.
+ * @param y the same downwards; a double, exact in a list of rows millions of pixels tall
  */
-public record Drag(Phase phase, float dx, float dy) {
+public record Drag(Phase phase, float dx, float dy, double x, double y) {
 
   /**
    * How far the pointer has to move from where it went down, along either axis, before a press

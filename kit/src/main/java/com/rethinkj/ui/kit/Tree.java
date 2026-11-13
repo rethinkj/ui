@@ -23,7 +23,7 @@ import java.util.function.Predicate;
  *     (node, open) -> {
  *       if (open) {
  *         s.open.add(node);
- *         s.catalog.loadIfUnknown(node); // children() is null until the data is there
+ *         s.catalog.loadIfUnknown(node); // with App.background; children() is null till then
  *       } else {
  *         s.open.remove(node);
  *       }
@@ -186,23 +186,19 @@ public final class Tree {
     if (onSelect == null) {
       return tree;
     }
-    // The row the keys last selected: a second key in the same frame goes on from there.
-    int[] cursor = {rows.selected};
     return tree.focusable().focusRing(t.border().focus())
         .whenFocused(e -> focused[0] = true)
-        .onKey(k -> key(k, model, isOpen, rows, cursor, tree, height, onSelect, onToggle,
-            onActivate));
+        .onKey(k -> key(k, model, isOpen, rows, tree, height, onSelect, onToggle, onActivate));
   }
 
   /** What a key does to the tree with the focus; whether the tree took it. */
   private static <N> boolean key(
-      Key k, Model<N> model, Predicate<? super N> isOpen, Rows<N> rows, int[] cursor, El tree,
-      float height, Consumer<? super N> onSelect, Toggle<? super N> onToggle,
-      Consumer<? super N> onActivate) {
+      Key k, Model<N> model, Predicate<? super N> isOpen, Rows<N> rows, El tree, float height,
+      Consumer<? super N> onSelect, Toggle<? super N> onToggle, Consumer<? super N> onActivate) {
     if (k.modifiers() != 0 || rows.count == 0) {
       return false;
     }
-    int from = cursor[0];
+    int from = rows.selected;
     N node = from < 0 ? null : rows.node(from);
     boolean open = node != null && !model.isLeaf(node) && isOpen.test(node);
     int page = Math.max(1, (int) (tree.height() / height));
@@ -248,7 +244,6 @@ public final class Tree {
       return false;
     }
     if (next != from) {
-      cursor[0] = next;
       onSelect.accept(rows.node(next));
     }
     return true;

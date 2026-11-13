@@ -290,7 +290,92 @@ class RowsTest {
     assertFalse(app.isMoving());
   }
 
+  @Test
+  void aListOfAHundredMillionRowsGrowsToTheExactPixelAndEndsWithItsLastRow() {
+    for (int count : new int[] {1_000_000, 100_000_000}) {
+      // As the data grid: a header and a line above rows that grow into the rest, 201 pixels.
+      App<Data> app = new App<>(new Data(count), d -> col().size(544, 224).children(
+          el().h(22).shrink(0), el().h(1).shrink(0),
+          col().key("list").grow(1).padding(0, 0, 3, 0).rows(d.count, 22, i -> el())));
+      app.resize(560, 240, 1);
+      app.frame();
+      El list = find(app.tree(), "list");
+      assertEquals(201, list.height(), count + " rows");
+
+      app.scrollToRow(list, count); // the end
+      app.frame();
+      list = find(app.tree(), "list");
+      assertEquals(count * 22.0 + 3 - 201, list.scrollY());
+      El last = list.children().getLast();
+      assertEquals(count - 1, list.firstRow() + list.children().size() - 1);
+      assertEquals(201 - 3, last.y() + last.height(), "the last row ends where the content does");
+
+      // Up a pixel at a time near the end: every row moves by exactly one pixel each time.
+      float[] before = tops(list);
+      int first = list.firstRow();
+      for (int step = 1; step <= 60; step++) {
+        app.wheel(100, 100, 0, -1);
+        app.frame();
+        list = find(app.tree(), "list");
+        float[] now = tops(list);
+        for (int i = 0; i < now.length; i++) {
+          int row = list.firstRow() + i;
+          if (row >= first && row - first < before.length) {
+            assertEquals(before[row - first] + 1, now[i], count + " rows, row " + row);
+          }
+        }
+        before = now;
+        first = list.firstRow();
+      }
+    }
+  }
+
+  private static float[] tops(El list) {
+    float[] tops = new float[list.children().size()];
+    for (int i = 0; i < tops.length; i++) {
+      tops[i] = list.children().get(i).y();
+    }
+    return tops;
+  }
+
   // Input
+
+  @Test
+  void rowsThatScrollingBuildsTakeTheLooksOfTheMomentWithoutABuildOfTheView() {
+    Data data = new Data(1_000_000);
+    App<Data> app = new App<>(data, d -> {
+      d.views++;
+      return col().key("list").wFull().hFull().rows(d.count, 28, i ->
+          row().key("row-" + i).fill(WHITE).focusable().onPress(() -> {})
+              .child(el().key("cell-" + i).size(10, 10))
+              .whenHovered(e -> e.fill(HOVER).padding(0, 0, 0, 8))
+              .whenFocused(e -> e.border(2, 0xFF000000))
+              .whenPressed(e -> e.radius(4)));
+    });
+    app.resize(200, 300, 1);
+    app.frame();
+    app.pointerMove(100, 154);
+    app.pointerDown(100, 154); // row 5, which keeps the focus and the press while it scrolls
+    app.frame();
+    assertEquals(2, find(app.tree(), "row-5").style().borderTop.value());
+    int views = data.views;
+
+    app.wheel(100, 154, 0, 28 * 40); // row 45 under the pointer, and the rows around it built
+    app.frame();
+    El row = find(app.tree(), "row-45");
+    assertEquals(HOVER, row.fill(), "the row under the pointer");
+    assertEquals(8, find(app.tree(), "cell-45").x(), "laid out again with the look's padding");
+    assertEquals(0, find(app.tree(), "cell-44").x());
+    assertEquals(views, data.views, "without building the view");
+
+    app.wheel(100, 154, 0, -28 * 40); // back: rows 0 to 16 built, row 5 under the pointer
+    app.frame();
+    row = find(app.tree(), "row-5");
+    assertEquals(HOVER, row.fill());
+    assertEquals(2, row.style().borderTop.value(), "focused");
+    assertEquals(4, row.radius(), "and pressed");
+    assertEquals(views, data.views);
+  }
 
   @Test
   void selectorsHitTestingAndHoverWorkOnTheRowsThatExist() throws IOException {

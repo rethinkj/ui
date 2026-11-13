@@ -162,6 +162,15 @@ final class Animator {
     return ids;
   }
 
+  /** The identities of an element's ancestors from the root down, and its own last. */
+  static List<Object> lineage(Object identity) {
+    List<Object> ids = new ArrayList<>();
+    for (Id id = (Id) identity; id != null; id = id.parent()) {
+      ids.add(id);
+    }
+    return ids.reversed();
+  }
+
   /** The identity of the row with this index of the virtual list with identity {@code list}. */
   static Object row(Object list, int index) {
     return new Id((Id) list, index);
@@ -386,6 +395,11 @@ final class Animator {
       } else if (el.isScrollArea()) {
         el.revealChild(reveal);
       }
+    }
+    Object key = el.revealKey();
+    if (key != null && el.isScrollArea()
+        && (before == null || !key.equals(before.revealKey()))) {
+      el.revealArea();
     }
   }
 
@@ -612,7 +626,7 @@ final class Animator {
       if (el.text() != null) {
         el.text().color(colour(TEXT, now));
       }
-      el.opacity((float) Math.clamp(tracks[OPACITY].value(now), 0.0, 1.0)); // a bounce overshoots
+      el.shownOpacity((float) Math.clamp(tracks[OPACITY].value(now), 0.0, 1.0)); // a bounce overshoots
     }
 
     private float at(int index, double now) {

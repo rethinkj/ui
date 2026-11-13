@@ -5,16 +5,22 @@ import com.rethinkj.ui.render.CpuRenderer;
 import com.rethinkj.ui.render.Scene;
 import com.rethinkj.ui.text.Atlas;
 import com.rethinkj.ui.text.TextRendering;
+import java.time.Duration;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -24,9 +30,32 @@ import java.util.function.Predicate;
 /**
  * A running app: a state object and a view function that builds the element tree from it.
  *
- * <p>The view only reads the state. Input finds the element it lands on and queues that element's
- * handler; {@link #frame} runs the queued handlers, which may change the state, and then builds
- * and lays out the view again. Without input nothing changes but movements under way.
+ * <p>The view only reads the state. Input waits in a queue, in the order it came, until {@link
+ * #frame} dispatches it: each input finds the element it goes to and runs that element's handler,
+ * which may change the state, and then the frame builds and lays out the view again. Without input
+ * nothing changes but movements under way.
+ *
+ * <p>Each input is dispatched against a tree built from the state as it is when its turn comes:
+ * it is hit tested, overlays first, and finds its element only then, not when it arrives. When a
+ * handler of the app has taken an input and more input of the same frame waits, the frame builds
+ * the view again first, gives it the looks of the moment and its fields their editing state, lets
+ * the overlays that open and close move the focus, lays it out and places its overlays. The next
+ * input then finds its element in that tree and runs that element's handler, a closure of the new
+ * view: two ArrowDown in one frame move a selection by two rows, a key after the press that
+ * opened a menu goes to the menu, a press after one that dismissed a menu finds no menu there, and
+ * a second edit of a field builds on what the app made of the first. Handlers of the app are
+ * those of presses, secondary presses (also from the Menu key), drags, keys, text and edits, and
+ * the {@link El#onDismiss} handlers that a press or the wheel outside an overlay calls; all of
+ * them run in the order of the input, each in the tree the one before left. The rows of the
+ * virtual lists in such a tree, those inside overlays too, and its scrollbars are built before an
+ * input that needs them: a press, a release, a secondary press, Tab, a focus or a scroll the app
+ * asks for, and a key while the focus is in a row; the wheel and drags build them too, but not
+ * the rows that their own scrolling brings into view. Other keys do with the rows that exist, so
+ * a key handler there sees its list without rows. Input that no handler of the app took costs no
+ * rebuild: a pointer move, a key that nobody handles or that only moves a field's caret, a focus
+ * moved by Tab, a wheel that dismisses nothing. A key handler that returns false counts as having
+ * changed nothing. The {@link El#onHoverFor} handlers are not input: the frame runs them after
+ * all input, once the pointer has rested long enough on the tree as it is then.
  *
  * <p>The view only states where things end up. When a rebuild gives an element with {@link
  * El#motion} new values, the app springs it there over the following frames, without running the
@@ -69,10 +98,23 @@ import java.util.function.Predicate;
  * <p>A text field ({@link El#editable}) keeps its caret, selection, scroll, undo history and
  * composition here too, by the same identity. Its caret blinks on the app's clock while it has the
  * focus: {@link #frame} draws a new frame when it turns on or off, and {@link #nextChange} says
- * when that is. Cut, copy and paste go through the app's {@link #clipboard}.
+ * when that is. Cut, copy and paste go through the app's {@link #clipboard}. A field that loses
+ * the focus to another element, or to none, shows the start of its text and no selection, as
+ * browsers do, and forgets how far it was scrolled; when the focus comes back, the text scrolls
+ * just far enough to show the caret. Losing the focus of the window is not that: the field keeps
+ * the app's focus, its scroll, caret and selection, and only stops drawing the caret until the
+ * window has the focus again.
  *
  * <p>This class needs no window. A windowed runner feeds it the window's input and draws its
  * {@link #scene}; tests and agents feed it input themselves and look at {@link #render}.
+ *
+ * <p>An app is used by one thread, the one that runs it, and is not safe for others: the state,
+ * the elements and every method but one belong to that thread. The one is {@link #post}, with
+ * which any thread hands the app a task that runs on the app's thread at its turn in the queue,
+ * as one more input whose handler is the app's: the way back for the result of a query that ran
+ * elsewhere, so that the window does not stop for it. {@link #background} runs a computation on a
+ * virtual thread and posts its result or failure, unless it was cancelled; {@link #await} waits
+ * for that work, for scripts and tests.
  *
  * @param <S> the type of the state
  */
@@ -95,9 +137,21 @@ public final class App<S> {
 
   private final S state;
   private final Function<S, El> view;
-  // Each returns whether it may have changed something that the next rebuild shows.
+  // Input in the order it came, dispatched by frame(). Each returns whether it may have changed
+  // something that the next rebuild shows.
   private final ArrayDeque<BooleanSupplier> queued = new ArrayDeque<>();
-  private final ArrayDeque<BooleanSupplier> scrolls = new ArrayDeque<>();
+  // What a handler queues while an input runs, such as a focus or a scroll: it runs next.
+  private final List<BooleanSupplier> follow = new ArrayList<>();
+  // What post() took on any thread, until the app's thread moves it into queued.
+  private final ConcurrentLinkedQueue<BooleanSupplier> posted = new ConcurrentLinkedQueue<>();
+  private final AtomicBoolean woken = new AtomicBoolean(); // wake ran for what posted holds
+  private volatile Runnable wake;
+  boolean holdPosts; // for Script: posted tasks join the queue only at await()
+  private final Set<Work> running = new LinkedHashSet<>(); // of background(); guarded by itself
+  private boolean dispatching;
+  private boolean handled; // a handler of the app took input since the tree was built
+  private boolean scrolled; // something scrolled since the rows and bars were placed
+  private boolean rowsPending; // the tree was built between two inputs without its lists' rows
   private final Animator animator = new Animator();
   private double time;
   private float width;
@@ -107,6 +161,7 @@ public final class App<S> {
   private El root;
   private Object pressed; // the identity of the element a press is on, until the pointer is up
   private int pressClicks; // the presses in quick succession that the one on pressed completes
+  private int pressModifiers; // the modifiers held when it went down
   private Dragging dragging; // a pointer down on an element with a drag handler, until it is up
   private Grab grab; // a press on the thumb of a scrollbar, until the pointer is up
   private El barArea; // the scroll area whose bar is under the pointer or dragged, in this tree
@@ -125,7 +180,9 @@ public final class App<S> {
   // shortcut: lists that are gone stay in it, one small entry each; drop them in update() when
   // apps create lists by the thousand.
   private final Map<Object, Object> remembered = new HashMap<>();
-  private List<Object> lookIds; // during a rebuild: the hovered identities, for rows built later
+  // The rows each list with an onRowsBuilt handler told last, first and last in one long, by the
+  // list's identity. shortcut: lists that are gone stay in it, as in remembered.
+  private final Map<Object, Long> toldRows = new HashMap<>();
   private int ringColour = FOCUS_RING;
   private final Atlas atlas = new Atlas();
   private TextRendering textRendering = TextRendering.platform();
@@ -189,48 +246,51 @@ public final class App<S> {
    * the thumb, from the first pixel.
    */
   public void pointerMove(float x, float y) {
-    queued.add(() -> {
-      pointerIn = true;
-      pointerX = x;
-      pointerY = y;
-      return false; // the frame looks at what is under the pointer anyway
-    });
+    enqueue(() -> move(x, y));
+  }
+
+  private boolean move(float x, float y) {
+    pointerIn = true; // the frame looks at what is under the pointer anyway
+    pointerX = x;
+    pointerY = y;
+    if (rowsPending && (selecting != null || grab != null || dragging != null)) {
+      settle(); // the held element may be in a row; a scroll alone moved the rows that exist
+    }
     if (selecting != null) {
-      Object field = selecting;
-      queued.add(() -> drag(field, x, y));
+      return drag(selecting, x, y);
     }
     Grab g = grab; // never at the same time as the others
     if (g != null) {
-      float start = (g.vertical() ? y : x) - g.grip();
-      scrolls.add(() -> {
-        El area = animator.element(g.id());
-        return area != null && area.dragThumb(g.vertical(), start);
-      });
+      El area = animator.element(g.id());
+      scrolled |= area != null && area.dragThumb(g.vertical(), (g.vertical() ? y : x) - g.grip());
+      return false;
     }
     Dragging d = dragging; // never at the same time as selecting: a press starts one or neither
     if (d != null) {
       float dx = x - d.x;
       float dy = y - d.y;
       if (d.started) {
-        step(d, Drag.Phase.MOVE, dx, dy);
+        return step(d, Drag.Phase.MOVE, dx, dy);
       } else if (Math.max(Math.abs(dx), Math.abs(dy)) > Drag.THRESHOLD) {
         d.started = true;
-        step(d, Drag.Phase.START, dx, dy);
+        return step(d, Drag.Phase.START, dx, dy);
       }
     }
+    return false;
   }
 
   /** The pointer left the window: from the next {@link #frame} on, nothing is hovered. */
   public void pointerLeave() {
-    queued.add(() -> {
+    enqueue(() -> {
       pointerIn = false;
       return false;
     });
   }
 
   /**
-   * The pointer's button went down at this position, in logical pixels. From now until the next
-   * {@link #pointerUp} the element the press goes to is {@link #pressed}. This also gives the focus
+   * The pointer's button went down at this position, in logical pixels. From the {@link #frame}
+   * that dispatches it until the one that dispatches the next {@link #pointerUp}, the element the
+   * press goes to is {@link #pressed}. This also gives the focus
    * to the element there, or to the nearest one around it, that is {@link El#focusable}, without a
    * ring; where there is none, it clears the focus. If the element the press goes to has an {@link
    * El#onDrag} handler, the pointer's movements from here may make a drag of it.
@@ -253,24 +313,31 @@ public final class App<S> {
    *
    * <p>Overlays ({@link El#overlay}) come first, the topmost first, and a press goes no further
    * than the overlay it lands in. A press outside the overlays above it calls their {@link
-   * El#onDismiss} handlers; when it lands outside all of them, or outside a {@link El#modal} one,
-   * that is all it does.
+   * El#onDismiss} handlers when the frame dispatches it; when it lands outside all of them, or
+   * outside a {@link El#modal} one, that is all it does, and the input after it finds the tree
+   * those handlers left.
    *
    * @param clicks 1 for a single press, 2 for the second of a double press, and so on
    * @param modifiers a combination of {@link Key#SHIFT}, {@link Key#CONTROL}, {@link Key#ALT} and
    *     {@link Key#META}
    */
   public void pointerDown(float x, float y, int clicks, int modifiers) {
+    enqueue(() -> down(x, y, clicks, modifiers));
+  }
+
+  private boolean down(float x, float y, int clicks, int modifiers) {
+    boolean changed = false;
     if (dragging != null && dragging.started) { // the last release got lost
-      step(dragging, Drag.Phase.CANCEL, dragging.dx, dragging.dy);
+      changed = step(dragging, Drag.Phase.CANCEL, dragging.dx, dragging.dy);
     }
     dragging = null;
     selecting = null; // likewise: a selection whose release got lost ends where it is
     grab = null; // and a thumb's drag
-    queued.add(this::restAfterPress);
+    settle();
+    restAfterPress();
     if (dismiss(x, y, true)) {
       pressed = null;
-      return;
+      return changed;
     }
     List<El> hit = hit(x, y);
     Scrollbars.Bar bar = hit.isEmpty() ? null : hit.getLast().barAt(x, y);
@@ -284,38 +351,36 @@ public final class App<S> {
       if (onThumb(bar, vertical, x, y)) {
         grab = new Grab(id, vertical, along - start);
       } else {
-        int direction = along < start ? -1 : 1;
-        scrolls.add(() -> {
-          El el = animator.element(id);
-          return el != null && el.page(vertical, direction);
-        });
+        scrolled |= area.page(vertical, along < start ? -1 : 1);
       }
-      return;
+      return changed;
     }
     if (!hit.isEmpty() && hit.getLast().takesEdits()) {
       El field = hit.getLast(); // a leaf, so nothing inside it takes the press
       pressed = null;
       selecting = Animator.identities(hit).getLast();
-      boolean extend = (modifiers & Key.SHIFT) != 0;
-      queued.add(() -> focus(field, false));
-      queued.add(() -> {
-        float[] at = local(field, x, y);
-        Editor editor = field.editor();
-        editor.press(editor.fromShown(field.text().nearest(at[0], at[1])),
-            editor.fromShown(field.text().hit(at[0], at[1])), clicks, extend);
-        return true;
-      });
-      return;
+      focus(field, false);
+      float[] at = local(field, x, y);
+      Editor editor = field.editor();
+      editor.press(editor.fromShown(field.text().nearest(at[0], at[1])),
+          editor.fromShown(field.text().hit(at[0], at[1])), clicks, (modifiers & Key.SHIFT) != 0);
+      return true;
     }
     Target target = target(x, y);
     pressed = target == null ? null : target.id();
     pressClicks = clicks;
+    pressModifiers = modifiers;
     dragging = target == null || target.el.onDrag() == null
         ? null
         : new Dragging(target.id(), target.el.onDrag(), x, y);
     Target focus = target(x, y, El::isFocusable);
-    El el = focus == null ? null : focus.el;
-    queued.add(() -> focus(el, false));
+    focus(focus == null ? null : focus.el, false);
+    Target down = target(x, y, e -> e.onPointerDown() != null);
+    if (down != null) {
+      down.el.onPointerDown().press(clicks, modifiers);
+      handled = changed = true;
+    }
+    return changed;
   }
 
   /**
@@ -324,30 +389,34 @@ public final class App<S> {
    * become a drag; a drag ends here, and so does a thumb's drag, which presses nothing.
    */
   public void pointerUp(float x, float y) {
+    enqueue(() -> up(x, y));
+  }
+
+  private boolean up(float x, float y) {
+    settle();
     if (grab != null) {
       grab = null;
-      return;
+      return false;
     }
     if (selecting != null) {
       Object field = selecting;
-      queued.add(() -> drag(field, x, y));
       selecting = null;
-      return;
+      return drag(field, x, y);
     }
     Dragging d = dragging;
     dragging = null;
-    Target target = target(x, y);
+    boolean changed = false;
     if (d != null && d.started) {
-      step(d, Drag.Phase.END, x - d.x, y - d.y);
-    } else if (target != null && target.id().equals(pressed) && target.el.onPress() != null) {
-      IntConsumer handler = target.el.onPress();
-      int clicks = pressClicks;
-      queued.add(() -> {
-        handler.accept(clicks);
-        return true;
-      });
+      changed = step(d, Drag.Phase.END, x - d.x, y - d.y);
+    } else if (pressed != null) {
+      Target target = target(x, y);
+      if (target != null && target.id().equals(pressed) && target.el.onPress() != null) {
+        target.el.onPress().press(pressClicks, pressModifiers);
+        handled = changed = true;
+      }
     }
     pressed = null;
+    return changed;
   }
 
   /**
@@ -356,47 +425,53 @@ public final class App<S> {
    * gives the focus to the focusable element there, or clears it. It neither drags nor selects.
    */
   public void secondaryDown(float x, float y) {
+    enqueue(() -> secondaryDownAt(x, y));
+  }
+
+  private boolean secondaryDownAt(float x, float y) {
     secondary = null;
-    queued.add(this::restAfterPress);
+    settle();
+    restAfterPress();
     if (dismiss(x, y, true)) {
-      return;
+      return false;
     }
     Target target = target(x, y, el -> el.onSecondaryPress() != null);
     secondary = target == null ? null : target.id();
     Target focus = target(x, y, El::isFocusable);
-    El el = focus == null ? null : focus.el;
-    queued.add(() -> focus(el, false));
+    focus(focus == null ? null : focus.el, false);
+    return false;
   }
 
   /**
-   * The secondary button was released here. When it went down on the same element, the next
-   * {@link #frame} runs that element's {@link El#onSecondaryPress} handler, or its nearest
-   * ancestor's, with this position.
+   * The secondary button was released here. When it went down on the same element, the {@link
+   * #frame} that dispatches this runs that element's {@link El#onSecondaryPress} handler, or its
+   * nearest ancestor's, with this position.
    */
   public void secondaryUp(float x, float y) {
-    Target target = target(x, y, el -> el.onSecondaryPress() != null);
-    if (target != null && target.id().equals(secondary)) {
-      El.PointHandler handler = target.el.onSecondaryPress();
-      queued.add(() -> {
-        handler.accept(x, y);
-        return true;
-      });
-    }
-    secondary = null;
+    enqueue(() -> {
+      settle();
+      Target target = target(x, y, el -> el.onSecondaryPress() != null);
+      boolean ran = target != null && target.id().equals(secondary);
+      secondary = null;
+      if (ran) {
+        target.el.onSecondaryPress().accept(x, y);
+        handled = true;
+      }
+      return ran;
+    });
   }
 
   /** A press keeps the looks and handlers of {@link El#whenHoveredFor} away until a new stay. */
-  private boolean restAfterPress() {
+  private void restAfterPress() {
     for (Rest rest : resting.values()) {
       rest.since = Double.POSITIVE_INFINITY;
     }
-    return false; // the frame compares the looks
   }
 
   /**
-   * For a press or the wheel at this point: queues the {@link El#onDismiss} handlers of the
-   * overlays above the first one it lands in, the topmost first. A modal overlay ends the search;
-   * the wheel calls no modal overlay's handler.
+   * For a press or the wheel at this point: runs the {@link El#onDismiss} handlers of the
+   * overlays above the first one it lands in, the topmost first, all in the tree of the moment.
+   * A modal overlay ends the search; the wheel calls no modal overlay's handler.
    *
    * @return whether the input goes no further: it landed outside a modal overlay, or a press
    *     landed outside all overlays and called a handler
@@ -415,11 +490,8 @@ public final class App<S> {
       }
       Runnable handler = overlay.onDismiss();
       if (handler != null && (press || !overlay.isModal())) {
-        queued.add(() -> {
-          handler.run();
-          return true;
-        });
-        dismissed = true;
+        handler.run();
+        handled = dismissed = true;
       }
       if (overlay.isModal()) {
         return true;
@@ -489,22 +561,40 @@ public final class App<S> {
   }
 
   /**
-   * Queues a step of a drag for the next frame. If the drag's element has left the tree by then,
-   * the handler gets a cancel instead, and nothing after that.
+   * Gives a step of a drag to its handler. If the drag's element has left the tree, the handler
+   * gets a cancel instead, and nothing after that.
+   *
+   * @return whether the handler ran
    */
-  private void step(Dragging d, Drag.Phase phase, float dx, float dy) {
+  private boolean step(Dragging d, Drag.Phase phase, float dx, float dy) {
     d.dx = dx;
     d.dy = dy;
-    queued.add(() -> {
-      if (d.over) {
-        return false;
-      }
-      El el = animator.element(d.id);
-      boolean gone = el == null || el.isExiting();
-      d.over = gone || phase == Drag.Phase.END || phase == Drag.Phase.CANCEL;
-      d.handler.accept(new Drag(gone ? Drag.Phase.CANCEL : phase, dx, dy));
-      return true;
-    });
+    if (d.over) {
+      return false;
+    }
+    El el = animator.element(d.id);
+    boolean gone = el == null || el.isExiting();
+    d.over = gone || phase == Drag.Phase.END || phase == Drag.Phase.CANCEL;
+    double[] at = gone ? new double[] {Double.NaN, Double.NaN} : content(el, d.x + dx, d.y + dy);
+    d.handler.accept(new Drag(gone ? Drag.Phase.CANCEL : phase, dx, dy, at[0], at[1]));
+    handled = true;
+    return true;
+  }
+
+  /**
+   * A point of the window in the coordinates of an element's content in the current tree: from
+   * the top left of its border box as shown, moved by its own scroll offset.
+   */
+  private double[] content(El el, float x, float y) {
+    List<El> path = new ArrayList<>();
+    pathTo(root, el, path);
+    double left = 0;
+    double top = 0;
+    for (El on : fromOverlay(path)) {
+      left += on.x();
+      top += on.y();
+    }
+    return new double[] {x - left + el.scrollX(), y - top + el.scrollY()};
   }
 
   /**
@@ -523,17 +613,19 @@ public final class App<S> {
    */
   public void keyDown(Key key) {
     Objects.requireNonNull(key, "key");
-    queued.add(() -> {
+    enqueue(() -> {
       List<El> path = focusPath();
       boolean called = false;
       for (El el : path.reversed()) {
         if (el.onKey() != null) {
           called = true;
           if (el.onKey().test(key)) {
+            handled = true;
             return true;
           }
         }
         if (el == focused && el.editor() != null && el.editor().key(key, clipboard)) {
+          handled |= el.editor().answerPending(); // it handed an edit to the app
           return true;
         }
         if (el == focused
@@ -541,7 +633,8 @@ public final class App<S> {
             && key.modifiers() == 0
             && (key.name().equals("Enter") || key.name().equals("Space"))) {
           if (!key.repeat()) {
-            el.onPress().accept(1);
+            el.onPress().press(1, 0);
+            handled = true;
           }
           return true;
         }
@@ -557,11 +650,13 @@ public final class App<S> {
               y += on.y();
             }
             el.onSecondaryPress().accept(x, y + path.getLast().height());
+            handled = true;
             return true;
           }
         }
       }
       if (key.name().equals("Tab") && (key.modifiers() & ~Key.SHIFT) == 0) {
+        settle();
         wake();
         List<El> order = focusables();
         if (!order.isEmpty()) {
@@ -585,12 +680,13 @@ public final class App<S> {
    */
   public void keyUp(Key key) {
     Objects.requireNonNull(key, "key");
-    queued.add(() -> {
+    enqueue(() -> {
       boolean called = false;
       for (El el : focusPath().reversed()) {
         if (el.onKeyUp() != null) {
           called = true;
           if (el.onKeyUp().test(key)) {
+            handled = true;
             return true;
           }
         }
@@ -606,14 +702,17 @@ public final class App<S> {
    */
   public void textInput(String text) {
     Objects.requireNonNull(text, "text");
-    queued.add(() -> {
+    enqueue(() -> {
       if (focused != null && focused.editor() != null) {
-        return focused.editor().type(text);
+        boolean changed = focused.editor().type(text);
+        handled |= focused.editor().answerPending();
+        return changed;
       }
       if (focused == null || focused.onText() == null) {
         return false;
       }
       focused.onText().accept(text);
+      handled = true;
       return true;
     });
   }
@@ -628,7 +727,7 @@ public final class App<S> {
    */
   public void textComposition(String text, int cursor) {
     Objects.requireNonNull(text, "text");
-    queued.add(() -> focused != null && focused.editor() != null
+    enqueue(() -> focused != null && focused.editor() != null
         && focused.editor().compose(text, cursor));
   }
 
@@ -674,6 +773,9 @@ public final class App<S> {
    * Positive infinity when nothing will; then an idle window can wait for input alone.
    */
   public double nextChange() {
+    if (!queued.isEmpty()) {
+      return time; // handlers that a frame queued, such as El#onRowsBuilt
+    }
     if (blinking == null || !active) {
       return restDue;
     }
@@ -701,10 +803,12 @@ public final class App<S> {
 
   /**
    * The element of the last frame's {@link #tree} that a press is on, between the pointer down
-   * that went to it and the next pointer up, or null.
+   * that went to it and the next pointer up, or null: an element with a press or drag handler, or
+   * a text field that the press selects in.
    */
   public El pressed() {
-    return pressed == null ? null : animator.element(pressed);
+    Object id = pressedId();
+    return id == null ? null : animator.element(id);
   }
 
   /**
@@ -727,12 +831,16 @@ public final class App<S> {
   /**
    * Gives the keyboard focus to an element of the last frame's {@link #tree} as Tab would, with a
    * ring and scrolled into view, or clears it with null. The next {@link #frame} shows it; a
-   * handler may call this too, and the frame that runs it focuses. The app keeps the focus on the
-   * element of later trees that has the same identity, and clears it once there is none, or when
-   * that element is no longer focusable or takes no input.
+   * handler may call this too, with an element of the tree it runs in, and the frame focuses right
+   * after the handler, the element with the same identity in the tree built from what the handler
+   * changed, if it is still there and can take the focus. The app keeps the focus on the element
+   * of later trees that has the same identity, and clears it once there is none, or when that
+   * element is no longer focusable or takes no input.
    *
    * @throws IllegalArgumentException if the element is not {@link El#focusable}, not in the last
-   *     frame's tree, or takes no input there: it is leaving, at opacity 0, or clipped away
+   *     frame's tree, or takes no input there: it is leaving, the view made it or an ancestor
+   *     invisible with opacity 0, or it is clipped away. An element that fades in can take the
+   *     focus from the frame that adds it on.
    */
   public void focus(El el) {
     if (el != null && !focusables().contains(el)) {
@@ -740,7 +848,12 @@ public final class App<S> {
           "This element cannot take the focus: it is not focusable(), not in the last frame's tree"
               + " or takes no input there");
     }
-    queued.add(() -> focus(el, true));
+    Object id = el == null ? null : animator.identity(el);
+    enqueue(() -> {
+      settle();
+      El now = id == null ? null : animator.element(id);
+      return (id == null || now != null && focusables().contains(now)) && focus(now, true);
+    });
   }
 
   /**
@@ -761,7 +874,7 @@ public final class App<S> {
    * When the app is active again, the caret is on and blinks from there.
    */
   public void windowActive(boolean active) {
-    queued.add(() -> {
+    enqueue(() -> {
       this.active = active;
       blinkStart = time;
       return false;
@@ -998,8 +1111,10 @@ public final class App<S> {
 
   /**
    * The elements Tab moves through, in tree order: those that are focusable, take input and are not
-   * clipped away for good. Along an axis an ancestor scrolls, an element outside its visible part
-   * counts, since focusing it scrolls it into view.
+   * clipped away for good. An element that fades in counts from the frame that adds it, whatever
+   * its opacity on the way, and one the view makes invisible, or that is leaving, does not. Along
+   * an axis an ancestor scrolls, an element outside its visible part counts, since focusing it
+   * scrolls it into view.
    */
   List<El> focusables() {
     List<El> found = new ArrayList<>();
@@ -1016,7 +1131,7 @@ public final class App<S> {
   private static void focusables(
       El el, float parentX, float parentY, float clipLeft, float clipTop, float clipRight,
       float clipBottom, List<El> shown, List<El> found) {
-    if (!el.isPlaced() || el.opacity() == 0 || el.isExiting()) {
+    if (!el.isPlaced() || el.targetOpacity() == 0 || el.isExiting()) {
       return;
     }
     float left = parentX + el.x();
@@ -1077,22 +1192,28 @@ public final class App<S> {
    * to its content; when none can, nothing happens. A wheel that turns only up and down, as a
    * mouse's does, moves an area that scrolls only sideways ({@code overflow-x: scroll} without
    * {@code overflow-y: scroll}, such as a row of tabs) sideways, positive to the right. The next
-   * {@link #frame} shows it. Outside the
-   * overlays that are open, the wheel calls the {@link El#onDismiss} handlers of those above the
-   * pointer and scrolls as usual; outside a {@link El#modal} one it does nothing.
+   * {@link #frame} shows it. Outside the overlays that are open, the wheel calls the {@link
+   * El#onDismiss} handlers of those above the pointer and scrolls what is under it in the same
+   * tree; outside a {@link El#modal} one it does nothing.
    */
   public void wheel(float x, float y, float deltaX, float deltaY) {
     if (!Float.isFinite(deltaX) || !Float.isFinite(deltaY)) {
       throw new IllegalArgumentException("wheel deltas must be finite, were " + deltaX + ", "
           + deltaY);
     }
-    if (dismiss(x, y, false)) {
-      return; // outside a modal overlay
-    }
-    List<El> areas = hit(x, y).reversed();
-    boolean sideways = deltaX == 0;
-    scrolls.add(() -> scroll(areas, true, deltaX, false)
-        | scroll(areas, false, deltaY, sideways)); // not ||
+    enqueue(() -> {
+      if (rowsPending) {
+        settle(); // the rows and their overlays, which a rebuild between inputs left out
+      }
+      if (dismiss(x, y, false)) {
+        return false; // outside a modal overlay
+      }
+      List<El> areas = hit(x, y).reversed();
+      boolean sideways = deltaX == 0;
+      scrolled |= scroll(areas, true, deltaX, false)
+          | scroll(areas, false, deltaY, sideways); // not ||
+      return false;
+    });
   }
 
   /** @param sideways whether an area that scrolls only sideways takes a vertical delta sideways */
@@ -1116,20 +1237,27 @@ public final class App<S> {
    * logical pixels: to the top with 0, 0, for example after new data arrived, or to the end with
    * {@link Double#POSITIVE_INFINITY}. The next {@link #frame} shows it, clamped to the content;
    * until then {@link El#scrollX} and {@link El#scrollY} keep the old offset. A handler may call
-   * this too; the frame that runs it scrolls.
+   * this too, with an area of the tree it runs in; the frame scrolls right after the handler, the
+   * area with the same identity in the tree built from what the handler changed.
    */
   public void scrollTo(El area, double x, double y) {
     if (Double.isNaN(x) || Double.isNaN(y)) {
       throw new IllegalArgumentException("scroll offset is NaN");
     }
-    scrolls.add(() -> area.scrollTo(x, y));
+    Object id = animator.identity(area);
+    enqueue(() -> {
+      settle();
+      El el = id == null ? null : animator.element(id);
+      scrolled |= el != null && el.scrollTo(x, y);
+      return false;
+    });
   }
 
   /**
    * Scrolls a virtual list ({@link El#rows}) of the last frame's {@link #tree} so that the row
    * with this index is at the top of its content box, or as far as the end of the list allows: to
    * an offset of {@code row * rowHeight}. The next {@link #frame} shows it and builds the rows it
-   * brings into view. A handler may call this too; the frame that runs it scrolls.
+   * brings into view. A handler may call this too, as {@link #scrollTo}.
    *
    * @param row the index of the row, from 0; one beyond the last scrolls to the end
    * @throws IllegalArgumentException if {@code list} is not a virtual list or {@code row} is
@@ -1143,7 +1271,211 @@ public final class App<S> {
     if (row < 0) {
       throw new IllegalArgumentException("row must be 0 or more, was " + row);
     }
-    scrolls.add(() -> list.scrollTo(list.scrollX(), row * (double) list.rowHeight()));
+    Object id = animator.identity(list);
+    enqueue(() -> {
+      settle();
+      El el = id == null ? null : animator.element(id);
+      scrolled |= el != null && el.scrollTo(el.scrollX(), row * (double) el.rowHeight());
+      return false;
+    });
+  }
+
+  /** Queues input for the next frame, or what a handler asks for right after that handler. */
+  private void enqueue(BooleanSupplier input) {
+    if (dispatching) {
+      follow.add(input);
+      return;
+    }
+    if (!holdPosts) {
+      takePosted(); // what other threads posted before this input comes before it
+    }
+    queued.add(input);
+  }
+
+  // ---- Work off the app's thread
+
+  /**
+   * Hands the app a task to run on its thread, at its turn among the input: the one method of an
+   * app that may be called on any thread. It never blocks. The task joins the queue of input after
+   * the input that came before it, and the tasks of one thread keep their order; {@link #frame}
+   * runs it like the handler of an input that a handler took, against the tree of the moment, so
+   * that the view is built again before the next input and the frame draws. A task posted while a
+   * frame runs, by a handler too, waits for the next frame. Only the task touches the state, on the
+   * app's thread; the thread that posts it hands over what it computed, as in
+   *
+   * <pre>{@code
+   * Thread.ofVirtual().start(() -> {
+   *   List<Row> rows = db.query(sql); // not the state: the app's thread may be reading it
+   *   app.post(() -> state.rows = rows);
+   * });
+   * }</pre>
+   *
+   * <p>{@link #background} does that with a failure and cancellation. A runner that waits for
+   * events, such as a {@link com.rethinkj.ui.window.WindowLoop}, wakes up for a task ({@link
+   * #onPost}); without one, the next frame runs it. In a {@link Script}, tasks wait for its {@code
+   * await} step.
+   *
+   * <p>A task that throws ends the frame there, as a handler does: the exception comes out of
+   * {@link #frame}, the input after the task stays queued, a {@code WindowLoop} ends with it and
+   * a script fails at its {@code frame} step. Once the app's window has closed, tasks still queue
+   * and wait: they run if the app runs frames again, and are dropped with the app otherwise.
+   */
+  public void post(Runnable task) {
+    Objects.requireNonNull(task, "task");
+    offer(() -> {
+      handled = true; // before it runs: a task that throws may have changed something
+      task.run();
+      return true;
+    });
+  }
+
+  private void offer(BooleanSupplier task) {
+    posted.add(task);
+    Runnable w = wake;
+    if (w != null && woken.compareAndSet(false, true)) {
+      w.run();
+    }
+  }
+
+  /** Moves what other threads posted into the queue; on the app's thread. */
+  private void takePosted() {
+    woken.set(false); // before the tasks are taken: one posted after them wakes again
+    for (BooleanSupplier task; (task = posted.poll()) != null; ) {
+      queued.add(task);
+    }
+  }
+
+  /**
+   * Sets what {@link #post} calls, on the posting thread, when a task arrives and the app has not
+   * taken the ones before it: a runner that waits for events ends its wait with it, as a {@link
+   * com.rethinkj.ui.window.WindowLoop} does while it runs. A burst of tasks calls it once, and
+   * again only for a task that arrives after the app took the burst. Null for nothing, as without
+   * a window.
+   */
+  public void onPost(Runnable wake) {
+    this.wake = wake;
+  }
+
+  /**
+   * Runs {@code compute} on a virtual thread of its own and hands its result to {@code onResult},
+   * or what it throws to {@code onFailure}, on the app's thread as a {@link #post posted} task. Call
+   * it on the app's thread, usually in a handler, and keep the {@link Work} to {@link Work#cancel}
+   * it: once cancelled, neither handler runs, so that the answer of a request the user closed or
+   * asked again never arrives.
+   *
+   * <p>The computation gets only what the handler gave it, in its closure: values it copied from
+   * the state, a connection, an SQL string. It must not touch the app's state or its elements, nor
+   * call the app but {@link #post}: they belong to the app's thread, which reads them while it
+   * builds the view, and nothing guards them from a second thread. Only the handlers change the
+   * state, on the app's thread, in the order of the input.
+   *
+   * <pre>{@code
+   * void open(Table table) { // a handler, on the app's thread
+   *   if (loading != null) {
+   *     loading.cancel(); // the rows asked for before are not wanted any more
+   *   }
+   *   String sql = "SELECT * FROM " + table.name();
+   *   loading = app.background("rows of " + table.name(), () -> db.query(sql),
+   *       rows -> { this.rows = rows; loading = null; },
+   *       error -> { this.error = error.getMessage(); loading = null; });
+   * }
+   * }</pre>
+   *
+   * <p>An {@link Error} the computation throws, such as running out of memory, is thrown on the
+   * app's thread when its turn comes, as from a task. Virtual threads do not keep the JVM alive:
+   * work that runs when {@code main} returns is dropped. {@link #await} waits for the work, which
+   * makes scripts and tests deterministic.
+   *
+   * @param name what the work does, for the thread and for {@link #await}'s message, such as
+   *     {@code "rows of orders"}
+   * @return the work, to cancel it
+   */
+  public <T> Work background(String name, Callable<? extends T> compute,
+      Consumer<? super T> onResult, Consumer<? super Exception> onFailure) {
+    Objects.requireNonNull(name, "name");
+    Objects.requireNonNull(compute, "compute");
+    Objects.requireNonNull(onResult, "onResult");
+    Objects.requireNonNull(onFailure, "onFailure");
+    Work work = new Work(name, this);
+    synchronized (running) {
+      running.add(work);
+    }
+    work.thread = Thread.ofVirtual().name(name).unstarted(() -> {
+      T result = null;
+      Throwable failure = null;
+      try {
+        result = compute.call();
+      } catch (Throwable t) {
+        failure = t;
+      }
+      T r = result;
+      Throwable f = failure;
+      try {
+        offer(() -> {
+          if (work.cancelled) {
+            return false; // costs no rebuild
+          }
+          handled = true;
+          if (f == null) {
+            onResult.accept(r);
+          } else if (f instanceof Exception e) {
+            onFailure.accept(e);
+          } else if (f instanceof Error e) {
+            throw e;
+          } else {
+            throw new IllegalStateException(name + " threw", f);
+          }
+          return true;
+        });
+      } finally {
+        finished(work); // after the offer: await() then finds its delivery posted
+      }
+    });
+    work.thread.start();
+    return work;
+  }
+
+  /** The work has posted its delivery or was cancelled: {@link #await} waits no longer for it. */
+  void finished(Work work) {
+    synchronized (running) {
+      if (running.remove(work)) {
+        running.notifyAll();
+      }
+    }
+  }
+
+  /**
+   * Waits until all the work that {@link #background} started has finished or was cancelled, and
+   * then queues what it delivered, and everything else posted so far, for the next {@link #frame},
+   * in the order it was posted. Scripts and tests call it where they want the answers, between
+   * frames, so that what they see does not depend on how fast the work was: {@code frame} after it
+   * shows them. Work that a delivery starts is not waited for; call this again for it. Tasks that
+   * other threads post on their own are not waited for either: they come with the first call after
+   * they were posted.
+   *
+   * @throws IllegalStateException if work still runs after {@code timeout}, naming it, or if this
+   *     is called in a handler, whose thread it would block
+   * @throws InterruptedException if the thread is interrupted while it waits
+   */
+  public void await(Duration timeout) throws InterruptedException {
+    if (dispatching) {
+      throw new IllegalStateException("await blocks the app's thread: call it between frames");
+    }
+    long nanos = timeout.toNanos();
+    long start = System.nanoTime();
+    synchronized (running) {
+      while (!running.isEmpty()) {
+        long left = nanos - (System.nanoTime() - start);
+        if (left <= 0) {
+          List<String> names = running.stream().map(Work::name).toList();
+          throw new IllegalStateException("After " + timeout.toMillis() + " ms, the app's work"
+              + " still runs: " + String.join(", ", names) + ". Work that App.background started"
+              + " ends when it has delivered or is cancelled.");
+        }
+        TimeUnit.NANOSECONDS.timedWait(running, left);
+      }
+    }
+    takePosted();
   }
 
   /** For {@link Script}: the innermost virtual list at this point, or null. */
@@ -1170,73 +1502,106 @@ public final class App<S> {
   }
 
   /**
-   * Runs the handlers queued by input, scrolls as the wheel and {@link #scrollTo} asked and, if
-   * anything may have changed, builds the view again, gives it the looks of the moment ({@link
-   * El#whenHovered}) and its text fields their editing state, lays it out and builds the rows of
-   * its virtual lists, each row the same way. Then it writes the values of the moment into the
-   * elements that move, and places the caret and selection of each field. When more input follows
-   * an edit of the focused text field, it first builds the view to read what the app made of the
-   * edit, so that the next one builds on that.
+   * Runs a frame: dispatches the input that came since the last one, in its order, then builds the
+   * tree if anything may have changed and moves what is moving.
+   *
+   * <ol>
+   *   <li>The tasks other threads {@link #post posted} since the app last took them join the
+   *       queue, after the input that came before them; those posted from here on wait for the
+   *       next frame.
+   *   <li>Each input in turn finds the element it goes to in the tree of the moment, overlays
+   *       first, and runs its handler, and each posted task runs as the handler of an input; a
+   *       press or the wheel outside overlays first runs their dismiss handlers, and a focus or
+   *       scroll that a handler or task asks for runs right after it. Before an input that follows
+   *       one a handler of the app or a task took, the view is built again as in step 5, so that
+   *       it sees what that handler changed, but the rows of its lists only if the focus is in
+   *       one. A press, a release, a secondary press, Tab, a focus and a scroll
+   *       the app asks for build the rows that this or a scroll left to build, the wheel and a
+   *       drag those that this left, and they place the overlays and the bars, before they look
+   *       for their element.
+   *   <li>Unless step 5 builds everything: the rows that scrolling brought into view, or that a
+   *       rebuild between two inputs left out, are built, and the overlays and the bars placed.
+   *   <li>Unless a handler of the app ran, the focus or its ring moved or a field gained or lost
+   *       the focus, so that the view is built again anyway: the pointer is followed into the
+   *       tree as it is now, what it is over decides the looks, and the {@link El#onHoverFor}
+   *       handlers whose delay has passed run. Otherwise this waits for the new tree, since one
+   *       built between inputs may lack the rows under the pointer.
+   *   <li>If anything may have changed (one of the above, or the looks of the moment differ from
+   *       those the tree has), the view is built again: it gets the looks of the moment ({@link
+   *       El#whenHovered}, {@link El#whenHoveredFor}) and its text fields their editing state, the
+   *       overlays that open take the focus and those that close give it back, it is laid out with
+   *       its overlays, takes over the values and offsets of the tree before, and its virtual lists
+   *       build their rows, each row the same way; the overlays are placed beside their anchors,
+   *       the focus is found again, the carets and the bars are placed. Then the pointer is
+   *       followed into it as in step 4; if that tree puts other elements under the still pointer
+   *       than the one before, or an {@link El#onHoverFor} handler ran, the view is built once more
+   *       with the looks of the moment. Otherwise the elements that move get the values of the
+   *       moment, lists that moved build the rows they show now, and the overlays follow.
+   *   <li>The caret and selection of each field are placed, the caret blinks while the window is
+   *       active ({@link #windowActive}), the bars are placed and the thumb under the pointer
+   *       gets its colour.
+   * </ol>
    *
    * @return whether there is something new to draw: the tree was rebuilt, something moved or
    *     scrolled
    */
   public boolean frame() {
-    El wasFocused = focused;
+    Object wasFocused = focusId;
     boolean hadRing = ring;
+    boolean drawn = false;
+    if (!holdPosts) {
+      takePosted();
+    }
     while (!queued.isEmpty()) {
-      stale |= queued.poll().getAsBoolean();
-      if (!queued.isEmpty()) {
-        answerEdit();
+      if (handled) { // the next input goes to a tree built from the state as it is now
+        rebuild(true);
+        drawn = true;
+      }
+      dispatching = true;
+      try {
+        stale |= queued.poll().getAsBoolean();
+      } finally {
+        dispatching = false;
+        for (int i = follow.size() - 1; i >= 0; i--) {
+          queued.addFirst(follow.get(i));
+        }
+        follow.clear();
       }
     }
-    stale |= focused != wasFocused || ring != hadRing;
+    stale |= handled || !Objects.equals(focusId, wasFocused) || ring != hadRing;
     stale |= blink(focused == null ? null : focused.editor());
-    // After the handlers, so that one can scroll the tree it saw; a rebuild keeps the offsets.
-    boolean scrolled = false;
-    while (!scrolls.isEmpty()) {
-      scrolled |= scrolls.poll().getAsBoolean();
+    if (stale) { // the rebuild builds all rows anyway
+      drawn |= scrolled;
+      scrolled = false;
+    } else {
+      drawn |= settle(); // the rows that scrolling or a rebuild between inputs left to build
     }
-    // The rows that scrolling brought into view; a rebuild builds all rows anyway.
-    boolean laidOut = scrolled && !stale && fillRows(); // whether fields were laid out anew
-    if (laidOut) {
-      refocus();
+    // What the pointer is over now, in the tree on screen, after the scrolls moved it. Not in a
+    // tree built between inputs, which may lack the rows under the pointer and would end their
+    // stays: the rebuild below asks again.
+    if (!stale) {
+      List<El> path = pointed();
+      stale = !wanted(path, Animator.identities(path)).equals(shown);
     }
-    // What the pointer is over now, in the tree on screen, after the scrolls moved it.
-    List<El> path = pointed();
-    List<Object> ids = Animator.identities(path);
-    stale |= !wanted(path, ids).equals(shown);
-    boolean drawn = true;
+    boolean laidOut = false;
     if (stale) {
-      // Twice when the first build moved other elements under the pointer, as a key that scrolls
-      // a list does: the looks are those of what the pointer is over in the tree on screen.
+      // Twice when the first build moved other elements under the still pointer, as a key that
+      // scrolls a list does, or an onHoverFor handler ran: the looks are those of what the
+      // pointer is over in the tree on screen.
       for (int pass = 0; pass < 2 && stale; pass++) {
-        El built = view.apply(state);
-        shown = applyLooks(built, ids);
-        root = built;
-        attachEditors(root, new ArrayList<>()); // before layout, which shows a composition
-        El.scaleText(root, scale, systemFonts);
-        Flex.layout(root, width, height);
-        Overlays.layout(root, width, height);
-        animator.update(root, time);
-        lookIds = ids;
-        fillRows();
-        refocus();
-        lookIds = null;
-        path = pointed();
-        ids = Animator.identities(path);
-        stale = !wanted(path, ids).equals(shown);
+        rebuild(false);
+        List<El> path = pointed();
+        stale = !wanted(path, Animator.identities(path)).equals(shown);
       }
-      laidOut = true;
       stale = false;
+      drawn = true;
     } else if (animator.isMoving()) {
+      drawn = true;
       animator.present(time);
       if (fillRows()) { // a list that moves may show other rows
         refocus();
         laidOut = true;
       }
-    } else {
-      drawn = scrolled;
     }
     if (laidOut) {
       placeEditors();
@@ -1257,21 +1622,62 @@ public final class App<S> {
   }
 
   /**
-   * Gives the focused field the app's answer to its last edit, the string a tree built now gives
-   * it, before more input of the same frame reaches it; otherwise an edit after one the app
-   * refused or changed would build on what that one proposed.
+   * Builds the view from the state, gives it the looks of the moment and its fields their editing
+   * state, lays it out, hands it to the animator and builds the rows of its virtual lists; then
+   * finds the focus in it again and places the fields' carets and the scrollbars.
+   *
+   * @param between whether more input of this frame waits for the tree. Unless the focus is in a
+   *     row, the rows, the carets and the bars are then left to {@link #settle}, before the next
+   *     input that needs them: most keys need only the elements around the focus, and the rows
+   *     are most of what a rebuild of a data grid costs.
    */
-  private void answerEdit() {
-    Editor editor = focused == null ? null : focused.editor();
-    if (editor == null || !editor.answerPending()) {
+  private void rebuild(boolean between) {
+    List<Object> ids = Animator.identities(pointed());
+    El built = view.apply(state);
+    El.fix(built);
+    shown = applyLooks(built, ids);
+    root = built;
+    attachEditors(root, new ArrayList<>()); // before layout, which shows a composition
+    El.scaleText(root, scale, systemFonts);
+    Flex.layout(root, width, height);
+    Overlays.layout(root, width, height);
+    animator.update(root, time);
+    stale = false;
+    handled = false;
+    scrolled = false;
+    rowsPending = between && (focusId == null || animator.inRow(focusId) == null);
+    if (rowsPending) {
+      Overlays.place(root, width, height); // which fillRows does otherwise: the focus may be in one
+      refocus();
       return;
     }
-    // shortcut: a field in a row of a virtual list is not in the tree the view builds, so its edits
-    // of one frame still build on each other's proposals; build the row too if that shows.
-    El field = Animator.find(view.apply(state), focusId);
-    if (field != null && field.isEditable()) {
-      editor.answer(field.text().string());
+    fillRows();
+    refocus();
+    placeEditors();
+    El.placeBars(root);
+  }
+
+  /**
+   * Builds what the tree lacks for an input that hit tests, moves the focus or scrolls, and for
+   * the end of a frame: the rows of its virtual lists that a {@link #rebuild} between two inputs
+   * left out or that scrolling brought into view, the carets and selections of the fields, and the
+   * bars where the offsets put them.
+   *
+   * @return whether there was anything to build or place
+   */
+  private boolean settle() {
+    if (!scrolled && !rowsPending) {
+      return false;
     }
+    boolean pending = rowsPending;
+    scrolled = false;
+    rowsPending = false;
+    if (fillRows() | pending) { // not ||
+      refocus();
+      placeEditors();
+    }
+    El.placeBars(root);
+    return true;
   }
 
   /**
@@ -1322,7 +1728,8 @@ public final class App<S> {
    * gone, follows the focus with the caret, and places the caret, selection and scroll of every
    * field for its new layout. The editor of a focused field whose row scrolled out of the rows
    * that exist stays, with the focus, for when the row comes back; the editors of other fields in
-   * such rows go with them, as everything else the app keeps of a row.
+   * such rows go with them, as everything else the app keeps of a row. A field that fades out
+   * ({@link El#isExiting}) has lost its editor, and with it its caret, selection and composition.
    */
   private void placeEditors() {
     List<Editor> shown = new ArrayList<>();
@@ -1330,7 +1737,13 @@ public final class App<S> {
     Set<Editor> kept = Collections.newSetFromMap(new IdentityHashMap<>());
     kept.addAll(shown);
     Editor waiting = focusWaits() ? editors.get(focusId) : null;
-    editors.values().removeIf(editor -> editor != waiting && !kept.contains(editor));
+    editors.values().removeIf(editor -> {
+      if (editor == waiting || kept.contains(editor)) {
+        return false;
+      }
+      editor.leave(); // its element may be fading out
+      return true;
+    });
     blink(focused == null ? null : focused.editor());
     for (Editor editor : shown) {
       editor.place(editor == blinking, caretOn);
@@ -1418,7 +1831,7 @@ public final class App<S> {
   /**
    * Builds the rows of the virtual lists in the tree that lack rows they show: all of them after a
    * rebuild of the view, and after scrolling those that show a row that does not exist yet. Each
-   * gets the looks of the moment during a rebuild.
+   * gets the looks of the moment, however it came to be built.
    *
    * @return whether a list built its rows
    */
@@ -1426,51 +1839,77 @@ public final class App<S> {
     if (root == null) {
       return false;
     }
-    boolean built = fillRows(root, new ArrayList<>(), 0);
+    float far = Float.POSITIVE_INFINITY;
+    boolean built = fillRows(root, new ArrayList<>(), 0, 0, -far, far);
     // After scrolling, movement and new rows, the overlays follow their anchors.
     Overlays.place(root, width, height);
     return built;
   }
 
-  private boolean fillRows(El el, List<El> path, float parentY) {
+  private boolean fillRows(
+      El el, List<El> path, float parentX, float parentY, float clipLeft, float clipRight) {
     if (!el.isPlaced() || el.isExiting()) {
       return false;
     }
     path.add(el);
+    float left = parentX + el.x();
     float top = parentY + el.y();
-    int[] range = el.wantedRows(top, height);
+    int[] range = el.wantedRows(left, top, clipLeft, clipRight, width, height);
     boolean built = range != null;
     if (built) {
       Object id = Animator.identities(path).getLast();
       el.makeRows(range[0], range[1]);
+      tellRows(el, id, range[0], range[1] - 1);
       shown = shown.without(id);
-      if (lookIds != null) {
-        rowLooks(el, id);
-      }
       for (El row : el.children()) {
         attachEditors(row, path);
       }
       el.layoutRows(scale, systemFonts);
+      rowLooks(el, id); // after layout, which says which row is under the pointer
       for (El row : el.children()) {
-        Overlays.layout(row, width, height);
+        Overlays.layout(row, width, height); // after the looks, which may attach overlays
       }
       animator.rows(el, id, time);
     }
-    for (El child : el.children()) {
-      built |= fillRows(child, path, top);
+    if (el.style().overflowX != Style.Overflow.VISIBLE) {
+      clipLeft = Math.max(clipLeft, left);
+      clipRight = Math.min(clipRight, left + el.width());
     }
+    for (El child : el.children()) {
+      built |= fillRows(child, path, left, top, clipLeft, clipRight);
+    }
+    float far = Float.POSITIVE_INFINITY;
     for (El overlay : el.overlays()) { // in window coordinates
-      built |= fillRows(overlay, path, 0);
+      built |= fillRows(overlay, path, 0, 0, -far, far);
     }
     path.removeLast();
     return built;
   }
 
+  /** Queues the {@link El#onRowsBuilt} handler of a list that built other rows than it told. */
+  private void tellRows(El list, Object id, int first, int last) {
+    El.RowsHandler handler = list.onRowsBuilt();
+    if (handler == null || last < first) {
+      return;
+    }
+    long rows = (long) first << 32 | last & 0xFFFFFFFFL;
+    Long before = toldRows.put(id, rows);
+    if (before == null || before != rows) {
+      queued.add(() -> { // after the input of this frame, or in the next one
+        handler.accept(first, last);
+        handled = true;
+        return true;
+      });
+    }
+  }
+
   /**
-   * Applies the looks of the moment to the rows a list has just built, before their layout, as
-   * {@link #applyLooks} does for the rest of the tree, which did not have them yet.
+   * Applies the looks of the moment to the rows a list has just built, as {@link #applyLooks} does
+   * for the rest of the tree, and lays out again each row that took one. The rows are laid out
+   * first, so that the pointer finds the row it is over now, after a scroll or a movement too.
    */
   private void rowLooks(El list, Object listId) {
+    List<Object> under = pointedIds();
     List<Object> hovered = new ArrayList<>(shown.hovered());
     List<Object> rested = new ArrayList<>(shown.rested());
     Object focus = shown.focused();
@@ -1478,26 +1917,35 @@ public final class App<S> {
     for (int i = 0; i < list.children().size(); i++) {
       El row = list.children().get(i);
       Object rowId = Animator.row(listId, list.firstRow() + i);
-      for (Object id : lookIds) {
+      boolean took = false;
+      for (Object id : under) {
         if (Animator.isBelow(id, listId)
             && look(Animator.find(row, rowId, id), El::hoverLook, "whenHovered")) {
           hovered.add(id);
+          took = true;
         }
       }
-      for (Object id : lookIds) {
+      for (Object id : under) {
         if (Animator.isBelow(id, listId) && restLook(Animator.find(row, rowId, id), id)) {
           rested.add(id);
+          took = true;
         }
       }
       if (Animator.isBelow(focusId, listId)) {
         El el = Animator.find(row, rowId, focusId);
         if (el != null && el.isFocusable() && look(el, El::focusLook, "whenFocused")) {
           focus = focusId;
+          took = true;
         }
       }
-      if (Animator.isBelow(pressed, listId)
-          && look(Animator.find(row, rowId, pressed), El::pressLook, "whenPressed")) {
-        press = pressed;
+      Object pressId = pressedId();
+      if (Animator.isBelow(pressId, listId)
+          && look(Animator.find(row, rowId, pressId), El::pressLook, "whenPressed")) {
+        press = pressId;
+        took = true;
+      }
+      if (took) {
+        list.layoutRow(i, scale, systemFonts); // a look may change the layout
       }
     }
     shown = new Looks(hovered, rested, focus, press, shown.hoversRun());
@@ -1518,12 +1966,13 @@ public final class App<S> {
     }
     List<Object> rested = rest(path, ids);
     El focus = focusId == null ? null : animator.element(focusId);
-    El press = pressed == null ? null : animator.element(pressed);
+    Object pressId = pressedId();
+    El press = pressId == null ? null : animator.element(pressId);
     return new Looks(
         hovered,
         rested,
         focus != null && focus.focusLook() != null ? focusId : null,
-        press != null && press.pressLook() != null ? pressed : null,
+        press != null && press.pressLook() != null ? pressId : null,
         hoversRun);
   }
 
@@ -1644,9 +2093,10 @@ public final class App<S> {
     El focus = focusId == null ? null : Animator.find(tree, focusId);
     boolean focusLook = focus != null && focus.isFocusable() // or it loses the focus
         && look(focus, El::focusLook, "whenFocused");
+    Object pressId = pressedId();
     boolean pressLook =
-        pressed != null && look(Animator.find(tree, pressed), El::pressLook, "whenPressed");
-    return new Looks(hovered, rested, focusLook ? focusId : null, pressLook ? pressed : null,
+        pressId != null && look(Animator.find(tree, pressId), El::pressLook, "whenPressed");
+    return new Looks(hovered, rested, focusLook ? focusId : null, pressLook ? pressId : null,
         hoversRun);
   }
 
@@ -1719,16 +2169,41 @@ public final class App<S> {
    * their ancestors, so that they alone look hovered and set the cursor.
    */
   private List<El> pointed() {
-    Object held = selecting != null ? selecting
-        : dragging != null && dragging.started ? dragging.id
-        : grab != null ? grab.id()
-        : null;
+    Object held = held();
     El el = held == null ? null : animator.element(held);
     List<El> path = new ArrayList<>();
     if (el != null && pathTo(root, el, path)) {
       return fromOverlay(path);
     }
     return pointerIn ? hit(pointerX, pointerY) : List.of();
+  }
+
+  /**
+   * The identities of {@link #pointed}, also for rows a list is building, which the animator does
+   * not know yet.
+   */
+  private List<Object> pointedIds() {
+    Object held = held();
+    if (held != null) {
+      return Animator.lineage(held);
+    }
+    return pointerIn ? Animator.identities(hit(pointerX, pointerY)) : List.of();
+  }
+
+  /**
+   * The identity of the element a press is on: the one with a press or drag handler it went to,
+   * or the text field it selects in; null between presses.
+   */
+  private Object pressedId() {
+    return pressed != null ? pressed : selecting;
+  }
+
+  /** The identity of the element that a drag, a selection or a thumb's drag holds, or null. */
+  private Object held() {
+    return selecting != null ? selecting
+        : dragging != null && dragging.started ? dragging.id
+        : grab != null ? grab.id()
+        : null;
   }
 
   /**

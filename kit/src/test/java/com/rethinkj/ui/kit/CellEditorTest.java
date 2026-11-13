@@ -14,6 +14,8 @@ import com.rethinkj.ui.Key;
 import com.rethinkj.ui.Script;
 import com.rethinkj.ui.kit.DataGrid.Align;
 import com.rethinkj.ui.kit.DataGrid.Column;
+import com.rethinkj.ui.kit.DataGrid.Mode;
+import com.rethinkj.ui.kit.DataGrid.Selection;
 import com.rethinkj.ui.text.TextRendering;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -26,7 +28,8 @@ import org.junit.jupiter.api.io.TempDir;
 /**
  * The grid and the text field together, as an app combines them: a field laid over a cell edits
  * it, and a field beside the grid keeps its state while a column is resized. The editor is the
- * view's, not the grid's: Enter on the grid opens it over the selected row's name, the field's own
+ * view's, not the grid's: Enter, F2 or a double press on the grid asks the app to edit the
+ * cursor's cell ({@link DataGrid.Options#onEdit}), which opens the field over it; the field's own
  * key handler commits with Enter and cancels with Escape, and gives the focus back to the grid.
  */
 class CellEditorTest {
@@ -44,7 +47,7 @@ class CellEditorTest {
   static final class Sheet {
     final String[] names = new String[40];
     final float[] widths = {64, 160};
-    int selected = -1;
+    final Selection selection = new Selection(Mode.CELLS);
     int editing = -1; // the row whose name the editor is open over
     String draft;
     String filter = "";
@@ -61,20 +64,21 @@ class CellEditorTest {
       List<Column> columns = List.of(
           new Column("id", widths[0], Align.RIGHT, true, i -> String.valueOf(i + 1)),
           new Column("name", widths[1], Align.LEFT, false, i -> names[i]));
-      El grid = dataGrid(T, columns, names.length, selected, i -> selected = i,
-          (c, w) -> {
+      El grid = dataGrid(T, columns, names.length, DataGrid.options()
+          .select(selection)
+          .onResize((c, w) -> {
             log.add("resize " + c + " " + w);
             widths[c] = w;
           })
+          .onEdit((row, column) -> {
+            log.add("edit " + row + "," + column);
+            if (column == 1) { // only names
+              editing = row;
+              draft = names[row];
+            }
+          }))
           .key("sheet").label("Customers").grow(1);
-      El area = col().key("area").grow(1).child(grid).onKey(k -> {
-        if (k.modifiers() != 0 || !k.name().equals("Enter") || selected < 0) {
-          return false;
-        }
-        editing = selected; // the grid does not take Enter, so it comes here
-        draft = names[selected];
-        return true;
-      });
+      El area = col().key("area").grow(1).child(grid);
       if (editing >= 0) {
         // Over the name's cell: the rows begin below the header and its line; no scrolling here.
         float rowHeight = T.grid().rowHeight();
@@ -128,7 +132,7 @@ class CellEditorTest {
     App<Sheet> app = start();
     Sheet sheet = app.state();
     String before = sheet.names[3];
-    run(app, "frame\npress #row-3\nframe\nkey Enter\nframe");
+    run(app, "frame\npress #cell-3-1\nframe\nkey Enter\nframe");
     El editor = find(app, "editor");
     El cell = find(app, "row-3").children().get(2);
     assertEquals(before, text(cell), "the name's cell");
@@ -137,16 +141,16 @@ class CellEditorTest {
     assertEquals(cell.width(), editor.width());
     assertEquals(cell.height(), editor.height());
 
-    // The app focuses the editor once a frame shows it: App.focus needs an element of that frame
-    // that takes input, and the field fades in with the theme's feedback spring.
-    run(app, "advance 1\nframe\nfocus #editor\nframe\ntype \" Jr.\"\nframe");
+    // The app focuses the editor in the frame that adds it, while it fades in.
+    app.focus(editor);
+    run(app, "frame\ntype \" Jr.\"\nframe");
     assertEquals("editor", app.focused().key());
     assertEquals(before + " Jr.", sheet.draft);
     assertEquals(before, sheet.names[3], "not yet committed");
     assertTrue(line(app, "editor").endsWith("focused caret " + (before.length() + 4)),
         line(app, "editor"));
 
-    run(app, "key Enter\nframe");
+    run(app, "advance 1\nframe\nkey Enter\nframe"); // once it has faded in
     assertTrue(find(app, "editor").isExiting(), "the editor fades out");
     assertEquals(before + " Jr.", sheet.names[3]);
     assertEquals(before + " Jr.", text(find(app, "row-3").children().get(2)), "the grid shows it");
@@ -154,18 +158,29 @@ class CellEditorTest {
     run(app, "advance 1\nframe");
     assertNull(find(app, "editor"));
     run(app, "key ArrowDown\nframe");
-    assertEquals(4, sheet.selected, "and the keys");
+    assertEquals(4, sheet.selection.row(), "and the keys");
 
     String fourth = sheet.names[4];
-    run(app, "key Enter\nframe\nadvance 1\nframe\nfocus #editor\nframe\ntype \"xyz\"\nframe");
-    run(app, "press #editor\nframe"); // the press goes to the field, not to the row under it
+    run(app, "key F2\nframe");
+    app.focus(find(app, "editor"));
+    run(app, "frame\ntype \"xyz\"\nframe");
+    // Once it shows, a press goes to the field, not to the cell under it.
+    run(app, "advance 1\nframe\npress #editor\nframe");
     assertEquals("editor", app.focused().key());
-    assertEquals(4, sheet.selected);
+    assertEquals(4, sheet.selection.row());
     run(app, "key Escape\nframe\nadvance 1\nframe");
     assertEquals(fourth, sheet.names[4], "cancelled");
     assertNull(find(app, "editor"));
     assertEquals("sheet", app.focused().key());
-    assertEquals(List.of("commit 3 " + before + " Jr.", "cancel 4"), sheet.log);
+
+    // A double press on a cell puts the cursor there and asks to edit it; the id is not edited.
+    run(app, "press #cell-6-0\npress #cell-6-0 clicks 2\nframe");
+    assertEquals(-1, sheet.editing, "the app edits names only");
+    run(app, "press #cell-7-1\npress #cell-7-1 clicks 2\nframe");
+    assertEquals(7, sheet.editing);
+    assertTrue(line(app, "cell-7-1").contains(" selected current "), line(app, "cell-7-1"));
+    assertEquals(List.of("edit 3,1", "commit 3 " + before + " Jr.", "edit 4,1", "cancel 4",
+        "edit 6,0", "edit 7,1"), sheet.log);
   }
 
   @Test

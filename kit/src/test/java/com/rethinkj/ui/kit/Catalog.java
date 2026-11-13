@@ -16,9 +16,9 @@ import java.util.Set;
  * The catalog of three database servers as a database tool shows it in a tree, and the tree's
  * state, which the tree's handlers change and log. localhost and prod-eu are connected: their
  * databases, schemas, tables and columns are known. staging is not: its databases are unknown
- * until {@link #arrive}, which stands for the answer of a connection the app opened when the
- * server was opened. The schema localhost/shop/public has a few hundred tables, or as many as the
- * test asks for. The view puts the tree in a panel with a margin, which leaves room for the focus
+ * until opening it asks for them, on a thread of the app's work ({@link App#background}), as a
+ * connection to the server would; a script's {@code await} lets the answer in. The schema
+ * localhost/shop/public has a few hundred tables, or as many as the test asks for. The view puts the tree in a panel with a margin, which leaves room for the focus
  * ring.
  */
 final class Catalog implements Tree.Model<Catalog.Node> {
@@ -78,6 +78,7 @@ final class Catalog implements Tree.Model<Catalog.Node> {
   final List<Node> loading = new ArrayList<>(); // opened, children asked for, not there yet
   int walks; // calls of roots(), one per rebuild of the view
   final List<Node> labelled = new ArrayList<>(); // the nodes whose label was asked for
+  App<Catalog> app; // which runs the work, made by app()
 
   /** The catalog with 300 tables of 3 to 10 columns in localhost/shop/public. */
   Catalog(Theme theme) {
@@ -151,15 +152,21 @@ final class Catalog implements Tree.Model<Catalog.Node> {
     return this;
   }
 
-  /** The databases of staging arrive from the server. */
-  void arrive() {
-    for (Node node : loading) {
-      node.children = new ArrayList<>();
-      for (String database : List.of("scratch", "shop")) {
-        new Node(Kind.DATABASE, database, node);
-      }
+  /**
+   * What a server answers when it is asked for its databases, on the work's thread: names only,
+   * since the nodes are the app's state.
+   */
+  static List<String> databases(String server) {
+    return List.of("scratch", "shop");
+  }
+
+  /** The databases of a server arrive, on the app's thread. */
+  void arrive(Node server, List<String> names) {
+    loading.remove(server);
+    server.children = new ArrayList<>();
+    for (String database : names) {
+      new Node(Kind.DATABASE, database, server);
     }
-    loading.clear();
   }
 
   // Tree.Model
@@ -220,14 +227,18 @@ final class Catalog implements Tree.Model<Catalog.Node> {
           }
           open.add(node);
           if (node.children == null && !loading.contains(node)) {
-            loading.add(node); // a real app connects here, on a thread of its own
+            loading.add(node);
+            String name = node.name; // the work gets the name, not the node
+            app.background("databases of " + name, () -> databases(name),
+                names -> arrive(node, names),
+                failure -> log.add("failed " + node + ": " + failure.getMessage()));
           }
         },
         node -> log.add("activate " + node));
   }
 
   App<Catalog> app() {
-    App<Catalog> app = new App<>(this, Catalog::view);
+    app = new App<>(this, Catalog::view);
     app.textRendering(TextRendering.LINUX);
     app.focusRing(theme.border().focus());
     return app;

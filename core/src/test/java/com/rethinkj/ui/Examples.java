@@ -368,6 +368,7 @@ public final class Examples {
   private static final int SELECTED = 0xFF1C3666;
   private static final int SELECTED_INACTIVE = 0xFF2B3240;
   private static final float ROW_HEIGHT = 22;
+  private static final int ARROW_UP_12 = 0xE12A; // the kit's Symbol.ARROW_UP drawn for 12
   private static final Scrollbars GRID_BARS =
       new Scrollbars(6, 2, 3, 24, 0xFF83868F, 0xFFA1A3AA, 0xFFB9BBC1);
 
@@ -390,8 +391,10 @@ public final class Examples {
       El cell = gridCell(s.widths[c], RIGHT[c]).key("column-" + c).role("columnheader")
           .label(TITLES[c]).position(c + 1, TITLES.length).gap(2);
       El title = gridText(TITLES[c], PRIMARY, false);
-      if (c == 0) { // sorted by id, ascending; the marker before the title of a right column
-        cell.sortAscending().children(gridText("▲", MUTED, false), title);
+      if (c == 0) { // sorted by id, ascending; the arrow before the title of a right column
+        El arrow = El.text(Character.toString(ARROW_UP_12)).font(Font.icons()).fontSize(12)
+            .color(MUTED).shrink(0);
+        cell.sortAscending().children(arrow, title);
       } else {
         cell.child(title);
       }
@@ -434,9 +437,11 @@ public final class Examples {
         .focusRing(PRIMARY) // border().focus(), the same colour in Theme.DARK
         .whenFocused(e -> focused[0] = true)
         .onKey(k -> {
+          // From the state, not from this build: the kit's grid reads its selection live, so two
+          // keys of one frame move it twice.
           int next = switch (k.name()) {
-            case "ArrowUp" -> selected - 1;
-            case "ArrowDown" -> selected + 1;
+            case "ArrowUp" -> s.selected - 1;
+            case "ArrowDown" -> s.selected + 1;
             default -> -1;
           };
           if (k.modifiers() != 0 || next < 0) {
@@ -456,7 +461,7 @@ public final class Examples {
 
   private static El gridText(String text, int colour, boolean mono) {
     return El.text(text).font(mono ? Font.mono() : Font.sans()).fontSize(mono ? 12 : 13)
-        .color(colour);
+        .color(colour).ellipsis().minSize(0, 0);
   }
 
   private static El gridLine() {
@@ -630,6 +635,31 @@ public final class Examples {
         panel.child(el().opacity(opacity)
             .child(El.text("Opazität " + opacity + ": Größe").color(theme[0])));
       }
+      root.child(panel);
+    }
+    return root;
+  }
+
+  /**
+   * Lines that end in an ellipsis where their box is too narrow, as the cells of a table: both
+   * fonts in boxes of 150, 100, 61, 30 and 8 pixels, the 61 aligned right, and a word that fits,
+   * dark on white and light on near black, for a window of 360 by 236: the stored images
+   * text-ellipsis-1x and -2x.
+   */
+  public static El ellipsisText() {
+    El root = row().padding(8).gap(8).fill(0xFF808080);
+    for (int[] theme : new int[][] {{0xFF1A1A1A, 0xFFFFFFFF}, {0xFFDCDCDC, 0xFF1E1F22}}) {
+      El panel = col().padding(6).gap(2).fill(theme[1]);
+      for (float width : new float[] {150, 100, 61, 30, 8}) {
+        for (boolean mono : new boolean[] {false, true}) {
+          panel.child(row().w(width).h(18).clip().align(Style.Align.CENTER)
+              .justify(width == 61 ? Style.Content.END : Style.Content.START)
+              .child(El.text(mono ? MONO_SAMPLE : SANS_SAMPLE).font(mono ? Font.mono() : Font.sans())
+                  .fontSize(13).color(theme[0]).ellipsis().minSize(0, 0)));
+        }
+      }
+      panel.child(row().w(150).h(18).clip().align(Style.Align.CENTER)
+          .child(El.text("Köln").fontSize(13).color(theme[0]).ellipsis().minSize(0, 0)));
       root.child(panel);
     }
     return root;

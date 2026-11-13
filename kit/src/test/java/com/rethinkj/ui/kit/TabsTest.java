@@ -155,13 +155,16 @@ class TabsTest {
   }
 
   @Test
-  void aCloseLeavesTheIndexesOfItsViewBehind() throws IOException {
+  void eachInputOfAFrameGoesToTheTabsTheOneBeforeLeft() throws IOException {
     App<Workbench> app = start();
     run(app, "key Tab\nkey W control\nkey W control\npress #close-0\nframe");
-    assertEquals(List.of("close 0"), app.state().log, "the rest waits for the next view");
-    run(app, "key W control\nframe");
-    assertEquals(List.of("close 0", "close 0"), app.state().log);
-    assertEquals("Console", find(app, "panel").label());
+    // The second Control+W closes the tab the first made active, and the press lands where the
+    // first tab's cross was, now on the second tab of the view the closes left, whose cross is
+    // hidden: it chooses that tab.
+    assertEquals(List.of("close 0", "close 0", "select 1"), app.state().log);
+    assertEquals(1, app.state().active);
+    assertEquals(app.state().queries.get(1).title().replace("*", ""),
+        find(app, "panel").label());
   }
 
   // An overfull bar

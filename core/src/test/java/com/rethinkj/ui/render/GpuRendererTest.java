@@ -30,6 +30,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.AfterAll;
@@ -133,7 +134,16 @@ class GpuRendererTest {
   }
 
   static Stream<Case> cases() throws IOException {
-    SNAPPED.clear(); // CpuRendererEquivalenceTest asks for the cases too
+    if (cases == null) {
+      cases = build();
+    }
+    return cases.stream();
+  }
+
+  /** The cases, built once: each snap of a script is taken once, see {@link #SNAPPED}. */
+  private static List<Case> cases;
+
+  private static List<Case> build() throws IOException {
     List<Case> cases = new ArrayList<>();
     // The views behind the stored images, built as their tests and scripts build them; all but
     // the badge have text.
@@ -141,6 +151,8 @@ class GpuRendererTest {
     cases.addAll(script("focus.txt", () -> new App<>(new Lights(), Examples::lights)));
     cases.addAll(script("hover.txt", () -> new App<>(new Lights(), Examples::lights)));
     cases.addAll(script("list.txt", () -> new App<>(new Object(), s -> Examples.list())));
+    // A million rows: those that exist, placed from the first one, at offsets in the millions.
+    cases.addAll(script("rows.txt", () -> new App<>(new Object(), s -> Examples.rows())));
     // Scrollbars: thumbs over the rows at both ends, in their colours at rest and dragged.
     cases.addAll(script("scrollbars.txt", () -> new App<>(new Object(), s -> Examples.bars())));
     // Text fields: the selection and the caret are rectangles, the line under a composition too,
@@ -185,6 +197,11 @@ class GpuRendererTest {
         TextRendering.LINUX, new Atlas(), true));
     cases.add(text("text-opacity", Examples.textOpacity(), 336, 76, 2, TextRendering.LINUX,
         new Atlas(), true));
+    for (float scale : new float[] {1, 2, 1.5f}) { // lines shortened with an ellipsis
+      boolean stored = scale != 1.5f;
+      cases.add(text(stored ? "text-ellipsis-" + (int) scale + "x" : "text-ellipsis" + at(scale),
+          Examples.ellipsisText(), 360, 236, scale, TextRendering.LINUX, new Atlas(), stored));
+    }
     cases.add(textScrolled());
     // Scenes that stress one formula each.
     for (float scale : new float[] {1, 2, 1.5f}) {
@@ -234,7 +251,7 @@ class GpuRendererTest {
           Examples.fallbackText(), 360, 128, scale, TextRendering.LINUX, new Atlas(), stored));
       cases.add(fallbackField(scale == 2 ? "fallback-field" : "fallback-field" + at(scale), scale));
     }
-    return cases.stream();
+    return cases;
   }
 
   /** The field of the stored image fallback-field, at a scale. */
@@ -248,6 +265,19 @@ class GpuRendererTest {
 
   private static String at(float scale) {
     return "@" + (scale == (int) scale ? String.valueOf((int) scale) : "1.5");
+  }
+
+  @Test
+  void theCasesIncludeTheViewBehindEveryStoredImageOfCore() throws IOException {
+    Set<String> drawn = new HashSet<>();
+    cases().filter(c -> c.stored() != null && c.stored().getParent().equals(STORED))
+        .forEach(c -> drawn.add(c.name()));
+    Set<String> stored = new HashSet<>();
+    try (Stream<Path> files = Files.list(STORED)) {
+      files.map(f -> f.getFileName().toString()).filter(f -> f.endsWith(".png"))
+          .forEach(f -> stored.add(f.substring(0, f.length() - ".png".length())));
+    }
+    assertEquals(new TreeSet<>(stored), new TreeSet<>(drawn));
   }
 
   @ParameterizedTest(name = "{0}")

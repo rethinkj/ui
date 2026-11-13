@@ -33,7 +33,8 @@ class FocusRingTest {
             checkbox(t, false, "Read only", () -> {}),
             toggle(t, false, "Autocommit", () -> {}),
             textField(t, "", v -> {}).label("Name"),
-            dataGrid(t, columns, 3, -1, i -> {}, null).label("Rows").h(80));
+            dataGrid(t, columns, 3, DataGrid.options()
+                .select(new DataGrid.Selection(DataGrid.Mode.ROWS))).label("Rows").h(80));
   }
 
   @Test

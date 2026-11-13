@@ -35,6 +35,10 @@ snap scrolled
 key Home                            # the selection to localhost, and the rows follow it
 key ArrowLeft                       # closes it
 key End                             # the selection to staging
-key ArrowRight                      # opens it: its databases are not known yet
-frame
+key ArrowRight                      # opens it: its databases are not known yet, and the
+frame                               # handler asks for them on another thread
 snap loading
+
+await                               # the answer comes: the databases replace the loading row
+frame
+snap loaded
