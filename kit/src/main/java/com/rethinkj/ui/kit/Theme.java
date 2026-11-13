@@ -132,7 +132,8 @@ public record Theme(
 
   /**
    * The data grid's sizes and backgrounds. Its lines are {@link Borders#subtle}, and its hovered
-   * rows and header cells lay {@link Surfaces#hover} and {@link Surfaces#pressed} over these.
+   * rows and header cells lay {@link Surfaces#hover} and {@link Surfaces#pressed} over these. The
+   * {@link Tree} takes its row height and the colours of its selected rows from here too.
    *
    * @param rowHeight the height of a row and of the header
    * @param minColumn the narrowest a column can be made by dragging its edge

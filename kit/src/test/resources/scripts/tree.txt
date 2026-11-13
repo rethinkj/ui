@@ -1,0 +1,40 @@
+# The tree of kit's tests (TreeTest): the catalog of three servers, none open, none selected.
+size 280 300
+frame
+move #row-1                         # the pointer over prod-eu, which looks hovered
+frame
+snap closed
+
+leave
+press #mark-0                       # the mark opens localhost and selects it
+frame
+press role=treeitem label="shop"    # a press selects shop
+frame
+press role=treeitem label="shop" clicks 2
+frame                               # the second press of a double press opens it
+press role=treeitem label="public"
+frame
+press role=treeitem label="public" clicks 2
+frame
+press role=treeitem label="accounts"
+frame
+press role=treeitem label="accounts" clicks 2
+frame
+snap opened                         # four levels deep; the press focused the tree, no ring
+
+key Tab                             # the only stop for Tab: the focus stays, with a ring
+key ArrowDown
+key ArrowDown                       # the selection moves to the second column
+frame
+snap focused
+
+wheel #schema 0 3000                # the wheel moves the rows, not the selection
+frame
+snap scrolled
+
+key Home                            # the selection to localhost, and the rows follow it
+key ArrowLeft                       # closes it
+key End                             # the selection to staging
+key ArrowRight                      # opens it: its databases are not known yet
+frame
+snap loading

@@ -1,0 +1,20 @@
+el 0,0 280x300
+  el #schema role=tree label="Schema" 8,8 264x284 rows 0-3/4 focused
+    el #row-0 role=treeitem label="localhost" 8,8 264x22
+      el #mark-0 12,8 16x22
+        text "▶" 17,11 7x16
+      el 32,15 8x8
+      text "localhost" 44,11 56x16
+    el #row-1 role=treeitem label="prod-eu" 8,30 264x22
+      el #mark-1 12,30 16x22
+        text "▶" 17,33 7x16
+      el 32,37 8x8
+      text "prod-eu" 44,33 51x16
+    el #row-2 role=treeitem label="staging" 8,52 264x22
+      el #mark-2 12,52 16x22
+        text "▼" 17,55 7x16
+      el 32,59 8x8
+      text "staging" 44,55 45x16
+    el #row-3 8,74 264x22
+      el 28,85 16x0
+      text "Loading…" 48,77 60x16

@@ -1,0 +1,82 @@
+el 0,0 280x300
+  el #schema role=tree label="Schema" 8,8 264x284 rows 133-152/311 scroll 0,3000 focused
+    el #row-133 role=treeitem label="invoices_004" 8,-66 264x22
+      el #mark-133 60,-66 16x22
+        text "▶" 65,-63 7x16
+      text "invoices_004" 80,-63 79x16
+    el #row-134 role=treeitem label="invoices_005" 8,-44 264x22
+      el #mark-134 60,-44 16x22
+        text "▶" 65,-41 7x16
+      text "invoices_005" 80,-41 79x16
+    el #row-135 role=treeitem label="invoices_006" 8,-22 264x22
+      el #mark-135 60,-22 16x22
+        text "▶" 65,-19 7x16
+      text "invoices_006" 80,-19 79x16
+    el #row-136 role=treeitem label="invoices_007" 8,0 264x22
+      el #mark-136 60,0 16x22
+        text "▶" 65,3 7x16
+      text "invoices_007" 80,3 78x16
+    el #row-137 role=treeitem label="invoices_008" 8,22 264x22
+      el #mark-137 60,22 16x22
+        text "▶" 65,25 7x16
+      text "invoices_008" 80,25 79x16
+    el #row-138 role=treeitem label="invoices_009" 8,44 264x22
+      el #mark-138 60,44 16x22
+        text "▶" 65,47 7x16
+      text "invoices_009" 80,47 79x16
+    el #row-139 role=treeitem label="order_items" 8,66 264x22
+      el #mark-139 60,66 16x22
+        text "▶" 65,69 7x16
+      text "order_items" 80,69 73x16
+    el #row-140 role=treeitem label="order_items_001" 8,88 264x22
+      el #mark-140 60,88 16x22
+        text "▶" 65,91 7x16
+      text "order_items_001" 80,91 99x16
+    el #row-141 role=treeitem label="order_items_002" 8,110 264x22
+      el #mark-141 60,110 16x22
+        text "▶" 65,113 7x16
+      text "order_items_002" 80,113 102x16
+    el #row-142 role=treeitem label="order_items_003" 8,132 264x22
+      el #mark-142 60,132 16x22
+        text "▶" 65,135 7x16
+      text "order_items_003" 80,135 102x16
+    el #row-143 role=treeitem label="order_items_004" 8,154 264x22
+      el #mark-143 60,154 16x22
+        text "▶" 65,157 7x16
+      text "order_items_004" 80,157 102x16
+    el #row-144 role=treeitem label="order_items_005" 8,176 264x22
+      el #mark-144 60,176 16x22
+        text "▶" 65,179 7x16
+      text "order_items_005" 80,179 102x16
+    el #row-145 role=treeitem label="order_items_006" 8,198 264x22
+      el #mark-145 60,198 16x22
+        text "▶" 65,201 7x16
+      text "order_items_006" 80,201 102x16
+    el #row-146 role=treeitem label="order_items_007" 8,220 264x22
+      el #mark-146 60,220 16x22
+        text "▶" 65,223 7x16
+      text "order_items_007" 80,223 101x16
+    el #row-147 role=treeitem label="order_items_008" 8,242 264x22
+      el #mark-147 60,242 16x22
+        text "▶" 65,245 7x16
+      text "order_items_008" 80,245 102x16
+    el #row-148 role=treeitem label="order_items_009" 8,264 264x22
+      el #mark-148 60,264 16x22
+        text "▶" 65,267 7x16
+      text "order_items_009" 80,267 102x16
+    el #row-149 role=treeitem label="orders" 8,286 264x22
+      el #mark-149 60,286 16x22
+        text "▶" 65,289 7x16
+      text "orders" 80,289 41x16
+    el #row-150 role=treeitem label="orders_001" 8,308 264x22
+      el #mark-150 60,308 16x22
+        text "▶" 65,311 7x16
+      text "orders_001" 80,311 67x16
+    el #row-151 role=treeitem label="orders_002" 8,330 264x22
+      el #mark-151 60,330 16x22
+        text "▶" 65,333 7x16
+      text "orders_002" 80,333 70x16
+    el #row-152 role=treeitem label="orders_003" 8,352 264x22
+      el #mark-152 60,352 16x22
+        text "▶" 65,355 7x16
+      text "orders_003" 80,355 70x16
