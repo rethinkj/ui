@@ -4,39 +4,39 @@ el 0,0 280x220
     text "table" 96,23 116x14
     text "rows" 224,23 28x14
   el #rows role=grid 16,44 248x160 rows 0-8/1000000 thumb-y 256,46 6x24
-    el #row-0 role=row label="accounts" 16,44 248x28
+    el #row-0 role=row label="accounts" 16,44 248x28 pos=1/1000000
       text "0" 28,50 56x16
       text "accounts" 96,50 137x16
       text "0" 245,50 7x16
-    el #row-1 role=row label="addresses" 16,72 248x28
+    el #row-1 role=row label="addresses" 16,72 248x28 pos=2/1000000
       text "1" 28,78 56x16
       text "addresses" 96,78 115x16
       text "4181" 223,78 29x16
-    el #row-2 role=row label="audit_log" 16,100 248x28
+    el #row-2 role=row label="audit_log" 16,100 248x28 pos=3/1000000
       text "2" 28,106 56x16
       text "audit_log" 96,106 115x16
       text "8362" 223,106 29x16
-    el #row-3 role=row label="carts" 16,128 248x28
+    el #row-3 role=row label="carts" 16,128 248x28 pos=4/1000000
       text "3" 28,134 56x16
       text "carts" 96,134 115x16
       text "2373" 223,134 29x16
-    el #row-4 role=row label="categories" 16,156 248x28
+    el #row-4 role=row label="categories" 16,156 248x28 pos=5/1000000
       text "4" 28,162 56x16
       text "categories" 96,162 115x16
       text "6554" 223,162 29x16
-    el #row-5 role=row label="customers" 16,184 248x28
+    el #row-5 role=row label="customers" 16,184 248x28 pos=6/1000000
       text "5" 28,190 56x16
       text "customers" 96,190 122x16
       text "565" 230,190 22x16
-    el #row-6 role=row label="deliveries" 16,212 248x28
+    el #row-6 role=row label="deliveries" 16,212 248x28 pos=7/1000000
       text "6" 28,218 56x16
       text "deliveries" 96,218 115x16
       text "4746" 223,218 29x16
-    el #row-7 role=row label="discounts" 16,240 248x28
+    el #row-7 role=row label="discounts" 16,240 248x28 pos=8/1000000
       text "7" 28,246 56x16
       text "discounts" 96,246 115x16
       text "8927" 223,246 29x16
-    el #row-8 role=row label="employees" 16,268 248x28
+    el #row-8 role=row label="employees" 16,268 248x28 pos=9/1000000
       text "8" 28,274 56x16
       text "employees" 96,274 115x16
       text "2938" 223,274 29x16

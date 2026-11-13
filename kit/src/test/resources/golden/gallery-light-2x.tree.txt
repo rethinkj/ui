@@ -16,7 +16,7 @@ el 0,0 140x40
     text "Run query" 39,12 62x16
 # primary, disabled
 el 0,0 140x40
-  el #c role=button label="Run query" 26,8 88x24
+  el #c role=button label="Run query" 26,8 88x24 disabled
     text "Run query" 39,12 62x16
 # secondary, rest
 el 0,0 140x40
@@ -36,7 +36,7 @@ el 0,0 140x40
     text "Cancel" 49,12 42x16
 # secondary, disabled
 el 0,0 140x40
-  el #c role=button label="Cancel" 36,8 68x24
+  el #c role=button label="Cancel" 36,8 68x24 disabled
     text "Cancel" 49,12 42x16
 # ghost, rest
 el 0,0 140x40
@@ -56,120 +56,120 @@ el 0,0 140x40
     text "Format" 49,12 42x16
 # ghost, disabled
 el 0,0 140x40
-  el #c role=button label="Format" 36,8 68x24
+  el #c role=button label="Format" 36,8 68x24 disabled
     text "Format" 49,12 42x16
 # toggle off, rest
 el 0,0 140x40
-  el #c role=switch label="Autocommit" 11,10 118x20
+  el #c role=switch label="Autocommit" 11,10 118x20 checked=false
     el 15,12 28x16
       el 17,14 12x12
     text "Autocommit" 51,12 74x16
 # toggle off, hover
 el 0,0 140x40
-  el #c role=switch label="Autocommit" 11,10 118x20 hovered
+  el #c role=switch label="Autocommit" 11,10 118x20 checked=false hovered
     el 15,12 28x16
       el 17,14 12x12
     text "Autocommit" 51,12 74x16
 # toggle off, pressed
 el 0,0 140x40
-  el #c role=switch label="Autocommit" 11,10 118x20 hovered focused
+  el #c role=switch label="Autocommit" 11,10 118x20 checked=false hovered focused
     el 15,12 28x16
       el 17,14 12x12
     text "Autocommit" 51,12 74x16
 # toggle off, focused
 el 0,0 140x40
-  el #c role=switch label="Autocommit" 11,10 118x20 focused
+  el #c role=switch label="Autocommit" 11,10 118x20 checked=false focused
     el 15,12 28x16
       el 17,14 12x12
     text "Autocommit" 51,12 74x16
 # toggle off, disabled
 el 0,0 140x40
-  el #c role=switch label="Autocommit" 11,10 118x20
+  el #c role=switch label="Autocommit" 11,10 118x20 disabled checked=false
     el 15,12 28x16
       el 17,14 12x12
     text "Autocommit" 51,12 74x16
 # toggle on, rest
 el 0,0 140x40
-  el #c role=switch label="Autocommit" 11,10 118x20
+  el #c role=switch label="Autocommit" 11,10 118x20 checked
     el 15,12 28x16
       el 29,14 12x12
     text "Autocommit" 51,12 74x16
 # toggle on, hover
 el 0,0 140x40
-  el #c role=switch label="Autocommit" 11,10 118x20 hovered
+  el #c role=switch label="Autocommit" 11,10 118x20 checked hovered
     el 15,12 28x16
       el 29,14 12x12
     text "Autocommit" 51,12 74x16
 # toggle on, pressed
 el 0,0 140x40
-  el #c role=switch label="Autocommit" 11,10 118x20 hovered focused
+  el #c role=switch label="Autocommit" 11,10 118x20 checked hovered focused
     el 15,12 28x16
       el 29,14 12x12
     text "Autocommit" 51,12 74x16
 # toggle on, focused
 el 0,0 140x40
-  el #c role=switch label="Autocommit" 11,10 118x20 focused
+  el #c role=switch label="Autocommit" 11,10 118x20 checked focused
     el 15,12 28x16
       el 29,14 12x12
     text "Autocommit" 51,12 74x16
 # toggle on, disabled
 el 0,0 140x40
-  el #c role=switch label="Autocommit" 11,10 118x20
+  el #c role=switch label="Autocommit" 11,10 118x20 disabled checked
     el 15,12 28x16
       el 29,14 12x12
     text "Autocommit" 51,12 74x16
 # checkbox off, rest
 el 0,0 140x40
-  el #c role=checkbox label="Read only" 24,10 92x20
+  el #c role=checkbox label="Read only" 24,10 92x20 checked=false
     el 28,12 16x16
     text "Read only" 52,12 60x16
 # checkbox off, hover
 el 0,0 140x40
-  el #c role=checkbox label="Read only" 24,10 92x20 hovered
+  el #c role=checkbox label="Read only" 24,10 92x20 checked=false hovered
     el 28,12 16x16
     text "Read only" 52,12 60x16
 # checkbox off, pressed
 el 0,0 140x40
-  el #c role=checkbox label="Read only" 24,10 92x20 hovered focused
+  el #c role=checkbox label="Read only" 24,10 92x20 checked=false hovered focused
     el 28,12 16x16
     text "Read only" 52,12 60x16
 # checkbox off, focused
 el 0,0 140x40
-  el #c role=checkbox label="Read only" 24,10 92x20 focused
+  el #c role=checkbox label="Read only" 24,10 92x20 checked=false focused
     el 28,12 16x16
     text "Read only" 52,12 60x16
 # checkbox off, disabled
 el 0,0 140x40
-  el #c role=checkbox label="Read only" 24,10 92x20
+  el #c role=checkbox label="Read only" 24,10 92x20 disabled checked=false
     el 28,12 16x16
     text "Read only" 52,12 60x16
 # checkbox on, rest
 el 0,0 140x40
-  el #c role=checkbox label="Read only" 24,10 92x20
+  el #c role=checkbox label="Read only" 24,10 92x20 checked
     el 28,12 16x16
       text "✓" 30,12 11x16
     text "Read only" 52,12 60x16
 # checkbox on, hover
 el 0,0 140x40
-  el #c role=checkbox label="Read only" 24,10 92x20 hovered
+  el #c role=checkbox label="Read only" 24,10 92x20 checked hovered
     el 28,12 16x16
       text "✓" 30,12 11x16
     text "Read only" 52,12 60x16
 # checkbox on, pressed
 el 0,0 140x40
-  el #c role=checkbox label="Read only" 24,10 92x20 hovered focused
+  el #c role=checkbox label="Read only" 24,10 92x20 checked hovered focused
     el 28,12 16x16
       text "✓" 30,12 11x16
     text "Read only" 52,12 60x16
 # checkbox on, focused
 el 0,0 140x40
-  el #c role=checkbox label="Read only" 24,10 92x20 focused
+  el #c role=checkbox label="Read only" 24,10 92x20 checked focused
     el 28,12 16x16
       text "✓" 30,12 11x16
     text "Read only" 52,12 60x16
 # checkbox on, disabled
 el 0,0 140x40
-  el #c role=checkbox label="Read only" 24,10 92x20
+  el #c role=checkbox label="Read only" 24,10 92x20 disabled checked
     el 28,12 16x16
       text "✓" 30,12 11x16
     text "Read only" 52,12 60x16
@@ -187,7 +187,7 @@ el 0,0 140x40
   text #c role=textbox label="Search tables" "" 10,8 120x24 focused caret 0
 # field empty, disabled
 el 0,0 140x40
-  text #c role=textbox label="Search tables" "" 10,8 120x24
+  text #c role=textbox label="Search tables" "" 10,8 120x24 disabled
 # field filled, rest
 el 0,0 140x40
   text #c role=textbox label="Search tables" "orders 2024" 10,8 120x24
@@ -202,7 +202,7 @@ el 0,0 140x40
   text #c role=textbox label="Search tables" "orders 2024" 10,8 120x24 focused caret 11
 # field filled, disabled
 el 0,0 140x40
-  text #c role=textbox label="Search tables" "orders 2024" 10,8 120x24
+  text #c role=textbox label="Search tables" "orders 2024" 10,8 120x24 disabled
 # field selected, rest
 el 0,0 140x40
   text #c role=textbox label="Search tables" "orders 2024" 10,8 120x24
@@ -217,4 +217,4 @@ el 0,0 140x40
   text #c role=textbox label="Search tables" "orders 2024" 10,8 120x24 focused caret 7 anchor 11
 # field selected, disabled
 el 0,0 140x40
-  text #c role=textbox label="Search tables" "orders 2024" 10,8 120x24
+  text #c role=textbox label="Search tables" "orders 2024" 10,8 120x24 disabled

@@ -4,51 +4,51 @@ el 0,0 280x220
     text "table" 96,23 116x14
     text "rows" 224,23 28x14
   el #rows role=grid 16,44 248x160 rows 765429-765440/1000000 scroll 0,21432096
-    el #row-765429 role=row label="inventory" 16,-40 248x28
+    el #row-765429 role=row label="inventory" 16,-40 248x28 pos=765430/1000000
       text "765429" 28,-34 56x16
       text "inventory" 96,-34 115x16
       text "3729" 223,-34 29x16
-    el #row-765430 role=row label="invoices" 16,-12 248x28
+    el #row-765430 role=row label="invoices" 16,-12 248x28 pos=765431/1000000
       text "765430" 28,-6 56x16
       text "invoices" 96,-6 115x16
       text "7910" 223,-6 29x16
-    el #row-765431 role=row label="order_items" 16,16 248x28
+    el #row-765431 role=row label="order_items" 16,16 248x28 pos=765432/1000000
       text "765431" 28,22 56x16
       text "order_items" 96,22 115x16
       text "1921" 223,22 29x16
-    el #row-765432 role=row label="orders" 16,44 248x28
+    el #row-765432 role=row label="orders" 16,44 248x28 pos=765433/1000000
       text "765432" 28,50 56x16
       text "orders" 96,50 115x16
       text "6102" 223,50 29x16
-    el #row-765433 role=row label="payments" 16,72 248x28
+    el #row-765433 role=row label="payments" 16,72 248x28 pos=765434/1000000
       text "765433" 28,78 56x16
       text "payments" 96,78 122x16
       text "113" 230,78 22x16
-    el #row-765434 role=row label="products" 16,100 248x28
+    el #row-765434 role=row label="products" 16,100 248x28 pos=765435/1000000
       text "765434" 28,106 56x16
       text "products" 96,106 115x16
       text "4294" 223,106 29x16
-    el #row-765435 role=row label="refunds" 16,128 248x28
+    el #row-765435 role=row label="refunds" 16,128 248x28 pos=765436/1000000
       text "765435" 28,134 56x16
       text "refunds" 96,134 115x16
       text "8475" 223,134 29x16
-    el #row-765436 role=row label="reviews" 16,156 248x28
+    el #row-765436 role=row label="reviews" 16,156 248x28 pos=765437/1000000
       text "765436" 28,162 56x16
       text "reviews" 96,162 115x16
       text "2486" 223,162 29x16
-    el #row-765437 role=row label="sessions" 16,184 248x28
+    el #row-765437 role=row label="sessions" 16,184 248x28 pos=765438/1000000
       text "765437" 28,190 56x16
       text "sessions" 96,190 115x16
       text "6667" 223,190 29x16
-    el #row-765438 role=row label="shipments" 16,212 248x28
+    el #row-765438 role=row label="shipments" 16,212 248x28 pos=765439/1000000
       text "765438" 28,218 56x16
       text "shipments" 96,218 122x16
       text "678" 230,218 22x16
-    el #row-765439 role=row label="suppliers" 16,240 248x28
+    el #row-765439 role=row label="suppliers" 16,240 248x28 pos=765440/1000000
       text "765439" 28,246 56x16
       text "suppliers" 96,246 115x16
       text "4859" 223,246 29x16
-    el #row-765440 role=row label="accounts" 16,268 248x28
+    el #row-765440 role=row label="accounts" 16,268 248x28 pos=765441/1000000
       text "765440" 28,274 56x16
       text "accounts" 96,274 115x16
       text "9040" 223,274 29x16

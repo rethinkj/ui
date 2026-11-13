@@ -29,7 +29,7 @@ el 0,0 360x240
         el 332,19 2x2
   el 0,32 360x208
     el #lamp 152,92 56x56
-    el role=switch label="Lamp" 141,162 78x20 focused
+    el role=switch label="Lamp" 141,162 78x20 checked focused
       el 145,164 28x16
         el 159,166 12x12
       text "Lamp" 181,164 34x16

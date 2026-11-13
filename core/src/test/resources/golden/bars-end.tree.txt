@@ -4,39 +4,39 @@ el 0,0 280x220
     text "table" 96,23 116x14
     text "rows" 224,23 28x14
   el #rows role=grid 16,44 248x160 rows 999991-999999/1000000 scroll 0,27999840 thumb-y 256,178 6x24 hovered
-    el #row-999991 role=row label="order_items" 16,-48 248x28
+    el #row-999991 role=row label="order_items" 16,-48 248x28 pos=999992/1000000
       text "999991" 28,-42 56x16
       text "order_items" 96,-42 115x16
       text "4181" 223,-42 29x16
-    el #row-999992 role=row label="orders" 16,-20 248x28
+    el #row-999992 role=row label="orders" 16,-20 248x28 pos=999993/1000000
       text "999992" 28,-14 56x16
       text "orders" 96,-14 115x16
       text "8362" 223,-14 29x16
-    el #row-999993 role=row label="payments" 16,8 248x28
+    el #row-999993 role=row label="payments" 16,8 248x28 pos=999994/1000000
       text "999993" 28,14 56x16
       text "payments" 96,14 115x16
       text "2373" 223,14 29x16
-    el #row-999994 role=row label="products" 16,36 248x28
+    el #row-999994 role=row label="products" 16,36 248x28 pos=999995/1000000
       text "999994" 28,42 56x16
       text "products" 96,42 115x16
       text "6554" 223,42 29x16
-    el #row-999995 role=row label="refunds" 16,64 248x28
+    el #row-999995 role=row label="refunds" 16,64 248x28 pos=999996/1000000
       text "999995" 28,70 56x16
       text "refunds" 96,70 122x16
       text "565" 230,70 22x16
-    el #row-999996 role=row label="reviews" 16,92 248x28
+    el #row-999996 role=row label="reviews" 16,92 248x28 pos=999997/1000000
       text "999996" 28,98 56x16
       text "reviews" 96,98 115x16
       text "4746" 223,98 29x16
-    el #row-999997 role=row label="sessions" 16,120 248x28
+    el #row-999997 role=row label="sessions" 16,120 248x28 pos=999998/1000000
       text "999997" 28,126 56x16
       text "sessions" 96,126 115x16
       text "8927" 223,126 29x16
-    el #row-999998 role=row label="shipments" 16,148 248x28
+    el #row-999998 role=row label="shipments" 16,148 248x28 pos=999999/1000000
       text "999998" 28,154 56x16
       text "shipments" 96,154 115x16
       text "2938" 223,154 29x16
-    el #row-999999 role=row label="suppliers" 16,176 248x28
+    el #row-999999 role=row label="suppliers" 16,176 248x28 pos=1000000/1000000
       text "999999" 28,182 56x16
       text "suppliers" 96,182 115x16
       text "7119" 223,182 29x16

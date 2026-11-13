@@ -25,7 +25,7 @@ el 0,0 400x160
           text "slow queries.sql" 134,6 102x16
           el #close-5 role=button label="Close slow queries.sql" 240,6 16x16
             text "\u{F368}" 240,6 16x16
-        el #tab-6 role=tab label="schema diff.sql" 267,2 131x24
+        el #tab-6 role=tab label="schema diff.sql" 267,2 131x24 selected
           text "schema diff.sql" 276,6 93x16
           el #close-6 role=button label="Close schema diff.sql" 373,6 16x16
             text "\u{F368}" 373,6 16x16

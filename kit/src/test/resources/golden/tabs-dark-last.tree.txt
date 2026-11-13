@@ -29,7 +29,7 @@ el 0,0 400x160
           text "schema diff.sql" 129,6 93x16
           el #close-6 role=button label="Close schema diff.sql" 226,6 16x16
             text "\u{F368}" 226,6 16x16
-        el #tab-7 role=tab label="migration 042.sql" 253,2 145x24
+        el #tab-7 role=tab label="migration 042.sql" 253,2 145x24 selected
           text "migration 042.sql" 262,6 107x16
           el #close-7 role=button label="Close migration 042.sql" 373,6 16x16
             text "\u{F368}" 373,6 16x16
