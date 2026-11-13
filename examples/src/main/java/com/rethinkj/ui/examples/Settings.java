@@ -315,6 +315,7 @@ public final class Settings {
   static El newConnection(Theme t, Settings s) {
     String portError = s.portError();
     boolean ready = !s.name.isBlank() && !s.host.isBlank() && portError == null;
+    El add = button(t, PRIMARY, "Add", ready ? s::add : null).key("ok");
     return Dialog.dialog(t, "New connection",
         form(t, Form.Labels.BESIDE,
             field("Name", textField(t, s.name, "Shown in the list", v -> s.name = v)
@@ -322,17 +323,9 @@ public final class Settings {
             field("Host", textField(t, s.host, "Name or address", v -> s.host = v)
                 .key("host").w(220)).required(),
             field("Port", textField(t, s.port, "5432", v -> s.port = v).key("port").w(72))
-                .help("From 1 to 65535").error(portError))
-            // Enter in a field adds, as Add does; on a button it presses that instead.
-            .onKey(k -> {
-              boolean adds = k.name().equals("Enter") && k.modifiers() == 0 && ready;
-              if (adds) {
-                s.add();
-              }
-              return adds;
-            }),
-        List.of(button(t, SECONDARY, "Cancel", () -> s.adding = false).key("cancel"),
-            button(t, PRIMARY, "Add", ready ? s::add : null).key("ok")),
+                .help("From 1 to 65535").error(portError)),
+        List.of(button(t, SECONDARY, "Cancel", () -> s.adding = false).key("cancel"), add),
+        add, // Enter in a field adds, as Add does; on a button it presses that instead
         () -> s.adding = false);
   }
 

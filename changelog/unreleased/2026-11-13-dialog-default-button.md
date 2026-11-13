@@ -1,0 +1,1 @@
+- `Dialog.dialog` takes a default button, `dialog(theme, title, content, buttons, defaultButton, onDismiss)`: Enter in a field of the dialog presses it while it is enabled, while Enter on a focused button still presses that button and a multi-line field keeps Enter. `Dialog.enterPresses(button)` is the same key handler for a window that is a dialog itself.

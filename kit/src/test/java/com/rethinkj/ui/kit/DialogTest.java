@@ -2,12 +2,17 @@ package com.rethinkj.ui.kit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.rethinkj.ui.App;
+import com.rethinkj.ui.El;
+import com.rethinkj.ui.Key;
 import com.rethinkj.ui.Script;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -63,5 +68,59 @@ class DialogTest {
         + "press #ok\nframe\n");
     assertFalse(bench.renaming);
     assertEquals("order_lines", bench.name);
+  }
+
+  /** A dialog with a field, a text area, Cancel and OK, OK the default while the name is set. */
+  private static final class Ask {
+    String name = "orders";
+    String note = "";
+    final List<String> log = new ArrayList<>();
+
+    El view() {
+      Theme t = Theme.DARK;
+      El ok = Button.button(t, Button.Variant.PRIMARY, "OK",
+          name.isBlank() ? null : () -> log.add("ok")).key("ok");
+      return El.col().wFull().hFull().overlay(Dialog.dialog(t, "Ask",
+          El.col().children(
+              TextField.textField(t, name, "Name", v -> name = v).key("name"),
+              TextField.textArea(t, note, "Note", v -> note = v).key("note").h(60)),
+          List.of(Button.button(t, Button.Variant.SECONDARY, "Cancel", () -> log.add("cancel"))
+              .key("cancel"), ok),
+          ok, () -> log.add("dismiss")));
+    }
+  }
+
+  @Test
+  void enterInAFieldPressesTheDefaultButtonAndOnAButtonThatButton() throws IOException {
+    Ask ask = new Ask();
+    App<Ask> app = new App<>(ask, Ask::view);
+    run(app, "frame\nadvance 0.25\nframe\nkey Enter\nframe\n");
+    assertEquals("name", app.focused().key(), "the dialog opened with the focus in its field");
+    assertEquals(List.of("ok"), ask.log, "Enter in the field pressed OK");
+
+    run(app, "focus #cancel\nkey Enter\nframe\n");
+    assertEquals(List.of("ok", "cancel"), ask.log, "Enter on Cancel pressed Cancel");
+
+    run(app, "focus #note\nkey Enter\nframe\n");
+    assertEquals("\n", ask.note, "the text area keeps Enter for a line break");
+    assertEquals(List.of("ok", "cancel"), ask.log);
+
+    run(app, "focus #name\nframe\n");
+    app.keyDown(new Key("Enter", 0, true));
+    app.frame();
+    assertEquals(List.of("ok", "cancel"), ask.log, "a repeat presses nothing");
+
+    run(app, "key A control\nkey Backspace\nframe\nkey Enter\nframe\n");
+    assertEquals("", ask.name);
+    assertEquals(List.of("ok", "cancel"), ask.log, "a disabled default is not pressed");
+  }
+
+  @Test
+  void theDefaultButtonIsOneOfTheButtons() {
+    Theme t = Theme.DARK;
+    El ok = Button.button(t, Button.Variant.PRIMARY, "OK", () -> {});
+    El other = Button.button(t, Button.Variant.PRIMARY, "OK", () -> {});
+    assertThrows(IllegalArgumentException.class,
+        () -> Dialog.dialog(t, "Ask", El.col(), List.of(ok), other, () -> {}));
   }
 }

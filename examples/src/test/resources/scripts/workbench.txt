@@ -43,6 +43,7 @@ snap workbench-menu
 
 press role=menuitem label="Drop table…"      # asks in a dialog, whose field takes the focus
 type "deliver"
+key Enter                                  # the name is not typed yet: Drop is disabled
 frame
 advance 0.25
 frame
@@ -50,7 +51,8 @@ snap workbench-drop                        # Drop stays disabled until the whole
 
 type "ies"
 frame
-press #drop                                # drops nothing, and the status line says so
+key Enter                                  # presses Drop, the default button: drops nothing,
+                                           # and the status line says so
 frame
 advance 0.25
 frame
