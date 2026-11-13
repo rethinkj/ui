@@ -1,0 +1,60 @@
+el 0,0 440x400
+  el window=drag 0,0 440x32
+    el 10,10 12x12
+    text "New connection" 30,8 101x16
+    el 131,16 171x0
+    el role=button label="Minimize" window=minimize 302,0 46x32
+      el 320,16 10x1
+    el role=button label="Maximize" window=maximize 348,0 46x32
+      el 366,11 10x10
+    el role=button label="Close" window=close 394,0 46x32
+      el 412,11 10x10
+        el 412,11 2x2
+        el 420,11 2x2
+        el 413,12 2x2
+        el 419,12 2x2
+        el 414,13 2x2
+        el 418,13 2x2
+        el 415,14 2x2
+        el 417,14 2x2
+        el 416,15 2x2
+        el 416,15 2x2
+        el 417,16 2x2
+        el 415,16 2x2
+        el 418,17 2x2
+        el 414,17 2x2
+        el 419,18 2x2
+        el 413,18 2x2
+        el 420,19 2x2
+        el 412,19 2x2
+  el 0,32 440x368
+    text "Connect to PostgreSQL" 24,56 392x18
+    text "The server and the account to log in with." 24,86 392x16
+    el 24,118 392x120
+      el 24,118 392x24
+        text "Host" 24,122 72x16
+        text #host role=textbox label="Host" "localhost" 104,118 260x24
+      el 24,150 392x24
+        text "Port" 24,154 72x16
+        text #port role=textbox label="Port" "5432" 104,150 72x24
+      el 24,182 392x24
+        text "Database" 24,186 72x16
+        text #database role=textbox label="Database" "inventory" 104,182 260x24
+      el 24,214 392x24
+        text "User" 24,218 72x16
+        text #user role=textbox label="User" "admin" 104,214 260x24
+    el role=checkbox label="Require SSL" 20,252 107x20
+      el 24,254 16x16
+        text "✓" 27,254 11x16
+      text "Require SSL" 48,254 75x16
+    el role=switch label="Dark theme" 20,280 115x20
+      el 24,282 28x16
+        el 26,284 12x12
+      text "Dark theme" 60,282 71x16
+    el 24,310 392x2
+    text "Connecting to inventory on localhost:5432 as admin with SSL" 24,324 392x16
+    el 24,352 392x24
+      el role=button label="Reset" 269,352 61x24 focused
+        text "Reset" 282,356 35x16
+      el role=button label="Connect" 338,352 78x24
+        text "Connect" 351,356 52x16

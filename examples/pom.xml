@@ -18,7 +18,9 @@
   <properties>
     <maven.install.skip>true</maven.install.skip>
     <maven.deploy.skip>true</maven.deploy.skip>
-    <!-- Arguments for the example, such as a script in place of the window; see AGENTS.md. -->
+    <!-- The example to run, a class in com.rethinkj.ui.examples, and its arguments, such as a
+         script in place of the window; see AGENTS.md. -->
+    <example>LightSwitch</example>
     <args></args>
     <!-- The JDK that runs Maven runs the example; the file is named with .exe on Windows. -->
     <java.launcher>${java.home}/bin/java</java.launcher>
@@ -67,7 +69,7 @@
           <skip>false</skip>
           <executable>${java.launcher}</executable>
           <workingDirectory>${session.executionRootDirectory}</workingDirectory>
-          <commandlineArgs>--enable-native-access=ALL-UNNAMED -classpath %classpath com.rethinkj.ui.examples.LightSwitch ${args}</commandlineArgs>
+          <commandlineArgs>--enable-native-access=ALL-UNNAMED -classpath %classpath com.rethinkj.ui.examples.${example} ${args}</commandlineArgs>
         </configuration>
       </plugin>
     </plugins>

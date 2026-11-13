@@ -1,0 +1,27 @@
+# The connection dialog: Connect disabled until the form is filled in, a letter the port refuses,
+# Enter in a field, and the switch to the light theme.
+size 440 400
+frame
+snap connection-empty            # Connect is disabled: database and user are empty
+
+press #database
+type "inventory"
+key Tab                          # on to the user field, which selects its (empty) text
+type "admin"
+focus #port                      # the caret at the end of 5432
+type "x"                         # refused: the port stays 5432 and the caret where it was
+frame
+advance 1                        # Connect turns blue over a tenth of a second
+frame
+snap connection-filled
+
+key Enter                        # Enter in a field connects
+frame
+snap connection-connecting
+
+press role=switch label="Dark theme"
+key Tab                          # on to Reset, with the ring in the light theme's colour
+frame
+advance 1
+frame
+snap connection-light

@@ -385,6 +385,31 @@ class FieldTest {
   }
 
   @Test
+  void editsBetweenTwoFramesEachGetTheAppsAnswer() {
+    // Input that reaches the app between two frames, as from a fast burst of keys or during a
+    // slow frame: the letter is refused, and what comes after it still builds on the digits.
+    App<Model> app = start("");
+    app.state().accept = s -> s.chars().allMatch(Character::isDigit) ? s : null;
+    focus(app);
+    app.textInput("8");
+    app.textInput("a");
+    app.textInput("8");
+    app.frame();
+    assertEquals("88|", show(app));
+    assertEquals(List.of("8", "8a", "88"), app.state().edits);
+
+    app.textInput("x");
+    app.keyDown(new Key("Backspace"));
+    app.textInput("9");
+    app.frame();
+    assertEquals("89|", show(app), "the Backspace after the refused letter took a digit");
+    key(app, "Z", CONTROL);
+    assertEquals("8|", show(app));
+    key(app, "Z", CONTROL);
+    assertEquals("88|", show(app));
+  }
+
+  @Test
   void aChangeByTheAppKeepsTheCaretNearItsTextAndEndsTheHistory() {
     App<Model> app = start("");
     focus(app);

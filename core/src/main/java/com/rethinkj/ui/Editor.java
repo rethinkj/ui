@@ -85,7 +85,21 @@ final class Editor {
    */
   void attach(El el) {
     this.el = el;
-    String value = el.text().string();
+    answer(el.text().string());
+    el.text().compose(composition.isEmpty() ? null : shown());
+  }
+
+  /** Whether an edit waits for the app's answer, the string of the next tree. */
+  boolean answerPending() {
+    return proposed != null;
+  }
+
+  /**
+   * Takes the app's answer to the edits since the last answer: the string the view now gives the
+   * element, as {@link #attach} describes. {@link App} also calls this between two edits that
+   * reach a field in the same frame, so that the second builds on what the app made of the first.
+   */
+  void answer(String value) {
     if (proposed != null) {
       if (value.equals(before.text) && !value.equals(proposed)) {
         // Refused: as if the edits had not happened.
@@ -113,7 +127,6 @@ final class Editor {
     text = value;
     caret = snap(text, caret);
     anchor = snap(text, anchor);
-    el.text().compose(composition.isEmpty() ? null : shown());
   }
 
   /** Whether the element takes edits: it has a handler and is not read-only. */
@@ -416,9 +429,6 @@ final class Editor {
     if (before == null) {
       before = new State(text, caret, anchor);
     }
-    // shortcut: a second edit before the next tree builds on what the first proposed, so an edit
-    // that the app refuses loses the ones after it in the same frame; rebuild the view after each
-    // edit if fast typing into a refusing field shows that.
     proposed = next;
     text = next;
     caret = newCaret;
