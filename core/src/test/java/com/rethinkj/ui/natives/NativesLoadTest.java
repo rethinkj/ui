@@ -4,6 +4,8 @@ import static java.lang.foreign.ValueLayout.JAVA_INT;
 import static java.util.stream.Collectors.toSet;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import com.rethinkj.ui.natives.Manifest.Library;
@@ -129,6 +131,24 @@ class NativesLoadTest {
     try (Stream<Path> unpacked = Files.list(cache.resolve(manifest.folderName()))) {
       assertEquals(files, unpacked.map(file -> file.getFileName().toString()).collect(toSet()));
     }
+  }
+
+  @Test
+  void onLinuxAFailedLoadGivesTheReasonOfTheDynamicLinker() throws IOException {
+    assumeTrue(osName.equals("Linux"), "Skipped: the reason comes from Linux's dynamic linker");
+    Path dir = Files.createDirectories(fresh("junk"));
+    Files.writeString(dir.resolve("junk.so"), "not a library");
+    Files.writeString(dir.resolve(Natives.MANIFEST), "rethinkj-ui-natives 1\nplatform linux-x64\n"
+        + "library junk 1 junk.so " + "0".repeat(64) + "\n");
+    Natives natives = new Natives(osName, osArch, dir, null, new URLClassLoader(new URL[0], null));
+
+    UnsatisfiedLinkError error =
+        assertThrows(UnsatisfiedLinkError.class, () -> natives.find("junk"));
+
+    // The dynamic linker's reason, in the language of the system: "<file>: file too short".
+    String message = error.getMessage();
+    assertTrue(message.contains("(" + dir.resolve("junk.so") + ": "), message);
+    assertTrue(message.contains("mounted noexec"), message);
   }
 
   private void assertVersions(Function<String, SymbolLookup> lookup) {

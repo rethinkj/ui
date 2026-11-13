@@ -58,5 +58,22 @@
         </dependency>
       </dependencies>
     </profile>
+    <profile>
+      <id>natives-linux-x64</id>
+      <activation>
+        <os>
+          <name>Linux</name>
+          <arch>amd64</arch>
+        </os>
+      </activation>
+      <dependencies>
+        <dependency>
+          <groupId>com.rethinkj.ui</groupId>
+          <artifactId>rethinkj-ui-natives-linux-x64</artifactId>
+          <version>${project.version}</version>
+          <scope>test</scope>
+        </dependency>
+      </dependencies>
+    </profile>
   </profiles>
 </project>

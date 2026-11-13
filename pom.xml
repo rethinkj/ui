@@ -107,5 +107,17 @@
         <module>natives-windows-x64</module>
       </modules>
     </profile>
+    <profile>
+      <id>natives-linux-x64</id>
+      <activation>
+        <os>
+          <name>Linux</name>
+          <arch>amd64</arch>
+        </os>
+      </activation>
+      <modules>
+        <module>natives-linux-x64</module>
+      </modules>
+    </profile>
   </profiles>
 </project>

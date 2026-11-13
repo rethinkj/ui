@@ -27,7 +27,9 @@ import java.util.regex.Pattern;
  * <p>The first line gives the format; a reader rejects other formats. Each {@code library} line
  * has the logical name, the version, the file name and the SHA-256 of the file in lower-case hex.
  * The lines are in load order: a library comes after the libraries it needs. Lines with another
- * first word are ignored, so later versions of format 1 can add some.
+ * first word are ignored, so later versions of format 1 can add some. One such line is {@code built
+ * <name> <sha256>}, which says that the library was built from the source archive with that hash
+ * on the machine that wrote the manifest, so that its own hash is pinned nowhere.
  */
 record Manifest(String platform, List<Library> libraries) {
 
