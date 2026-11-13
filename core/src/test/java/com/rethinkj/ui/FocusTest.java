@@ -603,7 +603,7 @@ class FocusTest {
   }
 
   @Test
-  void focusingARowOutsideTheListScrollsItIntoViewAndTheRingIsClippedByTheList() {
+  void focusingARowOutsideTheListScrollsItIntoViewAndTheRingLiesInsideTheRowAtTheListsEdge() {
     App<Object> app =
         start(
             new App<>(new Object(), s -> {
@@ -631,10 +631,34 @@ class FocusTest {
     Scene scene = app.scene();
     int ring = ring(scene);
     int row = ring - 1;
-    assertEquals(8, scene.get(ring, Scene.Y), "2 pixels above row 0, outside the list");
+    // Outside, the list would cut off its top: it lies just inside the row instead, whole.
+    assertEquals(10, scene.get(ring, Scene.Y), "row 0's top, where the list begins");
+    assertEquals(20, scene.get(ring, Scene.HEIGHT), "the row's height");
+    assertEquals(10, scene.get(ring, Scene.X));
+    assertEquals(100, scene.get(ring, Scene.WIDTH));
     assertNotEquals(0, scene.clipOf(ring));
     assertEquals(scene.clipOf(row), scene.clipOf(ring), "clipped like the row");
     assertEquals(10, scene.clipGet(scene.clipOf(ring), Scene.Y), "by the list");
+  }
+
+  @Test
+  void aRingThatFitsStaysOutsideAndOneAtTheWindowsEdgeLiesInside() {
+    App<Object> app = start(new App<>(new Object(), s -> col().wFull().hFull().children(
+        el().key("edge").focusable().size(40, 10),
+        el().key("inside").focusable().size(40, 10).margin(10))), 100, 100);
+    tab(app);
+    Scene scene = app.scene();
+    int ring = ring(scene);
+    assertEquals(0, scene.get(ring, Scene.X), "at the window's top left: inside the element");
+    assertEquals(0, scene.get(ring, Scene.Y));
+    assertEquals(40, scene.get(ring, Scene.WIDTH));
+    tab(app);
+    scene = app.scene();
+    ring = ring(scene);
+    assertEquals(8, scene.get(ring, Scene.X), "with room around it: 2 pixels outside, as ever");
+    assertEquals(18, scene.get(ring, Scene.Y));
+    assertEquals(44, scene.get(ring, Scene.WIDTH));
+    assertEquals(14, scene.get(ring, Scene.HEIGHT));
   }
 
   @Test

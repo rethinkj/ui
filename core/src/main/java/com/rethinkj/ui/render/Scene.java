@@ -187,7 +187,11 @@ import java.util.List;
  *
  * <p>The focus ring is an ordinary instance too: a border {@link #RING} pixels wide just outside
  * the focused element's border box, with its corner radius grown by as much, drawn after the
- * element and its children and clipped like the element.
+ * element and its children and clipped like the element. Where the clips around the element or
+ * the edges of the window (the root's box) would cut that ring, as around a grid that fills a
+ * pane, the ring lies just inside the border box instead, with the element's radius, so that it
+ * shows whole wherever the element does. It is still clipped: an element scrolled half out of its
+ * area shows half a ring, never one over what lies beside the area.
  *
  * <p>An element's shadows come right before its own rectangle, the last of them first, so that the
  * first lies on top, as in CSS; with the element's clip and opacity.
@@ -258,6 +262,8 @@ public final class Scene {
   private int clipCount;
   private El ring;
   private int ringColour;
+  private float windowWidth = NO_CLIP; // the root's box, which the window shows
+  private float windowHeight = NO_CLIP;
   private final Atlas atlas;
   private final TextRendering rendering;
 
@@ -306,6 +312,8 @@ public final class Scene {
     Scene scene = new Scene(atlas, rendering);
     scene.ring = ring;
     scene.ringColour = ringColour;
+    scene.windowWidth = root.x() + root.width();
+    scene.windowHeight = root.y() + root.height();
     atlas.nextFrame();
     scene.add(root, 0, 0, 1, 0, Float.NaN);
     for (El overlay : root.shownOverlays()) {
@@ -379,9 +387,18 @@ public final class Scene {
       float top = y - RING;
       float right = x + el.width() + RING;
       float bottom = y + el.height() + RING;
+      float radius = el.radius() > 0 ? el.radius() + RING : 0;
+      if (left < Math.max(clipX, 0) || top < Math.max(clipY, 0)
+          || right > Math.min(clipRight, windowWidth) || bottom > Math.min(clipBottom, windowHeight)) {
+        // A clip or the window would cut the ring outside, as a pane does around a grid in it.
+        left = x;
+        top = y;
+        right = x + el.width();
+        bottom = y + el.height();
+        radius = el.radius();
+      }
       if (left < clipRight && right > clipX && top < clipBottom && bottom > clipY) {
-        rect(left, top, right - left, bottom - top, el.radius() > 0 ? el.radius() + RING : 0, RING,
-            0, ringed, opacity, clip);
+        rect(left, top, right - left, bottom - top, radius, RING, 0, ringed, opacity, clip);
       }
     }
   }
