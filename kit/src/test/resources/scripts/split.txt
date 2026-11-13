@@ -1,0 +1,37 @@
+# The split of kit's tests (SplitTest): the schema, 200 wide, beside an editor; the schema is at
+# least 120 wide, the editor 160.
+size 480 200
+frame
+snap rest
+
+move #divider          # under the pointer: the line in the strong border, the resize cursor
+frame
+snap hovered
+
+down #divider          # the line is at 200
+move 280,100           # 80 to the right: the line in the accent while it is dragged
+frame
+snap dragging
+move 600,100           # beyond the window: the editor keeps its 160, the schema is 319
+up 600,100
+leave
+frame
+snap editor-minimum
+
+size 300 200           # a narrower window: the schema gives way, as far as its own 120
+frame
+snap narrow
+size 480 200           # wide again: the line is back at 319
+frame
+snap wide-again
+
+key Tab                # the line takes the focus, with a ring
+key ArrowLeft
+key ArrowLeft          # two steps of 16 to the left
+frame
+snap keys
+
+press #divider
+press #divider clicks 2   # a double press puts the line back at 200
+frame
+snap reset

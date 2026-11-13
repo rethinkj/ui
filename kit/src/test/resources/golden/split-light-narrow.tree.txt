@@ -1,0 +1,20 @@
+el 0,0 300x200
+  el #split 0,0 300x200
+    el #first 0,0 139x200
+      el #schema label="Schema" 0,0 139x200
+        text "public" 8,8 123x18
+        text "customers" 8,30 123x16
+        text "orders" 8,50 123x16
+        text "order_items" 8,70 123x16
+        text "products" 8,90 123x16
+        text "invoices" 8,110 123x16
+    el #rest 136,0 164x200
+      el #second 140,0 160x200
+        el #editor label="Query" 140,0 160x200
+          text "SELECT date_trunc('month', o.created_at) AS month," 148,8 144x16
+          text "       count(*) AS orders, sum(o.amount) AS total" 148,26 144x16
+          text "FROM orders o" 148,44 144x16
+          text "GROUP BY 1" 148,62 144x16
+          text "ORDER BY 1 DESC;" 148,80 144x16
+      el #divider role=separator label="Resize Schema" 136,0 7x200 focused
+        el 139,0 1x200

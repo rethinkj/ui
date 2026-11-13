@@ -1,0 +1,9 @@
+# The frame of a database tool (WorkbenchTest): the schema beside the queries in tabs, the active
+# one an editor over its results.
+size 720 400
+frame
+snap 1x
+
+size 720 400 scale 2
+frame
+snap 2x
