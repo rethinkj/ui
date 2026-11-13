@@ -6,6 +6,7 @@ import com.rethinkj.ui.render.Scene;
 import com.rethinkj.ui.text.Atlas;
 import com.rethinkj.ui.text.Font;
 import com.rethinkj.ui.text.TextRendering;
+import com.rethinkj.ui.window.Windows;
 import java.time.Duration;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -210,6 +211,8 @@ public final class App<S> {
   private boolean systemFonts;
   private final Map<Object, Editor> editors = new HashMap<>(); // the fields' state, by identity
   private Clipboard clipboard = Clipboard.inMemory();
+  private Windows windows = Windows.NONE;
+  private boolean ran; // a handler ran in this frame; see ranHandlers()
   private Object selecting; // the identity of the field a press is selecting in, until pointer up
   private Editor blinking; // the editor of the focused field
   private double blinkStart; // when its caret last turned on
@@ -865,6 +868,38 @@ public final class App<S> {
   /** Sets the clipboard, as a window does with the system's. */
   public void clipboard(Clipboard clipboard) {
     this.clipboard = Objects.requireNonNull(clipboard, "clipboard");
+  }
+
+  /**
+   * The windows of the runner that runs the app, with which a handler opens and closes windows
+   * ({@link Windows}): a {@link com.rethinkj.ui.window.WindowLoop}'s or a {@link Script}'s. Until
+   * a runner sets them, opening a window throws.
+   */
+  public Windows windows() {
+    return windows;
+  }
+
+  /** Sets the runner's windows, as a {@link com.rethinkj.ui.window.WindowLoop} and a script do. */
+  public void windows(Windows windows) {
+    this.windows = Objects.requireNonNull(windows, "windows");
+  }
+
+  /**
+   * The state changed outside the app's own handlers: the next {@link #frame} builds the view
+   * again, as after a handler. A runner calls it on the other apps that share a state after a
+   * handler of one ran ({@link #ranHandlers}); it is not input, and wakes nothing by itself.
+   */
+  public void invalidate() {
+    stale = true;
+  }
+
+  /**
+   * Whether the last {@link #frame} ran a handler of the app, a {@link #post posted} task or an
+   * action of {@link #after}: what may have changed the state, which other apps of the same state
+   * then show ({@link #invalidate}).
+   */
+  public boolean ranHandlers() {
+    return ran;
   }
 
   /**
@@ -1809,6 +1844,7 @@ public final class App<S> {
    *     scrolled
    */
   public boolean frame() {
+    ran = false;
     Object wasFocused = focusId;
     boolean hadRing = ring;
     boolean drawn = false;
@@ -1833,6 +1869,7 @@ public final class App<S> {
       }
     }
     stale |= shownFor();
+    ran |= handled;
     stale |= handled || !Objects.equals(focusId, wasFocused) || ring != hadRing;
     stale |= blink(focused == null ? null : focused.editor());
     if (stale) { // the rebuild builds all rows anyway
@@ -1908,6 +1945,7 @@ public final class App<S> {
     Overlays.layout(root, width, height);
     animator.update(root, time);
     stale = false;
+    ran |= handled;
     handled = false;
     scrolled = false;
     rowsPending = between && (focusId == null || animator.inRow(focusId) == null);
@@ -2322,6 +2360,7 @@ public final class App<S> {
         if (due <= time) {
           rest.ran = true;
           hoversRun++;
+          ran = true; // the handler may change the state that other apps show
           el.onHoverFor().run();
         } else {
           restDue = Math.min(restDue, due);

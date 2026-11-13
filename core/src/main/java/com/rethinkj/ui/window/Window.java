@@ -121,8 +121,43 @@ public final class Window implements AutoCloseable {
     private float minHeight;
     private float resizeMargin = 6;
     private WindowIcon icon;
+    private boolean positioned;
+    private int x;
+    private int y;
 
     private Options() {}
+
+    /**
+     * Where the content's top left corner opens on the screen, in the units of {@link
+     * Window#moveTo}; where the system puts it unless set. Wayland ignores it: there the
+     * compositor places every window.
+     */
+    public Options position(int x, int y) {
+      positioned = true;
+      this.x = x;
+      this.y = y;
+      return this;
+    }
+
+    /** Whether {@link #frameless} was called. */
+    public boolean isFrameless() {
+      return frameless;
+    }
+
+    /** Whether {@link #position} set where the window opens. */
+    public boolean isPositioned() {
+      return positioned;
+    }
+
+    /** The position {@link #position} set, else 0. */
+    public int x() {
+      return x;
+    }
+
+    /** See {@link #x()}. */
+    public int y() {
+      return y;
+    }
 
     /**
      * The window's icon from the start, so that its taskbar button never shows another; see
@@ -226,6 +261,10 @@ public final class Window implements AutoCloseable {
   private final float minWidth;
   private final float minHeight;
   private final float resizeMargin;
+  private final boolean positioned;
+  private final int x;
+  private final int y;
+  private String title;
   private WindowHandle handle;
   private Win32Frame win32;
   private Win32Shell shell;
@@ -263,6 +302,9 @@ public final class Window implements AutoCloseable {
     this.minHeight = options.minHeight;
     this.resizeMargin = options.resizeMargin;
     this.icon = options.icon;
+    this.positioned = options.positioned;
+    this.x = options.x;
+    this.y = options.y;
   }
 
   /** Opens a resizable window with the system's frame. */
@@ -303,6 +345,7 @@ public final class Window implements AutoCloseable {
       throw new IllegalStateException("SDL_CreateWindow failed: " + error);
     }
     Window window = new Window(sdl, options);
+    window.title = title;
     windows.put(window.id, window);
     try {
       window.setUp(width, height, content);
@@ -338,6 +381,9 @@ public final class Window implements AutoCloseable {
       if (handle instanceof WindowHandle.Win32 win) {
         win32 = Win32Frame.attach(this, win.hwnd());
       }
+    }
+    if (positioned) {
+      Sdl.setWindowPosition(sdl, x, y);
     }
     Sdl.showWindow(sdl);
     long flags = Sdl.getWindowFlags(sdl);
@@ -857,6 +903,12 @@ public final class Window implements AutoCloseable {
   public void title(String title) {
     checkOpen();
     Sdl.setWindowTitle(sdl, Objects.requireNonNull(title, "title"));
+    this.title = title;
+  }
+
+  /** The title the window opened with, or the last that {@link #title(String)} set. */
+  public String title() {
+    return title;
   }
 
   public boolean isOpen() {

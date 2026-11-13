@@ -17,8 +17,14 @@ import com.rethinkj.ui.window.WindowEvent.ScaleChanged;
 import com.rethinkj.ui.window.WindowEvent.TextEditing;
 import com.rethinkj.ui.window.WindowEvent.TextInput;
 import com.rethinkj.ui.window.WindowEvent.Wheel;
+import com.rethinkj.ui.render.GpuPresenter;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 /**
  * Runs an {@link App} in a {@link Window}: feeds it the window's pointer, wheel, key and text input
@@ -91,28 +97,207 @@ public final class WindowLoop {
     }
   }
 
-  private final Window window;
-  private final App<?> app;
-  private final Presenter presenter;
+  // The windows in the order they opened, and the same front first, as far as the loop knows.
+  private final List<Entry> entries = new ArrayList<>();
+  private final List<Entry> front = new ArrayList<>();
+  private final List<Entry> closing = new ArrayList<>();
+  private final LoopWindows windows = new LoopWindows();
+  private Function<Window, Presenter> presenters;
   private WindowListener listener;
   private Consumer<SystemAppearance> appearance;
   private Waits waits = (millis, holdBack) -> {};
   private volatile boolean running;
-  private float width = -1;
-  private float height = -1;
-  private float scale = -1;
-  private long clock;
-  private long presented;
-  private long started; // when the last frame presented began to be built
-  private long frameNanos;
   private boolean systemFonts = true;
-  // Input or a posted task arrived that no frame has handled yet; posts set it on their thread.
-  private volatile boolean input;
+  private long clock;
+  private boolean drawing; // a pass draws frames; closes wait for its end
 
+  /**
+   * One window of the loop with its app and presenter, and what pacing needs: when its last frame
+   * presented began to be built, and its display's refresh.
+   */
+  private final class Entry implements Windows.Handle {
+    final Window window;
+    final App<?> app;
+    final Presenter presenter;
+    final boolean owned; // opened by the loop, which closes it
+    Runnable onClose;
+    boolean dropTarget = true;
+    float width = -1;
+    float height = -1;
+    float scale = -1;
+    long presented;
+    long started;
+    long frameNanos;
+    boolean open = true;
+    boolean fresh = true; // opened since the last pass, which draws its first frame
+    // Input or a posted task arrived that no frame has handled yet; posts set it on their thread.
+    volatile boolean input;
+
+    Entry(Window window, App<?> app, Presenter presenter, boolean owned) {
+      this.window = window;
+      this.app = app;
+      this.presenter = presenter;
+      this.owned = owned;
+    }
+
+    @Override
+    public App<?> app() {
+      return app;
+    }
+
+    @Override
+    public String title() {
+      return window.title();
+    }
+
+    @Override
+    public boolean isOpen() {
+      return open && window.isOpen();
+    }
+
+    @Override
+    public void close() {
+      if (!open) {
+        return;
+      }
+      open = false;
+      front.remove(this);
+      if (drawing) {
+        closing.add(this); // after the pass: its app may be in the middle of a frame
+      } else {
+        shut(this);
+      }
+    }
+
+    @Override
+    public void raise() {
+      if (isOpen()) {
+        window.raise();
+        toFront(this);
+      }
+    }
+
+    @Override
+    public void moveTo(int x, int y) {
+      if (isOpen()) {
+        window.moveTo(x, y);
+      }
+    }
+
+    @Override
+    public int x() {
+      return window.isOpen() ? window.x() : 0;
+    }
+
+    @Override
+    public int y() {
+      return window.isOpen() ? window.y() : 0;
+    }
+
+    @Override
+    public float width() {
+      return window.width();
+    }
+
+    @Override
+    public float height() {
+      return window.height();
+    }
+
+    @Override
+    public float screenScale() {
+      return window.unitsPerLogical();
+    }
+
+    @Override
+    public void onCloseRequest(Runnable handler) {
+      onClose = handler;
+    }
+
+    @Override
+    public void dropTarget(boolean on) {
+      dropTarget = on;
+    }
+
+    @Override
+    public Window window() {
+      return window;
+    }
+  }
+
+  /** The loop's {@link Windows}, which its apps get. */
+  private final class LoopWindows implements Windows {
+    @Override
+    public Handle open(String title, float width, float height, Window.Options options,
+        App<?> app) {
+      Objects.requireNonNull(app, "app");
+      if (of(app) != null) {
+        throw new IllegalArgumentException("The app runs in a window already");
+      }
+      Window window = Window.open(title, width, height, options);
+      Presenter presenter;
+      try {
+        presenter = presenters().apply(window);
+      } catch (RuntimeException | Error e) {
+        window.close();
+        throw e;
+      }
+      Entry entry = new Entry(window, app, presenter, true);
+      add(entry);
+      if (running) {
+        start(entry);
+      }
+      return entry;
+    }
+
+    @Override
+    public List<Handle> all() {
+      List<Handle> all = new ArrayList<>();
+      for (Entry entry : entries) {
+        if (entry.isOpen()) {
+          all.add(entry);
+        }
+      }
+      return all;
+    }
+
+    @Override
+    public Handle of(App<?> app) {
+      Entry entry = entry(app);
+      return entry != null && entry.isOpen() ? entry : null;
+    }
+
+    @Override
+    public Place place(App<?> app, float x, float y) {
+      Entry from = entry(app);
+      if (from == null || !from.isOpen()) {
+        return null;
+      }
+      float upl = from.window.unitsPerLogical();
+      float sx = from.window.x() + x * upl;
+      float sy = from.window.y() + y * upl;
+      for (Entry entry : front) {
+        if (!entry.dropTarget || !entry.isOpen()) {
+          continue;
+        }
+        float u = entry.window.unitsPerLogical();
+        float lx = (sx - entry.window.x()) / u;
+        float ly = (sy - entry.window.y()) / u;
+        if (lx >= 0 && ly >= 0 && lx < entry.window.width() && ly < entry.window.height()) {
+          return new Place(sx, sy, entry, lx, ly);
+        }
+      }
+      return new Place(sx, sy, null, Float.NaN, Float.NaN);
+    }
+  }
+
+  /**
+   * A loop of one window, which runs {@code app} and draws with {@code presenter}; more open with
+   * {@link #open} or from the apps' handlers ({@link App#windows()}).
+   */
   public WindowLoop(Window window, App<?> app, Presenter presenter) {
-    this.window = Objects.requireNonNull(window, "window");
-    this.app = Objects.requireNonNull(app, "app");
-    this.presenter = Objects.requireNonNull(presenter, "presenter");
+    add(new Entry(Objects.requireNonNull(window, "window"), Objects.requireNonNull(app, "app"),
+        Objects.requireNonNull(presenter, "presenter"), false));
   }
 
   /** Runs {@code app} in {@code window} until the window asks to close. */
@@ -121,8 +306,38 @@ public final class WindowLoop {
   }
 
   /**
-   * Also gives every event to {@code listener}, before the loop handles it, for what the loop does
-   * not, such as the middle button.
+   * Opens another window that runs {@code app}, as an app's handler does with {@link
+   * App#windows()}; also before {@link #run}. The loop closes it, with its presenter, when it ends.
+   */
+  public Windows.Handle open(String title, float width, float height, Window.Options options,
+      App<?> app) {
+    return windows.open(title, width, height, options, app);
+  }
+
+  /** The loop's windows, which its apps also get as {@link App#windows()}. */
+  public Windows windows() {
+    return windows;
+  }
+
+  /**
+   * What draws into the windows that open later ({@link #open}, {@link Windows#open}); a {@link
+   * com.rethinkj.ui.render.GpuPresenter} unless set. A presenter that is {@link AutoCloseable} is
+   * closed before its window.
+   *
+   * @return this loop
+   */
+  public WindowLoop presenters(Function<Window, Presenter> factory) {
+    this.presenters = Objects.requireNonNull(factory, "factory");
+    return this;
+  }
+
+  private Function<Window, Presenter> presenters() {
+    return presenters != null ? presenters : GpuPresenter::new;
+  }
+
+  /**
+   * Also gives every event of every window to {@code listener}, before the loop handles it, for
+   * what the loop does not, such as the middle button.
    *
    * @return this loop
    */
@@ -138,9 +353,9 @@ public final class WindowLoop {
      * Told on the loop's thread right before it waits for events.
      *
      * @param millis the longest the wait may take, or -1 when only an event ends it: nothing
-     *     moves, nothing is pending and nothing is due on the app's clock. Events that arrived
-     *     while the frame was drawn may already be there and end it at once.
-     * @param holdBack whether input or a posted task waits for the next refresh
+     *     moves, nothing is pending and nothing is due on any app's clock. Events that arrived
+     *     while the frames were drawn may already be there and end it at once.
+     * @param holdBack whether input or a posted task waits for the next refresh of its window
      */
     void waiting(long millis, boolean holdBack);
   }
@@ -152,11 +367,11 @@ public final class WindowLoop {
   }
 
   /**
-   * Hands the system's appearance to the app: {@code handler} gets {@link
+   * Hands the system's appearance to the apps: {@code handler} gets {@link
    * Window#systemAppearance()} once when {@link #run} starts and again after each {@link
-   * WindowEvent.AppearanceChanged}, as a task of the app ({@link App#post}), so that it may change
-   * the app's state and the view is built anew. An app that follows the system chooses its theme
-   * there; nothing changes by itself.
+   * WindowEvent.AppearanceChanged}, as a task of the first app ({@link App#post}), so that it may
+   * change the app's state and the view is built anew; the other apps then build theirs too. An
+   * app that follows the system chooses its theme there; nothing changes by itself.
    *
    * <pre>{@code
    * new WindowLoop(window, app, presenter)
@@ -173,7 +388,7 @@ public final class WindowLoop {
   }
 
   /**
-   * Whether {@link #run} gives the app the system's fonts ({@link App#systemFonts}), as it does
+   * Whether {@link #run} gives the apps the system's fonts ({@link App#systemFonts}), as it does
    * unless this turns it off, for an app that has to look the same on every machine.
    *
    * @return this loop
@@ -184,65 +399,145 @@ public final class WindowLoop {
   }
 
   /**
-   * Runs until the user asks to close the window or {@link #stop} is called, on the window's
-   * thread. Meanwhile the loop is the window's listener, answers its {@link Window#parts} from
-   * the app and wakes for the app's posted tasks ({@link App#onPost}); afterwards it does none of
-   * that, and tasks posted later wait in the app until it runs frames again. The window stays
-   * open; close it afterwards. What a listener, the presenter or a posted task throws ends the
-   * loop and comes out of here.
+   * Runs until the last window closes, its close request ends the loop ({@link
+   * Windows.Handle#onCloseRequest}) or {@link #stop} is called, on the windows' thread. Meanwhile
+   * the loop is each window's listener, answers its {@link Window#parts} from its app and wakes for
+   * the apps' posted tasks ({@link App#onPost}); afterwards it does none of that, and tasks posted
+   * later wait in the apps until they run frames again. The windows given to the constructor stay
+   * open unless a request or a handler closed them; the loop closes those it opened, each after its
+   * presenter. What a listener, a presenter or a posted task throws ends the loop and comes out of
+   * here.
+   *
+   * <p>Each pass of the loop builds a frame for each window whose input does not wait for its
+   * display's next refresh, and presents those with something new. When an app ran a handler,
+   * a task or an action of {@link App#after} ({@link App#ranHandlers}), the loop invalidates the
+   * other apps, which build their views again in the same pass, so that windows that show one
+   * state show the same. Then the loop waits once for all windows: for the earliest of the
+   * refreshes that input waits for, the next frame of each window that moves (by its own
+   * display's refresh), and the earliest {@link App#nextChange} of all apps; for events alone when
+   * there is none of these.
    */
   public void run() {
     if (running) {
       throw new IllegalStateException("The loop runs already");
     }
     running = true;
-    app.clipboard(new SystemClipboard());
-    app.systemFonts(systemFonts);
-    window.listener(this::event);
-    window.parts(app::windowPart);
-    app.onPost(() -> { // a task from another thread ends the wait below
-      input = true;
-      Window.wake();
-    });
     try {
+      for (Entry entry : List.copyOf(entries)) {
+        start(entry);
+      }
       handOn(Window.systemAppearance());
       clock = System.nanoTime();
-      refreshRate();
-      while (running && window.isOpen()) {
-        long early = holdBack(System.nanoTime() - started, frameNanos, input);
-        if (early > 0) { // more input may come before the frame can be shown
-          // A post ends this wait early, and the next turn waits for the rest of the refresh.
-          long millis = Math.max(1, (early + 999_999) / 1_000_000);
-          waits.waiting(millis, true);
-          Window.waitEvents(millis);
-          continue;
+      while (running && !open().isEmpty()) {
+        long now = System.nanoTime();
+        List<Entry> open = open();
+        long[] early = new long[open.size()];
+        boolean held = false;
+        for (int i = 0; i < open.size(); i++) {
+          Entry e = open.get(i);
+          early[i] = holdBack(now - e.started, e.frameNanos, e.input);
+          held |= early[i] > 0;
         }
-        input = false;
-        draw(false);
-        if (!running || !window.isOpen()) {
+        pass(open, early);
+        if (!running || open().isEmpty()) {
           break;
         }
-        double change = app.nextChange() - app.time();
-        if (app.isMoving() || presenter.pending()) {
-          long left = frameNanos - (System.nanoTime() - presented);
-          long millis = Math.max(0, left / 1_000_000);
-          waits.waiting(millis, false);
-          Window.waitEvents(millis);
-        } else if (change < Double.POSITIVE_INFINITY) {
-          long millis = Math.max(1, (long) Math.ceil(change * 1000));
-          waits.waiting(millis, false);
-          Window.waitEvents(millis);
-        } else {
-          waits.waiting(-1, false);
+        long millis = -1;
+        for (int i = 0; i < open.size(); i++) {
+          Entry e = open.get(i);
+          if (!e.isOpen()) {
+            continue;
+          }
+          long wait;
+          if (early[i] > 0) { // more input may come before the frame can be shown
+            // A post ends this wait early, and the next turn waits for the rest of the refresh.
+            wait = Math.max(1, (early[i] + 999_999) / 1_000_000);
+          } else if (e.app.isMoving() || e.presenter.pending()) {
+            wait = Math.max(0, (e.frameNanos - (System.nanoTime() - e.presented)) / 1_000_000);
+          } else {
+            double change = e.app.nextChange() - e.app.time();
+            wait = change < Double.POSITIVE_INFINITY
+                ? Math.max(1, (long) Math.ceil(change * 1000)) : -1;
+          }
+          if (wait >= 0 && (millis < 0 || wait < millis)) {
+            millis = wait;
+          }
+        }
+        waits.waiting(millis, held);
+        if (millis < 0) {
           Window.waitEvents();
+        } else {
+          Window.waitEvents(millis);
         }
       }
     } finally {
       running = false;
-      app.onPost(null);
-      if (window.isOpen()) {
-        window.listener(null);
-        window.parts(null);
+      for (Entry entry : List.copyOf(entries)) {
+        entry.app.onPost(null);
+        if (entry.owned) {
+          entry.close();
+        } else if (entry.window.isOpen()) {
+          entry.window.listener(null);
+          entry.window.parts(null);
+        }
+      }
+      shutClosed();
+    }
+  }
+
+  /**
+   * Draws the windows whose input waits for no refresh, and those whose app another app
+   * invalidated: later in the same round, or in another round when they came before it, up to
+   * three rounds, so that apps whose handlers run in turn come to an end.
+   */
+  private void pass(List<Entry> open, long[] early) {
+    tick();
+    Set<Entry> held = new HashSet<>();
+    Set<Entry> due = new HashSet<>();
+    for (int i = 0; i < open.size(); i++) {
+      (early[i] > 0 ? held : due).add(open.get(i));
+    }
+    drawing = true;
+    try {
+      for (int round = 0; round < 3 && !due.isEmpty(); round++) {
+        Set<Entry> again = new HashSet<>();
+        // Windows that a handler opens during the round join it, as fresh ones.
+        for (int i = 0; i < entries.size() && running; i++) {
+          Entry e = entries.get(i);
+          if (!e.isOpen() || !due.contains(e) && !e.fresh) {
+            continue;
+          }
+          e.fresh = false;
+          e.input = false;
+          draw(e, false);
+          if (e.app.ranHandlers()) {
+            for (int j = 0; j < entries.size(); j++) {
+              Entry other = entries.get(j);
+              if (other != e && other.isOpen() && !other.fresh) {
+                other.app.invalidate();
+                if (!held.contains(other)) {
+                  (j < i ? again : due).add(other);
+                }
+              }
+            }
+          }
+        }
+        due = again;
+      }
+    } finally {
+      drawing = false;
+      shutClosed();
+    }
+  }
+
+  /** Advances every app's clock by the time since the last tick. */
+  private void tick() {
+    long now = System.nanoTime();
+    double seconds = Math.max(0, now - clock) / 1e9;
+    clock = now;
+    for (Entry e : entries) {
+      if (e.isOpen()) {
+        e.app.advance(seconds);
       }
     }
   }
@@ -268,15 +563,95 @@ public final class WindowLoop {
     return running;
   }
 
-  private void event(WindowEvent event) {
+  private void add(Entry entry) {
+    entries.add(entry);
+    front.addFirst(entry);
+  }
+
+  /** Makes the loop the window's listener and the app's runner. */
+  private void start(Entry e) {
+    App<?> app = e.app;
+    app.clipboard(new SystemClipboard());
+    app.systemFonts(systemFonts);
+    app.windows(windows);
+    e.window.listener(event -> event(e, event));
+    e.window.parts(app::windowPart);
+    app.onPost(() -> { // a task from another thread ends the wait
+      e.input = true;
+      Window.wake();
+    });
+    refreshRate(e);
+  }
+
+  private Entry entry(App<?> app) {
+    for (Entry e : entries) {
+      if (e.app == app) {
+        return e;
+      }
+    }
+    return null;
+  }
+
+  private List<Entry> open() {
+    List<Entry> open = new ArrayList<>();
+    for (Entry e : List.copyOf(entries)) {
+      if (e.isOpen()) {
+        open.add(e);
+      } else if (e.open) { // its owner closed the window: the loop lets go of it
+        e.close();
+      }
+    }
+    return open;
+  }
+
+  private void toFront(Entry e) {
+    if (e.isOpen()) {
+      front.remove(e);
+      front.addFirst(e);
+    }
+  }
+
+  private void shutClosed() {
+    while (!closing.isEmpty()) {
+      shut(closing.removeFirst());
+    }
+  }
+
+  /** Lets go of a window that closed: its presenter first, then the window. */
+  private void shut(Entry e) {
+    entries.remove(e);
+    e.app.onPost(null);
+    if (!e.window.isOpen()) {
+      return;
+    }
+    e.window.listener(null);
+    e.window.parts(null);
+    try {
+      if (e.presenter instanceof AutoCloseable closeable) {
+        closeable.close();
+      }
+    } catch (RuntimeException ex) {
+      throw ex;
+    } catch (Exception ex) {
+      throw new IllegalStateException("Closing the presenter failed", ex);
+    } finally {
+      e.window.close();
+    }
+  }
+
+  private void event(Entry e, WindowEvent event) {
     WindowListener current = listener;
     if (current != null) {
       current.event(event);
     }
+    if (!e.isOpen()) {
+      return;
+    }
+    App<?> app = e.app;
     if (event instanceof PointerDown || event instanceof PointerUp || event instanceof PointerMove
         || event instanceof PointerLeave || event instanceof Wheel || event instanceof KeyDown
         || event instanceof KeyUp || event instanceof TextInput || event instanceof TextEditing) {
-      input = true;
+      e.input = true;
     }
     switch (event) {
       case PointerDown down when down.button() == PointerButton.LEFT ->
@@ -294,61 +669,86 @@ public final class WindowLoop {
       case KeyUp up -> app.keyUp(up.key());
       case TextInput text -> app.textInput(text.text());
       case TextEditing editing -> app.textComposition(editing.text(), editing.cursor());
-      case FocusChanged focus -> app.windowActive(focus.focused());
-      case Resized resized -> resize();
-      case ScaleChanged changed -> {
-        resize();
-        refreshRate();
+      case FocusChanged focus -> {
+        app.windowActive(focus.focused());
+        if (focus.focused()) {
+          toFront(e);
+        }
       }
-      case Redraw redraw -> draw(!redraw.live());
-      case CloseRequested close -> running = false;
-      case AppearanceChanged changed -> handOn(changed.appearance());
+      case Resized resized -> resize(e);
+      case ScaleChanged changed -> {
+        resize(e);
+        refreshRate(e);
+      }
+      case Redraw redraw -> {
+        if (!drawing) { // in a pass, the frame comes anyway
+          tick();
+          draw(e, !redraw.live());
+        }
+      }
+      case CloseRequested close -> {
+        if (e.onClose != null) {
+          app.post(e.onClose);
+        } else if (open().size() > 1) {
+          e.close();
+        } else {
+          running = false;
+        }
+      }
+      // Every window gets it; the first open one hands it on.
+      case AppearanceChanged changed when e == open().getFirst() -> handOn(changed.appearance());
       default -> {}
     }
   }
 
   private void handOn(SystemAppearance now) {
     Consumer<SystemAppearance> handler = appearance;
-    if (handler != null) {
-      app.post(() -> handler.accept(now));
+    List<Entry> open = open();
+    if (handler != null && !open.isEmpty()) {
+      open.getFirst().app.post(() -> handler.accept(now));
     }
   }
 
   /** Builds a frame and presents it if it is new, if {@code always}, or if one is pending. */
-  private void draw(boolean always) {
-    resize();
+  private void draw(Entry e, boolean always) {
+    resize(e);
     long now = System.nanoTime();
-    app.advance(Math.max(0, now - clock) / 1e9);
-    clock = now;
-    if (app.frame() || always || presenter.pending()) {
-      presenter.present(app.scene(), width, height, scale);
-      presented = System.nanoTime();
-      started = now;
+    App<?> app = e.app;
+    if (app.frame() || always || e.presenter.pending()) {
+      if (!e.isOpen()) {
+        return; // a handler of the frame closed it
+      }
+      e.presenter.present(app.scene(), e.width, e.height, e.scale);
+      e.presented = System.nanoTime();
+      e.started = now;
     }
-    window.cursor(app.cursor());
+    if (!e.isOpen()) {
+      return;
+    }
+    e.window.cursor(app.cursor());
     App.InputArea area = app.inputArea();
     if (area == null) {
-      window.stopTextInput();
+      e.window.stopTextInput();
     } else {
-      window.textInputArea(
+      e.window.textInputArea(
           area.x(), area.y(), area.width(), area.height(), area.cursor(), area.password());
     }
   }
 
-  private void resize() {
-    float w = window.width();
-    float h = window.height();
-    float s = window.scale();
-    if (w != width || h != height || s != scale) {
-      width = w;
-      height = h;
-      scale = s;
-      app.resize(w, h, s);
+  private void resize(Entry e) {
+    float w = e.window.width();
+    float h = e.window.height();
+    float s = e.window.scale();
+    if (w != e.width || h != e.height || s != e.scale) {
+      e.width = w;
+      e.height = h;
+      e.scale = s;
+      e.app.resize(w, h, s);
     }
   }
 
-  private void refreshRate() {
-    float hertz = window.refreshRate();
-    frameNanos = (long) (1e9 / (hertz >= 20 && hertz <= 1000 ? hertz : 60));
+  private void refreshRate(Entry e) {
+    float hertz = e.window.refreshRate();
+    e.frameNanos = (long) (1e9 / (hertz >= 20 && hertz <= 1000 ? hertz : 60));
   }
 }
