@@ -133,8 +133,16 @@ public record Theme(
   /**
    * @param feedback colours that answer the pointer and a change of state
    * @param move parts that travel, such as a toggle's knob
+   * @param submenuDelay seconds the pointer rests on a menu's item before its submenu opens, or
+   *     the open one closes
    */
-  public record Motion(Spring feedback, Spring move) {}
+  public record Motion(Spring feedback, Spring move, double submenuDelay) {
+
+    /** Motion with submenus after 0.3 seconds. */
+    public Motion(Spring feedback, Spring move) {
+      this(feedback, move, 0.3);
+    }
+  }
 
   /**
    * The data grid's sizes and backgrounds. Its lines are {@link Borders#subtle}, and its hovered
@@ -162,7 +170,7 @@ public record Theme(
           new TextStyle(Font::mono, 12),
           new TextStyle(Font::sansBold, 15));
   private static final Sizes SIZE = new Sizes(24, 16, 28, 16, 1, 200);
-  private static final Motion MOTION = new Motion(Spring.INSTANT, Spring.SNAP);
+  private static final Motion MOTION = new Motion(Spring.INSTANT, Spring.SNAP, 0.3);
 
   /** Neutral greys with a blue accent, light text on dark surfaces. */
   public static final Theme DARK =
