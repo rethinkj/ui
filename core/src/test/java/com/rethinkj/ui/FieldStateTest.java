@@ -86,7 +86,10 @@ class FieldStateTest {
     model.sql[0] = "a";
     model.sql[1] = "b";
     model.shared = true;
-    App<Model> app = new App<>(model, m -> col().children(query(m, 0), query(m, 1).key("other")));
+    FieldState shared = new FieldState();
+    App<Model> app = new App<>(model, m -> col().children(
+        El.text("a").editable(v -> {}).key("one").fieldState(shared),
+        El.text("b").editable(v -> {}).key("two").fieldState(shared)));
     app.resize(320, 240, 1);
     IllegalStateException e = assertThrows(IllegalStateException.class, app::frame);
     assertTrue(e.getMessage().contains("FieldState of its own"), e.getMessage());
