@@ -47,6 +47,20 @@ class ThemeTest {
     check(failures, "focus ring", t.border().focus(), Map.of("accent", t.accent().color()), 3);
     check(failures, "knob", t.text().onAccent(), Map.of("track off", t.border().strong()), 3);
     check(failures, "disabled text", t.text().disabled(), surfaces, 2);
+    // The data grid: cells in primary text, NULL and the sort marker in muted text.
+    Theme.Grid g = t.grid();
+    Map<String, Integer> grid = Map.of(
+        "grid header", g.header(),
+        "grid header hovered", over(g.header(), s.hover()),
+        "grid header pressed", over(g.header(), s.pressed()),
+        "grid row", g.row(),
+        "grid row hovered", over(g.row(), s.hover()),
+        "grid stripe", g.stripe(),
+        "grid stripe hovered", over(g.stripe(), s.hover()),
+        "grid selected", g.selected(),
+        "grid selected inactive", g.selectedInactive());
+    check(failures, "primary text", t.text().primary(), grid, 4.5);
+    check(failures, "muted text", t.text().muted(), grid, 4.5);
     assertTrue(failures.isEmpty(), String.join("\n", failures));
   }
 
