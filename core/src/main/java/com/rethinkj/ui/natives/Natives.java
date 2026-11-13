@@ -1,6 +1,7 @@
 package com.rethinkj.ui.natives;
 
 import static java.lang.foreign.ValueLayout.ADDRESS;
+import static java.lang.foreign.ValueLayout.JAVA_CHAR;
 import static java.lang.foreign.ValueLayout.JAVA_INT;
 
 import com.rethinkj.ui.natives.Manifest.Library;
@@ -10,9 +11,11 @@ import java.io.OutputStream;
 import java.lang.foreign.Arena;
 import java.lang.foreign.FunctionDescriptor;
 import java.lang.foreign.Linker;
+import java.lang.foreign.MemoryLayout;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SymbolLookup;
 import java.lang.invoke.MethodHandle;
+import java.lang.invoke.VarHandle;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.InvalidPathException;
@@ -23,6 +26,7 @@ import java.util.HashMap;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Function;
 
 /**
@@ -332,6 +336,9 @@ public final class Natives {
   }
 
   private SymbolLookup load(Path file) {
+    if (osName.startsWith("Windows")) {
+      return Kernel32.load(file);
+    }
     try {
       return SymbolLookup.libraryLookup(file, Arena.global());
     } catch (IllegalArgumentException e) {
@@ -373,6 +380,109 @@ public final class Natives {
       return message.reinterpret(Integer.MAX_VALUE).getString(0);
     } catch (Throwable t) {
       return null; // only for the message
+    }
+  }
+
+  /**
+   * Loads libraries on Windows with {@code LoadLibraryExW}, which takes the path in UTF-16, and
+   * finds their symbols with {@code GetProcAddress}. {@code SymbolLookup.libraryLookup(Path, ...)}
+   * hands the path to Windows in the ANSI code page, which cannot name every folder: under code
+   * page 1252 it failed for a cache in a folder named in Japanese, as a user profile can be, where
+   * the files were in place.
+   */
+  private static final class Kernel32 {
+
+    /** {@code HMODULE LoadLibraryExW(LPCWSTR lpLibFileName, HANDLE hFile, DWORD dwFlags)}. */
+    static final FunctionDescriptor LOAD_LIBRARY_EX_W =
+        FunctionDescriptor.of(ADDRESS, ADDRESS, ADDRESS, JAVA_INT);
+
+    /** {@code FARPROC GetProcAddress(HMODULE hModule, LPCSTR lpProcName)}. */
+    static final FunctionDescriptor GET_PROC_ADDRESS =
+        FunctionDescriptor.of(ADDRESS, ADDRESS, ADDRESS);
+
+    /**
+     * {@code DWORD FormatMessageW(DWORD dwFlags, LPCVOID lpSource, DWORD dwMessageId, DWORD
+     * dwLanguageId, LPWSTR lpBuffer, DWORD nSize, va_list *Arguments)}.
+     */
+    static final FunctionDescriptor FORMAT_MESSAGE_W = FunctionDescriptor.of(
+        JAVA_INT, JAVA_INT, ADDRESS, JAVA_INT, JAVA_INT, ADDRESS, JAVA_INT, ADDRESS);
+
+    private static final int FORMAT_MESSAGE_IGNORE_INSERTS = 0x200;
+    private static final int FORMAT_MESSAGE_FROM_SYSTEM = 0x1000;
+    private static final int MESSAGE_CHARS = 512;
+
+    /** The error {@code LoadLibraryExW} leaves, taken right after the call. */
+    private static final Linker.Option LAST_ERROR = Linker.Option.captureCallState("GetLastError");
+
+    private static final VarHandle ERROR = Linker.Option.captureStateLayout()
+        .varHandle(MemoryLayout.PathElement.groupElement("GetLastError"));
+
+    private static final MethodHandle LOAD_LIBRARY;
+    private static final MethodHandle GET_PROC;
+    private static final MethodHandle FORMAT_MESSAGE;
+
+    static {
+      // A name without a path: Windows takes the loaded system library.
+      SymbolLookup kernel32 = SymbolLookup.libraryLookup("kernel32.dll", Arena.global());
+      Linker linker = Linker.nativeLinker();
+      LOAD_LIBRARY = linker.downcallHandle(
+          kernel32.findOrThrow("LoadLibraryExW"), LOAD_LIBRARY_EX_W, LAST_ERROR);
+      GET_PROC = linker.downcallHandle(kernel32.findOrThrow("GetProcAddress"), GET_PROC_ADDRESS);
+      FORMAT_MESSAGE =
+          linker.downcallHandle(kernel32.findOrThrow("FormatMessageW"), FORMAT_MESSAGE_W);
+    }
+
+    private Kernel32() {}
+
+    /** Loads {@code file} for the life of the process, with the system's search for what it needs. */
+    static SymbolLookup load(Path file) {
+      MemorySegment module;
+      int code;
+      try (Arena arena = Arena.ofConfined()) {
+        MemorySegment state = arena.allocate(Linker.Option.captureStateLayout());
+        // Ends in a null character, two zero bytes.
+        MemorySegment path = arena.allocateFrom(file.toString(), StandardCharsets.UTF_16LE);
+        module = (MemorySegment) LOAD_LIBRARY.invokeExact(state, path, MemorySegment.NULL, 0);
+        code = (int) ERROR.get(state, 0L);
+      } catch (Throwable t) {
+        throw error("Cannot load " + file + ": " + t, t);
+      }
+      if (module.equals(MemorySegment.NULL)) {
+        throw error(
+            "Cannot load " + file + ": Windows error " + code + reason(code)
+                + ". The file may be damaged, or the system lacks a library it needs.",
+            null);
+      }
+      return name -> {
+        try (Arena arena = Arena.ofConfined()) {
+          MemorySegment symbol = (MemorySegment)
+              GET_PROC.invokeExact(module, arena.allocateFrom(name, StandardCharsets.US_ASCII));
+          return symbol.equals(MemorySegment.NULL) ? Optional.empty() : Optional.of(symbol);
+        } catch (Throwable t) {
+          throw new IllegalStateException("GetProcAddress failed for " + name, t);
+        }
+      };
+    }
+
+    /** The system's text for an error, such as " (The specified module could not be found.)". */
+    private static String reason(int code) {
+      try (Arena arena = Arena.ofConfined()) {
+        MemorySegment buffer = arena.allocate(JAVA_CHAR, MESSAGE_CHARS);
+        int chars = (int) FORMAT_MESSAGE.invokeExact(
+            FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+            MemorySegment.NULL,
+            code,
+            0,
+            buffer,
+            MESSAGE_CHARS,
+            MemorySegment.NULL);
+        if (chars <= 0) {
+          return "";
+        }
+        return " (" + new String(buffer.asSlice(0, 2L * chars).toArray(JAVA_CHAR)).strip() + ")";
+      } catch (Throwable t) {
+        return ""; // only for the message
+      }
     }
   }
 

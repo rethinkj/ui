@@ -70,7 +70,7 @@ public final class Buffer extends GpuObject {
         || offset % MAP_ALIGNMENT != 0
         || length <= 0
         || length % 4 != 0
-        || offset + length > size) {
+        || length > size - offset) {
       throw new IllegalArgumentException("Cannot read " + length + " bytes at " + offset
           + " from " + this + " of " + size + " bytes: the offset must be a multiple of 8, the"
           + " length a positive multiple of 4, and both must fit into the buffer.");

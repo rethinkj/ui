@@ -4,7 +4,7 @@ import com.rethinkj.ui.Image;
 import com.rethinkj.ui.text.Atlas;
 
 // CpuRenderer as it was before it was made fast, but for its name and encode's visibility, with
-// the radii per corner and borders per side added as plain loops too: what
+// the radii per corner, borders per side and chains of clips added as plain loops too: what
 // CpuRendererEquivalenceTest compares the fast one with, byte for byte.
 /**
  * Draws a {@link Scene} on the CPU. This is the reference the GPU renderer is checked against, so
@@ -97,10 +97,10 @@ final class ReferenceCpuRenderer {
     double innerY = centerY + (in[0] - in[2]) / 2;
 
     // One extra pixel on each side: the smoothed edge reaches half a pixel beyond the shape.
-    int left = Math.max((int) Math.floor((centerX - halfW) * scale) - 1, 0);
-    int top = Math.max((int) Math.floor((centerY - halfH) * scale) - 1, 0);
-    int right = Math.min((int) Math.ceil((centerX + halfW) * scale) + 1, width);
-    int bottom = Math.min((int) Math.ceil((centerY + halfH) * scale) + 1, height);
+    int left = first(centerX - halfW, scale, width);
+    int top = first(centerY - halfH, scale, height);
+    int right = end(centerX + halfW, scale, width);
+    int bottom = end(centerY + halfH, scale, height);
 
     // The clip's coverage multiplies the instance's. Entry 0 covers everything, so it is skipped.
     int clip = scene.clipOf(i);
@@ -109,10 +109,10 @@ final class ReferenceCpuRenderer {
     double clipX = scene.clipGet(clip, Scene.X) + clipHalfW;
     double clipY = scene.clipGet(clip, Scene.Y) + clipHalfH;
     if (clip != 0) {
-      left = Math.max(left, (int) Math.floor((clipX - clipHalfW) * scale) - 1);
-      top = Math.max(top, (int) Math.floor((clipY - clipHalfH) * scale) - 1);
-      right = Math.min(right, (int) Math.ceil((clipX + clipHalfW) * scale) + 1);
-      bottom = Math.min(bottom, (int) Math.ceil((clipY + clipHalfH) * scale) + 1);
+      left = Math.max(left, first(clipX - clipHalfW, scale, width));
+      top = Math.max(top, first(clipY - clipHalfH, scale, height));
+      right = Math.min(right, end(clipX + clipHalfW, scale, width));
+      bottom = Math.min(bottom, end(clipY + clipHalfH, scale, height));
     }
 
     for (int py = top; py < bottom; py++) {
@@ -161,8 +161,8 @@ final class ReferenceCpuRenderer {
     int atlas = scene.getInt(i, Scene.ATLAS);
     int size = scene.getInt(i, Scene.ATLAS_SIZE);
     Atlas.Page page = scene.pages().get(scene.getInt(i, Scene.PAGE));
-    int left = (int) Math.round(scene.get(i, Scene.X) * scale);
-    int top = (int) Math.round(scene.get(i, Scene.Y) * scale);
+    int left = Math.clamp(Math.round(scene.get(i, Scene.X) * scale), -0x10000, width);
+    int top = Math.clamp(Math.round(scene.get(i, Scene.Y) * scale), -0x10000, height);
     double share = scene.get(i, Scene.LIGHT_SHARE);
     double darkGamma = scene.get(i, Scene.DARK_GAMMA);
     double lightGamma = scene.get(i, Scene.LIGHT_GAMMA);
@@ -212,20 +212,20 @@ final class ReferenceCpuRenderer {
     double halfH = h / 2;
     double centerX = scene.get(i, Scene.X) + halfW;
     double centerY = scene.get(i, Scene.Y) + halfH;
-    int left = Math.max((int) Math.floor((centerX - halfW) * scale) - 1, 0);
-    int top = Math.max((int) Math.floor((centerY - halfH) * scale) - 1, 0);
-    int right = Math.min((int) Math.ceil((centerX + halfW) * scale) + 1, width);
-    int bottom = Math.min((int) Math.ceil((centerY + halfH) * scale) + 1, height);
+    int left = first(centerX - halfW, scale, width);
+    int top = first(centerY - halfH, scale, height);
+    int right = end(centerX + halfW, scale, width);
+    int bottom = end(centerY + halfH, scale, height);
     int clip = scene.clipOf(i);
     if (clip != 0) {
       double clipHalfW = scene.clipGet(clip, Scene.WIDTH) / 2;
       double clipHalfH = scene.clipGet(clip, Scene.HEIGHT) / 2;
       double clipX = scene.clipGet(clip, Scene.X) + clipHalfW;
       double clipY = scene.clipGet(clip, Scene.Y) + clipHalfH;
-      left = Math.max(left, (int) Math.floor((clipX - clipHalfW) * scale) - 1);
-      top = Math.max(top, (int) Math.floor((clipY - clipHalfH) * scale) - 1);
-      right = Math.min(right, (int) Math.ceil((clipX + clipHalfW) * scale) + 1);
-      bottom = Math.min(bottom, (int) Math.ceil((clipY + clipHalfH) * scale) + 1);
+      left = Math.max(left, first(clipX - clipHalfW, scale, width));
+      top = Math.max(top, first(clipY - clipHalfH, scale, height));
+      right = Math.min(right, end(clipX + clipHalfW, scale, width));
+      bottom = Math.min(bottom, end(clipY + clipHalfH, scale, height));
     }
     double[] sample = new double[4];
     for (int py = top; py < bottom; py++) {
@@ -346,20 +346,18 @@ final class ReferenceCpuRenderer {
     // black shows as a faint edge; reach four deviations if glows need it.
     double reachW = halfW + 3 * sigma;
     double reachH = halfH + 3 * sigma;
-    int left = Math.max((int) Math.floor((centerX - reachW) * scale) - 1, 0);
-    int top = Math.max((int) Math.floor((centerY - reachH) * scale) - 1, 0);
-    int right = Math.min((int) Math.ceil((centerX + reachW) * scale) + 1, width);
-    int bottom = Math.min((int) Math.ceil((centerY + reachH) * scale) + 1, height);
+    int left = first(centerX - reachW, scale, width);
+    int top = first(centerY - reachH, scale, height);
+    int right = end(centerX + reachW, scale, width);
+    int bottom = end(centerY + reachH, scale, height);
     int clip = scene.clipOf(i);
     if (clip != 0) {
       double clipX = scene.clipGet(clip, Scene.X);
       double clipY = scene.clipGet(clip, Scene.Y);
-      left = Math.max(left, (int) Math.floor(clipX * scale) - 1);
-      top = Math.max(top, (int) Math.floor(clipY * scale) - 1);
-      right =
-          Math.min(right, (int) Math.ceil((clipX + scene.clipGet(clip, Scene.WIDTH)) * scale) + 1);
-      bottom = Math.min(
-          bottom, (int) Math.ceil((clipY + scene.clipGet(clip, Scene.HEIGHT)) * scale) + 1);
+      left = Math.max(left, first(clipX, scale, width));
+      top = Math.max(top, first(clipY, scale, height));
+      right = Math.min(right, end(clipX + scene.clipGet(clip, Scene.WIDTH), scale, width));
+      bottom = Math.min(bottom, end(clipY + scene.clipGet(clip, Scene.HEIGHT), scale, height));
     }
     for (int py = top; py < bottom; py++) {
       for (int px = left; px < right; px++) {
@@ -501,8 +499,23 @@ final class ReferenceCpuRenderer {
     return Math.signum(x) * (1 - 1 / p);
   }
 
-  /** How much of the pixel centred at {@code x, y}, in logical pixels, the clip lets through. */
+  /**
+   * How much of the pixel centred at {@code x, y}, in logical pixels, the clip lets through: the
+   * least that it and each of its parents does by itself, as long as a parent comes before its
+   * entry.
+   */
   private static double clipCoverage(Scene scene, int clip, double x, double y, double scale) {
+    double coverage = ownClipCoverage(scene, clip, x, y, scale);
+    for (int c = clip, parent = scene.clipParent(c);
+        parent > 0 && parent < c;
+        c = parent, parent = scene.clipParent(c)) {
+      coverage = Math.min(coverage, ownClipCoverage(scene, parent, x, y, scale));
+    }
+    return coverage;
+  }
+
+  /** How much of the pixel the clip's own rounded rectangle lets through. */
+  private static double ownClipCoverage(Scene scene, int clip, double x, double y, double scale) {
     double halfW = scene.clipGet(clip, Scene.WIDTH) / 2;
     double halfH = scene.clipGet(clip, Scene.HEIGHT) / 2;
     double dx = x - (scene.clipGet(clip, Scene.X) + halfW);
@@ -571,6 +584,19 @@ final class ReferenceCpuRenderer {
     return Math.min(Math.max(qx, qy), 0)
         + StrictMath.sqrt(outsideX * outsideX + outsideY * outsideY)
         - radius;
+  }
+
+  /**
+   * The first pixel a shape from {@code edge} on can touch, less one for the smoothed edge,
+   * clamped to 0 to {@code size} before it becomes an int.
+   */
+  private static int first(double edge, double scale, int size) {
+    return (int) Math.clamp(Math.floor(edge * scale) - 1, 0, size);
+  }
+
+  /** The pixel after the last a shape up to {@code edge} can touch, clamped as {@link #first}. */
+  private static int end(double edge, double scale, int size) {
+    return (int) Math.clamp(Math.ceil(edge * scale) + 1, 0, size);
   }
 
   /** How much of a pixel the shape covers: a ramp one physical pixel wide across the edge. */

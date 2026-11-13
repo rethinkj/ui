@@ -260,6 +260,31 @@ class AppTest {
   }
 
   @Test
+  void aSquareClipInARoundedOneIsNotPressedInTheCutCorner() {
+    List<String> pressed = new ArrayList<>();
+    App<List<String>> app = new App<>(
+        pressed,
+        log -> el().size(100, 100)
+            .onPress(() -> log.add("root"))
+            .child(el().absolute(10, 10)
+                .size(60, 60)
+                .radius(20, 0, 0, 0)
+                .clip()
+                .child(el().size(60, 60)
+                    .scroll()
+                    .child(el().size(60, 30).onPress(() -> log.add("row"))))));
+    app.resize(100, 100, 1);
+    app.frame();
+
+    press(app, 12, 12); // in the card's cut corner, which the square list fills
+    press(app, 30, 30);
+    press(app, 68, 12); // the card's square corner
+    app.frame();
+
+    assertEquals(List.of("root", "row", "row"), pressed);
+  }
+
+  @Test
   void aPressHandlerIsToldHowManyPressesItCompletes() {
     List<String> pressed = new ArrayList<>();
     App<List<String>> app = new App<>(

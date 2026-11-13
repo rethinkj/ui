@@ -16,7 +16,8 @@ import java.util.Map;
  * GPU renderer uploads as textures. A glyph is identified by everything that changes its bitmap:
  * font, size in physical pixels, hinting, glyph id and quarter-pixel offset.
  *
- * <p>Glyphs are packed into rows (shelves) whose heights are multiples of 4 texels, each glyph with
+ * <p>Glyphs are packed into rows (shelves) whose heights are multiples of 4 texels, but for a last
+ * shelf that takes the rows left where only that rounding would keep a glyph out, each glyph with
  * one empty texel to its right and below it, so that no glyph's texels touch another's. The atlas
  * is bounded in entries and in bytes. Beyond the number of entries, the least recently used ones
  * are forgotten, and their texels are reused once nothing in their page is left. When a glyph
@@ -127,10 +128,19 @@ public final class Atlas {
       changedBottom = 0;
     }
 
-    /** Finds room for a rectangle, or returns null; the position as {x, y}. */
+    /**
+     * Finds room for a rectangle, or returns null; the position as {x, y}. A shelf's height is
+     * the rectangle's rounded up to a multiple of 4, except that where only that rounding keeps
+     * the rectangle out, the last shelf takes the rows that are left, as a page whose side is no
+     * multiple of 4 has.
+     */
     private int[] place(int width, int height) {
+      if (width > size) {
+        return null;
+      }
       int rounded = (height + 3) & ~3;
       int[] taller = null;
+      int[] last = null; // a last shelf lower than rounded but high enough
       for (int[] shelf : shelves) {
         if (shelf[2] + width <= size) {
           if (shelf[1] == rounded) {
@@ -139,15 +149,29 @@ public final class Atlas {
           if (taller == null && shelf[1] > rounded) {
             taller = shelf;
           }
+          if (last == null && shelf[1] >= height && shelf[1] < rounded) {
+            last = shelf;
+          }
         }
       }
-      if (bottom + rounded <= size && width <= size) {
-        int[] shelf = {bottom, rounded, 0};
-        shelves.add(shelf);
-        bottom += rounded;
-        return take(shelf, width);
+      if (bottom + rounded <= size) {
+        return take(shelf(rounded), width);
       }
-      return taller == null ? null : take(taller, width);
+      if (taller != null) {
+        return take(taller, width);
+      }
+      if (last == null && bottom + height <= size) {
+        last = shelf(size - bottom);
+      }
+      return last == null ? null : take(last, width);
+    }
+
+    /** A new shelf of this height below the others. */
+    private int[] shelf(int height) {
+      int[] shelf = {bottom, height, 0};
+      shelves.add(shelf);
+      bottom += height;
+      return shelf;
     }
 
     private static int[] take(int[] shelf, int width) {
@@ -307,6 +331,11 @@ public final class Atlas {
         evict(index);
       }
       at = pages.get(index).place(width, height);
+      if (at == null) {
+        // An empty page holds any bitmap that is no larger than it; should one not fit anyway,
+        // the glyph is left out as one larger than a page is.
+        return new Slot(-1, 0, 0, 0, 0, bitmap.left(), bitmap.top());
+      }
     }
     Page page = pages.get(index);
     page.write(at[0], at[1], bitmap);

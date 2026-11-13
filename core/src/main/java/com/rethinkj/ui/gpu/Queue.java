@@ -32,7 +32,7 @@ public final class Queue {
     if (!buffer.usages().contains(BufferUsage.COPY_DST)) {
       throw new IllegalArgumentException(buffer + " was not created with BufferUsage.COPY_DST.");
     }
-    if (offset < 0 || offset % 4 != 0 || size % 4 != 0 || offset + size > buffer.size()) {
+    if (offset < 0 || offset % 4 != 0 || size % 4 != 0 || size > buffer.size() - offset) {
       throw new IllegalArgumentException("Cannot write " + size + " bytes at " + offset + " into "
           + buffer + " of " + buffer.size() + " bytes: offset and size must be multiples of 4"
           + " and fit into the buffer.");
@@ -126,7 +126,7 @@ public final class Queue {
     long row = (long) width * texture.format().bytesPerTexel();
     // The bytes the rectangle takes in data; a bytesPerRow of 0 would end the process.
     long size = (long) (height - 1) * bytesPerRow + row;
-    if (bytesPerRow < row || offset < 0 || offset + size > data.byteSize()) {
+    if (bytesPerRow < row || offset < 0 || size > data.byteSize() - offset) {
       throw new IllegalArgumentException("Cannot write " + width + "x" + height + " texels of "
           + texture.format() + " from " + data.byteSize() + " bytes at " + offset + " with "
           + bytesPerRow + " bytes a row: a row needs at least " + row + " bytes, and all "

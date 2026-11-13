@@ -370,6 +370,41 @@ class DeviceTest {
   }
 
   @Test
+  void rangesThatOverflowOrAreEmptyAreRefused() {
+    try (Device device = Gpus.device("renderer")) {
+      Buffer target = device.createBuffer("target", 16, BufferUsage.COPY_DST);
+      MemorySegment data = MemorySegment.ofArray(new byte[16]);
+      // An offset near the largest long, whose sum with the size wraps around.
+      assertThrows(
+          IllegalArgumentException.class,
+          () -> device.queue().writeBuffer(target, Long.MAX_VALUE - 7, data));
+      Buffer vertices = device.createBuffer("vertices", 16, BufferUsage.VERTEX);
+      Texture texture = device.createTexture(
+          "target", WIDTH, HEIGHT, TextureFormat.RGBA8_UNORM, TextureUsage.RENDER_ATTACHMENT);
+      TextureView view = texture.createView("target");
+      try (CommandEncoder encoder = device.createCommandEncoder("frame")) {
+        try (RenderPass pass = encoder.beginRenderPass("pass", view, Color.BLACK)) {
+          assertThrows(
+              IllegalArgumentException.class,
+              () -> pass.setVertexBuffer(0, vertices, Long.MAX_VALUE - 7, 16));
+        }
+        device.queue().submit(encoder.finish());
+      }
+      // The rest of a buffer from its end on is empty.
+      Buffer uniform = device.createBuffer("uniform", 256, BufferUsage.UNIFORM);
+      BindGroupLayout layout = device.createBindGroupLayout(
+          "rest", BindGroupLayout.Entry.uniform(0, ShaderStage.VERTEX));
+      assertThrows(
+          RuntimeException.class,
+          () -> device.createBindGroup(
+              "rest", layout, new BindGroup.Entry(0, uniform, 256, -1, null)));
+      // No source at all is an empty module, not a NULL that wgpu-native would end the process on.
+      device.createShaderModule("empty", null).close();
+      device.waitIdle();
+    }
+  }
+
+  @Test
   void closingReleasesChildrenBeforeParentsAndNewestFirst() {
     List<String> released = new ArrayList<>();
     Instance instance = Gpus.instance(Backend.forPlatform());
