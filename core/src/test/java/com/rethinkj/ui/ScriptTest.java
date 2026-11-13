@@ -30,6 +30,7 @@ class ScriptTest {
   private static final Path LIST = Path.of("src/test/resources/scripts/list.txt");
   private static final Path FOCUS = Path.of("src/test/resources/scripts/focus.txt");
   private static final Path HOVER = Path.of("src/test/resources/scripts/hover.txt");
+  private static final Path FIELD = Path.of("src/test/resources/scripts/field.txt");
 
   @TempDir Path out;
 
@@ -143,6 +144,67 @@ class ScriptTest {
     assertTrue(
         Files.readString(out.resolve("switch-hovered.tree.txt"))
             .contains("el #switch role=switch label=\"Lights\" 39,49 38x22 hovered\n"));
+  }
+
+  @Test
+  void theFieldExampleOfAgentsMdTypesSelectsAndScrolls() throws IOException {
+    TextLibraries.assumeLoaded();
+    String example = Files.readString(FIELD);
+    assertTrue(
+        Files.readString(Path.of("../AGENTS.md")).contains(example),
+        "AGENTS.md shows " + FIELD + " as it is");
+
+    Examples.main(new String[] {"field", "--script", FIELD.toString(), "--out", out.toString()});
+
+    assertSnapsMatchGolden(List.of("field-empty", "field-typed", "field-word", "field-home",
+        "field-dragged", "field-composing"));
+    assertTrue(
+        Files.readString(out.resolve("field-word.tree.txt"))
+            .contains(" \"SELECT name FROM customers\" 40,26 160x28 focused caret 17 anchor 26\n"));
+  }
+
+  @Test
+  void pressesCountClicksAndModifiersAndTheClipboardCanBeSetAndRead() throws IOException {
+    TextLibraries.assumeLoaded();
+    App<Examples.Form> app = new App<>(new Examples.Form(), Examples::form);
+    app.textRendering(TextRendering.LINUX);
+    List<Path> written = Script.run(
+        """
+        size 240 80
+        frame
+        clipboard "SELECT\\n1"       # put on the app's clipboard; a step that needs no frame
+        press #name
+        key V control
+        frame
+        press 60,40 clicks 2 # the word there
+        frame
+        key C control
+        frame
+        snap copied
+        press 50,40
+        press 150,40 shift
+        frame
+        """,
+        app,
+        out);
+    assertEquals("SELECT 1", app.state().name, "the line break became a space");
+    assertEquals(List.of(out.resolve("copied.png"), out.resolve("copied.tree.txt"),
+        out.resolve("copied.clipboard.txt")), written);
+    assertEquals("SELECT", Files.readString(out.resolve("copied.clipboard.txt")));
+    El field = app.tree().children().getFirst();
+    assertTrue(field.editor().anchor() < field.editor().caret(), "Shift extended the selection");
+  }
+
+  @Test
+  void composeShowsACompositionUntilItEnds() throws IOException {
+    TextLibraries.assumeLoaded();
+    App<Examples.Form> app = new App<>(new Examples.Form(), Examples::form);
+    app.textRendering(TextRendering.LINUX);
+    Script.run("size 240 80\nframe\nfocus #name\ncompose \"ni\"\nframe\n", app, out);
+    assertTrue(app.tree().dump().contains(" focused caret 0 composing \"ni\"\n"));
+    assertEquals("", app.state().name);
+    Script.run("size 240 80\ncompose \"\"\nframe\n", app, out);
+    assertFalse(app.tree().dump().contains("composing"));
   }
 
   @Test
@@ -294,7 +356,7 @@ class ScriptTest {
         """
         line 3: pres #switch
           There is no step pres. The steps are size, press, down, up, move, leave, wheel, key,\
-         type, focus, advance, frame and snap.""",
+         type, compose, clipboard, focus, advance, frame and snap.""",
         failure("size 200 120\nframe\npres #switch\n"));
   }
 
@@ -433,6 +495,25 @@ class ScriptTest {
     assertFailure("type \"\"\n", "Write `type");
     assertFailure("type \"a\" \"b\"\n", "Write `type");
     assertFailure("type \"hello\"\n", "No frame has run yet, so nothing can take the text.");
+    assertEquals(
+        "line 1: compose ni\n  Write `compose \"<text>\"`, the composition of an input method,"
+            + " quoted as for `type`, for example `compose \"ni\"`; `compose \"\"` ends it.",
+        failure("compose ni\n"));
+    assertFailure("compose \"ni\"\n", "No frame has run yet, so nothing can take the"
+        + " composition.");
+    assertEquals(
+        "line 1: clipboard\n  Write `clipboard \"<text>\"`, the text to put on the clipboard,"
+            + " quoted as for `type`, for example `clipboard \"SELECT 1\"`.",
+        failure("clipboard\n"));
+    assertEquals(
+        "line 3: press #switch clicks two\n  Write `press <target>`, then `clicks <n>` for the"
+            + " second or third press in a row and any of shift, control, alt and meta that are"
+            + " held, for example `press #name clicks 2` or `press #name shift`. A target is a"
+            + " position x,y in logical pixels such as 90,60, or a selector of #key, role=<role>,"
+            + " label=\"<text>\" and text=\"<string>\" such as role=switch label=\"Lights\".",
+        failure("size 200 120\nframe\npress #switch clicks two\n"));
+    assertFailure("size 200 120\nframe\ndown shift\n", "Write `down <target>`, then `clicks");
+    assertFailure("size 200 120\nframe\nup #switch shift\n", "shift is not a target");
     assertFailure("focus\n", "line 1: focus\n  Write `focus <target>`. A target is");
     assertEquals(
         """

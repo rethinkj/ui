@@ -123,6 +123,12 @@ import java.util.List;
  * a higher luminance than it is light, otherwise dark. Without it, the text colour decides, biased
  * towards thickening: dark up to a CIE lightness L* of 60, light from 80, and a blend between.
  *
+ * <p>A text field ({@link El#editable}) draws its text moved left by its {@link Text#scroll} and
+ * clipped to its content box across and to its padding box from top to bottom, without rounded
+ * corners. Its selection is drawn as rectangles before the glyphs, and the line under a
+ * composition and the caret after them, all ordinary rectangles with the field's clip and their
+ * edges on whole physical pixels.
+ *
  * <p>The focus ring is an ordinary instance too: a border {@link #RING} pixels wide just outside
  * the focused element's border box, with its corner radius grown by as much, drawn after the
  * element and its children and clipped like the element.
@@ -333,8 +339,8 @@ public final class Scene {
    */
   private void text(El el, float x, float y, float opacity, int clip, float behind) {
     Text text = el.text();
-    int colour = text.color();
-    if (colour >>> 24 == 0) {
+    int colour = text.isField() && text.placeholderShown() ? text.placeholderColor() : text.color();
+    if (colour >>> 24 == 0 && !text.isField()) {
       return;
     }
     double scale = text.scale();
@@ -348,14 +354,25 @@ public final class Scene {
     top = Math.round(top);
     float share = lightShare(colour,
         text.background() != 0 ? luminance(text.background()) : behind);
+    double scroll = 0;
+    if (text.isField()) {
+      clip = fieldClip(el, x, y, clip);
+      if (clip < 0) {
+        return; // clipped away
+      }
+      scroll = text.scroll();
+      for (Text.Box box : text.selection()) {
+        box(box, left, top, scale, text.selectionColor(), opacity, clip);
+      }
+    }
     float clipX = clipGet(clip, X);
     float clipY = clipGet(clip, Y);
     float clipRight = clipX + clipGet(clip, WIDTH);
     float clipBottom = clipY + clipGet(clip, HEIGHT);
-    for (Text.Line line : text.lines()) {
+    for (Text.Line line : colour >>> 24 == 0 ? List.<Text.Line>of() : text.lines()) {
       GlyphRun run = line.glyphs();
       for (int i = 0; i < run.count(); i++) {
-        double origin = left + run.x(i); // on the quarter grid, or whole below scale 1.5
+        double origin = left + run.x(i) - scroll; // on the quarter grid, or whole below 1.5
         double whole = Math.floor(origin);
         Atlas.Slot slot = atlas.glyph(run.font(), run.pixelSize(), rendering.hinting(),
             run.glyph(i), (int) ((origin - whole) * 4));
@@ -372,6 +389,52 @@ public final class Scene {
           glyph(glyphX, glyphY, width, height, slot, colour, opacity, clip, share);
         }
       }
+    }
+    if (text.composition() != null) {
+      box(text.composition(), left, top, scale, text.color(), opacity, clip);
+    }
+    if (text.caret() != null) {
+      box(text.caret(), left, top, scale, text.caretColor(), opacity, clip);
+    }
+  }
+
+  /**
+   * The clip of a field's text: its content box across, its padding box from top to bottom,
+   * within {@code clip}; -1 when nothing is left of it.
+   */
+  private int fieldClip(El el, float x, float y, int clip) {
+    Style s = el.style();
+    float left = Math.max(x + px(s.borderLeft) + px(s.paddingLeft), clipGet(clip, X));
+    float top = Math.max(y + px(s.borderTop), clipGet(clip, Y));
+    float right = Math.min(x + el.width() - px(s.borderRight) - px(s.paddingRight),
+        clipGet(clip, X) + clipGet(clip, WIDTH));
+    float bottom = Math.min(y + el.height() - px(s.borderBottom),
+        clipGet(clip, Y) + clipGet(clip, HEIGHT));
+    return right > left && bottom > top ? clip(left, top, right - left, bottom - top, 0) : -1;
+  }
+
+  /**
+   * A rectangle of a field, in physical pixels from the content box at {@code left, top}, with its
+   * edges rounded to whole physical pixels; left out when its clip leaves nothing of it.
+   */
+  private void box(Text.Box box, double left, double top, double scale, int argb, float opacity,
+      int clip) {
+    if (argb >>> 24 == 0 || !(box.width() > 0 && box.height() > 0)) {
+      return;
+    }
+    double x0 = Math.round(left + box.x());
+    double y0 = Math.round(top + box.y());
+    double x1 = Math.max(Math.round(left + box.x() + box.width()), x0 + 1);
+    double y1 = Math.max(Math.round(top + box.y() + box.height()), y0 + 1);
+    float x = (float) (x0 / scale);
+    float y = (float) (y0 / scale);
+    float width = (float) ((x1 - x0) / scale);
+    float height = (float) ((y1 - y0) / scale);
+    float clipX = clipGet(clip, X);
+    float clipY = clipGet(clip, Y);
+    if (x < clipX + clipGet(clip, WIDTH) && x + width > clipX && y < clipY + clipGet(clip, HEIGHT)
+        && y + height > clipY) {
+      rect(x, y, width, height, 0, 0, argb, 0, opacity, clip);
     }
   }
 

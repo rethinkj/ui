@@ -20,11 +20,14 @@ public final class Examples {
    * with {@code list} before that against the list.
    */
   public static void main(String[] args) throws IOException {
-    boolean list = args.length > 0 && args[0].equals("list");
-    App<?> app =
-        list ? new App<>(new Object(), s -> list()) : new App<>(new Lights(), Examples::lights);
+    String which = args.length > 0 && !args[0].startsWith("--") ? args[0] : "";
+    App<?> app = switch (which) {
+      case "list" -> new App<>(new Object(), s -> list());
+      case "field" -> new App<>(new Form(), Examples::form);
+      default -> new App<>(new Lights(), Examples::lights);
+    };
     app.textRendering(TextRendering.LINUX); // as the stored images
-    if (!Script.handle(list ? Arrays.copyOfRange(args, 1, args.length) : args, app)) {
+    if (!Script.handle(which.isEmpty() ? args : Arrays.copyOfRange(args, 1, args.length), app)) {
       System.err.println("There is no window yet. Run with --script <file> --out <folder>.");
     }
   }
@@ -58,6 +61,30 @@ public final class Examples {
                       .color(0xFF8A8A99)));
     }
     return col().wFull().hFull().padding(16).fill(0xFF101014).child(list);
+  }
+
+  /** The state of the field example. */
+  public static final class Form {
+    public String name = "";
+  }
+
+  /** A text field for the name of a table, with a placeholder, in the middle of the window. */
+  public static El form(Form form) {
+    return col().wFull().hFull().center().fill(0xFF101014).child(
+        El.text(form.name).editable(name -> form.name = name)
+            .key("name")
+            .label("Table name")
+            .placeholder("Table name", 0xFF8A8A99)
+            .color(0xFFE4E4E7)
+            .caretColor(0xFF93C5FD)
+            .selectionColor(0x803B82F6)
+            .w(160)
+            .h(28)
+            .padding(0, 8)
+            .radius(6)
+            .fill(0xFF1C1C22)
+            .border(1, 0xFF3A3A40)
+            .whenFocused(e -> e.border(1, 0xFF3B82F6)));
   }
 
   /** The state of the switch example. */

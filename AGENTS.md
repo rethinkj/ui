@@ -39,21 +39,23 @@ One step per line. A `#` at the start of a line or before a space starts a comme
 | Step | What it does |
 | --- | --- |
 | `size <width> <height> [scale <factor>]` | Sets the window size in logical pixels and the physical pixels per logical pixel (default 1). Needed before the first `frame`. |
-| `press <target>` | Pointer down and up on the target. |
-| `down <target>`, `up <target>` | The two halves, for a press that ends elsewhere. A press counts only when both land on the same element. |
+| `press <target> [clicks <n>] [shift] [control] [alt] [meta]` | Pointer down and up on the target. `clicks 2` is the second press of a double press, `clicks 3` of a triple one; the modifiers are held during the press, as in `press #name shift`. |
+| `down <target> [clicks <n>] [shift] [control] [alt] [meta]`, `up <target>` | The two halves, for a press that ends elsewhere. A press counts only when both land on the same element. In a text field, `move` in between selects by dragging. |
 | `move <target>` | Moves the pointer onto the target, which hovers it and the elements around it. Presses do not move the pointer. |
 | `leave` | The pointer leaves the window: nothing is hovered. |
 | `wheel <target> <deltaX> <deltaY>` | Turns the wheel with the pointer on the target, by these distances in logical pixels; positive scrolls down or right. Along each axis the innermost scroll area under the pointer that can still move that way takes the whole distance, up to its end. |
 | `key <name> [shift] [control] [alt] [meta]` | Presses and releases a key with these modifiers held, as in `key Tab shift`. Keys have the web's key names (`Enter`, `Tab`, `Space`, `Escape`, `ArrowDown`, `F5`), and a key that types a character is named by it in upper case (`A`, `1`); the Javadoc of `com.rethinkj.ui.Key` lists them all. |
 | `type "<text>"` | Text input for the focused element (`\"` and `\\` inside). |
+| `compose "<text>"` | The composition of an input method in the focused text field: shown underlined in place of the selection, not yet in the field's string. `compose ""` ends it; a `type` commits text. |
+| `clipboard "<text>"` | Puts the text on the app's clipboard, where a paste takes it from. Needs no `frame`. |
 | `focus <target>` | Gives the keyboard focus to the target, or the nearest focusable element around it, as Tab would. |
 | `advance <seconds>` | Moves the app's clock. |
 | `frame` | Runs one frame: the handlers and scrolls that input queued, a rebuild of the view, the animations at the current time. |
-| `snap <name>` | Writes `<name>.png` and `<name>.tree.txt` of the last frame into the output folder. `<name>` may contain `/` but must stay inside the folder. |
+| `snap <name>` | Writes `<name>.png` and `<name>.tree.txt` of the last frame into the output folder, and `<name>.clipboard.txt` with the text on the app's clipboard if there is any. `<name>` may contain `/` but must stay inside the folder. |
 
-Only `frame` runs a frame, as in a window, where input arrives between frames: `press`, `move`, `leave`, `key`, `type` and `focus` queue what they do, `wheel` a scroll and `advance` moves the clock, but the screen changes at the next `frame`. `snap` refuses to write a frame that does not show the steps before it.
+Only `frame` runs a frame, as in a window, where input arrives between frames: `press`, `move`, `leave`, `key`, `type`, `compose` and `focus` queue what they do, `wheel` a scroll and `advance` moves the clock, but the screen changes at the next `frame`. `snap` refuses to write a frame that does not show the steps before it. Scripts use an in-memory clipboard, the app's default; only a window gives the app the system's.
 
-A `.tree.txt` has one line per element, children indented, with its rectangle in window coordinates as shown, that is, moved by the scroll offsets above it. A scroll area that is scrolled adds its offset after the rectangle, as in `el #list role=list 16,16 208x168 scroll 0,90`. A line that ends in `exiting` is an element with a key and motion that a rebuild left out: it fades out where it was, takes no input, and is removed once invisible. Selectors do not match it, nor anything at opacity 0. The line of the element that a press under the pointer would go to ends in `hovered`, and that of the element that has the keyboard focus in `focused`.
+A `.tree.txt` has one line per element, children indented, with its rectangle in window coordinates as shown, that is, moved by the scroll offsets above it. A scroll area that is scrolled adds its offset after the rectangle, as in `el #list role=list 16,16 208x168 scroll 0,90`. A line that ends in `exiting` is an element with a key and motion that a rebuild left out: it fades out where it was, takes no input, and is removed once invisible. Selectors do not match it, nor anything at opacity 0. The line of the element that a press under the pointer would go to ends in `hovered`, and that of the element that has the keyboard focus in `focused`. A focused text field adds its caret as an index into its string, then the other end of a selection and an input method's composition: `text #name role=textbox label="Table name" "SELECT name FROM customers" 40,26 160x28 focused caret 17 anchor 26 composing "ni"`.
 
 Keys go to the focused element and then up through its ancestors until a key handler takes them; without focus only the root gets them. If none does, Tab and Shift+Tab move the focus through the focusable elements in tree order, around at the ends, and Enter and Space press the focused element. A press focuses the focusable element it lands in and clears the focus elsewhere. Focus moved by the keyboard or by `focus` is drawn with a ring and scrolls into view; a press shows no ring.
 
@@ -171,7 +173,63 @@ java -cp core/target/classes:core/target/test-classes com.rethinkj.ui.Examples \
   --script core/src/test/resources/scripts/hover.txt --out core/target/hover
 ```
 
+`core/src/test/resources/scripts/field.txt` types into the text field of core's tests, which `Examples` runs when `field` comes first, selects and scrolls:
+
+```text
+# The text field of core's tests (Examples): typing, selecting and scrolling.
+size 240 80 scale 2
+frame
+snap field-empty
+
+press #name                  # focuses the field: the caret, and the placeholder until text comes
+type "SELECT name FROM customers"
+frame                        # wider than the field: the text scrolls to keep the caret in view
+snap field-typed
+
+key ArrowLeft control shift  # selects the word before the caret
+frame
+snap field-word
+
+key Home                     # back to the start, and the text scrolls back
+frame
+snap field-home
+
+down 60,40                   # a drag from the second letter to beyond the right edge
+move 230,40
+up 230,40
+frame
+snap field-dragged
+
+key End
+compose "ni"                 # an input method composes: underlined, not yet in the string
+frame
+snap field-composing
+```
+
+In `field-word.tree.txt` the field's line ends in `focused caret 17 anchor 26`: "customers" is selected, with the caret at its start.
+
+```sh
+java -cp core/target/classes:core/target/test-classes com.rethinkj.ui.Examples field \
+  --script core/src/test/resources/scripts/field.txt --out core/target/field
+```
+
 On Windows, separate the class path with `;`. The snaps equal the stored images of the same names under `core/src/test/resources/golden`; `ScriptTest` checks that, and that these examples match their files.
+
+## Text fields
+
+`El.text(value).editable(onEdit)` makes a single-line text field. The string belongs to the app: the view builds the field with the current value, and every edit hands the new string to `onEdit`, which stores it in the state. A handler may refuse an edit (store nothing) or change it (keep only digits, say); the field then shows the app's string, with the caret where it was before a refused edit, and otherwise at the same distance from the text after it or before it, whichever the change left alone. A value the app changes on its own keeps the caret near its text and ends the undo history.
+
+- `App` keeps per field, by the element's identity as for scroll offsets: caret and anchor (indexes into the string), horizontal scroll, undo history (100 steps; a run of typing, a run of deleting, a paste or cut each one step; moving the caret ends a run) and an input method's composition. The editing core is `Editor`, package-private; it works on strings and does not assume one line except where a single-line field turns line breaks into spaces and Home and End go to the ends.
+- The caret stops only at grapheme boundaries (`BreakIterator.getCharacterInstance`): never inside a surrogate pair, between a letter and its combining mark, or inside an emoji sequence; Backspace removes a grapheme. Words (Ctrl+arrows, Ctrl+Backspace, Ctrl+Delete, double press) are segments of `BreakIterator.getWordInstance` with a letter or digit. Ctrl+Right and Ctrl+Delete go to the end of a word on Linux and to the start of the next one on Windows (`Editor.WORD_ENDS`), so scripts with stored images avoid them.
+- Keys: arrows, Home, End, with Shift to select and Control by words; Backspace, Delete; Control+A, C, X, V, Z, Y and Control+Shift+Z; Control+Insert, Shift+Insert and Shift+Delete. Keys that type are the field's (their text comes with `textInput`); Enter, Escape, Tab and unknown shortcuts go on to the `onKey` handlers. The field's own `onKey` sees every key first. While an input method composes, it has the keys. Tab into a field selects its text.
+- Pointer: a press places the caret at the nearest boundary, a drag selects (beyond the edge it scrolls, one step per pointer move), a second press (`clicks 2`) selects a word and drags by words, a third everything, Shift extends. `App.pointerDown(x, y, clicks, modifiers)` takes what the window reports.
+- Caret positions come from the shaped `GlyphRun`: at the pen position of the glyph that starts the next cluster, so kerning counts, and inside a ligature (Inter's `->` with `.fontFeatures("+calt")`) in proportion to the graphemes before it. JetBrains Mono draws its ligatures with one glyph per character, so its carets are plain.
+- Drawing: `Text.selection()` behind the glyphs, `Text.composition()` (the underline) and `Text.caret()` after them, all ordinary rectangles with edges on whole physical pixels, clipped with the glyphs to the content box across and the padding box from top to bottom; the glyphs move left by `Text.scroll()`, which keeps the caret in view with `Editor.MARGIN` (4 logical pixels) to spare when the text is wider than the field. Without the focus a field shows its start, no caret and no selection. The line is centred vertically; layout measures a field as 0 wide, so its style gives the width.
+- The caret blinks on the app's clock, on for `App.BLINK` (0.5 s), off as long, and restarts on after each change; `frame()` returns true only when it turns, and `App.nextChange()` says when that is, which `WindowLoop` waits for.
+- `.readOnly()`: focus, selection and copy, no edits; it shows a caret and takes no text input. `editable(null)` disables the field: no focus, presses go to its ancestors. `.maxLength(n)` limits typed and pasted text to `n` code points, cut at a whole grapheme. `.placeholder(text, argb)`, `.caretColor(argb)` (the text colour unless set), `.selectionColor(argb)`.
+- The clipboard is `App.clipboard()`, a `Clipboard`: `Clipboard.inMemory()` at first, which scripts and tests use, and the system's (SDL) once a `WindowLoop` runs the app.
+- `App.inputArea()` is the focused field's box and caret for the system's input method, or null when the focused element takes no text; `WindowLoop` turns the window's text input on with it (`Window.textInputArea`) and off without (`Window.stopTextInput`), so an on-screen keyboard shows only for a field. Compositions arrive as `WindowEvent.TextEditing` and go to `App.textComposition`; the window asks SDL to leave drawing them to the app (`SDL_IME_IMPLEMENTED_UI=composition`).
+- `FieldTest` and `FieldGeometryTest` drive fields through `App`; `EditorTest` checks boundaries and needs no native libraries.
 
 ## Examples
 
@@ -245,7 +303,7 @@ Objects belong to the thread that created their `Instance`; closing one closes w
 
 Text is shaped with HarfBuzz, rasterised with FreeType into greyscale bitmaps and drawn by `CpuRenderer`; the GPU renderer does not draw it yet.
 
-- `El.text("…")` makes a text element, a leaf that layout sizes to its shaped text. Chained calls: `.font(Font)`, `.fontSize(<logical pixels>)`, `.color(0xAARRGGBB)`, `.wrapText()`. The defaults are `Font.sans()`, 14, opaque black and no wrapping. Each line feed starts a line; with `wrapText` it also breaks where `java.text.BreakIterator` allows, and a word wider than the box stays whole. No bidirectional text, mixed scripts or fallback fonts yet: a character the font lacks shows as its glyph 0.
+- `El.text("…")` makes a text element, a leaf that layout sizes to its shaped text. Chained calls: `.font(Font)`, `.fontSize(<logical pixels>)`, `.color(0xAARRGGBB)`, `.wrapText()`, `.fontFeatures("+calt")`, and `.editable(onEdit)` for a text field (see Text fields). The defaults are `Font.sans()`, 14, opaque black and no wrapping. Each line feed starts a line; with `wrapText` it also breaks where `java.text.BreakIterator` allows, and a word wider than the box stays whole. No bidirectional text, mixed scripts or fallback fonts yet: a character the font lacks shows as its glyph 0.
 - `Font.sans()`, `sansBold()`, `mono()` and `monoBold()` are Inter 4.1 and JetBrains Mono 2.304, regular and bold, the static hinted TrueType files of their releases. They come in `fonts/` (`rethinkj-ui-fonts`, under `META-INF/rethinkj-ui/fonts/` with their SIL Open Font License 1.1 texts in `licenses/`); `core` uses that module only in tests, and without it these methods throw a message that names it. Other fonts: `Font.of(bytes)` or `Font.resource(owner, name)`, freed by `close()`.
 - `Font.shape(text, size, scale, features...)` shapes with HarfBuzz into a `GlyphRun` in physical pixels: at `size * scale`, advances and offsets rounded to whole pixels below scale 1.5 and to quarter pixels from 1.5 on. Kerning is on and `calt` off (JetBrains Mono's ligatures); features use HarfBuzz's syntax, such as `"+calt"` or `"-kern"`. Each font keeps the last 1024 runs.
 - `App` and `Headless` pass the window's scale to every text element before layout (`El.scaleText`); `Flex.layout` alone shapes at scale 1. After layout, `el.text().lines()` holds what a renderer draws: per line a `GlyphRun`, its width and its baseline, in physical pixels from the top left of the content box. Layout hands the final content size to `Measure.placed`, and the lines are broken for that width.
@@ -269,6 +327,7 @@ Text is shaped with HarfBuzz, rasterised with FreeType into greyscale bitmaps an
 - `com.rethinkj.ui.window` opens windows through SDL 3 (`Window`), turns SDL's events into `WindowEvent`s and runs an `App` in a window (`WindowLoop`), which hands each new frame to a `Presenter`. `Sdl` and `Win32` hold the handwritten bindings: a new function gets its descriptor as a constant there and its handle in the class's lazy holder.
 - Windows are used on the thread that opened the first one, until all are closed. Every event is translated in an SDL event watch as SDL queues it and delivered in that order by `Window.pollEvents` or `waitEvents`; SDL's own queue only ends the wait. On Windows the listener is also called from inside the system's move and resize loop, with `Redraw(live = true)`.
 - The hit test, the event watch and the Windows subclass are upcalls: each catches every `Throwable` and hands it to `Window.fail`, and the next `pollEvents` or `waitEvents` throws it. One that escapes ends the JVM.
+- Text input is off until `Window.textInputArea` turns it on, which `WindowLoop` does while the focused element takes text (`App.inputArea`), and `stopTextInput` turns it off. `WindowLoop` also gives the app the system clipboard (`SystemClipboard`, through SDL), passes the click count and modifiers of a press, and wakes an idle window for the caret's blink (`App.nextChange`).
 - A frameless window draws its own title bar: the view marks elements with `El.windowPart`, and `App.windowPart` answers SDL's hit test. The Windows 11 parts (rounded corners, snap layouts on the maximize part, system menu on a right click) are in `Win32Frame`, whose Javadoc also says why the resize margin lies inside the window. `Win32Frame` also gives a minimized frameless window no client area, as Windows does for a framed one; otherwise SDL reports the 160 by 28 pixels of a minimized window when the system restores it.
 - Tests that open windows skip themselves without the natives module or a display. The demo in the test sources draws with `GpuPresenter`: build with `mvn -pl core -am test-compile`, then from the repository root `java --enable-native-access=ALL-UNNAMED -cp "core/target/classes;core/target/test-classes;natives-windows-x64/target/classes" com.rethinkj.ui.window.WindowDemo` (on Linux, with `:` between the entries and `natives-linux-x64`). It prints every frame it presents; `--cpu-png=<file>` writes the CPU's image of the last frame when it stops, to compare with a screenshot of the window. `--exit-after=<seconds>` and its other options are in its Javadoc; keep windows short-lived when you drive them with synthetic input. SDL drops the click that activates a window, so click once on the background first.
 

@@ -112,6 +112,18 @@ final class Desktop {
     }
   }
 
+  /** An input method's composition, with its cursor in characters or -1. */
+  static void editing(Window window, String text, int start) {
+    try (Arena arena = Arena.ofConfined()) {
+      MemorySegment utf8 = arena.allocateFrom(text);
+      push(window, Sdl.EVENT_TEXT_EDITING, e -> {
+        e.set(ADDRESS, Sdl.EDITING_TEXT, utf8);
+        e.set(JAVA_INT, Sdl.EDITING_START, start);
+        e.set(JAVA_INT, Sdl.EDITING_LENGTH, start < 0 ? -1 : 0);
+      });
+    }
+  }
+
   static void windowEvent(Window window, int type, int data1, int data2) {
     push(window, type, e -> {
       e.set(JAVA_INT, Sdl.WINDOW_DATA1, data1);

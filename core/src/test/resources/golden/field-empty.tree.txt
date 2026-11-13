@@ -1,0 +1,2 @@
+el 0,0 240x80
+  text #name role=textbox label="Table name" "" 40,26 160x28

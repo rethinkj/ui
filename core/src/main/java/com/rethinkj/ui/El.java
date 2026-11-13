@@ -36,6 +36,11 @@ public final class El {
   private Predicate<Key> onKey;
   private Predicate<Key> onKeyUp;
   private Consumer<String> onText;
+  private boolean editable;
+  private Consumer<String> onEdit;
+  private boolean readOnly;
+  private int maxLength = -1;
+  private Editor editor;
   private boolean focused;
   private Spring motion;
   private float opacity = 1;
@@ -345,6 +350,111 @@ public final class El {
     return this;
   }
 
+  /**
+   * Shapes the text with these OpenType features, in HarfBuzz's syntax, after the defaults of
+   * {@link Font#shape}: {@code "+calt"} turns on the ligatures of fonts such as JetBrains Mono.
+   */
+  public El fontFeatures(String... features) {
+    textOnly("fontFeatures").features(features);
+    return this;
+  }
+
+  // Editing, for elements made with text()
+
+  /**
+   * Makes this text element a single-line text field whose string belongs to the app: the view
+   * builds it with the current value, and every edit hands the new string to {@code onEdit},
+   * which stores it in the state; the next rebuild shows it. A handler may also refuse or change
+   * an edit, and the field then shows the app's string, with the caret where it was before a
+   * refused edit and otherwise as near to where the edit left it as the change allows.
+   *
+   * <p>{@link App} keeps the caret, the selection, the horizontal scroll, the undo history and the
+   * composition of an input method by the element's identity, as it keeps scroll offsets. The
+   * field takes the focus ({@link #focusable}), is a {@code textbox} unless it has a {@link #role},
+   * shows the {@link Cursor#TEXT} cursor unless it has a {@link #cursor}, and edits with the keys
+   * of Windows and Linux: arrows, Home and End, with Shift to select and Control by words,
+   * Backspace and Delete, Control+A, C, X, V, Z and Y, and Control+Shift+Z. Typed text comes
+   * from {@link App#textInput}. Enter, Escape and Tab go on to the {@link #onKey} handlers, of
+   * this element first, which also see every key before the field does and can take it. A press
+   * places the caret, a drag selects, a double press selects a word, a triple press everything,
+   * and Shift with a press extends the selection.
+   *
+   * <p>The field is as tall as a line of its text, centred in its content box, and takes its
+   * width from its style, as layout measures it 0 wide; the text scrolls sideways inside its
+   * content box and is clipped to it. Line breaks in typed or pasted text become spaces.
+   *
+   * @param onEdit receives the new string after each edit; null disables the field, which then
+   *     shows its string or placeholder, takes neither focus nor input, and lets presses go to its
+   *     ancestors
+   */
+  public El editable(Consumer<String> onEdit) {
+    textOnly("editable").field(true);
+    this.editable = true;
+    this.onEdit = onEdit;
+    return this;
+  }
+
+  /**
+   * Makes an {@link #editable} field read-only: it takes the focus, and its text can be selected
+   * and copied, but not changed.
+   */
+  public El readOnly() {
+    editableOnly("readOnly");
+    this.readOnly = true;
+    return this;
+  }
+
+  /**
+   * Limits the length of what typing and pasting can make of an {@link #editable} field's string,
+   * in Unicode code points, as databases count the characters of a {@code varchar}. Inserted
+   * text is cut at the last whole grapheme that fits; a longer string from the app stays as it
+   * is.
+   */
+  public El maxLength(int codePoints) {
+    editableOnly("maxLength");
+    if (codePoints < 0) {
+      throw new IllegalArgumentException("maxLength must be 0 or more, was " + codePoints);
+    }
+    this.maxLength = codePoints;
+    return this;
+  }
+
+  /**
+   * The text an {@link #editable} field shows while its string is empty, in its own colour.
+   *
+   * @param argb the colour as 0xAARRGGBB
+   */
+  public El placeholder(String text, int argb) {
+    editableOnly("placeholder").placeholder(text, argb);
+    return this;
+  }
+
+  /**
+   * @param argb the colour of an {@link #editable} field's caret as 0xAARRGGBB; 0 for the text's
+   */
+  public El caretColor(int argb) {
+    editableOnly("caretColor").caretColor(argb);
+    return this;
+  }
+
+  /**
+   * @param argb the colour drawn behind the selected text of an {@link #editable} field, as
+   *     0xAARRGGBB, usually translucent; {@link Text#SELECTION} unless set
+   */
+  public El selectionColor(int argb) {
+    editableOnly("selectionColor").selectionColor(argb);
+    return this;
+  }
+
+  private Text editableOnly(String call) {
+    if (!editable) {
+      throw new IllegalStateException(
+          call + " is for text fields, which El.text(\"...\").editable(onEdit) makes; this element"
+              + " is not editable.");
+    }
+    return text;
+  }
+
   private Text textOnly(String call) {
     if (text == null) {
       throw new IllegalStateException(
@@ -529,8 +639,9 @@ public final class El {
     return key;
   }
 
+  /** The role set with {@link #role}; {@code textbox} for an {@link #editable} field without. */
   public String role() {
-    return role;
+    return role == null && editable ? "textbox" : role;
   }
 
   public String label() {
@@ -557,8 +668,12 @@ public final class El {
     return motion;
   }
 
+  /**
+   * Whether this element takes the keyboard focus: it is {@link #focusable}, or an {@link
+   * #editable} field that is enabled or read-only.
+   */
   public boolean isFocusable() {
-    return focusable;
+    return focusable || editable && (onEdit != null || readOnly);
   }
 
   public Predicate<Key> onKey() {
@@ -573,12 +688,46 @@ public final class El {
     return onText;
   }
 
+  /** Whether {@link #editable} made this a text field, enabled or not. */
+  public boolean isEditable() {
+    return editable;
+  }
+
+  /** The handler of an {@link #editable} field, null when it is disabled. */
+  public Consumer<String> onEdit() {
+    return onEdit;
+  }
+
+  public boolean isReadOnly() {
+    return readOnly;
+  }
+
+  /** The {@link #maxLength} in code points, or -1 for none. */
+  public int maxLength() {
+    return maxLength;
+  }
+
+  /** For {@link App}: the editing state of a field, which it keeps across rebuilds. */
+  Editor editor() {
+    return editor;
+  }
+
+  void editor(Editor editor) {
+    this.editor = editor;
+  }
+
+  /** Whether this is a field that takes input: editable, and enabled or read-only. */
+  boolean takesEdits() {
+    return editable && isFocusable();
+  }
+
   public WindowPart windowPart() {
     return windowPart;
   }
 
+  /** The cursor set with {@link #cursor}; {@link Cursor#TEXT} for a field that takes input. */
   public Cursor cursor() {
-    return cursor;
+    return cursor == null && takesEdits() ? Cursor.TEXT : cursor;
   }
 
   Consumer<El> hoverLook() {
@@ -726,12 +875,14 @@ public final class El {
     Predicate<Key> down = onKey;
     Predicate<Key> up = onKeyUp;
     Consumer<String> text = onText;
+    Consumer<String> edit = onEdit;
     boolean wasFocusable = focusable;
     look.accept(this);
     String changed =
         !children.equals(before) ? "children"
             : !Objects.equals(key, keyBefore) ? "key"
-            : onPress != press || onKey != down || onKeyUp != up || onText != text ? "handlers"
+            : onPress != press || onKey != down || onKeyUp != up || onText != text
+                || onEdit != edit ? "handlers"
             : focusable != wasFocusable ? "focusable()"
             : null;
     if (changed != null) {
@@ -794,7 +945,10 @@ public final class El {
    * to ends with {@code hovered}, that of the element that has the keyboard focus with {@code
    * focused}, and that of an element that is leaving with {@code exiting}. A text element's line
    * starts with {@code text} instead of {@code el} and shows its string in quotes after the label.
-   * Tests and agents read this, so the format only changes deliberately.
+   * A focused {@link #editable} field adds its caret after {@code focused} as {@code caret 3}, then
+   * the other end of a selection as {@code anchor 0}, and the composition of an input method in
+   * progress as {@code composing "..."}. Tests and agents read this, so the format only changes
+   * deliberately.
    */
   public String dump() {
     StringBuilder out = new StringBuilder();
@@ -817,8 +971,8 @@ public final class El {
     if (key != null) {
       out.append(" #").append(key);
     }
-    if (role != null) {
-      out.append(" role=").append(role);
+    if (role() != null) {
+      out.append(" role=").append(role());
     }
     if (label != null) {
       out.append(" label=").append(quote(label));
@@ -845,6 +999,15 @@ public final class El {
     }
     if (focused) {
       out.append(" focused");
+      if (editor != null) {
+        out.append(" caret ").append(editor.caret());
+        if (editor.anchor() != editor.caret()) {
+          out.append(" anchor ").append(editor.anchor());
+        }
+        if (!editor.composition().isEmpty()) {
+          out.append(" composing ").append(quote(editor.composition()));
+        }
+      }
     }
     if (exiting) {
       out.append(" exiting");

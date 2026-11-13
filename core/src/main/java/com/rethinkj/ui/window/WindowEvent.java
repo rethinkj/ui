@@ -19,8 +19,16 @@ public sealed interface WindowEvent {
    * A button went down.
    *
    * @param clicks 1 for a single click, 2 for a double click, and so on
+   * @param modifiers the modifiers held, as in {@link Key#modifiers}
    */
-  record PointerDown(float x, float y, PointerButton button, int clicks) implements WindowEvent {}
+  record PointerDown(float x, float y, PointerButton button, int clicks, int modifiers)
+      implements WindowEvent {
+
+    /** A press without modifiers. */
+    public PointerDown(float x, float y, PointerButton button, int clicks) {
+      this(x, y, button, clicks, 0);
+    }
+  }
 
   record PointerUp(float x, float y, PointerButton button) implements WindowEvent {}
 
@@ -40,6 +48,16 @@ public sealed interface WindowEvent {
 
   /** Text typed with the keyboard or composed with an input method, to insert where the caret is. */
   record TextInput(String text) implements WindowEvent {}
+
+  /**
+   * An input method composes text, which is shown where the caret is until it commits it with a
+   * {@link TextInput}; empty text ends the composition. Comes only while text input is on, see
+   * {@link Window#textInputArea}.
+   *
+   * @param cursor where the input method's cursor is in {@code text}, in UTF-16 units; -1 for its
+   *     end
+   */
+  record TextEditing(String text, int cursor) implements WindowEvent {}
 
   /** The window's size changed, in logical pixels. */
   record Resized(float width, float height) implements WindowEvent {}
