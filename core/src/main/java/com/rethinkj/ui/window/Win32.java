@@ -35,6 +35,9 @@ final class Win32 {
   static final int WM_NCRBUTTONDOWN = 0x00A4;
   static final int WM_NCRBUTTONUP = 0x00A5;
   static final int WM_NCMOUSELEAVE = 0x02A2;
+  static final int WM_LBUTTONUP = 0x0202;
+  static final int WM_RBUTTONUP = 0x0205;
+  static final int WM_CAPTURECHANGED = 0x0215;
 
   static final int HTCAPTION = 2;
   static final int HTMAXBUTTON = 9;
@@ -61,6 +64,11 @@ final class Win32 {
   static final FunctionDescriptor SCREEN_TO_CLIENT =
       FunctionDescriptor.of(JAVA_INT, ADDRESS, ADDRESS);
   static final FunctionDescriptor TRACK_MOUSE_EVENT = FunctionDescriptor.of(JAVA_INT, ADDRESS);
+  /** {@code HWND SetCapture(HWND)} */
+  static final FunctionDescriptor SET_CAPTURE = FunctionDescriptor.of(ADDRESS, ADDRESS);
+  /** {@code BOOL ReleaseCapture(void)} */
+  static final FunctionDescriptor RELEASE_CAPTURE = FunctionDescriptor.of(JAVA_INT);
+
   static final FunctionDescriptor IS_ICONIC = FunctionDescriptor.of(JAVA_INT, ADDRESS);
   static final FunctionDescriptor IS_ZOOMED = FunctionDescriptor.of(JAVA_INT, ADDRESS);
   static final FunctionDescriptor GET_SYSTEM_METRICS = FunctionDescriptor.of(JAVA_INT, JAVA_INT);
@@ -239,6 +247,8 @@ final class Win32 {
     static final MethodHandle TRACK_MOUSE_EVENT_H =
         bind(USER32, "TrackMouseEvent", TRACK_MOUSE_EVENT);
     static final MethodHandle IS_ICONIC_H = bind(USER32, "IsIconic", IS_ICONIC);
+    static final MethodHandle SET_CAPTURE_H = bind(USER32, "SetCapture", SET_CAPTURE);
+    static final MethodHandle RELEASE_CAPTURE_H = bind(USER32, "ReleaseCapture", RELEASE_CAPTURE);
     static final MethodHandle IS_ZOOMED_H = bind(USER32, "IsZoomed", IS_ZOOMED);
     static final MethodHandle GET_SYSTEM_METRICS_H =
         bind(USER32, "GetSystemMetrics", GET_SYSTEM_METRICS);
@@ -592,6 +602,24 @@ final class Win32 {
   static boolean trackMouseEvent(MemorySegment trackMouseEvent) {
     try {
       return (int) H.TRACK_MOUSE_EVENT_H.invokeExact(trackMouseEvent) != 0;
+    } catch (Throwable t) {
+      throw Sdl.failed(t);
+    }
+  }
+
+  /** Sends the pointer's messages to the window, wherever the pointer is, until it lets go. */
+  static void setCapture(MemorySegment hwnd) {
+    try {
+      MemorySegment previous = (MemorySegment) H.SET_CAPTURE_H.invokeExact(hwnd);
+    } catch (Throwable t) {
+      throw Sdl.failed(t);
+    }
+  }
+
+  /** Lets go of the pointer that {@link #setCapture} took. */
+  static void releaseCapture() {
+    try {
+      int released = (int) H.RELEASE_CAPTURE_H.invokeExact();
     } catch (Throwable t) {
       throw Sdl.failed(t);
     }

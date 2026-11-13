@@ -5,14 +5,17 @@ import static com.rethinkj.ui.El.row;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import com.rethinkj.ui.App;
+import com.rethinkj.ui.Cursor;
 import com.rethinkj.ui.Drag;
 import com.rethinkj.ui.Drop;
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.render.Scene;
+import com.rethinkj.ui.text.TextLibraries;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
@@ -569,6 +572,148 @@ class SeveralWindowsTest {
 
       List<String> after = log.subList(log.indexOf("B 0") + 1, log.size());
       assertEquals(List.of("A 500", "B 500"), after, log::toString);
+    }
+  }
+
+  /** A presenter that says whether it was closed, and may fail to close. */
+  static final class Closing implements WindowLoop.Presenter, AutoCloseable {
+    int closed;
+    boolean fails;
+
+    @Override
+    public void present(Scene scene, float width, float height, float scale) {}
+
+    @Override
+    public void close() {
+      closed++;
+      if (fails) {
+        throw new IllegalStateException("the presenter could not close");
+      }
+    }
+  }
+
+  /**
+   * A window that a handler closes itself, past the loop, still has its presenter closed, once,
+   * when the loop lets go of it.
+   */
+  @Test
+  void aWindowClosedPastTheLoopStillHasItsPresenterClosed() {
+    try (Window a = Window.open(TITLE, 120, 80)) {
+      App<Object> appA = new App<>(new Object(), s -> el().wFull().hFull());
+      App<Object> appB = new App<>(new Object(), s -> el().wFull().hFull());
+      Closing presenter = new Closing();
+      WindowLoop loop = new WindowLoop(a, appA, (scene, w, h, sc) -> {}).presenters(w -> presenter);
+      Windows.Handle b = loop.open(TITLE + " B", 120, 80, Window.options(), appB);
+      Desktop.settle();
+      appB.post(() -> b.window().close());
+      appA.after(0.1, loop::stop);
+      Desktop.run(loop, "the loop stops after B closed");
+      assertFalse(b.isOpen());
+      assertEquals(1, presenter.closed, "closed once, after its window");
+    }
+  }
+
+  /**
+   * A presenter that fails to close does not keep the loop from closing its other windows and
+   * presenters: what it threw comes out of run once all are closed.
+   */
+  @Test
+  void aPresenterThatFailsToCloseLeavesNoOtherWindowOpen() {
+    try (Window a = Window.open(TITLE, 120, 80)) {
+      App<Object> appA = new App<>(new Object(), s -> el().wFull().hFull());
+      List<Closing> presenters = new ArrayList<>();
+      WindowLoop loop = new WindowLoop(a, appA, (scene, w, h, sc) -> {}).presenters(w -> {
+        Closing p = new Closing();
+        p.fails = presenters.size() < 2;
+        presenters.add(p);
+        return p;
+      });
+      List<Windows.Handle> opened = new ArrayList<>();
+      for (String name : List.of(" B", " C", " D")) {
+        opened.add(loop.open(
+            TITLE + name,
+            120,
+            80,
+            Window.options(),
+            new App<>(new Object(), s -> el().wFull().hFull())));
+      }
+      Desktop.settle();
+      appA.post(loop::stop);
+      try {
+        IllegalStateException thrown = assertThrows(IllegalStateException.class, loop::run);
+        assertEquals("the presenter could not close", thrown.getMessage());
+        assertEquals(1, thrown.getSuppressed().length, "the second failure");
+        for (int i = 0; i < 3; i++) {
+          assertFalse(opened.get(i).window().isOpen(), "window " + i);
+          assertEquals(1, presenters.get(i).closed, "presenter " + i);
+        }
+        assertTrue(a.isOpen(), "the window given to the loop stays open");
+      } finally {
+        opened.forEach(h -> h.window().close());
+      }
+    }
+  }
+
+  /**
+   * SDL has one cursor for all windows: each window keeps the shape its app wants, and the one the
+   * pointer is in shows it, whatever the others draw after it.
+   */
+  @Test
+  void theCursorIsTheOneOfTheWindowThePointerIsIn() {
+    try (Window a = Window.open(TITLE, 160, 100, Window.options().position(100, 100))) {
+      App<Object> appA = new App<>(new Object(), s -> el().wFull().hFull().cursor(Cursor.POINTER));
+      App<Object> appB = new App<>(new Object(), s -> el().wFull().hFull().cursor(Cursor.TEXT));
+      WindowLoop loop = new WindowLoop(a, appA, (scene, w, h, sc) -> {})
+          .presenters(w -> (scene, wi, h, sc) -> {});
+      Windows.Handle b =
+          loop.open(TITLE + " B", 160, 100, Window.options().position(600, 300), appB);
+      Desktop.settle();
+      Desktop.windowEvent(b.window(), Sdl.EVENT_WINDOW_MOUSE_LEAVE, 0, 0); // wherever it was
+      Desktop.motion(a, 30, 30);
+      List<String> log = new ArrayList<>();
+      loop.waits((millis, held) -> {
+        if (log.isEmpty() && appA.cursor() == Cursor.POINTER) {
+          log.add("in A: " + Window.cursorShown());
+          b.app().post(() -> {}); // B draws again, after A
+          Desktop.windowEvent(a, Sdl.EVENT_WINDOW_MOUSE_LEAVE, 0, 0);
+          Desktop.motion(b.window(), 30, 30);
+        } else if (log.size() == 1 && appB.cursor() == Cursor.TEXT) {
+          log.add("in B: " + Window.cursorShown());
+          loop.stop();
+        }
+      });
+      Desktop.run(loop, () -> "the pointer moves from A to B: " + log);
+      assertEquals(List.of("in A: POINTER", "in B: TEXT"), log);
+    }
+  }
+
+  /**
+   * A window shown without the focus, as one opened under the pointer, starts inactive: its field
+   * shows no caret and nothing wakes the loop for its blink.
+   */
+  @Test
+  void aWindowShownWithoutTheFocusStartsInactive() {
+    TextLibraries.assumeLoaded();
+    try (Window a = Window.open(TITLE, 300, 200)) {
+      Desktop.settle();
+      assumeTrue(a.isFocused(), "Skipped: the first window did not get the focus");
+      App<Object> appA = new App<>(new Object(), s -> el().wFull().hFull());
+      App<Object> appB = new App<>(
+          new Object(),
+          s -> El.text("").editable(value -> {}).autofocus().w(120).h(30));
+      WindowLoop loop = new WindowLoop(a, appA, (scene, w, h, sc) -> {})
+          .presenters(w -> (scene, wi, h, sc) -> {});
+      Windows.Handle b = loop.open(
+          TITLE + " B", 160, 100, Window.options().position(600, 300).underPointer(), appB);
+      if (b.window().isFocused()) {
+        b.close();
+        assumeTrue(false, "Skipped: the window manager gave the new window the focus");
+      }
+      appA.after(0.1, loop::stop);
+      double[] next = {Double.NaN};
+      loop.waits((millis, held) -> next[0] = appB.nextChange());
+      Desktop.run(loop, "the loop stops");
+      assertEquals(Double.POSITIVE_INFINITY, next[0], "no blink to wake for");
     }
   }
 }

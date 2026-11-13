@@ -42,6 +42,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.function.Predicate;
 
 /**
  * Documents in tabs that move and tear off, as in a browser or an editor ({@link TabGroups}):
@@ -170,7 +171,9 @@ public final class Documents {
     El root = col().wFull().hFull().fill(t.surface().window()).onFileDrop(d -> drop(group, d));
     if (group == groups.main()) {
       List<Menu.Item> menus = menus(group);
-      root.onKey(MenuBar.keys(bar, menus).or(tabs.onKey())) // the tabs' keys from anywhere
+      // The tabs' keys from anywhere; an empty group has none.
+      Predicate<Key> keys = MenuBar.keys(bar, menus);
+      root.onKey(tabs.onKey() == null ? keys : keys.or(tabs.onKey()))
           .onKeyUp(MenuBar.keysUp(bar, menus))
           .child(withMenus(
               t,

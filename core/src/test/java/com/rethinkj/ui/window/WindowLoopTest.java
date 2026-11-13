@@ -626,4 +626,43 @@ class WindowLoopTest {
             .windowPart(WindowPart.DRAG)
             .child(el().absolute(254, 0).size(46, 30).windowPart(WindowPart.CLOSE)));
   }
+
+  /**
+   * The loop paces a window by its display's refresh rate, which it reads again when the window
+   * moves to another display and when a display's mode changes, also where the scale stays.
+   */
+  @Test
+  void theRefreshRateIsReadAgainOnAnotherDisplayOrMode() {
+    try (Window window = Window.open(TITLE, 200, 120)) {
+      Desktop.settle();
+      App<Object> app = new App<>(new Object(), s -> el().wFull().hFull());
+      float[] hertz = {60};
+      WindowLoop loop =
+          new WindowLoop(window, app, (scene, w, h, sc) -> {}).refreshRates(w -> hertz[0]);
+      Windows.Handle handle = loop.windows().of(app);
+      List<Long> paced = new ArrayList<>();
+      int[] waits = new int[1];
+      loop.waits((millis, held) -> {
+        if (millis != -1) {
+          return;
+        }
+        paced.add(WindowLoop.frameNanos(handle));
+        switch (waits[0]++) {
+          case 0 -> {
+            hertz[0] = 144; // as on another monitor at the same scale
+            Desktop.windowEvent(window, Sdl.EVENT_WINDOW_DISPLAY_CHANGED, 2, 0);
+          }
+          case 1 -> {
+            hertz[0] = 120; // the user chose another mode for the display
+            Desktop.systemEvent(Sdl.EVENT_DISPLAY_CURRENT_MODE_CHANGED);
+          }
+          default -> loop.stop();
+        }
+      });
+      Desktop.run(loop, () -> "the loop takes both changes: " + paced);
+      assertEquals(
+          List.of(1_000_000_000L / 60, 1_000_000_000L / 144, 1_000_000_000L / 120),
+          paced.subList(0, 3));
+    }
+  }
 }

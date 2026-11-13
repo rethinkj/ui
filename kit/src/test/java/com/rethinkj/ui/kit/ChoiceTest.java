@@ -56,6 +56,10 @@ class ChoiceTest {
     assertEquals(16, s.tabSize, "kept at the end of the range");
     String dump = app.tree().dump();
     assertTrue(StructureTest.line(dump, "label=\"Increase\"").contains(" disabled"), dump);
+    run(app, "press role=button label=\"Increase\"");
+    assertEquals(16, s.tabSize);
+    assertEquals(
+        "spinbutton", app.focused().role(), "a press on the disabled button keeps the focus too");
     run(app, "key A control\ntype \"x\"");
     assertEquals(16, s.tabSize, "a letter is refused");
     run(app, "key A control\ntype \"40\"");

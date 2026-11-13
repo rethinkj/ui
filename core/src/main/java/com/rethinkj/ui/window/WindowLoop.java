@@ -6,6 +6,7 @@ import com.rethinkj.ui.render.GpuPresenter;
 import com.rethinkj.ui.render.Scene;
 import com.rethinkj.ui.window.WindowEvent.AppearanceChanged;
 import com.rethinkj.ui.window.WindowEvent.CloseRequested;
+import com.rethinkj.ui.window.WindowEvent.DisplayChanged;
 import com.rethinkj.ui.window.WindowEvent.FileDragLeave;
 import com.rethinkj.ui.window.WindowEvent.FileDragOver;
 import com.rethinkj.ui.window.WindowEvent.FileDrop;
@@ -31,6 +32,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.ToDoubleFunction;
 
 /**
  * Runs {@link App}s in {@link Window}s, one app per window, on the windows' thread: the window
@@ -120,6 +122,7 @@ public final class WindowLoop {
   private WindowListener listener;
   private Consumer<SystemAppearance> appearance;
   private Waits waits = (millis, holdBack) -> {};
+  private ToDoubleFunction<Window> refreshRates = Window::refreshRate;
   private volatile boolean running;
   private boolean systemFonts = true;
   private long clock;
@@ -401,6 +404,17 @@ public final class WindowLoop {
     void waiting(long millis, boolean holdBack);
   }
 
+  /** Where the loop reads a window's refresh rate in hertz, for tests; {@link Window#refreshRate}. */
+  WindowLoop refreshRates(ToDoubleFunction<Window> rates) {
+    this.refreshRates = Objects.requireNonNull(rates, "rates");
+    return this;
+  }
+
+  /** The time between two refreshes of the window's display as the loop paces it, for tests. */
+  static long frameNanos(Windows.Handle window) {
+    return ((Entry) window).frameNanos;
+  }
+
   /** Tells {@code waits} of each wait; see {@link Waits}. */
   WindowLoop waits(Waits waits) {
     this.waits = Objects.requireNonNull(waits, "waits");
@@ -464,6 +478,7 @@ public final class WindowLoop {
       throw new IllegalStateException("The loop runs already");
     }
     running = true;
+    Throwable failed = null;
     try {
       for (Entry entry : List.copyOf(entries)) {
         start(entry);
@@ -521,19 +536,48 @@ public final class WindowLoop {
         }
         poll();
       }
+    } catch (RuntimeException | Error e) {
+      failed = e;
+      throw e;
     } finally {
       running = false;
+      // Every window and presenter is let go of, also when one of them fails to close.
+      List<Throwable> failures = new ArrayList<>();
       for (Entry entry : List.copyOf(entries)) {
-        entry.app.onPost(null);
-        if (entry.owned) {
-          entry.close();
-        } else if (entry.window.isOpen()) {
-          entry.window.listener(null);
-          entry.window.parts(null);
+        try {
+          entry.app.onPost(null);
+          if (entry.owned) {
+            entry.close();
+          } else if (entry.window.isOpen()) {
+            entry.window.listener(null);
+            entry.window.parts(null);
+          }
+        } catch (RuntimeException | Error e) {
+          failures.add(e);
         }
       }
-      shutClosed();
+      shutClosed(failures);
+      if (failed != null) {
+        failures.forEach(failed::addSuppressed);
+      } else {
+        throwFirst(failures);
+      }
     }
+  }
+
+  /** Throws the first of the failures, with the others suppressed in it; nothing if none. */
+  private static void throwFirst(List<Throwable> failures) {
+    if (failures.isEmpty()) {
+      return;
+    }
+    Throwable first = failures.getFirst();
+    for (Throwable other : failures.subList(1, failures.size())) {
+      first.addSuppressed(other);
+    }
+    if (first instanceof Error e) {
+      throw e;
+    }
+    throw (RuntimeException) first;
   }
 
   /**
@@ -549,6 +593,7 @@ public final class WindowLoop {
       (early[i] > 0 ? held : due).add(open.get(i));
     }
     drawing = true;
+    Throwable failed = null;
     try {
       for (int round = 0; round < 3 && !due.isEmpty(); round++) {
         Set<Entry> again = new HashSet<>();
@@ -573,9 +618,18 @@ public final class WindowLoop {
         }
         due = again;
       }
+    } catch (RuntimeException | Error e) {
+      failed = e;
+      throw e;
     } finally {
       drawing = false;
-      shutClosed();
+      List<Throwable> failures = new ArrayList<>();
+      shutClosed(failures);
+      if (failed != null) {
+        failures.forEach(failed::addSuppressed);
+      } else {
+        throwFirst(failures);
+      }
       if (focusAfterRelease) { // the frame that handled the release has run
         focusAfterRelease = false;
         for (Entry e : List.copyOf(entries)) {
@@ -667,6 +721,9 @@ public final class WindowLoop {
     app.systemFonts(systemFonts);
     app.windows(windows);
     app.windowMaximized(e.window.isMaximized()); // for its title bar's Restore
+    // An app is active until told otherwise, and a window shown without the focus (underPointer)
+    // gets no event that says it lost it: its caret would blink.
+    app.windowActive(e.window.isFocused());
     e.window.listener(event -> event(e, event));
     e.window.parts(app::windowPart);
     app.onPost(
@@ -705,31 +762,45 @@ public final class WindowLoop {
     }
   }
 
-  private void shutClosed() {
+  /** Lets go of every window whose close waited for the pass, adding what failed to {@code to}. */
+  private void shutClosed(List<Throwable> to) {
     while (!closing.isEmpty()) {
-      shut(closing.removeFirst());
+      shut(closing.removeFirst(), to);
     }
   }
 
   /** Lets go of a window that closed: its presenter first, then the window. */
   private void shut(Entry e) {
+    List<Throwable> failures = new ArrayList<>();
+    shut(e, failures);
+    throwFirst(failures);
+  }
+
+  /**
+   * As {@link #shut(Entry)}, adding what failed to {@code to}. The presenter closes also when the
+   * window is closed already, as by its owner or a handler through {@link Windows.Handle#window},
+   * since the loop holds it; the loop shuts each entry once, as it closes it.
+   */
+  private void shut(Entry e, List<Throwable> to) {
     entries.remove(e);
     e.app.onPost(null);
-    if (!e.window.isOpen()) {
-      return;
+    if (e.window.isOpen()) {
+      e.window.listener(null);
+      e.window.parts(null);
     }
-    e.window.listener(null);
-    e.window.parts(null);
     try {
       if (e.presenter instanceof AutoCloseable closeable) {
         closeable.close();
       }
-    } catch (RuntimeException ex) {
-      throw ex;
+    } catch (RuntimeException | Error ex) {
+      to.add(ex);
     } catch (Exception ex) {
-      throw new IllegalStateException("Closing the presenter failed", ex);
-    } finally {
+      to.add(new IllegalStateException("Closing the presenter failed", ex));
+    }
+    try {
       e.window.close();
+    } catch (RuntimeException | Error ex) {
+      to.add(ex);
     }
   }
 
@@ -810,6 +881,7 @@ public final class WindowLoop {
         resize(e);
         refreshRate(e);
       }
+      case DisplayChanged changed -> refreshRate(e); // another display, or another mode of it
       case Redraw redraw -> {
         if (!drawing) { // in a pass, the frame comes anyway
           tick();
@@ -1013,7 +1085,7 @@ public final class WindowLoop {
   }
 
   private void refreshRate(Entry e) {
-    float hertz = e.window.refreshRate();
+    double hertz = refreshRates.applyAsDouble(e.window);
     e.frameNanos = (long) (1e9 / (hertz >= 20 && hertz <= 1000 ? hertz : 60));
   }
 }

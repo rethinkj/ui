@@ -21,7 +21,7 @@ import java.util.function.IntConsumer;
  * type a new number select the old one and type over it.
  *
  * <p>The field is the one stop for Tab; the buttons keep the focus in it when pressed ({@link
- * El#keepFocus}) and are disabled at the ends of the range. The result is a box with the
+ * El#keepFocus}), also where they are disabled at the ends of the range. The result is a box with the
  * field and the buttons, half as wide as a text field unless the view sets a width with {@code
  * .w(...)} on it. In a tree dump the field is {@code role=spinbutton} with its number as its
  * string, and the buttons are {@code role=button} labelled {@code Decrease} and {@code Increase}.
@@ -159,12 +159,12 @@ public final class NumberField {
         .center()
         .radius(t.radius().small())
         .motion(t.motion().feedback())
-        .child(icon(t, symbol, enabled ? Icon.Variant.MUTED : Icon.Variant.DISABLED));
+        .child(icon(t, symbol, enabled ? Icon.Variant.MUTED : Icon.Variant.DISABLED))
+        .keepFocus(); // also at the end of the range, where it presses nothing
     if (!enabled) {
       return button;
     }
     return button
-        .keepFocus()
         .cursor(Cursor.POINTER)
         .onPress(onPress)
         .whenHovered(e -> e.fill(t.surface().hover()))

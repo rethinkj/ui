@@ -85,6 +85,12 @@ public sealed interface WindowEvent {
    */
   record ScaleChanged(float scale) implements WindowEvent {}
 
+  /**
+   * The window moved to another display, or the mode of its display changed: its {@link
+   * Window#refreshRate()} may be another, also where the scale stayed the same.
+   */
+  record DisplayChanged() implements WindowEvent {}
+
   /** The window was minimized, maximized or restored to its normal size. */
   record StateChanged(boolean minimized, boolean maximized) implements WindowEvent {}
 

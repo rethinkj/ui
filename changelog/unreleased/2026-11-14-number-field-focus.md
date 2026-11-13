@@ -1,0 +1,1 @@
+- A press on a number field's disabled step button, at an end of its range, leaves the focus in the field instead of taking it away.
