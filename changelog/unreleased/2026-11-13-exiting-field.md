@@ -1,0 +1,1 @@
+- Fixed a text field that fades out after a rebuild left it out (a key and `El.motion`): it no longer keeps drawing the caret, selection and composition it had while it was focused, also when it fades out inside a leaving ancestor.

@@ -582,6 +582,37 @@ class FieldTest {
     assertEquals(Double.POSITIVE_INFINITY, app.nextChange());
   }
 
+  @Test
+  void aFieldThatFadesOutHasNoCaretSelectionOrCompositionAndNoFocus() {
+    boolean[] hidden = {false};
+    App<Model> app = start("hello", f -> hidden[0] ? el().size(0, 0)
+        : f.motion(com.rethinkj.ui.motion.Spring.SNAP), 1);
+    focus(app);
+    key(app, "ArrowLeft", SHIFT);
+    El field = field(app);
+    assertFalse(field.text().selection().isEmpty());
+    app.textComposition("ni", -1);
+    app.frame();
+    assertNotNull(field(app).text().composition());
+
+    hidden[0] = true; // the view leaves the field out: it fades out where it was
+    app.resize(200, 80, 1);
+    app.frame();
+    field = field(app); // back where it was, before what the view put there
+    assertEquals("f", field.key());
+    assertTrue(field.isExiting(), app.tree().dump());
+    assertNull(field.text().caret());
+    assertEquals(List.of(), field.text().selection());
+    assertNull(field.text().composition());
+    assertEquals(5, field.text().lines().getFirst().glyphs().count(), "\"hello\" without \"ni\"");
+    assertNull(app.focused());
+    assertFalse(field.dump().contains("focused"), field.dump());
+    assertEquals(Double.POSITIVE_INFINITY, app.nextChange(), "nothing blinks");
+    app.advance(App.BLINK);
+    app.frame();
+    assertNull(field.text().caret());
+  }
+
   // What the window needs
 
   @Test

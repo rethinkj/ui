@@ -1194,7 +1194,8 @@ public final class App<S> {
    * gone, follows the focus with the caret, and places the caret, selection and scroll of every
    * field for its new layout. The editor of a focused field whose row scrolled out of the rows
    * that exist stays, with the focus, for when the row comes back; the editors of other fields in
-   * such rows go with them, as everything else the app keeps of a row.
+   * such rows go with them, as everything else the app keeps of a row. A field that fades out
+   * ({@link El#isExiting}) has lost its editor, and with it its caret, selection and composition.
    */
   private void placeEditors() {
     List<Editor> shown = new ArrayList<>();
@@ -1202,7 +1203,13 @@ public final class App<S> {
     Set<Editor> kept = Collections.newSetFromMap(new IdentityHashMap<>());
     kept.addAll(shown);
     Editor waiting = focusWaits() ? editors.get(focusId) : null;
-    editors.values().removeIf(editor -> editor != waiting && !kept.contains(editor));
+    editors.values().removeIf(editor -> {
+      if (editor == waiting || kept.contains(editor)) {
+        return false;
+      }
+      editor.leave(); // its element may be fading out
+      return true;
+    });
     blink(focused == null ? null : focused.editor());
     for (Editor editor : shown) {
       editor.place(editor == blinking, caretOn);

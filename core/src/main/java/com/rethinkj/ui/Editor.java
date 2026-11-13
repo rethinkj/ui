@@ -180,6 +180,16 @@ final class Editor {
     changed = true;
   }
 
+  /**
+   * Its field left the tree, or fades out of it: the element draws no caret, selection or
+   * composition any more.
+   */
+  void leave() {
+    blur();
+    el.text().dropComposition();
+    place(false, false);
+  }
+
   // ---- Keys
 
   /**
