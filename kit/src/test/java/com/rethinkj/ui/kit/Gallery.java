@@ -44,6 +44,7 @@ final class Gallery {
   static final int WIDTH = 140;
   static final int HEIGHT = 40;
   static final int AREA = 72; // the rows of text areas, three lines high
+  static final int PROGRESS = 3; // the rows of progress forms, which have no states
 
   /** The columns, with the steps that bring a component into each state. */
   enum State {
@@ -100,6 +101,7 @@ final class Gallery {
       List.of(
           new Row("primary", (t, h) -> button(t, Variant.PRIMARY, "Run query", h)),
           new Row("secondary", (t, h) -> button(t, Variant.SECONDARY, "Cancel", h)),
+          new Row("busy", (t, h) -> button(t, Variant.PRIMARY, null, "Running", true, h)),
           new Row("ghost", (t, h) -> button(t, Variant.GHOST, "Format", h)),
           new Row("toggle off", (t, h) -> toggle(t, false, "Autocommit", h)),
           new Row("toggle on", (t, h) -> toggle(t, true, "Autocommit", h)),
@@ -149,7 +151,7 @@ final class Gallery {
     this.scale = scale;
     this.out = out;
     int width = (State.values().length + 1) * Math.round(WIDTH * scale);
-    int height = 2 * Math.round(HEIGHT * scale);
+    int height = (2 + PROGRESS) * Math.round(HEIGHT * scale);
     for (Row row : ROWS) {
       height += Math.round(row.height() * scale);
     }
@@ -172,7 +174,34 @@ final class Gallery {
     gallery.put(3, cell, HEIGHT, label(t, Label.Variant.MONO, "mono_0123"), "");
     gallery.put(4, cell, HEIGHT, label(t, Label.Variant.HEADING, "Heading"), "");
     gallery.put(5, cell, HEIGHT, label(t, Label.Variant.STRONG, "Strong"), "");
+    // Progress takes no input: its rows show its forms, the running ones at two times.
+    float w = WIDTH - 20;
+    String[] names = {"progress", "running", "labeled"};
+    El[][] forms = {
+        {Progress.bar(t, 0).w(w), Progress.bar(t, 0.42).w(w), Progress.bar(t, 1).w(w),
+            Progress.bar(t, 0.64, Progress.State.ERROR).w(w),
+            Progress.bar(t, 1, Progress.State.DONE).w(w)},
+        {Progress.bar(t, 0.42, Progress.State.PAUSED).w(w), Progress.indeterminate(t).w(w),
+            Progress.indeterminate(t).w(w), Progress.spinner(t), Progress.spinner(t)},
+        {Progress.labeled(t, "orders.csv", 0.42, null).w(w),
+            Progress.labeled(t, "orders.csv", 0.64, "Failed", Progress.State.ERROR).w(w),
+            Progress.labeled(t, "orders.csv", 1, "Done", Progress.State.DONE).w(w),
+            Progress.line(t, 0.42).w(w), Progress.line(t).w(w)}};
+    String[][] times = {
+        {"", "", "", "", ""},
+        {"", "advance 0.5\nframe", "advance 1.1\nframe", "advance 0.2\nframe",
+            "advance 0.7\nframe"},
+        {"", "", "", "", "advance 0.5\nframe"}};
     int top = 2 * cell;
+    for (int r = 0; r < names.length; r++) {
+      gallery.put(0, top, HEIGHT, gallery.name(names[r]), "");
+      for (int c = 0; c < forms[r].length; c++) {
+        String tree = gallery.put(1 + c, top, HEIGHT, forms[r][c].key("c"), times[r][c]);
+        gallery.trees.append("# ").append(names[r]).append(", ").append(c + 1).append('\n')
+            .append(tree);
+      }
+      top += cell;
+    }
     for (Row row : ROWS) {
       gallery.put(0, top, row.height(), gallery.name(row.name()), "");
       for (State state : State.values()) {

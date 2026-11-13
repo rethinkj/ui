@@ -37,6 +37,7 @@ import com.rethinkj.ui.kit.Label;
 import com.rethinkj.ui.kit.Split;
 import com.rethinkj.ui.kit.Menu;
 import com.rethinkj.ui.kit.MenuBar;
+import com.rethinkj.ui.kit.Progress;
 import com.rethinkj.ui.kit.Sql;
 import com.rethinkj.ui.kit.Split.Direction;
 import com.rethinkj.ui.kit.Split.Position;
@@ -332,6 +333,9 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
   @Override
   public El icon(Node node) {
     Theme t = theme();
+    if (connecting.contains(node)) {
+      return Progress.spinner(t).label("Connecting");
+    }
     return switch (node.kind) {
       case SERVER -> Icon.icon(t, Symbol.SERVER,
           node.children == null ? Variant.DISABLED : Variant.SUCCESS); // connected or not
@@ -907,6 +911,9 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
     Completion.complete(t, app, area, o.editor.caret(), o.completion,
         word -> s.suggest(o, word));
     El query = col().padding(t.space().m(), t.space().l()).shrink(0).child(area);
+    if (o.asking != null) { // a line runs over the toolbar's hairline while the server answers
+      query.child(Progress.line(t).absolute(0, -t.size().stroke()).key("running"));
+    }
     if (o.rows < 0) {
       return col().grow(1).minSize(0, 0).children(toolbar(t, s, o), Divider.divider(t), query,
           Divider.divider(t), col().padding(t.space().xxl())
@@ -939,7 +946,8 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
   private static El toolbar(Theme t, Workbench s, Opened o) {
     String rows = o.rows < 0 ? "counting the rows" : String.format(Locale.ROOT, "%,d rows", o.rows);
     return Card.toolbar(t, o.table.name, rows,
-        Button.button(t, PRIMARY, Symbol.PLAY, "Run", () -> s.run(o)).key("run"));
+        Button.button(t, PRIMARY, Symbol.PLAY, "Run", o.asking != null, () -> s.run(o))
+            .key("run"));
   }
 
   private static Field field(String name) {

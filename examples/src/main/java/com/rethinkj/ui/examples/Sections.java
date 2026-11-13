@@ -31,6 +31,7 @@ import com.rethinkj.ui.kit.Dialog;
 import com.rethinkj.ui.kit.Divider;
 import com.rethinkj.ui.kit.Icon;
 import com.rethinkj.ui.kit.Menu;
+import com.rethinkj.ui.kit.Progress;
 import com.rethinkj.ui.kit.Select;
 import com.rethinkj.ui.kit.Split;
 import com.rethinkj.ui.kit.StatusBar;
@@ -62,6 +63,7 @@ final class Sections {
       case GRID -> grid(s, t);
       case TREE -> tree(s, t);
       case WORKBENCH -> workbench(s, t);
+      case PROGRESS -> progress(s, t);
       case TYPE -> type(t);
       case COLOUR -> colour(t);
       case CONTRAST -> contrast(t);
@@ -534,6 +536,65 @@ final class Sections {
             side.label("Database"), 140, queries, 240).key("bench").grow(1).minSize(0, 0)
             .padding(0, t.space().m(), 0, t.space().m()))
         .child(status);
+  }
+
+  // Progress
+
+  private static El progress(Showcase s, Theme t) {
+    double fraction = s.downloaded / Showcase.SIZE;
+    Progress.State state = s.failed ? Progress.State.ERROR
+        : fraction >= 1 ? Progress.State.DONE : Progress.State.NORMAL;
+    String detail = s.failed ? "Failed at " + mb(s.downloaded)
+        : fraction >= 1 ? "Done · " + mb(Showcase.SIZE)
+        : s.downloading ? mb(s.downloaded) + " of " + mb(Showcase.SIZE) + " · "
+            + Math.round((Showcase.SIZE - s.downloaded) / 16) + " s left"
+        : "Not started";
+    El download = card(t, "Download",
+        label(t, MUTED, "A made-up file of 80 MB, 4 MB each quarter of a second."),
+        Progress.labeled(t, "orders-2024.csv", fraction, detail, state).key("download")
+            .wFull(),
+        row().gap(t.space().m()).align(Style.Align.CENTER)
+            .child(Button.button(t, PRIMARY, Symbol.ARROW_DOWNLOAD,
+                s.downloading ? "Downloading" : "Download", s.downloading, s::startDownload)
+                .key("start"))
+            .child(button(t, SECONDARY, "Let it fail", s.downloading ? s::failDownload : null)
+                .key("fail")));
+    El states = card(t, "States",
+        field(t, "Empty", Progress.bar(t, 0).grow(1)),
+        field(t, "42 %", Progress.bar(t, 0.42).grow(1)),
+        field(t, "Failed", Progress.bar(t, 0.64, Progress.State.ERROR).grow(1)),
+        field(t, "Done", Progress.bar(t, 1, Progress.State.DONE).grow(1)),
+        field(t, "Paused", Progress.bar(t, 0.42, Progress.State.PAUSED).grow(1)),
+        field(t, "Running", Progress.indeterminate(t).grow(1)));
+    El spinners = card(t, "Spinners",
+        row().gap(t.space().l()).align(Style.Align.CENTER)
+            .child(Progress.spinner(t))
+            .child(Progress.spinner(t, 20))
+            .child(Progress.spinner(t, 24))
+            .child(row().gap(t.space().s()).align(Style.Align.CENTER)
+                .child(Progress.spinner(t).label("Connecting"))
+                .child(label(t, MUTED, "Connecting to staging…"))),
+        row().gap(t.space().m()).align(Style.Align.CENTER)
+            .child(Button.button(t, PRIMARY, Symbol.PLAY, "Running", true, () -> {}))
+            .child(Button.button(t, SECONDARY, Symbol.ARROW_CLOCKWISE, "Refreshing", true,
+                () -> {})));
+    // A query that runs: the line lies over the top of the results, under the toolbar.
+    El results = col().grow(1).minSize(0, 0).padding(t.space().l())
+        .child(label(t, MUTED, "Waiting for the server…"));
+    El query = Card.flush(t,
+        Card.toolbar(t, "orders by month.sql", "running",
+            Button.button(t, PRIMARY, Symbol.PLAY, "Run", true, () -> {})),
+        Divider.divider(t),
+        el().h(0).child(Progress.line(t).absolute(0, 0)),
+        results).h(160);
+    return col().gap(t.space().l())
+        .child(row().gap(t.space().l()).align(Style.Align.START)
+            .child(col().gap(t.space().l()).grow(1).basis(0).child(download).child(states))
+            .child(col().gap(t.space().l()).grow(1).basis(0).child(spinners).child(query)));
+  }
+
+  private static String mb(double megabytes) {
+    return String.format(Locale.ROOT, "%.1f MB", megabytes);
   }
 
   // Typography

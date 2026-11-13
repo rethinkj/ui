@@ -74,6 +74,8 @@ public final class Showcase {
     TREE("Tree", "The schema of three servers, with the columns of a table beside it.",
         Symbol.DATABASE),
     WORKBENCH("Tabs and split", "The frame of a database tool, in small.", Symbol.WINDOW),
+    PROGRESS("Progress", "Bars, a running bar, a line on a card's edge and spinners.",
+        Symbol.ARROW_DOWNLOAD),
     TYPE("Typography", "The theme's text styles, figures and letterforms.", Symbol.TEXT_T),
     COLOUR("Colour", "Every colour of the theme, by group.", Symbol.SQUARE_MULTIPLE),
     CONTRAST("Contrast", "WCAG contrast of each colour on each background.", Symbol.EYE),
@@ -155,6 +157,36 @@ public final class Showcase {
   Position sidebar = Position.first(200);
   Position editor = Position.share(0.42f);
   final Selection results = new Selection(Mode.ROWS);
+
+  // Progress
+  static final double SIZE = 80; // megabytes of the made-up download
+  double downloaded; // megabytes so far
+  boolean downloading;
+  boolean failed;
+  private int download; // counts the downloads, so that a step of an old one does nothing
+
+  /** Starts the made-up download: 4 MB each quarter of a second of the app's clock. */
+  void startDownload() {
+    downloaded = 0;
+    failed = false;
+    downloading = true;
+    int run = ++download;
+    for (int step = 1; step <= SIZE / 4; step++) { // all at once, so a long advance runs them all
+      app.after(0.25 * step, () -> {
+        if (run == download) {
+          downloaded = Math.min(SIZE, downloaded + 4);
+          downloading = downloaded < SIZE;
+        }
+      });
+    }
+  }
+
+  /** Lets the download fail where it is. */
+  void failDownload() {
+    download++;
+    downloading = false;
+    failed = true;
+  }
 
   Showcase(Look look) {
     this.look = look;

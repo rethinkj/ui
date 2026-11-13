@@ -142,6 +142,8 @@ public final class App<S> {
   /** How long the caret of a focused field is on, and then off, in seconds of the app's clock. */
   public static final double BLINK = 0.5;
 
+  private boolean cycling; // whether the last frame showed an element with an El#cycle
+
   /**
    * Where the focused element that takes text is, in logical pixels of the window, for the
    * system's input method: it places its candidate window below this box, and its composition at
@@ -1077,12 +1079,13 @@ public final class App<S> {
    * The time on the app's clock at which the last frame changes without input or movement: when
    * the caret of the focused field turns on or off, when the pointer will have rested long enough
    * on an element for its {@link El#whenHoveredFor} look or {@link El#onHoverFor} handler, or when
-   * an action asked for with {@link #after} is due. Positive infinity when nothing will; then an
+   * an action asked for with {@link #after} is due; the current time while the last frame showed
+   * an element with an {@link El#cycle}. Positive infinity when nothing will; then an
    * idle window can wait for input alone.
    */
   public double nextChange() {
-    if (!queued.isEmpty()) {
-      return time; // handlers that a frame queued, such as El#onRowsBuilt
+    if (!queued.isEmpty() || cycling) {
+      return time; // handlers that a frame queued, such as El#onRowsBuilt, or an El#cycle
     }
     double next = Math.min(restDue, shownDue);
     if (!timers.isEmpty()) {
@@ -2078,6 +2081,10 @@ public final class App<S> {
       El.placeBars(root);
     }
     drawn |= hover();
+    if ((drawn || cycling) && root != null) { // El#cycle: after everything that places elements
+      cycling = El.cycles(root, time, width, height, true);
+      drawn |= cycling;
+    }
     return drawn;
   }
 
@@ -2948,11 +2955,12 @@ public final class App<S> {
   }
 
   /**
-   * Whether something had not reached its target in the last frame, so that the next frame draws
-   * something new after {@link #advance} even without input. Once this is false the app is idle.
+   * Whether something had not reached its target in the last frame, or the frame showed an
+   * element with an {@link El#cycle}, so that the next frame draws something new after {@link
+   * #advance} even without input. Once this is false the app is idle.
    */
   public boolean isMoving() {
-    return animator.isMoving();
+    return animator.isMoving() || cycling;
   }
 
   /**

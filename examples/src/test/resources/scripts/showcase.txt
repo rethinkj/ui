@@ -101,6 +101,21 @@ advance 1
 frame
 snap workbench
 
+press role=treeitem label="Progress"
+frame
+press #start                  # the made-up download: 4 MB each quarter of a second
+frame
+advance 1                     # 16 MB, the button busy
+frame
+advance 0.4                   # 20 MB, the bar following; the running bars past half a pass
+frame
+snap progress
+press #fail                   # the download fails where it is
+frame
+advance 1
+frame
+snap progress-failed
+
 press role=treeitem label="Typography"
 frame
 snap type
