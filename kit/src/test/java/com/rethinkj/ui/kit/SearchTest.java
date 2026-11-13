@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.text.BreakIterator;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Pattern;
@@ -82,6 +83,20 @@ class SearchTest {
   }
 
   @Test
+  void graphemesAgreeWithTheJdkInALongRunOfRegionalIndicators() {
+    String text = "x" + "🇦".repeat(300) + "\n" + "🇦".repeat(301) + "e\u0301";
+    BreakIterator iterator = BreakIterator.getCharacterInstance();
+    iterator.setText(text);
+    Search.Graphemes inOrder = new Search.Graphemes(text);
+    for (int at = 0; at <= text.length(); at++) {
+      assertEquals(iterator.isBoundary(at), inOrder.boundary(at), "offset " + at);
+      assertEquals(iterator.isBoundary(at), Search.boundary(text, at), "offset " + at + " alone");
+    }
+    assertEquals(List.of(), found("x" + "🇦".repeat(132), plain("🇦")), "half a flag");
+    assertEquals(List.of("1:🇦🇦"), found("x" + "🇦".repeat(2), plain("🇦🇦")));
+  }
+
+  @Test
   void aRegularExpressionMatchesLinesAndNeverEmpty() {
     Search.Query lines = new Search.Query("^\\w+", true, false, true);
     assertEquals(List.of("0:SELECT", "9:FROM"), found("SELECT *\nFROM t", lines));
@@ -113,6 +128,29 @@ class SearchTest {
   }
 
   @Test
+  void aPatternThatRecursesTooDeepStopsAsTooSlow() {
+    String text = "a".repeat(20_000);
+    Pattern p = new Search.Query("(a|b)+", true, false, true).compile();
+    assertTrue(Search.scan(p, text, 0, text.length(), 10, NONE).stopped());
+    assertThrows(Search.Stopped.class, () -> Search.next(p, text, 0, text.length(), 0, NONE));
+    assertThrows(
+        Search.Stopped.class,
+        () -> Search.replaceAll(
+            new Search.Query("(a|b)+", true, false, true), p, text, 0, text.length(), "x", NONE));
+    assertThrows(
+        Search.Stopped.class,
+        () -> Search.replacement(
+            new Search.Query("(a|b)+", true, false, true),
+            p,
+            text,
+            0,
+            text.length(),
+            text.length(),
+            "x",
+            NONE));
+  }
+
+  @Test
   void nextAndPreviousGoRoundWithinTheirPart() {
     Pattern p = plain("ab").compile();
     String text = "ab ab ab ab";
@@ -129,14 +167,24 @@ class SearchTest {
     Search.Query swap = new Search.Query("(\\w+) = (?<v>\\w+)", true, false, true);
     Pattern p = swap.compile();
     String text = "a = 1, b = 2";
-    assertEquals("1 = a", Search.replacement(swap, p, text, 0, 5, "${v} = $1"));
+    assertEquals("1 = a", Search.replacement(swap, p, text, 0, 5, 12, "${v} = $1", NONE));
     assertEquals(
         "$1",
-        Search.replacement(plain("a = 1"), plain("a = 1").compile(), text, 0, 5, "$1"),
+        Search.replacement(plain("a = 1"), plain("a = 1").compile(), text, 0, 5, 12, "$1", NONE),
         "a plain search's replacement is taken as it is");
-    assertEquals("\\$a", Search.replacement(swap, p, text, 0, 5, "\\\\\\$$1"));
+    assertEquals("\\$a", Search.replacement(swap, p, text, 0, 5, 12, "\\\\\\$$1", NONE));
     assertThrows(
-        IllegalArgumentException.class, () -> Search.replacement(swap, p, text, 0, 5, "$3"));
+        IllegalArgumentException.class,
+        () -> Search.replacement(swap, p, text, 0, 5, 12, "$3", NONE));
+    assertNull(Search.replacement(swap, p, text, 0, 4, 12, "x", NONE), "not a whole match");
+    Search.Query greedy = new Search.Query("(a+)", true, false, true);
+    Pattern a = greedy.compile();
+    assertEquals(
+        "a!",
+        Search.replacement(greedy, a, "aa", 0, 1, 1, "$1!", NONE),
+        "the match that a search up to 1 finds, not the longer one after it");
+    assertEquals("a!", Search.replaceAll(greedy, a, "aa", 0, 1, "$1!", NONE).text());
+    assertNull(Search.replacement(greedy, a, "aa", 0, 2, 1, "x", NONE), "beyond the part");
     Search.Replaced all = Search.replaceAll(swap, p, text, 0, text.length(), "$2=$1", NONE);
     assertEquals(new Search.Replaced(0, 12, "1=a, 2=b", 2), all);
     assertNull(Search.replaceAll(swap, p, text, 0, 3, "x", NONE), "no match inside 0 to 3");

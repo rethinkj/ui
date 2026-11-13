@@ -4,6 +4,7 @@ import static com.rethinkj.ui.El.col;
 import static com.rethinkj.ui.kit.CodeEditor.codeEditor;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.rethinkj.ui.App;
@@ -13,6 +14,7 @@ import com.rethinkj.ui.text.TextRendering;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.function.Function;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -288,6 +290,98 @@ class FindKeysTest {
   }
 
   @Test
+  void replaceInSelectionLeavesAMatchOutsideItAndGoesToOneInside() throws IOException {
+    Doc doc = new Doc("a\nb\na");
+    App<Doc> app = app(doc);
+    run(app, """
+        frame
+        focus #query
+        key ArrowDown shift
+        key ArrowDown shift
+        key H control
+        frame
+        advance 0.25
+        frame
+        focus #find-field
+        type "a"
+        key L alt
+        frame
+        focus #replace
+        type "X"
+        frame
+        press 100,100
+        key End control
+        key ArrowLeft shift
+        frame
+        press #replace-one""");
+    assertEquals("a\nb\na", doc.text, "the last a lies after the lines searched in");
+    assertEquals("a", selected(doc));
+    assertEquals(0, Math.min(caret(doc), doc.editor.anchor()), "the match inside them instead");
+  }
+
+  @Test
+  void aRegularExpressionsMatchAtTheEndOfTheSelectionIsReplacedAsFound() throws IOException {
+    Doc doc = new Doc("a\naaa");
+    App<Doc> app = app(doc);
+    run(app, """
+        frame
+        focus #query
+        key ArrowDown shift
+        key ArrowRight shift
+        key ArrowRight shift
+        key H control
+        frame
+        advance 0.25
+        frame
+        focus #find-field
+        key R alt
+        type "(a+)"
+        key L alt
+        key Enter""");
+    assertEquals("aa", selected(doc), "the selection ends after the second a of the last line");
+    run(app, "focus #replace\ntype \"$1!\"\nkey Enter");
+    assertEquals("a\naa!a", doc.text);
+  }
+
+  @Test
+  void aJumpOnAnotherThreadSelectsNothingOnceTheTextChanged() throws Exception {
+    Doc doc = new Doc(("x".repeat(60) + "\n").repeat(500_000) + "needle");
+    App<Doc> app = app(doc);
+    run(
+        app,
+        "frame\nfocus #query\nkey F control\nframe\nadvance 0.25\nframe\n"
+            + "focus #find-field\ntype \"needle\"");
+    assertNotNull(doc.editor.find().jump, "the jump takes longer than a frame");
+    run(app, "focus #query\ntype \"NEW\"");
+    int caret = caret(doc);
+    int anchor = doc.editor.anchor();
+    app.await(Duration.ofSeconds(10));
+    app.frame();
+    assertEquals(caret, caret(doc), "the jump's offsets were those of the text before");
+    assertEquals(anchor, doc.editor.anchor());
+  }
+
+  @Test
+  void aCountOnAnotherThreadForAnOlderTextIsReplaced() throws Exception {
+    Doc doc = new Doc("x \n".repeat(100_000));
+    App<Doc> app = app(doc);
+    run(
+        app,
+        "frame\nfocus #query\nkey F control\nframe\nadvance 0.25\nframe\n"
+            + "focus #find-field\ntype \"needle\"");
+    assertNotNull(doc.editor.find().work, "counting on another thread");
+    doc.text = "needle\n" + doc.text;
+    app.invalidate();
+    app.frame();
+    app.await(Duration.ofSeconds(10));
+    app.frame();
+    Find.State state = doc.editor.find();
+    assertEquals(doc.text, state.searched);
+    assertEquals(1, state.matches.count());
+    assertTrue(state.matches.complete());
+  }
+
+  @Test
   void controlGGoesToALineAndColumn() throws IOException {
     Doc doc = new Doc(TEXT);
     App<Doc> app = app(doc);
@@ -445,5 +539,40 @@ class FindKeysTest {
         CodeEditor.Command.TOGGLE_COMMENT,
         CodeEditor.command(new com.rethinkj.ui.Key("#", com.rethinkj.ui.Key.CONTROL, false)),
         "Control+#, where a German keyboard has VS Code's");
+  }
+
+  @Test
+  void eachLineCommandUndoesToTheTextAndSelectionBeforeIt() {
+    String[] texts = {"", "a", "a\n", "a\nbb", "a\nbb\n", "  a\n    -- b\n c"};
+    for (String text : texts) {
+      int[][] selections = {
+        {0, 0}, {text.length(), text.length()}, {0, text.length()}, {Math.min(2, text.length()), 0}
+      };
+      for (int[] selection : selections) {
+        for (CodeEditor.Command command : CodeEditor.Command.values()) {
+          if (command == CodeEditor.Command.SELECT_NEXT) {
+            continue;
+          }
+          Doc doc = new Doc(text);
+          App<Doc> app = app(doc);
+          app.resize(640, 240, 1);
+          app.frame();
+          El field = doc.editor.find().field;
+          app.focus(field);
+          app.select(field, selection[0], selection[1]);
+          app.frame();
+          int caret = caret(doc);
+          int anchor = doc.editor.anchor();
+          CodeEditor.run(app, doc.editor, command);
+          app.frame();
+          app.undo(doc.editor.find().field);
+          app.frame();
+          String context = command + " on " + text.replace("\n", "\\n");
+          assertEquals(text, doc.text, context);
+          assertEquals(caret, caret(doc), context);
+          assertEquals(anchor, doc.editor.anchor(), context);
+        }
+      }
+    }
   }
 }
