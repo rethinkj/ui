@@ -496,6 +496,27 @@ public final class DataGrid {
       return order.length - hidden.cardinality();
     }
 
+    /**
+     * Where {@code column} is among those shown ({@code full}, in the order shown), or, while it
+     * is hidden, the shown column after it in the order, else the one before it; -1 for none.
+     */
+    int shownNear(int column, int[] full) {
+      int place = 0;
+      while (place < order.length && order[place] != column) {
+        place++;
+      }
+      for (int step : new int[] {1, -1}) {
+        for (int p = place; p >= 0 && p < order.length; p += step) {
+          for (int i = 0; i < full.length; i++) {
+            if (full[i] == order[p]) {
+              return i;
+            }
+          }
+        }
+      }
+      return -1;
+    }
+
     /** Hides a column, unless it is the last one shown. */
     public void hide(int column) {
       if (shownCount() > 1) {

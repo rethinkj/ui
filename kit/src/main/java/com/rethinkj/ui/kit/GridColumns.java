@@ -44,9 +44,6 @@ final class GridColumns {
     }
     Layout l = b.o.layout;
     if (l != null) {
-      if (l.chooser.isOpen() && l.from == b.o.full[index]) {
-        cell.overlay(chooser(b.t, l).side(Side.BOTTOM, Style.Align.START, b.t.space().xs()));
-      }
       if (index >= b.frozen) {
         cell.onDrag(d -> drag(b, index, d)).grabbed(sel.dragColumn == index);
       }
@@ -65,6 +62,19 @@ final class GridColumns {
     } else {
       header.onSecondaryPress((x, y) -> { }); // beside the cells it opens nothing
       Menu.contextMenu(b.t, header, sel.headerMenu, items(b, sel.headerColumn));
+    }
+    Layout l = b.o.layout;
+    int at = l == null || !l.chooser.isOpen() || l.from < 0 ? -1 : l.shownNear(l.from, b.o.full);
+    if (at >= 0) {
+      // Under the header cell it was opened from, or the one in its place once that is hidden: on
+      // an element of its own, so that it and its focus stay while the columns change.
+      El anchor = el().key("chooser-anchor").absolute(b.xs[at], b.g.rowHeight())
+          .size(b.columns.get(at).width(), 0)
+          .overlay(chooser(b.t, l).side(Side.BOTTOM, Style.Align.START, b.t.space().xs()));
+      if (at < b.frozen) {
+        anchor.fixedX();
+      }
+      header.child(anchor);
     }
     if (sel.dragColumn >= 0 && sel.dropAt >= b.frozen && sel.dropAt <= n) {
       float line = b.t.size().indicator();
