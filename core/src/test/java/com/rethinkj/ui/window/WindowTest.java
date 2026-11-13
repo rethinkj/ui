@@ -255,6 +255,37 @@ class WindowTest {
    * A right click on the drag area opens the system menu, which runs a loop of its own until it
    * is dismissed, so this test only sends the presses that do not open it.
    */
+  /**
+   * Windows types a space for Control+Space, after the key: a shortcut such as the one that
+   * opens completions would type it into the field too. AltGr, which comes as Control and Alt,
+   * still types its character.
+   */
+  @Test
+  void theCharacterOfAKeyPressedWithControlIsNotTypedOnWindows() {
+    try (Window window = Window.open(TITLE, 300, 200)) {
+      Desktop.settle();
+      window.listener(events::add);
+      int control = 0x0040; // SDL_KMOD_LCTRL
+      int altGr = control | 0x0200; // SDL_KMOD_RALT with it, as Windows reports AltGr
+      Desktop.key(window, true, ' ', control, false);
+      Desktop.text(window, " ");
+      Desktop.key(window, false, ' ', control, false);
+      Desktop.key(window, true, 'q', altGr, false);
+      Desktop.text(window, "@");
+      Desktop.key(window, false, 'q', altGr, false);
+      Desktop.key(window, true, 'a', 0, false);
+      Desktop.text(window, "a");
+      Window.pollEvents();
+
+      List<WindowEvent> texts = events.stream().filter(TextInput.class::isInstance).toList();
+      boolean windows = window.handle() instanceof WindowHandle.Win32;
+      assertEquals(windows ? List.of(new TextInput("@"), new TextInput("a"))
+          : List.of(new TextInput(" "), new TextInput("@"), new TextInput("a")), texts);
+      assertTrue(events.contains(new KeyDown(new Key("Space", Key.CONTROL, false))),
+          "the key itself arrives: " + events);
+    }
+  }
+
   @Test
   void aSecondaryPressThatBeginsOnTheDragAreaIsNotDelivered() {
     try (Window window = Window.open(TITLE, 300, 200, Window.options().frameless())) {

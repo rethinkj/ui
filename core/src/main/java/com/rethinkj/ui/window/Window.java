@@ -284,6 +284,8 @@ public final class Window implements AutoCloseable {
   private WindowPart pressed;
   /** Whether a secondary press began on a drag area, where it belongs to the system menu. */
   private boolean menuPress;
+  // The last event was a key pressed with Control and without Alt, whose character Windows types.
+  private boolean afterControlKey;
   /** Where the last pointer move was, in logical pixels, while the pointer is in the window. */
   private boolean pointerIn;
   private float pointerX;
@@ -606,6 +608,8 @@ public final class Window implements AutoCloseable {
   }
 
   private void translate(int type, MemorySegment e) {
+    boolean controlKey = afterControlKey;
+    afterControlKey = false;
     switch (type) {
       case Sdl.EVENT_MOUSE_MOTION -> {
         if (win32 != null) {
@@ -647,6 +651,8 @@ public final class Window implements AutoCloseable {
         String key = Keys.name(e.get(JAVA_INT, Sdl.KEY_KEY));
         int modifiers = modifiers(e.get(JAVA_SHORT, Sdl.KEY_MOD));
         if (type == Sdl.EVENT_KEY_DOWN) {
+          afterControlKey = handle instanceof WindowHandle.Win32
+              && (modifiers & (Key.CONTROL | Key.ALT)) == Key.CONTROL;
           post(new KeyDown(new Key(key, modifiers, e.get(JAVA_BOOLEAN, Sdl.KEY_REPEAT))));
         } else {
           post(new KeyUp(new Key(key, modifiers, false)));
@@ -654,7 +660,10 @@ public final class Window implements AutoCloseable {
       }
       case Sdl.EVENT_TEXT_INPUT -> {
         String text = Sdl.string(e.get(ADDRESS, Sdl.TEXT_TEXT));
-        if (text != null && !text.isEmpty()) {
+        // Windows makes a space of Control+Space, which on Linux types nothing: a shortcut, such
+        // as the one that opens completions, would type it too. Control with Alt is AltGr, whose
+        // characters stay.
+        if (text != null && !text.isEmpty() && !controlKey) {
           post(new TextInput(text));
         }
       }

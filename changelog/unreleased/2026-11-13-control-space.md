@@ -1,0 +1,1 @@
+- On Windows, a key pressed with Control (and without Alt) no longer types its character: Control+Space, which Windows turns into a space, now opens a `CodeEditor`'s completions instead of typing a space that closed them again. AltGr's characters are typed as before.
