@@ -83,6 +83,30 @@ class ProgressTest {
     assertFalse(app.isMoving(), "no spinner, nothing goes round");
   }
 
+  /** Busy, a button keeps its width: the spinner takes the icon's place, or lies over the text. */
+  @Test
+  void aBusyButtonKeepsItsWidth() throws IOException {
+    TextLibraries.assumeLoaded();
+    for (Symbol icon : new Symbol[] {Symbol.PLAY, null}) {
+      Shown s = new Shown();
+      App<Shown> app = new App<>(s, st -> col().child(Button.button(T, Button.Variant.PRIMARY,
+          icon, "Downloading", st.busy, () -> st.pressed++).key("run")));
+      run(app, "");
+      El busy = CellEditorTest.find(app, "run");
+      float width = busy.width();
+      El spinner = busy.children().stream().filter(c -> "progressbar".equals(c.role()))
+          .findFirst().orElseThrow();
+      s.busy = false;
+      app.invalidate();
+      run(app, "");
+      assertEquals(CellEditorTest.find(app, "run").width(), width, 0.01f, "with " + icon);
+      if (icon == null) { // centred over the text, within a pixel
+        assertEquals(busy.x() + busy.width() / 2, spinner.x() + spinner.width() / 2, 1f);
+        assertEquals(busy.y() + busy.height() / 2, spinner.y() + spinner.height() / 2, 1f);
+      }
+    }
+  }
+
   @Test
   void aRunningBarThatLearnsItsValueSpringsFromWhereItRan() {
     Shown s = new Shown();

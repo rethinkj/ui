@@ -1,0 +1,1 @@
+- A busy `Button` keeps its width: the spinner takes the icon's place, and on a button without an icon it lies over the middle of the text, which keeps its place unseen, so that a button that becomes busy no longer pushes its neighbours.

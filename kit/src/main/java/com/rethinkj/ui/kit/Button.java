@@ -6,6 +6,7 @@ import static com.rethinkj.ui.kit.Theme.over;
 
 import com.rethinkj.ui.Cursor;
 import com.rethinkj.ui.El;
+import com.rethinkj.ui.Measure;
 import java.util.List;
 import java.util.function.Consumer;
 
@@ -68,11 +69,22 @@ public final class Button {
     El button = frame(t, variant, look, text, onPress).padding(0, t.space().l())
         .gap(t.space().s());
     if (busy && onPress != null) {
-      button.child(Progress.spinner(t, t.size().icon(), look.text(),
-          variant == Variant.PRIMARY ? t.accent().pressed() : t.border().control()));
+      El spinner = Progress.spinner(t, t.size().icon(), look.text(),
+          variant == Variant.PRIMARY ? t.accent().pressed() : t.border().control());
       Theme.TextStyle style = t.type().strong();
-      return button.child(El.text(text).font(style.font().get()).fontSize(style.size())
-              .color(look.text()))
+      El label = El.text(text).font(style.font().get()).fontSize(style.size())
+          .color(look.text());
+      if (icon != null) { // in the icon's place
+        button.child(spinner).child(label);
+      } else { // over the text's middle, which keeps its place unseen: the width stays
+        float width = label.text().measure(Float.NaN, Float.NaN, Measure.MAX_CONTENT,
+            Measure.MAX_CONTENT).width();
+        float size = t.size().icon();
+        button.child(label.opacity(0)).child(spinner.absolute(
+            Math.round(t.space().l() + (width - size) / 2),
+            Math.round((t.size().control() - size) / 2) - t.size().stroke()));
+      }
+      return button
           .busy(true)
           .focusable()
           .keepFocus()
