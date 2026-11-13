@@ -672,7 +672,7 @@ class GpuRendererTest {
 
   private static Case view(String name, El root, float width, float height, float scale) {
     Flex.layout(root, width, height);
-    return scene(name, Scene.of(root), width, height, scale);
+    return scene(name, Scene.of(root, scale), width, height, scale);
   }
 
   /** A case of a scene laid out for this size in logical pixels. */
@@ -853,7 +853,8 @@ class GpuRendererTest {
   private static Case text(String name, El root, float width, float height, float scale,
       TextRendering rendering, Atlas atlas, boolean stored) {
     Examples.laidOut(root, width, height, scale);
-    return scene(name, Scene.of(root, null, 0, atlas, rendering), width, height, scale, stored);
+    return scene(name, Scene.of(root, null, 0, atlas, rendering, scale), width, height, scale,
+        stored);
   }
 
   private static void press(App<?> app, float x, float y) {
