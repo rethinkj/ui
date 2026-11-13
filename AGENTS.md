@@ -2,7 +2,7 @@
 
 A native, GPU-rendered UI framework for Java, modelled on [rune](https://github.com/anomalyco/rune) (Rust, MIT). Rune is the reference for scope and concepts: its own renderer, text, layout and animation, plus a headless mode in which an agent can render to PNG, dump the element tree and drive an app with scripted input.
 
-Status: early. `core` draws a view without a window: element tree, flexbox layout, CPU reference renderer, PNG. There is no window, GPU renderer, text or input yet, and `kit` is empty.
+Status: early. `core` draws a view without a window: element tree, flexbox layout, CPU reference renderer, PNG. There is no window, GPU renderer, text or input yet, and `kit` is empty. The native libraries for the window and the renderer are packaged and loaded, but nothing calls them yet.
 
 - Repository: https://github.com/rethinkj/ui
 - License: MIT
@@ -28,18 +28,36 @@ Image tests compare what `Headless.render` produces with the PNG and tree files 
 
 The layout is tested against Taffy's flexbox cases in `core/src/test/resources/taffy`; `scripts/import-taffy-fixtures.sh` refreshes them.
 
+On Windows, the first build downloads the native libraries (see below) and needs network access; later builds, `mvn clean` included, do not. `mvn verify -P '!natives-windows-x64'` builds without them and skips the tests that load them.
+
 ## Modules
 
-| Directory | Artifact           | Base package          | Purpose                    |
-| --------- | ------------------ | --------------------- | -------------------------- |
-| `core/`   | `rethinkj-ui-core` | `com.rethinkj.ui`     | The framework itself       |
-| `kit/`    | `rethinkj-ui-kit`  | `com.rethinkj.ui.kit` | Components built on `core` |
+| Directory              | Artifact                          | Base package          | Purpose                                     |
+| ---------------------- | --------------------------------- | --------------------- | ------------------------------------------- |
+| `core/`                | `rethinkj-ui-core`                | `com.rethinkj.ui`     | The framework itself                        |
+| `kit/`                 | `rethinkj-ui-kit`                 | `com.rethinkj.ui.kit` | Components built on `core`                  |
+| `natives-windows-x64/` | `rethinkj-ui-natives-windows-x64` | none, no Java code    | SDL3 and wgpu-native for Windows on x64     |
 
 All artifacts share the groupId `com.rethinkj.ui`.
 
+## Native libraries
+
+The window (SDL3) and the GPU renderer (wgpu-native) will call native libraries. They reach users in one JAR per platform, `rethinkj-ui-natives-<platform>`, where the platform is `windows-x64` or `linux-x64`. Only `natives-windows-x64` exists so far. Its versions: SDL 3.4.20 and wgpu-native 29.0.1.1.
+
+- The JAR has no Java code. Under `META-INF/rethinkj-ui/natives/<platform>/` it holds the libraries, `manifest.txt` and the licence texts in `licenses/`. `manifest.txt` lists the libraries in load order, one line each: `library <name> <version> <file> <sha256>`, after the lines `rethinkj-ui-natives 1` (the format) and `platform <platform>`. It says nothing about where the files came from. `com.rethinkj.ui.natives.Manifest` reads it and documents the format.
+- No binaries are committed. `natives-windows-x64/natives.properties` pins each library: version, release archive URL, the archive's SHA-256 and the file inside it. `scripts/FetchNatives.java` (run with `java scripts/FetchNatives.java natives-windows-x64`; it needs only the JDK) downloads the archives into `natives-windows-x64/fetched/archives/`, checks their hashes, and unpacks the libraries and writes `manifest.txt` into `natives-windows-x64/fetched/resources/`, which the module packages. The module's build runs it in `generate-resources`; it does nothing while `fetched/` matches `natives.properties`. `fetched/` is ignored by git and survives `mvn clean`; delete it to fetch again. Offline, put the archive at the path the error message names.
+- To change a version, edit `natives.properties`, build, and update the licence texts under `natives-windows-x64/src/main/resources` if the release changed them.
+- A natives module is built only on its own platform: the root `pom.xml` lists it in a profile of the same name, activated by the operating system and architecture, and `core` has a profile with that id that adds it as a test dependency.
+- `com.rethinkj.ui.natives.Natives.lookup("sdl3")` returns a `SymbolLookup`, loading the library and every library listed before it on first use. The package is internal to `core`. It finds the manifest of the current platform on the class path and unpacks the libraries into a per-user cache, `%LOCALAPPDATA%\rethinkj-ui\natives\` on Windows and `$XDG_CACHE_HOME/rethinkj-ui/natives/` (default `~/.cache`) on Linux, in a subfolder named after their hashes. Two system properties change that:
+  - `rethinkj.ui.natives.dir`: load from this folder, which holds the libraries and their `manifest.txt` as the JAR has them. Nothing is unpacked or hash-checked, and the class path is not read. For packaged apps and GraalVM native image.
+  - `rethinkj.ui.natives.cache`: unpack into this folder instead. Core's tests set it to `core/target/natives-cache`.
+- Native access must be enabled for core: `--enable-native-access=com.rethinkj.ui` (core's tests pass it). On the module path, the natives JAR is resolved only with `--add-modules com.rethinkj.ui.natives.windows.x64`.
+- Loading happens only on first use. Never call `Natives` from a static initialiser that the headless path can reach: rendering without a window must not need the libraries.
+- `natives-linux-x64` will follow with the same layout and manifest format. SDL publishes no Linux binaries, so its SDL comes from a local build rather than a release archive.
+
 ## Conventions
 
-- A new module gets the directory `<name>/`, the artifactId `rethinkj-ui-<name>` and the base package `com.rethinkj.ui.<name>`, and is listed under `<modules>` in the root `pom.xml`.
+- A new module gets the directory `<name>/`, the artifactId `rethinkj-ui-<name>` and the base package `com.rethinkj.ui.<name>`, and is listed under `<modules>` in the root `pom.xml`; a natives module, in the profile of its platform.
 - Shared build configuration (Java release, encoding, plugin and dependency versions) belongs in the root `pom.xml`. Module POMs declare only what is specific to them.
 - Dependencies point one way: `kit` depends on `core`, never the reverse.
 - The version is repeated in every module's `<parent>` block. Change it with `mvn versions:set -DnewVersion=<version>`, not by editing one POM.
