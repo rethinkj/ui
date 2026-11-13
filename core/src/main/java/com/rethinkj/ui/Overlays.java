@@ -32,7 +32,8 @@ final class Overlays {
       s.maxWidth = limit(s.maxWidth, width);
       s.maxHeight = limit(s.maxHeight, height);
       El.Layer l = overlay.placement();
-      if (l.align == Style.Align.STRETCH && !l.centered && Float.isNaN(l.pointX)) {
+      if (l.align == Style.Align.STRETCH && !l.centered && l.edge == null
+          && Float.isNaN(l.pointX)) {
         boolean across = l.side == Side.TOP || l.side == Side.BOTTOM;
         if (across) {
           s.minWidth = Len.px(Math.max(px(s.minWidth), el.width()));
@@ -123,6 +124,13 @@ final class Overlays {
     if (l.centered) {
       left = (width - w) / 2;
       top = (height - h) / 2;
+    } else if (l.edge != null) {
+      boolean across = l.edge == Side.TOP || l.edge == Side.BOTTOM;
+      float along = edgeAlong(l.align, across ? w : h, across ? width : height, l.gap);
+      float off = l.edge == Side.TOP || l.edge == Side.LEFT ? l.gap
+          : (across ? height - h : width - w) - l.gap;
+      left = across ? along : off;
+      top = across ? off : along;
     } else {
       float ax = Float.isNaN(l.pointX) ? x : l.pointX;
       float ay = Float.isNaN(l.pointX) ? y : l.pointY;
@@ -197,6 +205,15 @@ final class Overlays {
       return second;
     }
     return Math.clamp(first, 0, Math.max(window - size, 0));
+  }
+
+  /** Where an overlay of this size starts along an edge of the window. */
+  private static float edgeAlong(Style.Align align, float size, float window, float gap) {
+    return switch (align) {
+      case END, FLEX_END -> window - size - gap;
+      case CENTER -> (window - size) / 2;
+      default -> gap;
+    };
   }
 
   private static boolean overlaps(

@@ -22,10 +22,11 @@ import java.nio.file.Path;
 import java.util.List;
 
 /**
- * A query editor in a frameless window of 360 by 240 unless a test says otherwise, for the tests of the menu bar: a title bar
- * that moves the window, with the bar's File, Edit, View and Help menus and the window's buttons,
- * then a field with the query and a status line. File's Export goes three submenus deep, and its
- * Close is disabled.
+ * A query editor in a frameless window of 360 by 240 unless a test says otherwise, for the tests
+ * of the menu bar and the toast: a title bar that moves the window, with the bar's File, Edit,
+ * View and Help menus and the window's buttons, then a field with the query and a status line.
+ * File's Export goes three submenus deep, and its Close is disabled. Edit's Clear empties the
+ * query and says so in a toast with Undo.
  */
 final class Studio {
 
@@ -33,6 +34,7 @@ final class Studio {
   final MenuBar.State bar = new MenuBar.State();
   String query = "SELECT * FROM orders";
   String status = "Ready";
+  String cleared; // the query that Clear took, while its toast shows
   boolean wrap = true;
   boolean numbers;
 
@@ -80,7 +82,9 @@ final class Studio {
             Menu.item("Cut", says("Cut")).icon(Symbol.CUT).shortcut(Key.CONTROL, "X"),
             Menu.item("Copy", says("Copied")).icon(Symbol.COPY).shortcut(Key.CONTROL, "C"),
             Menu.item("Paste", says("Pasted")).icon(Symbol.CLIPBOARD_PASTE)
-                .shortcut(Key.CONTROL, "V"))),
+                .shortcut(Key.CONTROL, "V"),
+            Menu.separator(),
+            Menu.item("Clear", this::clear).icon(Symbol.DELETE))),
         Menu.submenu("&View", List.of(
             Menu.item("Word wrap", () -> wrap = !wrap).checked(wrap),
             Menu.item("Line numbers", () -> numbers = !numbers).checked(numbers),
@@ -89,6 +93,11 @@ final class Studio {
                 .shortcut(0, "F5"))),
         Menu.submenu("&Help", List.of(
             Menu.item("About", says("About")).icon(Symbol.INFO))));
+  }
+
+  void clear() {
+    cleared = query;
+    query = "";
   }
 
   El view() {
@@ -110,7 +119,11 @@ final class Studio {
                 label(t, Label.Variant.MUTED, status + (wrap ? " · wrap" : "")
                     + (numbers ? " · numbers" : "")).key("status")))
         .onKey(MenuBar.keys(bar, menus))
-        .onKeyUp(MenuBar.keysUp(bar, menus));
+        .onKeyUp(MenuBar.keysUp(bar, menus))
+        .overlay(cleared == null ? null : Toast.toast(t, "Query cleared", "Undo", () -> {
+          query = cleared;
+          status = "Restored";
+        }, () -> cleared = null));
   }
 
   private El frameButton(WindowPart part, String label, Symbol symbol) {
@@ -136,7 +149,8 @@ final class Studio {
     App<Studio> app = studio.app();
     String script = Files.readString(Path.of("src/test/resources/scripts", file + ".txt"));
     Path folder = out.resolve(file + "-" + theme + "-" + scale + "x");
-    List<Path> files = Script.run("size " + width + " " + height + " scale " + scale + "\n" + script, app, folder);
+    List<Path> files = Script.run(
+        "size " + width + " " + height + " scale " + scale + "\n" + script, app, folder);
     for (int i = 0; i < files.size(); i += 2) {
       String snap = files.get(i).getFileName().toString().replace(".png", "");
       assertEquals(snap + ".tree.txt", files.get(i + 1).getFileName().toString());

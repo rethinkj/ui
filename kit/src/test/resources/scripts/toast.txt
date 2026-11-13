@@ -1,0 +1,9 @@
+# Edit's Clear in kit's studio (ToastTest): the query goes, and a toast at the bottom of the
+# window says so, with Undo, while the focus stays in the field.
+frame
+press #query
+press #title-1
+frame
+press label="Clear"
+frame
+snap shown

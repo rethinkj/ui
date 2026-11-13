@@ -127,6 +127,8 @@ public final class El {
   private boolean holdsFocus; // see #holdFocus
   private Consumer<El> focusRestLook; // see #whenFocusVisibleFor
   private double focusRestDelay;
+  private Runnable onShownFor; // see #onShownFor
+  private double shownDelay;
 
   /** Told a position in logical pixels of the window, as {@link #onSecondaryPress} is. */
   @FunctionalInterface
@@ -173,6 +175,7 @@ public final class El {
     float pointX = Float.NaN;
     float pointY = Float.NaN;
     boolean centered;
+    Side edge; // see El#atWindowEdge; null for beside the anchor
     boolean modal;
     int scrim;
     Runnable onDismiss;
@@ -1268,6 +1271,42 @@ public final class El {
   }
 
   /**
+   * Places this overlay inside the window against one of its edges, {@code gap} pixels away from
+   * it, and along that edge as {@code align} says, {@code START}, {@code CENTER} or {@code END},
+   * the same distance from the corners: a notification at the bottom in the middle.
+   */
+  public El atWindowEdge(Side edge, Style.Align align, float gap) {
+    Layer l = layer();
+    l.edge = Objects.requireNonNull(edge, "edge");
+    l.align = Objects.requireNonNull(align, "align");
+    l.gap = gap;
+    return this;
+  }
+
+  /**
+   * Runs {@code handler} once this overlay has been open for {@code seconds} of the app's clock,
+   * once per opening: a notification closes itself after a while. Like {@link #onHoverFor}, it
+   * runs in {@link App#frame}, which then builds the view again; {@link App#nextChange} says when
+   * it is due, so an idle window waits for it without drawing frames.
+   *
+   * @param handler runs once the time has come, or null for none
+   */
+  public El onShownFor(double seconds, Runnable handler) {
+    this.shownDelay = delay(seconds);
+    this.onShownFor = handler;
+    return this;
+  }
+
+  /** The handler of {@link #onShownFor}, or null. */
+  Runnable onShownFor() {
+    return onShownFor;
+  }
+
+  double shownDelay() {
+    return shownDelay;
+  }
+
+  /**
    * Makes this overlay modal while it is open: input outside it reaches nothing below it. A press
    * there calls its {@link #onDismiss} handler and nothing else, the wheel there does nothing, the
    * focus stays inside it, Tab and Shift+Tab go around inside it, and keys go up from the focused
@@ -2270,6 +2309,12 @@ public final class El {
       out.append("overlay");
       if (l.centered) {
         out.append(" center");
+      } else if (l.edge != null) {
+        out.append(" edge ").append(l.edge.name().toLowerCase(Locale.ROOT)).append(' ')
+            .append(l.align.name().toLowerCase(Locale.ROOT));
+        if (l.gap != 0) {
+          number(out.append(" gap "), l.gap);
+        }
       } else {
         if (!Float.isNaN(l.pointX)) {
           number(out.append(" at "), l.pointX).append(',');

@@ -161,13 +161,22 @@ public record Theme(
    * @param move parts that travel, such as a toggle's knob
    * @param submenuDelay seconds the pointer rests on a menu's item before its submenu opens, or
    *     the open one closes
-   * @param tooltipDelay seconds the pointer rests on an element before its tooltip shows
+   * @param tooltipDelay seconds the pointer rests on an element, or the keyboard's focus stays on
+   *     it, before its tooltip shows
+   * @param fade how menus, tooltips, dialogs and toasts fade in as they open and out as they close
+   * @param toast seconds a {@link Toast} stays before it closes itself
    */
-  public record Motion(Spring feedback, Spring move, double submenuDelay, double tooltipDelay) {
+  public record Motion(Spring feedback, Spring move, double submenuDelay, double tooltipDelay,
+      Spring fade, double toast) {
 
-    /** Motion with submenus after 0.3 seconds and tooltips after half a second. */
+    /** Motion with submenus after 0.3 seconds, tooltips after half a second, quick fades. */
     public Motion(Spring feedback, Spring move) {
       this(feedback, move, 0.3, 0.5);
+    }
+
+    /** Motion with quick fades and toasts that stay five seconds. */
+    public Motion(Spring feedback, Spring move, double submenuDelay, double tooltipDelay) {
+      this(feedback, move, submenuDelay, tooltipDelay, Spring.INSTANT, 5);
     }
   }
 
@@ -219,7 +228,8 @@ public record Theme(
           new TextStyle(Font::mono, 12),
           new TextStyle(Font::sansBold, 15));
   private static final Sizes SIZE = new Sizes(24, 16, 28, 16, 1, 200, 7, 16, 16);
-  private static final Motion MOTION = new Motion(Spring.INSTANT, Spring.SNAP, 0.3, 0.5);
+  private static final Motion MOTION =
+      new Motion(Spring.INSTANT, Spring.SNAP, 0.3, 0.5, Spring.INSTANT, 5);
 
   /** Neutral greys with a blue accent, light text on dark surfaces. */
   public static final Theme DARK =

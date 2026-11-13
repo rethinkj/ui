@@ -180,6 +180,9 @@ public final class App<S> {
   // The overlays of the last tree the view built, in the order they opened, with where the focus
   // was before each took it; null for one that took none.
   private final Map<Object, Focus> opened = new LinkedHashMap<>();
+  // When the open overlays with an onShownFor handler that has not run yet opened, by identity.
+  private final Map<Object, Double> shownSince = new HashMap<>();
+  private double shownDue = Double.POSITIVE_INFINITY; // when the next of those handlers is
   // Since when the elements under the pointer with whenHoveredFor or onHoverFor have been there.
   private final Map<Object, Rest> resting = new HashMap<>();
   private double restDue = Double.POSITIVE_INFINITY; // when the next of their looks or handlers is
@@ -813,10 +816,11 @@ public final class App<S> {
     if (!queued.isEmpty()) {
       return time; // handlers that a frame queued, such as El#onRowsBuilt
     }
+    double due = Math.min(restDue, shownDue);
     if (blinking == null || !active) {
-      return restDue;
+      return due;
     }
-    return Math.min(restDue, blinkStart + (Math.floor((time - blinkStart) / BLINK) + 1) * BLINK);
+    return Math.min(due, blinkStart + (Math.floor((time - blinkStart) / BLINK) + 1) * BLINK);
   }
 
   /**
@@ -1407,6 +1411,7 @@ public final class App<S> {
         follow.clear();
       }
     }
+    stale |= shownFor();
     stale |= handled || !Objects.equals(focusId, wasFocused) || ring != hadRing;
     stale |= blink(focused == null ? null : focused.editor());
     if (stale) { // the rebuild builds all rows anyway
@@ -1910,6 +1915,7 @@ public final class App<S> {
         continue;
       }
       Focus back = opened.remove(id);
+      shownSince.remove(id);
       if (back != null
           && (focusId == null || focusId.equals(id) || Animator.isBelow(focusId, id))) {
         moveFocus(back.id(), back.ring());
@@ -1926,7 +1932,37 @@ public final class App<S> {
       if (takes) {
         moveFocus(first, false);
       }
+      if (el.onShownFor() != null) {
+        shownSince.put(overlay.getKey(), time);
+        shownDue = Math.min(shownDue, time + el.shownDelay());
+      }
     }
+  }
+
+  /**
+   * Runs the {@link El#onShownFor} handlers of the open overlays whose time has come, and notes in
+   * {@link #shownDue} when the next one's will.
+   *
+   * @return whether one ran
+   */
+  private boolean shownFor() {
+    shownDue = Double.POSITIVE_INFINITY;
+    boolean ran = false;
+    for (Object id : List.copyOf(shownSince.keySet())) {
+      El el = animator.element(id);
+      if (el == null || el.onShownFor() == null) {
+        continue;
+      }
+      double due = shownSince.get(id) + el.shownDelay();
+      if (due <= time) {
+        shownSince.remove(id); // once per opening
+        el.onShownFor().run();
+        handled = ran = true;
+      } else {
+        shownDue = Math.min(shownDue, due);
+      }
+    }
+    return ran;
   }
 
   /** Moves the focus to the element with this identity, which the next {@link #refocus} finds. */

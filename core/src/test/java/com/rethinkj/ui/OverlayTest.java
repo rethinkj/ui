@@ -576,6 +576,34 @@ class OverlayTest {
   }
 
   @Test
+  void aNotificationAtTheWindowsEdgeClosesItselfWhenTheClockSaysAndPresentsNothingMeanwhile() {
+    State s = new State();
+    App<State> app = app(s, st -> el().size(200, 100).child(el().key("field").size(40, 20)
+        .focusable()).overlay(st.open ? row().key("toast").size(80, 20).keepFocus()
+            .atWindowEdge(Side.BOTTOM, Style.Align.CENTER, 10)
+            .onShownFor(5, () -> {
+              st.log.add("timeout");
+              st.open = false;
+            }) : null), 200, 100);
+    press(app, 10, 10);
+    s.open = true;
+    rebuild(app);
+    El toast = find(app, "toast"); // the rebuild made the window 200 high
+    assertRect(new float[] {60, 170, 80, 20},
+        new float[] {toast.x(), toast.y(), toast.width(), toast.height()});
+    assertTrue(app.render().tree().contains("\noverlay edge bottom center gap 10 on 0,0 200x100"));
+    assertEquals("field", app.focused().key(), "it kept the focus where it was");
+    assertEquals(5, app.nextChange(), "when it closes");
+    app.advance(4.9);
+    assertFalse(app.frame(), "nothing to draw while it waits");
+    app.advance(0.1);
+    assertTrue(app.frame());
+    assertEquals(List.of("timeout"), s.log);
+    assertTrue(app.tree().shownOverlays().isEmpty());
+    assertEquals(Double.POSITIVE_INFINITY, app.nextChange());
+  }
+
+  @Test
   void aStayInARowGoesOnThroughAFrameWhoseKeysBuildTheViewBetweenThem() {
     State s = new State();
     App<State> app = app(s, st -> el().size(200, 200).focusable().onKey(k -> {

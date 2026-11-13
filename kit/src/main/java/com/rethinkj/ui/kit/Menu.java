@@ -222,8 +222,9 @@ public final class Menu {
       if (item.keys() != null) {
         Item before = into.putIfAbsent(item.keys(), item);
         if (before != null) {
-          throw new IllegalArgumentException(shortcutText(item.keys()) + " is the shortcut of both \""
-              + before.label() + "\" and \"" + item.label() + "\"");
+          throw new IllegalArgumentException(shortcutText(item.keys())
+              + " is the shortcut of both \"" + before.label() + "\" and \"" + item.label()
+              + "\"");
         }
       }
       if (item.submenu() != null) {
@@ -317,7 +318,7 @@ public final class Menu {
       lit[level] = item;
     }
 
-    /** Opens the submenu of an item at a level, or closes the open one with -1, and those beyond. */
+    /** Opens the submenu of an item at a level, or closes the open one with -1, and deeper ones. */
     void openSubmenu(int level, int item) {
       grow(level + 1);
       if (sub[level] != item) {

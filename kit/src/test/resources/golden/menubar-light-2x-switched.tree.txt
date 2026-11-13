@@ -19,7 +19,7 @@ el 0,0 360x240
     text #query role=textbox label="Query" "SELECT * FROM orders" 12,44 336x24
     text #status "Ready · wrap" 12,76 336x16
 overlay bottom start gap 2 on #title-1 role=menuitem label="Edit" 66,4 39x24
-  el #menu role=menu 66,30 176x135 focused
+  el #menu role=menu 66,30 176x164 focused
     el #item-0 role=menuitem label="Undo" 71,35 166x24
       el 71,35 166x24
         el 79,39 16x16
@@ -51,3 +51,9 @@ overlay bottom start gap 2 on #title-1 role=menuitem label="Edit" 66,4 39x24
           text "\u{E35A}" 79,140 16x16
         text "Paste" 103,140 67x16
         text "Ctrl+V" 190,140 39x16
+    el 71,162 166x1
+    el #item-7 role=menuitem label="Clear" 71,165 166x24
+      el 71,165 166x24
+        el 79,169 16x16
+          text "\u{E47B}" 79,169 16x16
+        text "Clear" 103,169 126x16
