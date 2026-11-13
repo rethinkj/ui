@@ -108,12 +108,14 @@ public record Theme(
   public record Type(TextStyle body, TextStyle mono, TextStyle heading) {}
 
   /**
-   * @param control the height of a button and a text field
-   * @param checkbox the side of a checkbox's box
+   * @param control the height of a button, a text field and a tab
+   * @param checkbox the side of a checkbox's box and of a tab's close button
    * @param switchWidth the width of a toggle's track
    * @param switchHeight the height of a toggle's track
-   * @param stroke the width of a border
+   * @param stroke the width of a border, and of the line between the parts of a split
    * @param field the width of a text field, unless the view gives it another
+   * @param handle the width of the strip along a split's line that takes the pointer
+   * @param step how far an arrow key moves a split's line
    */
   public record Sizes(
       float control,
@@ -121,12 +123,14 @@ public record Theme(
       float switchWidth,
       float switchHeight,
       float stroke,
-      float field) {
+      float field,
+      float handle,
+      float step) {
 
-    /** Sizes with text fields 200 wide. */
+    /** Sizes with text fields 200 wide, a split's handle 7 wide and steps of 16. */
     public Sizes(float control, float checkbox, float switchWidth, float switchHeight,
         float stroke) {
-      this(control, checkbox, switchWidth, switchHeight, stroke, 200);
+      this(control, checkbox, switchWidth, switchHeight, stroke, 200, 7, 16);
     }
   }
 
@@ -161,7 +165,7 @@ public record Theme(
           new TextStyle(Font::sans, 13),
           new TextStyle(Font::mono, 12),
           new TextStyle(Font::sansBold, 15));
-  private static final Sizes SIZE = new Sizes(24, 16, 28, 16, 1, 200);
+  private static final Sizes SIZE = new Sizes(24, 16, 28, 16, 1, 200, 7, 16);
   private static final Motion MOTION = new Motion(Spring.INSTANT, Spring.SNAP);
 
   /** Neutral greys with a blue accent, light text on dark surfaces. */

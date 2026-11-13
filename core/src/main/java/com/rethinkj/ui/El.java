@@ -420,6 +420,10 @@ public final class El {
    * just far enough to show that row whole. In between the list scrolls freely. Meant for the
    * selected row, so that the list follows a selection that the keyboard moves.
    *
+   * <p>Any other scroll area ({@link #scroll}, {@link #scrollBoth}) keeps the child with this
+   * index in view the same way, along the axes it scrolls, as a row of tabs keeps the active
+   * one; children that are leaving do not count.
+   *
    * @param index the row, from 0; -1, the default, or one beyond the last keeps none in view
    */
   public El revealRow(int index) {
@@ -603,6 +607,7 @@ public final class El {
     this.onPress = handler;
     return this;
   }
+
 
   /**
    * Lets this element follow a drag: the pointer goes down on it, or on a descendant without a
@@ -828,7 +833,7 @@ public final class El {
     return onDrag;
   }
 
-  /** The row a {@link #revealRow virtual list} keeps in view, -1 for none. */
+  /** The row a {@link #revealRow virtual list} or the child a scroll area keeps in view, or -1. */
   public int revealRow() {
     return revealRow;
   }
@@ -1279,6 +1284,26 @@ public final class El {
   }
 
   /**
+   * Scrolls this scroll area just far enough to show the child with this index whole, counting
+   * the children that are not leaving, or its start if it is larger; nothing if there is none.
+   */
+  void revealChild(int index) {
+    for (El child : children) {
+      if (!child.exiting && index-- == 0) {
+        scrollTo(scrollX + nearest(child.x - scrollX, child.width, width),
+            scrollY + nearest(child.y - scrollY, child.height, height));
+        return;
+      }
+    }
+  }
+
+  /** The least distance that moves a span into a view from 0 to {@code view}, or its start to 0. */
+  private static double nearest(double start, float size, float view) {
+    double after = start + size - view;
+    return start < 0 ? start : after > 0 ? Math.min(after, start) : 0;
+  }
+
+  /**
    * The first row that is whole inside the list's border box, or the last one for {@code last};
    * where none is whole, the first one in view. 0 for a list without rows.
    */
@@ -1331,7 +1356,8 @@ public final class El {
     String changed =
         !children.equals(before) ? "children"
             : !Objects.equals(key, keyBefore) ? "key"
-            : onPress != press || onDrag != drag || onKey != down || onKeyUp != up
+            : onPress != press || onDrag != drag || onKey != down
+                || onKeyUp != up
                 || onText != text || onEdit != edit ? "handlers"
             : focusable != wasFocusable ? "focusable()"
             : null;

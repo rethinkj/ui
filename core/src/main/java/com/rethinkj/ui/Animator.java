@@ -324,8 +324,14 @@ final class Animator {
     // Clamped to the new content; also shifts the leaving children, which are the old ones.
     el.scrollTo(before == null ? 0 : before.scrollX(), before == null ? 0 : before.scrollY());
     int reveal = el.revealRow();
-    if (reveal >= 0 && reveal < el.rowCount() && (before == null || before.revealRow() != reveal)) {
-      el.scrollTo(el.scrollX(), el.offsetShowing(reveal));
+    if (reveal >= 0 && (before == null || before.revealRow() != reveal)) {
+      if (el.isVirtualList()) {
+        if (reveal < el.rowCount()) {
+          el.scrollTo(el.scrollX(), el.offsetShowing(reveal));
+        }
+      } else if (el.isScrollArea()) {
+        el.revealChild(reveal);
+      }
     }
   }
 

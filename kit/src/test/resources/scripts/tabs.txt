@@ -1,0 +1,26 @@
+# The tabs of kit's tests (TabsTest): eight queries in a bar of 400, the second one modified,
+# Console not closable.
+size 400 160
+frame
+move #tab-1
+frame
+snap first             # the first tab active; the pointer over the second, which shows its cross
+
+leave
+key Tab                # the bar takes the focus, with a ring
+key ArrowLeft          # around to the last tab, which the bar scrolls into view
+frame
+snap last
+
+press #close-7         # closes the active tab: the one before it takes over
+frame
+snap closed
+
+wheel #tablist 0 -150  # the wheel turns up: the tabs move to the right
+frame
+snap wheeled
+
+press #filter          # into the field in the content of the active tab
+key Tab control        # Control+Tab from there: around to the first tab, which comes into view
+frame
+snap cycled

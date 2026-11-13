@@ -863,7 +863,10 @@ public final class App<S> {
    * Positive values scroll towards the end, so that the content moves up or to the left, as {@code
    * deltaY} of a browser's wheel event; SDL counts the other way. Along each axis the innermost
    * scroll area under the pointer that can still move that way takes the whole distance, clamped
-   * to its content; when none can, nothing happens. The next {@link #frame} shows it.
+   * to its content; when none can, nothing happens. A wheel that turns only up and down, as a
+   * mouse's does, moves an area that scrolls only sideways ({@code overflow-x: scroll} without
+   * {@code overflow-y: scroll}, such as a row of tabs) sideways, positive to the right. The next
+   * {@link #frame} shows it.
    */
   public void wheel(float x, float y, float deltaX, float deltaY) {
     if (!Float.isFinite(deltaX) || !Float.isFinite(deltaY)) {
@@ -871,15 +874,22 @@ public final class App<S> {
           + deltaY);
     }
     List<El> areas = hit(x, y).reversed();
-    scrolls.add(() -> scroll(areas, true, deltaX) | scroll(areas, false, deltaY)); // not ||
+    boolean sideways = deltaX == 0;
+    scrolls.add(() -> scroll(areas, true, deltaX, false)
+        | scroll(areas, false, deltaY, sideways)); // not ||
   }
 
-  private static boolean scroll(List<El> areas, boolean horizontal, float delta) {
+  /** @param sideways whether an area that scrolls only sideways takes a vertical delta sideways */
+  private static boolean scroll(List<El> areas, boolean horizontal, float delta, boolean sideways) {
     for (El area : areas) {
       if (area.canScroll(horizontal, delta)) {
         return horizontal
             ? area.scrollTo(area.scrollX() + delta, area.scrollY())
             : area.scrollTo(area.scrollX(), area.scrollY() + delta);
+      }
+      if (sideways && area.style().overflowX == Style.Overflow.SCROLL
+          && area.style().overflowY != Style.Overflow.SCROLL && area.canScroll(true, delta)) {
+        return area.scrollTo(area.scrollX() + delta, area.scrollY());
       }
     }
     return false;

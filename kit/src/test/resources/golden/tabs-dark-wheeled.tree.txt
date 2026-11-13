@@ -1,0 +1,36 @@
+el 0,0 400x160
+  el #queries 0,0 400x160
+    el #bar 0,0 400x28
+      el #tablist role=tablist 2,2 396x24 scroll 371,0 focused
+        el #tab-0 role=tab label="customers.sql" -369,2 125x24
+          text "customers.sql" -360,6 87x16
+          el #close-0 role=button label="Close customers.sql" -269,6 16x16
+            text "×" -265,6 9x16
+        el #tab-1 role=tab label="orders by month.sql" -242,2 179x24
+          text "●" -233,6 12x16
+          text "orders by month.sql" -217,6 125x16
+          el #close-1 role=button label="Close orders by month.sql" -88,6 16x16
+            text "×" -84,6 9x16
+        el #tab-2 role=tab label="Console" -61,2 69x24
+          text "Console" -52,6 51x16
+        el #tab-3 role=tab label="products.sql" 10,2 115x24
+          text "products.sql" 19,6 77x16
+          el #close-3 role=button label="Close products.sql" 100,6 16x16
+            text "×" 104,6 9x16
+        el #tab-4 role=tab label="invoices 2026.sql" 127,2 146x24
+          text "invoices 2026.sql" 136,6 108x16
+          el #close-4 role=button label="Close invoices 2026.sql" 248,6 16x16
+            text "×" 252,6 9x16
+        el #tab-5 role=tab label="slow queries.sql" 275,2 140x24
+          text "slow queries.sql" 284,6 102x16
+          el #close-5 role=button label="Close slow queries.sql" 390,6 16x16
+            text "×" 394,6 9x16
+        el #tab-6 role=tab label="schema diff.sql" 417,2 131x24
+          text "schema diff.sql" 426,6 93x16
+          el #close-6 role=button label="Close schema diff.sql" 523,6 16x16
+            text "×" 527,6 9x16
+    el 0,28 400x1
+    el #panel role=tabpanel label="schema diff.sql" 0,29 400x131
+      el #work 0,29 400x131
+        text "schema diff.sql" 8,37 384x16
+        text #filter role=textbox label="Filter" "" 8,57 200x24

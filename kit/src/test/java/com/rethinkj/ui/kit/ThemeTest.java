@@ -82,6 +82,17 @@ class ThemeTest {
       check(failures, what, colour, surfaces, 3);
       check(failures, what, colour, grid, 3);
     });
+    // Tabs: another tab in muted text on the bar, in primary under the pointer and pressed, where
+    // its cross can be hovered and pressed too; the active one's cross on its raised fill.
+    int tabHovered = over(s.panel(), s.hover());
+    check(failures, "primary text", t.text().primary(), Map.of(
+        "tab hovered", tabHovered,
+        "tab pressed", over(s.panel(), s.pressed()),
+        "cross hovered", over(tabHovered, s.hover()),
+        "cross pressed", over(tabHovered, s.pressed()),
+        "active cross hovered", over(s.raised(), s.hover()),
+        "active cross pressed", over(s.raised(), s.pressed())), 4.5);
+    // A split's line under the pointer is the strong border, and its focus ring the focus ring.
     assertTrue(failures.isEmpty(), String.join("\n", failures));
   }
 

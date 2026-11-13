@@ -1,0 +1,1 @@
+- `El.revealRow(index)` now also works on a scroll area that is not a list of rows, where it keeps the child with that index in view whenever the index changes. A wheel that turns only up and down scrolls an area that scrolls only sideways (`overflow-x: scroll` without `overflow-y: scroll`), such as a row of tabs, sideways.
