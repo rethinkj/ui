@@ -50,6 +50,7 @@ public final class Headless {
       fillRows(overlay, 0, 0, -far, far, width, height, scale);
     }
     El.placeBars(root);
+    El.cycles(root, 0, width, height, false); // phase 0, as nothing has a clock here
     Scene scene = Scene.of(root, null, 0, new Atlas(), textRendering, scale);
     Pixels pixels =
         CpuRenderer.render(scene, Math.round(width * scale), Math.round(height * scale), scale);
