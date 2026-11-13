@@ -56,12 +56,17 @@ import java.util.function.Predicate;
  * disabled. They reach the root only when no element on the focus path took the key: a focused
  * text field keeps Control+C, Control+V, Control+Z and the keys that type, a data grid its arrows
  * and Control+C. Two items with one combination, or one that is Alt with a title's mnemonic, are
- * refused with an exception when the view is built. What the system and SDL keep from the app:
- * Alt+F4 closes the window and Alt+Tab, Alt+Esc, the Windows key and its combinations, Ctrl+Esc,
- * Ctrl+Alt+Del and Print Screen belong to Windows; on Linux the desktop takes Super and its
- * combinations, Alt+Tab, Alt+F4 (and on many desktops Alt+F1, Alt+F2, Alt+F7, Alt+F8, Alt+F10 and
- * Alt+Space), Ctrl+Alt+Delete, Ctrl+Alt+F1 to F12 and Print Screen, before the window sees them.
- * F10 alone reaches the app on both.
+ * refused with an exception when the view is built.
+ *
+ * <p>What the system and SDL do with keys before the app: on Windows, SDL drops the system's own
+ * menu activation by Alt, F10, Alt with a letter and Alt+Space (its hint {@code
+ * SDL_WINDOWS_ENABLE_MENU_MNEMONICS} is off), so these reach the app; Alt+F4 reaches it too, and
+ * SDL also asks the window to close ({@code SDL_WINDOWS_CLOSE_ON_ALT_F4}), which ends a {@code
+ * WindowLoop}. Windows keeps Alt+Tab, Alt+Esc, Ctrl+Esc, Ctrl+Shift+Esc, Ctrl+Alt+Del and the Windows key with its combinations, and may give Print
+ * Screen to its screenshot tool. On Linux, SDL's X11 code keeps no key from the window, but the
+ * desktop takes its own shortcuts before the window sees them: usually Super with its combinations,
+ * Alt+Tab, Alt+F4, Ctrl+Alt+Delete and Ctrl+Alt+F1 to F12, and on many desktops Alt+F1, Alt+F2,
+ * Alt+F7, Alt+F8, Alt+F10, Alt+Space and Print Screen. Avoid these for items.
  *
  * <p>The app keeps a {@link State}: which menu is open, which title has the keys, and the open
  * menu's highlights. In a tree dump the bar is {@code role=menubar} and its titles {@code
