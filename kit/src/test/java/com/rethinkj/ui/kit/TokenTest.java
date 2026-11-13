@@ -11,12 +11,15 @@ import java.util.regex.Pattern;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 
-/** Components take colours and springs from the theme only; the theme is the one file with them. */
+/**
+ * Components take colours, springs and shadows from the theme only; the theme is the one file with
+ * them.
+ */
 class TokenTest {
 
   private static final Path SOURCES = Path.of("src/main/java/com/rethinkj/ui/kit");
   private static final Pattern LITERAL =
-      Pattern.compile("0[xX][0-9A-Fa-f]{8}\\b|Spring\\.[A-Z]|new Spring\\(");
+      Pattern.compile("0[xX][0-9A-Fa-f]{8}\\b|Spring\\.[A-Z]|new Spring\\(|new Shadow\\(");
 
   @Test
   void componentsHaveNoColourOrSpringOfTheirOwn() throws IOException {

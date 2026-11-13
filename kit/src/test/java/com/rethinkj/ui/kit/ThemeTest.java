@@ -1,12 +1,15 @@
 package com.rethinkj.ui.kit;
 
 import static com.rethinkj.ui.kit.Theme.over;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.rethinkj.ui.Scrollbars;
+import com.rethinkj.ui.Shadow;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
@@ -97,6 +100,24 @@ class ThemeTest {
         "active cross pressed", over(s.raised(), s.pressed())), 4.5);
     // A split's line under the pointer is the strong border, and its focus ring the focus ring.
     assertTrue(failures.isEmpty(), String.join("\n", failures));
+  }
+
+  @Test
+  void theDarkThemesShadowsAreStrongerAndTighter() {
+    List<List<Shadow>> dark = List.of(Theme.DARK.elevation().popup(),
+        Theme.DARK.elevation().dialog());
+    List<List<Shadow>> light = List.of(Theme.LIGHT.elevation().popup(),
+        Theme.LIGHT.elevation().dialog());
+    for (int level = 0; level < 2; level++) {
+      assertEquals(2, dark.get(level).size(), "a tight and a wide shadow");
+      assertEquals(2, light.get(level).size(), "a tight and a wide shadow");
+      for (int layer = 0; layer < 2; layer++) {
+        Shadow d = dark.get(level).get(layer);
+        Shadow l = light.get(level).get(layer);
+        assertTrue(d.color() >>> 24 > l.color() >>> 24, d + " is stronger than " + l);
+        assertTrue(d.blur() <= l.blur() && d.y() <= l.y(), d + " is tighter than " + l);
+      }
+    }
   }
 
   private static void check(
