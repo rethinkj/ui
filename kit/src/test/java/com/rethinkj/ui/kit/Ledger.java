@@ -37,6 +37,7 @@ final class Ledger {
   DataGrid.Layout layout;
   java.util.function.Supplier<El> top; // a part at the right above the grid, or null
   DataGrid.CellEditor custom; // the app's own editor of customers, or null
+  List<String> choices = STATUS; // of the status column
   App<Ledger> app;
 
   Ledger(Theme theme, int count) {
@@ -76,7 +77,7 @@ final class Ledger {
         new Column("paid", 70, DataType.BOOLEAN, changes.cell(4)).typeName("bool").editable()
             .nullable(),
         new Column("status", 100, DataType.ENUM, changes.cell(5)).typeName("status")
-            .editable().choices(STATUS),
+            .editable().choices(choices),
         new Column("due", 110, DataType.DATE, changes.cell(6)).typeName("date").editable(),
         new Column("note", 160, DataType.TEXT, changes.cell(7)).typeName("text").editable()
             .nullable());

@@ -760,6 +760,7 @@ public final class DataGrid {
     int edits; // the editors opened so far: each new one takes the focus by this key
     float gridWidth; // the grid's width, as layout last told it, for an editor that grows
     final Menu.State choices = new Menu.State(); // an enumeration's list
+    final FilterList.State search = new FilterList.State(); // a long enumeration's filter
     // The filter being set in its popover: its column, -1 for none, and what it holds.
     int filterColumn = -1;
     final Popover.State filtering = new Popover.State();

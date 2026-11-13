@@ -244,6 +244,34 @@ class GridEditTest {
     assertEquals("commit 0,5 pending", ledger.log.getLast(), "Escape changed nothing");
   }
 
+  /** More choices than a menu shows at once: the editor is a field that filters them. */
+  @Test
+  void aLongEnumerationFiltersItsChoicesAsTyped() throws IOException {
+    Ledger ledger = new Ledger(T, 40);
+    ledger.choices = List.of("paid", "pending", "shipped", "refunded", "returned", "cancelled",
+        "on hold", "backordered", "disputed", "lost", "delivered", "archived");
+    App<Ledger> app = start(ledger);
+    run(app, "press #cell-0-5\nframe\nkey Enter\nframe\nadvance 1\nframe");
+    assertEquals("field", app.focused().key(), "the field takes the keys");
+    String dump = app.tree().dump();
+    assertTrue(dump.contains("role=listbox label=\"Choices of status\""), dump);
+    assertTrue(line(app, "option-0").contains("selected"), "the current choice: " + dump);
+    run(app, "type \"dlv\"\nframe");
+    assertTrue(line(app, "option-0").contains("label=\"delivered\""), app.tree().dump());
+    run(app, "key Enter\nframe");
+    assertEquals("commit 0,5 delivered", ledger.log.getLast());
+    assertEquals(1, ledger.selection.row(), "Enter goes down");
+
+    run(app, "type \"ho\"\nframe\nadvance 1\nframe"); // typing opens it with the text
+    assertTrue(line(app, "option-0").contains("label=\"on hold\""), app.tree().dump());
+    run(app, "key Escape\nframe");
+    assertFalse(app.tree().dump().contains("role=listbox"));
+    assertEquals("commit 0,5 delivered", ledger.log.getLast(), "Escape changed nothing");
+    run(app, "key Enter\nframe\nadvance 1\nframe\nkey ArrowDown\nkey Tab\nframe");
+    assertTrue(ledger.log.getLast().startsWith("commit 1,5 "), ledger.log.toString());
+    assertEquals(6, ledger.selection.column(), "Tab goes right");
+  }
+
   @Test
   void controlZeroSetsNullInTheEditorAndAnEmptyEditorOfANumberIsNull() throws IOException {
     Ledger ledger = new Ledger(T, 40);
