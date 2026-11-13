@@ -1,0 +1,1 @@
+- `Window.identity(id, name)`, called before the first window, gives the app its own taskbar button on Windows (an AppUserModelID, so it no longer groups with every Java program) and its app id and window class on Linux.

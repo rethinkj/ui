@@ -1,0 +1,1 @@
+- Tooltips: a tooltip moved along its side to fit in the window keeps its gap from the anchor also from the window's edge where there is room, instead of sitting flush with it.

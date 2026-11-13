@@ -34,17 +34,20 @@ import java.util.Set;
 /**
  * Every component of the kit in the arrangements a database tool has them in, one section at a
  * time, in the kit's two themes: the sections at the left, the chosen one at the right, and below
- * the sections a select that switches the theme.
+ * the sections a select that switches the theme, or follows the system's light or dark setting
+ * ("System", where the window starts; the title bar's mark then shows the system's accent colour).
  */
 public final class Showcase {
 
   /** The themes to show. */
   enum Look {
     DARK("Dark", Theme.DARK),
-    LIGHT("Light", Theme.LIGHT);
+    LIGHT("Light", Theme.LIGHT),
+    /** The kit's dark or light theme, as the system is set, following it while the app runs. */
+    SYSTEM("System", null);
 
     final String title;
-    final Theme theme;
+    final Theme theme; // null for SYSTEM
 
     Look(String title, Theme theme) {
       this.title = title;
@@ -86,6 +89,10 @@ public final class Showcase {
   }
 
   Look look;
+  /** Whether the system is set to dark, as the window loop says; for {@link Look#SYSTEM}. */
+  boolean systemDark;
+  /** The system's accent colour, 0 where it has none: the title bar's mark in the system look. */
+  int systemAccent;
   Section section = Section.BUTTONS;
   final Menu.State lookMenu = new Menu.State();
   String said = ""; // what the last action did, in the status line
@@ -157,7 +164,12 @@ public final class Showcase {
   }
 
   Theme theme() {
-    return look.theme;
+    return look == Look.SYSTEM ? (systemDark ? Theme.DARK : Theme.LIGHT) : look.theme;
+  }
+
+  /** The look's name, and for the system's which theme it is now. */
+  String lookTitle() {
+    return look == Look.SYSTEM ? "System (" + (systemDark ? "dark" : "light") + ")" : look.title;
   }
 
   void sort(List<SortKey> keys) {
@@ -196,10 +208,18 @@ public final class Showcase {
       return;
     }
     app.textRendering(TextRendering.platform());
-    Window.Options options = Window.options().frameless().minimumSize(900, 600);
+    Showcase s = app.state();
+    s.look = Look.SYSTEM; // the window follows the system until another look is chosen
+    Window.Options options = Identity.options(Showcase.class, "Showcase", 0xFF7C3AED, Symbol.SHAPES)
+        .frameless().minimumSize(900, 600);
     try (Window window = Window.open("Showcase", 1100, 720, options);
         GpuPresenter presenter = new GpuPresenter(window)) {
-      WindowLoop.run(window, app, presenter);
+      new WindowLoop(window, app, presenter)
+          .appearance(a -> {
+            s.systemDark = a.dark();
+            s.systemAccent = a.accent();
+          })
+          .run();
     }
   }
 
@@ -217,7 +237,8 @@ public final class Showcase {
                 i -> s.look = Look.values()[i]).key("look").label("Theme").wFull()))
         .w(200).shrink(0);
     El root = col().wFull().hFull().fill(t.surface().window())
-        .child(titleBar(t, "Showcase · " + s.look.title, t.accent().color()))
+        .child(titleBar(t, "Showcase · " + s.lookTitle(),
+            s.look == Look.SYSTEM && s.systemAccent != 0 ? s.systemAccent : t.accent().color()))
         .child(row().grow(1).minSize(0, 0).padding(0, t.space().m(), t.space().m(), t.space().m())
             .gap(t.space().m())
             .child(sidebar)

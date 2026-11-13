@@ -1,0 +1,1 @@
+- A right click on a drag area of a frameless window (`WindowPart.DRAG`) opens the system's window menu and no longer also reaches the app as a secondary press, which had cleared the focus and dismissed overlays behind the menu. The menu opens only when the press also ends on the drag area.

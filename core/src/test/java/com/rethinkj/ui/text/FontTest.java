@@ -1,5 +1,6 @@
 package com.rethinkj.ui.text;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
@@ -196,6 +197,31 @@ class FontTest {
       assertEquals(19.5f, plain.shape(ADD, 13, 1.5f).width(), "the same font as any other");
       assertEquals(0.09f, plain.lineGap(), 0.001f);
     }
+  }
+
+  /** ic_fluent_arrow_left_16_regular: a shaft of one pixel across the middle. */
+  private static final String ARROW_LEFT = "";
+
+  @Test
+  void iconsAreHintedInBothDirectionsWhateverTheTextsHinting() {
+    TextLibraries.assumeLoaded();
+    Font icons = Font.icons();
+    int glyph = icons.shape(ARROW_LEFT, 16, 1).glyph(0);
+    Font.Bitmap light = icons.rasterize(glyph, 16, TextRendering.Hinting.LIGHT, 0);
+    Font.Bitmap nativeHints = icons.rasterize(glyph, 16, TextRendering.Hinting.NATIVE, 0);
+    assertEquals(light.left(), nativeHints.left());
+    assertEquals(light.top(), nativeHints.top());
+    assertArrayEquals(light.coverage(), nativeHints.coverage(), "the same drawing under both");
+    // In the middle, the shaft is one row of whole pixels, and no row is half covered.
+    int full = 0;
+    int half = 0;
+    for (int y = 0; y < light.height(); y++) {
+      int middle = light.coverage()[y * light.width() + light.width() / 2] & 0xFF;
+      full += middle >= 230 ? 1 : 0;
+      half += middle > 25 && middle < 230 ? 1 : 0;
+    }
+    assertEquals(1, full, "rows in which the shaft is solid");
+    assertEquals(0, half, "rows in which it is half covered");
   }
 
   @Test

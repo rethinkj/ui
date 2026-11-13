@@ -53,7 +53,7 @@ public final class Toast {
         .align(Style.Align.CENTER)
         .radius(t.radius().medium())
         .fill(t.surface().raised())
-        .border(t.size().stroke(), t.border().subtle())
+        .border(t.size().stroke(), t.border().control())
         .shadow(t.elevation().popup())
         .motion(t.motion().fade())
         .child(label(t, message));

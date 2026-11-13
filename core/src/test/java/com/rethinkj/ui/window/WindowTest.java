@@ -235,9 +235,47 @@ class WindowTest {
 
       Desktop.click(window, 180, 15);
       assertTrue(Desktop.pollUntil(window::isMinimized), "minimized by its part");
-      window.restore();
-      assertTrue(Desktop.pollUntil(() -> !window.isMinimized()));
+      assertTrue(Desktop.restore(window), "restored");
     }
+  }
+
+  @Test
+  void aDoublePressNeedsThePressesAsCloseAsTheSystemSays() {
+    assumeTrue(System.getenv(Sdl.HINT_MOUSE_DOUBLE_CLICK_RADIUS) == null, "set by the environment");
+    try (Window window = Window.open(TITLE, 120, 80)) {
+      assertEquals(String.valueOf(Window.doubleClickRadius()),
+          Sdl.getHint(Sdl.HINT_MOUSE_DOUBLE_CLICK_RADIUS), "not SDL's 32, made for touch screens");
+      assertTrue(Window.doubleClickRadius() < 11, "presses on two rows of a table are two");
+    }
+  }
+
+  /**
+   * A right click on the drag area opens the system menu, which runs a loop of its own until it
+   * is dismissed, so this test only sends the presses that do not open it.
+   */
+  @Test
+  void aSecondaryPressThatBeginsOnTheDragAreaIsNotDelivered() {
+    try (Window window = Window.open(TITLE, 300, 200, Window.options().frameless())) {
+      Desktop.settle();
+      window.parts(PARTS);
+      window.listener(events::add);
+      // Begins on the drag area, ends in the content: the menu's press, which does not open it.
+      Desktop.button(window, true, Sdl.BUTTON_RIGHT, 100, 15, 1);
+      Desktop.button(window, false, Sdl.BUTTON_RIGHT, 100, 100, 1);
+      Window.pollEvents();
+      assertEquals(List.of(), presses(), "the system menu's press");
+
+      // Begins in the content and ends on the drag area: the content's.
+      Desktop.button(window, true, Sdl.BUTTON_RIGHT, 100, 100, 1);
+      Desktop.button(window, false, Sdl.BUTTON_RIGHT, 100, 15, 1);
+      Window.pollEvents();
+      assertEquals(List.of(new PointerDown(100, 100, PointerButton.RIGHT, 1),
+          new PointerUp(100, 15, PointerButton.RIGHT)), presses());
+    }
+  }
+
+  private List<WindowEvent> presses() {
+    return events.stream().filter(e -> e instanceof PointerDown || e instanceof PointerUp).toList();
   }
 
   @Test

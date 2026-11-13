@@ -2,6 +2,7 @@ package com.rethinkj.ui.window;
 
 import com.rethinkj.ui.App;
 import com.rethinkj.ui.render.Scene;
+import com.rethinkj.ui.window.WindowEvent.AppearanceChanged;
 import com.rethinkj.ui.window.WindowEvent.CloseRequested;
 import com.rethinkj.ui.window.WindowEvent.FocusChanged;
 import com.rethinkj.ui.window.WindowEvent.KeyDown;
@@ -17,6 +18,7 @@ import com.rethinkj.ui.window.WindowEvent.TextEditing;
 import com.rethinkj.ui.window.WindowEvent.TextInput;
 import com.rethinkj.ui.window.WindowEvent.Wheel;
 import java.util.Objects;
+import java.util.function.Consumer;
 
 /**
  * Runs an {@link App} in a {@link Window}: feeds it the window's pointer, wheel, key and text input
@@ -93,6 +95,8 @@ public final class WindowLoop {
   private final App<?> app;
   private final Presenter presenter;
   private WindowListener listener;
+  private Consumer<SystemAppearance> appearance;
+  private Waits waits = (millis, holdBack) -> {};
   private volatile boolean running;
   private float width = -1;
   private float height = -1;
@@ -124,6 +128,47 @@ public final class WindowLoop {
    */
   public WindowLoop listener(WindowListener listener) {
     this.listener = listener;
+    return this;
+  }
+
+  /** What the loop does between frames, for tests, which wait for a state instead of a time. */
+  @FunctionalInterface
+  interface Waits {
+    /**
+     * Told on the loop's thread right before it waits for events.
+     *
+     * @param millis the longest the wait may take, or -1 when only an event ends it: nothing
+     *     moves, nothing is pending and nothing is due on the app's clock. Events that arrived
+     *     while the frame was drawn may already be there and end it at once.
+     * @param holdBack whether input or a posted task waits for the next refresh
+     */
+    void waiting(long millis, boolean holdBack);
+  }
+
+  /** Tells {@code waits} of each wait; see {@link Waits}. */
+  WindowLoop waits(Waits waits) {
+    this.waits = Objects.requireNonNull(waits, "waits");
+    return this;
+  }
+
+  /**
+   * Hands the system's appearance to the app: {@code handler} gets {@link
+   * Window#systemAppearance()} once when {@link #run} starts and again after each {@link
+   * WindowEvent.AppearanceChanged}, as a task of the app ({@link App#post}), so that it may change
+   * the app's state and the view is built anew. An app that follows the system chooses its theme
+   * there; nothing changes by itself.
+   *
+   * <pre>{@code
+   * new WindowLoop(window, app, presenter)
+   *     .appearance(a -> app.state().dark = a.dark())
+   *     .run();
+   * }</pre>
+   *
+   * @param handler the handler, or null for none
+   * @return this loop
+   */
+  public WindowLoop appearance(Consumer<SystemAppearance> handler) {
+    this.appearance = handler;
     return this;
   }
 
@@ -160,13 +205,16 @@ public final class WindowLoop {
       Window.wake();
     });
     try {
+      handOn(Window.systemAppearance());
       clock = System.nanoTime();
       refreshRate();
       while (running && window.isOpen()) {
         long early = holdBack(System.nanoTime() - started, frameNanos, input);
         if (early > 0) { // more input may come before the frame can be shown
           // A post ends this wait early, and the next turn waits for the rest of the refresh.
-          Window.waitEvents(Math.max(1, (early + 999_999) / 1_000_000));
+          long millis = Math.max(1, (early + 999_999) / 1_000_000);
+          waits.waiting(millis, true);
+          Window.waitEvents(millis);
           continue;
         }
         input = false;
@@ -177,10 +225,15 @@ public final class WindowLoop {
         double change = app.nextChange() - app.time();
         if (app.isMoving() || presenter.pending()) {
           long left = frameNanos - (System.nanoTime() - presented);
-          Window.waitEvents(Math.max(0, left / 1_000_000));
+          long millis = Math.max(0, left / 1_000_000);
+          waits.waiting(millis, false);
+          Window.waitEvents(millis);
         } else if (change < Double.POSITIVE_INFINITY) {
-          Window.waitEvents(Math.max(1, (long) Math.ceil(change * 1000)));
+          long millis = Math.max(1, (long) Math.ceil(change * 1000));
+          waits.waiting(millis, false);
+          Window.waitEvents(millis);
         } else {
+          waits.waiting(-1, false);
           Window.waitEvents();
         }
       }
@@ -249,7 +302,15 @@ public final class WindowLoop {
       }
       case Redraw redraw -> draw(!redraw.live());
       case CloseRequested close -> running = false;
+      case AppearanceChanged changed -> handOn(changed.appearance());
       default -> {}
+    }
+  }
+
+  private void handOn(SystemAppearance now) {
+    Consumer<SystemAppearance> handler = appearance;
+    if (handler != null) {
+      app.post(() -> handler.accept(now));
     }
   }
 

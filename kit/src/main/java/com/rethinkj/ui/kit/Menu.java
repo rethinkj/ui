@@ -401,7 +401,7 @@ public final class Menu {
         .padding(t.space().s())
         .radius(t.radius().medium())
         .fill(t.surface().raised())
-        .border(t.size().stroke(), t.border().subtle())
+        .border(t.size().stroke(), t.border().control())
         .shadow(t.elevation().popup())
         .motion(t.motion().fade())
         .scroll()
@@ -448,6 +448,7 @@ public final class Menu {
         .h(t.size().control()).shrink(0).radius(t.radius().small()).fill(fill)
         .onHoverFor(0, () -> state.highlight(level, i))
         .disabled(!enabled)
+        .current(lit) // the highlight, which a dump would otherwise show only as a colour
         .child(content);
     if (item.checked()) {
       el.checked(true);

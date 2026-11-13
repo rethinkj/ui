@@ -72,8 +72,9 @@ import java.util.function.IntPredicate;
  * <p>A press on a header cell sorts by its column ({@link Options#sort}), Shift with a press adds
  * it as a further key; dragging the right edge of a header cell resizes its column, and a double
  * press on it fits the column to its header and the cells of its rows that exist, icons
- * included. A cell's text that is wider than its column ends in an ellipsis and shows whole in a
- * tooltip. Scrollbars ({@link
+ * included. A cell shows its text on one line, with {@link #LINE_BREAK} for each line break and
+ * {@link #TAB} for each tab; where it is wider than its column it ends in an ellipsis and shows
+ * whole in a tooltip. Scrollbars ({@link
  * Theme#scrollbars}) show where the rows and columns in view are: one along the right edge of the
  * rows, below the header, and one along the bottom of the grid. They lie over the rows, and the
  * grid scrolls far enough to bring the last row and the last column out from under them: the rows
@@ -669,6 +670,12 @@ public final class DataGrid {
     return new Options();
   }
 
+  /** What a cell shows for a line break in its text, which shows on one line: {@code ⏎}. */
+  public static final String LINE_BREAK = "⏎";
+
+  /** What a cell shows for a tab in its text: {@code ⇥}. */
+  public static final String TAB = "⇥";
+
   private DataGrid() {}
 
   /** What the parts of one build of the grid share. */
@@ -1077,7 +1084,7 @@ public final class DataGrid {
         box.gap(t.space().s()).child(Icon.icon(t, icon.symbol(), icon.variant()));
       }
       if (icon == null || !icon.alone()) {
-        box.child(text(t, column.mono(), value == null ? "NULL" : value,
+        box.child(text(t, column.mono(), value == null ? "NULL" : oneLine(value),
             value == null ? t.text().muted() : t.text().primary()));
       } else {
         box.label(value == null ? "NULL" : value); // what the icon stands for, in a dump
@@ -1271,7 +1278,11 @@ public final class DataGrid {
         sel.select(r, c);
       }
     });
-    sel.start = b.cells && c < b.frozen; // a press on a frozen cell leaves the rest where it is
+    // A frozen cell leaves the rest where it is; Home and End in rows go back to the start. The
+    // view goes to the cursor also where the key left it in place, after the wheel moved away.
+    sel.start = b.cells ? c < b.frozen : ends;
+    sel.edgeColumn = -1;
+    sel.moves++;
     return true;
   }
 
@@ -1401,6 +1412,18 @@ public final class DataGrid {
   }
 
   // Parts
+
+  /**
+   * A cell's text on one line: each line break, also CR LF, as {@link #LINE_BREAK} and each tab
+   * as {@link #TAB}, which the default fonts have. The tooltip and a copy keep it as it is.
+   */
+  static String oneLine(String value) {
+    if (value.indexOf('\n') < 0 && value.indexOf('\r') < 0 && value.indexOf('\t') < 0) {
+      return value;
+    }
+    return value.replace("\r\n", LINE_BREAK).replace('\r', '\n').replace("\n", LINE_BREAK)
+        .replace("\t", TAB);
+  }
 
   private static El text(Theme t, boolean mono, String text, int colour) {
     Theme.TextStyle style = mono ? t.type().mono() : t.type().body();

@@ -2,30 +2,39 @@ package com.rethinkj.ui.examples;
 
 import static com.rethinkj.ui.El.col;
 import static com.rethinkj.ui.examples.TitleBar.titleBar;
+import static com.rethinkj.ui.kit.Button.Variant.PRIMARY;
+import static com.rethinkj.ui.kit.Button.Variant.SECONDARY;
+import static com.rethinkj.ui.kit.Button.button;
 import static com.rethinkj.ui.kit.DataGrid.dataGrid;
 import static com.rethinkj.ui.kit.Button.Variant.GHOST;
 import static com.rethinkj.ui.kit.Button.Variant.PRIMARY;
 import static com.rethinkj.ui.kit.Tabs.tabs;
+import static com.rethinkj.ui.kit.TextField.codeArea;
+import static com.rethinkj.ui.kit.TextField.textField;
 import static com.rethinkj.ui.kit.Toggle.toggle;
 import static com.rethinkj.ui.kit.Tree.tree;
 
 import com.rethinkj.ui.App;
 import com.rethinkj.ui.El;
+import com.rethinkj.ui.Key;
 import com.rethinkj.ui.Script;
 import com.rethinkj.ui.Work;
 import com.rethinkj.ui.kit.Button;
 import com.rethinkj.ui.kit.Card;
+import com.rethinkj.ui.kit.AppIcon;
 import com.rethinkj.ui.kit.DataGrid;
 import com.rethinkj.ui.kit.DataGrid.CellIcon;
 import com.rethinkj.ui.kit.DataGrid.Column;
 import com.rethinkj.ui.kit.DataGrid.DataType;
 import com.rethinkj.ui.kit.DataGrid.Mode;
 import com.rethinkj.ui.kit.DataGrid.Selection;
+import com.rethinkj.ui.kit.Dialog;
 import com.rethinkj.ui.kit.Icon;
 import com.rethinkj.ui.kit.Icon.Variant;
 import com.rethinkj.ui.kit.Divider;
 import com.rethinkj.ui.kit.Label;
 import com.rethinkj.ui.kit.Split;
+import com.rethinkj.ui.kit.Menu;
 import com.rethinkj.ui.kit.Split.Direction;
 import com.rethinkj.ui.kit.Split.Position;
 import com.rethinkj.ui.kit.Symbol;
@@ -35,6 +44,7 @@ import com.rethinkj.ui.kit.Tree;
 import com.rethinkj.ui.render.GpuPresenter;
 import com.rethinkj.ui.text.TextRendering;
 import com.rethinkj.ui.window.Window;
+import com.rethinkj.ui.window.WindowIcon;
 import com.rethinkj.ui.window.WindowLoop;
 import java.io.IOException;
 import java.net.ConnectException;
@@ -46,6 +56,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * The frame of a database manager over made-up servers that answer slowly: servers, databases,
@@ -58,7 +70,13 @@ import java.util.Set;
  * the question of its table, whose answer then never arrives. The rows are made up from their
  * index; localhost/shop/public/orders has a million. A message in the status line goes after a
  * few seconds on the app's clock ({@link App#after}), and the title bar switches between the dark
- * and the light theme.
+ * and the light theme. A right click on a node selects it and opens its menu: open it, copy its
+ * name, and on a table "Drop table…", which asks in a dialog for the table's name and then drops
+ * nothing, as nothing here is real. Above a table's rows, a query area ({@link
+ * com.rethinkj.ui.kit.TextField#codeArea}) holds its statement; Control+Enter runs it, which asks
+ * for the number of rows again, at most as many as its {@code LIMIT} says, on a thread of its own.
+ * The taskbar button counts the questions on their way, and asks for attention when an answer
+ * arrives while the window is in the background.
  *
  * <p>The work gets the names it asks about, never the nodes: they are the app's state, which only
  * the handlers touch, on the app's thread. Under a script the latency is 0, and the script's
@@ -94,12 +112,15 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
   static final class Opened {
     final Node table;
     int rows = -1; // until the server answers
-    Work asking; // the question for the rows, cancelled with the tab
+    Work asking; // the question for the rows, cancelled with the tab or by the next one
+    String query; // the statement in the query area
     final Selection selection = new Selection(Mode.ROWS);
     final float[] widths;
 
     Opened(Node table) {
       this.table = table;
+      query = "SELECT *\nFROM " + table.parent.parent.name + "." + table.parent.name + "."
+          + table.name + ";";
       widths = new float[table.children.size()];
       for (int c = 0; c < widths.length; c++) {
         widths[c] = field(table.children.get(c).name).width();
@@ -141,6 +162,9 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
   private static final DateTimeFormatter TIME = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
   static final Position SIDEBAR = Position.first(260);
   static final double MESSAGE_SECONDS = 5; // how long a message stays in the status line
+  // What the made-up server reads of a statement: how many rows it asks for.
+  private static final Pattern LIMIT =
+      Pattern.compile("\\bLIMIT\\s+(\\d{1,9})\\b", Pattern.CASE_INSENSITIVE);
 
   Duration latency = Duration.ofMillis(800); // of every answer of the made-up servers
   final List<Node> servers = new ArrayList<>();
@@ -154,6 +178,10 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
   String message; // in the status line for a while, or null
   int messages; // told so far
   App<Workbench> app; // runs the work and the clock
+  final Menu.State menu = new Menu.State(); // the tree's context menu, for the selected node
+  Node dropping; // the table the dialog asks about, or null while it is closed
+  String confirm = ""; // the name typed into the dialog
+  Window window; // the window it runs in, for the taskbar; null under a script
 
   Workbench() {
     Node localhost = new Node(Kind.SERVER, "localhost", null);
@@ -271,12 +299,15 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
             names.forEach(name -> schema(database(node, name), "public",
                 name.equals("shop") ? TABLES.length : 3));
             tell(server + ": " + names.size() + " databases");
+            answered();
           },
           error -> {
             connecting.remove(node);
             open.remove(node); // opening it again asks again
             tell(server + ": " + error.getMessage());
+            answered();
           });
+      taskbar();
     }
   }
 
@@ -293,27 +324,39 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
       }
     }
     Opened o = new Opened(table);
-    count(o);
+    ask(o, Integer.MAX_VALUE);
     tables.add(o);
     active = tables.size();
+    taskbar(); // again, now that the tab counts
   }
 
-  /** Asks the server for the table's number of rows, unless a question is on its way. */
-  void count(Opened o) {
+  /** Control+Enter in a table's query area: its statement, as far as the server reads it. */
+  void run(Opened o) {
+    Matcher limit = LIMIT.matcher(o.query);
+    ask(o, limit.find() ? Integer.parseInt(limit.group(1)) : Integer.MAX_VALUE);
+  }
+
+  /** Asks for the number of rows of a tab's table, at most {@code limit}. */
+  private void ask(Opened o, int limit) {
     if (o.asking != null) {
-      return;
+      o.asking.cancel(); // the answer asked for before is not wanted any more
     }
+    o.rows = -1;
+    o.selection.clear();
     String path = o.table.path();
     Duration wait = latency;
-    o.asking = app.background("rows of " + path, () -> count(path, wait),
+    o.asking = app.background("rows of " + path, () -> Math.min(count(path, wait), limit),
         rows -> {
           o.rows = rows;
           o.asking = null;
+          answered();
         },
         error -> {
           o.asking = null;
           tell(path + ": " + error.getMessage());
+          answered();
         });
+    taskbar();
   }
 
   void close(int tab) {
@@ -321,8 +364,63 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
     if (o.asking != null) {
       o.asking.cancel(); // its answer is not wanted any more
     }
+    taskbar();
     if (tab < active || active > tables.size()) {
       active--;
+    }
+  }
+
+  /** The items of the tree's context menu, for the selected node. */
+  List<Menu.Item> menuItems() {
+    Node node = selected;
+    if (node == null) {
+      return List.of();
+    }
+    Runnable opens = node.kind == Kind.TABLE || node.kind == Kind.COLUMN ? () -> activate(node)
+        : open.contains(node) ? null : () -> openOrClose(node, true);
+    List<Menu.Item> items = new ArrayList<>(List.of(
+        Menu.item("Open", opens),
+        Menu.item("Copy name", () -> {
+          app.clipboard().write(node.name);
+          tell("Copied " + node.name);
+        })));
+    if (node.kind == Kind.TABLE) {
+      items.add(Menu.separator());
+      items.add(Menu.item("Drop table…", () -> {
+        dropping = node;
+        confirm = "";
+      }));
+    }
+    return items;
+  }
+
+  void drop() {
+    tell(dropping.path() + " was not dropped: nothing here is real");
+    dropping = null;
+  }
+
+  /** The questions on their way: servers connecting and tables counting their rows. */
+  int running() {
+    return connecting.size() + (int) tables.stream().filter(o -> o.asking != null).count();
+  }
+
+  /** Shows the number of questions on their way on the taskbar button, or nothing for none. */
+  void taskbar() {
+    if (window == null) {
+      return;
+    }
+    int n = running();
+    Theme t = theme();
+    WindowIcon badge = WindowIcon.of(size -> AppIcon.count(t, size, t.accent().color(), n));
+    window.badge(n == 0 ? null : badge,
+        n == 1 ? "1 question running" : n + " questions running");
+  }
+
+  /** An answer arrived: the badge counts one less, and a window in the background asks to look. */
+  void answered() {
+    taskbar();
+    if (window != null && !window.isFocused()) {
+      window.attention(Window.Attention.UNTIL_FOCUSED);
     }
   }
 
@@ -350,9 +448,11 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
     }
     s.latency = Duration.ofMillis(800);
     app.textRendering(TextRendering.platform());
-    Window.Options options = Window.options().frameless().minimumSize(640, 400);
+    Window.Options options = Identity.options(Workbench.class, "Workbench", 0xFF0F766E,
+        Symbol.DATABASE).frameless().minimumSize(640, 400);
     try (Window window = Window.open("Workbench", 1200, 720, options);
         GpuPresenter presenter = new GpuPresenter(window)) {
+      s.window = window;
       WindowLoop.run(window, app, presenter);
     }
   }
@@ -369,18 +469,33 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
         .child(Card.footer(t, Label.label(t, Label.Variant.MUTED, s.status()).key("status")
             .ellipsis()));
     El right = tabs(t, tabs, s.active, i -> s.active = i, s::close, content);
+    El tree = tree(t, s, s.open::contains, s.selected, n -> s.selected = n, s::openOrClose,
+        s::activate).key("catalogue").label("Catalogue");
     El catalogue = Card.flush(t,
         Card.toolbar(t, "Connections", null, Button.icon(t, GHOST, Symbol.ADD, "Add connection",
             () -> s.tell("Adding a connection is not part of this example"))),
-        Card.inset(t, tree(t, s, s.open::contains, s.selected, n -> s.selected = n,
-            s::openOrClose, s::activate).key("catalogue").label("Catalogue")));
-    return col().wFull().hFull().fill(t.surface().window())
+        Card.inset(t, Menu.contextMenu(t, tree, s.menu, s.menuItems())));
+    El root = col().wFull().hFull().fill(t.surface().window())
         .onKey(right.onKey()) // the tabs' keys also while the tree has the focus
         .child(titleBar(t, "Workbench", t.accent().color(),
             toggle(t, s.dark, "Dark", () -> s.dark = !s.dark)))
         .child(Split.cards(t, Direction.ROW, s.sidebar, SIDEBAR, p -> s.sidebar = p,
             catalogue, 160, right.key("tabs"), 320).grow(1)
             .padding(0, t.space().m(), t.space().m(), t.space().m()));
+    if (s.dropping != null) {
+      String name = s.dropping.name;
+      root.overlay(Dialog.dialog(t, "Drop table",
+          col().gap(t.space().m()).children(
+              Label.label(t, "Drop " + s.dropping.path() + " and all its rows?"),
+              Label.label(t, Label.Variant.MUTED, "Type the table's name to confirm."),
+              textField(t, s.confirm, name, v -> s.confirm = v).key("confirm")
+                  .label("Table name")),
+          List.of(
+              button(t, SECONDARY, "Cancel", () -> s.dropping = null).key("cancel"),
+              button(t, PRIMARY, "Drop", s.confirm.equals(name) ? s::drop : null).key("drop")),
+          () -> s.dropping = null));
+    }
+    return root;
   }
 
   /** The message, or else what the active tab shows. */
@@ -414,10 +529,20 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
   }
 
   private static El table(Theme t, Workbench s, Opened o) {
+    El area = codeArea(t, o.query, "SQL", q -> o.query = q)
+        .key("query-" + o.table.path()).label("Query").wFull().shrink(0).onKey(k -> {
+          boolean run = k.name().equals("Enter") && k.modifiers() == Key.CONTROL;
+          if (run) {
+            s.run(o);
+          }
+          return run;
+        });
+    El query = col().padding(t.space().m(), t.space().l()).shrink(0).child(area);
     if (o.rows < 0) {
-      return col().grow(1).padding(t.space().xxl())
+      return col().grow(1).minSize(0, 0).children(toolbar(t, s, o), Divider.divider(t), query,
+          Divider.divider(t), col().padding(t.space().xxl())
           .child(Label.label(t, Label.Variant.MUTED,
-              "Loading the rows of " + o.table.path() + "…"));
+              "Loading the rows of " + o.table.path() + "…")));
     }
     List<Column> columns = new ArrayList<>();
     for (int c = 0; c < o.widths.length; c++) {
@@ -437,11 +562,15 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
             .onResize((c, w) -> o.widths[c] = w)
             .copy(s.app.clipboard()))
         .key("grid-" + o.table.path()).label(o.table.name);
-    El toolbar = Card.toolbar(t, o.table.name, String.format(Locale.ROOT, "%,d rows", o.rows),
-        Button.button(t, PRIMARY, Symbol.ARROW_CLOCKWISE, "Refresh",
-            o.asking == null ? () -> s.count(o) : null));
-    return col().grow(1).minSize(0, 0)
-        .children(toolbar, Divider.divider(t), grid.grow(1).minSize(0, 0));
+    return col().grow(1).minSize(0, 0).children(toolbar(t, s, o), Divider.divider(t), query,
+        Divider.divider(t), grid.grow(1).minSize(0, 0));
+  }
+
+  /** The table's name, its number of rows and the button that runs the query. */
+  private static El toolbar(Theme t, Workbench s, Opened o) {
+    String rows = o.rows < 0 ? "counting the rows" : String.format(Locale.ROOT, "%,d rows", o.rows);
+    return Card.toolbar(t, o.table.name, rows,
+        Button.button(t, PRIMARY, Symbol.PLAY, "Run", () -> s.run(o)).key("run"));
   }
 
   private static Field field(String name) {

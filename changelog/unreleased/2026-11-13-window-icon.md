@@ -1,0 +1,1 @@
+- Windows have icons of their own for the taskbar, Alt+Tab and docks: `WindowIcon.of(Pixels...)` or `WindowIcon.of(size -> view)`, a view drawn at each size the system asks for, set with `Window.options().icon(...)` or `window.icon(...)`; the kit's `AppIcon.appIcon(theme, size, colour, symbol)` makes one of a rounded square and a symbol.

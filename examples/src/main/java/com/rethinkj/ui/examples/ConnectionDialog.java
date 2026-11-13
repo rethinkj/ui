@@ -21,6 +21,7 @@ import com.rethinkj.ui.El;
 import com.rethinkj.ui.Script;
 import com.rethinkj.ui.kit.Form;
 import com.rethinkj.ui.kit.Card;
+import com.rethinkj.ui.kit.Symbol;
 import com.rethinkj.ui.kit.Theme;
 import com.rethinkj.ui.render.GpuPresenter;
 import com.rethinkj.ui.text.TextRendering;
@@ -89,7 +90,8 @@ public final class ConnectionDialog {
       return;
     }
     app.textRendering(TextRendering.platform());
-    Window.Options options = Window.options().frameless().minimumSize(400, 412);
+    Window.Options options = Identity.options(ConnectionDialog.class, "New connection",
+        0xFF16A34A, Symbol.PLUG_CONNECTED).frameless().minimumSize(400, 412);
     try (Window window = Window.open("New connection", 440, 432, options);
         GpuPresenter presenter = new GpuPresenter(window)) {
       WindowLoop.run(window, app, presenter);

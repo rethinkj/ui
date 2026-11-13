@@ -84,7 +84,7 @@ public record Theme(
    * @param strong the edges a control is recognised by, such as a text field's frame or a
    *     checkbox's box, which stand out 3:1 from the surfaces
    * @param control the edge of a button and of other controls that their text names, quieter
-   *     than {@code strong}
+   *     than {@code strong}, and of popups and dialogs
    */
   public record Borders(int subtle, int strong, int control) {}
 

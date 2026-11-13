@@ -1,0 +1,1 @@
+- Icons (`Font.icons()`, the kit's `Icon`) are hinted with FreeType's auto-hinter in both directions under every `TextRendering`, so that their straight strokes sit on whole pixels also with `TextRendering.LINUX`, whose light auto-hinter left strokes such as an arrow's shaft half covered on two pixels at scale 1. Images that show icons and were rendered with `LINUX` change.

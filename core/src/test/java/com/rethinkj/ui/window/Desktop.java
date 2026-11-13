@@ -6,18 +6,29 @@ import static java.lang.foreign.ValueLayout.JAVA_BYTE;
 import static java.lang.foreign.ValueLayout.JAVA_FLOAT;
 import static java.lang.foreign.ValueLayout.JAVA_INT;
 import static java.lang.foreign.ValueLayout.JAVA_SHORT;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
+import com.rethinkj.ui.App;
 import com.rethinkj.ui.natives.Natives;
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BooleanSupplier;
+import java.util.function.Supplier;
 
 /**
  * For tests that open windows: skips them where that is not possible, and puts synthetic events
  * into SDL's queue, which reach the window the way real input does.
  */
 final class Desktop {
+
+  /**
+   * How long a test waits for a state before it fails: far longer than anything takes on a busy
+   * machine, so that only a state that never comes ends a test this way.
+   */
+  static final long TIMEOUT_MILLIS = 10_000;
 
   private Desktop() {}
 
@@ -41,9 +52,97 @@ final class Desktop {
     }
   }
 
-  /** Delivers events until {@code done}, for at most two seconds. */
+  /**
+   * Runs the loop until it stops, and fails with {@code what} did not happen if that takes {@link
+   * #TIMEOUT_MILLIS}.
+   */
+  static void run(WindowLoop loop, String what) {
+    run(loop, () -> what);
+  }
+
+  /** Like {@link #run(WindowLoop, String)}, with a message made when the test fails. */
+  static void run(WindowLoop loop, Supplier<String> what) {
+    AtomicBoolean late = new AtomicBoolean();
+    Thread timeout = Thread.ofPlatform().daemon().start(() -> {
+      try {
+        Thread.sleep(TIMEOUT_MILLIS);
+        late.set(true);
+        loop.stop();
+      } catch (InterruptedException e) {
+        // the loop ended in time
+      }
+    });
+    try {
+      loop.run();
+    } finally {
+      timeout.interrupt();
+    }
+    assertFalse(late.get(), () -> "Not within " + TIMEOUT_MILLIS / 1000 + " s: " + what.get());
+  }
+
+  /** Runs a loop until {@code done} after a frame was presented; see {@link #run}. */
+  static void runUntil(Window window, App<?> app, BooleanSupplier done, String what) {
+    AtomicReference<WindowLoop> loop = new AtomicReference<>();
+    loop.set(new WindowLoop(window, app, (scene, w, h, s) -> {
+      if (done.getAsBoolean()) {
+        loop.get().stop();
+      }
+    }));
+    run(loop.get(), what);
+  }
+
+  /**
+   * Tells a presenter whether the frame it presents is one that the desktop asked for: the loop
+   * presents a frame for each {@link WindowEvent.Redraw}, which comes when the window is exposed,
+   * as while it maps late on a busy machine. Give it to the loop as its listener.
+   */
+  static final class Redraws implements WindowListener {
+    private boolean asked;
+    private int count;
+
+    @Override
+    public void event(WindowEvent event) {
+      asked = event instanceof WindowEvent.Redraw;
+    }
+
+    /** Whether the frame that is presented now is a redraw's; call it once per frame. */
+    boolean asked() {
+      boolean was = asked;
+      asked = false;
+      if (was) {
+        count++;
+      }
+      return was;
+    }
+
+    /** The frames presented for redraws. */
+    int count() {
+      return count;
+    }
+  }
+
+  /**
+   * Restores a minimized window and delivers events until it is restored, asking again every two
+   * seconds, as a window manager under load may drop a request; false after {@link
+   * #TIMEOUT_MILLIS}.
+   */
+  static boolean restore(Window window) {
+    for (int i = 0; i < TIMEOUT_MILLIS / 2000; i++) {
+      window.restore();
+      if (pollUntil(() -> !window.isMinimized(), 2000)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /** Delivers events until {@code done}, for at most {@link #TIMEOUT_MILLIS}. */
   static boolean pollUntil(BooleanSupplier done) {
-    long end = System.nanoTime() + 2_000_000_000L;
+    return pollUntil(done, TIMEOUT_MILLIS);
+  }
+
+  private static boolean pollUntil(BooleanSupplier done, long millis) {
+    long end = System.nanoTime() + millis * 1_000_000;
     while (true) {
       Window.waitEvents(10);
       if (done.getAsBoolean()) {
@@ -129,6 +228,15 @@ final class Desktop {
       e.set(JAVA_INT, Sdl.WINDOW_DATA1, data1);
       e.set(JAVA_INT, Sdl.WINDOW_DATA2, data2);
     });
+  }
+
+  /** An event of the whole app, of no window, such as the system theme's change. */
+  static void systemEvent(int type) {
+    try (Arena arena = Arena.ofConfined()) {
+      MemorySegment event = arena.allocate(Sdl.EVENT_SIZE, 8);
+      event.set(JAVA_INT, Sdl.EVENT_TYPE, type);
+      Sdl.pushEvent(event);
+    }
   }
 
   private static void push(Window window, int type, java.util.function.Consumer<MemorySegment> fill) {

@@ -9,12 +9,13 @@ press role=treeitem label="orders"
 frame
 press role=treeitem label="orders" clicks 2  # a double press opens the table in a tab
 frame
+advance 0.2                                # past the fade of the new tab's toolbar
+frame
 snap workbench-loading                     # which asks for its rows: "Loading…" until the answer
 
 await                                      # a million rows
 frame
-advance 0.2                                # the toolbar's button fades in
-press 600,200                              # selects a row and focuses the grid
+press 600,300                              # selects a row and focuses the grid
 key End                                    # the last of a million rows, clear of the bar
 frame
 snap workbench-orders
@@ -33,6 +34,31 @@ snap workbench-closed
 
 wheel #catalogue 0 -1000                   # back to the top: opening orders showed its columns
 frame
+
+press role=treeitem label="deliveries" right  # selects the table and opens its menu there
+frame
+advance 0.25                               # past the menu's fade
+frame
+snap workbench-menu
+
+press role=menuitem label="Drop table…"      # asks in a dialog, whose field takes the focus
+type "deliver"
+frame
+advance 0.25
+frame
+snap workbench-drop                        # Drop stays disabled until the whole name is typed
+
+type "ies"
+frame
+press #drop                                # drops nothing, and the status line says so
+frame
+advance 0.25
+frame
+snap workbench-dropped                     # the focus back on the tree
+
+advance 5
+frame
+
 press #mark-0                              # closes localhost
 frame
 press role=treeitem label="staging"
@@ -58,3 +84,26 @@ frame
 advance 1
 frame
 snap workbench-light
+
+move label="Close"                         # the title bar's button says what it does after a rest
+frame
+advance 0.6
+frame                                      # the tooltip appears and fades in
+advance 0.25
+frame
+snap workbench-tooltip                     # a gap from the window's edge
+
+press #query-localhost/shop/public/orders   # the statement of orders, above its rows
+key End control
+key ArrowLeft                              # before the semicolon
+key Enter
+type "LIMIT 20"
+key Enter control                          # runs it: the rows are asked for again
+frame
+advance 1                                  # the area's border of the focus
+frame
+snap workbench-query                       # "Loading…" below the statement, the caret still in it
+
+await
+frame
+snap workbench-ran                         # twenty rows, and the status line says so

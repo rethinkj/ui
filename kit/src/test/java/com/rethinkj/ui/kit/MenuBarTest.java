@@ -171,8 +171,9 @@ class MenuBarTest {
     Studio studio = new Studio(Theme.DARK);
     App<Studio> app = studio.app();
     run(app, "frame\n");
-    assertEquals(WindowPart.CONTENT, app.windowPart(40, 16), "File");
-    assertEquals(WindowPart.CONTENT, app.windowPart(170, 16), "Help");
+    // Controls: they take presses, and the resize margin gives way to them.
+    assertEquals(WindowPart.CONTROL, app.windowPart(40, 16), "File");
+    assertEquals(WindowPart.CONTROL, app.windowPart(170, 16), "Help");
     assertEquals(WindowPart.DRAG, app.windowPart(66, 2), "above Edit, in the bar's margin");
     assertEquals(WindowPart.DRAG, app.windowPart(240, 16), "beside the titles");
     assertEquals(WindowPart.CLOSE, app.windowPart(340, 16));

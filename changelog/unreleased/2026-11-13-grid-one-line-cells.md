@@ -1,0 +1,1 @@
+- `DataGrid` shows a cell's text on one line: each line break as `⏎` and each tab as `⇥` (`DataGrid.LINE_BREAK`, `DataGrid.TAB`). A line feed used to start a second line that the row cut off, and a tab showed as a missing glyph. Copying and the tooltip keep the text as it is.

@@ -27,6 +27,7 @@ import com.rethinkj.ui.kit.Symbol;
 import com.rethinkj.ui.kit.TextField;
 import com.rethinkj.ui.kit.Theme;
 import com.rethinkj.ui.kit.Tooltip;
+import com.rethinkj.ui.kit.Toast;
 import com.rethinkj.ui.render.GpuPresenter;
 import com.rethinkj.ui.text.TextRendering;
 import com.rethinkj.ui.window.Window;
@@ -111,7 +112,9 @@ public final class DataBrowser {
   boolean descending; // by id
   final float[] widths = new float[FIELDS.size()];
   final Menu.State menu = new Menu.State();
+  String toast; // a message at the bottom of the window, or null
   App<DataBrowser> app;
+  static final long COPY_LIMIT = 100_000; // the grid's own limit, said in the toast
 
   DataBrowser() {
     for (int c = 0; c < widths.length; c++) {
@@ -246,7 +249,8 @@ public final class DataBrowser {
       return;
     }
     app.textRendering(TextRendering.platform());
-    Window.Options options = Window.options().frameless().minimumSize(480, 320);
+    Window.Options options = Identity.options(DataBrowser.class, "Orders", 0xFF2563EB, Symbol.TABLE)
+        .frameless().minimumSize(480, 320);
     try (Window window = Window.open("Orders", 1000, 600, options);
         GpuPresenter presenter = new GpuPresenter(window)) {
       WindowLoop.run(window, app, presenter);
@@ -275,12 +279,16 @@ public final class DataBrowser {
     if (s.app != null) { // the window's clipboard once it runs, the app's own before
       options.copy(s.app.clipboard());
     }
+    // The grid copies nothing beyond its limit; a toast says why instead of nothing happening.
+    options.copyLimit(COPY_LIMIT, copy -> s.toast = String.format(Locale.ROOT,
+        "%,d cells are too many to copy at once: at most %,d", copy.cells(), COPY_LIMIT));
     El grid = dataGrid(t, columns, s.count(), options);
     El filter = TextField.withIcon(t, textField(t, s.filter, "Filter", s::filter).key("filter")
         .w(280), Symbol.SEARCH);
     filter = Tooltip.tooltip(t, filter, "Words in customer, email, city, country, product,"
         + " status or note");
     return col().wFull().hFull().fill(t.surface().window())
+        .overlay(s.toast == null ? null : Toast.toast(t, s.toast, null, null, () -> s.toast = null))
         .child(titleBar(t, "Orders", t.accent().color()))
         .child(col().grow(1).minSize(0, 0).padding(0, t.space().m(), t.space().m(), t.space().m())
             .child(Card.flush(t,

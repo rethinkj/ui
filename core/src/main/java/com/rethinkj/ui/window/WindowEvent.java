@@ -36,7 +36,7 @@ public sealed interface WindowEvent {
    * The wheel or the touchpad scrolled, by {@code dx} and {@code dy} in steps of the wheel, with
    * the pointer at {@code x, y}. Positive {@code dy} scrolls up, away from the user; positive {@code
    * dx} scrolls right. Systems that flip the direction ("natural scrolling") are already accounted
-   * for.
+   * for, and so is Shift: a wheel that turns only up and down turns sideways while it is held.
    */
   record Wheel(float dx, float dy, float x, float y) implements WindowEvent {}
 
@@ -79,6 +79,12 @@ public sealed interface WindowEvent {
    * stays open until {@link Window#close} is called.
    */
   record CloseRequested() implements WindowEvent {}
+
+  /**
+   * The system's appearance changed: light or dark, the accent colour or high contrast. Every
+   * open window gets it. See {@link Window#systemAppearance()}.
+   */
+  record AppearanceChanged(SystemAppearance appearance) implements WindowEvent {}
 
   /**
    * Draw the window now, before the listener returns.
