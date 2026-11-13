@@ -1,0 +1,1 @@
+- The DataBrowser example edits its orders with the changes kept until Commit (Revert forgets them), filters the text columns per column, chooses its columns and switches between the dark and the light theme.

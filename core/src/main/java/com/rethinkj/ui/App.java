@@ -378,7 +378,7 @@ public final class App<S> {
 
   private boolean down(float x, float y, int clicks, int modifiers) {
     typingSoon = null;
-    boolean changed = anyPointerDown();
+    boolean changed = anyPointerDown(x, y);
     if (dragging != null && dragging.started) { // the last release got lost
       changed = step(dragging, Drag.Phase.CANCEL, dragging.dx, dragging.dy);
     }
@@ -485,7 +485,7 @@ public final class App<S> {
   }
 
   private boolean secondaryDownAt(float x, float y) {
-    boolean any = anyPointerDown();
+    boolean any = anyPointerDown(x, y);
     secondary = null;
     settle();
     restAfterPress();
@@ -501,27 +501,35 @@ public final class App<S> {
     return any;
   }
 
-  /** Runs the {@link El#onAnyPointerDown} handlers of the tree and its shown overlays. */
-  private boolean anyPointerDown() {
+  /**
+   * Runs the {@link El#onAnyPointerDown} handlers of the tree and its shown overlays, and the
+   * {@link El#onPressOutside} handlers of those the press at this point is not on or inside.
+   */
+  private boolean anyPointerDown(float x, float y) {
     if (root == null) {
       return false;
     }
+    Set<El> hit = Collections.newSetFromMap(new IdentityHashMap<>());
+    hit.addAll(hit(x, y));
     List<Runnable> handlers = new ArrayList<>();
-    anyPointerDown(root, handlers);
+    anyPointerDown(root, hit, handlers);
     for (El overlay : root.shownOverlays()) {
-      anyPointerDown(overlay, handlers);
+      anyPointerDown(overlay, hit, handlers);
     }
     handlers.forEach(Runnable::run);
     handled |= !handlers.isEmpty();
     return !handlers.isEmpty();
   }
 
-  private static void anyPointerDown(El el, List<Runnable> handlers) {
+  private static void anyPointerDown(El el, Set<El> hit, List<Runnable> handlers) {
     if (el.onAnyPointerDown() != null) {
       handlers.add(el.onAnyPointerDown());
     }
+    if (el.onPressOutside() != null && !hit.contains(el)) {
+      handlers.add(el.onPressOutside());
+    }
     for (El child : el.children()) {
-      anyPointerDown(child, handlers);
+      anyPointerDown(child, hit, handlers);
     }
   }
 
@@ -2694,6 +2702,7 @@ public final class App<S> {
     // third, builds the rows the measured heights show.
     for (int pass = 0; range != null && pass < 3; pass++) {
       Object id = Animator.identities(path).getLast();
+      int asking = El.autofocuses();
       el.makeRows(range[0], range[1]);
       tellRows(el, id, range[0], range[1] - 1);
       shown = shown.without(id);
@@ -2704,6 +2713,13 @@ public final class App<S> {
       rowLooks(el, id); // after layout, which says which row is under the pointer
       for (El row : el.children()) {
         Overlays.layout(row, width, height); // after the looks, which may attach overlays
+      }
+      // As openAndClose for the rest, where a row asked for the focus.
+      Object asked = El.autofocuses() == asking ? null : animator.autofocusInRows(el, id);
+      if (asked != null && !asked.equals(focusId)) {
+        beforeAsked = new Focus(focusId, ring);
+        moveFocus(asked, ring);
+        reveal = true;
       }
       animator.rows(el, id, time);
       range = el.measuresRows() ? el.wantedRows(left, top, clipLeft, clipRight, width, height)

@@ -451,10 +451,36 @@ public record Theme(
    * @param cursor the outline of the cell the cursor is on while the grid has the focus, which
    *     stands out 3:1 from the rows and the selection
    * @param cursorWidth the width of that outline
+   * @param changed laid over a cell whose value was changed and is not yet written, translucent;
+   *     the mark at the start of its row is {@link Accent#edge}. These four tints lie on the rows
+   *     and stripes, not on the selection, which shows alone where it is; muted text keeps 4.5:1
+   *     on them, which in linear light leaves a dark theme little alpha
+   * @param added laid over a new row, translucent; its mark is {@link Status#success}
+   * @param deleted laid over a row marked to be deleted, translucent; its mark is {@link
+   *     Status#danger}, and its text is muted and struck through
+   * @param error laid over a cell whose change failed, translucent, inside a line of {@link
+   *     Status#danger}
    */
   public record Grid(
       float rowHeight, float minColumn, float maxColumn, float handle, float mark, int header,
-      int row, int stripe, int selected, int selectedInactive, int cursor, float cursorWidth) {}
+      int row, int stripe, int selected, int selectedInactive, int cursor, float cursorWidth,
+      int changed, int added, int deleted, int error) {
+
+    /**
+     * A grid whose changed, new, deleted and failed rows and cells are tinted as the default
+     * theme of its lightness tints them.
+     */
+    public Grid(float rowHeight, float minColumn, float maxColumn, float handle, float mark,
+        int header, int row, int stripe, int selected, int selectedInactive, int cursor,
+        float cursorWidth) {
+      this(rowHeight, minColumn, maxColumn, handle, mark, header, row, stripe, selected,
+          selectedInactive, cursor, cursorWidth,
+          lightness(row) < 0.5 ? 0x0886A8F8 : 0x1C2E62D9,
+          lightness(row) < 0.5 ? 0x085CC98A : 0x1C17693A,
+          lightness(row) < 0.5 ? 0x08F2797A : 0x18B42318,
+          lightness(row) < 0.5 ? 0x0AF2797A : 0x24B42318);
+    }
+  }
 
   /**
    * The shadows under what lies above the rest ({@link com.rethinkj.ui.El#shadow}), each a tight

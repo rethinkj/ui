@@ -36,3 +36,50 @@ frame
 up 559,86
 frame
 snap browser-sorted
+
+# Editing: changes collect until Commit, with their marks, and filters per column
+key Home control                 # the first cell: the id of the last order, which does not edit
+key ArrowRight                   # customer
+frame
+type "Ada King"                  # typing replaces the value
+key Enter                        # handed on, a row down: the row is changed
+key ArrowRight
+key ArrowRight
+key ArrowRight                   # country
+frame
+type "IS"
+key Tab                          # handed on, a column on
+key Insert                       # a new order after this one, its number a +
+key Home
+key ArrowRight                   # its customer
+frame
+type "Grace Hopper"
+key Enter
+key ArrowDown
+key Delete control               # an order marked to be deleted
+frame
+snap browser-changes
+
+key End
+key ArrowLeft                    # status
+key ArrowDown alt                # its filter: the statuses to keep
+frame
+advance 1
+frame
+press #value-refunded
+press #value-pending
+press label="Apply"
+frame
+advance 1
+frame
+snap browser-filters
+
+press role=switch label="Dark"   # the light theme, the changes and filters as they were
+frame
+advance 1
+frame
+snap browser-light
+
+press #commit                    # written: the marks go, the deleted order with them
+frame
+snap browser-committed

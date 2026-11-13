@@ -100,6 +100,7 @@ final class Orders {
   UnaryOperator<DataGrid.Options> more = o -> o;
   int unsortable = -1; // a column that cannot be sorted
   boolean bare; // the columns without their icons and types
+  boolean editable; // the columns' cells editable as text
   int loaded = Integer.MAX_VALUE; // the rows below this one are loaded, with cells()
   App<Orders> app;
   final List<String> log = new ArrayList<>();
@@ -152,7 +153,7 @@ final class Orders {
       Column column = base.get(c % base.size());
       IntFunction<String> cell = column.cell();
       IntFunction<CellIcon> icons = column.cellIcon();
-      columns.add(new Column(
+      Column made = new Column(
           c < base.size() ? column.title() : column.title() + "_" + c / base.size(),
           widths[c], column.align(), column.mono(), c != unsortable, i -> {
             asked.add(i);
@@ -161,7 +162,8 @@ final class Orders {
           bare || icons == null ? null : i -> {
             askedIcons.add(i);
             return icons.apply(i);
-          }));
+          });
+      columns.add(editable ? made.editable() : made);
     }
     return columns;
   }

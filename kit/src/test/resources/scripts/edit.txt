@@ -1,0 +1,62 @@
+# Editing orders (Ledger): an editor of each type over its cell, a value refused with its
+# message, and rows in every state, with and without the selection.
+size 640 260
+frame
+focus #ledger
+frame
+key Enter                          # customer: a field over the cell, its text where the cell's is
+frame
+type " and the Analytical Engine"  # longer than the cell: the editor grows towards the grid's edge
+frame
+snap text
+
+key Enter                          # handed on, a row down
+key ArrowRight
+key ArrowRight                     # amount, a number at the right of its cell
+frame
+key F2
+frame
+snap number
+
+key Escape
+key End                            # note, with a line break: the field of several lines
+frame
+key Enter
+frame
+advance 1
+frame
+snap multiline
+
+key Escape
+key ArrowLeft                      # due, a date
+frame
+type "2026-02-30"
+key Enter
+frame
+snap invalid
+
+key Escape
+key Home
+key ArrowRight
+key ArrowRight
+key ArrowRight
+key ArrowRight
+key ArrowRight                     # status, an enumeration: its list
+frame
+key Enter
+frame
+advance 1
+frame
+snap choices
+
+key Escape
+key Insert                         # a new row after the cursor's
+key ArrowDown
+key ArrowDown
+key Delete control                 # the row after it marked to be deleted
+frame
+snap states
+
+key A control                      # everything selected: the selection shows alone, the marks stay
+frame
+snap states-selected
