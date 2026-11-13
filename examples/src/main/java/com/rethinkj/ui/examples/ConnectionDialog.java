@@ -11,6 +11,8 @@ import static com.rethinkj.ui.kit.Checkbox.checkbox;
 import static com.rethinkj.ui.kit.Label.Variant.HEADING;
 import static com.rethinkj.ui.kit.Label.Variant.MUTED;
 import static com.rethinkj.ui.kit.Label.label;
+import static com.rethinkj.ui.kit.TextField.passwordField;
+import static com.rethinkj.ui.kit.TextField.revealable;
 import static com.rethinkj.ui.kit.TextField.textField;
 import static com.rethinkj.ui.kit.Toggle.toggle;
 
@@ -27,9 +29,10 @@ import java.io.IOException;
 
 /**
  * The dialog in which a database tool asks where to connect, built from the kit: labelled text
- * fields, a checkbox, a switch between the dark and the light theme, and two buttons. Connect
- * stays disabled until host, port, database and user are filled in, and the port takes only
- * digits. Enter in a field connects, as does Connect; the example only says where it would go.
+ * fields, a password field with a button that shows the password, a checkbox, a switch between
+ * the dark and the light theme, and two buttons. Connect stays disabled until host, port,
+ * database and user are filled in, and the port takes only digits. Enter in a field connects, as
+ * does Connect; the example only says where it would go, and never what the password is.
  */
 public final class ConnectionDialog {
 
@@ -37,6 +40,8 @@ public final class ConnectionDialog {
   String port = "5432";
   String database = "";
   String user = "";
+  String password = "";
+  boolean revealed; // whether the password field shows the password
   boolean ssl = true;
   boolean dark = true;
   String status = "";
@@ -68,6 +73,8 @@ public final class ConnectionDialog {
     port = fresh.port;
     database = fresh.database;
     user = fresh.user;
+    password = fresh.password;
+    revealed = fresh.revealed;
     ssl = fresh.ssl;
     status = fresh.status;
   }
@@ -80,8 +87,8 @@ public final class ConnectionDialog {
       return;
     }
     app.textRendering(TextRendering.platform());
-    Window.Options options = Window.options().frameless().minimumSize(400, 380);
-    try (Window window = Window.open("New connection", 440, 400, options);
+    Window.Options options = Window.options().frameless().minimumSize(400, 412);
+    try (Window window = Window.open("New connection", 440, 432, options);
         GpuPresenter presenter = new GpuPresenter(window)) {
       WindowLoop.run(window, app, presenter);
     }
@@ -100,7 +107,11 @@ public final class ConnectionDialog {
             .child(field(t, "Database", textField(t, s.database, "Name", v -> s.database = v)
                 .key("database").w(260)))
             .child(field(t, "User", textField(t, s.user, "Role", v -> s.user = v)
-                .key("user").w(260))))
+                .key("user").w(260)))
+            .child(named(t, "Password", revealable(t,
+                passwordField(t, s.password, null, v -> s.password = v)
+                    .key("password").label("Password").w(260),
+                s.revealed, () -> s.revealed = !s.revealed))))
         .child(checkbox(t, s.ssl, "Require SSL", () -> s.ssl = !s.ssl))
         .child(toggle(t, s.dark, "Dark theme", () -> s.dark = !s.dark))
         .child(el().grow(1))
@@ -124,8 +135,13 @@ public final class ConnectionDialog {
 
   /** A field with its name before it, which is also the field's label. */
   static El field(Theme t, String name, El field) {
+    return named(t, name, field.label(name));
+  }
+
+  /** Something with a name before it. */
+  static El named(Theme t, String name, El content) {
     return row().gap(t.space().m()).align(Style.Align.CENTER)
         .child(label(t, name).w(72))
-        .child(field.label(name));
+        .child(content);
   }
 }

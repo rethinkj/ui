@@ -1,4 +1,4 @@
-el 0,0 440x400
+el 0,0 440x432
   el window=drag 0,0 440x32
     el 10,10 12x12
     text "New connection" 30,8 101x16
@@ -27,10 +27,10 @@ el 0,0 440x400
         el 413,18 2x2
         el 420,19 2x2
         el 412,19 2x2
-  el 0,32 440x368
+  el 0,32 440x400
     text "Connect to PostgreSQL" 24,56 392x18
     text "The server and the account to log in with." 24,86 392x16
-    el 24,118 392x120
+    el 24,118 392x152
       el 24,118 392x24
         text "Host" 24,122 72x16
         text #host role=textbox label="Host" "localhost" 104,118 260x24
@@ -43,18 +43,24 @@ el 0,0 440x400
       el 24,214 392x24
         text "User" 24,218 72x16
         text #user role=textbox label="User" "admin" 104,214 260x24
-    el role=checkbox label="Require SSL" 20,252 107x20 checked
-      el 24,254 16x16
-        text "✓" 27,254 11x16
-      text "Require SSL" 48,254 75x16
-    el role=switch label="Dark theme" 20,280 115x20 checked
-      el 24,282 28x16
-        el 38,284 12x12
-      text "Dark theme" 60,282 71x16
-    el 24,310 392x2
-    text "Connecting to inventory on localhost:5432 as admin with SSL" 24,324 392x16
-    el 24,352 392x24
-      el role=button label="Reset" 269,352 61x24
-        text "Reset" 282,356 35x16
-      el role=button label="Connect" 338,352 78x24
-        text "Connect" 351,356 52x16
+      el 24,246 392x24
+        text "Password" 24,250 72x16
+        el 104,246 260x24
+          text #password role=textbox label="Password" "•••••••" 104,246 260x24 password
+          el role=button label="Show password" 342,248 20x20
+            text "\u{E5F1}" 344,250 16x16
+    el role=checkbox label="Require SSL" 20,284 107x20 checked
+      el 24,286 16x16
+        text "✓" 27,286 11x16
+      text "Require SSL" 48,286 75x16
+    el role=switch label="Dark theme" 20,312 115x20 checked
+      el 24,314 28x16
+        el 38,316 12x12
+      text "Dark theme" 60,314 71x16
+    el 24,342 392x2
+    text "Connecting to inventory on localhost:5432 as admin with SSL" 24,356 392x16
+    el 24,384 392x24
+      el role=button label="Reset" 269,384 61x24
+        text "Reset" 282,388 35x16
+      el role=button label="Connect" 338,384 78x24
+        text "Connect" 351,388 52x16

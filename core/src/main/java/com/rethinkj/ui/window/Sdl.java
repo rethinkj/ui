@@ -112,6 +112,9 @@ final class Sdl {
   static final String PROP_WINDOW_X11_WINDOW_NUMBER = "SDL.window.x11.window";
   static final String PROP_WINDOW_WAYLAND_DISPLAY_POINTER = "SDL.window.wayland.display";
   static final String PROP_WINDOW_WAYLAND_SURFACE_POINTER = "SDL.window.wayland.surface";
+  static final String PROP_TEXTINPUT_TYPE_NUMBER = "SDL.textinput.type";
+  // SDL_TextInputType
+  static final int TEXTINPUT_TYPE_TEXT_PASSWORD_HIDDEN = 4;
 
   static final String HINT_NO_SIGNAL_HANDLERS = "SDL_NO_SIGNAL_HANDLERS";
   static final String HINT_IME_IMPLEMENTED_UI = "SDL_IME_IMPLEMENTED_UI";
@@ -231,8 +234,16 @@ final class Sdl {
       FunctionDescriptor.of(JAVA_BOOLEAN, ADDRESS, JAVA_FLOAT);
   static final FunctionDescriptor SDL_START_TEXT_INPUT =
       FunctionDescriptor.of(JAVA_BOOLEAN, ADDRESS);
+  /** {@code bool SDL_StartTextInputWithProperties(SDL_Window *window, SDL_PropertiesID props)} */
+  static final FunctionDescriptor SDL_START_TEXT_INPUT_WITH_PROPERTIES =
+      FunctionDescriptor.of(JAVA_BOOLEAN, ADDRESS, JAVA_INT);
   static final FunctionDescriptor SDL_STOP_TEXT_INPUT =
       FunctionDescriptor.of(JAVA_BOOLEAN, ADDRESS);
+  /** {@code SDL_PropertiesID SDL_CreateProperties(void)}, a Uint32, 0 on failure */
+  static final FunctionDescriptor SDL_CREATE_PROPERTIES = FunctionDescriptor.of(JAVA_INT);
+  static final FunctionDescriptor SDL_SET_NUMBER_PROPERTY =
+      FunctionDescriptor.of(JAVA_BOOLEAN, JAVA_INT, ADDRESS, JAVA_LONG);
+  static final FunctionDescriptor SDL_DESTROY_PROPERTIES = FunctionDescriptor.ofVoid(JAVA_INT);
   static final FunctionDescriptor SDL_TEXT_INPUT_ACTIVE =
       FunctionDescriptor.of(JAVA_BOOLEAN, ADDRESS);
   /** {@code bool SDL_SetTextInputArea(SDL_Window *window, const SDL_Rect *rect, int cursor)} */
@@ -316,7 +327,15 @@ final class Sdl {
     static final MethodHandle SET_WINDOW_PROGRESS_VALUE =
         bind("SDL_SetWindowProgressValue", SDL_SET_WINDOW_PROGRESS_VALUE);
     static final MethodHandle START_TEXT_INPUT = bind("SDL_StartTextInput", SDL_START_TEXT_INPUT);
+    static final MethodHandle START_TEXT_INPUT_WITH_PROPERTIES =
+        bind("SDL_StartTextInputWithProperties", SDL_START_TEXT_INPUT_WITH_PROPERTIES);
     static final MethodHandle STOP_TEXT_INPUT = bind("SDL_StopTextInput", SDL_STOP_TEXT_INPUT);
+    static final MethodHandle CREATE_PROPERTIES =
+        bind("SDL_CreateProperties", SDL_CREATE_PROPERTIES);
+    static final MethodHandle SET_NUMBER_PROPERTY =
+        bind("SDL_SetNumberProperty", SDL_SET_NUMBER_PROPERTY);
+    static final MethodHandle DESTROY_PROPERTIES =
+        bind("SDL_DestroyProperties", SDL_DESTROY_PROPERTIES);
     static final MethodHandle TEXT_INPUT_ACTIVE =
         bind("SDL_TextInputActive", SDL_TEXT_INPUT_ACTIVE);
     static final MethodHandle SET_TEXT_INPUT_AREA =
@@ -639,6 +658,30 @@ final class Sdl {
   static boolean startTextInput(MemorySegment window) {
     try {
       return (boolean) H.START_TEXT_INPUT.invokeExact(window);
+    } catch (Throwable t) {
+      throw failed(t);
+    }
+  }
+
+  /**
+   * Starts text input for a hidden password ({@code SDL_TEXTINPUT_TYPE_TEXT_PASSWORD_HIDDEN} in
+   * {@code SDL_PROP_TEXTINPUT_TYPE_NUMBER}); SDL keeps a copy of the properties. The type takes
+   * effect only when text input starts, not while it is on.
+   */
+  static boolean startPasswordInput(MemorySegment window) {
+    try (Arena arena = Arena.ofConfined()) {
+      int properties = (int) H.CREATE_PROPERTIES.invokeExact();
+      if (properties == 0) {
+        return false;
+      }
+      try {
+        return (boolean) H.SET_NUMBER_PROPERTY.invokeExact(
+                properties, arena.allocateFrom(PROP_TEXTINPUT_TYPE_NUMBER),
+                (long) TEXTINPUT_TYPE_TEXT_PASSWORD_HIDDEN)
+            && (boolean) H.START_TEXT_INPUT_WITH_PROPERTIES.invokeExact(window, properties);
+      } finally {
+        H.DESTROY_PROPERTIES.invokeExact(properties);
+      }
     } catch (Throwable t) {
       throw failed(t);
     }

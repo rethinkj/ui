@@ -79,7 +79,7 @@ public final class Script {
   /** A state of a selector, as {@link El#dump} writes it, but the value; =true may be added. */
   private static final Pattern STATE =
       Pattern.compile(
-          "disabled|readonly|selected|current|checked(=true|=false|=mixed)?|expanded(=true|=false)?"
+          "disabled|readonly|password|selected|current|checked(=true|=false|=mixed)?|expanded(=true|=false)?"
               + "|level=[1-9]\\d{0,9}|pos=[1-9]\\d{0,9}/[1-9]\\d{0,9}|sort=(ascending|descending)");
   /** How many seconds {@code await} waits for the app's work unless it says otherwise. */
   private static final double AWAIT = 10;

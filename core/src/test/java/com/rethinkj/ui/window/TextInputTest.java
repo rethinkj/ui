@@ -119,6 +119,34 @@ class TextInputTest {
   }
 
   @Test
+  void aMaskedFieldStartsTextInputAgainForAPassword() {
+    try (Window window = Window.open(TITLE, 240, 120)) {
+      Desktop.settle();
+      String[] secret = {""};
+      App<Form> app = new App<>(new Form(), f -> col().wFull().hFull().padding(20).gap(10)
+          .children(
+              El.text(f.name).editable(s -> f.name = s).key("name").w(160).h(28),
+              El.text(secret[0]).editable(s -> secret[0] = s).masked().key("secret").w(160)
+                  .h(28)));
+      app.textRendering(TextRendering.LINUX);
+      tab(window);
+      runUntil(window, app, () -> app.focused() != null);
+      assertFalse(app.inputArea().password());
+      tab(window);
+      runUntil(window, app, () -> "secret".equals(app.focused().key()));
+      assertTrue(app.inputArea().password());
+      assertTrue(Sdl.textInputActive(window.sdlWindow()), "on again, for a password");
+
+      Desktop.text(window, "hunter2");
+      runUntil(window, app, () -> secret[0].equals("hunter2"));
+      assertEquals("hunter2", secret[0]);
+      tab(window);
+      runUntil(window, app, () -> "name".equals(app.focused().key()));
+      assertTrue(Sdl.textInputActive(window.sdlWindow()), "and again for text");
+    }
+  }
+
+  @Test
   void textInputIsOnOnlyWhileAFieldHasTheFocus() {
     try (Window window = Window.open(TITLE, 240, 120)) {
       Desktop.settle();

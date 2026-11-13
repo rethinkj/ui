@@ -232,7 +232,8 @@ public final class WindowLoop {
     if (area == null) {
       window.stopTextInput();
     } else {
-      window.textInputArea(area.x(), area.y(), area.width(), area.height(), area.cursor());
+      window.textInputArea(
+          area.x(), area.y(), area.width(), area.height(), area.cursor(), area.password());
     }
   }
 

@@ -385,6 +385,11 @@ public final class Font implements AutoCloseable {
     }
   }
 
+  /** For tests: whether the text of a cached run, at any size, contains {@code part}. */
+  synchronized boolean shaped(String part) {
+    return runs.keySet().stream().anyMatch(key -> key.text.contains(part));
+  }
+
   private GlyphRun shape(Key key) {
     String text = key.text;
     List<Font> chain = chain(text);

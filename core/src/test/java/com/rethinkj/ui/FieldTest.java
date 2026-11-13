@@ -691,7 +691,7 @@ class FieldTest {
     focus(app);
     App.InputArea area = app.inputArea();
     El field = field(app);
-    assertEquals(new App.InputArea(10, 10, 100, 24, 4 + field.text().x(3)), area);
+    assertEquals(new App.InputArea(10, 10, 100, 24, 4 + field.text().x(3), false), area);
     key(app, "Tab");
     assertNull(app.inputArea(), "a focusable box takes no text");
 
@@ -700,7 +700,7 @@ class FieldTest {
     plain.frame();
     plain.focus(plain.tree());
     plain.frame();
-    assertEquals(new App.InputArea(0, 0, 10, 10, 0), plain.inputArea(), "but one with onText");
+    assertEquals(new App.InputArea(0, 0, 10, 10, 0, false), plain.inputArea(), "but one with onText");
   }
 
   @Test

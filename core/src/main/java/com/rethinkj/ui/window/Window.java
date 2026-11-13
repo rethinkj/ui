@@ -69,7 +69,10 @@ import java.util.Objects;
  * the focused element takes text, and {@link #stopTextInput} turns it off again: while it is on,
  * keys also type text ({@link WindowEvent.TextInput}), input methods compose ({@link
  * WindowEvent.TextEditing}), and a system with an on-screen keyboard shows it. The window draws
- * the composition itself; the system places its candidate window below the area.
+ * the composition itself; the system places its candidate window below the area. Input for a
+ * password asks the system for a hidden password's input, which SDL 3.4 passes on only on Wayland
+ * (text-input-v3's purpose {@code password} with the hints {@code hidden_text} and {@code
+ * sensitive_data}); on Windows and X11 the input method composes as in any field.
  *
  * <p>The native library is loaded by the first {@link #open}, not before. A listener that throws
  * while the system calls into Java, as it does during a move, cannot pass the exception through
@@ -205,6 +208,7 @@ public final class Window implements AutoCloseable {
   private Cursor cursor = Cursor.DEFAULT;
   /** The text input area last set, in window coordinates, while text input is on; else null. */
   private int[] textInput;
+  private boolean passwordInput; // whether the text input on is for a password
 
   private Window(MemorySegment sdl, Options options) {
     this.sdl = sdl;
@@ -867,20 +871,29 @@ public final class Window implements AutoCloseable {
    * the box of the element that takes it, and the caret's distance from its left edge. The system
    * places an input method's candidate window there, below the box. {@link WindowLoop} calls this
    * after each frame while the focused element takes text, as {@link App#inputArea} says.
+   *
+   * @param password whether the text is a password that the field hides; text input starts again
+   *     when this changes, since the system takes it only then
    */
-  public void textInputArea(float x, float y, float width, float height, float cursor) {
+  public void textInputArea(
+      float x, float y, float width, float height, float cursor, boolean password) {
     checkOpen();
     int[] area = {units(x), units(y), units(width), units(height), units(cursor)};
+    if (textInput != null && password != passwordInput) {
+      stopTextInput();
+    }
     if (textInput != null && Arrays.equals(area, textInput)) {
       return;
     }
     if (!Sdl.setTextInputArea(sdl, area[0], area[1], area[2], area[3], area[4])) {
       throw new IllegalStateException("SDL_SetTextInputArea failed: " + Sdl.getError());
     }
-    if (textInput == null && !Sdl.startTextInput(sdl)) {
+    if (textInput == null
+        && !(password ? Sdl.startPasswordInput(sdl) : Sdl.startTextInput(sdl))) {
       throw new IllegalStateException("SDL_StartTextInput failed: " + Sdl.getError());
     }
     textInput = area;
+    passwordInput = password;
   }
 
   /**
