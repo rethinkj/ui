@@ -79,8 +79,7 @@ jobs:
     if: >-
       github.repository == 'rethinkj/ui'
       && ((github.event_name == 'push' && github.ref == 'refs/heads/main')
-        || github.event_name == 'workflow_dispatch'
-        || github.ref == 'refs/heads/publish')
+        || github.event_name == 'workflow_dispatch')
     strategy:
       # One after the other, Linux first; with fail-fast, a failure there cancels Windows.
       max-parallel: 1
