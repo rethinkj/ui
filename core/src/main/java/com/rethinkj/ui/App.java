@@ -406,7 +406,8 @@ public final class App<S> {
     }
     Target down = target(x, y, e -> e.onPointerDown() != null);
     if (down != null) {
-      down.el.onPointerDown().press(clicks, modifiers);
+      double[] at = content(down.el, x, y);
+      down.el.onPointerDown().press(clicks, modifiers, at[0], at[1]);
       handled = changed = true;
     }
     return changed;
@@ -440,7 +441,8 @@ public final class App<S> {
     } else if (pressed != null) {
       Target target = target(x, y);
       if (target != null && target.id().equals(pressed) && target.el.onPress() != null) {
-        target.el.onPress().press(pressClicks, pressModifiers);
+        double[] at = content(target.el, x, y);
+        target.el.onPress().press(pressClicks, pressModifiers, at[0], at[1]);
         handled = changed = true;
       }
     }
@@ -765,7 +767,8 @@ public final class App<S> {
           && key.modifiers() == 0
           && (key.name().equals("Enter") || key.name().equals("Space"))) {
         if (!key.repeat()) {
-          el.onPress().press(1, 0);
+          el.onPress().press(1, 0, el.width() / 2.0 + el.scrollX(),
+              el.height() / 2.0 + el.scrollY());
           handled = true;
         }
         return true;
