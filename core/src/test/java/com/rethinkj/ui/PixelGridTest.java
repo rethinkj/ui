@@ -224,9 +224,16 @@ class PixelGridTest {
   @Test
   void scalesOneAndTwoDrawWhatLayoutSays() {
     for (float scale : new float[] {1, 2}) {
-      El root = Examples.list();
+      El list = El.col().absolute(16, 16).size(120, 90).radius(8).border(1, GREY).clip().scroll()
+          .shadow(new Shadow(0, 2, 6, 0, 0x40000000));
+      for (int i = 0; i < 9; i++) {
+        list.children(el().h(21).shrink(0).fill(i % 2 == 0 ? WHITE : BLUE),
+            el().h(1).shrink(0).fill(GREY));
+      }
+      El root = el().wFull().hFull().fill(WHITE).child(list);
       Flex.layout(root, 240, 200);
       El.measureScrolls(root);
+      list.scrollTo(0, 37);
       El.placeBars(root);
       Scene plain = Scene.of(root);
       Scene snapped = Scene.of(root, scale);
