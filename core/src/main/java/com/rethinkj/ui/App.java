@@ -209,6 +209,8 @@ public final class App<S> {
   // The rows each list with an onRowsBuilt handler told last, first and last in one long, by the
   // list's identity. shortcut: lists that are gone stay in it, as in remembered.
   private final Map<Object, Long> toldRows = new HashMap<>();
+  // The sizes the El#onResize handlers were told, by identity. shortcut: as in toldRows.
+  private final Map<Object, Long> toldSizes = new HashMap<>();
   private int ringColour = FOCUS_RING;
   private final Atlas atlas = new Atlas();
   private TextRendering textRendering = TextRendering.platform();
@@ -2130,6 +2132,7 @@ public final class App<S> {
     Flex.layout(root, width, height);
     Overlays.layout(root, width, height);
     animator.update(root, time);
+    tellSizes(root, new ArrayList<>());
     stale = false;
     ran |= handled;
     handled = false;
@@ -2534,6 +2537,32 @@ public final class App<S> {
     }
     path.removeLast();
     return built;
+  }
+
+  /** Queues the {@link El#onResize} handlers below {@code el} whose element has a new size. */
+  private void tellSizes(El el, List<El> path) {
+    path.add(el);
+    El.SizeHandler handler = el.onResize();
+    if (handler != null) {
+      float w = el.width();
+      float h = el.height();
+      long size = (long) Float.floatToIntBits(w) << 32 | Float.floatToIntBits(h) & 0xFFFFFFFFL;
+      Long before = toldSizes.put(Animator.identities(path).getLast(), size);
+      if (before == null || before != size) {
+        queued.add(() -> {
+          handler.accept(w, h);
+          handled = true;
+          return true;
+        });
+      }
+    }
+    for (El child : el.children()) {
+      tellSizes(child, path);
+    }
+    for (El overlay : el.overlays()) {
+      tellSizes(overlay, path);
+    }
+    path.removeLast();
   }
 
   /** Queues the {@link El#onRowsBuilt} handler of a list that built other rows than it told. */

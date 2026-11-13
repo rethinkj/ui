@@ -136,6 +136,7 @@ public final class El {
   private float spanFrom; // the part the rows were built for, in their coordinates
   private float spanTo;
   private RowsHandler onRowsBuilt;
+  private SizeHandler onResize;
   private int firstRow;
   private boolean rowsBuilt; // for this tree; a rebuild of the view starts without rows
   private boolean fixedX;
@@ -241,6 +242,12 @@ public final class El {
   @FunctionalInterface
   public interface RowsHandler {
     void accept(int first, int last);
+  }
+
+  /** Told the size of an element's border box as layout gave it, in logical pixels. */
+  @FunctionalInterface
+  public interface SizeHandler {
+    void accept(float width, float height);
   }
 
   /** Where an overlay goes and how it takes input, and after placement what it is beside. */
@@ -977,6 +984,26 @@ public final class El {
   public El onRowsBuilt(RowsHandler handler) {
     this.onRowsBuilt = handler;
     return this;
+  }
+
+  /**
+   * Tells the app the size layout gave this element, as a browser's {@code ResizeObserver} does:
+   * in the first build that has it and whenever a rebuild gives it another size than it told,
+   * so that a view can show what fits, as a toolbar that moves the buttons it has no room for
+   * into a menu. It runs as {@link #onRowsBuilt} does, after the input of the frame or in the
+   * next {@link App#frame}, and the view built from what it changed is laid out again, which may
+   * tell it again; a view that settles needs a frame or two more. Not told inside the rows of a
+   * virtual list, nor for the sizes motion passes through.
+   *
+   * @param handler told the width and height, or null for none
+   */
+  public El onResize(SizeHandler handler) {
+    this.onResize = handler;
+    return this;
+  }
+
+  SizeHandler onResize() {
+    return onResize;
   }
 
   /**
