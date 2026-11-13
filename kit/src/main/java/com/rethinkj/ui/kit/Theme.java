@@ -116,6 +116,8 @@ public record Theme(
    * @param field the width of a text field, unless the view gives it another
    * @param handle the width of the strip along a split's line that takes the pointer
    * @param step how far an arrow key moves a split's line
+   * @param icon the side of an {@link Icon}, unless the view gives it another; the icons are
+   *     sharpest at a size they are drawn for (see {@link Symbol})
    */
   public record Sizes(
       float control,
@@ -125,12 +127,19 @@ public record Theme(
       float stroke,
       float field,
       float handle,
-      float step) {
+      float step,
+      float icon) {
 
-    /** Sizes with text fields 200 wide, a split's handle 7 wide and steps of 16. */
+    /** Sizes with text fields 200 wide, a split's handle 7 wide, steps of 16 and icons 16. */
     public Sizes(float control, float checkbox, float switchWidth, float switchHeight,
         float stroke) {
-      this(control, checkbox, switchWidth, switchHeight, stroke, 200, 7, 16);
+      this(control, checkbox, switchWidth, switchHeight, stroke, 200);
+    }
+
+    /** Sizes with a split's handle 7 wide, steps of 16 and icons 16. */
+    public Sizes(float control, float checkbox, float switchWidth, float switchHeight,
+        float stroke, float field) {
+      this(control, checkbox, switchWidth, switchHeight, stroke, field, 7, 16, 16);
     }
   }
 
@@ -165,7 +174,7 @@ public record Theme(
           new TextStyle(Font::sans, 13),
           new TextStyle(Font::mono, 12),
           new TextStyle(Font::sansBold, 15));
-  private static final Sizes SIZE = new Sizes(24, 16, 28, 16, 1, 200, 7, 16);
+  private static final Sizes SIZE = new Sizes(24, 16, 28, 16, 1, 200, 7, 16, 16);
   private static final Motion MOTION = new Motion(Spring.INSTANT, Spring.SNAP);
 
   /** Neutral greys with a blue accent, light text on dark surfaces. */

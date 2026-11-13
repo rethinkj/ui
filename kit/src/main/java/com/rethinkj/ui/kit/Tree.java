@@ -46,18 +46,18 @@ import java.util.function.Predicate;
  *
  * <p>In a tree dump the tree is {@code role=tree}, and its rows are {@code role=treeitem} with the
  * node's label and the key {@code row-<index>}, counted from 0 in the order shown. A node that can
- * have children has a mark with the key {@code mark-<index>}, which shows {@value #CLOSED} while it
- * is closed and {@value #OPEN} while it is open. The row that stands for children not known yet
- * has the key {@code row-<index>} too, but no role, and shows the model's {@link Model#loading}
- * text.
+ * have children has a mark with the key {@code mark-<index>}, which shows the {@link Icon} {@link
+ * #CLOSED} while it is closed and {@link #OPEN} while it is open; the marks need the icon font,
+ * {@code rethinkj-ui-icons}. The row that stands for children not known yet has the key {@code
+ * row-<index>} too, but no role, and shows the model's {@link Model#loading} text.
  */
 public final class Tree {
 
   /** The mark of a node that is closed. */
-  public static final String CLOSED = "▶";
+  public static final Symbol CLOSED = Symbol.CHEVRON_RIGHT;
 
   /** The mark of a node that is open. */
-  public static final String OPEN = "▼";
+  public static final Symbol OPEN = Symbol.CHEVRON_DOWN;
 
   /**
    * Where the tree gets its nodes from. The app implements it over the data it holds; nodes are
@@ -145,9 +145,7 @@ public final class Tree {
       };
       El mark = el().size(indent, height).shrink(0).center(); // the whole height takes presses
       if (!leaf) {
-        Theme.TextStyle style = t.type().mono();
-        mark.key("mark-" + i).child(El.text(open ? OPEN : CLOSED)
-            .font(style.font().get()).fontSize(style.size()).color(t.text().muted()));
+        mark.key("mark-" + i).child(Icon.icon(t, open ? OPEN : CLOSED, Icon.Variant.MUTED));
         if (onToggle != null) {
           mark.onPress(() -> {
             select.run();

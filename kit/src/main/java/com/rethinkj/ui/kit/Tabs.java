@@ -204,7 +204,7 @@ public final class Tabs {
           .onPress(() -> onClose.accept(index))
           .whenHovered(e -> e.fill(s.hover()))
           .whenPressed(e -> e.fill(s.pressed()))
-          .child(label(t, "×").color(ink));
+          .child(Icon.icon(t, Symbol.DISMISS, Icon.Variant.NORMAL, side).color(ink));
       el.child(close);
     }
     el.cursor(Cursor.POINTER).onPress(() -> onSelect.accept(index));

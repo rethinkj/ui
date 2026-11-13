@@ -1,10 +1,10 @@
 package com.rethinkj.ui.kit;
 
 import static com.rethinkj.ui.El.col;
-import static com.rethinkj.ui.El.el;
 
 import com.rethinkj.ui.App;
 import com.rethinkj.ui.El;
+import com.rethinkj.ui.kit.Icon.Variant;
 import com.rethinkj.ui.text.TextRendering;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -188,13 +188,15 @@ final class Catalog implements Tree.Model<Catalog.Node> {
 
   @Override
   public El icon(Node node) {
-    if (node.kind != Kind.SERVER) {
-      return null;
-    }
-    // A dot that says whether the server is connected.
-    float side = theme.space().m();
-    return el().size(side, side).shrink(0).radius(side / 2)
-        .fill(node.children == null ? theme.text().disabled() : theme.status().success());
+    return switch (node.kind) {
+      // The colour says whether the server is connected.
+      case SERVER -> Icon.icon(theme, Symbol.SERVER,
+          node.children == null ? Variant.DISABLED : Variant.SUCCESS);
+      case DATABASE -> Icon.icon(theme, Symbol.DATABASE, Variant.MUTED);
+      case SCHEMA -> Icon.icon(theme, Symbol.FOLDER, Variant.MUTED);
+      case TABLE -> Icon.icon(theme, Symbol.TABLE, Variant.MUTED);
+      case COLUMN -> Icon.icon(theme, Symbol.COLUMN_SINGLE, Variant.MUTED);
+    };
   }
 
   // The view

@@ -1,6 +1,7 @@
 package com.rethinkj.ui.text;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -144,7 +145,7 @@ class FontTest {
     // Needs no native library: the resource is looked for first.
     ClassLoader empty = new ClassLoader(null) {};
     IllegalStateException e =
-        assertThrows(IllegalStateException.class, () -> Font.builtIn("Inter-Regular.ttf", empty));
+        assertThrows(IllegalStateException.class, () -> Font.builtIn("fonts/Inter-Regular.ttf", empty));
     assertEquals(
         "The default fonts are in the artifact com.rethinkj.ui:rethinkj-ui-fonts, which is not on"
             + " the class path: META-INF/rethinkj-ui/fonts/Inter-Regular.ttf is missing. Add that"
@@ -165,6 +166,47 @@ class FontTest {
     assertEquals(1984 / 2048f, Font.sans().ascent());
     assertEquals(494 / 2048f, Font.sans().descent());
     assertEquals(0, Font.sans().lineGap());
+  }
+
+  /** ic_fluent_add_16_regular, a cross of two strokes of one pixel at 16 pixels. */
+  private static final String ADD = "\uF108";
+
+  @Test
+  void theIconFontsLineIsItsEmSquareAndItsGlyphsSitOnWholePixelsAtEveryScale()
+      throws IOException {
+    TextLibraries.assumeLoaded();
+    Font icons = Font.icons();
+    assertEquals("FluentSystemIcons-Regular Regular", icons.toString());
+    assertSame(icons, Font.icons());
+    assertEquals(1, icons.ascent());
+    assertEquals(0, icons.descent());
+    assertEquals(0, icons.lineGap(), "the font asks for 0.09, which would move icons down");
+    assertTrue(icons.wholePixels());
+    assertFalse(Font.sans().wholePixels());
+    // At 13 and scale 1.5 an icon is 19.5 pixels: 20 on whole pixels, not 19.5 on quarters.
+    GlyphRun run = icons.shape(ADD + ADD, 13, 1.5f);
+    assertNotEquals(0, run.glyph(0));
+    assertEquals(20, run.x(1));
+    assertEquals(40, run.width());
+    try (InputStream in = Font.class.getClassLoader()
+            .getResourceAsStream("META-INF/rethinkj-ui/icons/FluentSystemIcons-Regular.ttf");
+        Font plain = Font.of(in.readAllBytes())) {
+      assertEquals(19.5f, plain.shape(ADD, 13, 1.5f).width(), "the same font as any other");
+      assertEquals(0.09f, plain.lineGap(), 0.001f);
+    }
+  }
+
+  @Test
+  void theDefaultIconFontNeedsTheIconsModule() {
+    ClassLoader empty = new ClassLoader(null) {};
+    IllegalStateException e = assertThrows(IllegalStateException.class,
+        () -> Font.builtIn("icons/FluentSystemIcons-Regular.ttf", empty));
+    assertEquals(
+        "The default icon font is in the artifact com.rethinkj.ui:rethinkj-ui-icons, which is not"
+            + " on the class path: META-INF/rethinkj-ui/icons/FluentSystemIcons-Regular.ttf is"
+            + " missing. Add that artifact as a dependency (on the module path, also --add-modules"
+            + " com.rethinkj.ui.icons).",
+        e.getMessage());
   }
 
   static byte[] defaultFontBytes(String file) throws IOException {

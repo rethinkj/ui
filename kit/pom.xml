@@ -28,6 +28,13 @@
       <version>${project.version}</version>
       <scope>test</scope>
     </dependency>
+    <!-- The icon font, for the tests. Apps that use icons, the tree among them, add this module. -->
+    <dependency>
+      <groupId>com.rethinkj.ui</groupId>
+      <artifactId>rethinkj-ui-icons</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
     <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter</artifactId>

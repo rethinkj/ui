@@ -18,16 +18,16 @@ el 0,0 720x400
               el #tab-1 role=tab label="customers.sql" 273,2 125x24
                 text "customers.sql" 282,6 87x16
                 el #close-1 role=button label="Close customers.sql" 373,6 16x16
-                  text "×" 376,6 9x16
+                  text "\u{F368}" 373,6 16x16
               el #tab-2 role=tab label="orders by month.sql" 400,2 176x24
                 text "●" 409,6 11x16
                 text "orders by month.sql" 424,6 123x16
                 el #close-2 role=button label="Close orders by month.sql" 551,6 16x16
-                  text "×" 554,6 9x16
+                  text "\u{F368}" 551,6 16x16
               el #tab-3 role=tab label="products.sql" 578,2 114x24
                 text "products.sql" 587,6 76x16
                 el #close-3 role=button label="Close products.sql" 667,6 16x16
-                  text "×" 671,6 8x16
+                  text "\u{F368}" 667,6 16x16
           el 201,28 519x1
           el #panel role=tabpanel label="orders by month.sql" 201,29 519x371
             el #work 201,29 519x371

@@ -25,16 +25,19 @@ import java.util.Objects;
  * them, until {@link #close}; using a closed font throws {@link IllegalStateException}.
  *
  * <p>{@link #sans()} and {@link #mono()} and their bold weights are the default fonts, Inter and
- * JetBrains Mono, which come in the artifact {@code com.rethinkj.ui:rethinkj-ui-fonts}. They are
+ * JetBrains Mono, which come in the artifact {@code com.rethinkj.ui:rethinkj-ui-fonts}, and
+ * {@link #icons()} is the default icon font, which comes in {@code rethinkj-ui-icons}. They are
  * loaded on first use and stay open while the process runs.
  *
  * <p>A font may be used from several threads; its calls take turns.
  */
 public final class Font implements AutoCloseable {
 
-  private static final String DEFAULTS = "META-INF/rethinkj-ui/fonts/";
+  private static final String DEFAULTS = "META-INF/rethinkj-ui/";
+  private static final String ICONS = "icons/";
   private static final String[] DEFAULT_FILES = {
-    "Inter-Regular.ttf", "Inter-Bold.ttf", "JetBrainsMono-Regular.ttf", "JetBrainsMono-Bold.ttf"
+    "fonts/Inter-Regular.ttf", "fonts/Inter-Bold.ttf", "fonts/JetBrainsMono-Regular.ttf",
+    "fonts/JetBrainsMono-Bold.ttf", ICONS + "FluentSystemIcons-Regular.ttf"
   };
   private static final Font[] DEFAULT_FONTS = new Font[DEFAULT_FILES.length];
 
@@ -50,6 +53,7 @@ public final class Font implements AutoCloseable {
 
   private final String name;
   private final boolean shared;
+  private final boolean icons;
   private final Arena arena;
   private final MemorySegment face;
   private final MemorySegment blob;
@@ -79,7 +83,7 @@ public final class Font implements AutoCloseable {
 
   private record Key(String text, float pixelSize, boolean quarter, List<String> features) {}
 
-  private Font(byte[] bytes, boolean shared) {
+  private Font(byte[] bytes, boolean shared, boolean icons) {
     if (bytes.length == 0) {
       throw new IllegalArgumentException("The font data is empty.");
     }
@@ -87,6 +91,7 @@ public final class Font implements AutoCloseable {
     Natives.lookup("freetype");
     Natives.lookup("harfbuzz");
     this.shared = shared;
+    this.icons = icons;
     arena = Arena.ofShared();
     MemorySegment data = arena.allocateFrom(JAVA_BYTE, bytes);
     try {
@@ -112,7 +117,8 @@ public final class Font implements AutoCloseable {
       // The font's own scale is its units per em, so these are font units.
       ascent = extents.get(JAVA_INT, HarfBuzz.EXTENTS_ASCENDER) / (float) unitsPerEm;
       descent = -extents.get(JAVA_INT, HarfBuzz.EXTENTS_DESCENDER) / (float) unitsPerEm;
-      lineGap = extents.get(JAVA_INT, HarfBuzz.EXTENTS_LINE_GAP) / (float) unitsPerEm;
+      // An icon's drawing fills the em square, which is its line: a gap would move it off its box.
+      lineGap = icons ? 0 : extents.get(JAVA_INT, HarfBuzz.EXTENTS_LINE_GAP) / (float) unitsPerEm;
     }
   }
 
@@ -124,7 +130,7 @@ public final class Font implements AutoCloseable {
    * @throws UnsatisfiedLinkError if FreeType or HarfBuzz cannot be loaded
    */
   public static Font of(byte[] data) {
-    return new Font(data, false);
+    return new Font(data, false, false);
   }
 
   /**
@@ -165,6 +171,18 @@ public final class Font implements AutoCloseable {
     return builtIn(3);
   }
 
+  /**
+   * Fluent UI System Icons Regular, the default icon font, from the artifact {@code
+   * com.rethinkj.ui:rethinkj-ui-icons}. An icon is drawn anew for several sizes in pixels (most
+   * for 16, 20 and 24, many also for 12, 28, 32 or 48), and each drawing is a glyph at a code point
+   * of its own in the private use area, sharpest at its font size. Its line is the em square, which the drawings fill,
+   * so a text element of one icon is as wide and as high as its font size, and its glyphs are
+   * placed on {@link #wholePixels whole pixels}.
+   */
+  public static Font icons() {
+    return builtIn(4);
+  }
+
   private static synchronized Font builtIn(int index) {
     if (DEFAULT_FONTS[index] == null) {
       DEFAULT_FONTS[index] = builtIn(DEFAULT_FILES[index], Font.class.getClassLoader());
@@ -172,18 +190,25 @@ public final class Font implements AutoCloseable {
     return DEFAULT_FONTS[index];
   }
 
-  /** A default font from {@code loader}; for the test that leaves the fonts module out. */
+  /**
+   * A default font from {@code loader}, such as {@code "fonts/Inter-Regular.ttf"}; for the tests
+   * that leave the fonts and icons modules out.
+   */
   static Font builtIn(String file, ClassLoader loader) {
     String path = DEFAULTS + file;
+    boolean icons = file.startsWith(ICONS);
     try (InputStream in = loader.getResourceAsStream(path)) {
       if (in == null) {
-        throw new IllegalStateException(
-            "The default fonts are in the artifact com.rethinkj.ui:rethinkj-ui-fonts, which is not"
-                + " on the class path: " + path + " is missing. Add that artifact as a"
+        throw new IllegalStateException(icons
+            ? "The default icon font is in the artifact com.rethinkj.ui:rethinkj-ui-icons, which"
+                + " is not on the class path: " + path + " is missing. Add that artifact as a"
+                + " dependency (on the module path, also --add-modules com.rethinkj.ui.icons)."
+            : "The default fonts are in the artifact com.rethinkj.ui:rethinkj-ui-fonts, which is"
+                + " not on the class path: " + path + " is missing. Add that artifact as a"
                 + " dependency (on the module path, also --add-modules com.rethinkj.ui.fonts), or"
                 + " load a font of your own with Font.of or Font.resource.");
       }
-      return new Font(in.readAllBytes(), true);
+      return new Font(in.readAllBytes(), true, icons);
     } catch (IOException e) {
       throw new UncheckedIOException("Cannot read the default font " + path, e);
     }
@@ -195,7 +220,8 @@ public final class Font implements AutoCloseable {
    *
    * <p>Text is shaped at the physical size, {@code size * scale}. Advances and offsets are then
    * rounded: to whole physical pixels below scale 1.5, where glyphs sit on whole pixels, and to
-   * quarter pixels from scale 1.5 on.
+   * quarter pixels from scale 1.5 on; those of a font with {@link #wholePixels} to whole pixels at
+   * every scale.
    *
    * <p>Kerning is on. Contextual alternates ({@code calt}) are off, because in JetBrains Mono and
    * similar fonts they draw {@code !=} or {@code ->} as one sign; {@code "+calt"} turns them back
@@ -218,7 +244,7 @@ public final class Font implements AutoCloseable {
     if (!(scale > 0 && scale < Float.POSITIVE_INFINITY)) {
       throw new IllegalArgumentException("scale must be above 0, was " + scale);
     }
-    Key key = new Key(text, size * scale, scale >= 1.5f, List.of(features));
+    Key key = new Key(text, size * scale, scale >= 1.5f && !icons, List.of(features));
     synchronized (this) {
       checkOpen();
       GlyphRun run = runs.get(key);
@@ -358,6 +384,15 @@ public final class Font implements AutoCloseable {
 
   private static float round(int units, double perUnit, double grid) {
     return (float) (Math.round(units * perUnit * grid) / grid);
+  }
+
+  /**
+   * Whether the glyphs of this font are placed on whole physical pixels at every scale, not on
+   * quarter pixels from scale 1.5 on: true for {@link #icons()}, whose drawings are made for the
+   * pixel grid, which a glyph between two pixels would blur.
+   */
+  public boolean wholePixels() {
+    return icons;
   }
 
   /** The height above the baseline that the font reserves, as a fraction of the font size. */

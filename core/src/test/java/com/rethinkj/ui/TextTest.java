@@ -3,15 +3,19 @@ package com.rethinkj.ui;
 import static com.rethinkj.ui.El.el;
 import static com.rethinkj.ui.El.row;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.rethinkj.ui.render.Pixels;
 import com.rethinkj.ui.text.Font;
 import com.rethinkj.ui.text.GlyphRun;
 import com.rethinkj.ui.text.TextLibraries;
+import com.rethinkj.ui.text.TextRendering;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -123,6 +127,51 @@ class TextTest {
     El root = row().child(El.text("Save\nnow").font(Font.mono()));
     String tree = Headless.render(root, 200, 50, 1).tree();
     assertEquals("el 0,0 32x36\n  text \"Save\\nnow\" 0,0 32x36\n", tree);
+  }
+
+  /**
+   * At scale 1.5, 10 logical pixels are 15 physical ones and 11 are 16.5: text is drawn there
+   * from a bitmap moved by half a pixel, an icon at 17, the same bitmap as at 15 two pixels on, so
+   * that its strokes stay on the pixels.
+   */
+  @Test
+  void iconsAreDrawnOnWholePixelsWhereTextIsDrawnOnQuarters() {
+    TextLibraries.assumeLoaded();
+    assertFalse(movedByTwoPixels(Font.sans(), "+"));
+    assertTrue(movedByTwoPixels(Font.icons(), "\uF108")); // ic_fluent_add_16_regular
+  }
+
+  private static boolean movedByTwoPixels(Font font, String string) {
+    Pixels at10 = drawnAt(font, string, 10);
+    Pixels at11 = drawnAt(font, string, 11);
+    int width = at10.width();
+    for (int y = 0; y < at10.height(); y++) {
+      int row = y * width * 4;
+      if (!Arrays.equals(at11.rgba(), row + 8, row + width * 4,
+          at10.rgba(), row, row + width * 4 - 8)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  private static Pixels drawnAt(Font font, String string, float x) {
+    El view = row().wFull().hFull().fill(0xFFFFFFFF).padding(2, 0, 0, x)
+        .child(El.text(string).font(font).fontSize(16));
+    return Headless.render(view, 40, 24, 1.5f, TextRendering.LINUX).pixels();
+  }
+
+  @Test
+  void aCharacterOfAPrivateUseAreaIsDumpedAsItsCodePointAndSelectedSo() throws IOException {
+    // Such as an icon of Font.icons(), which other fonts and editors show as nothing or a box.
+    String icons = "\uE0EB" + Character.toString(0xF0283) + "\uFFFDa";
+    assertEquals("text \"\\u{E0EB}\\u{F0283}\uFFFDa\"\n", El.text(icons).dump());
+    TextLibraries.assumeLoaded();
+    List<String> pressed = new ArrayList<>();
+    App<List<String>> app = new App<>(pressed,
+        s -> row().child(el().padding(4).onPress(() -> s.add("icons")).child(El.text(icons))));
+    Script.run("size 100 40\nframe\npress text=\"\\u{e0eb}\\u{F0283}\uFFFDa\"\nframe\n", app, out);
+    assertEquals(List.of("icons"), pressed);
   }
 
   @Test
