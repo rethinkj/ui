@@ -23,6 +23,7 @@ import java.math.BigDecimal;
 import java.nio.file.Path;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
@@ -229,7 +230,7 @@ class GridTableTest {
 
     // Pasting writes the cells of a row at once and tells the app once per row.
     table
-        .paste(columns, (row, account) -> {
+        .paste(columns, accounts.size(), (row, account) -> {
           told.add(row + " " + account.getOwner() + " " + account.getBalance());
           return null;
         })
@@ -244,7 +245,7 @@ class GridTableTest {
     GridTable<Item> table = DataGrid.table(s::item);
     List<Item> told = new ArrayList<>();
     table
-        .paste(columns(table), (row, item) -> {
+        .paste(columns(table), s.items.size(), (row, item) -> {
           told.add(item);
           return null;
         })
@@ -283,6 +284,80 @@ class GridTableTest {
     assertTrue(
         Filter.of(1, Filter.Kind.EQUALS, "ITEM").matches("item", Format.TEXT),
         "text compares whatever the case, as the text filter does");
+  }
+
+  @Test
+  void equalityWithoutAValueOfTheFormatPassesNothing() {
+    for (String operand : List.of("", " ", "ten")) {
+      Filter equals = Filter.of(0, Filter.Kind.EQUALS, operand);
+      assertFalse(equals.matches(10, Format.INTEGER), "\"" + operand + "\"");
+      assertFalse(equals.matches(new BigDecimal("0"), Format.DECIMAL), "\"" + operand + "\"");
+    }
+    assertTrue(Filter.between(0, "", "").matches(10, Format.INTEGER), "a range may be open");
+    assertTrue(Filter.of(0, Filter.Kind.EQUALS, " 10 ").matches(10, Format.INTEGER));
+  }
+
+  record Named(int id, String name) {
+    Named withName(String name) {
+      return new Named(id, name);
+    }
+  }
+
+  @Test
+  void aPasteWritesEachRowItTookAlsoWhenTheAppSortsBetweenRows() {
+    List<Named> rows = new ArrayList<>(List.of(new Named(1, "A"), new Named(2, "B")));
+    GridTable<Named> table = DataGrid.table(rows::get);
+    List<Column> columns =
+        List.of(table.column("name", 100, Format.TEXT, Named::name, Named::withName));
+    table
+        .paste(columns, rows.size(), (index, row) -> {
+          rows.set(index, row);
+          rows.sort(Comparator.comparing(Named::name)); // the app keeps its rows sorted
+          return null;
+        })
+        .accept(List.of(new CellValue(0, 0, "Z"), new CellValue(1, 0, "Y")));
+    assertEquals(List.of(new Named(2, "Y"), new Named(1, "Z")), rows);
+  }
+
+  @Test
+  void clearingAndPastingLeaveACellWhoseFormatRefusesTheValue() throws IOException {
+    TextLibraries.assumeLoaded();
+    List<Named> rows = new ArrayList<>(List.of(new Named(1, "Ada"), new Named(2, "Bob")));
+    GridTable<Named> table = DataGrid.table(rows::get);
+    Format<String> required = Format.TEXT.where(s -> !s.isBlank(), "A name is required");
+    List<Column> columns =
+        List.of(table.column("name", 100, required, Named::name, Named::withName));
+    List<Named> told = new ArrayList<>();
+    Selection selection = new Selection(Mode.CELLS);
+    selection.select(0, 0);
+    selection.extend(1, 0);
+    com.rethinkj.ui.Clipboard clipboard = com.rethinkj.ui.Clipboard.inMemory();
+    App<Selection> app = new App<>(
+        selection,
+        sel -> DataGrid.dataGrid(
+                Theme.DARK,
+                columns,
+                rows.size(),
+                DataGrid.options().select(sel).copy(clipboard).onCommit(table, (index, row) -> {
+                  told.add(row);
+                  rows.set(index, row);
+                  return null;
+                }))
+            .key("grid")
+            .wFull()
+            .hFull());
+    run(app, "frame\nfocus #grid\nkey Delete\nframe");
+    assertEquals(List.of(), told, "empty text is no name");
+    clipboard.write(" ");
+    run(app, "key V control\nframe");
+    assertEquals(List.of(), told, "nor is a space");
+    assertEquals(List.of(new Named(1, "Ada"), new Named(2, "Bob")), rows);
+    DataGrid.Commit commit = table.commit(columns, (index, row) -> {
+      told.add(row);
+      return null;
+    });
+    assertEquals("A name is required", commit.commit(0, 0, " "), "never a null in its place");
+    assertEquals(List.of(), told);
   }
 
   @Test

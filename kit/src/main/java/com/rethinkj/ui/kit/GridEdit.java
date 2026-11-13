@@ -157,6 +157,7 @@ final class GridEdit {
     String value = value(b, row, column);
     sel.editRow = row;
     sel.editColumn = column;
+    keep(b, row);
     sel.original = value;
     sel.error = null;
     sel.edits++;
@@ -168,7 +169,9 @@ final class GridEdit {
             || sel.draft != null && (sel.draft.indexOf('\n') >= 0 || sel.draft.indexOf('\r') >= 0));
     sel.choices.close();
     if (searching(c)) {
-      sel.search.reset(indexOf(c, value) < c.editing().choices().size() ? indexOf(c, value) : -1);
+      int at = entryOf(c, value);
+      sel.search.reset(at);
+      sel.search.none = at < 0; // a value not among the entries: nothing until a key moves
       if (typed != null) {
         sel.search.typed(typed, true);
       }
@@ -185,10 +188,37 @@ final class GridEdit {
     }
   }
 
+  /** Remembers the key of the edited row, where the rows have keys. */
+  private static void keep(Build b, int row) {
+    Selection sel = b.sel;
+    sel.editKeyed = b.o.rowKey != null;
+    if (sel.editKeyed) {
+      sel.editKey = row >= b.rowCount ? Selection.APPEND : b.o.rowKey.applyAsLong(row);
+    }
+  }
+
+  /**
+   * Puts the editor on the row with its key, where the rows have keys and have moved since it
+   * opened; closes it without handing anything on when the row is gone. Whether it is open.
+   */
+  static boolean follow(Build b) {
+    Selection sel = b.sel;
+    if (sel.isEditing() && sel.editKeyed) {
+      int place =
+          sel.editKey == Selection.APPEND ? b.rowCount : b.o.rowPlace.applyAsInt(sel.editKey);
+      if (place < 0) {
+        sel.cancelEdit();
+      } else {
+        sel.editRow = place;
+      }
+    }
+    return sel.isEditing();
+  }
+
   /** Hands the editor's value on and moves the cursor, or keeps the editor open with a message. */
   static void commit(Build b, Move move) {
     Selection sel = b.sel;
-    if (!sel.isEditing()) {
+    if (!follow(b)) {
       return;
     }
     int row = sel.editRow;
@@ -197,8 +227,10 @@ final class GridEdit {
     String value = normalize(c, sel.draft);
     String error = c.editing().editor() == null ? check(c, value) : null;
     boolean appended = false;
+    // The row to append; by its key where the rows have keys, as b may be older than the rows.
+    boolean append = sel.editKeyed ? sel.editKey == Selection.APPEND : row >= b.rowCount;
     if (error == null && !Objects.equals(value, sel.original)) {
-      if (row >= b.rowCount) {
+      if (append) {
         b.o.onInsertRow.accept(b.rowCount - 1);
         appended = true;
       }
@@ -210,6 +242,9 @@ final class GridEdit {
 
       if (appended) {
         sel.original = null; // the row is the app's now, and empty
+        if (sel.editKeyed) {
+          sel.editKey = b.o.rowKey.applyAsLong(row); // no longer the row to append
+        }
       }
       return;
     }
@@ -483,15 +518,17 @@ final class GridEdit {
     return cells;
   }
 
-  /** Clears the selected cells, or sets them NULL: in one change. */
+  /**
+   * Clears the selected cells, or sets them NULL: in one change, of the cells whose column takes
+   * the value, as pasted ones.
+   */
   static void clear(Build b, boolean toNull) {
     List<CellValue> cells = new ArrayList<>();
     for (int[] at : targets(b)) {
       Column c = b.columns.get(at[1]);
-      if (c.editing().nullable()) {
-        cells.add(new CellValue(at[0], at[1], null));
-      } else if (!toNull && textLike(c)) {
-        cells.add(new CellValue(at[0], at[1], ""));
+      String value = c.editing().nullable() ? null : !toNull && textLike(c) ? "" : null;
+      if (check(c, value) == null) {
+        cells.add(new CellValue(at[0], at[1], value));
       }
     }
     if (!cells.isEmpty()) {
@@ -829,6 +866,13 @@ final class GridEdit {
     return items;
   }
 
+  /** The entry of a value in the filtered list, NULL's after the choices; -1 for none. */
+  private static int entryOf(Column c, String value) {
+    List<String> choices = c.editing().choices();
+    return value == null ? (c.editing().nullable() ? choices.size() : -1) : choices.indexOf(value);
+  }
+
+  /** The item of a value in the menu of choices, NULL's after the choices and a line. */
   private static int indexOf(Column c, String value) {
     List<String> choices = c.editing().choices();
     return value == null

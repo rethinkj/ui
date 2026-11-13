@@ -98,6 +98,111 @@ class GridEditTest {
   }
 
   @Test
+  void aFailedCellOfANewRowIsInvalidWithItsMessage() throws IOException {
+    Ledger ledger = new Ledger(T, 2);
+    ledger.changes.insert(0);
+    ledger.changes.set(1, 1, "duplicate");
+    var insert = ledger.changes.changes().stream()
+        .filter(c -> c.kind() == GridChanges.Kind.INSERT)
+        .findFirst()
+        .orElseThrow();
+    ledger.changes.error(insert, 1, "duplicate key");
+    App<Ledger> app = start(ledger);
+    assertTrue(line(app, "cell-1-1").contains(" invalid"), line(app, "cell-1-1"));
+    assertTrue(line(app, "row-1").contains("value=\"new\""), line(app, "row-1"));
+    assertFalse(line(app, "cell-1-2").contains("value="), "its other cells as the row");
+    run(app, "move #cell-1-1\nframe\nadvance 1\nframe\nadvance 1\nframe");
+    assertTrue(
+        app.tree().dump().contains("role=tooltip label=\"duplicate key\""),
+        app.tree().dump());
+  }
+
+  /** The app's rows by key, each cell saying which row it is. */
+  private static GridChanges.Rows keyed(long... keys) {
+    return new GridChanges.Rows() {
+      @Override
+      public int count() {
+        return keys.length;
+      }
+
+      @Override
+      public long key(int row) {
+        return keys[row];
+      }
+
+      @Override
+      public int place(long key) {
+        for (int i = 0; i < keys.length; i++) {
+          if (keys[i] == key) {
+            return i;
+          }
+        }
+        return -1;
+      }
+
+      @Override
+      public String cell(int row, int column) {
+        return "row " + keys[row];
+      }
+    };
+  }
+
+  @Test
+  void anOpenEditorFollowsItsRowWhenTheRowsMoveAndClosesWhenItsRowGoes() throws IOException {
+    Ledger ledger = new Ledger(T, 2);
+    ledger.changes.rows(keyed(10, 20));
+    App<Ledger> app = start(ledger);
+    run(app, "type \"edited 10\"\nframe");
+    app.post(() -> ledger.changes.rows(keyed(20, 10))); // sorted while the editor is open
+    run(app, "await\nframe");
+    assertEquals(1, ledger.selection.editingRow(), "with its row");
+    run(app, "key Enter control\nframe");
+    assertEquals(
+        List.of(10L), ledger.changes.changes().stream().map(c -> c.key()).toList());
+
+    run(app, "key ArrowUp\ntype \"edited 20\"\nframe"); // on 20, the first row
+    app.post(() -> {
+      ledger.changes.rows(keyed(10, 30, 20)); // before the view knows of it
+      assertTrue(ledger.selection.commitEdit());
+    });
+    run(app, "await\nframe");
+    assertEquals(
+        "edited 20", ledger.changes.cell(ledger.changes.rowOf(20), 1), ledger.log.toString());
+    assertEquals("edited 10", ledger.changes.cell(0, 1), "10 keeps its own");
+
+    run(app, "key ArrowDown\ntype \"lost\"\nframe"); // on 30
+    app.post(() -> ledger.changes.rows(keyed(10, 20))); // filtered away
+    run(app, "await\nframe");
+    assertFalse(ledger.selection.isEditing(), "its row is gone, and the editor with it");
+    assertEquals(2, ledger.changes.count(), "nothing written to another row");
+  }
+
+  @Test
+  void handingTheEditorOnBeforeANewResultLeavesNothingForTheNewRows() throws IOException {
+    Ledger ledger = new Ledger(T, 2);
+    App<Ledger> app = start(ledger);
+    run(app, "type \"draft of the old result\"\nframe");
+    app.post(() -> {
+      assertTrue(ledger.selection.commitEdit());
+      ledger.changes.clear();
+      ledger.changes.rows(keyed(30, 40));
+      ledger.selection.reset();
+    });
+    run(app, "await\nframe");
+    assertTrue(ledger.selection.commitEdit());
+    assertTrue(ledger.changes.isEmpty());
+  }
+
+  @Test
+  void deletingRowsWhileNoRowIsShownDeletesNothing() throws IOException {
+    Ledger ledger = new Ledger(T, 2);
+    App<Ledger> app = start(ledger);
+    app.post(() -> ledger.changes.rows(keyed()));
+    run(app, "await\nframe\nkey Delete control\nframe");
+    assertTrue(ledger.changes.isEmpty());
+  }
+
+  @Test
   void enterOpensTheEditorOverTheCellTypingThenEnterHandsItOnAndGoesDown() throws IOException {
     Ledger ledger = new Ledger(T, 40);
     App<Ledger> app = start(ledger);
@@ -373,6 +478,49 @@ class GridEditTest {
     run(app, "key Enter\nframe\nadvance 1\nframe\nkey ArrowDown\nkey Tab\nframe");
     assertTrue(ledger.log.getLast().startsWith("commit 1,5 "), ledger.log.toString());
     assertEquals(6, ledger.selection.column(), "Tab goes right");
+  }
+
+  @Test
+  void aLongEnumerationHighlightsItsNullAndEnterLeavesIt() throws IOException {
+    DataGrid.Selection selection = new DataGrid.Selection(DataGrid.Mode.CELLS);
+    selection.select(0, 0);
+    GridChanges changes = new GridChanges(1, (r, c) -> null);
+    List<String> letters = List.of("a", "b", "c", "d", "e", "f", "g", "h", "i");
+    boolean[] nullable = {true};
+    App<DataGrid.Selection> app = new App<>(selection, sel -> {
+      DataGrid.Column status = new DataGrid.Column(
+              "status", 160, DataGrid.DataType.ENUM, changes.cell(0))
+          .editable()
+          .choices(letters);
+      return DataGrid.dataGrid(
+              T,
+              List.of(nullable[0] ? status.nullable() : status),
+              1,
+              DataGrid.options().select(sel).changes(changes))
+          .key("grid")
+          .wFull()
+          .hFull();
+    });
+    run(app, "frame\nfocus #grid\nkey F2\nframe\nadvance 1\nframe");
+    String nul = line(app, "option-9");
+    assertTrue(
+        nul.contains("label=\"NULL\"") && nul.contains("selected"), app.tree().dump());
+    run(app, "frame\nkey Enter\nframe");
+    assertNull(changes.cell(0, 0));
+    assertTrue(changes.isEmpty(), "the value it had: no change");
+
+    nullable[0] = false; // a NULL the column does not take, which is no entry
+    run(app, "key ArrowUp\nkey F2\nframe\nadvance 1\nframe\nframe");
+    assertFalse(
+        app.tree()
+            .dump()
+            .lines()
+            .anyMatch(l -> l.contains("role=option") && l.contains("selected")),
+        app.tree().dump());
+    run(app, "key Enter\nframe");
+    assertTrue(changes.isEmpty(), "nothing chosen, nothing changed");
+    run(app, "key F2\nframe\nadvance 1\nframe\nkey ArrowDown\nkey Enter\nframe");
+    assertEquals("a", changes.cell(0, 0), "a key highlights the first");
   }
 
   @Test

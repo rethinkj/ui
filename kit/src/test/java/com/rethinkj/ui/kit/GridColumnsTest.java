@@ -131,6 +131,65 @@ class GridColumnsTest {
     assertFalse(ledger.layout.isHidden(1));
   }
 
+  @Test
+  void aColumnHiddenFromTheHeaderLeavesTheSelectionOnItsColumns() throws IOException {
+    Ledger ledger = new Ledger(T, 40);
+    ledger.selection.select(0, 3); // amount
+    App<Ledger> app = start(ledger, out);
+    run(
+        app,
+        "press #column-1 right\nframe\nadvance 1\nframe\npress label=\"Hide column\"\nframe\n"
+            + "focus #ledger\nkey Delete\nframe");
+    assertTrue(ledger.layout.isHidden(1));
+    assertEquals(2, ledger.selection.column(), "amount, shown second now");
+    var change = ledger.changes.changes().getFirst();
+    assertEquals(List.of(3), List.copyOf(change.values().keySet()), "amount cleared, not paid");
+  }
+
+  @Test
+  void anOpenEditorStaysOnItsColumnWhenAnEarlierOneIsHiddenAndClosesWithItsOwn()
+      throws IOException {
+    Ledger ledger = new Ledger(T, 40);
+    ledger.selection.select(0, 6); // due, with note after it
+    App<Ledger> app = start(ledger, out);
+    run(app, "type \"2027-01-01\"\nframe");
+    app.post(() -> ledger.layout.hide(1));
+    run(app, "await\nframe");
+    assertEquals(5, ledger.selection.editingColumn());
+    app.post(() -> assertTrue(ledger.selection.commitEdit()));
+    run(app, "await\nframe");
+    var change = ledger.changes.changes().getFirst();
+    assertEquals("2027-01-01", change.values().get(6), "due, not note");
+
+    run(app, "key ArrowRight\ntype \"left behind\"\nframe"); // the note, shown sixth
+    assertEquals("left behind", ledger.selection.draft());
+    app.post(() -> ledger.layout.hide(7));
+    run(app, "await\nframe");
+    assertFalse(ledger.selection.isEditing(), "its column is gone, and so is the editor");
+    assertEquals(-1, ledger.selection.row(), "and the cursor, which was on it");
+    assertEquals(1, ledger.changes.count(), "nothing written to a neighbour");
+    assertEquals(1, ledger.changes.changes().getFirst().values().size());
+  }
+
+  @Test
+  void aMovedColumnTakesItsPartOfTheSelectionAlong() throws IOException {
+    Ledger ledger = new Ledger(T, 40);
+    ledger.selection.select(1, 2);
+    ledger.selection.extend(2, 4); // qty, amount and paid; the cursor on paid
+    App<Ledger> app = start(ledger, out);
+    app.post(() -> ledger.layout.moveBefore(3, -1)); // amount to the end
+    run(app, "await\nframe");
+    assertEquals(
+        List.of(new DataGrid.Range(1, 2, 2, 3), new DataGrid.Range(1, 7, 2, 7)),
+        ledger.selection.ranges());
+    assertEquals(3, ledger.selection.column(), "paid");
+    assertEquals(2, ledger.selection.anchorColumn(), "qty");
+    run(app, "key Delete\nframe");
+    var change = ledger.changes.changes();
+    assertEquals(List.of(1, 2), change.stream().map(c -> (int) c.key()).toList());
+    assertEquals(List.of(3, 4), List.copyOf(change.getFirst().values().keySet()));
+  }
+
   /** The chooser opened from a header cell stays, with its focus, when it hides that column. */
   @Test
   void theChooserOfAHeaderCellStaysWhenItHidesThatColumn() throws IOException {
