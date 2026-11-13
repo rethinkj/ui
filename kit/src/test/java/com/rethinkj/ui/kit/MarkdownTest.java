@@ -3,12 +3,15 @@ package com.rethinkj.ui.kit;
 import static com.rethinkj.ui.El.col;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.rethinkj.ui.App;
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.Script;
 import com.rethinkj.ui.render.Pixels;
+import com.rethinkj.ui.text.Font;
+import com.rethinkj.ui.text.GlyphRun;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -269,5 +272,31 @@ class MarkdownTest {
     tree = run(app, "await\nframe");
     assertTrue(line(tree, "label=\"The frame\"").contains(" 592x296"), tree);
     assertEquals(before, line(tree, "\"Paragraph 8.\""), "the paragraph stayed in place");
+  }
+
+  @Test
+  void strongInsideEmphasisIsBoldItalicAndTheRestItalic() {
+    App<Doc> app = app("***both*** and *a **b** c*");
+    app.resize(640, 240, 1);
+    app.frame();
+    GlyphRun glyphs = paragraph(app.tree()).text().lines().getFirst().glyphs();
+    String text = "both and a b c";
+    assertSame(Font.sansBoldItalic(), glyphs.font(text.indexOf("both")));
+    assertSame(Font.sansItalic(), glyphs.font(text.indexOf("a b")));
+    assertSame(Font.sansBoldItalic(), glyphs.font(text.indexOf("b c")));
+    assertSame(Font.sansItalic(), glyphs.font(text.indexOf(" c") + 1));
+  }
+
+  private static El paragraph(El el) {
+    if ("paragraph".equals(el.role())) {
+      return el;
+    }
+    for (El child : el.children()) {
+      El found = paragraph(child);
+      if (found != null) {
+        return found;
+      }
+    }
+    return null;
   }
 }
