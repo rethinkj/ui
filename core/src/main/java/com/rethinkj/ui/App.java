@@ -1220,8 +1220,9 @@ public final class App<S> {
   /**
    * Sets the colour of the focus ring, as 0xAARRGGBB, for elements that set none themselves ({@link
    * El#focusRing(int)}); 0 draws none. The ring is 2 pixels wide and lies just outside the
-   * element's border box, with its corners, or just inside it where the clips around the element
-   * or the window's edge would cut it ({@link Scene}).
+   * element's border box, or its {@link El#focusRingGap} beyond it, with its corners, or just
+   * inside it where the clips around the element or the window's edge would cut it ({@link
+   * Scene}).
    */
   public void focusRing(int argb) {
     ringColour = argb;
@@ -3082,9 +3083,14 @@ public final class App<S> {
     }
     float halfW = el.width() / 2;
     float halfH = el.height() / 2;
-    float radius = Math.clamp(el.radius(), 0, Math.min(halfW, halfH));
-    float qx = Math.abs(x - (parentX + el.x() + halfW)) - halfW + radius;
-    float qy = Math.abs(y - (parentY + el.y() + halfH)) - halfH + radius;
+    float dx = x - (parentX + el.x() + halfW);
+    float dy = y - (parentY + el.y() + halfH);
+    // The corner on the point's side: top left, top right, bottom right, bottom left.
+    float[] radii = el.radii();
+    float radius = Math.clamp(radii[dx > 0 ? dy > 0 ? 2 : 1 : dy > 0 ? 3 : 0], 0,
+        Math.min(halfW, halfH));
+    float qx = Math.abs(dx) - halfW + radius;
+    float qy = Math.abs(dy) - halfH + radius;
     if (qx <= 0 || qy <= 0) {
       return Math.max(qx, qy) <= radius;
     }

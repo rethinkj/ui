@@ -39,7 +39,7 @@ el 0,0 900x520
       el role=separator 9,73 882x1
       el #orders role=grid label="Orders" 9,74 882x408 thumb-x 11,474 496.41x6 focused
         el #content 9,74 1560x408
-          el #header 9,74 1560x24
+          el #header 9,74 1560x25
             el #column-1 role=columnheader label="customer" 139,74 139x24 pos=2/12
               text label="text_case_title" "\u{ECEC}" 143,78 16x16
               text "customer" 163,78 60x16
@@ -104,10 +104,8 @@ el 0,0 900x520
               text "id" 123,78 11x16
             el 138,74 1x24
             el #resize-0 role=separator label="Resize id" 136,74 6x24
-          el 9,98 1560x1
           el #rows 9,99 1560x383 rows 16-37/1000000 scroll 0,456 thumb-y 883,101.01 6x24
             el #row-16 role=row 9,27 1560x24 pos=17/1000000
-              el 9,50 1560x1
               el #cell-16-1 role=gridcell 139,27 139x23 pos=2/12
                 text "Margaret Knuth" 143,31 97x16
               el 278,27 1x23
@@ -146,7 +144,6 @@ el 0,0 900x520
                 text "999984" 92,31 42x16
               el 138,27 1x23
             el #row-17 role=row 9,51 1560x24 pos=18/1000000
-              el 9,74 1560x1
               el #cell-17-1 role=gridcell 139,51 139x23 pos=2/12
                 text "Linus Knuth" 143,55 74x16
               el 278,51 1x23
@@ -185,7 +182,6 @@ el 0,0 900x520
                 text "999983" 92,55 42x16
               el 138,51 1x23
             el #row-18 role=row 9,75 1560x24 pos=19/1000000
-              el 9,98 1560x1
               el #cell-18-1 role=gridcell 139,75 139x23 pos=2/12
                 text "Grace Knuth" 143,79 78x16
               el 278,75 1x23
@@ -224,7 +220,6 @@ el 0,0 900x520
                 text "999982" 92,79 42x16
               el 138,75 1x23
             el #row-19 role=row 9,99 1560x24 pos=20/1000000
-              el 9,122 1560x1
               el #cell-19-1 role=gridcell 139,99 139x23 pos=2/12
                 text "Ada Knuth" 143,103 65x16
               el 278,99 1x23
@@ -263,7 +258,6 @@ el 0,0 900x520
                 text "999981" 92,103 42x16
               el 138,99 1x23
             el #row-20 role=row 9,123 1560x24 pos=21/1000000
-              el 9,146 1560x1
               el #cell-20-1 role=gridcell 139,123 139x23 pos=2/12
                 text "Radia Allen" 143,127 68x16
               el 278,123 1x23
@@ -302,7 +296,6 @@ el 0,0 900x520
                 text "999980" 92,127 42x16
               el 138,123 1x23
             el #row-21 role=row 9,147 1560x24 pos=22/1000000
-              el 9,170 1560x1
               el #cell-21-1 role=gridcell 139,147 139x23 pos=2/12
                 text "Donald Allen" 143,151 78x16
               el 278,147 1x23
@@ -341,7 +334,6 @@ el 0,0 900x520
                 text "999979" 92,151 42x16
               el 138,147 1x23
             el #row-22 role=row 9,171 1560x24 pos=23/1000000
-              el 9,194 1560x1
               el #cell-22-1 role=gridcell 139,171 139x23 pos=2/12
                 text "Frances Allen" 143,175 84x16
               el 278,171 1x23
@@ -380,7 +372,6 @@ el 0,0 900x520
                 text "999978" 92,175 42x16
               el 138,171 1x23
             el #row-23 role=row 9,195 1560x24 pos=24/1000000
-              el 9,218 1560x1
               el #cell-23-1 role=gridcell 139,195 139x23 pos=2/12
                 text "Edsger Allen" 143,199 79x16
               el 278,195 1x23
@@ -419,7 +410,6 @@ el 0,0 900x520
                 text "999977" 92,199 42x16
               el 138,195 1x23
             el #row-24 role=row 9,219 1560x24 pos=25/1000000
-              el 9,242 1560x1
               el #cell-24-1 role=gridcell 139,219 139x23 pos=2/12
                 text "Barbara Allen" 143,223 83x16
               el 278,219 1x23
@@ -458,7 +448,6 @@ el 0,0 900x520
                 text "999976" 92,223 42x16
               el 138,219 1x23
             el #row-25 role=row 9,243 1560x24 pos=26/1000000
-              el 9,266 1560x1
               el #cell-25-1 role=gridcell 139,243 139x23 pos=2/12
                 text "Ken Allen" 143,247 59x16
               el 278,243 1x23
@@ -497,7 +486,6 @@ el 0,0 900x520
                 text "999975" 92,247 42x16
               el 138,243 1x23
             el #row-26 role=row 9,267 1560x24 pos=27/1000000
-              el 9,290 1560x1
               el #cell-26-1 role=gridcell 139,267 139x23 pos=2/12
                 text "Margaret Allen" 143,271 91x16
               el 278,267 1x23
@@ -536,7 +524,6 @@ el 0,0 900x520
                 text "999974" 92,271 42x16
               el 138,267 1x23
             el #row-27 role=row 9,291 1560x24 pos=28/1000000
-              el 9,314 1560x1
               el #cell-27-1 role=gridcell 139,291 139x23 pos=2/12
                 text "Linus Allen" 143,295 68x16
               el 278,291 1x23
@@ -575,7 +562,6 @@ el 0,0 900x520
                 text "999973" 92,295 42x16
               el 138,291 1x23
             el #row-28 role=row 9,315 1560x24 pos=29/1000000
-              el 9,338 1560x1
               el #cell-28-1 role=gridcell 139,315 139x23 pos=2/12
                 text "Grace Allen" 143,319 72x16
               el 278,315 1x23
@@ -614,7 +600,6 @@ el 0,0 900x520
                 text "999972" 92,319 42x16
               el 138,315 1x23
             el #row-29 role=row 9,339 1560x24 pos=30/1000000
-              el 9,362 1560x1
               el #cell-29-1 role=gridcell 139,339 139x23 pos=2/12
                 text "Ada Allen" 143,343 59x16
               el 278,339 1x23
@@ -653,7 +638,6 @@ el 0,0 900x520
                 text "999971" 92,343 42x16
               el 138,339 1x23
             el #row-30 role=row 9,363 1560x24 pos=31/1000000
-              el 9,386 1560x1
               el #cell-30-1 role=gridcell 139,363 139x23 pos=2/12
                 text "Radia Dijkstra" 143,367 82x16
               el 278,363 1x23
@@ -692,7 +676,6 @@ el 0,0 900x520
                 text "999970" 92,367 42x16
               el 138,363 1x23
             el #row-31 role=row 9,387 1560x24 pos=32/1000000
-              el 9,410 1560x1
               el #cell-31-1 role=gridcell 139,387 139x23 pos=2/12
                 text "Donald Dijkstra" 143,391 92x16
               el 278,387 1x23
@@ -731,7 +714,6 @@ el 0,0 900x520
                 text "999969" 92,391 42x16
               el 138,387 1x23
             el #row-32 role=row 9,411 1560x24 pos=33/1000000
-              el 9,434 1560x1
               el #cell-32-1 role=gridcell 139,411 139x23 pos=2/12
                 text "Frances Dijkstra" 143,415 98x16
               el 278,411 1x23
@@ -770,7 +752,6 @@ el 0,0 900x520
                 text "999968" 92,415 42x16
               el 138,411 1x23
             el #row-33 role=row 9,435 1560x24 pos=34/1000000
-              el 9,458 1560x1
               el #cell-33-1 role=gridcell 139,435 139x23 pos=2/12
                 text "Edsger Dijkstra" 143,439 93x16
               el 278,435 1x23
@@ -809,7 +790,6 @@ el 0,0 900x520
                 text "999967" 92,439 42x16
               el 138,435 1x23
             el #row-34 role=row 9,459 1560x24 pos=35/1000000
-              el 9,482 1560x1
               el #cell-34-1 role=gridcell 139,459 139x23 pos=2/12
                 text "Barbara Dijkstra" 143,463 97x16
               el 278,459 1x23
@@ -848,7 +828,6 @@ el 0,0 900x520
                 text "999966" 92,463 42x16
               el 138,459 1x23
             el #row-35 role=row 9,483 1560x24 pos=36/1000000
-              el 9,506 1560x1
               el #cell-35-1 role=gridcell 139,483 139x23 pos=2/12
                 text "Ken Dijkstra" 143,487 73x16
               el 278,483 1x23
@@ -887,7 +866,6 @@ el 0,0 900x520
                 text "999965" 92,487 42x16
               el 138,483 1x23
             el #row-36 role=row 9,507 1560x24 pos=37/1000000
-              el 9,530 1560x1
               el #cell-36-1 role=gridcell 139,507 139x23 pos=2/12
                 text "Margaret Dijkstra" 143,511 105x16
               el 278,507 1x23
@@ -926,7 +904,6 @@ el 0,0 900x520
                 text "999964" 92,511 42x16
               el 138,507 1x23
             el #row-37 role=row 9,531 1560x24 pos=38/1000000
-              el 9,554 1560x1
               el #cell-37-1 role=gridcell 139,531 139x23 pos=2/12
                 text "Linus Dijkstra" 143,535 82x16
               el 278,531 1x23
@@ -965,7 +942,5 @@ el 0,0 900x520
                 text "999963" 92,535 42x16
               el 138,531 1x23
       el 9,482 882x29
-        el role=separator 9,482 882x1
-        el 9,483 882x28
-          text #status "1,000,000 of 1,000,000 orders · order 999981 selected" 21,489 336x16
-          el 369,497 510x0
+        text #status "1,000,000 of 1,000,000 orders · order 999981 selected" 21,489 336x16
+        el 369,497 510x0

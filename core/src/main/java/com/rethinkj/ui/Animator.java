@@ -32,9 +32,9 @@ import java.util.Set;
  */
 final class Animator {
 
-  // The animated numbers: x, y, width, height and radius in pixels, then the fill, the border and
-  // the text colour as alpha, red, green and blue, then the opacity.
-  private static final int RADIUS = 4, FILL = 5, BORDER = 9, TEXT = 13, OPACITY = 17, COUNT = 18;
+  // The animated numbers: x, y, width, height and the four corners' radii in pixels, then the
+  // fill, the border and the text colour as alpha, red, green and blue, then the opacity.
+  private static final int RADIUS = 4, FILL = 8, BORDER = 12, TEXT = 16, OPACITY = 20, COUNT = 21;
 
   // A movement ends this near its target, then jumps onto it: a hundredth of a pixel, and a
   // quarter of a colour step, which rounds to the target; for opacity, a quarter of 1/255.
@@ -52,7 +52,7 @@ final class Animator {
   /** Where an element is in a virtual list: the list, its identity and the index of the row. */
   record InRow(El list, Object listId, int row) {}
 
-  // shortcut: every element keeps eighteen tracks, also without motion, so that one that gains
+  // shortcut: every element keeps twenty-one tracks, also without motion, so that one that gains
   // motion moves from where it was; keep plain values for those when trees reach many thousands.
   private Map<Id, Entry> entries = new HashMap<>();
   private final Set<Entry> moving = new LinkedHashSet<>();
@@ -320,7 +320,10 @@ final class Animator {
     target[1] = el.y();
     target[2] = el.width();
     target[3] = el.height();
-    target[RADIUS] = el.radius();
+    float[] radii = el.radii();
+    for (int c = 0; c < 4; c++) {
+      target[RADIUS + c] = radii[c];
+    }
     channels(el.fill(), target, FILL);
     channels(el.borderColor(), target, BORDER);
     channels(el.text() == null ? 0 : el.text().color(), target, TEXT);
@@ -674,7 +677,7 @@ final class Animator {
       el.place(at(0, now), at(1, now), at(2, now), at(3, now));
       el.moving(!(tracks[0].isAtRest(now) && tracks[1].isAtRest(now) && tracks[2].isAtRest(now)
           && tracks[3].isAtRest(now)));
-      el.radius(at(RADIUS, now));
+      el.radius(at(RADIUS, now), at(RADIUS + 1, now), at(RADIUS + 2, now), at(RADIUS + 3, now));
       el.fill(colour(FILL, now));
       el.borderColor(colour(BORDER, now));
       if (el.text() != null) {

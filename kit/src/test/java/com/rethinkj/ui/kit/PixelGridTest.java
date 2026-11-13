@@ -92,7 +92,7 @@ class PixelGridTest {
       Files.write(out.resolve("sheet-" + scale + "x-" + (int) shift + ".png"), Png.encode(pixels));
       Edges edges = new Edges(pixels, scale);
       edges.walk(root, 0, 0, new float[] {0, 0, WIDTH, HEIGHT});
-      assertTrue(edges.checked > 50, "edges checked at " + scale + ": " + edges.checked);
+      assertTrue(edges.checked > 40, "edges checked at " + scale + ": " + edges.checked);
       assertEquals(List.of(), edges.failures, "at scale " + scale + ", shifted by " + shift);
     }
   }
@@ -250,12 +250,18 @@ class PixelGridTest {
       int x = edge(at[0] + focused.width() / 2, scale);
       int top = edge(at[1], scale);
       int colour = focused.focusRing();
+      // A primary button's ring lies a gap away, which shows the surface behind it.
+      int gap = focused.focusRingGap() > 0 ? stroke(focused.focusRingGap(), scale) : 0;
+      for (int y = top - gap; y < top; y++) {
+        assertTrue(pixels.argb(x, y) != colour, "the gap of " + focused.key() + " row " + y);
+      }
+      top -= gap;
       for (int y = top - ring; y < top; y++) {
         assertEquals(hex(colour), hex(pixels.argb(x, y)), "ring of " + focused.key() + " row " + y);
       }
       assertTrue(pixels.argb(x, top - ring - 1) != colour, "ring no wider at " + scale);
       Edges edges = new Edges(pixels, scale);
-      edges.side(focused.key() + " ring", x, top - ring, ring, false, colour, false);
+      edges.side(focused.key() + " ring", x, top - ring, ring, false, colour, gap > 0);
       assertEquals(List.of(), edges.failures);
     }
   }
@@ -273,6 +279,10 @@ class PixelGridTest {
       }
     }
     return null;
+  }
+
+  private static float px(Len len) {
+    return len.kind() == Len.Kind.PX ? len.value() : 0;
   }
 
   static String hex(int argb) {
@@ -309,16 +319,30 @@ class PixelGridTest {
       float w = el.width();
       float h = el.height();
       String name = el.key() != null ? "#" + el.key() : el.role() != null ? el.role() : "el";
-      Len top = el.style().borderTop;
-      float border = top.kind() == Len.Kind.PX ? top.value() : 0;
-      boolean bordered = border > 0 && el.borderColor() >>> 24 == 0xFF;
-      int colour = bordered ? el.borderColor() : el.fill();
+      Style st = el.style();
+      // Per side, top, right, bottom, left: a border's run of pixels in its colour, else the fill's
+      // edge.
+      float[] widths = {px(st.borderTop), px(st.borderRight), px(st.borderBottom),
+          px(st.borderLeft)};
+      boolean coloured = el.borderColor() >>> 24 == 0xFF;
+      boolean filled = el.fill() >>> 24 == 0xFF;
+      int[] runs = new int[4];
+      int[] colours = new int[4];
+      boolean any = false;
+      for (int side = 0; side < 4; side++) {
+        boolean bordered = coloured && widths[side] > 0;
+        runs[side] = bordered ? stroke(widths[side], scale) : 0;
+        colours[side] = bordered ? el.borderColor() : filled ? el.fill() : 0;
+        any |= colours[side] != 0;
+      }
       shadowed = !el.shadows().isEmpty(); // a gradient outside, which is no edge's blend
-      if (bordered || el.fill() >>> 24 == 0xFF) {
+      if (any) {
         boolean thinX = w > 0 && w <= Scene.HAIRLINE;
         boolean thinY = h > 0 && h <= Scene.HAIRLINE;
-        int run = bordered ? stroke(border, scale) : 0;
-        float r = el.radius();
+        float r = 0;
+        for (float corner : el.radii()) {
+          r = Math.max(r, corner);
+        }
         float cx = x + w / 2; // the middle of each side, where it is straight
         float cy = y + h / 2;
         if (cx > clip[0] + 2 && cx < clip[2] - 2 && w > 2 * r + 2) {
@@ -328,12 +352,13 @@ class PixelGridTest {
                   el.fill(), true);
             }
           } else {
-            if (y >= clip[1] + 1) {
-              side(name + " top", edge(cx, scale), edge(y, scale), run, false, colour, true);
+            if (y >= clip[1] + 1 && colours[0] != 0) {
+              side(name + " top", edge(cx, scale), edge(y, scale), runs[0], false, colours[0],
+                  true);
             }
-            if (y + h <= clip[3] - 1) {
-              side(name + " bottom", edge(cx, scale), edge(y + h, scale) - run, run, false,
-                  colour, true);
+            if (y + h <= clip[3] - 1 && colours[2] != 0) {
+              side(name + " bottom", edge(cx, scale), edge(y + h, scale) - runs[2], runs[2], false,
+                  colours[2], true);
             }
           }
         }
@@ -344,18 +369,19 @@ class PixelGridTest {
                   el.fill(), true);
             }
           } else {
-            if (x >= clip[0] + 1) {
-              side(name + " left", edge(x, scale), edge(cy, scale), run, true, colour, true);
-            }
-            if (x + w <= clip[2] - 1) {
-              side(name + " right", edge(x + w, scale) - run, edge(cy, scale), run, true, colour,
+            if (x >= clip[0] + 1 && colours[3] != 0) {
+              side(name + " left", edge(x, scale), edge(cy, scale), runs[3], true, colours[3],
                   true);
+            }
+            if (x + w <= clip[2] - 1 && colours[1] != 0) {
+              side(name + " right", edge(x + w, scale) - runs[1], edge(cy, scale), runs[1], true,
+                  colours[1], true);
             }
           }
         }
       }
       float[] inner = clip;
-      Style s = el.style();
+      Style s = st;
       if (s.overflowX != Style.Overflow.VISIBLE || s.overflowY != Style.Overflow.VISIBLE) {
         inner = new float[] {Math.max(clip[0], x), Math.max(clip[1], y),
             Math.min(clip[2], x + w), Math.min(clip[3], y + h)};

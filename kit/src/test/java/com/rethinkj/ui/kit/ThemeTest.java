@@ -52,9 +52,7 @@ class ThemeTest {
     check(failures, "text on accent", t.text().onAccent(), accents, 4.5);
     check(failures, "strong border", t.border().strong(), surfaces, 3);
     check(failures, "accent edge", t.accent().edge(), surfaces, 3);
-    // The ring lies right outside a primary button, with no gap: there it is the primary text.
-    check(failures, "primary button's ring", t.text().primary(),
-        Map.of("accent", t.accent().color()), 3);
+    // A primary button's ring lies a gap away from its accent, on the surfaces, as every ring.
     // What is on: a checked box, a switch, the chosen choice of a segmented control.
     check(failures, "accent", t.accent().color(),
         Map.of("panel", s.panel(), "raised", s.raised()), 3);

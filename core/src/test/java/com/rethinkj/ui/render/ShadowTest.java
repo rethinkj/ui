@@ -107,6 +107,69 @@ class ShadowTest {
     return sum * cellW * cellH / (2 * Math.PI * sigma * sigma);
   }
 
+  /** Rounded rectangles whose corners differ: top left, top right, bottom right, bottom left. */
+  static Stream<Arguments> corners() {
+    return Stream.of(
+        Arguments.of("four radii", 20, 12, new double[] {0, 6, 12, 3}, 3),
+        Arguments.of("rounded at the top", 20, 12, new double[] {8, 8, 0, 0}, 2),
+        Arguments.of("a leaf, blur above the radius", 16, 12, new double[] {12, 0, 12, 0}, 4));
+  }
+
+  @ParameterizedTest(name = "{0}")
+  @MethodSource("corners")
+  void theBlurOfCornersOfTheirOwnIsWithinAHundredthOfTheTrueGaussian(String name, double halfW,
+      double halfH, double[] radii, double sigma) {
+    double worst = 0;
+    String where = "";
+    double reachW = halfW + 3 * sigma;
+    double reachH = halfH + 3 * sigma;
+    for (int j = -10; j <= 10; j++) {
+      for (int i = -10; i <= 10; i++) {
+        double x = reachW * i / 10;
+        double y = reachH * j / 10;
+        double error = Math.abs(CpuRenderer.shadow(x, y, halfW, halfH, radii, sigma)
+            - brute(x, y, halfW, halfH, radii, sigma));
+        if (error > worst) {
+          worst = error;
+          where = x + "," + y;
+        }
+      }
+    }
+    System.out.printf(Locale.ROOT, "Shadow of %s: at most %.5f from the true blur, at %s%n", name,
+        worst, where);
+    assertTrue(worst < 0.01, name + ": " + worst + " at " + where);
+  }
+
+  /** As the other brute force, with a radius per corner and cells tested one by one. */
+  private static double brute(double x, double y, double halfW, double halfH, double[] radii,
+      double sigma) {
+    double h = sigma / 32;
+    int columns = (int) Math.ceil(2 * halfW / h);
+    int rows = (int) Math.ceil(2 * halfH / h);
+    double cellW = 2 * halfW / columns;
+    double cellH = 2 * halfH / rows;
+    double reach = 5 * sigma;
+    int left = Math.max((int) ((x - reach + halfW) / cellW), 0);
+    int right = Math.min((int) ((x + reach + halfW) / cellW) + 1, columns);
+    int top = Math.max((int) ((y - reach + halfH) / cellH), 0);
+    int bottom = Math.min((int) ((y + reach + halfH) / cellH) + 1, rows);
+    double sum = 0;
+    for (int j = top; j < bottom; j++) {
+      double cy = -halfH + (j + 0.5) * cellH;
+      double down = Math.exp(-(cy - y) * (cy - y) / (2 * sigma * sigma));
+      for (int i = left; i < right; i++) {
+        double cx = -halfW + (i + 0.5) * cellW;
+        double r = radii[cx > 0 ? cy > 0 ? 2 : 1 : cy > 0 ? 3 : 0];
+        double qx = Math.abs(cx) - (halfW - r);
+        double qy = Math.abs(cy) - (halfH - r);
+        if (qx <= 0 || qy <= 0 || qx * qx + qy * qy <= r * r) {
+          sum += Math.exp(-(cx - x) * (cx - x) / (2 * sigma * sigma)) * down;
+        }
+      }
+    }
+    return sum * cellW * cellH / (2 * Math.PI * sigma * sigma);
+  }
+
   @Test
   void erfIsWithinItsBound() {
     // Values of erf to ten places.
