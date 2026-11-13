@@ -331,4 +331,141 @@ class TextInputTest {
       }
     }
   }
+
+  /** A button that opens a dialog whose field takes the focus. */
+  private static final class Asking {
+    boolean open;
+    String query = "";
+  }
+
+  private static App<Asking> asking() {
+    App<Asking> app = new App<>(new Asking(), a -> col().wFull().hFull().padding(20).child(
+        el().key("open").size(40, 20).focusable().onPress(() -> a.open = true)
+            .overlay(a.open ? col().centerInWindow().modal().padding(10).child(
+                El.text(a.query).editable(s -> a.query = s).key("query").autofocus()
+                    .w(120).h(28).padding(0, 8)) : null)));
+    app.textRendering(TextRendering.LINUX);
+    return app;
+  }
+
+  /** A key and the text SDL makes of it while text input is on, as a keyboard's come. */
+  private static void typed(Window window, int keycode, String text) {
+    Desktop.key(window, true, keycode, 0, false);
+    if (text != null) {
+      Desktop.text(window, text);
+    }
+    Desktop.key(window, false, keycode, 0, false);
+  }
+
+  private static void abc(Window window) {
+    typed(window, 'a', "a");
+    typed(window, 'b', "b");
+    typed(window, 'c', "c");
+  }
+
+  private static void assumeSdlMakesTheText() {
+    assumeTrue(!System.getProperty("os.name").startsWith("Windows"),
+        "Skipped: on Windows the window makes the text of such keys itself (TextInBatchTest)");
+  }
+
+  /**
+   * On X11 and Wayland SDL makes text of a key only while text input is on as it handles the key,
+   * and handles a whole batch of input before the loop sees the click that takes the focus into a
+   * field: the click turns it on as SDL queues it, and the text of the keys after it goes where
+   * the keys go.
+   */
+  @Test
+  void aPressTurnsTextInputOnForTheKeysInItsBatch() {
+    assumeSdlMakesTheText();
+    try (Window window = Window.open(TITLE, 240, 120)) {
+      Desktop.settle();
+      List<WindowEvent> events = new ArrayList<>();
+      window.listener(events::add);
+      Desktop.click(window, 100, 34);
+      assertTrue(Sdl.textInputActive(window.sdlWindow()), "on as SDL queues the press");
+      typed(window, 'a', "a");
+      Desktop.text(window, "日本"); // an input method's, of no key
+      Window.pollEvents();
+      List<WindowEvent> text = events.stream()
+          .filter(e -> e instanceof WindowEvent.KeyText || e instanceof WindowEvent.TextInput)
+          .toList();
+      assertEquals(List.of(new WindowEvent.KeyText("a"), new WindowEvent.TextInput("日本")), text);
+      window.stopTextInput();
+      assertFalse(Sdl.textInputActive(window.sdlWindow()), "until the loop says");
+    }
+  }
+
+  @Test
+  void keysTypedWithTheClickIntoAFieldReachIt() {
+    try (Window window = Window.open(TITLE, 240, 120)) {
+      Desktop.settle();
+      App<Form> app = app();
+      runUntil(window, app, () -> true, "a frame");
+      Desktop.click(window, 100, 34);
+      abc(window);
+      runUntil(window, app, () -> app.state().name.equals("abc"), "the keys reach the field");
+      assertTrue(Sdl.textInputActive(window.sdlWindow()), "on for the field");
+    }
+  }
+
+  @Test
+  void keysTypedWithTabIntoAFieldReachIt() {
+    try (Window window = Window.open(TITLE, 240, 120)) {
+      Desktop.settle();
+      App<Form> app = app();
+      runUntil(window, app, () -> true, "a frame");
+      typed(window, 0x09, null); // SDL makes no text of the key that turns text input on
+      abc(window);
+      runUntil(window, app, () -> app.state().name.equals("abc"), "the keys reach the field");
+    }
+  }
+
+  /**
+   * A key that presses a button and opens a dialog whose field takes the focus: the keys after
+   * it type there, and the text of the key that pressed the button does not, nor that of a key
+   * that went nowhere.
+   */
+  @Test
+  void keysTypedWithTheKeyThatOpensADialogReachItsField() {
+    assumeSdlMakesTheText();
+    try (Window window = Window.open(TITLE, 240, 120)) {
+      Desktop.settle();
+      App<Asking> app = asking();
+      runUntil(window, app, () -> true, "a frame");
+      typed(window, 'x', null); // to nothing; turns text input on
+      typed(window, 'y', "y"); // to nothing either
+      typed(window, 0x09, null); // to the button
+      typed(window, ' ', " "); // presses it; the dialog's field takes the focus
+      typed(window, 'a', "a");
+      typed(window, 'b', "b");
+      runUntil(window, app, () -> app.state().query.equals("ab"), "the keys reach the field");
+      assertEquals("ab", app.state().query);
+      assertTrue(Sdl.textInputActive(window.sdlWindow()), "on for the field");
+    }
+  }
+
+  @Test
+  void keysTypedWithTheClickThatOpensADialogReachItsField() {
+    try (Window window = Window.open(TITLE, 240, 120)) {
+      Desktop.settle();
+      App<Asking> app = asking();
+      runUntil(window, app, () -> true, "a frame");
+      Desktop.click(window, 40, 30);
+      abc(window);
+      runUntil(window, app, () -> app.state().query.equals("abc"), "the keys reach the field");
+    }
+  }
+
+  @Test
+  void aKeyThatTakesNoTextLeavesTextInputOffAfterItsFrame() {
+    try (Window window = Window.open(TITLE, 240, 120)) {
+      Desktop.settle();
+      App<Form> app = app();
+      runUntil(window, app, () -> true, "a frame");
+      typed(window, 'x', null);
+      Desktop.click(window, 200, 100); // on nothing
+      runUntil(window, app, () -> true, "a frame");
+      assertFalse(Sdl.textInputActive(window.sdlWindow()), "off: no field has the focus");
+    }
+  }
 }

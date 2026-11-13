@@ -20,6 +20,7 @@ import com.rethinkj.ui.El;
 import com.rethinkj.ui.Style;
 import com.rethinkj.ui.examples.Samples.Node;
 import com.rethinkj.ui.examples.Showcase.Section;
+import com.rethinkj.ui.kit.Avatar;
 import com.rethinkj.ui.kit.Badge;
 import com.rethinkj.ui.kit.Breadcrumb;
 import com.rethinkj.ui.kit.Button;
@@ -387,6 +388,8 @@ final class Sections {
             i -> s.schema = i).key("schema-box")),
         field(t, "Host", ComboBox.free(t, s.recentHost, HOSTS, s.hostBox, v -> s.recentHost = v)
             .key("host-box").w(280)),
+        field(t, "Database", ComboBox.items(t, PROVIDERS, s.provider, s.providerBox,
+            i -> s.provider = i).key("provider-box").w(280)),
         row().padding(0, 0, 0, 96 + t.space().m()).child(button(t, SECONDARY, Symbol.SEARCH,
             "Command palette…", s.palette::open).key("open-palette")))
         .w(420);
@@ -543,6 +546,17 @@ final class Sections {
               + "selectedInactive."));
     }
     return row().gap(t.space().l()).align(Style.Align.START).child(explorer).child(details);
+  }
+
+  /** The products a connection can be to, each with a mark of its own before its name. */
+  static final List<ComboBox.Item> PROVIDERS = List.of(
+      provider("PostgreSQL", "9.6 or later"), provider("MySQL", "8.0"),
+      provider("MariaDB", "10.5"), provider("SQL Server", "2019"), provider("Oracle", "19c"),
+      ComboBox.item("SQLite").icon(Symbol.DATABASE).detail("a file"));
+
+  private static ComboBox.Item provider(String name, String versions) {
+    return ComboBox.item(name).detail(versions)
+        .leading(t -> Avatar.avatar(t, name, null, t.size().icon()));
   }
 
   // Tabs and split
