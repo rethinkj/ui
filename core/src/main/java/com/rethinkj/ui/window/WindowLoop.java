@@ -33,7 +33,8 @@ import java.util.Objects;
  * window asks for a {@link WindowEvent.Redraw}, or when the presenter could not show the last frame
  * ({@link Presenter#pending}). An idle window waits for events and does nothing else, except for
  * waking when the caret of a focused text field blinks ({@link App#nextChange}), which it does only
- * while the window is active ({@link App#windowActive}). While something
+ * while the window is active ({@link App#windowActive}), and when an action the app asked for with
+ * {@link App#after} is due. While something
  * moves, the loop advances the app's clock by the time that passed and draws a frame per refresh of
  * the display.
  *

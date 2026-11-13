@@ -37,6 +37,47 @@ class AppTest {
   }
 
   @Test
+  void anActionRunsInTheFirstFrameOnceTheClockReachesItsTime() {
+    List<String> log = new ArrayList<>();
+    int[] views = {0};
+    App<List<String>> app = new App<>(log, l -> {
+      views[0]++;
+      return el().size(10, 10);
+    });
+    app.resize(100, 100, 1);
+    app.frame();
+    assertEquals(Double.POSITIVE_INFINITY, app.nextChange());
+
+    app.after(1.5, () -> log.add("later"));
+    app.after(0.5, () -> {
+      log.add("first");
+      app.after(0, () -> log.add("asked by first"));
+    });
+    app.after(0.5, () -> log.add("second"));
+    assertEquals(0.5, app.nextChange());
+    app.windowActive(false);
+    assertEquals(0.5, app.nextChange(), "also while the window is inactive");
+    app.advance(0.4);
+    assertFalse(app.frame(), "not due yet");
+    assertEquals(List.of(), log);
+
+    app.advance(0.1);
+    assertTrue(app.frame());
+    assertEquals(List.of("first", "second"), log, "in the order asked for");
+    assertEquals(2, views[0], "the view built again, once");
+    assertEquals(0.5, app.nextChange(), "what the first asked for is due now");
+    assertTrue(app.frame());
+    assertEquals(List.of("first", "second", "asked by first"), log);
+    assertEquals(1.5, app.nextChange());
+
+    app.advance(10);
+    app.frame();
+    assertEquals(List.of("first", "second", "asked by first", "later"), log, "once each");
+    assertEquals(Double.POSITIVE_INFINITY, app.nextChange());
+    assertFalse(app.frame());
+  }
+
+  @Test
   void nothingHappensWithoutInput() {
     App<Lights> app = new App<>(new Lights(), Examples::switchAlone);
     app.resize(200, 120, 1);

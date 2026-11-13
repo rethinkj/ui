@@ -13,6 +13,7 @@ import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.PriorityQueue;
 import java.util.Set;
 import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
@@ -134,6 +135,9 @@ public final class App<S> {
   private Editor blinking; // the editor of the focused field
   private double blinkStart; // when its caret last turned on
   private boolean caretOn;
+  // Actions to run when the clock reaches their time, the earliest first; see after().
+  private final PriorityQueue<Timer> timers = new PriorityQueue<>();
+  private long timersAsked;
   private boolean active = true; // the window has the system's keyboard focus
 
   public App(S state, Function<S, El> view) {
@@ -513,14 +517,57 @@ public final class App<S> {
 
   /**
    * The time on the app's clock at which the last frame changes without input or movement: when
-   * the caret of the focused field turns on or off. Positive infinity when nothing will; then an
-   * idle window can wait for input alone.
+   * the caret of the focused field turns on or off, or when an action asked for with {@link
+   * #after} is due. Positive infinity when nothing will; then an idle window can wait for input
+   * alone.
    */
   public double nextChange() {
+    double due = timers.isEmpty() ? Double.POSITIVE_INFINITY : timers.peek().at();
     if (blinking == null || !active) {
-      return Double.POSITIVE_INFINITY;
+      return due;
     }
-    return blinkStart + (Math.floor((time - blinkStart) / BLINK) + 1) * BLINK;
+    return Math.min(due, blinkStart + (Math.floor((time - blinkStart) / BLINK) + 1) * BLINK);
+  }
+
+  /**
+   * Runs {@code action} once the app's clock has moved on by {@code seconds}: in the first {@link
+   * #frame} at or after that time, before the handlers that input queued. Like a handler, it may
+   * change the state, and the frame builds the view again. For what happens later without input,
+   * such as a delay, a timeout or data that arrives after a while. Actions due at the same time
+   * run in the order they were asked for; one that an action asks for runs in a later frame, even
+   * with a delay of 0. Call it on the app's thread, from a handler or an action, or before the
+   * first frame. {@link #nextChange} says when the next one is due, so that a window wakes for it;
+   * a script runs it with {@code advance} and {@code frame}.
+   *
+   * @param seconds from the app's {@link #time}, 0 or more
+   */
+  public void after(double seconds, Runnable action) {
+    if (!(seconds >= 0 && seconds < Double.POSITIVE_INFINITY)) {
+      throw new IllegalArgumentException(
+          "seconds must be 0 or a positive finite number, was " + seconds);
+    }
+    timers.add(new Timer(time + seconds, timersAsked++, Objects.requireNonNull(action, "action")));
+  }
+
+  /** An action asked for with {@link #after}, due at a time of the clock. */
+  private record Timer(double at, long order, Runnable action) implements Comparable<Timer> {
+    @Override
+    public int compareTo(Timer other) {
+      int byTime = Double.compare(at, other.at);
+      return byTime != 0 ? byTime : Long.compare(order, other.order);
+    }
+  }
+
+  /** Runs the actions due at the current time, as they were when the frame began. */
+  private boolean runTimers() {
+    List<Timer> due = new ArrayList<>();
+    while (!timers.isEmpty() && timers.peek().at() <= time) {
+      due.add(timers.poll());
+    }
+    for (Timer timer : due) {
+      timer.action().run();
+    }
+    return !due.isEmpty();
   }
 
   /**
@@ -972,7 +1019,8 @@ public final class App<S> {
   }
 
   /**
-   * Runs the handlers queued by input, scrolls as the wheel and {@link #scrollTo} asked and, if
+   * Runs the actions that are due ({@link #after}) and the handlers queued by input, scrolls as
+   * the wheel and {@link #scrollTo} asked and, if
    * anything may have changed, builds the view again, gives it the looks of the moment ({@link
    * El#whenHovered}) and its text fields their editing state, lays it out and builds the rows of
    * its virtual lists, each row the same way. Then it writes the values of the moment into the
@@ -986,6 +1034,7 @@ public final class App<S> {
   public boolean frame() {
     El wasFocused = focused;
     boolean hadRing = ring;
+    stale |= runTimers();
     while (!queued.isEmpty()) {
       stale |= queued.poll().getAsBoolean();
       if (!queued.isEmpty()) {
