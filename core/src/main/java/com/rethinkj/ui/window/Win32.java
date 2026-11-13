@@ -155,6 +155,22 @@ final class Win32 {
   static final FunctionDescriptor TASKBAR_SET_OVERLAY_ICON =
       FunctionDescriptor.of(JAVA_INT, ADDRESS, ADDRESS, ADDRESS, ADDRESS);
 
+  /**
+   * {@code DWORD GetLongPathNameW(LPCWSTR lpszShortPath, LPWSTR lpszLongPath, DWORD cchBuffer)}:
+   * the length copied without the NUL, or the length needed with it if the buffer is too small,
+   * or 0 if it fails.
+   */
+  static final FunctionDescriptor GET_LONG_PATH_NAME =
+      FunctionDescriptor.of(JAVA_INT, ADDRESS, ADDRESS, JAVA_INT);
+
+  /** The handles of the file system's calls, bound on first use. */
+  private static final class Files {
+    static final SymbolLookup KERNEL32 = SymbolLookup.libraryLookup("kernel32", Arena.global());
+
+    static final MethodHandle GET_LONG_PATH_NAME_H =
+        H.bind(KERNEL32, "GetLongPathNameW", GET_LONG_PATH_NAME);
+  }
+
   private static final class H {
     static final SymbolLookup USER32 = SymbolLookup.libraryLookup("user32", Arena.global());
     static final SymbolLookup DWMAPI = SymbolLookup.libraryLookup("dwmapi", Arena.global());
@@ -376,6 +392,37 @@ final class Win32 {
       MemorySegment text = description == null ? MemorySegment.NULL : wide(arena, description);
       return (int) Shell.TASKBAR_SET_OVERLAY_ICON_H.invokeExact(
           method(taskbar, VTBL_SET_OVERLAY_ICON), taskbar, hwnd, icon, text);
+    } catch (Throwable t) {
+      throw Sdl.failed(t);
+    }
+  }
+
+  /**
+   * The long form of a path whose parts may be 8.3 short names ({@code GetLongPathNameW}), as
+   * the system's file dialog gives a path longer than {@code MAX_PATH}; null if the path is not
+   * there or Windows cannot say. Paths of any length go with the {@code \\?\} prefix, which the
+   * answer comes back without.
+   */
+  static String longPathName(String path) {
+    String in = path.startsWith("\\\\?\\") ? path
+        : path.startsWith("\\\\") ? "\\\\?\\UNC\\" + path.substring(2) : "\\\\?\\" + path;
+    try (Arena arena = Arena.ofConfined()) {
+      MemorySegment from = wide(arena, in);
+      int size = 1024;
+      for (int attempt = 0; attempt < 3; attempt++) {
+        MemorySegment to = arena.allocate(2L * size, 2);
+        int n = (int) Files.GET_LONG_PATH_NAME_H.invokeExact(from, to, size);
+        if (n == 0) {
+          return null;
+        }
+        if (n < size) {
+          String out = to.getString(0, StandardCharsets.UTF_16LE);
+          return out.startsWith("\\\\?\\UNC\\") ? "\\\\" + out.substring(8)
+              : out.startsWith("\\\\?\\") ? out.substring(4) : out;
+        }
+        size = n;
+      }
+      return null;
     } catch (Throwable t) {
       throw Sdl.failed(t);
     }

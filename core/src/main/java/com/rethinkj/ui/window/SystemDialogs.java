@@ -197,12 +197,36 @@ public final class SystemDialogs implements Dialogs {
       String text = Sdl.string(path);
       if (!text.isEmpty()) {
         try {
-          paths.add(Path.of(text));
+          paths.add(longName(Path.of(text)));
         } catch (InvalidPathException e) {
           throw new IllegalStateException("The system chose a path Java cannot use: " + text, e);
         }
       }
     }
+  }
+
+  /**
+   * The path with its 8.3 short names made long again on Windows, whose file dialog answers with
+   * the short form of a path longer than {@code MAX_PATH} ({@code C:\Daten\EINSEH~1\LANGED~1.TXT}),
+   * which would name a tab or a title so. A file that is not there yet, as a save dialog's, keeps
+   * its name after its folder's long form. Elsewhere, and for a path without a {@code ~}, the path
+   * as it is.
+   */
+  static Path longName(Path path) {
+    if (File.separatorChar != '\\' || path.toString().indexOf('~') < 0) {
+      return path;
+    }
+    String full = Win32.longPathName(path.toString());
+    if (full != null) {
+      return Path.of(full);
+    }
+    Path parent = path.getParent();
+    Path name = path.getFileName();
+    if (parent == null || name == null) {
+      return path;
+    }
+    Path longParent = longName(parent);
+    return longParent.equals(parent) ? path : longParent.resolve(name);
   }
 
   /** SDL's error as the app gets it, with what to do where Linux has no dialog. */

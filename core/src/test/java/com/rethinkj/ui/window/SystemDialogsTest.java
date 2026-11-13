@@ -1,6 +1,7 @@
 package com.rethinkj.ui.window;
 
 import static java.lang.foreign.ValueLayout.ADDRESS;
+import static java.lang.foreign.ValueLayout.JAVA_INT;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -10,14 +11,19 @@ import com.rethinkj.ui.FileDialog;
 import com.rethinkj.ui.natives.Natives;
 import java.io.File;
 import java.lang.foreign.Arena;
+import java.lang.foreign.FunctionDescriptor;
 import java.lang.foreign.Linker;
 import java.lang.foreign.MemorySegment;
+import java.lang.foreign.SymbolLookup;
 import java.lang.invoke.MethodHandle;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 /**
  * The file dialogs' callback, called through its upcall stub as SDL calls it, on this thread and
@@ -77,6 +83,42 @@ class SystemDialogsTest {
     Answer here = call(List.of("/tmp/a b"), -1, false);
     assertEquals(List.of(Path.of("/tmp/a b")), here.choice().paths());
     assertEquals(-1, here.choice().filter());
+  }
+
+  /** {@code DWORD GetShortPathNameW(LPCWSTR, LPWSTR, DWORD)}, the other way round, for the test. */
+  private static String shortPathName(String path) throws Throwable {
+    MethodHandle h = Linker.nativeLinker().downcallHandle(
+        SymbolLookup.libraryLookup("kernel32", Arena.global()).find("GetShortPathNameW")
+            .orElseThrow(),
+        FunctionDescriptor.of(JAVA_INT, ADDRESS, ADDRESS, JAVA_INT));
+    try (Arena arena = Arena.ofConfined()) {
+      MemorySegment to = arena.allocate(2 * 4096, 2);
+      int n = (int) h.invokeExact(arena.allocateFrom("\\\\?\\" + path, StandardCharsets.UTF_16LE),
+          to, 4096);
+      String out = n == 0 ? path : to.getString(0, StandardCharsets.UTF_16LE);
+      return out.startsWith("\\\\?\\") ? out.substring(4) : out;
+    }
+  }
+
+  @Test
+  void aPathLongerThanMaxPathComesWithItsLongNames(@TempDir Path temp) throws Throwable {
+    assumeTrue(File.separatorChar == '\\', "8.3 names are Windows'");
+    Path folder = temp;
+    for (int i = 0; i < 4; i++) {
+      folder = folder.resolve("ein sehr langer Ordner mit Ümlauten und Leerzeichen 0123456789 " + i);
+    }
+    Files.createDirectories(folder);
+    Path file = Files.writeString(folder.resolve("lange Datei.txt"), "x");
+    assertTrue(file.toString().length() > 260, file.toString().length() + " characters");
+    String shortName = shortPathName(file.toString());
+    assumeTrue(shortName.contains("~"), "the volume makes no 8.3 names");
+    String shortFolder = shortPathName(folder.toString());
+
+    // As SDL hands over what the dialog answered: the short form of a long path.
+    Answer answer = call(List.of(shortName, shortFolder + File.separator + "neue Datei.sql"), 0,
+        true);
+    assertEquals(List.of(file, folder.resolve("neue Datei.sql")), answer.choice().paths(),
+        "a file that is not there yet keeps its name after its folder's long form");
   }
 
   @Test
