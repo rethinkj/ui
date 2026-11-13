@@ -1,0 +1,1 @@
+- `El.onPressOutside(handler)` runs when a pointer button goes down outside an element, before the press does anything else, and lets the press go on; `El.autofocus()` now also takes the focus for an element in a row of a virtual list when the list builds the row.

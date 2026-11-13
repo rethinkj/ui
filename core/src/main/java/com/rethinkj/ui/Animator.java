@@ -628,6 +628,22 @@ final class Animator {
     return autofocus(root, new Id(null, part(root, 0)));
   }
 
+  /**
+   * The first element in the rows of the list {@code list}, with the identity {@code listId},
+   * that asks for the focus with {@link El#autofocus} as {@link #autofocus(El)} finds it, or null:
+   * the rows are built after layout, when that has looked at the rest of the tree.
+   */
+  Object autofocusInRows(El list, Object listId) {
+    Id[] ids = ids(list, (Id) listId);
+    for (int i = 0; i < ids.length; i++) {
+      Id found = autofocus(list.children().get(i), ids[i]);
+      if (found != null) {
+        return found;
+      }
+    }
+    return null;
+  }
+
   private Id autofocus(El el, Id id) {
     if (el.opacity() == 0 || el.style().display == Style.Display.NONE) {
       return null;
