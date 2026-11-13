@@ -12,6 +12,7 @@ import com.rethinkj.ui.App;
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.Script;
 import com.rethinkj.ui.Work;
+import com.rethinkj.ui.kit.AppIcon;
 import com.rethinkj.ui.kit.DataGrid;
 import com.rethinkj.ui.kit.DataGrid.CellIcon;
 import com.rethinkj.ui.kit.DataGrid.Column;
@@ -30,6 +31,7 @@ import com.rethinkj.ui.kit.Tree;
 import com.rethinkj.ui.render.GpuPresenter;
 import com.rethinkj.ui.text.TextRendering;
 import com.rethinkj.ui.window.Window;
+import com.rethinkj.ui.window.WindowIcon;
 import com.rethinkj.ui.window.WindowLoop;
 import java.io.IOException;
 import java.net.ConnectException;
@@ -53,7 +55,8 @@ import java.util.Set;
  * the question of its table, whose answer then never arrives. The rows are made up from their
  * index; localhost/shop/public/orders has a million. A message in the status line goes after a
  * few seconds on the app's clock ({@link App#after}), and the title bar switches between the dark
- * and the light theme.
+ * and the light theme. The taskbar button counts the questions on their way, and asks for
+ * attention when an answer arrives while the window is in the background.
  *
  * <p>The work gets the names it asks about, never the nodes: they are the app's state, which only
  * the handlers touch, on the app's thread. Under a script the latency is 0, and the script's
@@ -149,6 +152,7 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
   String message; // in the status line for a while, or null
   int messages; // told so far
   App<Workbench> app; // runs the work and the clock
+  Window window; // the window it runs in, for the taskbar; null under a script
 
   Workbench() {
     Node localhost = new Node(Kind.SERVER, "localhost", null);
@@ -266,12 +270,15 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
             names.forEach(name -> schema(database(node, name), "public",
                 name.equals("shop") ? TABLES.length : 3));
             tell(server + ": " + names.size() + " databases");
+            answered();
           },
           error -> {
             connecting.remove(node);
             open.remove(node); // opening it again asks again
             tell(server + ": " + error.getMessage());
+            answered();
           });
+      taskbar();
     }
   }
 
@@ -294,13 +301,16 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
         rows -> {
           o.rows = rows;
           o.asking = null;
+          answered();
         },
         error -> {
           o.asking = null;
           tell(path + ": " + error.getMessage());
+          answered();
         });
     tables.add(o);
     active = tables.size();
+    taskbar();
   }
 
   void close(int tab) {
@@ -308,8 +318,34 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
     if (o.asking != null) {
       o.asking.cancel(); // its answer is not wanted any more
     }
+    taskbar();
     if (tab < active || active > tables.size()) {
       active--;
+    }
+  }
+
+  /** The questions on their way: servers connecting and tables counting their rows. */
+  int running() {
+    return connecting.size() + (int) tables.stream().filter(o -> o.asking != null).count();
+  }
+
+  /** Shows the number of questions on their way on the taskbar button, or nothing for none. */
+  void taskbar() {
+    if (window == null) {
+      return;
+    }
+    int n = running();
+    Theme t = theme();
+    WindowIcon badge = WindowIcon.of(size -> AppIcon.count(t, size, t.accent().color(), n));
+    window.badge(n == 0 ? null : badge,
+        n == 1 ? "1 question running" : n + " questions running");
+  }
+
+  /** An answer arrived: the badge counts one less, and a window in the background asks to look. */
+  void answered() {
+    taskbar();
+    if (window != null && !window.isFocused()) {
+      window.attention(Window.Attention.UNTIL_FOCUSED);
     }
   }
 
@@ -337,9 +373,11 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
     }
     s.latency = Duration.ofMillis(800);
     app.textRendering(TextRendering.platform());
-    Window.Options options = Window.options().frameless().minimumSize(640, 400);
+    Window.Options options = Identity.options(Workbench.class, "Workbench", 0xFF0F766E,
+        Symbol.DATABASE).frameless().minimumSize(640, 400);
     try (Window window = Window.open("Workbench", 1200, 720, options);
         GpuPresenter presenter = new GpuPresenter(window)) {
+      s.window = window;
       WindowLoop.run(window, app, presenter);
     }
   }

@@ -8,6 +8,7 @@ import static com.rethinkj.ui.kit.Toggle.toggle;
 import com.rethinkj.ui.App;
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.Script;
+import com.rethinkj.ui.kit.Symbol;
 import com.rethinkj.ui.kit.Theme;
 import com.rethinkj.ui.render.GpuPresenter;
 import com.rethinkj.ui.text.TextRendering;
@@ -35,7 +36,8 @@ public final class LightSwitch {
       return;
     }
     app.textRendering(TextRendering.platform());
-    Window.Options options = Window.options().frameless().minimumSize(240, 160);
+    Window.Options options = Identity.options(LightSwitch.class, "Lights", 0xFFD97706, Symbol.FLASH)
+        .frameless().minimumSize(240, 160);
     try (Window window = Window.open("Lights", 360, 240, options);
         GpuPresenter presenter = new GpuPresenter(window)) {
       WindowLoop.run(window, app, presenter);
