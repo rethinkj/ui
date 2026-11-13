@@ -32,7 +32,7 @@ The frame handles the queued input in order, each against the view the input bef
 | `down <target> [clicks <n>] [modifiers]`, `up <target>` | The two halves of a press, for a press that ends elsewhere. A press counts only when both land on the same element. |
 | `move <target>` | Moves the pointer onto the target, which hovers it. Between `down` and `up` it drags an element with a drag handler once the pointer is more than 4 pixels from where it went down; in a text field it selects, on a scrollbar's thumb it drags the thumb. |
 | `leave` | The pointer leaves the window: nothing is hovered. |
-| `wheel <target> <deltaX> <deltaY>` | Turns the wheel over the target, in logical pixels; positive scrolls down or right. The innermost scroll area that can still move takes the distance. |
+| `wheel <target> <deltaX> <deltaY>` | Turns the wheel at the target's position, in logical pixels; positive scrolls down or right. The innermost scroll area that can still move takes the distance. It does not move the pointer, so hover stays where `move` left it. |
 | `scroll <target> row <index>` | Scrolls the list of rows at the target so that row `<index>` (from 0) is at its top, or as far as the list allows. |
 
 Presses do not move the pointer: a `move` is needed for hover looks and tooltips.

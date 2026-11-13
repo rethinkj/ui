@@ -378,4 +378,26 @@ class PostTest {
     });
     assertThrows(IllegalStateException.class, app::frame);
   }
+
+  @Test
+  void inputAfterAHandlerThatThrewGoesToATreeBuiltFromWhatItChanged() {
+    App<int[]> app = new App<>(new int[1], s -> {
+      int before = s[0];
+      return el().size(100, 100).onKey(k -> {
+        s[0] = before + 1; // from the state the tree was built from
+        if (k.name().equals("A")) {
+          throw new IllegalStateException("handler failed");
+        }
+        return true;
+      });
+    });
+    app.resize(100, 100, 1);
+    app.frame();
+    app.keyDown(new Key("A"));
+    app.keyDown(new Key("B"));
+    assertThrows(IllegalStateException.class, app::frame);
+    assertEquals(1, app.state()[0]);
+    app.frame(); // B, after a rebuild
+    assertEquals(2, app.state()[0]);
+  }
 }

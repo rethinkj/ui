@@ -14,6 +14,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import com.rethinkj.ui.Examples.Lights;
 import com.rethinkj.ui.motion.Spring;
 import com.rethinkj.ui.render.Scene;
+import com.rethinkj.ui.text.TextLibraries;
 import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -830,5 +831,68 @@ class FocusTest {
     app.resize(100, 50, 1);
     app.frame();
     assertSame(find(app.tree(), "row2"), app.focused(), "also after a rebuild");
+  }
+
+  @Test
+  void tabIntoAListPassesAnElementOfItsRowThatSkipsTab() {
+    App<Void> app = start(
+        new App<Void>(
+            null,
+            s -> col()
+                .size(100, 100)
+                .rows(
+                    10,
+                    30,
+                    i -> row()
+                        .children(
+                            el().key("paragraph").size(40, 30).focusable().skipTab(),
+                            el().key("link").size(40, 30).focusable()))),
+        100,
+        100);
+    tab(app);
+    assertEquals("link", app.focused().key());
+  }
+
+  @Test
+  void anAutofocusThatIsClippedAwayLeavesTheFocusToTheNextThatAsks() {
+    App<Void> app = start(
+        new App<Void>(
+            null,
+            s -> col()
+                .size(100, 100)
+                .children(
+                    el().size(50, 0)
+                        .clip()
+                        .child(el().key("clipped").size(20, 20).focusable().autofocus()),
+                    el().key("visible").size(20, 20).focusable().autofocus())),
+        100,
+        100);
+    assertEquals("visible", app.focused().key());
+  }
+
+  @Test
+  void aSecondaryPressFocusesATextFieldInsideAnElementThatKeepsTheFocus() {
+    TextLibraries.assumeLoaded();
+    App<String[]> app = start(
+        new App<>(
+            new String[] {"", ""},
+            s -> col()
+                .size(100, 100)
+                .children(
+                    El.text(s[0])
+                        .key("first")
+                        .size(100, 20)
+                        .editable(v -> s[0] = v)
+                        .autofocus(),
+                    el().size(100, 30)
+                        .keepFocus()
+                        .child(El.text(s[1]).key("second").size(100, 20).editable(v -> s[1] = v)))),
+        100,
+        100);
+    assertEquals("first", app.focused().key());
+    app.secondaryDown(10, 25);
+    app.secondaryUp(10, 25);
+    app.frame();
+    assertEquals("second", app.focused().key(), "as a primary press does");
   }
 }

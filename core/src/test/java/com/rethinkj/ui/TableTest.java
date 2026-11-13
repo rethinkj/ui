@@ -264,4 +264,24 @@ class TableTest {
     }
     return Float.NaN;
   }
+
+  @Test
+  void pointerHooksInTheRowsOfAListRunAfterARebuildBetweenInputs() {
+    List<String> seen = new ArrayList<>();
+    App<Void> app = new App<>(
+        null,
+        s -> col()
+            .size(100, 100)
+            .rows(
+                1,
+                20,
+                i -> el().onAnyPointerDown(() -> seen.add("any"))
+                    .onPressOutside(() -> seen.add("outside"))));
+    app.resize(100, 100, 1);
+    app.frame();
+    app.post(() -> {}); // the view is built again before the press, at first without its rows
+    app.pointerDown(50, 80);
+    app.frame();
+    assertEquals(List.of("any", "outside"), seen);
+  }
 }

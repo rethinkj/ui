@@ -188,8 +188,8 @@ public final class Markdown {
     State state = options.state;
     if (state != null) {
       list.onAnyPointerDown(() -> state.all = false);
-      // Overlays in the rows of a list keep no time: the confirmation of a code block's copy
-      // button ends by one on the document.
+      // Overlays in the rows of a list keep their time only while their row exists: the
+      // confirmation of a code block's copy button ends by one on the document.
       list.overlay(Button.ending(t, state.copied));
     }
     list.onKey(k -> keys(c, k));

@@ -1117,4 +1117,198 @@ class OverlayTest {
     assertEquals(List.of("bar dismissed"), b.log);
     assertEquals("field", app.focused().key());
   }
+
+  @Test
+  void anOverlayThatIsLeavingGetsNoKeysOfAnyKeyDown() {
+    boolean[] open = {true};
+    int[] keys = {0};
+    App<Object> app = app(
+        new Object(),
+        s -> el().size(200, 200)
+            .overlay(
+                open[0]
+                    ? el().key("menu")
+                        .size(60, 40)
+                        .motion(Spring.SNAP)
+                        .onAnyKeyDown(key -> keys[0]++)
+                    : null),
+        200,
+        200);
+    open[0] = false;
+    app.invalidate();
+    app.frame();
+    assertTrue(app.tree().shownOverlays().getFirst().isExiting(), "it fades out");
+    app.keyDown(new Key("A", 0, false));
+    app.frame();
+    assertEquals(0, keys[0]);
+  }
+
+  @Test
+  void aModalOverlayThatTheViewMakesInvisibleBlocksNothing() {
+    int[] pressed = {0};
+    App<Object> app = app(
+        new Object(),
+        s -> el().size(200, 200)
+            .onPress(() -> pressed[0]++)
+            .overlay(el().key("hidden").size(60, 40).opacity(0).modal()),
+        200,
+        200);
+    assertTrue(app.tree().shownOverlays().isEmpty());
+    press(app, 150, 150);
+    assertEquals(1, pressed[0]);
+  }
+
+  @Test
+  void anOverlayThatKeepsTheFocusGivesBackTheLastPlaceOutsideAfterSeveralMovesInOneFrame() {
+    for (boolean frames : new boolean[] {false, true}) {
+      boolean[] open = {true};
+      App<Object> app = app(
+          new Object(),
+          s -> el().size(200, 200)
+              .children(
+                  el().key("a").size(40, 20).focusable(),
+                  el().key("b")
+                      .absolute(0, 40)
+                      .size(40, 20)
+                      .focusable()
+                      .overlay(
+                          open[0]
+                              ? el().key("toast")
+                                  .size(60, 20)
+                                  .keepFocus()
+                                  .child(el().key("undo").size(30, 20).focusable())
+                              : null)),
+          200,
+          200);
+      app.focus(app.tree().children().getFirst());
+      app.frame();
+      for (int i = 0; i < 2; i++) { // to b, then into the toast
+        app.keyDown(new Key("Tab", 0, false));
+        app.keyUp(new Key("Tab", 0, false));
+        if (frames) {
+          app.frame();
+        }
+      }
+      app.frame();
+      assertEquals("undo", app.focused().key());
+      open[0] = false;
+      app.invalidate();
+      app.frame();
+      assertEquals("b", app.focused().key(), frames ? "a frame per Tab" : "both in one frame");
+    }
+  }
+
+  @Test
+  void anOverlayUnderAnInvisibleAnchorTakesNoFocus() {
+    boolean[] add = {false};
+    App<Object> app = app(
+        new Object(),
+        s -> el().size(200, 200)
+            .children(
+                el().key("editor").size(30, 20).focusable(),
+                el().key("anchor")
+                    .absolute(0, 50)
+                    .size(30, 20)
+                    .opacity(0)
+                    .overlay(
+                        add[0]
+                            ? el().key("dialog")
+                                .size(60, 40)
+                                .modal()
+                                .child(el().key("ok").size(20, 20).focusable())
+                            : null)),
+        200,
+        200);
+    app.focus(app.tree().children().getFirst());
+    app.frame();
+    add[0] = true;
+    app.invalidate();
+    app.frame();
+    assertTrue(app.tree().shownOverlays().isEmpty());
+    assertEquals("editor", app.focused().key());
+  }
+
+  @Test
+  void theTimeOfAnOverlayRunsAlsoWhereALookOfTheKeyboardAttachedIt() {
+    int[] fired = {0};
+    App<Object> app = app(
+        new Object(),
+        s -> el().size(200, 200)
+            .child(el().size(40, 20)
+                .focusable()
+                .whenFocusVisibleFor(
+                    0,
+                    e -> e.overlay(el().key("tip").size(30, 20).onShownFor(1, () -> fired[0]++)))),
+        200,
+        200);
+    app.keyDown(new Key("Tab", 0, false));
+    app.frame();
+    assertEquals(1, app.tree().shownOverlays().size());
+    app.advance(1);
+    app.frame();
+    assertEquals(1, fired[0]);
+  }
+
+  @Test
+  void theTimeOfAnOverlayRunsAlsoInARowOfAList() {
+    int[] fired = {0};
+    App<Object> app = app(
+        new Object(),
+        s -> el().size(200, 200)
+            .rows(
+                1,
+                20,
+                i -> el().overlay(el().key("tip").size(30, 20).onShownFor(1, () -> fired[0]++))),
+        200,
+        200);
+    assertEquals(1, app.tree().shownOverlays().size());
+    app.advance(1);
+    app.frame();
+    assertEquals(1, fired[0]);
+    app.advance(1);
+    app.frame();
+    assertEquals(1, fired[0], "once per opening");
+  }
+
+  @Test
+  void aPressKeepsTheDelayedLookOfThePointerAwayAlsoInTheFrameThePointerCameIn() {
+    for (boolean apart : new boolean[] {false, true}) {
+      App<Object> app = app(
+          new Object(),
+          s -> el().size(200, 200)
+              .child(el().key("button")
+                  .size(40, 20)
+                  .onPress(() -> {})
+                  .whenHoveredFor(1, e -> e.overlay(el().key("tip").size(30, 20)))),
+          200,
+          200);
+      app.pointerMove(20, 10);
+      if (apart) {
+        app.frame();
+      }
+      press(app, 20, 10);
+      app.advance(1);
+      app.frame();
+      assertTrue(app.tree().shownOverlays().isEmpty(), apart ? "in two frames" : "in one");
+    }
+  }
+
+  @Test
+  void anOverlayHidesWhileItsAnchorLiesWhollyOutsideTheWindow() {
+    App<Object> app = app(
+        new Object(),
+        s -> el().size(200, 200)
+            .children(
+                el().absolute(250, 0).size(40, 20).overlay(el().key("outside").size(60, 40)),
+                el().absolute(180, 0).size(40, 20).overlay(el().key("partly").size(60, 40)),
+                el().absolute(200, 50).size(0, 20).overlay(el().key("edge").size(60, 40)),
+                el().absolute(250, 0).size(0, 0).overlay(el().key("beyond").size(60, 40))),
+        200,
+        200);
+    List<String> shown = new ArrayList<>();
+    for (El overlay : app.tree().shownOverlays()) {
+      shown.add(overlay.key());
+    }
+    assertEquals(List.of("partly", "edge"), shown, "an anchor of no width on the edge counts");
+  }
 }

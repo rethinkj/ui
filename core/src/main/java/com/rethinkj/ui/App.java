@@ -189,6 +189,8 @@ public final class App<S> {
   // A list with measured row heights still wants rows after the passes of the last fillRows:
   // the next frames build them, and nextChange asks for those frames.
   private boolean rowsWanted;
+  private boolean rowKeyHooks; // the rows the lists built last have an El#onAnyKeyDown handler
+  private boolean untimed; // the tree was built and timeOverlays has not looked at it yet
   private final Animator animator = new Animator();
   private double time;
   private float width;
@@ -221,6 +223,7 @@ public final class App<S> {
   private boolean focusKeyed; // a key went down since then that did not move the focus
   private boolean reveal; // scroll the focused element into view after the next rebuild
   private Focus beforeAsked; // where an El#autofocus took the focus from, until refocus finds it
+  private List<Object> askedNext = List.of(); // the others that asked with it, in tree order
   // The identity of the element that last had the focus in a virtual list, by the list's identity.
   // shortcut: lists that are gone stay in it, one small entry each; drop them in update() when
   // apps create lists by the thousand.
@@ -261,7 +264,7 @@ public final class App<S> {
   // For the open overlays that took no focus, such as a toast: where the focus was last outside
   // each, for when the keyboard moved it inside and the overlay closes.
   private final Map<Object, Focus> outside = new HashMap<>();
-  // When the open overlays with an onShownFor handler that has not run yet opened, by identity.
+  // When the open overlays with an onShownFor handler opened, by identity; infinite once it ran.
   private final Map<Object, Double> shownSince = new HashMap<>();
   private double shownDue = Double.POSITIVE_INFINITY; // when the next of those handlers is
   // Since when the elements under the pointer with whenHoveredFor or onHoverFor have been there.
@@ -405,7 +408,7 @@ public final class App<S> {
     selecting = null; // likewise: a selection whose release got lost ends where it is
     grab = null; // and a thumb's drag
     settle();
-    restAfterPress();
+    restAfterPress(x, y);
     if (framePartUnderModal(x, y) || dismiss(x, y, true)) {
       pressed = null;
       return changed;
@@ -510,7 +513,7 @@ public final class App<S> {
     boolean any = anyPointerDown(x, y);
     secondary = null;
     settle();
-    restAfterPress();
+    restAfterPress(x, y);
     if (framePartUnderModal(x, y) || dismiss(x, y, true)) {
       return any;
     }
@@ -531,6 +534,7 @@ public final class App<S> {
     if (root == null) {
       return false;
     }
+    settle(); // the rows a rebuild between inputs left out have handlers too, and are hit
     Set<El> hit = Collections.newSetFromMap(new IdentityHashMap<>());
     hit.addAll(hit(x, y));
     List<Runnable> handlers = new ArrayList<>();
@@ -548,6 +552,9 @@ public final class App<S> {
     if (root == null) {
       return;
     }
+    if (rowsPending && rowKeyHooks) {
+      settle(); // only then: most keys need no rows, and building them is most of a rebuild
+    }
     List<Consumer<Key>> handlers = new ArrayList<>();
     anyKeyDown(root, handlers);
     for (El overlay : root.shownOverlays()) {
@@ -560,6 +567,9 @@ public final class App<S> {
   }
 
   private static void anyKeyDown(El el, List<Consumer<Key>> handlers) {
+    if (el.isExiting()) {
+      return; // it takes no input
+    }
     if (el.onAnyKeyDown() != null) {
       handlers.add(el.onAnyKeyDown());
     }
@@ -569,6 +579,9 @@ public final class App<S> {
   }
 
   private static void anyPointerDown(El el, Set<El> hit, List<Runnable> handlers) {
+    if (el.isExiting()) {
+      return; // it takes no input
+    }
     if (el.onAnyPointerDown() != null) {
       handlers.add(el.onAnyPointerDown());
     }
@@ -599,15 +612,32 @@ public final class App<S> {
     });
   }
 
-  /** A press keeps the looks and handlers of {@link El#whenHoveredFor} away until a new stay. */
-  private void restAfterPress() {
+  /**
+   * A press at this point keeps the looks and handlers of {@link El#whenHoveredFor} and {@link
+   * El#onHoverFor} away until a new stay: of the stays there are, and of the elements there whose
+   * stay has not begun yet, as when the pointer came in the same frame.
+   */
+  private void restAfterPress(float x, float y) {
+    List<El> path = root == null ? List.of() : hit(x, y);
+    List<Object> ids = Animator.identities(path);
+    for (int i = 0; i < path.size(); i++) {
+      if (path.get(i).restLook() != null || path.get(i).onHoverFor() != null) {
+        resting.computeIfAbsent(ids.get(i), id -> new Rest(time));
+      }
+    }
     for (Rest rest : resting.values()) {
       rest.since = Double.POSITIVE_INFINITY;
     }
   }
 
-  /** Whether {@link El#keepFocus} keeps the focus where it is for a press along this path. */
+  /**
+   * Whether {@link El#keepFocus} keeps the focus where it is for a press along this path: not for
+   * a press in a text field, which takes the focus.
+   */
   private static boolean keepsFocus(List<El> hit) {
+    if (!hit.isEmpty() && hit.getLast().takesEdits()) {
+      return false;
+    }
     for (El el : hit) {
       if (el.keepsFocus()) {
         return true;
@@ -1655,6 +1685,7 @@ public final class App<S> {
    * @return whether a rebuild is due even if the focus ends where it was: to scroll it into view
    */
   private boolean focus(El el, boolean ring) {
+    noteOutside();
     if (focused != null) {
       focused.focused(false);
     }
@@ -1720,6 +1751,7 @@ public final class App<S> {
     Set<El> inside = Collections.newSetFromMap(new IdentityHashMap<>());
     collect(list.children().get(row - list.firstRow()), inside);
     List<El> order = focusables();
+    order.removeIf(El::skipsTab); // as for the order outside: the focus is not in the list
     El again = last == null ? null : animator.element(last);
     if (again != null && inside.contains(again) && order.contains(again)) {
       return again;
@@ -1754,8 +1786,15 @@ public final class App<S> {
     El el = animator.element(focusId);
     if (beforeAsked != null) {
       Focus before = beforeAsked;
+      List<Object> next = askedNext;
       beforeAsked = null;
-      if (el == null || !focusables().contains(el)) { // the element asked for cannot take it
+      askedNext = List.of();
+      List<El> order = focusables();
+      for (int i = 0; (el == null || !order.contains(el)) && i < next.size(); i++) {
+        focusId = next.get(i); // the element asked for cannot take it: the next one that asked
+        el = animator.element(focusId);
+      }
+      if (el == null || !order.contains(el)) { // none can
         focusId = before.id();
         ring = before.ring();
         reveal = false;
@@ -2382,6 +2421,9 @@ public final class App<S> {
       try {
         stale |= queued.poll().getAsBoolean();
         stale |= tellSelections();
+      } catch (RuntimeException | Error e) {
+        handled = true; // it may have changed the state: the next input gets a tree built anew
+        throw e;
       } finally {
         dispatching = false;
         for (int i = follow.size() - 1; i >= 0; i--) {
@@ -2479,11 +2521,13 @@ public final class App<S> {
     tellSizes(root, new ArrayList<>(), sizes);
     toldSizes = sizes;
     animator.update(root, time);
+    untimed = true;
     stale = false;
     ran |= handled;
     handled = false;
     scrolled = false;
     rowsPending = between && (focusId == null || animator.inRow(focusId) == null);
+    endPresses();
     if (rowsPending) {
       caretOverlays =
           Overlays.place(root, width, height); // as fillRows does: the focus may be in one
@@ -2846,19 +2890,114 @@ public final class App<S> {
     }
     float far = Float.POSITIVE_INFINITY;
     rowsWanted = false;
-    boolean built = fillRows(root, new ArrayList<>(), 0, 0, -far, far);
+    rowKeyHooks = false;
+    boolean built = fillRows(root, new ArrayList<>(), 0, 0, -far, far, false);
     toldRows.keySet().retainAll(rowLists);
     rowLists.clear();
     // After scrolling, movement and new rows, the overlays follow their anchors.
     caretOverlays = Overlays.place(root, width, height);
+    if (built) {
+      endPresses(); // of the rows that are gone
+    }
+    if (built || untimed) {
+      timeOverlays();
+    }
     return built;
   }
 
+  /**
+   * Follows which overlays with an {@link El#onShownFor} handler are open in the tree as it is
+   * now, its rows and the overlays that delayed looks attach included: each that opens starts its
+   * time, and each that closes, leaves or is made invisible by the view forgets it.
+   */
+  private void timeOverlays() {
+    untimed = false;
+    Set<Object> open = new HashSet<>();
+    timeOverlays(root, open);
+    shownSince.keySet().retainAll(open);
+  }
+
+  private void timeOverlays(El el, Set<Object> open) {
+    if (el.isExiting() || el.targetOpacity() == 0 || el.style().display == Style.Display.NONE) {
+      return;
+    }
+    for (El child : el.children()) {
+      timeOverlays(child, open);
+    }
+    for (El overlay : el.overlays()) {
+      Object id = overlay.placement().id;
+      if (overlay.onShownFor() != null && id != null && !overlay.isExiting()) {
+        open.add(id);
+        double since = shownSince.computeIfAbsent(id, opened -> time);
+        shownDue = Math.min(shownDue, since + overlay.shownDelay());
+      }
+      timeOverlays(overlay, open);
+    }
+  }
+
+  /**
+   * Ends what the pointer or a key holds whose element has left the tree or is leaving: a press,
+   * a secondary press, the pressed look of Enter or Space, a selection by dragging and a thumb's
+   * drag end with their element's life, so that one built again with the same identity takes
+   * none of them over. A drag that has started goes on ({@link #step}).
+   */
+  private void endPresses() {
+    if (gone(pressed)) {
+      pressed = null;
+      if (dragging != null && !dragging.started) {
+        dragging = null;
+      }
+    }
+    if (gone(secondary)) {
+      secondary = null;
+    }
+    if (gone(keyPressed)) {
+      keyPressed = null;
+      keyPressKey = null;
+    }
+    if (gone(selecting)) {
+      selecting = null;
+    }
+    if (grab != null && gone(grab.id())) {
+      grab = null;
+    }
+  }
+
+  /**
+   * Whether the element with this identity is not in the current tree, or it or an element above
+   * it is leaving; false for null, and for one in a row that its list could build but does not
+   * have now, which keeps it as it keeps the focus ({@link #focusWaits}).
+   */
+  private boolean gone(Object id) {
+    if (id == null) {
+      return false;
+    }
+    Animator.InRow in = animator.inRow(id);
+    if (in != null && in.row() < in.list().rowCount() && !in.list().hasRow(in.row())) {
+      return false;
+    }
+    for (Object at : Animator.lineage(id)) {
+      El el = animator.element(at);
+      if (el == null || el.isExiting()) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /** @param inRows whether {@code el} is in a row of a virtual list */
   private boolean fillRows(
-      El el, List<El> path, float parentX, float parentY, float clipLeft, float clipRight) {
+      El el,
+      List<El> path,
+      float parentX,
+      float parentY,
+      float clipLeft,
+      float clipRight,
+      boolean inRows) {
     if (!el.isPlaced() || el.isExiting()) {
       return false;
     }
+    rowKeyHooks |= inRows && el.onAnyKeyDown() != null;
     path.add(el);
     float left = parentX + el.x();
     float top = parentY + el.y();
@@ -2884,11 +3023,8 @@ public final class App<S> {
         Overlays.layout(row, width, height); // after the looks, which may attach overlays
       }
       // As openAndClose for the rest, where a row asked for the focus.
-      Object asked = El.autofocuses() == asking ? null : animator.autofocusInRows(el, id);
-      if (asked != null && !asked.equals(focusId)) {
-        beforeAsked = new Focus(focusId, ring);
-        moveFocus(asked, ring);
-        reveal = true;
+      if (El.autofocuses() != asking) {
+        ask(animator.autofocusInRows(el, id));
       }
       animator.rows(el, id, time);
       range =
@@ -2900,11 +3036,11 @@ public final class App<S> {
       clipRight = Math.min(clipRight, left + el.width());
     }
     for (El child : el.children()) {
-      built |= fillRows(child, path, left, top, clipLeft, clipRight);
+      built |= fillRows(child, path, left, top, clipLeft, clipRight, inRows || el.isVirtualList());
     }
     float far = Float.POSITIVE_INFINITY;
     for (El overlay : el.overlays()) { // in window coordinates
-      built |= fillRows(overlay, path, 0, 0, -far, far);
+      built |= fillRows(overlay, path, 0, 0, -far, far, inRows);
     }
     path.removeLast();
     return built;
@@ -3147,7 +3283,6 @@ public final class App<S> {
       }
       Focus back = opened.remove(id);
       Focus left = outside.remove(id);
-      shownSince.remove(id);
       boolean inside = focusId != null && (focusId.equals(id) || Animator.isBelow(focusId, id));
       if (back != null && (focusId == null || inside)) {
         moveFocus(back.id(), back.ring());
@@ -3178,17 +3313,31 @@ public final class App<S> {
         moveFocus(first, false);
         took = true;
       }
-      if (el.onShownFor() != null) {
-        shownSince.put(overlay.getKey(), time);
-        shownDue = Math.min(shownDue, time + el.shownDelay());
-      }
     }
-    Object asked = took ? null : animator.autofocus(tree);
-    if (asked != null && !asked.equals(focusId)) {
+    if (!took) {
+      ask(animator.autofocus(tree));
+    }
+  }
+
+  /**
+   * Moves the focus to the first of these elements that ask for it with {@link El#autofocus}, in
+   * tree order; where that one cannot take it once laid out, {@link #refocus} takes the next that
+   * can, and gives the focus back to where it was when none can.
+   */
+  private void ask(List<Object> asked) {
+    if (asked.isEmpty() || asked.getFirst().equals(focusId)) {
+      return;
+    }
+    List<Object> next = new ArrayList<>(asked.subList(1, asked.size()));
+    if (beforeAsked == null) {
       beforeAsked = new Focus(focusId, ring);
-      moveFocus(asked, ring);
-      reveal = true;
+    } else {
+      next.add(focusId); // asked before, by the rest of the tree
+      next.addAll(askedNext);
     }
+    askedNext = next;
+    moveFocus(asked.getFirst(), ring);
+    reveal = true;
   }
 
   /**
@@ -3205,11 +3354,11 @@ public final class App<S> {
       if (el == null || el.onShownFor() == null) {
         continue;
       }
-      double due = shownSince.get(id) + el.shownDelay();
+      double due = shownSince.get(id) + el.shownDelay(); // infinite once it ran
       if (due <= time) {
-        shownSince.remove(id); // once per opening
+        shownSince.put(id, Double.POSITIVE_INFINITY); // once per opening
+        handled = ran = true; // before it runs, as for a task
         el.onShownFor().run();
-        handled = ran = true;
       } else {
         shownDue = Math.min(shownDue, due);
       }
@@ -3217,8 +3366,26 @@ public final class App<S> {
     return ran;
   }
 
+  /**
+   * Before the focus moves: notes where it is for each open overlay that {@link El#keepFocus keeps
+   * the focus} outside it while it is outside, as {@link #openAndClose} does in a rebuild, so that
+   * the overlay gives back the last place, also after several moves between two rebuilds.
+   */
+  private void noteOutside() {
+    if (focusId == null) {
+      return;
+    }
+    for (Map.Entry<Object, Focus> overlay : opened.entrySet()) {
+      Object id = overlay.getKey();
+      if (overlay.getValue() == null && !focusId.equals(id) && !Animator.isBelow(focusId, id)) {
+        outside.put(id, new Focus(focusId, ring));
+      }
+    }
+  }
+
   /** Moves the focus to the element with this identity, which the next {@link #refocus} finds. */
   private void moveFocus(Object id, boolean ring) {
+    noteOutside();
     if (focused != null) {
       focused.focused(false);
     }

@@ -60,8 +60,9 @@ final class Overlays {
    * Places the overlays of a tree that layout and scrolling have placed, and gives its root the
    * list of those shown, in the order they opened ({@link El#shownOverlays}): an overlay shows
    * while its anchor does, not while the anchor or an element above it is leaving or made
-   * invisible by the view, or the clips above the anchor leave nothing of its rectangle. An anchor
-   * that fades in counts from its first frame.
+   * invisible by the view, the clips above the anchor leave nothing of its rectangle or it lies
+   * wholly outside the window, and not while the view makes the overlay itself invisible. An
+   * anchor or overlay that fades in counts from its first frame.
    */
   static boolean place(El root, float width, float height) {
     List<El> shown = new ArrayList<>();
@@ -94,9 +95,17 @@ final class Overlays {
     float top = parentY + el.y();
     float right = left + el.width();
     float bottom = top + el.height();
-    if (left < clipRight && right > clipLeft && top < clipBottom && bottom > clipTop) {
+    if (left < clipRight
+        && right > clipLeft
+        && top < clipBottom
+        && bottom > clipTop
+        && overlaps(left, right, width)
+        && overlaps(top, bottom, height)) {
       float far = Float.POSITIVE_INFINITY;
       for (El overlay : el.overlays()) {
+        if (overlay.targetOpacity() == 0) {
+          continue; // not shown, so it neither blocks as a modal one does nor takes the focus
+        }
         place(overlay, el, left, top, width, height, within);
         shown.add(overlay);
         // Its overlays follow it, free of the clips around its anchor.
@@ -117,6 +126,15 @@ final class Overlays {
       place(
           child, left, top, clipLeft, clipTop, clipRight, clipBottom, width, height, shown, within);
     }
+  }
+
+  /**
+   * Whether a side of an anchor from {@code start} to {@code end} lies in the window's side from 0
+   * to {@code size}: in part, or, for an anchor of no extent there, such as a marker, on it with
+   * its edges included.
+   */
+  private static boolean overlaps(float start, float end, float size) {
+    return end > start ? start < size && end > 0 : start >= 0 && start <= size;
   }
 
   /**
