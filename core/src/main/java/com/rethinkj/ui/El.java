@@ -319,6 +319,20 @@ public final class El {
     return this;
   }
 
+  /**
+   * States the colour behind this text, for when the scene cannot tell. Glyph edges are
+   * corrected differently for text darker and lighter than its background (see {@link
+   * com.rethinkj.ui.text.TextRendering}); the scene takes the background from the fills of the
+   * text element and its ancestors, and misses what lies behind it otherwise, such as an earlier
+   * sibling, an absolutely placed box or an image.
+   *
+   * @param argb the colour as 0xAARRGGBB, taken as opaque; 0, the default, lets the scene decide
+   */
+  public El textBackground(int argb) {
+    textOnly("textBackground").background(argb);
+    return this;
+  }
+
   /** Lets the text break into more lines where it is wider than its box. */
   public El wrapText() {
     textOnly("wrapText").wraps(true);
@@ -386,9 +400,9 @@ public final class El {
 
   /**
    * Lets this element spring to new values: when a rebuild of the view gives an element that was
-   * already there a new rectangle, fill, border colour, radius or opacity, {@link App} moves it
-   * there with {@code spring} instead of at once. Children are placed relative to their parent and
-   * move with it.
+   * already there a new rectangle, fill, border colour, radius, opacity or text colour, {@link App}
+   * moves it there with {@code spring} instead of at once. Children are placed relative to their
+   * parent and move with it.
    *
    * <p>An element that appears after the app's first frame fades in from opacity 0, in the place
    * layout gives it. One with a {@link #key} that a rebuild leaves out fades out where it was, with

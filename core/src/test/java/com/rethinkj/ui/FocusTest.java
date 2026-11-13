@@ -146,7 +146,7 @@ class FocusTest {
 
   @Test
   void aPressFocusesTheFocusableElementItLandsInAndAPressElsewhereClearsIt() {
-    App<Lights> app = start(new App<>(new Lights(), Examples::lights), 200, 120);
+    App<Lights> app = start(new App<>(new Lights(), Examples::switchAlone), 200, 120);
     press(app, 90, 60); // on the knob, inside the switch
     assertEquals("switch", focusedKey(app));
     assertTrue(app.state().on, "and the press still presses");
@@ -162,7 +162,7 @@ class FocusTest {
 
   @Test
   void aPressThatLeavesTheFocusWhereItWasChangesNothing() {
-    App<Lights> app = start(new App<>(new Lights(), Examples::lights), 200, 120);
+    App<Lights> app = start(new App<>(new Lights(), Examples::switchAlone), 200, 120);
     app.pointerDown(10, 10);
     assertFalse(app.frame(), "nothing was focused");
     app.pointerDown(90, 60);
@@ -229,7 +229,7 @@ class FocusTest {
 
   @Test
   void focusRefusesWhatCannotTakeIt() {
-    App<Lights> app = start(new App<>(new Lights(), Examples::lights), 200, 120);
+    App<Lights> app = start(new App<>(new Lights(), Examples::switchAlone), 200, 120);
     El knob = find(app.tree(), "knob");
     IllegalArgumentException thrown =
         assertThrows(IllegalArgumentException.class, () -> app.focus(knob));
@@ -297,7 +297,7 @@ class FocusTest {
 
   @Test
   void spaceAndEnterPressTheFocusedSwitchButRepeatsDoNot() {
-    App<Lights> app = start(new App<>(new Lights(), Examples::lights), 200, 120);
+    App<Lights> app = start(new App<>(new Lights(), Examples::switchAlone), 200, 120);
     tab(app);
     key(app, "Space", 0);
     assertTrue(app.state().on);
@@ -369,7 +369,7 @@ class FocusTest {
 
   @Test
   void tabDrawsARingAroundTheSwitchAndAPressDoesNot() {
-    App<Lights> app = start(new App<>(new Lights(), Examples::lights), 200, 120);
+    App<Lights> app = start(new App<>(new Lights(), Examples::switchAlone), 200, 120);
     int plain = app.scene().count();
     tab(app);
     Scene scene = app.scene();

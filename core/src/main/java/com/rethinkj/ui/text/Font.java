@@ -20,7 +20,7 @@ import java.util.Map;
 import java.util.Objects;
 
 /**
- * A TrueType or OpenType font, shaped with HarfBuzz and, later, rasterised with FreeType. The
+ * A TrueType or OpenType font, shaped with HarfBuzz and rasterised with FreeType. The
  * font's bytes are copied into native memory and stay there, with the native objects made from
  * them, until {@link #close}; using a closed font throws {@link IllegalStateException}.
  *
@@ -66,6 +66,16 @@ public final class Font implements AutoCloseable {
     }
   };
   private boolean closed;
+  private long rasterSize; // the size last set on the FreeType face, in 1/64 pixels
+
+  /**
+   * A rasterised glyph: its coverage, one byte per pixel from 0 (none) to 255 (all), rows from the
+   * top, and where the bitmap lies relative to the glyph's origin on the baseline.
+   *
+   * @param left how far the left edge lies right of the origin, in pixels
+   * @param top how far the top edge lies above the baseline
+   */
+  record Bitmap(int left, int top, int width, int height, byte[] coverage) {}
 
   private record Key(String text, float pixelSize, boolean quarter, List<String> features) {}
 
@@ -283,6 +293,67 @@ public final class Font implements AutoCloseable {
           grid);
     }
     return new GlyphRun(this, key.pixelSize, glyphs, clusters, pen, dx, dy);
+  }
+
+  /**
+   * Rasterises a glyph with FreeType into greyscale coverage, moved right by {@code quarter}
+   * quarter pixels after hinting, so that a glyph on a quarter-pixel position is drawn from a
+   * bitmap at a whole one.
+   *
+   * @param pixelSize the size in physical pixels, as {@link GlyphRun#pixelSize}
+   * @param quarter 0 to 3
+   * @throws IllegalArgumentException if FreeType cannot load or render the glyph
+   */
+  Bitmap rasterize(int glyph, float pixelSize, TextRendering.Hinting hinting, int quarter) {
+    synchronized (this) {
+      checkOpen();
+      long size = Math.round(pixelSize * 64.0);
+      if (size != rasterSize) {
+        check(FreeType.setCharSize(face, 0, size, 72, 72), "set the size " + pixelSize + " on");
+        rasterSize = size;
+      }
+      try (Arena call = Arena.ofConfined()) {
+        MemorySegment delta = call.allocate(FreeType.VECTOR);
+        FreeType.setLong(delta, 0, quarter * 16L);
+        FreeType.setLong(delta, FreeType.C_LONG.byteSize(), 0);
+        FreeType.setTransform(face, MemorySegment.NULL, delta); // copies the vector
+      }
+      int flags = FreeType.LOAD_NO_BITMAP | switch (hinting) {
+        case LIGHT -> FreeType.LOAD_FORCE_AUTOHINT | FreeType.LOAD_TARGET_LIGHT;
+        case NATIVE -> FreeType.LOAD_DEFAULT;
+      };
+      check(FreeType.loadGlyph(face, glyph, flags), "load glyph " + glyph + " of");
+      MemorySegment slot =
+          face.get(ADDRESS, FreeType.FACE_GLYPH).reinterpret(FreeType.GLYPH_SLOT.byteSize());
+      check(FreeType.renderGlyph(slot, FreeType.RENDER_MODE_NORMAL),
+          "render glyph " + glyph + " of");
+      long bitmap = FreeType.SLOT_BITMAP;
+      int rows = slot.get(JAVA_INT, bitmap + FreeType.BITMAP_ROWS);
+      int width = slot.get(JAVA_INT, bitmap + FreeType.BITMAP_WIDTH);
+      int pitch = slot.get(JAVA_INT, bitmap + FreeType.BITMAP_PITCH);
+      byte[] coverage = new byte[width * rows];
+      if (width > 0 && rows > 0) {
+        if (slot.get(JAVA_BYTE, bitmap + FreeType.BITMAP_PIXEL_MODE) != FreeType.PIXEL_MODE_GRAY
+            || pitch < width) {
+          throw new IllegalStateException("FreeType rendered glyph " + glyph + " of " + name
+              + " in an unexpected format: pitch " + pitch + " for width " + width);
+        }
+        MemorySegment pixels = slot.get(ADDRESS, bitmap + FreeType.BITMAP_BUFFER)
+            .reinterpret((long) pitch * rows);
+        for (int y = 0; y < rows; y++) {
+          MemorySegment.copy(pixels, JAVA_BYTE, (long) y * pitch, coverage, y * width, width);
+        }
+      }
+      return new Bitmap(slot.get(JAVA_INT, FreeType.SLOT_BITMAP_LEFT),
+          slot.get(JAVA_INT, FreeType.SLOT_BITMAP_TOP), width, rows, coverage);
+    }
+  }
+
+  private void check(int error, String what) {
+    if (error != 0) {
+      throw new IllegalArgumentException(
+          "FreeType could not " + what + " " + name + ": error " + error + ".");
+    }
   }
 
   private static float round(int units, double perUnit, double grid) {

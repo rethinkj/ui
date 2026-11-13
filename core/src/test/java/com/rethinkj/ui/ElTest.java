@@ -17,7 +17,7 @@ class ElTest {
           el #switch role=switch label="Lights"
             el #knob
         """,
-        Examples.lightSwitch(true).dump());
+        Examples.switchAlone(true).dump());
   }
 
   @Test
@@ -37,7 +37,7 @@ class ElTest {
 
   @Test
   void flexLayoutPlacesTheTree() {
-    El root = Examples.lightSwitch(true);
+    El root = Examples.switchAlone(true);
     Flex.layout(root, 200, 100);
 
     assertEquals(

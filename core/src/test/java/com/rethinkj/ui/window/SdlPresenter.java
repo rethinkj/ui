@@ -93,6 +93,9 @@ final class SdlPresenter implements WindowLoop.Presenter, AutoCloseable {
       color(0xFF000000);
       boolean ignored = (boolean) H.RENDER_CLEAR.invokeExact(renderer);
       for (int i = 0; i < scene.count(); i++) {
+        if (scene.getInt(i, Scene.KIND) != Scene.RECT) {
+          continue; // shortcut: no text with SDL's renderer; the GPU renderer will draw it
+        }
         float x = scene.get(i, Scene.X) * scale;
         float y = scene.get(i, Scene.Y) * scale;
         float w = scene.get(i, Scene.WIDTH) * scale;

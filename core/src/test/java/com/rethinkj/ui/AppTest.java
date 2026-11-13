@@ -6,6 +6,8 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.rethinkj.ui.Examples.Lights;
+import com.rethinkj.ui.text.TextLibraries;
+import com.rethinkj.ui.text.TextRendering;
 import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -14,14 +16,16 @@ class AppTest {
 
   @Test
   void aPressOnTheSwitchChangesStateTreeAndImage() {
+    TextLibraries.assumeLoaded();
     App<Lights> app = new App<>(new Lights(), Examples::lights);
+    app.textRendering(TextRendering.LINUX);
     app.resize(200, 120, 1);
     assertTrue(app.frame());
     Golden.assertMatches("switch-off", app.render().pixels(), app.render().tree());
 
     // The knob has no handler of its own, so the press goes to the switch around it.
-    app.pointerDown(90, 60);
-    app.pointerUp(90, 60);
+    app.pointerDown(50, 60);
+    app.pointerUp(50, 60);
     assertFalse(app.state().on, "handlers run in frame(), not while input arrives");
     assertTrue(app.frame());
 
@@ -34,7 +38,7 @@ class AppTest {
 
   @Test
   void nothingHappensWithoutInput() {
-    App<Lights> app = new App<>(new Lights(), Examples::lights);
+    App<Lights> app = new App<>(new Lights(), Examples::switchAlone);
     app.resize(200, 120, 1);
     assertTrue(app.frame());
     assertFalse(app.frame());
@@ -46,7 +50,7 @@ class AppTest {
 
   @Test
   void aPressCountsOnlyWhenItEndsWhereItBegan() {
-    App<Lights> app = new App<>(new Lights(), Examples::lights);
+    App<Lights> app = new App<>(new Lights(), Examples::switchAlone);
     app.resize(200, 120, 1);
     app.frame();
 

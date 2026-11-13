@@ -6,7 +6,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.rethinkj.ui.render.Scene;
 import com.rethinkj.ui.text.Font;
 import com.rethinkj.ui.text.GlyphRun;
 import com.rethinkj.ui.text.TextLibraries;
@@ -152,14 +151,6 @@ class TextTest {
         failure.getMessage().contains(
             "    texts:  text=\"Cancel\" text=\"Save\" text=\"Two\\nlines\"\n"),
         failure.getMessage());
-  }
-
-  @Test
-  void aSceneHasNoInstancesForTextYet() {
-    TextLibraries.assumeLoaded();
-    El root = row().fill(0xFFFFFFFF).child(El.text("Not drawn yet").fill(0xFF00FF00));
-    Headless.render(root, 200, 50, 1);
-    assertEquals(2, Scene.of(root).count(), "the two fills, no glyphs");
   }
 
   @Test

@@ -4,10 +4,13 @@ import com.rethinkj.ui.layout.Flex;
 import com.rethinkj.ui.render.CpuRenderer;
 import com.rethinkj.ui.render.Pixels;
 import com.rethinkj.ui.render.Scene;
+import com.rethinkj.ui.text.Atlas;
+import com.rethinkj.ui.text.TextRendering;
 
 /**
- * Renders a view without a window, a GPU or any native library. Tests and agents use this to look
- * at what a view produces: the image, and the tree with every element's rectangle.
+ * Renders a view without a window or a GPU, and without native libraries unless the view has text,
+ * which needs FreeType and HarfBuzz. Tests and agents use this to look at what a view produces:
+ * the image, and the tree with every element's rectangle.
  */
 public final class Headless {
 
@@ -25,11 +28,20 @@ public final class Headless {
    * @param scale physical pixels per logical pixel, for example 2 on a high-density display
    */
   public static Frame render(El root, float width, float height, float scale) {
+    return render(root, width, height, scale, TextRendering.platform());
+  }
+
+  /**
+   * Renders with the given text rendering instead of the platform's, as tests do so that their
+   * images are the same everywhere.
+   */
+  public static Frame render(
+      El root, float width, float height, float scale, TextRendering textRendering) {
     El.scaleText(root, scale);
     Flex.layout(root, width, height);
+    Scene scene = Scene.of(root, null, 0, new Atlas(), textRendering);
     Pixels pixels =
-        CpuRenderer.render(
-            Scene.of(root), Math.round(width * scale), Math.round(height * scale), scale);
+        CpuRenderer.render(scene, Math.round(width * scale), Math.round(height * scale), scale);
     return new Frame(pixels, root.dump());
   }
 }

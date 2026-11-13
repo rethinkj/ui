@@ -3,6 +3,8 @@ package com.rethinkj.ui;
 import com.rethinkj.ui.layout.Flex;
 import com.rethinkj.ui.render.CpuRenderer;
 import com.rethinkj.ui.render.Scene;
+import com.rethinkj.ui.text.Atlas;
+import com.rethinkj.ui.text.TextRendering;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.List;
@@ -62,6 +64,8 @@ public final class App<S> {
   private boolean ring; // the keyboard or the app moved the focus: draw the ring
   private boolean reveal; // scroll the focused element into view after the next rebuild
   private int ringColour = FOCUS_RING;
+  private final Atlas atlas = new Atlas();
+  private TextRendering textRendering = TextRendering.platform();
 
   public App(S state, Function<S, El> view) {
     this.state = state;
@@ -218,6 +222,15 @@ public final class App<S> {
    */
   public void focusRing(int argb) {
     ringColour = argb;
+    stale = true;
+  }
+
+  /**
+   * Sets how text is rasterised and blended, {@link TextRendering#platform} until this is called.
+   * Tests pin it, so that their images are the same on every platform.
+   */
+  public void textRendering(TextRendering rendering) {
+    textRendering = Objects.requireNonNull(rendering, "rendering");
     stale = true;
   }
 
@@ -515,9 +528,13 @@ public final class App<S> {
     return root;
   }
 
-  /** What the last frame draws, with the focus ring if there is one. */
+  /**
+   * What the last frame draws, with the focus ring if there is one. Its glyphs are in the app's
+   * atlas, which keeps them from one scene to the next; a scene's glyphs stay there until the
+   * next call.
+   */
   public Scene scene() {
-    return Scene.of(root, ring ? focused : null, ringColour);
+    return Scene.of(root, ring ? focused : null, ringColour, atlas, textRendering);
   }
 
   /** The last frame drawn on the CPU, with its tree as text. */

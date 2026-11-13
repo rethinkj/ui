@@ -25,9 +25,9 @@ import java.util.Map;
  */
 final class Animator {
 
-  // The animated numbers: x, y, width, height and radius in pixels, then the fill and the border
-  // colour as alpha, red, green and blue, then the opacity.
-  private static final int RADIUS = 4, FILL = 5, BORDER = 9, OPACITY = 13, COUNT = 14;
+  // The animated numbers: x, y, width, height and radius in pixels, then the fill, the border and
+  // the text colour as alpha, red, green and blue, then the opacity.
+  private static final int RADIUS = 4, FILL = 5, BORDER = 9, TEXT = 13, OPACITY = 17, COUNT = 18;
 
   // A movement ends this near its target, then jumps onto it: a hundredth of a pixel, and a
   // quarter of a colour step, which rounds to the target; for opacity, a quarter of 1/255.
@@ -36,7 +36,7 @@ final class Animator {
   /** The part is the element's key or, when it has none, its index as an Integer. */
   private record Id(Id parent, Object part) {}
 
-  // shortcut: every element keeps fourteen tracks, also without motion, so that one that gains
+  // shortcut: every element keeps eighteen tracks, also without motion, so that one that gains
   // motion moves from where it was; keep plain values for those when trees reach many thousands.
   private Map<Id, Entry> entries = new HashMap<>();
   private final List<Entry> moving = new ArrayList<>();
@@ -111,6 +111,7 @@ final class Animator {
     target[RADIUS] = el.radius();
     channels(el.fill(), target, FILL);
     channels(el.borderColor(), target, BORDER);
+    channels(el.text() == null ? 0 : el.text().color(), target, TEXT);
     target[OPACITY] = el.opacity();
     Entry entry = entries.get(id);
     El before = entry == null ? null : entry.el;
@@ -275,6 +276,9 @@ final class Animator {
       el.radius(at(RADIUS, now));
       el.fill(colour(FILL, now));
       el.borderColor(colour(BORDER, now));
+      if (el.text() != null) {
+        el.text().color(colour(TEXT, now));
+      }
       el.opacity((float) Math.clamp(tracks[OPACITY].value(now), 0.0, 1.0)); // a bounce overshoots
     }
 

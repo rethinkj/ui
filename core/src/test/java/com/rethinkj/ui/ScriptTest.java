@@ -11,6 +11,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.rethinkj.ui.Examples.Lights;
 import com.rethinkj.ui.render.Png;
+import com.rethinkj.ui.text.TextLibraries;
+import com.rethinkj.ui.text.TextRendering;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -31,6 +33,7 @@ class ScriptTest {
 
   @Test
   void reproducesTheStoredFramesOfTheSwitch() throws IOException {
+    TextLibraries.assumeLoaded();
     String script =
         """
         size 200 120
@@ -67,7 +70,9 @@ class ScriptTest {
             "switch-moving-160ms",
             "switch-moving-200ms",
             "switch-on");
-    List<Path> written = Script.run(script, switchApp(), out);
+    App<Lights> app = new App<>(new Lights(), Examples::lights);
+    app.textRendering(TextRendering.LINUX);
+    List<Path> written = Script.run(script, app, out);
 
     List<Path> expected = new ArrayList<>();
     for (String name : names) {
@@ -80,6 +85,7 @@ class ScriptTest {
 
   @Test
   void theCommandLineRunsTheExampleOfAgentsMd() throws IOException {
+    TextLibraries.assumeLoaded();
     String example = Files.readString(EXAMPLE);
     assertTrue(
         Files.readString(Path.of("../AGENTS.md")).contains(example),
@@ -92,6 +98,7 @@ class ScriptTest {
 
   @Test
   void theListOfAgentsMdScrollsAsTheStoredFramesShow() throws IOException {
+    TextLibraries.assumeLoaded();
     String example = Files.readString(LIST);
     assertTrue(
         Files.readString(Path.of("../AGENTS.md")).contains(example),
@@ -105,6 +112,7 @@ class ScriptTest {
 
   @Test
   void theFocusExampleOfAgentsMdTabsToTheSwitchAndPressesItWithSpace() throws IOException {
+    TextLibraries.assumeLoaded();
     String example = Files.readString(FOCUS);
     assertTrue(
         Files.readString(Path.of("../AGENTS.md")).contains(example),
@@ -115,7 +123,7 @@ class ScriptTest {
     assertSnapsMatchGolden(List.of("switch-focused", "switch-focused-on"));
     assertTrue(
         Files.readString(out.resolve("switch-focused.tree.txt"))
-            .contains("el #switch role=switch label=\"Lights\" 81,49 38x22 focused\n"));
+            .contains("el #switch role=switch label=\"Lights\" 39,49 38x22 focused\n"));
   }
 
   @Test
@@ -140,12 +148,13 @@ class ScriptTest {
 
   @Test
   void wheelScrollsTheAreaUnderItsTarget() throws IOException {
+    TextLibraries.assumeLoaded();
     App<Object> app = new App<>(new Object(), s -> Examples.list());
     Script.run(
         "size 240 200\nframe\nwheel 100,100 0 30.5\nwheel #row-1 0 -0.5\nframe\n", app, out);
     El list = app.tree().children().getFirst();
     assertEquals(30, list.scrollY());
-    Script.run("size 240 200\nwheel label=\"Row 3\" 0 -100\nframe\n", app, out);
+    Script.run("size 240 200\nwheel label=\"audit_log\" 0 -100\nframe\n", app, out);
     assertEquals(0, list.scrollY());
   }
 
@@ -409,8 +418,9 @@ class ScriptTest {
     assertInstanceOf(IllegalStateException.class, failure.getCause());
   }
 
+  /** The switch without its label: these tests need no text libraries. */
   private static App<Lights> switchApp() {
-    return new App<>(new Lights(), Examples::lights);
+    return new App<>(new Lights(), Examples::switchAlone);
   }
 
   private String failure(String script) {

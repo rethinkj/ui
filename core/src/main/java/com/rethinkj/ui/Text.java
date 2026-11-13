@@ -43,6 +43,7 @@ public final class Text implements Measure {
   private Font font;
   private float size = 14;
   private int color = 0xFF000000;
+  private int background;
   private boolean wraps;
   private float scale = 1;
   private List<Line> lines = List.of();
@@ -85,6 +86,11 @@ public final class Text implements Measure {
     return color;
   }
 
+  /** The background set with {@link El#textBackground}, as 0xAARRGGBB, or 0 for none. */
+  public int background() {
+    return background;
+  }
+
   public boolean wraps() {
     return wraps;
   }
@@ -114,6 +120,10 @@ public final class Text implements Measure {
 
   void color(int argb) {
     this.color = argb;
+  }
+
+  void background(int argb) {
+    this.background = argb;
   }
 
   void wraps(boolean wraps) {

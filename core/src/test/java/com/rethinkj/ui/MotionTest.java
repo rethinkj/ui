@@ -9,6 +9,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.rethinkj.ui.Examples.Lights;
 import com.rethinkj.ui.motion.Spring;
+import com.rethinkj.ui.text.TextLibraries;
+import com.rethinkj.ui.text.TextRendering;
 import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -174,8 +176,12 @@ class MotionTest {
 
   @Test
   void theSwitchInFiveFrames() {
-    App<Lights> app = switchApp(2);
-    press(app, 90, 60);
+    TextLibraries.assumeLoaded();
+    App<Lights> app = new App<>(new Lights(), Examples::lights);
+    app.textRendering(TextRendering.LINUX);
+    app.resize(200, 120, 2);
+    app.frame();
+    press(app, 58, 60); // the switch; its label brightens beside it
     app.frame();
     for (int i = 1; i <= 5; i++) {
       app.advance(0.04);
@@ -186,7 +192,7 @@ class MotionTest {
   }
 
   private static App<Lights> switchApp(float scale) {
-    App<Lights> app = new App<>(new Lights(), Examples::lights);
+    App<Lights> app = new App<>(new Lights(), Examples::switchAlone);
     app.resize(200, 120, scale);
     app.frame();
     return app;
