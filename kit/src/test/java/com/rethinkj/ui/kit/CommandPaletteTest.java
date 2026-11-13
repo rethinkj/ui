@@ -181,4 +181,16 @@ class CommandPaletteTest {
   private static String line(String tree, String part) {
     return tree.lines().filter(l -> l.contains(part)).findFirst().orElse("");
   }
+
+  @Test
+  void openingThePaletteAgainTakesBackWhatAStepPreviews() throws IOException {
+    run("key F1\nframe\ntype \"theme\"\nframe\nkey Enter\nframe\nkey ArrowDown");
+    Studio s = app.state();
+    assertSame(Theme.LIGHT, s.t, "previewed");
+    String tree = run("key F1");
+    assertSame(Theme.DARK, s.t, "the step was cancelled as the palette opened again");
+    assertFalse(ComboBoxTest.options(tree).contains("Light"), "the commands: " + tree);
+    run("key Escape");
+    assertSame(Theme.DARK, s.t);
+  }
 }

@@ -440,4 +440,44 @@ class MenuBarTest {
     assertEquals(7, MenuBar.mnemonic("Save && &close"));
     assertEquals(-1, MenuBar.mnemonic("Tools"));
   }
+
+  @Test
+  void menusThatChangeWhileTheBarHasTheKeysLeaveItOnATitleThatOpens() throws IOException {
+    final class Bar {
+      final MenuBar.State bar = new MenuBar.State();
+      List<Menu.Item> menus = List.of(
+          Menu.submenu("&File", List.of(Menu.item("A", () -> {}))),
+          Menu.submenu("&Edit", List.of(Menu.item("B", () -> {}))));
+      List<Menu.Item> next;
+
+      El view() {
+        return col()
+            .wFull()
+            .hFull()
+            .child(MenuBar.menuBar(Theme.DARK, bar, menus))
+            .onKey(MenuBar.keys(bar, menus).or(k -> {
+              if (!k.name().equals("F2")) {
+                return false;
+              }
+              menus = next;
+              return true;
+            }))
+            .onKeyUp(MenuBar.keysUp(bar, menus));
+      }
+    }
+    Bar fewer = new Bar();
+    fewer.next = fewer.menus.subList(0, 1);
+    App<Bar> app = new App<>(fewer, Bar::view);
+    run(app, "frame\nkey F10\nkey ArrowRight\nkey F2\nkey Enter\nframe\n");
+    assertEquals(0, fewer.bar.open(), "Edit is gone: Enter opens File");
+
+    Bar emptied = new Bar();
+    emptied.next = List.of(emptied.menus.getFirst(), Menu.submenu("&Edit", List.of()));
+    app = new App<>(emptied, Bar::view);
+    run(app, "frame\nkey F10\nkey ArrowRight\nkey Enter\nframe\n");
+    assertEquals(1, emptied.bar.open());
+    run(app, "key F2\nframe\n");
+    assertEquals(-1, emptied.bar.open(), "Edit has no items: its menu closes");
+    assertEquals(0, emptied.bar.title(), "and the bar keeps the keys on File");
+  }
 }

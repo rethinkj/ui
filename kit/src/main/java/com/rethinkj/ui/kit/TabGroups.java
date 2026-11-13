@@ -92,6 +92,7 @@ public final class TabGroups<T> {
     int active = -1;
     Windows.Handle window; // null for the main group
     final Menu.State menu = new Menu.State();
+    T menuTab; // the tab the menu opened for, while it is open
 
     private Group() {}
 
@@ -209,13 +210,26 @@ public final class TabGroups<T> {
    */
   public El tabs(Theme t, Group<T> group, Function<T, Tabs.Tab> tab, Function<T, El> content) {
     boolean alone = group.window != null && group.tabs.size() == 1;
+    // The menu opens for the active tab, acts on that tab wherever it goes, and ends with it.
+    if (!group.menu.isOpen()) {
+      group.menuTab = null;
+    } else if (group.menuTab == null) {
+      group.menuTab = group.activeTab();
+    } else if (indexOf(group, group.menuTab) < 0) {
+      group.menu.close();
+      group.menuTab = null;
+    }
+    T target = group.menuTab != null ? group.menuTab : group.activeTab();
     List<Menu.Item> items = new ArrayList<>();
     items.add(Menu.item(
         "Move to new window",
-        alone || group.active < 0 ? null : () -> toNewWindow(group, group.active)));
+        alone || target == null ? null : () -> toNewWindow(group, indexOf(group, target))));
     if (group.window != null) {
       items.add(Menu.item(
-          "Move back to main window", () -> dock(group, group.active, main, main.tabs.size())));
+          "Move back to main window",
+          target == null
+              ? null
+              : () -> dock(group, indexOf(group, target), main, main.tabs.size())));
     }
     T active = group.activeTab();
     return Tabs.tabs(
@@ -248,6 +262,12 @@ public final class TabGroups<T> {
 
   /** Adds a tab to a group, before the tab at {@code at}, and makes it the active one. */
   public void add(Group<T> group, int at, T tab) {
+    T d = dragged();
+    insert(group, at, tab);
+    follow(d);
+  }
+
+  private void insert(Group<T> group, int at, T tab) {
     group.tabs.add(at, Objects.requireNonNull(tab, "tab"));
     group.active = at;
   }
@@ -257,13 +277,17 @@ public final class TabGroups<T> {
    * was, and {@link #onClosed} is told. A group's window closes with its last tab.
    */
   public void close(Group<T> group, int index) {
+    T d = dragged();
     T tab = remove(group, index);
+    follow(d);
     onClosed.accept(tab);
   }
 
   /** Moves the tab at {@code from} of a group to {@code to}, as {@link Tabs#move}. */
   public void move(Group<T> group, int from, int to) {
+    T d = dragged();
     group.active = Tabs.move(group.tabs, group.active, from, to);
+    follow(d);
   }
 
   /**
@@ -272,12 +296,14 @@ public final class TabGroups<T> {
    * it empty.
    */
   public void dock(Group<T> from, int index, Group<T> to, int at) {
+    T d = dragged();
     if (from == to) {
-      move(from, index, at > index ? at - 1 : at);
-      return;
+      from.active = Tabs.move(from.tabs, from.active, index, at > index ? at - 1 : at);
+    } else {
+      T tab = remove(from, index);
+      insert(to, Math.min(at, to.tabs.size()), tab);
     }
-    T tab = remove(from, index);
-    add(to, Math.min(at, to.tabs.size()), tab);
+    follow(d);
   }
 
   /**
@@ -285,7 +311,10 @@ public final class TabGroups<T> {
    * returns that group.
    */
   public Group<T> toNewWindow(Group<T> group, int index) {
-    return split(group, index, Window.options());
+    T d = dragged();
+    Group<T> made = split(group, index, Window.options());
+    follow(d);
+    return made;
   }
 
   /** Moves every tab of a group to the end of the main group, which closes its window. */
@@ -300,6 +329,46 @@ public final class TabGroups<T> {
     while (!group.tabs.isEmpty()) {
       close(group, group.tabs.size() - 1);
     }
+  }
+
+  /** The tab being dragged, or null. */
+  private T dragged() {
+    for (Group<T> g : groups) {
+      if (g == dragging.bar && dragging.index >= 0 && dragging.index < g.tabs.size()) {
+        return g.tabs.get(dragging.index);
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Tells the drag where its tab is after a change of the groups, so that it stays the one
+   * dragged; a drag whose tab was closed ends.
+   */
+  private void follow(T tab) {
+    if (tab == null) {
+      return;
+    }
+    for (Group<T> g : groups) {
+      int at = indexOf(g, tab);
+      if (at >= 0) {
+        dragging.moved(g, at);
+        return;
+      }
+    }
+    dragging.clear();
+    following = null;
+    origin = null;
+  }
+
+  /** Where a tab is in a group, by identity; -1 if it is not there. */
+  private static <T> int indexOf(Group<T> group, T tab) {
+    for (int i = 0; i < group.tabs.size(); i++) {
+      if (group.tabs.get(i) == tab) {
+        return i;
+      }
+    }
+    return -1;
   }
 
   /** Takes a tab out of its group; a group's window closes with its last tab. */
@@ -398,7 +467,7 @@ public final class TabGroups<T> {
     following = null;
     if (d.phase() == Drag.Phase.CANCEL && open) { // as it was
       if (origin != null && groups.contains(origin)) {
-        dock(f, 0, origin, originIndex);
+        dock(cast(o.bar()), o.index(), origin, originIndex); // the dragged tab, wherever it is
       } else if (origin == null) {
         f.window.moveTo(startX, startY);
       }

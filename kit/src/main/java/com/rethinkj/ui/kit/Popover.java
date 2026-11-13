@@ -20,8 +20,8 @@ import java.util.List;
  * Popover.popover(t, filter, s.filter, "Filter", content)
  * }</pre>
  *
- * <p>As it opens, the focus goes to its first {@link El#autofocus} or focusable element; when it
- * closes, the focus goes back to where it was, such as the button that opened it (see the focus
+ * <p>As it opens, the focus goes to its first {@link El#autofocus} or focusable element, or to
+ * the popover itself where it has none, as one that only shows information; when it closes, the focus goes back to where it was, such as the button that opened it (see the focus
  * rules of overlays in core). A press outside it and Escape close it; Tab walks it right after
  * its anchor. It has the look of a menu: the raised surface, the control border, the medium
  * radius, {@code elevation().popup()} and the fade. It has no arrow to its anchor, since the core
@@ -107,10 +107,11 @@ public final class Popover {
 
   /**
    * The popover's panel, an overlay to attach to an element with {@link El#overlay} and place, as
-   * {@link #popover} does; a press outside it and Escape call {@link State#close}.
+   * {@link #popover} does; a press outside it and Escape call {@link State#close}. Where nothing
+   * in the content takes the focus, the panel takes it, so that Escape reaches it.
    */
   public static El panel(Theme t, State state, String label, El content) {
-    return col()
+    El panel = col()
         .key("popover")
         .role("dialog")
         .label(label)
@@ -129,5 +130,21 @@ public final class Popover {
         .shadow(t.elevation().popup())
         .motion(t.motion().fade())
         .child(content);
+    if (!takesFocus(content)) {
+      panel.focusable().focusRing(t.accent().edge());
+    }
+    return panel;
+  }
+
+  private static boolean takesFocus(El el) {
+    if (el.isFocusable()) {
+      return true;
+    }
+    for (El child : el.children()) {
+      if (takesFocus(child)) {
+        return true;
+      }
+    }
+    return false;
   }
 }

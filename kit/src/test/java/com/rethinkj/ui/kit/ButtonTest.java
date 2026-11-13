@@ -163,7 +163,7 @@ class ButtonTest {
   }
 
   @Test
-  void arrowsOnTheChevronOpenItsMenuAtTheFirstOrLastItem() throws IOException {
+  void theKeysOnTheChevronOpenItsMenuAtTheFirstOrLastItem() throws IOException {
     App<Clicks> app = split(Button.options());
     run(app, "focus #arrow\nkey ArrowDown");
     assertTrue(app.state().menu.isOpen());
@@ -173,6 +173,13 @@ class ButtonTest {
     assertEquals(1, app.state().menu.active(), "the last enabled item, past a disabled one");
     run(app, "advance 1\nframe\nkey Enter");
     assertEquals(2, app.state().chosen);
+    run(app, "advance 1\nframe\nfocus #arrow\nkey Enter");
+    assertEquals(0, app.state().menu.active(), "Enter: the first");
+    run(app, "advance 1\nframe\nkey Escape\nframe\nfocus #arrow\nkey Space");
+    assertEquals(0, app.state().menu.active(), "Space: the first");
+    run(app, "advance 1\nframe\nkey Escape\nframe\npress #arrow");
+    assertTrue(app.state().menu.isOpen());
+    assertEquals(-1, app.state().menu.active(), "the pointer: none");
   }
 
   @Test

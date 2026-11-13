@@ -163,6 +163,26 @@ class TabGroupsTest {
     assertTrue(line(tree("s"), "#tablist").contains(" scroll 24,0"), "three steps: " + tree("s"));
   }
 
+  @Test
+  void aTabMovedByTheKeysWhileItIsDraggedStaysTheOneDragged() throws IOException {
+    App<Docs> app = start();
+    Script.run("""
+        size 400 160 at 100,100
+        frame
+        focus #tablist
+        down 8,17
+        move 100,17
+        frame
+        key PageDown control shift
+        frame
+        snap moved
+        up 210,17
+        frame""", app, out);
+    assertTrue(line(tree("moved"), "#tab-1 ").contains(" grabbed"), tree("moved"));
+    assertFalse(line(tree("moved"), "#tab-0 ").contains(" grabbed"), tree("moved"));
+    assertEquals(List.of(List.of("b", "c", "d", "a")), order(app.state()));
+  }
+
   // Tearing off and docking
 
   /**
@@ -298,6 +318,63 @@ class TabGroupsTest {
     assertEquals(List.of(393, 383), List.of(b.x(), b.y()));
   }
 
+  @Test
+  void cancellingATearOffPutsBackTheTornTabAfterTheAppDockedAnotherBeforeIt() throws IOException {
+    Docs d = new Docs();
+    d.app = new App<>(
+        d,
+        s -> s.view(s.groups.main()).onKey(k -> {
+          if (!k.name().equals("F2")) {
+            return false;
+          }
+          s.groups.dock(s.groups.main(), 0, s.groups.groups().get(1), 0);
+          return true;
+        }));
+    Script.run("""
+        size 400 160 at 100,100
+        frame
+        down 8,17
+        move screen 550,260
+        frame
+        key F2
+        frame
+        key Escape
+        frame""", d.app, out);
+    assertEquals(List.of(List.of("a", "c", "d"), List.of("b")), order(d));
+  }
+
+  @Test
+  void anEmptyMainGroupsBarTakesATabDroppedOnIt() throws IOException {
+    Docs d = new Docs();
+    d.app = new App<>(
+        d,
+        s -> s.view(s.groups.main()).onKey(k -> {
+          if (!k.name().equals("F2")) {
+            return false;
+          }
+          s.groups.toNewWindow(s.groups.main(), 3);
+          s.groups.closeAll(s.groups.main());
+          return true;
+        }));
+    Script.run("""
+        size 400 160 at 100,100
+        frame
+        key F2
+        frame
+        snap empty
+        window d
+        size 300 160 at 600,100
+        frame
+        down 8,17
+        move screen 120,117
+        frame
+        up screen 120,117
+        frame""", d.app, out);
+    // As high as with tabs, which are 32 high from y 1, and its hairline.
+    assertEquals("el #bar 1,1 398x33", line(tree("empty"), "#bar "), tree("empty"));
+    assertEquals(List.of(List.of("d")), order(d));
+  }
+
   // Closing a window
 
   @Test
@@ -372,6 +449,59 @@ class TabGroupsTest {
         window main""");
     assertEquals(List.of(List.of("a", "b", "d", "c")), order(d));
     assertNull(d.groups.groupOf("x"));
+  }
+
+  @Test
+  void theMenuOfATabActsOnThatTabWhereverTheAppMovesItAndEndsWithIt() throws IOException {
+    Docs d = new Docs();
+    d.app = new App<>(
+        d,
+        s -> s.view(s.groups.main()).onKey(k -> {
+          Group<String> main = s.groups.main();
+          switch (k.name()) {
+            case "F2" -> { // another tab before it closes, and another becomes active
+              s.groups.close(main, 0);
+              s.groups.select(main, 2);
+            }
+            case "F3" -> s.groups.close(main, main.tabs().indexOf("c"));
+            default -> {
+              return false;
+            }
+          }
+          return true;
+        }));
+    Script.run("""
+        size 400 160 at 100,100
+        frame
+        press 53,17 right
+        frame
+        key F2
+        frame
+        key Home
+        key Enter
+        frame""", d.app, out);
+    assertEquals(List.of(List.of("c", "d"), List.of("b")), order(d), "b moved, not d");
+
+    Script.run("""
+        window main
+        press 8,17 right
+        frame
+        key F3
+        frame
+        advance 1
+        frame
+        snap closed""", d.app, out);
+    assertFalse(tree("closed").contains("role=menu"), "its tab closed: " + tree("closed"));
+    Script.run("""
+        press 8,17 right
+        frame
+        key W control
+        frame
+        advance 1
+        frame
+        snap closed""", d.app, out);
+    assertFalse(tree("closed").contains("role=menu"), "Control+W: " + tree("closed"));
+    assertEquals(List.of(List.of(), List.of("b")), order(d));
   }
 
   // Without the handlers

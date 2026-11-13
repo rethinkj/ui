@@ -318,6 +318,11 @@ public final class Tabs {
    */
   public static <T> int move(List<T> list, int active, int from, int to) {
     list.add(to, list.remove(from));
+    return moved(active, from, to);
+  }
+
+  /** Where the element at {@code index} is after the one at {@code from} moved to {@code to}. */
+  private static int moved(int active, int from, int to) {
     if (active == from) {
       return to;
     }
@@ -500,6 +505,8 @@ public final class Tabs {
         .revealRow(active);
     // Sideways only: the wheel moves the tabs left and right.
     list.style().overflowY = Style.Overflow.HIDDEN;
+    // As high without tabs as with them, so that an empty bar still takes a tab dropped on it.
+    list.style().minHeight = Len.px(t.size().control() + t.space().m());
     List<El> built = new ArrayList<>();
     for (int i = 0; i < tabs.size(); i++) {
       boolean grabbed = dragging != null && dragging.on(o.id, i);
@@ -601,6 +608,9 @@ public final class Tabs {
       int from = active;
       if (name.equals("Tab") && (k.modifiers() & ~Key.SHIFT) == Key.CONTROL) {
         boolean back = (k.modifiers() & Key.SHIFT) != 0;
+        if (o.menu != null) { // its items act on the active tab, which changes
+          o.menu.close();
+        }
         select.accept(
             from < 0 ? (back ? last : 0) : Math.floorMod(from + (back ? -1 : 1), tabs.size()));
         return true;
@@ -609,7 +619,15 @@ public final class Tabs {
           && o.onMove != null
           && from >= 0
           && (name.equals("PageUp") && from > 0 || name.equals("PageDown") && from < last)) {
-        o.onMove.move(from, name.equals("PageUp") ? from - 1 : from + 1);
+        int to = name.equals("PageUp") ? from - 1 : from + 1;
+        // A tab being dragged in this bar stays the one dragged, wherever the move puts it.
+        boolean follows =
+            dragging != null && dragging.isActive() && Objects.equals(dragging.bar, o.id);
+        int dragged = follows ? moved(dragging.index, from, to) : -1;
+        o.onMove.move(from, to);
+        if (follows) {
+          dragging.index = dragged;
+        }
         return true;
       }
       if (k.modifiers() == Key.CONTROL
@@ -618,6 +636,9 @@ public final class Tabs {
           && from >= 0
           && from <= last
           && tabs.get(from).closable()) {
+        if (o.menu != null) { // the active tab's menu ends with it
+          o.menu.close();
+        }
         close.accept(from);
         return true;
       }

@@ -357,8 +357,8 @@ public final class Button {
    * A split button: the main action, and beside it a chevron that opens a menu of related ones,
    * as Run with Run selection and Explain. Each half is a button of its own, {@code role=button}
    * with the text and with {@code "More " + text} as their labels, and Tab reaches both; the menu
-   * opens below the whole. Enter, Space, Arrow Down and Arrow Up on the chevron open it, the arrows
-   * with the first or the last enabled item highlighted, as WAI-ARIA's menu button has it.
+   * opens below the whole. Enter, Space, Arrow Down and Arrow Up on the chevron open it with the
+   * first enabled item highlighted, Arrow Up with the last, as WAI-ARIA's menu button has it.
    *
    * @param icon before the text; null for none
    * @param onPress runs the main action; null disables it, and with no enabled item the chevron
@@ -412,15 +412,7 @@ public final class Button {
       if (state.isOpen()) {
         more.fill(look.pressed());
       }
-      more.onKey(k -> {
-        boolean down = k.name().equals("ArrowDown");
-        if (k.modifiers() != 0 || !down && !k.name().equals("ArrowUp") || state.isOpen()) {
-          return false;
-        }
-        state.open();
-        state.highlight(0, enabledEnd(items, down));
-        return true;
-      });
+      more.onKey(Menu.opener(state, more.onKey(), toggle));
     }
     El whole = row().key("split").shrink(0).child(main);
     if (variant == Variant.PRIMARY) {
@@ -433,17 +425,6 @@ public final class Button {
       return whole;
     }
     return Menu.dropdown(t, whole, state, items);
-  }
-
-  /** The index of the first enabled item, or with {@code first} false the last; -1 for none. */
-  private static int enabledEnd(List<Menu.Item> items, boolean first) {
-    for (int i = 0; i < items.size(); i++) {
-      int at = first ? i : items.size() - 1 - i;
-      if (items.get(at).isEnabled()) {
-        return at;
-      }
-    }
-    return -1;
   }
 
   /** A button's box: role, label, height, corners, fill and edge. */
