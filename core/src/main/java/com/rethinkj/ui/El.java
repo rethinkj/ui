@@ -24,6 +24,7 @@ public final class El {
   private float radius;
   private int borderColor;
   private Measure measure;
+  private Runnable onPress;
   private boolean placed;
   private float x;
   private float y;
@@ -216,6 +217,18 @@ public final class El {
     return this;
   }
 
+  // Behaviour
+
+  /**
+   * Runs {@code handler} when the pointer is pressed and released on this element or on a
+   * descendant that has no handler of its own. Handlers run between frames, never while a view is
+   * built, and are the only place where an app changes its state.
+   */
+  public El onPress(Runnable handler) {
+    this.onPress = handler;
+    return this;
+  }
+
   // Tree
 
   public El child(El child) {
@@ -267,6 +280,10 @@ public final class El {
 
   public int borderColor() {
     return borderColor;
+  }
+
+  public Runnable onPress() {
+    return onPress;
   }
 
   public Measure measure() {
