@@ -1,7 +1,5 @@
 package com.rethinkj.ui.examples;
 
-import static com.rethinkj.ui.Colors.alpha;
-import static com.rethinkj.ui.Colors.rgb;
 import static com.rethinkj.ui.El.col;
 import static com.rethinkj.ui.El.row;
 import static com.rethinkj.ui.kit.Button.Variant.GHOST;
@@ -172,21 +170,12 @@ public final class Settings {
     boolean light = theme == 0
         || theme == 2 && system != null && system.scheme() == SystemAppearance.Scheme.LIGHT;
     Theme base = light ? Theme.LIGHT : Theme.DARK;
-    // shortcut: these accents are older than Theme.Hue and do not hold all of its rules (their
-    // hover is lighter than the accent, white text on it falls below 4.5:1, and the purple lies
-    // below 3:1 on a dark control); Hue.VIOLET, GREEN and ORANGE would, at the cost of new images.
     return switch (accent) {
-      case 1 -> accent(base, rgb(0x7C3AED), rgb(0x8B5CF6), rgb(0x6D28D9), rgb(0xA78BFA));
-      case 2 -> accent(base, rgb(0x15803D), rgb(0x16A34A), rgb(0x166534), rgb(0x4ADE80));
-      case 3 -> accent(base, rgb(0xC2410C), rgb(0xEA580C), rgb(0x9A3412), rgb(0xFB923C));
+      case 1 -> base.withAccent(Theme.Hue.PURPLE);
+      case 2 -> base.withAccent(Theme.Hue.GREEN);
+      case 3 -> base.withAccent(Theme.Hue.ORANGE);
       default -> base;
     };
-  }
-
-  /** An accent whose edge is a lighter tone on the dark theme, as the default's. */
-  private static Theme accent(Theme base, int color, int hover, int pressed, int lighter) {
-    int edge = base == Theme.DARK ? lighter : color;
-    return base.withAccent(new Theme.Accent(color, hover, pressed, alpha(color, 0.4f), edge));
   }
 
   List<Connection> matches() {
