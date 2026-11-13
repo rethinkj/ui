@@ -49,6 +49,10 @@ class WorkbenchTest {
     assertTrue(Snaps.line("workbench", "orders-workbench-torn", "#status")
         .contains("\"localhost/shop/public/orders · 5 rows\""), "the answer in the torn window");
     assertTrue(Snaps.line("workbench", "workbench-docking", "#marker").startsWith("el #marker"));
+    assertTrue(Snaps.line("workbench", "workbench-find", "#count").contains("\"1 of 2\""),
+        "the query's find bar: the O of FROM and the o of orders");
+    assertTrue(Snaps.line("workbench", "workbench-edit-menu", "#item-12")
+        .contains("label=\"Go to line…\""), "the editor's commands in the Edit menu");
     assertFalse(Files.exists(Path.of("target/workbench/orders-workbench-docked.png")));
   }
 

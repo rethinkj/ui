@@ -460,6 +460,10 @@ public final class Text implements Measure {
     return tabSize;
   }
 
+  Decorator decorator() {
+    return decorator;
+  }
+
   void decorator(Decorator decorator) {
     this.decorator = decorator;
     viewStale = true;

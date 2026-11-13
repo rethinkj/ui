@@ -16,6 +16,7 @@ import com.rethinkj.ui.Script;
 import com.rethinkj.ui.Side;
 import com.rethinkj.ui.Style;
 import com.rethinkj.ui.kit.EmptyState;
+import com.rethinkj.ui.kit.Find;
 import com.rethinkj.ui.kit.Icon;
 import com.rethinkj.ui.kit.Menu;
 import com.rethinkj.ui.kit.MenuBar;
@@ -68,6 +69,7 @@ public final class Documents {
     String title;
     String text;
     Path path; // where it was read from or saved to, or null
+    final Find.State find = new Find.State(); // Control+F in its text
 
     Doc(String title, String text) {
       this.title = title;
@@ -99,7 +101,7 @@ public final class Documents {
 
   public static void main(String[] args) throws IOException {
     Documents s = new Documents();
-    s.app = new App<>(s, d -> d.view(d.groups.main()));
+    s.app = new App<>(s, d -> d.view(d.groups.main(), d.app));
     // A script's images are stored, so they must not depend on the platform.
     s.app.textRendering(TextRendering.LINUX);
     if (Script.handle(args, s.app)) {
@@ -126,24 +128,28 @@ public final class Documents {
 
   /** Opens the window of a group of tabs, titled after its tab, a smaller copy of the first. */
   Windows.Handle open(TabGroups.Group<Doc> group, Window.Options options) {
-    App<Documents> window = new App<>(this, s -> s.view(group));
-    window.textRendering(app.textRendering());
+    @SuppressWarnings("unchecked")
+    App<Documents>[] window = new App[1];
+    window[0] = new App<>(this, s -> s.view(group, window[0]));
+    window[0].textRendering(app.textRendering());
     return app.windows().open(group.activeTab().title, TAB_WIDTH, TAB_HEIGHT,
         options.frameless().minimumSize(240, 160).icon(Identity.icon(MARK, Symbol.DOCUMENT)),
-        window);
+        window[0]);
   }
 
   /**
    * A window's view: the title bar over the group's tabs, a card on the window's background. The
    * first window's title bar has the menus; every window takes dropped files.
+   *
+   * @param window the window's app, which a document's find bar selects in
    */
-  El view(TabGroups.Group<Doc> group) {
+  El view(TabGroups.Group<Doc> group, App<Documents> window) {
     Theme t = theme();
     El tabs = groups.tabs(t, group, d -> new Tab(d.title).icon(Symbol.DOCUMENT),
         d -> d == null
             ? EmptyState.emptyState(t, Symbol.DOCUMENT, "No documents",
                 "Drag a tab here from another window.", null)
-            : editor(t, d));
+            : editor(t, d, window));
     if (dropping == group) { // the card's edge in the accent, as wide as before
       tabs.border(t.size().stroke(), t.accent().edge());
     }
@@ -269,11 +275,11 @@ public final class Documents {
         .child(label(t, "Drop to open in a new tab"));
   }
 
-  static El editor(Theme t, Doc d) {
+  static El editor(Theme t, Doc d, App<Documents> app) {
     El area = d.title.equals("Query") || d.title.toLowerCase(Locale.ROOT).endsWith(".sql")
         ? TextField.codeArea(t, d.text, "Empty", v -> d.text = v)
         : TextField.textArea(t, d.text, "Empty", v -> d.text = v);
     return col().grow(1).padding(t.space().l())
-        .child(area.key("text").label(d.title).wFull().grow(1));
+        .child(Find.find(t, app, area.key("text").label(d.title).wFull().grow(1), d.find));
   }
 }

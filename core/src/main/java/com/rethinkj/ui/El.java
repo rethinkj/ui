@@ -1240,6 +1240,14 @@ public final class El {
     return this;
   }
 
+  /**
+   * The decorator {@link #decorate} gave, or null; a component that adds its own marks calls it
+   * too, as a find bar does with an editor's.
+   */
+  public Decorator decorator() {
+    return text == null ? null : text.decorator();
+  }
+
     // Editing, for elements made with text()
 
   /**
@@ -1485,7 +1493,8 @@ public final class El {
     return this;
   }
 
-  SelectHandler onSelect() {
+  /** The handler {@link #onSelect} gave, or null; a component that adds its own calls it too. */
+  public SelectHandler onSelect() {
     return onSelect;
   }
 

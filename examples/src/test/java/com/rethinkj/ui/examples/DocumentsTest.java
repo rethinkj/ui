@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.rethinkj.ui.App;
 import com.rethinkj.ui.Script;
+import com.rethinkj.ui.text.TextRendering;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -54,7 +55,7 @@ class DocumentsTest {
     Path big = folder.resolve("big.txt");
     Files.write(big, new byte[(int) Documents.LIMIT + 1]);
     Documents s = new Documents();
-    s.app = new App<>(s, d -> d.view(d.groups.main()));
+    s.app = new App<>(s, d -> d.view(d.groups.main(), d.app));
     Script.run("""
         size 640 360
         frame
@@ -83,5 +84,28 @@ class DocumentsTest {
     String line = Files.readAllLines(folder.resolve("out").resolve(snap + ".tree.txt")).stream()
         .filter(l -> l.contains("#toast")).findFirst().orElseThrow();
     return line.substring(line.indexOf("label=\"") + 7, line.indexOf("\" "));
+  }
+
+  /** A document's text has a find bar, in the first window and in one torn off. */
+  @Test
+  void controlFFindsInADocument() throws IOException {
+    Snaps.assumeText();
+    Documents s = new Documents();
+    s.app = new App<>(s, d -> d.view(d.groups.main(), d.app));
+    s.app.textRendering(TextRendering.LINUX);
+    Path out = Path.of("target", "documents-find");
+    Script.run("""
+        size 640 360
+        frame
+        press #text
+        key F control
+        type "the"
+        frame
+        advance 0.25
+        frame
+        snap find""", s.app, out);
+    String tree = Files.readString(out.resolve("find.tree.txt"));
+    assertTrue(tree.contains("role=search"), tree);
+    assertTrue(tree.contains("text #count \"1 of 1\""), tree);
   }
 }

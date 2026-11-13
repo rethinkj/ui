@@ -247,11 +247,11 @@ final class Sections {
         row().gap(t.space().m()).justify(Style.Content.END)
             .child(button(t, SECONDARY, "Test connection", () -> s.say("test")))
             .child(button(t, PRIMARY, "Save", s.user.isBlank() ? null : () -> s.say("save"))));
-    El editor = CodeEditor.codeEditor(t, s.sql, s.sqlEditor, Sql.of(t), v -> s.sql = v)
+    El editor = CodeEditor.codeEditor(t, s.app, s.sql, s.sqlEditor, Sql.of(t), v -> s.sql = v)
         .key("sql").label("Query").lines(5).wFull();
     El code = card(t, "Code editor",
         label(t, MUTED, "Line numbers, colours and brackets; a word's second letter, or"
-            + " Control+Space, completes keywords and names."),
+            + " Control+Space, completes keywords and names; Control+F finds, Control+H replaces."),
         Completion.complete(t, s.app, editor, s.sqlEditor.caret(), s.sqlCompletion,
             Sections::complete));
     return col().gap(t.space().l())

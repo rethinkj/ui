@@ -37,6 +37,13 @@ frame
 snap completion
 key Escape
 frame
+key F control                 # the editor's find bar, with the word at the caret
+frame
+advance 1
+frame
+snap find
+key Escape                    # closed, the last match selected in the editor
+frame
 
 press role=treeitem label="Menus and overlays"
 frame

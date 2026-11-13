@@ -2480,7 +2480,8 @@ public final class App<S> {
 
   /**
    * Selects from {@code anchor} to {@code caret} in a text field, or puts the caret there when they
-   * are equal, and scrolls it into view as a key does: a match that a find found. The positions
+   * are equal, and scrolls it into view as a key does, a multi-line field also while it does not
+   * have the focus: a match that a find bar found while the focus is in the bar. The positions
    * are indexes into the string, moved to the grapheme boundary at or before them. A handler may
    * call this as {@link #edit}.
    */

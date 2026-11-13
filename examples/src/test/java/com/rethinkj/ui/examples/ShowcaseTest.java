@@ -1,11 +1,13 @@
 package com.rethinkj.ui.examples;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
 import com.rethinkj.ui.Script;
 import com.rethinkj.ui.examples.Showcase.Look;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.stream.Stream;
@@ -36,5 +38,7 @@ class ShowcaseTest {
     String folder = look.slug() + "-" + scale + "x";
     Path out = Path.of("target", "showcase", folder);
     assertFalse(Script.run(scaled, Showcase.app(look), out).isEmpty(), "the script snaps");
+    assertTrue(Files.readString(out.resolve("find.tree.txt")).contains("role=search"),
+        "the code editor's find bar");
   }
 }
