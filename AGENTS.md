@@ -2,7 +2,7 @@
 
 A native, GPU-rendered UI framework for Java, modelled on [rune](https://github.com/anomalyco/rune) (Rust, MIT). Rune is the reference for scope and concepts: its own renderer, text, layout and animation, plus a headless mode in which an agent can render to PNG, dump the element tree and drive an app with scripted input.
 
-Status: early. `core` draws a view without a window: element tree, flexbox layout, CPU reference renderer, PNG. There is no window, GPU renderer, text or input yet, and `kit` is empty. The native libraries for the window and the renderer are packaged and loaded, but nothing calls them yet.
+Status: early. `core` draws a view without a window: element tree, flexbox layout, CPU reference renderer, PNG. There is no window, GPU renderer, text or input yet, and `kit` is empty. The native libraries for the window and the renderer are packaged and loaded, and `core` has bindings to wgpu-native that no renderer uses yet.
 
 - Repository: https://github.com/rethinkj/ui
 - License: MIT
@@ -54,6 +54,19 @@ The window (SDL3) and the GPU renderer (wgpu-native) will call native libraries.
 - Native access must be enabled for core: `--enable-native-access=com.rethinkj.ui` (core's tests pass it). On the module path, the natives JAR is resolved only with `--add-modules com.rethinkj.ui.natives.windows.x64`.
 - Loading happens only on first use. Never call `Natives` from a static initialiser that the headless path can reach: rendering without a window must not need the libraries.
 - `natives-linux-x64` will follow with the same layout and manifest format. SDL publishes no Linux binaries, so its SDL comes from a local build rather than a release archive.
+
+## GPU bindings
+
+`com.rethinkj.ui.gpu` (internal to `core`) binds wgpu-native in two layers. `Wgpu` and `Structs` are the raw layer: constants, function and callback descriptors, struct layouts written by hand and the header's `*_INIT` defaults (zero is not always the default). Everything else is the safe layer, which the renderer uses; renderer code never sees a handle or a `MemorySegment` of wgpu.
+
+wgpu-native ends the process where WebGPU would report an error, so the safe layer has to keep these from happening:
+
+- Every call that can fail runs inside a validation and an out-of-memory error scope and throws `GpuException` with wgpu's text and the label. A command encoder keeps its scopes open until `finish`, which throws instead of handing out a command buffer that recorded an error. Push and pop scopes only through `Device`: popping one too many ends the process, and so does the `Internal` filter.
+- Every device gets the uncaptured-error and device-lost callbacks. Upcalls catch everything and hand it to the calling code. The stubs live in `Callbacks` for the process and find their target by an id in `userdata1`.
+- Check arguments that wgpu-native panics on before calling: sizes of 0, a second surface texture while one is held, a buffer still mapped when commands using it are submitted, a command buffer submitted twice, NULL handles.
+- Do not bind any of the 35 functions wgpu-native leaves unimplemented (`WgpuTest` lists them), and do not rely on `wgpuInstanceWaitAny`: callbacks run inside the call or inside `wgpuDevicePoll`.
+
+Objects belong to the thread that created their `Instance`; closing one closes what it created, newest first. After adding or changing a struct, function or callback, run `scripts/LayoutCheck.java` (its header has the commands; it needs jextract, which stays out of the repository).
 
 ## Conventions
 
