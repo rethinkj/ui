@@ -119,7 +119,7 @@ public final class CpuRenderer {
     double[] radii = radii(scene, i, halfW, halfH);
     double[] borders = borders(scene, i);
     boolean border = borders[0] > 0 || borders[1] > 0 || borders[2] > 0 || borders[3] > 0;
-    Box shape = new Box(centerX, centerY, halfW, halfH, radii, radii);
+    Box shape = new Box(centerX, centerY, halfW, halfH, radii, radii, null);
     Box inner = border ? inner(centerX, centerY, halfW, halfH, radii, borders, scale) : null;
 
     // One extra pixel on each side: the smoothed edge reaches half a pixel beyond the shape.
@@ -269,7 +269,8 @@ public final class CpuRenderer {
         innerHalfW,
         innerHalfH,
         across,
-        down);
+        down,
+        null);
   }
 
   /** Blends the rectangle's colour over a pixel it covers this much of. */
@@ -442,7 +443,7 @@ public final class CpuRenderer {
     double centerX = x0 + halfW;
     double centerY = y0 + halfH;
     double[] square = new double[4];
-    Box shape = new Box(centerX, centerY, halfW, halfH, square, square);
+    Box shape = new Box(centerX, centerY, halfW, halfH, square, square, null);
     int left = first(centerX - halfW, scale, width);
     int top = first(centerY - halfH, scale, height);
     int right = end(centerX + halfW, scale, width);
@@ -953,15 +954,34 @@ public final class CpuRenderer {
    * is never 1, and a scale of 0 or less is taken for no shortcut. This is shown for circular
    * corners only ({@link #circular}); a rectangle whose fill has elliptic ones is measured at every
    * pixel.
+   *
+   * <p>A clip whose entry has a parent covers a pixel as the smaller of its own coverage and its
+   * parents' ({@link #outer}), as {@link Scene} says; the minimum of values from 0 to 1 is 1 only
+   * where each is. So a chain keeps both arguments: in a row, the pixels each box of the chain
+   * covers whole are a run, and so are those all of them cover, where the runs overlap; and a
+   * chain that covers the four corner pixels of a box of pixels whole covers them whole by each of
+   * its boxes, each of which then covers the whole box of pixels, and so does the chain.
+   *
+   * @param outer the clip whose coverage this one's is taken with, or null
    */
   private record Box(
-      double centerX, double centerY, double halfW, double halfH, double[] rx, double[] ry) {
+      double centerX,
+      double centerY,
+      double halfW,
+      double halfH,
+      double[] rx,
+      double[] ry,
+      Box outer) {
 
-    /** The entry of the clip table, or null for entry 0, which covers everything. */
+    /**
+     * The entry of the clip table with the entries along its parents, or null for entry 0, which
+     * covers everything. A parent that does not come before its entry ends the chain.
+     */
     static Box clip(Scene scene, int clip) {
       if (clip == 0) {
         return null;
       }
+      int parent = scene.clipParent(clip);
       double halfW = scene.clipGet(clip, Scene.WIDTH) / 2;
       double halfH = scene.clipGet(clip, Scene.HEIGHT) / 2;
       double[] radii = new double[4];
@@ -974,7 +994,8 @@ public final class CpuRenderer {
           halfW,
           halfH,
           radii,
-          radii);
+          radii,
+          parent > 0 && parent < clip ? clip(scene, parent) : null);
     }
 
     /** Whether each corner is a quarter of a circle. */
@@ -987,8 +1008,20 @@ public final class CpuRenderer {
       return true;
     }
 
-    /** How much of the pixel centred at {@code x, y}, in logical pixels, the box covers. */
+    /**
+     * How much of the pixel centred at {@code x, y}, in logical pixels, the box covers, and the
+     * clips it lies in.
+     */
     double coverage(double x, double y, double scale) {
+      double cover = own(x, y, scale);
+      for (Box clip = outer; clip != null; clip = clip.outer) {
+        cover = Math.min(cover, clip.own(x, y, scale));
+      }
+      return cover;
+    }
+
+    /** How much of the pixel centred at {@code x, y} the box covers by itself. */
+    private double own(double x, double y, double scale) {
       double dx = x - centerX;
       double dy = y - centerY;
       int c = corner(dx, dy);

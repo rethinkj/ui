@@ -206,7 +206,10 @@ class CpuRendererEquivalenceTest {
     };
   }
 
-  /** A scene whose clip table has rounded and square clips, nested, and text if asked. */
+  /**
+   * A scene whose clip table has rounded and square clips, nested, one with a parent, and text if
+   * asked.
+   */
   private static Scene base(float width, float height, float scale, boolean text) {
     El nested = el().absolute(3.5f, -2.25f)
         .size(width / 2, height)
@@ -218,7 +221,12 @@ class CpuRendererEquivalenceTest {
         .radius(5.5f)
         .clip()
         .child(el().absolute(0.5f, 0.5f).size(3, 2).fill(0x8000FF00))
-        .child(nested);
+        .child(nested)
+        // A square clip that fills it: its entry takes the rounded one as parent.
+        .child(el().absolute(0, 0)
+            .size(width * 0.7f, height * 0.6f)
+            .clip()
+            .child(el().absolute(-1, height * 0.6f - 3).size(6, 4).fill(0x80FFFF00)));
     El square = el().absolute(width * 0.4f, height * 0.35f)
         .size(width * 0.5f, height * 0.55f)
         .clip()
@@ -237,7 +245,15 @@ class CpuRendererEquivalenceTest {
     } else {
       Flex.layout(root, width, height);
     }
-    return Scene.of(root);
+    Scene scene = Scene.of(root);
+    boolean chained = false;
+    for (int c = 1; c < scene.clipCount(); c++) {
+      chained |= scene.clipParent(c) != 0;
+    }
+    if (!chained) {
+      throw new AssertionError("no clip of the random scenes has a parent");
+    }
+    return scene;
   }
 
   /** Images for the random scenes: a photo with levels down to 1 by 1, and a disc with alpha. */

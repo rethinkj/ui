@@ -29,7 +29,8 @@ import java.util.Set;
  * rectangles the same signed distance, the same coverage ramp one physical pixel wide and the
  * border inside the rectangle; for glyphs the same texel for each physical pixel and the same
  * coverage correction; for shadows the same blur, with the same approximation of {@code erf}; for
- * all the clip's coverage multiplied in, and blending in linear light.
+ * all the coverage of the clip and the clips along its chain multiplied in, and blending in linear
+ * light.
  * The result matches the CPU renderer's within a small tolerance per channel, not bit for bit.
  *
  * <p>The instances and the clip table go to the GPU as they are, as two read-only storage
@@ -95,7 +96,7 @@ public final class GpuRenderer implements AutoCloseable {
         unused: f32,
       }
 
-      // The layouts of Scene's Javadoc: 96 bytes per instance, 32 per clip. An instance is a
+      // The layouts of Scene's Javadoc: 96 bytes per instance, 48 per clip. An instance is a
       // rounded rectangle, a glyph or a shadow. The slots in which they differ are declared as u32
       // and bitcast to f32 where they hold floats: the bits of a float survive that, while a small
       // integer read as a float is a subnormal, which a GPU may flush to zero.
@@ -125,6 +126,8 @@ public final class GpuRenderer implements AutoCloseable {
         rect: vec4f,
         // Top left, top right, bottom right, bottom left.
         radii: vec4f,
+        // The entry whose coverage this one's is taken with, an earlier one, or 0.
+        parent: u32,
       }
 
       @group(0) @binding(0) var<uniform> globals: Globals;
@@ -243,8 +246,25 @@ public final class GpuRenderer implements AutoCloseable {
         return clamp(0.5 - distance * globals.scale, 0.0, 1.0);
       }
 
-      // How much of the pixel centred at point, in logical pixels, the clip lets through.
+      // How much of the pixel centred at point, in logical pixels, the clip lets through: the
+      // least that it and each of its parents does by itself. A parent that does not come before
+      // its entry ends the chain.
       fn clip_coverage(index: u32, point: vec2f) -> f32 {
+        var cover = own_clip_coverage(index, point);
+        var entry = index;
+        loop {
+          let parent = clips[entry].parent;
+          if parent == 0u || parent >= entry {
+            break;
+          }
+          cover = min(cover, own_clip_coverage(parent, point));
+          entry = parent;
+        }
+        return cover;
+      }
+
+      // How much of the pixel the clip's own rounded rectangle lets through.
+      fn own_clip_coverage(index: u32, point: vec2f) -> f32 {
         let clip = clips[index];
         let half_size = clip.rect.zw / 2.0;
         let p = point - (clip.rect.xy + half_size);

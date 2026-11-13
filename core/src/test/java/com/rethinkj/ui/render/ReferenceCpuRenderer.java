@@ -4,7 +4,7 @@ import com.rethinkj.ui.Image;
 import com.rethinkj.ui.text.Atlas;
 
 // CpuRenderer as it was before it was made fast, but for its name and encode's visibility, with
-// the radii per corner and borders per side added as plain loops too: what
+// the radii per corner, borders per side and chains of clips added as plain loops too: what
 // CpuRendererEquivalenceTest compares the fast one with, byte for byte.
 /**
  * Draws a {@link Scene} on the CPU. This is the reference the GPU renderer is checked against, so
@@ -499,8 +499,23 @@ final class ReferenceCpuRenderer {
     return Math.signum(x) * (1 - 1 / p);
   }
 
-  /** How much of the pixel centred at {@code x, y}, in logical pixels, the clip lets through. */
+  /**
+   * How much of the pixel centred at {@code x, y}, in logical pixels, the clip lets through: the
+   * least that it and each of its parents does by itself, as long as a parent comes before its
+   * entry.
+   */
   private static double clipCoverage(Scene scene, int clip, double x, double y, double scale) {
+    double coverage = ownClipCoverage(scene, clip, x, y, scale);
+    for (int c = clip, parent = scene.clipParent(c);
+        parent > 0 && parent < c;
+        c = parent, parent = scene.clipParent(c)) {
+      coverage = Math.min(coverage, ownClipCoverage(scene, parent, x, y, scale));
+    }
+    return coverage;
+  }
+
+  /** How much of the pixel the clip's own rounded rectangle lets through. */
+  private static double ownClipCoverage(Scene scene, int clip, double x, double y, double scale) {
     double halfW = scene.clipGet(clip, Scene.WIDTH) / 2;
     double halfH = scene.clipGet(clip, Scene.HEIGHT) / 2;
     double dx = x - (scene.clipGet(clip, Scene.X) + halfW);

@@ -155,7 +155,7 @@ class SceneTest {
   }
 
   @Test
-  void nestedClipsIntersectAndKeepTheInnermostRadius() {
+  void nestedClipsIntersectAndKeepTheCornersOfBoth() {
     El dot = el().fill(0xFFFFFFFF);
     El inner = el().clip().radius(3).fill(0xFF0000FF).child(dot);
     El outside = el().fill(0xFFFF0000);
@@ -175,7 +175,98 @@ class SceneTest {
     assertEquals(1, scene.clipOf(1), "inner is clipped by outer, not by itself");
     assertEquals(2, scene.clipOf(2));
     assertClip(scene, 1, 10, 10, 20, 20, 2);
-    assertClip(scene, 2, 20, 15, 10, 15, 3);
+    assertEquals(0, scene.clipParent(1));
+    // Inner's own corner at the top left; the corners outer cuts off are outer's, whose rounded
+    // bottom right one reaches into the intersection.
+    assertClip(scene, 2, 20, 15, 10, 15, 3, 0, 0, 0);
+    assertEquals(1, scene.clipParent(2));
+  }
+
+  @Test
+  void aSquareClipFillingARoundedOneKeepsItsCorners() {
+    El row = el().fill(0xFFFFFFFF);
+    El list = el().clip().child(row);
+    El card = el().clip().radius(12, 0, 6, 3).child(list);
+    El root = el().child(card);
+    root.place(0, 0, 100, 100);
+    card.place(10, 10, 60, 80);
+    list.place(0, 0, 60, 80);
+    row.place(0, 0, 60, 20);
+
+    Scene scene = Scene.of(root);
+
+    assertEquals(3, scene.clipCount());
+    assertClip(scene, 2, 10, 10, 60, 80, 0);
+    assertEquals(1, scene.clipParent(2), "the card's corners lie in the list");
+    assertEquals(0, CpuRenderer.render(scene, 100, 100, 1).argb(10, 10), "the card's corner");
+    assertEquals(0xFFFFFFFF, CpuRenderer.render(scene, 100, 100, 1).argb(69, 10), "a square one");
+  }
+
+  @Test
+  void aClipAwayFromTheRoundedCornersAroundItIsOneEntry() {
+    El inside = el().clip().radius(4).child(el().fill(0xFFFFFFFF));
+    El card = el().clip().radius(12).child(inside);
+    El root = el().child(card);
+    root.place(0, 0, 100, 100);
+    card.place(10, 10, 60, 80);
+    // The squares of the card's corners end 2 pixels short of it on both sides.
+    inside.place(14, 14, 32, 52);
+    inside.children().getFirst().place(0, 0, 32, 52);
+
+    Scene scene = Scene.of(root, 1);
+
+    assertEquals(3, scene.clipCount());
+    assertClip(scene, 2, 24, 24, 32, 52, 4);
+    assertEquals(0, scene.clipParent(2));
+  }
+
+  @Test
+  void aRoundedClipCutThroughItsCornerKeepsItsWholeShapeAsParent() {
+    El photo = el().fill(0xFFFFFFFF);
+    El rounded = el().clip().radius(0, 0, 0, 16).child(photo);
+    El pane = el().clip().child(rounded);
+    El root = el().child(pane);
+    root.place(0, 0, 100, 100);
+    pane.place(10, 10, 50, 50);
+    rounded.place(-5, 10, 40, 40); // the pane cuts its left side, through its rounded corner
+    photo.place(0, 0, 40, 40);
+
+    Scene scene = Scene.of(root, 1);
+
+    assertEquals(4, scene.clipCount());
+    assertEquals(3, scene.clipOf(scene.count() - 1));
+    assertClip(scene, 3, 10, 20, 35, 40, 0);
+    assertEquals(2, scene.clipParent(3));
+    assertClip(scene, 2, 5, 20, 40, 40, 0, 0, 0, 16);
+    assertEquals(0, scene.clipParent(2), "the square pane adds nothing to that");
+    Pixels image = CpuRenderer.render(scene, 100, 100, 1);
+    assertEquals(0, image.argb(10, 59), "the rounded corner, left of the pane's edge too");
+    assertEquals(0xFFFFFFFF, image.argb(10, 20));
+  }
+
+  @Test
+  void clipsNestThreeDeepAlongTheirParents() {
+    El dot = el().fill(0xFFFFFFFF);
+    El third = el().clip().child(dot);
+    El second = el().clip().radius(0, 10, 0, 0).child(third);
+    El first = el().clip().radius(20, 0, 0, 0).child(second);
+    El root = el().child(first);
+    root.place(0, 0, 100, 100);
+    first.place(0, 0, 60, 60);
+    second.place(0, 0, 40, 40);
+    third.place(0, 0, 40, 40);
+    dot.place(0, 0, 40, 40);
+
+    Scene scene = Scene.of(root, 1);
+
+    assertEquals(4, scene.clipCount());
+    assertEquals(0, scene.clipParent(1));
+    assertEquals(1, scene.clipParent(2), "first's corner lies in second");
+    assertEquals(2, scene.clipParent(3), "second's corner lies in third, and first's after it");
+    Pixels image = CpuRenderer.render(scene, 100, 100, 1);
+    assertEquals(0, image.argb(1, 1), "first's corner");
+    assertEquals(0, image.argb(38, 1), "second's corner");
+    assertEquals(0xFFFFFFFF, image.argb(20, 20));
   }
 
   @Test
@@ -195,12 +286,18 @@ class SceneTest {
 
   private static void assertClip(
       Scene scene, int clip, float x, float y, float width, float height, float radius) {
+    assertClip(scene, clip, x, y, width, height, radius, radius, radius, radius);
+  }
+
+  /** With the radii at the top left, top right, bottom right and bottom left. */
+  private static void assertClip(
+      Scene scene, int clip, float x, float y, float width, float height, float... radii) {
     assertEquals(x, scene.clipGet(clip, Scene.X));
     assertEquals(y, scene.clipGet(clip, Scene.Y));
     assertEquals(width, scene.clipGet(clip, Scene.WIDTH));
     assertEquals(height, scene.clipGet(clip, Scene.HEIGHT));
     for (int c = 0; c < 4; c++) {
-      assertEquals(radius, scene.clipGet(clip, Scene.RADIUS + 4 * c), "corner " + c);
+      assertEquals(radii[c], scene.clipGet(clip, Scene.RADIUS + 4 * c), "corner " + c);
     }
   }
 

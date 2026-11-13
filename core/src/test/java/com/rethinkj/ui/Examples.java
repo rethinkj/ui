@@ -798,6 +798,66 @@ public final class Examples {
   }
 
   /**
+   * Clips inside rounded clips, for a window of 260 by 180: a card whose corners each have a
+   * radius of their own around a square list that fills it, of rows with an image and text, which
+   * a script scrolls ({@code #nested-list}); three rounded boxes each sticking out of the one
+   * around it, the innermost holding a photo larger than itself; and a square box of text that
+   * fills a card rounded at one corner only.
+   */
+  public static El nestedClips() {
+    Image disc = Image.of(disc(32));
+    El list = col().key("nested-list").scroll().wFull().hFull().gap(2).fill(0xFFDBEAFE);
+    for (int i = 1; i <= 12; i++) {
+      list.child(row()
+          .h(22)
+          .padding(0, 6)
+          .gap(6)
+          .align(Style.Align.CENTER)
+          .fill(i % 2 == 0 ? 0xFF3B82F6 : 0xFF1E3A8A)
+          .children(
+              El.image(disc).size(16, 16),
+              El.text("Zeile " + i + ": Größe").fontSize(12).color(0xFFFFFFFF)));
+    }
+    El card = el().key("card")
+        .absolute(8, 8)
+        .size(120, 160)
+        .radius(18, 4, 26, 10)
+        .clip()
+        .fill(0xFFFFFFFF)
+        .child(list);
+    El inner = el().absolute(-6, -4)
+        .size(60, 50)
+        .radius(12, 0, 20, 6)
+        .clip()
+        .fill(0xFFF59E0B)
+        .child(El.image(Image.of(photo(80, 70))).absolute(-8, -8).size(80, 70));
+    El middle = el().absolute(-10, 50)
+        .size(72, 70)
+        .radius(0, 22, 8, 16)
+        .clip()
+        .fill(0xFF10B981)
+        .child(inner);
+    El deep = el().key("deep")
+        .absolute(140, 8)
+        .size(110, 110)
+        .radius(24, 6, 30, 28)
+        .clip()
+        .fill(0xFF6366F1)
+        .children(
+            El.text("Tief: drei Ecken").fontSize(12).color(0xFFFFFFFF).absolute(-4, 4), middle);
+    El corner = el().absolute(140, 126)
+        .size(110, 46)
+        .radius(2, 2, 2, 22)
+        .clip()
+        .fill(0xFF111827)
+        .child(el().size(110, 46)
+            .clip()
+            .fill(0xFF374151)
+            .child(El.text("Ecke unten links").fontSize(13).color(0xFFFFFFFF).absolute(-3, 28)));
+    return el().size(260, 180).fill(0xFFE5E7EB).children(card, deep, corner);
+  }
+
+  /**
    * Dark text on white and light text on near black at opacity 1, 0.6 and 0.3, for a window of
    * 336 by 76: the stored image text-opacity.
    */

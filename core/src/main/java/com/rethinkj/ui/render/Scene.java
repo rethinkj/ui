@@ -224,7 +224,7 @@ import java.util.Map;
  * * (1 - source.a)}.
  *
  * <p>The clip table is {@link #clips()}, {@link #CLIP_STRIDE} bytes per entry: a rounded rectangle
- * outside of which an instance that refers to it is not drawn.
+ * outside of which an instance that refers to it is not drawn, and the entry it lies in.
  *
  * <pre>
  *  0  x        f32
@@ -233,21 +233,34 @@ import java.util.Map;
  * 12  height   f32
  * 16  radii    f32 x 4   top left, top right, bottom right, bottom left, clamped like an
  *                        instance's
+ * 32  parent   u32   the entry whose coverage this one's is taken with, an earlier one, or 0
+ * 36  unused   u32 x 3   0
  * </pre>
  *
- * <p>As WGSL: {@code array<Clip>} with {@code struct Clip { rect: vec4f, radii: vec4f }}. The table always has an entry 0, which stands for no clip:
- * a rectangle from -1e9 to 1e9 on both axes with radius 0, so that applying it changes nothing
- * and a renderer may skip it or not.
+ * <p>As WGSL: {@code array<Clip>} with {@code struct Clip { rect: vec4f, radii: vec4f, parent:
+ * u32 }}, which WGSL pads to 48 bytes. The entry was 32 bytes, with no slot free, until it got its
+ * parent. The table always has an entry 0, which stands for no clip: a rectangle from -1e9 to 1e9
+ * on both axes with radius 0 and no parent, so that applying it changes nothing and a renderer may
+ * skip it or not.
  *
  * <p>A renderer computes how much of a pixel a rectangle covers, from 0 to 1, as the signed
  * distance from the pixel's centre to the rectangle turned into a ramp one physical pixel wide
- * across the edge, and multiplies that by the same coverage of its clip's rounded rectangle; see
- * {@link CpuRenderer}. So the edge of a clip is smoothed like any other.
+ * across the edge, and multiplies that by the same coverage of its clip; see {@link CpuRenderer}.
+ * So the edge of a clip is smoothed like any other. A clip's coverage is that of its own rounded
+ * rectangle, and then, as long as an entry has a parent other than 0 that comes before it, the
+ * smaller of that and the parent's own coverage: the coverage of the intersection, whose signed
+ * distance is the larger of the two.
  *
  * <p>An element whose overflow is not visible ({@link El#clip}, {@link El#scroll}) clips its
- * descendants, not itself, and a text element its text. When clips are nested, an entry holds the
- * intersection of the element's border box with the clip of its ancestors, so one entry per
- * instance is enough. Instances that lie entirely outside their clip are left out.
+ * descendants, not itself, and a text element its text. When clips are nested, an entry's
+ * rectangle is the intersection of the element's border box with the rectangle of the clip of its
+ * ancestors, so that one entry per instance is enough to find its pixels. The intersection of two
+ * rounded rectangles is not a rounded rectangle, so where the rounded corners of a clip around it
+ * reach into that rectangle, as a card's around the square list that fills it, the entry's parent
+ * is that clip; where they do not, which is nearly always, it has none and costs what a single
+ * clip does. A corner that a clip around it cuts off has no radius, and where the element's own
+ * rounded corner still shows, an entry of its whole box comes first as the parent. Instances that
+ * lie entirely outside their clip's rectangle are left out.
  *
  * <p>A text element's glyphs come after its own fill and border. Its content box is snapped to
  * the physical pixel grid before the glyphs are placed: vertically to whole pixels, horizontally
@@ -350,10 +363,14 @@ public final class Scene {
   public static final int LIGHT_GAMMA = 60;
 
   /**
-   * Bytes per entry of the clip table. Its fields are at {@link #X} to {@link #RADIUS}, and the
-   * other corners' radii at {@code RADIUS + 4}, {@code + 8} and {@code + 12}.
+   * Bytes per entry of the clip table. Its fields are at {@link #X} to {@link #RADIUS}, the other
+   * corners' radii at {@code RADIUS + 4}, {@code + 8} and {@code + 12}, and the parent at {@link
+   * #CLIP_PARENT}.
    */
-  public static final int CLIP_STRIDE = 8 * Float.BYTES;
+  public static final int CLIP_STRIDE = 12 * Float.BYTES;
+
+  /** The slot of a clip entry that holds the index of its parent, a u32. */
+  public static final int CLIP_PARENT = 32;
 
   /** The width of the focus ring in logical pixels. */
   public static final float RING = 2;
@@ -366,6 +383,7 @@ public final class Scene {
 
   private static final float NO_CLIP = 1e9f;
   private static final float[] NO_BORDER = new float[4];
+  private static final float[] SQUARE = new float[4];
 
   private static final float[] SRGB_TO_LINEAR = new float[256];
 
@@ -401,7 +419,7 @@ public final class Scene {
   private Scene(Atlas atlas, TextRendering rendering) {
     this.atlas = atlas;
     this.rendering = rendering;
-    clip(-NO_CLIP, -NO_CLIP, 2 * NO_CLIP, 2 * NO_CLIP, 0);
+    entry(-NO_CLIP, -NO_CLIP, 2 * NO_CLIP, 2 * NO_CLIP, SQUARE, 0);
   }
 
   /**
@@ -552,14 +570,7 @@ public final class Scene {
     }
     int inner = clip;
     if (s.overflowX != Style.Overflow.VISIBLE || s.overflowY != Style.Overflow.VISIBLE) {
-      float l = Math.max(left, clipX);
-      float t = Math.max(top, clipY);
-      float w = Math.min(left + width, clipRight) - l;
-      float h = Math.min(top + height, clipBottom) - t;
-      // shortcut: an entry has one radius, the innermost clip's, so where an inner clip sticks
-      // out of a rounded outer one, the corners of the intersection take the inner radius instead
-      // of following the outer curve; give each entry its parent's index when that shows.
-      inner = w > 0 && h > 0 ? clip(l, t, w, h, radii) : -1;
+      inner = clip(left, top, left + width, top + height, radii, clip);
     }
     if (inner >= 0) { // else everything below is clipped away
       float content = over(el.fill(), opacity, behind);
@@ -692,20 +703,14 @@ public final class Scene {
         Math.max(radii[2] - Math.max(insetRight, insetBottom), 0),
         Math.max(radii[3] - Math.max(insetLeft, insetBottom), 0)
       };
-      float cl = Math.max(l, clipX);
-      float ct = Math.max(t, clipY);
-      float cw = Math.min(r, clipRight) - cl;
-      float ch = Math.min(b, clipBottom) - ct;
-      if (!(cw > 0 && ch > 0)) {
+      own = clip(l, t, r, b, inner, clip);
+      if (own < 0) {
         return;
       }
-      // shortcut: as for overflow, the entry has the element's corners only, not those of a
-      // rounded clip around it that it sticks out of.
-      own = clip(cl, ct, cw, ch, inner);
-      clipX = cl;
-      clipY = ct;
-      clipRight = cl + cw;
-      clipBottom = ct + ch;
+      clipX = clipGet(own, X);
+      clipY = clipGet(own, Y);
+      clipRight = clipX + clipGet(own, WIDTH);
+      clipBottom = clipY + clipGet(own, HEIGHT);
     }
     if (!(x < clipRight && x + w > clipX && y < clipBottom && y + h > clipY)) {
       return;
@@ -1076,16 +1081,13 @@ public final class Scene {
     Style s = el.style();
     boolean rows = el.text().multiline();
     // Out to whole physical pixels, so that the clip cuts no glyph that the box holds.
-    float left = Math.max(outward(x + px(s.borderLeft) + px(s.paddingLeft), -1), clipGet(clip, X));
-    float top = Math.max(
-        outward(y + px(s.borderTop) + (rows ? px(s.paddingTop) : 0), -1), clipGet(clip, Y));
-    float right = Math.min(
+    return clip(
+        outward(x + px(s.borderLeft) + px(s.paddingLeft), -1),
+        outward(y + px(s.borderTop) + (rows ? px(s.paddingTop) : 0), -1),
         outward(x + el.width() - px(s.borderRight) - px(s.paddingRight), 1),
-        clipGet(clip, X) + clipGet(clip, WIDTH));
-    float bottom = Math.min(
         outward(y + el.height() - px(s.borderBottom) - (rows ? px(s.paddingBottom) : 0), 1),
-        clipGet(clip, Y) + clipGet(clip, HEIGHT));
-    return right > left && bottom > top ? clip(left, top, right - left, bottom - top, 0) : -1;
+        SQUARE,
+        clip);
   }
 
   /**
@@ -1164,11 +1166,115 @@ public final class Scene {
     return offset;
   }
 
-  private int clip(float x, float y, float width, float height, float radius) {
-    return clip(x, y, width, height, new float[] {radius, radius, radius, radius});
+  /**
+   * The clip of the rounded rectangle from {@code l, t} to {@code r, b} with these radii (top
+   * left, top right, bottom right, bottom left) inside the clip {@code outer}, as an entry of the
+   * table; -1 when nothing of it is left.
+   *
+   * <p>The entry's rectangle is the intersection of the two boxes. Where the rectangle lies
+   * inside the outer box, the entry keeps its radii; a corner that the outer box cuts off gets
+   * none, and where that leaves out some of a rounded corner of the rectangle, or the radii would
+   * be clamped otherwise in the smaller box, an entry of the whole rectangle with its radii comes
+   * first, as the entry's parent. The parent after that is the first clip out along {@code
+   * outer}'s chain whose rounded corners reach into the box: the box lies inside every one of
+   * them, so their straight edges cut nothing it does not cut, and the others add nothing. So an
+   * entry needs no parent unless rounded corners around it cut it, and nesting costs nothing where
+   * they do not.
+   */
+  private int clip(float l, float t, float r, float b, float[] radii, int outer) {
+    float outerX = clipGet(outer, X);
+    float outerY = clipGet(outer, Y);
+    float outerRight = outerX + clipGet(outer, WIDTH);
+    float outerBottom = outerY + clipGet(outer, HEIGHT);
+    float x = Math.max(l, outerX);
+    float y = Math.max(t, outerY);
+    float width = Math.min(r, outerRight) - x;
+    float height = Math.min(b, outerBottom) - y;
+    if (!(width > 0 && height > 0)) {
+      return -1;
+    }
+    float right = x + width;
+    float bottom = y + height;
+    int parent = reaching(outer, x, y, right, bottom);
+    boolean cutLeft = l < outerX;
+    boolean cutTop = t < outerY;
+    boolean cutRight = r > outerRight;
+    boolean cutBottom = b > outerBottom;
+    if (!(cutLeft || cutTop || cutRight || cutBottom)) {
+      return entry(x, y, width, height, radii, parent);
+    }
+    boolean[] cut = {
+      cutLeft || cutTop, cutTop || cutRight, cutRight || cutBottom, cutBottom || cutLeft
+    };
+    float[] kept = new float[4];
+    boolean whole = true; // whether the box with the kept radii is the rectangle within it
+    float most = Math.min(r - l, b - t) / 2;
+    float mostKept = Math.min(width, height) / 2;
+    for (int c = 0; c < 4; c++) {
+      float radius = Math.clamp(radii[c], 0, most);
+      if (cut[c]) {
+        whole &= !(radius != 0 && corner(l, t, r, b, c, radius, x, y, right, bottom));
+      } else {
+        kept[c] = radii[c];
+        whole &= Math.clamp(radii[c], 0, mostKept) == radius;
+      }
+    }
+    if (whole) {
+      return entry(x, y, width, height, kept, parent);
+    }
+    return entry(x, y, width, height, SQUARE, entry(l, t, r - l, b - t, radii, parent));
   }
 
-  private int clip(float x, float y, float width, float height, float[] radii) {
+  /**
+   * The first clip from {@code clip} out along its chain whose rounded corners reach into the box
+   * from {@code l, t} to {@code r, b}, which lies inside each of them; 0 for none.
+   */
+  private int reaching(int clip, float l, float t, float r, float b) {
+    for (int c = clip; c != 0; c = clipParent(c)) {
+      float x = clipGet(c, X);
+      float y = clipGet(c, Y);
+      float right = x + clipGet(c, WIDTH);
+      float bottom = y + clipGet(c, HEIGHT);
+      float most = Math.min(clipGet(c, WIDTH), clipGet(c, HEIGHT)) / 2;
+      for (int k = 0; k < 4; k++) {
+        float radius = Math.clamp(clipGet(c, RADIUS + 4 * k), 0, most);
+        if (!(radius == 0) && corner(x, y, right, bottom, k, radius, l, t, r, b)) {
+          return c;
+        }
+      }
+    }
+    return 0;
+  }
+
+  /**
+   * Whether corner {@code c} (top left, top right, bottom right, bottom left) of the rectangle
+   * from {@code x0, y0} to {@code x1, y1}, the square of side {@code radius} where its rounded
+   * corner lies, reaches into the box from {@code l, t} to {@code r, b} or within a physical pixel
+   * of it: the box's own smoothed edge covers some of a pixel up to half a pixel beyond it. A scene
+   * without a scale takes a logical pixel, which is enough at scales of 0.5 and more.
+   */
+  private boolean corner(
+      float x0,
+      float y0,
+      float x1,
+      float y1,
+      int c,
+      float radius,
+      float l,
+      float t,
+      float r,
+      float b) {
+    float reach = scale > 0 ? 1 / scale : 1;
+    float left = c == 0 || c == 3 ? x0 : x1 - radius;
+    float top = c < 2 ? y0 : y1 - radius;
+    return left < r + reach
+        && left + radius > l - reach
+        && top < b + reach
+        && top + radius > t - reach;
+  }
+
+  /** Appends an entry to the clip table and returns its index. */
+  private int entry(float x, float y, float width, float height, float[] radii, int parent) {
     long offset = (long) clipCount * CLIP_STRIDE;
     if (offset == clips.byteSize()) {
       clips = grow(clips);
@@ -1179,6 +1285,10 @@ public final class Scene {
     clips.set(ValueLayout.JAVA_FLOAT, offset + HEIGHT, height);
     for (int c = 0; c < 4; c++) {
       clips.set(ValueLayout.JAVA_FLOAT, offset + RADIUS + 4 * c, radii[c]);
+    }
+    clips.set(ValueLayout.JAVA_INT, offset + CLIP_PARENT, parent);
+    for (long at = CLIP_PARENT + 4; at < CLIP_STRIDE; at += 4) {
+      clips.set(ValueLayout.JAVA_INT, offset + at, 0);
     }
     return clipCount++;
   }
@@ -1377,5 +1487,13 @@ public final class Scene {
   /** One float of one clip; {@code field} is one of {@link #X} to {@link #RADIUS}. */
   public float clipGet(int clip, int field) {
     return clips.get(ValueLayout.JAVA_FLOAT, (long) clip * CLIP_STRIDE + field);
+  }
+
+  /**
+   * The entry whose coverage a clip's is taken with, an earlier one, or 0 for none; see {@link
+   * #CLIP_PARENT}.
+   */
+  public int clipParent(int clip) {
+    return clips.get(ValueLayout.JAVA_INT, (long) clip * CLIP_STRIDE + CLIP_PARENT);
   }
 }

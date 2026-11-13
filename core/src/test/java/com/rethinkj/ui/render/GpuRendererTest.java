@@ -31,6 +31,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Random;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.function.Supplier;
@@ -198,6 +199,12 @@ class GpuRendererTest {
     }
     // A scrim reaches a billion pixels beyond the window, beyond an int from scale 2.15 on.
     cases.add(scrim(2.5f));
+    // Text in both fonts at 9 to 25 pixels at quarter positions, at the scales between, and
+    // thousands of instances of a pixel each.
+    for (float scale : new float[] {1.25f, 1.75f}) {
+      cases.add(scattered(scale));
+    }
+    cases.add(scene("many@1.75", many(), 80, 80, 1.75f));
     for (int frames = 2; frames <= 5; frames++) {
       cases.add(switchMoving(frames));
     }
@@ -265,6 +272,8 @@ class GpuRendererTest {
       cases.add(scene("sides" + at, sides(), 160, 100, scale));
       cases.add(scene("overlaps" + at, overlaps(), 160, 100, scale));
       cases.add(view("clips" + at, clips(), 160, 100, scale));
+      // Clips in rounded clips, two and three deep: a scrolled list in a card, text and images.
+      cases.add(nestedClips(scale));
       cases.add(bars("bars-both" + at, scale, false));
       cases.add(bars("bars-both-hovered" + at, scale, true));
       cases.add(scene("transparent" + at, transparent(), 160, 100, scale));
@@ -472,7 +481,8 @@ class GpuRendererTest {
   /**
    * Changes to the shaders of corners and sides that each draw a few shapes a little wrong, which
    * the comparison has to notice: the corner a point takes its radius from, the elliptic inner
-   * corners, the fill's edge on a side without a border, a shadow's corners and a clip's.
+   * corners, the fill's edge on a side without a border, a shadow's corners, a clip's, and the
+   * clips around a clip that cut its corners.
    */
   static Stream<Arguments> shapeBreaks() {
     return Stream.of(
@@ -490,7 +500,11 @@ class GpuRendererTest {
             "if all(radii == vec4f(radii.x)) {",
             "if true {"),
         Arguments.of(
-            "a clip's corners all the top left one", "clip.radii[corner(p)]", "clip.radii.x"));
+            "a clip's corners all the top left one", "clip.radii[corner(p)]", "clip.radii.x"),
+        Arguments.of(
+            "a clip's parents left out",
+            "cover = min(cover, own_clip_coverage(parent, point));",
+            "cover = cover;"));
   }
 
   @ParameterizedTest(name = "{0}")
@@ -499,9 +513,13 @@ class GpuRendererTest {
     String wgsl = GpuRenderer.WGSL.replace(line, broken);
     assertTrue(!wgsl.equals(GpuRenderer.WGSL), "the shader has no line " + line);
     try (GpuRenderer wrong = GpuRenderer.create(wgsl)) {
-      Comparison comparison = compare(wrong, shapes(2), false);
-      System.out.println("GPU with " + what + " vs CPU " + comparison);
-      assertTrue(comparison.beyond() > 50, what + ": " + comparison);
+      int beyond = 0;
+      for (Case c : List.of(shapes(2), nestedClips(2))) {
+        Comparison comparison = compare(wrong, c, false);
+        System.out.println("GPU with " + what + " vs CPU " + comparison);
+        beyond += comparison.beyond();
+      }
+      assertTrue(beyond > 50, what + ": " + beyond + " pixels beyond the tolerance");
     }
   }
 
@@ -1120,6 +1138,75 @@ class GpuRendererTest {
         Path.of("target/gpu-vs-cpu-scripts"));
     assertTrue(!app.tree().shownOverlays().isEmpty(), "an overlay shows");
     return scene(name, app.scene(), 240, 200, scale);
+  }
+
+  /** Forty lines of text in both fonts at sizes from 9 to 25, at fractional positions. */
+  private static Case scattered(float scale) {
+    App<Object> app = new App<>(new Object(), s -> {
+      El root = el().fill(0xFFFFFFFF);
+      for (int i = 0; i < 40; i++) {
+        root.child(El.text("AVgy fi 0123456789 quarter pixels")
+            .font(i % 2 == 0 ? Font.sans() : Font.mono())
+            .fontSize(9 + i % 17)
+            .absolute(i % 5 * 31.3f, i * 5.7f));
+      }
+      return root;
+    });
+    app.textRendering(TextRendering.LINUX);
+    app.resize(300, 260, scale);
+    app.frame();
+    return scene("scattered@" + scale, app.scene(), 300, 260, scale);
+  }
+
+  /** 5000 squares of a logical pixel each over a white one. */
+  private static Scene many() {
+    Scene scene = new Scene();
+    scene.rect(0, 0, 80, 80, 0, 0, 0xFFFFFFFF, 0);
+    for (int i = 0; i < 5000; i++) {
+      scene.rect(i % 80, i / 80, 1, 1, 0, 0, 0xFF123456, 0);
+    }
+    return scene;
+  }
+
+  @Test
+  void randomShapesDrawAlikeAtScalesBetweenAndBeyond() {
+    Random random = new Random(8212026);
+    float[] scales = {1, 1.25f, 1.75f, 2.5f, 3};
+    for (int k = 0; k < 500; k++) {
+      Scene scene = new Scene();
+      scene.rect(0, 0, 40, 40, 0, 0, 0xFFFFFFFF, 0);
+      for (int i = 0; i < 3; i++) {
+        float[] radii = new float[4];
+        float[] borders = new float[4];
+        for (int c = 0; c < 4; c++) {
+          radii[c] = random.nextFloat() * 100;
+          borders[c] = random.nextFloat() * 40;
+        }
+        scene.rect(
+            random.nextFloat() * 50 - 20,
+            random.nextFloat() * 50 - 20,
+            random.nextFloat() * 50,
+            random.nextFloat() * 50,
+            radii,
+            borders,
+            random.nextInt(),
+            random.nextInt());
+      }
+      float scale = scales[k % scales.length];
+      Comparison comparison = compare(gpu, scene("random-" + k, scene, 40, 40, scale), false);
+      assertEquals(0, comparison.beyond(), comparison.toString());
+    }
+  }
+
+  /** {@link Examples#nestedClips}, its list scrolled by 13.25 pixels, at this scale. */
+  static Case nestedClips(float scale) {
+    App<Object> app = new App<>(new Object(), s -> Examples.nestedClips());
+    app.textRendering(TextRendering.LINUX);
+    app.resize(260, 180, scale);
+    app.frame();
+    app.wheel(60, 80, 0, 13.25f);
+    app.frame();
+    return scene("nested-clips" + at(scale), app.scene(), 260, 180, scale);
   }
 
   /** A modal box over a white window, with its scrim. */
