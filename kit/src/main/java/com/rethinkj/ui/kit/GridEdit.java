@@ -6,6 +6,7 @@ import static com.rethinkj.ui.El.row;
 
 import com.rethinkj.ui.Cursor;
 import com.rethinkj.ui.El;
+import com.rethinkj.ui.FieldState;
 import com.rethinkj.ui.Key;
 import com.rethinkj.ui.Side;
 import com.rethinkj.ui.Style;
@@ -178,6 +179,7 @@ final class GridEdit {
     sel.original = value;
     sel.error = null;
     sel.edits++;
+    sel.field = new FieldState(); // caret and history of this editor, in one field or the other
     sel.draft = typed != null ? typed : value;
     sel.multiline = c.editing().editor() == null && textLike(c)
         && (multiline || sel.draft != null && (sel.draft.indexOf('\n') >= 0
@@ -671,6 +673,7 @@ final class GridEdit {
       float extra = longer ? button + t.space().xs() : 0;
       width = Math.max(cell, Math.min(wide + frame + extra, room(b, column, right)));
       El field = El.text(text).editable(v -> edit(c, sel, v)).key("field")
+          .fieldState(sel.field)
           .label("Edit " + c.title())
           .font(style.font().get()).fontSize(style.size()).color(t.text().primary())
           .selectionColor(t.accent().selection()).hFull().minSize(0, 0)
@@ -906,7 +909,8 @@ final class GridEdit {
     El area = TextField.textArea(t, sel.draft == null ? "" : sel.draft,
             sel.draft == null && c.editing().nullable() ? "NULL" : null, v -> edit(c, sel, v))
         .key("text").label(label).font(style.font().get()).fontSize(style.size())
-        .lines(6).w(Math.max(c.width(), 2 * t.size().field())).autofocus();
+        .lines(6).w(Math.max(c.width(), 2 * t.size().field())).autofocus()
+        .fieldState(sel.field); // goes on from the caret and history of the field it replaces
     if (sel.draft == null) {
       area.value("NULL");
     }

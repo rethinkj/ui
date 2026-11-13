@@ -9,6 +9,7 @@ import com.rethinkj.ui.Clipboard;
 import com.rethinkj.ui.Cursor;
 import com.rethinkj.ui.Drag;
 import com.rethinkj.ui.El;
+import com.rethinkj.ui.FieldState;
 import com.rethinkj.ui.Key;
 import com.rethinkj.ui.Len;
 import com.rethinkj.ui.Measure;
@@ -760,6 +761,7 @@ public final class DataGrid {
     int edits; // the editors opened so far: each new one takes the focus by this key
     float gridWidth; // the grid's width, as layout last told it, for an editor that grows
     Runnable handOn; // the last grid built with it that edits: hands the draft on (commitEdit)
+    FieldState field = new FieldState(); // the open editor's, shared by its field and its lines
     final Menu.State choices = new Menu.State(); // an enumeration's list
     final FilterList.State search = new FilterList.State(); // a long enumeration's filter
     // The filter being set in its popover: its column, -1 for none, and what it holds.

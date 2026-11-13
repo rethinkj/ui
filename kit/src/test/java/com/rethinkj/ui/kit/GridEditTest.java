@@ -431,6 +431,25 @@ class GridEditTest {
     assertEquals(1, ledger.log.size());
   }
 
+  /** The field of lines goes on from the caret and selection of the editor it replaces. */
+  @Test
+  void theFieldOfSeveralLinesKeepsTheCaretOfTheEditor() throws IOException {
+    Ledger ledger = new Ledger(T, 40);
+    App<Ledger> app = start(ledger);
+    run(app, "key F2\nframe\nkey Enter alt\nframe\nadvance 1\nframe");
+    assertTrue(line(app, "text").contains("focused caret 12"), line(app, "text"));
+    run(app, "key Enter\ntype \"Jr.\"\nkey Enter control\nframe");
+    assertEquals("commit 0,1 Ada Lovelace\nJr.", ledger.log.getLast());
+
+    run(app, "key ArrowDown\nkey F2\nframe\ntype \" of the analytical engine\"\nkey Home\n"
+        + "frame\npress #expand\nframe\nadvance 1\nframe");
+    assertTrue(line(app, "text").contains("focused caret 0"), line(app, "text"));
+    run(app, "type \"Lady \"\nkey Enter control\nframe");
+    String handed = ledger.log.getLast();
+    assertTrue(handed.startsWith("commit 1,1 Lady ") && handed.endsWith(" analytical engine"),
+        handed);
+  }
+
   /** A value longer than its cell has a button in the editor that opens the field of lines. */
   @Test
   void aLongValueHasAButtonForTheFieldOfSeveralLines() throws IOException {
