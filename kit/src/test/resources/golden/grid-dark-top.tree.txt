@@ -1,7 +1,7 @@
 el 0,0 560x240
   el #orders role=grid label="Orders" 8,8 544x224 thumb-x 10,224 301.6x6
     el #content 8,8 974x224
-      el #header 8,8 974x24
+      el #header 8,8 974x25
         el #column-0 role=columnheader label="id" 8,8 63x24 pos=1/7 sort=ascending
           el 42,14 12x12
             text label="arrow_up" "\u{E12A}" 42,14 12x12
@@ -32,10 +32,8 @@ el 0,0 560x240
         el #resize-4 role=separator label="Resize amount" 649,8 6x24
         el #resize-5 role=separator label="Resize status" 729,8 6x24
         el #resize-6 role=separator label="Resize note" 969,8 6x24
-      el 8,32 974x1
       el #rows 8,33 974x199 rows 0-11/1000000 thumb-y 544,35 6x24 hovered
         el #row-0 role=row 8,33 974x24 pos=1/1000000
-          el 8,56 974x1
           el #cell-0-0 role=gridcell 8,33 63x23 pos=1/7
             text "1" 60,37 7x16
           el 71,33 1x23
@@ -58,7 +56,6 @@ el 0,0 560x240
             text "NULL" 736,37 34x16
           el 971,33 1x23
         el #row-1 role=row 8,57 974x24 pos=2/1000000
-          el 8,80 974x1
           el #cell-1-0 role=gridcell 8,57 63x23 pos=1/7
             text "2" 60,61 7x16
           el 71,57 1x23
@@ -81,7 +78,6 @@ el 0,0 560x240
             text "Customer asked to split the delivery into two parcels and to leave them next door" 736,61 231x16
           el 971,57 1x23
         el #row-2 role=row 8,81 974x24 selected current pos=3/1000000
-          el 8,104 974x1
           el #cell-2-0 role=gridcell 8,81 63x23 pos=1/7
             text "3" 60,85 7x16
           el 71,81 1x23
@@ -104,7 +100,6 @@ el 0,0 560x240
             text "NULL" 736,85 34x16
           el 971,81 1x23
         el #row-3 role=row 8,105 974x24 pos=4/1000000
-          el 8,128 974x1
           el #cell-3-0 role=gridcell 8,105 63x23 pos=1/7
             text "4" 60,109 7x16
           el 71,105 1x23
@@ -127,7 +122,6 @@ el 0,0 560x240
             text "NULL" 736,109 34x16
           el 971,105 1x23
         el #row-4 role=row 8,129 974x24 pos=5/1000000
-          el 8,152 974x1
           el #cell-4-0 role=gridcell 8,129 63x23 pos=1/7
             text "5" 60,133 7x16
           el 71,129 1x23
@@ -150,7 +144,6 @@ el 0,0 560x240
             text "Customer asked to split the delivery into two parcels and to leave them next door" 736,133 231x16
           el 971,129 1x23
         el #row-5 role=row 8,153 974x24 pos=6/1000000
-          el 8,176 974x1
           el #cell-5-0 role=gridcell 8,153 63x23 pos=1/7
             text "6" 60,157 7x16
           el 71,153 1x23
@@ -173,7 +166,6 @@ el 0,0 560x240
             text "NULL" 736,157 34x16
           el 971,153 1x23
         el #row-6 role=row 8,177 974x24 pos=7/1000000
-          el 8,200 974x1
           el #cell-6-0 role=gridcell 8,177 63x23 pos=1/7
             text "7" 60,181 7x16
           el 71,177 1x23
@@ -196,7 +188,6 @@ el 0,0 560x240
             text "NULL" 736,181 34x16
           el 971,177 1x23
         el #row-7 role=row 8,201 974x24 pos=8/1000000
-          el 8,224 974x1
           el #cell-7-0 role=gridcell 8,201 63x23 pos=1/7
             text "8" 60,205 7x16
           el 71,201 1x23
@@ -219,7 +210,6 @@ el 0,0 560x240
             text "Customer asked to split the delivery into two parcels and to leave them next door" 736,205 231x16
           el 971,201 1x23
         el #row-8 role=row 8,225 974x24 pos=9/1000000
-          el 8,248 974x1
           el #cell-8-0 role=gridcell 8,225 63x23 pos=1/7
             text "9" 60,229 7x16
           el 71,225 1x23
@@ -242,7 +232,6 @@ el 0,0 560x240
             text "NULL" 736,229 34x16
           el 971,225 1x23
         el #row-9 role=row 8,249 974x24 pos=10/1000000
-          el 8,272 974x1
           el #cell-9-0 role=gridcell 8,249 63x23 pos=1/7
             text "10" 53,253 14x16
           el 71,249 1x23
@@ -265,7 +254,6 @@ el 0,0 560x240
             text "NULL" 736,253 34x16
           el 971,249 1x23
         el #row-10 role=row 8,273 974x24 pos=11/1000000
-          el 8,296 974x1
           el #cell-10-0 role=gridcell 8,273 63x23 pos=1/7
             text "11" 53,277 14x16
           el 71,273 1x23
@@ -288,7 +276,6 @@ el 0,0 560x240
             text "Customer asked to split the delivery into two parcels and to leave them next door" 736,277 231x16
           el 971,273 1x23
         el #row-11 role=row 8,297 974x24 pos=12/1000000
-          el 8,320 974x1
           el #cell-11-0 role=gridcell 8,297 63x23 pos=1/7
             text "12" 53,301 14x16
           el 71,297 1x23

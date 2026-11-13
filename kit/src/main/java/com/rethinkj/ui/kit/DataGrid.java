@@ -750,9 +750,8 @@ public final class DataGrid {
       body.onDrag(d -> drag(b, d));
     }
 
-    El under = el().h(t.size().stroke()).shrink(0).fill(t.border().control());
     El content = col().key("content").w(b.xs[columns.size()] + b.room)
-        .children(header, under, body);
+        .children(header, body);
     content.style().minWidth = Len.percent(1); // the rows reach across a grid wider than them
     // Header and rows scroll sideways together in the grid; the rows scroll up and down alone.
     El grid = row().role("grid").scrollBoth().scrollbars(t.scrollbars()).fill(g.row())
@@ -777,7 +776,9 @@ public final class DataGrid {
     Theme t = b.t;
     Theme.Grid g = b.g;
     int n = b.columns.size();
-    El header = row().key("header").h(g.rowHeight()).shrink(0).fill(g.header())
+    // The line under it is its border, which the cells and the pinned parts end above.
+    El header = row().key("header").h(g.rowHeight() + t.size().stroke()).shrink(0)
+        .fill(g.header()).border(0, 0, t.size().stroke(), 0, t.border().control())
         .padding(0, 0, 0, b.fixedWidth());
     El[] lines = new El[n];
     List<El> pinned = new ArrayList<>();
@@ -1004,12 +1005,10 @@ public final class DataGrid {
     boolean rowSelected = sel != null && !b.cells && sel.isRowSelected(i);
     int fill = rowSelected ? b.selectionFill() : i % 2 == 0 ? g.row() : g.stripe();
     float stroke = t.size().stroke();
-    // A hairline along the bottom, under the cells, which end above it.
+    // A hairline along the bottom, its border, which the cells end above.
     El r = row().key("row-" + i).role("row").fill(fill).selected(rowSelected)
         .current(sel != null && !b.cells && sel.row() == i)
-        .padding(0, 0, stroke, 0)
-        .child(el().absolute(0, g.rowHeight() - stroke).h(stroke).wFull()
-            .fill(t.border().subtle()));
+        .border(0, 0, stroke, 0, t.border().subtle());
     int n = b.columns.size();
     int first = n;
     int last = -1;
@@ -1020,7 +1019,7 @@ public final class DataGrid {
       }
     }
     if (first < n) {
-      r.padding(0, 0, stroke, b.xs[first]);
+      r.padding(0, 0, 0, b.xs[first]);
     }
     for (int c = first; c <= last; c++) {
       r.children(cell(b, i, c, loaded, fill), line(t, false));

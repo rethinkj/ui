@@ -39,7 +39,7 @@ el 0,0 900x520
       el role=separator 9,73 882x1
       el #orders role=grid label="Orders" 9,74 882x408 scroll 604,0 thumb-x 367.87,474 521.13x6 focused
         el #content -595,74 1486x408
-          el #header -595,74 1486x24
+          el #header -595,74 1486x25
             el #column-1 role=columnheader label="customer" -479,74 139x24 pos=2/12
               text label="text_case_title" "\u{ECEC}" -475,78 16x16
               text "customer" -455,78 60x16
@@ -104,10 +104,8 @@ el 0,0 900x520
               text "id" 109,78 11x16
             el 124,74 1x24
             el #resize-0 role=separator label="Resize id" 122,74 6x24
-          el -595,98 1486x1
           el #rows -595,99 1486x383 rows 49981-49999/50000 scroll 0,1199627 thumb-y 883,446 6x24
             el #row-49981 role=row -595,16 1486x24 pos=49982/50000
-              el -595,39 1486x1
               el #cell-49981-1 role=gridcell -479,16 139x23 pos=2/12
                 text "Ada Torvalds" -475,20 80x16
               el -340,16 1x23
@@ -149,7 +147,6 @@ el 0,0 900x520
                 text "999621" 78,20 42x16
               el 124,16 1x23
             el #row-49982 role=row -595,40 1486x24 pos=49983/50000
-              el -595,63 1486x1
               el #cell-49982-1 role=gridcell -479,40 139x23 pos=2/12
                 text "Ada Thompson" -475,44 94x16
               el -340,40 1x23
@@ -191,7 +188,6 @@ el 0,0 900x520
                 text "999641" 78,44 42x16
               el 124,40 1x23
             el #row-49983 role=row -595,64 1486x24 pos=49984/50000
-              el -595,87 1486x1
               el #cell-49983-1 role=gridcell -479,64 139x23 pos=2/12
                 text "Ada Dijkstra" -475,68 73x16
               el -340,64 1x23
@@ -233,7 +229,6 @@ el 0,0 900x520
                 text "999661" 78,68 42x16
               el 124,64 1x23
             el #row-49984 role=row -595,88 1486x24 pos=49985/50000
-              el -595,111 1486x1
               el #cell-49984-1 role=gridcell -479,88 139x23 pos=2/12
                 text "Ada Knuth" -475,92 65x16
               el -340,88 1x23
@@ -275,7 +270,6 @@ el 0,0 900x520
                 text "999681" 78,92 42x16
               el 124,88 1x23
             el #row-49985 role=row -595,112 1486x24 pos=49986/50000
-              el -595,135 1486x1
               el #cell-49985-1 role=gridcell -479,112 139x23 pos=2/12
                 text "Ada Lovelace" -475,116 83x16
               el -340,112 1x23
@@ -317,7 +311,6 @@ el 0,0 900x520
                 text "999701" 78,116 42x16
               el 124,112 1x23
             el #row-49986 role=row -595,136 1486x24 pos=49987/50000
-              el -595,159 1486x1
               el #cell-49986-1 role=gridcell -479,136 139x23 pos=2/12
                 text "Ada Torvalds" -475,140 80x16
               el -340,136 1x23
@@ -359,7 +352,6 @@ el 0,0 900x520
                 text "999721" 78,140 42x16
               el 124,136 1x23
             el #row-49987 role=row -595,160 1486x24 pos=49988/50000
-              el -595,183 1486x1
               el #cell-49987-1 role=gridcell -479,160 139x23 pos=2/12
                 text "Ada Thompson" -475,164 94x16
               el -340,160 1x23
@@ -401,7 +393,6 @@ el 0,0 900x520
                 text "999741" 78,164 42x16
               el 124,160 1x23
             el #row-49988 role=row -595,184 1486x24 pos=49989/50000
-              el -595,207 1486x1
               el #cell-49988-1 role=gridcell -479,184 139x23 pos=2/12
                 text "Ada Dijkstra" -475,188 73x16
               el -340,184 1x23
@@ -443,7 +434,6 @@ el 0,0 900x520
                 text "999761" 78,188 42x16
               el 124,184 1x23
             el #row-49989 role=row -595,208 1486x24 pos=49990/50000
-              el -595,231 1486x1
               el #cell-49989-1 role=gridcell -479,208 139x23 pos=2/12
                 text "Ada Knuth" -475,212 65x16
               el -340,208 1x23
@@ -485,7 +475,6 @@ el 0,0 900x520
                 text "999781" 78,212 42x16
               el 124,208 1x23
             el #row-49990 role=row -595,232 1486x24 pos=49991/50000
-              el -595,255 1486x1
               el #cell-49990-1 role=gridcell -479,232 139x23 pos=2/12
                 text "Ada Lovelace" -475,236 83x16
               el -340,232 1x23
@@ -527,7 +516,6 @@ el 0,0 900x520
                 text "999801" 78,236 42x16
               el 124,232 1x23
             el #row-49991 role=row -595,256 1486x24 pos=49992/50000
-              el -595,279 1486x1
               el #cell-49991-1 role=gridcell -479,256 139x23 pos=2/12
                 text "Ada Torvalds" -475,260 80x16
               el -340,256 1x23
@@ -569,7 +557,6 @@ el 0,0 900x520
                 text "999821" 78,260 42x16
               el 124,256 1x23
             el #row-49992 role=row -595,280 1486x24 pos=49993/50000
-              el -595,303 1486x1
               el #cell-49992-1 role=gridcell -479,280 139x23 pos=2/12
                 text "Ada Thompson" -475,284 94x16
               el -340,280 1x23
@@ -611,7 +598,6 @@ el 0,0 900x520
                 text "999841" 78,284 42x16
               el 124,280 1x23
             el #row-49993 role=row -595,304 1486x24 pos=49994/50000
-              el -595,327 1486x1
               el #cell-49993-1 role=gridcell -479,304 139x23 pos=2/12
                 text "Ada Dijkstra" -475,308 73x16
               el -340,304 1x23
@@ -653,7 +639,6 @@ el 0,0 900x520
                 text "999861" 78,308 42x16
               el 124,304 1x23
             el #row-49994 role=row -595,328 1486x24 pos=49995/50000
-              el -595,351 1486x1
               el #cell-49994-1 role=gridcell -479,328 139x23 pos=2/12
                 text "Ada Knuth" -475,332 65x16
               el -340,328 1x23
@@ -695,7 +680,6 @@ el 0,0 900x520
                 text "999881" 78,332 42x16
               el 124,328 1x23
             el #row-49995 role=row -595,352 1486x24 pos=49996/50000
-              el -595,375 1486x1
               el #cell-49995-1 role=gridcell -479,352 139x23 pos=2/12
                 text "Ada Lovelace" -475,356 83x16
               el -340,352 1x23
@@ -737,7 +721,6 @@ el 0,0 900x520
                 text "999901" 78,356 42x16
               el 124,352 1x23
             el #row-49996 role=row -595,376 1486x24 pos=49997/50000
-              el -595,399 1486x1
               el #cell-49996-1 role=gridcell -479,376 139x23 pos=2/12
                 text "Ada Torvalds" -475,380 80x16
               el -340,376 1x23
@@ -779,7 +762,6 @@ el 0,0 900x520
                 text "999921" 78,380 42x16
               el 124,376 1x23
             el #row-49997 role=row -595,400 1486x24 pos=49998/50000
-              el -595,423 1486x1
               el #cell-49997-1 role=gridcell -479,400 139x23 pos=2/12
                 text "Ada Thompson" -475,404 94x16
               el -340,400 1x23
@@ -821,7 +803,6 @@ el 0,0 900x520
                 text "999941" 78,404 42x16
               el 124,400 1x23
             el #row-49998 role=row -595,424 1486x24 pos=49999/50000
-              el -595,447 1486x1
               el #cell-49998-1 role=gridcell -479,424 139x23 pos=2/12
                 text "Ada Dijkstra" -475,428 73x16
               el -340,424 1x23
@@ -863,7 +844,6 @@ el 0,0 900x520
                 text "999961" 78,428 42x16
               el 124,424 1x23
             el #row-49999 role=row -595,448 1486x24 pos=50000/50000
-              el -595,471 1486x1
               el #cell-49999-1 role=gridcell -479,448 139x23 pos=2/12
                 text "Ada Knuth" -475,452 65x16
               el -340,448 1x23
@@ -905,7 +885,5 @@ el 0,0 900x520
                 text "999981" 78,452 42x16
               el 124,448 1x23
       el 9,482 882x29
-        el role=separator 9,482 882x1
-        el 9,483 882x28
-          text #status "50,000 of 1,000,000 orders · order 999981 selected" 21,489 320x16
-          el 353,497 526x0
+        text #status "50,000 of 1,000,000 orders · order 999981 selected" 21,489 320x16
+        el 353,497 526x0

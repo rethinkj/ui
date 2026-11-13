@@ -70,7 +70,7 @@ el 0,0 1000x600
     el #rest 268,32 724x560
       el #second 276,32 716x560
         el #tabs 276,32 716x560
-          el #bar 277,33 714x32
+          el #bar 277,33 714x33
             el #tablist role=tablist 279,33 143x32
               el #tab-0 role=tab label="Start" 279,33 44x32
                 text "Start" 287,41 28x16
@@ -80,7 +80,6 @@ el 0,0 1000x600
                 text "orders" 353,41 41x16
                 el #close-1 role=button label="Close orders" 398,41 16x16
                   text label="dismiss" "\u{F368}" 398,41 16x16
-          el 277,65 714x1
           el #panel role=tabpanel label="orders" 277,66 714x525
             el 277,66 714x525
               el 277,66 714x496
@@ -97,7 +96,7 @@ el 0,0 1000x600
                 el role=separator 277,205 714x1
                 el #grid-localhost/shop/public/orders role=grid label="orders" 277,206 714x356 thumb-x 279,554 347.22x6
                   el #content 277,206 1460x356
-                    el #header 277,206 1460x24
+                    el #header 277,206 1460x25
                       el #column-0 role=columnheader label="id" 277,206 99x24 pos=1/9
                         text label="key" "\u{E740}" 303,210 16x16
                         el 323,210 49x16
@@ -161,10 +160,8 @@ el 0,0 1000x600
                       el #resize-6 role=separator label="Resize note" 1344,206 6x24
                       el #resize-7 role=separator label="Resize created_at" 1534,206 6x24
                       el #resize-8 role=separator label="Resize updated_at" 1724,206 6x24
-                    el 277,230 1460x1
                     el #rows 277,231 1460x331 rows 999983-999999/1000000 scroll 0,23999679 thumb-y 983,526 6x24
                       el #row-999983 role=row 277,144 1460x24 pos=999984/1000000
-                        el 277,167 1460x1
                         el #cell-999983-0 role=gridcell 277,144 99x23 pos=1/9
                           text "999984" 330,148 42x16
                         el 376,144 1x23
@@ -192,7 +189,6 @@ el 0,0 1000x600
                           text "2027-03-09 13:36" 1351,148 112x16
                         el 1536,144 1x23
                       el #row-999984 role=row 277,168 1460x24 pos=999985/1000000
-                        el 277,191 1460x1
                         el #cell-999984-0 role=gridcell 277,168 99x23 pos=1/9
                           text "999985" 330,172 42x16
                         el 376,168 1x23
@@ -220,7 +216,6 @@ el 0,0 1000x600
                           text "2027-03-09 13:36" 1351,172 112x16
                         el 1536,168 1x23
                       el #row-999985 role=row 277,192 1460x24 pos=999986/1000000
-                        el 277,215 1460x1
                         el #cell-999985-0 role=gridcell 277,192 99x23 pos=1/9
                           text "999986" 330,196 42x16
                         el 376,192 1x23
@@ -248,7 +243,6 @@ el 0,0 1000x600
                           text "2027-03-09 13:37" 1351,196 112x16
                         el 1536,192 1x23
                       el #row-999986 role=row 277,216 1460x24 pos=999987/1000000
-                        el 277,239 1460x1
                         el #cell-999986-0 role=gridcell 277,216 99x23 pos=1/9
                           text "999987" 330,220 42x16
                         el 376,216 1x23
@@ -276,7 +270,6 @@ el 0,0 1000x600
                           text "2027-03-09 13:38" 1351,220 112x16
                         el 1536,216 1x23
                       el #row-999987 role=row 277,240 1460x24 pos=999988/1000000
-                        el 277,263 1460x1
                         el #cell-999987-0 role=gridcell 277,240 99x23 pos=1/9
                           text "999988" 330,244 42x16
                         el 376,240 1x23
@@ -304,7 +297,6 @@ el 0,0 1000x600
                           text "2027-03-09 13:38" 1351,244 112x16
                         el 1536,240 1x23
                       el #row-999988 role=row 277,264 1460x24 pos=999989/1000000
-                        el 277,287 1460x1
                         el #cell-999988-0 role=gridcell 277,264 99x23 pos=1/9
                           text "999989" 330,268 42x16
                         el 376,264 1x23
@@ -332,7 +324,6 @@ el 0,0 1000x600
                           text "2027-03-09 13:39" 1351,268 112x16
                         el 1536,264 1x23
                       el #row-999989 role=row 277,288 1460x24 pos=999990/1000000
-                        el 277,311 1460x1
                         el #cell-999989-0 role=gridcell 277,288 99x23 pos=1/9
                           text "999990" 330,292 42x16
                         el 376,288 1x23
@@ -360,7 +351,6 @@ el 0,0 1000x600
                           text "2027-03-09 13:39" 1351,292 112x16
                         el 1536,288 1x23
                       el #row-999990 role=row 277,312 1460x24 pos=999991/1000000
-                        el 277,335 1460x1
                         el #cell-999990-0 role=gridcell 277,312 99x23 pos=1/9
                           text "999991" 330,316 42x16
                         el 376,312 1x23
@@ -388,7 +378,6 @@ el 0,0 1000x600
                           text "2027-03-09 13:40" 1351,316 112x16
                         el 1536,312 1x23
                       el #row-999991 role=row 277,336 1460x24 pos=999992/1000000
-                        el 277,359 1460x1
                         el #cell-999991-0 role=gridcell 277,336 99x23 pos=1/9
                           text "999992" 330,340 42x16
                         el 376,336 1x23
@@ -416,7 +405,6 @@ el 0,0 1000x600
                           text "2027-03-09 13:41" 1351,340 112x16
                         el 1536,336 1x23
                       el #row-999992 role=row 277,360 1460x24 pos=999993/1000000
-                        el 277,383 1460x1
                         el #cell-999992-0 role=gridcell 277,360 99x23 pos=1/9
                           text "999993" 330,364 42x16
                         el 376,360 1x23
@@ -444,7 +432,6 @@ el 0,0 1000x600
                           text "2027-03-09 13:41" 1351,364 112x16
                         el 1536,360 1x23
                       el #row-999993 role=row 277,384 1460x24 pos=999994/1000000
-                        el 277,407 1460x1
                         el #cell-999993-0 role=gridcell 277,384 99x23 pos=1/9
                           text "999994" 330,388 42x16
                         el 376,384 1x23
@@ -472,7 +459,6 @@ el 0,0 1000x600
                           text "2027-03-09 13:42" 1351,388 112x16
                         el 1536,384 1x23
                       el #row-999994 role=row 277,408 1460x24 pos=999995/1000000
-                        el 277,431 1460x1
                         el #cell-999994-0 role=gridcell 277,408 99x23 pos=1/9
                           text "999995" 330,412 42x16
                         el 376,408 1x23
@@ -500,7 +486,6 @@ el 0,0 1000x600
                           text "2027-03-09 13:42" 1351,412 112x16
                         el 1536,408 1x23
                       el #row-999995 role=row 277,432 1460x24 pos=999996/1000000
-                        el 277,455 1460x1
                         el #cell-999995-0 role=gridcell 277,432 99x23 pos=1/9
                           text "999996" 330,436 42x16
                         el 376,432 1x23
@@ -528,7 +513,6 @@ el 0,0 1000x600
                           text "2027-03-09 13:43" 1351,436 112x16
                         el 1536,432 1x23
                       el #row-999996 role=row 277,456 1460x24 pos=999997/1000000
-                        el 277,479 1460x1
                         el #cell-999996-0 role=gridcell 277,456 99x23 pos=1/9
                           text "999997" 330,460 42x16
                         el 376,456 1x23
@@ -556,7 +540,6 @@ el 0,0 1000x600
                           text "2027-03-09 13:44" 1351,460 112x16
                         el 1536,456 1x23
                       el #row-999997 role=row 277,480 1460x24 pos=999998/1000000
-                        el 277,503 1460x1
                         el #cell-999997-0 role=gridcell 277,480 99x23 pos=1/9
                           text "999998" 330,484 42x16
                         el 376,480 1x23
@@ -584,7 +567,6 @@ el 0,0 1000x600
                           text "2027-03-09 13:44" 1351,484 112x16
                         el 1536,480 1x23
                       el #row-999998 role=row 277,504 1460x24 pos=999999/1000000
-                        el 277,527 1460x1
                         el #cell-999998-0 role=gridcell 277,504 99x23 pos=1/9
                           text "999999" 330,508 42x16
                         el 376,504 1x23
@@ -612,7 +594,6 @@ el 0,0 1000x600
                           text "2027-03-09 13:45" 1351,508 112x16
                         el 1536,504 1x23
                       el #row-999999 role=row 277,528 1460x24 selected current pos=1000000/1000000
-                        el 277,551 1460x1
                         el #cell-999999-0 role=gridcell 277,528 99x23 pos=1/9
                           text "1000000" 323,532 49x16
                         el 376,528 1x23
@@ -640,10 +621,8 @@ el 0,0 1000x600
                           text "2027-03-09 13:46" 1351,532 112x16
                         el 1536,528 1x23
               el 277,562 714x29
-                el role=separator 277,562 714x1
-                el 277,563 714x28
-                  text #status "localhost/shop/public/orders · 1,000,000 rows · row 1,000,000 selected" 289,569 442x16
-                  el 743,577 236x0
+                text #status "localhost/shop/public/orders · 1,000,000 rows · row 1,000,000 selected" 289,569 442x16
+                el 743,577 236x0
       el #divider role=separator label="Resize" 268,32 8x560 value="first 260"
         el 268,32 8x560
           el 272,32 1x560
