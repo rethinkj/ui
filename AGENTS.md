@@ -7,6 +7,14 @@ Status: bootstrap. The Maven structure exists; there is no Java code yet.
 - Repository: https://github.com/rethinkj/ui
 - License: MIT
 
+## Targets
+
+- Desktop only: Windows 11 or later and Linux. macOS, web and mobile are not targets.
+- Runs on an ordinary JRE. GraalVM native image is not a goal, but it has to stay possible. That means:
+  - `core` and `kit` depend on `java.base` only. No `java.desktop`: no AWT, no ImageIO, no `java.awt.Font`.
+  - No reflection, dynamic proxies or classes generated at run time, in this code or in anything it depends on at run time.
+  - Native code is called through the Foreign Function & Memory API only, not JNI or JNA. Every native function's descriptor is a `static final` constant, so it can be registered for native image.
+
 ## Build
 
 Requires JDK 25 and Maven 3.9+.
@@ -46,6 +54,7 @@ Everything pushed stays public in history. Before committing, run `git diff --ca
 - secrets, tokens and credential file contents;
 - home folder and temp paths, machine names and tailnet hostnames. Write repo-relative paths, and use `host.example.ts.net` in tests;
 - session IDs, chat or Slack links, and quotes from private sessions, chats or calls;
+- issue numbers, links and suggested branch names from a private issue tracker;
 - teammates' names attached to their plans, opinions or internal discussions, and private repos or branches;
 - quotes of, or citations to, internal guides and rules. Say what the code does and why on its own terms;
 - agent handoff notes (`REVIEW-TO-PARENT.md` and similar), raw evidence, logs and benchmark dumps;
