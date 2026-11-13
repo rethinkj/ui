@@ -71,6 +71,11 @@ public final class Style {
   public Display display = Display.FLEX;
   public Position position = Position.RELATIVE;
   public BoxSizing boxSizing = BoxSizing.BORDER_BOX;
+
+  /**
+   * Any value but visible on either axis clips the children to the border box on both; {@code
+   * SCROLL} also lets the wheel scroll that axis. See {@link El#clip} and {@link El#scroll}.
+   */
   public Overflow overflowX = Overflow.VISIBLE;
   public Overflow overflowY = Overflow.VISIBLE;
   public float scrollbarWidth;

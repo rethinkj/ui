@@ -10,7 +10,8 @@ import java.util.Map;
 
 /**
  * What {@link App} keeps of each element between rebuilds, so that elements with {@link
- * El#motion} spring from the values they showed to the ones the new tree gives them.
+ * El#motion} spring from the values they showed to the ones the new tree gives them, and scroll
+ * areas keep their offset.
  *
  * <p>An element is the same as one in the previous tree when it has the same identity: its
  * parent's identity plus its key or, without a key, its index among its siblings. Every element
@@ -113,6 +114,7 @@ final class Animator {
       }
     }
     entry.el = el;
+    el.measureScroll(); // from the layout, before the leaving children come back
     if (next.put(id, entry) != null) {
       throw new IllegalStateException("two siblings have the key '" + el.key() + "'");
     }
@@ -127,6 +129,8 @@ final class Animator {
     if (before != null) {
       keepLeaving(before, el, id, next, now);
     }
+    // Clamped to the new content; also shifts the leaving children, which are the old ones.
+    el.scrollTo(before == null ? 0 : before.scrollX(), before == null ? 0 : before.scrollY());
   }
 
   /**

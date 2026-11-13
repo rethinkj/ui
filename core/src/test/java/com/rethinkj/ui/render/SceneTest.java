@@ -4,6 +4,7 @@ import static com.rethinkj.ui.El.el;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import com.rethinkj.ui.El;
+import java.lang.foreign.ValueLayout;
 import org.junit.jupiter.api.Test;
 
 class SceneTest {
@@ -60,6 +61,74 @@ class SceneTest {
   }
 
   @Test
+  void anUnclippedSceneHasOnlyTheEntryThatClipsNothing() {
+    El root = el().fill(0xFFFFFFFF).child(el().fill(0xFF000000));
+    root.place(0, 0, 10, 10);
+    root.children().getFirst().place(2, 2, 4, 4);
+
+    Scene scene = Scene.of(root);
+
+    assertEquals(2, scene.count());
+    assertEquals(1, scene.clipCount());
+    assertEquals(Scene.CLIP_STRIDE, scene.clips().byteSize());
+    assertEquals(-1e9f, scene.clipGet(0, Scene.X));
+    assertEquals(2e9f, scene.clipGet(0, Scene.HEIGHT));
+    for (int i = 0; i < scene.count(); i++) {
+      assertEquals(0, scene.clipOf(i));
+      assertEquals(0, scene.data().get(ValueLayout.JAVA_LONG, (long) i * Scene.STRIDE + 24));
+    }
+  }
+
+  @Test
+  void nestedClipsIntersectAndKeepTheInnermostRadius() {
+    El dot = el().fill(0xFFFFFFFF);
+    El inner = el().clip().radius(3).fill(0xFF0000FF).child(dot);
+    El outside = el().fill(0xFFFF0000);
+    El outer = el().clip().radius(2).child(inner).child(outside);
+    El root = el().fill(0xFF000000).child(outer);
+    root.place(0, 0, 100, 100);
+    outer.place(10, 10, 20, 20);
+    inner.place(10, 5, 30, 30); // sticks out of outer on the right and at the bottom
+    dot.place(0, 0, 4, 4);
+    outside.place(25, 0, 5, 5); // entirely outside outer's clip
+
+    Scene scene = Scene.of(root);
+
+    assertEquals(3, scene.count(), "root, inner and dot; not what lies outside the clip");
+    assertEquals(3, scene.clipCount());
+    assertEquals(0, scene.clipOf(0), "the root is not clipped");
+    assertEquals(1, scene.clipOf(1), "inner is clipped by outer, not by itself");
+    assertEquals(2, scene.clipOf(2));
+    assertClip(scene, 1, 10, 10, 20, 20, 2);
+    assertClip(scene, 2, 20, 15, 10, 15, 3);
+  }
+
+  @Test
+  void aClipWithNothingLeftDropsEverythingBelow() {
+    El child = el().fill(0xFFFFFFFF);
+    El empty = el().clip().child(child);
+    El root = el().child(empty);
+    root.place(0, 0, 10, 10);
+    empty.place(0, 0, 0, 10);
+    child.place(0, 0, 10, 10);
+
+    Scene scene = Scene.of(root);
+
+    assertEquals(0, scene.count());
+    assertEquals(1, scene.clipCount());
+  }
+
+  private static void assertClip(
+      Scene scene, int clip, float x, float y, float width, float height, float radius) {
+    assertEquals(x, scene.clipGet(clip, Scene.X));
+    assertEquals(y, scene.clipGet(clip, Scene.Y));
+    assertEquals(width, scene.clipGet(clip, Scene.WIDTH));
+    assertEquals(height, scene.clipGet(clip, Scene.HEIGHT));
+    assertEquals(radius, scene.clipGet(clip, Scene.RADIUS));
+    assertEquals(0, scene.clips().get(ValueLayout.JAVA_FLOAT, clip * Scene.CLIP_STRIDE + 20L));
+  }
+
+  @Test
   void growsPastItsFirstAllocation() {
     Scene scene = new Scene();
     for (int i = 0; i < 200; i++) {
@@ -67,5 +136,21 @@ class SceneTest {
     }
     assertEquals(200, scene.count());
     assertEquals(199f, scene.get(199, Scene.X));
+
+    El root = el();
+    root.place(0, 0, 100, 100);
+    El parent = root;
+    for (int i = 0; i < 20; i++) {
+      El child = el().clip();
+      child.place(1, 1, 100 - 2 * (i + 1), 100 - 2 * (i + 1));
+      parent.child(child);
+      parent = child;
+    }
+    parent.child(el().fill(0xFFFFFFFF));
+    parent.children().getFirst().place(0, 0, 1, 1);
+    Scene clipped = Scene.of(root);
+    assertEquals(21, clipped.clipCount());
+    assertEquals(20, clipped.clipOf(0));
+    assertEquals(20f, clipped.clipGet(20, Scene.X));
   }
 }

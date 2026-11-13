@@ -47,12 +47,32 @@ public final class CpuRenderer {
     int right = Math.min((int) Math.ceil((centerX + halfW) * scale) + 1, width);
     int bottom = Math.min((int) Math.ceil((centerY + halfH) * scale) + 1, height);
 
+    // The clip's coverage multiplies the instance's. Entry 0 covers everything, so it is skipped.
+    int clip = scene.clipOf(i);
+    double clipHalfW = scene.clipGet(clip, Scene.WIDTH) / 2;
+    double clipHalfH = scene.clipGet(clip, Scene.HEIGHT) / 2;
+    double clipX = scene.clipGet(clip, Scene.X) + clipHalfW;
+    double clipY = scene.clipGet(clip, Scene.Y) + clipHalfH;
+    double clipRadius =
+        Math.clamp(scene.clipGet(clip, Scene.RADIUS), 0, Math.min(clipHalfW, clipHalfH));
+    if (clip != 0) {
+      left = Math.max(left, (int) Math.floor((clipX - clipHalfW) * scale) - 1);
+      top = Math.max(top, (int) Math.floor((clipY - clipHalfH) * scale) - 1);
+      right = Math.min(right, (int) Math.ceil((clipX + clipHalfW) * scale) + 1);
+      bottom = Math.min(bottom, (int) Math.ceil((clipY + clipHalfH) * scale) + 1);
+    }
+
     for (int py = top; py < bottom; py++) {
       for (int px = left; px < right; px++) {
         // Distances are measured from the pixel's centre, in logical pixels.
         double x = (px + 0.5) / scale - centerX;
         double y = (py + 0.5) / scale - centerY;
         double coverage = coverage(distance(x, y, halfW, halfH, radius), scale);
+        if (clip != 0) {
+          double cx = (px + 0.5) / scale - clipX;
+          double cy = (py + 0.5) / scale - clipY;
+          coverage *= coverage(distance(cx, cy, clipHalfW, clipHalfH, clipRadius), scale);
+        }
         if (coverage <= 0) {
           continue;
         }

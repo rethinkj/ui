@@ -2,7 +2,7 @@
 
 A native, GPU-rendered UI framework for Java, modelled on [rune](https://github.com/anomalyco/rune) (Rust, MIT). Rune is the reference for scope and concepts: its own renderer, text, layout and animation, plus a headless mode in which an agent can render to PNG, dump the element tree and drive an app with scripted input.
 
-Status: early. `core` runs an app with and without a window: element tree, flexbox layout, springs, pointer presses, CPU reference renderer, PNG, scripts that drive an app, and SDL windows that feed an app their input. There is no GPU renderer, text or keyboard handling in apps yet, and `kit` is empty. The native libraries for the window and the renderer, and on Linux those for text, are packaged and loaded; `core` has bindings to wgpu-native that no renderer uses yet.
+Status: early. `core` runs an app with and without a window: element tree, flexbox layout, springs, clipping and scrolling, pointer presses and the wheel, CPU reference renderer, PNG, scripts that drive an app, and SDL windows that feed an app their input. There is no GPU renderer, text or keyboard handling in apps yet, and `kit` is empty. The native libraries for the window and the renderer, and on Linux those for text, are packaged and loaded; `core` has bindings to wgpu-native that no renderer uses yet.
 
 - Repository: https://github.com/rethinkj/ui
 - License: MIT
@@ -41,15 +41,16 @@ One step per line. A `#` at the start of a line or before a space starts a comme
 | `size <width> <height> [scale <factor>]` | Sets the window size in logical pixels and the physical pixels per logical pixel (default 1). Needed before the first `frame`. |
 | `press <target>` | Pointer down and up on the target. |
 | `down <target>`, `up <target>` | The two halves, for a press that ends elsewhere. A press counts only when both land on the same element. |
+| `wheel <target> <deltaX> <deltaY>` | Turns the wheel with the pointer on the target, by these distances in logical pixels; positive scrolls down or right. Along each axis the innermost scroll area under the pointer that can still move that way takes the whole distance, up to its end. |
 | `advance <seconds>` | Moves the app's clock. |
-| `frame` | Runs one frame: the handlers that input queued, a rebuild of the view, the animations at the current time. |
+| `frame` | Runs one frame: the handlers and scrolls that input queued, a rebuild of the view, the animations at the current time. |
 | `snap <name>` | Writes `<name>.png` and `<name>.tree.txt` of the last frame into the output folder. `<name>` may contain `/` but must stay inside the folder. |
 
-Only `frame` runs a frame, as in a window, where input arrives between frames: `press` queues a handler and `advance` moves the clock, but the screen changes at the next `frame`. `snap` refuses to write a frame that does not show the steps before it.
+Only `frame` runs a frame, as in a window, where input arrives between frames: `press` queues a handler, `wheel` a scroll and `advance` moves the clock, but the screen changes at the next `frame`. `snap` refuses to write a frame that does not show the steps before it.
 
-A `.tree.txt` has one line per element, children indented, with its rectangle in window coordinates. A line that ends in `exiting` is an element with a key and motion that a rebuild left out: it fades out where it was, takes no input, and is removed once invisible. Selectors do not match it, nor anything at opacity 0.
+A `.tree.txt` has one line per element, children indented, with its rectangle in window coordinates as shown, that is, moved by the scroll offsets above it. A scroll area that is scrolled adds its offset after the rectangle, as in `el #list role=list 16,16 208x168 scroll 0,90`. A line that ends in `exiting` is an element with a key and motion that a rebuild left out: it fades out where it was, takes no input, and is removed once invisible. Selectors do not match it, nor anything at opacity 0.
 
-A target is a position `x,y` in logical pixels, or a selector for exactly one element of the last frame: `#key` (anywhere in the tree), `role=<role>`, `label="<text>"` (`\"` and `\\` inside), or several of them, as in `role=switch label="Lights"`. A selector presses the centre of the element's rectangle. When it matches nothing, the error lists the keys, roles and labels there are; when it matches several, it lists them with their rectangles.
+A target is a position `x,y` in logical pixels, or a selector for exactly one element of the last frame: `#key` (anywhere in the tree), `role=<role>`, `label="<text>"` (`\"` and `\\` inside), or several of them, as in `role=switch label="Lights"`. A selector presses the centre of the part of the element's rectangle that its clips leave visible, and does not match an element they clip away entirely, such as a row scrolled out of its list. When it matches nothing, the error lists the keys, roles and labels there are; when it matches several, it lists them with their rectangles.
 
 `core/src/test/resources/scripts/switch.txt` drives the switch of core's tests:
 
@@ -79,7 +80,29 @@ java -cp core/target/classes:core/target/test-classes com.rethinkj.ui.Examples \
   --script core/src/test/resources/scripts/switch.txt --out core/target/switch
 ```
 
-On Windows, separate the class path with `;`. The snaps equal the stored images of the same names under `core/src/test/resources/golden`; `ScriptTest` checks that, and that this example matches the file.
+`core/src/test/resources/scripts/list.txt` scrolls the list of core's tests, which `Examples` runs when `list` comes first:
+
+```text
+# The list of core's tests (Examples): twenty rows in a rounded scroll area.
+size 240 200 scale 2
+frame
+snap list-top
+
+wheel #list 0 90       # the wheel over the middle of the list, 90 pixels down
+frame                  # moves the rows; rows cut by the edge are drawn in part
+snap list-scrolled
+
+wheel #list 0 10000    # far past the end: stops at the last row
+frame
+snap list-end
+```
+
+```sh
+java -cp core/target/classes:core/target/test-classes com.rethinkj.ui.Examples list \
+  --script core/src/test/resources/scripts/list.txt --out core/target/list
+```
+
+On Windows, separate the class path with `;`. The snaps equal the stored images of the same names under `core/src/test/resources/golden`; `ScriptTest` checks that, and that these examples match their files.
 
 ## Modules
 

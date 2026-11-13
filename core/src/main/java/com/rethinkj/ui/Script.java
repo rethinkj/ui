@@ -28,6 +28,7 @@ import java.util.regex.Pattern;
  * advance 0.04
  * frame
  * snap moving                        # writes moving.png and moving.tree.txt
+ * wheel #list 0 40                   # the wheel, 40 pixels down, over the centre of #list
  * </pre>
  *
  * <p>Only {@code frame} runs a frame. As in a window, input and {@code advance} between frames
@@ -51,6 +52,7 @@ public final class Script {
       "a position x,y in logical pixels such as 90,60, or a selector of #key, role=<role> and"
           + " label=\"<text>\" such as role=switch label=\"Lights\"";
   private static final Pattern NUMBER = Pattern.compile("\\d+(\\.\\d+)?");
+  private static final Pattern SIGNED = Pattern.compile("-?\\d+(\\.\\d+)?");
   private static final Pattern POSITION =
       Pattern.compile("(-?\\d+(?:\\.\\d+)?),(-?\\d+(?:\\.\\d+)?)");
 
@@ -145,6 +147,24 @@ public final class Script {
             app.pointerUp(at[0], at[1]);
           }
         }
+        case "wheel" -> {
+          if (args.size() < 3
+              || !SIGNED.matcher(args.get(args.size() - 2)).matches()
+              || !SIGNED.matcher(args.getLast()).matches()) {
+            throw line.usage(step);
+          }
+          if (app.tree() == null) {
+            throw line.fail(
+                "No frame has run yet, so there is nothing to scroll. Add `frame` before this"
+                    + " line.");
+          }
+          float[] at = line.point(args.subList(0, args.size() - 2), app.tree());
+          app.wheel(
+              at[0],
+              at[1],
+              Float.parseFloat(args.get(args.size() - 2)),
+              Float.parseFloat(args.getLast()));
+        }
         case "advance" -> {
           if (args.size() != 1) {
             throw line.usage(step);
@@ -209,7 +229,7 @@ public final class Script {
         default ->
             throw line.fail(
                 "There is no step " + step
-                    + ". The steps are size, press, down, up, advance, frame and snap.");
+                    + ". The steps are size, press, down, up, wheel, advance, frame and snap.");
       }
       if (step.equals("frame")) {
         pending = null;
@@ -220,8 +240,11 @@ public final class Script {
     return written;
   }
 
-  /** An element of the last frame with the window position of its border box. */
-  private record Found(El el, float left, float top) {}
+  /**
+   * An element of the last frame with the window position of its border box, and the centre of
+   * the part of it that its clips leave.
+   */
+  private record Found(El el, float left, float top, float x, float y) {}
 
   /** One line of a script, without the space around it. */
   private record Line(int number, String text) {
@@ -244,6 +267,10 @@ public final class Script {
                 case "advance" ->
                     "`advance <seconds>`, with a number of 0 or more, for example `advance 0.04`.";
                 case "frame" -> "`frame` with nothing after it.";
+                case "wheel" ->
+                    "`wheel <target> <deltaX> <deltaY>`, with distances in logical pixels that are"
+                        + " positive to scroll down or right, for example `wheel #list 0 40`. A"
+                        + " target is " + TARGET + ".";
                 case "snap" ->
                     "`snap <name>`, for example `snap after-press`, to write after-press.png and"
                         + " after-press.tree.txt into the output folder.";
@@ -318,14 +345,20 @@ public final class Script {
         }
       }
       List<Found> all = new ArrayList<>();
-      walk(root, 0, 0, all);
-      List<Found> matches =
-          all.stream().filter(found -> tests.stream().allMatch(t -> t.test(found.el))).toList();
+      List<Found> clipped = new ArrayList<>();
+      float far = Float.POSITIVE_INFINITY;
+      walk(root, 0, 0, -far, -far, far, far, all, clipped);
+      Predicate<Found> matching = found -> tests.stream().allMatch(t -> t.test(found.el));
+      List<Found> matches = all.stream().filter(matching).toList();
       if (matches.size() == 1) {
-        Found found = matches.getFirst();
-        return new float[] {
-          found.left + found.el.width() / 2, found.top + found.el.height() / 2
-        };
+        return new float[] {matches.getFirst().x, matches.getFirst().y};
+      }
+      if (matches.isEmpty() && clipped.stream().anyMatch(matching)) {
+        throw fail(
+            "What matches " + text + " is clipped away in the last frame, for example scrolled"
+                + " out of its scroll area, so it cannot be pressed or scrolled. Bring it into view"
+                + " first, for example with `wheel <target> <deltaX> <deltaY>` over its scroll"
+                + " area.");
       }
       if (matches.isEmpty()) {
         Set<String> keys = new TreeSet<>();
@@ -362,18 +395,42 @@ public final class Script {
   }
 
   /**
-   * Collects the elements that take input; one that is not placed, invisible or leaving hides its
-   * children too.
+   * Collects the elements that take input into {@code all}, and those that their ancestors clip
+   * away entirely into {@code clipped}; one that is not placed, invisible or leaving hides its
+   * children too. The clip is a rectangle in window coordinates.
    */
-  private static void walk(El el, float parentX, float parentY, List<Found> all) {
+  private static void walk(
+      El el, float parentX, float parentY, float clipLeft, float clipTop, float clipRight,
+      float clipBottom, List<Found> all, List<Found> clipped) {
     if (!el.isPlaced() || el.opacity() == 0 || el.isExiting()) {
       return;
     }
     float left = parentX + el.x();
     float top = parentY + el.y();
-    all.add(new Found(el, left, top));
+    float right = left + el.width();
+    float bottom = top + el.height();
+    // shortcut: the visible part is taken as a rectangle, without the rounded corners of the clips,
+    // so an element that only shows in such a corner may be missed; follow the curves if it shows.
+    float visibleLeft = Math.max(left, clipLeft);
+    float visibleTop = Math.max(top, clipTop);
+    float visibleRight = Math.min(right, clipRight);
+    float visibleBottom = Math.min(bottom, clipBottom);
+    Found found =
+        new Found(
+            el, left, top, (visibleLeft + visibleRight) / 2, (visibleTop + visibleBottom) / 2);
+    boolean visible = left < clipRight && right > clipLeft && top < clipBottom && bottom > clipTop;
+    (visible ? all : clipped).add(found);
+    Style s = el.style();
+    if (s.overflowX != Style.Overflow.VISIBLE || s.overflowY != Style.Overflow.VISIBLE) {
+      boolean empty = !(visibleRight > visibleLeft && visibleBottom > visibleTop);
+      float far = Float.POSITIVE_INFINITY;
+      clipLeft = empty ? far : visibleLeft; // an empty clip leaves nothing below visible
+      clipTop = empty ? far : visibleTop;
+      clipRight = empty ? -far : visibleRight;
+      clipBottom = empty ? -far : visibleBottom;
+    }
     for (El child : el.children()) {
-      walk(child, left, top, all);
+      walk(child, left, top, clipLeft, clipTop, clipRight, clipBottom, all, clipped);
     }
   }
 

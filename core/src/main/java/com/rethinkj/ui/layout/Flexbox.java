@@ -41,6 +41,7 @@ import static com.rethinkj.ui.layout.Node.BOTH;
 import static com.rethinkj.ui.layout.Node.HORIZONTAL;
 import static com.rethinkj.ui.layout.Node.VERTICAL;
 
+import com.rethinkj.ui.El;
 import com.rethinkj.ui.Style;
 import com.rethinkj.ui.Style.Align;
 import com.rethinkj.ui.Style.Content;
@@ -61,6 +62,9 @@ final class Flexbox {
   private final class Item {
     final Node node;
     final Style s;
+
+    /** {@code flex-shrink}, or 0 when an {@link El#scroll} area scrolls along the main axis. */
+    final float shrink;
 
     /** Width divided by height, or NaN. */
     final float ratio;
@@ -131,6 +135,12 @@ final class Flexbox {
     Item(Node node) {
       this.node = node;
       this.s = node.style;
+      Style container = Flexbox.this.s;
+      shrink =
+          Flexbox.this.node.el.isScrollArea()
+                  && (isRow ? container.overflowX : container.overflowY) == Style.Overflow.SCROLL
+              ? 0
+              : s.shrink;
       float innerWidth = width(innerM, innerC);
       float innerHeight = height(innerM, innerC);
       // A main size that comes from the container's own content is no basis for percentages.
@@ -645,7 +655,7 @@ final class Flexbox {
         // Rows clamp against the larger of flex basis and width, which is what browsers do;
         // in columns a height must not inflate the size beyond the flex basis.
         float clampingBasis = isRow ? max(item.basis, preferred) : item.basis;
-        float basisMin = item.s.shrink == 0 ? clampingBasis : Float.NaN;
+        float basisMin = item.shrink == 0 ? clampingBasis : Float.NaN;
         float basisMax = item.s.grow == 0 ? clampingBasis : Float.NaN;
         float minMain =
             Math.max(or(or(max(item.minM, basisMin), basisMin), item.minimumM), item.minimumM);
@@ -683,7 +693,7 @@ final class Flexbox {
         if (difference > 0) {
           item.contentFlexFraction = difference / Math.max(1, item.s.grow);
         } else if (difference < 0) {
-          item.contentFlexFraction = difference / (Math.max(1, item.s.shrink) * item.innerBasis);
+          item.contentFlexFraction = difference / (Math.max(1, item.shrink) * item.innerBasis);
         } else {
           item.contentFlexFraction = 0;
         }
@@ -694,7 +704,7 @@ final class Flexbox {
         if (fraction > 0) {
           flexed = Math.max(1, item.s.grow) * fraction;
         } else if (fraction < 0) {
-          float scaledShrink = Math.max(1, item.s.shrink) * item.innerBasis;
+          float scaledShrink = Math.max(1, item.shrink) * item.innerBasis;
           flexed = scaledShrink == 0 ? 0 : scaledShrink * fraction;
         }
         float itemSize = item.basis + flexed + margin;
@@ -728,7 +738,7 @@ final class Flexbox {
       Item item = items.get(i);
       item.targetM = item.hypotheticalM;
       if (exact
-          || (item.s.grow == 0 && item.s.shrink == 0)
+          || (item.s.grow == 0 && item.shrink == 0)
           || (growing && item.basis > item.hypotheticalM)
           || (shrinking && item.basis < item.hypotheticalM)) {
         item.frozen = true;
@@ -759,7 +769,7 @@ final class Flexbox {
           allFrozen = false;
           itemsSpace += item.basis + item.marginM();
           sumGrow += item.s.grow;
-          sumShrink += item.s.shrink;
+          sumShrink += item.shrink;
         }
       }
       if (allFrozen) {
@@ -790,14 +800,14 @@ final class Flexbox {
           for (int i = line.start; i < line.end; i++) {
             Item item = items.get(i);
             if (!item.frozen) {
-              sumScaledShrink += item.innerBasis * item.s.shrink;
+              sumScaledShrink += item.innerBasis * item.shrink;
             }
           }
           if (sumScaledShrink > 0) {
             for (int i = line.start; i < line.end; i++) {
               Item item = items.get(i);
               if (!item.frozen) {
-                float scaledShrink = item.innerBasis * item.s.shrink;
+                float scaledShrink = item.innerBasis * item.shrink;
                 item.targetM = item.basis + freeSpace * (scaledShrink / sumScaledShrink);
               }
             }
