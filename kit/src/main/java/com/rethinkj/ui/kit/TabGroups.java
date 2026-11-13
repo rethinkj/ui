@@ -37,9 +37,12 @@ import java.util.function.Function;
  * <ul>
  *   <li>A tab dragged out of its bar ({@link Tabs.Options#onTearOff}) leaves its group for a new
  *       one, whose window opens under the pointer with the tab where the pointer holds it and
- *       follows the pointer until the release. Where the release lands outside every bar the
- *       window stays there; over a bar of a group the tab goes there, before the tab the marker
- *       shows, and its window closes. The window under the pointer that takes it is raised.
+ *       follows the pointer until the release. Its options are {@link
+ *       Window.Options#underPointer}: no opening animation, and the keyboard focus stays with the
+ *       window the drag began in until the release. Where the release lands outside every bar the
+ *       window stays there and takes the focus; over a bar of a group the tab goes there, before
+ *       the tab the marker shows, and its window closes. The window under the pointer that takes
+ *       it is raised.
  *   <li>The only tab of a window drags the whole window, from the first step, and docks the same
  *       way. A bar of the main window lets its last tab go, which leaves the main group empty.
  *   <li>Escape or a lost release gives a drag up: a tab torn off goes back to where it was, and a
@@ -336,7 +339,7 @@ public final class TabGroups<T> {
         float scale = o.window() == null ? 1 : o.window().screenScale();
         following = split(group, o.index(), Window.options().position(
             Math.round(d.screenX() - (firstX + o.grabX()) * scale),
-            Math.round(d.screenY() - (firstY + o.grabY()) * scale)));
+            Math.round(d.screenY() - (firstY + o.grabY()) * scale)).underPointer());
         dragging.moved(following, 0);
       }
       following.window.dropTarget(false); // so that the windows under it take the drop

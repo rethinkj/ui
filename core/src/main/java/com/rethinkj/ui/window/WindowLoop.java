@@ -10,6 +10,7 @@ import com.rethinkj.ui.window.WindowEvent.FileDragOver;
 import com.rethinkj.ui.window.WindowEvent.FileDrop;
 import com.rethinkj.ui.window.WindowEvent.FocusChanged;
 import com.rethinkj.ui.window.WindowEvent.KeyDown;
+import com.rethinkj.ui.window.WindowEvent.KeyText;
 import com.rethinkj.ui.window.WindowEvent.KeyUp;
 import com.rethinkj.ui.window.WindowEvent.PointerDown;
 import com.rethinkj.ui.window.WindowEvent.PointerLeave;
@@ -128,6 +129,8 @@ public final class WindowLoop {
   private boolean tracking;
   private float[] polled;
   private boolean captured; // the loop captured the pointer for a press that moved on
+  private Entry releasedIn; // the window whose app got the release, until it draws
+  private boolean focusAfterRelease;
 
   /**
    * One window of the loop with its app and presenter, and what pacing needs: when its last frame
@@ -151,6 +154,9 @@ public final class WindowLoop {
     long frameNanos;
     boolean open = true;
     boolean fresh = true; // opened since the last pass, which draws its first frame
+    // Opened under the pointer during a press (Window.Options.underPointer): shown without
+    // the focus, which it takes after the frame that handles the release.
+    boolean focusAfterPress;
     // Input or a posted task arrived that no frame has handled yet; posts set it on their thread.
     volatile boolean input;
 
@@ -265,6 +271,7 @@ public final class WindowLoop {
         throw e;
       }
       Entry entry = new Entry(window, app, presenter, true);
+      entry.focusAfterPress = options.isUnderPointer() && pressed != null;
       add(entry);
       if (running) {
         start(entry);
@@ -548,16 +555,13 @@ public final class WindowLoop {
           e.fresh = false;
           e.input = false;
           draw(e, false);
-          if (e.app.ranHandlers()) {
-            for (int j = 0; j < entries.size(); j++) {
-              Entry other = entries.get(j);
-              if (other != e && other.isOpen() && !other.fresh
-                  && other.app.state() == e.app.state()) {
-                other.app.invalidate();
-                if (!held.contains(other)) {
-                  (j < i ? again : due).add(other);
-                }
-              }
+          if (e == releasedIn) {
+            releasedIn = null;
+            focusAfterRelease = true;
+          }
+          for (Entry other : invalidateOthers(e)) {
+            if (!held.contains(other)) {
+              (entries.indexOf(other) < i ? again : due).add(other);
             }
           }
         }
@@ -566,7 +570,35 @@ public final class WindowLoop {
     } finally {
       drawing = false;
       shutClosed();
+      if (focusAfterRelease) { // the frame that handled the release has run
+        focusAfterRelease = false;
+        for (Entry e : List.copyOf(entries)) {
+          if (e.focusAfterPress) {
+            e.focusAfterPress = false;
+            e.raise(); // if it is still open: shown without the focus, it takes it now
+          }
+        }
+      }
     }
+  }
+
+  /**
+   * After a frame of {@code e}: when it ran a handler, a task or an action ({@link
+   * App#ranHandlers}), the other open apps of the same state build their views again, and are
+   * returned, to be drawn.
+   */
+  private List<Entry> invalidateOthers(Entry e) {
+    if (!e.app.ranHandlers()) {
+      return List.of();
+    }
+    List<Entry> others = new ArrayList<>();
+    for (Entry other : entries) {
+      if (other != e && other.isOpen() && !other.fresh && other.app.state() == e.app.state()) {
+        other.app.invalidate();
+        others.add(other);
+      }
+    }
+    return others;
   }
 
   /** Advances every app's clock by the time since the last tick. */
@@ -702,7 +734,8 @@ public final class WindowLoop {
     App<?> app = e.app;
     if (event instanceof PointerDown || event instanceof PointerUp || event instanceof PointerMove
         || event instanceof PointerLeave || event instanceof Wheel || event instanceof KeyDown
-        || event instanceof KeyUp || event instanceof TextInput || event instanceof TextEditing) {
+        || event instanceof KeyUp || event instanceof TextInput || event instanceof KeyText
+        || event instanceof TextEditing) {
       e.input = true;
     }
     switch (event) {
@@ -715,7 +748,7 @@ public final class WindowLoop {
         textInput(e); // on before the frame when the press lands in a field: see App.inputArea
       }
       case PointerUp up when up.button() == PointerButton.LEFT -> {
-        released();
+        released(e);
         app.pointerUp(up.x(), up.y());
       }
       case PointerDown down when down.button() == PointerButton.RIGHT ->
@@ -729,6 +762,7 @@ public final class WindowLoop {
       case KeyDown down -> app.keyDown(down.key(),
           opensSystemMenu(down.key()) ? e.window::showSystemMenu : null);
       case KeyUp up -> app.keyUp(up.key());
+      case KeyText text -> app.keyText(text.text()); // its key may have taken the focus to a field
       case TextInput text -> app.textInput(text.text());
       case TextEditing editing -> app.textComposition(editing.text(), editing.cursor());
       case FileDragOver over -> {
@@ -758,6 +792,10 @@ public final class WindowLoop {
         if (!drawing) { // in a pass, the frame comes anyway
           tick();
           draw(e, !redraw.live());
+          // The frame may have run a task that arrived, which the others show at once too.
+          for (Entry other : invalidateOthers(e)) {
+            draw(other, false);
+          }
         }
       }
       case CloseRequested close -> {
@@ -816,6 +854,11 @@ public final class WindowLoop {
         to.app.keyUp(up.key());
         return true;
       }
+      case KeyText text -> {
+        to.input = true;
+        to.app.keyText(text.text());
+        return true;
+      }
       default -> {
         return false;
       }
@@ -843,7 +886,7 @@ public final class WindowLoop {
     float ay = (sy - to.window.y()) / into;
     to.input = true;
     if (event instanceof PointerUp) {
-      released();
+      released(to);
       to.app.pointerUp(ax, ay);
     } else {
       to.app.pointerMove(ax, ay);
@@ -877,7 +920,8 @@ public final class WindowLoop {
     to.app.pointerMove((at[0] - to.window.x()) / into, (at[1] - to.window.y()) / into);
   }
 
-  private void released() {
+  private void released(Entry in) {
+    releasedIn = in;
     pressed = null;
     tracking = false;
     polled = null;

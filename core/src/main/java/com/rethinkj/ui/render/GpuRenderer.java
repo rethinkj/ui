@@ -3,19 +3,15 @@ package com.rethinkj.ui.render;
 import static java.lang.foreign.ValueLayout.JAVA_FLOAT;
 
 import com.rethinkj.ui.Image;
-import com.rethinkj.ui.gpu.Adapter;
 import com.rethinkj.ui.gpu.BindGroup;
-import com.rethinkj.ui.gpu.BindGroupLayout;
 import com.rethinkj.ui.gpu.Buffer;
 import com.rethinkj.ui.gpu.BufferUsage;
 import com.rethinkj.ui.gpu.Color;
 import com.rethinkj.ui.gpu.CommandEncoder;
 import com.rethinkj.ui.gpu.Device;
-import com.rethinkj.ui.gpu.Instance;
+import com.rethinkj.ui.gpu.GpuObject;
 import com.rethinkj.ui.gpu.RenderPass;
 import com.rethinkj.ui.gpu.RenderPipeline;
-import com.rethinkj.ui.gpu.ShaderModule;
-import com.rethinkj.ui.gpu.ShaderStage;
 import com.rethinkj.ui.gpu.Texture;
 import com.rethinkj.ui.gpu.TextureFormat;
 import com.rethinkj.ui.gpu.TextureUsage;
@@ -23,14 +19,9 @@ import com.rethinkj.ui.gpu.TextureView;
 import com.rethinkj.ui.text.Atlas;
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
-import java.util.ArrayList;
 import java.util.Collections;
-import java.util.EnumMap;
 import java.util.IdentityHashMap;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 /**
@@ -62,10 +53,11 @@ import java.util.Set;
  * page is written whole again.
  *
  * <p>Each image ({@link Scene#images}) is a texture of its own, format {@code rgba8unorm} decoded
- * from sRGB in the shader, with the levels the image computed as its mip levels, uploaded when it is first drawn and kept
- * for the scenes after, by the image's identity, as long as the images on the GPU fit into the
- * scene's {@link Scene#imageMemory}: beyond it the images drawn least recently are given up, never
- * one of the scene being drawn. The texture is bound as group 1, which only image instances read,
+ * from sRGB in the shader, with the levels the image computed as its mip levels, uploaded when it
+ * is first drawn on the device and kept for the scenes after, by the image's identity, as long as
+ * the images on the GPU fit into the scene's {@link Scene#imageMemory}: beyond it the images drawn
+ * least recently are given up, never one of the scene being drawn nor one that another window on
+ * the same device shows. The texture is bound as group 1, which only image instances read,
  * so the instances are drawn in order in one draw call per run that one image texture is bound
  * for: a scene without images is one draw call, a list of the same icon too, and a page of 30
  * photos at most 31. A texture per image rather than an atlas of images keeps each image's levels
@@ -77,7 +69,10 @@ import java.util.Set;
  * <p>Buffers and the atlas texture grow with the scenes and are kept for the next frame; once
  * their size suffices, drawing allocates no GPU memory beyond what every WebGPU frame needs (a
  * command encoder, a pass and a command buffer). Like everything of the GPU layer, a renderer
- * belongs to the thread that created it.
+ * belongs to the thread that created it. The renderers of a thread's windows ({@link
+ * GpuPresenter}) share one device, the shader, a pipeline per target format and the images; each
+ * keeps its buffers and its atlas texture, since each app has an atlas of its own. A renderer
+ * from {@link #create} has a device of its own.
  *
  * <pre>{@code
  * try (GpuRenderer gpu = GpuRenderer.create()) {
@@ -496,7 +491,7 @@ public final class GpuRenderer implements AutoCloseable {
    * decoding came out a step off for 33 of them, after the shader's for 9, as the target's own
    * encoding does.
    */
-  private static final TextureFormat IMAGE_FORMAT = TextureFormat.RGBA8_UNORM;
+  static final TextureFormat IMAGE_FORMAT = TextureFormat.RGBA8_UNORM;
 
   /** Bytes of the uniform block: size, scale and padding, four floats. */
   private static final int GLOBALS_BYTES = 4 * Float.BYTES;
@@ -506,22 +501,12 @@ public final class GpuRenderer implements AutoCloseable {
   /** {@code copyTextureToBuffer} needs rows that are a multiple of this many bytes. */
   private static final int ROW_ALIGNMENT = 256;
 
-  /** The instance the renderer created and closes, or null if the device is someone else's. */
-  private final Instance owned;
+  /** The device, shader, pipelines and images, shared with the renderers of a thread's windows. */
+  private final GpuContext context;
+  /** Whether the context is the renderer's own, which closing the renderer closes. */
+  private final boolean ownsContext;
   private final Device device;
-  private final Adapter.Info adapter;
-  private final ShaderModule module;
-  private final BindGroupLayout layout;
-  /** Group 1: the texture of one image. */
-  private final BindGroupLayout imageLayout;
-  /** Bound to group 1 where no image has been drawn yet: one texel, never read. */
-  private final Resident blank;
-  /** The images on the GPU, the one drawn least recently first. */
-  private final LinkedHashMap<Image, Resident> images = new LinkedHashMap<>(16, 0.75f, true);
-  private long imageBytes;
-  private long imageUploads;
-  private final Map<TextureFormat, RenderPipeline> pipelines = new EnumMap<>(TextureFormat.class);
-  private final Buffer globals;
+  private Buffer globals;
   private final MemorySegment globalsData = Arena.ofAuto().allocate(GLOBALS_BYTES, Float.BYTES);
   private Buffer instances;
   private Buffer clips;
@@ -545,6 +530,9 @@ public final class GpuRenderer implements AutoCloseable {
   private Texture texture;
   private TextureView textureView;
   private Buffer readback;
+  /** The images of the last scene drawn, which other renderers on the device do not give up. */
+  private final Set<Image> shown = Collections.newSetFromMap(new IdentityHashMap<>());
+  private long imageUploads;
   private boolean closed;
 
   /**
@@ -561,56 +549,44 @@ public final class GpuRenderer implements AutoCloseable {
 
   /** With another shader, for the test that checks that a broken formula is noticed. */
   static GpuRenderer create(String wgsl) {
-    Instance instance = Instance.create();
+    GpuContext context = GpuContext.alone(wgsl);
     try {
-      Adapter adapter = instance.requestAdapter();
-      Adapter.Info info = adapter.info();
-      Device device = adapter.requestDevice("renderer");
-      // The device keeps what it needs of its adapter.
-      adapter.close();
-      return new GpuRenderer(instance, device, info, wgsl);
+      return new GpuRenderer(context, true);
     } catch (RuntimeException | Error e) {
-      instance.close();
+      context.release();
       throw e;
     }
   }
 
   /**
-   * A renderer on someone else's device, such as the one a window's surface is configured with.
-   * Closing the renderer closes what it created on the device, not the device.
+   * A renderer on a context that others share, such as that of a thread's windows, whose device
+   * is made. Closing the renderer closes what it made on the device, not the context.
    */
-  GpuRenderer(Device device, Adapter.Info adapter) {
-    this(null, device, adapter, WGSL);
+  GpuRenderer(GpuContext context) {
+    this(context, false);
   }
 
-  private GpuRenderer(Instance owned, Device device, Adapter.Info adapter, String wgsl) {
-    this.owned = owned;
-    this.device = device;
-    this.adapter = adapter;
-    module = device.createShaderModule("scene", wgsl);
-    layout = device.createBindGroupLayout("scene",
-        BindGroupLayout.Entry.uniform(0, ShaderStage.VERTEX, ShaderStage.FRAGMENT),
-        BindGroupLayout.Entry.readOnlyStorage(1, ShaderStage.VERTEX, ShaderStage.FRAGMENT),
-        BindGroupLayout.Entry.readOnlyStorage(2, ShaderStage.VERTEX, ShaderStage.FRAGMENT),
-        BindGroupLayout.Entry.textureArray(3, ShaderStage.FRAGMENT));
-    imageLayout = device.createBindGroupLayout("image",
-        BindGroupLayout.Entry.texture(0, ShaderStage.FRAGMENT));
-    Texture texture = device.createTexture("no image", 1, 1, IMAGE_FORMAT,
-        TextureUsage.TEXTURE_BINDING);
-    TextureView view = texture.createView("no image");
-    blank = new Resident(texture, view,
-        device.createBindGroup("no image", imageLayout, BindGroup.Entry.texture(0, view)), 0);
-    globals = device.createBuffer("scene globals", GLOBALS_BYTES, BufferUsage.UNIFORM,
-        BufferUsage.COPY_DST);
-    instances = storage("scene instances", FIRST_INSTANCES * Scene.STRIDE);
-    clips = storage("scene clips", FIRST_CLIPS * Scene.CLIP_STRIDE);
-    atlas(1, 1);
-    group = bindGroup();
+  private GpuRenderer(GpuContext context, boolean ownsContext) {
+    this.context = context;
+    this.ownsContext = ownsContext;
+    device = context.device(null);
+    try {
+      globals = device.createBuffer("scene globals", GLOBALS_BYTES, BufferUsage.UNIFORM,
+          BufferUsage.COPY_DST);
+      instances = storage("scene instances", FIRST_INSTANCES * Scene.STRIDE);
+      clips = storage("scene clips", FIRST_CLIPS * Scene.CLIP_STRIDE);
+      atlas(1, 1);
+      group = bindGroup();
+    } catch (RuntimeException | Error e) {
+      closeOwn(); // on a shared device they would stay until its last window closes
+      throw e;
+    }
+    context.add(this);
   }
 
   /** What the renderer draws with, as wgpu describes the adapter. */
   public String adapter() {
-    return adapter.toString();
+    return context.info().toString();
   }
 
   /**
@@ -688,7 +664,7 @@ public final class GpuRenderer implements AutoCloseable {
   /**
    * Uploads {@code scene} and submits the commands that clear {@code target} to transparent and
    * draw the scene into it. The target's format must be an sRGB format, or blending does not
-   * happen in linear light.
+   * happen in linear light. The target must be of the context's current device.
    *
    * @param scale physical pixels per logical pixel; the target's size is in physical pixels
    */
@@ -744,122 +720,42 @@ public final class GpuRenderer implements AutoCloseable {
     writeImages(scene);
   }
 
-  /** An image's texture on the GPU, with its view, its bind group and the bytes its levels take. */
-  private record Resident(Texture texture, TextureView view, BindGroup group, long bytes) {
-    void close() {
-      group.close();
-      view.close();
-      texture.close();
-    }
-  }
-
   /**
    * Uploads the scene's images that are not on the GPU yet, each once, after giving up as many of
    * those drawn least recently as the scene's {@link Scene#imageMemory} needs, never one of this
-   * scene; a scene whose images alone take more keeps them all.
+   * scene nor of the last scene of another renderer on the device; a scene whose images alone
+   * take more keeps them all.
    */
   private void writeImages(Scene scene) {
     List<Image> drawn = scene.images();
+    shown.clear();
     if (drawn.isEmpty()) {
       return;
     }
-    Set<Image> current = Collections.newSetFromMap(new IdentityHashMap<>());
-    List<Image> missing = new ArrayList<>();
-    long needed = 0;
-    for (Image image : drawn) {
-      current.add(image);
-      if (images.get(image) == null) { // get: drawn now, so the newest
-        missing.add(image);
-        needed += residentBytes(image);
-      }
-    }
-    Iterator<Map.Entry<Image, Resident>> oldest = images.entrySet().iterator();
-    while (imageBytes + needed > scene.imageMemory() && oldest.hasNext()) {
-      Map.Entry<Image, Resident> entry = oldest.next();
-      if (current.contains(entry.getKey())) {
-        break; // the rest were drawn now too
-      }
-      entry.getValue().close();
-      imageBytes -= entry.getValue().bytes();
-      oldest.remove();
-    }
-    for (Image image : missing) {
-      Resident resident = upload(image);
-      images.put(image, resident);
-      imageBytes += resident.bytes();
-    }
+    imageUploads += context.writeImages(drawn, scene.imageMemory(), this);
+    shown.addAll(drawn);
   }
 
-  /** The first level of an image that the device's largest texture holds. */
-  private int firstLevel(Image image) {
-    int limit = device.limits().maxTextureDimension2D();
-    int first = 0;
-    while (first < image.levels() - 1
-        && (image.levelWidth(first) > limit || image.levelHeight(first) > limit)) {
-      first++;
-    }
-    return first;
-  }
-
-  /** The bytes an image takes on the GPU: its levels from the first one that fits. */
-  private long residentBytes(Image image) {
-    long bytes = 0;
-    for (int k = firstLevel(image); k < image.levels(); k++) {
-      bytes += image.level(k).length;
-    }
-    return bytes;
+  /** Whether the last scene drawn shows {@code image}. */
+  boolean shows(Image image) {
+    return shown.contains(image);
   }
 
   /**
-   * A texture with the image's levels, from the first that fits the device's largest texture: a
-   * larger image loses its largest levels, which the shader then takes from the first it has.
-   */
-  private Resident upload(Image image) {
-    int first = firstLevel(image);
-    int levels = image.levels() - first;
-    Texture texture = device.createTexture("image", image.levelWidth(first),
-        image.levelHeight(first), levels, IMAGE_FORMAT, TextureUsage.TEXTURE_BINDING,
-        TextureUsage.COPY_DST);
-    try {
-      long bytes = 0;
-      for (int k = 0; k < levels; k++) {
-        int width = image.levelWidth(first + k);
-        byte[] texels = image.level(first + k);
-        device.queue().writeTexture(texture, k, 0, 0, 0, width, image.levelHeight(first + k),
-            MemorySegment.ofArray(texels), 0, width * 4);
-        bytes += texels.length;
-      }
-      TextureView view = texture.createView("image");
-      try {
-        BindGroup group = device.createBindGroup("image", imageLayout,
-            BindGroup.Entry.texture(0, view));
-        imageUploads++;
-        return new Resident(texture, view, group, bytes);
-      } catch (RuntimeException | Error e) {
-        view.close();
-        throw e;
-      }
-    } catch (RuntimeException | Error e) {
-      texture.close();
-      throw e;
-    }
-  }
-
-  /**
-   * How many images went to the GPU: each once, when it is first drawn, and again only when it is
-   * drawn after it was given up.
+   * How many images went to the GPU for this renderer's scenes: each once, when it is first drawn
+   * on the device, and again only when it is drawn after it was given up.
    */
   long imageUploads() {
     return imageUploads;
   }
 
-  /** How many images are on the GPU, and the bytes they take. */
+  /** How many images are on the GPU of the renderer's device, and the bytes they take. */
   int imagesResident() {
-    return images.size();
+    return context.imagesResident();
   }
 
   long imageBytes() {
-    return imageBytes;
+    return context.imageBytes();
   }
 
   /**
@@ -939,13 +835,13 @@ public final class GpuRenderer implements AutoCloseable {
    * bound for. Instances that are not images read nothing of it.
    */
   private void record(CommandEncoder encoder, TextureView target, Scene scene) {
-    RenderPipeline pipeline = pipeline(target.format());
+    RenderPipeline pipeline = context.pipeline(target.format());
     int count = scene.count();
     try (RenderPass pass = encoder.beginRenderPass("scene", target, new Color(0, 0, 0, 0))) {
       if (count > 0) {
         pass.setPipeline(pipeline);
         pass.setBindGroup(0, group);
-        BindGroup bound = blank.group();
+        BindGroup bound = context.blank();
         pass.setBindGroup(1, bound);
         int start = 0;
         List<Image> drawn = scene.images();
@@ -953,7 +849,7 @@ public final class GpuRenderer implements AutoCloseable {
           if (scene.getInt(i, Scene.KIND) != Scene.IMAGE) {
             continue;
           }
-          BindGroup group = images.get(drawn.get(scene.getInt(i, Scene.IMAGE_INDEX))).group();
+          BindGroup group = context.imageGroup(drawn.get(scene.getInt(i, Scene.IMAGE_INDEX)));
           if (group != bound) {
             if (i > start) {
               pass.draw(4, i - start, 0, start);
@@ -967,22 +863,6 @@ public final class GpuRenderer implements AutoCloseable {
         pass.draw(4, count - start, 0, start);
       }
     }
-  }
-
-  private RenderPipeline pipeline(TextureFormat format) {
-    RenderPipeline pipeline = pipelines.get(format);
-    if (pipeline == null) {
-      if (format != TextureFormat.RGBA8_UNORM_SRGB && format != TextureFormat.BGRA8_UNORM_SRGB) {
-        throw new IllegalArgumentException("Cannot draw into a target of format " + format
-            + ": the renderer blends in linear light and needs an sRGB format.");
-      }
-      pipeline = device.createRenderPipeline(new RenderPipeline.Descriptor("scene " + format,
-          List.of(layout, imageLayout), module, "vs_main", List.of(), "fs_main",
-          List.of(new RenderPipeline.ColorTarget(format, RenderPipeline.Blend.PREMULTIPLIED_ALPHA)),
-          RenderPipeline.Topology.TRIANGLE_STRIP));
-      pipelines.put(format, pipeline);
-    }
-    return pipeline;
   }
 
   private void checkFits(String what, long size) {
@@ -1012,7 +892,7 @@ public final class GpuRenderer implements AutoCloseable {
   }
 
   private BindGroup bindGroup() {
-    return device.createBindGroup("scene", layout,
+    return device.createBindGroup("scene", context.layout(),
         BindGroup.Entry.buffer(0, globals),
         BindGroup.Entry.buffer(1, instances),
         BindGroup.Entry.buffer(2, clips),
@@ -1026,8 +906,8 @@ public final class GpuRenderer implements AutoCloseable {
   }
 
   /**
-   * Closes what the renderer created and, if it created its own device with {@link #create}, the
-   * device too. Closing it again does nothing.
+   * Closes what the renderer made, newest first, and, if it made its own device with {@link
+   * #create}, the device too; a shared device stays for the others. Closing it again does nothing.
    */
   @Override
   public void close() {
@@ -1035,30 +915,21 @@ public final class GpuRenderer implements AutoCloseable {
       return;
     }
     closed = true;
-    if (owned != null) {
-      owned.close();
-      return;
+    context.remove(this);
+    if (ownsContext) {
+      context.release();
+    } else if (!context.isClosed()) {
+      closeOwn();
     }
-    if (texture != null) {
-      readback.close();
-      textureView.close();
-      texture.close();
+  }
+
+  /** Closes the renderer's own objects on the device, newest first. */
+  private void closeOwn() {
+    for (GpuObject object : new GpuObject[] {readback, textureView, texture, group, atlasView,
+        atlas, clips, instances, globals}) {
+      if (object != null && !object.isClosed()) {
+        object.close();
+      }
     }
-    for (RenderPipeline pipeline : pipelines.values()) {
-      pipeline.close();
-    }
-    for (Resident resident : images.values()) {
-      resident.close();
-    }
-    blank.close();
-    imageLayout.close();
-    group.close();
-    atlasView.close();
-    atlas.close();
-    clips.close();
-    instances.close();
-    globals.close();
-    layout.close();
-    module.close();
   }
 }

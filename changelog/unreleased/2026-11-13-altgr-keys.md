@@ -1,0 +1,1 @@
+- On Windows, a key typed with AltGr now reaches the app held with Control and Alt, as AltGr is everywhere else, instead of with Alt alone: an Alt shortcut, such as a menu bar's Alt+Q, no longer takes AltGr+Q (@ on a German keyboard) or AltGr+E (€) from the text field the character goes to.

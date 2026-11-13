@@ -1,0 +1,1 @@
+- `Window.options().underPointer()` opens a window for a drag, as a torn-off tab: without the system's opening animation and without taking the keyboard focus from the window the drag began in, until the press ends; `TabGroups` sets it for a tab torn off into a window of its own.

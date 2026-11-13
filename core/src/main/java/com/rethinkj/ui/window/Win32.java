@@ -72,6 +72,10 @@ final class Win32 {
   // ---- Icons, the taskbar and the system's colours (Win32Shell)
 
   static final int WM_SETTINGCHANGE = 0x001A;
+  static final int WM_CHAR = 0x0102;
+  static final int WM_KEYDOWN = 0x0100;
+  /** The key of a character that SendInput sends as such (KEYEVENTF_UNICODE): no key of SDL. */
+  static final int VK_PACKET = 0xE7;
   static final int WM_SYSCOLORCHANGE = 0x0015;
   static final int WM_SETICON = 0x0080;
   static final int WM_GETICON = 0x007F;
@@ -84,6 +88,7 @@ final class Win32 {
   /** {@code HIGHCONTRASTW}: UINT cbSize, DWORD dwFlags, LPWSTR lpszDefaultScheme. */
   static final long HIGHCONTRAST_SIZE = 16;
   static final int DWMWA_USE_IMMERSIVE_DARK_MODE = 20;
+  static final int DWMWA_TRANSITIONS_FORCEDISABLED = 3;
   /** {@code HKEY_CURRENT_USER}, a LONG sign-extended into a handle. */
   static final long HKEY_CURRENT_USER = 0xFFFFFFFF80000001L;
   static final int RRF_RT_REG_DWORD = 0x10;

@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import com.rethinkj.ui.App;
 import com.rethinkj.ui.Drag;
@@ -109,6 +110,80 @@ class SeveralWindowsTest {
       assertFalse(b.isOpen(), "the loop closed the window it opened");
       assertTrue(log.contains("B closed, window open"), "the presenter before its window");
       assertTrue(a.isOpen(), "the first window is its owner's");
+    }
+  }
+
+  @Test
+  void aTaskThatTheFrameOfARedrawRunsShowsInTheOtherWindowToo() {
+    try (Window a = Window.open(TITLE, 120, 80)) {
+      Shared s = new Shared();
+      App<Shared> appA = new App<>(s, x -> counter(x, "a"));
+      App<Shared> appB = new App<>(s, x -> counter(x, "b"));
+      List<String> log = new ArrayList<>();
+      AtomicReference<WindowLoop> loop = new AtomicReference<>();
+      loop.set(new WindowLoop(a, appA, new Recorder("A", appA, a, log, null))
+          .presenters(w -> new Recorder("B", appB, w, log, null)));
+      Windows.Handle b = loop.get().open(TITLE + " B", 120, 80, Window.options(), appB);
+      Desktop.settle();
+      boolean[] posted = new boolean[1];
+      loop.get().waits((millis, holdBack) -> {
+        if (millis != -1) {
+          return;
+        }
+        if (!posted[0]) {
+          // A task for B, and before the loop's next pass the system asks B to redraw, as when
+          // it is exposed or resized: the frame for the redraw runs the task.
+          posted[0] = true;
+          appB.post(() -> s.count++);
+          Desktop.windowEvent(b.window(), Sdl.EVENT_WINDOW_EXPOSED, 0, 0);
+        } else if (log.contains("A a-1")) {
+          loop.get().stop();
+        }
+      });
+      Desktop.run(loop.get(), () -> "A shows the count that B's redraw changed: " + log);
+      assertTrue(log.indexOf("B b-1") < log.indexOf("A a-1"), log::toString);
+    }
+  }
+
+  @Test
+  void aWindowOpenedUnderThePointerDuringAPressTakesTheFocusOnlyAfterTheRelease() {
+    try (Window a = Window.open(TITLE, 160, 100, Window.options().position(200, 200))) {
+      Desktop.settle();
+      assumeTrue(Desktop.pollUntil(a::isFocused),
+          "Skipped: the window manager gives the first window no focus here");
+      Shared s = new Shared();
+      App<Shared> appB = new App<>(s, x -> row().key("b").wFull().hFull());
+      AtomicReference<WindowLoop> loop = new AtomicReference<>();
+      App<Shared> appA = new App<>(s, x -> row().key("a").wFull().hFull().onPointerDown(
+          (clicks, modifiers) -> x.opened = loop.get().windows().open(TITLE + " B", 120, 80,
+              Window.options().position(420, 200).underPointer(), appB)));
+      loop.set(new WindowLoop(a, appA, (scene, w, h, scale) -> {}));
+      List<String> log = new ArrayList<>();
+      int[] idle = new int[1];
+      loop.get().waits((millis, holdBack) -> {
+        if (millis != -1) {
+          return;
+        }
+        if (++idle[0] == 1) {
+          Desktop.button(a, true, Sdl.BUTTON_LEFT, 80, 50, 1);
+        } else if (s.opened != null && !log.contains("released")) {
+          Desktop.settle(); // what the window's showing caused
+          log.add("during the press: a " + a.isFocused() + ", b " + s.opened.window().isFocused());
+          log.add("released");
+          Desktop.button(a, false, Sdl.BUTTON_LEFT, 80, 50, 1);
+        } else if (log.contains("released")) {
+          Desktop.pollUntil(() -> s.opened.window().isFocused());
+          log.add("after: b " + s.opened.window().isFocused());
+          loop.get().stop();
+        }
+      });
+      Desktop.run(loop.get(), () -> "the window opens and the press ends: " + log);
+      // A window manager may focus a new window whatever its client asks, as GNOME's does on
+      // X11; the keys of the press still go to the window it began in (WindowLoop routes them).
+      assumeTrue(!log.getFirst().equals("during the press: a false, b true"),
+          "Skipped: the window manager gives the new window the focus as it shows");
+      assertEquals(List.of("during the press: a true, b false", "released", "after: b true"), log,
+          "the first window keeps the focus during the press, and the new one takes it after");
     }
   }
 
