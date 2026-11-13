@@ -55,9 +55,10 @@ public final class Button {
 
   /**
    * A button that may be busy: while its action runs, a {@link Progress#spinner} in the text's
-   * colour stands in place of its icon (or before its text), and it takes no press, but keeps its
-   * colours, its place in the order of Tab and the focus, so that nothing jumps when the work
-   * ends. In a tree dump it is then {@code busy}, WAI-ARIA's {@code aria-busy}, which a script
+   * colour stands in place of its icon, or, on a button without one, over the middle of its text,
+   * which keeps its place unseen so that the button keeps its width; and it takes no press, but
+   * keeps its colours, its place in the order of Tab and the focus, so that nothing jumps when the
+   * work ends. In a tree dump it is then {@code busy}, WAI-ARIA's {@code aria-busy}, which a script
    * selects as {@code role=button busy}.
    *
    * @param icon before the text; null for none
