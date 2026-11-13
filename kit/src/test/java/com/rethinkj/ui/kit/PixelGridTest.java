@@ -64,11 +64,11 @@ class PixelGridTest {
                 Tabs.tabs(T, List.of(new Tabs.Tab("orders", true, false),
                     new Tabs.Tab("customers", true, true)), 0, i -> {}, i -> {},
                     label(T, "Rows").key("tab-content")).key("tabs").h(64),
-                Card.card(T,
-                    Group.group(T,
-                        Group.switchRow(T, "Autocommit", null, true, () -> {}),
-                        Group.row(T, "Timeout", "Seconds", label(T, "30")),
-                        Group.linkRow(T, "Driver", null, "PostgreSQL", () -> {}))).key("card")),
+                // not in a card of its own: the group's shadow would tint that card's border
+                Group.group(T,
+                    Group.switchRow(T, "Autocommit", null, true, () -> {}),
+                    Group.row(T, "Timeout", "Seconds", label(T, "30")),
+                    Group.linkRow(T, "Driver", null, "PostgreSQL", () -> {})).key("card")),
             col().gap(12).children(
                 dataGrid(T, columns, 40, DataGrid.options().select(selection)).key("grid")
                     .label("Orders").w(260).h(170),
@@ -249,7 +249,7 @@ class PixelGridTest {
       Pixels pixels = app.render().pixels();
       int x = edge(at[0] + focused.width() / 2, scale);
       int top = edge(at[1], scale);
-      int colour = T.border().focus();
+      int colour = focused.focusRing();
       for (int y = top - ring; y < top; y++) {
         assertEquals(hex(colour), hex(pixels.argb(x, y)), "ring of " + focused.key() + " row " + y);
       }
@@ -395,11 +395,18 @@ class PixelGridTest {
           return;
         }
       }
-      if (!shadowed && blend(p[0], p[1], colour)) {
+      // a neighbour's hairline or an ancestor's border is a whole pixel of its colour, no blend
+      if (!shadowed && !line(p[1]) && blend(p[0], p[1], colour)) {
         failures.add(name + ": the pixel before " + start + " is a blend:" + hexes(p));
-      } else if (!shadowed && inside && run > 0 && blend(colour, p[2 + run], p[3 + run])) {
+      } else if (!shadowed && inside && run > 0 && !line(p[2 + run])
+          && blend(colour, p[2 + run], p[3 + run])) {
         failures.add(name + ": the pixel after the run is a blend:" + hexes(p));
       }
+    }
+
+    private static boolean line(int argb) {
+      return argb == T.border().subtle() || argb == T.border().control()
+          || argb == T.border().strong();
     }
 
     private static String hexes(int[] p) {
