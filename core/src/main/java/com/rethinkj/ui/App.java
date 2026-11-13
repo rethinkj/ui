@@ -51,7 +51,9 @@ import java.util.function.Predicate;
  * #cursor} they ask for. Elements change how they look in these states with {@link
  * El#whenHovered}, {@link El#whenFocused} and {@link El#whenPressed}: the view says how, and the
  * app applies the looks of the moment to each tree the view builds, before layout. A state that
- * changes for elements without such a look rebuilds nothing.
+ * changes for elements without such a look rebuilds nothing. A press that moves on an element
+ * with {@link El#onDrag} becomes a drag, during which that element counts as the one under the
+ * pointer.
  *
  * <p>This class needs no window. A windowed runner feeds it the window's input and draws its
  * {@link #scene}; tests and agents feed it input themselves and look at {@link #render}.
@@ -76,6 +78,7 @@ public final class App<S> {
   private boolean stale = true;
   private El root;
   private Object pressed; // the identity of the element a press is on, until the pointer is up
+  private Dragging dragging; // a pointer down on an element with a drag handler, until it is up
   private boolean pointerIn;
   private float pointerX;
   private float pointerY;
@@ -118,7 +121,9 @@ public final class App<S> {
   /**
    * The pointer moved to this position over the window, in logical pixels. From the next {@link
    * #frame} on, the topmost element there that takes input is {@link #hovered}, and with it its
-   * ancestors for {@link El#whenHovered}. Presses do not move the pointer.
+   * ancestors for {@link El#whenHovered}. Presses do not move the pointer. While the button is
+   * held on an element with an {@link El#onDrag} handler, this also starts or moves the drag,
+   * wherever the position is, outside the window too.
    */
   public void pointerMove(float x, float y) {
     queued.add(() -> {
@@ -127,6 +132,17 @@ public final class App<S> {
       pointerY = y;
       return false; // the frame looks at what is under the pointer anyway
     });
+    Dragging d = dragging;
+    if (d != null) {
+      float dx = x - d.x;
+      float dy = y - d.y;
+      if (d.started) {
+        step(d, Drag.Phase.MOVE, dx, dy);
+      } else if (Math.max(Math.abs(dx), Math.abs(dy)) > Drag.THRESHOLD) {
+        d.started = true;
+        step(d, Drag.Phase.START, dx, dy);
+      }
+    }
   }
 
   /** The pointer left the window: from the next {@link #frame} on, nothing is hovered. */
@@ -141,11 +157,18 @@ public final class App<S> {
    * The pointer's button went down at this position, in logical pixels. From now until the next
    * {@link #pointerUp} the element the press goes to is {@link #pressed}. This also gives the focus
    * to the element there, or to the nearest one around it, that is {@link El#focusable}, without a
-   * ring; where there is none, it clears the focus.
+   * ring; where there is none, it clears the focus. If the element the press goes to has an {@link
+   * El#onDrag} handler, the pointer's movements from here may make a drag of it.
    */
   public void pointerDown(float x, float y) {
+    if (dragging != null && dragging.started) { // the last release got lost
+      step(dragging, Drag.Phase.CANCEL, dragging.dx, dragging.dy);
+    }
     Target target = target(x, y);
     pressed = target == null ? null : target.id();
+    dragging = target == null || target.el.onDrag() == null
+        ? null
+        : new Dragging(target.id(), target.el.onDrag(), x, y);
     Target focus = target(x, y, El::isFocusable);
     El el = focus == null ? null : focus.el;
     queued.add(() -> focus(el, false));
@@ -153,11 +176,16 @@ public final class App<S> {
 
   /**
    * The button was released. A press counts when it began on the same element, which the app
-   * recognises after rebuilds by the identity that matches elements across them.
+   * recognises after rebuilds by the identity that matches elements across them, and did not
+   * become a drag; a drag ends here.
    */
   public void pointerUp(float x, float y) {
+    Dragging d = dragging;
+    dragging = null;
     Target target = target(x, y);
-    if (target != null && target.id().equals(pressed)) {
+    if (d != null && d.started) {
+      step(d, Drag.Phase.END, x - d.x, y - d.y);
+    } else if (target != null && target.id().equals(pressed) && target.el.onPress() != null) {
       Runnable handler = target.el.onPress();
       queued.add(() -> {
         handler.run();
@@ -165,6 +193,44 @@ public final class App<S> {
       });
     }
     pressed = null;
+  }
+
+  /** A pointer down on an element with a drag handler, which becomes a drag once it moves. */
+  private static final class Dragging {
+    final Object id;
+    final Consumer<Drag> handler; // the element's when the pointer went down
+    final float x;
+    final float y;
+    boolean started; // moved beyond the threshold
+    boolean over; // ended or cancelled, in the frames that ran its steps
+    float dx; // the distance of the last step
+    float dy;
+
+    Dragging(Object id, Consumer<Drag> handler, float x, float y) {
+      this.id = id;
+      this.handler = handler;
+      this.x = x;
+      this.y = y;
+    }
+  }
+
+  /**
+   * Queues a step of a drag for the next frame. If the drag's element has left the tree by then,
+   * the handler gets a cancel instead, and nothing after that.
+   */
+  private void step(Dragging d, Drag.Phase phase, float dx, float dy) {
+    d.dx = dx;
+    d.dy = dy;
+    queued.add(() -> {
+      if (d.over) {
+        return false;
+      }
+      El el = animator.element(d.id);
+      boolean gone = el == null || el.isExiting();
+      d.over = gone || phase == Drag.Phase.END || phase == Drag.Phase.CANCEL;
+      d.handler.accept(new Drag(gone ? Drag.Phase.CANCEL : phase, dx, dy));
+      return true;
+    });
   }
 
   /**
@@ -259,7 +325,8 @@ public final class App<S> {
   /**
    * The topmost element of the last frame's {@link #tree} under the pointer that takes input, the
    * one a press there begins at; null when the pointer is outside or over nothing. Clips, opacity 0
-   * and elements that are leaving count as for presses.
+   * and elements that are leaving count as for presses. During a {@link El#onDrag drag} it is the
+   * dragged element, wherever the pointer is.
    */
   public El hovered() {
     return under.isEmpty() ? null : under.getLast();
@@ -276,6 +343,7 @@ public final class App<S> {
   /**
    * The shape of the pointer that the element under it asks for with {@link El#cursor}, or its
    * nearest ancestor that does; {@link Cursor#DEFAULT} where none does or the pointer is outside.
+   * During a {@link El#onDrag drag} the dragged element decides, wherever the pointer is.
    */
   public Cursor cursor() {
     for (El el : under.reversed()) {
@@ -689,7 +757,7 @@ public final class App<S> {
       refocus();
     }
     // What the pointer is over now, in the tree on screen, after the scrolls moved it.
-    List<El> path = pointerIn ? hit(pointerX, pointerY) : List.of();
+    List<El> path = pointed();
     List<Object> ids = Animator.identities(path);
     stale |= !wanted(path, ids).equals(shown);
     boolean drawn = true;
@@ -850,18 +918,31 @@ public final class App<S> {
 
   /** Finds what is under the pointer in the tree of this frame, for the getters and the dump. */
   private void hover() {
-    under = pointerIn ? hit(pointerX, pointerY) : List.of();
+    under = pointed();
     if (marked != null) {
       marked.hovered(false);
     }
     marked = null;
     for (El el : under.reversed()) {
-      if (el.onPress() != null) {
+      if (takesPress(el)) {
         marked = el;
         el.hovered(true);
         break;
       }
     }
+  }
+
+  /**
+   * The elements under the pointer, from the root down; during a drag, wherever the pointer is,
+   * the dragged element and its ancestors, so that they alone look hovered and set the cursor.
+   */
+  private List<El> pointed() {
+    El drag = dragging != null && dragging.started ? animator.element(dragging.id) : null;
+    List<El> path = new ArrayList<>();
+    if (drag != null && pathTo(root, drag, path)) {
+      return path;
+    }
+    return pointerIn ? hit(pointerX, pointerY) : List.of();
   }
 
   /**
@@ -881,7 +962,7 @@ public final class App<S> {
    * @return the part, {@link WindowPart#CONTENT} where nothing is marked
    */
   public WindowPart windowPart(float x, float y) {
-    Target target = target(x, y, el -> el.windowPart() != null || el.onPress() != null);
+    Target target = target(x, y, el -> el.windowPart() != null || takesPress(el));
     if (target == null || target.el.windowPart() == null) {
       return WindowPart.CONTENT;
     }
@@ -919,10 +1000,14 @@ public final class App<S> {
 
   /**
    * The element a press at this position goes to: the topmost element under the point, or its
-   * nearest ancestor with a handler.
+   * nearest ancestor with a press or drag handler.
    */
   private Target target(float x, float y) {
-    return target(x, y, el -> el.onPress() != null);
+    return target(x, y, App::takesPress);
+  }
+
+  private static boolean takesPress(El el) {
+    return el.onPress() != null || el.onDrag() != null;
   }
 
   /** The topmost element under the point, or its nearest ancestor that is {@code wanted}. */

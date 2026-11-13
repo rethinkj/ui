@@ -37,6 +37,8 @@ public final class El {
   private Measure measure;
   private Text text;
   private Runnable onPress;
+  private Consumer<Drag> onDrag;
+  private int revealRow = -1;
   private boolean focusable;
   private Predicate<Key> onKey;
   private Predicate<Key> onKeyUp;
@@ -376,6 +378,19 @@ public final class El {
     return this;
   }
 
+  /**
+   * Keeps a row of this {@link #rows virtual list} in view: whenever a rebuild of the view gives
+   * the list another row here than the tree before, or the list is new, {@link App} scrolls it
+   * just far enough to show that row whole. In between the list scrolls freely. Meant for the
+   * selected row, so that the list follows a selection that the keyboard moves.
+   *
+   * @param index the row, from 0; -1, the default, or one beyond the last keeps none in view
+   */
+  public El revealRow(int index) {
+    this.revealRow = index;
+    return this;
+  }
+
   // Text, for elements made with text()
 
   public El font(Font font) {
@@ -427,11 +442,32 @@ public final class El {
 
   /**
    * Runs {@code handler} when the pointer is pressed and released on this element or on a
-   * descendant that has no handler of its own. Handlers run between frames, never while a view is
-   * built, and are the only place where an app changes its state.
+   * descendant that has no press or drag handler of its own, without moving into a {@link #onDrag
+   * drag} in between. Handlers run between frames, never while a view is built, and are the only
+   * place where an app changes its state.
    */
   public El onPress(Runnable handler) {
     this.onPress = handler;
+    return this;
+  }
+
+  /**
+   * Lets this element follow a drag: the pointer goes down on it, or on a descendant without a
+   * press or drag handler of its own, and moves more than {@link Drag#THRESHOLD} with the button
+   * held. {@code handler} gets {@link Drag.Phase#START} then, {@link Drag.Phase#MOVE} for each
+   * movement after that, also while the pointer is outside the element or the window, and {@link
+   * Drag.Phase#END} when the button is released, each with the distance from where the pointer
+   * went down. A drag is not a press: {@link #onPress} runs only when the pointer is released
+   * before it moved that far.
+   *
+   * <p>All steps go to the handler that the element had when the pointer went down, so that it
+   * can work from the values of that view, as in {@code onDrag(d -> resize(width + d.dx()))}. It
+   * gets {@link Drag.Phase#CANCEL} instead of the next step when the element has left the tree,
+   * and when the pointer goes down again before a release. Like {@link #onPress}, it runs in
+   * {@link App#frame}; the wheel scrolls during a drag as before.
+   */
+  public El onDrag(Consumer<Drag> handler) {
+    this.onDrag = handler;
     return this;
   }
 
@@ -545,8 +581,8 @@ public final class El {
   /**
    * Changes how this element looks while the pointer presses it: from a pointer down that goes to
    * it, as for {@link #onPress}, to the next pointer up, wherever that is. Only an element with a
-   * press handler is pressed, and Enter and Space do not show this look. See {@link #whenHovered}
-   * for what a look may change.
+   * press or drag handler is pressed, and Enter and Space do not show this look. See {@link
+   * #whenHovered} for what a look may change.
    *
    * @param look changes the element, or null for none
    */
@@ -630,6 +666,15 @@ public final class El {
 
   public Runnable onPress() {
     return onPress;
+  }
+
+  public Consumer<Drag> onDrag() {
+    return onDrag;
+  }
+
+  /** The row a {@link #revealRow virtual list} keeps in view, -1 for none. */
+  public int revealRow() {
+    return revealRow;
   }
 
   public Spring motion() {
@@ -936,6 +981,7 @@ public final class El {
     List<El> before = new ArrayList<>(children);
     String keyBefore = key;
     Runnable press = onPress;
+    Consumer<Drag> drag = onDrag;
     Predicate<Key> down = onKey;
     Predicate<Key> up = onKeyUp;
     Consumer<String> text = onText;
@@ -944,7 +990,8 @@ public final class El {
     String changed =
         !children.equals(before) ? "children"
             : !Objects.equals(key, keyBefore) ? "key"
-            : onPress != press || onKey != down || onKeyUp != up || onText != text ? "handlers"
+            : onPress != press || onDrag != drag || onKey != down || onKeyUp != up
+                || onText != text ? "handlers"
             : focusable != wasFocusable ? "focusable()"
             : null;
     if (changed != null) {
