@@ -256,7 +256,7 @@ class GpuRendererTest {
             "press #name\ntype \"SELECT name\"\nkey ArrowLeft shift\ncompose \"ni\"\n"));
       }
     }
-    // Images: one to one, magnified, made smaller and 4000 pixels made 60, with alpha over and
+    // Images: one to one, magnified, made smaller and 4000 pixels made 60 and 100, with alpha over and
     // under text, in rounded clips, at half opacity, covering and contained, on light and dark.
     for (float scale : new float[] {1, 1.5f, 2}) {
       cases.add(text("images" + at(scale), Examples.images(scale), 320, 220, scale));

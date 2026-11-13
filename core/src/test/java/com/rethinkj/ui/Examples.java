@@ -908,8 +908,8 @@ public final class Examples {
   }
 
   /**
-   * Images in a window of 320 by 220 at {@code scale}: one to one, magnified, made smaller and
-   * 4000 pixels made 100, with alpha over text and under text, in rounded clips with a radius per
+   * Images in a window of 320 by 220 at {@code scale}: one to one, magnified, made smaller, and
+   * 4000 pixels made 60 and 100, with alpha over text and under text, in rounded clips with a radius per
    * corner, at half opacity, fitted to cover and to contain, and translucent on light and dark.
    */
   public static El images(float scale) {
@@ -937,7 +937,7 @@ public final class Examples {
         El.image(disc).absolute(64, 8).size(72, 72).opacity(0.5f).key("half"),
         El.image(medium).absolute(8.5f, 90.25f).size(70.5f, 52.3f).radius(16).key("rounded"),
         el().absolute(84, 90).size(68, 50).radius(12).clip().child(
-            El.image(huge).absolute(-10, -6).size(90, 45).key("clipped")),
+            El.image(huge).absolute(-16, 0).size(100, 50).key("clipped")),
         El.text("SELECT 1").font(Font.mono()).fontSize(12).color(0xFFE4E5E9).absolute(10, 154),
         El.image(disc).absolute(40, 146).size(30, 30).key("over-mono"),
         El.image(tiny).absolute(90, 150).size(62, 62).radius(31).opacity(0.75f).key("round"));
