@@ -383,8 +383,9 @@ public final class GpuRenderer implements AutoCloseable {
             let q = point - (center + (inset.wx - inset.yz) / 2.0);
             let c = corner(q);
             let r = vec2f(
-                min(max(radii[c] - select(inset.y, inset.w, c == 0u || c == 3u), 0.0), inner.x),
-                min(max(radii[c] - select(inset.z, inset.x, c < 2u), 0.0), inner.y));
+                min(max(radii[c] - select(borders.y, borders.w, c == 0u || c == 3u), 0.0),
+                    inner.x),
+                min(max(radii[c] - select(borders.z, borders.x, c < 2u), 0.0), inner.y));
             fill_share = coverage(distance_elliptic(q, inner, r));
           }
         }

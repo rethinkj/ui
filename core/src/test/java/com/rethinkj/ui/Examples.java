@@ -386,7 +386,9 @@ public final class Examples {
     for (float width : s.widths) {
       total += width;
     }
-    El header = row().key("header").h(ROW_HEIGHT).shrink(0).fill(HEADER);
+    // The line under the header is its border, as the kit's.
+    El header = row().key("header").h(ROW_HEIGHT + 1).shrink(0).fill(HEADER)
+        .border(0, 0, 1, 0, CONTROL);
     El[] lines = new El[TITLES.length];
     for (int c = 0; c < TITLES.length; c++) {
       lines[c] = gridLine();
@@ -421,9 +423,9 @@ public final class Examples {
     int selected = s.selected;
     El body = col().key("rows").grow(1).revealRow(selected).rows(1_000_000, ROW_HEIGHT, i -> {
       int fill = i == selected ? (focused[0] ? SELECTED : SELECTED_INACTIVE) : ROW;
-      // A hairline along the bottom, under the cells, which end above it.
+      // A hairline along the bottom, its border, which the cells end above.
       El r = row().key("row-" + i).role("row").selected(i == selected).fill(fill)
-          .padding(0, 0, 1, 0).child(el().absolute(0, ROW_HEIGHT - 1).h(1).wFull().fill(SUBTLE));
+          .border(0, 0, 1, 0, SUBTLE);
       for (int c = 0; c < TITLES.length; c++) {
         String text = CELLS.get(c).apply(i);
         r.children(gridCell(s.widths[c], RIGHT[c]).child(
@@ -433,10 +435,9 @@ public final class Examples {
       r.onPress(() -> s.selected = i);
       return i == selected ? r : r.whenHovered(e -> e.fill(over(fill, HOVER)));
     }).scrollbars(GRID_BARS);
-    El under = el().h(1).shrink(0).fill(CONTROL);
     // Room for the rows' bar after the last column, as the kit leaves.
     float room = GRID_BARS.thickness() + 2 * GRID_BARS.margin();
-    El content = col().key("content").w(total + room).children(header, under, body);
+    El content = col().key("content").w(total + room).children(header, body);
     content.style().minWidth = Len.percent(1);
     El grid = row().role("grid").scrollBoth().scrollbars(GRID_BARS).fill(ROW).child(content)
         .focusable()

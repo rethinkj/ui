@@ -130,9 +130,9 @@ final class ReferenceCpuRenderer {
             double ix = (px + 0.5) / scale - innerX;
             double iy = (py + 0.5) / scale - innerY;
             int c = corner(ix, iy);
-            double across = Math.min(Math.max(radii[c] - in[c == 0 || c == 3 ? 3 : 1], 0),
+            double across = Math.min(Math.max(radii[c] - borders[c == 0 || c == 3 ? 3 : 1], 0),
                 innerHalfW);
-            double down = Math.min(Math.max(radii[c] - in[c < 2 ? 0 : 2], 0), innerHalfH);
+            double down = Math.min(Math.max(radii[c] - borders[c < 2 ? 0 : 2], 0), innerHalfH);
             fillShare =
                 coverage(distance(ix, iy, innerHalfW, innerHalfH, across, down), scale);
           }

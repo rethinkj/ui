@@ -128,11 +128,14 @@ public final class CpuRenderer {
     boolean clipWhole = clip != null && clip.coversWhole(left, top, right - 1, bottom - 1, scale);
     double[] fill = colour(scene, i, Scene.FILL);
     double[] edge = colour(scene, i, Scene.BORDER);
-    // The source of a pixel covered whole: as in blend below, with coverage and fill share 1.
-    double red = mix(fill[0], edge[0], 1) * 1;
-    double green = mix(fill[1], edge[1], 1) * 1;
-    double blue = mix(fill[2], edge[2], 1) * 1;
-    double alpha = mix(fill[3], edge[3], 1) * 1;
+    // The source of a pixel covered whole: as in blend below, with coverage 1 and a fill share
+    // of 0, in the border, or 1.
+    double[][] whole = new double[2][4];
+    for (int share = 0; share <= 1; share++) {
+      for (int c = 0; c < 4; c++) {
+        whole[share][c] = mix(fill[c], edge[c], share) * 1;
+      }
+    }
     double[] coverages = scratch.coverage;
     double[] fillShares = scratch.fillShare;
 
@@ -140,25 +143,29 @@ public final class CpuRenderer {
     boolean runs = inner == null || inner.circular();
     for (int py = top; py < bottom; py++) {
       double y = (py + 0.5) / scale;
-      // Measures from the left until a pixel is covered whole, by the shape, its fill and the
-      // clip, then from the right until one is: the pixels between are covered whole too (see
-      // Box), and only the measured ones need the formulas.
+      // A row that the fill reaches nowhere, as along a border at the top or the bottom, has
+      // runs of pixels in the border colour; any other its runs in the fill.
+      int share = border && (inner == null || inner.missesRow(y, left, right, scale)) ? 0 : 1;
+      // Measures from the left until a pixel is covered whole, by the shape and the clip, with
+      // that fill share, then from the right until one is: the pixels between are covered whole
+      // too (see Box), and only the measured ones need the formulas.
       int first = left;
       while (first < right && (!measure(first, y, scale, shape, border, inner, clip, clipWhole,
-          coverages, fillShares) || !runs)) {
+          coverages, fillShares, share) || !runs)) {
         first++;
       }
       int last = right - 1;
       while (last > first && !measure(last, y, scale, shape, border, inner, clip, clipWhole,
-          coverages, fillShares)) {
+          coverages, fillShares, share)) {
         last--;
       }
       int row = py * width;
       for (int px = left; px < first; px++) {
         blend(frame, (row + px) * 4, fill, edge, coverages[px], fillShares[px], blends);
       }
+      double[] source = whole[share];
       for (int px = first; px <= last; px++) {
-        blend(frame, (row + px) * 4, red, green, blue, alpha, blends);
+        blend(frame, (row + px) * 4, source[0], source[1], source[2], source[3], blends);
       }
       for (int px = Math.max(last + 1, first); px < right; px++) {
         blend(frame, (row + px) * 4, fill, edge, coverages[px], fillShares[px], blends);
@@ -189,7 +196,8 @@ public final class CpuRenderer {
   /**
    * Where a rectangle with a border shows its fill: moved in by each side's border, or out by a
    * physical pixel on a side without one, with corners whose radii are the outer ones less the
-   * borders on either side, as {@link Scene} says; null when nothing is left.
+   * borders on either side, as {@link Scene} says; null when nothing is left. A corner between
+   * two sides without a border keeps its radius, so square corners stay square.
    */
   private static Box inner(double centerX, double centerY, double halfW, double halfH,
       double[] radii, double[] borders, double scale) {
@@ -205,8 +213,9 @@ public final class CpuRenderer {
     double[] across = new double[4];
     double[] down = new double[4];
     for (int c = 0; c < 4; c++) {
-      across[c] = Math.min(Math.max(radii[c] - in[c == 0 || c == 3 ? 3 : 1], 0), innerHalfW);
-      down[c] = Math.min(Math.max(radii[c] - in[c < 2 ? 0 : 2], 0), innerHalfH);
+      across[c] = Math.min(Math.max(radii[c] - borders[c == 0 || c == 3 ? 3 : 1], 0),
+          innerHalfW);
+      down[c] = Math.min(Math.max(radii[c] - borders[c < 2 ? 0 : 2], 0), innerHalfH);
     }
     return new Box(centerX + (in[3] - in[1]) / 2, centerY + (in[0] - in[2]) / 2, innerHalfW,
         innerHalfH, across, down);
@@ -225,10 +234,12 @@ public final class CpuRenderer {
 
   /**
    * The coverage and the fill share of pixel {@code px} in the row whose centres lie at {@code y},
-   * into {@code coverages[px]} and {@code fillShares[px]}; whether both are exactly 1.
+   * into {@code coverages[px]} and {@code fillShares[px]}; whether the coverage is exactly 1 and
+   * the fill share exactly {@code share}.
    */
   private static boolean measure(int px, double y, double scale, Box shape, boolean border,
-      Box inner, Box clip, boolean clipWhole, double[] coverages, double[] fillShares) {
+      Box inner, Box clip, boolean clipWhole, double[] coverages, double[] fillShares,
+      int share) {
     // Distances are measured from the pixel's centre, in logical pixels.
     double x = (px + 0.5) / scale;
     double coverage = shape.coverage(x, y, scale);
@@ -241,7 +252,7 @@ public final class CpuRenderer {
     }
     coverages[px] = coverage;
     fillShares[px] = fillShare;
-    return coverage == 1 && fillShare == 1 && scale > 0;
+    return coverage == 1 && fillShare == share && scale > 0;
   }
 
   /** Draws a glyph's bitmap one texel to one physical pixel, with its coverage corrected. */
@@ -645,6 +656,22 @@ public final class CpuRenderer {
       double dy = y - centerY;
       int c = corner(dx, dy);
       return CpuRenderer.coverage(distance(dx, dy, halfW, halfH, rx[c], ry[c]), scale);
+    }
+
+    /**
+     * Whether it covers none of the pixels from {@code left} to {@code right - 1} in the row whose
+     * centres lie at {@code y}: in a row, the coverage is largest at the pixels nearest the centre
+     * on either side (see above), which are among the four around where the centre falls.
+     */
+    boolean missesRow(double y, int left, int right, double scale) {
+      // Clamped before the cast, so that a centre far outside cannot overflow the loop below.
+      int middle = (int) Math.clamp(Math.floor(centerX * scale - 0.5), left - 1, right);
+      for (int px = middle - 1; px <= middle + 2; px++) {
+        if (coverage((Math.clamp(px, left, right - 1) + 0.5) / scale, y, scale) != 0) {
+          return false;
+        }
+      }
+      return true;
     }
 
     /** Whether it covers every pixel from {@code left, top} to {@code right, bottom} whole. */

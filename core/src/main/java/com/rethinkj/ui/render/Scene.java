@@ -57,8 +57,9 @@ import java.util.List;
  * four. The fill shows inside the rectangle moved in by each side's border; a side of width 0 moves
  * it out by one physical pixel instead, so that the smoothed edge of a side without a border shows
  * no border colour. That inner rectangle's corners have a radius across of {@code max(0, r -
- * left or right)} and one from top to bottom of {@code max(0, r - top or bottom)}, as CSS has
- * it, each at most half the inner rectangle's side; a corner whose two differ is a quarter of an
+ * left or right)} and one from top to bottom of {@code max(0, r - top or bottom)}, with the
+ * borders' widths, 0 for a side without one, as CSS has it, each at most half the inner
+ * rectangle's side; a corner whose two differ is a quarter of an
  * ellipse, whose distance renderers take as {@code (k - 1) k / |q / r|} with {@code q} the point
  * from the ellipse's centre over its radii and {@code k = |q|}, the first-order distance. With
  * every border as wide, the inner rectangle is the outer one moved in by that width and its corners
