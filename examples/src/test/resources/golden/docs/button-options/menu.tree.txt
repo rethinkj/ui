@@ -1,0 +1,40 @@
+el 0,0 420x120
+  el 12,12 194x24
+    el role=button label="Drop table" 12,12 89x24
+      text "Drop table" 25,16 63x16
+    el role=button label="Discard" 105,12 73x24
+      text "Discard" 118,16 47x16
+    el role=button label="Delete row" 182,12 24x24
+      text label="delete" "\u{E47B}" 186,16 16x16
+  el 12,44 181x24
+    el role=button label="Save" 12,44 56x24 disabled
+      text "Save" 25,48 30x16
+    el role=button label="Refresh" 72,44 24x24 busy
+      el role=progressbar label="Loading" 76,48 16x16
+        el 76,48 16x16
+        el 76,48 16x16
+        el 76,48 16x16
+        el 76,48 16x16
+        el 76,48 16x16
+    el #split 100,44 93x24
+      el #main role=button label="Run" 100,44 70x24 busy
+        el role=progressbar label="Loading" 113,48 16x16
+          el 113,48 16x16
+          el 113,48 16x16
+          el 113,48 16x16
+          el 113,48 16x16
+          el 113,48 16x16
+        text "Run" 133,48 24x16
+      el 170,44 1x24
+      el #arrow role=button label="More Run" 171,44 22x24 expanded
+        text label="chevron_down" "\u{F2A2}" 174,48 16x16
+overlay bottom start gap 2 on #split 100,44 93x24
+  el #menu role=menu 100,62 134x58 focused
+    el #item-0 role=menuitem label="Run selection" 105,67 124x24 current
+      el 105,67 124x24
+        el 113,79 16x0
+        text "Run selection" 137,71 84x16
+    el #item-1 role=menuitem label="Cancel" 105,91 124x24
+      el 105,91 124x24
+        el 113,103 16x0
+        text "Cancel" 137,95 84x16

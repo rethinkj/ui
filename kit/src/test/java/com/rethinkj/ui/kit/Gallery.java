@@ -104,11 +104,27 @@ final class Gallery {
     return revealable(t, field.w(WIDTH - 20), revealed, handler);
   }
 
+  private static Button.Options danger() {
+    return Button.options().tone(Button.Tone.DANGER);
+  }
+
   static final List<Row> ROWS = List.of(
       new Row("primary", (t, h) -> button(t, Variant.PRIMARY, "Run query", h)),
       new Row("secondary", (t, h) -> button(t, Variant.SECONDARY, "Cancel", h)),
       new Row("busy", (t, h) -> button(t, Variant.PRIMARY, null, "Running", true, h)),
       new Row("ghost", (t, h) -> button(t, Variant.GHOST, "Format", h)),
+      new Row("danger", (t, h) -> button(t, Variant.PRIMARY, "Drop table", h, danger())),
+      new Row("danger secondary", (t, h) -> button(t, Variant.SECONDARY, "Discard", h, danger())),
+      new Row("danger ghost", (t, h) -> button(t, Variant.GHOST, "Delete", h, danger())),
+      new Row(
+          "busy icon",
+          (t, h) -> Button.icon(
+              t,
+              Variant.GHOST,
+              Symbol.ARROW_CLOCKWISE,
+              "Refresh",
+              h,
+              Button.options().busy(true))),
       new Row("toggle off", (t, h) -> toggle(t, false, "Autocommit", h)),
       new Row("toggle on", (t, h) -> toggle(t, true, "Autocommit", h)),
       new Row("checkbox off", (t, h) -> checkbox(t, false, "Read only", h)),

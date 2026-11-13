@@ -453,6 +453,74 @@ class ThemeTest {
     assertTrue(lightness(a.hover()) - lightness(a.pressed()) >= 2, at);
   }
 
+  /**
+   * The colours of a button that destroys something ({@link Button.Tone#DANGER}): its text on
+   * each fill of a primary one, its red text on the surfaces and the controls' hover and pressed
+   * of a secondary or ghost one, its edge and focus ring on the surfaces; hover and pressed darker
+   * as an accent's.
+   */
+  @ParameterizedTest
+  @ValueSource(strings = {"dark", "light"})
+  void aDangerousButtonHasEnoughContrast(String name) {
+    Theme t = theme(name);
+    Theme.Surfaces s = t.surface();
+    Theme.Danger d = t.danger();
+    Map<String, Integer> surfaces =
+        Map.of("window", s.window(), "panel", s.panel(), "raised", s.raised(), "band", s.band());
+    Map<String, Integer> controls = Map.of(
+        "raised hovered", over(s.raised(), s.hover()),
+        "raised pressed", over(s.raised(), s.pressed()),
+        "panel hovered", over(s.panel(), s.hover()),
+        "panel pressed", over(s.panel(), s.pressed()),
+        "window hovered", over(s.window(), s.hover()),
+        "window pressed", over(s.window(), s.pressed()));
+    List<String> failures = new ArrayList<>();
+    check(
+        failures,
+        "text on danger",
+        d.onColor(),
+        Map.of("fill", d.color(), "hover", d.hover(), "pressed", d.pressed()),
+        4.5);
+    check(failures, "danger text", d.text(), surfaces, 4.5);
+    check(failures, "danger text", d.text(), controls, 4.5);
+    check(failures, "danger edge", d.edge(), surfaces, 3);
+    check(failures, "danger ring", d.ring(), surfaces, 3);
+    assertTrue(failures.isEmpty(), String.join("\n", failures));
+    String at = String.format(
+        "%s: %.1f, %.1f, %.1f",
+        name, lightness(d.color()), lightness(d.hover()), lightness(d.pressed()));
+    assertTrue(lightness(d.color()) - lightness(d.hover()) >= 2, at);
+    assertTrue(lightness(d.hover()) - lightness(d.pressed()) >= 2, at);
+  }
+
+  /** A theme made without danger colours takes those of its lightness. */
+  @Test
+  void aThemeWithoutDangerColoursTakesThoseOfItsLightness() {
+    for (Theme t : List.of(Theme.DARK, Theme.LIGHT)) {
+      Theme older = new Theme(
+          t.surface(),
+          t.text(),
+          t.border(),
+          t.accent(),
+          t.status(),
+          t.space(),
+          t.radius(),
+          t.type(),
+          t.size(),
+          t.motion(),
+          t.grid(),
+          t.scrollbars(),
+          t.elevation(),
+          t.code(),
+          t.caption(),
+          t.prose(),
+          t.badge());
+      assertEquals(t, older);
+    }
+    assertEquals(Theme.Danger.DARK, Theme.DARK.danger());
+    assertEquals(Theme.Danger.LIGHT, Theme.LIGHT.danger());
+  }
+
   /** Blue is the default themes' accent, and a theme takes the accent of its lightness. */
   @Test
   void aHueGivesTheAccentOfTheThemesLightness() {

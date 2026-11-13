@@ -33,6 +33,8 @@ class ThemeValuesTest {
     write(out, "Badges.LIGHT", Theme.Badges.LIGHT);
     write(out, "Prose.DARK", Theme.Prose.DARK);
     write(out, "Prose.LIGHT", Theme.Prose.LIGHT);
+    write(out, "Danger.DARK", Theme.Danger.DARK);
+    write(out, "Danger.LIGHT", Theme.Danger.LIGHT);
     for (Theme t : List.of(Theme.DARK, Theme.LIGHT)) {
       String name = t == Theme.DARK ? "dark" : "light";
       Theme.Borders b = t.border();

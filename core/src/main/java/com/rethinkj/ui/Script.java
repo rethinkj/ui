@@ -330,7 +330,12 @@ public final class Script {
             throw line.fail(unknownKey(name));
           }
           int modifiers = 0;
+          String half = null; // down or up: one half of the key's press, to hold it between frames
           for (String word : args.subList(1, args.size())) {
+            if ((word.equals("down") || word.equals("up")) && half == null) {
+              half = word;
+              continue;
+            }
             int modifier = modifier(word);
             if (modifier == 0) {
               throw line.usage(step);
@@ -339,8 +344,12 @@ public final class Script {
           }
           needsFrame(line, app, "nothing can take the key");
           Key key = new Key(name, modifiers, false);
-          app.keyDown(key);
-          app.keyUp(key);
+          if (!"up".equals(half)) {
+            app.keyDown(key);
+          }
+          if (!"down".equals(half)) {
+            app.keyUp(key);
+          }
         }
         case "type", "compose", "clipboard" -> {
           String word = args.size() == 1 ? args.getFirst() : "";
@@ -1074,7 +1083,8 @@ public final class Script {
             case "frame", "leave" -> "`" + step + "` with nothing after it.";
             case "key" ->
               "`key <name>`, followed by any of shift, control, alt and meta that are held,"
-                  + " for example `key Enter` or `key Tab shift` for Shift+Tab.";
+                  + " for example `key Enter` or `key Tab shift` for Shift+Tab, and `down` or"
+                  + " `up` for one half of the press, as `key Space down` to hold it.";
             case "type" ->
               "`type \"<text>\"`, with \\\" for a quote and \\\\ for a backslash in the"
                   + " text, for example `type \"hello\"`.";

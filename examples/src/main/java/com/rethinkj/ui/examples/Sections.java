@@ -210,7 +210,16 @@ final class Sections {
                 t, PRIMARY, Symbol.ADD, "New connection", "New connection", () -> s.say("new")))
             .child(toolButton(
                 t, SECONDARY, Symbol.ARROW_IMPORT, "Import", "Import", () -> s.say("import")))
-            .child(toolButton(t, GHOST, Symbol.COPY, "Copy", "Copy", () -> s.say("copy"))));
+            .child(toolButton(t, GHOST, Symbol.COPY, "Copy", "Copy", () -> s.say("copy"))),
+        label(t, MUTED, "Destructive"),
+        row()
+            .gap(t.space().m())
+            .align(Style.Align.CENTER)
+            .child(button(t, PRIMARY, "Drop table", () -> s.say("drop"), danger()))
+            .child(button(t, SECONDARY, "Discard", () -> s.say("discard"), danger()))
+            .child(button(t, GHOST, "Delete", () -> s.say("delete"), danger().icon(Symbol.DELETE)))
+            .child(Button.icon(
+                t, GHOST, Symbol.DELETE, "Delete row", () -> s.say("delete"), danger())));
     El options = card(
         t,
         "Connection options",
@@ -584,6 +593,10 @@ final class Sections {
             button(t, SECONDARY, "Cancel", cancel),
             button(t, PRIMARY, "Rename", s.rename.isBlank() ? null : rename)),
         cancel);
+  }
+
+  private static Button.Options danger() {
+    return Button.options().tone(Button.Tone.DANGER);
   }
 
   // Data grid
