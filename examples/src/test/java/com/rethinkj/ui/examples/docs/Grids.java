@@ -39,6 +39,7 @@ final class Grids {
   final Theme t = Theme.DARK;
   App<?> app; // set by whoever makes the app: the grid copies to its clipboard
   final DataGrid.Selection selection = new DataGrid.Selection(DataGrid.Mode.CELLS);
+  final DataGrid.Commands gridCommands = new DataGrid.Commands();
   final Menu.State gridMenu = new Menu.State();
   List<DataGrid.SortKey> sort = List.of();
   final float[] widths = {80, 120, 100, 100};
@@ -85,6 +86,7 @@ final class Grids {
             COUNT,
             DataGrid.options()
                 .select(s.selection) // the app keeps the selection
+                .commands(s.gridCommands) // an external menu's handle, kept in the app's state
                 .rowNumbers()
                 .frozen(1) // numbers and the id stay at the left
                 .copy(s.app.clipboard())) // Control+C copies tab-separated text
@@ -93,6 +95,15 @@ final class Grids {
         .grow(1);
     // docs:end grid
     return Frame.of(t, Card.flush(t, grid).wFull().grow(1));
+  }
+
+  static Menu.Item gridCopy(DataGrid.Commands commands) {
+    // docs:start grid-command
+    Menu.Item copy = Menu.item(
+        "Copy",
+        commands.canRun(DataGrid.Command.COPY) ? () -> commands.run(DataGrid.Command.COPY) : null);
+    // docs:end grid-command
+    return copy;
   }
 
   static El fitted(Grids s) {

@@ -55,6 +55,19 @@ The selection also remembers where the grid is scrolled to, so a grid built agai
 
 `DataGrid.copyText(columns, ranges, headers, nullText)` builds the same text from your code, and `DataGrid.parseText(text)` reads it back into rows of cells.
 
+## Commands from an external menu
+
+Keep a `DataGrid.Commands` in the app's state and bind it with `options().commands(handle)` on each build, as the example above does. Its `run(command)` executes `DataGrid.Command.COPY`, `COPY_WITH_HEADERS`, `PASTE` or `SELECT_ALL` directly from a handler on the app's thread. `canRun(command)` lets a menu disable an unavailable action:
+
+```java snippet="grid-command"
+```
+
+The handle uses the last build's columns, row count, selection, clipboard and handlers, including hidden or reordered columns. Bind it even when that build has no selection or editing handlers. One handle belongs to one grid at a time; before its first build, commands do nothing.
+
+Commands share the keys' selection notifications, copy limits, loading checks and paste validation. Copy needs selected data cells and a clipboard; Paste needs a cursor on a data row, a clipboard and an `onPaste` handler; Select all needs rows. Calling `run` leaves focus in place. While a cell editor is open, all four grid commands are unavailable and calling `run` leaves its draft alone; the focused editor keeps its own text selection and clipboard keys.
+
+Opening a menu with the pointer still follows the editor's normal outside-press behavior. For a single-line editor without a choice list, pressing a menu title hands on a valid draft and closes the editor before the menu opens. A refused draft stays open with its error, and the grid commands remain unavailable.
+
 ## In a tree dump
 
 Selected cells (or rows in row mode) say `selected`, the cursor's `current`:
