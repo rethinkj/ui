@@ -18,7 +18,8 @@ import java.util.Set;
  * databases, schemas, tables and columns are known. staging is not: its databases are unknown
  * until opening it asks for them, on a thread of the app's work ({@link App#background}), as a
  * connection to the server would; a script's {@code await} lets the answer in. The schema
- * localhost/shop/public has a few hundred tables, or as many as the test asks for. The view puts the tree in a panel with a margin, which leaves room for the focus
+ * localhost/shop/public has a few hundred tables, or as many as the test asks for, and
+ * localhost/postgres has the system's schema pg_catalog, in muted text. The view puts the tree in a panel with a margin, which leaves room for the focus
  * ring.
  */
 final class Catalog implements Tree.Model<Catalog.Node> {
@@ -103,6 +104,7 @@ final class Catalog implements Tree.Model<Catalog.Node> {
   int walks; // calls of roots(), one per rebuild of the view
   final List<Node> labelled = new ArrayList<>(); // the nodes whose label was asked for
   final List<Node> detailed = new ArrayList<>(); // the nodes whose detail was asked for
+  final List<Node> mutedAsked = new ArrayList<>(); // the nodes asked whether they are muted
   App<Catalog> app; // which runs the work, made by app()
 
   /** The catalog with 300 tables of 3 to 10 columns in localhost/shop/public. */
@@ -119,7 +121,9 @@ final class Catalog implements Tree.Model<Catalog.Node> {
     Node localhost = new Node(Kind.SERVER, "localhost", null);
     Node analytics = new Node(Kind.DATABASE, "analytics", localhost);
     tables(new Node(Kind.SCHEMA, "public", analytics), List.of("events", "page_views", "sessions"));
-    new Node(Kind.SCHEMA, "public", new Node(Kind.DATABASE, "postgres", localhost));
+    Node postgres = new Node(Kind.DATABASE, "postgres", localhost);
+    tables(new Node(Kind.SCHEMA, "pg_catalog", postgres), List.of("pg_class", "pg_index"));
+    new Node(Kind.SCHEMA, "public", postgres);
     Node shop = new Node(Kind.DATABASE, "shop", localhost);
     tables(new Node(Kind.SCHEMA, "audit", shop), List.of("changes", "logins"));
     Node shopPublic = new Node(Kind.SCHEMA, "public", shop);
@@ -230,6 +234,13 @@ final class Catalog implements Tree.Model<Catalog.Node> {
       case SCHEMA -> node.children.size() == 1 ? "1 table" : node.children.size() + " tables";
       default -> null;
     };
+  }
+
+  /** The system's schemas, as pg_catalog. */
+  @Override
+  public boolean muted(Node node) {
+    mutedAsked.add(node);
+    return node.name.startsWith("pg_");
   }
 
   @Override

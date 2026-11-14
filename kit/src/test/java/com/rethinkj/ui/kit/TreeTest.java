@@ -111,6 +111,7 @@ class TreeTest {
 
     catalog.labelled.clear();
     catalog.detailed.clear();
+    catalog.mutedAsked.clear();
     run(app, "scroll #schema row 76543\nframe");
     assertRowsInDump(app, 76_543 - El.OVERSCAN);
     assertLabelledOnce(catalog, app);
@@ -144,6 +145,7 @@ class TreeTest {
     List<String> rows = find(app, "schema").children().stream().map(El::label).toList();
     assertEquals(rows, catalog.labelled.stream().map(n -> n.name).toList());
     assertEquals(rows, catalog.detailed.stream().map(n -> n.name).toList());
+    assertEquals(rows, catalog.mutedAsked.stream().map(n -> n.name).toList());
   }
 
   @Test
@@ -800,6 +802,33 @@ class TreeTest {
       }
     }
     return null;
+  }
+
+  // Muted rows
+
+  @Test
+  void aMutedRowHasItsLabelInMutedTextAndNothingElseChanges() throws IOException {
+    Catalog catalog = new Catalog(T).opened("localhost", "localhost/postgres");
+    catalog.open.add(catalog.node("localhost/postgres/pg_catalog"));
+    App<Catalog> app = start(catalog);
+    String dump = app.tree().dump();
+    assertEquals(
+        "el #row-3 role=treeitem label=\"pg_catalog\" 8,80 264x24 expanded level=3 pos=1/2"
+            + " value=\"2 tables\"",
+        dumpLine(app, "row-3"));
+    assertEquals(
+        T.text().muted(), textOf(find(app, "row-3"), "pg_catalog").text().color());
+    assertEquals(T.text().muted(), textOf(find(app, "row-4"), "pg_class").text().color());
+    assertEquals(T.text().primary(), textOf(find(app, "row-6"), "public").text().color());
+    assertEquals(
+        T.text().primary(), textOf(find(app, "row-2"), "postgres").text().color());
+    assertEquals(T.text().muted(), textOf(find(app, "row-3"), "2 tables").text().color());
+    assertTrue(dump.contains("label=\"pg_class\" "), dump);
+
+    run(app, "press #row-3\nframe");
+    assertEquals("localhost/postgres/pg_catalog", catalog.selected.path(), "works as any row");
+    assertEquals(
+        T.text().muted(), textOf(find(app, "row-3"), "pg_catalog").text().color());
   }
 
   // Images

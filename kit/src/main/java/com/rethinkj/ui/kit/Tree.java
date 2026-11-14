@@ -58,7 +58,8 @@ import java.util.function.Predicate;
  * {@code rethinkj-ui-icons}. The row that stands for children not known yet has the key {@code
  * row-<index>} too, but no role, and shows the model's {@link Model#loading} text. A label or a
  * loading text longer than its row ends in an ellipsis, and a tooltip after the theme's delay
- * shows it whole.
+ * shows it whole. A muted row ({@link Model#muted}) says nothing more in a dump: only its label's
+ * colour differs.
  */
 public final class Tree {
 
@@ -112,6 +113,15 @@ public final class Tree {
     /** The text of the row that stands for the children of an open node while they are not known. */
     default String loading(N node) {
       return "Loading…";
+    }
+
+    /**
+     * Whether the node's label is in muted text, as a schema of the system beside the app's own;
+     * false, the default. Asked only for the rows that are built. It changes nothing else: the
+     * icon is the model's, the detail stays muted, and the row works as any other.
+     */
+    default boolean muted(N node) {
+      return false;
     }
   }
 
@@ -194,12 +204,13 @@ public final class Tree {
       if (icon != null) {
         r.child(icon);
       }
+      Label.Variant variant = model.muted(node) ? Label.Variant.MUTED : Label.Variant.NORMAL;
       String detail = model.detail(node);
       if (detail == null) {
-        El name = Label.label(t, label).ellipsis().minSize(0, 0);
+        El name = Label.label(t, variant, label).ellipsis().minSize(0, 0);
         whole(t, r.child(name), name, null, label, height);
       } else {
-        detail(t, r.value(detail), label, detail, height);
+        detail(t, r.value(detail), variant, label, detail, height);
       }
       if (isSelected) {
         r.fill(focused[0] ? t.grid().selected() : t.grid().selectedInactive());
@@ -254,8 +265,9 @@ public final class Tree {
    * which the box clips away. A zero-width strut as high as the row makes the first line that high,
    * so that both texts sit in its middle. The tooltip names both where either is cut or gone.
    */
-  private static void detail(Theme t, El row, String label, String detail, float height) {
-    El name = Label.label(t, label).ellipsis().minSize(0, 0).shrink(0);
+  private static void detail(
+      Theme t, El row, Label.Variant variant, String label, String detail, float height) {
+    El name = Label.label(t, variant, label).ellipsis().minSize(0, 0).shrink(0);
     name.style().maxWidth = Len.percent(1);
     int first = detail.offsetByCodePoints(0, 1);
     String least = first < detail.length() ? detail.substring(0, first) + Text.ELLIPSIS : detail;

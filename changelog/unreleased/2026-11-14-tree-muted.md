@@ -1,0 +1,1 @@
+- `Tree.Model.muted(node)` puts a row's label in muted text, as for the system's schemas beside the app's own. The icon and the detail stay as the model gives them, the row works as any other, and a tree dump says nothing more of it.
