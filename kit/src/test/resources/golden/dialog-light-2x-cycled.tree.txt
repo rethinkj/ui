@@ -41,10 +41,12 @@ el 0,0 360x240
   text #status "Ready · orders · UTF-8 · wrap" 12,213 336x15
 overlay center modal scrim on 0,0 360x240
   el #dialog role=dialog label="Rename table" 63,59 234x123
-    text "Rename table" 80,76 200x17
-    text #name role=textbox label="Table name" "orders_2026" 80,105 200x24 focused caret 11 anchor 0
-    el 80,141 200x24
-      el #cancel role=button label="Cancel" 127,141 69x24
-        text "Cancel" 140,145 43x16
-      el #ok role=button label="Rename" 204,141 76x24
-        text "Rename" 217,145 50x16
+    el 80,105 200x60
+      text #name role=textbox label="Table name" "orders_2026" 80,105 200x24 focused caret 11 anchor 0
+      el 80,141 200x24
+        el #cancel role=button label="Cancel" 127,141 69x24
+          text "Cancel" 140,145 43x16
+        el #ok role=button label="Rename" 204,141 76x24
+          text "Rename" 217,145 50x16
+    el 80,76 200x17
+      text role=heading label="Rename table" "Rename table" 80,76 92x17 level=2

@@ -9,7 +9,9 @@ import com.rethinkj.ui.App;
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.Key;
 import com.rethinkj.ui.Script;
+import com.rethinkj.ui.render.Png;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
@@ -198,5 +200,160 @@ class DialogTest {
     assertThrows(
         IllegalArgumentException.class,
         () -> Dialog.dialog(t, "Ask", El.col(), List.of(ok), other, () -> {}));
+  }
+
+  /** A connection's dialog with every option: a colour mark, a badge and Close, Test at the start. */
+  private static El head(Theme t, List<String> log, String title) {
+    El save =
+        Button.button(t, Button.Variant.PRIMARY, "Save", () -> log.add("save")).key("save");
+    return El.col()
+        .wFull()
+        .hFull()
+        .overlay(Dialog.dialog(
+            t,
+            title,
+            El.col()
+                .gap(t.space().m())
+                .children(
+                    TextField.textField(t, "prod-eu", "Name", v -> {}).key("name"),
+                    TextField.textField(t, "db.example.com", "Host", v -> {}).key("host")),
+            List.of(
+                Button.button(t, Button.Variant.SECONDARY, "Cancel", () -> log.add("cancel"))
+                    .key("cancel"),
+                save),
+            () -> log.add("dismiss"),
+            Dialog.options()
+                .leading(HuePicker.swatch(t, Theme.Hue.RED).key("mark"))
+                .trailing(
+                    Badge.badge(t, "Read only").key("badge"),
+                    Button.icon(
+                            t,
+                            Button.Variant.GHOST,
+                            Symbol.DISMISS,
+                            "Close",
+                            () -> log.add("close"))
+                        .key("close"))
+                .start(Button.button(
+                        t, Button.Variant.SECONDARY, "Test connection", () -> log.add("test"))
+                    .key("test"))
+                .defaultButton(save)));
+  }
+
+  @ParameterizedTest(name = "{0} at {1}x")
+  @CsvSource({"dark, 1", "dark, 2", "light, 1", "light, 2"})
+  void theHeadHasAMarkABadgeAndCloseAndTheButtonsAStart(String theme, int scale)
+      throws IOException {
+    Theme t = theme.equals("dark") ? Theme.DARK : Theme.LIGHT;
+    List<String> log = new ArrayList<>();
+    App<List<String>> app = new App<>(log, l -> head(t, l, "Edit connection"));
+    String name = "dialog-head-" + theme + "-" + scale + "x";
+    Script.run(
+        "size 480 240 scale " + scale + "\nframe\nadvance 0.25\nframe\nsnap " + name + "\n",
+        app,
+        out);
+    String tree = Files.readString(out.resolve(name + ".tree.txt"));
+    Golden.assertMatches(name, Png.decode(Files.readAllBytes(out.resolve(name + ".png"))), tree);
+
+    String heading = StructureTest.line(tree, "role=heading");
+    assertTrue(heading.contains("label=\"Edit connection\"") && heading.contains("level=2"), tree);
+    assertTrue(tree.contains(" role=dialog label=\"Edit connection\" "), tree);
+    float[] mark = StructureTest.rect(StructureTest.line(tree, "#mark "));
+    float[] title = StructureTest.rect(heading);
+    float[] close = StructureTest.rect(StructureTest.line(tree, "#close "));
+    float[] dialog = StructureTest.rect(StructureTest.line(tree, "#dialog "));
+    assertEquals(title[0], mark[0] + mark[2] + t.space().m(), 0.01, "the mark before the title");
+    assertEquals(
+        title[1] + title[3] / 2, mark[1] + mark[3] / 2, 0.5, "centred on the title's line");
+    float end = dialog[0] + dialog[2] - t.space().xl() - t.size().stroke();
+    assertEquals(end, close[0] + close[2], 0.01, "Close at the head's end: " + tree);
+    float[] test = StructureTest.rect(StructureTest.line(tree, "#test "));
+    float[] save = StructureTest.rect(StructureTest.line(tree, "#save "));
+    assertEquals(dialog[0] + t.space().xl() + t.size().stroke(), test[0], 0.01, "Test at the left");
+    assertEquals(end, save[0] + save[2], 0.01, "Save at the right");
+    assertEquals(test[1], save[1], 0.01, "in one row");
+    assertEquals("name", app.focused().key(), "the dialog opens in its content, not on Close");
+  }
+
+  @Test
+  void tabGoesThroughTheContentAndTheButtonsAndThenTheHead() throws IOException {
+    List<String> log = new ArrayList<>();
+    App<List<String>> app = new App<>(log, l -> head(Theme.DARK, l, "Edit connection"));
+    run(app, "frame\nadvance 0.25\nframe\n");
+    List<String> order = new ArrayList<>();
+    for (int i = 0; i < 6; i++) {
+      order.add(app.focused().key());
+      run(app, "key Tab\nframe\n");
+    }
+    assertEquals(List.of("name", "host", "test", "cancel", "save", "close"), order);
+    assertEquals("name", app.focused().key(), "and around");
+    run(app, "key Enter\nframe\npress #close\nframe\n");
+    assertEquals(List.of("save", "close"), log);
+  }
+
+  @Test
+  void aDialogWithNothingToFocusInItsContentOpensOnItsFirstButton() throws IOException {
+    Theme t = Theme.DARK;
+    App<Object> app = new App<>(
+        new Object(),
+        s -> El.col()
+            .wFull()
+            .hFull()
+            .overlay(Dialog.dialog(
+                t,
+                "Note",
+                Label.label(t, "Nothing to type here."),
+                List.of(
+                    Button.button(t, Button.Variant.SECONDARY, "OK", () -> {}).key("ok")),
+                () -> {},
+                Dialog.options()
+                    .trailing(
+                        Button.icon(t, Button.Variant.GHOST, Symbol.DISMISS, "Close", () -> {})
+                            .key("close")))));
+    run(app, "frame\nadvance 0.25\nframe\n");
+    assertEquals("ok", app.focused().key());
+  }
+
+  @Test
+  void aLongTitleEndsInAnEllipsisWithTheWholeInATooltip() throws IOException {
+    List<String> log = new ArrayList<>();
+    String title = "Edit the connection to the production database in Frankfurt, read only";
+    App<List<String>> app = new App<>(log, l -> head(Theme.DARK, l, title));
+    run(app, "frame\nadvance 0.25\nframe\n");
+    String dump = app.tree().dump();
+    float[] mark = StructureTest.rect(StructureTest.line(dump, "#mark "));
+    float[] close = StructureTest.rect(StructureTest.line(dump, "#close "));
+    float[] badge = StructureTest.rect(StructureTest.line(dump, "#badge "));
+    assertEquals(Theme.DARK.size().control(), close[2], 0.01, "Close keeps its size");
+    assertEquals(mark[2], mark[3], 0.01, "the mark keeps its size");
+    assertTrue(badge[2] > 40, "the badge keeps its size: " + dump);
+    float[] heading = StructureTest.rect(StructureTest.line(dump, "role=heading"));
+    assertTrue(heading[0] + heading[2] <= badge[0], "the title gives way: " + dump);
+
+    run(app, "move role=heading\nframe\nadvance 1\nframe\n");
+    String shown = app.tree().dump();
+    assertTrue(shown.contains("role=tooltip label=\"" + title + "\""), shown);
+  }
+
+  @Test
+  void aStartWithoutButtonsHasARowOfItsOwn() throws IOException {
+    Theme t = Theme.DARK;
+    App<Object> app = new App<>(
+        new Object(),
+        s -> El.col()
+            .wFull()
+            .hFull()
+            .overlay(Dialog.dialog(
+                t,
+                "Export",
+                El.el().key("body").size(200, 40),
+                List.of(),
+                () -> {},
+                Dialog.options().start(Label.label(t, "Writing 3 of 7").key("status")))));
+    run(app, "frame\nadvance 0.25\nframe\n");
+    String dump = app.tree().dump();
+    float[] body = StructureTest.rect(StructureTest.line(dump, "#body "));
+    float[] status = StructureTest.rect(StructureTest.line(dump, "#status "));
+    assertEquals(body[0], status[0], 0.01, dump);
+    assertTrue(status[1] >= body[1] + body[3] + Theme.DARK.space().l(), "below the content");
   }
 }

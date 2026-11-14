@@ -369,21 +369,23 @@ el 0,0 1000x600
       text "Idle" 966,578 22x16
 overlay center modal scrim on 0,0 1000x600
   el #dialog role=dialog label="Changes to orders" 203,178 594x245
-    text "Changes to orders" 220,195 560x17
-    text #statements role=textbox label="Statements" "DELETE FROM shop.public.orders WHERE id = 4;\nUPDATE shop.public.orders\n  SET status = 'shipped', amount = 12.50\n  WHERE id = 1;\nINSERT INTO shop.public.orders (customer_id)\n  VALUES (7);" 220,224 560x146 readonly lines 1-6/6 hovered focused caret 0 (1:1)
-      el #gutter 229,229 15x128
-        text #line-0 "1" 229,229 15x16
-        text #line-1 "2" 229,245 15x16
-        text #line-2 "3" 229,261 15x16
-        text #line-3 "4" 229,277 15x16
-        text #line-4 "5" 229,293 15x16
-        text #line-5 "6" 229,309 15x16
-    el 220,382 560x24
-      el #close-preview role=button label="Close" 528,382 62x24
-        text "Close" 541,386 36x16
-      el #copy-preview role=button label="Copy" 598,382 79x24
-        text label="copy" "\u{F32A}" 611,386 16x16
-        text "Copy" 631,386 33x16
-      el #commit-preview role=button label="Commit" 685,382 95x24
-        text label="save" "\u{EA43}" 698,386 16x16
-        text "Commit" 718,386 49x16
+    el 220,224 560x182
+      text #statements role=textbox label="Statements" "DELETE FROM shop.public.orders WHERE id = 4;\nUPDATE shop.public.orders\n  SET status = 'shipped', amount = 12.50\n  WHERE id = 1;\nINSERT INTO shop.public.orders (customer_id)\n  VALUES (7);" 220,224 560x146 readonly lines 1-6/6 hovered focused caret 0 (1:1)
+        el #gutter 229,229 15x128
+          text #line-0 "1" 229,229 15x16
+          text #line-1 "2" 229,245 15x16
+          text #line-2 "3" 229,261 15x16
+          text #line-3 "4" 229,277 15x16
+          text #line-4 "5" 229,293 15x16
+          text #line-5 "6" 229,309 15x16
+      el 220,382 560x24
+        el #close-preview role=button label="Close" 528,382 62x24
+          text "Close" 541,386 36x16
+        el #copy-preview role=button label="Copy" 598,382 79x24
+          text label="copy" "\u{F32A}" 611,386 16x16
+          text "Copy" 631,386 33x16
+        el #commit-preview role=button label="Commit" 685,382 95x24
+          text label="save" "\u{EA43}" 698,386 16x16
+          text "Commit" 718,386 49x16
+    el 220,195 560x17
+      text role=heading label="Changes to orders" "Changes to orders" 220,195 128x17 level=2

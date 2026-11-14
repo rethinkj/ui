@@ -28,6 +28,24 @@ The dialog's key is `dialog`. Two dialogs open at once, as a question over a dia
 
 A frameless window's own title bar stays usable under a dialog. Closing the window closes the dialog without its dismiss handler.
 
+## Options
+
+`Dialog.dialog(theme, title, content, buttons, onDismiss, Dialog.options()…)` adds what a dialog has beyond its title: a mark of what it edits before the title, a badge or a close button at the head's end, and a secondary action or a status at the start of the button row.
+
+<Shot src="kit/dialog-head-{theme}-2x" alt="A dialog with a red colour mark before its title, a Read only badge and a close button at the head's end, and Test connection at the left of Cancel and Save" />
+
+```java snippet="dialog-options"
+```
+
+| Option | |
+| --- | --- |
+| `leading(El)` | Before the title, `space().m()` from it, centred on its line; keeps its size |
+| `trailing(El...)` | At the head's end; they keep their size and the title gives way, ending in an ellipsis with the whole in a tooltip |
+| `start(El...)` | At the start of the button row, the buttons at its end; with no buttons the row is there for them alone |
+| `defaultButton(El)` | One of `buttons` that Enter presses, as the parameter of the other form |
+
+A dialog is as wide as its content, title and rows ask for: size it by sizing the content, as `field.w(320)`. The head comes after the content and the buttons in the order of Tab, so the dialog opens in its content's first field and a close button in the head is the last stop.
+
 ## Keyboard
 
 | Keys | Action |
@@ -38,7 +56,7 @@ A frameless window's own title bar stays usable under a dialog. Closing the wind
 
 ## In a tree dump
 
-The dialog is an overlay `center modal scrim`, `role=dialog` with the title as label:
+The dialog is an overlay `center modal scrim`, `role=dialog` with the title as label. The head follows after the buttons, its title `role=heading` with `level=2` and the title as label:
 
 ```text snippet="dialog-script"
 ```

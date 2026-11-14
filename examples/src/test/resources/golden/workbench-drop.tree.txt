@@ -732,13 +732,15 @@ el 0,0 1000x600
       text "Idle" 966,578 22x16
 overlay center modal scrim on 0,0 1000x600
   el #dialog role=dialog label="Drop table" 315,215 371x171
-    text "Drop table" 332,232 337x17
-    el 332,261 337x72
-      text "Drop localhost/shop/public/deliveries and all its rows?" 332,261 337x16
-      text "Type the table's name to confirm." 332,285 337x16
-      text #confirm role=textbox label="Table name" "deliver" 332,309 200x24 focused caret 7
-    el 332,345 337x24
-      el #cancel role=button label="Cancel" 535,345 70x24
-        text "Cancel" 548,349 44x16
-      el #drop role=button label="Drop" 613,345 56x24 disabled
-        text "Drop" 626,349 30x16
+    el 332,261 337x108
+      el 332,261 337x72
+        text "Drop localhost/shop/public/deliveries and all its rows?" 332,261 337x16
+        text "Type the table's name to confirm." 332,285 337x16
+        text #confirm role=textbox label="Table name" "deliver" 332,309 200x24 focused caret 7
+      el 332,345 337x24
+        el #cancel role=button label="Cancel" 535,345 70x24
+          text "Cancel" 548,349 44x16
+        el #drop role=button label="Drop" 613,345 56x24 disabled
+          text "Drop" 626,349 30x16
+    el 332,232 337x17
+      text role=heading label="Drop table" "Drop table" 332,232 71x17 level=2
