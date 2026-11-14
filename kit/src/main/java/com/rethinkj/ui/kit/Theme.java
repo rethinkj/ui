@@ -551,9 +551,9 @@ public record Theme(
         alpha(BLACK, 0.063f),
         alpha(BLACK, 0.15f),
         alpha(AMBER_768, 0.25f),
-        alpha(AMBER_720, 0.5f),
+        alpha(AMBER_720, 0.38f),
         alpha(BLACK, 0.11f),
-        alpha(TEAL_490, 0.1f));
+        alpha(TEAL_490, 0.2f));
 
     /**
      * The colours of code with the background of a marked block of {@link #DARK} where the caret's
