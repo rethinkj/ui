@@ -1,6 +1,7 @@
 package com.rethinkj.ui.examples.docs;
 
 import com.rethinkj.ui.App;
+import com.rethinkj.ui.CodeWords;
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.Image;
 import com.rethinkj.ui.kit.Card;
@@ -40,6 +41,14 @@ final class Editors {
       """);
   final Image swatch = Image.of(swatch(), 2); // 64 by 40 pixels made for scale 2
   String link = "";
+
+  static String codeWord(String text, int caret) {
+    // docs:start code-words
+    int from = CodeWords.start(text, caret);
+    int to = CodeWords.end(text, caret);
+    return text.substring(from, to);
+    // docs:end code-words
+  }
 
   static El codeEditor(Editors s) {
     Theme t = s.t;

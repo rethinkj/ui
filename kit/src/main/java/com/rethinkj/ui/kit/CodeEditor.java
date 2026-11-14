@@ -1,6 +1,7 @@
 package com.rethinkj.ui.kit;
 
 import com.rethinkj.ui.App;
+import com.rethinkj.ui.CodeWords;
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.FieldState;
 import com.rethinkj.ui.Highlighter;
@@ -193,7 +194,7 @@ public final class CodeEditor {
     int own = word == null
         ? -1
         : state.caret == state.anchor
-            ? Completion.wordStart(value, Math.min(state.caret, value.length()))
+            ? CodeWords.start(value, Math.min(state.caret, value.length()))
             : Math.min(state.caret, state.anchor);
     Theme.TextStyle mono = t.type().mono();
     El editor = TextField.codeArea(t, value, null, onChange)
@@ -253,24 +254,24 @@ public final class CodeEditor {
     int s = Math.clamp(Math.min(caret, anchor), 0, text.length());
     int e = Math.clamp(Math.max(caret, anchor), 0, text.length());
     if (s == e) {
-      s = Completion.wordStart(text, s);
-      e = Find.wordEnd(text, e);
+      s = CodeWords.start(text, s);
+      e = CodeWords.end(text, e);
     }
     if (s == e || !whole(text, s, e)) {
       return null;
     }
     for (int i = s; i < e; i = text.offsetByCodePoints(i, 1)) {
-      if (!Completion.word(text.codePointAt(i))) {
+      if (!CodeWords.isWordChar(text.codePointAt(i))) {
         return null;
       }
     }
     return text.substring(s, e);
   }
 
-  /** Whether no letter, digit or {@code _} lies right before {@code from} or after {@code to}. */
+  /** Whether no code-word character lies right before {@code from} or after {@code to}. */
   static boolean whole(String text, int from, int to) {
-    return (from == 0 || !Completion.word(text.codePointBefore(from)))
-        && (to == text.length() || !Completion.word(text.codePointAt(to)));
+    return (from == 0 || !CodeWords.isWordChar(text.codePointBefore(from)))
+        && (to == text.length() || !CodeWords.isWordChar(text.codePointAt(to)));
   }
 
   /**
@@ -318,7 +319,7 @@ public final class CodeEditor {
     int e = Math.max(caret, anchor);
     int[] next;
     if (s == e) {
-      next = new int[] {Completion.wordStart(text, s), Find.wordEnd(text, s)};
+      next = new int[] {CodeWords.start(text, s), CodeWords.end(text, s)};
       if (next[0] == next[1]) {
         return;
       }

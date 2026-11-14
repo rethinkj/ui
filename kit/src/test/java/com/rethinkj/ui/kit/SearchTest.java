@@ -63,6 +63,10 @@ class SearchTest {
         List.of("0:straße"),
         found("straße straßen", new Search.Query("straße", true, true, false)));
     assertEquals(List.of("5:a.b"), found("xa.b a.b", new Search.Query("a\\.b", false, true, true)));
+    assertEquals(
+        List.of("8:id"),
+        found("id² Ⅳid id", word),
+        "whole-word regex boundaries include other numbers and letter numbers");
   }
 
   @Test
