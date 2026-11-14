@@ -1784,11 +1784,14 @@ public final class Window implements AutoCloseable {
    * Makes a window that has not drawn its first frame yet visible on Windows, before a system
    * dialog opens for it: DWM hides the windows a hidden window owns, and a message box blocks the
    * thread until it closes. Kept for a next call while DWM refuses it.
+   *
+   * @return false if the window stays hidden, because DWM refused
    */
-  void reveal() {
+  boolean reveal() {
     if (cloaked && open && shell.cloak(false)) {
       cloaked = false;
     }
+    return !cloaked;
   }
 
   /** SDL_X11EventHook: notes the window manager's requests to synchronise a resize. */
