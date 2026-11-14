@@ -31,6 +31,17 @@ Numbers have a full stop and no grouping, dates and times are ISO 8601's, whatev
 
 `parse(text)` returns a `Format.Parsed<T>` with the value or the error, `text(value)` the text. Formats need no native libraries; keep them in constants.
 
+| Method | |
+| --- | --- |
+| `text(value)` | The value as text, the empty text for null |
+| `parse(text)` | A `Parsed<T>`: `value()` and `error()`, the error null for a valid text |
+| `allows(text)` | Whether typing may still lead from this text to a valid one |
+| `isOptional()` | Whether the empty text is null rather than an error, as after `.optional()` |
+| `choices()` | The labels of a `choice` format, empty for the others |
+| `type()` | The `DataGrid.DataType` a grid's column of these values takes its look and editor from; `OTHER` for a format of `of` |
+
+Two limits keep a number from taking seconds to read on the app's thread: a text longer than `Format.MAX_NUMBER_LENGTH` (100 000) characters is refused unread by every number format, also by `allows`, and a `DECIMAL` whose exponent would write more than `Format.MAX_ZEROS` (4096) zeros is refused too.
+
 ## A field for a value
 
 The state holds the value and the field's draft:

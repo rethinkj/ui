@@ -41,6 +41,44 @@ description: A multi-line editor for code with line numbers, highlighting, brack
 
 Besides these, it has every key of a multi-line text field: Tab indents (Control+M switches Tab between indenting and moving the focus), a second Home goes to the first character of the line that is not a space, Control+Z and Control+Y undo and redo. See [Text fields and editors](/docs/concepts/text-fields).
 
+## A highlighter of your own
+
+`Sql` is one `Highlighter`; any other language is a class of your own. A highlighter is asked about one line at a time, gets the state the line before ended in and returns the state its own line ends in, so that a string or a comment can go on across lines:
+
+```java snippet="highlighter"
+```
+
+- `Object line(String line, Object state, Spans out)` gets the line's string without its line feed, the state the line before returned (null for the first line) and a `Spans` to describe it in. It returns the state at the end of the line, such as "inside a block comment", or null when nothing goes on. States are compared with `equals`, so use values: an enum, a record, `Boolean.TRUE`.
+- A multi-line field asks only about the lines it shapes, those in view and a few around them, and keeps each line's answer with the state it was given. An edit forgets the lines it touched; a line whose state comes out as before keeps the spans of the lines after it. To show a line it needs the state that line starts in, so it first asks about the lines before it that it has not seen since they changed, with a `Spans` that keeps nothing. A highlighter must therefore depend only on its line and its state, never on what it was asked before.
+- The highlighter is also the key the field keeps its spans by: pass an equal object on every build, which a record does. Another key asks about every line again.
+- Implementing `CodeEditor.LineComments`, whose `lineComment()` returns what starts a comment to the end of the line (`--`, `//`, `;`), gives the editor's Control+/ that comment.
+
+A highlighter is tested without native libraries: `new Spans(length)` takes what it is told, and its `toString()` lists it, one range per line, as `color 0-4 FF7C3AED`.
+
+### Spans
+
+Positions are indexes into the line's string; a range runs from `from` to `to`, exclusive, is clamped to the line and left out when empty, and where ranges of one kind overlap the later one wins. Colours are 0xAARRGGBB.
+
+| `Spans` method | |
+| --- | --- |
+| `color(from, to, argb)` | The text of the range in this colour; costs nothing beyond the glyphs |
+| `font(from, to, font)` | The range in another font at the text's size, such as `Font.monoBold()`; it is shaped on its own, so carets, selection and wrapping follow its glyphs. Give the font the fallbacks of the text's font (`withFallback`) where the range may hold characters it lacks |
+| `background(from, to, argb)` | A rectangle behind the range, a line high |
+| `underline(from, to, argb)` | A straight line under the range, where an input method's underline lies |
+| `strike(from, to, argb)` | A line through the middle of the lower-case letters, behind the glyphs |
+| `lineBackground(argb)` | A background across the whole width behind the line, every row of it when it wraps |
+
+Backgrounds, underlines, struck ranges and line backgrounds show in multi-line fields only.
+
+## Marks of your own
+
+A `Decorator` marks the lines in view with backgrounds and underlines, as the editor does for the caret's line, brackets and the find bar's matches. Unlike a highlighter it keeps nothing: it is asked anew for each line in view and a few around them whenever the field lays out its rows, so it may read anything in the app's state, such as the caret or the errors of the last run.
+
+```java snippet="decorator"
+```
+
+`void line(int line, int start, String text, Spans out)` gets the line's index from 0, where the line starts in the field's whole string (a position `p` of the string is `p - start` in the line), the line's text and the `Spans` to mark it in; colours and fonts belong to the highlighter and are not taken from a decorator. `El.decorate` replaces the field's decorator, so call the one the editor gave, `editor.decorator()`, from yours, or its own marks go.
+
 ## In a tree dump
 
 The editor is a `role=textbox` text element with its label, the lines in view and how many there are, and while it has the focus its caret with line and column. The gutter is `#gutter` with a `#line-<index>` per line.

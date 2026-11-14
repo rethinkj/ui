@@ -16,6 +16,7 @@ description: Names and values in two columns, the values selectable and copyable
 | --- | --- |
 | `properties(t, properties, clipboard)` | One list; a null clipboard has no copy buttons |
 | `groups(t, groups, clipboard)` | Groups with headings |
+| `properties(t, properties, clipboard, copied)`, `groups(t, groups, clipboard, copied)` | The same, whose copy buttons confirm a copy with a check mark and the tooltip Copied for a moment: `copied` is a [`Button.Copied`](/docs/components/button#copy-buttons) the app keeps; null for no confirmation |
 | `Properties.property(name, value)`, `.mono()` | A row; `mono()` for identifiers |
 | `Properties.group(title, properties)` | A group |
 

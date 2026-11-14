@@ -1,0 +1,141 @@
+el 0,0 520x300
+  el 12,12 496x276
+    el 13,13 494x40
+      text role=heading "orders" 25,25 45x17 level=3
+      el 78,33 353x0
+      el #save role=button label="Save" 439,21 56x24
+        text "Save" 452,25 30x16
+    el #orders role=grid label="Orders" 13,53 494x205
+      el #content 13,53 494x205
+        el #header 13,53 494x25
+          el #column-0 role=columnheader label="id" 13,53 79x24 pos=1/3
+            text label="number_symbol" "\u{F57C}" 57,57 16x16
+            text "id" 77,57 11x16
+          el 92,53 1x24
+          el #column-1 role=columnheader label="customer" 93,53 119x24 pos=2/3
+            text label="text_case_title" "\u{ECEC}" 97,57 16x16
+            text "customer" 117,57 60x16
+          el 212,53 1x24
+          el #column-2 role=columnheader label="shipped" 213,53 119x24 pos=3/3
+            text label="calendar_ltr" "\u{E24D}" 217,57 16x16
+            text "shipped" 237,57 50x16
+          el 332,53 1x24
+        el #rows 13,78 494x180 rows 0-10/100 thumb-y 499,80 6x24
+          el #row-0 role=row 13,78 494x24 pos=1/100
+            el #cell-0-0 role=gridcell 13,78 79x23 pos=1/3
+              text "1000" 60,82 28x16
+            el 92,78 1x23
+            el #cell-0-1 role=gridcell 93,78 119x23 pos=2/3
+              text "Ada" 97,82 24x16
+            el 212,78 1x23
+            el #cell-0-2 role=gridcell 213,78 119x23 pos=3/3
+              text "2026-11-10" 217,82 70x16
+            el 332,78 1x23
+          el #row-1 role=row 13,102 494x24 pos=2/100
+            el #cell-1-0 role=gridcell 13,102 79x23 pos=1/3
+              text "1001" 60,106 28x16
+            el 92,102 1x23
+            el #cell-1-1 role=gridcell 93,102 119x23 pos=2/3
+              text "Brendan" 97,106 53x16
+            el 212,102 1x23
+            el #cell-1-2 role=gridcell 213,102 119x23 selected current pos=3/3
+              text "2026-11-11" 217,106 70x16
+            el 332,102 1x23
+            el #editor 213,102 119x23 invalid
+              text #field role=textbox label="Edit shipped" "tomorrow" 217,103 111x21 focused caret 8
+          el #row-2 role=row 13,126 494x24 pos=3/100
+            el #cell-2-0 role=gridcell 13,126 79x23 pos=1/3
+              text "1002" 60,130 28x16
+            el 92,126 1x23
+            el #cell-2-1 role=gridcell 93,126 119x23 pos=2/3
+              text "Chen" 97,130 33x16
+            el 212,126 1x23
+            el #cell-2-2 role=gridcell 213,126 119x23 pos=3/3
+              text "2026-11-12" 217,130 70x16
+            el 332,126 1x23
+          el #row-3 role=row 13,150 494x24 pos=4/100
+            el #cell-3-0 role=gridcell 13,150 79x23 pos=1/3
+              text "1003" 60,154 28x16
+            el 92,150 1x23
+            el #cell-3-1 role=gridcell 93,150 119x23 pos=2/3
+              text "Dagny" 97,154 38x16
+            el 212,150 1x23
+            el #cell-3-2 role=gridcell 213,150 119x23 pos=3/3
+              text "2026-11-13" 217,154 70x16
+            el 332,150 1x23
+          el #row-4 role=row 13,174 494x24 pos=5/100
+            el #cell-4-0 role=gridcell 13,174 79x23 pos=1/3
+              text "1004" 60,178 28x16
+            el 92,174 1x23
+            el #cell-4-1 role=gridcell 93,174 119x23 pos=2/3
+              text "Ada" 97,178 24x16
+            el 212,174 1x23
+            el #cell-4-2 role=gridcell 213,174 119x23 pos=3/3
+              text "2026-11-14" 217,178 70x16
+            el 332,174 1x23
+          el #row-5 role=row 13,198 494x24 pos=6/100
+            el #cell-5-0 role=gridcell 13,198 79x23 pos=1/3
+              text "1005" 60,202 28x16
+            el 92,198 1x23
+            el #cell-5-1 role=gridcell 93,198 119x23 pos=2/3
+              text "Brendan" 97,202 53x16
+            el 212,198 1x23
+            el #cell-5-2 role=gridcell 213,198 119x23 pos=3/3
+              text "2026-11-15" 217,202 70x16
+            el 332,198 1x23
+          el #row-6 role=row 13,222 494x24 pos=7/100
+            el #cell-6-0 role=gridcell 13,222 79x23 pos=1/3
+              text "1006" 60,226 28x16
+            el 92,222 1x23
+            el #cell-6-1 role=gridcell 93,222 119x23 pos=2/3
+              text "Chen" 97,226 33x16
+            el 212,222 1x23
+            el #cell-6-2 role=gridcell 213,222 119x23 pos=3/3
+              text "2026-11-16" 217,226 70x16
+            el 332,222 1x23
+          el #row-7 role=row 13,246 494x24 pos=8/100
+            el #cell-7-0 role=gridcell 13,246 79x23 pos=1/3
+              text "1007" 60,250 28x16
+            el 92,246 1x23
+            el #cell-7-1 role=gridcell 93,246 119x23 pos=2/3
+              text "Dagny" 97,250 38x16
+            el 212,246 1x23
+            el #cell-7-2 role=gridcell 213,246 119x23 pos=3/3
+              text "2026-11-17" 217,250 70x16
+            el 332,246 1x23
+          el #row-8 role=row 13,270 494x24 pos=9/100
+            el #cell-8-0 role=gridcell 13,270 79x23 pos=1/3
+              text "1008" 60,274 28x16
+            el 92,270 1x23
+            el #cell-8-1 role=gridcell 93,270 119x23 pos=2/3
+              text "Ada" 97,274 24x16
+            el 212,270 1x23
+            el #cell-8-2 role=gridcell 213,270 119x23 pos=3/3
+              text "2026-11-18" 217,274 70x16
+            el 332,270 1x23
+          el #row-9 role=row 13,294 494x24 pos=10/100
+            el #cell-9-0 role=gridcell 13,294 79x23 pos=1/3
+              text "1009" 60,298 28x16
+            el 92,294 1x23
+            el #cell-9-1 role=gridcell 93,294 119x23 pos=2/3
+              text "Brendan" 97,298 53x16
+            el 212,294 1x23
+            el #cell-9-2 role=gridcell 213,294 119x23 pos=3/3
+              text "2026-11-19" 217,298 70x16
+            el 332,294 1x23
+          el #row-10 role=row 13,318 494x24 pos=11/100
+            el #cell-10-0 role=gridcell 13,318 79x23 pos=1/3
+              text "1010" 60,322 28x16
+            el 92,318 1x23
+            el #cell-10-1 role=gridcell 93,318 119x23 pos=2/3
+              text "Chen" 97,322 33x16
+            el 212,318 1x23
+            el #cell-10-2 role=gridcell 213,318 119x23 pos=3/3
+              text "2026-11-20" 217,322 70x16
+            el 332,318 1x23
+    el 13,258 494x29
+      text #status "" 25,265 0x16
+      el 37,273 458x0
+overlay bottom start gap 2 on #editor 213,102 119x23
+  el #error role=alert label="Expected a date such as 2026-11-13" 213,127 233x22
+    text "Expected a date such as 2026-11-13" 218,130 223x16

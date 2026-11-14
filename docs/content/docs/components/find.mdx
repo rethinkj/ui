@@ -34,6 +34,19 @@ In a regular expression's replacement, `$1` and `${name}` refer to groups. Case 
 
 `Find.open(state)`, `openReplace(state)`, `goToLine(state)`, `goToLine(state, "42")`, `next(state)` and `previous(state)` do the same from a menu.
 
+## What the state says
+
+The bar changes its `Find.State`; the app reads it, for a status line or to search the same way elsewhere, such as in the results of a query. The switches are set only from the bar and its keys.
+
+| `Find.State` | |
+| --- | --- |
+| `isOpen()` | Whether the bar shows |
+| `query()` | The text to find |
+| `replacement()` | The text that replaces a match |
+| `matchCase()`, `wholeWord()`, `regex()` | The switches Match case, Whole word and Regular expression |
+| `inSelection()` | Whether the search keeps to the selection of several lines the bar opened with |
+| `close()` | Closes the bar; the field keeps its selection |
+
 ## In a tree dump
 
 The bar is an overlay on the field, `role=search` `label="Find"`. Its field is `label="Find"`, the replacement `label="Replace"`, the switches are `role=button` with `checked` or `checked=false`, and `#count` says how many matches there are: `3 of 17`, `17 results`, `No results`, `10000+`, `Searching…`.

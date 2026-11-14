@@ -1,0 +1,20 @@
+el 0,0 360x400
+  el 12,12 336x16
+    el #bar 12,12 134x8
+  el #thumb 12,36 96x54
+  el #tags 12,98 336x17
+    text "orders" 12,98 42x17
+    text "customers" 66,98 67x17
+    text "order_items" 145,98 76x17
+    text "invoices" 233,98 53x17
+  el #latest 12,123 53x60
+    text "Query 1" 12,166 53x17
+    text "Query 2" 12,149 53x17
+    text "Query 3" 12,132 53x17
+    text "Query 4" 12,115 53x17
+    text "Query 5" 12,98 53x17
+  el #baseline 12,191 120x24
+    text "Rows" 12,191 52x24
+    text "1 000 000" 64,196 68x17
+  el #inset 12,223 128x32
+  el #sparkline 12,263 200x24

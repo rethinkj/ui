@@ -29,3 +29,31 @@ description: Virtual lists that build only the rows in view, for a million rows,
 | `app.scrollToRow(list, row)` | Scroll from a handler |
 
 The list needs a height of its own or room to `grow`. Give rows keys (`row-<index>`) so that scripts find them; a selector finds only the rows that exist, so a script scrolls first: `scroll #rows row 765432`.
+
+## Rows as high as their content
+
+Messages of a log, blocks of a document and cells that wrap have heights of their own. `rows(count, heights, row)` lays out each row it builds at the list's inner width, with no `h(...)` needed, and a `RowHeights` that the app keeps in its state remembers what it measured. Rows not built yet have the height its function estimates:
+
+```java snippet="row-heights"
+```
+
+```java snippet="row-heights-list"
+```
+
+```text file="examples/src/test/resources/golden/docs/row-heights/view.tree.txt" start="#row-0 " count="4"
+```
+
+- The estimate is in logical pixels above 0, from what the app knows without laying out, such as the length of a row's text. The closer it is, the less the scrollbar's thumb moves as rows are measured.
+- Where a row starts, the row at an offset and the total cost a logarithm of the count, so a list of a million such rows scrolls as one of rows of one height.
+- When rows above the top of the view turn out higher or lower than estimated, the offset moves by as much, so what is in view stays where it is.
+- `app.scrollToRow(list, row)` goes to where the row starts as far as the heights are known, and follows that row while the rows on the way are measured, until the user's next press, key or wheel.
+- Heights are kept by index. Rows inserted or removed anywhere but at the end leave the measured heights where they were, so an app whose rows move makes a new `RowHeights`.
+
+| `RowHeights` | |
+| --- | --- |
+| `new RowHeights(estimate)` | An `IntToDoubleFunction` from a row's index to its estimated height |
+| `count()` | The number of rows, as the list last had it (0 before its first build) |
+| `height(row)` | A row's height: as measured, or as estimated before |
+| `top(row)` | Where a row starts below the first, the heights before it together |
+| `total()` | The heights of all rows together |
+| `at(y)` | The row at this distance below the start of the first; the count where `y` is past the last row |

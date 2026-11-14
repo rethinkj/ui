@@ -1,0 +1,3 @@
+el 0,0 300x140
+  text #note role=textbox "The orders table has no index on customer_id. See the query plan before you add one." 12,12 260x51 readonly lines 1-1/1
+    el #plan role=link label="the query plan" 128,29 95x17 focused

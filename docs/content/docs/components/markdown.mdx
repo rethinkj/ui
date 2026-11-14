@@ -20,9 +20,41 @@ description: A Markdown document as a scrolling page of selectable blocks, with 
 | `images(address -> image)` | The `Image` for an address as written, or null while there is none (a placeholder shows) |
 | `languages(language -> highlighter)` | Highlighters for code blocks; `sql` uses `Sql` by default |
 | `copy(clipboard)` | Where the code blocks' copy buttons copy to, and Control+C after Control+A selected the whole document. A selection within one block of text copies to the app's clipboard |
-| `state(Markdown.State)` | Keeps Control+A's selection of the whole document |
+| `state(Markdown.State)` | Keeps Control+A's selection of the whole document, and the confirmation of a code block's copy button |
 
 `Markdown.rowOf(document, id)` is the row to scroll to for a heading (`app.scrollToRow`), `document.headings()` lists them with GitHub's anchors, and `Markdown.text(document)` is the plain text. Each block of text is a read-only field that selects and copies; HTML in the source shows as text.
+
+## The state
+
+`Markdown.State`, one per document in the app's state, keeps Control+A's selection of the whole document: `allSelected()` says whether the whole document shows as selected, and `selectAll(boolean)` selects it or no longer, for an Edit menu's Select all. A press anywhere in the document ends it.
+
+## The document as data
+
+A `MarkdownDocument` is a tree of records that an app can read, for an outline, a search or the statements of a runbook. `document.blocks()` are the top-level blocks; documents are equal only when they are the same object.
+
+```java snippet="markdown-model"
+```
+
+| Block | |
+| --- | --- |
+| `Heading(level, content, id)` | Levels 1 to 6; `id` is GitHub's anchor, unique in the document |
+| `Paragraph(content)` | |
+| `CodeBlock(language, code)` | The first word of a fence's info string, or ""; each line of the code ends in a line feed |
+| `Quote(blocks)` | |
+| `ListBlock(ordered, start, tight, items)` | Each `Item(task, blocks)`, `task` null for an ordinary item, false for `[ ]` and true for `[x]` |
+| `Table(aligns, header, rows)` | An `Align` (`NONE`, `LEFT`, `CENTER`, `RIGHT`) per column; cells are lists of inline parts |
+| `ThematicBreak()` | |
+
+| Inline part | |
+| --- | --- |
+| `Text(text)` | Escapes and entities resolved; raw HTML is text too |
+| `Emphasis(content)`, `Strong(content)`, `Strike(content)` | |
+| `Code(code)` | Inline code |
+| `Link(destination, title, content)` | The destination as written, `#id` for a heading; title "" for none |
+| `Image(source, title, alt)` | |
+| `SoftBreak()`, `HardBreak()` | A line break that shows as a space, and one that breaks the line |
+
+`MarkdownDocument.plainText(content)` is the text of inline parts as it shows: soft breaks as spaces, images as their description. `document.headings()` lists the headings, those inside quotes and lists too, and `document.tree()` is the whole tree as text, one node per line, as the reader's tests compare it. `new MarkdownDocument(blocks)` makes a document from blocks of the app's own.
 
 ## In a tree dump
 
