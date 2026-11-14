@@ -3,7 +3,7 @@ title: Lists of many rows
 description: Virtual lists that build only the rows in view, for a million rows, with rows of one height or of their own.
 ---
 
-`El.rows(count, rowHeight, row)` turns a scroll area into a list that builds only the visible rows and a few around them, so a list of a million rows costs as much as one of twenty. The [DataGrid](/docs/components/data-grid), the [Tree](/docs/components/tree), [Markdown](/docs/components/markdown) and the kit's lists are built on it.
+[`El.rows(count, rowHeight, row)`](/api/com/rethinkj/ui/El.html#rows(int,float,java.util.function.IntFunction)) turns a scroll area into a list that builds only the visible rows and a few around them, so a list of a million rows costs as much as one of twenty. The [DataGrid](/docs/components/data-grid), the [Tree](/docs/components/tree), [Markdown](/docs/components/markdown) and the kit's lists are built on it.
 
 ```java snippet="rows"
 ```
@@ -51,11 +51,4 @@ Log messages, document blocks and wrapping cells each have their own height. `ro
 - `app.scrollToRow(list, row)` keeps following the row while the rows before it are measured, until the user's next press, key or wheel.
 - Heights are kept by index. When rows are inserted or removed anywhere but at the end, or are sorted or moved, make a new `RowHeights`.
 
-| `RowHeights` | |
-| --- | --- |
-| `new RowHeights(estimate)` | An `IntToDoubleFunction` from a row's index to its estimated height |
-| `count()` | The number of rows at the list's last build (0 before it) |
-| `height(row)` | A row's height: as measured, or as estimated before |
-| `top(row)` | Where a row starts, measured from the top of the first row |
-| `total()` | The heights of all rows together |
-| `at(y)` | The row at this offset from the top; the count when `y` is past the last row |
+`new RowHeights(estimate)` takes an `IntToDoubleFunction` from a row's index to its estimated height. Its other methods, in the [`RowHeights` Javadoc](/api/com/rethinkj/ui/RowHeights.html), tell a row's height, where it starts and which row is at an offset.
