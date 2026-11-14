@@ -236,9 +236,14 @@ function check() {
   }
   for (const txt of ['llms.txt', 'llms-full.txt']) {
     const text = fs.readFileSync(path.join(OUT, txt), 'utf8');
-    for (const m of text.matchAll(/\]\((\/[^)\s#]*)/g)) {
+    // A fragment may hold one level of parentheses, as a Javadoc method anchor does.
+    for (const m of text.matchAll(/\]\((\/[^)\s#]*)(?:#((?:[^()\s]|\([^()]*\))*))?\)/g)) {
       if (m[1].startsWith('/api/') && !javadoc) continue;
-      if (!served(m[1])) dead.push(`/${txt}: ${m[1]}`);
+      const servedFile = served(m[1]);
+      if (!servedFile) dead.push(`/${txt}: ${m[1]}`);
+      else if (m[2] && servedFile.endsWith('.html') && !idsOf(servedFile).has(decodeURIComponent(m[2]))) {
+        dead.push(`/${txt}: ${m[1]}#${m[2]} (no #${m[2]} there)`);
+      }
     }
   }
   if (dead.length) {
