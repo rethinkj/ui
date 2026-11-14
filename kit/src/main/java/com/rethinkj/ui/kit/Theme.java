@@ -30,7 +30,8 @@ import java.util.function.Supplier;
  * <p>The look is made of layers: the window's background ({@link Surfaces#window}), cards on it
  * ({@link Surfaces#panel}) lifted by {@link Elevation#card}, quiet bands inside a card such as a
  * tab bar, a grid's header and a footer ({@link Surfaces#band}), and controls and popups ({@link
- * Surfaces#raised}). Hairlines of low contrast ({@link Borders#subtle}) separate them. Radii go by
+ * Surfaces#raised}). Hairlines of low contrast ({@link Borders#subtle}) edge them, and dividers
+ * ({@link Borders#divider}) separate content on them. Radii go by
  * rank: cards {@link Radii#large}, controls {@link Radii#medium}, small parts {@link Radii#small}.
  * The full accent fills primary buttons and what is on; its lighter {@link Accent#edge} draws
  * outlines, the focus ring and the active tab's line.
@@ -69,7 +70,50 @@ public record Theme(
     Caption caption,
     Prose prose,
     Badges badge,
-    Danger danger) {
+    Danger danger,
+    Callouts callout) {
+
+  /** A theme whose callouts look as {@link Callouts#DARK} or {@link Callouts#LIGHT}. */
+  public Theme(
+      Surfaces surface,
+      TextColors text,
+      Borders border,
+      Accent accent,
+      Status status,
+      Spacing space,
+      Radii radius,
+      Type type,
+      Sizes size,
+      Motion motion,
+      Grid grid,
+      Scrollbars scrollbars,
+      Elevation elevation,
+      Code code,
+      Caption caption,
+      Prose prose,
+      Badges badge,
+      Danger danger) {
+    this(
+        surface,
+        text,
+        border,
+        accent,
+        status,
+        space,
+        radius,
+        type,
+        size,
+        motion,
+        grid,
+        scrollbars,
+        elevation,
+        code,
+        caption,
+        prose,
+        badge,
+        danger,
+        lightness(surface.raised()) < 0.5 ? Callouts.DARK : Callouts.LIGHT);
+  }
 
   /** A theme whose destructive actions look as {@link Danger#DARK} or {@link Danger#LIGHT}. */
   public Theme(
@@ -332,7 +376,7 @@ public record Theme(
     /** For light surfaces. */
     public static final Badges LIGHT = new Badges(
         new Tone(alpha(GREY_407, 0.1f), GREY_314, GREY_407, WHITE),
-        new Tone(alpha(BLUE_447, 0.12f), BLUE_366, BLUE_447, WHITE),
+        new Tone(alpha(BLUE_447, 0.12f), BLUE_358, BLUE_447, WHITE),
         new Tone(alpha(GREEN_389, 0.13f), GREEN_333, GREEN_389, WHITE),
         new Tone(alpha(AMBER_622, 0.17f), AMBER_327, AMBER_735, GREY_108),
         new Tone(alpha(RED_395, 0.12f), RED_345, RED_395, WHITE),
@@ -341,6 +385,65 @@ public record Theme(
         TEXT,
         AVATARS,
         WHITE);
+  }
+
+  /**
+   * The colours of a {@link Callout} of one kind.
+   *
+   * @param fill opaque, the callout's background, a tint of the kind over the raised surface
+   * @param mark the bar at the callout's leading edge and its icon, 3:1 on {@code fill}
+   */
+  public record CalloutTone(int fill, int mark) {}
+
+  /**
+   * How {@link Callout}s look: a tinted fill per kind with a bar and an icon in the kind's
+   * colour. The fills are the badges' quiet tints laid over the raised surface ({@link Colors#over}),
+   * in the dark theme each kind's status colour at 10 %, so that the four are about as light as
+   * each other. {@code info} is the theme's blue, as links and the grid's selection are: it does
+   * not follow {@link #withAccent}.
+   *
+   * @param info something to know
+   * @param warning something that needs attention
+   * @param danger a failure
+   * @param success something that went well
+   * @param text the text below the title, 4.5:1 on every fill; the title is the primary text
+   * @param bar the width of the bar at the leading edge, whose ends are round
+   */
+  public record Callouts(
+      CalloutTone info,
+      CalloutTone warning,
+      CalloutTone danger,
+      CalloutTone success,
+      int text,
+      float bar) {
+
+    /** For a dark raised surface. */
+    public static final Callouts DARK = new Callouts(
+        new CalloutTone(Colors.over(GREY_122, alpha(BLUE_694, 0.1f)), BLUE_694),
+        new CalloutTone(Colors.over(GREY_122, alpha(AMBER_745, 0.1f)), AMBER_745),
+        new CalloutTone(Colors.over(GREY_122, alpha(RED_649, 0.1f)), RED_649),
+        new CalloutTone(Colors.over(GREY_122, alpha(GREEN_735, 0.1f)), GREEN_735),
+        GREY_747,
+        3);
+
+    /** For a light raised surface. */
+    public static final Callouts LIGHT = new Callouts(
+        new CalloutTone(Colors.over(WHITE, alpha(BLUE_447, 0.12f)), BLUE_447),
+        new CalloutTone(Colors.over(WHITE, alpha(AMBER_622, 0.17f)), AMBER_384),
+        new CalloutTone(Colors.over(WHITE, alpha(RED_395, 0.12f)), RED_395),
+        new CalloutTone(Colors.over(WHITE, alpha(GREEN_389, 0.13f)), GREEN_389),
+        GREY_375,
+        3);
+
+    /** The tone of a kind. */
+    public CalloutTone of(Callout.Kind kind) {
+      return switch (kind) {
+        case INFO -> info;
+        case WARNING -> warning;
+        case DANGER -> danger;
+        case SUCCESS -> success;
+      };
+    }
   }
 
   /**
@@ -377,7 +480,7 @@ public record Theme(
 
     /** For a light panel. */
     public static final Prose LIGHT =
-        new Prose(BODY, HEADINGS, BLUE_403, alpha(BLACK, 0.08f), GREY_805, 720);
+        new Prose(BODY, HEADINGS, BLUE_377, alpha(BLACK, 0.08f), GREY_805, 720);
   }
 
   /**
@@ -488,15 +591,25 @@ public record Theme(
   public record TextColors(int primary, int muted, int disabled, int onAccent) {}
 
   /**
-   * @param subtle hairlines between surfaces and rows, and the edges of cards and popups
+   * @param subtle the edges of cards and of a surface's parts, the lines of a data grid, and the
+   *     edges of a disabled control
    * @param strong the edges a control is recognised by, such as a text field's frame or a
    *     checkbox's box, which stand out 3:1 from the surfaces
    * @param control the edge of a button and of other controls that their text names, quieter
    *     than {@code strong}, and of popups and dialogs
    * @param track translucent, a faint line that keeps one contrast on every surface, band and
    *     selection it lies on: a {@link Progress#spinner}'s ring
+   * @param divider a hairline that separates content on a surface: a {@link Divider}, a menu's
+   *     separators, the lines between a {@link Group}'s rows, under a tab bar, above a card's
+   *     footer, between a split's parts and between a toolbar's groups; 1.2:1 or more on every
+   *     surface, stronger than {@code subtle}, which a raised surface would almost hide
    */
-  public record Borders(int subtle, int strong, int control, int track) {
+  public record Borders(int subtle, int strong, int control, int track, int divider) {
+
+    /** Borders whose dividers are {@code subtle}. */
+    public Borders(int subtle, int strong, int control, int track) {
+      this(subtle, strong, control, track, subtle);
+    }
 
     /** Borders whose track is {@code strong} at 35 % in a dark theme, 40 % in a light one. */
     public Borders(int subtle, int strong, int control) {
@@ -603,7 +716,7 @@ public record Theme(
     public static final Danger DARK = of(Hue.RED.dark(), RED_649);
 
     /** For light surfaces. */
-    public static final Danger LIGHT = of(Hue.RED.light(), RED_395);
+    public static final Danger LIGHT = of(Hue.RED.light(), RED_351);
 
     /** From an accent: its fills, white on them, and its edge for edge and ring. */
     private static Danger of(Accent red, int text) {
@@ -979,17 +1092,20 @@ public record Theme(
   /*
    * The rules the default themes follow; ThemeTest holds them to these.
    *
-   * Layers. The window is the page, darker than the cards in the dark theme and a light grey in the
-   * light one; cards (panel) lie on it, bands (a tab bar, a grid's header, a footer) are a quiet
-   * step inside a card, and controls and popups (raised) a step above it in the dark theme and
-   * white in the light one, where a control is told apart by its edge and a popup by its edge and
-   * shadow. Hairlines (subtle) are a low-contrast step from the card; a button's edge (control) a
-   * little more.
+   * Layers. The window is the page, darker than the cards in both themes; cards (panel) lie on it,
+   * bands (a tab bar, a grid's header, a footer) are a quiet step inside a card, and controls and
+   * popups (raised) a step above it, white in the light theme, where a control is told apart by its
+   * edge and a popup by its edge and shadow. In the light theme they are four tones: window L* 87,
+   * band 94, panel 99 and raised 100. Hairlines (subtle) are a low-contrast step from the card; a
+   * button's edge (control) a little more. A divider, the hairline that separates content on a
+   * surface, stands out 1.2:1 or more from every surface it is drawn on: in the dark theme it is
+   * the button's edge, in the light one the step it needs on the grey window.
    *
-   * Hover and pressed. A neutral grey near the surfaces (lighter in the dark theme, darker in the
-   * light one) at 25 % and 45 % (dark) or 30 % and 50 % (light), mixed in linear light both by
+   * Hover and pressed. A neutral grey laid over the surface, mixed in linear light both by
    * Theme.over and by the renderer, so every component gives the same colour: hover 4 L* or more
-   * from the surface, pressed 3 L* or more beyond hover.
+   * from the surface, pressed 3 L* or more beyond hover. In the dark theme a lighter grey near the
+   * surfaces at 25 % and 45 %; in the light one a mid grey (L* 60) at 20 % and 34 %, which darkens
+   * the grey window by as much as the white surfaces, where a light grey would hardly show.
    *
    * Accent. One blue: white text on it at 4.5:1. Its edge, the tone of lines, outlines and the
    * focus ring, 3:1 on every surface and on the grid's selection: a lighter blue in the dark
@@ -997,14 +1113,17 @@ public record Theme(
    * the accent. Text selection: the accent at 40 % (dark) and 35 % (light).
    *
    * Text. Primary and muted at least 4.5:1 on every surface, band, hover, pressed and selection
-   * they meet; disabled from 2.5:1 to 3.5:1 on window, panel and raised, legible but clearly below
-   * muted. Status colours 4.5:1 on the surfaces and on the grid's selection.
+   * they meet, also the window's hover and pressed; disabled from 2.5:1 to 3.5:1 on window, panel
+   * and raised, legible but clearly below muted (in the light theme, whose window and raised
+   * surface are far apart, that leaves it little room). Status colours 4.5:1 on the surfaces and on the grid's selection.
    *
    * Edges and marks. The strong border, the accent as a fill of what is on, the grid's cursor and
    * the scrollbar's thumb at rest at least 3:1 on the surfaces they lie on.
    *
    * Selection in lists. Focused: a calm tint of the accent, primary text at 9:1 or more. Without
-   * the focus: the same lightness with little colour, apart from the hover by 4 L* or more.
+   * the focus: the same lightness with little colour, apart from the hover by 4 L* or more, and
+   * from every surface it lies on (window, panel, the grid's rows) at least as much as the dark
+   * theme's cards stand out from its window.
    *
    * Shadows. Cards a little, popups more, dialogs most; the light theme with about twice the alpha
    * a CSS shadow has, as the renderer mixes in linear light.
@@ -1034,7 +1153,7 @@ public record Theme(
           alpha(GREY_298, 0.45f),
           alpha(BLACK, 0.6f)),
       new TextColors(GREY_916, GREY_648, GREY_425, WHITE),
-      new Borders(GREY_157, GREY_477, GREY_226, alpha(GREY_477, 0.35f)),
+      new Borders(GREY_157, GREY_477, GREY_226, alpha(GREY_477, 0.35f), GREY_226),
       Hue.BLUE.dark(),
       new Status(RED_649, AMBER_745, GREEN_735),
       SPACE,
@@ -1060,15 +1179,15 @@ public record Theme(
   /** Neutral greys with a blue accent, dark text on light surfaces. */
   public static final Theme LIGHT = new Theme(
       new Surfaces(
-          GREY_941,
+          GREY_873,
+          GREY_986,
           WHITE,
-          WHITE,
-          GREY_976,
-          alpha(GREY_773, 0.3f),
-          alpha(GREY_773, 0.5f),
+          GREY_936,
+          alpha(GREY_605, 0.2f),
+          alpha(GREY_605, 0.34f),
           alpha(BLACK, 0.35f)),
-      new TextColors(GREY_108, GREY_407, GREY_605, WHITE),
-      new Borders(GREY_919, GREY_551, GREY_844, alpha(GREY_551, 0.4f)),
+      new TextColors(GREY_108, GREY_375, GREY_572, WHITE),
+      new Borders(GREY_880, GREY_520, GREY_844, alpha(GREY_520, 0.35f), GREY_805),
       Hue.BLUE.light(),
       new Status(RED_395, AMBER_384, GREEN_389),
       SPACE,
@@ -1076,8 +1195,8 @@ public record Theme(
       TYPE,
       SIZE,
       MOTION,
-      new Grid(24, 32, 480, 6, 12, GREY_976, WHITE, WHITE, BLUE_918, GREY_890, BLUE_447, 1),
-      new Scrollbars(6, 2, 3, 24, GREY_516, GREY_423, GREY_327),
+      new Grid(24, 32, 480, 6, 12, GREY_936, WHITE, WHITE, BLUE_918, GREY_901, BLUE_447, 1),
+      new Scrollbars(6, 2, 3, 24, GREY_501, GREY_423, GREY_327),
       new Elevation(
           List.of(
               new Shadow(0, 1, 2, 0, alpha(GREY_084, 0.16f)),
@@ -1110,7 +1229,8 @@ public record Theme(
         caption,
         prose,
         badge,
-        danger);
+        danger,
+        callout);
   }
 
   public Theme withText(TextColors text) {
@@ -1132,7 +1252,8 @@ public record Theme(
         caption,
         prose,
         badge,
-        danger);
+        danger,
+        callout);
   }
 
   public Theme withBorder(Borders border) {
@@ -1154,7 +1275,8 @@ public record Theme(
         caption,
         prose,
         badge,
-        danger);
+        danger,
+        callout);
   }
 
   public Theme withAccent(Accent accent) {
@@ -1176,7 +1298,8 @@ public record Theme(
         caption,
         prose,
         badge,
-        danger);
+        danger,
+        callout);
   }
 
   /**
@@ -1206,7 +1329,8 @@ public record Theme(
         caption,
         prose,
         badge,
-        danger);
+        danger,
+        callout);
   }
 
   public Theme withSpace(Spacing space) {
@@ -1228,7 +1352,8 @@ public record Theme(
         caption,
         prose,
         badge,
-        danger);
+        danger,
+        callout);
   }
 
   public Theme withRadius(Radii radius) {
@@ -1250,7 +1375,8 @@ public record Theme(
         caption,
         prose,
         badge,
-        danger);
+        danger,
+        callout);
   }
 
   public Theme withType(Type type) {
@@ -1272,7 +1398,8 @@ public record Theme(
         caption,
         prose,
         badge,
-        danger);
+        danger,
+        callout);
   }
 
   public Theme withSize(Sizes size) {
@@ -1294,7 +1421,8 @@ public record Theme(
         caption,
         prose,
         badge,
-        danger);
+        danger,
+        callout);
   }
 
   public Theme withMotion(Motion motion) {
@@ -1316,7 +1444,8 @@ public record Theme(
         caption,
         prose,
         badge,
-        danger);
+        danger,
+        callout);
   }
 
   public Theme withGrid(Grid grid) {
@@ -1338,7 +1467,8 @@ public record Theme(
         caption,
         prose,
         badge,
-        danger);
+        danger,
+        callout);
   }
 
   public Theme withScrollbars(Scrollbars scrollbars) {
@@ -1360,7 +1490,8 @@ public record Theme(
         caption,
         prose,
         badge,
-        danger);
+        danger,
+        callout);
   }
 
   public Theme withCode(Code code) {
@@ -1382,7 +1513,8 @@ public record Theme(
         caption,
         prose,
         badge,
-        danger);
+        danger,
+        callout);
   }
 
   public Theme withElevation(Elevation elevation) {
@@ -1404,7 +1536,8 @@ public record Theme(
         caption,
         prose,
         badge,
-        danger);
+        danger,
+        callout);
   }
 
   public Theme withProse(Prose prose) {
@@ -1426,7 +1559,8 @@ public record Theme(
         caption,
         prose,
         badge,
-        danger);
+        danger,
+        callout);
   }
 
   public Theme withBadge(Badges badge) {
@@ -1448,7 +1582,8 @@ public record Theme(
         caption,
         prose,
         badge,
-        danger);
+        danger,
+        callout);
   }
 
   public Theme withDanger(Danger danger) {
@@ -1470,7 +1605,8 @@ public record Theme(
         caption,
         prose,
         badge,
-        danger);
+        danger,
+        callout);
   }
 
   public Theme withCaption(Caption caption) {
@@ -1492,7 +1628,31 @@ public record Theme(
         caption,
         prose,
         badge,
-        danger);
+        danger,
+        callout);
+  }
+
+  public Theme withCallout(Callouts callout) {
+    return new Theme(
+        surface,
+        text,
+        border,
+        accent,
+        status,
+        space,
+        radius,
+        type,
+        size,
+        motion,
+        grid,
+        scrollbars,
+        elevation,
+        code,
+        caption,
+        prose,
+        badge,
+        danger,
+        callout);
   }
 
   /**

@@ -541,7 +541,7 @@ public final class Menu {
               ? el().h(t.size().stroke())
                   .shrink(0)
                   .margin(t.space().xs(), 0, t.space().xs(), 0)
-                  .fill(t.border().subtle())
+                  .fill(t.border().divider())
               : item(t, state, items, i, level, bar));
     }
     return panel;

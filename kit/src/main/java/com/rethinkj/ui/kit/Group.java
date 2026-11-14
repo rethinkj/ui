@@ -245,7 +245,7 @@ public final class Group {
   private static El line(Theme t) {
     return el().h(t.size().stroke())
         .shrink(0)
-        .fill(t.border().subtle())
+        .fill(t.border().divider())
         .margin(Scene.RING, -Scene.RING, Scene.RING, -Scene.RING);
   }
 }

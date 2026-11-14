@@ -296,7 +296,7 @@ public final class Toolbar {
             .h(t.size().control() - 2 * t.space().s())
             .shrink(0)
             .margin(0, t.space().xs(), 0, t.space().xs())
-            .fill(t.border().subtle())
+            .fill(t.border().divider())
             .role("separator");
       case SPACER -> el().grow(1);
     };

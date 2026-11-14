@@ -36,7 +36,7 @@ import java.util.function.DoubleConsumer;
  * where they were once there is room again. Where there is not even room for both minimums, the
  * second part is cut off.
  *
- * <p>The line is {@link Theme.Borders#subtle} and {@link Theme.Sizes#stroke} wide, and a strip of
+ * <p>The line is {@link Theme.Borders#divider} and {@link Theme.Sizes#stroke} wide, and a strip of
  * {@link Theme.Sizes#handle} along it takes the pointer: it shows the resize cursor of its
  * direction, the strong border under the pointer and the accent while it is dragged. A double
  * press puts it back where the caller says. The strip is one stop for Tab, and while it has the
@@ -177,7 +177,7 @@ public final class Split {
     float over = Math.max(t.size().handle() - stroke, 0) / 2;
     float strip = stroke + 2 * over;
 
-    El mark = el().fill(cards ? 0 : t.border().subtle());
+    El mark = el().fill(cards ? 0 : t.border().divider());
     El line = cards ? (across ? row() : col()).justify(Style.Content.CENTER).child(mark) : mark;
     El divider = (across ? row() : col())
         .key("divider")

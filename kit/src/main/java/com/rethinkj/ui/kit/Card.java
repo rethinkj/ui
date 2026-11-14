@@ -167,7 +167,7 @@ public final class Card {
         .gap(t.space().l())
         .align(Style.Align.CENTER)
         .fill(t.surface().band())
-        .border(t.size().stroke(), 0, 0, 0, t.border().subtle());
+        .border(t.size().stroke(), 0, 0, 0, t.border().divider());
     if (start != null) {
       row.child(start.shrink(1).minSize(0, 0));
     }

@@ -413,6 +413,38 @@ class ThemeTest {
           4.5);
       check(failures, "strong badge text", tone.strongText(), Map.of("strong", tone.strong()), 4.5);
     }
+    // Callouts: the title and the text below it on each kind's fill, the bar and the icon on it;
+    // a ghost button's text under its overlays over the fill (a secondary one has its raised fill,
+    // checked above), the outline of a secondary one as far from the fill as its edge is from the
+    // surfaces it stands on elsewhere, and the focus ring of either.
+    Theme.Callouts callouts = t.callout();
+    double edgeOnSurfaces = surfaces.values().stream()
+        .mapToDouble(surface -> contrast(t.border().control(), surface))
+        .min()
+        .orElseThrow();
+    for (Callout.Kind kind : Callout.Kind.values()) {
+      int fill = callouts.of(kind).fill();
+      Map<String, Integer> on = Map.of(kind + " callout", fill);
+      check(failures, "callout title", t.text().primary(), on, 4.5);
+      check(failures, "callout text", callouts.text(), on, 4.5);
+      check(failures, "callout mark", callouts.of(kind).mark(), on, 3);
+      check(
+          failures,
+          "ghost button text",
+          t.text().primary(),
+          Map.of(
+              kind + " callout hovered", over(fill, s.hover()),
+              kind + " callout pressed", over(fill, s.pressed())),
+          4.5);
+      // A secondary button keeps its raised fill: on a tint its outline is its edge or its fill,
+      // whichever stands out more, as on a raised surface it is its edge alone.
+      double outline = Math.max(contrast(t.border().control(), fill), contrast(s.raised(), fill));
+      if (outline < edgeOnSurfaces) {
+        failures.add(String.format(
+            "secondary button on %s callout: %.2f:1, needs %.2f:1", kind, outline, edgeOnSurfaces));
+      }
+      check(failures, "focus ring", t.accent().edge(), on, 3);
+    }
     // Avatars: each fill 3:1 on the surfaces, its initials 4.5:1 on it.
     for (int fill : badges.avatars()) {
       check(failures, "avatar " + Integer.toHexString(fill), fill, surfaces, 3);
@@ -457,6 +489,44 @@ class ThemeTest {
     Theme t = theme(name);
     double hovered = lightness(over(t.grid().row(), t.surface().hover()));
     assertTrue(Math.abs(lightness(t.grid().selectedInactive()) - hovered) >= 4);
+  }
+
+  /**
+   * A selection without the focus stands out from every surface it lies on, a tree's or a
+   * navigation list's on a card or on the window and a grid's on its rows, at least as much as
+   * the dark theme's cards stand out from its window.
+   */
+  @ParameterizedTest
+  @ValueSource(strings = {"dark", "light"})
+  void anInactiveSelectionStandsOutFromWhatItLiesOn(String name) {
+    Theme t = theme(name);
+    double least = contrast(Theme.DARK.surface().panel(), Theme.DARK.surface().window());
+    int selection = t.grid().selectedInactive();
+    for (int surface :
+        new int[] {t.surface().window(), t.surface().panel(), t.grid().row()}) {
+      double ratio = contrast(selection, surface);
+      assertTrue(
+          ratio >= least, String.format("%.3f:1 on %08X, needs %.3f:1", ratio, surface, least));
+    }
+  }
+
+  /**
+   * A divider shows on every surface it is drawn on, also the raised surface of a menu or a
+   * dialog, where the subtle hairline almost vanishes.
+   */
+  @ParameterizedTest
+  @ValueSource(strings = {"dark", "light"})
+  void aDividerShowsOnEverySurface(String name) {
+    Theme t = theme(name);
+    Theme.Surfaces s = t.surface();
+    List<String> failures = new ArrayList<>();
+    check(
+        failures,
+        "divider",
+        t.border().divider(),
+        Map.of("window", s.window(), "panel", s.panel(), "raised", s.raised(), "band", s.band()),
+        1.2);
+    assertTrue(failures.isEmpty(), String.join("\n", failures));
   }
 
   /** The focused selection keeps primary text at 9:1 or more. */

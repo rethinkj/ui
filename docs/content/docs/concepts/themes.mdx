@@ -21,7 +21,7 @@ Every component takes the theme as its first parameter. There is no global theme
 | --- | --- |
 | `surface()` | `window` (the page), `panel` (cards), `raised` (controls, popups), `band` (bars inside cards), `hover`, `pressed`, `scrim` |
 | `text()` | `primary`, `muted`, `disabled`, `onAccent` |
-| `border()` | `subtle` (hairlines), `control` (buttons, popups), `strong` (fields) |
+| `border()` | `subtle` (edges of cards, grid lines), `divider` (hairlines that separate content: dividers, menu separators, a group's rows), `control` (buttons, popups), `strong` (fields) |
 | `accent()` | `color`, `hover`, `pressed`, `selection`, `edge` (lines, rings, the grid's cursor) |
 | `status()` | `danger`, `warning`, `success` |
 | `space()` | `xs`, `s`, `m`, `l`, `xl`, `xxl` |
@@ -30,7 +30,7 @@ Every component takes the theme as its first parameter. There is no global theme
 | `size()` | `control`, `field`, `icon`, `checkbox`, `stroke`, … |
 | `motion()` | `feedback`, `move`, `fade` springs; tooltip and submenu delays; how long a toast stays |
 | `elevation()` | Shadows of `card`, `popup`, `dialog` |
-| `grid()`, `scrollbars()`, `code()`, `prose()`, `badge()`, `caption()`, `danger()` | The tokens of the grid, scrollbars, code editor, Markdown, badges, the close button and buttons that destroy (`Theme.Danger`, `withDanger`) |
+| `grid()`, `scrollbars()`, `code()`, `prose()`, `badge()`, `caption()`, `danger()`, `callout()` | The tokens of the grid, scrollbars, code editor, Markdown, badges, the close button, buttons that destroy (`Theme.Danger`, `withDanger`) and callouts (`Theme.Callouts`, `withCallout`) |
 
 `withSurface`, `withText`, `withBorder`, `withAccent`, `withStatus`, `withSpace`, `withRadius`, `withType`, `withSize`, `withMotion`, `withGrid`, `withScrollbars`, `withCode`, `withElevation`, `withProse`, `withBadge` and `withCaption` return a changed copy.
 
@@ -65,7 +65,7 @@ The default themes are written with the colours of the kit's `Palette`, named by
 
 ## The look
 
-The look is layered: the window's background is a page, each region a card on it, controls and popups raised above. Hairlines of low contrast separate rows; buttons and popups have a slightly stronger edge, fields a strong one. The full accent fills primary buttons and what is on; its lighter edge draws the focus ring, the active tab's line and the grid's cursor. The default themes hold text to WCAG AA contrast (4.5:1) on every surface it appears on, which the kit's tests check; a theme of your own should too.
+The look is layered: the window's background is a page, each region a card on it, controls and popups raised above. In both default themes these are distinct tones: in `Theme.LIGHT` the window is a blue-grey, cards are a step lighter, bars inside a card (a tab bar, a grid's header, a footer) a step darker than the card, and controls white. Hairlines of low contrast separate rows; buttons and popups have a slightly stronger edge, fields a strong one. The full accent fills primary buttons and what is on; its lighter edge draws the focus ring, the active tab's line and the grid's cursor. The default themes hold text to WCAG AA contrast (4.5:1) on every surface it appears on, which the kit's tests check; a theme of your own should too.
 
 `Colors.over(base, overlay)` (also `Theme.over`) mixes a translucent colour into a surface as the renderer does, in linear light.
 

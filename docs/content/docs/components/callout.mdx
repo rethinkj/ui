@@ -1,6 +1,6 @@
 ---
 title: Callout
-description: A note on the raised surface with an edge and icon in the colour of its kind, and optional actions.
+description: A note on a tint of its kind's colour with a bar and an icon in that colour, and optional actions.
 ---
 
 `Callout.callout` is a note that stands out from the content around it: information, a warning, a danger or a success, with a title, a text and optional buttons, such as "Restart needed" with Restart. For a message that goes by itself, use a [Toast](/docs/components/toast); for a page with nothing to show, an [EmptyState](/docs/components/empty-state).
@@ -12,7 +12,9 @@ description: A note on the raised surface with an edge and icon in the colour of
 ```java snippet="callout"
 ```
 
-`Callout.callout(t, kind, title, text, actions...)`, with `Kind.INFO` (the strong border and an info icon), `WARNING`, `DANGER` or `SUCCESS` (`status().success()` and a check in a circle). `text` may be null.
+`Callout.callout(t, kind, title, text, actions...)`, with `Kind.INFO` (the theme's blue and an info icon), `WARNING`, `DANGER` or `SUCCESS` (`status().success()` and a check in a circle). `text` may be null.
+
+A callout is a tinted box with rounded corners and no border, with a bar 3 pixels wide in the kind's colour along its leading edge, inset from the corners. Its colours are the theme's `callout()` group (`Theme.Callouts`, `withCallout`): per kind a `CalloutTone` with the fill and the colour of the bar and the icon, the colour of the text below the title, and the bar's width. The default fills are the badges' quiet tints laid over the raised surface; the info tone stays blue when the theme's accent changes, as links do. Text, buttons and the focus ring keep their contrast on every fill, which the kit's tests check.
 
 The actions stand at the right beside the text while that leaves the text at least `size().field()` (200) wide, and below the text at the right otherwise, as in a narrow dialog. Layout decides that in every frame: the text and the actions are a row that wraps, in which the text's basis is that measure and the actions keep their widths, so the callout needs no state and no width of its own.
 
@@ -20,7 +22,7 @@ The actions stand at the right beside the text while that leaves the text at lea
 
 ## In a tree dump
 
-`role=note` with the title as label; with actions, the text and the actions are in a box of their own after the icon, the actions in a row:
+`role=note` with the title as label; its first child is the bar, without a role; with actions, the text and the actions are in a box of their own after the icon, the actions in a row:
 
-```text file="examples/src/test/resources/golden/docs/status/view.tree.txt" start="role=note" count="5"
+```text file="examples/src/test/resources/golden/docs/status/view.tree.txt" start="role=note" count="7"
 ```

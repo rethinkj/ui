@@ -180,7 +180,7 @@ class SplitTest {
             "sidebar " + Position.first(319),
             "sidebar " + Position.first(319)),
         w.log);
-    assertEquals(T.border().subtle(), line(app).fill(), "the pointer is over the editor");
+    assertEquals(T.border().divider(), line(app).fill(), "the pointer is over the editor");
   }
 
   @Test
