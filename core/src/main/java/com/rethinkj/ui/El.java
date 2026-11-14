@@ -1201,14 +1201,23 @@ public final class El {
    * an ellipsis; without it the text ends with that line. A single-line field that {@link
    * #wrapText wraps} is as high as its lines up to this many; while it has the focus its last line
    * runs on without the ellipsis and scrolls with the caret. The tree dump shows the whole string.
+   * A {@link #multiline} field has {@link #lines} instead and scrolls.
    */
   public El maxLines(int count) {
     if (count < 1) {
       throw new IllegalArgumentException("maxLines must be 1 or more, was " + count);
     }
-    textOnly("maxLines").maxLines(count);
+    Text t = textOnly("maxLines");
+    if (t.multiline()) {
+      throw new IllegalStateException(MULTILINE_MAX_LINES);
+    }
+    t.maxLines(count);
     return this;
   }
+
+  private static final String MULTILINE_MAX_LINES =
+      "A multiline() field cannot have maxLines(): lines(n) says how many lines it shows, and it"
+          + " scrolls to the rest. Leave out maxLines() or multiline().";
 
   /**
    * Shapes the text with these OpenType features, in HarfBuzz's syntax, after the defaults of
@@ -1361,6 +1370,9 @@ public final class El {
       throw new IllegalStateException(
           "A masked field cannot be multiline(): a password has one line. Leave out multiline()"
               + " or masked().");
+    }
+    if (t.maxLines() > 0) {
+      throw new IllegalStateException(MULTILINE_MAX_LINES);
     }
     t.multiline(true);
     scrollArea = true;

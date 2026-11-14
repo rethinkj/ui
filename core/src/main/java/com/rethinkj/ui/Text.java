@@ -533,6 +533,10 @@ public final class Text implements Measure {
     this.maxLines = lines;
   }
 
+  int maxLines() {
+    return maxLines;
+  }
+
   /** For {@link Editor}: shows a field's string with a composition in it, or as it is with null. */
   void compose(String shown) {
     if (!Objects.equals(shown, composed)) {
