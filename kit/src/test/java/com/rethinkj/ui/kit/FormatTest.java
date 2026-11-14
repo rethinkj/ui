@@ -206,4 +206,18 @@ class FormatTest {
     String whole = "9".repeat(20_000);
     assertEquals(whole, Format.BIG_INTEGER.text(Format.BIG_INTEGER.parse(whole).value()));
   }
+
+  @Test
+  void aNumberOfAMillionDigitsIsRefusedUnread() {
+    String digits = "9".repeat(1_000_000);
+    long start = System.nanoTime();
+    for (Format<?> format :
+        List.of(Format.INTEGER, Format.LONG, Format.BIG_INTEGER, Format.DECIMAL)) {
+      assertEquals(
+          "Expected a number of at most 100000 characters", format.parse(digits).error());
+      assertFalse(format.allows(digits));
+    }
+    // Reading it would take seconds; the limit of a busy machine is far from both.
+    assertTrue(System.nanoTime() - start < 2_000_000_000L, "refused without reading the digits");
+  }
 }

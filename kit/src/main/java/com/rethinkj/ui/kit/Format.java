@@ -110,6 +110,15 @@ public final class Format<T> {
    */
   public static final int MAX_ZEROS = 4096;
 
+  /**
+   * The longest text a number is read from: a longer one is refused unread, also by {@link
+   * #allows}, since reading a million digits takes seconds on the thread that typed or pasted
+   * them.
+   */
+  public static final int MAX_NUMBER_LENGTH = 100_000;
+
+  private static final String LENGTH_MESSAGE =
+      "Expected a number of at most " + MAX_NUMBER_LENGTH + " characters";
   private static final String ZEROS_MESSAGE =
       "Expected a number whose exponent adds at most " + MAX_ZEROS + " zeros";
   private static final String DATE_MESSAGE = "Expected a date such as 2026-11-13";
@@ -124,10 +133,12 @@ public final class Format<T> {
   /** A whole number of any size, as SQL's {@code numeric} without a fraction. */
   public static final Format<BigInteger> BIG_INTEGER = new Format<>(
       BigInteger::toString,
-      text -> WHOLE.matcher(text).matches()
-          ? Parsed.of(new BigInteger(text))
-          : Parsed.error(WHOLE_MESSAGE),
-      text -> WHOLE_TYPED.matcher(text).matches(),
+      text -> text.length() > MAX_NUMBER_LENGTH
+          ? Parsed.error(LENGTH_MESSAGE)
+          : WHOLE.matcher(text).matches()
+              ? Parsed.of(new BigInteger(text))
+              : Parsed.error(WHOLE_MESSAGE),
+      text -> text.length() <= MAX_NUMBER_LENGTH && WHOLE_TYPED.matcher(text).matches(),
       DataType.INTEGER,
       List.of(),
       false,
@@ -150,13 +161,17 @@ public final class Format<T> {
   public static final Format<BigDecimal> DECIMAL = new Format<>(
       BigDecimal::toPlainString,
       text -> {
+        if (text.length() > MAX_NUMBER_LENGTH) {
+          return Parsed.error(LENGTH_MESSAGE);
+        }
         if (!NUMBER.matcher(text).matches()) {
           return Parsed.error(NUMBER_MESSAGE);
         }
         BigDecimal value = decimal(text);
         return value == null ? Parsed.error(ZEROS_MESSAGE) : Parsed.of(value);
       },
-      text -> NUMBER_TYPED.matcher(text).matches()
+      text -> text.length() <= MAX_NUMBER_LENGTH
+          && NUMBER_TYPED.matcher(text).matches()
           && (!NUMBER.matcher(text).matches() || decimal(text) != null),
       DataType.DECIMAL,
       List.of(),
