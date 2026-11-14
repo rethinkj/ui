@@ -1,0 +1,1 @@
+- The find bar leaves more room between the text to find and the match count, and between the replacement and its buttons, and its switch for regular expressions shows `.*` instead of an asterisk. `Symbol.TEXT_PERIOD_ASTERISK` names that icon.
