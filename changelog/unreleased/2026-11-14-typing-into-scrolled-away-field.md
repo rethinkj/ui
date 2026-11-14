@@ -1,0 +1,1 @@
+- Fixed: text typed while a focused field's row of a virtual list was scrolled out of view, such as an open cell editor of a `DataGrid`, was lost, and Backspace and Delete did nothing. The row now comes back into view and the text, Backspace, Delete, paste, cut and undo go into the field at its caret.
