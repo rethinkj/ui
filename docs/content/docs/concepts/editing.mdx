@@ -3,11 +3,11 @@ title: Editing records
 description: A form over a record or a POJO, with drafts, rules and the server's errors kept in one Editing.
 ---
 
-An `Editing<T>` holds the edit of one value, such as a record in a dialog: the original, the edited value, the text of fields that does not parse yet (drafts), and the fields' errors. Keep it in the state while the edit lasts. Kit components take its fields as a `Prop`, so the view needs no value, draft and handler per field, and Save asks one object whether it may save. Use it for a dialog or page that edits a value and saves it; for a value that applies at once, such as a theme switch, `Prop.of` over the state is enough.
+An [`Editing<T>`](/api/com/rethinkj/ui/kit/Editing.html) holds the edit of one value, such as a record in a dialog: the original, the edited value, the text of fields that does not parse yet (drafts), and the fields' errors. Keep it in the state while the edit lasts. Kit components take its fields as a `Prop`, so the view needs no value, draft and handler per field, and Save asks one object whether it may save. Use it for a dialog or page that edits a value and saves it; for a value that applies at once, such as a theme switch, `Prop.of` over the state is enough.
 
 ## Declare the fields
 
-A `Part` says how to read one field of a value and how to write it back. Declare each once, beside the record, with the record's wither:
+A [`Part`](/api/com/rethinkj/ui/kit/Part.html) says how to read one field of a value and how to write it back. Declare each once, beside the record, with the record's wither:
 
 ```java snippet="editing-record"
 ```
@@ -44,6 +44,8 @@ The view passes each component the prop of its field and asks the editing whethe
 | `showErrors()` | Every field shows its error, also fields not edited yet, such as an empty required field: call it when Save is pressed while the edit is not valid |
 | `saved()` | The value is the new original: `changed()` is false until the next edit |
 | `prop.error(message)` | An error from the app, such as the server's refusal: shown at the field until its next edit |
+
+The rest is in the Javadoc of [`Editing`](/api/com/rethinkj/ui/kit/Editing.html) and [`Prop`](/api/com/rethinkj/ui/kit/Prop.html).
 
 A field's error is the first of: a parse error (also for a value that has none, such as null in a required field), an error set by the app, the first failing rule that names the field. `valid()` counts parse errors from the start, but a field shows its parse error only after the user edited it or the app called `showErrors()`, so a form for a new record does not open with parse errors. Errors set by the app and failing rules show at once. The component shows the error (`invalid` and `error="…"` in a dump, a danger border on a text field), and a [Form](/docs/components/form) field shows it below the control. A field that is hidden keeps its draft, and a parse error in it still makes the edit invalid.
 
