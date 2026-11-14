@@ -3,7 +3,7 @@ title: Manual
 description: A reader of Markdown documents, with the headings of the chosen one and images read off the app's thread.
 ---
 
-Manual reads Markdown documents: a navigation list of documents with the headings of the chosen one, which scroll there, and the document in a card. Its own manual shows every form the kit's [Markdown](/docs/components/markdown) supports; Markdown files given as arguments open too.
+Manual reads Markdown documents: a navigation list of documents with the headings of the chosen one, and the document in a card. Its own manual shows every form the kit's [Markdown](/docs/components/markdown) supports; Markdown files given as arguments open too.
 
 <Shot src="examples/manual-{theme}-2x-top" alt="The Manual: a list of documents and headings beside a Markdown document" />
 
@@ -11,10 +11,33 @@ Manual reads Markdown documents: a navigation list of documents with the heading
 mvn -q -pl examples -am compile exec:exec -Dexample=Manual -Dargs="README.md"
 ```
 
-## Where to look in the source
+## What to try
 
-[`Manual.java`](https://github.com/rethinkj/ui/blob/main/examples/src/main/java/com/rethinkj/ui/examples/Manual.java):
+- Choose a heading under "On this page": the document scrolls there.
+- Press a link: one to a heading scrolls there, any other shows its address in a toast.
+- Control+A in the document selects all of it, Control+C copies it.
 
-- `image` reads an image the first time a document asks for it, through `App.background`, and keeps it; until then the image shows its placeholder.
-- `link` scrolls to a heading for `#id` links (`Markdown.rowOf` and `App.scrollToRow`) and shows other addresses in a toast.
-- `changelog` builds a document from the files under `changelog/unreleased`.
+## How it works
+
+### The document
+
+Each document is parsed once with `Markdown.parse`. The view shows it with options: what a link does, the clipboard to copy to, the selection, and where its images come from.
+
+```java snippet="manual-markdown"
+```
+
+### Images read in the background
+
+`image` returns the image for an address, or null while it is not there yet; until then the document shows a placeholder. The first call reads the image with `App.background`, and the view is built again when it has arrived ([Images](/docs/concepts/images)).
+
+```java snippet="manual-images"
+```
+
+### Links and headings
+
+A link to `#id` scrolls the document to that heading: `Markdown.rowOf` finds the heading's block, and `App.scrollToRow` brings it to the top of the document's list.
+
+```java snippet="manual-links"
+```
+
+The whole app is in [`Manual.java`](https://github.com/rethinkj/ui/blob/main/examples/src/main/java/com/rethinkj/ui/examples/Manual.java).

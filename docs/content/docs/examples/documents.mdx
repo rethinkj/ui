@@ -3,7 +3,7 @@ title: Documents
 description: Five documents in tabs that move and tear off into windows, with file dialogs, drops and find.
 ---
 
-Documents is five documents in tabs that move and tear off ([TabGroups](/docs/components/tab-groups)): drag a tab along the bar, out into a window of its own that follows the pointer, and over any bar to put it there. File › Open… and Save As… use the system's file dialogs; files dragged from a file manager open in new tabs; each document has a find bar.
+Documents is five documents in tabs that move and tear off into windows of their own ([TabGroups](/docs/components/tab-groups)). It opens and saves files through the system's file dialogs and opens files dropped from a file manager.
 
 <Shot src="examples/documents-docking" light="examples/documents-light-docking" alt="A tab dragged over a bar, with the marker where it will dock" />
 
@@ -15,11 +15,44 @@ Documents is five documents in tabs that move and tear off ([TabGroups](/docs/co
 mvn -q -pl examples -am compile exec:exec -Dexample=Documents
 ```
 
-## Where to look in the source
+## What to try
 
-[`Documents.java`](https://github.com/rethinkj/ui/blob/main/examples/src/main/java/com/rethinkj/ui/examples/Documents.java):
+- Drag a tab along the bar, out of the window, and over the bar of another window.
+- File › Open… and File › Save As… (Control+O, Control+Shift+S).
+- Drag files from a file manager onto a window: each opens in a new tab.
+- Control+F in a document opens its find bar.
 
-- `groups` is the `TabGroups`, `open` its opener, and `view(group, window)` the view of every window.
-- `openFiles` and `saveAs` use `App.fileDialog`; `read` reads the files off the app's thread and shows a toast for one that cannot be read.
-- `drop` takes files and text dropped from other applications (`El.onFileDrop`).
-- `main` starts the window through `SystemDialogs.reportFailure`, which shows a failure in a message box.
+## How it works
+
+### One TabGroups for every window
+
+The documents are the tabs of one `TabGroups`. Its second argument is the opener, which it calls for the window of a new group: a tab torn off, or moved to a new window from its menu.
+
+```java snippet="documents-groups"
+```
+
+The opener opens a window with a new `App` over the same state, whose view shows that group ([Several windows](/docs/concepts/windows)):
+
+```java snippet="documents-window"
+```
+
+Every window's view asks the groups for its tabs: how a document shows in the bar, and its content, or an empty state for a group without tabs.
+
+```java snippet="documents-tabs"
+```
+
+### File dialogs
+
+File › Open… shows the system's file dialog through `App.fileDialog`; its handler gets the chosen paths, which `read` reads off the app's thread ([Platform](/docs/concepts/platform)).
+
+```java snippet="documents-open"
+```
+
+### Drops from other applications
+
+Each window's root takes drops with `onFileDrop`. While a drag is over the window, its tabs' card shows that it takes it; a drop of files reads them into new tabs, and a drop of text becomes a tab of its own. Text dropped onto a document's editor is pasted into that document instead and never reaches the root.
+
+```java snippet="documents-drop"
+```
+
+The whole app is in [`Documents.java`](https://github.com/rethinkj/ui/blob/main/examples/src/main/java/com/rethinkj/ui/examples/Documents.java).

@@ -3,7 +3,7 @@ title: Showcase
 description: Every component of the kit in the arrangements a database tool has them in, one section at a time.
 ---
 
-Showcase shows every component of the kit, a section at a time: buttons, fields, menus and dialogs, the data grid, the tree, tabs and splits as the frame of a database tool, a table's details, the code editor, progress, the text styles, every colour token, the contrast of each colour on each background, and the icons. A select switches between the two themes or follows the system.
+Showcase shows every component of the kit, a section at a time: buttons, fields, menus and dialogs, the data grid, the tree, tabs and splits as the frame of a database tool, a table's details, the code editor, progress, the text styles, every colour token, the contrast of each colour on each background, and the icons.
 
 <Shot src="kit/frame-{theme}-2x" alt="The frame of a database tool: a schema beside queries in tabs, an editor over its results" />
 
@@ -11,6 +11,22 @@ Showcase shows every component of the kit, a section at a time: buttons, fields,
 mvn -q -pl examples -am compile exec:exec -Dexample=Showcase
 ```
 
-## Where to look in the source
+## What to try
 
-[`Showcase.java`](https://github.com/rethinkj/ui/blob/main/examples/src/main/java/com/rethinkj/ui/examples/Showcase.java) holds the state and the frame; [`Sections.java`](https://github.com/rethinkj/ui/blob/main/examples/src/main/java/com/rethinkj/ui/examples/Sections.java) one method per section. It is the place to see how a component is meant to be combined with others, for instance the context menu on a list of saved queries, the rename dialog, or the grid with a filter bar in a flush card.
+- Choose a section in the list at the left.
+- Switch the theme with the select below it: Dark, Light, or System, which follows the system.
+- Control+Shift+P opens the command palette.
+
+## How it works
+
+[`Showcase.java`](https://github.com/rethinkj/ui/blob/main/examples/src/main/java/com/rethinkj/ui/examples/Showcase.java) is the state: what the controls of every section show. Its view puts a [NavList](/docs/components/nav-list) of the sections and the theme's [Select](/docs/components/select) in a card at the left:
+
+```java snippet="showcase-sidebar"
+```
+
+[`Sections.java`](https://github.com/rethinkj/ui/blob/main/examples/src/main/java/com/rethinkj/ui/examples/Sections.java) has one method per section. `section` picks the chosen one and puts it under its title in an area that scrolls:
+
+```java snippet="showcase-section"
+```
+
+To see how a component combines with others, look at its section's method: for instance the context menu on a list of saved queries in `menus`, or the grid with a filter bar in a flush card in `grid`.

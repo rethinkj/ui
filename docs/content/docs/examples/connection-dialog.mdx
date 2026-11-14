@@ -3,7 +3,7 @@ title: ConnectionDialog
 description: The dialog in which a database tool asks where to connect, as a window of its own.
 ---
 
-ConnectionDialog is a window that is a dialog: host, port, a database as a free combo box with suggestions, user and a password field with a button that shows it, built with [Form](/docs/components/form). Enter connects, as a dialog's default button.
+ConnectionDialog is a window that is a dialog: a [Form](/docs/components/form) of host, port, database, user and password, with Connect as its default button.
 
 <Shot dark="examples/connection-dark" light="examples/connection-light" alt="A connection form with its fields filled, the password shown and the database focused" />
 
@@ -11,6 +11,39 @@ ConnectionDialog is a window that is a dialog: host, port, a database as a free 
 mvn -q -pl examples -am compile exec:exec -Dexample=ConnectionDialog
 ```
 
-## Where to look in the source
+## What to try
 
-[`ConnectionDialog.java`](https://github.com/rethinkj/ui/blob/main/examples/src/main/java/com/rethinkj/ui/examples/ConnectionDialog.java): `view` binds the fields through `Editing`; `ready` enables Connect; the root takes Enter with `Dialog.enterPresses`. The port's `ValueField` uses the same format as Settings: a whole number from 1 to 65535.
+- Fill in the fields: Connect stays disabled until host, port, database and user are there.
+- Type a port other than 5432 and connect: the port's field says no server answers.
+- Enter `postgres` as the user with a host other than `localhost`: the user's field says that it connects only to localhost.
+- Press Enter in a field to connect.
+
+## How it works
+
+### A window that is a dialog
+
+`main` opens a small frameless window; the view draws its own [TitleBar](/docs/components/title-bar) ([Platform](/docs/concepts/platform)).
+
+```java snippet="connection-dialog-window"
+```
+
+### The edit and its rules
+
+The form edits a `Profile` record through an `Editing`, which keeps the fields' text and errors ([Editing](/docs/concepts/editing)). A rule across two fields shows its message at the user's field; Connect is ready when the edit is valid, changed and complete. A failed connection puts an error on the port's field.
+
+```java snippet="connection-dialog-editing"
+```
+
+### The form
+
+`e.at(Profile.HOST)` is the part of the edit that a field edits. The port is an `Integer` in a `ValueField`, the database a free [ComboBox](/docs/components/combo-box) with suggestions, and the password a field with a button that shows it ([TextField](/docs/components/text-field)). A button without a handler is disabled.
+
+```java snippet="connection-dialog-form"
+```
+
+The root takes Enter with `Dialog.enterPresses(connect)`: Enter in a single-line field presses Connect, while a focused button or checkbox presses itself.
+
+```java snippet="connection-dialog-enter"
+```
+
+The whole app is in [`ConnectionDialog.java`](https://github.com/rethinkj/ui/blob/main/examples/src/main/java/com/rethinkj/ui/examples/ConnectionDialog.java).

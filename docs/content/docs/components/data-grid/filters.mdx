@@ -5,6 +5,8 @@ description: A filter in each header cell, a bar of removable filters, and the a
 
 `options().filters(filters, onFilter)` puts a funnel in each header cell that opens a popover to filter by that column: text that contains, starts with, equals or matches; a range or a value for numbers, dates and times; the values to keep for a boolean or a column with choices; NULL or not for any. The grid filters nothing itself: the app gets `DataGrid.Filter` records, applies them (in SQL, or with `Filter.matches`) and gives them back.
 
+Javadoc: [`DataGrid.Filter`](/api/com/rethinkj/ui/kit/DataGrid.Filter.html).
+
 <Shot src="kit/filter-{theme}-popover" alt="The filter popover of a text column, open below its header" />
 
 ## Example
