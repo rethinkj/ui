@@ -62,7 +62,8 @@ class DocsExamplesTest {
       Map.entry("tags", List.of("added")),
       Map.entry("tags-form", List.of("view")),
       Map.entry("resize", List.of("wide", "narrow")),
-      Map.entry("theming", List.of("system")));
+      Map.entry("theming", List.of("system")),
+      Map.entry("customers", List.of("loaded", "invalid", "saved")));
 
   /** An example: its app in a theme and the size of its window for the default script. */
   record Example(Function<Theme, App<?>> app, int width, int height) {}
@@ -226,6 +227,16 @@ class DocsExamplesTest {
             },
             420,
             200));
+    all.put(
+        "customers",
+        new Example(
+            t -> {
+              App<Customers> app = Customers.app();
+              app.state().t = t;
+              return app;
+            },
+            760,
+            460));
     return all;
   }
 

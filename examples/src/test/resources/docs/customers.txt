@@ -1,0 +1,78 @@
+# docs:start customers-script
+size 760 460
+frame
+snap loading            # the first load runs: a line under the toolbar
+await                   # waits for the load and queues its answer
+frame
+advance 0.3             # new content fades in on the app's clock
+frame
+snap failed             # the made-up server fails its first call
+
+press role=button label="Try again"
+frame
+press role=option label="Notes"   # leaving cancels the load
+frame
+advance 0.3
+frame
+press #notes
+type "Call Ada about the invoice"
+frame
+press role=option label="Customers"   # back: the list loads again
+frame
+press role=button label="Reload"      # cancels that load and starts another
+frame
+await
+frame
+advance 0.3
+frame
+press #cell-2-0         # Grace Hopper
+frame
+press role=option label="Notes"
+frame
+advance 0.3
+frame
+snap notes              # the notes are still there
+press role=option label="Customers"
+frame
+advance 0.3
+frame
+snap loaded             # the list did not load again, and Grace Hopper is still selected
+
+press role=button label="New customer"
+frame
+advance 0.3
+frame
+press #email
+type "ada@example.com"
+press #company
+frame
+press role=button label="Save"   # not valid: showErrors shows the empty name too
+frame
+advance 0.3
+frame
+snap invalid
+
+press #name
+type "Babbage Instruments"
+press #vat
+type "GB555000111"
+frame
+press role=button label="Save"
+frame
+snap saving             # Save is busy until the server answers
+await
+frame
+snap refused            # the server's refusal at the email
+
+press #email
+key A control
+type "office@babbage.example"
+frame
+press role=button label="Save"
+frame
+await
+frame
+advance 0.3
+frame
+snap saved              # the dialog closed, the new row and the toast
+# docs:end customers-script
