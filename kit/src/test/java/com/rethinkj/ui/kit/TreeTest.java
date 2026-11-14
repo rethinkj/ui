@@ -705,6 +705,103 @@ class TreeTest {
     return Integer.parseInt(m.group(1));
   }
 
+  // Long labels
+
+  private static final String LONG = "a_name_far_too_long_for_a_narrow_tree_of_a_database_tool";
+
+  /**
+   * Long labels at levels 1 and 5, with and without a detail, and a loading row of a long text.
+   * Nodes are paths; the leaves {@code …plain} and {@code …detailed} have the long label, the
+   * second a detail too.
+   */
+  private static final class LongNames implements Tree.Model<String> {
+    final java.util.Set<String> open = new java.util.HashSet<>(
+        List.of("deep", "deep/two", "deep/two/three", "deep/two/three/four", "waiting"));
+
+    @Override
+    public List<String> roots() {
+      return List.of("plain", "detailed", "deep", "waiting");
+    }
+
+    @Override
+    public List<String> children(String node) {
+      return switch (node) {
+        case "deep" -> List.of("deep/two");
+        case "deep/two" -> List.of("deep/two/three");
+        case "deep/two/three" -> List.of("deep/two/three/four");
+        case "deep/two/three/four" ->
+          List.of("deep/two/three/four/plain", "deep/two/three/four/detailed");
+        default -> null;
+      };
+    }
+
+    @Override
+    public boolean isLeaf(String node) {
+      return node.endsWith("plain") || node.endsWith("detailed");
+    }
+
+    @Override
+    public String label(String node) {
+      return node.endsWith("plain") || node.endsWith("detailed") ? LONG : node;
+    }
+
+    @Override
+    public String detail(String node) {
+      return node.endsWith("detailed") ? "varchar(320)" : null;
+    }
+
+    @Override
+    public String loading(String node) {
+      return "Loading the databases of a server far away, which takes a while";
+    }
+  }
+
+  @ParameterizedTest
+  @ValueSource(ints = {150, 200, 320})
+  void aLongLabelEndsInAnEllipsisAndShowsWholeInATooltip(int width) throws IOException {
+    LongNames model = new LongNames();
+    App<LongNames> app = new App<>(
+        model,
+        m -> col()
+            .wFull()
+            .hFull()
+            .child(Tree.tree(T, m, m.open::contains, null, s -> {}, null, null)
+                .key("tree")
+                .grow(1)));
+    run(app, "size " + width + " 300\nframe");
+    // Rows 0 and 1 at level 1, 6 and 7 at level 5, 9 the loading row below waiting.
+    for (int row : new int[] {0, 1, 6, 7, 9}) {
+      El el = find(app, "row-" + row);
+      String text = row == 9 ? model.loading("waiting") : LONG;
+      El name = textOf(el, text);
+      assertTrue(name.text().shortened(), width + ": row " + row);
+      String tip = row == 1 || row == 7 ? LONG + " varchar(320)" : text;
+      run(app, "leave\nframe\nmove #row-" + row + "\nframe\nadvance 1\nframe");
+      assertTrue(
+          app.tree().dump().contains("role=tooltip label=\"" + tip + "\""),
+          width + ": row " + row + "\n" + app.tree().dump());
+    }
+    assertTrue(dumpLine(app, "row-6").contains(" level=5 "), dumpLine(app, "row-6"));
+    // A short label is not cut and has no tooltip.
+    run(app, "leave\nframe\nmove #row-2\nframe\nadvance 1\nframe");
+    assertFalse(textOf(find(app, "row-2"), "deep").text().shortened());
+    assertFalse(app.tree().dump().contains("role=tooltip"), app.tree().dump());
+  }
+
+  /** The text element inside {@code el} whose string is {@code string}. */
+  private static El textOf(El el, String string) {
+    if (el.text() != null && string.equals(el.text().string())) {
+      return el;
+    }
+    for (El child : el.children()) {
+      El found = textOf(child, string);
+      if (found != null) {
+        return found;
+      }
+    }
+    return null;
+  }
+
   // Images
 
   @ParameterizedTest

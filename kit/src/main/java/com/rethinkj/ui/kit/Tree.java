@@ -56,7 +56,9 @@ import java.util.function.Predicate;
  * have children has a mark with the key {@code mark-<index>}, which shows the {@link Icon} {@link
  * #CLOSED} while it is closed and {@link #OPEN} while it is open; the marks need the icon font,
  * {@code rethinkj-ui-icons}. The row that stands for children not known yet has the key {@code
- * row-<index>} too, but no role, and shows the model's {@link Model#loading} text.
+ * row-<index>} too, but no role, and shows the model's {@link Model#loading} text. A label or a
+ * loading text longer than its row ends in an ellipsis, and a tooltip after the theme's delay
+ * shows it whole.
  */
 public final class Tree {
 
@@ -156,9 +158,9 @@ public final class Tree {
           .gap(t.space().s())
           .align(Style.Align.CENTER);
       if (node == null) { // the children of the row's parent are not known yet
-        return r.children(
-            el().w(indent).shrink(0),
-            Label.label(t, Label.Variant.MUTED, model.loading(rows.parent(i))));
+        String text = model.loading(rows.parent(i));
+        El loading = Label.label(t, Label.Variant.MUTED, text).ellipsis().minSize(0, 0);
+        return whole(t, r.children(el().w(indent).shrink(0), loading), loading, null, text, height);
       }
       boolean leaf = model.isLeaf(node);
       boolean open = !leaf && isOpen.test(node);
@@ -194,7 +196,8 @@ public final class Tree {
       }
       String detail = model.detail(node);
       if (detail == null) {
-        r.child(Label.label(t, label));
+        El name = Label.label(t, label).ellipsis().minSize(0, 0);
+        whole(t, r.child(name), name, null, label, height);
       } else {
         detail(t, r.value(detail), label, detail, height);
       }
@@ -249,8 +252,7 @@ public final class Tree {
    * data grid's header gives way with its type: the label keeps its width up to the box's, the
    * detail shrinks to an ellipsis after its first character and below that wraps to a second line,
    * which the box clips away. A zero-width strut as high as the row makes the first line that high,
-   * so that both texts sit in its middle. The tooltip names both where either is cut or gone,
-   * which only layout knows, and the looks of rows run after it.
+   * so that both texts sit in its middle. The tooltip names both where either is cut or gone.
    */
   private static void detail(Theme t, El row, String label, String detail, float height) {
     El name = Label.label(t, label).ellipsis().minSize(0, 0).shrink(0);
@@ -272,9 +274,22 @@ public final class Tree {
         .clip()
         .children(el().size(0, height), name, more);
     box.style().alignContent = Style.Content.START;
-    row.child(box).whenHoveredFor(t.motion().tooltipDelay(), e -> {
-      if (name.text().shortened() || more.text().shortened() || more.y() >= height) {
-        e.overlay(Tooltip.panel(t, label + " " + detail));
+    whole(t, row.child(box), name, more, label + " " + detail, height);
+  }
+
+  /**
+   * Gives a row a tooltip with its whole text, shown after the theme's delay where its name ends
+   * in an ellipsis or its detail is cut or wrapped away, which only layout knows; the looks of
+   * rows run after it. One look, no element, for every kind of row.
+   *
+   * @param more the detail after the name, or null for none
+   * @return the row
+   */
+  private static El whole(Theme t, El row, El name, El more, String text, float height) {
+    return row.whenHoveredFor(t.motion().tooltipDelay(), e -> {
+      if (name.text().shortened()
+          || more != null && (more.text().shortened() || more.y() >= height)) {
+        e.overlay(Tooltip.panel(t, text));
       }
     });
   }
