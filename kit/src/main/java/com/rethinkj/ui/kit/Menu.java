@@ -11,6 +11,7 @@ import com.rethinkj.ui.El;
 import com.rethinkj.ui.Key;
 import com.rethinkj.ui.Side;
 import com.rethinkj.ui.Style;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -96,6 +97,8 @@ public final class Menu {
    * @param leading builds what stands before the text in place of the icon, or null; see {@link
    *     #leading(Function)}
    * @param dangerous whether the item destroys something; see {@link #danger()}
+   * @param moreKeys further key combinations that choose the item as {@code keys} does, not
+   *     shown; see {@link #alsoShortcut(int, String)}
    */
   public record Item(
       String label,
@@ -106,7 +109,26 @@ public final class Menu {
       Runnable onChoose,
       List<Item> submenu,
       Function<Theme, El> leading,
-      boolean dangerous) {
+      boolean dangerous,
+      List<Key> moreKeys) {
+
+    public Item {
+      moreKeys = moreKeys == null ? List.of() : List.copyOf(moreKeys);
+    }
+
+    /** An item without further key combinations, as items were before they could have them. */
+    public Item(
+        String label,
+        String shortcut,
+        Key keys,
+        boolean checked,
+        Symbol icon,
+        Runnable onChoose,
+        List<Item> submenu,
+        Function<Theme, El> leading,
+        boolean dangerous) {
+      this(label, shortcut, keys, checked, icon, onChoose, submenu, leading, dangerous, null);
+    }
 
     /** An item without a leading element, as items were before they could have one. */
     public Item(
@@ -127,12 +149,14 @@ public final class Menu {
      * the item is checked, the check mark stands at its end and the element before the text.
      */
     public Item leading(Function<Theme, El> leading) {
-      return new Item(label, shortcut, keys, checked, icon, onChoose, submenu, leading, dangerous);
+      return new Item(
+          label, shortcut, keys, checked, icon, onChoose, submenu, leading, dangerous, moreKeys);
     }
 
     /** This item with a text shown at its right, which only shows: no key runs the item. */
     public Item shortcut(String text) {
-      return new Item(label, text, keys, checked, icon, onChoose, submenu, leading, dangerous);
+      return new Item(
+          label, text, keys, checked, icon, onChoose, submenu, leading, dangerous, moreKeys);
     }
 
     /**
@@ -145,24 +169,54 @@ public final class Menu {
      * @param key the key's name, as {@link Key} lists them: {@code N}, {@code F5}, {@code Delete}
      */
     public Item shortcut(int modifiers, String key) {
+      Key k = combination(modifiers, key);
+      return new Item(
+          label,
+          shortcutText(k),
+          k,
+          checked,
+          icon,
+          onChoose,
+          submenu,
+          leading,
+          dangerous,
+          moreKeys);
+    }
+
+    /**
+     * This item with one more key combination that runs it, as a command has a second binding:
+     * {@code shortcut(Key.CONTROL, "Tab").alsoShortcut(Key.CONTROL, "PageDown")} shows {@code
+     * Ctrl+Tab} and runs on both. Only the first combination, that of {@link #shortcut(int,
+     * String)}, shows; without one this one does.
+     */
+    public Item alsoShortcut(int modifiers, String key) {
+      if (keys == null) {
+        return shortcut(modifiers, key);
+      }
+      List<Key> more = new ArrayList<>(moreKeys);
+      more.add(combination(modifiers, key));
+      return new Item(
+          label, shortcut, keys, checked, icon, onChoose, submenu, leading, dangerous, more);
+    }
+
+    private static Key combination(int modifiers, String key) {
       if (key.codePointCount(0, key.length()) == 1 && !key.equals(key.toUpperCase(Locale.ROOT))) {
         throw new IllegalArgumentException("A key that types a character is named by it in upper"
             + " case: \"" + key.toUpperCase(Locale.ROOT) + "\", not \"" + key + "\"");
       }
-      Key k = new Key(key, modifiers, false);
-      return new Item(
-          label, shortcutText(k), k, checked, icon, onChoose, submenu, leading, dangerous);
+      return new Key(key, modifiers, false);
     }
 
     /** This item with a check mark, or without. */
     public Item checked(boolean on) {
-      return new Item(label, shortcut, keys, on, icon, onChoose, submenu, leading, dangerous);
+      return new Item(
+          label, shortcut, keys, on, icon, onChoose, submenu, leading, dangerous, moreKeys);
     }
 
     /** This item with an icon before its text; a check mark takes its place while it is checked. */
     public Item icon(Symbol symbol) {
       return new Item(
-          label, shortcut, keys, checked, symbol, onChoose, submenu, leading, dangerous);
+          label, shortcut, keys, checked, symbol, onChoose, submenu, leading, dangerous, moreKeys);
     }
 
     /**
@@ -171,7 +225,8 @@ public final class Menu {
      * as any other item.
      */
     public Item danger() {
-      return new Item(label, shortcut, keys, checked, icon, onChoose, submenu, leading, true);
+      return new Item(
+          label, shortcut, keys, checked, icon, onChoose, submenu, leading, true, moreKeys);
     }
 
     public boolean isSeparator() {
@@ -272,10 +327,14 @@ public final class Menu {
   /** Adds the items with key combinations, those of submenus too, and refuses the same twice. */
   static void collect(List<Item> items, Map<Key, Item> into) {
     for (Item item : items) {
+      List<Key> keys = new ArrayList<>(item.moreKeys());
       if (item.keys() != null) {
-        Item before = into.putIfAbsent(item.keys(), item);
+        keys.addFirst(item.keys());
+      }
+      for (Key key : keys) {
+        Item before = into.putIfAbsent(key, item);
         if (before != null) {
-          throw new IllegalArgumentException(shortcutText(item.keys())
+          throw new IllegalArgumentException(shortcutText(key)
               + " is the shortcut of both \"" + before.label() + "\" and \"" + item.label()
               + "\"");
         }

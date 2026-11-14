@@ -151,6 +151,9 @@ class TabsTest {
     assertEquals("orders by month.sql", children.get(1).text().string());
     // The active tab's line comes first.
     assertEquals("customers.sql", find(app, "tab-0").children().get(1).text().string());
+    String dump = app.tree().dump();
+    assertTrue(StructureTest.line(dump, "#tab-1").contains(" modified"), dump);
+    assertFalse(StructureTest.line(dump, "#tab-0").contains(" modified"), dump);
   }
 
   @Test
@@ -202,7 +205,8 @@ class TabsTest {
     assertEquals(7, w.active, "back, around at the start");
     assertEquals(find(app, "filter"), app.focused(), "the field of the content keeps the focus");
     run(app, "key Tab control shift\nframe\nkey Tab control\nframe");
-    assertEquals(List.of("select 7", "select 6", "select 7"), w.log);
+    run(app, "key PageUp control\nframe\nkey PageDown control\nframe");
+    assertEquals(List.of("select 7", "select 6", "select 7", "select 6", "select 7"), w.log);
 
     run(app, "key W control\nframe");
     assertEquals("close 7", w.log.getLast());
