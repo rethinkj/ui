@@ -1,0 +1,1 @@
+- A completion taken with the caret inside a word replaces the whole word, not only its part before the caret: `ord|ers` and `orders` give `orders`, no longer `ordersers`.

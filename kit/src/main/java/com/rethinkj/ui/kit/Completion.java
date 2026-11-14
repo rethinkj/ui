@@ -24,9 +24,9 @@ import java.util.function.Predicate;
  * the state names ({@link State#openAfter}, such as the {@code .} before a column), and with
  * Control+Space; it narrows as typing goes on and closes when the word ends. The focus stays in the
  * field ({@link El#keepFocus}): Up and Down move the highlight, Enter and Tab put the highlighted
- * entry in place of the word, as one step of the undo history ({@link App#edit}), and Escape
- * closes the list, as do a press elsewhere, the wheel and the keys that move the caret sideways. A
- * press on an entry takes it.
+ * entry in place of the word, its part after the caret too, as one step of the undo history
+ * ({@link App#edit}), and Escape closes the list, as do a press elsewhere, the wheel and the keys
+ * that move the caret sideways. A press on an entry takes it.
  *
  * <pre>{@code
  * El editor = codeEditor(t, s.sql, s.editor, Sql.of(t), v -> s.sql = v);
@@ -213,11 +213,11 @@ public final class Completion {
     if (state.highlight >= entries.size()) {
       state.highlight = 0;
     }
-    int at = caret;
+    int to = CodeWords.end(text, caret); // the whole word, also its part after the caret
     Consumer<Integer> take = i -> {
       state.close();
       String chosen = entries.get(i).insert();
-      app.edit(field, from, at, chosen, from + chosen.length());
+      app.edit(field, from, to, chosen, from + chosen.length());
     };
     Consumer<String> onEdit = field.onEdit();
     if (onEdit != null) {

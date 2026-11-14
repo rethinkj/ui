@@ -135,6 +135,10 @@ class CompletionTest {
     assertTrue(tree.contains("label=\"select\"") && tree.contains("label=\"status\""), tree);
     run(app, "press #option-1");
     assertEquals("SELECT status", app.state().sql);
+    run(
+        app,
+        "key ArrowLeft\nkey ArrowLeft\nkey ArrowLeft\nframe\nkey Space control\nframe\nkey Enter");
+    assertEquals("SELECT status", app.state().sql, "the whole word, not SELECT statustus");
 
     tree = run(app, "type \" co\"\nframe\ntype \"u\"\nframe\nkey ArrowLeft");
     assertFalse(tree.contains("role=listbox"), "moving the caret sideways closes it");
