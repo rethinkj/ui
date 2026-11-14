@@ -2565,6 +2565,7 @@ public final class App<S> {
     if (rowsPending) {
       caretOverlays =
           Overlays.place(root, width, height); // as fillRows does: the focus may be in one
+      timeOverlays(true);
       refocus();
       return;
     }
@@ -2948,10 +2949,22 @@ public final class App<S> {
    * time, and each that closes, leaves or is made invisible by the view forgets it.
    */
   private void timeOverlays() {
-    untimed = false;
+    timeOverlays(false);
+  }
+
+  /**
+   * @param rowsPending whether the rows of the tree are still to be built ({@link #rowsPending}):
+   *     those of its rows' overlays are kept, and the tree is timed again once they are there. A
+   *     rebuild between two inputs of one frame times the tree too, so that an overlay that one of
+   *     them closes and the next opens again is a new opening.
+   */
+  private void timeOverlays(boolean rowsPending) {
+    untimed = rowsPending;
     Set<Object> open = new HashSet<>();
     timeOverlays(root, open);
-    shownSince.keySet().retainAll(open);
+    shownSince
+        .keySet()
+        .removeIf(id -> !open.contains(id) && !(rowsPending && animator.inRow(id) != null));
   }
 
   private void timeOverlays(El el, Set<Object> open) {

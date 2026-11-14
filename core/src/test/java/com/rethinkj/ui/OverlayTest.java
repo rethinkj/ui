@@ -1286,6 +1286,40 @@ class OverlayTest {
   }
 
   @Test
+  void anOverlayClosedAndOpenedAgainBetweenTwoInputsOfAFrameIsANewOpening() {
+    class State {
+      boolean open = true;
+      int fired;
+      int rowFired;
+    }
+    State state = new State();
+    App<State> app = app(
+        state,
+        s -> el().size(100, 100)
+            .overlay(s.open ? el().key("toast").size(30, 30).onShownFor(1, () -> s.fired++) : null)
+            .child(el().size(100, 100)
+                .rows(
+                    1,
+                    20,
+                    i -> el().overlay(
+                            el().key("tip").size(30, 20).onShownFor(1, () -> s.rowFired++)))),
+        100,
+        100);
+    app.advance(0.75);
+    app.post(() -> state.open = false);
+    app.post(() -> state.open = true);
+    app.frame();
+    assertEquals(2, app.tree().shownOverlays().size());
+    app.advance(0.35);
+    app.frame();
+    assertEquals(0, state.fired, "the second opening has been shown for 0.35 seconds");
+    assertEquals(1, state.rowFired, "a row's overlay stayed open while the rows were not built");
+    app.advance(0.65);
+    app.frame();
+    assertEquals(1, state.fired);
+  }
+
+  @Test
   void aPressKeepsTheDelayedLookOfThePointerAwayAlsoInTheFrameThePointerCameIn() {
     for (boolean apart : new boolean[] {false, true}) {
       App<Object> app = app(
