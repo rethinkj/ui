@@ -45,7 +45,7 @@ Without the native libraries, build with `-P '!natives-linux-x64'` (or `'!native
 
 ## Loading
 
-On first use the libraries are unpacked from the natives JAR into a per-user cache, in a folder named after their hashes: `%LOCALAPPDATA%\rethinkj-ui\natives\` on Windows, `$XDG_CACHE_HOME/rethinkj-ui/natives/` (by default `~/.cache`) on Linux. `rethinkj.ui.natives.cache` unpacks elsewhere; `rethinkj.ui.natives.dir` loads from a folder that holds the libraries and their `manifest.txt` without unpacking, for packaged apps.
+On first use the libraries are unpacked from the natives JAR into a per-user cache, in a folder named after their hashes: `%LOCALAPPDATA%\rethinkj-ui\natives\` on Windows, `$XDG_CACHE_HOME/rethinkj-ui/natives/` (by default `~/.cache`) on Linux. Each file is checked against its hash when it is unpacked; at later starts a cached file of the right size is used without reading it, and one of another size is unpacked again. `rethinkj.ui.natives.cache` unpacks elsewhere; `rethinkj.ui.natives.dir` loads from a folder that holds the libraries and their `manifest.txt` without unpacking, for packaged apps.
 
 Native access must be enabled: `--enable-native-access=ALL-UNNAMED` on the class path, `--enable-native-access=com.rethinkj.ui` on the module path, where the natives module also needs `--add-modules com.rethinkj.ui.natives.linux.x64` (or `windows.x64`).
 

@@ -18,6 +18,15 @@ description: A multi-line editor for code with line numbers, highlighting, brack
 - Passing `app` gives the editor its find bar and its commands, which edit through the app as single steps of the undo history. Without it (`codeEditor(t, value, state, highlighter, onChange)`) the editor has neither.
 - `.lines(n)` makes it `n` lines high; give it a width or let it grow.
 
+## In a card
+
+The editor has the frame of a text field, which inside a card that is framed already makes a box in a box. `CodeEditor.embedded(t, editor)` gives it the look of the card's body instead: as wide as the card, without corners or a frame of its own, and with a hairline along its top in place of a divider. That line takes the accent's colour while the editor has the focus; the keyboard's focus ring lies just inside the editor. Put it into a [flush card](/docs/components/card), below the card's toolbar or header, or into a panel that frames it; keep the framed editor where it stands among other fields.
+
+<Shot src="kit/code-editor-embedded-dark-2x-focused" alt="An SQL editor that fills a card below its title, with a blue line between the title and the code" />
+
+```java snippet="code-editor-embedded"
+```
+
 ## The state
 
 Positions are indexes into the string as the editor shows it, in which a carriage return with or without a line feed after it, U+2028 and U+2029 are each one line feed; the editor hands the app that string at the first edit.

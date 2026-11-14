@@ -1,0 +1,279 @@
+el 0,0 400x180
+  el #orders role=grid label="Orders" 8,8 384x164 scroll 756,0 thumb-x 262,164 128x6
+    el #content -748,8 1140x164
+      el #header -748,8 1140x25
+        el #column-2 role=columnheader label="customer" -498,8 139x24 pos=3/8
+          text label="text_case_title" "\u{ECEC}" -494,12 16x16
+          el -474,12 86x16
+            text "customer" -474,12 59x16
+            text "text" -411,12 23x16
+        el -359,8 1x24
+        el #column-3 role=columnheader label="paid" -358,8 79x24 pos=4/8
+          text label="checkbox_checked" "\u{F27C}" -354,12 16x16
+          el -334,12 51x16
+            text "paid" -334,12 27x16
+            text "boolean" -303,12 20x16
+        el -279,8 1x24
+        el #column-4 role=columnheader label="status" -278,8 129x24 pos=5/8
+          text label="tag" "\u{EC70}" -274,12 16x16
+          el -254,12 101x16
+            text "status" -254,12 38x16
+            text "order_status" -212,12 59x16
+        el -149,8 1x24
+        el #column-5 role=columnheader label="amount" -148,8 99x24 pos=6/8
+          text label="calculator" "\u{F06B}" -144,12 16x16
+          el -124,12 71x16
+            text "amount" -124,12 47x16
+            text "numeric(10,2)" -73,12 20x16
+        el -49,8 1x24
+        el #column-6 role=columnheader label="created_at" -48,8 189x24 pos=7/8
+          text label="calendar_clock" "\u{E243}" -44,12 16x16
+          el -24,12 145x16
+            text "created_at" -24,12 65x16
+            text "timestamptz" 45,12 76x16
+        el 141,8 1x24
+        el #column-7 role=columnheader label="note" 142,8 239x24 pos=8/8
+          text label="text_case_title" "\u{ECEC}" 146,12 16x16
+          el 166,12 55x16
+            text "note" 166,12 28x16
+            text "text" 198,12 23x16
+        el 381,8 1x24
+        el #resize-2 role=separator label="Resize customer" -361,8 6x24
+        el #resize-3 role=separator label="Resize paid" -281,8 6x24
+        el #resize-4 role=separator label="Resize status" -151,8 6x24
+        el #resize-5 role=separator label="Resize amount" -51,8 6x24
+        el #resize-6 role=separator label="Resize created_at" 139,8 6x24
+        el #resize-7 role=separator label="Resize note" 379,8 6x24
+        el #numbers 8,8 57x24
+        el 65,8 1x24
+        el #column-0 role=columnheader label="id" 66,8 63x24 pos=1/8 sort=ascending
+          el 80,14 12x12
+            text label="arrow_up" "\u{E12A}" 80,14 12x12
+          text label="key" "\u{E740}" 94,12 16x16
+          text "id" 114,12 11x16
+        el 129,8 1x24
+        el #column-1 role=columnheader label="customer_id" 130,8 127x24 pos=2/8
+          text label="link" "\u{F4E3}" 134,12 16x16
+          el 154,12 99x16
+            text "customer_id" 154,12 76x16
+            text "integer" 234,12 19x16
+        el 257,8 1x24
+        el #resize-0 role=separator label="Resize id" 127,8 6x24
+        el #resize-1 role=separator label="Resize customer_id" 255,8 6x24
+      el #rows -748,33 1140x139 rows 999991-999999/1000000 scroll 0,23999871 thumb-y 384,136 6x24
+        el #row-999991 role=row -748,-54 1140x24 pos=999992/1000000
+          el #cell-999991-4 role=gridcell -278,-54 129x23 pos=5/8
+            text label="record" "\u{F660}" -274,-50 16x16
+            text "pending" -254,-50 50x15
+          el -149,-54 1x23
+          el #cell-999991-5 role=gridcell -148,-54 99x23 pos=6/8
+            text "-58.83" -96,-50 43x16
+          el -49,-54 1x23
+          el #cell-999991-6 role=gridcell -48,-54 189x23 pos=7/8
+            text "2029-03-28 00:12:07" -44,-50 138x16
+          el 141,-54 1x23
+          el #cell-999991-7 role=gridcell 142,-54 239x23 pos=8/8
+            text "Customer asked to split the delivery into two parcels and to leave them next door" 146,-50 231x15
+          el 381,-54 1x23
+          el #number-999991 role=rowheader 8,-54 57x23
+            text "999992" 18,-50 43x16
+          el 65,-54 1x23
+          el #cell-999991-0 role=gridcell 66,-54 63x23 pos=1/8
+            text "999992" 82,-50 43x16
+          el 129,-54 1x23
+          el #cell-999991-1 role=gridcell 130,-54 127x23 pos=2/8
+            text label="link" "\u{F4E3}" 204,-50 16x16
+            text "-862" 224,-50 29x16
+          el 257,-54 1x23
+        el #row-999992 role=row -748,-30 1140x24 pos=999993/1000000
+          el #cell-999992-4 role=gridcell -278,-30 129x23 pos=5/8
+            text label="record" "\u{F660}" -274,-26 16x16
+            text "paid" -254,-26 27x15
+          el -149,-30 1x23
+          el #cell-999992-5 role=gridcell -148,-30 99x23 pos=6/8
+            text "-2479.96" -111,-26 58x16
+          el -49,-30 1x23
+          el #cell-999992-6 role=gridcell -48,-30 189x23 pos=7/8
+            text "2029-03-28 00:13:44" -44,-26 138x16
+          el 141,-30 1x23
+          el #cell-999992-7 role=gridcell 142,-30 239x23 pos=8/8
+            text "NULL" 146,-26 34x15
+          el 381,-30 1x23
+          el #number-999992 role=rowheader 8,-30 57x23
+            text "999993" 18,-26 43x16
+          el 65,-30 1x23
+          el #cell-999992-0 role=gridcell 66,-30 63x23 pos=1/8
+            text "999993" 82,-26 43x16
+          el 129,-30 1x23
+          el #cell-999992-1 role=gridcell 130,-30 127x23 pos=2/8
+            text label="link" "\u{F4E3}" 197,-26 16x16
+            text "-2943" 217,-26 36x16
+          el 257,-30 1x23
+        el #row-999993 role=row -748,-6 1140x24 pos=999994/1000000
+          el #cell-999993-4 role=gridcell -278,-6 129x23 pos=5/8
+            text label="record" "\u{F660}" -274,-2 16x16
+            text "refunded" -254,-2 56x15
+          el -149,-6 1x23
+          el #cell-999993-5 role=gridcell -148,-6 99x23 pos=6/8
+            text "NULL" -82,-2 29x16
+          el -49,-6 1x23
+          el #cell-999993-6 role=gridcell -48,-6 189x23 pos=7/8
+            text "2029-03-28 00:15:21" -44,-2 138x16
+          el 141,-6 1x23
+          el #cell-999993-7 role=gridcell 142,-6 239x23 pos=8/8
+            text "NULL" 146,-2 34x15
+          el 381,-6 1x23
+          el #number-999993 role=rowheader 8,-6 57x23
+            text "999994" 18,-2 43x16
+          el 65,-6 1x23
+          el #cell-999993-0 role=gridcell 66,-6 63x23 pos=1/8
+            text "999994" 82,-2 43x16
+          el 129,-6 1x23
+          el #cell-999993-1 role=gridcell 130,-6 127x23 pos=2/8
+            text label="link" "\u{F4E3}" 211,-2 16x16
+            text "-24" 231,-2 22x16
+          el 257,-6 1x23
+        el #row-999994 role=row -748,18 1140x24 pos=999995/1000000
+          el #cell-999994-4 role=gridcell -278,18 129x23 pos=5/8
+            text label="record" "\u{F660}" -274,22 16x16
+            text "shipped" -254,22 49x15
+          el -149,18 1x23
+          el #cell-999994-5 role=gridcell -148,18 99x23 pos=6/8
+            text "-2321.22" -111,22 58x16
+          el -49,18 1x23
+          el #cell-999994-6 role=gridcell -48,18 189x23 pos=7/8
+            text "2029-03-28 00:16:58" -44,22 138x16
+          el 141,18 1x23
+          el #cell-999994-7 role=gridcell 142,18 239x23 pos=8/8
+            text "Customer asked to split the delivery into two parcels and to leave them next door" 146,22 231x15
+          el 381,18 1x23
+          el #number-999994 role=rowheader 8,18 57x23
+            text "999995" 18,22 43x16
+          el 65,18 1x23
+          el #cell-999994-0 role=gridcell 66,18 63x23 pos=1/8
+            text "999995" 82,22 43x16
+          el 129,18 1x23
+          el #cell-999994-1 role=gridcell 130,18 127x23 pos=2/8
+            text label="link" "\u{F4E3}" 197,22 16x16
+            text "-2105" 217,22 36x16
+          el 257,18 1x23
+        el #row-999995 role=row -748,42 1140x24 pos=999996/1000000
+          el #cell-999995-4 role=gridcell -278,42 129x23 pos=5/8
+            text label="record" "\u{F660}" -274,46 16x16
+            text "pending" -254,46 50x15
+          el -149,42 1x23
+          el #cell-999995-5 role=gridcell -148,42 99x23 pos=6/8
+            text "-2241.35" -111,46 58x16
+          el -49,42 1x23
+          el #cell-999995-6 role=gridcell -48,42 189x23 pos=7/8
+            text "2029-03-28 00:18:35" -44,46 138x16
+          el 141,42 1x23
+          el #cell-999995-7 role=gridcell 142,42 239x23 pos=8/8
+            text "NULL" 146,46 34x15
+          el 381,42 1x23
+          el #number-999995 role=rowheader 8,42 57x23
+            text "999996" 18,46 43x16
+          el 65,42 1x23
+          el #cell-999995-0 role=gridcell 66,42 63x23 pos=1/8
+            text "999996" 82,46 43x16
+          el 129,42 1x23
+          el #cell-999995-1 role=gridcell 130,42 127x23 pos=2/8
+            text label="link" "\u{F4E3}" 197,46 16x16
+            text "-4186" 217,46 36x16
+          el 257,42 1x23
+        el #row-999996 role=row -748,66 1140x24 pos=999997/1000000
+          el #cell-999996-4 role=gridcell -278,66 129x23 pos=5/8
+            text label="record" "\u{F660}" -274,70 16x16
+            text "paid" -254,70 27x15
+          el -149,66 1x23
+          el #cell-999996-5 role=gridcell -148,66 99x23 pos=6/8
+            text "-2162.48" -111,70 58x16
+          el -49,66 1x23
+          el #cell-999996-6 role=gridcell -48,66 189x23 pos=7/8
+            text "2029-03-28 00:20:12" -44,70 138x16
+          el 141,66 1x23
+          el #cell-999996-7 role=gridcell 142,66 239x23 pos=8/8
+            text "NULL" 146,70 34x15
+          el 381,66 1x23
+          el #number-999996 role=rowheader 8,66 57x23
+            text "999997" 18,70 43x16
+          el 65,66 1x23
+          el #cell-999996-0 role=gridcell 66,66 63x23 pos=1/8
+            text "999997" 82,70 43x16
+          el 129,66 1x23
+          el #cell-999996-1 role=gridcell 130,66 127x23 pos=2/8
+            text label="link" "\u{F4E3}" 197,70 16x16
+            text "-1267" 217,70 36x16
+          el 257,66 1x23
+        el #row-999997 role=row -748,90 1140x24 pos=999998/1000000
+          el #cell-999997-4 role=gridcell -278,90 129x23 pos=5/8
+            text label="record" "\u{F660}" -274,94 16x16
+            text "refunded" -254,94 56x15
+          el -149,90 1x23
+          el #cell-999997-5 role=gridcell -148,90 99x23 pos=6/8
+            text "-2083.61" -111,94 58x16
+          el -49,90 1x23
+          el #cell-999997-6 role=gridcell -48,90 189x23 pos=7/8
+            text "2029-03-28 00:21:49" -44,94 138x16
+          el 141,90 1x23
+          el #cell-999997-7 role=gridcell 142,90 239x23 pos=8/8
+            text "Customer asked to split the delivery into two parcels and to leave them next door" 146,94 231x15
+          el 381,90 1x23
+          el #number-999997 role=rowheader 8,90 57x23
+            text "999998" 18,94 43x16
+          el 65,90 1x23
+          el #cell-999997-0 role=gridcell 66,90 63x23 pos=1/8
+            text "999998" 82,94 43x16
+          el 129,90 1x23
+          el #cell-999997-1 role=gridcell 130,90 127x23 pos=2/8
+            text label="link" "\u{F4E3}" 197,94 16x16
+            text "-3348" 217,94 36x16
+          el 257,90 1x23
+        el #row-999998 role=row -748,114 1140x24 pos=999999/1000000
+          el #cell-999998-4 role=gridcell -278,114 129x23 pos=5/8
+            text label="record" "\u{F660}" -274,118 16x16
+            text "shipped" -254,118 49x15
+          el -149,114 1x23
+          el #cell-999998-5 role=gridcell -148,114 99x23 pos=6/8
+            text "-2004.74" -111,118 58x16
+          el -49,114 1x23
+          el #cell-999998-6 role=gridcell -48,114 189x23 pos=7/8
+            text "2029-03-28 00:23:26" -44,118 138x16
+          el 141,114 1x23
+          el #cell-999998-7 role=gridcell 142,114 239x23 pos=8/8
+            text "NULL" 146,118 34x15
+          el 381,114 1x23
+          el #number-999998 role=rowheader 8,114 57x23
+            text "999999" 18,118 43x16
+          el 65,114 1x23
+          el #cell-999998-0 role=gridcell 66,114 63x23 pos=1/8
+            text "999999" 82,118 43x16
+          el 129,114 1x23
+          el #cell-999998-1 role=gridcell 130,114 127x23 pos=2/8
+            text label="link" "\u{F4E3}" 204,118 16x16
+            text "-429" 224,118 29x16
+          el 257,114 1x23
+        el #row-999999 role=row -748,138 1140x24 pos=1000000/1000000
+          el #cell-999999-4 role=gridcell -278,138 129x23 pos=5/8
+            text label="record" "\u{F660}" -274,142 16x16
+            text "pending" -254,142 50x15
+          el -149,138 1x23
+          el #cell-999999-5 role=gridcell -148,138 99x23 pos=6/8
+            text "-1925.87" -111,142 58x16
+          el -49,138 1x23
+          el #cell-999999-6 role=gridcell -48,138 189x23 pos=7/8
+            text "2029-03-28 00:25:03" -44,142 138x16
+          el 141,138 1x23
+          el #cell-999999-7 role=gridcell 142,138 239x23 pos=8/8
+            text "NULL" 146,142 34x15
+          el 381,138 1x23
+          el #number-999999 role=rowheader 8,138 57x23
+            text "1000000" 10,142 51x16
+          el 65,138 1x23
+          el #cell-999999-0 role=gridcell 66,138 63x23 pos=1/8
+            text "1000000" 74,142 51x16
+          el 129,138 1x23
+          el #cell-999999-1 role=gridcell 130,138 127x23 pos=2/8
+            text label="link" "\u{F4E3}" 197,142 16x16
+            text "-2510" 217,142 36x16
+          el 257,138 1x23

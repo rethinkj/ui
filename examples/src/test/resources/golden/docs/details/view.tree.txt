@@ -32,19 +32,22 @@ el 0,0 520x280
     el role=button label="Export" 422,44 86x24
       text label="arrow_export_ltr" "\u{E0C6}" 435,48 16x16
       text "Export" 455,48 40x16
-  el role=list 12,76 320x72
-    el role=listitem label="Name" 12,76 320x24 value="orders"
-      text "Name" 16,80 37x16
-      text role=textbox "orders" 61,76 235x24 readonly
-      el #copy role=button label="Copy Name" 304,76 24x24
-        text label="copy" "\u{F32A}" 308,80 16x16
-    el role=listitem label="Rows" 12,100 320x24 value="1 000 000"
-      text "Rows" 16,104 37x16
-      text role=textbox "1 000 000" 61,100 235x24 readonly
-      el #copy role=button label="Copy Rows" 304,100 24x24
-        text label="copy" "\u{F32A}" 308,104 16x16
-    el role=listitem label="OID" 12,124 320x24 value="16384"
-      text "OID" 16,128 37x16
-      text role=textbox "16384" 61,124 235x24 readonly
-      el #copy role=button label="Copy OID" 304,124 24x24
-        text label="copy" "\u{F32A}" 308,128 16x16
+  el role=list 8,76 320x72
+    el role=listitem label="Name" 8,76 320x24 value="orders"
+      el 12,76 37x24
+        text "Name" 12,80 37x16
+      text role=textbox "orders" 57,76 235x24 readonly
+      el #copy role=button label="Copy Name" 300,76 24x24
+        text label="copy" "\u{F32A}" 304,80 16x16
+    el role=listitem label="Rows" 8,100 320x24 value="1 000 000"
+      el 12,100 37x24
+        text "Rows" 12,104 37x16
+      text role=textbox "1 000 000" 57,100 235x24 readonly
+      el #copy role=button label="Copy Rows" 300,100 24x24
+        text label="copy" "\u{F32A}" 304,104 16x16
+    el role=listitem label="OID" 8,124 320x24 value="16384"
+      el 12,124 37x24
+        text "OID" 12,128 37x16
+      text role=textbox "16384" 57,124 235x24 readonly
+      el #copy role=button label="Copy OID" 300,124 24x24
+        text label="copy" "\u{F32A}" 304,128 16x16

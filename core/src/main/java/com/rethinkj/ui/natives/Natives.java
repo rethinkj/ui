@@ -16,6 +16,8 @@ import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SymbolLookup;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.VarHandle;
+import java.net.URL;
+import java.net.URLConnection;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.InvalidPathException;
@@ -37,10 +39,11 @@ import java.util.function.Function;
  * rethinkj-ui-natives-<platform>}, under {@code META-INF/rethinkj-ui/natives/<platform>/}, with a
  * {@code manifest.txt} that lists them in load order with their versions and SHA-256 hashes (see
  * {@link Manifest}). On first use they are unpacked into a cache folder per user, in a subfolder
- * named after their hashes, and loaded from there by absolute path. A cached file with the right
- * hash is used as it is; one with another hash is replaced. Each file is written to a temporary
- * file and moved into place in one step, so processes that start at the same time do not disturb
- * each other.
+ * named after their hashes, and loaded from there by absolute path. Each file is written to a
+ * temporary file, checked against its hash and moved into place in one step, so processes that
+ * start at the same time do not disturb each other, and a file in place is one that was checked. A
+ * cached file of the size its library has in the JAR is therefore used as it is, without reading
+ * it; one of another size is replaced.
  *
  * <p>Two system properties change this:
  *
@@ -257,7 +260,7 @@ public final class Natives {
     }
     for (Library library : read.libraries()) {
       Path file = target.resolve(library.file());
-      if (hasHash(file, library.sha256())) {
+      if (hasSize(file, size(library))) {
         continue;
       }
       Path temporary;
@@ -304,7 +307,7 @@ public final class Natives {
     }
   }
 
-  /** Moves {@code temporary} to {@code file} in one step, replacing a file with another hash. */
+  /** Moves {@code temporary} to {@code file} in one step, replacing a file of another size. */
   private static void move(Path temporary, Path file, Library library, Path target) {
     for (int attempt = 1; ; attempt++) {
       try {
@@ -483,6 +486,34 @@ public final class Natives {
       } catch (Throwable t) {
         return ""; // only for the message
       }
+    }
+  }
+
+  /**
+   * The size of the library in the natives module, or -1 if unknown. For an entry of a JAR it comes
+   * from the JAR's directory, so no data is read.
+   */
+  private long size(Library library) {
+    URL url = resources.getResource(RESOURCES + platform + "/" + library.file());
+    if (url == null) {
+      return -1;
+    }
+    try {
+      URLConnection connection = url.openConnection();
+      // Opening the stream reads nothing yet; closing it frees what a file: URL holds open.
+      try (InputStream in = connection.getInputStream()) {
+        return connection.getContentLengthLong();
+      }
+    } catch (IOException e) {
+      return -1;
+    }
+  }
+
+  private static boolean hasSize(Path file, long size) {
+    try {
+      return size >= 0 && Files.isRegularFile(file) && Files.size(file) == size;
+    } catch (IOException e) {
+      return false;
     }
   }
 

@@ -2772,7 +2772,7 @@ public final class DataGrid {
           .key("number-" + i)
           .role("rowheader")
           .fill(fill)
-          .child(text(t, true, shown, t.text().muted()));
+          .child(number(t, shown));
       pinned.add(number);
       if (sel != null) {
         number.onPointerDown(
@@ -3506,7 +3506,29 @@ public final class DataGrid {
         .color(t.text().primary());
   }
 
-  /** The width of the row numbers: the widest number in the mono type, with the padding. */
+  /**
+   * A row's number, which never ends in an ellipsis: it keeps its width and, aligned right, takes
+   * the fraction of a pixel it may need at the window's scale from the box's left padding.
+   */
+  private static El number(Theme t, String shown) {
+    Theme.TextStyle mono = t.type().mono();
+    return El.text(shown)
+        .font(mono.font().get())
+        .fontSize(mono.size())
+        .color(t.text().muted())
+        .shrink(0);
+  }
+
+  /**
+   * The width of the row numbers: the widest number in the mono type, with the padding.
+   *
+   * <p>shortcut: measured at scale 1, as the view is built before the window's scale is known. At
+   * another scale a digit of the theme's mono type comes out up to about 0.7 px wider (just above
+   * scale 1, where advances round to whole pixels; 0.2 px at scale 2), which the left padding of
+   * {@code space().s()} takes ({@link #number}): with 4 px, 5 digits at any scale from 1 on and 20
+   * at scale 2, beyond which the first digit reaches the box's edge. Measure at the scale once
+   * the view can know it.
+   */
   private static float numbersWidth(Theme t, int rowCount) {
     Theme.TextStyle mono = t.type().mono();
     String widest = "0".repeat(String.valueOf(Math.max(rowCount, 1)).length());

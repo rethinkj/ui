@@ -16,9 +16,11 @@ import java.util.Objects;
  * muted, the values in the text's colour or in the mono font. The names' column is as wide as the
  * widest name, measured as {@link Form} measures its labels, up to {@link Theme.Sizes#field}, and
  * a longer name ends in an ellipsis. Each value is a read-only field that a press and a drag
- * select and Control+C copies, which Tab passes by; without the focus a value too long for its
- * column ends in an ellipsis, and a long one shows whole in a tooltip. With a clipboard, a copy
- * button shows at the end of the row under the pointer.
+ * select and Control+C copies, which Tab passes by; a value too long for its column wraps onto up
+ * to three lines, the row growing with it and the name staying beside the first line, and a
+ * longer one ends in an ellipsis without the focus and shows whole in a tooltip. With a
+ * clipboard, a copy button shows at the end of the row under the pointer. The rows' text lines up
+ * with what is above and below them; their hover fill reaches a little past it.
  *
  * <pre>{@code
  * Properties.properties(t, List.of(
@@ -32,6 +34,8 @@ import java.util.Objects;
  * {@link #groups} puts several under headings ({@code role=heading level=3}).
  */
 public final class Properties {
+
+  private static final int LINES = 3; // a value's lines before the ellipsis
 
   private Properties() {}
 
@@ -106,10 +110,7 @@ public final class Properties {
       out.child(col()
           .gap(t.space().xs())
           .children(
-              label(t, Label.Variant.STRONG, group.title())
-                  .role("heading")
-                  .level(3)
-                  .padding(0, t.space().s()),
+              label(t, Label.Variant.STRONG, group.title()).role("heading").level(3),
               list(t, group.properties(), column, clipboard, copied).label(group.title())));
     }
     return out;
@@ -117,7 +118,8 @@ public final class Properties {
 
   private static El list(
       Theme t, List<Property> properties, float column, Clipboard clipboard, Button.Copied copied) {
-    El list = col().role("list");
+    // The rows' padding, taken back by the margin, so that their text lines up with the heading.
+    El list = col().role("list").margin(0, -t.space().s(), 0, -t.space().s());
     for (Property p : properties) {
       list.child(entry(t, p, column, clipboard, copied));
     }
@@ -127,33 +129,36 @@ public final class Properties {
   private static El entry(
       Theme t, Property p, float column, Clipboard clipboard, Button.Copied copied) {
     Theme.TextStyle style = p.isMono() ? t.type().mono() : t.type().body();
-    El name =
-        label(t, Label.Variant.MUTED, p.name()).ellipsis().w(column).shrink(0).minSize(0, 0);
+    // The name centred beside the value's first line, as in a row one line high.
+    El name = row()
+        .h(t.size().control())
+        .shrink(0)
+        .align(Style.Align.CENTER)
+        .child(label(t, Label.Variant.MUTED, p.name()).ellipsis().w(column).minSize(0, 0));
+    // The padding leaves a line's room in a control's height: one line sits where a field of that
+    // height centres it, more lines grow the field downwards, the first beside the name.
     El value = El.text(p.value())
         .editable(v -> {})
         .readOnly()
         .skipTab()
+        .wrapText()
+        .maxLines(LINES)
         .ellipsis()
         .font(style.font().get())
         .fontSize(style.size())
         .color(t.text().primary())
         .selectionColor(t.accent().selection())
         .grow(1)
-        .minSize(0, 0)
-        .h(t.size().control());
-    // A field measures 0 wide: the same text alone says how long the value is.
-    if (width(El.text(p.value()).font(style.font().get()).fontSize(style.size()))
-        > t.size().field()) {
-      Tooltip.tooltip(t, value, p.value());
-    }
+        .minSize(0, t.size().control())
+        .padding(t.space().s(), 0);
+    Tooltip.whenShortened(t, value, p.value());
     El entry = row()
         .role("listitem")
         .label(p.name())
         .value(p.value())
-        .h(t.size().control())
         .padding(0, t.space().s())
         .gap(t.space().m())
-        .align(Style.Align.CENTER)
+        .align(Style.Align.START)
         .radius(t.radius().small())
         .children(name, value);
     if (clipboard != null) {

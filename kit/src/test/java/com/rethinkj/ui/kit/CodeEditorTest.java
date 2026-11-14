@@ -13,6 +13,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
@@ -20,7 +21,7 @@ import org.junit.jupiter.params.provider.CsvSource;
 /**
  * The kit's {@link CodeEditor} with {@link Sql}, driven by {@code code-editor.txt}, with stored
  * images: every kind of token, line numbers, the caret's line in a marked block, a pair of
- * brackets, an error underlined, and the editor scrolled to its end.
+ * brackets, an error underlined, and the editor scrolled to its end; and embedded in a card.
  */
 class CodeEditorTest {
 
@@ -95,5 +96,31 @@ class CodeEditorTest {
         "the editor keeps the caret in the state, at the end after the last snap");
     String scrolled = Files.readString(out.resolve("scrolled.tree.txt"));
     assertTrue(scrolled.contains("text #line-15 \"16\""), scrolled);
+  }
+
+  @Test
+  void embeddedLooksAsStored() throws IOException {
+    Theme t = Theme.DARK;
+    Sql sql = Sql.of(t);
+    App<Query> app = new App<>(
+        new Query(),
+        s -> col()
+            .wFull()
+            .hFull()
+            .padding(12)
+            .fill(t.surface().window())
+            .child(Card.flush(
+                t,
+                Card.toolbar(t, "orders.sql", null),
+                CodeEditor.embedded(
+                    t,
+                    codeEditor(t, s.sql, s.editor, sql, v -> s.sql = v)
+                        .key("query")
+                        .lines(6)))));
+    app.textRendering(TextRendering.LINUX);
+    // The pointer gives it the focus: no ring, the hairline along its top in the accent's edge.
+    String script =
+        "size 420 200 scale 2\nframe\npress #query\nframe\nadvance 1\nframe\nsnap focused\n";
+    Golden.assertSnaps("code-editor-embedded-dark-2x-", Script.run(script, app, out), "focused");
   }
 }

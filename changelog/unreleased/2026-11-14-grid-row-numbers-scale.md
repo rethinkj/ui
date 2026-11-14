@@ -1,0 +1,1 @@
+- The data grid shows its row numbers whole at scales other than 1: at scale 2 a number such as `1000000` no longer ends in an ellipsis.

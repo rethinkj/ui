@@ -1,0 +1,7 @@
+# The row numbers of the data grid at scale 2 (DataGridTest): a million typed orders
+# (Orders.typed), scrolled to the end both ways, where the numbers have seven digits.
+size 400 180 scale 2
+frame
+wheel #rows 100000 100000000
+frame
+snap end               # every number whole, the last row clear of the bar below it

@@ -423,6 +423,12 @@ class DataGridTest {
     assertEquals(2, snaps("rows", "dark", new Orders(T, 1_000_000)));
   }
 
+  /** numbers.txt: at scale 2, where a digit is wider than at 1, scrolled to the last row. */
+  @Test
+  void rowNumbersLookAsStoredAtScaleTwo() throws IOException {
+    assertEquals(2, snaps("numbers", "dark", Orders.typed(T, 8)));
+  }
+
   private static Theme theme(String name) {
     return name.equals("dark") ? Theme.DARK : Theme.LIGHT;
   }

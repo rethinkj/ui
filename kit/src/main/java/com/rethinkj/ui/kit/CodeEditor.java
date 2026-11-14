@@ -6,6 +6,7 @@ import com.rethinkj.ui.El;
 import com.rethinkj.ui.FieldState;
 import com.rethinkj.ui.Highlighter;
 import com.rethinkj.ui.Key;
+import com.rethinkj.ui.Len;
 import com.rethinkj.ui.Style;
 import java.util.function.Consumer;
 
@@ -273,6 +274,32 @@ public final class CodeEditor {
       return true;
     });
     return state.findBar ? Find.find(t, app, editor, state.find) : editor;
+  }
+
+  /**
+   * Gives an editor of this class the look of the body of a framed card or panel, such as a {@link
+   * Card#flush} card under its {@link Card#toolbar}: as wide as the card, without corners or a
+   * frame of its own, and with a hairline along its top ({@link Theme.Borders#divider}) in place of
+   * a {@link Divider}, which takes the accent's edge colour while the editor has the focus. The
+   * ring of the keyboard's focus lies just inside it, where the card clips it.
+   *
+   * <pre>{@code
+   * Card.flush(t, Card.toolbar(t, "orders.sql", null, run), embedded(t, editor).grow(1))
+   * }</pre>
+   *
+   * @param editor an editor of {@link #codeEditor}
+   * @return the editor
+   */
+  public static El embedded(Theme t, El editor) {
+    float stroke = t.size().stroke();
+    editor.radius(0).border(stroke, 0, 0, 0, t.border().divider()).wFull();
+    // The gutter lines up with the card's title, inside the card's padding.
+    editor.style().paddingLeft = Len.px(t.space().l());
+    editor.style().paddingRight = Len.px(t.space().l());
+    if (editor.onEdit() != null) {
+      editor.whenFocused(e -> e.border(stroke, 0, 0, 0, t.accent().edge()));
+    }
+    return editor;
   }
 
   /** The word at the caret, if nothing or exactly a word is selected; else null. */
