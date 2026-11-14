@@ -20,6 +20,15 @@ description: Frameless windows with their own title bar, icons and identity on t
 
 A frameless window marks the parts of its own title bar with `El.windowPart(...)`: the drag area, minimize, maximize and close. The window asks the app about them, so it moves, snaps, maximizes and shows Windows 11's snap layouts and system menu like a framed one, and resizes at its edges.
 
+The kit's [TitleBar](/docs/components/title-bar) marks them for you. A title bar of one's own marks its elements with `El.windowPart(part)`; descendants belong to their ancestor's part unless they are marked themselves or have a press handler. `app.windowPart(x, y)` is the part at a point, which the window asks as the pointer moves: the topmost element there decides, or its nearest ancestor with a part or a press handler. While a modal dialog is open the parts below it still count, so the window can be moved and closed.
+
+| `WindowPart` | |
+| --- | --- |
+| `CONTENT` | Ordinary content, which gets the pointer: an element inside a drag area that should not drag, such as a search field in a title bar; what is not marked |
+| `CONTROL` | Content that takes presses itself. An element with a press or drag handler, a text field and a scrollbar are this without being marked; the resize margin narrows to 2 pixels (`Window.CONTROL_MARGIN`) over it, so that a scrollbar at the window's edge can be grabbed |
+| `DRAG` | Moves the window when dragged; on Windows a double click maximizes it |
+| `MINIMIZE`, `MAXIMIZE`, `CLOSE` | The window's buttons; resting on `MAXIMIZE` shows Windows 11's snap layouts |
+
 ## Identity and icons
 
 `Window.identity(id, name)`, before the first window, groups the app's windows under a taskbar button of their own instead of under `java.exe` (on Windows), and names the app for Wayland and X11. `WindowIcon.of(pixels...)` takes images; `WindowIcon.of(size -> view)` draws a view at each size the system asks for, and the kit's `AppIcon.appIcon(theme, size, colour, symbol)` is a rounded square with a symbol.
@@ -56,7 +65,7 @@ The `Choice` has the paths (empty when cancelled) and the filter chosen. On Linu
 ```java snippet="message-box"
 ```
 
-`app.messageBox(box, onButton, onError)` shows `MessageBox.information`, `warning` or `error` with up to three buttons and posts the index of the one pressed. It blocks all windows while it is open, so it is for what cannot be shown in the window; the kit's [Dialog](/docs/components/dialog) asks inside one.
+`app.messageBox(box, onButton, onError)` shows `MessageBox.information`, `warning` or `error` with up to three `.buttons(...)` and posts the index of the one pressed. Enter presses the first button and Escape the last, unless `.defaultButton(index)` and `.cancelButton(index)`, after `.buttons`, which sets both anew, say otherwise; the cancel button's index is also the answer when the box is closed without a button. It blocks all windows while it is open, so it is for what cannot be shown in the window; the kit's [Dialog](/docs/components/dialog) asks inside one.
 
 ## Under a script
 

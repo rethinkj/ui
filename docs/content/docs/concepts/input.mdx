@@ -51,8 +51,28 @@ When a rebuild leaves out the focused element, the focus goes to the nearest foc
 | `whenPressed(e -> …)` | While pressed |
 | `whenFocused(e -> …)`, `whenFocusWithin(e -> …)` | While it, or something inside it, has the focus |
 | `whenHoveredFor(seconds, e -> …)` | After the pointer rested on it: how a tooltip appears |
+| `whenFocusVisibleFor(seconds, e -> …)` | After it had the focus with a ring that long: the keyboard's tooltip. It goes when the focus leaves or a key goes down that does not move the focus |
+| `onHoverFor(seconds, handler)` | Runs once per stay after the pointer rested on it, or inside it, that long; with 0 in the frame that finds the pointer there. A menu follows the pointer with it |
 
 A look changes the element after it is built; with `motion`, the change springs.
+
+The delays run on the app's clock, so an idle window wakes for them and draws nothing while it waits, and a script moves the clock with `advance`. A press keeps a delayed look and `onHoverFor` away until the pointer has left the element and come back. A delayed look may attach an [overlay](/docs/concepts/overlays), which is how the kit's [Tooltip](/docs/components/tooltip) shows.
+
+## Every press and key
+
+Some components need to know of input that is not theirs: a menu bar tells Alt pressed alone from Alt held while something else happened, and an editor over a grid's cell hands its value on when the user presses elsewhere. These hooks take nothing from the input, which goes on as without them, and run in `frame()`, as handlers do, while the element is in the tree or in a shown overlay:
+
+| Call | |
+| --- | --- |
+| `onAnyPointerDown(handler)` | Whenever a button of the pointer goes down anywhere in the window, before the press does anything else: in a text field, on a scrollbar, in an overlay or outside it |
+| `onAnyKeyDown(key -> …)` | Every key that goes down, before any `onKey` handler or field sees it, also one the focused element takes |
+| `onPressOutside(handler)` | A button goes down outside this element and everything inside it; an overlay attached inside it counts as outside |
+
+Presses that the system takes, on the parts of a frameless window's frame, do not reach them.
+
+## Holding the focus
+
+`holdFocus()` makes an element hold the keyboard focus while the view marks it, as an open overlay does without being one: the build that first marks it moves the focus to it, or to its first focusable element, without a ring, and the first build that leaves the mark out gives the focus back to where it was, with the ring it had, if the focus is still inside it or nowhere. A press outside it calls its `onDismiss` handler and goes no further. Overlays that open inside it take the focus from it and give it back. The kit's [MenuBar](/docs/components/menu-bar) holds the focus this way from Alt or F10 until Escape: while its state says the bar has the keys, the view builds the bar with `.focusable().holdFocus().onDismiss(...)`, and without them otherwise.
 
 ## The wheel
 

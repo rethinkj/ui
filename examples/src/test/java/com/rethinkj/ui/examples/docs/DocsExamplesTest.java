@@ -74,18 +74,33 @@ class DocsExamplesTest {
     grids(all, "grid-filter", Grids::filtered, 520, 300);
     grids(all, "grid-typed", Grids::typed, 520, 300);
     grids(all, "tree", Grids::tree, 320, 260);
+    all.put("grid-commit", new Example(() -> new App<>(new Commits(), Commits::view), 520, 300));
     editors(all, "code-editor", Editors::codeEditor, 520, 260);
     editors(all, "find", Editors::find, 440, 220);
+    all.put(
+        "highlighter",
+        new Example(
+            () -> {
+              Highlighters state = new Highlighters();
+              App<Highlighters> app = new App<>(state, Highlighters::view);
+              state.app = app;
+              return app;
+            },
+            440,
+            200));
     editors(all, "markdown", Editors::markdown, 520, 320);
     editors(all, "image", Editors::image, 240, 180);
     concepts(all, "layout", Concepts::layout, 480, 200);
+    all.put("styles", new Example(() -> new App<>(new Styles(), Styles::view), 360, 400));
     concepts(all, "text", Concepts::texts, 320, 200);
     concepts(all, "input", Concepts::input, 280, 140);
     concepts(all, "states", Concepts::states, 240, 80);
     concepts(all, "motion", Concepts::motion, 320, 160);
     concepts(all, "overlay", Concepts::overlay, 280, 160);
     concepts(all, "rows", Concepts::rows, 280, 200);
+    all.put("row-heights", new Example(() -> new App<>(new Messages(), Messages::view), 320, 240));
     concepts(all, "field", Concepts::fields, 320, 200);
+    all.put("range", new Example(() -> new App<>(new Paragraphs(), Paragraphs::view), 300, 140));
     concepts(all, "background", Concepts::background, 420, 140);
     concepts(all, "images", Concepts::images, 280, 120);
     concepts(all, "theme", Concepts::theme, 200, 80);

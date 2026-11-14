@@ -14,6 +14,12 @@ description: A short text below an element after the pointer rests on it, or the
 
 `Tooltip.tooltip(theme, anchor, text)` returns the anchor. Where the tooltip would cover its anchor, it goes beside it. An idle window wakes for the delay and draws nothing while it waits. `Button.icon` already has a tooltip with its label.
 
+## Only where the text is cut
+
+`Tooltip.whenShortened(theme, anchor, text)` is a tooltip that shows only while a text of the anchor, or of an element inside it, ends in an ellipsis because it did not fit (`El.ellipsis()`): the whole name of a column, a tab or a button that a narrow window cuts. Where the text fits, it shows nothing. The kit's buttons and the data grid's cells and headers have one. A `tooltip` of the view's own on the same anchor stands in its place.
+
+Layout decides whether a text was cut after the looks have run, so it is the overlay that knows: `El.whenShortened()` on an overlay shows it only while a text of its anchor is shortened, for a panel of one's own. `Text.shortened()` says it for one text element after layout ([Text](/docs/concepts/text)).
+
 ## In a script
 
 Presses do not move the pointer, so a script moves onto the anchor and advances the clock:

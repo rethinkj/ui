@@ -77,3 +77,78 @@ The options that `changes` wires are there on their own, for an app that keeps c
 ## In a tree dump
 
 A changed, new, deleted or failed row and cell say `value="changed"`, `"new"`, `"deleted"` or `"error"`, and a failed cell is `invalid`. An open editor is `#editor` in the cell's row, with its field `#field` (`role=textbox`) inside; a list of choices and the field of several lines are overlays; a refused value adds a `role=alert` with the message.
+
+## Before saving, running or closing
+
+An editor that is open holds text the app has not seen yet. Before anything that writes, replaces or throws away the rows (Commit, Run, closing a tab or a window, Control+S), hand that text on with `selection.commitEdit()`, and stop where it returns false:
+
+```java snippet="grid-commit"
+```
+
+`commitEdit()` hands the open editor's value on as a press outside it does, through `onCommit` (or the `GridChanges` that `changes` wires), and closes the editor. It returns true when no editor is open afterwards: there was none, or the value was taken. It returns false when the column's type or the app refused the value: the editor stays open, `invalid`, with the message below it, and the app should not go on with what it was about to do. A list of choices closes without a change, as a press outside leaves it. It also returns false while an editor is open but no grid built with this selection edits, since nothing can take the value then.
+
+A command that should work while a value is being typed is enabled while an editor is open, not only while there are changes:
+
+```java snippet="grid-commit-button"
+```
+
+A press on that button is a press outside the editor, which hands the value on first; when the value is refused, the press does nothing else.
+
+The script that refuses both, first the editor's text and then the change:
+
+```text snippet="grid-commit-script"
+```
+
+```text file="examples/src/test/resources/golden/docs/grid-commit/refused-value.tree.txt" start="el #editor" count="2"
+```
+
+```text file="examples/src/test/resources/golden/docs/grid-commit/refused-value.tree.txt" start="overlay bottom" count="2"
+```
+
+| `Selection` method | |
+| --- | --- |
+| `commitEdit()` | Hands the open editor's value on and closes it; false when the value was refused and the editor stays open |
+| `cancelEdit()` | Closes the editor without handing anything on, as Escape does |
+| `isEditing()` | Whether an editor is open over a cell |
+| `editingRow()`, `editingColumn()` | The cell being edited, -1 for none |
+| `draft()` | What the open editor holds, null for NULL or when none is open |
+
+Through `changes`, an open editor follows its row by the row's key when the app sorts, filters or replaces the rows, and closes without writing when its row is gone. Through a plain `onCommit` it stays on its row index, so an app that reorders or replaces the rows of such a grid calls `commitEdit()` or `cancelEdit()` first; otherwise the value goes to whichever row has that index then.
+
+## Changes the database refused
+
+When the database refuses a change, mark the cells it names and keep the changes, so that the user can correct them:
+
+- `changes.error(change, column, message)` marks a cell of the row that a `Change` of `changes()` writes, also while that row is not shown (filtered out, say); `changes.error(row, column, message)` marks a cell by the row shown.
+- The cell and its row show `Status.ERROR`, a danger edge and the message first in the cell's tooltip; in a tree dump they say `value="error"` and the cell is `invalid`. A mark is not a step of the history, and it goes when the cell's value changes, by an edit, an undo or a redo. `clear()` forgets it with everything else.
+- `changes.errorText(row, column)` is the message of a cell, null for none.
+
+```text file="examples/src/test/resources/golden/docs/grid-commit/refused-write.tree.txt" start="el #cell-2-1" count="1"
+```
+
+`options().changes(changes)` shows the messages through `options().errors(changes::errorText)`. An app that keeps its own changes passes its own `errors((row, column) -> message)` beside `status`: the message shows first in the tooltip of a cell whose status is `ERROR`.
+
+## Reading GridChanges
+
+For enabling commands, a status line and a toolbar:
+
+| Method | |
+| --- | --- |
+| `count()`, `isEmpty()` | The rows updated, inserted and deleted; whether there are none |
+| `rowStatus(row)` | `NEW`, `DELETED`, `ERROR`, `CHANGED` or `UNCHANGED`, in that order of precedence |
+| `cellStatus(row, column)` | As its row when that is deleted or unchanged; else `ERROR` for a failed cell, `NEW` in a new row, `CHANGED` or `UNCHANGED` |
+| `isNew(row)` | Whether the row shown there is a new one |
+| `key(row)`, `rowOf(key)` | The key of the row shown at an index (below 0 for a new row), and the index a key is shown at, -1 for none |
+| `canUndo()`, `canRedo()` | Whether `undo()` and `redo()` have a step, for Edit's Undo and Redo |
+| `cell(row, column)` | The value shown: the changed one, else the app's; null for NULL |
+| `changes()`, `changes(table, columns)` | What to write, as text or, over a [GridTable](/docs/components/data-grid/typed), as typed values |
+
+And for changing it from the app's own commands, each one step of the history:
+
+| Method | |
+| --- | --- |
+| `set(row, column, value)`, `set(cells)` | Sets cells; a value equal to the app's is no change, and cells of deleted rows are left alone |
+| `insert(after)` | An empty row after the row shown at `after`, -1 for a new first row; it is shown at `after + 1` |
+| `delete(ranges)` | Marks the rows of these ranges deleted, or takes the mark away when all have it; new rows among them go at once |
+| `undo()`, `redo()` | Steps through the history |
+| `rows(rows)` | Replaces the app's `Rows`, after it filtered or sorted them; the changes stay with their keys |

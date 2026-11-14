@@ -1,0 +1,9 @@
+# docs:start range-script
+size 300 140
+frame
+key Tab                       # the link, past the paragraph
+frame
+snap focused
+press role=link label="the query plan"
+frame
+# docs:end range-script

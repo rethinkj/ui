@@ -56,3 +56,16 @@ The DataBrowser example works this way: a million made-up orders as records, `Bi
 ## Cost
 
 A typed cell asks for its row and its value, then writes the text, which is what a column of text does anyway: a frame of a million rows costs the same with typed columns as with text columns writing the same texts, with 20 and with 300 columns. A getter that returns a primitive boxes it, one small object per cell for a `long` id, as `String.valueOf` makes a string.
+
+## The typed part of a column
+
+`column.cells()` is a `GridTable.Cells<T, V>` for a column that `table.column` made, and null for a column of text. It is what the grid, `comparator`, `filter` and `GridChanges.changes(table, columns)` read, and what an app's own command reads and writes a value with, such as "Set to zero" on the selected cells. Its type parameters are lost in `Column`, so cast it to the row and value types the column was made with.
+
+| `Cells<T, V>` method | |
+| --- | --- |
+| `table()` | The `GridTable` whose rows the column reads |
+| `format()` | The column's `Format<V>` |
+| `value(row)` | The value in a row object, or in the row with an index (null for NULL and for a row not loaded) |
+| `comparator()` | Rows by this column's value: the natural order of `Comparable` values, else their texts, NULL first |
+| `writes()` | Whether the column writes values, through a wither or a setter |
+| `write(row, value)` | Writes a value: a new row from the wither, or `row` itself changed by the setter; throws `IllegalStateException` when the column has neither |

@@ -35,4 +35,44 @@ The `App` keeps what is not the app's business: which element has the focus and 
 - Without a window: `Script.handle(args, app)` or `Script.run(text, app, folder)` ([Testing and agents](/docs/testing)).
 - One view alone: `Headless.render(root, width, height, scale)` returns the pixels and the tree.
 
+## Driving it from Java
+
+A test can drive an app without a script, as a window does: input methods queue what happened, and `frame()` dispatches it in order, builds the view and runs the animations at the app's clock.
+
+```java snippet="app-from-java"
+```
+
+| `App` method | |
+| --- | --- |
+| `resize(width, height, scale)` | The window's size in logical pixels and its physical pixels per logical pixel |
+| `pointerMove(x, y)`, `pointerLeave()` | The pointer moved, in logical pixels, or left the window; this hovers and drags |
+| `pointerDown(x, y)`, `pointerDown(x, y, clicks, modifiers)`, `pointerUp(x, y)` | The primary button; `clicks` 2 for the second press of a double press, `modifiers` the `Key` constants held |
+| `secondaryDown(x, y)`, `secondaryUp(x, y)` | The secondary button, for `onSecondaryPress` |
+| `wheel(x, y, deltaX, deltaY)` | The wheel at a position; positive scrolls down or right |
+| `keyDown(key)`, `keyUp(key)` | A `Key` by its web name and modifiers, `new Key("S", Key.CONTROL, false)` |
+| `textInput(text)`, `textComposition(text, cursor)` | Typed text, and an input method's composition |
+| `focus(el)`, `scrollTo(area, x, y)`, `scrollToRow(list, row)` | Focus an element of the last frame as Tab would, with a ring, or null for none; scroll an area to an offset, or a list of rows to a row |
+| `frame()` | Dispatches what was queued and draws; true when it changed what shows |
+| `advance(seconds)`, `time()` | The app's clock, which springs, delays and `after` go by |
+| `await(timeout)` | Waits for the work of `background` and queues what threads posted for the next frame |
+| `tree()`, `focused()`, `hovered()`, `pressed()` | The root of the last frame, whose `dump()` is a [tree dump](/docs/testing/tree-dump), and its elements in those states |
+| `render()` | The last frame's pixels and tree, as `Headless` makes them |
+
+The app keeps an in-memory clipboard (`Clipboard.inMemory()`) until a window gives it the system's; `app.clipboard()` reads it, `app.clipboard(clipboard)` sets another.
+
+## For a runner of its own
+
+What a `WindowLoop` does for a window, a runner of one's own, such as an embedding in another toolkit, does with these:
+
+| `App` method | |
+| --- | --- |
+| `nextChange()` | When the last frame changes without input: the caret's blink, a hover delay, an action of `after`; positive infinity when nothing will, so that the runner can wait for input alone |
+| `onPost(wake)` | Called on the posting thread when a task arrives that the app has not taken: end the runner's wait there |
+| `handlersWaiting()` | Whether the next frame has handlers to run at once, such as `onResize` handlers of elements the last layout resized; a runner that draws one frame on the system's request draws again while this holds, a few times at most |
+| `invalidate()` | The state changed outside the app's handlers: the next frame builds the view again. A runner calls it on the other apps of the same state after one ran handlers (`ranHandlers()`) |
+| `inputArea()` | The focused element that takes text, as an `InputArea(x, y, width, height, cursor, password)` in logical pixels, or null: where the system's input method places its window, and when to turn text input on and off |
+| `windowActive(boolean)`, `windowMaximized(boolean)` | What the window's state is; `windowMaximized()` tells the view, for a title bar that shows Restore |
+| `systemFonts(boolean)` | Fall back to the fonts installed on the system for characters the text's fonts lack; off until set, so that tests draw the same everywhere. A `WindowLoop` turns it on, which starts reading the system's fonts on another thread |
+| `textRendering(rendering)`, `imageMemory(bytes)` | The hinting of text, and the GPU memory for images |
+
 An app, its state and its elements belong to the thread that runs it. Work that takes long runs elsewhere and comes back with `App.post` or `App.background` ([Work off the app's thread](/docs/concepts/background-work)).

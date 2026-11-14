@@ -1,0 +1,24 @@
+# docs:start grid-commit-script
+size 520 300
+frame
+press #cell-1-2           # the shipped date of the second row
+type "tomorrow"           # opens the editor with text that is no date
+key S control             # save: commitEdit() refuses, the editor stays open
+frame
+snap refused-value
+press #save               # the press outside hands the value on first: refused, nothing else
+frame
+snap refused-press
+
+key Escape                # closes the editor without handing anything on
+press #cell-2-1
+key Delete                # the customer becomes empty text
+key S control             # save: the database refuses that change
+frame
+snap refused-write
+
+type "Zoe"                # the cursor's cell again: the new value takes the mark away
+key S control             # commitEdit() hands "Zoe" on, and the change is written
+frame
+snap written
+# docs:end grid-commit-script

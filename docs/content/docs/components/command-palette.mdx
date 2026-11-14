@@ -15,7 +15,32 @@ description: A searchable list of every command, and of other things after a pre
 - `CommandPalette.commands(menus)` turns `Menu.Item`s, a menu bar's titles too, into commands named by their path (`Query: Run`, `File: Export › CSV`) with their icons, shortcuts and handlers. Add your own `FilterList.entry(text, onChoose)`.
 - A `CommandPalette.Source(prefix, what, entries)` finds other things after its prefix. `FilterList.Entries.of(list)` filters a list with fuzzy matching; `Entries.by(text -> list)` is your own search, and `Entries.background(app, name, text -> list)` runs it on another thread.
 - `CommandPalette.keys(state)` opens it with Control+Shift+P and F1; `state.open("@")` opens a source, as for Control+P.
-- While nothing is typed, the last five commands chosen come first under "Recently used".
+- While nothing is typed, the last five commands chosen come first under "Recently used". `state.recent()` lists their texts, the last first, and `state.text()` is what is typed.
+
+## Lists and fuzzy matching
+
+What a source lists is a `FilterList.Entries`, which a [ComboBox](/docs/components/combo-box) takes too:
+
+| | |
+| --- | --- |
+| `Entries.of(list)` | The kit filters the list with `Fuzzy`: all entries in their order while nothing is typed, else the matches best first within their groups, of equal matches the shorter text first. Pass the same list while it does not change, as the kit keeps what it filtered by the list's identity |
+| `Entries.inOrder(list)` | The same, but equal matches keep their order, as commands want |
+| `Entries.by(text -> list)` | The app finds the entries for the typed text, on the app's thread on every build; shown in the order given |
+| `Entries.background(app, name, text -> list)` | The same on another thread: the entries found before stay with a row "Loading…" until the answer, and a new text cancels the work before |
+
+`Fuzzy` is the matching the kit uses, for an app's own search: the query's characters in the text in order, scored higher at the starts of words (after a space, `_`, `.` or `-`, a camelCase capital) and for characters next to each other, lower for gaps; `"ot"` ranks `orders_total` before `customer_note`. Case counts only when the query has a capital letter. It needs no native libraries.
+
+```java snippet="fuzzy"
+```
+
+| | |
+| --- | --- |
+| `Fuzzy.score(query, text)` | The score, higher for a better match, or `Fuzzy.NO_MATCH` (`Integer.MIN_VALUE`) |
+| `Fuzzy.positions(query, text)` | The indexes of the characters the best match takes, one per character of the query, to highlight them; null when it does not match |
+| `Fuzzy.matcher(query)` | A `Matcher`, which keeps the query and its work arrays, so that scoring many texts allocates nothing; it belongs to one thread |
+| `matcher.score(text)`, `matcher.positions(text)` | As above |
+| `matcher.matches(text)` | Whether the query's characters occur in the text in order |
+| `matcher.isEmpty()` | Whether the query is empty, which every text matches with the score 0 |
 
 ## Asking for more
 

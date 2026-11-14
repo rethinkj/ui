@@ -48,3 +48,20 @@ A sorted column's header says `sort=ascending` or `sort=descending`; a column be
 
 ```text file="examples/src/test/resources/golden/docs/grid-sort/view.tree.txt" start="#column-2" count="1"
 ```
+
+## Reading the layout
+
+Two kinds of column index meet in a grid with a layout. The columns the app passes to `dataGrid` are *all* columns, and handlers, sort keys, filters, `onResize`, `onFreeze` and the cells of `GridChanges` speak of them by their index in that list. The selection's `Range`s, `Selection.column()` and the keys in a tree dump (`column-<i>`, `cell-<row>-<i>`) count the columns *shown*, in the order shown. `shownColumns()` turns one into the other: `layout.shownColumns()[selection.column()]` is the index among all columns of the cursor's column.
+
+| `Layout` method | |
+| --- | --- |
+| `new Layout(titles)` | All the app's columns by their titles, shown in their order |
+| `shown(all)` | Those of `all` that are shown, in the order shown; throws when `all` has another size than the titles |
+| `shownColumns()` | The indexes among all columns of those shown, in the order shown |
+| `shownCount()` | How many columns are shown |
+| `isHidden(column)` | Whether a column, by its index among all, is hidden |
+| `order()` | The order of all columns, hidden ones included |
+| `hide(column)`, `show(column)` | Hide and show one; the last column shown does not hide |
+| `showAll()`, `reset()` | Show every column in the order they have, or in the app's order |
+| `moveBefore(column, before)` | Move a column to just before another, or to the end with -1 |
+| `toggleChooser()` | Open or close the chooser on the `columnsButton`, as a press on it does, for a menu item or a key of the app's |

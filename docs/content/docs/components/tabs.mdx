@@ -31,6 +31,15 @@ description: A card with a bar of tabs over the content of the active one.
 
 [TabGroups](/docs/components/tab-groups) wires all of these for you.
 
+The app keeps one `Tabs.Dragging` for all bars that trade tabs. It says what a drag is doing, so that a view can hide what should not show meanwhile, such as a tooltip or a drop hint:
+
+| `Tabs.Dragging` | |
+| --- | --- |
+| `isActive()` | Whether a tab is being dragged |
+| `bar()`, `index()` | The `id` of the dragged tab's bar and its index there, -1 for none |
+| `isTorn()` | Whether the dragged tab has left its bar (`onTearOff`) |
+| `moved(bar, index)` | Tells the drag that the app moved its tab, to `index` in `bar`, so that it stays the one dragged |
+
 ## Keyboard
 
 | Keys | Action |

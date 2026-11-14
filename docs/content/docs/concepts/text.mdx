@@ -19,6 +19,8 @@ description: Text elements, the default fonts Inter and JetBrains Mono, wrapping
 
 A line feed always starts a line.
 
+After layout, `el.text()` is the element's `Text`: `shortened()` says whether a line was cut to fit and ends in `…`, for a tooltip with the whole text (the kit's `Tooltip.whenShortened` asks it), and `lines()` holds what is drawn, a `GlyphRun` per line with its width and baseline in physical pixels.
+
 ## Fonts
 
 | Font | |
@@ -32,7 +34,7 @@ The default fonts come in `rethinkj-ui-fonts`, the icons in `rethinkj-ui-icons`.
 
 ## Characters a font lacks
 
-`font.withFallback(other...)` falls back to other fonts in order, cluster by cluster, keeping the first font's line height. `font.withSystemFonts()` then falls back to the fonts installed on the system (Noto and DejaVu on Linux, Segoe UI and the CJK fonts on Windows, chosen by script and locale). In a window, the app falls back to the system's fonts for all text; under a script it does not, so that images are the same everywhere.
+`font.withFallback(other...)` falls back to other fonts in order, cluster by cluster, keeping the first font's line height. `font.withSystemFonts()` then falls back to the fonts installed on the system (Noto and DejaVu on Linux, Segoe UI and the CJK fonts on Windows, chosen by script and locale). In a window, the app falls back to the system's fonts for all text; under a script it does not, so that images are the same everywhere. `app.systemFonts(boolean)` switches it; a `WindowLoop` turns it on when it starts, unless `loop.systemFonts(false)`.
 
 Right-to-left scripts are shaped right to left within their runs; lines are not reordered by the full bidirectional algorithm. Colour emoji show as outlines in the text colour where the font has them.
 

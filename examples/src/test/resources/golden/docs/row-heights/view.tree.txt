@@ -1,0 +1,24 @@
+el 0,0 320x240
+  el #log role=list label="Log" 12,12 296x216 rows 0-10/10000 thumb-y 300,14 6x24
+    el #row-0 role=listitem 12,12 296x52 pos=1/10000
+      text "Query 0 took 4.2 s: the planner chose a sequential scan of orders, which has no index on customer_id" 20,14 280x48
+    el #row-1 role=listitem 12,64 296x20 pos=2/10000
+      text "Query 1 took 12 ms" 20,66 280x16
+    el #row-2 role=listitem 12,84 296x20 pos=3/10000
+      text "Query 2 took 12 ms" 20,86 280x16
+    el #row-3 role=listitem 12,104 296x20 pos=4/10000
+      text "Query 3 took 12 ms" 20,106 280x16
+    el #row-4 role=listitem 12,124 296x20 pos=5/10000
+      text "Query 4 took 12 ms" 20,126 280x16
+    el #row-5 role=listitem 12,144 296x20 pos=6/10000
+      text "Query 5 took 12 ms" 20,146 280x16
+    el #row-6 role=listitem 12,164 296x20 pos=7/10000
+      text "Query 6 took 12 ms" 20,166 280x16
+    el #row-7 role=listitem 12,184 296x52 pos=8/10000
+      text "Query 7 took 4.2 s: the planner chose a sequential scan of orders, which has no index on customer_id" 20,186 280x48
+    el #row-8 role=listitem 12,236 296x20 pos=9/10000
+      text "Query 8 took 12 ms" 20,238 280x16
+    el #row-9 role=listitem 12,256 296x20 pos=10/10000
+      text "Query 9 took 12 ms" 20,258 280x16
+    el #row-10 role=listitem 12,276 296x20 pos=11/10000
+      text "Query 10 took 12 ms" 20,278 280x16

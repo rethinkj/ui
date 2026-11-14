@@ -37,6 +37,8 @@ Enter and Space on the button open the menu with its first enabled item highligh
 | `Menu.separator()` | A line |
 | `Menu.submenu(label, items)` | A submenu, opening beside the item |
 
+An `Item` is a record (`label`, `shortcut`, `keys`, `checked`, `icon`, `onChoose`, `submenu`), so an app reads its items back, as a palette or a help page of shortcuts does: `isSeparator()` says whether it is a line, and `isEnabled()` whether it can be chosen or opens a submenu that has items. `Menu.shortcutText(key)` writes a `Key` as the platform does, for a tooltip or a hint of the app's own: Ctrl, Alt and Shift in that order after `Win` or `Super`, then the key, so `Ctrl+Shift+N`; Windows writes `Del`, `Ins`, `PgUp` and `PgDn` where Linux writes `Delete`, `Insert`, `Page Up` and `Page Down`.
+
 `Menu.shortcuts(items)` is a key handler for the root that runs the enabled item of a combination, in submenus too, when no element on the focus path took the key, menu open or not. Two items with one combination are refused with an exception when the view is built.
 
 ## The state

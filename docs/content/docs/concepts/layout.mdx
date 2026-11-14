@@ -41,8 +41,58 @@ Everything on screen is an `El`: a box (`el()`), a row (`row()`), a column (`col
 | `opacity(value)` | For the element and everything in it |
 | `clip()` | Cut children at the rounded border box |
 | `scroll()`, `scrollBoth()`, `scrollbars(look)` | A scroll area, up and down or both ways, with bars |
+| `fixedX()` | Stays in place sideways while the nearest area around it that scrolls sideways scrolls, for drawing and input, and moves up and down with its parent: the frozen columns of a table. It is drawn in tree order, so it comes after what it covers and needs a fill of its own |
 
 Colours are `int`s in ARGB. Prefer the theme's tokens (`t.surface().panel()`, `t.text().muted()`) to literals ([Themes](/docs/concepts/themes)).
+
+## Scrollbars
+
+`scrollbars(look)` gives a scroll area a bar along the right edge while its content is taller than the area and one along the bottom while it is wider, drawn over the content. Dragging a thumb scrolls from the first pixel, and a press on the track beside it scrolls a page; such a press is the bar's alone and leaves the focus where it is. Pass the kit's `t.scrollbars()`, or a look of one's own:
+
+| `Scrollbars` | |
+| --- | --- |
+| `thickness` | The width of a vertical bar and the height of a horizontal one, above 0 |
+| `margin` | The space between a bar and the area's edges, and between the two bars; the strip of `thickness + 2 * margin` along the edge takes the presses |
+| `radius`, `minThumb` | The thumb's corner radius, and the shortest it gets however long the content |
+| `thumb`, `thumbHovered`, `thumbDragged` | The thumb's colours at rest, under the pointer and while dragged |
+
+After a frame, `el.horizontalBar()` and `el.verticalBar()` give each bar as the frame shows it, or null where there is none: a `Scrollbars.Bar` with the track's and the thumb's rectangles in logical pixels of the window (`trackX`, `trackY`, `trackWidth`, `trackHeight`, `thumbX`, …) and the thumb's colour of the moment. A tree dump writes the thumbs after the area's rectangle as `thumb-x` and `thumb-y`.
+
+## The style beyond the chained calls
+
+The chained calls set fields of the element's `Style`, the CSS properties of flexbox that layout reads. `el.style()` returns it, and its fields are set directly for what the calls do not cover:
+
+```java snippet="style"
+```
+
+```text file="examples/src/test/resources/golden/docs/styles/view.tree.txt" start="#latest" count="6"
+```
+
+| `Style` field | Values |
+| --- | --- |
+| `width`, `height`, `minWidth`, `minHeight`, `maxWidth`, `maxHeight`, `basis` | A `Len`: `Len.px(pixels)`, `Len.percent(fraction)` of the parent's content box, where 1 is all of it (`Len.percent(0.5f)` is 50 %), `Len.AUTO`, `Len.ZERO`, or `Len.FIT_CONTENT`: as large as the content and never stretched by the parent's `STRETCH` |
+| `aspectRatio` | Width divided by height, NaN when unset: the axis whose size is not set follows the other. A height that is set is never raised by the ratio |
+| `rowGap`, `columnGap` | The gap between lines of wrapped children and between the children of a line; `gap(px)` sets both |
+| `direction` | `ROW`, `COLUMN`, `ROW_REVERSE`, `COLUMN_REVERSE`; `row()` and `col()` set the first two. The reverse directions lay the children out from the end |
+| `wrap` | `NO_WRAP`, `WRAP`, `WRAP_REVERSE` |
+| `alignItems`, `alignSelf` | `START`, `END`, `FLEX_START`, `FLEX_END`, `CENTER`, `BASELINE` (the first baselines of the children on one line, as text of several sizes in a row), `STRETCH`; null is CSS's default |
+| `justifyContent`, `alignContent` | `START`, `END`, `FLEX_START`, `FLEX_END`, `CENTER`, `STRETCH`, `SPACE_BETWEEN`, `SPACE_EVENLY`, `SPACE_AROUND` |
+| `overflowX`, `overflowY` | `VISIBLE`, `CLIP`, `HIDDEN`, `SCROLL`. Any value but `VISIBLE` on either axis clips the children to the border box on both; `SCROLL` also lets the wheel scroll that axis, as `scroll()` and `scrollBoth()` set it |
+| `boxSizing` | `BORDER_BOX` (the default: a width includes padding and border) or `CONTENT_BOX` |
+| `display` | `FLEX` or `NONE`, which leaves the element out of layout and drawing |
+| `position`, `left`, `right`, `top`, `bottom` | `RELATIVE` or `ABSOLUTE`, and the offsets from the parent's edges; `absolute(left, top)` sets them |
+| `margin…`, `padding…`, `border…` of each side | `Len`s; margins may be `Len.AUTO`, which takes the free room as in CSS |
+
+Where Taffy and browsers differ, layout does as browsers do.
+
+## Content that sizes itself
+
+`El.measure(measure)` sizes an element without children, as text and images are sized: layout asks it, possibly several times, for the size of the content box under the constraints it tries.
+
+```java snippet="measure"
+```
+
+`Measure.measure(knownWidth, knownHeight, availableWidth, availableHeight)` returns a `Measure.Size(width, height)` in logical pixels of the content box, or `Size(width, height, baseline)` with the distance from the top to the first baseline, for `BASELINE` alignment. A known size is NaN where layout has not decided it; an available size is a number of pixels, `Measure.MAX_CONTENT` (as large as the content wants) or `Measure.MIN_CONTENT` (as small as it can be). `placed(width, height)`, which does nothing unless overridden, tells the content its final size before rounding, as text breaks its lines for that width.
 
 ## Pixels and scale
 

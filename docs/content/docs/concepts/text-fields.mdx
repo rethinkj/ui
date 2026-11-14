@@ -35,6 +35,25 @@ Caret, selection, scroll, undo history (100 steps) and an input method's composi
 
 From handlers, `app.edit(field, from, to, text, caret)` replaces a range as one step of the undo history, `app.select(field, caret, anchor)` selects, and `app.undo(field)` and `app.redo(field)` step through the history, for an Edit menu.
 
+## Links in a paragraph
+
+A read-only multi-line field is a paragraph that selects and copies. A child with `range(from, to)` lies over those characters of the field's string instead of where layout would put it, so it can be a link with its own identity, focus and handler:
+
+```java snippet="range"
+```
+
+```text snippet="range-script"
+```
+
+```text file="examples/src/test/resources/golden/docs/range/focused.tree.txt" start="#note" count="2"
+```
+
+- The child's rectangle in a tree dump is the bounding box of the rows the range takes, but it is hit, filled (behind the glyphs) and ringed only on those rows, one rectangle per row. `rangeBoxes()` lists them after layout, as `Text.Box(x, y, width, height)` from the child's top left corner: null for an element without a range, empty while none is placed.
+- It takes presses, the cursor, hover looks and, when `focusable()`, the focus, as any element; a press on it is its own, not the field's. Enter presses it while it has the focus. A script's selector presses the middle of its first row.
+- `fitLines()` makes the field as high as all its rows, so it never scrolls, and `skipTab()` lets Tab pass the field by while a press still focuses it, so that Tab goes from link to link. The range is clamped to the text.
+
+[Markdown](/docs/components/markdown) builds its links this way.
+
 ## Keys and pointer
 
 Arrows, Home, End, Page Up and Down, with Shift to select and Control by words; Backspace and Delete; Control+A, C, X, V, Z, Y and Control+Shift+Z. A double press selects a word, a triple one a line or everything. The caret stops only between whole characters (graphemes), never inside an emoji or between a letter and its accent. In a multi-line field Enter breaks the line, and Control+Enter goes on to the app's handlers.
