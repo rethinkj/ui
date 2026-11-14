@@ -118,34 +118,55 @@ el 0,0 1000x600
                 text label="chevron_down" "\u{F2A2}" 65,465 16x16
               text label="table" "\u{EBF4}" 85,465 16x16
               text "orders" 105,465 41x16
-            el #row-17 role=treeitem label="id" 13,485 250x24 level=5 pos=1/9
+            el #row-17 role=treeitem label="id" 13,485 250x24 level=5 pos=1/9 value="bigint"
               el 81,485 16x24
               text label="key" "\u{E740}" 101,489 16x16
-              text "id" 121,489 11x16
-            el #row-18 role=treeitem label="customer_id" 13,509 250x24 level=5 pos=2/9
+              el 121,485 138x24
+                el 121,485 0x24
+                text "id" 121,489 11x16
+                text "bigint" 136,489 123x16
+            el #row-18 role=treeitem label="customer_id" 13,509 250x24 level=5 pos=2/9 value="integer"
               el 81,509 16x24
               text label="column_single" "\u{F0116}" 101,513 16x16
-              text "customer_id" 121,513 75x16
-            el #row-19 role=treeitem label="status" 13,533 250x24 level=5 pos=3/9
+              el 121,509 138x24
+                el 121,509 0x24
+                text "customer_id" 121,513 75x16
+                text "integer" 200,513 59x16
+            el #row-19 role=treeitem label="status" 13,533 250x24 level=5 pos=3/9 value="order_status"
               el 81,533 16x24
               text label="column_single" "\u{F0116}" 101,537 16x16
-              text "status" 121,537 37x16
-            el #row-20 role=treeitem label="amount" 13,557 250x24 level=5 pos=4/9
+              el 121,533 138x24
+                el 121,533 0x24
+                text "status" 121,537 37x16
+                text "order_status" 162,537 97x16
+            el #row-20 role=treeitem label="amount" 13,557 250x24 level=5 pos=4/9 value="numeric(10,2)"
               el 81,557 16x24
               text label="column_single" "\u{F0116}" 101,561 16x16
-              text "amount" 121,561 46x16
-            el #row-21 role=treeitem label="paid" 13,581 250x24 level=5 pos=5/9
+              el 121,557 138x24
+                el 121,557 0x24
+                text "amount" 121,561 46x16
+                text "numeric(10,2)" 171,561 88x16
+            el #row-21 role=treeitem label="paid" 13,581 250x24 level=5 pos=5/9 value="boolean"
               el 81,581 16x24
               text label="column_single" "\u{F0116}" 101,585 16x16
-              text "paid" 121,585 26x16
-            el #row-22 role=treeitem label="email" 13,605 250x24 level=5 pos=6/9
+              el 121,581 138x24
+                el 121,581 0x24
+                text "paid" 121,585 26x16
+                text "boolean" 151,585 108x16
+            el #row-22 role=treeitem label="email" 13,605 250x24 level=5 pos=6/9 value="varchar(255)"
               el 81,605 16x24
               text label="column_single" "\u{F0116}" 101,609 16x16
-              text "email" 121,609 32x16
-            el #row-23 role=treeitem label="note" 13,629 250x24 level=5 pos=7/9
+              el 121,605 138x24
+                el 121,605 0x24
+                text "email" 121,609 32x16
+                text "varchar(255)" 157,609 102x16
+            el #row-23 role=treeitem label="note" 13,629 250x24 level=5 pos=7/9 value="text"
               el 81,629 16x24
               text label="column_single" "\u{F0116}" 101,633 16x16
-              text "note" 121,633 28x16
+              el 121,629 138x24
+                el 121,629 0x24
+                text "note" 121,633 28x16
+                text "text" 153,633 106x16
     el #rest 268,32 724x540
       el #second 276,32 716x540
         el #tabs 276,32 716x540

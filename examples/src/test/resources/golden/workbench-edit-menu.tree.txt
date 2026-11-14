@@ -108,42 +108,69 @@ el 0,0 1000x600
                 text label="chevron_down" "\u{F2A2}" 65,331 16x16
               text label="table" "\u{EBF4}" 85,331 16x16
               text "orders" 105,331 41x16
-            el #row-17 role=treeitem label="id" 13,351 250x24 level=5 pos=1/9
+            el #row-17 role=treeitem label="id" 13,351 250x24 level=5 pos=1/9 value="bigint"
               el 81,351 16x24
               text label="key" "\u{E740}" 101,355 16x16
-              text "id" 121,355 11x16
-            el #row-18 role=treeitem label="customer_id" 13,375 250x24 level=5 pos=2/9
+              el 121,351 138x24
+                el 121,351 0x24
+                text "id" 121,355 11x16
+                text "bigint" 136,355 123x16
+            el #row-18 role=treeitem label="customer_id" 13,375 250x24 level=5 pos=2/9 value="integer"
               el 81,375 16x24
               text label="column_single" "\u{F0116}" 101,379 16x16
-              text "customer_id" 121,379 75x16
-            el #row-19 role=treeitem label="status" 13,399 250x24 level=5 pos=3/9
+              el 121,375 138x24
+                el 121,375 0x24
+                text "customer_id" 121,379 75x16
+                text "integer" 200,379 59x16
+            el #row-19 role=treeitem label="status" 13,399 250x24 level=5 pos=3/9 value="order_status"
               el 81,399 16x24
               text label="column_single" "\u{F0116}" 101,403 16x16
-              text "status" 121,403 37x16
-            el #row-20 role=treeitem label="amount" 13,423 250x24 level=5 pos=4/9
+              el 121,399 138x24
+                el 121,399 0x24
+                text "status" 121,403 37x16
+                text "order_status" 162,403 97x16
+            el #row-20 role=treeitem label="amount" 13,423 250x24 level=5 pos=4/9 value="numeric(10,2)"
               el 81,423 16x24
               text label="column_single" "\u{F0116}" 101,427 16x16
-              text "amount" 121,427 46x16
-            el #row-21 role=treeitem label="paid" 13,447 250x24 level=5 pos=5/9
+              el 121,423 138x24
+                el 121,423 0x24
+                text "amount" 121,427 46x16
+                text "numeric(10,2)" 171,427 88x16
+            el #row-21 role=treeitem label="paid" 13,447 250x24 level=5 pos=5/9 value="boolean"
               el 81,447 16x24
               text label="column_single" "\u{F0116}" 101,451 16x16
-              text "paid" 121,451 26x16
-            el #row-22 role=treeitem label="email" 13,471 250x24 level=5 pos=6/9
+              el 121,447 138x24
+                el 121,447 0x24
+                text "paid" 121,451 26x16
+                text "boolean" 151,451 108x16
+            el #row-22 role=treeitem label="email" 13,471 250x24 level=5 pos=6/9 value="varchar(255)"
               el 81,471 16x24
               text label="column_single" "\u{F0116}" 101,475 16x16
-              text "email" 121,475 32x16
-            el #row-23 role=treeitem label="note" 13,495 250x24 level=5 pos=7/9
+              el 121,471 138x24
+                el 121,471 0x24
+                text "email" 121,475 32x16
+                text "varchar(255)" 157,475 102x16
+            el #row-23 role=treeitem label="note" 13,495 250x24 level=5 pos=7/9 value="text"
               el 81,495 16x24
               text label="column_single" "\u{F0116}" 101,499 16x16
-              text "note" 121,499 28x16
-            el #row-24 role=treeitem label="created_at" 13,519 250x24 level=5 pos=8/9
+              el 121,495 138x24
+                el 121,495 0x24
+                text "note" 121,499 28x16
+                text "text" 153,499 106x16
+            el #row-24 role=treeitem label="created_at" 13,519 250x24 level=5 pos=8/9 value="timestamptz"
               el 81,519 16x24
               text label="column_single" "\u{F0116}" 101,523 16x16
-              text "created_at" 121,523 64x16
-            el #row-25 role=treeitem label="updated_at" 13,543 250x24 level=5 pos=9/9
+              el 121,519 138x24
+                el 121,519 0x24
+                text "created_at" 121,523 64x16
+                text "timestamptz" 189,523 70x16
+            el #row-25 role=treeitem label="updated_at" 13,543 250x24 level=5 pos=9/9 value="timestamptz"
               el 81,543 16x24
               text label="column_single" "\u{F0116}" 101,547 16x16
-              text "updated_at" 121,547 68x16
+              el 121,543 138x24
+                el 121,543 0x24
+                text "updated_at" 121,547 68x16
+                text "timestamptz" 193,547 66x16
             el #row-26 role=treeitem label="order_items" 13,567 250x24 expanded=false level=4 pos=14/250
               el #mark-26 65,567 16x24
                 text label="chevron_right" "\u{F2AF}" 65,571 16x16

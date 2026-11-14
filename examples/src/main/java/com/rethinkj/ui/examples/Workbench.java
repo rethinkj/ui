@@ -422,6 +422,19 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
     };
   }
 
+  /** A column's type after its name. */
+  @Override
+  public String detail(Node node) {
+    if (node.kind != Kind.COLUMN) {
+      return null;
+    }
+    return FIELDS.stream()
+        .filter(f -> f.name().equals(node.name))
+        .map(Field::type)
+        .findFirst()
+        .orElse(null);
+  }
+
   @Override
   public String loading(Node node) {
     return "Connecting…";

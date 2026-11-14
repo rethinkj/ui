@@ -79,6 +79,21 @@ final class Catalog implements Tree.Model<Catalog.Node> {
     "version"
   };
 
+  // The type of each of COLUMNS, shown after its name.
+  private static final String[] TYPES = {
+    "bigint",
+    "timestamptz",
+    "timestamptz",
+    "bigint",
+    "text",
+    "numeric(12,2)",
+    "char(3)",
+    "varchar(320)",
+    "text",
+    "timestamptz",
+    "integer"
+  };
+
   final Theme theme;
   final List<Node> roots = new ArrayList<>();
   final Set<Node> open = new HashSet<>();
@@ -87,6 +102,7 @@ final class Catalog implements Tree.Model<Catalog.Node> {
   final List<Node> loading = new ArrayList<>(); // opened, children asked for, not there yet
   int walks; // calls of roots(), one per rebuild of the view
   final List<Node> labelled = new ArrayList<>(); // the nodes whose label was asked for
+  final List<Node> detailed = new ArrayList<>(); // the nodes whose detail was asked for
   App<Catalog> app; // which runs the work, made by app()
 
   /** The catalog with 300 tables of 3 to 10 columns in localhost/shop/public. */
@@ -203,6 +219,17 @@ final class Catalog implements Tree.Model<Catalog.Node> {
   public String label(Node node) {
     labelled.add(node);
     return node.name;
+  }
+
+  /** A column's type, and a schema's number of tables; none for the others. */
+  @Override
+  public String detail(Node node) {
+    detailed.add(node);
+    return switch (node.kind) {
+      case COLUMN -> TYPES[List.of(COLUMNS).indexOf(node.name.replaceAll("_\\d+$", ""))];
+      case SCHEMA -> node.children.size() == 1 ? "1 table" : node.children.size() + " tables";
+      default -> null;
+    };
   }
 
   @Override

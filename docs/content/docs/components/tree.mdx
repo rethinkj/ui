@@ -19,6 +19,7 @@ description: Nodes that open and close, such as servers, databases, schemas, tab
 | `isLeaf(node)` | A leaf has no mark and does not open |
 | `label(node)` | The row's text, also its label in a tree dump |
 | `icon(node)` | An element before the label, such as an icon; null by default |
+| `detail(node)` | A text after the label in muted text, such as a column's type or a schema's number of tables; null by default. Asked only for the rows that are built |
 | `loading(node)` | The text of the loading row; "Loading…" by default |
 
 ## The tree
@@ -48,9 +49,15 @@ A secondary press selects the row first and then runs the tree's own `onSecondar
 
 A press selects, a press on the chevron selects and opens or closes, and a double press opens or closes and activates. The marks are icons and need `rethinkj-ui-icons`.
 
+## Details in a narrow tree
+
+Where a row is too narrow for its label and detail, the detail gives way first: it ends in an ellipsis, and once less than its first character would show it is left out, before the label is cut at all; then the label ends in an ellipsis. Where either is cut or left out, a tooltip after the theme's delay shows both whole.
+
+<Shot src="kit/tree-{theme}-narrow" alt="A narrow schema tree: the number of tables after public ends in an ellipsis, and the types after the longer column names are left out" />
+
 ## In a tree dump
 
-The tree is `role=tree`, a list of rows with `rows <first>-<last>/<count>`. Each row is `role=treeitem` with the node's label, the key `row-<index>`, and `expanded` or `expanded=false` (not on leaves), `level=<n>` and `pos=<n>/<siblings>`; the selected row is `selected`. Marks have the key `mark-<index>`.
+The tree is `role=tree`, a list of rows with `rows <first>-<last>/<count>`. Each row is `role=treeitem` with the node's label, the key `row-<index>`, and `expanded` or `expanded=false` (not on leaves), `level=<n>` and `pos=<n>/<siblings>`, and its detail as `value="<detail>"`; the selected row is `selected`. The detail's text is in the dump as any text, in a box after the label. Marks have the key `mark-<index>`.
 
 ```text file="examples/src/test/resources/golden/docs/tree/selected.tree.txt" start="#schema" count="16"
 ```
