@@ -1,0 +1,1 @@
+- An overlay is laid out at most as large as the window less its margins, so `margin(16)` keeps it 16 pixels off the window's edges where it would otherwise fill the window.
