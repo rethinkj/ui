@@ -3,7 +3,7 @@ title: Targets and selectors
 description: How script steps find the element they act on.
 ---
 
-The target of a `press`, `move`, `wheel`, `focus` or `scroll` is a position or a selector. A selector finds exactly one element of the last frame by what a person would call it: its role and label, its key, its text, its states.
+The target of a `press`, `move`, `wheel`, `focus` or `scroll` is a position or a selector. A selector finds exactly one element of the last frame by its role and label, key, text or states.
 
 ## Targets
 
@@ -27,7 +27,7 @@ press #cell-2-1 clicks 2
 move role=button label="Refresh"
 ```
 
-A selector presses the centre of the part of the element's rectangle that the clips around it leave, and for an element laid over a range of a text (`El.range`), the middle of the range's first row. Elements that are fading out (`exiting`) or at opacity 0 never match.
+A step acts on the centre of the visible part of the element's rectangle; for an element over a range of text (`El.range`), on the middle of the range's first row. Elements that are fading out (`exiting`) or at opacity 0 never match.
 
 ## Lists of rows
 
@@ -41,7 +41,7 @@ press #row-765432
 
 ## When a selector fails
 
-When a selector matches nothing, the error lists the keys, roles, labels and states there are, the texts if there are any, and the lists of rows with the rows that exist. When only its states match nothing, it lists the lines of the elements that match the rest, which show their states. When it matches several, it lists them with their rectangles. The message is written to be acted on: an agent can pick the right selector from it.
+When a selector matches nothing, the error lists the keys, roles, labels, states and texts that exist, and the built rows of each list. When only its states do not match, it lists the elements that match the rest, with their states. When it matches several, it lists them with their rectangles. Pick the right selector from that list.
 
 ## Choosing good selectors
 

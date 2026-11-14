@@ -3,7 +3,7 @@ title: Lists of many rows
 description: Virtual lists that build only the rows in view, for a million rows, with rows of one height or of their own.
 ---
 
-`El.rows(count, rowHeight, row)` turns a scroll area into a list that builds only the rows in its visible part and three more on each side: a list of a million rows costs as much as one of twenty. The [DataGrid](/docs/components/data-grid), the [Tree](/docs/components/tree), [Markdown](/docs/components/markdown) and the kit's lists are built on it.
+`El.rows(count, rowHeight, row)` turns a scroll area into a list that builds only the visible rows and a few around them, so a list of a million rows costs as much as one of twenty. The [DataGrid](/docs/components/data-grid), the [Tree](/docs/components/tree), [Markdown](/docs/components/markdown) and the kit's lists are built on it.
 
 ```java snippet="rows"
 ```
@@ -23,16 +23,16 @@ description: Virtual lists that build only the rows in view, for a million rows,
 | --- | --- |
 | `revealRow(index)` | Keep this row in view whenever it changes: a cursor |
 | `reveal(key, x, y, w, h)` | Keep a rectangle of the content in view whenever the key changes |
-| `onRowsBuilt((first, last) -> …)` | Told which rows exist, to load them |
-| `scrollState(ScrollState)` | Keep the offsets in the state, so that the list comes back where it was |
+| `onRowsBuilt((first, last) -> …)` | Which rows were built, so the app can load their data |
+| `scrollState(ScrollState)` | Keep the scroll offsets in the state, so the list comes back where it was |
 | `scrollbars(t.scrollbars())` | Bars that drag and page |
 | `app.scrollToRow(list, row)` | Scroll from a handler |
 
-The list needs a height of its own or room to `grow`. Give rows keys (`row-<index>`) so that scripts find them; a selector finds only the rows that exist, so a script scrolls first: `scroll #rows row 765432`.
+The list needs a height or room to `grow`. Give rows keys (`row-<index>`) so scripts find them; a selector finds only built rows, so a script scrolls first: `scroll #rows row 765432`.
 
 ## Rows as high as their content
 
-Messages of a log, blocks of a document and cells that wrap have heights of their own. `rows(count, heights, row)` lays out each row it builds at the list's inner width, with no `h(...)` needed, and a `RowHeights` that the app keeps in its state remembers what it measured. Rows not built yet have the height its function estimates:
+Log messages, document blocks and wrapping cells each have their own height. `rows(count, heights, row)` lays out each row it builds at the list's width, without `h(...)`, and a `RowHeights` in the state remembers the measured heights. Rows not built yet get the height its function estimates:
 
 ```java snippet="row-heights"
 ```
@@ -43,17 +43,17 @@ Messages of a log, blocks of a document and cells that wrap have heights of thei
 ```text file="examples/src/test/resources/golden/docs/row-heights/view.tree.txt" start="#row-0 " count="4"
 ```
 
-- The estimate is in logical pixels above 0, from what the app knows without laying out, such as the length of a row's text. The closer it is, the less the scrollbar's thumb moves as rows are measured.
-- Where a row starts, the row at an offset and the total cost a logarithm of the count, so a list of a million such rows scrolls as one of rows of one height.
-- When rows above the top of the view turn out higher or lower than estimated, the offset moves by as much, so what is in view stays where it is.
-- `app.scrollToRow(list, row)` goes to where the row starts as far as the heights are known, and follows that row while the rows on the way are measured, until the user's next press, key or wheel.
-- Heights are kept by index. Rows inserted or removed anywhere but at the end leave the measured heights where they were, so an app whose rows move makes a new `RowHeights`.
+- The estimate is in logical pixels, above 0, from what the app knows without layout, such as the length of a row's text. The closer it is, the less the scrollbar thumb jumps as rows are measured.
+- A list of a million such rows scrolls as fast as one with a fixed row height.
+- When rows above the view turn out higher or lower than estimated, the offset adjusts, so the rows in view stay in place.
+- `app.scrollToRow(list, row)` keeps following the row while the rows before it are measured, until the user's next press, key or wheel.
+- Heights are kept by index. When rows are inserted or removed anywhere but at the end, make a new `RowHeights`.
 
 | `RowHeights` | |
 | --- | --- |
 | `new RowHeights(estimate)` | An `IntToDoubleFunction` from a row's index to its estimated height |
-| `count()` | The number of rows, as the list last had it (0 before its first build) |
+| `count()` | The number of rows at the list's last build (0 before it) |
 | `height(row)` | A row's height: as measured, or as estimated before |
-| `top(row)` | Where a row starts below the first, the heights before it together |
+| `top(row)` | Where a row starts, measured from the top of the first row |
 | `total()` | The heights of all rows together |
-| `at(y)` | The row at this distance below the start of the first; the count where `y` is past the last row |
+| `at(y)` | The row at this offset from the top; the count when `y` is past the last row |
