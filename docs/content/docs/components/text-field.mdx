@@ -3,7 +3,7 @@ title: TextField
 description: Single-line fields, password fields that can show their text, text areas and code areas.
 ---
 
-`TextField.textField` is a single-line text field in the kit's frame: a border, a lighter fill under the pointer and the accent border while focused. The same file has `passwordField` and `revealable` for passwords, `textArea` for several lines of prose and `codeArea` for code. The string belongs to the app: every edit hands the new string to the handler, which stores it. For code with line numbers and highlighting, use a [CodeEditor](/docs/components/code-editor); for a typed value, such as a `BigDecimal` or a `LocalDate`, a [ValueField](/docs/components/format); for a whole number stepped by buttons, a [NumberField](/docs/components/number-field).
+`TextField.textField` is a single-line text field in the kit's frame: a quiet border on top and at the sides over a strong line along the bottom, which marks it as a field; under the pointer a lighter fill and the whole frame strong, and while focused the frame and the line in the accent colour. Text areas, selects, combo boxes and the framed code editor share it. The same file has `passwordField` and `revealable` for passwords, `textArea` for several lines of prose and `codeArea` for code. The string belongs to the app: every edit hands the new string to the handler, which stores it. For code with line numbers and highlighting, use a [CodeEditor](/docs/components/code-editor); for a typed value, such as a `BigDecimal` or a `LocalDate`, a [ValueField](/docs/components/format); for a whole number stepped by buttons, a [NumberField](/docs/components/number-field).
 
 <Shot src="kit/gallery-{theme}-2x" rows="field empty,field filled,field selected" alt="Text fields empty, filled and with a selection, in each state" />
 
@@ -17,7 +17,7 @@ description: Single-line fields, password fields that can show their text, text 
 | `textField(t, value, placeholder, onChange)` | A field the theme's control height and field width; the placeholder is also its label unless `.label(...)` sets one |
 | `textField(t, value, onChange)` | Without a placeholder |
 | `withIcon(t, field, symbol)` | A muted icon at the left inside the frame, such as `Symbol.SEARCH` for a filter |
-| `invalid(t, field)` | The danger border, also while focused, and the `invalid` state |
+| `invalid(t, field)` | The whole frame in the danger colour, also under the pointer and while focused, and the `invalid` state |
 
 The result is the field itself, so the core's field calls chain onto it:
 

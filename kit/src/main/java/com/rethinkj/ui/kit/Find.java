@@ -985,10 +985,10 @@ public final class Find {
                 })
             .key("regex")
             .size(size, size));
-    El box = FieldActions.embed(t, field, switches, 3 * size + 2 * inset)
-        .whenFocusWithin(e -> field.border(
-            t.size().stroke(),
-            state.error != null ? t.status().danger() : t.accent().color()));
+    El box = FieldActions.embed(t, field, switches, 3 * size + 2 * inset).whenFocusWithin(e -> {
+      int c = state.error != null ? t.status().danger() : t.accent().color();
+      TextField.edge(t, field, c, c);
+    });
     return state.error != null ? Tooltip.tooltip(t, box, state.error) : box;
   }
 
