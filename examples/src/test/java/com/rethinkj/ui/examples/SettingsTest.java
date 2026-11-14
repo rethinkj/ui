@@ -75,4 +75,46 @@ class SettingsTest {
     assertEquals("backup", app.state().connections.getLast().name);
     assertEquals("backup", app.state().selected);
   }
+
+  @Test
+  void aZeroPortCannotBeAddedAndANewDialogForgetsItsInvalidDraft(@TempDir Path out)
+      throws IOException {
+    Snaps.assumeText();
+    App<Settings> app = new App<>(new Settings(), Settings::view);
+    Script.run("""
+        size 880 600
+        frame
+        press role=option label="Connections"
+        frame
+        advance 1
+        frame
+        press role=button label="New connection…"
+        frame
+        advance 1
+        frame
+        type "backup"
+        key Tab
+        type "backup.example.com"
+        key Tab
+        key A control
+        type "0"
+        key Enter
+        frame
+        """, app, out);
+    assertTrue(app.state().adding, "port zero must not enable Add");
+    assertEquals("1 to 65535", app.state().portDraft.error());
+    Script.run("""
+        size 880 600
+        press role=button label="Cancel"
+        frame
+        advance 1
+        frame
+        press role=button label="New connection…"
+        frame
+        advance 1
+        frame
+        """, app, out);
+    assertEquals("5432", app.state().portDraft.text());
+    assertEquals(null, app.state().portDraft.error(), "a new form starts with a valid default");
+  }
 }

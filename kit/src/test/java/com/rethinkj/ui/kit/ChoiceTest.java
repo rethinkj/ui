@@ -68,6 +68,10 @@ class ChoiceTest {
     run(app, "press role=button label=\"Decrease\"");
     assertEquals(16, s.tabSize, "the button steps back into the range");
     assertEquals("spinbutton", app.focused().role(), "and leaves the focus in the field");
+    run(app, "key Tab");
+    assertEquals("slider", app.focused().role(), "Tab skips the arrows");
+    run(app, "key Tab shift");
+    assertEquals("spinbutton", app.focused().role(), "and comes straight back to the field");
   }
 
   @Test

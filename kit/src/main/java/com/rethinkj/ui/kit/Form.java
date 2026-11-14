@@ -361,11 +361,7 @@ public final class Form {
     named(field.control(), field.label());
     // The app's error, else the message of a typed field's text ({@link ValueField}).
     String error = field.error() != null || target == null ? field.error() : target.errorMessage();
-    if (error != null && target != null && target.isEditable()) {
-      TextField.invalid(t, target).errorMessage(error); // error="..." in a dump, as a draft's
-    } else if (error != null && target != null) {
-      target.invalid(true).errorMessage(error);
-    }
+    invalid(t, target, error);
     El body = col().gap(t.space().xs()).child(field.control().alignSelf(Style.Align.START));
     String below = error != null ? error : field.help();
     if (below != null) {
@@ -386,6 +382,17 @@ public final class Form {
         .justify(Style.Content.END)
         .align(Style.Align.CENTER)
         .children(buttons);
+  }
+
+  /** Applies a field's error to its control, including the frame of an editable text field. */
+  static void invalid(Theme t, El target, String error) {
+    if (error == null || target == null) {
+      return;
+    }
+    if (target.isEditable()) {
+      TextField.invalid(t, target);
+    }
+    target.invalid(true).errorMessage(error);
   }
 
   /** The label of a field, with the marker of a required one. */

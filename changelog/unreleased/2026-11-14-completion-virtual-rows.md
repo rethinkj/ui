@@ -1,0 +1,1 @@
+- Completion builds only the suggestion rows in or near the visible part of its panel, keeps the highlighted entry in view and leaves room for the scrollbar, preserving the provider's order and keyboard choices.

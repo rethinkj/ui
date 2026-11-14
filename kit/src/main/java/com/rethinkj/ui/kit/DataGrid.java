@@ -12,7 +12,6 @@ import com.rethinkj.ui.El;
 import com.rethinkj.ui.FieldState;
 import com.rethinkj.ui.Key;
 import com.rethinkj.ui.Len;
-import com.rethinkj.ui.Measure;
 import com.rethinkj.ui.ScrollState;
 import com.rethinkj.ui.Scrollbars;
 import com.rethinkj.ui.Side;
@@ -27,6 +26,7 @@ import java.util.function.Consumer;
 import java.util.function.IntConsumer;
 import java.util.function.IntFunction;
 import java.util.function.IntPredicate;
+import java.util.function.ObjLongConsumer;
 
 /**
  * A table of query results: a header with the column titles over rows of cells, as dense as a
@@ -108,6 +108,49 @@ import java.util.function.IntPredicate;
  * of its rows ({@code thumb-y}, on {@code #rows}).
  */
 public final class DataGrid {
+
+  /** Operations shared by the grid's keys, context menu and {@link Commands#run}. */
+  public enum Command {
+    /** Copies the selected cells as tab-separated text. */
+    COPY,
+    /** Copies them with the column titles on the first line. */
+    COPY_WITH_HEADERS,
+    /** Pastes the clipboard through {@link Options#onPaste}. */
+    PASTE,
+    /** Selects every data row, leaving the cursor in place. */
+    SELECT_ALL
+  }
+
+  /**
+   * A handle for an external menu to operate one grid. Keep it in the app's state and pass it
+   * to {@link Options#commands} on each build, including when the grid has no selection or
+   * editing handlers. One handle belongs to one grid at a time.
+   */
+  public static final class Commands {
+    private Build build;
+
+    /**
+     * Whether the last build allows this command: false before a build, without a selection,
+     * or while a cell editor is open. Copy needs a clipboard and selected data cells; Paste
+     * needs a clipboard, an onPaste handler and a cursor on a data row; Select all needs rows.
+     * Clipboard contents, copy limits and individual cells' editability are checked
+     * when the command runs, as for the keys.
+     */
+    public boolean canRun(Command command) {
+      return DataGrid.canRun(build, command);
+    }
+
+    /**
+     * Runs on the app's thread, from a handler, using the last build's columns, row count and
+     * options. An unavailable command does nothing. Uses the same selection notifications,
+     * copy limits, loading and editing checks as the keys. This call leaves the focus where it
+     * is and never commits or changes an open cell editor. Opening a menu with the pointer
+     * still runs the editor's normal outside-press handler.
+     */
+    public void run(Command command) {
+      DataGrid.run(build, command);
+    }
+  }
 
   /** Where a column puts its text. Numbers usually go right, in a {@link Column#mono} column. */
   public enum Align {
@@ -1610,6 +1653,7 @@ public final class DataGrid {
    */
   public static final class Options {
     Selection selection;
+    Commands commands;
     Runnable onSelect;
     List<SortKey> sort = List.of();
     Consumer<List<SortKey>> onSort;
@@ -1619,7 +1663,7 @@ public final class DataGrid {
     Clipboard clipboard;
     String nullText = "";
     long copyLimit = 100_000;
-    Consumer<Copy> onLargeCopy;
+    ObjLongConsumer<Copy> onLargeCopy;
     Menu.State menu;
     List<Menu.Item> menuItems = List.of();
     IntPredicate loaded;
@@ -1658,6 +1702,12 @@ public final class DataGrid {
      */
     public Options select(Selection selection) {
       this.selection = selection;
+      return this;
+    }
+
+    /** Binds an external menu's command handle to this build of the grid. */
+    public Options commands(Commands commands) {
+      this.commands = commands;
       return this;
     }
 
@@ -1747,7 +1797,22 @@ public final class DataGrid {
      * {@code handler}; without one, a larger copy leaves the clipboard as it is.
      */
     public Options copyLimit(long cells, Consumer<Copy> handler) {
+      return copyLimit(cells)
+          .onLargeCopy(handler == null ? null : (copy, limit) -> handler.accept(copy));
+    }
+
+    /** Copies at most {@code cells} cells itself, without changing the large-copy handler. */
+    public Options copyLimit(long cells) {
       this.copyLimit = cells;
+      return this;
+    }
+
+    /**
+     * Hands a copy beyond the limit, or with rows not loaded, to {@code handler}, together with the
+     * effective cell limit. This leaves the limit as it is: 100 000 unless {@link #copyLimit(long)}
+     * sets another. Null clears the handler.
+     */
+    public Options onLargeCopy(ObjLongConsumer<Copy> handler) {
       this.onLargeCopy = handler;
       return this;
     }
@@ -2107,7 +2172,7 @@ public final class DataGrid {
       }
       xs[columns.size()] = x;
       Scrollbars bars = t.scrollbars();
-      this.room = bars.thickness() + 2 * bars.margin();
+      this.room = bars.strip();
     }
 
     float fixedWidth() {
@@ -2211,6 +2276,9 @@ public final class DataGrid {
     El grid =
         row().role("grid").scrollBoth().scrollbars(t.scrollbars()).fill(g.row()).child(content);
     b.grid = grid;
+    if (options.commands != null) {
+      options.commands.build = b;
+    }
     if (sel != null) {
       grid.scrollState(sel.gridScroll);
     }
@@ -2378,11 +2446,7 @@ public final class DataGrid {
     float room = column.width() - t.size().stroke() - 2 * t.space().s();
     String whole =
         column.typeName() == null ? column.title() : column.title() + " " + column.typeName();
-    cell.whenHoveredFor(t.motion().tooltipDelay(), e -> {
-      if (headerWidth(b, index) > room + 0.5f) {
-        e.overlay(Tooltip.panel(t, whole));
-      }
-    });
+    Tooltip.whenHovered(t, cell, () -> headerWidth(b, index) > room + 0.5f ? whole : null);
     GridColumns.cell(b, index, cell);
     if (b.o.onSort == null || !column.sortable()) {
       return funnel == null ? cell : cell.whenHovered(e -> funnel.opacity(1));
@@ -2644,20 +2708,13 @@ public final class DataGrid {
     if (left >= whole) {
       return true;
     }
-    int first = type.offsetByCodePoints(0, 1);
-    return first < type.length()
-        && left
-            >= natural(
-                Label.label(t, Label.Variant.MUTED, type.substring(0, first) + Text.ELLIPSIS));
+    String least = TextSizing.least(type);
+    return !least.equals(type) && left >= natural(Label.label(t, Label.Variant.MUTED, least));
   }
 
   /** The width a text element takes on one line, in logical pixels. */
   static float natural(El text) {
-    return text.text() == null
-        ? 0
-        : text.text()
-            .measure(Float.NaN, Float.NaN, Measure.MAX_CONTENT, Measure.MAX_CONTENT)
-            .width();
+    return TextSizing.natural(text);
   }
 
   // Rows
@@ -2835,7 +2892,7 @@ public final class DataGrid {
       El more = null;
       if (detail != null) {
         more = text(t, column.mono(), oneLine(detail), t.text().muted()).shrink(0);
-        float least = alone ? 0 : natural(text(t, column.mono(), least(shown), 0)) + pad;
+        float least = alone ? 0 : natural(text(t, column.mono(), TextSizing.least(shown), 0)) + pad;
         // Whole beside the icon, or the value's first character and an ellipsis, or not at all.
         detailWidth = natural(more) + pad;
         if (room < detailWidth - pad + least) {
@@ -2900,25 +2957,16 @@ public final class DataGrid {
       boolean hidden = detail != null && detailWidth == 0;
       El measured = valueText;
       float valueRoom = room - detailWidth;
-      box.whenHoveredFor(t.motion().tooltipDelay(), e -> {
+      Tooltip.whenHovered(t, box, () -> {
         boolean shortened =
             measured != null && value != null && natural(measured) > valueRoom + 0.5f;
         String cut = shortened || hidden ? named : null;
-        String tip = own == null
+        return own == null
             ? (alone && cut == null ? whole : cut)
             : cut == null ? own : own + "\n" + cut;
-        if (tip != null) {
-          e.overlay(Tooltip.panel(t, tip));
-        }
       });
     }
     return box;
-  }
-
-  /** A text's first character and an ellipsis, the least of it a cut cell shows. */
-  private static String least(String text) {
-    int first = text.isEmpty() ? 0 : text.offsetByCodePoints(0, 1);
-    return first < text.length() ? text.substring(0, first) + Text.ELLIPSIS : text;
   }
 
   /** A status as a tree dump says it: {@code changed}, {@code new}, {@code deleted}, {@code error}. */
@@ -3060,11 +3108,11 @@ public final class DataGrid {
     boolean control = (mods & Key.CONTROL) != 0;
     String name = k.name();
     if (control && !shift && (name.equals("C") || name.equals("Insert")) && b.o.clipboard != null) {
-      copy(b, false);
+      run(b, Command.COPY);
       return true;
     }
     if (control && !shift && name.equals("A")) {
-      change(b, () -> sel.selectAll(b.rowCount));
+      run(b, Command.SELECT_ALL);
       return true;
     }
     if (mods == 0
@@ -3130,13 +3178,46 @@ public final class DataGrid {
     return true;
   }
 
-  // Copying
+  // Commands and copying
+
+  static boolean canRun(Build b, Command command) {
+    if (b == null || b.sel == null || b.sel.isEditing() || b.columns.isEmpty()) {
+      return false;
+    }
+    return switch (command) {
+      case COPY, COPY_WITH_HEADERS ->
+        b.o.clipboard != null
+            && b.sel.ranges().stream()
+                .anyMatch(r -> r.top() < b.rowCount && r.left() < b.columns.size());
+      case PASTE ->
+        b.o.clipboard != null
+            && b.o.onPaste != null
+            && b.sel.row() >= 0
+            && b.sel.row() < b.rowCount;
+      case SELECT_ALL -> b.rows > 0;
+    };
+  }
+
+  static void run(Build b, Command command) {
+    if (!canRun(b, command)) {
+      return;
+    }
+    switch (command) {
+      case COPY -> copy(b, false);
+      case COPY_WITH_HEADERS -> copy(b, true);
+      case PASTE -> GridEdit.paste(b);
+      case SELECT_ALL -> change(b, () -> b.sel.selectAll(b.rowCount));
+    }
+  }
 
   private static List<Menu.Item> menuItems(Build b) {
     List<Menu.Item> items = new ArrayList<>();
     if (b.o.clipboard != null && b.sel != null) {
-      items.add(Menu.item("Copy", () -> copy(b, false)).shortcut("Ctrl+C"));
-      items.add(Menu.item("Copy with headers", () -> copy(b, true)));
+      items.add(Menu.item("Copy", canRun(b, Command.COPY) ? () -> run(b, Command.COPY) : null)
+          .shortcut("Ctrl+C"));
+      items.add(Menu.item(
+          "Copy with headers",
+          canRun(b, Command.COPY_WITH_HEADERS) ? () -> run(b, Command.COPY_WITH_HEADERS) : null));
     }
     GridEdit.menuItems(b, items);
     // The header's menu of the cursor's column, which the keyboard reaches from here (Shift+F10).
@@ -3178,7 +3259,7 @@ public final class DataGrid {
     }
     if (missing) {
       if (b.o.onLargeCopy != null) {
-        b.o.onLargeCopy.accept(new Copy(ranges, headers, cells));
+        b.o.onLargeCopy.accept(new Copy(ranges, headers, cells), b.o.copyLimit);
       }
       return;
     }

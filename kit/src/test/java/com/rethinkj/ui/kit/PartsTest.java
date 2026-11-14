@@ -119,11 +119,24 @@ class PartsTest {
         "frame\nframe\nframe\nadvance 1\nframe\npress role=button label=\"More\"\nframe\n"
             + "advance 0.25\nframe\npress role=menuitem label=\"Wrap values\"\nframe");
     assertTrue(app.state().wrap, "a toggle as a checked item");
+    more(app, out, 160, "frame\nframe");
+    String smallest = app.tree().dump();
+    assertTrue(smallest.contains("role=button label=\"More\""), smallest);
+    assertFalse(smallest.contains("role=button label=\"Refresh\""), smallest);
+    more(
+        app,
+        out,
+        160,
+        "press role=button label=\"More\"\nframe\nadvance 0.25\nframe\n"
+            + "press role=menuitem label=\"Refresh\"\nframe");
+    assertEquals("refresh", app.state().log.getLast(), "even the first item can move to More");
     more(app, out, 720, "frame\nframe");
     assertTrue(app.tree().dump().contains("role=button label=\"Wrap values\" "), "back");
     assertTrue(
         StructureTest.line(app.tree().dump(), "label=\"Wrap values\"").contains(" checked"),
         app.tree().dump());
+    assertTrue(app.tree().dump().contains("role=link label=\"localhost\""), "the path expands too");
+    assertFalse(app.tree().dump().contains("label=\"Hidden parts\""), app.tree().dump());
   }
 
   @Test
@@ -182,6 +195,10 @@ class PartsTest {
     String shortened = narrow.tree().dump();
     assertTrue(shortened.contains("role=button label=\"Hidden parts\""), shortened);
     assertTrue(!shortened.contains("label=\"localhost\""), shortened);
+    assertTrue(
+        StructureTest.line(shortened, "label=\"orders_by_customer_and_month\"")
+            .contains(" current"),
+        "the current part stays even when it is wider than the breadcrumb: " + shortened);
     more(
         narrow,
         out,
@@ -189,6 +206,35 @@ class PartsTest {
         "press label=\"Hidden parts\"\nframe\nadvance 0.25\nframe\n"
             + "press role=menuitem label=\"localhost\"\nframe");
     assertEquals("crumb localhost", narrow.state().log.getLast());
+  }
+
+  @Test
+  void aBreadcrumbKeepsTheSuffixThatFitsBesideMore() throws IOException {
+    Theme t = Theme.DARK;
+    Breadcrumb.State state = new Breadcrumb.State();
+    float[] width = {400};
+    App<Breadcrumb.State> app = new App<>(
+        state,
+        s -> col()
+            .w(width[0])
+            .child(Breadcrumb.breadcrumb(t, s, List.of("first", "middle", "current"), i -> {})));
+    Script.run("size 400 100\nframe\nframe", app, out);
+    width[0] = 1;
+    app.invalidate();
+    Script.run("frame\nframe\nframe", app, out);
+    width[0] = (float) Math.ceil(state.fitting.width("more")
+        + state.fitting.width("1:middle")
+        + state.fitting.width("2:current")
+        + 2 * t.space().xs());
+    app.invalidate();
+    Script.run("frame\nframe", app, out);
+    String dump = app.tree().dump();
+    assertTrue(dump.contains("label=\"middle\""), dump);
+    assertFalse(dump.contains("label=\"first\""), dump);
+    width[0] -= t.space().xs();
+    app.invalidate();
+    Script.run("frame\nframe", app, out);
+    assertFalse(app.tree().dump().contains("label=\"middle\""), app.tree().dump());
   }
 
   @Test

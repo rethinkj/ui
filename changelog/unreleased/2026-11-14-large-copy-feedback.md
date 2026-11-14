@@ -1,0 +1,1 @@
+- Data grids can set a large-copy handler with `onLargeCopy` without repeating the default limit; the handler receives the effective limit. `copyLimit(cells)` changes only the limit, and the existing two-argument form remains available.

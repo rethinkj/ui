@@ -17,6 +17,8 @@ description: A list of completions at the caret of a text field, such as table a
 - `new Completion.Entry(text, symbol, kind)` shows an optional icon and a muted kind at the right. The kit filters nothing: return the entries in the order to show.
 - The function runs on every keystroke while the list is open; keep it fast, or look things up off the app's thread and keep the answers in the state.
 
+The panel shows up to eight rows and scrolls to keep the highlighted entry in view. Only the rows in or near the visible part are built, so a long suggestion list does not build an element for every entry. Scrolling lists leave room beside the rows for the scrollbar.
+
 A script that opens it:
 
 ```text snippet="completion-script"
@@ -40,7 +42,7 @@ Keys it does not take reach the field's own handler, Control+Enter among them.
 
 ## In a tree dump
 
-The list is an overlay at the caret, `role=listbox` `label="Completions"`, its entries `role=option` with their text as label and the key `option-<index>`, the highlighted one `selected`:
+The list is an overlay at the caret, `role=listbox` `label="Completions"`, its built entries `role=option` with their text as label and the key `option-<index>` from the provider's list, the highlighted one `selected`:
 
 ```text file="examples/src/test/resources/golden/docs/code-editor/completions.tree.txt" start="overlay" count="3"
 ```

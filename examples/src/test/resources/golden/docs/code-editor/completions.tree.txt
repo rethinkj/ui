@@ -7,14 +7,14 @@ el 0,0 520x260
         text #line-2 "3" 22,50 15x16
         text #line-3 "4" 22,66 15x16
 overlay bottom start gap 2 on #query role=textbox label="Query" 13,13 494x146
-  el #completions role=listbox label="Completions" 86,84 200x58
-    el #option-0 role=option label="orders" 91,89 190x24 selected
+  el #completions role=listbox label="Completions" 86,84 200x58 rows 0-1/2
+    el #option-0 role=option label="orders" 91,89 190x24 selected pos=1/2
       el 91,89 190x24
         el 99,93 16x16
           text label="table" "\u{EBF4}" 99,93 16x16
         text "orders" 123,93 100x16
         text "table" 243,93 30x16
-    el #option-1 role=option label="order_items" 91,113 190x24
+    el #option-1 role=option label="order_items" 91,113 190x24 pos=2/2
       el 91,113 190x24
         el 99,117 16x16
           text label="table" "\u{EBF4}" 99,117 16x16

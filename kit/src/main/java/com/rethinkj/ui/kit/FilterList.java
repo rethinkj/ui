@@ -9,8 +9,6 @@ import static com.rethinkj.ui.kit.Label.label;
 import com.rethinkj.ui.App;
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.Key;
-import com.rethinkj.ui.Len;
-import com.rethinkj.ui.Scrollbars;
 import com.rethinkj.ui.Style;
 import com.rethinkj.ui.Work;
 import com.rethinkj.ui.text.Font;
@@ -282,12 +280,7 @@ public final class FilterList {
 
     /** The next row that can be chosen from {@code from} in this direction, or -1. */
     int step(int from, int direction) {
-      for (int at = from + direction; at >= 0 && at < rows.length; at += direction) {
-        if (choosable(at)) {
-          return at;
-        }
-      }
-      return -1;
+      return PassiveList.step(rows.length, from, direction, this::choosable);
     }
   }
 
@@ -558,36 +551,43 @@ public final class FilterList {
     int count = shown.count();
     boolean note = count == 0 || shown.loading();
     float height = Math.max(1, Math.min(count + (note && count > 0 ? 1 : 0), most)) * rowHeight;
-    El list = col().key("options").role("listbox").label(label).h(height).shrink(0);
     if (count == 0) {
       String text =
           shown.failure() != null ? shown.failure() : shown.loading() ? "Loading…" : "No results";
-      return list.child(row()
-          .key("empty")
-          .h(rowHeight)
-          .padding(0, t.space().m())
-          .align(Style.Align.CENTER)
-          .child(label(t, Label.Variant.MUTED, text).key("note")));
+      return col()
+          .key("options")
+          .role("listbox")
+          .label(label)
+          .h(height)
+          .shrink(0)
+          .child(row()
+              .key("empty")
+              .h(rowHeight)
+              .padding(0, t.space().m())
+              .align(Style.Align.CENTER)
+              .child(label(t, Label.Variant.MUTED, text).key("note")));
     }
     // While new entries are on their way, the old ones show with a last row that says so.
     int rows = count + (shown.loading() ? 1 : 0);
-    if (rows > most) { // the rows stop short of the bar, which lies over them
-      Scrollbars bars = t.scrollbars();
-      list.style().paddingRight = Len.px(bars.thickness() + bars.margin());
-    }
     Font strong = t.type().heading().font().get();
-    return list.scrollbars(t.scrollbars())
-        .revealRow(s.highlight)
-        .rows(
+    return PassiveList.view(
+            t,
             rows,
-            rowHeight,
+            most,
+            s.highlight,
+            0,
             i -> i == count
                 ? row()
                     .key("loading")
                     .padding(0, t.space().m())
                     .align(Style.Align.CENTER)
                     .child(label(t, Label.Variant.MUTED, "Loading…"))
-                : option(t, s, shown, i, strong, choose));
+                : option(t, s, shown, i, strong, choose))
+        .key("options")
+        .role("listbox")
+        .label(label)
+        .h(height)
+        .shrink(0);
   }
 
   private static El option(
@@ -604,7 +604,6 @@ public final class FilterList {
           .child(label(t, Label.Variant.MUTED, group).fontSize(t.type().body().size()));
     }
     boolean enabled = entry.isEnabled();
-    boolean lit = i == s.highlight;
     int text = enabled ? t.text().primary() : t.text().disabled();
     int quiet = enabled ? t.text().muted() : t.text().disabled();
     El mark = el().minSize(t.size().icon(), 0).shrink(0).center();
@@ -648,19 +647,10 @@ public final class FilterList {
     if (entry.checked()) {
       content.child(icon(t, Menu.CHECKED).color(quiet));
     }
-    El row = row()
-        .key("option-" + i)
-        .role("option")
+    return PassiveList.option(
+            t, i, s.highlight, s::light, enabled ? () -> choose.accept(entry) : null)
         .label(entry.text())
-        .selected(lit)
-        .disabled(!enabled)
-        .radius(t.radius().small())
-        .fill(lit ? t.grid().selected() : 0)
         .child(content);
-    if (enabled) {
-      row.onHoverFor(0, () -> s.light(i)).onPress(() -> choose.accept(entry));
-    }
-    return row;
   }
 
   /**
@@ -675,16 +665,8 @@ public final class FilterList {
     }
     int n = shown.count();
     int at = s.highlight;
-    int next = switch (k.name()) {
-      case "ArrowDown" -> at < 0 || shown.step(at, 1) < 0 ? shown.step(-1, 1) : shown.step(at, 1);
-      case "ArrowUp" -> at < 0 || shown.step(at, -1) < 0 ? shown.step(n, -1) : shown.step(at, -1);
-      case "PageDown" -> towards(shown, Math.min(Math.max(at, 0) + page, n - 1), 1);
-      case "PageUp" -> towards(shown, Math.max(at - page, 0), -1);
-      case "Home" -> shown.step(-1, 1);
-      case "End" -> shown.step(n, -1);
-      default -> -2;
-    };
-    if (next != -2) {
+    int next = PassiveList.move(k.name(), at, n, page, shown::choosable);
+    if (next != PassiveList.UNHANDLED) {
       if (next >= 0) {
         s.light(next);
       }
@@ -695,14 +677,5 @@ public final class FilterList {
       return true;
     }
     return false;
-  }
-
-  /** The row that can be chosen at {@code row}, else the nearest in this direction, else back. */
-  private static int towards(Shown shown, int row, int direction) {
-    if (shown.choosable(row)) {
-      return row;
-    }
-    int found = shown.step(row, direction);
-    return found >= 0 ? found : shown.step(row, -direction);
   }
 }

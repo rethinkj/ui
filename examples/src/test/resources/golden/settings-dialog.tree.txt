@@ -101,8 +101,8 @@ overlay center modal scrim on 0,0 880x600
             el 304,308 45x24
               text "Port" 304,312 25x16
             el 357,308 220x42
-              text #port role=textbox label="Port" "x" 357,308 72x24 invalid error="Digits only" focused caret 1
-              text "Digits only" 357,334 220x16
+              text #port role=textbox label="Port" "0" 357,308 72x24 invalid error="1 to 65535" focused caret 1
+              text "1 to 65535" 357,334 220x16
       el 304,362 273x24
         el #cancel role=button label="Cancel" 448,362 70x24
           text "Cancel" 461,366 44x16
