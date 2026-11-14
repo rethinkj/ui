@@ -50,7 +50,7 @@ File › Open… shows the system's file dialog through `App.fileDialog`; its ha
 
 ### Drops from other applications
 
-Each window's root takes drops with `onFileDrop`. While a drag is over the window, its tabs' card shows that it takes it; a drop of files reads them into new tabs, a drop of text becomes a tab of its own.
+Each window's root takes drops with `onFileDrop`. While a drag is over the window, its tabs' card shows that it takes it; a drop of files reads them into new tabs, and a drop of text becomes a tab of its own. Text dropped onto a document's editor is pasted into that document instead and never reaches the root.
 
 ```java snippet="documents-drop"
 ```
