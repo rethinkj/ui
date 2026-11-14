@@ -1919,7 +1919,7 @@ public final class App<S> {
         ? was.row()
         : list.rowInView(step < 0);
     if (!list.hasRow(row)) {
-      list.scrollTo(list.scrollX(), list.offsetShowing(row));
+      scrolled |= list.scrollTo(list.scrollX(), list.offsetShowing(row));
       fillRows();
       if (!list.hasRow(row)) {
         return next;
