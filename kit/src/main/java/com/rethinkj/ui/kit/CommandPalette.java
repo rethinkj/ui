@@ -42,8 +42,10 @@ import java.util.function.Predicate;
  * End move the highlight, Tab does nothing, and keys that no part of the palette takes go on to
  * the root, so that the app's shortcuts still work.
  *
- * <p>It is {@code size().palette()} wide, below a {@link TitleBar} at the window's top, and at most
- * {@value #ROWS} rows high, then it scrolls; it has the look of a menu. In a tree dump it is an
+ * <p>It is {@code size().palette()} wide and {@code size().paletteTop()} below the window's top,
+ * its field {@code size().paletteField()} high and its list at most {@value #ROWS} rows of {@code
+ * size().paletteRow()}, then it scrolls, and fewer where the window is too short; it has the look
+ * of a menu. In a tree dump it is an
  * overlay at the window's top edge, {@code role=dialog} with {@code label="Command palette"}, its
  * field {@code role=textbox} and its list {@code role=listbox} (see {@link FilterList}).
  */
@@ -331,22 +333,25 @@ public final class CommandPalette {
         .label(stage != null ? stage.placeholder() : "Command")
         .autofocus(state.steps)
         .wFull()
+        .h(t.size().paletteField())
         .onKey(k -> key(k, state, stage, choose));
     El panel = Popup.frame(t, col())
         .key("palette")
         .role("dialog")
         .label("Command palette")
         .w(t.size().palette())
-        .padding(t.space().s())
+        .padding(t.space().m())
         .gap(t.space().s())
-        .atWindowEdge(Side.TOP, Style.Align.CENTER, TitleBar.HEIGHT + t.space().s())
+        .atWindowEdge(Side.TOP, Style.Align.CENTER, t.size().paletteTop())
+        .margin(0, 0, t.space().m(), 0) // above the bottom of a short window
         .onDismiss(state::close)
         .child(TextField.withIcon(t, field, stage == null ? Symbol.SEARCH : Symbol.CHEVRON_RIGHT));
     // Not as wide as the field's own width, but the panel's.
     panel.children().getFirst().wFull();
     if (entries != null) {
       FilterList.Shown shown = FilterList.shown(state.list, entries);
-      panel.child(FilterList.list(t, state.list, shown, ROWS, "Commands", choose));
+      panel.child(
+          FilterList.list(t, state.list, shown, ROWS, t.size().paletteRow(), "Commands", choose));
     }
     return panel;
   }

@@ -837,6 +837,9 @@ public record Theme(
    *     is {@code indicator} thick
    * @param palette the width of a {@link CommandPalette}
    * @param dot the diameter of the dot that marks a modified tab
+   * @param paletteTop the distance of a {@link CommandPalette} from the window's top
+   * @param paletteField the height of a {@link CommandPalette}'s query field
+   * @param paletteRow the height of a {@link CommandPalette}'s rows
    */
   public record Sizes(
       float control,
@@ -852,7 +855,46 @@ public record Theme(
       float ringGap,
       float progress,
       float palette,
-      float dot) {
+      float dot,
+      float paletteTop,
+      float paletteField,
+      float paletteRow) {
+
+    /** Sizes with a command palette 72 from the window's top, its field 32 and its rows 28 high. */
+    public Sizes(
+        float control,
+        float checkbox,
+        float switchWidth,
+        float switchHeight,
+        float stroke,
+        float field,
+        float handle,
+        float step,
+        float icon,
+        float indicator,
+        float ringGap,
+        float progress,
+        float palette,
+        float dot) {
+      this(
+          control,
+          checkbox,
+          switchWidth,
+          switchHeight,
+          stroke,
+          field,
+          handle,
+          step,
+          icon,
+          indicator,
+          ringGap,
+          progress,
+          palette,
+          dot,
+          72,
+          32,
+          28);
+    }
 
     /** Sizes with the dot of a modified tab 4 wide. */
     public Sizes(
@@ -1179,7 +1221,8 @@ public record Theme(
       new TextStyle(Font::sansSemibold, 20),
       new TextStyle(Font::sansMedium, 13),
       new TextStyle(Font::sansSemibold, 16));
-  private static final Sizes SIZE = new Sizes(24, 16, 28, 16, 1, 200, 7, 16, 16, 2, 2, 4, 560, 4);
+  private static final Sizes SIZE =
+      new Sizes(24, 16, 28, 16, 1, 200, 7, 16, 16, 2, 2, 4, 560, 4, 72, 32, 28);
   private static final Motion MOTION =
       new Motion(Spring.INSTANT, Spring.SNAP, 0.3, 0.5, Spring.INSTANT, 5, 2, 1.2, 1.5);
   private static final Caption CAPTION = new Caption(RED_436, WHITE, RED_485);

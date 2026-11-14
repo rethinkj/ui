@@ -18,87 +18,75 @@ el 0,0 720x400
   el 0,32 720x368
     text #query role=textbox label="Query" "SELECT * FROM orders" 12,44 696x24
     text #status "Ready · wrap" 12,76 696x16
-overlay edge top center gap 36 on 0,0 720x400
-  el #palette role=dialog label="Command palette" 80,36 560x326
-    el 85,41 550x24
-      text #query-1 role=textbox label="Command" "" 85,41 550x24 focused caret 0
-      text label="search" "\u{EA7C}" 89,45 16x16
-    el #options role=listbox label="Commands" 85,69 550x288 rows 0-14/22 thumb-y 627,71 6x154.91
-      el #option-0 role=option label="File: New query" 85,69 542x24 selected pos=1/22
-        el 85,69 542x24
-          el 93,73 16x16
-            text label="add" "\u{F108}" 93,73 16x16
-          text "File: New query" 117,73 450x16
-          text "Ctrl+N" 579,73 40x16
-      el #option-1 role=option label="File: Open…" 85,93 542x24 pos=2/22
-        el 85,93 542x24
-          el 93,97 16x16
-            text label="folder_open" "\u{F42D}" 93,97 16x16
-          text "File: Open…" 117,97 449x16
-          text "Ctrl+O" 578,97 41x16
-      el #option-2 role=option label="File: Save" 85,117 542x24 pos=3/22
-        el 85,117 542x24
-          el 93,121 16x16
-            text label="save" "\u{EA43}" 93,121 16x16
-          text "File: Save" 117,121 451x16
-          text "Ctrl+S" 580,121 39x16
-      el #option-3 role=option label="File: Export › CSV" 85,141 542x24 pos=4/22
-        el 85,141 542x24
-          el 93,153 16x0
-          text "File: Export › CSV" 117,145 502x16
-      el #option-4 role=option label="File: Export › JSON" 85,165 542x24 pos=5/22
-        el 85,165 542x24
-          el 93,177 16x0
-          text "File: Export › JSON" 117,169 502x16
-      el #option-5 role=option label="File: Export › SQL › Inserts" 85,189 542x24 pos=6/22
-        el 85,189 542x24
-          el 93,201 16x0
-          text "File: Export › SQL › Inserts" 117,193 502x16
-      el #option-6 role=option label="File: Export › SQL › Script › Schema" 85,213 542x24 pos=7/22
-        el 85,213 542x24
-          el 93,225 16x0
-          text "File: Export › SQL › Script › Schema" 117,217 502x16
-      el #option-7 role=option label="File: Export › SQL › Script › Schema and data" 85,237 542x24 pos=8/22
-        el 85,237 542x24
-          el 93,249 16x0
-          text "File: Export › SQL › Script › Schema and data" 117,241 502x16
-      el #option-8 role=option label="File: Close" 85,261 542x24 disabled pos=9/22
-        el 85,261 542x24
-          el 93,273 16x0
-          text "File: Close" 117,265 447x16
-          text "Ctrl+W" 576,265 43x16
-      el #option-9 role=option label="File: Quit" 85,285 542x24 pos=10/22
-        el 85,285 542x24
-          el 93,297 16x0
-          text "File: Quit" 117,289 449x16
-          text "Ctrl+Q" 578,289 41x16
-      el #option-10 role=option label="Edit: Undo" 85,309 542x24 pos=11/22
-        el 85,309 542x24
-          el 93,313 16x16
-            text label="arrow_undo" "\u{E126}" 93,313 16x16
-          text "Edit: Undo" 117,313 451x16
-          text "Ctrl+Z" 580,313 39x16
-      el #option-11 role=option label="Edit: Redo" 85,333 542x24 pos=12/22
-        el 85,333 542x24
-          el 93,337 16x16
-            text label="arrow_redo" "\u{E0E4}" 93,337 16x16
-          text "Edit: Redo" 117,337 415x16
-          text "Ctrl+Shift+Z" 544,337 75x16
-      el #option-12 role=option label="Edit: Cut" 85,357 542x24 pos=13/22
-        el 85,357 542x24
-          el 93,361 16x16
-            text label="cut" "\u{F038C}" 93,361 16x16
-          text "Edit: Cut" 117,361 451x16
-          text "Ctrl+X" 580,361 39x16
-      el #option-13 role=option label="Edit: Copy" 85,381 542x24 pos=14/22
-        el 85,381 542x24
-          el 93,385 16x16
-            text label="copy" "\u{F32A}" 93,385 16x16
-          text "Edit: Copy" 117,385 450x16
-          text "Ctrl+C" 579,385 40x16
-      el #option-14 role=option label="Edit: Paste" 85,405 542x24 pos=15/22
-        el 85,405 542x24
-          el 93,409 16x16
-            text label="clipboard_paste" "\u{E35A}" 93,409 16x16
-          text "Edit: Paste" 117,409 451x16
-          text "Ctrl+V" 580,409 39x16
+overlay edge top center gap 72 on 0,0 720x400
+  el #palette role=dialog label="Command palette" 80,72 560x320
+    el 89,81 542x32
+      text #query-1 role=textbox label="Command" "" 89,81 542x32 focused caret 0
+      text label="search" "\u{EA7C}" 97,89 16x16
+    el #options role=listbox label="Commands" 89,117 542x266 rows 0-12/22 thumb-y 623,119 6x113.14
+      el #option-0 role=option label="File: New query" 89,117 534x28 selected pos=1/22
+        el 89,117 534x28
+          el 97,123 16x16
+            text label="add" "\u{F108}" 97,123 16x16
+          text "File: New query" 121,123 442x16
+          text "Ctrl+N" 575,123 40x16
+      el #option-1 role=option label="File: Open…" 89,145 534x28 pos=2/22
+        el 89,145 534x28
+          el 97,151 16x16
+            text label="folder_open" "\u{F42D}" 97,151 16x16
+          text "File: Open…" 121,151 441x16
+          text "Ctrl+O" 574,151 41x16
+      el #option-2 role=option label="File: Save" 89,173 534x28 pos=3/22
+        el 89,173 534x28
+          el 97,179 16x16
+            text label="save" "\u{EA43}" 97,179 16x16
+          text "File: Save" 121,179 443x16
+          text "Ctrl+S" 576,179 39x16
+      el #option-3 role=option label="File: Export › CSV" 89,201 534x28 pos=4/22
+        el 89,201 534x28
+          el 97,215 16x0
+          text "File: Export › CSV" 121,207 494x16
+      el #option-4 role=option label="File: Export › JSON" 89,229 534x28 pos=5/22
+        el 89,229 534x28
+          el 97,243 16x0
+          text "File: Export › JSON" 121,235 494x16
+      el #option-5 role=option label="File: Export › SQL › Inserts" 89,257 534x28 pos=6/22
+        el 89,257 534x28
+          el 97,271 16x0
+          text "File: Export › SQL › Inserts" 121,263 494x16
+      el #option-6 role=option label="File: Export › SQL › Script › Schema" 89,285 534x28 pos=7/22
+        el 89,285 534x28
+          el 97,299 16x0
+          text "File: Export › SQL › Script › Schema" 121,291 494x16
+      el #option-7 role=option label="File: Export › SQL › Script › Schema and data" 89,313 534x28 pos=8/22
+        el 89,313 534x28
+          el 97,327 16x0
+          text "File: Export › SQL › Script › Schema and data" 121,319 494x16
+      el #option-8 role=option label="File: Close" 89,341 534x28 disabled pos=9/22
+        el 89,341 534x28
+          el 97,355 16x0
+          text "File: Close" 121,347 439x16
+          text "Ctrl+W" 572,347 43x16
+      el #option-9 role=option label="File: Quit" 89,369 534x28 pos=10/22
+        el 89,369 534x28
+          el 97,383 16x0
+          text "File: Quit" 121,375 441x16
+          text "Ctrl+Q" 574,375 41x16
+      el #option-10 role=option label="Edit: Undo" 89,397 534x28 pos=11/22
+        el 89,397 534x28
+          el 97,403 16x16
+            text label="arrow_undo" "\u{E126}" 97,403 16x16
+          text "Edit: Undo" 121,403 443x16
+          text "Ctrl+Z" 576,403 39x16
+      el #option-11 role=option label="Edit: Redo" 89,425 534x28 pos=12/22
+        el 89,425 534x28
+          el 97,431 16x16
+            text label="arrow_redo" "\u{E0E4}" 97,431 16x16
+          text "Edit: Redo" 121,431 407x16
+          text "Ctrl+Shift+Z" 540,431 75x16
+      el #option-12 role=option label="Edit: Cut" 89,453 534x28 pos=13/22
+        el 89,453 534x28
+          el 97,459 16x16
+            text label="cut" "\u{F038C}" 97,459 16x16
+          text "Edit: Cut" 121,459 443x16
+          text "Ctrl+X" 576,459 39x16
