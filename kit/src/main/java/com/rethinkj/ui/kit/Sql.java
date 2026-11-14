@@ -30,8 +30,11 @@ public record Sql(Theme.Code colors, Dialect dialect)
     /**
      * MySQL and MariaDB in their default mode: identifiers in backticks ({@code `order`}, a
      * keyword inside is none), strings in single and in double quotes with the backslash as their
-     * escape ({@code 'it\'s'}), comments from {@code #} to the end of the line, block comments
-     * that do not nest, and no dollar quotes.
+     * escape ({@code 'it\'s'}), comments from {@code #} to the end of the line, and from {@code --}
+     * only where a space, a tab or another control character or the line's end follows it ({@code
+     * 5--2} is 5 minus -2), block comments that do not nest, and no dollar quotes. MySQL runs what
+     * stands in {@code /*! ... *}{@code /} and reads {@code /*+ ... *}{@code /} as optimizer
+     * hints; both are coloured as comments.
      */
     MYSQL
   }
@@ -285,7 +288,8 @@ public record Sql(Theme.Code colors, Dialect dialect)
         default -> {
           start = i;
           char next = i + 1 < n ? line.charAt(i + 1) : 0;
-          if (c == '-' && next == '-' || mysql && c == '#') {
+          if (c == '-' && next == '-' && (!mysql || i + 2 == n || line.charAt(i + 2) <= ' ')
+              || mysql && c == '#') {
             out.color(i, n, colors.comment());
             i = n;
           } else if (c == '/' && next == '*') {

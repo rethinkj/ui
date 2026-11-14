@@ -85,6 +85,16 @@ class SqlTest {
   }
 
   @Test
+  void mySqlStartsALineCommentWithDoubleMinusOnlyBeforeASpaceOrTheEnd() {
+    Sql mysql = new Sql(C, Sql.Dialect.MYSQL);
+    assertEquals(List.of("SELECT:1 5:3 -:5 -:5 2:3"), tokens(mysql, "SELECT 5--2"));
+    assertEquals(
+        List.of("SELECT:1 5:3 -- 2:4", "--:4", "--\tb:4"),
+        tokens(mysql, "SELECT 5 -- 2", "--", "x --\tb"));
+    assertEquals(List.of("SELECT:1 5:3 --2:4"), tokens("SELECT 5--2"), "PostgreSQL takes -- alone");
+  }
+
+  @Test
   void stringsWithDoubledQuotesAndQuotedIdentifiers() {
     assertEquals(
         List.of("WHERE:1 =:5 'it''s':2 AND:1 =:5 '':2"),
