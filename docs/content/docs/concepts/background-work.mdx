@@ -1,6 +1,6 @@
 ---
 title: Work off the app's thread
-description: Run queries and file reads on another thread, post results back, cancel them, and act later on the app's clock.
+description: Run queries and file reads on another thread, post results back, cancel them, run them one after another, and act later on the app's clock.
 ---
 
 An app, its state and its elements belong to the thread that runs it, and only handlers change the state. Work that takes long, a query or reading a file, runs on another thread, and its result comes back as a task that runs on the app's thread like a handler. `App.background` does both and lets you cancel; `App.post` is the one method any thread may call; `App.after` acts later on the app's clock.
@@ -23,6 +23,18 @@ Work that takes a while, a download or an import, can say how far it got. Give `
 - Reports end with the work: after `work.cancel()` no `onProgress` runs any more, also for reports that already wait, and none runs after `onResult` or `onFailure`. A report made after that is dropped. `progress.isCancelled()` tells a loop that does not block; a blocking read sees the interrupt.
 - Reports that wait one after the other are coalesced into the newest, as long as nothing else was posted between them and no frame has taken them yet. A download that reports every 8 KB runs its handler about once per frame, and a report never overtakes a task its thread posted after it. So report the whole progress, such as the bytes so far, not a step to add.
 - Type the computation's parameter, as `Work.Progress<Integer>` above, where the handlers do not say what a report is.
+
+## One after another
+
+A cancelled computation is interrupted, but it runs on until it returns: a database driver may finish the statement first. Work that must not overlap, as the calls on one connection, goes on a lane: `app.lane(name)` returns a `Lane` that the app keeps in its state, one per connection, with the same `background` methods. A piece of work on a lane begins once every piece started before it there has ended, also one that was cancelled while it ran. `work.onEnd(handler)` tells the app when a computation has really ended.
+
+```java snippet="lane"
+```
+
+- Each piece runs on a virtual thread of its own, started when its turn comes, so the interrupt of a cancelled piece never reaches the next. Results, failures and reports arrive as from `app.background`.
+- Cancelling a piece that has not begun takes it off the lane: its computation never runs. Cancelling the one that runs interrupts it, and the next begins when it has returned. A computation that ignores the interrupt holds the lane until then; `lane.pending()` lists the piece that runs, also a cancelled one that has not returned, and those that wait, and `work.isRunning()` tells them apart.
+- `onEnd` runs on the app's thread as a posted task once the computation has returned or thrown: after `onResult` or `onFailure` if they run, and after a cancel, when neither does. For a piece cancelled before it began, it runs right after the cancel; registered after the end, at the next frame. It works on any `Work`, on a lane or not.
+- A lane belongs to the app it was made from; the apps of several windows of one state share its thread, so a handler of any of them may start work on it.
 
 ## Posting
 
@@ -51,6 +63,14 @@ Work that reports is shown half done with `await progress`, which lets in what r
 ```
 
 ```text file="examples/src/test/resources/golden/docs/progress/downloading.tree.txt" start="Driver" count="5"
+```
+
+`await` also waits for the pieces of a lane that have not begun, and for cancelled work that has an `onEnd` handler, until its computation has returned; other cancelled work it forgets at once. The script of the lane above shows the count waiting behind the cancelled report, and both done after `await`:
+
+```text snippet="lane-script"
+```
+
+```text file="examples/src/test/resources/golden/docs/lanes/counted.tree.txt" start="Cancelled" count="3"
 ```
 
 In a test without a script, `app.awaitProgress(timeout)` does the same as `app.await(timeout)` does for the end.

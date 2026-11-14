@@ -1,0 +1,16 @@
+# docs:start lane-script
+size 440 150
+frame
+press role=button label="Run report"
+frame                   # the report begins on the connection
+press role=button label="Cancel"
+frame                   # interrupted, but its statement runs on
+press role=button label="Count orders"
+frame
+snap cancelling         # the count waits behind the cancelled report: 2 on the connection
+advance 2               # the made-up server finishes the report
+frame
+await                   # waits for the report's end and for the count after it
+frame
+snap counted
+# docs:end lane-script
