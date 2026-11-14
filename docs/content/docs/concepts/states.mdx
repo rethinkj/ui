@@ -13,6 +13,8 @@ An element's **role** says what it is (`button`, `switch`, `textbox`, `grid`, `t
 
 ## The calls
 
+All are methods of [`El`](/api/com/rethinkj/ui/El.html).
+
 | Call | In the tree |
 | --- | --- |
 | `role(name)`, `label(text)` | `role=…`, `label="…"` |
@@ -22,6 +24,7 @@ An element's **role** says what it is (`button`, `switch`, `textbox`, `grid`, `t
 | `selected(boolean)` | `selected` |
 | `current(boolean)` | `current`: the cursor among the selected |
 | `grabbed(boolean)` | `grabbed`: being dragged |
+| `modified(boolean)` | `modified`: changes not saved (not a WAI-ARIA state) |
 | `checked(boolean)`, `checkedMixed()` | `checked`, `checked=false`, `checked=mixed` |
 | `expanded(boolean)` | `expanded`, `expanded=false` |
 | `level(n)` | `level=<n>` |

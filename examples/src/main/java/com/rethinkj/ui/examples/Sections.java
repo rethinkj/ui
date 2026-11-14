@@ -63,6 +63,7 @@ final class Sections {
   private Sections() {}
 
   /** The section the state chooses, under its title, in an area that scrolls. */
+  // docs:start showcase-section
   static El section(Showcase s, Theme t) {
     Section section = s.section;
     El body = switch (section) {
@@ -95,6 +96,7 @@ final class Sections {
             .child(label(t, MUTED, section.description)))
         .child(body);
   }
+  // docs:end showcase-section
 
   // Parts the sections share
 

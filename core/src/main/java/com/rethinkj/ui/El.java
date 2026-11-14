@@ -39,6 +39,7 @@ public final class El {
   private static final int INVALID = 512;
   private static final int GRABBED = 1024;
   private static final int BUSY = 2048;
+  private static final int MODIFIED = 4096;
 
   private final Style style = new Style();
   private final List<El> children = new ArrayList<>();
@@ -51,6 +52,7 @@ public final class El {
   private int setSize;
   private String value;
   private String errorMessage;
+  private String warningMessage;
   private int fill;
   private float radius; // the top left corner's
   private float radiusTopRight;
@@ -395,6 +397,14 @@ public final class El {
     return state(GRABBED, grabbed ? GRABBED : 0);
   }
 
+  /**
+   * Whether what this element stands for has changes that are not saved, as a tab of a document
+   * whose edits are not written yet (not a WAI-ARIA state).
+   */
+  public El modified(boolean modified) {
+    return state(MODIFIED, modified ? MODIFIED : 0);
+  }
+
   /** Whether the view set {@link #selected(boolean)}. */
   boolean isSelected() {
     return (states & SELECTED) != 0;
@@ -451,6 +461,22 @@ public final class El {
   /** What {@link #errorMessage(String)} set, or null. */
   public String errorMessage() {
     return errorMessage;
+  }
+
+  /**
+   * What to think twice about in the value of this element, which is valid: the warning a form
+   * shows below a field. A tree dump writes it after the error, as {@code warning="Only 1 day
+   * old"}; null for none. It changes nothing about how the element looks or takes input, and it
+   * does not make the element {@link #invalid}.
+   */
+  public El warningMessage(String message) {
+    this.warningMessage = message;
+    return this;
+  }
+
+  /** What {@link #warningMessage(String)} set, or null. */
+  public String warningMessage() {
+    return warningMessage;
   }
 
   /** The column this header sorts by, upwards. */
@@ -3798,10 +3824,11 @@ public final class El {
    * {@link #masked} field, as UI Automation's {@code IsPassword}), {@code revealed} (one that is
    * {@link #revealed}; no WAI-ARIA name), {@code invalid}, {@code busy},
    * {@code selected},
-   * {@code current}, {@code grabbed}, {@code checked}, {@code checked=false} or {@code checked=mixed}, {@code expanded} or {@code
+   * {@code current}, {@code grabbed}, {@code modified} (not a WAI-ARIA state), {@code checked}, {@code checked=false} or {@code checked=mixed}, {@code expanded} or {@code
    * expanded=false}, {@code level=2}, {@code pos=3/10} (the position in the set and its size),
    * {@code sort=ascending} or {@code sort=descending}, {@code value="..."} and the {@link
-   * #errorMessage} as {@code error="..."}, as in {@code el
+   * #errorMessage} as {@code error="..."} and the {@link #warningMessage} as {@code
+   * warning="..."}, as in {@code el
    * #row-3 role=treeitem label="public" 0,66 400x22 selected expanded level=3 pos=1/2}. A scroll
    * area that is scrolled adds its
    * offset, as {@code scroll x,y}. A virtual list ({@link #rows}) adds, before that, its rows that
@@ -3929,6 +3956,9 @@ public final class El {
     if (errorMessage != null) {
       out.append(" error=").append(quote(errorMessage));
     }
+    if (warningMessage != null) {
+      out.append(" warning=").append(quote(warningMessage));
+    }
     if (rowBuilder != null) {
       out.append(" rows ");
       if (children.isEmpty()) {
@@ -4013,6 +4043,9 @@ public final class El {
     }
     if ((states & GRABBED) != 0) {
       out.append(" grabbed");
+    }
+    if ((states & MODIFIED) != 0) {
+      out.append(" modified");
     }
     switch (states & (CHECKED | NOT_CHECKED)) {
       case CHECKED -> out.append(" checked");

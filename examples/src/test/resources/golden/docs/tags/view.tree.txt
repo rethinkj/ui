@@ -1,0 +1,12 @@
+el 0,0 320x140
+  el #tags role=group label="Tags" 12,12 200x24 value="orders, daily"
+    el #tag-orders label="orders" 15,15 60x18
+      text "orders" 21,17 36x15
+      el #remove role=button label="Remove orders" 59,17 14x14
+        text label="dismiss" "\u{F367}" 60,18 12x12
+    el #tag-daily label="daily" 77,15 51x18
+      text "daily" 83,17 27x15
+      el #remove role=button label="Remove daily" 112,17 14x14
+        text label="dismiss" "\u{F367}" 113,18 12x12
+    text #draft role=textbox label="Add tag" "" 130,15 79x18
+  text "orders · daily" 12,44 81x16

@@ -5,6 +5,7 @@
   "pages": [
     "index",
     "get-started",
+    "guides",
     "concepts",
     "components",
     "testing",

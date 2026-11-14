@@ -3,7 +3,7 @@ title: Overlays
 description: Elements above everything else, anchored to an element, a point, the caret or the window, for menus, tooltips and dialogs.
 ---
 
-A menu, tooltip, dropdown or dialog lies above everything else and is not clipped by its anchor's scroll area. The view declares it on the element it belongs to, `anchor.overlay(menu)`, and the state says whether it is open: `button.overlay(s.open ? menu : null)`. The kit's [Menu](/docs/components/menu), [Tooltip](/docs/components/tooltip), [Dialog](/docs/components/dialog), [Popover](/docs/components/popover) and [Toast](/docs/components/toast) are built this way; this page is for your own.
+A menu, tooltip, dropdown or dialog lies above everything else and is not clipped by its anchor's scroll area. The view declares it on the element it belongs to, [`anchor.overlay(menu)`](/api/com/rethinkj/ui/El.html#overlay(com.rethinkj.ui.El)), and the state says whether it is open: `button.overlay(s.open ? menu : null)`. The kit's [Menu](/docs/components/menu), [Tooltip](/docs/components/tooltip), [Dialog](/docs/components/dialog), [Popover](/docs/components/popover) and [Toast](/docs/components/toast) are built this way; this page is for your own.
 
 ```java snippet="overlay"
 ```

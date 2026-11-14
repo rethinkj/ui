@@ -2,8 +2,9 @@
 // snippet, excerpt and image the pages name exists, copies the images (and cuts rows out of the
 // kit's gallery), the fonts and the logo into public/, and writes the changelog page.
 // `node scripts/docs.mjs check` runs after the build: it puts each page's Markdown next to the
-// page (`/docs/x/` has `/docs/x.md`) and fails on internal links that lead nowhere, except those
-// into the Javadoc at /api/, which is not there yet.
+// page (`/docs/x/` has `/docs/x.md`) and fails on internal links that lead nowhere. Links into the
+// Javadoc at /api/ are checked when it is in public/api/ (the Docs workflow puts it there before
+// the build), and skipped otherwise.
 import fs from 'node:fs';
 import path from 'node:path';
 import * as png from './png.mjs';
@@ -204,12 +205,15 @@ function check() {
   const ids = new Map();
   const idsOf = (file) => {
     if (!ids.has(file)) {
-      ids.set(file, new Set([...fs.readFileSync(file, 'utf8').matchAll(/\sid="([^"]+)"/g)].map((m) => m[1])));
+      ids.set(file, new Set([...fs.readFileSync(file, 'utf8').matchAll(/\sid="([^"]+)"/g)].map((m) => m[1].replaceAll('&lt;', '<').replaceAll('&gt;', '>').replaceAll('&amp;', '&'))));
     }
     return ids.get(file);
   };
   const dead = [];
-  const html = walk(OUT).filter((f) => f.endsWith('.html'));
+  // The Javadoc's own pages are not checked, only the site's links into them.
+  const javadoc = fs.existsSync(path.join(OUT, 'api/index.html'));
+  if (!javadoc) console.log('docs: no Javadoc in public/api/, links to /api/ not checked');
+  const html = walk(OUT).filter((f) => f.endsWith('.html') && !f.startsWith(path.join(OUT, 'api') + path.sep));
   for (const file of html) {
     const text = fs.readFileSync(file, 'utf8');
     const page = '/' + path.relative(OUT, file).replace(/index\.html$/, '').replace(/\.html$/, '');
@@ -217,8 +221,7 @@ function check() {
       const link = m[1].replaceAll('&amp;', '&');
       if (!link.startsWith('/') && !link.startsWith('#')) continue;
       if (link.startsWith('//') || link.startsWith('/_next/')) continue;
-      // The Javadoc, which the Docs workflow copies into out/api/ after this check.
-      if (link.startsWith('/api/')) continue;
+      if (link.startsWith('/api/') && !javadoc) continue;
       const [target, hash] = link.split('#');
       const pathOnly = target.split('?')[0];
       const servedFile = pathOnly ? served(pathOnly) : file;
@@ -233,8 +236,14 @@ function check() {
   }
   for (const txt of ['llms.txt', 'llms-full.txt']) {
     const text = fs.readFileSync(path.join(OUT, txt), 'utf8');
-    for (const m of text.matchAll(/\]\((\/[^)\s#]*)/g)) {
-      if (!served(m[1])) dead.push(`/${txt}: ${m[1]}`);
+    // A fragment may hold one level of parentheses, as a Javadoc method anchor does.
+    for (const m of text.matchAll(/\]\((\/[^)\s#]*)(?:#((?:[^()\s]|\([^()]*\))*))?\)/g)) {
+      if (m[1].startsWith('/api/') && !javadoc) continue;
+      const servedFile = served(m[1]);
+      if (!servedFile) dead.push(`/${txt}: ${m[1]}`);
+      else if (m[2] && servedFile.endsWith('.html') && !idsOf(servedFile).has(decodeURIComponent(m[2]))) {
+        dead.push(`/${txt}: ${m[1]}#${m[2]} (no #${m[2]} there)`);
+      }
     }
   }
   if (dead.length) {

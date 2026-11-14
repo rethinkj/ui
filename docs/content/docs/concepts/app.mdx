@@ -3,7 +3,7 @@ title: App, state and view
 description: An app is a state object and a view function; handlers change the state, and the view is built again.
 ---
 
-An app is two things you write: a **state**, an ordinary object that holds the app's data, and a **view**, a function from the state to a tree of elements. `new App<>(state, view)` joins them. Handlers in the view change the state; after each input, the app calls the view again and draws the result. There is no data binding, no observer and no diffing to manage. The [first app](/docs/get-started/first-app) keeps one field, `boolean on`, and has this view:
+An app is two things you write: a **state**, an ordinary object that holds the app's data, and a **view**, a function from the state to a tree of elements. `new App<>(state, view)` joins them ([`App`](/api/com/rethinkj/ui/App.html)). Handlers in the view change the state; after each input, the app calls the view again and draws the result. There is no data binding, no observer and no diffing to manage. The [first app](/docs/get-started/first-app) keeps one field, `boolean on`, and has this view:
 
 ```java snippet="lights-view" title="Lights.java"
 ```
@@ -50,18 +50,17 @@ A test can drive an app without a script. Input methods queue events, and `frame
 | `App` method | |
 | --- | --- |
 | `resize(width, height, scale)` | The window's size in logical pixels, and physical pixels per logical pixel |
-| `pointerMove(x, y)`, `pointerLeave()` | The pointer moved, in logical pixels, or left the window |
+| `pointerMove(x, y)` | The pointer moved, in logical pixels |
 | `pointerDown(x, y)`, `pointerDown(x, y, clicks, modifiers)`, `pointerUp(x, y)` | The primary button; `clicks` is 2 for the second press of a double click, `modifiers` the `Key` constants held |
-| `secondaryDown(x, y)`, `secondaryUp(x, y)` | The secondary button, for `onSecondaryPress` |
 | `wheel(x, y, deltaX, deltaY)` | The wheel at a position; positive scrolls down or right |
 | `keyDown(key)`, `keyUp(key)` | A `Key` by its web name and modifiers, `new Key("S", Key.CONTROL, false)` |
-| `textInput(text)`, `textComposition(text, cursor)` | Typed text, and an input method's composition |
-| `focus(el)`, `scrollTo(area, x, y)`, `scrollToRow(list, row)` | Focus an element of the last frame as Tab would (null for none); scroll an area or a list of rows |
+| `textInput(text)` | Typed text |
 | `frame()` | Dispatches the queue and draws; true when what shows changed |
 | `advance(seconds)`, `time()` | The app's clock, which springs, delays and `after` use |
 | `await(timeout)` | Waits until `background` work has finished, and queues its results and other posted tasks for the next frame. Cancelled work is waited for only if it has an `onEnd` handler |
-| `awaitProgress(timeout)` | Waits until running `background` work reports progress, and queues the reports and other posted tasks for the next frame |
-| `tree()`, `focused()`, `hovered()`, `pressed()` | The root of the last frame, whose `dump()` is a [tree dump](/docs/testing/tree-dump), and its elements in those states |
+| `tree()` | The root of the last frame, whose `dump()` is a [tree dump](/docs/testing/tree-dump) |
 | `render()` | The last frame's pixels and tree, as `Headless` makes them |
+
+The [`App` Javadoc](/api/com/rethinkj/ui/App.html#method-summary) has the rest: the pointer leaving the window, the secondary button, an input method's composition, focus and scrolling, `awaitProgress`, and the focused, hovered and pressed elements.
 
 Until a window gives it the system clipboard, the app uses an in-memory one (`Clipboard.inMemory()`). `app.clipboard()` returns it; `app.clipboard(clipboard)` replaces it.

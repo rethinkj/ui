@@ -112,6 +112,7 @@ public final class Manual {
    * be: the first call starts reading it off the app's thread, and the view is built again when
    * it is there. Addresses with a scheme, such as {@code https:}, are not read.
    */
+  // docs:start manual-images
   Image image(Doc doc, String source) {
     String key = doc.title() + "\n" + source;
     if (app != null && !source.contains(":") && asked.add(key)) {
@@ -134,6 +135,7 @@ public final class Manual {
     }
     return images.get(key);
   }
+  // docs:end manual-images
 
   /**
    * The changelog: the entries under {@code changelog/unreleased}, newest first and grouped by
@@ -197,6 +199,7 @@ public final class Manual {
   }
 
   /** What a link does: a heading of the document comes into view, any other shows a toast. */
+  // docs:start manual-links
   void link(String destination) {
     if (destination.startsWith("#")) {
       scrollTo(destination.substring(1));
@@ -224,6 +227,7 @@ public final class Manual {
       app.scrollToRow(list, block);
     }
   }
+  // docs:end manual-links
 
   /** The elements from {@code el} down to the one with this key, into {@code path}. */
   private static boolean find(El el, String key, List<El> path) {
@@ -299,6 +303,7 @@ public final class Manual {
                 .label("On this page")
                 .grow(1)
                 .minSize(0, 0));
+    // docs:start manual-markdown
     El document = Markdown.markdown(
             t,
             doc.document(),
@@ -310,6 +315,7 @@ public final class Manual {
         .key("doc-" + s.doc)
         .grow(1)
         .minSize(0, 0);
+    // docs:end manual-markdown
     El root = col()
         .wFull()
         .hFull()
