@@ -1,0 +1,1 @@
+- An overlay that the view makes invisible (`opacity(0)`) no longer runs its `onShownFor` handler: it has not been open.

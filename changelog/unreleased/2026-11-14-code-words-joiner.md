@@ -1,0 +1,1 @@
+- In a field with `codeWords()`, a zero-width joiner joins only emoji, as the system's graphemes do: a double press on `;` in `;‍abc` selects the semicolon with its joiner and no longer the `a` after it, and a mark after a line break no longer goes with the line break.

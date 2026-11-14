@@ -328,6 +328,64 @@ class AppTest {
   }
 
   @Test
+  void anyKeyDownThatAKeyGivesTheRowsOfAListGetsTheNextKeyOfTheFrame() {
+    class State {
+      boolean hooks;
+      final List<String> seen = new ArrayList<>();
+    }
+    App<State> app = new App<>(
+        new State(),
+        s -> el().size(100, 100)
+            .onKey(k -> s.hooks = true) // the first key gives row 0 its hook
+            .child(el().size(100, 100)
+                .rows(
+                    100,
+                    20,
+                    i -> s.hooks && i == 0 ? el().onAnyKeyDown(k -> s.seen.add(k.name())) : el())));
+    app.resize(100, 100, 1);
+    app.frame();
+    app.keyDown(new Key("A"));
+    app.keyDown(new Key("B"));
+    app.frame();
+    assertEquals(List.of("B"), app.state().seen);
+  }
+
+  @Test
+  void aBurstOfKeysAsksTheRowFunctionsForKeyHooksButLaysOutTheRowsOnce() {
+    int[] made = {0};
+    int[] placed = {0};
+    Measure counted = new Measure() {
+      @Override
+      public Size measure(float w, float h, float availableWidth, float availableHeight) {
+        return new Size(10, 10);
+      }
+
+      @Override
+      public void placed(float width, float height) {
+        placed[0]++;
+      }
+    };
+    App<Void> app = new App<>(
+        null,
+        s -> el().size(100, 100)
+            .onKey(k -> true) // each key is taken, so the next one gets a tree built between them
+            .child(el().size(100, 100).rows(100, 20, i -> {
+              made[0]++;
+              return el().child(el().measure(counted));
+            })));
+    app.resize(100, 100, 1);
+    app.frame();
+    int rows = made[0];
+    made[0] = placed[0] = 0;
+    for (int k = 0; k < 5; k++) {
+      app.keyDown(new Key("A"));
+    }
+    app.frame();
+    assertEquals(5 * rows, made[0], "asked after each of four keys, and built at the end");
+    assertEquals(rows, placed[0], "laid out once");
+  }
+
+  @Test
   void anElementThatIsLeavingGetsNoneOfTheHooksOfAllInput() {
     List<String> seen = new ArrayList<>();
     App<boolean[]> app = new App<>(new boolean[] {true}, s -> {
@@ -376,6 +434,34 @@ class AppTest {
     app.pointerUp(10, 10);
     app.frame();
     assertEquals(0, app.state()[1], "the release presses nothing");
+  }
+
+  @Test
+  void aPressOnARowEndsWhenItsListNoLongerBuildsTheRowAndKeepsWhileItOnlyScrolls() {
+    App<int[]> app = new App<>(
+        new int[1],
+        s -> el().size(100, 100).rows(100, 20, i -> el().key("row-" + i).onPress(() -> s[0]++)));
+    app.resize(100, 100, 1);
+    app.frame();
+    app.pointerDown(50, 5);
+    app.wheel(50, 5, 0, 10); // within the rows that exist: row 0 is still there
+    app.post(() -> {}); // a rebuild between two inputs, before the rows are built again
+    app.pointerUp(50, 5);
+    app.frame();
+    assertEquals(1, app.state()[0], "the press stays with a row that only scrolls");
+
+    app.pointerDown(50, 5);
+    app.frame();
+    app.scrollToRow(app.tree(), 50);
+    app.frame();
+    assertFalse(app.tree().hasRow(0), "the pressed row left the tree");
+    assertNull(app.pressed());
+    app.scrollToRow(app.tree(), 0);
+    app.frame();
+    assertTrue(app.tree().hasRow(0));
+    app.pointerUp(50, 5);
+    app.frame();
+    assertEquals(1, app.state()[0], "a row built again with its identity takes no press over");
   }
 
   @Test

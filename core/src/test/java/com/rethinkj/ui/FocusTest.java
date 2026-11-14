@@ -871,6 +871,30 @@ class FocusTest {
   }
 
   @Test
+  void anAutofocusThatHasTheFocusAndIsClippedAwayLeavesItToTheNextThatAsks() {
+    App<int[]> app = start(
+        new App<>(new int[1], s -> {
+          El root = el().size(100, 100)
+              .child(el().size(40, 20)
+                  .clip()
+                  .child(el().key("first")
+                      .size(20, 20)
+                      .absolute(0, s[0] == 0 ? 0 : 40) // then below the clip
+                      .focusable()
+                      .autofocus(s[0])));
+          return s[0] == 0
+              ? root
+              : root.child(el().key("second").size(20, 20).focusable().autofocus());
+        }),
+        100,
+        100);
+    assertEquals("first", app.focused().key());
+    app.post(() -> app.state()[0] = 1);
+    app.frame();
+    assertEquals("second", app.focused() == null ? null : app.focused().key());
+  }
+
+  @Test
   void aSecondaryPressFocusesATextFieldInsideAnElementThatKeepsTheFocus() {
     TextLibraries.assumeLoaded();
     App<String[]> app = start(

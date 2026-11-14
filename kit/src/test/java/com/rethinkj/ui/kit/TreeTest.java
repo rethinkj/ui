@@ -173,7 +173,8 @@ class TreeTest {
   @Test
   void aFrameWithABurstOfTenKeysCostsAViewAndItsLayoutPerKey() throws IOException {
     // Each key of a burst goes to the tree the key before it built: the view numbers the rows
-    // again for each, and the rows are built once, at the end.
+    // again for each, and the rows are built once, at the end. Each key after the first asks the
+    // row functions whether a row has an onAnyKeyDown handler, without laying them out.
     Catalog catalog = hundredThousand();
     App<Catalog> app = start(catalog);
     run(app, "focus #schema\nframe");
@@ -185,7 +186,10 @@ class TreeTest {
     }
     app.frame();
     assertEquals(walks + 10, catalog.walks, "the view, which numbers the rows, once per key");
-    assertLabelledOnce(catalog, app);
+    List<El> rows = find(app, "schema").children();
+    assertTrue(rows.stream()
+        .allMatch(r -> catalog.labelled.stream().anyMatch(n -> n.name.equals(r.label()))));
+    assertTrue(catalog.labelled.size() <= 10 * rows.size(), catalog.labelled.size() + " labels");
     long one = keyFrames(hundredThousand(), 1);
     long ten = keyFrames(hundredThousand(), 10);
     System.out.printf(

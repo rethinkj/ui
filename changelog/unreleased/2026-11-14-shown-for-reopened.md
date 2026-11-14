@@ -1,0 +1,1 @@
+- An overlay that one input or task closes and a later one of the same frame opens again counts its `onShownFor` time from the second opening: a toast reopened at 0.75 seconds with a delay of one second closes at 1.75, no longer at 1.

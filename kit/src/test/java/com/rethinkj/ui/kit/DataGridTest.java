@@ -147,21 +147,30 @@ class DataGridTest {
         "DataGrid, 20 columns, a million rows: frame() after keys, median of %d:"
             + " %.2f ms after one ArrowDown, %.2f ms after ten%n",
         FRAMES, one / 1e6, ten / 1e6);
-    // The work is counted in theViewIsBuiltAfterEachKeyOfABurstButTheRowsOnce; times only print.
+    // The work is counted in theViewIsBuiltAfterEachKeyOfABurstAndTheRowsOnly; times only print.
   }
 
   @Test
-  void theViewIsBuiltAfterEachKeyOfABurstButTheRowsOnce() throws IOException {
+  void theViewIsBuiltAfterEachKeyOfABurstAndTheRowsOnly() throws IOException {
     Orders orders = new Orders(T, 1_000_000, 20);
     App<Orders> app = start(orders);
     run(app, "focus #orders\nframe");
+    app.keyDown(new Key("ArrowDown"));
+    app.frame();
+    int once = orders.asked.size();
     orders.asked.clear();
     for (int k = 0; k < 10; k++) {
       app.keyDown(new Key("ArrowDown"));
     }
     app.frame();
-    assertEquals(12, orders.selected());
-    assertAskedForExistingRows(orders, app);
+    assertEquals(13, orders.selected());
+    // The rows are built once, at the end; each key after the first asks the row functions of the
+    // tree the key before it built whether a row has an onAnyKeyDown handler, without laying out.
+    El rows = find(app, "rows");
+    for (int row = rows.firstRow(); row < rows.firstRow() + rows.children().size(); row++) {
+      assertTrue(orders.asked.contains(row), "row " + row);
+    }
+    assertTrue(orders.asked.size() <= 10 * once + once / 2, orders.asked.size() + " of " + once);
   }
 
   /** The median time of {@link App#frame} after {@code keys} presses of ArrowDown or ArrowUp. */

@@ -1,0 +1,1 @@
+- An absolutely placed box with an aspect ratio and one size set takes the other size from the set one after its minimum or maximum, as browsers do: width 80, minimum width 100 and ratio 2 give 100 by 50, not 100 by 40.

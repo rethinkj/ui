@@ -755,8 +755,8 @@ final class Editor {
       return; // nothing to outdent
     }
     int max = el.maxLength();
-    if (max >= 0 && text.codePointCount(0, text.length()) + delta > max) {
-      return; // an indent is whole or nothing, and cuts no text
+    if (delta > 0 && max >= 0 && text.codePointCount(0, text.length()) + delta > max) {
+      return; // an indent is whole or nothing, and cuts no text; an outdent only shortens
     }
     run = null;
     edit(from, to - from, block.toString(), newCaret, newAnchor, null, false);
@@ -1502,21 +1502,46 @@ final class Editor {
 
   /**
    * Whether the code point at {@code index} extends the grapheme before it, as far as the words of
-   * code need to know: a mark, a joiner, a variation selector, an emoji modifier or tag, or what
-   * follows a zero width joiner. A scan by code points thus never splits a letter from its mark
-   * or an emoji from its modifier, and needs no {@link BreakIterator}.
+   * code need to know: a mark, a joiner, a variation selector or an emoji modifier or tag, not
+   * after a line break or another control character, or an emoji after an emoji and a zero width
+   * joiner. A scan by code points thus never splits a letter from its mark or an emoji sequence,
+   * never joins what {@link BreakIterator#getCharacterInstance} does not, and needs none.
    */
   private static boolean extending(String text, int index) {
-    if (index > 0 && text.codePointBefore(index) == 0x200D) {
-      return true;
+    if (index == 0) {
+      return false;
     }
     int c = text.codePointAt(index);
+    int before = text.codePointBefore(index);
+    if (before == 0x200D && Character.isExtendedPictographic(c)) {
+      // An emoji sequence: an emoji, what extends it and the joiner, then the next emoji.
+      int at = index - 1;
+      while (at > 0) {
+        int p = text.codePointBefore(at);
+        if (!extend(p)) {
+          return Character.isExtendedPictographic(p);
+        }
+        at -= Character.charCount(p);
+      }
+      return false;
+    }
+    int type = Character.getType(before);
+    if (type == Character.CONTROL
+        || type == Character.LINE_SEPARATOR
+        || type == Character.PARAGRAPH_SEPARATOR) {
+      return false;
+    }
+    return extend(c);
+  }
+
+  /** Whether a code point extends a grapheme wherever it stands. */
+  private static boolean extend(int c) {
     int type = Character.getType(c);
     return type == Character.NON_SPACING_MARK
         || type == Character.COMBINING_SPACING_MARK
         || type == Character.ENCLOSING_MARK
-        || c == 0x200C
         || c == 0x200D
+        || c == 0x200C
         || c >= 0x1F3FB && c <= 0x1F3FF
         || c >= 0xE0020 && c <= 0xE007F;
   }
