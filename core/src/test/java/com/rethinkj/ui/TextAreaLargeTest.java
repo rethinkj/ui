@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.rethinkj.ui.Fields.Model;
+import com.rethinkj.ui.text.Font;
 import com.rethinkj.ui.text.TextLibraries;
 import java.util.Arrays;
 import java.util.Locale;
@@ -145,6 +146,38 @@ class TextAreaLargeTest {
         + " string with one more character " + median(copy) + ", a key typed with its frame "
         + median(typing) + ", a wheel step " + median(wheel) + " (medians)");
     assertTrue(handler[0] > 0);
+  }
+
+  @Test
+  void aLineOfAHundredThousandLettersWrapsInsideItsWord() {
+    String word = "abcdefghij".repeat(10_000);
+    long start = System.nanoTime();
+    App<Model> app = Areas.start(word, f -> f.wrapText(), 1);
+    double first = (System.nanoTime() - start) / 1e6;
+    focus(app);
+    assertEquals((word.length() + 23) / 24, field(app).text().shownIndex().totalRows(), "24 a row");
+    app.scrollTo(field(app), 0, 2000 * 18.0);
+    app.frame();
+    app.pointerDown(30, 30, 1, 0);
+    app.pointerUp(30, 30);
+    app.frame();
+    double[] typing = steps(app, 50, () -> app.textInput("x"));
+    double[] paging = steps(app, 50, () -> app.keyDown(new Key("PageDown", 0, false)));
+    // Breaking alone, the line shaped once: each width breaks it anew.
+    El text = El.text(word).font(Font.mono()).wrapText();
+    Headless.render(El.col().child(text), 400, 300, 1);
+    double[] breaking = new double[50];
+    for (int i = 0; i < breaking.length; i++) {
+      long from = System.nanoTime();
+      Measure.Size size =
+          text.text().measure(192 + i % 2, Float.NaN, 192 + i % 2, Float.POSITIVE_INFINITY);
+      breaking[i] = (System.nanoTime() - from) / 1e6;
+      assertTrue(size.width() <= 193, "no row wider than the box: " + size.width());
+    }
+    System.out.println("TextAreaLargeTest, a line of " + word.length() + " letters, wrapped: the"
+        + String.format(Locale.ROOT, " first frame %.2f ms", first) + ", a key typed "
+        + median(typing) + ", PageDown " + median(paging) + " (medians, each with its frame),"
+        + " breaking it at another width " + median(breaking));
   }
 
   @Test

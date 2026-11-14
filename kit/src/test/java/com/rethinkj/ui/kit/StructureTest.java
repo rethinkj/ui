@@ -96,6 +96,27 @@ class StructureTest {
     assertTrue(text[3] > 30, "on two lines or more: " + text[3]);
   }
 
+  @ParameterizedTest(name = "at {0}x")
+  @ValueSource(ints = {1, 2})
+  void aPathWithoutSpacesBreaksInsideACalloutAndAnEmptyState(int scale) throws IOException {
+    String text = "Cannot read the connections in"
+        + " /a/very/long/path/without/any/space/connections.json: it is not valid JSON.";
+    for (El view : new El[] {
+      Callout.callout(Theme.DARK, Callout.Kind.DANGER, "Cannot read the connections", text),
+      EmptyState.emptyState(Theme.DARK, Symbol.DATABASE, "No connections", text, null)
+    }) {
+      App<Object> app = new App<>(new Object(), s -> El.col().size(260, 400).child(view));
+      Script.run("size 260 400 scale " + scale + "\nframe\nsnap path", app, out);
+      String tree = Files.readString(out.resolve("path.tree.txt"));
+      float[] path = rect(line(tree, "text \"Cannot read the connections in"));
+      assertTrue(path[3] > 40, "on three lines or more: " + path[3]);
+      tree.lines().filter(l -> l.strip().startsWith("text ")).forEach(l -> {
+        float[] r = rect(l.strip());
+        assertTrue(r[0] >= 0 && r[0] + r[2] <= 260, "inside the box of 260: " + l.strip());
+      });
+    }
+  }
+
   static String line(String tree, String part) {
     return tree.lines().filter(l -> l.contains(part)).findFirst().orElseThrow().strip();
   }

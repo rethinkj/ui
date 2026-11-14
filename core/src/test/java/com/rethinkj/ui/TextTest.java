@@ -109,6 +109,154 @@ class TextTest {
     assertEquals(1, alone.text().lines().size(), "no empty row after it");
   }
 
+  static final String PATH = "Cannot read the connections in"
+      + " /a/very/long/path/without/any/space/connections.json: it is not valid JSON.";
+
+  @Test
+  void aPieceWiderThanTheBoxBreaksInsideItAtEveryScale() {
+    TextLibraries.assumeLoaded();
+    for (float scale : new float[] {1, 1.5f, 2}) {
+      El text = El.text(PATH).wrapText().w(228);
+      Headless.render(El.col().child(text), 400, 300, scale, TextRendering.LINUX);
+      List<String> lines = lines(text);
+      assertBrokenWithin(text, 228, scale);
+      assertEquals("Cannot read the connections in ", lines.getFirst(), "a word break first");
+      assertTrue(
+          lines.stream().anyMatch(l -> l.startsWith("/a/very/")),
+          "the path starts a row of its own: " + lines);
+      assertTrue(
+          lines.stream()
+              .anyMatch(l -> !l.isEmpty() && Character.isLetter(l.charAt(0)) && l.indexOf(' ') < 0),
+          "broken inside the path: " + lines);
+      assertTrue(text.width() <= 228, "the box keeps its width: " + text.width());
+    }
+  }
+
+  @Test
+  void aLongWordAfterShortWordsStartsARowOfItsOwnAndBreaksAsLateAsItFits() {
+    TextLibraries.assumeLoaded();
+    El text = mono("one two " + "x".repeat(20) + " end").wrapText().w(80);
+    Headless.render(row().child(text), 200, 200, 1);
+    assertEquals(List.of("one two ", "x".repeat(10), "x".repeat(10) + " ", "end"), lines(text));
+
+    El alone = mono("x".repeat(25)).wrapText().w(80);
+    Headless.render(row().child(alone), 200, 200, 1);
+    assertEquals(List.of("x".repeat(10), "x".repeat(10), "x".repeat(5)), lines(alone));
+
+    // What follows the end of a broken word shares its row while it fits.
+    El tail = mono("x".repeat(13) + " ab cd").wrapText().w(80);
+    Headless.render(row().child(tail), 200, 200, 1);
+    assertEquals(List.of("x".repeat(10), "xxx ab cd"), lines(tail));
+  }
+
+  @Test
+  void theMinContentWidthIsStillTheLongestPieceWhole() {
+    TextLibraries.assumeLoaded();
+    El text = mono("one " + "x".repeat(20) + " end").wrapText();
+    El sibling = el().size(24, 10).shrink(0);
+    Headless.render(row().w(80).children(text, sibling), 200, 200, 1);
+    assertEquals(160, text.width(), "a row gives it room for the whole word");
+    assertEquals(List.of("one ", "x".repeat(20) + " ", "end"), lines(text));
+    Measure.Size min =
+        text.text().measure(Float.NaN, Float.NaN, Measure.MIN_CONTENT, Float.POSITIVE_INFINITY);
+    assertEquals(160, min.width());
+    assertEquals(54, min.height());
+  }
+
+  @Test
+  void aBreakInsideAWordKeepsGraphemesWhole() {
+    TextLibraries.assumeLoaded();
+    String marks = "e\u0301a\u0308".repeat(12); // e and a with combining marks
+    String emoji = "\uD83D\uDC69\u200D\uD83D\uDCBB\uD83C\uDDE9\uD83C\uDDEA".repeat(8);
+    String hangul = "\u1100\u1161\u11A8".repeat(10); // a syllable of three jamo
+    for (String word : List.of(marks, emoji, hangul, "ab " + marks + emoji)) {
+      for (float scale : new float[] {1, 1.5f, 2}) {
+        El text = El.text(word).font(Examples.fallbackChain()).wrapText().w(40);
+        Headless.render(El.col().child(text), 200, 400, scale, TextRendering.LINUX);
+        assertTrue(text.text().lines().size() > 1, "broken: " + lines(text));
+        assertBrokenWithin(text, 40, scale);
+      }
+    }
+  }
+
+  @Test
+  void aRightToLeftWordLongerThanTheLineStaysWholeAsItIsOneCluster() {
+    TextLibraries.assumeLoaded();
+    String hebrew = "\u05D0\u05D1\u05D2\u05D3\u05D4\u05D5\u05D6\u05D7".repeat(4);
+    El text = El.text("ab " + hebrew + " cd")
+        .font(Examples.fallbackChain())
+        .wrapText()
+        .w(30);
+    Headless.render(row().child(text), 200, 100, 1);
+    assertEquals(List.of("ab ", hebrew + " ", "cd"), lines(text));
+    assertTrue(text.text().lines().get(1).width() > 30);
+  }
+
+  @Test
+  void aBoxNarrowerThanOneClusterPutsEachOnARowOfItsOwn() {
+    TextLibraries.assumeLoaded();
+    El text = mono("abcd").wrapText().w(4);
+    Headless.render(row().child(text), 200, 100, 1);
+    assertEquals(List.of("a", "b", "c", "d"), lines(text));
+  }
+
+  @Test
+  void highlightsTabsAndFallbackFontsGoOnAcrossABreakInsideAWord() {
+    TextLibraries.assumeLoaded();
+    int red = 0xFFFF0000;
+    // A mono word of 16 characters, the last 8 red: the second row is red, the first is not.
+    El text = mono("a".repeat(8) + "b".repeat(8))
+        .color(0xFF000000)
+        .highlight(1, (line, state, out) -> {
+          out.color(8, 16, red);
+          return null;
+        })
+        .wrapText()
+        .w(64);
+    Headless.render(row().child(text), 200, 100, 1);
+    assertEquals(List.of("aaaaaaaa", "bbbbbbbb"), lines(text));
+    for (int c : text.text().lines().get(1).colors()) {
+      assertEquals(red, c);
+    }
+    for (int c : text.text().lines().get(0).colors()) {
+      assertEquals(0xFF000000, c);
+    }
+    // A range in another font breaks by its own glyphs.
+    El fonts = mono("a".repeat(8) + "b".repeat(8))
+        .highlight(2, (line, state, out) -> {
+          out.font(4, 12, Font.sans());
+          return null;
+        })
+        .wrapText()
+        .w(48);
+    Headless.render(row().child(fonts), 200, 100, 1);
+    assertBrokenWithin(fonts, 48, 1);
+    assertTrue(lines(fonts).size() >= 3, lines(fonts).toString());
+  }
+
+  /**
+   * Every line of {@code el} no wider than its box, unless it is a single cluster, every break at
+   * a grapheme boundary, and the lines together the string.
+   */
+  private static void assertBrokenWithin(El el, float box, float scale) {
+    String string = el.text().string();
+    List<String> lines = lines(el);
+    assertEquals(string, String.join("", lines), "the lines are the string");
+    java.text.BreakIterator chars = java.text.BreakIterator.getCharacterInstance();
+    chars.setText(string);
+    int at = 0;
+    for (int i = 0; i < lines.size(); i++) {
+      assertTrue(chars.isBoundary(at), "a row starts between graphemes: " + at + " " + lines);
+      Text.Line line = el.text().lines().get(i);
+      boolean oneCluster = line.glyphs().count() > 0
+          && line.glyphs().cluster(line.glyphs().count() - 1) == line.glyphs().cluster(0);
+      assertTrue(
+          line.width() <= box * scale + 0.1 || oneCluster,
+          "line " + i + " at scale " + scale + " is " + line.width() + " wide: " + lines);
+      at += lines.get(i).length();
+    }
+  }
+
   @Test
   void textIsShapedAtThePhysicalSizeAndMeasuredInLogicalPixels() {
     TextLibraries.assumeLoaded();

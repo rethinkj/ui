@@ -11,13 +11,13 @@ description: Text elements, the default fonts Inter and JetBrains Mono, wrapping
 | Call | |
 | --- | --- |
 | `font(Font)`, `fontSize(px)`, `color(argb)` | The look; the default is `Font.sans()`, 14, black |
-| `wrapText()` | Break lines at the element's width |
+| `wrapText()` | Break lines at the element's width; a word, path or URL wider than the whole width breaks inside |
 | `ellipsis()` | End a line that does not fit in `…`; give the element a width or `minSize(0, 0)` |
 | `textAlign(Style.Align.CENTER)` | Each line centred (or `END`) in its box |
 | `fontFeatures("+calt")` | OpenType features in HarfBuzz's syntax |
 | `textBackground(argb)` | The colour behind the text, where the renderer cannot find it (for its coverage correction) |
 
-A line feed always starts a line.
+A line feed always starts a line. A wrapped text breaks between words where it can; a piece with no place to break that is wider than the whole box, such as a file path or a URL, starts a line of its own and breaks inside, between characters, as CSS's `overflow-wrap: break-word` does. Layout still gives a text in a row room for its longest word whole: only a box that is narrower breaks it.
 
 After layout, `el.text()` is the element's `Text`: `shortened()` says whether a line was cut to fit and ends in `…`, for a tooltip with the whole text (the kit's `Tooltip.whenShortened` asks it), and `lines()` holds what is drawn, a `GlyphRun` per line with its width and baseline in physical pixels.
 
