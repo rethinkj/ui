@@ -3,7 +3,7 @@ title: Overlays
 description: Elements above everything else, anchored to an element, a point, the caret or the window, for menus, tooltips and dialogs.
 ---
 
-A menu, a tooltip, a dropdown list or a dialog lies above everything else and is not clipped by the scroll area its anchor is in. The view declares it next to the element it belongs to, `anchor.overlay(menu)`, and whether it is open is the app's state: `button.overlay(s.open ? menu : null)`. The kit's [Menu](/docs/components/menu), [Tooltip](/docs/components/tooltip), [Dialog](/docs/components/dialog), [Popover](/docs/components/popover) and [Toast](/docs/components/toast) are built this way; this page is for your own.
+A menu, tooltip, dropdown or dialog lies above everything else and is not clipped by its anchor's scroll area. The view declares it on the element it belongs to, `anchor.overlay(menu)`, and the state says whether it is open: `button.overlay(s.open ? menu : null)`. The kit's [Menu](/docs/components/menu), [Tooltip](/docs/components/tooltip), [Dialog](/docs/components/dialog), [Popover](/docs/components/popover) and [Toast](/docs/components/toast) are built this way; this page is for your own.
 
 ```java snippet="overlay"
 ```
@@ -18,7 +18,7 @@ A menu, a tooltip, a dropdown list or a dialog lies above everything else and is
 | `centerInWindow()` | In the middle, as a dialog |
 | `atWindowEdge(side, align, gap)` | Against an edge of the window, as a toast |
 
-An overlay is laid out at most as large as the window less its margins, and one at the window's edge less its gap from that edge too, so `margin(16)` keeps a dialog 16 pixels off the window's edges; one with a scroll area that gives way then scrolls. Where it does not fit, it goes to the other side, then moves into the window. It follows its anchor as it scrolls, and hides (staying open) while the anchor is scrolled out of view.
+An overlay is at most as large as the window minus its margins, and one at the window's edge also minus its gap from that edge, so `margin(16)` keeps a dialog 16 pixels from the window's edges; if it has a scroll area that can shrink, that area scrolls. Where it does not fit, it flips to the other side, then moves into the window. It follows its anchor as it scrolls, and hides (staying open) while the anchor is out of view.
 
 ## Behaviour
 
@@ -31,11 +31,11 @@ An overlay is laid out at most as large as the window less its margins, and one 
 | `dismissGroup(group)` | Presses on elements of the same group do not dismiss it: a menu bar's titles |
 | `onShownFor(seconds, handler)` | Runs once it has been open that long: a toast closes itself |
 
-An overlay that opens takes the focus to its first focusable element; when it closes, the focus goes back to where it was. Keys go from the focused element up to the overlay's root and then on to its anchor, so the owner of a menu sees Escape. Escape closes nothing by itself: the overlay's `onKey` changes the state.
+An overlay moves the focus to its first focusable element when it opens, and back when it closes. Keys go from the focused element up to the overlay's root and then to its anchor, so the owner of a menu sees Escape. Escape closes nothing by itself: handle it in `onKey` and change the state.
 
 ## In a tree dump
 
-Overlays follow the tree, each under a line that says where it is placed and what it is anchored to:
+Overlays follow the tree, each under a line that says where it is placed and what its anchor is:
 
 ```text file="examples/src/test/resources/golden/docs/overlay/open.tree.txt" start="overlay"
 ```
