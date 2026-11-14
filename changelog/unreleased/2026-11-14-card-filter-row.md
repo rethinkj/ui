@@ -1,0 +1,1 @@
+- `Card.filters(theme, bar)` frames an optional filter bar below a card's toolbar, using the card's side padding and leaving no row when the bar is null.

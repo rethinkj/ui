@@ -1,0 +1,1 @@
+- `Scrollbars.strip()` gives the space a scrollbar and its margins occupy along an edge, so custom controls can reserve the same room as the framework.

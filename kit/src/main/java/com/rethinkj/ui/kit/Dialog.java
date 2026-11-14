@@ -227,7 +227,7 @@ public final class Dialog {
     Scrollbars bars = t.scrollbars();
     // Along the right and the bottom, room for a bar's strip too, so that it lies beside the
     // content and its rings, not over them.
-    float strip = Math.max(ring, bars.thickness() + 2 * bars.margin());
+    float strip = Math.max(ring, bars.strip());
     return col()
         .scrollBoth()
         .scrollbars(bars)

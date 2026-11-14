@@ -426,6 +426,70 @@ class WorkbenchTest {
     assertEquals(query, orders.query, "not in the query");
   }
 
+  @Test
+  void openingEditWithThePointerCommitsAValidDraftAndKeepsARefusedOne() throws IOException {
+    App<Workbench> app = started();
+    Script.run(OPEN_ORDERS + """
+        press #cell-0-5
+        key F2
+        frame
+        key A control
+        type "draft@example.com"
+        frame
+        """, app, out);
+    Workbench.Opened orders = app.state().tables().getFirst();
+    assertTrue(orders.selection.isEditing());
+    assertEquals("draft@example.com", orders.selection.draft());
+    assertTrue(orders.changes.isEmpty(), "still a draft");
+    app.clipboard().write("keep");
+
+    String openEdit = """
+        size 1000 600
+        press role=menuitem label="Edit"
+        frame
+        advance 0.25
+        frame
+        """;
+    Script.run(openEdit, app, out);
+    assertTrue(app.state().bar.menu().isOpen());
+    assertFalse(orders.selection.isEditing(), "opening the menu is a press outside the editor");
+    assertEquals("draft@example.com", orders.changes.cell(0, 5));
+    assertEquals("keep", app.clipboard().read(), "opening Edit runs no grid command");
+    Script.run("size 1000 600\npress role=menuitem label=\"Copy\"\nframe", app, out);
+    assertEquals("draft@example.com", app.clipboard().read());
+
+    Script.run("""
+        size 1000 600
+        press #cell-0-3
+        key F2
+        frame
+        key A control
+        key Backspace
+        frame
+        """, app, out);
+    String amount = orders.changes.cell(0, 3);
+    assertTrue(orders.selection.isEditing());
+    assertEquals("", orders.selection.draft());
+    Script.run(openEdit, app, out);
+    assertTrue(app.state().bar.menu().isOpen());
+    assertTrue(orders.selection.isEditing(), "a refused value stays in its editor");
+    assertEquals("", orders.selection.draft());
+    assertEquals(amount, orders.changes.cell(0, 3), "the refused draft was not written");
+    assertEquals(1, orders.changes.count(), "only the valid email changed");
+    assertTrue(dump(app).contains("role=alert"), dump(app));
+    for (String label : List.of("Copy", "Paste", "Select all")) {
+      assertTrue(
+          dump(app)
+              .lines()
+              .anyMatch(line -> line.contains("role=menuitem label=\"" + label + "\"")
+                  && line.contains("disabled")),
+          dump(app));
+    }
+    Script.run("size 1000 600\nkey Escape\nframe", app, out);
+    assertEquals("field", app.focused().key(), "closing Edit restores the refused editor's focus");
+    assertEquals("", orders.selection.draft());
+  }
+
   /** The status bar's count of changes goes to the next tab that has some. */
   @Test
   void theCountOfChangesGoesToTheNextTabWithChanges() throws IOException {

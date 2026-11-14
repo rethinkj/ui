@@ -125,8 +125,7 @@ public final class ConnectionDialog {
   }
 
   /** A port: digits alone, typing refuses anything else; the empty field is no port yet. */
-  static final Format<Integer> PORT =
-      Format.INTEGER.where(p -> p >= 1 && p <= 65535, "1 to 65535").optional();
+  static final Format<Integer> PORT = ConnectionFormats.PORT.optional();
 
   /** Whether Connect can go: a complete, valid profile other than the one last connected with. */
   boolean ready() {

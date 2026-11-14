@@ -495,7 +495,7 @@ final class GridEdit {
       }
       if ((control && name.equals("V") || mods == Key.SHIFT && name.equals("Insert"))
           && o.clipboard != null) {
-        paste(b);
+        DataGrid.run(b, DataGrid.Command.PASTE);
         return true;
       }
     }
@@ -639,7 +639,12 @@ final class GridEdit {
     }
     List<Menu.Item> mine = new ArrayList<>();
     if (o.onPaste != null && o.clipboard != null) {
-      mine.add(Menu.item("Paste", () -> paste(b)).shortcut("Ctrl+V"));
+      mine.add(Menu.item(
+              "Paste",
+              DataGrid.canRun(b, DataGrid.Command.PASTE)
+                  ? () -> DataGrid.run(b, DataGrid.Command.PASTE)
+                  : null)
+          .shortcut("Ctrl+V"));
     }
     if (o.onPaste != null) {
       mine.add(Menu.item("Set NULL", () -> clear(b, true)).shortcut("Ctrl+0"));

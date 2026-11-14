@@ -162,12 +162,7 @@ public final class Prop<T> {
   static El shown(Theme t, El component, Prop<?> prop) {
     String error = prop.editing == null ? null : prop.editing.error(prop.path, true);
     El target = Form.target(component);
-    if (error != null && target != null) {
-      if (target.isEditable()) {
-        TextField.invalid(t, target);
-      }
-      target.invalid(true).errorMessage(error);
-    }
+    Form.invalid(t, target, error);
     return component;
   }
 }

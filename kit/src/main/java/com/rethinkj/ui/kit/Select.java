@@ -1,7 +1,5 @@
 package com.rethinkj.ui.kit;
 
-import static com.rethinkj.ui.El.row;
-import static com.rethinkj.ui.kit.Label.label;
 import static com.rethinkj.ui.kit.Theme.over;
 
 import com.rethinkj.ui.Cursor;
@@ -24,7 +22,8 @@ import java.util.function.IntConsumer;
  * Down and Arrow Up choose the next and the previous choice, Home and End the first and the last,
  * and a letter or digit the next choice that starts with it, as an open menu goes to it. The app
  * keeps the choice and the menu's {@link Menu.State}. In a tree dump it is {@code role=combobox}
- * with the current choice as the label, and its menu's items are the choices.
+ * with the current choice as the label, and its menu's items are the choices. A long choice ends
+ * in an ellipsis before the chevron; the label keeps the full text.
  */
 public final class Select {
 
@@ -88,25 +87,7 @@ public final class Select {
     boolean enabled = onSelect != null;
     String text = selected >= 0 && selected < choices.size() ? choices.get(selected) : "";
     int fill = t.surface().raised();
-    El select = row()
-        .role("combobox")
-        .label(text)
-        .disabled(!enabled)
-        .expanded(state.isOpen())
-        .w(t.size().field())
-        .h(t.size().control())
-        .padding(0, t.space().m())
-        .gap(t.space().s())
-        .align(Style.Align.CENTER)
-        .radius(t.radius().medium())
-        .fill(fill)
-        .border(t.size().stroke(), enabled ? t.border().strong() : t.border().divider())
-        .motion(t.motion().feedback())
-        .children(
-            label(t, text)
-                .color(enabled ? t.text().primary() : t.text().disabled())
-                .grow(1),
-            Icon.icon(t, OPENS, enabled ? Icon.Variant.MUTED : Icon.Variant.DISABLED));
+    El select = SelectionFrame.frame(t, text, null, enabled).expanded(state.isOpen());
     if (!enabled) {
       return select;
     }

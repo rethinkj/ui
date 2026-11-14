@@ -3137,7 +3137,7 @@ public final class El {
     boolean wide = maxScrollX > 0;
     boolean tall = maxScrollY > 0;
     if (scrollbars != null) {
-      float strip = scrollbars.thickness() + 2 * scrollbars.margin();
+      float strip = scrollbars.strip();
       if (style.overflowY == Style.Overflow.SCROLL && (tall || rowBuilder != null)) {
         coverY = Math.max(wide ? strip : 0, Math.min(bottom, clipBottom) - barTop);
       }
@@ -3158,7 +3158,7 @@ public final class El {
     }
     // This one's bars at a fixed place over the content, along an axis it does not scroll.
     if (scrollbars != null) {
-      float strip = scrollbars.thickness() + 2 * scrollbars.margin();
+      float strip = scrollbars.strip();
       if (wide && !tall) {
         barTop = Math.min(barTop, bottom - strip);
         clipBottom = Math.min(clipBottom, bottom);

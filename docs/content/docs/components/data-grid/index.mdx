@@ -37,6 +37,8 @@ The methods return a changed copy, so a view builds columns in one expression. H
 
 A cell's text shows on one line, a line break as `⏎` and a tab as `⇥`. Where it does not fit it ends in an ellipsis and shows whole in a tooltip. Where a header is narrow, the type gives way first, then the title.
 
+An empty type name is allowed. Fit decisions for shortened types and values use their first whole grapheme and an ellipsis as the minimum, keeping combining marks and joined emoji together.
+
 <Shot src="kit/grid-icons-{theme}-2x-top" alt="A grid with types in the headers, a key, links, checks, NULL markers and status marks" />
 
 ## Details
@@ -63,7 +65,7 @@ A copy and the editor take the value alone, and the editor covers the whole cell
 | `onSelect(Runnable)` | Told when the selection changes. |
 | `rowNumbers()` | A column of row numbers that selects rows. |
 | `frozen(int columns)` | The first columns stay at the left while the rest scroll sideways. |
-| `copy(Clipboard)`, `nullText(String)`, `copyLimit(cells, handler)` | Control+C copies the selection as tab-separated text. |
+| `copy(Clipboard)`, `nullText(String)`, `copyLimit(cells)`, `onLargeCopy(handler)` | Control+C copies the selection as tab-separated text; a large-copy handler can keep the default limit and receives its effective value. |
 | `contextMenu(Menu.State, items)` | A menu at a secondary press: Copy, Copy with headers, then the app's items. |
 | `sort(keys, onSort)` | Sort keys in the header. [Sorting and columns](/docs/components/data-grid/sorting-and-columns) |
 | `onResize((column, width) -> …)` | Dragging a header edge resizes; a double press fits. |
