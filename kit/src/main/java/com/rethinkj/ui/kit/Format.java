@@ -100,6 +100,21 @@ public final class Format<T> {
       .append(DateTimeFormatter.ISO_TIME)
       .toFormatter(Locale.ROOT)
       .withResolverStyle(ResolverStyle.STRICT);
+  // The same with an offset in any of the spellings of Offset: Z, +00:00, +00.
+  private static final DateTimeFormatter ISO_DATE_TIME_ANY_OFFSET = new DateTimeFormatterBuilder()
+      .parseCaseInsensitive()
+      .append(DateTimeFormatter.ISO_LOCAL_DATE)
+      .optionalStart()
+      .appendLiteral('T')
+      .optionalEnd()
+      .optionalStart()
+      .appendLiteral(' ')
+      .optionalEnd()
+      .append(DateTimeFormatter.ISO_LOCAL_TIME)
+      .parseLenient()
+      .appendOffset("+HH:MM:ss", "Z")
+      .toFormatter(Locale.ROOT)
+      .withResolverStyle(ResolverStyle.STRICT);
 
   // A number, then a unit: b, kb or kib and so on, in any case.
   private static final Pattern BYTES_TEXT =
@@ -201,9 +216,7 @@ public final class Format<T> {
   public static final Format<LocalDateTime> DATE_TIME = temporal(
       v -> v.toLocalDate() + " " + v.toLocalTime(),
       ISO_DATE_TIME,
-      t -> t.isSupported(java.time.temporal.ChronoField.OFFSET_SECONDS)
-          ? null // an offset would be lost
-          : LocalDateTime.from(t),
+      Format::localDateTime,
       DATE_TIME_MESSAGE,
       DataType.DATE_TIME);
 
@@ -214,6 +227,81 @@ public final class Format<T> {
       OffsetDateTime::from,
       "Expected a date, a time and an offset such as 2026-11-13 14:30+01:00",
       DataType.DATE_TIME);
+
+  /** How {@link #offsetDateTime} writes an offset; it reads all three. */
+  public enum Offset {
+    /** {@code Z} for UTC, else {@code +01:00}, as ISO 8601 and {@link #OFFSET_DATE_TIME} do. */
+    Z("+HH:MM:ss", "Z"),
+    /** Always the hours and minutes with a colon: {@code +00:00}, {@code +05:30}. */
+    COLONS("+HH:MM:ss", "+00:00"),
+    /** The minutes only where they are not zero, as PostgreSQL writes it: {@code +00}, {@code +05:30}. */
+    SHORT("+HH:mm:ss", "+00");
+
+    private final String pattern;
+    private final String zero;
+
+    Offset(String pattern, String zero) {
+      this.pattern = pattern;
+      this.zero = zero;
+    }
+  }
+
+  /**
+   * {@link #TIME} written with its seconds and {@code precision} digits of their fraction always,
+   * so that times of one column have one length: {@code time(0)} writes {@code 09:00:00}, {@code
+   * time(3)} {@code 09:00:05.000}. It reads what {@link #TIME} reads, with or without seconds and
+   * fraction, and gives the value as read.
+   *
+   * <p>Digits beyond the precision are cut, not rounded: {@code time(0)} writes {@code
+   * 09:00:05.999} as {@code 09:00:05}. Only the text is cut; the value stays as it was, and a
+   * {@link ValueField} or a grid's cell that is not edited hands nothing else on.
+   *
+   * @param precision the digits after the seconds, 0 to 9
+   */
+  public static Format<LocalTime> time(int precision) {
+    DateTimeFormatter clock = clock(precision);
+    return temporal(clock::format, ISO_LOCAL_TIME, LocalTime::from, TIME_MESSAGE, DataType.TIME);
+  }
+
+  /**
+   * {@link #DATE_TIME} written with the time's seconds and {@code precision} digits of their
+   * fraction always, as {@link #time(int)}: {@code dateTime(0)} writes {@code 2026-01-01
+   * 09:00:00}. Digits beyond the precision are cut, not rounded, in the text alone.
+   *
+   * @param precision the digits after the seconds, 0 to 9
+   */
+  public static Format<LocalDateTime> dateTime(int precision) {
+    DateTimeFormatter clock = clock(precision);
+    return temporal(
+        v -> v.toLocalDate() + " " + clock.format(v),
+        ISO_DATE_TIME,
+        Format::localDateTime,
+        DATE_TIME_MESSAGE,
+        DataType.DATE_TIME);
+  }
+
+  /**
+   * {@link #OFFSET_DATE_TIME} written with the time's seconds and {@code precision} digits of
+   * their fraction always, as {@link #time(int)}, and the offset spelt as {@code offset} says:
+   * {@code offsetDateTime(0, Offset.SHORT)} writes {@code 2026-01-01 09:00:00+00}. It reads every
+   * spelling of an offset ({@code Z}, {@code +00:00}, {@code +00}, {@code +05:30}), with or
+   * without seconds and fraction. Digits beyond the precision are cut, not rounded, in the text
+   * alone. With {@link Offset#SHORT}, texts of offsets with and without minutes differ in length.
+   *
+   * @param precision the digits after the seconds, 0 to 9
+   */
+  public static Format<OffsetDateTime> offsetDateTime(int precision, Offset offset) {
+    DateTimeFormatter written = new DateTimeFormatterBuilder()
+        .append(clock(precision))
+        .appendOffset(offset.pattern, offset.zero)
+        .toFormatter(Locale.ROOT);
+    return temporal(
+        v -> v.toLocalDate() + " " + written.format(v),
+        ISO_DATE_TIME_ANY_OFFSET,
+        OffsetDateTime::from,
+        "Expected a date, a time and an offset such as 2026-11-13 14:30+01:00",
+        DataType.DATE_TIME);
+  }
 
   /**
    * {@code true} or {@code false}; also read from {@code t}, {@code 1}, {@code yes}, {@code y},
@@ -522,6 +610,31 @@ public final class Format<T> {
     return BIG_INTEGER.where(
         v -> v.compareTo(low) >= 0 && v.compareTo(high) <= 0,
         "Expected a whole number from " + min + " to " + max);
+  }
+
+  /** The date and time read, or null where it has an offset, which would be lost. */
+  private static LocalDateTime localDateTime(TemporalAccessor t) {
+    return t.isSupported(java.time.temporal.ChronoField.OFFSET_SECONDS)
+        ? null
+        : LocalDateTime.from(t);
+  }
+
+  /** Hours, minutes, seconds and {@code precision} digits of their fraction, cut, not rounded. */
+  private static DateTimeFormatter clock(int precision) {
+    if (precision < 0 || precision > 9) {
+      throw new IllegalArgumentException(
+          "A precision is 0 to 9 digits after the seconds, not " + precision);
+    }
+    DateTimeFormatterBuilder b = new DateTimeFormatterBuilder()
+        .appendValue(java.time.temporal.ChronoField.HOUR_OF_DAY, 2)
+        .appendLiteral(':')
+        .appendValue(java.time.temporal.ChronoField.MINUTE_OF_HOUR, 2)
+        .appendLiteral(':')
+        .appendValue(java.time.temporal.ChronoField.SECOND_OF_MINUTE, 2);
+    if (precision > 0) {
+      b.appendFraction(java.time.temporal.ChronoField.NANO_OF_SECOND, precision, precision, true);
+    }
+    return b.toFormatter(Locale.ROOT);
   }
 
   private static <T> Format<T> temporal(
