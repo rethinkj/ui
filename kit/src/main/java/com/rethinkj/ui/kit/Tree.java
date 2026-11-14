@@ -4,9 +4,11 @@ import static com.rethinkj.ui.El.col;
 import static com.rethinkj.ui.El.el;
 import static com.rethinkj.ui.El.row;
 
+import com.rethinkj.ui.Cursor;
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.Key;
 import com.rethinkj.ui.Len;
+import com.rethinkj.ui.Scrollbars;
 import com.rethinkj.ui.Style;
 import com.rethinkj.ui.Text;
 import java.util.Arrays;
@@ -56,10 +58,12 @@ import java.util.function.Predicate;
  * have children has a mark with the key {@code mark-<index>}, which shows the {@link Icon} {@link
  * #CLOSED} while it is closed and {@link #OPEN} while it is open; the marks need the icon font,
  * {@code rethinkj-ui-icons}. The row that stands for children not known yet has the key {@code
- * row-<index>} too, but no role, and shows the model's {@link Model#loading} text. A label or a
- * loading text longer than its row ends in an ellipsis, and a tooltip after the theme's delay
- * shows it whole. A muted row ({@link Model#muted}) says nothing more in a dump: only its label's
- * colour differs.
+ * row-<index>} too, but no role, and shows the model's {@link Model#loading} text. Where the model
+ * says why they could not be read ({@link Model#failure}), that row is {@code role=treeitem} and
+ * {@code invalid}, with the message as its label and as {@code error="<message>"}, and its action
+ * is {@code role=button} with its text as the label. A label, a loading text or a message longer
+ * than its row ends in an ellipsis, and a tooltip after the theme's delay shows it whole. A muted
+ * row ({@link Model#muted}) says nothing more in a dump: only its label's colour differs.
  */
 public final class Tree {
 
@@ -116,6 +120,17 @@ public final class Tree {
     }
 
     /**
+     * Why the children of an open node could not be read, or null, the default, while they are
+     * still on their way: asked, when its row is built, for an open node whose {@link #children}
+     * are null, before {@link #loading}. A failure shows in the row below the node in place of
+     * the loading row, with its action, such as Try again, at the row's end. The tree does not
+     * try again by itself.
+     */
+    default Failure failure(N node) {
+      return null;
+    }
+
+    /**
      * Whether the node's label is in muted text, as a schema of the system beside the app's own;
      * false, the default. Asked only for the rows that are built. It changes nothing else: the
      * icon is the model's, the detail stays muted, and the row works as any other.
@@ -123,6 +138,24 @@ public final class Tree {
     default boolean muted(N node) {
       return false;
     }
+  }
+
+  /**
+   * Why the children of a node could not be read: the message, and an action that the row offers,
+   * such as Try again; {@code action} and {@code onAction} are null for none. Made with {@link
+   * Tree#failure} and {@link #action}.
+   */
+  public record Failure(String text, String action, Runnable onAction) {
+
+    /** This failure with an action at the end of its row, which runs {@code onAction}. */
+    public Failure action(String action, Runnable onAction) {
+      return new Failure(text, action, onAction);
+    }
+  }
+
+  /** A failure with this message and no action. */
+  public static Failure failure(String text) {
+    return new Failure(text, null, null);
   }
 
   /** Told that the user opens or closes a node. */
@@ -168,7 +201,12 @@ public final class Tree {
           .gap(t.space().s())
           .align(Style.Align.CENTER);
       if (node == null) { // the children of the row's parent are not known yet
-        String text = model.loading(rows.parent(i));
+        N parent = rows.parent(i);
+        Failure failure = model.failure(parent);
+        if (failure != null) {
+          return failed(t, r.child(el().w(indent).shrink(0)), failure, rows.depth(i) + 1, height);
+        }
+        String text = model.loading(parent);
         El loading = Label.label(t, Label.Variant.MUTED, text).ellipsis().minSize(0, 0);
         return whole(t, r.children(el().w(indent).shrink(0), loading), loading, null, text, height);
       }
@@ -304,6 +342,61 @@ public final class Tree {
         e.overlay(Tooltip.panel(t, text));
       }
     });
+  }
+
+  /**
+   * The row of a failure: an icon in the danger colour, the message, which ends in an ellipsis
+   * where the row is narrow, and the action at the end. It is a tree item that is {@code invalid}
+   * with the message as its label and error, at the level of the children it stands for and the
+   * only one there. The action is a quiet button in the link colour, as high as the row less a
+   * gap and clear of the scrollbar, which keeps its width and is a stop for Tab of its own after
+   * the tree, since the row is
+   * not a node the selection can be on; Enter and Space run it, as a press does, and a press
+   * leaves the focus where it is.
+   */
+  private static El failed(Theme t, El row, Failure failure, int level, float height) {
+    El text = Label.label(t, failure.text()).ellipsis().minSize(0, 0).grow(1);
+    row.role("treeitem")
+        .label(failure.text())
+        .invalid(true)
+        .errorMessage(failure.text())
+        .level(level)
+        .position(1, 1)
+        .children(Icon.icon(t, Symbol.ERROR_CIRCLE, Icon.Variant.DANGER), text);
+    whole(t, row, text, null, failure.text(), height);
+    Runnable run = failure.onAction();
+    if (failure.action() == null || run == null) {
+      return row;
+    }
+    // Clear of the scrollbar, which lies over the end of the rows: the only row with a part there.
+    Scrollbars bars = t.scrollbars();
+    float clear = Math.max(0, bars.thickness() + 2 * bars.margin() - t.space().s());
+    // No motion: it would fade in as the row turns from loading to failed, untouchable meanwhile.
+    return row.child(row()
+        .role("button")
+        .label(failure.action())
+        .h(height - t.space().xs())
+        .shrink(0)
+        .margin(0, clear, 0, 0)
+        .padding(0, t.space().s())
+        .align(Style.Align.CENTER)
+        .radius(t.radius().small())
+        .focusable()
+        .keepFocus()
+        .focusRing(t.accent().edge())
+        .cursor(Cursor.POINTER)
+        .onPress(run)
+        .onKey(k -> {
+          // Its own, before the tree's keys: the tree would take Enter for the selected node.
+          boolean press =
+              k.modifiers() == 0 && (k.name().equals("Enter") || k.name().equals("Space"));
+          if (press) {
+            run.run();
+          }
+          return press;
+        })
+        .whenHovered(e -> e.fill(t.surface().hover())) // as a link: no darker look while pressed
+        .child(Label.label(t, failure.action()).color(t.prose().link())));
   }
 
   /** What a key does to the tree with the focus; whether the tree took it. */

@@ -34,7 +34,8 @@ snap scrolled
 
 key Home                            # the selection to localhost, and the rows follow it
 key ArrowLeft                       # closes it
-key End                             # the selection to staging
+key End
+key ArrowUp                         # the selection to staging, the last server but one
 key ArrowRight                      # opens it: its databases are not known yet, and the
 frame                               # handler asks for them on another thread
 snap loading
@@ -48,3 +49,40 @@ key ArrowRight                      # in it: shop, its schema public and the tab
 size 200 300                        # a narrow panel: the types of the columns and the number
 frame                               # of tables give way before the names
 snap narrow
+
+size 280 300
+key End                             # backup, the last server
+key ArrowRight                      # opens it: the server refuses the first connection
+frame
+await
+frame
+snap failed                         # its row says why, with Try again at its end
+
+press role=button label="Try again" # asks again, and this time the databases come
+frame
+await
+frame
+key Home
+key ArrowDown
+key ArrowDown                       # localhost/postgres
+key ArrowRight                      # opens it
+key ArrowDown                       # pg_catalog, the system's schema, in muted text
+key ArrowRight                      # opens it: its tables are muted too
+frame
+snap muted
+
+key ArrowLeft                       # closes pg_catalog
+key ArrowLeft                       # to postgres
+key ArrowLeft                       # closes it
+key ArrowDown                       # shop
+key ArrowRight                      # its first schema, audit
+key ArrowRight                      # opens it: a table whose name is longer than the row
+size 200 300
+frame
+move role=treeitem label="notification_preferences"
+frame
+advance 1                           # the tooltip's delay
+frame
+advance 0.25                        # and its fade
+frame
+snap long                           # the name ends in an ellipsis; the tooltip shows it whole

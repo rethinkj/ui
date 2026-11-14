@@ -1,6 +1,6 @@
 el 0,0 200x300
-  el #schema role=tree label="Schema" 8,8 184x284 rows 0-14/313 thumb-y 184,10 6x24 focused
-    el #row-0 role=treeitem label="localhost" 8,8 184x24 selected expanded level=1 pos=1/3
+  el #schema role=tree label="Schema" 8,8 184x284 rows 0-14/314 thumb-y 184,10 6x24 focused
+    el #row-0 role=treeitem label="localhost" 8,8 184x24 selected expanded level=1 pos=1/4
       el #mark-0 12,8 16x24
         text label="chevron_down" "\u{F2A2}" 12,12 16x16
       text label="server" "\u{F1DC}" 32,12 16x16
@@ -20,14 +20,14 @@ el 0,0 200x300
         text label="chevron_down" "\u{F2A2}" 28,84 16x16
       text label="database" "\u{F0D7}" 48,84 16x16
       text "shop" 68,84 31x16
-    el #row-4 role=treeitem label="audit" 8,104 184x24 expanded=false level=3 pos=1/2 value="2 tables"
+    el #row-4 role=treeitem label="audit" 8,104 184x24 expanded=false level=3 pos=1/2 value="3 tables"
       el #mark-4 44,104 16x24
         text label="chevron_right" "\u{F2AF}" 44,108 16x16
       text label="folder" "\u{E643}" 64,108 16x16
       el 84,104 104x24
         el 84,104 0x24
         text "audit" 84,108 30x16
-        text "2 tables" 118,108 70x16
+        text "3 tables" 118,108 70x16
     el #row-5 role=treeitem label="public" 8,128 184x24 expanded level=3 pos=2/2 value="300 tables"
       el #mark-5 44,128 16x24
         text label="chevron_down" "\u{F2A2}" 44,132 16x16

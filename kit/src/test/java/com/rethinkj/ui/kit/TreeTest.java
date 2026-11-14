@@ -60,12 +60,13 @@ class TreeTest {
   void openingTheLastNodeByKeyboardScrollsItsChildrenIntoView() throws IOException {
     Catalog catalog = new Catalog(T).opened("localhost", "localhost/shop", "localhost/shop/public");
     App<Catalog> app = start(catalog);
-    run(app, "focus #schema\nkey End\nkey ArrowUp\nframe"); // a table near the end of the list
+    // prod-eu, the third row from the end of the list
+    run(app, "focus #schema\nkey End\nkey ArrowUp\nkey ArrowUp\nframe");
     Node table = catalog.selected;
     int row = selectedRow(app);
     float h = T.grid().rowHeight();
     El tree = Workbench.find(app, "schema");
-    assertTrue(tree.scrollY() + tree.height() < (row + 2) * h + 1, "near the bottom of the view");
+    assertTrue(tree.scrollY() + tree.height() < (row + 3) * h + 1, "near the bottom of the view");
 
     run(app, "key ArrowRight\nframe");
     assertTrue(catalog.open.contains(table), "opened");
@@ -89,8 +90,8 @@ class TreeTest {
   // Rows and cost
 
   /**
-   * localhost/shop/public with 1000 tables of 99 columns, all open: 100 008 nodes are shown, the
-   * three servers, localhost's three databases and shop's two schemas included.
+   * localhost/shop/public with 1000 tables of 99 columns, all open: 100 009 nodes are shown, the
+   * four servers, localhost's three databases and shop's two schemas included.
    */
   private static Catalog hundredThousand() {
     Catalog catalog = new Catalog(T, 1000, 99).opened("localhost", "localhost/shop");
@@ -100,7 +101,7 @@ class TreeTest {
     return catalog;
   }
 
-  private static final int SHOWN = 100_008;
+  private static final int SHOWN = 100_009;
 
   @Test
   void aHundredThousandNodesBuildOnlyTheRowsInViewAndAskOnlyForTheirLabels() throws IOException {
@@ -262,7 +263,7 @@ class TreeTest {
     assertEquals(List.of("select prod-eu"), catalog.log);
     assertEquals("schema", app.focused().key());
     assertEquals(T.grid().selected(), find(app, "row-1").fill(), "the focused tree's selection");
-    assertTrue(dumpLine(app, "row-1").contains(" selected expanded=false level=1 pos=2/3"));
+    assertTrue(dumpLine(app, "row-1").contains(" selected expanded=false level=1 pos=2/4"));
 
     run(app, "move #row-1\nframe");
     assertEquals(T.grid().selected(), find(app, "row-1").fill(), "no hover on the selection");
@@ -344,18 +345,18 @@ class TreeTest {
     App<Catalog> app = start(catalog);
     run(app, "press #mark-0\nframe");
     assertEquals(List.of("select localhost", "open localhost"), catalog.log);
-    assertEquals(6, find(app, "schema").rowCount());
+    assertEquals(7, find(app, "schema").rowCount());
     assertEquals(Tree.OPEN, mark(app, 0));
     assertEquals(Tree.CLOSED, mark(app, 1));
-    assertTrue(dumpLine(app, "row-0").contains(" selected expanded level=1 pos=1/3"));
+    assertTrue(dumpLine(app, "row-0").contains(" selected expanded level=1 pos=1/4"));
     assertTrue(dumpLine(app, "row-1").contains(" expanded=false level=2 pos=1/3"));
     assertEquals("staging", find(app, "row-5").label());
 
     run(app, "press #mark-0\nframe");
     assertEquals(List.of("select localhost", "open localhost", "close localhost"), catalog.log);
-    assertEquals(3, find(app, "schema").rowCount());
+    assertEquals(4, find(app, "schema").rowCount());
     assertEquals(Tree.CLOSED, mark(app, 0));
-    assertTrue(dumpLine(app, "row-0").contains(" selected expanded=false level=1 pos=1/3"));
+    assertTrue(dumpLine(app, "row-0").contains(" selected expanded=false level=1 pos=1/4"));
   }
 
   private static Symbol mark(App<?> app, int row) {
@@ -423,8 +424,8 @@ class TreeTest {
     assertEquals("localhost", key(app, catalog, "ArrowLeft"), "the parent of a closed node");
     assertEquals("localhost", key(app, catalog, "ArrowLeft"), "closes it");
     assertEquals("localhost", key(app, catalog, "ArrowLeft"), "a closed root stays");
-    assertEquals("staging", key(app, catalog, "End"));
-    assertEquals("staging", key(app, catalog, "ArrowDown"), "stays at the end");
+    assertEquals("backup", key(app, catalog, "End"));
+    assertEquals("backup", key(app, catalog, "ArrowDown"), "stays at the end");
     assertEquals("localhost", key(app, catalog, "Home"));
     assertEquals("localhost", key(app, catalog, "ArrowUp"), "stays at the start");
     key(app, catalog, "Enter");
@@ -442,7 +443,7 @@ class TreeTest {
             "select localhost/shop",
             "select localhost",
             "close localhost",
-            "select staging",
+            "select backup",
             "select localhost",
             "activate localhost"),
         catalog.log,
@@ -472,10 +473,10 @@ class TreeTest {
     assertInView(app, 11);
     assertEquals(22, row(app, catalog, "PageDown"));
     assertInView(app, 22);
-    assertEquals(307, row(app, catalog, "End"));
-    assertInView(app, 307);
-    assertEquals(296, row(app, catalog, "PageUp"));
-    assertInView(app, 296);
+    assertEquals(308, row(app, catalog, "End"));
+    assertInView(app, 308);
+    assertEquals(297, row(app, catalog, "PageUp"));
+    assertInView(app, 297);
     assertEquals(0, row(app, catalog, "Home"));
     assertInView(app, 0);
   }
@@ -599,112 +600,153 @@ class TreeTest {
     assertEquals(T.text().muted(), text.text().color());
     assertEquals(T.space().s() + T.space().xl(), loading.children().getFirst().x(), "level 1");
 
-    run(app, "press #row-3\nframe\nfocus #schema\nkey ArrowDown\nframe\nkey End\nframe");
-    assertEquals(List.of("select staging", "open staging"), catalog.log, "not a node");
+    run(app, "press #row-3\nframe\nfocus #schema\nkey ArrowDown\nframe");
+    assertEquals(List.of("select staging", "open staging", "select backup"), catalog.log);
+    run(app, "key ArrowUp\nframe");
+    assertEquals("staging", catalog.selected.path(), "passing the loading row, not a node");
 
     run(app, "frame\nframe");
-    assertEquals(4, find(app, "schema").rowCount(), "a script lets the answer in at await only");
+    assertEquals(5, find(app, "schema").rowCount(), "a script lets the answer in at await only");
     assertEquals(List.of(catalog.node("staging")), catalog.loading);
 
     run(app, "await\nframe");
-    assertEquals(5, find(app, "schema").rowCount());
+    assertEquals(6, find(app, "schema").rowCount());
     assertEquals(
-        List.of("localhost", "prod-eu", "staging", "scratch", "shop"),
+        List.of("localhost", "prod-eu", "staging", "scratch", "shop", "backup"),
         find(app, "schema").children().stream().map(El::label).toList());
     assertEquals(
         T.space().s() + T.space().xl(), find(app, "row-3").children().getFirst().x());
-    assertEquals("staging/shop", key(app, catalog, "End"));
+    assertEquals("backup", key(app, catalog, "End"));
+    assertEquals("staging/shop", key(app, catalog, "ArrowUp"));
   }
 
-  // Without handlers
+  // Children that could not be read
 
-  @Test
-  void withoutHandlersTheTreeOnlyShows() throws IOException {
-    Catalog catalog = new Catalog(T).opened("localhost");
-    App<Catalog> app = new App<>(
-        catalog,
-        c -> col()
-            .wFull()
-            .hFull()
-            .child(Tree.tree(T, c, c.open::contains, c.node("localhost/shop"), null, null, null)
-                .key("schema")
-                .grow(1)));
-    run(app, "frame\nmove #row-1\npress #row-1\npress #mark-0\nkey Tab\nframe");
-    assertNull(app.focused());
-    assertEquals(0, find(app, "row-1").fill(), "no hover");
-    assertEquals(T.grid().selectedInactive(), find(app, "row-3").fill(), "the selection shows");
-    assertTrue(dumpLine(app, "row-3").contains(" selected "));
-    assertEquals(6, find(app, "schema").rowCount());
+  /** Opens backup, whose first connection is refused, and lets the refusal in. */
+  private App<Catalog> refused(Catalog catalog) throws IOException {
+    App<Catalog> app = start(catalog);
+    run(app, "press #mark-3\nframe\nawait\nframe");
+    assertEquals(
+        List.of("select backup", "open backup", "failed backup: connection refused"), catalog.log);
+    return app;
   }
 
-  // Details
+  private static final String REFUSED = "Cannot read the databases: connection refused";
 
   @Test
-  void aDetailFollowsTheLabelAndGivesWayBeforeIt() throws IOException {
-    Catalog catalog = new Catalog(T)
-        .opened(
-            "localhost",
-            "localhost/shop",
-            "localhost/shop/public",
-            "localhost/shop/public/accounts");
-    App<Catalog> app = catalog.app();
-    run(app, "size 280 300\nframe");
-    String dump = app.tree().dump();
-    assertTrue(
-        dump.contains("role=treeitem label=\"public\" ") && dump.contains("value=\"300 tables\""),
-        dump);
-    String id = line(dump, "label=\"id\"");
-    assertTrue(id.endsWith("level=5 pos=1/3 value=\"bigint\""), id);
-    El type = find(app, "row-" + row(dump, "label=\"id\""))
-        .children()
-        .getLast()
-        .children()
-        .getLast();
-    assertEquals("bigint", type.text().string());
-    assertEquals(T.text().muted(), type.text().color());
-    assertFalse(type.text().shortened());
-    assertTrue(type.y() < T.grid().rowHeight(), "beside the name");
+  void aFailureShowsInPlaceOfTheLoadingRowWithItsAction() throws IOException {
+    Catalog catalog = new Catalog(T);
+    App<Catalog> app = refused(catalog);
+    assertEquals(
+        "el #row-4 role=treeitem label=\"" + REFUSED + "\" 8,104 264x24 invalid level=2 pos=1/1"
+            + " error=\"" + REFUSED + "\"",
+        dumpLine(app, "row-4"));
+    assertTrue(app.tree().dump().contains(" role=button label=\"Try again\" "));
+    El row = find(app, "row-4");
+    assertEquals(T.space().s() + T.space().xl(), row.children().getFirst().x(), "level 2");
+    assertEquals(T.status().danger(), row.children().get(1).text().color(), "the icon");
+    El message = textOf(row, REFUSED);
+    assertEquals(T.text().primary(), message.text().color());
+    El action = row.children().getLast();
+    assertEquals(T.prose().link(), action.children().getFirst().text().color());
+    assertTrue(action.height() <= row.height(), "inside the row");
+    float bar = T.scrollbars().thickness() + 2 * T.scrollbars().margin();
+    assertEquals(
+        row.width() - bar, action.x() + action.width(), 0.01, "at its end, clear of the bar");
 
-    // Narrower: the longest type shortens, then goes; the names stay whole.
-    for (int width = 280; width >= 150; width -= 2) {
-      run(app, "size " + width + " 300\nframe");
-      El row = find(app, "row-" + row(app.tree().dump(), "label=\"created_at\""));
-      El box = row.children().getLast();
-      El name = box.children().get(1);
-      El detail = box.children().get(2);
-      boolean gone = detail.y() >= T.grid().rowHeight();
-      if (!gone && detail.text().shortened()) {
-        assertFalse(name.text().shortened(), "the name whole while the type shows: " + width);
-        assertTrue(detail.width() >= 8, "at least a character and the ellipsis: " + width);
-      }
-      if (name.text().shortened()) {
-        assertTrue(gone, "the type gone before the name is cut: " + width);
-      }
+    // Not a node: the keys pass it, and a press beside the action selects nothing.
+    run(app, "press role=treeitem invalid\nframe\nkey ArrowDown\nframe\nkey End\nframe");
+    assertEquals(3, catalog.log.size(), catalog.log.toString());
+    assertEquals("schema", app.focused().key());
+  }
+
+  @Test
+  void aPressOnTheActionTriesAgainAndTheChildrenArrive() throws IOException {
+    Catalog catalog = new Catalog(T);
+    App<Catalog> app = refused(catalog);
+    run(app, "press role=button label=\"Try again\"\nframe");
+    assertEquals("retry backup", catalog.log.getLast());
+    assertEquals("schema", app.focused().key(), "the press leaves the focus in the tree");
+    assertNull(find(app, "row-4").role(), "loading again");
+    assertEquals("Loading…", find(app, "row-4").children().getLast().text().string());
+
+    run(app, "await\nframe");
+    assertEquals(
+        List.of("localhost", "prod-eu", "staging", "backup", "scratch", "shop"),
+        find(app, "schema").children().stream().map(El::label).toList());
+    assertFalse(app.tree().dump().contains(" invalid"));
+  }
+
+  @Test
+  void tabReachesTheActionAndEnterOrSpaceRunIt() throws IOException {
+    for (String key : List.of("Enter", "Space")) {
+      Catalog catalog = new Catalog(T);
+      App<Catalog> app = refused(catalog);
+      run(app, "key Tab\nframe");
+      assertEquals("Try again", app.focused().label(), "after the tree, its one stop");
+      assertTrue(app.tree().dump().contains(" role=button label=\"Try again\" "), "x");
+      run(app, "key " + key + "\nframe");
+      assertEquals(
+          List.of(
+              "select backup", "open backup", "failed backup: connection refused", "retry backup"),
+          catalog.log,
+          key + " runs the action, not the tree's activation of the selected node");
+      assertEquals("schema", app.focused().key(), key + ": the focus back to the tree");
+      run(app, "await\nframe");
+      assertEquals(6, find(app, "schema").rowCount());
     }
+  }
+
+  @Test
+  void aLongMessageEndsInAnEllipsisAndShowsWholeInATooltip() throws IOException {
+    Catalog catalog = new Catalog(T);
+    App<Catalog> app = refused(catalog);
     run(app, "size 150 300\nframe");
-    El row = find(app, "row-" + row(app.tree().dump(), "label=\"created_at\""));
-    assertTrue(row.children().getLast().children().get(2).y() >= T.grid().rowHeight(), "gone");
-
-    // Where a part is cut or gone, a tooltip after the delay names both.
-    run(app, "size 150 300\nmove role=treeitem label=\"created_at\"\nframe\nadvance 1\nframe");
+    assertTrue(textOf(find(app, "row-4"), REFUSED).text().shortened());
+    assertEquals(T.size().icon(), find(app, "row-4").children().get(1).width(), "the icon whole");
+    assertTrue(textOf(find(app, "row-4"), "Try again").width() > 40, "the action whole");
+    run(app, "size 150 300\nmove 50,120\nframe\nadvance 1\nframe");
     assertTrue(
-        app.tree().dump().contains("role=tooltip label=\"created_at timestamptz\""),
+        app.tree().dump().contains("role=tooltip label=\"" + REFUSED + "\""),
         app.tree().dump());
-    run(
-        app,
-        "size 280 300\nleave\nframe\nmove role=treeitem label=\"id\"\nframe\nadvance 1\nframe");
-    assertFalse(app.tree().dump().contains("role=tooltip"), "nothing cut, no tooltip");
   }
 
-  private static String line(String dump, String part) {
-    return dump.lines().filter(l -> l.contains(part)).findFirst().orElseThrow().strip();
+  @Test
+  void failureIsAskedOnlyForTheRowsThatAreBuilt() throws IOException {
+    Catalog catalog =
+        new Catalog(T).opened("localhost", "localhost/shop", "localhost/shop/public", "staging");
+    App<Catalog> app = start(catalog);
+    assertEquals(List.of(), catalog.failureAsked, "the loading row is far below the view");
+    run(app, "scroll #schema row 300\nframe");
+    assertFalse(catalog.failureAsked.isEmpty());
+    assertTrue(catalog.failureAsked.stream().allMatch(n -> n.name.equals("staging")));
   }
 
-  /** The index of the row whose line holds {@code part}. */
-  private static int row(String dump, String part) {
-    Matcher m = Pattern.compile("#row-(\\d+) ").matcher(line(dump, part));
-    assertTrue(m.find());
-    return Integer.parseInt(m.group(1));
+  // Muted rows
+
+  @Test
+  void aMutedRowHasItsLabelInMutedTextAndNothingElseChanges() throws IOException {
+    Catalog catalog = new Catalog(T).opened("localhost", "localhost/postgres");
+    catalog.open.add(catalog.node("localhost/postgres/pg_catalog"));
+    App<Catalog> app = start(catalog);
+    String dump = app.tree().dump();
+    assertEquals(
+        "el #row-3 role=treeitem label=\"pg_catalog\" 8,80 264x24 expanded level=3 pos=1/2"
+            + " value=\"2 tables\"",
+        dumpLine(app, "row-3"));
+    assertEquals(
+        T.text().muted(), textOf(find(app, "row-3"), "pg_catalog").text().color());
+    assertEquals(T.text().muted(), textOf(find(app, "row-4"), "pg_class").text().color());
+    assertEquals(T.text().primary(), textOf(find(app, "row-6"), "public").text().color());
+    assertEquals(
+        T.text().primary(), textOf(find(app, "row-2"), "postgres").text().color());
+    assertEquals(T.text().muted(), textOf(find(app, "row-3"), "2 tables").text().color());
+    assertTrue(dump.contains("label=\"pg_class\" "), dump);
+
+    run(app, "press #row-3\nframe");
+    assertEquals("localhost/postgres/pg_catalog", catalog.selected.path(), "works as any row");
+    assertEquals(
+        T.text().muted(), textOf(find(app, "row-3"), "pg_catalog").text().color());
   }
 
   // Long labels
@@ -804,31 +846,95 @@ class TreeTest {
     return null;
   }
 
-  // Muted rows
+  // Without handlers
 
   @Test
-  void aMutedRowHasItsLabelInMutedTextAndNothingElseChanges() throws IOException {
-    Catalog catalog = new Catalog(T).opened("localhost", "localhost/postgres");
-    catalog.open.add(catalog.node("localhost/postgres/pg_catalog"));
-    App<Catalog> app = start(catalog);
-    String dump = app.tree().dump();
-    assertEquals(
-        "el #row-3 role=treeitem label=\"pg_catalog\" 8,80 264x24 expanded level=3 pos=1/2"
-            + " value=\"2 tables\"",
-        dumpLine(app, "row-3"));
-    assertEquals(
-        T.text().muted(), textOf(find(app, "row-3"), "pg_catalog").text().color());
-    assertEquals(T.text().muted(), textOf(find(app, "row-4"), "pg_class").text().color());
-    assertEquals(T.text().primary(), textOf(find(app, "row-6"), "public").text().color());
-    assertEquals(
-        T.text().primary(), textOf(find(app, "row-2"), "postgres").text().color());
-    assertEquals(T.text().muted(), textOf(find(app, "row-3"), "2 tables").text().color());
-    assertTrue(dump.contains("label=\"pg_class\" "), dump);
+  void withoutHandlersTheTreeOnlyShows() throws IOException {
+    Catalog catalog = new Catalog(T).opened("localhost");
+    App<Catalog> app = new App<>(
+        catalog,
+        c -> col()
+            .wFull()
+            .hFull()
+            .child(Tree.tree(T, c, c.open::contains, c.node("localhost/shop"), null, null, null)
+                .key("schema")
+                .grow(1)));
+    run(app, "frame\nmove #row-1\npress #row-1\npress #mark-0\nkey Tab\nframe");
+    assertNull(app.focused());
+    assertEquals(0, find(app, "row-1").fill(), "no hover");
+    assertEquals(T.grid().selectedInactive(), find(app, "row-3").fill(), "the selection shows");
+    assertTrue(dumpLine(app, "row-3").contains(" selected "));
+    assertEquals(7, find(app, "schema").rowCount());
+  }
 
-    run(app, "press #row-3\nframe");
-    assertEquals("localhost/postgres/pg_catalog", catalog.selected.path(), "works as any row");
-    assertEquals(
-        T.text().muted(), textOf(find(app, "row-3"), "pg_catalog").text().color());
+  // Details
+
+  @Test
+  void aDetailFollowsTheLabelAndGivesWayBeforeIt() throws IOException {
+    Catalog catalog = new Catalog(T)
+        .opened(
+            "localhost",
+            "localhost/shop",
+            "localhost/shop/public",
+            "localhost/shop/public/accounts");
+    App<Catalog> app = catalog.app();
+    run(app, "size 280 300\nframe");
+    String dump = app.tree().dump();
+    assertTrue(
+        dump.contains("role=treeitem label=\"public\" ") && dump.contains("value=\"300 tables\""),
+        dump);
+    String id = line(dump, "label=\"id\"");
+    assertTrue(id.endsWith("level=5 pos=1/3 value=\"bigint\""), id);
+    El type = find(app, "row-" + row(dump, "label=\"id\""))
+        .children()
+        .getLast()
+        .children()
+        .getLast();
+    assertEquals("bigint", type.text().string());
+    assertEquals(T.text().muted(), type.text().color());
+    assertFalse(type.text().shortened());
+    assertTrue(type.y() < T.grid().rowHeight(), "beside the name");
+
+    // Narrower: the longest type shortens, then goes; the names stay whole.
+    for (int width = 280; width >= 150; width -= 2) {
+      run(app, "size " + width + " 300\nframe");
+      El row = find(app, "row-" + row(app.tree().dump(), "label=\"created_at\""));
+      El box = row.children().getLast();
+      El name = box.children().get(1);
+      El detail = box.children().get(2);
+      boolean gone = detail.y() >= T.grid().rowHeight();
+      if (!gone && detail.text().shortened()) {
+        assertFalse(name.text().shortened(), "the name whole while the type shows: " + width);
+        assertTrue(detail.width() >= 8, "at least a character and the ellipsis: " + width);
+      }
+      if (name.text().shortened()) {
+        assertTrue(gone, "the type gone before the name is cut: " + width);
+      }
+    }
+    run(app, "size 150 300\nframe");
+    El row = find(app, "row-" + row(app.tree().dump(), "label=\"created_at\""));
+    assertTrue(row.children().getLast().children().get(2).y() >= T.grid().rowHeight(), "gone");
+
+    // Where a part is cut or gone, a tooltip after the delay names both.
+    run(app, "size 150 300\nmove role=treeitem label=\"created_at\"\nframe\nadvance 1\nframe");
+    assertTrue(
+        app.tree().dump().contains("role=tooltip label=\"created_at timestamptz\""),
+        app.tree().dump());
+    run(
+        app,
+        "size 280 300\nleave\nframe\nmove role=treeitem label=\"id\"\nframe\nadvance 1\nframe");
+    assertFalse(app.tree().dump().contains("role=tooltip"), "nothing cut, no tooltip");
+  }
+
+  private static String line(String dump, String part) {
+    return dump.lines().filter(l -> l.contains(part)).findFirst().orElseThrow().strip();
+  }
+
+  /** The index of the row whose line holds {@code part}. */
+  private static int row(String dump, String part) {
+    Matcher m = Pattern.compile("#row-(\\d+) ").matcher(line(dump, part));
+    assertTrue(m.find());
+    return Integer.parseInt(m.group(1));
   }
 
   // Images
@@ -847,7 +953,7 @@ class TreeTest {
           Png.decode(Files.readAllBytes(files.get(i))),
           Files.readString(files.get(i + 1)));
     }
-    assertEquals(14, files.size());
+    assertEquals(20, files.size());
     assertEquals(
         List.of(
             "select localhost",
@@ -865,10 +971,27 @@ class TreeTest {
             "select localhost/shop/public/accounts/created_at",
             "select localhost",
             "close localhost",
+            "select backup",
             "select staging",
             "open staging",
             "select localhost",
-            "open localhost"),
+            "open localhost",
+            "select backup",
+            "open backup",
+            "failed backup: connection refused",
+            "retry backup",
+            "select localhost",
+            "select localhost/analytics",
+            "select localhost/postgres",
+            "open localhost/postgres",
+            "select localhost/postgres/pg_catalog",
+            "open localhost/postgres/pg_catalog",
+            "close localhost/postgres/pg_catalog",
+            "select localhost/postgres",
+            "close localhost/postgres",
+            "select localhost/shop",
+            "select localhost/shop/audit",
+            "open localhost/shop/audit"),
         catalog.log);
   }
 
