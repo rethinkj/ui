@@ -25,6 +25,8 @@ import com.rethinkj.ui.window.WindowEvent.StateChanged;
 import com.rethinkj.ui.window.WindowEvent.TextEditing;
 import com.rethinkj.ui.window.WindowEvent.TextInput;
 import com.rethinkj.ui.window.WindowEvent.Wheel;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -76,6 +78,12 @@ import java.util.function.ToDoubleFunction;
  * input methods. Alt+Space that no key handler takes opens the system's window menu ({@link
  * Window#showSystemMenu}), on a frameless window too.
  *
+ * <p>When a window has shown its first frame, the loop logs at {@code DEBUG} on the {@link
+ * System.Logger} {@code com.rethinkj.ui.window} how many milliseconds after the process started
+ * that was, to keep an app's start in budget. With {@code java.util.logging}, the lines {@code
+ * com.rethinkj.ui.window.level = FINE} and {@code java.util.logging.ConsoleHandler.level = FINE}
+ * in the logging configuration print it.
+ *
  * <pre>{@code
  * try (Window window = Window.open("Lights", 480, 320, Window.options().frameless());
  *     GpuPresenter presenter = new GpuPresenter(window)) {
@@ -87,6 +95,8 @@ public final class WindowLoop {
 
   /** Logical pixels per step of the wheel; see the class's description. */
   public static final float WHEEL_STEP = 48;
+
+  private static final System.Logger LOGGER = System.getLogger("com.rethinkj.ui.window");
 
   /** Draws a frame into the window. */
   @FunctionalInterface
@@ -170,6 +180,7 @@ public final class WindowLoop {
     boolean open = true;
     boolean fresh = true; // opened since the last pass, which draws its first frame
     boolean showing; // the window shows the last frame presented
+    boolean shown; // it has shown its first frame
     // Opened under the pointer during a press (Window.Options.underPointer): shown without
     // the focus, which it takes after the frame that handles the release.
     boolean focusAfterPress;
@@ -1066,6 +1077,18 @@ public final class WindowLoop {
       e.presented = System.nanoTime();
       e.started = now;
       e.showing = e.presenter.presented();
+      if (!e.shown && e.showing) {
+        e.shown = true;
+        LOGGER.log(
+            System.Logger.Level.DEBUG,
+            () -> e.window.title() + ": first frame "
+                + ProcessHandle.current()
+                    .info()
+                    .startInstant()
+                    .map(start -> Duration.between(start, Instant.now()).toMillis() + " ms")
+                    .orElse("at an unknown time")
+                + " after the process started");
+      }
     }
     if (!e.isOpen()) {
       return;
