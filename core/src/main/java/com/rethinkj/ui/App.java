@@ -79,9 +79,9 @@ import java.util.function.Predicate;
  * <p>Keys and text go to the element that has the keyboard focus, which the app keeps by the same
  * identity: an element marked {@link El#focusable} gets it from Tab and Shift+Tab, from a pointer
  * press on it or inside it, or from {@link #focus}. Keys then go up through its ancestors until a
- * handler takes them ({@link El#onKey}); text goes to it alone ({@link El#onText}). When the
- * keyboard or the app moved the focus, the scene draws a ring around the focused element, and
- * scroll areas around it scroll it into view. When a rebuild leaves the focused element out, the
+ * handler takes them ({@link El#onKey}); text goes to it alone ({@link El#onText}, {@link
+ * El#onTypeAhead}). When the keyboard or the app moved the focus, the scene draws a ring around
+ * the focused element, and scroll areas around it scroll it into view. When a rebuild leaves the focused element out, the
  * focus goes to the nearest element around where it was that can take it, as {@link #focused}
  * says, so that keys keep reaching the handlers around it.
  *
@@ -153,6 +153,12 @@ public final class App<S> {
    * down and up in the same frame, as a script's {@code key} step, shows none.
    */
   public static final double KEY_PRESS = 0.1;
+
+  /**
+   * How long after a character typed into an element with an {@link El#onTypeAhead} handler the
+   * next one still adds to the same text, in seconds of the app's clock.
+   */
+  public static final double TYPE_AHEAD = 1;
 
   private boolean cycling; // whether the last frame showed an element with an El#cycle
 
@@ -231,6 +237,9 @@ public final class App<S> {
   private Looks shown = new Looks(List.of(), List.of(), null, false, List.of(), null, 0); // of tree
   private El focused; // in the current tree
   private Object focusId; // its identity, to find it in the next tree
+  private final StringBuilder typeAhead = new StringBuilder(); // El#onTypeAhead's text so far
+  private Object typeAheadOf; // the identity of the element it was typed into
+  private double typeAheadAt; // when its last character came
   private boolean ring; // the keyboard or the app moved the focus: draw the ring
   private double focusSince; // when the focus moved there, for El#whenFocusVisibleFor
   private boolean focusKeyed; // a key went down since then that did not move the focus
@@ -1028,8 +1037,14 @@ public final class App<S> {
       if (edits(key)) {
         wakeField();
       }
-      keyToText =
-          focused != null && (focused.editor() != null || focused.onText() != null) || fieldWaits();
+      if (key.name().equals("Escape")) {
+        typeAhead.setLength(0);
+      }
+      keyToText = focused != null
+              && (focused.editor() != null
+                  || focused.onText() != null
+                  || focused.onTypeAhead() != null)
+          || fieldWaits();
       Object before = focusId;
       keyUntaken = false;
       anyKeyDown(key);
@@ -1178,12 +1193,7 @@ public final class App<S> {
         handled |= focused.editor().answerPending();
         return changed;
       }
-      if (focused == null || focused.onText() == null) {
-        return false;
-      }
-      focused.onText().accept(text);
-      handled = true;
-      return true;
+      return focused != null && giveText(text);
     });
   }
 
@@ -1211,13 +1221,30 @@ public final class App<S> {
         handled |= focused.editor().answerPending();
         return changed;
       }
-      if (focused.onText() == null) {
+      return giveText(text);
+    });
+  }
+
+  /** Gives text to the focused element's {@link El#onText} or {@link El#onTypeAhead} handler. */
+  private boolean giveText(String text) {
+    if (focused.onText() != null) {
+      focused.onText().accept(text);
+    } else if (focused.onTypeAhead() != null) {
+      if (!Objects.equals(typeAheadOf, focusId) || time - typeAheadAt >= TYPE_AHEAD) {
+        typeAhead.setLength(0);
+      }
+      if (typeAhead.isEmpty() && text.isBlank()) {
         return false;
       }
-      focused.onText().accept(text);
-      handled = true;
-      return true;
-    });
+      typeAhead.append(text);
+      typeAheadOf = focusId;
+      typeAheadAt = time;
+      focused.onTypeAhead().accept(typeAhead.toString());
+    } else {
+      return false;
+    }
+    handled = true;
+    return true;
   }
 
   /**

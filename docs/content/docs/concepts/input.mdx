@@ -34,6 +34,7 @@ A `Drag` has its `phase` (`START`, `MOVE`, `END`, `CANCEL`), how far the pointer
 | `focusable()` | Tab reaches the element; a press focuses it |
 | `onKey(key -> …)` | A key while the element or something inside it has the focus; return true to take it |
 | `onKeyUp(...)`, `onText(text -> …)` | Releases, and typed text |
+| `onTypeAhead(text -> …)` | The text typed so far, to go to the item that starts with it, as a tree does; a pause of `App.TYPE_AHEAD` seconds or Escape starts anew |
 | `keepFocus()` | A press leaves the focus where it was: for buttons that act on an editor |
 | `skipTab()` | Tab passes it by; a press still focuses it |
 | `autofocus()` | Takes the focus in the build that adds it |

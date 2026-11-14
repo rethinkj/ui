@@ -78,6 +78,7 @@ public final class El {
   private Predicate<Key> onKey;
   private Predicate<Key> onKeyUp;
   private Consumer<String> onText;
+  private Consumer<String> onTypeAhead;
   private boolean editable;
   private Consumer<String> onEdit;
   private Gutter gutter;
@@ -1970,6 +1971,18 @@ public final class El {
   }
 
   /**
+   * Gives {@code handler} the text typed so far while this element has the focus, for a list or a
+   * tree that goes to the item whose name starts with it: each character typed within {@link
+   * App#TYPE_AHEAD} seconds of the app's clock after the one before adds to the same text, and a
+   * longer pause, Escape or a move of the focus starts a new one. A space with nothing typed
+   * before it is not text. An {@link #onText} handler of the same element takes the text in its place.
+   */
+  public El onTypeAhead(Consumer<String> handler) {
+    this.onTypeAhead = handler;
+    return this;
+  }
+
+  /**
    * Lets this element spring to new values: when a rebuild of the view gives an element that was
    * already there a new rectangle, fill, border colour, radius, opacity or text colour, {@link App}
    * moves it there with {@code spring} instead of at once. Children are placed relative to their
@@ -2848,6 +2861,10 @@ public final class El {
     return onText;
   }
 
+  public Consumer<String> onTypeAhead() {
+    return onTypeAhead;
+  }
+
   /** Whether {@link #editable} made this a text field, enabled or not. */
   public boolean isEditable() {
     return editable;
@@ -3716,6 +3733,7 @@ public final class El {
     Predicate<Key> keyDown = onKey;
     Predicate<Key> up = onKeyUp;
     Consumer<String> text = onText;
+    Consumer<String> typeAhead = onTypeAhead;
     Consumer<String> edit = onEdit;
     boolean wasFocusable = focusable;
     look.accept(this);
@@ -3732,6 +3750,7 @@ public final class El {
                     || onKey != keyDown
                     || onKeyUp != up
                     || onText != text
+                    || onTypeAhead != typeAhead
                     || onEdit != edit
                 ? "handlers"
                 : focusable != wasFocusable ? "focusable()" : null;

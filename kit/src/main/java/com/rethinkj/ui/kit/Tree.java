@@ -37,14 +37,17 @@ import java.util.function.Predicate;
  *
  * <p>Each rebuild of the view walks the open nodes from the roots down to number the rows, and the
  * rows are a virtual list ({@link El#rows}): only those in view and a few more exist as elements,
- * and the model is asked for the label and icon of those alone. A press on a row selects it; a
- * double press also opens or closes it and activates it. A press on a row's mark selects it and
+ * and the model is asked for the label and icon of those alone; typing asks for the labels of
+ * all the nodes shown. A press on a row selects it; a double press also opens or closes it and activates it. A press on a row's mark selects it and
  * opens or closes it. A secondary press on a row selects it and then runs the tree's own {@link
  * El#onSecondaryPress} handler, such as the one {@link Menu#contextMenu} gives it, so that a context
  * menu acts on the row it opened on. While the tree has the focus, Up and Down move the selection, Right opens a
  * closed node or goes to its first child, Left closes an open node or goes to its parent, Home,
- * End, Page Up and Page Down move as in a list, and Enter activates. The rows follow the
- * selection ({@link El#revealRow}): whenever a rebuild puts the selected node in another row, as
+ * End, Page Up and Page Down move as in a list, and Enter activates. Typing selects the next node
+ * shown whose label starts with what was typed, or else the first that holds it ({@link
+ * El#onTypeAhead}): characters typed within a second form one text, and the same character again
+ * goes on to the next node that starts with it. The rows follow the selection ({@link
+ * El#revealRow}): whenever a rebuild puts the selected node in another row, as
  * when the keys move it or nodes above it open or close, the tree scrolls just far enough to show
  * it. Whenever nodes open or close, it also scrolls the selected node's children into view below
  * it, as far as the tree's height allows with the node still in view: a node opened at the bottom
@@ -292,7 +295,16 @@ public final class Tree {
     return tree.focusable()
         .focusRing(t.accent().edge())
         .whenFocused(e -> focused[0] = true)
-        .onKey(k -> key(k, model, isOpen, rows, tree, height, onSelect, onToggle, onActivate));
+        .onKey(k -> key(k, model, isOpen, rows, tree, height, onSelect, onToggle, onActivate))
+        .onTypeAhead(typed -> {
+          int to = TypeAhead.find(rows.count, rows.selected, typed, i -> {
+            N node = rows.node(i);
+            return node == null ? null : model.label(node);
+          });
+          if (to >= 0 && to != rows.selected) {
+            onSelect.accept(rows.node(to));
+          }
+        });
   }
 
   /**
