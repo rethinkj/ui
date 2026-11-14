@@ -320,6 +320,30 @@ class GridCellsTest {
     assertEquals(998, lazyApp.clipboard().read().lines().count(), "rows 1 to 998, all loaded");
   }
 
+  @Test
+  void aLargeCopyReportsItsEffectiveLimitWithoutTheHandlerSettingIt() throws IOException {
+    Orders orders = new Orders(T, 1_000_000);
+    List<Long> limits = new ArrayList<>();
+    List<Copy> left = new ArrayList<>();
+    orders.more = o -> o.copy(orders.app.clipboard()).onLargeCopy((copy, limit) -> {
+      left.add(copy);
+      limits.add(limit);
+    });
+    App<Orders> app = start(orders);
+    app.clipboard().write("before");
+    run(app, "key Tab\nkey A control\nkey C control\nframe");
+    assertEquals(List.of(100_000L), limits);
+    assertEquals(7_000_000, left.getFirst().cells());
+    assertEquals("before", app.clipboard().read());
+
+    orders.more = o -> o.copy(orders.app.clipboard())
+        .onLargeCopy((copy, limit) -> limits.add(limit))
+        .copyLimit(2);
+    run(app, "frame\nkey C control\nframe");
+    assertEquals(List.of(100_000L, 2L), limits);
+    assertEquals("before", app.clipboard().read());
+  }
+
   // Sorting
 
   @Test

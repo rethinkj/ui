@@ -63,7 +63,7 @@ A copy and the editor take the value alone, and the editor covers the whole cell
 | `onSelect(Runnable)` | Told when the selection changes. |
 | `rowNumbers()` | A column of row numbers that selects rows. |
 | `frozen(int columns)` | The first columns stay at the left while the rest scroll sideways. |
-| `copy(Clipboard)`, `nullText(String)`, `copyLimit(cells, handler)` | Control+C copies the selection as tab-separated text. |
+| `copy(Clipboard)`, `nullText(String)`, `copyLimit(cells)`, `onLargeCopy(handler)` | Control+C copies the selection as tab-separated text; a large-copy handler can keep the default limit and receives its effective value. |
 | `contextMenu(Menu.State, items)` | A menu at a secondary press: Copy, Copy with headers, then the app's items. |
 | `sort(keys, onSort)` | Sort keys in the header. [Sorting and columns](/docs/components/data-grid/sorting-and-columns) |
 | `onResize((column, width) -> …)` | Dragging a header edge resizes; a double press fits. |
