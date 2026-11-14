@@ -428,10 +428,10 @@ public record Theme(
 
     /** For a light raised surface. */
     public static final Callouts LIGHT = new Callouts(
-        new CalloutTone(Colors.over(WHITE, alpha(BLUE_447, 0.12f)), BLUE_447),
-        new CalloutTone(Colors.over(WHITE, alpha(AMBER_622, 0.17f)), AMBER_384),
-        new CalloutTone(Colors.over(WHITE, alpha(RED_395, 0.12f)), RED_395),
-        new CalloutTone(Colors.over(WHITE, alpha(GREEN_389, 0.13f)), GREEN_389),
+        new CalloutTone(Colors.over(WHITE, Badges.LIGHT.accent().soft()), BLUE_447),
+        new CalloutTone(Colors.over(WHITE, Badges.LIGHT.warning().soft()), AMBER_384),
+        new CalloutTone(Colors.over(WHITE, Badges.LIGHT.danger().soft()), RED_395),
+        new CalloutTone(Colors.over(WHITE, Badges.LIGHT.success().soft()), GREEN_389),
         GREY_375,
         3);
 
