@@ -1,0 +1,1 @@
+- A refused edit of a `GridTable` column over a setter inside a record's part (`Part.of(...).then(Part.ofSetter(...))`) sets the setter's value back, as it does for a POJO alone.

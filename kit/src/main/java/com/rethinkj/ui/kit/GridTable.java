@@ -370,7 +370,7 @@ public final class GridTable<T> {
       next = e.getKey().writeParsed(next, e.getValue());
     }
     String error = onRow.commit(index, next);
-    if (error != null && next == row) { // a POJO the setters changed: as it was
+    if (error != null) { // a POJO the setters changed, also inside a record's wither: as it was
       before.forEach((cells, value) -> cells.writeParsed(row, value));
     }
     return error;

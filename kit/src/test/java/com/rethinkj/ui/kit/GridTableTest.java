@@ -654,4 +654,39 @@ class GridTableTest {
     assertEquals(List.of(new Named(2, "BB"), new Named(3, "CC")), rows);
     assertTrue(app.tree().dump().contains("\"CC\""), app.tree().dump());
   }
+
+  static final class Details {
+    static final Part<Details, String> NAME = Part.ofSetter(Details::name, Details::setName);
+    private String name;
+
+    Details(String name) {
+      this.name = name;
+    }
+
+    String name() {
+      return name;
+    }
+
+    void setName(String name) {
+      this.name = name;
+    }
+  }
+
+  record Entity(Details details) {
+    static final Part<Entity, Details> DETAILS = Part.of(Entity::details, Entity::withDetails);
+
+    Entity withDetails(Details details) {
+      return new Entity(details);
+    }
+  }
+
+  @Test
+  void aRefusedSetterInsideAWitherIsSetBack() {
+    Entity row = new Entity(new Details("original"));
+    GridTable<Entity> table = DataGrid.table(i -> row);
+    Column column = table.column("name", 100, Format.TEXT, Entity.DETAILS.then(Details.NAME));
+    var commit = table.commit(List.of(column), (index, value) -> "Refused");
+    assertEquals("Refused", commit.commit(0, 0, "rejected"));
+    assertEquals("original", row.details().name());
+  }
 }

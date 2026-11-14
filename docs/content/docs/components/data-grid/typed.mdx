@@ -22,7 +22,7 @@ description: Typed columns over records and POJOs, edited through withers and se
 `options().onCommit(table, (row, value) -> error)` lets the grid edit, paste into and clear the columns that write. The grid checks the editor's text with the column's format first (a letter in a number is refused as it is typed, `Not below zero` from a `where` shows under the editor), turns it into the value, and writes it into the row:
 
 - **Records**: the wither makes a new record, which the handler gets and stores, usually `rows.set(row, value)`. Nothing has changed if it refuses.
-- **POJOs**: the setter changes the row in place, and the handler gets that row to save or mark. If it refuses, by returning a message, the setter is called again with the value before.
+- **POJOs**: the setter changes the row in place, and the handler gets that row to save or mark. If it refuses, by returning a message, the setter is called again with the value before, also a setter inside a record's part (`Order.DETAILS.then(Details.NOTE)`).
 
 The handler refuses with a message, which shows under the editor, or accepts with null. NULL comes as null where the format is `optional()`. Pasted and cleared cells come one call per row, with all of its values written; a handler that sorts or filters the rows meanwhile finds the others written to the rows they are now.
 
