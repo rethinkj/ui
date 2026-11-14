@@ -209,6 +209,35 @@ class PartsTest {
   }
 
   @Test
+  void aBreadcrumbKeepsTheSuffixThatFitsBesideMore() throws IOException {
+    Theme t = Theme.DARK;
+    Breadcrumb.State state = new Breadcrumb.State();
+    float[] width = {400};
+    App<Breadcrumb.State> app = new App<>(
+        state,
+        s -> col()
+            .w(width[0])
+            .child(Breadcrumb.breadcrumb(t, s, List.of("first", "middle", "current"), i -> {})));
+    Script.run("size 400 100\nframe\nframe", app, out);
+    width[0] = 1;
+    app.invalidate();
+    Script.run("frame\nframe\nframe", app, out);
+    width[0] = (float) Math.ceil(state.fitting.width("more")
+        + state.fitting.width("1:middle")
+        + state.fitting.width("2:current")
+        + 2 * t.space().xs());
+    app.invalidate();
+    Script.run("frame\nframe", app, out);
+    String dump = app.tree().dump();
+    assertTrue(dump.contains("label=\"middle\""), dump);
+    assertFalse(dump.contains("label=\"first\""), dump);
+    width[0] -= t.space().xs();
+    app.invalidate();
+    Script.run("frame\nframe", app, out);
+    assertFalse(app.tree().dump().contains("label=\"middle\""), app.tree().dump());
+  }
+
+  @Test
   void propertiesSayTheirValuesAndCopyThem() throws IOException {
     App<Parts> app = run(720, "move label=\"Rows\"\nframe");
     String dump = app.tree().dump();

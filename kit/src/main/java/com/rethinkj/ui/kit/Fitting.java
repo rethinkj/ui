@@ -67,7 +67,10 @@ final class Fitting {
     if (total <= width) {
       return count;
     }
-    float room = width - widths.getOrDefault("more", t.size().control()) - gap;
+    // A suffix's first retained item already carries the gap after More.
+    float room = width
+        - widths.getOrDefault("more", t.size().control())
+        - (direction == Direction.PREFIX ? gap : 0);
     int shown = count;
     while (shown > mandatory && total > room) {
       total -= costs[direction == Direction.PREFIX ? shown - 1 : count - shown];
