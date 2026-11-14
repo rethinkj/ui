@@ -783,6 +783,25 @@ class FocusTest {
   }
 
   @Test
+  void anAreaWithPaddingScrollsTheFocusIntoViewWithItsRing() {
+    App<Object> app = start(
+        new App<>(new Object(), s -> {
+          El list = col().key("list").scroll().size(100, 54).padding(2);
+          for (int i = 0; i < 10; i++) {
+            list.child(el().key("row" + i).focusable().h(20));
+          }
+          return col().padding(10).child(list);
+        }),
+        120,
+        74);
+    tab(app);
+    tab(app);
+    assertEquals(0, find(app.tree(), "list").scrollY());
+    tab(app);
+    assertEquals(10, find(app.tree(), "list").scrollY(), "8 shows row 2, 10 its ring too");
+  }
+
+  @Test
   void pageKeysScrollTheAreaAroundTheFocusOrInAModalOverlayItsFirst() {
     App<Object> app = start(
         new App<>(new Object(), s -> {

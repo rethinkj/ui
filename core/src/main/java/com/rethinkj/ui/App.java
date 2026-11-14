@@ -2045,7 +2045,7 @@ public final class App<S> {
   /**
    * Scrolls the scroll areas around {@code el}, the innermost first, just far enough to show its
    * border box whole inside theirs and clear of the bars over their ends, or its start if it is
-   * larger.
+   * larger; with its focus ring as far as an area's padding has room for it.
    */
   private void reveal(El el) {
     List<El> full = new ArrayList<>();
@@ -2068,9 +2068,19 @@ public final class App<S> {
         x += path.get(j).x();
         y += path.get(j).y();
       }
+      // With its ring as far as the area's padding has room for it, so that the clip cuts none
+      // of it; rows that fill a list edge to edge come flush, their rings drawn inside.
+      float ring = Scene.RING + el.focusRingGap();
+      Style s = area.style();
+      float left = Math.min(ring, px(s.paddingLeft));
+      float right = Math.min(ring, px(s.paddingRight));
+      float up = Math.min(ring, px(s.paddingTop));
+      float down = Math.min(ring, px(s.paddingBottom));
       area.scrollTo(
-          area.scrollX() + nearest(x, el.width(), areaX, area.width() - area.coverX()),
-          area.scrollY() + nearest(y, el.height(), areaY, area.height() - area.coverY()));
+          area.scrollX()
+              + nearest(x - left, el.width() + left + right, areaX, area.width() - area.coverX()),
+          area.scrollY()
+              + nearest(y - up, el.height() + up + down, areaY, area.height() - area.coverY()));
     }
   }
 

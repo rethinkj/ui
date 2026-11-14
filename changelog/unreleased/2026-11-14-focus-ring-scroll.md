@@ -1,0 +1,1 @@
+- Focus moved by the keyboard now scrolls its element into view with its focus ring, as far as the scroll area's padding has room for the ring, so the area's clip no longer cuts the ring of a field at its edge. Rows that fill a list edge to edge come flush as before.
