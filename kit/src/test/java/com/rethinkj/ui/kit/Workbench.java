@@ -116,7 +116,8 @@ final class Workbench {
 
   private El queries() {
     List<Tab> tabs = queries.stream()
-        .map(q -> new Tab(q.title().replace("*", ""), q.closable(), q.modified()))
+        .map(q -> new Tab(q.title().replace("*", ""), q.closable(), q.modified())
+            .busy(q.title().equals("Console"))) // its query runs
         .toList();
     El content = active < 0 || active >= queries.size()
         ? null
