@@ -62,8 +62,8 @@
   --color-fd-ring: #2e62d9;
   --color-fd-overlay: rgba(0, 0, 0, 0.35);
 
-  --color-rj-window: #eceef2;
-  --color-rj-panel: #ffffff;
+  --color-rj-window: #e3e6eb;
+  --color-rj-panel: #fdfdfe;
   --color-rj-control: #cfd3da;
   --color-rj-accent: #2e62d9;
 }
