@@ -1,0 +1,11 @@
+el 0,0 440x150
+  el 12,12 277x24
+    el role=button label="Run report" 12,12 91x24
+      text "Run report" 25,16 65x16
+    el role=button label="Cancel" 107,12 70x24 disabled
+      text "Cancel" 120,16 44x16
+    el role=button label="Count orders" 181,12 108x24
+      text "Count orders" 194,16 82x16
+  text #report "Cancelling…" 12,44 75x16
+  text #count "" 12,68 0x16
+  text #waiting "2 on the connection" 12,92 125x16

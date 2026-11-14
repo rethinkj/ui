@@ -2365,6 +2365,10 @@ public final class App<S> {
    * work that runs when {@code main} returns is dropped. {@link #await} waits for the work, which
    * makes scripts and tests deterministic.
    *
+   * <p>A cancelled computation runs on until it returns, which the work's {@link Work#onEnd} tells
+   * the app. Work that must not overlap, as the calls on one connection, goes on a {@link #lane},
+   * which begins each piece once the one before it has ended.
+   *
    * @param name what the work does, for the thread and for {@link #await}'s message, such as
    *     {@code "rows of orders"}
    * @return the work, to cancel it
@@ -2375,7 +2379,7 @@ public final class App<S> {
       Consumer<? super T> onResult,
       Consumer<? super Exception> onFailure) {
     Objects.requireNonNull(compute, "compute");
-    return start(name, work -> compute, onResult, onFailure);
+    return start(null, name, work -> compute, onResult, onFailure);
   }
 
   /**
@@ -2421,9 +2425,31 @@ public final class App<S> {
       Consumer<? super P> onProgress,
       Consumer<? super T> onResult,
       Consumer<? super Exception> onFailure) {
+    return start(null, name, compute, onProgress, onResult, onFailure);
+  }
+
+  /**
+   * Makes a {@link Lane}, on which work runs one piece after another: each begins once the work
+   * started before it on the lane has ended, also work that was cancelled while it ran. Keep it in
+   * the state, one per resource that one thread at a time may use, such as a connection.
+   *
+   * @param name what the lane stands for, such as the connection's name
+   */
+  public Lane lane(String name) {
+    return new Lane(this, name);
+  }
+
+  <T, P> Work start(
+      Lane lane,
+      String name,
+      Work.Reporting<? extends T, P> compute,
+      Consumer<? super P> onProgress,
+      Consumer<? super T> onResult,
+      Consumer<? super Exception> onFailure) {
     Objects.requireNonNull(compute, "compute");
     Objects.requireNonNull(onProgress, "onProgress");
     return start(
+        lane,
         name,
         work -> {
           Reporter<P> progress = new Reporter<>(work, onProgress);
@@ -2433,7 +2459,8 @@ public final class App<S> {
         onFailure);
   }
 
-  private <T> Work start(
+  <T> Work start(
+      Lane lane,
       String name,
       Function<Work, Callable<? extends T>> computation,
       Consumer<? super T> onResult,
@@ -2441,7 +2468,7 @@ public final class App<S> {
     Objects.requireNonNull(name, "name");
     Objects.requireNonNull(onResult, "onResult");
     Objects.requireNonNull(onFailure, "onFailure");
-    Work work = new Work(name, this);
+    Work work = new Work(name, this, lane);
     Callable<? extends T> compute = computation.apply(work);
     synchronized (running) {
       running.add(work);
@@ -2476,10 +2503,17 @@ public final class App<S> {
           return true;
         });
       } finally {
-        finished(work); // after the offer: await() then finds its delivery posted
+        work.end(); // after the offer: onEnd, and await(), find its delivery posted
+        if (lane != null) {
+          lane.next(); // after the end: the app hears of it before the next piece's answers
+        }
       }
     });
-    work.thread.start();
+    if (lane == null) {
+      work.thread.start();
+    } else {
+      lane.submit(work);
+    }
     return work;
   }
 
@@ -2545,7 +2579,17 @@ public final class App<S> {
     }
   }
 
-  /** The work has posted its delivery or was cancelled: {@link #await} waits no longer for it. */
+  /** A cancelled work got an {@link Work#onEnd} handler: {@link #await} waits for its end. */
+  void waitFor(Work work) {
+    synchronized (running) {
+      running.add(work);
+    }
+  }
+
+  /**
+   * The work has posted its delivery, ended or was cancelled: {@link #await} waits no longer for
+   * it.
+   */
   void finished(Work work) {
     synchronized (running) {
       if (running.remove(work)) {
@@ -2559,12 +2603,14 @@ public final class App<S> {
 
   /**
    * Waits until all the work that {@link #background} started has finished or was cancelled, and
-   * then queues what it delivered, and everything else posted so far, for the next {@link #frame},
+   * then queues what it delivered, the {@link Work#onEnd} handlers of what ended, and everything else posted so far, for the next {@link #frame},
    * in the order it was posted. Scripts and tests call it where they want the answers, between
    * frames, so that what they see does not depend on how fast the work was: {@code frame} after it
    * shows them. Work that a delivery starts is not waited for; call this again for it. Tasks that
    * other threads post on their own are not waited for either: they come with the first call after
-   * they were posted.
+   * they were posted. Work on a {@link Lane} that has not begun yet is waited for too, and so is
+   * cancelled work with an {@link Work#onEnd} handler, until its computation has returned; other
+   * cancelled work is not.
    *
    * @throws IllegalStateException if work still runs after {@code timeout}, naming it, or if this
    *     is called in a handler, whose thread it would block
@@ -2583,7 +2629,8 @@ public final class App<S> {
           List<String> names = running.stream().map(Work::name).toList();
           throw new IllegalStateException("After " + timeout.toMillis() + " ms, the app's work"
               + " still runs: " + String.join(", ", names) + ". Work that App.background started"
-              + " ends when it has delivered or is cancelled.");
+              + " ends when it has delivered or is cancelled, and cancelled work with an onEnd"
+              + " handler when its computation has returned.");
         }
         TimeUnit.NANOSECONDS.timedWait(running, left);
       }

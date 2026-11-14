@@ -103,6 +103,19 @@ class DocsExamplesTest {
     all.put("range", new Example(() -> new App<>(new Paragraphs(), Paragraphs::view), 300, 140));
     concepts(all, "background", Concepts::background, 420, 140);
     concepts(all, "progress", Concepts::progress, 280, 120);
+    all.put(
+        "lanes",
+        new Example(
+            () -> {
+              Concepts state = new Concepts();
+              App<Concepts> app = new App<>(state, Concepts::lanes);
+              state.app = app;
+              state.connection = app.lane("staging");
+              state.db = Concepts.Connection.madeUp(app);
+              return app;
+            },
+            440,
+            150));
     concepts(all, "images", Concepts::images, 280, 120);
     concepts(all, "theme", Concepts::theme, 200, 80);
     all.put("tab-groups", new Example(Notebook::app, 420, 260));

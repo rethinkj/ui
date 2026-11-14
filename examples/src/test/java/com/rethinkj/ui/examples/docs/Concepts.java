@@ -15,6 +15,7 @@ import com.rethinkj.ui.El;
 import com.rethinkj.ui.FieldState;
 import com.rethinkj.ui.FileDialog;
 import com.rethinkj.ui.Image;
+import com.rethinkj.ui.Lane;
 import com.rethinkj.ui.Side;
 import com.rethinkj.ui.Style;
 import com.rethinkj.ui.Work;
@@ -45,6 +46,11 @@ final class Concepts {
   Work count;
   Work download;
   int received; // megabytes of the download so far
+  Lane connection; // the lane of the made-up connection, made with the app
+  Connection db;
+  Work report;
+  String reportStatus = "";
+  String counted = "";
   String rows = "";
   String message = "";
   Image photo;
@@ -311,6 +317,76 @@ final class Concepts {
   static long slowCount(String table) throws InterruptedException {
     Thread.sleep(Duration.ofMillis(50));
     return table.length() * 1000L;
+  }
+
+  static El lanes(Concepts s) {
+    Theme t = s.t;
+    // docs:start lane
+    El report = Button.button(t, PRIMARY, null, "Run report", s.report != null, () -> {
+      Connection db = s.db;
+      s.reportStatus = "Running…";
+      s.report = s.connection.background(
+          "report",
+          () -> db.query("SELECT pg_sleep(60)"),
+          r -> {
+            s.reportStatus = r;
+            s.report = null;
+          },
+          e -> s.report = null);
+    });
+    El cancel = Button.button(
+        t,
+        SECONDARY,
+        "Cancel",
+        s.report == null
+            ? null
+            : () -> {
+              Work cancelled = s.report;
+              cancelled.cancel(); // interrupts it; the driver still finishes the statement
+              cancelled.onEnd(() -> s.reportStatus = "Cancelled"); // once it has returned
+              s.report = null;
+              s.reportStatus = "Cancelling…";
+            });
+    El count = Button.button(t, SECONDARY, "Count orders", () -> {
+      Connection db = s.db;
+      s.connection.background( // begins once the work before it on the lane has ended
+          "count",
+          () -> db.query("SELECT count(*) FROM orders"),
+          n -> s.counted = n,
+          e -> s.counted = e.getMessage());
+    });
+    El waiting = Label.label(t, s.connection.pending().size() + " on the connection");
+    // docs:end lane
+    return Frame.of(
+        t,
+        row().gap(t.space().s()).children(report, cancel, count),
+        Label.label(t, s.reportStatus).key("report"),
+        Label.label(t, s.counted).key("count"),
+        waiting.key("waiting"));
+  }
+
+  /**
+   * A made-up connection, which one thread at a time may use. Its server finishes the report two
+   * seconds of the app's clock after the connection was made, by an action of {@link App#after},
+   * and does so also when the work is cancelled, as a driver that waits for the server's answer.
+   */
+  static final class Connection {
+    private final Semaphore reportDone = new Semaphore(0);
+
+    static Connection madeUp(App<?> app) {
+      Connection connection = new Connection();
+      app.after(2, connection.reportDone::release);
+      return connection;
+    }
+
+    /** Runs a statement, on the work's thread. */
+    String query(String sql) {
+      if (sql.startsWith("SELECT pg_sleep")) {
+        reportDone.acquireUninterruptibly(); // the interrupt does not stop it
+        return "Report done";
+      }
+      return "42 orders";
+    }
   }
 
   static El progress(Concepts s) {
