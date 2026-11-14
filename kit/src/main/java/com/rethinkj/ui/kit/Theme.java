@@ -332,7 +332,7 @@ public record Theme(
     /** For light surfaces. */
     public static final Badges LIGHT = new Badges(
         new Tone(alpha(GREY_407, 0.1f), GREY_314, GREY_407, WHITE),
-        new Tone(alpha(BLUE_447, 0.12f), BLUE_366, BLUE_447, WHITE),
+        new Tone(alpha(BLUE_447, 0.12f), BLUE_358, BLUE_447, WHITE),
         new Tone(alpha(GREEN_389, 0.13f), GREEN_333, GREEN_389, WHITE),
         new Tone(alpha(AMBER_622, 0.17f), AMBER_327, AMBER_735, GREY_108),
         new Tone(alpha(RED_395, 0.12f), RED_345, RED_395, WHITE),
@@ -377,7 +377,7 @@ public record Theme(
 
     /** For a light panel. */
     public static final Prose LIGHT =
-        new Prose(BODY, HEADINGS, BLUE_403, alpha(BLACK, 0.08f), GREY_805, 720);
+        new Prose(BODY, HEADINGS, BLUE_377, alpha(BLACK, 0.08f), GREY_805, 720);
   }
 
   /**
@@ -603,7 +603,7 @@ public record Theme(
     public static final Danger DARK = of(Hue.RED.dark(), RED_649);
 
     /** For light surfaces. */
-    public static final Danger LIGHT = of(Hue.RED.light(), RED_395);
+    public static final Danger LIGHT = of(Hue.RED.light(), RED_351);
 
     /** From an accent: its fills, white on them, and its edge for edge and ring. */
     private static Danger of(Accent red, int text) {
@@ -979,17 +979,18 @@ public record Theme(
   /*
    * The rules the default themes follow; ThemeTest holds them to these.
    *
-   * Layers. The window is the page, darker than the cards in the dark theme and a light grey in the
-   * light one; cards (panel) lie on it, bands (a tab bar, a grid's header, a footer) are a quiet
-   * step inside a card, and controls and popups (raised) a step above it in the dark theme and
-   * white in the light one, where a control is told apart by its edge and a popup by its edge and
-   * shadow. Hairlines (subtle) are a low-contrast step from the card; a button's edge (control) a
-   * little more.
+   * Layers. The window is the page, darker than the cards in both themes; cards (panel) lie on it,
+   * bands (a tab bar, a grid's header, a footer) are a quiet step inside a card, and controls and
+   * popups (raised) a step above it, white in the light theme, where a control is told apart by its
+   * edge and a popup by its edge and shadow. In the light theme the four are three clear tones and
+   * a fourth: window L* 87, band 94, panel 99 and raised 100. Hairlines (subtle) are a
+   * low-contrast step from the card; a button's edge (control) a little more.
    *
-   * Hover and pressed. A neutral grey near the surfaces (lighter in the dark theme, darker in the
-   * light one) at 25 % and 45 % (dark) or 30 % and 50 % (light), mixed in linear light both by
+   * Hover and pressed. A neutral grey laid over the surface, mixed in linear light both by
    * Theme.over and by the renderer, so every component gives the same colour: hover 4 L* or more
-   * from the surface, pressed 3 L* or more beyond hover.
+   * from the surface, pressed 3 L* or more beyond hover. In the dark theme a lighter grey near the
+   * surfaces at 25 % and 45 %; in the light one a mid grey (L* 60) at 20 % and 34 %, which darkens
+   * the grey window by as much as the white surfaces, where a light grey would hardly show.
    *
    * Accent. One blue: white text on it at 4.5:1. Its edge, the tone of lines, outlines and the
    * focus ring, 3:1 on every surface and on the grid's selection: a lighter blue in the dark
@@ -997,14 +998,17 @@ public record Theme(
    * the accent. Text selection: the accent at 40 % (dark) and 35 % (light).
    *
    * Text. Primary and muted at least 4.5:1 on every surface, band, hover, pressed and selection
-   * they meet; disabled from 2.5:1 to 3.5:1 on window, panel and raised, legible but clearly below
-   * muted. Status colours 4.5:1 on the surfaces and on the grid's selection.
+   * they meet, also the window's hover and pressed; disabled from 2.5:1 to 3.5:1 on window, panel
+   * and raised, legible but clearly below muted (in the light theme, whose window and raised
+   * surface are far apart, that leaves it little room). Status colours 4.5:1 on the surfaces and on the grid's selection.
    *
    * Edges and marks. The strong border, the accent as a fill of what is on, the grid's cursor and
    * the scrollbar's thumb at rest at least 3:1 on the surfaces they lie on.
    *
    * Selection in lists. Focused: a calm tint of the accent, primary text at 9:1 or more. Without
-   * the focus: the same lightness with little colour, apart from the hover by 4 L* or more.
+   * the focus: the same lightness with little colour, apart from the hover by 4 L* or more, and
+   * from every surface it lies on (window, panel, the grid's rows) at least as much as the dark
+   * theme's cards stand out from its window.
    *
    * Shadows. Cards a little, popups more, dialogs most; the light theme with about twice the alpha
    * a CSS shadow has, as the renderer mixes in linear light.
@@ -1060,15 +1064,15 @@ public record Theme(
   /** Neutral greys with a blue accent, dark text on light surfaces. */
   public static final Theme LIGHT = new Theme(
       new Surfaces(
-          GREY_941,
+          GREY_873,
+          GREY_986,
           WHITE,
-          WHITE,
-          GREY_976,
-          alpha(GREY_773, 0.3f),
-          alpha(GREY_773, 0.5f),
+          GREY_936,
+          alpha(GREY_605, 0.2f),
+          alpha(GREY_605, 0.34f),
           alpha(BLACK, 0.35f)),
-      new TextColors(GREY_108, GREY_407, GREY_605, WHITE),
-      new Borders(GREY_919, GREY_551, GREY_844, alpha(GREY_551, 0.4f)),
+      new TextColors(GREY_108, GREY_375, GREY_572, WHITE),
+      new Borders(GREY_880, GREY_520, GREY_844, alpha(GREY_520, 0.35f)),
       Hue.BLUE.light(),
       new Status(RED_395, AMBER_384, GREEN_389),
       SPACE,
@@ -1076,8 +1080,8 @@ public record Theme(
       TYPE,
       SIZE,
       MOTION,
-      new Grid(24, 32, 480, 6, 12, GREY_976, WHITE, WHITE, BLUE_918, GREY_890, BLUE_447, 1),
-      new Scrollbars(6, 2, 3, 24, GREY_516, GREY_423, GREY_327),
+      new Grid(24, 32, 480, 6, 12, GREY_936, WHITE, WHITE, BLUE_918, GREY_901, BLUE_447, 1),
+      new Scrollbars(6, 2, 3, 24, GREY_501, GREY_423, GREY_327),
       new Elevation(
           List.of(
               new Shadow(0, 1, 2, 0, alpha(GREY_084, 0.16f)),

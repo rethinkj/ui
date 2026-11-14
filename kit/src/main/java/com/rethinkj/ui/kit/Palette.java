@@ -40,37 +40,39 @@ public final class Palette {
   public static final int GREY_311 = 0xFF464952;
   public static final int GREY_314 = 0xFF464A54;
   public static final int GREY_327 = 0xFF4A4D54;
+  public static final int GREY_375 = 0xFF555863;
   public static final int GREY_386 = 0xFF575B63;
   public static final int GREY_395 = 0xFF5A5D67;
   public static final int GREY_407 = 0xFF5C606B;
   public static final int GREY_423 = 0xFF60646E;
   public static final int GREY_425 = 0xFF62646D;
   public static final int GREY_477 = 0xFF6E717B;
-  public static final int GREY_516 = 0xFF777B84;
-  public static final int GREY_551 = 0xFF80848D;
+  public static final int GREY_501 = 0xFF747780;
+  public static final int GREY_520 = 0xFF797C85;
   public static final int GREY_568 = 0xFF858892;
+  public static final int GREY_572 = 0xFF878991;
   public static final int GREY_605 = 0xFF8F929A;
   public static final int GREY_648 = 0xFF9A9DA9;
   public static final int GREY_655 = 0xFF9C9FA8;
   public static final int GREY_700 = 0xFFA9ABB2;
   public static final int GREY_747 = 0xFFB4B8C0;
   public static final int GREY_759 = 0xFFB9BBC1;
-  public static final int GREY_773 = 0xFFBDBFC5;
   public static final int GREY_805 = 0xFFC4C8CF;
   public static final int GREY_844 = 0xFFCFD3DA;
+  public static final int GREY_873 = 0xFFD7DBE2;
+  public static final int GREY_880 = 0xFFD9DDE3;
   public static final int GREY_853 = 0xFFD3D5DB;
-  public static final int GREY_890 = 0xFFDCE0E6;
+  public static final int GREY_901 = 0xFFDFE3E8;
   public static final int GREY_916 = 0xFFE6E7EA;
-  public static final int GREY_919 = 0xFFE6E8EC;
-  public static final int GREY_941 = 0xFFECEEF2;
-  public static final int GREY_976 = 0xFFF7F8FA;
+  public static final int GREY_936 = 0xFFEAEDF1;
+  public static final int GREY_986 = 0xFFFAFBFC;
 
   // Blue
   public static final int BLUE_180 = 0xFF1C2B4D;
   public static final int BLUE_335 = 0xFF2048A8;
-  public static final int BLUE_366 = 0xFF1F4FB8;
+  public static final int BLUE_358 = 0xFF1E4DB5;
+  public static final int BLUE_377 = 0xFF2251BD;
   public static final int BLUE_391 = 0xFF2755C0;
-  public static final int BLUE_403 = 0xFF2557C9;
   public static final int BLUE_430 = 0xFF2F5ED0;
   public static final int BLUE_447 = 0xFF2E62D9;
   public static final int BLUE_469 = 0xFF3768DD;
@@ -96,6 +98,7 @@ public final class Palette {
 
   // Red
   public static final int RED_345 = 0xFF9E1E14;
+  public static final int RED_351 = 0xFFA11E14;
   public static final int RED_395 = 0xFFB42318;
   public static final int RED_436 = 0xFFC42B1C;
   public static final int RED_457 = 0xFFC6373A;

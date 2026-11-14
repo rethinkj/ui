@@ -459,6 +459,25 @@ class ThemeTest {
     assertTrue(Math.abs(lightness(t.grid().selectedInactive()) - hovered) >= 4);
   }
 
+  /**
+   * A selection without the focus stands out from every surface it lies on, a tree's or a
+   * navigation list's on a card or on the window and a grid's on its rows, at least as much as
+   * the dark theme's cards stand out from its window.
+   */
+  @ParameterizedTest
+  @ValueSource(strings = {"dark", "light"})
+  void anInactiveSelectionStandsOutFromWhatItLiesOn(String name) {
+    Theme t = theme(name);
+    double least = contrast(Theme.DARK.surface().panel(), Theme.DARK.surface().window());
+    int selection = t.grid().selectedInactive();
+    for (int surface :
+        new int[] {t.surface().window(), t.surface().panel(), t.grid().row()}) {
+      double ratio = contrast(selection, surface);
+      assertTrue(
+          ratio >= least, String.format("%.3f:1 on %08X, needs %.3f:1", ratio, surface, least));
+    }
+  }
+
   /** The focused selection keeps primary text at 9:1 or more. */
   @ParameterizedTest
   @ValueSource(strings = {"dark", "light"})
