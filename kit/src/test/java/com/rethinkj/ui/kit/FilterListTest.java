@@ -121,9 +121,9 @@ class FilterListTest {
       String tree = run(f.app, "size 480 320\nframe");
       assertTrue(f.first.await(5, TimeUnit.SECONDS));
       assertTrue(tree.contains("Loading…"), tree);
-      tree = run(f.app, "key A control\ntype \"@two\"\nframe\nawait");
+      tree = run(f.app, "key A control\nclipboard \"@two\"\nkey V control\nframe\nawait");
       assertEquals(List.of("two"), ComboBoxTest.options(tree), "the first one cancelled");
-      run(f.app, "key A control\ntype \"@closed\"");
+      run(f.app, "key A control\nclipboard \"@closed\"\nkey V control");
       assertTrue(f.last.await(5, TimeUnit.SECONDS));
       tree = run(f.app, "key Escape\nframe\nawait");
       assertFalse(f.palette.isOpen(), tree);

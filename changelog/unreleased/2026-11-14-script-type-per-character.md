@@ -1,0 +1,1 @@
+- The script step `type "<text>"` types one character at a time, each an edit the view sees, as a keyboard does, so completions open and a field that refuses a partial text refuses it as it would for a user. A test that needs the whole text in one edit pastes it with `clipboard "<text>"` and `key V control`.

@@ -10,6 +10,7 @@ import com.rethinkj.ui.Key;
 import com.rethinkj.ui.Len;
 import com.rethinkj.ui.Side;
 import com.rethinkj.ui.Style;
+import com.rethinkj.ui.Work;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
@@ -19,7 +20,8 @@ import java.util.function.Predicate;
 /**
  * Completions at the caret of a text field, such as the keywords and table names of SQL in a
  * {@link CodeEditor}: a list below the caret ({@link El#atCaret}) of what the app suggests for the
- * word before it. The list opens as a word is typed, from its second character, and with
+ * word before it. The list opens as a word is typed, from its second character, after a character
+ * the state names ({@link State#openAfter}, such as the {@code .} before a column), and with
  * Control+Space; it narrows as typing goes on and closes when the word ends. The focus stays in the
  * field ({@link El#keepFocus}): Up and Down move the highlight, Enter and Tab put the highlighted
  * entry in place of the word, as one step of the undo history ({@link App#edit}), and Escape
@@ -33,11 +35,15 @@ import java.util.function.Predicate;
  *
  * <p>A word is what {@link El#codeWords} takes for one: letters, digits and {@code _}. The app's
  * function gets the part of it before the caret, maybe empty after Control+Space, and returns the
- * entries to show, in order; the kit shows them as they come and filters nothing. In a tree dump
+ * entries to show, in order; the kit shows them as they come and filters nothing. What stands
+ * before the word, such as {@code orders.}, the app reads from its own text at the caret. Entries
+ * that take time to find, as from a database, come from another thread with {@link
+ * #completeInBackground}, which shows a row "Loading…" meanwhile. In a tree dump
  * the list is {@code role=listbox} with {@code label="Completions"}, its entries {@code
  * role=option} with their text as the label and the keys {@code option-<index>}, the highlighted
- * one {@code selected}. Only entries in or near the visible part are built. Its look is that of
- * a {@link Menu}.
+ * one {@code selected}. Only entries in or near the visible part are built. The list is as wide
+ * as its first entries need, up to twice a field's width; a longer text ends with an ellipsis. Its
+ * look is that of a {@link Menu}.
  */
 public final class Completion {
 
@@ -47,16 +53,22 @@ public final class Completion {
   static final int ROWS = 8;
 
   /**
-   * An entry: the text that replaces the word, an icon before it or null, and what kind of thing
-   * it is, shown muted at the right, such as {@code "keyword"} or {@code "table"}, or null.
+   * An entry: the text the list shows, an icon before it or null, what kind of thing it is, shown
+   * muted at the right, such as {@code "keyword"} or {@code "table"}, or null, and the text that
+   * replaces the word when it is chosen, such as a name in quotes, or null for the text shown.
    */
-  public record Entry(String text, Symbol symbol, String kind) {
+  public record Entry(String text, Symbol symbol, String kind, String insert) {
     public Entry {
       Objects.requireNonNull(text, "text");
+      insert = insert == null ? text : insert;
+    }
+
+    public Entry(String text, Symbol symbol, String kind) {
+      this(text, symbol, kind, null);
     }
 
     public Entry(String text) {
-      this(text, null, null);
+      this(text, null, null, null);
     }
   }
 
@@ -68,7 +80,14 @@ public final class Completion {
     private boolean open;
     private int highlight;
     private int typed = -1; // after a character typed, where the caret goes, until the next build
+    private boolean triggered; // that character is one of openAfter's
     private boolean history; // the key of this input is undo or redo: its edit is no typing
+    private String openAfter = "";
+    // completeInBackground: the word asked for, the work that finds its entries, and the entries
+    // found last, which show until the next arrive.
+    private String asked;
+    private Work work;
+    private List<Entry> answer = List.of();
 
     public boolean isOpen() {
       return open;
@@ -80,8 +99,24 @@ public final class Completion {
       highlight = 0;
     }
 
+    /** Closes the list, and cancels the work that finds its entries in the background. */
     public void close() {
       open = false;
+      if (work != null) {
+        work.cancel();
+        work = null;
+      }
+      asked = null;
+      answer = List.of();
+    }
+
+    /**
+     * The characters after which the list opens as they are typed, with the word after them still
+     * empty, such as {@code "."} for the columns after a table's name; none unless set.
+     */
+    public State openAfter(String characters) {
+      openAfter = Objects.requireNonNull(characters, "characters");
+      return this;
     }
 
     /** The highlighted entry's index. */
@@ -99,7 +134,8 @@ public final class Completion {
    * @param app the app the field is in, which puts an entry in place ({@link App#edit})
    * @param field an {@link El#editable} field, such as a {@link CodeEditor}
    * @param caret where the field's caret is, as its {@link El#onSelect} handler told the app
-   * @param suggest the entries for the part of the word before the caret
+   * @param suggest the entries for the part of the word before the caret, called on the app's
+   *     thread on every build while the list is open
    * @return the field
    */
   public static El complete(
@@ -109,18 +145,59 @@ public final class Completion {
       int caret,
       State state,
       Function<String, List<Entry>> suggest) {
+    return complete(t, app, field, caret, state, null, suggest);
+  }
+
+  /**
+   * As {@link #complete}, but {@code suggest} runs on another thread ({@link App#background}), once
+   * for each word while the list is open. Until its entries arrive, the list shows those found for
+   * the word before and a last row "Loading…", which alone keeps the list open; entries that arrive
+   * empty close it. A new word cancels the work for the one before, and so does closing the list.
+   * {@code suggest} gets only the word: what else it reads it takes in its closure, and nothing of
+   * the app's state that the app's thread changes.
+   *
+   * @param name what the work is called, which {@link App#await} names
+   */
+  public static El completeInBackground(
+      Theme t,
+      App<?> app,
+      El field,
+      int caret,
+      State state,
+      String name,
+      Function<String, List<Entry>> suggest) {
+    return complete(t, app, field, caret, state, Objects.requireNonNull(name, "name"), suggest);
+  }
+
+  private static El complete(
+      Theme t,
+      App<?> app,
+      El field,
+      int caret,
+      State state,
+      String background,
+      Function<String, List<Entry>> suggest) {
     String text = field.text().string();
     caret = Math.clamp(caret, 0, text.length());
     int from = CodeWords.start(text, caret);
-    // A character typed into a word opens the list from the word's second character; an undo
-    // that brings one back leaves the caret elsewhere, or a selection, and opens nothing.
-    if (state.typed >= 0 && !state.open && state.typed == caret && caret - from >= 2) {
+    // A character typed into a word opens the list from the word's second character, one of
+    // openAfter's at once; an undo that brings one back leaves the caret elsewhere, or a
+    // selection, and opens nothing.
+    if (state.typed >= 0
+        && !state.open
+        && state.typed == caret
+        && (state.triggered || caret - from >= 2)) {
       state.open();
     }
     state.typed = -1;
+    state.triggered = false;
     state.history = false;
-    List<Entry> entries = state.open ? suggest.apply(text.substring(from, caret)) : List.of();
-    if (entries.isEmpty()) {
+    String word = text.substring(from, caret);
+    List<Entry> entries = !state.open
+        ? List.of()
+        : background == null ? suggest.apply(word) : ask(app, state, background, word, suggest);
+    boolean loading = state.work != null;
+    if (entries.isEmpty() && !loading) {
       // A list with nothing to show is closed, or it would show wherever the caret went next,
       // as after a number typed, Home, a press or a find bar's match.
       state.close();
@@ -131,7 +208,7 @@ public final class Completion {
     int at = caret;
     Consumer<Integer> take = i -> {
       state.close();
-      String chosen = entries.get(i).text();
+      String chosen = entries.get(i).insert();
       app.edit(field, from, at, chosen, from + chosen.length());
     };
     Consumer<String> onEdit = field.onEdit();
@@ -152,17 +229,19 @@ public final class Completion {
           && (k.name().equals("Z") || k.name().equals("Y"));
       return key(k, state, entries, take) || own != null && own.test(k);
     });
-    if (entries.isEmpty()) {
+    if (!state.open) {
       return field;
     }
+    int count = entries.size();
+    int rows = count + (loading ? 1 : 0);
     El list = PassiveList.view(
             t,
-            entries.size(),
+            rows,
             ROWS,
             state.highlight,
             t.space().s(),
             t.size().control(),
-            i -> option(t, entries.get(i), i, state, take))
+            i -> i == count ? PassiveList.loading(t) : option(t, entries.get(i), i, state, take))
         .key("completions")
         .role("listbox")
         .label("Completions")
@@ -170,24 +249,82 @@ public final class Completion {
         .side(Side.BOTTOM, Style.Align.START, t.space().xs())
         .keepFocus()
         .onDismiss(state::close);
-    list.style().minWidth = Len.px(t.size().field() + PassiveList.gutter(t, entries.size(), ROWS));
+    list.style().minWidth = Len.px(width(t, entries) + PassiveList.gutter(t, rows, ROWS));
     list.style().maxHeight =
         Len.px(ROWS * t.size().control() + 2 * (t.space().s() + t.size().stroke()));
     return field.overlay(Popup.frame(t, list));
   }
 
+  /** Finds the word's entries on another thread, once per word; meanwhile those found before. */
+  private static List<Entry> ask(
+      App<?> app, State state, String name, String word, Function<String, List<Entry>> suggest) {
+    if (!word.equals(state.asked)) {
+      if (state.work != null) {
+        state.work.cancel();
+      }
+      state.asked = word;
+      state.work = app.background(
+          name,
+          () -> suggest.apply(word),
+          found -> {
+            state.answer = List.copyOf(found);
+            state.work = null;
+          },
+          error -> {
+            state.answer = List.of();
+            state.work = null;
+          });
+    }
+    return state.answer;
+  }
+
+  /**
+   * The list's width with its padding: what its first rows need, at least a field's width and at
+   * most twice that.
+   */
+  private static float width(Theme t, List<Entry> entries) {
+    float texts = 0;
+    for (int i = 0; i < Math.min(entries.size(), ROWS); i++) {
+      Entry entry = entries.get(i);
+      float kind = entry.kind() == null
+          ? 0
+          : TextSizing.natural(kind(t, entry)) + t.space().m() + t.space().l();
+      texts = Math.max(texts, TextSizing.natural(text(t, entry)) + kind);
+    }
+    float m = t.space().m();
+    // The row's padding, its icon and the gap after it, around the texts; the list's padding.
+    float need =
+        (float) Math.ceil(3 * m + t.size().icon() + texts + 2 * t.space().s());
+    return Math.clamp(need, t.size().field(), 2 * t.size().field());
+  }
+
+  private static El text(Theme t, Entry entry) {
+    return label(t, entry.text())
+        .font(t.type().mono().font().get())
+        .fontSize(t.type().mono().size());
+  }
+
+  private static El kind(Theme t, Entry entry) {
+    return label(t, Label.Variant.SMALL, entry.kind());
+  }
+
   private static El option(Theme t, Entry entry, int i, State state, Consumer<Integer> take) {
+    El kind = null;
+    if (entry.kind() != null) {
+      // The text gives way first, the kind only beyond half the row.
+      kind = kind(t, entry)
+          .ellipsis()
+          .minSize(0, 0)
+          .shrink(0)
+          .margin(0, 0, 0, t.space().l());
+      kind.style().maxWidth = Len.percent(0.5f);
+    }
     El content = PassiveContent.row(
         t,
         PassiveContent.leading(
             t, entry.symbol() != null ? icon(t, entry.symbol(), Icon.Variant.MUTED) : null),
-        label(t, entry.text())
-            .font(t.type().mono().font().get())
-            .fontSize(t.type().mono().size()),
-        entry.kind() != null
-            ? label(t, Label.Variant.SMALL, entry.kind())
-                .margin(0, 0, 0, t.space().l())
-            : null);
+        text(t, entry).ellipsis().minSize(0, 0),
+        kind);
     return PassiveList.option(
             t, i, state.highlight, at -> state.highlight = at, () -> take.accept(i))
         .label(entry.text())
@@ -200,7 +337,7 @@ public final class Completion {
       state.open();
       return true;
     }
-    if (entries.isEmpty()) {
+    if (!state.open) {
       return false;
     }
     int n = entries.size();
@@ -212,9 +349,18 @@ public final class Completion {
       return false;
     }
     switch (k.name()) {
-      case "ArrowDown", "ArrowUp", "PageDown", "PageUp" ->
-        state.highlight = PassiveList.move(k.name(), state.highlight, n, ROWS, i -> true);
-      case "Enter", "NumpadEnter", "Tab" -> take.accept(state.highlight);
+      case "ArrowDown", "ArrowUp", "PageDown", "PageUp" -> {
+        if (n > 0) {
+          state.highlight = PassiveList.move(k.name(), state.highlight, n, ROWS, i -> true);
+        }
+      }
+      case "Enter", "NumpadEnter", "Tab" -> {
+        if (n == 0) {
+          state.close(); // only "Loading…" shows: nothing to take, the field has the key
+          return false;
+        }
+        take.accept(state.highlight);
+      }
       case "Escape" -> state.close();
       default -> {
         if (List.of("ArrowLeft", "ArrowRight", "Home", "End").contains(k.name())) {
@@ -229,8 +375,9 @@ public final class Completion {
   /**
    * Follows an edit from {@code before} to {@code after}: a letter, digit or {@code _} typed opens
    * the list at the next build, if the caret is right after it and the word before it has two
-   * characters, and keeps it open; a deletion
-   * keeps it open while some of the word is left; any other edit closes it.
+   * characters, and keeps it open; one of {@link State#openAfter} opens it, or keeps it open, for
+   * the empty word after it; a deletion keeps it open while some of the word is left; any other
+   * edit closes it.
    */
   static void follow(State state, String before, String after) {
     int prefix = 0;
@@ -251,6 +398,12 @@ public final class Completion {
         && CodeWords.isWordChar(inserted.codePointAt(0))) {
       state.typed = prefix + inserted.length(); // the build after it may open the list
       state.highlight = 0; // what it shows changes
+    } else if (removed.isEmpty()
+        && inserted.codePointCount(0, inserted.length()) == 1
+        && state.openAfter.contains(inserted)) {
+      state.typed = prefix + inserted.length();
+      state.triggered = true;
+      state.highlight = 0;
     } else if (inserted.isEmpty()
         && !removed.isEmpty()
         && state.open

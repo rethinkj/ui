@@ -79,7 +79,7 @@ A focused field adds its caret as an index into its string, then the selection's
 text #name role=textbox label="Table name" "SELECT name FROM customers" 40,26 160x28 focused caret 17 anchor 26 composing "ni"
 ```
 
-A multi-line field adds the lines in view and how many there are, and after the caret its line and column:
+A multi-line field adds the lines in view and how many there are, then what its decorator ([`El.decorate`](/api/com/rethinkj/ui/El.html#decorate(com.rethinkj.ui.Decorator))) underlines in those lines as `underline <from>-<to>`, several separated by commas, such as an editor's error, and after the caret its line and column:
 
 ```text
 text #query role=textbox label="Query" "SELECT *\nFROM orders\nLIMIT 20;" 253,44 455x82 lines 1-3/3 focused caret 31 (3:9)

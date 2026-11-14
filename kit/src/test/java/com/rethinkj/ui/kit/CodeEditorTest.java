@@ -96,6 +96,35 @@ class CodeEditorTest {
         "the editor keeps the caret in the state, at the end after the last snap");
     String scrolled = Files.readString(out.resolve("scrolled.tree.txt"));
     assertTrue(scrolled.contains("text #line-15 \"16\""), scrolled);
+    int note = QUERY.indexOf("o.note");
+    assertTrue(
+        brackets.contains(" underline " + note + "-" + (note + 6)), "the error, in the dump");
+  }
+
+  @Test
+  void aSelectionSetWhileTheEditorIsAwayHoldsWhenItComesBack() throws IOException {
+    Theme t = Theme.DARK;
+    boolean[] shown = {false};
+    App<Query> app = new App<>(
+        new Query(),
+        s -> col()
+            .wFull()
+            .child(
+                shown[0]
+                    ? codeEditor(t, s.sql, s.editor, null, v -> s.sql = v)
+                        .key("query")
+                        .lines(3)
+                        .wFull()
+                    : null));
+    app.textRendering(TextRendering.LINUX);
+    Script.run("size 420 120\nframe", app, out);
+    int limit = QUERY.indexOf("LIMIT");
+    app.state().editor.select(limit + 5, limit); // as a tab's that is not shown
+    shown[0] = true;
+    Script.run("size 420 120\nframe\nadvance 1\nframe\nfocus #query\nframe\nsnap s", app, out);
+    String tree = Files.readString(out.resolve("s.tree.txt"));
+    assertTrue(tree.contains(" caret " + (limit + 5) + " (11:6) anchor " + limit), tree);
+    assertTrue(tree.contains(" lines 9-11/16"), "scrolled into view: " + tree);
   }
 
   @Test

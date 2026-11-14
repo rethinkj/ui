@@ -16,7 +16,7 @@ description: Single-line fields and multi-line editors in core, whose string is 
 
 ## Keep caret and undo across tabs
 
-The app keeps a field's caret, selection, scroll offset, undo history (100 steps) and input method composition by the field's identity, and drops them when the field leaves the tree, for example in a tab that is not active. To keep them, pass a `FieldState` from your state to `.fieldState(...)`: the editor then comes back as it was, also in another window. Only a composition ends when the field leaves.
+The app keeps a field's caret, selection, scroll offset, undo history (100 steps) and input method composition by the field's identity, and drops them when the field leaves the tree, for example in a tab that is not active. To keep them, pass a `FieldState` from your state to `.fieldState(...)`: the editor then comes back as it was, also in another window. Only a composition ends when the field leaves. `fieldState.select(caret, anchor)` sets the caret or a selection for the field's next build, also while it is away; `App.select` needs the field in the last frame.
 
 ## Options
 

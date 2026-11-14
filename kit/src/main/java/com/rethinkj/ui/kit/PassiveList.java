@@ -4,6 +4,7 @@ import static com.rethinkj.ui.El.col;
 import static com.rethinkj.ui.El.row;
 
 import com.rethinkj.ui.El;
+import com.rethinkj.ui.Style;
 import java.util.function.IntConsumer;
 import java.util.function.IntFunction;
 import java.util.function.IntPredicate;
@@ -32,6 +33,15 @@ final class PassiveList {
         .scrollbars(t.scrollbars())
         .revealRow(highlight)
         .rows(count, rowHeight, row);
+  }
+
+  /** The last row of a list whose entries are on their way. */
+  static El loading(Theme t) {
+    return row()
+        .key("loading")
+        .padding(0, t.space().m())
+        .align(Style.Align.CENTER)
+        .child(Label.label(t, Label.Variant.MUTED, "Loading…"));
   }
 
   static float gutter(Theme t, int count, int most) {

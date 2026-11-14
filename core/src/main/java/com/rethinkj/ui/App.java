@@ -3167,6 +3167,10 @@ public final class App<S> {
         }
       }
       editor.attach(el);
+      if (state != null && state.caret >= 0) {
+        editor.select(state.caret, state.anchor);
+        state.caret = -1;
+      }
       el.editor(editor);
       el.text().unfocused(!id.equals(focusId)); // El#ellipsis shortens it without the focus
     }

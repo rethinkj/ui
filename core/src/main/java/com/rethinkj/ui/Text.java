@@ -5,6 +5,7 @@ import com.rethinkj.ui.text.GlyphRun;
 import java.text.BreakIterator;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -131,6 +132,8 @@ public final class Text implements Measure {
   private Object highlightKey;
   private Decorator decorator;
   private List<Mark> marks = List.of();
+  // The decorator's underlines in the lines laid out, as pairs of string positions, for the dump.
+  private int[] underlined = {};
   private int visibleLines = 1;
   private int maxLines; // 0 for no limit, see El#maxLines
   // What a field draws besides its glyphs; see Editor#place.
@@ -1536,6 +1539,7 @@ public final class Text implements Measure {
 
   /** The marks of the rows laid out, from the highlighter's spans and the decorator's. */
   private List<Mark> marks(List<Row> placed) {
+    underlined = new int[0];
     if (placeholderShown
         || decorator == null
             && (highlighter == null
@@ -1595,7 +1599,43 @@ public final class Text implements Measure {
     }
     lineMarks.addAll(ranges);
     lineMarks.addAll(unders);
+    underlined = underlines(decorated, lines);
     return List.copyOf(lineMarks);
+  }
+
+  /** The underlines of the decorated lines, in order, those that touch across a line feed joined. */
+  private static int[] underlines(Map<Integer, Spans> decorated, Lines lines) {
+    List<int[]> all = new ArrayList<>();
+    decorated.forEach((line, spans) -> {
+      for (int i = 0; i < spans.count; i++) {
+        if (spans.kinds[i] == Spans.UNDERLINE) {
+          int start = lines.start(line);
+          all.add(new int[] {start + spans.froms[i], start + spans.tos[i]});
+        }
+      }
+    });
+    all.sort(Comparator.comparingInt(range -> range[0]));
+    int[] out = new int[all.size() * 2];
+    int n = 0;
+    for (int[] range : all) {
+      int gap = range[0] - (n > 0 ? out[n - 1] : 0);
+      // Joined where they touch, or where only the line feed before range's line is between.
+      if (n > 0 && (gap <= 0 || gap == 1 && lines.start(lines.line(range[0])) == range[0])) {
+        out[n - 1] = Math.max(out[n - 1], range[1]);
+      } else {
+        out[n++] = range[0];
+        out[n++] = range[1];
+      }
+    }
+    return Arrays.copyOf(out, n);
+  }
+
+  /**
+   * For the dump: what the {@link El#decorate decorator} underlines in the lines laid out, as
+   * pairs of positions of the string, from and to.
+   */
+  int[] underlined() {
+    return underlined;
   }
 
   /** The lines whose first row is laid out, with where it is, top to bottom. */

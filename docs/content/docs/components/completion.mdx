@@ -16,10 +16,11 @@ Javadoc: [`Completion`](/api/com/rethinkj/ui/kit/Completion.html), [`Completion.
 
 - `editor` is the editable field. The caret is where its caret is, which `s.editor`, a `CodeEditor.State`, knows.
 - `s.completion` is a `Completion.State` in the app's state.
-- `new Completion.Entry(text, symbol, kind)` shows an optional icon and a muted kind at the right. The kit filters nothing: return the entries in the order to show.
-- The function runs on every keystroke while the list is open. Keep it fast, or look things up off the app's thread and keep the answers in the state.
+- `new Completion.Entry(text, symbol, kind)` shows an optional icon and a muted kind at the right. The kit filters nothing: return the entries in the order to show. `new Completion.Entry(text, symbol, kind, insert)` puts `insert` in place of the word instead of the text it shows, such as a name in quotes.
+- The function runs on the app's thread on every keystroke while the list is open, so keep it fast. For entries that take time to find, as from a database, use `Completion.completeInBackground(t, app, field, caret, state, name, suggest)`: the function runs on another thread once per word, and until its entries arrive the list shows those of the word before and a row "Loading…".
+- The function gets only the word. What stands before it, such as `orders.`, the app reads from its own text at the caret.
 
-The list shows up to eight rows and scrolls to keep the highlighted entry in view.
+The list shows up to eight rows and scrolls to keep the highlighted entry in view. It is as wide as its first entries need, up to twice a field's width; a longer text ends with an ellipsis.
 
 A script that opens it:
 
@@ -28,7 +29,7 @@ A script that opens it:
 
 ## When it opens and closes
 
-A letter, digit or `_` typed opens the list once the word has two characters and the caret stands right after it. Control+Space opens it with an empty word. A deletion keeps it open while the word is not empty; any other edit closes it. A press elsewhere and the wheel close it.
+A letter, digit or `_` typed opens the list once the word has two characters and the caret stands right after it. A character named with `state.openAfter(".")` opens it at once, for the empty word after it, such as the columns after a table's name. Control+Space opens it with an empty word. A deletion keeps it open while the word is not empty; any other edit closes it. A press elsewhere and the wheel close it.
 
 ## Keyboard
 
@@ -36,7 +37,7 @@ A letter, digit or `_` typed opens the list once the word has two characters and
 | --- | --- |
 | Up, Down | Move the highlight, around the ends |
 | Page Up, Page Down | Move it by eight |
-| Enter, Tab | Put the highlighted entry in place, as one step of the undo history |
+| Enter, Tab | Put the highlighted entry in place, as one step of the undo history; while only "Loading…" shows, close the list and do what they do in the field |
 | Escape | Close |
 | Left, Right, Home, End | Close and move the caret |
 
@@ -44,7 +45,7 @@ Keys it does not take reach the field's own handler, Control+Enter among them.
 
 ## In a tree dump
 
-The list is an overlay at the caret, `role=listbox` `label="Completions"`. Its entries in view are `role=option` with their text as label and the key `option-<index>`, the index in the function's list; the highlighted one is `selected`:
+The list is an overlay at the caret, `role=listbox` `label="Completions"`. Its entries in view are `role=option` with their text as label and the key `option-<index>`, the index in the function's list; the highlighted one is `selected`. A row `#loading` follows them while entries are on their way:
 
 ```text file="examples/src/test/resources/golden/docs/code-editor/completions.tree.txt" start="overlay" count="3"
 ```

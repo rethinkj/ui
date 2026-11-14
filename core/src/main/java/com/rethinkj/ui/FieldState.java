@@ -30,6 +30,27 @@ public final class FieldState {
   // The identity of the field that has it in the build of this number, to find two fields with one.
   Object id;
   long build = -1;
+  // A selection the app asked for, which the field takes at its next build; -1 for none.
+  int caret = -1;
+  int anchor = -1;
 
   public FieldState() {}
+
+  /**
+   * Selects from {@code anchor} to {@code caret} in the field, or puts the caret there when they
+   * are equal, at the field's next build, and scrolls it into view as {@link App#select} does.
+   * Unlike that, it needs no field in the last frame's tree: a field that is away, as in a tab that
+   * is not shown, comes back with this selection. The positions are indexes into the string as the
+   * field shows it, clamped to it and moved to the grapheme boundary at or before them.
+   *
+   * @throws IllegalArgumentException if a position is negative
+   */
+  public void select(int caret, int anchor) {
+    if (caret < 0 || anchor < 0) {
+      throw new IllegalArgumentException(
+          "caret and anchor must be 0 or more, were " + caret + " and " + anchor);
+    }
+    this.caret = caret;
+    this.anchor = anchor;
+  }
 }

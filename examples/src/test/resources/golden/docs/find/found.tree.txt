@@ -1,5 +1,5 @@
 el 0,0 440x220
-  text #notes role=textbox label="Notes" "Ship by Friday.\nCall the north warehouse on Monday." 12,12 360x106 lines 1-2/2
+  text #notes role=textbox label="Notes" "Ship by Friday.\nCall the north warehouse on Monday." 12,12 360x106 lines 1-2/2 underline 21-24
 overlay top end gap -32 on #notes role=textbox label="Notes" 12,12 360x106
   el #find role=search label="Find" 12,14 402x30
     el 12,14 392x30

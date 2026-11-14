@@ -67,7 +67,8 @@ Positions are indexes into the string as the editor shows it. A carriage return,
 | `CodeEditor.State` | |
 | --- | --- |
 | `caret()`, `anchor()` | Where the caret and the other end of the selection are, for a status line ("Ln 3, Col 9") or completions |
-| `error(from, to)`, `noError()` | Underline a range in the danger colour, such as the name a query got wrong |
+| `select(caret, anchor)` | Put the caret or a selection there and scroll it into view at the next build, also while the editor is away, as in a tab that is not shown |
+| `error(from, to)`, `noError()`, `errorFrom()`, `errorTo()` | Underline a range in the danger colour, such as the name a query got wrong |
 | `block(from, to)`, `noBlock()` | Mark the lines of a range with `code().block()` behind them, such as the statement Control+Enter would run |
 | `occurrences(boolean)` | Mark the other occurrences of the word at the caret; on by default |
 | `findBar(boolean)`, `find()` | The find bar, on by default, and its `Find.State` |
@@ -88,7 +89,7 @@ The editor also has every key of a multi-line text field. Tab indents, and Contr
 
 ## In a tree dump
 
-The editor is a `role=textbox` text element with its label, the lines in view and how many there are. While it has the focus, it shows its caret with line and column. The gutter is `#gutter` with a `#line-<index>` per line.
+The editor is a `role=textbox` text element with its label, the lines in view and how many there are, then the error as `underline <from>-<to>` while its line is in view. While it has the focus, it shows its caret with line and column. The gutter is `#gutter` with a `#line-<index>` per line.
 
 ```text file="examples/src/test/resources/golden/docs/code-editor/view.tree.txt" start="#query" count="3"
 ```

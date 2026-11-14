@@ -126,10 +126,11 @@ class ChoiceTest {
             .child(NumberField.numberField(
                 Theme.DARK, value[0], Integer.MIN_VALUE, Integer.MAX_VALUE, 1, v -> value[0] = v)));
     for (int typed : new int[] {Integer.MAX_VALUE, Integer.MIN_VALUE}) {
-      run(app, "focus role=spinbutton\nkey A control\ntype \"" + typed + "\"");
+      // Pasted: typed one character at a time, a lone "-" is no number and refused.
+      run(app, "focus role=spinbutton\nkey A control\nclipboard \"" + typed + "\"\nkey V control");
       assertEquals(typed, value[0]);
     }
-    run(app, "key A control\ntype \"2147483648\"");
+    run(app, "key A control\nclipboard \"2147483648\"\nkey V control");
     assertEquals(Integer.MIN_VALUE, value[0], "beyond an int: refused");
     run(app, "key ArrowDown");
     assertEquals(Integer.MIN_VALUE, value[0], "a step stays at the end");

@@ -278,6 +278,20 @@ class HighlightTest {
     assertNull(t.lines().get(2).colors(), "a decorator's colours are ignored");
   }
 
+  @Test
+  void theDumpNamesTheUnderlinesJoinedOnlyAcrossALineFeed() {
+    App<Model> app = area(
+        "a b\ncd\nef",
+        f -> f.decorate((line, start, text, out) -> {
+          if (line == 0) {
+            out.underline(0, 1, RED).underline(2, 3, RED);
+          } else {
+            out.underline(0, 2, RED);
+          }
+        }));
+    assertTrue(app.tree().dump().contains(" underline 0-1,2-9"), app.tree().dump());
+  }
+
   private static float under(Text t) {
     return Math.round((t.font().ascent() + t.font().lineGap() / 2) * 14)
         + Math.round(t.font().descent() * 14 / 2);

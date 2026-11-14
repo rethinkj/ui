@@ -645,13 +645,7 @@ public final class FilterList {
             s.highlight,
             0,
             rowHeight,
-            i -> i == count
-                ? row()
-                    .key("loading")
-                    .padding(0, t.space().m())
-                    .align(Style.Align.CENTER)
-                    .child(label(t, Label.Variant.MUTED, "Loading…"))
-                : option(t, s, shown, i, strong, choose))
+            i -> i == count ? PassiveList.loading(t) : option(t, s, shown, i, strong, choose))
         .key("options")
         .role("listbox")
         .label(label)

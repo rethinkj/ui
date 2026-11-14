@@ -1,5 +1,5 @@
 el 0,0 440x200
-  text role=textbox "; the connection\n[db]\nhost = localhost\npath = /a:\\\n  /b # TODO\n" 12,12 416x114 lines 1-6/6
+  text role=textbox "; the connection\n[db]\nhost = localhost\npath = /a:\\\n  /b # TODO\n" 12,12 416x114 lines 1-6/6 underline 58-62
     el #gutter 21,17 15x96
       text #line-0 "1" 21,17 15x16
       text #line-1 "2" 21,33 15x16

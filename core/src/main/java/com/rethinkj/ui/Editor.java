@@ -383,6 +383,7 @@ final class Editor {
 
   /** A selection the app asks for ({@link App#select}), which scrolls into view as a key's does. */
   void select(int newCaret, int newAnchor) {
+    boolean composed = !composition.isEmpty();
     composition = "";
     anchor = snap(newAnchor);
     caret = snap(newCaret);
@@ -391,6 +392,16 @@ final class Editor {
     changed = true;
     reveal = true;
     asked = true;
+    // The onSelect handler hears where it is, also when that is where it was: the app's own
+    // copy may hold what it asked for, which the snapping moved.
+    toldCaret = -1;
+    if (composed) { // the ended composition no longer shows
+      if (multiline()) {
+        showComposition();
+      } else {
+        el.text().compose(null);
+      }
+    }
   }
 
   /**

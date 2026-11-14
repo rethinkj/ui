@@ -3,7 +3,7 @@ el 0,0 420x200
     el 13,13 394x33
       text role=heading "orders.sql" 29,21 69x17 level=3
       el 106,30 285x0
-    text #query role=textbox "-- Orders of the north region\nSELECT o.id, c.\"name\", o.total * 1.19 AS gross\nFROM orders o\nJOIN cust" … "AS $$\n  SELECT n * 1.19\n$$ LANGUAGE sql;" length 424 13,46 394x113 lines 1-6/16 thumb-y 399,49 6x44.7 focused caret 113 (4:23)
+    text #query role=textbox "-- Orders of the north region\nSELECT o.id, c.\"name\", o.total * 1.19 AS gross\nFROM orders o\nJOIN cust" … "AS $$\n  SELECT n * 1.19\n$$ LANGUAGE sql;" length 424 13,46 394x113 lines 1-6/16 underline 161-167 thumb-y 399,49 6x44.7 focused caret 113 (4:23)
       el #gutter 25,51 23x96
         text #line-0 "1" 25,51 23x16
         text #line-1 "2" 25,67 23x16

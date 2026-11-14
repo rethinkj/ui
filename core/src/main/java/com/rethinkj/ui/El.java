@@ -4019,6 +4019,10 @@ public final class El {
         out.append(first + 1).append('-').append(text.lastLineInView() + 1);
       }
       out.append('/').append(text.lineTotal());
+      int[] under = text.underlined();
+      for (int i = 0; i < under.length; i += 2) {
+        out.append(i == 0 ? " underline " : ",").append(under[i]).append('-').append(under[i + 1]);
+      }
     }
     if (scrollX != 0 || scrollY != 0) {
       number(out.append(" scroll "), scrollX).append(',');

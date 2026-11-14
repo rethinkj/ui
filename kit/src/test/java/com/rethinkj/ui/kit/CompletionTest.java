@@ -16,6 +16,7 @@ import java.util.AbstractList;
 import java.util.BitSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.concurrent.CountDownLatch;
 import java.util.function.Function;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -48,6 +49,10 @@ class CompletionTest {
   }
 
   private App<Query> app(Function<String, List<Completion.Entry>> suggest) {
+    return app(suggest, false);
+  }
+
+  private App<Query> app(Function<String, List<Completion.Entry>> suggest, boolean background) {
     Theme t = Theme.DARK;
     Query q = new Query();
     App<Query> app = new App<>(q, s -> {
@@ -60,7 +65,11 @@ class CompletionTest {
           .hFull()
           .padding(12)
           .fill(t.surface().window())
-          .child(Completion.complete(t, s.app, editor, s.editor.caret(), s.completion, suggest));
+          .child(
+              background
+                  ? Completion.completeInBackground(
+                      t, s.app, editor, s.editor.caret(), s.completion, "suggest", suggest)
+                  : Completion.complete(t, s.app, editor, s.editor.caret(), s.completion, suggest));
     });
     q.app = app;
     app.textRendering(TextRendering.LINUX);
@@ -218,5 +227,38 @@ class CompletionTest {
     tree = run(app, "key Space control\nframe\nkey End");
     assertEquals(app.state().sql.length(), app.state().editor.caret());
     assertFalse(tree.contains("role=listbox"), tree);
+  }
+
+  @Test
+  void aDotOpensTheListAndAnEntryPutsInItsOwnText() throws IOException {
+    TextLibraries.assumeLoaded();
+    App<Query> app = app(word ->
+        List.of(new Completion.Entry("order date", Symbol.TABLE, "timestamp", "\"order date\"")));
+    app.state().completion.openAfter(".");
+    String tree = run(app, "frame\npress #query\ntype \"o.\"");
+    assertTrue(tree.contains("role=option label=\"order date\""), tree);
+    run(app, "key Enter");
+    assertEquals("o.\"order date\"", app.state().sql);
+  }
+
+  @Test
+  void entriesFromTheBackgroundShowLoadingUntilTheyArrive() throws IOException {
+    TextLibraries.assumeLoaded();
+    CountDownLatch release = new CountDownLatch(1);
+    App<Query> app = app(
+        word -> {
+          try {
+            release.await();
+          } catch (InterruptedException e) {
+            Thread.currentThread().interrupt(); // a newer word cancelled it
+          }
+          return suggest(word);
+        },
+        true);
+    String tree = run(app, "frame\npress #query\ntype \"SELECT cu\"");
+    assertTrue(tree.contains("el #loading"), "open with nothing but the waiting row: " + tree);
+    release.countDown();
+    tree = run(app, "await");
+    assertTrue(tree.contains("label=\"customers\"") && !tree.contains("#loading"), tree);
   }
 }

@@ -232,7 +232,7 @@ class ScriptTest {
             + "frame\n",
         app,
         out);
-    assertEquals(List.of("Tab 0", "Tab 3", "say \"hi\""), log);
+    assertEquals(List.of("Tab 0", "Tab 3", "s", "a", "y", " ", "\"", "h", "i", "\""), log);
     assertEquals("b", app.focused().key());
     Script.run("size 40 20\nfocus 5,5\nframe\n", app, out);
     assertEquals("a", app.focused().key());

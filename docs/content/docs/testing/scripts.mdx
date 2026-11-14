@@ -43,7 +43,7 @@ Presses do not move the pointer: a `move` is needed for hover looks and tooltips
 | Step | What it does |
 | --- | --- |
 | `key <name> [shift] [control] [alt] [meta] [down \| up]` | Presses and releases a key; with `down` or `up` only that half, so that a key stays held between frames. Keys have the web's names (`Enter`, `Tab`, `Escape`, `ArrowDown`, `F5`, `Space`); a key that types a character is named by it in upper case (`A`, `1`). The [`Key` Javadoc](/api/com/rethinkj/ui/Key.html) lists them all. |
-| `type "<text>"` | Text input for the focused element. `\"`, `\\`, `\n` and `\t` inside. |
+| `type "<text>"` | Text input for the focused element, one character at a time as a keyboard sends it, each an edit of its own that the view sees, so completions open as they would. `\"`, `\\`, `\n` and `\t` inside. To put a whole text in at once, paste it with `clipboard` and `key V control`. |
 | `compose "<text>"` | An input method's composition in the focused text field, shown underlined, not yet in the string. `compose ""` ends it; `type` commits. |
 | `focus <target>` | Gives the keyboard focus to the target or the nearest focusable element around it, as Tab would, with the ring. |
 | `clipboard "<text>"` | Puts the text on the app's clipboard. Needs no `frame`. |

@@ -151,6 +151,18 @@ public final class CodeEditor {
     }
 
     /**
+     * Selects from {@code anchor} to {@code caret}, or puts the caret there when they are equal,
+     * and scrolls it into view, at the editor's next build: also while the editor is not in the
+     * tree, as in a tab that is not shown ({@link FieldState#select}).
+     */
+    public State select(int caret, int anchor) {
+      field.select(caret, anchor);
+      this.caret = caret;
+      this.anchor = anchor;
+      return this;
+    }
+
+    /**
      * Marks the lines of characters {@code from} to {@code to} of the string with {@code
      * code().block()} behind them, such as the statement that Control+Enter would run; the
      * caret's line shows its own background over it. {@code from == to} marks none.
@@ -166,7 +178,10 @@ public final class CodeEditor {
       return block(0, 0);
     }
 
-    /** Underlines characters {@code from} to {@code to} of the string in the danger colour. */
+    /**
+     * Underlines characters {@code from} to {@code to} of the string in the danger colour; a tree
+     * dump shows it on the editor as {@code underline <from>-<to>} while its lines are in view.
+     */
     public State error(int from, int to) {
       errorFrom = from;
       errorTo = to;
@@ -176,6 +191,16 @@ public final class CodeEditor {
     /** Underlines nothing. */
     public State noError() {
       return error(0, 0);
+    }
+
+    /** Where the {@link #error} starts; equal to {@link #errorTo} for none. */
+    public int errorFrom() {
+      return errorFrom;
+    }
+
+    /** Where the {@link #error} ends. */
+    public int errorTo() {
+      return errorTo;
     }
   }
 

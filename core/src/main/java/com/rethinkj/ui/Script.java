@@ -366,7 +366,10 @@ public final class Script {
           switch (step) {
             case "type" -> {
               needsFrame(line, app, "nothing can take the text");
-              app.textInput(text);
+              // One input per character, as a keyboard sends them, each an edit of its own.
+              for (String character : text.split("\\b{g}")) {
+                app.textInput(character);
+              }
             }
             case "compose" -> {
               needsFrame(line, app, "nothing can take the composition");
