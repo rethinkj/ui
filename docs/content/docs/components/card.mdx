@@ -22,6 +22,7 @@ description: A rounded surface that frames a region, with a header, a toolbar, a
 | `flush(t, parts...)` | A card without padding whose parts lie edge to edge, clipped by its corners |
 | `toolbar(t, title, secondary, actions...)` | The first part of a flush card: a title, a muted text beside it, actions at the right |
 | `footer(t, start, end...)` | The last part: a quiet band with a hairline above it |
+| `filters(t, bar)` | An optional filter bar below a toolbar, with the card's side padding; null leaves the row out |
 | `inset(t, list)` | Insets a list with rounded rows, such as a tree or a nav list |
 | `pressable(t, card, label, selected, onPress)` | The whole card as a button, with `selected` drawn as an accent edge |
 | `footerHeight(t)` | The footer's height, to keep a toast clear of it |

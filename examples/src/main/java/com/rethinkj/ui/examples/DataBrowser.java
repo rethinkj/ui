@@ -667,11 +667,7 @@ public final class DataBrowser {
                         DataGrid.columnsButton(t, s.layout),
                         revert,
                         commit),
-                    bar == null
-                        ? null
-                        : row()
-                            .padding(0, t.space().l(), t.space().m(), t.space().l())
-                            .child(bar),
+                    Card.filters(t, bar),
                     Divider.divider(t),
                     grid.key("orders").label("Orders").grow(1),
                     Card.footer(t, label(t, MUTED, s.status()).key("status").ellipsis()))
