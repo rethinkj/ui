@@ -202,7 +202,7 @@ class CommandPaletteTest {
   }
 
   @Test
-  void anEntryThatKeepsItOpenLoadsEntriesTheSameTextsStayApartAndClosingTells() throws IOException {
+  void anEntryThatKeepsItOpenLoadsEntriesKeepsTheFieldFocusedAndClosingTells() throws IOException {
     Loader l = new Loader();
     l.palette.onClose(() -> l.closes++);
     App<Loader> loader = new App<>(
@@ -224,6 +224,19 @@ class CommandPaletteTest {
     assertEquals("s1.orders", l.opened, "the second, though both read the same");
     assertEquals(1, l.closes);
     assertNull(l.palette.list.shown, "the entries let go");
+
+    l.palette.open("@");
+    loader.invalidate();
+    Script.run(
+        "frame\nadvance 1\nframe\npress role=option label=\"Read tables\"\nframe\nsnap s",
+        loader,
+        out);
+    tree = Files.readString(out.resolve("s.tree.txt"));
+    assertEquals(5, ComboBoxTest.options(tree).size(), tree);
+    assertTrue(line(tree, "role=textbox").contains(" focused"), "the field has the keys: " + tree);
+    Script.run("key Escape\nframe", loader, out);
+    assertFalse(l.palette.isOpen(), "Escape closes it after a press, too");
+    assertEquals(2, l.closes);
   }
 
   @ParameterizedTest(name = "{0} at {1}x")

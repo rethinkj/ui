@@ -22,7 +22,7 @@ It opens `size().paletteTop()` (72) below the window's top, `size().palette()` (
 - `CommandPalette.keys(state)` opens the palette with Control+Shift+P and F1; `state.open("@")` opens it at a source, as for Control+P.
 - While nothing is typed, the last five commands chosen come first, under "Recently used". `state.recent()` lists their keys, or their texts where they have none, the last first, and `state.text()` is what is typed.
 - `entry.key("s1.orders")` tells an entry from others with the same text: the highlight follows it when the entries change, and Enter runs the one highlighted.
-- `entry.keepsOpen(true)` leaves the palette open when the entry is chosen, for one that loads more entries into the list. The best entry is highlighted, also once the entries change, until a key or the pointer moves the highlight.
+- `entry.keepsOpen(true)` leaves the palette open when the entry is chosen, for one that loads more entries into the list. The best entry is highlighted, also once the entries change, until a key or the pointer moves the highlight. The field keeps the focus, also after a press on the entry, so Escape still closes the palette.
 - `state.onClose(runnable)` runs each time the palette closes, to stop what an entry started. A closed palette lets go of its entries and what their handlers hold; the recently used commands stay.
 
 ## Lists and fuzzy matching
