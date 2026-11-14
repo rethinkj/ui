@@ -1,7 +1,7 @@
 # The connection dialog: Connect disabled until the form is filled in, a letter the port refuses,
 # a password shown as bullets and then by its button, Enter in a field, the switch to the light
 # theme, a port the made-up server refuses and a rule across two fields.
-size 440 432
+size 440 472
 frame
 snap connection-empty            # Connect is disabled: database and user are empty
 

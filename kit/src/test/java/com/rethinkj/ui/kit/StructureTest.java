@@ -40,6 +40,7 @@ class StructureTest {
     check("cards", theme, scale, 640, 400, Sheets::cards);
     check("rows", theme, scale, 520, 640, Sheets::rows);
     check("form", theme, scale, 640, 260, Sheets::form);
+    check("form-groups", theme, scale, 720, 470, Sheets::formGroups);
     check("choices", theme, scale, 400, 560, Sheets::choices);
     String tree = check("callouts", theme, scale, 560, 420, Sheets::callouts);
     // In the card of 400, the buttons went below the text, at its right; elsewhere beside it.
@@ -85,6 +86,13 @@ class StructureTest {
     String tree = Files.readString(out.resolve(image + ".tree.txt"));
     Golden.assertMatches(image, Png.decode(Files.readAllBytes(out.resolve(image + ".png"))), tree);
     return tree;
+  }
+
+  @ParameterizedTest(name = "{0}")
+  @ValueSource(strings = {"dark", "light"})
+  void aNarrowFormWrapsItsRowOfFields(String theme) throws IOException {
+    String tree = check("form-groups-narrow", theme, 1, 340, 340, Sheets::formGroupsNarrow);
+    assertTrue(left(line(tree, "#beside-port")) < left(line(tree, "#beside-host")) + 72, tree);
   }
 
   @Test

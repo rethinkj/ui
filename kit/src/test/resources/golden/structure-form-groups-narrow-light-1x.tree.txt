@@ -1,0 +1,41 @@
+el 0,0 340x340
+  el 16,16 308x295
+    el role=group label="Server" 16,16 308x182
+      el 16,16 308x34
+        text role=heading "Server" 16,16 308x16 level=4
+        text "Where the database runs" 16,34 308x16
+      el 16,58 308x140
+        el 16,58 308x108
+          el 16,58 60x24
+            text "Host" 16,62 29x16
+            text "*" 47,62 7x16
+          el 84,58 240x108
+            el 84,58 240x58
+              text #beside-host role=textbox label="Host" "db.example.com" 84,58 240x24
+              text "A name or an address the server answers on" 84,84 240x32
+            el 84,124 105x42
+              el 84,124 25x24
+                text "Port" 84,128 25x16
+              el 117,124 72x42
+                text #beside-port role=textbox label="Port" "54x" 117,124 72x24 invalid error="Digits only"
+                text "Digits only" 117,150 72x16
+        el 16,174 308x24
+          el 16,174 60x24
+            text "Database" 16,178 57x16
+          el 84,174 240x24
+            text #beside-database role=textbox label="Database" "" 84,174 200x24
+    el role=separator 16,214 308x1
+    el role=group label="Login" 16,231 308x80
+      el 16,231 308x16
+        text role=heading "Login" 16,231 308x16 level=4
+      el 16,255 308x56
+        el 16,255 308x24
+          el 16,255 60x24
+            text "User" 16,259 30x16
+          el 84,255 240x24
+            text #beside-user role=textbox label="User" "" 84,255 200x24
+        el 16,287 308x24
+          el 16,287 60x24
+            text "Password" 16,291 60x16
+          el 84,287 240x24
+            text #beside-password role=textbox label="Password" "" 84,287 200x24 password

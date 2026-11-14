@@ -1,4 +1,4 @@
-el 0,0 440x432
+el 0,0 440x472
   el window=drag 0,0 440x32
     el 12,11 10x10
     text "New connection" 30,8 102x16
@@ -9,61 +9,70 @@ el 0,0 440x432
       el 366,11 10x10
     el role=button label="Close" window=close 394,0 46x32
       text label="dismiss" "\u{F367}" 411,10 12x12
-  el 0,32 440x400
-    el 8,32 424x392
+  el 0,32 440x446
+    el 8,32 424x438
       el 21,45 398x34
         el 21,45 398x34
           text role=heading "Connect to PostgreSQL" 21,45 398x16 level=3
           text "The server and the account to log in with." 21,63 398x16
-      el 21,95 398x170
-        el 21,95 398x24
-          el 21,95 66x24
-            text "Host" 21,99 29x16
-            text "*" 52,99 7x16
-          el 95,95 324x24
-            text #host role=textbox label="Host" "localhost" 95,95 260x24
-        el 21,127 398x42
-          el 21,127 66x24
-            text "Port" 21,131 25x16
-            text "*" 48,131 7x16
-          el 95,127 324x42
-            text #port role=textbox label="Port" "5433" 95,127 72x24 invalid error="No server answers on port 5433" focused caret 4
-            text "No server answers on port 5433" 95,153 324x16
-        el 21,177 398x24
-          el 21,177 66x24
-            text "Database" 21,181 57x16
-            text "*" 80,181 7x16
-          el 95,177 324x24
-            el #database role=combobox label="inventory" 95,177 260x24 expanded=false
-              text #field-0 role=textbox "inventory" 95,177 260x24
-              el role=button label="Open" 331,177 24x24
-                text label="chevron_down" "\u{F2A2}" 335,181 16x16
-        el 21,209 398x24
-          el 21,209 66x24
-            text "User" 21,213 30x16
-            text "*" 53,213 7x16
-          el 95,209 324x24
-            text #user role=textbox label="User" "admin" 95,209 260x24
-        el 21,241 398x24
-          el 21,241 66x24
-            text "Password" 21,245 60x16
-          el 95,241 324x24
-            el 95,241 260x24
-              text #password role=textbox label="Password" "•••••••" 95,241 260x24 password revealed
-              el role=button label="Hide password" 333,243 20x20
-                text label="eye_off" "\u{E5F4}" 335,245 16x16
-      el role=checkbox label="Require SSL" 17,279 107x20 checked
-        el 21,281 16x16
-          text "✓" 24,281 11x16
-        text "Require SSL" 45,281 75x16
-      el role=switch label="Dark theme" 17,307 115x20 checked=false
-        el 21,309 28x16
-          el 23,311 12x12
-        text "Dark theme" 57,309 71x16
-      el 21,337 398x10
-      text "The server refused the connection" 21,359 398x16
-      el 21,387 398x24
-        el role=button label="Reset" 270,387 61x24
-          text "Reset" 283,391 35x16
-        el role=button label="Connect" 339,387 80x24 disabled
-          text "Connect" 352,391 54x16
+      el 21,95 398x226
+        el role=group label="Server" 21,95 398x130
+          el 21,95 398x16
+            text role=heading "Server" 21,95 398x16 level=4
+          el 21,119 398x106
+            el 21,119 398x74
+              el 21,119 66x24
+                text "Host" 21,123 29x16
+                text "*" 52,123 7x16
+              el 95,119 324x74
+                el 95,119 202x24
+                  text #host role=textbox label="Host" "localhost" 95,119 202x24
+                el 305,119 114x74
+                  el 305,119 34x24
+                    text "Port" 305,123 25x16
+                    text "*" 332,123 7x16
+                  el 347,119 72x74
+                    text #port role=textbox label="Port" "5433" 347,119 72x24 invalid error="No server answers on port 5433" focused caret 4
+                    text "No server answers on port 5433" 347,145 72x48
+            el 21,201 398x24
+              el 21,201 66x24
+                text "Database" 21,205 57x16
+                text "*" 80,205 7x16
+              el 95,201 324x24
+                el #database role=combobox label="inventory" 95,201 324x24 expanded=false
+                  text #field-0 role=textbox "inventory" 95,201 324x24
+                  el role=button label="Open" 395,201 24x24
+                    text label="chevron_down" "\u{F2A2}" 399,205 16x16
+        el role=group label="Login" 21,241 398x80
+          el 21,241 398x16
+            text role=heading "Login" 21,241 398x16 level=4
+          el 21,265 398x56
+            el 21,265 398x24
+              el 21,265 66x24
+                text "User" 21,269 30x16
+                text "*" 53,269 7x16
+              el 95,265 324x24
+                text #user role=textbox label="User" "admin" 95,265 324x24
+            el 21,297 398x24
+              el 21,297 66x24
+                text "Password" 21,301 60x16
+              el 95,297 324x24
+                el 95,297 324x24
+                  text #password role=textbox label="Password" "•••••••" 95,297 324x24 password revealed
+                  el role=button label="Hide password" 397,299 20x20
+                    text label="eye_off" "\u{E5F4}" 399,301 16x16
+      el role=checkbox label="Require SSL" 17,335 107x20 checked
+        el 21,337 16x16
+          text "✓" 24,337 11x16
+        text "Require SSL" 45,337 75x16
+      el role=switch label="Dark theme" 17,363 115x20 checked=false
+        el 21,365 28x16
+          el 23,367 12x12
+        text "Dark theme" 57,365 71x16
+      el 21,393 398x0
+      text "The server refused the connection" 21,405 398x16
+      el 21,433 398x24
+        el role=button label="Reset" 270,433 61x24
+          text "Reset" 283,437 35x16
+        el role=button label="Connect" 339,433 80x24 disabled
+          text "Connect" 352,437 54x16

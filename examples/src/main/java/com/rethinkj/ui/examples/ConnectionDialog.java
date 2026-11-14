@@ -163,8 +163,8 @@ public final class ConnectionDialog {
     Window.Options options = Identity.options(
             ConnectionDialog.class, "New connection", Identity.GREEN, Symbol.PLUG_CONNECTED)
         .frameless()
-        .minimumSize(400, 412);
-    try (Window window = Window.open("New connection", 440, 432, options);
+        .minimumSize(400, 452);
+    try (Window window = Window.open("New connection", 440, 472, options);
         GpuPresenter presenter = new GpuPresenter(window)) {
       WindowLoop.run(window, app, presenter);
     }
@@ -181,38 +181,46 @@ public final class ConnectionDialog {
         .child(form(
                 t,
                 Form.Labels.BESIDE,
-                field(
-                        "Host",
-                        textField(t, e.at(Profile.HOST), "Name or address")
-                            .key("host")
-                            .w(260))
-                    .required(),
-                field(
-                        "Port",
-                        valueField(t, PORT, e.at(Profile.PORT), "5432")
-                            .key("port")
-                            .maxLength(5)
-                            .w(72))
-                    .required(),
-                field(
-                        "Database",
-                        ComboBox.free(t, e.at(Profile.DATABASE), DATABASES, s.databases)
-                            .key("database")
-                            .w(260))
-                    .required(),
-                field(
-                        "User",
-                        textField(t, e.at(Profile.USER), "Role").key("user").w(260))
-                    .required(),
-                field(
-                    "Password",
-                    revealable(
-                        t,
-                        passwordField(t, e.at(Profile.PASSWORD), null)
-                            .key("password")
-                            .w(260),
-                        s.revealed,
-                        () -> s.revealed = !s.revealed)))
+                Form.group(
+                    "Server",
+                    // The host takes the room the port leaves; both are a field of their own.
+                    Form.row(
+                        field(
+                                "Host",
+                                textField(t, e.at(Profile.HOST), "Name or address")
+                                    .key("host")
+                                    .w(160))
+                            .required()
+                            .grow(),
+                        field(
+                                "Port",
+                                valueField(t, PORT, e.at(Profile.PORT), "5432")
+                                    .key("port")
+                                    .maxLength(5)
+                                    .w(72))
+                            .required()),
+                    field(
+                            "Database",
+                            ComboBox.free(t, e.at(Profile.DATABASE), DATABASES, s.databases)
+                                .key("database")
+                                .wFull())
+                        .required()),
+                Form.group(
+                    "Login",
+                    field(
+                            "User",
+                            textField(t, e.at(Profile.USER), "Role").key("user").wFull())
+                        .required(),
+                    field(
+                        "Password",
+                        revealable(
+                                t,
+                                passwordField(t, e.at(Profile.PASSWORD), null)
+                                    .key("password")
+                                    .wFull(),
+                                s.revealed,
+                                () -> s.revealed = !s.revealed)
+                            .wFull())))
             .margin(t.space().s(), 0, t.space().s(), 0))
         .child(checkbox(t, e.at(Profile.SSL), "Require SSL"))
         .child(toggle(t, Prop.of(() -> s.dark, v -> s.dark = v), "Dark theme"))

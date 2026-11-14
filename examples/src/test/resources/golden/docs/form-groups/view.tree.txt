@@ -1,0 +1,35 @@
+el 0,0 480x300
+  el 12,12 440x205
+    el 25,25 414x179
+      el role=group label="Server" 25,25 414x66
+        el 25,25 414x34
+          text role=heading "Server" 25,25 414x16 level=4
+          text "Where the database runs." 25,43 414x16
+        el 25,67 414x24
+          el 25,67 414x24
+            el 25,67 60x24
+              text "Host" 25,71 29x16
+              text "*" 56,71 7x16
+            el 93,67 346x24
+              el 93,67 233x24
+                text role=textbox label="Host" "localhost" 93,67 233x24
+              el 334,67 105x24
+                el 334,67 25x24
+                  text "Port" 334,71 25x16
+                el 367,67 72x24
+                  text role=textbox label="Port" "5432" 367,67 72x24
+      el role=separator 25,107 414x1
+      el role=group label="Login" 25,124 414x80
+        el 25,124 414x16
+          text role=heading "Login" 25,124 414x16 level=4
+        el 25,148 414x56
+          el 25,148 414x24
+            el 25,148 60x24
+              text "User" 25,152 30x16
+            el 93,148 346x24
+              text role=textbox label="User" "" 93,148 200x24
+          el 25,180 414x24
+            el 25,180 60x24
+              text "Password" 25,184 60x16
+            el 93,180 346x24
+              text role=textbox label="Password" "" 93,180 200x24 password

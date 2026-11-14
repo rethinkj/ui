@@ -217,6 +217,62 @@ final class Sheets {
                 button(t, Variant.PRIMARY, "Save", () -> {})));
   }
 
+  /**
+   * A form of two groups with one label column and a divider between them, its host and port in
+   * one row with an error under the port and help under the host, beside and above.
+   */
+  El formGroups() {
+    return row()
+        .wFull()
+        .hFull()
+        .padding(t.space().xl())
+        .gap(t.space().xxl())
+        .fill(t.surface().window())
+        .children(
+            formGroups(Form.Labels.BESIDE).grow(1).minSize(0, 0),
+            formGroups(Form.Labels.ABOVE).w(220).shrink(0));
+  }
+
+  /** The form with labels beside alone, for a narrow window, where its row wraps. */
+  El formGroupsNarrow() {
+    return col()
+        .wFull()
+        .hFull()
+        .padding(t.space().xl())
+        .fill(t.surface().window())
+        .child(formGroups(Form.Labels.BESIDE));
+  }
+
+  El formGroups(Form.Labels labels) {
+    String at = labels.name().toLowerCase(java.util.Locale.ROOT) + "-";
+    return Form.form(
+        t,
+        labels,
+        Form.group(
+                "Server",
+                Form.row(
+                    field(
+                            "Host",
+                            textField(t, host, "Name or address", v -> host = v).key(at + "host"))
+                        .required()
+                        .help("A name or an address the server answers on")
+                        .grow(),
+                    field(
+                            "Port",
+                            textField(t, port, "5432", v -> port = v)
+                                .key(at + "port")
+                                .w(72))
+                        .error(port.matches("\\d+") ? null : "Digits only")),
+                field("Database", textField(t, "", "Name", v -> {}).key(at + "database")))
+            .description("Where the database runs"),
+        Form.group(
+                "Login",
+                field("User", textField(t, "", "Role", v -> {}).key(at + "user")),
+                field(
+                    "Password", TextField.passwordField(t, "", null, v -> {}).key(at + "password")))
+            .divided());
+  }
+
   /** The choices settings need: segments, radios, a number field and a slider. */
   El choices() {
     return col()
