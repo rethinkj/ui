@@ -903,34 +903,34 @@ el 0,0 140x40
         text "12" 109,12 13x16
 # status item, rest
 el 0,0 140x40
-  el #c role=button label="localhost" 28,8 84x24 value="connected"
-    el 32,12 16x16
-      el 36,16 8x8
-    text "localhost" 52,12 56x16
+  el #c role=button label="localhost" 30,8 80x24 value="connected"
+    el 34,12 16x16
+      el 38,16 8x8
+    text "localhost" 54,13 52x14
 # status item, hover
 el 0,0 140x40
-  el #c role=button label="localhost" 28,8 84x24 value="connected" hovered
-    el 32,12 16x16
-      el 36,16 8x8
-    text "localhost" 52,12 56x16
+  el #c role=button label="localhost" 30,8 80x24 value="connected" hovered
+    el 34,12 16x16
+      el 38,16 8x8
+    text "localhost" 54,13 52x14
 # status item, pressed
 el 0,0 140x40
-  el #c role=button label="localhost" 28,8 84x24 value="connected" hovered
-    el 32,12 16x16
-      el 36,16 8x8
-    text "localhost" 52,12 56x16
+  el #c role=button label="localhost" 30,8 80x24 value="connected" hovered
+    el 34,12 16x16
+      el 38,16 8x8
+    text "localhost" 54,13 52x14
 # status item, focused
 el 0,0 140x40
-  el #c role=button label="localhost" 28,8 84x24 value="connected" focused
-    el 32,12 16x16
-      el 36,16 8x8
-    text "localhost" 52,12 56x16
+  el #c role=button label="localhost" 30,8 80x24 value="connected" focused
+    el 34,12 16x16
+      el 38,16 8x8
+    text "localhost" 54,13 52x14
 # status item, disabled
 el 0,0 140x40
-  el #c label="localhost" 28,8 84x24 value="connected"
-    el 32,12 16x16
-      el 36,16 8x8
-    text "localhost" 52,12 56x16
+  el #c label="localhost" 30,8 80x24 value="connected"
+    el 34,12 16x16
+      el 38,16 8x8
+    text "localhost" 54,13 52x14
 # badge, rest
 el 0,0 140x40
   el #c role=button label="Add filter" 29,9 82x22

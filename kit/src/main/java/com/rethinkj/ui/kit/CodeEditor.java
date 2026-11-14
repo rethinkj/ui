@@ -292,12 +292,17 @@ public final class CodeEditor {
    */
   public static El embedded(Theme t, El editor) {
     float stroke = t.size().stroke();
-    editor.radius(0).border(stroke, 0, 0, 0, t.border().divider()).wFull();
+    editor.radius(0).border(stroke, 0, 0, 0, t.border().divider()).shadow().wFull();
     // The gutter lines up with the card's title, inside the card's padding.
     editor.style().paddingLeft = Len.px(t.space().l());
     editor.style().paddingRight = Len.px(t.space().l());
+    // Without the field's frame, no stroke of padding stands in for its bottom border.
+    editor.style().paddingBottom = Len.px(editor.style().paddingBottom.value() - stroke);
     if (editor.onEdit() != null) {
-      editor.whenFocused(e -> e.border(stroke, 0, 0, 0, t.accent().edge()));
+      int hover = Theme.over(t.surface().raised(), t.surface().hover());
+      editor
+          .whenHovered(e -> e.fill(hover)) // the field's hover, without its frame
+          .whenFocused(e -> e.border(stroke, 0, 0, 0, t.accent().edge()));
     }
     return editor;
   }

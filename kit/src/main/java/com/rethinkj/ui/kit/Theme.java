@@ -305,7 +305,9 @@ public record Theme(
    * a translucent tint laid over whatever the badge lies on, a strong one {@code strongText} on
    * {@code strong}.
    *
-   * @param soft translucent, the quiet badge's fill
+   * @param soft translucent, the quiet badge's fill, a quiet step off the surfaces it lies on:
+   *     1.08:1 or more on each and in a dark theme about 1.2:1 on a card, so that the text carries
+   *     the kind
    * @param softText the quiet badge's text and icon, 4.5:1 on its fill over the surfaces, the
    *     grid's rows and its selection
    * @param strong opaque, the strong badge's fill
@@ -362,11 +364,11 @@ public record Theme(
 
     /** For dark surfaces. */
     public static final Badges DARK = new Badges(
-        new Tone(alpha(WHITE, 0.05f), GREY_853, GREY_395, WHITE),
-        new Tone(alpha(BLUE_496, 0.18f), BLUE_782, BLUE_496, WHITE),
-        new Tone(alpha(GREEN_735, 0.1f), GREEN_826, GREEN_452, WHITE),
-        new Tone(alpha(AMBER_745, 0.1f), AMBER_835, AMBER_745, GREY_108),
-        new Tone(alpha(RED_649, 0.1f), RED_803, RED_457, WHITE),
+        new Tone(alpha(WHITE, 0.01f), GREY_853, GREY_395, WHITE),
+        new Tone(alpha(BLUE_496, 0.07f), BLUE_782, BLUE_496, WHITE),
+        new Tone(alpha(GREEN_735, 0.03f), GREEN_826, GREEN_452, WHITE),
+        new Tone(alpha(AMBER_745, 0.03f), AMBER_835, AMBER_745, GREY_108),
+        new Tone(alpha(RED_649, 0.035f), RED_803, RED_457, WHITE),
         18,
         22,
         TEXT,
@@ -397,9 +399,9 @@ public record Theme(
 
   /**
    * How {@link Callout}s look: a tinted fill per kind with a bar and an icon in the kind's
-   * colour. The fills are the badges' quiet tints laid over the raised surface ({@link Colors#over}),
-   * in the dark theme each kind's status colour at 10 %, so that the four are about as light as
-   * each other. {@code info} is the theme's blue, as links and the grid's selection are: it does
+   * colour. The fills are tints laid over the raised surface ({@link Colors#over}): in the light
+   * theme the badges' quiet tints, in the dark theme each kind's status colour at 10 %, so that the
+   * four are about as light as each other. {@code info} is the theme's blue, as links and the grid's selection are: it does
    * not follow {@link #withAccent}.
    *
    * @param info something to know
@@ -647,18 +649,27 @@ public record Theme(
   /**
    * @param subtle the edges of cards and of a surface's parts, the lines of a data grid, and the
    *     edges of a disabled control
-   * @param strong the edges a control is recognised by, such as a text field's frame or a
-   *     checkbox's box, which stand out 3:1 from the surfaces
+   * @param strong the edges a control is recognised by, such as the line along a text field's
+   *     bottom or a checkbox's box, which stand out 3:1 from the surfaces and from a field's fill,
+   *     also under the pointer
    * @param control the edge of a button and of other controls that their text names, quieter
-   *     than {@code strong}, and of popups and dialogs
+   *     than {@code strong}, of a field's top and sides, and of popups and dialogs
    * @param track translucent, a faint line that keeps one contrast on every surface, band and
    *     selection it lies on: a {@link Progress#spinner}'s ring
    * @param divider a hairline that separates content on a surface: a {@link Divider}, a menu's
    *     separators, the lines between a {@link Group}'s rows, under a tab bar, above a card's
    *     footer, between a split's parts and between a toolbar's groups; 1.2:1 or more on every
    *     surface, stronger than {@code subtle}, which a raised surface would almost hide
+   * @param trackOnAccent translucent, a spinner's ring on a primary button's fill, the accent's or
+   *     a dangerous one's, from which the arc in the button's text colour stands out 3:1
    */
-  public record Borders(int subtle, int strong, int control, int track, int divider) {
+  public record Borders(
+      int subtle, int strong, int control, int track, int divider, int trackOnAccent) {
+
+    /** Borders whose track on the accent is white at 12 %, for white text on the accent. */
+    public Borders(int subtle, int strong, int control, int track, int divider) {
+      this(subtle, strong, control, track, divider, alpha(WHITE, 0.12f));
+    }
 
     /** Borders whose dividers are {@code subtle}. */
     public Borders(int subtle, int strong, int control, int track) {
@@ -669,6 +680,11 @@ public record Theme(
     public Borders(int subtle, int strong, int control) {
       this(subtle, strong, control, alpha(strong, lightness(subtle) < 0.5 ? 0.35f : 0.4f));
     }
+  }
+
+  /** The line along a field's bottom: a sharp shadow {@code stroke} below its box. */
+  static Shadow fieldEdge(float stroke, int color) {
+    return new Shadow(0, stroke, 0, 0, color);
   }
 
   /**
@@ -810,6 +826,9 @@ public record Theme(
    * @param strong the body's size in a heavier weight: the titles of a grid's columns and the text
    *     of buttons
    * @param dialog the title of a dialog, between {@code heading} and {@code title}
+   * @param small secondary text that stands beside what it is about and gives way to it: the
+   *     details of a status bar, the kind of a completion, the count of a find bar; the regular
+   *     weight, so that it recedes, where a badge's text is medium to hold on its fill
    */
   public record Type(
       TextStyle body,
@@ -817,7 +836,8 @@ public record Theme(
       TextStyle heading,
       TextStyle title,
       TextStyle strong,
-      TextStyle dialog) {}
+      TextStyle dialog,
+      TextStyle small) {}
 
   /**
    * @param control the height of a button and a text field
@@ -1178,7 +1198,8 @@ public record Theme(
       new TextStyle(Font::sansSemibold, 14),
       new TextStyle(Font::sansSemibold, 20),
       new TextStyle(Font::sansMedium, 13),
-      new TextStyle(Font::sansSemibold, 16));
+      new TextStyle(Font::sansSemibold, 16),
+      new TextStyle(Font::sans, 12));
   private static final Sizes SIZE = new Sizes(24, 16, 28, 16, 1, 200, 7, 16, 16, 2, 2, 4, 560, 4);
   private static final Motion MOTION =
       new Motion(Spring.INSTANT, Spring.SNAP, 0.3, 0.5, Spring.INSTANT, 5, 2, 1.2, 1.5);
@@ -1230,7 +1251,7 @@ public record Theme(
    * pointer, in both themes, with a white cross at 4.5:1 or more.
    *
    * Sizes and type. Controls 24, rows 24, text 13; radii 4 for small parts, 6 for controls, 10 for
-   * cards; card titles 14, dialog titles 16; headings semibold, strong text, column titles and buttons medium.
+   * cards; card titles 14, dialog titles 16, secondary text beside its subject 12; headings semibold, strong text, column titles and buttons medium.
    *
    * Palette. Every colour is one of Palette's, named by its hue and its L* times ten, or one of
    * them at an alpha: alpha(GREY_298, 0.25f) is the dark theme's hover. Tokens that share a colour
@@ -1253,7 +1274,7 @@ public record Theme(
           GREY_157,
           over(GREY_157, alpha(GREY_298, 0.36f))),
       new TextColors(GREY_916, GREY_648, GREY_425, WHITE),
-      new Borders(GREY_157, GREY_477, GREY_226, alpha(GREY_477, 0.35f), GREY_226),
+      new Borders(GREY_157, GREY_501, GREY_226, alpha(GREY_477, 0.35f), GREY_226),
       Hue.BLUE.dark(),
       new Status(RED_649, AMBER_745, GREEN_735),
       SPACE,

@@ -1,5 +1,6 @@
-# Builds the documentation site (docs/) and, on the default branch, publishes it to GitHub Pages
-# at ui.rethinkj.com. Elsewhere it only builds, so that a pull request shows a broken page early.
+# Builds the documentation site (docs/) and the Javadoc of core and kit (at /api/) and, on the
+# default branch, publishes both to GitHub Pages at ui.rethinkj.com. Elsewhere it only builds, so
+# that a pull request shows a broken page early.
 name: Docs
 
 on:
@@ -12,6 +13,11 @@ on:
       - 'changelog/**'
       - 'fonts/src/main/resources/**'
       - 'assets/**'
+      - 'core/src/main/**'
+      - 'kit/src/main/**'
+      - 'pom.xml'
+      - 'core/pom.xml'
+      - 'kit/pom.xml'
       - '.github/workflows/docs.yml'
   pull_request:
     paths:
@@ -22,6 +28,11 @@ on:
       - 'changelog/**'
       - 'fonts/src/main/resources/**'
       - 'assets/**'
+      - 'core/src/main/**'
+      - 'kit/src/main/**'
+      - 'pom.xml'
+      - 'core/pom.xml'
+      - 'kit/pom.xml'
       - '.github/workflows/docs.yml'
   workflow_dispatch:
 
@@ -47,8 +58,20 @@ jobs:
           node-version: 24
           cache: npm
           cache-dependency-path: docs/package-lock.json
+      - uses: actions/setup-java@77dd5b2ce225ea11469928ac317850245a74ae78 # v6.2.0
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
       - run: npm ci
       - run: npm run build
+      # After the site's build, which empties out/; beside its own api/search.
+      - name: Javadoc
+        working-directory: .
+        run: |
+          mvn -B -ntp -P '!natives-linux-x64' -pl core,kit -am javadoc:aggregate
+          mkdir -p docs/out/api
+          cp -R target/reports/apidocs/. docs/out/api/
       - if: github.ref_name == github.event.repository.default_branch && github.event_name != 'pull_request'
         uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
       - if: github.ref_name == github.event.repository.default_branch && github.event_name != 'pull_request'

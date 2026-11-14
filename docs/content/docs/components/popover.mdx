@@ -3,7 +3,7 @@ title: Popover
 description: Any content below an anchor, such as a small form, that closes with Escape or a press outside.
 ---
 
-`Popover.popover` hangs any content below its anchor while the app's `Popover.State` is open, as a menu without items: a filter's form below its button, details of a value. It is not modal: the focus can leave it and the wheel scrolls what is under the pointer, while a press outside closes it and does nothing else. `Popover.form` is the common case, a heading, content and buttons. For a blocking question, use a [Dialog](/docs/components/dialog); for a hint on hover, a [Tooltip](/docs/components/tooltip).
+`Popover.popover` shows any content below its anchor while the app's `Popover.State` is open, as a menu without items: a filter's form below its button, details of a value. It is not modal: the focus can leave it, and the wheel scrolls what is under the pointer. A press outside closes it and does nothing else. `Popover.form` is the common case: a heading, content and buttons. For a blocking question, use a [Dialog](/docs/components/dialog); for a hint on hover, a [Tooltip](/docs/components/tooltip).
 
 <Shot src="kit/parts-popover-{theme}-2x" alt="A popover with a small filter form below its button in a toolbar" />
 
@@ -12,15 +12,19 @@ description: Any content below an anchor, such as a small form, that closes with
 ```java snippet="popover"
 ```
 
+`s.filterPopover` is a `Popover.State` and `s.filter` a string, both in the app's state.
+
 | | |
 | --- | --- |
 | `Popover.popover(t, anchor, state, label, content)` | Content below the anchor |
 | `Popover.popover(t, anchor, state, side, align, label, content)` | On another side, aligned `START`, `CENTER`, `END` or `STRETCH` |
-| `Popover.form(t, anchor, state, title, content, buttons)` | A small form with a heading and buttons at the bottom right; its content scrolls between them where the window is too low |
+| `Popover.form(t, anchor, state, title, content, buttons)` | A small form with a heading and buttons at the bottom right. Where the window is too low, the content scrolls between them |
 | `Popover.panel(t, state, label, content)` | The overlay alone, to attach yourself |
 | `Popover.State` | `isOpen()`, `open()`, `close()`, `toggle()` |
 
-The focus goes inside as it opens, to the panel itself where nothing enabled and visible in it takes the focus, and back to where it was before as it closes, if that element is still there (a button keeps the focus where it is when pressed, so that is often an editor, not the anchor); Tab walks it right after its anchor. It has no arrow to its anchor.
+## Keyboard
+
+The focus goes inside as the popover opens, to its first focusable element or else to the panel itself. Tab reaches it right after its anchor. Escape closes it, and the focus goes back to where it was before, if that element is still there. Since a button leaves the focus where it was, that is often an editor, not the anchor.
 
 ## In a tree dump
 

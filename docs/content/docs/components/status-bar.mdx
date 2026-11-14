@@ -19,7 +19,11 @@ description: The bar along the bottom of a window, with texts, items and connect
 | `StatusBar.status(t, state, text, onPress)` | A dot in the state's colour before the text: `CONNECTED`, `IDLE`, `ERROR`, or `BUSY` with a spinner |
 | `StatusBar.height(t)` | Its height, to keep a toast clear of it |
 
-Null parts are left out. A part with a handler is a button, one stop for Tab, and leaves the focus where it was.
+Null parts are left out.
+
+## Keyboard
+
+A part with a handler is a button and one stop for Tab. A press on it leaves the focus where it was.
 
 ## In a tree dump
 

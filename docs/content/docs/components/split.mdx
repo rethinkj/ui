@@ -12,6 +12,8 @@ description: Two parts side by side or one above the other, with a line the user
 ```java snippet="split"
 ```
 
+`s.sidebar` is a `Split.Position` in the app's state; `tree` and `editor` are the two parts.
+
 `Split.cards(theme, direction, position, reset, onMove, first, minFirst, second, minSecond)`, and the same for `Split.split`:
 
 | Parameter | |
@@ -19,7 +21,7 @@ description: Two parts side by side or one above the other, with a line the user
 | `position` | Where the line is, a `Split.Position` the app keeps |
 | `reset` | Where a double press on the line puts it |
 | `onMove` | Told a new position while the line is dragged or moved by keys |
-| `minFirst`, `minSecond` | The smallest sizes of the parts; layout keeps them when the split is smaller, without changing the position |
+| `minFirst`, `minSecond` | The smallest sizes of the parts. They hold when the split is smaller, without changing the position |
 
 The kind of position says what stays when the split grows:
 
@@ -29,7 +31,7 @@ The kind of position says what stays when the split grows:
 | `Position.second(pixels)` | The second part keeps its size |
 | `Position.share(fraction)` | The first part keeps its share, as an editor over its results |
 
-Neither the split nor its parts take a minimum size from what they hold, so a list or a tree in a part scrolls inside it. Splits nest.
+A list or a tree in a part scrolls inside it, since the part takes no minimum size from what it holds. Splits nest.
 
 ## Keyboard
 

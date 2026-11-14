@@ -230,7 +230,7 @@ public final class Button {
         t,
         t.size().icon(),
         look.text(),
-        variant == Variant.PRIMARY ? look.pressed() : t.border().track());
+        variant == Variant.PRIMARY ? t.border().trackOnAccent() : t.border().track());
   }
 
   /** Makes a button busy: focusable, but Enter, Space and the pointer press nothing. */

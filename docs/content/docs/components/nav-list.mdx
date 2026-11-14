@@ -3,7 +3,7 @@ title: NavList
 description: A list of pages or sections with one selected, headings between them and counts at the right.
 ---
 
-`NavList.navList` is a list of items with an icon and a count, under headings, with one item selected and an accent mark at its left. Use it for the pages of a settings window or the sections of an app's sidebar. For nested data, use a [Tree](/docs/components/tree); for tabs over content, [Tabs](/docs/components/tabs).
+`NavList.navList` is a list of items with an icon and a count, under headings. One item is selected, with an accent mark at its left. Use it for the pages of a settings window or the sections of an app's sidebar. For nested data, use a [Tree](/docs/components/tree); for tabs over content, [Tabs](/docs/components/tabs).
 
 <Shot src="kit/gallery-{theme}-2x" rows="nav list" alt="A nav list item in each state" />
 
@@ -12,16 +12,20 @@ description: A list of pages or sections with one selected, headings between the
 ```java snippet="nav-list"
 ```
 
+`s.page` is the index of the selected item in the list, headings counted, in the app's state.
+
 | | |
 | --- | --- |
 | `navList(t, items, selected, onSelect)` | A list of `NavList.Item`s |
-| `navList(t, count, index -> item, selected, onSelect)` | A virtual list for many items, building only those in view |
+| `navList(t, count, index -> item, selected, onSelect)` | A virtual list for many items, which builds only those in view |
 | `NavList.item([icon,] label)`, `.count(text)` | An item and its count |
 | `NavList.heading(label)` | A heading, skipped by the keys |
 
+In a card, wrap it in `Card.inset(t, list)`.
+
 ## Values instead of indexes
 
-`navList(t, values, selected, value -> item, onSelect)` lists values of any type, and with a function from a value to its group, `navList(t, values, selected, value -> item, value -> group, onSelect)`, puts a heading wherever the group changes (none for a null group):
+`navList(t, values, selected, value -> item, onSelect)` lists values of any type. With a function from a value to its group, `navList(t, values, selected, value -> item, value -> group, onSelect)` puts a heading wherever the group changes, and none for a null group. The value is found as on [Select](/docs/components/select#values-instead-of-indexes).
 
 ```java snippet="nav-list-types"
 ```
@@ -29,20 +33,18 @@ description: A list of pages or sections with one selected, headings between the
 ```java snippet="nav-list-typed"
 ```
 
-The selected value is found by `equals`, a null among the values too; null where the list has none, or a value not in the list, selects nothing. Equal values show once, so that the keys go on from the selected value to the next one that differs. The handler gets the value; a null handler disables it. The headings count as rows, in the keys and positions of the tree dump, as in the form with indexes:
+The headings count as rows in the keys and positions of the tree dump, as with indexes:
 
 ```text file="examples/src/test/resources/golden/docs/navigation-typed/view.tree.txt" start="role=listbox" count="5"
 ```
 
-In a card, wrap it in `Card.inset(t, list)`.
-
 ## Keyboard
 
-One stop for Tab; Up, Down, Home, End, Page Up and Page Down move the selection, skipping headings.
+One stop for Tab. Up, Down, Home, End, Page Up and Page Down move the selection, skipping headings.
 
 ## In a tree dump
 
-`role=listbox` with its label; items `role=option` with `selected` and `pos`, keys `item-<index>` counting headings:
+`role=listbox` with its label. Items are `role=option` with `selected` and `pos`, and the key `item-<index>`, counting headings:
 
 ```text file="examples/src/test/resources/golden/docs/navigation/view.tree.txt" start="role=listbox" count="5"
 ```

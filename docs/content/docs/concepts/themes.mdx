@@ -3,14 +3,14 @@ title: Themes and tokens
 description: The kit's Theme record of colour, space, type, size and motion tokens, the dark and light themes, and how to change them.
 ---
 
-The kit's look comes from `Theme`, a record of token groups: surfaces, text colours, borders, accent, status colours, spacing, radii, type, sizes, motion, the grid's, elevation, code colours and more. `Theme.DARK` and `Theme.LIGHT` are the defaults; an app copies one and changes a group with a `with` method, or takes one of the named accents. Components read only tokens, so a changed theme changes everything at once.
+The kit's look comes from `Theme`, a record of token groups: surfaces, text colours, borders, accent, status colours, spacing, radii, type, sizes, motion, elevation, the grid's and code colours, and more. `Theme.DARK` and `Theme.LIGHT` are the defaults; change a group with a `with` method or pick a named accent. Components read only tokens, so a changed theme changes every component at once.
 
 ```java snippet="theme"
 ```
 
 ## Passing the theme
 
-Every component takes the theme as its first parameter. There is no global theme: the view gets it from the state or a constant, so two themes can be on screen at once, and a switch between dark and light is a field in the state:
+Every component takes the theme as its first parameter. There is no global theme: the view gets it from the state or a constant, so two themes can be on screen at once, and switching between dark and light is a field in the state:
 
 ```java snippet="theme-switch"
 ```
@@ -21,12 +21,12 @@ Every component takes the theme as its first parameter. There is no global theme
 | --- | --- |
 | `surface()` | `window` (the page), `panel` (cards), `raised` (controls), `band` (bars inside cards), `hover`, `pressed`, `scrim`, `popup` (menus, lists, the palette, popovers, tooltips, toasts), `highlight` (the item under the pointer or the keys in a popup's list) |
 | `text()` | `primary`, `muted`, `disabled`, `onAccent` |
-| `border()` | `subtle` (edges of cards, grid lines), `divider` (hairlines that separate content: dividers, menu separators, a group's rows), `control` (buttons, popups), `strong` (fields) |
+| `border()` | `subtle` (edges of cards, grid lines), `divider` (hairlines that separate content: dividers, menu separators, a group's rows), `control` (buttons, popups, a field's top and sides), `strong` (a field's bottom line, a checkbox's box), `track` and `trackOnAccent` (a spinner's ring, on the surfaces and on a primary button) |
 | `accent()` | `color`, `hover`, `pressed`, `selection`, `edge` (lines, rings, the grid's cursor) |
 | `status()` | `danger`, `warning`, `success` |
 | `space()` | `xs`, `s`, `m`, `l`, `xl`, `xxl` |
 | `radius()` | `small` (4), `medium` (6), `large` (10) |
-| `type()` | `body` (13), `mono` (12), `strong` (13, medium), `heading` (14, semibold: sections and cards), `dialog` (16, semibold: a dialog's title), `title` (20, semibold: a page) |
+| `type()` | `body` (13), `small` (12: secondary text beside what it is about), `mono` (12), `strong` (13, medium), `heading` (14, semibold: sections and cards), `dialog` (16, semibold: a dialog's title), `title` (20, semibold: a page) |
 | `size()` | `control`, `field`, `icon`, `checkbox`, `stroke`, … |
 | `motion()` | `feedback`, `move`, `fade` springs; tooltip and submenu delays; how long a toast stays |
 | `elevation()` | Shadows of `card` (the least), `popup`, `dialog` (the most) |
@@ -36,16 +36,16 @@ Every component takes the theme as its first parameter. There is no global theme
 
 ## Accents
 
-`theme.withAccent(Theme.Hue.VIOLET)` takes a named accent instead of its colours: `BLUE` (the default), `VIOLET`, `PURPLE`, `PINK`, `RED`, `ORANGE`, `AMBER`, `GREEN`, `TEAL` and `GREY`, enough for a colour per connection or per window. Each hue has an accent made for a dark theme (`hue.dark()`) and one for a light theme (`hue.light()`), and `withAccent` takes the one of the theme's lightness. Every one of them holds the rules the default accent holds, in both themes: white text 4.5:1 on the accent, its hover and pressed tones; the accent 3:1 on cards and controls; its edge 3:1 on every surface, on the grid's selection and on a progress bar's track. Only the accent changes: the grid's selection, links and the tint of a changed cell stay blue.
+`theme.withAccent(Theme.Hue.VIOLET)` picks a named accent: `BLUE` (the default), `VIOLET`, `PURPLE`, `PINK`, `RED`, `ORANGE`, `AMBER`, `GREEN`, `TEAL` or `GREY`, for example a colour per connection or per window. Each hue has a version for dark themes (`hue.dark()`) and one for light themes (`hue.light()`), and `withAccent` picks the one that fits. All of them meet the same contrast as the default accent in both themes. Only the accent changes: the grid's selection, links and the tint of a changed cell stay blue.
 
-An accent of your own is a `Theme.Accent` of a colour, its hover and its pressed tones; the selection is then the colour at 40 % and the edge the colour itself, which in a dark theme may need a lighter tone (the five-value constructor) to stand out 3:1:
+Your own accent is a `Theme.Accent` of a colour and its hover and pressed tones. The selection is then the colour at 40 % and the edge (focus rings, the grid's cursor) the colour itself; in a dark theme the edge may need a lighter tone, which the five-value constructor takes, to reach 3:1 contrast:
 
 ```java snippet="own-accent"
 ```
 
 ## Colours
 
-A colour is an `int`, `0xAARRGGBB` in 8-bit sRGB with straight alpha, everywhere: in `El.fill`, `color`, `border`, `Shadow` and the theme. `com.rethinkj.ui.Colors` writes, reads and mixes them, so that code needs no hex digits of alpha or masks:
+A colour is an `int`, `0xAARRGGBB` in 8-bit sRGB with straight (not premultiplied) alpha, everywhere: in `El.fill`, `color`, `border`, `Shadow` and the theme. `com.rethinkj.ui.Colors` creates, reads and mixes them, so code needs no alpha hex digits or bit masks:
 
 ```java snippet="colours"
 ```
@@ -54,21 +54,19 @@ A colour is an `int`, `0xAARRGGBB` in 8-bit sRGB with straight alpha, everywhere
 | --- | --- |
 | `rgb(0x3D6FE6)`, `rgb(r, g, b)`, `argb(a, r, g, b)` | An opaque colour from 24 bits or from channels of 0 to 255 |
 | `alpha(colour, 0.4f)` | The colour at that alpha, `round(share * 255)`: 0.4 is `0x66` |
-| `hex("#3D6FE6")`, `hex("#663D6FE6")`, `toHex(colour)` | Read from text and write back; a mistake names what a colour looks like |
+| `hex("#3D6FE6")`, `hex("#663D6FE6")`, `toHex(colour)` | Parse from text and format back; a parse error shows the expected form |
 | `alpha(c)`, `red(c)`, `green(c)`, `blue(c)` | The channels, 0 to 255 |
 | `over(base, overlay)` | A translucent colour over an opaque one, mixed in linear light as the renderer does |
 | `mix(a, b, t)` | `t` of the way from `a` to `b`, in linear light; `mix(c, BLACK, 0.2)` is `c` with 20 % less light |
 | `luminance(c)`, `contrast(a, b)`, `lightness(c)` | WCAG's relative luminance and contrast ratio, and CIELAB's L* |
 | `BLACK`, `WHITE`, `TRANSPARENT` | |
 
-The default themes are written with the colours of the kit's `Palette`, named by hue and lightness: `BLUE_496` is a blue of L* 49.6, `GREY_083` the dark theme's card. An app may use them too; what a colour is for is still the theme's token, `t.accent().color()` rather than `Palette.BLUE_496`, so that a changed theme changes it.
+The default themes use the colours of the kit's `Palette`, named by hue and lightness: `BLUE_496` is a blue of L* 49.6. An app may use them too, but prefer the theme's token for a purpose, `t.accent().color()` rather than `Palette.BLUE_496`, so a changed theme changes it.
 
-## The look
+## Contrast
 
-The look is layered: the window's background is a page, each region a card on it, controls raised above, popups above all. In both default themes these are distinct tones: in `Theme.LIGHT` the window is a blue-grey, cards are a step lighter, bars inside a card (a tab bar, a grid's header, a footer) a step darker than the card, and controls and popups white; in `Theme.DARK` popups are a step lighter than controls, so that a menu stands apart from the card behind it. The item under the pointer or the keys in a popup's list is a neutral grey, so that the accent's tint marks a selection only. Hairlines of low contrast separate rows; buttons and popups have a slightly stronger edge, fields a strong one. The full accent fills primary buttons and what is on; its lighter edge draws the focus ring, the active tab's line and the grid's cursor. The default themes hold text to WCAG AA contrast (4.5:1) on every surface it appears on, which the kit's tests check; a theme of your own should too.
-
-`Colors.over(base, overlay)` (also `Theme.over`) mixes a translucent colour into a surface as the renderer does, in linear light.
+In the default themes, primary and muted text reach WCAG AA contrast (4.5:1) on every surface they appear on; disabled text is deliberately lower. A theme of your own should do the same; `Colors.contrast(a, b)` measures it.
 
 ## Following the system
 
-`WindowLoop.appearance(look -> …)` tells the app the system's scheme, accent colour and high contrast at the start and whenever they change, so an app can choose `DARK` or `LIGHT` (and the accent) like the system. See [Windows, icons and dialogs](/docs/concepts/platform).
+`WindowLoop.appearance(look -> …)` reports the system's dark or light scheme, accent colour and high contrast at the start and whenever they change, so the app can pick `DARK` or `LIGHT` (and the accent) to match. See [Windows, icons and dialogs](/docs/concepts/platform).

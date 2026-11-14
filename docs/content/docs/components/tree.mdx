@@ -3,14 +3,34 @@ title: Tree
 description: Nodes that open and close, such as servers, databases, schemas, tables and columns.
 ---
 
-`Tree.tree` shows a hierarchy whose nodes open and close, with keyboard navigation, lazy loading and a virtual list of rows, so a tree of 100 000 visible nodes scrolls as smoothly as one of ten. The app implements `Tree.Model` over its own nodes and keeps which are open and which is selected. For a flat list of sections, use a [NavList](/docs/components/nav-list); for rows with columns, a [DataGrid](/docs/components/data-grid).
+`Tree.tree` shows a hierarchy whose nodes open and close, with keyboard navigation and children that load later. It builds only the rows in view, so a tree of 100 000 visible nodes scrolls as smoothly as one of ten. The app implements `Tree.Model` over its own nodes and keeps which are open and which is selected. For a flat list of sections, use a [NavList](/docs/components/nav-list); for rows with columns, a [DataGrid](/docs/components/data-grid).
 
 <Shot src="kit/tree-{theme}-opened" alt="A schema tree with servers, a database, schemas and tables, one row selected" />
 
-## The model
+## Example
 
 ```java snippet="tree-model"
 ```
+
+```java snippet="tree"
+```
+
+`s.open` is a set of the open nodes' names and `s.selected` the selected node, both in the app's state.
+
+`Tree.tree(theme, model, isOpen, selected, onSelect, onToggle, onActivate)`:
+
+| Parameter | |
+| --- | --- |
+| `isOpen` | Whether a node is open; the app keeps the set |
+| `selected`, `onSelect` | The selected node, and a handler called only when it changes |
+| `onToggle` | `(node, open) -> …`: the user opens or closes a node. Start loading its children here, off the app's thread, and change the state when they arrive |
+| `onActivate` | Enter or a double press on a node, such as opening a table |
+
+A secondary press selects the row first and then runs the tree's own `onSecondaryPress`, so `Menu.contextMenu(t, tree, state, items)` acts on the row it opened on. The tree's rows are rounded; in a card, wrap it in `Card.inset(t, tree)`. The tree scrolls to keep the selection in view, and scrolls the children of a node that opens into view. The marks are icons and need `rethinkj-ui-icons`.
+
+## The model
+
+The app's nodes reach the tree through `Tree.Model`:
 
 | Method | |
 | --- | --- |
@@ -19,26 +39,37 @@ description: Nodes that open and close, such as servers, databases, schemas, tab
 | `isLeaf(node)` | A leaf has no mark and does not open |
 | `label(node)` | The row's text, also its label in a tree dump |
 | `icon(node)` | An element before the label, such as an icon; null by default |
-| `detail(node)` | A text after the label in muted text, such as a column's type or a schema's number of tables; null by default. Asked only for the rows that are built |
+| `detail(node)` | A muted text after the label, such as a column's type or a schema's number of tables; null by default |
 | `loading(node)` | The text of the loading row; "Loading…" by default |
-| `failure(node)` | Why the children of an open node could not be read, or null, the default, while they are on their way: a `Tree.Failure` shows in place of the loading row. Asked only for the rows that are built |
-| `muted(node)` | Whether the label is in muted text, as a schema of the system beside the app's own; false by default. Asked only for the rows that are built |
+| `failure(node)` | A `Tree.Failure` when the children of an open node could not be read; null by default, and while they load |
+| `muted(node)` | Whether the label is muted, as for a system schema beside the app's own; false by default |
 
-## The tree
+`detail`, `failure` and `muted` are called only for the rows in view.
 
-```java snippet="tree"
+## Children that could not be read
+
+While `children(node)` is null, the row below an open node shows the model's `loading` text. When loading fails, `failure(node)` returns a `Tree.Failure`, and the row shows a danger icon, the message and an action, such as Try again, at its end. The tree does not try again by itself: the action does, and `failure` returns null again while the children load.
+
+```java snippet="tree-failure"
 ```
 
-`Tree.tree(theme, model, isOpen, selected, onSelect, onToggle, onActivate)`:
+<Shot src="kit/tree-{theme}-failed" alt="A schema tree whose last server, backup, is open, and below it a row with a red icon, the message Cannot read the da… cut short and a Try again link at its end" />
 
-| Parameter | |
-| --- | --- |
-| `isOpen` | Whether a node is open; the app keeps the set |
-| `selected`, `onSelect` | The selected node, and a handler told only of a change |
-| `onToggle` | `(node, open) -> …`: the user opens or closes a node. Start loading its children here, off the app's thread, and change the state when they arrive. |
-| `onActivate` | Enter or a double press on a node, such as opening a table |
+The failure row is not a node: the selection skips it, as it skips the loading row. Its action is a Tab stop after the tree; Enter and Space run it, and a press on it leaves the focus where it is.
 
-A secondary press selects the row first and then runs the tree's own `onSecondaryPress`, so `Menu.contextMenu(t, tree, state, items)` acts on the row it opened on. The tree rows are rounded; in a card, wrap it in `Card.inset(t, tree)`. The tree follows the selection, and when nodes open it scrolls their children into view.
+## Muted rows
+
+`muted(node)` shows a row's label in muted text, such as the system's schemas beside the app's own. The icon and the detail stay as they are, and the row works as any other.
+
+<Shot src="kit/tree-{theme}-muted" alt="A schema tree with the database postgres open: its schema pg_catalog and the tables in it in muted text, the schema public in normal text" />
+
+## Long labels and details in a narrow tree
+
+A label longer than its row ends in an ellipsis, and so do a loading text and a failure's message. Where a row has a detail, the detail gives way first: it ends in an ellipsis, and it is left out once not even its first character fits. Then the label ends in an ellipsis. Where anything is cut or left out, a tooltip shows the row's whole text.
+
+<Shot src="kit/tree-{theme}-narrow" alt="A narrow schema tree: the number of tables after public ends in an ellipsis, and the types after the longer column names are left out" />
+
+<Shot src="kit/tree-{theme}-long" alt="A narrow schema tree with a table name that ends in an ellipsis, and below it a tooltip with the whole name" />
 
 ## Keyboard
 
@@ -49,45 +80,18 @@ A secondary press selects the row first and then runs the tree's own `onSecondar
 | Left | Close, then go to the parent |
 | Enter | Activate |
 
-A press selects, a press on the chevron selects and opens or closes, and a double press opens or closes and activates. The marks are icons and need `rethinkj-ui-icons`.
-
-## Children that could not be read
-
-While `children(node)` is null, the row below an open node says the model's `loading` text. When the load fails, the model's `failure(node)` returns a `Tree.Failure` instead of null, and the row shows an icon in the danger colour, the message and its action, such as Try again, at the row's end. The tree does not try again by itself: the action does, and `failure` returns null again while the children are on their way.
-
-```java snippet="tree-failure"
-```
-
-<Shot src="kit/tree-{theme}-failed" alt="A schema tree whose last server, backup, is open, and below it a row with a red icon, the message Cannot read the da… cut short and a Try again link at its end" />
-
-The row is not a node: the selection passes it, as it passes the loading row. Its action is a stop for Tab after the tree, Enter and Space run it, and a press on it leaves the focus where it is.
-
-## Muted rows
-
-`muted(node)` puts a row's label in muted text, such as the system's schemas beside the app's own. The icon is the model's and the detail stays as it is; the row works as any other.
-
-<Shot src="kit/tree-{theme}-muted" alt="A schema tree with the database postgres open: its schema pg_catalog and the tables in it in muted text, the schema public in normal text" />
-
-## Long labels and details in a narrow tree
-
-A label longer than its row ends in an ellipsis, and so do a loading text and a failure's message. Where a row has a detail, the detail gives way first: it ends in an ellipsis, and once less than its first character would show it is left out, before the label is cut at all; then the label ends in an ellipsis. Where anything is cut or left out, a tooltip after the theme's delay shows the row's text whole.
-
-An empty detail is allowed. When deciding whether a shortened detail fits, its minimum is one whole grapheme and an ellipsis, keeping combining marks and joined emoji together.
-
-<Shot src="kit/tree-{theme}-narrow" alt="A narrow schema tree: the number of tables after public ends in an ellipsis, and the types after the longer column names are left out" />
-
-<Shot src="kit/tree-{theme}-long" alt="A narrow schema tree with a table name that ends in an ellipsis, and below it a tooltip with the whole name" />
+A press selects. A press on the chevron selects and opens or closes. A double press opens or closes and activates.
 
 ## In a tree dump
 
-The tree is `role=tree`, a list of rows with `rows <first>-<last>/<count>`. Each row is `role=treeitem` with the node's label, the key `row-<index>`, and `expanded` or `expanded=false` (not on leaves), `level=<n>` and `pos=<n>/<siblings>`, and its detail as `value="<detail>"`; the selected row is `selected`. The detail's text is in the dump as any text, in a box after the label. Marks have the key `mark-<index>`. A muted row says nothing more: only its label's colour differs.
+The tree is `role=tree`, a list of rows with `rows <first>-<last>/<count>`. Each row is `role=treeitem` with the node's label, the key `row-<index>`, `expanded` or `expanded=false` (not on leaves), `level=<n>` and `pos=<n>/<siblings>`, and its detail as `value="<detail>"`. The selected row is `selected`. The detail's text also shows as a text after the label. Marks have the key `mark-<index>`. A muted row looks the same in a dump: only its label's colour differs.
 
 ```text file="examples/src/test/resources/golden/docs/tree/selected.tree.txt" start="#schema" count="16"
 ```
 
 A script opens `public` with `press #mark-1` and selects with `press role=treeitem label="orders"`.
 
-The loading row has no role. A failure's row is `role=treeitem` and `invalid`, with the message as its label and as `error="<message>"`, at the level of the children it stands for; its action is `role=button` with its text as the label. A script finds the row with `role=treeitem invalid` and presses the action with `press role=button label="Try again"`:
+The loading row has no role. A failure's row is `role=treeitem` and `invalid`, with the message as its label and as `error="<message>"`, at the level of the children it stands for. Its action is `role=button` with its text as the label. A script finds the row with `role=treeitem invalid` and presses the action with `press role=button label="Try again"`:
 
 ```text file="kit/src/test/resources/golden/tree-dark-failed.tree.txt" start="invalid" count="5"
 ```

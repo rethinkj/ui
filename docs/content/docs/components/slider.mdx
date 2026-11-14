@@ -12,11 +12,19 @@ description: A knob on a rail for a whole number in a range.
 ```java snippet="slider"
 ```
 
-`Slider.slider(t, value, min, max, step, onChange)`. Dragging puts the knob under the pointer by steps; a press on the rail puts it there. A null handler disables it.
+`s.fontSize` is an `int` in the app's state.
+
+`Slider.slider(t, value, min, max, step, onChange)`. Dragging moves the knob under the pointer by steps; a press on the rail puts it there. A null handler disables it.
+
+The stops are `min` and every `step` after it. Where the range is not a whole number of steps, the last stop is the last one before `max`: End on 0 to 10 by 3 gives 9.
 
 ## Keyboard
 
-The arrows step, Page Up and Page Down by a tenth of the range, rounded down to whole steps and at least one, Home and End go to the ends; Enter and Space do nothing. The stops are `min` and every `step` after it, so where the range is no whole number of steps the last stop is the last before `max` (End on 0 to 10 by 3 gives 9).
+The arrows step. Page Up and Page Down step by a tenth of the range, at least one step. Home and End go to the ends. Enter and Space do nothing.
+
+## With a Prop
+
+`slider(t, prop, min, max, step)` takes a [`Prop`](/docs/concepts/editing#components-that-take-a-prop), such as a field of an `Editing`, in place of the value and its handler.
 
 ## In a tree dump
 
@@ -24,7 +32,3 @@ The arrows step, Page Up and Page Down by a tenth of the range, rounded down to 
 
 ```text file="examples/src/test/resources/golden/docs/choices/view.tree.txt" start="role=slider" count="1"
 ```
-
-## With a Prop
-
-`slider(t, prop, min, max, step)` takes a `Prop` in place of the value and its handler, such as a field of an [Editing](/docs/concepts/editing) of a record: it writes the prop back, shows its field's error, and is disabled when the prop cannot be written.

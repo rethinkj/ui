@@ -3,7 +3,7 @@ title: Text and fonts
 description: Text elements, the default fonts Inter and JetBrains Mono, wrapping, ellipses and fallback fonts.
 ---
 
-`El.text("…")` makes a text element: a leaf that layout sizes to its shaped text. Text is shaped with HarfBuzz, so kerning, ligatures and scripts that join their letters come out right, and rasterised with FreeType, so it looks the same on Windows and Linux. The kit's `Label` sets the theme's styles for you; use `El.text` for anything else.
+`El.text("…")` makes a text element, sized by its text. Text is shaped with HarfBuzz (kerning, ligatures, joining scripts) and rasterised with FreeType, so it looks the same on Windows and Linux. The kit's `Label` applies the theme's text styles; use `El.text` for anything else.
 
 ```java snippet="text"
 ```
@@ -16,11 +16,11 @@ description: Text elements, the default fonts Inter and JetBrains Mono, wrapping
 | `maxLines(n)` | Show at most `n` lines of a wrapped text; with `ellipsis()` the last ends in `…` where the text goes on |
 | `textAlign(Style.Align.CENTER)` | Each line centred (or `END`) in its box |
 | `fontFeatures("+calt")` | OpenType features in HarfBuzz's syntax |
-| `textBackground(argb)` | The colour behind the text, where the renderer cannot find it (for its coverage correction) |
+| `textBackground(argb)` | The colour behind the text when it is not the fill of the element or an ancestor, such as an image or a sibling below; glyph edges are drawn for that colour |
 
-A line feed always starts a line. A wrapped text breaks between words where it can; a piece with no place to break that is wider than the whole box, such as a file path or a URL, starts a line of its own and breaks inside, between characters, as CSS's `overflow-wrap: break-word` does. Layout still gives a text in a row room for its longest word whole: only a box that is narrower breaks it.
+A line feed always starts a new line. Wrapped text breaks between words; a word wider than the whole box, such as a file path or a URL, starts its own line and breaks between characters, as with CSS's `overflow-wrap: break-word`. In a row, layout still gives a text room for its longest word; only a narrower box breaks it.
 
-After layout, `el.text()` is the element's `Text`: `shortened()` says whether a line was cut to fit and ends in `…`, for a tooltip with the whole text (the kit's `Tooltip.whenShortened` asks it), and `lines()` holds what is drawn, a `GlyphRun` per line with its width and baseline in physical pixels.
+After layout, `el.text()` returns the element's `Text`. `shortened()` says whether a line was cut with `…`, for a tooltip with the whole text (the kit's `Tooltip.whenShortened` uses it). `lines()` holds a `GlyphRun` per drawn line, with its width and baseline in physical pixels.
 
 ## Fonts
 
@@ -35,13 +35,13 @@ The default fonts come in `rethinkj-ui-fonts`, the icons in `rethinkj-ui-icons`.
 
 ## Characters a font lacks
 
-`font.withFallback(other...)` falls back to other fonts in order, cluster by cluster, keeping the first font's line height. `font.withSystemFonts()` then falls back to the fonts installed on the system (Noto and DejaVu on Linux, Segoe UI and the CJK fonts on Windows, chosen by script and locale). In a window, the app falls back to the system's fonts for all text; under a script it does not, so that images are the same everywhere. `app.systemFonts(boolean)` switches it; a `WindowLoop` turns it on when it starts, unless `loop.systemFonts(false)`.
+`font.withFallback(other...)` falls back to other fonts in order, keeping the first font's line height. `font.withSystemFonts()` then falls back to the fonts installed on the system (Noto and DejaVu on Linux, Segoe UI and the CJK fonts on Windows, chosen by script and locale). In a window, all text falls back to the system's fonts; under a script it does not, so images are the same on every machine. `app.systemFonts(boolean)` switches it; `WindowLoop` turns it on unless `loop.systemFonts(false)`.
 
-Right-to-left scripts are shaped right to left within their runs; lines are not reordered by the full bidirectional algorithm. Colour emoji show as outlines in the text colour where the font has them.
+Right-to-left text is shaped right to left, but mixed-direction lines are not reordered (no full bidirectional algorithm). Colour emoji show as outlines in the text colour where the font has them.
 
 ## Text rendering
 
-`app.textRendering(TextRendering.LINUX)` or `WINDOWS` chooses the hinting and the gamma of the coverage; the default is the platform's. Tests that compare images pin one, so that they pass on both platforms.
+`app.textRendering(TextRendering.LINUX)` or `WINDOWS` chooses how glyphs are hinted and blended; the default is the platform's. Pin one in [image tests](/docs/testing/stored-images) so they pass on both platforms.
 
 ## In a tree dump
 

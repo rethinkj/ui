@@ -3,21 +3,22 @@ title: DataGrid
 description: A table of query results for ten rows or a million, and a dozen columns or hundreds.
 ---
 
-`DataGrid.dataGrid` shows rows of cells under a header of column titles, as dense as a database tool shows them. Use it for query results and any large table: it builds only the rows and columns in view, so a million rows cost as much as ten. The app owns the data and every piece of state; the grid shows them and tells the app what the user does. For a short list of things to choose from, use a [NavList](/docs/components/nav-list) or a [Select](/docs/components/select); for nested data, a [Tree](/docs/components/tree).
+`DataGrid.dataGrid` shows rows of cells under a header of column titles, as dense as a database tool shows them. Use it for query results and any large table: it builds only the rows and columns in view, so a million rows cost as much as ten. The app owns the data and every piece of state; the grid shows them and tells the app what the user does. For a short list of things to choose from, use a [NavList](/docs/components/nav-list) or a [Select](/docs/components/select); for nested data, a [Tree](/docs/components/tree). The [DataBrowser](/docs/examples/data-browser) example shows a million rows with all of it.
 
 <Shot src="kit/grid-{theme}-top" alt="The data grid with a million orders: row numbers, a frozen id column and typed columns" />
 
-## The smallest grid
+## Example
 
 ```java snippet="grid"
 ```
 
+- `s.selection` is a `DataGrid.Selection` and `s.gridCommands` a `DataGrid.Commands`, both in the app's state. `value(i, c)` and `COUNT` stand for the app's data.
 - Each `Column` has a title, a width and a function from a row index to the cell's text. Null is SQL `NULL`, shown as a muted `NULL`.
 - `DataType` gives the column its alignment, font and header icon: `INTEGER`, `DECIMAL`, `TEXT`, `BOOLEAN`, `DATE`, `TIME`, `DATE_TIME`, `INTERVAL`, `UUID`, `JSON`, `BINARY`, `ARRAY`, `ENUM`, `GEOMETRY`, `OTHER`. Map your driver's types to it once.
-- The cell functions are called only for the cells the grid builds, those in view and a few rows and columns around them, while a frame runs. Keep them cheap: an array lookup, not a query.
+- The cell functions are called only for the cells in view and a few around them, on every frame. Keep them cheap: an array lookup, not a query.
 - Like any list of rows, the grid needs a height of its own or room to `grow`.
 
-The grid has no border of its own: it sits flush in a card, as `Card.flush(t, grid)`.
+The grid has no border of its own: put it flush in a card, as `Card.flush(t, grid)`.
 
 ## Columns
 
@@ -35,15 +36,13 @@ For rows held as records or POJOs, `DataGrid.table(rows).column(title, width, Fo
 
 The methods return a changed copy, so a view builds columns in one expression. Hiding or reordering columns is the app's: it changes its list, or uses a `Layout` (see [Sorting and columns](/docs/components/data-grid/sorting-and-columns)).
 
-A cell's text shows on one line, a line break as `⏎` and a tab as `⇥`. Where it does not fit it ends in an ellipsis and shows whole in a tooltip. Where a header is narrow, the type gives way first, then the title.
-
-An empty type name is allowed. Fit decisions for shortened types and values use their first whole grapheme and an ellipsis as the minimum, keeping combining marks and joined emoji together.
+A cell's text shows on one line, a line break as `⏎` and a tab as `⇥`. Where it does not fit, it ends in an ellipsis and shows whole in a tooltip. Where a header is narrow, the type name gives way first, then the title.
 
 <Shot src="kit/grid-icons-{theme}-2x-top" alt="A grid with types in the headers, a key, links, checks, NULL markers and status marks" />
 
 ## Details
 
-`column.detail(row -> text)` puts a short text in muted type beside each cell's value that stays when the value is cut: the size of a long value, a unit, a count. In a column aligned left it stands `space().s()` after the value, in one aligned right before it, so that numbers stay at the right edge. It keeps its width while the value ends in an ellipsis; in a cell too narrow for the detail and the value's first character with an ellipsis it is left out entirely, and the cell's tooltip names value and detail. The function runs after the cell's text function, for loaded rows only; a cell with a detail costs one element more, one without none.
+`column.detail(row -> text)` puts a short muted text beside each cell's value that stays when the value is cut: the size of a long value, a unit, a count. In a column aligned left it stands after the value; in one aligned right, before it, so that numbers stay at the right edge. The detail keeps its width while the value ends in an ellipsis. In a cell too narrow for the detail and the value's first character, the detail is left out, and the cell's tooltip names value and detail. The function runs for loaded rows only.
 
 ```java snippet="grid-fit"
 ```
@@ -61,25 +60,26 @@ A copy and the editor take the value alone, and the editor covers the whole cell
 
 | Option | What it does |
 | --- | --- |
-| `select(Selection)` | A cursor and a selection that the app keeps. Needed by most other options. [Selection](/docs/components/data-grid/selection) |
-| `onSelect(Runnable)` | Told when the selection changes. |
-| `rowNumbers()` | A column of row numbers that selects rows. |
-| `frozen(int columns)` | The first columns stay at the left while the rest scroll sideways. |
-| `copy(Clipboard)`, `nullText(String)`, `copyLimit(cells)`, `onLargeCopy(handler)` | Control+C copies the selection as tab-separated text; a large-copy handler can keep the default limit and receives its effective value. |
-| `contextMenu(Menu.State, items)` | A menu at a secondary press: Copy, Copy with headers, then the app's items. |
+| `select(Selection)` | A cursor and a selection that the app keeps. Most other options need it. [Selection](/docs/components/data-grid/selection) |
+| `onSelect(Runnable)` | Called when the selection changes |
+| `rowNumbers()` | A column of row numbers that selects rows |
+| `frozen(int columns)` | The first columns stay at the left while the rest scroll sideways |
+| `copy(Clipboard)`, `nullText(String)`, `copyLimit(cells)`, `onLargeCopy(handler)` | Control+C copies the selection as tab-separated text. [Copying](/docs/components/data-grid/selection#copying) |
+| `commands(Commands)` | Copy, paste and select all from the app's own menu. [Commands](/docs/components/data-grid/selection#commands-from-an-external-menu) |
+| `contextMenu(Menu.State, items)` | A menu at a secondary press: Copy, Copy with headers, then the app's items |
 | `sort(keys, onSort)` | Sort keys in the header. [Sorting and columns](/docs/components/data-grid/sorting-and-columns) |
-| `onResize((column, width) -> …)` | Dragging a header edge resizes; a double press fits. |
-| `fitColumns(Fit)` | Every column as wide as its content once per result. [Sorting and columns](/docs/components/data-grid/sorting-and-columns#fitting-columns) |
-| `columns(Layout)`, `onFreeze(n -> …)` | The order and hidden columns, chosen in the header. |
-| `loading(loaded, onRows)` | Rows not loaded yet show `…`; the app is told which rows are in view, to load them. |
+| `onResize((column, width) -> …)` | Dragging a header's edge resizes; a double press fits |
+| `fitColumns(Fit)` | Every column as wide as its content, once per result. [Fitting columns](/docs/components/data-grid/sorting-and-columns#fitting-columns) |
+| `columns(Layout)`, `onFreeze(n -> …)` | The order and hidden columns, chosen in the header |
+| `loading(loaded, onRows)` | Rows not loaded yet show `…`; the app is told which rows are in view, to load them |
 | `filters(filters, onFilter)`, `filterable(columns)` | A filter in each header cell. [Filters](/docs/components/data-grid/filters) |
 | `changes(GridChanges)` | Editing with pending changes, undo and redo. [Editing](/docs/components/data-grid/editing) |
-| `onEdit((row, column) -> …)` | Enter, F2 and a double press ask the app to edit a cell itself. |
-| `onCommit`, `onPaste`, `onInsertRow`, `onDeleteRows`, `appendRow`, `status`, `history` | The parts of editing that `changes` wires for you. |
+| `onEdit((row, column) -> …)` | Enter, F2 and a double press ask the app to edit a cell itself |
+| `onCommit`, `onPaste`, `onInsertRow`, `onDeleteRows`, `appendRow`, `status`, `history` | The parts of editing that `changes` wires for you |
 
 ## Rows that load later
 
-For results that arrive in pages, `loading(loaded, onRows)` shows a muted `…` in the cells of rows that `loaded` says are not there yet, without calling the cell functions, and tells `onRows` which rows the grid built whenever they change. Load them off the app's thread ([Work off the app's thread](/docs/concepts/background-work)) and the grid shows them when the view is built again.
+For results that arrive in pages, `loading(loaded, onRows)` shows a muted `…` in the cells of rows that `loaded` says are not there yet, without calling the cell functions. It tells `onRows` which rows the grid built whenever they change. Load them off the app's thread ([Work off the app's thread](/docs/concepts/background-work)), and the grid shows them when the view is built again.
 
 ## Keyboard
 
@@ -98,17 +98,9 @@ The grid is one stop for Tab.
 
 ## In a tree dump
 
-The grid is `role=grid`. Header cells are `role=columnheader` with the title as label, the key `column-<index>`, `pos=<column>/<columns>` and a `sort=` state; the edges that resize them `role=separator` with the key `resize-<index>`. Rows are `role=row` with the key `row-<index>`, cells `role=gridcell` with the key `cell-<row>-<column>` and `pos`. Selected rows or cells are `selected`, the cursor's `current`; row numbers are `role=rowheader` with the key `number-<row>`. The indexes in keys count from 0, the positions in `pos=<position>/<size>` from 1.
+The grid is `role=grid`. Header cells are `role=columnheader` with the title as label, the key `column-<index>`, `pos=<column>/<columns>` and a `sort=` state; the edges that resize them are `role=separator` with the key `resize-<index>`. Rows are `role=row` with the key `row-<index>`, and cells `role=gridcell` with the key `cell-<row>-<column>` and `pos`. Selected rows or cells are `selected`, the cursor's `current`. Row numbers are `role=rowheader` with the key `number-<row>`. The indexes in keys count from 0, the positions in `pos=<position>/<size>` from 1.
 
 ```text file="examples/src/test/resources/golden/docs/grid/selected.tree.txt" start="#row-2" count="9"
 ```
 
 So a script selects with `press #cell-2-1`, sorts with `press #column-1`, and finds the third row with `#row-2`.
-
-## Related
-
-- [Selection and copying](/docs/components/data-grid/selection)
-- [Sorting and columns](/docs/components/data-grid/sorting-and-columns)
-- [Editing and changes](/docs/components/data-grid/editing)
-- [Filters](/docs/components/data-grid/filters)
-- The [DataBrowser](/docs/examples/data-browser) example: a million rows with all of it.

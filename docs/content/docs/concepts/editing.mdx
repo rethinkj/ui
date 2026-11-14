@@ -3,25 +3,25 @@ title: Editing records
 description: A form over a record or a POJO, with drafts, rules and the server's errors kept in one Editing.
 ---
 
-An `Editing<T>` is the edit of one value, such as a record in a dialog: the original, the edited value, the texts of typed fields that are no value yet, and the errors of the fields. The app keeps it in its state for as long as the edit lasts, and the kit's components take its fields as a `Prop`, so the view declares no value, draft and handler per field, and Save asks one object whether it may save. Use it for a dialog or a page that edits a value and saves it; for a value that applies at once, such as a theme switch, a `Prop.of` over the state is enough.
+An `Editing<T>` holds the edit of one value, such as a record in a dialog: the original, the edited value, the text of fields that does not parse yet (drafts), and the fields' errors. Keep it in the state while the edit lasts. Kit components take its fields as a `Prop`, so the view needs no value, draft and handler per field, and Save asks one object whether it may save. Use it for a dialog or page that edits a value and saves it; for a value that applies at once, such as a theme switch, `Prop.of` over the state is enough.
 
-## Parts
+## Declare the fields
 
-A `Part` says how a part of a value is read and written back. Declare each once, beside the record, with the record's wither:
+A `Part` says how to read one field of a value and how to write it back. Declare each once, beside the record, with the record's wither:
 
 ```java snippet="editing-record"
 ```
 
-The constant is the field's identity: the editing keeps a field's draft and errors by the parts that lead to it, so `e.at(Order.AMOUNT)` finds the same field in every build, whichever fields come and go around it. A part made anew in the view, `e.at(Part.of(...))`, is a new field in each build and loses its draft. For a record inside a record, `Profile.TLS.then(Tls.MODE)` is a part inside a part, the same field as `e.at(Profile.TLS).at(Tls.MODE)`; a rule or an error can name it. A data grid's [typed column](/docs/components/data-grid/typed) takes the same constant: `table.column("amount", 100, Format.DECIMAL, Order.AMOUNT)`.
+The constant is the field's identity: the editing keeps drafts and errors per part, so `e.at(Order.AMOUNT)` is the same field in every build. Do not create parts in the view: `e.at(Part.of(...))` is a new field in each build and loses its draft. For a record inside a record, `Profile.TLS.then(Tls.MODE)` names the nested field, the same as `e.at(Profile.TLS).at(Tls.MODE)`; rules and errors can use it. A data grid's [typed column](/docs/components/data-grid/typed) takes the same constant: `table.column("amount", 100, Format.DECIMAL, Order.AMOUNT)`.
 
-## The edit
+## Edit and save
 
-The state holds the editing, with a rule across two fields:
+The state holds the editing, here with a rule across two fields:
 
 ```java snippet="editing-state"
 ```
 
-The view gives each component the prop of its field and asks the editing about Save:
+The view passes each component the prop of its field and asks the editing whether Save is allowed:
 
 ```java snippet="editing-view"
 ```
@@ -32,18 +32,18 @@ The view gives each component the prop of its field and asks the editing about S
 | Call | |
 | --- | --- |
 | `Editing.of(record)` | The edit of a value that does not change, such as a record |
-| `Editing.of(pojo, copy)` | The edit of a copy of a POJO, as `Editing.of(settings, Settings::new)`, since its setters change the object |
-| `.rule(part, test, message)` | A rule over the whole value; while it fails, its message shows at the part's field and the edit is not valid |
+| `Editing.of(pojo, copy)` | The edit of a copy of a POJO, as `Editing.of(settings, Settings::new)`, since setters change the object |
+| `.rule(part, test, message)` | A rule over the whole value; while it fails, the message shows at the part's field and the edit is not valid |
 | `e.at(part)` | The `Prop` of a field: its value, where it is written, its draft and its error |
 | `value()`, `original()` | The edited value, and the one the edit began with or last saved |
 | `changed()` | Whether the value differs from the original, by `equals` |
-| `valid()` | No field holds a text that is no value, no error of the app's stands, every rule holds |
+| `valid()` | No field holds text that does not parse, no error set by the app stands, and every rule holds |
 | `reset()` | Back to the original, drafts and errors forgotten |
-| `showErrors()` | Every field shows its draft's error, also one not edited yet, such as a required field left empty: for a Save pressed while the edit is not valid |
+| `showErrors()` | Every field shows its error, also fields not edited yet, such as an empty required field: call it when Save is pressed while the edit is not valid |
 | `saved()` | The value is the new original: `changed()` is false until the next edit |
-| `prop.error(message)` | An error the app learned, such as the server's refusal: shown at the field until its next edit |
+| `prop.error(message)` | An error from the app, such as the server's refusal: shown at the field until its next edit |
 
-A field's error is the first of: its text that is no value, also one the app's value gave it (null in a required field), the app's error, the first failing rule that names it. `valid()` counts a draft's error from the start, but the field shows it only once the user has edited the field or the app has called `showErrors()` (when Save is pressed while the edit is not valid), so that a form over a new record does not open in red. The component shows it (`invalid` and `error="…"` in a dump, the danger border on a text field) and a [Form](/docs/components/form) field puts it below the control without the app passing it. A field that shows only under a condition keeps its draft while it is gone, and its text that is no value still counts against `valid()`.
+A field's error is the first of: a parse error (also for a value that has none, such as null in a required field), an error set by the app, the first failing rule that names the field. `valid()` counts parse errors from the start, but a field shows its parse error only after the user edited it or the app called `showErrors()`, so a form for a new record does not open with parse errors. Errors set by the app and failing rules show at once. The component shows the error (`invalid` and `error="…"` in a dump, a danger border on a text field), and a [Form](/docs/components/form) field shows it below the control. A field that is hidden keeps its draft, and a parse error in it still makes the edit invalid.
 
 ```text file="examples/src/test/resources/docs/editing.txt" start="press #due" count="6"
 ```
@@ -53,7 +53,7 @@ A field's error is the first of: its text that is no value, also one the app's v
 
 ## Components that take a prop
 
-Each has a form with a `Prop` in place of the value and its handler; a prop that cannot be written disables the component, as a null handler does.
+Each has an overload that takes a `Prop` in place of the value and its handler. A read-only prop disables the component, as a null handler does.
 
 | Component | With a prop |
 | --- | --- |
@@ -64,18 +64,14 @@ Each has a form with a `Prop` in place of the value and its handler; a prop that
 | [ComboBox](/docs/components/combo-box) | `comboBox(t, values, prop, text, state)`, `items(t, values, prop, item, state)`, `free(t, prop, suggestions, state)` |
 | [NumberField](/docs/components/number-field), [Slider](/docs/components/slider) | `numberField(t, prop, min, max, step)`, `slider(t, prop, min, max, step)` |
 
-`Prop.of(() -> s.dark, v -> s.dark = v)` is a prop over the app's state, outside an editing: it writes at once, keeps no draft and has no errors. `prop.at(part)` goes into a part of it, and writing that part writes the whole back, a new record through the wither.
+`Prop.of(() -> s.dark, v -> s.dark = v)` is a prop over the state, without an editing: it writes at once, keeps no draft and has no errors. `prop.at(part)` is the prop of one field; writing it writes back the whole value, a new record through the wither.
 
 ## A POJO
 
-A class with getters and setters works the same way. Its parts take the setter with `Part.ofSetter`, and the editing edits a copy, compared by the class's `equals`:
+A class with getters and setters works the same way. Declare its parts with `Part.ofSetter`, which takes the setter where `Part.of` takes a wither; the editing edits a copy and compares by the class's `equals`:
 
 ```java snippet="editing-pojo"
 ```
 
 ```java snippet="editing-pojo-view"
 ```
-
-## Records or POJOs: wither and setter
-
-`Part.of` takes a wither, `Part.ofSetter` a setter. They have names of their own rather than one overloaded name, as `GridTable.column` has, because a lambda such as `(o, v) -> o.withAmount(v)` fits a wither and a setter alike, and Java cannot choose between overloads for it. With two names, a lambda and an overloaded method work as well as a method reference.
