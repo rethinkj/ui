@@ -139,13 +139,12 @@ final class TagInput {
     return false; // the field edits its text as usual
   }
 
-  // docs:end tag-keys
-
   private static List<String> without(List<String> tags, int i) {
     List<String> fewer = new ArrayList<>(tags);
     fewer.remove(i);
     return List.copyOf(fewer);
   }
+  // docs:end tag-keys
 
   // docs:start tag-prop
   /**
