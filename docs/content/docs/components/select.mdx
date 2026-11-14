@@ -24,7 +24,7 @@ description: A button showing the current choice that opens a menu of a few choi
 ```java snippet="select-typed"
 ```
 
-The selected value is found by `equals`; null, or a value that is not in the list, selects nothing. The handler gets the value; a null handler disables it. For an enum, pass `List.of(E.values())`. The tree is the one the form with indexes builds of the same texts.
+The selected value is found by `equals`, a null among the values too; null where the list has none, or a value not in the list, selects nothing. Equal values show once, so that the keys go on from the selected value to the next one that differs. The handler gets the value; a null handler disables it. For an enum, pass `List.of(E.values())`. The tree is the one the form with indexes builds of the same texts.
 
 ## Keyboard
 

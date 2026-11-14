@@ -1,0 +1,1 @@
+- The typed forms of `Select`, `Radio`, `Segmented`, `NavList` and `ComboBox` show equal values once and find a null among the values as a value, so that the arrow keys, Home, End and letters go on from the selected value to the next one that differs; before, `["A", "A", "B"]` never got past the second `A` and `[null, "A"]` never left the null.
