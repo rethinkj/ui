@@ -402,6 +402,12 @@ final class Grids {
       public El icon(Node node) {
         return Icon.icon(t, node.icon(), Icon.Variant.MUTED);
       }
+
+      @Override
+      public String detail(Node node) { // muted after the label; null for none
+        int tables = node.icon() == Symbol.FOLDER ? node.children().size() : 0;
+        return tables == 0 ? null : tables + (tables == 1 ? " table" : " tables");
+      }
     };
   }
   // docs:end tree-model

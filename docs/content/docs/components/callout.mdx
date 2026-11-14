@@ -3,7 +3,7 @@ title: Callout
 description: A note on the raised surface with an edge and icon in the colour of its kind, and optional actions.
 ---
 
-`Callout.callout` is a note that stands out from the content around it: information, a warning or a danger, with a title, a text and optional buttons, such as "Restart needed" with Restart. For a message that goes by itself, use a [Toast](/docs/components/toast); for a page with nothing to show, an [EmptyState](/docs/components/empty-state).
+`Callout.callout` is a note that stands out from the content around it: information, a warning, a danger or a success, with a title, a text and optional buttons, such as "Restart needed" with Restart. For a message that goes by itself, use a [Toast](/docs/components/toast); for a page with nothing to show, an [EmptyState](/docs/components/empty-state).
 
 <Shot src="kit/structure-choices-{theme}-2x" alt="Among other choices, a warning callout with a Restart button" />
 
@@ -12,11 +12,15 @@ description: A note on the raised surface with an edge and icon in the colour of
 ```java snippet="callout"
 ```
 
-`Callout.callout(t, kind, title, text, actions...)`, with `Kind.INFO` (the strong border and an info icon), `WARNING` or `DANGER`.
+`Callout.callout(t, kind, title, text, actions...)`, with `Kind.INFO` (the strong border and an info icon), `WARNING`, `DANGER` or `SUCCESS` (`status().success()` and a check in a circle). `text` may be null.
+
+The actions stand at the right beside the text while that leaves the text at least `size().field()` (200) wide, and below the text at the right otherwise, as in a narrow dialog. Layout decides that in every frame: the text and the actions are a row that wraps, in which the text's basis is that measure and the actions keep their widths, so the callout needs no state and no width of its own.
+
+<Shot src="kit/structure-callouts-{theme}-2x" alt="Callouts of the kinds success, info and danger with their actions beside the text, and a warning in a narrow card whose two buttons went below the text" />
 
 ## In a tree dump
 
-`role=note` with the title as label:
+`role=note` with the title as label; with actions, the text and the actions are in a box of their own after the icon, the actions in a row:
 
 ```text file="examples/src/test/resources/golden/docs/status/view.tree.txt" start="role=note" count="5"
 ```

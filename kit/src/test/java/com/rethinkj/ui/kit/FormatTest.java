@@ -220,4 +220,99 @@ class FormatTest {
     // Reading it would take seconds; the limit of a busy machine is far from both.
     assertTrue(System.nanoTime() - start < 2_000_000_000L, "refused without reading the digits");
   }
+
+  @Test
+  void sizesAreWrittenInDecimalUnitsWithOneDecimalBelowTen() {
+    Object[][] table = {
+      {0L, "0 B"},
+      {817L, "817 B"},
+      {999L, "999 B"},
+      {1000L, "1.0 kB"},
+      {1049L, "1.0 kB"},
+      {1050L, "1.1 kB"}, // half up
+      {9949L, "9.9 kB"},
+      {9950L, "10 kB"},
+      {10_499L, "10 kB"},
+      {10_500L, "11 kB"},
+      {817_000L, "817 kB"},
+      {999_499L, "999 kB"},
+      {999_500L, "1.0 MB"}, // never 1000 kB
+      {999_999L, "1.0 MB"},
+      {1_234_567L, "1.2 MB"},
+      {12_000_000L, "12 MB"},
+      {999_999_999L, "1.0 GB"},
+      {1_000_000_000_000L, "1.0 TB"},
+      {999_500_000_000_000L, "1.0 PB"},
+      {999_500_000_000_000_000L, "1.0 EB"},
+      {Long.MAX_VALUE, "9.2 EB"},
+      {-5L, "-5 B"},
+    };
+    for (Object[] row : table) {
+      assertEquals(row[1], Format.BYTES.text((Long) row[0]), String.valueOf(row[0]));
+    }
+    assertEquals(DataType.INTEGER, Format.BYTES.type());
+  }
+
+  @Test
+  void sizesAreReadInEitherUnitsAndAnyCase() {
+    Object[][] table = {
+      {"1.2 MB", 1_200_000L},
+      {"817 kB", 817_000L},
+      {"817 B", 817L},
+      {"1200000", 1_200_000L},
+      {" 12mb ", 12_000_000L},
+      {"12 KB", 12_000L},
+      {"1 KiB", 1024L},
+      {"1.5 mib", 1_572_864L},
+      {"4 GiB", 4_294_967_296L},
+      {"1 TiB", 1L << 40},
+      {"1 PiB", 1L << 50},
+      {"1 EiB", 1L << 60},
+      {".5 kB", 500L},
+      {"1.5 B", 2L}, // a fraction of a byte, half up
+      {"9.2 EB", 9_200_000_000_000_000_000L},
+      {"9223372036854775807", Long.MAX_VALUE},
+    };
+    for (Object[] row : table) {
+      assertEquals(row[1], Format.BYTES.parse((String) row[0]).value(), (String) row[0]);
+    }
+    String message = "Expected a size such as 817 B, 1.2 MB or 4 GiB";
+    for (String text :
+        List.of("-5 B", "-1", "1,2 MB", "1 MBB", "1 Mx", "1 k", "kB", "1 iB", "1e3")) {
+      refused(Format.BYTES, text, message);
+    }
+    refused(Format.BYTES, "", Format.REQUIRED);
+    refused(
+        Format.BYTES, "9223372036854775808", "Expected a size of at most 9223372036854775807 B");
+    refused(Format.BYTES, "8 EiB", "Expected a size of at most 9223372036854775807 B");
+    assertNull(Format.BYTES.optional().parse("").value());
+  }
+
+  @Test
+  void typingMayLeadToASizeThroughEveryPrefixOfOne() {
+    for (String text : List.of("1.2 MB", "817 kB", "4 GiB", "1200000", ".5 kib", " 12mb ")) {
+      for (int i = 0; i <= text.length(); i++) {
+        assertTrue(Format.BYTES.allows(text.substring(0, i)), text.substring(0, i));
+      }
+    }
+    for (String text : List.of("-", "12a", "1.2.3", "1 MBB", "1 Mx", "1 iB", "1,2")) {
+      assertFalse(Format.BYTES.allows(text), text);
+    }
+  }
+
+  @Test
+  void aSizeWrittenIsReadBackWithinItsRounding() {
+    java.util.Random random = new java.util.Random(14);
+    for (int n = 0; n < 100_000; n++) {
+      long value = (random.nextLong() >>> 1) >>> random.nextInt(63); // every number of digits
+      String text = Format.BYTES.text(value);
+      long read = Format.BYTES.parse(text).value();
+      // Half of the last digit shown: of a byte, a tenth of the unit or the unit.
+      long unit =
+          Format.BYTES.parse("1 " + text.substring(text.indexOf(' ') + 1)).value();
+      long step = text.contains(".") ? unit / 10 : unit;
+      assertTrue(Math.abs(read - value) <= step / 2, value + " as " + text + " is " + read);
+      assertEquals(text, Format.BYTES.text(read), "the text of what it says is itself");
+    }
+  }
 }

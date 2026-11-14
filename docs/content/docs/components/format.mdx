@@ -18,6 +18,7 @@ description: Typed values in text fields and grid columns, written and read with
 | `TIME` | `LocalTime` | `14:30`, `14:30:15` |
 | `DATE_TIME` | `LocalDateTime` | `2026-11-13 14:30`, also with a `T` |
 | `OFFSET_DATE_TIME` | `OffsetDateTime` | `2026-11-13 14:30+01:00` |
+| `BYTES` | `Long` | A size in SI's decimal units: `817 B`, `1.2 MB`, `12 MB`; one decimal below 10 of a unit, none from 10 on, half up, never `1000 kB`. Reads its own texts (`1.2 MB` is 1 200 000, so a value comes back only as exactly as it was written), plain bytes (`1200000`), `KiB` to `EiB` (1024 each) and the unit in any case; negative sizes are refused. A grid's column of sizes aligns right and sorts by the bytes |
 | `BOOLEAN` | `Boolean` | `true`, `false`; also `t`, `1`, `yes`, `on` and their opposites |
 | `choice(values, label)` | any, such as an enum | Each value by its label: `Format.choice(List.of(Status.values()), Status::label)`; labels are unique, and two values with one label are refused |
 | `of(text, parse, message)` | any | The app's own: `Format.of(UUID::toString, UUID::fromString, "Expected a UUID")`; a parser that throws or returns null fails with the message |

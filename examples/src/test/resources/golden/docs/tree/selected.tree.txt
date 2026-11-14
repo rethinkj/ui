@@ -6,11 +6,14 @@ el 0,0 320x260
           text label="chevron_down" "\u{F2A2}" 20,20 16x16
         text label="database" "\u{F0D7}" 40,20 16x16
         text "shop" 60,20 31x16
-      el #row-1 role=treeitem label="public" 16,40 252x24 expanded level=2 pos=1/2
+      el #row-1 role=treeitem label="public" 16,40 252x24 expanded level=2 pos=1/2 value="2 tables"
         el #mark-1 36,40 16x24
           text label="chevron_down" "\u{F2A2}" 36,44 16x16
         text label="folder" "\u{E643}" 56,44 16x16
-        text "public" 76,44 37x16
+        el 76,40 188x24
+          el 76,40 0x24
+          text "public" 76,44 37x16
+          text "2 tables" 117,44 147x16
       el #row-2 role=treeitem label="orders" 16,64 252x24 selected level=3 pos=1/2
         el 52,64 16x24
         text label="table" "\u{EBF4}" 72,68 16x16
@@ -19,8 +22,11 @@ el 0,0 320x260
         el 52,88 16x24
         text label="table" "\u{EBF4}" 72,92 16x16
         text "customers" 92,92 65x16
-      el #row-4 role=treeitem label="audit" 16,112 252x24 expanded=false level=2 pos=2/2
+      el #row-4 role=treeitem label="audit" 16,112 252x24 expanded=false level=2 pos=2/2 value="1 table"
         el #mark-4 36,112 16x24
           text label="chevron_right" "\u{F2AF}" 36,116 16x16
         text label="folder" "\u{E643}" 56,116 16x16
-        text "audit" 76,116 30x16
+        el 76,112 188x24
+          el 76,112 0x24
+          text "audit" 76,116 30x16
+          text "1 table" 110,116 154x16

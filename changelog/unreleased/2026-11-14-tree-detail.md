@@ -1,0 +1,1 @@
+- `Tree.Model.detail(node)` shows a muted text after a row's label, such as a column's type or the number of tables in a schema. Where the row is narrow it gives way before the label, and a tooltip names both; a tree dump has it as the row's `value`.

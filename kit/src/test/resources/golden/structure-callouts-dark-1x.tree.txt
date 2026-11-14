@@ -1,0 +1,35 @@
+el 0,0 560x420
+  el role=note label="Connected" 16,16 528x52
+    text label="checkmark_circle" "\u{F297}" 29,25 16x16
+    el 53,25 478x34
+      el 53,25 410x34
+        text "Connected" 53,25 410x16
+        text "The server answered in 12 ms." 53,43 410x16
+      el 471,30 60x24
+        el role=button label="Open" 471,30 60x24
+          text "Open" 484,34 34x16
+  el role=note label="Read only" 16,80 528x52
+    text label="info" "\u{F4A2}" 29,89 16x16
+    el 53,89 478x34
+      text "Read only" 53,89 478x16
+      text "This connection writes nothing." 53,107 478x16
+  el role=note label="Connection lost" 16,144 528x42
+    text label="error_circle" "\u{F3F0}" 29,153 16x16
+    el 53,153 478x24
+      el 53,153 412x24
+        text "Connection lost" 53,153 412x16
+      el 473,153 58x24
+        el role=button label="Retry" 473,153 58x24
+          text "Retry" 486,157 32x16
+  el 16,198 400x126
+    el #narrow role=note label="Unsaved changes" 29,211 374x100
+      text label="warning" "\u{F868}" 42,220 16x16
+      el 66,220 324x82
+        el 66,220 324x50
+          text "Unsaved changes" 66,220 324x16
+          text "Three rows of orders have changes that are not committed yet. Closing the tab discards them." 66,238 324x32
+        el 234,278 156x24
+          el role=button label="Discard" 234,278 73x24
+            text "Discard" 247,282 47x16
+          el role=button label="Commit" 315,278 75x24
+            text "Commit" 328,282 49x16

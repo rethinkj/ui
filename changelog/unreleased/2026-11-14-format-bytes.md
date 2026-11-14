@@ -1,0 +1,1 @@
+- `Format.BYTES` writes a size in bytes in SI's decimal units (`817 B`, `1.2 MB`, `12 MB`) and reads it back, also plain bytes and the binary units `KiB` to `EiB`, so a `ValueField` or a typed grid column can show and edit sizes; the column aligns right and sorts by the bytes.

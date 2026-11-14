@@ -94,8 +94,10 @@ el 0,0 880x600
                 text "Comfortable" 745,350 75x16
         el role=note label="Restart to apply" 240,392 608x52
           text label="warning" "\u{F868}" 253,401 16x16
-          el 277,401 490x34
-            text "Restart to apply" 277,401 490x16
-            text "The interface font size changes the next time the workbench starts." 277,419 490x16
-          el role=button label="Undo" 775,406 60x24 focused
-            text "Undo" 788,410 34x16
+          el 277,401 558x34
+            el 277,401 490x34
+              text "Restart to apply" 277,401 490x16
+              text "The interface font size changes the next time the workbench starts." 277,419 490x16
+            el 775,406 60x24
+              el role=button label="Undo" 775,406 60x24 focused
+                text "Undo" 788,410 34x16

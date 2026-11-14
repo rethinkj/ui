@@ -1,11 +1,13 @@
 el 0,0 460x420
   el role=note label="Restart needed" 12,12 420x52
     text label="warning" "\u{F868}" 25,21 16x16
-    el 49,21 293x34
-      text "Restart needed" 49,21 293x16
-      text "The new font size applies after a restart." 49,39 293x16
-    el role=button label="Restart" 350,26 69x24
-      text "Restart" 363,30 43x16
+    el 49,21 370x34
+      el 49,21 293x34
+        text "Restart needed" 49,21 293x16
+        text "The new font size applies after a restart." 49,39 293x16
+      el 350,26 69x24
+        el role=button label="Restart" 350,26 69x24
+          text "Restart" 363,30 43x16
   el role=status label="No tables match" 12,72 155x258
     text label="search" "\u{EA7E}" 66,135 48x48
     text "No tables match" 36,191 107x16

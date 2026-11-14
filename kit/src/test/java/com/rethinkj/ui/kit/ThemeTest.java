@@ -301,10 +301,13 @@ class ThemeTest {
           3);
     });
     // The tree: no fill of its own, so its hovered rows lay the overlay over what it is on.
-    // Labels in primary text, marks and loading rows in muted text; selected rows as the grid's.
+    // Labels in primary text; marks, details and loading rows in muted text, also on the
+    // selected row, focused or not, which has the grid's selection.
     Map<String, Integer> tree = Map.of(
         "panel hovered", over(s.panel(), s.hover()),
-        "window hovered", over(s.window(), s.hover()));
+        "window hovered", over(s.window(), s.hover()),
+        "tree selected", t.grid().selected(),
+        "tree selected inactive", t.grid().selectedInactive());
     check(failures, "primary text", t.text().primary(), tree, 4.5);
     check(failures, "muted text", t.text().muted(), tree, 4.5);
     // Scrollbar thumbs lie over the surfaces and the grid's rows, in each of their colours.

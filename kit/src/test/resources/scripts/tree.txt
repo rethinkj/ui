@@ -42,3 +42,9 @@ snap loading
 await                               # the answer comes: the databases replace the loading row
 frame
 snap loaded
+
+key Home                            # back to localhost, which opens again with what was open
+key ArrowRight                      # in it: shop, its schema public and the table accounts
+size 200 300                        # a narrow panel: the types of the columns and the number
+frame                               # of tables give way before the names
+snap narrow

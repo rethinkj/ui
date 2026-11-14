@@ -110,6 +110,7 @@ class TreeTest {
     assertLabelledOnce(catalog, app);
 
     catalog.labelled.clear();
+    catalog.detailed.clear();
     run(app, "scroll #schema row 76543\nframe");
     assertRowsInDump(app, 76_543 - El.OVERSCAN);
     assertLabelledOnce(catalog, app);
@@ -138,10 +139,11 @@ class TreeTest {
     assertEquals(last - first + 1, app.tree().dump().split("role=treeitem", -1).length - 1);
   }
 
-  /** The labels of the rows that exist were asked for once each, and no others. */
+  /** The labels and details of the rows that exist were asked for once each, and no others. */
   private static void assertLabelledOnce(Catalog catalog, App<Catalog> app) {
     List<String> rows = find(app, "schema").children().stream().map(El::label).toList();
     assertEquals(rows, catalog.labelled.stream().map(n -> n.name).toList());
+    assertEquals(rows, catalog.detailed.stream().map(n -> n.name).toList());
   }
 
   @Test
@@ -633,6 +635,76 @@ class TreeTest {
     assertEquals(6, find(app, "schema").rowCount());
   }
 
+  // Details
+
+  @Test
+  void aDetailFollowsTheLabelAndGivesWayBeforeIt() throws IOException {
+    Catalog catalog = new Catalog(T)
+        .opened(
+            "localhost",
+            "localhost/shop",
+            "localhost/shop/public",
+            "localhost/shop/public/accounts");
+    App<Catalog> app = catalog.app();
+    run(app, "size 280 300\nframe");
+    String dump = app.tree().dump();
+    assertTrue(
+        dump.contains("role=treeitem label=\"public\" ") && dump.contains("value=\"300 tables\""),
+        dump);
+    String id = line(dump, "label=\"id\"");
+    assertTrue(id.endsWith("level=5 pos=1/3 value=\"bigint\""), id);
+    El type = find(app, "row-" + row(dump, "label=\"id\""))
+        .children()
+        .getLast()
+        .children()
+        .getLast();
+    assertEquals("bigint", type.text().string());
+    assertEquals(T.text().muted(), type.text().color());
+    assertFalse(type.text().shortened());
+    assertTrue(type.y() < T.grid().rowHeight(), "beside the name");
+
+    // Narrower: the longest type shortens, then goes; the names stay whole.
+    for (int width = 280; width >= 150; width -= 2) {
+      run(app, "size " + width + " 300\nframe");
+      El row = find(app, "row-" + row(app.tree().dump(), "label=\"created_at\""));
+      El box = row.children().getLast();
+      El name = box.children().get(1);
+      El detail = box.children().get(2);
+      boolean gone = detail.y() >= T.grid().rowHeight();
+      if (!gone && detail.text().shortened()) {
+        assertFalse(name.text().shortened(), "the name whole while the type shows: " + width);
+        assertTrue(detail.width() >= 8, "at least a character and the ellipsis: " + width);
+      }
+      if (name.text().shortened()) {
+        assertTrue(gone, "the type gone before the name is cut: " + width);
+      }
+    }
+    run(app, "size 150 300\nframe");
+    El row = find(app, "row-" + row(app.tree().dump(), "label=\"created_at\""));
+    assertTrue(row.children().getLast().children().get(2).y() >= T.grid().rowHeight(), "gone");
+
+    // Where a part is cut or gone, a tooltip after the delay names both.
+    run(app, "size 150 300\nmove role=treeitem label=\"created_at\"\nframe\nadvance 1\nframe");
+    assertTrue(
+        app.tree().dump().contains("role=tooltip label=\"created_at timestamptz\""),
+        app.tree().dump());
+    run(
+        app,
+        "size 280 300\nleave\nframe\nmove role=treeitem label=\"id\"\nframe\nadvance 1\nframe");
+    assertFalse(app.tree().dump().contains("role=tooltip"), "nothing cut, no tooltip");
+  }
+
+  private static String line(String dump, String part) {
+    return dump.lines().filter(l -> l.contains(part)).findFirst().orElseThrow().strip();
+  }
+
+  /** The index of the row whose line holds {@code part}. */
+  private static int row(String dump, String part) {
+    Matcher m = Pattern.compile("#row-(\\d+) ").matcher(line(dump, part));
+    assertTrue(m.find());
+    return Integer.parseInt(m.group(1));
+  }
+
   // Images
 
   @ParameterizedTest
@@ -649,7 +721,7 @@ class TreeTest {
           Png.decode(Files.readAllBytes(files.get(i))),
           Files.readString(files.get(i + 1)));
     }
-    assertEquals(12, files.size());
+    assertEquals(14, files.size());
     assertEquals(
         List.of(
             "select localhost",
@@ -668,7 +740,9 @@ class TreeTest {
             "select localhost",
             "close localhost",
             "select staging",
-            "open staging"),
+            "open staging",
+            "select localhost",
+            "open localhost"),
         catalog.log);
   }
 

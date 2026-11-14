@@ -101,6 +101,14 @@ public final class Format<T> {
       .toFormatter(Locale.ROOT)
       .withResolverStyle(ResolverStyle.STRICT);
 
+  // A number, then a unit: b, kb or kib and so on, in any case.
+  private static final Pattern BYTES_TEXT =
+      Pattern.compile("(\\d+\\.?\\d*|\\.\\d+)\\s*((?:[kmgtpe]i?)?b|)", Pattern.CASE_INSENSITIVE);
+  private static final Pattern BYTES_TYPED =
+      Pattern.compile("\\s*\\d*\\.?\\d*\\s*(?:[kmgtpe]i?b?|b)?\\s*", Pattern.CASE_INSENSITIVE);
+  private static final String BYTES_MESSAGE = "Expected a size such as 817 B, 1.2 MB or 4 GiB";
+  private static final String[] BYTE_UNITS = {"B", "kB", "MB", "GB", "TB", "PB", "EB"};
+
   private static final String WHOLE_MESSAGE = "Not a whole number";
   private static final String NUMBER_MESSAGE = "Not a number";
 
@@ -220,6 +228,51 @@ public final class Format<T> {
       },
       text -> true,
       DataType.BOOLEAN,
+      List.of(),
+      false,
+      false);
+
+  /**
+   * A size in bytes, written with the decimal units of SI and a space before the unit: {@code 817
+   * B}, {@code 1.2 MB}, {@code 12 MB}, {@code 817 kB} ({@code B}, {@code kB}, {@code MB}, {@code
+   * GB}, {@code TB}, {@code PB}, {@code EB}; 1 kB is 1000 B). Whole bytes below 1000, else one
+   * decimal below 10 of a unit and none from 10 on, rounded half up and never 1000 of a unit:
+   * {@code 999999} is {@code 1.0 MB}. A negative value, which no size is, is written as its bytes,
+   * {@code -5 B}, and not read back.
+   *
+   * <p>It reads its own texts back to the bytes they say, so a value comes back only as exactly
+   * as it was written: {@code 1.2 MB} is 1 200 000, also where the value was 1 234 567. It also
+   * reads a plain number of bytes ({@code 1200000}), the binary units ({@code KiB}, {@code MiB},
+   * {@code GiB}, {@code TiB}, {@code PiB}, {@code EiB}: 1024 each), no space before the unit, and
+   * the unit's letters in any case ({@code 12 mb}, {@code 4 gib}), since a size here is never in
+   * bits or in thousandths of a byte. A fraction of a byte is rounded half up. A negative size, or
+   * one beyond {@code long}, is refused. Its {@link #type} is {@link DataType#INTEGER}, so a grid's
+   * column of sizes aligns right with tabular figures, and sorts by the value.
+   */
+  public static final Format<Long> BYTES = new Format<>(
+      Format::bytes,
+      text -> {
+        var m = BYTES_TEXT.matcher(text.strip());
+        if (text.length() > MAX_NUMBER_LENGTH || !m.matches()) {
+          return Parsed.error(BYTES_MESSAGE);
+        }
+        String unit = m.group(2).toLowerCase(Locale.ROOT);
+        long base = unit.length() == 3 ? 1024 : 1000; // kib, or kb
+        long factor = 1;
+        for (int i = unit.isEmpty() || unit.equals("b") ? 0 : "kmgtpe".indexOf(unit.charAt(0)) + 1;
+            i > 0;
+            i--) {
+          factor *= base;
+        }
+        BigDecimal bytes = new BigDecimal(m.group(1))
+            .multiply(BigDecimal.valueOf(factor))
+            .setScale(0, java.math.RoundingMode.HALF_UP);
+        return bytes.compareTo(BigDecimal.valueOf(Long.MAX_VALUE)) > 0
+            ? Parsed.error("Expected a size of at most " + Long.MAX_VALUE + " B")
+            : Parsed.of(bytes.longValue());
+      },
+      text -> text.length() <= MAX_NUMBER_LENGTH && BYTES_TYPED.matcher(text).matches(),
+      DataType.INTEGER,
       List.of(),
       false,
       false);
@@ -429,6 +482,38 @@ public final class Format<T> {
     long scale = value.scale();
     long zeros = scale < 0 ? -scale : Math.max(0, scale - value.precision());
     return zeros > MAX_ZEROS ? null : value;
+  }
+
+  /** The text of {@link #BYTES}: whole bytes, one decimal below 10 of a unit, none from 10 on. */
+  private static String bytes(long value) {
+    if (value < 1000) {
+      return value + " B";
+    }
+    int unit = 0;
+    for (long v = value; v >= 1000; v /= 1000) {
+      unit++;
+    }
+    while (true) {
+      long size = 1;
+      for (int i = 0; i < unit; i++) {
+        size *= 1000;
+      }
+      long tenths = halfUp(value, size / 10);
+      if (tenths < 100) {
+        return tenths / 10 + "." + tenths % 10 + " " + BYTE_UNITS[unit];
+      }
+      long whole = halfUp(value, size);
+      if (whole < 1000) {
+        return whole + " " + BYTE_UNITS[unit];
+      }
+      unit++; // 999.5 kB is 1.0 MB; there is no unit after EB, and a long reaches 9.2 EB
+    }
+  }
+
+  /** {@code value / by}, rounded half up, without overflowing. */
+  private static long halfUp(long value, long by) {
+    long q = value / by;
+    return value % by >= by - value % by ? q + 1 : q;
   }
 
   private static Format<BigInteger> whole(long min, long max) {

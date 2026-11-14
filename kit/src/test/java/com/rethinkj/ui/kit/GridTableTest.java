@@ -677,6 +677,38 @@ class GridTableTest {
     assertTrue(order.compare(Stage.PENDING, Stage.CANCELLED) < 0);
   }
 
+  record File(String name, long size) {
+    File withSize(long size) {
+      return new File(name, size);
+    }
+  }
+
+  @Test
+  void aColumnOfSizesSortsByTheBytesAndReadsWhatIsTyped() {
+    List<File> files =
+        List.of(new File("a", 999_999), new File("b", 1_200_000), new File("c", 817_000));
+    GridTable<File> table = DataGrid.table(files::get);
+    Column column = table.column("size", 80, Format.BYTES, File::size, File::withSize);
+    assertEquals(Align.RIGHT, column.align());
+    assertTrue(column.mono());
+    // 1.0 MB and 1.2 MB by their texts would sort as 817 kB, 1.0 MB, 1.2 MB too; 999 999 and
+    // 1 000 000 bytes show the same text and are told apart only by their values.
+    assertEquals(
+        List.of("1.0 MB", "1.2 MB", "817 kB"),
+        files.stream().map(f -> Format.BYTES.text(f.size())).toList());
+    List<File> sorted = new ArrayList<>(files);
+    sorted.sort(table.comparator(List.of(column), List.of(new SortKey(0, false))));
+    assertEquals(List.of("c", "a", "b"), sorted.stream().map(File::name).toList());
+    List<File> told = new ArrayList<>();
+    DataGrid.Commit commit = table.commit(List.of(column), (row, file) -> {
+      told.add(file);
+      return null;
+    });
+    assertNull(commit.commit(0, 0, "4 GiB"));
+    assertEquals(4L << 30, told.getLast().size());
+    assertEquals("Expected a size such as 817 B, 1.2 MB or 4 GiB", commit.commit(0, 0, "-1 B"));
+  }
+
   static final class Details {
     static final Part<Details, String> NAME = Part.ofSetter(Details::name, Details::setName);
     private String name;

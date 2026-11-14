@@ -6,7 +6,9 @@ import static com.rethinkj.ui.El.row;
 
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.Key;
+import com.rethinkj.ui.Len;
 import com.rethinkj.ui.Style;
+import com.rethinkj.ui.Text;
 import java.util.Arrays;
 import java.util.List;
 import java.util.function.Consumer;
@@ -49,7 +51,8 @@ import java.util.function.Predicate;
  * {@link El#grow}.
  *
  * <p>In a tree dump the tree is {@code role=tree}, and its rows are {@code role=treeitem} with the
- * node's label and the key {@code row-<index>}, counted from 0 in the order shown. A node that can
+ * node's label and the key {@code row-<index>}, counted from 0 in the order shown, and the
+ * model's {@link Model#detail} as {@code value="<detail>"}. A node that can
  * have children has a mark with the key {@code mark-<index>}, which shows the {@link Icon} {@link
  * #CLOSED} while it is closed and {@link #OPEN} while it is open; the marks need the icon font,
  * {@code rethinkj-ui-icons}. The row that stands for children not known yet has the key {@code
@@ -91,6 +94,16 @@ public final class Tree {
 
     /** An element shown before the label, such as an icon; null, the default, for none. */
     default El icon(N node) {
+      return null;
+    }
+
+    /**
+     * A text shown after the label in muted text, such as a column's type or the number of tables
+     * in a schema; null, the default, for none. Asked only for the rows that are built. Where the
+     * row is narrow it gives way first: it ends in an ellipsis and is left out before the label
+     * is cut, and a tooltip then shows both whole. In a tree dump it is the row's {@code value}.
+     */
+    default String detail(N node) {
       return null;
     }
 
@@ -179,7 +192,12 @@ public final class Tree {
       if (icon != null) {
         r.child(icon);
       }
-      r.child(Label.label(t, label));
+      String detail = model.detail(node);
+      if (detail == null) {
+        r.child(Label.label(t, label));
+      } else {
+        detail(t, r.value(detail), label, detail, height);
+      }
       if (isSelected) {
         r.fill(focused[0] ? t.grid().selected() : t.grid().selectedInactive());
       } else if (presses) {
@@ -224,6 +242,41 @@ public final class Tree {
         .focusRing(t.accent().edge())
         .whenFocused(e -> focused[0] = true)
         .onKey(k -> key(k, model, isOpen, rows, tree, height, onSelect, onToggle, onActivate));
+  }
+
+  /**
+   * The label and the detail after it in a box that wraps and clips at the row's height, as the
+   * data grid's header gives way with its type: the label keeps its width up to the box's, the
+   * detail shrinks to an ellipsis after its first character and below that wraps to a second line,
+   * which the box clips away. A zero-width strut as high as the row makes the first line that high,
+   * so that both texts sit in its middle. The tooltip names both where either is cut or gone,
+   * which only layout knows, and the looks of rows run after it.
+   */
+  private static void detail(Theme t, El row, String label, String detail, float height) {
+    El name = Label.label(t, label).ellipsis().minSize(0, 0).shrink(0);
+    name.style().maxWidth = Len.percent(1);
+    int first = detail.offsetByCodePoints(0, 1);
+    String least = first < detail.length() ? detail.substring(0, first) + Text.ELLIPSIS : detail;
+    El more = Label.label(t, Label.Variant.MUTED, detail)
+        .ellipsis()
+        .minSize(0, 0)
+        .grow(1)
+        .basis(DataGrid.natural(Label.label(t, Label.Variant.MUTED, least)))
+        .margin(0, 0, 0, t.space().s());
+    El box = row()
+        .wrap()
+        .grow(1)
+        .minSize(0, 0)
+        .h(height)
+        .align(Style.Align.CENTER)
+        .clip()
+        .children(el().size(0, height), name, more);
+    box.style().alignContent = Style.Content.START;
+    row.child(box).whenHoveredFor(t.motion().tooltipDelay(), e -> {
+      if (name.text().shortened() || more.text().shortened() || more.y() >= height) {
+        e.overlay(Tooltip.panel(t, label + " " + detail));
+      }
+    });
   }
 
   /** What a key does to the tree with the focus; whether the tree took it. */

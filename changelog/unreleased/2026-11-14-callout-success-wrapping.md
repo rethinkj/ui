@@ -1,0 +1,1 @@
+- `Callout.Kind.SUCCESS` shows a callout in the success colour with a check in a circle, and a callout's actions go below its text, at the right, where beside it the text would be narrower than `size().field()`, as in a narrow dialog.
