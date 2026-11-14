@@ -39,6 +39,7 @@
     "combo-box",
     "radio",
     "segmented",
+    "hue-picker",
     "number-field",
     "slider",
     "form",

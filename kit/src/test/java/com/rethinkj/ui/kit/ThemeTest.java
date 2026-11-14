@@ -76,6 +76,13 @@ class ThemeTest {
         Map.of("panel", s.panel(), "raised", s.raised()),
         3);
     check(failures, "knob", t.text().onAccent(), Map.of("track off", t.border().strong()), 3);
+    // A hue picker: each hue's swatch, and the ring around the chosen swatch, which the surface
+    // separates from it, on the surfaces a picker lies on.
+    Map<String, Integer> picker = Map.of("panel", s.panel(), "raised", s.raised());
+    for (Theme.Hue each : Theme.Hue.values()) {
+      check(failures, "swatch " + each, theme(name).withAccent(each).accent().edge(), picker, 3);
+    }
+    check(failures, "chosen ring", t.accent().edge(), picker, 3);
     // A progress bar's part done, in each of its states, on its track, and a running line, which
     // has no track, on the surfaces it lies on; a spinner's arc on its ring.
     Map<String, Integer> track = Map.of("progress track", t.border().control());
