@@ -82,18 +82,18 @@ el 0,0 1000x600
         el 268,32 8x540
           el 272,32 1x540
   el role=status label="Status bar" 0,572 1000x28
-    el 8,574 952x24
-      el #server-localhost role=button label="localhost" 8,574 84x24 value="connected"
+    el 8,574 954x24
+      el #server-localhost role=button label="localhost" 8,574 79x24 value="connected"
         el 12,578 16x16
           el 16,582 8x8
-        text "localhost" 32,578 56x16
-      el #server-staging role=button label="staging" 94,574 73x24 value="connected"
-        el 98,578 16x16
-          el 102,582 8x8
-        text "staging" 118,578 45x16
-      el #server-prod-eu role=button label="prod-eu" 169,574 79x24 value="error"
-        el 173,578 16x16
-          el 177,582 8x8
-        text "prod-eu" 193,578 51x16
-    el #running label="Idle" 962,574 30x24
-      text "Idle" 966,578 22x16
+        text "localhost" 32,579 51x15
+      el #server-staging role=button label="staging" 89,574 69x24 value="connected"
+        el 93,578 16x16
+          el 97,582 8x8
+        text "staging" 113,579 41x15
+      el #server-prod-eu role=button label="prod-eu" 160,574 73x24 value="error"
+        el 164,578 16x16
+          el 168,582 8x8
+        text "prod-eu" 184,579 45x15
+    el #running label="Idle" 964,574 28x24
+      text "Idle" 968,579 20x15

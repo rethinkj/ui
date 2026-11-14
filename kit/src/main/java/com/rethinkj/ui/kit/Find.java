@@ -813,8 +813,8 @@ public final class Find {
         : null;
     El query = queryField(t, state);
     String said = count(state, text);
-    El count = label(t, Label.Variant.MUTED, said).key("count").shrink(0).fontFeatures("+tnum");
-    count.style().minWidth = Len.px(3 * t.size().control());
+    El count = label(t, Label.Variant.SMALL, said).key("count").shrink(0).fontFeatures("+tnum");
+    count.style().minWidth = Len.px(2 * t.size().control());
     // The rows' gap is xs; the field stands a step m apart from what follows it.
     float apart = t.space().m() - t.space().xs();
     count.margin(0, 0, 0, apart);
@@ -985,10 +985,10 @@ public final class Find {
                 })
             .key("regex")
             .size(size, size));
-    El box = FieldActions.embed(t, field, switches, 3 * size + 2 * inset)
-        .whenFocusWithin(e -> field.border(
-            t.size().stroke(),
-            state.error != null ? t.status().danger() : t.accent().color()));
+    El box = FieldActions.embed(t, field, switches, 3 * size + 2 * inset).whenFocusWithin(e -> {
+      int c = state.error != null ? t.status().danger() : t.accent().color();
+      TextField.edge(t, field, c, c);
+    });
     return state.error != null ? Tooltip.tooltip(t, box, state.error) : box;
   }
 
