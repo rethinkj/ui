@@ -245,4 +245,42 @@ final class Sheets {
                 "Try another name or host.",
                 button(t, Variant.SECONDARY, "Clear filter", () -> presses++)));
   }
+  /**
+   * Callouts: of every kind with room for their actions beside the text, and one with a longer
+   * text and two buttons in a card as narrow as a dialog of 400, whose actions go below the text.
+   */
+  El callouts() {
+    return col()
+        .wFull()
+        .hFull()
+        .padding(t.space().xl())
+        .gap(t.space().l())
+        .fill(t.surface().window())
+        .children(
+            Callout.callout(
+                t,
+                Callout.Kind.SUCCESS,
+                "Connected",
+                "The server answered in 12 ms.",
+                button(t, Variant.SECONDARY, "Open", () -> presses++)),
+            Callout.callout(t, Callout.Kind.INFO, "Read only", "This connection writes nothing."),
+            Callout.callout(
+                t,
+                Callout.Kind.DANGER,
+                "Connection lost",
+                null,
+                button(t, Variant.SECONDARY, "Retry", () -> presses++)),
+            card(
+                    t,
+                    Callout.callout(
+                            t,
+                            Callout.Kind.WARNING,
+                            "Unsaved changes",
+                            "Three rows of orders have changes that are not committed yet. Closing"
+                                + " the tab discards them.",
+                            button(t, Variant.SECONDARY, "Discard", () -> presses++),
+                            button(t, Variant.PRIMARY, "Commit", () -> presses++))
+                        .key("narrow"))
+                .w(400));
+  }
 }

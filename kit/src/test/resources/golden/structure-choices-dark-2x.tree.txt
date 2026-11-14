@@ -30,11 +30,13 @@ el 0,0 400x560
       el 90,160 16x16
   el role=note label="Restart to apply" 16,192 368x67
     text label="warning" "\u{F868}" 29,201 16x16
-    el 53,201 240x49
-      text "Restart to apply" 53,201 240x16
-      text "The interface font changes after the next start." 53,219 240x31
-    el role=button label="Restart" 301,213 70x24
-      text "Restart" 314,218 44x15
+    el 53,201 318x49
+      el 53,201 240x49
+        text "Restart to apply" 53,201 240x16
+        text "The interface font changes after the next start." 53,219 240x31
+      el 301,213 70x24
+        el role=button label="Restart" 301,213 70x24
+          text "Restart" 314,218 44x15
   el role=status label="No connections match" 16,271 368x273
     text label="search" "\u{EA7E}" 176,342 48x48
     text "No connections match" 40,398 320x15

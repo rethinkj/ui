@@ -41,6 +41,18 @@ class StructureTest {
     check("rows", theme, scale, 520, 640, Sheets::rows);
     check("form", theme, scale, 640, 260, Sheets::form);
     check("choices", theme, scale, 400, 560, Sheets::choices);
+    String tree = check("callouts", theme, scale, 560, 420, Sheets::callouts);
+    // In the card of 400, the buttons went below the text, at its right; elsewhere beside it.
+    float[] text = rect(line(tree, "text \"Three rows"));
+    float[] commit = rect(line(tree, "label=\"Commit\""));
+    assertTrue(commit[1] >= text[1] + text[3], "below the text: " + tree);
+    float[] note = rect(line(tree, "#narrow role=note"));
+    assertTrue(
+        Math.abs(commit[0] + commit[2] - (note[0] + note[2] - Theme.DARK.space().l() - 1)) <= 1,
+        "at the right: " + tree);
+    float[] open = rect(line(tree, "label=\"Open\""));
+    float[] answered = rect(line(tree, "text \"The server answered"));
+    assertTrue(open[0] >= answered[0] + answered[2], "beside the text: " + tree);
   }
 
   @ParameterizedTest(name = "{0}")
