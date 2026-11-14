@@ -11,7 +11,7 @@ el 0,0 640x260
         el 16,48 57x24
           text "Port" 16,52 25x16
         el 81,48 199x42
-          text #beside-port role=textbox label="Port" "54x" 81,48 72x24 invalid
+          text #beside-port role=textbox label="Port" "54x" 81,48 72x24 invalid error="Digits only"
           text "Digits only" 81,74 199x16
       el 16,98 264x42
         el 16,98 57x24
@@ -36,7 +36,7 @@ el 0,0 640x260
         el 304,70 200x16
           text "Port" 304,70 25x16
         el 304,88 200x42
-          text #above-port role=textbox label="Port" "54x" 304,88 72x24 invalid
+          text #above-port role=textbox label="Port" "54x" 304,88 72x24 invalid error="Digits only"
           text "Digits only" 304,114 200x16
       el 304,142 200x60
         el 304,142 200x16

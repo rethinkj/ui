@@ -135,6 +135,7 @@ class GroupTest {
     String dump = app.tree().dump();
     String port = StructureTest.line(dump, "#beside-port");
     assertTrue(port.contains(" invalid"), port);
+    assertTrue(port.contains("error=\"Digits only\""), "the app's error, as a draft's: " + port);
     assertTrue(dump.contains("text \"Digits only\""), dump);
     assertFalse(dump.contains("From 1 to 65535"), "the error replaces the help");
     assertTrue(dump.contains("text \"*\""), dump);

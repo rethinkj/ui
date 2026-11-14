@@ -17,7 +17,7 @@ el 0,0 480x260
         el 25,107 38x24
           text "User" 25,111 30x16
         el 71,107 368x42
-          text role=textbox label="User" "" 71,107 200x24 invalid
+          text role=textbox label="User" "" 71,107 200x24 invalid error="A user is required."
           text "A user is required." 71,133 368x16
     el 25,161 414x24
       el role=button label="Cancel" 281,161 70x24

@@ -103,9 +103,9 @@ public final class Form {
       String error =
           field.error() != null || target == null ? field.error() : target.errorMessage();
       if (error != null && target != null && target.isEditable()) {
-        TextField.invalid(t, target);
+        TextField.invalid(t, target).errorMessage(error); // error="..." in a dump, as a draft's
       } else if (error != null && target != null) {
-        target.invalid(true);
+        target.invalid(true).errorMessage(error);
       }
       El body = col().gap(t.space().xs()).child(field.control().alignSelf(Style.Align.START));
       String below = error != null ? error : field.help();

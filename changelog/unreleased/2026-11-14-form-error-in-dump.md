@@ -1,0 +1,1 @@
+- An error the app gives a form's field with `Form.field(...).error(text)` is now also the control's `El.errorMessage`, so a tree dump says `error="…"` on the field, as it does for the error of a `ValueField` or an `Editing`; before, the dump said only `invalid`.
