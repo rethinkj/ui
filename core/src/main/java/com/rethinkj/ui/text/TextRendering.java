@@ -51,8 +51,28 @@ public record TextRendering(Hinting hinting, float darkGamma, float lightGamma) 
     }
   }
 
-  /** {@link #WINDOWS} on Windows, {@link #LINUX} everywhere else. */
+  /** The system property that names the rendering {@link #platform} returns on every system. */
+  public static final String PROPERTY = "rethinkj.ui.textRendering";
+
+  /**
+   * {@link #WINDOWS} on Windows, {@link #LINUX} everywhere else, unless the system property {@code
+   * rethinkj.ui.textRendering} says {@code linux} or {@code windows}: a test run sets it (as this
+   * project's builds do) so that images an app draws without choosing a rendering, which a test
+   * stores and compares, come out the same on every system.
+   *
+   * @throws IllegalArgumentException if the property has another value
+   */
   public static TextRendering platform() {
+    String chosen = System.getProperty(PROPERTY);
+    if (chosen != null && !chosen.isEmpty()) {
+      return switch (chosen) {
+        case "linux" -> LINUX;
+        case "windows" -> WINDOWS;
+        default ->
+          throw new IllegalArgumentException(
+              "The system property " + PROPERTY + " is linux or windows, not " + chosen);
+      };
+    }
     return System.getProperty("os.name", "").startsWith("Windows") ? WINDOWS : LINUX;
   }
 }

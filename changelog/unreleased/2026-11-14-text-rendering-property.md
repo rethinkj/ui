@@ -1,0 +1,1 @@
+- The system property `rethinkj.ui.textRendering` (`linux` or `windows`) names the text rendering an app gets where it chooses none (`TextRendering.platform()`). Set it for a test run, as in Surefire's `systemPropertyVariables`, and images that scripts write come out the same on Linux and Windows without each test calling `app.textRendering(TextRendering.LINUX)`.

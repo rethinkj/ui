@@ -47,6 +47,8 @@
         <configuration>
           <argLine>--enable-native-access=com.rethinkj.ui</argLine>
           <systemPropertyVariables>
+            <!-- Stored images are compared on Linux and Windows: one text rendering for both. -->
+            <rethinkj.ui.textRendering>linux</rethinkj.ui.textRendering>
             <!-- Unpack the libraries the tests load here, not into the user's cache. -->
             <rethinkj.ui.natives.cache>${project.build.directory}/natives-cache</rethinkj.ui.natives.cache>
           </systemPropertyVariables>

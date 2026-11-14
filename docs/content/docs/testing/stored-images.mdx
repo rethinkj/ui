@@ -10,7 +10,7 @@ A test of a view runs a script against the app and compares what each `snap` wro
 ```java snippet="stored-images" title="StoredImagesTest.java"
 ```
 
-- `app.textRendering(TextRendering.LINUX)` pins the hinting of text, so that the images are the same on Windows and Linux. Without it, text is hinted as the platform does it.
+- `app.textRendering(TextRendering.LINUX)` pins the hinting of text, so that the images are the same on Windows and Linux. Without it, text is hinted as the platform does it. The system property `rethinkj.ui.textRendering` (`linux` or `windows`) does the same for a whole test run, for example in Surefire's `systemPropertyVariables`, so that no test can forget it.
 - `Script.run` returns the files it wrote, `.png` and `.tree.txt` for each snap.
 - `Png.decode` reads a PNG into `Pixels` without `java.desktop`.
 - Run it with `-Dgolden.update=true` to store the snaps anew, then look at the images and the diff of the trees before you commit.
