@@ -3,7 +3,7 @@ title: DataBrowser
 description: A million made-up orders in the data grid, filtered, edited and committed.
 ---
 
-DataBrowser shows a million orders in the kit's [DataGrid](/docs/components/data-grid), flush in a card with a filter in its toolbar and the status in its footer. Its cells edit, the changes wait in a `GridChanges` until Commit, the header filters columns, and Columns chooses them.
+DataBrowser shows a million orders in the kit's [DataGrid](/docs/components/data-grid), flush in a card with a filter in its toolbar and the status in its footer. Its cells edit, and the changes wait until Commit.
 
 <Shot dark="examples/browser-dark" light="examples/browser-light" alt="The grid with pending changes marked, a filter on the status column, a filter bar and Commit (n) in the toolbar" />
 
@@ -11,12 +11,31 @@ DataBrowser shows a million orders in the kit's [DataGrid](/docs/components/data
 mvn -q -pl examples -am compile exec:exec -Dexample=DataBrowser
 ```
 
-## Where to look in the source
+## What to try
 
-[`DataBrowser.java`](https://github.com/rethinkj/ui/blob/main/examples/src/main/java/com/rethinkj/ui/examples/DataBrowser.java):
+- Type words into Filter: the rows that hold each word in a text column stay.
+- Double-press a cell to edit it, then Commit or press Control+S; Revert forgets the changes.
+- Filter a column from its header, and choose the columns with Columns.
 
-- The rows are made up by arithmetic over their index (`customer`, `product`, `created`, `status`), so the million cost nothing; the filter works out which rows match the same way.
-- A `GridChanges.Rows` (`count`, `key`, `place`, `cell`) gives the changes a key per order that stays with it while the rows are filtered.
-- `filters` takes the header's filters and applies them.
-- Commit writes the changes beside the made-up values, new orders after the million and deleted ones taken out.
-- A copy beyond the grid's limit shows a [Toast](/docs/components/toast) that says so.
+## How it works
+
+### A typed table
+
+The orders are records, and each column is a typed value of an `Order`: a getter, a [Format](/docs/components/format) and, for the columns that edit, a wither ([Rows of records](/docs/components/data-grid/typed)).
+
+```java snippet="data-browser-columns"
+```
+
+### Pending changes
+
+The edits wait in a `GridChanges`. Its `Rows` give each row shown a key, here the order's number, so that a change stays with its order while the filter or the sort moves the rows ([Editing and changes](/docs/components/data-grid/editing)).
+
+```java snippet="data-browser-changes"
+```
+
+Commit takes the changes as typed values and applies them to the orders: changed orders are kept beside the made-up ones, new orders come after the million, and deleted orders leave the rows.
+
+```java snippet="data-browser-commit"
+```
+
+The whole app is in [`DataBrowser.java`](https://github.com/rethinkj/ui/blob/main/examples/src/main/java/com/rethinkj/ui/examples/DataBrowser.java).

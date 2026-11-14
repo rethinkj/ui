@@ -92,6 +92,7 @@ public final class Documents {
   final MenuBar.State bar = new MenuBar.State();
   String toast; // a message at the bottom of the first window, or null
   TabGroups.Group<Doc> dropping; // the group whose window a file manager's drag is over
+  // docs:start documents-groups
   final TabGroups<Doc> groups = new TabGroups<>(
       List.of(
           new Doc("Readme", "Tabs that move, tear off and dock.\nDrag one out of the bar."),
@@ -100,6 +101,7 @@ public final class Documents {
           new Doc("Query", "SELECT id, name\nFROM customers\nWHERE active;"),
           new Doc("Ideas", "A window per group of tabs")),
       this::open);
+  // docs:end documents-groups
 
   Theme theme() {
     return dark ? Theme.DARK : Theme.LIGHT;
@@ -134,6 +136,7 @@ public final class Documents {
   }
 
   /** Opens the window of a group of tabs, titled after its tab, a smaller copy of the first. */
+  // docs:start documents-window
   Windows.Handle open(TabGroups.Group<Doc> group, Window.Options options) {
     @SuppressWarnings("unchecked")
     App<Documents>[] window = new App[1];
@@ -147,6 +150,7 @@ public final class Documents {
             options.frameless().minimumSize(240, 160).icon(Identity.icon(MARK, Symbol.DOCUMENT)),
             window[0]);
   }
+  // docs:end documents-window
 
   /**
    * A window's view: the title bar over the group's tabs, a card on the window's background. The
@@ -156,6 +160,7 @@ public final class Documents {
    */
   El view(TabGroups.Group<Doc> group, App<Documents> window) {
     Theme t = theme();
+    // docs:start documents-tabs
     El tabs = groups.tabs(
         t,
         group,
@@ -164,6 +169,7 @@ public final class Documents {
             ? EmptyState.emptyState(
                 t, Symbol.DOCUMENT, "No documents", "Drag a tab here from another window.", null)
             : editor(t, d, window));
+    // docs:end documents-tabs
     if (dropping == group) { // the card's edge in the accent, as wide as before
       tabs.border(t.size().stroke(), t.accent().edge());
     }
@@ -214,6 +220,7 @@ public final class Documents {
   }
 
   /** File › Open…: the system's dialog, then each file read off the app's thread. */
+  // docs:start documents-open
   void openFiles(TabGroups.Group<Doc> group) {
     app.fileDialog(
         FileDialog.open("Open")
@@ -223,6 +230,7 @@ public final class Documents {
         choice -> read(group, choice.paths()),
         error -> toast = "No file dialog: " + error);
   }
+  // docs:end documents-open
 
   /** File › Save As…: the system's dialog, then the text written off the app's thread. */
   void saveAs(Doc d) {
@@ -259,6 +267,7 @@ public final class Documents {
   }
 
   /** A drag from a file manager: the look while it is over, new tabs when it drops. */
+  // docs:start documents-drop
   void drop(TabGroups.Group<Doc> group, Drop d) {
     switch (d.phase()) {
       case OVER -> dropping = group;
@@ -273,6 +282,7 @@ public final class Documents {
       }
     }
   }
+  // docs:end documents-drop
 
   /**
    * Reads files off the app's thread, then puts each into a new tab of the group, in the order

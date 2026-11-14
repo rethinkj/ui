@@ -16,7 +16,7 @@ An app is a state object and a function from that state to a tree of elements. T
 
 **The state.** `Lights` has one field, `on`. State is plain Java: fields, lists, records, whatever the app needs. Nothing observes it. Only handlers change it, on the app's thread, one input at a time.
 
-**The app.** `new App<>(new Lights(), Lights::view)` ties the state to its view. The `App` owns everything that is not the app's business: focus, hover, scroll offsets, animations, the caret of a text field.
+**The app.** `new App<>(new Lights(), Lights::view)` ties the state to its view. The [`App`](/api/com/rethinkj/ui/App.html) owns everything that is not the app's business: focus, hover, scroll offsets, animations, the caret of a text field.
 
 **`Script.handle(args, app)`.** With `--script <file> --out <folder>` it runs a script against the app and writes images and trees instead of opening a window, and returns true. Without them it returns false. Every app should have this line: it is what lets an agent or a test drive it. See [Testing and agents](/docs/testing).
 
