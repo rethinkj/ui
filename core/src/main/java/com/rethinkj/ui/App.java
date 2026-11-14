@@ -26,6 +26,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -131,8 +132,9 @@ import java.util.function.Predicate;
  * which any thread hands the app a task that runs on the app's thread at its turn in the queue,
  * as one more input whose handler is the app's: the way back for the result of a query that ran
  * elsewhere, so that the window does not stop for it. {@link #background} runs a computation on a
- * virtual thread and posts its result or failure, unless it was cancelled; {@link #await} waits
- * for that work, for scripts and tests.
+ * virtual thread and posts its result or failure, unless it was cancelled, and with a {@link
+ * Work.Reporting} computation also its progress; {@link #await} waits for that work, and {@link
+ * #awaitProgress} for its next report, for scripts and tests.
  *
  * @param <S> the type of the state
  */
@@ -179,6 +181,13 @@ public final class App<S> {
   private volatile Runnable wake;
   boolean holdPosts; // for Script: posted tasks join the queue only at await()
   private final Set<Work> running = new LinkedHashSet<>(); // of background(); guarded by itself
+  // Counts what joined the queue, posted, enqueued or taken: a report takes the place of a report
+  // of its work that waits only while nothing joined after that one (Work.Progress#report).
+  private final AtomicLong joined = new AtomicLong();
+  private final AtomicLong reports = new AtomicLong(); // made by the app's work so far
+  private long reportsTaken; // reports when the app last took what was posted
+  // Notified at each report and each end of work, of every app: awaitProgress waits for several.
+  private static final Object REPORTED = new Object();
   private boolean dispatching;
   private boolean handled; // a handler of the app took input since the tree was built
   private boolean keyUntaken; // nothing took the key that keyDownAt dispatched last
@@ -2246,6 +2255,7 @@ public final class App<S> {
 
   /** Queues input for the next frame, or what a handler asks for right after that handler. */
   private void enqueue(BooleanSupplier input) {
+    joined.incrementAndGet();
     if (dispatching) {
       follow.add(input);
       return;
@@ -2293,17 +2303,22 @@ public final class App<S> {
     });
   }
 
-  private void offer(BooleanSupplier task) {
+  /** Posts a task; returns the count of {@link #joined} that it made. */
+  private long offer(BooleanSupplier task) {
     posted.add(task);
+    long count = joined.incrementAndGet();
     Runnable w = wake;
     if (w != null && woken.compareAndSet(false, true)) {
       w.run();
     }
+    return count;
   }
 
   /** Moves what other threads posted into the queue; on the app's thread. */
   private void takePosted() {
     woken.set(false); // before the tasks are taken: one posted after them wakes again
+    reportsTaken = reports.get(); // before: a report made during the take counts as not taken
+    joined.incrementAndGet(); // what is taken keeps its value: a later report is posted anew
     for (BooleanSupplier task; (task = posted.poll()) != null; ) {
       queued.add(task);
     }
@@ -2359,11 +2374,75 @@ public final class App<S> {
       Callable<? extends T> compute,
       Consumer<? super T> onResult,
       Consumer<? super Exception> onFailure) {
-    Objects.requireNonNull(name, "name");
     Objects.requireNonNull(compute, "compute");
+    return start(name, work -> compute, onResult, onFailure);
+  }
+
+  /**
+   * Runs {@code compute} as {@link #background(String, Callable, Consumer, Consumer)} does, and
+   * hands it a {@link Work.Progress} on which it reports on its way, from its own thread: each
+   * report runs {@code onProgress} on the app's thread as a {@link #post posted} task does, and
+   * the reports end with the work. Once the work is {@linkplain Work#cancel cancelled}, or its
+   * result or failure has reached its handler, no {@code onProgress} runs any more, also for
+   * reports that wait in the queue, and a report made after that is dropped where it is made.
+   * Reports that wait one after the other are coalesced into the newest ({@link
+   * Work.Progress#report} says when), so a value that stands for the whole progress suits them.
+   *
+   * <pre>{@code
+   * download = app.background("download of " + driver.name(),
+   *     (Work.Progress<Long> progress) -> {
+   *       try (InputStream in = driver.open(); OutputStream out = Files.newOutputStream(file)) {
+   *         byte[] buffer = new byte[8192];
+   *         long bytes = 0;
+   *         for (int n; (n = in.read(buffer)) > 0; ) { // cancel() interrupts the read
+   *           out.write(buffer, 0, n);
+   *           progress.report(bytes += n);
+   *         }
+   *         return file;
+   *       }
+   *     },
+   *     bytes -> this.received = bytes,
+   *     file -> { this.driver = file; download = null; },
+   *     error -> { this.error = error.getMessage(); download = null; });
+   * }</pre>
+   *
+   * <p>Type the computation's parameter, as {@code Work.Progress<Long>} above, where the handlers
+   * do not say what a report is. A script lets the reports in with {@code await progress} and
+   * tests with {@link #awaitProgress}, while the work still runs.
+   *
+   * @param name what the work does, for the thread and the messages of {@link #await} and {@link
+   *     #awaitProgress}
+   * @param <P> the type of a report
+   * @return the work, to cancel it
+   */
+  public <T, P> Work background(
+      String name,
+      Work.Reporting<? extends T, P> compute,
+      Consumer<? super P> onProgress,
+      Consumer<? super T> onResult,
+      Consumer<? super Exception> onFailure) {
+    Objects.requireNonNull(compute, "compute");
+    Objects.requireNonNull(onProgress, "onProgress");
+    return start(
+        name,
+        work -> {
+          Reporter<P> progress = new Reporter<>(work, onProgress);
+          return () -> compute.call(progress);
+        },
+        onResult,
+        onFailure);
+  }
+
+  private <T> Work start(
+      String name,
+      Function<Work, Callable<? extends T>> computation,
+      Consumer<? super T> onResult,
+      Consumer<? super Exception> onFailure) {
+    Objects.requireNonNull(name, "name");
     Objects.requireNonNull(onResult, "onResult");
     Objects.requireNonNull(onFailure, "onFailure");
     Work work = new Work(name, this);
+    Callable<? extends T> compute = computation.apply(work);
     synchronized (running) {
       running.add(work);
     }
@@ -2377,11 +2456,13 @@ public final class App<S> {
       }
       T r = result;
       Throwable f = failure;
+      work.ended = true; // before the delivery is posted: no report comes after it
       try {
         offer(() -> {
           if (work.cancelled) {
             return false; // costs no rebuild
           }
+          work.delivered = true; // before the handlers: a report that waits does not run
           handled = true;
           if (f == null) {
             onResult.accept(r);
@@ -2402,12 +2483,77 @@ public final class App<S> {
     return work;
   }
 
+  /** The {@link Work.Progress} of one work, which posts its reports. */
+  private final class Reporter<P> implements Work.Progress<P> {
+
+    private final Work work;
+    private final Consumer<? super P> onProgress;
+    private Report<P> last; // the report posted last; guarded by this
+
+    Reporter(Work work, Consumer<? super P> onProgress) {
+      this.work = work;
+      this.onProgress = onProgress;
+    }
+
+    @Override
+    public void report(P value) {
+      if (work.cancelled || work.ended) {
+        return; // dropped where it is made
+      }
+      synchronized (this) {
+        Report<P> waiting = last;
+        if (waiting != null && waiting.joined == joined.get()) {
+          waiting.value = value; // nothing joined the queue after it, and it was not taken
+        } else {
+          Report<P> report = new Report<>(value);
+          last = report;
+          report.joined = offer(() -> run(report)); // run() waits for this lock
+        }
+      }
+      reports.incrementAndGet();
+      synchronized (REPORTED) {
+        REPORTED.notifyAll();
+      }
+    }
+
+    private boolean run(Report<P> report) {
+      P value;
+      synchronized (this) {
+        value = report.value;
+      }
+      if (work.cancelled || work.delivered) {
+        return false; // the reports ended with the work, and cost no rebuild
+      }
+      handled = true;
+      onProgress.accept(value);
+      return true;
+    }
+
+    @Override
+    public boolean isCancelled() {
+      return work.cancelled;
+    }
+  }
+
+  /** A report in the queue, whose value newer reports may take. */
+  private static final class Report<P> {
+    P value;
+    long joined; // the count of joined right after it was posted
+
+    Report(P value) {
+      this.value = value;
+    }
+  }
+
   /** The work has posted its delivery or was cancelled: {@link #await} waits no longer for it. */
   void finished(Work work) {
     synchronized (running) {
       if (running.remove(work)) {
         running.notifyAll();
       }
+    }
+    synchronized (REPORTED) {
+      REPORTED.notifyAll(); // awaitProgress need not wait for a report of work that ended
     }
   }
 
@@ -2443,6 +2589,73 @@ public final class App<S> {
       }
     }
     takePosted();
+  }
+
+  /**
+   * Waits until work that {@link #background(String, Work.Reporting, Consumer, Consumer, Consumer)
+   * reports} has reported something that has not been let in yet, without waiting for the work to
+   * end, and then queues the reports, and everything else posted so far, for the next {@link
+   * #frame}, as {@link #await} does. A test or script shows work half done with it: the work
+   * reports and then waits for something the test controls, such as a latch it opens or an action
+   * of {@link #after} that the next {@link #advance} runs, so that what the frame shows does not
+   * depend on how fast the work was. A report that waits already, also of work that has ended
+   * since, lets this return at once; the result of work that ended comes with it, after its
+   * reports.
+   *
+   * @throws IllegalStateException if nothing reported within {@code timeout}, naming the work that
+   *     runs; at once if no work runs and nothing it reported waits; or if this is called in a
+   *     handler, whose thread it would block
+   * @throws InterruptedException if the thread is interrupted while it waits
+   */
+  public void awaitProgress(Duration timeout) throws InterruptedException {
+    awaitProgress(List.of(this), timeout);
+  }
+
+  /** {@link #awaitProgress(Duration)} for the apps of a {@link Script}: a report of any will do. */
+  static void awaitProgress(List<? extends App<?>> apps, Duration timeout)
+      throws InterruptedException {
+    for (App<?> app : apps) {
+      if (app.dispatching) {
+        throw new IllegalStateException(
+            "awaitProgress blocks the app's thread: call it between frames");
+      }
+    }
+    long nanos = timeout.toNanos();
+    long start = System.nanoTime();
+    synchronized (REPORTED) {
+      while (!reportWaits(apps)) {
+        List<String> names = new ArrayList<>();
+        for (App<?> app : apps) {
+          synchronized (app.running) {
+            app.running.forEach(work -> names.add(work.name()));
+          }
+        }
+        if (names.isEmpty()) {
+          throw new IllegalStateException("No work of the app runs, and nothing it reported waits"
+              + " to be let in. Waiting for progress needs work that App.background started with"
+              + " a Work.Progress and that still runs; its end is what await waits for.");
+        }
+        long left = nanos - (System.nanoTime() - start);
+        if (left <= 0) {
+          throw new IllegalStateException("After " + timeout.toMillis() + " ms, the app's work"
+              + " has reported nothing new: " + String.join(", ", names) + " still runs. Work"
+              + " reports on the Work.Progress that App.background hands it.");
+        }
+        TimeUnit.NANOSECONDS.timedWait(REPORTED, left);
+      }
+    }
+    for (App<?> app : apps) {
+      app.takePosted();
+    }
+  }
+
+  private static boolean reportWaits(List<? extends App<?>> apps) {
+    for (App<?> app : apps) {
+      if (app.reports.get() > app.reportsTaken) {
+        return true;
+      }
+    }
+    return false;
   }
 
   /** For {@link Script}: the innermost virtual list at this point, or null. */

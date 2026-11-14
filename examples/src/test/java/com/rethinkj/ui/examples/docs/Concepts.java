@@ -20,6 +20,7 @@ import com.rethinkj.ui.Style;
 import com.rethinkj.ui.Work;
 import com.rethinkj.ui.kit.Button;
 import com.rethinkj.ui.kit.Label;
+import com.rethinkj.ui.kit.Progress;
 import com.rethinkj.ui.kit.Theme;
 import com.rethinkj.ui.motion.Spring;
 import com.rethinkj.ui.text.Font;
@@ -27,6 +28,7 @@ import com.rethinkj.ui.window.Window;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
+import java.util.concurrent.Semaphore;
 
 /** The examples of the concept pages, built from core's elements where they can be. */
 final class Concepts {
@@ -41,6 +43,8 @@ final class Concepts {
   final FieldState query = new FieldState();
   String sql = "SELECT *\nFROM orders\nLIMIT 20;";
   Work count;
+  Work download;
+  int received; // megabytes of the download so far
   String rows = "";
   String message = "";
   Image photo;
@@ -307,6 +311,62 @@ final class Concepts {
   static long slowCount(String table) throws InterruptedException {
     Thread.sleep(Duration.ofMillis(50));
     return table.length() * 1000L;
+  }
+
+  static El progress(Concepts s) {
+    Theme t = s.t;
+    // docs:start reporting
+    El download = Button.button(t, PRIMARY, null, "Download", s.download != null, () -> {
+      s.received = 0;
+      Driver driver = Driver.madeUp(s.app, 8); // only what the work needs
+      s.download = s.app.background(
+          "download of " + driver.name,
+          (Work.Progress<Integer> progress) -> { // on a virtual thread
+            int megabytes = 0;
+            while (driver.read()) { // blocks for the next megabyte; cancel() interrupts it
+              progress.report(++megabytes); // reports that wait are coalesced into the newest
+            }
+            return megabytes;
+          },
+          megabytes -> s.received = megabytes, // back on the app's thread, each report
+          megabytes -> {
+            s.received = megabytes;
+            s.download = null;
+          },
+          e -> s.download = null);
+    });
+    El bar = Progress.labeled(t, "Driver", s.received / 8.0, s.received + " of 8 MB");
+    // docs:end reporting
+    return Frame.of(t, download, bar.w(240));
+  }
+
+  /**
+   * A made-up download: its megabytes arrive one each quarter second of the app's clock, by
+   * actions of {@link App#after}, so that a script decides with {@code advance} how far it got.
+   */
+  static final class Driver {
+    final String name = "postgresql.jar";
+    private final Semaphore arrived = new Semaphore(0);
+    private int left;
+
+    static Driver madeUp(App<?> app, int megabytes) {
+      Driver driver = new Driver();
+      driver.left = megabytes;
+      for (int i = 1; i <= megabytes; i++) {
+        app.after(0.25 * i, driver.arrived::release);
+      }
+      return driver;
+    }
+
+    /** Waits for the next megabyte, on the work's thread; false at the end. */
+    boolean read() throws InterruptedException {
+      if (left == 0) {
+        return false;
+      }
+      arrived.acquire();
+      left--;
+      return true;
+    }
   }
 
   static El images(Concepts s) {

@@ -102,6 +102,7 @@ class DocsExamplesTest {
     concepts(all, "field", Concepts::fields, 320, 200);
     all.put("range", new Example(() -> new App<>(new Paragraphs(), Paragraphs::view), 300, 140));
     concepts(all, "background", Concepts::background, 420, 140);
+    concepts(all, "progress", Concepts::progress, 280, 120);
     concepts(all, "images", Concepts::images, 280, 120);
     concepts(all, "theme", Concepts::theme, 200, 80);
     all.put("tab-groups", new Example(Notebook::app, 420, 260));

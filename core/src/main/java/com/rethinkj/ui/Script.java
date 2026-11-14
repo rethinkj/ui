@@ -52,6 +52,7 @@ import java.util.regex.Pattern;
  * move 230,40                        # element once it is beyond 4 pixels, or selects in a
  * up 230,40                          # text field from the first pixel
  * await                              # waits for the work the app started on other threads
+ * await progress                     # waits for a report of that work, not for its end
  * </pre>
  *
  * <p>{@code snap} also writes {@code <name>.clipboard.txt} with the text on the app's clipboard,
@@ -62,7 +63,8 @@ import java.util.regex.Pattern;
  * change nothing on screen until the next one, so {@code snap} refuses to write a frame that does
  * not show the steps before it. What other threads {@link App#post post} waits until an {@code
  * await} step, which waits for the work the app started ({@link App#background}) and queues what
- * it delivered for the next frame, so that a script shows the same however fast the work is.
+ * it delivered for the next frame, so that a script shows the same however fast the work is;
+ * {@code await progress} lets in what running work has reported ({@link App#awaitProgress}).
  * AGENTS.md describes the format.
  */
 public final class Script {
@@ -407,17 +409,28 @@ public final class Script {
           }
         }
         case "await" -> {
-          if (args.size() > 1) {
+          boolean progress = !args.isEmpty() && args.getFirst().equals("progress");
+          List<String> rest = progress ? args.subList(1, args.size()) : args;
+          if (rest.size() > 1) {
             throw line.usage(step);
           }
-          double seconds = args.isEmpty() ? AWAIT : line.number(args.getFirst(), true, step);
+          double seconds = rest.isEmpty() ? AWAIT : line.number(rest.getFirst(), true, step);
+          Duration timeout = Duration.ofNanos((long) Math.min(seconds * 1e9, Long.MAX_VALUE));
           try {
-            for (Win each : desk.open()) {
-              each.app.await(Duration.ofNanos((long) Math.min(seconds * 1e9, Long.MAX_VALUE)));
+            if (progress) {
+              App.awaitProgress(desk.open().stream().map(each -> each.app).toList(), timeout);
+            } else {
+              for (Win each : desk.open()) {
+                each.app.await(timeout);
+              }
             }
           } catch (IllegalStateException e) {
-            throw line.fail(e.getMessage() + " If it needs longer, write a timeout in seconds, as"
-                + " in `await 30`; the default is " + (int) AWAIT + ".");
+            String example = progress ? "`await progress 30`" : "`await 30`";
+            throw line.fail(e.getMessage()
+                + (e.getMessage().startsWith("After") // a timeout, not a mistake of the script
+                    ? " If it needs longer, write a timeout in seconds, as in " + example
+                        + "; the default is " + (int) AWAIT + "."
+                    : ""));
           } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             throw line.fail("The script was interrupted while it waited for the app's work.");
@@ -1078,7 +1091,8 @@ public final class Script {
             case "close" -> "`close` with nothing after it.";
             case "await" ->
               "`await`, or `await <seconds>` with a number above 0 to wait longer than "
-                  + (int) AWAIT + " seconds, for example `await 30`.";
+                  + (int) AWAIT + " seconds, for example `await 30`; `await progress` or `await"
+                  + " progress <seconds>` to wait for a report of work that still runs.";
             case "advance" ->
               "`advance <seconds>`, with a number of 0 or more, for example `advance 0.04`.";
             case "frame", "leave" -> "`" + step + "` with nothing after it.";
