@@ -283,10 +283,12 @@ final class Layouts {
   static El tabs(Layouts s) {
     Theme t = s.t;
     // docs:start tabs
-    El content = col()
-        .padding(t.space().l())
-        .grow(1)
-        .child(Label.label(t, "The rows of " + s.tabs.get(s.tab).title()));
+    El content = s.tab < 0 // the user closed every tab
+        ? EmptyState.emptyState(t, Symbol.TABLE, "No open tables", null, null)
+        : col()
+            .padding(t.space().l())
+            .grow(1)
+            .child(Label.label(t, "The rows of " + s.tabs.get(s.tab).title()));
     El tabs = Tabs.tabs(t, s.tabs, s.tab, i -> s.tab = i, i -> close(s, i), content);
     // docs:end tabs
     return Frame.of(t, tabs.wFull().grow(1));

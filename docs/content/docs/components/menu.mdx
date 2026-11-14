@@ -3,25 +3,27 @@ title: Menu
 description: Items, separators, check marks, shortcuts and submenus, as a dropdown below a button or a context menu.
 ---
 
-`Menu` shows items in an overlay: below a button with `Menu.dropdown`, at the pointer with `Menu.contextMenu`, or alone with `Menu.menu`. Items have text, an icon or a check mark, a shortcut shown at the right, and submenus to any depth. The app keeps a `Menu.State` per menu, which says whether it is open and what is highlighted. For the File, Edit and View menus of a window, use a [MenuBar](/docs/components/menu-bar); for one value among choices, a [Select](/docs/components/select).
+`Menu` shows items in an overlay: below a button with `Menu.dropdown`, at the pointer with `Menu.contextMenu`, or alone with `Menu.menu`. Items have text, an icon or a check mark, a shortcut shown at the right, and submenus to any depth. For the File, Edit and View menus of a window, use a [MenuBar](/docs/components/menu-bar); for one value among choices, a [Select](/docs/components/select).
 
 <Shot src="kit/menu-{theme}-2x-submenu" alt="A dropdown menu with icons, shortcuts, a separator and an open submenu" />
 
-## A dropdown
+## Example
 
 ```java snippet="menu"
 ```
 
-The button's handler calls `state.toggle()`; `Menu.dropdown(theme, button, state, items)` hangs the menu below it. Choosing an item closes the menu and then runs its handler; a press outside closes it and does nothing else.
+`s.options` is a `Menu.State` and `s.autocommit` a boolean, both in the app's state.
 
-Enter and Space on the button open the menu with its first enabled item highlighted, Arrow Down too and Arrow Up with the last, as WAI-ARIA's menu button; a press with the pointer highlights none.
+The button's handler calls `state.toggle()`; `Menu.dropdown(theme, button, state, items)` shows the menu below it. Choosing an item closes the menu and then runs its handler. A press outside closes it and does nothing else.
 
 ## A context menu
 
 ```java snippet="context-menu"
 ```
 
-`Menu.contextMenu(theme, target, state, items)` opens the menu at a secondary press on the target, or at the Menu key and Shift+F10 when the focus is inside it. If the target already has an `onSecondaryPress` handler (a row that selects itself first), call `state.openAt(x, y)` there.
+`s.context` is a `Menu.State` in the app's state.
+
+`Menu.contextMenu(theme, target, state, items)` opens the menu on a secondary press on the target, or on the Menu key and Shift+F10 while the focus is inside it. If the target already has an `onSecondaryPress` handler (a row that selects itself first), call `state.openAt(x, y)` there.
 
 <Shot src="kit/context-{theme}-2x-open" alt="A context menu open at the pointer over a row" />
 
@@ -34,23 +36,25 @@ Enter and Space on the button open the menu with its first enabled item highligh
 | `.shortcut("Ctrl+Enter")` | A text that only shows |
 | `.icon(Symbol)` | An icon before the text |
 | `.checked(boolean)` | A check mark in the icon's place, or at the item's end where it has a leading element |
-| `.danger()` | The text and icon in the theme's danger tone (`Theme.Danger.text`), for an action that destroys something, such as Delete; disabled, it is greyed out as any other item |
-| `.leading(theme -> element)` | Any small element before the text in place of the icon, built for each place the item shows, at most 16 pixels square: a colour's swatch, an avatar |
+| `.danger()` | The text and icon in the theme's danger colour, for an action that destroys something, such as Delete |
+| `.leading(theme -> element)` | Any small element before the text in place of the icon, at most 16 pixels square: a colour's swatch, an avatar |
 | `Menu.separator()` | A line |
 | `Menu.submenu(label, items)` | A submenu, opening beside the item |
 
-An `Item` is a record (`label`, `shortcut`, `keys`, `checked`, `icon`, `onChoose`, `submenu`, `leading`, `dangerous`), so an app reads its items back, as a palette or a help page of shortcuts does: `isSeparator()` says whether it is a line, and `isEnabled()` whether it can be chosen or opens a submenu that has items. `Menu.shortcutText(key)` writes a `Key` as the platform does, for a tooltip or a hint of the app's own: Ctrl, Alt and Shift in that order after `Win` or `Super`, then the key, so `Ctrl+Shift+N`; Windows writes `Del`, `Ins`, `PgUp` and `PgDn` where Linux writes `Delete`, `Insert`, `Page Up` and `Page Down`.
+An `Item` is a record (`label`, `shortcut`, `keys`, `checked`, `icon`, `onChoose`, `submenu`, `leading`, `dangerous`), so an app can read its items back, as a palette or a help page of shortcuts does. `isSeparator()` says whether it is a line, and `isEnabled()` whether it can be chosen or opens a submenu that has items. `Menu.shortcutText(key)` writes a `Key` as the platform does, such as `Ctrl+Shift+N`, for a tooltip or a hint of the app's own.
 
-A submenu of colours with a swatch before each hue's name, the chosen one checked at its end, as a [ComboBox](/docs/components/combo-box) checks its current item; a [CommandPalette](/docs/components/command-palette) of these items shows the same:
+A submenu of colours with a swatch before each hue's name, the chosen one checked at its end, as a [ComboBox](/docs/components/combo-box) checks its current item. A [CommandPalette](/docs/components/command-palette) of these items shows the same:
 
 ```java snippet="menu-leading"
 ```
 
 <Shot src="kit/menu-swatches-{theme}-2x" alt="A menu with a submenu Colour that shows a round swatch before each hue's name and a check mark after Red" />
 
-`Menu.shortcuts(items)` is a key handler for the root that runs the enabled item of a combination, in submenus too, when no element on the focus path took the key, menu open or not. Two items with one combination are refused with an exception when the view is built.
+`Menu.shortcuts(items)` is a key handler for the root. It runs the enabled item of a key combination, in submenus too, when no element on the focus path took the key, whether the menu is open or not. Two items with one combination throw an exception when the view is built.
 
 ## The state
+
+The app keeps one `Menu.State` per menu.
 
 | `Menu.State` | |
 | --- | --- |
@@ -59,7 +63,7 @@ A submenu of colours with a swatch before each hue's name, the chosen one checke
 
 ## Keyboard
 
-The menu takes the focus as it opens and gives it back as it closes.
+The menu takes the focus as it opens and gives it back as it closes. Enter, Space and Down on a dropdown's button open the menu with its first enabled item highlighted, and Up with the last. A press with the pointer highlights none.
 
 | Keys | Action |
 | --- | --- |
@@ -70,11 +74,11 @@ The menu takes the focus as it opens and gives it back as it closes.
 | Tab | Close the menu |
 | A letter or digit | The next item that starts with it |
 
-In a menu that scrolls, the item a key highlights stays in view. The pointer highlights the item it rests on and opens a submenu after the theme's delay. Menus fade in and out; a script advances the clock past the fade (`advance 0.3`) before it presses an item or snaps.
+The item a key highlights stays in view. The pointer highlights the item it rests on and opens its submenu after the theme's delay. Menus fade in and out, so a script advances the clock past the fade (`advance 0.3`) before it presses an item or takes a snap.
 
 ## In a tree dump
 
-The menu is an overlay `role=menu`; items are `role=menuitem` with their text as label and the key `item-<index>` (`subitem-<index>` in a submenu), separators counted; the highlighted item is `current`, a checked one `checked`, an item with a submenu `expanded` or `expanded=false`.
+The menu is an overlay `role=menu`. Items are `role=menuitem` with their text as label and the key `item-<index>` (`subitem-<index>` in a submenu), separators counted. The highlighted item is `current`, a checked one `checked`, and an item with a submenu `expanded` or `expanded=false`.
 
 ```text snippet="menu-script"
 ```

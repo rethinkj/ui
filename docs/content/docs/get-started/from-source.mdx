@@ -1,0 +1,69 @@
+---
+title: Build from source
+description: Build the repository, run its tests, and start the example apps in a window or under a script.
+---
+
+To work on rethinkj UI itself, or to try the example apps, build the repository. An app of your own needs none of this: it depends on the SNAPSHOTs, see [Your own project](/docs/get-started).
+
+## Requirements
+
+| | |
+| --- | --- |
+| Platforms | Windows 11 or later and Linux, both on x64 |
+| JDK | 25, any distribution |
+| Maven | 3.9 or later |
+| Network | The first build downloads the native libraries; later builds, `mvn clean` included, do not |
+
+The first build also compiles some native libraries from source, so it needs a C toolchain:
+
+<Tabs items={['Linux', 'Windows']}>
+<Tab value="Linux">
+
+cmake, make, a C and a C++ compiler, pkg-config, `tar` with xz, and the development packages of X11, Wayland and the other libraries SDL uses. `natives-linux-x64/natives.properties` lists them. Building SDL, FreeType and HarfBuzz takes about a minute.
+
+</Tab>
+<Tab value="Windows">
+
+Visual Studio 2022 or later, or its Build Tools, with the workload "Desktop development with C++" (its defaults include the x64 tools, a Windows SDK and "C++ CMake tools for Windows"). Nothing has to be on the `PATH`. FreeType and HarfBuzz take one to three minutes.
+
+</Tab>
+</Tabs>
+
+## Build
+
+```sh
+git clone https://github.com/rethinkj/ui.git
+cd ui
+mvn verify
+```
+
+`mvn verify` builds every module and runs the tests, which render hundreds of views without a window and compare them with stored images. It opens no window. Without a toolchain, leave the native libraries out; the tests that need them skip themselves:
+
+```sh
+mvn verify -P -natives-linux-x64
+```
+
+On Windows, write `-natives-windows-x64`.
+
+If a build cannot find or load a native library, see [Platforms and native libraries](/docs/reference/platforms).
+
+## Run the examples
+
+The `examples` module holds apps written the way a user of the library writes them. From the repository's root:
+
+```sh
+mvn -q -pl examples -am compile exec:exec
+mvn -q -pl examples -am compile exec:exec -Dexample=Showcase
+```
+
+The first runs LightSwitch, the second the Showcase of every component.
+
+`-Dexample` names a class in `com.rethinkj.ui.examples`: `LightSwitch`, `Workbench`, `DataBrowser`, `Showcase`, `Documents`, `Manual`, `Settings`, `ConnectionDialog` or `Notes`. [Examples](/docs/examples) has a page for each.
+
+`-Dargs` passes arguments to the example's `main`. With a script, no window opens and the snaps go to the folder:
+
+```sh
+mvn -q -pl examples -am compile exec:exec -Dexample=LightSwitch -Dargs="--script examples/src/test/resources/scripts/light-switch.txt --out target/light-switch"
+```
+
+Paths are relative to the folder Maven was started in. Each `snap` writes a `.png` and a `.tree.txt`. See [Scripts](/docs/testing/scripts).

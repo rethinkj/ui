@@ -63,7 +63,7 @@ class CommandPaletteTest {
   @Test
   void typingFindsACommandEnterRunsItAndTheFocusGoesBack() throws IOException {
     String tree = run("key P control shift");
-    assertTrue(tree.contains("\noverlay edge top center gap 36 on "), tree);
+    assertTrue(tree.contains("\noverlay edge top center gap 72 on "), tree);
     assertTrue(tree.contains("el #palette role=dialog label=\"Command palette\""), tree);
     assertTrue(line(tree, "role=textbox label=\"Command\"").contains(" focused"), tree);
 

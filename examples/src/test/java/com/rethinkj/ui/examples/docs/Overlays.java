@@ -9,6 +9,7 @@ import static com.rethinkj.ui.kit.Button.Variant.SECONDARY;
 
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.Key;
+import com.rethinkj.ui.Style;
 import com.rethinkj.ui.kit.Badge;
 import com.rethinkj.ui.kit.Button;
 import com.rethinkj.ui.kit.CommandPalette;
@@ -174,7 +175,15 @@ final class Overlays {
                           s.renaming = false;
                         })),
             cancel);
-    El root = Frame.of(t, Label.label(t, s.name), open).overlay(dialog);
+    El root = col() // the window: its background, some room, and the dialog over it
+        .wFull()
+        .hFull()
+        .fill(t.surface().window())
+        .padding(t.space().l())
+        .gap(t.space().m())
+        .align(Style.Align.START)
+        .children(Label.label(t, s.name), open)
+        .overlay(dialog);
     // docs:end dialog
     return root;
   }
@@ -205,7 +214,13 @@ final class Overlays {
     Theme t = s.t;
     // docs:start toast
     El drop = Button.button(t, SECONDARY, "Drop orders", () -> s.dropped = "orders");
-    El root = Frame.of(t, drop)
+    El root = col()
+        .wFull()
+        .hFull()
+        .fill(t.surface().window())
+        .padding(t.space().l())
+        .align(Style.Align.START)
+        .child(drop)
         .overlay(
             s.dropped == null
                 ? null
@@ -230,7 +245,12 @@ final class Overlays {
     List<FilterList.Entry> tables = List.of(
         FilterList.entry("orders", () -> s.said = "orders").symbol(Symbol.TABLE).detail("public"),
         FilterList.entry("customers", () -> s.said = "customers").symbol(Symbol.TABLE));
-    El root = Frame.of(t, Label.label(t, "Control+Shift+P opens the palette."))
+    El root = col() // the root: without focus, only it gets the keys
+        .wFull()
+        .hFull()
+        .fill(t.surface().window())
+        .padding(t.space().l())
+        .child(Label.label(t, "Control+Shift+P opens the palette."))
         .onKey(Menu.shortcuts(menus).or(CommandPalette.keys(s.palette)))
         .overlay(CommandPalette.palette(
             t,

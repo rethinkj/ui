@@ -26,6 +26,7 @@ import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.IntStream;
 
@@ -47,7 +48,12 @@ final class Grids {
   final DataGrid.Fit fit = new DataGrid.Fit();
   final DataGrid.Layout layout = new DataGrid.Layout(List.of("id", "customer", "amount", "status"));
   List<DataGrid.Filter> filters = List.of();
-  final GridChanges changes = new GridChanges(COUNT, Grids::value);
+  // The rows of the edited grid, which Commit writes the changes into.
+  final List<String[]> rows = new ArrayList<>(IntStream.range(0, 20)
+      .mapToObj(i -> IntStream.range(0, 4).mapToObj(c -> value(i, c)).toArray(String[]::new))
+      .toList());
+  GridChanges changes = new GridChanges(rows.size(), (row, column) -> rows.get(row)[column]);
+  int nextId = 1020; // the id the next new order gets
   final Set<String> open = new HashSet<>(List.of("shop", "public"));
   Node selected;
   String said = "";
@@ -167,18 +173,16 @@ final class Grids {
   }
 
   // docs:start grid-order
-  /** The rows in the order of the first sort key: what row i of the grid shows. */
+  /** The rows in the order of the sort keys, the first key first: what row i of the grid shows. */
   int[] order() {
-    Comparator<Integer> by = Comparator.comparingInt(i -> i);
-    if (!sort.isEmpty()) {
-      DataGrid.SortKey key = sort.getFirst();
-      by = key.column() == 2
+    Comparator<Integer> by = (a, b) -> 0;
+    for (DataGrid.SortKey key : sort) {
+      Comparator<Integer> next = key.column() == 2
           ? Comparator.comparingDouble(i -> Double.parseDouble(value(i, 2)))
           : Comparator.comparing(i -> value(i, key.column()));
-      if (key.descending()) {
-        by = by.reversed();
-      }
+      by = by.thenComparing(key.descending() ? next.reversed() : next);
     }
+    by = by.thenComparingInt(i -> i); // rows equal in every key keep their order
     return IntStream.range(0, COUNT).boxed().sorted(by).mapToInt(i -> i).toArray();
   }
   // docs:end grid-order
@@ -213,8 +217,26 @@ final class Grids {
         count == 0
             ? null
             : () -> {
-              s.said = s.changes.changes().toString(); // UPDATE, INSERT and DELETE to write
-              s.changes.clear();
+              if (!s.selection.commitEdit()) {
+                return; // the open editor refused its value: it stays open, the rows stay put
+              }
+              for (GridChanges.Change change : s.changes.changes()) { // the deletes first
+                int row = (int) change.key(); // the row's index, for an insert below 0
+                switch (change.kind()) {
+                  case DELETE -> s.rows.set(row, null); // removed after the updates
+                  case UPDATE -> change.values().forEach((c, value) -> s.rows.get(row)[c] = value);
+                  case INSERT -> {
+                    String[] order = new String[4];
+                    change.values().forEach((c, value) -> order[c] = value);
+                    order[0] = String.valueOf(s.nextId++); // as a database gives the key
+                    s.rows.add(order); // at the end: a database decides where it goes
+                  }
+                }
+              }
+              s.rows.removeIf(Objects::isNull);
+              // The rows hold the changes now: new GridChanges over them, with their new count.
+              s.changes = new GridChanges(s.rows.size(), (r, c) -> s.rows.get(r)[c]);
+              s.selection.clear(); // deleted rows moved the indexes the selection points at
             });
     El revert = Button.button(t, SECONDARY, "Revert", count == 0 ? null : s.changes::clear);
     // docs:end grid-edit

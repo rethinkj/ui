@@ -48,9 +48,10 @@ public final class TextField {
    * @param onChange receives the new string after each edit; null disables the field
    */
   public static El textField(Theme t, String value, String placeholder, Consumer<String> onChange) {
+    float m = t.space().m();
     return frame(t, El.text(value).editable(onChange), t.type().body(), placeholder, onChange)
         .h(t.size().control())
-        .padding(0, t.space().m());
+        .padding(0, m, t.size().stroke(), m); // the bottom's padding stands in for its border
   }
 
   /**
@@ -96,7 +97,8 @@ public final class TextField {
         area(t, t.type().mono(), value, placeholder, onChange).tabIndents(true).codeWords();
     // Below the last line, the room of the bar along the bottom, which shows for a long line.
     Scrollbars bars = t.scrollbars();
-    area.style().paddingBottom = Len.px(t.space().s() + bars.thickness() + bars.margin());
+    area.style().paddingBottom =
+        Len.px(t.space().s() + t.size().stroke() + bars.thickness() + bars.margin());
     return area;
   }
 
@@ -104,7 +106,11 @@ public final class TextField {
       Theme t, Theme.TextStyle style, String value, String placeholder, Consumer<String> onChange) {
     return frame(t, El.text(value).editable(onChange).multiline(), style, placeholder, onChange)
         .lines(4)
-        .padding(t.space().s(), t.space().m())
+        .padding(
+            t.space().s(),
+            t.space().m(),
+            t.space().s() + t.size().stroke(),
+            t.space().m())
         .scrollbars(t.scrollbars());
   }
 
@@ -123,8 +129,12 @@ public final class TextField {
         .w(t.size().field())
         .radius(t.radius().medium())
         .fill(fill)
-        .border(t.size().stroke(), enabled ? t.border().strong() : t.border().divider())
         .motion(t.motion().feedback());
+    if (enabled) {
+      edge(t, field, t.border().control(), t.border().strong());
+    } else {
+      edge(t, field, t.border().divider(), t.border().divider());
+    }
     if (placeholder != null) {
       field.placeholder(placeholder, enabled ? t.text().muted() : t.text().disabled());
     }
@@ -133,19 +143,36 @@ public final class TextField {
     }
     int hover = over(fill, t.surface().hover());
     return field
-        .whenHovered(e -> e.fill(hover))
-        .whenFocused(e -> e.border(t.size().stroke(), t.accent().color()));
+        .whenHovered(e -> {
+          e.fill(hover);
+          if (e.borderColor() != t.status().danger()) { // an invalid field keeps its frame
+            edge(t, e, t.border().strong(), t.border().strong());
+          }
+        })
+        .whenFocused(e -> edge(t, e, t.accent().color(), t.accent().color()));
+  }
+
+  /**
+   * The frame of a field: {@code frame} on top and at the sides, and {@code edge} along the
+   * bottom, the line a field is recognised by. The edge is a sharp shadow one stroke below the
+   * box, so that it follows the lower corners; a field has no bottom border and pads its bottom
+   * by a stroke instead, which keeps its content where a frame all round would.
+   */
+  static El edge(Theme t, El field, int frame, int edge) {
+    float w = t.size().stroke();
+    return field.border(w, w, 0, w, frame).shadow(Theme.fieldEdge(w, edge));
   }
 
   /**
    * Gives a field of this class the look of a value that is not accepted, such as a form's field
-   * with an error: the danger colour's border, also while it has the focus, and {@code invalid} in
-   * a tree dump ({@link El#invalid}).
+   * with an error: its whole frame in the danger colour, also under the pointer and while it has
+   * the focus, and {@code invalid} in a tree dump ({@link El#invalid}).
    *
    * @return the field
    */
   public static El invalid(Theme t, El field) {
-    return field.invalid(true).border(t.size().stroke(), t.status().danger()).whenFocused(null);
+    int danger = t.status().danger();
+    return edge(t, field.invalid(true), danger, danger).whenFocused(null);
   }
 
   /**
@@ -175,8 +202,8 @@ public final class TextField {
    * <p>The button ({@code role=button}, {@code label="Show password"} or {@code "Hide password"},
    * the eye or the crossed eye) leaves the focus in the field when it is pressed ({@link
    * El#keepFocus}), so typing goes on where it was. Tab reaches it after the field, and Enter and
-   * Space press it there; meanwhile the field's frame keeps the accent border of the focus ({@link
-   * El#whenFocusWithin}), as the button is part of it, or the danger border of an {@link #invalid}
+   * Space press it there; meanwhile the field's frame keeps the accent colour of the focus ({@link
+   * El#whenFocusWithin}), as the button is part of it, or the danger colour of an {@link #invalid}
    * field. It is disabled with the field and without a
    * handler; a read-only field shows its password too.
    *
@@ -200,7 +227,7 @@ public final class TextField {
       box.whenFocusWithin(e -> {
         // An invalid field (#invalid, also set after this by a form) keeps its danger border.
         if (field.borderColor() != t.status().danger()) {
-          field.border(t.size().stroke(), t.accent().color());
+          edge(t, field, t.accent().color(), t.accent().color());
         }
       });
     }
@@ -216,7 +243,8 @@ public final class TextField {
    * @param field a field of {@link #textField}
    */
   public static El withIcon(Theme t, El field, Symbol symbol) {
-    float side = t.size().control();
+    Len height = field.style().height; // the icon in a square as high as the field
+    float side = height.kind() == Len.Kind.PX ? height.value() : t.size().control();
     field.style().paddingLeft = Len.px(side); // the text starts after the icon
     El mark = icon(t, symbol, field.onEdit() != null ? Icon.Variant.MUTED : Icon.Variant.DISABLED);
     Style at = mark.style();

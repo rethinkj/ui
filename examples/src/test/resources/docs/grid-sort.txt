@@ -1,0 +1,7 @@
+size 520 300
+frame
+press #column-3            # sorts by status
+frame
+press #column-2 shift      # then by amount within each status
+frame
+snap view

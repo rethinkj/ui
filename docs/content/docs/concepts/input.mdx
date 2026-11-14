@@ -3,7 +3,7 @@ title: Input, focus and keys
 description: Presses, keys, text and the wheel; the keyboard focus and Tab; hover and pressed looks; drags.
 ---
 
-Elements take input through handlers. The app finds the element under the pointer, or the one with the keyboard focus, and runs its handler; if the handler changes the state, the view is built again. Kit components set all of this up; this page is for your own elements.
+Elements take input through handlers. The app finds the element under the pointer, or the one with the keyboard focus, and runs its handler; the view is then built again. Kit components set this up for you; this page is for your own elements.
 
 ```java snippet="input"
 ```
@@ -22,12 +22,12 @@ Elements take input through handlers. The app finds the element under the pointe
 | `onDrag(drag -> …)` | A drag, after the pointer moved more than 4 pixels |
 | `cursor(Cursor.POINTER)` | The pointer's shape over the element |
 
-A press goes to the innermost element with a press handler under the pointer, and counts only when the button goes down and up on it.
+A press goes to the innermost element under the pointer that has a press handler, and counts only when the button goes down and up on that element.
 
 ```java snippet="drag"
 ```
 
-A `Drag` has its `phase` (`START`, `MOVE`, `END`, `CANCEL`), the step `dx`, `dy`, and where the pointer is in the element's content (`x`, `y`). Escape cancels a drag.
+A `Drag` has its `phase` (`START`, `MOVE`, `END`, `CANCEL`), how far the pointer is from where it went down (`dx`, `dy`), and the pointer's position in the element's content (`x`, `y`). Escape cancels a drag.
 
 ## Keyboard and focus
 
@@ -41,9 +41,16 @@ A `Drag` has its `phase` (`START`, `MOVE`, `END`, `CANCEL`), the step `dx`, `dy`
 | `autofocus()` | Takes the focus in the build that adds it |
 | `focusRing(argb)`, `focusRingGap(px)` | The ring drawn when the keyboard moved the focus |
 
-Keys go to the focused element's key handler first. Enter and Space without modifiers then press the focused element if it has a press handler; any other key, and those two otherwise, go up through its ancestors until a handler takes one. If none does, Tab and Shift+Tab move the focus through the focusable elements in tree order, and Page Up and Page Down scroll the innermost scroll area around the focused element by its height, or in a modal overlay, as a dialog, its first scroll area, while the focus is on a button below it. A `Key` has the web's key name (`"Enter"`, `"ArrowDown"`, `"A"`) and modifiers (`Key.CONTROL`, `SHIFT`, `ALT`, `META`).
+A key goes through these steps until one takes it:
 
-When a rebuild leaves out the focused element, the focus goes to the nearest focusable element along its old place, so closing a tab puts the focus into the next tab's content. `app.focus(el)` moves the focus from a handler.
+1. The focused element's `onKey` handler.
+2. Enter or Space without modifiers press the focused element, if it has a press handler.
+3. The `onKey` handlers of its ancestors, innermost first.
+4. Tab and Shift+Tab move the focus through the focusable elements in tree order. Page Up and Page Down scroll the innermost scroll area around the focus by one page; in a modal overlay such as a dialog, its first scroll area, also while the focus is on a button below it.
+
+A `Key` has the web's key name (`"Enter"`, `"ArrowDown"`, `"A"`) and modifiers (`Key.CONTROL`, `SHIFT`, `ALT`, `META`).
+
+When the focused element leaves the tree, the focus moves to the nearest focusable element near its old place, so closing a tab puts the focus into the next tab's content. `app.focus(el)` moves the focus from a handler.
 
 ## Looks
 
@@ -53,36 +60,38 @@ When a rebuild leaves out the focused element, the focus goes to the nearest foc
 | `whenPressed(e -> …)` | While pressed |
 | `whenFocused(e -> …)`, `whenFocusWithin(e -> …)` | While it, or something inside it, has the focus |
 | `whenHoveredFor(seconds, e -> …)` | After the pointer rested on it: how a tooltip appears |
-| `whenFocusVisibleFor(seconds, e -> …)` | After it had the focus with a ring that long: the keyboard's tooltip. It goes when the focus leaves or a key goes down that does not move the focus |
-| `onHoverFor(seconds, handler)` | Runs once per stay after the pointer rested on it, or inside it, that long; with 0 in the frame that finds the pointer there. A menu follows the pointer with it |
+| `whenFocusVisibleFor(seconds, e -> …)` | After it had keyboard focus (with a ring) that long: a tooltip for keyboard users. Ends when the focus leaves or a key that does not move the focus is pressed |
+| `onHoverFor(seconds, handler)` | Runs once each time the pointer has rested on it, or inside it, that long; with 0, as soon as the pointer is there. Menus use it to follow the pointer |
 
-A look changes the element after it is built; with `motion`, the change springs.
+A look changes the element after it is built; with `motion`, the change animates.
 
-The delays run on the app's clock, so an idle window wakes for them and draws nothing while it waits, and a script moves the clock with `advance`. A press keeps a delayed look and `onHoverFor` away until the pointer has left the element and come back. A delayed look may attach an [overlay](/docs/concepts/overlays), which is how the kit's [Tooltip](/docs/components/tooltip) shows.
+Delays run on the app's clock: an idle window wakes for them, and a script moves the clock with `advance`. After a press, delayed looks and `onHoverFor` wait until the pointer has left the element and come back. A delayed look may attach an [overlay](/docs/concepts/overlays); that is how the kit's [Tooltip](/docs/components/tooltip) works.
 
-## Every press and key
+## Watch all presses and keys
 
-Some components need to know of input that is not theirs: a menu bar tells Alt pressed alone from Alt held while something else happened, and an editor over a grid's cell hands its value on when the user presses elsewhere. These hooks take nothing from the input, which goes on as without them, and run in `frame()`, as handlers do, while the element is in the tree or in a shown overlay:
+Some components need to see input meant for others: a menu bar tells Alt pressed alone from Alt used in a shortcut, and an editor over a grid cell commits its value when the user presses elsewhere. These hooks observe input without consuming it. They run like handlers, while the element is in the tree or in a shown overlay:
 
 | Call | |
 | --- | --- |
-| `onAnyPointerDown(handler)` | Whenever a button of the pointer goes down anywhere in the window, before the press does anything else: in a text field, on a scrollbar, in an overlay or outside it |
-| `onAnyKeyDown(key -> …)` | Every key that goes down, before any `onKey` handler or field sees it, also one the focused element takes |
-| `onPressOutside(handler)` | A button goes down outside this element and everything inside it; an overlay attached inside it counts as outside |
+| `onAnyPointerDown(handler)` | Any pointer button goes down anywhere in the window, before anything else handles it |
+| `onAnyKeyDown(key -> …)` | Any key goes down, before any `onKey` handler or text field sees it |
+| `onPressOutside(handler)` | A button goes down outside this element and its descendants; an overlay attached inside it counts as outside |
 
-Presses that the system takes, on the parts of a frameless window's frame, do not reach them.
+Presses the system handles, on the title bar parts of a frameless window, do not reach them.
 
-## Holding the focus
+## Hold the focus in a region
 
-`holdFocus()` makes an element hold the keyboard focus while the view marks it, as an open overlay does without being one: the build that first marks it moves the focus to it, or to its first focusable element, without a ring, and the first build that leaves the mark out gives the focus back to where it was, with the ring it had, if the focus is still inside it or nowhere. A press outside it calls its `onDismiss` handler and goes no further. Overlays that open inside it take the focus from it and give it back. The kit's [MenuBar](/docs/components/menu-bar) holds the focus this way from Alt or F10 until Escape: while its state says the bar has the keys, the view builds the bar with `.focusable().holdFocus().onDismiss(...)`, and without them otherwise.
+`holdFocus()` makes an element take the focus like an overlay, without being one. In the first build that sets it, the focus moves to the element (or its first focusable descendant), without a ring. In the first build without it, the focus returns to where it was before, if it is still inside the element or nowhere. While it is set, a press outside calls the element's `onDismiss` handler and does nothing else. Overlays that open inside it take the focus and give it back.
+
+The kit's [MenuBar](/docs/components/menu-bar) uses it from Alt or F10 until Escape: while the bar has the keyboard, the view builds it with `.focusable().holdFocus().onDismiss(...)`.
 
 ## The wheel
 
-The wheel scrolls the innermost scroll area under the pointer that can still move that way, then the next one out. Shift turns it sideways. `app.scrollTo(area, x, y)` and `scrollToRow(list, row)` scroll from a handler.
+The wheel scrolls the innermost scroll area under the pointer that can still move in that direction, then the next one out. Shift scrolls sideways. `app.scrollTo(area, x, y)` and `scrollToRow(list, row)` scroll from a handler.
 
 ## In a tree dump
 
-The focused element ends in `focused`, the one a press would reach in `hovered`:
+The focused element ends in `focused`, the one a press would go to in `hovered`:
 
 ```text file="examples/src/test/resources/golden/docs/input/pressed.tree.txt"
 ```

@@ -27,7 +27,7 @@ description: Progress bars, labelled bars, a running bar, a line under a toolbar
 | `DONE` | The success colour |
 | `PAUSED` | Muted |
 
-A bar and a running bar with the same key share their piece, so a bar that learns its value springs there from where the piece ran. Running bars and spinners animate on the app's clock (`El.cycle`); a window draws while one is shown and is idle otherwise.
+Give a running bar and the bar that replaces it once the fraction is known the same key, and the bar moves on from where the running piece was. Running bars and spinners move with the app's clock, so a script advances it.
 
 ## In a tree dump
 

@@ -12,6 +12,8 @@ description: A row of buttons, toggles and split buttons that moves what has no 
 ```java snippet="toolbar"
 ```
 
+`s.tools` is a `Toolbar.State` and `s.runMenu` a `Menu.State`, both in the app's state.
+
 | Item | |
 | --- | --- |
 | `Toolbar.button(icon, label, onPress)` | An icon button with a tooltip |
@@ -20,7 +22,7 @@ description: A row of buttons, toggles and split buttons that moves what has no 
 | `Toolbar.split(variant, icon, text, onPress, menu, items)` | A split button; a submenu in the More menu |
 | `Toolbar.separator()`, `Toolbar.spacer()` | A line, and room that pushes the rest to the right |
 
-The app keeps a `Toolbar.State`. The toolbar settles a frame after a change of width and new parts fade in, so a script advances the clock before a snap.
+After a change of width, the toolbar settles one frame later and new items fade in, so a script advances the clock before a snap.
 
 ## Keyboard
 

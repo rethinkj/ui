@@ -161,6 +161,7 @@ public final class Completion {
             ROWS,
             state.highlight,
             t.space().s(),
+            t.size().control(),
             i -> option(t, entries.get(i), i, state, take))
         .key("completions")
         .role("listbox")

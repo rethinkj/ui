@@ -7,10 +7,12 @@ description: A filter in each header cell, a bar of removable filters, and the a
 
 <Shot src="kit/filter-{theme}-popover" alt="The filter popover of a text column, open below its header" />
 
-## The example
+## Example
 
 ```java snippet="grid-filter"
 ```
+
+`s.filters` is a list of `DataGrid.Filter`s in the app's state; `value(i, c)` and `COUNT` stand for the app's data.
 
 `DataGrid.filterBar(t, columns, filters, onFilter)` is a row of removable badges with Clear all, to put above the grid; it returns null while there are no filters.
 

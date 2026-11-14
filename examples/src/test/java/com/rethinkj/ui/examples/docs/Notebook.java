@@ -56,7 +56,9 @@ final class Notebook {
                 t,
                 group,
                 note -> new Tabs.Tab(note.title, true, false).icon(Symbol.DOCUMENT),
-                note -> col().padding(t.space().l()).child(Label.label(t, note.text)))
+                note -> note == null // a group without tabs
+                    ? null
+                    : col().padding(t.space().l()).child(Label.label(t, note.text)))
             .grow(1));
   }
   // docs:end tab-groups

@@ -3,7 +3,7 @@ title: Tooltip
 description: A short text below an element after the pointer rests on it, or the keyboard focuses it.
 ---
 
-`Tooltip.tooltip` shows a short text below its anchor once the pointer has rested on it for the theme's delay (half a second), and hides it when the pointer leaves or presses. It also shows when the keyboard gives the anchor the focus, until the focus leaves or a key goes down. Use it to name icon buttons and to show what is cut off. It holds no state. For content that the user interacts with, use a [Popover](/docs/components/popover).
+`Tooltip.tooltip` shows a short text below its anchor once the pointer has rested on it for the theme's delay (half a second). It hides when the pointer leaves or presses. It also shows when the keyboard gives the anchor the focus, until the focus leaves or a key goes down. Use it to name icon buttons and to show text that is cut off. It holds no state. For content that the user interacts with, use a [Popover](/docs/components/popover).
 
 <Shot src="kit/tooltip-{theme}-2x-shown" alt="A tooltip below a button" />
 
@@ -12,13 +12,13 @@ description: A short text below an element after the pointer rests on it, or the
 ```java snippet="tooltip"
 ```
 
-`Tooltip.tooltip(theme, anchor, text)` returns the anchor. Where the tooltip would cover its anchor, it goes beside it. An idle window wakes for the delay and draws nothing while it waits. `Button.icon` already has a tooltip with its label.
+`Tooltip.tooltip(theme, anchor, text)` returns the anchor. Where the tooltip would cover its anchor, it goes beside it. `Button.icon` already has a tooltip with its label.
 
 ## Only where the text is cut
 
-`Tooltip.whenShortened(theme, anchor, text)` is a tooltip that shows only while a text of the anchor, or of an element inside it, ends in an ellipsis because it did not fit (`El.ellipsis()`): the whole name of a column, a tab or a button that a narrow window cuts. Where the text fits, it shows nothing. The kit's buttons and the data grid's cells and headers have one. A `tooltip` of the view's own on the same anchor stands in its place.
+`Tooltip.whenShortened(theme, anchor, text)` shows only while a text of the anchor, or of an element inside it, ends in an ellipsis because it does not fit (`El.ellipsis()`): the whole name of a column, a tab or a button in a narrow window. Where the text fits, it shows nothing. The kit's buttons and the data grid's cells and headers have one. A `tooltip` of the view's own on the same anchor replaces it.
 
-Layout decides whether a text was cut after the looks have run, so it is the overlay that knows: `El.whenShortened()` on an overlay shows it only while a text of its anchor is shortened, for a panel of one's own. `Text.shortened()` says it for one text element after layout ([Text](/docs/concepts/text)).
+For a panel of your own, `El.whenShortened()` on an overlay shows it only while a text of its anchor is shortened. `Text.shortened()` says whether one text element was shortened, after layout ([Text](/docs/concepts/text)).
 
 ## In a script
 

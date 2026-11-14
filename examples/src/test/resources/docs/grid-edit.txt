@@ -7,3 +7,6 @@ key Enter                 # hands the value on and goes down
 frame
 snap edited               # the row and the cell say value="changed"
 # docs:end grid-edit-script
+press role=button label="Commit (1)"
+frame
+snap committed            # the rows hold "Zoe", nothing is marked changed

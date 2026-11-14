@@ -3,7 +3,7 @@ title: Tabs
 description: A card with a bar of tabs over the content of the active one.
 ---
 
-`Tabs.tabs` is a card whose first row is a bar of tabs over the content of the active tab, which fills the card edge to edge. Use it for open documents, queries or tables. The app owns the list and the active index; the content is built for the active tab only. To let tabs move between windows, use [TabGroups](/docs/components/tab-groups); for a choice of two or three views, a [Segmented](/docs/components/segmented) control.
+`Tabs.tabs` is a card whose first row is a bar of tabs. Below it, the content of the active tab fills the card edge to edge. Use it for open documents, queries or tables. The app owns the list and the active index; the content is built for the active tab only. To let tabs move between windows, use [TabGroups](/docs/components/tab-groups); for a choice of two or three views, a [Segmented](/docs/components/segmented) control.
 
 <Shot src="examples/docs/tabs/view-{theme}" alt="A card with the tabs orders, customers marked as changed, and query 1, orders active with its close button" />
 
@@ -15,7 +15,16 @@ description: A card with a bar of tabs over the content of the active one.
 ```java snippet="tabs-close"
 ```
 
-`Tabs.Tab(title, closable, modified)` has a title, whether it can be closed and whether it is modified (a small round dot before the title, `Theme.Sizes.dot` wide); `.icon(Symbol)` adds an icon, and `.hue(Theme.Hue.RED)` a line in that colour along the tab's top, which marks the tabs of a group, such as those of a connection to production; the tab then says `value="red"` in a tree dump. `.busy(true)` shows a spinner in place of the icon while the tab's content works, such as a query that runs, so that it shows while another tab is active. `onSelect` and `onClose` get the index. Closing is the app's: it removes the tab and picks the next active one.
+`s.tabs` is a list of `Tabs.Tab` and `s.tab` the active index, both in the app's state.
+
+| `Tabs.Tab` | |
+| --- | --- |
+| `new Tabs.Tab(title, closable, modified)` | A title, whether it can be closed, and whether it is modified (a dot before the title) |
+| `.icon(Symbol)` | An icon before the title |
+| `.hue(Theme.Hue.RED)` | A line in that colour along the tab's top, to mark the tabs of a group, such as those of a connection to production. The tab says `value="red"` in a tree dump |
+| `.busy(true)` | A spinner in place of the icon while the tab's content works, such as a running query; it shows while another tab is active too |
+
+`onSelect` and `onClose` get the index. Closing is the app's job: it removes the tab and picks the next active one.
 
 ## Options
 
@@ -31,7 +40,7 @@ description: A card with a bar of tabs over the content of the active one.
 
 [TabGroups](/docs/components/tab-groups) wires all of these for you.
 
-The app keeps one `Tabs.Dragging` for all bars that trade tabs. It says what a drag is doing, so that a view can hide what should not show meanwhile, such as a tooltip or a drop hint:
+The app keeps one `Tabs.Dragging` for all bars that trade tabs. It says what a drag is doing, so that a view can hide things meanwhile, such as a tooltip or a drop hint:
 
 | `Tabs.Dragging` | |
 | --- | --- |
@@ -53,7 +62,7 @@ The bar is one stop for Tab. For the shortcuts to work while the focus is elsewh
 
 ## In a tree dump
 
-The bar is `role=tablist` with the key `tablist`; each tab `role=tab` with its title as label and the key `tab-<index>`, the active one `selected`, a busy one `busy`; a close button `role=button` with `label="Close <title>"` and the key `close-<index>`. A tab being dragged is `grabbed`.
+The bar is `role=tablist` with the key `tablist`. Each tab is `role=tab` with its title as label and the key `tab-<index>`; the active one is `selected`, a busy one `busy`, and one being dragged `grabbed`. A close button is `role=button` with `label="Close <title>"` and the key `close-<index>`.
 
 ```text file="examples/src/test/resources/golden/docs/tabs/view.tree.txt" start="#tablist" count="7"
 ```

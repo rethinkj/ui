@@ -3,7 +3,7 @@ title: Markdown
 description: A Markdown document as a scrolling page of selectable blocks, with links, code, tables and images.
 ---
 
-`Markdown.markdown` shows a `MarkdownDocument` as a scrolling page: headings, paragraphs with emphasis and links, lists and task lists, quotes, code blocks with highlighting and a copy button, tables and images. The reader follows CommonMark with GitHub's tables, task lists, strikethrough and bare URLs, never throws, and takes time in proportion to the text. Only the blocks in view are built, so long documents scroll smoothly.
+`Markdown.markdown` shows a `MarkdownDocument` as a scrolling page: headings, paragraphs with emphasis and links, lists and task lists, quotes, code blocks with highlighting and a copy button, tables and images. The reader follows CommonMark with GitHub's tables, task lists, strikethrough and bare URLs, and never throws. Only the blocks in view are built, so long documents scroll smoothly.
 
 <Shot src="examples/manual-{theme}-2x-top" alt="The Manual example showing a Markdown document with headings, text and links" />
 
@@ -12,25 +12,21 @@ description: A Markdown document as a scrolling page of selectable blocks, with 
 ```java snippet="markdown"
 ```
 
-`Markdown.parse(source)` reads a document; keep it in the state, since parsing takes a moment for long texts. `Markdown.markdown(t, document, options)` shows it.
+`s.readme` is a `MarkdownDocument` in the app's state, read once with `Markdown.parse(source)`: parsing a long text takes a moment. `s.link` is a string the handler writes. `Markdown.markdown(t, document, options)` shows the document.
 
 | Option | |
 | --- | --- |
 | `onLink(destination -> …)` | A link is pressed: a URL, or `#id` for a heading |
 | `images(address -> image)` | The `Image` for an address as written, or null while there is none (a placeholder shows) |
 | `languages(language -> highlighter)` | Highlighters for code blocks; `sql` uses `Sql` by default |
-| `copy(clipboard)` | Where the code blocks' copy buttons copy to, and Control+C after Control+A selected the whole document. A selection within one block of text copies to the app's clipboard |
+| `copy(clipboard)` | Where the code blocks' copy buttons and Control+C after Control+A copy to. A selection within one block of text copies to the app's clipboard |
 | `state(Markdown.State)` | Keeps Control+A's selection of the whole document, and the confirmation of a code block's copy button |
 
-`Markdown.rowOf(document, id)` is the row to scroll to for a heading (`app.scrollToRow`), `document.headings()` lists them with GitHub's anchors, and `Markdown.text(document)` is the plain text. Each block of text is a read-only field that selects and copies; HTML in the source shows as text.
-
-## The state
-
-`Markdown.State`, one per document in the app's state, keeps Control+A's selection of the whole document: `allSelected()` says whether the whole document shows as selected, and `selectAll(boolean)` selects it or no longer, for an Edit menu's Select all. A press anywhere in the document ends it.
+`Markdown.rowOf(document, id)` is the row to scroll to for a heading (`app.scrollToRow`), `document.headings()` lists the headings with GitHub's anchors, and `Markdown.text(document)` is the plain text. Each block of text is a read-only field that selects and copies. HTML in the source shows as text.
 
 ## The document as data
 
-A `MarkdownDocument` is a tree of records that an app can read, for an outline, a search or the statements of a runbook. `document.blocks()` are the top-level blocks; documents are equal only when they are the same object.
+A `MarkdownDocument` is a tree of records that an app can read, for an outline, a search or the statements of a runbook. `document.blocks()` are the top-level blocks. Two documents are equal only when they are the same object.
 
 ```java snippet="markdown-model"
 ```
@@ -54,11 +50,15 @@ A `MarkdownDocument` is a tree of records that an app can read, for an outline, 
 | `Image(source, title, alt)` | |
 | `SoftBreak()`, `HardBreak()` | A line break that shows as a space, and one that breaks the line |
 
-`MarkdownDocument.plainText(content)` is the text of inline parts as it shows: soft breaks as spaces, images as their description. `document.headings()` lists the headings, those inside quotes and lists too, and `document.tree()` is the whole tree as text, one node per line, as the reader's tests compare it. `new MarkdownDocument(blocks)` makes a document from blocks of the app's own.
+`MarkdownDocument.plainText(content)` is the text of inline parts as it shows: soft breaks as spaces, images as their description. `document.headings()` lists the headings, those inside quotes and lists too, and `document.tree()` is the whole tree as text, one node per line. `new MarkdownDocument(blocks)` makes a document from blocks of the app's own.
+
+## The state
+
+`Markdown.State`, one per document in the app's state, keeps Control+A's selection of the whole document. `allSelected()` says whether the whole document is selected, and `selectAll(boolean)` selects it or clears the selection, for an Edit menu's Select all. A press anywhere in the document clears it.
 
 ## In a tree dump
 
-`role=document`, a list of rows; headings `role=heading` with `level` and the key `heading-<id>`; links `role=link` with the destination as `value`; code blocks `role=code` with the language as label:
+`role=document`, a list of rows. Headings are `role=heading` with `level` and the key `heading-<id>`; links `role=link` with the destination as `value`; code blocks `role=code` with the language as label:
 
 ```text file="examples/src/test/resources/golden/docs/markdown/view.tree.txt" start="#readme" count="8"
 ```

@@ -3,7 +3,7 @@ title: Toast
 description: A short message at the bottom of the window that goes by itself, with an optional action such as Undo.
 ---
 
-`Toast.toast` shows a message at the bottom of the window, in the middle, with an optional action button, and closes itself after a few seconds of the app's clock. Use it to confirm what just happened and to offer Undo. It leaves the keyboard focus where it is, so typing goes on. For something the user must answer, use a [Dialog](/docs/components/dialog).
+`Toast.toast` shows a message at the bottom of the window, in the middle, with an optional action button. It closes itself after a few seconds of the app's clock. Use it to confirm what just happened and to offer Undo. It leaves the keyboard focus where it is, so typing goes on. For something the user must answer, use a [Dialog](/docs/components/dialog).
 
 <Shot src="kit/toast-{theme}-2x-shown" alt="A toast saying a table was dropped, with an Undo button" />
 
@@ -12,16 +12,18 @@ description: A short message at the bottom of the window that goes by itself, wi
 ```java snippet="toast"
 ```
 
-The app holds the message in its state and attaches the toast to the root while it has one; `onClose` clears it.
+`s.dropped` is the name of the dropped table in the app's state, null while there is no toast. The root attaches the toast while there is one, and `onClose` clears it.
 
 | Parameter | |
 | --- | --- |
 | `message` | The text, and the toast's label |
 | `action`, `onAction` | The button's text and handler, or null for none |
-| `onClose` | Runs when the toast closes: after `motion().toast()` seconds (5), after its action, or on Escape while the focus is in the toast (Tab reaches its action) |
-| `above` | The variant with it lies that much higher, clear of a status bar (`StatusBar.height(t)`) or a card's footer (`Card.footerHeight(t)`) |
+| `onClose` | Called when the toast closes: after `motion().toast()` seconds (5), after its action, or on Escape while the focus is in the toast |
+| `above` | In the form with this parameter, the toast lies that much higher, clear of a status bar (`StatusBar.height(t)`) or a card's footer (`Card.footerHeight(t)`) |
 
-A press elsewhere leaves it. Tab reaches its action last; when it closes from there, the focus goes back to where it was.
+## Keyboard
+
+A press elsewhere leaves the toast. Tab reaches its action last; when the toast closes from there, the focus goes back to where it was.
 
 ## In a tree dump
 

@@ -649,10 +649,11 @@ public record Theme(
   /**
    * @param subtle the edges of cards and of a surface's parts, the lines of a data grid, and the
    *     edges of a disabled control
-   * @param strong the edges a control is recognised by, such as a text field's frame or a
-   *     checkbox's box, which stand out 3:1 from the surfaces
+   * @param strong the edges a control is recognised by, such as the line along a text field's
+   *     bottom or a checkbox's box, which stand out 3:1 from the surfaces and from a field's fill,
+   *     also under the pointer
    * @param control the edge of a button and of other controls that their text names, quieter
-   *     than {@code strong}, and of popups and dialogs
+   *     than {@code strong}, of a field's top and sides, and of popups and dialogs
    * @param track translucent, a faint line that keeps one contrast on every surface, band and
    *     selection it lies on: a {@link Progress#spinner}'s ring
    * @param divider a hairline that separates content on a surface: a {@link Divider}, a menu's
@@ -679,6 +680,11 @@ public record Theme(
     public Borders(int subtle, int strong, int control) {
       this(subtle, strong, control, alpha(strong, lightness(subtle) < 0.5 ? 0.35f : 0.4f));
     }
+  }
+
+  /** The line along a field's bottom: a sharp shadow {@code stroke} below its box. */
+  static Shadow fieldEdge(float stroke, int color) {
+    return new Shadow(0, stroke, 0, 0, color);
   }
 
   /**
@@ -851,6 +857,9 @@ public record Theme(
    *     is {@code indicator} thick
    * @param palette the width of a {@link CommandPalette}
    * @param dot the diameter of the dot that marks a modified tab
+   * @param paletteTop the distance of a {@link CommandPalette} from the window's top
+   * @param paletteField the height of a {@link CommandPalette}'s query field
+   * @param paletteRow the height of a {@link CommandPalette}'s rows
    */
   public record Sizes(
       float control,
@@ -866,7 +875,46 @@ public record Theme(
       float ringGap,
       float progress,
       float palette,
-      float dot) {
+      float dot,
+      float paletteTop,
+      float paletteField,
+      float paletteRow) {
+
+    /** Sizes with a command palette 72 from the window's top, its field 32 and its rows 28 high. */
+    public Sizes(
+        float control,
+        float checkbox,
+        float switchWidth,
+        float switchHeight,
+        float stroke,
+        float field,
+        float handle,
+        float step,
+        float icon,
+        float indicator,
+        float ringGap,
+        float progress,
+        float palette,
+        float dot) {
+      this(
+          control,
+          checkbox,
+          switchWidth,
+          switchHeight,
+          stroke,
+          field,
+          handle,
+          step,
+          icon,
+          indicator,
+          ringGap,
+          progress,
+          palette,
+          dot,
+          72,
+          32,
+          28);
+    }
 
     /** Sizes with the dot of a modified tab 4 wide. */
     public Sizes(
@@ -1194,7 +1242,8 @@ public record Theme(
       new TextStyle(Font::sansMedium, 13),
       new TextStyle(Font::sansSemibold, 16),
       new TextStyle(Font::sans, 12));
-  private static final Sizes SIZE = new Sizes(24, 16, 28, 16, 1, 200, 7, 16, 16, 2, 2, 4, 560, 4);
+  private static final Sizes SIZE =
+      new Sizes(24, 16, 28, 16, 1, 200, 7, 16, 16, 2, 2, 4, 560, 4, 72, 32, 28);
   private static final Motion MOTION =
       new Motion(Spring.INSTANT, Spring.SNAP, 0.3, 0.5, Spring.INSTANT, 5, 2, 1.2, 1.5);
   private static final Caption CAPTION = new Caption(RED_436, WHITE, RED_485);
@@ -1268,7 +1317,7 @@ public record Theme(
           GREY_157,
           over(GREY_157, alpha(GREY_298, 0.36f))),
       new TextColors(GREY_916, GREY_648, GREY_425, WHITE),
-      new Borders(GREY_157, GREY_477, GREY_226, alpha(GREY_477, 0.35f), GREY_226),
+      new Borders(GREY_157, GREY_501, GREY_226, alpha(GREY_477, 0.35f), GREY_226),
       Hue.BLUE.dark(),
       new Status(RED_649, AMBER_745, GREEN_735),
       SPACE,

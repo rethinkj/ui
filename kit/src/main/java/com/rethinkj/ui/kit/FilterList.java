@@ -29,7 +29,7 @@ import java.util.stream.IntStream;
  * it, an optional muted detail and shortcut at its right, an optional group, under whose heading
  * it shows, and the handler that runs when it is chosen; without one it is disabled.
  *
- * <p>The list is a virtual list ({@link El#rows}) of rows {@code size().control()} high, so that a
+ * <p>The list is a virtual list ({@link El#rows}) of rows of one height, so that a
  * hundred thousand entries cost as much to show as twenty, and the filtering of a text that only
  * grows looks only at the entries the shorter text matched. In a tree dump it is {@code
  * role=listbox}, its entries {@code role=option} with their text as the label and the keys {@code
@@ -539,14 +539,20 @@ public final class FilterList {
   private static final int SCORE_LIMIT = 1 << 15; // sixteen bits of score, ten of length
 
   /**
-   * The list's element: a virtual list of the rows, at most {@code most} rows high, then it
-   * scrolls; a muted row says "No results", "Loading…" or what went wrong when there is nothing to
+   * The list's element: a virtual list of rows {@code rowHeight} high, at most {@code most} rows
+   * high, then it scrolls, and lower where its panel has less room; a muted row says "No results", "Loading…" or what went wrong when there is nothing to
    * show. It has no frame of its own: the component puts it into its panel.
    *
    * @param choose runs with an entry chosen by the pointer
    */
-  static El list(Theme t, State s, Shown shown, int most, String label, Consumer<Entry> choose) {
-    float rowHeight = t.size().control();
+  static El list(
+      Theme t,
+      State s,
+      Shown shown,
+      int most,
+      float rowHeight,
+      String label,
+      Consumer<Entry> choose) {
     int count = shown.count();
     boolean note = count == 0 || shown.loading();
     float height = Math.max(1, Math.min(count + (note && count > 0 ? 1 : 0), most)) * rowHeight;
@@ -575,6 +581,7 @@ public final class FilterList {
             most,
             s.highlight,
             0,
+            rowHeight,
             i -> i == count
                 ? row()
                     .key("loading")
@@ -586,7 +593,7 @@ public final class FilterList {
         .role("listbox")
         .label(label)
         .h(height)
-        .shrink(0);
+        .minSize(0, rowHeight); // a short window's panel takes rows off, and the rest scroll
   }
 
   private static El option(

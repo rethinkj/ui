@@ -3,7 +3,7 @@ title: CodeEditor
 description: A multi-line editor for code with line numbers, highlighting, brackets, a find bar and line commands.
 ---
 
-`CodeEditor.codeEditor` is a multi-line field for code: line numbers in a gutter, the caret's line and matching brackets highlighted, other occurrences of the word at the caret marked, colours from a highlighter such as `Sql`, a [find bar](/docs/components/find) and commands that duplicate, move, delete and comment lines. It handles texts of 100 000 lines. For prose or a short note, use a [text area](/docs/components/text-field#text-areas); for completions, add [Completion](/docs/components/completion).
+`CodeEditor.codeEditor` is a multi-line field for code. It has line numbers in a gutter, highlights the caret's line and matching brackets, and marks other occurrences of the word at the caret. Colours come from a highlighter such as `Sql`. It has a [find bar](/docs/components/find) and commands that duplicate, move, delete and comment lines, and it handles texts of 100 000 lines. For prose or a short note, use a [text area](/docs/components/text-field#text-areas); for completions, add [Completion](/docs/components/completion).
 
 <Shot src="kit/code-editor-{theme}-2x-brackets" alt="SQL in the code editor with line numbers, keywords in colour and a bracket pair highlighted" />
 
@@ -13,29 +13,67 @@ description: A multi-line editor for code with line numbers, highlighting, brack
 ```
 
 - `s.sql` is the text, which every edit hands to `onChange`.
-- `s.editor` is a `CodeEditor.State` the app keeps, one per editor (per tab). It holds the caret, selection, scroll and undo history, so an editor that leaves the tree comes back as it was, also in another window.
-- `Sql.of(t)` colours SQL: keywords, strings, dollar quotes, numbers, comments and operators; identifiers in quotes keep the text's colour, and no keyword is coloured inside them. `Sql.of(t, Sql.Dialect.MYSQL)` does it as MySQL and MariaDB write SQL: identifiers in backticks, `#` comments, `--` as a comment only before a space, a tab or the line's end (`5--2` is 5 minus -2), and the backslash as the escape in strings; `/*! … */`, which MySQL runs, is coloured as a comment. The highlighter is also the key the field keeps its colours by, so pass the same or an equal object each time (`Sql.of` returns a record).
-- Passing `app` gives the editor its find bar and its commands, which edit through the app as single steps of the undo history. Without it (`codeEditor(t, value, state, highlighter, onChange)`) the editor has neither.
+- `s.editor` is a `CodeEditor.State` in the app's state, one per editor (per tab). It holds the caret, selection, scroll and undo history, so an editor that leaves the tree comes back as it was, also in another window.
+- `Sql.of(t)` colours SQL: keywords, strings, dollar quotes, numbers, comments and operators. `Sql.of(t, Sql.Dialect.MYSQL)` colours SQL as MySQL and MariaDB write it: identifiers in backticks, `#` comments, `--` as a comment only before a space, and the backslash as the escape in strings. Pass the same or an equal highlighter on every build (`Sql.of` returns a record), or the editor colours every line again.
+- `s.app` gives the editor its find bar and its commands, which edit through the app as single steps of the undo history. Without it (`codeEditor(t, value, state, highlighter, onChange)`) the editor has neither.
 - `.lines(n)` makes it `n` lines high; give it a width or let it grow.
 
 ## In a card
 
-The editor has the frame of a text field, which inside a card that is framed already makes a box in a box. `CodeEditor.embedded(t, editor)` gives it the look of the card's body instead: as wide as the card, without corners or a frame of its own, and with a hairline along its top in place of a divider. That line takes the accent's colour while the editor has the focus; the keyboard's focus ring lies just inside the editor. Put it into a [flush card](/docs/components/card), below the card's toolbar or header, or into a panel that frames it; keep the framed editor where it stands among other fields.
+The editor has the frame of a text field, which makes a box in a box inside a card. `CodeEditor.embedded(t, editor)` gives it the look of the card's body instead: as wide as the card, without corners or a frame of its own, and with a line along its top that takes the accent's colour while the editor has the focus. Put it into a [flush card](/docs/components/card), below the card's toolbar or header, or into a panel that frames it. Keep the framed editor where it stands among other fields.
 
 <Shot src="kit/code-editor-embedded-dark-2x-focused" alt="An SQL editor that fills a card below its title, with a blue line between the title and the code" />
 
 ```java snippet="code-editor-embedded"
 ```
 
+## A highlighter of your own
+
+`Sql` is one `Highlighter`; for any other language, write a class of your own. A highlighter is asked about one line at a time. It gets the state the line before ended in and returns the state its own line ends in, so that a string or a comment can go on across lines:
+
+```java snippet="highlighter"
+```
+
+- `Object line(String line, Object state, Spans out)` gets the line's string without its line feed, the state the line before returned (null for the first line) and a `Spans` to describe it in. It returns the state at the end of the line, such as "inside a block comment", or null when nothing goes on. States are compared with `equals`, so use values: an enum, a record, `Boolean.TRUE`.
+- The editor asks only about the lines it needs, and asks again about a line after an edit. So a highlighter must depend only on its line and its state, never on what it was asked before.
+- Make it a record, so that it is equal on every build, as `Sql.of` is.
+- Implement `CodeEditor.LineComments`, whose `lineComment()` returns what starts a comment to the end of the line (`--`, `//`, `;`), to give Control+/ that comment.
+
+A highlighter can be tested without native libraries: `new Spans(length)` takes what it is told, and its `toString()` lists it, one range per line, as `color 0-4 FF7C3AED`.
+
+### Spans
+
+Positions are indexes into the line's string. A range runs from `from` to `to`, exclusive; it is clamped to the line and left out when empty. Where ranges of one kind overlap, the later one wins. Colours are 0xAARRGGBB.
+
+| `Spans` method | |
+| --- | --- |
+| `color(from, to, argb)` | The text of the range in this colour |
+| `font(from, to, font)` | The range in another font at the text's size, such as `Font.monoBold()`. Give the font the fallbacks of the text's font (`withFallback`) where the range may hold characters it lacks |
+| `background(from, to, argb)` | A rectangle behind the range, a line high |
+| `underline(from, to, argb)` | A straight line under the range |
+| `strike(from, to, argb)` | A line through the range |
+| `lineBackground(argb)` | A background behind the whole line, across the full width; a second one is laid over the first |
+
+Backgrounds, underlines, struck ranges and line backgrounds show in multi-line fields only.
+
+## Marks of your own
+
+A `Decorator` marks the lines in view with backgrounds and underlines, as the editor does for the caret's line, brackets and the find bar's matches. Unlike a highlighter, it keeps nothing: it is asked again for each line in view whenever the field lays out its rows, so it may read anything in the app's state, such as the caret or the errors of the last run.
+
+```java snippet="decorator"
+```
+
+`void line(int line, int start, String text, Spans out)` gets the line's index from 0, where the line starts in the field's whole string (a position `p` of the string is `p - start` in the line), the line's text and the `Spans` to mark it in. Colours and fonts from a decorator are ignored; they belong to the highlighter. `El.decorate` replaces the field's decorator, so call the editor's own, `editor.decorator()`, from yours, or its marks go.
+
 ## The state
 
-Positions are indexes into the string as the editor shows it, in which a carriage return with or without a line feed after it, U+2028 and U+2029 are each one line feed; the editor hands the app that string at the first edit.
+Positions are indexes into the string as the editor shows it. A carriage return, with or without a line feed after it, and U+2028 and U+2029 are each one line feed there; the editor hands the app that string at the first edit.
 
 | `CodeEditor.State` | |
 | --- | --- |
 | `caret()`, `anchor()` | Where the caret and the other end of the selection are, for a status line ("Ln 3, Col 9") or completions |
 | `error(from, to)`, `noError()` | Underline a range in the danger colour, such as the name a query got wrong |
-| `block(from, to)`, `noBlock()` | Mark the lines of a range with `code().block()` behind them, such as the statement Control+Enter would run; the caret's line shows over it |
+| `block(from, to)`, `noBlock()` | Mark the lines of a range with `code().block()` behind them, such as the statement Control+Enter would run |
 | `occurrences(boolean)` | Mark the other occurrences of the word at the caret; on by default |
 | `findBar(boolean)`, `find()` | The find bar, on by default, and its `Find.State` |
 
@@ -49,51 +87,13 @@ Positions are indexes into the string as the editor shows it, in which a carriag
 | Control+Shift+K | `DELETE_LINES` | Delete them |
 | Control+/ | `TOGGLE_COMMENT` | Comment them out or in, with the highlighter's `LineComments` (`--` for SQL) |
 
-`CodeEditor.run(app, state, command)` runs one from a menu. The editor's keys are its field's `onKey` handler; to add your own, keep them: `editor.onKey(mine.or(editor.onKey()))`, as the Workbench does for Control+Enter.
+`CodeEditor.run(app, state, command)` runs one from a menu. The editor's keys are its field's `onKey` handler. To add your own, keep them: `editor.onKey(mine.or(editor.onKey()))`, as the Workbench does for Control+Enter.
 
-Besides these, it has every key of a multi-line text field: Tab indents (Control+M switches Tab between indenting and moving the focus), a second Home goes to the first character of the line that is not a space, Control+Z and Control+Y undo and redo. See [Text fields and editors](/docs/concepts/text-fields).
-
-## A highlighter of your own
-
-`Sql` is one `Highlighter`; any other language is a class of your own. A highlighter is asked about one line at a time, gets the state the line before ended in and returns the state its own line ends in, so that a string or a comment can go on across lines:
-
-```java snippet="highlighter"
-```
-
-- `Object line(String line, Object state, Spans out)` gets the line's string without its line feed, the state the line before returned (null for the first line) and a `Spans` to describe it in. It returns the state at the end of the line, such as "inside a block comment", or null when nothing goes on. States are compared with `equals`, so use values: an enum, a record, `Boolean.TRUE`.
-- A multi-line field asks only about the lines it shapes, those in view and a few around them, and keeps each line's answer with the state it was given. An edit forgets the lines it touched; a line whose state comes out as before keeps the spans of the lines after it. To show a line it needs the state that line starts in, so it first asks about the lines before it that it has not seen since they changed, with a `Spans` that keeps nothing. A highlighter must therefore depend only on its line and its state, never on what it was asked before.
-- The highlighter is also the key the field keeps its spans by: pass an equal object on every build, which a record does. Another key asks about every line again.
-- Implementing `CodeEditor.LineComments`, whose `lineComment()` returns what starts a comment to the end of the line (`--`, `//`, `;`), gives the editor's Control+/ that comment.
-
-A highlighter is tested without native libraries: `new Spans(length)` takes what it is told, and its `toString()` lists it, one range per line, as `color 0-4 FF7C3AED`.
-
-### Spans
-
-Positions are indexes into the line's string; a range runs from `from` to `to`, exclusive, is clamped to the line and left out when empty, and where ranges of one kind overlap the later one wins. Colours are 0xAARRGGBB.
-
-| `Spans` method | |
-| --- | --- |
-| `color(from, to, argb)` | The text of the range in this colour; costs nothing beyond the glyphs |
-| `font(from, to, font)` | The range in another font at the text's size, such as `Font.monoBold()`; it is shaped on its own, so carets, selection and wrapping follow its glyphs. Give the font the fallbacks of the text's font (`withFallback`) where the range may hold characters it lacks |
-| `background(from, to, argb)` | A rectangle behind the range, a line high |
-| `underline(from, to, argb)` | A straight line under the range, where an input method's underline lies |
-| `strike(from, to, argb)` | A line through the middle of the lower-case letters, behind the glyphs |
-| `lineBackground(argb)` | A background across the whole width behind the line, every row of it when it wraps; a second one is laid over the first |
-
-Backgrounds, underlines, struck ranges and line backgrounds show in multi-line fields only.
-
-## Marks of your own
-
-A `Decorator` marks the lines in view with backgrounds and underlines, as the editor does for the caret's line, brackets and the find bar's matches. Unlike a highlighter it keeps nothing: it is asked anew for each line in view and a few around them whenever the field lays out its rows, so it may read anything in the app's state, such as the caret or the errors of the last run.
-
-```java snippet="decorator"
-```
-
-`void line(int line, int start, String text, Spans out)` gets the line's index from 0, where the line starts in the field's whole string (a position `p` of the string is `p - start` in the line), the line's text and the `Spans` to mark it in; colours and fonts belong to the highlighter and are not taken from a decorator. `El.decorate` replaces the field's decorator, so call the one the editor gave, `editor.decorator()`, from yours, or its own marks go.
+The editor also has every key of a multi-line text field. Tab indents, and Control+M switches Tab between indenting and moving the focus. A second Home goes to the first character of the line that is not a space. Control+Z and Control+Y undo and redo. See [Text fields and editors](/docs/concepts/text-fields).
 
 ## In a tree dump
 
-The editor is a `role=textbox` text element with its label, the lines in view and how many there are, and while it has the focus its caret with line and column. The gutter is `#gutter` with a `#line-<index>` per line.
+The editor is a `role=textbox` text element with its label, the lines in view and how many there are. While it has the focus, it shows its caret with line and column. The gutter is `#gutter` with a `#line-<index>` per line.
 
 ```text file="examples/src/test/resources/golden/docs/code-editor/view.tree.txt" start="#query" count="3"
 ```

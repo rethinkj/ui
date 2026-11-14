@@ -3,55 +3,55 @@ title: Work off the app's thread
 description: Run queries and file reads on another thread, post results back, cancel them, run them one after another, and act later on the app's clock.
 ---
 
-An app, its state and its elements belong to the thread that runs it, and only handlers change the state. Work that takes long, a query or reading a file, runs on another thread, and its result comes back as a task that runs on the app's thread like a handler. `App.background` does both and lets you cancel; `App.post` is the one method any thread may call; `App.after` acts later on the app's clock.
+An app, its state and its elements belong to the thread that runs the app, and only handlers change the state. Long work, such as a query or a file read, runs on another thread; its result comes back as a task that runs on the app's thread like a handler. `App.background` does both and can cancel. `App.post` is the one method any thread may call. `App.after` runs an action later on the app's clock.
 
 ```java snippet="background"
 ```
 
 <Shot src="examples/docs/background/counting-{theme}" alt="The count button busy with a spinner while the work runs, beside Cancel and Save" />
 
-- `app.background(name, compute, onResult, onFailure)` runs `compute` on a virtual thread and posts `onResult` with its result or `onFailure` with its exception.
-- It returns a `Work`. `work.cancel()` keeps both handlers from running, even when the answer already waits, and interrupts the thread: the answer of a request the user closed never arrives.
-- Give the computation only what it needs (a table name, an SQL string, a connection), never the state or elements: the app's thread reads them while it builds the view, and nothing guards them.
+- `app.background(name, compute, onResult, onFailure)` runs `compute` on a virtual thread, then posts `onResult` with the result or `onFailure` with the exception.
+- It returns a `Work`. `work.cancel()` interrupts the thread, and neither handler runs, even if the result already arrived.
+- Pass the computation only what it needs (a table name, an SQL string, a connection), never the state or elements: nothing guards them against the app's thread.
 - Virtual threads do not keep the JVM alive.
 
-## Progress
+## Report progress
 
-Work that takes a while, a download or an import, can say how far it got. Give `background` a computation that takes a `Work.Progress` and an `onProgress` handler: each `progress.report(value)` from the work's thread runs `onProgress` on the app's thread, as a posted task does.
+Give `background` a computation that takes a `Work.Progress`, and an `onProgress` handler. Each `progress.report(value)` runs `onProgress` on the app's thread.
 
 ```java snippet="reporting"
 ```
 
-- Reports end with the work: after `work.cancel()` no `onProgress` runs any more, also for reports that already wait, and none runs after `onResult` or `onFailure`. A report made after that is dropped. `progress.isCancelled()` tells a loop that does not block; a blocking read sees the interrupt.
-- Reports that wait one after the other are coalesced into the newest, as long as nothing else was posted between them and no frame has taken them yet. A download that reports every 8 KB runs its handler about once per frame, and a report never overtakes a task its thread posted after it. So report the whole progress, such as the bytes so far, not a step to add.
-- Type the computation's parameter, as `Work.Progress<Integer>` above, where the handlers do not say what a report is.
+- No `onProgress` runs after `work.cancel()`, `onResult` or `onFailure`. In a loop that does not block, check `progress.isCancelled()`; a blocking call sees the interrupt.
+- Reports that wait for the same frame may be merged into the newest, so `onProgress` runs about once per frame. Report the total so far (bytes read), not a step to add.
+- Type the parameter, as `Work.Progress<Integer>` above, when the handlers do not fix the type.
 
-## One after another
+## Run work one after another
 
-A cancelled computation is interrupted, but it runs on until it returns: a database driver may finish the statement first. Work that must not overlap, as the calls on one connection, goes on a lane: `app.lane(name)` returns a `Lane` that the app keeps in its state, one per connection, with the same `background` methods. A piece of work on a lane begins once every piece started before it there has ended, also one that was cancelled while it ran. `work.onEnd(handler)` tells the app when a computation has really ended.
+A cancelled computation is interrupted but runs until it returns; a database driver may finish its statement first. For work that must not overlap, such as the calls on one connection, use a lane: `app.lane(name)` returns a `Lane` with the same `background` methods. Keep it in the state, one per connection. Work on a lane starts only when all work started before it there has ended, including cancelled work.
 
 ```java snippet="lane"
 ```
 
-- Each piece runs on a virtual thread of its own, started when its turn comes, so the interrupt of a cancelled piece never reaches the next. Results, failures and reports arrive as from `app.background`.
-- Cancelling a piece that has not begun takes it off the lane: its computation never runs. Cancelling the one that runs interrupts it, and the next begins when it has returned. A computation that ignores the interrupt holds the lane until then; `lane.pending()` lists the piece that runs, also a cancelled one that has not returned, and those that wait, and `work.isRunning()` tells them apart.
-- `onEnd` runs on the app's thread as a posted task once the computation has returned or thrown: after `onResult` or `onFailure` if they run, and after a cancel, when neither does. For a piece cancelled before it began, it runs right after the cancel; registered after the end, at the next frame. It works on any `Work`, on a lane or not.
-- A lane belongs to the app it was made from; the apps of several windows of one state share its thread, so a handler of any of them may start work on it.
+- Cancelling work that has not started removes it from the lane; it never runs. Cancelling the running work interrupts it, and the next starts when it has returned.
+- `work.onEnd(handler)` runs on the app's thread when the computation has really ended: after `onResult` or `onFailure`, or after a cancel. It works on any `Work`, on a lane or not.
+- `lane.pending()` lists the running work (also cancelled work that has not returned yet) and the waiting work; `work.isRunning()` tells them apart.
+- A lane belongs to the app that made it. The apps of several windows on one state may all start work on it.
 
-## Posting
+## Post a task
 
-`app.post(runnable)` queues a task after the input that came before it; it runs on the app's thread, against the view the input before it left, and the frame draws. It never blocks. A window wakes for it at once.
+`app.post(runnable)` queues a task after the input before it. It runs on the app's thread, and the frame draws. It never blocks, and a waiting window wakes for it at once.
 
-## Later, on the app's clock
+## Act later
 
 ```java snippet="after"
 ```
 
-`app.after(seconds, action)` runs the action in the first frame at or after its time. An idle window wakes for it; a script runs it with `advance`.
+`app.after(seconds, action)` runs the action in the first frame at or after that time on the app's clock. An idle window wakes for it; a script runs it with `advance`.
 
 ## Under a script
 
-A script does not wait for the clock on the wall. `await` waits until the work that `background` started has delivered, then queues the answers for the next `frame`; so a snap shows the button busy before and the answer after, however fast the work was:
+A script does not wait for wall-clock time. `await` waits until the work that `background` started has finished, then queues the results for the next `frame`. So a snap shows the button busy before `await` and the result after, however fast the work was:
 
 ```text snippet="background-script"
 ```
@@ -59,7 +59,7 @@ A script does not wait for the clock on the wall. `await` waits until the work t
 ```text file="examples/src/test/resources/golden/docs/background/counting.tree.txt" start="Count rows" count="2"
 ```
 
-Work that reports is shown half done with `await progress`, which lets in what running work has reported without waiting for its end. That is deterministic only when the work reports and then waits for something the script controls: the made-up download above gets a megabyte for each quarter second of the app's clock, so each `advance 0.25` lets it read one more.
+`await progress` lets in what running work has reported, without waiting for it to end, for a snap of work half done. This is repeatable only when the work reports and then waits for something the script controls: the download above reads a megabyte per quarter second of the app's clock, so each `advance 0.25` lets it read one more.
 
 ```text snippet="reporting-script"
 ```
@@ -67,7 +67,7 @@ Work that reports is shown half done with `await progress`, which lets in what r
 ```text file="examples/src/test/resources/golden/docs/progress/downloading.tree.txt" start="Driver" count="5"
 ```
 
-`await` also waits for the pieces of a lane that have not begun, and for cancelled work that has an `onEnd` handler, until its computation has returned; other cancelled work it forgets at once. The script of the lane above shows the count waiting behind the cancelled report, and both done after `await`:
+`await` also waits for lane work that has not started yet, and for cancelled work with an `onEnd` handler until it has returned. Other cancelled work it does not wait for: it may still be running when `await` returns. Here the count waits behind the cancelled report, and both are done after `await`:
 
 ```text snippet="lane-script"
 ```
@@ -75,4 +75,4 @@ Work that reports is shown half done with `await progress`, which lets in what r
 ```text file="examples/src/test/resources/golden/docs/lanes/counted.tree.txt" start="Cancelled" count="3"
 ```
 
-In a test without a script, `app.awaitProgress(timeout)` does the same as `app.await(timeout)` does for the end.
+In a test without a script, `app.await(timeout)` and `app.awaitProgress(timeout)` do the same.

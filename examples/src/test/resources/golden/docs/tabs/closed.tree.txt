@@ -1,0 +1,8 @@
+el 0,0 480x220
+  el 12,12 456x196
+    el #bar 13,13 454x33
+      el #tablist role=tablist 15,13 0x32
+    el #panel role=tabpanel 13,46 454x161
+      el role=status label="No open tables" 13,46 454x161
+        text label="table" "\u{EBF7}" 216,91 48x48
+        text "No open tables" 37,147 406x16

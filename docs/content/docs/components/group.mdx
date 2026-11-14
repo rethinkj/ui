@@ -14,13 +14,13 @@ description: "Rows of settings in a card, with a hairline between them: switches
 
 | Row | |
 | --- | --- |
-| `row(t, [icon,] title, description, control)` | Any control at the right; the row names it after its title when it is a text field or has no label yet, and shows the control's error message in place of the description |
+| `row(t, [icon,] title, description, control)` | Any control at the right. The row labels it with its title when it is a text field or has no label yet, and shows the control's error in place of the description |
 | `switchRow(t, [icon,] title, description, on, onToggle)` | The whole row is a switch |
 | `linkRow(t, [icon,] title, description, value, onPress)` | The whole row is a button, with a muted value and a chevron |
 | `expander(t, [icon,] title, description, open, onToggle, content...)` | Opens rows below it, indented |
 | `box(t, content...)` | Anything else, with a row's padding |
 
-A row is at least the control height plus padding; a description wraps and makes it higher, and the control keeps its width. Hover, pressed and the focus ring lie inside the card.
+A description wraps and makes the row higher; the control keeps its width.
 
 ## In a tree dump
 

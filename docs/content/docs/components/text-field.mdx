@@ -3,7 +3,7 @@ title: TextField
 description: Single-line fields, password fields that can show their text, text areas and code areas.
 ---
 
-`TextField.textField` is a single-line text field in the kit's frame: a border, a lighter fill under the pointer and the accent border while focused. The same file has `passwordField` and `revealable` for passwords, `textArea` for several lines of prose and `codeArea` for code. The string belongs to the app: every edit hands the new string to the handler, which stores it. For code with line numbers and highlighting, use a [CodeEditor](/docs/components/code-editor); for a typed value, such as a `BigDecimal` or a `LocalDate`, a [ValueField](/docs/components/format); for a whole number stepped by buttons, a [NumberField](/docs/components/number-field).
+`TextField.textField` is a single-line text field: a quiet frame with a strong line along the bottom; under the pointer a lighter fill and a strong frame; while focused, frame and line in the accent colour. Text areas, selects, combo boxes and the framed code editor share this frame. The same class has `passwordField` and `revealable` for passwords, `textArea` for several lines of prose and `codeArea` for code. The string belongs to the app: every edit hands the new string to the handler, which stores it. For code with line numbers and highlighting, use a [CodeEditor](/docs/components/code-editor). For a typed value, such as a `BigDecimal` or a `LocalDate`, use a [ValueField](/docs/components/format). For a whole number with step buttons, use a [NumberField](/docs/components/number-field).
 
 <Shot src="kit/gallery-{theme}-2x" rows="field empty,field filled,field selected" alt="Text fields empty, filled and with a selection, in each state" />
 
@@ -12,14 +12,16 @@ description: Single-line fields, password fields that can show their text, text 
 ```java snippet="text-field"
 ```
 
+`s.filter` and `s.table` are strings in the app's state.
+
 | Call | |
 | --- | --- |
-| `textField(t, value, placeholder, onChange)` | A field the theme's control height and field width; the placeholder is also its label unless `.label(...)` sets one |
+| `textField(t, value, placeholder, onChange)` | A field of the theme's control height and field width. The placeholder is also its label, unless `.label(...)` sets one |
 | `textField(t, value, onChange)` | Without a placeholder |
 | `withIcon(t, field, symbol)` | A muted icon at the left inside the frame, such as `Symbol.SEARCH` for a filter |
-| `invalid(t, field)` | The danger border, also while focused, and the `invalid` state |
+| `invalid(t, field)` | The whole frame in the danger colour, also under the pointer and while focused, and the `invalid` state |
 
-The result is the field itself, so the core's field calls chain onto it:
+The result is the field itself, so core's field methods chain onto it:
 
 | | |
 | --- | --- |
@@ -32,14 +34,14 @@ A null handler disables the field. The handler may refuse an edit (store nothing
 
 ## Typed values
 
-For a number, a date or an enum, `ValueField.valueField(t, Format.DECIMAL, s.amount, s.amountDraft, v -> s.amount = v)` is this field over a value instead of a string: it hands on values, refuses what can never become one and keeps a text that is no value yet as a draft with the format's message. See [Format and ValueField](/docs/components/format).
+For a number, a date or an enum, `ValueField.valueField(t, Format.DECIMAL, s.amount, s.amountDraft, v -> s.amount = v)` is this field over a value instead of a string. It hands on values and refuses input that can never become one. A text that is no value yet stays as a draft, with the format's message. See [Format and ValueField](/docs/components/format).
 
 ## Passwords
 
 ```java snippet="password-field"
 ```
 
-`passwordField` masks the string: one `•` per character, copy and cut do nothing, and the tree and every selector see only the mask. `revealable(t, field, revealed, onToggle)` adds a button at the right inside the frame that shows and hides it; `revealed` is the app's state. The button leaves the focus in the field. A shown password is drawn, copied and goes by words as in an ordinary field, but the tree and every selector still see only the mask, and the field says `password revealed`.
+`passwordField` masks the string: one `•` per character. Copy and cut do nothing, and the tree dump and every selector see only the mask. `revealable(t, field, revealed, onToggle)` adds a button at the right inside the frame that shows and hides the text; `revealed` is a boolean in the app's state. The button leaves the focus in the field. A shown password can be copied and moves by words as in an ordinary field. The tree dump still shows only the mask, and the field says `password revealed`.
 
 <Shot src="kit/gallery-{theme}-2x" rows="password,password shown" alt="A password field masked and shown" />
 
@@ -48,23 +50,23 @@ For a number, a date or an enum, `ValueField.valueField(t, Format.DECIMAL, s.amo
 ```java snippet="text-area"
 ```
 
-`textArea` is a multi-line field that wraps lines, for notes and descriptions; `codeArea` one in the monospaced font that scrolls sideways, where Tab indents. `.lines(n)` sets the height in lines.
+`textArea` is a multi-line field that wraps lines, for notes and descriptions. `codeArea` is one in the monospaced font that scrolls sideways, where Tab indents. `.lines(n)` sets the height in lines.
 
 <Shot src="kit/gallery-{theme}-2x" rows="area,area selected,code area" alt="Text areas with wrapped text, a selection and code" />
 
 ## Keyboard
 
-Arrows, Home, End, with Shift to select and Control by words; Backspace, Delete; Control+A, C, X, V, Z, Y; in a multi-line field Enter breaks the line, Page Up and Page Down scroll, and Control+Enter goes on to the app's key handlers. Tab into a single-line field selects its text.
+Arrows, Home and End move the caret, with Shift to select and with Control by words. Backspace and Delete delete; Control+A, C, X, V, Z and Y select all, copy, cut, paste, undo and redo. In a multi-line field, Enter breaks the line, Page Up and Page Down scroll, and Control+Enter goes on to the app's key handlers. Tab into a single-line field selects its text.
+
+## With a Prop
+
+`textField(t, prop[, placeholder])` and `passwordField(t, prop, placeholder)` take a [`Prop`](/docs/concepts/editing#components-that-take-a-prop), such as a field of an `Editing`, in place of the value and its handler.
 
 ## In a tree dump
 
-A text element with `role=textbox`, its label and its string in quotes; `disabled`, `readonly`, `password`, `revealed` and `invalid` as they apply; while focused, `focused caret <n>` and `anchor <n>` for a selection. A multi-line field adds `lines <first>-<last>/<count>`.
+A text element with `role=textbox`, its label and its string in quotes. It says `disabled`, `readonly`, `password`, `revealed` and `invalid` as they apply. While focused, it says `focused caret <n>`, and `anchor <n>` for a selection. A multi-line field adds `lines <first>-<last>/<count>`.
 
 ```text file="examples/src/test/resources/golden/docs/fields/view.tree.txt" start="#table" count="6"
 ```
 
 Type into a field with `press #table` then `type "orders"`.
-
-## With a Prop
-
-`textField(t, prop[, placeholder])` and `passwordField(t, prop, placeholder)` take a `Prop` in place of the value and its handler, such as a field of an [Editing](/docs/concepts/editing) of a record: they write the prop back, show its field's error, and are disabled when the prop cannot be written.

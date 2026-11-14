@@ -3,7 +3,7 @@ title: Properties
 description: Names and values in two columns, the values selectable and copyable, in groups with headings.
 ---
 
-`Properties.properties` shows names and values in two columns, the names muted, the values read-only fields that select and copy. A value too long for its column wraps onto up to three lines, its row growing with it and the name beside its first line; a longer one ends in an ellipsis and shows whole in a tooltip. Selecting and the copy button take the whole value, wrapped or not. With a clipboard, a copy button shows under the pointer. The rows' text lines up with the headings and with what is above and below; their hover fill reaches a little past it. Use it for the details of a table, a connection or a file.
+`Properties.properties` shows names and values in two columns, the names muted, the values read-only fields that select and copy. With a clipboard, a copy button shows under the pointer. Use it for the details of a table, a connection or a file.
 
 <Shot src="examples/docs/details/view-{theme}" crop="role=list" alt="Properties Name, Rows and OID with their values orders, 1 000 000 and 16384" />
 
@@ -14,15 +14,21 @@ description: Names and values in two columns, the values selectable and copyable
 ```java snippet="properties"
 ```
 
+`s.clipboard` is a `Clipboard`, such as `app.clipboard()`.
+
 | | |
 | --- | --- |
 | `properties(t, properties, clipboard)` | One list; a null clipboard has no copy buttons |
 | `groups(t, groups, clipboard)` | Groups with headings |
-| `properties(t, properties, clipboard, copied)`, `groups(t, groups, clipboard, copied)` | The same, whose copy buttons confirm a copy with a check mark and the tooltip Copied for a moment: `copied` is a [`Button.Copied`](/docs/components/button#copy-buttons) the app keeps; null for no confirmation |
+| `properties(t, properties, clipboard, copied)`, `groups(t, groups, clipboard, copied)` | The same, with copy buttons that confirm a copy, as a [copy button](/docs/components/button#copy-buttons) does. `copied` is a `Button.Copied` in the app's state; null for no confirmation |
 | `Properties.property(name, value)`, `.mono()` | A row; `mono()` for identifiers |
 | `Properties.group(title, properties)` | A group |
 
-Tab passes the values by; a press selects in them.
+A value too long for its column wraps onto up to three lines, with the name beside its first line. A longer one ends in an ellipsis and shows whole in a tooltip. Selecting and the copy button take the whole value.
+
+## Keyboard
+
+Tab skips the values; a press selects text in them.
 
 ## In a tree dump
 

@@ -2,7 +2,8 @@
 // snippet, excerpt and image the pages name exists, copies the images (and cuts rows out of the
 // kit's gallery), the fonts and the logo into public/, and writes the changelog page.
 // `node scripts/docs.mjs check` runs after the build: it puts each page's Markdown next to the
-// page (`/docs/x/` has `/docs/x.md`) and fails on internal links that lead nowhere.
+// page (`/docs/x/` has `/docs/x.md`) and fails on internal links that lead nowhere, except those
+// into the Javadoc at /api/, which is not there yet.
 import fs from 'node:fs';
 import path from 'node:path';
 import * as png from './png.mjs';
@@ -216,6 +217,8 @@ function check() {
       const link = m[1].replaceAll('&amp;', '&');
       if (!link.startsWith('/') && !link.startsWith('#')) continue;
       if (link.startsWith('//') || link.startsWith('/_next/')) continue;
+      // The Javadoc, which the Docs workflow copies into out/api/ after this check.
+      if (link.startsWith('/api/')) continue;
       const [target, hash] = link.split('#');
       const pathOnly = target.split('?')[0];
       const servedFile = pathOnly ? served(pathOnly) : file;

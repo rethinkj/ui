@@ -1,7 +1,5 @@
 package com.rethinkj.ui.kit;
 
-import static com.rethinkj.ui.kit.Theme.over;
-
 import com.rethinkj.ui.Cursor;
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.Key;
@@ -86,7 +84,6 @@ public final class Select {
       Theme t, List<String> choices, int selected, Menu.State state, IntConsumer onSelect) {
     boolean enabled = onSelect != null;
     String text = selected >= 0 && selected < choices.size() ? choices.get(selected) : "";
-    int fill = t.surface().raised();
     El select = SelectionFrame.frame(t, text, null, enabled).expanded(state.isOpen());
     if (!enabled) {
       return select;
@@ -139,7 +136,7 @@ public final class Select {
           }
           return true;
         })
-        .whenHovered(e -> e.fill(over(fill, t.surface().hover())))
+        .whenHovered(e -> SelectionFrame.hovered(t, e))
         .overlay(
             state.isOpen()
                 ? Menu.menu(t, state, items)

@@ -17,7 +17,8 @@ final class Overlays {
 
   /**
    * Lays out the overlays below {@code el}, which layout has placed, and those inside them: each
-   * at most as large as the window less its margins, and with {@link Style.Align#STRETCH} at least
+   * at most as large as the window less its margins, and one at the window's edge less its gap
+   * from that edge, and with {@link Style.Align#STRETCH} at least
    * as wide or tall as its anchor. Overlays that are leaving keep their layout.
    */
   static void layout(El el, float width, float height) {
@@ -29,10 +30,13 @@ final class Overlays {
         continue;
       }
       Style s = overlay.style();
-      // Its margins keep it that far from the window's edges.
-      s.maxWidth = limit(s.maxWidth, width - px(s.marginLeft) - px(s.marginRight));
-      s.maxHeight = limit(s.maxHeight, height - px(s.marginTop) - px(s.marginBottom));
       El.Layer l = overlay.placement();
+      // Its margins keep it that far from the window's edges, and one at an edge its gap too.
+      boolean atTopOrBottom = l.edge == Side.TOP || l.edge == Side.BOTTOM;
+      float gapX = l.edge != null && !atTopOrBottom ? l.gap : 0;
+      float gapY = atTopOrBottom ? l.gap : 0;
+      s.maxWidth = limit(s.maxWidth, width - px(s.marginLeft) - px(s.marginRight) - gapX);
+      s.maxHeight = limit(s.maxHeight, height - px(s.marginTop) - px(s.marginBottom) - gapY);
       if (l.align == Style.Align.STRETCH
           && !l.centered
           && l.edge == null
