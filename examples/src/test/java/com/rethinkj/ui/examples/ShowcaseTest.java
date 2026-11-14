@@ -81,5 +81,21 @@ class ShowcaseTest {
     assertTrue(
         Files.readString(out.resolve("find.tree.txt")).contains("role=search"),
         "the code editor's find bar");
+    // Notes longer than their card's width wrap inside it instead of running out of it.
+    assertWraps(out.resolve("fields.tree.txt"), "\"Line numbers, colours");
+    assertWraps(out.resolve("contrast.tree.txt"), "\"Each cell is the pair itself");
+  }
+
+  /** The text whose line in the dump holds {@code start} is higher than one line of 13 pixels. */
+  private static void assertWraps(Path dump, String start) throws IOException {
+    String line = Files.readString(dump)
+        .lines()
+        .filter(l -> l.contains(start))
+        .findFirst()
+        .orElseThrow();
+    java.util.regex.Matcher size =
+        java.util.regex.Pattern.compile(" \\d+,\\d+ \\d+x(\\d+)").matcher(line);
+    assertTrue(size.find(), line);
+    assertTrue(Integer.parseInt(size.group(1)) > 20, "on one line: " + line);
   }
 }
