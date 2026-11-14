@@ -976,7 +976,11 @@ public final class App<S> {
     Objects.requireNonNull(key, "key");
     enqueue(() -> {
       rowGoals.clear();
-      keyToText = focused != null && (focused.editor() != null || focused.onText() != null);
+      if (edits(key)) {
+        wakeField();
+      }
+      keyToText =
+          focused != null && (focused.editor() != null || focused.onText() != null) || fieldWaits();
       Object before = focusId;
       keyUntaken = false;
       anyKeyDown(key);
@@ -1095,11 +1099,14 @@ public final class App<S> {
   /**
    * Text was typed or composed with an input method. The next {@link #frame} puts it into the
    * focused text field ({@link El#editable}) in place of its selection, or gives it to the {@link
-   * El#onText} handler of the focused element; without either it is dropped.
+   * El#onText} handler of the focused element; without either it is dropped. A focused editable
+   * field in a row of a list that is scrolled out of the rows that exist comes back into view and
+   * takes it, as it does for Backspace, Delete and the keys that paste, cut and undo.
    */
   public void textInput(String text) {
     Objects.requireNonNull(text, "text");
     enqueue(() -> {
+      wakeField();
       if (focused != null && focused.editor() != null) {
         boolean changed = focused.editor().type(text);
         handled |= focused.editor().answerPending();
@@ -1127,6 +1134,9 @@ public final class App<S> {
   public void keyText(String text) {
     Objects.requireNonNull(text, "text");
     enqueue(() -> {
+      if (keyToText) {
+        wakeField();
+      }
       if (!keyToText || focused == null) {
         return false;
       }
@@ -1723,6 +1733,38 @@ public final class App<S> {
   private boolean focusWaits() {
     Animator.InRow in = focusId == null ? null : animator.inRow(focusId);
     return in != null && in.row() < in.list().rowCount() && !in.list().hasRow(in.row());
+  }
+
+  /** Whether the focus {@link #focusWaits} on an editable text field, whose editor stays. */
+  private boolean fieldWaits() {
+    if (focused != null || !focusWaits()) {
+      return false;
+    }
+    Editor editor = editors.get(focusId);
+    return editor != null && editor.editable();
+  }
+
+  /**
+   * Brings back the row of an editable field that has the focus and {@link #focusWaits}, so that
+   * text and the keys that edit go into it, as an editor brings its caret back into view on
+   * typing.
+   */
+  private void wakeField() {
+    if (fieldWaits()) {
+      rowGoals.clear(); // input of the user's, as a key: the list no longer follows a row
+      wake();
+    }
+  }
+
+  /** Whether a field takes this key to edit its string: deleting, pasting, cutting, undoing. */
+  private static boolean edits(Key key) {
+    int mods = key.modifiers();
+    return switch (key.name()) {
+      case "Backspace", "Delete" -> true;
+      case "V", "X", "Z", "Y" -> (mods & Key.CONTROL) != 0;
+      case "Insert" -> mods == Key.SHIFT;
+      default -> false;
+    };
   }
 
   /** Brings the row of a focus that {@link #focusWaits} into view, so that Tab goes on there. */
