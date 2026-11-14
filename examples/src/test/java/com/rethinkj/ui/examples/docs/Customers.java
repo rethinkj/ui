@@ -34,6 +34,7 @@ import java.io.IOException;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * The app of the guide that builds a whole app: customers in a grid, loaded off the app's thread,
@@ -303,7 +304,10 @@ public final class Customers {
         e -> {
           saving = null;
           if (e instanceof Repository.Refused refused) {
-            editing.at(refused.field).error(refused.getMessage()); // until the field is edited
+            Part<Customer, ?> field = refused.field;
+            if (Objects.equals(field.get(editing.value()), field.get(customer))) {
+              editing.at(field).error(refused.getMessage()); // until the field is edited
+            } // else the user already changed what the server refused
           } else {
             toast = "Not saved: " + e.getMessage(); // the dialog stays open to try again
           }
