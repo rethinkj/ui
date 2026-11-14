@@ -166,11 +166,6 @@ public final class Completion {
         .key("completions")
         .role("listbox")
         .label("Completions")
-        .radius(t.radius().medium())
-        .fill(t.surface().raised())
-        .border(t.size().stroke(), t.border().control())
-        .shadow(t.elevation().popup())
-        .motion(t.motion().fade())
         .atCaret()
         .side(Side.BOTTOM, Style.Align.START, t.space().xs())
         .keepFocus()
@@ -178,7 +173,7 @@ public final class Completion {
     list.style().minWidth = Len.px(t.size().field() + PassiveList.gutter(t, entries.size(), ROWS));
     list.style().maxHeight =
         Len.px(ROWS * t.size().control() + 2 * (t.space().s() + t.size().stroke()));
-    return field.overlay(list);
+    return field.overlay(Popup.frame(t, list));
   }
 
   private static El option(Theme t, Entry entry, int i, State state, Consumer<Integer> take) {

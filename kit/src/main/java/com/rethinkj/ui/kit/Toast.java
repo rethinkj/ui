@@ -50,7 +50,7 @@ public final class Toast {
    */
   public static El toast(
       Theme t, String message, String action, Runnable onAction, Runnable onClose, float above) {
-    El toast = row()
+    El toast = Popup.frame(t, row())
         .key("toast")
         .role("status")
         .label(message)
@@ -67,11 +67,6 @@ public final class Toast {
         .padding(t.space().xs(), t.space().xs(), t.space().xs(), t.space().l())
         .gap(t.space().m())
         .align(Style.Align.CENTER)
-        .radius(t.radius().medium())
-        .fill(t.surface().raised())
-        .border(t.size().stroke(), t.border().control())
-        .shadow(t.elevation().popup())
-        .motion(t.motion().fade())
         .child(label(t, message));
     if (action != null) {
       toast.child(button(t, Button.Variant.GHOST, action, () -> {

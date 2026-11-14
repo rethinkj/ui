@@ -115,7 +115,7 @@ public final class Popover {
    * without an edit handler do not), the panel takes it, so that Escape reaches it.
    */
   public static El panel(Theme t, State state, String label, El content) {
-    El panel = col()
+    El panel = Popup.frame(t, col())
         .key("popover")
         .role("dialog")
         .label(label)
@@ -128,11 +128,6 @@ public final class Popover {
           return true;
         })
         .padding(t.space().l())
-        .radius(t.radius().medium())
-        .fill(t.surface().raised())
-        .border(t.size().stroke(), t.border().control())
-        .shadow(t.elevation().popup())
-        .motion(t.motion().fade())
         .child(content);
     if (!content.hasFocusable()) {
       panel.focusable().focusRing(t.accent().edge());

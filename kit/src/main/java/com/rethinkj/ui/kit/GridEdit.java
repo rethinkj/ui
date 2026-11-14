@@ -930,15 +930,10 @@ final class GridEdit {
           FilterList.entry("NULL", () -> choose(b, null, Move.NONE)).checked(sel.original == null));
     }
     FilterList.Shown shown = FilterList.shown(sel.search, FilterList.Entries.of(entries));
-    return col()
+    return Popup.frame(t, col())
         .key("choices")
         .minSize(t.size().field(), 0) // as a combo box's, wider than a narrow column
         .padding(t.space().s())
-        .radius(t.radius().medium())
-        .fill(t.surface().raised())
-        .border(t.size().stroke(), t.border().control())
-        .shadow(t.elevation().popup())
-        .motion(t.motion().fade())
         .keepFocus()
         .dismissGroup(sel.search)
         .side(Side.BOTTOM, Style.Align.STRETCH, t.space().xs())
@@ -1044,7 +1039,7 @@ final class GridEdit {
     if (sel.error != null) {
       TextField.invalid(t, area);
     }
-    El panel = col()
+    El panel = Popup.frame(t, col())
         .key("multiline")
         .role("dialog")
         .label(label)
@@ -1053,11 +1048,6 @@ final class GridEdit {
         .onKey(k -> editKey(b, k))
         .padding(t.space().m())
         .gap(t.space().s())
-        .radius(t.radius().medium())
-        .fill(t.surface().raised())
-        .border(t.size().stroke(), t.border().control())
-        .shadow(t.elevation().popup())
-        .motion(t.motion().fade())
         .child(area);
     if (sel.error != null) {
       panel.child(Label.label(t, sel.error)
