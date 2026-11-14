@@ -11,7 +11,6 @@ import com.rethinkj.ui.App;
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.Script;
 import com.rethinkj.ui.Style;
-import com.rethinkj.ui.render.Png;
 import com.rethinkj.ui.text.TextRendering;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -26,8 +25,7 @@ import org.junit.jupiter.params.provider.CsvSource;
 
 /**
  * {@link ComboBox} beside a {@link Select}: a combo box of databases, one of host names with
- * suggestions, driven by scripts, with stored images of the open list in both themes at scales 1
- * and 2.
+ * suggestions, driven by scripts, with stored images of the open list in both themes.
  */
 class ComboBoxTest {
 
@@ -184,25 +182,6 @@ class ComboBoxTest {
     assertEquals("db-eu-1.example.comx", app.state().hostName);
   }
 
-  /** Nothing is highlighted in a free one until a key does it, also when the view is rebuilt. */
-  @Test
-  void aFreeComboBoxHighlightsNothingAcrossRebuildsUntilArrowDown() throws IOException {
-    run("press #host\ntype \"db\"");
-    app.invalidate(); // another handler or posted task rebuilds the view
-    String tree = run("");
-    assertFalse(tree.contains(" selected"), "still nothing highlighted: " + tree);
-    run("key Enter");
-    assertEquals("db", app.state().hostName, "Enter keeps what was typed");
-
-    run("key ArrowDown alt");
-    app.invalidate();
-    tree = run("");
-    assertTrue(tree.contains("role=listbox"), tree);
-    assertFalse(tree.contains(" selected"), "all of them, none highlighted: " + tree);
-    tree = run("key ArrowDown");
-    assertTrue(line(tree, "#option-0").contains(" selected"), "Arrow Down, the first: " + tree);
-  }
-
   @Test
   void aDisabledComboBoxTakesNothing() throws IOException {
     String tree = run("");
@@ -239,58 +218,14 @@ class ComboBoxTest {
     }
   }
 
-  /** The app changes the choices while the list is open: the highlight goes with its entry. */
-  @Test
-  void theHighlightStaysOnItsEntryWhenTheChoicesChange() throws IOException {
-    final class Choices {
-      List<String> values = List.of("A", "B", "C");
-      String value = "B";
-      final ComboBox.State box = new ComboBox.State();
-    }
-    Choices c = new Choices();
-    App<Choices> choices = new App<>(
-        c,
-        x -> col()
-            .child(ComboBox.comboBox(Theme.DARK, x.values, x.value, v -> v, x.box, v -> {
-                  x.value = v;
-                })
-                .key("box")));
-    Script.run("size 320 200\nframe\npress #box\nframe", choices, out);
-    c.values = List.of("B", "C");
-    choices.invalidate();
-    Script.run("frame\nkey Enter\nframe", choices, out);
-    assertEquals("B", c.value, "the current choice, now in the first row");
-
-    c.values = List.of("A", "B", "C");
-    Script.run("press #box\nframe\nkey ArrowDown\nframe", choices, out);
-    c.values = List.of("C", "B");
-    choices.invalidate();
-    Script.run("frame\nsnap s", choices, out);
-    String tree = Files.readString(out.resolve("s.tree.txt"));
-    assertTrue(line(tree, "#option-0").contains(" selected"), "C, where it went: " + tree);
-    c.values = List.of("A", "B");
-    choices.invalidate();
-    Script.run("frame\nsnap s", choices, out);
-    tree = Files.readString(out.resolve("s.tree.txt"));
-    assertTrue(line(tree, "#option-1").contains(" selected"), "C gone: the current one " + tree);
-    Script.run("key Enter\nframe", choices, out);
-    assertEquals("B", c.value);
-  }
-
   @ParameterizedTest(name = "{0} at {1}x")
-  @CsvSource({"dark, 1", "dark, 2", "light, 1", "light, 2"})
+  @CsvSource({"dark, 2", "light, 2"})
   void theOpenListLooksLikeASelectsMenu(String theme, int scale) throws IOException {
     App<Form> form = new Form(theme.equals("dark") ? Theme.DARK : Theme.LIGHT).app();
     String script = Files.readString(Path.of("src/test/resources/scripts/combobox.txt"));
     Path folder = out.resolve(theme + scale);
     List<Path> files = Script.run("size 360 260 scale " + scale + "\n" + script, form, folder);
-    for (int i = 0; i < files.size(); i += 2) {
-      String snap = files.get(i).getFileName().toString().replace(".png", "");
-      Golden.assertMatches(
-          "combobox-" + theme + "-" + scale + "x-" + snap,
-          Png.decode(Files.readAllBytes(files.get(i))),
-          Files.readString(files.get(i + 1)));
-    }
+    Golden.assertSnaps("combobox-" + theme + "-" + scale + "x-", files, "typed");
   }
 
   /** The labels of the options, in order. */

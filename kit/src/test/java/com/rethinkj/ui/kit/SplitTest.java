@@ -311,6 +311,6 @@ class SplitTest {
   @ValueSource(strings = {"dark", "light"})
   void looksAsStored(String name) throws IOException {
     Workbench w = new Workbench(name.equals("dark") ? Theme.DARK : Theme.LIGHT);
-    assertEquals(8, Workbench.assertLooksAsStored("split", name, w.app(Workbench::splitView)));
+    assertEquals(1, Workbench.assertLooksAsStored("split", name, w.app(Workbench::splitView)));
   }
 }

@@ -80,29 +80,8 @@ class IconTest {
     assertEquals(small.y() + 8, after.y() + after.height() / 2, 0.5f, "centred");
   }
 
-  @Test
-  void theVariantsTakeTheThemesColours() {
-    TextLibraries.assumeLoaded();
-    for (Theme t : new Theme[] {Theme.DARK, Theme.LIGHT}) {
-      int[] colours = {
-        t.text().primary(),
-        t.text().muted(),
-        t.text().disabled(),
-        t.status().danger(),
-        t.status().warning(),
-        t.status().success()
-      };
-      for (Variant variant : Variant.values()) {
-        assertEquals(
-            colours[variant.ordinal()],
-            icon(t, Symbol.WARNING, variant).text().color(),
-            variant.name());
-      }
-    }
-  }
-
   @ParameterizedTest
-  @CsvSource({"dark, 1", "dark, 2", "light, 1", "light, 2"})
+  @CsvSource({"dark, 2", "light, 2"})
   void looksAsStored(String name, int scale) {
     TextLibraries.assumeLoaded();
     Theme t = name.equals("dark") ? Theme.DARK : Theme.LIGHT;

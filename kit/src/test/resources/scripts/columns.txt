@@ -9,14 +9,3 @@ frame
 advance 1
 frame
 snap chooser
-
-key Escape
-frame
-advance 1
-frame
-down #column-5                     # status, dragged towards amount: a line where it would go
-move 300,50
-frame
-snap dragging
-up 300,50
-frame

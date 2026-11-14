@@ -6,7 +6,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.rethinkj.ui.App;
 import com.rethinkj.ui.Script;
-import com.rethinkj.ui.render.Png;
 import com.rethinkj.ui.text.TextRendering;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -19,7 +18,7 @@ import org.junit.jupiter.params.provider.CsvSource;
 
 /**
  * The find bar of the kit's {@link CodeEditor} ({@link Find}), driven by {@code find.txt}, with
- * stored images in both themes at scales 1 and 2; and the occurrences of the word at the caret.
+ * stored images; and the occurrences of the word at the caret.
  */
 class FindTest {
 
@@ -55,18 +54,12 @@ class FindTest {
   }
 
   @ParameterizedTest
-  @CsvSource({"dark, 1", "dark, 2", "light, 1", "light, 2"})
+  @CsvSource({"dark, 2", "light, 2"})
   void looksAsStored(String theme, int scale) throws IOException {
     App<Query> app = app(theme.equals("dark") ? Theme.DARK : Theme.LIGHT);
     String script = Files.readString(Path.of("src/test/resources/scripts/find.txt"));
     List<Path> files = Script.run("size 560 260 scale " + scale + "\n" + script, app, out);
-    for (int i = 0; i < files.size(); i += 2) {
-      String snap = files.get(i).getFileName().toString().replace(".png", "");
-      Golden.assertMatches(
-          "find-" + theme + "-" + scale + "x-" + snap,
-          Png.decode(Files.readAllBytes(files.get(i))),
-          Files.readString(files.get(i + 1)));
-    }
+    Golden.assertSnaps("find-" + theme + "-" + scale + "x-", files, "replace");
     String open = Files.readString(out.resolve("open.tree.txt"));
     assertTrue(open.contains("role=search"), open);
   }

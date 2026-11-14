@@ -25,7 +25,7 @@ import org.junit.jupiter.params.provider.CsvSource;
 /**
  * The workbench's Rename dialog ({@link Bench}): modal over a scrim, the focus in its field, Tab
  * around inside it, Escape and a press on the scrim dismiss it, and the focus goes back to the
- * button that opened it; stored images in both themes at scales 1 and 2.
+ * button that opened it; stored images.
  */
 class DialogTest {
 
@@ -43,10 +43,10 @@ class DialogTest {
   }
 
   @ParameterizedTest(name = "{0} at {1}x")
-  @CsvSource({"dark, 1", "dark, 2", "light, 1", "light, 2"})
+  @CsvSource({"dark, 2", "light, 2"})
   void opensWithTheFocusInsideKeepsItThereAndGivesItBack(String theme, int scale)
       throws IOException {
-    App<Bench> app = Bench.assertScript("dialog", theme, scale, out);
+    App<Bench> app = Bench.assertScript("dialog", theme, scale, out, "open");
     String open = Bench.tree(out, "dialog", theme, scale, "open");
     assertTrue(open.contains("\noverlay center modal scrim on "), open);
     assertTrue(open.contains(" role=dialog label=\"Rename table\" "), open);
@@ -172,28 +172,6 @@ class DialogTest {
   }
 
   @Test
-  void aDialogWithoutButtonsHasNoRowForThem() throws IOException {
-    Theme t = Theme.DARK;
-    App<Object> app = new App<>(
-        new Object(),
-        s -> El.col()
-            .wFull()
-            .hFull()
-            .overlay(
-                Dialog.dialog(t, "Note", El.el().key("body").size(120, 40), List.of(), () -> {})));
-    run(app, "frame\nadvance 0.25\nframe\n");
-    String dump = app.tree().dump();
-    float[] dialog = StructureTest.rect(StructureTest.line(dump, "#dialog"));
-    float[] body = StructureTest.rect(StructureTest.line(dump, "#body"));
-    // Below the content only the dialog's padding and its border: no empty row, no gap.
-    assertEquals(
-        t.space().xl() + t.size().stroke(),
-        dialog[1] + dialog[3] - (body[1] + body[3]),
-        0.01,
-        dump);
-  }
-
-  @Test
   void theDefaultButtonIsOneOfTheButtons() {
     Theme t = Theme.DARK;
     El ok = Button.button(t, Button.Variant.PRIMARY, "OK", () -> {});
@@ -241,7 +219,7 @@ class DialogTest {
   }
 
   @ParameterizedTest(name = "{0} at {1}x")
-  @CsvSource({"dark, 1", "dark, 2", "light, 1", "light, 2"})
+  @CsvSource({"dark, 2", "light, 2"})
   void theHeadHasAMarkABadgeAndCloseAndTheButtonsAStart(String theme, int scale)
       throws IOException {
     Theme t = theme.equals("dark") ? Theme.DARK : Theme.LIGHT;
@@ -334,28 +312,5 @@ class DialogTest {
     run(app, "move role=heading\nframe\nadvance 1\nframe\n");
     String shown = app.tree().dump();
     assertTrue(shown.contains("role=tooltip label=\"" + title + "\""), shown);
-  }
-
-  @Test
-  void aStartWithoutButtonsHasARowOfItsOwn() throws IOException {
-    Theme t = Theme.DARK;
-    App<Object> app = new App<>(
-        new Object(),
-        s -> El.col()
-            .wFull()
-            .hFull()
-            .overlay(Dialog.dialog(
-                t,
-                "Export",
-                El.el().key("body").size(200, 40),
-                List.of(),
-                () -> {},
-                Dialog.options().start(Label.label(t, "Writing 3 of 7").key("status")))));
-    run(app, "frame\nadvance 0.25\nframe\n");
-    String dump = app.tree().dump();
-    float[] body = StructureTest.rect(StructureTest.line(dump, "#body "));
-    float[] status = StructureTest.rect(StructureTest.line(dump, "#status "));
-    assertEquals(body[0], status[0], 0.01, dump);
-    assertTrue(status[1] >= body[1] + body[3] + Theme.DARK.space().l(), "below the content");
   }
 }

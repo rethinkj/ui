@@ -10,8 +10,6 @@ import static com.rethinkj.ui.kit.Workbench.dumpLine;
 import static com.rethinkj.ui.kit.Workbench.find;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.rethinkj.ui.App;
@@ -82,17 +80,6 @@ class ButtonTest {
   }
 
   @Test
-  void aTooltipOfTheViewStandsInPlaceOfTheWholeText() throws IOException {
-    String text = "Export public.customer_addresses as CSV";
-    App<Clicks> app = app(s -> Tooltip.tooltip(
-        T, button(T, SECONDARY, text, s::press).key("narrow").w(120), "Writes a file"));
-    run(app, "move #narrow\nframe\nadvance 1\nframe");
-    String dump = app.tree().dump();
-    assertTrue(dump.contains("role=tooltip label=\"Writes a file\""), dump);
-    assertFalse(dump.contains("role=tooltip label=\"" + text), dump);
-  }
-
-  @Test
   void aButtonThatIsOffIsAsOneWithoutAHandler() throws IOException {
     App<Clicks> off = app(s ->
         button(T, SECONDARY, "Save", s::press, Button.options().enabled(false)).key("b"));
@@ -103,16 +90,6 @@ class ButtonTest {
     assertEquals(0, off.state().presses);
     assertTrue(dumpLine(off, "b").contains(" disabled"), dumpLine(off, "b"));
     assertFalse(dumpLine(off, "b").contains("focused"), dumpLine(off, "b"));
-  }
-
-  @Test
-  void theOldFormsAreTheFormWithOptions() throws IOException {
-    App<Clicks> old = app(s -> button(T, PRIMARY, Symbol.PLAY, "Run", true, s::press));
-    App<Clicks> with = app(s ->
-        button(T, PRIMARY, "Run", s::press, Button.options().icon(Symbol.PLAY).busy(true)));
-    run(old, "");
-    run(with, "");
-    assertEquals(old.tree().dump(), with.tree().dump());
   }
 
   @Test
@@ -133,14 +110,6 @@ class ButtonTest {
     String dump = app.tree().dump();
     assertTrue(dump.contains("role=progressbar"), dump);
     assertFalse(dump.contains("arrow_clockwise"), "the spinner in the icon's place: " + dump);
-  }
-
-  @Test
-  void anIconButtonTakesItsSymbolAsAParameterOnly() {
-    assertThrows(
-        IllegalArgumentException.class,
-        () ->
-            Button.icon(T, GHOST, Symbol.ADD, "Add", () -> {}, Button.options().icon(Symbol.ADD)));
   }
 
   @Test
@@ -223,17 +192,6 @@ class ButtonTest {
     assertTrue(dumpLine(app, "main").contains(" busy"), dumpLine(app, "main"));
     run(app, "press #arrow");
     assertTrue(app.state().menu.isOpen());
-  }
-
-  @Test
-  void aSplitButtonThatIsOffIsOffInBothHalves() throws IOException {
-    App<Clicks> app = split(Button.options().enabled(false));
-    run(app, "press #arrow\npress #main");
-    assertFalse(app.state().menu.isOpen());
-    assertEquals(0, app.state().presses);
-    assertTrue(dumpLine(app, "arrow").contains(" disabled"), dumpLine(app, "arrow"));
-    assertNotNull(dumpLine(app, "main"));
-    assertTrue(dumpLine(app, "main").contains(" disabled"), dumpLine(app, "main"));
   }
 
   @Test

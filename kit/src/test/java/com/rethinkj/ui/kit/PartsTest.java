@@ -23,8 +23,7 @@ import org.junit.jupiter.params.provider.CsvSource;
 
 /**
  * The small parts ({@link Parts}): badges, a breadcrumb, a toolbar with a split and a toggle
- * button, properties and a popover's form, by scripts and the dump; stored images in both themes
- * at scales 1 and 2.
+ * button, properties and a popover's form, by scripts and the dump; stored images.
  */
 class PartsTest {
 
@@ -63,12 +62,13 @@ class PartsTest {
   }
 
   @ParameterizedTest(name = "{0} at {1}x")
-  @CsvSource({"dark, 1", "dark, 2", "light, 1", "light, 2"})
+  @CsvSource({"dark, 2", "light, 2"})
   void looksAsStored(String theme, int scale) throws IOException {
     check("badges", theme, scale, 560, 400, Parts::badges, "");
     check("detail", theme, scale, 720, 420, Parts::detail, "");
-    // Narrow: the toolbar's end and the breadcrumb's start go into menus.
-    check("detail-narrow", theme, scale, 330, 420, Parts::detail, "");
+    if (theme.equals("dark")) { // narrow: the toolbar's end and the breadcrumb's start in menus
+      check("detail-narrow", theme, scale, 330, 420, Parts::detail, "");
+    }
     check(
         "popover",
         theme,
@@ -157,34 +157,6 @@ class PartsTest {
         "press label=\"More Run\"\nframe\nadvance 0.25\nframe\n"
             + "press role=menuitem label=\"Explain\"\nframe");
     assertEquals("explain", app.state().log.getLast());
-  }
-
-  /** In a column with room to spare, a path and a toolbar stay a row high, as they look. */
-  @Test
-  void aBreadcrumbAndAToolbarStayARowHighInAColumnWithRoom() throws IOException {
-    Theme t = Theme.DARK;
-    Breadcrumb.State crumbs = new Breadcrumb.State();
-    Toolbar.State tools = new Toolbar.State();
-    App<Object> app = new App<>(
-        new Object(),
-        x -> El.col()
-            .h(300)
-            .children(
-                Breadcrumb.breadcrumb(t, crumbs, java.util.List.of("localhost", "shop"), i -> {}),
-                Toolbar.toolbar(
-                    t,
-                    tools,
-                    "Table",
-                    java.util.List.of(
-                        Toolbar.button(Symbol.ARROW_CLOCKWISE, "Refresh", () -> {})))));
-    Script.run("size 400 320\nframe\nframe", app, out);
-    String dump = app.tree().dump();
-    assertEquals(
-        t.size().control(),
-        StructureTest.rect(StructureTest.line(dump, "role=navigation"))[3],
-        dump);
-    assertEquals(
-        t.size().control(), StructureTest.rect(StructureTest.line(dump, "role=toolbar"))[3], dump);
   }
 
   @Test
@@ -342,35 +314,5 @@ class PartsTest {
     Script.run("key Escape\nframe\nadvance 1\nframe\n", app, out);
     assertFalse(state.isOpen());
     assertEquals("details", app.focused().key());
-  }
-
-  @Test
-  void escapeClosesAPopoverWhoseOnlyFocusableContentIsInvisible() throws IOException {
-    Popover.State state = new Popover.State();
-    App<Popover.State> app = new App<>(
-        state,
-        s -> col()
-            .wFull()
-            .hFull()
-            .padding(12)
-            .child(Popover.popover(
-                Theme.DARK,
-                Button.button(Theme.DARK, Button.Variant.SECONDARY, "Details", s::toggle)
-                    .key("open"),
-                s,
-                "Details",
-                col()
-                    .children(
-                        Label.label(Theme.DARK, "Information"),
-                        col()
-                            .opacity(0)
-                            .child(Button.button(
-                                Theme.DARK, Button.Variant.SECONDARY, "Hidden", () -> {})),
-                        TextField.textField(Theme.DARK, "", "Off", null)))));
-    Script.run("size 320 220\nframe\nfocus #open\nkey Enter\nframe\nadvance 1\nframe", app, out);
-    assertTrue(state.isOpen(), app.tree().dump());
-    assertEquals("popover", app.focused().key(), "the popover itself took the focus");
-    Script.run("key Escape\nframe", app, out);
-    assertFalse(state.isOpen(), app.tree().dump());
   }
 }

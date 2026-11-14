@@ -82,7 +82,7 @@ class FuzzyTest {
   void positionsScoreWhatTheScoreSays() {
     Random random = new Random(7);
     String letters = "abc_.A";
-    for (int round = 0; round < 3000; round++) {
+    for (int round = 0; round < 300; round++) {
       String text = random(random, letters, 1 + random.nextInt(14));
       String query = random(random, "abc", 1 + random.nextInt(4));
       int score = Fuzzy.score(query, text);

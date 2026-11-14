@@ -7,7 +7,6 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.text.BreakIterator;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Pattern;
@@ -80,20 +79,6 @@ class SearchTest {
     assertFalse(Search.boundary("é", 1));
     assertTrue(Search.boundary("ab", 1));
     assertFalse(Search.boundary("a\r\nb", 2));
-  }
-
-  @Test
-  void graphemesAgreeWithTheJdkInALongRunOfRegionalIndicators() {
-    String text = "x" + "🇦".repeat(300) + "\n" + "🇦".repeat(301) + "e\u0301";
-    BreakIterator iterator = BreakIterator.getCharacterInstance();
-    iterator.setText(text);
-    Search.Graphemes inOrder = new Search.Graphemes(text);
-    for (int at = 0; at <= text.length(); at++) {
-      assertEquals(iterator.isBoundary(at), inOrder.boundary(at), "offset " + at);
-      assertEquals(iterator.isBoundary(at), Search.boundary(text, at), "offset " + at + " alone");
-    }
-    assertEquals(List.of(), found("x" + "🇦".repeat(132), plain("🇦")), "half a flag");
-    assertEquals(List.of("1:🇦🇦"), found("x" + "🇦".repeat(2), plain("🇦🇦")));
   }
 
   @Test

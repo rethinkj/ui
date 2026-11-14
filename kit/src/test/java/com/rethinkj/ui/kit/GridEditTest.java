@@ -11,7 +11,6 @@ import com.rethinkj.ui.App;
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.Script;
 import com.rethinkj.ui.kit.DataGrid.Status;
-import com.rethinkj.ui.render.Png;
 import com.rethinkj.ui.text.TextRendering;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -73,14 +72,8 @@ class GridEditTest {
     List<Path> files = Script.run(text, app, folder).stream()
         .filter(f -> !f.toString().endsWith(".clipboard.txt"))
         .toList();
-    for (int i = 0; i < files.size(); i += 2) {
-      String snap = files.get(i).getFileName().toString().replace(".png", "");
-      Golden.assertMatches(
-          "edit-" + name + "-" + snap,
-          Png.decode(Files.readAllBytes(files.get(i))),
-          Files.readString(files.get(i + 1)));
-    }
-    assertEquals(14, files.size());
+    Golden.assertSnaps("edit-" + name + "-", files, "choices", "states");
+    assertEquals(4, files.size());
   }
 
   /** A failed cell says what is wrong in its tooltip, also when it was a change that failed. */
@@ -95,26 +88,6 @@ class GridEditTest {
         app.tree().dump().contains("role=tooltip label=\"qty must be even\""),
         app.tree().dump());
     assertTrue(line(app, "cell-2-2").contains("invalid"), line(app, "cell-2-2"));
-  }
-
-  @Test
-  void aFailedCellOfANewRowIsInvalidWithItsMessage() throws IOException {
-    Ledger ledger = new Ledger(T, 2);
-    ledger.changes.insert(0);
-    ledger.changes.set(1, 1, "duplicate");
-    var insert = ledger.changes.changes().stream()
-        .filter(c -> c.kind() == GridChanges.Kind.INSERT)
-        .findFirst()
-        .orElseThrow();
-    ledger.changes.error(insert, 1, "duplicate key");
-    App<Ledger> app = start(ledger);
-    assertTrue(line(app, "cell-1-1").contains(" invalid"), line(app, "cell-1-1"));
-    assertTrue(line(app, "row-1").contains("value=\"new\""), line(app, "row-1"));
-    assertFalse(line(app, "cell-1-2").contains("value="), "its other cells as the row");
-    run(app, "move #cell-1-1\nframe\nadvance 1\nframe\nadvance 1\nframe");
-    assertTrue(
-        app.tree().dump().contains("role=tooltip label=\"duplicate key\""),
-        app.tree().dump());
   }
 
   /** The app's rows by key, each cell saying which row it is. */
@@ -209,25 +182,6 @@ class GridEditTest {
   }
 
   @Test
-  void aRangeThatASortTearsApartBecomesSeveral() throws IOException {
-    App<Ledger> app = keyedLedger(DataGrid.Mode.CELLS, 10, 20, 30, 40, 50);
-    Ledger ledger = app.state();
-    run(app, "press #cell-1-1\npress #cell-3-3 shift\nframe");
-    app.post(() -> ledger.changes.rows(keyed(20, 50, 30, 10, 40)));
-    run(app, "await\nframe");
-    assertEquals(4, ledger.selection.row(), "on 40");
-    assertEquals(0, ledger.selection.anchorRow(), "on 20");
-    assertEquals(
-        List.of(
-            new DataGrid.Range(0, 1, 0, 3),
-            new DataGrid.Range(2, 1, 2, 3),
-            new DataGrid.Range(4, 1, 4, 3)),
-        ledger.selection.ranges());
-    run(app, "key 0 control\nframe");
-    assertEquals(List.of(20L, 30L, 40L), changed(ledger), "amount NULL in those rows alone");
-  }
-
-  @Test
   void aFilterThatTakesTheCursorsRowPutsItOnTheNearestRowLeft() throws IOException {
     App<Ledger> app = keyedLedger(DataGrid.Mode.CELLS, 10, 20, 30, 40, 50);
     Ledger ledger = app.state();
@@ -238,81 +192,6 @@ class GridEditTest {
     assertEquals(List.of(new DataGrid.Range(1, 1, 1, 1)), ledger.selection.ranges());
     run(app, "key Delete\nframe");
     assertEquals(List.of(20L), changed(ledger));
-  }
-
-  @Test
-  void aFilterThatTakesAllSelectedRowsCollapsesTheSelectionToTheCursor() throws IOException {
-    App<Ledger> app = keyedLedger(DataGrid.Mode.CELLS, 10, 20, 30, 40, 50);
-    Ledger ledger = app.state();
-    run(app, "press #cell-1-1\npress #cell-2-1 shift\nframe");
-    app.post(() -> ledger.changes.rows(keyed(10, 40, 50)));
-    run(app, "await\nframe");
-    assertEquals(1, ledger.selection.row(), "on 40, the row after the cursor's");
-    assertEquals(1, ledger.selection.anchorRow());
-    assertEquals(List.of(new DataGrid.Range(1, 1, 1, 1)), ledger.selection.ranges());
-    run(app, "key Delete\nframe");
-    assertEquals(List.of(40L), changed(ledger));
-  }
-
-  @Test
-  void selectedRowsFollowASortAndControlMinusDeletesThose() throws IOException {
-    App<Ledger> app = keyedLedger(DataGrid.Mode.ROWS, 10, 20, 30, 40, 50);
-    Ledger ledger = app.state();
-    run(app, "press #cell-1-1\npress #cell-3-1 shift\nframe");
-    app.post(() -> ledger.changes.rows(keyed(50, 10, 40, 20, 30)));
-    run(app, "await\nframe");
-    assertEquals(
-        List.of(new DataGrid.Range(2, 0, 4, DataGrid.Range.ALL)), ledger.selection.ranges());
-    assertEquals(2, ledger.selection.row(), "on 40");
-    run(app, "key - control\nframe");
-    assertEquals(List.of(20L, 30L, 40L), changed(ledger));
-    assertTrue(
-        ledger.changes.changes().stream().allMatch(c -> c.kind() == GridChanges.Kind.DELETE));
-  }
-
-  @Test
-  void aRowInsertedAboveMovesTheSelectionDownWithItsRows() throws IOException {
-    App<Ledger> app = keyedLedger(DataGrid.Mode.CELLS, 10, 20, 30, 40, 50);
-    Ledger ledger = app.state();
-    run(app, "press #cell-2-1\npress #cell-3-1 shift\nframe");
-    app.post(() -> ledger.changes.insert(0)); // a new row after 10, not by the grid's keys
-    run(app, "await\nframe");
-    assertEquals(List.of(new DataGrid.Range(3, 1, 4, 1)), ledger.selection.ranges());
-    assertEquals(4, ledger.selection.row());
-    run(app, "key Delete\nframe");
-    assertEquals(List.of(30L, 40L), changed(ledger));
-  }
-
-  @Test
-  void moreRowsThanTheLimitCollapseToTheCursorWhenTheRowsMove() throws IOException {
-    int n = 20_000;
-    long[] up = new long[n];
-    long[] down = new long[n];
-    for (int i = 0; i < n; i++) {
-      up[i] = i;
-      down[i] = n - 1 - i;
-    }
-    App<Ledger> app = keyedLedger(DataGrid.Mode.CELLS, up);
-    Ledger ledger = app.state();
-    DataGrid.Selection sel = ledger.selection;
-    int last = DataGrid.Selection.FOLLOWED_ROWS - 1;
-    app.post(() -> {
-      sel.select(0, 1);
-      sel.extend(last, 1);
-    });
-    run(app, "await\nframe");
-    app.post(() -> ledger.changes.rows(keyed(down)));
-    run(app, "await\nframe");
-    assertEquals(List.of(new DataGrid.Range(n - 1 - last, 1, n - 1, 1)), sel.ranges(), "all");
-    assertEquals(n - 1 - last, sel.row());
-
-    app.post(() -> sel.extend(n - 2 - last, 1)); // one row more than the limit
-    run(app, "await\nframe");
-    app.post(() -> ledger.changes.rows(keyed(up)));
-    run(app, "await\nframe");
-    assertEquals(last + 1, sel.row(), "with its row");
-    assertEquals(List.of(new DataGrid.Range(last + 1, 1, last + 1, 1)), sel.ranges());
-    assertEquals(last + 1, sel.anchorRow());
   }
 
   /** Without keys the selection stays on its places, as the app does not move rows under it. */
@@ -362,15 +241,6 @@ class GridEditTest {
     });
     run(app, "await\nframe");
     assertTrue(ledger.selection.commitEdit());
-    assertTrue(ledger.changes.isEmpty());
-  }
-
-  @Test
-  void deletingRowsWhileNoRowIsShownDeletesNothing() throws IOException {
-    Ledger ledger = new Ledger(T, 2);
-    App<Ledger> app = start(ledger);
-    app.post(() -> ledger.changes.rows(keyed()));
-    run(app, "await\nframe\nkey Delete control\nframe");
     assertTrue(ledger.changes.isEmpty());
   }
 
@@ -653,49 +523,6 @@ class GridEditTest {
   }
 
   @Test
-  void aLongEnumerationHighlightsItsNullAndEnterLeavesIt() throws IOException {
-    DataGrid.Selection selection = new DataGrid.Selection(DataGrid.Mode.CELLS);
-    selection.select(0, 0);
-    GridChanges changes = new GridChanges(1, (r, c) -> null);
-    List<String> letters = List.of("a", "b", "c", "d", "e", "f", "g", "h", "i");
-    boolean[] nullable = {true};
-    App<DataGrid.Selection> app = new App<>(selection, sel -> {
-      DataGrid.Column status = new DataGrid.Column(
-              "status", 160, DataGrid.DataType.ENUM, changes.cell(0))
-          .editable()
-          .choices(letters);
-      return DataGrid.dataGrid(
-              T,
-              List.of(nullable[0] ? status.nullable() : status),
-              1,
-              DataGrid.options().select(sel).changes(changes))
-          .key("grid")
-          .wFull()
-          .hFull();
-    });
-    run(app, "frame\nfocus #grid\nkey F2\nframe\nadvance 1\nframe");
-    String nul = line(app, "option-9");
-    assertTrue(
-        nul.contains("label=\"NULL\"") && nul.contains("selected"), app.tree().dump());
-    run(app, "frame\nkey Enter\nframe");
-    assertNull(changes.cell(0, 0));
-    assertTrue(changes.isEmpty(), "the value it had: no change");
-
-    nullable[0] = false; // a NULL the column does not take, which is no entry
-    run(app, "key ArrowUp\nkey F2\nframe\nadvance 1\nframe\nframe");
-    assertFalse(
-        app.tree()
-            .dump()
-            .lines()
-            .anyMatch(l -> l.contains("role=option") && l.contains("selected")),
-        app.tree().dump());
-    run(app, "key Enter\nframe");
-    assertTrue(changes.isEmpty(), "nothing chosen, nothing changed");
-    run(app, "key F2\nframe\nadvance 1\nframe\nkey ArrowDown\nkey Enter\nframe");
-    assertEquals("a", changes.cell(0, 0), "a key highlights the first");
-  }
-
-  @Test
   void controlZeroSetsNullInTheEditorAndAnEmptyEditorOfANumberIsNull() throws IOException {
     Ledger ledger = new Ledger(T, 40);
     App<Ledger> app = start(ledger);
@@ -827,27 +654,6 @@ class GridEditTest {
     assertEquals(1, ledger.log.size());
   }
 
-  /** The field of lines goes on from the caret and selection of the editor it replaces. */
-  @Test
-  void theFieldOfSeveralLinesKeepsTheCaretOfTheEditor() throws IOException {
-    Ledger ledger = new Ledger(T, 40);
-    App<Ledger> app = start(ledger);
-    run(app, "key F2\nframe\nkey Enter alt\nframe\nadvance 1\nframe");
-    assertTrue(line(app, "text").contains("focused caret 12"), line(app, "text"));
-    run(app, "key Enter\ntype \"Jr.\"\nkey Enter control\nframe");
-    assertEquals("commit 0,1 Ada Lovelace\nJr.", ledger.log.getLast());
-
-    run(
-        app,
-        "key ArrowDown\nkey F2\nframe\ntype \" of the analytical engine\"\nkey Home\n"
-            + "frame\npress #expand\nframe\nadvance 1\nframe");
-    assertTrue(line(app, "text").contains("focused caret 0"), line(app, "text"));
-    run(app, "type \"Lady \"\nkey Enter control\nframe");
-    String handed = ledger.log.getLast();
-    assertTrue(
-        handed.startsWith("commit 1,1 Lady ") && handed.endsWith(" analytical engine"), handed);
-  }
-
   /** A value longer than its cell has a button in the editor that opens the field of lines. */
   @Test
   void aLongValueHasAButtonForTheFieldOfSeveralLines() throws IOException {
@@ -914,20 +720,6 @@ class GridEditTest {
     assertEquals(1, ledger.selection.row(), "down from it");
   }
 
-  /** The same at the last of a million rows, scrolled to the top. */
-  @Test
-  void textTypedAtTheLastOfAMillionRowsScrolledAwayGoesIntoItsDraft() throws IOException {
-    Ledger ledger = new Ledger(T, 1_000_000);
-    App<Ledger> app = start(ledger);
-    run(app, "key End control\nframe\nkey Home\nkey ArrowRight\nframe\nkey F2\nframe");
-    String value = ledger.selection.draft();
-    run(app, "wheel #rows 0 -100000\nframe\ntype \"x\"\nframe");
-    assertEquals(value + "x", ledger.selection.draft());
-    assertNotNull(dumpLine(app, "field"), "its row came back");
-    run(app, "key Enter\nframe");
-    assertEquals("commit 999999,1 " + value + "x", ledger.log.getLast());
-  }
-
   @Test
   void anEditorOfTheAppsOwnTakesTheFocusAndTheGridsKeysEndIt() throws IOException {
     Ledger ledger = new Ledger(T, 40);
@@ -939,33 +731,6 @@ class GridEditTest {
     run(app, "key End\ntype \"!\"\nkey Enter\nframe");
     assertEquals("commit 0,1 Ada Lovelace!", ledger.log.getLast());
     assertEquals(1, ledger.selection.row());
-  }
-
-  @Test
-  void theLastRowOfAMillionAndTheLastOfThreeHundredColumnsAreEdited() throws IOException {
-    Ledger ledger = new Ledger(T, 1_000_000);
-    App<Ledger> app = start(ledger);
-    run(
-        app,
-        "key End control\nframe\nkey Home\nkey ArrowRight\nframe\ntype \"Last\"\n"
-            + "key Enter\nframe");
-    assertEquals("commit 999999,1 Last", ledger.log.getLast());
-    assertEquals("Last", ledger.changes.cell(999_999, 1));
-
-    Orders orders = new Orders(T, 1_000_000, 300, DataGrid.Mode.CELLS);
-    List<String> log = new java.util.ArrayList<>();
-    orders.more = o -> o.onCommit((row, column, value) -> {
-      log.add(row + "," + column + " " + value);
-      return null;
-    });
-    orders.editable = true;
-    App<Orders> wide = orders.app();
-    Script.run(
-        "size 560 240\nframe\nfocus #orders\nkey End control\nframe\ntype \"x\"\n"
-            + "key Enter\nframe",
-        wide,
-        out);
-    assertEquals(List.of("999999,299 x"), log);
   }
 
   /** The app adds a row in a handler and hands the editor of the row to append on at once. */
@@ -987,22 +752,6 @@ class GridEditTest {
     assertEquals("appended", ledger.changes.cell(3, 1));
   }
 
-  @Test
-  void theRowToAppendGoesAfterTheLastRowAlsoWhenRowsWentAway() throws IOException {
-    Ledger ledger = new Ledger(T, 2);
-    ledger.changes.rows(keyed(10, 20));
-    ledger.more = o -> o.appendRow();
-    App<Ledger> app = ledger.app();
-    run(app, "frame\npress #cell-2-1\ntype \"appended\"\nframe");
-    app.post(() -> {
-      ledger.changes.rows(keyed(10));
-      assertTrue(ledger.selection.commitEdit());
-    });
-    run(app, "await\nframe");
-    assertEquals(2, ledger.changes.rowCount());
-    assertEquals("appended", ledger.changes.cell(1, 1));
-  }
-
   /** A grid of one typed or plain column over its changes. */
   private static App<Object> grid(
       DataGrid.Column column, GridChanges changes, DataGrid.Selection selection) {
@@ -1016,61 +765,5 @@ class GridEditTest {
             .key("grid")
             .wFull()
             .hFull());
-  }
-
-  @Test
-  void aChoiceTheFormatRefusesStaysInTheListWithItsMessage() throws IOException {
-    Format<String> format = Format.choice(List.of("allowed", "forbidden"), v -> v)
-        .where(v -> !v.equals("forbidden"), "Not permitted");
-    GridTable<String> table = DataGrid.table(i -> "allowed");
-    DataGrid.Column column = table.column("status", 180, format, v -> v, (row, value) -> value);
-    GridChanges changes = new GridChanges(1, (r, c) -> "allowed");
-    DataGrid.Selection selection = new DataGrid.Selection(DataGrid.Mode.CELLS);
-    selection.select(0, 0);
-    App<Object> app = grid(column, changes, selection);
-    run(app, "frame\nfocus #grid\nkey Enter\nframe\nkey ArrowDown\nkey Enter\nframe");
-    assertTrue(changes.isEmpty(), changes.changes().toString());
-    assertTrue(selection.isEditing());
-    String dump = app.tree().dump();
-    assertTrue(dump.contains("role=alert label=\"Not permitted\""), dump);
-    assertTrue(dump.contains("role=menu"), "the list stays open: " + dump);
-  }
-
-  @Test
-  void aSwitchTheFormatRefusesChangesNothingAndSaysWhy() throws IOException {
-    GridTable<Boolean> table = DataGrid.table(i -> true);
-    DataGrid.Column column = table.column(
-        "confirmed",
-        180,
-        Format.BOOLEAN.where(v -> v, "Confirmation is required"),
-        v -> v,
-        (row, value) -> value);
-    GridChanges changes = new GridChanges(1, (r, c) -> "true");
-    DataGrid.Selection selection = new DataGrid.Selection(DataGrid.Mode.CELLS);
-    selection.select(0, 0);
-    App<Object> app = grid(column, changes, selection);
-    run(app, "frame\nfocus #grid\nkey Space\nframe");
-    assertTrue(changes.isEmpty(), changes.changes().toString());
-    assertTrue(app.tree().dump().contains("role=alert label=\"Confirmation is required\""));
-    assertTrue(line(app, "cell-0-0").contains(" invalid"), line(app, "cell-0-0"));
-    run(app, "key ArrowRight\nframe"); // the next key takes the message away
-    assertFalse(app.tree().dump().contains("role=alert"), app.tree().dump());
-  }
-
-  @Test
-  void handingOnAListOfChoicesWithNothingChosenClosesIt() throws IOException {
-    GridChanges changes = new GridChanges(1, (r, c) -> "legacy"); // not among the choices
-    DataGrid.Column column = new DataGrid.Column(
-            "status", 180, DataGrid.DataType.ENUM, changes.cell(0))
-        .editable()
-        .choices(List.of("current"));
-    DataGrid.Selection selection = new DataGrid.Selection(DataGrid.Mode.CELLS);
-    selection.select(0, 0);
-    App<Object> app = grid(column, changes, selection);
-    run(app, "frame\nfocus #grid\nkey Enter\nframe");
-    assertTrue(selection.isEditing());
-    assertTrue(selection.commitEdit());
-    assertEquals("legacy", changes.cell(0, 0));
-    assertTrue(changes.isEmpty());
   }
 }

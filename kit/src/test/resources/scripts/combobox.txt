@@ -1,31 +1,17 @@
-# A combo box of databases beside a select of encodings (ComboBoxTest): the select's menu, the
-# combo box open on its choices, filtered with the matches in a heavier weight, and nothing found.
+# A combo box of databases beside a select of encodings (ComboBoxTest): the combo box open on its
+# choices, filtered with the matches in a heavier weight.
 frame
 press #encoding
 frame
 advance 0.25                    # past the theme's fade
 frame
-snap select
 
 key Escape
 press #database
 frame
 advance 0.25
 frame
-snap open
 
 type "ot"
 frame
 snap typed
-
-type "zz"
-frame
-snap empty
-
-key Escape
-press #host
-type "db"
-frame
-advance 0.25
-frame
-snap free

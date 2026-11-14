@@ -8,13 +8,11 @@ import static com.rethinkj.ui.kit.Button.Variant.SECONDARY;
 import static com.rethinkj.ui.kit.Button.button;
 import static com.rethinkj.ui.kit.Label.label;
 import static com.rethinkj.ui.kit.TextField.textField;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import com.rethinkj.ui.App;
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.Script;
 import com.rethinkj.ui.Style;
-import com.rethinkj.ui.render.Png;
 import com.rethinkj.ui.text.TextRendering;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -200,25 +198,18 @@ final class Bench {
 
   /**
    * Runs a script of {@code src/test/resources/scripts} in a window of 360 by 240 at this scale and
-   * compares its snaps with the stored images {@code <prefix>-<theme>-<scale>x-<snap>}.
+   * compares its snaps, or those named, with the stored images {@code <prefix>-<theme>-<scale>x-<snap>}.
    *
    * @return the app after the script
    */
-  static App<Bench> assertScript(String file, String theme, int scale, Path out)
+  static App<Bench> assertScript(String file, String theme, int scale, Path out, String... stored)
       throws IOException {
     Bench bench = new Bench(theme.equals("dark") ? Theme.DARK : Theme.LIGHT);
     App<Bench> app = bench.app();
     String script = Files.readString(Path.of("src/test/resources/scripts", file + ".txt"));
     Path folder = out.resolve(file + "-" + theme + "-" + scale + "x");
     List<Path> files = Script.run("size 360 240 scale " + scale + "\n" + script, app, folder);
-    for (int i = 0; i < files.size(); i += 2) {
-      String snap = files.get(i).getFileName().toString().replace(".png", "");
-      assertEquals(snap + ".tree.txt", files.get(i + 1).getFileName().toString());
-      Golden.assertMatches(
-          file + "-" + theme + "-" + scale + "x-" + snap,
-          Png.decode(Files.readAllBytes(files.get(i))),
-          Files.readString(files.get(i + 1)));
-    }
+    Golden.assertSnaps(file + "-" + theme + "-" + scale + "x-", files, stored);
     return app;
   }
 

@@ -103,11 +103,9 @@ final class Catalog implements Tree.Model<Catalog.Node> {
   Node selected;
   final List<String> log = new ArrayList<>();
   final List<Node> loading = new ArrayList<>(); // opened, children asked for, not there yet
-  int walks; // calls of roots(), one per rebuild of the view
   final List<Node> labelled = new ArrayList<>(); // the nodes whose label was asked for
   final List<Node> detailed = new ArrayList<>(); // the nodes whose detail was asked for
   final List<Node> mutedAsked = new ArrayList<>(); // the nodes asked whether they are muted
-  final List<Node> failureAsked = new ArrayList<>(); // the nodes asked whether they failed
   final java.util.Map<Node, String> failures = new java.util.HashMap<>(); // why, till retried
   int attempts; // connections to backup, of which only the first is refused
   App<Catalog> app; // which runs the work, made by app()
@@ -233,7 +231,6 @@ final class Catalog implements Tree.Model<Catalog.Node> {
 
   @Override
   public List<Node> roots() {
-    walks++;
     return roots;
   }
 
@@ -273,7 +270,6 @@ final class Catalog implements Tree.Model<Catalog.Node> {
 
   @Override
   public Tree.Failure failure(Node node) {
-    failureAsked.add(node);
     String why = failures.get(node);
     return why == null
         ? null

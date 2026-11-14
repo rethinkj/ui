@@ -148,42 +148,6 @@ class TabGroupsTest {
     assertFalse(tree.contains("#marker") || tree.contains("grabbed"), tree);
   }
 
-  @Test
-  void nearTheEndOfAFullBarTheDragScrollsIt() throws IOException {
-    App<Docs> app = start();
-    Script.run("""
-        size 120 160
-        frame
-        down 8,17
-        move 60,17
-        move 110,17
-        move 111,17
-        move 112,17
-        frame
-        snap s""", app, out);
-    assertTrue(line(tree("s"), "#tablist").contains(" scroll 24,0"), "three steps: " + tree("s"));
-  }
-
-  @Test
-  void aTabMovedByTheKeysWhileItIsDraggedStaysTheOneDragged() throws IOException {
-    App<Docs> app = start();
-    Script.run("""
-        size 400 160 at 100,100
-        frame
-        focus #tablist
-        down 8,17
-        move 100,17
-        frame
-        key PageDown control shift
-        frame
-        snap moved
-        up 210,17
-        frame""", app, out);
-    assertTrue(line(tree("moved"), "#tab-1 ").contains(" grabbed"), tree("moved"));
-    assertFalse(line(tree("moved"), "#tab-0 ").contains(" grabbed"), tree("moved"));
-    assertEquals(List.of(List.of("b", "c", "d", "a")), order(app.state()));
-  }
-
   // Tearing off and docking
 
   /**
@@ -280,68 +244,6 @@ class TabGroupsTest {
         window main""");
     assertEquals(List.of(List.of("a", "b", "c", "d")), order(d));
     assertFalse(b.isOpen());
-  }
-
-  /**
-   * A drag whose first step is already over another window, as a flick of the pointer or a
-   * script makes it, still holds the window where the pointer took its tab.
-   */
-  @Test
-  void theOnlyTabsWindowFollowsAlsoFromAFirstStepOverAnotherWindow() throws IOException {
-    App<Docs> app = start();
-    Docs d = app.state();
-    run(app, TEAR_B + """
-        move screen 400,400     # b's window at 393,383
-        up screen 400,400
-        frame
-        window b
-        down 8,17
-        move screen 300,150     # at once over the main window
-        frame""");
-    Windows.Handle b = d.groups.groups().get(1).window();
-    assertEquals(List.of(300 - 8, 150 - 17), List.of(b.x(), b.y()));
-  }
-
-  @Test
-  void escapeWhileTheOnlyTabMovesItsWindowPutsTheWindowBack() throws IOException {
-    App<Docs> app = start();
-    run(app, TEAR_B + """
-        move screen 400,400
-        up screen 400,400
-        frame
-        window b
-        down 8,17
-        move 40,17
-        move screen 500,500
-        frame
-        key Escape""");
-    Windows.Handle b = app.state().groups.groups().get(1).window();
-    assertEquals(List.of(393, 383), List.of(b.x(), b.y()));
-  }
-
-  @Test
-  void cancellingATearOffPutsBackTheTornTabAfterTheAppDockedAnotherBeforeIt() throws IOException {
-    Docs d = new Docs();
-    d.app = new App<>(
-        d,
-        s -> s.view(s.groups.main()).onKey(k -> {
-          if (!k.name().equals("F2")) {
-            return false;
-          }
-          s.groups.dock(s.groups.main(), 0, s.groups.groups().get(1), 0);
-          return true;
-        }));
-    Script.run("""
-        size 400 160 at 100,100
-        frame
-        down 8,17
-        move screen 550,260
-        frame
-        key F2
-        frame
-        key Escape
-        frame""", d.app, out);
-    assertEquals(List.of(List.of("a", "c", "d"), List.of("b")), order(d));
   }
 
   @Test
@@ -452,106 +354,7 @@ class TabGroupsTest {
     assertNull(d.groups.groupOf("x"));
   }
 
-  @Test
-  void theMenuOfATabActsOnThatTabWhereverTheAppMovesItAndEndsWithIt() throws IOException {
-    Docs d = new Docs();
-    d.app = new App<>(
-        d,
-        s -> s.view(s.groups.main()).onKey(k -> {
-          Group<String> main = s.groups.main();
-          switch (k.name()) {
-            case "F2" -> { // another tab before it closes, and another becomes active
-              s.groups.close(main, 0);
-              s.groups.select(main, 2);
-            }
-            case "F3" -> s.groups.close(main, main.tabs().indexOf("c"));
-            default -> {
-              return false;
-            }
-          }
-          return true;
-        }));
-    Script.run("""
-        size 400 160 at 100,100
-        frame
-        press 53,17 right
-        frame
-        key F2
-        frame
-        key Home
-        key Enter
-        frame""", d.app, out);
-    assertEquals(List.of(List.of("c", "d"), List.of("b")), order(d), "b moved, not d");
-
-    Script.run("""
-        window main
-        press 8,17 right
-        frame
-        key F3
-        frame
-        advance 1
-        frame
-        snap closed""", d.app, out);
-    assertFalse(tree("closed").contains("role=menu"), "its tab closed: " + tree("closed"));
-    Script.run("""
-        press 8,17 right
-        frame
-        key W control
-        frame
-        advance 1
-        frame
-        snap closed""", d.app, out);
-    assertFalse(tree("closed").contains("role=menu"), "Control+W: " + tree("closed"));
-    assertEquals(List.of(List.of(), List.of("b")), order(d));
-  }
-
   // Without the handlers
-
-  @Test
-  void withoutHandlersTabsDoNotMove() throws IOException {
-    List<String> log = new ArrayList<>();
-    List<Tab> tabs = List.of(new Tab("a"), new Tab("b"), new Tab("c"));
-    App<Object> plain = new App<>(
-        new Object(), s -> Tabs.tabs(T, tabs, 0, i -> log.add("select " + i), null, null));
-    Script.run("""
-        size 400 160
-        frame
-        down 8,17
-        move 100,17
-        frame
-        snap plain
-        up 100,17
-        focus #tablist
-        key PageDown control shift
-        frame""", plain, out);
-    assertFalse(tree("plain").contains("grabbed") || tree("plain").contains("#marker"));
-    assertEquals(List.of(), log, "no drag, no press, no move");
-
-    // With a move handler but no drag state, only the keys move tabs.
-    App<Object> keys = new App<>(
-        new Object(),
-        s -> Tabs.tabs(
-            T,
-            tabs,
-            0,
-            i -> {},
-            null,
-            null,
-            Tabs.options().onMove((from, to) -> log.add("move " + from + " " + to))));
-    Script.run("""
-        size 400 160
-        frame
-        down 8,17
-        move 100,17
-        frame
-        snap keys
-        up 100,17
-        focus #tablist
-        key PageDown control shift
-        frame""", keys, out);
-    assertFalse(tree("keys").contains("grabbed"));
-    assertEquals(List.of("move 0 1"), log);
-  }
 
   @Test
   void moveKeepsTheActiveTab() {

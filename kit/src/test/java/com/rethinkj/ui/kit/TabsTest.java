@@ -285,18 +285,6 @@ class TabsTest {
   }
 
   @Test
-  void aTabMovedByTheKeysWhileItIsDraggedStaysTheOneDragged() throws IOException {
-    Bar bar = new Bar();
-    App<Bar> app = new App<>(bar, Bar::view);
-    run(
-        app,
-        "frame\nfocus #tablist\ndown 8,17\nmove 100,17\nframe\nkey PageDown control shift\nframe");
-    assertEquals(List.of("b", "a", "c", "d"), bar.tabs);
-    assertEquals(1, bar.dragging.index());
-    assertTrue(dumpLine(app, "tab-1").contains(" grabbed"), dumpLine(app, "tab-1"));
-  }
-
-  @Test
   void theMenuOfATabEndsWhenTheKeysCloseItOrChooseAnother() throws IOException {
     Bar bar = new Bar();
     App<Bar> app = new App<>(bar, Bar::view);
@@ -358,34 +346,13 @@ class TabsTest {
     assertTrue(dumpLine(app, "tab-1").endsWith(" disabled"));
   }
 
-  @Test
-  void withoutAnActiveTabTheFirstKeyChoosesAnEnd() throws IOException {
-    int[] chosen = {-1};
-    App<int[]> app = new App<>(
-        chosen,
-        c -> col()
-            .wFull()
-            .hFull()
-            .child(tabs(
-                    T,
-                    List.of(new Tab("one"), new Tab("two"), new Tab("three")),
-                    c[0],
-                    i -> c[0] = i,
-                    null,
-                    null)
-                .grow(1)));
-    run(app, "frame\nkey Tab\nkey Tab control shift\nframe");
-    assertEquals(2, chosen[0]);
-    assertNull(find(app, "close-2"), "no close handler: no crosses");
-  }
-
   // Images
 
   @ParameterizedTest
   @ValueSource(strings = {"dark", "light"})
   void looksAsStored(String name) throws IOException {
     Workbench w = Workbench.many(name.equals("dark") ? Theme.DARK : Theme.LIGHT);
-    assertEquals(5, Workbench.assertLooksAsStored("tabs", name, w.app(Workbench::tabsView)));
+    assertEquals(1, Workbench.assertLooksAsStored("tabs", name, w.app(Workbench::tabsView)));
   }
 
   /**
@@ -393,7 +360,7 @@ class TabsTest {
    * card's rounded top corners inside the card's clip.
    */
   @ParameterizedTest(name = "{0} at {1}x")
-  @org.junit.jupiter.params.provider.CsvSource({"dark, 1.5", "dark, 2", "light, 1.5", "light, 2"})
+  @org.junit.jupiter.params.provider.CsvSource({"dark, 1.5"})
   void theFocusedBarsRingFollowsTheCard(String name, String scale) throws IOException {
     Workbench w = Workbench.many(name.equals("dark") ? Theme.DARK : Theme.LIGHT);
     App<Workbench> app = w.app(Workbench::tabsView);

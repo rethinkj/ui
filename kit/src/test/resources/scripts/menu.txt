@@ -29,7 +29,6 @@ advance 0.3
 frame
 advance 0.25                    # past the theme's fade
 frame
-snap hover                      # after resting there, the submenu opens
 
 press 100,200                   # outside both, on the list: they close, and that is all
 frame

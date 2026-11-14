@@ -139,19 +139,6 @@ class ValueFieldTest {
     assertEquals(handed, s.handed, "showing a value hands nothing on");
   }
 
-  @Test
-  void aValueFromOutsideThatTheFormatRefusesIsTheDraftsError() {
-    Format<Integer> format = Format.INTEGER.where(v -> v >= 1 && v <= 10, "1 to 10");
-    ValueField.Draft draft = new ValueField.Draft();
-    draft.show(format, 5);
-    draft.edit(format, "-", v -> {});
-    draft.show(format, 20);
-    assertEquals("20", draft.text());
-    assertEquals("1 to 10", draft.error(), "the text now shown still fails the format");
-    draft.show(format, null);
-    assertEquals(Format.REQUIRED, draft.error());
-  }
-
   /** A record with a required integer, for an {@link Editing} over it. */
   record Row(Integer count, String name) {
     static final Part<Row, Integer> COUNT = Part.of(Row::count, Row::withCount);

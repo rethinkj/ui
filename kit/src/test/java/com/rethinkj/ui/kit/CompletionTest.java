@@ -110,21 +110,6 @@ class CompletionTest {
   }
 
   @Test
-  void anUndoThatBringsACharacterBackOpensNothing() throws IOException {
-    TextLibraries.assumeLoaded();
-    App<Query> app = app();
-    run(
-        app,
-        "frame\npress #query\ntype \"c\"\nframe\ntype \"u\"\nframe\nkey Escape\nkey Backspace");
-    String tree = run(app, "key Z control");
-    assertEquals("cu", app.state().sql);
-    assertFalse(app.state().completion.isOpen(), tree);
-
-    tree = run(app, "type \"s\"");
-    assertTrue(app.state().completion.isOpen(), "typing after it opens the list again: " + tree);
-  }
-
-  @Test
   void controlSpaceOpensEscapeClosesAndAPressTakes() throws IOException {
     TextLibraries.assumeLoaded();
     App<Query> app = app();

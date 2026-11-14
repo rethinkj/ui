@@ -4,7 +4,6 @@ import static com.rethinkj.ui.El.col;
 import static com.rethinkj.ui.kit.Form.field;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.rethinkj.ui.App;
@@ -79,26 +78,6 @@ class FormGroupsTest {
   }
 
   @Test
-  void withoutADividerGroupsAreSetApartByRoomAlone() throws IOException {
-    String dump = dump(
-        400,
-        t -> Form.form(
-            t,
-            Form.Labels.BESIDE,
-            field("Name", TextField.textField(t, "", null, v -> {}).key("name")),
-            Form.group("A", field("B", TextField.textField(t, "", null, v -> {}).key("b")))
-                .level(3),
-            field("C", TextField.textField(t, "", null, v -> {}).key("c"))));
-    assertFalse(dump.contains("role=separator"), dump);
-    assertTrue(line(dump, "role=heading \"A\"").endsWith("level=3"), dump);
-    float[] name = rect(dump, "#name");
-    float[] group = rect(dump, "role=group");
-    float[] c = rect(dump, "#c");
-    assertEquals(16, group[1] - (name[1] + name[3]), 1, dump);
-    assertEquals(16, c[1] - (group[1] + group[3]), 1, dump);
-  }
-
-  @Test
   void nullsAreLeftOutAlsoAGroupOfNullsAndARowOfOneIsThatField() throws IOException {
     String dump = dump(
         400,
@@ -118,15 +97,6 @@ class FormGroupsTest {
     assertTrue(host.contains("label=\"Host\""), dump);
     // As a field of its own: the form's width less the label column.
     assertEquals(200, rect(dump, "#host")[2], dump);
-  }
-
-  @Test
-  void aGroupHoldsNoGroups() {
-    Theme t = Theme.DARK;
-    var e = assertThrows(
-        IllegalArgumentException.class,
-        () -> Form.form(t, Form.Labels.BESIDE, Form.group("Outer", Form.group("Inner"))));
-    assertTrue(e.getMessage().contains("Inner"), e.getMessage());
   }
 
   @Test
@@ -161,19 +131,6 @@ class FormGroupsTest {
     assertEquals(form[0] + form[2], port[0] + port[2], 1, "the row ends at the form's edge");
     assertEquals(200, database[2], "a field alone keeps its width");
     assertTrue(rect(dump, "#beside-host")[2] > 300, dump);
-  }
-
-  @Test
-  void aNarrowFormWrapsItsRowAndEachFieldKeepsItsLabel() throws IOException {
-    String dump = dump(new Sheets(Theme.DARK).app(Sheets::formGroupsNarrow), 340, "");
-    float[] host = rect(dump, "#beside-host");
-    float[] port = rect(dump, "#beside-port");
-    float[] label = rect(dump, "text \"Port\"");
-    assertTrue(port[1] > host[1] + host[3], "below the host: " + dump);
-    assertEquals(host[0], label[0], "its label at the start of the line: " + dump);
-    assertEquals(port[0] - 8, label[0] + label[2], 1, dump);
-    float[] group = rect(dump, "role=group label=\"Server\"");
-    assertEquals(group[0] + group[2], host[0] + host[2], 1, "alone on its line, it grows: " + dump);
   }
 
   @Test

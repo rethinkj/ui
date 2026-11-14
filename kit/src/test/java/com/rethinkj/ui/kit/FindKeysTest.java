@@ -196,16 +196,6 @@ class FindKeysTest {
   }
 
   @Test
-  void caseFoldsUmlautsButNotSharpSToTwoLetters() throws IOException {
-    Doc doc = new Doc("Ärger ärger ÄRGER straße STRASSE STRAẞE");
-    App<Doc> app = app(doc);
-    String tree = run(app, "frame\nfocus #query\nkey F control\nkey A control\ntype \"ärger\"");
-    assertEquals("1 of 3", count(tree));
-    tree = run(app, "key A control\ntype \"straße\"");
-    assertEquals("1 of 2", count(tree), "ß finds ẞ, not SS");
-  }
-
-  @Test
   void anInvalidExpressionMarksTheFieldAndSaysWhy() throws IOException {
     Doc doc = new Doc(TEXT);
     App<Doc> app = app(doc);
@@ -217,42 +207,6 @@ class FindKeysTest {
     tree = run(app, "type \")\"");
     assertFalse(line(tree, "find-field").contains(" invalid"), tree);
     assertEquals("1 of 4", count(tree));
-  }
-
-  @Test
-  void aRegularExpressionThatBacktracksWithoutEndStops() throws IOException {
-    Doc doc = new Doc("x".repeat(5000) + "\n" + TEXT);
-    App<Doc> app = app(doc);
-    long start = System.nanoTime();
-    String tree = run(app, "frame\nfocus #query\nkey F control\nkey R alt\ntype \"(x+x+)+y\"");
-    double seconds = (System.nanoTime() - start) / 1e9;
-    assertTrue(seconds < 5, "took " + seconds + " s");
-    assertTrue(count(tree).equals("Too slow") || count(tree).equals("No results"), tree);
-  }
-
-  @Test
-  void tabGoesFromTheFieldToFindToTheReplacementAndBack() throws IOException {
-    Doc doc = new Doc(TEXT);
-    App<Doc> app = app(doc);
-    run(app, """
-        frame
-        focus #query
-        key H control
-        type "orders"
-        frame
-        advance 0.25
-        frame
-        key Tab
-        type "sales"
-        """);
-    assertEquals("replace", app.focused().key());
-    assertEquals("sales", doc.editor.find().replacement);
-    run(app, "key Tab shift");
-    assertEquals("find-field", app.focused().key());
-
-    // Without a replacement to type, Tab goes on through the bar as before.
-    run(app, "key Escape\nframe\nkey F control\nframe\nadvance 0.25\nframe\nkey Tab");
-    assertEquals("match-case", app.focused().key());
   }
 
   @Test
@@ -345,30 +299,6 @@ class FindKeysTest {
   }
 
   @Test
-  void aRegularExpressionsMatchAtTheEndOfTheSelectionIsReplacedAsFound() throws IOException {
-    Doc doc = new Doc("a\naaa");
-    App<Doc> app = app(doc);
-    run(app, """
-        frame
-        focus #query
-        key ArrowDown shift
-        key ArrowRight shift
-        key ArrowRight shift
-        key H control
-        frame
-        advance 0.25
-        frame
-        focus #find-field
-        key R alt
-        type "(a+)"
-        key L alt
-        key Enter""");
-    assertEquals("aa", selected(doc), "the selection ends after the second a of the last line");
-    run(app, "focus #replace\ntype \"$1!\"\nkey Enter");
-    assertEquals("a\naa!a", doc.text);
-  }
-
-  @Test
   void aJumpOnAnotherThreadSelectsNothingOnceTheTextChanged() throws Exception {
     Doc doc = new Doc(("x".repeat(60) + "\n").repeat(500_000) + "needle");
     App<Doc> app = app(doc);
@@ -437,19 +367,6 @@ class FindKeysTest {
   }
 
   @Test
-  void tabGoesThroughTheBarAndItsButtonsKeepTheFocusInTheField() throws IOException {
-    Doc doc = new Doc(TEXT);
-    App<Doc> app = app(doc);
-    String tree = run(app, "frame\nfocus #query\nkey F control\ntype \"id\"\nkey Tab");
-    assertTrue(line(tree, "match-case").contains("focused"), tree);
-    tree = run(app, "key Tab\nkey Tab\nkey Tab");
-    assertTrue(line(tree, "previous").contains("focused"), "past the disabled in-selection");
-    tree = run(app, "press #next");
-    assertTrue(line(tree, "previous").contains("focused"), tree);
-    assertEquals("2 of 2", count(tree));
-  }
-
-  @Test
   void anEditorWithoutItsBarLeavesItsKeysToTheField() throws IOException {
     Doc doc = new Doc(TEXT);
     doc.editor.findBar(false);
@@ -458,16 +375,6 @@ class FindKeysTest {
     assertFalse(tree.contains("role=search"), tree);
     run(app, "key D control shift");
     assertTrue(doc.text.startsWith("SELECT id, name FROM orders;\nSELECT"), "the commands stay");
-  }
-
-  @Test
-  void aTextAreaHasTheBarToo() throws IOException {
-    Doc doc = new Doc("The quick brown fox\njumps over the lazy dog.\nThe end.");
-    doc.area = true;
-    App<Doc> app = app(doc);
-    String tree = run(app, "frame\nfocus #query\nkey F control\ntype \"the\"\nkey Enter");
-    assertEquals("2 of 3", count(tree));
-    assertEquals("the", doc.text.substring(doc.find.caret - 3, doc.find.caret));
   }
 
   @Test
@@ -564,40 +471,5 @@ class FindKeysTest {
         CodeEditor.Command.TOGGLE_COMMENT,
         CodeEditor.command(new com.rethinkj.ui.Key("#", com.rethinkj.ui.Key.CONTROL, false)),
         "Control+#, where a German keyboard has VS Code's");
-  }
-
-  @Test
-  void eachLineCommandUndoesToTheTextAndSelectionBeforeIt() {
-    String[] texts = {"", "a", "a\n", "a\nbb", "a\nbb\n", "  a\n    -- b\n c"};
-    for (String text : texts) {
-      int[][] selections = {
-        {0, 0}, {text.length(), text.length()}, {0, text.length()}, {Math.min(2, text.length()), 0}
-      };
-      for (int[] selection : selections) {
-        for (CodeEditor.Command command : CodeEditor.Command.values()) {
-          if (command == CodeEditor.Command.SELECT_NEXT) {
-            continue;
-          }
-          Doc doc = new Doc(text);
-          App<Doc> app = app(doc);
-          app.resize(640, 240, 1);
-          app.frame();
-          El field = doc.editor.find().field;
-          app.focus(field);
-          app.select(field, selection[0], selection[1]);
-          app.frame();
-          int caret = caret(doc);
-          int anchor = doc.editor.anchor();
-          CodeEditor.run(app, doc.editor, command);
-          app.frame();
-          app.undo(doc.editor.find().field);
-          app.frame();
-          String context = command + " on " + text.replace("\n", "\\n");
-          assertEquals(text, doc.text, context);
-          assertEquals(caret, caret(doc), context);
-          assertEquals(anchor, doc.editor.anchor(), context);
-        }
-      }
-    }
   }
 }

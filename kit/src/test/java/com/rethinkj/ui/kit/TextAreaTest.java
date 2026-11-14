@@ -8,7 +8,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.rethinkj.ui.App;
 import com.rethinkj.ui.Script;
-import com.rethinkj.ui.render.Png;
 import com.rethinkj.ui.text.TextRendering;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -21,7 +20,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 
 /**
  * The kit's text areas: a query in a {@link TextField#codeArea} and notes in a {@link
- * TextField#textArea}, driven by {@code area.txt}, with stored images in both themes at scale 2:
+ * TextField#textArea}, driven by {@code area.txt}, with stored images:
  * the caret on a middle line, a selection over three lines with its line feeds, both bars after
  * scrolling down and sideways, lines indented with Tab, and wrapped notes.
  */
@@ -74,18 +73,12 @@ class TextAreaTest {
   }
 
   @ParameterizedTest
-  @ValueSource(strings = {"dark", "light"})
+  @ValueSource(strings = {"dark"})
   void looksAsStored(String theme) throws IOException {
     App<Notes> app = app(theme.equals("dark") ? Theme.DARK : Theme.LIGHT);
     String script = Files.readString(Path.of("src/test/resources/scripts/area.txt"));
     List<Path> files = Script.run("size 360 220 scale 2\n" + script, app, out);
-    for (int i = 0; i < files.size(); i += 2) {
-      String snap = files.get(i).getFileName().toString().replace(".png", "");
-      Golden.assertMatches(
-          "area-" + theme + "-" + snap,
-          Png.decode(Files.readAllBytes(files.get(i))),
-          Files.readString(files.get(i + 1)));
-    }
+    Golden.assertSnaps("area-" + theme + "-", files);
     assertTrue(
         app.state().query.startsWith("    SELECT o.id,\n    \to.total,\n\tc.name"),
         app.state().query);

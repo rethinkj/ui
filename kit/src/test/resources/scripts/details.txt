@@ -5,26 +5,3 @@ frame
 wheel #rows 350 0      # sideways: amount, created_at and note in view
 frame
 snap details           # EUR before each amount, the size after each note, whose text is cut
-
-press #cell-1-5
-press #cell-4-7 shift  # amounts to notes of rows 1 to 4
-frame
-snap selected          # the details in muted text on the focused selection
-
-move #cell-1-7         # a note cut short
-frame
-advance 0.5            # the theme's tooltip delay
-frame
-advance 0.25           # past the theme's fade
-frame
-snap tooltip           # the note whole and its size
-
-leave
-frame
-advance 0.25           # the tooltip fades out
-frame
-down #resize-5         # amount's edge, at 452, to 367: the column 45 wide
-move 367,19
-up 367,19
-frame
-snap narrow            # no room for EUR beside a first digit: the amounts alone

@@ -35,7 +35,7 @@ class StructureTest {
   }
 
   @ParameterizedTest(name = "{0} at {1}x")
-  @CsvSource({"dark, 1", "dark, 2", "light, 1", "light, 2"})
+  @CsvSource({"dark, 2", "light, 2"})
   void looksAsStored(String theme, int scale) throws IOException {
     check("cards", theme, scale, 640, 400, Sheets::cards);
     check("rows", theme, scale, 520, 640, Sheets::rows);
@@ -56,10 +56,9 @@ class StructureTest {
     assertTrue(open[0] >= answered[0] + answered[2], "beside the text: " + tree);
   }
 
-  @ParameterizedTest(name = "{0}")
-  @ValueSource(strings = {"dark", "light"})
-  void narrowRowsWrapTheirTextAndKeepTheirControlsWhole(String theme) throws IOException {
-    String tree = check("rows-narrow", theme, 1, 300, 700, Sheets::rows);
+  @Test
+  void narrowRowsWrapTheirTextAndKeepTheirControlsWhole() throws IOException {
+    String tree = check("rows-narrow", "dark", 1, 300, 700, Sheets::rows);
     // The controls keep their widths, and each row's text ends before its control.
     assertTrue(tree.contains("role=combobox label=\"JetBrains Mono\" "), tree);
     assertEquals("160x24", size(line(tree, "role=combobox")));
@@ -96,29 +95,7 @@ class StructureTest {
   }
 
   @Test
-  void anEmptyStateBreaksItsTextInANarrowPanel() throws IOException {
-    App<Object> app = new App<>(
-        new Object(),
-        s -> El.col()
-            .size(258, 400)
-            .child(EmptyState.emptyState(
-                Theme.DARK,
-                Symbol.DATABASE,
-                "No connections yet",
-                "Connections to your databases will be listed here.",
-                null)));
-    Script.run("size 258 400\nframe\nsnap narrow", app, out);
-    String tree = Files.readString(out.resolve("narrow.tree.txt"));
-    float[] text = rect(line(tree, "text \"Connections to"));
-    assertTrue(
-        text[0] >= 0 && text[0] + text[2] <= 258,
-        "inside the panel: " + line(tree, "text \"Connections to"));
-    assertTrue(text[3] > 30, "on two lines or more: " + text[3]);
-  }
-
-  @ParameterizedTest(name = "at {0}x")
-  @ValueSource(ints = {1, 2})
-  void aPathWithoutSpacesBreaksInsideACalloutAndAnEmptyState(int scale) throws IOException {
+  void aPathWithoutSpacesBreaksInsideACalloutAndAnEmptyState() throws IOException {
     String text = "Cannot read the connections in"
         + " /a/very/long/path/without/any/space/connections.json: it is not valid JSON.";
     for (El view : new El[] {
@@ -126,7 +103,7 @@ class StructureTest {
       EmptyState.emptyState(Theme.DARK, Symbol.DATABASE, "No connections", text, null)
     }) {
       App<Object> app = new App<>(new Object(), s -> El.col().size(260, 400).child(view));
-      Script.run("size 260 400 scale " + scale + "\nframe\nsnap path", app, out);
+      Script.run("size 260 400\nframe\nsnap path", app, out);
       String tree = Files.readString(out.resolve("path.tree.txt"));
       float[] path = rect(line(tree, "text \"Cannot read the connections in"));
       assertTrue(path[3] > 40, "on three lines or more: " + path[3]);

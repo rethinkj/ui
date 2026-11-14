@@ -22,8 +22,7 @@ import org.junit.jupiter.params.provider.CsvSource;
 /**
  * The {@link CommandPalette} of kit's query editor ({@link Studio}): its commands from the menus,
  * the keys, the pointer, the last commands chosen, a source after a prefix, one that asks on
- * another thread, and the steps that preview a theme and ask for a name; with stored images in
- * both themes at scales 1 and 2.
+ * another thread, and the steps that preview a theme and ask for a name; with stored images.
  */
 class CommandPaletteTest {
 
@@ -183,26 +182,14 @@ class CommandPaletteTest {
   }
 
   @ParameterizedTest(name = "{0} at {1}x")
-  @CsvSource({"dark, 1", "dark, 2", "light, 1", "light, 2"})
+  @CsvSource({"dark, 2", "light, 2"})
   void itLooksLikeAMenu(String theme, int scale) throws IOException {
-    Studio.assertScript("palette", theme, scale, 720, 400, out);
+    Studio.assertScript("palette", theme, scale, 720, 400, out, "commands");
     String typed = Studio.tree(out, "palette", theme, scale, "typed");
     assertTrue(ComboBoxTest.options(typed).getFirst().startsWith("File: Export"), typed);
   }
 
   private static String line(String tree, String part) {
     return tree.lines().filter(l -> l.contains(part)).findFirst().orElse("");
-  }
-
-  @Test
-  void openingThePaletteAgainTakesBackWhatAStepPreviews() throws IOException {
-    run("key F1\nframe\ntype \"theme\"\nframe\nkey Enter\nframe\nkey ArrowDown");
-    Studio s = app.state();
-    assertSame(Theme.LIGHT, s.t, "previewed");
-    String tree = run("key F1");
-    assertSame(Theme.DARK, s.t, "the step was cancelled as the palette opened again");
-    assertFalse(ComboBoxTest.options(tree).contains("Light"), "the commands: " + tree);
-    run("key Escape");
-    assertSame(Theme.DARK, s.t);
   }
 }

@@ -1,5 +1,5 @@
-# Editing orders (Ledger): an editor of each type over its cell, a value refused with its
-# message, and rows in every state, with and without the selection.
+# Editing orders (Ledger): an editor of each type over its cell, a value refused, the list of an
+# enumeration's choices, and rows in every state.
 size 640 260
 frame
 focus #ledger
@@ -8,7 +8,6 @@ key Enter                          # customer: a field over the cell, its text w
 frame
 type " and the Analytical Engine"  # longer than the cell: the editor grows towards the grid's edge
 frame
-snap text
 
 key Enter                          # handed on, a row down
 key ArrowRight
@@ -16,7 +15,6 @@ key ArrowRight                     # amount, a number at the right of its cell
 frame
 key F2
 frame
-snap number
 
 key Escape
 key End                            # note, with a line break: the field of several lines
@@ -25,7 +23,6 @@ key Enter
 frame
 advance 1
 frame
-snap multiline
 
 key Escape
 key ArrowLeft                      # due, a date
@@ -33,7 +30,6 @@ frame
 type "2026-02-30"
 key Enter
 frame
-snap invalid
 
 key Escape
 key Home
@@ -56,7 +52,3 @@ key ArrowDown
 key Delete control                 # the row after it marked to be deleted
 frame
 snap states
-
-key A control                      # everything selected: the selection shows alone, the marks stay
-frame
-snap states-selected

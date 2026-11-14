@@ -13,7 +13,6 @@ import com.rethinkj.ui.kit.Label.Variant;
 import com.rethinkj.ui.kit.Split.Direction;
 import com.rethinkj.ui.kit.Split.Position;
 import com.rethinkj.ui.kit.Tabs.Tab;
-import com.rethinkj.ui.render.Png;
 import com.rethinkj.ui.text.TextRendering;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -216,22 +215,17 @@ final class Workbench {
   }
 
   /**
-   * Runs the script in {@code src/test/resources/scripts} with this name and compares each snap
-   * with the stored image {@code <name>-<theme>-<snap>}, the theme named by its window colour.
+   * Runs the script in {@code src/test/resources/scripts} with this name and compares each snap,
+   * or those named, with the stored image {@code <name>-<theme>-<snap>}, the theme named by its window colour.
    *
    * @return the number of snaps
    */
-  static int assertLooksAsStored(String name, String themeName, App<?> app) throws IOException {
+  static int assertLooksAsStored(String name, String themeName, App<?> app, String... stored)
+      throws IOException {
     Path folder = Path.of("target", name, themeName);
     String script = Files.readString(Path.of("src/test/resources/scripts", name + ".txt"));
     List<Path> files = Script.run(script, app, folder);
-    for (int i = 0; i < files.size(); i += 2) {
-      String snap = files.get(i).getFileName().toString().replace(".png", "");
-      Golden.assertMatches(
-          name + "-" + themeName + "-" + snap,
-          Png.decode(Files.readAllBytes(files.get(i))),
-          Files.readString(files.get(i + 1)));
-    }
+    Golden.assertSnaps(name + "-" + themeName + "-", files, stored);
     return files.size() / 2;
   }
 

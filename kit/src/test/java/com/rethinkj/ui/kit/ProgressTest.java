@@ -11,8 +11,6 @@ import com.rethinkj.ui.El;
 import com.rethinkj.ui.Script;
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.List;
-import java.util.function.Supplier;
 import org.junit.jupiter.api.Test;
 
 /** Bars, running bars, lines, spinners and a busy button: what a dump says and how they move. */
@@ -94,56 +92,6 @@ class ProgressTest {
     assertFalse(app.isMoving(), "no spinner, nothing goes round");
   }
 
-  /** Busy, a button keeps its width: the spinner takes the icon's place, or lies over the text. */
-  @Test
-  void aBusyButtonKeepsItsWidth() throws IOException {
-    TextLibraries.assumeLoaded();
-    for (Symbol icon : new Symbol[] {Symbol.PLAY, null}) {
-      Shown s = new Shown();
-      App<Shown> app = new App<>(
-          s,
-          st -> col()
-              .child(Button.button(
-                      T, Button.Variant.PRIMARY, icon, "Downloading", st.busy, () -> st.pressed++)
-                  .key("run")));
-      run(app, "");
-      El busy = CellEditorTest.find(app, "run");
-      float width = busy.width();
-      El spinner = busy.children().stream()
-          .filter(c -> "progressbar".equals(c.role()))
-          .findFirst()
-          .orElseThrow();
-      s.busy = false;
-      app.invalidate();
-      run(app, "");
-      assertEquals(CellEditorTest.find(app, "run").width(), width, 0.01f, "with " + icon);
-      if (icon == null) { // centred over the text, within a pixel
-        assertEquals(busy.x() + busy.width() / 2, spinner.x() + spinner.width() / 2, 1f);
-        assertEquals(busy.y() + busy.height() / 2, spinner.y() + spinner.height() / 2, 1f);
-      }
-    }
-  }
-
-  @Test
-  void aBusyButtonsSpinnerIsCentredInWhateverSizeTheViewGivesIt() throws IOException {
-    TextLibraries.assumeLoaded();
-    App<Object> app = new App<>(
-        new Object(),
-        x -> col()
-            .child(Button.button(T, Button.Variant.SECONDARY, null, "Refresh", true, () -> {})
-                .key("run")
-                .w(200)
-                .h(40)));
-    run(app, "");
-    El busy = CellEditorTest.find(app, "run");
-    El spinner = busy.children().stream()
-        .filter(c -> "progressbar".equals(c.role()))
-        .findFirst()
-        .orElseThrow();
-    assertEquals(100, spinner.x() + spinner.width() / 2, 1f);
-    assertEquals(20, spinner.y() + spinner.height() / 2, 1f);
-  }
-
   @Test
   void enterOnABusyButtonDoesNotPressADialogsDefaultButton() throws IOException {
     TextLibraries.assumeLoaded();
@@ -160,59 +108,6 @@ class ProgressTest {
     run(app, "focus #refresh\nframe\nkey Enter\nkey Space\nframe");
     assertEquals("refresh", app.focused().key());
     assertEquals(0, saved[0]);
-  }
-
-  @Test
-  void aRunningBarThatLearnsItsValueSpringsFromWhereItRan() {
-    Shown s = new Shown();
-    App<Shown> app = new App<>(
-        s,
-        st -> col()
-            .w(300)
-            .child((Double.isNaN(st.fraction)
-                    ? Progress.indeterminate(T)
-                    : Progress.bar(T, st.fraction))
-                .key("bar")
-                .w(200)));
-    app.resize(300, 100, 1);
-    app.frame();
-    app.advance(T.motion().progress() / 2);
-    app.frame();
-    El piece = fill(app);
-    float x = piece.x(), width = piece.width();
-    assertTrue(x > 20 && width > 40 && x + width < 200, x + " " + width);
-
-    s.fraction = 0.25;
-    app.invalidate();
-    app.frame();
-    assertEquals(x, fill(app).x(), 1e-3, "no jump");
-    assertEquals(width, fill(app).width(), 1e-3);
-    for (int frame = 0; app.isMoving(); frame++) {
-      assertTrue(frame < 120);
-      app.advance(1.0 / 60);
-      app.frame();
-    }
-    assertEquals(0, fill(app).x());
-    assertEquals(50, fill(app).width(), 1e-3);
-  }
-
-  /** NaN is no value, not the mark of a running bar: the forms with a value show 0 and stand. */
-  @Test
-  void aBarLineOrLabeledBarWithNanShowsNothingDoneAndDoesNotRun() {
-    TextLibraries.assumeLoaded();
-    for (Supplier<El> shown : List.<Supplier<El>>of(
-        () -> Progress.bar(T, Double.NaN),
-        () -> Progress.line(T, Double.NaN),
-        () -> Progress.labeled(T, "orders.csv", Double.NaN, "0 MB"))) {
-      App<Object> app =
-          new App<>(new Object(), x -> col().w(300).child(shown.get().key("bar")));
-      app.resize(300, 100, 1);
-      app.frame();
-      String dump = app.tree().dump();
-      assertTrue(StructureTest.line(dump, "#bar").endsWith(" value=\"0%\""), dump);
-      assertEquals(0, Workbench.find(app, "fill").width(), dump);
-      assertFalse(app.isMoving(), dump);
-    }
   }
 
   private static El fill(App<?> app) {

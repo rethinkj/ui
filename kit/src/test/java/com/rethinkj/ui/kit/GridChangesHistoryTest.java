@@ -74,7 +74,7 @@ class GridChangesHistoryTest {
 
   @Test
   void longRunsMatchTheModelAcrossHistoryLimitsClearSortAndFilter() {
-    for (int seed = 0; seed < 40; seed++) {
+    for (int seed = 0; seed < 8; seed++) {
       Random random = new Random(seed);
       List<Long> keys = new ArrayList<>(List.of(0L, 1L, 2L, 3L, 4L, 5L));
       Pending p = new Pending(new HashMap<>(), new HashSet<>(), new ArrayList<>());

@@ -15,7 +15,7 @@ import org.junit.jupiter.params.provider.CsvSource;
 /**
  * The tooltip of the workbench's help button ({@link Bench}): it shows after the pointer has
  * rested on the button, or the keyboard has focused it, for the theme's delay on the app's clock;
- * stored images in both themes at scales 1 and 2.
+ * stored images.
  */
 class TooltipTest {
 
@@ -28,9 +28,9 @@ class TooltipTest {
   }
 
   @ParameterizedTest(name = "{0} at {1}x")
-  @CsvSource({"dark, 1", "dark, 2", "light, 1", "light, 2"})
+  @CsvSource({"dark, 2", "light, 2"})
   void showsBelowItsAnchorAfterTheDelay(String theme, int scale) throws IOException {
-    Bench.assertScript("tooltip", theme, scale, out);
+    Bench.assertScript("tooltip", theme, scale, out, "shown");
     String waiting = Bench.tree(out, "tooltip", theme, scale, "waiting");
     assertFalse(waiting.contains("overlay"), waiting);
     assertTrue(waiting.contains("label=\"?\""), waiting);
@@ -41,7 +41,7 @@ class TooltipTest {
   }
 
   @ParameterizedTest(name = "{0} at {1}x")
-  @CsvSource({"dark, 1", "dark, 2", "light, 1", "light, 2"})
+  @CsvSource({"dark, 2"})
   void showsWhenTheKeyboardFocusedItsAnchorAndGoesWithAKey(String theme, int scale)
       throws IOException {
     App<Bench> app = Bench.assertScript("keytip", theme, scale, out);

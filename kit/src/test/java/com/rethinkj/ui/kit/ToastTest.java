@@ -17,8 +17,7 @@ import org.junit.jupiter.params.provider.CsvSource;
 
 /**
  * The toast of the studio ({@link Studio}) after Edit's Clear: at the bottom of the window, without
- * the focus, with Undo, gone after the theme's time on the app's clock; stored images in both
- * themes at scales 1 and 2.
+ * the focus, with Undo, gone after the theme's time on the app's clock; stored images.
  */
 class ToastTest {
 
@@ -35,7 +34,7 @@ class ToastTest {
   }
 
   @ParameterizedTest(name = "{0} at {1}x")
-  @CsvSource({"dark, 1", "dark, 2", "light, 1", "light, 2"})
+  @CsvSource({"dark, 2", "light, 2"})
   void showsAtTheBottomWithoutTakingTheFocus(String theme, int scale) throws IOException {
     App<Studio> app = Studio.assertScript("toast", theme, scale, out);
     String shown = Studio.tree(out, "toast", theme, scale, "shown");

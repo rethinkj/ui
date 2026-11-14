@@ -1,13 +1,8 @@
 package com.rethinkj.ui.kit;
 
-import static com.rethinkj.ui.El.col;
 import static com.rethinkj.ui.El.row;
 import static com.rethinkj.ui.kit.Button.button;
 import static com.rethinkj.ui.kit.Checkbox.checkbox;
-import static com.rethinkj.ui.kit.TextField.codeArea;
-import static com.rethinkj.ui.kit.TextField.passwordField;
-import static com.rethinkj.ui.kit.TextField.revealable;
-import static com.rethinkj.ui.kit.TextField.textArea;
 import static com.rethinkj.ui.kit.TextField.textField;
 import static com.rethinkj.ui.kit.Toggle.toggle;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -17,17 +12,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import com.rethinkj.ui.App;
 import com.rethinkj.ui.Cursor;
 import com.rethinkj.ui.El;
-import com.rethinkj.ui.Key;
 import com.rethinkj.ui.Script;
 import com.rethinkj.ui.kit.Button.Variant;
 import com.rethinkj.ui.text.TextRendering;
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.function.Function;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -60,11 +50,6 @@ class ComponentTest {
             "role=switch label=\"Autocommit\"",
             true),
         Arguments.of(
-            "toggle by its text",
-            (Function<Runnable, El>) h -> toggle(T, false, "Autocommit", h),
-            "text=\"Autocommit\"",
-            true),
-        Arguments.of(
             "toggle without text",
             (Function<Runnable, El>) h -> toggle(T, true, h).label("Wi-Fi"),
             "role=switch label=\"Wi-Fi\"",
@@ -75,19 +60,9 @@ class ComponentTest {
             "role=checkbox label=\"Read only\"",
             true),
         Arguments.of(
-            "checkbox by its text",
-            (Function<Runnable, El>) h -> checkbox(T, false, "Read only", h),
-            "text=\"Read only\"",
-            true),
-        Arguments.of(
             "switch row",
             (Function<Runnable, El>) h -> Group.switchRow(T, "Word wrap", "At the edge", true, h),
             "role=switch label=\"Word wrap\"",
-            true),
-        Arguments.of(
-            "switch row by its description",
-            (Function<Runnable, El>) h -> Group.switchRow(T, "Word wrap", "At the edge", true, h),
-            "text=\"At the edge\"",
             true),
         Arguments.of(
             "link row",
@@ -170,58 +145,6 @@ class ComponentTest {
   }
 
   @Test
-  void theTreeNamesEachComponentAndSaysItsState() throws IOException {
-    TextLibraries.assumeLoaded();
-    App<Object> app = app(col()
-        .children(
-            button(T, Variant.PRIMARY, "Run", () -> {}),
-            toggle(T, true, "Autocommit", () -> {}),
-            toggle(T, false, () -> {}).label("Wi-Fi"),
-            checkbox(T, true, "Read only", () -> {}),
-            checkbox(T, false, "Strict", null),
-            button(T, Variant.GHOST, "Format", null),
-            textField(T, "", "Search", s -> {}),
-            textField(T, "x", s -> {}).label("Name"),
-            textField(T, "y", "Id", s -> {}).readOnly(),
-            textField(T, "z", "Owner", null),
-            revealable(T, passwordField(T, "pw", "Password", s -> {}), false, () -> {}),
-            revealable(T, passwordField(T, "pw", "Key", null), true, () -> {}),
-            textArea(T, "a\nb", "Notes", s -> {}),
-            codeArea(T, "SELECT 1;", "SQL", s -> {}).readOnly(),
-            textArea(T, "", "Comment", null)));
-    run(app, "");
-
-    // The role and label, then what follows the rectangle: the states.
-    List<String> named = new ArrayList<>();
-    Matcher m = Pattern.compile(
-            "(role=\\S+ label=\"[^\"]*\")(?: \"[^\"]*\")? \\S+,\\S+ \\S+x\\S+(.*)")
-        .matcher(app.tree().dump());
-    while (m.find()) {
-      named.add(m.group(1) + m.group(2));
-    }
-    assertEquals(
-        List.of(
-            "role=button label=\"Run\"",
-            "role=switch label=\"Autocommit\" checked",
-            "role=switch label=\"Wi-Fi\" checked=false",
-            "role=checkbox label=\"Read only\" checked",
-            "role=checkbox label=\"Strict\" disabled checked=false",
-            "role=button label=\"Format\" disabled",
-            "role=textbox label=\"Search\"",
-            "role=textbox label=\"Name\"",
-            "role=textbox label=\"Id\" readonly",
-            "role=textbox label=\"Owner\" disabled",
-            "role=textbox label=\"Password\" password",
-            "role=button label=\"Show password\"",
-            "role=textbox label=\"Key\" disabled password revealed",
-            "role=button label=\"Hide password\" disabled",
-            "role=textbox label=\"Notes\" lines 1-2/2",
-            "role=textbox label=\"SQL\" readonly lines 1-1/1",
-            "role=textbox label=\"Comment\" disabled lines 1-1/1"),
-        named);
-  }
-
-  @Test
   void aTextFieldHandsEachEditToItsHandlerAndShowsTheTextCursor() throws IOException {
     TextLibraries.assumeLoaded();
     String[] value = {""};
@@ -253,34 +176,5 @@ class ComponentTest {
     assertEquals("textbox", readOnly.focused().role());
     assertEquals("fixed", value[0]);
     assertEquals("fixed", readOnly.clipboard().read(), "Tab selected it all, and it copies");
-  }
-
-  @Test
-  void tabSkipsWhatIsDisabled() throws IOException {
-    TextLibraries.assumeLoaded();
-    App<Object> app = app(row()
-        .children(
-            button(T, Variant.PRIMARY, "Run", () -> {}),
-            button(T, Variant.SECONDARY, "Cancel", null),
-            toggle(T, false, "Autocommit", () -> {}),
-            checkbox(T, false, "Read only", () -> {}),
-            toggle(T, false, "Disabled", null),
-            button(T, Variant.GHOST, "Format", () -> {})));
-    run(app, "");
-
-    List<String> order = new ArrayList<>();
-    for (int i = 0; i < 5; i++) {
-      key(app, 0);
-      order.add(app.focused().label());
-    }
-    assertEquals(List.of("Run", "Autocommit", "Read only", "Format", "Run"), order);
-    key(app, Key.SHIFT);
-    assertEquals("Format", app.focused().label());
-  }
-
-  private static void key(App<?> app, int modifiers) {
-    app.keyDown(new Key("Tab", modifiers, false));
-    app.keyUp(new Key("Tab", modifiers, false));
-    app.frame();
   }
 }

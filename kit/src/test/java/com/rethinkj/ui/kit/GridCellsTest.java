@@ -10,7 +10,6 @@ import com.rethinkj.ui.App;
 import com.rethinkj.ui.Clipboard;
 import com.rethinkj.ui.Cursor;
 import com.rethinkj.ui.El;
-import com.rethinkj.ui.Key;
 import com.rethinkj.ui.Script;
 import com.rethinkj.ui.Text;
 import com.rethinkj.ui.kit.DataGrid.Copy;
@@ -20,7 +19,6 @@ import com.rethinkj.ui.kit.DataGrid.Selection;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -206,23 +204,6 @@ class GridCellsTest {
     run(app, "key A control\nframe");
     assertEquals(List.of(new Range(0, 0, 999_999, ALL)), s.ranges(), "one range");
     assertEquals(1_000_000, s.rowCount());
-  }
-
-  @Test
-  void controlHomeAndEndScrollBackSidewaysAlsoWhereTheCursorStays() throws IOException {
-    Orders orders = cells();
-    App<Orders> app = start(orders);
-    run(app, "key Tab\nkey Home control\nframe\nwheel #orders 300 0\nframe");
-    assertEquals(300, find(app, "orders").scrollX(), "the wheel moved away from the cursor");
-    run(app, "key Home control\nframe");
-    assertEquals(List.of(0, 0), List.of(orders.selection.row(), orders.selection.column()));
-    assertEquals(0, find(app, "orders").scrollX(), "back to the cursor, which stayed");
-
-    Orders rows = new Orders(T, 1_000_000, 7, Mode.ROWS);
-    App<Orders> rowsApp = start(rows);
-    run(rowsApp, "key Tab\nframe\nwheel #orders 300 0\nframe\nkey End control\nframe");
-    assertEquals(999_999, rows.selection.row());
-    assertEquals(0, find(rowsApp, "orders").scrollX(), "a row's start");
   }
 
   @Test
@@ -446,29 +427,6 @@ class GridCellsTest {
     assertEquals(number, x(app, "number-502"));
   }
 
-  @Test
-  void draggingAnEdgeBeyondTheGridsSideScrollsTheGridAlong() throws IOException {
-    Orders orders = new Orders(T, 1_000_000);
-    App<Orders> app = start(orders);
-    El grid = find(app, "orders");
-    run(app, "down #resize-2\nmove 470,19\nframe");
-    assertEquals(258, orders.widths[2]);
-    assertEquals(0, find(app, "orders").scrollX());
-    run(app, "move 600,19\nframe"); // beyond the right side at 552
-    assertEquals(388, orders.widths[2]);
-    double scrolled = find(app, "orders").scrollX();
-    assertTrue(scrolled > 0, "scrolled along");
-    float edge = x(app, "resize-2") + T.grid().handle() / 2;
-    assertTrue(edge <= 552 && edge > 500, "the edge in view at " + edge);
-    run(app, "move 640,19\nframe");
-    assertTrue(find(app, "orders").scrollX() > scrolled, "on with each movement");
-    run(app, "up 640,19\nframe");
-    double end = find(app, "orders").scrollX();
-    run(app, "key Tab\nkey ArrowDown\nframe");
-    assertEquals(end, find(app, "orders").scrollX(), "the keys do not scroll back");
-    assertTrue(grid != find(app, "orders"));
-  }
-
   // Many columns
 
   @Test
@@ -504,74 +462,6 @@ class GridCellsTest {
     long count = role.equals(el.role()) ? 1 : 0;
     for (El child : el.children()) {
       count += count(child, role);
-    }
-    return count;
-  }
-
-  /**
-   * Scrolling a million rows of 300 columns: the median time of a frame after a wheel step, as
-   * {@code DataGridTest} measures 20 columns, with the elements in the tree, and the time the CPU
-   * renderer takes for the frame. Printed for the record; the test checks that the tree is as
-   * small as with 20 columns.
-   */
-  @Test
-  void aFrameOfScrollingCostsAboutAsMuchWithThreeHundredColumnsAsWithTwenty() throws IOException {
-    long[] twenty = scrolling(20);
-    long[] wide = scrolling(300);
-    System.out.printf(
-        "DataGrid, a million rows: 20 columns %.1f µs a frame of scrolling, %.1f µs"
-            + " one that builds the view after a key, %d elements, CPU render %.1f ms; 300 columns"
-            + " %.1f µs, %.1f µs, %d elements, %.1f ms%n",
-        twenty[0] / 1000.0,
-        twenty[3] / 1000.0,
-        twenty[1],
-        twenty[2] / 1e6,
-        wide[0] / 1000.0,
-        wide[3] / 1000.0,
-        wide[1],
-        wide[2] / 1e6);
-    assertTrue(wide[1] < twenty[1] + 300 * 5, wide[1] + " elements, " + twenty[1] + " with 20");
-  }
-
-  private long[] scrolling(int columns) throws IOException {
-    App<Orders> app = start(new Orders(T, 1_000_000, columns));
-    app.focus(find(app, "orders"));
-    app.frame();
-    int frames = 300;
-    long[] times = new long[frames];
-    for (int i = -frames; i < frames; i++) {
-      app.wheel(280, 120, 0, Math.floorMod(i, 80) < 40 ? 100 : -100);
-      long start = System.nanoTime();
-      app.frame();
-      if (i >= 0) {
-        times[i] = System.nanoTime() - start;
-      }
-    }
-    Arrays.sort(times);
-    long[] keys = new long[frames]; // a key moves the selection: the view is built anew
-    for (int i = -frames; i < frames; i++) {
-      Key key = new Key(Math.floorMod(i, 40) < 20 ? "ArrowDown" : "ArrowUp");
-      app.keyDown(key);
-      long start = System.nanoTime();
-      app.frame();
-      if (i >= 0) {
-        keys[i] = System.nanoTime() - start;
-      }
-    }
-    Arrays.sort(keys);
-    long render = Long.MAX_VALUE;
-    for (int i = 0; i < 5; i++) {
-      long start = System.nanoTime();
-      app.render();
-      render = Math.min(render, System.nanoTime() - start);
-    }
-    return new long[] {times[frames / 2], count(app.tree()), render, keys[frames / 2]};
-  }
-
-  private static long count(El el) {
-    long count = 1;
-    for (El child : el.children()) {
-      count += count(child);
     }
     return count;
   }

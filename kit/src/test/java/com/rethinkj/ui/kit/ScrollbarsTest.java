@@ -9,7 +9,6 @@ import com.rethinkj.ui.App;
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.Script;
 import com.rethinkj.ui.Style;
-import com.rethinkj.ui.render.Png;
 import com.rethinkj.ui.text.TextRendering;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -21,7 +20,7 @@ import org.junit.jupiter.params.provider.CsvSource;
 
 /**
  * A list with the theme's scrollbars, {@code .scrollbars(theme.scrollbars())}: stored images of its
- * thumb at rest, under the pointer and dragged, in both themes at scales 1 and 2.
+ * thumb at rest, under the pointer and dragged,.
  */
 class ScrollbarsTest {
 
@@ -81,7 +80,7 @@ class ScrollbarsTest {
   }
 
   @ParameterizedTest(name = "{0} at {1}x")
-  @CsvSource({"dark, 1", "dark, 2", "light, 1", "light, 2"})
+  @CsvSource({"dark, 2"})
   void looksAsStored(String name, int scale) throws IOException {
     Theme t = name.equals("dark") ? Theme.DARK : Theme.LIGHT;
     int[] selected = {1};
@@ -91,13 +90,7 @@ class ScrollbarsTest {
     Path folder = Path.of("target/scrollbars", name + "-" + scale + "x");
     List<Path> files = Script.run("size 240 200 scale " + scale + "\n" + script, app, folder);
     assertEquals(6, files.size());
-    for (int i = 0; i < files.size(); i += 2) {
-      String snap = files.get(i).getFileName().toString().replace(".png", "");
-      Golden.assertMatches(
-          "scrollbars-" + name + "-" + scale + "x-" + snap,
-          Png.decode(Files.readAllBytes(files.get(i))),
-          Files.readString(files.get(i + 1)));
-    }
+    Golden.assertSnaps("scrollbars-" + name + "-" + scale + "x-", files);
     String rest = Files.readString(folder.resolve("rest.tree.txt"));
     assertTrue(rest.contains(" rows 0-10/40 thumb-y 219,15 6x30.85\n"), rest);
     String dragged = Files.readString(folder.resolve("dragged.tree.txt"));

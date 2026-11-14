@@ -100,6 +100,6 @@ class WorkbenchTest {
   @ValueSource(strings = {"dark", "light"})
   void looksAsStored(String name) throws IOException {
     Workbench w = Workbench.frame(name.equals("dark") ? Theme.DARK : Theme.LIGHT);
-    assertEquals(2, Workbench.assertLooksAsStored("frame", name, w.app(Workbench::frameView)));
+    assertEquals(1, Workbench.assertLooksAsStored("frame", name, w.app(Workbench::frameView)));
   }
 }

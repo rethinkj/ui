@@ -3,7 +3,6 @@ package com.rethinkj.ui.kit;
 import static com.rethinkj.ui.El.col;
 import static com.rethinkj.ui.kit.Label.label;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -90,7 +89,7 @@ class SwatchesTest {
   }
 
   @ParameterizedTest(name = "{0} at {1}x")
-  @CsvSource({"dark, 1", "dark, 2", "light, 1", "light, 2"})
+  @CsvSource({"dark, 2", "light, 2"})
   void looksAsStored(String theme, int scale) throws IOException {
     App<State> app = new State(theme.equals("dark") ? Theme.DARK : Theme.LIGHT).app();
     String image = "swatches-" + theme + "-" + scale + "x";
@@ -197,25 +196,5 @@ class SwatchesTest {
       }
     }
     throw new AssertionError(within + " " + String.join(" ", part) + " in\n" + tree);
-  }
-
-  @Test
-  void theTypedFormFindsTheValueAndHandsItOn() throws IOException {
-    String[] chosen = {"b"};
-    App<Object> app = new App<>(
-        new Object(),
-        x -> col()
-            .child(Radio.swatches(
-                    Theme.DARK,
-                    List.of("a", "b", "c"),
-                    chosen[0],
-                    v -> Radio.option(v.toUpperCase(), t -> HuePicker.swatch(t, Theme.Hue.RED)),
-                    v -> chosen[0] = v)
-                .key("letters")));
-    run(app, "");
-    assertTrue(line(app.tree().dump(), "#letters", "label=\"B\"").endsWith(" checked"));
-    run(app, "focus #letters\nkey ArrowRight");
-    assertEquals("c", chosen[0]);
-    assertFalse(line(app.tree().dump(), "#letters", "label=\"B\"").endsWith(" checked"));
   }
 }

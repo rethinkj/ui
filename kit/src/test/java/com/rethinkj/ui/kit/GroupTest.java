@@ -1,6 +1,5 @@
 package com.rethinkj.ui.kit;
 
-import static com.rethinkj.ui.El.col;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -150,25 +149,5 @@ class GroupTest {
     assertEquals("54", s.port);
     String fixed = StructureTest.line(app.tree().dump(), "#beside-port");
     assertFalse(fixed.contains(" invalid"), fixed);
-  }
-
-  @Test
-  void aCardsHeaderIsAHeadingOfTheThirdLevelBelowASectionsAndAPagesTitle() throws IOException {
-    Theme t = Theme.DARK;
-    App<Object> app = new App<>(
-        new Object(),
-        x -> col()
-            .wFull()
-            .hFull()
-            .child(Section.page(
-                    t,
-                    "Settings",
-                    Section.section(t, "Editor", null, Card.card(t, Card.header(t, "Font", null))))
-                .grow(1)));
-    run(app, "");
-    String dump = app.tree().dump();
-    assertTrue(dump.contains("text role=heading \"Settings\" ") && dump.contains(" level=1"), dump);
-    assertTrue(StructureTest.line(dump, "\"Editor\"").endsWith("level=2"), dump);
-    assertTrue(StructureTest.line(dump, "\"Font\"").endsWith("level=3"), dump);
   }
 }

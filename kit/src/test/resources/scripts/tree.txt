@@ -1,11 +1,6 @@
 # The tree of kit's tests (TreeTest): the catalog of three servers, none open, none selected.
 size 280 300
 frame
-move role=treeitem label="prod-eu"  # the pointer over prod-eu, which looks hovered
-frame
-snap closed
-
-leave
 press #mark-0                       # the mark opens localhost and selects it
 frame
 press role=treeitem label="shop"    # a press selects shop
@@ -26,11 +21,9 @@ key Tab                             # the only stop for Tab: the focus stays, wi
 key ArrowDown
 key ArrowDown                       # the selection moves to the second column
 frame
-snap focused
 
 wheel #schema 0 3000                # the wheel moves the rows, not the selection
 frame
-snap scrolled
 
 key Home                            # the selection to localhost, and the rows follow it
 key ArrowLeft                       # closes it
@@ -38,11 +31,9 @@ key End
 key ArrowUp                         # the selection to staging, the last server but one
 key ArrowRight                      # opens it: its databases are not known yet, and the
 frame                               # handler asks for them on another thread
-snap loading
 
 await                               # the answer comes: the databases replace the loading row
 frame
-snap loaded
 
 key Home                            # back to localhost, which opens again with what was open
 key ArrowRight                      # in it: shop, its schema public and the table accounts

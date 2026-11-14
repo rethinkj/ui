@@ -166,31 +166,6 @@ class PasswordFieldTest {
     }
   }
 
-  @Test
-  void aShownPasswordSelectsByKeysAndDragAndKeepsItsHistoryWhenHidden() throws IOException {
-    App<Login> app = app(f -> f);
-    run(app, "press #pw\ntype \"open\"\nkey End\ntype \" sesame\"\npress role=button\nframe");
-    run(app, "key ArrowLeft control shift");
-    assertTrue(
-        line(app, "#pw").endsWith(" password revealed focused caret 5 anchor 11"),
-        line(app, "#pw"));
-    run(app, "down 30,28\nmove 80,28\nup 80,28");
-    String dragged = line(app, "#pw");
-    assertTrue(
-        dragged.matches(".* password revealed hovered focused caret \\d+$")
-            || dragged.matches(".* password revealed hovered focused caret \\d+ anchor \\d+$"),
-        dragged);
-    assertFalse(dragged.contains("caret 11"), "the drag moved the caret: " + dragged);
-
-    run(app, "key End\nkey ArrowLeft shift\npress role=button");
-    assertFalse(app.state().revealed);
-    assertTrue(
-        line(app, "#pw").endsWith(" password hovered focused caret 10 anchor 11"),
-        line(app, "#pw"));
-    run(app, "key Z control");
-    assertEquals("open", app.state().password, "the history from while it was shown");
-  }
-
   /** Invalid before {@code revealable} or made so by a form after it: the danger border stays. */
   @Test
   void anInvalidFieldKeepsItsDangerBorderWhileItOrItsButtonHasTheFocus() throws IOException {

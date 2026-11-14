@@ -6,7 +6,6 @@ import static com.rethinkj.ui.El.row;
 import static com.rethinkj.ui.kit.Icon.icon;
 import static com.rethinkj.ui.kit.Label.label;
 import static com.rethinkj.ui.kit.TextField.textField;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import com.rethinkj.ui.App;
 import com.rethinkj.ui.El;
@@ -14,7 +13,6 @@ import com.rethinkj.ui.Key;
 import com.rethinkj.ui.Script;
 import com.rethinkj.ui.Style;
 import com.rethinkj.ui.WindowPart;
-import com.rethinkj.ui.render.Png;
 import com.rethinkj.ui.text.TextRendering;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -228,32 +226,26 @@ final class Studio {
 
   /**
    * Runs a script of {@code src/test/resources/scripts} in the window at this scale and compares
-   * its snaps with the stored images {@code <script>-<theme>-<scale>x-<snap>}.
+   * its snaps, or those named, with the stored images {@code <script>-<theme>-<scale>x-<snap>}.
    *
    * @return the app after the script
    */
-  static App<Studio> assertScript(String file, String theme, int scale, Path out)
+  static App<Studio> assertScript(String file, String theme, int scale, Path out, String... stored)
       throws IOException {
-    return assertScript(file, theme, scale, 360, 240, out);
+    return assertScript(file, theme, scale, 360, 240, out, stored);
   }
 
   /** As {@link #assertScript(String, String, int, Path)} in a window of this size. */
   static App<Studio> assertScript(
-      String file, String theme, int scale, int width, int height, Path out) throws IOException {
+      String file, String theme, int scale, int width, int height, Path out, String... stored)
+      throws IOException {
     Studio studio = new Studio(theme.equals("dark") ? Theme.DARK : Theme.LIGHT);
     App<Studio> app = studio.app();
     String script = Files.readString(Path.of("src/test/resources/scripts", file + ".txt"));
     Path folder = out.resolve(file + "-" + theme + "-" + scale + "x");
     List<Path> files =
         Script.run("size " + width + " " + height + " scale " + scale + "\n" + script, app, folder);
-    for (int i = 0; i < files.size(); i += 2) {
-      String snap = files.get(i).getFileName().toString().replace(".png", "");
-      assertEquals(snap + ".tree.txt", files.get(i + 1).getFileName().toString());
-      Golden.assertMatches(
-          file + "-" + theme + "-" + scale + "x-" + snap,
-          Png.decode(Files.readAllBytes(files.get(i))),
-          Files.readString(files.get(i + 1)));
-    }
+    Golden.assertSnaps(file + "-" + theme + "-" + scale + "x-", files, stored);
     return app;
   }
 

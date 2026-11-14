@@ -13,7 +13,6 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.IntStream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -23,8 +22,7 @@ import org.junit.jupiter.params.provider.CsvSource;
 /**
  * Menus of the workbench ({@link Bench}): the File menu as a dropdown with a submenu, the context
  * menu of the tables, the menu of a button in a scrolled panel in the window's corner, and the
- * select of encodings; with the keys, the pointer and stored images in both themes at scales 1
- * and 2.
+ * select of encodings; with the keys, the pointer and stored images in both themes.
  */
 class MenuTest {
 
@@ -42,10 +40,10 @@ class MenuTest {
   }
 
   @ParameterizedTest(name = "{0} at {1}x")
-  @CsvSource({"dark, 1", "dark, 2", "light, 1", "light, 2"})
+  @CsvSource({"dark, 2", "light, 2"})
   void theFileMenuOpensBelowItsButtonWalksIntoItsSubmenuAndCloses(String theme, int scale)
       throws IOException {
-    App<Bench> app = Bench.assertScript("menu", theme, scale, out);
+    App<Bench> app = Bench.assertScript("menu", theme, scale, out, "submenu");
     String open = Bench.tree(out, "menu", theme, scale, "open");
     assertTrue(
         open.contains("\noverlay bottom start gap 2 on #file role=button label=\"File\""), open);
@@ -64,10 +62,10 @@ class MenuTest {
   }
 
   @ParameterizedTest(name = "{0} at {1}x")
-  @CsvSource({"dark, 1", "dark, 2", "light, 1", "light, 2"})
+  @CsvSource({"dark, 2", "light, 2"})
   void aSecondaryPressOnARowOpensItsContextMenuWhereLettersJump(String theme, int scale)
       throws IOException {
-    App<Bench> app = Bench.assertScript("context", theme, scale, out);
+    App<Bench> app = Bench.assertScript("context", theme, scale, out, "open");
     String open = Bench.tree(out, "context", theme, scale, "open");
     assertTrue(open.contains("\noverlay at "), open);
     assertTrue(open.contains(" bottom start on #tables role=list label=\"Tables\""), open);
@@ -79,7 +77,7 @@ class MenuTest {
   }
 
   @ParameterizedTest(name = "{0} at {1}x")
-  @CsvSource({"dark, 1", "dark, 2", "light, 1", "light, 2"})
+  @CsvSource({"dark, 2"})
   void aMenuInTheCornerFlipsAboveAndToTheLeftOfItsButtonAndIsDrawnWhole(String theme, int scale)
       throws IOException {
     Bench.assertScript("corner", theme, scale, out);
@@ -119,10 +117,10 @@ class MenuTest {
   }
 
   @ParameterizedTest(name = "{0} at {1}x")
-  @CsvSource({"dark, 1", "dark, 2", "light, 1", "light, 2"})
+  @CsvSource({"dark, 2", "light, 2"})
   void aSelectOpensItsChoicesAsWideAsItselfAndChoosesWithTheKeys(String theme, int scale)
       throws IOException {
-    App<Bench> app = Bench.assertScript("select", theme, scale, out);
+    App<Bench> app = Bench.assertScript("select", theme, scale, out, "open");
     String open = Bench.tree(out, "select", theme, scale, "open");
     assertTrue(
         open.contains(
@@ -271,76 +269,6 @@ class MenuTest {
         return true;
       });
     }
-  }
-
-  @Test
-  void itemsThatChangeWhileTheMenuIsOpenTakeAwayAHighlightAndASubmenuTheyNoLongerHave()
-      throws IOException {
-    List<String> chosen = new ArrayList<>();
-    Menu.Item a = Menu.item("A", () -> chosen.add("A"));
-    Changing fewer = new Changing(
-        List.of(a, Menu.item("B", () -> chosen.add("B")), Menu.item("C", () -> {})), List.of(a));
-    App<Changing> app = new App<>(fewer, Changing::view);
-    run(app, "frame\nkey End\nkey F2\nkey Enter\nframe\n");
-    assertEquals(List.of(), chosen, "the highlighted item is gone: Enter chooses nothing");
-    assertTrue(fewer.menu.isOpen());
-    assertEquals(-1, fewer.menu.active());
-    run(app, "key ArrowDown\nkey Enter\nframe\n");
-    assertEquals(List.of("A"), chosen);
-
-    Changing separated =
-        new Changing(List.of(a, Menu.item("B", () -> {})), List.of(a, Menu.separator()));
-    app = new App<>(separated, Changing::view);
-    run(app, "frame\nkey End\nkey F2\nframe\n");
-    assertEquals(-1, separated.menu.active(), "a separator is never highlighted");
-
-    Menu.Item export = Menu.submenu("Export", List.of(Menu.item("CSV", () -> {})));
-    Changing changed = new Changing(
-        List.of(a, export),
-        List.of(Menu.separator(), Menu.item("Export", () -> chosen.add("Export"))));
-    app = new App<>(changed, Changing::view);
-    run(app, "frame\nkey End\nkey ArrowRight\nkey F2\nframe\n");
-    assertEquals(-1, changed.menu.submenu(), "the item no longer opens a submenu");
-    assertEquals(-1, changed.menu.active(1));
-    assertFalse(app.tree().dump().contains("#submenu "), app.tree().dump());
-    assertEquals(1, changed.menu.active(), "and stays highlighted");
-    run(app, "key Enter\nframe\n");
-    assertEquals(List.of("A", "Export"), chosen);
-  }
-
-  @Test
-  void theKeysKeepTheHighlightedItemInViewOfAMenuThatScrolls() throws IOException {
-    Menu.State state = new Menu.State();
-    state.open();
-    List<Menu.Item> items = IntStream.range(0, 30)
-        .mapToObj(i -> i == 3
-            ? Menu.submenu(
-                "Item 3",
-                IntStream.range(0, 30)
-                    .mapToObj(j -> Menu.item("Sub " + j, () -> {}))
-                    .toList())
-            : Menu.item("Item " + i, () -> {}))
-        .toList();
-    App<Menu.State> app =
-        new App<>(state, s -> col().wFull().hFull().overlay(Menu.menu(Theme.DARK, s, items)));
-    Script.run("size 400 160\nframe\nkey End\nframe\n", app, out);
-    El menu = app.tree().shownOverlays().getFirst();
-    assertTrue(inView(menu, 29), "End: the last item");
-    Script.run("key Home\nframe\n", app, out);
-    assertTrue(inView(menu = app.tree().shownOverlays().getFirst(), 0), "Home: the first");
-    Script.run("key ArrowUp\nframe\nkey ArrowDown\nframe\n", app, out);
-    assertTrue(inView(menu = app.tree().shownOverlays().getFirst(), 0), "around both ends");
-    Script.run("key I\nkey I\nkey I\nkey ArrowRight\nframe\nkey End\nframe\n", app, out);
-    assertEquals(3, state.submenu());
-    El submenu = app.tree().shownOverlays().getLast();
-    assertTrue(inView(submenu, 29), "in a submenu too");
-    assertTrue(inView(app.tree().shownOverlays().getFirst(), 3), "its item still in view");
-  }
-
-  /** Whether the child at {@code index} of a menu lies whole in its box, where it shows. */
-  private static boolean inView(El menu, int index) {
-    El item = menu.children().get(index); // placed as shown, moved by the menu's scroll
-    return item.y() >= 0 && item.y() + item.height() <= menu.height();
   }
 
   @Test

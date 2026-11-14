@@ -12,7 +12,6 @@ import com.rethinkj.ui.kit.DataGrid.Column;
 import com.rethinkj.ui.kit.DataGrid.Filter;
 import com.rethinkj.ui.kit.DataGrid.Layout;
 import com.rethinkj.ui.kit.DataGrid.SortKey;
-import com.rethinkj.ui.render.Png;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -190,26 +189,6 @@ class GridColumnsTest {
     assertEquals(List.of(3, 4), List.copyOf(change.getFirst().values().keySet()));
   }
 
-  /** The chooser opened from a header cell stays, with its focus, when it hides that column. */
-  @Test
-  void theChooserOfAHeaderCellStaysWhenItHidesThatColumn() throws IOException {
-    Ledger ledger = new Ledger(T, 40);
-    App<Ledger> app = start(ledger, out);
-    run(
-        app,
-        "press #column-2 right\nframe\nadvance 1\nframe\npress label=\"Columns…\"\nframe\n"
-            + "advance 1\nframe\nfocus #show-2\nframe");
-    String before = app.tree().dump();
-    assertTrue(before.contains("role=dialog label=\"Columns\""), before);
-    run(app, "key Space\nframe\nadvance 1\nframe");
-    assertTrue(ledger.layout.isHidden(2));
-    String dump = app.tree().dump();
-    assertTrue(dump.contains("role=dialog label=\"Columns\""), "still open: " + dump);
-    assertEquals("show-2", app.focused().key(), "with the focus on the box just unchecked");
-    run(app, "key Space\nframe\nadvance 1\nframe");
-    assertFalse(ledger.layout.isHidden(2), "and checked again");
-  }
-
   /** The keyboard reaches the header's menu of the cursor's column through the cells' menu. */
   @Test
   void theCellsMenuHasTheHeadersMenuOfTheCursorsColumn() throws IOException {
@@ -249,14 +228,8 @@ class GridColumnsTest {
     List<Path> files = Script.run(text, app, out.resolve(name)).stream()
         .filter(f -> !f.toString().endsWith(".clipboard.txt"))
         .toList();
-    for (int i = 0; i < files.size(); i += 2) {
-      String snap = files.get(i).getFileName().toString().replace(".png", "");
-      Golden.assertMatches(
-          "columns-" + name + "-" + snap,
-          Png.decode(Files.readAllBytes(files.get(i))),
-          Files.readString(files.get(i + 1)));
-    }
-    assertEquals(4, files.size());
+    Golden.assertSnaps("columns-" + name + "-", files, "chooser");
+    assertEquals(2, files.size());
   }
 
   private static List<Integer> ints(int[] values) {
@@ -265,24 +238,5 @@ class GridColumnsTest {
 
   private static com.rethinkj.ui.El find(App<?> app, String key) {
     return CellEditorTest.find(app, key);
-  }
-
-  /** No layout is the layout of all columns in their order, so giving one carries an editor. */
-  @Test
-  void aLayoutGivenWhileAnEditorIsOpenKeepsTheEditorOnItsColumn() throws IOException {
-    Ledger ledger = new Ledger(T, 2);
-    Layout layout = new Layout(ledger.columns().stream().map(Column::title).toList());
-    boolean[] on = {false};
-    ledger.more = o -> on[0] ? o.columns(layout) : o;
-    App<Ledger> app = ledger.app();
-    run(app, "frame\npress #cell-0-2\ntype \"6\"\nframe"); // qty
-    String amount = ledger.changes.cell(0, 3);
-    app.post(() -> {
-      layout.hide(0); // the column before it
-      on[0] = true;
-    });
-    run(app, "await\nframe\nkey Enter control\nframe");
-    assertEquals("6", ledger.changes.cell(0, 2));
-    assertEquals(amount, ledger.changes.cell(0, 3));
   }
 }

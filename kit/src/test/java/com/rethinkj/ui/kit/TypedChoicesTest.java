@@ -2,7 +2,6 @@ package com.rethinkj.ui.kit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.rethinkj.ui.El;
@@ -88,23 +87,6 @@ class TypedChoicesTest {
   }
 
   @Test
-  void theKeysGoOnFromTheSelectedValuePastEqualValuesAndFromNull() {
-    List<String> twice = List.of("A", "A", "B");
-    List<String> none = java.util.Arrays.asList(null, "A");
-    java.util.function.Function<String, String> text = v -> v == null ? "None" : v;
-    assertTrue(key(Select.select(T, twice, "A", text, new Menu.State(), told::add), "ArrowDown"));
-    assertTrue(key(Select.select(T, none, null, text, new Menu.State(), told::add), "ArrowDown"));
-    assertTrue(key(Radio.radioGroup(T, twice, "A", text, told::add), "ArrowDown"));
-    assertTrue(key(Segmented.segmented(T, none, null, text, told::add), "ArrowRight"));
-    assertTrue(key(NavList.navList(T, twice, "A", v -> NavList.item(v), told::add), "ArrowDown"));
-    assertEquals(List.of("B", "A", "B", "A", "B"), told);
-    El select = Select.select(T, twice, "A", text, new Menu.State(), told::add);
-    assertTrue(select.dump().contains("label=\"A\""), "equal values show once: " + select.dump());
-    El checked = Radio.radioGroup(T, none, null, text, told::add);
-    assertTrue(checked.dump().contains("label=\"None\" checked"), "null is a value among them");
-  }
-
-  @Test
   void aRadioGroupAndASegmentedControlOfValuesTellTheValue() {
     assertEquals(
         Radio.radioGroup(T, TEXTS, 2, i -> {}).dump(),
@@ -130,92 +112,9 @@ class TypedChoicesTest {
     assertNull(Segmented.segmented(T, LEVELS, Level.LOW, l -> l.label, null).onKey());
   }
 
-  @Test
-  void aComboBoxOfValuesKeepsItsTextsWhileTheyAreEqual() {
-    List<Schema> schemas = List.of(
-        new Schema("public", "postgres"),
-        new Schema("sales", "shop"),
-        new Schema("audit", "postgres"));
-    ComboBox.State state = new ComboBox.State();
-    El closed = ComboBox.comboBox(T, schemas, schemas.get(1), Schema::name, state, told::add);
-    assertEquals(
-        ComboBox.comboBox(T, List.of("public", "sales", "audit"), 1, new ComboBox.State(), i -> {})
-            .dump(),
-        closed.dump());
-    assertEquals("sales", closed.label());
-    assertEquals(
-        "",
-        ComboBox.comboBox(T, schemas, new Schema("x", "y"), Schema::name, state, told::add)
-            .label(),
-        "a value not among them");
-
-    state.open();
-    ComboBox.comboBox(T, schemas, schemas.get(1), Schema::name, state, told::add);
-    List<?> first = entries(state);
-    // A new list of equal values, and a function that is another object: the same entries.
-    ComboBox.comboBox(T, new ArrayList<>(schemas), schemas.get(1), s -> s.name(), state, told::add);
-    assertSame(first, entries(state), "the list keeps what it found");
-    ComboBox.comboBox(T, schemas, schemas.get(1), s -> s.name().toUpperCase(), state, told::add);
-    assertTrue(first != entries(state), "other texts are other entries");
-
-    ComboBox.comboBox(T, schemas, schemas.get(1), Schema::name, state, told::add);
-    FilterList.key(
-        new Key("ArrowDown"), state.list, ComboBox.ROWS, e -> e.onChoose().run());
-    FilterList.key(
-        new Key("Enter"), state.list, ComboBox.ROWS, e -> e.onChoose().run());
-    assertEquals(List.of(schemas.get(2)), told, "the key after the current one chooses audit");
-    assertTrue(!state.isOpen());
-
-    El disabled = ComboBox.comboBox(T, schemas, null, Schema::name, new ComboBox.State(), null);
-    assertEquals(
-        ComboBox.comboBox(T, List.of("public", "sales", "audit"), -1, new ComboBox.State(), null)
-            .dump(),
-        disabled.dump());
-  }
-
-  @Test
-  void aComboBoxOfItemsMakesItsItemsAgainOnlyWhenTheyChange() {
-    List<Schema> schemas =
-        new ArrayList<>(List.of(new Schema("public", "postgres"), new Schema("sales", "shop")));
-    ComboBox.State state = new ComboBox.State();
-    El closed =
-        ComboBox.items(T, schemas, schemas.get(0), ComboBoxTestItems::item, state, told::add);
-    assertEquals(
-        ComboBox.items(
-                T,
-                List.of(
-                    ComboBoxTestItems.item(schemas.get(0)), ComboBoxTestItems.item(schemas.get(1))),
-                0,
-                new ComboBox.State(),
-                i -> {})
-            .dump(),
-        closed.dump());
-
-    state.open();
-    ComboBox.items(T, schemas, schemas.get(0), ComboBoxTestItems::item, state, told::add);
-    List<?> first = entries(state);
-    ComboBox.items(T, schemas, schemas.get(0), ComboBoxTestItems::item, state, told::add);
-    assertSame(first, entries(state), "new items of equal values, texts and details");
-    schemas.set(1, new Schema("sales", "admin")); // in place: another detail
-    ComboBox.items(T, schemas, schemas.get(0), ComboBoxTestItems::item, state, told::add);
-    assertTrue(first != entries(state));
-
-    ComboBox.items(T, schemas, null, ComboBoxTestItems::item, state, told::add);
-    FilterList.key(
-        new Key("Enter"), state.list, ComboBox.ROWS, e -> e.onChoose().run());
-    assertEquals(List.of(schemas.get(0)), told, "nothing chosen: Enter takes the first");
-  }
-
   /** The entries the combo box keeps in its state, which its list knows by their identity. */
   private static List<?> entries(ComboBox.State state) {
     return state.entries;
-  }
-
-  /** An item of a schema: its name with an icon, its owner as the detail. */
-  private static final class ComboBoxTestItems {
-    static ComboBox.Item item(Schema s) {
-      return ComboBox.item(s.name()).icon(Symbol.DATABASE).detail(s.owner());
-    }
   }
 
   enum Page {

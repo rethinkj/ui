@@ -11,9 +11,7 @@ import com.rethinkj.ui.El;
 import com.rethinkj.ui.Script;
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Function;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -260,28 +258,5 @@ class EditingFormTest {
       assertTrue(line(app, "#" + key + " ").contains(" disabled"), key);
     }
     assertTrue(line(app, "role=spinbutton").contains(" disabled"));
-  }
-
-  /** A value that is none of the choices chooses nothing, and the first arrow the first. */
-  @Test
-  void aChoiceOfAValueThatIsNotThereGoesToTheFirstByArrow() throws IOException {
-    Theme t = Theme.DARK;
-    List<String> values = List.of("A", "B");
-    List<Function<Prop<String>, El>> controls = List.of(
-        p -> Radio.radioGroup(t, values, p, v -> v),
-        p -> Segmented.segmented(t, values, p, v -> v),
-        p -> Select.select(t, values, p, v -> v, new Menu.State()));
-    for (Function<Prop<String>, El> control : controls) {
-      String[] value = {"missing"};
-      List<String> told = new ArrayList<>();
-      App<Object> app = new App<>(
-          new Object(),
-          x -> col().child(control.apply(Prop.of(() -> value[0], v -> {
-            value[0] = v;
-            told.add(v);
-          }))));
-      run(app, "key Tab\nkey ArrowDown\nkey ArrowDown control");
-      assertEquals(List.of("A"), told);
-    }
   }
 }

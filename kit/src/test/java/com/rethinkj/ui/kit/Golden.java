@@ -1,6 +1,7 @@
 package com.rethinkj.ui.kit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import com.rethinkj.ui.render.Pixels;
@@ -10,6 +11,7 @@ import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
+import java.util.List;
 
 /**
  * Compares an image and its tree with the files stored under {@code src/test/resources/golden}, as
@@ -22,6 +24,31 @@ final class Golden {
   private static final Path FAILED = Path.of("target/golden");
 
   private Golden() {}
+
+  /**
+   * Compares the snaps among a script's files with the stored images {@code <prefix><snap>}: those
+   * named in {@code stored}, each of which the script has to have written, or all where none is
+   * named. Other files, such as clipboards, are left alone.
+   */
+  static void assertSnaps(String prefix, List<Path> files, String... stored) throws IOException {
+    List<String> snaps = files.stream()
+        .map(f -> f.getFileName().toString())
+        .filter(f -> f.endsWith(".png"))
+        .map(f -> f.substring(0, f.length() - ".png".length()))
+        .toList();
+    List<String> wanted = stored.length == 0 ? snaps : List.of(stored);
+    for (String snap : wanted) {
+      assertTrue(snaps.contains(snap), "no snap " + snap + " among " + snaps);
+      Path image = files.stream()
+          .filter(f -> f.getFileName().toString().equals(snap + ".png"))
+          .findFirst()
+          .orElseThrow();
+      assertMatches(
+          prefix + snap,
+          Png.decode(Files.readAllBytes(image)),
+          Files.readString(image.resolveSibling(snap + ".tree.txt")));
+    }
+  }
 
   static void assertMatches(String name, Pixels pixels, String tree) {
     Path image = STORED.resolve(name + ".png");

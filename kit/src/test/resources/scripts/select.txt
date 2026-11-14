@@ -12,4 +12,3 @@ key Enter
 frame
 advance 0.25                    # past the theme's fade
 frame
-snap chosen

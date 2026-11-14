@@ -14,7 +14,6 @@ import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -23,11 +22,6 @@ class FilterListTest {
 
   @TempDir
   Path out;
-
-  @BeforeEach
-  void textLibraries() {
-    TextLibraries.assumeLoaded();
-  }
 
   private String run(App<?> app, String steps) throws IOException {
     Script.run(steps + "\nframe\nadvance 1\nframe\nsnap s", app, out);
@@ -56,8 +50,32 @@ class FilterListTest {
     }
   }
 
+  /** More entries than {@link FilterList#PARALLEL}: scored in parts, a text that grows and a new one. */
+  @Test
+  void aLongListFindsTheBestMatchAsTheTextGrowsAndAnew() {
+    String[] tables = {"orders", "order_items", "customers", "customer_notes", "invoices"};
+    List<FilterList.Entry> entries = new java.util.ArrayList<>();
+    for (int i = 0; entries.size() < 2 * FilterList.PARALLEL; i++) {
+      String table = "s" + i / 50 + "." + tables[i % tables.length] + "_" + i / tables.length;
+      for (String column : List.of("", ".id", ".status", ".note")) {
+        entries.add(FilterList.entry(table + column, () -> {}));
+      }
+    }
+    FilterList.Entries all = FilterList.Entries.of(entries);
+    FilterList.State s = new FilterList.State();
+    FilterList.shown(s, all);
+    for (String typed : List.of("o", "or", "ord", "orderit")) {
+      s.typed(typed, true);
+      FilterList.shown(s, all);
+    }
+    assertEquals("s0.order_items_0", FilterList.shown(s, all).entry(0).text());
+    s.typed("cnot", true);
+    assertEquals("s0.customer_notes_0", FilterList.shown(s, all).entry(0).text());
+  }
+
   @Test
   void aNewTextAndClosingTheListCancelTheSearchOnItsWay() throws Exception {
+    TextLibraries.assumeLoaded();
     Finder f = new Finder();
     f.app = new App<>(
         f,

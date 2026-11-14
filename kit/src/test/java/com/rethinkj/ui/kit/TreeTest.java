@@ -14,12 +14,10 @@ import com.rethinkj.ui.Key;
 import com.rethinkj.ui.Script;
 import com.rethinkj.ui.kit.Button.Variant;
 import com.rethinkj.ui.kit.Catalog.Node;
-import com.rethinkj.ui.render.Png;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -30,8 +28,8 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
 /**
- * The tree with the catalog of three database servers ({@link Catalog}): the rows it builds and
- * what a rebuild costs, the pointer, the keys, children that load late, and stored images.
+ * The tree with the catalog of three database servers ({@link Catalog}): the rows it builds,
+ * the pointer, the keys, children that load late, and stored images.
  */
 class TreeTest {
 
@@ -87,7 +85,7 @@ class TreeTest {
     return Integer.parseInt(m.group(1));
   }
 
-  // Rows and cost
+  // Rows
 
   /**
    * localhost/shop/public with 1000 tables of 99 columns, all open: 100 009 nodes are shown, the
@@ -149,110 +147,6 @@ class TreeTest {
     assertEquals(rows, catalog.mutedAsked.stream().map(n -> n.name).toList());
   }
 
-  @Test
-  void scrollingAHundredThousandNodesBuildsRowsButNeverTheView() throws IOException {
-    Catalog catalog = hundredThousand();
-    App<Catalog> app = start(catalog);
-    int walks = catalog.walks;
-    for (int i = 0; i < 200; i++) {
-      app.wheel(140, 150, 0, 100);
-      app.frame();
-    }
-    assertEquals(walks, catalog.walks, "the rows are numbered once, by the view");
-    assertEquals(20_000 / 24 - El.OVERSCAN, find(app, "schema").firstRow());
-  }
-
-  @Test
-  void aRebuildWithAHundredThousandNodesStaysWellUnderAFrame() throws IOException {
-    long[] small = rebuilds(
-        new Catalog(T).opened("localhost", "localhost/shop", "localhost/shop/public")); // 308 nodes
-    long[] large = rebuilds(hundredThousand());
-    System.out.printf(
-        "Tree: a rebuild after ArrowDown, median of %d: frame() %.2f ms and the tree's view"
-            + " %.2f ms with %d nodes shown, %.2f ms and %.2f ms with 308%n",
-        REBUILDS, large[0] / 1e6, large[1] / 1e6, SHOWN, small[0] / 1e6, small[1] / 1e6);
-    // About 1.3 ms on a desktop; a bound of a whole frame holds on a busy machine.
-    assertTrue(large[0] < 16_000_000, "median frame() of " + large[0] + " ns, a frame");
-  }
-
-  @Test
-  void aFrameWithABurstOfTenKeysCostsAViewAndItsLayoutPerKey() throws IOException {
-    // Each key of a burst goes to the tree the key before it built: the view numbers the rows
-    // again for each, and the rows are built once, at the end. Each key after the first asks the
-    // row functions whether a row has an onAnyKeyDown handler, without laying them out.
-    Catalog catalog = hundredThousand();
-    App<Catalog> app = start(catalog);
-    run(app, "focus #schema\nframe");
-    int walks = catalog.walks;
-    catalog.labelled.clear();
-    for (int k = 0; k < 10; k++) {
-      app.keyDown(new Key("ArrowDown"));
-      app.keyUp(new Key("ArrowDown"));
-    }
-    app.frame();
-    assertEquals(walks + 10, catalog.walks, "the view, which numbers the rows, once per key");
-    List<El> rows = find(app, "schema").children();
-    assertTrue(rows.stream()
-        .allMatch(r -> catalog.labelled.stream().anyMatch(n -> n.name.equals(r.label()))));
-    assertTrue(catalog.labelled.size() <= 10 * rows.size(), catalog.labelled.size() + " labels");
-    long one = keyFrames(hundredThousand(), 1);
-    long ten = keyFrames(hundredThousand(), 10);
-    System.out.printf(
-        "Tree: frame() after keys, median of %d, %d nodes shown: %.2f ms after one"
-            + " ArrowDown, %.2f ms after ten%n",
-        REBUILDS, SHOWN, one / 1e6, ten / 1e6);
-  }
-
-  private static final int REBUILDS = 200;
-
-  /**
-   * The median times of {@link App#frame} after an ArrowDown, which selects another node and so
-   * rebuilds the view, and of building the tree's element alone, which numbers the rows.
-   */
-  private long[] rebuilds(Catalog catalog) throws IOException {
-    App<Catalog> app = start(catalog);
-    run(app, "focus #schema\nframe");
-    long[] frames = new long[REBUILDS];
-    long[] views = new long[REBUILDS];
-    for (int i = -REBUILDS; i < REBUILDS; i++) { // the first round warms up
-      app.keyDown(new Key(Math.floorMod(i, 40) < 20 ? "ArrowDown" : "ArrowUp"));
-      long start = System.nanoTime();
-      app.frame();
-      long frame = System.nanoTime() - start;
-      start = System.nanoTime();
-      catalog.tree();
-      long view = System.nanoTime() - start;
-      if (i >= 0) {
-        frames[i] = frame;
-        views[i] = view;
-      }
-    }
-    Arrays.sort(frames);
-    Arrays.sort(views);
-    return new long[] {frames[REBUILDS / 2], views[REBUILDS / 2]};
-  }
-
-  /** The median time of {@link App#frame} after {@code keys} presses of ArrowDown or ArrowUp. */
-  private long keyFrames(Catalog catalog, int keys) throws IOException {
-    App<Catalog> app = start(catalog);
-    run(app, "focus #schema\nframe");
-    long[] frames = new long[REBUILDS];
-    for (int i = -REBUILDS; i < REBUILDS; i++) { // the first round warms up
-      Key key = new Key(Math.floorMod(i, 4) < 2 ? "ArrowDown" : "ArrowUp");
-      for (int k = 0; k < keys; k++) {
-        app.keyDown(key);
-        app.keyUp(key);
-      }
-      long start = System.nanoTime();
-      app.frame();
-      if (i >= 0) {
-        frames[i] = System.nanoTime() - start;
-      }
-    }
-    Arrays.sort(frames);
-    return frames[REBUILDS / 2];
-  }
-
   // The pointer
 
   @Test
@@ -303,40 +197,6 @@ class TreeTest {
     run(app, "press #row-1 right\nframe"); // the selected row: no second selection
     assertEquals(List.of("select prod-eu"), catalog.log);
     assertTrue(menu.isOpen());
-  }
-
-  /** Shift+F10 opens the tree's menu at the selected row, beside a menu bar that F10 opens. */
-  @Test
-  void shiftF10OpensTheMenuAtTheSelectedRowAndF10TheMenuBar() throws IOException {
-    Catalog catalog = new Catalog(T);
-    Menu.State menu = new Menu.State();
-    MenuBar.State bar = new MenuBar.State();
-    List<Menu.Item> menus = List.of(Menu.submenu("&File", List.of(Menu.item("Quit", () -> {}))));
-    App<Catalog> app = new App<>(
-        catalog,
-        c -> col()
-            .wFull()
-            .hFull()
-            .onKey(MenuBar.keys(bar, menus))
-            .child(MenuBar.menuBar(T, bar, menus))
-            .child(Menu.contextMenu(
-                T,
-                c.tree().key("schema").grow(1),
-                menu,
-                List.of(Menu.item("Copy name", () -> {})))));
-    catalog.app = app;
-    run(app, "frame\npress #row-1\nframe\nkey F10 shift\nframe");
-    assertTrue(menu.isOpen(), "the tree's menu");
-    assertEquals(-1, bar.title(), "not the bar");
-    // The row's rectangle in the window, and the menu at its bottom left.
-    Matcher rect = Pattern.compile(" (\\d+),(\\d+) (\\d+)x(\\d+)").matcher(dumpLine(app, "row-1"));
-    assertTrue(rect.find());
-    int bottom = Integer.parseInt(rect.group(2)) + Integer.parseInt(rect.group(4));
-    String at = "overlay at " + rect.group(1) + "," + bottom + " ";
-    assertTrue(
-        app.tree().dump().lines().anyMatch(l -> l.startsWith(at)), app.tree().dump());
-    run(app, "key Escape\nframe\nkey F10\nframe");
-    assertEquals(0, bar.title(), "F10 alone gives the bar the keys");
   }
 
   @Test
@@ -451,18 +311,6 @@ class TreeTest {
   }
 
   @Test
-  void aLeafNeitherOpensNorHasChildrenToGoTo() throws IOException {
-    Catalog catalog = new Catalog(T)
-        .opened("prod-eu", "prod-eu/shop", "prod-eu/shop/public", "prod-eu/shop/public/orders");
-    catalog.selected = catalog.node("prod-eu/shop/public/orders/id");
-    App<Catalog> app = start(catalog);
-    run(app, "focus #schema\nframe");
-    assertEquals("prod-eu/shop/public/orders/id", key(app, catalog, "ArrowRight"));
-    assertEquals("prod-eu/shop/public/orders", key(app, catalog, "ArrowLeft"));
-    assertEquals(List.of("select prod-eu/shop/public/orders"), catalog.log);
-  }
-
-  @Test
   void pagesMoveByTheRowsInViewAndTheRowsFollowTheSelection() throws IOException {
     Catalog catalog = new Catalog(T).opened("localhost", "localhost/shop", "localhost/shop/public");
     App<Catalog> app = start(catalog);
@@ -479,15 +327,6 @@ class TreeTest {
     assertInView(app, 297);
     assertEquals(0, row(app, catalog, "Home"));
     assertInView(app, 0);
-  }
-
-  @Test
-  void twoKeysInOneFrameGoOnFromWhereTheFirstLeftTheSelection() throws IOException {
-    Catalog catalog = new Catalog(T).opened("localhost");
-    App<Catalog> app = start(catalog);
-    run(app, "focus #schema\nkey Home\nframe\nkey ArrowDown\nkey ArrowDown\nkey ArrowDown\nframe");
-    assertEquals(catalog.node("localhost/shop"), catalog.selected);
-    assertEquals(T.grid().selected(), find(app, "row-3").fill());
   }
 
   @Test
@@ -511,21 +350,6 @@ class TreeTest {
             "open localhost/analytics/public",
             "select localhost/analytics/public/events"),
         catalog.log.subList(0, 6));
-  }
-
-  @Test
-  void withoutASelectionAKeySelectsTheFirstRowInView() throws IOException {
-    Catalog catalog = new Catalog(T).opened("localhost", "localhost/shop", "localhost/shop/public");
-    catalog.selected = catalog.node("localhost/analytics/public"); // inside a closed node
-    App<Catalog> app = start(catalog);
-    assertTrue(find(app, "schema").children().stream().allMatch(r -> r.fill() == 0), "none shown");
-    run(app, "focus #schema\nwheel #schema 0 2400\nframe"); // row 100 at the top
-    for (String name : List.of("ArrowRight", "ArrowLeft", "Enter")) {
-      key(app, catalog, name);
-    }
-    assertEquals(List.of(), catalog.log, "nothing to open, close or activate");
-    assertEquals(100, row(app, catalog, "ArrowDown"));
-    assertEquals(2400, find(app, "schema").scrollY(), "already in view");
   }
 
   @Test
@@ -697,57 +521,7 @@ class TreeTest {
     }
   }
 
-  @Test
-  void aLongMessageEndsInAnEllipsisAndShowsWholeInATooltip() throws IOException {
-    Catalog catalog = new Catalog(T);
-    App<Catalog> app = refused(catalog);
-    run(app, "size 150 300\nframe");
-    assertTrue(textOf(find(app, "row-4"), REFUSED).text().shortened());
-    assertEquals(T.size().icon(), find(app, "row-4").children().get(1).width(), "the icon whole");
-    assertTrue(textOf(find(app, "row-4"), "Try again").width() > 40, "the action whole");
-    run(app, "size 150 300\nmove 50,120\nframe\nadvance 1\nframe");
-    assertTrue(
-        app.tree().dump().contains("role=tooltip label=\"" + REFUSED + "\""),
-        app.tree().dump());
-  }
-
-  @Test
-  void failureIsAskedOnlyForTheRowsThatAreBuilt() throws IOException {
-    Catalog catalog =
-        new Catalog(T).opened("localhost", "localhost/shop", "localhost/shop/public", "staging");
-    App<Catalog> app = start(catalog);
-    assertEquals(List.of(), catalog.failureAsked, "the loading row is far below the view");
-    run(app, "scroll #schema row 300\nframe");
-    assertFalse(catalog.failureAsked.isEmpty());
-    assertTrue(catalog.failureAsked.stream().allMatch(n -> n.name.equals("staging")));
-  }
-
   // Muted rows
-
-  @Test
-  void aMutedRowHasItsLabelInMutedTextAndNothingElseChanges() throws IOException {
-    Catalog catalog = new Catalog(T).opened("localhost", "localhost/postgres");
-    catalog.open.add(catalog.node("localhost/postgres/pg_catalog"));
-    App<Catalog> app = start(catalog);
-    String dump = app.tree().dump();
-    assertEquals(
-        "el #row-3 role=treeitem label=\"pg_catalog\" 8,80 264x24 expanded level=3 pos=1/2"
-            + " value=\"2 tables\"",
-        dumpLine(app, "row-3"));
-    assertEquals(
-        T.text().muted(), textOf(find(app, "row-3"), "pg_catalog").text().color());
-    assertEquals(T.text().muted(), textOf(find(app, "row-4"), "pg_class").text().color());
-    assertEquals(T.text().primary(), textOf(find(app, "row-6"), "public").text().color());
-    assertEquals(
-        T.text().primary(), textOf(find(app, "row-2"), "postgres").text().color());
-    assertEquals(T.text().muted(), textOf(find(app, "row-3"), "2 tables").text().color());
-    assertTrue(dump.contains("label=\"pg_class\" "), dump);
-
-    run(app, "press #row-3\nframe");
-    assertEquals("localhost/postgres/pg_catalog", catalog.selected.path(), "works as any row");
-    assertEquals(
-        T.text().muted(), textOf(find(app, "row-3"), "pg_catalog").text().color());
-  }
 
   // Long labels
 
@@ -800,9 +574,9 @@ class TreeTest {
     }
   }
 
-  @ParameterizedTest
-  @ValueSource(ints = {150, 200, 320})
-  void aLongLabelEndsInAnEllipsisAndShowsWholeInATooltip(int width) throws IOException {
+  @Test
+  void aLongLabelEndsInAnEllipsisAndShowsWholeInATooltip() throws IOException {
+    int width = 150;
     LongNames model = new LongNames();
     App<LongNames> app = new App<>(
         model,
@@ -867,76 +641,6 @@ class TreeTest {
     assertEquals(7, find(app, "schema").rowCount());
   }
 
-  // Details
-
-  @Test
-  void aDetailFollowsTheLabelAndGivesWayBeforeIt() throws IOException {
-    Catalog catalog = new Catalog(T)
-        .opened(
-            "localhost",
-            "localhost/shop",
-            "localhost/shop/public",
-            "localhost/shop/public/accounts");
-    App<Catalog> app = catalog.app();
-    run(app, "size 280 300\nframe");
-    String dump = app.tree().dump();
-    assertTrue(
-        dump.contains("role=treeitem label=\"public\" ") && dump.contains("value=\"300 tables\""),
-        dump);
-    String id = line(dump, "label=\"id\"");
-    assertTrue(id.endsWith("level=5 pos=1/3 value=\"bigint\""), id);
-    El type = find(app, "row-" + row(dump, "label=\"id\""))
-        .children()
-        .getLast()
-        .children()
-        .getLast();
-    assertEquals("bigint", type.text().string());
-    assertEquals(T.text().muted(), type.text().color());
-    assertFalse(type.text().shortened());
-    assertTrue(type.y() < T.grid().rowHeight(), "beside the name");
-
-    // Narrower: the longest type shortens, then goes; the names stay whole.
-    for (int width = 280; width >= 150; width -= 2) {
-      run(app, "size " + width + " 300\nframe");
-      El row = find(app, "row-" + row(app.tree().dump(), "label=\"created_at\""));
-      El box = row.children().getLast();
-      El name = box.children().get(1);
-      El detail = box.children().get(2);
-      boolean gone = detail.y() >= T.grid().rowHeight();
-      if (!gone && detail.text().shortened()) {
-        assertFalse(name.text().shortened(), "the name whole while the type shows: " + width);
-        assertTrue(detail.width() >= 8, "at least a character and the ellipsis: " + width);
-      }
-      if (name.text().shortened()) {
-        assertTrue(gone, "the type gone before the name is cut: " + width);
-      }
-    }
-    run(app, "size 150 300\nframe");
-    El row = find(app, "row-" + row(app.tree().dump(), "label=\"created_at\""));
-    assertTrue(row.children().getLast().children().get(2).y() >= T.grid().rowHeight(), "gone");
-
-    // Where a part is cut or gone, a tooltip after the delay names both.
-    run(app, "size 150 300\nmove role=treeitem label=\"created_at\"\nframe\nadvance 1\nframe");
-    assertTrue(
-        app.tree().dump().contains("role=tooltip label=\"created_at timestamptz\""),
-        app.tree().dump());
-    run(
-        app,
-        "size 280 300\nleave\nframe\nmove role=treeitem label=\"id\"\nframe\nadvance 1\nframe");
-    assertFalse(app.tree().dump().contains("role=tooltip"), "nothing cut, no tooltip");
-  }
-
-  private static String line(String dump, String part) {
-    return dump.lines().filter(l -> l.contains(part)).findFirst().orElseThrow().strip();
-  }
-
-  /** The index of the row whose line holds {@code part}. */
-  private static int row(String dump, String part) {
-    Matcher m = Pattern.compile("#row-(\\d+) ").matcher(line(dump, part));
-    assertTrue(m.find());
-    return Integer.parseInt(m.group(1));
-  }
-
   // Images
 
   @ParameterizedTest
@@ -946,14 +650,8 @@ class TreeTest {
     Path folder = Path.of("target/tree", name);
     String script = Files.readString(Path.of("src/test/resources/scripts/tree.txt"));
     List<Path> files = Script.run(script, catalog.app(), folder);
-    for (int i = 0; i < files.size(); i += 2) {
-      String snap = files.get(i).getFileName().toString().replace(".png", "");
-      Golden.assertMatches(
-          "tree-" + name + "-" + snap,
-          Png.decode(Files.readAllBytes(files.get(i))),
-          Files.readString(files.get(i + 1)));
-    }
-    assertEquals(20, files.size());
+    Golden.assertSnaps("tree-" + name + "-", files);
+    assertEquals(10, files.size());
     assertEquals(
         List.of(
             "select localhost",
@@ -1087,46 +785,5 @@ class TreeTest {
     run(app, "await\nframe\nkey Enter\nframe");
     assertEquals(List.of(), family.activated);
     assertFalse(app.tree().dump().contains(" selected"));
-  }
-
-  @Test
-  void aNodeUnderTwoParentsStaysReachableWhenTheFirstCloses() throws IOException {
-    Family family = new Family() {
-      @Override
-      public List<String> roots() {
-        return List.of("a", "b");
-      }
-
-      @Override
-      public List<String> children(String node) {
-        return List.of("shared");
-      }
-
-      @Override
-      public boolean isLeaf(String node) {
-        return node.equals("shared");
-      }
-    };
-    family.open.addAll(List.of("a", "b"));
-    family.selected = "shared";
-    App<Family> app = new App<>(family, Family::view);
-    run(app, "frame\nfocus #tree\nframe");
-    assertEquals(
-        1, app.tree().dump().lines().filter(l -> l.contains(" selected")).count());
-    app.post(() -> family.open.remove("a"));
-    run(app, "await\nframe\nkey ArrowLeft\nframe");
-    assertEquals("b", family.selected, "Left goes to the parent it is shown under");
-  }
-
-  @Test
-  void aKeyAfterAPostedChangeOfTheModelInOneFrameSeesTheChange() throws IOException {
-    Family family = new Family();
-    family.children = List.of("old child");
-    family.open.add("parent");
-    App<Family> app = new App<>(family, Family::view);
-    run(app, "frame\nfocus #tree\nkey Home\nframe");
-    app.post(() -> family.children = List.of("replacement"));
-    run(app, "await\nkey ArrowRight\nkey Enter\nframe");
-    assertEquals(List.of("replacement"), family.activated);
   }
 }

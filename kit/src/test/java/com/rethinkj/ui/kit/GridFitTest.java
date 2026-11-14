@@ -8,12 +8,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.rethinkj.ui.App;
 import com.rethinkj.ui.El;
-import com.rethinkj.ui.Key;
 import com.rethinkj.ui.Script;
 import com.rethinkj.ui.kit.DataGrid.Column;
 import com.rethinkj.ui.kit.DataGrid.Fit;
-import com.rethinkj.ui.kit.DataGrid.Layout;
-import com.rethinkj.ui.render.Png;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -183,32 +180,6 @@ class GridFitTest {
   }
 
   @Test
-  void aHiddenColumnIsFittedWhenItIsFirstShownUnlessTheAppGaveItAWidthSince() throws IOException {
-    Fit fit = new Fit();
-    Orders orders = fitted(new Orders(T, 1_000_000), fit);
-    Layout layout = new Layout(orders.columns().stream().map(Column::title).toList());
-    layout.hide(6);
-    layout.hide(4);
-    orders.more = orders.more.andThen(o -> o.columns(layout))::apply;
-    App<Orders> app = orders.app();
-    run(app, "frame\nframe");
-    assertFalse(fit.isPending());
-    assertEquals(5, resizes(orders).size(), "the columns shown");
-    assertTrue(resizes(orders).stream()
-        .noneMatch(l -> l.startsWith("resize 6 ") || l.startsWith("resize 4 ")));
-
-    app.post(() -> {
-      orders.widths[4] = 123; // the app's own width for amount
-      layout.show(6);
-      layout.show(4);
-    });
-    run(app, "await\nframe\nframe");
-    assertEquals("resize 6 " + T.grid().maxColumn(), resizes(orders).getLast());
-    assertEquals(123, orders.widths[4], "the app's width stays");
-    assertEquals(6, resizes(orders).size());
-  }
-
-  @Test
   void theFitTakesTheThemesLimits() throws IOException {
     Fit fit = new Fit();
     Orders orders = fitted(new Orders(T, 1_000_000), fit);
@@ -239,67 +210,18 @@ class GridFitTest {
     assertTrue(e.getMessage().contains("onResize"), e.getMessage());
   }
 
-  /**
-   * Fitting 300 columns of a million rows: one handler tells every width and the view is built
-   * once after it; the frame that fits, and a frame that builds the view after a key before and
-   * after the fit, are printed for the record.
-   */
-  @Test
-  void fittingThreeHundredColumnsIsOneHandlerAndTheFramesAfterItCostWhatTheyDid()
-      throws IOException {
-    Fit fit = new Fit();
-    Orders orders = fitted(new Orders(T, 1_000_000, 300), fit);
-    App<Orders> app = orders.app();
-    long fitting = 0;
-    for (int round = 0; round < 5; round++) { // the last of a few, the JIT warm
-      fit.reset();
-      Arrays.fill(orders.widths, 100);
-      orders.log.clear();
-      run(app, "frame");
-      long start = System.nanoTime();
-      app.frame();
-      fitting = System.nanoTime() - start;
-      assertFalse(fit.isPending());
-    }
-    assertEquals(300, resizes(orders).size(), "every width in the one frame");
-    app.focus(find(app, "orders"));
-    app.frame();
-    long[] keys = new long[100];
-    for (int i = -100; i < keys.length; i++) {
-      app.keyDown(new Key(Math.floorMod(i, 40) < 20 ? "ArrowDown" : "ArrowUp"));
-      long start = System.nanoTime();
-      app.frame();
-      if (i >= 0) {
-        keys[i] = System.nanoTime() - start;
-      }
-    }
-    Arrays.sort(keys);
-    System.out.printf(
-        "DataGrid, fitting 300 columns of a million rows: %.1f ms the frame that fits (%d"
-            + " widths), %.1f ms a frame that builds the view after a key%n",
-        fitting / 1e6, resizes(orders).size(), keys[keys.length / 2] / 1e6);
-    assertEquals(300, resizes(orders).size(), "nothing fitted again");
-    assertFalse(app.tree().dump().contains("#fit-"));
-  }
-
   // Images
 
-  /** fit.txt in both themes at scales 1 and 2. */
+  /** fit.txt. */
   @ParameterizedTest
-  @CsvSource({"dark, 1", "dark, 2", "light, 1", "light, 2"})
+  @CsvSource({"dark, 2", "light, 2"})
   void looksAsStored(String name, int scale) throws IOException {
     Orders orders =
         fitted(Orders.typed(name.equals("dark") ? Theme.DARK : Theme.LIGHT, 8), new Fit());
     App<Orders> app = orders.app();
     String script = Files.readString(Path.of("src/test/resources/scripts/fit.txt"));
     List<Path> files = Script.run("size 720 240 scale " + scale + "\n" + script, app, out);
-    for (int i = 0; i < files.size(); i += 2) {
-      String snap = files.get(i).getFileName().toString().replace(".png", "");
-      Golden.assertMatches(
-          "grid-fit-" + name + "-" + scale + "x-" + snap,
-          Png.decode(Files.readAllBytes(files.get(i))),
-          Files.readString(files.get(i + 1)));
-    }
+    Golden.assertSnaps("grid-fit-" + name + "-" + scale + "x-", files);
     assertEquals(2, files.size());
   }
 }

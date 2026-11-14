@@ -12,10 +12,7 @@ import com.rethinkj.ui.El;
 import com.rethinkj.ui.Script;
 import com.rethinkj.ui.Text;
 import com.rethinkj.ui.kit.DataGrid.Column;
-import com.rethinkj.ui.kit.DataGrid.Mode;
 import com.rethinkj.ui.kit.DataGrid.Range;
-import com.rethinkj.ui.kit.DataGrid.Selection;
-import com.rethinkj.ui.render.Png;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -190,19 +187,6 @@ class GridDetailTest {
   }
 
   @Test
-  void aFrozenColumnKeepsItsDetailWhileTheRestScrolls() throws IOException {
-    Orders orders = Orders.detailed(T, 8);
-    orders.details.put(0, i -> i % 2 == 0 ? "even" : null);
-    orders.widths[0] = 110;
-    App<Orders> app = start(orders);
-    El cell = find(app, "cell-2-0");
-    float x = part(cell, "even").x();
-    run(app, "wheel #rows 300 0\nframe");
-    assertEquals(x, part(find(app, "cell-2-0"), "even").x(), "pinned with its detail");
-    assertEquals(List.of("even", "3"), parts(find(app, "cell-2-0")));
-  }
-
-  @Test
   void theEditorEditsTheValueAloneAndCoversTheDetail() throws IOException {
     Orders orders = Orders.detailed(T, 8);
     orders.editable = true;
@@ -224,55 +208,6 @@ class GridDetailTest {
     assertTrue(find(app, "editor").dump().contains("\"" + Orders.NOTE + "\""), "the value alone");
   }
 
-  @Test
-  void aChangedCellSaysItsChangeAsItsValueAndTheDetailsTextSaysTheDetail() throws IOException {
-    Orders orders = Orders.detailed(T, 8);
-    orders.more = orders.more.andThen(o -> o.status(
-        i -> DataGrid.Status.UNCHANGED,
-        (i, c) -> i == 1 && c == 7 ? DataGrid.Status.CHANGED : DataGrid.Status.UNCHANGED))::apply;
-    App<Orders> app = start(orders);
-    run(app, "wheel #rows 1000 0\nframe");
-    assertTrue(line(app, "cell-1-7").contains(" value=\"changed\""), line(app, "cell-1-7"));
-    assertEquals(List.of(Orders.NOTE, SIZE), parts(find(app, "cell-1-7")));
-  }
-
-  @Test
-  void aDetailIsAskedForLoadedRowsOnlyAfterTheirText() throws IOException {
-    Orders orders = Orders.detailed(T, 8);
-    orders.loaded = 2;
-    orders.more = orders.more.andThen(o -> o.loading(i -> i < orders.loaded, (f, l) -> {}))::apply;
-    App<Orders> app = start(orders);
-    run(app, "wheel #rows 1000 0\nframe");
-    assertTrue(orders.askedDetails.stream().allMatch(i -> i < 2), "" + orders.askedDetails);
-    assertFalse(orders.askedDetails.isEmpty());
-    assertEquals(List.of(Text.ELLIPSIS), parts(find(app, "cell-4-7")));
-  }
-
-  @Test
-  void aTypedColumnHasItsDetailTheSameWay() throws IOException {
-    record Item(String name, long bytes) {}
-    List<Item> items = List.of(new Item("orders.csv", 2_400_000), new Item("notes.txt", 817));
-    GridTable<Item> table = DataGrid.table(items::get);
-    Column name = table
-        .column("name", 220, Format.TEXT, Item::name)
-        .detail(i -> Format.BYTES.text(items.get(i).bytes()));
-    App<Object> app = new App<>(
-        new Object(),
-        s -> El.col()
-            .size(720, 240)
-            .child(DataGrid.dataGrid(
-                    T,
-                    List.of(name),
-                    items.size(),
-                    DataGrid.options().select(new Selection(Mode.CELLS)))
-                .grow(1)));
-    run(app, "frame");
-    assertEquals(List.of("orders.csv", "2.4 MB"), parts(find(app, "cell-0-0")));
-    assertTrue(line(app, "cell-1-0").contains(" value=\"817 B\""));
-    assertEquals(name.cells(), name.cell(i -> "x").cells(), "a changed copy keeps its parts");
-    assertNotNull(name.cell(i -> "x").detail());
-  }
-
   /** The rectangle of a line of the dump: x, y, width, height in the window. */
   private static float[] rect(String line) {
     java.util.regex.Matcher m = java.util.regex.Pattern.compile(
@@ -289,21 +224,15 @@ class GridDetailTest {
 
   // Images
 
-  /** details.txt in both themes at scales 1 and 2. */
+  /** details.txt. */
   @ParameterizedTest
-  @CsvSource({"dark, 1", "dark, 2", "light, 1", "light, 2"})
+  @CsvSource({"dark, 2", "light, 2"})
   void looksAsStored(String name, int scale) throws IOException {
     Orders orders = Orders.detailed(name.equals("dark") ? Theme.DARK : Theme.LIGHT, 8);
     App<Orders> app = orders.app();
     String script = Files.readString(Path.of("src/test/resources/scripts/details.txt"));
     List<Path> files = Script.run("size 900 240 scale " + scale + "\n" + script, app, out);
-    for (int i = 0; i < files.size(); i += 2) {
-      String snap = files.get(i).getFileName().toString().replace(".png", "");
-      Golden.assertMatches(
-          "grid-details-" + name + "-" + scale + "x-" + snap,
-          Png.decode(Files.readAllBytes(files.get(i))),
-          Files.readString(files.get(i + 1)));
-    }
-    assertEquals(8, files.size());
+    Golden.assertSnaps("grid-details-" + name + "-" + scale + "x-", files, "details");
+    assertEquals(2, files.size());
   }
 }

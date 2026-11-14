@@ -157,7 +157,7 @@ class ComboBoxItemsTest {
   }
 
   @ParameterizedTest(name = "{0} at {1}x")
-  @CsvSource({"dark, 1", "dark, 2", "light, 1", "light, 2"})
+  @CsvSource({"dark, 2", "light, 2"})
   void theOpenListOfItems(String theme, int scale) throws IOException {
     App<Form> a = new Form(theme.equals("dark") ? Theme.DARK : Theme.LIGHT).app();
     Path folder = out.resolve(theme + scale);

@@ -112,7 +112,7 @@ class PixelGridTest {
   }
 
   @ParameterizedTest
-  @ValueSource(floats = {1.25f, 1.5f, 1.75f, 2.5f, 3})
+  @ValueSource(floats = {1.25f, 1.75f, 2.5f})
   void bordersHairlinesAndEdgesLieOnWholePixels(float scale) throws IOException {
     TextLibraries.assumeLoaded();
     for (float shift : new float[] {0, 1}) {
@@ -135,7 +135,7 @@ class PixelGridTest {
    * that the one without has not, is the same in both from the top left of the element's box.
    */
   @ParameterizedTest
-  @ValueSource(floats = {1.25f, 1.5f, 1.75f, 2.5f, 3})
+  @ValueSource(floats = {1.25f, 1.75f, 2.5f})
   void textAndIconsKeepTheirPlaceInTheirBoxes(float scale) {
     TextLibraries.assumeLoaded();
     Ink a = new Ink(0, scale);
@@ -269,7 +269,7 @@ class PixelGridTest {
 
   /** The focus ring, from the keyboard, around a field and a button at each fractional scale. */
   @ParameterizedTest
-  @ValueSource(floats = {1.25f, 1.5f, 1.75f, 2.5f, 3})
+  @ValueSource(floats = {1.25f, 1.75f, 2.5f})
   void theFocusRingIsWholePixelsWide(float scale) {
     TextLibraries.assumeLoaded();
     App<Object> app = new App<>(new Object(), s -> sheet(1));

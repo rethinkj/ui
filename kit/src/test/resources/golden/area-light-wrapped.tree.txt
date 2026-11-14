@@ -1,3 +1,0 @@
-el 0,0 360x220
-  text #query role=textbox label="SQL" "    SELECT o.id,\n    \to.total,\n\tc.name\nFROM orders o\nJOIN customers c ON c.id = o.customer_id AND c." … "4-01-01'\nORDER BY o.total DESC\nLIMIT 50;" length 226 12,12 336x114 lines 1-6/9 thumb-x 15,117 177.29x6 thumb-y 339,15 6x70.37
-  text #notes role=textbox label="Notes" "Ship by Friday, from the north warehouse. The courier comes at nine and leaves by noon; the gate closes at five." 12,134 336x41 lines 1-1/1 scroll 0,15.5 thumb-y 339,146.6 6x25.4 focused caret 112 (1:113)

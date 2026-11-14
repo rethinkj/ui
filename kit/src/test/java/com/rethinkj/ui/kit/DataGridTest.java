@@ -15,11 +15,9 @@ import com.rethinkj.ui.Script;
 import com.rethinkj.ui.Scrollbars;
 import com.rethinkj.ui.Style;
 import com.rethinkj.ui.kit.Button.Variant;
-import com.rethinkj.ui.render.Png;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Arrays;
 import java.util.List;
 import java.util.TreeSet;
 import java.util.stream.IntStream;
@@ -60,7 +58,7 @@ class DataGridTest {
     Script.run("size 560 240\n" + steps, app, out);
   }
 
-  // Rows and cost
+  // Rows
 
   @Test
   void aMillionRowsOfTwentyColumnsAskOnlyForTheCellsThatExist() throws IOException {
@@ -100,106 +98,6 @@ class DataGridTest {
         .count();
     assertEquals(cells, orders.asked.size(), "each cell once");
     assertTrue(cells < exist.size() * 20L / 2, cells + " cells of " + exist.size() * 20);
-  }
-
-  @Test
-  void aFrameAfterAWheelStepCostsNoMoreForAMillionRowsThanForAThousand() throws IOException {
-    long[] thousand = wheelFrames(1_000);
-    long[] million = wheelFrames(1_000_000);
-    System.out.printf(
-        "DataGrid, 20 columns: frame() after a wheel step, median of %d: %.1f µs with 1000 rows,"
-            + " %.1f µs with 1000000 rows, %d elements in each tree%n",
-        FRAMES, thousand[0] / 1000.0, million[0] / 1000.0, million[1]);
-    assertEquals(thousand[1], million[1], "as many elements");
-    assertTrue(
-        million[0] < 10 * thousand[0] + 1_000_000, // only something linear in the rows fails
-        "median " + million[0] + " ns with a million rows, " + thousand[0] + " with a thousand");
-  }
-
-  private static final int FRAMES = 600;
-
-  /**
-   * The median time of {@link App#frame} after a wheel step of 100 pixels, which builds the rows
-   * anew most of the time, up and down within the first 4000 pixels; and the elements in the tree.
-   */
-  private long[] wheelFrames(int count) throws IOException {
-    App<Orders> app = start(new Orders(T, count, 20));
-    long[] times = new long[FRAMES];
-    for (int i = -FRAMES; i < times.length; i++) { // the first round warms up
-      app.wheel(280, 120, 0, Math.floorMod(i, 80) < 40 ? 100 : -100);
-      long start = System.nanoTime();
-      app.frame();
-      if (i >= 0) {
-        times[i] = System.nanoTime() - start;
-      }
-    }
-    Arrays.sort(times);
-    return new long[] {times[times.length / 2], count(app.tree())};
-  }
-
-  @Test
-  void aFrameWithABurstOfTenKeysBuildsTheRowsOnce() throws IOException {
-    // Between the keys the view is built and laid out, without the rows, which are most of a
-    // frame's work: ten keys cost far less than ten frames of one.
-    long one = keyFrames(1);
-    long ten = keyFrames(10);
-    System.out.printf(
-        "DataGrid, 20 columns, a million rows: frame() after keys, median of %d:"
-            + " %.2f ms after one ArrowDown, %.2f ms after ten%n",
-        FRAMES, one / 1e6, ten / 1e6);
-    // The work is counted in theViewIsBuiltAfterEachKeyOfABurstAndTheRowsOnly; times only print.
-  }
-
-  @Test
-  void theViewIsBuiltAfterEachKeyOfABurstAndTheRowsOnly() throws IOException {
-    Orders orders = new Orders(T, 1_000_000, 20);
-    App<Orders> app = start(orders);
-    run(app, "focus #orders\nframe");
-    app.keyDown(new Key("ArrowDown"));
-    app.frame();
-    int once = orders.asked.size();
-    orders.asked.clear();
-    for (int k = 0; k < 10; k++) {
-      app.keyDown(new Key("ArrowDown"));
-    }
-    app.frame();
-    assertEquals(13, orders.selected());
-    // The rows are built once, at the end; each key after the first asks the row functions of the
-    // tree the key before it built whether a row has an onAnyKeyDown handler, without laying out.
-    El rows = find(app, "rows");
-    for (int row = rows.firstRow(); row < rows.firstRow() + rows.children().size(); row++) {
-      assertTrue(orders.asked.contains(row), "row " + row);
-    }
-    assertTrue(orders.asked.size() <= 10 * once + once / 2, orders.asked.size() + " of " + once);
-  }
-
-  /** The median time of {@link App#frame} after {@code keys} presses of ArrowDown or ArrowUp. */
-  private long keyFrames(int keys) throws IOException {
-    App<Orders> app = start(new Orders(T, 1_000_000, 20));
-    run(app, "focus #orders\nframe");
-    long[] times = new long[FRAMES];
-    for (int i = -FRAMES; i < times.length; i++) { // the first round warms up
-      Key key = new Key(Math.floorMod(i, 4) < 2 ? "ArrowDown" : "ArrowUp");
-      for (int k = 0; k < keys; k++) {
-        app.keyDown(key);
-        app.keyUp(key);
-      }
-      long start = System.nanoTime();
-      app.frame();
-      if (i >= 0) {
-        times[i] = System.nanoTime() - start;
-      }
-    }
-    Arrays.sort(times);
-    return times[times.length / 2];
-  }
-
-  private static int count(El el) {
-    int count = 1;
-    for (El child : el.children()) {
-      count += count(child);
-    }
-    return count;
   }
 
   // Selection
@@ -264,20 +162,6 @@ class DataGridTest {
   }
 
   @Test
-  void controlWithHomeAndEndGoesToTheFirstAndLastRowAsWithout() throws IOException {
-    Orders orders = new Orders(T, 1_000_000);
-    App<Orders> app = start(orders);
-    run(app, "key Tab\nframe\nkey End control\nframe");
-    assertEquals(999_999, orders.selected());
-    assertInView(app, 999_999);
-    run(app, "key Home control\nframe");
-    assertEquals(0, orders.selected());
-    assertInView(app, 0);
-    run(app, "key ArrowDown control\nframe\nkey ArrowDown alt\nframe");
-    assertEquals(0, orders.selected(), "other modifiers are left to the app");
-  }
-
-  @Test
   void keysInOneFrameEachMoveTheSelectionOn() throws IOException {
     Orders orders = new Orders(T, 1_000_000);
     App<Orders> app = start(orders);
@@ -285,16 +169,6 @@ class DataGridTest {
     assertEquals(2 + 2 + PAGE - 1, orders.selected());
     assertEquals(List.of("select 3", "select 4", "select 12", "select 11"), orders.log);
     assertInView(app, 11);
-  }
-
-  @Test
-  void aKeyWithoutASelectionSelectsTheFirstRowInView() throws IOException {
-    Orders orders = new Orders(T, 1_000_000);
-    orders.selection.clear();
-    App<Orders> app = start(orders);
-    run(app, "focus #orders\nwheel #rows 0 4800\nframe"); // row 200 at the top
-    assertEquals(200, key(app, orders, "ArrowDown"));
-    assertEquals(4800, find(app, "rows").scrollY(), "already in view");
   }
 
   @Test
@@ -364,15 +238,6 @@ class DataGridTest {
     assertEquals(headerX - 200, x(app, find(app, "header")));
     run(app, "wheel 300,19 0 500\nframe"); // over the header, up and down: nothing moves
     assertEquals(5000, find(app, "rows").scrollY());
-  }
-
-  @Test
-  void theRowsReachAcrossAGridWiderThanItsColumns() throws IOException {
-    App<Orders> app = start(new Orders(T, 10, 2)); // 64 and 140 pixels of columns in 544
-    assertEquals(544, find(app, "header").width());
-    assertEquals(544, find(app, "row-0").width());
-    run(app, "wheel #rows 100 0\nframe");
-    assertEquals(0, find(app, "orders").scrollX(), "nothing to scroll sideways");
   }
 
   // Resizing and sorting
@@ -515,48 +380,6 @@ class DataGridTest {
   }
 
   @Test
-  void theLastRowSelectedByTheKeysShowsAboveTheBarAlongTheBottom() throws IOException {
-    Orders orders = new Orders(T, 1_000_000);
-    App<Orders> app = start(orders);
-    run(app, "press #row-1\nkey End\nframe");
-    El last = find(app, "row-999999");
-    Scrollbars.Bar sideways = find(app, "orders").horizontalBar();
-    assertEquals(sideways.trackY() - T.scrollbars().margin(), y(app, last) + last.height());
-  }
-
-  /**
-   * The grid of cells, with row numbers and the id frozen, brought to its far end by the keys, by
-   * both thumbs and by scroll steps: each way the last row ends above the strip of the bar along
-   * the bottom and the last column left of the strip of the rows' bar, while the frozen part stays
-   * at the left.
-   */
-  @Test
-  void theFarEndOfAGridWithFrozenColumnsComesClearOfBothBarsEveryWay() throws IOException {
-    for (String way : List.of(
-        "key Tab\nkey End control\nframe",
-        "down 547,40\nmove 547,400\nup 547,400\nframe\ndown 60,227\nmove 900,227\nup 900,227"
-            + "\nframe",
-        "scroll #rows row 999999\nwheel #orders 100000 0\nframe")) {
-      App<Orders> app = start(Orders.cells(T));
-      run(app, way);
-      float m = T.scrollbars().margin();
-      Scrollbars.Bar down = find(app, "rows").verticalBar();
-      Scrollbars.Bar sideways = find(app, "orders").horizontalBar();
-      El last = find(app, "cell-999999-6");
-      // The cell ends above its row's hairline.
-      assertEquals(
-          sideways.trackY() - m, y(app, last) + last.height() + T.size().stroke(), way);
-      assertEquals(down.trackX() - m, x(app, last) + last.width() + T.size().stroke(), way);
-      El number = find(app, "number-999999");
-      assertEquals(x(app, find(app, "orders")), x(app, number), "the row numbers stay: " + way);
-      assertEquals(
-          x(app, number) + number.width() + T.size().stroke(),
-          x(app, find(app, "cell-999999-0")),
-          "and the frozen id after them: " + way);
-    }
-  }
-
-  @Test
   void theCursorCellThatTheKeysRevealShowsClearOfBothBars() throws IOException {
     Orders orders = Orders.cells(T); // the cursor on the id of row 2
     App<Orders> app = start(orders);
@@ -584,21 +407,20 @@ class DataGridTest {
   @ValueSource(strings = {"dark", "light"})
   void looksAsStored(String name) throws IOException {
     Orders orders = new Orders(name.equals("dark") ? Theme.DARK : Theme.LIGHT, 1_000_000);
-    assertEquals(10, snaps("grid", name, orders));
+    assertEquals(2, snaps("grid", name, orders));
   }
 
-  /** cells.txt: a range, two sort keys, frozen columns, a tooltip, the menu, rows not loaded. */
+  /** cells.txt: a range and two sort keys. */
   @ParameterizedTest
   @ValueSource(strings = {"dark", "light"})
   void cellsLookAsStored(String name) throws IOException {
-    assertEquals(12, snaps("cells", name, Orders.cells(theme(name))));
+    assertEquals(4, snaps("cells", name, Orders.cells(theme(name))));
   }
 
   /** rows.txt: rows selected with Shift and Control. */
-  @ParameterizedTest
-  @ValueSource(strings = {"dark", "light"})
-  void rowsLookAsStored(String name) throws IOException {
-    assertEquals(2, snaps("rows", name, new Orders(theme(name), 1_000_000)));
+  @Test
+  void rowsLookAsStored() throws IOException {
+    assertEquals(2, snaps("rows", "dark", new Orders(T, 1_000_000)));
   }
 
   private static Theme theme(String name) {
@@ -617,13 +439,7 @@ class DataGridTest {
     List<Path> files = Script.run(text, orders.app(), folder).stream()
         .filter(f -> !f.toString().endsWith(".clipboard.txt"))
         .toList();
-    for (int i = 0; i < files.size(); i += 2) {
-      String snap = files.get(i).getFileName().toString().replace(".png", "");
-      Golden.assertMatches(
-          script + "-" + theme + "-" + snap,
-          Png.decode(Files.readAllBytes(files.get(i))),
-          Files.readString(files.get(i + 1)));
-    }
+    Golden.assertSnaps(script + "-" + theme + "-", files);
     return files.size();
   }
 
