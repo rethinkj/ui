@@ -6,9 +6,7 @@ import com.rethinkj.ui.Cursor;
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.Style;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.function.IntConsumer;
 
 /**
@@ -35,8 +33,7 @@ public final class Breadcrumb {
    */
   public static final class State {
     final Menu.State hidden = new Menu.State();
-    float width = Float.NaN;
-    final Map<String, Float> widths = new HashMap<>();
+    final Fitting fitting = new Fitting();
     final Roving keys = new Roving();
 
     /** The menu of the parts the ellipsis stands for. */
@@ -55,19 +52,10 @@ public final class Breadcrumb {
       throw new IllegalArgumentException("A breadcrumb needs at least the current place.");
     }
     float gap = t.space().xs();
-    int first = first(t, state, parts, gap);
-    // grow(1) fills a row's width; the most height keeps it a row high in a column with room.
-    El bar = row()
-        .role("navigation")
-        .label("Breadcrumb")
-        .h(t.size().control())
-        .grow(1)
-        .minSize(0, t.size().control())
-        .maxSize(Float.POSITIVE_INFINITY, t.size().control())
-        .gap(gap)
-        .align(Style.Align.CENTER)
-        .clip()
-        .onResize((w, h) -> state.width = w);
+    int first = parts.size()
+        - state.fitting.fit(
+            t, parts.size(), Fitting.Direction.SUFFIX, 1, i -> state.fitting.width(id(parts, i)));
+    El bar = state.fitting.row(t).role("navigation").label("Breadcrumb");
     List<El> stops = new ArrayList<>();
     if (first > 0) {
       List<Menu.Item> items = new ArrayList<>();
@@ -79,7 +67,7 @@ public final class Breadcrumb {
           .key("more")
           .role("button")
           .label("Hidden parts")
-          .onResize((w, h) -> state.widths.put("more", w));
+          .onResize(state.fitting.measure("more"));
       stops.add(more);
       bar.child(Menu.dropdown(t, more, state.hidden, items));
     }
@@ -91,7 +79,7 @@ public final class Breadcrumb {
           .gap(gap)
           .align(Style.Align.CENTER)
           .shrink(0)
-          .onResize((w, h) -> state.widths.put(id(parts, at), w));
+          .onResize(state.fitting.measure(id(parts, at)));
       if (i > 0) {
         unit.child(Icon.icon(
             t, Symbol.CHEVRON_RIGHT, Icon.Variant.MUTED, t.badge().text().size()));
@@ -158,36 +146,5 @@ public final class Breadcrumb {
 
   private static String id(List<String> parts, int i) {
     return i + ":" + parts.get(i);
-  }
-
-  /**
-   * The first part that fits with the ellipsis before it, the current place always among them,
-   * as the last layout gave the widths; 0, the whole path, until every width is known.
-   */
-  private static int first(Theme t, State state, List<String> parts, float gap) {
-    if (Float.isNaN(state.width)) {
-      return 0;
-    }
-    float[] widths = new float[parts.size()];
-    float total = 0;
-    for (int i = 0; i < parts.size(); i++) {
-      Float w = state.widths.get(id(parts, i));
-      if (w == null) {
-        return 0;
-      }
-      widths[i] = w + (i == 0 ? 0 : gap);
-      total += widths[i];
-    }
-    if (total <= state.width) {
-      return 0;
-    }
-    // The first part shown gets the separator before it, as each after the first does.
-    float room = state.width - state.widths.getOrDefault("more", t.size().control()) - gap;
-    int first = 0;
-    while (first < parts.size() - 1 && total > room) {
-      total -= widths[first];
-      first++;
-    }
-    return first;
   }
 }

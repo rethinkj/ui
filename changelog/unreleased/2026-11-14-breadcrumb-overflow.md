@@ -1,0 +1,1 @@
+- Breadcrumbs keep every trailing path part that fits beside the ellipsis, counting the gap after it once.
