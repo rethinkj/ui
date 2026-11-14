@@ -5,11 +5,11 @@
 name: Build
 
 on:
-  # Not for a change of the documentation site alone, which docs.yml builds.
+  # Not for a push that changes the documentation site alone, which docs.yml builds.
   push:
     paths-ignore: ['docs/**', '.github/workflows/docs.yml']
+  # Every pull request: main requires both builds, also of one that changes only the site.
   pull_request:
-    paths-ignore: ['docs/**', '.github/workflows/docs.yml']
   # On main this publishes; on another branch it is a dry run into a folder of the runner, kept as
   # an artifact of the run.
   workflow_dispatch:
