@@ -337,6 +337,7 @@ class DocsExamplesTest {
               IMAGES.containsKey(e.getKey()) ? List.of("dark", "light") : List.<String>of()) {
             App<?> themed = example.app().apply(theme.equals("dark") ? Theme.DARK : Theme.LIGHT);
             themed.textRendering(TextRendering.LINUX); // the same pixels on every platform
+            Snaps.clear(out.resolve(theme));
             Script.run(scaled, themed, out.resolve(theme));
             for (String snap : IMAGES.get(e.getKey())) {
               Path written = out.resolve(theme).resolve(snap + ".png");

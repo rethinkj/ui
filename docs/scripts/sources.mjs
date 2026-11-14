@@ -2,6 +2,7 @@
 // documentation's examples, excerpts of other files (element trees, scripts) and the stored images
 // of the tests. Shared by scripts/docs.mjs, which checks and copies before a build, and by the
 // remark plugin in lib/remark-docs.mjs, which puts them into the pages.
+import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -156,8 +157,12 @@ export function shotImages(attrs, where) {
     if (!name) throw new DocsError(`${where}: a <Shot> needs src, or dark and light`);
     const rows = attrs.rows ? attrs.rows.split(',').map((r) => r.trim()) : null;
     const crop = attrs.crop ? attrs.crop.split('|').map((c) => c.trim()) : null;
-    const part = rows ?? crop;
-    const out = part ? `${name}--${part.map((r) => r.replace(/\W+/g, '-')).join('_')}.png` : `${name}.png`;
+    // Crops are named by a hash of their selectors, which may differ only in punctuation.
+    const out = rows
+      ? `${name}--${rows.map((r) => r.replace(/\W+/g, '-')).join('_')}.png`
+      : crop
+        ? `${name}--crop-${crypto.createHash('sha256').update(crop.join('|')).digest('hex').slice(0, 12)}.png`
+        : `${name}.png`;
     return { name, rows, crop, out };
   };
   return { dark: pick('dark'), light: pick('light') };

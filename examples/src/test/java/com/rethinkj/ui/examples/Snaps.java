@@ -39,15 +39,20 @@ public final class Snaps {
   static void check(String name, Main main) throws IOException {
     assumeText();
     Path out = Path.of("target", name);
-    if (Files.exists(out)) { // snaps of an earlier run that the script no longer takes
-      try (var old = Files.walk(out)) {
-        old.sorted(Comparator.reverseOrder()).forEach(p -> p.toFile().delete());
-      }
-    }
+    clear(out);
     main.run(
         new String[] {"--script", SCRIPTS.resolve(name + ".txt").toString(), "--out", out.toString()
         });
     compare(out, STORED);
+  }
+
+  /** Deletes a folder of snaps from an earlier run, so a snap the script no longer takes fails. */
+  public static void clear(Path out) throws IOException {
+    if (Files.exists(out)) {
+      try (var old = Files.walk(out)) {
+        old.sorted(Comparator.reverseOrder()).forEach(p -> p.toFile().delete());
+      }
+    }
   }
 
   /** Skips the test where FreeType and HarfBuzz cannot be loaded, since the examples have text. */
