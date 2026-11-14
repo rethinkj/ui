@@ -815,6 +815,9 @@ public final class Find {
     String said = count(state, text);
     El count = label(t, Label.Variant.MUTED, said).key("count").shrink(0).fontFeatures("+tnum");
     count.style().minWidth = Len.px(3 * t.size().control());
+    // The rows' gap is xs; the field stands a step m apart from what follows it.
+    float apart = t.space().m() - t.space().xs();
+    count.margin(0, 0, 0, apart);
     boolean searchable = !state.query.isEmpty() && state.error == null;
     El findRow = row().gap(t.space().xs()).align(Style.Align.CENTER);
     if (toggle != null) {
@@ -889,7 +892,8 @@ public final class Find {
                   Button.Variant.SECONDARY,
                   "Replace",
                   searchable ? () -> replace(app, state) : null)
-              .key("replace-one"))
+              .key("replace-one")
+              .margin(0, 0, 0, apart))
           .child(Button.button(
                   t,
                   Button.Variant.SECONDARY,
@@ -971,7 +975,7 @@ public final class Find {
             .size(size, size))
         .child(tool(
                 t,
-                Symbol.TEXT_ASTERISK,
+                Symbol.TEXT_PERIOD_ASTERISK,
                 "Regular expression",
                 "Regular expression (Alt+R)",
                 state.regex,

@@ -5,14 +5,14 @@ package com.rethinkj.ui.kit;
 
 /**
  * The icons of the default icon font, {@link com.rethinkj.ui.text.Font#icons()} (Fluent
- * UI System Icons), that the kit names: 116 of them, for a database tool, the parts of a
+ * UI System Icons), that the kit names: 117 of them, for a database tool, the parts of a
  * window and the data in a table. {@link Icon#icon} shows one.
  *
  * <p>Each symbol is Fluent's icon of the same name: {@link #CHEVRON_RIGHT} is {@code
  * ic_fluent_chevron_right_<size>_regular}. Fluent draws an icon anew for some of the sizes
  * 12, 16, 20, 24, 28, 32, 48 pixels, and each drawing has a code point of its own;
  * {@link #codePoint} picks the one for a size. All have a drawing for 16 but these:
- * {@link #MORE_HORIZONTAL}.
+ * {@link #MORE_HORIZONTAL}, {@link #TEXT_PERIOD_ASTERISK}.
  */
 public enum Symbol {
   ADD(0xF107, 0xF108, 0xF109, 0xF10A, 0xF10B, 0xF58D, 0xF598),
@@ -124,6 +124,7 @@ public enum Symbol {
   TEXT_ASTERISK(0, 0xF03A7, 0xF7A3, 0, 0, 0, 0),
   TEXT_BULLET_LIST_LTR(0, 0xECD8, 0xECD9, 0xECDA, 0, 0, 0),
   TEXT_CASE_TITLE(0, 0xECEC, 0xECED, 0xECEE, 0, 0, 0),
+  TEXT_PERIOD_ASTERISK(0, 0, 0xED4A, 0, 0, 0, 0),
   TEXT_SORT_ASCENDING(0, 0xED5A, 0xF802, 0xED5B, 0, 0, 0),
   TEXT_SORT_DESCENDING(0, 0xED5C, 0xF803, 0xED5D, 0, 0, 0),
   TEXT_T(0xECAD, 0xECAE, 0xED63, 0xED64, 0xED65, 0xECAF, 0xED66),
