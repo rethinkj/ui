@@ -1,0 +1,1 @@
+- A tree's label that is longer than its row now ends in an ellipsis, with the whole text in a tooltip after the theme's delay, also in rows without a detail, where it was cut off in the middle of a letter; a loading text and a failure's message do the same.

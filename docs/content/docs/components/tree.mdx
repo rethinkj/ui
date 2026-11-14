@@ -21,6 +21,8 @@ description: Nodes that open and close, such as servers, databases, schemas, tab
 | `icon(node)` | An element before the label, such as an icon; null by default |
 | `detail(node)` | A text after the label in muted text, such as a column's type or a schema's number of tables; null by default. Asked only for the rows that are built |
 | `loading(node)` | The text of the loading row; "Loading…" by default |
+| `failure(node)` | Why the children of an open node could not be read, or null, the default, while they are on their way: a `Tree.Failure` shows in place of the loading row. Asked only for the rows that are built |
+| `muted(node)` | Whether the label is in muted text, as a schema of the system beside the app's own; false by default. Asked only for the rows that are built |
 
 ## The tree
 
@@ -49,17 +51,41 @@ A secondary press selects the row first and then runs the tree's own `onSecondar
 
 A press selects, a press on the chevron selects and opens or closes, and a double press opens or closes and activates. The marks are icons and need `rethinkj-ui-icons`.
 
-## Details in a narrow tree
+## Children that could not be read
 
-Where a row is too narrow for its label and detail, the detail gives way first: it ends in an ellipsis, and once less than its first character would show it is left out, before the label is cut at all; then the label ends in an ellipsis. Where either is cut or left out, a tooltip after the theme's delay shows both whole.
+While `children(node)` is null, the row below an open node says the model's `loading` text. When the load fails, the model's `failure(node)` returns a `Tree.Failure` instead of null, and the row shows an icon in the danger colour, the message and its action, such as Try again, at the row's end. The tree does not try again by itself: the action does, and `failure` returns null again while the children are on their way.
+
+```java snippet="tree-failure"
+```
+
+<Shot src="kit/tree-{theme}-failed" alt="A schema tree whose last server, backup, is open, and below it a row with a red icon, the message Cannot read the da… cut short and a Try again link at its end" />
+
+The row is not a node: the selection passes it, as it passes the loading row. Its action is a stop for Tab after the tree, Enter and Space run it, and a press on it leaves the focus where it is.
+
+## Muted rows
+
+`muted(node)` puts a row's label in muted text, such as the system's schemas beside the app's own. The icon is the model's and the detail stays as it is; the row works as any other.
+
+<Shot src="kit/tree-{theme}-muted" alt="A schema tree with the database postgres open: its schema pg_catalog and the tables in it in muted text, the schema public in normal text" />
+
+## Long labels and details in a narrow tree
+
+A label longer than its row ends in an ellipsis, and so do a loading text and a failure's message. Where a row has a detail, the detail gives way first: it ends in an ellipsis, and once less than its first character would show it is left out, before the label is cut at all; then the label ends in an ellipsis. Where anything is cut or left out, a tooltip after the theme's delay shows the row's text whole.
 
 <Shot src="kit/tree-{theme}-narrow" alt="A narrow schema tree: the number of tables after public ends in an ellipsis, and the types after the longer column names are left out" />
 
+<Shot src="kit/tree-{theme}-long" alt="A narrow schema tree with a table name that ends in an ellipsis, and below it a tooltip with the whole name" />
+
 ## In a tree dump
 
-The tree is `role=tree`, a list of rows with `rows <first>-<last>/<count>`. Each row is `role=treeitem` with the node's label, the key `row-<index>`, and `expanded` or `expanded=false` (not on leaves), `level=<n>` and `pos=<n>/<siblings>`, and its detail as `value="<detail>"`; the selected row is `selected`. The detail's text is in the dump as any text, in a box after the label. Marks have the key `mark-<index>`.
+The tree is `role=tree`, a list of rows with `rows <first>-<last>/<count>`. Each row is `role=treeitem` with the node's label, the key `row-<index>`, and `expanded` or `expanded=false` (not on leaves), `level=<n>` and `pos=<n>/<siblings>`, and its detail as `value="<detail>"`; the selected row is `selected`. The detail's text is in the dump as any text, in a box after the label. Marks have the key `mark-<index>`. A muted row says nothing more: only its label's colour differs.
 
 ```text file="examples/src/test/resources/golden/docs/tree/selected.tree.txt" start="#schema" count="16"
 ```
 
 A script opens `public` with `press #mark-1` and selects with `press role=treeitem label="orders"`.
+
+The loading row has no role. A failure's row is `role=treeitem` and `invalid`, with the message as its label and as `error="<message>"`, at the level of the children it stands for; its action is `role=button` with its text as the label. A script finds the row with `role=treeitem invalid` and presses the action with `press role=button label="Try again"`:
+
+```text file="kit/src/test/resources/golden/tree-dark-failed.tree.txt" start="invalid" count="5"
+```

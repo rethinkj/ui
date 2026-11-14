@@ -1,0 +1,78 @@
+el 0,0 280x300
+  el #schema role=tree label="Schema" 8,8 264x284 rows 300-314/315 scroll 0,7276 thumb-y 264,266 6x24 focused
+    el #row-300 role=treeitem label="wishlists_001" 8,-68 264x24 expanded=false level=4 pos=292/300
+      el #mark-300 60,-68 16x24
+        text label="chevron_right" "\u{F2AF}" 60,-64 16x16
+      text label="table" "\u{EBF4}" 80,-64 16x16
+      text "wishlists_001" 100,-64 79x16
+    el #row-301 role=treeitem label="wishlists_002" 8,-44 264x24 expanded=false level=4 pos=293/300
+      el #mark-301 60,-44 16x24
+        text label="chevron_right" "\u{F2AF}" 60,-40 16x16
+      text label="table" "\u{EBF4}" 80,-40 16x16
+      text "wishlists_002" 100,-40 82x16
+    el #row-302 role=treeitem label="wishlists_003" 8,-20 264x24 expanded=false level=4 pos=294/300
+      el #mark-302 60,-20 16x24
+        text label="chevron_right" "\u{F2AF}" 60,-16 16x16
+      text label="table" "\u{EBF4}" 80,-16 16x16
+      text "wishlists_003" 100,-16 82x16
+    el #row-303 role=treeitem label="wishlists_004" 8,4 264x24 expanded=false level=4 pos=295/300
+      el #mark-303 60,4 16x24
+        text label="chevron_right" "\u{F2AF}" 60,8 16x16
+      text label="table" "\u{EBF4}" 80,8 16x16
+      text "wishlists_004" 100,8 82x16
+    el #row-304 role=treeitem label="wishlists_005" 8,28 264x24 expanded=false level=4 pos=296/300
+      el #mark-304 60,28 16x24
+        text label="chevron_right" "\u{F2AF}" 60,32 16x16
+      text label="table" "\u{EBF4}" 80,32 16x16
+      text "wishlists_005" 100,32 82x16
+    el #row-305 role=treeitem label="wishlists_006" 8,52 264x24 expanded=false level=4 pos=297/300
+      el #mark-305 60,52 16x24
+        text label="chevron_right" "\u{F2AF}" 60,56 16x16
+      text label="table" "\u{EBF4}" 80,56 16x16
+      text "wishlists_006" 100,56 82x16
+    el #row-306 role=treeitem label="wishlists_007" 8,76 264x24 expanded=false level=4 pos=298/300
+      el #mark-306 60,76 16x24
+        text label="chevron_right" "\u{F2AF}" 60,80 16x16
+      text label="table" "\u{EBF4}" 80,80 16x16
+      text "wishlists_007" 100,80 81x16
+    el #row-307 role=treeitem label="wishlists_008" 8,100 264x24 expanded=false level=4 pos=299/300
+      el #mark-307 60,100 16x24
+        text label="chevron_right" "\u{F2AF}" 60,104 16x16
+      text label="table" "\u{EBF4}" 80,104 16x16
+      text "wishlists_008" 100,104 82x16
+    el #row-308 role=treeitem label="wishlists_009" 8,124 264x24 expanded=false level=4 pos=300/300
+      el #mark-308 60,124 16x24
+        text label="chevron_right" "\u{F2AF}" 60,128 16x16
+      text label="table" "\u{EBF4}" 80,128 16x16
+      text "wishlists_009" 100,128 82x16
+    el #row-309 role=treeitem label="prod-eu" 8,148 264x24 expanded=false level=1 pos=2/4
+      el #mark-309 12,148 16x24
+        text label="chevron_right" "\u{F2AF}" 12,152 16x16
+      text label="server" "\u{F1DC}" 32,152 16x16
+      text "prod-eu" 52,152 51x16
+    el #row-310 role=treeitem label="staging" 8,172 264x24 expanded level=1 pos=3/4
+      el #mark-310 12,172 16x24
+        text label="chevron_down" "\u{F2A2}" 12,176 16x16
+      text label="server" "\u{F1DC}" 32,176 16x16
+      text "staging" 52,176 45x16
+    el #row-311 role=treeitem label="scratch" 8,196 264x24 expanded=false level=2 pos=1/2
+      el #mark-311 28,196 16x24
+        text label="chevron_right" "\u{F2AF}" 28,200 16x16
+      text label="database" "\u{F0D7}" 48,200 16x16
+      text "scratch" 68,200 45x16
+    el #row-312 role=treeitem label="shop" 8,220 264x24 expanded=false level=2 pos=2/2
+      el #mark-312 28,220 16x24
+        text label="chevron_right" "\u{F2AF}" 28,224 16x16
+      text label="database" "\u{F0D7}" 48,224 16x16
+      text "shop" 68,224 31x16
+    el #row-313 role=treeitem label="backup" 8,244 264x24 selected expanded level=1 pos=4/4
+      el #mark-313 12,244 16x24
+        text label="chevron_down" "\u{F2A2}" 12,248 16x16
+      text label="server" "\u{F1DC}" 32,248 16x16
+      text "backup" 52,248 45x16
+    el #row-314 role=treeitem label="Cannot read the databases: connection refused" 8,268 264x24 invalid level=2 pos=1/1 error="Cannot read the databases: connection refused"
+      el 28,280 16x0
+      text label="error_circle" "\u{F3F0}" 48,272 16x16
+      text "Cannot read the databases: connection refused" 68,272 125x16
+      el role=button label="Try again" 197,269 65x22
+        text "Try again" 201,272 57x16

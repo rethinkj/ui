@@ -1,5 +1,5 @@
 el 0,0 280x300
-  el #schema role=tree label="Schema" 8,8 264x284 rows 127-144/311 scroll 0,3120 thumb-y 264,121.24 6x24 focused
+  el #schema role=tree label="Schema" 8,8 264x284 rows 127-144/312 scroll 0,3120 thumb-y 264,120.87 6x24 focused
     el #row-127 role=treeitem label="invoice_lines_008" 8,-64 264x24 expanded=false level=4 pos=119/300
       el #mark-127 60,-64 16x24
         text label="chevron_right" "\u{F2AF}" 60,-60 16x16

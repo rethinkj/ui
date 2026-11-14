@@ -1,5 +1,5 @@
 el 0,0 280x300
-  el #schema role=tree label="Schema" 8,8 264x284 rows 2-19/311 scroll 0,120 thumb-y 264,14.28 6x24 focused
+  el #schema role=tree label="Schema" 8,8 264x284 rows 2-19/312 scroll 0,120 thumb-y 264,14.26 6x24 focused
     el #row-2 role=treeitem label="postgres" 8,-64 264x24 expanded=false level=2 pos=2/3
       el #mark-2 28,-64 16x24
         text label="chevron_right" "\u{F2AF}" 28,-60 16x16
@@ -10,14 +10,14 @@ el 0,0 280x300
         text label="chevron_down" "\u{F2A2}" 28,-36 16x16
       text label="database" "\u{F0D7}" 48,-36 16x16
       text "shop" 68,-36 31x16
-    el #row-4 role=treeitem label="audit" 8,-16 264x24 expanded=false level=3 pos=1/2 value="2 tables"
+    el #row-4 role=treeitem label="audit" 8,-16 264x24 expanded=false level=3 pos=1/2 value="3 tables"
       el #mark-4 44,-16 16x24
         text label="chevron_right" "\u{F2AF}" 44,-12 16x16
       text label="folder" "\u{E643}" 64,-12 16x16
       el 84,-16 184x24
         el 84,-16 0x24
         text "audit" 84,-12 30x16
-        text "2 tables" 118,-12 150x16
+        text "3 tables" 118,-12 150x16
     el #row-5 role=treeitem label="public" 8,8 264x24 expanded level=3 pos=2/2 value="300 tables"
       el #mark-5 44,8 16x24
         text label="chevron_down" "\u{F2A2}" 44,12 16x16

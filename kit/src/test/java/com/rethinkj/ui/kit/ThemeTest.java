@@ -317,6 +317,22 @@ class ThemeTest {
         "tree selected inactive", t.grid().selectedInactive());
     check(failures, "primary text", t.text().primary(), tree, 4.5);
     check(failures, "muted text", t.text().muted(), tree, 4.5);
+    // A row whose children could not be read: its icon in the danger colour, on the same rows
+    // and on the surfaces a tree lies on, and its action in the link colour, also under the
+    // pointer.
+    Map<String, Integer> trees = new java.util.HashMap<>(tree);
+    trees.putAll(Map.of("panel", s.panel(), "window", s.window()));
+    check(failures, "tree danger icon", t.status().danger(), trees, 3);
+    check(
+        failures,
+        "tree action",
+        t.prose().link(),
+        Map.of(
+            "panel", s.panel(),
+            "window", s.window(),
+            "panel hovered", over(s.panel(), s.hover()),
+            "window hovered", over(s.window(), s.hover())),
+        4.5);
     // Scrollbar thumbs lie over the surfaces and the grid's rows, in each of their colours.
     Scrollbars b = t.scrollbars();
     Map<String, Integer> thumbs = Map.of(

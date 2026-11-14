@@ -17,9 +17,12 @@ import java.util.Set;
  * state, which the tree's handlers change and log. localhost and prod-eu are connected: their
  * databases, schemas, tables and columns are known. staging is not: its databases are unknown
  * until opening it asks for them, on a thread of the app's work ({@link App#background}), as a
- * connection to the server would; a script's {@code await} lets the answer in. The schema
- * localhost/shop/public has a few hundred tables, or as many as the test asks for. The view puts the tree in a panel with a margin, which leaves room for the focus
- * ring.
+ * connection to the server would; a script's {@code await} lets the answer in. backup is not
+ * connected either, and refuses the first connection: its row then says why, with Try again,
+ * which asks once more and gets its databases. localhost/postgres has the system's schema
+ * pg_catalog, in muted text. The schema localhost/shop/public has a few hundred tables, or as many
+ * as the test asks for. The view puts the tree in a panel with a margin, which leaves room for the
+ * focus ring.
  */
 final class Catalog implements Tree.Model<Catalog.Node> {
 
@@ -103,6 +106,10 @@ final class Catalog implements Tree.Model<Catalog.Node> {
   int walks; // calls of roots(), one per rebuild of the view
   final List<Node> labelled = new ArrayList<>(); // the nodes whose label was asked for
   final List<Node> detailed = new ArrayList<>(); // the nodes whose detail was asked for
+  final List<Node> mutedAsked = new ArrayList<>(); // the nodes asked whether they are muted
+  final List<Node> failureAsked = new ArrayList<>(); // the nodes asked whether they failed
+  final java.util.Map<Node, String> failures = new java.util.HashMap<>(); // why, till retried
+  int attempts; // connections to backup, of which only the first is refused
   App<Catalog> app; // which runs the work, made by app()
 
   /** The catalog with 300 tables of 3 to 10 columns in localhost/shop/public. */
@@ -119,9 +126,13 @@ final class Catalog implements Tree.Model<Catalog.Node> {
     Node localhost = new Node(Kind.SERVER, "localhost", null);
     Node analytics = new Node(Kind.DATABASE, "analytics", localhost);
     tables(new Node(Kind.SCHEMA, "public", analytics), List.of("events", "page_views", "sessions"));
-    new Node(Kind.SCHEMA, "public", new Node(Kind.DATABASE, "postgres", localhost));
+    Node postgres = new Node(Kind.DATABASE, "postgres", localhost);
+    tables(new Node(Kind.SCHEMA, "pg_catalog", postgres), List.of("pg_class", "pg_index"));
+    new Node(Kind.SCHEMA, "public", postgres);
     Node shop = new Node(Kind.DATABASE, "shop", localhost);
-    tables(new Node(Kind.SCHEMA, "audit", shop), List.of("changes", "logins"));
+    tables(
+        new Node(Kind.SCHEMA, "audit", shop),
+        List.of("changes", "notification_preferences", "logins"));
     Node shopPublic = new Node(Kind.SCHEMA, "public", shop);
     List<String> names = new ArrayList<>();
     for (int i = 0; i < tables; i++) {
@@ -146,7 +157,9 @@ final class Catalog implements Tree.Model<Catalog.Node> {
     }
     Node staging = new Node(Kind.SERVER, "staging", null);
     staging.children = null;
-    roots.addAll(List.of(localhost, prod, staging));
+    Node backup = new Node(Kind.SERVER, "backup", null);
+    backup.children = null;
+    roots.addAll(List.of(localhost, prod, staging, backup));
   }
 
   private static void tables(Node schema, List<String> names) {
@@ -184,8 +197,27 @@ final class Catalog implements Tree.Model<Catalog.Node> {
    * What a server answers when it is asked for its databases, on the work's thread: names only,
    * since the nodes are the app's state.
    */
-  static List<String> databases(String server) {
+  static List<String> databases(String server, int attempt) throws java.io.IOException {
+    if (server.equals("backup") && attempt == 1) {
+      throw new java.io.IOException("connection refused");
+    }
     return List.of("scratch", "shop");
+  }
+
+  /** Asks a server for its databases on another thread, as opening it does. */
+  void load(Node node) {
+    loading.add(node);
+    String name = node.name; // the work gets the name, not the node
+    int attempt = name.equals("backup") ? ++attempts : 1;
+    app.background(
+        "databases of " + name,
+        () -> databases(name, attempt),
+        names -> arrive(node, names),
+        failure -> {
+          log.add("failed " + node + ": " + failure.getMessage());
+          loading.remove(node);
+          failures.put(node, failure.getMessage());
+        });
   }
 
   /** The databases of a server arrive, on the app's thread. */
@@ -232,12 +264,37 @@ final class Catalog implements Tree.Model<Catalog.Node> {
     };
   }
 
+  /** The system's schemas, as pg_catalog. */
+  @Override
+  public boolean muted(Node node) {
+    mutedAsked.add(node);
+    return node.name.startsWith("pg_");
+  }
+
+  @Override
+  public Tree.Failure failure(Node node) {
+    failureAsked.add(node);
+    String why = failures.get(node);
+    return why == null
+        ? null
+        : Tree.failure("Cannot read the databases: " + why).action("Try again", () -> {
+          log.add("retry " + node);
+          failures.remove(node);
+          load(node);
+        });
+  }
+
   @Override
   public El icon(Node node) {
     return switch (node.kind) {
       // The colour says whether the server is connected.
       case SERVER ->
-        Icon.icon(theme, Symbol.SERVER, node.children == null ? Variant.DISABLED : Variant.SUCCESS);
+        Icon.icon(
+            theme,
+            Symbol.SERVER,
+            failures.containsKey(node)
+                ? Variant.DANGER
+                : node.children == null ? Variant.DISABLED : Variant.SUCCESS);
       case DATABASE -> Icon.icon(theme, Symbol.DATABASE, Variant.MUTED);
       case SCHEMA -> Icon.icon(theme, Symbol.FOLDER, Variant.MUTED);
       case TABLE -> Icon.icon(theme, Symbol.TABLE, Variant.MUTED);
@@ -273,14 +330,8 @@ final class Catalog implements Tree.Model<Catalog.Node> {
             return;
           }
           open.add(node);
-          if (node.children == null && !loading.contains(node)) {
-            loading.add(node);
-            String name = node.name; // the work gets the name, not the node
-            app.background(
-                "databases of " + name,
-                () -> databases(name),
-                names -> arrive(node, names),
-                failure -> log.add("failed " + node + ": " + failure.getMessage()));
+          if (node.children == null && !loading.contains(node) && !failures.containsKey(node)) {
+            load(node);
           }
         },
         node -> log.add("activate " + node));

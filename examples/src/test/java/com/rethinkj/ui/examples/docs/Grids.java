@@ -435,9 +435,24 @@ final class Grids {
         int tables = node.icon() == Symbol.FOLDER ? node.children().size() : 0;
         return tables == 0 ? null : tables + (tables == 1 ? " table" : " tables");
       }
+
+      @Override
+      public boolean muted(Node node) { // the label in muted text, as the system's schemas
+        return node.name().startsWith("pg_");
+      }
     };
   }
   // docs:end tree-model
+
+  // docs:start tree-failure
+  /**
+   * What {@link Tree.Model#failure} returns for an open node whose children could not be read,
+   * in place of null: the row below the node says why, with an action that asks again.
+   */
+  static Tree.Failure refused(String why, Runnable tryAgain) {
+    return Tree.failure("Cannot read the tables: " + why).action("Try again", tryAgain);
+  }
+  // docs:end tree-failure
 
   static El tree(Grids s) {
     Theme t = s.t;
