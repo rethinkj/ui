@@ -436,4 +436,15 @@ class GridChangesTest {
     changes.undo(); // the whole step at once, back to the value before it
     assertEquals("first", changes.cell(0, 0));
   }
+
+  @Test
+  void anErrorStaysWhenTheCellIsSetToTheValueItHas() {
+    GridChanges changes = new GridChanges(1, (r, c) -> "original");
+    changes.set(0, 0, "refused");
+    changes.error(0, 0, "duplicate key");
+    changes.set(0, 0, "refused"); // as a paste of the same value
+    assertEquals("duplicate key", changes.errorText(0, 0));
+    changes.set(0, 0, "other");
+    assertNull(changes.errorText(0, 0));
+  }
 }

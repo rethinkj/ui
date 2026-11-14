@@ -405,7 +405,6 @@ public final class GridChanges {
           List.of(key, (long) cell.column()),
           new Put(key, cell.column(), before, after),
           (first, last) -> new Put(key, last.column(), first.before(), last.after()));
-      clearError(key, cell.column());
     }
     List<Op> step = new ArrayList<>();
     for (Put put : puts.values()) {
