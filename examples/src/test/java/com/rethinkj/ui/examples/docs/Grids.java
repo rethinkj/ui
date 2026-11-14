@@ -231,6 +231,7 @@ final class Grids {
               s.rows.removeIf(Objects::isNull);
               // The rows hold the changes now: new GridChanges over them, with their new count.
               s.changes = new GridChanges(s.rows.size(), (r, c) -> s.rows.get(r)[c]);
+              s.selection.clear(); // deleted rows moved the indexes the selection points at
             });
     El revert = Button.button(t, SECONDARY, "Revert", count == 0 ? null : s.changes::clear);
     // docs:end grid-edit
