@@ -40,7 +40,7 @@ mvn verify
 `mvn verify` builds every module and runs the tests, which render hundreds of views without a window and compare them with stored images. It opens no window. Without a toolchain, leave the native libraries out; the tests that need them skip themselves:
 
 ```sh
-mvn verify -P '!natives-linux-x64'      # or '!natives-windows-x64'
+mvn verify -P -natives-linux-x64      # or -natives-windows-x64
 ```
 
 If a build cannot find or load a native library, see [Platforms and native libraries](/docs/reference/platforms).
@@ -59,8 +59,7 @@ mvn -q -pl examples -am compile exec:exec -Dexample=Showcase       # every compo
 `-Dargs` passes arguments to the example's `main`. With a script, no window opens and the snaps go to the folder:
 
 ```sh
-mvn -q -pl examples -am compile exec:exec -Dexample=LightSwitch \
-  -Dargs="--script examples/src/test/resources/scripts/light-switch.txt --out target/light-switch"
+mvn -q -pl examples -am compile exec:exec -Dexample=LightSwitch -Dargs="--script examples/src/test/resources/scripts/light-switch.txt --out target/light-switch"
 ```
 
 Paths are relative to the folder Maven was started in. Each `snap` writes a `.png` and a `.tree.txt`. See [Scripts](/docs/testing/scripts).
