@@ -95,7 +95,7 @@ Targets are selectors over roles, labels and states, so a script reads like what
 
 ## Building and running the examples
 
-Requires JDK 25 and Maven 3.9 or later. The first build downloads the native libraries and builds some of them from source, which needs a C toolchain; [AGENTS.md](AGENTS.md#build) lists what each platform needs.
+Requires JDK 25 and Maven 3.9 or later. The first build downloads the native libraries and builds some of them from source, which needs a C toolchain; [Platforms and native libraries](https://ui.rethinkj.com/docs/reference/platforms) lists what each platform needs.
 
 ```sh
 mvn verify                                   # build and test everything
@@ -191,7 +191,7 @@ An app that ships to both platforms from one build lists both natives JARs witho
 
 **[ui.rethinkj.com](https://ui.rethinkj.com)** is the documentation for users of the library: getting started, concepts, a page per component, and how to drive an app without a window. Every page is also Markdown for agents: [llms.txt](https://ui.rethinkj.com/llms.txt) lists them, and [llms-full.txt](https://ui.rethinkj.com/llms-full.txt) holds them all. Its source is in [`docs/`](docs).
 
-[AGENTS.md](AGENTS.md) is the reference for working on the framework itself: every script step, the element API by topic, each component of the kit, the renderers, windows and native libraries. It is written for agents and for people alike. Changes since the last release are under [`changelog/unreleased`](changelog/unreleased).
+[AGENTS.md](AGENTS.md) holds the rules for working on the framework itself. Changes since the last release are under [`changelog/unreleased`](changelog/unreleased).
 
 ## License
 

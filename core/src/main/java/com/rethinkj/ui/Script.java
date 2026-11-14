@@ -65,7 +65,7 @@ import java.util.regex.Pattern;
  * await} step, which waits for the work the app started ({@link App#background}) and queues what
  * it delivered for the next frame, so that a script shows the same however fast the work is;
  * {@code await progress} lets in what running work has reported ({@link App#awaitProgress}).
- * AGENTS.md describes the format.
+ * The site documents the format, under {@code docs/content/docs/testing}.
  */
 public final class Script {
 

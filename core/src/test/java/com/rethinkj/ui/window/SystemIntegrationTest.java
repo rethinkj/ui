@@ -28,7 +28,7 @@ import org.junit.jupiter.api.Test;
 /**
  * What a window gives the system and takes from it: its icon, the app's identity, the system's
  * appearance, attention and the taskbar badge. Real windows for a moment; skipped like {@link
- * WindowTest}. What only shows in the taskbar is checked by hand, as AGENTS.md says.
+ * WindowTest}. What only shows in the taskbar is checked by hand.
  */
 class SystemIntegrationTest {
 

@@ -1,7 +1,7 @@
 # Builds and tests on Linux and Windows, and publishes SNAPSHOTs from main.
 #
 # What the CI leaves out: the tests that open real windows, which need -Dwindows.tests=true and a
-# desktop (see AGENTS.md, "Windows").
+# desktop.
 name: Build
 
 on:

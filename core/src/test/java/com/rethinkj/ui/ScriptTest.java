@@ -92,13 +92,8 @@ class ScriptTest {
   }
 
   @Test
-  void theCommandLineRunsTheExampleOfAgentsMd() throws IOException {
+  void theCommandLineRunsTheExample() throws IOException {
     TextLibraries.assumeLoaded();
-    String example = Files.readString(EXAMPLE);
-    assertTrue(
-        Files.readString(Path.of("../AGENTS.md")).contains(example),
-        "AGENTS.md shows " + EXAMPLE + " as it is");
-
     Examples.main(new String[] {"--script", EXAMPLE.toString(), "--out", out.toString()});
 
     assertSnapsMatchGolden(List.of("switch-off", "switch-moving-040ms", "switch-on"));
@@ -115,13 +110,8 @@ class ScriptTest {
   }
 
   @Test
-  void theListOfAgentsMdScrollsAsTheStoredFramesShow() throws IOException {
+  void theListScrollsAsTheStoredFramesShow() throws IOException {
     TextLibraries.assumeLoaded();
-    String example = Files.readString(LIST);
-    assertTrue(
-        Files.readString(Path.of("../AGENTS.md")).contains(example),
-        "AGENTS.md shows " + LIST + " as it is");
-
     Examples.main(new String[] {"list", "--script", LIST.toString(), "--out", out.toString()});
 
     assertSnapsMatchGolden(List.of("list-top", "list-scrolled", "list-end"));
@@ -129,13 +119,8 @@ class ScriptTest {
   }
 
   @Test
-  void theMillionRowsOfAgentsMdScrollAsTheStoredFramesShow() throws IOException {
+  void theMillionRowsScrollAsTheStoredFramesShow() throws IOException {
     TextLibraries.assumeLoaded();
-    String example = Files.readString(ROWS);
-    assertTrue(
-        Files.readString(Path.of("../AGENTS.md")).contains(example),
-        "AGENTS.md shows " + ROWS + " as it is");
-
     Examples.main(new String[] {"rows", "--script", ROWS.toString(), "--out", out.toString()});
 
     assertSnapsMatchGolden(List.of("rows-top", "rows-scrolled", "rows-far"));
@@ -145,13 +130,8 @@ class ScriptTest {
   }
 
   @Test
-  void theScrollbarOfAgentsMdDragsToTheLastRowAndBack() throws IOException {
+  void theScrollbarDragsToTheLastRowAndBack() throws IOException {
     TextLibraries.assumeLoaded();
-    String example = Files.readString(BARS);
-    assertTrue(
-        Files.readString(Path.of("../AGENTS.md")).contains(example),
-        "AGENTS.md shows " + BARS + " as it is");
-
     Examples.main(new String[] {"bars", "--script", BARS.toString(), "--out", out.toString()});
 
     assertSnapsMatchGolden(List.of("bars-top", "bars-end", "bars-paged", "bars-back"));
@@ -170,13 +150,8 @@ class ScriptTest {
   }
 
   @Test
-  void theFocusExampleOfAgentsMdTabsToTheSwitchAndPressesItWithSpace() throws IOException {
+  void theFocusExampleTabsToTheSwitchAndPressesItWithSpace() throws IOException {
     TextLibraries.assumeLoaded();
-    String example = Files.readString(FOCUS);
-    assertTrue(
-        Files.readString(Path.of("../AGENTS.md")).contains(example),
-        "AGENTS.md shows " + FOCUS + " as it is");
-
     Examples.main(new String[] {"--script", FOCUS.toString(), "--out", out.toString()});
 
     assertSnapsMatchGolden(List.of("switch-focused", "switch-focused-on"));
@@ -186,13 +161,8 @@ class ScriptTest {
   }
 
   @Test
-  void theHoverExampleOfAgentsMdShowsTheLooksOfTheSwitch() throws IOException {
+  void theHoverExampleShowsTheLooksOfTheSwitch() throws IOException {
     TextLibraries.assumeLoaded();
-    String example = Files.readString(HOVER);
-    assertTrue(
-        Files.readString(Path.of("../AGENTS.md")).contains(example),
-        "AGENTS.md shows " + HOVER + " as it is");
-
     Examples.main(new String[] {"--script", HOVER.toString(), "--out", out.toString()});
 
     assertSnapsMatchGolden(
@@ -203,13 +173,8 @@ class ScriptTest {
   }
 
   @Test
-  void theFieldExampleOfAgentsMdTypesSelectsAndScrolls() throws IOException {
+  void theFieldExampleTypesSelectsAndScrolls() throws IOException {
     TextLibraries.assumeLoaded();
-    String example = Files.readString(FIELD);
-    assertTrue(
-        Files.readString(Path.of("../AGENTS.md")).contains(example),
-        "AGENTS.md shows " + FIELD + " as it is");
-
     Examples.main(new String[] {"field", "--script", FIELD.toString(), "--out", out.toString()});
 
     assertSnapsMatchGolden(List.of(
