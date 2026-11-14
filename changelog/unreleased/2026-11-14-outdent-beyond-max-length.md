@@ -1,0 +1,1 @@
+- Shift+Tab in a multi-line field with `tabIndents` outdents also when the text is already longer than its `maxLength`, as an app's prefilled value may be: an edit that makes the text shorter is never refused for its length.

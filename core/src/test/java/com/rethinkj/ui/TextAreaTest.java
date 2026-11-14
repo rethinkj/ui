@@ -356,6 +356,14 @@ class TextAreaTest {
   }
 
   @Test
+  void anOutdentShortensATextThatIsAlreadyBeyondTheMaximumLength() {
+    App<Model> app = focused("    ab\n    cd", f -> f.tabIndents(true).maxLength(3));
+    key(app, "A", CONTROL);
+    key(app, "Tab", SHIFT);
+    assertEquals("^ab\ncd|", show(app), "an edit that shortens is never refused for its length");
+  }
+
+  @Test
   void escapeAndTabOrControlMLeaveAFieldThatIndents() {
     App<Model> app = focused("ab", f -> f.tabIndents(true));
     key(app, "Escape");

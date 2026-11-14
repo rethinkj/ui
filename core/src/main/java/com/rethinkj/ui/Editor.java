@@ -755,8 +755,8 @@ final class Editor {
       return; // nothing to outdent
     }
     int max = el.maxLength();
-    if (max >= 0 && text.codePointCount(0, text.length()) + delta > max) {
-      return; // an indent is whole or nothing, and cuts no text
+    if (delta > 0 && max >= 0 && text.codePointCount(0, text.length()) + delta > max) {
+      return; // an indent is whole or nothing, and cuts no text; an outdent only shortens
     }
     run = null;
     edit(from, to - from, block.toString(), newCaret, newAnchor, null, false);
