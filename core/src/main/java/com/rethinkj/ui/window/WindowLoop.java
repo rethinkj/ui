@@ -111,6 +111,17 @@ public final class WindowLoop {
     default boolean pending() {
       return false;
     }
+
+    /**
+     * Whether the last {@link #present} showed its frame in the window: false when there was
+     * nothing to draw into, as while the window is minimized or hidden, and while the frame is
+     * {@link #pending}. Only after a frame that was shown does the loop tell the window that it
+     * has drawn ({@link Window#drawn}), so that a new window never appears without its first
+     * frame. True unless a presenter says otherwise.
+     */
+    default boolean presented() {
+      return true;
+    }
   }
 
   // The windows in the order they opened, and the same front first, as far as the loop knows.
@@ -158,6 +169,7 @@ public final class WindowLoop {
     long frameNanos;
     boolean open = true;
     boolean fresh = true; // opened since the last pass, which draws its first frame
+    boolean showing; // the window shows the last frame presented
     // Opened under the pointer during a press (Window.Options.underPointer): shown without
     // the focus, which it takes after the frame that handles the release.
     boolean focusAfterPress;
@@ -1053,13 +1065,16 @@ public final class WindowLoop {
       e.presenter.present(app.scene(), e.width, e.height, e.scale);
       e.presented = System.nanoTime();
       e.started = now;
+      e.showing = e.presenter.presented();
     }
     if (!e.isOpen()) {
       return;
     }
     e.window.cursor(app.cursor());
     e.window.background(app.tree().fill());
-    e.window.drawn();
+    if (e.showing) {
+      e.window.drawn();
+    }
     textInput(e);
   }
 

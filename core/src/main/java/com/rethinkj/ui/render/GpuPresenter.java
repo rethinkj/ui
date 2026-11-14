@@ -71,6 +71,7 @@ public final class GpuPresenter implements WindowLoop.Presenter, AutoCloseable {
   private TextureFormat format;
   private Surface.AlphaMode alphaMode;
   private boolean pending;
+  private boolean presented;
   /** True when the surface asked to be configured again, even if the size is the same. */
   private boolean stale = true;
 
@@ -138,6 +139,7 @@ public final class GpuPresenter implements WindowLoop.Presenter, AutoCloseable {
   public void present(Scene scene, float width, float height, float scale) {
     checkOpen();
     pending = false;
+    presented = false;
     int pixelWidth = window.pixelWidth();
     int pixelHeight = window.pixelHeight();
     if (pixelWidth <= 0 || pixelHeight <= 0 || window.isMinimized()) {
@@ -175,6 +177,7 @@ public final class GpuPresenter implements WindowLoop.Presenter, AutoCloseable {
     }
     renderer.draw(scene, frame.view(), scale);
     frame.present();
+    presented = true;
     frames++;
     if (frame.isSuboptimal()) {
       stale = true;
@@ -184,6 +187,11 @@ public final class GpuPresenter implements WindowLoop.Presenter, AutoCloseable {
   @Override
   public boolean pending() {
     return pending;
+  }
+
+  @Override
+  public boolean presented() {
+    return presented;
   }
 
   /** How many frames were drawn and presented. */

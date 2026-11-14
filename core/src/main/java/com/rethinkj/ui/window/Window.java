@@ -1764,12 +1764,12 @@ public final class Window implements AutoCloseable {
 
   /**
    * Tells the window that its app has drawn a frame of its current size. {@link WindowLoop} calls
-   * this after each frame; a loop of one's own calls it too. On X11 it answers the window
-   * manager's {@code _NET_WM_SYNC_REQUEST} once the resize step that the request announced has
-   * come: during a resize the window manager shows the window and takes the next step only then,
-   * or after a second without an answer, so that the window never shows a size its app has not
-   * drawn. On Windows the first call makes the window visible, which it is not before: see
-   * {@link #open(String, float, float, Options)}. Elsewhere it does nothing.
+   * this after each frame its presenter showed; a loop of one's own calls it too. On X11 it
+   * answers the window manager's {@code _NET_WM_SYNC_REQUEST} once the resize step that the
+   * request announced has come: during a resize the window manager shows the window and takes the
+   * next step only then, or after a second without an answer, so that the window never shows a
+   * size its app has not drawn. On Windows the first call makes the window visible, which it is
+   * not before: see {@link #open(String, float, float, Options)}. Elsewhere it does nothing.
    */
   public void drawn() {
     reveal();
