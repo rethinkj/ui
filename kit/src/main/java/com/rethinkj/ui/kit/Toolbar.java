@@ -1,14 +1,10 @@
 package com.rethinkj.ui.kit;
 
 import static com.rethinkj.ui.El.el;
-import static com.rethinkj.ui.El.row;
 
 import com.rethinkj.ui.El;
-import com.rethinkj.ui.Style;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.function.Consumer;
 
@@ -91,8 +87,7 @@ public final class Toolbar {
    */
   public static final class State {
     final Menu.State more = new Menu.State();
-    float width = Float.NaN;
-    final Map<String, Float> widths = new HashMap<>();
+    final Fitting fitting = new Fitting();
     final Roving keys = new Roving();
 
     /** The menu of the items that do not fit. */
@@ -173,20 +168,13 @@ public final class Toolbar {
    * @param label what the toolbar is for, its label in a tree dump
    */
   public static El toolbar(Theme t, State state, String label, List<Item> items) {
-    float gap = t.space().xs();
-    int shown = fit(t, state, items, gap);
-    // grow(1) fills a row's width; the most height keeps it a row high in a column with room.
-    El bar = row()
-        .role("toolbar")
-        .label(label)
-        .h(t.size().control())
-        .grow(1)
-        .minSize(0, t.size().control())
-        .maxSize(Float.POSITIVE_INFINITY, t.size().control())
-        .gap(gap)
-        .align(Style.Align.CENTER)
-        .clip()
-        .onResize((w, h) -> state.width = w);
+    int shown = state.fitting.fit(
+        t, items.size(), Fitting.Direction.PREFIX, 0, i -> switch (items.get(i).kind) {
+          case SPACER -> null; // takes what is left, nothing when nothing is
+          case SEPARATOR -> separator(t);
+          default -> state.fitting.width(id(items, i));
+        });
+    El bar = state.fitting.row(t).role("toolbar").label(label);
     List<El> stops = new ArrayList<>();
     for (int i = 0; i < shown; i++) {
       Item item = items.get(i);
@@ -198,7 +186,7 @@ public final class Toolbar {
       bar.child(
           item.kind == Kind.SEPARATOR || item.kind == Kind.SPACER
               ? el
-              : el.onResize((w, h) -> state.widths.put(id, w)));
+              : el.onResize(state.fitting.measure(id)));
     }
     if (shown < items.size()) {
       List<Menu.Item> hidden = new ArrayList<>();
@@ -216,7 +204,7 @@ public final class Toolbar {
       El more = Button.icon(
               t, Button.Variant.GHOST, Symbol.MORE_HORIZONTAL, "More", state.more::toggle)
           .key("more")
-          .onResize((w, h) -> state.widths.put("more", w));
+          .onResize(state.fitting.measure("more"));
       stops.add(more);
       bar.child(Menu.dropdown(t, more, state.more, hidden));
     }
@@ -228,41 +216,6 @@ public final class Toolbar {
   private static String id(List<Item> items, int i) {
     Item item = items.get(i);
     return item.label != null ? item.label : item.kind + "-" + i;
-  }
-
-  /**
-   * How many items, from the start, fit the toolbar's width as the last layout gave it, with the
-   * More button after them if they are not all; all of them until every width is known.
-   */
-  private static int fit(Theme t, State state, List<Item> items, float gap) {
-    if (Float.isNaN(state.width)) {
-      return items.size();
-    }
-    float[] widths = new float[items.size()];
-    float total = 0;
-    for (int i = 0; i < items.size(); i++) {
-      Kind kind = items.get(i).kind;
-      if (kind == Kind.SPACER) {
-        continue; // takes what is left, nothing when nothing is
-      }
-      Float w =
-          kind == Kind.SEPARATOR ? Float.valueOf(separator(t)) : state.widths.get(id(items, i));
-      if (w == null) {
-        return items.size();
-      }
-      widths[i] = w + (i == 0 ? 0 : gap);
-      total += widths[i];
-    }
-    if (total <= state.width) {
-      return items.size();
-    }
-    float room = state.width - state.widths.getOrDefault("more", t.size().control()) - gap;
-    int shown = items.size();
-    while (shown > 0 && total > room) {
-      shown--;
-      total -= widths[shown];
-    }
-    return shown;
   }
 
   /** Builds an item; the elements Tab and the arrows reach go into {@code stops}. */

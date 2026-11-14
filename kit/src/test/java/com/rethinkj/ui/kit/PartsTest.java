@@ -119,11 +119,24 @@ class PartsTest {
         "frame\nframe\nframe\nadvance 1\nframe\npress role=button label=\"More\"\nframe\n"
             + "advance 0.25\nframe\npress role=menuitem label=\"Wrap values\"\nframe");
     assertTrue(app.state().wrap, "a toggle as a checked item");
+    more(app, out, 160, "frame\nframe");
+    String smallest = app.tree().dump();
+    assertTrue(smallest.contains("role=button label=\"More\""), smallest);
+    assertFalse(smallest.contains("role=button label=\"Refresh\""), smallest);
+    more(
+        app,
+        out,
+        160,
+        "press role=button label=\"More\"\nframe\nadvance 0.25\nframe\n"
+            + "press role=menuitem label=\"Refresh\"\nframe");
+    assertEquals("refresh", app.state().log.getLast(), "even the first item can move to More");
     more(app, out, 720, "frame\nframe");
     assertTrue(app.tree().dump().contains("role=button label=\"Wrap values\" "), "back");
     assertTrue(
         StructureTest.line(app.tree().dump(), "label=\"Wrap values\"").contains(" checked"),
         app.tree().dump());
+    assertTrue(app.tree().dump().contains("role=link label=\"localhost\""), "the path expands too");
+    assertFalse(app.tree().dump().contains("label=\"Hidden parts\""), app.tree().dump());
   }
 
   @Test
@@ -182,6 +195,10 @@ class PartsTest {
     String shortened = narrow.tree().dump();
     assertTrue(shortened.contains("role=button label=\"Hidden parts\""), shortened);
     assertTrue(!shortened.contains("label=\"localhost\""), shortened);
+    assertTrue(
+        StructureTest.line(shortened, "label=\"orders_by_customer_and_month\"")
+            .contains(" current"),
+        "the current part stays even when it is wider than the breadcrumb: " + shortened);
     more(
         narrow,
         out,
