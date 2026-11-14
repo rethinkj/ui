@@ -10,6 +10,7 @@ import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -382,9 +383,12 @@ public final class GridChanges {
     set(List.of(new CellValue(row, column, value)));
   }
 
-  /** Sets these cells as one step of the history; cells of deleted rows are left alone. */
+  /**
+   * Sets these cells as one step of the history, in their order, so that the last value given for
+   * a cell is its value; cells of deleted rows are left alone.
+   */
   public void set(List<CellValue> cells) {
-    List<Op> step = new ArrayList<>();
+    Map<List<Long>, Put> puts = new LinkedHashMap<>(); // per cell: before the step, after it
     for (CellValue cell : cells) {
       long key = key(cell.row());
       if (deleted.contains(key)) {
@@ -397,10 +401,17 @@ public final class GridChanges {
               cell.value(), rows.cell(cell.row() - newBefore(cell.row()), cell.column()))) {
         after = null; // back to the app's value
       }
-      if (!Objects.equals(before, after)) {
-        step.add(new Put(key, cell.column(), before, after));
-      }
+      puts.merge(
+          List.of(key, (long) cell.column()),
+          new Put(key, cell.column(), before, after),
+          (first, last) -> new Put(key, last.column(), first.before(), last.after()));
       clearError(key, cell.column());
+    }
+    List<Op> step = new ArrayList<>();
+    for (Put put : puts.values()) {
+      if (!Objects.equals(put.before(), put.after())) {
+        step.add(put);
+      }
     }
     apply(step);
   }
