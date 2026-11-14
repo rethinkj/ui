@@ -243,12 +243,7 @@ final class Win32 {
     static final SymbolLookup DWMAPI = SymbolLookup.libraryLookup("dwmapi", Arena.global());
     static final SymbolLookup COMCTL32 = SymbolLookup.libraryLookup("comctl32", Arena.global());
 
-    static final MethodHandle SCREEN_TO_CLIENT_H = bind(USER32, "ScreenToClient", SCREEN_TO_CLIENT);
-    static final MethodHandle TRACK_MOUSE_EVENT_H =
-        bind(USER32, "TrackMouseEvent", TRACK_MOUSE_EVENT);
     static final MethodHandle IS_ICONIC_H = bind(USER32, "IsIconic", IS_ICONIC);
-    static final MethodHandle SET_CAPTURE_H = bind(USER32, "SetCapture", SET_CAPTURE);
-    static final MethodHandle RELEASE_CAPTURE_H = bind(USER32, "ReleaseCapture", RELEASE_CAPTURE);
     static final MethodHandle IS_ZOOMED_H = bind(USER32, "IsZoomed", IS_ZOOMED);
     static final MethodHandle GET_SYSTEM_METRICS_H =
         bind(USER32, "GetSystemMetrics", GET_SYSTEM_METRICS);
@@ -267,6 +262,17 @@ final class Win32 {
           .orElseThrow(() -> new UnsatisfiedLinkError("Windows has no function " + name));
       return Linker.nativeLinker().downcallHandle(symbol, d);
     }
+  }
+
+  /** The pointer of Win32Frame, bound as the pointer first comes. */
+  private static final class Pointer {
+    static final MethodHandle SCREEN_TO_CLIENT_H =
+        H.bind(H.USER32, "ScreenToClient", SCREEN_TO_CLIENT);
+    static final MethodHandle TRACK_MOUSE_EVENT_H =
+        H.bind(H.USER32, "TrackMouseEvent", TRACK_MOUSE_EVENT);
+    static final MethodHandle SET_CAPTURE_H = H.bind(H.USER32, "SetCapture", SET_CAPTURE);
+    static final MethodHandle RELEASE_CAPTURE_H =
+        H.bind(H.USER32, "ReleaseCapture", RELEASE_CAPTURE);
   }
 
   /** The handles of Win32Shell, bound on its first use. */
@@ -288,12 +294,15 @@ final class Win32 {
     static final MethodHandle GET_APP_USER_MODEL_ID_H =
         H.bind(SHELL32, "GetCurrentProcessExplicitAppUserModelID", GET_APP_USER_MODEL_ID);
     static final MethodHandle CO_TASK_MEM_FREE_H = H.bind(OLE32, "CoTaskMemFree", CO_TASK_MEM_FREE);
-    static final MethodHandle CO_CREATE_INSTANCE_H =
-        H.bind(OLE32, "CoCreateInstance", CO_CREATE_INSTANCE);
     static final MethodHandle REG_GET_VALUE_H = H.bind(ADVAPI32, "RegGetValueW", REG_GET_VALUE);
     static final MethodHandle DWM_GET_COLORIZATION_COLOR_H =
         H.bind(H.DWMAPI, "DwmGetColorizationColor", DWM_GET_COLORIZATION_COLOR);
+  }
 
+  /** The taskbar list of Win32Shell, bound as an app first shows progress or a badge. */
+  private static final class Taskbar {
+    static final MethodHandle CO_CREATE_INSTANCE_H =
+        H.bind(Shell.OLE32, "CoCreateInstance", CO_CREATE_INSTANCE);
     // Handles that take the function's address first, for the methods of COM objects.
     static final MethodHandle COM_THIS_H = Linker.nativeLinker().downcallHandle(COM_THIS);
     static final MethodHandle TASKBAR_SET_OVERLAY_ICON_H =
@@ -439,7 +448,7 @@ final class Win32 {
   static MemorySegment coCreateInstance(byte[] clsid, byte[] iid, int[] hresult) {
     try (Arena arena = Arena.ofConfined()) {
       MemorySegment out = arena.allocate(ADDRESS);
-      int hr = (int) Shell.CO_CREATE_INSTANCE_H.invokeExact(
+      int hr = (int) Taskbar.CO_CREATE_INSTANCE_H.invokeExact(
           arena.allocateFrom(JAVA_BYTE, clsid),
           MemorySegment.NULL,
           CLSCTX_INPROC_SERVER,
@@ -463,7 +472,7 @@ final class Win32 {
   /** Calls a method that takes only the object, such as Release or HrInit. */
   static int comCall(MemorySegment object, int index) {
     try {
-      return (int) Shell.COM_THIS_H.invokeExact(method(object, index), object);
+      return (int) Taskbar.COM_THIS_H.invokeExact(method(object, index), object);
     } catch (Throwable t) {
       throw Sdl.failed(t);
     }
@@ -474,7 +483,7 @@ final class Win32 {
       MemorySegment taskbar, MemorySegment hwnd, MemorySegment icon, String description) {
     try (Arena arena = Arena.ofConfined()) {
       MemorySegment text = description == null ? MemorySegment.NULL : wide(arena, description);
-      return (int) Shell.TASKBAR_SET_OVERLAY_ICON_H.invokeExact(
+      return (int) Taskbar.TASKBAR_SET_OVERLAY_ICON_H.invokeExact(
           method(taskbar, VTBL_SET_OVERLAY_ICON), taskbar, hwnd, icon, text);
     } catch (Throwable t) {
       throw Sdl.failed(t);
@@ -572,7 +581,7 @@ final class Win32 {
   /** @return the HRESULT */
   static int taskbarSetProgressState(MemorySegment taskbar, MemorySegment hwnd, int flags) {
     try {
-      return (int) Shell.TASKBAR_SET_PROGRESS_STATE_H.invokeExact(
+      return (int) Taskbar.TASKBAR_SET_PROGRESS_STATE_H.invokeExact(
           method(taskbar, VTBL_SET_PROGRESS_STATE), taskbar, hwnd, flags);
     } catch (Throwable t) {
       throw Sdl.failed(t);
@@ -583,7 +592,7 @@ final class Win32 {
   static int taskbarSetProgressValue(
       MemorySegment taskbar, MemorySegment hwnd, long completed, long total) {
     try {
-      return (int) Shell.TASKBAR_SET_PROGRESS_VALUE_H.invokeExact(
+      return (int) Taskbar.TASKBAR_SET_PROGRESS_VALUE_H.invokeExact(
           method(taskbar, VTBL_SET_PROGRESS_VALUE), taskbar, hwnd, completed, total);
     } catch (Throwable t) {
       throw Sdl.failed(t);
@@ -593,7 +602,7 @@ final class Win32 {
   /** Converts the two ints at {@code point} from screen to client coordinates. */
   static boolean screenToClient(MemorySegment hwnd, MemorySegment point) {
     try {
-      return (int) H.SCREEN_TO_CLIENT_H.invokeExact(hwnd, point) != 0;
+      return (int) Pointer.SCREEN_TO_CLIENT_H.invokeExact(hwnd, point) != 0;
     } catch (Throwable t) {
       throw Sdl.failed(t);
     }
@@ -601,7 +610,7 @@ final class Win32 {
 
   static boolean trackMouseEvent(MemorySegment trackMouseEvent) {
     try {
-      return (int) H.TRACK_MOUSE_EVENT_H.invokeExact(trackMouseEvent) != 0;
+      return (int) Pointer.TRACK_MOUSE_EVENT_H.invokeExact(trackMouseEvent) != 0;
     } catch (Throwable t) {
       throw Sdl.failed(t);
     }
@@ -610,7 +619,7 @@ final class Win32 {
   /** Sends the pointer's messages to the window, wherever the pointer is, until it lets go. */
   static void setCapture(MemorySegment hwnd) {
     try {
-      MemorySegment previous = (MemorySegment) H.SET_CAPTURE_H.invokeExact(hwnd);
+      MemorySegment previous = (MemorySegment) Pointer.SET_CAPTURE_H.invokeExact(hwnd);
     } catch (Throwable t) {
       throw Sdl.failed(t);
     }
@@ -619,7 +628,7 @@ final class Win32 {
   /** Lets go of the pointer that {@link #setCapture} took. */
   static void releaseCapture() {
     try {
-      int released = (int) H.RELEASE_CAPTURE_H.invokeExact();
+      int released = (int) Pointer.RELEASE_CAPTURE_H.invokeExact();
     } catch (Throwable t) {
       throw Sdl.failed(t);
     }
