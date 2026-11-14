@@ -5,9 +5,9 @@
   "pages": [
     "index",
     "get-started",
-    "testing",
     "concepts",
     "components",
+    "testing",
     "examples",
     "reference"
   ]

@@ -1,0 +1,56 @@
+---
+title: Ship your app
+description: Package the app with its own Java runtime as a jpackage app image.
+---
+
+`jpackage`, which comes with the JDK, builds an app image: a folder with a launcher, a Java runtime and the app's JARs. Users need no Java of their own. The commands below start from [your own project](/docs/get-started) and are shown for Linux.
+
+## Build the image
+
+Collect the app's JAR and its runtime dependencies, which include the fonts, the icons and the natives JAR of the platform that builds:
+
+```sh
+mvn -q package dependency:copy-dependencies -DincludeScope=runtime -DoutputDirectory=target/lib
+cp target/lights-1.0-SNAPSHOT.jar target/lib/
+```
+
+Then build the image:
+
+```sh
+jpackage --type app-image --name Lights \
+  --input target/lib --main-jar lights-1.0-SNAPSHOT.jar --main-class com.example.Lights \
+  --add-modules java.base \
+  --java-options --enable-native-access=ALL-UNNAMED \
+  --dest target/dist
+```
+
+`--add-modules java.base` keeps the runtime small, since `core` and `kit` need nothing else; add the modules your own code uses. Without it, jpackage bundles the whole JDK. `jpackage` builds only for the platform it runs on: build the Windows image on Windows, where the natives profile picks the Windows JAR.
+
+## Run it
+
+```sh
+target/dist/Lights/bin/Lights                                            # in a window
+target/dist/Lights/bin/Lights --script lights.txt --out target/packaged  # under a script
+```
+
+On Windows, the launcher is `target\dist\Lights\Lights.exe`.
+
+## Native libraries unpacked at install time
+
+The packaged app unpacks the native libraries into the per-user cache on first start, like any other. An installer can instead place them next to the app and point `rethinkj.ui.natives.dir` at them: then nothing is unpacked, and the natives JAR can be left out. The folder holds the libraries and `manifest.txt`, as they are in the JAR under `META-INF/rethinkj-ui/natives/<platform>/`. `$APPDIR` is the folder of the app's JARs inside the image:
+
+```sh
+mkdir target/lib/natives
+unzip -j target/lib/rethinkj-ui-natives-linux-x64-0.1.0-SNAPSHOT.jar \
+  'META-INF/rethinkj-ui/natives/linux-x64/*' -x '*/licenses/*' -d target/lib/natives
+rm target/lib/rethinkj-ui-natives-linux-x64-0.1.0-SNAPSHOT.jar
+rm -rf target/dist
+jpackage --type app-image --name Lights \
+  --input target/lib --main-jar lights-1.0-SNAPSHOT.jar --main-class com.example.Lights \
+  --add-modules java.base \
+  --java-options --enable-native-access=ALL-UNNAMED \
+  --java-options '-Drethinkj.ui.natives.dir=$APPDIR/natives' \
+  --dest target/dist
+```
+
+The libraries' licence texts are in the natives JAR under `META-INF/rethinkj-ui/natives/<platform>/licenses/`; ship them with the app.

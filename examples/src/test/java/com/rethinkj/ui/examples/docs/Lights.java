@@ -20,6 +20,7 @@ public final class Lights {
 
   boolean on; // the state: plain fields, changed only by handlers
 
+  // docs:start lights-main
   public static void main(String[] args) throws Exception {
     App<Lights> app = new App<>(new Lights(), Lights::view);
     if (Script.handle(args, app)) {
@@ -30,7 +31,9 @@ public final class Lights {
       WindowLoop.run(window, app, presenter);
     }
   }
+  // docs:end lights-main
 
+  // docs:start lights-view
   // The view: a function from the state to a tree of elements, built again after each input.
   static El view(Lights s) {
     Theme t = Theme.DARK;
@@ -49,5 +52,6 @@ public final class Lights {
             .gap(t.space().xl())
             .align(Style.Align.CENTER));
   }
+  // docs:end lights-view
 }
 // docs:end lights-app

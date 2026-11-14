@@ -1,61 +1,169 @@
 ---
-title: Installation
-description: What you need, how to build rethinkj UI, and what the first build does.
+title: Your own project
+description: A Maven project that depends on rethinkj UI, and how to run it in a window and under a script.
 ---
 
-rethinkj UI is a library for desktop apps in Java 25 on Windows and Linux. This page gets you from a clone of the repository to a running example; [Use it in a project](/docs/get-started/project) shows how to depend on the SNAPSHOTs on Maven Central instead, and [the first app](/docs/get-started/first-app) explains the code.
+rethinkj UI is a library for desktop apps in Java 25 on Windows 11 or later and Linux, both on x64. You need a JDK 25 and Maven 3.9 or later. There is no release yet: every push to `main` publishes SNAPSHOTs to Maven Central's snapshot repository. A SNAPSHOT changes with each push, the API with it, and Central removes SNAPSHOTs after 90 days.
 
-## Requirements
+## The project
 
-| | |
+```text
+lights/
+├── pom.xml
+├── lights.txt
+└── src/main/java/com/example/Lights.java
+```
+
+```xml title="pom.xml"
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>com.example</groupId>
+  <artifactId>lights</artifactId>
+  <version>1.0-SNAPSHOT</version>
+
+  <properties>
+    <maven.compiler.release>25</maven.compiler.release>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <rethinkj.ui.version>0.1.0-SNAPSHOT</rethinkj.ui.version>
+    <main.class>com.example.Lights</main.class>
+    <args></args>
+  </properties>
+
+  <repositories>
+    <repository>
+      <id>central-snapshots</id>
+      <url>https://central.sonatype.com/repository/maven-snapshots/</url>
+      <releases><enabled>false</enabled></releases>
+      <snapshots><enabled>true</enabled></snapshots>
+    </repository>
+  </repositories>
+
+  <dependencies>
+    <dependency>
+      <groupId>com.rethinkj.ui</groupId>
+      <artifactId>rethinkj-ui-kit</artifactId>
+      <version>${rethinkj.ui.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.rethinkj.ui</groupId>
+      <artifactId>rethinkj-ui-fonts</artifactId>
+      <version>${rethinkj.ui.version}</version>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.rethinkj.ui</groupId>
+      <artifactId>rethinkj-ui-icons</artifactId>
+      <version>${rethinkj.ui.version}</version>
+      <scope>runtime</scope>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>exec-maven-plugin</artifactId>
+        <version>3.6.4</version>
+        <configuration>
+          <executable>java</executable>
+          <commandlineArgs>--enable-native-access=ALL-UNNAMED -classpath %classpath ${main.class} ${args}</commandlineArgs>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+
+  <profiles>
+    <profile>
+      <id>natives-linux-x64</id>
+      <activation>
+        <os><name>Linux</name><arch>amd64</arch></os>
+      </activation>
+      <dependencies>
+        <dependency>
+          <groupId>com.rethinkj.ui</groupId>
+          <artifactId>rethinkj-ui-natives-linux-x64</artifactId>
+          <version>${rethinkj.ui.version}</version>
+          <scope>runtime</scope>
+        </dependency>
+      </dependencies>
+    </profile>
+    <profile>
+      <id>natives-windows-x64</id>
+      <activation>
+        <os><family>windows</family><arch>amd64</arch></os>
+      </activation>
+      <dependencies>
+        <dependency>
+          <groupId>com.rethinkj.ui</groupId>
+          <artifactId>rethinkj-ui-natives-windows-x64</artifactId>
+          <version>${rethinkj.ui.version}</version>
+          <scope>runtime</scope>
+        </dependency>
+      </dependencies>
+    </profile>
+  </profiles>
+</project>
+```
+
+- The kit brings core with it. Fonts, icons and the native libraries hold no classes, so they are runtime dependencies.
+- The profiles pick the native libraries of the machine that builds. An app built once for both platforms lists both natives JARs without the profiles; each loads only on its own platform.
+- `exec:exec` starts the `java` on the `PATH`, which must be a JDK 25, with native access enabled and the runtime class path. `-Dargs` passes arguments to `main`, and `-Dmain.class` runs another class.
+
+## The app
+
+The main class goes under `src/main/java`. This is the app of [The first app](/docs/get-started/first-app); its first line is your package, here `package com.example;`.
+
+```java snippet="lights-app" title="src/main/java/com/example/Lights.java"
+```
+
+## Run it
+
+In a window:
+
+```sh
+mvn compile exec:exec
+```
+
+Under a script, without a window. The script presses the switch and snaps before and after:
+
+```text snippet="lights-script" title="lights.txt"
+```
+
+```sh
+mvn -q compile exec:exec -Dargs="--script lights.txt --out target/lights"
+```
+
+It writes `off.png`, `off.tree.txt`, `on.png` and `on.tree.txt` to `target/lights` and prints their paths. The commands are the same on Windows. [Testing and agents](/docs/testing) explains scripts and trees.
+
+## The artifacts
+
+All share the group `com.rethinkj.ui` and the version `0.1.0-SNAPSHOT`. `core` and `kit` come with a sources JAR, which IDEs pick up.
+
+| Artifact | What it is | Needed |
+| --- | --- | --- |
+| `rethinkj-ui-core` | Elements, layout, text, input, rendering, windows, scripts | Always |
+| `rethinkj-ui-kit` | The theme and the components | For the components |
+| `rethinkj-ui-fonts` | Inter and JetBrains Mono, the default fonts | For text with the default fonts |
+| `rethinkj-ui-icons` | Fluent UI System Icons, the icon font | For icons, the tree's marks, the grid's sort arrows |
+| `rethinkj-ui-natives-linux-x64`, `rethinkj-ui-natives-windows-x64` | SDL3, wgpu-native, FreeType and HarfBuzz | At run time, for the platform it runs on. The Linux libraries need glibc 2.38 or later, as on Ubuntu 24.04. |
+
+## Native libraries
+
+Native code is called through the Foreign Function and Memory API, so `java` needs `--enable-native-access=ALL-UNNAMED`. On the module path, use `--enable-native-access=com.rethinkj.ui` and add the natives module with `--add-modules com.rethinkj.ui.natives.linux.x64` (or `windows.x64`).
+
+On first use, the libraries are unpacked from the natives JAR into a per-user cache: `%LOCALAPPDATA%\rethinkj-ui\natives\` on Windows and `$XDG_CACHE_HOME/rethinkj-ui/natives/` (by default `~/.cache`) on Linux. Two system properties change that:
+
+| Property | Effect |
 | --- | --- |
-| Platforms | Windows 11 or later and Linux, both on x64. macOS, the web and mobile are not targets. |
-| JDK | 25, any distribution. GraalVM native image is not a goal, but it stays possible. |
-| Maven | 3.9 or later. |
-| Network | The first build downloads the native libraries; later builds, `mvn clean` included, do not. |
-
-The first build also compiles some native libraries from source, so it needs a C toolchain:
-
-<Tabs items={['Linux', 'Windows']}>
-<Tab value="Linux">
-
-cmake, make, a C and a C++ compiler, pkg-config, `tar` with xz, and the development packages of X11, Wayland and the other libraries SDL uses. `natives-linux-x64/natives.properties` lists them. Building SDL, FreeType and HarfBuzz takes about a minute.
-
-</Tab>
-<Tab value="Windows">
-
-Visual Studio 2022 or later, or its Build Tools, with the workload "Desktop development with C++" (its defaults include the x64 tools, a Windows SDK and "C++ CMake tools for Windows"). Nothing has to be on the `PATH`. FreeType and HarfBuzz take one to three minutes.
-
-</Tab>
-</Tabs>
-
-## Build
-
-```sh
-git clone https://github.com/rethinkj/ui.git
-cd ui
-mvn verify                  # build and test everything
-```
-
-`mvn verify` builds every module and runs the tests, which render hundreds of views without a window and compare them with stored images. It opens no window. If you do not need the native libraries, for instance on a machine without a toolchain, leave them out; the tests that need them skip themselves:
-
-```sh
-mvn verify -P '!natives-linux-x64'      # or '!natives-windows-x64'
-```
-
-If a build cannot find or load a native library, see [Platforms and native libraries](/docs/reference/platforms).
-
-## Run an example
-
-```sh
-mvn -q -pl examples -am compile exec:exec                      # the light switch
-mvn -q -pl examples -am compile exec:exec -Dexample=Workbench  # a database tool
-```
-
-[Examples](/docs/examples) lists them all.
+| `rethinkj.ui.natives.dir` | Load the libraries from this folder, which holds them with their `manifest.txt` as the JAR has them. Nothing is unpacked. See [Ship your app](/docs/get-started/ship). |
+| `rethinkj.ui.natives.cache` | Unpack into this folder instead of the per-user cache. |
 
 ## Next
 
-- [The first app](/docs/get-started/first-app): a state, a view and a window, line by line.
-- [Use it in a project](/docs/get-started/project): the artifacts and how to depend on them today.
-- [Testing and agents](/docs/testing): run the same app without a window.
+- [The first app](/docs/get-started/first-app): the code, line by line.
+- [Ship your app](/docs/get-started/ship): an app image with its own Java runtime.
+- [Platforms and native libraries](/docs/reference/platforms): what to do when a library does not load.

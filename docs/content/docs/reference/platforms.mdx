@@ -3,7 +3,7 @@ title: Platforms and native libraries
 description: Windows and Linux on x64, the native libraries in one JAR per platform, what a build needs, and what to do when a library does not load.
 ---
 
-rethinkj UI runs on Windows 11 and later and on Linux, both on x64, with a JDK 25. The window, the GPU, and text call native libraries: SDL 3 for windows and input, wgpu-native for the GPU (Direct3D 12 on Windows, with the DirectX Shader Compiler, and Vulkan on Linux), FreeType and HarfBuzz for text. They come in one JAR per platform and are loaded on first use, so a view rendered without a window and without text needs none of them.
+rethinkj UI runs on Windows 11 and later and on Linux, both on x64, with JDK 25. Windows, the GPU and text use native libraries: SDL 3 for windows and input, wgpu-native for the GPU (Direct3D 12 on Windows, Vulkan on Linux), FreeType and HarfBuzz for text. They come in one JAR per platform and load on first use, so a view rendered without a window and without text needs none of them.
 
 ## Versions
 
@@ -15,9 +15,9 @@ rethinkj UI runs on Windows 11 and later and on Linux, both on x64, with a JDK 2
 | HarfBuzz | 15.1.0 | Shaping text |
 | DirectX Shader Compiler | 1.9.2609 | Compiling shaders on Direct3D 12, Windows only |
 
-FreeType and HarfBuzz are built from source with the same options on both platforms and need nothing beyond the C runtime.
+FreeType and HarfBuzz are built from source and need nothing beyond the C runtime.
 
-On Windows, wgpu-native compiles the shaders with the DirectX Shader Compiler (DXC), `dxcompiler.dll` from Microsoft's release, which comes under the LLVM Release License (NCSA). It compiles the render pipeline in about 130 ms, where FXC, the compiler built into Windows, takes nearly 600 ms; the first frame appears that much sooner. It makes the Windows JAR about 10 MB larger. A folder given with `rethinkj.ui.natives.dir` whose `manifest.txt` does not list it is fine: then wgpu uses FXC. The licence texts of all libraries are in the JAR under `META-INF/rethinkj-ui/natives/<platform>/licenses/`.
+On Windows, the DirectX Shader Compiler (`dxcompiler.dll`, LLVM Release License) compiles the shaders, so the first frame appears sooner; it adds about 10 MB to the Windows JAR. A folder given with `rethinkj.ui.natives.dir` may leave it out of its `manifest.txt`; then the compiler built into Windows (FXC) is used. The licence texts of all libraries are in the JAR under `META-INF/rethinkj-ui/natives/<platform>/licenses/`.
 
 ## What a build needs
 
@@ -48,7 +48,7 @@ Without the native libraries, build with `-P '!natives-linux-x64'` (or `'!native
 
 ## Loading
 
-On first use the libraries are unpacked from the natives JAR into a per-user cache, in a folder named after their hashes: `%LOCALAPPDATA%\rethinkj-ui\natives\` on Windows, `$XDG_CACHE_HOME/rethinkj-ui/natives/` (by default `~/.cache`) on Linux. Each file is checked against its hash when it is unpacked; at later starts a cached file of the right size is used without reading it, and one of another size is unpacked again. `rethinkj.ui.natives.cache` unpacks elsewhere; `rethinkj.ui.natives.dir` loads from a folder that holds the libraries and their `manifest.txt` without unpacking, for packaged apps.
+On first use the libraries are unpacked from the natives JAR into a per-user cache: `%LOCALAPPDATA%\rethinkj-ui\natives\` on Windows, `$XDG_CACHE_HOME/rethinkj-ui/natives/` (by default `~/.cache`) on Linux. The system property `rethinkj.ui.natives.cache` sets another cache folder; `rethinkj.ui.natives.dir` loads from a folder that holds the libraries and their `manifest.txt` without unpacking, for packaged apps.
 
 Native access must be enabled: `--enable-native-access=ALL-UNNAMED` on the class path, `--enable-native-access=com.rethinkj.ui` on the module path, where the natives module also needs `--add-modules com.rethinkj.ui.natives.linux.x64` (or `windows.x64`).
 
