@@ -53,6 +53,7 @@ final class Grids {
       .mapToObj(i -> IntStream.range(0, 4).mapToObj(c -> value(i, c)).toArray(String[]::new))
       .toList());
   GridChanges changes = new GridChanges(rows.size(), (row, column) -> rows.get(row)[column]);
+  int nextId = 1020; // the id the next new order gets
   final Set<String> open = new HashSet<>(List.of("shop", "public"));
   Node selected;
   String said = "";
@@ -216,6 +217,9 @@ final class Grids {
         count == 0
             ? null
             : () -> {
+              if (!s.selection.commitEdit()) {
+                return; // the open editor refused its value: it stays open, the rows stay put
+              }
               for (GridChanges.Change change : s.changes.changes()) { // the deletes first
                 int row = (int) change.key(); // the row's index, for an insert below 0
                 switch (change.kind()) {
@@ -224,6 +228,7 @@ final class Grids {
                   case INSERT -> {
                     String[] order = new String[4];
                     change.values().forEach((c, value) -> order[c] = value);
+                    order[0] = String.valueOf(s.nextId++); // as a database gives the key
                     s.rows.add(order); // at the end: a database decides where it goes
                   }
                 }
