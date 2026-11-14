@@ -28,6 +28,8 @@ final class SelectionFrame {
         .motion(t.motion().feedback());
     if (enabled) {
       TextField.edge(t, box, t.border().control(), t.border().strong());
+      int accent = t.accent().color();
+      box.whenFocused(e -> TextField.edge(t, e, accent, accent));
     } else {
       TextField.edge(t, box, t.border().divider(), t.border().divider());
     }
