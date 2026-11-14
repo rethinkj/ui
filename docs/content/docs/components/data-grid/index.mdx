@@ -27,6 +27,7 @@ The grid has no border of its own: it sits flush in a card, as `Card.flush(t, gr
 | Type name in the header | `.typeName("bigint")` |
 | Header icon | `.icon(Symbol)`, `.icon(Symbol, Icon.Variant)` (the type's icon by default) |
 | Icons in cells | `.cellIcon(row -> CellIcon)`, with `CellIcon.before(symbol, variant)` or `CellIcon.instead(...)` and `.tooltip(text)` |
+| A detail beside the value | `.detail(row -> text)`, null for none, see [Details](#details) |
 | Sorting | `.sortable(boolean)` |
 | Editing | `.editable()`, `.editable(rows)`, `.nullable()`, `.choices(list)`, `.editor(...)`, see [Editing](/docs/components/data-grid/editing) |
 
@@ -37,6 +38,14 @@ The methods return a changed copy, so a view builds columns in one expression. H
 A cell's text shows on one line, a line break as `⏎` and a tab as `⇥`. Where it does not fit it ends in an ellipsis and shows whole in a tooltip. Where a header is narrow, the type gives way first, then the title.
 
 <Shot src="kit/grid-icons-{theme}-2x-top" alt="A grid with types in the headers, a key, links, checks, NULL markers and status marks" />
+
+## Details
+
+`column.detail(row -> text)` puts a short text in muted type beside each cell's value that stays when the value is cut: the size of a long value, a unit, a count. In a column aligned left it stands `space().s()` after the value, in one aligned right before it, so that numbers stay at the right edge. It keeps its width while the value ends in an ellipsis; in a cell too narrow for the detail and the value's first character with an ellipsis it is left out entirely, and the cell's tooltip names value and detail. The function runs after the cell's text function, for loaded rows only; a cell with a detail costs one element more, one without none.
+
+A copy and the editor take the value alone, and the editor covers the whole cell. In a tree dump the cell says the detail as its value, unless it says a change there (`value="changed"`); the detail's text element says it either way.
+
+<Shot src="kit/grid-details-{theme}-2x-details" alt="A grid with EUR before each amount and the size after each note, whose text is cut" />
 
 ## Options
 

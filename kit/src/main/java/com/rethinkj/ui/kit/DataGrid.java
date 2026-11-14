@@ -83,7 +83,7 @@ import java.util.function.IntPredicate;
  * press on it fits the column to its header and the cells of its rows that exist, icons
  * included. A cell shows its text on one line, with {@link #LINE_BREAK} for each line break and
  * {@link #TAB} for each tab; where it is wider than its column it ends in an ellipsis and shows
- * whole in a tooltip. Scrollbars ({@link
+ * whole in a tooltip, and a {@link Column#detail} beside it keeps its width. Scrollbars ({@link
  * Theme#scrollbars}) show where the rows and columns in view are: one along the right edge of the
  * rows, below the header, and one along the bottom of the grid. They lie over the rows, and the
  * grid scrolls far enough to bring the last row and the last column out from under them: the rows
@@ -100,7 +100,8 @@ import java.util.function.IntPredicate;
  * cell-<row>-<column>} and their column's position, all counted from 0. An icon is a text
  * element labelled with its symbol's name ({@link Icon}), and a cell whose icon stands alone has
  * its text as its label: {@code el #cell-4-3 role=gridcell label="true" ...} over {@code text
- * label="checkmark" ...}. Selected rows ({@link Mode#ROWS}) or cells ({@link Mode#CELLS}) are {@code
+ * label="checkmark" ...}. A cell with a {@link Column#detail} says it as its value, {@code
+ * value="82 B"}, unless it says a change there. Selected rows ({@link Mode#ROWS}) or cells ({@link Mode#CELLS}) are {@code
  * selected}, the cursor's row or cell {@code current}; row numbers are {@code role=rowheader}
  * with the key {@code number-<row>}. The thumbs are on the lines of the grid ({@code thumb-x}) and
  * of its rows ({@code thumb-y}, on {@code #rows}).
@@ -156,6 +157,10 @@ public final class DataGrid {
    * @param editing whether and how its cells are edited; {@link Editing#NONE} for not at all
    * @param cells the typed part of a column of a {@link GridTable}, whose format checks the
    *     editor's text in place of the type's; null for a column of text
+   * @param detail a short text in muted type beside the value of the cell in the row with this
+   *     index, or null for none, such as the size of a value shown shortened or a unit: called as
+   *     {@code cell} is, after it and for loaded rows only; null for the function means no details
+   *     ({@link #detail(IntFunction)})
    */
   public record Column(
       String title,
@@ -170,12 +175,45 @@ public final class DataGrid {
       IntFunction<CellIcon> cellIcon,
       DataType type,
       Editing editing,
-      GridTable.Cells<?, ?> cells) {
+      GridTable.Cells<?, ?> cells,
+      IntFunction<String> detail) {
 
     public Column {
       Objects.requireNonNull(iconVariant, "iconVariant");
       Objects.requireNonNull(type, "type");
       Objects.requireNonNull(editing, "editing");
+    }
+
+    /** A column without a {@link #detail}. */
+    public Column(
+        String title,
+        float width,
+        Align align,
+        boolean mono,
+        boolean sortable,
+        IntFunction<String> cell,
+        Symbol icon,
+        Icon.Variant iconVariant,
+        String typeName,
+        IntFunction<CellIcon> cellIcon,
+        DataType type,
+        Editing editing,
+        GridTable.Cells<?, ?> cells) {
+      this(
+          title,
+          width,
+          align,
+          mono,
+          sortable,
+          cell,
+          icon,
+          iconVariant,
+          typeName,
+          cellIcon,
+          type,
+          editing,
+          cells,
+          null);
     }
 
     /** A column of untyped text, without {@link #cells}. */
@@ -289,7 +327,8 @@ public final class DataGrid {
           cellIcon,
           type,
           editing,
-          cells);
+          cells,
+          detail);
     }
 
     /** This column, sortable or not. */
@@ -307,7 +346,8 @@ public final class DataGrid {
           cellIcon,
           type,
           editing,
-          cells);
+          cells,
+          detail);
     }
 
     /** This column with {@code symbol} in muted text before the title in the header. */
@@ -319,7 +359,7 @@ public final class DataGrid {
     public Column icon(Symbol symbol, Icon.Variant variant) {
       return new Column(
           title, width, align, mono, sortable, cell, symbol, variant, typeName, cellIcon, type,
-          editing, cells);
+          editing, cells, detail);
     }
 
     /** This column with {@code name} after the title in the header; null for none. */
@@ -337,7 +377,8 @@ public final class DataGrid {
           cellIcon,
           type,
           editing,
-          cells);
+          cells,
+          detail);
     }
 
     /** This column with an icon in each cell for which {@code icons} gives one. */
@@ -355,7 +396,35 @@ public final class DataGrid {
           icons,
           type,
           editing,
-          cells);
+          cells,
+          detail);
+    }
+
+    /**
+     * This column with a detail beside the value of each cell for which {@code details} gives
+     * one, in muted text of the cell's font: {@code space().s()} after the value in a column
+     * aligned left, before it in one aligned right, so that the value stays at the aligned edge.
+     * The detail keeps its width while the value ends in an ellipsis; in a cell too narrow for the
+     * detail and the value's first character with an ellipsis, it is left out entirely, and the
+     * cell's tooltip names both. A copy and the editor take the value alone; a tree dump says the
+     * detail as the cell's {@code value} unless the cell says a change there.
+     */
+    public Column detail(IntFunction<String> details) {
+      return new Column(
+          title,
+          width,
+          align,
+          mono,
+          sortable,
+          cell,
+          icon,
+          iconVariant,
+          typeName,
+          cellIcon,
+          type,
+          editing,
+          cells,
+          details);
     }
 
     /** This column with its cells editable in every row, when the grid edits ({@link Options#onCommit}). */
@@ -409,7 +478,8 @@ public final class DataGrid {
           cellIcon,
           type,
           editing,
-          cells);
+          cells,
+          detail);
     }
   }
 
@@ -2548,33 +2618,66 @@ public final class DataGrid {
     String value = loaded && !append ? column.cell().apply(i) : null;
     CellIcon icon =
         loaded && !append && column.cellIcon() != null ? column.cellIcon().apply(i) : null;
+    String detail =
+        loaded && !append && column.detail() != null ? column.detail().apply(i) : null;
+    if (detail != null && status != Status.CHANGED && status != Status.ERROR) {
+      box.value(detail); // a change says itself there, and the detail's text alone says it
+    }
+    boolean alone = icon != null && icon.alone();
+    boolean right = column.align() == Align.RIGHT;
+    float pad = t.space().s();
+    // The room of the value and the detail: the cell's less its padding and an icon with its gap.
+    float room = column.width()
+        - t.size().stroke()
+        - 2 * pad
+        - (icon == null ? 0 : t.size().icon() + pad);
+    El valueText = null;
+    float detailWidth = 0; // the detail's with its gap, 0 where it gives way
     if (!loaded) {
       box.child(text(t, false, Text.ELLIPSIS, t.text().muted()));
     } else if (!append) {
-      if (icon != null) {
-        box.gap(t.space().s()).child(Icon.icon(t, icon.symbol(), icon.variant()));
+      String shown = value == null ? "NULL" : oneLine(value);
+      El more = null;
+      if (detail != null) {
+        more = text(t, column.mono(), oneLine(detail), t.text().muted()).shrink(0);
+        float least = alone ? 0 : natural(text(t, column.mono(), least(shown), 0)) + pad;
+        // Whole beside the icon, or the value's first character and an ellipsis, or not at all.
+        detailWidth = natural(more) + pad;
+        if (room < detailWidth - pad + least) {
+          more = null;
+          detailWidth = 0;
+        }
       }
-      if (icon == null || !icon.alone()) {
+      if (more != null) {
+        box.gap(pad);
+        if (right) {
+          box.child(more);
+        }
+      }
+      if (icon != null) {
+        box.gap(pad).child(Icon.icon(t, icon.symbol(), icon.variant()));
+      }
+      if (!alone) {
         El text = text(
             t,
             column.mono(),
-            value == null ? "NULL" : oneLine(value),
+            shown,
             value == null || row == Status.DELETED ? t.text().muted() : t.text().primary());
+        valueText = text;
         box.child(text);
         if (row == Status.DELETED) { // struck through, a line as the text is wide
-          float pad = t.space().s();
           float before = icon == null ? 0 : t.size().icon() + pad;
-          float width =
-              Math.min(natural(text), column.width() - t.size().stroke() - 2 * pad - before);
-          float x = column.align() == Align.RIGHT
-              ? column.width() - t.size().stroke() - pad - width
-              : pad + before;
+          float width = Math.min(natural(text), room - detailWidth);
+          float x = right ? column.width() - t.size().stroke() - pad - width : pad + before;
           box.child(el().absolute(x, Math.round((b.g.rowHeight() - t.size().stroke()) / 2))
               .size(Math.max(width, 0), t.size().stroke())
               .fill(t.text().muted()));
         }
       } else {
         box.label(value == null ? "NULL" : value); // what the icon stands for, in a dump
+      }
+      if (more != null && !right) {
+        box.child(more);
       }
     }
     if (sel != null) {
@@ -2589,24 +2692,25 @@ public final class DataGrid {
         });
       }
     }
-    boolean alone = icon != null && icon.alone();
     String error =
         status == Status.ERROR && b.o.cellError != null ? b.o.cellError.message(i, c) : null;
     String told = icon == null ? null : icon.tooltip();
     // What is wrong first, then what the icon says.
     String own = error == null ? told : told == null ? error : error + "\n" + told;
-    if (value != null || alone || own != null) {
+    if (value != null || alone || own != null || detail != null) {
       // The icon's own tooltip, else the text an icon alone stands for, and the whole text where
-      // the column cuts it short.
-      float room = column.width()
-          - t.size().stroke()
-          - 2 * t.space().s()
-          - (icon == null ? 0 : t.size().icon() + t.space().s());
+      // the column cuts it short, with the detail where that or the detail is cut.
+      String whole = value == null ? "NULL" : value;
+      String named = detail == null ? whole : whole + " " + detail;
+      boolean hidden = detail != null && detailWidth == 0;
+      El measured = valueText;
+      float valueRoom = room - detailWidth;
       box.whenHoveredFor(t.motion().tooltipDelay(), e -> {
-        String cut =
-            !alone && value != null && natural(e.children().getLast()) > room + 0.5f ? value : null;
+        boolean shortened =
+            measured != null && value != null && natural(measured) > valueRoom + 0.5f;
+        String cut = shortened || hidden ? named : null;
         String tip = own == null
-            ? (alone ? (value == null ? "NULL" : value) : cut)
+            ? (alone && cut == null ? whole : cut)
             : cut == null ? own : own + "\n" + cut;
         if (tip != null) {
           e.overlay(Tooltip.panel(t, tip));
@@ -2614,6 +2718,12 @@ public final class DataGrid {
       });
     }
     return box;
+  }
+
+  /** A text's first character and an ellipsis, the least of it a cut cell shows. */
+  private static String least(String text) {
+    int first = text.isEmpty() ? 0 : text.offsetByCodePoints(0, 1);
+    return first < text.length() ? text.substring(0, first) + Text.ELLIPSIS : text;
   }
 
   /** A status as a tree dump says it: {@code changed}, {@code new}, {@code deleted}, {@code error}. */

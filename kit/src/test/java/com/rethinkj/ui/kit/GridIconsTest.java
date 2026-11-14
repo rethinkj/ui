@@ -414,6 +414,41 @@ class GridIconsTest {
     assertEquals(without + 300 + 2 * types + before, with);
   }
 
+  /**
+   * The details of 300 columns cost one element more for each cell that shows one, and none
+   * elsewhere: the same grid with the same widths and no details has as many elements less.
+   */
+  @Test
+  void aDetailCostsOneElementWhereItShowsAndNoneElsewhere() throws IOException {
+    Orders plain = Orders.typed(T, 300);
+    plain.widths[5] = 130; // as Orders.detailed has it
+    App<Orders> plainApp = start(plain);
+    run(plainApp, "wheel #rows 300 0\nframe"); // amounts and notes in view
+    App<Orders> app = start(Orders.detailed(T, 300));
+    run(app, "wheel #rows 300 0\nframe");
+    String size = Orders.noteSize(1);
+    long shown = 0;
+    for (El row : find(app, "rows").children()) {
+      for (El cell : row.children()) {
+        for (El part : cell.children()) {
+          if (part.text() != null
+              && part.text().color() == T.text().muted()
+              && List.of("EUR", size).contains(part.text().string())) {
+            shown++;
+          }
+        }
+      }
+    }
+    long without = count(plainApp.tree());
+    long with = count(app.tree());
+    System.out.printf(
+        "DataGrid, 300 columns of a million rows: %d elements without details, %d with %d"
+            + " details shown%n",
+        without, with, shown);
+    assertTrue(shown > 10, shown + " details");
+    assertEquals(without + shown, with);
+  }
+
   private static long count(El el) {
     long count = 1;
     for (El child : el.children()) {
