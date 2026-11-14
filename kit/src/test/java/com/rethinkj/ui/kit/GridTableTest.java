@@ -711,4 +711,36 @@ class GridTableTest {
     assertEquals("Refused", commit.commit(0, 0, "rejected"));
     assertEquals("original", row.details().name());
   }
+
+  @Test
+  void aCellInsideANullPartIsNotEditable() throws IOException {
+    TextLibraries.assumeLoaded();
+    List<Entity> rows = new ArrayList<>(List.of(new Entity(null), new Entity(new Details("x"))));
+    GridTable<Entity> table = DataGrid.table(rows::get);
+    Column column = table.column("name", 100, Format.TEXT, Entity.DETAILS.then(Details.NAME));
+    List<String> log = new ArrayList<>();
+    Selection selection = new Selection(Mode.CELLS);
+    App<Object> app = new App<>(
+        new Object(),
+        x -> DataGrid.dataGrid(
+                Theme.DARK,
+                List.of(column),
+                rows.size(),
+                DataGrid.options().select(selection).onCommit(table, (index, value) -> {
+                  log.add(index + " " + value.details().name());
+                  return null;
+                }))
+            .key("grid")
+            .wFull()
+            .hFull());
+    run(app, "focus #grid\ntype \"typed\"\nkey Enter");
+    assertFalse(selection.isEditing(), "no editor opened");
+    assertTrue(log.isEmpty(), log.toString());
+    var paste = table.paste(List.of(column), rows.size(), (index, value) -> {
+      log.add(index + " " + value.details().name());
+      return null;
+    });
+    paste.accept(List.of(new CellValue(0, 0, "a"), new CellValue(1, 0, "b")));
+    assertEquals(List.of("1 b"), log, "the row inside the null part is left as it is");
+  }
 }

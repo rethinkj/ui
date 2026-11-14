@@ -96,6 +96,7 @@ public final class GridTable<T> {
     private final Function<? super T, ? extends V> get;
     private final BiFunction<? super T, ? super V, ? extends T> with;
     private final BiConsumer<? super T, ? super V> set;
+    private final Predicate<? super T> writable; // in which rows the value can be written
 
     private Cells(
         GridTable<T> table,
@@ -103,11 +104,22 @@ public final class GridTable<T> {
         Function<? super T, ? extends V> get,
         BiFunction<? super T, ? super V, ? extends T> with,
         BiConsumer<? super T, ? super V> set) {
+      this(table, format, get, with, set, row -> true);
+    }
+
+    private Cells(
+        GridTable<T> table,
+        Format<V> format,
+        Function<? super T, ? extends V> get,
+        BiFunction<? super T, ? super V, ? extends T> with,
+        BiConsumer<? super T, ? super V> set,
+        Predicate<? super T> writable) {
       this.table = table;
       this.format = Objects.requireNonNull(format, "format");
       this.get = Objects.requireNonNull(get, "get");
       this.with = with;
       this.set = set;
+      this.writable = writable;
     }
 
     public Format<V> format() {
@@ -133,6 +145,18 @@ public final class GridTable<T> {
     /** Whether the column writes values, through a wither or a setter. */
     public boolean writes() {
       return with != null || set != null;
+    }
+
+    /**
+     * Whether the column writes a value into the row with this index: not inside a part that is
+     * null there ({@link Part#then}); a row not loaded counts as written, and refuses the edit.
+     */
+    boolean writes(int row) {
+      if (!writes()) {
+        return false;
+      }
+      T value = table.rows.apply(row);
+      return value == null || writable.test(value);
     }
 
     /**
@@ -260,14 +284,15 @@ public final class GridTable<T> {
    * or setter: the same constant a form's {@link Editing} uses, and no overloads to tell apart.
    */
   public <V> Column column(String title, float width, Format<V> format, Part<T, V> part) {
-    return column(title, width, new Cells<>(this, format, part::get, part::write, null));
+    return column(
+        title, width, new Cells<>(this, format, part::get, part::write, null, part::writes));
   }
 
   private static Column column(String title, float width, Cells<?, ?> cells) {
     Format<?> format = cells.format;
     DataType type = format.type();
     Editing editing = new Editing(
-        cells.writes() ? row -> true : null, format.isOptional(), format.choices(), null);
+        cells.writes() ? cells::writes : null, format.isOptional(), format.choices(), null);
     return new Column(
         title,
         width,
@@ -296,6 +321,9 @@ public final class GridTable<T> {
       if (cells == null) {
         return "Not a column of this table";
       }
+      if (!cells.writes(row)) {
+        return "The value lies inside a part that is NULL in this row";
+      }
       Format.Parsed<?> parsed = cells.parse(text);
       if (!parsed.valid()) {
         return parsed.error();
@@ -313,7 +341,7 @@ public final class GridTable<T> {
    * the first: a handler that sorts, filters or refreshes the rows moves the others, which are
    * then found again by their objects among the rows there are now (up to {@code count}, or to the
    * first index that {@code rows} throws {@code IndexOutOfBoundsException} for), and left out where
-   * they are gone.
+   * they are gone. A cell inside a part that is null in its row is left as it is.
    */
   Consumer<List<CellValue>> paste(List<Column> columns, int count, RowCommit<T> onRow) {
     return values -> {
@@ -321,7 +349,7 @@ public final class GridTable<T> {
       for (CellValue v : values) {
         Cells<T, ?> cells = cells(columns, v.column());
         Format.Parsed<?> parsed = cells == null ? null : cells.parse(v.value());
-        if (parsed != null && parsed.valid()) {
+        if (parsed != null && parsed.valid() && cells.writes(v.row())) {
           byRow.computeIfAbsent(v.row(), r -> new LinkedHashMap<>()).put(cells, parsed.value());
         }
       }

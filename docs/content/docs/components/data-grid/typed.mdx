@@ -24,6 +24,8 @@ description: Typed columns over records and POJOs, edited through withers and se
 - **Records**: the wither makes a new record, which the handler gets and stores, usually `rows.set(row, value)`. Nothing has changed if it refuses.
 - **POJOs**: the setter changes the row in place, and the handler gets that row to save or mark. If it refuses, by returning a message, the setter is called again with the value before, also a setter inside a record's part (`Order.DETAILS.then(Details.NOTE)`).
 
+A column of a joined part edits nothing in a row where a part on the way is null: the cell shows NULL, Enter opens no editor, and a paste leaves it.
+
 The handler refuses with a message, which shows under the editor, or accepts with null. NULL comes as null where the format is `optional()`. Pasted and cleared cells come one call per row, with all of its values written; a handler that sorts or filters the rows meanwhile finds the others written to the rows they are now.
 
 ```java snippet="grid-pojo"
