@@ -376,7 +376,7 @@ public record Theme(
     /** For light surfaces. */
     public static final Badges LIGHT = new Badges(
         new Tone(alpha(GREY_407, 0.1f), GREY_314, GREY_407, WHITE),
-        new Tone(alpha(BLUE_447, 0.12f), BLUE_358, BLUE_447, WHITE),
+        new Tone(alpha(BLUE_447, 0.12f), BLUE_366, BLUE_447, WHITE),
         new Tone(alpha(GREEN_389, 0.13f), GREEN_333, GREEN_389, WHITE),
         new Tone(alpha(AMBER_622, 0.17f), AMBER_327, AMBER_735, GREY_108),
         new Tone(alpha(RED_395, 0.12f), RED_345, RED_395, WHITE),
@@ -480,7 +480,7 @@ public record Theme(
 
     /** For a light panel. */
     public static final Prose LIGHT =
-        new Prose(BODY, HEADINGS, BLUE_377, alpha(BLACK, 0.08f), GREY_805, 720);
+        new Prose(BODY, HEADINGS, BLUE_403, alpha(BLACK, 0.08f), GREY_805, 720);
   }
 
   /**
@@ -716,7 +716,7 @@ public record Theme(
     public static final Danger DARK = of(Hue.RED.dark(), RED_649);
 
     /** For light surfaces. */
-    public static final Danger LIGHT = of(Hue.RED.light(), RED_351);
+    public static final Danger LIGHT = of(Hue.RED.light(), RED_377);
 
     /** From an accent: its fills, white on them, and its edge for edge and ring. */
     private static Danger of(Accent red, int text) {
@@ -1095,8 +1095,8 @@ public record Theme(
    * Layers. The window is the page, darker than the cards in both themes; cards (panel) lie on it,
    * bands (a tab bar, a grid's header, a footer) are a quiet step inside a card, and controls and
    * popups (raised) a step above it, white in the light theme, where a control is told apart by its
-   * edge and a popup by its edge and shadow. In the light theme they are four tones: window L* 87,
-   * band 94, panel 99 and raised 100. Hairlines (subtle) are a low-contrast step from the card; a
+   * edge and a popup by its edge and shadow. In the light theme they are four tones: window L* 91,
+   * band 96, panel 99 and raised 100. Hairlines (subtle) are a low-contrast step from the card; a
    * button's edge (control) a little more. A divider, the hairline that separates content on a
    * surface, stands out 1.2:1 or more from every surface it is drawn on: in the dark theme it is
    * the button's edge, in the light one the step it needs on the grey window.
@@ -1104,8 +1104,8 @@ public record Theme(
    * Hover and pressed. A neutral grey laid over the surface, mixed in linear light both by
    * Theme.over and by the renderer, so every component gives the same colour: hover 4 L* or more
    * from the surface, pressed 3 L* or more beyond hover. In the dark theme a lighter grey near the
-   * surfaces at 25 % and 45 %; in the light one a mid grey (L* 60) at 20 % and 34 %, which darkens
-   * the grey window by as much as the white surfaces, where a light grey would hardly show.
+   * surfaces at 25 % and 45 %; in the light one a grey (L* 77) at 33 % and 57 %, which darkens the
+   * grey window by as much as the rules ask, as it does the white surfaces.
    *
    * Accent. One blue: white text on it at 4.5:1. Its edge, the tone of lines, outlines and the
    * focus ring, 3:1 on every surface and on the grid's selection: a lighter blue in the dark
@@ -1179,15 +1179,15 @@ public record Theme(
   /** Neutral greys with a blue accent, dark text on light surfaces. */
   public static final Theme LIGHT = new Theme(
       new Surfaces(
-          GREY_873,
-          GREY_986,
+          GREY_912,
+          GREY_993,
           WHITE,
-          GREY_936,
-          alpha(GREY_605, 0.2f),
-          alpha(GREY_605, 0.34f),
+          GREY_958,
+          alpha(GREY_773, 0.33f),
+          alpha(GREY_773, 0.57f),
           alpha(BLACK, 0.35f)),
-      new TextColors(GREY_108, GREY_375, GREY_572, WHITE),
-      new Borders(GREY_880, GREY_520, GREY_844, alpha(GREY_520, 0.35f), GREY_805),
+      new TextColors(GREY_108, GREY_395, GREY_602, WHITE),
+      new Borders(GREY_905, GREY_547, GREY_844, alpha(GREY_547, 0.37f), GREY_805),
       Hue.BLUE.light(),
       new Status(RED_395, AMBER_384, GREEN_389),
       SPACE,
@@ -1195,7 +1195,7 @@ public record Theme(
       TYPE,
       SIZE,
       MOTION,
-      new Grid(24, 32, 480, 6, 12, GREY_936, WHITE, WHITE, BLUE_918, GREY_901, BLUE_447, 1),
+      new Grid(24, 32, 480, 6, 12, GREY_958, WHITE, WHITE, BLUE_918, GREY_883, BLUE_447, 1),
       new Scrollbars(6, 2, 3, 24, GREY_501, GREY_423, GREY_327),
       new Elevation(
           List.of(

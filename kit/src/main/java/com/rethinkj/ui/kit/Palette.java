@@ -5,7 +5,7 @@ package com.rethinkj.ui.kit;
  * BLUE_496}. The step is the colour's CIELAB lightness L* times ten ({@link
  * com.rethinkj.ui.Colors#lightness}), from 0 for black to 1000 for white, so that two names say how
  * far apart two colours are: text and its background want about 40 steps for 4.5:1 near the middle
- * of the scale, and a dark theme's surfaces lie below 130, a light theme's above 940. What a colour
+ * of the scale, and a dark theme's surfaces lie below 130, a light theme's above 900. What a colour
  * is for is named by the tokens of {@link Theme}, whose source shows which tokens share a colour
  * and which are made from another.
  *
@@ -48,31 +48,31 @@ public final class Palette {
   public static final int GREY_425 = 0xFF62646D;
   public static final int GREY_477 = 0xFF6E717B;
   public static final int GREY_501 = 0xFF747780;
-  public static final int GREY_520 = 0xFF797C85;
+  public static final int GREY_547 = 0xFF7F838C;
   public static final int GREY_568 = 0xFF858892;
-  public static final int GREY_572 = 0xFF878991;
-  public static final int GREY_605 = 0xFF8F929A;
+  public static final int GREY_602 = 0xFF8E9199;
   public static final int GREY_648 = 0xFF9A9DA9;
   public static final int GREY_655 = 0xFF9C9FA8;
   public static final int GREY_700 = 0xFFA9ABB2;
   public static final int GREY_747 = 0xFFB4B8C0;
   public static final int GREY_759 = 0xFFB9BBC1;
+  public static final int GREY_773 = 0xFFBDBFC5;
   public static final int GREY_805 = 0xFFC4C8CF;
   public static final int GREY_844 = 0xFFCFD3DA;
-  public static final int GREY_873 = 0xFFD7DBE2;
-  public static final int GREY_880 = 0xFFD9DDE3;
   public static final int GREY_853 = 0xFFD3D5DB;
-  public static final int GREY_901 = 0xFFDFE3E8;
+  public static final int GREY_883 = 0xFFDADEE4;
+  public static final int GREY_905 = 0xFFE1E4E9;
+  public static final int GREY_912 = 0xFFE3E6EB;
   public static final int GREY_916 = 0xFFE6E7EA;
-  public static final int GREY_936 = 0xFFEAEDF1;
-  public static final int GREY_986 = 0xFFFAFBFC;
+  public static final int GREY_958 = 0xFFF1F3F6;
+  public static final int GREY_993 = 0xFFFDFDFE;
 
   // Blue
   public static final int BLUE_180 = 0xFF1C2B4D;
   public static final int BLUE_335 = 0xFF2048A8;
-  public static final int BLUE_358 = 0xFF1E4DB5;
-  public static final int BLUE_377 = 0xFF2251BD;
+  public static final int BLUE_366 = 0xFF1F4FB8;
   public static final int BLUE_391 = 0xFF2755C0;
+  public static final int BLUE_403 = 0xFF2557C9;
   public static final int BLUE_430 = 0xFF2F5ED0;
   public static final int BLUE_447 = 0xFF2E62D9;
   public static final int BLUE_469 = 0xFF3768DD;
@@ -98,7 +98,7 @@ public final class Palette {
 
   // Red
   public static final int RED_345 = 0xFF9E1E14;
-  public static final int RED_351 = 0xFFA11E14;
+  public static final int RED_377 = 0xFFAC2116;
   public static final int RED_395 = 0xFFB42318;
   public static final int RED_436 = 0xFFC42B1C;
   public static final int RED_457 = 0xFFC6373A;
