@@ -103,6 +103,7 @@ final class Win32 {
 
   static final int DWMWA_USE_IMMERSIVE_DARK_MODE = 20;
   static final int DWMWA_TRANSITIONS_FORCEDISABLED = 3;
+  static final int DWMWA_CLOAK = 13;
   /** {@code HKEY_CURRENT_USER}, a LONG sign-extended into a handle. */
   static final long HKEY_CURRENT_USER = 0xFFFFFFFF80000001L;
 

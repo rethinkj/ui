@@ -180,6 +180,19 @@ final class Win32Shell {
     }
   }
 
+  /**
+   * Whether DWM hides the window from the screen while it is shown ({@code DWMWA_CLOAK}). The
+   * window opens cloaked until its first frame is drawn: shown without one, it would be black.
+   *
+   * @return false if DWM refused it
+   */
+  boolean cloak(boolean on) {
+    try (Arena arena = Arena.ofConfined()) {
+      MemorySegment value = arena.allocateFrom(JAVA_INT, on ? 1 : 0);
+      return Win32.dwmSetWindowAttribute(hwnd, Win32.DWMWA_CLOAK, value) == Win32.S_OK;
+    }
+  }
+
   private boolean applyFrameDark() {
     try (Arena arena = Arena.ofConfined()) {
       MemorySegment value = arena.allocateFrom(JAVA_INT, frameDark ? 1 : 0);
