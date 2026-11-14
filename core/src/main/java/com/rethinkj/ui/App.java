@@ -1961,7 +1961,9 @@ public final class App<S> {
     Set<El> inside = Collections.newSetFromMap(new IdentityHashMap<>());
     collect(rowEl, inside);
     List<El> order = focusables();
-    order.removeIf(El::skipsTab); // as for the order outside: the focus is not in the list
+    if (step != 0) {
+      order.removeIf(El::skipsTab); // as for the order outside: the focus is not in the list
+    }
     El again = last == null ? null : animator.element(last);
     if (again != null && inside.contains(again) && order.contains(again)) {
       return again;

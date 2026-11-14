@@ -518,7 +518,11 @@ class FocusTest {
                                             .focusable()
                                             .defaultFocus()
                                             .size(10, 10)),
-                                    el().key("b" + i).focusable().defaultFocus().size(10, 10))))),
+                                    el().key("b" + i)
+                                        .focusable()
+                                        .skipTab()
+                                        .defaultFocus()
+                                        .size(10, 10))))),
         100,
         100);
     app.focus(find(app.tree(), "outside"));
