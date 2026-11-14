@@ -352,10 +352,11 @@ final class Sections {
         t,
         "Code editor",
         label(
-            t,
-            MUTED,
-            "Line numbers, colours and brackets; a word's second letter, or"
-                + " Control+Space, completes keywords and names; Control+F finds, Control+H replaces."),
+                t,
+                MUTED,
+                "Line numbers, colours and brackets; a word's second letter, or"
+                    + " Control+Space, completes keywords and names; Control+F finds, Control+H replaces.")
+            .wrapText(),
         Completion.complete(
             t, s.app, editor, s.sqlEditor.caret(), s.sqlCompletion, Sections::complete));
     return col()
@@ -1448,16 +1449,18 @@ final class Sections {
         .child(col()
             .gap(t.space().xs())
             .child(label(
-                t,
-                MUTED,
-                "Each cell is the pair itself: the ratio in the foreground on "
-                    + "the background. An edge marks a pair the kit draws, in the danger colour when"
-                    + " it is below its minimum."))
+                    t,
+                    MUTED,
+                    "Each cell is the pair itself: the ratio in the foreground on "
+                        + "the background. An edge marks a pair the kit draws, in the danger colour when"
+                        + " it is below its minimum.")
+                .wrapText())
             .child(label(
-                t,
-                MUTED,
-                "Hover is the overlay on raised and on panel; Theme.over and the "
-                    + "renderer both mix it in linear light.")));
+                    t,
+                    MUTED,
+                    "Hover is the overlay on raised and on panel; Theme.over and the "
+                        + "renderer both mix it in linear light.")
+                .wrapText()));
   }
 
   private static final float CELL = 64;
