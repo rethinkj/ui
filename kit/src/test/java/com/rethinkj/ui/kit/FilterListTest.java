@@ -1,6 +1,7 @@
 package com.rethinkj.ui.kit;
 
 import static com.rethinkj.ui.El.col;
+import static com.rethinkj.ui.El.el;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -17,7 +18,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
-/** The entries a {@link FilterList} finds on another thread, in a {@link CommandPalette}. */
+/** A {@link FilterList}'s custom leading content and entries found on another thread. */
 class FilterListTest {
 
   @TempDir
@@ -26,6 +27,34 @@ class FilterListTest {
   private String run(App<?> app, String steps) throws IOException {
     Script.run(steps + "\nframe\nadvance 1\nframe\nsnap s", app, out);
     return Files.readString(out.resolve("s.tree.txt"));
+  }
+
+  @Test
+  void aWideLeadingElementLeavesRoomForTheTextShortcutAndCheck() throws IOException {
+    TextLibraries.assumeLoaded();
+    Theme t = Theme.DARK;
+    FilterList.Entries entries = FilterList.Entries.of(List.of(FilterList.entry(
+            "A connection with a long descriptive name", () -> {})
+        .leading(th -> el().key("lead").size(3 * th.size().icon(), th.size().icon()))
+        .detail("driver")
+        .shortcut("F1")
+        .checked(true)));
+    App<FilterList.State> app = new App<>(
+        new FilterList.State(),
+        s -> FilterList.list(t, s, FilterList.shown(s, entries), 4, "Connections", e -> {})
+            .wFull());
+    String tree = run(app, "size 260 40");
+    float[] lead = StructureTest.rect(StructureTest.line(tree, "#lead "));
+    float[] name = StructureTest.rect(StructureTest.line(tree, "text \"A connection"));
+    float[] detail = StructureTest.rect(StructureTest.line(tree, "text \"driver\""));
+    float[] shortcut = StructureTest.rect(StructureTest.line(tree, "text \"F1\""));
+    float[] check = StructureTest.rect(StructureTest.line(tree, "label=\"checkmark\""));
+    float[] option = StructureTest.rect(StructureTest.line(tree, "#option-0 "));
+    assertEquals(3 * t.size().icon(), lead[2], tree);
+    assertTrue(name[0] >= lead[0] + lead[2] + t.space().m(), tree);
+    assertTrue(name[2] > 0 && name[0] + name[2] <= detail[0] - t.space().m(), tree);
+    assertTrue(shortcut[0] + shortcut[2] < check[0], tree);
+    assertTrue(check[0] + check[2] <= option[0] + option[2] - t.space().m(), tree);
   }
 
   /** A finder that answers "two" at once and waits with every other text until it is let go. */

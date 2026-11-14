@@ -546,39 +546,27 @@ public final class Menu {
     Item item = items.get(i);
     boolean enabled = item.isEnabled();
     boolean lit = i == state.active(level);
-    int text = !enabled ? t.text().disabled() : t.text().primary();
-    int quiet = !enabled ? t.text().disabled() : t.text().muted();
-    El mark = el().w(t.size().icon()).shrink(0).center();
+    int text = PassiveContent.text(t, enabled);
+    int quiet = PassiveContent.muted(t, enabled);
+    El leading = null;
     boolean checkAtEnd = item.checked() && item.leading() != null;
     if (item.leading() != null) {
-      mark.child(item.leading().apply(t).shrink(0));
+      leading = item.leading().apply(t).shrink(0);
     } else if (item.checked()) {
-      mark.child(icon(t, CHECKED).color(text));
+      leading = icon(t, CHECKED).color(text);
     } else if (item.icon() != null) {
-      mark.child(icon(t, item.icon()).color(text));
+      leading = icon(t, item.icon()).color(text);
     }
-    El content = row()
-        .wFull()
-        .hFull()
-        .padding(0, t.space().m())
-        .gap(t.space().m())
-        .align(Style.Align.CENTER)
-        .children(mark, label(t, item.label()).color(text).grow(1));
     boolean opens = item.opens();
-    if (opens) {
-      if (checkAtEnd) {
-        content.child(icon(t, CHECKED).color(text));
-      }
-      content.child(icon(t, SUBMENU).color(quiet));
-    } else {
-      if (item.shortcut() != null) {
-        content.child(
-            label(t, item.shortcut()).color(quiet).margin(0, 0, 0, t.space().l()));
-      }
-      if (checkAtEnd) {
-        content.child(icon(t, CHECKED).color(text));
-      }
-    }
+    El content = PassiveContent.row(
+        t,
+        PassiveContent.leading(t, leading),
+        label(t, item.label()).color(text),
+        !opens && item.shortcut() != null
+            ? label(t, item.shortcut()).color(quiet).margin(0, 0, 0, t.space().l())
+            : null,
+        checkAtEnd ? icon(t, CHECKED).color(text) : null,
+        opens ? icon(t, SUBMENU).color(quiet) : null);
     // After a rest, the item's submenu opens and any other of its level closes.
     content.onHoverFor(t.motion().submenuDelay(), () -> state.openSubmenu(level, opens ? i : -1));
     // The highlight is the calm tint of a selection; the full accent belongs to primary buttons.

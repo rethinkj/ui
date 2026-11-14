@@ -1,7 +1,5 @@
 package com.rethinkj.ui.kit;
 
-import static com.rethinkj.ui.El.el;
-import static com.rethinkj.ui.El.row;
 import static com.rethinkj.ui.kit.Icon.icon;
 import static com.rethinkj.ui.kit.Label.label;
 
@@ -177,26 +175,17 @@ public final class Completion {
   }
 
   private static El option(Theme t, Entry entry, int i, State state, Consumer<Integer> take) {
-    El mark = el().w(t.size().icon()).shrink(0).center();
-    if (entry.symbol() != null) {
-      mark.child(icon(t, entry.symbol(), Icon.Variant.MUTED));
-    }
-    El content = row()
-        .wFull()
-        .hFull()
-        .padding(0, t.space().m())
-        .gap(t.space().m())
-        .align(Style.Align.CENTER)
-        .children(
-            mark,
-            label(t, entry.text())
-                .font(t.type().mono().font().get())
-                .fontSize(t.type().mono().size())
-                .grow(1));
-    if (entry.kind() != null) {
-      content.child(
-          label(t, Label.Variant.MUTED, entry.kind()).margin(0, 0, 0, t.space().l()));
-    }
+    El content = PassiveContent.row(
+        t,
+        PassiveContent.leading(
+            t, entry.symbol() != null ? icon(t, entry.symbol(), Icon.Variant.MUTED) : null),
+        label(t, entry.text())
+            .font(t.type().mono().font().get())
+            .fontSize(t.type().mono().size()),
+        entry.kind() != null
+            ? label(t, Label.Variant.MUTED, entry.kind())
+                .margin(0, 0, 0, t.space().l())
+            : null);
     return PassiveList.option(
             t, i, state.highlight, at -> state.highlight = at, () -> take.accept(i))
         .label(entry.text())
