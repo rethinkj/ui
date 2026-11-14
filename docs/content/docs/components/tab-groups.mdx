@@ -5,6 +5,8 @@ description: Tabs in several windows that move, tear off into a window of their 
 
 `TabGroups` keeps an app's tabs in groups, one per window, as browsers and editors do: the user moves tabs along a bar, drags one out into a new window that follows the pointer, and drops it on a bar of any window. The app keeps one `TabGroups` in its state and builds each window's tabs with `groups.tabs(...)`; everything the user does goes through it. For tabs in one window, plain [Tabs](/docs/components/tabs) are enough.
 
+Javadoc: [`TabGroups`](/api/com/rethinkj/ui/kit/TabGroups.html).
+
 <Shot src="examples/docs/tab-groups/moved-{theme}" alt="The first window, Groceries its one tab left, after Ideas moved to a window of its own" />
 
 <Shot src="examples/docs/tab-groups/ideas-moved-{theme}" alt="The window of Ideas, its one tab above its text" caption="The window that Move to new window opened." />
@@ -33,9 +35,8 @@ A script moves a tab to a window of its own through its menu:
 | `onWindowClose(group -> …)` | What closing a group's window does: `dockAll` (the default) or `closeAll` |
 | `onCloseTab((group, index) -> …)` | What closing a tab by its cross, Control+W or Control+F4 does; `close` unless set. A handler that asks about unsaved changes calls `close` once the user agrees |
 | `onClosed(tab -> …)` | Called for each closed tab |
-| `groups()`, `groupOf(tab)`, `isDragging()` | Questions |
-| `select`, `add`, `close`, `move`, `dock`, `toNewWindow`, `dockAll`, `closeAll` | The same from code |
-| `Group.tabs()`, `active()`, `activeTab()`, `window()` | A group's tabs and window |
+
+`select`, `add`, `close`, `move`, `dock`, `toNewWindow`, `dockAll` and `closeAll` do from code what the user does. They and the questions, such as `groupOf(tab)`, are on [`TabGroups`](/api/com/rethinkj/ui/kit/TabGroups.html) and [`TabGroups.Group`](/api/com/rethinkj/ui/kit/TabGroups.Group.html).
 
 ## The state
 

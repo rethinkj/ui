@@ -1,0 +1,1 @@
+- Added: `Form.field(...).warning(text)` shows a hint in the warning colour with a warning symbol where an error would stand, for a valid value worth a second thought; the field stays valid and an error wins over it. Core's new `El.warningMessage` carries it, and a tree dump writes it as `warning="…"`.

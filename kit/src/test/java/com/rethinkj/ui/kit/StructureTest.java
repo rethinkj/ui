@@ -1,6 +1,7 @@
 package com.rethinkj.ui.kit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.rethinkj.ui.App;
@@ -92,6 +93,23 @@ class StructureTest {
   void aNarrowFormWrapsItsRowOfFields(String theme) throws IOException {
     String tree = check("form-groups-narrow", theme, 1, 340, 340, Sheets::formGroupsNarrow);
     assertTrue(left(line(tree, "#beside-port")) < left(line(tree, "#beside-host")) + 72, tree);
+  }
+
+  @ParameterizedTest(name = "{0}")
+  @ValueSource(strings = {"dark", "light"})
+  void aWarningStandsWhereAnErrorWouldAndLeavesTheFieldValid(String theme) throws IOException {
+    String tree = check("form-warning", theme, 2, 560, 220, Sheets::formWarning);
+    String driver = line(tree, "#driver");
+    assertTrue(driver.contains("warning=\"42.7.15 is 1 day old"), driver);
+    assertFalse(driver.contains(" invalid"), driver);
+    assertFalse(tree.contains("The version the connection loads"), "in place of the help");
+    // In a row, the warning lies below the row as an error does, and an error wins over it.
+    float[] host = rect(line(tree, "#host"));
+    float[] warning = rect(line(tree, "text \"Outside the local network"));
+    assertTrue(warning[1] >= host[1] + host[3], tree);
+    String port = line(tree, "#port");
+    assertTrue(port.contains("invalid error=\"Digits only\"") && !port.contains("warning="), port);
+    assertFalse(tree.contains("Ports below 1024"), tree);
   }
 
   @Test

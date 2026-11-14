@@ -16,6 +16,7 @@ export const REPOSITORY = 'https://github.com/rethinkj/ui';
 export const SNIPPET_ROOTS = [
   'examples/src/test/java/com/rethinkj/ui/examples/docs',
   'examples/src/test/resources/docs',
+  'examples/src/main/java/com/rethinkj/ui/examples',
 ];
 
 const START = /^\s*(?:\/\/|#)\s*docs:start\s+([\w-]+)\s*$/;
@@ -98,7 +99,7 @@ export function resolveFence(meta, where) {
   if (a.snippet) {
     const s = snippets().get(a.snippet);
     if (!s) {
-      throw new DocsError(`${where}: no snippet "${a.snippet}"; mark it with // docs:start ${a.snippet} and // docs:end ${a.snippet} in ${SNIPPET_ROOTS[0]}`);
+      throw new DocsError(`${where}: no snippet "${a.snippet}"; mark it with // docs:start ${a.snippet} and // docs:end ${a.snippet} in ${SNIPPET_ROOTS[0]} (or, for an example app, in its source)`);
     }
     return { code: s.code, source: s.file };
   }
