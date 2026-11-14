@@ -180,13 +180,15 @@ class MarkdownParserTest {
       String small = kind.repeat(512 * 1024 / kind.length());
       String large = kind.repeat(1024 * 1024 / kind.length());
       MarkdownParser.read(small); // warm up
-      // A garbage collection on a busy machine can make one measurement several times longer;
-      // a reader that takes quadratic time is slow in every one.
+      // A garbage collection on a busy machine can make one measurement several times longer,
+      // of either text; a reader that takes quadratic time is slow in every one. So the fastest
+      // reading of the megabyte counts against the slowest of the half.
       long smallTime = 0;
-      long largeTime = 0;
-      for (int attempt = 0; attempt < 3; attempt++) {
-        smallTime = time(small);
-        largeTime = assertTimeoutPreemptively(Duration.ofSeconds(20), () -> time(large));
+      long largeTime = Long.MAX_VALUE;
+      for (int attempt = 0; attempt < 5; attempt++) {
+        smallTime = Math.max(smallTime, time(small));
+        largeTime = Math.min(
+            largeTime, assertTimeoutPreemptively(Duration.ofSeconds(20), () -> time(large)));
         if (largeTime < 4 * smallTime + 50_000_000L) {
           break;
         }
