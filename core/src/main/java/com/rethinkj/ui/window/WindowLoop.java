@@ -229,7 +229,7 @@ public final class WindowLoop {
         for (Told t : told) {
           Entry heir = heir(t.state);
           if (heir != null) {
-            heir.app.post(t);
+            heir.app.post(() -> t.run(heir));
           }
         }
       }
@@ -804,9 +804,9 @@ public final class WindowLoop {
   /**
    * The {@link Windows.Handle#onClosed} of a closed window, with its app's state: posted to an
    * open window, and again to another when that one closes first; it runs in the first frame that
-   * comes to it.
+   * comes to it while the loop runs and that window is open.
    */
-  private final class Told implements Runnable {
+  private final class Told {
     final Runnable handler;
     final Object state;
 
@@ -815,9 +815,9 @@ public final class WindowLoop {
       this.state = state;
     }
 
-    @Override
-    public void run() {
-      if (told.remove(this)) {
+    /** Runs the handler as a task of {@code in}, unless that closed, the loop stopped or it ran. */
+    void run(Entry in) {
+      if (running && in.isOpen() && told.remove(this)) {
         handler.run();
       }
     }

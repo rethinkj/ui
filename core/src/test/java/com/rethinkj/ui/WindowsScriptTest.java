@@ -276,6 +276,15 @@ class WindowsScriptTest {
     a.close(); // before A's frame: both are told in the main window
     Script.run("frame", app, out);
     assertEquals(List.of("B", "A"), told);
+
+    Windows.Handle c =
+        app.windows().open("C", 60, 60, Window.options(), new App<>(other, s -> el()));
+    c.onClosed(() -> told.add("C"));
+    Windows.Handle main = app.windows().of(app);
+    app.request(main::close); // in the main window's next frame, before what C's close queues
+    c.close();
+    Script.run("frame", app, out);
+    assertEquals(List.of("B", "A"), told, "no window stays open to be told of C");
   }
 
   @Test

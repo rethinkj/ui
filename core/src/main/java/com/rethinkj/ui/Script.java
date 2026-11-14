@@ -681,9 +681,9 @@ public final class Script {
   /**
    * The {@link Windows.Handle#onClosed} of a closed window, with its app's state: requested in an
    * open window, and again in another when that one closes first; it runs in the first frame that
-   * comes to it.
+   * comes to it while that window is open.
    */
-  private static final class Told implements Runnable { // by identity: each close runs once
+  private static final class Told { // by identity: each close runs once
     final Desk desk;
     final Runnable handler;
     final Object state;
@@ -694,9 +694,9 @@ public final class Script {
       this.state = state;
     }
 
-    @Override
-    public void run() {
-      if (desk.told.remove(this)) {
+    /** Runs the handler as a task of {@code in}, unless {@code in} closed or it ran already. */
+    void run(Win in) {
+      if (in.open && desk.told.remove(this)) {
         handler.run();
       }
     }
@@ -771,7 +771,7 @@ public final class Script {
       for (Told t : desk.told) {
         Win heir = desk.heir(t.state);
         if (heir != null) {
-          heir.app.request(t);
+          heir.app.request(() -> t.run(heir));
         }
       }
     }
