@@ -170,6 +170,7 @@ public final class WindowLoop {
     final Presenter presenter;
     final boolean owned; // opened by the loop, which closes it
     Runnable onClose;
+    Runnable onClosed;
     boolean dropTarget = true;
     // Moved by the app during the press that is down, as a window that follows it, or during the
     // last one: the frame that runs the release still asks where on the screen it was (place).
@@ -219,6 +220,10 @@ public final class WindowLoop {
       }
       open = false;
       front.remove(this);
+      Entry heir = running && onClosed != null ? heir(this) : null;
+      if (heir != null) {
+        heir.app.post(onClosed);
+      }
       if (drawing) {
         closing.add(this); // after the pass: its app may be in the middle of a frame
       } else {
@@ -271,6 +276,11 @@ public final class WindowLoop {
     @Override
     public void onCloseRequest(Runnable handler) {
       onClose = handler;
+    }
+
+    @Override
+    public void onClosed(Runnable handler) {
+      onClosed = handler;
     }
 
     @Override
@@ -779,6 +789,20 @@ public final class WindowLoop {
       }
     }
     return open;
+  }
+
+  /** The open window whose app runs {@link Windows.Handle#onClosed} of {@code closed}, or null. */
+  private Entry heir(Entry closed) {
+    Entry first = null;
+    for (Entry e : entries) {
+      if (e.isOpen()) {
+        if (e.app.state() == closed.app.state()) {
+          return e;
+        }
+        first = first == null ? e : first;
+      }
+    }
+    return first;
   }
 
   private void toFront(Entry e) {

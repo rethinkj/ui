@@ -14,13 +14,18 @@ One `WindowLoop` runs any number of windows. Each has its own `App` (focus, hove
 ```java snippet="tab-groups"
 ```
 
-`windows.open(title, width, height, options, app)` opens a window that runs `app` and returns a [`Windows.Handle`](/api/com/rethinkj/ui/window/Windows.Handle.html): `close()`, `raise()`, `moveTo(x, y)`, `onCloseRequest(handler)`, `isOpen()`, and the window's position and scale. `windows.all()` lists the open windows; `of(app)` finds an app's window.
+`windows.open(title, width, height, options, app)` opens a window that runs `app` and returns a [`Windows.Handle`](/api/com/rethinkj/ui/window/Windows.Handle.html): `close()`, `raise()`, `moveTo(x, y)`, `onCloseRequest(handler)`, `onClosed(handler)`, `isOpen()`, and the window's position and scale. `windows.all()` lists the open windows; `of(app)` finds an app's window.
 
 Apps with the same state object rebuild together: when a handler in one runs, the others' views are built in the same pass.
 
 ## Closing
 
 A close request (the close button, Alt+F4, a script's `close`) runs the window's `onCloseRequest` handler, which closes the window now, after asking, or not at all. Without a handler the window closes. The loop ends when its last window closes.
+
+`onClosed` runs once a window has closed, however it closed: `close()` from the app, a close request without a handler, a torn-off tab that docks back and closes its window. It runs on the UI thread as a task of a window that stays open, one of the same state first, so it may change the state and the windows show it in the same frame. When no window stays open, or the loop stops, it does not run. That is where state kept per window goes away:
+
+```java snippet="window-closed"
+```
 
 ## Drags between windows
 

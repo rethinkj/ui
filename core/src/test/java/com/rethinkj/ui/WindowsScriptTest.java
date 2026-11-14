@@ -42,6 +42,7 @@ class WindowsScriptTest {
     int over = -1; // the slot a drag of the chip is over
     int count;
     boolean veto; // a close request of the chip's window changes nothing
+    int closed; // times the chip's window told that it closed
     Windows.Handle window; // the chip's window
     float grabX; // where the pointer holds the chip
     float grabY;
@@ -108,6 +109,7 @@ class WindowsScriptTest {
             dock(0);
           }
         });
+        window.onClosed(() -> closed++);
         slot = -1;
       } else if (window != null && moving) {
         window.moveTo(
@@ -243,6 +245,7 @@ class WindowsScriptTest {
         """, app, out);
     assertNotNull(b.window);
     assertTrue(Files.exists(out.resolve("chip-vetoed.png")));
+    assertEquals(0, b.closed);
 
     b.veto = false;
     Script.run("""
@@ -253,6 +256,7 @@ class WindowsScriptTest {
         """, app, out.resolve("again"));
     assertNull(b.window);
     assertEquals(0, b.slot, "back in the first slot");
+    assertEquals(1, b.closed, "told once, as a task of the main window");
     assertFalse(Files.exists(out.resolve("again/chip-closed.png")));
   }
 

@@ -11,7 +11,9 @@ import com.rethinkj.ui.kit.Tabs;
 import com.rethinkj.ui.kit.Theme;
 import com.rethinkj.ui.window.Window;
 import com.rethinkj.ui.window.Windows;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /** The example of the page about TabGroups: notes in tabs that move between windows. */
 final class Notebook {
@@ -62,6 +64,15 @@ final class Notebook {
             .grow(1));
   }
   // docs:end tab-groups
+
+  // docs:start window-closed
+  final Map<Windows.Handle, String> searches = new HashMap<>(); // what each window searches for
+
+  void track(Windows.Handle window) {
+    searches.put(window, "");
+    window.onClosed(() -> searches.remove(window)); // however it closed, in a window still open
+  }
+  // docs:end window-closed
 
   static App<Notebook> app() {
     Notebook state = new Notebook();

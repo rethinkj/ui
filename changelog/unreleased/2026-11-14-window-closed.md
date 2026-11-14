@@ -1,0 +1,1 @@
+- `Windows.Handle.onClosed(handler)` runs once a window has closed, however it closed (`close()`, a close request without a handler, its owner), on the UI thread as a task of a window that stays open, so an app can let go of what it keeps per window. It does not run for the last window or when the loop stops.

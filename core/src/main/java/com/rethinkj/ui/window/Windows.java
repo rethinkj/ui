@@ -153,6 +153,20 @@ public interface Windows {
     void onCloseRequest(Runnable handler);
 
     /**
+     * What runs once the window has closed, whatever closed it: {@link #close}, as from an {@link
+     * #onCloseRequest} handler or when the window's last tab docks back elsewhere, a close request
+     * without a handler, or the window's owner. It runs on the app's thread as a task of a window
+     * that stays open, the first that shows the same state or else the first, in its next frame;
+     * so it may change the state, and the windows of that state show the change. It does not run
+     * when no window stays open, as for the last window, or when the runner ends ({@link
+     * WindowLoop#stop}): the app ends with it. Handlers of the app often keep state per window,
+     * such as what a window searches for, and let go of it here.
+     *
+     * @param handler the handler, or null for none
+     */
+    void onClosed(Runnable handler);
+
+    /**
      * Whether a drag's pointer finds this window ({@link #place}): true unless this turns it
      * off, as for a window that follows the pointer and would hide every window under it.
      */

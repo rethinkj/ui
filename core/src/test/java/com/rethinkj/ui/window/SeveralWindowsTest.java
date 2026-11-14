@@ -281,6 +281,7 @@ class SeveralWindowsTest {
           b.close(); // the second request: the dialog said yes
         }
       });
+      b.onClosed(() -> log.add("closed " + appA.windows().all().size()));
       Desktop.settle();
       int[] idle = new int[1];
       loop.get().waits((millis, holdBack) -> {
@@ -299,7 +300,7 @@ class SeveralWindowsTest {
       });
       Desktop.run(loop.get(), () -> "B vetoes, then closes, then A ends the loop: " + log);
 
-      assertEquals(List.of("asked 0", "asked 1"), log);
+      assertEquals(List.of("asked 0", "asked 1", "closed 1"), log, "told in A's frame");
       assertFalse(b.isOpen());
       assertTrue(a.isOpen(), "the last window's request ends the loop and leaves it open");
     }

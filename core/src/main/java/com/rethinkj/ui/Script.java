@@ -693,6 +693,7 @@ public final class Script {
     boolean fresh; // opened since the last frame step
     boolean dropTarget = true;
     Runnable onClose;
+    Runnable onClosed;
 
     Win(Desk desk, App<?> app, String title) {
       this.desk = desk;
@@ -734,8 +735,15 @@ public final class Script {
 
     @Override
     public void close() {
+      if (!open) {
+        return;
+      }
       open = false;
       desk.front.remove(this);
+      Win heir = onClosed != null ? desk.heir(this) : null;
+      if (heir != null) {
+        heir.app.request(onClosed);
+      }
     }
 
     @Override
@@ -780,6 +788,11 @@ public final class Script {
     @Override
     public void onCloseRequest(Runnable handler) {
       onClose = handler;
+    }
+
+    @Override
+    public void onClosed(Runnable handler) {
+      onClosed = handler;
     }
 
     @Override
@@ -891,6 +904,15 @@ public final class Script {
 
     List<Win> open() {
       return wins.stream().filter(w -> w.open).toList();
+    }
+
+    /** The open window whose app runs {@link Handle#onClosed} of {@code closed}, or null. */
+    Win heir(Win closed) {
+      List<Win> open = open();
+      return open.stream()
+          .filter(w -> w.app.state() == closed.app.state())
+          .findFirst()
+          .orElse(open.isEmpty() ? null : open.getFirst());
     }
 
     void select(Line line, String name) {
