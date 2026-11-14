@@ -112,6 +112,17 @@ public final class Natives {
     return system().find(name);
   }
 
+  /**
+   * Returns the absolute path of the library with the given logical name, without loading it, or
+   * null if the manifest does not list it. On first use, this unpacks the libraries as {@link
+   * #lookup} does.
+   *
+   * @throws UnsatisfiedLinkError if the libraries cannot be found or unpacked
+   */
+  public static Path path(String name) {
+    return system().file(name);
+  }
+
   private static synchronized Natives system() {
     if (system == null) {
       String osName = System.getProperty("os.name", "");
@@ -148,6 +159,12 @@ public final class Natives {
       }
     }
     return loaded.get(name);
+  }
+
+  synchronized Path file(String name) {
+    Path from = prepare();
+    Library library = manifest.library(name);
+    return library == null ? null : from.resolve(library.file());
   }
 
   /** Returns the folder the libraries are loaded from, after unpacking them there if needed. */

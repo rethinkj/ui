@@ -115,7 +115,7 @@ Every push to `main` that builds on Linux and Windows publishes SNAPSHOTs to Mav
 | `rethinkj-ui-kit` | Theme and components; brings `core` with it |
 | `rethinkj-ui-fonts` | Inter and JetBrains Mono, the default fonts, which text in the kit's themes needs |
 | `rethinkj-ui-icons` | Fluent UI System Icons, the default icon font, for icons, the tree and a sorted grid |
-| `rethinkj-ui-natives-windows-x64`, `rethinkj-ui-natives-linux-x64` | SDL3, wgpu-native, FreeType and HarfBuzz for a platform |
+| `rethinkj-ui-natives-windows-x64`, `rethinkj-ui-natives-linux-x64` | SDL3, wgpu-native, FreeType and HarfBuzz for a platform, and on Windows the DirectX Shader Compiler |
 
 Fonts, icons and natives hold no classes, so they are runtime dependencies. A profile per platform, activated by the operating system as in this project's own POMs, picks the natives of the machine that builds:
 

@@ -30,7 +30,8 @@ import java.util.Set;
  * What the {@link GpuRenderer}s on one device share: the wgpu instance, the device, the shader
  * module, the bind group layouts, a pipeline per target format, compiled when a target of that
  * format is first drawn into, and the images on the GPU. Making a device takes 60 to 240 ms and
- * compiling the pipeline over 300 ms on Direct3D 12, so the windows of a thread share one
+ * compiling the pipeline about 130 ms on Direct3D 12 with DXC, the shader compiler the natives
+ * module carries (nearly 600 ms with FXC, Windows' own), so the windows of a thread share one
  * context ({@link #forWindows}): a window that opens during a drag shows its first frame without
  * them.
  *

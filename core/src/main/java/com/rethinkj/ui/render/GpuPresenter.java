@@ -27,7 +27,7 @@ import java.util.Objects;
  * a render pipeline per surface format and the images on the GPU: the first presenter makes them,
  * on an adapter that can present to its window, and they are closed with the last presenter. A
  * window that opens next to others, as one torn off during a drag, shows its first frame without
- * making a device (60 to 240 ms) or compiling the pipeline (over 300 ms on Direct3D 12). What
+ * making a device (60 to 240 ms) or compiling the pipeline (about 130 ms on Direct3D 12). What
  * belongs to one window stays its own: the surface and its configuration, the buffers of the
  * instances and clips, and the texture of its app's glyph atlas.
  *

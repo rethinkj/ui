@@ -12,6 +12,7 @@ import com.rethinkj.ui.gpu.Structs.SurfaceDescriptor;
 import com.rethinkj.ui.natives.Natives;
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
+import java.nio.file.Path;
 import java.util.Locale;
 import java.util.function.Consumer;
 
@@ -51,6 +52,11 @@ public final class Instance extends GpuObject {
   /**
    * An instance that enables only {@code backend}.
    *
+   * <p>On Direct3D 12, wgpu compiles shaders with the DirectX Shader Compiler (DXC) that the
+   * natives module carries, {@code dxcompiler.dll}, which wgpu-native loads by its path. Without it,
+   * for example from a folder named by {@value Natives#DIR_PROPERTY} whose manifest does not list
+   * it, wgpu uses FXC, Windows' own compiler, which takes about four times as long.
+   *
    * @throws UnsatisfiedLinkError if wgpu-native cannot be loaded; its message says why
    */
   public static Instance create(Backend backend) {
@@ -62,6 +68,17 @@ public final class Instance extends GpuObject {
       extras.set(JAVA_LONG, InstanceExtras.BACKENDS, backend.instanceBit);
       // No backend validation layers and no debug information: wgpu's own validation still runs.
       extras.set(JAVA_LONG, InstanceExtras.FLAGS, 0L);
+      if (backend == Backend.D3D12) {
+        // Never left undefined: then wgpu-native would take any dxcompiler.dll on the DLL search
+        // path, of whatever version.
+        Path dxc = Natives.path("dxcompiler");
+        if (dxc == null) {
+          extras.set(JAVA_INT, InstanceExtras.DX12_SHADER_COMPILER, Wgpu.DX12_COMPILER_FXC);
+        } else {
+          extras.set(JAVA_INT, InstanceExtras.DX12_SHADER_COMPILER, Wgpu.DX12_COMPILER_DXC);
+          Structs.string(extras, InstanceExtras.DXC_PATH, dxc.toString(), arena);
+        }
+      }
       MemorySegment descriptor = arena.allocate(InstanceDescriptor.LAYOUT);
       descriptor.set(ADDRESS, InstanceDescriptor.NEXT_IN_CHAIN, extras);
       MemorySegment handle = Wgpu.createInstance(descriptor);

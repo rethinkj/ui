@@ -295,6 +295,18 @@ class NativesTest {
   }
 
   @Test
+  void givesTheUnpackedFileOfALibraryAndNullForOneTheManifestLacks() throws IOException {
+    Path cache = temp.resolve("cache");
+    Natives natives = natives(module(temp.resolve("jar")), cache);
+
+    Path folder = cache.resolve(manifest(temp.resolve("jar")).folderName());
+    assertEquals(folder.resolve("second.so"), natives.file("second"));
+    assertArrayEquals(SECOND, Files.readAllBytes(natives.file("second")));
+    // Instance stays on FXC when the libraries come without dxcompiler.
+    assertNull(natives.file("dxcompiler"));
+  }
+
+  @Test
   void anUnknownLibraryIsReportedWithTheKnownOnes() throws IOException {
     Natives natives = natives(module(temp.resolve("jar")), temp.resolve("cache"));
 
