@@ -69,7 +69,7 @@ The options that `changes` wires are there on their own, for an app that keeps c
 | --- | --- |
 | `onCommit((row, column, value) -> error)` | Takes a value, or refuses it by returning a message (null accepts) |
 | `onPaste(cells)` | Takes a list of `CellValue(row, column, value)` in one change |
-| `onInsertRow(after)`, `onDeleteRows(ranges)`, `appendRow()` | New rows and deleted ones; `appendRow` shows an empty row marked `*` after the last |
+| `onInsertRow(after)`, `onDeleteRows(ranges)`, `appendRow()` | New rows and deleted ones; `appendRow` shows an empty row marked `*` after the last, whose value goes after the last row there is when it is handed on |
 | `status(rows, cells)` | What to mark: `Status.CHANGED`, `NEW`, `DELETED`, `ERROR` |
 | `history(undo, redo)` | Control+Z and Control+Y |
 | `onEdit((row, column) -> …)` | The app edits the cell itself, in a field it lays over it |

@@ -204,8 +204,9 @@ final class GridEdit {
   static boolean follow(Build b) {
     Selection sel = b.sel;
     if (sel.isEditing() && sel.editKeyed) {
-      int place =
-          sel.editKey == Selection.APPEND ? b.rowCount : b.o.rowPlace.applyAsInt(sel.editKey);
+      int place = sel.editKey == Selection.APPEND
+          ? b.o.rowsNow.getAsInt()
+          : b.o.rowPlace.applyAsInt(sel.editKey);
       if (place < 0) {
         sel.cancelEdit();
       } else {

@@ -755,4 +755,39 @@ class GridEditTest {
         out);
     assertEquals(List.of("999999,299 x"), log);
   }
+
+  /** The app adds a row in a handler and hands the editor of the row to append on at once. */
+  @Test
+  void theRowToAppendGoesAfterTheLastRowThereIsNow() throws IOException {
+    Ledger ledger = new Ledger(T, 2);
+    ledger.changes.rows(keyed(10, 20));
+    ledger.more = o -> o.appendRow();
+    App<Ledger> app = ledger.app();
+    run(app, "frame\npress #cell-2-1\ntype \"appended\"\nframe");
+    assertTrue(ledger.selection.isEditing(), app.tree().dump());
+    app.post(() -> {
+      ledger.changes.rows(keyed(10, 20, 30));
+      assertTrue(ledger.selection.commitEdit());
+    });
+    run(app, "await\nframe");
+    assertEquals(30, ledger.changes.key(2));
+    assertTrue(ledger.changes.key(3) < 0, "the new row after row 30");
+    assertEquals("appended", ledger.changes.cell(3, 1));
+  }
+
+  @Test
+  void theRowToAppendGoesAfterTheLastRowAlsoWhenRowsWentAway() throws IOException {
+    Ledger ledger = new Ledger(T, 2);
+    ledger.changes.rows(keyed(10, 20));
+    ledger.more = o -> o.appendRow();
+    App<Ledger> app = ledger.app();
+    run(app, "frame\npress #cell-2-1\ntype \"appended\"\nframe");
+    app.post(() -> {
+      ledger.changes.rows(keyed(10));
+      assertTrue(ledger.selection.commitEdit());
+    });
+    run(app, "await\nframe");
+    assertEquals(2, ledger.changes.rowCount());
+    assertEquals("appended", ledger.changes.cell(1, 1));
+  }
 }

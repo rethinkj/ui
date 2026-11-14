@@ -1,0 +1,1 @@
+- The data grid's row to append (`appendRow()`) goes after the last row there is when its value is handed on, also when a handler added or removed rows before `Selection.commitEdit()`; before, it went before the new last row or threw.

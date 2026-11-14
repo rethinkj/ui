@@ -1338,9 +1338,11 @@ public final class DataGrid {
     IntPredicate filterable = c -> true;
     Layout layout;
     IntConsumer onFreeze;
-    // With changes: the key of the row shown at a place, and the place of a key, -1 for none.
+    // With changes: the key of the row shown at a place, the place of a key, -1 for none, and
+    // the number of rows there are now, which a handler may have changed since the build.
     java.util.function.IntToLongFunction rowKey;
     java.util.function.LongToIntFunction rowPlace;
+    java.util.function.IntSupplier rowsNow;
     int[] full; // with a layout: the index among all columns of each shown one
     // Wires onCommit and onPaste to a table's columns and its number of rows.
     java.util.function.ObjIntConsumer<List<Column>> table;
@@ -1708,6 +1710,7 @@ public final class DataGrid {
       onDeleteRows(changes::delete);
       rowKey = changes::key;
       rowPlace = changes::rowOf;
+      rowsNow = changes::rowCount;
       status(changes::rowStatus, changes::cellStatus);
       errors(changes::errorText);
       return history(changes::undo, changes::redo);
