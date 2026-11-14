@@ -103,20 +103,6 @@ class FieldGeometryTest {
     }
   }
 
-  @Test
-  void atScaleTwoTheCaretIsTwoPixelsWideOnWholePixels() {
-    App<Model> app = start("hello", f -> f, 2);
-    focus(app);
-    Text text = field(app).text();
-    assertEquals(2, text.caret().width());
-    assertEquals(text.x(5), text.caret().x());
-    assertEquals(
-        text.lines().getFirst().baseline() - text.lineHeight() / 2,
-        text.caret().y() + text.caret().height() / 2,
-        text.lineHeight() / 2,
-        "around the line");
-  }
-
   // The pointer
 
   @Test

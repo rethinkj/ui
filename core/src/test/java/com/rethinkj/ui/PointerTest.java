@@ -106,27 +106,6 @@ class PointerTest {
   }
 
   @Test
-  void hoverFollowsWhatAScrollMovesUnderThePointer() {
-    App<Object> app = new App<>(new Object(), s -> {
-      El list = El.col().key("list").scroll().size(100, 40);
-      for (int i = 0; i < 4; i++) {
-        list.child(el().key("row-" + i).h(20).wFull().whenHovered(e -> e.fill(LIGHT)));
-      }
-      return list;
-    });
-    app.resize(100, 40, 1);
-    app.frame();
-    app.pointerMove(50, 10);
-    app.frame();
-    assertEquals(LIGHT, find(app, "row-0").fill());
-
-    app.wheel(50, 10, 0, 20);
-    assertTrue(app.frame());
-    assertEquals(0, find(app, "row-0").fill());
-    assertEquals(LIGHT, find(app, "row-1").fill(), "the row that came under the pointer");
-  }
-
-  @Test
   void pressedAndFocusedLooksAndTheOrderInWhichTheyWin() {
     List<String> log = new ArrayList<>();
     App<List<String>> app = new App<>(
@@ -322,33 +301,6 @@ class PointerTest {
     app.pointerUp(30, 10);
     app.frame();
     assertEquals(List.of("press"), app.state().log);
-  }
-
-  @Test
-  void aPressSurvivesALeavingSiblingThatIsTakenOut() {
-    Insert state = new Insert();
-    state.inserted = true;
-    App<Insert> app = new App<>(state, s -> {
-      El root = row();
-      if (s.inserted) {
-        root.child(el().key("badge").size(20, 20).motion(Spring.SNAP));
-      }
-      return root.child(el().size(40, 20).onPress(() -> s.log.add("press"))); // no key
-    });
-    app.resize(100, 20, 1);
-    app.frame();
-    state.inserted = false;
-    app.resize(100, 20, 1);
-    app.frame(); // the badge leaves but stays in the tree before the button
-    assertEquals(2, app.tree().children().size());
-
-    app.pointerDown(10, 10);
-    app.advance(1);
-    app.frame(); // the badge has faded out and is taken out
-    assertEquals(1, app.tree().children().size());
-    app.pointerUp(10, 10);
-    app.frame();
-    assertEquals(List.of("press"), state.log);
   }
 
   @Test

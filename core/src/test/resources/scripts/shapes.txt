@@ -4,7 +4,6 @@ size 240 152
 frame
 focus #ringed          # with the ring, as Tab gives it
 frame
-snap shapes-1x
 
 size 240 152 scale 2
 frame

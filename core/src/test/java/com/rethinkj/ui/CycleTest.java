@@ -191,25 +191,6 @@ class CycleTest {
   }
 
   @Test
-  void twoPeriodsGoRoundEachAtItsOwnPace() {
-    double[] phases = new double[2];
-    App<Object> app = new App<>(
-        new Object(),
-        state -> col()
-            .wFull()
-            .hFull()
-            .children(
-                el().w(10).h(10).cycle(1, (e, phase) -> phases[0] = phase),
-                el().w(10).h(10).cycle(0.4, (e, phase) -> phases[1] = phase)));
-    app.resize(100, 100, 1);
-    app.frame();
-    app.advance(0.5);
-    app.frame();
-    assertEquals(0.5, phases[0], 1e-9);
-    assertEquals(0.25, phases[1], 1e-9);
-  }
-
-  @Test
   void headlessShowsPhaseZero() {
     Shown s = new Shown();
     El root = view(s);

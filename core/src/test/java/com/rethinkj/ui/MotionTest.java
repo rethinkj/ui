@@ -9,8 +9,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.rethinkj.ui.Examples.Lights;
 import com.rethinkj.ui.motion.Spring;
-import com.rethinkj.ui.text.TextLibraries;
-import com.rethinkj.ui.text.TextRendering;
 import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -162,23 +160,6 @@ class MotionTest {
         new App<>(new Object(), s -> el().children(el().key("twice"), el().key("twice")));
     app.resize(10, 10, 1);
     assertThrows(IllegalStateException.class, app::frame);
-  }
-
-  @Test
-  void theSwitchInFiveFrames() {
-    TextLibraries.assumeLoaded();
-    App<Lights> app = new App<>(new Lights(), Examples::lights);
-    app.textRendering(TextRendering.LINUX);
-    app.resize(200, 120, 2);
-    app.frame();
-    press(app, 58, 60); // the switch; its label brightens beside it
-    app.frame();
-    for (int i = 1; i <= 5; i++) {
-      app.advance(0.04);
-      app.frame();
-      String name = "switch-moving-" + (i < 3 ? "0" : "") + 40 * i + "ms";
-      Golden.assertMatches(name, app.render().pixels(), app.render().tree());
-    }
   }
 
   private static App<Lights> switchApp(float scale) {

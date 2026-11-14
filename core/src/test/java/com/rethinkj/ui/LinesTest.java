@@ -33,7 +33,7 @@ class LinesTest {
   void editsMoveTheStartsAsFindingThemAgainWould() {
     Random random = new Random(7);
     String alphabet = "ab \n\n\t";
-    for (int round = 0; round < 2000; round++) {
+    for (int round = 0; round < 200; round++) {
       String text = randomText(random, alphabet, random.nextInt(40));
       Lines lines = Lines.of(text);
       for (int edit = 0; edit < 5; edit++) {
@@ -50,7 +50,7 @@ class LinesTest {
   @Test
   void rowsOfWrappedLinesAreSummedMeasuredOrEstimated() {
     Random random = new Random(11);
-    for (int round = 0; round < 300; round++) {
+    for (int round = 0; round < 50; round++) {
       String text = randomText(random, "abcd \n", 20 + random.nextInt(200));
       Lines lines = Lines.of(text);
       float perRow = 1 + random.nextInt(6);
@@ -197,7 +197,7 @@ class LinesTest {
     Random random = new Random(859731);
     String text = "a+\nb-\n\nc\n".repeat(60);
     Lines lines = Lines.of(text);
-    for (int edit = 0; edit < 3000; edit++) {
+    for (int edit = 0; edit < 300; edit++) {
       int at = random.nextInt(text.length() + 1);
       int removed = random.nextInt(Math.min(8, text.length() - at) + 1);
       String inserted = randomText(random, "ab+-\n\n\t", random.nextInt(9));

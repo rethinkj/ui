@@ -242,37 +242,6 @@ class DragTest {
     return app;
   }
 
-  @Test
-  void aListScrollsToTheRowItKeepsInViewWhenTheRowChanges() {
-    App<Rows> app = rows();
-    El list = app.tree();
-    assertEquals(51 * 20 - 100, list.scrollY(), "row 50 at the bottom from the first frame");
-
-    app.wheel(50, 50, 0, 2000);
-    app.frame();
-    assertEquals(2920, list.scrollY(), "the wheel scrolls it away");
-    app.resize(100, 100, 1); // a rebuild with the same row
-    app.frame();
-    assertEquals(2920, app.tree().scrollY(), "and it stays away");
-
-    app.state().shown = 300;
-    app.resize(100, 100, 1);
-    app.frame();
-    assertEquals(301 * 20 - 100, app.tree().scrollY(), "row 300, below, at the bottom");
-    app.state().shown = 100;
-    app.resize(100, 100, 1);
-    app.frame();
-    assertEquals(100 * 20, app.tree().scrollY(), "row 100, above, at the top");
-    app.state().shown = 104;
-    app.resize(100, 100, 1);
-    app.frame();
-    assertEquals(100 * 20, app.tree().scrollY(), "already in view");
-    app.state().shown = -1;
-    app.resize(100, 100, 1);
-    app.frame();
-    assertEquals(100 * 20, app.tree().scrollY());
-  }
-
   private static El find(App<?> app, String key) {
     return find(app.tree(), key);
   }

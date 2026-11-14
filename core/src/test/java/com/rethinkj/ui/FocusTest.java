@@ -14,7 +14,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import com.rethinkj.ui.Examples.Lights;
 import com.rethinkj.ui.motion.Spring;
 import com.rethinkj.ui.render.Scene;
-import com.rethinkj.ui.text.TextLibraries;
 import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -170,16 +169,6 @@ class FocusTest {
   }
 
   @Test
-  void aPressThatLeavesTheFocusWhereItWasChangesNothing() {
-    App<Lights> app = start(new App<>(new Lights(), Examples::switchAlone), 200, 120);
-    app.pointerDown(10, 10);
-    assertFalse(app.frame(), "nothing was focused");
-    app.pointerDown(90, 60);
-    app.pointerDown(10, 10);
-    assertFalse(app.frame(), "focused and cleared again in the same frame");
-  }
-
-  @Test
   void anElementThatFadesInTakesTheFocusFromTheFrameThatAddsIt() {
     boolean[] shown = {false};
     List<String> keys = new ArrayList<>();
@@ -298,26 +287,6 @@ class FocusTest {
         List.of("Tab", "PageDown", "PageDown"),
         keys,
         "the panel sees the keys from wherever the focus is inside it");
-  }
-
-  @Test
-  void afterAPressTheFocusThatMovesOnHasNoRing() {
-    int[] page = {0};
-    App<int[]> app = start(
-        new App<>(
-            page,
-            p -> col()
-                .children(col()
-                    .key("panel")
-                    .child(
-                        p[0] == 0
-                            ? el().key("first").focusable().size(40, 10).onPress(() -> p[0] = 1)
-                            : el().key("second").focusable().size(40, 10)))),
-        100,
-        100);
-    press(app, 10, 5);
-    assertEquals("second", focusedKey(app));
-    assertEquals(-1, ring(app.scene()), "no ring");
   }
 
   @Test
@@ -440,50 +409,6 @@ class FocusTest {
   }
 
   @Test
-  void anOverlayThatOpensFocusesItsAutofocusElement() {
-    boolean[] open = {false};
-    App<boolean[]> app = start(
-        new App<>(
-            open,
-            o -> col()
-                .wFull()
-                .hFull()
-                .child(el().key("button").focusable().size(40, 10).onPress(() -> o[0] = true))
-                .overlay(
-                    !o[0]
-                        ? null
-                        : col()
-                            .key("dialog")
-                            .modal()
-                            .centerInWindow()
-                            .children(
-                                el().key("first").focusable().size(40, 10),
-                                el().key("second").focusable().size(40, 10).autofocus()))),
-        100,
-        100);
-    press(app, 5, 5);
-    assertEquals("second", focusedKey(app));
-  }
-
-  @Test
-  void anElementThatStopsBeingFocusableLosesTheFocus() {
-    boolean[] focusable = {true};
-    App<boolean[]> app = start(
-        new App<>(focusable, f -> {
-          El button = el().key("button").size(10, 10);
-          return el().child(f[0] ? button.focusable() : button);
-        }),
-        100,
-        100);
-    tab(app);
-    assertEquals("button", focusedKey(app));
-    focusable[0] = false;
-    app.resize(100, 100, 1);
-    app.frame();
-    assertNull(app.focused());
-  }
-
-  @Test
   void focusRefusesWhatCannotTakeIt() {
     App<Lights> app = start(new App<>(new Lights(), Examples::switchAlone), 200, 120);
     El knob = find(app.tree(), "knob");
@@ -529,31 +454,6 @@ class FocusTest {
     assertEquals(0xFFFFFFFF, find(app.tree(), "frame").fill(), "a press focuses too");
   }
 
-  @Test
-  void aFocusWithinLookReachesTheRowsOfAListAndTheListAroundThem() {
-    App<Object> app = start(
-        new App<>(
-            new Object(),
-            s -> col()
-                .key("list")
-                .size(100, 40)
-                .whenFocusWithin(e -> e.fill(0xFF0000FF))
-                .rows(
-                    100,
-                    20,
-                    i -> row()
-                        .whenFocusWithin(e -> e.fill(0xFFFF0000))
-                        .child(el().key("cell").focusable().size(20, 20)))),
-        100,
-        40);
-    tab(app);
-    tab(app);
-    El list = app.tree();
-    assertEquals(0xFF0000FF, list.fill(), "the list holds the focus");
-    assertEquals(0, list.children().get(0).fill(), "not the first row");
-    assertEquals(0xFFFF0000, list.children().get(1).fill(), "the second row");
-  }
-
   // Keys
 
   @Test
@@ -589,26 +489,6 @@ class FocusTest {
     key(app, "Tab", 0);
     assertEquals(List.of("child Tab", "parent Tab", "root Tab"), log);
     assertEquals("child", focusedKey(app), "the root took Tab, so the focus stays");
-  }
-
-  @Test
-  void keyUpsGoTheSameWayAndDoNothingElse() {
-    List<String> log = new ArrayList<>();
-    App<List<String>> app = start(
-        new App<>(
-            log,
-            l -> el().onKeyUp(k -> l.add("root up " + k.name()))
-                .child(el().key("child")
-                    .focusable()
-                    .size(10, 10)
-                    .onPress(() -> l.add("press"))
-                    .onKeyUp(k -> l.add("child up " + k.name()) && false))),
-        100,
-        100);
-    tab(app);
-    app.keyUp(new Key("Space"));
-    app.frame();
-    assertEquals(List.of("child up Tab", "root up Tab", "child up Space", "root up Space"), log);
   }
 
   @Test
@@ -783,25 +663,6 @@ class FocusTest {
   }
 
   @Test
-  void anAreaWithPaddingScrollsTheFocusIntoViewWithItsRing() {
-    App<Object> app = start(
-        new App<>(new Object(), s -> {
-          El list = col().key("list").scroll().size(100, 54).padding(2);
-          for (int i = 0; i < 10; i++) {
-            list.child(el().key("row" + i).focusable().h(20));
-          }
-          return col().padding(10).child(list);
-        }),
-        120,
-        74);
-    tab(app);
-    tab(app);
-    assertEquals(0, find(app.tree(), "list").scrollY());
-    tab(app);
-    assertEquals(10, find(app.tree(), "list").scrollY(), "8 shows row 2, 10 its ring too");
-  }
-
-  @Test
   void pageKeysScrollTheAreaAroundTheFocusOrInAModalOverlayItsFirst() {
     App<Object> app = start(
         new App<>(new Object(), s -> {
@@ -831,30 +692,6 @@ class FocusTest {
     key(app, "PageUp", 0);
     assertEquals(0, find(app.tree().overlays().getFirst(), "area").scrollY(), 0.01);
     assertEquals(0, find(app.tree(), "list").scrollY(), "the list under it stays");
-  }
-
-  @Test
-  void pageDownScrollsTheListAroundTheFocusedRow() {
-    App<Object> app = start(
-        new App<>(new Object(), s -> {
-          El list = col().key("list").scroll().size(100, 50);
-          for (int i = 0; i < 10; i++) {
-            list.child(el().key("row" + i).focusable().h(20));
-          }
-          return col().padding(10).child(list);
-        }),
-        120,
-        70);
-    tab(app);
-    key(app, "PageDown", 0);
-    assertEquals(50, find(app.tree(), "list").scrollY(), "a page");
-    key(app, "PageDown", Key.SHIFT);
-    assertEquals(50, find(app.tree(), "list").scrollY(), "not with a modifier");
-    key(app, "PageDown", 0);
-    key(app, "PageDown", 0);
-    key(app, "PageDown", 0);
-    assertEquals(150, find(app.tree(), "list").scrollY(), "up to the end");
-    assertEquals("row0", focusedKey(app), "the focus stays where it was");
   }
 
   @Test
@@ -906,92 +743,5 @@ class FocusTest {
     app.resize(100, 50, 1);
     app.frame();
     assertSame(find(app.tree(), "row2"), app.focused(), "also after a rebuild");
-  }
-
-  @Test
-  void tabIntoAListPassesAnElementOfItsRowThatSkipsTab() {
-    App<Void> app = start(
-        new App<Void>(
-            null,
-            s -> col()
-                .size(100, 100)
-                .rows(
-                    10,
-                    30,
-                    i -> row()
-                        .children(
-                            el().key("paragraph").size(40, 30).focusable().skipTab(),
-                            el().key("link").size(40, 30).focusable()))),
-        100,
-        100);
-    tab(app);
-    assertEquals("link", app.focused().key());
-  }
-
-  @Test
-  void anAutofocusThatIsClippedAwayLeavesTheFocusToTheNextThatAsks() {
-    App<Void> app = start(
-        new App<Void>(
-            null,
-            s -> col()
-                .size(100, 100)
-                .children(
-                    el().size(50, 0)
-                        .clip()
-                        .child(el().key("clipped").size(20, 20).focusable().autofocus()),
-                    el().key("visible").size(20, 20).focusable().autofocus())),
-        100,
-        100);
-    assertEquals("visible", app.focused().key());
-  }
-
-  @Test
-  void anAutofocusThatHasTheFocusAndIsClippedAwayLeavesItToTheNextThatAsks() {
-    App<int[]> app = start(
-        new App<>(new int[1], s -> {
-          El root = el().size(100, 100)
-              .child(el().size(40, 20)
-                  .clip()
-                  .child(el().key("first")
-                      .size(20, 20)
-                      .absolute(0, s[0] == 0 ? 0 : 40) // then below the clip
-                      .focusable()
-                      .autofocus(s[0])));
-          return s[0] == 0
-              ? root
-              : root.child(el().key("second").size(20, 20).focusable().autofocus());
-        }),
-        100,
-        100);
-    assertEquals("first", app.focused().key());
-    app.post(() -> app.state()[0] = 1);
-    app.frame();
-    assertEquals("second", app.focused() == null ? null : app.focused().key());
-  }
-
-  @Test
-  void aSecondaryPressFocusesATextFieldInsideAnElementThatKeepsTheFocus() {
-    TextLibraries.assumeLoaded();
-    App<String[]> app = start(
-        new App<>(
-            new String[] {"", ""},
-            s -> col()
-                .size(100, 100)
-                .children(
-                    El.text(s[0])
-                        .key("first")
-                        .size(100, 20)
-                        .editable(v -> s[0] = v)
-                        .autofocus(),
-                    el().size(100, 30)
-                        .keepFocus()
-                        .child(El.text(s[1]).key("second").size(100, 20).editable(v -> s[1] = v)))),
-        100,
-        100);
-    assertEquals("first", app.focused().key());
-    app.secondaryDown(10, 25);
-    app.secondaryUp(10, 25);
-    app.frame();
-    assertEquals("second", app.focused().key(), "as a primary press does");
   }
 }

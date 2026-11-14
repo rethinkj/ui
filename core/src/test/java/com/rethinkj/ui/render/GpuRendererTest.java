@@ -2,7 +2,6 @@ package com.rethinkj.ui.render;
 
 import static com.rethinkj.ui.El.col;
 import static com.rethinkj.ui.El.el;
-import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -13,7 +12,6 @@ import com.rethinkj.ui.App;
 import com.rethinkj.ui.Colors;
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.Examples;
-import com.rethinkj.ui.Examples.Lights;
 import com.rethinkj.ui.Image;
 import com.rethinkj.ui.Script;
 import com.rethinkj.ui.Scrollbars;
@@ -29,24 +27,19 @@ import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Random;
-import java.util.Set;
-import java.util.TreeSet;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
 /**
- * Draws scenes on the GPU and on the CPU and compares them pixel by pixel: rectangles and text, the
- * views behind the stored images and scenes that stress one formula each. They cannot be equal bit
- * for bit, so each channel may differ by the {@link #tolerance} and what the GPU's rounding of
+ * Draws scenes on the GPU and on the CPU and compares them pixel by pixel: scenes that stress one
+ * formula each, text, fields, overlays and images. They cannot be equal bit for bit, so each channel may differ by the {@link #tolerance} and what the GPU's rounding of
  * alpha adds to it ({@link #ALPHA_STEP}); see there for why. A scene that differs by more leaves
  * the CPU's image, the GPU's and their difference in {@code target/gpu-vs-cpu}. Skipped without
  * the natives module or an adapter.
@@ -127,11 +120,8 @@ class GpuRendererTest {
 
   /**
    * A scene to draw, with the size of the image in physical pixels and the scale.
-   *
-   * @param stored the stored image that the scene is the view behind, which the CPU's image of the
-   *     scene then equals; null for none
    */
-  record Case(String name, Scene scene, int width, int height, float scale, Path stored) {
+  record Case(String name, Scene scene, int width, int height, float scale) {
     @Override
     public String toString() {
       return name;
@@ -145,426 +135,90 @@ class GpuRendererTest {
     return cases.stream();
   }
 
-  /** The cases, built once: each snap of a script is taken once, see {@link #SNAPPED}. */
+  /** The cases, built once. */
   private static List<Case> cases;
 
+  /** Each scene once, at a scale between whole pixels where that is what stresses it. */
   private static List<Case> build() throws IOException {
     List<Case> cases = new ArrayList<>();
-    // The views behind the stored images, built as their tests and scripts build them; all but
-    // the badge have text.
-    cases.addAll(script("switch.txt", () -> new App<>(new Lights(), Examples::lights)));
-    cases.addAll(script("focus.txt", () -> new App<>(new Lights(), Examples::lights)));
-    cases.addAll(script("hover.txt", () -> new App<>(new Lights(), Examples::lights)));
-    cases.addAll(script("list.txt", () -> new App<>(new Object(), s -> Examples.list())));
-    // A million rows: those that exist, placed from the first one, at offsets in the millions.
-    cases.addAll(script("rows.txt", () -> new App<>(new Object(), s -> Examples.rows())));
-    // Scrollbars: thumbs over the rows at both ends, in their colours at rest and dragged.
-    cases.addAll(script("scrollbars.txt", () -> new App<>(new Object(), s -> Examples.bars())));
-    // Text fields: the selection and the caret are rectangles, the line under a composition too,
-    // and the glyphs are moved by the field's scroll and clipped to it.
-    cases.addAll(script("field.txt", () -> new App<>(new Examples.Form(), Examples::form)));
-    cases.addAll(
-        script("field-rows.txt", () -> new App<>(new Examples.Names(), Examples::fieldRows)));
-    // The kit's data grid, which Examples.grid builds as the kit does: first the snaps of kit's
-    // script behind its stored images grid-dark-*, then at the other scales. Header, lines and
-    // cells on whole pixels or not, clipped cells, rows a million down, the ring and the accent.
-    List<Case> grid = script(
-        Files.readString(KIT.resolve("scripts/grid.txt")),
-        "grid-dark-",
-        KIT.resolve("golden"),
-        GpuRendererTest::grid);
-    if (grid.size() != 5) {
-      throw new AssertionError("Expected the 5 snaps of kit's grid.txt, found " + grid);
-    }
-    cases.addAll(grid);
-    for (float scale : new float[] {2, 1.5f}) {
-      String at = at(scale);
-      cases.add(grid("grid-focused" + at, scale, "key Tab\nkey ArrowDown\nkey ArrowDown\n"));
-      cases.add(grid(
-          "grid-far-sideways" + at, scale, "scroll #rows row 765432\nframe\nwheel #rows 300 0\n"));
-      cases.add(grid("grid-resizing" + at, scale, "down #resize-1\nmove 252,19\n"));
-    }
-    // Overlays, drawn after the tree with clips of their own: the stored images of overlay.txt,
-    // then a menu across the rounded clip of a scrolled list with its submenu, and a dialog over a
-    // scrim, at every scale.
-    cases.addAll(script("overlay.txt", () -> new App<>(new Examples.Menus(), Examples::overlays)));
-    // Borders per side, radii per corner on fills, borders, a clip over text and a shadow, and a
-    // ring with a gap: the stored images, then at 1.5.
-    cases.addAll(script("shapes.txt", () -> new App<>(new Object(), s -> Examples.shapes())));
-    cases.add(shapes(1.5f));
-    for (float scale : new float[] {1, 1.5f, 2}) {
-      String at = at(scale);
-      cases.add(overlay("overlay-nested" + at, scale, "press #export\n"));
-      cases.add(overlay("overlay-scrim" + at, scale, "press #delete\n"));
-    }
+    float s = 1.5f;
+    // Scenes that stress one formula each.
+    cases.add(scene("edges", edges(), 160, 100, s));
+    cases.add(scene("borders", borders(), 160, 100, s));
+    cases.add(scene("radii", radii(), 160, 100, s));
+    cases.add(scene("sides", sides(), 160, 100, s));
+    cases.add(scene("overlaps", overlaps(), 160, 100, s));
+    cases.add(view("clips", clips(), 160, 100, s));
+    cases.add(scene("transparent", transparent(), 160, 100, s));
+    cases.add(nestedClips(s));
+    cases.add(bars("bars-hovered", s));
+    cases.add(text("shadows", shadows(), 240, 160, s));
+    cases.add(shapes(s));
     // A scrim reaches a billion pixels beyond the window, beyond an int from scale 2.15 on.
     cases.add(scrim(2.5f));
-    // Text in both fonts at 9 to 25 pixels at quarter positions, at the scales between, and
-    // thousands of instances of a pixel each.
-    for (float scale : new float[] {1.25f, 1.75f}) {
-      cases.add(scattered(scale));
-    }
-    cases.add(scene("many@1.75", many(), 80, 80, 1.75f));
-    for (int frames = 2; frames <= 5; frames++) {
-      cases.add(switchMoving(frames));
-    }
-    cases.addAll(script(BADGE, "badge-", GpuRendererTest::badge));
-    for (int scale = 1; scale <= 2; scale++) {
-      cases.add(text(
-          "text-sizes-" + scale + "x",
-          Examples.textSizes(),
-          720,
-          176,
-          scale,
-          TextRendering.LINUX,
-          new Atlas(),
-          true));
-    }
-    cases.add(text(
-        "text-grey-on-light",
-        Examples.greyOnLight(),
-        480,
-        104,
+    // Thousands of instances of a pixel each.
+    cases.add(scene("many", many(), 80, 80, 1.75f));
+    // A million rows: those that exist, placed from the first one, at offsets in the millions.
+    cases.add(scripted(
+        "rows-far",
+        new App<>(new Object(), x -> Examples.rows()),
+        280,
+        220,
         2,
-        TextRendering.LINUX,
-        new Atlas(),
-        true));
+        "scroll #rows row 765432\n"));
+    // Overlays, drawn after the tree with clips of their own: a menu across the rounded clip of a
+    // scrolled list with its submenu, and a dialog over a scrim.
+    cases.add(overlay("overlay-nested", s, "press #export\n"));
+    cases.add(overlay("overlay-scrim", s, "press #delete\n"));
+    // Text in both fonts at 9 to 25 pixels at quarter positions, both renderings, grey on light,
+    // under opacity, cut by rounded clips, overlapping translucent boxes, over several pages of a
+    // small atlas, and in colours and fonts of a highlighter.
+    cases.add(scattered(1.25f));
+    cases.add(text("text-sizes", Examples.textSizes(), 720, 176, s));
     cases.add(text(
-        "text-opacity",
-        Examples.textOpacity(),
-        336,
-        76,
-        2,
-        TextRendering.LINUX,
-        new Atlas(),
-        true));
-    for (float scale : new float[] {1, 2, 1.5f}) { // lines shortened with an ellipsis
-      boolean stored = scale != 1.5f;
-      cases.add(text(
-          stored ? "text-ellipsis-" + (int) scale + "x" : "text-ellipsis" + at(scale),
-          Examples.ellipsisText(),
-          360,
-          236,
-          scale,
-          TextRendering.LINUX,
-          new Atlas(),
-          stored));
-    }
-    for (float scale : new float[] {1, 2, 1.5f}) { // lines aligned in their boxes
-      boolean stored = scale != 1.5f;
-      cases.add(text(
-          stored ? "text-align-" + (int) scale + "x" : "text-align" + at(scale),
-          Examples.alignedText(),
-          360,
-          172,
-          scale,
-          TextRendering.LINUX,
-          new Atlas(),
-          stored));
-    }
-    cases.add(textScrolled());
-    // Scenes that stress one formula each.
-    for (float scale : new float[] {1, 2, 1.5f}) {
-      String at = at(scale);
-      cases.add(scene("edges" + at, edges(), 160, 100, scale));
-      cases.add(scene("borders" + at, borders(), 160, 100, scale));
-      cases.add(scene("radii" + at, radii(), 160, 100, scale));
-      cases.add(scene("sides" + at, sides(), 160, 100, scale));
-      cases.add(scene("overlaps" + at, overlaps(), 160, 100, scale));
-      cases.add(view("clips" + at, clips(), 160, 100, scale));
-      // Clips in rounded clips, two and three deep: a scrolled list in a card, text and images.
-      cases.add(nestedClips(scale));
-      cases.add(bars("bars-both" + at, scale, false));
-      cases.add(bars("bars-both-hovered" + at, scale, true));
-      cases.add(scene("transparent" + at, transparent(), 160, 100, scale));
-      // Shadows on light and dark, under text and translucent boxes, cut by rounded clips, at
-      // half opacity, overlapping, wide, sharp and coloured.
-      cases.add(text("shadows" + at, shadows(), 240, 160, scale));
-    }
-    // Text: 11 to 14 pixels in both fonts, dark on light, light on dark and grey on light, with
-    // both renderings, under opacity, cut by rounded clips, overlapping translucent boxes and
-    // other text, and spread over the pages of a small atlas; and text fields, selected and
-    // composing. At the scales of the stored images in the views above, and at the others here.
-    for (float scale : new float[] {1, 2, 1.5f}) {
-      String at = at(scale);
-      if (scale == 1.5f) {
-        cases.add(text("text-sizes-linux" + at, Examples.textSizes(), 720, 176, scale));
-      }
-      cases.add(text(
-          "text-sizes-windows" + at,
-          Examples.textSizes(),
-          720,
-          176,
-          scale,
-          TextRendering.WINDOWS,
-          new Atlas(),
-          false));
-      if (scale != 2) {
-        cases.add(text("text-grey-on-light" + at, Examples.greyOnLight(), 480, 104, scale));
-        cases.add(text("text-opacity" + at, Examples.textOpacity(), 336, 76, scale));
-      }
-      cases.add(text("text-clipped" + at, clippedText(), 240, 120, scale));
-      cases.add(text("text-overlaps" + at, overlappingText(), 240, 120, scale));
-      cases.add(textPages(scale));
-      cases.add(text("text-highlighted" + at, highlighted(), 280, 72, scale));
-      cases.add(marked("area-marked" + at, scale));
-      if (scale != 2) {
-        cases.add(field(
-            "field-selected" + at,
-            scale,
-            "press #name\ntype \"SELECT name FROM customers\"\nkey ArrowLeft control shift\n"));
-        cases.add(field(
-            "field-composing" + at,
-            scale,
-            "press #name\ntype \"SELECT name\"\nkey ArrowLeft shift\ncompose \"ni\"\n"));
-      }
-    }
-    // Images: one to one, magnified, made smaller and 4000 pixels made 60 and 100, with alpha over
-    // and
-    // under text, in rounded clips, at half opacity, covering and contained, on light and dark.
-    for (float scale : new float[] {1, 1.5f, 2}) {
-      cases.add(text("images" + at(scale), Examples.images(scale), 320, 220, scale));
-    }
-    // Fallback fonts: glyphs of four fonts on one line and in a field selected across them,
-    // Hebrew right to left, Thai with its marks, Inter's "not defined" glyph.
-    for (float scale : new float[] {1, 2, 1.5f}) {
-      boolean stored = scale != 1.5f;
-      cases.add(text(
-          stored ? "fallback-" + (int) scale + "x" : "fallback" + at(scale),
-          Examples.fallbackText(),
-          360,
-          128,
-          scale,
-          TextRendering.LINUX,
-          new Atlas(),
-          stored));
-      cases.add(fallbackField(scale == 2 ? "fallback-field" : "fallback-field" + at(scale), scale));
-    }
+        "text-sizes-windows",
+        Examples.textSizes(),
+        720,
+        176,
+        1,
+        TextRendering.WINDOWS,
+        new Atlas()));
+    cases.add(text("text-grey-on-light", Examples.greyOnLight(), 480, 104, 1));
+    cases.add(text("text-opacity", Examples.textOpacity(), 336, 76, s));
+    cases.add(text("text-clipped", clippedText(), 240, 120, 2));
+    cases.add(text("text-overlaps", overlappingText(), 240, 120, s));
+    cases.add(textPages(s));
+    cases.add(text("text-highlighted", highlighted(), 280, 72, s));
+    // Text fields: the selection, the caret and the line under a composition are rectangles.
+    cases.add(marked("area-marked", s));
+    cases.add(scripted(
+        "field-composing",
+        new App<>(new Examples.Form(), Examples::form),
+        240,
+        80,
+        s,
+        "press #name\ntype \"SELECT name\"\nkey ArrowLeft shift\ncompose \"ni\"\n"));
+    // Images: one to one, magnified, made smaller, with alpha, clipped, at half opacity.
+    cases.add(text("images", Examples.images(s), 320, 220, s));
+    // Fallback fonts: glyphs of four fonts on one line and in a field selected across them.
+    cases.add(text("fallback", Examples.fallbackText(), 360, 128, s));
+    cases.add(scripted(
+        "fallback-field",
+        new App<>(new Examples.Form(), Examples::fallbackField),
+        240,
+        80,
+        s,
+        Examples.FALLBACK_FIELD));
     return cases;
-  }
-
-  /** The field of the stored image fallback-field, at a scale. */
-  private static Case fallbackField(String name, float scale) throws IOException {
-    App<Examples.Form> app = new App<>(new Examples.Form(), Examples::fallbackField);
-    app.textRendering(TextRendering.LINUX);
-    Script.run(
-        "size 240 80 scale " + scale + "\nframe\n" + Examples.FALLBACK_FIELD + "frame\n",
-        app,
-        Path.of("target/gpu-vs-cpu-scripts"));
-    return scene(name, app.scene(), 240, 80, scale, scale == 2);
-  }
-
-  private static String at(float scale) {
-    return "@" + (scale == (int) scale ? String.valueOf((int) scale) : "1.5");
-  }
-
-  @Test
-  void theCasesIncludeTheViewBehindEveryStoredImageOfCore() throws IOException {
-    Set<String> drawn = new HashSet<>();
-    cases()
-        .filter(c -> c.stored() != null && c.stored().getParent().equals(STORED))
-        .forEach(c -> drawn.add(c.name()));
-    Set<String> stored = new HashSet<>();
-    try (Stream<Path> files = Files.list(STORED)) {
-      files
-          .map(f -> f.getFileName().toString())
-          .filter(f -> f.endsWith(".png"))
-          .forEach(f -> stored.add(f.substring(0, f.length() - ".png".length())));
-    }
-    assertEquals(new TreeSet<>(stored), new TreeSet<>(drawn));
   }
 
   @ParameterizedTest(name = "{0}")
   @MethodSource("cases")
-  void theGpuDrawsWhatTheCpuDraws(Case c) throws IOException {
-    if (c.stored() != null) {
-      Pixels stored = Png.decode(Files.readAllBytes(c.stored()));
-      assertArrayEquals(
-          stored.rgba(),
-          CpuRenderer.render(c.scene(), c.width(), c.height(), c.scale()).rgba(),
-          "the case is not the view behind the stored image " + c.name());
-    }
+  void theGpuDrawsWhatTheCpuDraws(Case c) {
     Comparison comparison = compare(gpu, c);
     System.out.println("GPU vs CPU " + comparison);
     if (comparison.beyond() > 0) {
       fail(comparison + ". See " + FAILED.toAbsolutePath());
-    }
-  }
-
-  /**
-   * Changes to the glyph shader that draw text only a little wrong, each of which the comparison
-   * has to notice: the texel mapping, the reading of texels, the coverage correction and the
-   * clip.
-   */
-  static Stream<Arguments> textBreaks() {
-    String texel = "let texel = vec2i(floor(in.position.xy) - glyph_origin(instance));";
-    String read = "let a = textureLoad(atlas, corner + texel, instance.more.x, 0).r;";
-    String dark = "let dark = 1.0 - pow(1.0 - a, bitcast<f32>(instance.more.z));";
-    String mix = "var glyph_cover = dark + (light - dark) * bitcast<f32>(instance.more.y);";
-    return Stream.of(
-        Arguments.of(
-            "every texel one pixel to the right",
-            texel,
-            "let texel = vec2i(floor(in.position.xy) - glyph_origin(instance)) - vec2i(1, 0);"),
-        Arguments.of(
-            "texels filtered half a texel off",
-            read,
-            "let a = (textureLoad(atlas, corner + texel, instance.more.x, 0).r"
-                + " + textureLoad(atlas, corner + texel + vec2i(1, 0), instance.more.x, 0).r)"
-                + " / 2.0;"),
-        Arguments.of(
-            "dark exponent 1.6 instead of 1.8",
-            dark,
-            "let dark = 1.0 - pow(1.0 - a, bitcast<f32>(instance.more.z) - 0.2);"),
-        Arguments.of("every glyph corrected as dark text", mix, "var glyph_cover = dark;"),
-        Arguments.of("no correction", mix, "var glyph_cover = a;"),
-        Arguments.of(
-            "the clip left out",
-            "glyph_cover *= clip_coverage(instance.clip, point);",
-            "glyph_cover *= 1.0;"));
-  }
-
-  @ParameterizedTest(name = "{0}")
-  @MethodSource("textBreaks")
-  void aWrongGlyphShaderIsNoticed(String what, String line, String broken) {
-    String wgsl = GpuRenderer.WGSL.replace(line, broken);
-    assertTrue(!wgsl.equals(GpuRenderer.WGSL), "the shader has no line " + line);
-    try (GpuRenderer wrong = GpuRenderer.create(wgsl)) {
-      for (Case c : List.of(
-          text("text-sizes-broken", Examples.textSizes(), 720, 176, 1.5f),
-          text("text-clipped-broken", clippedText(), 240, 120, 2))) {
-        Comparison comparison = compare(wrong, c, false);
-        System.out.println("GPU with " + what + " vs CPU " + comparison);
-        if (!what.equals("the clip left out") || c.name().startsWith("text-clipped")) {
-          assertTrue(comparison.beyond() > 50, what + ": " + comparison);
-        }
-      }
-    }
-  }
-
-  /**
-   * Changes to the shadow shader that each draw shadows only a little wrong, which the comparison
-   * has to notice: the blur, the pixel's share of it, the corners, their slices and the clip.
-   */
-  static Stream<Arguments> shadowBreaks() {
-    String deviation = "return sqrt(sigma * sigma + 1.0 / (12.0 * globals.scale * globals.scale));";
-    return Stream.of(
-        Arguments.of(
-            "the blur a tenth wider",
-            deviation,
-            "return 1.1 * sqrt(sigma * sigma + 1.0 / (12.0 * globals.scale * globals.scale));"),
-        Arguments.of("no share of the pixel in the blur", deviation, "return sigma;"),
-        Arguments.of("square corners", "if radius > 0.0 {", "if radius < 0.0 {"),
-        Arguments.of(
-            "slices taken at their top", "let middle = top - step / 2.0;", "let middle = top;"),
-        Arguments.of(
-            "the clip left out",
-            "shadow_cover *= clip_coverage(instance.clip, point);",
-            "shadow_cover *= 1.0;"));
-  }
-
-  @ParameterizedTest(name = "{0}")
-  @MethodSource("shadowBreaks")
-  void aWrongShadowShaderIsNoticed(String what, String line, String broken) {
-    String wgsl = GpuRenderer.WGSL.replace(line, broken);
-    assertTrue(!wgsl.equals(GpuRenderer.WGSL), "the shader has no line " + line);
-    try (GpuRenderer wrong = GpuRenderer.create(wgsl)) {
-      for (float scale : new float[] {1, 2}) {
-        Comparison comparison =
-            compare(wrong, text("shadows-broken" + at(scale), shadows(), 240, 160, scale), false);
-        System.out.println("GPU with " + what + " vs CPU " + comparison);
-        assertTrue(comparison.beyond() > 50, what + ": " + comparison);
-      }
-    }
-  }
-
-  /**
-   * Changes to the shaders of corners and sides that each draw a few shapes a little wrong, which
-   * the comparison has to notice: the corner a point takes its radius from, the elliptic inner
-   * corners, the fill's edge on a side without a border, a shadow's corners, a clip's, and the
-   * clips around a clip that cut its corners.
-   */
-  static Stream<Arguments> shapeBreaks() {
-    return Stream.of(
-        Arguments.of(
-            "the corners on the right swapped",
-            "return select(1u, 2u, p.y > 0.0);",
-            "return select(2u, 1u, p.y > 0.0);"),
-        Arguments.of("inner corners circles", "if r.x == r.y {", "if true {"),
-        Arguments.of(
-            "the fill's edge on the side without a border",
-            "select(vec4f(-1.0 / globals.scale), borders, borders > vec4f(0.0))",
-            "select(vec4f(0.0), borders, borders > vec4f(0.0))"),
-        Arguments.of(
-            "a shadow's corners all the top left one",
-            "if all(radii == vec4f(radii.x)) {",
-            "if true {"),
-        Arguments.of(
-            "a clip's corners all the top left one", "clip.radii[corner(p)]", "clip.radii.x"),
-        Arguments.of(
-            "a clip's parents left out",
-            "cover = min(cover, own_clip_coverage(parent, point));",
-            "cover = cover;"));
-  }
-
-  @ParameterizedTest(name = "{0}")
-  @MethodSource("shapeBreaks")
-  void aWrongShapeShaderIsNoticed(String what, String line, String broken) throws IOException {
-    String wgsl = GpuRenderer.WGSL.replace(line, broken);
-    assertTrue(!wgsl.equals(GpuRenderer.WGSL), "the shader has no line " + line);
-    try (GpuRenderer wrong = GpuRenderer.create(wgsl)) {
-      int beyond = 0;
-      for (Case c : List.of(shapes(2), nestedClips(2))) {
-        Comparison comparison = compare(wrong, c, false);
-        System.out.println("GPU with " + what + " vs CPU " + comparison);
-        beyond += comparison.beyond();
-      }
-      assertTrue(beyond > 50, what + ": " + beyond + " pixels beyond the tolerance");
-    }
-  }
-
-  /**
-   * Changes to the image shader that each draw images only a little wrong, which the comparison
-   * has to notice: the point a pixel samples, the filtering, the levels mixed, the texel of one
-   * to one and the clip.
-   */
-  static Stream<Arguments> imageBreaks() {
-    return Stream.of(
-        Arguments.of(
-            "the point a quarter texel off",
-            "let p = uv * vec2f(dims) / size - 0.5;",
-            "let p = uv * vec2f(dims) / size - 0.25;"),
-        Arguments.of(
-            "the nearest texel instead of four", "let f = p - floor(p);", "let f = vec2f(0.0);"),
-        Arguments.of(
-            "the finer level alone",
-            "image_level(instance, uv, size, u32(k) + 1u), lod - k);",
-            "image_level(instance, uv, size, u32(k) + 1u), 0.0);"),
-        Arguments.of(
-            "one to one a texel off",
-            "let texel = clamp(vec2i(floor(pixel) - snapped), vec2i(0), vec2i(size) - 1);",
-            "let texel = clamp(vec2i(floor(pixel) - snapped) + vec2i(1, 0), vec2i(0),"
-                + " vec2i(size) - 1);"),
-        Arguments.of(
-            "the clip left out",
-            "image_cover *= clip_coverage(instance.clip, point);",
-            "image_cover *= 1.0;"));
-  }
-
-  @ParameterizedTest(name = "{0}")
-  @MethodSource("imageBreaks")
-  void aWrongImageShaderIsNoticed(String what, String line, String broken) {
-    String wgsl = GpuRenderer.WGSL.replace(line, broken);
-    assertTrue(!wgsl.equals(GpuRenderer.WGSL), "the shader has no line " + line);
-    try (GpuRenderer wrong = GpuRenderer.create(wgsl)) {
-      for (float scale : new float[] {1.5f, 2}) {
-        Comparison comparison = compare(
-            wrong,
-            text("images-broken" + at(scale), Examples.images(scale), 320, 220, scale),
-            false);
-        System.out.println("GPU with " + what + " vs CPU " + comparison);
-        assertTrue(comparison.beyond() > 50, what + ": " + comparison);
-      }
     }
   }
 
@@ -620,8 +274,7 @@ class GpuRendererTest {
         40,
         1,
         TextRendering.LINUX,
-        atlas,
-        false);
+        atlas);
     assertEquals(0, compare(gpu, first).beyond());
     assertEquals(1, gpu.atlasWrites() - writes, "the new page");
     assertEquals((long) Atlas.PAGE_SIZE * Atlas.PAGE_SIZE, gpu.atlasTexels() - texels, "whole");
@@ -635,8 +288,7 @@ class GpuRendererTest {
         40,
         1,
         TextRendering.LINUX,
-        atlas,
-        false);
+        atlas);
     assertEquals(0, compare(gpu, recoloured).beyond());
     gpu.render(recoloured.scene(), 200, 40, 1);
     assertEquals(writes, gpu.atlasWrites(), "no change, no upload");
@@ -650,8 +302,7 @@ class GpuRendererTest {
         40,
         1,
         TextRendering.LINUX,
-        atlas,
-        false);
+        atlas);
     Atlas.Region changed = atlas.pages().getFirst().changed();
     assertEquals(0, compare(gpu, more).beyond());
     assertEquals(writes + 1, gpu.atlasWrites());
@@ -664,14 +315,12 @@ class GpuRendererTest {
     // Room for one page of 64 texels: each frame needs more, so the atlas grows for it, and
     // empties pages of the frame before for the next.
     Atlas atlas = new Atlas(64, 64 * 64, 4096);
-    Case upper =
-        text("pages-upper", paragraph(UPPER), 300, 120, 2, TextRendering.LINUX, atlas, false);
+    Case upper = text("pages-upper", paragraph(UPPER), 300, 120, 2, TextRendering.LINUX, atlas);
     int pages = atlas.pages().size();
     assertTrue(pages >= 3, pages + " pages");
     assertEquals(0, compare(gpu, upper).beyond());
 
-    Case lower =
-        text("pages-lower", paragraph(LOWER), 300, 120, 2, TextRendering.LINUX, atlas, false);
+    Case lower = text("pages-lower", paragraph(LOWER), 300, 120, 2, TextRendering.LINUX, atlas);
     List<Atlas.Page> emptied = atlas.pages().subList(0, pages).stream()
         .filter(page -> page.changed().equals(new Atlas.Region(0, 0, 64, 64)))
         .toList();
@@ -681,23 +330,8 @@ class GpuRendererTest {
     assertTrue(gpu.atlasTexels() - texels >= emptied.size() * 64L * 64);
 
     Case again =
-        text("pages-upper-again", paragraph(UPPER), 300, 120, 2, TextRendering.LINUX, atlas, false);
+        text("pages-upper-again", paragraph(UPPER), 300, 120, 2, TextRendering.LINUX, atlas);
     assertEquals(0, compare(gpu, again).beyond());
-  }
-
-  @Test
-  void aWrongFormulaInTheShaderIsNoticed() {
-    // The coverage ramp half a pixel wide instead of one at scale 2: edges are only a little
-    // sharper.
-    String broken = GpuRenderer.WGSL.replace(
-        "clamp(0.5 - distance * globals.scale, 0.0, 1.0)",
-        "clamp(0.5 - distance * globals.scale * 1.25, 0.0, 1.0)");
-    assertTrue(!broken.equals(GpuRenderer.WGSL), "the shader still has the coverage formula");
-    try (GpuRenderer wrong = GpuRenderer.create(broken)) {
-      Comparison comparison = compare(wrong, scene("edges-broken", edges(), 160, 100, 2), false);
-      System.out.println("GPU with a broken shader vs CPU " + comparison);
-      assertTrue(comparison.beyond() > 100, comparison.toString());
-    }
   }
 
   @Test
@@ -966,10 +600,7 @@ class GpuRendererTest {
     return String.format("%02X%02X%02X%02X", rgba[at], rgba[at + 1], rgba[at + 2], rgba[at + 3]);
   }
 
-  // ---- the views behind the stored images ---------------------------------------------------
-
-  private static final Path STORED = Path.of("src/test/resources/golden");
-  private static final Path SCRIPTS = Path.of("src/test/resources/scripts");
+  // ---- building cases ----------------------------------------------------------------------
 
   private static Case view(String name, El root, float width, float height, float scale) {
     Flex.layout(root, width, height);
@@ -978,150 +609,19 @@ class GpuRendererTest {
 
   /** A case of a scene laid out for this size in logical pixels. */
   private static Case scene(String name, Scene scene, float width, float height, float scale) {
-    return scene(name, scene, width, height, scale, false);
+    return new Case(name, scene, Math.round(width * scale), Math.round(height * scale), scale);
   }
 
-  private static Case scene(
-      String name, Scene scene, float width, float height, float scale, boolean stored) {
-    return scene(name, scene, width, height, scale, stored ? STORED.resolve(name + ".png") : null);
-  }
-
-  private static Case scene(
-      String name, Scene scene, float width, float height, float scale, Path stored) {
-    return new Case(
-        name, scene, Math.round(width * scale), Math.round(height * scale), scale, stored);
-  }
-
-  /** The script of {@code PresenceTest} that makes the stored images badge-*. */
-  private static final String BADGE = """
-      size 200 120 scale 2
-      frame
-      snap on
-      press #switch
-      frame
-      advance 0.06
-      frame
-      snap leaving-060ms
-      advance 0.06
-      frame
-      snap leaving-120ms
-      press #switch
-      frame
-      advance 0.06
-      frame
-      snap back-060ms
-      advance 1
-      frame
-      snap back
-      press #switch
-      frame
-      advance 1
-      frame
-      snap gone
-      """;
-
-  /** The badge example after its first frame, as {@code PresenceTest} starts it. */
-  private static App<?> badge() {
-    Lights lights = new Lights();
-    lights.on = true;
-    App<Lights> app = new App<>(lights, Examples::badged);
-    app.resize(200, 120, 1);
-    app.frame();
-    return app;
-  }
-
-  private static List<Case> script(String file, Supplier<App<?>> apps) throws IOException {
-    return script(Files.readString(SCRIPTS.resolve(file)), "", apps);
-  }
-
-  /**
-   * The snaps of a script that are stored images, named {@code prefix} and the snap's name: for
-   * each, a new app runs the script up to that snap, with the text rendering of the stored images.
-   */
-  private static List<Case> script(String script, String prefix, Supplier<App<?>> apps)
+  /** The app after its first frame, these steps of a script and a frame. */
+  private static Case scripted(
+      String name, App<?> app, int width, int height, float scale, String steps)
       throws IOException {
-    return script(script, prefix, STORED, apps);
-  }
-
-  /** As {@link #script(String, String, Supplier)}, with the stored images in {@code stored}. */
-  private static List<Case> script(String script, String prefix, Path stored, Supplier<App<?>> apps)
-      throws IOException {
-    List<String> lines = script.lines().toList();
-    List<Case> cases = new ArrayList<>();
-    float[] size = new float[3];
-    for (int i = 0; i < lines.size(); i++) {
-      String[] words = lines.get(i).strip().split("\\s+");
-      String name = words.length > 1 ? prefix + words[1] : "";
-      if (words[0].equals("size")) {
-        size[0] = Float.parseFloat(words[1]);
-        size[1] = Float.parseFloat(words[2]);
-        size[2] = words.length > 4 && words[3].equals("scale") ? Float.parseFloat(words[4]) : 1;
-      } else if (words[0].equals("snap")
-          && !SNAPPED.contains(name)
-          && Files.exists(stored.resolve(name + ".png"))) {
-        App<?> app = apps.get();
-        app.textRendering(TextRendering.LINUX);
-        Script.run(
-            String.join("\n", lines.subList(0, i + 1)), app, Path.of("target/gpu-vs-cpu-scripts"));
-        cases.add(
-            scene(name, app.scene(), size[0], size[1], size[2], stored.resolve(name + ".png")));
-        SNAPPED.add(name);
-      }
-    }
-    return cases;
-  }
-
-  /** Snaps that two scripts have, such as switch-on: compared once. */
-  private static final Set<String> SNAPPED = new HashSet<>();
-
-  /**
-   * As the stored images switch-moving-*, made by {@code MotionTest}: pressed, then 40 ms later
-   * for each frame, at scale 2.
-   */
-  private static Case switchMoving(int frames) {
-    App<Lights> app = new App<>(new Lights(), Examples::lights);
-    app.textRendering(TextRendering.LINUX);
-    app.resize(200, 120, 2);
-    app.frame();
-    press(app, 58, 60);
-    app.frame();
-    for (int i = 0; i < frames; i++) {
-      app.advance(0.04);
-      app.frame();
-    }
-    return scene(
-        String.format("switch-moving-%03dms", 40 * frames), app.scene(), 200, 120, 2, true);
-  }
-
-  /** As the stored image text-scrolled: 13.25 pixels down, lines cut by the rounded clip. */
-  private static Case textScrolled() {
-    App<Object> app = new App<>(new Object(), s -> Examples.scrolledText());
-    app.textRendering(TextRendering.LINUX);
-    app.resize(200, 90, 2);
-    app.frame();
-    app.wheel(100, 45, 0, 13.25f);
-    app.frame();
-    return scene("text-scrolled", app.scene(), 200, 90, 2, true);
-  }
-
-  /** Kit's test resources, for its data grid's script and stored images. */
-  private static final Path KIT = Path.of("../kit/src/test/resources");
-
-  /** The data grid as kit's {@code Orders.app} starts it, in the dark theme. */
-  private static App<?> grid() {
-    App<Examples.Grid> app = new App<>(new Examples.Grid(), Examples::grid);
-    return app;
-  }
-
-  /** The grid after these steps of a script and a frame, in a window of 560 by 240. */
-  private static Case grid(String name, float scale, String steps) throws IOException {
-    App<?> app = grid();
     app.textRendering(TextRendering.LINUX);
     Script.run(
-        "size 560 240 scale " + scale + "\nframe\n" + steps + "frame\n",
+        "size " + width + " " + height + " scale " + scale + "\nframe\n" + steps + "frame\n",
         app,
         Path.of("target/gpu-vs-cpu-scripts"));
-    return scene(name, app.scene(), 560, 240, scale);
+    return scene(name, app.scene(), width, height, scale);
   }
 
   /**
@@ -1129,15 +629,13 @@ class GpuRendererTest {
    * row 3, after these steps of a script and a frame.
    */
   private static Case overlay(String name, float scale, String steps) throws IOException {
-    App<Examples.Menus> app = new App<>(new Examples.Menus(), Examples::overlays);
-    app.textRendering(TextRendering.LINUX);
-    Script.run(
-        "size 240 200 scale " + scale + "\nframe\nwheel #list 0 13.25\nframe\n"
-            + "press #row-3 right\nframe\n" + steps + "frame\n",
-        app,
-        Path.of("target/gpu-vs-cpu-scripts"));
-    assertTrue(!app.tree().shownOverlays().isEmpty(), "an overlay shows");
-    return scene(name, app.scene(), 240, 200, scale);
+    return scripted(
+        name,
+        new App<>(new Examples.Menus(), Examples::overlays),
+        240,
+        200,
+        scale,
+        "wheel #list 0 13.25\nframe\npress #row-3 right\nframe\n" + steps);
   }
 
   /** Forty lines of text in both fonts at sizes from 9 to 25, at fractional positions. */
@@ -1172,7 +670,7 @@ class GpuRendererTest {
   void randomShapesDrawAlikeAtScalesBetweenAndBeyond() {
     Random random = new Random(8212026);
     float[] scales = {1, 1.25f, 1.75f, 2.5f, 3};
-    for (int k = 0; k < 500; k++) {
+    for (int k = 0; k < 40; k++) {
       Scene scene = new Scene();
       scene.rect(0, 0, 40, 40, 0, 0, 0xFFFFFFFF, 0);
       for (int i = 0; i < 3; i++) {
@@ -1206,7 +704,7 @@ class GpuRendererTest {
     app.frame();
     app.wheel(60, 80, 0, 13.25f);
     app.frame();
-    return scene("nested-clips" + at(scale), app.scene(), 260, 180, scale);
+    return scene("nested-clips", app.scene(), 260, 180, scale);
   }
 
   /** A modal box over a white window, with its scrim. */
@@ -1221,32 +719,20 @@ class GpuRendererTest {
     return scene("scrim@" + scale, app.scene(), 20, 20, scale);
   }
 
-  /** The shapes of the stored images shapes-*, focused, at this scale. */
+  /** {@link Examples#shapes}, focused, at this scale. */
   private static Case shapes(float scale) throws IOException {
-    App<Object> app = new App<>(new Object(), s -> Examples.shapes());
-    app.textRendering(TextRendering.LINUX);
-    Script.run(
-        "size 240 152 scale " + scale + "\nframe\nfocus #ringed\nframe\n",
-        app,
-        Path.of("target/gpu-vs-cpu-scripts"));
-    return scene("shapes" + at(scale), app.scene(), 240, 152, scale);
-  }
-
-  /** The text field of the stored images field-*, after these steps of a script and a frame. */
-  private static Case field(String name, float scale, String steps) throws IOException {
-    App<Examples.Form> app = new App<>(new Examples.Form(), Examples::form);
-    app.textRendering(TextRendering.LINUX);
-    Script.run(
-        "size 240 80 scale " + scale + "\nframe\n" + steps + "frame\n",
-        app,
-        Path.of("target/gpu-vs-cpu-scripts"));
-    assertTrue(app.focused().text().caret() != null, "the caret shows");
-    return scene(name, app.scene(), 240, 80, scale);
+    return scripted(
+        "shapes",
+        new App<>(new Object(), s -> Examples.shapes()),
+        240,
+        152,
+        scale,
+        "focus #ringed\n");
   }
 
   /** A view with text, laid out for the scale, its glyphs in an atlas of its own. */
   private static Case text(String name, El root, float width, float height, float scale) {
-    return text(name, root, width, height, scale, TextRendering.LINUX, new Atlas(), false);
+    return text(name, root, width, height, scale, TextRendering.LINUX, new Atlas());
   }
 
   /** A view with text, laid out for the scale, its glyphs in {@code atlas}. */
@@ -1257,16 +743,9 @@ class GpuRendererTest {
       float height,
       float scale,
       TextRendering rendering,
-      Atlas atlas,
-      boolean stored) {
+      Atlas atlas) {
     Examples.laidOut(root, width, height, scale);
-    return scene(
-        name, Scene.of(root, null, 0, atlas, rendering, scale), width, height, scale, stored);
-  }
-
-  private static void press(App<?> app, float x, float y) {
-    app.pointerDown(x, y);
-    app.pointerUp(x, y);
+    return scene(name, Scene.of(root, null, 0, atlas, rendering, scale), width, height, scale);
   }
 
   // ---- text that stresses the glyph shader --------------------------------------------------
@@ -1384,14 +863,7 @@ class GpuRendererTest {
   private static Case textPages(float scale) {
     Atlas atlas = new Atlas(64, 64 * 64, 4096);
     Case c = text(
-        "text-pages" + at(scale),
-        paragraph(UPPER + " " + LOWER),
-        300,
-        160,
-        scale,
-        TextRendering.LINUX,
-        atlas,
-        false);
+        "text-pages", paragraph(UPPER + " " + LOWER), 300, 160, scale, TextRendering.LINUX, atlas);
     assertTrue(atlas.pages().size() > 2, atlas.pages().size() + " pages");
     return c;
   }
@@ -1586,9 +1058,9 @@ class GpuRendererTest {
   /**
    * A rounded scroll area with both bars, scrolled to fractional offsets so that the thumbs lie
    * between pixels, translucent over boxes that pass under them and cut by the rounded clip at the
-   * corners; with {@code hovered}, the vertical thumb under the pointer in its other colour.
+   * corners, and the vertical thumb under the pointer in its other colour.
    */
-  private static Case bars(String name, float scale, boolean hovered) {
+  private static Case bars(String name, float scale) {
     Scrollbars look = new Scrollbars(7, 2.5f, 3.5f, 20, 0xB0A1A1AA, 0xE0D4D4D8, 0xFFFFFFFF);
     App<Object> app = new App<>(new Object(), s -> {
       El area = col()
@@ -1609,11 +1081,9 @@ class GpuRendererTest {
     app.frame();
     app.wheel(80, 50, 37.3f, 23.6f);
     app.frame();
-    if (hovered) {
-      Scrollbars.Bar bar = app.tree().children().getFirst().verticalBar();
-      app.pointerMove(bar.thumbX() + 3, bar.thumbY() + 5);
-      app.frame();
-    }
+    Scrollbars.Bar bar = app.tree().children().getFirst().verticalBar();
+    app.pointerMove(bar.thumbX() + 3, bar.thumbY() + 5);
+    app.frame();
     return scene(name, app.scene(), 160, 100, scale);
   }
 

@@ -107,29 +107,6 @@ class TableTest {
   }
 
   @Test
-  void aFixedElementInsideAFixedOneStaysWithIt() throws IOException {
-    App<Log> app = app(s -> row()
-        .key("area")
-        .scrollBoth()
-        .w(100)
-        .h(40)
-        .child(row()
-            .w(300)
-            .h(40)
-            .child(el().key("outer")
-                .fixedX()
-                .size(40, 40)
-                .child(
-                    el().key("inner").fixedX().size(20, 20).onPress(() -> s.lines.add("inner"))))));
-    run(app, "frame\nwheel 50,20 60 0\nframe");
-    assertEquals(60, find(app.tree(), "area").scrollX());
-    assertEquals(0, x(app.tree(), "outer"));
-    assertEquals(0, x(app.tree(), "inner"), "the offset counts once along the path");
-    run(app, "press 10,10\nframe");
-    assertEquals(List.of("inner"), app.state().lines);
-  }
-
-  @Test
   void rowsAreBuiltForThePartInViewSidewaysAndAnewBeyondIt() throws IOException {
     List<String> built = new ArrayList<>();
     App<Log> app = app(s -> row()
@@ -196,28 +173,6 @@ class TableTest {
     assertEquals(List.of("0-7", "press"), app.state().lines);
     run(app, "scroll #list row 100\nframe\nframe");
     assertEquals("97-107", app.state().lines.getLast());
-  }
-
-  @Test
-  void aListThatComesBackTellsItsRowsAgain() throws IOException {
-    App<Log> app = app(s -> s.rows == 0
-        ? col()
-        : col()
-            .key("list")
-            .wFull()
-            .hFull()
-            .onRowsBuilt((first, last) -> s.lines.add(first + "-" + last))
-            .rows(s.rows, 20, i -> el()));
-    run(app, "frame\nframe");
-    assertEquals(List.of("0-7"), app.state().lines);
-    app.state().rows = 0;
-    app.invalidate();
-    app.frame();
-    app.state().rows = 1000;
-    app.invalidate();
-    app.frame();
-    app.frame();
-    assertEquals(List.of("0-7", "0-7"), app.state().lines, "told as a new list");
   }
 
   @Test

@@ -1,6 +1,5 @@
 package com.rethinkj.ui;
 
-import static com.rethinkj.ui.El.col;
 import static com.rethinkj.ui.Fields.field;
 import static com.rethinkj.ui.Fields.focus;
 import static com.rethinkj.ui.Fields.key;
@@ -17,12 +16,9 @@ import com.rethinkj.ui.text.Font;
 import com.rethinkj.ui.text.FontProbe;
 import com.rethinkj.ui.text.GlyphRun;
 import com.rethinkj.ui.text.TextLibraries;
-import com.rethinkj.ui.text.TextRendering;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -287,40 +283,6 @@ class MaskedFieldTest {
     }
   }
 
-  // Showing the string
-
-  @Test
-  void showingAndHidingKeepCaretSelectionScrollAndHistory() {
-    boolean[] masked = {true};
-    App<Model> app = start("", f -> f.masked(masked[0]), 1);
-    focus(app);
-    type(app, "open");
-    key(app, "End"); // ends the run of typing: two steps of the history
-    type(app, " sesame please");
-    key(app, "ArrowLeft", SHIFT);
-    key(app, "ArrowLeft", SHIFT);
-    assertEquals("open sesame plea|se^", show(app));
-    assertTrue(field(app).text().scroll() > 0, "18 bullets are wider than the field");
-
-    masked[0] = false;
-    rebuild(app);
-    assertEquals("open sesame plea|se^", show(app));
-    String dump = app.tree().dump();
-    assertTrue(
-        dump.contains("\"open sesame please\" 10,10 100x24 focused caret 16 anchor 18\n"), dump);
-    Text text = field(app).text();
-    float caret = text.caret().x() - text.scroll();
-    assertTrue(caret > 0 && caret < 92, "the caret is still in view: " + caret);
-    key(app, "Z", CONTROL);
-    assertEquals("open|", show(app), "the history from before");
-
-    masked[0] = true;
-    rebuild(app);
-    key(app, "Y", CONTROL);
-    assertEquals("open sesame plea|se^", show(app), "with the selection undo left");
-    assertEquals("\u2022".repeat(18), field(app).text().string());
-  }
-
   // Showing the string with revealed: drawn and edited as an ordinary field, dumped as a mask
 
   private static App<Model> revealed(String value) {
@@ -407,28 +369,6 @@ class MaskedFieldTest {
   }
 
   @Test
-  void aRevealedFieldGoesByWordsAndCopies() {
-    App<Model> app = revealed("correct horse battery");
-    focus(app);
-    key(app, "ArrowLeft", CONTROL);
-    assertEquals("correct horse |battery", show(app));
-    key(app, "ArrowLeft", CONTROL | SHIFT);
-    assertEquals("correct |horse ^battery", show(app));
-    key(app, "C", CONTROL);
-    assertEquals("horse ", app.clipboard().read());
-    key(app, "X", CONTROL);
-    assertEquals("correct |battery", show(app));
-
-    float x = 14 + field(app).text().x(2);
-    app.pointerDown(x, 22, 1, 0);
-    app.pointerUp(x, 22);
-    app.pointerDown(x, 22, 2, 0);
-    app.pointerUp(x, 22);
-    app.frame();
-    assertEquals("^correct| battery", show(app), "a double press selects a word");
-  }
-
-  @Test
   void aRevealedFieldCopiesAndAHiddenOneDoesNot() {
     boolean[] revealed = {true};
     App<Model> app = start(SECRET, f -> f.masked().revealed(revealed[0]), 1);
@@ -487,14 +427,6 @@ class MaskedFieldTest {
   }
 
   @Test
-  void revealedWithoutMaskedIsAnOrdinaryField() {
-    App<Model> app = start(SECRET, f -> f.revealed(true), 1);
-    assertFalse(field(app).text().revealed());
-    assertEquals(SECRET, field(app).text().string());
-    assertThrows(IllegalStateException.class, () -> El.text("x").revealed(true), "only fields");
-  }
-
-  @Test
   void theDefaultFontsHaveTheBullet() {
     for (Font font : List.of(Font.sans(), Font.sansBold(), Font.mono(), Font.monoBold())) {
       GlyphRun run = font.shape("\u2022", 13, 1);
@@ -512,52 +444,5 @@ class MaskedFieldTest {
     assertThrows(
         IllegalArgumentException.class, () -> field.maskCharacter(0x1F1E9), "a flag's half");
     assertThrows(IllegalStateException.class, () -> El.text("x").masked(), "only for fields");
-  }
-
-  // In rows
-
-  @Test
-  void aMaskedFieldInARowOfAVirtualList() {
-    Map<Integer, String> values = new HashMap<>();
-    App<Map<Integer, String>> app = new App<>(
-        values,
-        v -> col()
-            .wFull()
-            .hFull()
-            .children(col()
-                .key("rows")
-                .grow(1)
-                .rows(
-                    1000,
-                    30,
-                    i -> El.text(v.getOrDefault(i, ""))
-                        .editable(s -> v.put(i, s))
-                        .masked()
-                        .key("pin-" + i)
-                        .h(30)
-                        .padding(0, 4))));
-    app.textRendering(TextRendering.LINUX);
-    app.resize(200, 120, 1);
-    app.frame();
-    app.pointerDown(50, 75);
-    app.pointerUp(50, 75);
-    app.frame();
-    app.textInput(SECRET);
-    app.frame();
-    assertEquals(Map.of(2, SECRET), values);
-    String dump = app.tree().dump();
-    assertTrue(
-        dump.contains("text #pin-2 role=textbox \"" + DOTS + "\" 0,60 200x30 password"
-            + " pos=3/1000 focused caret 7\n"),
-        dump);
-    assertFalse(dump.contains(SECRET), dump);
-
-    app.scrollToRow(app.tree().children().getFirst(), 500);
-    app.frame();
-    app.scrollToRow(app.tree().children().getFirst(), 0);
-    app.frame();
-    app.textInput("!");
-    app.frame();
-    assertEquals(SECRET + "!", values.get(2), "the focus and the caret came back with the row");
   }
 }

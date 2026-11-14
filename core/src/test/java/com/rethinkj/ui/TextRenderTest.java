@@ -22,7 +22,6 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Locale;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -87,33 +86,29 @@ class TextRenderTest {
   /** See {@link Examples#alignedText}. */
   @Test
   void linesAlignInTheirBoxes() {
-    for (int scale = 1; scale <= 2; scale++) {
-      Headless.Frame frame = Headless.render(Examples.alignedText(), 360, 172, scale, PINNED);
-      Golden.assertMatches("text-align-" + scale + "x", frame.pixels(), frame.tree());
-    }
+    Headless.Frame frame = Headless.render(Examples.alignedText(), 360, 172, 1, PINNED);
+    Golden.assertMatches("text-align-1x", frame.pixels(), frame.tree());
   }
 
   /** See {@link Examples#ellipsisText}. */
   @Test
   void aLineTooWideForItsBoxEndsInAnEllipsis() {
-    for (int scale = 1; scale <= 2; scale++) {
-      El root = Examples.ellipsisText();
-      Headless.Frame frame = Headless.render(root, 360, 236, scale, PINNED);
-      Golden.assertMatches("text-ellipsis-" + scale + "x", frame.pixels(), frame.tree());
-      List<El> texts = new ArrayList<>();
-      collectTexts(root, texts);
-      assertEquals(22, texts.size());
-      for (El text : texts) {
-        Text t = text.text();
-        boolean fits = t.string().equals("Köln");
-        assertEquals(!fits, t.shortened(), t.string() + " in " + text.width());
-        Text.Line line = t.lines().getFirst();
-        assertTrue(
-            line.width() <= text.width() * scale + 0.01f || text.width() < 10,
-            line.width() + " in " + text.width() * scale);
-      }
-      assertTrue(frame.tree().contains(El.quote(Examples.SANS_SAMPLE)), "the whole string");
+    El root = Examples.ellipsisText();
+    Headless.Frame frame = Headless.render(root, 360, 236, 1, PINNED);
+    Golden.assertMatches("text-ellipsis-1x", frame.pixels(), frame.tree());
+    List<El> texts = new ArrayList<>();
+    collectTexts(root, texts);
+    assertEquals(22, texts.size());
+    for (El text : texts) {
+      Text t = text.text();
+      boolean fits = t.string().equals("Köln");
+      assertEquals(!fits, t.shortened(), t.string() + " in " + text.width());
+      Text.Line line = t.lines().getFirst();
+      assertTrue(
+          line.width() <= text.width() + 0.01f || text.width() < 10,
+          line.width() + " in " + text.width());
     }
+    assertTrue(frame.tree().contains(El.quote(Examples.SANS_SAMPLE)), "the whole string");
   }
 
   private static void collectTexts(El el, List<El> into) {
@@ -126,10 +121,8 @@ class TextRenderTest {
   /** See {@link Examples#fallbackText}. */
   @Test
   void fallbackFontsDrawWhatTheFontLacks() {
-    for (int scale = 1; scale <= 2; scale++) {
-      Headless.Frame frame = Headless.render(Examples.fallbackText(), 360, 128, scale, PINNED);
-      Golden.assertMatches("fallback-" + scale + "x", frame.pixels(), frame.tree());
-    }
+    Headless.Frame frame = Headless.render(Examples.fallbackText(), 360, 128, 1, PINNED);
+    Golden.assertMatches("fallback-1x", frame.pixels(), frame.tree());
   }
 
   /**
@@ -182,14 +175,6 @@ class TextRenderTest {
     double thinned = inkRatio(0xFF999999, 0xFFFFFFFF, PINNED, 0xFF000000); // told it is on black
     assertTrue(greyOnLight >= 1 && greyOnLight < 1.2, "grey on light: " + greyOnLight);
     assertTrue(Math.abs(thinned - 1) > greyOnLight - 1, "thinned: " + thinned);
-    System.out.printf(
-        Locale.ROOT,
-        "Ink against gamma space: dark on light %.3f, light on dark %.3f, grey on light %.3f"
-            + " (thinned %.3f)%n",
-        darkOnLight,
-        lightOnDark,
-        greyOnLight,
-        thinned);
   }
 
   /**

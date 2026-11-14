@@ -164,32 +164,4 @@ class ImageTest {
       }
     }
   }
-
-  /**
-   * Prints what the CPU renderer takes for a frame of 1920 by 1080 without an image, with a full
-   * HD image one to one and with it at a quarter of its width, encoding included.
-   */
-  @Test
-  void printsTheTimeOfAFullHdImage() {
-    long made = System.nanoTime();
-    Image photo = Image.of(Examples.photo(1920, 1080));
-    System.out.printf(
-        "Image.of: the levels of 1920x1080 in %.1f ms%n", (System.nanoTime() - made) / 1e6);
-    for (float size : new float[] {0, 1920, 480}) {
-      El root = el().size(1920, 1080)
-          .fill(0xFF000000)
-          .children(El.image(photo).absolute(0, 0).size(size, size * 9 / 16));
-      Flex.layout(root, 1920, 1080);
-      Scene scene = Scene.of(root, 1);
-      long best = Long.MAX_VALUE;
-      for (int run = 0; run < 5; run++) {
-        long start = System.nanoTime();
-        CpuRenderer.render(scene, 1920, 1080, 1);
-        best = Math.min(best, System.nanoTime() - start);
-      }
-      System.out.printf(
-          "CPU: a 1920x1080 image at %.0f wide in a frame of 1920x1080, best of 5:" + " %.1f ms%n",
-          size, best / 1e6);
-    }
-  }
 }

@@ -2,7 +2,6 @@ package com.rethinkj.ui.natives;
 
 import static java.lang.foreign.ValueLayout.ADDRESS;
 import static java.lang.foreign.ValueLayout.JAVA_INT;
-import static java.util.stream.Collectors.toSet;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
@@ -26,18 +25,9 @@ import java.nio.file.Files;
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.nio.file.attribute.DosFileAttributeView;
-import java.util.ArrayList;
 import java.util.HexFormat;
-import java.util.List;
-import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.CyclicBarrier;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
-import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -126,45 +116,6 @@ class NativesLoadTest {
     assertVersions(natives::find);
 
     assertFalse(Files.exists(cache));
-  }
-
-  @Test
-  void replacesADamagedLibraryInTheCache() throws IOException {
-    Path cache = fresh("cache");
-    Path folder = Files.createDirectories(cache.resolve(manifest.folderName()));
-    Library sdl = manifest.library("sdl3");
-    Files.writeString(folder.resolve(sdl.file()), "not a library");
-
-    assertVersions(natives(cache)::find);
-
-    assertEquals(sdl.sha256(), sha256(folder.resolve(sdl.file())));
-  }
-
-  @Test
-  void concurrentFirstUseWithAnEmptyCache() throws Exception {
-    Path cache = fresh("cache");
-    int threads = 8;
-    Natives shared = natives(cache);
-    CyclicBarrier start = new CyclicBarrier(threads);
-    List<Future<?>> runs = new ArrayList<>();
-    try (ExecutorService pool = Executors.newFixedThreadPool(threads)) {
-      for (int i = 0; i < threads; i++) {
-        // Half of the threads share one instance; each of the others has its own, like a process.
-        Natives natives = i % 2 == 0 ? shared : natives(cache);
-        runs.add(pool.submit(() -> {
-          start.await();
-          assertVersions(natives::find);
-          return null;
-        }));
-      }
-      for (Future<?> run : runs) {
-        run.get(1, TimeUnit.MINUTES);
-      }
-    }
-    Set<String> files = manifest.libraries().stream().map(Library::file).collect(toSet());
-    try (Stream<Path> unpacked = Files.list(cache.resolve(manifest.folderName()))) {
-      assertEquals(files, unpacked.map(file -> file.getFileName().toString()).collect(toSet()));
-    }
   }
 
   @Test

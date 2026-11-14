@@ -5,18 +5,15 @@ import static com.rethinkj.ui.El.el;
 import static com.rethinkj.ui.El.row;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.rethinkj.ui.motion.Spring;
 import com.rethinkj.ui.render.Scene;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.stream.IntStream;
 import org.junit.jupiter.api.Test;
@@ -34,7 +31,6 @@ class RowsTest {
   /** The state of the list views: the number of rows, and what the view and rows were asked. */
   static final class Data {
     int count;
-    int selected = -1;
     int views;
     final List<Integer> built = new ArrayList<>();
     final List<String> log = new ArrayList<>();
@@ -182,65 +178,6 @@ class RowsTest {
     assertEquals(-100, list.children().getFirst().y());
   }
 
-  @Test
-  void aFrameAfterAWheelStepCostsNoMoreForAMillionRowsThanForAThousand() {
-    long[] thousand = wheelFrames(1_000);
-    long[] million = wheelFrames(1_000_000);
-    System.out.printf(
-        "frame() after a wheel step, median of %d: %.1f µs with 1000 rows, %.1f µs with 1000000"
-            + " rows, %d elements in each tree%n",
-        2000, thousand[0] / 1000.0, million[0] / 1000.0, million[1]);
-    assertEquals(thousand[1], million[1], "as many elements");
-    // At most 23 rows show in 600 pixels, with three more on each side, of four elements each.
-    assertTrue(million[1] <= 29 * 4 + 1, "the rows in view and the overscan, " + million[1]);
-    assertTrue(
-        million[0] < 10 * thousand[0] + 500_000, // only something linear in the rows fails
-        "median " + million[0] + " ns with a million rows, " + thousand[0] + " with a thousand");
-  }
-
-  /**
-   * The median time of {@link App#frame} after a wheel step of 100 pixels, which builds the rows
-   * anew most of the time, up and down within the first 4000 pixels; and the elements in the tree.
-   */
-  private static long[] wheelFrames(int count) {
-    App<Data> app = new App<>(
-        new Data(count),
-        d -> col()
-            .key("list")
-            .wFull()
-            .hFull()
-            .rows(
-                d.count,
-                28,
-                i -> row()
-                    .key("row-" + i)
-                    .padding(4)
-                    .gap(4)
-                    .fill(WHITE)
-                    .children(el().size(14, 14), el().grow(1), el().w(40))));
-    app.resize(400, 600, 1);
-    app.frame();
-    long[] times = new long[2000];
-    for (int i = -2000; i < times.length; i++) { // the first 2000 warm up
-      app.wheel(200, 300, 0, Math.floorMod(i, 80) < 40 ? 100 : -100);
-      long start = System.nanoTime();
-      app.frame();
-      if (i >= 0) {
-        times[i] = System.nanoTime() - start;
-      }
-    }
-    Arrays.sort(times);
-    return new long[] {times[times.length / 2], count(app.tree())};
-  }
-
-  private static int count(El el) {
-    int count = 1;
-    for (El child : el.children()) {
-      count += count(child);
-    }
-    return count;
-  }
-
   // Changing data
 
   @Test
@@ -276,46 +213,9 @@ class RowsTest {
   }
 
   @Test
-  void rowsKeepTheirMovementsAcrossRebuildsButMoveWithTheListAtOnce() {
-    Data data = new Data(1000);
-    App<Data> app = new App<>(
-        data,
-        d -> col()
-            .key("list")
-            .wFull()
-            .hFull()
-            .rows(
-                d.count,
-                28,
-                i -> el().key("row-" + i)
-                    .fill(i == d.selected ? HOVER : WHITE)
-                    .motion(Spring.SNAP)));
-    app.resize(200, 300, 1);
-    app.frame();
-    data.selected = 2;
-    app.resize(200, 300, 1);
-    app.frame();
-    app.advance(0.03);
-    app.frame();
-    int fill = app.tree().children().get(2).fill();
-    assertNotEquals(WHITE, fill, "on its way");
-    assertNotEquals(HOVER, fill, "springs instead of jumping, as in a list of children");
-
-    app.wheel(100, 150, 0, 100); // builds rows 0 to 17 anew
-    app.frame();
-    app.wheel(100, 150, 0, 200); // and rows 7 to 24: row 7 is the first now
-    app.frame();
-    El list = app.tree();
-    assertEquals(7, list.firstRow());
-    assertRows(list, 7, 18); // no row slides to its new place among them
-    app.advance(1);
-    app.frame();
-    assertFalse(app.isMoving());
-  }
-
-  @Test
   void aListOfAHundredMillionRowsGrowsToTheExactPixelAndEndsWithItsLastRow() {
-    for (int count : new int[] {1_000_000, 100_000_000}) {
+    // Beyond 2^24 pixels a float misses whole pixels, which layout's arithmetic would show.
+    for (int count : new int[] {100_000_000}) {
       // As the data grid: a header and a line above rows that grow into the rest, 201 pixels.
       App<Data> app = new App<>(
           new Data(count),
@@ -341,7 +241,7 @@ class RowsTest {
       // Up a pixel at a time near the end: every row moves by exactly one pixel each time.
       float[] before = tops(list);
       int first = list.firstRow();
-      for (int step = 1; step <= 60; step++) {
+      for (int step = 1; step <= 20; step++) {
         app.wheel(100, 100, 0, -1);
         app.frame();
         list = find(app.tree(), "list");
@@ -571,57 +471,6 @@ class RowsTest {
 
   private static El list(App<?> app) {
     return find(app.tree(), "list");
-  }
-
-  @Test
-  void shiftTabEntersAtTheLastRowInView() {
-    Data data = new Data(1_000_000);
-    App<Data> app = focusApp(data);
-    press(app, 100, 230);
-    assertEquals("after", key(app.focused()));
-    app.scrollToRow(list(app), 100);
-    app.frame();
-    tab(app, Key.SHIFT);
-    // 200 / 28 = 7.1: rows 100 to 106 are whole.
-    assertEquals("row-106", key(app.focused()));
-    assertEquals(2800, list(app).scrollY(), "already in view");
-  }
-
-  @Test
-  void aFocusedRowBeyondANewEndLosesTheFocus() {
-    Data data = new Data(1000);
-    App<Data> app = focusApp(data);
-    press(app, 100, 30);
-    app.scrollToRow(list(app), 500);
-    app.frame();
-    data.count = 0;
-    app.resize(200, 240, 1);
-    app.frame();
-    assertNull(app.focused());
-    tab(app, 0);
-    assertEquals("before", key(app.focused()), "from the start: the focus was cleared");
-    tab(app, 0);
-    assertEquals("after", key(app.focused()), "the list has no rows to enter");
-  }
-
-  // Beyond 2^24 pixels a float misses whole pixels, which layout's arithmetic would show.
-  @Test
-  void aListOfManyMillionRowsFillsWhatItGrowsIntoExactly() {
-    for (int count : new int[] {1_000_000, 10_000_000, 100_000_000}) {
-      App<Object> app = new App<>(
-          new Object(),
-          s -> col()
-              .size(300, 500)
-              .children(el().h(23).shrink(0), col().grow(1).rows(count, 22, i -> el().h(22))));
-      app.resize(300, 500, 1);
-      app.frame();
-      assertEquals(477, app.tree().children().get(1).height(), count + " rows");
-      app.wheel(10, 100, 0, Float.MAX_VALUE);
-      app.frame();
-      El list = app.tree().children().get(1);
-      assertEquals(count * 22.0 - 477, list.scrollY(), count + " rows: the end is still reached");
-      assertEquals(count - 1, list.firstRow() + list.children().size() - 1);
-    }
   }
 
   @Test

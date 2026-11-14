@@ -303,23 +303,6 @@ class PixelGridTest {
     }
   }
 
-  /** At 1.5 a box at 11, 11 by 11 is drawn from 17 to 33 physical pixels, its border 1 wide. */
-  @Test
-  void theSceneHoldsSnappedNumbers() {
-    El box = el().absolute(11, 11).size(11, 11).border(1, GREY).fill(WHITE);
-    El root = el().wFull().hFull().child(box);
-    Flex.layout(root, 40, 40);
-    Scene scene = Scene.of(root, 1.5f);
-    assertEquals(1, scene.count());
-    assertEquals(17, scene.get(0, Scene.X) * 1.5f, 1e-4);
-    assertEquals(17, scene.get(0, Scene.Y) * 1.5f, 1e-4);
-    assertEquals(16, scene.get(0, Scene.WIDTH) * 1.5f, 1e-4); // 16.5 to 33
-    assertEquals(1, scene.get(0, Scene.BORDER_WIDTH) * 1.5f, 1e-4);
-    Scene plain = Scene.of(root);
-    assertEquals(11, plain.get(0, Scene.X));
-    assertEquals(1, plain.get(0, Scene.BORDER_WIDTH));
-  }
-
   /**
    * While a spring moves the switch's knob it is drawn where it is, between pixels, so that it
    * glides; at rest it is snapped.

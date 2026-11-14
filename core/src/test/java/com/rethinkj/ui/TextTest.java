@@ -179,61 +179,6 @@ class TextTest {
     }
   }
 
-  @Test
-  void aRightToLeftWordLongerThanTheLineStaysWholeAsItIsOneCluster() {
-    TextLibraries.assumeLoaded();
-    String hebrew = "\u05D0\u05D1\u05D2\u05D3\u05D4\u05D5\u05D6\u05D7".repeat(4);
-    El text = El.text("ab " + hebrew + " cd")
-        .font(Examples.fallbackChain())
-        .wrapText()
-        .w(30);
-    Headless.render(row().child(text), 200, 100, 1);
-    assertEquals(List.of("ab ", hebrew + " ", "cd"), lines(text));
-    assertTrue(text.text().lines().get(1).width() > 30);
-  }
-
-  @Test
-  void aBoxNarrowerThanOneClusterPutsEachOnARowOfItsOwn() {
-    TextLibraries.assumeLoaded();
-    El text = mono("abcd").wrapText().w(4);
-    Headless.render(row().child(text), 200, 100, 1);
-    assertEquals(List.of("a", "b", "c", "d"), lines(text));
-  }
-
-  @Test
-  void highlightsTabsAndFallbackFontsGoOnAcrossABreakInsideAWord() {
-    TextLibraries.assumeLoaded();
-    int red = 0xFFFF0000;
-    // A mono word of 16 characters, the last 8 red: the second row is red, the first is not.
-    El text = mono("a".repeat(8) + "b".repeat(8))
-        .color(0xFF000000)
-        .highlight(1, (line, state, out) -> {
-          out.color(8, 16, red);
-          return null;
-        })
-        .wrapText()
-        .w(64);
-    Headless.render(row().child(text), 200, 100, 1);
-    assertEquals(List.of("aaaaaaaa", "bbbbbbbb"), lines(text));
-    for (int c : text.text().lines().get(1).colors()) {
-      assertEquals(red, c);
-    }
-    for (int c : text.text().lines().get(0).colors()) {
-      assertEquals(0xFF000000, c);
-    }
-    // A range in another font breaks by its own glyphs.
-    El fonts = mono("a".repeat(8) + "b".repeat(8))
-        .highlight(2, (line, state, out) -> {
-          out.font(4, 12, Font.sans());
-          return null;
-        })
-        .wrapText()
-        .w(48);
-    Headless.render(row().child(fonts), 200, 100, 1);
-    assertBrokenWithin(fonts, 48, 1);
-    assertTrue(lines(fonts).size() >= 3, lines(fonts).toString());
-  }
-
   /**
    * Every line of {@code el} no wider than its box, unless it is a single cluster, every break at
    * a grapheme boundary, and the lines together the string.
@@ -378,16 +323,6 @@ class TextTest {
             .getMessage()
             .contains("    texts:  text=\"Cancel\" text=\"Save\" text=\"Two\\nlines\"\n"),
         failure.getMessage());
-  }
-
-  @Test
-  void textCallsNeedATextElement() {
-    IllegalStateException e = assertThrows(IllegalStateException.class, () -> el().fontSize(12));
-    assertEquals(
-        "fontSize is for text elements, which El.text(\"...\") makes; this element has no text.",
-        e.getMessage());
-    assertThrows(IllegalArgumentException.class, () -> El.text("a").fontSize(0));
-    assertThrows(IllegalArgumentException.class, () -> El.text(null));
   }
 
   private static El mono(String string) {

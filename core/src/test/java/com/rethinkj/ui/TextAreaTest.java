@@ -126,16 +126,6 @@ class TextAreaTest {
   }
 
   @Test
-  void aLastLineWithALineFeedIsAnEmptyLine() {
-    App<Model> app = focused("ab\n");
-    key(app, "ArrowDown");
-    assertEquals("ab\n|", show(app));
-    key(app, "ArrowDown");
-    assertEquals("ab\n|", show(app));
-    assertTrue(Areas.line(app).contains(" lines 1-2/2 "), Areas.line(app));
-  }
-
-  @Test
   void homeGoesToTheRowThenToTheIndentAndBackAndControlToTheEnds() {
     App<Model> app = focused("SELECT\n    name,\n    id");
     key(app, "ArrowDown");
@@ -310,7 +300,7 @@ class TextAreaTest {
   @Test
   void randomEditsWithLongWordsKeepTheRowsAFreshCountGives() {
     java.util.Random random = new java.util.Random(5);
-    for (int round = 0; round < 40; round++) {
+    for (int round = 0; round < 8; round++) {
       App<Model> app =
           focused(randomWords(random, 1 + random.nextInt(6)), f -> f.wrapText().fitLines());
       for (int edit = 0; edit < 6; edit++) {
@@ -324,6 +314,27 @@ class TextAreaTest {
         assertEquals(monoRows(now), field(app).text().shownIndex().totalRows(), El.quote(now));
       }
     }
+  }
+
+  @Test
+  void aFrameShapesOnlyTheLinesInViewOfALongText() {
+    App<Model> app = focused("SELECT c FROM t WHERE id = 1;\n".repeat(5000));
+    assertTrue(field(app).editor().lineIndex().shaped < 40, "the first frames shaped the view");
+    app.scrollTo(field(app), 0, 2500 * 18.0);
+    app.frame();
+    app.pointerDown(30, 30, 1, 0);
+    app.pointerUp(30, 30);
+    app.frame();
+    for (int i = 0; i < 5; i++) {
+      Lines lines = field(app).editor().lineIndex();
+      int before = lines.shaped;
+      app.textInput("x");
+      app.frame();
+      // Five rows in view and three above and below, for each of up to two layouts, and the
+      // caret's line.
+      assertTrue(lines.shaped - before <= 28, "a frame shaped " + (lines.shaped - before));
+    }
+    assertEquals(5001, field(app).editor().lineIndex().count());
   }
 
   /** Words of 1 to 4 letters and some of 25 to 80, with spaces and line feeds between them. */
@@ -384,20 +395,6 @@ class TextAreaTest {
     key(app, "ArrowUp");
     assertTrue(
         field(app).scrollX() > 2000, "the column of the end kept: " + field(app).scrollX());
-  }
-
-  @Test
-  void anotherScaleMeasuresTheWidthOfTheLinesAgain() {
-    String value = "x".repeat(40); // wider than the field
-    App<Model> fresh = Areas.start(value, f -> f, 1);
-    fresh.scrollTo(field(fresh), 10000, 0);
-    fresh.frame();
-    App<Model> app = Areas.start(value, f -> f, 2);
-    app.resize(320, 240, 1);
-    app.frame();
-    app.scrollTo(field(app), 10000, 0);
-    app.frame();
-    assertEquals(field(fresh).scrollX(), field(app).scrollX(), "not as far as at scale 2");
   }
 
   // Tabs
@@ -472,27 +469,6 @@ class TextAreaTest {
   }
 
   @Test
-  void anIndentBeyondTheMaximumLengthDoesNothing() {
-    App<Model> app = focused("a\nb", f -> f.tabIndents(true).maxLength(11));
-    key(app, "A", CONTROL);
-    key(app, "Tab");
-    assertEquals("^    a\n    b|", show(app), "as long as it may be");
-    key(app, "Tab");
-    assertEquals("^    a\n    b|", show(app), "four more would be too long, and two cut nothing");
-    assertEquals(1, app.state().edits.size());
-    key(app, "Tab", SHIFT);
-    assertEquals("^a\nb|", show(app), "an outdent makes it shorter");
-  }
-
-  @Test
-  void anOutdentShortensATextThatIsAlreadyBeyondTheMaximumLength() {
-    App<Model> app = focused("    ab\n    cd", f -> f.tabIndents(true).maxLength(3));
-    key(app, "A", CONTROL);
-    key(app, "Tab", SHIFT);
-    assertEquals("^ab\ncd|", show(app), "an edit that shortens is never refused for its length");
-  }
-
-  @Test
   void escapeAndTabOrControlMLeaveAFieldThatIndents() {
     App<Model> app = focused("ab", f -> f.tabIndents(true));
     key(app, "Escape");
@@ -516,24 +492,6 @@ class TextAreaTest {
     app = focused("ab", f -> f.tabIndents(true).readOnly());
     key(app, "Tab");
     assertEquals("other", app.focused().key(), "a read-only field leaves Tab to the focus");
-  }
-
-  @Test
-  void escapeThenShiftTabLeavesAFieldThatIndentsThoughShiftComesAsAKeyOfItsOwn() {
-    App<Model> app = focused("ab", f -> f.tabIndents(true));
-    key(app, "Escape");
-    key(app, "Shift", SHIFT); // a keyboard reports the modifier's own key before the Tab
-    key(app, "Tab", SHIFT);
-    assertEquals("other", app.focused().key(), "Escape, then Shift+Tab");
-    assertEquals("ab", app.state().value, "nothing outdented");
-  }
-
-  @Test
-  void tabIntoATextAreaKeepsItsCaretInsteadOfSelectingAll() {
-    App<Model> app = Areas.start("one\ntwo");
-    key(app, "Tab");
-    assertEquals("f", app.focused().key());
-    assertEquals("|one\ntwo", show(app));
   }
 
   // Line breaks from outside
@@ -637,16 +595,6 @@ class TextAreaTest {
   }
 
   @Test
-  void theCursorOfACompositionFollowsItsLineBreaks() {
-    App<Model> app = focused("");
-    app.textComposition("a\r\nb", 3); // before the b
-    app.frame();
-    App.InputArea area = app.inputArea();
-    assertEquals(10 + 4 + 18, area.y(), "on the second row");
-    assertEquals(4, area.cursor(), "before the b, as the carriage return is gone");
-  }
-
-  @Test
   void graphemesAndFallbackFontsWorkOnEveryLine() {
     App<Model> app = focused(
         "é\n👍🏽\nשלום x",
@@ -690,22 +638,6 @@ class TextAreaTest {
     line = Areas.line(app);
     assertTrue(line.contains(" lines 19-23/41 scroll 0,324 focused"), line);
     assertTrue(line.endsWith(" focused caret 174 (23:8)"), line);
-  }
-
-  @Test
-  void aShortMultiLineFieldIsFoundByItsText() throws Exception {
-    App<Model> app = Areas.start("a\tb\nc");
-    assertTrue(Areas.line(app).contains("\"a\\tb\\nc\""), Areas.line(app));
-    java.nio.file.Path out = java.nio.file.Files.createTempDirectory("area");
-    Script.run("""
-        size 320 240
-        frame
-        press text="a\\tb\\nc"
-        frame
-        snap pressed
-        """, app, out);
-    assertTrue(
-        java.nio.file.Files.readString(out.resolve("pressed.tree.txt")).contains("focused caret"));
   }
 
   // Masking

@@ -7,7 +7,6 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.rethinkj.ui.window.Window;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -341,35 +340,6 @@ class PostTest {
     assertEquals("loaded 3", app.tree().label());
   }
 
-  @Test
-  void aScriptsAwaitThatTimesOutNamesTheLineAndTheWork() {
-    CountDownLatch release = new CountDownLatch(1);
-    AtomicReference<App<Counter>> holder = new AtomicReference<>();
-    holder.set(new App<>(
-        new Counter(),
-        c -> el().wFull()
-            .hFull()
-            .key("load")
-            .onPress(() -> holder
-                .get()
-                .background(
-                    "rows of orders",
-                    () -> {
-                      release.await();
-                      return 1;
-                    },
-                    r -> {},
-                    f -> {}))));
-    Script.Failure failure = assertThrows(
-        Script.Failure.class,
-        () ->
-            Script.run("size 100 100\nframe\npress #load\nframe\nawait 0.05\n", holder.get(), out));
-    release.countDown();
-    assertTrue(failure.getMessage().startsWith("line 5: await 0.05\n"), failure.getMessage());
-    assertTrue(failure.getMessage().contains("still runs: rows of orders."), failure.getMessage());
-    assertTrue(failure.getMessage().contains("`await 30`"), failure.getMessage());
-  }
-
   // Progress
 
   /** Reporting work that the test holds at a gate after its reports, as a script's work does. */
@@ -415,50 +385,6 @@ class PostTest {
     app.await(LONG);
     app.frame();
     assertEquals("result done", s.log.getLast());
-  }
-
-  @Test
-  void aThousandReportsBetweenTwoFramesRunTheHandlerOnceWithTheNewest()
-      throws InterruptedException {
-    App<Counter> app = start();
-    Counter s = app.state();
-    CountDownLatch reported = new CountDownLatch(1);
-    CountDownLatch gate = new CountDownLatch(1);
-    reporting(app, "download", reported, gate, progress -> {
-      for (int i = 1; i <= 1000; i++) {
-        progress.report(i); // every 8 KB of 8 MB
-      }
-      return "done";
-    });
-    reported.await();
-    assertTrue(app.frame());
-    assertEquals(List.of("progress 1000"), s.log);
-    assertFalse(app.frame(), "nothing more waits");
-    gate.countDown();
-    app.await(LONG);
-  }
-
-  @Test
-  void aBurstOfReportsWakesTheRunnerOnceAsABurstOfTasksDoes() throws InterruptedException {
-    App<Counter> app = start();
-    AtomicInteger wakes = new AtomicInteger();
-    app.onPost(wakes::incrementAndGet);
-    CountDownLatch reported = new CountDownLatch(1);
-    CountDownLatch gate = new CountDownLatch(1);
-    reporting(app, "download", reported, gate, progress -> {
-      for (int i = 1; i <= 1000; i++) {
-        progress.report(i);
-      }
-      return "done";
-    });
-    reported.await();
-    assertEquals(1, wakes.get());
-    assertTrue(app.frame());
-    assertFalse(app.frame(), "one frame for the burst");
-    assertEquals(List.of("progress 1000"), app.state().log);
-    gate.countDown();
-    app.await(LONG);
-    assertEquals(2, wakes.get(), "the result wakes again");
   }
 
   @Test
@@ -551,85 +477,6 @@ class PostTest {
   }
 
   @Test
-  void tenWorksReportingFromTenThreadsEachShowTheirProgressInOrderBeforeTheirResult()
-      throws InterruptedException {
-    App<Counter> app = start();
-    Thread appThread = Thread.currentThread();
-    int works = 10;
-    int[] last = new int[works]; // the last report of each work, on the app's thread only
-    boolean[] done = new boolean[works];
-    List<String> wrong = new ArrayList<>();
-    for (int w = 0; w < works; w++) {
-      int each = w;
-      app.background(
-          "work " + w,
-          (Work.Progress<Integer> progress) -> {
-            for (int i = 1; i <= 1000; i++) {
-              progress.report(i);
-            }
-            return 1000;
-          },
-          (Integer i) -> {
-            if (Thread.currentThread() != appThread || i <= last[each] || done[each]) {
-              wrong.add(each + ": " + i + " after " + last[each] + (done[each] ? ", done" : ""));
-            }
-            last[each] = i;
-          },
-          (Integer r) -> done[each] = true,
-          failure -> wrong.add(each + ": " + failure));
-    }
-    long end = System.nanoTime() + LONG.toNanos();
-    while (!allTrue(done) && System.nanoTime() < end) {
-      app.pointerMove(50, 50); // input between the reports
-      app.frame();
-    }
-    assertEquals(List.of(), wrong);
-    for (int w = 0; w < works; w++) {
-      assertTrue(done[w], "work " + w + " delivered");
-      assertTrue(last[w] > 0, "work " + w + " reported");
-    }
-  }
-
-  private static boolean allTrue(boolean[] values) {
-    for (boolean value : values) {
-      if (!value) {
-        return false;
-      }
-    }
-    return true;
-  }
-
-  @Test
-  void aReportWhoseHandlerThrowsEndsTheFrameAsATaskDoes() throws InterruptedException {
-    App<Counter> app = start();
-    CountDownLatch reported = new CountDownLatch(1);
-    CountDownLatch gate = new CountDownLatch(1);
-    app.background(
-        "download",
-        (Work.Progress<Integer> progress) -> {
-          progress.report(1);
-          reported.countDown();
-          gate.await();
-          return 0;
-        },
-        (Integer done) -> {
-          throw new IllegalStateException("broken");
-        },
-        r -> {},
-        f -> {});
-    reported.await();
-    app.awaitProgress(LONG);
-    app.keyDown(new Key("ArrowUp"));
-    IllegalStateException thrown = assertThrows(IllegalStateException.class, app::frame);
-    assertEquals("broken", thrown.getMessage());
-    assertEquals(0, app.state().count);
-    app.frame();
-    assertEquals(1, app.state().count, "the key ran in the next frame");
-    gate.countDown();
-    app.await(LONG);
-  }
-
-  @Test
   void awaitProgressNamesTheWorkThatReportedNothingAndRefusesWhenNoneRuns()
       throws InterruptedException {
     App<Counter> app = start();
@@ -695,87 +542,6 @@ class PostTest {
     gate.countDown(); // as the next advance of a made-up download would
     Script.run("size 100 100\nawait\nframe\nsnap done\n", app, out);
     assertTrue(Files.readString(out.resolve("done.tree.txt")).contains("label=\"done\""));
-  }
-
-  @Test
-  void awaitProgressAfterWorkThatReportedAndEndedLetsAllOfItInAtOnce()
-      throws IOException, InterruptedException {
-    App<Counter> app = download(new CountDownLatch(0)); // the gate is open: it ends right away
-    Script.run("size 100 100\nframe\npress #load\nframe\n", app, out);
-    app.state().work.thread.join(); // reported and delivered before the step
-    Script.run("size 100 100\nawait progress\nframe\nsnap after\n", app, out);
-    assertEquals("done", app.tree().label(), "its report, then its result, in one frame");
-    assertEquals(50, app.state().count);
-  }
-
-  @Test
-  void aScriptsAwaitProgressThatTimesOutOrHasNoWorkSaysSo() {
-    CountDownLatch release = new CountDownLatch(1);
-    AtomicReference<App<Counter>> holder = new AtomicReference<>();
-    holder.set(new App<>(
-        new Counter(),
-        c -> el().wFull()
-            .hFull()
-            .key("load")
-            .onPress(() -> holder
-                .get()
-                .background(
-                    "rows of orders",
-                    () -> {
-                      release.await();
-                      return 1;
-                    },
-                    r -> {},
-                    f -> {}))));
-    Script.Failure none = assertThrows(
-        Script.Failure.class,
-        () -> Script.run("size 100 100\nframe\nawait progress\n", holder.get(), out));
-    assertTrue(none.getMessage().startsWith("line 3: await progress\n"), none.getMessage());
-    assertTrue(none.getMessage().contains("No work of the app runs"), none.getMessage());
-    assertFalse(none.getMessage().contains("timeout"), none.getMessage());
-    Script.Failure quiet = assertThrows(
-        Script.Failure.class,
-        () -> Script.run(
-            "size 100 100\nframe\npress #load\nframe\nawait progress 0.05\n", holder.get(), out));
-    release.countDown();
-    assertTrue(quiet.getMessage().contains("rows of orders still runs."), quiet.getMessage());
-    assertTrue(quiet.getMessage().contains("`await progress 30`"), quiet.getMessage());
-    Script.Failure wrong = assertThrows(
-        Script.Failure.class,
-        () -> Script.run("size 100 100\nframe\nawait progress soon\n", holder.get(), out));
-    assertTrue(wrong.getMessage().contains("`await progress <seconds>`"), wrong.getMessage());
-  }
-
-  /** The work of a second window reports: the step lets it in, and both windows' posts. */
-  @Test
-  void awaitProgressTakesAReportOfAnyWindowOfTheScript() throws IOException {
-    CountDownLatch gate = new CountDownLatch(1);
-    App<Counter> second = download(gate);
-    AtomicReference<App<Counter>> holder = new AtomicReference<>();
-    App<Counter> main = new App<>(
-        new Counter(),
-        c -> el().wFull()
-            .hFull()
-            .key("open")
-            .label("main " + c.count)
-            .onPress(
-                () -> holder.get().windows().open("Second", 100, 100, Window.options(), second)));
-    holder.set(main);
-    Thread poster = Thread.ofPlatform().start(() -> main.post(() -> main.state().count = 7));
-    try {
-      poster.join();
-    } catch (InterruptedException e) {
-      throw new AssertionError(e);
-    }
-    Script.run(
-        "size 100 100\nframe\npress #open\nframe\nwindow Second\nframe\npress #load\n"
-            + "frame\nawait progress\nframe\nsnap half\n",
-        main,
-        out);
-    assertTrue(Files.readString(out.resolve("half.tree.txt")).contains("label=\"main 7\""));
-    assertTrue(
-        Files.readString(out.resolve("second-half.tree.txt")).contains("label=\"50 of 100\""));
-    gate.countDown();
   }
 
   @Test

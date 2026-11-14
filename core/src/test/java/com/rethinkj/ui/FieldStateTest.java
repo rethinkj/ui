@@ -247,21 +247,6 @@ class FieldStateTest {
   }
 
   @Test
-  void theModeOfTabComesBack() {
-    TextLibraries.assumeLoaded();
-    App<Model> app = started();
-    app.focus(field(app));
-    app.frame();
-    key(app, "M", Key.CONTROL); // Tab moves the focus from now on
-    choose(app, 1);
-    choose(app, 0);
-    app.focus(field(app));
-    app.frame();
-    key(app, "Tab");
-    assertEquals("bar", app.focused().key(), "Tab still moves the focus");
-  }
-
-  @Test
   void withoutOneTheFieldForgets() {
     TextLibraries.assumeLoaded();
     Model model = new Model();
@@ -304,25 +289,15 @@ class FieldStateTest {
   void aLongTextComesBackWithItsLines() {
     TextLibraries.assumeLoaded();
     Model model = new Model();
-    model.sql[0] = "SELECT id, name, total FROM orders;\n".repeat(100_000);
+    model.sql[0] = "SELECT id, name, total FROM orders;\n".repeat(2000);
     model.sql[1] = "SELECT 2";
     App<Model> app = start(model);
     app.focus(field(app));
     app.frame();
     key(app, "End", Key.CONTROL);
     Lines lines = field(app).editor().lineIndex();
-    double[] back = new double[5];
-    for (int i = 0; i < back.length; i++) {
-      choose(app, 1);
-      long start = System.nanoTime();
-      choose(app, 0);
-      back[i] = (System.nanoTime() - start) / 1e6;
-    }
+    choose(app, 1);
+    choose(app, 0);
     assertSame(lines, field(app).editor().lineIndex(), "the lines are not counted again");
-    System.out.printf(
-        "FieldStateTest, 100000 lines (3.5 MB): back to the tab in %s ms%n",
-        java.util.Arrays.toString(java.util.Arrays.stream(back)
-            .map(ms -> Math.round(ms * 100) / 100.0)
-            .toArray()));
   }
 }

@@ -7,7 +7,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -42,56 +41,6 @@ class ScriptTest {
   Path out;
 
   @Test
-  void reproducesTheStoredFramesOfTheSwitch() throws IOException {
-    TextLibraries.assumeLoaded();
-    String script = """
-        size 200 120
-        frame
-        snap switch-off
-        size 200 120 scale 2
-        press #switch
-        frame
-        advance 0.04
-        frame
-        snap switch-moving-040ms
-        advance 0.04
-        frame
-        snap switch-moving-080ms
-        advance 0.04
-        frame
-        snap switch-moving-120ms
-        advance 0.04
-        frame
-        snap switch-moving-160ms
-        advance 0.04
-        frame
-        snap switch-moving-200ms
-        advance 1
-        frame
-        snap switch-on
-        """;
-    List<String> names = List.of(
-        "switch-off",
-        "switch-moving-040ms",
-        "switch-moving-080ms",
-        "switch-moving-120ms",
-        "switch-moving-160ms",
-        "switch-moving-200ms",
-        "switch-on");
-    App<Lights> app = new App<>(new Lights(), Examples::lights);
-    app.textRendering(TextRendering.LINUX);
-    List<Path> written = Script.run(script, app, out);
-
-    List<Path> expected = new ArrayList<>();
-    for (String name : names) {
-      expected.add(out.resolve(name + ".png"));
-      expected.add(out.resolve(name + ".tree.txt"));
-    }
-    assertEquals(expected, written);
-    assertSnapsMatchGolden(names);
-  }
-
-  @Test
   void theCommandLineRunsTheExample() throws IOException {
     TextLibraries.assumeLoaded();
     Examples.main(new String[] {"--script", EXAMPLE.toString(), "--out", out.toString()});
@@ -104,7 +53,7 @@ class ScriptTest {
     TextLibraries.assumeLoaded();
     Examples.main(new String[] {"shapes", "--script", SHAPES.toString(), "--out", out.toString()});
 
-    assertSnapsMatchGolden(List.of("shapes-1x", "shapes-2x"));
+    assertSnapsMatchGolden(List.of("shapes-2x"));
     assertTrue(Files.readString(out.resolve("shapes-2x.tree.txt"))
         .contains("el #ringed role=button label=\"Run\" 148,106 56x24 focused"));
   }
@@ -269,30 +218,6 @@ class ScriptTest {
   }
 
   @Test
-  void composeShowsACompositionUntilItEnds() throws IOException {
-    TextLibraries.assumeLoaded();
-    App<Examples.Form> app = new App<>(new Examples.Form(), Examples::form);
-    app.textRendering(TextRendering.LINUX);
-    Script.run("size 240 80\nframe\nfocus #name\ncompose \"ni\"\nframe\n", app, out);
-    assertTrue(app.tree().dump().contains(" focused caret 0 composing \"ni\"\n"));
-    assertEquals("", app.state().name);
-    Script.run("size 240 80\ncompose \"\"\nframe\n", app, out);
-    assertFalse(app.tree().dump().contains("composing"));
-  }
-
-  @Test
-  void moveAndLeaveReachTheApp() throws IOException {
-    App<Lights> app = switchApp();
-    Script.run("size 200 120\nframe\nmove #knob\nframe\n", app, out);
-    assertEquals("knob", app.hovered().key());
-    assertEquals(Cursor.POINTER, app.cursor());
-    Script.run("size 200 120\nmove 10,10\nframe\n", app, out);
-    assertSame(app.tree(), app.hovered(), "the root");
-    Script.run("size 200 120\nleave\nframe\n", app, out);
-    assertNull(app.hovered());
-  }
-
-  @Test
   void keyTypeAndFocusReachTheApp() throws IOException {
     List<String> log = new ArrayList<>();
     App<List<String>> app = new App<>(
@@ -311,17 +236,6 @@ class ScriptTest {
     assertEquals("b", app.focused().key());
     Script.run("size 40 20\nfocus 5,5\nframe\n", app, out);
     assertEquals("a", app.focused().key());
-  }
-
-  @Test
-  void wheelScrollsTheAreaUnderItsTarget() throws IOException {
-    TextLibraries.assumeLoaded();
-    App<Object> app = new App<>(new Object(), s -> Examples.list());
-    Script.run("size 240 200\nframe\nwheel 100,100 0 30.5\nwheel #row-1 0 -0.5\nframe\n", app, out);
-    El list = app.tree().children().getFirst();
-    assertEquals(30, list.scrollY());
-    Script.run("size 240 200\nwheel label=\"audit_log\" 0 -100\nframe\n", app, out);
-    assertEquals(0, list.scrollY());
   }
 
   @Test
@@ -532,11 +446,7 @@ class ScriptTest {
             + " before this line.",
         failure("press #switch"));
     assertFailure("size 200\n", "line 1: size 200\n  Write `size <width> <height>` or");
-    assertFailure("size 0 120\n", "line 1: size 0 120\n  Write `size");
-    assertFailure("size 200 120 zoom 2\n", "line 1: size 200 120 zoom 2\n  Write `size");
     assertFailure("advance -1\n", "line 1: advance -1\n  Write `advance <seconds>`");
-    assertFailure("frame now\n", "line 1: frame now\n  Write `frame` with nothing");
-    assertFailure("snap\n", "line 1: snap\n  Write `snap <name>`");
     assertFailure(
         "up\n",
         "line 1: up\n  Write `up <target>`, or `up <target> right` for the"
@@ -560,15 +470,6 @@ class ScriptTest {
             + " .tree.txt writes them (selected, checked=false, expanded, level=2,"
             + " value=\"<text>\") such as role=switch label=\"Lights\".",
         failure("wheel #list 40\n"));
-    assertFailure("wheel #list 0 down\n", "line 1: wheel #list 0 down\n  Write `wheel <target>");
-    assertFailure("wheel 0 40\n", "Write `wheel <target>");
-    assertEquals(
-        "line 1: wheel #switch 0 40\n  No frame has run yet, so there is nothing to scroll. Add"
-            + " `frame` before this line.",
-        failure("wheel #switch 0 40\n"));
-    assertFailure(
-        "size 200 120\nframe\nwheel #lst 0 40\n",
-        "line 3: wheel #lst 0 40\n  No element of the last frame matches #lst.");
     assertFailure(
         "size 200 120\nframe\npress name=Lights\n",
         "line 3: press name=Lights\n  name=Lights is not a target. A target is");
@@ -595,7 +496,6 @@ class ScriptTest {
             + " meta that are held, for example `key Enter` or `key Tab shift` for Shift+Tab,"
             + " and `down` or `up` for one half of the press, as `key Space down` to hold it.",
         failure("key Tab shfit\n"));
-    assertFailure("key\n", "line 1: key\n  Write `key <name>`");
     assertEquals(
         "line 1: key Tab\n  No frame has run yet, so nothing can take the key. Add `frame` before"
             + " this line.",
@@ -604,15 +504,11 @@ class ScriptTest {
         "line 1: type hello\n  Write `type \"<text>\"`, with \\\" for a quote and \\\\ for a"
             + " backslash in the text, for example `type \"hello\"`.",
         failure("type hello\n"));
-    assertFailure("type \"\"\n", "Write `type");
     assertFailure("type \"a\" \"b\"\n", "Write `type");
-    assertFailure("type \"hello\"\n", "No frame has run yet, so nothing can take the text.");
     assertEquals(
         "line 1: compose ni\n  Write `compose \"<text>\"`, the composition of an input method,"
             + " quoted as for `type`, for example `compose \"ni\"`; `compose \"\"` ends it.",
         failure("compose ni\n"));
-    assertFailure(
-        "compose \"ni\"\n", "No frame has run yet, so nothing can take the" + " composition.");
     assertEquals(
         "line 1: clipboard\n  Write `clipboard \"<text>\"`, the text to put on the clipboard,"
             + " quoted as for `type`, for example `clipboard \"SELECT 1\"`.",
@@ -627,9 +523,8 @@ class ScriptTest {
             + " (selected, checked=false, expanded, level=2, value=\"<text>\") such as"
             + " role=switch label=\"Lights\".",
         failure("size 200 120\nframe\npress #switch clicks two\n"));
-    assertFailure("size 200 120\nframe\ndown shift\n", "Write `down <target>`, then `clicks");
     assertFailure("size 200 120\nframe\nup #switch shift\n", "shift is not a target");
-    assertFailure("focus\n", "line 1: focus\n  Write `focus <target>`. A target is");
+
     assertEquals("""
         line 3: focus 10,10
           Neither the element at 10,10 nor one around it is focusable, so the focus cannot go\

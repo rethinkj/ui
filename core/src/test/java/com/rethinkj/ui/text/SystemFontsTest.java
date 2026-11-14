@@ -12,15 +12,13 @@ import com.rethinkj.ui.App;
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.Headless;
 import java.util.ArrayList;
-import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 /**
  * The system's fonts as fallbacks. What they are depends on the machine, so this checks only what
- * holds on any, prints what this machine chose, and is skipped where there are no fonts.
+ * holds on any, and is skipped where there are no fonts.
  */
 class SystemFontsTest {
 
@@ -73,19 +71,8 @@ class SystemFontsTest {
   void aCharacterInterLacksIsFoundInAFontThatHasItOrReportedMissing() {
     List<SystemFonts.Face> faces = SystemFonts.faces();
     assumeFalse(faces.isEmpty(), "Skipped: no fonts in " + SystemFonts.folders());
-    long ranges = faces.stream().mapToLong(f -> f.ranges().length).sum();
-    System.out.printf(
-        "System fonts: %d files, %d faces, scanned in %.0f ms; the index holds"
-            + " %d ranges of characters, %d KB%n",
-        SystemFonts.files(),
-        faces.size(),
-        SystemFonts.scanNanos() / 1e6,
-        ranges / 2,
-        ranges * 4 / 1024);
     for (String sample : SAMPLES) {
       List<Integer> bounds = Runs.clusters(sample);
-      Set<String> chosen = new LinkedHashSet<>();
-      long start = System.nanoTime();
       for (int k = 0; k + 1 < bounds.size(); k++) {
         String cluster = sample.substring(bounds.get(k), bounds.get(k + 1));
         if (cluster.isBlank()) {
@@ -93,16 +80,12 @@ class SystemFontsTest {
         }
         assertFalse(Runs.covers(cluster, 0, (f, c) -> Font.sans().has(c)), cluster);
         Font font = SystemFonts.find(cluster, 0);
-        chosen.add(font == null ? "missing" : font.toString());
         if (font != null) {
           assertTrue(
               cluster.codePoints().allMatch(c -> Runs.hidden(c) || font.has(c)),
               font + " has " + cluster);
         }
       }
-      System.out.printf(
-          "  %s: %s (%.1f ms)%n",
-          sample, String.join(", ", chosen), (System.nanoTime() - start) / 1e6);
     }
   }
 

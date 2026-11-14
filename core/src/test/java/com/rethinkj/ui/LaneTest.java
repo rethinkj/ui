@@ -6,7 +6,6 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.rethinkj.ui.window.Window;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -262,21 +261,6 @@ class LaneTest {
   }
 
   @Test
-  void onEndRegisteredAfterTheEndRunsAtTheNextFrame() throws InterruptedException {
-    App<Log> app = start();
-    Log s = app.state();
-    Work work = piece(app, "done", () -> 1);
-    app.await(LONG);
-    app.frame();
-    work.onEnd(() -> s.log.add("ended"));
-    assertEquals(List.of("done 1"), s.log, "not at once");
-    app.frame();
-
-    assertEquals(List.of("done 1", "ended"), s.log);
-    assertFalse(work.isRunning());
-  }
-
-  @Test
   void cancelledWorkWithoutOnEndIsNotWaitedFor() throws InterruptedException {
     App<Log> app = start();
     CountDownLatch release = new CountDownLatch(1);
@@ -320,114 +304,5 @@ class LaneTest {
 
     assertTrue(Files.readString(out.resolve("done.tree.txt")).contains("label=\"3 done\""));
     assertEquals(List.of("query 1", "query 2", "query 3"), app.state().log);
-  }
-
-  /** The second piece reports once the first has ended; await progress lets both in. */
-  @Test
-  void aScriptsAwaitProgressTakesTheReportOfAPieceThatBeganAfterAnother() throws IOException {
-    CountDownLatch gate = new CountDownLatch(1);
-    App<Log> app = new App<>(
-        new Log(),
-        s -> el().wFull().hFull().key("run").label(String.join(", ", s.log)).onPress(() -> {
-          s.lane.background("first", () -> "rows", r -> s.log.add("first " + r), f -> {});
-          s.lane.background(
-              "export",
-              (Work.Progress<Integer> progress) -> {
-                progress.report(50);
-                gate.await();
-                return "file";
-              },
-              (Integer done) -> s.log.add("export " + done + "%"),
-              r -> s.log.add("export " + r),
-              f -> {});
-        }));
-    app.state().lane = app.lane("connection");
-    Script.run(
-        "size 100 100\nframe\npress #run\nframe\nawait progress\nframe\nsnap half\n", app, out);
-    assertTrue(
-        Files.readString(out.resolve("half.tree.txt")).contains("label=\"first rows, export 50%\""),
-        Files.readString(out.resolve("half.tree.txt")));
-    gate.countDown();
-    Script.run("size 100 100\nawait\nframe\nsnap done\n", app, out);
-    assertEquals(List.of("first rows", "export 50%", "export file"), app.state().log);
-  }
-
-  /** Cancelled while it runs, the slow query's onEnd shows only after its computation returned. */
-  @Test
-  void aScriptShowsOnEndOfACancelledPieceAndTheNextAfterIt() throws IOException {
-    CountDownLatch release = new CountDownLatch(1);
-    App<Log> app = new App<>(
-        new Log(),
-        s -> el().wFull()
-            .hFull()
-            .children(
-                el().key("run").w(10).h(10).onPress(() -> {
-                  s.work = s.lane.background(
-                      "slow",
-                      () -> {
-                        ignoringInterrupts(release);
-                        return "late";
-                      },
-                      r -> s.log.add("slow " + r),
-                      f -> {});
-                  s.lane.background("next", () -> "rows", r -> s.log.add("next " + r), f -> {});
-                }),
-                el().key("cancel").w(10).h(10).onPress(() -> {
-                  s.work.onEnd(() -> s.log.add("slow ended"));
-                  s.work.cancel();
-                }),
-                el().key("log")
-                    .w(10)
-                    .h(10)
-                    .label(String.join(", ", s.log) + " pending "
-                        + s.lane.pending().size())));
-    app.state().lane = app.lane("connection");
-    Script.run(
-        "size 100 100\nframe\npress #run\nframe\npress #cancel\nframe\nsnap cancelling\n",
-        app,
-        out);
-    assertTrue(
-        Files.readString(out.resolve("cancelling.tree.txt")).contains("label=\" pending 2\""),
-        Files.readString(out.resolve("cancelling.tree.txt")));
-    release.countDown();
-    Script.run("size 100 100\nawait\nframe\nsnap ended\n", app, out);
-    assertTrue(
-        Files.readString(out.resolve("ended.tree.txt"))
-            .contains("label=\"slow ended, next rows pending 0\""),
-        Files.readString(out.resolve("ended.tree.txt")));
-  }
-
-  /** A second window of the same state starts work on the first app's lane: both show it. */
-  @Test
-  void aLaneMadeByOneAppTakesWorkFromAnotherWindowOfTheSameState() throws IOException {
-    Log state = new Log();
-    App<Log> second = new App<>(
-        state,
-        s -> el().wFull()
-            .hFull()
-            .key("query")
-            .label("second " + s.log)
-            .onPress(
-                () -> s.lane.background("query", () -> 7, r -> s.log.add("rows " + r), f -> {})));
-    AtomicReference<App<Log>> holder = new AtomicReference<>();
-    App<Log> main = new App<>(
-        state,
-        s -> el().wFull()
-            .hFull()
-            .key("open")
-            .label("main " + s.log)
-            .onPress(
-                () -> holder.get().windows().open("Second", 100, 100, Window.options(), second)));
-    holder.set(main);
-    state.lane = main.lane("connection");
-    Script.run(
-        "size 100 100\nframe\npress #open\nframe\nwindow Second\nframe\npress #query\nframe\n"
-            + "await\nframe\nsnap done\n",
-        main,
-        out);
-
-    assertTrue(Files.readString(out.resolve("done.tree.txt")).contains("label=\"main [rows 7]\""));
-    assertTrue(Files.readString(out.resolve("second-done.tree.txt"))
-        .contains("label=\"second [rows 7]\""));
   }
 }

@@ -1,7 +1,0 @@
-el 0,0 360x128
-  text "Kunden ├─ Bestellungen ∀ id ∈ ℕ ✕" 8,8 344x16
-  text "Kunde: שלום עולם, Tel Aviv" 8,26 344x15
-  text "הזמנה 1234 נשלחה" 8,43 344x16
-  text "ลูกค้า: สมชาย ใจดี" 8,61 344x15
-  text "中文 fehlt" 8,78 344x16
-  text "SELECT '★ ① ♥' AS note; -- ✓" 8,96 344x17

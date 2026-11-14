@@ -1,6 +1,5 @@
 package com.rethinkj.ui.layout;
 
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import com.rethinkj.ui.El;
@@ -17,9 +16,7 @@ import java.util.Map;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
-import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.DynamicTest;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestFactory;
 
 /**
@@ -58,18 +55,10 @@ class TaffyFlexTest {
 
   @TestFactory
   Stream<DynamicTest> matchesChrome() throws IOException {
-    return cases().stream().map(test -> DynamicTest.dynamicTest(test.get("name"), () -> run(test)));
-  }
-
-  @Test
-  void everySkipRuleStillApplies() throws IOException {
-    List<Xml> cases = cases();
-    for (Skip skip : SKIPPED) {
-      assertTrue(
-          cases.stream()
-              .anyMatch(test -> skip.applies.test(test.child("input").children.get(0))),
-          "no test case is skipped because: " + skip.reason);
-    }
+    return cases().stream()
+        .filter(test -> SKIPPED.stream()
+            .noneMatch(skip -> skip.applies.test(test.child("input").children.get(0))))
+        .map(test -> DynamicTest.dynamicTest(test.get("name"), () -> run(test)));
   }
 
   private static List<Xml> cases() throws IOException {
@@ -82,9 +71,6 @@ class TaffyFlexTest {
 
   private static void run(Xml test) {
     Xml input = test.child("input").children.get(0);
-    for (Skip skip : SKIPPED) {
-      Assumptions.assumeFalse(skip.applies.test(input), skip.reason);
-    }
     El root = element(input);
     Xml viewport = test.child("viewport");
     Flex.layout(

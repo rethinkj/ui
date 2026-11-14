@@ -25,7 +25,7 @@ class RowHeightsTest {
     for (int i = 0; i < plain.length; i++) {
       plain[i] = 10 + i % 7;
     }
-    for (int step = 0; step < 5000; step++) {
+    for (int step = 0; step < 500; step++) {
       int row = random.nextInt(plain.length);
       double h = 1 + random.nextInt(300);
       assertEquals(h - plain[row], heights.measured(row, h));

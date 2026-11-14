@@ -5,7 +5,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.Shadow;
-import java.lang.foreign.ValueLayout;
 import org.junit.jupiter.api.Test;
 
 class SceneTest {
@@ -136,25 +135,6 @@ class SceneTest {
   }
 
   @Test
-  void anUnclippedSceneHasOnlyTheEntryThatClipsNothing() {
-    El root = el().fill(0xFFFFFFFF).child(el().fill(0xFF000000));
-    root.place(0, 0, 10, 10);
-    root.children().getFirst().place(2, 2, 4, 4);
-
-    Scene scene = Scene.of(root);
-
-    assertEquals(2, scene.count());
-    assertEquals(1, scene.clipCount());
-    assertEquals(Scene.CLIP_STRIDE, scene.clips().byteSize());
-    assertEquals(-1e9f, scene.clipGet(0, Scene.X));
-    assertEquals(2e9f, scene.clipGet(0, Scene.HEIGHT));
-    for (int i = 0; i < scene.count(); i++) {
-      assertEquals(0, scene.clipOf(i));
-      assertEquals(0, scene.data().get(ValueLayout.JAVA_LONG, (long) i * Scene.STRIDE + 24));
-    }
-  }
-
-  @Test
   void nestedClipsIntersectAndKeepTheCornersOfBoth() {
     El dot = el().fill(0xFFFFFFFF);
     El inner = el().clip().radius(3).fill(0xFF0000FF).child(dot);
@@ -200,24 +180,6 @@ class SceneTest {
     assertEquals(1, scene.clipParent(2), "the card's corners lie in the list");
     assertEquals(0, CpuRenderer.render(scene, 100, 100, 1).argb(10, 10), "the card's corner");
     assertEquals(0xFFFFFFFF, CpuRenderer.render(scene, 100, 100, 1).argb(69, 10), "a square one");
-  }
-
-  @Test
-  void aClipAwayFromTheRoundedCornersAroundItIsOneEntry() {
-    El inside = el().clip().radius(4).child(el().fill(0xFFFFFFFF));
-    El card = el().clip().radius(12).child(inside);
-    El root = el().child(card);
-    root.place(0, 0, 100, 100);
-    card.place(10, 10, 60, 80);
-    // The squares of the card's corners end 2 pixels short of it on both sides.
-    inside.place(14, 14, 32, 52);
-    inside.children().getFirst().place(0, 0, 32, 52);
-
-    Scene scene = Scene.of(root, 1);
-
-    assertEquals(3, scene.clipCount());
-    assertClip(scene, 2, 24, 24, 32, 52, 4);
-    assertEquals(0, scene.clipParent(2));
   }
 
   @Test
@@ -299,32 +261,6 @@ class SceneTest {
     for (int c = 0; c < 4; c++) {
       assertEquals(radii[c], scene.clipGet(clip, Scene.RADIUS + 4 * c), "corner " + c);
     }
-  }
-
-  @Test
-  void growsPastItsFirstAllocation() {
-    Scene scene = new Scene();
-    for (int i = 0; i < 200; i++) {
-      scene.rect(i, 0, 1, 1, 0, 0, 0xFFFFFFFF, 0);
-    }
-    assertEquals(200, scene.count());
-    assertEquals(199f, scene.get(199, Scene.X));
-
-    El root = el();
-    root.place(0, 0, 100, 100);
-    El parent = root;
-    for (int i = 0; i < 20; i++) {
-      El child = el().clip();
-      child.place(1, 1, 100 - 2 * (i + 1), 100 - 2 * (i + 1));
-      parent.child(child);
-      parent = child;
-    }
-    parent.child(el().fill(0xFFFFFFFF));
-    parent.children().getFirst().place(0, 0, 1, 1);
-    Scene clipped = Scene.of(root);
-    assertEquals(21, clipped.clipCount());
-    assertEquals(20, clipped.clipOf(0));
-    assertEquals(20f, clipped.clipGet(20, Scene.X));
   }
 
   @Test

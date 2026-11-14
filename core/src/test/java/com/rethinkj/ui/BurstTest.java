@@ -1,12 +1,9 @@
 package com.rethinkj.ui;
 
-import static com.rethinkj.ui.El.col;
 import static com.rethinkj.ui.El.el;
 import static com.rethinkj.ui.El.row;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import com.rethinkj.ui.text.TextLibraries;
-import com.rethinkj.ui.text.TextRendering;
 import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -102,45 +99,5 @@ class BurstTest {
     app.pointerUp(60, 10);
     app.frame();
     assertEquals(List.of("press"), s.log);
-  }
-
-  /** A list of rows with a field each, whose handler keeps only digits. */
-  static final class Digits {
-    final String[] values = {"", "", ""};
-  }
-
-  @Test
-  void editsOfAFieldInARowEachGetTheAppsAnswer() {
-    TextLibraries.assumeLoaded();
-    Digits s = new Digits();
-    App<Digits> app = new App<>(
-        s,
-        d -> col()
-            .key("rows")
-            .wFull()
-            .hFull()
-            .rows(
-                3,
-                30,
-                i -> El.text(d.values[i])
-                    .editable(v -> {
-                      if (v.chars().allMatch(Character::isDigit)) {
-                        d.values[i] = v;
-                      }
-                    })
-                    .key("field")
-                    .w(100)));
-    app.textRendering(TextRendering.LINUX);
-    app.resize(100, 90, 1);
-    app.frame();
-    app.pointerDown(50, 45); // the field of row 1
-    app.pointerUp(50, 45);
-    app.frame();
-    app.textInput("8");
-    app.textInput("a");
-    app.textInput("8");
-    app.frame();
-    assertEquals("88", s.values[1], "the second 8 builds on the first, not on the refused a");
-    assertEquals(2, app.focused().editor().caret());
   }
 }

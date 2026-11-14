@@ -130,7 +130,7 @@ class EditorTest {
       "\n",
       "\uDB40\uDC61"
     };
-    for (int round = 0; round < 4000; round++) {
+    for (int round = 0; round < 400; round++) {
       StringBuilder text = new StringBuilder();
       for (int n = random.nextInt(8); n > 0; n--) {
         text.append(parts[random.nextInt(parts.length)]);

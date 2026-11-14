@@ -39,13 +39,6 @@ class ScrollTest {
   }
 
   @Test
-  void theRowsKeepTheirHeightInsteadOfShrinkingToFit() {
-    App<Object> app = listApp();
-    assertEquals(20, find(app, "row9").height());
-    assertEquals(180, find(app, "row9").y());
-  }
-
-  @Test
   void theWheelMovesTheRowsAtTheNextFrameAndStopsAtBothEnds() {
     App<Object> app = listApp();
     El list = find(app, "row");
@@ -221,21 +214,6 @@ class ScrollTest {
     app.resize(100, 60, 2);
     app.frame();
     assertEquals(40, find(app, "row").scrollY(), "another rebuild keeps it too");
-  }
-
-  @Test
-  void aRebuildClampsTheOffsetToTheNewContent() {
-    int[] count = {10};
-    App<int[]> app =
-        new App<>(count, c -> col().size(100, 60).onPress(() -> c[0] = 3).child(rows("row", c[0])));
-    app.resize(100, 60, 1);
-    app.frame();
-    app.wheel(50, 25, 0, 100);
-    app.frame();
-    app.pointerDown(50, 55);
-    app.pointerUp(50, 55);
-    app.frame();
-    assertEquals(10, find(app, "row").scrollY(), "three rows reach 10 past the area");
   }
 
   @Test

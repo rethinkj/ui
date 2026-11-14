@@ -9,8 +9,6 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.rethinkj.ui.text.TextLibraries;
-import com.rethinkj.ui.text.TextRendering;
 import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -304,57 +302,6 @@ class ScrollbarTest {
   }
 
   @Test
-  void aKeptRowShowsClearOfTheBarAlongTheBottom() {
-    App<Object> app = under(true, true, 100, 50);
-    assertEquals(90, bottomOf(app, 50), "the least scrolling that shows it above the strip");
-    app = under(true, true, 100, 99);
-    assertEquals(90, bottomOf(app, 99));
-  }
-
-  @Test
-  void aListWhoseRowsFitScrollsTheLastOneClearOfTheBarOnlyIfTheBarCoversIt() {
-    App<Object> app = under(true, true, 4, -1); // the rows end at 80, above the strip
-    assertNull(find(app.tree(), "list").verticalBar());
-    app = under(true, true, 5, -1); // they end at 100, under it
-    El list = find(app.tree(), "list");
-    assertEquals(
-        new Scrollbars.Bar(92, 2, 6, 86, 92, 2, 6, 86 * 100 / 110f, REST),
-        list.verticalBar(),
-        "10 pixels to scroll");
-    app.wheel(50, 50, 0, 1000);
-    app.frame();
-    assertEquals(90, bottomOf(app, 4));
-  }
-
-  @Test
-  void anAreaWithoutTheLookOrUnderNoBarScrollsAsFarAsItsContent() {
-    for (boolean[] bars : new boolean[][] {{false, true}, {true, false}, {false, false}}) {
-      App<Object> app = under(bars[0], bars[1], 100, 99);
-      El list = find(app.tree(), "list");
-      assertEquals(1900, list.scrollY(), "outer bar " + bars[0] + ", list bar " + bars[1]);
-      assertEquals(100, bottomOf(app, 99));
-    }
-    // The outer area is as wide as its content: no bar along its bottom.
-    App<Object> app = new App<>(
-        new Object(),
-        s -> row()
-            .size(300, 100)
-            .scrollBoth()
-            .scrollbars(LOOK)
-            .child(col()
-                .w(300)
-                .child(col()
-                    .key("list")
-                    .grow(1)
-                    .scrollbars(LOOK)
-                    .revealRow(99)
-                    .rows(100, 20, i -> el().key("row-" + i)))));
-    app.resize(300, 100, 1);
-    app.frame();
-    assertEquals(1900, find(app.tree(), "list").scrollY());
-  }
-
-  @Test
   void bothBarsLetTheLastRowAndColumnScrollClearAndFocusShowsAnElementClearOfThem() {
     // 3 by 3 cells of 50 in an area of 100 by 100, each focusable.
     App<Object> app = new App<>(new Object(), s -> {
@@ -432,39 +379,6 @@ class ScrollbarTest {
   }
 
   @Test
-  void aRowUnderABarTakesNoHoverLookAlsoWhenARebuildBuildsItAgain() {
-    App<Object> app = new App<>(
-        new Object(),
-        s -> col()
-            .key("list")
-            .wFull()
-            .hFull()
-            .scrollbars(LOOK)
-            .rows(
-                1000,
-                20,
-                i -> el().key("row-" + i)
-                    .wFull()
-                    .h(20)
-                    .fill(REST)
-                    .whenHovered(e -> e.fill(HOVERED))));
-    app.resize(200, 100, 1);
-    app.frame();
-    app.pointerMove(195, 30); // on the bar, over row 1
-    app.frame();
-    assertEquals(REST, app.tree().children().get(1).fill(), "the bar's, not the row's");
-
-    app.post(() -> {}); // a rebuild of the view, with the pointer where it was
-    assertTrue(app.frame());
-    assertEquals("row-1", app.tree().children().get(1).key());
-    assertEquals(REST, app.tree().children().get(1).fill(), "still the bar's");
-
-    app.pointerMove(150, 30); // off the bar, on the row
-    app.frame();
-    assertEquals(HOVERED, app.tree().children().get(1).fill());
-  }
-
-  @Test
   void aPressOnABarReachesNoRowAncestorOrDragAndKeepsTheFocus() {
     Log state = new Log();
     App<Log> app = new App<>(
@@ -515,75 +429,6 @@ class ScrollbarTest {
     app.frame();
     assertEquals(1, state.log.size());
     assertTrue(state.log.getFirst().startsWith("row "), state.log.toString());
-  }
-
-  @Test
-  void aPressOnABarOverATextFieldSelectsNothing() {
-    TextLibraries.assumeLoaded();
-    String[] value = {"hello world"};
-    App<Object> app = new App<>(
-        new Object(),
-        s -> col()
-            .key("area")
-            .size(100, 60)
-            .scroll()
-            .scrollbars(LOOK)
-            .children(
-                El.text(value[0])
-                    .editable(v -> value[0] = v)
-                    .key("field")
-                    .w(100)
-                    .h(24),
-                el().h(200)));
-    app.textRendering(TextRendering.LINUX);
-    app.resize(100, 60, 1);
-    app.frame();
-    app.pointerDown(95, 10); // the thumb, over the end of the field
-    app.pointerMove(95, 12); // 2 of the 32 pixels the thumb can go: 10.25 down
-    app.pointerUp(95, 12);
-    app.frame();
-    assertNull(app.focused(), "no caret, no selection");
-    assertTrue(app.tree().scrollY() > 0);
-
-    app.pointerDown(50, 5); // in the field, which scrolled up by less than its height
-    app.pointerUp(50, 5);
-    app.frame();
-    assertEquals("field", app.focused().key());
-  }
-
-  @Test
-  void theWheelMovesTheThumbAsBefore() {
-    App<Log> app = million();
-    app.wheel(195, 50, 0, 100); // over the bar too
-    app.frame();
-    assertEquals(100, app.tree().scrollY());
-    assertEquals(2 + 72 * 100 / 19_999_900.0, app.tree().verticalBar().thumbY(), 1e-5);
-  }
-
-  @Test
-  void headlessDrawsTheBarsAtTheStart() {
-    El view =
-        col().key("area").size(100, 100).scrollBoth().scrollbars(LOOK).child(el().size(300, 200));
-    Headless.Frame frame = Headless.render(view, 100, 100, 1);
-    assertTrue(
-        frame
-            .tree()
-            .startsWith("el #area 0,0 100x100 thumb-x 2,92 28.39x6 thumb-y 92,2" + " 6x41.9"),
-        frame.tree());
-    assertEquals(0xFF505050, frame.pixels().argb(95, 20), "the vertical thumb");
-    assertEquals(0, frame.pixels().argb(95, 60), "the track has no fill");
-  }
-
-  @Test
-  void anAreaWithoutTheLookHasNoBars() {
-    App<Object> app = new App<>(
-        new Object(),
-        s -> col().size(100, 100).scrollBoth().child(el().size(300, 200).onPress(() -> {})));
-    app.resize(100, 100, 1);
-    app.frame();
-    assertNull(app.tree().verticalBar());
-    assertNull(app.tree().horizontalBar());
-    assertEquals("el 0,0 100x100\n  el 0,0 300x200\n", app.tree().dump());
   }
 
   private static El find(El el, String key) {

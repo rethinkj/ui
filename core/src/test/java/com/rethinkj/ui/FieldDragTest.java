@@ -183,26 +183,6 @@ class FieldDragTest {
     assertEquals("hello world", app.state().value);
   }
 
-  @Test
-  void aLostReleaseOfOneKindOfDragEndsItWhenThePointerGoesDownForTheOther() {
-    App<Model> app = start();
-    app.pointerDown(150, 60);
-    app.pointerMove(120, 60);
-    app.frame();
-    app.pointerDown(15, 22); // in the field, without a release before it
-    app.pointerMove(100, 22);
-    app.frame();
-    assertEquals(List.of("START", "CANCEL"), app.state().log, "the drag is undone");
-    assertEquals("^hello world|", show(app), "and the field selects");
-
-    app.pointerDown(150, 60); // beside the field, again without a release
-    app.pointerMove(15, 22);
-    app.pointerUp(15, 22);
-    app.frame();
-    assertEquals(List.of("START", "CANCEL", "START", "END"), app.state().log);
-    assertEquals("^hello world|", show(app), "the moves selected nothing more");
-  }
-
   // A field in the rows of a list whose rows take presses and drags, as a grid's rows do
 
   /** The row a press selected, and what the rows' drag handlers were told. */

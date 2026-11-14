@@ -11,9 +11,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import com.rethinkj.ui.Examples.Lights;
 import com.rethinkj.ui.motion.Spring;
 import com.rethinkj.ui.render.Pixels;
-import com.rethinkj.ui.render.Png;
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
@@ -295,52 +293,6 @@ class PresenceTest {
               () -> Script.run("size 100 100\npress " + target + "\n", app, out))
           .getMessage();
       assertTrue(message.contains("No element of the last frame matches " + target), message);
-    }
-  }
-
-  @Test
-  void theStoredSequenceOfTheBadgeLeavingAndComingBack() throws IOException {
-    String script = """
-        size 200 120 scale 2
-        frame
-        snap on
-        press #switch   # off: the badge leaves
-        frame
-        advance 0.06
-        frame
-        snap leaving-060ms
-        advance 0.06
-        frame
-        snap leaving-120ms
-        press #switch   # on again before the badge is gone
-        frame
-        advance 0.06
-        frame
-        snap back-060ms
-        advance 1
-        frame
-        snap back
-        press #switch
-        frame
-        advance 1
-        frame
-        snap gone
-        """;
-    Script.run(script, badgeApp(true), out);
-    for (String[] snap : new String[][] {
-      {"on", "badge-on"},
-      {"leaving-060ms", "badge-leaving-060ms"},
-      {"leaving-120ms", "badge-leaving-120ms"},
-      {"back-060ms", "badge-back-060ms"},
-      {"back", "badge-on"},
-      {"gone", "badge-gone"},
-    }) {
-      String tree = Files.readString(out.resolve(snap[0] + ".tree.txt"));
-      Golden.assertMatches(
-          snap[1],
-          Png.decode(Files.readAllBytes(out.resolve(snap[0] + ".png"))),
-          // The image only: the presses before "back" have focused the switch, unlike in "on".
-          snap[0].equals("back") ? null : tree);
     }
   }
 

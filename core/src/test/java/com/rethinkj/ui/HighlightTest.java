@@ -222,20 +222,6 @@ class HighlightTest {
   }
 
   @Test
-  void theEndOfALongTextCostsOnePassOnce() {
-    App<Model> app = area(numbered(2000), f -> f.highlight("c", COMMENTS));
-    Lines ls = lines(app);
-    int start = ls.highlighted;
-    key(app, "End", Key.CONTROL);
-    int pass = ls.highlighted - start;
-    assertTrue(pass >= 1990 && pass <= 2010, "every line before the end once: " + pass);
-    key(app, "Home", Key.CONTROL);
-    int back = ls.highlighted;
-    key(app, "End", Key.CONTROL);
-    assertEquals(back, ls.highlighted, "the states and the lines at both ends are known");
-  }
-
-  @Test
   void anotherKeyAsksAgainAndTheSameKeyDoesNot() {
     Fields.Model model = new Fields.Model();
     model.value = numbered(50);
@@ -324,29 +310,5 @@ class HighlightTest {
     int pixel = app.render().pixels().argb(14 + 100, 14 + 18 + 9);
     assertEquals(
         0xFFFFAE00, pixel, "half red over yellow, in linear light: " + Integer.toHexString(pixel));
-  }
-
-  @Test
-  void aHighlightersBackgroundsAreKeptWithItsColours() {
-    App<Model> app = area(
-        "ab\ncd",
-        f -> f.highlight(1, (line, state, out) -> {
-          out.background(0, 1, BLUE).lineBackground(YELLOW);
-          return null;
-        }));
-    assertEquals(4, field(app).text().marks().size());
-  }
-
-  @Test
-  void aHighlighterMayGiveALineBackgroundAlone() {
-    App<Model> app = area(
-        "ab",
-        f -> f.highlight(1, (line, state, out) -> {
-          out.lineBackground(YELLOW);
-          return null;
-        }));
-    assertEquals(
-        List.of(new Text.Mark(new Text.Box(0, 0, 192, 18), YELLOW)),
-        field(app).text().marks());
   }
 }

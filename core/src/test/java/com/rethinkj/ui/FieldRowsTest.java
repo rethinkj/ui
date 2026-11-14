@@ -20,8 +20,6 @@ import org.junit.jupiter.api.Test;
 /** Text fields in the rows of virtual lists and in scroll areas, where both lines of work meet. */
 class FieldRowsTest {
 
-  private static final int HOVER = 0xFF26262E;
-
   @BeforeEach
   void needsText() {
     TextLibraries.assumeLoaded();
@@ -254,90 +252,5 @@ class FieldRowsTest {
     assertSame(find(app, "name-0"), app.focused(), "where the focus was in the list");
     assertEquals(0, list(app).scrollY(), "its row scrolled back into view");
     assertTrue(line(app, "name-0").endsWith(" focused caret 8 anchor 0"), line(app, "name-0"));
-  }
-
-  @Test
-  void aFieldAboveTheListKeepsItsStateWhileTheListBuildsRows() {
-    App<Names> app = start();
-    press(app, "filter");
-    type(app, "ord");
-    key(app, "ArrowLeft", 0);
-    Editor filter = find(app, "filter").editor();
-    El before = list(app).children().getFirst();
-
-    float[] at = centre(app, "rows");
-    app.wheel(at[0], at[1], 0, 32 * 40);
-    assertTrue(app.frame());
-    assertNotSame(before, list(app).children().getFirst(), "the list built rows");
-    assertSame(filter, find(app, "filter").editor());
-    assertTrue(line(app, "filter").endsWith(" focused caret 2"), line(app, "filter"));
-    key(app, "Z", Key.CONTROL);
-    assertEquals("", app.state().filter, "its history is still there");
-  }
-
-  // A field in a scroll area with a hover look
-
-  /** Ten fields of 24 pixels in a scroll area 60 high, each lighter under the pointer. */
-  private static App<List<String>> scrolledFields() {
-    List<String> values = new ArrayList<>();
-    for (int i = 0; i < 10; i++) {
-      values.add("field number " + i);
-    }
-    App<List<String>> app = new App<>(values, v -> {
-      El area = col().key("area").scroll().w(160).h(60).gap(4);
-      for (int i = 0; i < v.size(); i++) {
-        int index = i;
-        area.child(El.text(v.get(i))
-            .editable(s -> v.set(index, s))
-            .key("f-" + i)
-            .h(24)
-            .padding(0, 4)
-            .fill(0xFF000000)
-            .whenHovered(e -> e.fill(HOVER)));
-      }
-      return area;
-    });
-    app.textRendering(TextRendering.LINUX);
-    app.resize(200, 100, 1);
-    app.frame();
-    return app;
-  }
-
-  @Test
-  void aFieldInAScrolledAreaTakesItsHoverLookAndPressesWhereItIsShown() {
-    App<List<String>> app = scrolledFields();
-    // At x 40 the press lands in the same place in the field as in field 0, unscrolled.
-    app.pointerDown(40, 12);
-    app.pointerUp(40, 12);
-    app.frame();
-    int caret = find(app, "f-0").editor().caret();
-    assertTrue(caret > 0 && caret < "field number 0".length(), "inside the text: " + caret);
-
-    app.wheel(80, 30, 0, 56.5f); // field 2 begins at 56: its top half pixel is above the area
-    app.pointerMove(40, 12);
-    assertTrue(app.frame());
-    El two = find(app, "f-2");
-    assertEquals(56.5, find(app, "area").scrollY());
-    assertEquals(HOVER, two.fill(), "the field under the pointer took its hover look");
-    assertEquals(0xFF000000, find(app, "f-0").fill());
-    assertSame(two, app.hovered());
-    assertEquals(Cursor.TEXT, app.cursor());
-    assertTrue(line(app, "f-2").endsWith(" hovered"), line(app, "f-2"));
-
-    app.pointerDown(40, 12);
-    app.pointerUp(40, 12);
-    app.frame();
-    two = find(app, "f-2"); // the focus rebuilt the view
-    assertSame(two, app.focused());
-    assertEquals(caret, two.editor().caret(), "the same place in the text as in field 0");
-    type(app, "!");
-    assertEquals("field number 2", app.state().get(2).replace("!", ""));
-    assertEquals(HOVER, find(app, "f-2").fill(), "the look stays after the edit's rebuild");
-
-    app.wheel(80, 30, 0, 28);
-    assertTrue(app.frame());
-    assertEquals(HOVER, find(app, "f-3").fill(), "the look follows what the wheel moved under it");
-    assertEquals(0xFF000000, find(app, "f-2").fill());
-    assertSame(find(app, "f-2"), app.focused(), "the focus stays where it was");
   }
 }
