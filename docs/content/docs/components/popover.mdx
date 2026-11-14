@@ -3,7 +3,7 @@ title: Popover
 description: Any content below an anchor, such as a small form, that closes with Escape or a press outside.
 ---
 
-`Popover.popover` hangs any content below its anchor while the app's `Popover.State` is open, as a menu without items: a filter's form below its button, details of a value. It is not modal: a press outside closes it and goes on. `Popover.form` is the common case, a heading, content and buttons. For a blocking question, use a [Dialog](/docs/components/dialog); for a hint on hover, a [Tooltip](/docs/components/tooltip).
+`Popover.popover` hangs any content below its anchor while the app's `Popover.State` is open, as a menu without items: a filter's form below its button, details of a value. It is not modal: the focus can leave it and the wheel scrolls what is under the pointer, while a press outside closes it and does nothing else. `Popover.form` is the common case, a heading, content and buttons. For a blocking question, use a [Dialog](/docs/components/dialog); for a hint on hover, a [Tooltip](/docs/components/tooltip).
 
 <Shot src="kit/parts-popover-{theme}-2x" alt="A popover with a small filter form below its button in a toolbar" />
 
@@ -20,7 +20,7 @@ description: Any content below an anchor, such as a small form, that closes with
 | `Popover.panel(t, state, label, content)` | The overlay alone, to attach yourself |
 | `Popover.State` | `isOpen()`, `open()`, `close()`, `toggle()` |
 
-The focus goes inside as it opens, to the panel itself where nothing enabled and visible in it takes the focus, and back to the anchor as it closes; Tab walks it right after its anchor. It has no arrow to its anchor.
+The focus goes inside as it opens, to the panel itself where nothing enabled and visible in it takes the focus, and back to where it was before as it closes, if that element is still there (a button keeps the focus where it is when pressed, so that is often an editor, not the anchor); Tab walks it right after its anchor. It has no arrow to its anchor.
 
 ## In a tree dump
 

@@ -40,7 +40,7 @@ The grid sorts and filters nothing; the app does it to its rows, with what the t
 
 | | |
 | --- | --- |
-| `table.comparator(columns, keys)` | A `Comparator<T>` of the sort keys, by the typed values: numbers as numbers, dates as dates, enums in their order, NULL first |
+| `table.comparator(columns, keys)` | A `Comparator<T>` of the sort keys, by the typed values: numbers as numbers, dates as dates, enums in their order; NULL first ascending and last descending |
 | `table.filter(columns, filters)` | A `Predicate<T>` of the header's filters: ranges and equality of numbers, dates and times compare values (`10.0` equals `10`), text compares text |
 | `filter.matches(value, format)` | One filter on one typed value |
 

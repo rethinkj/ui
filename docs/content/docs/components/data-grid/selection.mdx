@@ -45,7 +45,7 @@ The selection also remembers where the grid is scrolled to, so a grid built agai
 
 ## Copying
 
-`options().copy(clipboard)` lets Control+C and Control+Insert put the selection on the clipboard as tab-separated lines: the rows and columns that have a selected cell, in quotes only where a tab, line break or quote needs them. Pass `app.clipboard()`, which is the system's clipboard in a window and an in-memory one under a script.
+`options().copy(clipboard)` lets Control+C and Control+Insert put the selection on the clipboard as tab-separated lines: the rows and columns that have a selected cell, in quotes only where a tab, line break or quote needs them, and around an empty field alone on the last line, which would otherwise read as no line. Pass `app.clipboard()`, which is the system's clipboard in a window and an in-memory one under a script.
 
 | Option | |
 | --- | --- |

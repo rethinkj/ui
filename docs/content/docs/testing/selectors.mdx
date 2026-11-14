@@ -15,8 +15,8 @@ The target of a `press`, `move`, `wheel`, `focus` or `scroll` is a position or a
 | `label="<text>"` | The element with this label. `\"` and `\\` inside. |
 | `text="<string>"` | The text element showing exactly this string, written as the tree writes it. |
 | a state | `selected`, `current`, `checked`, `checked=false`, `checked=mixed`, `expanded`, `expanded=false`, `disabled`, `readonly`, `password`, `invalid`, `busy`, `grabbed`, `level=<n>`, `pos=<n>/<size>`, `sort=ascending`, `sort=descending`, `value="<text>"`. |
-| `in <window> <target>` | A target in another window. |
-| `screen <x>,<y>` | A point of the script's screen in physical pixels, in whichever window lies there. |
+| `in <window> <target>` | A target in another window, for the pointer's steps (`press`, `down`, `up`, `move`, `wheel`). For `focus` and `scroll`, choose the window first with `window <name>`. |
+| `screen <x>,<y>` | A point of the script's screen in physical pixels, in whichever window lies there; for the pointer's steps only. |
 
 Combine parts with spaces: all must match.
 
@@ -27,7 +27,7 @@ press #cell-2-1 clicks 2
 move role=button label="Refresh"
 ```
 
-A selector presses the centre of the element's rectangle. Elements that are fading out (`exiting`) or at opacity 0 never match.
+A selector presses the centre of the part of the element's rectangle that the clips around it leave, and for an element laid over a range of a text (`El.range`), the middle of the range's first row. Elements that are fading out (`exiting`) or at opacity 0 never match.
 
 ## Lists of rows
 

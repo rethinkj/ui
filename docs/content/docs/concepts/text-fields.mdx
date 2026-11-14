@@ -14,7 +14,7 @@ A handler may refuse an edit (store nothing) or change it, such as keep only dig
 
 ## What the app keeps for a field
 
-Caret, selection, scroll, undo history (100 steps) and an input method's composition are kept by the field's identity, and forgotten when the field leaves the tree, as the content of a tab that is not active. `.fieldState(FieldState)` keeps them in an object of your state instead, so a tab's editor comes back exactly as it was, also in another window.
+Caret, selection, scroll, undo history (100 steps) and an input method's composition are kept by the field's identity, and forgotten when the field leaves the tree, as the content of a tab that is not active. `.fieldState(FieldState)` keeps caret, selection, scroll, undo history and Tab's mode in an object of your state instead, so a tab's editor comes back as it was, also in another window; a composition ends when the field leaves.
 
 ## Options
 

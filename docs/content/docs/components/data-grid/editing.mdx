@@ -33,7 +33,7 @@ A script that edits a cell:
 | text | A field in the cell's font, exactly over the cell's text |
 | `INTEGER`, `DECIMAL` | A field that refuses what cannot become such a number |
 | `BOOLEAN` | None: Space, Enter, F2 and a double press switch false, true and, where `nullable()`, NULL |
-| `choices(list)`, or `ENUM` with choices | A menu of the choices; typing goes to the first that starts with it |
+| `choices(list)`, or `ENUM` with choices | Up to eight choices: a menu of them, where typing goes to the first that starts with it. More: a field that filters a list of them (`role=listbox`) |
 | `DATE`, `TIME`, `DATE_TIME` | Text, checked as ISO 8601 (`2026-11-13`, `14:30`, `2026-11-13 14:30`) |
 | `editor((value, onChange) -> El)` | The app's own element |
 
@@ -76,4 +76,4 @@ The options that `changes` wires are there on their own, for an app that keeps c
 
 ## In a tree dump
 
-A changed, new, deleted or failed row and cell say `value="changed"`, `"new"`, `"deleted"` or `"error"`, and a failed cell is `invalid`. An open editor is a `role=textbox` inside the cell; a refused one adds a `role=alert` with the message.
+A changed, new, deleted or failed row and cell say `value="changed"`, `"new"`, `"deleted"` or `"error"`, and a failed cell is `invalid`. An open editor is `#editor` in the cell's row, with its field `#field` (`role=textbox`) inside; a list of choices and the field of several lines are overlays; a refused value adds a `role=alert` with the message.

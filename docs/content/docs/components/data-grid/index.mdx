@@ -14,7 +14,7 @@ description: A table of query results for ten rows or a million, and a dozen col
 
 - Each `Column` has a title, a width and a function from a row index to the cell's text. Null is SQL `NULL`, shown as a muted `NULL`.
 - `DataType` gives the column its alignment, font and header icon: `INTEGER`, `DECIMAL`, `TEXT`, `BOOLEAN`, `DATE`, `TIME`, `DATE_TIME`, `INTERVAL`, `UUID`, `JSON`, `BINARY`, `ARRAY`, `ENUM`, `GEOMETRY`, `OTHER`. Map your driver's types to it once.
-- The cell functions are called only for the rows and columns in view, while a frame runs. Keep them cheap: an array lookup, not a query.
+- The cell functions are called only for the cells the grid builds, those in view and a few rows and columns around them, while a frame runs. Keep them cheap: an array lookup, not a query.
 - Like any list of rows, the grid needs a height of its own or room to `grow`.
 
 The grid has no border of its own: it sits flush in a card, as `Card.flush(t, grid)`.
@@ -80,7 +80,7 @@ The grid is one stop for Tab.
 
 ## In a tree dump
 
-The grid is `role=grid`. Header cells are `role=columnheader` with the title as label, the key `column-<index>`, `pos=<column>/<columns>` and a `sort=` state; the edges that resize them `role=separator` with the key `resize-<index>`. Rows are `role=row` with the key `row-<index>`, cells `role=gridcell` with the key `cell-<row>-<column>` and `pos`. Selected rows or cells are `selected`, the cursor's `current`; row numbers are `role=rowheader` with the key `number-<row>`. All counted from 0.
+The grid is `role=grid`. Header cells are `role=columnheader` with the title as label, the key `column-<index>`, `pos=<column>/<columns>` and a `sort=` state; the edges that resize them `role=separator` with the key `resize-<index>`. Rows are `role=row` with the key `row-<index>`, cells `role=gridcell` with the key `cell-<row>-<column>` and `pos`. Selected rows or cells are `selected`, the cursor's `current`; row numbers are `role=rowheader` with the key `number-<row>`. The indexes in keys count from 0, the positions in `pos=<position>/<size>` from 1.
 
 ```text file="examples/src/test/resources/golden/docs/grid/selected.tree.txt" start="#row-2" count="9"
 ```

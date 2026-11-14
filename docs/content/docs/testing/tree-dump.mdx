@@ -17,7 +17,7 @@ In this order:
 3. `role=` and `label="…"` if set. The kit's components set both.
 4. For text, the string in quotes. `\n` is a line feed, `\t` a tab, `\u{E305}` a character of a private use area such as an icon. A string longer than 200 characters shows its first 100 and last 40 and its length.
 5. The rectangle in window coordinates as shown, `x,y widthxheight`, moved by the scroll offsets above it.
-6. The states that are set, always in the same order (below).
+6. The states that are set, always in the same order (below), and after them `error="<message>"`, the message of a value that is not accepted (`El.errorMessage`).
 7. Extras of scroll areas, lists and text fields (below).
 8. `hovered` on the element a press under the pointer would go to, `focused` on the element with the keyboard focus, and `exiting` on an element that is fading out after a rebuild left it out.
 
@@ -27,11 +27,11 @@ States say what the app's state is, with their names from WAI-ARIA. They change 
 
 | State | Meaning | Set with |
 | --- | --- | --- |
-| `disabled` | Takes no input | `disabled(true)`, or a text field with `editable(null)` |
+| `disabled` | Marked as taking no input. The call only marks: a component also leaves out its handlers and `focusable()`, as the kit's do for a null handler | `disabled(true)`, or a text field with `editable(null)`, which does take no input |
 | `readonly` | A text field that selects and copies but takes no edits | `readOnly()` |
 | `password` | A masked field; the string shows as `•` | `masked()` |
 | `invalid` | A value that is not accepted | `invalid(true)` |
-| `busy` | An action runs; the element takes no press | `busy(true)` |
+| `busy` | An action runs. The call only marks: the component decides what it takes meanwhile, and the kit's `Button` takes no press | `busy(true)` |
 | `selected` | Selected among others | `selected(true)` |
 | `current` | The cursor's cell or row, the highlighted menu item | `current(true)` |
 | `grabbed` | Being dragged | `grabbed(true)` |

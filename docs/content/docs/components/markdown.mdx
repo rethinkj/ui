@@ -19,7 +19,7 @@ description: A Markdown document as a scrolling page of selectable blocks, with 
 | `onLink(destination -> …)` | A link is pressed: a URL, or `#id` for a heading |
 | `images(address -> image)` | The `Image` for an address as written, or null while there is none (a placeholder shows) |
 | `languages(language -> highlighter)` | Highlighters for code blocks; `sql` uses `Sql` by default |
-| `copy(clipboard)` | Where Control+C and the code blocks' copy buttons copy to |
+| `copy(clipboard)` | Where the code blocks' copy buttons copy to, and Control+C after Control+A selected the whole document. A selection within one block of text copies to the app's clipboard |
 | `state(Markdown.State)` | Keeps Control+A's selection of the whole document |
 
 `Markdown.rowOf(document, id)` is the row to scroll to for a heading (`app.scrollToRow`), `document.headings()` lists them with GitHub's anchors, and `Markdown.text(document)` is the plain text. Each block of text is a read-only field that selects and copies; HTML in the source shows as text.

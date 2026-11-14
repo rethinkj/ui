@@ -18,7 +18,7 @@ The app holds the message in its state and attaches the toast to the root while 
 | --- | --- |
 | `message` | The text, and the toast's label |
 | `action`, `onAction` | The button's text and handler, or null for none |
-| `onClose` | Runs when the toast closes: after `motion().toast()` seconds (5), after its action, or on Escape |
+| `onClose` | Runs when the toast closes: after `motion().toast()` seconds (5), after its action, or on Escape while the focus is in the toast (Tab reaches its action) |
 | `above` | The variant with it lies that much higher, clear of a status bar (`StatusBar.height(t)`) or a card's footer (`Card.footerHeight(t)`) |
 
 A press elsewhere leaves it. Tab reaches its action last; when it closes from there, the focus goes back to where it was.

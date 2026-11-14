@@ -22,7 +22,7 @@ An image element is as large as the image in logical pixels, but no wider than t
 
 ## Memory
 
-`app.imageMemory(bytes)` (256 MB unless set) bounds the images kept on the GPU; those drawn least recently are given up beyond it and uploaded again when shown.
+`app.imageMemory(bytes)` (256 MB unless set) is the room for images on the GPU; those drawn least recently are given up beyond it and uploaded again when shown, but never an image that a window's last frame shows, so a frame of many large images may take more.
 
 ## In a tree dump
 

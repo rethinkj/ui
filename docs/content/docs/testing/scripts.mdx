@@ -41,7 +41,7 @@ Presses do not move the pointer: a `move` is needed for hover looks and tooltips
 
 | Step | What it does |
 | --- | --- |
-| `key <name> [shift] [control] [alt] [meta]` | Presses and releases a key. Keys have the web's names (`Enter`, `Tab`, `Escape`, `ArrowDown`, `F5`, `Space`); a key that types a character is named by it in upper case (`A`, `1`). The Javadoc of `com.rethinkj.ui.Key` lists them all. |
+| `key <name> [shift] [control] [alt] [meta] [down \| up]` | Presses and releases a key; with `down` or `up` only that half, so that a key stays held between frames. Keys have the web's names (`Enter`, `Tab`, `Escape`, `ArrowDown`, `F5`, `Space`); a key that types a character is named by it in upper case (`A`, `1`). The Javadoc of `com.rethinkj.ui.Key` lists them all. |
 | `type "<text>"` | Text input for the focused element. `\"`, `\\`, `\n` and `\t` inside. |
 | `compose "<text>"` | An input method's composition in the focused text field, shown underlined, not yet in the string. `compose ""` ends it; `type` commits. |
 | `focus <target>` | Gives the keyboard focus to the target or the nearest focusable element around it, as Tab would, with the ring. |
@@ -67,7 +67,7 @@ Write a `dialog` step before the step whose handler opens the dialog. A dialog w
 | `window <name>` | The steps after it go to this window: `main` for the first, else the title a handler opened a window with, quoted if it has spaces. |
 | `close` | Asks the chosen window to close, as its close button does. |
 
-A target may lie in another window, `in <window> <target>`, or be a point of the script's screen, `screen <x>,<y>`. See [Several windows](/docs/concepts/windows).
+A target of `press`, `down`, `up`, `move` and `wheel` may lie in another window, `in <window> <target>`, or be a point of the script's screen, `screen <x>,<y>`; `focus` and `scroll` act in the window that `window <name>` chose. See [Several windows](/docs/concepts/windows).
 
 ## When something is wrong
 

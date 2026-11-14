@@ -14,7 +14,7 @@ description: "Rows of settings in a card, with a hairline between them: switches
 
 | Row | |
 | --- | --- |
-| `row(t, [icon,] title, description, control)` | Any control at the right; the row names it after its title |
+| `row(t, [icon,] title, description, control)` | Any control at the right; the row names it after its title when it is a text field or has no label yet, and shows the control's error message in place of the description |
 | `switchRow(t, [icon,] title, description, on, onToggle)` | The whole row is a switch |
 | `linkRow(t, [icon,] title, description, value, onPress)` | The whole row is a button, with a muted value and a chevron |
 | `expander(t, [icon,] title, description, open, onToggle, content...)` | Opens rows below it, indented |

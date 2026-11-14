@@ -15,7 +15,7 @@ description: Labelled fields, beside or above them, with help, errors and requir
 | | |
 | --- | --- |
 | `Form.form(t, Labels.BESIDE \| ABOVE, fields...)` | The form |
-| `Form.field(label, control)` | A field; the label names the control, or the first control inside it |
+| `Form.field(label, control)` | A field; the label names the control, or the first control inside it, when that is a text field or has no label yet (a select keeps its choice as its label) |
 | `.help(text)` | Muted text below that wraps |
 | `.error(text)` | Replaces the help in the danger colour and makes the control `invalid`; null for none. A [ValueField](/docs/components/format) whose text is no value shows its format's message without it; this one wins |
 | `.required()` | A `*` after the label |
