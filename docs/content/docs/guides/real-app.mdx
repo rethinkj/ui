@@ -51,7 +51,7 @@ The dialog edits a copy of a customer. An `Editing<Customer>` in the state holds
 
 ## 4. Saving and errors
 
-Save runs in the background like the load. While it runs, `saving` makes Save busy and Cancel disabled. The made-up server refuses an email that another customer has: it throws an exception that names the field, and `prop.error(message)` shows the message at that field until the user edits it. On success, the handler puts the saved record into the list, closes the dialog by clearing `editing`, and shows a [Toast](/docs/components/toast).
+Save runs in the background like the load. While it runs, `saving` makes Save busy and Cancel disabled. The made-up server refuses an email that another customer has: it throws an exception that names the field, and `prop.error(message)` shows the message at that field until the user edits it. On success, the handler puts the saved record into the list, closes the dialog by clearing `editing`, and shows a [Toast](/docs/components/toast). The fields stay editable while the save runs; if the user changed something in that time, the dialog stays open with those changes over the saved customer instead of losing them.
 
 ```java snippet="customers-save"
 ```

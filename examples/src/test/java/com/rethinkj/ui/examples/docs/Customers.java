@@ -289,8 +289,16 @@ public final class Customers {
           } else {
             customers.add(saved);
           }
-          editing = null; // closes the dialog
-          toast = "Saved " + saved.name();
+          Customer now = editing.value();
+          if (now.equals(customer)) {
+            editing = null; // closes the dialog
+            toast = "Saved " + saved.name();
+          } else { // edited while the save ran: keep those edits, now over the saved customer
+            edit(saved);
+            editing
+                .root()
+                .set(new Customer(saved.id(), now.name(), now.email(), now.company(), now.vatId()));
+          }
         },
         e -> {
           saving = null;
@@ -355,9 +363,11 @@ public final class Customers {
           throw new Refused(Customer.EMAIL, other.name() + " has this email");
         }
       }
-      Customer saved =
-          c.id() == 0 ? new Customer(nextId++, c.name(), c.email(), c.company(), c.vatId()) : c;
-      rows.removeIf(other -> other.id() == saved.id());
+      if (c.id() != 0) {
+        rows.replaceAll(other -> other.id() == c.id() ? c : other); // keeps its place
+        return c;
+      }
+      Customer saved = new Customer(nextId++, c.name(), c.email(), c.company(), c.vatId());
       rows.add(saved);
       return saved;
     }
