@@ -2955,21 +2955,29 @@ public final class App<S> {
   }
 
   private void timeOverlays(El el, Set<Object> open) {
-    if (el.isExiting() || el.targetOpacity() == 0 || el.style().display == Style.Display.NONE) {
+    if (hidden(el)) {
       return;
     }
     for (El child : el.children()) {
       timeOverlays(child, open);
     }
     for (El overlay : el.overlays()) {
+      if (hidden(overlay)) {
+        continue;
+      }
       Object id = overlay.placement().id;
-      if (overlay.onShownFor() != null && id != null && !overlay.isExiting()) {
+      if (overlay.onShownFor() != null && id != null) {
         open.add(id);
         double since = shownSince.computeIfAbsent(id, opened -> time);
         shownDue = Math.min(shownDue, since + overlay.shownDelay());
       }
       timeOverlays(overlay, open);
     }
+  }
+
+  /** Whether an element and all inside it are not shown: leaving, or made invisible by the view. */
+  private static boolean hidden(El el) {
+    return el.isExiting() || el.targetOpacity() == 0 || el.style().display == Style.Display.NONE;
   }
 
   /**

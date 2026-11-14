@@ -1271,6 +1271,21 @@ class OverlayTest {
   }
 
   @Test
+  void anOverlayThatTheViewMakesInvisibleRunsNoShownHandler() {
+    int[] fired = {0};
+    App<Object> app = app(
+        new Object(),
+        s -> el().size(100, 100)
+            .overlay(el().key("toast").size(30, 30).opacity(0).onShownFor(1, () -> fired[0]++)),
+        100,
+        100);
+    assertTrue(app.tree().shownOverlays().isEmpty());
+    app.advance(2);
+    app.frame();
+    assertEquals(0, fired[0], "an overlay that is not shown has not been open");
+  }
+
+  @Test
   void aPressKeepsTheDelayedLookOfThePointerAwayAlsoInTheFrameThePointerCameIn() {
     for (boolean apart : new boolean[] {false, true}) {
       App<Object> app = app(
