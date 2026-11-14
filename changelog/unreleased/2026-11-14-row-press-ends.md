@@ -1,0 +1,1 @@
+- A press on a row of a virtual list (`El.rows`) ends when the list scrolls so far that it no longer builds that row: scrolling back and releasing no longer runs the row's handler. A row that only scrolls among the rows that exist keeps its press, and a drag that has started goes on.

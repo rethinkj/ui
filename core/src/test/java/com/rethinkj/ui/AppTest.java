@@ -379,6 +379,34 @@ class AppTest {
   }
 
   @Test
+  void aPressOnARowEndsWhenItsListNoLongerBuildsTheRowAndKeepsWhileItOnlyScrolls() {
+    App<int[]> app = new App<>(
+        new int[1],
+        s -> el().size(100, 100).rows(100, 20, i -> el().key("row-" + i).onPress(() -> s[0]++)));
+    app.resize(100, 100, 1);
+    app.frame();
+    app.pointerDown(50, 5);
+    app.wheel(50, 5, 0, 10); // within the rows that exist: row 0 is still there
+    app.post(() -> {}); // a rebuild between two inputs, before the rows are built again
+    app.pointerUp(50, 5);
+    app.frame();
+    assertEquals(1, app.state()[0], "the press stays with a row that only scrolls");
+
+    app.pointerDown(50, 5);
+    app.frame();
+    app.scrollToRow(app.tree(), 50);
+    app.frame();
+    assertFalse(app.tree().hasRow(0), "the pressed row left the tree");
+    assertNull(app.pressed());
+    app.scrollToRow(app.tree(), 0);
+    app.frame();
+    assertTrue(app.tree().hasRow(0));
+    app.pointerUp(50, 5);
+    app.frame();
+    assertEquals(1, app.state()[0], "a row built again with its identity takes no press over");
+  }
+
+  @Test
   void aSecondaryPressEndsWhenItsElementLeavesAndOneWithItsIdentityComesBack() {
     App<int[]> app = new App<>(new int[2], s -> {
       El root = el().size(100, 100);

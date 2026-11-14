@@ -393,7 +393,7 @@ class RowsTest {
     app.resize(200, 300, 1);
     app.frame();
     app.pointerMove(100, 154);
-    app.pointerDown(100, 154); // row 5, which keeps the focus and the press while it scrolls
+    app.pointerDown(100, 154); // row 5, which keeps the focus while it scrolls, not the press
     app.frame();
     assertEquals(2, find(app.tree(), "row-5").style().borderTop.value());
     int views = data.views;
@@ -411,7 +411,7 @@ class RowsTest {
     row = find(app.tree(), "row-5");
     assertEquals(HOVER, row.fill());
     assertEquals(2, row.style().borderTop.value(), "focused");
-    assertEquals(4, row.radius(), "and pressed");
+    assertEquals(0, row.radius(), "no longer pressed: the press ended as the row left");
     assertEquals(views, data.views);
   }
 

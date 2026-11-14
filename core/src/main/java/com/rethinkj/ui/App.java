@@ -2561,7 +2561,7 @@ public final class App<S> {
     handled = false;
     scrolled = false;
     rowsPending = between && (focusId == null || animator.inRow(focusId) == null);
-    endPresses();
+    endPresses(false);
     if (rowsPending) {
       caretOverlays =
           Overlays.place(root, width, height); // as fillRows does: the focus may be in one
@@ -2935,7 +2935,7 @@ public final class App<S> {
     // After scrolling, movement and new rows, the overlays follow their anchors.
     caretOverlays = Overlays.place(root, width, height);
     if (built) {
-      endPresses(); // of the rows that are gone
+      endPresses(true); // of the rows that are gone
     }
     if (built || untimed) {
       timeOverlays();
@@ -2998,41 +2998,44 @@ public final class App<S> {
    * a secondary press, the pressed look of Enter or Space, a selection by dragging and a thumb's
    * drag end with their element's life, so that one built again with the same identity takes
    * none of them over. A drag that has started goes on ({@link #step}).
+   *
+   * @param rowsBuilt whether the lists have built their rows: a row that its list does not have
+   *     then has left the tree, while before that it may only be still to come
    */
-  private void endPresses() {
-    if (gone(pressed)) {
+  private void endPresses(boolean rowsBuilt) {
+    if (gone(pressed, rowsBuilt)) {
       pressed = null;
       if (dragging != null && !dragging.started) {
         dragging = null;
       }
     }
-    if (gone(secondary)) {
+    if (gone(secondary, rowsBuilt)) {
       secondary = null;
     }
-    if (gone(keyPressed)) {
+    if (gone(keyPressed, rowsBuilt)) {
       keyPressed = null;
       keyPressKey = null;
     }
-    if (gone(selecting)) {
+    if (gone(selecting, rowsBuilt)) {
       selecting = null;
     }
-    if (grab != null && gone(grab.id())) {
+    if (grab != null && gone(grab.id(), rowsBuilt)) {
       grab = null;
     }
   }
 
   /**
    * Whether the element with this identity is not in the current tree, or it or an element above
-   * it is leaving; false for null, and for one in a row that its list could build but does not
-   * have now, which keeps it as it keeps the focus ({@link #focusWaits}).
+   * it is leaving; false for null, and before the lists have built their rows for one in a row
+   * that its list could build but does not have yet.
    */
-  private boolean gone(Object id) {
+  private boolean gone(Object id, boolean rowsBuilt) {
     if (id == null) {
       return false;
     }
     Animator.InRow in = animator.inRow(id);
-    if (in != null && in.row() < in.list().rowCount() && !in.list().hasRow(in.row())) {
-      return false;
+    if (in != null && !in.list().hasRow(in.row())) {
+      return rowsBuilt || in.row() >= in.list().rowCount();
     }
     for (Object at : Animator.lineage(id)) {
       El el = animator.element(at);
