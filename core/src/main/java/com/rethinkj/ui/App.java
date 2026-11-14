@@ -1686,7 +1686,10 @@ public final class App<S> {
       return null;
     }
     El entered = enter(first, 1); // in a list, its row that had the focus last
-    return Animator.isBelow(animator.identity(entered), id) ? entered : first;
+    if (Animator.isBelow(animator.identity(entered), id)) {
+      return entered;
+    }
+    return animator.identity(first) != null ? first : null; // enter's new rows may have dropped it
   }
 
   /** Puts the focus's identity first in {@link #recent}. */
