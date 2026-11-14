@@ -59,7 +59,7 @@ A test can drive an app without a script. Input methods queue events, and `frame
 | `focus(el)`, `scrollTo(area, x, y)`, `scrollToRow(list, row)` | Focus an element of the last frame as Tab would (null for none); scroll an area or a list of rows |
 | `frame()` | Dispatches the queue and draws; true when what shows changed |
 | `advance(seconds)`, `time()` | The app's clock, which springs, delays and `after` use |
-| `await(timeout)` | Waits until `background` work has finished, and queues its results and other posted tasks for the next frame |
+| `await(timeout)` | Waits until `background` work has finished, and queues its results and other posted tasks for the next frame. Cancelled work is waited for only if it has an `onEnd` handler |
 | `awaitProgress(timeout)` | Waits until running `background` work reports progress, and queues the reports and other posted tasks for the next frame |
 | `tree()`, `focused()`, `hovered()`, `pressed()` | The root of the last frame, whose `dump()` is a [tree dump](/docs/testing/tree-dump), and its elements in those states |
 | `render()` | The last frame's pixels and tree, as `Headless` makes them |

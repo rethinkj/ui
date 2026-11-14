@@ -47,7 +47,7 @@ Log messages, document blocks and wrapping cells each have their own height. `ro
 - A list of a million such rows scrolls as fast as one with a fixed row height.
 - When rows above the view turn out higher or lower than estimated, the offset adjusts, so the rows in view stay in place.
 - `app.scrollToRow(list, row)` keeps following the row while the rows before it are measured, until the user's next press, key or wheel.
-- Heights are kept by index. When rows are inserted or removed anywhere but at the end, make a new `RowHeights`.
+- Heights are kept by index. When rows are inserted or removed anywhere but at the end, or are sorted or moved, make a new `RowHeights`.
 
 | `RowHeights` | |
 | --- | --- |

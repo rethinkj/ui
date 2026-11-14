@@ -43,7 +43,7 @@ The view passes each component the prop of its field and asks the editing whethe
 | `saved()` | The value is the new original: `changed()` is false until the next edit |
 | `prop.error(message)` | An error from the app, such as the server's refusal: shown at the field until its next edit |
 
-A field's error is the first of: a parse error (also for a value that has none, such as null in a required field), an error set by the app, the first failing rule that names the field. `valid()` counts parse errors from the start, but a field shows its error only after the user edited it or the app called `showErrors()`, so a form for a new record does not open in red. The component shows the error (`invalid` and `error="…"` in a dump, a danger border on a text field), and a [Form](/docs/components/form) field shows it below the control. A field that is hidden keeps its draft, and a parse error in it still makes the edit invalid.
+A field's error is the first of: a parse error (also for a value that has none, such as null in a required field), an error set by the app, the first failing rule that names the field. `valid()` counts parse errors from the start, but a field shows its parse error only after the user edited it or the app called `showErrors()`, so a form for a new record does not open with parse errors. Errors set by the app and failing rules show at once. The component shows the error (`invalid` and `error="…"` in a dump, a danger border on a text field), and a [Form](/docs/components/form) field shows it below the control. A field that is hidden keeps its draft, and a parse error in it still makes the edit invalid.
 
 ```text file="examples/src/test/resources/docs/editing.txt" start="press #due" count="6"
 ```

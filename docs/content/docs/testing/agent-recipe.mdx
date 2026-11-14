@@ -23,7 +23,7 @@ Start with what the user does, one step per line, and `snap` after each state yo
 ```text snippet="dialog-script" title="dialog.txt"
 ```
 
-- `advance 0.3` after opening a menu, dialog or tooltip: overlays fade in, and a snap before that shows them half visible. Elements at opacity 0 or fading out (`exiting`) take no input and match no selector.
+- `advance 0.3` after opening a menu, dialog or tooltip: overlays fade in, and a snap before that shows them half visible. Elements at opacity 0 or fading out (`exiting`) match no selector and take no presses.
 - `await` after starting work on another thread; posted results reach a script only there. `await progress` lets in progress reports, for a snap of work half done.
 - `scroll <list> row <n>` before pressing a row that is not in view.
 

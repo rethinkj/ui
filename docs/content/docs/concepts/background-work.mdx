@@ -65,7 +65,7 @@ A script does not wait for wall-clock time. `await` waits until the work that `b
 ```text file="examples/src/test/resources/golden/docs/progress/downloading.tree.txt" start="Driver" count="5"
 ```
 
-`await` also waits for lane work that has not started yet, and for cancelled work with an `onEnd` handler until it has returned. Here the count waits behind the cancelled report, and both are done after `await`:
+`await` also waits for lane work that has not started yet, and for cancelled work with an `onEnd` handler until it has returned. Other cancelled work it does not wait for: it may still be running when `await` returns. Here the count waits behind the cancelled report, and both are done after `await`:
 
 ```text snippet="lane-script"
 ```
