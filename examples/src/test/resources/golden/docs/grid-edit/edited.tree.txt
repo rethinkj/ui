@@ -26,8 +26,8 @@ el 0,0 520x300
             text label="tag" "\u{EC70}" 317,57 16x16
             text "status" 337,57 37x16
           el 412,53 1x24
-        el #rows 13,78 494x209 rows 0-11/1000 thumb-y 499,80 6x24
-          el #row-0 role=row 13,78 494x24 pos=1/1000
+        el #rows 13,78 494x209 rows 0-11/20 thumb-y 499,80 6x89.26
+          el #row-0 role=row 13,78 494x24 pos=1/20
             el #cell-0-0 role=gridcell 13,78 79x23 pos=1/4
               text "1000" 60,82 28x16
             el 92,78 1x23
@@ -40,7 +40,7 @@ el 0,0 520x300
             el #cell-0-3 role=gridcell 313,78 99x23 pos=4/4
               text "paid" 317,82 26x16
             el 412,78 1x23
-          el #row-1 role=row 13,102 494x24 pos=2/1000 value="changed"
+          el #row-1 role=row 13,102 494x24 pos=2/20 value="changed"
             el #cell-1-0 role=gridcell 13,102 79x23 pos=1/4
               text "1001" 60,106 28x16
             el 92,102 1x23
@@ -54,7 +54,7 @@ el 0,0 520x300
               text "pending" 317,106 51x16
             el 412,102 1x23
             el #mark 13,102 2x23
-          el #row-2 role=row 13,126 494x24 pos=3/1000
+          el #row-2 role=row 13,126 494x24 pos=3/20
             el #cell-2-0 role=gridcell 13,126 79x23 pos=1/4
               text "1002" 60,130 28x16
             el 92,126 1x23
@@ -67,7 +67,7 @@ el 0,0 520x300
             el #cell-2-3 role=gridcell 313,126 99x23 pos=4/4
               text "shipped" 317,130 50x16
             el 412,126 1x23
-          el #row-3 role=row 13,150 494x24 pos=4/1000
+          el #row-3 role=row 13,150 494x24 pos=4/20
             el #cell-3-0 role=gridcell 13,150 79x23 pos=1/4
               text "1003" 60,154 28x16
             el 92,150 1x23
@@ -80,7 +80,7 @@ el 0,0 520x300
             el #cell-3-3 role=gridcell 313,150 99x23 pos=4/4
               text "refunded" 317,154 58x16
             el 412,150 1x23
-          el #row-4 role=row 13,174 494x24 pos=5/1000
+          el #row-4 role=row 13,174 494x24 pos=5/20
             el #cell-4-0 role=gridcell 13,174 79x23 pos=1/4
               text "1004" 60,178 28x16
             el 92,174 1x23
@@ -93,7 +93,7 @@ el 0,0 520x300
             el #cell-4-3 role=gridcell 313,174 99x23 pos=4/4
               text "paid" 317,178 26x16
             el 412,174 1x23
-          el #row-5 role=row 13,198 494x24 pos=6/1000
+          el #row-5 role=row 13,198 494x24 pos=6/20
             el #cell-5-0 role=gridcell 13,198 79x23 pos=1/4
               text "1005" 60,202 28x16
             el 92,198 1x23
@@ -106,7 +106,7 @@ el 0,0 520x300
             el #cell-5-3 role=gridcell 313,198 99x23 pos=4/4
               text "pending" 317,202 51x16
             el 412,198 1x23
-          el #row-6 role=row 13,222 494x24 pos=7/1000
+          el #row-6 role=row 13,222 494x24 pos=7/20
             el #cell-6-0 role=gridcell 13,222 79x23 pos=1/4
               text "1006" 60,226 28x16
             el 92,222 1x23
@@ -119,7 +119,7 @@ el 0,0 520x300
             el #cell-6-3 role=gridcell 313,222 99x23 pos=4/4
               text "shipped" 317,226 50x16
             el 412,222 1x23
-          el #row-7 role=row 13,246 494x24 pos=8/1000
+          el #row-7 role=row 13,246 494x24 pos=8/20
             el #cell-7-0 role=gridcell 13,246 79x23 pos=1/4
               text "1007" 60,250 28x16
             el 92,246 1x23
@@ -132,7 +132,7 @@ el 0,0 520x300
             el #cell-7-3 role=gridcell 313,246 99x23 pos=4/4
               text "refunded" 317,250 58x16
             el 412,246 1x23
-          el #row-8 role=row 13,270 494x24 pos=9/1000
+          el #row-8 role=row 13,270 494x24 pos=9/20
             el #cell-8-0 role=gridcell 13,270 79x23 pos=1/4
               text "1008" 60,274 28x16
             el 92,270 1x23
@@ -145,7 +145,7 @@ el 0,0 520x300
             el #cell-8-3 role=gridcell 313,270 99x23 pos=4/4
               text "paid" 317,274 26x16
             el 412,270 1x23
-          el #row-9 role=row 13,294 494x24 pos=10/1000
+          el #row-9 role=row 13,294 494x24 pos=10/20
             el #cell-9-0 role=gridcell 13,294 79x23 pos=1/4
               text "1009" 60,298 28x16
             el 92,294 1x23
@@ -158,7 +158,7 @@ el 0,0 520x300
             el #cell-9-3 role=gridcell 313,294 99x23 pos=4/4
               text "pending" 317,298 51x16
             el 412,294 1x23
-          el #row-10 role=row 13,318 494x24 pos=11/1000
+          el #row-10 role=row 13,318 494x24 pos=11/20
             el #cell-10-0 role=gridcell 13,318 79x23 pos=1/4
               text "1010" 60,322 28x16
             el 92,318 1x23
@@ -171,7 +171,7 @@ el 0,0 520x300
             el #cell-10-3 role=gridcell 313,318 99x23 pos=4/4
               text "shipped" 317,322 50x16
             el 412,318 1x23
-          el #row-11 role=row 13,342 494x24 pos=12/1000
+          el #row-11 role=row 13,342 494x24 pos=12/20
             el #cell-11-0 role=gridcell 13,342 79x23 pos=1/4
               text "1011" 60,346 28x16
             el 92,342 1x23

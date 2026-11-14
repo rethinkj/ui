@@ -1,0 +1,10 @@
+size 480 220
+frame
+snap view
+press #close-0
+frame
+press #close-0
+frame
+press #close-0
+frame
+snap closed                # no tabs left: the content says so

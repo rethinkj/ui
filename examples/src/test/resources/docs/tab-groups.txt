@@ -9,3 +9,6 @@ press role=menuitem label="Move to new window"
 frame
 snap moved                              # writes moved.png and ideas-moved.png
 # docs:end tab-groups-script
+press #close-0                          # the first window's last tab
+frame
+snap empty                              # an empty group: no content, the bar still takes tabs

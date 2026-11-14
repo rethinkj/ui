@@ -1,5 +1,5 @@
 el 0,0 640x360
-  text "Control+Shift+P opens the palette." 12,12 215x16
+  text "Control+Shift+P opens the palette." 12,12 616x16
 overlay edge top center gap 36 on 0,0 640x360
   el #palette role=dialog label="Command palette" 40,36 560x62
     el 45,41 550x24
