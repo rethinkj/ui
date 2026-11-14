@@ -1,0 +1,1 @@
+- A button that the view makes narrower than its text (`.w(120)`) ends the text in an ellipsis and shows it whole in a tooltip; before, the text ran out of the button on both sides. `Tooltip.whenShortened(theme, anchor, text)` is that tooltip for any anchor, and `El.whenShortened()` an overlay that shows only while a text of its anchor is cut.

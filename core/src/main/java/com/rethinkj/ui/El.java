@@ -263,6 +263,7 @@ public final class El {
     float pointY = Float.NaN;
     boolean centered;
     boolean atCaret; // see El#atCaret
+    boolean whenShortened; // see El#whenShortened
     Side edge; // see El#atWindowEdge; null for beside the anchor
     boolean modal;
     int scrim;
@@ -2278,6 +2279,17 @@ public final class El {
    */
   public El atCaret() {
     layer().atCaret = true;
+    return this;
+  }
+
+  /**
+   * Shows this overlay only while a text of its anchor, or of an element inside the anchor, ends
+   * in an ellipsis because it did not fit ({@link #ellipsis}, {@link Text#shortened}): a tooltip
+   * with the whole text of a label that was cut. Layout decides that after the looks have run,
+   * so a look that attaches the overlay cannot know it.
+   */
+  public El whenShortened() {
+    layer().whenShortened = true;
     return this;
   }
 

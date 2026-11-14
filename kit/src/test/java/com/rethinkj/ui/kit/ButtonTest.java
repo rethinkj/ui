@@ -60,6 +60,39 @@ class ButtonTest {
   }
 
   @Test
+  void aTextTooLongForItsButtonEndsInAnEllipsisAndShowsWholeInATooltip() throws IOException {
+    String text = "Export public.customer_addresses as CSV";
+    App<Clicks> app = app(s -> row()
+        .children(
+            button(T, SECONDARY, text, s::press).key("narrow").w(120),
+            button(T, SECONDARY, "Save", s::press).key("fits").w(120)));
+    run(app, "move #narrow\nframe\nadvance 1\nframe");
+    String dump = app.tree().dump();
+    float[] button = StructureTest.rect(dumpLine(app, "narrow"));
+    float[] label = StructureTest.rect(StructureTest.line(dump, "text \"" + text + "\""));
+    assertEquals(120, button[2]);
+    assertTrue(
+        label[0] >= button[0] && label[0] + label[2] <= button[0] + button[2],
+        "the text stays inside: " + dump);
+    assertTrue(find(app, "narrow").children().getLast().text().shortened(), dump);
+    assertTrue(dump.contains("role=tooltip label=\"" + text + "\""), dump);
+
+    run(app, "move #fits\nframe\nadvance 1\nframe");
+    assertFalse(app.tree().dump().contains("role=tooltip"), "a text that fits needs none");
+  }
+
+  @Test
+  void aTooltipOfTheViewStandsInPlaceOfTheWholeText() throws IOException {
+    String text = "Export public.customer_addresses as CSV";
+    App<Clicks> app = app(s -> Tooltip.tooltip(
+        T, button(T, SECONDARY, text, s::press).key("narrow").w(120), "Writes a file"));
+    run(app, "move #narrow\nframe\nadvance 1\nframe");
+    String dump = app.tree().dump();
+    assertTrue(dump.contains("role=tooltip label=\"Writes a file\""), dump);
+    assertFalse(dump.contains("role=tooltip label=\"" + text), dump);
+  }
+
+  @Test
   void aButtonThatIsOffIsAsOneWithoutAHandler() throws IOException {
     App<Clicks> off = app(s ->
         button(T, SECONDARY, "Save", s::press, Button.options().enabled(false)).key("b"));

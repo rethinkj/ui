@@ -156,7 +156,14 @@ public final class Button {
     El button =
         frame(t, look, text, press).padding(0, t.space().l()).gap(t.space().s());
     Theme.TextStyle style = t.type().strong();
-    El label = El.text(text).font(style.font().get()).fontSize(style.size()).color(look.text());
+    // Where the view makes the button narrower than its text, the text ends in an ellipsis and
+    // shows whole in a tooltip.
+    El label = El.text(text)
+        .font(style.font().get())
+        .fontSize(style.size())
+        .color(look.text())
+        .ellipsis()
+        .minSize(0, 0);
     if (o.busy && press != null) {
       El spinner = spinner(t, variant, look);
       if (o.icon != null) { // in the icon's place
@@ -167,12 +174,12 @@ public final class Button {
         spinner.style().position = Style.Position.ABSOLUTE;
         button.child(label.opacity(0)).child(spinner);
       }
-      return busy(t, variant, look, button);
+      return Tooltip.whenShortened(t, busy(t, variant, look, button), text);
     }
     if (o.icon != null) {
       button.child(Icon.icon(t, o.icon).color(look.text()));
     }
-    return enable(t, variant, look, button.child(label), press);
+    return Tooltip.whenShortened(t, enable(t, variant, look, button.child(label), press), text);
   }
 
   /**

@@ -62,7 +62,8 @@ final class Overlays {
    * while its anchor does, not while the anchor or an element above it is leaving or made
    * invisible by the view, the clips above the anchor leave nothing of its rectangle or it lies
    * wholly outside the window, and not while the view makes the overlay itself invisible. An
-   * anchor or overlay that fades in counts from its first frame.
+   * anchor or overlay that fades in counts from its first frame. One with {@link
+   * El#whenShortened} shows only while a text of its anchor is cut.
    */
   static boolean place(El root, float width, float height) {
     List<El> shown = new ArrayList<>();
@@ -103,7 +104,7 @@ final class Overlays {
         && overlaps(top, bottom, height)) {
       float far = Float.POSITIVE_INFINITY;
       for (El overlay : el.overlays()) {
-        if (overlay.targetOpacity() == 0) {
+        if (overlay.targetOpacity() == 0 || overlay.placement().whenShortened && !shortened(el)) {
           continue; // not shown, so it neither blocks as a modal one does nor takes the focus
         }
         place(overlay, el, left, top, width, height, within);
@@ -126,6 +127,19 @@ final class Overlays {
       place(
           child, left, top, clipLeft, clipTop, clipRight, clipBottom, width, height, shown, within);
     }
+  }
+
+  /** Whether layout cut a text of the element, or of one inside it, to end in an ellipsis. */
+  private static boolean shortened(El el) {
+    if (el.text() != null && el.text().shortened()) {
+      return true;
+    }
+    for (El child : el.children()) {
+      if (shortened(child)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   /**

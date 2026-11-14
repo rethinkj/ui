@@ -29,8 +29,29 @@ public final class Tooltip {
    * @return the anchor
    */
   public static El tooltip(Theme t, El anchor, String text) {
+    return tooltip(t, anchor, text, false);
+  }
+
+  /**
+   * A tooltip with the whole text of an anchor whose text may be cut short ({@link El#ellipsis}):
+   * as {@link #tooltip}, but it shows only while a text of the anchor ends in an ellipsis.
+   */
+  public static El whenShortened(Theme t, El anchor, String text) {
+    return tooltip(t, anchor, text, true);
+  }
+
+  private static El tooltip(Theme t, El anchor, String text, boolean shortened) {
     Consumer<El> show = e -> {
+      if (shortened) {
+        if (e.overlays().stream()
+            .noneMatch(o -> WHOLE.equals(o.key()) || "tooltip".equals(o.key()))) {
+          e.overlay(panel(t, text).key(WHOLE).whenShortened());
+        }
+        return;
+      }
       if (e.overlays().stream().noneMatch(o -> "tooltip".equals(o.key()))) { // one for both looks
+        // A tooltip the view gives stands in place of the one with the anchor's whole text.
+        e.overlays().stream().filter(o -> WHOLE.equals(o.key())).forEach(o -> o.opacity(0));
         e.overlay(panel(t, text));
       }
     };
@@ -38,6 +59,8 @@ public final class Tooltip {
         .whenHoveredFor(t.motion().tooltipDelay(), show)
         .whenFocusVisibleFor(t.motion().tooltipDelay(), show);
   }
+
+  private static final String WHOLE = "whole-text"; // the key of a cut text's tooltip
 
   /** The tooltip's overlay, for components that decide in their own look whether it shows. */
   static El panel(Theme t, String text) {
