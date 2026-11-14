@@ -38,7 +38,7 @@ import java.util.List;
 /** The examples of the pages about cards, structure, navigation and status. */
 final class Layouts {
 
-  final Theme t = Theme.DARK;
+  Theme t = Theme.DARK;
   final Clipboard clipboard = Clipboard.inMemory();
   boolean wrap = true;
   boolean advanced;
@@ -391,6 +391,6 @@ final class Layouts {
             Properties.property("OID", "16384").mono()),
         s.clipboard);
     // docs:end properties
-    return Frame.of(t, path, tools.wFull(), table.w(320));
+    return Frame.of(t, path.wFull(), tools.wFull(), table.w(320));
   }
 }

@@ -7,6 +7,8 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
 import com.rethinkj.ui.App;
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.Script;
+import com.rethinkj.ui.examples.Snaps;
+import com.rethinkj.ui.kit.Theme;
 import com.rethinkj.ui.text.Font;
 import com.rethinkj.ui.text.TextRendering;
 import java.io.IOException;
@@ -14,17 +16,18 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
-import java.util.function.Supplier;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.DynamicTest;
 import org.junit.jupiter.api.TestFactory;
 
 /**
  * Runs the examples of the documentation site (docs/), whose code the pages show: each on the
- * script {@code src/test/resources/docs/<name>.txt}, or a frame of its view where it has none, comparing the trees of its snaps with
- * {@code src/test/resources/golden/docs/<name>}, which the pages show too. With {@code
+ * script {@code src/test/resources/docs/<name>.txt}, or a frame of its view where it has none,
+ * comparing the trees of its snaps, and the images of those in {@link #IMAGES}, with {@code
+ * src/test/resources/golden/docs/<name>}, which the pages show too. With {@code
  * -Dgolden.update=true} it stores them anew.
  */
 class DocsExamplesTest {
@@ -32,13 +35,38 @@ class DocsExamplesTest {
   private static final Path SCRIPTS = Path.of("src/test/resources/docs");
   private static final Path STORED = Path.of("src/test/resources/golden/docs");
 
-  /** An example: its app and the size of its window for the default script. */
-  record Example(Supplier<App<?>> app, int width, int height) {}
+  /**
+   * The snaps that the pages show, by example: these are stored as images too, in both themes, as
+   * {@code <snap>-dark.png} and {@code <snap>-light.png}, since the site shows the one of its own.
+   */
+  static final Map<String, List<String>> IMAGES = Map.ofEntries(
+      Map.entry("layout", List.of("view")),
+      Map.entry("text", List.of("view")),
+      Map.entry("input", List.of("pressed")),
+      Map.entry("motion", List.of("opening")),
+      Map.entry("overlay", List.of("open")),
+      Map.entry("rows", List.of("far")),
+      Map.entry("field", List.of("view")),
+      Map.entry("editing", List.of("rule")),
+      Map.entry("background", List.of("counting")),
+      Map.entry("theme", List.of("view")),
+      Map.entry("tab-groups", List.of("moved", "ideas-moved")),
+      Map.entry("status", List.of("view")),
+      Map.entry("choices", List.of("view")),
+      Map.entry("details", List.of("view", "more", "hidden")),
+      Map.entry("dividers", List.of("view")),
+      Map.entry("groups", List.of("view")),
+      Map.entry("parts", List.of("view")),
+      Map.entry("tabs", List.of("view")),
+      Map.entry("grid", List.of("selected")));
+
+  /** An example: its app in a theme and the size of its window for the default script. */
+  record Example(Function<Theme, App<?>> app, int width, int height) {}
 
   /** Each example by the name of its script, or of its snap where it has no script. */
   static Map<String, Example> examples() {
     Map<String, Example> all = new LinkedHashMap<>();
-    all.put("lights", new Example(() -> new App<>(new Lights(), Lights::view), 360, 240));
+    all.put("lights", new Example(t -> new App<>(new Lights(), Lights::view), 360, 240));
     controls(all, "buttons", Controls::buttons, 520, 120);
     controls(all, "button-options", Controls::buttonOptions, 420, 120);
     controls(all, "toggles", Controls::toggles, 240, 110);
@@ -78,14 +106,24 @@ class DocsExamplesTest {
     grids(all, "grid-filter", Grids::filtered, 520, 300);
     grids(all, "grid-typed", Grids::typed, 520, 300);
     grids(all, "tree", Grids::tree, 320, 260);
-    all.put("grid-commit", new Example(() -> new App<>(new Commits(), Commits::view), 520, 300));
+    all.put(
+        "grid-commit",
+        new Example(
+            t -> {
+              Commits state = new Commits();
+              state.t = t;
+              return new App<>(state, Commits::view);
+            },
+            520,
+            300));
     editors(all, "code-editor", Editors::codeEditor, 520, 260);
     editors(all, "find", Editors::find, 440, 220);
     all.put(
         "highlighter",
         new Example(
-            () -> {
+            t -> {
               Highlighters state = new Highlighters();
+              state.t = t;
               App<Highlighters> app = new App<>(state, Highlighters::view);
               state.app = app;
               return app;
@@ -95,23 +133,51 @@ class DocsExamplesTest {
     editors(all, "markdown", Editors::markdown, 520, 320);
     editors(all, "image", Editors::image, 240, 180);
     concepts(all, "layout", Concepts::layout, 480, 200);
-    all.put("styles", new Example(() -> new App<>(new Styles(), Styles::view), 360, 400));
+    all.put(
+        "styles",
+        new Example(
+            t -> {
+              Styles state = new Styles();
+              state.t = t;
+              return new App<>(state, Styles::view);
+            },
+            360,
+            400));
     concepts(all, "text", Concepts::texts, 320, 200);
     concepts(all, "input", Concepts::input, 280, 140);
     concepts(all, "states", Concepts::states, 240, 80);
     concepts(all, "motion", Concepts::motion, 320, 160);
     concepts(all, "overlay", Concepts::overlay, 280, 160);
     concepts(all, "rows", Concepts::rows, 280, 200);
-    all.put("row-heights", new Example(() -> new App<>(new Messages(), Messages::view), 320, 240));
+    all.put(
+        "row-heights",
+        new Example(
+            t -> {
+              Messages state = new Messages();
+              state.t = t;
+              return new App<>(state, Messages::view);
+            },
+            320,
+            240));
     concepts(all, "field", Concepts::fields, 320, 200);
-    all.put("range", new Example(() -> new App<>(new Paragraphs(), Paragraphs::view), 300, 140));
+    all.put(
+        "range",
+        new Example(
+            t -> {
+              Paragraphs state = new Paragraphs();
+              state.t = t;
+              return new App<>(state, Paragraphs::view);
+            },
+            300,
+            140));
     concepts(all, "background", Concepts::background, 420, 140);
     concepts(all, "progress", Concepts::progress, 280, 120);
     all.put(
         "lanes",
         new Example(
-            () -> {
+            t -> {
               Concepts state = new Concepts();
+              state.t = t;
               App<Concepts> app = new App<>(state, Concepts::lanes);
               state.app = app;
               state.connection = app.lane("staging");
@@ -122,25 +188,61 @@ class DocsExamplesTest {
             150));
     concepts(all, "images", Concepts::images, 280, 120);
     concepts(all, "theme", Concepts::theme, 200, 80);
-    all.put("tab-groups", new Example(Notebook::app, 420, 260));
-    all.put("editing", new Example(() -> new App<>(new Editings(), Editings::record), 380, 260));
-    all.put("editing-pojo", new Example(() -> new App<>(new Editings(), Editings::pojo), 360, 160));
+    all.put(
+        "tab-groups",
+        new Example(
+            t -> {
+              App<Notebook> app = Notebook.app();
+              app.state().t = t;
+              return app;
+            },
+            420,
+            260));
+    editings(all, "editing", Editings::record, 380, 260);
+    editings(all, "editing-pojo", Editings::pojo, 360, 160);
     return all;
   }
 
   private static void controls(
       Map<String, Example> all, String name, Function<Controls, El> view, int width, int height) {
-    all.put(name, new Example(() -> new App<>(new Controls(), view), width, height));
+    all.put(
+        name,
+        new Example(
+            t -> {
+              Controls state = new Controls();
+              state.t = t;
+              return new App<>(state, view);
+            },
+            width,
+            height));
   }
 
   private static void layouts(
       Map<String, Example> all, String name, Function<Layouts, El> view, int width, int height) {
-    all.put(name, new Example(() -> new App<>(new Layouts(), view), width, height));
+    all.put(
+        name,
+        new Example(
+            t -> {
+              Layouts state = new Layouts();
+              state.t = t;
+              return new App<>(state, view);
+            },
+            width,
+            height));
   }
 
   private static void overlays(
       Map<String, Example> all, String name, Function<Overlays, El> view, int width, int height) {
-    all.put(name, new Example(() -> new App<>(new Overlays(), view), width, height));
+    all.put(
+        name,
+        new Example(
+            t -> {
+              Overlays state = new Overlays();
+              state.t = t;
+              return new App<>(state, view);
+            },
+            width,
+            height));
   }
 
   private static void grids(
@@ -148,8 +250,9 @@ class DocsExamplesTest {
     all.put(
         name,
         new Example(
-            () -> {
+            t -> {
               Grids state = new Grids();
+              state.t = t;
               App<Grids> app = new App<>(state, view);
               state.app = app;
               return app;
@@ -163,8 +266,9 @@ class DocsExamplesTest {
     all.put(
         name,
         new Example(
-            () -> {
+            t -> {
               Editors state = new Editors();
+              state.t = t;
               App<Editors> app = new App<>(state, view);
               state.app = app;
               return app;
@@ -178,11 +282,26 @@ class DocsExamplesTest {
     all.put(
         name,
         new Example(
-            () -> {
+            t -> {
               Concepts state = new Concepts();
+              state.t = t;
               App<Concepts> app = new App<>(state, view);
               state.app = app;
               return app;
+            },
+            width,
+            height));
+  }
+
+  private static void editings(
+      Map<String, Example> all, String name, Function<Editings, El> view, int width, int height) {
+    all.put(
+        name,
+        new Example(
+            t -> {
+              Editings state = new Editings();
+              state.t = t;
+              return new App<>(state, view);
             },
             width,
             height));
@@ -197,19 +316,34 @@ class DocsExamplesTest {
             script + " has no example");
       }
     }
+    assertTrue(examples().keySet().containsAll(IMAGES.keySet()), "an image of no example");
     return examples().entrySet().stream()
         .map(e -> DynamicTest.dynamicTest(e.getKey(), () -> {
           assumeText();
           Example example = e.getValue();
-          App<?> app = example.app().get();
-          app.textRendering(TextRendering.LINUX); // the same trees on every platform
           Path out = Path.of("target/docs", e.getKey());
           Path file = SCRIPTS.resolve(e.getKey() + ".txt");
           String script = Files.exists(file)
               ? Files.readString(file)
               : "size " + example.width() + " " + example.height() + "\nframe\nsnap view\n";
-          Script.run(script, app, out);
-          compare(out, STORED.resolve(e.getKey()));
+          App<?> app = example.app().apply(Theme.DARK);
+          app.textRendering(TextRendering.LINUX); // the same trees on every platform
+          Script.run(script, app, out.resolve("trees"));
+          compare(out.resolve("trees"), STORED.resolve(e.getKey()));
+
+          // The images at scale 2, as the site shows them, in each theme.
+          String scaled = script.replaceAll("(?m)^(size \\d+ \\d+)(?=\\s*(#|$))", "$1 scale 2");
+          for (String theme :
+              IMAGES.containsKey(e.getKey()) ? List.of("dark", "light") : List.<String>of()) {
+            App<?> themed = example.app().apply(theme.equals("dark") ? Theme.DARK : Theme.LIGHT);
+            themed.textRendering(TextRendering.LINUX); // the same pixels on every platform
+            Script.run(scaled, themed, out.resolve(theme));
+            for (String snap : IMAGES.get(e.getKey())) {
+              Path written = out.resolve(theme).resolve(snap + ".png");
+              assertTrue(Files.exists(written), e.getKey() + " has no snap " + snap);
+              Snaps.image(written, STORED.resolve(e.getKey()).resolve(snap + "-" + theme + ".png"));
+            }
+          }
         }));
   }
 

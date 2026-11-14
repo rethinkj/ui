@@ -28,7 +28,7 @@ final class Notebook {
     }
   }
 
-  final Theme t = Theme.DARK;
+  Theme t = Theme.DARK;
   App<Notebook> app; // the first window's app
   final TabGroups<Note> groups = new TabGroups<>(
       List.of(new Note("Groceries", "Milk"), new Note("Ideas", "A tree of tables")), this::open);

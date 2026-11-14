@@ -1,0 +1,22 @@
+size 520 280
+frame
+snap view
+size 240 280                            # narrow: the toolbar's end moves into More,
+frame                                   # the breadcrumb's start into Hidden parts
+frame
+advance 1
+frame
+press role=button label="More"
+frame
+advance 0.25
+frame
+snap more
+key Escape
+frame
+advance 0.25
+frame
+press role=button label="Hidden parts"
+frame
+advance 0.25
+frame
+snap hidden

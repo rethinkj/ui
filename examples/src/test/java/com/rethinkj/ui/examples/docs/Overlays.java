@@ -30,7 +30,7 @@ import java.util.List;
 /** The examples of the pages about menus, dialogs and other overlays. */
 final class Overlays {
 
-  final Theme t = Theme.DARK;
+  Theme t = Theme.DARK;
   final Menu.State options = new Menu.State();
   final Menu.State context = new Menu.State();
   final MenuBar.State bar = new MenuBar.State();

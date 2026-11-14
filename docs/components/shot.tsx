@@ -6,11 +6,12 @@ const shots = manifest as unknown as Record<string, { dark: string; light: strin
 /**
  * A stored image of the tests, in the dark and the light theme: the page shows the one of its
  * theme. In MDX, lib/remark-docs.mjs fills in `dark`, `light` and the size from what the page
- * names; elsewhere `src` (and `rows`) are looked up as scripts/docs.mjs prepared them.
+ * names; elsewhere `src` (and `rows` or `crop`) are looked up as scripts/docs.mjs prepared them.
  */
 export function Shot({
   src,
   rows,
+  crop,
   dark,
   light,
   width,
@@ -22,6 +23,7 @@ export function Shot({
 }: {
   src?: string;
   rows?: string;
+  crop?: string;
   dark?: string;
   light?: string;
   width?: string | number;
@@ -32,7 +34,7 @@ export function Shot({
   priority?: boolean;
 }) {
   if (src) {
-    const entry = shots[shotKey({ src, dark, light, rows })];
+    const entry = shots[shotKey({ src, dark, light, rows, crop })];
     if (!entry) throw new Error(`<Shot src="${src}"> not prepared; run npm run docs:prepare`);
     dark = `/shots/${entry.dark}`;
     light = `/shots/${entry.light}`;
