@@ -13,7 +13,7 @@ description: Typed values in text fields and grid columns, written and read with
 | --- | --- | --- |
 | `TEXT` | `String` | As it is; the empty text is the empty string |
 | `INTEGER`, `LONG`, `BIG_INTEGER` | `Integer`, `Long`, `BigInteger` | `-12`, `+7`; refused beyond the type's range |
-| `DECIMAL` | `BigDecimal` | `12.50`, `-.5`, `1e3`; written without an exponent, the scale kept |
+| `DECIMAL` | `BigDecimal` | `12.50`, `-.5`, `1e3`; written without an exponent, the scale kept, so an exponent that would write more than 4096 zeros (`1e5000`) is refused |
 | `DATE` | `LocalDate` | `2026-11-13` |
 | `TIME` | `LocalTime` | `14:30`, `14:30:15` |
 | `DATE_TIME` | `LocalDateTime` | `2026-11-13 14:30`, also with a `T` |

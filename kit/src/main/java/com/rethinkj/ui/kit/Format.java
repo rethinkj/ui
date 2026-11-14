@@ -103,6 +103,15 @@ public final class Format<T> {
 
   private static final String WHOLE_MESSAGE = "Not a whole number";
   private static final String NUMBER_MESSAGE = "Not a number";
+
+  /**
+   * The most zeros the exponent of a {@link #DECIMAL} may add to its digits when it is written out
+   * plain.
+   */
+  public static final int MAX_ZEROS = 4096;
+
+  private static final String ZEROS_MESSAGE =
+      "Expected a number whose exponent adds at most " + MAX_ZEROS + " zeros";
   private static final String DATE_MESSAGE = "Expected a date such as 2026-11-13";
   private static final String TIME_MESSAGE = "Expected a time such as 14:30 or 14:30:15";
   private static final String DATE_TIME_MESSAGE =
@@ -135,20 +144,20 @@ public final class Format<T> {
   /**
    * A decimal number, with a full stop and an exponent if any: {@code 12.50}, {@code -.5}, {@code
    * 1e3}. Its scale is the text's, so {@code 12.50} stays {@code 12.50}; it is written without an
-   * exponent ({@link BigDecimal#toPlainString}).
+   * exponent ({@link BigDecimal#toPlainString}), so an exponent that would write more than {@link
+   * #MAX_ZEROS} zeros ({@code 1e5000}, {@code 1e-5000}) is refused, also by {@link #allows}.
    */
   public static final Format<BigDecimal> DECIMAL = new Format<>(
       BigDecimal::toPlainString,
       text -> {
-        if (NUMBER.matcher(text).matches()) {
-          try {
-            return Parsed.of(new BigDecimal(text));
-          } catch (NumberFormatException e) { // an exponent beyond an int
-          }
+        if (!NUMBER.matcher(text).matches()) {
+          return Parsed.error(NUMBER_MESSAGE);
         }
-        return Parsed.error(NUMBER_MESSAGE);
+        BigDecimal value = decimal(text);
+        return value == null ? Parsed.error(ZEROS_MESSAGE) : Parsed.of(value);
       },
-      text -> NUMBER_TYPED.matcher(text).matches(),
+      text -> NUMBER_TYPED.matcher(text).matches()
+          && (!NUMBER.matcher(text).matches() || decimal(text) != null),
       DataType.DECIMAL,
       List.of(),
       false,
@@ -389,6 +398,22 @@ public final class Format<T> {
         choices,
         optional,
         textual);
+  }
+
+  /**
+   * The decimal of a text that {@link #NUMBER} matches, or null where its exponent lies beyond an
+   * {@code int} or would write more than {@link #MAX_ZEROS} zeros.
+   */
+  private static BigDecimal decimal(String text) {
+    BigDecimal value;
+    try {
+      value = new BigDecimal(text);
+    } catch (NumberFormatException e) { // an exponent beyond an int
+      return null;
+    }
+    long scale = value.scale();
+    long zeros = scale < 0 ? -scale : Math.max(0, scale - value.precision());
+    return zeros > MAX_ZEROS ? null : value;
   }
 
   private static Format<BigInteger> whole(long min, long max) {

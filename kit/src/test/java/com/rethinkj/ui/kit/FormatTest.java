@@ -61,7 +61,10 @@ class FormatTest {
     assertEquals(new BigDecimal("-0.5"), Format.DECIMAL.parse("-.5").value());
     refused(Format.DECIMAL, "12,50", "Not a number");
     refused(Format.DECIMAL, "١٢", "Not a number"); // digits of another script
-    refused(Format.DECIMAL, "1e99999999999", "Not a number");
+    refused(
+        Format.DECIMAL,
+        "1e99999999999",
+        "Expected a number whose exponent adds at most 4096 zeros");
     assertEquals(DataType.INTEGER, Format.LONG.type());
     assertEquals(DataType.DECIMAL, Format.DECIMAL.type());
   }
@@ -185,5 +188,22 @@ class FormatTest {
     Format<Choice> same =
         Format.choice(List.of(new Choice(1, "Open"), new Choice(1, "Open")), Choice::label);
     assertEquals(new Choice(1, "Open"), same.parse("Open").value(), "equal values are one");
+  }
+
+  @Test
+  void aDecimalWhoseExponentWouldWriteTooManyZerosIsRefused() {
+    for (String text : List.of("1e2147483647", "1e5000", "1e-5000", "1e99999999999")) {
+      assertFalse(Format.DECIMAL.parse(text).valid(), text);
+      assertFalse(Format.DECIMAL.allows(text), text);
+    }
+    String most = "1e" + Format.MAX_ZEROS;
+    BigDecimal value = Format.DECIMAL.parse(most).value();
+    assertEquals(Format.MAX_ZEROS + 1, Format.DECIMAL.text(value).length());
+    assertTrue(Format.DECIMAL.allows(most));
+    assertTrue(Format.DECIMAL.allows("1e"));
+    String digits = "7".repeat(20_000) + ".5";
+    assertEquals(digits, Format.DECIMAL.text(Format.DECIMAL.parse(digits).value()));
+    String whole = "9".repeat(20_000);
+    assertEquals(whole, Format.BIG_INTEGER.text(Format.BIG_INTEGER.parse(whole).value()));
   }
 }
