@@ -1,13 +1,8 @@
 package com.rethinkj.ui.kit;
 
-import static com.rethinkj.ui.El.el;
 import static com.rethinkj.ui.El.row;
-import static com.rethinkj.ui.kit.Icon.icon;
 
-import com.rethinkj.ui.Cursor;
 import com.rethinkj.ui.El;
-import com.rethinkj.ui.Len;
-import com.rethinkj.ui.Style;
 import java.util.function.IntConsumer;
 
 /**
@@ -85,26 +80,22 @@ public final class NumberField {
       TextField.invalid(t, field).errorMessage(min + " to " + max);
     }
     float inset = t.space().xs();
-    float size = t.size().control() - 2 * inset;
-    field.wFull().style().paddingRight = Len.px(2 * size + inset + t.space().xs());
+    float size = FieldActions.size(t);
     El buttons = row()
         .gap(t.space().xs())
-        .child(button(
-            t,
-            Symbol.SUBTRACT,
-            "Decrease",
-            enabled && value > min,
-            () -> onChange.accept(step(value, -step, min, max))))
-        .child(button(
-            t,
-            Symbol.ADD,
-            "Increase",
-            enabled && value < max,
-            () -> onChange.accept(step(value, step, min, max))));
-    Style at = buttons.style();
-    at.position = Style.Position.ABSOLUTE;
-    at.right = Len.px(inset);
-    at.top = Len.px(inset);
+        // Even a disabled arrow keeps the focus in the field; neither is a Tab stop.
+        .child(FieldActions.button(
+                t,
+                Symbol.SUBTRACT,
+                "Decrease",
+                enabled && value > min ? () -> onChange.accept(step(value, -step, min, max)) : null)
+            .keepFocus())
+        .child(FieldActions.button(
+                t,
+                Symbol.ADD,
+                "Increase",
+                enabled && value < max ? () -> onChange.accept(step(value, step, min, max)) : null)
+            .keepFocus());
     if (enabled) {
       field.onKey(k -> {
         long by = k.modifiers() != 0
@@ -126,7 +117,9 @@ public final class NumberField {
         return true;
       });
     }
-    return el().w(t.size().field() / 2).children(field, buttons);
+    return FieldActions.embed(
+            t, field.wFull(), buttons, 2 * size + inset + t.space().xs())
+        .w(t.size().field() / 2);
   }
 
   /** Hands a typed whole number on; refuses anything else, so the field stays as it was. */
@@ -148,27 +141,5 @@ public final class NumberField {
   /** The value moved by {@code by} and kept in the range. */
   private static int step(int value, long by, int min, int max) {
     return (int) Math.clamp(value + by, min, max);
-  }
-
-  private static El button(
-      Theme t, Symbol symbol, String label, boolean enabled, Runnable onPress) {
-    float size = t.size().control() - 2 * t.space().xs();
-    El button = el().role("button")
-        .label(label)
-        .disabled(!enabled)
-        .size(size, size)
-        .center()
-        .radius(t.radius().small())
-        .motion(t.motion().feedback())
-        .child(icon(t, symbol, enabled ? Icon.Variant.MUTED : Icon.Variant.DISABLED))
-        .keepFocus(); // also at the end of the range, where it presses nothing
-    if (!enabled) {
-      return button;
-    }
-    return button
-        .cursor(Cursor.POINTER)
-        .onPress(onPress)
-        .whenHovered(e -> e.fill(t.surface().hover()))
-        .whenPressed(e -> e.fill(t.surface().pressed()));
   }
 }

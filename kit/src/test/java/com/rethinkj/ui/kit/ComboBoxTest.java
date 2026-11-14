@@ -9,6 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.rethinkj.ui.App;
 import com.rethinkj.ui.El;
+import com.rethinkj.ui.Headless;
 import com.rethinkj.ui.Script;
 import com.rethinkj.ui.Style;
 import com.rethinkj.ui.text.TextRendering;
@@ -17,6 +18,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.function.Function;
+import java.util.function.IntConsumer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -115,6 +117,41 @@ class ComboBoxTest {
     }
     Script.run(steps + "\nframe\nadvance 0.25\nframe\nsnap s", app, out);
     return Files.readString(out.resolve("s.tree.txt"));
+  }
+
+  @Test
+  void closedChoicesShortenLongLabelsAndKeepTheChevronInside() {
+    Theme t = Theme.DARK;
+    String text = "A long database name that does not fit in the closed choice";
+    List<String> choices = List.of(text);
+    List<ComboBox.Item> items = List.of(ComboBox.item(text).icon(Symbol.DATABASE));
+    for (boolean enabled : new boolean[] {true, false}) {
+      IntConsumer choose = enabled ? i -> {} : null;
+      El root = col()
+          .gap(t.space().s())
+          .children(
+              Select.select(t, choices, 0, new Menu.State(), choose).w(140),
+              ComboBox.comboBox(t, choices, 0, new ComboBox.State(), choose).w(140),
+              ComboBox.items(t, items, 0, new ComboBox.State(), choose).w(140));
+      Headless.render(root, 180, 160, 1, TextRendering.LINUX);
+      for (El box : root.children()) {
+        List<El> parts = box.children();
+        El label = parts.get(parts.size() - 2);
+        El chevron = parts.getLast();
+        assertEquals(text, box.label(), "the control keeps the full choice as its label");
+        assertEquals(text, label.text().string());
+        assertTrue(label.text().shortened(), "the visible label ends in an ellipsis");
+        assertTrue(label.width() > 0, "there is room for the label");
+        assertTrue(label.x() + label.width() + t.space().s() <= chevron.x() + 0.01);
+        assertTrue(chevron.width() > 0, "there is room for the chevron");
+        assertTrue(chevron.x() + chevron.width() <= box.width() - t.space().m());
+        if (parts.size() == 3) {
+          El lead = parts.getFirst();
+          assertEquals(t.size().icon(), lead.width());
+          assertTrue(lead.x() + lead.width() + t.space().s() <= label.x() + 0.01);
+        }
+      }
+    }
   }
 
   @Test

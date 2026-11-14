@@ -1,0 +1,1 @@
+- Long choices in `Select` now end in an ellipsis inside the frame, leaving room for the chevron, as in a closed `ComboBox`.

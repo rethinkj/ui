@@ -50,7 +50,9 @@ The selection also remembers where the grid is scrolled to, so a grid built agai
 | Option | |
 | --- | --- |
 | `nullText(String)` | What a copied `NULL` is; `""` unless set, as spreadsheets read an empty cell. |
-| `copyLimit(cells, handler)` | The grid copies at most this many cells itself (100 000 unless set) and hands a larger copy, or one with rows not loaded, to the handler as a `Copy` (ranges, headers, cell count). Build its text with `DataGrid.copyText` on another thread, or fetch it from the database. |
+| `copyLimit(cells)` | The grid copies at most this many cells itself; 100 000 unless set. |
+| `onLargeCopy(handler)` | Hands a larger copy, or one with rows not loaded, to the handler with its `Copy` (ranges, headers, cell count) and the effective cell limit. Setting the handler leaves the limit unchanged. Build the text with `DataGrid.copyText` on another thread, fetch it from the database, or tell the user why it was not copied. |
+| `copyLimit(cells, handler)` | Sets the limit and a handler that receives the `Copy`, as before. |
 | `contextMenu(state, items)` | Adds Copy and Copy with headers to the grid's menu, before your items. |
 
 `DataGrid.copyText(columns, ranges, headers, nullText)` builds the same text from your code, and `DataGrid.parseText(text)` reads it back into rows of cells.

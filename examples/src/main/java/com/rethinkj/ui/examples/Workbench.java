@@ -1733,10 +1733,7 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
         .label(o.table.name)
         .whenFocusWithin(e -> o.inGrid = true);
     El bar = DataGrid.filterBar(t, columns, o.filters, o::filter);
-    El tab = col().grow(1).minSize(0, 0).child(toolbar(t, s, o));
-    if (bar != null) { // the filters set, under the toolbar
-      tab.child(row().padding(0, t.space().l(), t.space().m(), t.space().l()).child(bar));
-    }
+    El tab = col().grow(1).minSize(0, 0).child(toolbar(t, s, o)).child(Card.filters(t, bar));
     return tab.children(
         Divider.divider(t), query, Divider.divider(t), grid.grow(1).minSize(0, 0));
   }

@@ -12,7 +12,6 @@ import com.rethinkj.ui.El;
 import com.rethinkj.ui.FieldState;
 import com.rethinkj.ui.Key;
 import com.rethinkj.ui.Len;
-import com.rethinkj.ui.Measure;
 import com.rethinkj.ui.ScrollState;
 import com.rethinkj.ui.Scrollbars;
 import com.rethinkj.ui.Side;
@@ -27,6 +26,7 @@ import java.util.function.Consumer;
 import java.util.function.IntConsumer;
 import java.util.function.IntFunction;
 import java.util.function.IntPredicate;
+import java.util.function.ObjLongConsumer;
 
 /**
  * A table of query results: a header with the column titles over rows of cells, as dense as a
@@ -1619,7 +1619,7 @@ public final class DataGrid {
     Clipboard clipboard;
     String nullText = "";
     long copyLimit = 100_000;
-    Consumer<Copy> onLargeCopy;
+    ObjLongConsumer<Copy> onLargeCopy;
     Menu.State menu;
     List<Menu.Item> menuItems = List.of();
     IntPredicate loaded;
@@ -1747,7 +1747,22 @@ public final class DataGrid {
      * {@code handler}; without one, a larger copy leaves the clipboard as it is.
      */
     public Options copyLimit(long cells, Consumer<Copy> handler) {
+      return copyLimit(cells)
+          .onLargeCopy(handler == null ? null : (copy, limit) -> handler.accept(copy));
+    }
+
+    /** Copies at most {@code cells} cells itself, without changing the large-copy handler. */
+    public Options copyLimit(long cells) {
       this.copyLimit = cells;
+      return this;
+    }
+
+    /**
+     * Hands a copy beyond the limit, or with rows not loaded, to {@code handler}, together with the
+     * effective cell limit. This leaves the limit as it is: 100 000 unless {@link #copyLimit(long)}
+     * sets another. Null clears the handler.
+     */
+    public Options onLargeCopy(ObjLongConsumer<Copy> handler) {
       this.onLargeCopy = handler;
       return this;
     }
@@ -2107,7 +2122,7 @@ public final class DataGrid {
       }
       xs[columns.size()] = x;
       Scrollbars bars = t.scrollbars();
-      this.room = bars.thickness() + 2 * bars.margin();
+      this.room = bars.strip();
     }
 
     float fixedWidth() {
@@ -2378,11 +2393,7 @@ public final class DataGrid {
     float room = column.width() - t.size().stroke() - 2 * t.space().s();
     String whole =
         column.typeName() == null ? column.title() : column.title() + " " + column.typeName();
-    cell.whenHoveredFor(t.motion().tooltipDelay(), e -> {
-      if (headerWidth(b, index) > room + 0.5f) {
-        e.overlay(Tooltip.panel(t, whole));
-      }
-    });
+    Tooltip.whenHovered(t, cell, () -> headerWidth(b, index) > room + 0.5f ? whole : null);
     GridColumns.cell(b, index, cell);
     if (b.o.onSort == null || !column.sortable()) {
       return funnel == null ? cell : cell.whenHovered(e -> funnel.opacity(1));
@@ -2644,20 +2655,13 @@ public final class DataGrid {
     if (left >= whole) {
       return true;
     }
-    int first = type.offsetByCodePoints(0, 1);
-    return first < type.length()
-        && left
-            >= natural(
-                Label.label(t, Label.Variant.MUTED, type.substring(0, first) + Text.ELLIPSIS));
+    String least = TextSizing.least(type);
+    return !least.equals(type) && left >= natural(Label.label(t, Label.Variant.MUTED, least));
   }
 
   /** The width a text element takes on one line, in logical pixels. */
   static float natural(El text) {
-    return text.text() == null
-        ? 0
-        : text.text()
-            .measure(Float.NaN, Float.NaN, Measure.MAX_CONTENT, Measure.MAX_CONTENT)
-            .width();
+    return TextSizing.natural(text);
   }
 
   // Rows
@@ -2835,7 +2839,7 @@ public final class DataGrid {
       El more = null;
       if (detail != null) {
         more = text(t, column.mono(), oneLine(detail), t.text().muted()).shrink(0);
-        float least = alone ? 0 : natural(text(t, column.mono(), least(shown), 0)) + pad;
+        float least = alone ? 0 : natural(text(t, column.mono(), TextSizing.least(shown), 0)) + pad;
         // Whole beside the icon, or the value's first character and an ellipsis, or not at all.
         detailWidth = natural(more) + pad;
         if (room < detailWidth - pad + least) {
@@ -2900,25 +2904,16 @@ public final class DataGrid {
       boolean hidden = detail != null && detailWidth == 0;
       El measured = valueText;
       float valueRoom = room - detailWidth;
-      box.whenHoveredFor(t.motion().tooltipDelay(), e -> {
+      Tooltip.whenHovered(t, box, () -> {
         boolean shortened =
             measured != null && value != null && natural(measured) > valueRoom + 0.5f;
         String cut = shortened || hidden ? named : null;
-        String tip = own == null
+        return own == null
             ? (alone && cut == null ? whole : cut)
             : cut == null ? own : own + "\n" + cut;
-        if (tip != null) {
-          e.overlay(Tooltip.panel(t, tip));
-        }
       });
     }
     return box;
-  }
-
-  /** A text's first character and an ellipsis, the least of it a cut cell shows. */
-  private static String least(String text) {
-    int first = text.isEmpty() ? 0 : text.offsetByCodePoints(0, 1);
-    return first < text.length() ? text.substring(0, first) + Text.ELLIPSIS : text;
   }
 
   /** A status as a tree dump says it: {@code changed}, {@code new}, {@code deleted}, {@code error}. */
@@ -3178,7 +3173,7 @@ public final class DataGrid {
     }
     if (missing) {
       if (b.o.onLargeCopy != null) {
-        b.o.onLargeCopy.accept(new Copy(ranges, headers, cells));
+        b.o.onLargeCopy.accept(new Copy(ranges, headers, cells), b.o.copyLimit);
       }
       return;
     }

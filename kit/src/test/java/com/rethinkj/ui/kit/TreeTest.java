@@ -641,6 +641,39 @@ class TreeTest {
     assertEquals(7, find(app, "schema").rowCount());
   }
 
+  // Details
+
+  @Test
+  void anEmptyDetailDoesNotPreventTheRowFromBeingShown() throws IOException {
+    Tree.Model<String> model = new Tree.Model<>() {
+      public List<String> roots() {
+        return List.of("name");
+      }
+
+      public List<String> children(String node) {
+        return List.of();
+      }
+
+      public boolean isLeaf(String node) {
+        return true;
+      }
+
+      public String label(String node) {
+        return node;
+      }
+
+      public String detail(String node) {
+        return "";
+      }
+    };
+    App<Tree.Model<String>> app = new App<>(
+        model, m -> Tree.tree(T, m, n -> false, null, null, null, null).wFull().hFull());
+    run(app, "frame\nmove #row-0\nframe\nadvance 1\nframe");
+    assertTrue(dumpLine(app, "row-0").contains("value=\"\""));
+    assertFalse(textOf(find(app, "row-0"), "name").text().shortened());
+    assertFalse(app.tree().dump().contains("role=tooltip"));
+  }
+
   // Images
 
   @ParameterizedTest

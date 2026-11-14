@@ -673,9 +673,7 @@ final class Sections {
                 .color(t.text().muted())
                 .ellipsis()
                 .minSize(0, 0)),
-        filters == null
-            ? null
-            : row().padding(0, t.space().l(), t.space().m(), t.space().l()).child(filters),
+        Card.filters(t, filters),
         Divider.divider(t),
         grid,
         Card.footer(t, label(t, MUTED, status).key("grid-status").ellipsis()));

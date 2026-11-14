@@ -286,7 +286,6 @@ public final class DataBrowser {
   final Menu.State menu = new Menu.State();
   String toast; // a message at the bottom of the window, or null
   App<DataBrowser> app;
-  static final long COPY_LIMIT = 100_000; // the grid's own limit, said in the toast
   // What has been written: values by order and column (a null value is NULL), new orders after
   // the million, and deleted orders, with the places of those shown, ascending.
   final Map<Integer, Order> written = new HashMap<>();
@@ -596,13 +595,8 @@ public final class DataBrowser {
       options.copy(s.app.clipboard());
     }
     // The grid copies nothing beyond its limit; a toast says why instead of nothing happening.
-    options.copyLimit(
-        COPY_LIMIT,
-        copy -> s.toast = String.format(
-            Locale.ROOT,
-            "%,d cells are too many to copy at once: at most %,d",
-            copy.cells(),
-            COPY_LIMIT));
+    options.onLargeCopy((copy, limit) -> s.toast = String.format(
+        Locale.ROOT, "%,d cells are too many to copy at once: at most %,d", copy.cells(), limit));
     El grid = dataGrid(t, columns, s.changes.rowCount(), options);
     El filter = TextField.withIcon(
         t, textField(t, s.filter, "Filter", s::filter).key("filter").w(280), Symbol.SEARCH);
@@ -667,11 +661,7 @@ public final class DataBrowser {
                         DataGrid.columnsButton(t, s.layout),
                         revert,
                         commit),
-                    bar == null
-                        ? null
-                        : row()
-                            .padding(0, t.space().l(), t.space().m(), t.space().l())
-                            .child(bar),
+                    Card.filters(t, bar),
                     Divider.divider(t),
                     grid.key("orders").label("Orders").grow(1),
                     Card.footer(t, label(t, MUTED, s.status()).key("status").ellipsis()))

@@ -36,6 +36,11 @@ public record Scrollbars(
     }
   }
 
+  /** The width of the strip along an edge that a bar and its margins occupy, in logical pixels. */
+  public float strip() {
+    return thickness + 2 * margin;
+  }
+
   /**
    * A bar as the last frame shows it, in logical pixels of the window: the track, along which the
    * thumb moves, and the thumb, whose length is the share of the content in view and whose place
