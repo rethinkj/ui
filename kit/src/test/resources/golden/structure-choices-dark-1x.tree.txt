@@ -28,18 +28,19 @@ el 0,0 400x560
     el 24,166 184x4
       el 24,166 74x4
       el 90,160 16x16
-  el role=note label="Restart to apply" 16,192 368x68
-    text label="warning" "\u{F868}" 29,201 16x16
-    el 53,201 318x50
-      el 53,201 241x50
-        text "Restart to apply" 53,201 241x16
-        text "The interface font changes after the next start." 53,219 241x32
-      el 302,214 69x24
-        el role=button label="Restart" 302,214 69x24
-          text "Restart" 315,218 43x16
-  el role=status label="No connections match" 16,272 368x272
-    text label="search" "\u{EA7E}" 176,342 48x48
-    text "No connections match" 40,398 320x16
-    text "Try another name or host." 40,422 320x16
-    el role=button label="Clear filter" 155,450 90x24
-      text "Clear filter" 168,454 64x16
+  el role=note label="Restart to apply" 16,192 368x66
+    el 20,200 3x50
+    text label="warning" "\u{F868}" 31,200 16x16
+    el 55,200 321x50
+      el 55,200 244x50
+        text "Restart to apply" 55,200 244x16
+        text "The interface font changes after the next start." 55,218 244x32
+      el 307,213 69x24
+        el role=button label="Restart" 307,213 69x24
+          text "Restart" 320,217 43x16
+  el role=status label="No connections match" 16,270 368x274
+    text label="search" "\u{EA7E}" 176,341 48x48
+    text "No connections match" 40,397 320x16
+    text "Try another name or host." 40,421 320x16
+    el role=button label="Clear filter" 155,449 90x24
+      text "Clear filter" 168,453 64x16

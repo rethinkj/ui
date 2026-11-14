@@ -48,7 +48,7 @@ class StructureTest {
     assertTrue(commit[1] >= text[1] + text[3], "below the text: " + tree);
     float[] note = rect(line(tree, "#narrow role=note"));
     assertTrue(
-        Math.abs(commit[0] + commit[2] - (note[0] + note[2] - Theme.DARK.space().l() - 1)) <= 1,
+        Math.abs(commit[0] + commit[2] - (note[0] + note[2] - Theme.DARK.space().m())) <= 1,
         "at the right: " + tree);
     float[] open = rect(line(tree, "label=\"Open\""));
     float[] answered = rect(line(tree, "text \"The server answered"));

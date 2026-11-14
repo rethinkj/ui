@@ -70,7 +70,7 @@ el 0,0 880x600
             el role=combobox label="Blue" 675,193 160x24 expanded=false
               text "Blue" 684,197 122x15
               text label="chevron_down" "\u{F2A2}" 810,197 16x16
-      el 240,254 608x185
+      el 240,254 608x183
         el 240,254 608x17
           text role=heading "Text and spacing" 240,254 608x17 level=2
         el 240,279 608x101
@@ -92,12 +92,13 @@ el 0,0 880x600
                 text "Compact" 662,347 56x15
               el role=radio label="Comfortable" 732,346 100x18 checked=false
                 text "Comfortable" 744,347 76x15
-        el role=note label="Restart to apply" 240,388 608x51
-          text label="warning" "\u{F868}" 253,397 16x16
-          el 277,397 558x33
-            el 277,397 491x33
-              text "Restart to apply" 277,397 491x16
-              text "The interface font size changes the next time the workbench starts." 277,415 491x15
-            el 776,402 59x24
-              el role=button label="Undo" 776,402 59x24
-                text "Undo" 789,406 33x15
+        el role=note label="Restart to apply" 240,388 608x49
+          el 244,396 3x33
+          text label="warning" "\u{F868}" 255,396 16x16
+          el 279,396 561x33
+            el 279,396 494x33
+              text "Restart to apply" 279,396 494x16
+              text "The interface font size changes the next time the workbench starts." 279,414 494x15
+            el 781,401 59x24
+              el role=button label="Undo" 781,401 59x24
+                text "Undo" 794,405 33x15

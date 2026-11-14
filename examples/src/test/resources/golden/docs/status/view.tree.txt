@@ -1,19 +1,20 @@
 el 0,0 460x420
-  el role=note label="Restart needed" 12,12 420x52
-    text label="warning" "\u{F868}" 25,21 16x16
-    el 49,21 370x34
-      el 49,21 293x34
-        text "Restart needed" 49,21 293x16
-        text "The new font size applies after a restart." 49,39 293x16
-      el 350,26 69x24
-        el role=button label="Restart" 350,26 69x24
-          text "Restart" 363,30 43x16
-  el role=status label="No tables match" 12,72 155x258
-    text label="search" "\u{EA7E}" 66,135 48x48
-    text "No tables match" 36,191 107x16
-    text "Try another filter." 36,215 107x16
-    el role=button label="Clear filter" 45,243 90x24
-      text "Clear filter" 58,247 64x16
+  el role=note label="Restart needed" 12,12 420x50
+    el 16,20 3x34
+    text label="warning" "\u{F868}" 27,20 16x16
+    el 51,20 373x34
+      el 51,20 296x34
+        text "Restart needed" 51,20 296x16
+        text "The new font size applies after a restart." 51,38 296x16
+      el 355,25 69x24
+        el role=button label="Restart" 355,25 69x24
+          text "Restart" 368,29 43x16
+  el role=status label="No tables match" 12,70 155x260
+    text label="search" "\u{EA7E}" 66,134 48x48
+    text "No tables match" 36,190 107x16
+    text "Try another filter." 36,214 107x16
+    el role=button label="Clear filter" 45,242 90x24
+      text "Clear filter" 58,246 64x16
   el role=progressbar label="orders.csv" 12,338 240x22 value="42%"
     el 12,338 240x16
       text "orders.csv" 12,338 66x16

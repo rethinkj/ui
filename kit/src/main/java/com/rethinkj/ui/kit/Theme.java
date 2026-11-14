@@ -70,7 +70,50 @@ public record Theme(
     Caption caption,
     Prose prose,
     Badges badge,
-    Danger danger) {
+    Danger danger,
+    Callouts callout) {
+
+  /** A theme whose callouts look as {@link Callouts#DARK} or {@link Callouts#LIGHT}. */
+  public Theme(
+      Surfaces surface,
+      TextColors text,
+      Borders border,
+      Accent accent,
+      Status status,
+      Spacing space,
+      Radii radius,
+      Type type,
+      Sizes size,
+      Motion motion,
+      Grid grid,
+      Scrollbars scrollbars,
+      Elevation elevation,
+      Code code,
+      Caption caption,
+      Prose prose,
+      Badges badge,
+      Danger danger) {
+    this(
+        surface,
+        text,
+        border,
+        accent,
+        status,
+        space,
+        radius,
+        type,
+        size,
+        motion,
+        grid,
+        scrollbars,
+        elevation,
+        code,
+        caption,
+        prose,
+        badge,
+        danger,
+        lightness(surface.raised()) < 0.5 ? Callouts.DARK : Callouts.LIGHT);
+  }
 
   /** A theme whose destructive actions look as {@link Danger#DARK} or {@link Danger#LIGHT}. */
   public Theme(
@@ -342,6 +385,65 @@ public record Theme(
         TEXT,
         AVATARS,
         WHITE);
+  }
+
+  /**
+   * The colours of a {@link Callout} of one kind.
+   *
+   * @param fill opaque, the callout's background, a tint of the kind over the raised surface
+   * @param mark the bar at the callout's leading edge and its icon, 3:1 on {@code fill}
+   */
+  public record CalloutTone(int fill, int mark) {}
+
+  /**
+   * How {@link Callout}s look: a tinted fill per kind with a bar and an icon in the kind's
+   * colour. The fills are the badges' quiet tints laid over the raised surface ({@link Colors#over}),
+   * in the dark theme each kind's status colour at 10 %, so that the four are about as light as
+   * each other. {@code info} is the theme's blue, as links and the grid's selection are: it does
+   * not follow {@link #withAccent}.
+   *
+   * @param info something to know
+   * @param warning something that needs attention
+   * @param danger a failure
+   * @param success something that went well
+   * @param text the text below the title, 4.5:1 on every fill; the title is the primary text
+   * @param bar the width of the bar at the leading edge, whose ends are round
+   */
+  public record Callouts(
+      CalloutTone info,
+      CalloutTone warning,
+      CalloutTone danger,
+      CalloutTone success,
+      int text,
+      float bar) {
+
+    /** For a dark raised surface. */
+    public static final Callouts DARK = new Callouts(
+        new CalloutTone(Colors.over(GREY_122, alpha(BLUE_694, 0.1f)), BLUE_694),
+        new CalloutTone(Colors.over(GREY_122, alpha(AMBER_745, 0.1f)), AMBER_745),
+        new CalloutTone(Colors.over(GREY_122, alpha(RED_649, 0.1f)), RED_649),
+        new CalloutTone(Colors.over(GREY_122, alpha(GREEN_735, 0.1f)), GREEN_735),
+        GREY_747,
+        3);
+
+    /** For a light raised surface. */
+    public static final Callouts LIGHT = new Callouts(
+        new CalloutTone(Colors.over(WHITE, alpha(BLUE_447, 0.12f)), BLUE_447),
+        new CalloutTone(Colors.over(WHITE, alpha(AMBER_622, 0.17f)), AMBER_384),
+        new CalloutTone(Colors.over(WHITE, alpha(RED_395, 0.12f)), RED_395),
+        new CalloutTone(Colors.over(WHITE, alpha(GREEN_389, 0.13f)), GREEN_389),
+        GREY_375,
+        3);
+
+    /** The tone of a kind. */
+    public CalloutTone of(Callout.Kind kind) {
+      return switch (kind) {
+        case INFO -> info;
+        case WARNING -> warning;
+        case DANGER -> danger;
+        case SUCCESS -> success;
+      };
+    }
   }
 
   /**
@@ -1127,7 +1229,8 @@ public record Theme(
         caption,
         prose,
         badge,
-        danger);
+        danger,
+        callout);
   }
 
   public Theme withText(TextColors text) {
@@ -1149,7 +1252,8 @@ public record Theme(
         caption,
         prose,
         badge,
-        danger);
+        danger,
+        callout);
   }
 
   public Theme withBorder(Borders border) {
@@ -1171,7 +1275,8 @@ public record Theme(
         caption,
         prose,
         badge,
-        danger);
+        danger,
+        callout);
   }
 
   public Theme withAccent(Accent accent) {
@@ -1193,7 +1298,8 @@ public record Theme(
         caption,
         prose,
         badge,
-        danger);
+        danger,
+        callout);
   }
 
   /**
@@ -1223,7 +1329,8 @@ public record Theme(
         caption,
         prose,
         badge,
-        danger);
+        danger,
+        callout);
   }
 
   public Theme withSpace(Spacing space) {
@@ -1245,7 +1352,8 @@ public record Theme(
         caption,
         prose,
         badge,
-        danger);
+        danger,
+        callout);
   }
 
   public Theme withRadius(Radii radius) {
@@ -1267,7 +1375,8 @@ public record Theme(
         caption,
         prose,
         badge,
-        danger);
+        danger,
+        callout);
   }
 
   public Theme withType(Type type) {
@@ -1289,7 +1398,8 @@ public record Theme(
         caption,
         prose,
         badge,
-        danger);
+        danger,
+        callout);
   }
 
   public Theme withSize(Sizes size) {
@@ -1311,7 +1421,8 @@ public record Theme(
         caption,
         prose,
         badge,
-        danger);
+        danger,
+        callout);
   }
 
   public Theme withMotion(Motion motion) {
@@ -1333,7 +1444,8 @@ public record Theme(
         caption,
         prose,
         badge,
-        danger);
+        danger,
+        callout);
   }
 
   public Theme withGrid(Grid grid) {
@@ -1355,7 +1467,8 @@ public record Theme(
         caption,
         prose,
         badge,
-        danger);
+        danger,
+        callout);
   }
 
   public Theme withScrollbars(Scrollbars scrollbars) {
@@ -1377,7 +1490,8 @@ public record Theme(
         caption,
         prose,
         badge,
-        danger);
+        danger,
+        callout);
   }
 
   public Theme withCode(Code code) {
@@ -1399,7 +1513,8 @@ public record Theme(
         caption,
         prose,
         badge,
-        danger);
+        danger,
+        callout);
   }
 
   public Theme withElevation(Elevation elevation) {
@@ -1421,7 +1536,8 @@ public record Theme(
         caption,
         prose,
         badge,
-        danger);
+        danger,
+        callout);
   }
 
   public Theme withProse(Prose prose) {
@@ -1443,7 +1559,8 @@ public record Theme(
         caption,
         prose,
         badge,
-        danger);
+        danger,
+        callout);
   }
 
   public Theme withBadge(Badges badge) {
@@ -1465,7 +1582,8 @@ public record Theme(
         caption,
         prose,
         badge,
-        danger);
+        danger,
+        callout);
   }
 
   public Theme withDanger(Danger danger) {
@@ -1487,7 +1605,8 @@ public record Theme(
         caption,
         prose,
         badge,
-        danger);
+        danger,
+        callout);
   }
 
   public Theme withCaption(Caption caption) {
@@ -1509,7 +1628,31 @@ public record Theme(
         caption,
         prose,
         badge,
-        danger);
+        danger,
+        callout);
+  }
+
+  public Theme withCallout(Callouts callout) {
+    return new Theme(
+        surface,
+        text,
+        border,
+        accent,
+        status,
+        space,
+        radius,
+        type,
+        size,
+        motion,
+        grid,
+        scrollbars,
+        elevation,
+        code,
+        caption,
+        prose,
+        badge,
+        danger,
+        callout);
   }
 
   /**

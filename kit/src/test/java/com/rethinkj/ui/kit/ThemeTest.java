@@ -413,6 +413,38 @@ class ThemeTest {
           4.5);
       check(failures, "strong badge text", tone.strongText(), Map.of("strong", tone.strong()), 4.5);
     }
+    // Callouts: the title and the text below it on each kind's fill, the bar and the icon on it;
+    // a ghost button's text under its overlays over the fill (a secondary one has its raised fill,
+    // checked above), the outline of a secondary one as far from the fill as its edge is from the
+    // surfaces it stands on elsewhere, and the focus ring of either.
+    Theme.Callouts callouts = t.callout();
+    double edgeOnSurfaces = surfaces.values().stream()
+        .mapToDouble(surface -> contrast(t.border().control(), surface))
+        .min()
+        .orElseThrow();
+    for (Callout.Kind kind : Callout.Kind.values()) {
+      int fill = callouts.of(kind).fill();
+      Map<String, Integer> on = Map.of(kind + " callout", fill);
+      check(failures, "callout title", t.text().primary(), on, 4.5);
+      check(failures, "callout text", callouts.text(), on, 4.5);
+      check(failures, "callout mark", callouts.of(kind).mark(), on, 3);
+      check(
+          failures,
+          "ghost button text",
+          t.text().primary(),
+          Map.of(
+              kind + " callout hovered", over(fill, s.hover()),
+              kind + " callout pressed", over(fill, s.pressed())),
+          4.5);
+      // A secondary button keeps its raised fill: on a tint its outline is its edge or its fill,
+      // whichever stands out more, as on a raised surface it is its edge alone.
+      double outline = Math.max(contrast(t.border().control(), fill), contrast(s.raised(), fill));
+      if (outline < edgeOnSurfaces) {
+        failures.add(String.format(
+            "secondary button on %s callout: %.2f:1, needs %.2f:1", kind, outline, edgeOnSurfaces));
+      }
+      check(failures, "focus ring", t.accent().edge(), on, 3);
+    }
     // Avatars: each fill 3:1 on the surfaces, its initials 4.5:1 on it.
     for (int fill : badges.avatars()) {
       check(failures, "avatar " + Integer.toHexString(fill), fill, surfaces, 3);
