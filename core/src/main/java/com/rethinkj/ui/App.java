@@ -2956,12 +2956,20 @@ public final class App<S> {
       if (handled || changedOutside) { // the next input goes to a tree built from the state now
         rebuild(handled); // after invalidate alone with its rows: an action may look for them
         drawn = true;
-        for (Editor editor : selectedByBuild) {
-          boolean told = editor.tell();
-          handled |= told;
-          stale |= told;
+        if (!selectedByBuild.isEmpty()) {
+          // A FieldState's selection the build applied reaches onSelect as a handler's input
+          // would, before the next input: what the handler asks for and changes comes first.
+          List<Editor> selected = List.copyOf(selectedByBuild);
+          selectedByBuild.clear();
+          queued.addFirst(() -> {
+            boolean told = false;
+            for (Editor editor : selected) {
+              told |= editor.tell();
+            }
+            handled |= told;
+            return told;
+          });
         }
-        selectedByBuild.clear();
       }
       dispatching = true;
       try {
