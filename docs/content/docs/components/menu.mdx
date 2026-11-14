@@ -35,6 +35,7 @@ The button's handler calls `state.toggle()`; `Menu.dropdown(theme, button, state
 | --- | --- |
 | `Menu.item(label, onChoose)` | An item; a null handler disables it |
 | `.shortcut(Key.CONTROL, "N")` | A key combination that runs it, shown as the platform writes it (`Ctrl+N`) |
+| `.alsoShortcut(Key.CONTROL, "PageDown")` | A further key combination that runs it; only the first one shows |
 | `.shortcut("Ctrl+Enter")` | A text that only shows |
 | `.icon(Symbol)` | An icon before the text |
 | `.checked(boolean)` | A check mark in the icon's place, or at the item's end where it has a leading element |

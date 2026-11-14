@@ -49,7 +49,7 @@ The app keeps one [`Tabs.Dragging`](/api/com/rethinkj/ui/kit/Tabs.Dragging.html)
 | Keys | Action |
 | --- | --- |
 | Left, Right, Home, End | Choose a tab, while the bar has the focus |
-| Control+Tab, Control+Shift+Tab | Next and previous tab, from the bar or the content |
+| Control+Tab, Control+Shift+Tab; Control+Page Down, Control+Page Up | Next and previous tab, from the bar or the content |
 | Control+W, Control+F4 | Close the active tab |
 | Control+Shift+Page Up, Page Down | Move the active tab, with `onMove` |
 
@@ -57,7 +57,7 @@ The bar is one stop for Tab. For the shortcuts to work while the focus is elsewh
 
 ## In a tree dump
 
-The bar is `role=tablist` with the key `tablist`. Each tab is `role=tab` with its title as label and the key `tab-<index>`; the active one is `selected`, a busy one `busy`, and one being dragged `grabbed`. A close button is `role=button` with `label="Close <title>"` and the key `close-<index>`.
+The bar is `role=tablist` with the key `tablist`. Each tab is `role=tab` with its title as label and the key `tab-<index>`; the active one is `selected`, a busy one `busy`, a modified one `modified`, and one being dragged `grabbed`. A close button is `role=button` with `label="Close <title>"` and the key `close-<index>`.
 
 ```text file="examples/src/test/resources/golden/docs/tabs/view.tree.txt" start="#tablist" count="7"
 ```
