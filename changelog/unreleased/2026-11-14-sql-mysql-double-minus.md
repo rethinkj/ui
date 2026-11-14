@@ -1,0 +1,1 @@
+- `Sql` for MySQL and MariaDB (`Sql.Dialect.MYSQL`) starts a comment with `--` only where a space, a tab, another control character or the line's end follows it, as those databases do: `SELECT 5--2` is code. `/*! … */` and `/*+ … */` stay coloured as comments.

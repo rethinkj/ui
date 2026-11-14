@@ -108,7 +108,8 @@ public final class Popover {
   /**
    * The popover's panel, an overlay to attach to an element with {@link El#overlay} and place, as
    * {@link #popover} does; a press outside it and Escape call {@link State#close}. Where nothing
-   * in the content takes the focus, the panel takes it, so that Escape reaches it.
+   * in the content takes the focus ({@link El#hasFocusable}: disabled, invisible and fields
+   * without an edit handler do not), the panel takes it, so that Escape reaches it.
    */
   public static El panel(Theme t, State state, String label, El content) {
     El panel = col()
@@ -130,21 +131,9 @@ public final class Popover {
         .shadow(t.elevation().popup())
         .motion(t.motion().fade())
         .child(content);
-    if (!takesFocus(content)) {
+    if (!content.hasFocusable()) {
       panel.focusable().focusRing(t.accent().edge());
     }
     return panel;
-  }
-
-  private static boolean takesFocus(El el) {
-    if (el.isFocusable()) {
-      return true;
-    }
-    for (El child : el.children()) {
-      if (takesFocus(child)) {
-        return true;
-      }
-    }
-    return false;
   }
 }

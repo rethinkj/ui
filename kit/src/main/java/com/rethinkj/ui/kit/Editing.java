@@ -35,8 +35,10 @@ import java.util.function.UnaryOperator;
  *   <li>{@link #changed} compares the value with the original by {@code equals}, which records
  *       have; a POJO needs an {@code equals} of its own, and a copy ({@link #of(Object,
  *       UnaryOperator)}), since its setters change the object the editing holds.
- *   <li>{@link #valid} is false while a field holds a text that is no value, an error the app set
- *       stands, or a rule fails.
+ *   <li>{@link #valid} is false while a field holds a text that is no value, also one the app's
+ *       value gave it (null in a required field), an error the app set stands, or a rule fails.
+ *       A field shows its draft's error once it was edited, or for all fields after {@link
+ *       #showErrors}, which an app calls when Save is pressed.
  *   <li>{@link #rule} checks the whole value, such as a date not before another, and shows its
  *       message at the field it names.
  *   <li>An error the app learns later, such as the server's refusal of a port, goes on the field
@@ -62,6 +64,7 @@ public final class Editing<T> {
   private final List<Rule<T>> rules = new ArrayList<>();
   private T original;
   private T value;
+  private boolean showErrors; // every draft's error shows, edited or not
 
   private Editing(T original, UnaryOperator<T> copy) {
     this.copy = copy;
@@ -133,6 +136,17 @@ public final class Editing<T> {
   public void reset() {
     value = copy.apply(original);
     fields.clear();
+    showErrors = false;
+  }
+
+  /**
+   * Makes every field show its draft's error, also one the user has not edited, such as a
+   * required field left empty: what an app calls when Save is pressed while the edit is not
+   * {@link #valid}. Until then a draft's error shows once its field is edited; {@link #reset}
+   * ends it.
+   */
+  public void showErrors() {
+    showErrors = true;
   }
 
   /**
@@ -159,10 +173,14 @@ public final class Editing<T> {
     return fields.computeIfAbsent(path, p -> new Field());
   }
 
-  /** The error a field shows: its draft's, the app's, then the first rule's that fails. */
-  String error(List<Part<?, ?>> path) {
+  /**
+   * What is wrong with a field: its draft's error, the app's, then the first rule's that fails.
+   * With {@code shown}, a draft's error only once the field was edited or {@link #showErrors} was
+   * called, as the field shows it.
+   */
+  String error(List<Part<?, ?>> path, boolean shown) {
     Field f = fields.get(path);
-    if (f != null && f.draft.error() != null) {
+    if (f != null && f.draft.error() != null && (!shown || showErrors || f.draft.showsError())) {
       return f.draft.error();
     }
     if (f != null && f.error != null) {

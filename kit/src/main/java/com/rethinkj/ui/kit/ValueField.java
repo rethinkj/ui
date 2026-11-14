@@ -34,6 +34,11 @@ import java.util.function.Consumer;
  *   <li>The empty text is what the format says: {@link Format#REQUIRED} as a message for a format
  *       as it is, null handed on for an {@link Format#optional} one, the empty string for {@link
  *       Format#TEXT}.
+ *   <li>A value of the app's is checked as a typed text is: null in a required field, or 20 in a
+ *       field of 1 to 10, is {@link Draft#error}, which keeps {@link Editing#valid} false. The
+ *       field shows that error only once the user has edited it or the app asks ({@link
+ *       Draft#showError}, {@link Editing#showErrors}), so that a form over a new record does not
+ *       open in red.
  *   <li>A valid text stays as typed while the value is the one it stands for: {@code 007} in a
  *       field of integers stays {@code 007} and the app has 7. A value the app changes from
  *       outside, one other than the last handed on, replaces the draft with its text; so does a
@@ -53,6 +58,7 @@ public final class ValueField {
    */
   public static final class Draft {
     private boolean started; // whether the field was built with it
+    private boolean showsError; // edited, or the app asked: the field shows its error
     private Object value; // the app's value the text belongs to: shown, or last handed on
     private String text;
     private String error;
@@ -62,25 +68,45 @@ public final class ValueField {
       return text;
     }
 
-    /** What is wrong with the text, from its format; null when it stands for the app's value. */
+    /**
+     * What is wrong with the text the field shows, from its format, whoever put it there: also a
+     * value of the app's that the format refuses, such as null for a required field; null when the
+     * text stands for the app's value.
+     */
     public String error() {
       return error;
+    }
+
+    /**
+     * Whether the field shows its {@link #error} (the danger border and the message): once the
+     * user has edited it, or the app has asked with {@link #showError}. A form over a new record
+     * does not open with its required fields in red, although {@link #error} counts from the
+     * start.
+     */
+    public boolean showsError() {
+      return showsError;
+    }
+
+    /** Makes the field show its error from now on, as an app does when Save is pressed. */
+    public void showError() {
+      showsError = true;
     }
 
     /** Forgets the text, so that the field shows the app's value again, as after a reset. */
     public void clear() {
       started = false;
+      showsError = false;
       text = null;
       error = null;
     }
 
-    /** Takes the app's value, unless it is the one the text belongs to. */
+    /** Takes the app's value, unless it is the one the text belongs to, and checks its text. */
     <T> void show(Format<T> format, T value) {
       if (!started || !Objects.equals(value, this.value)) {
         started = true;
         this.value = value;
         text = format.text(value);
-        error = null;
+        error = format.parse(text).error();
       }
     }
 
@@ -93,6 +119,7 @@ public final class ValueField {
         return; // refused: the field shows the draft as it was
       }
       Format.Parsed<T> parsed = format.parse(text);
+      showsError = true;
       this.text = text;
       error = parsed.error();
       if (parsed.valid()) {
@@ -109,7 +136,8 @@ public final class ValueField {
 
   /**
    * A field of a {@link Prop} of an {@link Editing}, which keeps its draft: no {@link Draft} in
-   * the app's state, and the field shows its error, also a rule's or the app's.
+   * the app's state, and the field shows its error, also a rule's or the app's; its draft's once
+   * it was edited or {@link Editing#showErrors} was called.
    *
    * @throws IllegalStateException for a prop of {@link Prop#of}, which keeps no draft
    */
@@ -149,7 +177,7 @@ public final class ValueField {
     draft.show(format, value);
     Consumer<String> edit = onChange == null ? null : text -> draft.edit(format, text, onChange);
     El field = TextField.textField(t, draft.text, placeholder, edit);
-    if (draft.error != null) {
+    if (draft.error != null && draft.showsError) {
       TextField.invalid(t, field).errorMessage(draft.error);
     }
     return field;

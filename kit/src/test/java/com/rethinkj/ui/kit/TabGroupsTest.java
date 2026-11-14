@@ -4,6 +4,7 @@ import static com.rethinkj.ui.El.col;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.rethinkj.ui.App;
@@ -561,5 +562,34 @@ class TabGroupsTest {
     assertEquals(List.of("c", "a", "d", "b"), list);
     assertEquals(2, Tabs.move(list, 1, 3, 0), "a moves up when b comes before it");
     assertEquals(1, Tabs.move(list, 1, 3, 2), "unchanged");
+  }
+
+  @Test
+  void aWindowWhoseDraggedTabClosesTakesDropsAgain() throws IOException {
+    Docs docs = new Docs();
+    docs.app = new App<>(docs, s -> s.view(s.groups.main()));
+    Script.run("""
+        size 400 160 at 100,100
+        frame
+        down 53,17
+        move 53,90
+        frame
+        """, docs.app, out);
+    Group<String> floating = docs.groups.groupOf("b");
+    assertTrue(docs.groups.isDragging());
+    assertTrue(floating != docs.groups.main());
+    docs.app.post(() -> {
+      docs.groups.add(floating, 1, "new query");
+      docs.groups.close(floating, 0);
+    });
+    Script.run("await\nframe\nup 53,90\nframe", docs.app, out);
+    assertFalse(docs.groups.isDragging());
+    Windows.Handle window = floating.window();
+    assertTrue(window.isOpen());
+    window.moveTo(600, 400);
+    Windows.Handle main = docs.app.windows().of(docs.app);
+    Windows.Place place =
+        docs.app.windows().place(docs.app, window.x() - main.x() + 20, window.y() - main.y() + 17);
+    assertSame(window, place.window(), window.app().tree().dump());
   }
 }

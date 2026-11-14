@@ -88,6 +88,23 @@ class TypedChoicesTest {
   }
 
   @Test
+  void theKeysGoOnFromTheSelectedValuePastEqualValuesAndFromNull() {
+    List<String> twice = List.of("A", "A", "B");
+    List<String> none = java.util.Arrays.asList(null, "A");
+    java.util.function.Function<String, String> text = v -> v == null ? "None" : v;
+    assertTrue(key(Select.select(T, twice, "A", text, new Menu.State(), told::add), "ArrowDown"));
+    assertTrue(key(Select.select(T, none, null, text, new Menu.State(), told::add), "ArrowDown"));
+    assertTrue(key(Radio.radioGroup(T, twice, "A", text, told::add), "ArrowDown"));
+    assertTrue(key(Segmented.segmented(T, none, null, text, told::add), "ArrowRight"));
+    assertTrue(key(NavList.navList(T, twice, "A", v -> NavList.item(v), told::add), "ArrowDown"));
+    assertEquals(List.of("B", "A", "B", "A", "B"), told);
+    El select = Select.select(T, twice, "A", text, new Menu.State(), told::add);
+    assertTrue(select.dump().contains("label=\"A\""), "equal values show once: " + select.dump());
+    El checked = Radio.radioGroup(T, none, null, text, told::add);
+    assertTrue(checked.dump().contains("label=\"None\" checked"), "null is a value among them");
+  }
+
+  @Test
   void aRadioGroupAndASegmentedControlOfValuesTellTheValue() {
     assertEquals(
         Radio.radioGroup(T, TEXTS, 2, i -> {}).dump(),

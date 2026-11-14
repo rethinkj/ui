@@ -343,4 +343,34 @@ class PartsTest {
     assertFalse(state.isOpen());
     assertEquals("details", app.focused().key());
   }
+
+  @Test
+  void escapeClosesAPopoverWhoseOnlyFocusableContentIsInvisible() throws IOException {
+    Popover.State state = new Popover.State();
+    App<Popover.State> app = new App<>(
+        state,
+        s -> col()
+            .wFull()
+            .hFull()
+            .padding(12)
+            .child(Popover.popover(
+                Theme.DARK,
+                Button.button(Theme.DARK, Button.Variant.SECONDARY, "Details", s::toggle)
+                    .key("open"),
+                s,
+                "Details",
+                col()
+                    .children(
+                        Label.label(Theme.DARK, "Information"),
+                        col()
+                            .opacity(0)
+                            .child(Button.button(
+                                Theme.DARK, Button.Variant.SECONDARY, "Hidden", () -> {})),
+                        TextField.textField(Theme.DARK, "", "Off", null)))));
+    Script.run("size 320 220\nframe\nfocus #open\nkey Enter\nframe\nadvance 1\nframe", app, out);
+    assertTrue(state.isOpen(), app.tree().dump());
+    assertEquals("popover", app.focused().key(), "the popover itself took the focus");
+    Script.run("key Escape\nframe", app, out);
+    assertFalse(state.isOpen(), app.tree().dump());
+  }
 }

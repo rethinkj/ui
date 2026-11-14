@@ -54,6 +54,7 @@ public final class Select {
       Function<? super T, String> text,
       Menu.State state,
       Consumer<? super T> onSelect) {
+    values = Choices.distinct(values);
     return select(
         t,
         Choices.texts(values, text),

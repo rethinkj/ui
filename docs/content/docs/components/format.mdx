@@ -13,13 +13,13 @@ description: Typed values in text fields and grid columns, written and read with
 | --- | --- | --- |
 | `TEXT` | `String` | As it is; the empty text is the empty string |
 | `INTEGER`, `LONG`, `BIG_INTEGER` | `Integer`, `Long`, `BigInteger` | `-12`, `+7`; refused beyond the type's range |
-| `DECIMAL` | `BigDecimal` | `12.50`, `-.5`, `1e3`; written without an exponent, the scale kept |
+| `DECIMAL` | `BigDecimal` | `12.50`, `-.5`, `1e3`; written without an exponent, the scale kept, so an exponent that would write more than 4096 zeros (`1e5000`) is refused |
 | `DATE` | `LocalDate` | `2026-11-13` |
 | `TIME` | `LocalTime` | `14:30`, `14:30:15` |
 | `DATE_TIME` | `LocalDateTime` | `2026-11-13 14:30`, also with a `T` |
 | `OFFSET_DATE_TIME` | `OffsetDateTime` | `2026-11-13 14:30+01:00` |
 | `BOOLEAN` | `Boolean` | `true`, `false`; also `t`, `1`, `yes`, `on` and their opposites |
-| `choice(values, label)` | any, such as an enum | Each value by its label: `Format.choice(List.of(Status.values()), Status::label)` |
+| `choice(values, label)` | any, such as an enum | Each value by its label: `Format.choice(List.of(Status.values()), Status::label)`; labels are unique, and two values with one label are refused |
 | `of(text, parse, message)` | any | The app's own: `Format.of(UUID::toString, UUID::fromString, "Expected a UUID")`; a parser that throws or returns null fails with the message |
 
 Numbers have a full stop and no grouping, dates and times are ISO 8601's, whatever the system's locale; another notation is another format. Each format answers a text that is no value with a message that says what a valid one looks like (`Expected a date such as 2026-11-13`), and says with `allows(text)` whether typing may still lead there, so that a field refuses a letter in a number but keeps `12.` and `-`.
@@ -47,6 +47,7 @@ The state holds the value and the field's draft:
 - **A text that is no value yet**, such as `12e` or a half-typed date, stays in the `ValueField.Draft`, which the app keeps in its state as it keeps a `Menu.State`. The field shows it with the danger border, `invalid` and `error="…"` in the dump, and a [Form](/docs/components/form) field shows the message below it without the app passing an error; an error the app passes wins. The app's value stays the last valid one meanwhile, so a Save button checks `draft.error() == null`.
 - **The empty text** is what the format says: `A value is required`, or null handed on for an `.optional()` format. Mark the form field `.required()` for the star.
 - **A value from outside** replaces the draft: when the app's value is another than the one the field handed on last (a reset, a value loaded), the field shows its text. A handler that stores another value than it was given, or none, shows the same way. `draft.clear()` forgets the draft even where the value stays.
+- **A value the format refuses**, such as null in a required field or 20 in a field of 1 to 10, is checked as a typed text is: `draft.error()` says so from the start, so Save stays off. The field shows it (danger border, `invalid`, the message) only once the user has edited it or the app calls `draft.showError()`, or `editing.showErrors()` for a whole [Editing](/docs/concepts/editing), as Save does when it is pressed too early; so a form over a new record does not open in red.
 - A valid text stays as typed while it stands for the value: `007` stays `007` and the app has `7`.
 
 ```text file="examples/src/test/resources/docs/values.txt" start="press #amount" count="6"

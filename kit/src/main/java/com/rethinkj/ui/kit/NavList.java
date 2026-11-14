@@ -131,13 +131,14 @@ public final class NavList {
       Function<? super T, Item> item,
       Function<? super T, String> group,
       Consumer<? super T> onSelect) {
-    List<Item> items = new ArrayList<>(values.size());
-    int[] value = new int[values.size() * 2]; // the index of the value of each row
-    int chosen = Choices.index(values, selected);
+    List<T> once = Choices.distinct(values);
+    List<Item> items = new ArrayList<>(once.size());
+    int[] value = new int[once.size() * 2]; // the index of the value of each row
+    int chosen = Choices.index(once, selected);
     int selectedRow = -1;
     String last = null;
-    for (int i = 0; i < values.size(); i++) {
-      String g = group.apply(values.get(i));
+    for (int i = 0; i < once.size(); i++) {
+      String g = group.apply(once.get(i));
       if (g != null && !g.equals(last)) {
         value[items.size()] = -1;
         items.add(heading(g));
@@ -147,13 +148,10 @@ public final class NavList {
         selectedRow = items.size();
       }
       value[items.size()] = i;
-      items.add(item.apply(values.get(i)));
+      items.add(item.apply(once.get(i)));
     }
     return navList(
-        t,
-        items,
-        selectedRow,
-        onSelect == null ? null : r -> onSelect.accept(values.get(value[r])));
+        t, items, selectedRow, onSelect == null ? null : r -> onSelect.accept(once.get(value[r])));
   }
 
   /**

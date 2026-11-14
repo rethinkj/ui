@@ -45,6 +45,7 @@ public final class Radio {
       T selected,
       Function<? super T, String> text,
       Consumer<? super T> onSelect) {
+    values = Choices.distinct(values);
     return radioGroup(
         t,
         Choices.texts(values, text),

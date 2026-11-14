@@ -140,6 +140,66 @@ class ValueFieldTest {
   }
 
   @Test
+  void aValueFromOutsideThatTheFormatRefusesIsTheDraftsError() {
+    Format<Integer> format = Format.INTEGER.where(v -> v >= 1 && v <= 10, "1 to 10");
+    ValueField.Draft draft = new ValueField.Draft();
+    draft.show(format, 5);
+    draft.edit(format, "-", v -> {});
+    draft.show(format, 20);
+    assertEquals("20", draft.text());
+    assertEquals("1 to 10", draft.error(), "the text now shown still fails the format");
+    draft.show(format, null);
+    assertEquals(Format.REQUIRED, draft.error());
+  }
+
+  /** A record with a required integer, for an {@link Editing} over it. */
+  record Row(Integer count, String name) {
+    static final Part<Row, Integer> COUNT = Part.of(Row::count, Row::withCount);
+    static final Part<Row, String> NAME = Part.of(Row::name, Row::withName);
+
+    Row withCount(Integer count) {
+      return new Row(count, name);
+    }
+
+    Row withName(String name) {
+      return new Row(count, name);
+    }
+  }
+
+  @Test
+  void aRequiredFieldLeftEmptyIsInvalidAndShowsSoOnceEditedOrAsked() throws IOException {
+    Editing<Row> editing = Editing.of(new Row(null, "original"));
+    App<Editing<Row>> app = new App<>(
+        editing,
+        e -> col()
+            .child(Form.form(
+                Theme.DARK,
+                Form.Labels.ABOVE,
+                Form.field(
+                        "Count",
+                        ValueField.valueField(Theme.DARK, Format.INTEGER, e.at(Row.COUNT))
+                            .key("count"))
+                    .required(),
+                Form.field(
+                    "Name",
+                    TextField.textField(Theme.DARK, e.at(Row.NAME), "Name").key("name")))));
+    run(app, "focus #name\ntype \"d\"");
+    assertEquals("originald", editing.value().name());
+    assertFalse(editing.valid(), "an empty required field cannot be saved as null");
+    assertEquals(Format.REQUIRED, editing.at(Row.COUNT).error());
+    assertFalse(line(app, "count").contains("invalid"), "a new form does not open in red");
+    editing.showErrors(); // as Save does
+    app.invalidate();
+    run(app, "");
+    assertTrue(
+        line(app, "count").contains("invalid error=\"A value is required\""), line(app, "count"));
+    editing.reset();
+    app.invalidate();
+    run(app, "focus #count\ntype \"4\"\nkey Backspace");
+    assertTrue(line(app, "count").contains("invalid"), "an edited field shows its error");
+  }
+
+  @Test
   void aValueTheHandlerChangesOrRefusesIsShown() throws IOException {
     int[] value = {5};
     ValueField.Draft draft = new ValueField.Draft();

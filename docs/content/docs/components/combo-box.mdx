@@ -35,7 +35,7 @@ The app keeps a `ComboBox.State` and the value. A null handler disables it. It i
 ```java snippet="combo-items-typed"
 ```
 
-The selected value is found by `equals`; null, or a value not in the list, selects nothing; a null handler disables it. The texts or items are made again in every build, one call per value, and while they come out equal to the last build's (for items: equal values, texts and details), the box hands on the list of the last build, so its filter keeps what it found although the view maps its values anew. What stands before an item's text is taken to follow from its value.
+The selected value is found by `equals`, a null among the values too; null where the list has none, or a value not in the list, selects nothing. Equal values show once, so that the keys go on from the selected value to the next one that differs; a null handler disables it. The texts or items are made again in every build, one call per value, and while they come out equal to the last build's (for items: equal values, texts and details), the box hands on the list of the last build, so its filter keeps what it found although the view maps its values anew. What stands before an item's text is taken to follow from its value.
 
 ## Keyboard
 

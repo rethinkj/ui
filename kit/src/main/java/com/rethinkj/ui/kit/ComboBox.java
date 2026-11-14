@@ -159,6 +159,7 @@ public final class ComboBox {
       Function<? super T, String> text,
       State state,
       Consumer<? super T> onSelect) {
+    values = Choices.distinct(values);
     List<String> texts = Choices.texts(values, text);
     if (texts.equals(state.typed)) {
       texts = (List<String>) state.typed;
@@ -299,6 +300,7 @@ public final class ComboBox {
       Function<? super T, Item> item,
       State state,
       Consumer<? super T> onSelect) {
+    values = Choices.distinct(values);
     List<Item> items = new ArrayList<>(values.size());
     for (T v : values) {
       items.add(item.apply(v));

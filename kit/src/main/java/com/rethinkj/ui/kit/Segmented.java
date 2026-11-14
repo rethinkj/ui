@@ -42,6 +42,7 @@ public final class Segmented {
       T selected,
       Function<? super T, String> text,
       Consumer<? super T> onSelect) {
+    values = Choices.distinct(values);
     return segmented(
         t,
         Choices.texts(values, text),

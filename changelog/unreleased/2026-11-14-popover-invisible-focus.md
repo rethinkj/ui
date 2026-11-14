@@ -1,0 +1,1 @@
+- `Popover` takes the focus on its panel when nothing in it can take it, also where its only focusable content is disabled or invisible (opacity 0), so that Escape closes it; before, an invisible button kept the panel from taking it and Escape went nowhere. `El.hasFocusable()` says whether an element or one inside it can take the focus as an overlay that opens looks for it.

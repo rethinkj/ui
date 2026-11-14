@@ -1,0 +1,1 @@
+- `TabGroups`: a window that followed the pointer during a tab's drag takes dropped tabs again however the drag ends; before, a drag that ended because its tab closed left that window shut out of drops.
