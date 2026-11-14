@@ -5,6 +5,8 @@ description: A multi-line editor for code with line numbers, highlighting, brack
 
 `CodeEditor.codeEditor` is a multi-line field for code. It has line numbers in a gutter, highlights the caret's line and matching brackets, and marks other occurrences of the word at the caret. Colours come from a highlighter such as `Sql`. It has a [find bar](/docs/components/find) and commands that duplicate, move, delete and comment lines, and it handles texts of 100 000 lines. For prose or a short note, use a [text area](/docs/components/text-field#text-areas); for completions, add [Completion](/docs/components/completion).
 
+Javadoc: [`CodeEditor`](/api/com/rethinkj/ui/kit/CodeEditor.html), [`CodeEditor.State`](/api/com/rethinkj/ui/kit/CodeEditor.State.html), [`Highlighter`](/api/com/rethinkj/ui/Highlighter.html), [`Spans`](/api/com/rethinkj/ui/Spans.html).
+
 <Shot src="kit/code-editor-{theme}-2x-brackets" alt="SQL in the code editor with line numbers, keywords in colour and a bracket pair highlighted" />
 
 ## Example
@@ -45,14 +47,7 @@ A highlighter can be tested without native libraries: `new Spans(length)` takes 
 
 Positions are indexes into the line's string. A range runs from `from` to `to`, exclusive; it is clamped to the line and left out when empty. Where ranges of one kind overlap, the later one wins. Colours are 0xAARRGGBB.
 
-| `Spans` method | |
-| --- | --- |
-| `color(from, to, argb)` | The text of the range in this colour |
-| `font(from, to, font)` | The range in another font at the text's size, such as `Font.monoBold()`. Give the font the fallbacks of the text's font (`withFallback`) where the range may hold characters it lacks |
-| `background(from, to, argb)` | A rectangle behind the range, a line high |
-| `underline(from, to, argb)` | A straight line under the range |
-| `strike(from, to, argb)` | A line through the range |
-| `lineBackground(argb)` | A background behind the whole line, across the full width; a second one is laid over the first |
+`color(from, to, argb)` gives the text of a range a colour, and `font(from, to, font)` another font at the text's size, such as `Font.monoBold()`. Give the font the fallbacks of the text's font (`withFallback`) where the range may hold characters it lacks. `background`, `underline`, `strike` and `lineBackground` are on [`Spans`](/api/com/rethinkj/ui/Spans.html).
 
 Backgrounds, underlines, struck ranges and line backgrounds show in multi-line fields only.
 

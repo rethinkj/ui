@@ -59,6 +59,8 @@ class DocsExamplesTest {
       Map.entry("parts", List.of("view")),
       Map.entry("tabs", List.of("view")),
       Map.entry("grid", List.of("selected")),
+      Map.entry("tags", List.of("added")),
+      Map.entry("tags-form", List.of("view")),
       Map.entry("resize", List.of("wide", "narrow")),
       Map.entry("theming", List.of("system")));
 
@@ -202,6 +204,8 @@ class DocsExamplesTest {
             260));
     editings(all, "editing", Editings::record, 380, 260);
     editings(all, "editing-pojo", Editings::pojo, 360, 160);
+    all.put("tags", new Example(t -> tags(t, Tags::view), 320, 140));
+    all.put("tags-form", new Example(t -> tags(t, Tags::form), 400, 160));
     all.put(
         "resize",
         new Example(
@@ -313,6 +317,12 @@ class DocsExamplesTest {
             },
             width,
             height));
+  }
+
+  private static App<Tags> tags(Theme t, Function<Tags, El> view) {
+    Tags state = new Tags();
+    state.t = t;
+    return new App<>(state, view);
   }
 
   private static void editings(
