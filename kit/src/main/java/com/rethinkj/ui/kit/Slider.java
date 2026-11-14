@@ -59,14 +59,14 @@ public final class Slider {
     // at any width.
     El done = el().h(track)
         .radius(track / 2)
-        .fill(enabled ? t.accent().color() : t.border().subtle())
+        .fill(enabled ? t.accent().color() : t.border().divider())
         .motion(t.motion().move());
     done.style().width = Len.percent(share);
     int fill = t.surface().raised();
     El thumb = el().size(knob, knob)
         .radius(knob / 2)
         .fill(fill)
-        .border(t.size().stroke(), enabled ? t.border().strong() : t.border().subtle())
+        .border(t.size().stroke(), enabled ? t.border().strong() : t.border().divider())
         .motion(t.motion().move());
     Style place = thumb.style();
     place.position = Style.Position.ABSOLUTE;
@@ -76,7 +76,7 @@ public final class Slider {
     El rail = el().h(track)
         .grow(1)
         .radius(track / 2)
-        .fill(enabled ? t.border().strong() : t.border().subtle())
+        .fill(enabled ? t.border().strong() : t.border().divider())
         .children(done, thumb);
     El slider = row()
         .role("slider")

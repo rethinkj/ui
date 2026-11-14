@@ -124,7 +124,7 @@ public final class TextField {
         .w(t.size().field())
         .radius(t.radius().medium())
         .fill(fill)
-        .border(t.size().stroke(), enabled ? t.border().strong() : t.border().subtle())
+        .border(t.size().stroke(), enabled ? t.border().strong() : t.border().divider())
         .motion(t.motion().feedback());
     if (placeholder != null) {
       field.placeholder(placeholder, enabled ? t.text().muted() : t.text().disabled());

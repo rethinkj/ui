@@ -72,11 +72,11 @@ public final class Segmented {
         .gap(t.space().xs())
         .radius(t.radius().medium())
         .fill(fill)
-        .border(t.size().stroke(), enabled ? t.border().strong() : t.border().subtle());
+        .border(t.size().stroke(), enabled ? t.border().strong() : t.border().divider());
     group.style().width = Len.FIT_CONTENT;
     for (int i = 0; i < choices.size(); i++) {
       boolean on = i == selected;
-      int back = on ? (enabled ? t.accent().color() : t.border().subtle()) : 0;
+      int back = on ? (enabled ? t.accent().color() : t.border().divider()) : 0;
       int text =
           !enabled ? t.text().disabled() : on ? t.text().onAccent() : t.text().primary();
       El choice = row()

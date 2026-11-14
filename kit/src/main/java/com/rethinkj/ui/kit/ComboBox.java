@@ -424,7 +424,7 @@ public final class ComboBox {
         .align(Style.Align.CENTER)
         .radius(t.radius().medium())
         .fill(fill)
-        .border(t.size().stroke(), enabled ? t.border().strong() : t.border().subtle())
+        .border(t.size().stroke(), enabled ? t.border().strong() : t.border().divider())
         .motion(t.motion().feedback());
     if (lead != null) {
       box.child(leadBox(t, lead));

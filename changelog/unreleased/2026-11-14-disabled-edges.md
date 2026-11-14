@@ -1,0 +1,1 @@
+- A disabled toggle, checkbox, radio, slider, segmented control, select, combo box and text field draws its edge, track or fill in `border().divider()` instead of `border().subtle()`, so that it still shows on the window's background; with the light theme's new surfaces a disabled toggle's track there was nearly invisible.

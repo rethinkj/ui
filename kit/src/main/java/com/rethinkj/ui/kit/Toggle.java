@@ -97,6 +97,8 @@ public final class Toggle {
   }
 
   private static int fill(Theme t, boolean on, boolean enabled) {
-    return !enabled ? t.border().subtle() : on ? t.accent().color() : t.border().strong();
+    return !enabled
+        ? t.border().divider()
+        : on ? t.accent().color() : t.border().strong();
   }
 }

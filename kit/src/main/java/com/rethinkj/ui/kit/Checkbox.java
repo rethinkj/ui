@@ -43,9 +43,9 @@ public final class Checkbox {
   public static El checkbox(Theme t, boolean checked, String text, Runnable onToggle) {
     boolean enabled = onToggle != null;
     Theme.Surfaces s = t.surface();
-    int fill = checked ? (enabled ? t.accent().color() : t.border().subtle()) : s.raised();
+    int fill = checked ? (enabled ? t.accent().color() : t.border().divider()) : s.raised();
     int edge = !enabled
-        ? t.border().subtle()
+        ? t.border().divider()
         : checked ? t.accent().pressed() : t.border().strong();
     float side = t.size().checkbox();
     El box = el().size(side, side)

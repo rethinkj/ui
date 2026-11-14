@@ -198,9 +198,9 @@ public final class Radio {
   private static El radio(Theme t, String text, boolean on, boolean enabled, Runnable onPress) {
     Theme.Surfaces s = t.surface();
     float side = t.size().checkbox();
-    int fill = on ? (enabled ? t.accent().color() : t.border().subtle()) : s.raised();
+    int fill = on ? (enabled ? t.accent().color() : t.border().divider()) : s.raised();
     int edge =
-        !enabled ? t.border().subtle() : on ? t.accent().pressed() : t.border().strong();
+        !enabled ? t.border().divider() : on ? t.accent().pressed() : t.border().strong();
     El mark = el().size(side, side)
         .shrink(0)
         .center()
