@@ -25,6 +25,9 @@ import com.rethinkj.ui.window.WindowEvent.StateChanged;
 import com.rethinkj.ui.window.WindowEvent.TextEditing;
 import com.rethinkj.ui.window.WindowEvent.TextInput;
 import com.rethinkj.ui.window.WindowEvent.Wheel;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -1079,15 +1082,11 @@ public final class WindowLoop {
       e.showing = e.presenter.presented();
       if (!e.shown && e.showing) {
         e.shown = true;
-        LOGGER.log(
-            System.Logger.Level.DEBUG,
-            () -> e.window.title() + ": first frame "
-                + ProcessHandle.current()
-                    .info()
-                    .startInstant()
-                    .map(start -> Duration.between(start, Instant.now()).toMillis() + " ms")
-                    .orElse("at an unknown time")
-                + " after the process started");
+        LOGGER.log(System.Logger.Level.DEBUG, () -> {
+          long millis = sinceStart();
+          return e.window.title() + ": first frame "
+              + (millis < 0 ? "at an unknown time" : millis + " ms") + " after the process started";
+        });
       }
     }
     if (!e.isOpen()) {
@@ -1099,6 +1098,31 @@ public final class WindowLoop {
       e.window.drawn();
     }
     textInput(e);
+  }
+
+  /**
+   * Milliseconds since the process started, or -1 if unknown. On Linux from {@code /proc}, exact
+   * to 10 ms: {@link ProcessHandle.Info#startInstant} there counts from the boot time in whole
+   * seconds, up to a second off.
+   */
+  static long sinceStart() {
+    try {
+      return sinceStart(
+          Files.readString(Path.of("/proc/self/stat")), Files.readString(Path.of("/proc/uptime")));
+    } catch (IOException | RuntimeException notLinux) {
+      return ProcessHandle.current()
+          .info()
+          .startInstant()
+          .map(start -> Duration.between(start, Instant.now()).toMillis())
+          .orElse(-1L);
+    }
+  }
+
+  /** {@link #sinceStart()} from the texts of {@code /proc/self/stat} and {@code /proc/uptime}. */
+  static long sinceStart(String stat, String uptime) {
+    // Field 22, the start in clock ticks since boot, 100 a second on x64; after the name in ().
+    long ticks = Long.parseLong(stat.substring(stat.lastIndexOf(')') + 2).split(" ")[19]);
+    return Math.round(Double.parseDouble(uptime.split(" ")[0]) * 1000) - ticks * 10;
   }
 
   private void textInput(Entry e) {
