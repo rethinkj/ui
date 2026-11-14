@@ -158,4 +158,4 @@ A press elsewhere hands the value on, unless the app refused it.
 
 ## In a tree dump
 
-A row says `value="changed"`, `"new"`, `"deleted"` or `"error"`; a cell says only `value="changed"` or `"error"`, and a failed cell is `invalid`. An open editor is `#editor` in the cell's row, with its field `#field` (`role=textbox`) inside. A list of choices and the field of several lines are overlays. A refused value adds a `role=alert` with the message.
+A row says `value="changed"`, `"new"`, `"deleted"` or `"error"`; a cell says only `value="changed"` or `"error"` (an unchanged cell with a column [detail](/docs/components/data-grid#details) holds the detail's text there instead), and a failed cell is `invalid`. An open editor is `#editor` in the cell's row, with its field `#field` (`role=textbox`) inside. A list of choices and the field of several lines are overlays. A refused value adds a `role=alert` with the message.
