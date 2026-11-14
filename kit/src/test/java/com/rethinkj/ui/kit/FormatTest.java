@@ -3,6 +3,7 @@ package com.rethinkj.ui.kit;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.rethinkj.ui.kit.DataGrid.DataType;
@@ -169,5 +170,20 @@ class FormatTest {
     refused(port, "x", "Not a whole number");
     assertFalse(port.allows("x"));
     assertTrue(port.optional().parse("").valid());
+  }
+
+  record Choice(int id, String label) {}
+
+  @Test
+  void choicesWithOneLabelForTwoValuesAreRefused() {
+    var e = assertThrows(
+        IllegalArgumentException.class,
+        () -> Format.choice(List.of(new Choice(1, "Open"), new Choice(2, "Open")), Choice::label));
+    assertEquals(
+        "Two choices have the label \"Open\": Choice[id=1, label=Open] and Choice[id=2, label=Open]",
+        e.getMessage());
+    Format<Choice> same =
+        Format.choice(List.of(new Choice(1, "Open"), new Choice(1, "Open")), Choice::label);
+    assertEquals(new Choice(1, "Open"), same.parse("Open").value(), "equal values are one");
   }
 }

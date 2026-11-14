@@ -1,0 +1,1 @@
+- `Format.choice(values, label)` refuses two values that are not equal with one label, with an `IllegalArgumentException` that names the label and both values; before, the label read as the first of them, silently another value.

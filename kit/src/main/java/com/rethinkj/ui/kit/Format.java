@@ -12,8 +12,10 @@ import java.time.format.DateTimeFormatterBuilder;
 import java.time.format.ResolverStyle;
 import java.time.temporal.TemporalAccessor;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -263,13 +265,21 @@ public final class Format<T> {
    * One of {@code values}, each written as its {@code label}, such as the constants of an enum:
    * {@code Format.choice(List.of(Status.values()), Status::label)}. A text is read as the value whose label
    * it is exactly; {@link #choices} lists the labels, which a grid's column offers as its
-   * choices.
+   * choices. Labels are unique: two values that are not equal with one label are refused with an
+   * {@link IllegalArgumentException} that names both, since the label would read as the first.
    */
   public static <T> Format<T> choice(List<? extends T> values, Function<? super T, String> label) {
     List<T> all = List.copyOf(values);
     List<String> labels = new ArrayList<>(all.size());
+    Map<String, T> byLabel = new HashMap<>();
     for (T value : all) {
-      labels.add(Objects.requireNonNull(label.apply(value), "label"));
+      String text = Objects.requireNonNull(label.apply(value), "label");
+      T other = byLabel.putIfAbsent(text, value);
+      if (other != null && !other.equals(value)) {
+        throw new IllegalArgumentException(
+            "Two choices have the label \"" + text + "\": " + other + " and " + value);
+      }
+      labels.add(text);
     }
     List<String> texts = List.copyOf(labels);
     return new Format<>(

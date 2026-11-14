@@ -19,7 +19,7 @@ description: Typed values in text fields and grid columns, written and read with
 | `DATE_TIME` | `LocalDateTime` | `2026-11-13 14:30`, also with a `T` |
 | `OFFSET_DATE_TIME` | `OffsetDateTime` | `2026-11-13 14:30+01:00` |
 | `BOOLEAN` | `Boolean` | `true`, `false`; also `t`, `1`, `yes`, `on` and their opposites |
-| `choice(values, label)` | any, such as an enum | Each value by its label: `Format.choice(List.of(Status.values()), Status::label)` |
+| `choice(values, label)` | any, such as an enum | Each value by its label: `Format.choice(List.of(Status.values()), Status::label)`; labels are unique, and two values with one label are refused |
 | `of(text, parse, message)` | any | The app's own: `Format.of(UUID::toString, UUID::fromString, "Expected a UUID")`; a parser that throws or returns null fails with the message |
 
 Numbers have a full stop and no grouping, dates and times are ISO 8601's, whatever the system's locale; another notation is another format. Each format answers a text that is no value with a message that says what a valid one looks like (`Expected a date such as 2026-11-13`), and says with `allows(text)` whether typing may still lead there, so that a field refuses a letter in a number but keeps `12.` and `-`.
