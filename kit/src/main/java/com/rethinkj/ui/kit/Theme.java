@@ -305,7 +305,9 @@ public record Theme(
    * a translucent tint laid over whatever the badge lies on, a strong one {@code strongText} on
    * {@code strong}.
    *
-   * @param soft translucent, the quiet badge's fill
+   * @param soft translucent, the quiet badge's fill, a quiet step off the surfaces it lies on:
+   *     1.08:1 or more on each and in a dark theme about 1.2:1 on a card, so that the text carries
+   *     the kind
    * @param softText the quiet badge's text and icon, 4.5:1 on its fill over the surfaces, the
    *     grid's rows and its selection
    * @param strong opaque, the strong badge's fill
@@ -362,11 +364,11 @@ public record Theme(
 
     /** For dark surfaces. */
     public static final Badges DARK = new Badges(
-        new Tone(alpha(WHITE, 0.05f), GREY_853, GREY_395, WHITE),
-        new Tone(alpha(BLUE_496, 0.18f), BLUE_782, BLUE_496, WHITE),
-        new Tone(alpha(GREEN_735, 0.1f), GREEN_826, GREEN_452, WHITE),
-        new Tone(alpha(AMBER_745, 0.1f), AMBER_835, AMBER_745, GREY_108),
-        new Tone(alpha(RED_649, 0.1f), RED_803, RED_457, WHITE),
+        new Tone(alpha(WHITE, 0.01f), GREY_853, GREY_395, WHITE),
+        new Tone(alpha(BLUE_496, 0.07f), BLUE_782, BLUE_496, WHITE),
+        new Tone(alpha(GREEN_735, 0.03f), GREEN_826, GREEN_452, WHITE),
+        new Tone(alpha(AMBER_745, 0.03f), AMBER_835, AMBER_745, GREY_108),
+        new Tone(alpha(RED_649, 0.035f), RED_803, RED_457, WHITE),
         18,
         22,
         TEXT,
@@ -397,9 +399,9 @@ public record Theme(
 
   /**
    * How {@link Callout}s look: a tinted fill per kind with a bar and an icon in the kind's
-   * colour. The fills are the badges' quiet tints laid over the raised surface ({@link Colors#over}),
-   * in the dark theme each kind's status colour at 10 %, so that the four are about as light as
-   * each other. {@code info} is the theme's blue, as links and the grid's selection are: it does
+   * colour. The fills are tints laid over the raised surface ({@link Colors#over}): in the light
+   * theme the badges' quiet tints, in the dark theme each kind's status colour at 10 %, so that the
+   * four are about as light as each other. {@code info} is the theme's blue, as links and the grid's selection are: it does
    * not follow {@link #withAccent}.
    *
    * @param info something to know
@@ -638,8 +640,16 @@ public record Theme(
    *     separators, the lines between a {@link Group}'s rows, under a tab bar, above a card's
    *     footer, between a split's parts and between a toolbar's groups; 1.2:1 or more on every
    *     surface, stronger than {@code subtle}, which a raised surface would almost hide
+   * @param trackOnAccent translucent, a spinner's ring on a primary button's fill, the accent's or
+   *     a dangerous one's, from which the arc in the button's text colour stands out 3:1
    */
-  public record Borders(int subtle, int strong, int control, int track, int divider) {
+  public record Borders(
+      int subtle, int strong, int control, int track, int divider, int trackOnAccent) {
+
+    /** Borders whose track on the accent is white at 12 %, for white text on the accent. */
+    public Borders(int subtle, int strong, int control, int track, int divider) {
+      this(subtle, strong, control, track, divider, alpha(WHITE, 0.12f));
+    }
 
     /** Borders whose dividers are {@code subtle}. */
     public Borders(int subtle, int strong, int control, int track) {
