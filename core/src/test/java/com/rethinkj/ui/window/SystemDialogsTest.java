@@ -7,6 +7,8 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
+import com.rethinkj.ui.App;
+import com.rethinkj.ui.El;
 import com.rethinkj.ui.FileDialog;
 import com.rethinkj.ui.natives.Natives;
 import java.io.File;
@@ -27,7 +29,8 @@ import org.junit.jupiter.api.io.TempDir;
 
 /**
  * The file dialogs' callback, called through its upcall stub as SDL calls it, on this thread and
- * on another, with the lists SDL hands over; and what the dialogs give SDL. No dialog opens.
+ * on another, with the lists SDL hands over; and what the dialogs give SDL. Only the tests that
+ * close a window under its file dialog open real ones, which they close.
  */
 class SystemDialogsTest {
 
@@ -287,6 +290,139 @@ class SystemDialogsTest {
       }
       window.close();
       other.close();
+    }
+  }
+
+  /** What the tests below ask of user32, bound on first use: Linux has none. */
+  private static final class User32 {
+    static final MethodHandle FIND_WINDOW_EX =
+        bind("FindWindowExW", FunctionDescriptor.of(ADDRESS, ADDRESS, ADDRESS, ADDRESS, ADDRESS));
+    static final MethodHandle WINDOW_PROCESS =
+        bind("GetWindowThreadProcessId", FunctionDescriptor.of(JAVA_INT, ADDRESS, ADDRESS));
+    static final MethodHandle IS_WINDOW =
+        bind("IsWindow", FunctionDescriptor.of(JAVA_INT, ADDRESS));
+
+    private static MethodHandle bind(String name, FunctionDescriptor descriptor) {
+      return Linker.nativeLinker()
+          .downcallHandle(
+              SymbolLookup.libraryLookup("user32", Arena.global()).find(name).orElseThrow(),
+              descriptor);
+    }
+  }
+
+  /** The dialogs ({@code #32770}) of this process on the screen, whoever owns them. */
+  private static List<MemorySegment> dialogsOfThisProcess() throws Throwable {
+    List<MemorySegment> found = new ArrayList<>();
+    try (Arena arena = Arena.ofConfined()) {
+      MemorySegment dialogClass = Win32.wide(arena, "#32770");
+      MemorySegment pid = arena.allocate(JAVA_INT);
+      MemorySegment after = MemorySegment.NULL;
+      while (true) {
+        MemorySegment next = (MemorySegment) User32.FIND_WINDOW_EX.invokeExact(
+            MemorySegment.NULL, after, dialogClass, MemorySegment.NULL);
+        if (next.equals(MemorySegment.NULL)) {
+          return found;
+        }
+        int thread = (int) User32.WINDOW_PROCESS.invokeExact(next, pid);
+        if (thread != 0 && pid.get(JAVA_INT, 0) == ProcessHandle.current().pid()) {
+          found.add(next);
+        }
+        after = next;
+      }
+    }
+  }
+
+  private static boolean isWindow(MemorySegment hwnd) throws Throwable {
+    return (int) User32.IS_WINDOW.invokeExact(hwnd) != 0;
+  }
+
+  /** Whatever went wrong, no dialog of this process stays open and the window goes. */
+  private static void cleanUp(Window window) throws Throwable {
+    long end = System.nanoTime() + Desktop.TIMEOUT_MILLIS * 1_000_000;
+    while (SystemDialogs.waiting() && System.nanoTime() < end) {
+      for (MemorySegment dialog : dialogsOfThisProcess()) {
+        Win32.postClose(dialog);
+      }
+      if (Window.started()) {
+        Window.waitEvents(10); // the dialog's thread waits for the owner's thread to answer
+      } else {
+        Thread.sleep(10);
+      }
+    }
+    if (Window.started()) {
+      window.close();
+      Desktop.pollUntil(() -> !Window.started());
+    }
+  }
+
+  /**
+   * The last window of a loop closes right after its app asked for a file dialog, before SDL's
+   * thread has shown it, and the loop ends with it: the dialog still closes as it appears, the
+   * app gets the cancel when it runs again, the window is destroyed and SDL quits, all before the
+   * loop returns.
+   */
+  @Test
+  void aLoopWhoseLastWindowClosesRightAfterAskingCancelsTheDialogBeforeItEnds() throws Throwable {
+    Desktop.assumeWindows();
+    assumeTrue(File.separatorChar == '\\', "the dialog's own thread is Windows'");
+    String title =
+        "rethinkj loop ends under its dialog " + ProcessHandle.current().pid();
+    Window window = Window.open("rethinkj last window under its dialog", 80, 60);
+    MemorySegment hwnd = ((WindowHandle.Win32) window.handle()).hwnd();
+    List<String> told = new java.util.concurrent.CopyOnWriteArrayList<>();
+    AtomicReference<Boolean> notThereYet = new AtomicReference<>();
+    try {
+      Desktop.settle();
+      App<Object> app = new App<>(new Object(), s -> El.el());
+      app.post(() -> {
+        app.fileDialog(
+            FileDialog.open(title).in(Path.of(".")),
+            c -> told.add("chosen " + c.paths()),
+            told::add);
+        notThereYet.set(Win32.ownedDialogs(hwnd).isEmpty());
+        app.windows().of(app).close(); // at once: the dialog's thread has not shown it yet
+      });
+      Desktop.run(new WindowLoop(window, app, (scene, w, h, s) -> {}), "the loop ends");
+
+      assertEquals(true, notThereYet.get(), "the window closed before its dialog appeared");
+      assertTrue(!SystemDialogs.waiting(), "the dialog has answered");
+      assertEquals(List.of(), dialogsOfThisProcess(), "no dialog is left on the screen");
+      assertTrue(!isWindow(hwnd), "the window is destroyed");
+      assertTrue(!Window.started(), "SDL has quit");
+      app.frame(); // the app runs again: the answer waited for it
+      assertEquals(List.of("chosen []"), told, "as cancelled");
+    } finally {
+      cleanUp(window);
+    }
+  }
+
+  /** The same without a loop: the only window closes right after asking. */
+  @Test
+  void closingTheOnlyWindowRightAfterAskingCancelsTheDialogBeforeItReturns() throws Throwable {
+    Desktop.assumeWindows();
+    assumeTrue(File.separatorChar == '\\', "the dialog's own thread is Windows'");
+    String title =
+        "rethinkj only window under its dialog " + ProcessHandle.current().pid();
+    Window window = Window.open("rethinkj only window under its dialog", 80, 60);
+    MemorySegment hwnd = ((WindowHandle.Win32) window.handle()).hwnd();
+    List<String> told = new java.util.concurrent.CopyOnWriteArrayList<>();
+    try {
+      Desktop.settle();
+      new SystemDialogs(window)
+          .file(
+              FileDialog.open(title).in(Path.of(".")),
+              c -> told.add("chosen " + c.paths()),
+              told::add);
+      assertEquals(List.of(), Win32.ownedDialogs(hwnd), "the dialog has not appeared yet");
+      window.close();
+
+      assertTrue(!SystemDialogs.waiting(), "the dialog has answered");
+      assertEquals(List.of("chosen []"), told, "as cancelled");
+      assertEquals(List.of(), dialogsOfThisProcess(), "no dialog is left on the screen");
+      assertTrue(!isWindow(hwnd), "the window is destroyed");
+      assertTrue(!Window.started(), "SDL has quit");
+    } finally {
+      cleanUp(window);
     }
   }
 
