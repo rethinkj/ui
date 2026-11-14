@@ -102,10 +102,35 @@ class EditorTest {
     assertArrayEquals(new int[] {0, 5}, Editor.codeWord("👩‍💻!", 3), "a ZWJ sequence");
     assertArrayEquals(new int[] {1, 3}, Editor.codeWord(".e\u0301", 2), "a mark with its letter");
     assertEquals(2, Editor.codeWordLeft(".\u0301a", 3), "a mark after a point goes with it");
+    assertArrayEquals(
+        new int[] {0, 2}, Editor.codeWord(";\u200Dabc", 0), "a joiner joins no letter");
+    assertArrayEquals(new int[] {0, 2}, Editor.codeWord("a\u200D😀", 0), "nor an emoji after one");
+    assertArrayEquals(
+        new int[] {0, 1}, Editor.codeWord("\n\u0301", 0), "a line break takes no mark");
 
     Random random = new Random(3);
-    String[] parts = {"a", "_", "1", ".", " ", "\u0301", "❤️", "👍🏽", "👩‍💻", "😀", "é", "\n"};
-    for (int round = 0; round < 2000; round++) {
+    String[] parts = {
+      "a",
+      "_",
+      "1",
+      ".",
+      ";",
+      " ",
+      "\u0301",
+      "\u0903",
+      "\u200D",
+      "\u200C",
+      "\uFE0F",
+      "❤️",
+      "👍🏽",
+      "\uD83C\uDFFD",
+      "👩‍💻",
+      "😀",
+      "é",
+      "\n",
+      "\uDB40\uDC61"
+    };
+    for (int round = 0; round < 4000; round++) {
       StringBuilder text = new StringBuilder();
       for (int n = random.nextInt(8); n > 0; n--) {
         text.append(parts[random.nextInt(parts.length)]);
@@ -118,6 +143,14 @@ class EditorTest {
         int[] word = Editor.codeWord(s, at);
         assertBoundary(s, word[0]);
         assertBoundary(s, word[1]);
+        int c = at < s.length() ? s.codePointAt(at) : 'a';
+        if (!Editor.codeWordChar(c) && c != ' ') {
+          // A grapheme that is no word is one on its own, exactly as long as the JDK's.
+          assertArrayEquals(
+              new int[] {at, Editor.next(s, at)},
+              word,
+              () -> at + " in " + s.codePoints().boxed().toList());
+        }
       }
     }
   }
