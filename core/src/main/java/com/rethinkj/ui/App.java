@@ -268,6 +268,8 @@ public final class App<S> {
   private long imageMemory = Scene.DEFAULT_IMAGE_MEMORY;
   private boolean systemFonts;
   private final Map<Object, Editor> editors = new HashMap<>(); // the fields' state, by identity
+  // Editors a build gave a FieldState's selection, whose onSelect hears it before the next input.
+  private final List<Editor> selectedByBuild = new ArrayList<>();
   private Clipboard clipboard = Clipboard.inMemory();
   private Dialogs dialogs = Dialogs.NONE;
   private Object fileOver; // the identity of the element the system's drag is over, or null
@@ -2954,6 +2956,12 @@ public final class App<S> {
       if (handled || changedOutside) { // the next input goes to a tree built from the state now
         rebuild(handled); // after invalidate alone with its rows: an action may look for them
         drawn = true;
+        for (Editor editor : selectedByBuild) {
+          boolean told = editor.tell();
+          handled |= told;
+          stale |= told;
+        }
+        selectedByBuild.clear();
       }
       dispatching = true;
       try {
@@ -3170,6 +3178,7 @@ public final class App<S> {
       if (state != null && state.caret >= 0) {
         editor.select(state.caret, state.anchor);
         state.caret = -1;
+        selectedByBuild.add(editor);
       }
       el.editor(editor);
       el.text().unfocused(!id.equals(focusId)); // El#ellipsis shortens it without the focus
@@ -3222,6 +3231,7 @@ public final class App<S> {
    * @return whether a handler was told, which the next input should find in the view
    */
   private boolean tellSelections() {
+    selectedByBuild.clear(); // told with the others
     boolean told = false;
     for (Editor editor : List.copyOf(editors.values())) {
       told |= editor.tell();

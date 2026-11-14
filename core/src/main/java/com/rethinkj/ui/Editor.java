@@ -392,9 +392,11 @@ final class Editor {
     changed = true;
     reveal = true;
     asked = true;
-    // The onSelect handler hears where it is, also when that is where it was: the app's own
-    // copy may hold what it asked for, which the snapping moved.
-    toldCaret = -1;
+    if (caret != newCaret || anchor != newAnchor) {
+      // Snapped: the handler hears where it is, also when that is where it was, as the app's
+      // own copy may hold what it asked for.
+      toldCaret = -1;
+    }
     if (composed) { // the ended composition no longer shows
       if (multiline()) {
         showComposition();

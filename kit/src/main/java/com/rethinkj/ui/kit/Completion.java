@@ -113,9 +113,17 @@ public final class Completion {
     /**
      * The characters after which the list opens as they are typed, with the word after them still
      * empty, such as {@code "."} for the columns after a table's name; none unless set.
+     *
+     * @throws IllegalArgumentException for a character of a word, as a letter, which opens the
+     *     list from a word's second character anyway
      */
     public State openAfter(String characters) {
-      openAfter = Objects.requireNonNull(characters, "characters");
+      if (characters.codePoints().anyMatch(CodeWords::isWordChar)) {
+        throw new IllegalArgumentException(
+            "openAfter is for characters that end a word, such as \".\", was \"" + characters
+                + "\"");
+      }
+      openAfter = characters;
       return this;
     }
 
