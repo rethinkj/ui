@@ -14,7 +14,7 @@ import com.rethinkj.ui.Style;
 /**
  * A surface set off from what it lies on, which holds what belongs together: a header with a title,
  * a description and actions at the right, any body, and buttons at the end ({@link Form#buttons}).
- * The children are stacked {@link Theme.Spacing#l} apart inside {@link Theme.Spacing#l} of padding,
+ * The children are stacked {@link Theme.Spacing#l} apart inside {@link Theme.Spacing#xl} of padding,
  * and the rounded corners ({@link Theme.Radii#large}) clip them:
  *
  * <pre>{@code
@@ -69,7 +69,7 @@ public final class Card {
   }
 
   public static El card(Theme t, Variant variant, El... content) {
-    return surface(t, variant).padding(t.space().l()).gap(t.space().l()).children(content);
+    return surface(t, variant).padding(t.space().xl()).gap(t.space().l()).children(content);
   }
 
   /**
@@ -125,7 +125,7 @@ public final class Card {
   public static El toolbar(Theme t, String title, String secondary, El... actions) {
     Theme.TextStyle style = t.type().heading();
     El bar = row()
-        .padding(t.space().m(), t.space().l())
+        .padding(t.space().m(), t.space().xl())
         .gap(t.space().m())
         .align(Style.Align.CENTER)
         .child(El.text(title)
@@ -153,7 +153,7 @@ public final class Card {
   public static El filters(Theme t, El filters) {
     return filters == null
         ? null
-        : row().padding(0, t.space().l(), t.space().m(), t.space().l()).child(filters);
+        : row().padding(0, t.space().xl(), t.space().m(), t.space().xl()).child(filters);
   }
 
   /** The height of a {@link #footer}, for what has to stay clear of it, as a {@link Toast}. */
@@ -173,7 +173,7 @@ public final class Card {
     El row = row()
         .h(footerHeight(t))
         .shrink(0)
-        .padding(0, t.space().l())
+        .padding(0, t.space().xl())
         .gap(t.space().l())
         .align(Style.Align.CENTER)
         .fill(t.surface().band())
@@ -200,7 +200,7 @@ public final class Card {
   }
 
   /**
-   * The top of a card: its title in {@link Label.Variant#STRONG} with a description in muted text
+   * The top of a card: its title in {@link Theme.Type#heading} with a description in muted text
    * below that wraps, and the actions at the right, centred on the text. The title is a heading of
    * level 3 in a tree dump, below a page's title and a section's heading.
    *
@@ -211,7 +211,7 @@ public final class Card {
     El text = col()
         .grow(1)
         .gap(t.space().xs())
-        .child(label(t, Label.Variant.STRONG, title).role("heading").level(3));
+        .child(label(t, Label.Variant.HEADING, title).role("heading").level(3));
     text.style().minWidth = Len.ZERO;
     if (description != null) {
       text.child(label(t, Label.Variant.MUTED, description).wrapText());

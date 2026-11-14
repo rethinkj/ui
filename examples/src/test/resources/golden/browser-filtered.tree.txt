@@ -17,21 +17,21 @@ el 0,0 900x520
   el 0,32 900x488
     el 8,32 884x480
       el 9,33 882x40
-        text role=heading "orders" 21,45 45x17 level=3
-        text "50,000 rows" 74,45 78x16
-        el 160,53 125x0
-        el 293,41 280x24
-          text #filter role=textbox label="Filter" "ada paid" 293,41 280x24 focused caret 8
-          text label="search" "\u{EA7C}" 297,45 16x16
-        el #columns-button role=button label="Columns" 581,41 102x24 expanded=false
-          text label="column_single" "\u{F0116}" 594,45 16x16
-          text "Columns" 614,45 56x16
-        el #revert role=button label="Revert" 691,41 85x24 disabled
-          text label="arrow_undo" "\u{E126}" 704,45 16x16
-          text "Revert" 724,45 39x16
-        el #commit role=button label="Commit" 784,41 95x24 disabled
-          text label="save" "\u{EA43}" 797,45 16x16
-          text "Commit" 817,45 49x16
+        text role=heading "orders" 25,45 45x17 level=3
+        text "50,000 rows" 78,45 78x16
+        el 164,53 117x0
+        el 289,41 280x24
+          text #filter role=textbox label="Filter" "ada paid" 289,41 280x24 focused caret 8
+          text label="search" "\u{EA7C}" 293,45 16x16
+        el #columns-button role=button label="Columns" 577,41 102x24 expanded=false
+          text label="column_single" "\u{F0116}" 590,45 16x16
+          text "Columns" 610,45 56x16
+        el #revert role=button label="Revert" 687,41 85x24 disabled
+          text label="arrow_undo" "\u{E126}" 700,45 16x16
+          text "Revert" 720,45 39x16
+        el #commit role=button label="Commit" 780,41 95x24 disabled
+          text label="save" "\u{EA43}" 793,45 16x16
+          text "Commit" 813,45 49x16
       el role=separator 9,73 882x1
       el #orders role=grid label="Orders" 9,74 882x408 thumb-x 11,474 521.13x6
         el #content 9,74 1486x408
@@ -895,5 +895,5 @@ el 0,0 900x520
                 text "361" 99,535 21x16
               el 124,531 1x23
       el 9,482 882x29
-        text #status "50,000 of 1,000,000 orders" 21,489 168x16
-        el 201,497 678x0
+        text #status "50,000 of 1,000,000 orders" 25,489 168x16
+        el 205,497 670x0

@@ -699,6 +699,16 @@ class ThemeTest {
     }
   }
 
+  /** A card lies lower than a popup: its wide shadow falls shorter and is less blurred. */
+  @Test
+  void aCardCastsLessShadowThanAPopup() {
+    for (Theme t : List.of(Theme.DARK, Theme.LIGHT)) {
+      Shadow card = t.elevation().card().get(1);
+      Shadow popup = t.elevation().popup().get(1);
+      assertTrue(card.y() < popup.y() && card.blur() < popup.blur(), card + " below " + popup);
+    }
+  }
+
   private static void check(
       List<String> failures, String what, int colour, Map<String, Integer> on, double minimum) {
     on.forEach((name, background) -> {

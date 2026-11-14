@@ -17,21 +17,21 @@ el 0,0 900x520
   el 0,32 900x488
     el 8,32 884x480
       el 9,33 882x40
-        text role=heading "orders" 21,45 45x17 level=3
-        text "1,000,001 rows" 74,45 91x16
-        el 173,53 90x0
-        el 271,41 280x24
-          text #filter role=textbox label="Filter" "" 271,41 280x24
-          text label="search" "\u{EA7C}" 275,45 16x16
-        el #columns-button role=button label="Columns" 581,41 102x24 expanded=false
-          text label="column_single" "\u{F0116}" 594,45 16x16
-          text "Columns" 614,45 56x16
-        el #revert role=button label="Revert" 691,41 85x24
-          text label="arrow_undo" "\u{E126}" 704,45 16x16
-          text "Revert" 724,45 39x16
-        el #commit role=button label="Commit (4)" 784,41 95x24
-          text label="save" "\u{EA43}" 797,45 16x16
-          text "Commit (4)" 817,45 71x16
+        text role=heading "orders" 25,45 45x17 level=3
+        text "1,000,001 rows" 78,45 91x16
+        el 177,53 82x0
+        el 267,41 280x24
+          text #filter role=textbox label="Filter" "" 267,41 280x24
+          text label="search" "\u{EA7C}" 271,45 16x16
+        el #columns-button role=button label="Columns" 577,41 102x24 expanded=false
+          text label="column_single" "\u{F0116}" 590,45 16x16
+          text "Columns" 610,45 56x16
+        el #revert role=button label="Revert" 687,41 85x24
+          text label="arrow_undo" "\u{E126}" 700,45 16x16
+          text "Revert" 720,45 39x16
+        el #commit role=button label="Commit (4)" 780,41 95x24
+          text label="save" "\u{EA43}" 793,45 16x16
+          text "Commit (4)" 813,45 71x16
       el role=separator 9,73 882x1
       el #orders role=grid label="Orders" 9,74 882x408 thumb-x 11,474 496.41x6 focused
         el #content 9,74 1560x408
@@ -852,5 +852,5 @@ el 0,0 900x520
                 text "999983" 92,535 42x16
               el 138,531 1x23
       el 9,482 882x29
-        text #status "1,000,000 of 1,000,000 orders · order 999997 selected · 4 changes" 21,489 415x16
-        el 448,497 431x0
+        text #status "1,000,000 of 1,000,000 orders · order 999997 selected · 4 changes" 25,489 415x16
+        el 452,497 423x0

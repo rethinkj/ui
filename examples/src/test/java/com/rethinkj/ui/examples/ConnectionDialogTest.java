@@ -25,7 +25,7 @@ class ConnectionDialogTest {
         .contains("as admin with SSL\""));
     // The password shows as bullets in the tree, also once its button shows it on the screen.
     assertTrue(Snaps.line("connection-dialog", "connection-shown", "#password")
-        .contains("\"" + "•".repeat(7) + "\" 95,247 324x24 password revealed"));
+        .contains("\"" + "•".repeat(7) + "\" 99,252 316x24 password revealed"));
     assertTrue(
         Snaps.line("connection-dialog", "connection-connecting", "label=\"Connect\"")
             .endsWith(" disabled"),

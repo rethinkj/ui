@@ -47,7 +47,7 @@ el 0,0 880x600
               text "About" 41,211 154x16
     el 216,32 656x560
       text role=heading "Connections" 240,56 608x24 level=1
-      el 240,104 608x271
+      el 240,104 608x298
         el 240,104 608x35
           text role=heading "Servers" 240,104 608x17 level=2
           text "Where the workbench connects to, and how" 240,123 608x16
@@ -55,58 +55,58 @@ el 0,0 880x600
           text #filter role=textbox label="Filter by name or host" "" 240,147 460x24
           el #add role=button label="New connection…" 708,147 140x24
             text "New connection…" 721,151 114x16
-        el 240,179 608x196
-          el #localhost role=button label="localhost" 240,179 608x60 value="connected"
-            el 253,192 582x34
-              el 253,192 512x34
-                text role=heading "localhost" 253,192 512x16 level=3
-                text "localhost:5432" 253,210 512x16
-              text label="plug_connected" "\u{F0393}" 773,201 16x16
-              el #menu role=button label="Actions for localhost" 797,197 38x24
-                text "…" 810,201 12x16
-          el #staging role=button label="staging" 240,247 608x60 selected value="connected"
-            el 253,260 582x34
-              el 253,260 512x34
-                text role=heading "staging" 253,260 512x16 level=3
-                text "staging.db.example.com:5432" 253,278 512x16
-              text label="plug_connected" "\u{F0393}" 773,269 16x16
-              el #menu role=button label="Actions for staging" 797,265 38x24
-                text "…" 810,269 12x16
-          el #prod-eu role=button label="prod-eu" 240,315 608x60 value="not connected"
-            el 253,328 582x34
-              el 253,328 512x34
-                text role=heading "prod-eu" 253,328 512x16 level=3
-                text "eu.db.example.com:6432" 253,346 512x16
-              text label="plug_disconnected" "\u{F0394}" 773,337 16x16
-              el #menu role=button label="Actions for prod-eu" 797,333 38x24
-                text "…" 810,337 12x16
+        el 240,179 608x223
+          el #localhost role=button label="localhost" 240,179 608x69 value="connected"
+            el 257,196 574x35
+              el 257,196 504x35
+                text role=heading "localhost" 257,196 504x17 level=3
+                text "localhost:5432" 257,215 504x16
+              text label="plug_connected" "\u{F0393}" 769,206 16x16
+              el #menu role=button label="Actions for localhost" 793,202 38x24
+                text "…" 806,206 12x16
+          el #staging role=button label="staging" 240,256 608x69 selected value="connected"
+            el 257,273 574x35
+              el 257,273 504x35
+                text role=heading "staging" 257,273 504x17 level=3
+                text "staging.db.example.com:5432" 257,292 504x16
+              text label="plug_connected" "\u{F0393}" 769,283 16x16
+              el #menu role=button label="Actions for staging" 793,279 38x24
+                text "…" 806,283 12x16
+          el #prod-eu role=button label="prod-eu" 240,333 608x69 value="not connected"
+            el 257,350 574x35
+              el 257,350 504x35
+                text role=heading "prod-eu" 257,350 504x17 level=3
+                text "eu.db.example.com:6432" 257,369 504x16
+              text label="plug_disconnected" "\u{F0394}" 769,360 16x16
+              el #menu role=button label="Actions for prod-eu" 793,356 38x24
+                text "…" 806,360 12x16
 overlay center modal scrim on 0,0 880x600
-  el #dialog role=dialog label="New connection" 287,198 307x205
-    el 304,244 273x142
-      el #dialog-content 300,240 287x120
-        el 304,244 273x106
-          el 304,244 273x24
-            el 304,244 45x24
-              text "Name" 304,248 36x16
-              text "*" 342,248 7x16
-            el 357,244 220x24
-              text #name role=textbox label="Name" "backup" 357,244 220x24
-          el 304,276 273x24
-            el 304,276 45x24
-              text "Host" 304,280 29x16
-              text "*" 335,280 7x16
-            el 357,276 220x24
-              text #host role=textbox label="Host" "backup.example.com" 357,276 220x24
-          el 304,308 273x42
-            el 304,308 45x24
-              text "Port" 304,312 25x16
-            el 357,308 220x42
-              text #port role=textbox label="Port" "0" 357,308 72x24 invalid error="1 to 65535" focused caret 1
-              text "1 to 65535" 357,334 220x16
-      el 304,362 273x24
-        el #cancel role=button label="Cancel" 448,362 70x24
-          text "Cancel" 461,366 44x16
-        el #ok role=button label="Add" 526,362 51x24 disabled
-          text "Add" 539,366 25x16
-    el 304,215 273x17
-      text role=heading label="New connection" "New connection" 304,215 113x17 level=2
+  el #dialog role=dialog label="New connection" 287,197 307x207
+    el 304,245 273x142
+      el #dialog-content 300,241 287x120
+        el 304,245 273x106
+          el 304,245 273x24
+            el 304,245 45x24
+              text "Name" 304,249 36x16
+              text "*" 342,249 7x16
+            el 357,245 220x24
+              text #name role=textbox label="Name" "backup" 357,245 220x24
+          el 304,277 273x24
+            el 304,277 45x24
+              text "Host" 304,281 29x16
+              text "*" 335,281 7x16
+            el 357,277 220x24
+              text #host role=textbox label="Host" "backup.example.com" 357,277 220x24
+          el 304,309 273x42
+            el 304,309 45x24
+              text "Port" 304,313 25x16
+            el 357,309 220x42
+              text #port role=textbox label="Port" "0" 357,309 72x24 invalid error="1 to 65535" focused caret 1
+              text "1 to 65535" 357,335 220x16
+      el 304,363 273x24
+        el #cancel role=button label="Cancel" 448,363 70x24
+          text "Cancel" 461,367 44x16
+        el #ok role=button label="Add" 526,363 51x24 disabled
+          text "Add" 539,367 25x16
+    el 304,214 273x19
+      text role=heading label="New connection" "New connection" 304,214 125x19 level=2

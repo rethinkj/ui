@@ -16,8 +16,8 @@ overlay center modal scrim on 0,0 480x240
           text "Save" 335,164 30x16
     el 103,56 275x24
       el #mark 103,60 16x16
-      text role=heading label="Edit connection" "Edit connection" 127,60 105x17 level=2
-      el 240,68 29x0
+      text role=heading label="Edit connection" "Edit connection" 127,58 121x20 level=2
+      el 256,68 13x0
       el #badge label="Read only" 277,59 69x18
         text "Read only" 283,61 57x14
       el #close role=button label="Close" 354,56 24x24

@@ -2,7 +2,6 @@ package com.rethinkj.ui.kit;
 
 import static com.rethinkj.ui.El.col;
 import static com.rethinkj.ui.El.row;
-import static com.rethinkj.ui.kit.Label.label;
 
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.Key;
@@ -30,7 +29,8 @@ import java.util.function.Predicate;
  * has one and it is enabled; Enter on a focused button presses that button, and a multi-line field
  * keeps Enter for its line breaks. When it closes, the focus goes back to where it was, such as
  * the button that opened it. In a tree dump it is an overlay {@code center modal scrim}, {@code
- * role=dialog} with its title as the label; the title is {@code role=heading} at {@code level=2}
+ * role=dialog} with its title as the label; the title, in {@link Theme.Type#dialog}, is {@code
+ * role=heading} at {@code level=2}
  * with the title as its label.
  *
  * <p>{@link #options()} add an element before the title (a colour mark, an icon), elements at the
@@ -164,7 +164,10 @@ public final class Dialog {
     }
     head.child(Tooltip.whenShortened(
         t,
-        label(t, Label.Variant.HEADING, title)
+        El.text(title)
+            .font(t.type().dialog().font().get())
+            .fontSize(t.type().dialog().size())
+            .color(t.text().primary())
             .role("heading")
             .level(2)
             .label(title)

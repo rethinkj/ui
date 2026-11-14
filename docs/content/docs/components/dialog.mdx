@@ -16,7 +16,7 @@ Whether it is open is the app's state: the root attaches it with `root.overlay(o
 
 | Parameter | |
 | --- | --- |
-| `title` | The heading, and the dialog's label |
+| `title` | The heading in `type().dialog()` (16, semibold), and the dialog's label |
 | `content` | Any element |
 | `buttons` | Shown at the bottom right, in order |
 | `defaultButton` | One of `buttons` that Enter presses while it is enabled (the variant with it) |
@@ -44,7 +44,7 @@ A frameless window's own title bar stays usable under a dialog. Closing the wind
 | `start(El...)` | At the start of the button row, the buttons at its end; with no buttons the row is there for them alone |
 | `defaultButton(El)` | One of `buttons` that Enter presses, as the parameter of the other form |
 
-A dialog is as wide as its content, title and rows ask for, up to the window less `space().xl()` on each side: size it by sizing the content, as `field.w(320)`. The head comes after the content and the buttons in the order of Tab, so the dialog opens in its content's first field and a close button in the head is the last stop.
+A dialog has a card's padding, `space().xl()`, and is as wide as its content, title and rows ask for, up to the window less `space().xl()` on each side: size it by sizing the content, as `field.w(320)`. The head comes after the content and the buttons in the order of Tab, so the dialog opens in its content's first field and a close button in the head is the last stop.
 
 ## Higher than the window
 

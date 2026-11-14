@@ -26,10 +26,10 @@ Every component takes the theme as its first parameter. There is no global theme
 | `status()` | `danger`, `warning`, `success` |
 | `space()` | `xs`, `s`, `m`, `l`, `xl`, `xxl` |
 | `radius()` | `small` (4), `medium` (6), `large` (10) |
-| `type()` | `body`, `mono`, `heading`, `title`, `strong` |
+| `type()` | `body` (13), `mono` (12), `strong` (13, medium), `heading` (14, semibold: sections and cards), `dialog` (16, semibold: a dialog's title), `title` (20, semibold: a page) |
 | `size()` | `control`, `field`, `icon`, `checkbox`, `stroke`, … |
 | `motion()` | `feedback`, `move`, `fade` springs; tooltip and submenu delays; how long a toast stays |
-| `elevation()` | Shadows of `card`, `popup`, `dialog` |
+| `elevation()` | Shadows of `card` (the least), `popup`, `dialog` (the most) |
 | `grid()`, `scrollbars()`, `code()`, `prose()`, `badge()`, `caption()`, `danger()`, `callout()` | The tokens of the grid, scrollbars, code editor, Markdown, badges, the close button, buttons that destroy (`Theme.Danger`, `withDanger`) and callouts (`Theme.Callouts`, `withCallout`) |
 
 `withSurface`, `withText`, `withBorder`, `withAccent`, `withStatus`, `withSpace`, `withRadius`, `withType`, `withSize`, `withMotion`, `withGrid`, `withScrollbars`, `withCode`, `withElevation`, `withProse`, `withBadge` and `withCaption` return a changed copy.

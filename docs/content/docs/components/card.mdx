@@ -17,10 +17,10 @@ description: A rounded surface that frames a region, with a header, a toolbar, a
 
 | Call | |
 | --- | --- |
-| `card(t, content...)`, `card(t, variant, content...)` | A column with padding and gaps |
-| `header(t, title, description, actions...)` | A title, a muted description that wraps, and actions at the right |
+| `card(t, content...)`, `card(t, variant, content...)` | A column with `space().xl()` (16) of padding and `space().l()` (12) between its children |
+| `header(t, title, description, actions...)` | A title in `type().heading()`, a muted description that wraps, and actions at the right |
 | `flush(t, parts...)` | A card without padding whose parts lie edge to edge, clipped by its corners |
-| `toolbar(t, title, secondary, actions...)` | The first part of a flush card: a title, a muted text beside it, actions at the right |
+| `toolbar(t, title, secondary, actions...)` | The first part of a flush card: a title in `type().heading()`, a muted text beside it, actions at the right |
 | `footer(t, start, end...)` | The last part: a quiet band with a hairline above it |
 | `filters(t, bar)` | An optional filter bar below a toolbar, with the card's side padding; null leaves the row out |
 | `inset(t, list)` | Insets a list with rounded rows, such as a tree or a nav list |
@@ -34,6 +34,8 @@ description: A rounded surface that frames a region, with a header, a toolbar, a
 | `ELEVATED` | The panel with the edge and a popup's shadow |
 
 Null content is left out, so `changed ? callout(...) : null` composes.
+
+A toolbar, a filter bar and a footer keep the padded card's 16 at the sides, so titles and text line up whichever kind of card they are in. A card's shadow is smaller than a popup's: cards lie on the window, popups above them.
 
 ## In a tree dump
 

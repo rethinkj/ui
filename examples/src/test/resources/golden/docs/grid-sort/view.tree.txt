@@ -1,12 +1,12 @@
 el 0,0 520x300
   el 12,12 496x276
     el 13,13 494x40
-      text role=heading "orders" 25,25 45x17 level=3
-      text "1000 rows" 78,25 64x16
-      el 150,33 235x0
-      el #columns-button role=button label="Columns" 393,21 102x24 expanded=false
-        text label="column_single" "\u{F0116}" 406,25 16x16
-        text "Columns" 426,25 56x16
+      text role=heading "orders" 29,25 45x17 level=3
+      text "1000 rows" 82,25 64x16
+      el 154,33 227x0
+      el #columns-button role=button label="Columns" 389,21 102x24 expanded=false
+        text label="column_single" "\u{F0116}" 402,25 16x16
+        text "Columns" 422,25 56x16
     el #orders role=grid label="Orders" 13,53 494x234
       el #content 13,53 494x234
         el #header 13,53 494x25
