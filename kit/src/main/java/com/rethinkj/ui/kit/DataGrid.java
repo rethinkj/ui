@@ -143,8 +143,9 @@ public final class DataGrid {
     /**
      * Runs on the app's thread, from a handler, using the last build's columns, row count and
      * options. An unavailable command does nothing. Uses the same selection notifications,
-     * copy limits, loading and editing checks as the keys; leaves the focus where it is and
-     * never commits or changes an open cell editor.
+     * copy limits, loading and editing checks as the keys. This call leaves the focus where it
+     * is and never commits or changes an open cell editor. Opening a menu with the pointer
+     * still runs the editor's normal outside-press handler.
      */
     public void run(Command command) {
       DataGrid.run(build, command);

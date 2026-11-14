@@ -569,7 +569,7 @@ class GridEditTest {
   }
 
   @Test
-  void anExternalMenuUsesTheLatestGridAndLeavesAnOpenEditorAlone() throws IOException {
+  void externalCommandHandlersUseTheLatestGridAndLeaveAnOpenEditorAlone() throws IOException {
     Ledger ledger = new Ledger(T, 3);
     DataGrid.Commands commands = new DataGrid.Commands();
     DataGrid.Layout layout = new DataGrid.Layout(
