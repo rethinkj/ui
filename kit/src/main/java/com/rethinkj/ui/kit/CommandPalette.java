@@ -192,8 +192,11 @@ public final class CommandPalette {
     /** Closes the palette as Escape does, undoing what a step previews. */
     public void close() {
       boolean was = open;
-      cancel();
-      closed(was);
+      try {
+        cancel();
+      } finally {
+        closed(was);
+      }
     }
 
     /** Ends the step as Escape does, undoing what it previews, without telling of a close. */
@@ -219,7 +222,7 @@ public final class CommandPalette {
 
     /** The keys of the commands chosen last, or their texts where they have none, last first. */
     public List<String> recent() {
-      return List.copyOf(recent);
+      return recent.stream().map(id -> id.substring(id.indexOf(' ') + 1)).toList();
     }
 
     /** Closes the palette without undoing anything, as a choice does. */
@@ -345,12 +348,16 @@ public final class CommandPalette {
       if (e.keepsOpen()) {
         // Its handler changes the entries: the best of them highlighted, also once they change.
         state.list.typed(state.list.query, true);
+        state.list.cancel(); // and entries found on another thread are found anew
         e.onChoose().run();
         return;
       }
       state.done();
-      e.onChoose().run(); // which may ask for a step
-      state.closed(true);
+      try {
+        e.onChoose().run(); // which may ask for a step
+      } finally {
+        state.closed(true);
+      }
     };
     String placeholder = stage != null ? stage.placeholder() : placeholder(sources);
     El field = TextField.textField(t, state.text, placeholder, v -> {
@@ -419,9 +426,9 @@ public final class CommandPalette {
     return ranked;
   }
 
-  /** What tells a command from the others: its key, or its text where it has none. */
+  /** What tells a command from the others: its key, or its text where it has none, apart. */
   private static String id(FilterList.Entry e) {
-    return e.key() != null ? e.key() : e.text();
+    return e.key() != null ? "key " + e.key() : "text " + e.text();
   }
 
   private static String placeholder(List<Source> sources) {
@@ -447,8 +454,11 @@ public final class CommandPalette {
           if (stage != null && stage.onEnter() != null) {
             String text = state.text;
             state.done();
-            stage.onEnter().accept(text);
-            state.closed(true);
+            try {
+              stage.onEnter().accept(text);
+            } finally {
+              state.closed(true);
+            }
             return true;
           }
         }
