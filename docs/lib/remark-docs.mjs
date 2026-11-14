@@ -29,7 +29,7 @@ export function remarkDocs() {
         const entry = manifest[shotKey(attrs)];
         if (!entry) throw new Error(`${file.path}: <Shot> not prepared; run npm run docs:prepare`);
         const { width, height } = manifest[entry.dark];
-        const keep = node.attributes.filter((a) => !['src', 'dark', 'light', 'rows'].includes(a.name));
+        const keep = node.attributes.filter((a) => !['src', 'dark', 'light', 'rows', 'crop'].includes(a.name));
         const set = { dark: `/shots/${entry.dark}`, light: `/shots/${entry.light}`, width: String(width), height: String(height) };
         node.data = { ...node.data, structuredData: { contents: [] } }; // not text to search
         node.attributes = [

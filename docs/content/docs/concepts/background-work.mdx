@@ -8,6 +8,8 @@ An app, its state and its elements belong to the thread that runs the app, and o
 ```java snippet="background"
 ```
 
+<Shot src="examples/docs/background/counting-{theme}" alt="The count button busy with a spinner while the work runs, beside Cancel and Save" />
+
 - `app.background(name, compute, onResult, onFailure)` runs `compute` on a virtual thread, then posts `onResult` with the result or `onFailure` with the exception.
 - It returns a `Work`. `work.cancel()` interrupts the thread, and neither handler runs, even if the result already arrived.
 - Pass the computation only what it needs (a table name, an SQL string, a connection), never the state or elements: nothing guards them against the app's thread.

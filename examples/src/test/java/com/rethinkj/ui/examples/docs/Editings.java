@@ -24,6 +24,8 @@ import java.util.Objects;
 /** The examples of the page Editing records: a form over a record, and one over a POJO. */
 final class Editings {
 
+  Theme t = Theme.DARK;
+
   // docs:start editing-record
   record Order(String customer, BigDecimal amount, LocalDate ordered, LocalDate due, boolean paid) {
     static final Part<Order, String> CUSTOMER = Part.of(Order::customer, Order::withCustomer);
@@ -61,7 +63,7 @@ final class Editings {
   // docs:end editing-state
 
   static El record(Editings s) {
-    Theme t = Theme.DARK;
+    Theme t = s.t;
     // docs:start editing-view
     Editing<Order> e = s.editing;
     El form = Form.form(
@@ -149,7 +151,7 @@ final class Editings {
   // docs:end editing-pojo
 
   static El pojo(Editings s) {
-    Theme t = Theme.DARK;
+    Theme t = s.t;
     // docs:start editing-pojo-view
     Editing<Settings> e = s.editingSettings;
     El form = Form.form(

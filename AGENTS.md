@@ -46,7 +46,7 @@ The site, with Node 24 in `docs/`: `npm ci`, then `npm run build`.
 ## Tests
 
 - Keep tests few and fast. A test earns its place by failing when behaviour a user can notice breaks. No benchmarks and no timing printouts in the test suite, no tests of tests, and no second test for what another already covers.
-- Image tests compare a script's snaps with the PNG and tree files under `<module>/src/test/resources/golden`. Store an image at one theme and one scale unless the theme or the scale is what the test is about.
+- Image tests compare a script's snaps with the PNG and tree files under `<module>/src/test/resources/golden`. Store an image at one theme and one scale unless the theme or the scale is what the test is about. Images of the docs examples are stored in both themes, since the site shows the one of its own theme.
 - After a deliberate change of the output, rewrite the stored images with `mvn -pl <module> -am test -Dgolden.update=true` and look at them before committing. A failing image test leaves the expected image, the actual one and their difference in `<module>/target/golden`.
 - Tests that open real windows run only with `-Dwindows.tests=true`. Do not add such a test to the default build, and do not run them on a machine somebody works at unless asked.
 - The steps of a script and the format of a tree dump are on the site, under `docs/content/docs/testing`.
