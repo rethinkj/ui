@@ -4,7 +4,6 @@ import static com.rethinkj.ui.El.el;
 import static com.rethinkj.ui.kit.Icon.icon;
 import static com.rethinkj.ui.kit.Theme.over;
 
-import com.rethinkj.ui.Cursor;
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.Len;
 import com.rethinkj.ui.Scrollbars;
@@ -187,37 +186,16 @@ public final class TextField {
    */
   public static El revealable(Theme t, El field, boolean revealed, Runnable onToggle) {
     boolean enabled = onToggle != null && (field.onEdit() != null || field.isReadOnly());
-    float inset = t.space().xs();
-    float size = t.size().control() - 2 * inset;
-    Style pad = field.masked().revealed(revealed).style();
-    pad.paddingRight = Len.px(t.size().control()); // the text stops before the button
-    El button = el().role("button")
-        .label(revealed ? "Hide password" : "Show password")
-        .disabled(!enabled)
-        .size(size, size)
-        .center()
-        .radius(t.radius().small())
-        .motion(t.motion().feedback())
-        .child(icon(
-            t,
-            revealed ? Symbol.EYE_OFF : Symbol.EYE,
-            enabled ? Icon.Variant.MUTED : Icon.Variant.DISABLED));
-    Style at = button.style();
-    at.position = Style.Position.ABSOLUTE;
-    at.right = Len.px(inset);
-    at.top = Len.px(inset);
+    field.masked().revealed(revealed);
+    El button = FieldActions.button(
+        t,
+        revealed ? Symbol.EYE_OFF : Symbol.EYE,
+        revealed ? "Hide password" : "Show password",
+        enabled ? onToggle : null);
     if (enabled) {
-      button
-          .focusable()
-          .keepFocus()
-          .focusRing(t.accent().edge())
-          .cursor(Cursor.POINTER)
-          .onPress(onToggle)
-          .whenHovered(e -> e.fill(t.surface().hover()))
-          .whenPressed(e -> e.fill(t.surface().pressed()));
+      button.focusable().focusRing(t.accent().edge());
     }
-    El box = el().children(field, button);
-    box.style().width = Len.FIT_CONTENT;
+    El box = FieldActions.embed(t, field, button, t.size().control());
     if (field.onEdit() != null) { // the frame keeps its focused look while the button has the focus
       box.whenFocusWithin(e -> {
         // An invalid field (#invalid, also set after this by a form) keeps its danger border.

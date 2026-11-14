@@ -1,13 +1,10 @@
 package com.rethinkj.ui.kit;
 
 import static com.rethinkj.ui.El.col;
-import static com.rethinkj.ui.El.el;
 import static com.rethinkj.ui.El.row;
-import static com.rethinkj.ui.kit.Icon.icon;
 import static com.rethinkj.ui.kit.Label.label;
 
 import com.rethinkj.ui.App;
-import com.rethinkj.ui.Cursor;
 import com.rethinkj.ui.Decorator;
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.Key;
@@ -947,8 +944,7 @@ public final class Find {
         });
     state.findField = field;
     float inset = t.space().xs();
-    float size = t.size().control() - 2 * inset;
-    field.style().paddingRight = Len.px(3 * size + 2 * inset);
+    float size = FieldActions.size(t);
     if (state.error != null) {
       TextField.invalid(t, field);
     }
@@ -990,15 +986,10 @@ public final class Find {
                 })
             .key("regex")
             .size(size, size));
-    Style at = switches.style();
-    at.position = Style.Position.ABSOLUTE;
-    at.right = Len.px(inset);
-    at.top = Len.px(inset);
-    El box = el().children(field, switches)
+    El box = FieldActions.embed(t, field, switches, 3 * size + 2 * inset)
         .whenFocusWithin(e -> field.border(
             t.size().stroke(),
             state.error != null ? t.status().danger() : t.accent().color()));
-    box.style().width = Len.FIT_CONTENT;
     return state.error != null ? Tooltip.tooltip(t, box, state.error) : box;
   }
 
@@ -1049,40 +1040,13 @@ public final class Find {
    */
   private static El tool(
       Theme t, Symbol symbol, String label, String tip, Boolean checked, Runnable onPress) {
-    boolean enabled = onPress != null;
-    boolean on = checked != null && checked;
-    El button = el().role("button")
-        .label(label)
-        .disabled(!enabled)
+    El button = FieldActions.button(t, symbol, label, checked, onPress)
         .size(t.size().control(), t.size().control())
-        .shrink(0)
-        .center()
-        .radius(t.radius().small())
-        .motion(t.motion().feedback())
-        .child(icon(
-            t,
-            symbol,
-            !enabled ? Icon.Variant.DISABLED : on ? Icon.Variant.NORMAL : Icon.Variant.MUTED));
-    if (checked != null) {
-      button.checked(on);
-    }
-    if (on) {
-      button.fill(t.grid().selected()).border(t.size().stroke(), t.accent().edge());
-    }
-    if (!enabled) {
+        .shrink(0);
+    if (onPress == null) {
       return button;
     }
-    int rest = on ? t.grid().selected() : 0;
-    button
-        .focusable()
-        .keepFocus()
-        .focusRing(t.accent().edge())
-        .cursor(Cursor.POINTER)
-        .onPress(onPress)
-        .whenHovered(
-            e -> e.fill(on ? Theme.over(rest, t.surface().hover()) : t.surface().hover()))
-        .whenPressed(e ->
-            e.fill(on ? Theme.over(rest, t.surface().pressed()) : t.surface().pressed()));
+    button.focusable().focusRing(t.accent().edge());
     return Tooltip.tooltip(t, button, tip);
   }
 
