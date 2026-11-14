@@ -996,11 +996,14 @@ public final class App<S> {
    * the root's handler sees it. If none does, Enter and Space without modifiers press the focused
    * element if it has an {@link El#onPress} handler, which takes their repeats without pressing
    * again, and Tab moves the focus to the next focusable element in tree order, Shift+Tab to the
-   * previous one, around at the ends. Unlike in a browser, a press handler on the focused element
-   * takes Enter and Space before its ancestors' key handlers see them. The Menu key and Shift+F10
-   * run the nearest {@link El#onSecondaryPress} handler at the bottom left of the focused
-   * element's cursor: the first element inside it that is {@link El#current}, else the first
-   * that is {@link El#selected}, else the focused element itself.
+   * previous one, around at the ends, and Page Up and Page Down without modifiers scroll the
+   * innermost scroll area around the focused element that can still move that way by its height,
+   * as in a browser, or in a {@link El#modal} overlay without one the first in it that can, as a
+   * dialog's content while a button below it has the focus. Unlike in a browser, a press handler
+   * on the focused element takes Enter and Space before its ancestors' key handlers see them. The
+   * Menu key and Shift+F10 run the nearest {@link El#onSecondaryPress} handler at the bottom left
+   * of the focused element's cursor: the first element inside it that is {@link El#current}, else
+   * the first that is {@link El#selected}, else the focused element itself.
    *
    * <p>In an overlay, keys go up from the focused element to the overlay's root and on to the
    * element it is attached to and that element's ancestors; in a {@link El#modal} one they end at
@@ -1109,6 +1112,23 @@ public final class App<S> {
           el.editor().selectAll(); // as browsers do when Tab enters a field, but not a text area
         }
         return focus(el, true);
+      }
+    }
+    if ((key.name().equals("PageUp") || key.name().equals("PageDown")) && key.modifiers() == 0) {
+      int direction = key.name().equals("PageUp") ? -1 : 1;
+      El area = null;
+      for (El el : path.reversed()) { // the innermost area around the focus that can move so
+        if (el.isScrollArea() && el.canScroll(false, direction)) {
+          area = el;
+          break;
+        }
+      }
+      if (area == null && modal() != null) { // a modal overlay is a page of its own, as a dialog
+        area = pageArea(modal(), direction);
+      }
+      if (area != null) {
+        scrolled |= area.page(true, direction);
+        return true;
       }
     }
     keyUntaken = true;
@@ -1970,6 +1990,20 @@ public final class App<S> {
     return null;
   }
 
+  /** The first scroll area in tree order inside {@code el} that can move up or down so. */
+  private static El pageArea(El el, int direction) {
+    if (el.isScrollArea() && el.canScroll(false, direction)) {
+      return el;
+    }
+    for (El child : el.children()) {
+      El found = pageArea(child, direction);
+      if (found != null) {
+        return found;
+      }
+    }
+    return null;
+  }
+
   /**
    * The focused element and its ancestors, from the root; only the root without focus. While the
    * focus is on a row out of range, the path ends at the row's list.
@@ -2011,7 +2045,7 @@ public final class App<S> {
   /**
    * Scrolls the scroll areas around {@code el}, the innermost first, just far enough to show its
    * border box whole inside theirs and clear of the bars over their ends, or its start if it is
-   * larger.
+   * larger; with its focus ring as far as an area's padding has room for it.
    */
   private void reveal(El el) {
     List<El> full = new ArrayList<>();
@@ -2034,9 +2068,19 @@ public final class App<S> {
         x += path.get(j).x();
         y += path.get(j).y();
       }
+      // With its ring as far as the area's padding has room for it, so that the clip cuts none
+      // of it; rows that fill a list edge to edge come flush, their rings drawn inside.
+      float ring = Scene.RING + el.focusRingGap();
+      Style s = area.style();
+      float left = Math.min(ring, px(s.paddingLeft));
+      float right = Math.min(ring, px(s.paddingRight));
+      float up = Math.min(ring, px(s.paddingTop));
+      float down = Math.min(ring, px(s.paddingBottom));
       area.scrollTo(
-          area.scrollX() + nearest(x, el.width(), areaX, area.width() - area.coverX()),
-          area.scrollY() + nearest(y, el.height(), areaY, area.height() - area.coverY()));
+          area.scrollX()
+              + nearest(x - left, el.width() + left + right, areaX, area.width() - area.coverX()),
+          area.scrollY()
+              + nearest(y - up, el.height() + up + down, areaY, area.height() - area.coverY()));
     }
   }
 

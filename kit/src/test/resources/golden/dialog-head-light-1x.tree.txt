@@ -1,0 +1,24 @@
+el 0,0 480x240
+overlay center modal scrim on 0,0 480x240
+  el #dialog role=dialog label="Edit connection" 85,39 310x162
+    el 102,92 276x92
+      el #dialog-content 98,88 290x70
+        el 102,92 276x56
+          text #name role=textbox label="Name" "prod-eu" 102,92 200x24 focused caret 7
+          text #host role=textbox label="Host" "db.example.com" 102,124 200x24
+      el 102,160 276x24
+        el #test role=button label="Test connection" 102,160 126x24
+          text "Test connection" 115,164 100x16
+        el 236,172 0x0
+        el #cancel role=button label="Cancel" 244,160 70x24
+          text "Cancel" 257,164 44x16
+        el #save role=button label="Save" 322,160 56x24
+          text "Save" 335,164 30x16
+    el 102,56 276x24
+      el #mark 102,60 16x16
+      text role=heading label="Edit connection" "Edit connection" 126,60 108x17 level=2
+      el 242,68 28x0
+      el #badge label="Read only" 278,59 68x18
+        text "Read only" 284,61 56x15
+      el #close role=button label="Close" 354,56 24x24
+        text label="dismiss" "\u{F368}" 358,60 16x16

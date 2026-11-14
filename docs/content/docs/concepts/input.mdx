@@ -39,7 +39,7 @@ A `Drag` has its `phase` (`START`, `MOVE`, `END`, `CANCEL`), the step `dx`, `dy`
 | `autofocus()` | Takes the focus in the build that adds it |
 | `focusRing(argb)`, `focusRingGap(px)` | The ring drawn when the keyboard moved the focus |
 
-Keys go to the focused element's key handler first. Enter and Space without modifiers then press the focused element if it has a press handler; any other key, and those two otherwise, go up through its ancestors until a handler takes one. If none does, Tab and Shift+Tab move the focus through the focusable elements in tree order. A `Key` has the web's key name (`"Enter"`, `"ArrowDown"`, `"A"`) and modifiers (`Key.CONTROL`, `SHIFT`, `ALT`, `META`).
+Keys go to the focused element's key handler first. Enter and Space without modifiers then press the focused element if it has a press handler; any other key, and those two otherwise, go up through its ancestors until a handler takes one. If none does, Tab and Shift+Tab move the focus through the focusable elements in tree order, and Page Up and Page Down scroll the innermost scroll area around the focused element by its height, or in a modal overlay, as a dialog, its first scroll area, while the focus is on a button below it. A `Key` has the web's key name (`"Enter"`, `"ArrowDown"`, `"A"`) and modifiers (`Key.CONTROL`, `SHIFT`, `ALT`, `META`).
 
 When a rebuild leaves out the focused element, the focus goes to the nearest focusable element along its old place, so closing a tab puts the focus into the next tab's content. `app.focus(el)` moves the focus from a handler.
 

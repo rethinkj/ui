@@ -18,7 +18,7 @@ A menu, a tooltip, a dropdown list or a dialog lies above everything else and is
 | `centerInWindow()` | In the middle, as a dialog |
 | `atWindowEdge(side, align, gap)` | Against an edge of the window, as a toast |
 
-Where it does not fit, it goes to the other side, then moves into the window. It follows its anchor as it scrolls, and hides (staying open) while the anchor is scrolled out of view.
+An overlay is laid out at most as large as the window less its margins, so `margin(16)` keeps a dialog 16 pixels off the window's edges; one with a scroll area that gives way then scrolls. Where it does not fit, it goes to the other side, then moves into the window. It follows its anchor as it scrolls, and hides (staying open) while the anchor is scrolled out of view.
 
 ## Behaviour
 

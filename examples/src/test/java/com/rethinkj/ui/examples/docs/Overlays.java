@@ -9,6 +9,7 @@ import static com.rethinkj.ui.kit.Button.Variant.SECONDARY;
 
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.Key;
+import com.rethinkj.ui.kit.Badge;
 import com.rethinkj.ui.kit.Button;
 import com.rethinkj.ui.kit.CommandPalette;
 import com.rethinkj.ui.kit.Dialog;
@@ -176,6 +177,28 @@ final class Overlays {
     El root = Frame.of(t, Label.label(t, s.name), open).overlay(dialog);
     // docs:end dialog
     return root;
+  }
+
+  /** A dialog with what its options add; on the Dialog page, not run on a script. */
+  static El dialogOptions(Overlays s) {
+    Theme t = s.t;
+    Runnable cancel = () -> s.renaming = false;
+    // docs:start dialog-options
+    El save = Button.button(t, PRIMARY, "Save", () -> s.renaming = false);
+    El dialog = Dialog.dialog(
+        t,
+        "Edit connection",
+        TextField.textField(t, s.newName, "Name", v -> s.newName = v).label("Name"),
+        List.of(Button.button(t, SECONDARY, "Cancel", cancel), save),
+        cancel,
+        Dialog.options()
+            .leading(HuePicker.swatch(t, Theme.Hue.RED)) // the connection's colour
+            .trailing(
+                Badge.badge(t, "Read only"), Button.icon(t, GHOST, Symbol.DISMISS, "Close", cancel))
+            .start(Button.button(t, SECONDARY, "Test connection", () -> s.said = "test"))
+            .defaultButton(save));
+    // docs:end dialog-options
+    return Frame.of(t, Label.label(t, s.name)).overlay(dialog);
   }
 
   static El toast(Overlays s) {

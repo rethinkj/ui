@@ -28,6 +28,30 @@ The dialog's key is `dialog`. Two dialogs open at once, as a question over a dia
 
 A frameless window's own title bar stays usable under a dialog. Closing the window closes the dialog without its dismiss handler.
 
+## Options
+
+`Dialog.dialog(theme, title, content, buttons, onDismiss, Dialog.options()…)` adds what a dialog has beyond its title: a mark of what it edits before the title, a badge or a close button at the head's end, and a secondary action or a status at the start of the button row.
+
+<Shot src="kit/dialog-head-{theme}-2x" alt="A dialog with a red colour mark before its title, a Read only badge and a close button at the head's end, and Test connection at the left of Cancel and Save" />
+
+```java snippet="dialog-options"
+```
+
+| Option | |
+| --- | --- |
+| `leading(El)` | Before the title, `space().m()` from it, centred on its line; keeps its size |
+| `trailing(El...)` | At the head's end; they keep their size and the title gives way, ending in an ellipsis with the whole in a tooltip |
+| `start(El...)` | At the start of the button row, the buttons at its end; with no buttons the row is there for them alone |
+| `defaultButton(El)` | One of `buttons` that Enter presses, as the parameter of the other form |
+
+A dialog is as wide as its content, title and rows ask for, up to the window less `space().xl()` on each side: size it by sizing the content, as `field.w(320)`. The head comes after the content and the buttons in the order of Tab, so the dialog opens in its content's first field and a close button in the head is the last stop.
+
+## Higher than the window
+
+The dialog keeps `space().xl()` from the window's edges. Where its content does not fit, the content scrolls between the head and the buttons, which stay in view, with the theme's scrollbar; sideways too, for content wider than the window. A dialog that fits shows no bar and looks as before. The scroll area has room for the focus rings at the content's edges, so a field focused at the edge shows its ring whole, and Tab scrolls a field into view with its ring. The wheel scrolls the content, and Page Up and Page Down scroll it a page while the focus is on something that does not take them, as a button.
+
+<Shot src="kit/dialog-scroll-{theme}-2x-bottom" alt="A dialog of twelve fields scrolled to its last field, which is focused with its ring whole above the buttons, a scrollbar at the right" />
+
 ## Keyboard
 
 | Keys | Action |
@@ -35,10 +59,11 @@ A frameless window's own title bar stays usable under a dialog. Closing the wind
 | Tab, Shift+Tab | Go around inside the dialog |
 | Enter | Press the default button |
 | Escape | `onDismiss` |
+| Page Up, Page Down | Scroll content higher than the window |
 
 ## In a tree dump
 
-The dialog is an overlay `center modal scrim`, `role=dialog` with the title as label:
+The dialog is an overlay `center modal scrim`, `role=dialog` with the title as label. Its content lies in the scroll area `#dialog-content`, which a script's `wheel` and a dump's `scroll` and `thumb-y` name; the head follows after the buttons, its title `role=heading` with `level=2` and the title as label:
 
 ```text snippet="dialog-script"
 ```

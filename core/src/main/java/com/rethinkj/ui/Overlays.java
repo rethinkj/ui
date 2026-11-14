@@ -17,8 +17,8 @@ final class Overlays {
 
   /**
    * Lays out the overlays below {@code el}, which layout has placed, and those inside them: each
-   * at most as large as the window, and with {@link Style.Align#STRETCH} at least as wide or tall
-   * as its anchor. Overlays that are leaving keep their layout.
+   * at most as large as the window less its margins, and with {@link Style.Align#STRETCH} at least
+   * as wide or tall as its anchor. Overlays that are leaving keep their layout.
    */
   static void layout(El el, float width, float height) {
     for (El child : el.children()) {
@@ -29,8 +29,9 @@ final class Overlays {
         continue;
       }
       Style s = overlay.style();
-      s.maxWidth = limit(s.maxWidth, width);
-      s.maxHeight = limit(s.maxHeight, height);
+      // Its margins keep it that far from the window's edges.
+      s.maxWidth = limit(s.maxWidth, width - px(s.marginLeft) - px(s.marginRight));
+      s.maxHeight = limit(s.maxHeight, height - px(s.marginTop) - px(s.marginBottom));
       El.Layer l = overlay.placement();
       if (l.align == Style.Align.STRETCH
           && !l.centered
@@ -49,6 +50,7 @@ final class Overlays {
   }
 
   private static Len limit(Len max, float window) {
+    window = Math.max(window, 0);
     return max.kind() == Len.Kind.PX && max.value() <= window ? max : Len.px(window);
   }
 

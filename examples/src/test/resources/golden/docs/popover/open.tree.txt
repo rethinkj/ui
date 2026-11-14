@@ -6,7 +6,8 @@ overlay bottom start gap 2 on role=button label="Filter" 12,12 77x24
   el #popover role=dialog label="Add a filter" 12,38 226x114
     el 25,51 200x88
       text role=heading "Add a filter" 25,51 200x16 level=3
-      text role=textbox label="Condition" "" 25,79 200x24 focused caret 0
+      el 21,75 214x38
+        text role=textbox label="Condition" "" 25,79 200x24 focused caret 0
       el 25,115 200x24
         el role=button label="Cancel" 96,115 70x24
           text "Cancel" 109,119 44x16

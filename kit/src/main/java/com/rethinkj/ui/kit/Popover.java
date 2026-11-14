@@ -81,7 +81,8 @@ public final class Popover {
 
   /**
    * A popover that is a small form: the title as a heading, the content and the buttons at the
-   * bottom right, as a {@link Dialog} has them, below {@code anchor}.
+   * bottom right, as a {@link Dialog} has them, below {@code anchor}. Where the window is too low
+   * for it, the content scrolls between the heading and the buttons, as a dialog's does.
    *
    * @param title shown at the top, also the label
    * @param buttons the actions, in the order shown, the main one usually last
@@ -96,11 +97,13 @@ public final class Popover {
         title,
         col()
             .gap(t.space().l())
+            .minSize(0, 0)
             .children(
-                label(t, Label.Variant.STRONG, title).role("heading").level(3),
-                content,
+                label(t, Label.Variant.STRONG, title).role("heading").level(3).shrink(0),
+                Dialog.scrolling(t, content), // scrolls where the window is too low for it
                 row()
                     .gap(t.space().m())
+                    .shrink(0)
                     .justify(Style.Content.END)
                     .children(buttons.toArray(El[]::new))));
   }
