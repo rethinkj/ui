@@ -520,17 +520,12 @@ public final class Menu {
 
   private static El panel(Theme t, State state, List<Item> items, int level, Bar bar) {
     state.fit(level, items);
-    El panel = col()
+    El panel = Popup.frame(t, col())
         .key(level == 0 ? "menu" : "submenu")
         .role("menu")
         .focusable()
         .focusRing(t.accent().edge())
         .padding(t.space().s())
-        .radius(t.radius().medium())
-        .fill(t.surface().raised())
-        .border(t.size().stroke(), t.border().control())
-        .shadow(t.elevation().popup())
-        .motion(t.motion().fade())
         .scroll()
         .scrollbars(t.scrollbars())
         .revealRow(state.takeReveal(level)) // the items are its children, separators counted

@@ -784,13 +784,7 @@ public final class Find {
 
   /** The bar: the field to find with its switches, the count and the buttons; the replacement. */
   private static El bar(Theme t, App<?> app, State state, String text, boolean editable) {
-    El panel = col()
-        .padding(t.space().xs())
-        .gap(t.space().xs())
-        .radius(t.radius().medium())
-        .fill(t.surface().raised())
-        .border(t.size().stroke(), t.border().control())
-        .shadow(t.elevation().popup());
+    El panel = Popup.surface(t, col()).padding(t.space().xs()).gap(t.space().xs());
     // Over the top right corner of the field, clear of its scrollbar: the root's padding.
     Scrollbars bars = t.scrollbars();
     El bar = row()

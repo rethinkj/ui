@@ -581,14 +581,9 @@ public final class ComboBox {
     }
     El list =
         FilterList.list(t, state.list, shown, ROWS, value, e -> e.onChoose().run());
-    El panel = col()
+    El panel = Popup.frame(t, col())
         .key("choices")
         .padding(t.space().s())
-        .radius(t.radius().medium())
-        .fill(t.surface().raised())
-        .border(t.size().stroke(), t.border().control())
-        .shadow(t.elevation().popup())
-        .motion(t.motion().fade())
         .keepFocus()
         .dismissGroup(state)
         .side(Side.BOTTOM, Style.Align.STRETCH, t.space().xs())
