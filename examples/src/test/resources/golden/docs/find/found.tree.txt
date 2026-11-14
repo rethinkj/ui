@@ -1,9 +1,9 @@
 el 0,0 440x220
   text #notes role=textbox label="Notes" "Ship by Friday.\nCall the north warehouse on Monday." 12,12 360x106 lines 1-2/2
 overlay top end gap -32 on #notes role=textbox label="Notes" 12,12 360x106
-  el #find role=search label="Find" 12,14 422x30
-    el 12,14 412x30
-      el 15,17 406x24
+  el #find role=search label="Find" 12,14 426x30
+    el 12,14 416x30
+      el 15,17 410x24
         el #toggle-replace role=button label="Toggle replace" 15,17 24x24
           text label="chevron_right" "\u{F2AF}" 19,21 16x16
         el 41,17 200x24
@@ -15,12 +15,12 @@ overlay top end gap -32 on #notes role=textbox label="Notes" 12,12 360x106
               text label="text_whole_word" "\u{F03A4}" 201,21 16x16
             el #regex role=button label="Regular expression" 219,19 20x20 checked=false
               text label="text_period_asterisk" "\u{ED4A}" 221,21 16x16
-        text #count "1 of 1" 245,21 72x16
-        el #in-selection role=button label="Find in selection" 319,17 24x24 disabled checked=false
-          text label="select_all_on" "\u{F04B9}" 323,21 16x16
-        el #previous role=button label="Previous match" 345,17 24x24
-          text label="arrow_up" "\u{F1B4}" 349,21 16x16
-        el #next role=button label="Next match" 371,17 24x24
-          text label="arrow_down" "\u{F147}" 375,21 16x16
-        el #close role=button label="Close" 397,17 24x24
-          text label="dismiss" "\u{F368}" 401,21 16x16
+        text #count "1 of 1" 249,21 72x16
+        el #in-selection role=button label="Find in selection" 323,17 24x24 disabled checked=false
+          text label="select_all_on" "\u{F04B9}" 327,21 16x16
+        el #previous role=button label="Previous match" 349,17 24x24
+          text label="arrow_up" "\u{F1B4}" 353,21 16x16
+        el #next role=button label="Next match" 375,17 24x24
+          text label="arrow_down" "\u{F147}" 379,21 16x16
+        el #close role=button label="Close" 401,17 24x24
+          text label="dismiss" "\u{F368}" 405,21 16x16
