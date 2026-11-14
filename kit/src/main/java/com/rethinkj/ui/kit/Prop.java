@@ -137,7 +137,7 @@ public final class Prop<T> {
    * field and fails. Always null for a prop outside an editing.
    */
   public String error() {
-    return editing == null ? null : editing.error(path);
+    return editing == null ? null : editing.error(path, false);
   }
 
   /**
@@ -156,10 +156,11 @@ public final class Prop<T> {
   /**
    * Gives the component's control the prop's error: the invalid look of a text field, {@code
    * invalid} and {@link El#errorMessage} for a {@code .tree.txt} and for {@link Form#field}, which
-   * shows it below the control.
+   * shows it below the control; a draft's error only once the field shows it ({@link
+   * ValueField.Draft#showsError}, {@link Editing#showErrors}).
    */
   static El shown(Theme t, El component, Prop<?> prop) {
-    String error = prop.error();
+    String error = prop.editing == null ? null : prop.editing.error(prop.path, true);
     El target = Form.target(component);
     if (error != null && target != null) {
       if (target.isEditable()) {

@@ -39,10 +39,11 @@ The view gives each component the prop of its field and asks the editing about S
 | `changed()` | Whether the value differs from the original, by `equals` |
 | `valid()` | No field holds a text that is no value, no error of the app's stands, every rule holds |
 | `reset()` | Back to the original, drafts and errors forgotten |
+| `showErrors()` | Every field shows its draft's error, also one not edited yet, such as a required field left empty: for a Save pressed while the edit is not valid |
 | `saved()` | The value is the new original: `changed()` is false until the next edit |
 | `prop.error(message)` | An error the app learned, such as the server's refusal: shown at the field until its next edit |
 
-A field's error is the first of: its text that is no value, the app's error, the first failing rule that names it. The component shows it (`invalid` and `error="…"` in a dump, the danger border on a text field) and a [Form](/docs/components/form) field puts it below the control without the app passing it. A field that shows only under a condition keeps its draft while it is gone, and its text that is no value still counts against `valid()`.
+A field's error is the first of: its text that is no value, also one the app's value gave it (null in a required field), the app's error, the first failing rule that names it. `valid()` counts a draft's error from the start, but the field shows it only once the user has edited the field or the app has called `showErrors()` (when Save is pressed while the edit is not valid), so that a form over a new record does not open in red. The component shows it (`invalid` and `error="…"` in a dump, the danger border on a text field) and a [Form](/docs/components/form) field puts it below the control without the app passing it. A field that shows only under a condition keeps its draft while it is gone, and its text that is no value still counts against `valid()`.
 
 ```text file="examples/src/test/resources/docs/editing.txt" start="press #due" count="6"
 ```
