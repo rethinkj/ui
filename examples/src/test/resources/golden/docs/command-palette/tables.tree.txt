@@ -1,14 +1,14 @@
 el 0,0 640x360
   text "Control+Shift+P opens the palette." 12,12 616x16
-overlay edge top center gap 36 on 0,0 640x360
-  el #palette role=dialog label="Command palette" 40,36 560x62
-    el 45,41 550x24
-      text #query-1 role=textbox label="Command" "@ord" 45,41 550x24 focused caret 4
-      text label="search" "\u{EA7C}" 49,45 16x16
-    el #options role=listbox label="Commands" 45,69 550x24 rows 0-0/1
-      el #option-0 role=option label="orders" 45,69 550x24 selected pos=1/1
-        el 45,69 550x24
-          el 53,73 16x16
-            text label="table" "\u{EBF4}" 53,73 16x16
-          text "orders" 77,73 465x16
-          text "public" 550,73 37x16
+overlay edge top center gap 72 on 0,0 640x360
+  el #palette role=dialog label="Command palette" 40,72 560x82
+    el 49,81 542x32
+      text #query-1 role=textbox label="Command" "@ord" 49,81 542x32 focused caret 4
+      text label="search" "\u{EA7C}" 57,89 16x16
+    el #options role=listbox label="Commands" 49,117 542x28 rows 0-0/1
+      el #option-0 role=option label="orders" 49,117 542x28 selected pos=1/1
+        el 49,117 542x28
+          el 57,123 16x16
+            text label="table" "\u{EBF4}" 57,123 16x16
+          text "orders" 81,123 457x16
+          text "public" 546,123 37x16

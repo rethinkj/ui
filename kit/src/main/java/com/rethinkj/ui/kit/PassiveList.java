@@ -15,13 +15,23 @@ final class PassiveList {
 
   static final int UNHANDLED = -2;
 
-  /** The scrolling view, with room beside the rows for its bar and the highlight kept in view. */
-  static El view(Theme t, int count, int most, int highlight, float padding, IntFunction<El> row) {
+  /**
+   * The scrolling view of rows {@code rowHeight} high, with room beside the rows for its bar and the
+   * highlight kept in view.
+   */
+  static El view(
+      Theme t,
+      int count,
+      int most,
+      int highlight,
+      float padding,
+      float rowHeight,
+      IntFunction<El> row) {
     return col()
         .padding(padding, padding + gutter(t, count, most), padding, padding)
         .scrollbars(t.scrollbars())
         .revealRow(highlight)
-        .rows(count, t.size().control(), row);
+        .rows(count, rowHeight, row);
   }
 
   static float gutter(Theme t, int count, int most) {

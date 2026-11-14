@@ -41,7 +41,8 @@ class FilterListTest {
         .checked(true)));
     App<FilterList.State> app = new App<>(
         new FilterList.State(),
-        s -> FilterList.list(t, s, FilterList.shown(s, entries), 4, "Connections", e -> {})
+        s -> FilterList.list(
+                t, s, FilterList.shown(s, entries), 4, t.size().control(), "Connections", e -> {})
             .wFull());
     String tree = run(app, "size 260 40");
     float[] lead = StructureTest.rect(StructureTest.line(tree, "#lead "));

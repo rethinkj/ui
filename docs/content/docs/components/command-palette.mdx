@@ -5,6 +5,8 @@ description: A searchable list of every command, and of other things after a pre
 
 `CommandPalette.palette` is an overlay at the top of the window with a field over a list. Type to find any command of the app's menus by fuzzy matching, or, after a prefix such as `@`, a table or anything else the app lists. A command can ask for more before it acts, such as a theme previewed as the highlight moves. Use it in apps with many commands. For choosing a value in a form, use a [ComboBox](/docs/components/combo-box).
 
+It opens `size().paletteTop()` (72) below the window's top, `size().palette()` (560) wide, with a field `size().paletteField()` (32) high over at most 12 rows of `size().paletteRow()` (28); with fewer it is only as high as they are, and in a window too short for it the list shows fewer rows and scrolls.
+
 <Shot src="kit/palette-{theme}-2x-commands" alt="The command palette with recently used commands and their shortcuts" />
 
 ## Example

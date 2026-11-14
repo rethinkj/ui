@@ -544,8 +544,8 @@ public final class ComboBox {
     if (!choice && shown.count() == 0) {
       return box.expanded(false); // no suggestion for what is typed: nothing to show
     }
-    El list =
-        FilterList.list(t, state.list, shown, ROWS, value, e -> e.onChoose().run());
+    El list = FilterList.list(
+        t, state.list, shown, ROWS, t.size().control(), value, e -> e.onChoose().run());
     El panel = Popup.frame(t, col())
         .key("choices")
         .padding(t.space().s())

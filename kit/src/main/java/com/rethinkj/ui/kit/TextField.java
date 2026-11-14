@@ -243,7 +243,8 @@ public final class TextField {
    * @param field a field of {@link #textField}
    */
   public static El withIcon(Theme t, El field, Symbol symbol) {
-    float side = t.size().control();
+    Len height = field.style().height; // the icon in a square as high as the field
+    float side = height.kind() == Len.Kind.PX ? height.value() : t.size().control();
     field.style().paddingLeft = Len.px(side); // the text starts after the icon
     El mark = icon(t, symbol, field.onEdit() != null ? Icon.Variant.MUTED : Icon.Variant.DISABLED);
     Style at = mark.style();

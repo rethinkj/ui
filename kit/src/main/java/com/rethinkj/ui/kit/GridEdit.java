@@ -948,6 +948,7 @@ final class GridEdit {
             sel.search,
             shown,
             ComboBox.ROWS,
+            t.size().control(),
             "Choices of " + c.title(),
             e -> e.onChoose().run()));
   }
