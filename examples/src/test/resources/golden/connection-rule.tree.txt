@@ -1,4 +1,4 @@
-el 0,0 440x432
+el 0,0 440x472
   el window=drag 0,0 440x32
     el 12,11 10x10
     text "New connection" 30,8 102x16
@@ -9,61 +9,70 @@ el 0,0 440x432
       el 366,11 10x10
     el role=button label="Close" window=close 394,0 46x32
       text label="dismiss" "\u{F367}" 411,10 12x12
-  el 0,32 440x400
-    el 8,32 424x392
+  el 0,32 440x440
+    el 8,32 424x432
       el 21,45 398x34
         el 21,45 398x34
           text role=heading "Connect to PostgreSQL" 21,45 398x16 level=3
           text "The server and the account to log in with." 21,63 398x16
-      el 21,95 398x170
-        el 21,95 398x24
-          el 21,95 66x24
-            text "Host" 21,99 29x16
-            text "*" 52,99 7x16
-          el 95,95 324x24
-            text #host role=textbox label="Host" "db.example.com" 95,95 260x24
-        el 21,127 398x24
-          el 21,127 66x24
-            text "Port" 21,131 25x16
-            text "*" 48,131 7x16
-          el 95,127 324x24
-            text #port role=textbox label="Port" "543" 95,127 72x24
-        el 21,159 398x24
-          el 21,159 66x24
-            text "Database" 21,163 57x16
-            text "*" 80,163 7x16
-          el 95,159 324x24
-            el #database role=combobox label="inventory" 95,159 260x24 expanded=false
-              text #field-0 role=textbox "inventory" 95,159 260x24
-              el role=button label="Open" 331,159 24x24
-                text label="chevron_down" "\u{F2A2}" 335,163 16x16
-        el 21,191 398x42
-          el 21,191 66x24
-            text "User" 21,195 30x16
-            text "*" 53,195 7x16
-          el 95,191 324x42
-            text #user role=textbox label="User" "postgres" 95,191 260x24 invalid error="postgres connects only to localhost" focused caret 8
-            text "postgres connects only to localhost" 95,217 324x16
-        el 21,241 398x24
-          el 21,241 66x24
-            text "Password" 21,245 60x16
-          el 95,241 324x24
-            el 95,241 260x24
-              text #password role=textbox label="Password" "•••••••" 95,241 260x24 password revealed
-              el role=button label="Hide password" 333,243 20x20
-                text label="eye_off" "\u{E5F4}" 335,245 16x16
-      el role=checkbox label="Require SSL" 17,279 107x20 checked
-        el 21,281 16x16
-          text "✓" 24,281 11x16
-        text "Require SSL" 45,281 75x16
-      el role=switch label="Dark theme" 17,307 115x20 checked=false
-        el 21,309 28x16
-          el 23,311 12x12
-        text "Dark theme" 57,309 71x16
-      el 21,337 398x10
-      text "The server refused the connection" 21,359 398x16
-      el 21,387 398x24
-        el role=button label="Reset" 270,387 61x24
-          text "Reset" 283,391 35x16
-        el role=button label="Connect" 339,387 80x24 disabled
-          text "Connect" 352,391 54x16
+      el 21,95 398x194
+        el role=group label="Server" 21,95 398x80
+          el 21,95 398x16
+            text role=heading "Server" 21,95 398x16 level=4
+          el 21,119 398x56
+            el 21,119 398x24
+              el 21,119 66x24
+                text "Host" 21,123 29x16
+                text "*" 52,123 7x16
+              el 95,119 324x24
+                el 95,119 202x24
+                  text #host role=textbox label="Host" "db.example.com" 95,119 202x24
+                el 305,119 114x24
+                  el 305,119 34x24
+                    text "Port" 305,123 25x16
+                    text "*" 332,123 7x16
+                  el 347,119 72x24
+                    text #port role=textbox label="Port" "543" 347,119 72x24
+            el 21,151 398x24
+              el 21,151 66x24
+                text "Database" 21,155 57x16
+                text "*" 80,155 7x16
+              el 95,151 324x24
+                el #database role=combobox label="inventory" 95,151 324x24 expanded=false
+                  text #field-0 role=textbox "inventory" 95,151 324x24
+                  el role=button label="Open" 395,151 24x24
+                    text label="chevron_down" "\u{F2A2}" 399,155 16x16
+        el role=group label="Login" 21,191 398x98
+          el 21,191 398x16
+            text role=heading "Login" 21,191 398x16 level=4
+          el 21,215 398x74
+            el 21,215 398x42
+              el 21,215 66x24
+                text "User" 21,219 30x16
+                text "*" 53,219 7x16
+              el 95,215 324x42
+                text #user role=textbox label="User" "postgres" 95,215 324x24 invalid error="postgres connects only to localhost" focused caret 8
+                text "postgres connects only to localhost" 95,241 324x16
+            el 21,265 398x24
+              el 21,265 66x24
+                text "Password" 21,269 60x16
+              el 95,265 324x24
+                el 95,265 324x24
+                  text #password role=textbox label="Password" "•••••••" 95,265 324x24 password revealed
+                  el role=button label="Hide password" 397,267 20x20
+                    text label="eye_off" "\u{E5F4}" 399,269 16x16
+      el role=checkbox label="Require SSL" 17,303 107x20 checked
+        el 21,305 16x16
+          text "✓" 24,305 11x16
+        text "Require SSL" 45,305 75x16
+      el role=switch label="Dark theme" 17,331 115x20 checked=false
+        el 21,333 28x16
+          el 23,335 12x12
+        text "Dark theme" 57,333 71x16
+      el 21,361 398x26
+      text "The server refused the connection" 21,399 398x16
+      el 21,427 398x24
+        el role=button label="Reset" 270,427 61x24
+          text "Reset" 283,431 35x16
+        el role=button label="Connect" 339,427 80x24 disabled
+          text "Connect" 352,431 54x16

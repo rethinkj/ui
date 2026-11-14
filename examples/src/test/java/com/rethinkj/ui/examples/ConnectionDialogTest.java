@@ -27,12 +27,12 @@ class ConnectionDialogTest {
     for (String snap : new String[] {"connection-filled", "connection-connecting"}) {
       String tree = Files.readString(Path.of("target", "connection-dialog", snap + ".tree.txt"));
       assertFalse(tree.contains("hunter2"), snap);
-      assertTrue(tree.contains("\"" + "\u2022".repeat(7) + "\" 95,223 260x24 password"), tree);
+      assertTrue(tree.contains("\"" + "\u2022".repeat(7) + "\" 95,247 324x24 password"), tree);
     }
     assertTrue(Snaps.line("connection-dialog", "connection-connecting", "text \"Connecting")
         .contains("as admin with SSL\""));
     assertTrue(Snaps.line("connection-dialog", "connection-shown", "#password")
-        .contains("\"" + "\u2022".repeat(7) + "\" 95,223 260x24 password revealed"));
+        .contains("\"" + "\u2022".repeat(7) + "\" 95,247 324x24 password revealed"));
     assertTrue(
         Snaps.line("connection-dialog", "connection-shown", "#port").endsWith("focused caret 4"),
         "the button left the focus where it was");
