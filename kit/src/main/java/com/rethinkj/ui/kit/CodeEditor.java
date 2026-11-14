@@ -92,6 +92,10 @@ public final class CodeEditor {
    * holds the field's editing state ({@link FieldState}), so that an editor that leaves the tree,
    * as the content of a tab that is not active does, comes back with its caret, selection,
    * scroll and undo history: keep one per editor, such as one per tab.
+   *
+   * <p>Positions, those it reports and those the app sets, are indexes into the string as the
+   * editor shows it, in which a carriage return with or without a line feed after it and the
+   * separators U+2028 and U+2029 are each one line feed ({@link El#multiline}).
    */
   public static final class State {
     private final FieldState field = new FieldState();
@@ -100,6 +104,8 @@ public final class CodeEditor {
     private int anchor;
     private int errorFrom;
     private int errorTo;
+    private int blockFrom;
+    private int blockTo;
     private boolean occurrences = true;
     private boolean findBar = true;
     // Control+D: the selection it made, and whether it went by whole words from the caret.
@@ -143,6 +149,22 @@ public final class CodeEditor {
       return anchor;
     }
 
+    /**
+     * Marks the lines of characters {@code from} to {@code to} of the string with {@code
+     * code().block()} behind them, such as the statement that Control+Enter would run; the
+     * caret's line shows its own background over it. {@code from == to} marks none.
+     */
+    public State block(int from, int to) {
+      blockFrom = from;
+      blockTo = to;
+      return this;
+    }
+
+    /** Marks no block of lines. */
+    public State noBlock() {
+      return block(0, 0);
+    }
+
     /** Underlines characters {@code from} to {@code to} of the string in the danger colour. */
     public State error(int from, int to) {
       errorFrom = from;
@@ -158,8 +180,9 @@ public final class CodeEditor {
 
   /**
    * The editor: the code area of the theme, whose gutter shows the number of each line, muted but
-   * on the caret's line, and whose caret's line has {@code code().line()} behind it, and the
-   * bracket before or after the caret and the one that matches it {@code code().bracket()}.
+   * on the caret's line, and whose caret's line has {@code code().line()} behind it, over the
+   * {@code code().block()} of a {@link State#block marked block}, and the bracket before or after
+   * the caret and the one that matches it {@code code().bracket()}.
    *
    * @param value the code, from the app's state
    * @param state the app's state of this editor
@@ -205,6 +228,9 @@ public final class CodeEditor {
         })
         .decorate((line, start, text, out) -> {
           int end = start + text.length();
+          if (state.blockFrom < state.blockTo && state.blockTo > start && state.blockFrom <= end) {
+            out.lineBackground(code.block());
+          }
           if (state.caret >= start && state.caret <= end) {
             out.lineBackground(code.line());
           }
