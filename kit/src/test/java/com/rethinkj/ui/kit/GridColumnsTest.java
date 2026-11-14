@@ -266,4 +266,23 @@ class GridColumnsTest {
   private static com.rethinkj.ui.El find(App<?> app, String key) {
     return CellEditorTest.find(app, key);
   }
+
+  /** No layout is the layout of all columns in their order, so giving one carries an editor. */
+  @Test
+  void aLayoutGivenWhileAnEditorIsOpenKeepsTheEditorOnItsColumn() throws IOException {
+    Ledger ledger = new Ledger(T, 2);
+    Layout layout = new Layout(ledger.columns().stream().map(Column::title).toList());
+    boolean[] on = {false};
+    ledger.more = o -> on[0] ? o.columns(layout) : o;
+    App<Ledger> app = ledger.app();
+    run(app, "frame\npress #cell-0-2\ntype \"6\"\nframe"); // qty
+    String amount = ledger.changes.cell(0, 3);
+    app.post(() -> {
+      layout.hide(0); // the column before it
+      on[0] = true;
+    });
+    run(app, "await\nframe\nkey Enter control\nframe");
+    assertEquals("6", ledger.changes.cell(0, 2));
+    assertEquals(amount, ledger.changes.cell(0, 3));
+  }
 }

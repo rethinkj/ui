@@ -1220,12 +1220,19 @@ public final class DataGrid {
      * or moved one ({@link Options#columns}). What was on a column that is no longer shown goes:
      * the cursor, the anchor, a range's part, an editor without handing anything on.
      *
-     * @param full the app's column of each one shown now, null without a layout
+     * @param layout the app's column of each one shown now, null without a layout
+     * @param all the number of the app's columns, which a build without a layout shows in order
      */
-    void showing(int[] full) {
-      int[] was = shown;
-      shown = full;
-      if (was == null || full == null || java.util.Arrays.equals(was, full)) {
+    void showing(int[] layout, int all) {
+      int[] before = shown;
+      shown = layout;
+      if (before == layout) {
+        return;
+      }
+      int[] order = java.util.stream.IntStream.range(0, all).toArray();
+      int[] was = before == null ? order : before; // no layout shows all columns in their order
+      int[] full = layout == null ? order : layout;
+      if (java.util.Arrays.equals(was, full)) {
         return;
       }
       java.util.Map<Integer, Integer> now = new java.util.HashMap<>();
@@ -1802,13 +1809,13 @@ public final class DataGrid {
       options.table.accept(columns, rowCount);
       options.table = null;
     }
+    int all = columns.size();
     if (options.layout != null) {
-      int all = columns.size();
       columns = options.layout.shown(columns);
       options.showOnly(options.layout.shownColumns(), all);
     }
     if (options.selection != null) { // without a layout the columns shown are the app's
-      options.selection.showing(options.full);
+      options.selection.showing(options.full, all);
     }
     Build b = new Build(t, columns, rowCount, options);
     Theme.Grid g = b.g;
