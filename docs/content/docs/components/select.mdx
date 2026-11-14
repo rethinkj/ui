@@ -12,7 +12,7 @@ description: A button showing the current choice that opens a menu of a few choi
 ```java snippet="select"
 ```
 
-`Select.select(t, choices, selected, menuState, onSelect)`: the choices as texts, the index of the current one, a `Menu.State` the app keeps, and a handler told the new index. A null handler disables it. It has the text field's frame and width.
+`Select.select(t, choices, selected, menuState, onSelect)`: the choices as texts, the index of the current one, a `Menu.State` the app keeps, and a handler told the new index. A null handler disables it. It has the text field's frame and width. Long choices end in an ellipsis before the chevron, as in a closed ComboBox; the full choice remains the control's label.
 
 ## Values instead of indexes
 
