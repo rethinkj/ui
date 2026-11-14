@@ -826,6 +826,9 @@ public record Theme(
    * @param strong the body's size in a heavier weight: the titles of a grid's columns and the text
    *     of buttons
    * @param dialog the title of a dialog, between {@code heading} and {@code title}
+   * @param small secondary text that stands beside what it is about and gives way to it: the
+   *     details of a status bar, the kind of a completion, the count of a find bar; the regular
+   *     weight, so that it recedes, where a badge's text is medium to hold on its fill
    */
   public record Type(
       TextStyle body,
@@ -833,7 +836,8 @@ public record Theme(
       TextStyle heading,
       TextStyle title,
       TextStyle strong,
-      TextStyle dialog) {}
+      TextStyle dialog,
+      TextStyle small) {}
 
   /**
    * @param control the height of a button and a text field
@@ -1194,7 +1198,8 @@ public record Theme(
       new TextStyle(Font::sansSemibold, 14),
       new TextStyle(Font::sansSemibold, 20),
       new TextStyle(Font::sansMedium, 13),
-      new TextStyle(Font::sansSemibold, 16));
+      new TextStyle(Font::sansSemibold, 16),
+      new TextStyle(Font::sans, 12));
   private static final Sizes SIZE = new Sizes(24, 16, 28, 16, 1, 200, 7, 16, 16, 2, 2, 4, 560, 4);
   private static final Motion MOTION =
       new Motion(Spring.INSTANT, Spring.SNAP, 0.3, 0.5, Spring.INSTANT, 5, 2, 1.2, 1.5);
@@ -1246,7 +1251,7 @@ public record Theme(
    * pointer, in both themes, with a white cross at 4.5:1 or more.
    *
    * Sizes and type. Controls 24, rows 24, text 13; radii 4 for small parts, 6 for controls, 10 for
-   * cards; card titles 14, dialog titles 16; headings semibold, strong text, column titles and buttons medium.
+   * cards; card titles 14, dialog titles 16, secondary text beside its subject 12; headings semibold, strong text, column titles and buttons medium.
    *
    * Palette. Every colour is one of Palette's, named by its hue and its L* times ten, or one of
    * them at an alpha: alpha(GREY_298, 0.25f) is the dark theme's hover. Tokens that share a colour

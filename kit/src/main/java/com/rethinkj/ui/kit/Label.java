@@ -17,7 +17,12 @@ public final class Label {
     /** The title of a page, above its sections. */
     TITLE,
     /** A title inside a section, such as a popover's: the body's size in a heavier weight. */
-    STRONG
+    STRONG,
+    /**
+     * Secondary text in the small size, beside what it is about: the details of a status bar, the
+     * kind of a completion, the count of a find bar. Muted, as {@link #MUTED}.
+     */
+    SMALL
   }
 
   private Label() {}
@@ -33,10 +38,14 @@ public final class Label {
       case HEADING -> t.type().heading();
       case TITLE -> t.type().title();
       case STRONG -> t.type().strong();
+      case SMALL -> t.type().small();
     };
     return El.text(text)
         .font(style.font().get())
         .fontSize(style.size())
-        .color(variant == Variant.MUTED ? t.text().muted() : t.text().primary());
+        .color(
+            variant == Variant.MUTED || variant == Variant.SMALL
+                ? t.text().muted()
+                : t.text().primary());
   }
 }
