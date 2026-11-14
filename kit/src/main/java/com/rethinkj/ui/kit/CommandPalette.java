@@ -299,7 +299,9 @@ public final class CommandPalette {
     boolean ofCommands = stage == null && source == null;
     FilterList.Entries entries = stage != null
         ? stage.entries() == null ? null : FilterList.Entries.of(stage.entries())
-        : source != null ? source.entries() : FilterList.Entries.of(ranked(commands, state.recent));
+        : source != null
+            ? source.entries()
+            : FilterList.Entries.inOrder(ranked(commands, state.recent));
     state.list.onHighlight = stage == null ? null : stage.onHighlight();
     state.list.query = stage != null ? state.text : query(state.text, sources);
     Consumer<FilterList.Entry> choose = e -> {

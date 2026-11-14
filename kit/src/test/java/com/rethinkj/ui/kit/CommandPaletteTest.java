@@ -83,6 +83,18 @@ class CommandPaletteTest {
   }
 
   @Test
+  void commandsThatMatchEquallyStayInTheMenusOrder() throws IOException {
+    List<String> options = ComboBoxTest.options(run("key F1\nframe\ntype \"fi\""));
+    List<String> all = CommandPalette.commands(app.state().menus()).stream()
+        .map(FilterList.Entry::text)
+        .filter(text -> text.startsWith("File: "))
+        .toList();
+    // Every command of File matches "fi" at its start alike: none comes first for being short.
+    assertEquals(
+        all.subList(0, 3), options.stream().filter(all::contains).limit(3).toList(), options + "");
+  }
+
+  @Test
   void disabledCommandsShowButTheKeysPassThem() throws IOException {
     String tree = run("key F1\nframe\ntype \"file c\"");
     List<String> options = ComboBoxTest.options(tree);

@@ -138,7 +138,16 @@ public final class FilterList {
      * the kit keeps what it filtered by the list's identity.
      */
     static Entries of(List<Entry> all) {
-      return new Fixed(all);
+      return new Fixed(all, false);
+    }
+
+    /**
+     * As {@link #of}, but entries that match equally well stay in their order instead of the
+     * shorter text coming first: for commands, where the shortest is no likelier than the first
+     * ("fi" would otherwise put {@code File: Exit} before {@code File: New query}).
+     */
+    static Entries inOrder(List<Entry> all) {
+      return new Fixed(all, true);
     }
 
     /**
@@ -163,7 +172,7 @@ public final class FilterList {
     }
   }
 
-  record Fixed(List<Entry> all) implements Entries {}
+  record Fixed(List<Entry> all, boolean inOrder) implements Entries {}
 
   record Found(Function<String, List<Entry>> find, App<?> app, String name) implements Entries {}
 
@@ -286,7 +295,7 @@ public final class FilterList {
   static Shown shown(State s, Entries entries) {
     Shown before = s.shown;
     Shown shown = switch (entries) {
-      case Fixed f -> filter(s, f.all());
+      case Fixed f -> filter(s, f.all(), f.inOrder());
       case Found f
       when f.app() == null -> rows(f.find().apply(s.query), null, s.query, false, null);
       case Found f -> ask(s, f);
@@ -384,7 +393,7 @@ public final class FilterList {
    * The entries that match the state's text, best first within their groups, the groups in the
    * order of their first entries; all of them, in their order, while it is empty.
    */
-  private static Shown filter(State s, List<Entry> all) {
+  private static Shown filter(State s, List<Entry> all, boolean inOrder) {
     String query = s.query;
     if (all == s.source && query.equals(s.filtered) && s.shown != null) {
       return s.shown;
@@ -422,7 +431,7 @@ public final class FilterList {
     int[] matched = new int[n];
     int count;
     if (n < PARALLEL) {
-      count = score(s, all, query, candidates, 0, n, keys, matched);
+      count = score(s, all, query, candidates, 0, n, keys, matched, inOrder);
     } else {
       // Many entries: in parts on the common pool's threads, each into its own range.
       int parts = Math.min(PARTS, n / (PARALLEL / 4));
@@ -437,7 +446,8 @@ public final class FilterList {
               (int) ((long) n * p / parts),
               (int) ((long) n * (p + 1) / parts),
               keys,
-              matched));
+              matched,
+              inOrder));
       count = 0;
       for (int p = 0; p < parts; p++) { // closes the gaps between the parts
         int from = (int) ((long) n * p / parts);
@@ -476,7 +486,8 @@ public final class FilterList {
       int from,
       int to,
       long[] keys,
-      int[] matched) {
+      int[] matched,
+      boolean inOrder) {
     Fuzzy.Matcher m = Fuzzy.matcher(query); // one per thread
     int count = from;
     for (int c = from; c < to; c++) {
@@ -489,7 +500,7 @@ public final class FilterList {
       long rank = m.isEmpty()
           ? 0
           : (long) (SCORE_LIMIT - Math.clamp(score, -SCORE_LIMIT + 1, SCORE_LIMIT - 1)) << 10
-              | Math.min(e.text().length(), 1023);
+              | (inOrder ? 0 : Math.min(e.text().length(), 1023));
       keys[count] = (long) s.groupOf[i] << 47 | rank << INDEX_BITS | i;
       matched[count++] = i;
     }

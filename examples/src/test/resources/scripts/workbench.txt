@@ -226,7 +226,7 @@ frame
 snap workbench-palette-tables
 key Escape                                 # the focus back in the query
 key F1
-type "theme"
+type "change"
 frame
 key Enter                                  # Change theme…: the themes, the current one lit
 frame

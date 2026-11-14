@@ -1,0 +1,1 @@
+- In the `CommandPalette`, commands that match the typed text equally well stay in the order of the menus; before, the shortest came first, so `fi` and Enter ran `File: Exit`. `FilterList.Entries.inOrder(list)` is that rule for a list of an app's own; `Entries.of(list)` still puts the shorter text first.
