@@ -287,13 +287,41 @@ class PresenceTest {
     app.frame();
     assertEquals(List.of("box", "root", "root"), log);
 
-    for (String target : List.of("#box", "#ghost")) {
+    for (String[] target : new String[][] {{"#box", "fading out"}, {"#ghost", "at opacity 0"}}) {
       String message = assertThrows(
               Script.Failure.class,
-              () -> Script.run("size 100 100\npress " + target + "\n", app, out))
+              () -> Script.run("size 100 100\npress " + target[0] + "\n", app, out))
           .getMessage();
-      assertTrue(message.contains("No element of the last frame matches " + target), message);
+      assertTrue(
+          message.contains("matches " + target[0] + " is " + target[1] + " in the last"), message);
     }
+  }
+
+  @Test
+  void aScriptPressesWhatAppearsOnceTheClockHasMoved() throws IOException {
+    List<String> log = new ArrayList<>();
+    boolean[] shown = {false};
+    App<List<String>> app = new App<>(log, l -> {
+      El bar =
+          row().size(100, 20).child(el().key("show").size(20, 20).onPress(() -> shown[0] = true));
+      if (shown[0]) { // new in a row that was there, so it fades in
+        bar.child(el().key("refresh")
+            .role("button")
+            .label("Refresh")
+            .size(20, 20)
+            .motion(Spring.SNAP)
+            .onPress(() -> l.add("refresh")));
+      }
+      return bar;
+    });
+    String press = "press role=button label=\"Refresh\"\n";
+    String message = assertThrows(
+            Script.Failure.class,
+            () -> Script.run("size 100 20 scale 2\nframe\npress #show\nframe\n" + press, app, out))
+        .getMessage();
+    assertTrue(message.contains("is fading in, at opacity 0 in the last frame"), message);
+    Script.run("advance 1\nframe\n" + press + "frame\n", app, out);
+    assertEquals(List.of("refresh"), log);
   }
 
   /** The badge example after its first frame, 200 by 120 pixels. */

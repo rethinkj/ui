@@ -1246,6 +1246,28 @@ public final class Script {
                 + " first, for example with `wheel <target> <deltaX> <deltaY>` over its scroll"
                 + " area." + lists(all));
       }
+      if (matches.isEmpty()) {
+        Map<El, String> unseen = new HashMap<>();
+        unseen(root, null, unseen);
+        for (El overlay : root.shownOverlays()) {
+          unseen(overlay, null, unseen);
+        }
+        List<String> why = unseen.entrySet().stream()
+            .filter(e -> tests.stream().allMatch(t -> t.test(e.getKey())))
+            .map(Map.Entry::getValue)
+            .distinct()
+            .sorted()
+            .toList();
+        if (!why.isEmpty()) {
+          throw fail("What matches " + text + " is " + String.join(", or ", why)
+              + " in the last frame, so it takes no input."
+              + (why.equals(List.of("at opacity 0"))
+                  ? " The view gives it that opacity."
+                  : " An element with motion that appears fades in from opacity 0, and one that"
+                      + " leaves fades out; the clock moves only with `advance`, so run"
+                      + " `advance 1` and `frame` first."));
+        }
+      }
       if (matches.isEmpty() && !stateTests.isEmpty() && !others.isEmpty()) {
         // Without its states the selector matches: those elements show which states they have.
         List<Found> near = all.stream()
@@ -1312,6 +1334,28 @@ public final class Script {
     walk(root, 0, 0, -far, -far, far, far, all, clipped);
     for (El overlay : root.shownOverlays()) {
       walk(overlay, 0, 0, -far, -far, far, far, all, clipped);
+    }
+  }
+
+  /**
+   * For an error about a selector: the elements that {@link #walk} leaves out because they or an
+   * ancestor are not shown, each with why, which {@code why} gives for those below such an
+   * ancestor.
+   */
+  private static void unseen(El el, String why, Map<El, String> into) {
+    if (!el.isPlaced()) {
+      return;
+    }
+    if (why == null && el.isExiting()) {
+      why = "fading out";
+    } else if (why == null && el.opacity() == 0) {
+      why = el.targetOpacity() > 0 ? "fading in, at opacity 0" : "at opacity 0";
+    }
+    if (why != null) {
+      into.put(el, why);
+    }
+    for (El child : el.children()) {
+      unseen(child, why, into);
     }
   }
 

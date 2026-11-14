@@ -1,0 +1,1 @@
+- A script step whose selector matches only elements that are fading in or out, or at opacity 0, now says so in its error, with `advance 1` and `frame` as the way on, instead of listing the elements it found. Such elements still do not match, as the pointer does not hit them either.
