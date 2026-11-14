@@ -24,6 +24,8 @@ Whether it is open is the app's state: the root attaches it with `root.overlay(o
 
 Enter without modifiers presses the default button from a field of the dialog; a focused button, checkbox or select presses itself, and a multi-line field keeps Enter for its line breaks. `Dialog.enterPresses(button)` is that key handler alone, for a window that is a dialog itself.
 
+The dialog's key is `dialog`. Two dialogs open at once, as a question over a dialog, need keys of their own: chain `.key("discard")` onto the second, which then lies over the first with a scrim of its own; without it the frame throws, as for any two siblings with one key.
+
 A frameless window's own title bar stays usable under a dialog. Closing the window closes the dialog without its dismiss handler.
 
 ## Keyboard

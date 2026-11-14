@@ -353,7 +353,8 @@ final class Animator {
     entry.el = el;
     el.measureScroll(); // from the layout, before the leaving children come back
     if (next.put(id, entry) != null) {
-      throw new IllegalStateException("two siblings have the key '" + el.key() + "'");
+      throw new IllegalStateException("two siblings have the key '" + el.key()
+          + "'; give one of them another with key(...), as the second of two dialogs open at once");
     }
     if (!entry.isAtRest(now)) {
       moving.add(entry);

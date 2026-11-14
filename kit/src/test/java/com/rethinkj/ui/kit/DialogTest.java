@@ -130,6 +130,44 @@ class DialogTest {
     assertEquals(List.of("ok", "cancel"), ask.log, "a disabled default is not pressed");
   }
 
+  /** A dialog and, over it, a question, each with one button. */
+  private static El stacked(List<String> log, String secondKey) {
+    Theme t = Theme.DARK;
+    El question = Dialog.dialog(
+        t,
+        "Discard changes?",
+        El.col(),
+        List.of(Button.button(t, Button.Variant.PRIMARY, "Discard", () -> log.add("discard"))
+            .key("discard-button")),
+        () -> log.add("keep"));
+    return El.col()
+        .wFull()
+        .hFull()
+        .overlay(Dialog.dialog(
+            t,
+            "Edit",
+            El.col(),
+            List.of(Button.button(t, Button.Variant.SECONDARY, "Close", () -> log.add("close"))
+                .key("close")),
+            () -> log.add("dismiss")))
+        .overlay(secondKey == null ? question : question.key(secondKey));
+  }
+
+  @Test
+  void aQuestionOverADialogNeedsAKeyOfItsOwn() throws IOException {
+    List<String> log = new ArrayList<>();
+    App<List<String>> app = new App<>(log, l -> stacked(l, "discard"));
+    run(app, "frame\nadvance 0.25\nframe\nkey Escape\nframe\n");
+    assertEquals(List.of("keep"), log, "Escape went to the question on top, not to the dialog");
+    assertEquals("discard-button", app.focused().key());
+    String dump = app.tree().dump();
+    assertTrue(dump.indexOf("label=\"Edit\"") < dump.indexOf("label=\"Discard changes?\""), dump);
+
+    App<List<String>> same = new App<>(new ArrayList<>(), l -> stacked(l, null));
+    Script.Failure refused = assertThrows(Script.Failure.class, () -> run(same, "frame\n"));
+    assertTrue(refused.getMessage().contains("another with key(...)"), refused.getMessage());
+  }
+
   @Test
   void theDefaultButtonIsOneOfTheButtons() {
     Theme t = Theme.DARK;

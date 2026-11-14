@@ -29,6 +29,10 @@ import java.util.function.Predicate;
  * keeps Enter for its line breaks. When it closes, the focus goes back to where it was, such as
  * the button that opened it. In a tree dump it is an overlay {@code center modal scrim}, {@code
  * role=dialog} with its title as the label.
+ *
+ * <p>Its key is {@code dialog}. Two dialogs open at once, as a question over a dialog, are
+ * siblings among the root's overlays and need keys of their own: chain {@code .key("discard")}
+ * onto the second, which then lies over the first with its own scrim.
  */
 public final class Dialog {
 
