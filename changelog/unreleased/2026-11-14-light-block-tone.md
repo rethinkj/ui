@@ -1,0 +1,1 @@
+- In the light themes, a block of lines marked with `CodeEditor.State#block` stands out clearly from the white field: `Theme.Code.LIGHT.block()` is the teal at 20 % instead of 10 %. To keep code on the current match of a find at 4.5:1 inside such a block, `Theme.Code.LIGHT.current()` is a little lighter, its amber at 38 % instead of 50 %.
