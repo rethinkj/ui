@@ -482,6 +482,48 @@ class FocusTest {
   }
 
   @Test
+  void focusingAContainerPrefersItsDefaultFocusElementWhichTakesNoFocusByItself() {
+    boolean[] shown = {false};
+    App<boolean[]> app = start(
+        new App<>(
+            shown,
+            s -> row()
+                .children(
+                    el().key("outside").focusable().size(10, 10),
+                    col()
+                        .key("page")
+                        .children(
+                            el().key("refresh").focusable().size(10, 10),
+                            s[0]
+                                ? col()
+                                    .key("side")
+                                    .children(
+                                        el().key("a").focusable().size(10, 10),
+                                        el().key("list")
+                                            .focusable()
+                                            .defaultFocus()
+                                            .size(10, 10))
+                                : el(),
+                            s[0]
+                                ? el().key("grid").focusable().defaultFocus().size(10, 10)
+                                : el()))),
+        100,
+        100);
+    app.focus(find(app.tree(), "outside"));
+    app.frame();
+    shown[0] = true;
+    app.invalidate();
+    app.frame();
+    assertEquals("outside", focusedKey(app), "it does not take the focus when it appears");
+    app.focus(find(app.tree(), "page"));
+    app.frame();
+    assertEquals("grid", focusedKey(app), "the one nearest the page, not the first");
+    app.focus(find(app.tree(), "side"));
+    app.frame();
+    assertEquals("list", focusedKey(app));
+  }
+
+  @Test
   void aFocusWithinLookShowsWhileTheFocusIsOnTheElementOrInsideIt() {
     App<Object> app = start(
         new App<>(

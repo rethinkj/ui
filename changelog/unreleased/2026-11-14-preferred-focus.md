@@ -1,0 +1,1 @@
+- `El.defaultFocus()` marks the element that the focus goes to when it moves into an element around it that has not had the focus yet, through `app.focus(container)` or when the focused element leaves: a tab page's grid rather than the Refresh button above it. Unlike `autofocus()` it takes no focus by itself; where the focus was inside before, `app.focus` still goes back there.

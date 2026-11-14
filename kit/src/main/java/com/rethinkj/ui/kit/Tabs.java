@@ -51,8 +51,8 @@ import java.util.function.IntConsumer;
  * Control+Shift+Tab and Control+Page Up the one before, around at the ends, and Control+W and Control+F4 close the active tab if it can be
  * closed. Keys go up from the focused element, so these work while the focus is inside. From the
  * content the focus goes into the content of the tab that takes over: to the element where it
- * was if the new content has one, else to its {@link El#autofocus} element or its first focusable
- * one, else to the bar (see {@link com.rethinkj.ui.App#focused}). An app that wants the shortcuts
+ * was if the new content has one, else to its {@link El#defaultFocus} or {@link El#autofocus}
+ * element or its first focusable one, else to the bar (see {@link com.rethinkj.ui.App#focused}). An app that wants the shortcuts
  * while the focus is elsewhere, as in a tree beside the tabs, gives its root the same handler,
  * which the tabs reach first when they have the focus:
  *

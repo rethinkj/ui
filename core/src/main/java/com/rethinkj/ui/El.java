@@ -168,6 +168,7 @@ public final class El {
   private Runnable onShownFor; // see #onShownFor
   private double shownDelay;
   private boolean skipsTab; // see #skipTab
+  private boolean defaultFocus; // see #defaultFocus
   private ObjDoubleConsumer<El> cycle; // see #cycle
   private double cycleSeconds;
   double cycleSince; // for Animator: the app's time at which this identity got its cycle
@@ -2553,6 +2554,26 @@ public final class El {
     this.autofocus = key;
     AUTOFOCUSES.incrementAndGet();
     return this;
+  }
+
+  /**
+   * Makes this focusable element the one the focus goes to when it moves into an element around
+   * it, unless the focus was inside that element before: {@link App#focus} of a tab's page lands
+   * on its grid rather than on the Refresh button above it, and so does the focus that finds a
+   * place when the focused element leaves (see {@link App#focused}). Unlike {@link #autofocus}, it
+   * does not take the focus by itself, and it goes before an {@link #autofocus} element there.
+   * Where {@code App.focus} finds the element that had the focus last inside, that one wins. Of
+   * several inside, the one the fewest levels below the element focused into goes first, the first
+   * in tree order among equals: a sidebar's list marked so gets the focus when the sidebar is
+   * focused into, and the page's grid, marked so too, when the page is.
+   */
+  public El defaultFocus() {
+    this.defaultFocus = true;
+    return this;
+  }
+
+  boolean isDefaultFocus() {
+    return defaultFocus;
   }
 
   // How often autofocus was asked for: App looks through the rows a list built for it only when
