@@ -72,6 +72,14 @@ final class Wgpu {
 
   static final long INSTANCE_BACKEND_DX12 = 1L << 3;
 
+  /**
+   * wgpu.h, {@code WGPUDx12Compiler}. Zero, undefined, lets wgpu-native v29 look for a {@code
+   * dxcompiler.dll} wherever Windows searches for DLLs and take FXC if it finds none.
+   */
+  static final int DX12_COMPILER_FXC = 1;
+
+  static final int DX12_COMPILER_DXC = 2;
+
   static final int POWER_PREFERENCE_UNDEFINED = 0;
   static final int POWER_PREFERENCE_LOW_POWER = 1;
   static final int POWER_PREFERENCE_HIGH_PERFORMANCE = 2;

@@ -16,6 +16,7 @@ import static com.rethinkj.ui.kit.TextField.textField;
 import static com.rethinkj.ui.kit.Toggle.toggle;
 
 import com.rethinkj.ui.El;
+import com.rethinkj.ui.Len;
 import com.rethinkj.ui.Style;
 import com.rethinkj.ui.examples.Samples.Node;
 import com.rethinkj.ui.examples.Showcase.Section;
@@ -505,7 +506,7 @@ final class Sections {
         Menu.item("Copy name", () -> s.say("copy name")).shortcut("Ctrl+C"),
         Menu.item("Share…", null),
         Menu.separator(),
-        Menu.item("Delete", () -> s.say("delete")).shortcut("Delete"));
+        Menu.item("Delete", () -> s.say("delete")).shortcut("Delete").danger());
     El saved =
         card(t, "Saved queries", Menu.contextMenu(t, list, s.context, actions)).w(420);
     El hints = col()
@@ -801,37 +802,41 @@ final class Sections {
 
   // Tabs and split
 
-  private static final String[] QUERY = {
-    "SELECT date_trunc('month', o.created_at) AS month,",
-    "       count(*) AS orders,",
-    "       sum(o.amount) AS total",
-    "FROM orders o",
-    "WHERE o.status <> 'refunded'",
-    "GROUP BY 1",
-    "ORDER BY 1 DESC;"
-  };
   private static final String[][] MONTHS = {
     {"2026-08-01", "1204", "98211.40"}, {"2026-07-01", "1388", "112874.10"},
     {"2026-06-01", "1102", "87300.00"}, {"2026-05-01", "998", "79112.95"},
     {"2026-04-01", "1250", "101446.20"}, {"2026-03-01", "731", "58009.15"}
   };
 
+  /**
+   * A database tool's main window in small: one card with the tools along its top, the schema
+   * beside the open queries, each an editor over its results, and the status bar along its bottom,
+   * the panes divided by hairlines.
+   */
   private static El workbench(Showcase s, Theme t) {
+    float stroke = t.size().stroke();
+    int line = t.border().divider();
     El tree = schema(t, s, s.benchOpen, s.benchNode, n -> s.benchNode = n)
         .key("bench-schema")
         .label("Schema")
         .grow(1);
-    El side = Card.flush(t, Card.toolbar(t, "Database", null), Card.inset(t, tree));
+    // Its title in a band as high as the tab bar beside it, so that the two read as one row.
+    El side = col()
+        .label("Database")
+        .child(Card.toolbar(t, "Database", null)
+            .h(t.size().control() + t.space().m() + stroke)
+            .shrink(0)
+            .fill(t.surface().band())
+            .border(0, 0, stroke, 0, line))
+        .child(Card.inset(t, tree));
 
-    El lines =
-        col().key("editor").label("Query").padding(t.space().m(), t.space().s());
-    for (int i = 0; i < QUERY.length; i++) {
-      lines.child(row()
-          .gap(t.space().l())
-          .child(
-              label(t, MONO, String.valueOf(i + 1)).color(t.text().disabled()).w(16))
-          .child(label(t, MONO, QUERY[i])));
-    }
+    El editor = CodeEditor.embedded(
+        t,
+        CodeEditor.codeEditor(t, s.app, s.query, s.queryEditor, Sql.of(t), v -> s.query = v)
+            .key("editor")
+            .label("Query"));
+    // The tab bar's hairline is the editor's top edge already; the accent's still marks focus.
+    editor.border(stroke, 0, 0, 0, 0);
     List<Column> columns = List.of(
         new Column("month", 120, Align.LEFT, true, i -> MONTHS[i][0]),
         new Column("orders", 80, Align.RIGHT, true, i -> MONTHS[i][1]),
@@ -850,18 +855,22 @@ final class Sections {
         s.editor,
         Position.share(0.42f),
         p -> s.editor = p,
-        lines,
+        editor,
         60,
         results,
         80);
+    // The tabs make a card of their own; inside the window's card they are a pane without a frame.
     El queries = Tabs.tabs(t, s.tabs, s.tab, i -> s.tab = i, i -> s.say("close " + i), content)
-        .key("queries");
+        .key("queries")
+        .radius(0)
+        .border(0, 0)
+        .shadow();
 
-    // A window in small: tools on the page, the schema's card and the queries' card.
     El top = row()
         .padding(t.space().xs(), t.space().m())
         .gap(t.space().xs())
         .align(Style.Align.CENTER)
+        .border(0, 0, stroke, 0, line)
         .child(iconButton(t, Symbol.PLAY, "Run", () -> s.say("run")))
         .child(iconButton(t, Symbol.STOP, "Stop", null))
         .child(divider(t))
@@ -869,40 +878,36 @@ final class Sections {
         .child(iconButton(t, Symbol.ARROW_REDO, "Redo", () -> s.say("redo")))
         .child(el().grow(1));
     El status = StatusBar.statusBar(
-        t,
-        List.of(
-            StatusBar.status(
-                t, StatusBar.State.CONNECTED, "localhost / shop", () -> s.say("connection")),
-            StatusBar.text(t, "PostgreSQL 17.2"),
-            StatusBar.status(t, StatusBar.State.BUSY, "staging", null),
-            StatusBar.status(t, StatusBar.State.ERROR, "prod-eu", null)),
-        List.of(
-            StatusBar.text(t, "Ln 4, Col 12"),
-            StatusBar.item(t, null, "UTF-8", () -> s.say("encoding")),
-            StatusBar.item(t, Symbol.HISTORY, "Tx: auto", () -> s.say("transaction"))));
-    return col()
+            t,
+            List.of(
+                StatusBar.status(
+                    t, StatusBar.State.CONNECTED, "localhost / shop", () -> s.say("connection")),
+                StatusBar.text(t, "PostgreSQL 17.2"),
+                StatusBar.status(t, StatusBar.State.BUSY, "staging", null),
+                StatusBar.status(t, StatusBar.State.ERROR, "prod-eu", null)),
+            List.of(
+                StatusBar.text(t, "Ln 4, Col 12"),
+                StatusBar.item(t, null, "UTF-8", () -> s.say("encoding")),
+                StatusBar.item(t, Symbol.HISTORY, "Tx: auto", () -> s.say("transaction"))))
+        .border(stroke, 0, 0, 0, line);
+    return Card.flush(
+            t,
+            top,
+            Split.split(
+                    t,
+                    Direction.ROW,
+                    s.sidebar,
+                    Position.first(200),
+                    p -> s.sidebar = p,
+                    side,
+                    140,
+                    queries,
+                    240)
+                .key("bench")
+                .grow(1),
+            status)
         .grow(1)
-        .minSize(0, FILL_MIN)
-        .clip()
-        .border(t.size().stroke(), t.border().subtle())
-        .radius(t.radius().large())
-        .fill(t.surface().window())
-        .child(top)
-        .child(Split.cards(
-                t,
-                Direction.ROW,
-                s.sidebar,
-                Position.first(200),
-                p -> s.sidebar = p,
-                side.label("Database"),
-                140,
-                queries,
-                240)
-            .key("bench")
-            .grow(1)
-            .minSize(0, 0)
-            .padding(0, t.space().m(), 0, t.space().m()))
-        .child(status);
+        .minSize(0, FILL_MIN);
   }
 
   // Table details
@@ -1032,37 +1037,55 @@ final class Sections {
     El columns = col();
     for (int i = 0; i < COLUMNS.length; i++) {
       String[] c = COLUMNS[i];
-      El r = row()
+      boolean primary = c.length > 2 && c[2].equals("PK");
+      float line = t.size().control();
+      // The keys as quiet badges, PK in a restrained accent; the other constraints as muted text.
+      El constraints = row().h(line).gap(t.space().s()).align(Style.Align.CENTER);
+      List<String> rest = new ArrayList<>();
+      for (int j = 2; j < c.length; j++) {
+        switch (c[j]) {
+          case "PK" -> constraints.child(Badge.badge(t, Badge.Kind.ACCENT, c[j]));
+          case "FK" -> constraints.child(Badge.badge(t, c[j]));
+          default -> rest.add(c[j]);
+        }
+      }
+      if (!rest.isEmpty()) {
+        constraints.child(label(t, MUTED, String.join(" · ", rest)));
+      }
+      // The name and type, then the constraints at the right, or on a line of their own below
+      // them where the card is narrow; every line as high as a control.
+      El text = row()
+          .wrap()
+          .grow(1)
+          .minSize(0, 0)
+          .gap(t.space().s())
+          .align(Style.Align.CENTER)
+          .child(row()
+              .h(line)
+              .gap(t.space().s())
+              .align(Style.Align.CENTER)
+              .child(label(t, MONO, c[0]).w(110).shrink(0))
+              .child(label(t, MONO, c[1]).color(t.text().muted())))
+          .child(el().grow(1))
+          .child(constraints);
+      text.style().rowGap = Len.ZERO;
+      columns.child(row()
           .key("column-" + i)
           .role("row")
           .label(c[0])
-          .h(t.size().control() + t.space().s())
-          .padding(0, t.space().l())
+          .padding(t.space().xs(), t.space().l())
           .gap(t.space().s())
-          .align(Style.Align.CENTER)
           .border(
               0,
               0,
               i == COLUMNS.length - 1 ? 0 : t.size().stroke(),
               0,
               t.border().subtle())
-          .child(Icon.icon(
-              t,
-              c.length > 2 && c[2].equals("PK") ? Symbol.KEY : Symbol.COLUMN_SINGLE,
-              Icon.Variant.MUTED))
-          .child(label(t, MONO, c[0]).w(110).shrink(0))
-          .child(Badge.badge(t, c[1]))
-          .child(el().grow(1));
-      for (int j = 2; j < c.length; j++) {
-        Badge.Kind kind = switch (c[j]) {
-          case "PK" -> Badge.Kind.ACCENT;
-          case "FK" -> Badge.Kind.SUCCESS;
-          case "NOT NULL" -> Badge.Kind.WARNING;
-          default -> Badge.Kind.NEUTRAL;
-        };
-        r.child(Badge.badge(t, kind, c[j]));
-      }
-      columns.child(r);
+          .child(row()
+              .h(line)
+              .align(Style.Align.CENTER)
+              .child(Icon.icon(t, primary ? Symbol.KEY : Symbol.COLUMN_SINGLE, Icon.Variant.MUTED)))
+          .child(text));
     }
     El columnsCard = Card.flush(
             t,

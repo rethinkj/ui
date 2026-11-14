@@ -1,0 +1,1 @@
+- On Windows a window no longer shows black for about a second after it opens: it stays invisible until its first frame is drawn and then appears with it. `WindowLoop` does this by itself; a loop of one's own must call `Window.drawn()` after its first frame, or the window stays invisible.

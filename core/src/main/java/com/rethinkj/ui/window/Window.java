@@ -433,8 +433,10 @@ public final class Window implements AutoCloseable {
   private long syncValue;
   private boolean syncAsked;
   private boolean syncConfigured;
+  private boolean unseen; // on X11 transparent to the compositor until the first frame (see X11)
   private Win32Frame win32;
   private Win32Shell shell;
+  private boolean cloaked; // on Windows, from before it shows until its first frame is drawn
   private WindowIcon icon;
   private WindowListener listener;
   private Parts parts;
@@ -496,7 +498,11 @@ public final class Window implements AutoCloseable {
   }
 
   /**
-   * Opens a window and shows it.
+   * Opens a window and shows it. On Windows, and on X11 with a compositor, it stays invisible
+   * until its first frame is drawn, that is until {@link #drawn} is first called, and then appears
+   * with that frame; else it would show black on Windows, and on X11 what lay there, other
+   * windows' content included, while the app gets the GPU ready and builds the frame. On Windows
+   * a system dialog or message box that opens for it before then makes it visible first.
    *
    * @param width the width of the content in logical pixels
    * @param height the height of the content in logical pixels
@@ -558,6 +564,8 @@ public final class Window implements AutoCloseable {
     handle = readHandle();
     if (handle instanceof WindowHandle.Xlib(var display, long xwindow)) {
       syncCounter = X11.syncCounter(display, xwindow); // before the window shows
+      X11.opacity(display, xwindow, 0);
+      unseen = true;
     }
     if (handle instanceof WindowHandle.Win32 win) {
       shell = Win32Shell.attach(this, win.hwnd());
@@ -581,6 +589,11 @@ public final class Window implements AutoCloseable {
       keepReachable(); // a position outside every work area, as of a display gone since
     }
     rememberNormal();
+    if (shell != null) {
+      // SDL shows the window black before the app can draw: DWM keeps it off the screen until
+      // drawn() says that the first frame is in it.
+      cloaked = shell.cloak(true);
+    }
     if (placement != null && placement.maximized()) {
       Sdl.maximizeWindow(sdl); // shows maximized, restored to where it was
     }
@@ -1755,18 +1768,42 @@ public final class Window implements AutoCloseable {
 
   /**
    * Tells the window that its app has drawn a frame of its current size. {@link WindowLoop} calls
-   * this after each frame; a loop of one's own calls it too. On X11 it answers the window
-   * manager's {@code _NET_WM_SYNC_REQUEST} once the resize step that the request announced has
-   * come: during a resize the window manager shows the window and takes the next step only then,
-   * or after a second without an answer, so that the window never shows a size its app has not
-   * drawn. Elsewhere it does nothing.
+   * this after each frame its presenter showed; a loop of one's own calls it too. On Windows, and
+   * on X11 with a compositor, the first call makes the window visible, which it is not before: see
+   * {@link #open(String, float, float, Options)}. On X11 it also answers the window manager's
+   * {@code _NET_WM_SYNC_REQUEST} once the resize step that the request announced has come: during
+   * a resize the window manager shows the window and takes the next step only then, or after a
+   * second without an answer, so that the window never shows a size its app has not drawn.
+   * Elsewhere it does nothing.
    */
   public void drawn() {
-    if (syncConfigured && handle instanceof WindowHandle.Xlib(var display, long xwindow)) {
+    reveal();
+    if (!(handle instanceof WindowHandle.Xlib(var display, long xwindow))) {
+      return;
+    }
+    if (unseen) {
+      unseen = false;
+      X11.opacity(display, xwindow, 0xFFFFFFFFL);
+    }
+    if (syncConfigured) {
       syncAsked = false;
       syncConfigured = false;
       X11.setCounter(display, syncCounter, syncValue);
     }
+  }
+
+  /**
+   * Makes a window that has not drawn its first frame yet visible on Windows, before a system
+   * dialog opens for it: DWM hides the windows a hidden window owns, and a message box blocks the
+   * thread until it closes. Kept for a next call while DWM refuses it.
+   *
+   * @return false if the window stays hidden, because DWM refused
+   */
+  boolean reveal() {
+    if (cloaked && open && shell.cloak(false)) {
+      cloaked = false;
+    }
+    return !cloaked;
   }
 
   /** SDL_X11EventHook: notes the window manager's requests to synchronise a resize. */

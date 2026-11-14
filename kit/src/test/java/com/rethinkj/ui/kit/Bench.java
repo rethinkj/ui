@@ -132,7 +132,8 @@ final class Bench {
             Menu.item("Copy name", () -> status = "Copied").shortcut("Ctrl+C"),
             Menu.separator(),
             Menu.item("Duplicate", () -> status = "Duplicated " + TABLES[selected]),
-            Menu.item("Drop table", () -> status = "Dropped " + TABLES[selected])));
+            Menu.item("Drop table", () -> status = "Dropped " + TABLES[selected])
+                .danger()));
 
     El actions = col()
         .key("actions")

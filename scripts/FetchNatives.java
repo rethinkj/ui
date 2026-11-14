@@ -215,7 +215,7 @@ final class FetchNatives {
               build(label, config, platform, library, archive, fetched.resolve("builds")), file);
         } else {
           try (ZipFile zip = new ZipFile(archive.toFile())) {
-            ZipEntry entry = zip.getEntry(library.entry());
+            ZipEntry entry = entry(zip, library.entry());
             if (entry == null || entry.isDirectory()) {
               throw new Failure(config + ": " + library.archiveName() + " has no file "
                   + library.entry() + ". Correct " + library.name() + ".entry.");
@@ -836,6 +836,22 @@ final class FetchNatives {
         return null;
       }
     }
+  }
+
+  /**
+   * The entry {@code name} of the zip archive, or null. An archive made on Windows may separate
+   * folders with backslashes, as the DirectX Shader Compiler's does, though the zip format asks
+   * for /; {@code name} is always written with /.
+   */
+  private static ZipEntry entry(ZipFile zip, String name) {
+    ZipEntry entry = zip.getEntry(name);
+    if (entry != null) {
+      return entry;
+    }
+    return zip.stream()
+        .filter(e -> e.getName().replace('\\', '/').equals(name))
+        .findFirst()
+        .orElse(null);
   }
 
   /** Unpacks the zip archive into {@code target}, refusing entries that point outside it. */

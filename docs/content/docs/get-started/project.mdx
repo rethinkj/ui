@@ -15,7 +15,7 @@ All share the group `com.rethinkj.ui` and the version `0.1.0-SNAPSHOT`.
 | `rethinkj-ui-kit` | The theme and the components | For the components |
 | `rethinkj-ui-fonts` | Inter and JetBrains Mono, the default fonts | For text with the default fonts |
 | `rethinkj-ui-icons` | Fluent UI System Icons, the icon font | For icons, the tree's marks, the grid's sort arrows |
-| `rethinkj-ui-natives-linux-x64`, `rethinkj-ui-natives-windows-x64` | SDL3, wgpu-native, FreeType and HarfBuzz for one platform | At run time, for the platform it runs on |
+| `rethinkj-ui-natives-linux-x64`, `rethinkj-ui-natives-windows-x64` | SDL3, wgpu-native, FreeType and HarfBuzz for one platform, and on Windows the DirectX Shader Compiler | At run time, for the platform it runs on |
 
 `core` and `kit` depend on `java.base` only. The native libraries are loaded on first use, so code that only renders without a window and draws no text needs none of them.
 

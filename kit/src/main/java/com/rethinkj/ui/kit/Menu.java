@@ -95,6 +95,7 @@ public final class Menu {
    * @param submenu the items of the submenu the item opens, or null for none
    * @param leading builds what stands before the text in place of the icon, or null; see {@link
    *     #leading(Function)}
+   * @param dangerous whether the item destroys something; see {@link #danger()}
    */
   public record Item(
       String label,
@@ -104,7 +105,8 @@ public final class Menu {
       Symbol icon,
       Runnable onChoose,
       List<Item> submenu,
-      Function<Theme, El> leading) {
+      Function<Theme, El> leading,
+      boolean dangerous) {
 
     /** An item without a leading element, as items were before they could have one. */
     public Item(
@@ -115,7 +117,7 @@ public final class Menu {
         Symbol icon,
         Runnable onChoose,
         List<Item> submenu) {
-      this(label, shortcut, keys, checked, icon, onChoose, submenu, null);
+      this(label, shortcut, keys, checked, icon, onChoose, submenu, null, false);
     }
 
     /**
@@ -125,12 +127,12 @@ public final class Menu {
      * the item is checked, the check mark stands at its end and the element before the text.
      */
     public Item leading(Function<Theme, El> leading) {
-      return new Item(label, shortcut, keys, checked, icon, onChoose, submenu, leading);
+      return new Item(label, shortcut, keys, checked, icon, onChoose, submenu, leading, dangerous);
     }
 
     /** This item with a text shown at its right, which only shows: no key runs the item. */
     public Item shortcut(String text) {
-      return new Item(label, text, keys, checked, icon, onChoose, submenu, leading);
+      return new Item(label, text, keys, checked, icon, onChoose, submenu, leading, dangerous);
     }
 
     /**
@@ -148,17 +150,28 @@ public final class Menu {
             + " case: \"" + key.toUpperCase(Locale.ROOT) + "\", not \"" + key + "\"");
       }
       Key k = new Key(key, modifiers, false);
-      return new Item(label, shortcutText(k), k, checked, icon, onChoose, submenu, leading);
+      return new Item(
+          label, shortcutText(k), k, checked, icon, onChoose, submenu, leading, dangerous);
     }
 
     /** This item with a check mark, or without. */
     public Item checked(boolean on) {
-      return new Item(label, shortcut, keys, on, icon, onChoose, submenu, leading);
+      return new Item(label, shortcut, keys, on, icon, onChoose, submenu, leading, dangerous);
     }
 
     /** This item with an icon before its text; a check mark takes its place while it is checked. */
     public Item icon(Symbol symbol) {
-      return new Item(label, shortcut, keys, checked, symbol, onChoose, submenu, leading);
+      return new Item(
+          label, shortcut, keys, checked, symbol, onChoose, submenu, leading, dangerous);
+    }
+
+    /**
+     * This item in the theme's danger tone ({@link Theme.Danger#text}), its icon too, highlighted
+     * or not, for an action that destroys something, such as Delete; disabled, it is greyed out
+     * as any other item.
+     */
+    public Item danger() {
+      return new Item(label, shortcut, keys, checked, icon, onChoose, submenu, leading, true);
     }
 
     public boolean isSeparator() {
@@ -546,7 +559,7 @@ public final class Menu {
     Item item = items.get(i);
     boolean enabled = item.isEnabled();
     boolean lit = i == state.active(level);
-    int text = PassiveContent.text(t, enabled);
+    int text = enabled && item.dangerous() ? t.danger().text() : PassiveContent.text(t, enabled);
     int quiet = PassiveContent.muted(t, enabled);
     El leading = null;
     boolean checkAtEnd = item.checked() && item.leading() != null;
@@ -569,10 +582,12 @@ public final class Menu {
         opens ? icon(t, SUBMENU).color(quiet) : null);
     // After a rest, the item's submenu opens and any other of its level closes.
     content.onHoverFor(t.motion().submenuDelay(), () -> state.openSubmenu(level, opens ? i : -1));
-    // The highlight is the calm tint of a selection; the full accent belongs to primary buttons.
+    // A neutral highlight, so the accent's tint means a selection only; a lighter one if disabled.
     int fill = !lit
         ? 0
-        : enabled ? t.grid().selected() : over(t.surface().raised(), t.surface().hover());
+        : enabled
+            ? t.surface().highlight()
+            : over(t.surface().popup(), t.surface().hover());
     El el = row()
         .key((level == 0 ? "item-" : "subitem-") + i)
         .role("menuitem")

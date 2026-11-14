@@ -25,6 +25,11 @@ import com.rethinkj.ui.window.WindowEvent.StateChanged;
 import com.rethinkj.ui.window.WindowEvent.TextEditing;
 import com.rethinkj.ui.window.WindowEvent.TextInput;
 import com.rethinkj.ui.window.WindowEvent.Wheel;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -76,6 +81,12 @@ import java.util.function.ToDoubleFunction;
  * input methods. Alt+Space that no key handler takes opens the system's window menu ({@link
  * Window#showSystemMenu}), on a frameless window too.
  *
+ * <p>When a window has shown its first frame, the loop logs at {@code DEBUG} on the {@link
+ * System.Logger} {@code com.rethinkj.ui.window} how many milliseconds after the process started
+ * that was, to keep an app's start in budget. With {@code java.util.logging}, the lines {@code
+ * com.rethinkj.ui.window.level = FINE} and {@code java.util.logging.ConsoleHandler.level = FINE}
+ * in the logging configuration print it.
+ *
  * <pre>{@code
  * try (Window window = Window.open("Lights", 480, 320, Window.options().frameless());
  *     GpuPresenter presenter = new GpuPresenter(window)) {
@@ -87,6 +98,8 @@ public final class WindowLoop {
 
   /** Logical pixels per step of the wheel; see the class's description. */
   public static final float WHEEL_STEP = 48;
+
+  private static final System.Logger LOGGER = System.getLogger("com.rethinkj.ui.window");
 
   /** Draws a frame into the window. */
   @FunctionalInterface
@@ -110,6 +123,17 @@ public final class WindowLoop {
      */
     default boolean pending() {
       return false;
+    }
+
+    /**
+     * Whether the last {@link #present} showed its frame in the window: false when there was
+     * nothing to draw into, as while the window is minimized or hidden, and while the frame is
+     * {@link #pending}. Only after a frame that was shown does the loop tell the window that it
+     * has drawn ({@link Window#drawn}), so that a new window never appears without its first
+     * frame. True unless a presenter says otherwise.
+     */
+    default boolean presented() {
+      return true;
     }
   }
 
@@ -158,6 +182,8 @@ public final class WindowLoop {
     long frameNanos;
     boolean open = true;
     boolean fresh = true; // opened since the last pass, which draws its first frame
+    boolean showing; // the window shows the last frame presented
+    boolean shown; // it has shown its first frame
     // Opened under the pointer during a press (Window.Options.underPointer): shown without
     // the focus, which it takes after the frame that handles the release.
     boolean focusAfterPress;
@@ -1053,14 +1079,50 @@ public final class WindowLoop {
       e.presenter.present(app.scene(), e.width, e.height, e.scale);
       e.presented = System.nanoTime();
       e.started = now;
+      e.showing = e.presenter.presented();
+      if (!e.shown && e.showing) {
+        e.shown = true;
+        LOGGER.log(System.Logger.Level.DEBUG, () -> {
+          long millis = sinceStart();
+          return e.window.title() + ": first frame "
+              + (millis < 0 ? "at an unknown time" : millis + " ms") + " after the process started";
+        });
+      }
     }
     if (!e.isOpen()) {
       return;
     }
     e.window.cursor(app.cursor());
     e.window.background(app.tree().fill());
-    e.window.drawn();
+    if (e.showing) {
+      e.window.drawn();
+    }
     textInput(e);
+  }
+
+  /**
+   * Milliseconds since the process started, or -1 if unknown. On Linux from {@code /proc}, exact
+   * to 10 ms: {@link ProcessHandle.Info#startInstant} there counts from the boot time in whole
+   * seconds, up to a second off.
+   */
+  static long sinceStart() {
+    try {
+      return sinceStart(
+          Files.readString(Path.of("/proc/self/stat")), Files.readString(Path.of("/proc/uptime")));
+    } catch (IOException | RuntimeException notLinux) {
+      return ProcessHandle.current()
+          .info()
+          .startInstant()
+          .map(start -> Duration.between(start, Instant.now()).toMillis())
+          .orElse(-1L);
+    }
+  }
+
+  /** {@link #sinceStart()} from the texts of {@code /proc/self/stat} and {@code /proc/uptime}. */
+  static long sinceStart(String stat, String uptime) {
+    // Field 22, the start in clock ticks since boot, 100 a second on x64; after the name in ().
+    long ticks = Long.parseLong(stat.substring(stat.lastIndexOf(')') + 2).split(" ")[19]);
+    return Math.round(Double.parseDouble(uptime.split(" ")[0]) * 1000) - ticks * 10;
   }
 
   private void textInput(Entry e) {

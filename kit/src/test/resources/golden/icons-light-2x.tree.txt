@@ -1,4 +1,4 @@
-el 0,0 800x840
+el 0,0 800x868
   el 0,0 800x28
     text "variants" 8,6 49x16
     text label="warning" "\u{F868}" 65,6 16x16
@@ -450,30 +450,34 @@ el 0,0 800x840
     text label="text_case_title" "\u{ECED}" 32,788 20x20
     text "text_case_title" 60,790 86x16
   el 200,784 200x28
-    text label="text_sort_ascending" "\u{ED5A}" 208,790 16x16
-    text label="text_sort_ascending" "\u{F802}" 232,788 20x20
-    text "text_sort_ascending" 260,790 122x16
+    text label="text_period_asterisk" "\u{ED4A}" 208,790 16x16
+    text label="text_period_asterisk" "\u{ED4A}" 232,788 20x20
+    text "text_period_asterisk" 260,790 123x16
   el 400,784 200x28
-    text label="text_sort_descending" "\u{ED5C}" 408,790 16x16
-    text label="text_sort_descending" "\u{F803}" 432,788 20x20
-    text "text_sort_descending" 460,790 131x16
+    text label="text_sort_ascending" "\u{ED5A}" 408,790 16x16
+    text label="text_sort_ascending" "\u{F802}" 432,788 20x20
+    text "text_sort_ascending" 460,790 122x16
   el 600,784 200x28
-    text label="text_t" "\u{ECAE}" 608,790 16x16
-    text label="text_t" "\u{ED63}" 632,788 20x20
-    text "text_t" 660,790 33x16
+    text label="text_sort_descending" "\u{ED5C}" 608,790 16x16
+    text label="text_sort_descending" "\u{F803}" 632,788 20x20
+    text "text_sort_descending" 660,790 131x16
   el 0,812 200x28
-    text label="text_whole_word" "\u{F03A4}" 8,818 16x16
-    text label="text_whole_word" "\u{ED68}" 32,816 20x20
-    text "text_whole_word" 60,818 102x16
+    text label="text_t" "\u{ECAE}" 8,818 16x16
+    text label="text_t" "\u{ED63}" 32,816 20x20
+    text "text_t" 60,818 33x16
   el 200,812 200x28
-    text label="timer" "\u{ED86}" 208,818 16x16
-    text label="timer" "\u{ED88}" 232,816 20x20
-    text "timer" 260,818 31x16
+    text label="text_whole_word" "\u{F03A4}" 208,818 16x16
+    text label="text_whole_word" "\u{ED68}" 232,816 20x20
+    text "text_whole_word" 260,818 102x16
   el 400,812 200x28
-    text label="warning" "\u{F868}" 408,818 16x16
-    text label="warning" "\u{F869}" 432,816 20x20
-    text "warning" 460,818 49x16
+    text label="timer" "\u{ED86}" 408,818 16x16
+    text label="timer" "\u{ED88}" 432,816 20x20
+    text "timer" 460,818 31x16
   el 600,812 200x28
-    text label="window" "\u{EE5D}" 608,818 16x16
-    text label="window" "\u{F8B5}" 632,816 20x20
-    text "window" 660,818 48x16
+    text label="warning" "\u{F868}" 608,818 16x16
+    text label="warning" "\u{F869}" 632,816 20x20
+    text "warning" 660,818 49x16
+  el 0,840 200x28
+    text label="window" "\u{EE5D}" 8,846 16x16
+    text label="window" "\u{F8B5}" 32,844 20x20
+    text "window" 60,846 48x16
