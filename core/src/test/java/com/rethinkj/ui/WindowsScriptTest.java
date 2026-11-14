@@ -261,6 +261,24 @@ class WindowsScriptTest {
   }
 
   @Test
+  void aClosedWindowIsToldInAWindowThatStaysOpen() throws IOException {
+    App<Board> app = board();
+    Script.run("size 300 100 scale 2\nframe", app, out);
+    Object other = new Object(); // a state of A and B, not the main window's
+    Windows.Handle a =
+        app.windows().open("A", 60, 60, Window.options(), new App<>(other, s -> el()));
+    Windows.Handle b =
+        app.windows().open("B", 60, 60, Window.options(), new App<>(other, s -> el()));
+    List<String> told = new ArrayList<>();
+    a.onClosed(() -> told.add("A"));
+    b.onClosed(() -> told.add("B"));
+    b.close(); // told in A, of the same state
+    a.close(); // before A's frame: both are told in the main window
+    Script.run("frame", app, out);
+    assertEquals(List.of("B", "A"), told);
+  }
+
+  @Test
   void stepsNameTheWindowsThereAre() {
     Script.Failure failure =
         assertThrows(Script.Failure.class, () -> Script.run("""

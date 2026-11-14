@@ -306,6 +306,41 @@ class SeveralWindowsTest {
     }
   }
 
+  /** C closes, then B, which C's onClosed went to, before B's frame: A runs both. */
+  @Test
+  void aClosedWindowIsToldInAWindowThatStaysOpen() {
+    try (Window a = Window.open(TITLE, 120, 80)) {
+      Shared s = new Shared();
+      Shared other = new Shared(); // the state of B and C
+      List<String> log = new ArrayList<>();
+      WindowLoop loop = new WindowLoop(
+              a, new App<>(s, x -> counter(x, "a")), (scene, w, h, sc) -> {})
+          .presenters(w -> (scene, wi, h, sc) -> {});
+      Windows.Handle b = loop.open(
+          TITLE + " B", 100, 60, Window.options(), new App<>(other, x -> counter(x, "b")));
+      Windows.Handle c = loop.open(
+          TITLE + " C", 100, 60, Window.options(), new App<>(other, x -> counter(x, "c")));
+      b.onClosed(() -> log.add("B"));
+      c.onClosed(() -> log.add("C"));
+      Desktop.settle();
+      int[] idle = new int[1];
+      loop.waits((millis, holdBack) -> {
+        if (millis != -1) {
+          return;
+        }
+        if (idle[0]++ == 0) {
+          c.close();
+          b.close();
+        } else if (log.size() == 2 || idle[0] > 100) {
+          loop.stop();
+        }
+      });
+      Desktop.run(loop, () -> "C and B close, A is told of both: " + log);
+
+      assertEquals(List.of("C", "B"), log);
+    }
+  }
+
   /** A chip in window A dragged onto window B, whose drop handler takes it. */
   @Test
   void aDragFromOneWindowIsOverAndDropsInAnother() {

@@ -678,6 +678,30 @@ public final class Script {
     }
   }
 
+  /**
+   * The {@link Windows.Handle#onClosed} of a closed window, with its app's state: requested in an
+   * open window, and again in another when that one closes first; it runs in the first frame that
+   * comes to it.
+   */
+  private static final class Told implements Runnable { // by identity: each close runs once
+    final Desk desk;
+    final Runnable handler;
+    final Object state;
+
+    Told(Desk desk, Runnable handler, Object state) {
+      this.desk = desk;
+      this.handler = handler;
+      this.state = state;
+    }
+
+    @Override
+    public void run() {
+      if (desk.told.remove(this)) {
+        handler.run();
+      }
+    }
+  }
+
   /** A window of a script: its app and its place on the script's screen, in physical pixels. */
   private static final class Win implements Windows.Handle {
     final Desk desk;
@@ -740,9 +764,15 @@ public final class Script {
       }
       open = false;
       desk.front.remove(this);
-      Win heir = onClosed != null ? desk.heir(this) : null;
-      if (heir != null) {
-        heir.app.request(onClosed);
+      if (onClosed != null) {
+        desk.told.add(new Told(desk, onClosed, app.state()));
+      }
+      // Again for those queued in this window's app, which runs them no more.
+      for (Told t : desk.told) {
+        Win heir = desk.heir(t.state);
+        if (heir != null) {
+          heir.app.request(t);
+        }
       }
     }
 
@@ -816,6 +846,7 @@ public final class Script {
   private static final class Desk implements Windows {
     final List<Win> wins = new ArrayList<>(); // in the order they opened
     final List<Win> front = new ArrayList<>(); // front first
+    final List<Told> told = new ArrayList<>(); // onClosed handlers no window has run yet
     final Win first;
     Win chosen;
     Win held; // the window a press began in, until its release
@@ -906,11 +937,11 @@ public final class Script {
       return wins.stream().filter(w -> w.open).toList();
     }
 
-    /** The open window whose app runs {@link Handle#onClosed} of {@code closed}, or null. */
-    Win heir(Win closed) {
+    /** The open window to run an {@link Handle#onClosed} of {@code state}, or null. */
+    Win heir(Object state) {
       List<Win> open = open();
       return open.stream()
-          .filter(w -> w.app.state() == closed.app.state())
+          .filter(w -> w.app.state() == state)
           .findFirst()
           .orElse(open.isEmpty() ? null : open.getFirst());
     }

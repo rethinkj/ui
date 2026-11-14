@@ -141,6 +141,7 @@ public final class WindowLoop {
   private final List<Entry> entries = new ArrayList<>();
   private final List<Entry> front = new ArrayList<>();
   private final List<Entry> closing = new ArrayList<>();
+  private final List<Told> told = new ArrayList<>(); // onClosed handlers no window has run yet
   private final LoopWindows windows = new LoopWindows();
   private Function<Window, Presenter> presenters;
   private WindowListener listener;
@@ -220,9 +221,17 @@ public final class WindowLoop {
       }
       open = false;
       front.remove(this);
-      Entry heir = running && onClosed != null ? heir(this) : null;
-      if (heir != null) {
-        heir.app.post(onClosed);
+      if (running) {
+        if (onClosed != null) {
+          told.add(new Told(onClosed, app.state()));
+        }
+        // Again for those queued in this window's app, which runs them no more.
+        for (Told t : told) {
+          Entry heir = heir(t.state);
+          if (heir != null) {
+            heir.app.post(t);
+          }
+        }
       }
       if (drawing) {
         closing.add(this); // after the pass: its app may be in the middle of a frame
@@ -577,6 +586,7 @@ public final class WindowLoop {
       throw e;
     } finally {
       running = false;
+      told.clear(); // the apps end with the loop
       // Every window and presenter is let go of, also when one of them fails to close.
       List<Throwable> failures = new ArrayList<>();
       for (Entry entry : List.copyOf(entries)) {
@@ -791,12 +801,34 @@ public final class WindowLoop {
     return open;
   }
 
-  /** The open window whose app runs {@link Windows.Handle#onClosed} of {@code closed}, or null. */
-  private Entry heir(Entry closed) {
+  /**
+   * The {@link Windows.Handle#onClosed} of a closed window, with its app's state: posted to an
+   * open window, and again to another when that one closes first; it runs in the first frame that
+   * comes to it.
+   */
+  private final class Told implements Runnable {
+    final Runnable handler;
+    final Object state;
+
+    Told(Runnable handler, Object state) {
+      this.handler = handler;
+      this.state = state;
+    }
+
+    @Override
+    public void run() {
+      if (told.remove(this)) {
+        handler.run();
+      }
+    }
+  }
+
+  /** The open window to run an {@link Windows.Handle#onClosed} of {@code state}, or null. */
+  private Entry heir(Object state) {
     Entry first = null;
     for (Entry e : entries) {
       if (e.isOpen()) {
-        if (e.app.state() == closed.app.state()) {
+        if (e.app.state() == state) {
           return e;
         }
         first = first == null ? e : first;
