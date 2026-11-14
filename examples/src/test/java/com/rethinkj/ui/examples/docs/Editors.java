@@ -71,7 +71,11 @@ final class Editors {
             .map(name -> new Completion.Entry(name, Symbol.TABLE, "table"))
             .toList());
     // docs:end completion
-    return Frame.of(t, Card.flush(t, withCompletions).wFull());
+    // docs:start code-editor-embedded
+    El card =
+        Card.flush(t, Card.toolbar(t, "orders.sql", null), CodeEditor.embedded(t, withCompletions));
+    // docs:end code-editor-embedded
+    return Frame.of(t, card.wFull());
   }
 
   static El find(Editors s) {

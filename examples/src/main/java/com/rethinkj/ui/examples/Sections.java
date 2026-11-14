@@ -346,19 +346,19 @@ final class Sections {
     El editor = CodeEditor.codeEditor(t, s.app, s.sql, s.sqlEditor, Sql.of(t), v -> s.sql = v)
         .key("sql")
         .label("Query")
-        .lines(5)
-        .wFull();
-    El code = card(
+        .lines(5);
+    El code = Card.flush(
         t,
-        "Code editor",
-        label(
+        Card.header(
                 t,
-                MUTED,
+                "Code editor",
                 "Line numbers, colours and brackets; a word's second letter, or"
                     + " Control+Space, completes keywords and names; Control+F finds, Control+H replaces.")
-            .wrapText(),
-        Completion.complete(
-            t, s.app, editor, s.sqlEditor.caret(), s.sqlCompletion, Sections::complete));
+            .padding(t.space().l()),
+        CodeEditor.embedded(
+            t,
+            Completion.complete(
+                t, s.app, editor, s.sqlEditor.caret(), s.sqlCompletion, Sections::complete)));
     return col()
         .gap(t.space().l())
         .child(row()
