@@ -237,8 +237,8 @@ public final class App<S> {
   private Looks shown = new Looks(List.of(), List.of(), null, false, List.of(), null, 0); // of tree
   private El focused; // in the current tree
   private Object focusId; // its identity, to find it in the next tree
-  private final StringBuilder typeAhead = new StringBuilder(); // El#onTypeAhead's text so far
-  private Object typeAheadOf; // the identity of the element it was typed into
+  // El#onTypeAhead's text so far, typed into the focused element: a move of the focus empties it.
+  private final StringBuilder typeAhead = new StringBuilder();
   private double typeAheadAt; // when its last character came
   private boolean ring; // the keyboard or the app moved the focus: draw the ring
   private double focusSince; // when the focus moved there, for El#whenFocusVisibleFor
@@ -1230,14 +1230,13 @@ public final class App<S> {
     if (focused.onText() != null) {
       focused.onText().accept(text);
     } else if (focused.onTypeAhead() != null) {
-      if (!Objects.equals(typeAheadOf, focusId) || time - typeAheadAt >= TYPE_AHEAD) {
+      if (time - typeAheadAt >= TYPE_AHEAD) {
         typeAhead.setLength(0);
       }
       if (typeAhead.isEmpty() && text.isBlank()) {
         return false;
       }
       typeAhead.append(text);
-      typeAheadOf = focusId;
       typeAheadAt = time;
       focused.onTypeAhead().accept(typeAhead.toString());
     } else {
@@ -1466,7 +1465,8 @@ public final class App<S> {
   /**
    * Where the focused element of the last frame that takes text is, for the system's input method:
    * an editable text field, or an element with an {@link El#onText} handler; null when there is
-   * none, and then a window turns text input off.
+   * none, and then a window turns text input off. An element with only an {@link El#onTypeAhead}
+   * handler has none: it gets the characters of keys, but nothing an input method composes.
    */
   public InputArea inputArea() {
     // A press on a field that no frame has dispatched yet: text typed right after it reaches the
@@ -1809,6 +1809,7 @@ public final class App<S> {
     reveal = this.ring;
     focusSince = time;
     focusKeyed = false;
+    typeAhead.setLength(0);
     if (el != null) {
       el.focused(true);
       Animator.InRow in = animator.inRow(focusId);
@@ -1967,6 +1968,7 @@ public final class App<S> {
       reveal = ring; // the ring stays as it was: after a key, the new place shows it
       focusSince = time;
       focusKeyed = false;
+      typeAhead.setLength(0);
       Animator.InRow in = animator.inRow(focusId);
       if (in != null) {
         remembered.put(in.listId(), focusId);
@@ -3868,6 +3870,7 @@ public final class App<S> {
     reveal = this.ring;
     focusSince = time;
     focusKeyed = false;
+    typeAhead.setLength(0);
   }
 
   /**

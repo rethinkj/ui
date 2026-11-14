@@ -396,11 +396,11 @@ class TreeTest {
   /** Runs the steps and a frame; the path of the selected node, which is whole in view. */
   private String typed(App<Catalog> app, Catalog catalog, String steps) throws IOException {
     run(app, steps + "\nframe");
-    for (El row : find(app, "schema").children()) {
-      if (row.fill() == T.grid().selected()) {
-        assertInView(app, Integer.parseInt(row.key().substring("row-".length())));
-      }
-    }
+    El selected = find(app, "schema").children().stream()
+        .filter(row -> row.fill() == T.grid().selected())
+        .findFirst()
+        .orElseThrow(() -> new AssertionError("the selected row is built"));
+    assertInView(app, Integer.parseInt(selected.key().substring("row-".length())));
     return catalog.selected.path();
   }
 

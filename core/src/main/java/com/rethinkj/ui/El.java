@@ -1975,7 +1975,9 @@ public final class El {
    * tree that goes to the item whose name starts with it: each character typed within {@link
    * App#TYPE_AHEAD} seconds of the app's clock after the one before adds to the same text, and a
    * longer pause, Escape or a move of the focus starts a new one. A space with nothing typed
-   * before it is not text. An {@link #onText} handler of the same element takes the text in its place.
+   * before it is not text. It gets the characters of keys, but no input method composes for it
+   * ({@link App#inputArea}). An {@link #onText} handler of the same element takes the text in its
+   * place.
    */
   public El onTypeAhead(Consumer<String> handler) {
     this.onTypeAhead = handler;
