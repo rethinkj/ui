@@ -2,8 +2,6 @@ package com.rethinkj.ui.kit;
 
 import static com.rethinkj.ui.El.col;
 import static com.rethinkj.ui.El.el;
-import static com.rethinkj.ui.El.row;
-import static com.rethinkj.ui.kit.Label.label;
 import static com.rethinkj.ui.kit.Theme.over;
 
 import com.rethinkj.ui.Cursor;
@@ -412,30 +410,7 @@ public final class ComboBox {
   /** The closed look of {@link #comboBox}: a {@link Select}'s. */
   private static El closed(Theme t, String text, El lead, boolean enabled, State state) {
     int fill = t.surface().raised();
-    El box = row()
-        .role("combobox")
-        .label(text)
-        .disabled(!enabled)
-        .expanded(false)
-        .w(t.size().field())
-        .h(t.size().control())
-        .padding(0, t.space().m())
-        .gap(t.space().s())
-        .align(Style.Align.CENTER)
-        .radius(t.radius().medium())
-        .fill(fill)
-        .border(t.size().stroke(), enabled ? t.border().strong() : t.border().divider())
-        .motion(t.motion().feedback());
-    if (lead != null) {
-      box.child(leadBox(t, lead));
-    }
-    box.children(
-        label(t, text)
-            .color(enabled ? t.text().primary() : t.text().disabled())
-            .grow(1)
-            .minSize(0, 0)
-            .ellipsis(),
-        Icon.icon(t, OPENS, enabled ? Icon.Variant.MUTED : Icon.Variant.DISABLED));
+    El box = SelectionFrame.frame(t, text, lead, enabled).expanded(false);
     if (!enabled) {
       return box;
     }
@@ -461,15 +436,6 @@ public final class ComboBox {
         .whenHovered(e -> e.fill(over(fill, t.surface().hover())));
   }
 
-  /** An item's own element in an icon's square, which takes no input. */
-  private static El leadBox(Theme t, El lead) {
-    return el().key("lead")
-        .size(t.size().icon(), t.size().icon())
-        .shrink(0)
-        .center()
-        .child(lead.shrink(0));
-  }
-
   /** A field in the frame with the chevron, which opens and closes the list. */
   private static El frame(
       Theme t, String value, El field, El lead, State state, boolean choice, boolean enabled) {
@@ -477,7 +443,7 @@ public final class ComboBox {
     field.wFull().hFull().style().paddingRight = Len.px(side); // the text stops before the mark
     El before = null;
     if (lead != null) { // where the closed box has it, and the text starts after it
-      before = leadBox(t, lead);
+      before = SelectionFrame.leading(t, lead);
       Style place = before.style();
       place.position = Style.Position.ABSOLUTE;
       place.left = Len.px(t.space().m());
