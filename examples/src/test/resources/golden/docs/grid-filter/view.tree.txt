@@ -1,9 +1,9 @@
 el 0,0 520x300
   el 12,12 496x276
     el 13,13 494x33
-      text role=heading "orders" 25,21 45x17 level=3
-      text "1000 rows" 78,22 64x16
-      el 150,30 345x0
+      text role=heading "orders" 29,21 45x17 level=3
+      text "1000 rows" 82,22 64x16
+      el 154,30 337x0
     el #orders role=grid label="Orders" 13,46 494x241
       el #content 13,46 494x241
         el #header 13,46 494x25

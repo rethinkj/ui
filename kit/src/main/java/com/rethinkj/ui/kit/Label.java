@@ -16,7 +16,7 @@ public final class Label {
     HEADING,
     /** The title of a page, above its sections. */
     TITLE,
-    /** A title inside a section, such as a card's: the body's size in the heading's font. */
+    /** A title inside a section, such as a popover's: the body's size in a heavier weight. */
     STRONG
   }
 

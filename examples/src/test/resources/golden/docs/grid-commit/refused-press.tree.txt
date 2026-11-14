@@ -1,10 +1,10 @@
 el 0,0 520x300
   el 12,12 496x276
     el 13,13 494x40
-      text role=heading "orders" 25,25 45x17 level=3
-      el 78,33 353x0
-      el #save role=button label="Save" 439,21 56x24
-        text "Save" 452,25 30x16
+      text role=heading "orders" 29,25 45x17 level=3
+      el 82,33 345x0
+      el #save role=button label="Save" 435,21 56x24
+        text "Save" 448,25 30x16
     el #orders role=grid label="Orders" 13,53 494x205
       el #content 13,53 494x205
         el #header 13,53 494x25
@@ -134,8 +134,8 @@ el 0,0 520x300
               text "2026-11-20" 217,322 70x16
             el 332,318 1x23
     el 13,258 494x29
-      text #status "" 25,265 0x16
-      el 37,273 458x0
+      text #status "" 29,265 0x16
+      el 41,273 450x0
 overlay bottom start gap 2 on #editor 213,102 119x23
   el #error role=alert label="Expected a date such as 2026-11-13" 213,127 233x22
     text "Expected a date such as 2026-11-13" 218,130 223x16
