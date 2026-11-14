@@ -205,7 +205,7 @@ function check() {
   const ids = new Map();
   const idsOf = (file) => {
     if (!ids.has(file)) {
-      ids.set(file, new Set([...fs.readFileSync(file, 'utf8').matchAll(/\sid="([^"]+)"/g)].map((m) => m[1])));
+      ids.set(file, new Set([...fs.readFileSync(file, 'utf8').matchAll(/\sid="([^"]+)"/g)].map((m) => m[1].replaceAll('&lt;', '<').replaceAll('&gt;', '>').replaceAll('&amp;', '&'))));
     }
     return ids.get(file);
   };
