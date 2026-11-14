@@ -844,4 +844,21 @@ class GridEditTest {
     run(app, "key ArrowRight\nframe"); // the next key takes the message away
     assertFalse(app.tree().dump().contains("role=alert"), app.tree().dump());
   }
+
+  @Test
+  void handingOnAListOfChoicesWithNothingChosenClosesIt() throws IOException {
+    GridChanges changes = new GridChanges(1, (r, c) -> "legacy"); // not among the choices
+    DataGrid.Column column = new DataGrid.Column(
+            "status", 180, DataGrid.DataType.ENUM, changes.cell(0))
+        .editable()
+        .choices(List.of("current"));
+    DataGrid.Selection selection = new DataGrid.Selection(DataGrid.Mode.CELLS);
+    selection.select(0, 0);
+    App<Object> app = grid(column, changes, selection);
+    run(app, "frame\nfocus #grid\nkey Enter\nframe");
+    assertTrue(selection.isEditing());
+    assertTrue(selection.commitEdit());
+    assertEquals("legacy", changes.cell(0, 0));
+    assertTrue(changes.isEmpty());
+  }
 }

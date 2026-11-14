@@ -229,13 +229,14 @@ final class GridEdit {
     int column = sel.editColumn;
     Column c = b.columns.get(column);
     String value = normalize(c, sel.draft);
-    String error = c.editing().editor() == null ? check(c, value) : null;
+    boolean same = Objects.equals(value, sel.original); // nothing changed: nothing to check
+    String error = c.editing().editor() == null && !same ? check(c, value) : null;
     boolean appended = false;
     // The row to append; by its key where the rows have keys, as b may be older than the rows.
     boolean append = sel.editKeyed ? sel.editKey == Selection.APPEND : row >= b.rowCount;
-    if (error == null && !Objects.equals(value, sel.original)) {
-      if (append) {
-        b.o.onInsertRow.accept(b.rowCount - 1);
+    if (error == null && !same) {
+      if (append) { // after the last row there is now, which follow found
+        b.o.onInsertRow.accept(row - 1);
         appended = true;
       }
       error = b.o.onCommit.commit(row, column, value);
