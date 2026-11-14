@@ -27,6 +27,7 @@ import java.util.function.Consumer;
 import java.util.function.IntConsumer;
 import java.util.function.IntFunction;
 import java.util.function.IntPredicate;
+import java.util.function.ObjLongConsumer;
 
 /**
  * A table of query results: a header with the column titles over rows of cells, as dense as a
@@ -1619,7 +1620,7 @@ public final class DataGrid {
     Clipboard clipboard;
     String nullText = "";
     long copyLimit = 100_000;
-    Consumer<Copy> onLargeCopy;
+    ObjLongConsumer<Copy> onLargeCopy;
     Menu.State menu;
     List<Menu.Item> menuItems = List.of();
     IntPredicate loaded;
@@ -1747,7 +1748,22 @@ public final class DataGrid {
      * {@code handler}; without one, a larger copy leaves the clipboard as it is.
      */
     public Options copyLimit(long cells, Consumer<Copy> handler) {
+      return copyLimit(cells)
+          .onLargeCopy(handler == null ? null : (copy, limit) -> handler.accept(copy));
+    }
+
+    /** Copies at most {@code cells} cells itself, without changing the large-copy handler. */
+    public Options copyLimit(long cells) {
       this.copyLimit = cells;
+      return this;
+    }
+
+    /**
+     * Hands a copy beyond the limit, or with rows not loaded, to {@code handler}, together with the
+     * effective cell limit. This leaves the limit as it is: 100 000 unless {@link #copyLimit(long)}
+     * sets another. Null clears the handler.
+     */
+    public Options onLargeCopy(ObjLongConsumer<Copy> handler) {
       this.onLargeCopy = handler;
       return this;
     }
@@ -3178,7 +3194,7 @@ public final class DataGrid {
     }
     if (missing) {
       if (b.o.onLargeCopy != null) {
-        b.o.onLargeCopy.accept(new Copy(ranges, headers, cells));
+        b.o.onLargeCopy.accept(new Copy(ranges, headers, cells), b.o.copyLimit);
       }
       return;
     }
