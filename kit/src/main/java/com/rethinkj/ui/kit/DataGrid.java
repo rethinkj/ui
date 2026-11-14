@@ -83,7 +83,8 @@ import java.util.function.IntPredicate;
  * press on it fits the column to its header and the cells of its rows that exist, icons
  * included. A cell shows its text on one line, with {@link #LINE_BREAK} for each line break and
  * {@link #TAB} for each tab; where it is wider than its column it ends in an ellipsis and shows
- * whole in a tooltip. Scrollbars ({@link
+ * whole in a tooltip, and a {@link Column#detail} beside it keeps its width. {@link
+ * Options#fitColumns} makes the columns as wide as their content once per result. Scrollbars ({@link
  * Theme#scrollbars}) show where the rows and columns in view are: one along the right edge of the
  * rows, below the header, and one along the bottom of the grid. They lie over the rows, and the
  * grid scrolls far enough to bring the last row and the last column out from under them: the rows
@@ -100,7 +101,8 @@ import java.util.function.IntPredicate;
  * cell-<row>-<column>} and their column's position, all counted from 0. An icon is a text
  * element labelled with its symbol's name ({@link Icon}), and a cell whose icon stands alone has
  * its text as its label: {@code el #cell-4-3 role=gridcell label="true" ...} over {@code text
- * label="checkmark" ...}. Selected rows ({@link Mode#ROWS}) or cells ({@link Mode#CELLS}) are {@code
+ * label="checkmark" ...}. A cell with a {@link Column#detail} says it as its value, {@code
+ * value="82 B"}, unless it says a change there. Selected rows ({@link Mode#ROWS}) or cells ({@link Mode#CELLS}) are {@code
  * selected}, the cursor's row or cell {@code current}; row numbers are {@code role=rowheader}
  * with the key {@code number-<row>}. The thumbs are on the lines of the grid ({@code thumb-x}) and
  * of its rows ({@code thumb-y}, on {@code #rows}).
@@ -156,6 +158,10 @@ public final class DataGrid {
    * @param editing whether and how its cells are edited; {@link Editing#NONE} for not at all
    * @param cells the typed part of a column of a {@link GridTable}, whose format checks the
    *     editor's text in place of the type's; null for a column of text
+   * @param detail a short text in muted type beside the value of the cell in the row with this
+   *     index, or null for none, such as the size of a value shown shortened or a unit: called as
+   *     {@code cell} is, after it and for loaded rows only; null for the function means no details
+   *     ({@link #detail(IntFunction)})
    */
   public record Column(
       String title,
@@ -170,12 +176,45 @@ public final class DataGrid {
       IntFunction<CellIcon> cellIcon,
       DataType type,
       Editing editing,
-      GridTable.Cells<?, ?> cells) {
+      GridTable.Cells<?, ?> cells,
+      IntFunction<String> detail) {
 
     public Column {
       Objects.requireNonNull(iconVariant, "iconVariant");
       Objects.requireNonNull(type, "type");
       Objects.requireNonNull(editing, "editing");
+    }
+
+    /** A column without a {@link #detail}. */
+    public Column(
+        String title,
+        float width,
+        Align align,
+        boolean mono,
+        boolean sortable,
+        IntFunction<String> cell,
+        Symbol icon,
+        Icon.Variant iconVariant,
+        String typeName,
+        IntFunction<CellIcon> cellIcon,
+        DataType type,
+        Editing editing,
+        GridTable.Cells<?, ?> cells) {
+      this(
+          title,
+          width,
+          align,
+          mono,
+          sortable,
+          cell,
+          icon,
+          iconVariant,
+          typeName,
+          cellIcon,
+          type,
+          editing,
+          cells,
+          null);
     }
 
     /** A column of untyped text, without {@link #cells}. */
@@ -289,7 +328,8 @@ public final class DataGrid {
           cellIcon,
           type,
           editing,
-          cells);
+          cells,
+          detail);
     }
 
     /** This column, sortable or not. */
@@ -307,7 +347,8 @@ public final class DataGrid {
           cellIcon,
           type,
           editing,
-          cells);
+          cells,
+          detail);
     }
 
     /** This column with {@code symbol} in muted text before the title in the header. */
@@ -319,7 +360,7 @@ public final class DataGrid {
     public Column icon(Symbol symbol, Icon.Variant variant) {
       return new Column(
           title, width, align, mono, sortable, cell, symbol, variant, typeName, cellIcon, type,
-          editing, cells);
+          editing, cells, detail);
     }
 
     /** This column with {@code name} after the title in the header; null for none. */
@@ -337,7 +378,8 @@ public final class DataGrid {
           cellIcon,
           type,
           editing,
-          cells);
+          cells,
+          detail);
     }
 
     /** This column with an icon in each cell for which {@code icons} gives one. */
@@ -355,7 +397,35 @@ public final class DataGrid {
           icons,
           type,
           editing,
-          cells);
+          cells,
+          detail);
+    }
+
+    /**
+     * This column with a detail beside the value of each cell for which {@code details} gives
+     * one, in muted text of the cell's font: {@code space().s()} after the value in a column
+     * aligned left, before it in one aligned right, so that the value stays at the aligned edge.
+     * The detail keeps its width while the value ends in an ellipsis; in a cell too narrow for the
+     * detail and the value's first character with an ellipsis, it is left out entirely, and the
+     * cell's tooltip names both. A copy and the editor take the value alone; a tree dump says the
+     * detail as the cell's {@code value} unless the cell says a change there.
+     */
+    public Column detail(IntFunction<String> details) {
+      return new Column(
+          title,
+          width,
+          align,
+          mono,
+          sortable,
+          cell,
+          icon,
+          iconVariant,
+          typeName,
+          cellIcon,
+          type,
+          editing,
+          cells,
+          details);
     }
 
     /** This column with its cells editable in every row, when the grid edits ({@link Options#onCommit}). */
@@ -409,7 +479,8 @@ public final class DataGrid {
           cellIcon,
           type,
           editing,
-          cells);
+          cells,
+          detail);
     }
   }
 
@@ -1497,6 +1568,42 @@ public final class DataGrid {
   }
 
   /**
+   * Whether the columns of a grid with {@link Options#fitColumns} are still to be fitted, which
+   * the app keeps in its state with its columns' widths. A new one fits every column once, in the
+   * first frame whose rows that exist are loaded; {@link #reset} fits them all again, as for a new
+   * result. The widths stay the app's: the grid tells them to {@link Options#onResize}.
+   */
+  public static final class Fit {
+    boolean pending = true;
+    // The columns, by their index among all columns, that the user resized while the fit was
+    // still to come, which it leaves alone; and those hidden at the fit with their widths then,
+    // fitted when they are shown with the width the app had then.
+    final java.util.Set<Integer> byHand = new java.util.HashSet<>();
+    final java.util.Map<Integer, Float> hidden = new java.util.HashMap<>();
+    // The rows that existed when the fit last looked, -1 before; their loading wakes it again.
+    int first = -1;
+    int last = -1;
+
+    /** A fit still to come. */
+    public Fit() {}
+
+    /**
+     * Fits every column again at the next build that has loaded rows, also those resized by hand,
+     * as for a new result: call it where the app calls {@link Selection#reset}.
+     */
+    public void reset() {
+      pending = true;
+      byHand.clear();
+      hidden.clear();
+    }
+
+    /** Whether the columns are still to be fitted for the result they show. */
+    public boolean isPending() {
+      return pending;
+    }
+  }
+
+  /**
    * What a grid does besides showing rows: its selection, sorting, resizing, frozen columns,
    * copying, context menu, loading and editing. Each is off until a call turns it on; the view
    * makes the options anew with the grid.
@@ -1533,6 +1640,7 @@ public final class DataGrid {
     IntPredicate filterable = c -> true;
     Layout layout;
     IntConsumer onFreeze;
+    Fit fit;
     // With changes: the key of the row shown at a place, the place of a key, -1 for none, and
     // the number of rows there are now, which a handler may have changed since the build.
     java.util.function.IntToLongFunction rowKey;
@@ -1579,6 +1687,27 @@ public final class DataGrid {
      */
     public Options onResize(Resize handler) {
       this.onResize = handler;
+      return this;
+    }
+
+    /**
+     * Makes every column as wide as its header and the cells of the rows that exist, as a double
+     * press on its edge does, once per result: in a handler of the first frame whose rows that
+     * exist are loaded (with {@link #loading}, once the first of them are; a grid without rows
+     * waits for them), and again after {@link Fit#reset}. Each width goes to {@link #onResize},
+     * within the theme's {@code minColumn} and {@code maxColumn}, all in one handler, so the view
+     * is built once with them; a script needs one {@code frame} more to show them. A column the
+     * user resized while the fit was still to come is left as it is; a column a {@link Layout}
+     * hides is fitted when it is first shown, unless the app gave it another width since.
+     *
+     * <p>It measures every column, also those out of view sideways, for the rows that exist,
+     * once; the frames after cost what they did.
+     *
+     * @throws IllegalStateException when the view is built without {@link #onResize}, as the
+     *     widths are the app's
+     */
+    public Options fitColumns(Fit fit) {
+      this.fit = Objects.requireNonNull(fit, "fit");
       return this;
     }
 
@@ -1955,6 +2084,8 @@ public final class DataGrid {
     final boolean[] focused = {false}; // the grid has the focus, as its focus look found
     El grid;
     El body;
+    El probe; // a header's title, whose text tells the window's scale after layout
+    List<Column> all; // all the columns, also those a layout hides
 
     Build(Theme t, List<Column> columns, int rowCount, Options o) {
       this.t = t;
@@ -2008,6 +2139,12 @@ public final class DataGrid {
       options.table = null;
     }
     int all = columns.size();
+    List<Column> allColumns = columns;
+    if (options.fit != null && options.onResize == null) {
+      throw new IllegalStateException(
+          "fitColumns needs onResize: the widths are the app's, which keeps the widths the grid"
+              + " reports and builds its columns with them");
+    }
     if (options.layout != null) {
       columns = options.layout.shown(columns);
       options.showOnly(options.layout.shownColumns(), all);
@@ -2019,6 +2156,7 @@ public final class DataGrid {
       options.selection.keep(options.rowKey, rowCount, rows);
     }
     Build b = new Build(t, columns, rowCount, options);
+    b.all = allColumns;
     Theme.Grid g = b.g;
     El header = header(b);
     Selection sel = b.sel;
@@ -2065,6 +2203,9 @@ public final class DataGrid {
       GridEdit.anchor(b, content); // first, so that what lies over it takes the presses
     }
     content.children(header, body);
+    if (options.fit != null) {
+      fitting(b, content);
+    }
     content.style().minWidth = Len.percent(1); // the rows reach across a grid wider than them
     // Header and rows scroll sideways together in the grid; the rows scroll up and down alone.
     El grid =
@@ -2150,6 +2291,9 @@ public final class DataGrid {
     Theme t = b.t;
     Column column = b.columns.get(index);
     El title = title(t, column.title()).ellipsis().minSize(0, 0);
+    if (b.probe == null) {
+      b.probe = title;
+    }
     El name = title;
     if (column.typeName() != null && typeFits(b, index)) {
       // The title keeps its width as long as the type has any, and never more than the room.
@@ -2299,6 +2443,9 @@ public final class DataGrid {
         .whenHovered(e -> line.fill(t.border().strong()))
         .whenPressed(e -> line.fill(t.accent().color()))
         .onDrag(d -> {
+          if (b.o.fit != null) {
+            b.o.fit.byHand.add(full(b, c)); // a fit still to come leaves it
+          }
           onResize.resize(
               c,
               d.phase() == Drag.Phase.CANCEL
@@ -2311,52 +2458,170 @@ public final class DataGrid {
         })
         .onPress(clicks -> {
           if (clicks == 2) {
+            if (b.o.fit != null) {
+              b.o.fit.byHand.add(full(b, c));
+            }
             onResize.resize(c, fit(b, c));
           }
         });
   }
 
+  /** A column's index among all columns, which a {@link Layout} may hide some of. */
+  private static int full(Build b, int c) {
+    return b.o.full == null ? c : b.o.full[c];
+  }
+
   /**
-   * The width that shows the column's header and the cells of its rows that exist whole: their
-   * icons, title, type, sort mark and text.
+   * Adds what fits the columns while a fit is due: an empty element whose size handler runs in
+   * the frame that builds it, after layout, when the rows that exist are known. It is keyed by
+   * the rows the fit last looked at and how many of them are loaded, so that a grid waiting for
+   * its first page is told again when the page arrives, and not on the frames between.
    */
-  static float fit(Build b, int c) {
-    Theme t = b.t;
-    float widest = headerWidth(b, c);
-    El body = b.body;
-    for (int k = 0; k < body.children().size(); k++) {
-      String key = "cell-" + (body.firstRow() + k) + "-" + c;
-      for (El cell : body.children().get(k).children()) {
-        if (key.equals(cell.key())) {
-          float width = 0;
-          for (El part : cell.children()) {
-            width += natural(part);
-          }
-          widest = Math.max(
-              widest,
-              width + Math.max(cell.children().size() - 1, 0) * t.space().s());
+  private static void fitting(Build b, El content) {
+    Fit fit = b.o.fit;
+    boolean due = fit.pending;
+    for (int c = 0; !due && c < b.columns.size(); c++) {
+      Float width = fit.hidden.get(full(b, c));
+      due = width != null && width == b.columns.get(c).width();
+    }
+    if (!due || b.rowCount == 0) {
+      return; // headers alone are no reason to fit
+    }
+    int loaded = 0;
+    for (int i = Math.max(fit.first, 0); i <= Math.min(fit.last, b.rowCount - 1); i++) {
+      loaded += b.o.loaded == null || b.o.loaded.test(i) ? 1 : 0;
+    }
+    content.child(el().key("fit-" + fit.first + "-" + loaded)
+        .absolute(0, 0)
+        .size(0, 0)
+        .onResize((width, height) -> fitNow(b)));
+  }
+
+  /** Fits the columns that are due for the loaded rows that exist, if any is. */
+  private static void fitNow(Build b) {
+    Fit fit = b.o.fit;
+    int[] rows = existing(b);
+    fit.first = rows[0];
+    fit.last = rows[1];
+    boolean any = false;
+    for (int i = rows[0]; !any && i <= Math.min(rows[1], b.rowCount - 1); i++) {
+      any = b.o.loaded == null || b.o.loaded.test(i);
+    }
+    if (!any) {
+      return; // the first page is on its way
+    }
+    float scale = scale(b);
+    for (int c = 0; c < b.columns.size(); c++) {
+      int full = full(b, c);
+      float width = b.columns.get(c).width();
+      Float then = fit.hidden.remove(full);
+      boolean due = fit.pending ? !fit.byHand.contains(full) : then != null && then == width;
+      if (due) {
+        float fitted = fit(b, c, rows[0], rows[1], scale);
+        if (fitted != width) {
+          b.o.onResize.resize(c, fitted);
         }
       }
+    }
+    if (fit.pending && b.o.layout != null) {
+      for (int c = 0; c < b.all.size(); c++) {
+        if (b.o.layout.isHidden(c)) {
+          fit.hidden.put(c, b.all.get(c).width());
+        }
+      }
+    }
+    fit.pending = false;
+  }
+
+  /**
+   * The width that shows the column's header and the cells of its rows that exist whole: their
+   * icons, title, type, sort mark, funnel, text and details, at the window's scale.
+   */
+  static float fit(Build b, int c) {
+    int[] rows = existing(b);
+    return fit(b, c, rows[0], rows[1], scale(b));
+  }
+
+  /** {@link #fit} for the loaded rows from {@code first} to {@code last}, measured at a scale. */
+  private static float fit(Build b, int c, int first, int last, float scale) {
+    Theme t = b.t;
+    Column column = b.columns.get(c);
+    float widest = headerWidth(b, c, scale);
+    Theme.TextStyle style = column.mono() ? t.type().mono() : t.type().body();
+    java.util.Set<String> seen = new java.util.HashSet<>(); // cells repeat: shape each once
+    for (int i = first; i <= last; i++) {
+      if (i >= b.rowCount || b.o.loaded != null && !b.o.loaded.test(i)) {
+        continue;
+      }
+      String value = column.cell().apply(i);
+      CellIcon icon = column.cellIcon() == null ? null : column.cellIcon().apply(i);
+      String detail = column.detail() == null ? null : column.detail().apply(i);
+      float width = 0;
+      int parts = 0;
+      if (icon != null) {
+        width += t.size().icon();
+        parts++;
+      }
+      if (icon == null || !icon.alone()) {
+        String shown = value == null ? "NULL" : oneLine(value);
+        if (icon == null && detail == null && !seen.add(shown)) {
+          continue; // a text alone that was measured
+        }
+        width += width(style, shown, scale);
+        parts++;
+      }
+      if (detail != null) {
+        width += width(style, oneLine(detail), scale);
+        parts++;
+      }
+      widest = Math.max(widest, width + Math.max(parts - 1, 0) * t.space().s());
     }
     float width = (float) Math.ceil(widest) + 2 * t.space().s() + t.size().stroke();
     return Math.clamp(width, b.g.minColumn(), Math.max(b.g.minColumn(), b.g.maxColumn()));
   }
 
+  /** The first and the last row that exist: those built, or before they are, those in view. */
+  private static int[] existing(Build b) {
+    El body = b.body;
+    int built = body.children().size();
+    if (built > 0) {
+      return new int[] {body.firstRow(), body.firstRow() + built - 1};
+    }
+    float high = b.g.rowHeight();
+    int top = (int) Math.floor(body.scrollY() / high);
+    int bottom = top + (int) Math.ceil(body.height() / high);
+    return new int[] {Math.max(0, top - 3), Math.min(b.rows - 1, bottom + 3)};
+  }
+
+  /** The window's scale, which the header's text was shaped for; 1 before layout. */
+  private static float scale(Build b) {
+    return b.probe == null || b.probe.text() == null ? 1 : b.probe.text().scale();
+  }
+
+  /** The width of a text on one line in a style, in logical pixels, shaped at a scale. */
+  private static float width(Theme.TextStyle style, String text, float scale) {
+    return style.font().get().shape(text, style.size(), scale).width() / scale;
+  }
+
   /** The width of a header cell's content when nothing is cut short. */
   private static float headerWidth(Build b, int c) {
+    return headerWidth(b, c, 1);
+  }
+
+  private static float headerWidth(Build b, int c, float scale) {
     Theme t = b.t;
     Column column = b.columns.get(c);
-    float width = natural(title(t, column.title()));
+    float width = width(t.type().strong(), column.title(), scale);
     if (column.icon() != null) {
       width += t.size().icon() + t.space().s();
     }
     if (column.typeName() != null) {
-      width += t.space().s() + natural(Label.label(t, Label.Variant.MUTED, column.typeName()));
+      width += t.space().s() + width(t.type().body(), column.typeName(), scale);
     }
     if (b.o.sort.stream().anyMatch(k -> k.column() == c)) {
       width += b.g.mark() + t.space().xs();
       if (b.o.sort.size() > 1) {
-        width += t.space().xs() + natural(Label.label(t, "9"));
+        width += t.space().xs() + width(t.type().body(), "9", scale);
       }
     }
     if (b.filtering(c) && GridFilter.set(b, c)) {
@@ -2548,33 +2813,66 @@ public final class DataGrid {
     String value = loaded && !append ? column.cell().apply(i) : null;
     CellIcon icon =
         loaded && !append && column.cellIcon() != null ? column.cellIcon().apply(i) : null;
+    String detail =
+        loaded && !append && column.detail() != null ? column.detail().apply(i) : null;
+    if (detail != null && status != Status.CHANGED && status != Status.ERROR) {
+      box.value(detail); // a change says itself there, and the detail's text alone says it
+    }
+    boolean alone = icon != null && icon.alone();
+    boolean right = column.align() == Align.RIGHT;
+    float pad = t.space().s();
+    // The room of the value and the detail: the cell's less its padding and an icon with its gap.
+    float room = column.width()
+        - t.size().stroke()
+        - 2 * pad
+        - (icon == null ? 0 : t.size().icon() + pad);
+    El valueText = null;
+    float detailWidth = 0; // the detail's with its gap, 0 where it gives way
     if (!loaded) {
       box.child(text(t, false, Text.ELLIPSIS, t.text().muted()));
     } else if (!append) {
-      if (icon != null) {
-        box.gap(t.space().s()).child(Icon.icon(t, icon.symbol(), icon.variant()));
+      String shown = value == null ? "NULL" : oneLine(value);
+      El more = null;
+      if (detail != null) {
+        more = text(t, column.mono(), oneLine(detail), t.text().muted()).shrink(0);
+        float least = alone ? 0 : natural(text(t, column.mono(), least(shown), 0)) + pad;
+        // Whole beside the icon, or the value's first character and an ellipsis, or not at all.
+        detailWidth = natural(more) + pad;
+        if (room < detailWidth - pad + least) {
+          more = null;
+          detailWidth = 0;
+        }
       }
-      if (icon == null || !icon.alone()) {
+      if (more != null) {
+        box.gap(pad);
+        if (right) {
+          box.child(more);
+        }
+      }
+      if (icon != null) {
+        box.gap(pad).child(Icon.icon(t, icon.symbol(), icon.variant()));
+      }
+      if (!alone) {
         El text = text(
             t,
             column.mono(),
-            value == null ? "NULL" : oneLine(value),
+            shown,
             value == null || row == Status.DELETED ? t.text().muted() : t.text().primary());
+        valueText = text;
         box.child(text);
         if (row == Status.DELETED) { // struck through, a line as the text is wide
-          float pad = t.space().s();
           float before = icon == null ? 0 : t.size().icon() + pad;
-          float width =
-              Math.min(natural(text), column.width() - t.size().stroke() - 2 * pad - before);
-          float x = column.align() == Align.RIGHT
-              ? column.width() - t.size().stroke() - pad - width
-              : pad + before;
+          float width = Math.min(natural(text), room - detailWidth);
+          float x = right ? column.width() - t.size().stroke() - pad - width : pad + before;
           box.child(el().absolute(x, Math.round((b.g.rowHeight() - t.size().stroke()) / 2))
               .size(Math.max(width, 0), t.size().stroke())
               .fill(t.text().muted()));
         }
       } else {
         box.label(value == null ? "NULL" : value); // what the icon stands for, in a dump
+      }
+      if (more != null && !right) {
+        box.child(more);
       }
     }
     if (sel != null) {
@@ -2589,24 +2887,25 @@ public final class DataGrid {
         });
       }
     }
-    boolean alone = icon != null && icon.alone();
     String error =
         status == Status.ERROR && b.o.cellError != null ? b.o.cellError.message(i, c) : null;
     String told = icon == null ? null : icon.tooltip();
     // What is wrong first, then what the icon says.
     String own = error == null ? told : told == null ? error : error + "\n" + told;
-    if (value != null || alone || own != null) {
+    if (value != null || alone || own != null || detail != null) {
       // The icon's own tooltip, else the text an icon alone stands for, and the whole text where
-      // the column cuts it short.
-      float room = column.width()
-          - t.size().stroke()
-          - 2 * t.space().s()
-          - (icon == null ? 0 : t.size().icon() + t.space().s());
+      // the column cuts it short, with the detail where that or the detail is cut.
+      String whole = value == null ? "NULL" : value;
+      String named = detail == null ? whole : whole + " " + detail;
+      boolean hidden = detail != null && detailWidth == 0;
+      El measured = valueText;
+      float valueRoom = room - detailWidth;
       box.whenHoveredFor(t.motion().tooltipDelay(), e -> {
-        String cut =
-            !alone && value != null && natural(e.children().getLast()) > room + 0.5f ? value : null;
+        boolean shortened =
+            measured != null && value != null && natural(measured) > valueRoom + 0.5f;
+        String cut = shortened || hidden ? named : null;
         String tip = own == null
-            ? (alone ? (value == null ? "NULL" : value) : cut)
+            ? (alone && cut == null ? whole : cut)
             : cut == null ? own : own + "\n" + cut;
         if (tip != null) {
           e.overlay(Tooltip.panel(t, tip));
@@ -2614,6 +2913,12 @@ public final class DataGrid {
       });
     }
     return box;
+  }
+
+  /** A text's first character and an ellipsis, the least of it a cut cell shows. */
+  private static String least(String text) {
+    int first = text.isEmpty() ? 0 : text.offsetByCodePoints(0, 1);
+    return first < text.length() ? text.substring(0, first) + Text.ELLIPSIS : text;
   }
 
   /** A status as a tree dump says it: {@code changed}, {@code new}, {@code deleted}, {@code error}. */

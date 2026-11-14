@@ -71,6 +71,7 @@ class DocsExamplesTest {
     overlays(all, "command-palette", Overlays::palette, 640, 360);
     grids(all, "grid", Grids::basic, 520, 300);
     grids(all, "grid-sort", Grids::sorted, 520, 300);
+    grids(all, "grid-fit", Grids::fitted, 520, 300);
     grids(all, "grid-edit", Grids::edited, 520, 300);
     grids(all, "grid-filter", Grids::filtered, 520, 300);
     grids(all, "grid-typed", Grids::typed, 520, 300);

@@ -138,6 +138,9 @@ final class Orders {
   final List<String> log = new ArrayList<>();
   final List<Integer> asked = new ArrayList<>(); // the rows whose cells were asked for
   final List<Integer> askedIcons = new ArrayList<>(); // the rows whose cell icons were asked for
+  // The details of the columns that have one, by their index among the base columns.
+  final java.util.Map<Integer, IntFunction<String>> details = new java.util.HashMap<>();
+  final List<Integer> askedDetails = new ArrayList<>(); // the rows whose details were asked for
 
   Orders(Theme theme, int count) {
     this(theme, count, BASE.size());
@@ -204,6 +207,13 @@ final class Orders {
                 askedIcons.add(i);
                 return icons.apply(i);
               });
+      IntFunction<String> detail = details.get(c % base.size());
+      if (detail != null) {
+        made = made.detail(i -> {
+          askedDetails.add(i);
+          return detail.apply(i);
+        });
+      }
       columns.add(editable ? made.editable() : made);
     }
     return columns;
@@ -252,6 +262,23 @@ final class Orders {
         .contextMenu(orders.menu, List.of(Menu.item("Export…", () -> orders.log.add("export"))))
         .loading(
             i -> i < orders.loaded, (first, last) -> orders.log.add("rows " + first + "-" + last));
+    return orders;
+  }
+
+  /** The size of a note, as the detail beside it shows it: {@code 82 B}; none without a note. */
+  static String noteSize(int i) {
+    return i % 3 != 1 ? null : Format.BYTES.text((long) NOTE.length());
+  }
+
+  /**
+   * {@link #typed} with details: the size beside each note, and the currency before each amount,
+   * whose column is wide enough for both.
+   */
+  static Orders detailed(Theme theme, int columns) {
+    Orders orders = typed(theme, columns);
+    orders.details.put(7, Orders::noteSize);
+    orders.details.put(5, i -> i % 11 == 5 ? null : "EUR");
+    orders.widths[5] = 130;
     return orders;
   }
 

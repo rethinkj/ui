@@ -1,0 +1,5 @@
+# Columns fitted to their content in the data grid (GridFitTest), a window of 720 by 240 at a
+# scale the test puts first: a million orders with their types (Orders.typed) and a fit.
+frame                  # the widths the app starts with, which cut types and values
+frame                  # the fit's handler tells the widths, and the view is built with them
+snap fitted            # each column as wide as its header and the rows that exist

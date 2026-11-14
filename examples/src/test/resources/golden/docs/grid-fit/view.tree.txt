@@ -1,0 +1,236 @@
+el 0,0 520x300
+  el 12,12 496x276
+    el #orders role=grid label="Orders" 13,13 494x274
+      el #content 13,13 494x274
+        el #header 13,13 494x25
+          el #column-0 role=columnheader label="id" 13,13 39x24 pos=1/4
+            text label="number_symbol" "\u{F57C}" 17,17 16x16
+            text "id" 37,17 11x16
+          el 52,13 1x24
+          el #column-1 role=columnheader label="customer" 53,13 125x24 pos=2/4
+            text label="text_case_title" "\u{ECEC}" 57,17 16x16
+            text "customer" 77,17 60x16
+          el 178,13 1x24
+          el #column-2 role=columnheader label="amount" 179,13 75x24 pos=3/4
+            text label="calculator" "\u{F06B}" 183,17 16x16
+            text "amount" 203,17 47x16
+          el 254,13 1x24
+          el #column-3 role=columnheader label="status" 255,13 66x24 pos=4/4
+            text label="text_case_title" "\u{ECEC}" 259,17 16x16
+            text "status" 279,17 37x16
+          el 321,13 1x24
+          el #resize-0 role=separator label="Resize id" 50,13 6x24
+          el #resize-1 role=separator label="Resize customer" 176,13 6x24
+          el #resize-2 role=separator label="Resize amount" 252,13 6x24
+          el #resize-3 role=separator label="Resize status" 319,13 6x24
+        el #rows 13,38 494x249 rows 0-13/1000 thumb-y 499,40 6x24
+          el #row-0 role=row 13,38 494x24 pos=1/1000
+            el #cell-0-0 role=gridcell 13,38 39x23 pos=1/4
+              text "1000" 20,42 28x16
+            el 52,38 1x23
+            el #cell-0-1 role=gridcell 53,38 125x23 pos=2/4 value="1 orders"
+              text "Ada" 57,42 24x16
+              text "1 orders" 85,42 50x16
+            el 178,38 1x23
+            el #cell-0-2 role=gridcell 179,38 75x23 pos=3/4 value="EUR"
+              text "EUR" 197,42 21x16
+              text "0.00" 222,42 28x16
+            el 254,38 1x23
+            el #cell-0-3 role=gridcell 255,38 66x23 pos=4/4
+              text "paid" 259,42 26x16
+            el 321,38 1x23
+          el #row-1 role=row 13,62 494x24 pos=2/1000
+            el #cell-1-0 role=gridcell 13,62 39x23 pos=1/4
+              text "1001" 20,66 28x16
+            el 52,62 1x23
+            el #cell-1-1 role=gridcell 53,62 125x23 pos=2/4 value="8 orders"
+              text "Brendan" 57,66 53x16
+              text "8 orders" 114,66 53x16
+            el 178,62 1x23
+            el #cell-1-2 role=gridcell 179,62 75x23 pos=3/4 value="EUR"
+              text "EUR" 190,66 21x16
+              text "37.13" 215,66 35x16
+            el 254,62 1x23
+            el #cell-1-3 role=gridcell 255,62 66x23 pos=4/4
+              text "pending" 259,66 51x16
+            el 321,62 1x23
+          el #row-2 role=row 13,86 494x24 pos=3/1000
+            el #cell-2-0 role=gridcell 13,86 39x23 pos=1/4
+              text "1002" 20,90 28x16
+            el 52,86 1x23
+            el #cell-2-1 role=gridcell 53,86 125x23 pos=2/4 value="15 orders"
+              text "Chen" 57,90 33x16
+              text "15 orders" 94,90 58x16
+            el 178,86 1x23
+            el #cell-2-2 role=gridcell 179,86 75x23 pos=3/4 value="EUR"
+              text "EUR" 190,90 21x16
+              text "74.26" 215,90 35x16
+            el 254,86 1x23
+            el #cell-2-3 role=gridcell 255,86 66x23 pos=4/4
+              text "shipped" 259,90 50x16
+            el 321,86 1x23
+          el #row-3 role=row 13,110 494x24 pos=4/1000
+            el #cell-3-0 role=gridcell 13,110 39x23 pos=1/4
+              text "1003" 20,114 28x16
+            el 52,110 1x23
+            el #cell-3-1 role=gridcell 53,110 125x23 pos=2/4 value="22 orders"
+              text "Dagny" 57,114 38x16
+              text "22 orders" 99,114 61x16
+            el 178,110 1x23
+            el #cell-3-2 role=gridcell 179,110 75x23 pos=3/4 value="EUR"
+              text "EUR" 183,114 21x16
+              text "111.39" 208,114 42x16
+            el 254,110 1x23
+            el #cell-3-3 role=gridcell 255,110 66x23 pos=4/4
+              text "refunded" 259,114 58x16
+            el 321,110 1x23
+          el #row-4 role=row 13,134 494x24 pos=5/1000
+            el #cell-4-0 role=gridcell 13,134 39x23 pos=1/4
+              text "1004" 20,138 28x16
+            el 52,134 1x23
+            el #cell-4-1 role=gridcell 53,134 125x23 pos=2/4 value="29 orders"
+              text "Emeka" 57,138 41x16
+              text "29 orders" 102,138 61x16
+            el 178,134 1x23
+            el #cell-4-2 role=gridcell 179,134 75x23 pos=3/4 value="EUR"
+              text "EUR" 183,138 21x16
+              text "148.52" 208,138 42x16
+            el 254,134 1x23
+            el #cell-4-3 role=gridcell 255,134 66x23 pos=4/4
+              text "paid" 259,138 26x16
+            el 321,134 1x23
+          el #row-5 role=row 13,158 494x24 pos=6/1000
+            el #cell-5-0 role=gridcell 13,158 39x23 pos=1/4
+              text "1005" 20,162 28x16
+            el 52,158 1x23
+            el #cell-5-1 role=gridcell 53,158 125x23 pos=2/4 value="6 orders"
+              text "Farah" 57,162 34x16
+              text "6 orders" 95,162 53x16
+            el 178,158 1x23
+            el #cell-5-2 role=gridcell 179,158 75x23 pos=3/4 value="EUR"
+              text "EUR" 183,162 21x16
+              text "185.65" 208,162 42x16
+            el 254,158 1x23
+            el #cell-5-3 role=gridcell 255,158 66x23 pos=4/4
+              text "pending" 259,162 51x16
+            el 321,158 1x23
+          el #row-6 role=row 13,182 494x24 pos=7/1000
+            el #cell-6-0 role=gridcell 13,182 39x23 pos=1/4
+              text "1006" 20,186 28x16
+            el 52,182 1x23
+            el #cell-6-1 role=gridcell 53,182 125x23 pos=2/4 value="13 orders"
+              text "Gus" 57,186 25x16
+              text "13 orders" 86,186 58x16
+            el 178,182 1x23
+            el #cell-6-2 role=gridcell 179,182 75x23 pos=3/4 value="EUR"
+              text "EUR" 183,186 21x16
+              text "222.78" 208,186 42x16
+            el 254,182 1x23
+            el #cell-6-3 role=gridcell 255,182 66x23 pos=4/4
+              text "shipped" 259,186 50x16
+            el 321,182 1x23
+          el #row-7 role=row 13,206 494x24 pos=8/1000
+            el #cell-7-0 role=gridcell 13,206 39x23 pos=1/4
+              text "1007" 20,210 28x16
+            el 52,206 1x23
+            el #cell-7-1 role=gridcell 53,206 125x23 pos=2/4 value="20 orders"
+              text "Ada" 57,210 24x16
+              text "20 orders" 85,210 61x16
+            el 178,206 1x23
+            el #cell-7-2 role=gridcell 179,206 75x23 pos=3/4 value="EUR"
+              text "EUR" 183,210 21x16
+              text "259.91" 208,210 42x16
+            el 254,206 1x23
+            el #cell-7-3 role=gridcell 255,206 66x23 pos=4/4
+              text "refunded" 259,210 58x16
+            el 321,206 1x23
+          el #row-8 role=row 13,230 494x24 pos=9/1000
+            el #cell-8-0 role=gridcell 13,230 39x23 pos=1/4
+              text "1008" 20,234 28x16
+            el 52,230 1x23
+            el #cell-8-1 role=gridcell 53,230 125x23 pos=2/4 value="27 orders"
+              text "Brendan" 57,234 53x16
+              text "27 orders" 114,234 60x16
+            el 178,230 1x23
+            el #cell-8-2 role=gridcell 179,230 75x23 pos=3/4 value="EUR"
+              text "EUR" 183,234 21x16
+              text "296.04" 208,234 42x16
+            el 254,230 1x23
+            el #cell-8-3 role=gridcell 255,230 66x23 pos=4/4
+              text "paid" 259,234 26x16
+            el 321,230 1x23
+          el #row-9 role=row 13,254 494x24 pos=10/1000
+            el #cell-9-0 role=gridcell 13,254 39x23 pos=1/4
+              text "1009" 20,258 28x16
+            el 52,254 1x23
+            el #cell-9-1 role=gridcell 53,254 125x23 pos=2/4 value="4 orders"
+              text "Chen" 57,258 33x16
+              text "4 orders" 94,258 53x16
+            el 178,254 1x23
+            el #cell-9-2 role=gridcell 179,254 75x23 pos=3/4 value="EUR"
+              text "EUR" 183,258 21x16
+              text "333.17" 208,258 42x16
+            el 254,254 1x23
+            el #cell-9-3 role=gridcell 255,254 66x23 pos=4/4
+              text "pending" 259,258 51x16
+            el 321,254 1x23
+          el #row-10 role=row 13,278 494x24 pos=11/1000
+            el #cell-10-0 role=gridcell 13,278 39x23 pos=1/4
+              text "1010" 20,282 28x16
+            el 52,278 1x23
+            el #cell-10-1 role=gridcell 53,278 125x23 pos=2/4 value="11 orders"
+              text "Dagny" 57,282 38x16
+              text "11 orders" 99,282 55x16
+            el 178,278 1x23
+            el #cell-10-2 role=gridcell 179,278 75x23 pos=3/4 value="EUR"
+              text "EUR" 183,282 21x16
+              text "370.30" 208,282 42x16
+            el 254,278 1x23
+            el #cell-10-3 role=gridcell 255,278 66x23 pos=4/4
+              text "shipped" 259,282 50x16
+            el 321,278 1x23
+          el #row-11 role=row 13,302 494x24 pos=12/1000
+            el #cell-11-0 role=gridcell 13,302 39x23 pos=1/4
+              text "1011" 20,306 28x16
+            el 52,302 1x23
+            el #cell-11-1 role=gridcell 53,302 125x23 pos=2/4 value="18 orders"
+              text "Emeka" 57,306 41x16
+              text "18 orders" 102,306 58x16
+            el 178,302 1x23
+            el #cell-11-2 role=gridcell 179,302 75x23 pos=3/4 value="EUR"
+              text "EUR" 183,306 21x16
+              text "407.43" 208,306 42x16
+            el 254,302 1x23
+            el #cell-11-3 role=gridcell 255,302 66x23 pos=4/4
+              text "refunded" 259,306 58x16
+            el 321,302 1x23
+          el #row-12 role=row 13,326 494x24 pos=13/1000
+            el #cell-12-0 role=gridcell 13,326 39x23 pos=1/4
+              text "1012" 20,330 28x16
+            el 52,326 1x23
+            el #cell-12-1 role=gridcell 53,326 125x23 pos=2/4 value="25 orders"
+              text "Farah" 57,330 34x16
+              text "25 orders" 95,330 61x16
+            el 178,326 1x23
+            el #cell-12-2 role=gridcell 179,326 75x23 pos=3/4 value="EUR"
+              text "EUR" 183,330 21x16
+              text "444.56" 208,330 42x16
+            el 254,326 1x23
+            el #cell-12-3 role=gridcell 255,326 66x23 pos=4/4
+              text "paid" 259,330 26x16
+            el 321,326 1x23
+          el #row-13 role=row 13,350 494x24 pos=14/1000
+            el #cell-13-0 role=gridcell 13,350 39x23 pos=1/4
+              text "1013" 20,354 28x16
+            el 52,350 1x23
+            el #cell-13-1 role=gridcell 53,350 125x23 pos=2/4 value="2 orders"
+              text "Gus" 57,354 25x16
+              text "2 orders" 86,354 53x16
+            el 178,350 1x23
+            el #cell-13-2 role=gridcell 179,350 75x23 pos=3/4 value="EUR"
+              text "EUR" 183,354 21x16
+              text "481.69" 208,354 42x16
+            el 254,350 1x23
+            el #cell-13-3 role=gridcell 255,350 66x23 pos=4/4
+              text "pending" 259,354 51x16
+            el 321,350 1x23

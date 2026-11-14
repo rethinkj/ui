@@ -25,6 +25,27 @@ The app's sort, here over made-up rows; a database tool runs `ORDER BY` instead:
 
 `options().onResize((column, width) -> …)` lets the user drag the right edge of a header cell (beyond the grid's side, the grid scrolls along) and fit a column to its content with a double press on the edge, within the theme's `grid().minColumn()` and `maxColumn()`. The app keeps the widths and passes them to the columns.
 
+## Fitting columns
+
+`options().fitColumns(fit)` makes every column as wide as its header and the cells of the rows that exist, as a double press on its edge does, once per result, so that a table opens with its headers and values whole. The widths stay the app's: the grid tells each one to `onResize`, which the option needs (without it, building the view throws). `fit` is a `DataGrid.Fit` the app keeps beside the widths; `fit.reset()` fits every column again, as for a new result, where the app calls `Selection.reset()`.
+
+```java snippet="grid-fit"
+```
+
+- The fit happens in a handler of the first frame whose rows that exist are loaded, all widths in that one handler, and the view is built once with them; a script needs one `frame` more before a `snap` shows them. In a window the first frame shows the widths the app gave, and the next the fitted ones.
+- With `loading`, it waits for the first page: placeholders and headers alone are nothing to fit to. A grid without rows waits for its rows.
+- Each width lies within the theme's `grid().minColumn()` and `maxColumn()`, so a column of long text does not take the grid.
+- A column the user resized before the fit came is left as it is. A column a `Layout` hides is fitted when it is first shown, unless the app gave it another width meanwhile.
+- It measures every column, also those out of view sideways, for the rows that exist (about 30), once: 300 columns of a million rows took 6 to 13 ms. The frames after it cost what they did.
+
+| `Fit` | |
+| --- | --- |
+| `new Fit()` | A fit still to come |
+| `reset()` | Fit every column again at the next build with loaded rows, also those resized by hand |
+| `isPending()` | Whether the columns are still to be fitted for the result they show |
+
+<Shot src="kit/grid-fit-{theme}-2x-fitted" alt="A grid whose columns are as wide as their headers with types and their values" />
+
 ## Choosing, moving and hiding
 
 A `DataGrid.Layout`, made with the titles of all columns and kept in the state, holds their order and which are hidden. With `options().columns(layout)`:
