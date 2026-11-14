@@ -83,7 +83,8 @@ import java.util.function.IntPredicate;
  * press on it fits the column to its header and the cells of its rows that exist, icons
  * included. A cell shows its text on one line, with {@link #LINE_BREAK} for each line break and
  * {@link #TAB} for each tab; where it is wider than its column it ends in an ellipsis and shows
- * whole in a tooltip, and a {@link Column#detail} beside it keeps its width. Scrollbars ({@link
+ * whole in a tooltip, and a {@link Column#detail} beside it keeps its width. {@link
+ * Options#fitColumns} makes the columns as wide as their content once per result. Scrollbars ({@link
  * Theme#scrollbars}) show where the rows and columns in view are: one along the right edge of the
  * rows, below the header, and one along the bottom of the grid. They lie over the rows, and the
  * grid scrolls far enough to bring the last row and the last column out from under them: the rows
@@ -1567,6 +1568,42 @@ public final class DataGrid {
   }
 
   /**
+   * Whether the columns of a grid with {@link Options#fitColumns} are still to be fitted, which
+   * the app keeps in its state with its columns' widths. A new one fits every column once, in the
+   * first frame whose rows that exist are loaded; {@link #reset} fits them all again, as for a new
+   * result. The widths stay the app's: the grid tells them to {@link Options#onResize}.
+   */
+  public static final class Fit {
+    boolean pending = true;
+    // The columns, by their index among all columns, that the user resized while the fit was
+    // still to come, which it leaves alone; and those hidden at the fit with their widths then,
+    // fitted when they are shown with the width the app had then.
+    final java.util.Set<Integer> byHand = new java.util.HashSet<>();
+    final java.util.Map<Integer, Float> hidden = new java.util.HashMap<>();
+    // The rows that existed when the fit last looked, -1 before; their loading wakes it again.
+    int first = -1;
+    int last = -1;
+
+    /** A fit still to come. */
+    public Fit() {}
+
+    /**
+     * Fits every column again at the next build that has loaded rows, also those resized by hand,
+     * as for a new result: call it where the app calls {@link Selection#reset}.
+     */
+    public void reset() {
+      pending = true;
+      byHand.clear();
+      hidden.clear();
+    }
+
+    /** Whether the columns are still to be fitted for the result they show. */
+    public boolean isPending() {
+      return pending;
+    }
+  }
+
+  /**
    * What a grid does besides showing rows: its selection, sorting, resizing, frozen columns,
    * copying, context menu, loading and editing. Each is off until a call turns it on; the view
    * makes the options anew with the grid.
@@ -1603,6 +1640,7 @@ public final class DataGrid {
     IntPredicate filterable = c -> true;
     Layout layout;
     IntConsumer onFreeze;
+    Fit fit;
     // With changes: the key of the row shown at a place, the place of a key, -1 for none, and
     // the number of rows there are now, which a handler may have changed since the build.
     java.util.function.IntToLongFunction rowKey;
@@ -1649,6 +1687,27 @@ public final class DataGrid {
      */
     public Options onResize(Resize handler) {
       this.onResize = handler;
+      return this;
+    }
+
+    /**
+     * Makes every column as wide as its header and the cells of the rows that exist, as a double
+     * press on its edge does, once per result: in a handler of the first frame whose rows that
+     * exist are loaded (with {@link #loading}, once the first of them are; a grid without rows
+     * waits for them), and again after {@link Fit#reset}. Each width goes to {@link #onResize},
+     * within the theme's {@code minColumn} and {@code maxColumn}, all in one handler, so the view
+     * is built once with them; a script needs one {@code frame} more to show them. A column the
+     * user resized while the fit was still to come is left as it is; a column a {@link Layout}
+     * hides is fitted when it is first shown, unless the app gave it another width since.
+     *
+     * <p>It measures every column, also those out of view sideways, for the rows that exist,
+     * once; the frames after cost what they did.
+     *
+     * @throws IllegalStateException when the view is built without {@link #onResize}, as the
+     *     widths are the app's
+     */
+    public Options fitColumns(Fit fit) {
+      this.fit = Objects.requireNonNull(fit, "fit");
       return this;
     }
 
@@ -2025,6 +2084,8 @@ public final class DataGrid {
     final boolean[] focused = {false}; // the grid has the focus, as its focus look found
     El grid;
     El body;
+    El probe; // a header's title, whose text tells the window's scale after layout
+    List<Column> all; // all the columns, also those a layout hides
 
     Build(Theme t, List<Column> columns, int rowCount, Options o) {
       this.t = t;
@@ -2078,6 +2139,12 @@ public final class DataGrid {
       options.table = null;
     }
     int all = columns.size();
+    List<Column> allColumns = columns;
+    if (options.fit != null && options.onResize == null) {
+      throw new IllegalStateException(
+          "fitColumns needs onResize: the widths are the app's, which keeps the widths the grid"
+              + " reports and builds its columns with them");
+    }
     if (options.layout != null) {
       columns = options.layout.shown(columns);
       options.showOnly(options.layout.shownColumns(), all);
@@ -2089,6 +2156,7 @@ public final class DataGrid {
       options.selection.keep(options.rowKey, rowCount, rows);
     }
     Build b = new Build(t, columns, rowCount, options);
+    b.all = allColumns;
     Theme.Grid g = b.g;
     El header = header(b);
     Selection sel = b.sel;
@@ -2135,6 +2203,9 @@ public final class DataGrid {
       GridEdit.anchor(b, content); // first, so that what lies over it takes the presses
     }
     content.children(header, body);
+    if (options.fit != null) {
+      fitting(b, content);
+    }
     content.style().minWidth = Len.percent(1); // the rows reach across a grid wider than them
     // Header and rows scroll sideways together in the grid; the rows scroll up and down alone.
     El grid =
@@ -2220,6 +2291,9 @@ public final class DataGrid {
     Theme t = b.t;
     Column column = b.columns.get(index);
     El title = title(t, column.title()).ellipsis().minSize(0, 0);
+    if (b.probe == null) {
+      b.probe = title;
+    }
     El name = title;
     if (column.typeName() != null && typeFits(b, index)) {
       // The title keeps its width as long as the type has any, and never more than the room.
@@ -2369,6 +2443,9 @@ public final class DataGrid {
         .whenHovered(e -> line.fill(t.border().strong()))
         .whenPressed(e -> line.fill(t.accent().color()))
         .onDrag(d -> {
+          if (b.o.fit != null) {
+            b.o.fit.byHand.add(full(b, c)); // a fit still to come leaves it
+          }
           onResize.resize(
               c,
               d.phase() == Drag.Phase.CANCEL
@@ -2381,52 +2458,170 @@ public final class DataGrid {
         })
         .onPress(clicks -> {
           if (clicks == 2) {
+            if (b.o.fit != null) {
+              b.o.fit.byHand.add(full(b, c));
+            }
             onResize.resize(c, fit(b, c));
           }
         });
   }
 
+  /** A column's index among all columns, which a {@link Layout} may hide some of. */
+  private static int full(Build b, int c) {
+    return b.o.full == null ? c : b.o.full[c];
+  }
+
   /**
-   * The width that shows the column's header and the cells of its rows that exist whole: their
-   * icons, title, type, sort mark and text.
+   * Adds what fits the columns while a fit is due: an empty element whose size handler runs in
+   * the frame that builds it, after layout, when the rows that exist are known. It is keyed by
+   * the rows the fit last looked at and how many of them are loaded, so that a grid waiting for
+   * its first page is told again when the page arrives, and not on the frames between.
    */
-  static float fit(Build b, int c) {
-    Theme t = b.t;
-    float widest = headerWidth(b, c);
-    El body = b.body;
-    for (int k = 0; k < body.children().size(); k++) {
-      String key = "cell-" + (body.firstRow() + k) + "-" + c;
-      for (El cell : body.children().get(k).children()) {
-        if (key.equals(cell.key())) {
-          float width = 0;
-          for (El part : cell.children()) {
-            width += natural(part);
-          }
-          widest = Math.max(
-              widest,
-              width + Math.max(cell.children().size() - 1, 0) * t.space().s());
+  private static void fitting(Build b, El content) {
+    Fit fit = b.o.fit;
+    boolean due = fit.pending;
+    for (int c = 0; !due && c < b.columns.size(); c++) {
+      Float width = fit.hidden.get(full(b, c));
+      due = width != null && width == b.columns.get(c).width();
+    }
+    if (!due || b.rowCount == 0) {
+      return; // headers alone are no reason to fit
+    }
+    int loaded = 0;
+    for (int i = Math.max(fit.first, 0); i <= Math.min(fit.last, b.rowCount - 1); i++) {
+      loaded += b.o.loaded == null || b.o.loaded.test(i) ? 1 : 0;
+    }
+    content.child(el().key("fit-" + fit.first + "-" + loaded)
+        .absolute(0, 0)
+        .size(0, 0)
+        .onResize((width, height) -> fitNow(b)));
+  }
+
+  /** Fits the columns that are due for the loaded rows that exist, if any is. */
+  private static void fitNow(Build b) {
+    Fit fit = b.o.fit;
+    int[] rows = existing(b);
+    fit.first = rows[0];
+    fit.last = rows[1];
+    boolean any = false;
+    for (int i = rows[0]; !any && i <= Math.min(rows[1], b.rowCount - 1); i++) {
+      any = b.o.loaded == null || b.o.loaded.test(i);
+    }
+    if (!any) {
+      return; // the first page is on its way
+    }
+    float scale = scale(b);
+    for (int c = 0; c < b.columns.size(); c++) {
+      int full = full(b, c);
+      float width = b.columns.get(c).width();
+      Float then = fit.hidden.remove(full);
+      boolean due = fit.pending ? !fit.byHand.contains(full) : then != null && then == width;
+      if (due) {
+        float fitted = fit(b, c, rows[0], rows[1], scale);
+        if (fitted != width) {
+          b.o.onResize.resize(c, fitted);
         }
       }
+    }
+    if (fit.pending && b.o.layout != null) {
+      for (int c = 0; c < b.all.size(); c++) {
+        if (b.o.layout.isHidden(c)) {
+          fit.hidden.put(c, b.all.get(c).width());
+        }
+      }
+    }
+    fit.pending = false;
+  }
+
+  /**
+   * The width that shows the column's header and the cells of its rows that exist whole: their
+   * icons, title, type, sort mark, funnel, text and details, at the window's scale.
+   */
+  static float fit(Build b, int c) {
+    int[] rows = existing(b);
+    return fit(b, c, rows[0], rows[1], scale(b));
+  }
+
+  /** {@link #fit} for the loaded rows from {@code first} to {@code last}, measured at a scale. */
+  private static float fit(Build b, int c, int first, int last, float scale) {
+    Theme t = b.t;
+    Column column = b.columns.get(c);
+    float widest = headerWidth(b, c, scale);
+    Theme.TextStyle style = column.mono() ? t.type().mono() : t.type().body();
+    java.util.Set<String> seen = new java.util.HashSet<>(); // cells repeat: shape each once
+    for (int i = first; i <= last; i++) {
+      if (i >= b.rowCount || b.o.loaded != null && !b.o.loaded.test(i)) {
+        continue;
+      }
+      String value = column.cell().apply(i);
+      CellIcon icon = column.cellIcon() == null ? null : column.cellIcon().apply(i);
+      String detail = column.detail() == null ? null : column.detail().apply(i);
+      float width = 0;
+      int parts = 0;
+      if (icon != null) {
+        width += t.size().icon();
+        parts++;
+      }
+      if (icon == null || !icon.alone()) {
+        String shown = value == null ? "NULL" : oneLine(value);
+        if (icon == null && detail == null && !seen.add(shown)) {
+          continue; // a text alone that was measured
+        }
+        width += width(style, shown, scale);
+        parts++;
+      }
+      if (detail != null) {
+        width += width(style, oneLine(detail), scale);
+        parts++;
+      }
+      widest = Math.max(widest, width + Math.max(parts - 1, 0) * t.space().s());
     }
     float width = (float) Math.ceil(widest) + 2 * t.space().s() + t.size().stroke();
     return Math.clamp(width, b.g.minColumn(), Math.max(b.g.minColumn(), b.g.maxColumn()));
   }
 
+  /** The first and the last row that exist: those built, or before they are, those in view. */
+  private static int[] existing(Build b) {
+    El body = b.body;
+    int built = body.children().size();
+    if (built > 0) {
+      return new int[] {body.firstRow(), body.firstRow() + built - 1};
+    }
+    float high = b.g.rowHeight();
+    int top = (int) Math.floor(body.scrollY() / high);
+    int bottom = top + (int) Math.ceil(body.height() / high);
+    return new int[] {Math.max(0, top - 3), Math.min(b.rows - 1, bottom + 3)};
+  }
+
+  /** The window's scale, which the header's text was shaped for; 1 before layout. */
+  private static float scale(Build b) {
+    return b.probe == null || b.probe.text() == null ? 1 : b.probe.text().scale();
+  }
+
+  /** The width of a text on one line in a style, in logical pixels, shaped at a scale. */
+  private static float width(Theme.TextStyle style, String text, float scale) {
+    return style.font().get().shape(text, style.size(), scale).width() / scale;
+  }
+
   /** The width of a header cell's content when nothing is cut short. */
   private static float headerWidth(Build b, int c) {
+    return headerWidth(b, c, 1);
+  }
+
+  private static float headerWidth(Build b, int c, float scale) {
     Theme t = b.t;
     Column column = b.columns.get(c);
-    float width = natural(title(t, column.title()));
+    float width = width(t.type().strong(), column.title(), scale);
     if (column.icon() != null) {
       width += t.size().icon() + t.space().s();
     }
     if (column.typeName() != null) {
-      width += t.space().s() + natural(Label.label(t, Label.Variant.MUTED, column.typeName()));
+      width += t.space().s() + width(t.type().body(), column.typeName(), scale);
     }
     if (b.o.sort.stream().anyMatch(k -> k.column() == c)) {
       width += b.g.mark() + t.space().xs();
       if (b.o.sort.size() > 1) {
-        width += t.space().xs() + natural(Label.label(t, "9"));
+        width += t.space().xs() + width(t.type().body(), "9", scale);
       }
     }
     if (b.filtering(c) && GridFilter.set(b, c)) {

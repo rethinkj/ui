@@ -43,7 +43,13 @@ A cell's text shows on one line, a line break as `⏎` and a tab as `⇥`. Where
 
 `column.detail(row -> text)` puts a short text in muted type beside each cell's value that stays when the value is cut: the size of a long value, a unit, a count. In a column aligned left it stands `space().s()` after the value, in one aligned right before it, so that numbers stay at the right edge. It keeps its width while the value ends in an ellipsis; in a cell too narrow for the detail and the value's first character with an ellipsis it is left out entirely, and the cell's tooltip names value and detail. The function runs after the cell's text function, for loaded rows only; a cell with a detail costs one element more, one without none.
 
-A copy and the editor take the value alone, and the editor covers the whole cell. In a tree dump the cell says the detail as its value, unless it says a change there (`value="changed"`); the detail's text element says it either way.
+```java snippet="grid-fit"
+```
+
+A copy and the editor take the value alone, and the editor covers the whole cell. In a tree dump the cell says the detail as its value, unless it says a change there (`value="changed"`); the detail's text element says it either way:
+
+```text file="examples/src/test/resources/golden/docs/grid-fit/view.tree.txt" start="#cell-1-1" count="3"
+```
 
 <Shot src="kit/grid-details-{theme}-2x-details" alt="A grid with EUR before each amount and the size after each note, whose text is cut" />
 
@@ -61,6 +67,7 @@ A copy and the editor take the value alone, and the editor covers the whole cell
 | `contextMenu(Menu.State, items)` | A menu at a secondary press: Copy, Copy with headers, then the app's items. |
 | `sort(keys, onSort)` | Sort keys in the header. [Sorting and columns](/docs/components/data-grid/sorting-and-columns) |
 | `onResize((column, width) -> …)` | Dragging a header edge resizes; a double press fits. |
+| `fitColumns(Fit)` | Every column as wide as its content once per result. [Sorting and columns](/docs/components/data-grid/sorting-and-columns#fitting-columns) |
 | `columns(Layout)`, `onFreeze(n -> …)` | The order and hidden columns, chosen in the header. |
 | `loading(loaded, onRows)` | Rows not loaded yet show `…`; the app is told which rows are in view, to load them. |
 | `filters(filters, onFilter)`, `filterable(columns)` | A filter in each header cell. [Filters](/docs/components/data-grid/filters) |

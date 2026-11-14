@@ -42,6 +42,8 @@ final class Grids {
   final Menu.State gridMenu = new Menu.State();
   List<DataGrid.SortKey> sort = List.of();
   final float[] widths = {80, 120, 100, 100};
+  final float[] fitted = {80, 80, 80, 80}; // the widths of the fitted grid, until its fit
+  final DataGrid.Fit fit = new DataGrid.Fit();
   final DataGrid.Layout layout = new DataGrid.Layout(List.of("id", "customer", "amount", "status"));
   List<DataGrid.Filter> filters = List.of();
   final GridChanges changes = new GridChanges(COUNT, Grids::value);
@@ -90,6 +92,31 @@ final class Grids {
         .label("Orders")
         .grow(1);
     // docs:end grid
+    return Frame.of(t, Card.flush(t, grid).wFull().grow(1));
+  }
+
+  static El fitted(Grids s) {
+    Theme t = s.t;
+    // docs:start grid-fit
+    List<Column> columns = List.of(
+        new Column("id", s.fitted[0], DataType.INTEGER, i -> value(i, 0)),
+        new Column("customer", s.fitted[1], DataType.TEXT, i -> value(i, 1))
+            .detail(i -> (i * 7 % 30 + 1) + " orders"), // muted, after the name
+        new Column("amount", s.fitted[2], DataType.DECIMAL, i -> value(i, 2))
+            .detail(i -> "EUR"), // before the number, which stays at the right
+        new Column("status", s.fitted[3], DataType.TEXT, i -> value(i, 3)));
+    El grid = DataGrid.dataGrid(
+            t,
+            columns,
+            COUNT,
+            DataGrid.options()
+                .select(s.selection)
+                .onResize((column, width) -> s.fitted[column] = width) // the widths are the app's
+                .fitColumns(s.fit)) // once; s.fit.reset() with a new result fits again
+        .key("orders")
+        .label("Orders")
+        .grow(1);
+    // docs:end grid-fit
     return Frame.of(t, Card.flush(t, grid).wFull().grow(1));
   }
 
