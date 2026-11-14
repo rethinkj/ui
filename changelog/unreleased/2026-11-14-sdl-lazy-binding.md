@@ -1,0 +1,1 @@
+- A window opens sooner: SDL's functions are bound as an app first uses them, not all before the first window.
