@@ -43,6 +43,21 @@ Numbers have a full stop and no grouping, dates and times are ISO 8601's, whatev
 
 Two limits keep a number from taking seconds to read on the app's thread: a text longer than `Format.MAX_NUMBER_LENGTH` (100 000) characters is refused unread by every number format, also by `allows`, and a `DECIMAL` whose exponent would write more than `Format.MAX_ZEROS` (4096) zeros is refused too.
 
+## Times of a fixed precision
+
+`TIME`, `DATE_TIME` and `OFFSET_DATE_TIME` write a time as `LocalTime` does, without its seconds when they are zero, so a column shows `09:00` above `09:00:05`. These write every value of a column with one length:
+
+```java snippet="format-precision"
+```
+
+| Factory | Writes |
+| --- | --- |
+| `Format.time(precision)` | `09:00:00` at 0, `09:00:05.120` at 3, up to 9 digits after the seconds |
+| `Format.dateTime(precision)` | `2026-01-01 09:00:00` |
+| `Format.offsetDateTime(precision, offset)` | The offset as `Format.Offset` says: `Z` (`Z`, `+05:30`), `COLONS` (`+00:00`, `+05:30`) or `SHORT` (`+00`, `+05:30`, as PostgreSQL writes it) |
+
+Digits beyond the precision are cut, not rounded: `time(0)` writes `09:00:05.999` as `09:00:05`. Only the text is cut; the value stays as it was. They read what the plain formats read, with or without seconds and fraction, and give the value as read; `offsetDateTime` reads all three spellings of an offset. `.optional()` and `.where(...)` chain onto them, and `type()` is the plain format's.
+
 ## A field for a value
 
 The state holds the value and the field's draft:

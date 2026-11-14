@@ -1,0 +1,154 @@
+el 0,0 480x520
+  el 12,12 456x444
+    text "Icons, none chosen" 25,25 430x16
+    el #shapes role=radiogroup 25,53 140x32
+      el role=radio label="Table" 25,53 32x32 checked=false
+        el 29,57 24x24
+          text label="table" "\u{EBF4}" 33,61 16x16
+      el role=radio label="Database" 61,53 32x32 checked=false
+        el 65,57 24x24
+          text label="database" "\u{F0D7}" 69,61 16x16
+      el role=radio label="Server" 97,53 32x32 checked=false
+        el 101,57 24x24
+          text label="server" "\u{F1DC}" 105,61 16x16
+      el role=radio label="Folder" 133,53 32x32 checked=false
+        el 137,57 24x24
+          text label="folder" "\u{E643}" 141,61 16x16
+    text "A hue chosen, none first" 25,97 430x15
+    el #chosen role=radiogroup 25,124 392x32
+      el role=radio label="None" 25,124 32x32 checked=false
+        el 29,128 24x24
+          text label="prohibited" "\u{F705}" 33,132 16x16
+      el role=radio label="Blue" 61,124 32x32 checked=false
+        el 65,128 24x24
+          el 69,132 16x16
+      el role=radio label="Violet" 97,124 32x32 checked=false
+        el 101,128 24x24
+          el 105,132 16x16
+      el role=radio label="Purple" 133,124 32x32 checked=false
+        el 137,128 24x24
+          el 141,132 16x16
+      el role=radio label="Pink" 169,124 32x32 checked=false
+        el 173,128 24x24
+          el 177,132 16x16
+      el role=radio label="Red" 205,124 32x32 checked
+        el 209,128 24x24
+          el 213,132 16x16
+      el role=radio label="Orange" 241,124 32x32 checked=false
+        el 245,128 24x24
+          el 249,132 16x16
+      el role=radio label="Amber" 277,124 32x32 checked=false
+        el 281,128 24x24
+          el 285,132 16x16
+      el role=radio label="Green" 313,124 32x32 checked=false
+        el 317,128 24x24
+          el 321,132 16x16
+      el role=radio label="Teal" 349,124 32x32 checked=false
+        el 353,128 24x24
+          el 357,132 16x16
+      el role=radio label="Grey" 385,124 32x32 checked=false
+        el 389,128 24x24
+          el 393,132 16x16
+    text "The keyboard's focus, none chosen" 25,168 430x16
+    el #focus role=radiogroup 25,196 356x32 focused
+      el role=radio label="Blue" 25,196 32x32 checked=false
+        el 29,200 24x24
+          el 33,204 16x16
+      el role=radio label="Violet" 61,196 32x32 checked=false
+        el 65,200 24x24
+          el 69,204 16x16
+      el role=radio label="Purple" 97,196 32x32 checked=false
+        el 101,200 24x24
+          el 105,204 16x16
+      el role=radio label="Pink" 133,196 32x32 checked=false
+        el 137,200 24x24
+          el 141,204 16x16
+      el role=radio label="Red" 169,196 32x32 checked=false
+        el 173,200 24x24
+          el 177,204 16x16
+      el role=radio label="Orange" 205,196 32x32 checked=false
+        el 209,200 24x24
+          el 213,204 16x16
+      el role=radio label="Amber" 241,196 32x32 checked=false
+        el 245,200 24x24
+          el 249,204 16x16
+      el role=radio label="Green" 277,196 32x32 checked=false
+        el 281,200 24x24
+          el 285,204 16x16
+      el role=radio label="Teal" 313,196 32x32 checked=false
+        el 317,200 24x24
+          el 321,204 16x16
+      el role=radio label="Grey" 349,196 32x32 checked=false
+        el 353,200 24x24
+          el 357,204 16x16
+    text "Disabled" 25,240 430x15
+    el #disabled role=radiogroup 25,267 392x32 disabled
+      el role=radio label="None" 25,267 32x32 checked=false
+        el 29,271 24x24
+          text label="prohibited" "\u{F705}" 33,275 16x16
+      el role=radio label="Blue" 61,267 32x32 checked=false
+        el 65,271 24x24
+          el 69,275 16x16
+      el role=radio label="Violet" 97,267 32x32 checked=false
+        el 101,271 24x24
+          el 105,275 16x16
+      el role=radio label="Purple" 133,267 32x32 checked=false
+        el 137,271 24x24
+          el 141,275 16x16
+      el role=radio label="Pink" 169,267 32x32 checked=false
+        el 173,271 24x24
+          el 177,275 16x16
+      el role=radio label="Red" 205,267 32x32 checked=false
+        el 209,271 24x24
+          el 213,275 16x16
+      el role=radio label="Orange" 241,267 32x32 checked=false
+        el 245,271 24x24
+          el 249,275 16x16
+      el role=radio label="Amber" 277,267 32x32 checked=false
+        el 281,271 24x24
+          el 285,275 16x16
+      el role=radio label="Green" 313,267 32x32 checked=false
+        el 317,271 24x24
+          el 321,275 16x16
+      el role=radio label="Teal" 349,267 32x32 checked
+        el 353,271 24x24
+          el 357,275 16x16
+      el role=radio label="Grey" 385,267 32x32 checked=false
+        el 389,271 24x24
+          el 393,275 16x16
+    text "In a narrow box" 25,311 430x16
+    el 25,339 160x104
+      el #narrow role=radiogroup 25,339 160x104
+        el role=radio label="None" 25,339 32x32 checked
+          el 29,343 24x24
+            text label="prohibited" "\u{F705}" 33,347 16x16
+        el role=radio label="Blue" 61,339 32x32 checked=false
+          el 65,343 24x24
+            el 69,347 16x16
+        el role=radio label="Violet" 97,339 32x32 checked=false
+          el 101,343 24x24
+            el 105,347 16x16
+        el role=radio label="Purple" 133,339 32x32 checked=false
+          el 137,343 24x24
+            el 141,347 16x16
+        el role=radio label="Pink" 25,375 32x32 checked=false
+          el 29,379 24x24
+            el 33,383 16x16
+        el role=radio label="Red" 61,375 32x32 checked=false
+          el 65,379 24x24
+            el 69,383 16x16
+        el role=radio label="Orange" 97,375 32x32 checked=false
+          el 101,379 24x24
+            el 105,383 16x16
+        el role=radio label="Amber" 133,375 32x32 checked=false
+          el 137,379 24x24
+            el 141,383 16x16
+        el role=radio label="Green" 25,411 32x32 checked=false
+          el 29,415 24x24
+            el 33,419 16x16
+        el role=radio label="Teal" 61,411 32x32 checked=false
+          el 65,415 24x24
+            el 69,419 16x16
+        el role=radio label="Grey" 97,411 32x32 checked=false
+          el 101,415 24x24
+            el 105,419 16x16

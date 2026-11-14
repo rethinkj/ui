@@ -13,6 +13,7 @@ import com.rethinkj.ui.kit.Checkbox;
 import com.rethinkj.ui.kit.ComboBox;
 import com.rethinkj.ui.kit.Form;
 import com.rethinkj.ui.kit.Format;
+import com.rethinkj.ui.kit.HuePicker;
 import com.rethinkj.ui.kit.Icon;
 import com.rethinkj.ui.kit.Label;
 import com.rethinkj.ui.kit.Menu;
@@ -50,6 +51,8 @@ final class Controls {
   int product;
   final ComboBox.State productBox = new ComboBox.State();
   int fetchSize = 4;
+  int kind = -1;
+  Theme.Hue colour = Theme.Hue.TEAL;
   int fontSize = 13;
   String filter = "";
   String table = "";
@@ -161,6 +164,25 @@ final class Controls {
     El size = Slider.slider(t, s.fontSize, 11, 16, 1, v -> s.fontSize = v).label("Font size");
     // docs:end slider
     return Frame.of(t, indent, mode, driver, fetch, size);
+  }
+
+  static El swatches(Controls s) {
+    Theme t = s.t;
+    // docs:start swatches
+    El kind = Radio.swatches(
+            t,
+            List.of(
+                Radio.option("Table", th -> Icon.icon(th, Symbol.TABLE)),
+                Radio.option("View", th -> Icon.icon(th, Symbol.TABLE_SIMPLE)),
+                Radio.option("Folder", th -> Icon.icon(th, Symbol.FOLDER))),
+            s.kind, // -1: none chosen yet
+            i -> s.kind = i)
+        .label("Kind");
+    // docs:end swatches
+    // docs:start hue-picker
+    El colour = HuePicker.huePicker(t, s.colour, "None", hue -> s.colour = hue).label("Colour");
+    // docs:end hue-picker
+    return Frame.of(t, kind, colour);
   }
 
   // docs:start choice-types

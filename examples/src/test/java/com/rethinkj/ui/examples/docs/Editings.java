@@ -18,6 +18,7 @@ import com.rethinkj.ui.kit.Toggle;
 import com.rethinkj.ui.kit.ValueField;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Objects;
 
 /** The examples of the page Editing records: a form over a record, and one over a POJO. */
@@ -168,5 +169,16 @@ final class Editings {
             : null);
     // docs:end editing-pojo-view
     return Frame.of(t, form, Form.buttons(t, apply));
+  }
+
+  /** Formats of times with a fixed precision; shown on the page Format. */
+  static List<Format<?>> times() {
+    // docs:start format-precision
+    Format<java.time.LocalTime> time = Format.time(0); // 09:00:00, never 09:00
+    Format<java.time.LocalDateTime> stamp = Format.dateTime(3); // 2026-01-01 09:00:05.120
+    Format<java.time.OffsetDateTime> zoned = // 2026-01-01 09:00:00+00, as PostgreSQL writes
+        Format.offsetDateTime(0, Format.Offset.SHORT).optional();
+    // docs:end format-precision
+    return List.of(time, stamp, zoned);
   }
 }

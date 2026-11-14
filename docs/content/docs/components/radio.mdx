@@ -23,6 +23,15 @@ description: A group of round buttons for one choice among a few, all in view.
 
 The selected value is found by `equals`, a null among the values too; null where the list has none, or a value not in the list, selects nothing. Equal values show once, so that the keys go on from the selected value to the next one that differs. The handler gets the value; a null handler disables it. For an enum, pass `List.of(E.values())`.
 
+## Swatches
+
+`Radio.swatches` is the same group for choices that show an element instead of a text, such as colours or icons: each `Radio.option(name, theme -> element)` is a square of 32 pixels in a row that wraps, with the name in a tooltip and as the radio's label. [HuePicker](/docs/components/hue-picker) is one made of the theme's hues.
+
+```java snippet="swatches"
+```
+
+`swatches(t, options, selected, onSelect)` takes indexes, `swatches(t, values, selected, value -> option, onSelect)` values (null among them a choice like any other, such as no colour), and `swatches(t, values, prop, value -> option)` a `Prop`. The element is at most a checkbox's box, 16 pixels. The chosen option has a round ring in `accent().edge()` around its element, with the surface between; the keyboard's focus is a rounded square around the option the arrows go on from, the chosen one or the first, instead of the ring around the whole group that a group of texts has. A disabled group keeps its elements and draws the chosen ring in disabled text.
+
 ## Keyboard
 
 The group is one stop for Tab. The arrows choose the next and the previous choice, around the ends; Home and End the first and the last; Space the first while none is chosen, as WAI-ARIA's radio group has it.

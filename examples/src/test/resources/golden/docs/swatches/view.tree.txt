@@ -1,0 +1,45 @@
+el 0,0 460x140
+  el role=radiogroup label="Kind" 12,12 104x32
+    el role=radio label="Table" 12,12 32x32 checked=false
+      el 16,16 24x24
+        text label="table" "\u{EBF4}" 20,20 16x16
+    el role=radio label="View" 48,12 32x32 checked=false
+      el 52,16 24x24
+        text label="table_simple" "\u{EC50}" 56,20 16x16
+    el role=radio label="Folder" 84,12 32x32 checked=false
+      el 88,16 24x24
+        text label="folder" "\u{E643}" 92,20 16x16
+  el role=radiogroup label="Colour" 12,52 392x32
+    el role=radio label="None" 12,52 32x32 checked=false
+      el 16,56 24x24
+        text label="prohibited" "\u{F705}" 20,60 16x16
+    el role=radio label="Blue" 48,52 32x32 checked=false
+      el 52,56 24x24
+        el 56,60 16x16
+    el role=radio label="Violet" 84,52 32x32 checked=false
+      el 88,56 24x24
+        el 92,60 16x16
+    el role=radio label="Purple" 120,52 32x32 checked=false
+      el 124,56 24x24
+        el 128,60 16x16
+    el role=radio label="Pink" 156,52 32x32 checked=false
+      el 160,56 24x24
+        el 164,60 16x16
+    el role=radio label="Red" 192,52 32x32 checked=false
+      el 196,56 24x24
+        el 200,60 16x16
+    el role=radio label="Orange" 228,52 32x32 checked=false
+      el 232,56 24x24
+        el 236,60 16x16
+    el role=radio label="Amber" 264,52 32x32 checked=false
+      el 268,56 24x24
+        el 272,60 16x16
+    el role=radio label="Green" 300,52 32x32 checked=false
+      el 304,56 24x24
+        el 308,60 16x16
+    el role=radio label="Teal" 336,52 32x32 checked
+      el 340,56 24x24
+        el 344,60 16x16
+    el role=radio label="Grey" 372,52 32x32 checked=false
+      el 376,56 24x24
+        el 380,60 16x16

@@ -16,6 +16,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.function.Function;
 import java.util.function.IntConsumer;
 import java.util.function.Predicate;
 
@@ -61,7 +62,9 @@ import java.util.function.Predicate;
  *
  * <p>Marks are icons ({@link Symbol}): {@link #CHECKED} for a checked item, {@link #SUBMENU} for
  * one that opens a submenu. The column before the text holds the check mark or the item's icon,
- * the check mark first, and is there in every item, so the texts line up.
+ * the check mark first, or the item's {@linkplain Item#leading leading element}, and is there in
+ * every item, so the texts line up. A checked item with a leading element shows the check mark at
+ * its end, as a combo box's current choice does.
  *
  * <p>In a tree dump a menu is {@code role=menu} and its items are {@code role=menuitem} with
  * their text as the label and the keys {@code item-<index>}, or {@code subitem-<index>} in a
@@ -90,6 +93,8 @@ public final class Menu {
    * @param icon shown before the text, unless the item is checked; null for none
    * @param onChoose runs when the item is chosen; null disables an item without a submenu
    * @param submenu the items of the submenu the item opens, or null for none
+   * @param leading builds what stands before the text in place of the icon, or null; see {@link
+   *     #leading(Function)}
    */
   public record Item(
       String label,
@@ -98,11 +103,34 @@ public final class Menu {
       boolean checked,
       Symbol icon,
       Runnable onChoose,
-      List<Item> submenu) {
+      List<Item> submenu,
+      Function<Theme, El> leading) {
+
+    /** An item without a leading element, as items were before they could have one. */
+    public Item(
+        String label,
+        String shortcut,
+        Key keys,
+        boolean checked,
+        Symbol icon,
+        Runnable onChoose,
+        List<Item> submenu) {
+      this(label, shortcut, keys, checked, icon, onChoose, submenu, null);
+    }
+
+    /**
+     * This item with an element before its text, in place of an icon, such as a colour's swatch
+     * ({@link HuePicker#swatch}): built for each place it shows, for the theme there, at most
+     * {@link Theme.Sizes#icon} square, in the column the icons have, which keeps its width. While
+     * the item is checked, the check mark stands at its end and the element before the text.
+     */
+    public Item leading(Function<Theme, El> leading) {
+      return new Item(label, shortcut, keys, checked, icon, onChoose, submenu, leading);
+    }
 
     /** This item with a text shown at its right, which only shows: no key runs the item. */
     public Item shortcut(String text) {
-      return new Item(label, text, keys, checked, icon, onChoose, submenu);
+      return new Item(label, text, keys, checked, icon, onChoose, submenu, leading);
     }
 
     /**
@@ -120,17 +148,17 @@ public final class Menu {
             + " case: \"" + key.toUpperCase(Locale.ROOT) + "\", not \"" + key + "\"");
       }
       Key k = new Key(key, modifiers, false);
-      return new Item(label, shortcutText(k), k, checked, icon, onChoose, submenu);
+      return new Item(label, shortcutText(k), k, checked, icon, onChoose, submenu, leading);
     }
 
     /** This item with a check mark, or without. */
     public Item checked(boolean on) {
-      return new Item(label, shortcut, keys, on, icon, onChoose, submenu);
+      return new Item(label, shortcut, keys, on, icon, onChoose, submenu, leading);
     }
 
     /** This item with an icon before its text; a check mark takes its place while it is checked. */
     public Item icon(Symbol symbol) {
-      return new Item(label, shortcut, keys, checked, symbol, onChoose, submenu);
+      return new Item(label, shortcut, keys, checked, symbol, onChoose, submenu, leading);
     }
 
     public boolean isSeparator() {
@@ -526,7 +554,10 @@ public final class Menu {
     int text = !enabled ? t.text().disabled() : t.text().primary();
     int quiet = !enabled ? t.text().disabled() : t.text().muted();
     El mark = el().w(t.size().icon()).shrink(0).center();
-    if (item.checked()) {
+    boolean checkAtEnd = item.checked() && item.leading() != null;
+    if (item.leading() != null) {
+      mark.child(item.leading().apply(t).shrink(0));
+    } else if (item.checked()) {
       mark.child(icon(t, CHECKED).color(text));
     } else if (item.icon() != null) {
       mark.child(icon(t, item.icon()).color(text));
@@ -540,10 +571,18 @@ public final class Menu {
         .children(mark, label(t, item.label()).color(text).grow(1));
     boolean opens = item.opens();
     if (opens) {
+      if (checkAtEnd) {
+        content.child(icon(t, CHECKED).color(text));
+      }
       content.child(icon(t, SUBMENU).color(quiet));
-    } else if (item.shortcut() != null) {
-      content.child(
-          label(t, item.shortcut()).color(quiet).margin(0, 0, 0, t.space().l()));
+    } else {
+      if (item.shortcut() != null) {
+        content.child(
+            label(t, item.shortcut()).color(quiet).margin(0, 0, 0, t.space().l()));
+      }
+      if (checkAtEnd) {
+        content.child(icon(t, CHECKED).color(text));
+      }
     }
     // After a rest, the item's submenu opens and any other of its level closes.
     content.onHoverFor(t.motion().submenuDelay(), () -> state.openSubmenu(level, opens ? i : -1));

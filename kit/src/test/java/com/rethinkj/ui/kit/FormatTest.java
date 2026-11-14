@@ -315,4 +315,143 @@ class FormatTest {
       assertEquals(text, Format.BYTES.text(read), "the text of what it says is itself");
     }
   }
+
+  @Test
+  void timesOfAPrecisionAlwaysHaveItsDigits() {
+    LocalTime nine = LocalTime.of(9, 0);
+    LocalTime five = LocalTime.of(9, 0, 5, 123_456_789);
+    assertEquals("09:00", Format.TIME.text(nine), "the plain format leaves out zero seconds");
+    assertEquals("09:00:00", Format.time(0).text(nine));
+    assertEquals("09:00:05", Format.time(0).text(five), "cut, not rounded");
+    assertEquals("09:00:00.000", Format.time(3).text(nine));
+    assertEquals("09:00:05.123", Format.time(3).text(five));
+    assertEquals("09:00:05.123456789", Format.time(9).text(five));
+    assertEquals("23:59:59", Format.time(0).text(LocalTime.MAX), "never up to the next day");
+    LocalDateTime d = LocalDateTime.of(LocalDate.of(2026, 1, 1), nine);
+    assertEquals("2026-01-01 09:00:00", Format.dateTime(0).text(d));
+    assertEquals("2026-01-01 09:00:00.00", Format.dateTime(2).text(d));
+    OffsetDateTime utc = OffsetDateTime.of(d, ZoneOffset.UTC);
+    OffsetDateTime india = OffsetDateTime.of(d, ZoneOffset.ofHoursMinutes(5, 30));
+    OffsetDateTime west = OffsetDateTime.of(d, ZoneOffset.ofHours(-3));
+    // Each spelling of an offset, for UTC, an offset with minutes and one without.
+    Object[][] table = {
+      {Format.Offset.Z, utc, "2026-01-01 09:00:00Z"},
+      {Format.Offset.Z, india, "2026-01-01 09:00:00+05:30"},
+      {Format.Offset.Z, west, "2026-01-01 09:00:00-03:00"},
+      {Format.Offset.COLONS, utc, "2026-01-01 09:00:00+00:00"},
+      {Format.Offset.COLONS, india, "2026-01-01 09:00:00+05:30"},
+      {Format.Offset.COLONS, west, "2026-01-01 09:00:00-03:00"},
+      {Format.Offset.SHORT, utc, "2026-01-01 09:00:00+00"},
+      {Format.Offset.SHORT, india, "2026-01-01 09:00:00+05:30"},
+      {Format.Offset.SHORT, west, "2026-01-01 09:00:00-03"},
+    };
+    for (Object[] row : table) {
+      roundTrip(Format.offsetDateTime(0, (Format.Offset) row[0]), (OffsetDateTime) row[1], (String)
+          row[2]);
+    }
+    assertEquals(
+        "2026-01-01 09:00:05.120+00",
+        Format.offsetDateTime(3, Format.Offset.SHORT)
+            .text(utc.withSecond(5).withNano(120_000_000)));
+    assertThrows(IllegalArgumentException.class, () -> Format.time(10));
+    assertThrows(IllegalArgumentException.class, () -> Format.dateTime(-1));
+    assertEquals(DataType.TIME, Format.time(3).type());
+    assertEquals(DataType.DATE_TIME, Format.dateTime(3).type());
+    assertEquals(DataType.DATE_TIME, Format.offsetDateTime(3, Format.Offset.Z).type());
+  }
+
+  @Test
+  void timesOfAPrecisionReadWhatThePlainFormatsReadAndEverySpellingOfAnOffset() {
+    Format<LocalTime> time = Format.time(3);
+    assertEquals(LocalTime.of(14, 30), time.parse("14:30").value());
+    assertEquals(LocalTime.of(14, 30, 15), time.parse("14:30:15").value());
+    assertEquals(
+        LocalTime.of(14, 30, 15, 123_456_789),
+        time.parse("14:30:15.123456789").value(),
+        "more digits than the precision are kept as read");
+    refused(time, "14:30+01:00", "Expected a time such as 14:30 or 14:30:15");
+    refused(time, "", Format.REQUIRED);
+    Format<LocalDateTime> dateTime = Format.dateTime(0);
+    assertEquals(
+        LocalDateTime.of(2026, 11, 13, 14, 30),
+        dateTime.parse("2026-11-13T14:30").value());
+    refused(dateTime, "2026-11-13 14:30Z", "Expected a date and time such as 2026-11-13 14:30");
+    OffsetDateTime expected = OffsetDateTime.of(2026, 11, 13, 14, 30, 0, 0, ZoneOffset.ofHours(1));
+    for (Format.Offset spelling : Format.Offset.values()) {
+      Format<OffsetDateTime> f = Format.offsetDateTime(0, spelling);
+      for (String text : List.of(
+          "2026-11-13 14:30+01:00",
+          "2026-11-13 14:30+01",
+          "2026-11-13T14:30:00+01:00",
+          "2026-11-13 14:30:00.000+01")) {
+        assertEquals(expected, f.parse(text).value(), spelling + " " + text);
+      }
+      for (String text : List.of(
+          "2026-11-13 14:30Z",
+          "2026-11-13 14:30z",
+          "2026-11-13 14:30+00:00",
+          "2026-11-13 14:30+00")) {
+        assertEquals(ZoneOffset.UTC, f.parse(text).value().getOffset(), spelling + " " + text);
+      }
+      refused(
+          f,
+          "2026-11-13 14:30",
+          "Expected a date, a time and an offset such as 2026-11-13 14:30+01:00");
+    }
+  }
+
+  @Test
+  void timesOfAPrecisionChainAndAllowEveryPrefixOfWhatTheyWrite() {
+    Format<LocalTime> office = Format.time(0)
+        .where(t -> t.getHour() >= 8 && t.getHour() < 18, "8:00 to 18:00")
+        .optional();
+    assertEquals("09:00:00", office.text(LocalTime.of(9, 0)));
+    refused(office, "19:00", "8:00 to 18:00");
+    assertNull(office.parse("").value());
+    assertTrue(office.isOptional());
+    List<Format<?>> formats =
+        List.of(Format.time(3), Format.dateTime(6), Format.offsetDateTime(9, Format.Offset.SHORT));
+    List<Object> values = List.of(
+        LocalTime.of(9, 0, 5, 1),
+        LocalDateTime.of(2026, 1, 1, 0, 0),
+        OffsetDateTime.of(2026, 1, 1, 0, 0, 0, 999_999_999, ZoneOffset.ofHoursMinutes(-9, -30)));
+    for (int i = 0; i < formats.size(); i++) {
+      @SuppressWarnings("unchecked")
+      Format<Object> f = (Format<Object>) formats.get(i);
+      String text = f.text(values.get(i));
+      assertTrue(f.parse(text).valid(), text);
+      for (int n = 0; n <= text.length(); n++) {
+        assertTrue(f.allows(text.substring(0, n)), text.substring(0, n));
+      }
+    }
+    // One length for every value of one precision, as a column of them shows.
+    java.util.Random random = new java.util.Random(14);
+    Format<OffsetDateTime> f = Format.offsetDateTime(3, Format.Offset.COLONS);
+    for (int n = 0; n < 1000; n++) {
+      OffsetDateTime v = OffsetDateTime.of(
+          LocalDateTime.of(1000 + random.nextInt(9000), 1 + random.nextInt(12), 1, 0, 0)
+              .plusSeconds(random.nextInt(86_400 * 28))
+              .plusNanos(random.nextInt(1_000_000_000)),
+          ZoneOffset.ofTotalSeconds(random.nextInt(-12 * 60, 14 * 60) * 60));
+      String text = f.text(v);
+      assertEquals("2026-01-01 09:00:00.000+00:00".length(), text.length(), text);
+      assertEquals(
+          v.truncatedTo(java.time.temporal.ChronoUnit.MILLIS), f.parse(text).value());
+    }
+  }
+
+  /** The ends of each type, as for the plain formats, at the largest precision and every offset. */
+  @Test
+  void timesOfAPrecisionReadBackTheEndsOfTheirTypes() {
+    for (Format.Offset spelling : Format.Offset.values()) {
+      for (OffsetDateTime v : List.of(OffsetDateTime.MIN, OffsetDateTime.MAX)) {
+        roundTrip(
+            Format.offsetDateTime(9, spelling),
+            v,
+            Format.offsetDateTime(9, spelling).text(v));
+      }
+    }
+    roundTrip(Format.time(9), LocalTime.MAX, "23:59:59.999999999");
+    roundTrip(Format.dateTime(9), LocalDateTime.MIN, "-999999999-01-01 00:00:00.000000000");
+  }
 }

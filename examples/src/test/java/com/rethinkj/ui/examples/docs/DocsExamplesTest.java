@@ -43,6 +43,7 @@ class DocsExamplesTest {
     controls(all, "button-options", Controls::buttonOptions, 420, 120);
     controls(all, "toggles", Controls::toggles, 240, 110);
     controls(all, "choices", Controls::choices, 320, 260);
+    controls(all, "swatches", Controls::swatches, 460, 140);
     controls(all, "combos", Controls::combos, 360, 240);
     controls(all, "typed", Controls::typed, 360, 420);
     controls(all, "fields", Controls::fields, 360, 400);

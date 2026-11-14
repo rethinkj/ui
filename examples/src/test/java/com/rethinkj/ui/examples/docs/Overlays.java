@@ -13,6 +13,7 @@ import com.rethinkj.ui.kit.Button;
 import com.rethinkj.ui.kit.CommandPalette;
 import com.rethinkj.ui.kit.Dialog;
 import com.rethinkj.ui.kit.FilterList;
+import com.rethinkj.ui.kit.HuePicker;
 import com.rethinkj.ui.kit.Label;
 import com.rethinkj.ui.kit.Menu;
 import com.rethinkj.ui.kit.MenuBar;
@@ -22,6 +23,7 @@ import com.rethinkj.ui.kit.TextField;
 import com.rethinkj.ui.kit.Theme;
 import com.rethinkj.ui.kit.Toast;
 import com.rethinkj.ui.kit.Tooltip;
+import java.util.ArrayList;
 import java.util.List;
 
 /** The examples of the pages about menus, dialogs and other overlays. */
@@ -72,6 +74,22 @@ final class Overlays {
             Menu.item("Copy name", () -> s.said = "copy")));
     // docs:end context-menu
     return Frame.of(t, dropdown, withMenu).onKey(Menu.shortcuts(items));
+  }
+
+  Theme.Hue hue = Theme.Hue.RED;
+
+  /** Items with a swatch before their text; shown on the page, not run as an example. */
+  static List<Menu.Item> colours(Overlays s) {
+    // docs:start menu-leading
+    List<Menu.Item> colours = new ArrayList<>();
+    for (Theme.Hue each : Theme.Hue.values()) {
+      colours.add(Menu.item(HuePicker.name(each), () -> s.hue = each)
+          .leading(t -> HuePicker.swatch(t, each)) // built for each place the item shows
+          .checked(each == s.hue)); // the check mark goes to the item's end
+    }
+    Menu.Item colour = Menu.submenu("Colour", colours);
+    // docs:end menu-leading
+    return List.of(colour);
   }
 
   static El menuBar(Overlays s) {

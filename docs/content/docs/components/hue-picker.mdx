@@ -1,0 +1,41 @@
+---
+title: HuePicker
+description: Round swatches of the theme's hues, for the colour that marks a connection or a tab.
+---
+
+`HuePicker.huePicker` shows a round swatch for each of the theme's ten hues, with a choice of no colour first when the app allows one. Use it for a colour that marks something, such as the connection to production, wherever the same hue shows again: a tab's mark (`Tab.hue`) has the same colour. For choices that show other elements, use [Radio](/docs/components/radio#swatches)'s `swatches`, which this is built on.
+
+<Shot src="kit/swatches-{theme}-2x" alt="Rows of round colour swatches: one with a ring around the chosen red, one with a square focus ring around the first, one disabled, and one wrapped in a narrow box" />
+
+## Example
+
+```java snippet="hue-picker"
+```
+
+| Call | |
+| --- | --- |
+| `huePicker(t, selected, onSelect)` | The ten hues; `selected` null for none |
+| `huePicker(t, selected, none, onSelect)` | A choice of no colour named `none` first, then the hues; null chooses it |
+| `huePicker(t, prop, none)` | The value of a `Prop`, as of an [Editing](/docs/concepts/editing); `none` null for no such choice |
+| `HuePicker.swatch(t, hue)` | The swatch alone, a checkbox's size, for a menu item's [leading element](/docs/components/menu#items) or a list |
+| `HuePicker.name(hue)` | The hue's name as a person reads it: `Red`, `Violet` |
+
+A null handler disables it. Each swatch is filled with the hue's `accent().edge()` of the theme, which holds 3:1 on the panel and raised surfaces in both default themes. The choice of no colour shows the `PROHIBITED` icon in muted text.
+
+## Chosen and focused
+
+The chosen swatch has a round ring in `accent().edge()`, with the surface between it and the swatch. The keyboard's focus is a rounded square around the swatch the arrows go on from: the chosen one, or the first while none is chosen. So a focused choice shows a circle inside a square, and the two never look alike. Each swatch takes the press over 32 by 32 pixels, with the hover and pressed overlays, and shows its name in a tooltip.
+
+## Keyboard
+
+The picker is one stop for Tab. The arrows choose the next and the previous hue, around the ends; Home and End the first and the last; Space the first while none is chosen. A press chooses and leaves the focus where it was.
+
+## In a tree dump
+
+`role=radiogroup` with its label, each swatch `role=radio` labelled by its hue's name with `checked` or `checked=false`:
+
+```text file="examples/src/test/resources/golden/docs/swatches/view.tree.txt" start="label=\"Colour\"" count="2"
+```
+
+```text file="examples/src/test/resources/golden/docs/swatches/view.tree.txt" start="label=\"Teal\"" count="1"
+```
