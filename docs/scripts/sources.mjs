@@ -2,6 +2,7 @@
 // documentation's examples, excerpts of other files (element trees, scripts) and the stored images
 // of the tests. Shared by scripts/docs.mjs, which checks and copies before a build, and by the
 // remark plugin in lib/remark-docs.mjs, which puts them into the pages.
+import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -15,6 +16,7 @@ export const REPOSITORY = 'https://github.com/rethinkj/ui';
 export const SNIPPET_ROOTS = [
   'examples/src/test/java/com/rethinkj/ui/examples/docs',
   'examples/src/test/resources/docs',
+  'examples/src/main/java/com/rethinkj/ui/examples',
 ];
 
 const START = /^\s*(?:\/\/|#)\s*docs:start\s+([\w-]+)\s*$/;
@@ -97,7 +99,7 @@ export function resolveFence(meta, where) {
   if (a.snippet) {
     const s = snippets().get(a.snippet);
     if (!s) {
-      throw new DocsError(`${where}: no snippet "${a.snippet}"; mark it with // docs:start ${a.snippet} and // docs:end ${a.snippet} in ${SNIPPET_ROOTS[0]}`);
+      throw new DocsError(`${where}: no snippet "${a.snippet}"; mark it with // docs:start ${a.snippet} and // docs:end ${a.snippet} in ${SNIPPET_ROOTS[0]} (or, for an example app, in its source)`);
     }
     return { code: s.code, source: s.file };
   }
@@ -136,17 +138,33 @@ export function goldenPath(name) {
 }
 
 /**
+ * The tree of a stored image: `<name>.tree.txt`, or for the images of a docs example, which are
+ * `<snap>-dark` and `<snap>-light`, the one tree `<snap>.tree.txt`.
+ */
+export function treePath(name) {
+  const tree = goldenPath(name).replace(/\.png$/, '.tree.txt');
+  return fs.existsSync(tree) ? tree : tree.replace(/-(dark|light)\.tree\.txt$/, '.tree.txt');
+}
+
+/**
  * The images a `<Shot>` shows: `src` (with `{theme}` for `dark` and `light`), or `dark` and
- * `light`, and `rows` for a part of the kit's gallery. Each is `{ name, rows, out }`, where `out`
- * is its path under public/shots.
+ * `light`, and `rows` for a part of the kit's gallery or `crop` for the elements of its tree that
+ * contain one of the texts between `|`, as `role=toolbar|role=menu`. Each is
+ * `{ name, rows, crop, out }`, where `out` is its path under public/shots.
  */
 export function shotImages(attrs, where) {
   const pick = (theme) => {
     const name = attrs[theme] ?? attrs.src?.replaceAll('{theme}', theme);
     if (!name) throw new DocsError(`${where}: a <Shot> needs src, or dark and light`);
     const rows = attrs.rows ? attrs.rows.split(',').map((r) => r.trim()) : null;
-    const out = rows ? `${name}--${rows.map((r) => r.replace(/\W+/g, '-')).join('_')}.png` : `${name}.png`;
-    return { name, rows, out };
+    const crop = attrs.crop ? attrs.crop.split('|').map((c) => c.trim()) : null;
+    // Crops are named by a hash of their selectors, which may differ only in punctuation.
+    const out = rows
+      ? `${name}--${rows.map((r) => r.replace(/\W+/g, '-')).join('_')}.png`
+      : crop
+        ? `${name}--crop-${crypto.createHash('sha256').update(crop.join('|')).digest('hex').slice(0, 12)}.png`
+        : `${name}.png`;
+    return { name, rows, crop, out };
   };
   return { dark: pick('dark'), light: pick('light') };
 }
@@ -156,7 +174,7 @@ export function shotImages(attrs, where) {
  * in its tree, or from its name (`-2x`) where it has no tree of its own, as the gallery.
  */
 export function scaleOf(name, pixelWidth) {
-  const tree = goldenPath(name).replace(/\.png$/, '.tree.txt');
+  const tree = treePath(name);
   if (pixelWidth && fs.existsSync(tree)) {
     const m = fs.readFileSync(tree, 'utf8').match(/^(?:el|text|image)\b[^\n]*? 0,0 ([\d.]+)x/);
     if (m) return pixelWidth / Number(m[1]);
@@ -169,5 +187,5 @@ export const MANIFEST = path.join(DOCS, '.generated/shots.json');
 
 /** The key of a `<Shot>` in the manifest that scripts/docs.mjs writes. */
 export function shotKey(attrs) {
-  return JSON.stringify([attrs.src ?? null, attrs.dark ?? null, attrs.light ?? null, attrs.rows ?? null]);
+  return JSON.stringify([attrs.src ?? null, attrs.dark ?? null, attrs.light ?? null, attrs.rows ?? null, attrs.crop ?? null]);
 }

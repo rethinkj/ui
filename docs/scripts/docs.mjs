@@ -2,14 +2,15 @@
 // snippet, excerpt and image the pages name exists, copies the images (and cuts rows out of the
 // kit's gallery), the fonts and the logo into public/, and writes the changelog page.
 // `node scripts/docs.mjs check` runs after the build: it puts each page's Markdown next to the
-// page (`/docs/x/` has `/docs/x.md`) and fails on internal links that lead nowhere, except those
-// into the Javadoc at /api/, which is not there yet.
+// page (`/docs/x/` has `/docs/x.md`) and fails on internal links that lead nowhere. Links into the
+// Javadoc at /api/ are checked when it is in public/api/ (the Docs workflow puts it there before
+// the build), and skipped otherwise.
 import fs from 'node:fs';
 import path from 'node:path';
 import * as png from './png.mjs';
 import {
   DOCS, ROOT, DocsError, MANIFEST, attributes, goldenPath, resolveFence, scaleOf, shotImages,
-  shotKey, snippets,
+  shotKey, snippets, treePath,
 } from './sources.mjs';
 
 const CONTENT = path.join(DOCS, 'content/docs');
@@ -53,6 +54,28 @@ function galleryRows(name) {
   return rows;
 }
 
+/**
+ * The part of an image that holds the elements `image.crop` names, in physical pixels: with the
+ * room that a docs example's frame leaves at the sides, and half its gap above and below, which
+ * keeps the elements next to them out.
+ */
+function cropBox(image, pixels, where) {
+  const tree = fs.readFileSync(treePath(image.name), 'utf8').split('\n');
+  const scale = scaleOf(image.name, pixels.width);
+  const box = image.crop.map((text) => {
+    const line = tree.find((l) => l.includes(text));
+    if (!line) throw new DocsError(`${where}: no element with ${text} in the tree of ${image.name}`);
+    const [x, y, w, h] = line.match(/ (-?[\d.]+),(-?[\d.]+) ([\d.]+)x([\d.]+)/).slice(1).map(Number);
+    return [x, y, x + w, y + h];
+  }).reduce((a, b) => [Math.min(a[0], b[0]), Math.min(a[1], b[1]), Math.max(a[2], b[2]), Math.max(a[3], b[3])]);
+  const [side, gap] = [12, 4];
+  const left = Math.max(0, Math.floor((box[0] - side) * scale));
+  const top = Math.max(0, Math.floor((box[1] - gap) * scale));
+  const right = Math.min(pixels.width, Math.ceil((box[2] + side) * scale));
+  const bottom = Math.min(pixels.height, Math.ceil((box[3] + gap) * scale));
+  return [left, top, right - left, bottom - top];
+}
+
 function prepareShot(image, where, manifest) {
   const source = goldenPath(image.name);
   if (!fs.existsSync(source)) {
@@ -74,11 +97,17 @@ function prepareShot(image, where, manifest) {
     const cut = png.stack(png.decode(fs.readFileSync(source)), bands);
     fs.mkdirSync(path.dirname(target), { recursive: true });
     fs.writeFileSync(target, png.encode(cut));
+  } else if (image.crop) {
+    const pixels = png.decode(fs.readFileSync(source));
+    fs.mkdirSync(path.dirname(target), { recursive: true });
+    fs.writeFileSync(target, png.encode(png.crop(pixels, ...cropBox(image, pixels, where))));
   } else {
     copy(source, target);
   }
   const { width, height } = png.size(fs.readFileSync(target));
-  const scale = image.rows ? scaleOf(image.name) : scaleOf(image.name, width);
+  const scale = image.rows
+    ? scaleOf(image.name)
+    : scaleOf(image.name, png.size(fs.readFileSync(source)).width);
   manifest[image.out] = { width: Math.round(width / scale), height: Math.round(height / scale) };
 }
 
@@ -176,12 +205,15 @@ function check() {
   const ids = new Map();
   const idsOf = (file) => {
     if (!ids.has(file)) {
-      ids.set(file, new Set([...fs.readFileSync(file, 'utf8').matchAll(/\sid="([^"]+)"/g)].map((m) => m[1])));
+      ids.set(file, new Set([...fs.readFileSync(file, 'utf8').matchAll(/\sid="([^"]+)"/g)].map((m) => m[1].replaceAll('&lt;', '<').replaceAll('&gt;', '>').replaceAll('&amp;', '&'))));
     }
     return ids.get(file);
   };
   const dead = [];
-  const html = walk(OUT).filter((f) => f.endsWith('.html'));
+  // The Javadoc's own pages are not checked, only the site's links into them.
+  const javadoc = fs.existsSync(path.join(OUT, 'api/index.html'));
+  if (!javadoc) console.log('docs: no Javadoc in public/api/, links to /api/ not checked');
+  const html = walk(OUT).filter((f) => f.endsWith('.html') && !f.startsWith(path.join(OUT, 'api') + path.sep));
   for (const file of html) {
     const text = fs.readFileSync(file, 'utf8');
     const page = '/' + path.relative(OUT, file).replace(/index\.html$/, '').replace(/\.html$/, '');
@@ -189,8 +221,7 @@ function check() {
       const link = m[1].replaceAll('&amp;', '&');
       if (!link.startsWith('/') && !link.startsWith('#')) continue;
       if (link.startsWith('//') || link.startsWith('/_next/')) continue;
-      // The Javadoc, which the Docs workflow copies into out/api/ after this check.
-      if (link.startsWith('/api/')) continue;
+      if (link.startsWith('/api/') && !javadoc) continue;
       const [target, hash] = link.split('#');
       const pathOnly = target.split('?')[0];
       const servedFile = pathOnly ? served(pathOnly) : file;
@@ -205,8 +236,14 @@ function check() {
   }
   for (const txt of ['llms.txt', 'llms-full.txt']) {
     const text = fs.readFileSync(path.join(OUT, txt), 'utf8');
-    for (const m of text.matchAll(/\]\((\/[^)\s#]*)/g)) {
-      if (!served(m[1])) dead.push(`/${txt}: ${m[1]}`);
+    // A fragment may hold one level of parentheses, as a Javadoc method anchor does.
+    for (const m of text.matchAll(/\]\((\/[^)\s#]*)(?:#((?:[^()\s]|\([^()]*\))*))?\)/g)) {
+      if (m[1].startsWith('/api/') && !javadoc) continue;
+      const servedFile = served(m[1]);
+      if (!servedFile) dead.push(`/${txt}: ${m[1]}`);
+      else if (m[2] && servedFile.endsWith('.html') && !idsOf(servedFile).has(decodeURIComponent(m[2]))) {
+        dead.push(`/${txt}: ${m[1]}#${m[2]} (no #${m[2]} there)`);
+      }
     }
   }
   if (dead.length) {

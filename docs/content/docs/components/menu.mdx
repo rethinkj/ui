@@ -5,6 +5,8 @@ description: Items, separators, check marks, shortcuts and submenus, as a dropdo
 
 `Menu` shows items in an overlay: below a button with `Menu.dropdown`, at the pointer with `Menu.contextMenu`, or alone with `Menu.menu`. Items have text, an icon or a check mark, a shortcut shown at the right, and submenus to any depth. For the File, Edit and View menus of a window, use a [MenuBar](/docs/components/menu-bar); for one value among choices, a [Select](/docs/components/select).
 
+Javadoc: [`Menu`](/api/com/rethinkj/ui/kit/Menu.html), [`Menu.Item`](/api/com/rethinkj/ui/kit/Menu.Item.html), [`Menu.State`](/api/com/rethinkj/ui/kit/Menu.State.html).
+
 <Shot src="kit/menu-{theme}-2x-submenu" alt="A dropdown menu with icons, shortcuts, a separator and an open submenu" />
 
 ## Example
@@ -33,6 +35,7 @@ The button's handler calls `state.toggle()`; `Menu.dropdown(theme, button, state
 | --- | --- |
 | `Menu.item(label, onChoose)` | An item; a null handler disables it |
 | `.shortcut(Key.CONTROL, "N")` | A key combination that runs it, shown as the platform writes it (`Ctrl+N`) |
+| `.alsoShortcut(Key.CONTROL, "PageDown")` | A further key combination that runs it; only the first one shows |
 | `.shortcut("Ctrl+Enter")` | A text that only shows |
 | `.icon(Symbol)` | An icon before the text |
 | `.checked(boolean)` | A check mark in the icon's place, or at the item's end where it has a leading element |
@@ -41,7 +44,7 @@ The button's handler calls `state.toggle()`; `Menu.dropdown(theme, button, state
 | `Menu.separator()` | A line |
 | `Menu.submenu(label, items)` | A submenu, opening beside the item |
 
-An `Item` is a record (`label`, `shortcut`, `keys`, `checked`, `icon`, `onChoose`, `submenu`, `leading`, `dangerous`), so an app can read its items back, as a palette or a help page of shortcuts does. `isSeparator()` says whether it is a line, and `isEnabled()` whether it can be chosen or opens a submenu that has items. `Menu.shortcutText(key)` writes a `Key` as the platform does, such as `Ctrl+Shift+N`, for a tooltip or a hint of the app's own.
+An [`Item`](/api/com/rethinkj/ui/kit/Menu.Item.html) is a record, so an app can read its items back, as a palette or a help page of shortcuts does. `isSeparator()` says whether it is a line, and `isEnabled()` whether it can be chosen or opens a submenu that has items. `Menu.shortcutText(key)` writes a `Key` as the platform does, such as `Ctrl+Shift+N`, for a tooltip or a hint of the app's own.
 
 A submenu of colours with a swatch before each hue's name, the chosen one checked at its end, as a [ComboBox](/docs/components/combo-box) checks its current item. A [CommandPalette](/docs/components/command-palette) of these items shows the same:
 
@@ -54,12 +57,7 @@ A submenu of colours with a swatch before each hue's name, the chosen one checke
 
 ## The state
 
-The app keeps one `Menu.State` per menu.
-
-| `Menu.State` | |
-| --- | --- |
-| `isOpen()`, `open()`, `openAt(x, y)`, `close()`, `toggle()` | Open and close |
-| `active(level)`, `submenu(level)` | The highlighted item and the item whose submenu is open, at each level |
+The app keeps one [`Menu.State`](/api/com/rethinkj/ui/kit/Menu.State.html) per menu. `isOpen()`, `open()`, `openAt(x, y)`, `close()` and `toggle()` open and close it; `active(level)` and `submenu(level)` are the highlighted item and the item whose submenu is open, at each level.
 
 ## Keyboard
 

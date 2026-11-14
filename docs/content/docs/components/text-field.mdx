@@ -5,6 +5,8 @@ description: Single-line fields, password fields that can show their text, text 
 
 `TextField.textField` is a single-line text field: a quiet frame with a strong line along the bottom; under the pointer a lighter fill and a strong frame; while focused, frame and line in the accent colour. Text areas, selects, combo boxes and the framed code editor share this frame. The same class has `passwordField` and `revealable` for passwords, `textArea` for several lines of prose and `codeArea` for code. The string belongs to the app: every edit hands the new string to the handler, which stores it. For code with line numbers and highlighting, use a [CodeEditor](/docs/components/code-editor). For a typed value, such as a `BigDecimal` or a `LocalDate`, use a [ValueField](/docs/components/format). For a whole number with step buttons, use a [NumberField](/docs/components/number-field).
 
+Javadoc: [`TextField`](/api/com/rethinkj/ui/kit/TextField.html).
+
 <Shot src="kit/gallery-{theme}-2x" rows="field empty,field filled,field selected" alt="Text fields empty, filled and with a selection, in each state" />
 
 ## Example

@@ -1,18 +1,125 @@
 ---
-title: Your own project
-description: A Maven project that depends on rethinkj UI, and how to run it in a window and under a script.
+title: Installation
+description: The Maven or Gradle setup for rethinkj UI, and how to run an app in a window and under a script.
 ---
 
-rethinkj UI is a library for desktop apps in Java 25 on Windows 11 or later and Linux, both on x64. You need a JDK 25 and Maven 3.9 or later. There is no release yet: every push to `main` publishes SNAPSHOTs to Maven Central's snapshot repository. A SNAPSHOT changes with each push, the API with it, and Central removes SNAPSHOTs after 90 days.
+rethinkj UI is a library for desktop apps in Java 25 on Windows 11 or later and Linux, both on x64. You need a JDK 25 and Maven 3.9 or later or Gradle 9.1 or later. There is no release yet: every push to `main` publishes SNAPSHOTs to Maven Central's snapshot repository. A SNAPSHOT changes with each push, the API with it, and Central removes SNAPSHOTs after 90 days.
 
-## The project
+## Add the dependencies
+
+You need the snapshot repository, the kit (it brings core with it), the fonts, the icons and the native libraries of your platform at run time, and `java` started with `--enable-native-access=ALL-UNNAMED`.
+
+<Tabs items={['Maven', 'Gradle']}>
+<Tab value="Maven">
+
+```xml title="pom.xml"
+<repositories>
+  <repository>
+    <id>central-snapshots</id>
+    <url>https://central.sonatype.com/repository/maven-snapshots/</url>
+    <releases><enabled>false</enabled></releases>
+    <snapshots><enabled>true</enabled></snapshots>
+  </repository>
+</repositories>
+
+<dependencies>
+  <dependency>
+    <groupId>com.rethinkj.ui</groupId>
+    <artifactId>rethinkj-ui-kit</artifactId>
+    <version>0.1.0-SNAPSHOT</version>
+  </dependency>
+  <dependency>
+    <groupId>com.rethinkj.ui</groupId>
+    <artifactId>rethinkj-ui-fonts</artifactId>
+    <version>0.1.0-SNAPSHOT</version>
+    <scope>runtime</scope>
+  </dependency>
+  <dependency>
+    <groupId>com.rethinkj.ui</groupId>
+    <artifactId>rethinkj-ui-icons</artifactId>
+    <version>0.1.0-SNAPSHOT</version>
+    <scope>runtime</scope>
+  </dependency>
+  <dependency>
+    <groupId>com.rethinkj.ui</groupId>
+    <!-- or rethinkj-ui-natives-windows-x64 -->
+    <artifactId>rethinkj-ui-natives-linux-x64</artifactId>
+    <version>0.1.0-SNAPSHOT</version>
+    <scope>runtime</scope>
+  </dependency>
+</dependencies>
+```
+
+The [whole pom](#a-whole-project) below picks the natives by the OS that builds and runs the app with `exec:exec` and the JVM flag:
+
+```sh
+mvn compile exec:exec                                                  # in a window
+mvn -q compile exec:exec -Dargs="--script lights.txt --out target/lights"  # under a script
+```
+
+</Tab>
+<Tab value="Gradle">
+
+With the Kotlin DSL:
+
+```kotlin title="settings.gradle.kts"
+rootProject.name = "lights"
+```
+
+```kotlin title="build.gradle.kts"
+plugins {
+    application
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(25)
+    }
+}
+
+repositories {
+    maven("https://central.sonatype.com/repository/maven-snapshots/") {
+        mavenContent { snapshotsOnly() }
+    }
+    mavenCentral()
+}
+
+val rethinkjUi = "0.1.0-SNAPSHOT"
+val natives = if (System.getProperty("os.name").startsWith("Windows")) "windows-x64" else "linux-x64"
+
+dependencies {
+    implementation("com.rethinkj.ui:rethinkj-ui-kit:$rethinkjUi")
+    runtimeOnly("com.rethinkj.ui:rethinkj-ui-fonts:$rethinkjUi")
+    runtimeOnly("com.rethinkj.ui:rethinkj-ui-icons:$rethinkjUi")
+    runtimeOnly("com.rethinkj.ui:rethinkj-ui-natives-$natives:$rethinkjUi")
+}
+
+application {
+    mainClass = "com.example.Lights"
+    applicationDefaultJvmArgs = listOf("--enable-native-access=ALL-UNNAMED")
+}
+```
+
+```sh
+gradle run                                                # in a window
+gradle run --args="--script lights.txt --out build/lights"  # under a script
+```
+
+Run `gradle wrapper` once to add `./gradlew` to the project, so that others build it without installing Gradle.
+
+</Tab>
+</Tabs>
+
+## A whole project
 
 ```text
 lights/
-├── pom.xml
+├── pom.xml                  (or settings.gradle.kts and build.gradle.kts)
 ├── lights.txt
 └── src/main/java/com/example/Lights.java
 ```
+
+The whole pom, to copy:
 
 ```xml title="pom.xml"
 <?xml version="1.0" encoding="UTF-8"?>
@@ -122,22 +229,17 @@ The main class goes under `src/main/java`. This is the app of [The first app](/d
 
 ## Run it
 
-In a window:
-
-```sh
-mvn compile exec:exec
-```
-
-Under a script, without a window. The script presses the switch and snaps before and after:
+Run it in a window with `mvn compile exec:exec` or `gradle run`. Under a script it runs without a window. This script presses the switch and snaps before and after:
 
 ```text snippet="lights-script" title="lights.txt"
 ```
 
 ```sh
 mvn -q compile exec:exec -Dargs="--script lights.txt --out target/lights"
+gradle run --args="--script lights.txt --out build/lights"
 ```
 
-It writes `off.png`, `off.tree.txt`, `on.png` and `on.tree.txt` to `target/lights` and prints their paths. The commands are the same on Windows. [Testing and agents](/docs/testing) explains scripts and trees.
+It writes `off.png`, `off.tree.txt`, `on.png` and `on.tree.txt` to the `--out` folder and prints their paths. The commands are the same on Windows. [Testing and agents](/docs/testing) explains scripts and trees.
 
 ## The artifacts
 

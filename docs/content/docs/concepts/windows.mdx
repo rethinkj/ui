@@ -7,12 +7,14 @@ One `WindowLoop` runs any number of windows. Each has its own `App` (focus, hove
 
 <Shot src="examples/notes-torn" alt="A note torn off into its own window, beside the row of notes it came from" />
 
+<Shot src="examples/groceries-notes-torn" alt="The window of the torn note Groceries: its title above a field with its text" caption="The torn note's own window." />
+
 ## Opening a window
 
 ```java snippet="tab-groups"
 ```
 
-`windows.open(title, width, height, options, app)` opens a window that runs `app` and returns a `Windows.Handle`: `close()`, `raise()`, `moveTo(x, y)`, `onCloseRequest(handler)`, `isOpen()`, and the window's position and scale. `windows.all()` lists the open windows; `of(app)` finds an app's window.
+`windows.open(title, width, height, options, app)` opens a window that runs `app` and returns a [`Windows.Handle`](/api/com/rethinkj/ui/window/Windows.Handle.html): `close()`, `raise()`, `moveTo(x, y)`, `onCloseRequest(handler)`, `isOpen()`, and the window's position and scale. `windows.all()` lists the open windows; `of(app)` finds an app's window.
 
 Apps with the same state object rebuild together: when a handler in one runs, the others' views are built in the same pass.
 

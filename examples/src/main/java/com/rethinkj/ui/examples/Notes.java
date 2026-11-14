@@ -141,6 +141,7 @@ public final class Notes {
   }
 
   /** A note's title, which drags the note: along the row, out of the window, back. */
+  // docs:start notes-handle
   static El handle(Theme t, Note note, Notes s) {
     return row()
         .key("handle-" + note.title)
@@ -149,8 +150,10 @@ public final class Notes {
         .dragPayload(note)
         .onDrag(d -> s.drag(note, d));
   }
+  // docs:end notes-handle
 
   /** The drop handler of the row: the marker follows the pointer, a drop puts the note there. */
+  // docs:start notes-dock
   void overRow(Drop d) {
     if (!(d.payload() instanceof Note note)) {
       return;
@@ -171,6 +174,7 @@ public final class Notes {
       }
     }
   }
+  // docs:end notes-dock
 
   /** The index in the row before which a note dropped at {@code x} would go. */
   int slot(double x) {
@@ -191,6 +195,7 @@ public final class Notes {
    * window under the pointer, held where the title was, which follows each step; the drag goes on
    * without the card, since it carries the note.
    */
+  // docs:start notes-drag
   void drag(Note note, Drag d) {
     Theme t = THEME;
     boolean moving = d.phase() == Drag.Phase.START || d.phase() == Drag.Phase.MOVE;
@@ -209,7 +214,9 @@ public final class Notes {
       marker = -1;
     }
   }
+  // docs:end notes-drag
 
+  // docs:start notes-tear-off
   void tearOff(Note note, Drag d) {
     App<Notes> noteApp = new App<>(this, s -> s.noteView(note));
     noteApp.textRendering(app.textRendering());
@@ -239,6 +246,7 @@ public final class Notes {
     float scale = window.screenScale();
     window.moveTo(Math.round(d.screenX() - grabX * scale), Math.round(d.screenY() - grabY * scale));
   }
+  // docs:end notes-tear-off
 
   // ---- A note's window
 

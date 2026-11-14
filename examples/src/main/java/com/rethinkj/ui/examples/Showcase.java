@@ -404,6 +404,7 @@ public final class Showcase {
 
   static El view(Showcase s) {
     Theme t = s.theme();
+    // docs:start showcase-sidebar
     El nav = NavList.navList(
             t,
             List.of(Section.values()),
@@ -432,6 +433,7 @@ public final class Showcase {
                     .wFull()))
         .w(200)
         .shrink(0);
+    // docs:end showcase-sidebar
     El root = col()
         .wFull()
         .hFull()

@@ -1,5 +1,5 @@
 el 0,0 520x280
-  el role=navigation label="Breadcrumb" 12,12 245x24
+  el role=navigation label="Breadcrumb" 12,12 496x24
     el #crumb-0 12,12 64x24
       el role=link label="localhost" 12,12 64x24
         text "localhost" 16,16 56x16

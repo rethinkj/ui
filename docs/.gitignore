@@ -7,6 +7,8 @@
 /public/shots/
 /public/fonts/
 /public/logo.svg
+# The Javadoc of core and kit, which the Docs workflow generates before the build.
+/public/api/
 /content/docs/reference/changelog.md
 
 # build

@@ -5,7 +5,9 @@ description: A card with a bar of tabs over the content of the active one.
 
 `Tabs.tabs` is a card whose first row is a bar of tabs. Below it, the content of the active tab fills the card edge to edge. Use it for open documents, queries or tables. The app owns the list and the active index; the content is built for the active tab only. To let tabs move between windows, use [TabGroups](/docs/components/tab-groups); for a choice of two or three views, a [Segmented](/docs/components/segmented) control.
 
-<Shot src="kit/tabs-{theme}-first" alt="A card with a bar of tabs, the active tab marked by an accent line" />
+Javadoc: [`Tabs`](/api/com/rethinkj/ui/kit/Tabs.html), [`Tabs.Tab`](/api/com/rethinkj/ui/kit/Tabs.Tab.html), [`Tabs.Options`](/api/com/rethinkj/ui/kit/Tabs.Options.html).
+
+<Shot src="examples/docs/tabs/view-{theme}" alt="A card with the tabs orders, customers marked as changed, and query 1, orders active with its close button" />
 
 ## Example
 
@@ -40,21 +42,14 @@ description: A card with a bar of tabs over the content of the active one.
 
 [TabGroups](/docs/components/tab-groups) wires all of these for you.
 
-The app keeps one `Tabs.Dragging` for all bars that trade tabs. It says what a drag is doing, so that a view can hide things meanwhile, such as a tooltip or a drop hint:
-
-| `Tabs.Dragging` | |
-| --- | --- |
-| `isActive()` | Whether a tab is being dragged |
-| `bar()`, `index()` | The `id` of the dragged tab's bar and its index there, -1 for none |
-| `isTorn()` | Whether the dragged tab has left its bar (`onTearOff`) |
-| `moved(bar, index)` | Tells the drag that the app moved its tab, to `index` in `bar`, so that it stays the one dragged |
+The app keeps one [`Tabs.Dragging`](/api/com/rethinkj/ui/kit/Tabs.Dragging.html) for all bars that trade tabs. It says what a drag is doing, so that a view can hide things meanwhile, such as a tooltip or a drop hint: `isActive()` says whether a tab is being dragged, and `isTorn()` whether it has left its bar (`onTearOff`).
 
 ## Keyboard
 
 | Keys | Action |
 | --- | --- |
 | Left, Right, Home, End | Choose a tab, while the bar has the focus |
-| Control+Tab, Control+Shift+Tab | Next and previous tab, from the bar or the content |
+| Control+Tab, Control+Shift+Tab; Control+Page Down, Control+Page Up | Next and previous tab, from the bar or the content |
 | Control+W, Control+F4 | Close the active tab |
 | Control+Shift+Page Up, Page Down | Move the active tab, with `onMove` |
 
@@ -62,7 +57,7 @@ The bar is one stop for Tab. For the shortcuts to work while the focus is elsewh
 
 ## In a tree dump
 
-The bar is `role=tablist` with the key `tablist`. Each tab is `role=tab` with its title as label and the key `tab-<index>`; the active one is `selected`, a busy one `busy`, and one being dragged `grabbed`. A close button is `role=button` with `label="Close <title>"` and the key `close-<index>`.
+The bar is `role=tablist` with the key `tablist`. Each tab is `role=tab` with its title as label and the key `tab-<index>`; the active one is `selected`, a busy one `busy`, a modified one `modified`, and one being dragged `grabbed`. A close button is `role=button` with `label="Close <title>"` and the key `close-<index>`.
 
 ```text file="examples/src/test/resources/golden/docs/tabs/view.tree.txt" start="#tablist" count="7"
 ```

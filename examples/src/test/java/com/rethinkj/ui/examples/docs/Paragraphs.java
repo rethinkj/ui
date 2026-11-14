@@ -13,7 +13,7 @@ final class Paragraphs {
   static final String NOTE =
       "The orders table has no index on customer_id. See the query plan" + " before you add one.";
 
-  final Theme t = Theme.DARK;
+  Theme t = Theme.DARK;
   String opened = "";
 
   static El view(Paragraphs s) {

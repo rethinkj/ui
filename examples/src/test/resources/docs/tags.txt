@@ -1,0 +1,20 @@
+# docs:start tags-script
+size 320 140
+frame
+snap view
+
+press #draft
+type "billing"
+key Enter                         # adds the tag and empties the field
+frame
+advance 1                         # the new tag fades in
+frame
+snap added
+
+key Backspace                     # on the empty field: removes the last tag, billing
+press role=button label="Remove orders"
+frame
+advance 1                         # the removed tags fade out
+frame
+snap removed
+# docs:end tags-script
