@@ -1,0 +1,1 @@
+- External menus can copy grid selections, copy with headers, paste and select all through a `DataGrid.Commands` handle bound with `options().commands(handle)`, using the grid's current built columns and the same checks as its keys. `canRun` reports availability, and commands leave open cell editors alone. The Workbench's Edit menu uses these commands directly.

@@ -569,6 +569,98 @@ class GridEditTest {
   }
 
   @Test
+  void anExternalMenuUsesTheLatestGridAndLeavesAnOpenEditorAlone() throws IOException {
+    Ledger ledger = new Ledger(T, 3);
+    DataGrid.Commands commands = new DataGrid.Commands();
+    DataGrid.Layout layout = new DataGrid.Layout(
+        ledger.columns().stream().map(DataGrid.Column::title).toList());
+    int[] selections = {0};
+    ledger.more = o -> o.commands(commands).columns(layout).onSelect(() -> selections[0]++);
+    Menu.Item copy = Menu.item("Copy", () -> commands.run(DataGrid.Command.COPY));
+    Menu.Item headers =
+        Menu.item("Copy with headers", () -> commands.run(DataGrid.Command.COPY_WITH_HEADERS));
+    Menu.Item paste = Menu.item("Paste", () -> commands.run(DataGrid.Command.PASTE));
+    Menu.Item all = Menu.item("Select all", () -> commands.run(DataGrid.Command.SELECT_ALL));
+    assertFalse(commands.canRun(DataGrid.Command.COPY), "nothing built yet");
+    commands.run(DataGrid.Command.COPY);
+    App<Ledger> app = start(ledger);
+
+    app.post(copy.onChoose());
+    app.frame();
+    assertEquals(Ledger.cell(0, 1), app.clipboard().read());
+    assertEquals("ledger", app.focused().key());
+
+    // Keep the same menu handlers while a new build hides and reorders columns.
+    layout.hide(0);
+    layout.moveBefore(2, 1);
+    app.invalidate();
+    app.frame();
+    ledger.selection.select(0, 0); // qty, now the first shown column
+    app.post(headers.onChoose());
+    app.frame();
+    assertEquals("qty\n1", app.clipboard().read());
+    app.clipboard().write("8\tAnn\ninvalid\tBo");
+    app.post(paste.onChoose());
+    app.frame();
+    assertEquals("8", ledger.changes.cell(0, 2));
+    assertEquals(Ledger.cell(1, 2), ledger.changes.cell(1, 2), "invalid number left out");
+    assertEquals("Ann", ledger.changes.cell(0, 1));
+    assertEquals("Bo", ledger.changes.cell(1, 1));
+    assertEquals(Ledger.cell(0, 0), ledger.changes.cell(0, 0), "hidden, read-only id");
+    assertEquals(List.of(new DataGrid.Range(0, 0, 1, 1)), ledger.selection.ranges());
+    assertEquals(1, selections[0], "the grid notified the pasted selection");
+
+    ledger.changes.insert(2);
+    app.invalidate();
+    app.frame();
+    app.post(all.onChoose());
+    app.frame();
+    assertEquals(4, ledger.selection.rowCount(), "the latest build's rows");
+    assertEquals(2, selections[0]);
+    assertEquals("ledger", app.focused().key());
+
+    run(app, "press #cell-0-1\nkey F2\nframe\nkey A control\ntype \"Draft\"\nframe");
+    List<DataGrid.Range> selected = ledger.selection.ranges();
+    int notified = selections[0];
+    int changed = ledger.changes.count();
+    app.clipboard().write("keep");
+    assertFalse(commands.canRun(DataGrid.Command.COPY));
+    assertFalse(commands.canRun(DataGrid.Command.PASTE));
+    assertFalse(commands.canRun(DataGrid.Command.SELECT_ALL));
+    app.post(() -> {
+      copy.onChoose().run();
+      paste.onChoose().run();
+      all.onChoose().run();
+    });
+    app.frame();
+    assertEquals("keep", app.clipboard().read());
+    assertTrue(ledger.selection.isEditing());
+    assertEquals("Draft", ledger.selection.draft());
+    assertEquals("field", app.focused().key());
+    assertEquals(selected, ledger.selection.ranges());
+    assertEquals(notified, selections[0]);
+    assertEquals(changed, ledger.changes.count());
+
+    run(app, "key Escape\nframe");
+    ledger.more = o -> o.commands(commands).columns(layout).onPaste(null);
+    app.invalidate();
+    app.frame();
+    assertTrue(commands.canRun(DataGrid.Command.COPY));
+    assertFalse(commands.canRun(DataGrid.Command.PASTE), "no paste handler in the latest build");
+    app.post(paste.onChoose());
+    app.frame();
+    assertEquals(changed, ledger.changes.count());
+
+    ledger.more = o -> o.commands(commands).select(null);
+    app.invalidate();
+    app.frame();
+    assertFalse(commands.canRun(DataGrid.Command.COPY), "the latest build is not selectable");
+    app.post(copy.onChoose());
+    app.frame();
+    assertEquals("keep", app.clipboard().read());
+  }
+
+  @Test
   void pastedTextGoesFromTheCursorOnAndASingleValueIntoEverySelectedCell() throws IOException {
     Ledger ledger = new Ledger(T, 40);
     App<Ledger> app = start(ledger);

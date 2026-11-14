@@ -109,6 +109,48 @@ import java.util.function.IntPredicate;
  */
 public final class DataGrid {
 
+  /** Operations shared by the grid's keys, context menu and {@link Commands#run}. */
+  public enum Command {
+    /** Copies the selected cells as tab-separated text. */
+    COPY,
+    /** Copies them with the column titles on the first line. */
+    COPY_WITH_HEADERS,
+    /** Pastes the clipboard through {@link Options#onPaste}. */
+    PASTE,
+    /** Selects every data row, leaving the cursor in place. */
+    SELECT_ALL
+  }
+
+  /**
+   * A handle for an external menu to operate one grid. Keep it in the app's state and pass it
+   * to {@link Options#commands} on each build, including when the grid has no selection or
+   * editing handlers. One handle belongs to one grid at a time.
+   */
+  public static final class Commands {
+    private Build build;
+
+    /**
+     * Whether the last build allows this command: false before a build, without a selection,
+     * or while a cell editor is open. Copy needs a clipboard and selected data cells; Paste
+     * needs a clipboard, an onPaste handler and a cursor on a data row; Select all needs rows.
+     * Clipboard contents, copy limits and individual cells' editability are checked
+     * when the command runs, as for the keys.
+     */
+    public boolean canRun(Command command) {
+      return DataGrid.canRun(build, command);
+    }
+
+    /**
+     * Runs on the app's thread, from a handler, using the last build's columns, row count and
+     * options. An unavailable command does nothing. Uses the same selection notifications,
+     * copy limits, loading and editing checks as the keys; leaves the focus where it is and
+     * never commits or changes an open cell editor.
+     */
+    public void run(Command command) {
+      DataGrid.run(build, command);
+    }
+  }
+
   /** Where a column puts its text. Numbers usually go right, in a {@link Column#mono} column. */
   public enum Align {
     LEFT,
@@ -1610,6 +1652,7 @@ public final class DataGrid {
    */
   public static final class Options {
     Selection selection;
+    Commands commands;
     Runnable onSelect;
     List<SortKey> sort = List.of();
     Consumer<List<SortKey>> onSort;
@@ -1658,6 +1701,12 @@ public final class DataGrid {
      */
     public Options select(Selection selection) {
       this.selection = selection;
+      return this;
+    }
+
+    /** Binds an external menu's command handle to this build of the grid. */
+    public Options commands(Commands commands) {
+      this.commands = commands;
       return this;
     }
 
@@ -2211,6 +2260,9 @@ public final class DataGrid {
     El grid =
         row().role("grid").scrollBoth().scrollbars(t.scrollbars()).fill(g.row()).child(content);
     b.grid = grid;
+    if (options.commands != null) {
+      options.commands.build = b;
+    }
     if (sel != null) {
       grid.scrollState(sel.gridScroll);
     }
@@ -3060,11 +3112,11 @@ public final class DataGrid {
     boolean control = (mods & Key.CONTROL) != 0;
     String name = k.name();
     if (control && !shift && (name.equals("C") || name.equals("Insert")) && b.o.clipboard != null) {
-      copy(b, false);
+      run(b, Command.COPY);
       return true;
     }
     if (control && !shift && name.equals("A")) {
-      change(b, () -> sel.selectAll(b.rowCount));
+      run(b, Command.SELECT_ALL);
       return true;
     }
     if (mods == 0
@@ -3130,13 +3182,46 @@ public final class DataGrid {
     return true;
   }
 
-  // Copying
+  // Commands and copying
+
+  static boolean canRun(Build b, Command command) {
+    if (b == null || b.sel == null || b.sel.isEditing() || b.columns.isEmpty()) {
+      return false;
+    }
+    return switch (command) {
+      case COPY, COPY_WITH_HEADERS ->
+        b.o.clipboard != null
+            && b.sel.ranges().stream()
+                .anyMatch(r -> r.top() < b.rowCount && r.left() < b.columns.size());
+      case PASTE ->
+        b.o.clipboard != null
+            && b.o.onPaste != null
+            && b.sel.row() >= 0
+            && b.sel.row() < b.rowCount;
+      case SELECT_ALL -> b.rows > 0;
+    };
+  }
+
+  static void run(Build b, Command command) {
+    if (!canRun(b, command)) {
+      return;
+    }
+    switch (command) {
+      case COPY -> copy(b, false);
+      case COPY_WITH_HEADERS -> copy(b, true);
+      case PASTE -> GridEdit.paste(b);
+      case SELECT_ALL -> change(b, () -> b.sel.selectAll(b.rowCount));
+    }
+  }
 
   private static List<Menu.Item> menuItems(Build b) {
     List<Menu.Item> items = new ArrayList<>();
     if (b.o.clipboard != null && b.sel != null) {
-      items.add(Menu.item("Copy", () -> copy(b, false)).shortcut("Ctrl+C"));
-      items.add(Menu.item("Copy with headers", () -> copy(b, true)));
+      items.add(Menu.item("Copy", canRun(b, Command.COPY) ? () -> run(b, Command.COPY) : null)
+          .shortcut("Ctrl+C"));
+      items.add(Menu.item(
+          "Copy with headers",
+          canRun(b, Command.COPY_WITH_HEADERS) ? () -> run(b, Command.COPY_WITH_HEADERS) : null));
     }
     GridEdit.menuItems(b, items);
     // The header's menu of the cursor's column, which the keyboard reaches from here (Shift+F10).

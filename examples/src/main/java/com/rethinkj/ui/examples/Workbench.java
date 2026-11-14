@@ -155,6 +155,7 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
     final Completion.State completion = new Completion.State();
     String failure; // what the server said was wrong with the statement, until the next edit
     final Selection selection = new Selection(Mode.CELLS);
+    final DataGrid.Commands gridCommands = new DataGrid.Commands();
     final float[] widths;
     final TableRows data; // the rows shown, as the server has them and the filters keep them
     final GridChanges changes; // the edits of the rows until Commit
@@ -1454,7 +1455,7 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
     if (o == null || !o.inGrid || o.rows < 0) {
       return items;
     }
-    // The grid had the focus: the history of its changes, and its keys for the clipboard.
+    // The grid had the focus: the history of its changes and its clipboard commands.
     boolean free = o.committing == null;
     items.set(
         0,
@@ -1469,24 +1470,31 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
     items.set(3, Menu.item("Cut", null).icon(Symbol.CUT).shortcut(Key.CONTROL, "X"));
     items.set(
         4,
-        Menu.item("Copy", o.selection.isEmpty() ? null : () -> gridKey(o, app, "C"))
+        Menu.item(
+                "Copy",
+                o.gridCommands.canRun(DataGrid.Command.COPY)
+                    ? () -> o.gridCommands.run(DataGrid.Command.COPY)
+                    : null)
             .icon(Symbol.COPY)
             .shortcut(Key.CONTROL, "C"));
     items.set(
         5,
-        Menu.item("Paste", free ? () -> gridKey(o, app, "V") : null)
+        Menu.item(
+                "Paste",
+                free && o.gridCommands.canRun(DataGrid.Command.PASTE)
+                    ? () -> o.gridCommands.run(DataGrid.Command.PASTE)
+                    : null)
             .icon(Symbol.CLIPBOARD_PASTE)
             .shortcut(Key.CONTROL, "V"));
-    items.set(7, Menu.item("Select all", () -> gridKey(o, app, "A")).shortcut(Key.CONTROL, "A"));
+    items.set(
+        7,
+        Menu.item(
+                "Select all",
+                o.gridCommands.canRun(DataGrid.Command.SELECT_ALL)
+                    ? () -> o.gridCommands.run(DataGrid.Command.SELECT_ALL)
+                    : null)
+            .shortcut(Key.CONTROL, "A"));
     return items;
-  }
-
-  /** Control with a letter for a tab's grid, as if typed there: Copy, Paste and Select all. */
-  private static void gridKey(Opened o, App<Workbench> app, String letter) {
-    El grid = find(app.tree(), "grid-" + o.table.path());
-    if (grid != null && grid.onKey() != null) {
-      grid.onKey().test(new Key(letter, Key.CONTROL, false));
-    }
   }
 
   private List<Menu.Item> queryEdits(Opened o, App<Workbench> app) {
@@ -1717,6 +1725,7 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
     }
     DataGrid.Options options = DataGrid.options()
         .select(o.selection)
+        .commands(o.gridCommands)
         .onResize((c, w) -> o.widths[c] = w)
         .copy(s.app.clipboard())
         .contextMenu(o.gridMenu, List.of())
