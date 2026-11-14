@@ -565,7 +565,7 @@ final class Sections {
       s.renaming = false;
     };
     El content = col()
-        .gap(t.space().s())
+        .gap(t.space().m())
         .child(label(t, MUTED, "The query keeps its text and its history."))
         .child(textField(t, s.rename, "Name", v -> s.rename = v)
             .key("new-name")
