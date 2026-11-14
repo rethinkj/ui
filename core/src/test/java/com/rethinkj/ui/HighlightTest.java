@@ -257,16 +257,24 @@ class HighlightTest {
 
   @Test
   void aDecoratorMarksLinesRangesAndUnderlines() {
-    App<Model> app = area("abcdef\nxy\nzzzz", f -> f.decorate(MARKS));
+    App<Model> app = area(
+        "abcdef\nxy\nzzzz",
+        f -> f.decorate((line, start, text, out) -> {
+          MARKS.line(line, start, text, out);
+          if (line == 1) {
+            out.lineBackground(0x400000FF); // over the yellow, as the caret's line over a block
+          }
+        }));
     Text t = field(app).text();
     List<Text.Mark> marks = t.marks();
     assertEquals(
         List.of(
             new Text.Mark(new Text.Box(0, 18, 192, 18), YELLOW),
+            new Text.Mark(new Text.Box(0, 18, 192, 18), 0x400000FF),
             new Text.Mark(new Text.Box(16, 0, 24, 18), BLUE),
             new Text.Mark(new Text.Box(0, 36 + under(t), 24, 1), RED)),
         marks,
-        "the line first, then the range, then the underline");
+        "the lines first, from the bottom up, then the range, then the underline");
     assertNull(t.lines().get(2).colors(), "a decorator's colours are ignored");
   }
 

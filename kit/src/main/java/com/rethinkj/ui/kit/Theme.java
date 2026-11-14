@@ -508,6 +508,9 @@ public record Theme(
    * @param match translucent, behind each match of a find ({@link Find})
    * @param current translucent, behind the current match of a find, stronger than {@code match}
    * @param occurrence translucent, behind the other occurrences of the word at the caret
+   * @param block translucent, behind a block of lines the app marks ({@link
+   *     CodeEditor.State#block}), such as the statement that would run; in a hue of its own, so
+   *     that it differs from the selection and the caret's line, which is laid over it
    */
   public record Code(
       int keyword,
@@ -519,7 +522,8 @@ public record Theme(
       int bracket,
       int match,
       int current,
-      int occurrence) {
+      int occurrence,
+      int block) {
 
     /** For dark surfaces. */
     public static final Code DARK = new Code(
@@ -532,7 +536,8 @@ public record Theme(
         alpha(WHITE, 0.047f),
         alpha(AMBER_323, 0.376f),
         alpha(AMBER_467, 0.267f),
-        alpha(WHITE, 0.03f));
+        alpha(WHITE, 0.03f),
+        alpha(mix(BLACK, TEAL_490, 0.08), 0.5f));
 
     /** For light surfaces. */
     public static final Code LIGHT = new Code(
@@ -545,11 +550,41 @@ public record Theme(
         alpha(BLACK, 0.15f),
         alpha(AMBER_768, 0.25f),
         alpha(AMBER_720, 0.5f),
-        alpha(BLACK, 0.11f));
+        alpha(BLACK, 0.11f),
+        alpha(TEAL_490, 0.1f));
 
     /**
-     * The colours of code with the backgrounds of a find and of a word's occurrences of {@link
-     * #DARK} where the caret's line is light on dark, else of {@link #LIGHT}.
+     * The colours of code with the background of a marked block of {@link #DARK} where the caret's
+     * line is light on dark, else of {@link #LIGHT}.
+     */
+    public Code(
+        int keyword,
+        int string,
+        int number,
+        int comment,
+        int operator,
+        int line,
+        int bracket,
+        int match,
+        int current,
+        int occurrence) {
+      this(
+          keyword,
+          string,
+          number,
+          comment,
+          operator,
+          line,
+          bracket,
+          match,
+          current,
+          occurrence,
+          alpha(line, 1) == WHITE ? DARK.block : LIGHT.block);
+    }
+
+    /**
+     * The colours of code with the backgrounds of a find, of a word's occurrences and of a marked
+     * block of {@link #DARK} where the caret's line is light on dark, else of {@link #LIGHT}.
      */
     public Code(
         int keyword, int string, int number, int comment, int operator, int line, int bracket) {

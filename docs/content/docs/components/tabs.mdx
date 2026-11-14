@@ -15,7 +15,7 @@ description: A card with a bar of tabs over the content of the active one.
 ```java snippet="tabs-close"
 ```
 
-`Tabs.Tab(title, closable, modified)` has a title, whether it can be closed and whether it is modified (a small round dot before the title, `Theme.Sizes.dot` wide); `.icon(Symbol)` adds an icon, and `.hue(Theme.Hue.RED)` a line in that colour along the tab's top, which marks the tabs of a group, such as those of a connection to production; the tab then says `value="red"` in a tree dump. `onSelect` and `onClose` get the index. Closing is the app's: it removes the tab and picks the next active one.
+`Tabs.Tab(title, closable, modified)` has a title, whether it can be closed and whether it is modified (a small round dot before the title, `Theme.Sizes.dot` wide); `.icon(Symbol)` adds an icon, and `.hue(Theme.Hue.RED)` a line in that colour along the tab's top, which marks the tabs of a group, such as those of a connection to production; the tab then says `value="red"` in a tree dump. `.busy(true)` shows a spinner in place of the icon while the tab's content works, such as a query that runs, so that it shows while another tab is active. `onSelect` and `onClose` get the index. Closing is the app's: it removes the tab and picks the next active one.
 
 ## Options
 
@@ -53,7 +53,7 @@ The bar is one stop for Tab. For the shortcuts to work while the focus is elsewh
 
 ## In a tree dump
 
-The bar is `role=tablist` with the key `tablist`; each tab `role=tab` with its title as label and the key `tab-<index>`, the active one `selected`; a close button `role=button` with `label="Close <title>"` and the key `close-<index>`. A tab being dragged is `grabbed`.
+The bar is `role=tablist` with the key `tablist`; each tab `role=tab` with its title as label and the key `tab-<index>`, the active one `selected`, a busy one `busy`; a close button `role=button` with `label="Close <title>"` and the key `close-<index>`. A tab being dragged is `grabbed`.
 
 ```text file="examples/src/test/resources/golden/docs/tabs/view.tree.txt" start="#tablist" count="7"
 ```

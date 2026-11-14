@@ -132,6 +132,16 @@ class TabsTest {
   }
 
   @Test
+  void aBusyTabHasASpinnerBeforeItsTitle() throws IOException {
+    App<Workbench> app = start();
+    assertTrue(dumpLine(app, "tab-2").endsWith(" busy"), "Console's query runs");
+    assertEquals("progressbar", find(app, "tab-2").children().getFirst().role());
+    assertFalse(dumpLine(app, "tab-0").contains(" busy"));
+    run(app, "move #tab-2\nframe"); // lit under the pointer, the spinner too
+    assertEquals(T.surface().hover(), find(app, "tab-2").fill());
+  }
+
+  @Test
   void aModifiedTabHasADotBeforeItsTitle() throws IOException {
     App<Workbench> app = start();
     List<El> children = find(app, "tab-1").children();
