@@ -10,7 +10,7 @@ advance 1
 frame
 snap buttons
 
-press role=treeitem label="Text fields"
+press role=option label="Text fields"
 frame
 press #selecting clicks 2     # a word selected, the field focused by the pointer: no ring
 frame
@@ -45,27 +45,34 @@ snap find
 key Escape                    # closed, the last match selected in the editor
 frame
 
-press role=treeitem label="Menus and overlays"
+press role=option label="Menus and overlays"
 frame
 focus #options
 key Enter                     # the dropdown opens from the keyboard
 key ArrowUp                   # around to the last item, disabled, then up to the submenu
 key ArrowUp
 key ArrowRight                # its submenu, with the first item highlighted
-move #copy                    # the pointer rests on Copy until its tooltip shows
 frame
-advance 0.6
+advance 1
 frame
 snap menu
 key Escape
 key Escape
 frame
 
+move #copy                    # the pointer rests on Copy until its tooltip shows
+frame
+advance 0.6
+frame
+advance 0.25                  # past the tooltip's fade
+frame
+snap tooltip
+
 press #saved-3 right          # the context menu of a saved query
 frame
 advance 0.25                  # past its fade, so that its items can be found
 frame
-move #item-1                  # the pointer highlights Rename…
+move role=menuitem label="Rename…"   # the pointer highlights it
 frame
 advance 1
 frame
@@ -84,7 +91,10 @@ key Enter
 frame
 press #open-palette           # the command palette: the console's options as commands
 frame
-type "wrap"
+advance 1
+frame
+snap palette-empty
+type "wrap"                   # the commands that match
 frame
 advance 1
 frame
@@ -100,7 +110,7 @@ snap dialog
 key Escape
 frame
 
-press role=treeitem label="Data grid"
+press role=option label="Data grid"
 frame
 press #cell-2-2
 press #cell-6-4 shift         # a range of three columns by five rows, the cursor at its end
@@ -110,7 +120,7 @@ advance 1
 frame
 snap grid
 
-press role=treeitem label="Tree"
+press role=option label="Tree"
 frame
 press role=treeitem label="orders"   # the selection with the focus; the column grid's without
 move role=treeitem label="analytics"
@@ -119,7 +129,7 @@ advance 1
 frame
 snap tree
 
-press role=treeitem label="Tabs and split"
+press role=option label="Tabs and split"
 frame
 move #tab-1                   # an inactive tab under the pointer
 frame
@@ -127,7 +137,7 @@ advance 1
 frame
 snap workbench
 
-press role=treeitem label="Table details"
+press role=option label="Table details"
 frame
 frame                         # the toolbar and the path learn their widths
 advance 1
@@ -152,7 +162,7 @@ frame
 advance 1
 frame
 
-press role=treeitem label="Progress"
+press role=option label="Progress"
 frame
 press #start                  # the made-up download: 4 MB each quarter of a second
 frame
@@ -167,18 +177,26 @@ advance 1
 frame
 snap progress-failed
 
-press role=treeitem label="Typography"
+press role=option label="Typography"
+frame
+advance 1
 frame
 snap type
 
-press role=treeitem label="Colour"
+press role=option label="Colour"
+frame
+advance 1
 frame
 snap colour
 
-press role=treeitem label="Contrast"
+press role=option label="Contrast"
+frame
+advance 1
 frame
 snap contrast
 
-press role=treeitem label="Icons"
+press role=option label="Icons"
+frame
+advance 1
 frame
 snap icons

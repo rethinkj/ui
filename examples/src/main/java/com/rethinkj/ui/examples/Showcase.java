@@ -24,6 +24,7 @@ import com.rethinkj.ui.kit.DataGrid.Selection;
 import com.rethinkj.ui.kit.DataGrid.SortKey;
 import com.rethinkj.ui.kit.GridChanges;
 import com.rethinkj.ui.kit.Menu;
+import com.rethinkj.ui.kit.NavList;
 import com.rethinkj.ui.kit.Popover;
 import com.rethinkj.ui.kit.Select;
 import com.rethinkj.ui.kit.Split.Position;
@@ -31,7 +32,6 @@ import com.rethinkj.ui.kit.Symbol;
 import com.rethinkj.ui.kit.Tabs.Tab;
 import com.rethinkj.ui.kit.Theme;
 import com.rethinkj.ui.kit.Toolbar;
-import com.rethinkj.ui.kit.Tree;
 import com.rethinkj.ui.render.GpuPresenter;
 import com.rethinkj.ui.text.TextRendering;
 import com.rethinkj.ui.window.Window;
@@ -97,7 +97,7 @@ public final class Showcase {
         "Progress",
         "Bars, a running bar, a line on a card's edge and spinners.",
         Symbol.ARROW_DOWNLOAD),
-    TYPE("Typography", "The theme's text styles, figures and letterforms.", Symbol.TEXT_T),
+    TYPE("Typography", "The theme's text styles, figures and letterforms.", Symbol.TEXT_CASE_TITLE),
     COLOUR("Colour", "Every colour of the theme, by group.", Symbol.SQUARE_MULTIPLE),
     CONTRAST("Contrast", "WCAG contrast of each colour on each background.", Symbol.EYE),
     ICONS("Icons", "The named symbols of the icon font at the theme's size.", Symbol.STAR);
@@ -395,14 +395,12 @@ public final class Showcase {
 
   static El view(Showcase s) {
     Theme t = s.theme();
-    El nav = Tree.tree(
+    El nav = NavList.navList(
             t,
-            new Sections.Nav(t),
-            section -> false,
+            List.of(Section.values()),
             s.section,
-            section -> s.section = section,
-            null,
-            null)
+            section -> NavList.item(section.symbol, section.title),
+            section -> s.section = section)
         .key("sections")
         .label("Sections")
         .grow(1);

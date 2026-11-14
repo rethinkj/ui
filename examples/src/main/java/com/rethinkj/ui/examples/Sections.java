@@ -8,9 +8,9 @@ import static com.rethinkj.ui.kit.Button.Variant.PRIMARY;
 import static com.rethinkj.ui.kit.Button.Variant.SECONDARY;
 import static com.rethinkj.ui.kit.Button.button;
 import static com.rethinkj.ui.kit.Checkbox.checkbox;
-import static com.rethinkj.ui.kit.Label.Variant.HEADING;
 import static com.rethinkj.ui.kit.Label.Variant.MONO;
 import static com.rethinkj.ui.kit.Label.Variant.MUTED;
+import static com.rethinkj.ui.kit.Label.Variant.TITLE;
 import static com.rethinkj.ui.kit.Label.label;
 import static com.rethinkj.ui.kit.TextField.textField;
 import static com.rethinkj.ui.kit.Toggle.toggle;
@@ -90,41 +90,15 @@ final class Sections {
         .gap(t.space().l())
         .child(col()
             .gap(t.space().xs())
-            .child(label(t, HEADING, section.title))
+            .child(label(t, TITLE, section.title))
             .child(label(t, MUTED, section.description)))
         .child(body);
   }
 
-  /** The list of sections, a tree of leaves with an icon each. */
-  record Nav(Theme t) implements Tree.Model<Section> {
-
-    @Override
-    public List<Section> roots() {
-      return List.of(Section.values());
-    }
-
-    @Override
-    public List<Section> children(Section node) {
-      return List.of();
-    }
-
-    @Override
-    public boolean isLeaf(Section node) {
-      return true;
-    }
-
-    @Override
-    public String label(Section node) {
-      return node.title;
-    }
-
-    @Override
-    public El icon(Section node) {
-      return Icon.icon(t, node.symbol, Icon.Variant.MUTED);
-    }
-  }
-
   // Parts the sections share
+
+  /** The least height of a section that fills the page, below which the page scrolls. */
+  private static final float FILL_MIN = 400;
 
   /** A card: an area set apart on the window, with a title above its content. */
   private static El card(Theme t, String title, El... content) {
@@ -133,10 +107,15 @@ final class Sections {
 
   /** A row of a form: the name in a column of its own, then the control, which it labels. */
   private static El field(Theme t, String name, El control) {
+    return field(t, name, 96, control);
+  }
+
+  /** A row of a form whose names take {@code width}. */
+  private static El field(Theme t, String name, float width, El control) {
     return row()
         .gap(t.space().m())
         .align(Style.Align.CENTER)
-        .child(label(t, name).w(96).shrink(0))
+        .child(label(t, name).w(width).shrink(0))
         .child(control.label(name));
   }
 
@@ -160,15 +139,14 @@ final class Sections {
         .fill(t.border().subtle());
   }
 
-  /** A strip of tools on the panel's surface. */
+  /** A strip of tools on the page, its actions apart and its icon buttons in {@link #icons}. */
   private static El toolbar(Theme t) {
-    return row()
-        .padding(t.space().xs())
-        .gap(t.space().xs())
-        .align(Style.Align.CENTER)
-        .fill(t.surface().panel())
-        .border(t.size().stroke(), t.border().subtle())
-        .radius(t.radius().medium());
+    return row().gap(t.space().m()).align(Style.Align.CENTER);
+  }
+
+  /** Icon buttons that belong together, close to each other in a toolbar. */
+  private static El icons(Theme t, El... buttons) {
+    return row().gap(t.space().xs()).align(Style.Align.CENTER).children(buttons);
   }
 
   // Buttons
@@ -179,10 +157,12 @@ final class Sections {
             .key("run"))
         .child(toolButton(t, SECONDARY, Symbol.STOP, "Stop", "Stop", null))
         .child(divider(t))
-        .child(iconButton(t, Symbol.ARROW_CLOCKWISE, "Refresh", () -> s.say("refresh")))
-        .child(iconButton(t, Symbol.ARROW_DOWNLOAD, "Export", () -> s.say("export")))
-        .child(iconButton(t, Symbol.FILTER, "Filter", () -> s.say("filter")))
-        .child(iconButton(t, Symbol.HISTORY, "History", null))
+        .child(icons(
+            t,
+            iconButton(t, Symbol.ARROW_CLOCKWISE, "Refresh", () -> s.say("refresh")),
+            iconButton(t, Symbol.ARROW_DOWNLOAD, "Export", () -> s.say("export")),
+            iconButton(t, Symbol.FILTER, "Filter", () -> s.say("filter")),
+            iconButton(t, Symbol.HISTORY, "History", null)))
         .child(el().grow(1))
         .child(
             toolButton(t, GHOST, Symbol.SETTINGS, "Settings", "Settings", () -> s.say("settings")));
@@ -323,7 +303,9 @@ final class Sections {
         field(
             t,
             "Driver",
-            Select.select(t, DRIVERS, s.driver, s.driverMenu, i -> s.driver = i).key("driver")),
+            Select.select(t, DRIVERS, s.driver, s.driverMenu, i -> s.driver = i)
+                .key("driver")
+                .w(280)),
         field(
             t,
             "Isolation",
@@ -334,7 +316,8 @@ final class Sections {
                     i -> i.title,
                     s.isolationMenu,
                     i -> s.isolation = i)
-                .key("isolation")),
+                .key("isolation")
+                .w(280)),
         row()
             .padding(0, 0, 0, 96 + t.space().m())
             .child(checkbox(t, s.ssl, "Require SSL", () -> s.ssl = !s.ssl)),
@@ -479,10 +462,12 @@ final class Sections {
         .child(el().grow(1))
         .child(button(t, SECONDARY, "Rename…", s::startRename).key("rename"))
         .child(divider(t))
-        .child(iconButton(t, Symbol.ARROW_CLOCKWISE, "Refresh (F5)", () -> s.say("refresh"))
-            .key("refresh"))
-        .child(iconButton(t, Symbol.COPY, "Copy the results as CSV", () -> s.say("copy"))
-            .key("copy"));
+        .child(icons(
+            t,
+            iconButton(t, Symbol.ARROW_CLOCKWISE, "Refresh (F5)", () -> s.say("refresh"))
+                .key("refresh"),
+            iconButton(t, Symbol.COPY, "Copy the results as CSV", () -> s.say("copy"))
+                .key("copy")));
 
     El list = col().key("saved").role("list").label("Saved queries");
     for (int i = 0; i < s.queries.length; i++) {
@@ -751,7 +736,7 @@ final class Sections {
                 iconButton(t, Symbol.FILTER, "Filter", () -> s.say("filter"))),
             Card.inset(t, tree))
         .w(300)
-        .h(588)
+        .alignSelf(Style.Align.STRETCH)
         .shrink(0);
     Node table = s.node != null && s.node.level == 3 ? s.node : null;
     El details = col().grow(1).gap(t.space().m());
@@ -785,7 +770,13 @@ final class Sections {
                   .h(200)))
           .child(label(t, MUTED, "The grid's selection without the focus: " + "selectedInactive."));
     }
-    return row().gap(t.space().l()).align(Style.Align.START).child(explorer).child(details);
+    return row()
+        .grow(1)
+        .minSize(0, FILL_MIN)
+        .gap(t.space().l())
+        .align(Style.Align.START)
+        .child(explorer)
+        .child(details);
   }
 
   /** A product a connection can be to, and the versions it supports; a file has no server. */
@@ -890,7 +881,8 @@ final class Sections {
             StatusBar.item(t, null, "UTF-8", () -> s.say("encoding")),
             StatusBar.item(t, Symbol.HISTORY, "Tx: auto", () -> s.say("transaction"))));
     return col()
-        .h(588)
+        .grow(1)
+        .minSize(0, FILL_MIN)
         .clip()
         .border(t.size().stroke(), t.border().subtle())
         .radius(t.radius().large())
@@ -973,12 +965,14 @@ final class Sections {
                 field(
                     t,
                     "Column",
+                    64,
                     textField(t, s.filterColumn, "Column", v -> s.filterColumn = v)
                         .key("filter-column")
                         .grow(1)),
                 field(
                     t,
                     "Value",
+                    64,
                     textField(t, s.filterValue, "Value", v -> s.filterValue = v)
                         .key("filter-value")
                         .grow(1))),
@@ -1193,7 +1187,9 @@ final class Sections {
     Theme.Type type = t.type();
     El styles = col()
         .gap(t.space().m())
+        .child(style(t, "title", type.title(), t.text().primary(), "Connection settings"))
         .child(style(t, "heading", type.heading(), t.text().primary(), "Connections and schemas"))
+        .child(style(t, "strong", type.strong(), t.text().primary(), "public.orders"))
         .child(style(
             t,
             "body",
@@ -1342,7 +1338,8 @@ final class Sections {
 
   private static El colour(Theme t) {
     List<List<Swatch>> groups = swatches(t);
-    El sheet = col().gap(t.space().l());
+    El sheet = col().gap(t.space().m());
+    int columns = groups.stream().mapToInt(List::size).max().orElse(0);
     for (int i = 0; i < groups.size(); i++) {
       El row = row()
           .gap(t.space().m())
@@ -1350,6 +1347,9 @@ final class Sections {
           .child(label(t, MUTED, GROUPS[i]).w(80).shrink(0));
       for (Swatch swatch : groups.get(i)) {
         row.child(swatch(t, swatch));
+      }
+      for (int j = groups.get(i).size(); j < columns; j++) {
+        row.child(el().grow(1).basis(0)); // empty, so that the columns line up with the longest row
       }
       sheet.child(row);
     }
@@ -1370,8 +1370,9 @@ final class Sections {
         ? String.format("#%08X", s.argb())
         : String.format("#%06X", s.argb() & 0xFFFFFF);
     return col()
-        .w(118)
-        .shrink(0)
+        .grow(1)
+        .basis(0)
+        .minSize(0, 0)
         .gap(t.space().xs())
         .child(chip)
         .child(label(t, s.name()))
