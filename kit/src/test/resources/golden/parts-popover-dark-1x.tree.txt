@@ -82,13 +82,14 @@ overlay bottom start gap 2 on #filter role=button label="Filter" 618,53 77x24
   el #popover role=dialog label="Filter rows" 469,79 226x132
     el 482,92 200x106
       text role=heading "Filter rows" 482,92 200x16 level=3
-      el 482,120 200x42
+      el 478,116 214x56
         el 482,120 200x42
           el 482,120 200x42
-            el 482,120 200x16
-              text "Column" 482,120 47x16
-            el 482,138 200x24
-              text #column role=textbox label="Column" "status" 482,138 200x24 focused caret 6
+            el 482,120 200x42
+              el 482,120 200x16
+                text "Column" 482,120 47x16
+              el 482,138 200x24
+                text #column role=textbox label="Column" "status" 482,138 200x24 focused caret 6
       el 482,174 200x24
         el role=button label="Cancel" 543,174 70x24
           text "Cancel" 556,178 44x16

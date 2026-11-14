@@ -733,10 +733,11 @@ el 0,0 1000x600
 overlay center modal scrim on 0,0 1000x600
   el #dialog role=dialog label="Drop table" 315,215 371x171
     el 332,261 337x108
-      el 332,261 337x72
-        text "Drop localhost/shop/public/deliveries and all its rows?" 332,261 337x16
-        text "Type the table's name to confirm." 332,285 337x16
-        text #confirm role=textbox label="Table name" "deliver" 332,309 200x24 focused caret 7
+      el #dialog-content 328,257 351x86
+        el 332,261 337x72
+          text "Drop localhost/shop/public/deliveries and all its rows?" 332,261 337x16
+          text "Type the table's name to confirm." 332,285 337x16
+          text #confirm role=textbox label="Table name" "deliver" 332,309 200x24 focused caret 7
       el 332,345 337x24
         el #cancel role=button label="Cancel" 535,345 70x24
           text "Cancel" 548,349 44x16

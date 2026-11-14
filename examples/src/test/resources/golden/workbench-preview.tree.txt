@@ -370,14 +370,15 @@ el 0,0 1000x600
 overlay center modal scrim on 0,0 1000x600
   el #dialog role=dialog label="Changes to orders" 203,178 594x245
     el 220,224 560x182
-      text #statements role=textbox label="Statements" "DELETE FROM shop.public.orders WHERE id = 4;\nUPDATE shop.public.orders\n  SET status = 'shipped', amount = 12.50\n  WHERE id = 1;\nINSERT INTO shop.public.orders (customer_id)\n  VALUES (7);" 220,224 560x146 readonly lines 1-6/6 hovered focused caret 0 (1:1)
-        el #gutter 229,229 15x128
-          text #line-0 "1" 229,229 15x16
-          text #line-1 "2" 229,245 15x16
-          text #line-2 "3" 229,261 15x16
-          text #line-3 "4" 229,277 15x16
-          text #line-4 "5" 229,293 15x16
-          text #line-5 "6" 229,309 15x16
+      el #dialog-content 216,220 574x160
+        text #statements role=textbox label="Statements" "DELETE FROM shop.public.orders WHERE id = 4;\nUPDATE shop.public.orders\n  SET status = 'shipped', amount = 12.50\n  WHERE id = 1;\nINSERT INTO shop.public.orders (customer_id)\n  VALUES (7);" 220,224 560x146 readonly lines 1-6/6 hovered focused caret 0 (1:1)
+          el #gutter 229,229 15x128
+            text #line-0 "1" 229,229 15x16
+            text #line-1 "2" 229,245 15x16
+            text #line-2 "3" 229,261 15x16
+            text #line-3 "4" 229,277 15x16
+            text #line-4 "5" 229,293 15x16
+            text #line-5 "6" 229,309 15x16
       el 220,382 560x24
         el #close-preview role=button label="Close" 528,382 62x24
           text "Close" 541,386 36x16

@@ -6,7 +6,9 @@ import static com.rethinkj.ui.kit.Label.label;
 
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.Key;
+import com.rethinkj.ui.Scrollbars;
 import com.rethinkj.ui.Style;
+import com.rethinkj.ui.render.Scene;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Predicate;
@@ -37,7 +39,14 @@ import java.util.function.Predicate;
  * whole in a tooltip. The head comes last in the tree, drawn at the top: Tab goes through the
  * content, the buttons and then the head, and the dialog opens in its content.
  *
- * <p>A view sizes a dialog by sizing its content, as {@code field.w(320)}.
+ * <p>The dialog is as wide and high as what it holds, up to the window less {@code space().xl()}
+ * on each side, its margin. A view sizes it by sizing its content, as {@code field.w(320)}. Where
+ * the content does not fit, it scrolls, with the theme's bars, between the head and the buttons,
+ * which stay in view; up and down, and sideways for content wider than the window. A dialog that
+ * fits shows no bar. The scroll area, {@code #dialog-content} in a tree dump, has room inside its
+ * edges for the focus rings of what lies at them and for its bars, so rings show whole, and Page
+ * Up and Page Down scroll it while the focus is on a button below it (see {@link
+ * com.rethinkj.ui.App#keyDown(Key)}).
  *
  * <p>Its key is {@code dialog}. Two dialogs open at once, as a question over a dialog, are
  * siblings among the root's overlays and need keys of their own: chain {@code .key("discard")}
@@ -172,7 +181,7 @@ public final class Dialog {
         .gap(t.space().l())
         .minSize(0, 0)
         .children(
-            content,
+            scrolling(t, content).key("dialog-content"),
             buttons.isEmpty() && options.start.isEmpty() // no row, so no gap for it
                 ? null
                 : buttons(t, options.start, buttons));
@@ -192,6 +201,7 @@ public final class Dialog {
           return enter.test(k);
         })
         .justify(Style.Content.END) // at the top, in reverse
+        .margin(t.space().xl()) // keeps a dialog as large as the window off its edges
         .padding(t.space().xl())
         .gap(t.space().l())
         .radius(t.radius().large())
@@ -204,6 +214,32 @@ public final class Dialog {
     // close button in the head after the buttons; drawn at the top all the same.
     dialog.style().direction = Style.Direction.COLUMN_REVERSE;
     return dialog;
+  }
+
+  /**
+   * {@code content} in a scroll area that gives way where its panel is limited to the window, as
+   * a dialog's or a popover's: no bar and no change of look while it fits. It has room for the
+   * focus rings of what lies at its edges, which its clip would otherwise cut, and for its bars:
+   * as much padding inside as margin outside, so the content keeps its place.
+   */
+  static El scrolling(Theme t, El content) {
+    float ring = ring(t);
+    Scrollbars bars = t.scrollbars();
+    // Along the right and the bottom, room for a bar's strip too, so that it lies beside the
+    // content and its rings, not over them.
+    float strip = Math.max(ring, bars.thickness() + 2 * bars.margin());
+    return col()
+        .scrollBoth()
+        .scrollbars(bars)
+        .minSize(0, 0)
+        .padding(ring, strip, strip, ring)
+        .margin(-ring, -strip, -strip, -ring)
+        .child(content);
+  }
+
+  /** How far a focus ring reaches out of its element at most: a primary button's, with its gap. */
+  static float ring(Theme t) {
+    return Scene.RING + t.size().ringGap();
   }
 
   private static El buttons(Theme t, List<El> start, List<El> buttons) {

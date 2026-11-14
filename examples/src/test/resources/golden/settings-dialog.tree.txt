@@ -83,25 +83,26 @@ el 0,0 880x600
 overlay center modal scrim on 0,0 880x600
   el #dialog role=dialog label="New connection" 287,198 307x205
     el 304,244 273x142
-      el 304,244 273x106
-        el 304,244 273x24
-          el 304,244 45x24
-            text "Name" 304,248 36x16
-            text "*" 342,248 7x16
-          el 357,244 220x24
-            text #name role=textbox label="Name" "backup" 357,244 220x24
-        el 304,276 273x24
-          el 304,276 45x24
-            text "Host" 304,280 29x16
-            text "*" 335,280 7x16
-          el 357,276 220x24
-            text #host role=textbox label="Host" "backup.example.com" 357,276 220x24
-        el 304,308 273x42
-          el 304,308 45x24
-            text "Port" 304,312 25x16
-          el 357,308 220x42
-            text #port role=textbox label="Port" "x" 357,308 72x24 invalid error="Digits only" focused caret 1
-            text "Digits only" 357,334 220x16
+      el #dialog-content 300,240 287x120
+        el 304,244 273x106
+          el 304,244 273x24
+            el 304,244 45x24
+              text "Name" 304,248 36x16
+              text "*" 342,248 7x16
+            el 357,244 220x24
+              text #name role=textbox label="Name" "backup" 357,244 220x24
+          el 304,276 273x24
+            el 304,276 45x24
+              text "Host" 304,280 29x16
+              text "*" 335,280 7x16
+            el 357,276 220x24
+              text #host role=textbox label="Host" "backup.example.com" 357,276 220x24
+          el 304,308 273x42
+            el 304,308 45x24
+              text "Port" 304,312 25x16
+            el 357,308 220x42
+              text #port role=textbox label="Port" "x" 357,308 72x24 invalid error="Digits only" focused caret 1
+              text "Digits only" 357,334 220x16
       el 304,362 273x24
         el #cancel role=button label="Cancel" 448,362 70x24
           text "Cancel" 461,366 44x16

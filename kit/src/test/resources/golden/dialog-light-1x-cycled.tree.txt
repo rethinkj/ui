@@ -42,7 +42,8 @@ el 0,0 360x240
 overlay center modal scrim on 0,0 360x240
   el #dialog role=dialog label="Rename table" 63,59 234x123
     el 80,105 200x60
-      text #name role=textbox label="Table name" "orders_2026" 80,105 200x24 focused caret 11 anchor 0
+      el #dialog-content 76,101 214x38
+        text #name role=textbox label="Table name" "orders_2026" 80,105 200x24 focused caret 11 anchor 0
       el 80,141 200x24
         el #cancel role=button label="Cancel" 125,141 70x24
           text "Cancel" 138,145 44x16
