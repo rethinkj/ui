@@ -1,0 +1,1 @@
+- A modified tab is marked by a small round dot, `Theme.Sizes.dot` wide (4 by default), instead of the heavy `●` glyph; `Theme.Sizes` has the new component `dot`.

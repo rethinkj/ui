@@ -29,10 +29,13 @@ The editor has the frame of a text field, which inside a card that is framed alr
 
 ## The state
 
+Positions are indexes into the string as the editor shows it, in which a carriage return with or without a line feed after it, U+2028 and U+2029 are each one line feed; the editor hands the app that string at the first edit.
+
 | `CodeEditor.State` | |
 | --- | --- |
 | `caret()`, `anchor()` | Where the caret and the other end of the selection are, for a status line ("Ln 3, Col 9") or completions |
 | `error(from, to)`, `noError()` | Underline a range in the danger colour, such as the name a query got wrong |
+| `block(from, to)`, `noBlock()` | Mark the lines of a range with `code().block()` behind them, such as the statement Control+Enter would run; the caret's line shows over it |
 | `occurrences(boolean)` | Mark the other occurrences of the word at the caret; on by default |
 | `findBar(boolean)`, `find()` | The find bar, on by default, and its `Find.State` |
 
@@ -75,7 +78,7 @@ Positions are indexes into the line's string; a range runs from `from` to `to`, 
 | `background(from, to, argb)` | A rectangle behind the range, a line high |
 | `underline(from, to, argb)` | A straight line under the range, where an input method's underline lies |
 | `strike(from, to, argb)` | A line through the middle of the lower-case letters, behind the glyphs |
-| `lineBackground(argb)` | A background across the whole width behind the line, every row of it when it wraps |
+| `lineBackground(argb)` | A background across the whole width behind the line, every row of it when it wraps; a second one is laid over the first |
 
 Backgrounds, underlines, struck ranges and line backgrounds show in multi-line fields only.
 

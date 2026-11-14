@@ -20,9 +20,8 @@ import org.junit.jupiter.params.provider.CsvSource;
 
 /**
  * The kit's {@link CodeEditor} with {@link Sql}, driven by {@code code-editor.txt}, with stored
- * images: every kind of token, line numbers, the caret's line, a
- * pair of brackets, an error underlined, and the editor scrolled to its end; and embedded in a
- * card.
+ * images: every kind of token, line numbers, the caret's line in a marked block, a pair of
+ * brackets, an error underlined, and the editor scrolled to its end; and embedded in a card.
  */
 class CodeEditorTest {
 
@@ -59,6 +58,7 @@ class CodeEditorTest {
     Query() {
       int note = QUERY.indexOf("o.note");
       editor.error(note, note + "o.note".length()); // as a database would say: no such column
+      editor.block(QUERY.indexOf("SELECT"), QUERY.indexOf("LIMIT 50;") + 9); // the caret's query
     }
   }
 

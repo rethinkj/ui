@@ -1514,7 +1514,7 @@ public final class Text implements Measure {
                 || placed.stream()
                     .noneMatch(row -> row.para.spans != null
                         && (row.para.spans.count > 0
-                            || row.para.spans.lineBackground >>> 24 != 0)))) {
+                            || row.para.spans.lineBackgrounds.length > 0)))) {
       return List.of();
     }
     Lines lines = shownLines();
@@ -1543,8 +1543,8 @@ public final class Text implements Measure {
         if (spans == null) {
           continue;
         }
-        if (spans.lineBackground >>> 24 != 0) {
-          lineMarks.add(new Mark(new Box(0, top, placedWidth, lineHeight), spans.lineBackground));
+        for (int argb : spans.lineBackgrounds) {
+          lineMarks.add(new Mark(new Box(0, top, placedWidth, lineHeight), argb));
         }
         for (int i = 0; i < spans.count; i++) {
           int kind = spans.kinds[i];

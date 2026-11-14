@@ -34,6 +34,9 @@ import java.util.function.IntConsumer;
  *     .key("queries").grow(1);
  * }</pre>
  *
+ * <p>A busy tab ({@link Tab#busy}) has a spinner in place of its icon, so that work in the
+ * content of a tab that is not active, such as a query that runs, shows in the bar.
+ *
  * <p>A press on a tab chooses it and leaves the focus where it was: in the content it goes on into
  * the new content, as below. A tab that can be closed has a cross after its title, which
  * shows on the active tab and under the pointer; a press on it closes the tab. A modified tab has
@@ -74,7 +77,8 @@ import java.util.function.IntConsumer;
  * together for tabs in several windows.
  *
  * <p>In a tree dump the bar is {@code #tablist} with {@code role=tablist}, the tabs {@code
- * role=tab} with the title as label and the key {@code tab-<index>}, their crosses {@code
+ * role=tab} with the title as label and the key {@code tab-<index>}, a busy one {@code busy},
+ * their crosses {@code
  * role=button} with the label {@code Close} and the title and the key {@code close-<index>}, and
  * the content is in {@code #panel} with {@code role=tabpanel} and the active tab's title as label.
  * The tab being dragged is {@code grabbed}, and the line where it would go is {@code #marker}.
@@ -92,11 +96,20 @@ public final class Tabs {
    * @param icon before the title, in the title's colour, such as a table's; null for none
    * @param hue a colour that marks the tab as one of a group, as the tabs of a connection to
    *     production: a line along its top in the hue's edge colour of the theme; null for none
+   * @param busy whether its content works, as a query that runs: a {@link Progress#spinner} in
+   *     place of the icon, or before the title without one, so that it shows while another tab is
+   *     active; a tree dump says {@code busy}
    */
-  public record Tab(String title, boolean closable, boolean modified, Symbol icon, Theme.Hue hue) {
+  public record Tab(
+      String title, boolean closable, boolean modified, Symbol icon, Theme.Hue hue, boolean busy) {
 
     public Tab {
       Objects.requireNonNull(title, "title");
+    }
+
+    /** A tab that is not busy. */
+    public Tab(String title, boolean closable, boolean modified, Symbol icon, Theme.Hue hue) {
+      this(title, closable, modified, icon, hue, false);
     }
 
     /** A tab without a colour mark. */
@@ -116,7 +129,7 @@ public final class Tabs {
 
     /** This tab with an icon before its title. */
     public Tab icon(Symbol icon) {
-      return new Tab(title, closable, modified, icon, hue);
+      return new Tab(title, closable, modified, icon, hue, busy);
     }
 
     /**
@@ -124,7 +137,12 @@ public final class Tabs {
      * case ({@code value="red"}).
      */
     public Tab hue(Theme.Hue hue) {
-      return new Tab(title, closable, modified, icon, hue);
+      return new Tab(title, closable, modified, icon, hue, busy);
+    }
+
+    /** This tab busy or not, as {@link #busy()} says. */
+    public Tab busy(boolean busy) {
+      return new Tab(title, closable, modified, icon, hue, busy);
     }
   }
 
@@ -694,6 +712,7 @@ public final class Tabs {
         .role("tab")
         .label(tab.title())
         .selected(active)
+        .busy(tab.busy())
         .disabled(!enabled)
         .h(height)
         .padding(0, t.space().m())
@@ -704,10 +723,16 @@ public final class Tabs {
       float line = t.size().indicator();
       el.child(el().absolute(0, height - line).h(line).wFull().fill(t.accent().edge()));
     }
+    El dot = null;
     if (tab.modified()) {
-      el.child(label(t, "●").color(ink));
+      float side = t.size().dot();
+      dot = el().size(side, side).shrink(0).radius(side / 2).fill(ink);
+      el.child(dot);
     }
-    if (tab.icon() != null) {
+    El spinner = tab.busy() ? Progress.spinner(t) : null;
+    if (spinner != null) {
+      el.child(spinner);
+    } else if (tab.icon() != null) {
       el.child(Icon.icon(t, tab.icon()).color(ink));
     }
     el.child(label(t, tab.title()).color(ink));
@@ -738,10 +763,16 @@ public final class Tabs {
     }
     // Under the pointer the text of another tab is primary, and its cross shows.
     El cross = close;
-    List<El> parts = List.copyOf(el.children());
+    El mark = dot;
+    List<El> parts = new ArrayList<>(el.children());
+    parts.remove(spinner); // in the accent, as on every tab
     Consumer<El> lit = e -> {
       for (El part : parts) {
-        (part == cross ? part.children().getFirst() : part).color(t.text().primary());
+        if (part == mark) {
+          part.fill(t.text().primary());
+        } else {
+          (part == cross ? part.children().getFirst() : part).color(t.text().primary());
+        }
       }
       if (cross != null) {
         cross.opacity(1);
