@@ -478,6 +478,25 @@ class ThemeTest {
     }
   }
 
+  /**
+   * A divider shows on every surface it is drawn on, also the raised surface of a menu or a
+   * dialog, where the subtle hairline almost vanishes.
+   */
+  @ParameterizedTest
+  @ValueSource(strings = {"dark", "light"})
+  void aDividerShowsOnEverySurface(String name) {
+    Theme t = theme(name);
+    Theme.Surfaces s = t.surface();
+    List<String> failures = new ArrayList<>();
+    check(
+        failures,
+        "divider",
+        t.border().divider(),
+        Map.of("window", s.window(), "panel", s.panel(), "raised", s.raised(), "band", s.band()),
+        1.2);
+    assertTrue(failures.isEmpty(), String.join("\n", failures));
+  }
+
   /** The focused selection keeps primary text at 9:1 or more. */
   @ParameterizedTest
   @ValueSource(strings = {"dark", "light"})

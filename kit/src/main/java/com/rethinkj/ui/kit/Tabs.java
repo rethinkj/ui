@@ -567,7 +567,7 @@ public final class Tabs {
         .fill(t.surface().band())
         .padding(0, t.space().xs())
         .shrink(0)
-        .border(0, 0, t.size().stroke(), 0, t.border().subtle())
+        .border(0, 0, t.size().stroke(), 0, t.border().divider())
         .child(list);
     if (enabled && dragging != null) {
       bar.onDrop(d -> over(t, o, list, built, d));

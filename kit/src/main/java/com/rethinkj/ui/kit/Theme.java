@@ -30,7 +30,8 @@ import java.util.function.Supplier;
  * <p>The look is made of layers: the window's background ({@link Surfaces#window}), cards on it
  * ({@link Surfaces#panel}) lifted by {@link Elevation#card}, quiet bands inside a card such as a
  * tab bar, a grid's header and a footer ({@link Surfaces#band}), and controls and popups ({@link
- * Surfaces#raised}). Hairlines of low contrast ({@link Borders#subtle}) separate them. Radii go by
+ * Surfaces#raised}). Hairlines of low contrast ({@link Borders#subtle}) edge them, and dividers
+ * ({@link Borders#divider}) separate content on them. Radii go by
  * rank: cards {@link Radii#large}, controls {@link Radii#medium}, small parts {@link Radii#small}.
  * The full accent fills primary buttons and what is on; its lighter {@link Accent#edge} draws
  * outlines, the focus ring and the active tab's line.
@@ -488,15 +489,25 @@ public record Theme(
   public record TextColors(int primary, int muted, int disabled, int onAccent) {}
 
   /**
-   * @param subtle hairlines between surfaces and rows, and the edges of cards and popups
+   * @param subtle the edges of cards and of a surface's parts, the lines of a data grid, and the
+   *     edges of a disabled control
    * @param strong the edges a control is recognised by, such as a text field's frame or a
    *     checkbox's box, which stand out 3:1 from the surfaces
    * @param control the edge of a button and of other controls that their text names, quieter
    *     than {@code strong}, and of popups and dialogs
    * @param track translucent, a faint line that keeps one contrast on every surface, band and
    *     selection it lies on: a {@link Progress#spinner}'s ring
+   * @param divider a hairline that separates content on a surface: a {@link Divider}, a menu's
+   *     separators, the lines between a {@link Group}'s rows, under a tab bar, above a card's
+   *     footer, between a split's parts and between a toolbar's groups; 1.2:1 or more on every
+   *     surface, stronger than {@code subtle}, which a raised surface would almost hide
    */
-  public record Borders(int subtle, int strong, int control, int track) {
+  public record Borders(int subtle, int strong, int control, int track, int divider) {
+
+    /** Borders whose dividers are {@code subtle}. */
+    public Borders(int subtle, int strong, int control, int track) {
+      this(subtle, strong, control, track, subtle);
+    }
 
     /** Borders whose track is {@code strong} at 35 % in a dark theme, 40 % in a light one. */
     public Borders(int subtle, int strong, int control) {
@@ -982,9 +993,11 @@ public record Theme(
    * Layers. The window is the page, darker than the cards in both themes; cards (panel) lie on it,
    * bands (a tab bar, a grid's header, a footer) are a quiet step inside a card, and controls and
    * popups (raised) a step above it, white in the light theme, where a control is told apart by its
-   * edge and a popup by its edge and shadow. In the light theme the four are three clear tones and
-   * a fourth: window L* 87, band 94, panel 99 and raised 100. Hairlines (subtle) are a
-   * low-contrast step from the card; a button's edge (control) a little more.
+   * edge and a popup by its edge and shadow. In the light theme they are four tones: window L* 87,
+   * band 94, panel 99 and raised 100. Hairlines (subtle) are a low-contrast step from the card; a
+   * button's edge (control) a little more. A divider, the hairline that separates content on a
+   * surface, stands out 1.2:1 or more from every surface it is drawn on: in the dark theme it is
+   * the button's edge, in the light one the step it needs on the grey window.
    *
    * Hover and pressed. A neutral grey laid over the surface, mixed in linear light both by
    * Theme.over and by the renderer, so every component gives the same colour: hover 4 L* or more
@@ -1038,7 +1051,7 @@ public record Theme(
           alpha(GREY_298, 0.45f),
           alpha(BLACK, 0.6f)),
       new TextColors(GREY_916, GREY_648, GREY_425, WHITE),
-      new Borders(GREY_157, GREY_477, GREY_226, alpha(GREY_477, 0.35f)),
+      new Borders(GREY_157, GREY_477, GREY_226, alpha(GREY_477, 0.35f), GREY_226),
       Hue.BLUE.dark(),
       new Status(RED_649, AMBER_745, GREEN_735),
       SPACE,
@@ -1072,7 +1085,7 @@ public record Theme(
           alpha(GREY_605, 0.34f),
           alpha(BLACK, 0.35f)),
       new TextColors(GREY_108, GREY_375, GREY_572, WHITE),
-      new Borders(GREY_880, GREY_520, GREY_844, alpha(GREY_520, 0.35f)),
+      new Borders(GREY_880, GREY_520, GREY_844, alpha(GREY_520, 0.35f), GREY_805),
       Hue.BLUE.light(),
       new Status(RED_395, AMBER_384, GREEN_389),
       SPACE,
