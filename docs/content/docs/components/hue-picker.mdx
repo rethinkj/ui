@@ -12,23 +12,21 @@ description: Round swatches of the theme's hues, for the colour that marks a con
 ```java snippet="hue-picker"
 ```
 
+`s.colour` is a `Theme.Hue` in the app's state, null for none.
+
 | Call | |
 | --- | --- |
 | `huePicker(t, selected, onSelect)` | The ten hues; `selected` null for none |
-| `huePicker(t, selected, none, onSelect)` | A choice of no colour named `none` first, then the hues; null chooses it |
-| `huePicker(t, prop, none)` | The value of a `Prop`, as of an [Editing](/docs/concepts/editing); `none` null for no such choice |
-| `HuePicker.swatch(t, hue)` | The swatch alone, a checkbox's size, for a menu item's [leading element](/docs/components/menu#items) or a list |
+| `huePicker(t, selected, none, onSelect)` | A choice of no colour, named `none`, first, then the hues; null chooses it |
+| `huePicker(t, prop, none)` | The value of a [`Prop`](/docs/concepts/editing#components-that-take-a-prop); `none` null for no such choice |
+| `HuePicker.swatch(t, hue)` | The swatch alone, the size of a checkbox, for a menu item's [leading element](/docs/components/menu#items) or a list |
 | `HuePicker.name(hue)` | The hue's name as a person reads it: `Red`, `Violet` |
 
-A null handler disables it. Each swatch is filled with the hue's `accent().edge()` of the theme, which holds 3:1 on the panel and raised surfaces in both default themes. The choice of no colour shows the `PROHIBITED` icon in muted text.
-
-## Chosen and focused
-
-The chosen swatch has a round ring in `accent().edge()`, with the surface between it and the swatch. The keyboard's focus is a rounded square around the swatch the arrows go on from: the chosen one, or the first while none is chosen. So a focused choice shows a circle inside a square, and the two never look alike. Each swatch takes the press over 32 by 32 pixels, with the hover and pressed overlays, and shows its name in a tooltip.
+A null handler disables it. The choice of no colour shows the `PROHIBITED` icon. The chosen swatch has a round ring around it. The keyboard's focus is a rounded square around the chosen swatch, or the first while none is chosen, so a focused choice shows a circle inside a square. Each swatch shows its name in a tooltip.
 
 ## Keyboard
 
-The picker is one stop for Tab. The arrows choose the next and the previous hue, around the ends; Home and End the first and the last; Space the first while none is chosen. A press chooses and leaves the focus where it was.
+The picker is one stop for Tab. The arrows choose the next and the previous hue, around the ends. Home and End choose the first and the last. Space chooses the first while none is chosen. A press chooses and leaves the focus where it was.
 
 ## In a tree dump
 

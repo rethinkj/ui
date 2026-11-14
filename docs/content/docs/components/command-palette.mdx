@@ -3,7 +3,7 @@ title: CommandPalette
 description: A searchable list of every command, and of other things after a prefix, opened with Control+Shift+P.
 ---
 
-`CommandPalette.palette` is an overlay at the top of the window with a field over a list: type to find any command of the app's menus by fuzzy matching, or, after a prefix such as `@`, a table or another thing the app lists. Commands can ask for more before they act, such as a theme previewed as the highlight moves. Use it in apps with many commands. For choosing a value in a form, use a [ComboBox](/docs/components/combo-box).
+`CommandPalette.palette` is an overlay at the top of the window with a field over a list. Type to find any command of the app's menus by fuzzy matching, or, after a prefix such as `@`, a table or anything else the app lists. A command can ask for more before it acts, such as a theme previewed as the highlight moves. Use it in apps with many commands. For choosing a value in a form, use a [ComboBox](/docs/components/combo-box).
 
 <Shot src="kit/palette-{theme}-2x-commands" alt="The command palette with recently used commands and their shortcuts" />
 
@@ -12,10 +12,11 @@ description: A searchable list of every command, and of other things after a pre
 ```java snippet="command-palette"
 ```
 
-- `CommandPalette.commands(menus)` turns `Menu.Item`s, a menu bar's titles too, into commands named by their path (`Query: Run`, `File: Export › CSV`) with their icons, shortcuts and handlers. Add your own `FilterList.entry(text, onChoose)`.
-- A `CommandPalette.Source(prefix, what, entries)` finds other things after its prefix. `FilterList.Entries.of(list)` filters a list with fuzzy matching; `Entries.by(text -> list)` is your own search, and `Entries.background(app, name, text -> list)` runs it on another thread.
-- `CommandPalette.keys(state)` opens it with Control+Shift+P and F1; `state.open("@")` opens a source, as for Control+P.
-- While nothing is typed, the last five commands chosen come first under "Recently used". `state.recent()` lists their texts, the last first, and `state.text()` is what is typed.
+- `s.palette` is a `CommandPalette.State` in the app's state.
+- `CommandPalette.commands(menus)` turns `Menu.Item`s, a menu bar's titles too, into commands named by their path (`Query: Run`, `File: Export › CSV`), with their icons, shortcuts and handlers. Add your own with `FilterList.entry(text, onChoose)`.
+- A `CommandPalette.Source(prefix, what, entries)` lists other things after its prefix.
+- `CommandPalette.keys(state)` opens the palette with Control+Shift+P and F1; `state.open("@")` opens it at a source, as for Control+P.
+- While nothing is typed, the last five commands chosen come first, under "Recently used". `state.recent()` lists their texts, the last first, and `state.text()` is what is typed.
 
 ## Lists and fuzzy matching
 
@@ -23,12 +24,12 @@ What a source lists is a `FilterList.Entries`, which a [ComboBox](/docs/componen
 
 | | |
 | --- | --- |
-| `Entries.of(list)` | The kit filters the list with `Fuzzy`: all entries in their order while nothing is typed, else the matches best first within their groups, of equal matches the shorter text first. Pass the same list while it does not change, as the kit keeps what it filtered by the list's identity |
+| `Entries.of(list)` | The kit filters the list with `Fuzzy`. While nothing is typed, all entries show in their order; then the matches, best first within their groups, the shorter text first among equal matches. Pass the same list object while it does not change, so that the result is kept |
 | `Entries.inOrder(list)` | The same, but equal matches keep their order, as commands want |
-| `Entries.by(text -> list)` | The app finds the entries for the typed text, on the app's thread on every build; shown in the order given |
-| `Entries.background(app, name, text -> list)` | The same on another thread: the entries found before stay with a row "Loading…" until the answer, and a new text cancels the work before |
+| `Entries.by(text -> list)` | The app finds the entries for the typed text, on the app's thread on every build; they show in the order given |
+| `Entries.background(app, name, text -> list)` | The same on another thread. The last entries stay, with a row "Loading…", until the answer comes; a new text cancels the search before it |
 
-`Fuzzy` is the matching the kit uses, for an app's own search: the query's characters in the text in order, scored higher at the starts of words (after a space, `_`, `.` or `-`, a camelCase capital) and for characters next to each other, lower for gaps; `"ot"` ranks `orders_total` before `customer_note`. Case counts only when the query has a capital letter. It needs no native libraries.
+`Fuzzy` is the kit's matching, for an app's own search. The query's characters must occur in the text in order. A match scores higher at the starts of words (after a space, `_`, `.` or `-`, and at a camelCase capital) and for characters next to each other, lower for gaps: `"ot"` ranks `orders_total` before `customer_note`. Case counts only when the query has a capital letter.
 
 ```java snippet="fuzzy"
 ```
@@ -37,10 +38,10 @@ What a source lists is a `FilterList.Entries`, which a [ComboBox](/docs/componen
 | --- | --- |
 | `Fuzzy.score(query, text)` | The score, higher for a better match, or `Fuzzy.NO_MATCH` (`Integer.MIN_VALUE`) |
 | `Fuzzy.positions(query, text)` | The indexes of the characters the best match takes, one per character of the query, to highlight them; null when it does not match |
-| `Fuzzy.matcher(query)` | A `Matcher`, which keeps the query and its work arrays, so that scoring many texts allocates nothing; it belongs to one thread |
+| `Fuzzy.matcher(query)` | A `Matcher` for scoring many texts without allocating. Use it on one thread |
 | `matcher.score(text)`, `matcher.positions(text)` | As above |
 | `matcher.matches(text)` | Whether the query's characters occur in the text in order |
-| `matcher.isEmpty()` | Whether the query is empty, which every text matches with the score 0 |
+| `matcher.isEmpty()` | Whether the query is empty; every text matches an empty query with the score 0 |
 
 ## Asking for more
 
@@ -49,7 +50,7 @@ A command's handler may call `state.ask(stage)` instead of letting the palette c
 | | |
 | --- | --- |
 | `Stage.choose(placeholder, entries, highlight)` | A list to choose from |
-| `.preview(onHighlight, onCancel)` | Run as the highlight moves, and undone on Escape: a theme previewed live |
+| `.preview(onHighlight, onCancel)` | Called as the highlight moves, and undone on Escape: a theme previewed live |
 | `Stage.input(placeholder, text, onEnter)` | A text to type, as for Rename |
 
 ## Keyboard
@@ -65,7 +66,7 @@ Keys it does not take go on to the root, so the app's shortcuts still work.
 
 ## In a tree dump
 
-An overlay at the window's top edge, `role=dialog` `label="Command palette"`; its field `role=textbox`, the list `role=listbox` with `role=option` entries, the highlighted one `selected`:
+An overlay at the window's top edge, `role=dialog` `label="Command palette"`. Its field is `role=textbox`, the list `role=listbox` with `role=option` entries, the highlighted one `selected`:
 
 ```text file="examples/src/test/resources/golden/docs/command-palette/tables.tree.txt" start="overlay" count="6"
 ```

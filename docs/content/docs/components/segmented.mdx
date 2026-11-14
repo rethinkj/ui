@@ -3,7 +3,7 @@ title: Segmented
 description: A row of joined buttons for one choice among two to four, such as views or modes.
 ---
 
-`Segmented.segmented` is a frame of joined choices, the chosen one filled with the accent. Use it to switch between two to four views or modes: rows or cells, light, dark or system. For choices that need room to be read, use [Radio](/docs/components/radio).
+`Segmented.segmented` is a frame of joined choices, the chosen one filled with the accent. Use it to switch between two to four views or modes: rows or cells; light, dark or system. For choices that need room to be read, use [Radio](/docs/components/radio).
 
 <Shot src="kit/gallery-{theme}-2x" rows="segmented" alt="A segmented control in each state" />
 
@@ -12,20 +12,24 @@ description: A row of joined buttons for one choice among two to four, such as v
 ```java snippet="segmented"
 ```
 
+`s.mode` is the index of the chosen choice, in the app's state.
+
 `Segmented.segmented(t, choices, selected, onSelect)`. A null handler disables it.
 
 ## Values instead of indexes
 
-`Segmented.segmented(t, values, selected, text, onSelect)` chooses among values of any type, as [Select](/docs/components/select#values-instead-of-indexes) does:
+`Segmented.segmented(t, values, selected, text, onSelect)` chooses among values of any type. The value is found as on [Select](/docs/components/select#values-instead-of-indexes).
 
 ```java snippet="segmented-typed"
 ```
 
-The selected value is found by `equals`, a null among the values too; null where the list has none, or a value not in the list, selects nothing. Equal values show once, so that the keys go on from the selected value to the next one that differs. The handler gets the value; a null handler disables it. For an enum, pass `List.of(E.values())`.
-
 ## Keyboard
 
-One stop for Tab; the arrows choose around the ends, Home and End the first and the last, and Space the first while none is chosen.
+One stop for Tab. The arrows choose the next and the previous choice, around the ends. Home and End choose the first and the last. Space chooses the first while none is chosen.
+
+## With a Prop
+
+`segmented(t, values, prop, text)` takes a [`Prop`](/docs/concepts/editing#components-that-take-a-prop), such as a field of an `Editing`, in place of the value and its handler.
 
 ## In a tree dump
 
@@ -33,7 +37,3 @@ The same roles as a radio group: `role=radiogroup`, each choice `role=radio` wit
 
 ```text file="examples/src/test/resources/golden/docs/choices/view.tree.txt" start="label=\"Select\"" count="5"
 ```
-
-## With a Prop
-
-`segmented(t, values, prop, text)` takes a `Prop` in place of the value and its handler, such as a field of an [Editing](/docs/concepts/editing) of a record: it writes the prop back, shows its field's error, and is disabled when the prop cannot be written.

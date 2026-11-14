@@ -5,7 +5,7 @@ description: Every component of the kit, with a picture, the smallest example, i
 
 The kit (`rethinkj-ui-kit`, package `com.rethinkj.ui.kit`) holds components built on core, for desktop tools that work with data. Each is a static function whose first parameter is the theme and which returns an `El`, which you may chain further: `Button.button(theme, PRIMARY, "Run", onRun).key("run")`. There is no base class and no global theme; the state belongs to the app, and a null handler disables a component.
 
-Every page follows the same pattern: what the component is and when to use it, a picture from the kit's tests in the dark and the light theme, the smallest example, the options with their signatures, which state the app keeps, the keys, and what the component shows in a [tree dump](/docs/testing/tree-dump), so that a script finds it.
+Every page has the same order: what the component is and when to use it, a picture, an example, the options and other forms, the state the app keeps, the keys, the form that takes a [`Prop`](/docs/concepts/editing#components-that-take-a-prop) where there is one, and what the component shows in a [tree dump](/docs/testing/tree-dump), so that a script finds it. In the examples, `t` is the theme and `s` the app's state.
 
 ## Data
 

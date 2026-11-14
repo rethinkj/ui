@@ -12,6 +12,7 @@ The grid edits cells in an editor it lays over the cell, by the column's type, a
 ```java snippet="grid-edit"
 ```
 
+- `s.changes` is a `GridChanges` and `s.selection` a `DataGrid.Selection`, both in the app's state.
 - `new GridChanges(count, (row, column) -> value)` takes the number of rows and the app's values. For rows that the app filters or sorts, make it from a `GridChanges.Rows`, which also gives each row a key that stays with it.
 - The columns take their cells from `changes.cell(column)` and the grid its rows from `changes.rowCount()`, so they show the changed values.
 - `options().changes(changes)` wires editing, pasting, clearing, new and deleted rows, the marks and Control+Z and Control+Y to it.
@@ -32,32 +33,14 @@ A script that edits a cell:
 | --- | --- |
 | text | A field in the cell's font, exactly over the cell's text |
 | `INTEGER`, `DECIMAL` | A field that refuses what cannot become such a number |
-| `BOOLEAN` | None: Space, Enter, F2 and a double press switch false, true and, where `nullable()`, NULL; a value the format or the app refuses leaves the cell, which shows the message below it until the next key or press |
+| `BOOLEAN` | None: Space, Enter, F2 and a double press switch between false, true and, where `nullable()`, NULL. A refused value shows its message below the cell until the next key or press |
 | `choices(list)`, or `ENUM` with choices | Up to eight choices: a menu of them, where typing goes to the first that starts with it. More: a field that filters a list of them (`role=listbox`) |
 | `DATE`, `TIME`, `DATE_TIME` | Text, checked as ISO 8601 (`2026-11-13`, `14:30`, `2026-11-13 14:30`) |
 | `editor((value, onChange) -> El)` | The app's own element |
 
-A value with a line break, or Alt+Enter in a text column, opens a modal field of six lines over the cell. In a `nullable()` column, NULL is a state of the editor: an empty field with a muted `NULL`, which typing turns into text and Control+0 back into NULL. A refused value keeps the editor open, `invalid`, with the message below it, or above it while the menu of choices stays open below. An editor whose value did not change hands nothing on and is not checked, so a value that is not among the choices closes without a message.
+A value with a line break, or Alt+Enter in a text column, opens a modal field of six lines over the cell. In a `nullable()` column, the editor shows NULL as an empty field with a muted `NULL`; typing turns it into text, and Control+0 back into NULL. A refused value keeps the editor open, `invalid`, with the message below it (above it while a menu of choices is open below). An editor whose value did not change hands nothing on and is not checked, so a value that is not among the choices closes without a message.
 
 <Shot src="kit/edit-{theme}-choices" alt="A cell with a menu of its column's choices" />
-
-## Keyboard
-
-| Keys | Action |
-| --- | --- |
-| Enter, F2, a double press, typing | Open the editor; typing replaces the value |
-| Enter, Shift+Enter | Hand the value on and go down or up |
-| Tab, Shift+Tab | Hand the value on and go right or left, to the next or previous row at the ends |
-| Control+Enter | Hand the value on and stay |
-| Escape | Close without handing anything on |
-| Delete | Clear the selected cells (NULL where nullable, empty text in other text columns) |
-| Control+0 | Set NULL |
-| Control+V, Shift+Insert | Paste tab-separated text; a single value goes into every selected cell |
-| Insert, Control+Plus | A new row after the cursor's |
-| Control+Minus, Control+Delete | Mark the selected rows deleted |
-| Control+Z, Control+Y, Control+Shift+Z | Undo and redo, while no editor is open |
-
-A press elsewhere hands the value on, unless the app refused it.
 
 ## Without GridChanges
 
@@ -69,14 +52,10 @@ The options that `changes` wires are there on their own, for an app that keeps c
 | --- | --- |
 | `onCommit((row, column, value) -> error)` | Takes a value, or refuses it by returning a message (null accepts) |
 | `onPaste(cells)` | Takes a list of `CellValue(row, column, value)` in one change |
-| `onInsertRow(after)`, `onDeleteRows(ranges)`, `appendRow()` | New rows and deleted ones; `appendRow` shows an empty row marked `*` after the last, whose value goes after the last row there is when it is handed on |
+| `onInsertRow(after)`, `onDeleteRows(ranges)`, `appendRow()` | New rows and deleted ones. `appendRow` shows an empty row marked `*` after the last; a value typed into it adds a row at the end |
 | `status(rows, cells)` | What to mark: `Status.CHANGED`, `NEW`, `DELETED`, `ERROR` |
 | `history(undo, redo)` | Control+Z and Control+Y |
 | `onEdit((row, column) -> …)` | The app edits the cell itself, in a field it lays over it |
-
-## In a tree dump
-
-A changed, new, deleted or failed row and cell say `value="changed"`, `"new"`, `"deleted"` or `"error"`, and a failed cell is `invalid`. An open editor is `#editor` in the cell's row, with its field `#field` (`role=textbox`) inside; a list of choices and the field of several lines are overlays; a refused value adds a `role=alert` with the message.
 
 ## Before saving, running or closing
 
@@ -85,7 +64,12 @@ An editor that is open holds text the app has not seen yet. Before anything that
 ```java snippet="grid-commit"
 ```
 
-`commitEdit()` hands the open editor's value on as a press outside it does, through `onCommit` (or the `GridChanges` that `changes` wires), and closes the editor. It returns true when no editor is open afterwards: there was none, or the value was taken. It returns false when the column's type or the app refused the value: the editor stays open, `invalid`, with the message below it, and the app should not go on with what it was about to do. A list of choices closes without a change, as a press outside leaves it. It also returns false while an editor is open but no grid built with this selection edits, since nothing can take the value then.
+`commitEdit()` hands the open editor's value on, as a press outside it does, through `onCommit` (or the `GridChanges` that `changes` wires), and closes the editor.
+
+- It returns true when no editor is open afterwards: there was none, or the value was taken.
+- It returns false when the column's type or the app refused the value. The editor stays open, `invalid`, with the message below it, and the app should not go on.
+- It also returns false while an editor is open but no grid built with this selection can edit.
+- A list of choices closes without a change.
 
 A command that should work while a value is being typed is enabled while an editor is open, not only while there are changes:
 
@@ -113,14 +97,15 @@ The script that refuses both, first the editor's text and then the change:
 | `editingRow()`, `editingColumn()` | The cell being edited, -1 for none |
 | `draft()` | What the open editor holds, null for NULL or when none is open |
 
-Through `changes`, an open editor follows its row by the row's key when the app sorts, filters or replaces the rows, and closes without writing when its row is gone. Through a plain `onCommit` it stays on its row index, so an app that reorders or replaces the rows of such a grid calls `commitEdit()` or `cancelEdit()` first; otherwise the value goes to whichever row has that index then.
+Through `changes`, an open editor follows its row by the row's key when the app sorts, filters or replaces the rows, and closes without writing when its row is gone. Through a plain `onCommit`, it stays on its row index. So an app that reorders or replaces the rows of such a grid calls `commitEdit()` or `cancelEdit()` first; otherwise the value goes to whichever row has that index then.
 
 ## Changes the database refused
 
 When the database refuses a change, mark the cells it names and keep the changes, so that the user can correct them:
 
 - `changes.error(change, column, message)` marks a cell of the row that a `Change` of `changes()` writes, also while that row is not shown (filtered out, say); `changes.error(row, column, message)` marks a cell by the row shown.
-- The cell and its row show `Status.ERROR`, a danger edge and the message first in the cell's tooltip; in a tree dump they say `value="error"` and the cell is `invalid`. A mark is not a step of the history, and it goes when the cell's value changes, by an edit, an undo or a redo. `clear()` forgets it with everything else.
+- The cell and its row show `Status.ERROR`, a danger edge and the message first in the cell's tooltip. In a tree dump they say `value="error"`, and the cell is `invalid`.
+- A mark is not a step of the history. It goes when the cell's value changes, by an edit, an undo or a redo; `clear()` forgets it with everything else.
 - `changes.errorText(row, column)` is the message of a cell, null for none.
 
 ```text file="examples/src/test/resources/golden/docs/grid-commit/refused-write.tree.txt" start="el #cell-2-1" count="1"
@@ -152,3 +137,25 @@ And for changing it from the app's own commands, each one step of the history:
 | `delete(ranges)` | Marks the rows of these ranges deleted, or takes the mark away when all have it; new rows among them go at once |
 | `undo()`, `redo()` | Steps through the history |
 | `rows(rows)` | Replaces the app's `Rows`, after it filtered or sorted them; the changes stay with their keys |
+
+## Keyboard
+
+| Keys | Action |
+| --- | --- |
+| Enter, F2, a double press, typing | Open the editor; typing replaces the value |
+| Enter, Shift+Enter | Hand the value on and go down or up |
+| Tab, Shift+Tab | Hand the value on and go right or left, to the next or previous row at the ends |
+| Control+Enter | Hand the value on and stay |
+| Escape | Close without handing anything on |
+| Delete | Clear the selected cells (NULL where nullable, empty text in other text columns) |
+| Control+0 | Set NULL |
+| Control+V, Shift+Insert | Paste tab-separated text; a single value goes into every selected cell |
+| Insert, Control+Plus | A new row after the cursor's |
+| Control+Minus, Control+Delete | Mark the selected rows deleted |
+| Control+Z, Control+Y, Control+Shift+Z | Undo and redo, while no editor is open |
+
+A press elsewhere hands the value on, unless the app refused it.
+
+## In a tree dump
+
+A changed, new, deleted or failed row and cell say `value="changed"`, `"new"`, `"deleted"` or `"error"`, and a failed cell is `invalid`. An open editor is `#editor` in the cell's row, with its field `#field` (`role=textbox`) inside. A list of choices and the field of several lines are overlays. A refused value adds a `role=alert` with the message.

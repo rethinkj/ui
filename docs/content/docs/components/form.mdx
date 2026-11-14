@@ -3,7 +3,7 @@ title: Form
 description: Labelled fields, beside or above them, with help, errors and required marks, and buttons at the end.
 ---
 
-`Form.form` lays out fields with their labels, beside them in a column as wide as the widest label or above them, with help text, error messages and a mark for required fields. Longer forms group their fields under headings, with one label column for all groups, and put fields that belong together, such as host and port, in one row. `Form.buttons` puts buttons at the end of a form, a card or a page. Use it for dialogs and connection settings; for rows of settings, use a [Group](/docs/components/group).
+`Form.form` lays out fields with their labels, either beside them in a column as wide as the widest label, or above them. Fields have help text, error messages and a mark when required. Longer forms group their fields under headings, with one label column for all groups, and put fields that belong together, such as host and port, in one row. `Form.buttons` puts buttons at the end of a form, a card or a page. Use it for dialogs and connection settings; for rows of settings, use a [Group](/docs/components/group).
 
 <Shot src="kit/structure-form-{theme}-2x" alt="Two forms, labels beside and above the fields, with a required mark, help and an error" />
 
@@ -12,24 +12,26 @@ description: Labelled fields, beside or above them, with help, errors and requir
 ```java snippet="form"
 ```
 
+`s.host`, `s.port` and `s.user` are strings in the app's state.
+
 | | |
 | --- | --- |
 | `Form.form(t, Labels.BESIDE \| ABOVE, fields...)` | The form |
-| `Form.field(label, control)` | A field; the label names the control, or the first control inside it, when that is a text field or has no label yet (a select keeps its choice as its label) |
+| `Form.field(label, control)` | A field. The label names the control, or the first control inside it, when that is a text field or has no label yet (a select keeps its choice as its label) |
 | `.help(text)` | Muted text below that wraps |
-| `.error(text)` | Replaces the help in the danger colour and makes the control `invalid`; null for none. A [ValueField](/docs/components/format) whose text is no value shows its format's message without it; this one wins |
+| `.error(text)` | Replaces the help in the danger colour and makes the control `invalid`; null for none. It wins over the message of a [ValueField](/docs/components/format) whose text is no value |
 | `.required()` | A `*` after the label |
 | `.grow()` | In a row, the field takes the room the others leave; its control's width is the least it has |
-| `Form.row(fields...)` | Fields side by side, each a full field with its own label, help, error and mark; a row of one field is that field |
+| `Form.row(fields...)` | Fields side by side, each with its own label, help, error and mark; a row of one field is that field |
 | `Form.group(title, entries...)` | Fields and rows under a heading (`role=group`, the heading `level=4`); a group holds no groups |
 | `.description(text)` | Muted text under the group's heading that wraps |
-| `.divided()` | A hairline between the group and what comes before it; without, room alone sets groups apart |
+| `.divided()` | A line between the group and what comes before it; without it, space alone sets groups apart |
 | `.level(n)` | The heading's level, 4 unless set (below a card's title, which is 3) |
 | `Form.labelWidth(t, entries...)` | The width of the label column the entries need |
 | `Form.form(t, labels, labelWidth, entries...)` | A form whose label column is at least that wide |
 | `Form.buttons(t, buttons...)` | Buttons at the end, at the right |
 
-`form` takes fields, rows and groups in any order (`Form.Entry` is their common type) and leaves out a null entry, a null field in a row or a group, and a row or group whose entries are all null.
+`form` takes fields, rows and groups in any order (`Form.Entry` is their common type). It leaves out a null entry, a null field in a row or a group, and a row or group whose entries are all null, so `shown ? field(...) : null` shows a field under a condition.
 
 ## Groups and rows
 
@@ -38,16 +40,20 @@ description: Labelled fields, beside or above them, with help, errors and requir
 ```java snippet="form-groups"
 ```
 
-With `Labels.BESIDE` the label column is as wide as the widest label in any group, so the controls of all groups start at one x; with `Labels.ABOVE` the groups only structure. Groups lie two steps of spacing further apart than fields (`space().xl()` beside, `xxl()` above), with a divider in the middle of that room where `divided()` asks for one.
+With `Labels.BESIDE`, the label column is as wide as the widest label in any group, so the controls of all groups line up.
 
-In a row, the first field's label stands in the label column and each further one's before its control, `space().m()` after the control before it; with labels above, each field has its label above its control. Each field is as wide as its control, unless it grows, and its help lies under its control, as wide, wrapping. The errors of the row's fields lie under the whole row, one below the other, as wide as the row, so that a narrow field's error does not wrap on many lines; the controls stay on the row's first line, so an error does not move them. Where the form is too narrow, the row wraps: a field that goes to the next line keeps its label before its control, at the start of that line, not in the label column.
+In a row, the first field's label stands in the label column, and each further label stands before its control. Each field is as wide as its control, unless it grows, and its help lies under its control. The errors of the row's fields lie under the whole row, so an error does not move the controls. Where the form is too narrow, the row wraps, and a field on the next line keeps its label before its control.
 
 <Shot src="kit/structure-form-groups-narrow-{theme}-1x" alt="The same form narrow: the port and its label on a line of their own below the host" />
 
-A view that wants each group in a card of its own puts a form in each card. So that their controls still start at one x, it gives every form the width of all their labels:
+To put each group in a card of its own, put a form in each card. Give every form the width of all their labels, so that their controls still line up:
 
 ```java snippet="form-cards"
 ```
+
+## With a Prop
+
+A control made with a [`Prop`](/docs/concepts/editing#components-that-take-a-prop) shows its field's error in the same way as `.error(text)`, whether it comes from a rule, the app or a text that is no value.
 
 ## In a tree dump
 
@@ -55,8 +61,6 @@ Each field gets its label, also each field of a row; an error makes it `invalid`
 
 ```text file="examples/src/test/resources/golden/docs/form/view.tree.txt" start="\"User\"" count="3"
 ```
-
-A control made with a `Prop` of an [Editing](/docs/concepts/editing) shows its field's error, from a rule, the app or a text that is no value, in the same way; `form` leaves out a null field, so `shown ? field(...) : null` shows a field under a condition.
 
 A group is `role=group` with its title as its label, its heading inside:
 

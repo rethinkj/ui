@@ -5,7 +5,7 @@ description: Typed columns over records and POJOs, edited through withers and se
 
 `DataGrid.table(rows)` makes a `GridTable<T>` over the app's rows as objects, records or POJOs, and its `column` methods make columns from getters: each column shows a typed value in its [Format](/docs/components/format), and writes an edited value back through a record's wither or a POJO's setter. Use it when the app holds its rows as Java objects rather than strings; the grid still shows text, and the app still owns, sorts and filters its rows.
 
-## Records
+## Example
 
 ```java snippet="typed-rows"
 ```
@@ -13,20 +13,21 @@ description: Typed columns over records and POJOs, edited through withers and se
 ```java snippet="grid-typed"
 ```
 
-- `DataGrid.table(rows)` takes an `IntFunction<T>`: the row at an index, asked for while a frame runs, for each cell of the rows in view. Keep it cheap, such as a list's `get`; a million rows stay lazy. A row that is not loaded is null: give the grid `.loading(table::loaded, onRows)` and it shows the loading cells.
-- `table.column(title, width, format, getter)` is a column that edits nothing; with a wither (`Order::withAmount`) or a setter (`Account::setBalance`) after the getter it edits. Alignment, font, header icon and editor come from the format's kind: `Format.DECIMAL` is a right-aligned monospaced number column with the decimal editor, a `Format.choice` an enumeration with its labels as choices, an `optional()` format allows NULL.
+- `s.orders` is a list of `Order` records, `s.typedSort` a list of `SortKey`s and `s.selection` a `DataGrid.Selection`, all in the app's state.
+- `DataGrid.table(rows)` takes an `IntFunction<T>`: the row at an index, asked for each cell in view on every frame. Keep it cheap, such as a list's `get`. A row that is not loaded is null: give the grid `.loading(table::loaded, onRows)`, and it shows the loading cells.
+- `table.column(title, width, format, getter)` is a column that edits nothing. With a wither (`Order::withAmount`) or a setter (`Account::setBalance`) after the getter, it edits. Alignment, font, header icon and editor come from the format: `Format.DECIMAL` gives a right-aligned number column with the decimal editor, a `Format.choice` an enumeration with its labels as choices, and an `optional()` format allows NULL.
 - The result is an ordinary `Column`, so `.typeName`, `.icon`, `.cellIcon` and `.sortable` chain onto it. Its `cells()` is the typed part: `cells().value(row)`, `cells().format()`, `cells().comparator()`.
 
 ## Editing
 
-`options().onCommit(table, (row, value) -> error)` lets the grid edit, paste into and clear the columns that write. The grid checks the editor's text with the column's format first (a letter in a number is refused as it is typed, `Not below zero` from a `where` shows under the editor), turns it into the value, and writes it into the row:
+`options().onCommit(table, (row, value) -> error)` lets the grid edit, paste into and clear the columns that write. The grid first checks the editor's text with the column's format: a letter in a number is refused as it is typed, and the message of a `where`, such as `Not below zero`, shows under the editor. Then it turns the text into the value and writes it into the row:
 
 - **Records**: the wither makes a new record, which the handler gets and stores, usually `rows.set(row, value)`. Nothing has changed if it refuses.
 - **POJOs**: the setter changes the row in place, and the handler gets that row to save or mark. If it refuses, by returning a message, the setter is called again with the value before, also a setter inside a record's part (`Order.DETAILS.then(Details.NOTE)`).
 
 A column of a joined part edits nothing in a row where a part on the way is null: the cell shows NULL, Enter opens no editor, and a paste leaves it.
 
-The handler refuses with a message, which shows under the editor, or accepts with null. NULL comes as null where the format is `optional()`. Pasted and cleared cells come one call per row, with all of its values written; a handler that sorts or filters the rows meanwhile finds the others written to the rows they are now.
+The handler refuses with a message, which shows under the editor, or accepts with null. NULL comes as null where the format is `optional()`. Pasted and cleared cells come as one call per row, with all of the row's values written.
 
 ```java snippet="grid-pojo"
 ```
@@ -54,10 +55,6 @@ A [GridChanges](/docs/components/data-grid/editing) keeps edits as text until th
 ```
 
 The DataBrowser example works this way: a million made-up orders as records, `BigDecimal` amounts, `LocalDateTime`s and an enum of statuses, edited through a `GridChanges` and written through the withers on Commit.
-
-## Cost
-
-A typed cell asks for its row and its value, then writes the text, which is what a column of text does anyway: a frame of a million rows costs the same with typed columns as with text columns writing the same texts, with 20 and with 300 columns. A getter that returns a primitive boxes it, one small object per cell for a `long` id, as `String.valueOf` makes a string.
 
 ## The typed part of a column
 
