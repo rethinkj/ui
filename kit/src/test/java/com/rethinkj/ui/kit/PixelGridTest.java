@@ -168,7 +168,7 @@ class PixelGridTest {
       inked += pixels > 0 ? 1 : 0;
     }
     assertEquals(List.of(), moved, "text drawn otherwise in its box at " + scale);
-    assertTrue(inked > 20, "text elements with ink: " + inked);
+    assertTrue(inked >= 20, "text elements with ink: " + inked);
   }
 
   /** The sheet drawn with and without its text, and its text elements. */

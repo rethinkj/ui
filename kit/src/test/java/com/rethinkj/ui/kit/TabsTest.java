@@ -135,7 +135,9 @@ class TabsTest {
   void aModifiedTabHasADotBeforeItsTitle() throws IOException {
     App<Workbench> app = start();
     List<El> children = find(app, "tab-1").children();
-    assertEquals("●", children.get(0).text().string());
+    El dot = children.get(0);
+    assertEquals(T.size().dot() / 2, dot.radius(), "round");
+    assertEquals(T.text().muted(), dot.fill());
     assertEquals("orders by month.sql", children.get(1).text().string());
     // The active tab's line comes first.
     assertEquals("customers.sql", find(app, "tab-0").children().get(1).text().string());

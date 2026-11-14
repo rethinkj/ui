@@ -704,8 +704,11 @@ public final class Tabs {
       float line = t.size().indicator();
       el.child(el().absolute(0, height - line).h(line).wFull().fill(t.accent().edge()));
     }
+    El dot = null;
     if (tab.modified()) {
-      el.child(label(t, "●").color(ink));
+      float side = t.size().dot();
+      dot = el().size(side, side).shrink(0).radius(side / 2).fill(ink);
+      el.child(dot);
     }
     if (tab.icon() != null) {
       el.child(Icon.icon(t, tab.icon()).color(ink));
@@ -738,10 +741,15 @@ public final class Tabs {
     }
     // Under the pointer the text of another tab is primary, and its cross shows.
     El cross = close;
+    El mark = dot;
     List<El> parts = List.copyOf(el.children());
     Consumer<El> lit = e -> {
       for (El part : parts) {
-        (part == cross ? part.children().getFirst() : part).color(t.text().primary());
+        if (part == mark) {
+          part.fill(t.text().primary());
+        } else {
+          (part == cross ? part.children().getFirst() : part).color(t.text().primary());
+        }
       }
       if (cross != null) {
         cross.opacity(1);

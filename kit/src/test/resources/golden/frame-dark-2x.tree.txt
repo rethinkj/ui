@@ -12,23 +12,23 @@ el 0,0 720x400
       el #second 201,0 519x400
         el 201,0 519x400
           el #bar 202,1 517x33
-            el #tablist role=tablist 204,1 481x32
+            el #tablist role=tablist 204,1 473x32
               el #tab-0 role=tab label="Console" 204,1 66x32
                 text "Console" 212,9 50x16
               el #tab-1 role=tab label="customers.sql" 272,1 123x32
                 text "customers.sql" 280,9 87x16
                 el #close-1 role=button label="Close customers.sql" 371,9 16x16
                   text label="dismiss" "\u{F368}" 371,9 16x16
-              el #tab-2 role=tab label="orders by month.sql" 397,1 174x32 selected
-                el 397,31 174x2
-                text "●" 405,9 11x16
-                text "orders by month.sql" 420,9 123x16
-                el #close-2 role=button label="Close orders by month.sql" 547,9 16x16
-                  text label="dismiss" "\u{F368}" 547,9 16x16
-              el #tab-3 role=tab label="products.sql" 573,1 112x32
-                text "products.sql" 581,9 76x16
-                el #close-3 role=button label="Close products.sql" 661,9 16x16
-                  text label="dismiss" "\u{F368}" 661,9 16x16
+              el #tab-2 role=tab label="orders by month.sql" 397,1 166x32 selected
+                el 397,31 166x2
+                el 405,15 4x4
+                text "orders by month.sql" 413,9 122x16
+                el #close-2 role=button label="Close orders by month.sql" 539,9 16x16
+                  text label="dismiss" "\u{F368}" 539,9 16x16
+              el #tab-3 role=tab label="products.sql" 565,1 112x32
+                text "products.sql" 573,9 76x16
+                el #close-3 role=button label="Close products.sql" 653,9 16x16
+                  text label="dismiss" "\u{F368}" 653,9 16x16
           el #panel role=tabpanel label="orders by month.sql" 202,34 517x365
             el #work 202,34 517x365
               el #first 202,34 517x182
