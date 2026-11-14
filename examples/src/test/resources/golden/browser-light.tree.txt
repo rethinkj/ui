@@ -17,28 +17,28 @@ el 0,0 900x520
   el 0,32 900x488
     el 8,32 884x480
       el 9,33 882x40
-        text role=heading "orders" 21,45 45x17 level=3
-        text "500,001 rows" 74,45 83x16
-        el 165,53 98x0
-        el 271,41 280x24
-          text #filter role=textbox label="Filter" "" 271,41 280x24
-          text label="search" "\u{EA7C}" 275,45 16x16
-        el #columns-button role=button label="Columns" 559,41 102x24 expanded=false
-          text label="column_single" "\u{F0116}" 572,45 16x16
-          text "Columns" 592,45 56x16
-        el #revert role=button label="Revert" 669,41 85x24
-          text label="arrow_undo" "\u{E126}" 682,45 16x16
-          text "Revert" 702,45 39x16
-        el #commit role=button label="Commit (4)" 762,41 117x24
-          text label="save" "\u{EA43}" 775,45 16x16
-          text "Commit (4)" 795,45 71x16
+        text role=heading "orders" 25,45 45x17 level=3
+        text "500,001 rows" 78,45 83x16
+        el 169,53 90x0
+        el 267,41 280x24
+          text #filter role=textbox label="Filter" "" 267,41 280x24
+          text label="search" "\u{EA7C}" 271,45 16x16
+        el #columns-button role=button label="Columns" 555,41 102x24 expanded=false
+          text label="column_single" "\u{F0116}" 568,45 16x16
+          text "Columns" 588,45 56x16
+        el #revert role=button label="Revert" 665,41 85x24
+          text label="arrow_undo" "\u{E126}" 678,45 16x16
+          text "Revert" 698,45 39x16
+        el #commit role=button label="Commit (4)" 758,41 117x24
+          text label="save" "\u{EA43}" 771,45 16x16
+          text "Commit (4)" 791,45 71x16
       el 9,73 882x30
-        el #filters role=list label="Filters" 21,73 170x22
-          el role=listitem label="status in paid, shipped" 21,73 170x22
-            text label="filter" "\u{E609}" 29,78 12x12
-            text "status in paid, shipped" 43,77 126x15
-            el #remove role=button label="Remove status in paid, shipped" 171,75 18x18
-              text label="dismiss" "\u{F367}" 174,78 12x12
+        el #filters role=list label="Filters" 25,73 170x22
+          el role=listitem label="status in paid, shipped" 25,73 170x22
+            text label="filter" "\u{E609}" 33,78 12x12
+            text "status in paid, shipped" 47,77 126x15
+            el #remove role=button label="Remove status in paid, shipped" 175,75 18x18
+              text label="dismiss" "\u{F367}" 178,78 12x12
       el role=separator 9,103 882x1
       el #orders role=grid label="Orders" 9,104 882x378 scroll 671,0 thumb-x 390.35,474 498.65x6 focused
         el #content -662,104 1553x378
@@ -876,5 +876,5 @@ el 0,0 900x520
                 text "999967" 85,541 42x16
               el 131,537 1x23
       el 9,482 882x29
-        text #status "500,000 of 1,000,000 orders · order 999997 selected · 4 changes" 21,489 407x16
-        el 440,497 439x0
+        text #status "500,000 of 1,000,000 orders · order 999997 selected · 4 changes" 25,489 407x16
+        el 444,497 431x0

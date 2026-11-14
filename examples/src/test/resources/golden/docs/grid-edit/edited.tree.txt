@@ -1,12 +1,12 @@
 el 0,0 520x300
   el 12,12 496x276
     el 13,13 494x40
-      text role=heading "orders" 25,25 45x17 level=3
-      el 78,33 243x0
-      el role=button label="Revert" 347,21 65x24
-        text "Revert" 360,25 39x16
-      el role=button label="Commit (1)" 420,21 75x24
-        text "Commit (1)" 433,25 67x16
+      text role=heading "orders" 29,25 45x17 level=3
+      el 82,33 235x0
+      el role=button label="Revert" 343,21 65x24
+        text "Revert" 356,25 39x16
+      el role=button label="Commit (1)" 416,21 75x24
+        text "Commit (1)" 429,25 67x16
     el #orders role=grid label="Orders" 13,53 494x234 focused
       el #content 13,53 494x234
         el #header 13,53 494x25

@@ -746,18 +746,24 @@ public record Theme(
 
   /**
    * The type scale, from a page's title down to code. Headings come in three levels: {@code
-   * title} over a page, {@code heading} over a section or a card's toolbar, {@code strong} over a
-   * card. Titles and headings are semibold, strong text medium.
+   * title} over a page, {@code dialog} over a dialog, {@code heading} over a section or a card.
+   * Titles and headings are semibold, strong text medium.
    *
    * @param body the text of the interface and of controls
    * @param mono code, identifiers and values that line up
-   * @param heading titles of sections and of a card's toolbar
+   * @param heading titles of sections and of cards, in a card's header and its toolbar
    * @param title the title of a page, such as a page of settings
-   * @param strong the body's size in a heavier weight: a card's title, the titles of a grid's
-   *     columns and the text of buttons
+   * @param strong the body's size in a heavier weight: the titles of a grid's columns and the text
+   *     of buttons
+   * @param dialog the title of a dialog, between {@code heading} and {@code title}
    */
   public record Type(
-      TextStyle body, TextStyle mono, TextStyle heading, TextStyle title, TextStyle strong) {}
+      TextStyle body,
+      TextStyle mono,
+      TextStyle heading,
+      TextStyle title,
+      TextStyle strong,
+      TextStyle dialog) {}
 
   /**
    * @param control the height of a button and a text field
@@ -1083,7 +1089,8 @@ public record Theme(
       new TextStyle(Font::mono, 12),
       new TextStyle(Font::sansSemibold, 14),
       new TextStyle(Font::sansSemibold, 20),
-      new TextStyle(Font::sansMedium, 13));
+      new TextStyle(Font::sansMedium, 13),
+      new TextStyle(Font::sansSemibold, 16));
   private static final Sizes SIZE = new Sizes(24, 16, 28, 16, 1, 200, 7, 16, 16, 2, 2, 4, 560);
   private static final Motion MOTION =
       new Motion(Spring.INSTANT, Spring.SNAP, 0.3, 0.5, Spring.INSTANT, 5, 2, 1.2, 1.5);
@@ -1132,7 +1139,7 @@ public record Theme(
    * pointer, in both themes, with a white cross at 4.5:1 or more.
    *
    * Sizes and type. Controls 24, rows 24, text 13; radii 4 for small parts, 6 for controls, 10 for
-   * cards; headings semibold, strong text, column titles and buttons medium.
+   * cards; card titles 14, dialog titles 16; headings semibold, strong text, column titles and buttons medium.
    *
    * Palette. Every colour is one of Palette's, named by its hue and its L* times ten, or one of
    * them at an alpha: alpha(GREY_298, 0.25f) is the dark theme's hover. Tokens that share a colour
@@ -1165,8 +1172,8 @@ public record Theme(
       new Scrollbars(6, 2, 3, 24, GREY_568, GREY_655, GREY_759),
       new Elevation(
           List.of(
-              new Shadow(0, 1, 2, 0, alpha(BLACK, 0.8f)),
-              new Shadow(0, 6, 16, 0, alpha(BLACK, 0.55f))),
+              new Shadow(0, 1, 2, 0, alpha(BLACK, 0.6f)),
+              new Shadow(0, 2, 6, 0, alpha(BLACK, 0.4f))),
           List.of(
               new Shadow(0, 1, 2, 0, alpha(BLACK, 0.6f)),
               new Shadow(0, 4, 12, 0, alpha(BLACK, 0.5f))),
@@ -1200,7 +1207,7 @@ public record Theme(
       new Elevation(
           List.of(
               new Shadow(0, 1, 2, 0, alpha(GREY_084, 0.16f)),
-              new Shadow(0, 6, 18, 0, alpha(GREY_084, 0.145f))),
+              new Shadow(0, 2, 6, 0, alpha(GREY_084, 0.12f))),
           List.of(
               new Shadow(0, 1, 3, 0, alpha(BLACK, 0.25f)),
               new Shadow(0, 6, 16, 0, alpha(BLACK, 0.22f))),

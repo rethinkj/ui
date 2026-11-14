@@ -1,22 +1,22 @@
 el 0,0 420x360
-  el 12,12 380x88
-    el 25,25 354x34
-      el 25,25 297x34
-        text role=heading "Connection" 25,25 297x16 level=3
-        text "Where the workbench connects at start." 25,43 297x16
-      el role=button label="Edit" 330,30 49x24
-        text "Edit" 343,34 23x16
-    text "postgres://localhost:5432/shop" 25,71 354x16
-  el 12,108 380x180
-    el 13,109 378x40
-      text role=heading "orders" 25,121 45x17 level=3
-      text "1 000 000 rows" 78,121 96x16
-      el 182,129 119x0
-      el role=button label="Run" 309,117 70x24
-        text label="play" "\u{E990}" 322,121 16x16
-        text "Run" 342,121 24x16
-    el 13,149 378x109
-      text "The grid goes here." 25,161 354x16
-    el 13,258 378x29
-      text "23 ms" 25,265 38x16
-      el 75,273 304x0
+  el 12,12 380x97
+    el 29,29 346x35
+      el 29,29 289x35
+        text role=heading "Connection" 29,29 289x17 level=3
+        text "Where the workbench connects at start." 29,48 289x16
+      el role=button label="Edit" 326,35 49x24
+        text "Edit" 339,39 23x16
+    text "postgres://localhost:5432/shop" 29,76 346x16
+  el 12,117 380x180
+    el 13,118 378x40
+      text role=heading "orders" 29,130 45x17 level=3
+      text "1 000 000 rows" 82,130 96x16
+      el 186,138 111x0
+      el role=button label="Run" 305,126 70x24
+        text label="play" "\u{E990}" 318,130 16x16
+        text "Run" 338,130 24x16
+    el 13,158 378x109
+      text "The grid goes here." 25,170 354x16
+    el 13,267 378x29
+      text "23 ms" 29,274 38x16
+      el 79,282 296x0

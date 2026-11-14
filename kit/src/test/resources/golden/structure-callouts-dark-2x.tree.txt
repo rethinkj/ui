@@ -24,16 +24,16 @@ el 0,0 560x420
       el 477,146 59x24
         el role=button label="Retry" 477,146 59x24
           text "Retry" 490,150 33x16
-  el 16,190 400x123
-    el #narrow role=note label="Unsaved changes" 29,203 374x97
-      el 33,211 3x81
-      text label="warning" "\u{F868}" 44,211 16x16
-      el 68,211 327x81
-        el 68,211 327x49
-          text "Unsaved changes" 68,211 327x16
-          text "Three rows of orders have changes that are not committed yet. Closing the tab discards them." 68,229 327x31
-        el 240,268 155x24
-          el role=button label="Discard" 240,268 73x24
-            text "Discard" 253,272 47x15
-          el role=button label="Commit" 321,268 74x24
-            text "Commit" 334,272 48x15
+  el 16,190 400x131
+    el #narrow role=note label="Unsaved changes" 33,207 366x97
+      el 37,215 3x81
+      text label="warning" "\u{F868}" 48,215 16x16
+      el 72,215 319x81
+        el 72,215 319x49
+          text "Unsaved changes" 72,215 319x16
+          text "Three rows of orders have changes that are not committed yet. Closing the tab discards them." 72,233 319x31
+        el 236,272 155x24
+          el role=button label="Discard" 236,272 73x24
+            text "Discard" 249,276 47x15
+          el role=button label="Commit" 317,272 74x24
+            text "Commit" 330,276 48x15
