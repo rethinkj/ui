@@ -371,4 +371,98 @@ class MenuTest {
     assertTrue(state.isOpen());
     assertEquals(-1, state.active(), "the pointer highlights nothing");
   }
+
+  /** A menu whose submenu Colour shows a swatch before each hue's name, the chosen one checked. */
+  static final class Colours {
+    final Theme t;
+    final Menu.State menu = new Menu.State();
+    Theme.Hue hue = Theme.Hue.RED;
+
+    Colours(Theme t) {
+      this.t = t;
+    }
+
+    List<Menu.Item> items() {
+      List<Menu.Item> colours = new ArrayList<>();
+      colours.add(Menu.item("None", () -> hue = null)
+          .leading(t -> Icon.icon(t, Symbol.PROHIBITED, Icon.Variant.MUTED))
+          .checked(hue == null));
+      for (Theme.Hue each : Theme.Hue.values()) {
+        colours.add(Menu.item(HuePicker.name(each), () -> hue = each)
+            .leading(t -> HuePicker.swatch(t, each))
+            .checked(each == hue));
+      }
+      return List.of(
+          Menu.item("Rename…", () -> {}).icon(Symbol.EDIT),
+          Menu.submenu("Colour", colours),
+          Menu.item("Pinned", () -> {}).checked(true));
+    }
+
+    El view() {
+      return com.rethinkj.ui.El.row()
+          .wFull()
+          .hFull()
+          .padding(t.space().l())
+          .align(com.rethinkj.ui.Style.Align.START)
+          .fill(t.surface().window())
+          .child(Menu.dropdown(
+              t,
+              Button.button(t, Button.Variant.SECONDARY, "Connection", menu::toggle)
+                  .key("open"),
+              menu,
+              items()));
+    }
+  }
+
+  @ParameterizedTest(name = "{0}")
+  @CsvSource({"dark", "light"})
+  void aSubmenuShowsASwatchBeforeEachHueAndTheCheckAtTheChosenOnesEnd(String theme)
+      throws IOException {
+    Colours s = new Colours(theme.equals("dark") ? Theme.DARK : Theme.LIGHT);
+    App<Colours> app = new App<>(s, Colours::view);
+    app.focusRing(s.t.accent().edge());
+    app.textRendering(com.rethinkj.ui.text.TextRendering.LINUX);
+    String image = "menu-swatches-" + theme + "-2x";
+    Script.run(
+        "size 400 400 scale 2\nframe\npress #open\nframe\nadvance 1\nframe\n"
+            + "press label=\"Colour\"\nframe\nadvance 1\nframe\nsnap "
+            + image,
+        app,
+        out);
+    String tree = java.nio.file.Files.readString(out.resolve(image + ".tree.txt"));
+    Golden.assertMatches(
+        image,
+        com.rethinkj.ui.render.Png.decode(
+            java.nio.file.Files.readAllBytes(out.resolve(image + ".png"))),
+        tree);
+    String red = StructureTest.line(tree, "label=\"Red\"");
+    assertTrue(red.endsWith(" checked"), red);
+    // The swatch in the column of icons, the text after it, the check mark at the end.
+    String after = tree.substring(tree.indexOf(red));
+    String[] lines = after.lines().limit(7).toArray(String[]::new);
+    assertTrue(lines[4].contains("text \"Red\""), after);
+    assertTrue(lines[5].contains("label=\"checkmark\""), after);
+    float[] swatch = StructureTest.rect(lines[3]);
+    assertEquals(16, swatch[2], lines[3]);
+    // An item checked without a leading element keeps its check in the column, as before.
+    String pinned = tree.substring(tree.indexOf("label=\"Pinned\""));
+    assertTrue(pinned.lines().skip(3).findFirst().orElseThrow().contains("checkmark"), pinned);
+    run(app, "press label=\"Teal\"\nframe");
+    assertEquals(Theme.Hue.TEAL, s.hue);
+  }
+
+  @Test
+  void theCommandPaletteCarriesALeadingElementOverWithItsCheck() {
+    Colours s = new Colours(Theme.DARK);
+    List<FilterList.Entry> commands = CommandPalette.commands(s.items());
+    FilterList.Entry red = commands.stream()
+        .filter(e -> e.text().equals("Colour: Red"))
+        .findFirst()
+        .orElseThrow();
+    assertTrue(red.leading() != null && red.checked() && red.symbol() == null, red.toString());
+    FilterList.Entry pinned =
+        commands.stream().filter(e -> e.text().equals("Pinned")).findFirst().orElseThrow();
+    assertEquals(Menu.CHECKED, pinned.symbol());
+    assertFalse(pinned.checked());
+  }
 }

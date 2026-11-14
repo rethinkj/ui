@@ -1,0 +1,78 @@
+el 0,0 400x400
+  el #open role=button label="Connection" 12,12 98x24
+    text "Connection" 25,16 72x16
+overlay bottom start gap 2 on #open role=button label="Connection" 12,12 98x24
+  el #menu role=menu 12,38 115x82
+    el #item-0 role=menuitem label="Rename…" 17,43 105x24
+      el 17,43 105x24
+        el 25,47 16x16
+          text label="edit" "\u{F3DC}" 25,47 16x16
+        text "Rename…" 49,47 65x16
+    el #item-1 role=menuitem label="Colour" 17,67 105x24 current expanded
+      el 17,67 105x24
+        el 25,79 16x0
+        text "Colour" 49,71 41x16
+        text label="chevron_right" "\u{F2AF}" 98,71 16x16
+    el #item-2 role=menuitem label="Pinned" 17,91 105x24 checked
+      el 17,91 105x24
+        el 25,95 16x16
+          text label="checkmark" "\u{E305}" 25,95 16x16
+        text "Pinned" 49,95 65x16
+overlay right start gap 5 on #item-1 role=menuitem label="Colour" 17,67 105x24
+  el #submenu role=menu 127,67 98x274 focused
+    el #subitem-0 role=menuitem label="None" 132,72 88x24
+      el 132,72 88x24
+        el 140,76 16x16
+          text label="prohibited" "\u{F705}" 140,76 16x16
+        text "None" 164,76 48x16
+    el #subitem-1 role=menuitem label="Blue" 132,96 88x24
+      el 132,96 88x24
+        el 140,100 16x16
+          el 140,100 16x16
+        text "Blue" 164,100 48x16
+    el #subitem-2 role=menuitem label="Violet" 132,120 88x24
+      el 132,120 88x24
+        el 140,124 16x16
+          el 140,124 16x16
+        text "Violet" 164,124 48x16
+    el #subitem-3 role=menuitem label="Purple" 132,144 88x24
+      el 132,144 88x24
+        el 140,148 16x16
+          el 140,148 16x16
+        text "Purple" 164,148 48x16
+    el #subitem-4 role=menuitem label="Pink" 132,168 88x24
+      el 132,168 88x24
+        el 140,172 16x16
+          el 140,172 16x16
+        text "Pink" 164,172 48x16
+    el #subitem-5 role=menuitem label="Red" 132,192 88x24 checked
+      el 132,192 88x24
+        el 140,196 16x16
+          el 140,196 16x16
+        text "Red" 164,196 24x16
+        text label="checkmark" "\u{E305}" 196,196 16x16
+    el #subitem-6 role=menuitem label="Orange" 132,216 88x24
+      el 132,216 88x24
+        el 140,220 16x16
+          el 140,220 16x16
+        text "Orange" 164,220 48x16
+    el #subitem-7 role=menuitem label="Amber" 132,240 88x24
+      el 132,240 88x24
+        el 140,244 16x16
+          el 140,244 16x16
+        text "Amber" 164,244 48x16
+    el #subitem-8 role=menuitem label="Green" 132,264 88x24
+      el 132,264 88x24
+        el 140,268 16x16
+          el 140,268 16x16
+        text "Green" 164,268 48x16
+    el #subitem-9 role=menuitem label="Teal" 132,288 88x24
+      el 132,288 88x24
+        el 140,292 16x16
+          el 140,292 16x16
+        text "Teal" 164,292 48x16
+    el #subitem-10 role=menuitem label="Grey" 132,312 88x24
+      el 132,312 88x24
+        el 140,316 16x16
+          el 140,316 16x16
+        text "Grey" 164,316 48x16

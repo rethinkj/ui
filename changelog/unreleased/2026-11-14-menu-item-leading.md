@@ -1,0 +1,1 @@
+- `Menu.Item.leading(theme -> element)` puts any small element before an item's text in place of its icon, such as a colour's swatch (`HuePicker.swatch`); a checked item with one shows its check mark at its end, and `CommandPalette.commands` carries it over to the palette's entries. `Menu.Item` has a new record component `leading`; its constructor without it stays.

@@ -212,7 +212,9 @@ public final class CommandPalette {
    * The commands of these menus, as a {@link MenuBar}'s or a menu's items: each item that runs
    * something, with the titles of the menus it is in before its text, {@code "File: New query"}
    * or {@code "File: Export › CSV"}, its icon, its shortcut at the right and its handler;
-   * disabled items stay disabled. A checked item shows the check mark.
+   * disabled items stay disabled. A checked item shows the check mark, at the entry's end where
+   * the item has a leading element ({@link Menu.Item#leading}), which the entry shows before its
+   * text.
    */
   public static List<FilterList.Entry> commands(List<Menu.Item> menus) {
     List<FilterList.Entry> commands = new ArrayList<>();
@@ -239,9 +241,11 @@ public final class CommandPalette {
       FilterList.Entry e =
           FilterList.entry(path + label, item.onChoose()).shortcut(item.shortcut());
       into.add(
-          item.checked()
-              ? e.symbol(Menu.CHECKED)
-              : item.icon() != null ? e.symbol(item.icon()) : e);
+          item.leading() != null
+              ? e.leading(item.leading()).checked(item.checked())
+              : item.checked()
+                  ? e.symbol(Menu.CHECKED)
+                  : item.icon() != null ? e.symbol(item.icon()) : e);
     }
   }
 
