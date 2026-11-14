@@ -1111,6 +1111,27 @@ final class Sdl {
     }
   }
 
+  /** {@code void SDL_SetX11EventHook(SDL_X11EventHook callback, void *userdata)} */
+  static final FunctionDescriptor SDL_SET_X11_EVENT_HOOK =
+      FunctionDescriptor.ofVoid(ADDRESS, ADDRESS);
+
+  /** Bound only under X11. */
+  private static final class X11Hook {
+    static final MethodHandle SET = H.bind("SDL_SetX11EventHook", SDL_SET_X11_EVENT_HOOK);
+  }
+
+  /**
+   * Has SDL call the hook, a {@code bool (*)(void *userdata, XEvent *)} like {@link
+   * #EVENT_FILTER}, with every X11 event before it handles it; only under X11.
+   */
+  static void setX11EventHook(MemorySegment hook, MemorySegment userdata) {
+    try {
+      X11Hook.SET.invokeExact(hook, userdata);
+    } catch (Throwable t) {
+      throw failed(t);
+    }
+  }
+
   static void removeEventWatch(MemorySegment filter, MemorySegment userdata) {
     try {
       H.REMOVE_EVENT_WATCH.invokeExact(filter, userdata);

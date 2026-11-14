@@ -5,6 +5,7 @@ import static java.lang.foreign.ValueLayout.JAVA_BOOLEAN;
 import static java.lang.foreign.ValueLayout.JAVA_BYTE;
 import static java.lang.foreign.ValueLayout.JAVA_FLOAT;
 import static java.lang.foreign.ValueLayout.JAVA_INT;
+import static java.lang.foreign.ValueLayout.JAVA_LONG;
 import static java.lang.foreign.ValueLayout.JAVA_SHORT;
 
 import com.rethinkj.ui.App;
@@ -400,6 +401,8 @@ public final class Window implements AutoCloseable {
         upcall(MethodHandles.lookup(), Window.class, "hitTest", Sdl.HIT_TEST);
     static final MemorySegment WATCH =
         upcall(MethodHandles.lookup(), Window.class, "watch", Sdl.EVENT_FILTER);
+    static final MemorySegment X11_EVENT =
+        upcall(MethodHandles.lookup(), Window.class, "x11Event", Sdl.EVENT_FILTER);
   }
 
   // ---- One window
@@ -423,6 +426,13 @@ public final class Window implements AutoCloseable {
   private float normalHeight;
   private String title;
   private WindowHandle handle;
+  private long background = Long.MIN_VALUE; // as last set on X11, none yet
+  // X11's _NET_WM_SYNC_REQUEST (see X11): the counter the window manager waits on during a resize,
+  // the value it asked for, and whether the configure that follows the request has come.
+  private long syncCounter;
+  private long syncValue;
+  private boolean syncAsked;
+  private boolean syncConfigured;
   private Win32Frame win32;
   private Win32Shell shell;
   private WindowIcon icon;
@@ -546,6 +556,9 @@ public final class Window implements AutoCloseable {
     }
     applyMinimumSize();
     handle = readHandle();
+    if (handle instanceof WindowHandle.Xlib(var display, long xwindow)) {
+      syncCounter = X11.syncCounter(display, xwindow); // before the window shows
+    }
     if (handle instanceof WindowHandle.Win32 win) {
       shell = Win32Shell.attach(this, win.hwnd());
     }
@@ -1726,6 +1739,71 @@ public final class Window implements AutoCloseable {
   }
 
   /**
+   * The colour, 0xAARRGGBB with the alpha ignored, that the system shows where a resize uncovers
+   * the window before the app has drawn the new size: on X11 the window's background, with what
+   * it showed kept at its top left; without it the uncovered parts show what lay there, other
+   * windows' content included. {@link WindowLoop} sets it to the fill of the app's root after
+   * each frame. Elsewhere it does nothing: Windows draws during the resize ({@link
+   * WindowEvent.Redraw}).
+   */
+  void background(int argb) {
+    if (handle instanceof WindowHandle.Xlib(var display, long xwindow) && argb != background) {
+      background = argb;
+      X11.background(display, xwindow, argb);
+    }
+  }
+
+  /**
+   * Tells the window that its app has drawn a frame of its current size. {@link WindowLoop} calls
+   * this after each frame; a loop of one's own calls it too. On X11 it answers the window
+   * manager's {@code _NET_WM_SYNC_REQUEST} once the resize step that the request announced has
+   * come: during a resize the window manager shows the window and takes the next step only then,
+   * or after a second without an answer, so that the window never shows a size its app has not
+   * drawn. Elsewhere it does nothing.
+   */
+  public void drawn() {
+    if (syncConfigured && handle instanceof WindowHandle.Xlib(var display, long xwindow)) {
+      syncAsked = false;
+      syncConfigured = false;
+      X11.setCounter(display, syncCounter, syncValue);
+    }
+  }
+
+  /** SDL_X11EventHook: notes the window manager's requests to synchronise a resize. */
+  private static boolean x11Event(MemorySegment userdata, MemorySegment xevent) {
+    try {
+      MemorySegment e = xevent.reinterpret(X11.EVENT_SIZE);
+      int type = e.get(JAVA_INT, X11.EVENT_TYPE);
+      if (type == X11.CLIENT_MESSAGE) {
+        long value = X11.syncRequest(e);
+        Window window = value < 0 ? null : ofX11(e.get(JAVA_LONG, X11.CLIENT_WINDOW));
+        if (window != null) {
+          window.syncValue = value;
+          window.syncAsked = true;
+          window.syncConfigured = false;
+        }
+      } else if (type == X11.CONFIGURE_NOTIFY) {
+        Window window = ofX11(e.get(JAVA_LONG, X11.CONFIGURE_WINDOW));
+        if (window != null && window.syncAsked) {
+          window.syncConfigured = true;
+        }
+      }
+    } catch (Throwable t) {
+      fail(t);
+    }
+    return true; // SDL handles every event as before
+  }
+
+  private static Window ofX11(long xwindow) {
+    for (Window window : windows.values()) {
+      if (window.handle instanceof WindowHandle.Xlib x && x.window() == xwindow) {
+        return window;
+      }
+    }
+    return null;
+  }
+
+  /**
    * Sets who the app is, for windows opened after this: an id that the system groups the app's
    * windows by and finds its settings and icon with, and the app's name. It is the same for the
    * whole process; call it before the first window opens. Calling it again with the same id and
@@ -1970,6 +2048,9 @@ public final class Window implements AutoCloseable {
   }
 
   private void destroy() {
+    if (syncCounter != 0 && handle instanceof WindowHandle.Xlib(var display, long xwindow)) {
+      X11.destroyCounter(display, syncCounter);
+    }
     Sdl.destroyWindow(sdl);
     if (shell != null) {
       shell.destroyIcons();
@@ -2139,6 +2220,9 @@ public final class Window implements AutoCloseable {
       String error = Sdl.getError();
       Sdl.quit();
       throw new IllegalStateException("SDL_AddEventWatch failed: " + error);
+    }
+    if ("x11".equals(Sdl.getCurrentVideoDriver())) {
+      Sdl.setX11EventHook(Upcalls.X11_EVENT, MemorySegment.NULL);
     }
     int registered = Sdl.registerEvents(1);
     synchronized (LOCK) {

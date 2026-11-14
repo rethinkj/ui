@@ -1058,6 +1058,8 @@ public final class WindowLoop {
       return;
     }
     e.window.cursor(app.cursor());
+    e.window.background(app.tree().fill());
+    e.window.drawn();
     textInput(e);
   }
 
