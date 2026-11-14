@@ -373,6 +373,37 @@ class TreeTest {
     assertEquals(List.of(), catalog.log);
   }
 
+  @Test
+  void typingSelectsTheNextNodeShownThatStartsWithTheText() throws IOException {
+    Catalog catalog = new Catalog(T).opened("localhost", "localhost/shop", "localhost/shop/public");
+    App<Catalog> app = start(catalog);
+    run(app, "focus #schema\nkey Home\nframe");
+    assertEquals("localhost/postgres", typed(app, catalog, "type \"p\""));
+    assertEquals("localhost/shop/public", typed(app, catalog, "type \"P\""), "again: the next");
+    assertEquals(
+        "localhost/shop/public/sessions",
+        typed(app, catalog, "advance 1\ntype \"s\""),
+        "a pause starts a new text");
+    assertEquals(
+        "localhost/shop/public/suppliers",
+        typed(app, catalog, "advance 0.5\ntype \"u\""),
+        "within the pause it adds to the text, searched from the selected node on");
+    assertEquals(
+        "prod-eu", typed(app, catalog, "key Escape\ntype \"eu\""), "Escape too; else holds it");
+    assertEquals("prod-eu", typed(app, catalog, "type \"xyz\""), "nothing matches: it stays");
+  }
+
+  /** Runs the steps and a frame; the path of the selected node, which is whole in view. */
+  private String typed(App<Catalog> app, Catalog catalog, String steps) throws IOException {
+    run(app, steps + "\nframe");
+    El selected = find(app, "schema").children().stream()
+        .filter(row -> row.fill() == T.grid().selected())
+        .findFirst()
+        .orElseThrow(() -> new AssertionError("the selected row is built"));
+    assertInView(app, Integer.parseInt(selected.key().substring("row-".length())));
+    return catalog.selected.path();
+  }
+
   private static String key(App<Catalog> app, Catalog catalog, String name) {
     app.keyDown(new Key(name));
     app.keyUp(new Key(name));

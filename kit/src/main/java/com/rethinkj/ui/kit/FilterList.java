@@ -52,6 +52,11 @@ public final class FilterList {
    * @param onChoose runs when the entry is chosen; null disables it
    * @param leading builds what stands before the text in place of the icon, or null
    * @param checked whether a check mark stands at the right end
+   * @param key what tells the entry from others with the same text, group and detail, as the
+   *     list finds the highlighted entry again when its entries change; null for none, and then
+   *     the text, group and detail tell it
+   * @param keepsOpen whether choosing it leaves a {@link CommandPalette} open, for an entry whose
+   *     handler changes the entries the palette shows; a {@link ComboBox} closes anyway
    */
   public record Entry(
       String text,
@@ -61,9 +66,24 @@ public final class FilterList {
       String group,
       Runnable onChoose,
       Function<Theme, El> leading,
-      boolean checked) {
+      boolean checked,
+      String key,
+      boolean keepsOpen) {
     public Entry {
       Objects.requireNonNull(text, "text");
+    }
+
+    /** An entry without a key that closes the palette it is chosen in. */
+    public Entry(
+        String text,
+        Symbol symbol,
+        String detail,
+        String shortcut,
+        String group,
+        Runnable onChoose,
+        Function<Theme, El> leading,
+        boolean checked) {
+      this(text, symbol, detail, shortcut, group, onChoose, leading, checked, null, false);
     }
 
     /** An entry with an icon or nothing before its text, and no check mark. */
@@ -74,23 +94,27 @@ public final class FilterList {
         String shortcut,
         String group,
         Runnable onChoose) {
-      this(text, symbol, detail, shortcut, group, onChoose, null, false);
+      this(text, symbol, detail, shortcut, group, onChoose, null, false, null, false);
     }
 
     public Entry symbol(Symbol symbol) {
-      return new Entry(text, symbol, detail, shortcut, group, onChoose, leading, checked);
+      return new Entry(
+          text, symbol, detail, shortcut, group, onChoose, leading, checked, key, keepsOpen);
     }
 
     public Entry detail(String detail) {
-      return new Entry(text, symbol, detail, shortcut, group, onChoose, leading, checked);
+      return new Entry(
+          text, symbol, detail, shortcut, group, onChoose, leading, checked, key, keepsOpen);
     }
 
     public Entry shortcut(String shortcut) {
-      return new Entry(text, symbol, detail, shortcut, group, onChoose, leading, checked);
+      return new Entry(
+          text, symbol, detail, shortcut, group, onChoose, leading, checked, key, keepsOpen);
     }
 
     public Entry group(String group) {
-      return new Entry(text, symbol, detail, shortcut, group, onChoose, leading, checked);
+      return new Entry(
+          text, symbol, detail, shortcut, group, onChoose, leading, checked, key, keepsOpen);
     }
 
     /**
@@ -99,7 +123,8 @@ public final class FilterList {
      * Theme.Sizes#control}; the column before the texts is as wide as it, at least an icon's width.
      */
     public Entry leading(Function<Theme, El> leading) {
-      return new Entry(text, symbol, detail, shortcut, group, onChoose, leading, checked);
+      return new Entry(
+          text, symbol, detail, shortcut, group, onChoose, leading, checked, key, keepsOpen);
     }
 
     /** An image before the text, fitted into an icon's square, such as a product's logo. */
@@ -112,11 +137,33 @@ public final class FilterList {
 
     /** A check mark at the right end of the row, as the current choice of a list has. */
     public Entry checked(boolean checked) {
-      return new Entry(text, symbol, detail, shortcut, group, onChoose, leading, checked);
+      return new Entry(
+          text, symbol, detail, shortcut, group, onChoose, leading, checked, key, keepsOpen);
+    }
+
+    /** This entry with a key, which tells it from others with the same text. */
+    public Entry key(String key) {
+      return new Entry(
+          text, symbol, detail, shortcut, group, onChoose, leading, checked, key, keepsOpen);
+    }
+
+    /** This entry, leaving a {@link CommandPalette} open when it is chosen, or not. */
+    public Entry keepsOpen(boolean keepsOpen) {
+      return new Entry(
+          text, symbol, detail, shortcut, group, onChoose, leading, checked, key, keepsOpen);
     }
 
     public boolean isEnabled() {
       return onChoose != null;
+    }
+
+    /** Whether this is {@code other}: the same key, or with none the same text, group, detail. */
+    boolean same(Entry other) {
+      return key != null || other.key != null
+          ? Objects.equals(key, other.key)
+          : text.equals(other.text)
+              && Objects.equals(group, other.group)
+              && Objects.equals(detail, other.detail);
     }
   }
 
@@ -186,6 +233,7 @@ public final class FilterList {
     int want = BEST; // what to highlight at the next build: an entry's index, BEST, -1 or KEEP
     boolean none; // nothing highlighted until a key or the pointer does it (a free combo box)
     int current = -1; // the entry highlighted in place of the best while nothing is typed, or -1
+    boolean picked; // the highlight is a key's, the pointer's or the app's, not the best entry
     // What was filtered: of which list, for which text, the entries matched in no order.
     List<Entry> source;
     String filtered;
@@ -208,6 +256,7 @@ public final class FilterList {
       highlight = row;
       want = KEEP;
       none = false;
+      picked = true;
       if (changed && onHighlight != null && shown != null && shown.choosable(row)) {
         onHighlight.accept(shown.entry(row));
       }
@@ -226,6 +275,20 @@ public final class FilterList {
       want = entry;
       none = false;
       cancel();
+    }
+
+    /** Lets go of the entries, and of what their handlers hold, as the list closes. */
+    void release() {
+      reset(-1);
+      source = null;
+      filtered = null;
+      matched = null;
+      lowered = null;
+      groupOf = null;
+      shown = null;
+      answer = List.of();
+      failure = null;
+      onHighlight = null;
     }
 
     /** Gives up the app's work on its way, as the list closes. */
@@ -257,14 +320,11 @@ public final class FilterList {
       return at >= 0 ? entries.get(at) : null;
     }
 
-    /** The row of an entry that is {@code e} by its text, group and detail, or -1. */
+    /** The row of the entry that is {@code e} ({@link Entry#same}), or -1. */
     int rowOf(Entry e) {
       for (int row = 0; row < rows.length; row++) {
         Entry at = entry(row);
-        if (at != null
-            && at.text().equals(e.text())
-            && Objects.equals(at.group(), e.group())
-            && Objects.equals(at.detail(), e.detail())) {
+        if (at != null && at.same(e)) {
           return row;
         }
       }
@@ -294,9 +354,10 @@ public final class FilterList {
     };
     s.shown = shown;
     if (s.want == State.KEEP && before != null && before.entries() != shown.entries()) {
-      // Other entries under the same highlight: the entry again by what it is, not by its row; one
-      // highlighted while the list was loading was the best of the entries before, not a choice.
-      boolean kept = !before.loading() && before.choosable(s.highlight);
+      // Other entries under the same highlight: the entry again by what it is, not by its row,
+      // where it was picked; the best of the entries before, or one highlighted while the list
+      // was loading, gives way to the best of these.
+      boolean kept = s.picked && !before.loading() && before.choosable(s.highlight);
       s.highlight = kept ? shown.rowOf(before.entry(s.highlight)) : -1;
       if (!shown.choosable(s.highlight) && !(s.none && !kept)) {
         s.want = State.BEST;
@@ -307,8 +368,10 @@ public final class FilterList {
     }
     if (s.want == State.BEST) {
       s.highlight = shown.step(-1, 1);
+      s.picked = false;
     } else if (s.want >= -1) {
       s.highlight = -1;
+      s.picked = true;
       for (int row = 0; s.want >= 0 && row < shown.count(); row++) {
         if (shown.rows[row] == s.want) {
           s.highlight = row;
