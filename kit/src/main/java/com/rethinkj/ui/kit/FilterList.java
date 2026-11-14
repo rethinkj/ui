@@ -1,7 +1,6 @@
 package com.rethinkj.ui.kit;
 
 import static com.rethinkj.ui.El.col;
-import static com.rethinkj.ui.El.el;
 import static com.rethinkj.ui.El.row;
 import static com.rethinkj.ui.kit.Icon.icon;
 import static com.rethinkj.ui.kit.Label.label;
@@ -604,15 +603,15 @@ public final class FilterList {
           .child(label(t, Label.Variant.MUTED, group).fontSize(t.type().body().size()));
     }
     boolean enabled = entry.isEnabled();
-    int text = enabled ? t.text().primary() : t.text().disabled();
-    int quiet = enabled ? t.text().muted() : t.text().disabled();
-    El mark = el().minSize(t.size().icon(), 0).shrink(0).center();
+    int text = PassiveContent.text(t, enabled);
+    int quiet = PassiveContent.muted(t, enabled);
+    El leading = null;
     if (entry.leading() != null) {
-      mark.child(entry.leading().apply(t).shrink(0));
+      leading = entry.leading().apply(t).shrink(0);
     } else if (entry.symbol() != null) {
-      mark.child(icon(t, entry.symbol()).color(enabled ? t.text().muted() : quiet));
+      leading = icon(t, entry.symbol()).color(quiet);
     }
-    El name = label(t, entry.text()).color(text).grow(1).minSize(0, 0).ellipsis();
+    El name = label(t, entry.text()).color(text).minSize(0, 0).ellipsis();
     int[] at = shown.query().isEmpty() ? null : Fuzzy.positions(shown.query(), entry.text());
     if (at != null && at.length > 0) {
       name.highlight(shown.query(), (line, before, spans) -> {
@@ -627,26 +626,20 @@ public final class FilterList {
         return null;
       });
     }
-    El content = row()
-        .wFull()
-        .hFull()
-        .padding(0, t.space().m())
-        .gap(t.space().m())
-        .align(Style.Align.CENTER)
-        .children(mark, name);
-    if (entry.detail() != null) {
-      content.child(
-          label(t, entry.detail()).color(quiet).minSize(0, 0).shrink(2).ellipsis());
-    }
-    if (entry.shortcut() != null) {
-      content.child(label(t, entry.shortcut())
-          .color(quiet)
-          .shrink(0)
-          .margin(0, 0, 0, t.space().s()));
-    }
-    if (entry.checked()) {
-      content.child(icon(t, Menu.CHECKED).color(quiet));
-    }
+    El content = PassiveContent.row(
+        t,
+        PassiveContent.flexibleLeading(t, leading),
+        name,
+        entry.detail() != null
+            ? label(t, entry.detail()).color(quiet).minSize(0, 0).shrink(2).ellipsis()
+            : null,
+        entry.shortcut() != null
+            ? label(t, entry.shortcut())
+                .color(quiet)
+                .shrink(0)
+                .margin(0, 0, 0, t.space().s())
+            : null,
+        entry.checked() ? icon(t, Menu.CHECKED).color(quiet) : null);
     return PassiveList.option(
             t, i, s.highlight, s::light, enabled ? () -> choose.accept(entry) : null)
         .label(entry.text())
