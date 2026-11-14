@@ -95,9 +95,10 @@ class StructureTest {
     assertTrue(left(line(tree, "#beside-port")) < left(line(tree, "#beside-host")) + 72, tree);
   }
 
-  @Test
-  void aWarningStandsWhereAnErrorWouldAndLeavesTheFieldValid() throws IOException {
-    String tree = check("form-warning", "dark", 2, 560, 220, Sheets::formWarning);
+  @ParameterizedTest(name = "{0}")
+  @ValueSource(strings = {"dark", "light"})
+  void aWarningStandsWhereAnErrorWouldAndLeavesTheFieldValid(String theme) throws IOException {
+    String tree = check("form-warning", theme, 2, 560, 220, Sheets::formWarning);
     String driver = line(tree, "#driver");
     assertTrue(driver.contains("warning=\"42.7.15 is 1 day old"), driver);
     assertFalse(driver.contains(" invalid"), driver);
