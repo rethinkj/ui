@@ -614,7 +614,7 @@ final class Animator {
   }
 
   private static Id first(El top, Id id, boolean named) {
-    if (top.opacity() == 0 || top.style().display == Style.Display.NONE) {
+    if (top.hidesFocus()) {
       return null;
     }
     if (top.isFocusable() && (!named || top.autofocusKey() != null)) {
@@ -658,7 +658,7 @@ final class Animator {
   }
 
   private void autofocus(El el, Id id, List<Object> found) {
-    if (el.opacity() == 0 || el.style().display == Style.Display.NONE) {
+    if (el.hidesFocus()) {
       return;
     }
     Object key = el.autofocusKey();
