@@ -16,7 +16,9 @@ import com.rethinkj.ui.Script;
 import com.rethinkj.ui.WindowPart;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Predicate;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -350,6 +352,25 @@ class MenuBarTest {
     assertEquals("Copied", studio.status, "without the field's focus, Ctrl+C is Edit's Copy");
     run(app, "key Z control shift\nframe\n");
     assertEquals("Redone", studio.status);
+  }
+
+  @Test
+  void anItemWithTwoCombinationsShowsTheFirstAndRunsOnBoth() {
+    List<String> ran = new ArrayList<>();
+    Menu.Item next = Menu.item("Next tab", () -> ran.add("next"))
+        .shortcut(Key.CONTROL, "Tab")
+        .alsoShortcut(Key.CONTROL, "PageDown");
+    assertEquals("Ctrl+Tab", next.shortcut());
+    Predicate<Key> keys = Menu.shortcuts(List.of(next));
+    assertTrue(keys.test(new Key("Tab", Key.CONTROL, false)));
+    assertTrue(keys.test(new Key("PageDown", Key.CONTROL, false)));
+    assertFalse(keys.test(new Key("PageUp", Key.CONTROL, false)));
+    assertEquals(List.of("next", "next"), ran);
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> Menu.shortcuts(
+            List.of(next, Menu.item("Down", () -> {}).shortcut(Key.CONTROL, "PageDown"))),
+        "a further combination is refused twice as the first is");
   }
 
   @Test

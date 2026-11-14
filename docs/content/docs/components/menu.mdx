@@ -33,6 +33,7 @@ The button's handler calls `state.toggle()`; `Menu.dropdown(theme, button, state
 | --- | --- |
 | `Menu.item(label, onChoose)` | An item; a null handler disables it |
 | `.shortcut(Key.CONTROL, "N")` | A key combination that runs it, shown as the platform writes it (`Ctrl+N`) |
+| `.alsoShortcut(Key.CONTROL, "PageDown")` | One more combination that runs it; only the first one shows |
 | `.shortcut("Ctrl+Enter")` | A text that only shows |
 | `.icon(Symbol)` | An icon before the text |
 | `.checked(boolean)` | A check mark in the icon's place, or at the item's end where it has a leading element |
@@ -41,7 +42,7 @@ The button's handler calls `state.toggle()`; `Menu.dropdown(theme, button, state
 | `Menu.separator()` | A line |
 | `Menu.submenu(label, items)` | A submenu, opening beside the item |
 
-An `Item` is a record (`label`, `shortcut`, `keys`, `checked`, `icon`, `onChoose`, `submenu`, `leading`, `dangerous`), so an app can read its items back, as a palette or a help page of shortcuts does. `isSeparator()` says whether it is a line, and `isEnabled()` whether it can be chosen or opens a submenu that has items. `Menu.shortcutText(key)` writes a `Key` as the platform does, such as `Ctrl+Shift+N`, for a tooltip or a hint of the app's own.
+An `Item` is a record (`label`, `shortcut`, `keys`, `checked`, `icon`, `onChoose`, `submenu`, `leading`, `dangerous`, `moreKeys`), so an app can read its items back, as a palette or a help page of shortcuts does. `isSeparator()` says whether it is a line, and `isEnabled()` whether it can be chosen or opens a submenu that has items. `Menu.shortcutText(key)` writes a `Key` as the platform does, such as `Ctrl+Shift+N`, for a tooltip or a hint of the app's own.
 
 A submenu of colours with a swatch before each hue's name, the chosen one checked at its end, as a [ComboBox](/docs/components/combo-box) checks its current item. A [CommandPalette](/docs/components/command-palette) of these items shows the same:
 

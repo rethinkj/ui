@@ -47,8 +47,8 @@ import java.util.function.IntConsumer;
  * <p>The bar is one stop for Tab. While it has the focus, Left and Right choose the tab before or
  * after the active one, around at the ends, and Home and End the first and the last; the focus
  * stays on the bar, as in WAI-ARIA's tabs, so that the user can go on choosing. From anywhere
- * inside, the bar or the content, Control+Tab chooses the next tab and Control+Shift+Tab the one
- * before, around at the ends, and Control+W and Control+F4 close the active tab if it can be
+ * inside, the bar or the content, Control+Tab and Control+Page Down choose the next tab and
+ * Control+Shift+Tab and Control+Page Up the one before, around at the ends, and Control+W and Control+F4 close the active tab if it can be
  * closed. Keys go up from the focused element, so these work while the focus is inside. From the
  * content the focus goes into the content of the tab that takes over: to the element where it
  * was if the new content has one, else to its {@link El#autofocus} element or its first focusable
@@ -77,7 +77,8 @@ import java.util.function.IntConsumer;
  * together for tabs in several windows.
  *
  * <p>In a tree dump the bar is {@code #tablist} with {@code role=tablist}, the tabs {@code
- * role=tab} with the title as label and the key {@code tab-<index>}, a busy one {@code busy},
+ * role=tab} with the title as label and the key {@code tab-<index>}, a busy one {@code busy}, a
+ * modified one {@code modified},
  * their crosses {@code
  * role=button} with the label {@code Close} and the title and the key {@code close-<index>}, and
  * the content is in {@code #panel} with {@code role=tabpanel} and the active tab's title as label.
@@ -92,7 +93,8 @@ public final class Tabs {
    *
    * @param title shown in the tab, also its label
    * @param closable whether it has a cross that closes it
-   * @param modified whether a dot before the title says that its content has unsaved changes
+   * @param modified whether a dot before the title says that its content has unsaved changes; a
+   *     tree dump says {@code modified}
    * @param icon before the title, in the title's colour, such as a table's; null for none
    * @param hue a colour that marks the tab as one of a group, as the tabs of a connection to
    *     production: a line along its top in the hue's edge colour of the theme; null for none
@@ -649,8 +651,11 @@ public final class Tabs {
     return root.onKey(k -> {
       String name = k.name();
       int from = active;
-      if (name.equals("Tab") && (k.modifiers() & ~Key.SHIFT) == Key.CONTROL) {
-        boolean back = (k.modifiers() & Key.SHIFT) != 0;
+      boolean tab = name.equals("Tab") && (k.modifiers() & ~Key.SHIFT) == Key.CONTROL;
+      boolean page =
+          k.modifiers() == Key.CONTROL && (name.equals("PageDown") || name.equals("PageUp"));
+      if (tab || page) {
+        boolean back = tab ? (k.modifiers() & Key.SHIFT) != 0 : name.equals("PageUp");
         if (o.menu != null) { // its items act on the active tab, which changes
           o.menu.close();
         }
@@ -712,6 +717,7 @@ public final class Tabs {
         .label(tab.title())
         .selected(active)
         .busy(tab.busy())
+        .modified(tab.modified())
         .disabled(!enabled)
         .h(height)
         .padding(0, t.space().m())

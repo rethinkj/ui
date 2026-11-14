@@ -39,6 +39,7 @@ public final class El {
   private static final int INVALID = 512;
   private static final int GRABBED = 1024;
   private static final int BUSY = 2048;
+  private static final int MODIFIED = 4096;
 
   private final Style style = new Style();
   private final List<El> children = new ArrayList<>();
@@ -393,6 +394,14 @@ public final class El {
    */
   public El grabbed(boolean grabbed) {
     return state(GRABBED, grabbed ? GRABBED : 0);
+  }
+
+  /**
+   * Whether what this element stands for has changes that are not saved, as a tab of a document
+   * whose edits are not written yet (not a WAI-ARIA state).
+   */
+  public El modified(boolean modified) {
+    return state(MODIFIED, modified ? MODIFIED : 0);
   }
 
   /** Whether the view set {@link #selected(boolean)}. */
@@ -3798,7 +3807,7 @@ public final class El {
    * {@link #masked} field, as UI Automation's {@code IsPassword}), {@code revealed} (one that is
    * {@link #revealed}; no WAI-ARIA name), {@code invalid}, {@code busy},
    * {@code selected},
-   * {@code current}, {@code grabbed}, {@code checked}, {@code checked=false} or {@code checked=mixed}, {@code expanded} or {@code
+   * {@code current}, {@code grabbed}, {@code modified} (not a WAI-ARIA state), {@code checked}, {@code checked=false} or {@code checked=mixed}, {@code expanded} or {@code
    * expanded=false}, {@code level=2}, {@code pos=3/10} (the position in the set and its size),
    * {@code sort=ascending} or {@code sort=descending}, {@code value="..."} and the {@link
    * #errorMessage} as {@code error="..."}, as in {@code el
@@ -4013,6 +4022,9 @@ public final class El {
     }
     if ((states & GRABBED) != 0) {
       out.append(" grabbed");
+    }
+    if ((states & MODIFIED) != 0) {
+      out.append(" modified");
     }
     switch (states & (CHECKED | NOT_CHECKED)) {
       case CHECKED -> out.append(" checked");
