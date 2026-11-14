@@ -28,10 +28,10 @@ import java.util.Objects;
  * pixels, so that a renderer draws the glyphs where they were measured.
  *
  * <p>The text of an {@link El#editable} element is a field. A single-line field is one line,
- * whatever the string holds, measured as 0 wide so that the field's width comes from its style,
- * centred vertically in its content box, and shown with its composition and placeholder. Its
- * caret, selection and horizontal scroll come from {@link App}, which keeps them per element; the
- * methods below that return them are what a renderer draws.
+ * whatever the string holds, unless it wraps, measured as 0 wide so that the field's width comes
+ * from its style, its lines centred vertically in its content box, and shown with its composition
+ * and placeholder. Its caret, selection and horizontal scroll come from {@link App}, which keeps
+ * them per element; the methods below that return them are what a renderer draws.
  *
  * <p>A {@link El#multiline multi-line} field has a line per line feed of its string, wrapped or
  * not, from the top of its content box, and is a scroll area of its own: {@link #lines} holds only
@@ -132,6 +132,7 @@ public final class Text implements Measure {
   private Decorator decorator;
   private List<Mark> marks = List.of();
   private int visibleLines = 1;
+  private int maxLines; // 0 for no limit, see El#maxLines
   // What a field draws besides its glyphs; see Editor#place.
   private float scroll;
   private List<Box> selection = List.of();
@@ -194,8 +195,11 @@ public final class Text implements Measure {
   private int firstInView;
   private int lastInView;
 
-  /** A line of the text: characters {@code from} to {@code to} of a paragraph. */
-  private record Span(int paragraph, int from, int to, float width) {}
+  /**
+   * A line of the text: characters {@code from} to {@code to} of a paragraph. A line that {@link
+   * El#maxLines} cut runs to the end of its paragraph and is as wide as its row was.
+   */
+  private record Span(int paragraph, int from, int to, float width, boolean cut) {}
 
   /**
    * Where a line of a multi-line field begins, for its gutter: its first row's top, in physical
@@ -524,6 +528,10 @@ public final class Text implements Measure {
     this.visibleLines = lines;
   }
 
+  void maxLines(int lines) {
+    this.maxLines = lines;
+  }
+
   /** For {@link Editor}: shows a field's string with a composition in it, or as it is with null. */
   void compose(String shown) {
     if (!Objects.equals(shown, composed)) {
@@ -649,7 +657,9 @@ public final class Text implements Measure {
         float width = Float.isNaN(knownWidth) ? availableWidth : knownWidth;
         return new Size(0, fittedRows(width) * lineHeight / scale, firstBaseline / scale);
       }
-      int high = multiline ? visibleLines : 1;
+      int high = multiline
+          ? visibleLines
+          : wraps ? spans(Float.isNaN(knownWidth) ? availableWidth : knownWidth).size() : 1;
       return new Size(0, high * lineHeight / scale, firstBaseline / scale);
     }
     List<Span> spans = spans(Float.isNaN(knownWidth) ? availableWidth : knownWidth);
@@ -683,7 +693,7 @@ public final class Text implements Measure {
     for (Span span : spans) {
       float baseline = offsetY + firstBaseline + placed.size() * lineHeight;
       Line line;
-      if (ellipsis && (!field || unfocused) && span.width > placedWidth + SLACK) {
+      if (ellipsis && (!field || unfocused) && (span.cut || span.width > placedWidth + SLACK)) {
         line = shorten(span, baseline);
         shortened = true;
       } else {
@@ -783,14 +793,20 @@ public final class Text implements Measure {
     for (int p = 0; p < paras.length; p++) {
       Para para = paras[p];
       if (!wraps) {
-        spans.add(new Span(p, 0, para.text.length(), para.run.width()));
+        spans.add(new Span(p, 0, para.text.length(), para.run.width(), false));
         continue;
       }
       int[] rowStarts = para.breakInto(limit);
       for (int r = 0; r < rowStarts.length; r++) {
         int to = r + 1 < rowStarts.length ? rowStarts[r + 1] : para.text.length();
-        spans.add(new Span(p, rowStarts[r], to, para.rowWidths[r]));
+        spans.add(new Span(p, rowStarts[r], to, para.rowWidths[r], false));
       }
+    }
+    if (maxLines > 0 && spans.size() > maxLines) {
+      Span last = spans.get(maxLines - 1);
+      spans = new ArrayList<>(spans.subList(0, maxLines - 1));
+      int end = paras[last.paragraph].text.length();
+      spans.add(new Span(last.paragraph, last.from, end, last.width, true));
     }
     return spans;
   }

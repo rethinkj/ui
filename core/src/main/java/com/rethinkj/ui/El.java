@@ -1185,13 +1185,28 @@ public final class El {
   /**
    * Whether the text breaks into more lines where it is wider than its box, as {@link #wrapText()}
    * says; it does not until this says so. A {@link #multiline} field that wraps scrolls only up
-   * and down, one that does not also sideways.
+   * and down, one that does not also sideways; a single-line field that wraps measures as high as
+   * its lines, up to {@link #maxLines}.
    */
   public El wrapText(boolean wraps) {
     textOnly("wrapText").wraps(wraps);
     if (text.multiline()) {
       style.overflowX = wraps ? Style.Overflow.HIDDEN : Style.Overflow.SCROLL;
     }
+    return this;
+  }
+
+  /**
+   * Shows at most {@code count} lines of this text: the last takes the rest of the string, which
+   * {@link #ellipsis} shortens and the box clips otherwise. A single-line field that {@link
+   * #wrapText wraps} is as high as its lines up to this many; while it has the focus the last line
+   * runs on, clipped, without the ellipsis. The tree dump shows the whole string.
+   */
+  public El maxLines(int count) {
+    if (count < 1) {
+      throw new IllegalArgumentException("maxLines must be 1 or more, was " + count);
+    }
+    textOnly("maxLines").maxLines(count);
     return this;
   }
 
