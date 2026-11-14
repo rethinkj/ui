@@ -354,6 +354,15 @@ public final class Window implements AutoCloseable {
   private static final List<Window> lingering = new ArrayList<>();
   /** When the dialogs of {@link #lingering} were last asked to close, in nanoseconds. */
   private static long lingeringAsked;
+  /**
+   * How long the close of the last open window waits at most for the dialogs of {@link
+   * #lingering} to answer; see {@link #finishLingering}.
+   */
+  static final long LINGER_MILLIS = 5_000;
+  /** How deep {@link #pump} runs on the stack, and whether {@link #finishLingering} runs. */
+  private static int pumping;
+
+  private static boolean finishing;
 
   private static boolean dispatching;
   /** What an upcall caught, for {@link #rethrow}. */
@@ -650,18 +659,26 @@ public final class Window implements AutoCloseable {
       timeoutMillis =
           timeoutMillis < 0 ? SystemDialogs.PUMP : Math.min(timeoutMillis, SystemDialogs.PUMP);
     }
-    if (timeoutMillis != 0 && pending.isEmpty() && deferred.isEmpty()) {
-      Sdl.waitEventTimeout(buffer, timeoutMillis);
-    }
-    // The event watch has translated every event as SDL queued it; SDL's queue only wakes us.
-    drain();
-    dispatch();
-    while (failure == null && !deferred.isEmpty()) {
-      deferred.poll().run();
+    pumping++;
+    try {
+      if (timeoutMillis != 0 && pending.isEmpty() && deferred.isEmpty()) {
+        Sdl.waitEventTimeout(buffer, timeoutMillis);
+      }
+      // The event watch has translated every event as SDL queued it; SDL's queue only wakes us.
       drain();
       dispatch();
+      while (failure == null && !deferred.isEmpty()) {
+        deferred.poll().run();
+        drain();
+        dispatch();
+      }
+      closeLingering();
+    } finally {
+      pumping--;
     }
-    closeLingering();
+    if (pumping == 0) { // a listener may have closed the last window
+      finishLingering();
+    }
     rethrow();
   }
 
@@ -1903,7 +1920,16 @@ public final class Window implements AutoCloseable {
     return handle;
   }
 
-  /** Closes the window. Closing a closed window does nothing. */
+  /**
+   * Closes the window. Closing a closed window does nothing.
+   *
+   * <p>A file dialog the window owns answers as cancelled. One that the window asked for and that
+   * has not appeared yet closes as it appears, while the window waits hidden, as {@link
+   * #pollEvents} and {@link #waitEvents} go on; when no other window is open, this waits itself
+   * (at most 5 seconds, usually a few hundred milliseconds), or, when a listener closed the window,
+   * the pump that delivered the event does, so that the window, the dialog and SDL are gone when
+   * it returns.
+   */
   @Override
   public void close() {
     if (!open) {
@@ -1937,6 +1963,9 @@ public final class Window implements AutoCloseable {
       windows.remove(id);
       pending.removeIf(posted -> posted.window == this);
       stopIfUnused();
+      if (pumping == 0) { // else the pump that delivers the event in which it closed does this
+        finishLingering();
+      }
     }
   }
 
@@ -1972,6 +2001,29 @@ public final class Window implements AutoCloseable {
       }
     }
     stopIfUnused();
+  }
+
+  /**
+   * When no window is open and closed ones still wait for their dialogs, pumps events until those
+   * have answered and the windows are gone, and SDL with them, at most {@link #LINGER_MILLIS}:
+   * nothing else would pump then, as after the last window of a {@link WindowLoop} closed and the
+   * loop ended. Until the windows' thread handles messages, the dialog's thread waits for it and
+   * shows nothing; once it does in any other way, as a message box does, the dialog appears owned
+   * by the hidden window and stays. After the time it leaves them to the next pump.
+   */
+  private static void finishLingering() {
+    if (finishing || !windows.isEmpty() || lingering.isEmpty()) {
+      return;
+    }
+    finishing = true;
+    try {
+      long end = System.nanoTime() + LINGER_MILLIS * 1_000_000;
+      while (!lingering.isEmpty() && windows.isEmpty() && System.nanoTime() < end) {
+        pump(SystemDialogs.PUMP); // a dialog's answer wakes it (SystemDialogs.answer)
+      }
+    } finally {
+      finishing = false;
+    }
   }
 
   // ---- Inside the package
@@ -2108,6 +2160,11 @@ public final class Window implements AutoCloseable {
     int box = Math.max(
         Win32.getSystemMetrics(Win32.SM_CXDOUBLECLK), Win32.getSystemMetrics(Win32.SM_CYDOUBLECLK));
     return box > 0 ? Math.max(1, box / 2) : 2;
+  }
+
+  /** Whether SDL runs: a window is open, or one waits for its dialogs to answer; for tests. */
+  static boolean started() {
+    return thread != null;
   }
 
   /** Quits SDL when no window is open, so that another thread may open the next one. */
