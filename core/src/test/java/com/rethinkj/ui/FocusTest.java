@@ -513,6 +513,11 @@ class FocusTest {
                             i -> row()
                                 .children(
                                     el().key("a" + i).focusable().size(10, 10),
+                                    row()
+                                        .child(el().key("w" + i)
+                                            .focusable()
+                                            .defaultFocus()
+                                            .size(10, 10)),
                                     el().key("b" + i).focusable().defaultFocus().size(10, 10))))),
         100,
         100);
@@ -530,7 +535,7 @@ class FocusTest {
     assertEquals("list", focusedKey(app));
     app.focus(find(app.tree(), "table"));
     app.frame();
-    assertEquals("b0", focusedKey(app), "in a virtual list, the row's");
+    assertEquals("b0", focusedKey(app), "in a virtual list, the row's nearest");
     app.focus(find(app.tree(), "a1"));
     app.frame();
     app.focus(find(app.tree(), "page"));

@@ -1936,8 +1936,8 @@ public final class App<S> {
    * the element that last had the focus in the list, else to the first focusable element of the
    * first row in view, or the last one of the last row in view for Shift+Tab, rather than to the
    * first row the list built. The row is built and scrolled into view if needed. A {@code step} of
-   * 0 focuses into the list as {@link #focus(El)} does: to the row's {@link El#defaultFocus}
-   * element, if it has one, before its first.
+   * 0 focuses into the list as {@link #focus(El)} does: to the element of the row that {@link
+   * #firstInside} picks.
    */
   private El enter(El next, int step) {
     Animator.InRow in = animator.inRow(animator.identity(next));
@@ -1957,19 +1957,21 @@ public final class App<S> {
         return next;
       }
     }
+    El rowEl = list.children().get(row - list.firstRow());
     Set<El> inside = Collections.newSetFromMap(new IdentityHashMap<>());
-    collect(list.children().get(row - list.firstRow()), inside);
+    collect(rowEl, inside);
     List<El> order = focusables();
     order.removeIf(El::skipsTab); // as for the order outside: the focus is not in the list
     El again = last == null ? null : animator.element(last);
     if (again != null && inside.contains(again) && order.contains(again)) {
       return again;
     }
+    if (step == 0) {
+      El chosen = firstInside(rowEl, order);
+      return chosen != null ? chosen : next;
+    }
     El found = null;
     for (El el : order) {
-      if (inside.contains(el) && step == 0 && el.isDefaultFocus()) {
-        return el;
-      }
       if (inside.contains(el) && (found == null || step < 0)) {
         found = el;
       }
