@@ -137,6 +137,7 @@ public final class SystemDialogs implements Dialogs {
         Sdl.setNumberProperty(properties, Sdl.PROP_FILE_DIALOG_NFILTERS_NUMBER, filters.size());
       }
       if (window != null) {
+        window.reveal(); // a dialog of a window that has not drawn yet would be hidden with it
         Sdl.setPointerProperty(properties, Sdl.PROP_FILE_DIALOG_WINDOW_POINTER, window.sdlWindow());
       }
       String location = location(dialog);
@@ -306,6 +307,9 @@ public final class SystemDialogs implements Dialogs {
   private static int show(MessageBox box, Window parent) {
     if (parent != null && !parent.isOpen()) {
       parent = null;
+    }
+    if (parent != null) {
+      parent.reveal(); // hidden with a window that has not drawn yet, the box would block unseen
     }
     try (Arena arena = Arena.ofConfined()) {
       List<String> buttons = box.buttons();
