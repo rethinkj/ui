@@ -10,6 +10,7 @@ import com.rethinkj.ui.El;
 import com.rethinkj.ui.Key;
 import com.rethinkj.ui.Script;
 import com.rethinkj.ui.render.Png;
+import com.rethinkj.ui.text.TextRendering;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -246,6 +247,7 @@ class DialogTest {
     Theme t = theme.equals("dark") ? Theme.DARK : Theme.LIGHT;
     List<String> log = new ArrayList<>();
     App<List<String>> app = new App<>(log, l -> head(t, l, "Edit connection"));
+    app.textRendering(TextRendering.LINUX);
     String name = "dialog-head-" + theme + "-" + scale + "x";
     Script.run(
         "size 480 240 scale " + scale + "\nframe\nadvance 0.25\nframe\nsnap " + name + "\n",

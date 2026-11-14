@@ -11,6 +11,7 @@ import com.rethinkj.ui.Script;
 import com.rethinkj.ui.render.Pixels;
 import com.rethinkj.ui.render.Png;
 import com.rethinkj.ui.render.Scene;
+import com.rethinkj.ui.text.TextRendering;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -213,6 +214,7 @@ class DialogScrollTest {
   void ringsAtTheContentsEdgesShowWhole(String theme, double scale) throws IOException {
     Theme t = theme.equals("dark") ? Theme.DARK : Theme.LIGHT;
     App<Object> app = new App<>(new Object(), s -> fields(t));
+    app.textRendering(TextRendering.LINUX);
     String name = "dialog-scroll-" + theme + "-" + (scale == 1.5 ? "1_5" : (int) scale) + "x";
     boolean stored = scale != 1.5;
     Script.run(
