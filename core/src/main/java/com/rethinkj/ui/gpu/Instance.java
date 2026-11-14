@@ -74,6 +74,8 @@ public final class Instance extends GpuObject {
       if (backend == Backend.D3D12) {
         // Never left undefined: then wgpu-native would take any dxcompiler.dll on the DLL search
         // path, of whatever version.
+        // shortcut: with DXC wgpu skips adapters below Shader Model 6.0, which Windows 11's
+        // hardware has with current drivers; retry with FXC if one turns up.
         String dxc = dxcPath();
         if (dxc == null) {
           extras.set(JAVA_INT, InstanceExtras.DX12_SHADER_COMPILER, Wgpu.DX12_COMPILER_FXC);
