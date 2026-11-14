@@ -22,6 +22,7 @@ The frame handles the queued input in order, each against the view the input bef
 | `snap <name>` | Writes `<name>.png` and `<name>.tree.txt` of the last frame into the output folder, and `<name>.clipboard.txt` when the clipboard holds text. `<name>` may contain `/`. With several windows, each other window's snap goes under its title in lower case with hyphens: `groceries-<name>.png`. |
 | `advance <seconds>` | Moves the app's clock. Actions the app asked for with `App.after` that are due run at the next `frame`; animations and cycles show that time. |
 | `await [<seconds>]` | Waits until the work the app started with `App.background` has delivered or was cancelled (at most 10 seconds unless given), and queues what it and other threads posted for the next `frame`. Fails, naming the work, when it still runs after the timeout. |
+| `await progress [<seconds>]` | Waits until work that still runs has reported progress (a `Work.Progress`) that has not been let in yet (at most 10 seconds unless given), without waiting for its end, and queues the reports and what other threads posted for the next `frame`. A report that waits already lets it go on at once. Fails, naming the work, when nothing reported in time, and at once when no work runs. |
 
 ## Pointer
 

@@ -13,6 +13,17 @@ An app, its state and its elements belong to the thread that runs it, and only h
 - Give the computation only what it needs (a table name, an SQL string, a connection), never the state or elements: the app's thread reads them while it builds the view, and nothing guards them.
 - Virtual threads do not keep the JVM alive.
 
+## Progress
+
+Work that takes a while, a download or an import, can say how far it got. Give `background` a computation that takes a `Work.Progress` and an `onProgress` handler: each `progress.report(value)` from the work's thread runs `onProgress` on the app's thread, as a posted task does.
+
+```java snippet="reporting"
+```
+
+- Reports end with the work: after `work.cancel()` no `onProgress` runs any more, also for reports that already wait, and none runs after `onResult` or `onFailure`. A report made after that is dropped. `progress.isCancelled()` tells a loop that does not block; a blocking read sees the interrupt.
+- Reports that wait one after the other are coalesced into the newest, as long as nothing else was posted between them and no frame has taken them yet. A download that reports every 8 KB runs its handler about once per frame, and a report never overtakes a task its thread posted after it. So report the whole progress, such as the bytes so far, not a step to add.
+- Type the computation's parameter, as `Work.Progress<Integer>` above, where the handlers do not say what a report is.
+
 ## Posting
 
 `app.post(runnable)` queues a task after the input that came before it; it runs on the app's thread, against the view the input before it left, and the frame draws. It never blocks. A window wakes for it at once.
@@ -33,3 +44,13 @@ A script does not wait for the clock on the wall. `await` waits until the work t
 
 ```text file="examples/src/test/resources/golden/docs/background/counting.tree.txt" start="Count rows" count="2"
 ```
+
+Work that reports is shown half done with `await progress`, which lets in what running work has reported without waiting for its end. That is deterministic only when the work reports and then waits for something the script controls: the made-up download above gets a megabyte for each quarter second of the app's clock, so each `advance 0.25` lets it read one more.
+
+```text snippet="reporting-script"
+```
+
+```text file="examples/src/test/resources/golden/docs/progress/downloading.tree.txt" start="Driver" count="5"
+```
+
+In a test without a script, `app.awaitProgress(timeout)` does the same as `app.await(timeout)` does for the end.

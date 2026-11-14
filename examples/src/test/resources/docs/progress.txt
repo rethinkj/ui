@@ -1,0 +1,18 @@
+# docs:start reporting-script
+size 280 120
+frame
+press role=button label="Download"
+frame                   # starts the work, which waits for its first megabyte
+advance 0.25            # the made-up network: one megabyte each quarter second of the clock
+frame                   # lets the work read it; it reports 1 and waits for the next
+await progress          # lets in what the running work reported
+frame
+snap downloading        # 1 of 8 MB, the button busy
+advance 1.75            # the other seven
+frame
+await                   # waits for the work's end and queues its result
+frame
+advance 1               # the bar's spring settles
+frame
+snap downloaded
+# docs:end reporting-script

@@ -1,0 +1,10 @@
+el 0,0 280x120
+  el role=button label="Download" 12,12 88x24
+    text "Download" 25,16 62x16
+  el role=progressbar label="Driver" 12,44 240x22 value="100%"
+    el 12,44 240x16
+      text "Driver" 12,44 37x16
+      el 57,52 128x0
+      text "8 of 8 MB" 193,44 59x16
+    el 12,62 240x4
+      el #fill 12,62 240x4

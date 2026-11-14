@@ -24,7 +24,7 @@ Start with what the user does, one step per line, and `snap` after each state yo
 ```
 
 - `advance 0.3` after opening a menu, dialog or tooltip: overlays fade in, and a snap before that shows them half there. An element takes the pointer once it is visible at all; one at opacity 0 or fading out (`exiting`) takes none and matches no selector.
-- `await` after starting work on another thread; posted results reach a script only there.
+- `await` after starting work on another thread; posted results reach a script only there. `await progress` lets in what running work reported, for a snap of it half done.
 - `scroll <list> row <n>` before pressing a row that is not in view.
 
 ## 4. Run it

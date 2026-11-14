@@ -55,6 +55,7 @@ A test can drive an app without a script, as a window does: input methods queue 
 | `frame()` | Dispatches what was queued and draws; true when it changed what shows |
 | `advance(seconds)`, `time()` | The app's clock, which springs, delays and `after` go by |
 | `await(timeout)` | Waits for the work of `background` and queues what threads posted for the next frame |
+| `awaitProgress(timeout)` | Waits for a report of `background` work that still runs and queues it, and what threads posted, for the next frame |
 | `tree()`, `focused()`, `hovered()`, `pressed()` | The root of the last frame, whose `dump()` is a [tree dump](/docs/testing/tree-dump), and its elements in those states |
 | `render()` | The last frame's pixels and tree, as `Headless` makes them |
 
