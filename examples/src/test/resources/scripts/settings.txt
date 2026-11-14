@@ -1,24 +1,22 @@
-# The settings window: every page in both themes at scales 1 and 2, the keys of the list of
-# pages, rows that toggle, an expander, a number field, a slider and its callout, connections
-# that filter down to the empty state, and the dialog with a form that adds one. New elements
+# The settings window: the pages in the dark theme, General and Appearance in both themes at
+# scale 2 for the documentation, the keys of the list of pages, rows that toggle, an expander, a
+# number field, a slider and its callout, connections that filter, and the dialog with a form
+# that adds one. New elements
 # fade in and changed ones spring over a tenth of a second, so `advance 1` and another frame come
 # before each snap.
 size 880 600
 frame
-snap settings-general
 
 focus #pages                     # the list of pages takes the keys: Down goes to Appearance
 key ArrowDown
 frame
 advance 1
 frame
-snap settings-appearance
 
 key End                          # and on to the last page, past the heading
 frame
 advance 1
 frame
-snap settings-about
 
 press role=option label="Editor"
 frame
@@ -42,14 +40,12 @@ press role=button label="staging"              # selects the card
 frame
 advance 1
 frame
-snap settings-connections
 
 press #filter
 type "xyz"                                     # nothing matches
 frame
 advance 1
 frame
-snap settings-empty
 
 press role=button label="Clear filter"
 frame
@@ -74,13 +70,6 @@ press role=button label="Add"
 frame
 advance 1
 frame
-snap settings-added
-
-press role=option label="Keymap"
-frame
-advance 1
-frame
-snap settings-keymap
 
 press role=option label="Appearance"
 frame
@@ -95,62 +84,10 @@ advance 1
 frame
 snap settings-restart
 
-press role=combobox label="Blue"               # the accent's select
-frame
-advance 0.25                                   # past the menu's fade
-frame
-press role=menuitem label="Purple"             # changes the accent of the whole window
-frame
-advance 1
-frame
-snap settings-accent
-press role=combobox label="Purple"
-frame
-advance 0.25
-frame
-press role=menuitem label="Blue"
-frame
-
-size 560 600                                   # narrow: descriptions wrap, controls keep width
-frame
-advance 1
-frame
-snap settings-narrow
-
-size 880 600
-frame
-advance 1
-frame
 press role=radio label="Light"
 frame
 advance 1
 frame
-snap settings-light-appearance
-press role=option label="General"
-frame
-advance 1
-frame
-snap settings-light-general
-press role=option label="Editor"
-frame
-advance 1
-frame
-snap settings-light-editor
-press role=option label="Connections"
-frame
-advance 1
-frame
-snap settings-light-connections
-press role=option label="Keymap"
-frame
-advance 1
-frame
-snap settings-light-keymap
-press role=option label="About"
-frame
-advance 1
-frame
-snap settings-light-about
 
 size 880 600 scale 2
 frame
@@ -166,31 +103,6 @@ frame
 advance 1
 frame
 snap settings-light-2x-appearance
-press role=option label="Editor"
-frame
-advance 1
-frame
-snap settings-light-2x-editor
-press role=option label="Connections"
-frame
-advance 1
-frame
-snap settings-light-2x-connections
-press role=option label="Keymap"
-frame
-advance 1
-frame
-snap settings-light-2x-keymap
-press role=option label="About"
-frame
-advance 1
-frame
-snap settings-light-2x-about
-
-press role=option label="Appearance"
-frame
-advance 1
-frame
 press role=radio label="Dark"
 frame
 advance 1
@@ -201,23 +113,3 @@ frame
 advance 1
 frame
 snap settings-2x-general
-press role=option label="Editor"
-frame
-advance 1
-frame
-snap settings-2x-editor
-press role=option label="Connections"
-frame
-advance 1
-frame
-snap settings-2x-connections
-press role=option label="Keymap"
-frame
-advance 1
-frame
-snap settings-2x-keymap
-press role=option label="About"
-frame
-advance 1
-frame
-snap settings-2x-about

@@ -12,6 +12,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.Arrays;
+import java.util.Comparator;
 
 /** Runs an example's {@code main} on a script and compares its snaps with the stored ones. */
 final class Snaps {
@@ -36,6 +37,11 @@ final class Snaps {
   static void check(String name, Main main) throws IOException {
     assumeText();
     Path out = Path.of("target", name);
+    if (Files.exists(out)) { // snaps of an earlier run that the script no longer takes
+      try (var old = Files.walk(out)) {
+        old.sorted(Comparator.reverseOrder()).forEach(p -> p.toFile().delete());
+      }
+    }
     main.run(
         new String[] {"--script", SCRIPTS.resolve(name + ".txt").toString(), "--out", out.toString()
         });
@@ -56,16 +62,11 @@ final class Snaps {
     return Files.readString(SCRIPTS.resolve(name + ".txt"));
   }
 
-  /** {@code src/test/resources/golden}, or a folder in it. */
-  static Path stored(String folder) {
-    return STORED.resolve(folder);
-  }
-
   /**
    * Compares each file in {@code out} with the one of the same name in {@code stored}, or with
    * {@code -Dgolden.update=true} stores it there.
    */
-  static void compare(Path out, Path stored) throws IOException {
+  private static void compare(Path out, Path stored) throws IOException {
     try (var files = Files.list(out)) {
       for (Path written : files.sorted().toList()) {
         Path kept = stored.resolve(written.getFileName());

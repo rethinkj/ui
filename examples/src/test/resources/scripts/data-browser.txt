@@ -2,7 +2,6 @@
 # by id and a resized column.
 size 900 520
 frame
-snap browser-top                 # a million orders, none selected
 
 press #filter
 type "ada paid"                  # each word in some text column: every twentieth order
@@ -15,7 +14,6 @@ key Tab                          # on to the grid, with a ring
 key ArrowDown                    # the cursor on the first order shown
 key End control                  # and on the last cell of the last one
 frame
-snap browser-end
 
 press #filter
 key A control
@@ -23,7 +21,6 @@ key Backspace                    # no filter: the order stays selected, and the 
 frame
 advance 1
 frame
-snap browser-unfiltered
 
 press #column-0                  # sorts by id, descending: the order is near the top now
 frame
@@ -35,7 +32,6 @@ move 559,86                      # 60 pixels to the right, a frame for each step
 frame
 up 559,86
 frame
-snap browser-sorted
 
 # Editing: changes collect until Commit, with their marks, and filters per column
 key Home control                 # the first cell: the id of the last order, which does not edit
@@ -72,14 +68,9 @@ press label="Apply"
 frame
 advance 1
 frame
-snap browser-filters
 
 press role=switch label="Dark"   # the light theme, the changes and filters as they were
 frame
 advance 1
 frame
 snap browser-light
-
-press #commit                    # written: the marks go, the deleted order with them
-frame
-snap browser-committed

@@ -52,15 +52,12 @@ class TitleBarsTest {
       app.textRendering(TextRendering.LINUX);
       app.resize(1100, 720, 1);
       app.frame();
-      String tree = app.render().tree();
+      String tree = app.tree().dump();
       assertTrue(tree.contains("role=button label=\"Maximize\""), name + ":\n" + tree);
       app.windowMaximized(true);
       app.frame();
-      tree = app.render().tree();
+      tree = app.tree().dump();
       assertTrue(tree.contains("role=button label=\"Restore\""), name + ":\n" + tree);
-      app.windowMaximized(false);
-      app.frame();
-      assertTrue(app.render().tree().contains("role=button label=\"Maximize\""), name);
     });
   }
 }

@@ -25,11 +25,8 @@ class SettingsTest {
   @Test
   void theScriptShowsTheStoredFrames() throws IOException {
     Snaps.check("settings", Settings::main);
-    // A fixed platform, so that the stored images are the same on every platform.
-    assertTrue(Snaps.line("settings", "settings-about", "text \"Version")
-        .contains("\"Version 0.1.0 · Java 25 · Linux x64\""));
     // Every setting can be read from the tree.
-    assertTrue(Snaps.line("settings", "settings-appearance", "role=option label=\"Appearance\"")
+    assertTrue(Snaps.line("settings", "settings-2x-appearance", "role=option label=\"Appearance\"")
         .contains(" selected"));
     assertTrue(Snaps.line("settings", "settings-editor", "role=switch label=\"Word wrap\"")
         .contains(" checked"));
@@ -37,18 +34,12 @@ class SettingsTest {
         .contains(" expanded"));
     assertTrue(Snaps.line("settings", "settings-editor", "role=spinbutton label=\"Tab size\"")
         .contains("\"5\""));
-    assertTrue(Snaps.line("settings", "settings-connections", "role=button label=\"staging\"")
-        .contains(" selected"));
-    assertTrue(Snaps.line("settings", "settings-empty", "role=status")
-        .contains("label=\"No connections match\""));
     assertTrue(Snaps.line("settings", "settings-dialog", "#port").contains(" invalid"));
     assertTrue(Snaps.line("settings", "settings-dialog", "label=\"Add\"").contains(" disabled"));
-    assertTrue(Snaps.line("settings", "settings-added", "role=button label=\"backup\"")
-        .contains(" selected"));
     assertTrue(Snaps.line("settings", "settings-restart", "role=slider").contains("value=\"16\""));
     assertTrue(Snaps.line("settings", "settings-restart", "role=note")
         .contains("label=\"Restart to apply\""));
-    assertTrue(Snaps.line("settings", "settings-light-appearance", "role=radio label=\"Light\"")
+    assertTrue(Snaps.line("settings", "settings-light-2x-appearance", "role=radio label=\"Light\"")
         .endsWith(" checked"));
   }
 

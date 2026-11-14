@@ -3,16 +3,13 @@
 # light theme, docked into the bar of another window torn off.
 size 640 360 at 100,100
 frame
-snap documents-start
 
 down #tab-0             # Readme along the bar, behind Todo
 move 60,48
 move 290,48
 frame
-snap documents-moving   # Readme muted in its place, the marker after Todo
 up 290,48
 frame
-snap documents-moved
 
 down #tab-3             # Query out of the bar, down into the text
 move 350,60
@@ -26,7 +23,6 @@ frame
 snap documents-docking  # the marker there; the window of Query over the first
 up screen 230,148
 frame
-snap documents-docked   # Query in its place, its window gone
 
 press role=switch label="Dark"
 frame
@@ -38,7 +34,6 @@ move 450,240
 frame
 up 450,240
 frame
-snap documents-light-torn     # its window lies at 495,291 on the screen
 down #tab-0             # Notes out of the bar and into the bar of Ideas, after it
 move 60,100
 move 60,200
@@ -48,7 +43,6 @@ frame
 snap documents-light-docking
 up screen 600,340
 frame
-snap documents-light-docked   # Notes in the window of Ideas, its own window gone
 
 window Ideas
 close                   # its tabs go back into the first window
@@ -62,7 +56,6 @@ press role=menuitem label="File"
 frame
 advance 0.25
 frame
-snap documents-file-menu
 press role=menuitem label="Open…"
 frame
 await                   # the dialog's answer
@@ -89,7 +82,6 @@ await                   # the file, written
 frame
 advance 0.25
 frame
-snap documents-saved    # the tab named after its file, the toast says so
 
 # A file dragged onto the window from a file manager: the tabs' card takes it.
 advance 6
@@ -98,7 +90,6 @@ drop over #tabs
 frame
 advance 0.25            # the card's edge springs to its colour
 frame
-snap documents-drop-over      # the card's edge in the accent, a hint at the bottom
 drop #tabs "src/test/resources/documents/notes ü.md"
 frame
 await

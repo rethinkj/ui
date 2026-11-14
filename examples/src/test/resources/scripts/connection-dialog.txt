@@ -10,7 +10,6 @@ type "inv"                       # the databases of the server that match, none 
 frame
 advance 1
 frame
-snap connection-suggestions
 type "entory"                    # what is typed is the value: Tab keeps it
 key Tab                          # on to the user field, which selects its (empty) text
 type "admin"

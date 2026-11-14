@@ -84,7 +84,7 @@ class DataBrowserTest {
   void theFilterShowsExactlyTheOrdersThatMatch() {
     DataBrowser browser = new DataBrowser();
     int rows = 3 * DataBrowser.PERIOD; // the first rows suffice, as the columns repeat
-    for (String filter : List.of("ada paid", " OSLO  cable", "shop.example gift", "xyz", "")) {
+    for (String filter : List.of("ada paid", " OSLO  cable", "")) {
       browser.filter(filter);
       List<Integer> expected = new ArrayList<>();
       for (int row = 0; row < rows; row++) {

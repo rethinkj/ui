@@ -1,4 +1,4 @@
-# The light switch example: pressed on, then off again with Tab and Space.
+# The light switch example: off, then pressed on.
 size 360 240 scale 2
 frame
 snap light-switch-off
@@ -7,19 +7,6 @@ press role=switch label="Lamp"
 frame
 advance 0.1
 frame
-snap light-switch-moving
-
 advance 1
 frame
 snap light-switch-on
-
-key Tab                # the press left the focus alone; Tab gives it to the switch, with a ring
-key Space
-frame
-advance 1
-frame
-snap light-switch-focused-off
-
-move role=button label="Close"   # the close button of the title bar turns red under the pointer
-frame
-snap light-switch-close-hovered

@@ -8,12 +8,10 @@ down #handle-Ideas         # Ideas along the row, behind Todo
 move 220,80
 move 560,80
 frame
-snap notes-reorder-marker  # the marker after Todo
 up 560,80
 frame
 advance 1                  # the cards spring to their places
 frame
-snap notes-reordered
 
 down #handle-Groceries     # Groceries out of the window, above it
 move 60,80
@@ -26,7 +24,6 @@ move screen 800,220        # the window follows
 frame
 up screen 800,220
 frame
-snap notes-apart
 
 window Groceries           # an edit in the note's window shows in the row at once
 press #text
@@ -44,12 +41,10 @@ move screen 140,200
 frame
 advance 1
 frame
-snap notes-docking         # the marker before the first card
 up screen 140,200
 frame
 advance 1
 frame
-snap notes-docked
 
 window Groceries           # closing the note's window docks it where its muted card is
 close

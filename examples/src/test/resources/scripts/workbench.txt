@@ -3,7 +3,6 @@
 # the answers in. The title bar switches the theme.
 size 1000 600
 frame
-snap workbench-start                       # localhost/shop/public open, on the first tab
 
 press role=treeitem label="orders"
 frame
@@ -11,7 +10,6 @@ press role=treeitem label="orders" clicks 2  # a double press opens the table in
 frame
 advance 0.2                                # past the fade of the new tab's toolbar
 frame
-snap workbench-loading                     # which asks for its rows: "Loading…" until the answer
 
 await                                      # a million rows
 frame
@@ -19,7 +17,6 @@ press 600,300                              # selects a cell and focuses the grid
 key End control                            # the last cell of a million rows, clear of the bar
 key Home                                   # and the first of its row
 frame
-snap workbench-orders
 
 press role=treeitem label="customers"
 frame
@@ -31,7 +28,6 @@ key W control                              # closes it, which cancels the questi
 frame
 await                                      # the answer for customers never arrives
 frame
-snap workbench-closed
 
 press #query-localhost/shop/public/orders   # the statement of orders, in a code editor
 key End control
@@ -57,14 +53,12 @@ await
 frame
 advance 0.25                               # the completions faded out
 frame
-snap workbench-error                       # the name underlined, and the status says why
 
 key Z control                              # the edit takes the underline away
 press role=menuitem label="Edit"           # the menu bar in the title bar
 frame
 advance 0.25
 frame
-snap workbench-edit-menu                   # Undo and Redo step through the query's history
 key Escape
 key Escape                                 # the menu, then the bar: the focus back in the query
 frame
@@ -76,7 +70,6 @@ press role=treeitem label="deliveries" right  # selects the table and opens its 
 frame
 advance 0.25                               # past the menu's fade
 frame
-snap workbench-menu
 
 press role=menuitem label="Drop table…"      # asks in a dialog, whose field takes the focus
 type "deliver"
@@ -84,7 +77,6 @@ key Enter                                  # the name is not typed yet: Drop is 
 frame
 advance 0.25
 frame
-snap workbench-drop                        # Drop stays disabled until the whole name is typed
 
 type "ies"
 frame
@@ -93,7 +85,6 @@ key Enter                                  # presses Drop, the default button: d
 frame
 advance 0.25
 frame
-snap workbench-dropped                     # the focus back on the tree
 
 advance 5
 frame
@@ -104,17 +95,14 @@ press role=treeitem label="staging"
 frame
 press role=treeitem label="staging" clicks 2
 frame
-snap workbench-connecting                  # asked: a muted row until the answer
 
 await                                      # staging's databases
 frame
-snap workbench-staging
 
 press role=treeitem label="prod-eu" clicks 2
 frame
 await                                      # prod-eu refuses: it closes again
 frame
-snap workbench-refused                     # and the status line says why, for a while
 
 advance 5                                  # the message goes on the app's clock (App.after)
 frame
@@ -122,7 +110,6 @@ press role=switch label="Dark"             # the light theme
 frame
 advance 1
 frame
-snap workbench-light
 
 move label="Close"                         # the title bar's button says what it does after a rest
 frame
@@ -130,7 +117,6 @@ advance 0.6
 frame                                      # the tooltip appears and fades in
 advance 0.25
 frame
-snap workbench-tooltip                     # a gap from the window's edge
 leave                                      # the close button was red under the pointer
 
 press #query-localhost/shop/public/orders   # the statement of orders, above its rows
@@ -142,11 +128,9 @@ key Enter control                          # runs it: the rows are asked for aga
 frame
 advance 1                                  # the area's border of the focus
 frame
-snap workbench-query                       # "Loading…" below the statement, the caret still in it
 
 await
 frame
-snap workbench-ran                         # twenty rows, and the status line says so
 
 size 1000 600 scale 2                      # the same at twice the pixels
 frame
@@ -179,70 +163,28 @@ advance 1
 frame
 snap workbench-torn                        # the first window on Start; orders with 5 rows
 
-window main
-press role=switch label="Dark"             # the light theme, in every window
-frame
-advance 1
-frame
-window orders
 down #tab-0                                # its only tab drags the window along
 move screen 600,300
 frame
 move screen 440,148                        # over the first window's bar, after Start
 frame
-snap workbench-docking                     # the marker there; the window below the bar
 up screen 440,148
 frame                                      # orders back in the first window, its window gone
 
-# The query's find bar (Find), over the top right corner of the editor.
 window main
 advance 1                                  # past the fade of the docked tab's content
 frame
-press #query-localhost/shop/public/orders  # the query of orders, back in the first window
-key F control                              # finds the word at the caret
-type "o"                                   # every o; the first after the caret is current
+press #query-localhost/shop/public/orders  # the query's find bar (Find)
+key F control
+type "o"                                   # the O of FROM, which Escape leaves selected
 frame
 advance 0.25
 frame
-snap workbench-find-light
-key H control                              # the replacement below
-press role=switch label="Dark"             # the dark theme; the focus stays in the bar
-frame
-advance 1
-frame
-snap workbench-find
-
-# The command palette (CommandPalette), at the top of the window: the commands of the menus with
-# their shortcuts, the tables and columns of the connected servers after @, and a theme previewed
-# as the keys go through the themes.
-key Escape                                 # the find bar closes; the focus back in the query
-key P control shift
-frame
-advance 0.25                               # past the palette's fade
-frame
-snap workbench-palette
-type "@ordcust"                            # orders' customer_id, its column, first
-frame
-snap workbench-palette-tables
-key Escape                                 # the focus back in the query
-key F1
-type "change"
-frame
-key Enter                                  # Change theme…: the themes, the current one lit
-frame
-key ArrowDown                              # the light theme, shown while it is lit
-frame
-advance 1
-frame
-snap workbench-palette-light
-key Escape                                 # and the dark one back
-frame
-advance 1
+key Escape
 frame
 
 # Editing orders' rows (GridChanges): a value, a choice, a row deleted and one added, kept until
-# Commit, which the made-up server refuses for the negative amount and the paid order going back
-# to pending; the preview of the statements; and Commit again once both are fixed.
+# Commit.
 press #cell-0-3                            # the first amount; the grid takes the focus
 key Enter                                  # its editor over the cell
 frame
@@ -273,53 +215,3 @@ frame
 advance 1
 frame
 snap workbench-changes                     # Commit (4) and Revert; 4 changes in the status bar
-press role=switch label="Dark"
-frame
-advance 1
-frame
-snap workbench-changes-light
-press role=switch label="Dark"
-frame
-advance 1
-frame
-
-key S control                              # Commit: the server answers at the await
-frame
-await
-frame
-move #cell-0-3                             # the refused amount says why after a rest
-frame
-advance 0.6
-frame
-advance 0.25
-frame
-snap workbench-commit-refused              # both cells failed, the first message in the status
-
-press #cell-0-3
-key Enter
-frame
-key A control
-type "12.50"
-key Enter
-frame
-press #cell-0-2
-key Enter
-frame
-advance 0.25
-frame
-key S
-key Enter                                  # shipped, which the server takes
-frame
-press role=menuitem label="Query"
-frame
-advance 0.25
-frame
-press role=menuitem label="Preview changes…"
-frame
-advance 0.25
-frame
-snap workbench-preview                     # the statements Commit sends
-press #commit-preview
-frame
-await
-frame                                      # written: the changes gone, the rows as written

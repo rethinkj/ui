@@ -1,5 +1,5 @@
 # The showcase (Showcase): each section once, with a hovered, a focused or an open element where
-# the section has one. ShowcaseTest runs it in every theme at scales 1 and 2.
+# the section has one. ShowcaseTest runs it in the dark theme at scale 1, snapping only a few.
 size 1100 720
 frame
 

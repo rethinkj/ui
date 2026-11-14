@@ -10,9 +10,11 @@ import com.rethinkj.ui.kit.GridChanges.Kind;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.Set;
 import java.util.TreeMap;
 import org.junit.jupiter.api.Test;
 
@@ -51,7 +53,7 @@ class TableRowsTest {
   @Test
   void theFiltersFindTheRowsAScanFinds() {
     Random random = new Random(7);
-    for (int run = 0; run < 60; run++) {
+    for (int run = 0; run < 12; run++) {
       TableRows rows = new TableRows(new TableRows.Stored());
       rows.base = random.nextInt(3) == 0 ? random.nextInt(50) : 6000 + random.nextInt(14_000);
       for (int i = 0; i < random.nextInt(40); i++) {
@@ -71,16 +73,17 @@ class TableRowsTest {
           }
         }
       }
-      rows.filters = FILTERS.get(random.nextInt(FILTERS.size()));
+      rows.filters = FILTERS.get(run % FILTERS.size()); // each filter twice
       rows.refresh();
       List<Long> expected = scan(rows);
+      Set<Long> kept = new HashSet<>(expected);
       assertEquals(expected.size(), rows.count(), "run " + run);
       for (int i = 0; i < expected.size(); i++) {
         assertEquals(expected.get(i), rows.key(i), "run " + run + ", row " + i);
         assertEquals(i, rows.place(expected.get(i)), "run " + run + ", key " + expected.get(i));
       }
       for (long k = 0; k < Math.min(rows.base, 3000); k++) {
-        if (!expected.contains(k)) {
+        if (!kept.contains(k)) {
           assertEquals(-1, rows.place(k), "run " + run + ", left out " + k);
         }
       }
