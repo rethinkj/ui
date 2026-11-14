@@ -1,0 +1,1 @@
+- `CommandPalette` keeps the focus in its field when an entry is pressed with the pointer, so that after an entry that keeps the palette open (`FilterList.Entry#keepsOpen`) the keys still go to the field and Escape closes the palette. Calling `open(text)` again after such a choice to get the focus back is no longer needed.

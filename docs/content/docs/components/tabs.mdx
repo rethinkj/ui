@@ -39,6 +39,7 @@ Javadoc: [`Tabs`](/api/com/rethinkj/ui/kit/Tabs.html), [`Tabs.Tab`](/api/com/ret
 | `onTearOff(handler)`, `tearOffAtStart(boolean)` | Told when a tab is dragged out of the bar |
 | `id(object)`, `onDock((fromBar, from, at) -> …)` | Lets a bar take a tab from another bar with the same `Dragging` |
 | `contextMenu(state, items)` | A menu for a tab, at a secondary press or the Menu key |
+| `switchKeys(false)` | Leaves Control+Tab, Control+Shift+Tab, Control+Page Down and Control+Page Up to what encloses the bar, for tabs nested in the content of other tabs |
 
 [TabGroups](/docs/components/tab-groups) wires all of these for you.
 
@@ -54,6 +55,8 @@ The app keeps one [`Tabs.Dragging`](/api/com/rethinkj/ui/kit/Tabs.Dragging.html)
 | Control+Shift+Page Up, Page Down | Move the active tab, with `onMove` |
 
 The bar is one stop for Tab. For the shortcuts to work while the focus is elsewhere, give the root the same handler: `root.onKey(tabs.onKey())`.
+
+Keys go up from the focused element to the nearest tabs. When tabs sit inside the content of other tabs, such as a result and its messages inside a query tab, give the inner ones `switchKeys(false)`: the keys that choose a tab then reach the outer ones, while Left, Right, Home and End on the inner bar still choose its own tabs.
 
 ## In a tree dump
 

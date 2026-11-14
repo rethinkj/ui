@@ -225,6 +225,40 @@ class TabsTest {
   }
 
   @Test
+  void innerTabsWithoutSwitchKeysLeaveThemToTheOuterTabs() throws IOException {
+    int[] active = {0, 0}; // the outer tab, the inner one
+    App<int[]> app = new App<>(
+        active,
+        a -> col()
+            .wFull()
+            .hFull()
+            .child(tabs(
+                    T,
+                    List.of(new Tab("query 1"), new Tab("query 2")),
+                    a[0],
+                    i -> a[0] = i,
+                    null,
+                    tabs(
+                            T,
+                            List.of(
+                                new Tab("Result 1", false, false),
+                                new Tab("Messages", false, false)),
+                            a[1],
+                            i -> a[1] = i,
+                            null,
+                            textField(T, "", v -> {}).key("field"),
+                            Tabs.options().switchKeys(false))
+                        .key("inner"))
+                .grow(1)));
+    Script.run("size 400 240 scale 2\nframe\npress #field\nkey PageDown control\nframe", app, out);
+    assertTrue(dumpLine(app, "panel").contains("label=\"query 2\""), dumpLine(app, "panel"));
+    assertEquals(0, active[1], "the inner tabs stay");
+    Script.run("size 400 240 scale 2\nkey Tab shift\nframe\nkey ArrowRight\nframe", app, out);
+    assertEquals(1, active[1], "the inner bar's own keys still choose");
+    assertEquals(1, active[0], "and the outer tabs stay");
+  }
+
+  @Test
   void fromTheContentTheFocusGoesIntoTheNextTabsContentAndElseToTheBar() throws IOException {
     App<Workbench> app = start();
     run(app, "press #filter\nkey Tab control\nframe");

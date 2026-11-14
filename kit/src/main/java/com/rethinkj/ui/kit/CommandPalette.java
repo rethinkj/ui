@@ -41,9 +41,10 @@ import java.util.function.Predicate;
  * list: the best entry is highlighted, also once the entries change, until a key or the pointer
  * moves the highlight. Escape and a press outside close the palette and undo a preview ({@link
  * Stage#onCancel}); {@link State#onClose} hears of every close, and the focus goes back to where
- * it was before the palette opened. While it is open, the field has the keys: Up and Down, Page
- * Up and Page Down, Home and End move the highlight, Tab does nothing, and keys that no part of
- * the palette takes go on to the root, so that the app's shortcuts still work.
+ * it was before the palette opened. While it is open, the field has the keys, also after a press on
+ * an entry: Up and Down, Page Up and Page Down, Home and End move the highlight, Tab does nothing,
+ * and keys that no part of the palette takes go on to the root, so that the app's shortcuts still
+ * work.
  *
  * <p>It is {@code size().palette()} wide and {@code size().paletteTop()} below the window's top,
  * its field {@code size().paletteField()} high and its list at most {@value #ROWS} rows of {@code
@@ -392,8 +393,10 @@ public final class CommandPalette {
     panel.children().getFirst().wFull();
     if (entries != null) {
       FilterList.Shown shown = FilterList.shown(state.list, entries);
+      // A press on an entry leaves the keys in the field, also for one that keeps it open.
       panel.child(
-          FilterList.list(t, state.list, shown, ROWS, t.size().paletteRow(), "Commands", choose));
+          FilterList.list(t, state.list, shown, ROWS, t.size().paletteRow(), "Commands", choose)
+              .keepFocus());
     }
     return panel;
   }
