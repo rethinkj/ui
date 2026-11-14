@@ -1,0 +1,1 @@
+- Settings and ConnectionDialog now share the port range 1–65535. Settings uses a typed field, refuses non-numeric edits and keeps Add disabled for port zero or an unfinished value.
