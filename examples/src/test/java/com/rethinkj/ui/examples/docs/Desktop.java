@@ -10,6 +10,9 @@ import com.rethinkj.ui.render.GpuPresenter;
 import com.rethinkj.ui.window.Window;
 import com.rethinkj.ui.window.WindowIcon;
 import com.rethinkj.ui.window.WindowLoop;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
 /** The examples of the page about windows, icons, the taskbar and the system's dialogs. */
 final class Desktop {
@@ -27,12 +30,33 @@ final class Desktop {
     App<Lights> app = new App<>(new Lights(), Lights::view);
     try (Window window = Window.open("Lights", 360, 240, options);
         GpuPresenter presenter = new GpuPresenter(window)) {
-      new WindowLoop(window, app, presenter)
-          .appearance(look -> {}) // the system's dark or light, accent
-          .run();
+      WindowLoop.run(window, app, presenter);
     }
     // docs:end window
   }
+
+  // docs:start placement
+  static final Path PLACEMENT = // where the app keeps its settings
+      Path.of(System.getProperty("user.home"), ".lights", "window.txt");
+
+  static void openWhereLeft() throws IOException {
+    Window.Options options = Window.options();
+    try {
+      options.placement(Window.Placement.parse(Files.readString(PLACEMENT)));
+    } catch (IOException | IllegalArgumentException e) {
+      // the first start, or a line it cannot read: the window opens as given below
+    }
+    App<Lights> app = new App<>(new Lights(), Lights::view);
+    try (Window window = Window.open("Lights", 360, 240, options);
+        GpuPresenter presenter = new GpuPresenter(window)) {
+      WindowLoop.run(window, app, presenter); // ends at the close request; the window is open
+      if (window.isOpen()) {
+        Files.createDirectories(PLACEMENT.getParent());
+        Files.writeString(PLACEMENT, window.placement().toString()); // 120,80 360x240 display "…"
+      }
+    }
+  }
+  // docs:end placement
 
   static void taskbar(Window window, Theme t) {
     // docs:start taskbar
@@ -40,6 +64,8 @@ final class Desktop {
         WindowIcon.of(size -> AppIcon.count(t, size, t.accent().color(), 3)),
         "3 queries running"); // Windows only
     window.attention(Window.Attention.BRIEFLY); // flash the taskbar button
+    window.progress(Window.Progress.NORMAL, 0.4f); // a bar 40 % full in the button; Windows only
+    window.progress(Window.Progress.NONE, 0); // gone again when the work ends
     // docs:end taskbar
   }
 

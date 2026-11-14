@@ -1,0 +1,7 @@
+size 420 200
+frame
+snap system             # System mode: dark until the loop tells the system's setting
+press role=radio label="Light"
+press role=radio label="Teal"
+frame
+snap light-teal

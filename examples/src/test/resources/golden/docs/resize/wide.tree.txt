@@ -1,0 +1,11 @@
+el 0,0 420x100
+  el #bar 12,12 396x24
+    el role=button label="Run" 12,12 70x24
+      text label="play" "\u{E990}" 25,16 16x16
+      text "Run" 45,16 24x16
+    el role=button label="Copy" 86,12 79x24
+      text label="copy" "\u{F32A}" 99,16 16x16
+      text "Copy" 119,16 33x16
+    el role=button label="Save" 169,12 76x24
+      text label="save" "\u{EA43}" 182,16 16x16
+      text "Save" 202,16 30x16

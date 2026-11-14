@@ -3,7 +3,7 @@ title: Themes and tokens
 description: The kit's Theme record of colour, space, type, size and motion tokens, the dark and light themes, and how to change them.
 ---
 
-The kit's look comes from `Theme`, a record of token groups: surfaces, text colours, borders, accent, status colours, spacing, radii, type, sizes, motion, elevation, the grid's and code colours, and more. `Theme.DARK` and `Theme.LIGHT` are the defaults; change a group with a `with` method or pick a named accent. Components read only tokens, so a changed theme changes every component at once.
+The kit's look comes from [`Theme`](/api/com/rethinkj/ui/kit/Theme.html), a record of token groups: surfaces, text colours, borders, accent, status colours, spacing, radii, type, sizes, motion, elevation, the grid's and code colours, and more. `Theme.DARK` and `Theme.LIGHT` are the defaults; change a group with a `with` method or pick a named accent. Components read only tokens, so a changed theme changes every component at once.
 
 ```java snippet="theme"
 ```
@@ -12,10 +12,21 @@ The kit's look comes from `Theme`, a record of token groups: surfaces, text colo
 
 ## Passing the theme
 
-Every component takes the theme as its first parameter. There is no global theme: the view gets it from the state or a constant, so two themes can be on screen at once, and switching between dark and light is a field in the state:
+Every component takes the theme as its first parameter. There is no global theme: the view gets it from the state or a constant, so two themes can be on screen at once.
 
-```java snippet="theme-switch"
+## Switching themes
+
+Keep what the user chose in the state and build the theme from it in the view. This app offers Dark, Light and System, and an accent:
+
+```java snippet="theming"
 ```
+
+<Shot src="examples/docs/theming/system-{theme}" alt="A card with the choices Dark, Light and System, System chosen, above ten round accent swatches, blue chosen" />
+
+- A handler that changes `mode` or `accent` rebuilds the view, and every component gets the new theme.
+- `WindowLoop.appearance(handler)` calls the handler at the start and whenever the system's setting changes, as a task of the app, so the view is built again. The app above keeps the system's choice in `systemDark` and uses it only in System mode. Nothing follows the system by itself.
+- The [`SystemAppearance`](/api/com/rethinkj/ui/window/SystemAppearance.html) it passes holds `scheme()`: `DARK`, `LIGHT`, or `UNKNOWN` where the system does not say, as on a Linux desktop without the portal; `dark()` is false then. `accent()` is the system's accent colour as `0xFFRRGGBB` on Windows and 0 on Linux. `highContrast()` says whether high contrast is on; the kit has no theme for it.
+- `window.frameDark(dark)` makes a framed window's title bar follow the app's theme on Windows ([Windows, icons and dialogs](/docs/concepts/platform#the-systems-appearance)).
 
 ## The groups
 
@@ -34,7 +45,7 @@ Every component takes the theme as its first parameter. There is no global theme
 | `elevation()` | Shadows of `card` (the least), `popup`, `dialog` (the most) |
 | `grid()`, `scrollbars()`, `code()`, `prose()`, `badge()`, `caption()`, `danger()`, `callout()` | The tokens of the grid, scrollbars, code editor, Markdown, badges, the close button, buttons that destroy (`Theme.Danger`, `withDanger`) and callouts (`Theme.Callouts`, `withCallout`) |
 
-`withSurface`, `withText`, `withBorder`, `withAccent`, `withStatus`, `withSpace`, `withRadius`, `withType`, `withSize`, `withMotion`, `withGrid`, `withScrollbars`, `withCode`, `withElevation`, `withProse`, `withBadge` and `withCaption` return a changed copy.
+Each group's `with` method returns a changed copy: `withSurface`, `withText`, `withBorder`, `withAccent`, `withStatus`, `withSpace`, `withRadius`, `withType`, `withSize`, `withMotion`, `withGrid`, `withScrollbars`, `withCode`, `withElevation`, `withProse`, `withBadge` and `withCaption`. The tokens of each group are in the Javadoc of [`Theme`](/api/com/rethinkj/ui/kit/Theme.html).
 
 ## Accents
 
@@ -47,7 +58,7 @@ Your own accent is a `Theme.Accent` of a colour and its hover and pressed tones.
 
 ## Colours
 
-A colour is an `int`, `0xAARRGGBB` in 8-bit sRGB with straight (not premultiplied) alpha, everywhere: in `El.fill`, `color`, `border`, `Shadow` and the theme. `com.rethinkj.ui.Colors` creates, reads and mixes them, so code needs no alpha hex digits or bit masks:
+A colour is an `int`, `0xAARRGGBB` in 8-bit sRGB with straight (not premultiplied) alpha, everywhere: in `El.fill`, `color`, `border`, `Shadow` and the theme. [`com.rethinkj.ui.Colors`](/api/com/rethinkj/ui/Colors.html) creates, reads and mixes them, so code needs no alpha hex digits or bit masks:
 
 ```java snippet="colours"
 ```
@@ -68,7 +79,3 @@ The default themes use the colours of the kit's `Palette`, named by hue and ligh
 ## Contrast
 
 In the default themes, primary and muted text reach WCAG AA contrast (4.5:1) on every surface they appear on; disabled text is deliberately lower. A theme of your own should do the same; `Colors.contrast(a, b)` measures it.
-
-## Following the system
-
-`WindowLoop.appearance(look -> …)` reports the system's dark or light scheme, accent colour and high contrast at the start and whenever they change, so the app can pick `DARK` or `LIGHT` (and the accent) to match. See [Windows, icons and dialogs](/docs/concepts/platform).

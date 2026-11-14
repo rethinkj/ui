@@ -3,7 +3,7 @@ title: Elements and layout
 description: Boxes, rows, columns and text elements, laid out by flexbox, and the calls that size, space and decorate them.
 ---
 
-Everything on screen is an `El`: a box (`el()`), a row (`row()`), a column (`col()`), a text (`text("…")`) or an image (`El.image(image)`). Calls chain and return the element, so a view is one expression. Layout is flexbox, as in CSS.
+Everything on screen is an `El`: a box (`el()`), a row (`row()`), a column (`col()`), a text (`text("…")`) or an image (`El.image(image)`). Calls chain and return the element, so a view is one expression. Layout is flexbox, as in CSS. This page shows the calls a view needs most; all of them are in the Javadoc of [`El`](/api/com/rethinkj/ui/El.html) and [`Style`](/api/com/rethinkj/ui/Style.html).
 
 ```java snippet="layout"
 ```
@@ -51,7 +51,7 @@ Colours are `int`s in ARGB. Prefer the theme's tokens (`t.surface().panel()`, `t
 
 `scrollbars(look)` gives a scroll area a vertical bar while its content is taller than the area and a horizontal one while it is wider, drawn over the content. Dragging the thumb scrolls; a press on the track scrolls a page and does not move the focus. Pass the kit's `t.scrollbars()`, or your own look:
 
-| `Scrollbars` | |
+| [`Scrollbars`](/api/com/rethinkj/ui/Scrollbars.html) | |
 | --- | --- |
 | `thickness` | The width of a vertical bar and the height of a horizontal one, above 0 |
 | `margin` | The space between a bar and the area's edges, and between the two bars; presses land on the strip of `thickness + 2 * margin` along the edge |
@@ -95,7 +95,28 @@ The chained calls set fields of the element's `Style`, which holds the flexbox p
 ```java snippet="measure"
 ```
 
-`Measure.measure(knownWidth, knownHeight, availableWidth, availableHeight)` returns a `Measure.Size(width, height)` of the content box in logical pixels, or `Size(width, height, baseline)` with the distance from the top to the first baseline, for `BASELINE` alignment. A known size is NaN where layout has not fixed it; an available size is a number of pixels, `Measure.MAX_CONTENT` or `Measure.MIN_CONTENT`. Override `placed(width, height)` to learn the final size, as text does to break its lines.
+[`Measure`](/api/com/rethinkj/ui/Measure.html)`.measure(knownWidth, knownHeight, availableWidth, availableHeight)` returns a `Measure.Size(width, height)` of the content box in logical pixels, or `Size(width, height, baseline)` with the distance from the top to the first baseline, for `BASELINE` alignment. A known size is NaN where layout has not fixed it; an available size is a number of pixels, `Measure.MAX_CONTENT` or `Measure.MIN_CONTENT`. Override `placed(width, height)` to learn the final size, as text does to break its lines.
+
+## Reacting to the size
+
+`el.onResize((width, height) -> …)` tells the app the size layout gave an element, as a browser's `ResizeObserver` does, so that a view can show what fits. The kit's [Toolbar](/docs/components/toolbar) moves the buttons it has no room for into a menu this way.
+
+```java snippet="resize"
+```
+
+<Shot src="examples/docs/resize/wide-{theme}" alt="A bar of three buttons with icons and texts: Run, Copy and Save" />
+
+<Shot src="examples/docs/resize/narrow-{theme}" alt="The same bar in a narrower window: the three buttons show only their icons" caption="Narrower than 300 pixels, the bar shows only the icons." />
+
+- The handler is told in the first build that has the element and whenever a rebuild gives it another size than it told last.
+- It runs as an input handler does: after the input of the frame that laid the element out, or in the next frame. Then the view is built and laid out again, which may tell it again, so a view that depends on its own size settles a frame or two later.
+- Keep the element's own size independent of what it shows, as a bar that fills its parent; otherwise the two can change each other in turn.
+- It is not told inside the rows of a virtual list (`rows`), nor for the sizes an element passes through while it animates (`motion`).
+
+In a script, `size` changes the window's size. A frame lays the view out at the new size, the next one shows what the handler changed, and `advance` lets springs finish:
+
+```text snippet="resize-script"
+```
 
 ## Pixels and scale
 

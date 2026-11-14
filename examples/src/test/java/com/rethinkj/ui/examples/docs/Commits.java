@@ -12,7 +12,10 @@ import com.rethinkj.ui.kit.DataGrid.DataType;
 import com.rethinkj.ui.kit.GridChanges;
 import com.rethinkj.ui.kit.Label;
 import com.rethinkj.ui.kit.Theme;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
+import java.util.stream.IntStream;
 
 /** The example of saving a grid's changes: the open editor first, then what the database says. */
 final class Commits {
@@ -21,7 +24,12 @@ final class Commits {
 
   Theme t = Theme.DARK;
   final DataGrid.Selection selection = new DataGrid.Selection(DataGrid.Mode.CELLS);
-  final GridChanges changes = new GridChanges(100, Commits::value);
+  // The rows of the grid, which saving writes the changes into.
+  final List<String[]> rows = new ArrayList<>(IntStream.range(0, 100)
+      .mapToObj(i -> IntStream.range(0, 3).mapToObj(c -> value(i, c)).toArray(String[]::new))
+      .toList());
+  GridChanges changes = new GridChanges(rows.size(), (row, column) -> rows.get(row)[column]);
+  int nextId = 1100; // the id the next new order gets
   String status = "";
 
   static String value(int row, int column) {
@@ -51,7 +59,23 @@ final class Commits {
       return;
     }
     status = "Written: " + changes.count();
-    changes.clear();
+    for (GridChanges.Change change : changes.changes()) { // the deletes first
+      int row = (int) change.key(); // the row's index, for an insert below 0
+      switch (change.kind()) {
+        case DELETE -> rows.set(row, null); // removed after the updates
+        case UPDATE -> change.values().forEach((c, value) -> rows.get(row)[c] = value);
+        case INSERT -> {
+          String[] order = new String[3];
+          change.values().forEach((c, value) -> order[c] = value);
+          order[0] = String.valueOf(nextId++); // as a database gives the key
+          rows.add(order);
+        }
+      }
+    }
+    rows.removeIf(Objects::isNull);
+    // The rows hold the changes now: new GridChanges over them, with their new count.
+    changes = new GridChanges(rows.size(), (row, column) -> rows.get(row)[column]);
+    selection.clear(); // deleted rows moved the indexes the selection points at
   }
   // docs:end grid-commit
 

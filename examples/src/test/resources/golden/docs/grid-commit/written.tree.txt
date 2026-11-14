@@ -45,8 +45,8 @@ el 0,0 520x300
             el #cell-2-0 role=gridcell 13,126 79x23 pos=1/3
               text "1002" 60,130 28x16
             el 92,126 1x23
-            el #cell-2-1 role=gridcell 93,126 119x23 selected current pos=2/3
-              text "Chen" 97,130 33x16
+            el #cell-2-1 role=gridcell 93,126 119x23 pos=2/3
+              text "Zoe" 97,130 24x16
             el 212,126 1x23
             el #cell-2-2 role=gridcell 213,126 119x23 pos=3/3
               text "2026-11-12" 217,130 70x16

@@ -58,7 +58,9 @@ class DocsExamplesTest {
       Map.entry("groups", List.of("view")),
       Map.entry("parts", List.of("view")),
       Map.entry("tabs", List.of("view")),
-      Map.entry("grid", List.of("selected")));
+      Map.entry("grid", List.of("selected")),
+      Map.entry("resize", List.of("wide", "narrow")),
+      Map.entry("theming", List.of("system")));
 
   /** An example: its app in a theme and the size of its window for the default script. */
   record Example(Function<Theme, App<?>> app, int width, int height) {}
@@ -200,6 +202,26 @@ class DocsExamplesTest {
             260));
     editings(all, "editing", Editings::record, 380, 260);
     editings(all, "editing-pojo", Editings::pojo, 360, 160);
+    all.put(
+        "resize",
+        new Example(
+            t -> {
+              Bars state = new Bars();
+              state.t = t;
+              return new App<>(state, Bars::view);
+            },
+            420,
+            100));
+    all.put(
+        "theming",
+        new Example(
+            t -> {
+              Themes state = new Themes();
+              state.systemDark = t == Theme.DARK; // System mode: the system's choice
+              return new App<>(state, Themes::view);
+            },
+            420,
+            200));
     return all;
   }
 

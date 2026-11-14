@@ -1,0 +1,42 @@
+el 0,0 420x200
+  el 12,12 390x146
+    text "Appearance" 29,29 356x16
+    el #mode role=radiogroup 29,53 185x24
+      el role=radio label="Dark" 32,56 52x18 checked=false
+        text "Dark" 44,57 28x16
+      el role=radio label="Light" 86,56 54x18 checked
+        text "Light" 98,57 30x16
+      el role=radio label="System" 142,56 69x18 checked=false
+        text "System" 154,57 45x16
+    text "Accent" 29,85 356x16
+    el #accent role=radiogroup 29,109 356x32
+      el role=radio label="Blue" 29,109 32x32 checked=false
+        el 33,113 24x24
+          el 37,117 16x16
+      el role=radio label="Violet" 65,109 32x32 checked=false
+        el 69,113 24x24
+          el 73,117 16x16
+      el role=radio label="Purple" 101,109 32x32 checked=false
+        el 105,113 24x24
+          el 109,117 16x16
+      el role=radio label="Pink" 137,109 32x32 checked=false
+        el 141,113 24x24
+          el 145,117 16x16
+      el role=radio label="Red" 173,109 32x32 checked=false
+        el 177,113 24x24
+          el 181,117 16x16
+      el role=radio label="Orange" 209,109 32x32 checked=false
+        el 213,113 24x24
+          el 217,117 16x16
+      el role=radio label="Amber" 245,109 32x32 checked=false
+        el 249,113 24x24
+          el 253,117 16x16
+      el role=radio label="Green" 281,109 32x32 checked=false
+        el 285,113 24x24
+          el 289,117 16x16
+      el role=radio label="Teal" 317,109 32x32 checked
+        el 321,113 24x24
+          el 325,117 16x16
+      el role=radio label="Grey" 353,109 32x32 checked=false
+        el 357,113 24x24
+          el 361,117 16x16
