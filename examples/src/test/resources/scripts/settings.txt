@@ -57,7 +57,7 @@ type "backup"                                  # the dialog put the focus into t
 key Tab
 type "backup.example.com"
 key Tab
-type "x"                                       # over the selected port: an error replaces the help
+type "0"                                       # outside the port range: an error replaces the help
 frame
 advance 1
 frame

@@ -43,6 +43,7 @@ import com.rethinkj.ui.kit.Menu;
 import com.rethinkj.ui.kit.NavList;
 import com.rethinkj.ui.kit.Symbol;
 import com.rethinkj.ui.kit.Theme;
+import com.rethinkj.ui.kit.ValueField;
 import com.rethinkj.ui.render.GpuPresenter;
 import com.rethinkj.ui.text.TextRendering;
 import com.rethinkj.ui.window.SystemAppearance;
@@ -228,7 +229,8 @@ public final class Settings {
   boolean adding;
   String name = "";
   String host = "";
-  String port = "5432";
+  int port = 5432;
+  final ValueField.Draft portDraft = new ValueField.Draft();
 
   /**
    * The Java and the platform the About page names: fixed under a script, whose images are stored
@@ -257,16 +259,9 @@ public final class Settings {
   }
 
   void add() {
-    connections.add(new Connection(name, host, Integer.parseInt(port), false));
+    connections.add(new Connection(name, host, port, false));
     selected = name;
     adding = false;
-  }
-
-  String portError() {
-    if (port.isEmpty() || !port.chars().allMatch(c -> c >= '0' && c <= '9')) {
-      return "Digits only";
-    }
-    return port.length() > 5 || Integer.parseInt(port) > 65535 ? "At most 65535" : null;
   }
 
   public static void main(String[] args) throws IOException {
@@ -570,7 +565,8 @@ public final class Settings {
                         button(t, PRIMARY, "New connection…", () -> {
                               s.name = "";
                               s.host = "";
-                              s.port = "5432";
+                              s.port = 5432;
+                              s.portDraft.clear();
                               s.adding = true;
                             })
                             .key("add")),
@@ -588,8 +584,11 @@ public final class Settings {
   }
 
   static El newConnection(Theme t, Settings s) {
-    String portError = s.portError();
-    boolean ready = !s.name.isBlank() && !s.host.isBlank() && portError == null;
+    El port = ValueField.valueField(
+            t, ConnectionFormats.PORT, s.port, "5432", s.portDraft, value -> s.port = value)
+        .key("port")
+        .w(72);
+    boolean ready = !s.name.isBlank() && !s.host.isBlank() && s.portDraft.error() == null;
     El add = button(t, PRIMARY, "Add", ready ? s::add : null).key("ok");
     return Dialog.dialog(
         t,
@@ -609,11 +608,7 @@ public final class Settings {
                         .key("host")
                         .w(220))
                 .required(),
-            field(
-                    "Port",
-                    textField(t, s.port, "5432", v -> s.port = v).key("port").w(72))
-                .help("From 1 to 65535")
-                .error(portError)),
+            field("Port", port).help("From 1 to 65535")),
         List.of(button(t, SECONDARY, "Cancel", () -> s.adding = false).key("cancel"), add),
         add, // Enter in a field adds, as Add does; on a button it presses that instead
         () -> s.adding = false);

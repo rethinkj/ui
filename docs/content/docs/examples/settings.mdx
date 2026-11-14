@@ -13,4 +13,4 @@ mvn -q -pl examples -am compile exec:exec -Dexample=Settings
 
 ## Where to look in the source
 
-[`Settings.java`](https://github.com/rethinkj/ui/blob/main/examples/src/main/java/com/rethinkj/ui/examples/Settings.java): `general`, `appearance` and the other page methods are each one expression of `page`, `section` and `group`. `accent` makes a theme with another accent; `portError` validates the form's port.
+[`Settings.java`](https://github.com/rethinkj/ui/blob/main/examples/src/main/java/com/rethinkj/ui/examples/Settings.java): `general`, `appearance` and the other page methods are each one expression of `page`, `section` and `group`. `accent` makes a theme with another accent. The connection form uses `ValueField` and the same port format as ConnectionDialog: a whole number from 1 to 65535.

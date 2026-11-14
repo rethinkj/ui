@@ -13,4 +13,4 @@ mvn -q -pl examples -am compile exec:exec -Dexample=ConnectionDialog
 
 ## Where to look in the source
 
-[`ConnectionDialog.java`](https://github.com/rethinkj/ui/blob/main/examples/src/main/java/com/rethinkj/ui/examples/ConnectionDialog.java): `view` builds the form; `port` refuses an edit that is not digits by storing nothing; `valid` enables Connect; the root takes Enter with `Dialog.enterPresses`.
+[`ConnectionDialog.java`](https://github.com/rethinkj/ui/blob/main/examples/src/main/java/com/rethinkj/ui/examples/ConnectionDialog.java): `view` binds the fields through `Editing`; `ready` enables Connect; the root takes Enter with `Dialog.enterPresses`. The port's `ValueField` uses the same format as Settings: a whole number from 1 to 65535.
