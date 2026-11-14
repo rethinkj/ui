@@ -3,7 +3,7 @@ title: The tree dump
 description: What each line of a .tree.txt says, every state, and how overlays, lists and text fields appear.
 ---
 
-Every `snap` writes `<name>.tree.txt` beside the image: one line per element, children indented by two spaces. It says in words what the image shows, so that an agent can check a view without reading pixels and a script can find elements by the same words.
+Every `snap` writes `<name>.tree.txt` beside the image: one line per element, children indented by two spaces. It describes the image in text, so a test or an agent can check a view without reading pixels, and scripts find elements by the same words.
 
 ## A line
 
@@ -17,22 +17,22 @@ In this order:
 3. `role=` and `label="…"` if set. The kit's components set both.
 4. For text, the string in quotes. `\n` is a line feed, `\t` a tab, `\u{E305}` a character of a private use area such as an icon. A string longer than 200 characters shows its first 100 and last 40 and its length.
 5. The rectangle in window coordinates as shown, `x,y widthxheight`, moved by the scroll offsets above it.
-6. The states that are set, always in the same order (below), and after them `error="<message>"`, the message of a value that is not accepted (`El.errorMessage`).
+6. The states that are set, always in the same order (below), then `error="<message>"` for an invalid value (`El.errorMessage`).
 7. Extras of scroll areas, lists and text fields (below).
-8. `hovered` on the element a press under the pointer would go to, `focused` on the element with the keyboard focus, and `exiting` on an element that is fading out after a rebuild left it out.
+8. `hovered` on the element a press would go to, `focused` on the element with the keyboard focus, and `exiting` on an element fading out after it left the tree.
 
 ## States
 
-States say what the app's state is, with their names from WAI-ARIA. They change nothing about how an element looks or takes input; the view sets them with `El.disabled(boolean)`, `selected(boolean)`, `checked(boolean)`, `level(n)`, `position(n, size)`, `value(text)` and so on, and the kit's components set them for you.
+States describe the element's condition, named as in WAI-ARIA. They do not change how it looks or takes input. The view sets them (see [States and roles](/docs/concepts/states)); the kit's components set them for you.
 
 | State | Meaning | Set with |
 | --- | --- | --- |
-| `disabled` | Marked as taking no input. The call only marks: a component also leaves out its handlers and `focusable()`, as the kit's do for a null handler | `disabled(true)`, or a text field with `editable(null)`, which does take no input |
+| `disabled` | Marked as taking no input. The call only marks; a component must also leave out its handlers and `focusable()`, as the kit's do for a null handler | `disabled(true)`, or a text field with `editable(null)`, which really takes no input |
 | `readonly` | A text field that selects and copies but takes no edits | `readOnly()` |
 | `password` | A masked field; the string shows as `•` | `masked()` |
-| `revealed` | A masked field that draws its string on the screen; the dump still shows the mask. There is no WAI-ARIA name for it | `revealed(true)`, or the kit's `revealable` while it shows |
+| `revealed` | A masked field that shows its string on screen; the dump still shows the mask (not a WAI-ARIA state) | `revealed(true)`, or the kit's `revealable` while it shows |
 | `invalid` | A value that is not accepted | `invalid(true)` |
-| `busy` | An action runs. The call only marks: the component decides what it takes meanwhile, and the kit's `Button` takes no press | `busy(true)` |
+| `busy` | An action runs. The call only marks; the component decides what input it takes meanwhile (the kit's `Button` takes no press) | `busy(true)` |
 | `selected` | Selected among others | `selected(true)` |
 | `current` | The cursor's cell or row, the highlighted menu item | `current(true)` |
 | `grabbed` | Being dragged | `grabbed(true)` |
@@ -51,7 +51,7 @@ States say what the app's state is, with their names from WAI-ARIA. They change 
 
 ## Overlays
 
-Menus, tooltips and dialogs lie above the tree. They follow it, in the order they are drawn, each under a line that says where it is placed and what it is anchored to:
+Menus, tooltips and dialogs follow the tree, in drawing order, each under a line that says where it is placed and what its anchor is:
 
 ```text file="examples/src/test/resources/golden/docs/menu/open.tree.txt" start="overlay" count="3"
 ```
@@ -63,16 +63,16 @@ A dialog in the middle of the window over a scrim:
 
 ## Scroll areas and lists
 
-A scrolled area adds its offset; a list of rows adds which rows exist and how many there are; scrollbars add their thumbs:
+A scrolled area adds its offset, a list of rows the built rows and the row count, scrollbars their thumbs:
 
 ```text file="examples/src/test/resources/golden/docs/rows/far.tree.txt" start="#rows" count="1"
 ```
 
-`rows 765429-765442/1000000` says that rows 765429 to 765442 of a million exist, `scroll 0,18370368` that the list is scrolled that far down, and `thumb-y` where the thumb of the bar along the right edge is. Its children are those rows, in order. A list with no rows built says `rows -/<count>`.
+`rows 765429-765442/1000000` says that rows 765429 to 765442 of a million are built, `scroll 0,18370368` how far the list is scrolled, and `thumb-y` where the vertical bar's thumb is. Its children are those rows, in order. A list with no rows built says `rows -/<count>`.
 
 ## Text fields
 
-A focused field adds its caret as an index into its string, then the other end of a selection and an input method's composition:
+A focused field adds its caret as an index into its string, then the selection's other end (`anchor`) and an input method's composition:
 
 ```text
 text #name role=textbox label="Table name" "SELECT name FROM customers" 40,26 160x28 focused caret 17 anchor 26 composing "ni"
@@ -84,7 +84,7 @@ A multi-line field adds the lines in view and how many there are, and after the 
 text #query role=textbox label="Query" "SELECT *\nFROM orders\nLIMIT 20;" 253,44 455x82 lines 1-3/3 focused caret 31 (3:9)
 ```
 
-A masked field shows one `•` per character, never the string, and says `password`, also while its button shows the password on the screen, when it adds `revealed`:
+A masked field shows one `•` per character, never the string, and says `password`; while the password is shown on screen it adds `revealed`:
 
 ```text file="examples/src/test/resources/golden/connection-filled.tree.txt" start="#password" count="1"
 ```
