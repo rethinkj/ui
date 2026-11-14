@@ -813,8 +813,8 @@ public final class Find {
         : null;
     El query = queryField(t, state);
     String said = count(state, text);
-    El count = label(t, Label.Variant.MUTED, said).key("count").shrink(0).fontFeatures("+tnum");
-    count.style().minWidth = Len.px(3 * t.size().control());
+    El count = label(t, Label.Variant.SMALL, said).key("count").shrink(0).fontFeatures("+tnum");
+    count.style().minWidth = Len.px(2 * t.size().control());
     boolean searchable = !state.query.isEmpty() && state.error == null;
     El findRow = row().gap(t.space().xs()).align(Style.Align.CENTER);
     if (toggle != null) {

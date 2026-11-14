@@ -184,7 +184,7 @@ public final class Completion {
             .font(t.type().mono().font().get())
             .fontSize(t.type().mono().size()),
         entry.kind() != null
-            ? label(t, Label.Variant.MUTED, entry.kind())
+            ? label(t, Label.Variant.SMALL, entry.kind())
                 .margin(0, 0, 0, t.space().l())
             : null);
     return PassiveList.option(

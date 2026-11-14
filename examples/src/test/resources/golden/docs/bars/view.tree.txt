@@ -15,14 +15,14 @@ el 0,0 480x160
       text label="dismiss" "\u{F367}" 451,10 12x12
   el 0,32 480x100
   el role=status label="Status bar" 0,132 480x28
-    el 8,134 337x24
-      el label="localhost" 8,134 84x24 value="connected"
+    el 8,134 348x24
+      el label="localhost" 8,134 79x24 value="connected"
         el 12,138 16x16
           el 16,142 8x8
-        text "localhost" 32,138 56x16
-      el label="shop · public" 94,134 88x24
-        text "shop · public" 98,138 80x16
-    el role=button label="UTF-8" 347,134 48x24
-      text "UTF-8" 351,138 40x16
-    el label="Ln 3, Col 9" 397,134 75x24
-      text "Ln 3, Col 9" 401,138 67x16
+        text "localhost" 32,139 51x15
+      el label="shop · public" 89,134 78x24
+        text "shop · public" 93,139 70x15
+    el role=button label="UTF-8" 358,134 45x24
+      text "UTF-8" 362,139 37x15
+    el label="Ln 3, Col 9" 405,134 67x24
+      text "Ln 3, Col 9" 409,139 59x15

@@ -1210,6 +1210,12 @@ final class Sections {
             "A control that cannot be used now"))
         .child(style(
             t,
+            "small, muted",
+            type.small(),
+            t.text().muted(),
+            "Beside what it is about: UTF-8 · Ln 12, Col 4 · 3 of 18"))
+        .child(style(
+            t,
             "mono",
             type.mono(),
             t.text().primary(),
