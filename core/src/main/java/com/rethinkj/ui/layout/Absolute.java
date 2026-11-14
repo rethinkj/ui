@@ -212,12 +212,16 @@ final class Absolute {
         size(s.maxWidth, s.maxHeight, areaWidth, areaHeight, ratioWidth, true, boxWidth);
     float maxHeight =
         size(s.maxHeight, s.maxWidth, areaHeight, areaWidth, ratioHeight, false, boxHeight);
-    float width = clamp(
-        size(s.width, s.height, areaWidth, areaHeight, ratio, true, boxWidth), minWidth, maxWidth);
-    float height = clamp(
-        size(s.height, s.width, areaHeight, areaWidth, ratio, false, boxHeight),
-        minHeight,
-        maxHeight);
+    float width = resolve(s.width, areaWidth) + boxWidth;
+    float height = resolve(s.height, areaHeight) + boxHeight;
+    // A size that is not set comes through the ratio from the other one as its limits leave it.
+    if (!some(width)) {
+      width = (clamp(height, minHeight, maxHeight) - boxHeight) * ratio + boxWidth;
+    } else if (!some(height)) {
+      height = (clamp(width, minWidth, maxWidth) - boxWidth) / ratio + boxHeight;
+    }
+    width = clamp(width, minWidth, maxWidth);
+    height = clamp(height, minHeight, maxHeight);
 
     horizontal.size = areaWidth;
     horizontal.staticStart -= areaX;

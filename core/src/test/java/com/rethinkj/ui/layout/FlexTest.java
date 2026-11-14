@@ -10,6 +10,7 @@ import com.rethinkj.ui.El;
 import com.rethinkj.ui.Len;
 import com.rethinkj.ui.Measure;
 import com.rethinkj.ui.Style;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
@@ -205,6 +206,30 @@ class FlexTest {
     assertEquals(20, high.height());
     assertEquals(50, item.width());
     assertEquals(25, item.height());
+  }
+
+  @Test
+  void anAbsoluteBoxTakesTheOtherSizeFromItsSetSizeAfterItsLimits() {
+    El raised = el().absolute(0, 0).w(80).minSize(100, 0);
+    El narrowed = el().absolute(0, 0).w(100);
+    narrowed.style().maxWidth = Len.px(50);
+    El lowered = el().absolute(0, 0).h(100);
+    lowered.style().maxHeight = Len.px(20);
+    El heightened = el().absolute(0, 0).h(20);
+    heightened.style().minHeight = Len.px(40);
+    for (El box : List.of(raised, narrowed, lowered, heightened)) {
+      box.style().aspectRatio = 2;
+      Flex.layout(el().size(200, 200).child(box), 200, 200);
+    }
+
+    assertEquals(100, raised.width());
+    assertEquals(50, raised.height());
+    assertEquals(50, narrowed.width());
+    assertEquals(25, narrowed.height());
+    assertEquals(40, lowered.width());
+    assertEquals(20, lowered.height());
+    assertEquals(80, heightened.width());
+    assertEquals(40, heightened.height());
   }
 
   @Test
