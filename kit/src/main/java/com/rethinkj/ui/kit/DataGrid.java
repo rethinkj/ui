@@ -2107,7 +2107,7 @@ public final class DataGrid {
       }
       xs[columns.size()] = x;
       Scrollbars bars = t.scrollbars();
-      this.room = bars.thickness() + 2 * bars.margin();
+      this.room = bars.strip();
     }
 
     float fixedWidth() {

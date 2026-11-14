@@ -56,6 +56,8 @@ Colours are `int`s in ARGB. Prefer the theme's tokens (`t.surface().panel()`, `t
 | `radius`, `minThumb` | The thumb's corner radius, and the shortest it gets however long the content |
 | `thumb`, `thumbHovered`, `thumbDragged` | The thumb's colours at rest, under the pointer and while dragged |
 
+`look.strip()` gives the width of the strip a bar and its margins occupy along an edge, `thickness + 2 * margin`, in logical pixels. Use it when reserving room beside a bar for controls or an overlay.
+
 After a frame, `el.horizontalBar()` and `el.verticalBar()` give each bar as the frame shows it, or null where there is none: a `Scrollbars.Bar` with the track's and the thumb's rectangles in logical pixels of the window (`trackX`, `trackY`, `trackWidth`, `trackHeight`, `thumbX`, …) and the thumb's colour of the moment. A tree dump writes the thumbs after the area's rectangle as `thumb-x` and `thumb-y`.
 
 ## The style beyond the chained calls
