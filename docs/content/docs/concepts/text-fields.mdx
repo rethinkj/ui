@@ -8,6 +8,8 @@ description: Single-line fields and multi-line editors in core, whose string is 
 ```java snippet="field"
 ```
 
+<Shot src="examples/docs/field/view-{theme}" alt="A text field holding orders above a code area with three lines of SQL" />
+
 ## Refuse or change an edit
 
 `onEdit` may refuse an edit (store nothing) or change it, for example keep only digits; the field then shows the app's string, with the caret where it fits. When the app changes the value itself, the caret stays near its text and the undo history ends.
@@ -24,15 +26,14 @@ The app keeps a field's caret, selection, scroll offset, undo history (100 steps
 | `wrapText()` | Break lines at the width instead of scrolling sideways; a word longer than a row breaks inside it |
 | `readOnly()`, `editable(null)` | Select and copy only; disabled |
 | `maxLength(n)` | At most `n` code points |
-| `masked()`, `maskCharacter(c)` | A password field |
-| `revealed(boolean)` | A masked field that draws its string; the tree still sees the mask |
-| `placeholder(text, argb)`, `caretColor(argb)`, `selectionColor(argb)` | The look |
-| `tabIndents(spaces)`, `tabSize(n)` | Tab indents in a multi-line field |
+| `masked()` | A password field |
+| `placeholder(text, argb)` | Text shown while the field is empty |
 | `codeWords()` | Words are runs of letters, digits and `_`, for Control+Arrow and double clicks |
-| `onSelect((caret, anchor) -> …)` | Called when the caret or selection moves |
 | `highlight(key, highlighter)` | Colours, fonts, backgrounds, underlines per range |
 | `decorate(decorator)` | Backgrounds and underlines for the lines in view: the caret's line, matches, errors |
 | `gutter((line, caret) -> cell)` | An element per line at the left: line numbers |
+
+The [`El` Javadoc](/api/com/rethinkj/ui/El.html#method-summary) has the rest: the mask character and a revealed password, the caret's and selection's colours, Tab indents and tab size, and `onSelect` for caret moves.
 
 From handlers, `app.edit(field, from, to, text, caret)` replaces a range as one undo step, `app.select(field, caret, anchor)` selects, and `app.undo(field)` and `app.redo(field)` step through the history, for an Edit menu.
 

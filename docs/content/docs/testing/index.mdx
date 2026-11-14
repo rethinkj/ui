@@ -12,7 +12,7 @@ The `main` of the [first app](/docs/get-started/first-app):
 ```java snippet="lights-main" title="Lights.java"
 ```
 
-`Script.handle(args, app)` looks for `--script <file> --out <folder>`. If they are there, it runs the script, prints the files it wrote and returns true; otherwise it returns false and `main` opens the window. The app, view and handlers are the same; nothing is mocked. On an error it throws `Script.Failure`, which names the line and says what to write instead; uncaught, the program exits with status 1.
+[`Script.handle(args, app)`](/api/com/rethinkj/ui/Script.html) looks for `--script <file> --out <folder>`. If they are there, it runs the script, prints the files it wrote and returns true; otherwise it returns false and `main` opens the window. The app, view and handlers are the same; nothing is mocked. On an error it throws `Script.Failure`, which names the line and says what to write instead; uncaught, the program exits with status 1.
 
 From Java, `Script.run(text, app, folder)` does the same and returns the files it wrote.
 

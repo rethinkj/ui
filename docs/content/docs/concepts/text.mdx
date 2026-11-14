@@ -8,9 +8,11 @@ description: Text elements, the default fonts Inter and JetBrains Mono, wrapping
 ```java snippet="text"
 ```
 
+<Shot src="examples/docs/text/view-{theme}" alt="A heading Orders, a muted paragraph wrapped onto two lines, a long value cut short with an ellipsis, and code with ligatures" />
+
 | Call | |
 | --- | --- |
-| `font(Font)`, `fontSize(px)`, `color(argb)` | The look; the default is `Font.sans()`, 14, black |
+| `font(Font)`, `fontSize(px)`, `color(argb)` | The look; the default is [`Font.sans()`](/api/com/rethinkj/ui/text/Font.html), 14, black |
 | `wrapText()` | Break lines at the element's width; a word, path or URL wider than the whole width breaks inside |
 | `ellipsis()` | End a line that does not fit in `…`; give the element a width or `minSize(0, 0)` |
 | `maxLines(n)` | Show at most `n` lines of a wrapped text; with `ellipsis()` the last ends in `…` where the text goes on |
@@ -20,7 +22,7 @@ description: Text elements, the default fonts Inter and JetBrains Mono, wrapping
 
 A line feed always starts a new line. Wrapped text breaks between words; a word wider than the whole box, such as a file path or a URL, starts its own line and breaks between characters, as with CSS's `overflow-wrap: break-word`. In a row, layout still gives a text room for its longest word; only a narrower box breaks it.
 
-After layout, `el.text()` returns the element's `Text`. `shortened()` says whether a line was cut with `…`, for a tooltip with the whole text (the kit's `Tooltip.whenShortened` uses it). `lines()` holds a `GlyphRun` per drawn line, with its width and baseline in physical pixels.
+After layout, `el.text()` returns the element's [`Text`](/api/com/rethinkj/ui/Text.html). `shortened()` says whether a line was cut with `…`, for a tooltip with the whole text (the kit's `Tooltip.whenShortened` uses it). `lines()` holds a `GlyphRun` per drawn line, with its width and baseline in physical pixels.
 
 ## Fonts
 

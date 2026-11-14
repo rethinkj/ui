@@ -1,6 +1,7 @@
 package com.rethinkj.ui.kit;
 
 import static com.rethinkj.ui.El.col;
+import static com.rethinkj.ui.kit.Icon.icon;
 import static com.rethinkj.ui.kit.Label.label;
 
 import com.rethinkj.ui.El;
@@ -29,13 +30,16 @@ import java.util.Objects;
  * for wide panels, or {@link Labels#ABOVE} them, for narrow ones. A label beside its field is
  * centred on the field's first line. A required field has a {@code *} after its label in the
  * danger colour. Help text is muted and wraps below the field; an error replaces it, in the danger
- * colour, and gives a text field the invalid look ({@link TextField#invalid}). The fields are
+ * colour, and gives a text field the invalid look ({@link TextField#invalid}). A warning, for a
+ * valid value worth a second thought, takes the same place in the warning colour after a warning
+ * symbol and leaves the field valid; an error wins over it. The fields are
  * {@link Theme.Spacing#m} apart beside their labels and {@link Theme.Spacing#l} apart below them.
  *
  * <p>Each label names its field: the field, or the first control inside it, gets the label as
  * its {@link El#label} when it is a text field or has no label of its own, so that {@code
  * label="Host"} finds the field and a tree dump says what it is. A select keeps its choice as its
- * label. An error makes the field {@code invalid} in the dump. A {@link ValueField} whose text is
+ * label. An error makes the field {@code invalid} in the dump, with {@code error="..."}; a
+ * warning adds {@code warning="..."} alone. A {@link ValueField} whose text is
  * no value shows its format's message as the error without the app passing one; an error the
  * app passes wins. {@link #buttons} ends a form, a
  * card or a page with its buttons at the right, as a dialog has them.
@@ -86,37 +90,60 @@ public final class Form {
    * @param help muted text below the control; null for none
    * @param error text in the danger colour below the control, in place of the help, while the
    *     value is not accepted; null for none
+   * @param warning text in the warning colour after a warning symbol below the control, in place
+   *     of the help, while the value is valid but worth a second thought; null for none, and not
+   *     shown while there is an error
    * @param isRequired whether the label is followed by a {@code *}
    * @param grows whether the field takes the room a {@link Row} leaves, its control's width the
    *     least it has; a field alone in its row takes the form's width whatever this says
    */
   public record Field(
-      String label, El control, String help, String error, boolean isRequired, boolean grows)
+      String label,
+      El control,
+      String help,
+      String error,
+      String warning,
+      boolean isRequired,
+      boolean grows)
       implements Entry {
 
-    /** A field that keeps its control's width. */
+    /** A field without a warning. */
+    public Field(
+        String label, El control, String help, String error, boolean isRequired, boolean grows) {
+      this(label, control, help, error, null, isRequired, grows);
+    }
+
+    /** A field without a warning that keeps its control's width. */
     public Field(String label, El control, String help, String error, boolean isRequired) {
-      this(label, control, help, error, isRequired, false);
+      this(label, control, help, error, null, isRequired, false);
     }
 
     /** This field with muted help below it. */
     public Field help(String text) {
-      return new Field(label, control, text, error, isRequired, grows);
+      return new Field(label, control, text, error, warning, isRequired, grows);
     }
 
     /** This field with an error below it in place of its help, or without when null. */
     public Field error(String text) {
-      return new Field(label, control, help, text, isRequired, grows);
+      return new Field(label, control, help, text, warning, isRequired, grows);
+    }
+
+    /**
+     * This field with a warning below it in place of its help, or without when null; an error
+     * wins over it.
+     */
+    public Field warning(String text) {
+      return new Field(label, control, help, error, text, isRequired, grows);
     }
 
     /** This field marked as one that has to be filled in. */
     public Field required() {
-      return new Field(label, control, help, error, true, grows);
+      return new Field(label, control, help, error, warning, true, grows);
     }
 
     /** This field taking the room its {@link Row} leaves, as a host beside its port. */
     public Field grow() {
-      return new Field(label, control, help, error, isRequired, true);
+      return new Field(label, control, help, error, warning, isRequired, true);
     }
   }
 
@@ -322,15 +349,16 @@ public final class Form {
     El errors = col().gap(t.space().xs());
     for (int i = 0; i < row.fields().size(); i++) {
       Field field = row.fields().get(i);
-      String error = error(t, field);
-      // An error takes the row's width: under a narrow control, as a port, it wraps on many lines.
-      El help = error == null ? said(t, field.help(), false) : null;
+      // An error or warning takes the row's width: under a narrow control, as a port, it wraps
+      // on many lines.
+      El note = note(t, field);
+      El help = note == null ? said(t, field.help(), false) : null;
       if (help != null) {
         // Help takes no width of its own: it wraps at the control's.
         help.w(0).style().minWidth = Len.percent(1);
       }
-      if (error != null) {
-        errors.child(said(t, error, true));
+      if (note != null) {
+        errors.child(note);
       }
       El box = body(t, field, help);
       El item = box;
@@ -365,12 +393,36 @@ public final class Form {
   }
 
   /**
-   * A field's control with its help or error below it; names the control after the label and
-   * marks it invalid while there is an error.
+   * A field's control with its help, error or warning below it; names the control after the
+   * label and marks it invalid while there is an error.
    */
   private static El body(Theme t, Field field) {
+    El note = note(t, field);
+    return body(t, field, note != null ? note : said(t, field.help(), false));
+  }
+
+  /**
+   * What a field says in place of its help: its error, else its warning; null for neither. Names
+   * the control and marks it as {@link #error} does, and gives it the warning shown.
+   */
+  private static El note(Theme t, Field field) {
     String error = error(t, field);
-    return body(t, field, error != null ? said(t, error, true) : said(t, field.help(), false));
+    if (error != null) {
+      return said(t, error, true);
+    }
+    if (field.warning() == null) {
+      return null;
+    }
+    El target = target(field.control());
+    if (target != null) {
+      target.warningMessage(field.warning());
+    }
+    El words = said(t, field.warning(), false).color(t.status().warning());
+    words.grow(1).style().minWidth = Len.ZERO;
+    return El.row()
+        .gap(t.space().xs())
+        .align(Style.Align.START)
+        .children(icon(t, Symbol.WARNING, Icon.Variant.WARNING), words);
   }
 
   /** A field's control with {@code below} under it; null for nothing. */

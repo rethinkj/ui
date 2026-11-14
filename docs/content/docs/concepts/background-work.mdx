@@ -3,13 +3,15 @@ title: Work off the app's thread
 description: Run queries and file reads on another thread, post results back, cancel them, run them one after another, and act later on the app's clock.
 ---
 
-An app, its state and its elements belong to the thread that runs the app, and only handlers change the state. Long work, such as a query or a file read, runs on another thread; its result comes back as a task that runs on the app's thread like a handler. `App.background` does both and can cancel. `App.post` is the one method any thread may call. `App.after` runs an action later on the app's clock.
+An app, its state and its elements belong to the thread that runs the app, and only handlers change the state. Long work, such as a query or a file read, runs on another thread; its result comes back as a task that runs on the app's thread like a handler. [`App.background`](/api/com/rethinkj/ui/App.html#background(java.lang.String,java.util.concurrent.Callable,java.util.function.Consumer,java.util.function.Consumer)) does both and can cancel. `App.post` is the one method any thread may call. `App.after` runs an action later on the app's clock.
 
 ```java snippet="background"
 ```
 
+<Shot src="examples/docs/background/counting-{theme}" alt="The count button busy with a spinner while the work runs, beside Cancel and Save" />
+
 - `app.background(name, compute, onResult, onFailure)` runs `compute` on a virtual thread, then posts `onResult` with the result or `onFailure` with the exception.
-- It returns a `Work`. `work.cancel()` interrupts the thread, and neither handler runs, even if the result already arrived.
+- It returns a [`Work`](/api/com/rethinkj/ui/Work.html). `work.cancel()` interrupts the thread, and neither handler runs, even if the result already arrived.
 - Pass the computation only what it needs (a table name, an SQL string, a connection), never the state or elements: nothing guards them against the app's thread.
 - Virtual threads do not keep the JVM alive.
 
@@ -26,7 +28,7 @@ Give `background` a computation that takes a `Work.Progress`, and an `onProgress
 
 ## Run work one after another
 
-A cancelled computation is interrupted but runs until it returns; a database driver may finish its statement first. For work that must not overlap, such as the calls on one connection, use a lane: `app.lane(name)` returns a `Lane` with the same `background` methods. Keep it in the state, one per connection. Work on a lane starts only when all work started before it there has ended, including cancelled work.
+A cancelled computation is interrupted but runs until it returns; a database driver may finish its statement first. For work that must not overlap, such as the calls on one connection, use a lane: `app.lane(name)` returns a [`Lane`](/api/com/rethinkj/ui/Lane.html) with the same `background` methods. Keep it in the state, one per connection. Work on a lane starts only when all work started before it there has ended, including cancelled work.
 
 ```java snippet="lane"
 ```

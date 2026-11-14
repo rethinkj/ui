@@ -34,7 +34,7 @@ import java.util.concurrent.Semaphore;
 /** The examples of the concept pages, built from core's elements where they can be. */
 final class Concepts {
 
-  final Theme t = Theme.DARK;
+  Theme t = Theme.DARK;
   App<?> app; // set by whoever makes the app
   int presses;
   boolean open;

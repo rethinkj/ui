@@ -14,7 +14,7 @@ import com.rethinkj.ui.kit.Theme;
 /** The example of the layout page's Style and Len, beyond the chained calls. */
 final class Styles {
 
-  final Theme t = Theme.DARK;
+  Theme t = Theme.DARK;
 
   static El view(Styles s) {
     Theme t = s.t;
