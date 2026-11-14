@@ -1173,15 +1173,19 @@ public final class El {
     }
   }
 
-  /** Lets the text break into more lines where it is wider than its box. */
+  /**
+   * Lets the text break into more lines where it is wider than its box: where {@link
+   * java.text.BreakIterator#getLineInstance} allows, and inside a word, path or URL wider than the
+   * whole box, between graphemes.
+   */
   public El wrapText() {
     return wrapText(true);
   }
 
   /**
-   * Whether the text breaks into more lines where it is wider than its box; it does not until
-   * this says so. A {@link #multiline} field that wraps scrolls only up and down, one that does not
-   * also sideways.
+   * Whether the text breaks into more lines where it is wider than its box, as {@link #wrapText()}
+   * says; it does not until this says so. A {@link #multiline} field that wraps scrolls only up
+   * and down, one that does not also sideways.
    */
   public El wrapText(boolean wraps) {
     textOnly("wrapText").wraps(wraps);

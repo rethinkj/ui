@@ -16,9 +16,12 @@ import java.util.Objects;
  * placed the element, its {@link #lines} as shaped glyphs, which is what a renderer draws.
  *
  * <p>Each line feed starts a new line. A text that {@link El#wrapText wraps} also breaks where
- * {@link BreakIterator#getLineInstance} allows when a line would be wider than its box; a word
- * wider than the box stays whole. Spaces at the end of a wrapped line take no width. The line
- * height is the font's ascent, descent and line gap, rounded to whole physical pixels.
+ * {@link BreakIterator#getLineInstance} allows when a line would be wider than its box. A piece
+ * that no such place breaks and that is wider than the whole box, such as a path or a URL, starts
+ * a line of its own and breaks inside, between graphemes, as late as fits, as CSS's {@code
+ * overflow-wrap: break-word} does; a cluster wider than the box stays whole. Layout's min-content
+ * width is still the widest piece whole. Spaces at the end of a wrapped line take no width. The
+ * line height is the font's ascent, descent and line gap, rounded to whole physical pixels.
  *
  * <p>Text is shaped for the scale of the window, which {@link App} and {@link Headless} pass to
  * every text element before layout. Sizes go to layout in logical pixels; lines are in physical
@@ -947,7 +950,11 @@ public final class Text implements Measure {
 
     /**
      * Breaks into rows no wider than {@code limit} where it can, greedily: each row takes segments
-     * while they fit, and at least one. Returns where each row starts.
+     * while they fit, and at least one. A segment wider than a whole row breaks inside it, as
+     * late as fits, where a grapheme and a cluster start (CSS's {@code overflow-wrap:
+     * break-word}); a cluster wider than the row stays whole on a row of its own. A limit of 0 is
+     * the min-content width: every segment on a row of its own, whole. Returns where each row
+     * starts.
      */
     int[] breakInto(float limit) {
       if (breaks == null || limit == Float.POSITIVE_INFINITY) {
@@ -963,11 +970,37 @@ public final class Text implements Measure {
       List<Float> widths = new ArrayList<>();
       int start = 0;
       int end = 0;
+      BreakIterator chars = null;
       for (int next : breaks) {
         if (end > start && width(start, next) > limit) {
           found.add(start);
           widths.add(width(start, end));
           start = end;
+        }
+        if (limit > 0 && width(start, next) > limit) { // one segment wider than the row
+          if (chars == null) {
+            chars = BreakIterator.getCharacterInstance(Locale.ROOT);
+            chars.setText(text);
+          }
+          int fits = start; // the last place the row may end, or start while there is none
+          for (int b = chars.following(start);
+              b != BreakIterator.DONE && b <= next && width(start, next) > limit; ) {
+            if (b < next
+                && (glyphAt[b] == run.count()
+                    || run.cluster(glyphAt[b]) != b
+                    || Character.isWhitespace(text.charAt(b)))) {
+              // Inside a cluster, a ligature or a right-to-left run, or before the spaces that
+              // end the segment, which stay at the end of its row.
+              b = chars.next();
+            } else if (fits == start || width(start, b) <= limit) {
+              fits = b;
+              b = chars.next();
+            } else { // b does not fit: the row ends at fits, and b is tried on the next
+              found.add(start);
+              widths.add(width(start, fits));
+              start = fits;
+            }
+          }
         }
         end = next;
       }
@@ -1038,14 +1071,18 @@ public final class Text implements Measure {
           : from + (run.pen(g) - from) * graphemes(text, start, at) / graphemes;
     }
 
-    /** The grapheme boundaries from {@code from} to {@code to}, with {@code to}. */
+    /**
+     * The grapheme boundaries from {@code from} to {@code to}, both boundaries, with {@code to}.
+     * Only that part is read: the iterator reads all it is given when set, and a row of a long
+     * line is short.
+     */
     List<Integer> boundaries(int from, int to) {
       BreakIterator chars = BreakIterator.getCharacterInstance(Locale.ROOT);
-      chars.setText(text);
+      chars.setText(text.substring(from, to));
       List<Integer> found = new ArrayList<>();
       found.add(from);
-      for (int b = chars.following(from); b != BreakIterator.DONE && b <= to; b = chars.next()) {
-        found.add(b);
+      for (int b = chars.following(0); b != BreakIterator.DONE; b = chars.next()) {
+        found.add(from + b);
       }
       return found;
     }

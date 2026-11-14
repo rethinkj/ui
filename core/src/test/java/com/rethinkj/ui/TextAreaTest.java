@@ -239,6 +239,135 @@ class TextAreaTest {
   }
 
   @Test
+  void aWrappedWordLongerThanTheRowBreaksAndCaretsKeysPressesAndSelectionFollowItsRows() {
+    // 24 characters a row: "word ", then the 500 letters 24 a row, the last 20 with " end".
+    StringBuilder letters = new StringBuilder();
+    for (int i = 0; i < 500; i++) {
+      letters.append((char) ('a' + i % 26));
+    }
+    String text = "word " + letters + " end";
+    App<Model> app = focused(text, f -> f.wrapText().lines(25));
+    app.resize(320, 600, 1);
+    app.frame();
+    El f = field(app);
+    Editor editor = f.editor();
+    Text t = f.text();
+    assertEquals(22, t.shownIndex().totalRows(), "the word's row, 21 of letters");
+    for (int row = 1; row <= 21; row++) {
+      int start = 5 + 24 * (row - 1);
+      assertEquals(row * 18.0, t.caretTop(start), "row " + row + " starts at " + start);
+      assertEquals((row - 1) * 18.0, t.caretTop(start - 1), "the letter before on the row above");
+      assertEquals(start, t.rowStart(start + 3));
+    }
+    key(app, "Home", CONTROL);
+    key(app, "ArrowRight");
+    key(app, "ArrowRight");
+    key(app, "ArrowDown");
+    assertEquals(7, editor.caret(), "the second row, two letters in");
+    for (int row = 2; row <= 21; row++) {
+      key(app, "ArrowDown");
+      assertEquals(5 + 24 * (row - 1) + 2, editor.caret(), "down to row " + row);
+    }
+    key(app, "ArrowDown");
+    assertEquals(text.length(), editor.caret(), "below the last row: the end");
+    key(app, "ArrowUp", CONTROL);
+    key(app, "Home", CONTROL);
+    key(app, "ArrowDown");
+    key(app, "End");
+    assertEquals(5 + 23, editor.caret(), "a row broken inside the word ends before its last");
+    key(app, "ArrowRight");
+    assertEquals(29, editor.caret());
+    assertEquals(36.0, t.caretTop(29), "after the last letter: the start of the next row");
+    for (int row = 21; row >= 2; row--) {
+      key(app, "ArrowUp");
+    }
+    key(app, "ArrowUp");
+    assertEquals(0, editor.caret(), "above the first row: the start");
+
+    // A press on each row, three letters in.
+    for (int row = 1; row <= 21; row++) {
+      float x = 14 + 8 * 3 + 2;
+      float y = 14 + 18 * row + 9;
+      app.pointerDown(x, y, 1, 0);
+      app.pointerUp(x, y);
+      app.frame();
+      assertEquals(5 + 24 * (row - 1) + 3, editor.caret(), "a press on row " + row);
+    }
+    // From the second letter of row 1 to the fourth of row 4: a rectangle per row.
+    app.pointerDown(14 + 8 + 2, 14 + 18 + 9, 1, 0);
+    app.pointerMove(14 + 8 * 4 + 2, 14 + 18 * 4 + 9);
+    app.pointerUp(14 + 8 * 4 + 2, 14 + 18 * 4 + 9);
+    app.frame();
+    assertEquals(6, editor.anchor());
+    assertEquals(5 + 24 * 3 + 4, editor.caret());
+    List<Text.Box> boxes = field(app).text().selection();
+    assertEquals(4, boxes.size(), boxes.toString());
+    assertEquals(8, boxes.getFirst().x(), "from the second letter");
+    assertEquals(192, boxes.getFirst().x() + boxes.getFirst().width(), "to the box's end");
+    assertEquals(32, boxes.getLast().x() + boxes.getLast().width(), "to the fourth letter");
+  }
+
+  @Test
+  void randomEditsWithLongWordsKeepTheRowsAFreshCountGives() {
+    java.util.Random random = new java.util.Random(5);
+    for (int round = 0; round < 40; round++) {
+      App<Model> app =
+          focused(randomWords(random, 1 + random.nextInt(6)), f -> f.wrapText().fitLines());
+      for (int edit = 0; edit < 6; edit++) {
+        String text = field(app).editor().text();
+        int at = random.nextInt(text.length() + 1);
+        int to = at + random.nextInt(Math.min(text.length() - at, 40) + 1);
+        String inserted = randomWords(random, random.nextInt(3));
+        app.edit(field(app), at, to, inserted, at + inserted.length());
+        app.frame();
+        String now = field(app).editor().text();
+        assertEquals(monoRows(now), field(app).text().shownIndex().totalRows(), El.quote(now));
+      }
+    }
+  }
+
+  /** Words of 1 to 4 letters and some of 25 to 80, with spaces and line feeds between them. */
+  private static String randomWords(java.util.Random random, int words) {
+    StringBuilder text = new StringBuilder();
+    for (int i = 0; i < words; i++) {
+      int length = random.nextInt(4) == 0 ? 25 + random.nextInt(56) : 1 + random.nextInt(4);
+      text.append("ab".repeat(length).substring(0, length));
+      text.append(random.nextInt(5) == 0 ? "\n" : " ".repeat(1 + random.nextInt(2)));
+    }
+    return text.toString();
+  }
+
+  /**
+   * The rows of {@link Areas}'s field for a text of letters, spaces and line feeds, 24 characters
+   * a row: words while they fit, spaces at a row's end taking no room, a word longer than a row on
+   * rows of its own, 24 letters each, and what follows its last part on that row while it fits.
+   */
+  private static long monoRows(String text) {
+    long rows = 0;
+    for (String line : text.split("\n", -1)) {
+      int used = 0; // letters and spaces on the row so far
+      boolean empty = true;
+      rows++;
+      for (String word : line.split("(?<= )(?=[^ ])")) {
+        int letters = word.stripTrailing().length();
+        int spaces = word.length() - letters;
+        if (!empty && used + letters > 24) {
+          rows++;
+          used = 0;
+        }
+        while (used + letters > 24) {
+          rows++;
+          letters -= 24 - used;
+          used = 0;
+        }
+        used += letters + spaces;
+        empty = false;
+      }
+    }
+    return rows;
+  }
+
+  @Test
   void aLongLineScrollsSidewaysToKeepTheCaretInView() {
     String text = "short\n" + "x".repeat(300) + "\nshort";
     App<Model> app = focused(text);
