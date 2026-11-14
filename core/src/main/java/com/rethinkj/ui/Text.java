@@ -197,7 +197,8 @@ public final class Text implements Measure {
 
   /**
    * A line of the text: characters {@code from} to {@code to} of a paragraph. A line that {@link
-   * El#maxLines} cut runs to the end of its paragraph and is as wide as its row was.
+   * El#maxLines} cut runs to the end of its paragraph; {@code width} is still its row's, which
+   * is what it measures as, and {@link #shownWidth} what its glyphs take.
    */
   private record Span(int paragraph, int from, int to, float width, boolean cut) {}
 
@@ -700,7 +701,7 @@ public final class Text implements Measure {
         Para para = paras[span.paragraph];
         line = new Line(
             para.slice(span.from, span.to),
-            span.width,
+            shownWidth(span),
             baseline,
             para.colors(span.from, span.to),
             0);
@@ -805,8 +806,10 @@ public final class Text implements Measure {
     if (maxLines > 0 && spans.size() > maxLines) {
       Span last = spans.get(maxLines - 1);
       spans = new ArrayList<>(spans.subList(0, maxLines - 1));
-      int end = paras[last.paragraph].text.length();
-      spans.add(new Span(last.paragraph, last.from, end, last.width, true));
+      // Text that neither shortens nor scrolls has nowhere to show the rest: it ends with the row.
+      boolean runsOn = ellipsis || field;
+      int end = runsOn ? paras[last.paragraph].text.length() : last.to;
+      spans.add(new Span(last.paragraph, last.from, end, last.width, runsOn));
     }
     return spans;
   }
@@ -1199,7 +1202,12 @@ public final class Text implements Measure {
 
   /** The width of a line's glyphs, without the spaces at the end of a wrapped line. */
   float lineWidth(int line) {
-    return placedSpans.isEmpty() ? 0 : placedSpans.get(line).width;
+    return placedSpans.isEmpty() ? 0 : shownWidth(placedSpans.get(line));
+  }
+
+  /** How wide a line's glyphs are when it is not shortened: a cut line's run past its row. */
+  private float shownWidth(Span span) {
+    return span.cut ? paras[span.paragraph].width(span.from, span.to) : span.width;
   }
 
   /** The first and the last position of a line in the shown string. */

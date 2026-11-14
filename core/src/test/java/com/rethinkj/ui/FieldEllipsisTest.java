@@ -84,4 +84,47 @@ class FieldEllipsisTest {
     assertEquals(
         value[0].substring(0, selected.text().lineStart(1)), app.clipboard().read());
   }
+
+  @Test
+  void aCutFieldScrollsToTheCaretAtItsEnd() {
+    TextLibraries.assumeLoaded();
+    App<Object> app = new App<>(
+        new Object(),
+        s -> col()
+            .align(Style.Align.START)
+            .child(El.text("aaaa bbbb cccc dddd eeee ffff gggg hhhh iiii jjjj")
+                .editable(v -> {})
+                .readOnly()
+                .wrapText()
+                .maxLines(3)
+                .ellipsis()
+                .w(80)));
+    app.textRendering(TextRendering.LINUX);
+    app.resize(200, 200, 1);
+    app.frame();
+    app.focus(app.tree().children().getFirst());
+    app.frame();
+    Fields.key(app, "End", Key.CONTROL);
+    El field = app.tree().children().getFirst();
+    assertFalse(field.text().shortened(), "with the focus the last line runs on");
+    assertTrue(field.text().scroll() > 0, "and scrolls until the caret at its end shows");
+  }
+
+  @Test
+  void textCutWithoutAnEllipsisEndsWithItsLastLine() {
+    TextLibraries.assumeLoaded();
+    App<Object> app = new App<>(
+        new Object(),
+        s -> col()
+            .align(Style.Align.START)
+            .child(El.text("word ".repeat(30)).wrapText().maxLines(3).w(80)));
+    app.textRendering(TextRendering.LINUX);
+    app.resize(200, 200, 1);
+    app.frame();
+    El text = app.tree().children().getFirst();
+    assertEquals(3, text.text().lines().size());
+    assertTrue(
+        text.text().lines().getLast().glyphs().width() <= 80,
+        "the last line's glyphs stay inside the box");
+  }
 }

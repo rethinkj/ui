@@ -1197,10 +1197,10 @@ public final class El {
   }
 
   /**
-   * Shows at most {@code count} lines of this text: the last takes the rest of the string, which
-   * {@link #ellipsis} shortens and the box clips otherwise. A single-line field that {@link
-   * #wrapText wraps} is as high as its lines up to this many; while it has the focus the last line
-   * runs on, clipped, without the ellipsis. The tree dump shows the whole string.
+   * Shows at most {@code count} lines of this text. With {@link #ellipsis} the last line ends in
+   * an ellipsis; without it the text ends with that line. A single-line field that {@link
+   * #wrapText wraps} is as high as its lines up to this many; while it has the focus its last line
+   * runs on without the ellipsis and scrolls with the caret. The tree dump shows the whole string.
    */
   public El maxLines(int count) {
     if (count < 1) {
