@@ -1,8 +1,8 @@
 el 0,0 360x300
 overlay center modal scrim on 0,0 360x300
   el #dialog role=dialog label="Columns" 63,16 234x268
-    el 80,62 200x205
-      el #dialog-content 76,58 214x183 scroll 0,199 thumb-y 282,151.34 6x83.99
+    el 80,65 200x202
+      el #dialog-content 76,61 214x180 scroll 0,202 thumb-y 282,154.16 6x81.23
         el 80,-137 200x376
           text #f0 role=textbox label="Field 0" "" 80,-137 200x24
           text #f1 role=textbox label="Field 1" "" 80,-105 200x24
@@ -21,5 +21,5 @@ overlay center modal scrim on 0,0 360x300
           text "Cancel" 171,247 43x16
         el #ok role=button label="OK" 235,243 45x24
           text "OK" 248,247 19x16
-    el 80,33 200x17
-      text role=heading label="Columns" "Columns" 80,33 60x17 level=2
+    el 80,33 200x20
+      text role=heading label="Columns" "Columns" 80,33 68x20 level=2

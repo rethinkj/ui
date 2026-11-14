@@ -180,7 +180,7 @@ class NativesTest {
   }
 
   @Test
-  void reusesACachedFileWithTheRightHash() throws IOException {
+  void reusesACachedFileOfTheRightSize() throws IOException {
     ClassLoader module = module(temp.resolve("jar"));
     Path cache = temp.resolve("cache");
     Path folder = natives(module, cache).prepare();
@@ -195,7 +195,7 @@ class NativesTest {
   }
 
   @Test
-  void replacesACachedFileWithTheWrongHash() throws IOException {
+  void replacesACachedFileOfTheWrongSize() throws IOException {
     ClassLoader module = module(temp.resolve("jar"));
     Path cache = temp.resolve("cache");
     Path folder = natives(module, cache).prepare();

@@ -20,9 +20,10 @@ import java.lang.invoke.MethodHandle;
  * Handwritten bindings for the part of SDL 3 that the window uses, written against SDL 3.4.
  *
  * <p>The descriptors are constants, so that GraalVM native image can register them. The method
- * handles live in {@link H}, which is initialised on the first call and only then loads the library
- * through {@link Natives}; nothing in this class loads it. Struct offsets are written out by hand
- * from SDL's headers, for 64-bit platforms.
+ * handles live in nested holders: {@link H} for what opening a window and its first frame need,
+ * the others by topic. Each is initialised on its first call and only then binds its handles and
+ * loads the library through {@link Natives}; nothing in this class loads it. Struct offsets are
+ * written out by hand from SDL's headers, for 64-bit platforms.
  */
 final class Sdl {
 
@@ -413,39 +414,25 @@ final class Sdl {
   static final FunctionDescriptor SDL_GET_APP_METADATA_PROPERTY =
       FunctionDescriptor.of(ADDRESS, ADDRESS);
 
-  /** The handles, bound on first use. Initialising this class loads SDL. */
+  /**
+   * The handles that opening a window and drawing its first frame need. The others wait in the
+   * holders below, so that an app binds only what it calls.
+   */
   private static final class H {
     static final MethodHandle INIT = bind("SDL_Init", SDL_INIT);
-    static final MethodHandle QUIT = bind("SDL_Quit", SDL_QUIT);
     static final MethodHandle GET_ERROR = bind("SDL_GetError", SDL_GET_ERROR);
     static final MethodHandle SET_HINT = bind("SDL_SetHint", SDL_SET_HINT);
     static final MethodHandle GET_HINT = bind("SDL_GetHint", SDL_GET_HINT);
     static final MethodHandle GET_CURRENT_VIDEO_DRIVER =
         bind("SDL_GetCurrentVideoDriver", SDL_GET_CURRENT_VIDEO_DRIVER);
     static final MethodHandle CREATE_WINDOW = bind("SDL_CreateWindow", SDL_CREATE_WINDOW);
-    static final MethodHandle DESTROY_WINDOW = bind("SDL_DestroyWindow", SDL_DESTROY_WINDOW);
     static final MethodHandle GET_WINDOW_ID = bind("SDL_GetWindowID", SDL_GET_WINDOW_ID);
     static final MethodHandle GET_WINDOW_FLAGS = bind("SDL_GetWindowFlags", SDL_GET_WINDOW_FLAGS);
     static final MethodHandle SHOW_WINDOW = bind("SDL_ShowWindow", SDL_SHOW_WINDOW);
-    static final MethodHandle RAISE_WINDOW = bind("SDL_RaiseWindow", SDL_RAISE_WINDOW);
-    static final MethodHandle HIDE_WINDOW = bind("SDL_HideWindow", SDL_HIDE_WINDOW);
-    static final MethodHandle MINIMIZE_WINDOW = bind("SDL_MinimizeWindow", SDL_MINIMIZE_WINDOW);
-    static final MethodHandle MAXIMIZE_WINDOW = bind("SDL_MaximizeWindow", SDL_MAXIMIZE_WINDOW);
-    static final MethodHandle RESTORE_WINDOW = bind("SDL_RestoreWindow", SDL_RESTORE_WINDOW);
-    static final MethodHandle SET_WINDOW_TITLE = bind("SDL_SetWindowTitle", SDL_SET_WINDOW_TITLE);
-    static final MethodHandle GET_WINDOW_SIZE = bind("SDL_GetWindowSize", SDL_GET_WINDOW_SIZE);
     static final MethodHandle GET_WINDOW_SIZE_IN_PIXELS =
         bind("SDL_GetWindowSizeInPixels", SDL_GET_WINDOW_SIZE_IN_PIXELS);
-    static final MethodHandle SET_WINDOW_SIZE = bind("SDL_SetWindowSize", SDL_SET_WINDOW_SIZE);
-    static final MethodHandle SET_WINDOW_MINIMUM_SIZE =
-        bind("SDL_SetWindowMinimumSize", SDL_SET_WINDOW_MINIMUM_SIZE);
-    static final MethodHandle CAPTURE_MOUSE = bind("SDL_CaptureMouse", SDL_CAPTURE_MOUSE);
-    static final MethodHandle GET_GLOBAL_MOUSE_STATE =
-        bind("SDL_GetGlobalMouseState", SDL_GET_GLOBAL_MOUSE_STATE);
     static final MethodHandle GET_WINDOW_POSITION =
         bind("SDL_GetWindowPosition", SDL_GET_WINDOW_POSITION);
-    static final MethodHandle SET_WINDOW_POSITION =
-        bind("SDL_SetWindowPosition", SDL_SET_WINDOW_POSITION);
     static final MethodHandle GET_WINDOW_DISPLAY_SCALE =
         bind("SDL_GetWindowDisplayScale", SDL_GET_WINDOW_DISPLAY_SCALE);
     static final MethodHandle GET_WINDOW_PIXEL_DENSITY =
@@ -454,6 +441,46 @@ final class Sdl {
         bind("SDL_GetPrimaryDisplay", SDL_GET_PRIMARY_DISPLAY);
     static final MethodHandle GET_DISPLAY_CONTENT_SCALE =
         bind("SDL_GetDisplayContentScale", SDL_GET_DISPLAY_CONTENT_SCALE);
+    static final MethodHandle GET_WINDOW_PROPERTIES =
+        bind("SDL_GetWindowProperties", SDL_GET_WINDOW_PROPERTIES);
+    static final MethodHandle GET_POINTER_PROPERTY =
+        bind("SDL_GetPointerProperty", SDL_GET_POINTER_PROPERTY);
+    static final MethodHandle GET_NUMBER_PROPERTY =
+        bind("SDL_GetNumberProperty", SDL_GET_NUMBER_PROPERTY);
+    static final MethodHandle FREE = bind("SDL_free", SDL_FREE);
+    static final MethodHandle ADD_EVENT_WATCH = bind("SDL_AddEventWatch", SDL_ADD_EVENT_WATCH);
+    static final MethodHandle WAIT_EVENT_TIMEOUT =
+        bind("SDL_WaitEventTimeout", SDL_WAIT_EVENT_TIMEOUT);
+    static final MethodHandle POLL_EVENT = bind("SDL_PollEvent", SDL_POLL_EVENT);
+    static final MethodHandle PUSH_EVENT = bind("SDL_PushEvent", SDL_PUSH_EVENT);
+    static final MethodHandle REGISTER_EVENTS = bind("SDL_RegisterEvents", SDL_REGISTER_EVENTS);
+    static final MethodHandle GET_SYSTEM_THEME = bind("SDL_GetSystemTheme", SDL_GET_SYSTEM_THEME);
+    static final MethodHandle SET_APP_METADATA = bind("SDL_SetAppMetadata", SDL_SET_APP_METADATA);
+  }
+
+  /** Changes the window after it opens, and closes it. */
+  private static final class Manage {
+    static final MethodHandle QUIT = bind("SDL_Quit", SDL_QUIT);
+    static final MethodHandle DESTROY_WINDOW = bind("SDL_DestroyWindow", SDL_DESTROY_WINDOW);
+    static final MethodHandle HIDE_WINDOW = bind("SDL_HideWindow", SDL_HIDE_WINDOW);
+    static final MethodHandle RAISE_WINDOW = bind("SDL_RaiseWindow", SDL_RAISE_WINDOW);
+    static final MethodHandle MINIMIZE_WINDOW = bind("SDL_MinimizeWindow", SDL_MINIMIZE_WINDOW);
+    static final MethodHandle MAXIMIZE_WINDOW = bind("SDL_MaximizeWindow", SDL_MAXIMIZE_WINDOW);
+    static final MethodHandle RESTORE_WINDOW = bind("SDL_RestoreWindow", SDL_RESTORE_WINDOW);
+    static final MethodHandle SET_WINDOW_TITLE = bind("SDL_SetWindowTitle", SDL_SET_WINDOW_TITLE);
+    static final MethodHandle GET_WINDOW_SIZE = bind("SDL_GetWindowSize", SDL_GET_WINDOW_SIZE);
+    static final MethodHandle SET_WINDOW_SIZE = bind("SDL_SetWindowSize", SDL_SET_WINDOW_SIZE);
+    static final MethodHandle SET_WINDOW_MINIMUM_SIZE =
+        bind("SDL_SetWindowMinimumSize", SDL_SET_WINDOW_MINIMUM_SIZE);
+    static final MethodHandle SET_WINDOW_POSITION =
+        bind("SDL_SetWindowPosition", SDL_SET_WINDOW_POSITION);
+    static final MethodHandle FLASH_WINDOW = bind("SDL_FlashWindow", SDL_FLASH_WINDOW);
+    static final MethodHandle REMOVE_EVENT_WATCH =
+        bind("SDL_RemoveEventWatch", SDL_REMOVE_EVENT_WATCH);
+  }
+
+  /** Asks about the displays and the window's frame. */
+  private static final class Displays {
     static final MethodHandle GET_DISPLAY_FOR_WINDOW =
         bind("SDL_GetDisplayForWindow", SDL_GET_DISPLAY_FOR_WINDOW);
     static final MethodHandle GET_CURRENT_DISPLAY_MODE =
@@ -468,22 +495,43 @@ final class Sdl {
         bind("SDL_GetWindowBordersSize", SDL_GET_WINDOW_BORDERS_SIZE);
     static final MethodHandle GET_DISPLAY_NAME = bind("SDL_GetDisplayName", SDL_GET_DISPLAY_NAME);
     static final MethodHandle GET_DISPLAYS = bind("SDL_GetDisplays", SDL_GET_DISPLAYS);
+  }
+
+  /** For a window without the system's frame. */
+  private static final class Frame {
     static final MethodHandle SET_WINDOW_HIT_TEST =
         bind("SDL_SetWindowHitTest", SDL_SET_WINDOW_HIT_TEST);
     static final MethodHandle SHOW_WINDOW_SYSTEM_MENU =
         bind("SDL_ShowWindowSystemMenu", SDL_SHOW_WINDOW_SYSTEM_MENU);
-    static final MethodHandle GET_WINDOW_PROPERTIES =
-        bind("SDL_GetWindowProperties", SDL_GET_WINDOW_PROPERTIES);
-    static final MethodHandle GET_POINTER_PROPERTY =
-        bind("SDL_GetPointerProperty", SDL_GET_POINTER_PROPERTY);
-    static final MethodHandle GET_NUMBER_PROPERTY =
-        bind("SDL_GetNumberProperty", SDL_GET_NUMBER_PROPERTY);
+  }
+
+  /** The keyboard, the pointer and its cursor, and text input. */
+  private static final class Input {
+    static final MethodHandle GET_MOD_STATE = bind("SDL_GetModState", SDL_GET_MOD_STATE);
+    static final MethodHandle CAPTURE_MOUSE = bind("SDL_CaptureMouse", SDL_CAPTURE_MOUSE);
+    static final MethodHandle GET_GLOBAL_MOUSE_STATE =
+        bind("SDL_GetGlobalMouseState", SDL_GET_GLOBAL_MOUSE_STATE);
+    static final MethodHandle CREATE_SYSTEM_CURSOR =
+        bind("SDL_CreateSystemCursor", SDL_CREATE_SYSTEM_CURSOR);
+    static final MethodHandle SET_CURSOR = bind("SDL_SetCursor", SDL_SET_CURSOR);
     static final MethodHandle START_TEXT_INPUT = bind("SDL_StartTextInput", SDL_START_TEXT_INPUT);
     static final MethodHandle START_TEXT_INPUT_WITH_PROPERTIES =
         bind("SDL_StartTextInputWithProperties", SDL_START_TEXT_INPUT_WITH_PROPERTIES);
     static final MethodHandle STOP_TEXT_INPUT = bind("SDL_StopTextInput", SDL_STOP_TEXT_INPUT);
+    static final MethodHandle TEXT_INPUT_ACTIVE =
+        bind("SDL_TextInputActive", SDL_TEXT_INPUT_ACTIVE);
+    static final MethodHandle SET_TEXT_INPUT_AREA =
+        bind("SDL_SetTextInputArea", SDL_SET_TEXT_INPUT_AREA);
+    static final MethodHandle GET_TEXT_INPUT_AREA =
+        bind("SDL_GetTextInputArea", SDL_GET_TEXT_INPUT_AREA);
+  }
+
+  /** Property sets of one's own, for dialogs and password input. */
+  private static final class Props {
     static final MethodHandle CREATE_PROPERTIES =
         bind("SDL_CreateProperties", SDL_CREATE_PROPERTIES);
+    static final MethodHandle DESTROY_PROPERTIES =
+        bind("SDL_DestroyProperties", SDL_DESTROY_PROPERTIES);
     static final MethodHandle SET_NUMBER_PROPERTY =
         bind("SDL_SetNumberProperty", SDL_SET_NUMBER_PROPERTY);
     static final MethodHandle SET_POINTER_PROPERTY =
@@ -492,52 +540,36 @@ final class Sdl {
         bind("SDL_SetStringProperty", SDL_SET_STRING_PROPERTY);
     static final MethodHandle SET_BOOLEAN_PROPERTY =
         bind("SDL_SetBooleanProperty", SDL_SET_BOOLEAN_PROPERTY);
+  }
+
+  /** The system's dialogs and clipboard, and the app's metadata as SDL holds it. */
+  private static final class Desktop {
     static final MethodHandle SHOW_FILE_DIALOG_WITH_PROPERTIES =
         bind("SDL_ShowFileDialogWithProperties", SDL_SHOW_FILE_DIALOG_WITH_PROPERTIES);
     static final MethodHandle SHOW_MESSAGE_BOX = bind("SDL_ShowMessageBox", SDL_SHOW_MESSAGE_BOX);
-    static final MethodHandle DESTROY_PROPERTIES =
-        bind("SDL_DestroyProperties", SDL_DESTROY_PROPERTIES);
-    static final MethodHandle TEXT_INPUT_ACTIVE =
-        bind("SDL_TextInputActive", SDL_TEXT_INPUT_ACTIVE);
-    static final MethodHandle SET_TEXT_INPUT_AREA =
-        bind("SDL_SetTextInputArea", SDL_SET_TEXT_INPUT_AREA);
-    static final MethodHandle GET_TEXT_INPUT_AREA =
-        bind("SDL_GetTextInputArea", SDL_GET_TEXT_INPUT_AREA);
-    static final MethodHandle GET_MOD_STATE = bind("SDL_GetModState", SDL_GET_MOD_STATE);
     static final MethodHandle SET_CLIPBOARD_TEXT =
         bind("SDL_SetClipboardText", SDL_SET_CLIPBOARD_TEXT);
     static final MethodHandle GET_CLIPBOARD_TEXT =
         bind("SDL_GetClipboardText", SDL_GET_CLIPBOARD_TEXT);
-    static final MethodHandle FREE = bind("SDL_free", SDL_FREE);
-    static final MethodHandle ADD_EVENT_WATCH = bind("SDL_AddEventWatch", SDL_ADD_EVENT_WATCH);
-    static final MethodHandle REMOVE_EVENT_WATCH =
-        bind("SDL_RemoveEventWatch", SDL_REMOVE_EVENT_WATCH);
-    static final MethodHandle WAIT_EVENT_TIMEOUT =
-        bind("SDL_WaitEventTimeout", SDL_WAIT_EVENT_TIMEOUT);
-    static final MethodHandle POLL_EVENT = bind("SDL_PollEvent", SDL_POLL_EVENT);
-    static final MethodHandle PUSH_EVENT = bind("SDL_PushEvent", SDL_PUSH_EVENT);
-    static final MethodHandle REGISTER_EVENTS = bind("SDL_RegisterEvents", SDL_REGISTER_EVENTS);
-    static final MethodHandle CREATE_SYSTEM_CURSOR =
-        bind("SDL_CreateSystemCursor", SDL_CREATE_SYSTEM_CURSOR);
-    static final MethodHandle SET_CURSOR = bind("SDL_SetCursor", SDL_SET_CURSOR);
+    static final MethodHandle GET_APP_METADATA_PROPERTY =
+        bind("SDL_GetAppMetadataProperty", SDL_GET_APP_METADATA_PROPERTY);
+  }
+
+  /** The window's icon. */
+  private static final class Icon {
     static final MethodHandle CREATE_SURFACE = bind("SDL_CreateSurface", SDL_CREATE_SURFACE);
     static final MethodHandle DESTROY_SURFACE = bind("SDL_DestroySurface", SDL_DESTROY_SURFACE);
     static final MethodHandle ADD_SURFACE_ALTERNATE_IMAGE =
         bind("SDL_AddSurfaceAlternateImage", SDL_ADD_SURFACE_ALTERNATE_IMAGE);
     static final MethodHandle SET_WINDOW_ICON = bind("SDL_SetWindowIcon", SDL_SET_WINDOW_ICON);
-    static final MethodHandle FLASH_WINDOW = bind("SDL_FlashWindow", SDL_FLASH_WINDOW);
-    static final MethodHandle GET_SYSTEM_THEME = bind("SDL_GetSystemTheme", SDL_GET_SYSTEM_THEME);
-    static final MethodHandle SET_APP_METADATA = bind("SDL_SetAppMetadata", SDL_SET_APP_METADATA);
-    static final MethodHandle GET_APP_METADATA_PROPERTY =
-        bind("SDL_GetAppMetadataProperty", SDL_GET_APP_METADATA_PROPERTY);
+  }
 
-    private static MethodHandle bind(String name, FunctionDescriptor descriptor) {
-      MemorySegment symbol = Natives.lookup("sdl3")
-          .find(name)
-          .orElseThrow(() -> new UnsatisfiedLinkError(
-              "SDL 3 has no function " + name + "; rethinkj UI needs SDL 3.4 or later."));
-      return Linker.nativeLinker().downcallHandle(symbol, descriptor);
-    }
+  private static MethodHandle bind(String name, FunctionDescriptor descriptor) {
+    MemorySegment symbol = Natives.lookup("sdl3")
+        .find(name)
+        .orElseThrow(() -> new UnsatisfiedLinkError(
+            "SDL 3 has no function " + name + "; rethinkj UI needs SDL 3.4 or later."));
+    return Linker.nativeLinker().downcallHandle(symbol, descriptor);
   }
 
   static boolean init(int flags) {
@@ -550,7 +582,7 @@ final class Sdl {
 
   static void quit() {
     try {
-      H.QUIT.invokeExact();
+      Manage.QUIT.invokeExact();
     } catch (Throwable t) {
       throw failed(t);
     }
@@ -601,7 +633,7 @@ final class Sdl {
 
   static void destroyWindow(MemorySegment window) {
     try {
-      H.DESTROY_WINDOW.invokeExact(window);
+      Manage.DESTROY_WINDOW.invokeExact(window);
     } catch (Throwable t) {
       throw failed(t);
     }
@@ -633,7 +665,7 @@ final class Sdl {
 
   static boolean hideWindow(MemorySegment window) {
     try {
-      return (boolean) H.HIDE_WINDOW.invokeExact(window);
+      return (boolean) Manage.HIDE_WINDOW.invokeExact(window);
     } catch (Throwable t) {
       throw failed(t);
     }
@@ -641,7 +673,7 @@ final class Sdl {
 
   static boolean raiseWindow(MemorySegment window) {
     try {
-      return (boolean) H.RAISE_WINDOW.invokeExact(window);
+      return (boolean) Manage.RAISE_WINDOW.invokeExact(window);
     } catch (Throwable t) {
       throw failed(t);
     }
@@ -649,7 +681,7 @@ final class Sdl {
 
   static boolean minimizeWindow(MemorySegment window) {
     try {
-      return (boolean) H.MINIMIZE_WINDOW.invokeExact(window);
+      return (boolean) Manage.MINIMIZE_WINDOW.invokeExact(window);
     } catch (Throwable t) {
       throw failed(t);
     }
@@ -657,7 +689,7 @@ final class Sdl {
 
   static boolean maximizeWindow(MemorySegment window) {
     try {
-      return (boolean) H.MAXIMIZE_WINDOW.invokeExact(window);
+      return (boolean) Manage.MAXIMIZE_WINDOW.invokeExact(window);
     } catch (Throwable t) {
       throw failed(t);
     }
@@ -665,7 +697,7 @@ final class Sdl {
 
   static boolean restoreWindow(MemorySegment window) {
     try {
-      return (boolean) H.RESTORE_WINDOW.invokeExact(window);
+      return (boolean) Manage.RESTORE_WINDOW.invokeExact(window);
     } catch (Throwable t) {
       throw failed(t);
     }
@@ -673,7 +705,7 @@ final class Sdl {
 
   static boolean setWindowTitle(MemorySegment window, String title) {
     try (Arena arena = Arena.ofConfined()) {
-      return (boolean) H.SET_WINDOW_TITLE.invokeExact(window, arena.allocateFrom(title));
+      return (boolean) Manage.SET_WINDOW_TITLE.invokeExact(window, arena.allocateFrom(title));
     } catch (Throwable t) {
       throw failed(t);
     }
@@ -682,7 +714,7 @@ final class Sdl {
   /** Writes width and height, in window coordinates, into the two ints at {@code size}. */
   static boolean getWindowSize(MemorySegment window, MemorySegment size) {
     try {
-      return (boolean) H.GET_WINDOW_SIZE.invokeExact(window, size, size.asSlice(4));
+      return (boolean) Manage.GET_WINDOW_SIZE.invokeExact(window, size, size.asSlice(4));
     } catch (Throwable t) {
       throw failed(t);
     }
@@ -699,7 +731,7 @@ final class Sdl {
 
   static boolean setWindowSize(MemorySegment window, int width, int height) {
     try {
-      return (boolean) H.SET_WINDOW_SIZE.invokeExact(window, width, height);
+      return (boolean) Manage.SET_WINDOW_SIZE.invokeExact(window, width, height);
     } catch (Throwable t) {
       throw failed(t);
     }
@@ -707,7 +739,7 @@ final class Sdl {
 
   static boolean setWindowMinimumSize(MemorySegment window, int width, int height) {
     try {
-      return (boolean) H.SET_WINDOW_MINIMUM_SIZE.invokeExact(window, width, height);
+      return (boolean) Manage.SET_WINDOW_MINIMUM_SIZE.invokeExact(window, width, height);
     } catch (Throwable t) {
       throw failed(t);
     }
@@ -716,7 +748,7 @@ final class Sdl {
   /** Writes x and y into the two ints at {@code position}. */
   static boolean captureMouse(boolean enabled) {
     try {
-      return (boolean) H.CAPTURE_MOUSE.invokeExact(enabled);
+      return (boolean) Input.CAPTURE_MOUSE.invokeExact(enabled);
     } catch (Throwable t) {
       throw failed(t);
     }
@@ -725,7 +757,7 @@ final class Sdl {
   /** Writes the pointer's position on the desktop as two floats; returns the buttons held. */
   static int getGlobalMouseState(MemorySegment position) {
     try {
-      return (int) H.GET_GLOBAL_MOUSE_STATE.invokeExact(position, position.asSlice(4));
+      return (int) Input.GET_GLOBAL_MOUSE_STATE.invokeExact(position, position.asSlice(4));
     } catch (Throwable t) {
       throw failed(t);
     }
@@ -741,7 +773,7 @@ final class Sdl {
 
   static boolean setWindowPosition(MemorySegment window, int x, int y) {
     try {
-      return (boolean) H.SET_WINDOW_POSITION.invokeExact(window, x, y);
+      return (boolean) Manage.SET_WINDOW_POSITION.invokeExact(window, x, y);
     } catch (Throwable t) {
       throw failed(t);
     }
@@ -781,7 +813,7 @@ final class Sdl {
 
   static int getDisplayForWindow(MemorySegment window) {
     try {
-      return (int) H.GET_DISPLAY_FOR_WINDOW.invokeExact(window);
+      return (int) Displays.GET_DISPLAY_FOR_WINDOW.invokeExact(window);
     } catch (Throwable t) {
       throw failed(t);
     }
@@ -790,7 +822,7 @@ final class Sdl {
   /** The refresh rate of the display's current mode in hertz, or 0 if it is not known. */
   static float getCurrentRefreshRate(int display) {
     try {
-      MemorySegment mode = (MemorySegment) H.GET_CURRENT_DISPLAY_MODE.invokeExact(display);
+      MemorySegment mode = (MemorySegment) Displays.GET_CURRENT_DISPLAY_MODE.invokeExact(display);
       if (mode.equals(MemorySegment.NULL)) {
         return 0;
       }
@@ -809,7 +841,7 @@ final class Sdl {
       rect.set(JAVA_INT, 4, y);
       rect.set(JAVA_INT, 8, w);
       rect.set(JAVA_INT, 12, h);
-      return (int) H.GET_DISPLAY_FOR_RECT.invokeExact(rect);
+      return (int) Displays.GET_DISPLAY_FOR_RECT.invokeExact(rect);
     } catch (Throwable t) {
       throw failed(t);
     }
@@ -823,8 +855,8 @@ final class Sdl {
     try (Arena arena = Arena.ofConfined()) {
       MemorySegment rect = arena.allocate(RECT_SIZE, 4);
       boolean ok = usable
-          ? (boolean) H.GET_DISPLAY_USABLE_BOUNDS.invokeExact(display, rect)
-          : (boolean) H.GET_DISPLAY_BOUNDS.invokeExact(display, rect);
+          ? (boolean) Displays.GET_DISPLAY_USABLE_BOUNDS.invokeExact(display, rect)
+          : (boolean) Displays.GET_DISPLAY_BOUNDS.invokeExact(display, rect);
       return ok ? rect.toArray(JAVA_INT) : null;
     } catch (Throwable t) {
       throw failed(t);
@@ -835,7 +867,7 @@ final class Sdl {
   static int[] windowBordersSize(MemorySegment window) {
     try (Arena arena = Arena.ofConfined()) {
       MemorySegment sides = arena.allocate(JAVA_INT, 4);
-      boolean ok = (boolean) H.GET_WINDOW_BORDERS_SIZE.invokeExact(
+      boolean ok = (boolean) Displays.GET_WINDOW_BORDERS_SIZE.invokeExact(
           window, sides, sides.asSlice(4), sides.asSlice(8), sides.asSlice(12));
       return ok ? sides.toArray(JAVA_INT) : null;
     } catch (Throwable t) {
@@ -846,7 +878,7 @@ final class Sdl {
   /** A display's name, such as its model, or null. */
   static String displayName(int display) {
     try {
-      return string((MemorySegment) H.GET_DISPLAY_NAME.invokeExact(display));
+      return string((MemorySegment) Displays.GET_DISPLAY_NAME.invokeExact(display));
     } catch (Throwable t) {
       throw failed(t);
     }
@@ -856,7 +888,7 @@ final class Sdl {
   static int[] displays() {
     try (Arena arena = Arena.ofConfined()) {
       MemorySegment count = arena.allocate(JAVA_INT);
-      MemorySegment list = (MemorySegment) H.GET_DISPLAYS.invokeExact(count);
+      MemorySegment list = (MemorySegment) Displays.GET_DISPLAYS.invokeExact(count);
       if (list.equals(MemorySegment.NULL)) {
         return new int[0];
       }
@@ -873,7 +905,7 @@ final class Sdl {
   static boolean setWindowHitTest(
       MemorySegment window, MemorySegment callback, MemorySegment data) {
     try {
-      return (boolean) H.SET_WINDOW_HIT_TEST.invokeExact(window, callback, data);
+      return (boolean) Frame.SET_WINDOW_HIT_TEST.invokeExact(window, callback, data);
     } catch (Throwable t) {
       throw failed(t);
     }
@@ -882,7 +914,7 @@ final class Sdl {
   /** Shows the system's window menu at a point in window coordinates. */
   static boolean showWindowSystemMenu(MemorySegment window, int x, int y) {
     try {
-      return (boolean) H.SHOW_WINDOW_SYSTEM_MENU.invokeExact(window, x, y);
+      return (boolean) Frame.SHOW_WINDOW_SYSTEM_MENU.invokeExact(window, x, y);
     } catch (Throwable t) {
       throw failed(t);
     }
@@ -915,7 +947,7 @@ final class Sdl {
 
   static boolean startTextInput(MemorySegment window) {
     try {
-      return (boolean) H.START_TEXT_INPUT.invokeExact(window);
+      return (boolean) Input.START_TEXT_INPUT.invokeExact(window);
     } catch (Throwable t) {
       throw failed(t);
     }
@@ -928,17 +960,17 @@ final class Sdl {
    */
   static boolean startPasswordInput(MemorySegment window) {
     try (Arena arena = Arena.ofConfined()) {
-      int properties = (int) H.CREATE_PROPERTIES.invokeExact();
+      int properties = (int) Props.CREATE_PROPERTIES.invokeExact();
       if (properties == 0) {
         return false;
       }
       try {
-        return (boolean) H.SET_NUMBER_PROPERTY.invokeExact(
+        return (boolean) Props.SET_NUMBER_PROPERTY.invokeExact(
                 properties, arena.allocateFrom(PROP_TEXTINPUT_TYPE_NUMBER), (long)
                     TEXTINPUT_TYPE_TEXT_PASSWORD_HIDDEN)
-            && (boolean) H.START_TEXT_INPUT_WITH_PROPERTIES.invokeExact(window, properties);
+            && (boolean) Input.START_TEXT_INPUT_WITH_PROPERTIES.invokeExact(window, properties);
       } finally {
-        H.DESTROY_PROPERTIES.invokeExact(properties);
+        Props.DESTROY_PROPERTIES.invokeExact(properties);
       }
     } catch (Throwable t) {
       throw failed(t);
@@ -948,7 +980,7 @@ final class Sdl {
   /** @return the properties, or 0 if SDL has no memory for them */
   static int createProperties() {
     try {
-      return (int) H.CREATE_PROPERTIES.invokeExact();
+      return (int) Props.CREATE_PROPERTIES.invokeExact();
     } catch (Throwable t) {
       throw failed(t);
     }
@@ -956,7 +988,7 @@ final class Sdl {
 
   static void destroyProperties(int properties) {
     try {
-      H.DESTROY_PROPERTIES.invokeExact(properties);
+      Props.DESTROY_PROPERTIES.invokeExact(properties);
     } catch (Throwable t) {
       throw failed(t);
     }
@@ -965,7 +997,7 @@ final class Sdl {
   static boolean setPointerProperty(int properties, String name, MemorySegment value) {
     try (Arena arena = Arena.ofConfined()) {
       return (boolean)
-          H.SET_POINTER_PROPERTY.invokeExact(properties, arena.allocateFrom(name), value);
+          Props.SET_POINTER_PROPERTY.invokeExact(properties, arena.allocateFrom(name), value);
     } catch (Throwable t) {
       throw failed(t);
     }
@@ -974,7 +1006,7 @@ final class Sdl {
   static boolean setNumberProperty(int properties, String name, long value) {
     try (Arena arena = Arena.ofConfined()) {
       return (boolean)
-          H.SET_NUMBER_PROPERTY.invokeExact(properties, arena.allocateFrom(name), value);
+          Props.SET_NUMBER_PROPERTY.invokeExact(properties, arena.allocateFrom(name), value);
     } catch (Throwable t) {
       throw failed(t);
     }
@@ -983,7 +1015,7 @@ final class Sdl {
   /** SDL keeps a copy of the string. */
   static boolean setStringProperty(int properties, String name, String value) {
     try (Arena arena = Arena.ofConfined()) {
-      return (boolean) H.SET_STRING_PROPERTY.invokeExact(
+      return (boolean) Props.SET_STRING_PROPERTY.invokeExact(
           properties, arena.allocateFrom(name), arena.allocateFrom(value));
     } catch (Throwable t) {
       throw failed(t);
@@ -993,7 +1025,7 @@ final class Sdl {
   static boolean setBooleanProperty(int properties, String name, boolean value) {
     try (Arena arena = Arena.ofConfined()) {
       return (boolean)
-          H.SET_BOOLEAN_PROPERTY.invokeExact(properties, arena.allocateFrom(name), value);
+          Props.SET_BOOLEAN_PROPERTY.invokeExact(properties, arena.allocateFrom(name), value);
     } catch (Throwable t) {
       throw failed(t);
     }
@@ -1006,7 +1038,7 @@ final class Sdl {
   static void showFileDialogWithProperties(
       int type, MemorySegment callback, MemorySegment userdata, int properties) {
     try {
-      H.SHOW_FILE_DIALOG_WITH_PROPERTIES.invokeExact(type, callback, userdata, properties);
+      Desktop.SHOW_FILE_DIALOG_WITH_PROPERTIES.invokeExact(type, callback, userdata, properties);
     } catch (Throwable t) {
       throw failed(t);
     }
@@ -1015,7 +1047,7 @@ final class Sdl {
   /** Blocks until the box closes. */
   static boolean showMessageBox(MemorySegment data, MemorySegment buttonId) {
     try {
-      return (boolean) H.SHOW_MESSAGE_BOX.invokeExact(data, buttonId);
+      return (boolean) Desktop.SHOW_MESSAGE_BOX.invokeExact(data, buttonId);
     } catch (Throwable t) {
       throw failed(t);
     }
@@ -1023,7 +1055,7 @@ final class Sdl {
 
   static boolean stopTextInput(MemorySegment window) {
     try {
-      return (boolean) H.STOP_TEXT_INPUT.invokeExact(window);
+      return (boolean) Input.STOP_TEXT_INPUT.invokeExact(window);
     } catch (Throwable t) {
       throw failed(t);
     }
@@ -1031,7 +1063,7 @@ final class Sdl {
 
   static boolean textInputActive(MemorySegment window) {
     try {
-      return (boolean) H.TEXT_INPUT_ACTIVE.invokeExact(window);
+      return (boolean) Input.TEXT_INPUT_ACTIVE.invokeExact(window);
     } catch (Throwable t) {
       throw failed(t);
     }
@@ -1046,7 +1078,7 @@ final class Sdl {
       rect.set(JAVA_INT, 4, y);
       rect.set(JAVA_INT, 8, width);
       rect.set(JAVA_INT, 12, height);
-      return (boolean) H.SET_TEXT_INPUT_AREA.invokeExact(window, rect, cursor);
+      return (boolean) Input.SET_TEXT_INPUT_AREA.invokeExact(window, rect, cursor);
     } catch (Throwable t) {
       throw failed(t);
     }
@@ -1057,7 +1089,7 @@ final class Sdl {
     try (Arena arena = Arena.ofConfined()) {
       MemorySegment rect = arena.allocate(16, 4);
       MemorySegment cursor = arena.allocate(JAVA_INT);
-      if (!(boolean) H.GET_TEXT_INPUT_AREA.invokeExact(window, rect, cursor)) {
+      if (!(boolean) Input.GET_TEXT_INPUT_AREA.invokeExact(window, rect, cursor)) {
         throw new IllegalStateException("SDL_GetTextInputArea failed: " + getError());
       }
       return new int[] {
@@ -1074,7 +1106,7 @@ final class Sdl {
 
   static short getModState() {
     try {
-      return (short) H.GET_MOD_STATE.invokeExact();
+      return (short) Input.GET_MOD_STATE.invokeExact();
     } catch (Throwable t) {
       throw failed(t);
     }
@@ -1082,7 +1114,7 @@ final class Sdl {
 
   static boolean setClipboardText(String text) {
     try (Arena arena = Arena.ofConfined()) {
-      return (boolean) H.SET_CLIPBOARD_TEXT.invokeExact(arena.allocateFrom(text));
+      return (boolean) Desktop.SET_CLIPBOARD_TEXT.invokeExact(arena.allocateFrom(text));
     } catch (Throwable t) {
       throw failed(t);
     }
@@ -1091,7 +1123,7 @@ final class Sdl {
   /** The clipboard's text, "" when it holds none or cannot be read. */
   static String getClipboardText() {
     try {
-      MemorySegment text = (MemorySegment) H.GET_CLIPBOARD_TEXT.invokeExact();
+      MemorySegment text = (MemorySegment) Desktop.GET_CLIPBOARD_TEXT.invokeExact();
       try {
         String read = string(text);
         return read == null ? "" : read;
@@ -1117,7 +1149,7 @@ final class Sdl {
 
   /** Bound only under X11. */
   private static final class X11Hook {
-    static final MethodHandle SET = H.bind("SDL_SetX11EventHook", SDL_SET_X11_EVENT_HOOK);
+    static final MethodHandle SET = bind("SDL_SetX11EventHook", SDL_SET_X11_EVENT_HOOK);
   }
 
   /**
@@ -1134,7 +1166,7 @@ final class Sdl {
 
   static void removeEventWatch(MemorySegment filter, MemorySegment userdata) {
     try {
-      H.REMOVE_EVENT_WATCH.invokeExact(filter, userdata);
+      Manage.REMOVE_EVENT_WATCH.invokeExact(filter, userdata);
     } catch (Throwable t) {
       throw failed(t);
     }
@@ -1178,7 +1210,7 @@ final class Sdl {
   /** @return the cursor, which SDL_Quit frees, or NULL if the system has none of this shape */
   static MemorySegment createSystemCursor(int id) {
     try {
-      return (MemorySegment) H.CREATE_SYSTEM_CURSOR.invokeExact(id);
+      return (MemorySegment) Input.CREATE_SYSTEM_CURSOR.invokeExact(id);
     } catch (Throwable t) {
       throw failed(t);
     }
@@ -1186,7 +1218,7 @@ final class Sdl {
 
   static boolean setCursor(MemorySegment cursor) {
     try {
-      return (boolean) H.SET_CURSOR.invokeExact(cursor);
+      return (boolean) Input.SET_CURSOR.invokeExact(cursor);
     } catch (Throwable t) {
       throw failed(t);
     }
@@ -1201,7 +1233,7 @@ final class Sdl {
   static MemorySegment createSurface(Pixels image) {
     try {
       MemorySegment surface = (MemorySegment)
-          H.CREATE_SURFACE.invokeExact(image.width(), image.height(), PIXELFORMAT_ABGR8888);
+          Icon.CREATE_SURFACE.invokeExact(image.width(), image.height(), PIXELFORMAT_ABGR8888);
       if (surface.equals(MemorySegment.NULL)) {
         return surface;
       }
@@ -1221,7 +1253,7 @@ final class Sdl {
 
   static void destroySurface(MemorySegment surface) {
     try {
-      H.DESTROY_SURFACE.invokeExact(surface);
+      Icon.DESTROY_SURFACE.invokeExact(surface);
     } catch (Throwable t) {
       throw failed(t);
     }
@@ -1229,7 +1261,7 @@ final class Sdl {
 
   static boolean addSurfaceAlternateImage(MemorySegment surface, MemorySegment image) {
     try {
-      return (boolean) H.ADD_SURFACE_ALTERNATE_IMAGE.invokeExact(surface, image);
+      return (boolean) Icon.ADD_SURFACE_ALTERNATE_IMAGE.invokeExact(surface, image);
     } catch (Throwable t) {
       throw failed(t);
     }
@@ -1237,7 +1269,7 @@ final class Sdl {
 
   static boolean setWindowIcon(MemorySegment window, MemorySegment surface) {
     try {
-      return (boolean) H.SET_WINDOW_ICON.invokeExact(window, surface);
+      return (boolean) Icon.SET_WINDOW_ICON.invokeExact(window, surface);
     } catch (Throwable t) {
       throw failed(t);
     }
@@ -1245,7 +1277,7 @@ final class Sdl {
 
   static boolean flashWindow(MemorySegment window, int operation) {
     try {
-      return (boolean) H.FLASH_WINDOW.invokeExact(window, operation);
+      return (boolean) Manage.FLASH_WINDOW.invokeExact(window, operation);
     } catch (Throwable t) {
       throw failed(t);
     }
@@ -1275,7 +1307,7 @@ final class Sdl {
   static String getAppMetadataProperty(String name) {
     try (Arena arena = Arena.ofConfined()) {
       return string(
-          (MemorySegment) H.GET_APP_METADATA_PROPERTY.invokeExact(arena.allocateFrom(name)));
+          (MemorySegment) Desktop.GET_APP_METADATA_PROPERTY.invokeExact(arena.allocateFrom(name)));
     } catch (Throwable t) {
       throw failed(t);
     }
