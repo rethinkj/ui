@@ -56,7 +56,8 @@ public final class Dialog {
    *
    * @param title shown at the top, also the label
    * @param content what the dialog asks or shows
-   * @param buttons the actions, in the order shown, the main one usually last
+   * @param buttons the actions, in the order shown, the main one usually last; an empty list
+   *     leaves their row out, for a dialog whose content has its own
    * @param defaultButton one of {@code buttons}, usually the main one; null for none
    * @param onDismiss runs on Escape and on a press outside the dialog
    * @throws IllegalArgumentException if {@code defaultButton} is not one of {@code buttons}
@@ -93,10 +94,12 @@ public final class Dialog {
         .children(
             label(t, Label.Variant.HEADING, title),
             content,
-            row()
-                .gap(t.space().m())
-                .justify(Style.Content.END)
-                .children(buttons.toArray(El[]::new)));
+            buttons.isEmpty() // no row, so no gap for it under the content
+                ? null
+                : row()
+                    .gap(t.space().m())
+                    .justify(Style.Content.END)
+                    .children(buttons.toArray(El[]::new)));
   }
 
   /**

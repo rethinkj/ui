@@ -1,0 +1,1 @@
+- A `Dialog` with an empty list of buttons has no row for them; before, the empty row left a gap under the content.

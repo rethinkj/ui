@@ -169,6 +169,28 @@ class DialogTest {
   }
 
   @Test
+  void aDialogWithoutButtonsHasNoRowForThem() throws IOException {
+    Theme t = Theme.DARK;
+    App<Object> app = new App<>(
+        new Object(),
+        s -> El.col()
+            .wFull()
+            .hFull()
+            .overlay(
+                Dialog.dialog(t, "Note", El.el().key("body").size(120, 40), List.of(), () -> {})));
+    run(app, "frame\nadvance 0.25\nframe\n");
+    String dump = app.tree().dump();
+    float[] dialog = StructureTest.rect(StructureTest.line(dump, "#dialog"));
+    float[] body = StructureTest.rect(StructureTest.line(dump, "#body"));
+    // Below the content only the dialog's padding and its border: no empty row, no gap.
+    assertEquals(
+        t.space().xl() + t.size().stroke(),
+        dialog[1] + dialog[3] - (body[1] + body[3]),
+        0.01,
+        dump);
+  }
+
+  @Test
   void theDefaultButtonIsOneOfTheButtons() {
     Theme t = Theme.DARK;
     El ok = Button.button(t, Button.Variant.PRIMARY, "OK", () -> {});
