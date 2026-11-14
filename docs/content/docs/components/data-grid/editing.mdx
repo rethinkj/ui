@@ -32,12 +32,12 @@ A script that edits a cell:
 | --- | --- |
 | text | A field in the cell's font, exactly over the cell's text |
 | `INTEGER`, `DECIMAL` | A field that refuses what cannot become such a number |
-| `BOOLEAN` | None: Space, Enter, F2 and a double press switch false, true and, where `nullable()`, NULL |
+| `BOOLEAN` | None: Space, Enter, F2 and a double press switch false, true and, where `nullable()`, NULL; a value the format or the app refuses leaves the cell, which shows the message below it until the next key or press |
 | `choices(list)`, or `ENUM` with choices | Up to eight choices: a menu of them, where typing goes to the first that starts with it. More: a field that filters a list of them (`role=listbox`) |
 | `DATE`, `TIME`, `DATE_TIME` | Text, checked as ISO 8601 (`2026-11-13`, `14:30`, `2026-11-13 14:30`) |
 | `editor((value, onChange) -> El)` | The app's own element |
 
-A value with a line break, or Alt+Enter in a text column, opens a modal field of six lines over the cell. In a `nullable()` column, NULL is a state of the editor: an empty field with a muted `NULL`, which typing turns into text and Control+0 back into NULL. A refused value keeps the editor open, `invalid`, with the message below it.
+A value with a line break, or Alt+Enter in a text column, opens a modal field of six lines over the cell. In a `nullable()` column, NULL is a state of the editor: an empty field with a muted `NULL`, which typing turns into text and Control+0 back into NULL. A refused value keeps the editor open, `invalid`, with the message below it, or above it while the menu of choices stays open below. An editor whose value did not change hands nothing on and is not checked, so a value that is not among the choices closes without a message.
 
 <Shot src="kit/edit-{theme}-choices" alt="A cell with a menu of its column's choices" />
 
@@ -69,7 +69,7 @@ The options that `changes` wires are there on their own, for an app that keeps c
 | --- | --- |
 | `onCommit((row, column, value) -> error)` | Takes a value, or refuses it by returning a message (null accepts) |
 | `onPaste(cells)` | Takes a list of `CellValue(row, column, value)` in one change |
-| `onInsertRow(after)`, `onDeleteRows(ranges)`, `appendRow()` | New rows and deleted ones; `appendRow` shows an empty row marked `*` after the last |
+| `onInsertRow(after)`, `onDeleteRows(ranges)`, `appendRow()` | New rows and deleted ones; `appendRow` shows an empty row marked `*` after the last, whose value goes after the last row there is when it is handed on |
 | `status(rows, cells)` | What to mark: `Status.CHANGED`, `NEW`, `DELETED`, `ERROR` |
 | `history(undo, redo)` | Control+Z and Control+Y |
 | `onEdit((row, column) -> …)` | The app edits the cell itself, in a field it lays over it |

@@ -95,11 +95,14 @@ final class GridEdit {
     if (value == null) {
       return c.editing().nullable() ? null : "A value is required";
     }
-    if (!c.editing().choices().isEmpty()) {
-      return c.editing().choices().contains(value) ? null : "Not one of the choices";
+    if (!c.editing().choices().isEmpty() && !c.editing().choices().contains(value)) {
+      return "Not one of the choices";
     }
-    if (c.cells() != null) {
+    if (c.cells() != null) { // a choice too: a narrowed format refuses some
       return c.cells().format().parseText(value).error();
+    }
+    if (!c.editing().choices().isEmpty()) {
+      return null;
     }
     return switch (c.type()) {
       case INTEGER -> Format.BIG_INTEGER.parseText(value).error();
@@ -204,8 +207,9 @@ final class GridEdit {
   static boolean follow(Build b) {
     Selection sel = b.sel;
     if (sel.isEditing() && sel.editKeyed) {
-      int place =
-          sel.editKey == Selection.APPEND ? b.rowCount : b.o.rowPlace.applyAsInt(sel.editKey);
+      int place = sel.editKey == Selection.APPEND
+          ? b.o.rowsNow.getAsInt()
+          : b.o.rowPlace.applyAsInt(sel.editKey);
       if (place < 0) {
         sel.cancelEdit();
       } else {
@@ -225,13 +229,14 @@ final class GridEdit {
     int column = sel.editColumn;
     Column c = b.columns.get(column);
     String value = normalize(c, sel.draft);
-    String error = c.editing().editor() == null ? check(c, value) : null;
+    boolean same = Objects.equals(value, sel.original); // nothing changed: nothing to check
+    String error = c.editing().editor() == null && !same ? check(c, value) : null;
     boolean appended = false;
     // The row to append; by its key where the rows have keys, as b may be older than the rows.
     boolean append = sel.editKeyed ? sel.editKey == Selection.APPEND : row >= b.rowCount;
-    if (error == null && !Objects.equals(value, sel.original)) {
-      if (append) {
-        b.o.onInsertRow.accept(b.rowCount - 1);
+    if (error == null && !same) {
+      if (append) { // after the last row there is now, which follow found
+        b.o.onInsertRow.accept(row - 1);
         appended = true;
       }
       error = b.o.onCommit.commit(row, column, value);
@@ -239,6 +244,10 @@ final class GridEdit {
     if (error != null) {
       sel.error = error;
       sel.edits++; // the editor takes the focus back from a press elsewhere, which moved it
+      if (choosing(c) && !searching(c)) { // the list stays open on the refused choice
+        sel.choices.open();
+        sel.choices.highlight(0, indexOf(c, value));
+      }
 
       if (appended) {
         sel.original = null; // the row is the app's now, and empty
@@ -290,17 +299,42 @@ final class GridEdit {
     sel.moves++;
   }
 
-  /** Switches a boolean: false, true, NULL where the column allows it, and false again. */
+  /**
+   * Switches a boolean: false, true, NULL where the column allows it, and false again. A value
+   * that the column's format or the app refuses leaves the cell as it was, which shows the message
+   * as a refused editor does until the next key or press in the grid.
+   */
   static void toggle(Build b, int row, int column) {
     Column c = b.columns.get(column);
     String value = value(b, row, column);
     String next = value == null || !truthy(value)
         ? (value == null ? "false" : "true")
         : c.editing().nullable() ? null : "false";
-    if (row >= b.rowCount) {
-      b.o.onInsertRow.accept(b.rowCount - 1);
+    String error = check(c, next);
+    if (error == null) {
+      if (row >= b.rowCount) {
+        b.o.onInsertRow.accept(b.rowCount - 1);
+      }
+      error = b.o.onCommit.commit(row, column, next);
     }
-    b.o.onCommit.commit(row, column, next); // a refusal leaves the cell as it was
+    Selection sel = b.sel;
+    sel.refused = error;
+    sel.refusedRow = row;
+    sel.refusedColumn = column;
+  }
+
+  /** The message of a refused value, below the editor or the switched cell. */
+  static El alert(Theme t, String message) {
+    return col()
+        .key("error")
+        .role("alert")
+        .label(message)
+        .padding(t.space().xs(), t.space().s())
+        .radius(t.radius().small())
+        .fill(t.surface().raised())
+        .border(t.size().stroke(), t.status().danger())
+        .shadow(t.elevation().popup())
+        .child(Label.label(t, message));
   }
 
   /** The keys of the editor, which reach it from its field or the app's own editor. */
@@ -784,18 +818,10 @@ final class GridEdit {
       box.onPressOutside(() -> commit(b, Move.NONE));
     }
     if (sel.error != null && !sel.multiline) {
+      // Above the cell where the list of choices lies below it.
+      Side side = choosing(c) ? Side.TOP : Side.BOTTOM;
       box.invalid(true)
-          .overlay(col()
-              .key("error")
-              .role("alert")
-              .label(sel.error)
-              .padding(t.space().xs(), t.space().s())
-              .radius(t.radius().small())
-              .fill(t.surface().raised())
-              .border(stroke, t.status().danger())
-              .shadow(t.elevation().popup())
-              .child(Label.label(t, sel.error))
-              .side(Side.BOTTOM, Style.Align.START, t.space().xs()));
+          .overlay(alert(t, sel.error).side(side, Style.Align.START, t.space().xs()));
     }
     return box;
   }

@@ -96,6 +96,7 @@ public final class GridTable<T> {
     private final Function<? super T, ? extends V> get;
     private final BiFunction<? super T, ? super V, ? extends T> with;
     private final BiConsumer<? super T, ? super V> set;
+    private final Predicate<? super T> writable; // in which rows the value can be written
 
     private Cells(
         GridTable<T> table,
@@ -103,11 +104,22 @@ public final class GridTable<T> {
         Function<? super T, ? extends V> get,
         BiFunction<? super T, ? super V, ? extends T> with,
         BiConsumer<? super T, ? super V> set) {
+      this(table, format, get, with, set, row -> true);
+    }
+
+    private Cells(
+        GridTable<T> table,
+        Format<V> format,
+        Function<? super T, ? extends V> get,
+        BiFunction<? super T, ? super V, ? extends T> with,
+        BiConsumer<? super T, ? super V> set,
+        Predicate<? super T> writable) {
       this.table = table;
       this.format = Objects.requireNonNull(format, "format");
       this.get = Objects.requireNonNull(get, "get");
       this.with = with;
       this.set = set;
+      this.writable = writable;
     }
 
     public Format<V> format() {
@@ -133,6 +145,18 @@ public final class GridTable<T> {
     /** Whether the column writes values, through a wither or a setter. */
     public boolean writes() {
       return with != null || set != null;
+    }
+
+    /**
+     * Whether the column writes a value into the row with this index: not inside a part that is
+     * null there ({@link Part#then}); a row not loaded counts as written, and refuses the edit.
+     */
+    boolean writes(int row) {
+      if (!writes()) {
+        return false;
+      }
+      T value = table.rows.apply(row);
+      return value == null || writable.test(value);
     }
 
     /**
@@ -165,10 +189,19 @@ public final class GridTable<T> {
       if (a == null || b == null) {
         return a == null ? (b == null ? 0 : -1) : 1;
       }
-      if (a instanceof Comparable c && a.getClass() == b.getClass()) {
+      Class<?> ta = type(a);
+      Class<?> tb = type(b);
+      if (a instanceof Comparable c
+          && b instanceof Comparable
+          && (ta.isAssignableFrom(tb) || tb.isAssignableFrom(ta))) {
         return c.compareTo(b);
       }
       return format.text(a).compareTo(format.text(b));
+    }
+
+    /** The type a value compares within: an enum's, also for a constant with a class body. */
+    private static Class<?> type(Object value) {
+      return value instanceof Enum<?> e ? e.getDeclaringClass() : value.getClass();
     }
 
     /** The cell's text: the value's in the format, null for NULL and for a row not loaded. */
@@ -251,14 +284,15 @@ public final class GridTable<T> {
    * or setter: the same constant a form's {@link Editing} uses, and no overloads to tell apart.
    */
   public <V> Column column(String title, float width, Format<V> format, Part<T, V> part) {
-    return column(title, width, new Cells<>(this, format, part::get, part::write, null));
+    return column(
+        title, width, new Cells<>(this, format, part::get, part::write, null, part::writes));
   }
 
   private static Column column(String title, float width, Cells<?, ?> cells) {
     Format<?> format = cells.format;
     DataType type = format.type();
     Editing editing = new Editing(
-        cells.writes() ? row -> true : null, format.isOptional(), format.choices(), null);
+        cells.writes() ? cells::writes : null, format.isOptional(), format.choices(), null);
     return new Column(
         title,
         width,
@@ -287,6 +321,9 @@ public final class GridTable<T> {
       if (cells == null) {
         return "Not a column of this table";
       }
+      if (!cells.writes(row)) {
+        return "The value lies inside a part that is NULL in this row";
+      }
       Format.Parsed<?> parsed = cells.parse(text);
       if (!parsed.valid()) {
         return parsed.error();
@@ -301,8 +338,10 @@ public final class GridTable<T> {
    * The grid's handler of pasted and cleared cells for these columns: the cells of each row
    * written into it at once, and {@code onRow} told each row; a refusal is not shown, and a value
    * the column's format does not read is left out. Each row is taken before {@code onRow} is told
-   * the first: a handler that sorts or refreshes the rows moves the others, which are then found
-   * again among the {@code count} rows by their objects, and left out where they are gone.
+   * the first: a handler that sorts, filters or refreshes the rows moves the others, which are
+   * then found again by their objects among the rows there are now (up to {@code count}, or to the
+   * first index that {@code rows} throws {@code IndexOutOfBoundsException} for), and left out where
+   * they are gone. A cell inside a part that is null in its row is left as it is.
    */
   Consumer<List<CellValue>> paste(List<Column> columns, int count, RowCommit<T> onRow) {
     return values -> {
@@ -310,7 +349,7 @@ public final class GridTable<T> {
       for (CellValue v : values) {
         Cells<T, ?> cells = cells(columns, v.column());
         Format.Parsed<?> parsed = cells == null ? null : cells.parse(v.value());
-        if (parsed != null && parsed.valid()) {
+        if (parsed != null && parsed.valid() && cells.writes(v.row())) {
           byRow.computeIfAbsent(v.row(), r -> new LinkedHashMap<>()).put(cells, parsed.value());
         }
       }
@@ -327,15 +366,31 @@ public final class GridTable<T> {
 
   /** Where this row object is now: at {@code was} unless the app moved it; -1 when it is gone. */
   private int placeOf(T row, int was, int count) {
-    if (was < count && rows.apply(was) == row) {
+    if (was < count && rowOrEnd(was) == row) {
       return was;
     }
     for (int i = 0; i < count; i++) {
-      if (rows.apply(i) == row) {
+      T now = rowOrEnd(i);
+      if (now == row) {
         return i;
+      }
+      if (now == END) {
+        break;
       }
     }
     return -1;
+  }
+
+  private static final Object END = new Object();
+
+  /** The row with this index, or {@link #END} beyond the rows a handler left. */
+  @SuppressWarnings("unchecked")
+  private T rowOrEnd(int index) {
+    try {
+      return rows.apply(index);
+    } catch (IndexOutOfBoundsException e) { // a list that a handler made shorter
+      return (T) END;
+    }
   }
 
   /** Writes values into a row and tells the app; a refusal sets a setter's values back. */
@@ -352,7 +407,7 @@ public final class GridTable<T> {
       next = e.getKey().writeParsed(next, e.getValue());
     }
     String error = onRow.commit(index, next);
-    if (error != null && next == row) { // a POJO the setters changed: as it was
+    if (error != null) { // a POJO the setters changed, also inside a record's wither: as it was
       before.forEach((cells, value) -> cells.writeParsed(row, value));
     }
     return error;

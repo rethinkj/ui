@@ -1,0 +1,1 @@
+- `GridChanges.set` applies the cells of one step in order, so the last value given for a cell wins, also when it is the app's value, and setting a cell to the value it already has keeps the cell's error.

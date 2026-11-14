@@ -1,0 +1,1 @@
+- The data grid checks nothing in an editor whose value did not change, so `Selection.commitEdit()` closes a list of choices over a value that is not among them instead of refusing it.

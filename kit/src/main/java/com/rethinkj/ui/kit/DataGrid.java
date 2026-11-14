@@ -15,6 +15,7 @@ import com.rethinkj.ui.Len;
 import com.rethinkj.ui.Measure;
 import com.rethinkj.ui.ScrollState;
 import com.rethinkj.ui.Scrollbars;
+import com.rethinkj.ui.Side;
 import com.rethinkj.ui.Style;
 import com.rethinkj.ui.Text;
 import java.util.ArrayList;
@@ -1001,6 +1002,10 @@ public final class DataGrid {
     int dragColumn = -1;
     int dropAt = -1;
     int[] shown; // the app's column of each one shown, as the last build had them
+    // A switch of a boolean that was refused, and its cell, until the next key or press.
+    String refused;
+    int refusedRow = -1;
+    int refusedColumn = -1;
     // With rows told apart by keys (Options.changes): the rows the selection was on when the
     // last build began, their places and keys, so that it follows them when the app moves its
     // rows. 0 is the cursor's, 1 the anchor's, 2 and 3 the rows around the cursor, then the rows
@@ -1243,12 +1248,19 @@ public final class DataGrid {
      * or moved one ({@link Options#columns}). What was on a column that is no longer shown goes:
      * the cursor, the anchor, a range's part, an editor without handing anything on.
      *
-     * @param full the app's column of each one shown now, null without a layout
+     * @param layout the app's column of each one shown now, null without a layout
+     * @param all the number of the app's columns, which a build without a layout shows in order
      */
-    void showing(int[] full) {
-      int[] was = shown;
-      shown = full;
-      if (was == null || full == null || java.util.Arrays.equals(was, full)) {
+    void showing(int[] layout, int all) {
+      int[] before = shown;
+      shown = layout;
+      if (before == layout) {
+        return;
+      }
+      int[] order = java.util.stream.IntStream.range(0, all).toArray();
+      int[] was = before == null ? order : before; // no layout shows all columns in their order
+      int[] full = layout == null ? order : layout;
+      if (java.util.Arrays.equals(was, full)) {
         return;
       }
       java.util.Map<Integer, Integer> now = new java.util.HashMap<>();
@@ -1521,9 +1533,11 @@ public final class DataGrid {
     IntPredicate filterable = c -> true;
     Layout layout;
     IntConsumer onFreeze;
-    // With changes: the key of the row shown at a place, and the place of a key, -1 for none.
+    // With changes: the key of the row shown at a place, the place of a key, -1 for none, and
+    // the number of rows there are now, which a handler may have changed since the build.
     java.util.function.IntToLongFunction rowKey;
     java.util.function.LongToIntFunction rowPlace;
+    java.util.function.IntSupplier rowsNow;
     int[] full; // with a layout: the index among all columns of each shown one
     // Wires onCommit and onPaste to a table's columns and its number of rows.
     java.util.function.ObjIntConsumer<List<Column>> table;
@@ -1891,6 +1905,7 @@ public final class DataGrid {
       onDeleteRows(changes::delete);
       rowKey = changes::key;
       rowPlace = changes::rowOf;
+      rowsNow = changes::rowCount;
       status(changes::rowStatus, changes::cellStatus);
       errors(changes::errorText);
       return history(changes::undo, changes::redo);
@@ -1992,15 +2007,15 @@ public final class DataGrid {
       options.table.accept(columns, rowCount);
       options.table = null;
     }
+    int all = columns.size();
     if (options.layout != null) {
-      int all = columns.size();
       columns = options.layout.shown(columns);
       options.showOnly(options.layout.shownColumns(), all);
     }
     if (options.selection != null) { // without a layout the columns shown are the app's
       int rows = rowCount + (options.appendRow ? 1 : 0);
       options.selection.follow(options.rowKey, options.rowPlace, rowCount, rows);
-      options.selection.showing(options.full);
+      options.selection.showing(options.full, all);
       options.selection.keep(options.rowKey, rowCount, rows);
     }
     Build b = new Build(t, columns, rowCount, options);
@@ -2520,6 +2535,16 @@ public final class DataGrid {
         }
       }
     }
+    if (sel != null && sel.refused != null && sel.refusedRow == i && sel.refusedColumn == c) {
+      // A switch that was refused: the edge and the message of a refused editor.
+      float w = b.g.cursorWidth();
+      box.invalid(true)
+          .border(w, t.status().danger())
+          .radius(t.radius().small())
+          .padding(0, Math.max(t.space().s() - w, 0))
+          .overlay(GridEdit.alert(t, sel.refused)
+              .side(Side.BOTTOM, Style.Align.START, t.space().xs()));
+    }
     String value = loaded && !append ? column.cell().apply(i) : null;
     CellIcon icon =
         loaded && !append && column.cellIcon() != null ? column.cellIcon().apply(i) : null;
@@ -2619,6 +2644,7 @@ public final class DataGrid {
 
   private static void down(Build b, int row, int column, boolean rows, int clicks, int modifiers) {
     Selection sel = b.sel;
+    sel.refused = null;
     if (sel.isEditing()) {
       return; // the press handed the value on, and the app refused it: the editor stays
     }
@@ -2706,6 +2732,7 @@ public final class DataGrid {
     Selection sel = b.sel;
     int n = b.columns.size();
     int mods = k.modifiers();
+    sel.refused = null;
     if (sel.isEditing()) {
       // What the editor left goes on and moves nothing here; before the editor has the focus,
       // in the frame that opened it, or while its row is scrolled away, its keys come here.

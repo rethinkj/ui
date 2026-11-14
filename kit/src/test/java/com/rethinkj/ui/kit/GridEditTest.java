@@ -967,4 +967,110 @@ class GridEditTest {
         out);
     assertEquals(List.of("999999,299 x"), log);
   }
+
+  /** The app adds a row in a handler and hands the editor of the row to append on at once. */
+  @Test
+  void theRowToAppendGoesAfterTheLastRowThereIsNow() throws IOException {
+    Ledger ledger = new Ledger(T, 2);
+    ledger.changes.rows(keyed(10, 20));
+    ledger.more = o -> o.appendRow();
+    App<Ledger> app = ledger.app();
+    run(app, "frame\npress #cell-2-1\ntype \"appended\"\nframe");
+    assertTrue(ledger.selection.isEditing(), app.tree().dump());
+    app.post(() -> {
+      ledger.changes.rows(keyed(10, 20, 30));
+      assertTrue(ledger.selection.commitEdit());
+    });
+    run(app, "await\nframe");
+    assertEquals(30, ledger.changes.key(2));
+    assertTrue(ledger.changes.key(3) < 0, "the new row after row 30");
+    assertEquals("appended", ledger.changes.cell(3, 1));
+  }
+
+  @Test
+  void theRowToAppendGoesAfterTheLastRowAlsoWhenRowsWentAway() throws IOException {
+    Ledger ledger = new Ledger(T, 2);
+    ledger.changes.rows(keyed(10, 20));
+    ledger.more = o -> o.appendRow();
+    App<Ledger> app = ledger.app();
+    run(app, "frame\npress #cell-2-1\ntype \"appended\"\nframe");
+    app.post(() -> {
+      ledger.changes.rows(keyed(10));
+      assertTrue(ledger.selection.commitEdit());
+    });
+    run(app, "await\nframe");
+    assertEquals(2, ledger.changes.rowCount());
+    assertEquals("appended", ledger.changes.cell(1, 1));
+  }
+
+  /** A grid of one typed or plain column over its changes. */
+  private static App<Object> grid(
+      DataGrid.Column column, GridChanges changes, DataGrid.Selection selection) {
+    return new App<>(
+        new Object(),
+        x -> DataGrid.dataGrid(
+                T,
+                List.of(column.cell(changes.cell(0))),
+                changes.rowCount(),
+                DataGrid.options().select(selection).changes(changes))
+            .key("grid")
+            .wFull()
+            .hFull());
+  }
+
+  @Test
+  void aChoiceTheFormatRefusesStaysInTheListWithItsMessage() throws IOException {
+    Format<String> format = Format.choice(List.of("allowed", "forbidden"), v -> v)
+        .where(v -> !v.equals("forbidden"), "Not permitted");
+    GridTable<String> table = DataGrid.table(i -> "allowed");
+    DataGrid.Column column = table.column("status", 180, format, v -> v, (row, value) -> value);
+    GridChanges changes = new GridChanges(1, (r, c) -> "allowed");
+    DataGrid.Selection selection = new DataGrid.Selection(DataGrid.Mode.CELLS);
+    selection.select(0, 0);
+    App<Object> app = grid(column, changes, selection);
+    run(app, "frame\nfocus #grid\nkey Enter\nframe\nkey ArrowDown\nkey Enter\nframe");
+    assertTrue(changes.isEmpty(), changes.changes().toString());
+    assertTrue(selection.isEditing());
+    String dump = app.tree().dump();
+    assertTrue(dump.contains("role=alert label=\"Not permitted\""), dump);
+    assertTrue(dump.contains("role=menu"), "the list stays open: " + dump);
+  }
+
+  @Test
+  void aSwitchTheFormatRefusesChangesNothingAndSaysWhy() throws IOException {
+    GridTable<Boolean> table = DataGrid.table(i -> true);
+    DataGrid.Column column = table.column(
+        "confirmed",
+        180,
+        Format.BOOLEAN.where(v -> v, "Confirmation is required"),
+        v -> v,
+        (row, value) -> value);
+    GridChanges changes = new GridChanges(1, (r, c) -> "true");
+    DataGrid.Selection selection = new DataGrid.Selection(DataGrid.Mode.CELLS);
+    selection.select(0, 0);
+    App<Object> app = grid(column, changes, selection);
+    run(app, "frame\nfocus #grid\nkey Space\nframe");
+    assertTrue(changes.isEmpty(), changes.changes().toString());
+    assertTrue(app.tree().dump().contains("role=alert label=\"Confirmation is required\""));
+    assertTrue(line(app, "cell-0-0").contains(" invalid"), line(app, "cell-0-0"));
+    run(app, "key ArrowRight\nframe"); // the next key takes the message away
+    assertFalse(app.tree().dump().contains("role=alert"), app.tree().dump());
+  }
+
+  @Test
+  void handingOnAListOfChoicesWithNothingChosenClosesIt() throws IOException {
+    GridChanges changes = new GridChanges(1, (r, c) -> "legacy"); // not among the choices
+    DataGrid.Column column = new DataGrid.Column(
+            "status", 180, DataGrid.DataType.ENUM, changes.cell(0))
+        .editable()
+        .choices(List.of("current"));
+    DataGrid.Selection selection = new DataGrid.Selection(DataGrid.Mode.CELLS);
+    selection.select(0, 0);
+    App<Object> app = grid(column, changes, selection);
+    run(app, "frame\nfocus #grid\nkey Enter\nframe");
+    assertTrue(selection.isEditing());
+    assertTrue(selection.commitEdit());
+    assertEquals("legacy", changes.cell(0, 0));
+    assertTrue(changes.isEmpty());
+  }
 }

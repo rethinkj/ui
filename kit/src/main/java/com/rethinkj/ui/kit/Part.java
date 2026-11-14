@@ -6,6 +6,7 @@ import java.util.Objects;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Function;
+import java.util.function.Predicate;
 
 /**
  * A part of a value of type {@code T}, such as the port of a connection's profile: how it is read
@@ -44,14 +45,17 @@ public final class Part<T, V> {
   private final Function<? super T, ? extends V> get;
   private final BiFunction<? super T, ? super V, ? extends T> write;
   private final List<Part<?, ?>> path; // the parts from the whole to this one
+  private final Predicate<? super T> writes; // whether no part on the way is null
 
   private Part(
       Function<? super T, ? extends V> get,
       BiFunction<? super T, ? super V, ? extends T> write,
-      List<Part<?, ?>> path) {
+      List<Part<?, ?>> path,
+      Predicate<? super T> writes) {
     this.get = get;
     this.write = write;
     this.path = path == null ? List.of(this) : path;
+    this.writes = writes;
   }
 
   /** A part of a record, read by its accessor and written by a wither, which makes a new record. */
@@ -59,7 +63,7 @@ public final class Part<T, V> {
       Function<? super T, ? extends V> get, BiFunction<? super T, ? super V, ? extends T> with) {
     Objects.requireNonNull(get, "get");
     Objects.requireNonNull(with, "with");
-    return new Part<>(get, with, null);
+    return new Part<>(get, with, null, whole -> true);
   }
 
   /** A part of a POJO, read by its getter and written by its setter, which changes the object. */
@@ -73,7 +77,8 @@ public final class Part<T, V> {
           set.accept(whole, value);
           return whole;
         },
-        null);
+        null,
+        whole -> true);
   }
 
   /** The part's value in {@code whole}. */
@@ -86,6 +91,15 @@ public final class Part<T, V> {
    */
   public T write(T whole, V value) {
     return write.apply(whole, value);
+  }
+
+  /**
+   * Whether a value can be written into {@code whole}: not when a part on the way to this one is
+   * null there, as the {@code details} of {@code Order.DETAILS.then(Details.NOTE)} in an order
+   * without details, which {@link #write} would have to write into.
+   */
+  public boolean writes(T whole) {
+    return writes.test(whole);
   }
 
   /**
@@ -102,7 +116,8 @@ public final class Part<T, V> {
           return value == null ? null : inner.get(value);
         },
         (whole, value) -> write(whole, inner.write(get(whole), value)),
-        List.copyOf(joined));
+        List.copyOf(joined),
+        whole -> writes(whole) && get(whole) != null && inner.writes(get(whole)));
   }
 
   /** The parts from the whole to this one, which name its field in an {@link Editing}. */

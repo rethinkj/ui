@@ -598,4 +598,149 @@ class GridTableTest {
     }
     return null;
   }
+
+  /** The handler of the first row takes it out of the rows: the others are still written. */
+  @Test
+  void aPasteGoesOnWhenAHandlerTakesARowOut() {
+    List<Named> rows = new ArrayList<>(List.of(new Named(1, "A"), new Named(2, "B")));
+    GridTable<Named> table = DataGrid.table(rows::get);
+    List<Column> columns =
+        List.of(table.column("name", 100, Format.TEXT, Named::name, Named::withName));
+    var paste = table.paste(columns, rows.size(), (index, row) -> {
+      rows.set(index, row);
+      rows.removeIf(r -> r.name().equals("hidden")); // the app's filter
+      return null;
+    });
+    paste.accept(List.of(new CellValue(0, 0, "hidden"), new CellValue(1, 0, "edited B")));
+    assertEquals(List.of(new Named(2, "edited B")), rows);
+  }
+
+  @Test
+  void aPasteThroughTheGridGoesOnWhenAHandlerTakesARowOut() throws IOException {
+    TextLibraries.assumeLoaded();
+    List<Named> rows =
+        new ArrayList<>(List.of(new Named(1, "A"), new Named(2, "B"), new Named(3, "C")));
+    Selection selection = new Selection(Mode.CELLS);
+    App<?>[] holder = new App<?>[1];
+    App<Object> app = new App<>(new Object(), x -> {
+      GridTable<Named> table = DataGrid.table(rows::get);
+      return col()
+          .wFull()
+          .hFull()
+          .child(DataGrid.dataGrid(
+                  Theme.DARK,
+                  List.of(table.column("Name", 180, Format.TEXT, Named::name, Named::withName)),
+                  rows.size(),
+                  DataGrid.options()
+                      .select(selection)
+                      .copy(holder[0].clipboard())
+                      .onCommit(table, (index, row) -> {
+                        if (row.id() == 1) {
+                          rows.remove(index); // no longer passes the app's filter
+                        } else {
+                          rows.set(index, row);
+                        }
+                        return null;
+                      }))
+              .key("grid")
+              .grow(1));
+    });
+    holder[0] = app;
+    Script.run(
+        "size 260 180\nframe\npress #cell-0-0\nframe\nclipboard \"AA\\nBB\\nCC\"\n"
+            + "key V control\nframe",
+        app,
+        Path.of("target/grid-table"));
+    assertEquals(List.of(new Named(2, "BB"), new Named(3, "CC")), rows);
+    assertTrue(app.tree().dump().contains("\"CC\""), app.tree().dump());
+  }
+
+  enum Stage {
+    PENDING,
+    APPROVED,
+    CANCELLED {
+      @Override
+      public String toString() {
+        return "cancelled";
+      }
+    }
+  }
+
+  @Test
+  void enumsSortInTheirOrderAlsoWithAConstantThatHasABody() {
+    GridTable<Stage> table = DataGrid.table(i -> Stage.values()[i]);
+    Column column =
+        table.column("stage", 100, Format.choice(List.of(Stage.values()), Stage::name), s -> s);
+    Comparator<Stage> order = table.comparator(List.of(column), List.of(new SortKey(0, false)));
+    assertTrue(order.compare(Stage.PENDING, Stage.APPROVED) < 0);
+    assertTrue(order.compare(Stage.APPROVED, Stage.CANCELLED) < 0);
+    assertTrue(order.compare(Stage.PENDING, Stage.CANCELLED) < 0);
+  }
+
+  static final class Details {
+    static final Part<Details, String> NAME = Part.ofSetter(Details::name, Details::setName);
+    private String name;
+
+    Details(String name) {
+      this.name = name;
+    }
+
+    String name() {
+      return name;
+    }
+
+    void setName(String name) {
+      this.name = name;
+    }
+  }
+
+  record Entity(Details details) {
+    static final Part<Entity, Details> DETAILS = Part.of(Entity::details, Entity::withDetails);
+
+    Entity withDetails(Details details) {
+      return new Entity(details);
+    }
+  }
+
+  @Test
+  void aRefusedSetterInsideAWitherIsSetBack() {
+    Entity row = new Entity(new Details("original"));
+    GridTable<Entity> table = DataGrid.table(i -> row);
+    Column column = table.column("name", 100, Format.TEXT, Entity.DETAILS.then(Details.NAME));
+    var commit = table.commit(List.of(column), (index, value) -> "Refused");
+    assertEquals("Refused", commit.commit(0, 0, "rejected"));
+    assertEquals("original", row.details().name());
+  }
+
+  @Test
+  void aCellInsideANullPartIsNotEditable() throws IOException {
+    TextLibraries.assumeLoaded();
+    List<Entity> rows = new ArrayList<>(List.of(new Entity(null), new Entity(new Details("x"))));
+    GridTable<Entity> table = DataGrid.table(rows::get);
+    Column column = table.column("name", 100, Format.TEXT, Entity.DETAILS.then(Details.NAME));
+    List<String> log = new ArrayList<>();
+    Selection selection = new Selection(Mode.CELLS);
+    App<Object> app = new App<>(
+        new Object(),
+        x -> DataGrid.dataGrid(
+                Theme.DARK,
+                List.of(column),
+                rows.size(),
+                DataGrid.options().select(selection).onCommit(table, (index, value) -> {
+                  log.add(index + " " + value.details().name());
+                  return null;
+                }))
+            .key("grid")
+            .wFull()
+            .hFull());
+    run(app, "focus #grid\ntype \"typed\"\nkey Enter");
+    assertFalse(selection.isEditing(), "no editor opened");
+    assertTrue(log.isEmpty(), log.toString());
+    var paste = table.paste(List.of(column), rows.size(), (index, value) -> {
+      log.add(index + " " + value.details().name());
+      return null;
+    });
+    paste.accept(List.of(new CellValue(0, 0, "a"), new CellValue(1, 0, "b")));
+    assertEquals(List.of("1 b"), log, "the row inside the null part is left as it is");
+  }
 }

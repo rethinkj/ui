@@ -1,6 +1,7 @@
 package com.rethinkj.ui.kit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
 import com.rethinkj.ui.kit.DataGrid.Align;
@@ -420,5 +421,30 @@ class GridChangesTest {
     assertEquals(1, changes.rowOf(10));
     changes.undo();
     assertEquals(-1, changes.rowOf(key));
+  }
+
+  @Test
+  void theLastValueOfACellInOneStepWinsAlsoWhenItIsTheAppsValue() {
+    GridChanges changes = new GridChanges(1, (r, c) -> "original");
+    changes.set(List.of(new CellValue(0, 0, "changed"), new CellValue(0, 0, "original")));
+    assertEquals("original", changes.cell(0, 0));
+    assertEquals(0, changes.count());
+    assertFalse(changes.canUndo(), "no change, no step");
+
+    changes.set(0, 0, "first");
+    changes.set(List.of(new CellValue(0, 0, "second"), new CellValue(0, 0, "third")));
+    changes.undo(); // the whole step at once, back to the value before it
+    assertEquals("first", changes.cell(0, 0));
+  }
+
+  @Test
+  void anErrorStaysWhenTheCellIsSetToTheValueItHas() {
+    GridChanges changes = new GridChanges(1, (r, c) -> "original");
+    changes.set(0, 0, "refused");
+    changes.error(0, 0, "duplicate key");
+    changes.set(0, 0, "refused"); // as a paste of the same value
+    assertEquals("duplicate key", changes.errorText(0, 0));
+    changes.set(0, 0, "other");
+    assertNull(changes.errorText(0, 0));
   }
 }

@@ -1,0 +1,1 @@
+- The data grid keeps an open editor, the cursor and the selection on their columns when a columns layout (`Options.columns`) is given or taken away while they are there; before, the first layout sent the editor's value to the column at its old index.

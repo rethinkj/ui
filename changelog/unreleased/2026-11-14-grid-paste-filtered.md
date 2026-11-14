@@ -1,0 +1,1 @@
+- A paste into the columns of a `GridTable` goes on to the other rows when the handler of one takes its row out of the rows, as a filter does; before, it threw `IndexOutOfBoundsException` half way through.

@@ -1,0 +1,1 @@
+- A `GridTable` column of a joined part (`Part.then`) edits nothing in a row where a part on the way is null: the cell shows NULL, Enter opens no editor and a paste leaves it, where Enter threw `NullPointerException`. `Part.writes(whole)` says whether a value can be written.
