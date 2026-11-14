@@ -27,6 +27,7 @@ export const source = loader({
 export const docsLlms = llms(source, {
   // agents read the Markdown of each page, which lies beside the page
   renderUrl: (item) => {
+    if (!item.url.startsWith(docsRoute)) return item.url; // a link entry, such as the Javadoc
     const url = item.url.replace(/\/$/, '');
     return url === docsRoute ? `${docsRoute}/index.md` : `${url}.md`;
   },

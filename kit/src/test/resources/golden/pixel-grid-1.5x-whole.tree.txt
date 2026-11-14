@@ -18,7 +18,7 @@ el 0,0 520x420
             text "orders" 23,93 40x16
             el #close-0 role=button label="Close orders" 67,93 16x16
               text label="dismiss" "\u{F368}" 67,93 16x16
-          el #tab-1 role=tab label="customers" 93,85 108x32
+          el #tab-1 role=tab label="customers" 93,85 108x32 modified
             el 101,99 4x4
             text "customers" 109,93 64x16
             el #close-1 role=button label="Close customers" 177,93 16x16

@@ -129,7 +129,7 @@ export default function HomePage() {
 mvn -q -pl examples -am compile exec:exec -Dexample=Workbench`} />
         <div className="mt-8 grid gap-3 sm:grid-cols-3">
           {[
-            ['Get started', '/docs/get-started', 'Your own project, the first app line by line, and shipping it.'],
+            ['Get started', '/docs/get-started', 'Installation with Maven or Gradle, the first app line by line, and shipping it.'],
             ['Components', '/docs/components', 'Every component of the kit, with its image, code and tree.'],
             ['Testing and agents', '/docs/testing', 'Scripts, selectors, tree dumps and stored images.'],
           ].map(([title, href, text]) => (

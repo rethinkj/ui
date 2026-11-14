@@ -23,7 +23,7 @@ final class Editors {
 
   static final List<String> TABLES = List.of("orders", "order_items", "customers");
 
-  final Theme t = Theme.DARK;
+  Theme t = Theme.DARK;
   App<?> app; // set by whoever makes the app: the editor edits and selects through it
   String sql = "SELECT id, total\nFROM orders\nWHERE status = 'paid';";
   final CodeEditor.State editor = new CodeEditor.State();

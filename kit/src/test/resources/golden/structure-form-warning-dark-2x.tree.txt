@@ -1,0 +1,29 @@
+el 0,0 560x220
+  el 16,16 528x110
+    el 16,16 528x42
+      el 16,16 37x24
+        text "Driver" 16,20 37x16
+      el 61,16 483x42
+        el #driver role=combobox label="42.7.15" 61,16 180x24 expanded=false warning="42.7.15 is 1 day old; 42.7.14 has been out for a month"
+          text "42.7.15" 70,20 142x16
+          text label="chevron_down" "\u{F2A2}" 216,20 16x16
+        el 61,42 483x16
+          text label="warning" "\u{F868}" 61,42 16x16
+          text "42.7.15 is 1 day old; 42.7.14 has been out for a month" 79,42 465x16
+    el 16,66 528x60
+      el 16,66 37x24
+        text "Host" 16,70 29x16
+      el 61,66 483x60
+        el 61,66 483x24
+          el 61,66 370x24
+            text #host role=textbox label="Host" "10.8.0.4" 61,66 370x24 warning="Outside the local network: the connection is not encrypted"
+          el 439,66 105x24
+            el 439,66 25x24
+              text "Port" 439,70 25x16
+            el 472,66 72x24
+              text #port role=textbox label="Port" "54x" 472,66 72x24 invalid error="Digits only"
+        el 61,92 483x34
+          el 61,92 483x16
+            text label="warning" "\u{F868}" 61,92 16x16
+            text "Outside the local network: the connection is not encrypted" 79,92 465x16
+          text "Digits only" 61,110 483x16

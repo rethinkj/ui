@@ -41,6 +41,16 @@ advance 1
 frame
 snap connection-light
 
+press role=switch label="Dark theme"     # the same in the dark theme, for its image
+frame
+advance 1
+frame
+snap connection-dark
+press role=switch label="Dark theme"
+frame
+advance 1
+frame
+
 press #port
 key A control
 type "5433"                      # another port: Connect is enabled again

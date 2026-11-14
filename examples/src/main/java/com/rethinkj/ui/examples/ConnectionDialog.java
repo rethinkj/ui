@@ -111,6 +111,7 @@ public final class ConnectionDialog {
   static final List<String> DATABASES =
       List.of("postgres", "inventory", "invoices", "shop", "analytics", "template1");
 
+  // docs:start connection-dialog-editing
   /** The edit of a new profile, with a rule across two of its fields. */
   static Editing<Profile> editing() {
     return Editing.of(Profile.NEW)
@@ -143,6 +144,7 @@ public final class ConnectionDialog {
     status = "Connecting to " + p.database() + " on " + p.host() + ":" + p.port() + " as "
         + p.user() + (p.ssl() ? " with SSL" : "");
   }
+  // docs:end connection-dialog-editing
 
   void reset() {
     editing.reset();
@@ -159,6 +161,7 @@ public final class ConnectionDialog {
       return;
     }
     app.textRendering(TextRendering.platform());
+    // docs:start connection-dialog-window
     Window.Options options = Identity.options(
             ConnectionDialog.class, "New connection", Identity.GREEN, Symbol.PLUG_CONNECTED)
         .frameless()
@@ -167,12 +170,14 @@ public final class ConnectionDialog {
         GpuPresenter presenter = new GpuPresenter(window)) {
       WindowLoop.run(window, app, presenter);
     }
+    // docs:end connection-dialog-window
   }
 
   static El view(ConnectionDialog s) {
     Theme t = s.theme();
     Editing<Profile> e = s.editing;
     // A null handler disables the button.
+    // docs:start connection-dialog-form
     El connect = button(t, PRIMARY, "Connect", s.ready() ? s::connect : null);
     El form = Card.card(t)
         .child(
@@ -226,6 +231,8 @@ public final class ConnectionDialog {
         .child(el().grow(1))
         .child(label(t, MUTED, s.status))
         .child(Form.buttons(t, button(t, SECONDARY, "Reset", s::reset), connect));
+    // docs:end connection-dialog-form
+    // docs:start connection-dialog-enter
     return col()
         .wFull()
         .hFull()
@@ -237,5 +244,6 @@ public final class ConnectionDialog {
             .grow(1)
             .padding(0, t.space().m(), t.space().m(), t.space().m())
             .child(form.grow(1)));
+    // docs:end connection-dialog-enter
   }
 }

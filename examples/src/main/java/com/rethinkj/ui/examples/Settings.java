@@ -241,6 +241,7 @@ public final class Settings {
   /** The system's appearance in a window, from the window loop; null under a script. */
   SystemAppearance system;
 
+  // docs:start settings-theme
   Theme theme() {
     // System is dark unless the system says light; under a script the example cannot ask it.
     boolean light = theme == Look.LIGHT
@@ -250,6 +251,7 @@ public final class Settings {
     Theme base = light ? Theme.LIGHT : Theme.DARK;
     return accent == Accent.BLUE ? base : base.withAccent(accent.hue);
   }
+  // docs:end settings-theme
 
   List<Connection> matches() {
     String f = filter.strip().toLowerCase(Locale.ROOT);
@@ -298,6 +300,7 @@ public final class Settings {
         + arch;
   }
 
+  // docs:start settings-pages
   static El view(Settings s) {
     Theme t = s.theme();
     El pages = navList(t, List.of(Page.values()), s.page, Page::item, Page::group, p -> s.page = p)
@@ -326,7 +329,9 @@ public final class Settings {
                 }));
     return root.overlay(s.adding ? newConnection(t, s) : null);
   }
+  // docs:end settings-pages
 
+  // docs:start settings-general
   static El general(Theme t, Settings s) {
     return page(
             t,
@@ -371,6 +376,7 @@ public final class Settings {
                         () -> s.page = Page.KEYMAP))))
         .grow(1);
   }
+  // docs:end settings-general
 
   static El appearance(Theme t, Settings s) {
     return page(

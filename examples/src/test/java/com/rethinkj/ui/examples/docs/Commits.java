@@ -19,7 +19,7 @@ final class Commits {
 
   static final String[] CUSTOMERS = {"Ada", "Brendan", "Chen", "Dagny"};
 
-  final Theme t = Theme.DARK;
+  Theme t = Theme.DARK;
   final DataGrid.Selection selection = new DataGrid.Selection(DataGrid.Mode.CELLS);
   final GridChanges changes = new GridChanges(100, Commits::value);
   String status = "";
