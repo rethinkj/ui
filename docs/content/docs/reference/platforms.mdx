@@ -3,7 +3,7 @@ title: Platforms and native libraries
 description: Windows and Linux on x64, the native libraries in one JAR per platform, what a build needs, and what to do when a library does not load.
 ---
 
-rethinkj UI runs on Windows 11 and later and on Linux, both on x64, with a JDK 25. The window, the GPU, and text call native libraries: SDL 3 for windows and input, wgpu-native for the GPU (Direct3D 12 on Windows, Vulkan on Linux), FreeType and HarfBuzz for text. They come in one JAR per platform and are loaded on first use, so a view rendered without a window and without text needs none of them.
+rethinkj UI runs on Windows 11 and later and on Linux, both on x64, with a JDK 25. The window, the GPU, and text call native libraries: SDL 3 for windows and input, wgpu-native for the GPU (Direct3D 12 on Windows, with the DirectX Shader Compiler, and Vulkan on Linux), FreeType and HarfBuzz for text. They come in one JAR per platform and are loaded on first use, so a view rendered without a window and without text needs none of them.
 
 ## Versions
 
@@ -13,8 +13,11 @@ rethinkj UI runs on Windows 11 and later and on Linux, both on x64, with a JDK 2
 | wgpu-native | 29.0.1.1 | The GPU renderer |
 | FreeType | 2.15.0 | Rasterising glyphs |
 | HarfBuzz | 15.1.0 | Shaping text |
+| DirectX Shader Compiler | 1.9.2609 | Compiling shaders on Direct3D 12, Windows only |
 
 FreeType and HarfBuzz are built from source with the same options on both platforms and need nothing beyond the C runtime.
+
+On Windows, wgpu-native compiles the shaders with the DirectX Shader Compiler (DXC), `dxcompiler.dll` from Microsoft's release, which comes under the LLVM Release License (NCSA). It compiles the render pipeline in about 130 ms, where FXC, the compiler built into Windows, takes nearly 600 ms; the first frame appears that much sooner. It makes the Windows JAR about 10 MB larger. A folder given with `rethinkj.ui.natives.dir` whose `manifest.txt` does not list it is fine: then wgpu uses FXC. The licence texts of all libraries are in the JAR under `META-INF/rethinkj-ui/natives/<platform>/licenses/`.
 
 ## What a build needs
 

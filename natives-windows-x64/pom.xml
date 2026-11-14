@@ -13,14 +13,16 @@
   <artifactId>rethinkj-ui-natives-windows-x64</artifactId>
 
   <name>rethinkj UI :: Natives :: Windows x64</name>
-  <description>SDL3, wgpu-native, FreeType and HarfBuzz for Windows on x64, loaded by
-    rethinkj-ui-core.</description>
+  <description>SDL3, wgpu-native, FreeType, HarfBuzz and the DirectX Shader Compiler for Windows
+    on x64, loaded by rethinkj-ui-core.</description>
 
   <!-- The licences of the libraries; their texts are in the JAR beside them. wgpu-native is
        available under either MIT or Apache-2.0. FreeType is available under either the FreeType
        License or the GPL 2.0; this module takes the FreeType License, which asks a product that
        ships FreeType to credit the FreeType Project in its documentation. FreeType's BDF and PCF
-       drivers and HarfBuzz's USE tables come with MIT licences of their own, also in the JAR. -->
+       drivers and HarfBuzz's USE tables come with MIT licences of their own, also in the JAR. The
+       DirectX Shader Compiler's dxcompiler.dll comes under the LLVM Release License, the
+       University of Illinois/NCSA Open Source License. -->
   <licenses>
     <license>
       <name>zlib License (SDL)</name>
@@ -41,6 +43,10 @@
     <license>
       <name>Old MIT License (HarfBuzz)</name>
       <url>https://spdx.org/licenses/MIT-Modern-Variant.html</url>
+    </license>
+    <license>
+      <name>University of Illinois/NCSA Open Source License (DirectX Shader Compiler)</name>
+      <url>https://spdx.org/licenses/NCSA.html</url>
     </license>
   </licenses>
 

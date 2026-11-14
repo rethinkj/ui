@@ -12,6 +12,7 @@ import com.rethinkj.ui.gpu.Structs.SurfaceDescriptor;
 import com.rethinkj.ui.natives.Natives;
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
+import java.nio.file.Path;
 import java.util.Locale;
 import java.util.function.Consumer;
 
@@ -32,6 +33,8 @@ import java.util.function.Consumer;
  */
 public final class Instance extends GpuObject {
 
+  private static final System.Logger LOGGER = System.getLogger("com.rethinkj.ui.gpu");
+
   private static boolean logInstalled;
 
   private final Backend backend;
@@ -51,6 +54,12 @@ public final class Instance extends GpuObject {
   /**
    * An instance that enables only {@code backend}.
    *
+   * <p>On Direct3D 12, wgpu compiles shaders with the DirectX Shader Compiler (DXC) that the
+   * natives module carries, {@code dxcompiler.dll}, which wgpu-native loads by its path. Without it,
+   * for example from a folder named by {@value Natives#DIR_PROPERTY} whose manifest does not list
+   * it, wgpu uses FXC, Windows' own compiler, which takes about four times as long. So it does,
+   * with a warning to the logger {@code com.rethinkj.ui.gpu}, when that file does not load.
+   *
    * @throws UnsatisfiedLinkError if wgpu-native cannot be loaded; its message says why
    */
   public static Instance create(Backend backend) {
@@ -62,6 +71,19 @@ public final class Instance extends GpuObject {
       extras.set(JAVA_LONG, InstanceExtras.BACKENDS, backend.instanceBit);
       // No backend validation layers and no debug information: wgpu's own validation still runs.
       extras.set(JAVA_LONG, InstanceExtras.FLAGS, 0L);
+      if (backend == Backend.D3D12) {
+        // Never left undefined: then wgpu-native would take any dxcompiler.dll on the DLL search
+        // path, of whatever version.
+        // shortcut: with DXC wgpu skips adapters below Shader Model 6.0, which Windows 11's
+        // hardware has with current drivers; retry with FXC if one turns up.
+        String dxc = dxcPath();
+        if (dxc == null) {
+          extras.set(JAVA_INT, InstanceExtras.DX12_SHADER_COMPILER, Wgpu.DX12_COMPILER_FXC);
+        } else {
+          extras.set(JAVA_INT, InstanceExtras.DX12_SHADER_COMPILER, Wgpu.DX12_COMPILER_DXC);
+          Structs.string(extras, InstanceExtras.DXC_PATH, dxc, arena);
+        }
+      }
       MemorySegment descriptor = arena.allocate(InstanceDescriptor.LAYOUT);
       descriptor.set(ADDRESS, InstanceDescriptor.NEXT_IN_CHAIN, extras);
       MemorySegment handle = Wgpu.createInstance(descriptor);
@@ -74,6 +96,34 @@ public final class Instance extends GpuObject {
       }
       return new Instance(backend, handle);
     }
+  }
+
+  /**
+   * The path of the natives' {@code dxcompiler.dll}, or null for FXC: when they have none, or one
+   * that does not load. Given a path it cannot load, wgpu-native creates the instance without
+   * Direct3D 12 and ends the process when asked for a surface.
+   */
+  private static String dxcPath() {
+    Path path = Natives.path("dxcompiler");
+    if (path == null) {
+      return null;
+    }
+    String reason;
+    try {
+      // Loaded for the life of the process; wgpu-native loading the same file only counts a
+      // reference.
+      if (Natives.lookup("dxcompiler").find("DxcCreateInstance").isPresent()) {
+        return path.toString();
+      }
+      reason = "it has no function DxcCreateInstance";
+    } catch (UnsatisfiedLinkError e) {
+      reason = e.getMessage();
+    }
+    LOGGER.log(
+        System.Logger.Level.WARNING,
+        "Compiling shaders with FXC, which is slower, because " + path + " is no DirectX Shader"
+            + " Compiler: " + reason);
+    return null;
   }
 
   /** The wgpu-native version as four numbers, such as "29.0.1.1". */

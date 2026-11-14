@@ -187,7 +187,7 @@ class SystemDialogsTest {
   @Test
   void aSecondDialogOfAWindowFailsWhileTheFirstIsOpen() throws Throwable {
     Desktop.assumeWindows();
-    Window window = Window.open("rethinkj second dialog test", 80, 60);
+    Window window = shown("rethinkj second dialog test");
     try {
       List<String> told = new ArrayList<>();
       // The first dialog of the window is open: registered as file() registers it.
@@ -219,8 +219,8 @@ class SystemDialogsTest {
   void closingAWindowCancelsTheFileDialogItOwns() {
     Desktop.assumeWindows();
     assumeTrue(File.separatorChar == '\\', "the dialog's own thread is Windows'");
-    Window window = Window.open("rethinkj closed under its dialog", 80, 60);
-    Window other = Window.open("rethinkj stays open", 80, 60); // the app goes on
+    Window window = shown("rethinkj closed under its dialog");
+    Window other = shown("rethinkj stays open"); // the app goes on
     try {
       MemorySegment hwnd = ((WindowHandle.Win32) window.handle()).hwnd();
       List<String> told = new java.util.concurrent.CopyOnWriteArrayList<>();
@@ -263,8 +263,8 @@ class SystemDialogsTest {
     Desktop.assumeWindows();
     assumeTrue(File.separatorChar == '\\', "the dialog's own thread is Windows'");
     String title = "rethinkj dialog not there yet " + ProcessHandle.current().pid();
-    Window other = Window.open("rethinkj stays open", 80, 60); // the app goes on
-    Window window = Window.open("rethinkj closed before its dialog", 80, 60);
+    Window other = shown("rethinkj stays open"); // the app goes on
+    Window window = shown("rethinkj closed before its dialog");
     List<String> told = new java.util.concurrent.CopyOnWriteArrayList<>();
     try {
       Desktop.settle();
@@ -336,6 +336,16 @@ class SystemDialogsTest {
     return (int) User32.IS_WINDOW.invokeExact(hwnd) != 0;
   }
 
+  /**
+   * A window as an app shows it, drawn once: on Windows a window that has not drawn stays
+   * invisible, and a dialog it owns would leave the process without the foreground.
+   */
+  private static Window shown(String title) {
+    Window window = Window.open(title, 80, 60);
+    window.drawn(); // stands in for the loop's first frame
+    return window;
+  }
+
   /** Whatever went wrong, no dialog of this process stays open and the window goes. */
   private static void cleanUp(Window window) throws Throwable {
     long end = System.nanoTime() + Desktop.TIMEOUT_MILLIS * 1_000_000;
@@ -367,7 +377,7 @@ class SystemDialogsTest {
     assumeTrue(File.separatorChar == '\\', "the dialog's own thread is Windows'");
     String title =
         "rethinkj loop ends under its dialog " + ProcessHandle.current().pid();
-    Window window = Window.open("rethinkj last window under its dialog", 80, 60);
+    Window window = shown("rethinkj last window under its dialog");
     MemorySegment hwnd = ((WindowHandle.Win32) window.handle()).hwnd();
     List<String> told = new java.util.concurrent.CopyOnWriteArrayList<>();
     AtomicReference<Boolean> notThereYet = new AtomicReference<>();
@@ -403,7 +413,7 @@ class SystemDialogsTest {
     assumeTrue(File.separatorChar == '\\', "the dialog's own thread is Windows'");
     String title =
         "rethinkj only window under its dialog " + ProcessHandle.current().pid();
-    Window window = Window.open("rethinkj only window under its dialog", 80, 60);
+    Window window = shown("rethinkj only window under its dialog");
     MemorySegment hwnd = ((WindowHandle.Win32) window.handle()).hwnd();
     List<String> told = new java.util.concurrent.CopyOnWriteArrayList<>();
     try {

@@ -16,20 +16,20 @@ el 0,0 560x260
       text #line-12 "13" 21,209 23x16
       text #line-13 "14" 21,225 23x16
 overlay top end gap -58 on #query role=textbox 12,12 536x194
-  el #find role=search label="Find" 133,14 415x56
-    el 133,14 405x56
-      el 136,17 399x24
-        el #toggle-replace role=button label="Toggle replace" 136,17 24x24
-          text label="chevron_down" "\u{F2A2}" 140,21 16x16
-        el 162,17 200x24
-          text #find-field role=textbox label="Find" "o." 162,17 200x24
-          el 300,19 60x20
-            el #match-case role=button label="Match case" 300,19 20x20 checked=false
-              text label="text_case_title" "\u{ECEC}" 302,21 16x16
-            el #whole-word role=button label="Whole word" 320,19 20x20 checked=false
-              text label="text_whole_word" "\u{F03A4}" 322,21 16x16
-            el #regex role=button label="Regular expression" 340,19 20x20 checked=false
-              text label="text_asterisk" "\u{F03A7}" 342,21 16x16
+  el #find role=search label="Find" 127,14 421x56
+    el 127,14 411x56
+      el 130,17 405x24
+        el #toggle-replace role=button label="Toggle replace" 130,17 24x24
+          text label="chevron_down" "\u{F2A2}" 134,21 16x16
+        el 156,17 200x24
+          text #find-field role=textbox label="Find" "o." 156,17 200x24
+          el 294,19 60x20
+            el #match-case role=button label="Match case" 294,19 20x20 checked=false
+              text label="text_case_title" "\u{ECEC}" 296,21 16x16
+            el #whole-word role=button label="Whole word" 314,19 20x20 checked=false
+              text label="text_whole_word" "\u{F03A4}" 316,21 16x16
+            el #regex role=button label="Regular expression" 334,19 20x20 checked=false
+              text label="text_period_asterisk" "\u{ED4A}" 336,21 16x16
         text #count "4 of 7" 364,22 48x14
         el #in-selection role=button label="Find in selection" 414,17 24x24 disabled checked=false
           text label="select_all_on" "\u{F04B9}" 418,21 16x16
@@ -39,8 +39,8 @@ overlay top end gap -58 on #query role=textbox 12,12 536x194
           text label="arrow_down" "\u{F147}" 470,21 16x16
         el #close role=button label="Close" 492,17 24x24
           text label="dismiss" "\u{F368}" 496,21 16x16
-      el 136,43 399x24
-        text #replace role=textbox label="Replace" "ord." 162,43 200x24 focused caret 4
+      el 130,43 405x24
+        text #replace role=textbox label="Replace" "ord." 156,43 200x24 focused caret 4
         el #replace-one role=button label="Replace" 364,43 76x24
           text "Replace" 377,47 50x16
         el #replace-all role=button label="Replace all" 442,43 93x24

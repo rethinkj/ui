@@ -112,6 +112,11 @@ public final class SystemDialogs implements Dialogs {
       failed.accept("A file dialog of this window is open; it answers before another opens.");
       return;
     }
+    // A dialog of a window that has not drawn yet would be hidden with it.
+    if (window != null && !window.reveal()) {
+      failed.accept("The window has not shown yet and cannot be shown for its dialog.");
+      return;
+    }
     Arena arena = Arena.ofShared(); // until SDL has answered: it may read the filters until then
     long id = IDS.incrementAndGet();
     int properties = 0;
@@ -306,6 +311,9 @@ public final class SystemDialogs implements Dialogs {
   private static int show(MessageBox box, Window parent) {
     if (parent != null && !parent.isOpen()) {
       parent = null;
+    }
+    if (parent != null && !parent.reveal()) {
+      parent = null; // hidden with a window that stays hidden, the box would block unseen
     }
     try (Arena arena = Arena.ofConfined()) {
       List<String> buttons = box.buttons();

@@ -51,7 +51,7 @@ public class GenerateSymbols {
       text_sort_descending text_t warning window
       book_number calculator calendar_clock checkbox_checked document_data
       fingerprint flash globe image location mail money number_circle_1 prohibited record shapes
-      text_asterisk text_bullet_list_ltr text_case_title timer
+      text_asterisk text_period_asterisk text_bullet_list_ltr text_case_title timer
       select_all_on text_whole_word
       """;
 

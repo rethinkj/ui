@@ -188,8 +188,9 @@ public final class RenderPipeline extends GpuObject {
 
   /**
    * How many pipelines this process has created so far: the first frame that needs one compiles
-   * its shaders, which takes over 300 ms on Direct3D 12, so the windows of a thread share theirs,
-   * and tests count them.
+   * its shaders, which takes about 130 ms on Direct3D 12 with DXC and nearly 600 ms with FXC (see
+   * {@link Instance#create(Backend)}), so the windows of a thread share theirs, and tests count
+   * them.
    */
   public static long created() {
     return CREATED.get();

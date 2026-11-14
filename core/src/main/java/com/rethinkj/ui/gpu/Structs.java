@@ -90,7 +90,10 @@ final class Structs {
         MemoryLayout.unionLayout(XlibDisplayHandle.LAYOUT.withName("xlib")).withName("data"));
   }
 
-  /** wgpu.h. Zero members are the defaults, except {@code dxcPath}. */
+  /**
+   * wgpu.h. Zero members are the defaults, except {@code dxcPath}. wgpu-native v29 ignores {@code
+   * dxcMaxShaderModel}: it takes the shader model from the version of the DXC it loads.
+   */
   static final class InstanceExtras {
     static final StructLayout LAYOUT = struct(
         "WGPUInstanceExtras",
@@ -108,6 +111,7 @@ final class Structs {
         NativeDisplayHandle.LAYOUT.withName("displayHandle"));
     static final long BACKENDS = offset(LAYOUT, "backends");
     static final long FLAGS = offset(LAYOUT, "flags");
+    static final long DX12_SHADER_COMPILER = offset(LAYOUT, "dx12ShaderCompiler");
     static final long DXC_PATH = offset(LAYOUT, "dxcPath");
 
     static MemorySegment allocate(Arena arena) {
