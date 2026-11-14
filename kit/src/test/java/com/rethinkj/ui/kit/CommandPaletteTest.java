@@ -1,5 +1,6 @@
 package com.rethinkj.ui.kit;
 
+import static com.rethinkj.ui.El.col;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -179,6 +180,50 @@ class CommandPaletteTest {
     run("type \"_2026\"\nframe\nkey Enter");
     assertEquals("Renamed to orders_2026", app.state().status);
     assertNull(app.state().cleared);
+  }
+
+  /** A source whose entry loads tables into the list while the palette stays open. */
+  static final class Loader {
+    final CommandPalette.State palette = new CommandPalette.State();
+    final List<String> tables = new java.util.ArrayList<>();
+    String opened;
+    int closes;
+
+    List<FilterList.Entry> find(String text) {
+      List<FilterList.Entry> found = new java.util.ArrayList<>();
+      for (int i = 0; i < tables.size(); i++) {
+        String key = "s" + i + "." + tables.get(i);
+        found.add(FilterList.entry(tables.get(i), () -> opened = key).key(key));
+      }
+      found.add(FilterList.entry("Read tables", () -> tables.addAll(List.of("orders", "orders")))
+          .keepsOpen(true));
+      return found;
+    }
+  }
+
+  @Test
+  void anEntryThatKeepsItOpenLoadsEntriesTheSameTextsStayApartAndClosingTells() throws IOException {
+    Loader l = new Loader();
+    l.palette.onClose(() -> l.closes++);
+    App<Loader> loader = new App<>(
+        l,
+        x -> col()
+            .overlay(CommandPalette.palette(
+                Theme.DARK,
+                x.palette,
+                List.of(),
+                List.of(
+                    new CommandPalette.Source("@", "a table", FilterList.Entries.by(x::find))))));
+    l.palette.open("@");
+    Script.run("size 480 320 scale 2\nframe\nkey Enter\nframe\nsnap s", loader, out);
+    String tree = Files.readString(out.resolve("s.tree.txt"));
+    assertTrue(l.palette.isOpen(), tree);
+    assertEquals(List.of("orders", "orders", "Read tables"), ComboBoxTest.options(tree));
+    assertTrue(line(tree, "#option-0").contains(" selected"), "the best of the new: " + tree);
+    Script.run("key ArrowDown\nframe\nkey Enter\nframe", loader, out);
+    assertEquals("s1.orders", l.opened, "the second, though both read the same");
+    assertEquals(1, l.closes);
+    assertNull(l.palette.list.shown, "the entries let go");
   }
 
   @ParameterizedTest(name = "{0} at {1}x")

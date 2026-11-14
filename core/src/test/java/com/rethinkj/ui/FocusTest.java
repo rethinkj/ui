@@ -16,6 +16,7 @@ import com.rethinkj.ui.motion.Spring;
 import com.rethinkj.ui.render.Scene;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.Test;
 
 /** Keyboard focus, keys and text: who gets them, the order of Tab, and the ring. */
@@ -411,10 +412,10 @@ class FocusTest {
   @Test
   void focusRefusesWhatCannotTakeIt() {
     App<Lights> app = start(new App<>(new Lights(), Examples::switchAlone), 200, 120);
-    El knob = find(app.tree(), "knob");
+    El stray = el().key("stray").focusable();
     IllegalArgumentException thrown =
-        assertThrows(IllegalArgumentException.class, () -> app.focus(knob));
-    assertTrue(thrown.getMessage().contains("not focusable()"), thrown.getMessage());
+        assertThrows(IllegalArgumentException.class, () -> app.focus(stray));
+    assertTrue(thrown.getMessage().contains("not in the last frame's tree"), thrown.getMessage());
     app.focus(find(app.tree(), "switch"));
     assertNull(app.focused(), "the next frame focuses");
     app.frame();
@@ -422,6 +423,62 @@ class FocusTest {
     app.focus(null);
     app.frame();
     assertNull(app.focused());
+  }
+
+  @Test
+  void focusingAContainerGoesToWhatHadTheFocusThereLastElseToItsFirst() {
+    int[] page = {0};
+    AtomicReference<App<int[]>> self = new AtomicReference<>();
+    App<int[]> app = start(
+        new App<>(
+            page,
+            p -> row()
+                .onKey(key -> {
+                  if (!key.name().equals("F6")) {
+                    return false;
+                  }
+                  p[0]++; // a handler shows other content and focuses into it at once
+                  self.get().focus(find(self.get().tree(), "content"));
+                  return true;
+                })
+                .children(
+                    col()
+                        .key("side")
+                        .children(
+                            el().key("a").focusable().size(10, 10),
+                            el().key("b").focusable().size(10, 10)),
+                    col()
+                        .key("content")
+                        .children(
+                            el().key("note").size(10, 10),
+                            el().key("c" + p[0]).focusable().size(10, 10),
+                            el().key("d" + p[0]).focusable().size(10, 10)))),
+        100,
+        100);
+    self.set(app);
+    app.focus(find(app.tree(), "side"));
+    app.frame();
+    assertEquals("a", focusedKey(app), "the first inside");
+    tab(app);
+    app.focus(find(app.tree(), "content"));
+    app.frame();
+    assertEquals("c0", focusedKey(app));
+    app.focus(find(app.tree(), "side"));
+    app.frame();
+    assertEquals("b", focusedKey(app), "where the focus was last inside");
+    app.focus(find(app.tree(), "note"));
+    app.frame();
+    assertEquals("b", focusedKey(app), "nothing inside takes it: the focus stays");
+
+    key(app, "F6", 0);
+    assertEquals("c1", focusedKey(app), "the content the handler built");
+
+    page[0]++; // as another window of the same state does
+    app.invalidate();
+    boolean[] fresh = {false};
+    app.after(0, () -> fresh[0] = find(app.tree(), "c2") != null);
+    app.frame();
+    assertTrue(fresh[0], "input after an invalidate goes to the tree built anew");
   }
 
   @Test
