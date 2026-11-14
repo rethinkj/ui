@@ -273,6 +273,37 @@ final class Sheets {
             .divided());
   }
 
+  /**
+   * Warnings below a select and below a host in a row, whose port has an error and a warning, of
+   * which the error is shown.
+   */
+  El formWarning() {
+    return col()
+        .wFull()
+        .hFull()
+        .padding(t.space().xl())
+        .fill(t.surface().window())
+        .child(Form.form(
+            t,
+            Form.Labels.BESIDE,
+            field(
+                    "Driver",
+                    Select.select(t, List.of("42.7.15", "42.7.14"), 0, fonts, i -> {})
+                        .key("driver")
+                        .w(180))
+                .help("The version the connection loads")
+                .warning("42.7.15 is 1 day old; 42.7.14 has been out for a month"),
+            Form.row(
+                field("Host", textField(t, "10.8.0.4", null, v -> {}).key("host"))
+                    .warning("Outside the local network: the connection is not encrypted")
+                    .grow(),
+                field(
+                        "Port",
+                        textField(t, port, "5432", v -> port = v).key("port").w(72))
+                    .error("Digits only")
+                    .warning("Ports below 1024 need rights"))));
+  }
+
   /** The choices settings need: segments, radios, a number field and a slider. */
   El choices() {
     return col()

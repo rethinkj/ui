@@ -1,9 +1,9 @@
 ---
 title: Form
-description: Labelled fields, beside or above them, with help, errors and required marks, and buttons at the end.
+description: Labelled fields, beside or above them, with help, errors, warnings and required marks, and buttons at the end.
 ---
 
-`Form.form` lays out fields with their labels, either beside them in a column as wide as the widest label, or above them. Fields have help text, error messages and a mark when required. Longer forms group their fields under headings, with one label column for all groups, and put fields that belong together, such as host and port, in one row. `Form.buttons` puts buttons at the end of a form, a card or a page. Use it for dialogs and connection settings; for rows of settings, use a [Group](/docs/components/group).
+`Form.form` lays out fields with their labels, either beside them in a column as wide as the widest label, or above them. Fields have help text, error messages, warnings and a mark when required. Longer forms group their fields under headings, with one label column for all groups, and put fields that belong together, such as host and port, in one row. `Form.buttons` puts buttons at the end of a form, a card or a page. Use it for dialogs and connection settings; for rows of settings, use a [Group](/docs/components/group).
 
 <Shot src="kit/structure-form-{theme}-2x" alt="Two forms, labels beside and above the fields, with a required mark, help and an error" />
 
@@ -20,6 +20,7 @@ description: Labelled fields, beside or above them, with help, errors and requir
 | `Form.field(label, control)` | A field. The label names the control, or the first control inside it, when that is a text field or has no label yet (a select keeps its choice as its label) |
 | `.help(text)` | Muted text below that wraps |
 | `.error(text)` | Replaces the help in the danger colour and makes the control `invalid`; null for none. It wins over the message of a [ValueField](/docs/components/format) whose text is no value |
+| `.warning(text)` | Replaces the help in the warning colour after a warning symbol and leaves the control valid, for a value worth a second thought; null for none. An error wins over it |
 | `.required()` | A `*` after the label |
 | `.grow()` | In a row, the field takes the room the others leave; its control's width is the least it has |
 | `Form.row(fields...)` | Fields side by side, each with its own label, help, error and mark; a row of one field is that field |
@@ -51,13 +52,19 @@ To put each group in a card of its own, put a form in each card. Give every form
 ```java snippet="form-cards"
 ```
 
+## Warnings
+
+A warning stands where an error would, also under a row, but the field stays valid and the form can be saved. When a field has an error too, only the error shows.
+
+<Shot src="kit/structure-form-warning-dark-2x" alt="A driver version with a warning in amber under it, a host with a warning under its row, and the port's error below it in red" />
+
 ## With a Prop
 
 A control made with a [`Prop`](/docs/concepts/editing#components-that-take-a-prop) shows its field's error in the same way as `.error(text)`, whether it comes from a rule, the app or a text that is no value.
 
 ## In a tree dump
 
-Each field gets its label, also each field of a row; an error makes it `invalid`:
+Each field gets its label, also each field of a row; an error makes it `invalid` with `error="…"`, and a warning adds `warning="…"` alone:
 
 ```text file="examples/src/test/resources/golden/docs/form/view.tree.txt" start="\"User\"" count="3"
 ```
