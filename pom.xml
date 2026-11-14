@@ -50,6 +50,8 @@
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <maven.compiler.release>25</maven.compiler.release>
+    <!-- The Javadoc JAR is built only where it is published: -Djavadoc.jar.skip=false. -->
+    <javadoc.jar.skip>true</javadoc.jar.skip>
   </properties>
 
   <dependencyManagement>
@@ -130,11 +132,15 @@
           <executions>
             <execution>
               <id>attach-javadocs</id>
-              <!-- At install, not package: deploy builds it, verify stays as fast as without. -->
-              <phase>install</phase>
+              <!-- Off unless javadoc.jar.skip=false, as the publishing job sets it: verify and
+                   install stay as fast as without. -->
+              <phase>package</phase>
               <goals>
                 <goal>jar</goal>
               </goals>
+              <configuration>
+                <skip>${javadoc.jar.skip}</skip>
+              </configuration>
             </execution>
             <execution>
               <!-- The HTML of core and kit together, which the site serves at /api/:

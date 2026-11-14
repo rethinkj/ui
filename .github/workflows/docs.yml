@@ -16,6 +16,8 @@ on:
       - 'core/src/main/**'
       - 'kit/src/main/**'
       - 'pom.xml'
+      - 'core/pom.xml'
+      - 'kit/pom.xml'
       - '.github/workflows/docs.yml'
   pull_request:
     paths:
@@ -29,6 +31,8 @@ on:
       - 'core/src/main/**'
       - 'kit/src/main/**'
       - 'pom.xml'
+      - 'core/pom.xml'
+      - 'kit/pom.xml'
       - '.github/workflows/docs.yml'
   workflow_dispatch:
 
