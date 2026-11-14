@@ -146,6 +146,16 @@ public final class Card {
     return bar;
   }
 
+  /**
+   * An optional filter bar below a toolbar, inside the card's side padding and apart from the
+   * content below it. Returns null for no filters, so a card leaves the whole row out.
+   */
+  public static El filters(Theme t, El filters) {
+    return filters == null
+        ? null
+        : row().padding(0, t.space().l(), t.space().m(), t.space().l()).child(filters);
+  }
+
   /** The height of a {@link #footer}, for what has to stay clear of it, as a {@link Toast}. */
   public static float footerHeight(Theme t) {
     return t.size().control() + t.space().s() + t.size().stroke();
