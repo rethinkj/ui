@@ -48,7 +48,7 @@ A key goes through these steps until one takes it:
 
 A `Key` has the web's key name (`"Enter"`, `"ArrowDown"`, `"A"`) and modifiers (`Key.CONTROL`, `SHIFT`, `ALT`, `META`).
 
-When the focused element leaves the tree, the focus moves to the nearest focusable element near its old place, so closing a tab puts the focus into the next tab's content. `app.focus(el)` moves the focus from a handler. Given an element that is not focusable, such as a sidebar or a tab's content, it moves the focus into it: to the element there that had it last, else to the first one that can take it. That is how a command such as Ctrl+1 for "focus the content" works, also right after the handler changed what the content holds.
+When the focused element leaves the tree, the focus moves to the nearest focusable element near its old place, so closing a tab puts the focus into the next tab's content. `app.focus(el)` moves the focus from a handler. Given an element that is not focusable, such as a sidebar or a tab's content, it moves the focus into it: to the element there that had it last, else to the first one that can take it, an `autofocus` one first. That is how a command such as Ctrl+1 for "focus the content" works, also right after the handler changed what the content holds.
 
 ## Looks
 

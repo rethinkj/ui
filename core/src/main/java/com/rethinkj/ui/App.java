@@ -1682,7 +1682,22 @@ public final class App<S> {
       }
     }
     El first = firstInside(scope, order);
-    return first == null ? null : enter(first, 1); // in a list, its row that had the focus last
+    if (first == null) {
+      return null;
+    }
+    El entered = enter(first, 1); // in a list, its row that had the focus last
+    return Animator.isBelow(animator.identity(entered), id) ? entered : first;
+  }
+
+  /** Puts the focus's identity first in {@link #recent}. */
+  private void noteRecent() {
+    if (!focusId.equals(recent.peekFirst())) {
+      recent.remove(focusId);
+      recent.addFirst(focusId);
+      if (recent.size() > 16) {
+        recent.removeLast();
+      }
+    }
   }
 
   /**
@@ -1823,6 +1838,7 @@ public final class App<S> {
     focusKeyed = false;
     if (el != null) {
       el.focused(true);
+      noteRecent(); // here too: another request of the same frame may move it on before a rebuild
       Animator.InRow in = animator.inRow(focusId);
       if (in != null) {
         remembered.put(in.listId(), focusId);
@@ -1986,13 +2002,7 @@ public final class App<S> {
     }
     focused = el;
     el.focused(true);
-    if (!focusId.equals(recent.peekFirst())) {
-      recent.remove(focusId);
-      recent.addFirst(focusId);
-      if (recent.size() > 16) {
-        recent.removeLast();
-      }
-    }
+    noteRecent();
     if (reveal) {
       reveal = false;
       reveal(el);
@@ -2885,9 +2895,8 @@ public final class App<S> {
     }
     takeDue();
     while (!queued.isEmpty()) {
-      if (handled
-          || changedOutside) { // the next input goes to a tree built from the state as it is now
-        rebuild(true);
+      if (handled || changedOutside) { // the next input goes to a tree built from the state now
+        rebuild(handled); // after invalidate alone with its rows: an action may look for them
         drawn = true;
       }
       dispatching = true;
