@@ -112,6 +112,11 @@ public final class SystemDialogs implements Dialogs {
       failed.accept("A file dialog of this window is open; it answers before another opens.");
       return;
     }
+    // A dialog of a window that has not drawn yet would be hidden with it.
+    if (window != null && !window.reveal()) {
+      failed.accept("The window has not shown yet and cannot be shown for its dialog.");
+      return;
+    }
     Arena arena = Arena.ofShared(); // until SDL has answered: it may read the filters until then
     long id = IDS.incrementAndGet();
     int properties = 0;
@@ -136,9 +141,7 @@ public final class SystemDialogs implements Dialogs {
         Sdl.setPointerProperty(properties, Sdl.PROP_FILE_DIALOG_FILTERS_POINTER, array);
         Sdl.setNumberProperty(properties, Sdl.PROP_FILE_DIALOG_NFILTERS_NUMBER, filters.size());
       }
-      // A dialog of a window that has not drawn yet would be hidden with it; if the window stays
-      // hidden, the dialog opens without it.
-      if (window != null && window.reveal()) {
+      if (window != null) {
         Sdl.setPointerProperty(properties, Sdl.PROP_FILE_DIALOG_WINDOW_POINTER, window.sdlWindow());
       }
       String location = location(dialog);
