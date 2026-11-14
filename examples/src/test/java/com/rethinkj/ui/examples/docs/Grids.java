@@ -37,7 +37,7 @@ final class Grids {
   static final String[] STATUSES = {"paid", "pending", "shipped", "refunded"};
   static final int COUNT = 1000;
 
-  final Theme t = Theme.DARK;
+  Theme t = Theme.DARK;
   App<?> app; // set by whoever makes the app: the grid copies to its clipboard
   final DataGrid.Selection selection = new DataGrid.Selection(DataGrid.Mode.CELLS);
   final DataGrid.Commands gridCommands = new DataGrid.Commands();

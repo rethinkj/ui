@@ -64,14 +64,15 @@ jobs:
           java-version: '25'
           cache: maven
       - run: npm ci
-      - run: npm run build
-      # After the site's build, which empties out/; beside its own api/search.
+      # Into public/api/, which the build copies into out/api/ beside the site's own api/search,
+      # so that its link check also checks the links into the Javadoc.
       - name: Javadoc
         working-directory: .
         run: |
           mvn -B -ntp -P '!natives-linux-x64' -pl core,kit -am javadoc:aggregate
-          mkdir -p docs/out/api
-          cp -R target/reports/apidocs/. docs/out/api/
+          mkdir -p docs/public/api
+          cp -R target/reports/apidocs/. docs/public/api/
+      - run: npm run build
       - if: github.ref_name == github.event.repository.default_branch && github.event_name != 'pull_request'
         uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
       - if: github.ref_name == github.event.repository.default_branch && github.event_name != 'pull_request'

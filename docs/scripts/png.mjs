@@ -101,3 +101,13 @@ export function stack(image, bands) {
   const rgba = Buffer.concat(parts);
   return { width: image.width, height: rgba.length / stride, rgba };
 }
+
+/** The `width` by `height` pixels of an image whose top left corner is at `x`, `y`. */
+export function crop(image, x, y, width, height) {
+  const rgba = Buffer.alloc(width * height * 4);
+  for (let row = 0; row < height; row++) {
+    const from = ((y + row) * image.width + x) * 4;
+    rgba.set(image.rgba.subarray(from, from + width * 4), row * width * 4);
+  }
+  return { width, height, rgba };
+}

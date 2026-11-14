@@ -11,9 +11,3 @@ el 0,0 420x260
     el #panel role=tabpanel label="Groceries" 9,42 402x209
       el 9,42 402x209
         text "Milk" 21,54 378x16
-overlay at 174.5,25 bottom start on #bar 9,9 402x33
-  el #menu role=menu 175,25 184x34 exiting
-    el #item-0 role=menuitem label="Move to new window" 180,30 174x24
-      el 180,30 174x24
-        el 188,42 16x0
-        text "Move to new window" 212,34 134x16

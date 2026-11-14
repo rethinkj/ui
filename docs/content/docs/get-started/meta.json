@@ -1,6 +1,7 @@
 {
   "title": "Get started",
   "pages": [
+    "index",
     "first-app",
     "from-source",
     "ship"
