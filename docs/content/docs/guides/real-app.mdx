@@ -1,0 +1,95 @@
+---
+title: Build a whole app
+description: A small customers tool built step by step, with views, loading off the app's thread, a dialog that edits a record, saving with the server's errors, and a script that drives it all.
+---
+
+The concept and component pages explain one piece each. This guide puts them together in one small app: a list of customers in a [DataGrid](/docs/components/data-grid), loaded from a slow server, edited in a [Dialog](/docs/components/dialog) and saved back, and a second view with notes. All of it is one class, `Customers`, which is the state; its static methods are the view.
+
+## 1. State and views
+
+Start with the data. A record holds one customer, and a `Part` per field says how to read and write it. Declare the parts once, beside the record: the grid's columns and the dialog's fields both use them ([Editing records](/docs/concepts/editing#declare-the-fields)).
+
+```java snippet="customers-record" title="Customers.java"
+```
+
+The state is an ordinary class with plain fields. A `View` enum names the views, and each view keeps its own state in fields that stay while another view shows: the grid's `DataGrid.Selection`, which also holds where the grid is scrolled to, and the notes' text with a `FieldState` for their caret and undo history ([Text fields](/docs/concepts/text-fields)). Without them, the app forgets a scroll offset or a caret when its element leaves the tree ([App, state and view](/docs/concepts/app#what-the-app-keeps-for-you)).
+
+```java snippet="customers-state"
+```
+
+The view puts a [NavList](/docs/components/nav-list) of the views at the left and the chosen view beside it. The dialog and the toast are [overlays](/docs/concepts/overlays) of the root, attached while the state holds them.
+
+```java snippet="customers-view"
+```
+
+## 2. Loading off the app's thread
+
+The list comes from a server, and the app's thread must not wait for it. `app.background` runs the call on another thread and brings the result back as a task on the app's thread, where the handler may change the state ([Work off the app's thread](/docs/concepts/background-work)). Keep the returned `Work` in the state: `loading` says that a load runs, and `cancel()` stops it, so neither handler runs. Here leaving the customers cancels their load, and Reload cancels the load that runs before it starts another.
+
+```java snippet="customers-load"
+```
+
+The customers view shows each state the load can be in: an [EmptyState](/docs/components/empty-state) while nothing has arrived, with Try again after a failure and with a hint while the list is empty, the grid once there are rows, and an indeterminate [Progress](/docs/components/progress) line under the toolbar while a load runs. The grid's columns are the record's parts; without `onCommit` the grid edits nothing ([Rows of records](/docs/components/data-grid/typed)).
+
+```java snippet="customers-list"
+```
+
+<Shot src="examples/docs/customers/loaded-{theme}" alt="The customers view: a nav list with Customers and Notes at the left, a card with Reload, Edit and New customer above a grid of five customers, the third selected" />
+
+## 3. Editing a record
+
+The dialog edits a copy of a customer. An `Editing<Customer>` in the state holds the edited value, the text of fields that does not parse yet, and the errors; while it is not null, the dialog is open. Each field gets the `Prop` of its part, `e.at(Customer.EMAIL)`, so the view needs no value, handler or error per field ([Form](/docs/components/form#with-a-prop)).
+
+- The name's format refuses blank text. Its error shows once the field was edited, or after `showErrors()`.
+- A rule across two fields, company and VAT ID, shows its message at the VAT ID at once.
+- Save is enabled once something changed. On a press while the edit is not valid, it calls `showErrors()`, so that an empty name the user never touched shows its error too.
+
+```java snippet="customers-edit"
+```
+
+<Shot src="examples/docs/customers/invalid-{theme}" alt="The New customer dialog after Save: the empty name says A name is required, Company is checked and the empty VAT ID says A company needs a VAT ID" />
+
+## 4. Saving and errors
+
+Save runs in the background like the load. While it runs, `saving` makes Save busy and Cancel disabled. The made-up server refuses an email that another customer has: it throws an exception that names the field, and `prop.error(message)` shows the message at that field until the user edits it. On success, the handler puts the saved record into the list, closes the dialog by clearing `editing`, and shows a [Toast](/docs/components/toast).
+
+```java snippet="customers-save"
+```
+
+The repository stands in for a real one. Its calls block for a fifth of a second, and `cancel()` interrupts them. Pass the work only what it needs, here the repository and a record, never the state.
+
+```java snippet="customers-repository"
+```
+
+## 5. Running it
+
+`main` makes the app, starts the first load and hands the arguments to `Script.handle`: with `--script <file> --out <folder>`, a script drives the app and writes images and trees, without a window ([Testing and agents](/docs/testing)).
+
+```java snippet="customers-main"
+```
+
+This script drives the whole flow. `await` waits for the background work and queues its results for the next `frame`, so each snap shows the same state on every run, however fast the server answers. `advance 0.3` lets new content fade in before a step presses it.
+
+```text snippet="customers-script" title="customers.txt"
+```
+
+<Shot src="examples/docs/customers/saved-{theme}" alt="The grid with a sixth customer, Babbage Instruments, and a toast at the bottom saying Saved Babbage Instruments" />
+
+At the end, the dialog has closed, the grid has a sixth row, the selection is still on the row picked before the dialog opened, and the toast says what was saved:
+
+```text file="examples/src/test/resources/golden/docs/customers/saved.tree.txt" start="\"6 customers\"" count="1"
+```
+
+```text file="examples/src/test/resources/golden/docs/customers/saved.tree.txt" start="#row-2 " count="1"
+```
+
+```text file="examples/src/test/resources/golden/docs/customers/saved.tree.txt" start="#row-5 " count="9"
+```
+
+```text file="examples/src/test/resources/golden/docs/customers/saved.tree.txt" start="overlay"
+```
+
+The refusal before it shows at the email field, as `invalid` with the server's message:
+
+```text file="examples/src/test/resources/golden/docs/customers/refused.tree.txt" start="#email" count="1"
+```

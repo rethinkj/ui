@@ -58,7 +58,8 @@ class DocsExamplesTest {
       Map.entry("groups", List.of("view")),
       Map.entry("parts", List.of("view")),
       Map.entry("tabs", List.of("view")),
-      Map.entry("grid", List.of("selected")));
+      Map.entry("grid", List.of("selected")),
+      Map.entry("customers", List.of("loaded", "invalid", "saved")));
 
   /** An example: its app in a theme and the size of its window for the default script. */
   record Example(Function<Theme, App<?>> app, int width, int height) {}
@@ -200,6 +201,16 @@ class DocsExamplesTest {
             260));
     editings(all, "editing", Editings::record, 380, 260);
     editings(all, "editing-pojo", Editings::pojo, 360, 160);
+    all.put(
+        "customers",
+        new Example(
+            t -> {
+              App<Customers> app = Customers.app();
+              app.state().t = t;
+              return app;
+            },
+            760,
+            460));
     return all;
   }
 

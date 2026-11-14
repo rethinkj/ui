@@ -1,0 +1,16 @@
+el 0,0 760x460
+  el 8,8 180x444
+    el 9,9 178x442
+      el #views role=listbox label="Views" 13,13 170x434 focused
+        el #item-0 role=option label="Customers" 13,13 170x28 pos=1/2
+          el 13,15 170x24
+            el 15,19 2x16
+            text label="people" "\u{F5A7}" 21,19 16x16
+            text "Customers" 41,19 134x16
+        el #item-1 role=option label="Notes" 13,41 170x28 selected pos=2/2
+          el 13,43 170x24
+            el 15,47 2x16
+            text label="document" "\u{E4D7}" 21,47 16x16
+            text "Notes" 41,47 134x16
+  el 196,8 556x444
+    text #notes role=textbox label="Notes for the team" "Call Ada about the invoice" 213,25 522x410 lines 1-1/1
