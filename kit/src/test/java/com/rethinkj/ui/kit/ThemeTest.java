@@ -410,11 +410,14 @@ class ThemeTest {
     check(failures, "invalid edge", t.status().danger(), Map.of("raised", s.raised()), 3);
     // A group's rows are pressed on a raised card, and a description stays readable under the
     // pointer; a segmented control and a navigation list lay the overlays over the panel.
+    // The details of a status bar lie on the window, which a part that takes a press hovers.
     check(
         failures,
         "muted text",
         t.text().muted(),
-        Map.of("raised hovered", over(s.raised(), s.hover())),
+        Map.of(
+            "raised hovered", over(s.raised(), s.hover()),
+            "window hovered", over(s.window(), s.hover())),
         4.5);
     check(
         failures,

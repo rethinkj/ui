@@ -15,11 +15,11 @@ overlay bottom start gap 2 on #query role=textbox label="Query" 13,46 494x145
       el 94,122 190x24
         el 102,126 16x16
           text label="table" "\u{EBF4}" 102,126 16x16
-        text "orders" 126,126 100x16
-        text "table" 246,126 30x16
+        text "orders" 126,126 102x16
+        text "table" 248,127 28x15
     el #option-1 role=option label="order_items" 94,146 190x24 pos=2/2
       el 94,146 190x24
         el 102,150 16x16
           text label="table" "\u{EBF4}" 102,150 16x16
-        text "order_items" 126,150 100x16
-        text "table" 246,150 30x16
+        text "order_items" 126,150 102x16
+        text "table" 248,151 28x15

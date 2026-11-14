@@ -734,91 +734,91 @@ el 0,0 1000x600
         el 268,32 8x540
           el 272,32 1x540
   el role=status label="Status bar" 0,572 1000x28
-    el 8,574 952x24
-      el #server-localhost role=button label="localhost" 8,574 84x24 value="connected"
+    el 8,574 954x24
+      el #server-localhost role=button label="localhost" 8,574 79x24 value="connected"
         el 12,578 16x16
           el 16,582 8x8
-        text "localhost" 32,578 56x16
-      el #server-staging role=button label="staging" 94,574 73x24 value="idle"
-        el 98,578 16x16
-          el 102,582 8x8
-        text "staging" 118,578 45x16
-      el #server-prod-eu role=button label="prod-eu" 169,574 79x24 value="idle"
-        el 173,578 16x16
-          el 177,582 8x8
-        text "prod-eu" 193,578 51x16
-    el #running label="Idle" 962,574 30x24
-      text "Idle" 966,578 22x16
+        text "localhost" 32,579 51x15
+      el #server-staging role=button label="staging" 89,574 69x24 value="idle"
+        el 93,578 16x16
+          el 97,582 8x8
+        text "staging" 113,579 41x15
+      el #server-prod-eu role=button label="prod-eu" 160,574 73x24 value="idle"
+        el 164,578 16x16
+          el 168,582 8x8
+        text "prod-eu" 184,579 45x15
+    el #running label="Idle" 964,574 28x24
+      text "Idle" 968,579 20x15
 overlay bottom start gap 2 on #query-localhost/shop/public/orders role=textbox label="Query" 289,115 690x82
   el #completions role=listbox label="Completions" 369,170 208x202 rows 0-11/12 thumb-y 568,173 6x132.86
     el #option-0 role=option label="customer_id" 374,175 190x24 selected pos=1/12
       el 374,175 190x24
         el 382,179 16x16
           text label="column_single" "\u{F0116}" 382,179 16x16
-        text "customer_id" 406,179 85x16
-        text "column" 511,179 45x16
+        text "customer_id" 406,179 88x16
+        text "column" 514,180 42x15
     el #option-1 role=option label="customers" 374,199 190x24 pos=2/12
       el 374,199 190x24
         el 382,203 16x16
           text label="table" "\u{EBF4}" 382,203 16x16
-        text "customers" 406,203 100x16
-        text "table" 526,203 30x16
+        text "customers" 406,203 102x16
+        text "table" 528,204 28x15
     el #option-2 role=option label="customers_2025" 374,223 190x24 pos=3/12
       el 374,223 190x24
         el 382,227 16x16
           text label="table" "\u{EBF4}" 382,227 16x16
-        text "customers_2025" 406,227 100x16
-        text "table" 526,227 30x16
+        text "customers_2025" 406,227 102x16
+        text "table" 528,228 28x15
     el #option-3 role=option label="customers_2024" 374,247 190x24 pos=4/12
       el 374,247 190x24
         el 382,251 16x16
           text label="table" "\u{EBF4}" 382,251 16x16
-        text "customers_2024" 406,251 100x16
-        text "table" 526,251 30x16
+        text "customers_2024" 406,251 102x16
+        text "table" 528,252 28x15
     el #option-4 role=option label="customers_2023" 374,271 190x24 pos=5/12
       el 374,271 190x24
         el 382,275 16x16
           text label="table" "\u{EBF4}" 382,275 16x16
-        text "customers_2023" 406,275 100x16
-        text "table" 526,275 30x16
+        text "customers_2023" 406,275 102x16
+        text "table" 528,276 28x15
     el #option-5 role=option label="customers_2022" 374,295 190x24 pos=6/12
       el 374,295 190x24
         el 382,299 16x16
           text label="table" "\u{EBF4}" 382,299 16x16
-        text "customers_2022" 406,299 100x16
-        text "table" 526,299 30x16
+        text "customers_2022" 406,299 102x16
+        text "table" 528,300 28x15
     el #option-6 role=option label="customers_2021" 374,319 190x24 pos=7/12
       el 374,319 190x24
         el 382,323 16x16
           text label="table" "\u{EBF4}" 382,323 16x16
-        text "customers_2021" 406,323 100x16
-        text "table" 526,323 30x16
+        text "customers_2021" 406,323 102x16
+        text "table" 528,324 28x15
     el #option-7 role=option label="customers_2020" 374,343 190x24 pos=8/12
       el 374,343 190x24
         el 382,347 16x16
           text label="table" "\u{EBF4}" 382,347 16x16
-        text "customers_2020" 406,347 100x16
-        text "table" 526,347 30x16
+        text "customers_2020" 406,347 102x16
+        text "table" 528,348 28x15
     el #option-8 role=option label="customers_2019" 374,367 190x24 pos=9/12
       el 374,367 190x24
         el 382,371 16x16
           text label="table" "\u{EBF4}" 382,371 16x16
-        text "customers_2019" 406,371 100x16
-        text "table" 526,371 30x16
+        text "customers_2019" 406,371 102x16
+        text "table" 528,372 28x15
     el #option-9 role=option label="customers_2018" 374,391 190x24 pos=10/12
       el 374,391 190x24
         el 382,395 16x16
           text label="table" "\u{EBF4}" 382,395 16x16
-        text "customers_2018" 406,395 100x16
-        text "table" 526,395 30x16
+        text "customers_2018" 406,395 102x16
+        text "table" 528,396 28x15
     el #option-10 role=option label="customers_2017" 374,415 190x24 pos=11/12
       el 374,415 190x24
         el 382,419 16x16
           text label="table" "\u{EBF4}" 382,419 16x16
-        text "customers_2017" 406,419 100x16
-        text "table" 526,419 30x16
+        text "customers_2017" 406,419 102x16
+        text "table" 528,420 28x15
     el #option-11 role=option label="CURRENT" 374,439 190x24 pos=12/12
       el 374,439 190x24
         el 382,451 16x0
-        text "CURRENT" 406,443 78x16
-        text "keyword" 504,443 52x16
+        text "CURRENT" 406,443 82x16
+        text "keyword" 508,444 48x15
