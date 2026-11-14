@@ -3,7 +3,7 @@ title: Workbench
 description: The frame of a database manager over made-up servers that answer slowly.
 ---
 
-The Workbench is the frame of a database manager: servers, databases, schemas, tables and columns in a tree beside a tab per opened table, each a query editor over the table's rows in a data grid. The servers are made up and answer slowly, on other threads, so it shows how an app stays responsive. It is the largest example and uses most of the kit.
+The Workbench is the frame of a database manager: servers, databases, schemas, tables and columns in a tree beside a tab per opened table, each a query editor over the table's rows in a data grid. The servers are made up and answer slowly, on other threads, so it shows how an app stays responsive.
 
 <Shot dark="examples/workbench-dark-2x" light="examples/workbench-light-2x" alt="The Workbench: a tree of connections, a query editor and a result grid in cards" />
 
@@ -21,13 +21,51 @@ mvn -q -pl examples -am compile exec:exec -Dexample=Workbench
 
 <Shot src="examples/workbench-completion" alt="Completions of column names below the caret" />
 
-## Where to look in the source
+## How it works
 
-[`Workbench.java`](https://github.com/rethinkj/ui/blob/main/examples/src/main/java/com/rethinkj/ui/examples/Workbench.java):
+### The tree over the app's own nodes
 
-- `Workbench` implements `Tree.Model` over its nodes (`roots`, `children`, `isLeaf`, `label`, `icon`), and `openOrClose` starts the connection with `App.background` when a server opens.
-- `ask` and `run` ask a server for a table's rows off the app's thread; closing a tab cancels the `Work`.
-- `suggest` builds the completions for the editor.
-- `openWindow` is the `TabGroups` opener for torn-off tabs; `palette` builds the command palette with its sources.
-- `taskbar` counts the questions on the taskbar button and asks for attention when an answer arrives in the background.
-- `main` sets the latency to 0 before `Script.handle`, so that scripts need not wait.
+The app state implements `Tree.Model` over its `Node`s. A server's `children` are null until it has connected, so the tree shows the loading row below it; a server that is connecting shows a spinner as its icon.
+
+```java snippet="workbench-model"
+```
+
+The view passes the model with the open nodes, the selection and three handlers ([Tree](/docs/components/tree)):
+
+```java snippet="workbench-tree"
+```
+
+### Connecting in the background
+
+Opening a server asks for its databases with `App.background`. The work runs on another thread; the two handlers run on the app's thread and change the state, which builds the view again ([Background work](/docs/concepts/background-work)).
+
+```java snippet="workbench-connect"
+```
+
+Asking a table for its rows works the same way. Closing the tab or running the query again cancels the `Work` that `App.background` returned.
+
+### The query editor and its completions
+
+Each tab's query is a [CodeEditor](/docs/components/code-editor) with SQL highlighting. Control+Enter runs the query before the editor's own keys; `Completion.complete` adds the completion list ([Completion](/docs/components/completion)).
+
+```java snippet="workbench-editor"
+```
+
+`suggest` returns the entries for the start of a word: the tab's columns, then the tables and columns of the connected servers, then SQL keywords, each name once.
+
+```java snippet="workbench-suggest"
+```
+
+### Tabs that tear off
+
+The tabs of every window are one `TabGroups` ([TabGroups](/docs/components/tab-groups)):
+
+```java snippet="workbench-groups"
+```
+
+Its opener opens the window of a torn-off tab: a new `App` over the same state, with a view of its own ([Several windows](/docs/concepts/windows)).
+
+```java snippet="workbench-window"
+```
+
+The whole app is in [`Workbench.java`](https://github.com/rethinkj/ui/blob/main/examples/src/main/java/com/rethinkj/ui/examples/Workbench.java).

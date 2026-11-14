@@ -16,6 +16,7 @@ export const REPOSITORY = 'https://github.com/rethinkj/ui';
 export const SNIPPET_ROOTS = [
   'examples/src/test/java/com/rethinkj/ui/examples/docs',
   'examples/src/test/resources/docs',
+  'examples/src/main/java/com/rethinkj/ui/examples',
 ];
 
 const START = /^\s*(?:\/\/|#)\s*docs:start\s+([\w-]+)\s*$/;
