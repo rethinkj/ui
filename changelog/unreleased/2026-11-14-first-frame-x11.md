@@ -1,0 +1,1 @@
+- A window on X11 with a compositor no longer shows other windows' content while its app starts: it stays transparent from the moment it is shown until its first frame, so it appears with that frame. `WindowLoop` does this by itself; a loop of one's own must call `Window.drawn()` after its first frame, else the window stays invisible there.

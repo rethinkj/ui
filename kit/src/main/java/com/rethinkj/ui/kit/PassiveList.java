@@ -37,7 +37,7 @@ final class PassiveList {
         .selected(lit)
         .disabled(choose == null)
         .radius(t.radius().small())
-        .fill(lit ? t.grid().selected() : 0);
+        .fill(lit ? t.surface().highlight() : 0);
     if (choose != null) {
       row.onHoverFor(0, () -> light.accept(index)).onPress(choose);
     }

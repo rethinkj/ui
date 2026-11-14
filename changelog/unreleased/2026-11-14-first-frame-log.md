@@ -1,0 +1,1 @@
+- `WindowLoop` logs at `DEBUG` on the `System.Logger` `com.rethinkj.ui.window` how many milliseconds after the process started each window showed its first frame, so an app can watch its start time. With `java.util.logging`, set `com.rethinkj.ui.window.level = FINE` and `java.util.logging.ConsoleHandler.level = FINE` to print it.

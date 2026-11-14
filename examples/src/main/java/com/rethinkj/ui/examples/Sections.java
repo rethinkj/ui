@@ -506,7 +506,7 @@ final class Sections {
         Menu.item("Copy name", () -> s.say("copy name")).shortcut("Ctrl+C"),
         Menu.item("Share…", null),
         Menu.separator(),
-        Menu.item("Delete", () -> s.say("delete")).shortcut("Delete"));
+        Menu.item("Delete", () -> s.say("delete")).shortcut("Delete").danger());
     El saved =
         card(t, "Saved queries", Menu.contextMenu(t, list, s.context, actions)).w(420);
     El hints = col()

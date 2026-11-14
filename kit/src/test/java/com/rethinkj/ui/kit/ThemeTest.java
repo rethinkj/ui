@@ -229,12 +229,12 @@ class ThemeTest {
         t.status().success(),
         Map.of("grid selected", t.grid().selected()),
         4.5);
-    // A menu highlights a disabled item with the hover overlay on its raised surface.
+    // A menu highlights a disabled item with the hover overlay on the popup.
     check(
         failures,
         "disabled text",
         t.text().disabled(),
-        Map.of("raised hovered", over(s.raised(), s.hover())),
+        Map.of("popup hovered", over(s.popup(), s.hover())),
         2);
     // Selected text keeps its colour over the translucent selection.
     check(
@@ -478,7 +478,7 @@ class ThemeTest {
   void disabledTextIsLegibleButBelowMuted(String name) {
     Theme t = theme(name);
     Theme.Surfaces s = t.surface();
-    for (int surface : new int[] {s.window(), s.panel(), s.raised()}) {
+    for (int surface : new int[] {s.window(), s.panel(), s.raised(), s.popup()}) {
       double ratio = contrast(t.text().disabled(), surface);
       assertTrue(ratio >= 2.5 && ratio <= 3.5, String.format("%.2f on %08X", ratio, surface));
       assertTrue(ratio < contrast(t.text().muted(), surface));
@@ -500,6 +500,28 @@ class ThemeTest {
       assertTrue(Math.abs(hover - base) >= 4, at);
       assertTrue(Math.abs(pressed - base) >= Math.abs(hover - base) + 3, at);
     }
+  }
+
+  /**
+   * A popup in the dark theme is lighter than the controls below it, and the item it highlights
+   * stands apart from it, with text that reads on it.
+   */
+  @ParameterizedTest
+  @ValueSource(strings = {"dark", "light"})
+  void aPopupsHighlightStandsApartAndKeepsItsText(String name) {
+    Theme t = theme(name);
+    Theme.Surfaces s = t.surface();
+    int highlight = s.highlight();
+    Map<String, Integer> on = Map.of("popup", s.popup(), "highlight", highlight);
+    List<String> failures = new ArrayList<>();
+    check(failures, "primary text", t.text().primary(), on, 4.5);
+    check(failures, "muted text", t.text().muted(), on, 4.5);
+    check(failures, "danger text", t.danger().text(), on, 4.5);
+    check(failures, "disabled text", t.text().disabled(), Map.of("highlight", highlight), 2);
+    check(failures, "divider", t.border().divider(), Map.of("popup", s.popup()), 1.2);
+    assertTrue(failures.isEmpty(), String.join("\n", failures));
+    assertTrue(Math.abs(lightness(highlight) - lightness(s.popup())) >= 6, "stands apart");
+    assertTrue(name.equals("light") || lightness(s.popup()) > lightness(s.raised()), "lighter");
   }
 
   /** A selection without the focus is told apart from a row under the pointer. */

@@ -87,7 +87,7 @@ public final class Tooltip {
         .label(text)
         .padding(t.space().xs(), t.space().s())
         .radius(t.radius().small())
-        .fill(t.surface().raised())
+        .fill(t.surface().popup())
         .border(t.size().stroke(), t.border().control())
         .shadow(t.elevation().popup())
         .motion(t.motion().fade())

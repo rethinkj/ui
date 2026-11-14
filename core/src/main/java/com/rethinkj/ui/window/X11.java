@@ -27,6 +27,11 @@ import java.lang.invoke.MethodHandle;
  * Window#drawn()}). What a resize uncovers before the app has drawn shows the window's
  * background, which SDL leaves {@code None}: whatever lay there, other windows' content
  * included.
+ *
+ * <p>Until its first frame the window has no content of its own either: the compositor would
+ * show whatever its pixmap holds, other windows' content included, while the app starts its GPU.
+ * So it is transparent to the compositor ({@code _NET_WM_WINDOW_OPACITY}) from before it shows
+ * until the first {@link Window#drawn()}.
  */
 final class X11 {
 
@@ -139,6 +144,28 @@ final class X11 {
       attributes.set(JAVA_INT, BIT_GRAVITY, NORTH_WEST_GRAVITY);
       int unused = (int) H.CHANGE_WINDOW_ATTRIBUTES_H.invokeExact(
           display, window, CW_BACK_PIXEL | CW_BIT_GRAVITY, attributes);
+      unused = (int) H.FLUSH_H.invokeExact(display);
+    } catch (Throwable t) {
+      throw Sdl.failed(t);
+    }
+  }
+
+  /**
+   * Sets how opaque the compositor shows the window, from 0 for not at all to 0xFFFFFFFF for
+   * fully. Without a compositor it does nothing.
+   */
+  static void opacity(MemorySegment display, long window, long opacity) {
+    try (Arena arena = Arena.ofConfined()) {
+      long property = atom(arena, display, "_NET_WM_WINDOW_OPACITY");
+      int unused = (int) H.CHANGE_PROPERTY_H.invokeExact(
+          display,
+          window,
+          property,
+          XA_CARDINAL,
+          32,
+          PROP_MODE_REPLACE,
+          arena.allocateFrom(JAVA_LONG, opacity),
+          1);
       unused = (int) H.FLUSH_H.invokeExact(display);
     } catch (Throwable t) {
       throw Sdl.failed(t);
