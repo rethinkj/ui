@@ -37,6 +37,8 @@ A million selected rows are one range, so selecting everything costs nothing.
 | `select(row, column)`, `extend(row, column)`, `toggle(row, column)`, `selectAll(rowCount)`, `clear()` | Select from the app's own handlers |
 | `reset()` | Clear everything and scroll back to the start, for a new result |
 
+With `options().changes(changes)`, the selection follows its rows by their keys when the app sorts, filters, inserts or removes rows, so Delete, Control+Minus, Control+0 and a paste act on the rows the user selected. A range that a sort tears apart becomes several; when the cursor's row is gone the cursor goes to the nearest row left, and when every selected row is gone the selection collapses to the cursor. A selection of more than `Selection.FOLLOWED_ROWS` (10 000) rows collapses to the cursor when its rows move. Without keys the selection stays on its row indexes, so an app that reorders rows calls `clear()` or `reset()`.
+
 The selection also remembers where the grid is scrolled to, so a grid built again with it, after its tab was away or in another window, comes back to the same rows and columns. One selection belongs to one grid at a time.
 
 `onSelect(handler)` tells the app when the selection changes, for a status line such as "3 cells selected". `DataGrid.cellCount(ranges, columns)` counts them.

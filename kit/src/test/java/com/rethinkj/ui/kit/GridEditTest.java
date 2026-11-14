@@ -170,11 +170,183 @@ class GridEditTest {
         "edited 20", ledger.changes.cell(ledger.changes.rowOf(20), 1), ledger.log.toString());
     assertEquals("edited 10", ledger.changes.cell(0, 1), "10 keeps its own");
 
-    run(app, "key ArrowDown\ntype \"lost\"\nframe"); // on 30
+    assertEquals(2, ledger.selection.row(), "the cursor followed 20");
+    run(app, "key ArrowUp\ntype \"lost\"\nframe"); // on 30
     app.post(() -> ledger.changes.rows(keyed(10, 20))); // filtered away
     run(app, "await\nframe");
     assertFalse(ledger.selection.isEditing(), "its row is gone, and the editor with it");
     assertEquals(2, ledger.changes.count(), "nothing written to another row");
+  }
+
+  /** The keys of the rows that a change updates or deletes, in order. */
+  private static List<Long> changed(Ledger ledger) {
+    return ledger.changes.changes().stream()
+        .filter(c -> c.kind() != GridChanges.Kind.INSERT)
+        .map(GridChanges.Change::key)
+        .sorted()
+        .toList();
+  }
+
+  private App<Ledger> keyedLedger(DataGrid.Mode mode, long... keys) throws IOException {
+    Ledger ledger = new Ledger(T, keys.length, mode);
+    ledger.changes.rows(keyed(keys));
+    return start(ledger);
+  }
+
+  @Test
+  void theSelectionFollowsItsRowsWhenTheAppSortsThemAndDeleteClearsThose() throws IOException {
+    App<Ledger> app = keyedLedger(DataGrid.Mode.CELLS, 10, 20, 30, 40, 50);
+    Ledger ledger = app.state();
+    run(app, "press #cell-1-1\npress #cell-2-1 shift\nframe");
+    app.post(() -> ledger.changes.rows(keyed(50, 40, 30, 20, 10))); // sorted descending
+    run(app, "await\nframe");
+    assertEquals(2, ledger.selection.row(), "the cursor on 30");
+    assertEquals(3, ledger.selection.anchorRow(), "the anchor on 20");
+    assertEquals(List.of(new DataGrid.Range(2, 1, 3, 1)), ledger.selection.ranges());
+    assertTrue(line(app, "cell-3-1").contains(" selected"), line(app, "cell-3-1"));
+    run(app, "key Delete\nframe");
+    assertEquals(List.of(20L, 30L), changed(ledger));
+  }
+
+  @Test
+  void aRangeThatASortTearsApartBecomesSeveral() throws IOException {
+    App<Ledger> app = keyedLedger(DataGrid.Mode.CELLS, 10, 20, 30, 40, 50);
+    Ledger ledger = app.state();
+    run(app, "press #cell-1-1\npress #cell-3-3 shift\nframe");
+    app.post(() -> ledger.changes.rows(keyed(20, 50, 30, 10, 40)));
+    run(app, "await\nframe");
+    assertEquals(4, ledger.selection.row(), "on 40");
+    assertEquals(0, ledger.selection.anchorRow(), "on 20");
+    assertEquals(
+        List.of(
+            new DataGrid.Range(0, 1, 0, 3),
+            new DataGrid.Range(2, 1, 2, 3),
+            new DataGrid.Range(4, 1, 4, 3)),
+        ledger.selection.ranges());
+    run(app, "key 0 control\nframe");
+    assertEquals(List.of(20L, 30L, 40L), changed(ledger), "amount NULL in those rows alone");
+  }
+
+  @Test
+  void aFilterThatTakesTheCursorsRowPutsItOnTheNearestRowLeft() throws IOException {
+    App<Ledger> app = keyedLedger(DataGrid.Mode.CELLS, 10, 20, 30, 40, 50);
+    Ledger ledger = app.state();
+    run(app, "press #cell-1-1\npress #cell-2-1 shift\nframe"); // 20 and 30, the cursor on 30
+    app.post(() -> ledger.changes.rows(keyed(10, 20, 40, 50)));
+    run(app, "await\nframe");
+    assertEquals(1, ledger.selection.row(), "on 20, which is left of the selection");
+    assertEquals(List.of(new DataGrid.Range(1, 1, 1, 1)), ledger.selection.ranges());
+    run(app, "key Delete\nframe");
+    assertEquals(List.of(20L), changed(ledger));
+  }
+
+  @Test
+  void aFilterThatTakesAllSelectedRowsCollapsesTheSelectionToTheCursor() throws IOException {
+    App<Ledger> app = keyedLedger(DataGrid.Mode.CELLS, 10, 20, 30, 40, 50);
+    Ledger ledger = app.state();
+    run(app, "press #cell-1-1\npress #cell-2-1 shift\nframe");
+    app.post(() -> ledger.changes.rows(keyed(10, 40, 50)));
+    run(app, "await\nframe");
+    assertEquals(1, ledger.selection.row(), "on 40, the row after the cursor's");
+    assertEquals(1, ledger.selection.anchorRow());
+    assertEquals(List.of(new DataGrid.Range(1, 1, 1, 1)), ledger.selection.ranges());
+    run(app, "key Delete\nframe");
+    assertEquals(List.of(40L), changed(ledger));
+  }
+
+  @Test
+  void selectedRowsFollowASortAndControlMinusDeletesThose() throws IOException {
+    App<Ledger> app = keyedLedger(DataGrid.Mode.ROWS, 10, 20, 30, 40, 50);
+    Ledger ledger = app.state();
+    run(app, "press #cell-1-1\npress #cell-3-1 shift\nframe");
+    app.post(() -> ledger.changes.rows(keyed(50, 10, 40, 20, 30)));
+    run(app, "await\nframe");
+    assertEquals(
+        List.of(new DataGrid.Range(2, 0, 4, DataGrid.Range.ALL)), ledger.selection.ranges());
+    assertEquals(2, ledger.selection.row(), "on 40");
+    run(app, "key - control\nframe");
+    assertEquals(List.of(20L, 30L, 40L), changed(ledger));
+    assertTrue(
+        ledger.changes.changes().stream().allMatch(c -> c.kind() == GridChanges.Kind.DELETE));
+  }
+
+  @Test
+  void aRowInsertedAboveMovesTheSelectionDownWithItsRows() throws IOException {
+    App<Ledger> app = keyedLedger(DataGrid.Mode.CELLS, 10, 20, 30, 40, 50);
+    Ledger ledger = app.state();
+    run(app, "press #cell-2-1\npress #cell-3-1 shift\nframe");
+    app.post(() -> ledger.changes.insert(0)); // a new row after 10, not by the grid's keys
+    run(app, "await\nframe");
+    assertEquals(List.of(new DataGrid.Range(3, 1, 4, 1)), ledger.selection.ranges());
+    assertEquals(4, ledger.selection.row());
+    run(app, "key Delete\nframe");
+    assertEquals(List.of(30L, 40L), changed(ledger));
+  }
+
+  @Test
+  void moreRowsThanTheLimitCollapseToTheCursorWhenTheRowsMove() throws IOException {
+    int n = 20_000;
+    long[] up = new long[n];
+    long[] down = new long[n];
+    for (int i = 0; i < n; i++) {
+      up[i] = i;
+      down[i] = n - 1 - i;
+    }
+    App<Ledger> app = keyedLedger(DataGrid.Mode.CELLS, up);
+    Ledger ledger = app.state();
+    DataGrid.Selection sel = ledger.selection;
+    int last = DataGrid.Selection.FOLLOWED_ROWS - 1;
+    app.post(() -> {
+      sel.select(0, 1);
+      sel.extend(last, 1);
+    });
+    run(app, "await\nframe");
+    app.post(() -> ledger.changes.rows(keyed(down)));
+    run(app, "await\nframe");
+    assertEquals(List.of(new DataGrid.Range(n - 1 - last, 1, n - 1, 1)), sel.ranges(), "all");
+    assertEquals(n - 1 - last, sel.row());
+
+    app.post(() -> sel.extend(n - 2 - last, 1)); // one row more than the limit
+    run(app, "await\nframe");
+    app.post(() -> ledger.changes.rows(keyed(up)));
+    run(app, "await\nframe");
+    assertEquals(last + 1, sel.row(), "with its row");
+    assertEquals(List.of(new DataGrid.Range(last + 1, 1, last + 1, 1)), sel.ranges());
+    assertEquals(last + 1, sel.anchorRow());
+  }
+
+  /** Without keys the selection stays on its places, as the app does not move rows under it. */
+  @Test
+  void aGridWithoutKeysKeepsItsSelectionWhereItWas() throws IOException {
+    int[] order = {0, 1, 2, 3, 4};
+    DataGrid.Selection sel = new DataGrid.Selection(DataGrid.Mode.CELLS);
+    App<int[]> app = new App<>(
+        order,
+        o -> com.rethinkj.ui.El.col()
+            .wFull()
+            .hFull()
+            .child(DataGrid.dataGrid(
+                    T,
+                    List.of(new DataGrid.Column(
+                            "n", 80, DataGrid.DataType.TEXT, r -> String.valueOf(o[r]))
+                        .editable()),
+                    o.length,
+                    DataGrid.options().select(sel).onCommit((r, c, v) -> null))
+                .grow(1)));
+    app.textRendering(TextRendering.LINUX);
+    app.post(() -> {
+      sel.select(1, 0);
+      sel.extend(2, 0);
+    });
+    run(app, "frame\nawait\nframe");
+    app.post(() -> {
+      for (int i = 0; i < order.length; i++) {
+        order[i] = 4 - i;
+      }
+    });
+    run(app, "await\nframe");
+    assertEquals(List.of(new DataGrid.Range(1, 0, 2, 0)), sel.ranges());
+    assertEquals(2, sel.row());
   }
 
   @Test
@@ -714,6 +886,46 @@ class GridEditTest {
     assertEquals("field", app.focused().key());
     run(app, "type \"?\"\nkey Enter\nframe");
     assertEquals("commit 0,1 Ada Lovelace?!", ledger.log.getLast());
+  }
+
+  /**
+   * Text typed while the editor's row is scrolled out of the rows that exist goes into its draft,
+   * Backspace and Delete edit the draft rather than clear the selected cells, and the row comes
+   * back into view; in an ordinary column and in a frozen one.
+   */
+  @ParameterizedTest
+  @ValueSource(ints = {1, 2})
+  void textTypedWhileTheEditorsRowIsScrolledAwayGoesIntoItsDraft(int frozen) throws IOException {
+    Ledger ledger = new Ledger(T, 400);
+    ledger.more = o -> o.frozen(frozen);
+    App<Ledger> app = start(ledger);
+    run(app, "key F2\nframe\nwheel #rows 0 4000\nframe");
+    assertNull(dumpLine(app, "field"), "its row is gone");
+    run(app, "type \"!?\"\nframe");
+    assertEquals("Ada Lovelace!?", ledger.selection.draft());
+    assertNotNull(dumpLine(app, "field"), "its row came back:\n" + app.tree().dump());
+    run(app, "wheel #rows 0 4000\nframe\nkey Backspace\nframe");
+    assertEquals("Ada Lovelace!", ledger.selection.draft());
+    assertTrue(ledger.changes.isEmpty(), "no cell cleared");
+    run(app, "wheel #rows 0 4000\nframe\nkey Delete\nframe");
+    assertTrue(ledger.changes.isEmpty(), "no cell cleared");
+    run(app, "wheel #rows 0 4000\nframe\nkey Enter\nframe");
+    assertEquals("commit 0,1 Ada Lovelace!", ledger.log.getLast());
+    assertEquals(1, ledger.selection.row(), "down from it");
+  }
+
+  /** The same at the last of a million rows, scrolled to the top. */
+  @Test
+  void textTypedAtTheLastOfAMillionRowsScrolledAwayGoesIntoItsDraft() throws IOException {
+    Ledger ledger = new Ledger(T, 1_000_000);
+    App<Ledger> app = start(ledger);
+    run(app, "key End control\nframe\nkey Home\nkey ArrowRight\nframe\nkey F2\nframe");
+    String value = ledger.selection.draft();
+    run(app, "wheel #rows 0 -100000\nframe\ntype \"x\"\nframe");
+    assertEquals(value + "x", ledger.selection.draft());
+    assertNotNull(dumpLine(app, "field"), "its row came back");
+    run(app, "key Enter\nframe");
+    assertEquals("commit 999999,1 " + value + "x", ledger.log.getLast());
   }
 
   @Test

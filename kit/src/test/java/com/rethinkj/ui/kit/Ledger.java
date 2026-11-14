@@ -26,7 +26,7 @@ final class Ledger {
   final Theme theme;
   final int count;
   final GridChanges changes;
-  final Selection selection = new Selection(Mode.CELLS);
+  final Selection selection;
   final Menu.State menu = new Menu.State();
   final List<String> log = new ArrayList<>();
   UnaryOperator<DataGrid.Options> more = o -> o;
@@ -41,6 +41,11 @@ final class Ledger {
   App<Ledger> app;
 
   Ledger(Theme theme, int count) {
+    this(theme, count, Mode.CELLS);
+  }
+
+  Ledger(Theme theme, int count, Mode mode) {
+    this.selection = new Selection(mode);
     this.theme = theme;
     this.count = count;
     this.changes = new GridChanges(count, Ledger::cell);
