@@ -29,9 +29,10 @@ Start with what the user does, one step per line, and `snap` after each state yo
 
 ## 4. Run it
 
+In a project set up as in [Your own project](/docs/get-started):
+
 ```sh
-mvn -q -pl examples -am compile exec:exec -Dexample=MyApp \
-  -Dargs="--script my.txt --out target/my"
+mvn -q compile exec:exec -Dmain.class=com.example.MyApp -Dargs="--script my.txt --out target/my"
 ```
 
 or from a test with `Script.run(text, app, folder)`. On a mistake the run stops at the step with a message that says what to write instead; read it and fix the script or the view.
