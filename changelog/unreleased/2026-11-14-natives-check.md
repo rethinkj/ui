@@ -1,0 +1,1 @@
+- Apps start faster: the native libraries already in the cache are no longer read and hashed at every start. Each file is still checked against its SHA-256 when it is unpacked; later starts use a cached file whose size matches the natives JAR and unpack one of another size again.
