@@ -12,6 +12,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.function.Function;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
@@ -72,6 +73,27 @@ class StructureTest {
     String tree = Files.readString(out.resolve(image + ".tree.txt"));
     Golden.assertMatches(image, Png.decode(Files.readAllBytes(out.resolve(image + ".png"))), tree);
     return tree;
+  }
+
+  @Test
+  void anEmptyStateBreaksItsTextInANarrowPanel() throws IOException {
+    App<Object> app = new App<>(
+        new Object(),
+        s -> El.col()
+            .size(258, 400)
+            .child(EmptyState.emptyState(
+                Theme.DARK,
+                Symbol.DATABASE,
+                "No connections yet",
+                "Connections to your databases will be listed here.",
+                null)));
+    Script.run("size 258 400\nframe\nsnap narrow", app, out);
+    String tree = Files.readString(out.resolve("narrow.tree.txt"));
+    float[] text = rect(line(tree, "text \"Connections to"));
+    assertTrue(
+        text[0] >= 0 && text[0] + text[2] <= 258,
+        "inside the panel: " + line(tree, "text \"Connections to"));
+    assertTrue(text[3] > 30, "on two lines or more: " + text[3]);
   }
 
   static String line(String tree, String part) {

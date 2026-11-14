@@ -58,7 +58,7 @@ el 0,0 880x600
         el 240,179 608x206
           el role=status label="No connections match" 253,192 582x180
             text label="search" "\u{EA7E}" 520,216 48x48
-            text "No connections match" 474,272 141x16
-            text "No name or host contains \"xyz\"." 444,296 200x16
+            text "No connections match" 277,272 534x16
+            text "No name or host contains \"xyz\"." 277,296 534x16
             el role=button label="Clear filter" 499,324 90x24
               text "Clear filter" 512,328 64x16

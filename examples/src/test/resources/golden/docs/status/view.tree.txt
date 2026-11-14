@@ -8,7 +8,7 @@ el 0,0 460x420
       text "Restart" 363,30 43x16
   el role=status label="No tables match" 12,72 155x258
     text label="search" "\u{EA7E}" 66,135 48x48
-    text "No tables match" 40,191 100x16
+    text "No tables match" 36,191 107x16
     text "Try another filter." 36,215 107x16
     el role=button label="Clear filter" 45,243 90x24
       text "Clear filter" 58,247 64x16

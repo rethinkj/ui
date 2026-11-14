@@ -1,0 +1,1 @@
+- The title and the text of an `EmptyState` break into lines where the room is narrower than they are, each line in the middle; before, they ran out of a narrow panel on both sides and were cut. In a tree dump both are as wide as the room.
