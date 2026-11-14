@@ -17,6 +17,8 @@ export function baseOptions(): BaseLayoutProps {
       { text: 'Get started', url: '/docs/get-started', active: 'nested-url' },
       { text: 'Components', url: '/docs/components', active: 'nested-url' },
       { text: 'Testing and agents', url: '/docs/testing', active: 'nested-url' },
+      // The Javadoc, which the Docs workflow puts beside the site: a page of its own, not a route.
+      { text: 'API', url: '/api/', external: true },
     ],
   };
 }

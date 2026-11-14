@@ -154,15 +154,14 @@ public final class Tabs {
     void move(int from, int to);
   }
 
-  /**
-   * Told that the user dropped a tab of another bar into this one.
-   *
-   * @param fromBar the {@link Options#id} of the bar the tab comes from
-   * @param from its index there
-   * @param at the index in this bar before which it goes; the number of tabs for the end
-   */
+  /** Told that the user dropped a tab of another bar into this one. */
   @FunctionalInterface
   public interface Dock {
+    /**
+     * @param fromBar the {@link Options#id} of the bar the tab comes from
+     * @param from its index there
+     * @param at the index in this bar before which it goes; the number of tabs for the end
+     */
     void dock(Object fromBar, int from, int at);
   }
 

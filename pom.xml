@@ -114,6 +114,58 @@
           </executions>
         </plugin>
         <plugin>
+          <!-- The API documentation. A JAR of it beside the classes, which Central wants for a
+               release; core and kit declare it. -->
+          <artifactId>maven-javadoc-plugin</artifactId>
+          <version>3.12.0</version>
+          <configuration>
+            <!-- A missing comment is not an error; a broken link or bad HTML is. -->
+            <doclint>all,-missing</doclint>
+            <failOnWarnings>true</failOnWarnings>
+            <doctitle>rethinkj UI ${project.version}</doctitle>
+            <windowtitle>rethinkj UI ${project.version}</windowtitle>
+            <bottom>rethinkj UI, MIT License</bottom>
+            <quiet>true</quiet>
+          </configuration>
+          <executions>
+            <execution>
+              <id>attach-javadocs</id>
+              <!-- At install, not package: deploy builds it, verify stays as fast as without. -->
+              <phase>install</phase>
+              <goals>
+                <goal>jar</goal>
+              </goals>
+            </execution>
+            <execution>
+              <!-- The HTML of core and kit together, which the site serves at /api/:
+                   mvn -P '!natives-linux-x64' -pl core,kit -am javadoc:aggregate, into
+                   target/reports/apidocs. kit has no module descriptor, and an aggregate cannot
+                   mix a named module with unnamed ones: both go on the class path, and without a
+                   source path, on which javadoc would find core's module-info.java. -->
+              <id>default-cli</id>
+              <configuration>
+                <legacyMode>true</legacyMode>
+                <disableSourcepathUsage>true</disableSourcepathUsage>
+                <sourceFileExcludes>
+                  <sourceFileExclude>**/module-info.java</sourceFileExclude>
+                </sourceFileExcludes>
+                <!-- What core's module does not export. -->
+                <excludePackageNames>com.rethinkj.ui.gpu:com.rethinkj.ui.natives:com.rethinkj.ui.text.ffi</excludePackageNames>
+                <groups>
+                  <group>
+                    <title>Core</title>
+                    <packages>com.rethinkj.ui:com.rethinkj.ui.layout:com.rethinkj.ui.motion:com.rethinkj.ui.render:com.rethinkj.ui.text:com.rethinkj.ui.window</packages>
+                  </group>
+                  <group>
+                    <title>Kit</title>
+                    <packages>com.rethinkj.ui.kit</packages>
+                  </group>
+                </groups>
+              </configuration>
+            </execution>
+          </executions>
+        </plugin>
+        <plugin>
           <artifactId>maven-antrun-plugin</artifactId>
           <version>3.2.0</version>
         </plugin>

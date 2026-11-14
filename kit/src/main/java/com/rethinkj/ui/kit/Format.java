@@ -23,7 +23,7 @@ import java.util.regex.Pattern;
 
 /**
  * How a value of type {@code T} is written as text and read back, for a field that edits such a
- * value ({@link ValueField}) and a grid's column of such values ({@link DataGrid.Table}): {@link
+ * value ({@link ValueField}) and a grid's column of such values ({@link GridTable}): {@link
  * #text} writes a value, {@link #parse} reads a text into a value or a message that says what a
  * valid text looks like, and {@link #allows} says whether typing may lead from a text to a valid
  * one, so that a field refuses a letter in a number.
