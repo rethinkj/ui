@@ -797,7 +797,7 @@ public final class Find {
         .key("find")
         .role("search")
         .label("Find")
-        .padding(0, bars.thickness() + 2 * bars.margin(), 0, 0)
+        .padding(0, bars.strip(), 0, 0)
         .motion(t.motion().fade())
         .side(Side.TOP, Style.Align.END, -(barHeight(t, state) + t.space().xs()))
         .onKey(k -> barKey(app, state, k))

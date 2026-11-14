@@ -370,7 +370,7 @@ public final class Tree {
     }
     // Clear of the scrollbar, which lies over the end of the rows: the only row with a part there.
     Scrollbars bars = t.scrollbars();
-    float clear = Math.max(0, bars.thickness() + 2 * bars.margin() - t.space().s());
+    float clear = Math.max(0, bars.strip() - t.space().s());
     // No motion: it would fade in as the row turns from loading to failed, untouchable meanwhile.
     return row.child(row()
         .role("button")
