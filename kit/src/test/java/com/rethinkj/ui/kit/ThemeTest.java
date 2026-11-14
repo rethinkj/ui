@@ -66,6 +66,14 @@ class ThemeTest {
     check(failures, "success", t.status().success(), surfaces, 4.5);
     check(failures, "text on accent", t.text().onAccent(), accents, 4.5);
     check(failures, "strong border", t.border().strong(), surfaces, 3);
+    // A field's bottom edge, which identifies it, also against its own fill at rest and hovered,
+    // where the whole frame takes the strong border.
+    check(
+        failures,
+        "field edge",
+        t.border().strong(),
+        Map.of("field", s.raised(), "field hovered", over(s.raised(), s.hover())),
+        3);
     check(failures, "accent edge", t.accent().edge(), surfaces, 3);
     // A primary button's ring lies a gap away from its accent, on the surfaces, as every ring.
     // What is on: a checked box, a switch, the chosen choice of a segmented control.
@@ -110,6 +118,22 @@ class ThemeTest {
           int ring = over(background, t.border().track());
           check(failures, "spinner ring", ring, Map.of(on, background), 1.3);
           check(failures, "spinner arc", t.accent().edge(), Map.of("its ring on " + on, ring), 3);
+        });
+    // A busy primary button's spinner: its ring shows on the fill, the arc in the text's colour
+    // stands out from it, on the accent's fills and a dangerous button's.
+    Theme.Danger danger = t.danger();
+    Map.of(
+            "accent", t.accent().color(),
+            "accent hover", t.accent().hover(),
+            "accent pressed", t.accent().pressed(),
+            "danger", danger.color(),
+            "danger hover", danger.hover(),
+            "danger pressed", danger.pressed())
+        .forEach((on, fill) -> {
+          int ring = over(fill, t.border().trackOnAccent());
+          int arc = on.startsWith("danger") ? danger.onColor() : t.text().onAccent();
+          check(failures, "spinner ring", ring, Map.of(on, fill), 1.3);
+          check(failures, "spinner arc", arc, Map.of("its ring on " + on, ring), 3);
         });
     // Code in an editor: on the field's raised surface, hovered, on the caret's line and in a
     // marked block, with the caret's line over it; the brackets at the caret on their background
@@ -394,11 +418,14 @@ class ThemeTest {
     check(failures, "invalid edge", t.status().danger(), Map.of("raised", s.raised()), 3);
     // A group's rows are pressed on a raised card, and a description stays readable under the
     // pointer; a segmented control and a navigation list lay the overlays over the panel.
+    // The details of a status bar lie on the window, which a part that takes a press hovers.
     check(
         failures,
         "muted text",
         t.text().muted(),
-        Map.of("raised hovered", over(s.raised(), s.hover())),
+        Map.of(
+            "raised hovered", over(s.raised(), s.hover()),
+            "window hovered", over(s.window(), s.hover())),
         4.5);
     check(
         failures,
@@ -418,6 +445,14 @@ class ThemeTest {
         badges.neutral(), badges.accent(), badges.success(), badges.warning(), badges.danger())) {
       Map<String, Integer> tinted = new java.util.HashMap<>();
       under.forEach((what, colour) -> tinted.put(what, over(colour, tone.soft())));
+      // The fill is a quiet step off the surface, but one that shows.
+      surfaces.forEach((what, colour) -> {
+        double step = contrast(over(colour, tone.soft()), colour);
+        if (step < 1.08) {
+          failures.add(String.format(
+              "badge fill %s on %s: %.3f:1, needs 1.08:1", Colors.toHex(tone.soft()), what, step));
+        }
+      });
       surfaces.forEach((what, colour) -> { // a pressable badge lies on a surface
         tinted.put(what + " hovered", over(colour, Badge.deeper(tone.soft(), Badge.HOVER)));
         tinted.put(what + " pressed", over(colour, Badge.deeper(tone.soft(), Badge.PRESSED)));

@@ -1,6 +1,6 @@
 ---
 title: Label
-description: "Text in one of the theme's styles: normal, muted, monospaced, strong, a heading or a title."
+description: "Text in one of the theme's styles: normal, muted, small, monospaced, strong, a heading or a title."
 ---
 
 `Label.label` is a text element in one of the theme's type styles and text colours. Use it for every piece of text the kit does not draw itself. For text of your own font and size, use the core's `El.text` ([Text and fonts](/docs/concepts/text)).
@@ -20,6 +20,7 @@ description: "Text in one of the theme's styles: normal, muted, monospaced, stro
 | `HEADING` | The title of a section or a card |
 | `TITLE` | The title of a page, above its sections |
 | `STRONG` | A title inside a section, such as a popover's |
+| `SMALL` | Secondary text beside what it is about, muted and 12 px: a status bar's details, a completion's kind, a find bar's count |
 
 The result is a text element: chain `.wrapText()` for text that wraps, `.ellipsis()` for text that is cut off.
 

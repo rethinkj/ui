@@ -2,7 +2,6 @@ package com.rethinkj.ui.kit;
 
 import static com.rethinkj.ui.El.col;
 import static com.rethinkj.ui.El.el;
-import static com.rethinkj.ui.kit.Theme.over;
 
 import com.rethinkj.ui.Cursor;
 import com.rethinkj.ui.El;
@@ -409,7 +408,6 @@ public final class ComboBox {
 
   /** The closed look of {@link #comboBox}: a {@link Select}'s. */
   private static El closed(Theme t, String text, El lead, boolean enabled, State state) {
-    int fill = t.surface().raised();
     El box = SelectionFrame.frame(t, text, lead, enabled).expanded(false);
     if (!enabled) {
       return box;
@@ -433,7 +431,7 @@ public final class ComboBox {
           }
           return false;
         })
-        .whenHovered(e -> e.fill(over(fill, t.surface().hover())));
+        .whenHovered(e -> SelectionFrame.hovered(t, e));
   }
 
   /** A field in the frame with the chevron, which opens and closes the list. */
@@ -482,7 +480,8 @@ public final class ComboBox {
       box.child(before);
     }
     if (enabled) {
-      box.whenFocusWithin(e -> field.border(t.size().stroke(), t.accent().color()));
+      box.whenFocusWithin(
+          e -> TextField.edge(t, field, t.accent().color(), t.accent().color()));
       field.onKey(k -> key(k, state, choice));
     }
     return box;

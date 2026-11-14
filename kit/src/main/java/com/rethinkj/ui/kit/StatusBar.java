@@ -133,7 +133,7 @@ public final class StatusBar {
     if (before != null) {
       part.child(before);
     }
-    part.child(Label.label(t, Label.Variant.MUTED, text).ellipsis().minSize(0, 0));
+    part.child(Label.label(t, Label.Variant.SMALL, text).ellipsis().minSize(0, 0));
     if (onPress == null) {
       return part;
     }
