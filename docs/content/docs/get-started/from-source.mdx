@@ -40,8 +40,10 @@ mvn verify
 `mvn verify` builds every module and runs the tests, which render hundreds of views without a window and compare them with stored images. It opens no window. Without a toolchain, leave the native libraries out; the tests that need them skip themselves:
 
 ```sh
-mvn verify -P -natives-linux-x64      # or -natives-windows-x64
+mvn verify -P -natives-linux-x64
 ```
+
+On Windows, write `-natives-windows-x64`.
 
 If a build cannot find or load a native library, see [Platforms and native libraries](/docs/reference/platforms).
 
@@ -50,9 +52,11 @@ If a build cannot find or load a native library, see [Platforms and native libra
 The `examples` module holds apps written the way a user of the library writes them. From the repository's root:
 
 ```sh
-mvn -q -pl examples -am compile exec:exec                          # LightSwitch
-mvn -q -pl examples -am compile exec:exec -Dexample=Showcase       # every component
+mvn -q -pl examples -am compile exec:exec
+mvn -q -pl examples -am compile exec:exec -Dexample=Showcase
 ```
+
+The first runs LightSwitch, the second the Showcase of every component.
 
 `-Dexample` names a class in `com.rethinkj.ui.examples`: `LightSwitch`, `Workbench`, `DataBrowser`, `Showcase`, `Documents`, `Manual`, `Settings`, `ConnectionDialog` or `Notes`. [Examples](/docs/examples) has a page for each.
 
