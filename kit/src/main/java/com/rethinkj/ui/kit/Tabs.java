@@ -49,7 +49,9 @@ import java.util.function.IntConsumer;
  * stays on the bar, as in WAI-ARIA's tabs, so that the user can go on choosing. From anywhere
  * inside, the bar or the content, Control+Tab and Control+Page Down choose the next tab and
  * Control+Shift+Tab and Control+Page Up the one before, around at the ends, and Control+W and Control+F4 close the active tab if it can be
- * closed. Keys go up from the focused element, so these work while the focus is inside. From the
+ * closed. Keys go up from the focused element, so these work while the focus is inside; tabs in
+ * the content of other tabs leave the four that choose to the outer ones with {@link
+ * Options#switchKeys}. From the
  * content the focus goes into the content of the tab that takes over: to the element where it
  * was if the new content has one, else to its {@link El#autofocus} element or its first focusable
  * one, else to the bar (see {@link com.rethinkj.ui.App#focused}). An app that wants the shortcuts
@@ -270,6 +272,7 @@ public final class Tabs {
     private Move onMove;
     private Consumer<TearOff> onTearOff;
     private boolean tearOffAtStart;
+    private boolean switchKeys = true;
     private Dock onDock;
     private Menu.State menu;
     private List<Menu.Item> menuItems = List.of();
@@ -320,6 +323,18 @@ public final class Tabs {
      */
     public Options tearOffAtStart(boolean on) {
       this.tearOffAtStart = on;
+      return this;
+    }
+
+    /**
+     * Whether Control+Tab, Control+Shift+Tab, Control+Page Down and Control+Page Up choose this
+     * bar's tabs; true by default. Off, the bar leaves these four to what encloses it, so that in
+     * tabs nested in the content of other tabs they choose the outer tabs while the focus is in the
+     * inner ones. Left, Right, Home and End on the bar, and the keys that close and move a tab,
+     * work as before.
+     */
+    public Options switchKeys(boolean on) {
+      this.switchKeys = on;
       return this;
     }
 
@@ -651,9 +666,11 @@ public final class Tabs {
     return root.onKey(k -> {
       String name = k.name();
       int from = active;
-      boolean tab = name.equals("Tab") && (k.modifiers() & ~Key.SHIFT) == Key.CONTROL;
-      boolean page =
-          k.modifiers() == Key.CONTROL && (name.equals("PageDown") || name.equals("PageUp"));
+      boolean tab =
+          o.switchKeys && name.equals("Tab") && (k.modifiers() & ~Key.SHIFT) == Key.CONTROL;
+      boolean page = o.switchKeys
+          && k.modifiers() == Key.CONTROL
+          && (name.equals("PageDown") || name.equals("PageUp"));
       if (tab || page) {
         boolean back = tab ? (k.modifiers() & Key.SHIFT) != 0 : name.equals("PageUp");
         if (o.menu != null) { // its items act on the active tab, which changes

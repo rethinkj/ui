@@ -1,0 +1,1 @@
+- Added: `Tabs.Options.switchKeys(boolean)`. With `false`, a `Tabs` bar nested inside the content of other tabs leaves Control+Tab, Control+Shift+Tab, Control+Page Down and Control+Page Up to the outer tabs, so they switch those even while the focus is in the inner tabs. Left, Right, Home and End on the inner bar still choose its own tabs. The default is unchanged.
