@@ -106,4 +106,12 @@ class ElTest {
   void escapesQuotesInLabels() {
     assertEquals("el label=\"say \\\"hi\\\"\"\n", el().label("say \"hi\"").dump());
   }
+
+  @Test
+  void aNullChildIsLeftOut() {
+    El a = El.el().key("a");
+    El b = El.el().key("b");
+    El parent = El.col().child(null).children(a, null, b).child(null);
+    assertEquals(java.util.List.of(a, b), parent.children());
+  }
 }

@@ -1,0 +1,1 @@
+- `El.child(null)` adds nothing and `El.children(...)` leaves out null entries, so `cond ? part : null` composes in any element, as the documentation said; before, a null child threw a `NullPointerException` when the view was laid out.

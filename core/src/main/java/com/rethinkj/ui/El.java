@@ -4,7 +4,6 @@ import com.rethinkj.ui.layout.Flex;
 import com.rethinkj.ui.motion.Spring;
 import com.rethinkj.ui.text.Font;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
@@ -2497,15 +2496,21 @@ public final class El {
 
   // Tree
 
+  /** Adds a child after the ones there are; null adds none, so {@code cond ? part : null} composes. */
   public El child(El child) {
     noRows();
-    children.add(child);
+    if (child != null) {
+      children.add(child);
+    }
     return this;
   }
 
+  /** Adds these children in order, leaving out the ones that are null. */
   public El children(El... children) {
     noRows();
-    Collections.addAll(this.children, children);
+    for (El child : children) {
+      child(child);
+    }
     return this;
   }
 
