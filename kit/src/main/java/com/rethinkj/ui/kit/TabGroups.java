@@ -357,6 +357,17 @@ public final class TabGroups<T> {
       }
     }
     dragging.clear();
+    stopFollowing();
+  }
+
+  /**
+   * Ends a drag's following of the pointer, however the drag ends: the window that followed
+   * takes drops again.
+   */
+  private void stopFollowing() {
+    if (following != null && groups.contains(following)) {
+      following.window.dropTarget(true);
+    }
     following = null;
     origin = null;
   }
@@ -464,7 +475,6 @@ public final class TabGroups<T> {
       f.window.moveTo(Math.round(d.screenX() - (firstX + o.grabX()) * scale), Math.round(top));
       return;
     }
-    following = null;
     if (d.phase() == Drag.Phase.CANCEL && open) { // as it was
       if (origin != null && groups.contains(origin)) {
         dock(cast(o.bar()), o.index(), origin, originIndex); // the dragged tab, wherever it is
@@ -472,12 +482,11 @@ public final class TabGroups<T> {
         f.window.moveTo(startX, startY);
       }
     }
-    if (groups.contains(f)) {
-      f.window.dropTarget(true); // it stays where it was let go
-    } else if (d.window() != null) {
+    boolean stays = groups.contains(f); // it stays where it was let go
+    stopFollowing();
+    if (!stays && d.window() != null) {
       d.window().raise(); // it went into the window under the pointer
     }
-    origin = null;
   }
 
   /**
