@@ -34,11 +34,12 @@ Enter and Space on the button open the menu with its first enabled item highligh
 | `.shortcut("Ctrl+Enter")` | A text that only shows |
 | `.icon(Symbol)` | An icon before the text |
 | `.checked(boolean)` | A check mark in the icon's place, or at the item's end where it has a leading element |
+| `.danger()` | The text and icon in the theme's danger tone (`Theme.Danger.text`), for an action that destroys something, such as Delete; disabled, it is greyed out as any other item |
 | `.leading(theme -> element)` | Any small element before the text in place of the icon, built for each place the item shows, at most 16 pixels square: a colour's swatch, an avatar |
 | `Menu.separator()` | A line |
 | `Menu.submenu(label, items)` | A submenu, opening beside the item |
 
-An `Item` is a record (`label`, `shortcut`, `keys`, `checked`, `icon`, `onChoose`, `submenu`, `leading`), so an app reads its items back, as a palette or a help page of shortcuts does: `isSeparator()` says whether it is a line, and `isEnabled()` whether it can be chosen or opens a submenu that has items. `Menu.shortcutText(key)` writes a `Key` as the platform does, for a tooltip or a hint of the app's own: Ctrl, Alt and Shift in that order after `Win` or `Super`, then the key, so `Ctrl+Shift+N`; Windows writes `Del`, `Ins`, `PgUp` and `PgDn` where Linux writes `Delete`, `Insert`, `Page Up` and `Page Down`.
+An `Item` is a record (`label`, `shortcut`, `keys`, `checked`, `icon`, `onChoose`, `submenu`, `leading`, `dangerous`), so an app reads its items back, as a palette or a help page of shortcuts does: `isSeparator()` says whether it is a line, and `isEnabled()` whether it can be chosen or opens a submenu that has items. `Menu.shortcutText(key)` writes a `Key` as the platform does, for a tooltip or a hint of the app's own: Ctrl, Alt and Shift in that order after `Win` or `Super`, then the key, so `Ctrl+Shift+N`; Windows writes `Del`, `Ins`, `PgUp` and `PgDn` where Linux writes `Delete`, `Insert`, `Page Up` and `Page Down`.
 
 A submenu of colours with a swatch before each hue's name, the chosen one checked at its end, as a [ComboBox](/docs/components/combo-box) checks its current item; a [CommandPalette](/docs/components/command-palette) of these items shows the same:
 

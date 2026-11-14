@@ -29,8 +29,8 @@ import java.util.function.Supplier;
  *
  * <p>The look is made of layers: the window's background ({@link Surfaces#window}), cards on it
  * ({@link Surfaces#panel}) lifted by {@link Elevation#card}, quiet bands inside a card such as a
- * tab bar, a grid's header and a footer ({@link Surfaces#band}), and controls and popups ({@link
- * Surfaces#raised}). Hairlines of low contrast ({@link Borders#subtle}) edge them, and dividers
+ * tab bar, a grid's header and a footer ({@link Surfaces#band}), controls ({@link
+ * Surfaces#raised}) and popups ({@link Surfaces#popup}). Hairlines of low contrast ({@link Borders#subtle}) edge them, and dividers
  * ({@link Borders#divider}) separate content on them. Radii go by
  * rank: cards {@link Radii#large}, controls {@link Radii#medium}, small parts {@link Radii#small}.
  * The full accent fills primary buttons and what is on; its lighter {@link Accent#edge} draws
@@ -608,14 +608,33 @@ public record Theme(
    *
    * @param window behind everything: the page the cards lie on, and the title bar
    * @param panel a card, a sidebar or a dialog on the window
-   * @param raised a control or a popup above both
+   * @param raised a control on a card or a band
    * @param band a quiet band inside a card: a tab bar, a footer, the header of a grid
    * @param hover translucent, over a control's background while the pointer is over it
    * @param pressed translucent, over a control's background while it is pressed
    * @param scrim translucent, over the whole window under a modal dialog
+   * @param popup a menu, a select's or a combo box's list, a palette, a popover, a tooltip or a
+   *     toast, above everything else
+   * @param highlight opaque, the item of a popup's list under the pointer or the keys: a neutral
+   *     tone apart from the accent's tint, which marks a selection
    */
   public record Surfaces(
-      int window, int panel, int raised, int band, int hover, int pressed, int scrim) {}
+      int window,
+      int panel,
+      int raised,
+      int band,
+      int hover,
+      int pressed,
+      int scrim,
+      int popup,
+      int highlight) {
+
+    /** Surfaces whose popups are raised and highlight an item with the pressed overlay. */
+    public Surfaces(
+        int window, int panel, int raised, int band, int hover, int pressed, int scrim) {
+      this(window, panel, raised, band, hover, pressed, scrim, raised, over(raised, pressed));
+    }
+  }
 
   /**
    * @param primary most text
@@ -1162,9 +1181,12 @@ public record Theme(
    * The rules the default themes follow; ThemeTest holds them to these.
    *
    * Layers. The window is the page, darker than the cards in both themes; cards (panel) lie on it,
-   * bands (a tab bar, a grid's header, a footer) are a quiet step inside a card, and controls and
-   * popups (raised) a step above it, white in the light theme, where a control is told apart by its
-   * edge and a popup by its edge and shadow. In the light theme they are four tones: window L* 93,
+   * bands (a tab bar, a grid's header, a footer) are a quiet step inside a card, and controls
+   * (raised) a step above it, white in the light theme, where a control is told apart by its edge.
+   * Popups are a step lighter again in the dark theme, so that a menu stands apart from the card
+   * behind it, and white in the light one, told apart by their edge and shadow. The item under the
+   * pointer or the keys in a popup's list (highlight) is a neutral grey 6 L* or more from the
+   * popup, with primary, muted and danger text 4.5:1 on it; the accent's tint marks a selection. In the light theme they are four tones: window L* 93,
    * band 97, panel 99 and raised 100. Hairlines (subtle) are a low-contrast step from the card; a
    * button's edge (control) a little more. A divider, the hairline that separates content on a
    * surface, stands out 1.2:1 or more from every surface it is drawn on: in the dark theme it is
@@ -1220,7 +1242,9 @@ public record Theme(
           GREY_099,
           alpha(GREY_298, 0.25f),
           alpha(GREY_298, 0.45f),
-          alpha(BLACK, 0.6f)),
+          alpha(BLACK, 0.6f),
+          GREY_157,
+          over(GREY_157, alpha(GREY_298, 0.36f))),
       new TextColors(GREY_916, GREY_648, GREY_425, WHITE),
       new Borders(GREY_157, GREY_477, GREY_226, alpha(GREY_477, 0.35f), GREY_226),
       Hue.BLUE.dark(),
@@ -1254,7 +1278,9 @@ public record Theme(
           GREY_968,
           alpha(GREY_773, 0.33f),
           alpha(GREY_773, 0.57f),
-          alpha(BLACK, 0.35f)),
+          alpha(BLACK, 0.35f),
+          WHITE,
+          over(WHITE, alpha(GREY_773, 0.57f))),
       new TextColors(GREY_108, GREY_395, GREY_602, WHITE),
       new Borders(GREY_912, GREY_547, GREY_844, alpha(GREY_547, 0.37f), GREY_805),
       Hue.BLUE.light(),
