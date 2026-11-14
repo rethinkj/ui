@@ -5,6 +5,7 @@ import static com.rethinkj.ui.El.el;
 import static com.rethinkj.ui.El.row;
 import static com.rethinkj.ui.kit.Button.Variant.PRIMARY;
 import static com.rethinkj.ui.kit.Button.Variant.SECONDARY;
+import static com.rethinkj.ui.kit.Form.Labels.BESIDE;
 
 import com.rethinkj.ui.Clipboard;
 import com.rethinkj.ui.El;
@@ -147,6 +148,48 @@ final class Layouts {
         Button.button(t, PRIMARY, "Connect", s.user.isBlank() ? null : () -> s.said = "connect"));
     // docs:end form
     return Frame.of(t, Card.card(t, form, buttons).w(440));
+  }
+
+  static El formGroups(Layouts s) {
+    Theme t = s.t;
+    // docs:start form-groups
+    El form = Form.form(
+        t,
+        Form.Labels.BESIDE,
+        Form.group(
+                "Server",
+                // Each field of the row keeps its label, help and error; the host grows.
+                Form.row(
+                    Form.field("Host", TextField.textField(t, s.host, "localhost", v -> s.host = v))
+                        .required()
+                        .grow(),
+                    Form.field(
+                            "Port",
+                            TextField.textField(t, s.port, "5432", v -> s.port = v)
+                                .w(72))
+                        .error(s.port.matches("\\d+") ? null : "Digits only")))
+            .description("Where the database runs."),
+        Form.group(
+                "Login",
+                Form.field("User", TextField.textField(t, s.user, "Role", v -> s.user = v)),
+                Form.field("Password", TextField.passwordField(t, "", null, v -> {})))
+            .divided());
+    // docs:end form-groups
+    return Frame.of(t, Card.card(t, form).w(440));
+  }
+
+  static El formCards(Layouts s) {
+    Theme t = s.t;
+    // docs:start form-cards
+    Form.Field host = Form.field("Host", TextField.textField(t, s.host, null, v -> s.host = v));
+    Form.Field user =
+        Form.field("User name", TextField.textField(t, s.user, null, v -> s.user = v));
+    // One label column for forms in separate cards: the width of all their labels.
+    float column = Form.labelWidth(t, host, user);
+    El server = Card.card(t, Card.header(t, "Server", null), Form.form(t, BESIDE, column, host));
+    El login = Card.card(t, Card.header(t, "Login", null), Form.form(t, BESIDE, column, user));
+    // docs:end form-cards
+    return Frame.of(t, col().w(400).gap(t.space().m()).children(server, login));
   }
 
   static El dividers(Layouts s) {

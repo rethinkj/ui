@@ -53,6 +53,8 @@ class DocsExamplesTest {
     layouts(all, "groups", Layouts::groups, 460, 200);
     layouts(all, "sections", Layouts::sections, 520, 400);
     layouts(all, "form", Layouts::form, 480, 260);
+    layouts(all, "form-groups", Layouts::formGroups, 480, 300);
+    layouts(all, "form-cards", Layouts::formCards, 440, 260);
     layouts(all, "dividers", Layouts::dividers, 280, 140);
     layouts(all, "navigation", Layouts::navigation, 260, 220);
     layouts(all, "navigation-typed", Layouts::typedNavigation, 260, 220);
