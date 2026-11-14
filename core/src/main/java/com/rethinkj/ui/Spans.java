@@ -34,7 +34,7 @@ public final class Spans {
   int[] tos = new int[4];
   int[] colors = new int[4];
   Font[] fonts = new Font[4];
-  int lineBackground;
+  int[] lineBackgrounds = new int[0]; // from the bottom up
   private boolean styled; // a colour or a font, which the glyphs need
 
   // For Lines: the state the line was highlighted from and the one it ended in.
@@ -56,14 +56,14 @@ public final class Spans {
 
   /**
    * What the spans hold, one range per line in the order given, as {@code color 0-6 FF7C3AED},
-   * with {@code line FFE0E7FF} first for a line's background.
+   * with {@code line FFE0E7FF} first for each of a line's backgrounds.
    */
   @Override
   public String toString() {
     StringBuilder out = new StringBuilder();
-    if (lineBackground != 0) {
+    for (int argb : lineBackgrounds) {
       out.append("line ")
-          .append(Integer.toHexString(lineBackground).toUpperCase(Locale.ROOT))
+          .append(Integer.toHexString(argb).toUpperCase(Locale.ROOT))
           .append('\n');
     }
     String[] names = {"color", "font", "background", "underline", "strike"};
@@ -124,11 +124,13 @@ public final class Spans {
   /**
    * A background across the whole width of the field behind this line, all of its rows when it
    * wraps, in colour {@code argb}: the line of the caret, or a line with an error. Drawn before
-   * the backgrounds of ranges.
+   * the backgrounds of ranges; a second one is laid over the first, so that the caret's line
+   * inside a marked block shows both.
    */
   public Spans lineBackground(int argb) {
-    if (!discard) {
-      lineBackground = argb;
+    if (!discard && argb >>> 24 != 0) {
+      lineBackgrounds = Arrays.copyOf(lineBackgrounds, lineBackgrounds.length + 1);
+      lineBackgrounds[lineBackgrounds.length - 1] = argb;
     }
     return this;
   }
