@@ -159,8 +159,6 @@ class FieldRowsTest {
     assertNull(app.focused(), "the focused row does not exist now");
     assertNull(find(app, "name-2"));
     assertFalse(app.tree().dump().contains("focused"));
-    type(app, "lost");
-    assertEquals("audit_log", app.state().name(2), "text without a focused field is dropped");
 
     scrollToRow(app, 0);
     El field = find(app, "name-2");
@@ -175,6 +173,16 @@ class FieldRowsTest {
 
     type(app, "AU");
     assertEquals("AUdit_log", app.state().name(2), "typing replaces the selection it had");
+
+    scrollToRow(app, 500);
+    assertNull(app.focused());
+    type(app, "-");
+    assertSame(find(app, "name-2"), app.focused(), "text brings the field's row back");
+    assertEquals("AU-dit_log", app.state().name(2), "and goes in at its caret");
+    scrollToRow(app, 500);
+    key(app, "Backspace", 0);
+    assertEquals("AUdit_log", app.state().name(2), "as Backspace does");
+    assertSame(find(app, "name-2"), app.focused());
   }
 
   @Test

@@ -151,7 +151,7 @@ el 0,0 900x520
               el #cell-0-9 role=gridcell 471,129 139x23 pos=10/12
                 text "2026-12-07 12:54" 475,133 112x16
               el 610,129 1x23
-              el #cell-0-10 role=gridcell 611,129 89x23 pos=11/12
+              el #cell-0-10 role=gridcell 611,129 89x23 selected current pos=11/12
                 text label="record" "\u{F660}" 615,133 16x16
                 text "shipped" 635,133 50x16
               el 700,129 1x23
@@ -192,7 +192,7 @@ el 0,0 900x520
               el #cell-1-9 role=gridcell 471,153 139x23 pos=10/12
                 text "2026-12-09 12:56" 475,157 112x16
               el 610,153 1x23
-              el #cell-1-10 role=gridcell 611,153 89x23 selected current pos=11/12
+              el #cell-1-10 role=gridcell 611,153 89x23 pos=11/12
                 text label="record" "\u{F660}" 615,157 16x16
                 text "shipped" 635,157 50x16
               el 700,153 1x23

@@ -946,6 +946,10 @@ public final class DataGrid {
    * Mode#ROWS} every range holds whole rows. The methods change it as the grid's input does, so
    * that an app can select from its own handlers too.
    *
+   * <p>Where the grid knows its rows' keys ({@link Options#changes}), it follows the rows it is on
+   * when the app sorts, filters, inserts or removes rows between two builds, up to {@link
+   * #FOLLOWED_ROWS} selected rows; without keys it stays on its places.
+   *
    * <p>It also keeps where the grid is scrolled to ({@link ScrollState}), so that a grid built
    * with it comes back to the same rows and columns after it was out of the tree, as the grid of
    * a tab that is not active, or in another window, as a tab torn off. One selection belongs to
@@ -1002,6 +1006,25 @@ public final class DataGrid {
     String refused;
     int refusedRow = -1;
     int refusedColumn = -1;
+    // With rows told apart by keys (Options.changes): the rows the selection was on when the
+    // last build began, their places and keys, so that it follows them when the app moves its
+    // rows. 0 is the cursor's, 1 the anchor's, 2 and 3 the rows around the cursor, then the rows
+    // of range i from keptFrom[i]: all of them, or with more than FOLLOWED_ROWS the ends and
+    // SAMPLES rows between, which only tell that the rows moved. -1 for no row.
+    private List<Object> keptAt; // the selection they were taken of, null to take them anew
+    private int[] keptRows = {};
+    private long[] keptKeys = {};
+    private int[] keptFrom = {};
+    private boolean keptAll;
+
+    /**
+     * The most selected rows that follow their rows by key when the app sorts, filters, inserts
+     * or removes rows of a grid with {@link Options#changes}; a selection of more rows collapses
+     * to the cursor then, so that a million selected rows stay one range and cost nothing.
+     */
+    public static final int FOLLOWED_ROWS = 10_000;
+
+    private static final int SAMPLES = 64;
 
     public Selection(Mode mode) {
       this.mode = Objects.requireNonNull(mode, "mode");
@@ -1292,6 +1315,173 @@ public final class DataGrid {
       }
       edgeColumn = to.applyAsInt(edgeColumn);
       dragColumn = -1;
+    }
+
+    /**
+     * Before a build, where the rows have keys: when the selection is as the last build left it
+     * but the rows it was on have moved, as when the app sorted, filtered, inserted or removed
+     * rows, puts cursor, anchor and ranges on the same rows. A selection that changed meanwhile
+     * is taken as it is, for the rows as they are now.
+     *
+     * @param count the app's rows
+     * @param rows the rows shown, with the row to append
+     */
+    void follow(
+        java.util.function.IntToLongFunction key,
+        java.util.function.LongToIntFunction place,
+        int count,
+        int rows) {
+      if (key == null) {
+        keptAt = null;
+        return;
+      }
+      if (keptAt == null || !keptAt.equals(snapshot()) || !moved(key, count, rows)) {
+        return;
+      }
+      keptAt = null; // taken anew in keep
+      int n = keptRows.length;
+      int[] to = places(key, place, count, rows);
+      boolean whole = !ranges.isEmpty() && ranges.getLast().wholeRows();
+      boolean selected = !ranges.isEmpty();
+      if (rows == 0) {
+        clear();
+        return;
+      }
+      if (row >= 0 && to[0] < 0) { // gone: to the nearest of the rows kept that is left
+        int nearest = -1;
+        long distance = Long.MAX_VALUE;
+        for (int i = 1; i < n; i++) {
+          if (to[i] >= 0 && Math.abs((long) keptRows[i] - row) < distance) {
+            distance = Math.abs((long) keptRows[i] - row);
+            nearest = to[i];
+          }
+        }
+        to[0] = nearest >= 0 ? nearest : Math.min(row, rows - 1);
+      }
+      row = row < 0 ? -1 : to[0];
+      if (anchorRow >= 0 && to[1] < 0) {
+        anchorRow = row;
+        anchorColumn = column;
+      } else if (anchorRow >= 0) {
+        anchorRow = to[1];
+      }
+      List<Range> carried = new ArrayList<>();
+      for (int r = 0; keptAll && r < ranges.size(); r++) {
+        Range range = ranges.get(r);
+        int[] at = java.util.Arrays.stream(to, keptFrom[r], keptFrom[r + 1])
+            .filter(p -> p >= 0)
+            .sorted()
+            .toArray();
+        for (int i = 0; i < at.length; ) { // the runs of rows next to each other
+          int j = i;
+          while (j + 1 < at.length && at[j + 1] <= at[j] + 1) {
+            j++;
+          }
+          carried.add(new Range(at[i], range.left(), at[j], range.right()));
+          i = j + 1;
+        }
+      }
+      ranges.clear();
+      ranges.addAll(carried);
+      if (selected && carried.isEmpty() && row >= 0) {
+        select(row, column, whole); // its rows are gone, or too many to follow
+      }
+    }
+
+    /** Whether a row kept is no longer where it was. */
+    private boolean moved(java.util.function.IntToLongFunction key, int count, int rows) {
+      for (int i = 0; i < keptRows.length; i++) {
+        int p = keptRows[i];
+        if (p >= 0 && (p >= rows || keyAt(key, count, p) != keptKeys[i])) {
+          return true;
+        }
+      }
+      return false;
+    }
+
+    /** Where each row kept is now, -1 where it is gone. */
+    private int[] places(
+        java.util.function.IntToLongFunction key,
+        java.util.function.LongToIntFunction place,
+        int count,
+        int rows) {
+      int n = keptRows.length;
+      int[] to = new int[n];
+      java.util.Map<Long, Integer> found = new java.util.HashMap<>();
+      for (int i = 0; i < n; i++) {
+        to[i] = -1;
+        if (keptRows[i] >= 0 && keptKeys[i] != APPEND) {
+          found.put(keptKeys[i], -1);
+        }
+      }
+      if (found.size() <= 8) { // the app's place may take a while: a few rows by it
+        found.replaceAll((k, v) -> place.applyAsInt(k));
+      } else { // one pass over the rows rather than a place for each of many
+        for (int r = 0, left = found.size(); r < count && left > 0; r++) {
+          Integer was = found.get(key.applyAsLong(r));
+          if (was != null && was < 0) {
+            found.put(key.applyAsLong(r), r);
+            left--;
+          }
+        }
+      }
+      for (int i = 0; i < n; i++) {
+        if (keptRows[i] < 0) {
+          continue;
+        }
+        int p = keptKeys[i] == APPEND ? count : found.get(keptKeys[i]);
+        to[i] = p >= 0 && p < rows ? p : -1;
+      }
+      return to;
+    }
+
+    private static long keyAt(java.util.function.IntToLongFunction key, int count, int place) {
+      return place < count ? key.applyAsLong(place) : APPEND;
+    }
+
+    /**
+     * After a build's changes of the columns, where the rows have keys: remembers the keys of the
+     * rows the selection is on, unless it is as when they were taken.
+     */
+    void keep(java.util.function.IntToLongFunction key, int count, int rows) {
+      if (key == null) {
+        return;
+      }
+      List<Object> now = snapshot();
+      if (now.equals(keptAt)) {
+        return;
+      }
+      keptAt = now;
+      long total = 0;
+      for (Range r : ranges) {
+        total += r.bottom() - (long) r.top() + 1;
+      }
+      keptAll = total <= FOLLOWED_ROWS;
+      List<Integer> at = new ArrayList<>(List.of(
+          row, anchorRow, row > 0 ? row - 1 : -1, row >= 0 && row + 1 < rows ? row + 1 : -1));
+      keptFrom = new int[ranges.size() + 1];
+      for (int r = 0; r < ranges.size(); r++) {
+        keptFrom[r] = at.size();
+        Range range = ranges.get(r);
+        if (keptAll) {
+          for (int p = range.top(); p <= range.bottom(); p++) {
+            at.add(p);
+          }
+        } else {
+          long span = range.bottom() - (long) range.top();
+          for (int k = 0; k <= SAMPLES + 1; k++) {
+            at.add((int) (range.top() + span * k / (SAMPLES + 1)));
+          }
+        }
+      }
+      keptFrom[ranges.size()] = at.size();
+      keptRows = new int[at.size()];
+      keptKeys = new long[at.size()];
+      for (int i = 0; i < keptRows.length; i++) {
+        int p = at.get(i);
+        keptRows[i] = p >= 0 && p < rows ? p : -1;
+        keptKeys[i] = keptRows[i] < 0 ? 0 : keyAt(key, count, p);
+      }
     }
 
     /** What the grid's views compare to tell the app of a change only. */
@@ -1823,7 +2013,10 @@ public final class DataGrid {
       options.showOnly(options.layout.shownColumns(), all);
     }
     if (options.selection != null) { // without a layout the columns shown are the app's
+      int rows = rowCount + (options.appendRow ? 1 : 0);
+      options.selection.follow(options.rowKey, options.rowPlace, rowCount, rows);
       options.selection.showing(options.full, all);
+      options.selection.keep(options.rowKey, rowCount, rows);
     }
     Build b = new Build(t, columns, rowCount, options);
     Theme.Grid g = b.g;
