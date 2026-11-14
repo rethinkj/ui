@@ -598,4 +598,60 @@ class GridTableTest {
     }
     return null;
   }
+
+  /** The handler of the first row takes it out of the rows: the others are still written. */
+  @Test
+  void aPasteGoesOnWhenAHandlerTakesARowOut() {
+    List<Named> rows = new ArrayList<>(List.of(new Named(1, "A"), new Named(2, "B")));
+    GridTable<Named> table = DataGrid.table(rows::get);
+    List<Column> columns =
+        List.of(table.column("name", 100, Format.TEXT, Named::name, Named::withName));
+    var paste = table.paste(columns, rows.size(), (index, row) -> {
+      rows.set(index, row);
+      rows.removeIf(r -> r.name().equals("hidden")); // the app's filter
+      return null;
+    });
+    paste.accept(List.of(new CellValue(0, 0, "hidden"), new CellValue(1, 0, "edited B")));
+    assertEquals(List.of(new Named(2, "edited B")), rows);
+  }
+
+  @Test
+  void aPasteThroughTheGridGoesOnWhenAHandlerTakesARowOut() throws IOException {
+    TextLibraries.assumeLoaded();
+    List<Named> rows =
+        new ArrayList<>(List.of(new Named(1, "A"), new Named(2, "B"), new Named(3, "C")));
+    Selection selection = new Selection(Mode.CELLS);
+    App<?>[] holder = new App<?>[1];
+    App<Object> app = new App<>(new Object(), x -> {
+      GridTable<Named> table = DataGrid.table(rows::get);
+      return col()
+          .wFull()
+          .hFull()
+          .child(DataGrid.dataGrid(
+                  Theme.DARK,
+                  List.of(table.column("Name", 180, Format.TEXT, Named::name, Named::withName)),
+                  rows.size(),
+                  DataGrid.options()
+                      .select(selection)
+                      .copy(holder[0].clipboard())
+                      .onCommit(table, (index, row) -> {
+                        if (row.id() == 1) {
+                          rows.remove(index); // no longer passes the app's filter
+                        } else {
+                          rows.set(index, row);
+                        }
+                        return null;
+                      }))
+              .key("grid")
+              .grow(1));
+    });
+    holder[0] = app;
+    Script.run(
+        "size 260 180\nframe\npress #cell-0-0\nframe\nclipboard \"AA\\nBB\\nCC\"\n"
+            + "key V control\nframe",
+        app,
+        Path.of("target/grid-table"));
+    assertEquals(List.of(new Named(2, "BB"), new Named(3, "CC")), rows);
+    assertTrue(app.tree().dump().contains("\"CC\""), app.tree().dump());
+  }
 }

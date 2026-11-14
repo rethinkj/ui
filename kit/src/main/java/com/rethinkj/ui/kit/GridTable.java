@@ -301,8 +301,10 @@ public final class GridTable<T> {
    * The grid's handler of pasted and cleared cells for these columns: the cells of each row
    * written into it at once, and {@code onRow} told each row; a refusal is not shown, and a value
    * the column's format does not read is left out. Each row is taken before {@code onRow} is told
-   * the first: a handler that sorts or refreshes the rows moves the others, which are then found
-   * again among the {@code count} rows by their objects, and left out where they are gone.
+   * the first: a handler that sorts, filters or refreshes the rows moves the others, which are
+   * then found again by their objects among the rows there are now (up to {@code count}, or to the
+   * first index that {@code rows} throws {@code IndexOutOfBoundsException} for), and left out where
+   * they are gone.
    */
   Consumer<List<CellValue>> paste(List<Column> columns, int count, RowCommit<T> onRow) {
     return values -> {
@@ -327,15 +329,31 @@ public final class GridTable<T> {
 
   /** Where this row object is now: at {@code was} unless the app moved it; -1 when it is gone. */
   private int placeOf(T row, int was, int count) {
-    if (was < count && rows.apply(was) == row) {
+    if (was < count && rowOrEnd(was) == row) {
       return was;
     }
     for (int i = 0; i < count; i++) {
-      if (rows.apply(i) == row) {
+      T now = rowOrEnd(i);
+      if (now == row) {
         return i;
+      }
+      if (now == END) {
+        break;
       }
     }
     return -1;
+  }
+
+  private static final Object END = new Object();
+
+  /** The row with this index, or {@link #END} beyond the rows a handler left. */
+  @SuppressWarnings("unchecked")
+  private T rowOrEnd(int index) {
+    try {
+      return rows.apply(index);
+    } catch (IndexOutOfBoundsException e) { // a list that a handler made shorter
+      return (T) END;
+    }
   }
 
   /** Writes values into a row and tells the app; a refusal sets a setter's values back. */
