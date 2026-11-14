@@ -15,6 +15,7 @@ import com.rethinkj.ui.Len;
 import com.rethinkj.ui.Measure;
 import com.rethinkj.ui.ScrollState;
 import com.rethinkj.ui.Scrollbars;
+import com.rethinkj.ui.Side;
 import com.rethinkj.ui.Style;
 import com.rethinkj.ui.Text;
 import java.util.ArrayList;
@@ -997,6 +998,10 @@ public final class DataGrid {
     int dragColumn = -1;
     int dropAt = -1;
     int[] shown; // the app's column of each one shown, as the last build had them
+    // A switch of a boolean that was refused, and its cell, until the next key or press.
+    String refused;
+    int refusedRow = -1;
+    int refusedColumn = -1;
 
     public Selection(Mode mode) {
       this.mode = Objects.requireNonNull(mode, "mode");
@@ -2337,6 +2342,16 @@ public final class DataGrid {
         }
       }
     }
+    if (sel != null && sel.refused != null && sel.refusedRow == i && sel.refusedColumn == c) {
+      // A switch that was refused: the edge and the message of a refused editor.
+      float w = b.g.cursorWidth();
+      box.invalid(true)
+          .border(w, t.status().danger())
+          .radius(t.radius().small())
+          .padding(0, Math.max(t.space().s() - w, 0))
+          .overlay(GridEdit.alert(t, sel.refused)
+              .side(Side.BOTTOM, Style.Align.START, t.space().xs()));
+    }
     String value = loaded && !append ? column.cell().apply(i) : null;
     CellIcon icon =
         loaded && !append && column.cellIcon() != null ? column.cellIcon().apply(i) : null;
@@ -2436,6 +2451,7 @@ public final class DataGrid {
 
   private static void down(Build b, int row, int column, boolean rows, int clicks, int modifiers) {
     Selection sel = b.sel;
+    sel.refused = null;
     if (sel.isEditing()) {
       return; // the press handed the value on, and the app refused it: the editor stays
     }
@@ -2523,6 +2539,7 @@ public final class DataGrid {
     Selection sel = b.sel;
     int n = b.columns.size();
     int mods = k.modifiers();
+    sel.refused = null;
     if (sel.isEditing()) {
       // What the editor left goes on and moves nothing here; before the editor has the focus,
       // in the frame that opened it, or while its row is scrolled away, its keys come here.

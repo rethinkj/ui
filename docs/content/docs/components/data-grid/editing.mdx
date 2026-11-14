@@ -32,12 +32,12 @@ A script that edits a cell:
 | --- | --- |
 | text | A field in the cell's font, exactly over the cell's text |
 | `INTEGER`, `DECIMAL` | A field that refuses what cannot become such a number |
-| `BOOLEAN` | None: Space, Enter, F2 and a double press switch false, true and, where `nullable()`, NULL |
+| `BOOLEAN` | None: Space, Enter, F2 and a double press switch false, true and, where `nullable()`, NULL; a value the format or the app refuses leaves the cell, which shows the message below it until the next key or press |
 | `choices(list)`, or `ENUM` with choices | A menu of the choices; typing goes to the first that starts with it |
 | `DATE`, `TIME`, `DATE_TIME` | Text, checked as ISO 8601 (`2026-11-13`, `14:30`, `2026-11-13 14:30`) |
 | `editor((value, onChange) -> El)` | The app's own element |
 
-A value with a line break, or Alt+Enter in a text column, opens a modal field of six lines over the cell. In a `nullable()` column, NULL is a state of the editor: an empty field with a muted `NULL`, which typing turns into text and Control+0 back into NULL. A refused value keeps the editor open, `invalid`, with the message below it.
+A value with a line break, or Alt+Enter in a text column, opens a modal field of six lines over the cell. In a `nullable()` column, NULL is a state of the editor: an empty field with a muted `NULL`, which typing turns into text and Control+0 back into NULL. A refused value keeps the editor open, `invalid`, with the message below it, or above it while the menu of choices stays open below.
 
 <Shot src="kit/edit-{theme}-choices" alt="A cell with a menu of its column's choices" />
 

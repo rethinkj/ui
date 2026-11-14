@@ -790,4 +790,58 @@ class GridEditTest {
     assertEquals(2, ledger.changes.rowCount());
     assertEquals("appended", ledger.changes.cell(1, 1));
   }
+
+  /** A grid of one typed or plain column over its changes. */
+  private static App<Object> grid(
+      DataGrid.Column column, GridChanges changes, DataGrid.Selection selection) {
+    return new App<>(
+        new Object(),
+        x -> DataGrid.dataGrid(
+                T,
+                List.of(column.cell(changes.cell(0))),
+                changes.rowCount(),
+                DataGrid.options().select(selection).changes(changes))
+            .key("grid")
+            .wFull()
+            .hFull());
+  }
+
+  @Test
+  void aChoiceTheFormatRefusesStaysInTheListWithItsMessage() throws IOException {
+    Format<String> format = Format.choice(List.of("allowed", "forbidden"), v -> v)
+        .where(v -> !v.equals("forbidden"), "Not permitted");
+    GridTable<String> table = DataGrid.table(i -> "allowed");
+    DataGrid.Column column = table.column("status", 180, format, v -> v, (row, value) -> value);
+    GridChanges changes = new GridChanges(1, (r, c) -> "allowed");
+    DataGrid.Selection selection = new DataGrid.Selection(DataGrid.Mode.CELLS);
+    selection.select(0, 0);
+    App<Object> app = grid(column, changes, selection);
+    run(app, "frame\nfocus #grid\nkey Enter\nframe\nkey ArrowDown\nkey Enter\nframe");
+    assertTrue(changes.isEmpty(), changes.changes().toString());
+    assertTrue(selection.isEditing());
+    String dump = app.tree().dump();
+    assertTrue(dump.contains("role=alert label=\"Not permitted\""), dump);
+    assertTrue(dump.contains("role=menu"), "the list stays open: " + dump);
+  }
+
+  @Test
+  void aSwitchTheFormatRefusesChangesNothingAndSaysWhy() throws IOException {
+    GridTable<Boolean> table = DataGrid.table(i -> true);
+    DataGrid.Column column = table.column(
+        "confirmed",
+        180,
+        Format.BOOLEAN.where(v -> v, "Confirmation is required"),
+        v -> v,
+        (row, value) -> value);
+    GridChanges changes = new GridChanges(1, (r, c) -> "true");
+    DataGrid.Selection selection = new DataGrid.Selection(DataGrid.Mode.CELLS);
+    selection.select(0, 0);
+    App<Object> app = grid(column, changes, selection);
+    run(app, "frame\nfocus #grid\nkey Space\nframe");
+    assertTrue(changes.isEmpty(), changes.changes().toString());
+    assertTrue(app.tree().dump().contains("role=alert label=\"Confirmation is required\""));
+    assertTrue(line(app, "cell-0-0").contains(" invalid"), line(app, "cell-0-0"));
+    run(app, "key ArrowRight\nframe"); // the next key takes the message away
+    assertFalse(app.tree().dump().contains("role=alert"), app.tree().dump());
+  }
 }

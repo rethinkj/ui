@@ -1,0 +1,1 @@
+- In the data grid, a choice or a switch of a boolean that the column's format refuses (`Format.choice(...).where(...)`, `Format.BOOLEAN.where(...)`) no longer reaches the changes: the list of choices stays open with the message, and a refused switch leaves the cell as it was and shows the message below it until the next key or press, also when the app's `onCommit` refuses it.
