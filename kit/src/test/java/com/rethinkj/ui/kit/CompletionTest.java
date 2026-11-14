@@ -67,10 +67,7 @@ class CompletionTest {
   }
 
   @Test
-  void theWordBeforeTheCaretEndsAtWhatIsNoWordOfCode() {
-    assertEquals(7, Completion.wordStart("SELECT cu", 9));
-    assertEquals(9, Completion.wordStart("SELECT a.", 9), "after a point: no word yet");
-    assertEquals(0, Completion.wordStart("_x1", 3));
+  void editsKeepTheListOpenOnlyWithinACodeWord() {
     Completion.State state = new Completion.State();
     state.open();
     Completion.follow(state, "SELECT cu", "SELECT cu,");

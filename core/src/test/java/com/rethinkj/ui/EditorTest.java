@@ -144,7 +144,7 @@ class EditorTest {
         assertBoundary(s, word[0]);
         assertBoundary(s, word[1]);
         int c = at < s.length() ? s.codePointAt(at) : 'a';
-        if (!Editor.codeWordChar(c) && c != ' ') {
+        if (!CodeWords.isWordChar(c) && c != ' ') {
           // A grapheme that is no word is one on its own, exactly as long as the JDK's.
           assertArrayEquals(
               new int[] {at, Editor.next(s, at)},

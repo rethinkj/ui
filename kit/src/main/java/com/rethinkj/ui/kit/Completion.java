@@ -7,6 +7,7 @@ import static com.rethinkj.ui.kit.Icon.icon;
 import static com.rethinkj.ui.kit.Label.label;
 
 import com.rethinkj.ui.App;
+import com.rethinkj.ui.CodeWords;
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.Key;
 import com.rethinkj.ui.Len;
@@ -112,7 +113,7 @@ public final class Completion {
       Function<String, List<Entry>> suggest) {
     String text = field.text().string();
     caret = Math.clamp(caret, 0, text.length());
-    int from = wordStart(text, caret);
+    int from = CodeWords.start(text, caret);
     // A character typed into a word opens the list from the word's second character; an undo
     // that brings one back leaves the caret elsewhere, or a selection, and opens nothing.
     if (state.typed >= 0 && !state.open && state.typed == caret && caret - from >= 2) {
@@ -274,40 +275,16 @@ public final class Completion {
     String inserted = after.substring(prefix, after.length() - suffix);
     if (removed.isEmpty()
         && inserted.codePointCount(0, inserted.length()) == 1
-        && word(inserted.codePointAt(0))) {
+        && CodeWords.isWordChar(inserted.codePointAt(0))) {
       state.typed = prefix + inserted.length(); // the build after it may open the list
       state.highlight = 0; // what it shows changes
     } else if (inserted.isEmpty()
         && !removed.isEmpty()
         && state.open
-        && wordStart(after, prefix) < prefix) {
+        && CodeWords.start(after, prefix) < prefix) {
       state.highlight = 0;
     } else {
       state.close();
     }
-  }
-
-  /** Whether a code point belongs to a word, as {@link El#codeWords} has them. */
-  static boolean word(int c) {
-    if (c == '_' || Character.isLetterOrDigit(c)) {
-      return true;
-    }
-    int type = Character.getType(c);
-    return type == Character.NON_SPACING_MARK
-        || type == Character.COMBINING_SPACING_MARK
-        || type == Character.ENCLOSING_MARK;
-  }
-
-  /** The start of the word that ends at {@code caret}; the caret itself after no word. */
-  static int wordStart(String text, int caret) {
-    int at = caret;
-    while (at > 0) {
-      int c = text.codePointBefore(at);
-      if (!word(c)) {
-        break;
-      }
-      at -= Character.charCount(c);
-    }
-    return at;
   }
 }

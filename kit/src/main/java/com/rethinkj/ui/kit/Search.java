@@ -14,8 +14,11 @@ import java.util.regex.PatternSyntaxException;
  * does not find the {@code e} of an {@code e} with a combining accent. Without {@code matchCase}
  * letters are compared by Unicode's simple case folding, as {@link Pattern#UNICODE_CASE} does it:
  * {@code ä} finds {@code Ä} and {@code ß} finds {@code ẞ}, but {@code ß} does not find {@code SS},
- * which is two characters. A whole word has no letter, digit, mark or {@code _} right before or
- * after it, the words of {@link com.rethinkj.ui.El#codeWords}.
+ * which is two characters. A whole word has no letter, number, mark or {@code _} right before or
+ * after it. Its regex uses all Unicode numbers ({@code N}), including letter numbers and other
+ * numbers such as superscripts, rather than only the decimal digits of {@link
+ * com.rethinkj.ui.CodeWords}. This keeps whole-word searches from matching inside those numeric
+ * names; the matches must still lie on grapheme boundaries.
  */
 final class Search {
 

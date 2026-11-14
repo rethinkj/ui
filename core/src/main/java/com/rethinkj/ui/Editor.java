@@ -1489,19 +1489,8 @@ final class Editor {
 
   // ---- The words of code (El#codeWords): runs of letters, digits and '_'
 
-  /**
-   * Whether a code point belongs to a word of code; a mark is one where nothing comes before it,
-   * and otherwise goes with the code point before it, whatever that is.
-   */
-  static boolean codeWordChar(int c) {
-    if (c == '_' || Character.isLetterOrDigit(c)) {
-      return true;
-    }
-    int type = Character.getType(c);
-    return type == Character.NON_SPACING_MARK
-        || type == Character.COMBINING_SPACING_MARK
-        || type == Character.ENCLOSING_MARK;
-  }
+  // CodeWords supplies the classifier, but its code-point ranges cannot replace these scans:
+  // marks stay with their grapheme's base, and word keys skip punctuation by platform rules.
 
   /**
    * Whether the code point at {@code index} extends the grapheme before it, as far as the words of
@@ -1602,14 +1591,14 @@ final class Editor {
 
   /** {@link #wordLeft} with the words of code. */
   static int codeWordLeft(String text, int index) {
-    IntPredicate word = Editor::codeWordChar;
+    IntPredicate word = CodeWords::isWordChar;
     return backOver(text, backOver(text, Math.clamp(index, 0, text.length()), word.negate()), word);
   }
 
   /** {@link #wordRight} with the words of code. */
   static int codeWordRight(String text, int index, boolean ends) {
     int at = Math.clamp(index, 0, text.length());
-    IntPredicate word = Editor::codeWordChar;
+    IntPredicate word = CodeWords::isWordChar;
     return ends
         ? forwardOver(text, forwardOver(text, at, word.negate()), word)
         : forwardOver(text, forwardOver(text, at, word), word.negate());
@@ -1625,7 +1614,8 @@ final class Editor {
     }
     index = clusterStart(text, Math.clamp(index, 0, text.length() - 1));
     int c = text.codePointAt(index);
-    IntPredicate kind = codeWordChar(c) ? Editor::codeWordChar : blank(c) ? Editor::blank : null;
+    IntPredicate kind =
+        CodeWords.isWordChar(c) ? CodeWords::isWordChar : blank(c) ? Editor::blank : null;
     if (kind != null) {
       return new int[] {backOver(text, index, kind), forwardOver(text, index, kind)};
     }

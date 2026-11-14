@@ -1,0 +1,1 @@
+- `CodeWords` in core exposes code-word classification and adjacent UTF-16 run boundaries without native libraries, for completions and other editor tools. Existing field navigation, grapheme selection and whole-word search rules are unchanged.

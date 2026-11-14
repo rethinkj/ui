@@ -36,6 +36,15 @@ Caret, selection, scroll, undo history (100 steps) and an input method's composi
 
 From handlers, `app.edit(field, from, to, text, caret)` replaces a range as one step of the undo history, `app.select(field, caret, anchor)` selects, and `app.undo(field)` and `app.redo(field)` step through the history, for an Edit menu.
 
+## Code-word ranges
+
+`CodeWords` in core classifies and scans code words without native libraries. `isWordChar(codePoint)` accepts Unicode letters, decimal digits, all combining marks and `_`. `start(text, index)` scans the adjacent run before the index; `end(text, index)` scans the run after it, returning its exclusive end. Both stop at punctuation or spaces and return the index when there is no adjacent word character. Indexes are UTF-16 offsets on code-point boundaries, from 0 to the string's length.
+
+```java snippet="code-words"
+```
+
+These scans count a mark wherever it stands. Fields with `codeWords()` share the classifier but keep whole graphemes together, including marks after punctuation and emoji, and apply the platform's Control+Arrow and Control+Backspace rules. Ordinary text fields keep their natural-language words. Whole-word [Find](/docs/components/find) searches retain their regex boundary rule: letters, all Unicode numbers (including superscripts and Roman numerals), marks and `_`, with matches only between graphemes.
+
 ## Links in a paragraph
 
 A read-only multi-line field is a paragraph that selects and copies. A child with `range(from, to)` lies over those characters of the field's string instead of where layout would put it, so it can be a link with its own identity, focus and handler:
