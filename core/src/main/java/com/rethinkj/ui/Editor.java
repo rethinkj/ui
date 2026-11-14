@@ -40,9 +40,11 @@ import java.util.function.IntPredicate;
  *
  * <p>A {@link El#masked masked} field edits its real string as any other, but copies and cuts
  * nothing, and takes its whole string as one word, so that the keys and presses that go by words
- * do not show where its words are. The string, the steps of the undo history and the
- * composition stay in memory as they are, as the app's state does: masking hides the string from
- * the screen, the clipboard, the tree dump and the fonts, not from the process.
+ * do not show where its words are; one that is {@link El#revealed revealed} copies, cuts and goes
+ * by words as an ordinary field, since its user reads the string anyway. The string, the steps of
+ * the undo history and the composition stay in memory as they are, as the app's state does:
+ * masking hides the string from the screen, the clipboard, the tree dump and the fonts, not from
+ * the process.
  */
 final class Editor {
 
@@ -1318,8 +1320,9 @@ final class Editor {
 
   // ---- Boundaries
 
+  // A revealed field copies and goes by words: its user reads the string anyway.
   private boolean masked() {
-    return el.text().masked();
+    return el.text().hidden();
   }
 
   /** Where Ctrl+Left goes from the caret; to the start in a masked field, one word. */

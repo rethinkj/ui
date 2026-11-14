@@ -1601,10 +1601,10 @@ public final class El {
    * as positions in the mask; {@link App#inputArea} tells the window, which asks the system for
    * a password's input.
    *
-   * <p>The view sets this on every build, so an app shows the string by building the field with
-   * {@code masked(false)}; caret, selection, scroll and undo history stay, as they belong to the
-   * field's identity. A field that is not masked is an ordinary field, which copies and shows its
-   * words.
+   * <p>The view sets this on every build. An app shows the string by building the field also
+   * {@link #revealed revealed(true)}, which keeps it out of the tree dump all the same; building it
+   * with {@code masked(false)} makes it an ordinary field, whose string the dump shows. Caret,
+   * selection, scroll and undo history stay either way, as they belong to the field's identity.
    */
   public El masked(boolean masked) {
     Text t = editableOnly("masked");
@@ -1614,6 +1614,21 @@ public final class El {
               + " or masked().");
     }
     t.masked(masked);
+    return this;
+  }
+
+  /**
+   * Whether a {@link #masked} field shows its string on the screen, as a password field whose user
+   * asked to see what they typed: it is drawn, hit and selected by the real string, copy and cut
+   * work and the keys and presses that go by words find its words, as in an ordinary field, and
+   * {@link App#inputArea} no longer asks the system for a password's input. Everything else that
+   * is text about the tree sees the mask as while it is hidden: the tree dump, with the state
+   * {@code revealed} after {@code password}, selectors and error messages ({@link Text#string}).
+   * The view sets this on every build; caret, selection, scroll and undo history stay when it
+   * changes. A field that is not masked ignores it.
+   */
+  public El revealed(boolean revealed) {
+    editableOnly("revealed").revealed(revealed);
     return this;
   }
 
@@ -3745,7 +3760,8 @@ public final class El {
    * shown, that is, moved by the scroll offsets above it. The states the view set follow, those
    * that are set, in this order: {@code disabled} (also a field that {@link #editable
    * editable(null)} disables), {@code readonly} (a {@link #readOnly} field), {@code password} (a
-   * {@link #masked} field, as UI Automation's {@code IsPassword}), {@code invalid}, {@code busy},
+   * {@link #masked} field, as UI Automation's {@code IsPassword}), {@code revealed} (one that is
+   * {@link #revealed}; no WAI-ARIA name), {@code invalid}, {@code busy},
    * {@code selected},
    * {@code current}, {@code grabbed}, {@code checked}, {@code checked=false} or {@code checked=mixed}, {@code expanded} or {@code
    * expanded=false}, {@code level=2}, {@code pos=3/10} (the position in the set and its size),
@@ -3766,7 +3782,8 @@ public final class El {
    * an {@link #image}'s starts with {@code image}.
    * A focused {@link #editable} field adds its caret after {@code focused} as {@code caret 3}, then
    * the other end of a selection as {@code anchor 0}, and the composition of an input method in
-   * progress as {@code composing "..."}. A {@link #masked} field shows its mask as its string,
+   * progress as {@code composing "..."}. A {@link #masked} field shows its mask as its string, also
+   * while {@link #revealed},
    * the caret and the anchor as positions in it and the composition masked. A {@link #multiline}
    * field adds, before its scroll offset, the lines with a row in view and how many it has, as
    * {@code lines 12-20/100000}, from 1, and after its caret the caret's line and column, as
@@ -3943,6 +3960,9 @@ public final class El {
     }
     if (editable && text.masked()) {
       out.append(" password");
+    }
+    if (editable && text.revealed()) {
+      out.append(" revealed");
     }
     if ((states & INVALID) != 0) {
       out.append(" invalid");

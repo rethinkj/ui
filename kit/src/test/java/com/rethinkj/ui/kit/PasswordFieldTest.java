@@ -6,6 +6,7 @@ import static com.rethinkj.ui.kit.TextField.revealable;
 import static com.rethinkj.ui.kit.Workbench.find;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.rethinkj.ui.App;
@@ -87,8 +88,10 @@ class PasswordFieldTest {
     assertTrue(app.state().revealed);
     assertEquals("pw", app.focused().key(), "the press left the focus in the field");
     assertTrue(
-        line(app, "#pw").endsWith("\"hunter2\" 16,16 200x24 focused caret 6 anchor 7"),
+        line(app, "#pw")
+            .endsWith("\"" + DOTS + "\" 16,16 200x24 password revealed focused caret 6 anchor 7"),
         line(app, "#pw"));
+    assertFalse(app.tree().dump().contains("hunter2"), "shown, the dump still sees the mask");
     assertTrue(line(app, "role=button").contains("label=\"Hide password\""));
 
     run(app, "type \"!\"");
@@ -125,7 +128,9 @@ class PasswordFieldTest {
     readOnly.state().password = "hunter2";
     run(readOnly, "press role=button");
     assertTrue(readOnly.state().revealed);
-    assertTrue(line(readOnly, "#pw").contains("\"hunter2\""), line(readOnly, "#pw"));
+    assertTrue(
+        line(readOnly, "#pw").contains("\"" + DOTS + "\" 16,16 200x24 readonly password revealed"),
+        line(readOnly, "#pw"));
 
     Login login = new Login();
     App<Login> disabled = new App<>(
@@ -142,6 +147,48 @@ class PasswordFieldTest {
     assertFalse(login.revealed);
     assertEquals(null, disabled.focused());
     assertTrue(line(disabled, "role=button").endsWith("disabled"), line(disabled, "role=button"));
+  }
+
+  @Test
+  void aShownPasswordIsInNoSelectorNorScriptError() throws IOException {
+    App<Login> app = app(f -> f);
+    run(app, "press #pw\ntype \"hunter2\"\npress role=button\nframe");
+    assertTrue(app.state().revealed);
+    run(app, "press role=textbox revealed\npress text=\"" + DOTS + "\"");
+    for (String step : List.of(
+        "press #nowhere", // lists the texts there are
+        "press role=textbox disabled", // lists the lines of the textboxes
+        "press text=\"hunter2\"")) { // its value finds nothing
+      Script.Failure failure = assertThrows(Script.Failure.class, () -> run(app, step));
+      String message = failure.getMessage().replace(step, "").replace("text=\"hunter2\"", "");
+      assertFalse(message.contains("hunter2"), message);
+      assertTrue(message.contains(DOTS), message);
+    }
+  }
+
+  @Test
+  void aShownPasswordSelectsByKeysAndDragAndKeepsItsHistoryWhenHidden() throws IOException {
+    App<Login> app = app(f -> f);
+    run(app, "press #pw\ntype \"open\"\nkey End\ntype \" sesame\"\npress role=button\nframe");
+    run(app, "key ArrowLeft control shift");
+    assertTrue(
+        line(app, "#pw").endsWith(" password revealed focused caret 5 anchor 11"),
+        line(app, "#pw"));
+    run(app, "down 30,28\nmove 80,28\nup 80,28");
+    String dragged = line(app, "#pw");
+    assertTrue(
+        dragged.matches(".* password revealed hovered focused caret \\d+$")
+            || dragged.matches(".* password revealed hovered focused caret \\d+ anchor \\d+$"),
+        dragged);
+    assertFalse(dragged.contains("caret 11"), "the drag moved the caret: " + dragged);
+
+    run(app, "key End\nkey ArrowLeft shift\npress role=button");
+    assertFalse(app.state().revealed);
+    assertTrue(
+        line(app, "#pw").endsWith(" password hovered focused caret 10 anchor 11"),
+        line(app, "#pw"));
+    run(app, "key Z control");
+    assertEquals("open", app.state().password, "the history from while it was shown");
   }
 
   /** Invalid before {@code revealable} or made so by a form after it: the danger border stays. */

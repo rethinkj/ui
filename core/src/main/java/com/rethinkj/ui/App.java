@@ -160,8 +160,8 @@ public final class App<S> {
    * the caret.
    *
    * @param cursor the caret's distance from {@code x}
-   * @param password whether the element is a {@link El#masked masked} field, whose text the system
-   *     should neither show nor remember
+   * @param password whether the element is a {@link El#masked masked} field that is not {@link
+   *     El#revealed revealed}, whose text the system should neither show nor remember
    */
   public record InputArea(
       float x, float y, float width, float height, float cursor, boolean password) {}
@@ -1432,7 +1432,7 @@ public final class App<S> {
       y += el.y();
     }
     float cursor = editor == null ? 0 : contentLeft(focused) + editor.caretOffset();
-    boolean password = editor != null && focused.text().masked();
+    boolean password = editor != null && focused.text().hidden();
     if (editor != null && focused.text().multiline()) { // the caret's row, inside the field
       Text t = focused.text();
       float row = t.lineHeight() / t.scale();

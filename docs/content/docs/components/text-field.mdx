@@ -39,7 +39,7 @@ For a number, a date or an enum, `ValueField.valueField(t, Format.DECIMAL, s.amo
 ```java snippet="password-field"
 ```
 
-`passwordField` masks the string: one `•` per character, copy and cut do nothing, and the tree and every selector see only the mask. `revealable(t, field, revealed, onToggle)` adds a button at the right inside the frame that shows and hides it; `revealed` is the app's state. The button leaves the focus in the field.
+`passwordField` masks the string: one `•` per character, copy and cut do nothing, and the tree and every selector see only the mask. `revealable(t, field, revealed, onToggle)` adds a button at the right inside the frame that shows and hides it; `revealed` is the app's state. The button leaves the focus in the field. A shown password is drawn, copied and goes by words as in an ordinary field, but the tree and every selector still see only the mask, and the field says `password revealed`.
 
 <Shot src="kit/gallery-{theme}-2x" rows="password,password shown" alt="A password field masked and shown" />
 
@@ -58,7 +58,7 @@ Arrows, Home, End, with Shift to select and Control by words; Backspace, Delete;
 
 ## In a tree dump
 
-A text element with `role=textbox`, its label and its string in quotes; `disabled`, `readonly`, `password` and `invalid` as they apply; while focused, `focused caret <n>` and `anchor <n>` for a selection. A multi-line field adds `lines <first>-<last>/<count>`.
+A text element with `role=textbox`, its label and its string in quotes; `disabled`, `readonly`, `password`, `revealed` and `invalid` as they apply; while focused, `focused caret <n>` and `anchor <n>` for a selection. A multi-line field adds `lines <first>-<last>/<count>`.
 
 ```text file="examples/src/test/resources/golden/docs/fields/view.tree.txt" start="#table" count="6"
 ```

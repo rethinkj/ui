@@ -264,8 +264,8 @@ class MaskedFieldTest {
   void theFontsShapeOnlyTheMask() throws Exception {
     Font font = FontProbe.inter(); // with a cache of its own, which nothing else fills
     try {
-      boolean[] masked = {true};
-      App<Model> app = start("", f -> f.font(font).masked(masked[0]), 2);
+      boolean[] revealed = {false};
+      App<Model> app = start("", f -> f.font(font).masked().revealed(revealed[0]), 2);
       focus(app);
       type(app, SECRET);
       app.textComposition("zebra", -1);
@@ -278,7 +278,7 @@ class MaskedFieldTest {
       assertFalse(FontProbe.shaped(font, "zebra"));
       assertTrue(FontProbe.shaped(font, DOTS), "the mask is");
 
-      masked[0] = false; // shown: now its string is shaped, as any field's
+      revealed[0] = true; // shown: now its string is shaped, which is what it is drawn with
       app.resize(240, 80, 1.5f);
       app.frame();
       assertTrue(FontProbe.shaped(font, SECRET));
@@ -319,6 +319,179 @@ class MaskedFieldTest {
     key(app, "Y", CONTROL);
     assertEquals("open sesame plea|se^", show(app), "with the selection undo left");
     assertEquals("\u2022".repeat(18), field(app).text().string());
+  }
+
+  // Showing the string with revealed: drawn and edited as an ordinary field, dumped as a mask
+
+  private static App<Model> revealed(String value) {
+    return start(value, f -> f.masked().revealed(true), 1);
+  }
+
+  @Test
+  void aRevealedFieldDrawsItsStringAndDumpsOnlyTheMask(@TempDir Path out) throws Exception {
+    App<Model> app = revealed("");
+    Script.run(
+        "size 200 80\nframe\npress #f\ntype \"" + SECRET + "\"\nkey ArrowLeft shift\n"
+            + "frame\nsnap typed\n",
+        app,
+        out);
+    assertEquals(SECRET, app.state().value);
+    Text text = field(app).text();
+    assertEquals(DOTS, text.string());
+    assertTrue(text.masked() && text.revealed());
+    GlyphRun run = text.lines().getFirst().glyphs();
+    GlyphRun real = Font.sans().shape(SECRET, 14, 1);
+    assertEquals(real.count(), run.count());
+    for (int i = 0; i < run.count(); i++) {
+      assertEquals(real.glyph(i), run.glyph(i), "glyph " + i + " is the real letter's");
+    }
+    assertEquals(real.pen(6), text.selection().getFirst().x(), "from the real letter 6");
+    String dump = app.tree().dump();
+    assertTrue(
+        dump.contains("text #f role=textbox \"" + DOTS + "\" 10,10 100x24 password revealed"
+            + " focused caret 6 anchor 7\n"),
+        dump);
+    assertFalse(dump.contains(SECRET), dump);
+    try (Stream<Path> files = Files.list(out)) {
+      for (Path file : files.toList()) {
+        if (file.toString().endsWith(".txt")) {
+          assertFalse(Files.readString(file).contains(SECRET), file.toString());
+        }
+      }
+    }
+
+    Script.run(
+        "size 200 80\nframe\npress role=textbox revealed\npress role=textbox password revealed\n"
+            + "press text=\"" + DOTS + "\"\nframe\n",
+        app,
+        out);
+    String[] failing = {
+      "press #nowhere\n", // lists the texts there are
+      "press role=textbox disabled\n", // lists the lines of the textboxes
+      "press role=textbox label=\"x\"\n",
+      "press text=\"" + SECRET + "\"\n", // its value finds nothing
+    };
+    for (String step : failing) {
+      Script.Failure failure = assertThrows(
+          Script.Failure.class, () -> Script.run("size 200 80\nframe\n" + step, app, out));
+      String message = failure
+          .getMessage()
+          .replace(step.strip(), "")
+          .replace(step.strip().substring("press ".length()), "");
+      assertFalse(message.contains(SECRET), message);
+      assertTrue(message.contains(DOTS), message);
+    }
+  }
+
+  @Test
+  void aRevealedFieldIsHitAndDraggedAtItsLettersAndDumpsMaskPositions() {
+    String smile = "\uD83D\uDE00";
+    String value = "ab" + smile + "cdef";
+    App<Model> app = revealed(value);
+    focus(app);
+    Text text = field(app).text();
+    float from = 14 + text.x(1);
+    float to = 14 + text.x(4); // after the emoji, two units
+    app.pointerDown(from, 22, 1, 0);
+    app.pointerMove(to, 22);
+    app.pointerUp(to, 22);
+    app.frame();
+    assertEquals("a^b" + smile + "|cdef", show(app));
+    assertEquals(text.x(1), field(app).text().selection().getFirst().x());
+    String dump = app.tree().dump();
+    assertTrue(dump.contains(" password revealed hovered focused caret 3 anchor 1\n"), dump);
+    key(app, "End");
+    key(app, "ArrowLeft", SHIFT);
+    assertTrue(
+        app.tree().dump().contains(" focused caret 6 anchor 7\n"), app.tree().dump());
+  }
+
+  @Test
+  void aRevealedFieldGoesByWordsAndCopies() {
+    App<Model> app = revealed("correct horse battery");
+    focus(app);
+    key(app, "ArrowLeft", CONTROL);
+    assertEquals("correct horse |battery", show(app));
+    key(app, "ArrowLeft", CONTROL | SHIFT);
+    assertEquals("correct |horse ^battery", show(app));
+    key(app, "C", CONTROL);
+    assertEquals("horse ", app.clipboard().read());
+    key(app, "X", CONTROL);
+    assertEquals("correct |battery", show(app));
+
+    float x = 14 + field(app).text().x(2);
+    app.pointerDown(x, 22, 1, 0);
+    app.pointerUp(x, 22);
+    app.pointerDown(x, 22, 2, 0);
+    app.pointerUp(x, 22);
+    app.frame();
+    assertEquals("^correct| battery", show(app), "a double press selects a word");
+  }
+
+  @Test
+  void aRevealedFieldCopiesAndAHiddenOneDoesNot() {
+    boolean[] revealed = {true};
+    App<Model> app = start(SECRET, f -> f.masked().revealed(revealed[0]), 1);
+    focus(app);
+    key(app, "A", CONTROL);
+    key(app, "C", CONTROL);
+    assertEquals(SECRET, app.clipboard().read());
+    assertFalse(app.inputArea().password(), "the system's input is an ordinary one");
+
+    revealed[0] = false;
+    rebuild(app);
+    app.clipboard().write("before");
+    key(app, "A", CONTROL);
+    key(app, "C", CONTROL);
+    key(app, "X", CONTROL);
+    assertEquals("before", app.clipboard().read());
+    assertEquals(SECRET, app.state().value);
+    assertTrue(app.inputArea().password());
+    assertFalse(field(app).text().revealed());
+    assertFalse(app.tree().dump().contains("revealed"), app.tree().dump());
+  }
+
+  @Test
+  void revealingAndHidingKeepCaretSelectionScrollAndHistory() {
+    boolean[] revealed = {false};
+    App<Model> app = start("", f -> f.masked().revealed(revealed[0]), 1);
+    focus(app);
+    type(app, "open");
+    key(app, "End");
+    type(app, " sesame please");
+    key(app, "ArrowLeft", SHIFT);
+    key(app, "ArrowLeft", SHIFT);
+    assertEquals("open sesame plea|se^", show(app));
+
+    revealed[0] = true;
+    rebuild(app);
+    assertEquals("open sesame plea|se^", show(app));
+    String dots = "\u2022".repeat(18);
+    String dump = app.tree().dump();
+    assertTrue(
+        dump.contains(
+            "\"" + dots + "\" 10,10 100x24 password revealed focused caret 16 anchor" + " 18\n"),
+        dump);
+    assertFalse(dump.contains("sesame"), dump);
+    Text text = field(app).text();
+    float caret = text.caret().x() - text.scroll();
+    assertTrue(caret > 0 && caret < 92, "the caret is still in view: " + caret);
+    key(app, "Z", CONTROL);
+    assertEquals("open|", show(app), "the history from before");
+
+    revealed[0] = false;
+    rebuild(app);
+    key(app, "Y", CONTROL);
+    assertEquals("open sesame plea|se^", show(app), "with the selection undo left");
+    assertEquals(dots, field(app).text().string());
+  }
+
+  @Test
+  void revealedWithoutMaskedIsAnOrdinaryField() {
+    App<Model> app = start(SECRET, f -> f.revealed(true), 1);
+    assertFalse(field(app).text().revealed());
+    assertEquals(SECRET, field(app).text().string());
+    assertThrows(IllegalStateException.class, () -> El.text("x").revealed(true), "only fields");
   }
 
   @Test

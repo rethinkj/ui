@@ -213,7 +213,7 @@ class ComponentTest {
             "role=textbox label=\"Owner\" disabled",
             "role=textbox label=\"Password\" password",
             "role=button label=\"Show password\"",
-            "role=textbox label=\"Key\" disabled",
+            "role=textbox label=\"Key\" disabled password revealed",
             "role=button label=\"Hide password\" disabled",
             "role=textbox label=\"Notes\" lines 1-2/2",
             "role=textbox label=\"SQL\" readonly lines 1-1/1",

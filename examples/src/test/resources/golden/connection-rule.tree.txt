@@ -49,7 +49,7 @@ el 0,0 440x432
             text "Password" 21,245 60x16
           el 95,241 324x24
             el 95,241 260x24
-              text #password role=textbox label="Password" "hunter2" 95,241 260x24
+              text #password role=textbox label="Password" "•••••••" 95,241 260x24 password revealed
               el role=button label="Hide password" 333,243 20x20
                 text label="eye_off" "\u{E5F4}" 335,245 16x16
       el role=checkbox label="Require SSL" 17,279 107x20 checked
