@@ -562,7 +562,8 @@ public final class App<S> {
     if (root == null) {
       return;
     }
-    if (rowsPending && rowKeyHooks) {
+    float far = Float.POSITIVE_INFINITY;
+    if (rowsPending && (rowKeyHooks || rowKeyHooks(root, 0, 0, -far, far))) {
       settle(); // only then: most keys need no rows, and building them is most of a rebuild
     }
     List<Consumer<Key>> handlers = new ArrayList<>();
@@ -574,6 +575,42 @@ public final class App<S> {
       handler.accept(key);
     }
     handled |= !handlers.isEmpty();
+  }
+
+  /**
+   * Whether the rows that the lists of a tree built between two inputs would build have an {@link
+   * El#onAnyKeyDown} handler, as {@link #fillRows} would find them, from the row functions alone.
+   *
+   * <p>shortcut: a hook that only a look of a row attaches is not seen here; apply the rows' looks
+   * too if a look ever needs to attach one.
+   */
+  private boolean rowKeyHooks(
+      El el, float parentX, float parentY, float clipLeft, float clipRight) {
+    if (!el.isPlaced() || el.isExiting()) {
+      return false;
+    }
+    float left = parentX + el.x();
+    float top = parentY + el.y();
+    int[] range = el.wantedRows(left, top, clipLeft, clipRight, width, height);
+    if (range != null && el.rowsHaveKeyHooks(range[0], range[1])) {
+      return true;
+    }
+    if (el.style().overflowX != Style.Overflow.VISIBLE) {
+      clipLeft = Math.max(clipLeft, left);
+      clipRight = Math.min(clipRight, left + el.width());
+    }
+    for (El child : el.children()) {
+      if (rowKeyHooks(child, left, top, clipLeft, clipRight)) {
+        return true;
+      }
+    }
+    float far = Float.POSITIVE_INFINITY;
+    for (El overlay : el.overlays()) { // in window coordinates
+      if (rowKeyHooks(overlay, 0, 0, -far, far)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   private static void anyKeyDown(El el, List<Consumer<Key>> handlers) {

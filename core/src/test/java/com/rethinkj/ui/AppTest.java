@@ -328,6 +328,64 @@ class AppTest {
   }
 
   @Test
+  void anyKeyDownThatAKeyGivesTheRowsOfAListGetsTheNextKeyOfTheFrame() {
+    class State {
+      boolean hooks;
+      final List<String> seen = new ArrayList<>();
+    }
+    App<State> app = new App<>(
+        new State(),
+        s -> el().size(100, 100)
+            .onKey(k -> s.hooks = true) // the first key gives row 0 its hook
+            .child(el().size(100, 100)
+                .rows(
+                    100,
+                    20,
+                    i -> s.hooks && i == 0 ? el().onAnyKeyDown(k -> s.seen.add(k.name())) : el())));
+    app.resize(100, 100, 1);
+    app.frame();
+    app.keyDown(new Key("A"));
+    app.keyDown(new Key("B"));
+    app.frame();
+    assertEquals(List.of("B"), app.state().seen);
+  }
+
+  @Test
+  void aBurstOfKeysAsksTheRowFunctionsForKeyHooksButLaysOutTheRowsOnce() {
+    int[] made = {0};
+    int[] placed = {0};
+    Measure counted = new Measure() {
+      @Override
+      public Size measure(float w, float h, float availableWidth, float availableHeight) {
+        return new Size(10, 10);
+      }
+
+      @Override
+      public void placed(float width, float height) {
+        placed[0]++;
+      }
+    };
+    App<Void> app = new App<>(
+        null,
+        s -> el().size(100, 100)
+            .onKey(k -> true) // each key is taken, so the next one gets a tree built between them
+            .child(el().size(100, 100).rows(100, 20, i -> {
+              made[0]++;
+              return el().child(el().measure(counted));
+            })));
+    app.resize(100, 100, 1);
+    app.frame();
+    int rows = made[0];
+    made[0] = placed[0] = 0;
+    for (int k = 0; k < 5; k++) {
+      app.keyDown(new Key("A"));
+    }
+    app.frame();
+    assertEquals(5 * rows, made[0], "asked after each of four keys, and built at the end");
+    assertEquals(rows, placed[0], "laid out once");
+  }
+
+  @Test
   void anElementThatIsLeavingGetsNoneOfTheHooksOfAllInput() {
     List<String> seen = new ArrayList<>();
     App<boolean[]> app = new App<>(new boolean[] {true}, s -> {

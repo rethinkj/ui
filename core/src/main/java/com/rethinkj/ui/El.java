@@ -3398,6 +3398,41 @@ public final class El {
   }
 
   /**
+   * Whether a row from {@code from} to {@code to}, exclusive, as the row function builds it now,
+   * has an {@link #onAnyKeyDown} handler or a virtual list of its own, whose rows could have one.
+   * The rows are not kept: this tells {@link App} whether a key needs the rows built, without
+   * their layout and looks.
+   */
+  boolean rowsHaveKeyHooks(int from, int to) {
+    for (int i = from; i < to; i++) {
+      El row = rowBuilder.row(i, spanFrom, spanTo);
+      if (row != null && keyHooks(row)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private static boolean keyHooks(El el) {
+    if (el.onAnyKeyDown != null || el.rowBuilder != null) {
+      return true;
+    }
+    for (El child : el.children) {
+      if (keyHooks(child)) {
+        return true;
+      }
+    }
+    if (el.overlays != null) {
+      for (El overlay : el.overlays) {
+        if (keyHooks(overlay)) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  /**
    * Links the elements below {@code root} that are {@link #fixedX} and the virtual lists to the
    * nearest scroll area around them that scrolls sideways, for {@link App} and {@link Headless}
    * after a view is built; the rows a list builds are linked as they are built.
