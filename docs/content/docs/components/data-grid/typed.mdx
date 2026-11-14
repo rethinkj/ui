@@ -27,7 +27,7 @@ description: Typed columns over records and POJOs, edited through withers and se
 
 A column of a joined part edits nothing in a row where a part on the way is null: the cell shows NULL, Enter opens no editor, and a paste leaves it.
 
-The handler refuses with a message, which shows under the editor, or accepts with null. NULL comes as null where the format is `optional()`. Pasted and cleared cells come as one call per row, with all of the row's values written.
+The handler refuses with a message, which shows under the editor, or accepts with null. NULL comes as null where the format is `optional()`. Pasted and cleared cells come as one call per row, with all of the row's values written. If the handler sorts or filters the rows, the remaining pasted rows still go to the right row objects.
 
 ```java snippet="grid-pojo"
 ```
