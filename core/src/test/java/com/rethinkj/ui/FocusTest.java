@@ -504,9 +504,16 @@ class FocusTest {
                                             .defaultFocus()
                                             .size(10, 10))
                                 : el(),
-                            s[0]
-                                ? el().key("grid").focusable().defaultFocus().size(10, 10)
-                                : el()))),
+                            s[0] ? el().key("grid").focusable().defaultFocus().size(10, 10) : el()),
+                    el().key("table")
+                        .size(40, 40)
+                        .rows(
+                            5,
+                            20,
+                            i -> row()
+                                .children(
+                                    el().key("a" + i).focusable().size(10, 10),
+                                    el().key("b" + i).focusable().defaultFocus().size(10, 10))))),
         100,
         100);
     app.focus(find(app.tree(), "outside"));
@@ -521,6 +528,16 @@ class FocusTest {
     app.focus(find(app.tree(), "side"));
     app.frame();
     assertEquals("list", focusedKey(app));
+    app.focus(find(app.tree(), "table"));
+    app.frame();
+    assertEquals("b0", focusedKey(app), "in a virtual list, the row's");
+    app.focus(find(app.tree(), "a1"));
+    app.frame();
+    app.focus(find(app.tree(), "page"));
+    app.frame();
+    app.focus(find(app.tree(), "table"));
+    app.frame();
+    assertEquals("a1", focusedKey(app), "where the focus was last wins");
   }
 
   @Test

@@ -1714,7 +1714,7 @@ public final class App<S> {
     if (first == null) {
       return null;
     }
-    El entered = enter(first, 1); // in a list, its row that had the focus last
+    El entered = enter(first, 0); // in a list, its row that had the focus last
     if (Animator.isBelow(animator.identity(entered), id)) {
       return entered;
     }
@@ -1935,7 +1935,9 @@ public final class App<S> {
    * Where Tab goes instead of {@code next} when that is in a virtual list and the focus is not: to
    * the element that last had the focus in the list, else to the first focusable element of the
    * first row in view, or the last one of the last row in view for Shift+Tab, rather than to the
-   * first row the list built. The row is built and scrolled into view if needed.
+   * first row the list built. The row is built and scrolled into view if needed. A {@code step} of
+   * 0 focuses into the list as {@link #focus(El)} does: to the row's {@link El#defaultFocus}
+   * element, if it has one, before its first.
    */
   private El enter(El next, int step) {
     Animator.InRow in = animator.inRow(animator.identity(next));
@@ -1965,6 +1967,9 @@ public final class App<S> {
     }
     El found = null;
     for (El el : order) {
+      if (inside.contains(el) && step == 0 && el.isDefaultFocus()) {
+        return el;
+      }
       if (inside.contains(el) && (found == null || step < 0)) {
         found = el;
       }
