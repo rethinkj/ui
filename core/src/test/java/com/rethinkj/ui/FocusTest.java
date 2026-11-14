@@ -783,6 +783,62 @@ class FocusTest {
   }
 
   @Test
+  void pageKeysScrollTheAreaAroundTheFocusOrInAModalOverlayItsFirst() {
+    App<Object> app = start(
+        new App<>(new Object(), s -> {
+          El list = col().key("list").scroll().size(100, 50);
+          for (int i = 0; i < 10; i++) {
+            list.child(el().key("row" + i).focusable().h(20));
+          }
+          El area = col().key("area").scroll().minSize(0, 0).child(el().h(500));
+          return col()
+              .padding(10)
+              .child(list)
+              .overlay(col()
+                  .key("modal")
+                  .centerInWindow()
+                  .modal()
+                  .margin(10)
+                  .children(area, el().key("button").focusable().size(20, 10).shrink(0)));
+        }),
+        200,
+        120);
+    El modal = app.tree().overlays().getFirst();
+    assertEquals(100, modal.height(), 0.01, "the window less its margins");
+    assertEquals("button", focusedKey(app));
+    key(app, "PageDown", 0);
+    El area = find(app.tree().overlays().getFirst(), "area");
+    assertEquals(90, area.scrollY(), 0.01, "a page, its height, though the focus is outside it");
+    key(app, "PageUp", 0);
+    assertEquals(0, find(app.tree().overlays().getFirst(), "area").scrollY(), 0.01);
+    assertEquals(0, find(app.tree(), "list").scrollY(), "the list under it stays");
+  }
+
+  @Test
+  void pageDownScrollsTheListAroundTheFocusedRow() {
+    App<Object> app = start(
+        new App<>(new Object(), s -> {
+          El list = col().key("list").scroll().size(100, 50);
+          for (int i = 0; i < 10; i++) {
+            list.child(el().key("row" + i).focusable().h(20));
+          }
+          return col().padding(10).child(list);
+        }),
+        120,
+        70);
+    tab(app);
+    key(app, "PageDown", 0);
+    assertEquals(50, find(app.tree(), "list").scrollY(), "a page");
+    key(app, "PageDown", Key.SHIFT);
+    assertEquals(50, find(app.tree(), "list").scrollY(), "not with a modifier");
+    key(app, "PageDown", 0);
+    key(app, "PageDown", 0);
+    key(app, "PageDown", 0);
+    assertEquals(150, find(app.tree(), "list").scrollY(), "up to the end");
+    assertEquals("row0", focusedKey(app), "the focus stays where it was");
+  }
+
+  @Test
   void aRingThatFitsStaysOutsideAndOneAtTheWindowsEdgeLiesInside() {
     App<Object> app = start(
         new App<>(
