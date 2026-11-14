@@ -217,6 +217,15 @@ public final class Showcase {
   int tab = 2;
   Position sidebar = Position.first(200);
   Position editor = Position.share(0.42f);
+  String query = """
+      SELECT date_trunc('month', o.created_at) AS month,
+             count(*) AS orders,
+             sum(o.amount) AS total
+      FROM orders o
+      WHERE o.status <> 'refunded'
+      GROUP BY 1
+      ORDER BY 1 DESC;""";
+  final CodeEditor.State queryEditor = new CodeEditor.State();
   final Selection results = new Selection(Mode.ROWS);
 
   // Table details
