@@ -3423,7 +3423,7 @@ public final class App<S> {
    * can, and gives the focus back to where it was when none can.
    */
   private void ask(List<Object> asked) {
-    if (asked.isEmpty() || asked.getFirst().equals(focusId)) {
+    if (asked.isEmpty()) {
       return;
     }
     List<Object> next = new ArrayList<>(asked.subList(1, asked.size()));
@@ -3434,8 +3434,10 @@ public final class App<S> {
       next.addAll(askedNext);
     }
     askedNext = next;
-    moveFocus(asked.getFirst(), ring);
-    reveal = true;
+    if (!asked.getFirst().equals(focusId)) { // one that has it keeps it, if it still can
+      moveFocus(asked.getFirst(), ring);
+      reveal = true;
+    }
   }
 
   /**

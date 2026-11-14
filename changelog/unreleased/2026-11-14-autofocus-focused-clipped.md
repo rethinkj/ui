@@ -1,0 +1,1 @@
+- An element that has the focus and asks for it again with `autofocus(key)` in a build that clips it away passes it on to the next element that asks, as one without the focus does, instead of the focus being lost.
