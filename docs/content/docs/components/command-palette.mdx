@@ -5,6 +5,8 @@ description: A searchable list of every command, and of other things after a pre
 
 `CommandPalette.palette` is an overlay at the top of the window with a field over a list. Type to find any command of the app's menus by fuzzy matching, or, after a prefix such as `@`, a table or anything else the app lists. A command can ask for more before it acts, such as a theme previewed as the highlight moves. Use it in apps with many commands. For choosing a value in a form, use a [ComboBox](/docs/components/combo-box).
 
+Javadoc: [`CommandPalette`](/api/com/rethinkj/ui/kit/CommandPalette.html), [`CommandPalette.State`](/api/com/rethinkj/ui/kit/CommandPalette.State.html).
+
 It opens `size().paletteTop()` (72) below the window's top, `size().palette()` (560) wide, with a field `size().paletteField()` (32) high over at most 12 rows of `size().paletteRow()` (28); with fewer it is only as high as they are, and in a window too short for it the list shows fewer rows and scrolls.
 
 <Shot src="kit/palette-{theme}-2x-commands" alt="The command palette with recently used commands and their shortcuts" />
@@ -40,10 +42,7 @@ What a source lists is a `FilterList.Entries`, which a [ComboBox](/docs/componen
 | --- | --- |
 | `Fuzzy.score(query, text)` | The score, higher for a better match, or `Fuzzy.NO_MATCH` (`Integer.MIN_VALUE`) |
 | `Fuzzy.positions(query, text)` | The indexes of the characters the best match takes, one per character of the query, to highlight them; null when it does not match |
-| `Fuzzy.matcher(query)` | A `Matcher` for scoring many texts without allocating. Use it on one thread |
-| `matcher.score(text)`, `matcher.positions(text)` | As above |
-| `matcher.matches(text)` | Whether the query's characters occur in the text in order |
-| `matcher.isEmpty()` | Whether the query is empty; every text matches an empty query with the score 0 |
+| `Fuzzy.matcher(query)` | A [`Matcher`](/api/com/rethinkj/ui/kit/Fuzzy.Matcher.html) for scoring many texts without allocating. Use it on one thread |
 
 ## Asking for more
 

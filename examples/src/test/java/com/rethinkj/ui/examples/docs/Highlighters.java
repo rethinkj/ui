@@ -12,7 +12,7 @@ import java.util.function.Consumer;
 /** The examples of a highlighter and a decorator of one's own, for the code editor's page. */
 final class Highlighters {
 
-  final Theme t = Theme.DARK;
+  Theme t = Theme.DARK;
   App<?> app;
   String ini = "; the connection\n[db]\nhost = localhost\npath = /a:\\\n  /b # TODO\n";
   final CodeEditor.State state = new CodeEditor.State();

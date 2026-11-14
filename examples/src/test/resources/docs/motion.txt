@@ -1,0 +1,8 @@
+size 320 160
+frame
+snap view
+press role=button label="Open"
+frame
+advance 0.06                # the panel on its way to its new size and colour
+frame
+snap opening

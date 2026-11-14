@@ -31,6 +31,7 @@ public final class LightSwitch {
   boolean on;
   App<LightSwitch> app; // whose window says whether it is maximized
 
+  // docs:start light-switch-window
   public static void main(String[] args) throws IOException {
     App<LightSwitch> app = new App<>(new LightSwitch(), LightSwitch::view);
     app.state().app = app;
@@ -49,7 +50,9 @@ public final class LightSwitch {
       WindowLoop.run(window, app, presenter);
     }
   }
+  // docs:end light-switch-window
 
+  // docs:start light-switch-view
   static El view(LightSwitch s) {
     Theme t = THEME;
     El lamp = el().key("lamp")
@@ -70,4 +73,5 @@ public final class LightSwitch {
                 .gap(t.space().xl())
                 .align(Style.Align.CENTER)));
   }
+  // docs:end light-switch-view
 }

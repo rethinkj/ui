@@ -5,6 +5,8 @@ description: Typed values in text fields and grid columns, written and read with
 
 `Format<T>` says how a value of a Java type is written as text and read back: `BigDecimal`, `LocalDate`, an enum, or a type of the app's own. `ValueField.valueField` is a text field for such a value. It hands the app values instead of strings, and keeps a text that is no value yet as a draft with the format's message. A [DataGrid](/docs/components/data-grid)'s typed columns take their alignment, icon and editor from the same formats. Use them wherever a field or column holds something other than text; for an `int` stepped by arrows and buttons, a [NumberField](/docs/components/number-field) fits better.
 
+Javadoc: [`Format`](/api/com/rethinkj/ui/kit/Format.html), [`ValueField`](/api/com/rethinkj/ui/kit/ValueField.html).
+
 <Shot src="kit/value-field-{theme}-2x-draft" alt="A field for an amount holding the draft 12e with the message Not a number below it, and an empty optional date field" />
 
 ## Example
@@ -44,14 +46,7 @@ Numbers have a full stop and no grouping, and dates and times are ISO 8601, what
 
 Formats need no native libraries; keep them in constants.
 
-| Method | |
-| --- | --- |
-| `text(value)` | The value as text, the empty text for null |
-| `parse(text)` | A `Parsed<T>`: `value()` and `error()`, the error null for a valid text |
-| `allows(text)` | Whether typing may still lead from this text to a valid one |
-| `isOptional()` | Whether the empty text is null rather than an error, as after `.optional()` |
-| `choices()` | The labels of a `choice` format, empty for the others |
-| `type()` | The `DataGrid.DataType` that gives a grid's column of these values its look and editor; `OTHER` for a format made with `of` |
+`text(value)` writes a value, the empty text for null. `parse(text)` reads one into a `Parsed<T>`: `value()` and `error()`, the error null for a valid text. `allows`, `isOptional`, `choices` and `type` are on [`Format`](/api/com/rethinkj/ui/kit/Format.html).
 
 ## Times of a fixed precision
 

@@ -7,7 +7,7 @@ el 0,0 400x160
           text "customers.sql" 11,9 86x16
           el #close-0 role=button label="Close customers.sql" 101,9 16x16
             text label="dismiss" "\u{F368}" 101,9 16x16
-        el #tab-1 role=tab label="orders by month.sql" 127,1 167x32
+        el #tab-1 role=tab label="orders by month.sql" 127,1 167x32 modified
           el 135,15 4x4
           text "orders by month.sql" 143,9 123x16
           el #close-1 role=button label="Close orders by month.sql" 270,9 16x16

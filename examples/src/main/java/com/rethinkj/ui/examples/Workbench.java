@@ -268,10 +268,12 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
   final Set<Node> refused = new HashSet<>(); // servers whose last answer was a failure
   Node selected;
   final Opened start = new Opened();
+  // docs:start workbench-groups
   // The tabs of every window: the first window's, Start among them, and those torn off.
   final TabGroups<Opened> groups = new TabGroups<>(List.of(start), this::openWindow)
       .onClosed(this::closed)
       .onCloseTab(this::closeTab);
+  // docs:end workbench-groups
   Position sidebar = SIDEBAR;
   boolean dark = true;
   String message; // in the status line for a while, or null
@@ -383,6 +385,7 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
 
   // Tree.Model
 
+  // docs:start workbench-model
   @Override
   public List<Node> roots() {
     return servers;
@@ -422,6 +425,7 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
         Icon.icon(t, node.name.equals("id") ? Symbol.KEY : Symbol.COLUMN_SINGLE, Variant.MUTED);
     };
   }
+  // docs:end workbench-model
 
   /** A column's type after its name. */
   @Override
@@ -443,6 +447,7 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
 
   // Handlers, on the app's thread
 
+  // docs:start workbench-connect
   void openOrClose(Node node, boolean opens) {
     if (!opens) {
       open.remove(node);
@@ -475,6 +480,7 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
       taskbar();
     }
   }
+  // docs:end workbench-connect
 
   /** Opens the table, or the table of a column, in its tab, or chooses its tab. */
   void activate(Node node) {
@@ -621,6 +627,7 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
    * tables and columns of the connected servers and the keywords of SQL whose names start with
    * it, in that order, each name once.
    */
+  // docs:start workbench-suggest
   List<Completion.Entry> suggest(Opened o, String word) {
     String start = word.toLowerCase(Locale.ROOT);
     Map<String, Completion.Entry> found = new LinkedHashMap<>();
@@ -646,6 +653,7 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
     entries.removeIf(e -> e.text().equalsIgnoreCase(word)); // nothing to complete
     return entries.subList(0, Math.min(entries.size(), SUGGESTIONS));
   }
+  // docs:end workbench-suggest
 
   private static void collect(
       Node node, String start, Map<String, Completion.Entry> tables, List<Node> columns) {
@@ -940,6 +948,7 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
    * Opens the window of a tab torn off or moved to a new window: the workbench in small, with the
    * app's icon and a view of its own over the same state.
    */
+  // docs:start workbench-window
   Windows.Handle openWindow(TabGroups.Group<Opened> group, Window.Options options) {
     App<Workbench> window = new App<>(this, s -> s.windowView(group));
     window.textRendering(app.textRendering());
@@ -952,6 +961,7 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
         options.frameless().minimumSize(480, 320).icon(Identity.icon(MARK, Symbol.DATABASE)),
         window);
   }
+  // docs:end workbench-window
 
   /** The app of a group's window, where its fields and handlers are. */
   @SuppressWarnings("unchecked") // every window runs an app of this state
@@ -1128,10 +1138,12 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
   static El view(Workbench s) {
     Theme t = s.theme();
     El right = s.tabs(t, s.groups.main());
+    // docs:start workbench-tree
     El tree = tree(
             t, s, s.open::contains, s.selected, n -> s.selected = n, s::openOrClose, s::activate)
         .key("catalogue")
         .label("Catalogue");
+    // docs:end workbench-tree
     El catalogue = Card.flush(
         t,
         Card.toolbar(
@@ -1648,6 +1660,7 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
   }
 
   private static El table(Theme t, Workbench s, Opened o, App<Workbench> app) {
+    // docs:start workbench-editor
     El area = codeEditor(t, app, o.query, o.editor, Sql.of(t), q -> {
           o.query = q;
           o.failure = null; // the next edit takes the error away
@@ -1666,6 +1679,7 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
     };
     area.onKey(run.or(area.onKey())); // and the editor's own keys
     Completion.complete(t, app, area, o.editor.caret(), o.completion, word -> s.suggest(o, word));
+    // docs:end workbench-editor
     El query = col()
         .padding(t.space().m(), t.space().l())
         .shrink(0)

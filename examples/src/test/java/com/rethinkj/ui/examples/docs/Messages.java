@@ -12,7 +12,7 @@ import java.util.stream.IntStream;
 /** The example of rows as high as their content, for the page about lists of many rows. */
 final class Messages {
 
-  final Theme t = Theme.DARK;
+  Theme t = Theme.DARK;
   final List<String> log = IntStream.range(0, 10_000)
       .mapToObj(i -> i % 7 == 0
           ? "Query " + i + " took 4.2 s: the planner chose a sequential scan of orders, which"

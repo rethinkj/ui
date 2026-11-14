@@ -5,6 +5,8 @@ description: Sort keys in the header, resizing, hiding, moving and freezing colu
 
 The grid shows sort keys and lets the user change them, resize columns, and choose, move, hide and freeze them. It sorts nothing and keeps nothing: the app gets the new keys, widths and layout, keeps them and gives them back on the next build. That way sorting can happen in the database, where a million rows live.
 
+Javadoc: [`DataGrid.SortKey`](/api/com/rethinkj/ui/kit/DataGrid.SortKey.html), [`DataGrid.Layout`](/api/com/rethinkj/ui/kit/DataGrid.Layout.html), [`DataGrid.Fit`](/api/com/rethinkj/ui/kit/DataGrid.Fit.html).
+
 <Shot src="kit/cells-{theme}-sorted" alt="A grid sorted by two keys, with numbered arrows in the headers" />
 
 ## Example
@@ -40,12 +42,6 @@ The app's sort, here over made-up rows; a database tool runs `ORDER BY` instead:
 - A column the user resized before the fit is left as it is. A column that a `Layout` hides is fitted when it is first shown, unless the app gave it another width meanwhile.
 - It measures every column, also those out of view sideways.
 
-| `Fit` | |
-| --- | --- |
-| `new Fit()` | A fit still to come |
-| `reset()` | Fit every column again at the next build with loaded rows, also those resized by hand |
-| `isPending()` | Whether the columns are still to be fitted for the result they show |
-
 <Shot src="kit/grid-fit-{theme}-2x-fitted" alt="A grid whose columns are as wide as their headers with types and their values" />
 
 ## Choosing, moving and hiding
@@ -69,18 +65,7 @@ With a layout, every handler, sort key and filter speaks of columns by their ind
 
 Two kinds of column index meet in a grid with a layout. The columns the app passes to `dataGrid` are *all* columns, and handlers, sort keys, filters, `onResize`, `onFreeze` and the cells of `GridChanges` speak of them by their index in that list. The selection's `Range`s, `Selection.column()` and the keys in a tree dump (`column-<i>`, `cell-<row>-<i>`) count the columns *shown*, in the order shown. `shownColumns()` turns one into the other: `layout.shownColumns()[selection.column()]` is the index among all columns of the cursor's column.
 
-| `Layout` method | |
-| --- | --- |
-| `new Layout(titles)` | All the app's columns by their titles, shown in their order |
-| `shown(all)` | Those of `all` that are shown, in the order shown; throws when `all` has another size than the titles |
-| `shownColumns()` | The indexes among all columns of those shown, in the order shown |
-| `shownCount()` | How many columns are shown |
-| `isHidden(column)` | Whether a column, by its index among all, is hidden |
-| `order()` | The order of all columns, hidden ones included |
-| `hide(column)`, `show(column)` | Hide and show one; the last column shown does not hide |
-| `showAll()`, `reset()` | Show every column in the order they have, or in the app's order |
-| `moveBefore(column, before)` | Move a column to just before another, or to the end with -1 |
-| `toggleChooser()` | Open or close the chooser on the `columnsButton`, as a press on it does, for a menu item or a key of the app's |
+`layout.toggleChooser()` opens or closes the chooser on the `columnsButton`, as a press on it does, for a menu item or a key of the app's. The other methods of a layout are on [`DataGrid.Layout`](/api/com/rethinkj/ui/kit/DataGrid.Layout.html).
 
 ## In a tree dump
 

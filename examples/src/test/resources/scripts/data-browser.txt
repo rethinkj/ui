@@ -69,6 +69,8 @@ frame
 advance 1
 frame
 
+snap browser-dark               # the changes and filters, which the light theme shows as well
+
 press role=switch label="Dark"   # the light theme, the changes and filters as they were
 frame
 advance 1

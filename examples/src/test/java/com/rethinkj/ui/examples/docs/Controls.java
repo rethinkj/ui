@@ -34,7 +34,7 @@ import java.util.List;
 /** The examples of the pages about buttons, choices, fields and small parts. */
 final class Controls {
 
-  final Theme t = Theme.DARK;
+  Theme t = Theme.DARK;
   int runs;
   boolean running = true;
   boolean pinned;

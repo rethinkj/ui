@@ -233,6 +233,7 @@ public final class DataBrowser {
   private static final float[] WIDTHS = {72, 140, 220, 90, 80, 100, 80, 100, 140, 140, 90, 180};
 
   /** The columns of the orders, in the order of {@link Order}'s parts. */
+  // docs:start data-browser-columns
   static List<Column> columns(GridTable<Order> table, float[] widths) {
     return List.of(
         table.column("id", widths[0], Format.LONG, Order::id),
@@ -256,6 +257,7 @@ public final class DataBrowser {
         table.column("status", widths[10], STATUS, Order::status, Order::withStatus),
         table.column("note", widths[11], Format.TEXT.optional(), Order::note, Order::withNote));
   }
+  // docs:end data-browser-columns
 
   /** The columns of the made-up orders, which the filter looks at. */
   private static final List<Column> MADE_UP = columns(DataGrid.table(DataBrowser::madeUp), WIDTHS);
@@ -302,6 +304,7 @@ public final class DataBrowser {
 
   DataBrowser() {
     System.arraycopy(WIDTHS, 0, widths, 0, WIDTHS.length);
+    // docs:start data-browser-changes
     changes = new GridChanges(new GridChanges.Rows() {
       @Override
       public int count() {
@@ -323,6 +326,7 @@ public final class DataBrowser {
         return base.get(column).cell().apply(row);
       }
     });
+    // docs:end data-browser-changes
   }
 
   /** An order as written, else as made up; new orders hold only what was written. */
@@ -450,6 +454,7 @@ public final class DataBrowser {
    * Writes the changes: values beside the made-up ones, new orders, deleted orders. An open
    * editor's value comes first; a value the grid refuses keeps its editor open and writes nothing.
    */
+  // docs:start data-browser-commit
   void commit() {
     if (!selection.commitEdit() || changes.isEmpty()) {
       return;
@@ -475,6 +480,7 @@ public final class DataBrowser {
     places();
     toast = count == 1 ? "1 change written" : count + " changes written";
   }
+  // docs:end data-browser-commit
 
   private static boolean matches(int row, String[] words) {
     // A word has no line feed, so it cannot match across two columns.

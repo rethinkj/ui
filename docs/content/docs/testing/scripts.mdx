@@ -42,7 +42,7 @@ Presses do not move the pointer: a `move` is needed for hover looks and tooltips
 
 | Step | What it does |
 | --- | --- |
-| `key <name> [shift] [control] [alt] [meta] [down \| up]` | Presses and releases a key; with `down` or `up` only that half, so that a key stays held between frames. Keys have the web's names (`Enter`, `Tab`, `Escape`, `ArrowDown`, `F5`, `Space`); a key that types a character is named by it in upper case (`A`, `1`). The Javadoc of `com.rethinkj.ui.Key` lists them all. |
+| `key <name> [shift] [control] [alt] [meta] [down \| up]` | Presses and releases a key; with `down` or `up` only that half, so that a key stays held between frames. Keys have the web's names (`Enter`, `Tab`, `Escape`, `ArrowDown`, `F5`, `Space`); a key that types a character is named by it in upper case (`A`, `1`). The [`Key` Javadoc](/api/com/rethinkj/ui/Key.html) lists them all. |
 | `type "<text>"` | Text input for the focused element. `\"`, `\\`, `\n` and `\t` inside. |
 | `compose "<text>"` | An input method's composition in the focused text field, shown underlined, not yet in the string. `compose ""` ends it; `type` commits. |
 | `focus <target>` | Gives the keyboard focus to the target or the nearest focusable element around it, as Tab would, with the ring. |
@@ -72,7 +72,7 @@ A target of `press`, `down`, `up`, `move` and `wheel` may lie in another window,
 
 ## When something is wrong
 
-A failed step throws `Script.Failure` with the line and a suggestion. For instance, pressing before any frame ran:
+A failed step throws [`Script.Failure`](/api/com/rethinkj/ui/Script.Failure.html) with the line and a suggestion. For instance, pressing before any frame ran:
 
 ```text
 line 2: press role=switch label="Lamp"

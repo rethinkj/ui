@@ -3,10 +3,12 @@ title: Input, focus and keys
 description: Presses, keys, text and the wheel; the keyboard focus and Tab; hover and pressed looks; drags.
 ---
 
-Elements take input through handlers. The app finds the element under the pointer, or the one with the keyboard focus, and runs its handler; the view is then built again. Kit components set this up for you; this page is for your own elements.
+Elements take input through handlers. The app finds the element under the pointer, or the one with the keyboard focus, and runs its handler; the view is then built again. Kit components set this up for you; this page is for your own elements. The calls in the tables below are methods of [`El`](/api/com/rethinkj/ui/El.html).
 
 ```java snippet="input"
 ```
+
+<Shot src="examples/docs/input/pressed-{theme}" alt="The counter after two presses, showing 2, above the round knob to drag" />
 
 ## Pointer
 
@@ -25,7 +27,7 @@ A press goes to the innermost element under the pointer that has a press handler
 ```java snippet="drag"
 ```
 
-A `Drag` has its `phase` (`START`, `MOVE`, `END`, `CANCEL`), how far the pointer is from where it went down (`dx`, `dy`), and the pointer's position in the element's content (`x`, `y`). Escape cancels a drag.
+A [`Drag`](/api/com/rethinkj/ui/Drag.html) has its `phase` (`START`, `MOVE`, `END`, `CANCEL`), how far the pointer is from where it went down (`dx`, `dy`), and the pointer's position in the element's content (`x`, `y`). Escape cancels a drag.
 
 ## Keyboard and focus
 
@@ -47,7 +49,7 @@ A key goes through these steps until one takes it:
 3. The `onKey` handlers of its ancestors, innermost first.
 4. Tab and Shift+Tab move the focus through the focusable elements in tree order. Page Up and Page Down scroll the innermost scroll area around the focus by one page; in a modal overlay such as a dialog, its first scroll area, also while the focus is on a button below it.
 
-A `Key` has the web's key name (`"Enter"`, `"ArrowDown"`, `"A"`) and modifiers (`Key.CONTROL`, `SHIFT`, `ALT`, `META`).
+A [`Key`](/api/com/rethinkj/ui/Key.html) has the web's key name (`"Enter"`, `"ArrowDown"`, `"A"`) and modifiers (`Key.CONTROL`, `SHIFT`, `ALT`, `META`).
 
 When the focused element leaves the tree, the focus moves to the nearest focusable element near its old place, so closing a tab puts the focus into the next tab's content. `app.focus(el)` moves the focus from a handler.
 
