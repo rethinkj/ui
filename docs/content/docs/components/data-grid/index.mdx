@@ -37,6 +37,8 @@ The methods return a changed copy, so a view builds columns in one expression. H
 
 A cell's text shows on one line, a line break as `⏎` and a tab as `⇥`. Where it does not fit it ends in an ellipsis and shows whole in a tooltip. Where a header is narrow, the type gives way first, then the title.
 
+An empty type name is allowed. Fit decisions for shortened types and values use their first whole grapheme and an ellipsis as the minimum, keeping combining marks and joined emoji together.
+
 <Shot src="kit/grid-icons-{theme}-2x-top" alt="A grid with types in the headers, a key, links, checks, NULL markers and status marks" />
 
 ## Details

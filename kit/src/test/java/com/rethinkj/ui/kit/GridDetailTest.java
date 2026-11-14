@@ -23,6 +23,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 /**
  * A muted detail beside a cell's value ({@link Column#detail}), driven by scripts on {@link
@@ -155,6 +156,59 @@ class GridDetailTest {
         app.tree().dump().contains("role=tooltip label=\"" + Orders.NOTE + " " + SIZE + "\""));
     run(app, "move #cell-1-6\nframe\nadvance 1\nframe"); // a time that fits
     assertFalse(app.tree().dump().contains("role=tooltip"));
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"e\u0301", "👩🏽‍💻", "🇩🇪"})
+  void aDetailGivesWayBeforeTheValuesFirstGraphemeWouldBeLost(String first) throws IOException {
+    String value = first + " a long value";
+    String detail = "bytes";
+    float least = TextSizing.natural(DataGrid.text(T, false, first + Text.ELLIPSIS, 0));
+    float size = TextSizing.natural(DataGrid.text(T, false, detail, 0));
+    float both = T.size().stroke() + 3 * T.space().s() + size + least;
+    float[] width = {(float) Math.ceil(both)};
+    App<float[]> app = new App<>(
+        width,
+        w -> DataGrid.dataGrid(
+                T,
+                List.of(new Column("name", w[0], DataGrid.Align.LEFT, false, i -> value)
+                    .detail(i -> detail)),
+                1,
+                DataGrid.options())
+            .wFull()
+            .hFull());
+    run(app, "frame");
+    El cell = find(app, "cell-0-0");
+    assertEquals(List.of(value, detail), parts(cell));
+    assertTrue(part(cell, value).width() >= least - 0.5f);
+    assertFalse(part(cell, detail).text().shortened(), "the detail stays whole");
+
+    width[0] = (float) Math.floor(both) - 1;
+    run(app, "frame");
+    assertEquals(List.of(value), parts(find(app, "cell-0-0")), "the detail gives way entirely");
+  }
+
+  @Test
+  void aCellsErrorAndOwnTooltipPrecedeItsHiddenTextAfterTheDelay() throws IOException {
+    Orders orders = Orders.detailed(T, 8);
+    orders.details.put(1, i -> "customer");
+    orders.widths[1] = 60;
+    orders.more = orders.more.andThen(
+        o -> o.status(i -> DataGrid.Status.UNCHANGED, (i, c) -> DataGrid.Status.ERROR)
+            .errors((i, c) -> "Write refused"))::apply;
+    App<Orders> app = start(orders);
+    run(app, "move #cell-4-1\nframe\nadvance 0.49\nframe");
+    assertTrue(find(app, "cell-4-1").overlays().isEmpty());
+    run(app, "advance 0.01\nframe");
+    String own = "Write refused\nReferences customers.id";
+    String value = orders.columns().get(1).cell().apply(4);
+    assertEquals(
+        own + "\n" + value + " customer",
+        find(app, "cell-4-1").overlays().getFirst().label());
+
+    orders.widths[1] = 250;
+    run(app, "frame");
+    assertEquals(own, find(app, "cell-4-1").overlays().getFirst().label());
   }
 
   @Test

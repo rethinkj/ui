@@ -85,6 +85,21 @@ class GridIconsTest {
   // The header
 
   @Test
+  void anEmptyTypeCanGiveWayToALongTitle() throws IOException {
+    String heading = "a title too long for its column";
+    Column column = new Column(heading, 40, DataGrid.Align.LEFT, false, i -> "").typeName("");
+    App<Column> app = new App<>(
+        column,
+        c -> DataGrid.dataGrid(T, List.of(c), 1, DataGrid.options()).wFull().hFull());
+    run(app, "frame");
+    El header = find(app, "column-0");
+    assertNull(name(header), "the empty type gives way");
+    assertTrue(title(header).text().shortened());
+    run(app, "move #column-0\nframe\nadvance 0.5\nframe");
+    assertEquals(heading + " ", find(app, "column-0").overlays().getFirst().label());
+  }
+
+  @Test
   void aHeaderShowsItsIconTitleTypeAndSortMarkWithTheMarkOnTheOuterSide() throws IOException {
     Orders orders = Orders.typed(T, 8); // sorted by id, which is right-aligned
     orders.widths[0] = 120; // room for its type
