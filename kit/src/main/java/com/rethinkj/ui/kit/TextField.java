@@ -166,8 +166,10 @@ public final class TextField {
 
   /**
    * Puts a button at the right inside the frame of a field of this class that shows and hides its
-   * string, and masks the field while it is hidden. Whether it shows is the app's state, which
-   * {@code onToggle} changes. The result is a box with the field and the button, as wide as the
+   * string on the screen. The field is {@link El#masked masked} also while it shows, and then {@link
+   * El#revealed revealed}: it is drawn, copied and edited as an ordinary field, but the tree dump,
+   * selectors and error messages see only the mask, with the states {@code password revealed}.
+   * Whether it shows is the app's state, which {@code onToggle} changes. The result is a box with the field and the button, as wide as the
    * field, so chain what concerns the field ({@code .key}, {@code .label}, {@code .w}, {@code
    * .readOnly()}) onto the field before.
    *
@@ -187,7 +189,7 @@ public final class TextField {
     boolean enabled = onToggle != null && (field.onEdit() != null || field.isReadOnly());
     float inset = t.space().xs();
     float size = t.size().control() - 2 * inset;
-    Style pad = field.masked(!revealed).style();
+    Style pad = field.masked().revealed(revealed).style();
     pad.paddingRight = Len.px(t.size().control()); // the text stops before the button
     El button = el().role("button")
         .label(revealed ? "Hide password" : "Show password")

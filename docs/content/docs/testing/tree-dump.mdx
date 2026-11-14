@@ -30,6 +30,7 @@ States say what the app's state is, with their names from WAI-ARIA. They change 
 | `disabled` | Marked as taking no input. The call only marks: a component also leaves out its handlers and `focusable()`, as the kit's do for a null handler | `disabled(true)`, or a text field with `editable(null)`, which does take no input |
 | `readonly` | A text field that selects and copies but takes no edits | `readOnly()` |
 | `password` | A masked field; the string shows as `•` | `masked()` |
+| `revealed` | A masked field that draws its string on the screen; the dump still shows the mask. There is no WAI-ARIA name for it | `revealed(true)`, or the kit's `revealable` while it shows |
 | `invalid` | A value that is not accepted | `invalid(true)` |
 | `busy` | An action runs. The call only marks: the component decides what it takes meanwhile, and the kit's `Button` takes no press | `busy(true)` |
 | `selected` | Selected among others | `selected(true)` |
@@ -83,7 +84,10 @@ A multi-line field adds the lines in view and how many there are, and after the 
 text #query role=textbox label="Query" "SELECT *\nFROM orders\nLIMIT 20;" 253,44 455x82 lines 1-3/3 focused caret 31 (3:9)
 ```
 
-A masked field shows one `•` per character, never the string, and says `password`:
+A masked field shows one `•` per character, never the string, and says `password`, also while its button shows the password on the screen, when it adds `revealed`:
 
 ```text file="examples/src/test/resources/golden/connection-filled.tree.txt" start="#password" count="1"
+```
+
+```text file="examples/src/test/resources/golden/connection-shown.tree.txt" start="#password" count="1"
 ```

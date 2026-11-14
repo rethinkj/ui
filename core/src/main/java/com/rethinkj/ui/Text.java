@@ -114,6 +114,7 @@ public final class Text implements Measure {
   private boolean unfocused; // a field without the focus, which shows its start
   private boolean multiline;
   private boolean masked;
+  private boolean revealed; // a masked field that draws its string, see El#revealed
   private int mask = MASK;
   private String placeholder;
   private int placeholderColor;
@@ -237,9 +238,25 @@ public final class Text implements Measure {
     return string;
   }
 
-  /** Whether this is a field that shows a mask instead of its string; see {@link El#masked}. */
+  /**
+   * Whether this is a field for a password, whose string only drawing sees; see {@link El#masked}.
+   * Also while it is {@link #revealed}.
+   */
   public boolean masked() {
     return masked;
+  }
+
+  /**
+   * Whether this is a {@link #masked} field that draws its string instead of the mask; see {@link
+   * El#revealed}. {@link #string} is still the mask.
+   */
+  public boolean revealed() {
+    return masked && revealed;
+  }
+
+  /** Whether the glyphs show the mask: a {@link #masked} field that is not {@link #revealed}. */
+  boolean hidden() {
+    return masked && !revealed;
   }
 
   /** Whether this is a multi-line field; see {@link El#multiline}. */
@@ -427,6 +444,11 @@ public final class Text implements Measure {
 
   void masked(boolean masked) {
     this.masked = masked;
+    invalidate();
+  }
+
+  void revealed(boolean revealed) {
+    this.revealed = revealed;
     invalidate();
   }
 
@@ -789,7 +811,7 @@ public final class Text implements Measure {
     maskBounds = null;
     if (placeholderShown) {
       shown = placeholder;
-    } else if (masked) {
+    } else if (hidden()) {
       // Only the mask is shaped, so that nothing of the string reaches the fonts and their caches.
       List<Integer> bounds = new ArrayList<>();
       bounds.add(0);
