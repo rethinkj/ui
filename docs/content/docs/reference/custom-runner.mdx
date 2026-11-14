@@ -1,0 +1,19 @@
+---
+title: Custom runner
+description: The App methods a runner of your own needs, for example to embed an app in another toolkit's loop.
+---
+
+`WindowLoop` runs an app in an SDL window. To run an app in another loop, such as a window of another toolkit, feed it input with the methods under [Driving it from Java](/docs/concepts/app#driving-it-from-java), call `frame()`, draw `render()`, and use these methods for the rest:
+
+| `App` method | |
+| --- | --- |
+| `nextChange()` | When the last frame will change without input (the caret's blink, a hover delay, an `after` action); positive infinity when nothing will, so the runner can wait for input alone |
+| `onPost(wake)` | Called on the posting thread when a task arrives; wake the runner's wait there |
+| `handlersWaiting()` | Whether the next frame has handlers to run at once, such as `onResize` handlers after a layout; a runner that draws on the system's request draws again while this holds, a few times at most |
+| `invalidate()` | The state changed outside the app's handlers, so the next frame calls the view again. Call it on the other apps of the same state after one of them ran handlers (`ranHandlers()`) |
+| `inputArea()` | The focused element that takes text, as an `InputArea(x, y, width, height, cursor, password)` in logical pixels, or null: where the input method's window goes, and when to turn text input on and off |
+| `windowActive(boolean)`, `windowMaximized(boolean)` | The window's state; the view reads `windowMaximized()`, for a title bar that shows Restore |
+| `systemFonts(boolean)` | Fall back to the system's fonts for characters the app's fonts lack. Off by default, so tests draw the same everywhere; `WindowLoop` turns it on |
+| `textRendering(rendering)`, `imageMemory(bytes)` | The text hinting, and the GPU memory for images |
+
+The app belongs to the thread that runs it: call these methods from that thread. Only the `wake` callback of `onPost` runs on another thread, the one that posted.

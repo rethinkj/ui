@@ -3,18 +3,18 @@ title: An agent builds a view
 description: A loop for an agent, or a person, that writes a view, looks at it and checks it, without ever opening a window.
 ---
 
-An agent cannot look at a window, but it can read a PNG and a tree. This recipe is the loop that the project's own agents use: write the view, drive it with a script, read the tree, look at the image, and keep the script as a test.
+An agent cannot look at a window, but it can read a PNG and a tree. The loop: write the view, drive it with a script, read the tree, look at the image, and keep the script as a test.
 
 ## 1. Give the app a script entry
 
-`main` passes its arguments to `Script.handle` before it opens a window:
+`main` passes its arguments to `Script.handle` before it opens a window, as in the [first app](/docs/get-started/first-app):
 
-```java snippet="lights-app" title="Lights.java"
+```java snippet="lights-main" title="Lights.java"
 ```
 
 ## 2. Write the view
 
-Build it from the kit's components; each takes the theme first and returns an `El`. Give the elements you will act on a key or a label. Keep all state in the state object and change it only in handlers. See [Components](/docs/components) for each component's smallest example and what it shows in the tree.
+Build it from the kit's components; each takes the theme first and returns an `El`. Give the elements the script acts on a key or a label. Keep all state in the state object and change it only in handlers. See [Components](/docs/components) for each component's smallest example and what it shows in the tree.
 
 ## 3. Write a script
 
@@ -23,8 +23,8 @@ Start with what the user does, one step per line, and `snap` after each state yo
 ```text snippet="dialog-script" title="dialog.txt"
 ```
 
-- `advance 0.3` after opening a menu, dialog or tooltip: overlays fade in, and a snap before that shows them half there. An element takes the pointer once it is visible at all; one at opacity 0 or fading out (`exiting`) takes none and matches no selector.
-- `await` after starting work on another thread; posted results reach a script only there. `await progress` lets in what running work reported, for a snap of it half done.
+- `advance 0.3` after opening a menu, dialog or tooltip: overlays fade in, and a snap before that shows them half visible. Elements at opacity 0 or fading out (`exiting`) match no selector and take no presses.
+- `await` after starting work on another thread; posted results reach a script only there. `await progress` lets in progress reports, for a snap of work half done.
 - `scroll <list> row <n>` before pressing a row that is not in view.
 
 ## 4. Run it
@@ -43,15 +43,15 @@ Check the states first, in the tree:
 ```text file="examples/src/test/resources/golden/docs/dialog/open.tree.txt" start="overlay"
 ```
 
-The dialog is open and modal, the focus is in its field with the caret after the name, and both buttons are enabled. Then look at the PNG for what a tree cannot say: alignment, spacing, colours, cut-off text, overlapping parts. Look at both themes, and at scale 2.
+The dialog is open and modal, the focus is in its field with the caret after the name, and both buttons are enabled. Then look at the PNG for what a tree cannot show: alignment, spacing, colours, cut-off text, overlaps. Check both themes, and scale 2.
 
 ## 6. Keep it as a test
 
-Turn the script into a JUnit test that compares the snaps with stored ones ([Stored images as tests](/docs/testing/stored-images)), store them with `-Dgolden.update=true`, look at the stored images once more, and commit them with the view.
+Turn the script into a JUnit test that compares the snaps with stored ones ([Stored images as tests](/docs/testing/stored-images)). Store them with `-Dgolden.update=true`, look at them once more, and commit them with the view.
 
 ## Tips
 
-- Prefer selectors by role and label (`press role=button label="Save"`) to positions: they keep working when the layout changes, and they fail with a list of what is there.
-- Make every state visible in the tree: a component that only shows something by colour should also set a state (`selected`, `invalid`, `busy`, `value`). The kit's components do.
-- Keep windows small in scripts (`size 420 260`): smaller images are faster to read and to compare.
+- Prefer selectors by role and label (`press role=button label="Save"`) to positions: they survive layout changes, and when they fail they list what is there.
+- Make every state visible in the tree: what a component shows only by colour should also be a state (`selected`, `invalid`, `busy`, `value`). The kit's components do this.
+- Keep windows small in scripts (`size 420 260`): smaller images are faster to read and compare.
 - For this site's pages as Markdown, see [/llms.txt](/llms.txt).

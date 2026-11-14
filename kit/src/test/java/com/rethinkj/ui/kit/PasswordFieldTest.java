@@ -106,7 +106,7 @@ class PasswordFieldTest {
         "the field's frame keeps its focused look while its button has the focus");
     app.focus(null);
     run(app, "advance 1");
-    assertEquals(T.border().strong(), find(app, "pw").borderColor(), "and loses it after");
+    assertEquals(T.border().control(), find(app, "pw").borderColor(), "and loses it after");
     assertFalse(app.state().revealed);
     assertTrue(line(app, "#pw").contains("password"), line(app, "#pw"));
   }
