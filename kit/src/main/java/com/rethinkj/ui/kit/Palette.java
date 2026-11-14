@@ -61,10 +61,10 @@ public final class Palette {
   public static final int GREY_844 = 0xFFCFD3DA;
   public static final int GREY_853 = 0xFFD3D5DB;
   public static final int GREY_883 = 0xFFDADEE4;
-  public static final int GREY_905 = 0xFFE1E4E9;
   public static final int GREY_912 = 0xFFE3E6EB;
   public static final int GREY_916 = 0xFFE6E7EA;
-  public static final int GREY_958 = 0xFFF1F3F6;
+  public static final int GREY_927 = 0xFFE8EAEF;
+  public static final int GREY_968 = 0xFFF4F6F8;
   public static final int GREY_993 = 0xFFFDFDFE;
 
   // Blue

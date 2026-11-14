@@ -1095,8 +1095,8 @@ public record Theme(
    * Layers. The window is the page, darker than the cards in both themes; cards (panel) lie on it,
    * bands (a tab bar, a grid's header, a footer) are a quiet step inside a card, and controls and
    * popups (raised) a step above it, white in the light theme, where a control is told apart by its
-   * edge and a popup by its edge and shadow. In the light theme they are four tones: window L* 91,
-   * band 96, panel 99 and raised 100. Hairlines (subtle) are a low-contrast step from the card; a
+   * edge and a popup by its edge and shadow. In the light theme they are four tones: window L* 93,
+   * band 97, panel 99 and raised 100. Hairlines (subtle) are a low-contrast step from the card; a
    * button's edge (control) a little more. A divider, the hairline that separates content on a
    * surface, stands out 1.2:1 or more from every surface it is drawn on: in the dark theme it is
    * the button's edge, in the light one the step it needs on the grey window.
@@ -1179,15 +1179,15 @@ public record Theme(
   /** Neutral greys with a blue accent, dark text on light surfaces. */
   public static final Theme LIGHT = new Theme(
       new Surfaces(
-          GREY_912,
+          GREY_927,
           GREY_993,
           WHITE,
-          GREY_958,
+          GREY_968,
           alpha(GREY_773, 0.33f),
           alpha(GREY_773, 0.57f),
           alpha(BLACK, 0.35f)),
       new TextColors(GREY_108, GREY_395, GREY_602, WHITE),
-      new Borders(GREY_905, GREY_547, GREY_844, alpha(GREY_547, 0.37f), GREY_805),
+      new Borders(GREY_912, GREY_547, GREY_844, alpha(GREY_547, 0.37f), GREY_805),
       Hue.BLUE.light(),
       new Status(RED_395, AMBER_384, GREEN_389),
       SPACE,
@@ -1195,7 +1195,7 @@ public record Theme(
       TYPE,
       SIZE,
       MOTION,
-      new Grid(24, 32, 480, 6, 12, GREY_958, WHITE, WHITE, BLUE_918, GREY_883, BLUE_447, 1),
+      new Grid(24, 32, 480, 6, 12, GREY_968, WHITE, WHITE, BLUE_918, GREY_883, BLUE_447, 1),
       new Scrollbars(6, 2, 3, 24, GREY_501, GREY_423, GREY_327),
       new Elevation(
           List.of(
