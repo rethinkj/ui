@@ -5,6 +5,8 @@ description: The grid's cursor, selected rows or cells, and copying them as tab-
 
 A `DataGrid.Selection` holds the grid's cursor, the anchor that Shift extends from, and the selected ranges. The app keeps it in its state, and the grid changes it as the user selects. Pass it with `options().select(selection)` to make the grid selectable; most other options need it.
 
+Javadoc: [`DataGrid.Selection`](/api/com/rethinkj/ui/kit/DataGrid.Selection.html), [`DataGrid.Commands`](/api/com/rethinkj/ui/kit/DataGrid.Commands.html).
+
 <Shot src="kit/cells-{theme}-range" alt="A range of selected cells in the data grid, with the cursor's cell outlined" />
 
 ## Rows or cells
@@ -48,12 +50,12 @@ Keep a `DataGrid.Commands` in the app's state and pass it with `options().comman
 
 | Method | |
 | --- | --- |
-| `mode()`, `row()`, `column()` | The mode and the cursor's cell |
-| `anchorRow()`, `anchorColumn()` | Where Shift extends from |
+| `row()`, `column()` | The cursor's cell |
 | `ranges()` | The selected `Range`s: `top`, `left`, `bottom`, `right`, inclusive; `Range.ALL` columns for whole rows |
-| `contains(row, column)`, `isRowSelected(row)`, `isEmpty()`, `rowCount()` | Questions |
-| `select(row, column)`, `extend(row, column)`, `toggle(row, column)`, `selectAll(rowCount)`, `clear()` | Select from the app's own handlers |
+| `select(row, column)`, `selectAll(rowCount)`, `clear()` | Select from the app's own handlers |
 | `reset()` | Clear everything and scroll back to the start, for a new result |
+
+The anchor, questions such as `contains(row, column)`, and `extend` and `toggle` are on [`DataGrid.Selection`](/api/com/rethinkj/ui/kit/DataGrid.Selection.html).
 
 `onSelect(handler)` tells the app when the selection changes, for a status line such as "3 cells selected". `DataGrid.cellCount(ranges, columns)` counts the cells.
 

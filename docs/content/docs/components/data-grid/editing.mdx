@@ -5,6 +5,8 @@ description: Edit cells in place, paste, add and delete rows, and keep the chang
 
 The grid edits cells in an editor it lays over the cell, by the column's type, and hands each new value to the app. `GridChanges` is the usual place for those values: it keeps the changed cells, new rows and rows marked deleted over the app's own rows, shows them in the grid, undoes and redoes them, and lists them as UPDATE, INSERT and DELETE when the app writes them, as a database tool does until Commit.
 
+Javadoc: [`GridChanges`](/api/com/rethinkj/ui/kit/GridChanges.html), [`DataGrid.Options`](/api/com/rethinkj/ui/kit/DataGrid.Options.html).
+
 <Shot src="kit/edit-{theme}-states" alt="A grid with a changed cell, a new row, a deleted row and a failed value, each marked" />
 
 ## With GridChanges
@@ -120,12 +122,7 @@ For enabling commands, a status line and a toolbar:
 | Method | |
 | --- | --- |
 | `count()`, `isEmpty()` | The rows updated, inserted and deleted; whether there are none |
-| `rowStatus(row)` | `NEW`, `DELETED`, `ERROR`, `CHANGED` or `UNCHANGED`, in that order of precedence |
-| `cellStatus(row, column)` | As its row when that is deleted or unchanged; else `ERROR` for a failed cell, `NEW` in a new row, `CHANGED` or `UNCHANGED` |
-| `isNew(row)` | Whether the row shown there is a new one |
-| `key(row)`, `rowOf(key)` | The key of the row shown at an index (below 0 for a new row), and the index a key is shown at, -1 for none |
 | `canUndo()`, `canRedo()` | Whether `undo()` and `redo()` have a step, for Edit's Undo and Redo |
-| `cell(row, column)` | The value shown: the changed one, else the app's; null for NULL |
 | `changes()`, `changes(table, columns)` | What to write, as text or, over a [GridTable](/docs/components/data-grid/typed), as typed values |
 
 And for changing it from the app's own commands, each one step of the history:
@@ -133,10 +130,10 @@ And for changing it from the app's own commands, each one step of the history:
 | Method | |
 | --- | --- |
 | `set(row, column, value)`, `set(cells)` | Sets cells; a value equal to the app's is no change, and cells of deleted rows are left alone |
-| `insert(after)` | An empty row after the row shown at `after`, -1 for a new first row; it is shown at `after + 1` |
-| `delete(ranges)` | Marks the rows of these ranges deleted, or takes the mark away when all have it; new rows among them go at once |
 | `undo()`, `redo()` | Steps through the history |
 | `rows(rows)` | Replaces the app's `Rows`, after it filtered or sorted them; the changes stay with their keys |
+
+`rowStatus`, `cellStatus`, the rows' keys, `insert` and `delete` are on [`GridChanges`](/api/com/rethinkj/ui/kit/GridChanges.html).
 
 ## Keyboard
 
