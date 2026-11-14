@@ -1,0 +1,1 @@
+- `GridTable.comparator` sorts an enum in its order also where a constant has a class body; it compared such a constant with the others by text, which is not transitive and could make a sort throw.

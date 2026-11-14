@@ -655,6 +655,28 @@ class GridTableTest {
     assertTrue(app.tree().dump().contains("\"CC\""), app.tree().dump());
   }
 
+  enum Stage {
+    PENDING,
+    APPROVED,
+    CANCELLED {
+      @Override
+      public String toString() {
+        return "cancelled";
+      }
+    }
+  }
+
+  @Test
+  void enumsSortInTheirOrderAlsoWithAConstantThatHasABody() {
+    GridTable<Stage> table = DataGrid.table(i -> Stage.values()[i]);
+    Column column =
+        table.column("stage", 100, Format.choice(List.of(Stage.values()), Stage::name), s -> s);
+    Comparator<Stage> order = table.comparator(List.of(column), List.of(new SortKey(0, false)));
+    assertTrue(order.compare(Stage.PENDING, Stage.APPROVED) < 0);
+    assertTrue(order.compare(Stage.APPROVED, Stage.CANCELLED) < 0);
+    assertTrue(order.compare(Stage.PENDING, Stage.CANCELLED) < 0);
+  }
+
   static final class Details {
     static final Part<Details, String> NAME = Part.ofSetter(Details::name, Details::setName);
     private String name;

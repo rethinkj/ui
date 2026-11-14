@@ -165,10 +165,19 @@ public final class GridTable<T> {
       if (a == null || b == null) {
         return a == null ? (b == null ? 0 : -1) : 1;
       }
-      if (a instanceof Comparable c && a.getClass() == b.getClass()) {
+      Class<?> ta = type(a);
+      Class<?> tb = type(b);
+      if (a instanceof Comparable c
+          && b instanceof Comparable
+          && (ta.isAssignableFrom(tb) || tb.isAssignableFrom(ta))) {
         return c.compareTo(b);
       }
       return format.text(a).compareTo(format.text(b));
+    }
+
+    /** The type a value compares within: an enum's, also for a constant with a class body. */
+    private static Class<?> type(Object value) {
+      return value instanceof Enum<?> e ? e.getDeclaringClass() : value.getClass();
     }
 
     /** The cell's text: the value's in the format, null for NULL and for a row not loaded. */
