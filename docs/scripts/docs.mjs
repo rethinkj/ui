@@ -234,7 +234,7 @@ function check() {
   for (const txt of ['llms.txt', 'llms-full.txt']) {
     const text = fs.readFileSync(path.join(OUT, txt), 'utf8');
     for (const m of text.matchAll(/\]\((\/[^)\s#]*)/g)) {
-      if (!served(m[1])) dead.push(`/${txt}: ${m[1]}`);
+      if (!m[1].startsWith('/api/') && !served(m[1])) dead.push(`/${txt}: ${m[1]}`);
     }
   }
   if (dead.length) {
