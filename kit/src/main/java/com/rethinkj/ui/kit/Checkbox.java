@@ -1,14 +1,9 @@
 package com.rethinkj.ui.kit;
 
 import static com.rethinkj.ui.El.el;
-import static com.rethinkj.ui.El.row;
 import static com.rethinkj.ui.kit.Label.label;
-import static com.rethinkj.ui.kit.Theme.over;
 
-import com.rethinkj.ui.Cursor;
 import com.rethinkj.ui.El;
-import com.rethinkj.ui.Len;
-import com.rethinkj.ui.Style;
 
 /**
  * A box with a check mark, and an optional text beside it. A press on the box or on its text
@@ -57,39 +52,7 @@ public final class Checkbox {
     if (checked) {
       box.child(label(t, "✓").color(enabled ? t.text().onAccent() : t.text().disabled()));
     }
-    El checkbox = row()
-        .role("checkbox")
-        .label(text)
-        .checked(checked)
-        .disabled(!enabled)
-        .gap(t.space().m())
-        // Room for the focus ring around the text, taken back by the margin, so that the
-        // row lines up with what is above and below it.
-        .padding(t.space().xs(), t.space().s())
-        .margin(-t.space().xs(), -t.space().s(), -t.space().xs(), -t.space().s())
-        .align(Style.Align.CENTER)
-        .radius(t.radius().medium())
-        .child(box);
-    // Only as wide as the control and its text, so that a column that stretches its children
-    // stretches neither the press area nor the ring; one that centres them still centres it.
-    checkbox.style().width = Len.FIT_CONTENT;
-    if (text != null) {
-      checkbox.child(
-          label(t, text).color(enabled ? t.text().primary() : t.text().disabled()));
-    }
-    if (!enabled) {
-      return checkbox;
-    }
-    int hover = checked ? t.accent().hover() : over(fill, s.hover());
-    int pressed = checked ? t.accent().pressed() : over(fill, s.pressed());
-    // The whole row takes the press, text included, and its looks restyle the box.
-    return checkbox
-        .focusable()
-        .keepFocus() // as a button: Tab reaches it, a press leaves the focus where it is
-        .focusRing(t.accent().edge())
-        .cursor(Cursor.POINTER)
-        .onPress(onToggle)
-        .whenHovered(e -> box.fill(hover))
-        .whenPressed(e -> box.fill(pressed));
+    return ControlRow.controlRow(
+        t, "checkbox", checked, text, onToggle, box, t.radius().medium(), fill);
   }
 }
