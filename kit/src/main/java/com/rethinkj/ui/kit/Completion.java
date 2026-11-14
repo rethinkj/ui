@@ -1,6 +1,5 @@
 package com.rethinkj.ui.kit;
 
-import static com.rethinkj.ui.El.col;
 import static com.rethinkj.ui.El.el;
 import static com.rethinkj.ui.El.row;
 import static com.rethinkj.ui.kit.Icon.icon;
@@ -38,7 +37,8 @@ import java.util.function.Predicate;
  * entries to show, in order; the kit shows them as they come and filters nothing. In a tree dump
  * the list is {@code role=listbox} with {@code label="Completions"}, its entries {@code
  * role=option} with their text as the label and the keys {@code option-<index>}, the highlighted
- * one {@code selected}. Its look is that of a {@link Menu}.
+ * one {@code selected}. Only entries in or near the visible part are built. Its look is that of
+ * a {@link Menu}.
  */
 public final class Completion {
 
@@ -156,34 +156,32 @@ public final class Completion {
     if (entries.isEmpty()) {
       return field;
     }
-    El list = col()
+    El list = PassiveList.view(
+            t,
+            entries.size(),
+            ROWS,
+            state.highlight,
+            t.space().s(),
+            i -> option(t, entries.get(i), i, state, take))
         .key("completions")
         .role("listbox")
         .label("Completions")
-        .padding(t.space().s())
         .radius(t.radius().medium())
         .fill(t.surface().raised())
         .border(t.size().stroke(), t.border().control())
         .shadow(t.elevation().popup())
         .motion(t.motion().fade())
-        .scroll()
-        .scrollbars(t.scrollbars())
-        .revealRow(state.highlight)
         .atCaret()
         .side(Side.BOTTOM, Style.Align.START, t.space().xs())
         .keepFocus()
         .onDismiss(state::close);
-    list.style().minWidth = Len.px(t.size().field());
+    list.style().minWidth = Len.px(t.size().field() + PassiveList.gutter(t, entries.size(), ROWS));
     list.style().maxHeight =
         Len.px(ROWS * t.size().control() + 2 * (t.space().s() + t.size().stroke()));
-    for (int i = 0; i < entries.size(); i++) {
-      list.child(option(t, entries.get(i), i, state, take));
-    }
     return field.overlay(list);
   }
 
   private static El option(Theme t, Entry entry, int i, State state, Consumer<Integer> take) {
-    boolean lit = i == state.highlight;
     El mark = el().w(t.size().icon()).shrink(0).center();
     if (entry.symbol() != null) {
       mark.child(icon(t, entry.symbol(), Icon.Variant.MUTED));
@@ -204,17 +202,9 @@ public final class Completion {
       content.child(
           label(t, Label.Variant.MUTED, entry.kind()).margin(0, 0, 0, t.space().l()));
     }
-    return row()
-        .key("option-" + i)
-        .role("option")
+    return PassiveList.option(
+            t, i, state.highlight, at -> state.highlight = at, () -> take.accept(i))
         .label(entry.text())
-        .selected(lit)
-        .h(t.size().control())
-        .shrink(0)
-        .radius(t.radius().small())
-        .fill(lit ? t.grid().selected() : 0)
-        .onHoverFor(0, () -> state.highlight = i)
-        .onPress(() -> take.accept(i))
         .child(content);
   }
 
@@ -236,10 +226,8 @@ public final class Completion {
       return false;
     }
     switch (k.name()) {
-      case "ArrowDown" -> state.highlight = (state.highlight + 1) % n;
-      case "ArrowUp" -> state.highlight = (state.highlight + n - 1) % n;
-      case "PageDown" -> state.highlight = Math.min(state.highlight + ROWS, n - 1);
-      case "PageUp" -> state.highlight = Math.max(state.highlight - ROWS, 0);
+      case "ArrowDown", "ArrowUp", "PageDown", "PageUp" ->
+        state.highlight = PassiveList.move(k.name(), state.highlight, n, ROWS, i -> true);
       case "Enter", "NumpadEnter", "Tab" -> take.accept(state.highlight);
       case "Escape" -> state.close();
       default -> {

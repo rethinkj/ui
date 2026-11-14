@@ -12,8 +12,11 @@ import com.rethinkj.ui.Script;
 import com.rethinkj.ui.text.TextRendering;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.AbstractList;
+import java.util.BitSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.function.Function;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -41,6 +44,10 @@ class CompletionTest {
   }
 
   private App<Query> app() {
+    return app(CompletionTest::suggest);
+  }
+
+  private App<Query> app(Function<String, List<Completion.Entry>> suggest) {
     Theme t = Theme.DARK;
     Query q = new Query();
     App<Query> app = new App<>(q, s -> {
@@ -53,8 +60,7 @@ class CompletionTest {
           .hFull()
           .padding(12)
           .fill(t.surface().window())
-          .child(Completion.complete(
-              t, s.app, editor, s.editor.caret(), s.completion, CompletionTest::suggest));
+          .child(Completion.complete(t, s.app, editor, s.editor.caret(), s.completion, suggest));
     });
     q.app = app;
     app.textRendering(TextRendering.LINUX);
@@ -158,5 +164,62 @@ class CompletionTest {
     App<Query> app = app();
     run(app, "frame\npress #query\ntype \"s\"\nframe\ntype \"e\"\nframe\nkey Tab");
     assertEquals("select", app.state().sql, "Tab took it, and indented nothing");
+  }
+
+  @Test
+  void manySuggestionsBuildOnlyRowsInViewAndKeysRevealAndChooseInProviderOrder()
+      throws IOException {
+    TextLibraries.assumeLoaded();
+    int count = 10_000;
+    BitSet built = new BitSet();
+    List<Completion.Entry> entries = new AbstractList<>() {
+      @Override
+      public Completion.Entry get(int index) {
+        built.set(index);
+        return new Completion.Entry("item_" + (count - index), Symbol.TABLE, "name");
+      }
+
+      @Override
+      public int size() {
+        return count;
+      }
+    };
+    App<Query> app = app(word -> entries); // The provider decides what matches and in what order.
+    String tree = run(app, "frame\npress #query\ntype \"SELECT z\"\nframe\ntype \"z\"");
+    assertTrue(tree.contains("role=listbox"), tree);
+    assertEquals("item_10000", ComboBoxTest.options(tree).getFirst());
+    assertTrue(built.cardinality() > 0);
+    assertTrue(
+        built.cardinality() <= Completion.ROWS + 2 * El.OVERSCAN + 2,
+        "only visible rows and overscan built, not all " + count + ": " + built.cardinality());
+    assertFalse(tree.contains("#option-9999"), tree);
+
+    tree = run(app, "key ArrowUp");
+    assertEquals(count - 1, app.state().completion.highlight(), "Up wraps to the last entry");
+    assertTrue(ComboBoxTest.line(tree, "#option-9999").contains(" selected"), tree);
+    assertTrue(tree.contains("label=\"item_1\""), tree);
+
+    tree = run(app, "key PageUp");
+    assertEquals(count - 1 - Completion.ROWS, app.state().completion.highlight());
+    assertTrue(ComboBoxTest.line(tree, "#option-9991").contains(" selected"), tree);
+    run(app, "key PageDown");
+    assertEquals(count - 1, app.state().completion.highlight(), "Page Down stops at the end");
+    run(app, "key ArrowDown");
+    assertEquals(0, app.state().completion.highlight(), "Down wraps to the first entry");
+    tree = run(app, "key PageDown");
+    assertEquals(Completion.ROWS, app.state().completion.highlight());
+    assertTrue(ComboBoxTest.line(tree, "#option-8").contains(" selected"), tree);
+
+    tree = run(app, "key Tab");
+    assertEquals("SELECT item_9992", app.state().sql);
+    assertEquals(app.state().sql.length(), app.state().editor.caret());
+    assertFalse(tree.contains("role=listbox"), tree);
+
+    tree = run(app, "key Space control\nframe\nkey Home");
+    assertEquals(0, app.state().editor.caret(), "Home closes the list and moves the caret");
+    assertFalse(tree.contains("role=listbox"), tree);
+    tree = run(app, "key Space control\nframe\nkey End");
+    assertEquals(app.state().sql.length(), app.state().editor.caret());
+    assertFalse(tree.contains("role=listbox"), tree);
   }
 }
