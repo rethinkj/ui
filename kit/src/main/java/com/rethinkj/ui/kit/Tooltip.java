@@ -7,6 +7,7 @@ import com.rethinkj.ui.El;
 import com.rethinkj.ui.Side;
 import com.rethinkj.ui.Style;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 /**
  * A short text that shows below an element, centred on it, once the pointer has rested on the
@@ -41,23 +42,39 @@ public final class Tooltip {
   }
 
   private static El tooltip(Theme t, El anchor, String text, boolean shortened) {
-    Consumer<El> show = e -> {
-      if (shortened) {
-        if (e.overlays().stream()
-            .noneMatch(o -> WHOLE.equals(o.key()) || "tooltip".equals(o.key()))) {
-          e.overlay(panel(t, text).key(WHOLE).whenShortened());
-        }
-        return;
-      }
-      if (e.overlays().stream().noneMatch(o -> "tooltip".equals(o.key()))) { // one for both looks
-        // A tooltip the view gives stands in place of the one with the anchor's whole text.
-        e.overlays().stream().filter(o -> WHOLE.equals(o.key())).forEach(o -> o.opacity(0));
-        e.overlay(panel(t, text));
-      }
-    };
+    Consumer<El> show = e -> show(t, e, text, shortened);
     return anchor
         .whenHoveredFor(t.motion().tooltipDelay(), show)
         .whenFocusVisibleFor(t.motion().tooltipDelay(), show);
+  }
+
+  /**
+   * A hover-only tooltip whose text is read when the delay is due; null means none. A virtual
+   * row can decide from its laid-out text then, without an overlay or a focus look on every row.
+   */
+  static El whenHovered(Theme t, El anchor, Supplier<String> text) {
+    return anchor.whenHoveredFor(t.motion().tooltipDelay(), e -> {
+      String tip = text.get();
+      if (tip != null) {
+        show(t, e, tip, false);
+      }
+    });
+  }
+
+  private static void show(Theme t, El anchor, String text, boolean shortened) {
+    if (shortened) {
+      if (anchor.overlays().stream()
+          .noneMatch(o -> WHOLE.equals(o.key()) || "tooltip".equals(o.key()))) {
+        anchor.overlay(panel(t, text).key(WHOLE).whenShortened());
+      }
+      return;
+    }
+    if (anchor.overlays().stream()
+        .noneMatch(o -> "tooltip".equals(o.key()))) { // one for both looks
+      // A tooltip the view gives stands in place of the one with the anchor's whole text.
+      anchor.overlays().stream().filter(o -> WHOLE.equals(o.key())).forEach(o -> o.opacity(0));
+      anchor.overlay(panel(t, text));
+    }
   }
 
   private static final String WHOLE = "whole-text"; // the key of a cut text's tooltip

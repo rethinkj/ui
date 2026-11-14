@@ -1,0 +1,1 @@
+- Keep whole graphemes, including combining marks and joined emoji, when deciding whether Tree details, grid header types and cell details fit; empty Tree details and grid type names no longer fail in narrow layouts.

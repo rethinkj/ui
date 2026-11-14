@@ -10,7 +10,6 @@ import com.rethinkj.ui.Key;
 import com.rethinkj.ui.Len;
 import com.rethinkj.ui.Scrollbars;
 import com.rethinkj.ui.Style;
-import com.rethinkj.ui.Text;
 import java.util.Arrays;
 import java.util.List;
 import java.util.function.Consumer;
@@ -307,13 +306,11 @@ public final class Tree {
       Theme t, El row, Label.Variant variant, String label, String detail, float height) {
     El name = Label.label(t, variant, label).ellipsis().minSize(0, 0).shrink(0);
     name.style().maxWidth = Len.percent(1);
-    int first = detail.offsetByCodePoints(0, 1);
-    String least = first < detail.length() ? detail.substring(0, first) + Text.ELLIPSIS : detail;
     El more = Label.label(t, Label.Variant.MUTED, detail)
         .ellipsis()
         .minSize(0, 0)
         .grow(1)
-        .basis(DataGrid.natural(Label.label(t, Label.Variant.MUTED, least)))
+        .basis(TextSizing.natural(Label.label(t, Label.Variant.MUTED, TextSizing.least(detail))))
         .margin(0, 0, 0, t.space().s());
     El box = row()
         .wrap()
@@ -336,12 +333,13 @@ public final class Tree {
    * @return the row
    */
   private static El whole(Theme t, El row, El name, El more, String text, float height) {
-    return row.whenHoveredFor(t.motion().tooltipDelay(), e -> {
-      if (name.text().shortened()
-          || more != null && (more.text().shortened() || more.y() >= height)) {
-        e.overlay(Tooltip.panel(t, text));
-      }
-    });
+    return Tooltip.whenHovered(
+        t,
+        row,
+        () -> name.text().shortened()
+                || more != null && (more.text().shortened() || more.y() >= height)
+            ? text
+            : null);
   }
 
   /**
