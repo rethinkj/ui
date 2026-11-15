@@ -100,6 +100,17 @@ final class X11 {
   static final long CLIENT_FORMAT = 48;
   static final long CLIENT_DATA = 56;
 
+  static final int GENERIC_EVENT = 35;
+  /** {@code XGenericEventCookie}: evtype, and data, which SDL has fetched when it calls the hook. */
+  static final long COOKIE_EVTYPE = 36;
+
+  static final long COOKIE_DATA = 48;
+  static final int XI_BUTTON_PRESS = 4;
+  /** {@code XIDeviceEvent}: time, and detail, the button. */
+  static final long DEVICE_TIME = 40;
+
+  static final long DEVICE_DETAIL = 56;
+
   // The atoms of the one display SDL opens, interned with the first window's counter.
   private static long wmProtocols;
   private static long syncRequest;
@@ -238,6 +249,21 @@ final class X11 {
     long low = event.get(JAVA_LONG, CLIENT_DATA + 16);
     long high = event.get(JAVA_LONG, CLIENT_DATA + 24);
     return high << 32 | low & 0xFFFFFFFFL;
+  }
+
+  /**
+   * The server time, in milliseconds, of a press of the left button as XInput 2 reports it, or -1
+   * when the event is no such press.
+   */
+  static long leftPress(MemorySegment event) {
+    if (event.get(JAVA_INT, EVENT_TYPE) != GENERIC_EVENT
+        || event.get(JAVA_INT, COOKIE_EVTYPE) != XI_BUTTON_PRESS) {
+      return -1;
+    }
+    MemorySegment data = event.get(ADDRESS, COOKIE_DATA).reinterpret(DEVICE_DETAIL + 4);
+    return data.address() != 0 && data.get(JAVA_INT, DEVICE_DETAIL) == 1
+        ? data.get(JAVA_LONG, DEVICE_TIME)
+        : -1;
   }
 
   /** Sets the counter, which tells the window manager that the window has drawn its new size. */

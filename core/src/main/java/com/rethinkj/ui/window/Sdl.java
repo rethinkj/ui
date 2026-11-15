@@ -70,6 +70,7 @@ final class Sdl {
   static final int EVENT_WINDOW_FOCUS_GAINED = 0x20E;
   static final int EVENT_WINDOW_FOCUS_LOST = 0x20F;
   static final int EVENT_WINDOW_CLOSE_REQUESTED = 0x210;
+  static final int EVENT_WINDOW_HIT_TEST = 0x211;
   static final int EVENT_WINDOW_DISPLAY_CHANGED = 0x213;
   static final int EVENT_WINDOW_DISPLAY_SCALE_CHANGED = 0x214;
   static final int EVENT_DISPLAY_CURRENT_MODE_CHANGED = 0x156;

@@ -368,6 +368,8 @@ public final class Window implements AutoCloseable {
   private static boolean dispatching;
   /** What an upcall caught, for {@link #rethrow}. */
   private static Throwable failure;
+  /** The X server time of the last press of the left button on X11, or -1. */
+  private static long x11Press = -1;
 
   private static MemorySegment buffer;
   private static MemorySegment ints;
@@ -453,6 +455,13 @@ public final class Window implements AutoCloseable {
   private WindowPart pressed;
   /** Whether a secondary press began on a drag area, where it belongs to the system menu. */
   private boolean menuPress;
+  /** The X server time of the last left press that SDL handed to the window manager, or -1. */
+  private long dragPress = -1;
+  /** Whether that press may begin a double click: one that moved the window does not. */
+  private boolean dragFirst;
+
+  private float dragPressX;
+  private float dragPressY;
   // The last event was a key pressed with Control and without Alt, whose character Windows types.
   private boolean afterControlKey;
   private char highSurrogate; // of a WM_CHAR that SDL dropped, until its second half comes
@@ -847,15 +856,48 @@ public final class Window implements AutoCloseable {
     if (click != null && open) {
       switch (click) {
         case MINIMIZE -> minimize();
-        case MAXIMIZE -> {
-          if (isMaximized()) {
-            restore();
-          } else {
-            maximize();
-          }
-        }
+        case MAXIMIZE -> toggleMaximized();
         default -> deliver(new CloseRequested());
       }
+    }
+  }
+
+  private void toggleMaximized() {
+    if (isMaximized()) {
+      restore();
+    } else {
+      maximize();
+    }
+  }
+
+  /**
+   * A left press at the pointer on a drag area that SDL handed to the window manager to move the
+   * window, so that the listener never sees it, as on X11: the second of two within SDL's
+   * double-click time (500 ms) and radius maximizes the window or restores it, as a system title
+   * bar does.
+   *
+   * @param time the press's X server time; XInput 2 reports a press once from the pointer and once
+   *     from its device, and SDL hands over both
+   */
+  private void dragPressed(long time) {
+    if (time == dragPress) {
+      return;
+    }
+    int radius = doubleClickRadius();
+    boolean second = dragFirst
+        && ((time - dragPress) & 0xFFFFFFFFL) <= 500
+        && units(Math.abs(pointerX - dragPressX)) <= radius
+        && units(Math.abs(pointerY - dragPressY)) <= radius;
+    dragPress = time;
+    dragFirst = !second;
+    dragPressX = pointerX;
+    dragPressY = pointerY;
+    if (second) {
+      deferred.add(() -> {
+        if (open) {
+          toggleMaximized();
+        }
+      });
     }
   }
 
@@ -1040,7 +1082,10 @@ public final class Window implements AutoCloseable {
           post(new Resized(width, height));
         }
       }
-      case Sdl.EVENT_WINDOW_MOVED -> rememberNormal();
+      case Sdl.EVENT_WINDOW_MOVED -> {
+        dragFirst = false;
+        rememberNormal();
+      }
       case Sdl.EVENT_WINDOW_DISPLAY_CHANGED -> post(new DisplayChanged());
       case Sdl.EVENT_WINDOW_MINIMIZED, Sdl.EVENT_WINDOW_MAXIMIZED, Sdl.EVENT_WINDOW_RESTORED -> {
         long flags = Sdl.getWindowFlags(sdl);
@@ -1065,6 +1110,14 @@ public final class Window implements AutoCloseable {
       case Sdl.EVENT_WINDOW_FOCUS_GAINED -> post(new FocusChanged(true));
       case Sdl.EVENT_WINDOW_FOCUS_LOST -> post(new FocusChanged(false));
       case Sdl.EVENT_WINDOW_CLOSE_REQUESTED -> post(new CloseRequested());
+      // SDL sends it for a left press that it handed to the system; Windows takes double clicks
+      // on a drag area itself.
+      case Sdl.EVENT_WINDOW_HIT_TEST -> {
+        if (handle instanceof WindowHandle.Xlib
+            && zone(pointerX, pointerY) == Sdl.HITTEST_DRAGGABLE) {
+          dragPressed(x11Press);
+        }
+      }
       // SDL sends BEGIN, POSITION as the drag moves, then at the release a FILE per file or a
       // TEXT per line and COMPLETE; a COMPLETE with nothing before it is a drag that left.
       case Sdl.EVENT_DROP_BEGIN -> {
@@ -1806,11 +1859,18 @@ public final class Window implements AutoCloseable {
     return !cloaked;
   }
 
-  /** SDL_X11EventHook: notes the window manager's requests to synchronise a resize. */
+  /**
+   * SDL_X11EventHook: notes the window manager's requests to synchronise a resize, and the time of
+   * each left press.
+   */
   private static boolean x11Event(MemorySegment userdata, MemorySegment xevent) {
     try {
       MemorySegment e = xevent.reinterpret(X11.EVENT_SIZE);
       int type = e.get(JAVA_INT, X11.EVENT_TYPE);
+      long press = X11.leftPress(e);
+      if (press >= 0) { // before SDL hands it over, which says nothing of its time
+        x11Press = press;
+      }
       if (type == X11.CLIENT_MESSAGE) {
         long value = X11.syncRequest(e);
         Window window = value < 0 ? null : ofX11(e.get(JAVA_LONG, X11.CLIENT_WINDOW));

@@ -44,7 +44,7 @@ In a title bar of your own, mark elements with `El.windowPart(part)`. Descendant
 | --- | --- |
 | `CONTENT` | Ordinary content (the default): mark an element inside a drag area that should not drag, such as a search field in a title bar |
 | `CONTROL` | Content that takes presses; elements with a press or drag handler, text fields and scrollbars are this without marking. The resize margin narrows to 2 pixels (`Window.CONTROL_MARGIN`) over it, so a scrollbar at the window's edge can be grabbed |
-| `DRAG` | Moves the window when dragged; on Windows a double click maximizes it |
+| `DRAG` | Moves the window when dragged; a double click maximizes it or restores it, except on Wayland |
 | `MINIMIZE`, `MAXIMIZE`, `CLOSE` | The window's buttons; resting on `MAXIMIZE` shows Windows 11's snap layouts |
 
 ## Identity and icons

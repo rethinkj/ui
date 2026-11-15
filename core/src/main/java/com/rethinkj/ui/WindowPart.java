@@ -21,8 +21,9 @@ public enum WindowPart {
    */
   CONTROL,
   /**
-   * Moves the window when dragged, like a system title bar. On Windows a double click maximizes
-   * it; on Linux it does not, because the press goes to the window manager as the start of a move.
+   * Moves the window when dragged, like a system title bar, and maximizes it or restores it at a
+   * double click. On Wayland the double click does nothing: SDL hands the press to the compositor
+   * and does not tell the app.
    */
   DRAG,
   /** Minimizes the window when clicked. */

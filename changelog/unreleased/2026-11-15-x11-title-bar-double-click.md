@@ -1,0 +1,1 @@
+- A double click on a `WindowPart.DRAG` area of a frameless window now maximizes or restores the window on Linux with X11 too, as it already did on Windows.
