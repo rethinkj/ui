@@ -136,6 +136,25 @@ class ChoiceTest {
     assertEquals(Integer.MIN_VALUE, value[0], "a step stays at the end");
   }
 
+  @Test
+  void aNumberFieldWithADraftTakesANegativeNumberTypedFromTheStart() throws IOException {
+    int[] value = {10};
+    ValueField.Draft draft = new ValueField.Draft();
+    App<Object> app = new App<>(
+        new Object(),
+        x -> col()
+            .child(NumberField.numberField(
+                Theme.DARK, null, value[0], -20, 20, 1, draft, v -> value[0] = v)));
+    run(app, "focus role=spinbutton\nkey A control\ntype \"-\"");
+    String field = StructureTest.line(app.tree().dump(), "role=spinbutton");
+    assertTrue(field.contains("\"-\" ") && field.contains(" invalid"), field);
+    assertEquals(10, value[0], "no number yet: the app keeps its own");
+    run(app, "type \"5\"");
+    assertEquals(-5, value[0]);
+    run(app, "key ArrowUp");
+    assertTrue(StructureTest.line(app.tree().dump(), "role=spinbutton").contains("\"-4\" "));
+  }
+
   /** A drag compares with what it reported last, not with where it began. */
   @Test
   void aSliderDragReportsEachNewStopOnceAndComesBackToWhereItBegan() throws IOException {

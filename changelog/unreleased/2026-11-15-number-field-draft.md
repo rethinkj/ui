@@ -1,0 +1,1 @@
+- `NumberField.numberField` takes a `ValueField.Draft`, which keeps a text between two numbers, such as a lone `-` on the way to `-5` or the emptied field, and shows it as invalid while the app keeps its last number. A field of a `Prop` of an `Editing` keeps its draft there by itself, so a negative number can now be typed from the start.

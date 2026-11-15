@@ -204,6 +204,19 @@ class EditingFormTest {
   }
 
   @Test
+  void aNumberFieldOfAnEditingKeepsItsEmptyTextInTheDraft() throws IOException {
+    State s = new State();
+    App<State> app = app(s);
+    run(app, "focus role=spinbutton\nkey A control\nkey Delete");
+    String field = line(app, "role=spinbutton");
+    assertTrue(field.contains("\"\" ") && field.contains(" invalid"), field);
+    assertFalse(s.editing.valid());
+    run(app, "type \"6\"");
+    assertEquals(6, s.editing.value().workers());
+    assertTrue(s.editing.valid());
+  }
+
+  @Test
   void aPropThatCannotBeWrittenDisablesEveryComponent() throws IOException {
     Theme t = Theme.DARK;
     Part<String, String> whole = Part.of(v -> v, (v, w) -> w);

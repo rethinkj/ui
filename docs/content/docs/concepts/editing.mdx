@@ -66,7 +66,8 @@ Each has an overload that takes a `Prop` in place of the value and its handler. 
 | [Checkbox](/docs/components/checkbox), [Toggle](/docs/components/toggle) | `checkbox(t, prop, text)`, `toggle(t, prop, text)` |
 | [Select](/docs/components/select), [Radio](/docs/components/radio), [Segmented](/docs/components/segmented) | `select(t, values, prop, text, menuState)`, `radioGroup(t, values, prop, text)`, `segmented(t, values, prop, text)` |
 | [ComboBox](/docs/components/combo-box) | `comboBox(t, values, prop, text, state)`, `items(t, values, prop, item, state)`, `free(t, prop, suggestions, state)` |
-| [NumberField](/docs/components/number-field), [Slider](/docs/components/slider) | `numberField(t, prop, min, max, step)`, `slider(t, prop, min, max, step)` |
+| [NumberField](/docs/components/number-field) | `numberField(t, prop, min, max, step)`: the draft is the editing's |
+| [Slider](/docs/components/slider) | `slider(t, prop, min, max, step)` |
 
 `Prop.of(() -> s.dark, v -> s.dark = v)` is a prop over the state, without an editing: it writes at once, keeps no draft and has no errors. `prop.at(part)` is the prop of one field; writing it writes back the whole value, a new record through the wither.
 

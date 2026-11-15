@@ -12,8 +12,13 @@ import java.util.function.IntConsumer;
  * Up and Page Down by ten steps, each kept inside the range, and the buttons do the same. Typing
  * hands each whole number to the handler, also one outside the range, which the field then shows
  * as invalid ({@link TextField#invalid}) until it is back in range: so that typing {@code 14} in a
- * field from 10 to 24 can pass {@code 1} on the way. Edits that leave no number are refused, so to
- * type a new number select the old one and type over it.
+ * field from 10 to 24 can pass {@code 1} on the way.
+ *
+ * <p>A text between two numbers, such as a lone minus sign before {@code -5} or the empty field,
+ * needs a {@link ValueField.Draft} to be kept in, as a {@link ValueField}'s does: with one, the
+ * field shows such a text as invalid and the app keeps its last number meanwhile. A field of a
+ * {@link Prop} of an {@link Editing} uses the editing's draft. Without one, an edit that leaves no
+ * number is refused, so to type a new number select the old one and type over it.
  *
  * <p>The field is the one stop for Tab; the buttons keep the focus in it when pressed ({@link
  * El#keepFocus}), also where they are disabled at the ends of the range. The result is a box with the
@@ -45,13 +50,21 @@ public final class NumberField {
 
   /**
    * A number field of a {@link Prop}; a null value shows as {@code min}, and a prop that cannot be
-   * written disables it.
+   * written disables it. A prop of an {@link Editing} keeps the field's draft there.
    */
   public static El numberField(Theme t, Prop<Integer> value, int min, int max, int step) {
     Integer now = value.get();
     return Prop.shown(
         t,
-        numberField(t, now == null ? min : now, min, max, step, value.writes() ? value::set : null),
+        numberField(
+            t,
+            null,
+            now == null ? min : now,
+            min,
+            max,
+            step,
+            value.keepsDraft() ? value.draft() : null,
+            value.writes() ? value::set : null),
         value);
   }
 
@@ -66,16 +79,47 @@ public final class NumberField {
    */
   public static El numberField(
       Theme t, String label, int value, int min, int max, int step, IntConsumer onChange) {
+    return numberField(t, label, value, min, max, step, null, onChange);
+  }
+
+  /**
+   * A number field that keeps a text between two numbers, such as {@code -} on the way to {@code
+   * -5} or the empty field, in {@code draft}.
+   *
+   * @param label the field's label; null for none, as in a {@link Form} field
+   * @param value the number to show, from the app's state
+   * @param min the smallest number the keys and buttons go to
+   * @param max the largest number the keys and buttons go to
+   * @param step how far a key or a button moves the number
+   * @param draft the field's draft, from the app's state; null to refuse such a text
+   * @param onChange told each new number; null disables the field
+   */
+  public static El numberField(
+      Theme t,
+      String label,
+      int value,
+      int min,
+      int max,
+      int step,
+      ValueField.Draft draft,
+      IntConsumer onChange) {
     if (min > max || step < 1) {
       throw new IllegalArgumentException(
           "Needs min <= max and a step of 1 or more, was " + min + ", " + max + ", " + step);
     }
     boolean enabled = onChange != null;
+    String text = Integer.toString(value);
+    if (draft != null) {
+      draft.show(Format.INTEGER, value);
+      text = draft.text();
+    }
     El field = TextField.textField(
-            t, Integer.toString(value), enabled ? s -> edit(s, min, value, onChange) : null)
+            t, text, enabled ? s -> edit(s, min, value, draft, onChange) : null)
         .role("spinbutton")
         .label(label);
-    if (value < min || value > max) {
+    if (draft != null && draft.error() != null && draft.showsError()) {
+      TextField.invalid(t, field).errorMessage(draft.error());
+    } else if (value < min || value > max) {
       // The message a form or a group's row shows below it, and a dump as error="...".
       TextField.invalid(t, field).errorMessage(min + " to " + max);
     }
@@ -122,8 +166,18 @@ public final class NumberField {
         .w(t.size().field() / 2);
   }
 
-  /** Hands a typed whole number on; refuses anything else, so the field stays as it was. */
-  private static void edit(String s, int min, int value, IntConsumer onChange) {
+  /**
+   * Hands a typed whole number on; keeps a text on the way to one in the draft, if there is one,
+   * and refuses anything else, so the field stays as it was.
+   */
+  private static void edit(
+      String s, int min, int value, ValueField.Draft draft, IntConsumer onChange) {
+    if (draft != null) {
+      if (s.matches(min < 0 ? "-?\\d*" : "\\d*")) {
+        draft.edit(Format.INTEGER, s, onChange::accept);
+      }
+      return;
+    }
     if (!s.matches(min < 0 ? "-?\\d+" : "\\d+")) {
       return;
     }

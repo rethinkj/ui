@@ -115,6 +115,11 @@ public final class Prop<T> {
         read, writes ? value -> set(part.write(get(), value)) : null, editing, List.copyOf(inner));
   }
 
+  /** Whether this prop comes from an {@link Editing}, which keeps its field's {@link #draft}. */
+  boolean keepsDraft() {
+    return editing != null;
+  }
+
   /**
    * The draft of a {@link ValueField} of this prop: kept by the {@link Editing} the prop comes
    * from, for its field.
