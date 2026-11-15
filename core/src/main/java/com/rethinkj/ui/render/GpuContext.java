@@ -133,11 +133,6 @@ final class GpuContext {
     return context;
   }
 
-  /** Whether this thread has a windows' context open, which {@link #forWindows} would share. */
-  static boolean windowsOpen() {
-    return WINDOWS.get() != null;
-  }
-
   /**
    * Starts making the windows' context on a thread of its own, with its device and the pipeline
    * for {@code BGRA8_UNORM_SRGB}, unless one is being made or a windows' context is open. What

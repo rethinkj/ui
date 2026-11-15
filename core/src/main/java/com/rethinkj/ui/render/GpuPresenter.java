@@ -35,8 +35,9 @@ import java.util.Objects;
  * its first frame, or when one of its methods below first needs them, not when it is made: the
  * app builds its first frame meanwhile, while the device that {@link #prepare} started is being
  * finished. So what can fail there, wgpu-native that cannot be loaded, no adapter that can present
- * to the window, a surface without an sRGB format, is thrown by that first call. A presenter for a
- * window that opens next to others takes their device when it is made, and throws there.
+ * to the window, a surface without an sRGB format, is thrown by that first call. A presenter made
+ * while another presenter of its thread is open, drawn yet or not, takes the device when it is
+ * made, and throws there.
  *
  * <p>The surface has an sRGB format, {@code BGRA8_UNORM_SRGB} where the system offers it, so that
  * blending happens in linear light; is opaque to the compositor where it can be; and presents in
@@ -72,6 +73,9 @@ public final class GpuPresenter implements WindowLoop.Presenter, AutoCloseable {
 
   private final Window window;
   private final List<TextureFormat> formats;
+  /** How many presenters of this thread are open, ready or not. */
+  private static final ThreadLocal<int[]> OPEN = ThreadLocal.withInitial(() -> new int[1]);
+
   // Null until the first frame or the first method that needs them; see ready().
   private GpuContext context;
   private Surface surface;
@@ -121,9 +125,11 @@ public final class GpuPresenter implements WindowLoop.Presenter, AutoCloseable {
   GpuPresenter(Window window, List<TextureFormat> formats) {
     this.window = Objects.requireNonNull(window, "window");
     this.formats = List.copyOf(formats);
-    if (GpuContext.windowsOpen()) {
-      ready(); // nothing to wait for, and Windows.open closes the window again if this throws
+    int[] open = OPEN.get();
+    if (open[0] > 0) {
+      ready(); // Windows.open closes the window again if this throws; then it is not counted
     }
+    open[0]++;
   }
 
   /**
@@ -305,6 +311,7 @@ public final class GpuPresenter implements WindowLoop.Presenter, AutoCloseable {
   public void close() {
     if (!closed) {
       closed = true;
+      OPEN.get()[0]--;
       if (context == null) {
         return; // it made nothing
       }
