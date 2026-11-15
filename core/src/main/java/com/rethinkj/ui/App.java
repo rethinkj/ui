@@ -2029,9 +2029,8 @@ public final class App<S> {
       if (scope == null || now == null || !order.contains(now)) {
         awaiting = null; // its place is gone: the focus goes where recovery puts it
       } else if (preferred != null && preferred.isDefaultFocus()) {
-        Object id = animator.identity(preferred);
-        if (!id.equals(focusId)) {
-          moveFocus(id, ring); // also ends the wait
+        if (!animator.identity(preferred).equals(focusId)) {
+          focus(preferred, ring); // as a move: noted in the memories, ends the wait
         }
         awaiting = null;
       }
