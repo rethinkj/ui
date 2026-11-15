@@ -253,8 +253,9 @@ public final class App<S> {
   // The identities of the elements that had the focus last, the latest first, for focus(container).
   // shortcut: the last 16 only; a container whose last focus is older gets its first element.
   private final ArrayDeque<Object> recent = new ArrayDeque<>();
-  // The identity of a container that focus(container) found no default focus in; until the focus
-  // moves, it goes to the default focus that appears there later.
+  // The identity of a container that focus(container) or recovery found no default focus in; until
+  // the focus moves, it goes to the default focus that appears there later, and the place it holds
+  // meanwhile does not count in recent.
   private Object awaiting;
   // The state changed outside the app's handlers (invalidate): build the view before the next
   // input.
@@ -1609,12 +1610,14 @@ public final class App<S> {
    * the nearest element along the old element's identity path that is still there, below the
    * root, and either takes the focus itself or holds an element that does, then to that element:
    * the one inside it that had the focus last, else its {@link El#defaultFocus} one, else its
-   * {@link El#autofocus} one, else the first in tree order. This returns that element from the same frame on. Closing the active
-   * tab from inside its content puts the focus into the content of the tab that takes over, and an
-   * editor laid over a grid's cell gives it back to the grid when it goes. Only when no ancestor
-   * below the root holds a focusable element is the focus cleared, and this returns null. The
-   * ring stays as it was: where a key moved the focus away, the new place shows it and scrolls
-   * into view; where a press did, it does not.
+   * {@link El#autofocus} one, else the first in tree order, and then, as after {@link #focus(El)}
+   * into a container, a {@link El#defaultFocus} element that appears there later takes it. This
+   * returns that element from the same frame on. Closing the active tab from inside its content
+   * puts the focus into the content of the tab that takes over, and an editor laid over a grid's
+   * cell gives it back to the grid when it goes. Only when no ancestor below the root holds a
+   * focusable element is the focus cleared, and this returns null. The ring stays as it was: where
+   * a key moved the focus away, the new place shows it and scrolls into view; where a press did,
+   * it does not.
    */
   public El focused() {
     return focused;
@@ -1672,7 +1675,8 @@ public final class App<S> {
    * focus into it: to the element inside it that had the focus last, if it can still take it,
    * else to its {@link El#defaultFocus} element, else to the first one inside it that can, as the
    * focus finds a place when its element goes. In that last case, a {@link El#defaultFocus}
-   * element that a later tree adds inside it takes the focus, as long as the focus has not moved.
+   * element that a later tree adds inside it takes the focus, as long as the focus has not moved;
+   * until then, the element it is on does not count as the one inside that had it last.
    * The element inside is looked for in the tree built after the handler, so the handler can
    * change what the element holds and focus it at once; when nothing inside can take the focus,
    * the focus stays where it was.
@@ -1704,7 +1708,10 @@ public final class App<S> {
         }
         boolean fallback = !now.isDefaultFocus() && lastInside(id, order) == null;
         boolean due = focus(now, true);
-        awaiting = fallback ? id : null;
+        if (fallback) {
+          awaiting = id;
+          recent.remove(focusId);
+        }
         return due;
       }
       return (id == null || now != null && order.contains(now)) && focus(now, true);
@@ -2084,7 +2091,9 @@ public final class App<S> {
     }
     focused = el;
     el.focused(true);
-    noteRecent();
+    if (awaiting == null) {
+      noteRecent();
+    }
     if (reveal) {
       reveal = false;
       reveal(el);
@@ -2098,7 +2107,8 @@ public final class App<S> {
    * Where the focus goes when the element with identity {@code lost} is gone or can no longer take
    * it: to the nearest of it and its ancestors below the root that is still there and can take the
    * focus, or else has an element inside it that can, the one that had the focus last, else the
-   * one {@link #firstInside} picks; null if none has.
+   * one {@link #firstInside} picks, which waits for a default focus as after {@link #focus(El)};
+   * null if none has.
    */
   private El recover(Object lost, List<El> order) {
     List<Object> lineage = Animator.lineage(lost);
@@ -2116,6 +2126,7 @@ public final class App<S> {
       }
       El first = firstInside(scope, order);
       if (first != null) {
+        awaiting = first.isDefaultFocus() ? null : lineage.get(i);
         return first;
       }
     }

@@ -582,6 +582,41 @@ class FocusTest {
   }
 
   @Test
+  void aDefaultFocusThatAppearsAfterTheFocusFellIntoAContainerTakesIt() {
+    int[] state = {0, 0}; // the content shown, and whether the second one's grid is there
+    App<int[]> app = start(
+        new App<>(
+            state,
+            s -> row()
+                .children(col()
+                    .key("page")
+                    .children(col()
+                        .key("content-" + s[0])
+                        .children(
+                            el().key("refresh").focusable().size(10, 10),
+                            s[0] == 0 || s[1] == 1
+                                ? el().key("grid").focusable().defaultFocus().size(10, 10)
+                                : el())))),
+        100,
+        100);
+    app.focus(find(app.tree(), "grid"));
+    app.frame();
+    state[0] = 1;
+    app.invalidate();
+    app.frame();
+    assertEquals("refresh", focusedKey(app), "the grid went: the focus fell to the new refresh");
+    for (int i = 0; i < 2; i++) {
+      app.focus(find(app.tree(), "page"));
+      app.frame();
+      assertEquals("refresh", focusedKey(app), "where it fell does not count as where it was");
+    }
+    state[1] = 1;
+    app.invalidate();
+    app.frame();
+    assertEquals("grid", focusedKey(app), "the grid that appears takes it");
+  }
+
+  @Test
   void aFocusWithinLookShowsWhileTheFocusIsOnTheElementOrInsideIt() {
     App<Object> app = start(
         new App<>(
