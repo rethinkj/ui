@@ -67,17 +67,18 @@ el 0,0 1000x600
                 el 279,63 44x2
                 text "Start" 287,41 28x16
           el #panel role=tabpanel label="Start" 277,66 714x505
-            el 277,66 714x505
-              el 277,66 714x476
-                text "The frame of a database manager" 301,90 666x17
-                text "Open a table from the catalogue: double-click it, or select it and press Enter." 301,115 666x16
-                text "Control+Tab and Control+Shift+Tab go through the tabs; Control+W closes one." 301,139 666x16
-                text "staging answers slowly, and prod-eu refuses to connect." 301,163 666x16
-                text "Edits of a table's rows wait for Commit, Control+S." 301,187 666x16
-                text "The servers refuse an amount below zero, and a paid order going back to pending." 301,211 666x16
-              el 277,542 714x29
-                text #status "prod-eu" 293,549 51x16
-                el 356,557 619x0
+            el #content-0 277,66 714x505
+              el 277,66 714x505
+                el 277,66 714x476
+                  text "The frame of a database manager" 301,90 666x17
+                  text "Open a table from the catalogue: double-click it, or select it and press Enter." 301,115 666x16
+                  text "Control+Tab and Control+Shift+Tab go through the tabs; Control+W closes one." 301,139 666x16
+                  text "staging answers slowly, and prod-eu refuses to connect." 301,163 666x16
+                  text "Edits of a table's rows wait for Commit, Control+S." 301,187 666x16
+                  text "The servers refuse an amount below zero, and a paid order going back to pending." 301,211 666x16
+                el 277,542 714x29
+                  text #status "prod-eu" 293,549 51x16
+                  el 356,557 619x0
       el #divider role=separator label="Resize" 268,32 8x540 value="first 260"
         el 268,32 8x540
           el 272,32 1x540

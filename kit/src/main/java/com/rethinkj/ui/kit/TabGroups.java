@@ -2,11 +2,14 @@ package com.rethinkj.ui.kit;
 
 import com.rethinkj.ui.Drag;
 import com.rethinkj.ui.El;
+import com.rethinkj.ui.Len;
 import com.rethinkj.ui.window.Window;
 import com.rethinkj.ui.window.Windows;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.IdentityHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -57,7 +60,10 @@ import java.util.function.ObjIntConsumer;
  *       {@link #dockAll} unless set, or {@link #closeAll}.
  * </ul>
  *
- * <p>Content is built only for the active tab of each group, and belongs to the app. What the
+ * <p>Content is built only for the active tab of each group, and belongs to the app. It goes into
+ * an element of its own for each tab, {@code #content-<n>} in a tree dump, so that the focus is
+ * remembered per tab ({@link com.rethinkj.ui.App#focus}): switching tabs and focusing the panel
+ * go back to where the focus was in that tab, else to its {@link El#defaultFocus}. What the
  * app keeps of elements by their identity, such as a field's caret and undo history or a scroll
  * offset, belongs to the window that showed them: a tab that moves to another window starts
  * there without it, unless the app keeps it in the tab's state.
@@ -126,6 +132,8 @@ public final class TabGroups<T> {
   private final Group<T> main = new Group<>();
   private final List<Group<T>> groups = new ArrayList<>(List.of(main));
   private final Tabs.Dragging dragging = new Tabs.Dragging();
+  private final Map<T, String> contentKeys = new IdentityHashMap<>(); // see #tabs
+  private int contentKeysMade;
   private Consumer<Group<T>> onWindowClose = this::dockAll;
   private Consumer<T> onClosed = tab -> {};
   private ObjIntConsumer<Group<T>> onCloseTab = this::close;
@@ -232,13 +240,20 @@ public final class TabGroups<T> {
               : () -> dock(group, indexOf(group, target), main, main.tabs.size())));
     }
     T active = group.activeTab();
+    El body = content.apply(active);
+    if (body != null && active != null) { // each tab's content its own identity, see #tabs
+      body.style().minWidth = Len.ZERO;
+      body.style().minHeight = Len.ZERO;
+      String key = contentKeys.computeIfAbsent(active, x -> "content-" + contentKeysMade++);
+      body = El.col().key(key).child(body.grow(1));
+    }
     return Tabs.tabs(
         t,
         group.tabs.stream().map(tab).toList(),
         group.active,
         i -> select(group, i),
         i -> onCloseTab.accept(group, i),
-        content.apply(active),
+        body,
         Tabs.options()
             .drag(dragging)
             .id(group)
@@ -279,6 +294,7 @@ public final class TabGroups<T> {
   public void close(Group<T> group, int index) {
     T d = dragged();
     T tab = remove(group, index);
+    contentKeys.remove(tab);
     follow(d);
     onClosed.accept(tab);
   }

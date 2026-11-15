@@ -271,7 +271,7 @@ class FocusTest {
   }
 
   @Test
-  void whenTheFocusedElementGoesTheFocusGoesToTheFirstFocusableOneOfItsNearestAncestor() {
+  void whenTheFocusedElementGoesTheFocusGoesIntoItsNearestAncestorAsFocusingItWould() {
     List<String> keys = new ArrayList<>();
     App<int[]> app = pages(keys);
     tab(app);
@@ -283,7 +283,7 @@ class FocusTest {
     assertTrue(app.tree().dump().contains("el #field-1-0 0,10 40x10 focused\n"));
     assertTrue(ring(app.scene()) >= 0, "a key moved it: the ring stays");
     key(app, "PageDown", 0);
-    assertEquals("field-0-0", focusedKey(app), "back on the first page, at its first field");
+    assertEquals("field-0-1", focusedKey(app), "back on the first page, where it was");
     assertEquals(
         List.of("Tab", "PageDown", "PageDown"),
         keys,
@@ -547,6 +547,38 @@ class FocusTest {
     app.focus(find(app.tree(), "table"));
     app.frame();
     assertEquals("a1", focusedKey(app), "where the focus was last wins");
+  }
+
+  @Test
+  void aDefaultFocusThatAppearsLaterTakesTheFocusUntilItMoves() {
+    for (boolean moved : new boolean[] {false, true}) {
+      boolean[] loaded = {false};
+      App<boolean[]> app = start(
+          new App<>(
+              loaded,
+              s -> row()
+                  .children(
+                      el().key("outside").focusable().size(10, 10),
+                      col()
+                          .key("page")
+                          .children(
+                              el().key("refresh").focusable().size(10, 10),
+                              s[0]
+                                  ? el().key("grid").focusable().defaultFocus().size(10, 10)
+                                  : el()))),
+          100,
+          100);
+      app.focus(find(app.tree(), "page"));
+      app.frame();
+      assertEquals("refresh", focusedKey(app), "no default focus yet");
+      if (moved) {
+        key(app, "Tab", Key.SHIFT);
+      }
+      loaded[0] = true;
+      app.invalidate();
+      app.frame();
+      assertEquals(moved ? "outside" : "grid", focusedKey(app), "unless the focus moved first");
+    }
   }
 
   @Test

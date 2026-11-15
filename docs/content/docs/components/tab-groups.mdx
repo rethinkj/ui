@@ -40,7 +40,7 @@ A script moves a tab to a window of its own through its menu:
 
 ## The state
 
-Content is built only for each group's active tab. State the kit keeps by an element's identity, such as a field's caret and undo history or a scroll offset, stays with the window that showed it. To take it along with the tab, keep it in the tab's own state (`FieldState`, `ScrollState`). See [Several windows](/docs/concepts/windows).
+Content is built only for each group's active tab, inside an element of its own for each tab (`#content-<n>` in a tree dump), so that the focus is remembered per tab: `app.focus(panel)` and switching tabs go back to where the focus was in that tab, or to its `defaultFocus()` element if it has not had the focus yet. State the kit keeps by an element's identity, such as a field's caret and undo history or a scroll offset, stays with the window that showed it. To take it along with the tab, keep it in the tab's own state (`FieldState`, `ScrollState`). See [Several windows](/docs/concepts/windows).
 
 ## What the user can do
 

@@ -58,5 +58,6 @@ el 0,0 640x360
             el #close-6 role=button label="Close notes ü.md" 605,41 16x16
               text label="dismiss" "\u{F368}" 605,41 16x16
       el #panel role=tabpanel label="notes ü.md" 9,66 622x285
-        el 9,66 622x285
-          text #text role=textbox label="notes ü.md" "# Größen\n\nNotes from a file manager, with Umlauts: Ärger, Öl, Übermut.\n" 21,78 598x261 lines 1-4/4 hovered
+        el #content-5 9,66 622x285
+          el 9,66 622x285
+            text #text role=textbox label="notes ü.md" "# Größen\n\nNotes from a file manager, with Umlauts: Ärger, Öl, Übermut.\n" 21,78 598x261 lines 1-4/4 hovered

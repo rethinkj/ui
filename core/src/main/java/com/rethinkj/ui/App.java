@@ -253,6 +253,9 @@ public final class App<S> {
   // The identities of the elements that had the focus last, the latest first, for focus(container).
   // shortcut: the last 16 only; a container whose last focus is older gets its first element.
   private final ArrayDeque<Object> recent = new ArrayDeque<>();
+  // The identity of a container that focus(container) found no default focus in; until the focus
+  // moves, it goes to the default focus that appears there later.
+  private Object awaiting;
   // The state changed outside the app's handlers (invalidate): build the view before the next
   // input.
   private boolean changedOutside;
@@ -1605,8 +1608,8 @@ public final class App<S> {
    * no longer focusable, takes no input or is clipped away), the focus does not vanish: it goes to
    * the nearest element along the old element's identity path that is still there, below the
    * root, and either takes the focus itself or holds an element that does, then to that element:
-   * its {@link El#defaultFocus} one, else its {@link El#autofocus} one, else the first in tree
-   * order. This returns that element from the same frame on. Closing the active
+   * the one inside it that had the focus last, else its {@link El#defaultFocus} one, else its
+   * {@link El#autofocus} one, else the first in tree order. This returns that element from the same frame on. Closing the active
    * tab from inside its content puts the focus into the content of the tab that takes over, and an
    * editor laid over a grid's cell gives it back to the grid when it goes. Only when no ancestor
    * below the root holds a focusable element is the focus cleared, and this returns null. The
@@ -1668,7 +1671,8 @@ public final class App<S> {
    * <p>An element that is not focusable, such as a sidebar or the content of a tab, moves the
    * focus into it: to the element inside it that had the focus last, if it can still take it,
    * else to its {@link El#defaultFocus} element, else to the first one inside it that can, as the
-   * focus finds a place when its element goes.
+   * focus finds a place when its element goes. In that last case, a {@link El#defaultFocus}
+   * element that a later tree adds inside it takes the focus, as long as the focus has not moved.
    * The element inside is looked for in the tree built after the handler, so the handler can
    * change what the element holds and focus it at once; when nothing inside can take the focus,
    * the focus stays where it was.
@@ -1695,7 +1699,13 @@ public final class App<S> {
       List<El> order = focusables();
       if (into) {
         now = now == null ? null : into(id, now, order);
-        return now != null && focus(now, true);
+        if (now == null) {
+          return false;
+        }
+        boolean fallback = !now.isDefaultFocus() && lastInside(id, order) == null;
+        boolean due = focus(now, true);
+        awaiting = fallback ? id : null;
+        return due;
       }
       return (id == null || now != null && order.contains(now)) && focus(now, true);
     });
@@ -1706,11 +1716,9 @@ public final class App<S> {
    * id}: the element there that had it last and can still take it, else the first that can.
    */
   private El into(Object id, El scope, List<El> order) {
-    for (Object last : recent) {
-      El el = Animator.isBelow(last, id) ? animator.element(last) : null;
-      if (el != null && order.contains(el)) {
-        return el;
-      }
+    El last = lastInside(id, order);
+    if (last != null) {
+      return last;
     }
     El first = firstInside(scope, order);
     if (first == null) {
@@ -1721,6 +1729,20 @@ public final class App<S> {
       return entered;
     }
     return animator.identity(first) != null ? first : null; // enter's new rows may have dropped it
+  }
+
+  /**
+   * The element of {@code order} inside the element with identity {@code id} that had the focus
+   * last, or null.
+   */
+  private El lastInside(Object id, List<El> order) {
+    for (Object last : recent) {
+      El el = Animator.isBelow(last, id) ? animator.element(last) : null;
+      if (el != null && order.contains(el)) {
+        return el;
+      }
+    }
+    return null;
   }
 
   /** Puts the focus's identity first in {@link #recent}. */
@@ -1861,6 +1883,7 @@ public final class App<S> {
    */
   private boolean focus(El el, boolean ring) {
     noteOutside();
+    awaiting = null;
     if (focused != null) {
       focused.focused(false);
     }
@@ -1998,6 +2021,19 @@ public final class App<S> {
     if (focusId == null) {
       return;
     }
+    if (awaiting != null) {
+      El scope = animator.element(awaiting);
+      El preferred = scope == null ? null : firstInside(scope, focusables());
+      if (scope == null) {
+        awaiting = null;
+      } else if (preferred != null && preferred.isDefaultFocus()) {
+        Object id = animator.identity(preferred);
+        if (!id.equals(focusId)) {
+          moveFocus(id, ring); // also ends the wait
+        }
+        awaiting = null;
+      }
+    }
     if (focused != null) {
       focused.focused(false);
     }
@@ -2060,8 +2096,8 @@ public final class App<S> {
   /**
    * Where the focus goes when the element with identity {@code lost} is gone or can no longer take
    * it: to the nearest of it and its ancestors below the root that is still there and can take the
-   * focus, or else has an element inside it that can, the first {@link El#autofocus} one in tree
-   * order or else the first one; null if none has.
+   * focus, or else has an element inside it that can, the one that had the focus last, else the
+   * one {@link #firstInside} picks; null if none has.
    */
   private El recover(Object lost, List<El> order) {
     List<Object> lineage = Animator.lineage(lost);
@@ -2072,6 +2108,10 @@ public final class App<S> {
       }
       if (order.contains(scope)) {
         return scope;
+      }
+      El last = lastInside(lineage.get(i), order);
+      if (last != null) {
+        return last;
       }
       El first = firstInside(scope, order);
       if (first != null) {
@@ -3976,6 +4016,7 @@ public final class App<S> {
   /** Moves the focus to the element with this identity, which the next {@link #refocus} finds. */
   private void moveFocus(Object id, boolean ring) {
     noteOutside();
+    awaiting = null;
     if (focused != null) {
       focused.focused(false);
     }

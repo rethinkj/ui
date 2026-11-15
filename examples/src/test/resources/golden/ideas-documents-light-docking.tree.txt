@@ -26,5 +26,6 @@ el 0,0 480x300
               text label="dismiss" "\u{F368}" 76,41 16x16
         el #marker 98,37 2x24
       el #panel role=tabpanel label="Ideas" 9,66 462x225
-        el 9,66 462x225
-          text #text role=textbox label="Ideas" "A window per group of tabs" 21,78 438x201 lines 1-1/1
+        el #content-2 9,66 462x225
+          el 9,66 462x225
+            text #text role=textbox label="Ideas" "A window per group of tabs" 21,78 438x201 lines 1-1/1

@@ -52,7 +52,7 @@ A key goes through these steps until one takes it:
 
 A [`Key`](/api/com/rethinkj/ui/Key.html) has the web's key name (`"Enter"`, `"ArrowDown"`, `"A"`) and modifiers (`Key.CONTROL`, `SHIFT`, `ALT`, `META`).
 
-When the focused element leaves the tree, the focus moves to the nearest focusable element near its old place, so closing a tab puts the focus into the next tab's content. `app.focus(el)` moves the focus from a handler. Given an element that is not focusable, such as a sidebar or a tab's content, it moves the focus into it: to the element there that had it last, else to its `defaultFocus()` element, the one nearest the element if there are several, else to an `autofocus` one, else to the first one that can take it. That is how a command such as Ctrl+1 for "focus the content" works, also right after the handler changed what the content holds.
+When the focused element leaves the tree, the focus moves into the nearest container around its old place that still holds a focusable element, as `app.focus(container)` would, so closing a tab puts the focus into the next tab's content. `app.focus(el)` moves the focus from a handler. Given an element that is not focusable, such as a sidebar or a tab's content, it moves the focus into it: to the element there that had it last, else to its `defaultFocus()` element, the one nearest the element if there are several, else to an `autofocus` one, else to the first one that can take it. In that last case a `defaultFocus()` element that appears inside later, such as a grid once its rows are read, takes the focus, unless it has moved in the meantime. That is how a command such as Ctrl+1 for "focus the content" works, also right after the handler changed what the content holds.
 
 ## Looks
 

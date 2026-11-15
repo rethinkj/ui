@@ -54,6 +54,8 @@ The app keeps one [`Tabs.Dragging`](/api/com/rethinkj/ui/kit/Tabs.Dragging.html)
 | Control+W, Control+F4 | Close the active tab |
 | Control+Shift+Page Up, Page Down | Move the active tab, with `onMove` |
 
+When the active tab changes while the focus is in the content, the focus goes into the new content: to where it was last there, else to its `defaultFocus()` element. The focus is remembered by the elements' identities, so give each tab's content a key of its own, such as the query's id; [TabGroups](/docs/components/tab-groups) does it for you.
+
 The bar is one stop for Tab. For the shortcuts to work while the focus is elsewhere, give the root the same handler: `root.onKey(tabs.onKey())`.
 
 Keys go up from the focused element to the nearest tabs. When tabs sit inside the content of other tabs, such as a result and its messages inside a query tab, give the inner ones `switchKeys(false)`: the keys that choose a tab then reach the outer ones, while Left, Right, Home and End on the inner bar still choose its own tabs.

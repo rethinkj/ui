@@ -53,8 +53,10 @@ import java.util.function.IntConsumer;
  * the content of other tabs leave the four that choose to the outer ones with {@link
  * Options#switchKeys}. From the
  * content the focus goes into the content of the tab that takes over: to the element where it
- * was if the new content has one, else to its {@link El#defaultFocus} or {@link El#autofocus}
- * element or its first focusable one, else to the bar (see {@link com.rethinkj.ui.App#focused}). An app that wants the shortcuts
+ * was last in that content, else to its {@link El#defaultFocus} or {@link El#autofocus} element or
+ * its first focusable one, else to the bar (see {@link com.rethinkj.ui.App#focused}). The focus is
+ * remembered by identity, so key each tab's content of its own, as {@link TabGroups} does; contents
+ * of the same key share it. An app that wants the shortcuts
  * while the focus is elsewhere, as in a tree beside the tabs, gives its root the same handler,
  * which the tabs reach first when they have the focus:
  *
