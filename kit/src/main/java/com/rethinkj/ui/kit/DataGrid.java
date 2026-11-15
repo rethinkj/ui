@@ -1115,6 +1115,7 @@ public final class DataGrid {
     int headerColumn = -1;
     int dragColumn = -1;
     int dropAt = -1;
+    boolean pressedCell; // the last press on the rows was on a cell or a row number: drags select
     int[] shown; // the app's column of each one shown, as the last build had them
     // A switch of a boolean that was refused, and its cell, until the next key or press.
     String refused;
@@ -2260,6 +2261,7 @@ public final class DataGrid {
       body.onRowsBuilt(options.onRows);
     }
     if (sel != null) {
+      body.onPointerDown((clicks, modifiers) -> sel.pressedCell = false); // beside the cells
       body.onDrag(d -> drag(b, d));
     }
 
@@ -2998,6 +3000,7 @@ public final class DataGrid {
   private static void down(Build b, int row, int column, boolean rows, int clicks, int modifiers) {
     Selection sel = b.sel;
     sel.refused = null;
+    sel.pressedCell = true;
     if (sel.isEditing()) {
       return; // the press handed the value on, and the app refused it: the editor stays
     }
@@ -3022,7 +3025,11 @@ public final class DataGrid {
   /** Extends the selection to the cell under the pointer, whose movement may scroll the grid. */
   private static void drag(Build b, Drag d) {
     Selection sel = b.sel;
-    if (d.phase() == Drag.Phase.CANCEL || b.rows == 0 || b.columns.isEmpty() || sel.isEditing()) {
+    if (!sel.pressedCell
+        || d.phase() == Drag.Phase.CANCEL
+        || b.rows == 0
+        || b.columns.isEmpty()
+        || sel.isEditing()) {
       return;
     }
     int row = (int) Math.clamp(Math.floor(d.y() / b.g.rowHeight()), 0, b.rows - 1);

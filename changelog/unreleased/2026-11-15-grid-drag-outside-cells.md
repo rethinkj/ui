@@ -1,0 +1,1 @@
+- `DataGrid`: a drag that begins below the last row or right of the last column no longer extends the selection from the old anchor; only a drag that begins on a cell or a row number changes it.

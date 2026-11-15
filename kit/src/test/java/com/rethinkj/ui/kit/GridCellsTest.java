@@ -165,6 +165,21 @@ class GridCellsTest {
     assertEquals(1, s.ranges().size());
   }
 
+  @Test
+  void aDragThatBeginsBelowTheRowsOrRightOfTheColumnsLeavesTheSelection() throws IOException {
+    for (Mode mode : Mode.values()) {
+      Orders orders = new Orders(T, 3, 3, mode); // 404 pixels of columns: room around the cells
+      App<Orders> app = start(orders);
+      Selection s = orders.selection;
+      run(app, "press #cell-0-0\ndown 50,200\nmove 60,200\nmove 250,200\nup 250,200\nframe");
+      run(app, "down 450,40\nmove 450,50\nmove 450,90\nup 450,90\nframe");
+      assertEquals(
+          List.of(0, 0, 0, 0), List.of(s.row(), s.column(), s.anchorRow(), s.anchorColumn()));
+      assertEquals(1, s.ranges().size(), mode.toString());
+      assertTrue(s.contains(0, 0) && !s.contains(1, 0), s.ranges() + " in " + mode);
+    }
+  }
+
   private static void assertCursorRowInView(App<?> app, int row) {
     El rows = find(app, "rows");
     El el = find(app, "row-" + row);
