@@ -2023,9 +2023,11 @@ public final class App<S> {
     }
     if (awaiting != null) {
       El scope = animator.element(awaiting);
-      El preferred = scope == null ? null : firstInside(scope, focusables());
-      if (scope == null) {
-        awaiting = null;
+      El now = animator.element(focusId);
+      List<El> order = focusables();
+      El preferred = scope == null ? null : firstInside(scope, order);
+      if (scope == null || now == null || !order.contains(now)) {
+        awaiting = null; // its place is gone: the focus goes where recovery puts it
       } else if (preferred != null && preferred.isDefaultFocus()) {
         Object id = animator.identity(preferred);
         if (!id.equals(focusId)) {
