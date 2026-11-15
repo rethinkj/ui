@@ -37,7 +37,9 @@ class SharedGpuTest {
   /** A presenter for the window, or the test is skipped with the reason. */
   static GpuPresenter presenter(Window window) {
     try {
-      return new GpuPresenter(window);
+      GpuPresenter gpu = new GpuPresenter(window);
+      gpu.surfaceFormat(); // takes the device now, so that what is missing skips here
+      return gpu;
     } catch (UnsatisfiedLinkError e) {
       assumeTrue(false, "Skipped: wgpu-native cannot be loaded. " + e.getMessage());
     } catch (GpuException e) {

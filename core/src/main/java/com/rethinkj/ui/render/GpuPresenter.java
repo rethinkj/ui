@@ -31,6 +31,13 @@ import java.util.Objects;
  * belongs to one window stays its own: the surface and its configuration, the buffers of the
  * instances and clips, and the texture of its app's glyph atlas.
  *
+ * <p>The first presenter of a thread takes the device and makes the window's surface when it draws
+ * its first frame, or when one of its methods below first needs them, not when it is made: the
+ * app builds its first frame meanwhile, while the device that {@link #prepare} started is being
+ * finished. So what can fail there, wgpu-native that cannot be loaded, no adapter that can present
+ * to the window, a surface without an sRGB format, is thrown by that first call. A presenter for a
+ * window that opens next to others takes their device when it is made, and throws there.
+ *
  * <p>The surface has an sRGB format, {@code BGRA8_UNORM_SRGB} where the system offers it, so that
  * blending happens in linear light; is opaque to the compositor where it can be; and presents in
  * step with the display ({@code FIFO}). It is configured with the window's size in physical pixels
@@ -65,9 +72,10 @@ public final class GpuPresenter implements WindowLoop.Presenter, AutoCloseable {
 
   private final Window window;
   private final List<TextureFormat> formats;
-  private final GpuContext context;
-  private final Surface surface;
-  private final GpuRenderer renderer;
+  // Null until the first frame or the first method that needs them; see ready().
+  private GpuContext context;
+  private Surface surface;
+  private GpuRenderer renderer;
   private TextureFormat format;
   private Surface.AlphaMode alphaMode;
   private boolean pending;
@@ -79,10 +87,11 @@ public final class GpuPresenter implements WindowLoop.Presenter, AutoCloseable {
   private boolean closed;
 
   /**
-   * @throws UnsatisfiedLinkError if wgpu-native cannot be loaded
-   * @throws com.rethinkj.ui.gpu.GpuException if there is no adapter that can present to the window
-   * @throws IllegalStateException if the surface offers no sRGB format, or the device that the
-   *     thread's other windows share cannot present to this window
+   * A presenter for the window; the first of its thread makes nothing yet, see the class's
+   * description.
+   *
+   * @throws IllegalStateException if the device that the thread's other windows share cannot
+   *     present to this window
    */
   public GpuPresenter(Window window) {
     this(window, FORMATS);
@@ -90,7 +99,7 @@ public final class GpuPresenter implements WindowLoop.Presenter, AutoCloseable {
 
   /**
    * Starts making what the first presenter needs, the device and the pipeline, on a thread of its
-   * own, so that it is ready when that presenter is made: {@link Window#open} calls this, and the
+   * own, so that it is ready when that presenter draws: {@link Window#open} calls this, and the
    * work then overlaps with opening the window. An app may call it sooner, as at the start of its
    * {@code main}, to overlap it with its own start as well. Does nothing while that work runs or a
    * presenter is open; never needed, and what fails there is thrown by the presenter instead.
@@ -112,21 +121,40 @@ public final class GpuPresenter implements WindowLoop.Presenter, AutoCloseable {
   GpuPresenter(Window window, List<TextureFormat> formats) {
     this.window = Objects.requireNonNull(window, "window");
     this.formats = List.copyOf(formats);
+    if (GpuContext.windowsOpen()) {
+      ready(); // nothing to wait for, and Windows.open closes the window again if this throws
+    }
+  }
+
+  /**
+   * Takes the thread's context and makes the surface and the renderer, once.
+   *
+   * @throws UnsatisfiedLinkError if wgpu-native cannot be loaded
+   * @throws com.rethinkj.ui.gpu.GpuException if there is no adapter that can present to the window
+   * @throws IllegalStateException if the surface offers no sRGB format, or the device that the
+   *     thread's other windows share cannot present to this window
+   */
+  private void ready() {
+    if (context != null) {
+      return;
+    }
+    checkOpen();
     WindowHandle handle = window.handle();
-    context = GpuContext.forWindows();
+    GpuContext taken = GpuContext.forWindows();
     Surface made = null;
     try {
-      made = context.instance().createSurface("window", source(handle));
-      choose(context.deviceFor(made), made);
-      renderer = new GpuRenderer(context);
+      made = taken.instance().createSurface("window", source(handle));
+      choose(taken.deviceFor(made), made);
+      renderer = new GpuRenderer(taken);
     } catch (RuntimeException | Error e) {
       if (made != null && !made.isClosed()) {
         made.close();
       }
-      context.release();
+      taken.release();
       throw e;
     }
     surface = made;
+    context = taken;
   }
 
   /** Chooses the surface's format and alpha mode for the adapter of {@code device}. */
@@ -158,6 +186,7 @@ public final class GpuPresenter implements WindowLoop.Presenter, AutoCloseable {
   @Override
   public void present(Scene scene, float width, float height, float scale) {
     checkOpen();
+    ready();
     pending = false;
     presented = false;
     int pixelWidth = window.pixelWidth();
@@ -224,6 +253,7 @@ public final class GpuPresenter implements WindowLoop.Presenter, AutoCloseable {
    * appears, then only what changed in it, and nothing in frames whose text needs no new glyphs.
    */
   public long atlasUploads() {
+    ready();
     return renderer.atlasWrites();
   }
 
@@ -233,26 +263,31 @@ public final class GpuPresenter implements WindowLoop.Presenter, AutoCloseable {
    * gave it up to stay within the scene's {@link Scene#imageMemory}.
    */
   public long imageUploads() {
+    ready();
     return renderer.imageUploads();
   }
 
   /** What draws, as wgpu describes the adapter. */
   public String adapter() {
+    ready();
     return renderer.adapter();
   }
 
   /** The format of the window's surface, such as {@code BGRA8_UNORM_SRGB}. */
   public String surfaceFormat() {
+    ready();
     return format.name();
   }
 
   /** The device that draws now, shared with the thread's other presenters; for the tests. */
   Device device() {
+    ready();
     return context.device(surface);
   }
 
   /** How many pipelines the shared context holds, one per surface format; for the tests. */
   int pipelines() {
+    ready();
     return context.pipelines();
   }
 
@@ -270,6 +305,9 @@ public final class GpuPresenter implements WindowLoop.Presenter, AutoCloseable {
   public void close() {
     if (!closed) {
       closed = true;
+      if (context == null) {
+        return; // it made nothing
+      }
       try {
         renderer.close();
         if (!surface.isClosed()) {

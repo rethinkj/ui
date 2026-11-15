@@ -80,7 +80,9 @@ class SharedDeviceTest {
 
   private static GpuPresenter presenter(Window window, List<TextureFormat> formats) {
     try {
-      return new GpuPresenter(window, formats);
+      GpuPresenter gpu = new GpuPresenter(window, formats);
+      gpu.surfaceFormat(); // takes the device now, so that what is missing skips or throws here
+      return gpu;
     } catch (GpuException e) {
       if (e.kind() == GpuException.Kind.ADAPTER_UNAVAILABLE) {
         assumeTrue(false, "Skipped: no adapter can present to the window. " + e.wgpuMessage());
