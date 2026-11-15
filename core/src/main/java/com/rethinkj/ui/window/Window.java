@@ -533,7 +533,18 @@ public final class Window implements AutoCloseable {
       throw new IllegalArgumentException("Size " + width + "x" + height + " is not a window size");
     }
     GpuPresenter.prepare(); // the device and pipeline, while SDL starts and the window opens
-    start();
+    try {
+      start();
+    } catch (RuntimeException | Error e) {
+      if (thread == null) { // SDL did not start: no window takes or discards that device
+        try {
+          GpuPresenter.discardPrepared();
+        } catch (RuntimeException | Error suppressed) {
+          e.addSuppressed(suppressed);
+        }
+      }
+      throw e;
+    }
     // Window coordinates are pixels on Windows and X11 and points elsewhere; the content scale is
     // what one logical pixel is in them. Until the window exists, guess the primary display's.
     float content = Sdl.getDisplayContentScale(Sdl.getPrimaryDisplay());
