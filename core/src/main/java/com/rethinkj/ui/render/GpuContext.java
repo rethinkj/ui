@@ -25,6 +25,9 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
+import java.util.concurrent.FutureTask;
 
 /**
  * What the {@link GpuRenderer}s on one device share: the wgpu instance, the device, the shader
@@ -35,9 +38,15 @@ import java.util.Set;
  * context ({@link #forWindows}): a window that opens during a drag shows its first frame without
  * them.
  *
+ * <p>The context of the windows can be made ahead, on a thread of its own ({@link #prepare}),
+ * while the window opens: its device then comes from the fastest adapter, and its pipeline is
+ * compiled for {@code BGRA8_UNORM_SRGB}, the format surfaces offer first. The window's thread adopts
+ * it in {@link #forWindows}. If that adapter cannot present to the window, {@link #deviceFor} makes
+ * the device anew on one that can.
+ *
  * <p>The context counts its users and closes the instance, and with it everything made on it,
- * when the last lets go. It belongs to the thread that created it, as every object of the GPU
- * layer does.
+ * when the last lets go. It belongs to the thread that created or adopted it, as every object of
+ * the GPU layer does.
  *
  * <p>A lost device is not made anew: on Direct3D 12 a window's surface cannot be configured for
  * a new device while the lost one holds its swapchain (DXGI refuses a second swapchain for the
@@ -50,6 +59,14 @@ final class GpuContext {
 
   /** The context of each thread's windows, while one of them is open. */
   private static final ThreadLocal<GpuContext> WINDOWS = new ThreadLocal<>();
+
+  /** A context for the next windows' thread being made by {@link #prepare}, or null; on LOCK. */
+  private static Future<GpuContext> prepared;
+
+  /** How many windows' contexts are open on any thread; on LOCK. */
+  private static int open;
+
+  private static final Object LOCK = new Object();
 
   /** An image's texture on the GPU, with its view, its bind group and the bytes its levels take. */
   record Resident(Texture texture, TextureView view, BindGroup group, long bytes) {
@@ -65,6 +82,9 @@ final class GpuContext {
   private final Instance instance;
   private int users = 1;
   private boolean closed;
+  /** Whether the device was made by {@link #prepare}, before there was a surface to present to. */
+  private boolean ahead;
+
   private Device device;
   private Adapter.Info info;
   private ShaderModule module;
@@ -97,9 +117,83 @@ final class GpuContext {
       context.users++;
       return context;
     }
-    context = new GpuContext(GpuRenderer.WGSL, true);
+    Future<GpuContext> task;
+    synchronized (LOCK) {
+      task = prepared;
+      prepared = null;
+    }
+    context = task == null ? null : adopt(task);
+    if (context == null) {
+      context = new GpuContext(GpuRenderer.WGSL, true);
+    }
     WINDOWS.set(context);
+    synchronized (LOCK) {
+      open++;
+    }
     return context;
+  }
+
+  /**
+   * Starts making the windows' context on a thread of its own, with its device and the pipeline
+   * for {@code BGRA8_UNORM_SRGB}, unless one is being made or a windows' context is open. What
+   * fails there, as when wgpu-native cannot be loaded, is dropped: {@link #forWindows} then makes
+   * the context itself and throws it.
+   */
+  static void prepare() {
+    synchronized (LOCK) {
+      if (prepared != null || open > 0) {
+        return;
+      }
+      FutureTask<GpuContext> task = new FutureTask<>(() -> {
+        GpuContext context = new GpuContext(GpuRenderer.WGSL, true);
+        try {
+          context.device(null);
+          context.pipeline(TextureFormat.BGRA8_UNORM_SRGB);
+          context.ahead = true;
+          return context;
+        } catch (RuntimeException | Error e) {
+          context.release();
+          throw e;
+        }
+      });
+      Thread.ofPlatform().name("rethinkj-ui gpu").daemon().start(task);
+      prepared = task;
+    }
+  }
+
+  /** Closes the context that {@link #prepare} made and nobody took, once it is made. */
+  static void discardPrepared() {
+    Future<GpuContext> task;
+    synchronized (LOCK) {
+      task = prepared;
+      prepared = null;
+    }
+    GpuContext context = task == null ? null : adopt(task);
+    if (context != null) {
+      context.release();
+    }
+  }
+
+  /** The context {@link #prepare} made, adopted by this thread, or null if making it failed. */
+  private static GpuContext adopt(Future<GpuContext> task) {
+    boolean interrupted = false;
+    try {
+      while (true) {
+        try {
+          GpuContext context = task.get();
+          context.instance.adopt();
+          return context;
+        } catch (InterruptedException e) {
+          interrupted = true; // the context must not be left to nobody
+        }
+      }
+    } catch (ExecutionException e) {
+      return null;
+    } finally {
+      if (interrupted) {
+        Thread.currentThread().interrupt();
+      }
+    }
   }
 
   /**
@@ -131,9 +225,18 @@ final class GpuContext {
   Device deviceFor(Surface surface) {
     Device device = device(surface);
     if (surface.capabilities(device).formats().isEmpty()) {
+      if (ahead && users == 1) {
+        // Made before there was a surface, on an adapter that cannot present to it.
+        ahead = false;
+        device.close(); // and the shader, layouts and pipelines on it
+        this.device = null;
+        pipelines.clear();
+        return deviceFor(surface);
+      }
       throw new IllegalStateException("The window's surface cannot be presented to by " + info
           + ", which draws the other windows of this thread.");
     }
+    ahead = false;
     return device;
   }
 
@@ -384,6 +487,9 @@ final class GpuContext {
     closed = true;
     if (windows && WINDOWS.get() == this) {
       WINDOWS.remove();
+      synchronized (LOCK) {
+        open--;
+      }
     }
     instance.close();
   }

@@ -12,10 +12,10 @@ import java.util.Locale;
  * the objects it created first, newest first, and then releases its own handle, so wgpu never sees
  * a handle after it was released, and a child is never released after its parent.
  *
- * <p>All objects of an instance belong to the thread that created the instance; using one from
- * another thread throws {@link WrongThreadException}. wgpu-native keeps one error-scope stack per
- * device, not per thread, so two threads that record at the same time would see each other's
- * errors.
+ * <p>All objects of an instance belong to the thread that created the instance, or the one that
+ * {@link Instance#adopt adopted} it since; using one from another thread throws {@link
+ * WrongThreadException}. wgpu-native keeps one error-scope stack per device, not per thread, so two
+ * threads that record at the same time would see each other's errors.
  *
  * <p>Using an object after it was closed, or closing it again, throws {@link
  * IllegalStateException} that says what the object is and how it was closed. No closed handle
@@ -40,7 +40,6 @@ public abstract sealed class GpuObject implements AutoCloseable
 
   final Instance instance;
   final GpuObject parent;
-  final Thread owner;
   private final String label;
   private MemorySegment handle;
   /** Children in creation order; null until the first one. */
@@ -54,7 +53,6 @@ public abstract sealed class GpuObject implements AutoCloseable
    */
   GpuObject(Instance instance, GpuObject parent, String label, MemorySegment handle) {
     this.instance = instance == null ? (Instance) this : instance;
-    this.owner = instance == null ? Thread.currentThread() : instance.owner;
     this.parent = parent;
     this.label = label;
     this.handle = handle;
@@ -115,9 +113,10 @@ public abstract sealed class GpuObject implements AutoCloseable
   }
 
   final void checkThread() {
+    Thread owner = instance.owner;
     if (Thread.currentThread() != owner) {
       throw new WrongThreadException(this + " belongs to the thread \"" + owner.getName()
-          + "\", which created its instance; it cannot be used on the thread \""
+          + "\", which created or adopted its instance; it cannot be used on the thread \""
           + Thread.currentThread().getName() + "\".");
     }
   }

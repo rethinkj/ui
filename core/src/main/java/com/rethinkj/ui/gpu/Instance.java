@@ -28,8 +28,8 @@ import java.util.function.Consumer;
  * } // closes the device, the adapter and everything else the instance created
  * }</pre>
  *
- * <p>The instance and every object it hands out belong to the thread that created it. Closing it
- * closes them all, newest first.
+ * <p>The instance and every object it hands out belong to the thread that created it, until
+ * another thread {@link #adopt adopts} them. Closing it closes them all, newest first.
  */
 public final class Instance extends GpuObject {
 
@@ -38,6 +38,8 @@ public final class Instance extends GpuObject {
   private static boolean logInstalled;
 
   private final Backend backend;
+  /** The thread that the instance and its objects belong to. */
+  volatile Thread owner = Thread.currentThread();
   /** For tests: told of every object released, in the order of release. */
   Consumer<GpuObject> onRelease;
 
@@ -143,6 +145,16 @@ public final class Instance extends GpuObject {
 
   public Backend backend() {
     return backend;
+  }
+
+  /**
+   * Makes the calling thread the owner of this instance and of every object it handed out, for
+   * objects made on one thread and then handed to another, as a window's device is made while
+   * the window opens. The thread that owned them must not use them afterwards, and the hand-over
+   * must happen before, as through {@link java.util.concurrent.Future#get}.
+   */
+  public void adopt() {
+    owner = Thread.currentThread();
   }
 
   /**

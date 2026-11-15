@@ -52,8 +52,11 @@ public final class Device extends GpuObject {
 
   private final Queue queue;
   private final Limits limits;
-  /** Structs that every error scope pop reuses, for the life of the device. */
-  private final Arena arena = Arena.ofConfined();
+  /**
+   * Structs that every error scope pop reuses, for the life of the device; shared, as the device
+   * moves to the thread that {@link Instance#adopt adopts} its instance.
+   */
+  private final Arena arena = Arena.ofShared();
 
   private final MemorySegment popInfo;
   private final SegmentAllocator future;

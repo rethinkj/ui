@@ -14,6 +14,7 @@ import com.rethinkj.ui.El;
 import com.rethinkj.ui.Key;
 import com.rethinkj.ui.WindowPart;
 import com.rethinkj.ui.natives.Natives;
+import com.rethinkj.ui.render.GpuPresenter;
 import com.rethinkj.ui.render.Pixels;
 import com.rethinkj.ui.window.WindowEvent.AppearanceChanged;
 import com.rethinkj.ui.window.WindowEvent.CloseRequested;
@@ -511,7 +512,9 @@ public final class Window implements AutoCloseable {
    * until its first frame is drawn, that is until {@link #drawn} is first called, and then appears
    * with that frame; else it would show black on Windows, and on X11 what lay there, other
    * windows' content included, while the app gets the GPU ready and builds the frame. On Windows
-   * a system dialog or message box that opens for it before then makes it visible first.
+   * a system dialog or message box that opens for it before then makes it visible first. While the
+   * window opens, another thread makes the device that its {@link GpuPresenter} will draw with
+   * ({@link GpuPresenter#prepare}).
    *
    * @param width the width of the content in logical pixels
    * @param height the height of the content in logical pixels
@@ -529,6 +532,7 @@ public final class Window implements AutoCloseable {
     if (!(width > 0 && height > 0 && width < 1e6f && height < 1e6f)) {
       throw new IllegalArgumentException("Size " + width + "x" + height + " is not a window size");
     }
+    GpuPresenter.prepare(); // the device and pipeline, while SDL starts and the window opens
     start();
     // Window coordinates are pixels on Windows and X11 and points elsewhere; the content scale is
     // what one logical pixel is in them. Until the window exists, guess the primary display's.
@@ -2366,6 +2370,7 @@ public final class Window implements AutoCloseable {
       Sdl.quit();
       thread = null;
     }
+    GpuPresenter.discardPrepared(); // made by open for a presenter that never came
   }
 
   /** Throws what an upcall caught. */

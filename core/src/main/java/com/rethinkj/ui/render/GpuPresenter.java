@@ -88,6 +88,26 @@ public final class GpuPresenter implements WindowLoop.Presenter, AutoCloseable {
     this(window, FORMATS);
   }
 
+  /**
+   * Starts making what the first presenter needs, the device and the pipeline, on a thread of its
+   * own, so that it is ready when that presenter is made: {@link Window#open} calls this, and the
+   * work then overlaps with opening the window. An app may call it sooner, as at the start of its
+   * {@code main}, to overlap it with its own start as well. Does nothing while that work runs or a
+   * presenter is open; never needed, and what fails there is thrown by the presenter instead.
+   */
+  public static void prepare() {
+    GpuContext.prepare();
+  }
+
+  /**
+   * Closes what {@link #prepare} made if no presenter took it, after waiting for it to be made.
+   * {@link Window} calls this when its last window closes, so that a window opened later gets a
+   * device of its own, as without {@link #prepare}.
+   */
+  public static void discardPrepared() {
+    GpuContext.discardPrepared();
+  }
+
   /** With the surface formats to choose from, the most wanted first; for the tests. */
   GpuPresenter(Window window, List<TextureFormat> formats) {
     this.window = Objects.requireNonNull(window, "window");

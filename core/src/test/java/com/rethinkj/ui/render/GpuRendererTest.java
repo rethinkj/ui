@@ -222,6 +222,20 @@ class GpuRendererTest {
     }
   }
 
+  /** The windows' context that {@code Window.open} has made on another thread works on this one. */
+  @Test
+  void theWindowsContextMadeAheadWorksOnTheThreadThatTakesIt() {
+    GpuContext.prepare();
+    GpuContext[] context = new GpuContext[1];
+    GpuRenderer renderer = openOrSkip(() -> new GpuRenderer(context[0] = GpuContext.forWindows()));
+    try {
+      assertEquals(1, context[0].pipelines()); // compiled ahead, for BGRA8_UNORM_SRGB
+    } finally {
+      renderer.close();
+      context[0].release();
+    }
+  }
+
   @Test
   void anImageGoesToTheGpuOnceAndIsGivenUpBeyondTheMemory() {
     Image a = Image.of(Examples.photo(64, 48));
