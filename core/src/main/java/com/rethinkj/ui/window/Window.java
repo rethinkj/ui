@@ -368,7 +368,7 @@ public final class Window implements AutoCloseable {
   private static boolean dispatching;
   /** What an upcall caught, for {@link #rethrow}. */
   private static Throwable failure;
-  /** The X server time of the last press of the left button on X11, or -1. */
+  /** The X server time of the last press of a button on X11, or -1. */
   private static long x11Press = -1;
 
   private static MemorySegment buffer;
@@ -1017,6 +1017,7 @@ public final class Window implements AutoCloseable {
           // The modifiers as SDL knows them now, while it queues the press, which is in order.
           int clicks = Math.max(1, e.get(JAVA_BYTE, Sdl.BUTTON_CLICKS) & 0xFF);
           if (button == PointerButton.LEFT) {
+            dragFirst = false; // a click in between: the next on a drag area is a first one
             textSoon();
           }
           post(new PointerDown(x, y, button, clicks, modifiers(Sdl.getModState())));
@@ -1861,14 +1862,14 @@ public final class Window implements AutoCloseable {
 
   /**
    * SDL_X11EventHook: notes the window manager's requests to synchronise a resize, and the time of
-   * each left press.
+   * each press.
    */
   private static boolean x11Event(MemorySegment userdata, MemorySegment xevent) {
     try {
       MemorySegment e = xevent.reinterpret(X11.EVENT_SIZE);
       int type = e.get(JAVA_INT, X11.EVENT_TYPE);
-      long press = X11.leftPress(e);
-      if (press >= 0) { // before SDL hands it over, which says nothing of its time
+      long press = X11.press(e);
+      if (press >= 0) { // before SDL handles it: its HIT_TEST says nothing of its time
         x11Press = press;
       }
       if (type == X11.CLIENT_MESSAGE) {
