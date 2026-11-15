@@ -68,6 +68,14 @@ public final class Font implements AutoCloseable {
 
   private static MemorySegment library;
 
+  /**
+   * The FreeType library of {@link #inspect}, and its lock: the scan of the system's fonts runs
+   * while the first frame opens its fonts, and with the library and lock of those it held them up.
+   */
+  private static final Object SCAN = new Object();
+
+  private static MemorySegment scanLibrary;
+
   private final String name;
   private final boolean shared;
   private final boolean icons;
@@ -731,16 +739,20 @@ public final class Font implements AutoCloseable {
 
   private static MemorySegment library() {
     if (library == null) {
-      try (Arena call = Arena.ofConfined()) {
-        MemorySegment out = call.allocate(ADDRESS);
-        int error = FreeType.initFreeType(out);
-        if (error != 0) {
-          throw new IllegalStateException("FreeType could not start: error " + error + ".");
-        }
-        library = out.get(ADDRESS, 0);
-      }
+      library = newLibrary();
     }
     return library;
+  }
+
+  private static MemorySegment newLibrary() {
+    try (Arena call = Arena.ofConfined()) {
+      MemorySegment out = call.allocate(ADDRESS);
+      int error = FreeType.initFreeType(out);
+      if (error != 0) {
+        throw new IllegalStateException("FreeType could not start: error " + error + ".");
+      }
+      return out.get(ADDRESS, 0);
+    }
   }
 
   /**
@@ -748,15 +760,25 @@ public final class Font implements AutoCloseable {
    * style and characters. A colour face counts only if its glyph for a sample character, an emoji
    * where it has one, renders as an outline.
    */
-  static synchronized List<SystemFonts.Face> inspect(Path path, MemorySegment data) {
+  static List<SystemFonts.Face> inspect(Path path, MemorySegment data) {
     Natives.lookup("freetype");
     List<SystemFonts.Face> faces = new ArrayList<>();
+    synchronized (SCAN) {
+      if (scanLibrary == null) {
+        scanLibrary = newLibrary();
+      }
+      inspect(path, data, faces);
+    }
+    return faces;
+  }
+
+  private static void inspect(Path path, MemorySegment data, List<SystemFonts.Face> faces) {
     try (Arena call = Arena.ofConfined()) {
       MemorySegment out = call.allocate(ADDRESS);
       MemorySegment glyph = call.allocate(JAVA_INT);
       int count = 1;
       for (int i = 0; i < count; i++) {
-        if (FreeType.newMemoryFace(library(), data, data.byteSize(), i, out) != 0) {
+        if (FreeType.newMemoryFace(scanLibrary, data, data.byteSize(), i, out) != 0) {
           continue;
         }
         MemorySegment face = out.get(ADDRESS, 0).reinterpret(FreeType.FACE.byteSize());
@@ -785,7 +807,6 @@ public final class Font implements AutoCloseable {
         }
       }
     }
-    return faces;
   }
 
   /** The characters of a face's charmap, as first and last of each run of consecutive ones. */

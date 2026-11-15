@@ -1707,10 +1707,10 @@ public final class Window implements AutoCloseable {
    * on Windows the big icon's size, 32 pixels times the scale, and as SDL's Windows driver makes
    * one icon of the base image for both sizes, the window then also gets its small icon of 16
    * pixels times the scale ({@code WM_SETICON}), each from the image of its size, and new ones
-   * when the scale changes. On Linux the base is 64 pixels with alternates of 128 and 256, which
-   * Wayland's {@code xdg_toplevel_icon_v1} takes as scales 1, 2 and 4; X11's {@code
-   * _NET_WM_ICON} gets the base only, and a dock may prefer the icon of the app's {@code
-   * .desktop} file, which it finds by the app id ({@link #identity}).
+   * when the scale changes. On Linux the base is 64 pixels; on Wayland with alternates of 128 and
+   * 256, which {@code xdg_toplevel_icon_v1} takes as scales 1, 2 and 4, while X11's {@code
+   * _NET_WM_ICON} gets the base only, so none are drawn there. A dock may prefer the icon of the
+   * app's {@code .desktop} file, which it finds by the app id ({@link #identity}).
    *
    * @return false where the system shows no icon of the window's own, such as a Wayland
    *     compositor without {@code xdg_toplevel_icon_v1}
@@ -1733,7 +1733,8 @@ public final class Window implements AutoCloseable {
     boolean shown;
     try {
       int largest = first.width();
-      for (int size : shell != null ? new int[0] : new int[] {128, 256}) {
+      // Only Wayland's driver passes alternates on; drawing them for X11 delays the first frame.
+      for (int size : handle instanceof WindowHandle.Wayland ? new int[] {128, 256} : new int[0]) {
         Pixels image = icon.image(size);
         if (image.width() <= largest) {
           continue; // an icon of images that has none larger
