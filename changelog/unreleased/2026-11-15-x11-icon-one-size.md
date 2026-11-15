@@ -1,0 +1,1 @@
+- On X11, a window's icon is now drawn in the one size that X11 takes, 64 pixels, instead of three, which delayed the first frame. Wayland still gets 128 and 256 pixels as well.
