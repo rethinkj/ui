@@ -1,0 +1,1 @@
+- The scan of the system's fonts, which starts when a window's loop starts, no longer holds up the fonts that the first frame opens. The Showcase on Linux shows its first frame about 60 ms sooner.
