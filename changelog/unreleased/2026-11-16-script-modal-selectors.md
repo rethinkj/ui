@@ -1,0 +1,1 @@
+- A script's selector now searches only in the topmost open modal overlay, such as a dialog, and the overlays above it, as presses reach nothing below it. `press role=button label="Cancel"` finds the dialog's button even when the window below has one with the same label, and a selector that matches only what lies below the dialog fails with an error that says so.

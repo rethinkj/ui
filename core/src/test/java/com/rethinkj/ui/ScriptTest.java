@@ -415,6 +415,27 @@ class ScriptTest {
   }
 
   @Test
+  void aSelectorFindsOnlyWhatAModalOverlayLeavesToPress() throws IOException {
+    List<String> pressed = new ArrayList<>();
+    App<Object> app = new App<>(
+        new Object(),
+        s -> row()
+            .children(
+                el().role("button").label("Cancel").size(50, 20).onPress(() -> pressed.add("bar")),
+                el().role("button").label("Save").size(50, 20).onPress(() -> {}))
+            .overlay(col()
+                .centerInWindow()
+                .modal()
+                .child(el().role("button")
+                    .label("Cancel")
+                    .size(50, 20)
+                    .onPress(() -> pressed.add("dialog")))));
+    Script.run("size 200 100\nframe\npress role=button label=\"Cancel\"\nframe\n", app, out);
+    assertEquals(List.of("dialog"), pressed);
+    assertFailure("size 200 100\nframe\npress label=\"Save\"\n", "lies below a modal overlay", app);
+  }
+
+  @Test
   void aSnapCannotLeaveTheOutputFolderOrOverwriteAnother() throws IOException {
     Path inside = out.resolve("inside");
     App<Lights> app = switchApp();

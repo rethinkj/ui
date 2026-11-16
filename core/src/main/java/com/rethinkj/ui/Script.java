@@ -386,7 +386,7 @@ public final class Script {
           float[] at = line.point(args, app.tree());
           if (app.focusAt(at[0], at[1]) == null) {
             List<Found> all = new ArrayList<>();
-            walk(app.tree(), all, new ArrayList<>());
+            walk(app.tree(), false, all, new ArrayList<>());
             StringBuilder rows = new StringBuilder();
             for (Found found : all) {
               if (found.el.isFocusable()) {
@@ -1289,7 +1289,7 @@ public final class Script {
       tests.addAll(stateTests);
       List<Found> all = new ArrayList<>();
       List<Found> clipped = new ArrayList<>();
-      walk(root, all, clipped);
+      walk(root, false, all, clipped);
       Predicate<Found> matching = found -> tests.stream().allMatch(t -> t.test(found.el));
       List<Found> matches = all.stream().filter(matching).toList();
       if (matches.size() == 1) {
@@ -1322,6 +1322,15 @@ public final class Script {
                   : " An element with motion that appears fades in from opacity 0, and one that"
                       + " leaves fades out; the clock moves only with `advance`, so run"
                       + " `advance 1` and `frame` first."));
+        }
+      }
+      if (matches.isEmpty()) {
+        List<Found> covered = new ArrayList<>();
+        walk(root, true, covered, new ArrayList<>());
+        if (covered.stream().anyMatch(matching)) {
+          throw fail("What matches " + text + " lies below a modal overlay in the last frame, such"
+              + " as a dialog, which takes the presses there while it is open. Select an element"
+              + " of the overlay, or close it first; the .tree.txt of a snap marks it `modal`.");
         }
       }
       if (matches.isEmpty() && !stateTests.isEmpty() && !others.isEmpty()) {
@@ -1384,12 +1393,21 @@ public final class Script {
     }
   }
 
-  /** As the next method, for a tree and then each overlay shown above it, free of other clips. */
-  private static void walk(El root, List<Found> all, List<Found> clipped) {
+  /**
+   * As the next method, for a tree and then each overlay shown above it, free of other clips. With
+   * a modal overlay open, only for the topmost one and those above it, since a press reaches
+   * nothing below it; with {@code covered}, only for what lies below it instead.
+   */
+  private static void walk(El root, boolean covered, List<Found> all, List<Found> clipped) {
+    List<El> layers = new ArrayList<>(List.of(root));
+    layers.addAll(root.shownOverlays());
+    int modal = layers.size() - 1;
+    while (modal > 0 && !(layers.get(modal).isModal() && !layers.get(modal).isExiting())) {
+      modal--;
+    }
     float far = Float.POSITIVE_INFINITY;
-    walk(root, 0, 0, -far, -far, far, far, all, clipped);
-    for (El overlay : root.shownOverlays()) {
-      walk(overlay, 0, 0, -far, -far, far, far, all, clipped);
+    for (El layer : covered ? layers.subList(0, modal) : layers.subList(modal, layers.size())) {
+      walk(layer, 0, 0, -far, -far, far, far, all, clipped);
     }
   }
 

@@ -10,7 +10,7 @@ The target of a `press`, `move`, `wheel`, `focus` or `scroll` is a position or a
 | Target | Meaning |
 | --- | --- |
 | `x,y` | A position in logical pixels. |
-| `#key` | The element with this key, anywhere in the tree and its overlays. |
+| `#key` | The element with this key, anywhere in the tree and its overlays; while a modal overlay is open, such as a dialog, only in it and the overlays above it. |
 | `role=<role>` | The element with this role, such as `button`, `switch`, `textbox`, `gridcell`, `treeitem`. |
 | `label="<text>"` | The element with this label. `\"` and `\\` inside. |
 | `text="<string>"` | The text element showing exactly this string, written as the tree writes it. |
@@ -28,6 +28,8 @@ move role=button label="Refresh"
 ```
 
 A step acts on the center of the visible part of the element's rectangle; for an element over a range of text (`El.range`), on the middle of the range's first row. Elements that are fading out (`exiting`) or at opacity 0 never match, as the pointer does not hit them either. An element with motion, as most kit components have, fades in from opacity 0 when it appears in a parent that was already there, so in the frame it appears it does not match; the clock moves only with `advance`, so run `advance 1` and `frame` before the step. The error then says that what matches is fading in or out.
+
+While a modal overlay is open, such as a dialog, a selector searches only in it and the overlays above it, since presses reach nothing below it. A `Cancel` in a toolbar does not compete with the dialog's `Cancel`. A selector that matches only what lies below it fails and says so.
 
 ## Lists of rows
 
