@@ -699,15 +699,15 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
    * tab's query.
    */
   El palette(Theme theme, TabGroups.Group<Opened> group) {
-    CommandPalette.State state = palette(group);
-    if (!state.isOpen()) {
+    CommandPalette.State palette = palette(group);
+    if (!palette.isOpen()) {
       return null;
     }
     List<FilterList.Entry> commands = new ArrayList<>(CommandPalette.commands(menus(group)));
-    commands.add(FilterList.entry("Change theme…", () -> changeTheme(state)));
+    commands.add(FilterList.entry("Change theme…", () -> changeTheme(palette)));
     return CommandPalette.palette(
         theme,
-        state,
+        palette,
         commands,
         List.of(
             new CommandPalette.Source("@", "to open a table", FilterList.Entries.of(catalogue())),
@@ -716,9 +716,9 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
   }
 
   /** The themes, each shown as the keys or the pointer reach it, the one before on Escape. */
-  private void changeTheme(CommandPalette.State state) {
+  private void changeTheme(CommandPalette.State palette) {
     boolean before = dark;
-    state.ask(CommandPalette.Stage.choose(
+    palette.ask(CommandPalette.Stage.choose(
             "Choose a theme",
             List.of(
                 mark(FilterList.entry("Dark", () -> dark = true), dark),
