@@ -909,7 +909,7 @@ public final class El {
     scroll();
     this.rowCount = count;
     this.rowHeight = rowHeight;
-    this.rowBuilder = Objects.requireNonNull(row, "row");
+    this.rowBuilder = Context.captured(Objects.requireNonNull(row, "row"));
     this.spans = true;
     // Layout sees all rows as one leaf, as tall as they are together, but no taller than its floats
     // add up to the pixel: 22 000 000 pixels of rows and 23 above them came to 22 000 024, and a
@@ -2065,7 +2065,7 @@ public final class El {
    * @param look changes the element, or null for none
    */
   public El whenHovered(Consumer<El> look) {
-    this.hoverLook = look;
+    this.hoverLook = Context.captured(look);
     return this;
   }
 
@@ -2077,7 +2077,7 @@ public final class El {
    * @param look changes the element, or null for none
    */
   public El whenFocused(Consumer<El> look) {
-    this.focusLook = look;
+    this.focusLook = Context.captured(look);
     return this;
   }
 
@@ -2091,7 +2091,7 @@ public final class El {
    * @param look changes the element, or null for none
    */
   public El whenFocusWithin(Consumer<El> look) {
-    this.focusWithinLook = look;
+    this.focusWithinLook = Context.captured(look);
     return this;
   }
 
@@ -2106,7 +2106,7 @@ public final class El {
    * @param look changes the element, or null for none
    */
   public El whenPressed(Consumer<El> look) {
-    this.pressLook = look;
+    this.pressLook = Context.captured(look);
     return this;
   }
 
@@ -2122,7 +2122,7 @@ public final class El {
    */
   public El whenHoveredFor(double seconds, Consumer<El> look) {
     this.restDelay = delay(seconds);
-    this.restLook = look;
+    this.restLook = Context.captured(look);
     return this;
   }
 
@@ -2139,7 +2139,7 @@ public final class El {
    */
   public El whenFocusVisibleFor(double seconds, Consumer<El> look) {
     this.focusRestDelay = delay(seconds);
-    this.focusRestLook = look;
+    this.focusRestLook = Context.captured(look);
     return this;
   }
 
@@ -2176,7 +2176,7 @@ public final class El {
           "a cycle needs a period of more than 0 seconds, was " + seconds);
     }
     this.cycleSeconds = seconds;
-    this.cycle = look;
+    this.cycle = Context.captured(look);
     return this;
   }
 

@@ -175,7 +175,7 @@ public final class App<S> {
       float x, float y, float width, float height, float cursor, boolean password) {}
 
   private final S state;
-  private final Function<S, El> view;
+  private Function<S, El> view;
   // Input in the order it came, dispatched by frame(). Each returns whether it may have changed
   // something that the next rebuild shows.
   private final ArrayDeque<BooleanSupplier> queued = new ArrayDeque<>();
@@ -326,6 +326,21 @@ public final class App<S> {
 
   public S state() {
     return state;
+  }
+
+  /**
+   * Gives the view a {@link Context}'s value, which it takes from the state each time it builds
+   * the view: {@code app.provide(Theme.CURRENT, Settings::theme)} gives the kit's components the
+   * theme the settings chose, and a new choice shows with the next frame, as any change of the
+   * state does. Where the view gives the context another value itself ({@link Context#with}),
+   * that holds, and of two calls for one context the first does, which lies nearer the view.
+   *
+   * @return this app
+   */
+  public <T> App<S> provide(Context<T> context, Function<? super S, ? extends T> value) {
+    Function<S, El> inner = view;
+    view = state -> context.with(value.apply(state), () -> inner.apply(state));
+    return this;
   }
 
   /**
